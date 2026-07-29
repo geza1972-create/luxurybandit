@@ -27,6 +27,7 @@ export default function ThemeMediaAdmin({
   const [pin, setPin] = useState("");
   const [teaserUrl, setTeaserUrl] = useState("");
   const [teaserPath, setTeaserPath] = useState("");
+  const [refs, setRefs] = useState<Example[]>([]);
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
   const [dragging, setDragging] = useState<number | null>(null);
@@ -34,6 +35,7 @@ export default function ThemeMediaAdmin({
   const [msg, setMsg] = useState("");
   const teaserRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  const refFileRef = useRef<HTMLInputElement>(null);
   // ALLE Hooks stehen VOR dem `if (!isAdmin) return null` weiter unten. Standen sie danach,
   // wechselt die Zahl der Hooks zwischen den Renders und React bricht die Komponente ab
   // („Rendered more hooks than during the previous render") — genau so passiert am 29.07.2026.
@@ -50,6 +52,7 @@ export default function ThemeMediaAdmin({
     .then(d => {
       setTeaserUrl(d.teaserUrl ?? "");
       setTeaserPath(d.teaserPath ?? "");
+      setRefs(Array.isArray(d.previewRefs) ? d.previewRefs : []);
       setExamples(Array.isArray(d.examples) ? d.examples : []);
       setUsingDefaults(!!d.usingDefaults);
     })
@@ -64,6 +67,34 @@ export default function ThemeMediaAdmin({
     if (p) void load(p);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
+
+  // EINFÜGEN AUS DER ZWISCHENABLAGE (Owner 29.07.2026: „mach mir das so dass ich auch
+  // screenshots hochladen kann … aus dem Zwischenspeicher").
+  //
+  // Ein Bildschirmfoto liegt auf dem Mac in der Zwischenablage, nicht als Datei — über einen
+  // Dateidialog kommt man nur dran, wenn man es vorher irgendwohin speichert. Deshalb hört
+  // das Panel auf Cmd+V und nimmt das Bild direkt an.
+  //
+  // Der Zuhörer hängt am DOKUMENT, nicht am Kasten: sonst müsste man erst hineinklicken,
+  // damit Einfügen ankommt — und genau das vergisst man.
+  //
+  // Ziel ist IMMER das Referenzfoto. Cover und Galerie behalten ihren Dateidialog, sonst
+  // wüsste beim Einfügen niemand, wo das Bild landet.
+  const pasteRef = useRef<((f: File) => void) | null>(null);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const img = items.find(i => i.kind === "file" && i.type.startsWith("image/"));
+      if (!img) return;                       // Text eingefügt → nichts tun
+      const file = img.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      pasteRef.current?.(file);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [isAdmin]);
 
   if (!isAdmin) return null;
 
@@ -187,6 +218,33 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
+  // Das angezogene Referenzfoto der Frau. Eigener Platz, damit das Cover unangetastet bleibt.
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  const onRefFile = async (f?: File | null) => {
+    if (!f) return;
+    setBusy("ref");
+    try {
+      const path = await upload(f, "image");
+      if (path) {
+        const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ addPreviewRef: path }) });
+        if (r.ok) { setMsg("✅ Referenzfoto hinzugefügt — das nächste kannst du direkt einfügen."); await load(pin); }
+        else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
+      }
+    } finally { setBusy(""); }
+  };
+  // Der Einfüge-Zuhörer oben ruft immer die AKTUELLE Fassung auf.
+  pasteRef.current = (f: File) => { void onRefFile(f); };
+
+  const removeRef = async (path: string) => {
+    setBusy(path); setMsg("");
+    try {
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ removePreviewRef: path }) });
+      if (!r.ok) { setMsg(`❌ Löschen fehlgeschlagen (${r.status}).`); return; }
+      setRefs(x => x.filter(y => y.path !== path));
+      await load(pin);
+    } finally { setBusy(""); }
+  };
+
   // Cover leeren. Die Route deutet einen leeren `teaserPath` ausdrücklich als „entfernen".
   const clearTeaser = async () => {
     setBusy("clear"); setMsg("");
@@ -286,25 +344,20 @@ export default function ThemeMediaAdmin({
             }`}>
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
-            {/* Platznummer — sonst sieht man nicht, was „Reihenfolge" hier bedeutet.
-                Farbe FEST als Style: der umgebende `lb-theme`-Kasten überschreibt sonst
-                `text-white` mit seinem dunklen Textton, und die Zahl stand schwarz auf
-                schwarz (gefunden 29.07.2026). */}
+            {/* RUHIG HALTEN (Owner 29.07.2026: „das sieht furchtbar aus"). Vorher lagen drei
+                Aufkleber auf jeder Kachel — Nummer, ein fetter roter Kreis und eine Leiste
+                „halten & ziehen". Auf 100 px Breite erschlägt das das Video, das man
+                eigentlich beurteilen will. Jetzt: kleine Nummer, dezenter Löschknopf, sonst
+                nichts. Der Zieh-Hinweis steht einmal über dem Raster, nicht zwölfmal darin.
+                Farben fest als Style — der `lb-theme`-Kasten überschreibt `text-white` sonst
+                mit seinem dunklen Textton, und die Zahl stand schwarz auf schwarz. */}
             <span style={{ color: "#fff" }}
-              className="absolute left-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/75 text-[11px] font-black">{i + 1}</span>
-            {/* Großer Tap-Bereich + z-10, damit der Klick nie im Video landet. */}
+              className="absolute bottom-1 left-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-[10px] font-black backdrop-blur-sm">{i + 1}</span>
             <button type="button" onClick={() => void removeExample(e.path)} disabled={busy === e.path}
-              aria-label="Beispiel-Video löschen"
-              className="absolute right-1 top-1 z-10 grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white shadow-lg active:scale-95 disabled:opacity-60">
-              {busy === e.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              aria-label="Beispiel-Video löschen" style={{ color: "#fff" }}
+              className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
+              {busy === e.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
             </button>
-            {/* Griff: macht sichtbar, dass die Kachel gezogen werden kann. Gezogen wird die
-                ganze Kachel, nicht nur der Griff — auf dem Handy trifft man sonst zu oft daneben. */}
-            <span className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 bg-gradient-to-t from-black/70 to-transparent py-1"
-              style={{ color: "#fff" }}>
-              <GripVertical className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-black">halten & ziehen</span>
-            </span>
           </div>
         ))}
         <button type="button" onClick={() => videoRef.current?.click()} disabled={busy === "video"}
@@ -314,6 +367,38 @@ export default function ThemeMediaAdmin({
       </div>
       <input ref={videoRef} type="file" accept="video/*" className="hidden"
         onChange={e => { void onVideo(e.target.files?.[0]); e.target.value = ""; }} />
+
+      {/* DRITTER PLATZ: das ANGEZOGENE Referenzfoto von ihr. Eigener Slot, damit das Cover
+          unangetastet bleibt (Owner: „stop, das ist das cover"). Gebraucht für die
+          Gratis-Vorschau — ihr Katalogfoto ist ein Lingerie-Bild und wird von der
+          Bildmoderation am Eingang abgewiesen. */}
+      <p className="mt-5 text-[11px] font-black uppercase tracking-wide text-black/55">
+        3 · Referenzfoto von ihr — <span className="text-black/40">angezogen, ganze Figur. Für die Gratis-Vorschau. Bildschirmfoto einfach mit ⌘V einfügen.</span>
+      </p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {refs.map(r => (
+          <div key={r.path} className="relative overflow-hidden rounded-xl border border-black/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={r.url} alt="" className="aspect-[2/3] w-full object-cover" />
+            <button type="button" onClick={() => void removeRef(r.path)} disabled={busy === r.path}
+              aria-label="Referenzfoto löschen" style={{ color: "#fff" }}
+              className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
+              {busy === r.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={() => refFileRef.current?.click()} disabled={busy === "ref"}
+          className="grid aspect-[2/3] place-items-center rounded-xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-[0.98] transition">
+          {busy === "ref" ? <Loader2 className="h-5 w-5 animate-spin text-black/40" /> : <ImageUp className="h-6 w-6 text-black/40" />}
+        </button>
+      </div>
+      <p className="mt-1.5 text-[12px] font-bold text-black/70">
+        {refs.length
+          ? `${refs.length} Vorlage${refs.length === 1 ? "" : "n"} — jedes weitere Bildschirmfoto einfach mit ⌘V einfügen, es wird sofort gespeichert.`
+          : "Angezogene Fotos von ihr — Kleid oder Oberteil, ganze Figur. Mit ⌘V einfügen oder antippen."}
+      </p>
+      <input ref={refFileRef} type="file" accept="image/*" className="hidden"
+        onChange={e => { void onRefFile(e.target.files?.[0]); e.target.value = ""; }} />
 
       {msg && <p className="mt-2 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{msg}</p>}
     </div>

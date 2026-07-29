@@ -1276,7 +1276,11 @@ export async function readCardStudioBackup(modelId?: string, scope?: string): Pr
 // modelIds = welche Models im Kiss-Funnel stehen (leer = alle); teaserPath = das Theme-
 // Teaser-Bild (Cover im Themes-Katalog); examplePaths = Beispiel-Videos der Landing.
 const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
-export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[] };
+// `previewRefPath` (29.07.2026): das ANGEZOGENE Referenzfoto der Frau für die Gratis-Vorschau.
+// Owner: „du kannst Bella nicht nehmen in Lingerie als Referenz." Ihr Katalogfoto ist ein
+// Lingerie-Bild — als Eingabe an die Bildmoderation gegeben, kommt nichts zurück. Deshalb ein
+// eigener Platz, den der Admin mit einem angezogenen Ganzkörperfoto füllt.
+export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[] };
 
 // Dieselbe Struktur für JEDES Thema (29.07.2026): `kiss-config.json`, `bella-config.json`, …
 // Der Vorgabewert "kiss" hält alle bestehenden Aufrufe unverändert.
@@ -1291,6 +1295,12 @@ export async function readThemeConfig(theme = "kiss"): Promise<KissConfig> {
     return {
       modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [],
       teaserPath: String(data?.teaserPath ?? "").trim() || undefined,
+      // MEHRERE Referenzfotos (Owner 29.07.2026: „ich will mehrere hochladen"). Ein früher
+      // gespeichertes Einzelfoto (`previewRefPath`) wird beim Lesen in die Liste überführt,
+      // damit nichts verloren geht.
+      previewRefPaths: Array.isArray(data?.previewRefPaths)
+        ? data.previewRefPaths.map(String).filter(Boolean)
+        : (String(data?.previewRefPath ?? "").trim() ? [String(data.previewRefPath).trim()] : undefined),
       // WICHTIG: fehlender Schlüssel bleibt `undefined` (= nie eingerichtet, Vorgaben zeigen),
       // eine leere Liste bleibt leer (= der Admin hat bewusst alle gelöscht).
       examplePaths: Array.isArray(data?.examplePaths) ? data.examplePaths.map(String).filter(Boolean) : undefined,
@@ -1311,6 +1321,7 @@ export async function writeThemeConfig(config: KissConfig, theme = "kiss"): Prom
     body: JSON.stringify({
       modelIds: config.modelIds.slice(0, 100),
       teaserPath: config.teaserPath || undefined,
+      previewRefPaths: (config.previewRefPaths ?? []).slice(0, 20),
       examplePaths: (config.examplePaths ?? []).slice(0, 20),
       savedAt: new Date().toISOString(),
     }),
@@ -1321,6 +1332,49 @@ export async function writeThemeConfig(config: KissConfig, theme = "kiss"): Prom
 export const writeKissConfig = (config: KissConfig) => writeThemeConfig(config, "kiss");
 
 // ── Kiss-Log: jede fertige Kiss-Generierung (fürs Admin-Tool: wer/wann/Model/bezahlt) ──
+// ── GRATIS-VORSCHAUBILD: Tagesdeckel ────────────────────────────────────────────────
+// Ein verschenktes Bild kostet echtes Geld. Ohne Bremse dreht ein einziger Besucher — oder
+// ein Skript — die Rechnung hoch. Deshalb wird SERVERSEITIG gezählt; ein Zähler im Browser
+// wäre in zehn Sekunden umgangen. Zwei Deckel: pro Gerät und als Notbremse für alle zusammen.
+const FREE_PREVIEW_PATH = "try-this-look/free-preview-counter.json";
+export const FREE_PREVIEW_PER_DEVICE = 2;
+export const FREE_PREVIEW_PER_DAY = 300;
+
+/**
+ * Bucht einen Gratis-Versuch. Gibt `false` zurück, wenn ein Deckel erreicht ist.
+ *
+ * Gebucht wird VOR der Generierung: bricht der Bildaufruf ab, ist der Versuch verbraucht.
+ * Das ist Absicht — andersherum könnte ein Skript durch erzwungene Abbrüche endlos
+ * weiterlaufen und Kosten erzeugen.
+ */
+export async function claimFreePreview(device: string): Promise<{ ok: boolean; reason?: "day" | "device" }> {
+  const today = new Date().toISOString().slice(0, 10);
+  let c: { day: string; total: number; devices: Record<string, number> } = { day: today, total: 0, devices: {} };
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(FREE_PREVIEW_PATH)}`);
+    if (res.ok) {
+      const d = await res.json().catch(() => null);
+      if (d && d.day === today) {
+        c = { day: today, total: Number(d.total) || 0, devices: (d.devices ?? {}) as Record<string, number> };
+      }
+    }
+  } catch { /* nicht lesbar → wir fangen bei null an, statt den Trichter zu blockieren */ }
+
+  if (c.total >= FREE_PREVIEW_PER_DAY) return { ok: false, reason: "day" };
+  if ((c.devices[device] ?? 0) >= FREE_PREVIEW_PER_DEVICE) return { ok: false, reason: "device" };
+
+  c.total += 1;
+  c.devices[device] = (c.devices[device] ?? 0) + 1;
+  try {
+    await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(FREE_PREVIEW_PATH)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body: JSON.stringify(c),
+    });
+  } catch { /* Zähler nicht schreibbar: lieber ein Bild zu viel als ein kaputter Trichter */ }
+  return { ok: true };
+}
+
 const KISS_LOG_PATH = "try-this-look/kiss-log.json";
 export type KissLogEntry = {
   id: string;

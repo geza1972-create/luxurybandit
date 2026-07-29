@@ -40,12 +40,16 @@ export async function GET(request: Request) {
   const config = await readThemeConfig(theme);
   const paths = config.examplePaths ?? DEFAULTS[theme] ?? [];
   const teaserUrl = config.teaserPath ? await getSignedUrl(config.teaserPath).catch(() => "") : "";
+  const refs = await Promise.all((config.previewRefPaths ?? []).map(async p => ({
+    path: p, url: await getSignedUrl(p).catch(() => ""),
+  })));
   const examples = await Promise.all(paths.map(async p => ({ path: p, url: await getSignedUrl(p).catch(() => "") })));
 
   return NextResponse.json({
     theme,
     teaserUrl,
     teaserPath: config.teaserPath ?? "",
+    previewRefs: refs.filter(r => r.url),
     examples: examples.filter(e => e.url),
     // `true`, solange die Vorgaben gezeigt werden — die Oberfläche sagt das dem Admin.
     usingDefaults: !config.examplePaths,
@@ -59,7 +63,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
-    teaserPath?: string; addExample?: string; removeExample?: string;
+    teaserPath?: string; addPreviewRef?: string; removePreviewRef?: string; addExample?: string; removeExample?: string;
     // Ganze Liste in neuer Reihenfolge (Owner 29.07.2026: „ich kann die reihenfolge auch
     // nicht ändern"). Bewusst die VOLLE Liste statt „schiebe X um eins": so kann die
     // Oberfläche auch umsortieren, ohne dass Server und Browser sich über Zwischenstände
@@ -85,6 +89,16 @@ export async function POST(request: Request) {
     const p = body.teaserPath.trim();
     config.teaserPath = p && p.startsWith("try-this-look/") ? p : undefined;   // "" = entfernen
   }
+  // Angezogene Referenzfotos der Frau für die Gratis-Vorschau — eine LISTE, damit mehrere
+  // Vorlagen nebeneinander liegen können. Eigener Platz, damit das Cover unangetastet bleibt.
+  if (body.addPreviewRef && String(body.addPreviewRef).startsWith("try-this-look/")) {
+    const p = String(body.addPreviewRef);
+    const cur = config.previewRefPaths ?? [];
+    if (!cur.includes(p)) config.previewRefPaths = [...cur, p];
+  }
+  if (body.removePreviewRef) {
+    config.previewRefPaths = (config.previewRefPaths ?? []).filter(p => p !== body.removePreviewRef);
+  }
   if (body.addExample && String(body.addExample).startsWith("try-this-look/")) {
     const p = String(body.addExample);
     if (!list.includes(p)) list = [...list, p];   // kein Doppel, wenn zweimal getippt wird
@@ -99,5 +113,5 @@ export async function POST(request: Request) {
   }
 
   await writeThemeConfig({ ...config, examplePaths: list }, theme);
-  return NextResponse.json({ ok: true, teaserPath: config.teaserPath ?? "", examplePaths: list });
+  return NextResponse.json({ ok: true, teaserPath: config.teaserPath ?? "", previewRefPaths: config.previewRefPaths ?? [], examplePaths: list });
 }

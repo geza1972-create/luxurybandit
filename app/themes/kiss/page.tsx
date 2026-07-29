@@ -7,7 +7,7 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
-import KissMediaAdmin from "@/components/KissMediaAdmin";
+import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-look-store";
 
@@ -114,7 +114,16 @@ export default async function KissThemePage({ searchParams }: {
         ) : (
           // Kiss-eigene Tools: Medien (Teaser + Beispiel-Videos) → Models-Auswahl → Nutzungen.
           <div className="lb-theme mt-4 space-y-4">
-            <KissMediaAdmin />
+            {/* Seit 29.07.2026 dasselbe Werkzeug wie bei Bella (Owner: „ich muss die videos
+                auch hier per drag and drop verschieben können"). Es liest und schreibt
+                DIESELBE Datei wie vorher — `theme="kiss"` zeigt auf kiss-config.json —, bringt
+                aber Platznummern, Ziehen zum Umsortieren und „Cover leeren" mit.
+                Die Model-Auswahl bleibt beim eigenen Werkzeug darunter. */}
+            <ThemeMediaAdmin
+              theme="kiss"
+              title="Kiss-Medien"
+              teaserHint="Bild oder Video hochladen — wird das Cover der Kiss-Karte im Themes-Katalog."
+            />
             <KissModelsAdmin />
             <KissUsersAdmin />
           </div>
