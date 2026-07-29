@@ -68,8 +68,12 @@ const VARIANTS: Record<FunnelVariant, {
     prompt: KISS_PROMPT,
     step1: "1 · Pick her", step3: "3 · The kiss",
     cta: "Generate the kiss video", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
-    pickHint: "Swipe the models — your pick stands up front.",
-    upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.", upFirst: false,
+    // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
+    // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
+    // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
+    // Anzeigen, also entscheidet die erste Karte über den ganzen Trichter.
+    pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
+    upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.", upFirst: true,
   },
   idol: {
     prompt: IDOL_PROMPT,
