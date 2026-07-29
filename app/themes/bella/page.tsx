@@ -3,6 +3,7 @@ import TrackView from "@/components/TrackView";
 import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
 import BellaChatBlock from "@/components/BellaChatBlock";
+import ExampleVideoSlider from "@/components/ExampleVideoSlider";
 import HolidayFunnel from "@/components/HolidayFunnel";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ManageViewToggle from "@/components/ManageViewToggle";
@@ -96,17 +97,9 @@ export default async function BellaThemePage({ searchParams }: {
         </Lead>
         <PaidReturn lang={L} />
 
-        {/* Beispiele oben: erst sehen, was rauskommt, dann selbst machen. */}
-        {examples.length > 0 && (
-          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {examples.map((url, i) => (
-              <div key={i} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Beispiele oben: erst sehen, was rauskommt, dann selbst machen.
+            Antippbar (anhalten/weiter) und mit Musik — Ton startet aus, Knopf oben rechts. */}
+        <ExampleVideoSlider urls={examples} />
 
         <Fine>
           {HOLIDAY_SCENES.length} moments to choose from — nothing random, and what you already

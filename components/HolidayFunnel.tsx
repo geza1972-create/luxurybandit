@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Check, Download, Plus } from "lucide-react";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
+import { tryonPrompt } from "@/lib/tryon-prompt";
 
 type Model = { id: string; name: string; photoUrl: string };
+type Look = { id: string; name?: string; imageUrl?: string };
 
 /**
  * „Holiday with your dream girl" — ER macht die Videos selbst, nach dem Surprise-Muster:
@@ -48,6 +50,8 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
   const [useCustom, setUseCustom] = useState(false); // eigene Traumfrau hochgeladen
   const [customModel, setCustomModel] = useState("");
   const [sceneId, setSceneId] = useState("");
+  const [looks, setLooks] = useState<Look[]>([]);
+  const [lookId, setLookId] = useState("");       // leer = so, wie sie auf ihrem Foto angezogen ist
   const [used, setUsed] = useState<string[]>([]);
   const [aboPaid, setAboPaid] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
@@ -65,19 +69,30 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/try-this-look?models=1", { cache: "no-store" })
-      .then(r => r.json())
-      .then(m => {
-        let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
-        // ALLE Models, kein Deckel — es waren 46, ich hatte auf 40 abgeschnitten.
-        // Vorn steht, wem die Seite gewidmet ist (presetModelId); sonst Bella als Gesicht
-        // des Portals. Der Rest bleibt in Katalog-Reihenfolge.
-        const wanted = presetModelId || "curator-1783683672619-td4cy";
-        const first = all.findIndex(x => x.id === wanted || (!presetModelId && /^bella\b/i.test(x.name)));
-        if (first > 0) all = [all[first], ...all.slice(0, first), ...all.slice(first + 1)];
-        setModels(all);
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/try-this-look?models=1", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+      fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+      // Freigabeliste: nur SAUBERE Kleidungsfotos in den Anzieh-Slider (keine Bilder mit
+      // fremder Frau darin). Fehlt die Liste, zeigen wir alles statt nichts.
+      fetch("/api/wardrobe-garments", { cache: "no-store" }).then(r => r.json()).catch(() => ({ ids: null })),
+    ]).then(([m, st, wg]) => {
+      let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
+      // ALLE Models, kein Deckel — es waren 46, ich hatte auf 40 abgeschnitten.
+      // Vorn steht, wem die Seite gewidmet ist (presetModelId); sonst Bella als Gesicht
+      // des Portals. Der Rest bleibt in Katalog-Reihenfolge.
+      const wanted = presetModelId || "curator-1783683672619-td4cy";
+      const first = all.findIndex(x => x.id === wanted || (!presetModelId && /^bella\b/i.test(x.name)));
+      if (first > 0) all = [all[first], ...all.slice(0, first), ...all.slice(first + 1)];
+      setModels(all);
+      // DER KLEIDERSCHRANK (Owner 29.07.2026: „du nimmst unser wardrobe, die ist extra
+      // dafür gemacht"). Nur `wardrobe: true` — der restliche Katalog sind Partner-Produkte,
+      // die nie zum Anziehen freigegeben wurden. Dieselbe Regel wie im Chat-Trichter.
+      const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
+      const ls: Look[] = (Array.isArray(st?.looks) ? st.looks : [])
+        .filter((l: { id: string; imageUrl?: string; wardrobe?: boolean }) => l.wardrobe === true && !!l.imageUrl && (!ok || ok.has(l.id)))
+        .map((l: Look) => ({ id: l.id, name: l.name, imageUrl: l.imageUrl }));
+      setLooks(ls);
+    }).catch(() => {});
     try {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
@@ -113,12 +128,41 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
   // Menschen ins Bild müssen: @person = sie, @Bild2 = er.
   const realGenerate = async (token: number) => {
     if (!scene) return;
+    // ZWEI STUFEN, wenn er ein Kleidungsstück gewählt hat (Owner 29.07.2026):
+    // erst zieht FASHN sie damit an, und DIESES Bild geht dann als ihre Referenz ins Video.
+    //
+    // Warum der Umweg: Der Video-Aufruf kennt nur zwei Bildplätze, und beide sind belegt
+    // (sie + er). Ein Kleidungsstück nur zu BESCHREIBEN liefert ein beliebiges Teil in
+    // dieser Farbe, nicht das aus dem Schrank. Kostet ein Bild extra (~3–7 ct) — aber erst
+    // hier, nach der Zahlung, nie in der Vorschau.
+    let personRef = modelPhoto;
+    const look = looks.find(l => l.id === lookId);
+    if (look?.imageUrl) {
+      setStatus("Dressing her …");
+      try {
+        const toFile = async (src: string, name: string) => new File([await (await fetch(src)).blob()], name, { type: "image/jpeg" });
+        const fd = new FormData();
+        fd.append("modelImage", await toFile(modelPhoto, "person.jpg"));
+        fd.append("image", await toFile(look.imageUrl, "garment.jpg"));
+        fd.append("lookId", look.id);
+        fd.append("mode", "fashion-model");
+        fd.append("aspectRatio", "9:16");
+        fd.append("prompt", tryonPrompt({ garment: look.name || "" }));
+        const d = await fetch("/api/generate-fashn", {
+          method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
+        }).then(r => r.json());
+        // Scheitert das Anziehen, bricht NICHT der ganze Kauf ab — dann bekommt er das
+        // Video mit ihrem Ausgangs-Outfit statt gar keins.
+        if (d?.image || d?.imageUrl) personRef = d.image || d.imageUrl;
+      } catch { /* siehe oben: weiter mit dem Ausgangsfoto */ }
+      if (runRef.current !== token) return;
+    }
     setStatus("Rendering your holiday … (~1–3 min)");
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: LOOK_ID, person: modelPhoto, garment: photo, prompt: holidayPrompt(scene) }),
+        body: JSON.stringify({ lookId: LOOK_ID, person: personRef, garment: photo, prompt: holidayPrompt(scene) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {
@@ -297,8 +341,38 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
         })}
       </div>
 
-      {/* 4 — generieren */}
-      <p className={`mt-6 ${label}`}>4 · Your video</p>
+      {/* 4 — DER KLEIDERSCHRANK. Echte Kleidungsfotos, keine Beschreibungen: wählt er eins,
+          zieht FASHN sie vor dem Video wirklich damit an (siehe realGenerate). „Wie auf dem
+          Foto" steht vorn, damit niemand gezwungen ist zu wählen. */}
+      {looks.length > 0 && (
+        <>
+          <p className={`mt-6 ${label}`}>4 · What she wears</p>
+          <p className="mt-1 text-[13px] font-bold text-white">
+            Swipe the wardrobe and tap one — or leave her in what she is wearing.
+          </p>
+          <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button type="button" onClick={() => setLookId("")}
+              className={`relative grid aspect-[3/4] w-[30vw] max-w-[120px] shrink-0 snap-start place-items-center rounded-xl border text-center transition ${!lookId ? "border-[#f6cf51] bg-[#f6cf51]/10" : "border-white/25 bg-white/[0.06]"}`}>
+              <span className="px-2 text-[12px] font-black leading-tight text-white">As on her photo</span>
+              {!lookId && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]"><Check className="h-3.5 w-3.5 text-black" /></span>}
+            </button>
+            {looks.map(l => {
+              const on = lookId === l.id;
+              return (
+                <button key={l.id} type="button" onClick={() => setLookId(l.id)}
+                  className={`relative aspect-[3/4] w-[30vw] max-w-[120px] shrink-0 snap-start overflow-hidden rounded-xl border transition ${on ? "border-[#f6cf51]" : "border-white/25"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt={l.name || ""} className="h-full w-full bg-white object-contain" />
+                  {on && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]"><Check className="h-3.5 w-3.5 text-black" /></span>}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* 5 — generieren */}
+      <p className={`mt-6 ${label}`}>5 · Your video</p>
       <button type="button" onClick={generate} disabled={!ready || busy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

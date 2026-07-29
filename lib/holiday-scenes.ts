@@ -50,12 +50,18 @@ export const HOLIDAY_SCENES: HolidayScene[] = [
 ];
 
 /** Der fertige Pixverse-Prompt für eine Szene. */
+// Das Outfit steht NICHT im Prompt (Owner 29.07.2026: „du nimmst unser wardrobe"). Wählt er
+// ein Kleidungsstück, zieht der Trichter sie vorher über FASHN damit an, und das angezogene
+// Bild geht als ihre Referenz ins Video. Ein beschriebenes Outfit liefert irgendein Teil in
+// dieser Farbe — ein angezogenes liefert genau das aus dem Schrank. Deshalb bleibt der Prompt
+// hier bewusst schlank: er beschreibt die Szene, nicht die Kleidung.
 export function holidayPrompt(scene: HolidayScene): string {
   return (
     `Show both people from their knees up to their heads, full figures in frame, filmed from ` +
     `below pointing slightly upwards. @person (the woman) and @Bild2 (the man) are together ` +
     `${scene.place}. ${scene.action}. Keep the face of @person and the face of @Bild2 EXACTLY ` +
-    `as in the reference photos — do not change either face. Natural daylight, cinematic, ` +
-    `photorealistic, fluid natural motion. Fixed camera, no zoom. No text or logos.`
+    `as in the reference photos — do not change either face. Keep her outfit exactly as in her ` +
+    `reference photo. Natural daylight, cinematic, photorealistic, fluid natural motion. ` +
+    `Fixed camera, no zoom. No text or logos.`
   );
 }
