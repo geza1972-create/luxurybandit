@@ -60,9 +60,12 @@ export default function PreviewStudio({
       .catch(() => {});
   }, []);
 
-  // Erste eigene Vorlage vorwählen, sobald es eine gibt — und nie ins Leere zeigen.
+  // VORAUSWÄHLEN, sobald etwas da ist: eigene Vorlage bevorzugt, sonst das erste Model.
+  // Ohne das steht der Knopf beim Laden auf gesperrt, und man rätselt, warum nichts geht
+  // (Owner 29.07.2026: „und wie soll ich es auslösen?").
   useEffect(() => {
     if (!herUrl && refs.length) setHerUrl(refs[0].url);
+    else if (!herUrl && models.length) setHerUrl(models[0].photoUrl);
     if (herUrl && refs.length && !refs.some(r => r.url === herUrl) && !models.some(m => m.photoUrl === herUrl)) {
       setHerUrl(refs[0]?.url ?? "");
     }
@@ -180,9 +183,12 @@ export default function PreviewStudio({
         weist OpenAI das Bild ab.
       </p>
 
+      {/* Farben FEST als Style, nicht als Klasse: der umgebende `lb-theme`-Kasten überschreibt
+          sowohl `bg-black` als auch `text-white`. Der Knopf war dadurch funktionsfähig, sah
+          aber ausgegraut aus — der Owner hat zu Recht gefragt, wie er ihn auslösen soll. */}
       <button type="button" onClick={() => void run()} disabled={busy || !herUrl || !manUrl}
-        style={{ color: "#fff" }}
-        className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[14px] font-black active:scale-95 transition disabled:opacity-40">
+        style={{ background: busy || !herUrl || !manUrl ? "#c9c9c9" : "#111", color: "#fff" }}
+        className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black shadow-md active:scale-95 transition">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
         {busy ? "Erzeuge … (bis zu 40 s)" : "Generieren"}
       </button>
