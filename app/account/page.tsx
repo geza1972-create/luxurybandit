@@ -5,7 +5,7 @@ import MyTopics from "@/components/MyTopics";
 // „Mein Konto" — die EINE Stelle, an der ein Kunde sieht, welche Themen er abonniert hat,
 // was sie kosten, wann wieder abgebucht wird, und wo er kündigen kann.
 //
-// Preisregel (Owner 27.07.2026): 24,50 €/Monat, darin 25 Videos über ALLE Themen zusammen;
+// Preisregel (Owner 27.07.2026): 24,50 €/Monat, darin 10 Videos über ALLE Themen zusammen;
 // jeder bekommt den 50-%-Gutschein dauerhaft (24,50 € statt 49 €). Chatten ist gratis. Mehrere Abos sind möglich,
 // deshalb ist das hier eine Liste, kein „Premium: ja/nein".
 
@@ -25,7 +25,7 @@ export default function AccountPage() {
         <Kicker>LuxuryBandit · Account</Kicker>
         <H1>My <Y>topics</Y></H1>
         <Lead>Everything you subscribe to, in one place — with the cancel button right next to it.</Lead>
-        <Fine>24,50 € a month: 25 videos across all topics, chatting free (50% off, forever — instead of 49 €).</Fine>
+        <Fine>24,50 € a month: 10 videos across all topics, chatting free (50% off, forever — instead of 49 €).</Fine>
 
         <MyTopics />
       </div>

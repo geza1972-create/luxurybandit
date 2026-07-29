@@ -53,11 +53,11 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
       {code.trim() ? (
         <p className="mt-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[13px] font-bold leading-snug text-[#f6cf51]">
           Code {code.trim().toUpperCase()} applied: <span className="font-black">24,50 € a month instead of 49 €</span>,
-          for as long as you stay — 25 videos a month across all topics, chatting free.
+          for as long as you stay — 10 videos a month across all topics, chatting free.
         </p>
       ) : (
         <p className="mt-1.5 text-[12px] font-bold text-white/70">
-          You pay 24,50 € a month instead of 49 € — the 50% stays, month after month. 25 videos a month across all topics; chatting costs nothing.
+          You pay 24,50 € a month instead of 49 € — the 50% stays, month after month. 10 videos a month across all topics; chatting costs nothing.
         </p>
       )}
 

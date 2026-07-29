@@ -1320,7 +1320,7 @@ export default function CuratorPublicPage() {
             {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my sponsor name"}
           </button>
         )}
-        {/* Sponsor/Growth-Score-CTA entfernt (2026-07-26) — Monetarisierung läuft über das Themen-Abo (24,50 €/Monat, 25 Videos) + Einzelvideos (3,99 €). */}
+        {/* Sponsor/Growth-Score-CTA entfernt (2026-07-26) — Monetarisierung läuft über das Themen-Abo (24,50 €/Monat, 10 Videos) + Einzelvideos (3,99 €). */}
         <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/80">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (

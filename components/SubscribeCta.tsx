@@ -17,14 +17,14 @@ import { renewNote } from "@/lib/pricing";
  */
 
 const T: Record<string, { h: string; p: string; cta: string }> = {
-  en: { h: "Get everything", p: "25 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €24.50/month" },
-  de: { h: "Alles freischalten", p: "25 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat" },
-  ro: { h: "Deblochează tot", p: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună" },
-  es: { h: "Desbloquéalo todo", p: "25 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes" },
-  fr: { h: "Tout débloquer", p: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 24,50 €/mois" },
-  pt: { h: "Desbloqueia tudo", p: "25 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês" },
-  pl: { h: "Odblokuj wszystko", p: "25 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc" },
-  it: { h: "Sblocca tutto", p: "25 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 24,50 €/mese" },
+  en: { h: "Get everything", p: "10 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €24.50/month" },
+  de: { h: "Alles freischalten", p: "10 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat" },
+  ro: { h: "Deblochează tot", p: "10 videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună" },
+  es: { h: "Desbloquéalo todo", p: "10 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes" },
+  fr: { h: "Tout débloquer", p: "10 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 24,50 €/mois" },
+  pt: { h: "Desbloqueia tudo", p: "10 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês" },
+  pl: { h: "Odblokuj wszystko", p: "10 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc" },
+  it: { h: "Sblocca tutto", p: "10 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 24,50 €/mese" },
 };
 
 export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {

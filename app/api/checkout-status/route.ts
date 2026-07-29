@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const s = await getCheckoutSession(sessionId);
     const paid = s.paymentStatus === "paid" || s.paymentStatus === "no_payment_required";
 
-    // THEMEN-ABO (chat/holiday/wetter/…): schreibt dem Kaeufer die 25 Videos des Monats gut.
+    // THEMEN-ABO (chat/holiday/wetter/…): schreibt dem Kaeufer die 10 Videos des Monats gut.
     // Das Abo gilt themenuebergreifend — ein Guthaben, egal in welchem Thema er generiert.
     if (paid && /-abo$/.test(String(s.metadata.kind ?? ""))) {
       const email = (s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();

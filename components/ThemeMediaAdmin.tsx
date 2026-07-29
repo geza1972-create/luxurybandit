@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, ChevronLeft, ChevronRight, CornerDownRight } from "lucide-react";
+import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, CornerDownRight, GripVertical } from "lucide-react";
 
 /**
  * Admin-Werkzeug für die Medien EINES Themas: Teaser (Cover im /themes-Katalog) und die
@@ -29,10 +29,19 @@ export default function ThemeMediaAdmin({
   const [teaserPath, setTeaserPath] = useState("");
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
+  const [dragging, setDragging] = useState<number | null>(null);
   const [busy, setBusy] = useState("");    // "teaser" | "video" | Pfad (löschen)
   const [msg, setMsg] = useState("");
   const teaserRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+  // ALLE Hooks stehen VOR dem `if (!isAdmin) return null` weiter unten. Standen sie danach,
+  // wechselt die Zahl der Hooks zwischen den Renders und React bricht die Komponente ab
+  // („Rendered more hooks than during the previous render") — genau so passiert am 29.07.2026.
+  const dragFrom = useRef<number | null>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startXY = useRef<{ x: number; y: number } | null>(null);
+  const examplesRef = useRef<Example[]>([]);
+  examplesRef.current = examples;
 
   const api = `/api/theme-media?theme=${encodeURIComponent(theme)}`;
 
@@ -102,22 +111,68 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
-  // REIHENFOLGE (Owner 29.07.2026: „ich kann die reihenfolge auch nicht ändern").
-  // Pfeile statt Ziehen: Ziehen ist auf dem Handy fummelig und kollidiert mit dem Scrollen.
-  // Die Oberfläche schiebt sofort (damit es sich flüssig anfühlt) und schickt die ganze
-  // neue Liste hinterher — scheitert das Speichern, holen wir den Serverstand zurück.
-  const move = async (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= examples.length) return;
-    const next = [...examples];
-    [next[i], next[j]] = [next[j], next[i]];
-    setExamples(next);
+  // REIHENFOLGE PER ZIEHEN (Owner 29.07.2026: „normalerweise macht man das mit drag and
+  // drop"). Erst hatte ich Pfeile gebaut — zu Recht als unvollständig zurückgewiesen.
+  //
+  // WARUM NICHT HTML5-DRAG: `draggable` funktioniert auf Touch-Geräten nicht, und dieses
+  // Werkzeug wird am Handy bedient. Also Pointer-Events, die Maus und Finger gleich behandeln.
+  //
+  // WARUM ERST NACH KURZEM HALTEN (220 ms): Ein Kachelraster steht mitten in einer Seite,
+  // die senkrecht scrollt. Würde das Ziehen sofort greifen, könnte man die Seite nicht mehr
+  // scrollen, ohne versehentlich umzusortieren. Bewegt sich der Finger vor Ablauf der Zeit,
+  // war es eine Scroll-Geste und das Ziehen startet gar nicht erst.
+  const cancelPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } };
+
+  const saveOrder = async (paths: string[]) => {
     setBusy("order"); setMsg("");
     try {
-      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ setExamples: next.map(e => e.path) }) });
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ setExamples: paths }) });
       if (!r.ok) { setMsg(`❌ Reihenfolge nicht gespeichert (${r.status}).`); await load(pin); }
+      else setMsg("✅ Reihenfolge gespeichert.");
     } catch { setMsg("❌ Netzwerkfehler — Reihenfolge nicht gespeichert."); await load(pin); }
     finally { setBusy(""); }
+  };
+
+  const onDown = (e: React.PointerEvent<HTMLDivElement>, i: number) => {
+    startXY.current = { x: e.clientX, y: e.clientY };
+    const el = e.currentTarget;
+    const id = e.pointerId;
+    cancelPress();
+    pressTimer.current = setTimeout(() => {
+      dragFrom.current = i;
+      setDragging(i);
+      try { el.setPointerCapture(id); } catch { /**/ }
+      try { navigator.vibrate?.(8); } catch { /**/ }
+    }, 220);
+  };
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragFrom.current === null) {
+      // Noch in der Wartezeit: eine echte Bewegung heißt „scrollen", nicht „ziehen".
+      const s = startXY.current;
+      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) cancelPress();
+      return;
+    }
+    e.preventDefault();
+    const over = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)
+      ?.closest("[data-tile]") as HTMLElement | null;
+    if (!over) return;
+    const to = Number(over.dataset.tile);
+    if (!Number.isFinite(to) || to === dragFrom.current) return;
+    const next = [...examplesRef.current];
+    const [moved] = next.splice(dragFrom.current, 1);
+    next.splice(to, 0, moved);
+    setExamples(next);
+    dragFrom.current = to;
+    setDragging(to);
+  };
+
+  const onUp = () => {
+    cancelPress();
+    if (dragFrom.current === null) return;
+    dragFrom.current = null;
+    setDragging(null);
+    void saveOrder(examplesRef.current.map(e => e.path));
   };
 
   // „Auch als Beispiel-Video": rettet einen Upload, der im Teaser-Feld gelandet ist, ohne
@@ -208,7 +263,7 @@ export default function ThemeMediaAdmin({
         onChange={e => { void onTeaser(e.target.files?.[0]); e.target.value = ""; }} />
 
       <p className="mt-5 text-[11px] font-black uppercase tracking-wide text-black/55">
-        2 · Galerie — <span className="text-black/40">die Videos oben auf der Landingpage, in dieser Reihenfolge</span>
+        2 · Galerie — <span className="text-black/40">die Videos oben auf der Landingpage. Kachel halten und ziehen zum Umsortieren.</span>
       </p>
       {usingDefaults && (
         <p className="mt-1 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">
@@ -217,7 +272,18 @@ export default function ThemeMediaAdmin({
       )}
       <div className="mt-2 grid grid-cols-3 gap-2">
         {examples.map((e, i) => (
-          <div key={e.path} className="relative overflow-hidden rounded-xl border border-black/10">
+          <div key={e.path}
+            data-tile={i}
+            onPointerDown={ev => onDown(ev, i)}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+            // `touch-action: none` NUR während des Ziehens — sonst liesse sich die Seite an
+            // dieser Stelle nicht mehr mit dem Finger scrollen.
+            style={{ touchAction: dragging !== null ? "none" : "manipulation" }}
+            className={`relative select-none overflow-hidden rounded-xl border transition ${
+              dragging === i ? "scale-105 border-[#f6cf51] opacity-90 shadow-lg" : "border-black/10"
+            }`}>
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
             {/* Platznummer — sonst sieht man nicht, was „Reihenfolge" hier bedeutet.
@@ -232,18 +298,13 @@ export default function ThemeMediaAdmin({
               className="absolute right-1 top-1 z-10 grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white shadow-lg active:scale-95 disabled:opacity-60">
               {busy === e.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </button>
-            {/* Verschieben: Pfeile statt Ziehen — auf dem Handy ist Ziehen fummelig und
-                kollidiert mit dem Scrollen. */}
-            <div className="absolute inset-x-0 bottom-0 z-10 flex justify-between bg-gradient-to-t from-black/70 to-transparent p-1">
-              <button type="button" onClick={() => void move(i, -1)} disabled={i === 0 || busy === "order"}
-                aria-label="Nach vorne" className="grid h-7 w-7 place-items-center rounded-full bg-white/90 text-black active:scale-95 disabled:opacity-25">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button type="button" onClick={() => void move(i, 1)} disabled={i === examples.length - 1 || busy === "order"}
-                aria-label="Nach hinten" className="grid h-7 w-7 place-items-center rounded-full bg-white/90 text-black active:scale-95 disabled:opacity-25">
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Griff: macht sichtbar, dass die Kachel gezogen werden kann. Gezogen wird die
+                ganze Kachel, nicht nur der Griff — auf dem Handy trifft man sonst zu oft daneben. */}
+            <span className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 bg-gradient-to-t from-black/70 to-transparent py-1"
+              style={{ color: "#fff" }}>
+              <GripVertical className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-black">halten & ziehen</span>
+            </span>
           </div>
         ))}
         <button type="button" onClick={() => videoRef.current?.click()} disabled={busy === "video"}
