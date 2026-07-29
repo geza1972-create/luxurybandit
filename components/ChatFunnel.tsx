@@ -233,7 +233,6 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     }, 2600);
   };
   const [playing, setPlaying] = useState("");
-  const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
 
   // Geräte-Kennung: dieselbe wie in „My Gallery" — damit ihr Gedächtnis am Besucher hängt
   // und nicht an einem Tab (Owner 28.07.2026).
@@ -286,7 +285,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       setToday(n);
     } catch { /**/ }
     const next: Msg[] = [...msgs, { role: "user", content: text }];
-    setMsgs(next); if (!preset) { setDraft(""); setHasTyped(true); } setSending(true); scrollFeed();
+    setMsgs(next); if (!preset) setDraft(""); setSending(true); scrollFeed();
     try {
       const payload = {
         curatorId: useCustom ? "" : (picked?.id ?? ""),
@@ -603,12 +602,12 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           {chosen && !sending && !dayFull && (() => {
             const lastAssistant = [...msgs].reverse().find(m => m.role === "assistant")?.content ?? "";
             const noUserYet = msgs.every(m => m.role !== "user");
-            // Knöpfe bleiben, BIS er selbst tippt (Owner 28.07.2026). Vorschläge von ihr
-            // gewinnen; sonst leiten wir sie aus ihrer Frage ab.
+            // IMMER KNÖPFE (Owner 29.07.2026): geflirtet wird durch Klicken. Vorschläge von
+            // ihr gewinnen, sonst aus ihrer Frage abgeleitet, sonst allgemeine — nie leer.
+            // (Bis 29.07. verschwanden sie, sobald er einmal selbst getippt hatte.)
             const chips = noUserYet
               ? openerFor(chatLang).chips
-              : (chipsOf(lastAssistant).length ? chipsOf(lastAssistant)
-                 : hasTyped ? [] : deriveChips(lastAssistant, chatLang));
+              : (chipsOf(lastAssistant).length ? chipsOf(lastAssistant) : deriveChips(lastAssistant, chatLang));
             if (!chips.length) return null;
             return (
               <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -659,10 +658,10 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           ) : wall ? (
             <div className="text-center">
               <p className="text-[13px] font-black text-black">{u.keep} {herName}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus your 25 videos a month across all topics.</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">24,50 € a month — every day, plus your 25 videos a month across all topics.</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €19
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €24.50/month
               </button>
               <p className="mt-2 text-center text-[10px] font-medium leading-snug text-black/50">{renewNote(lang)}</p>
             </div>
@@ -746,7 +745,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         {dressBusy ? u.dressing : vidBusy ? u.filming
           : (isStaff || paid)
             ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : u.more)
-            : "Unlock the hottest AI experience ever — €19"}
+            : "Unlock the hottest AI experience ever — €24.50/month"}
       </button>
       {!isStaff && !paid && (
         <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>

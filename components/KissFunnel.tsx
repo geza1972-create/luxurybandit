@@ -382,7 +382,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock the hottest AI experience ever — €19"}
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock the hottest AI experience ever — €24.50/month"}
                   </button>
                   {!isStaff && <p className="lb-onmedia mt-2 text-center text-[10px] font-medium leading-snug opacity-70">{renewNote("en")}</p>}
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}

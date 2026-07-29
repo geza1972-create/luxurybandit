@@ -37,7 +37,7 @@ export default async function OfferPage({ searchParams }: {
           Pick the topic you want, enter your code, and you are in: your influencer writes to you
           every day, you chat with her and you make videos with her.
         </Lead>
-        <Fine>49 € a month for 25 videos across all topics — 19 € for the first month with a code. Chatting is free. — cancel any time in your account.</Fine>
+        <Fine>24,50 € a month for 25 videos across all topics — 50% off, forever, instead of 49 €. Chatting is free. — cancel any time in your account.</Fine>
 
         <OfferRedeem initialCode={code} />
       </div>

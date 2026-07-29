@@ -289,7 +289,7 @@ export default function HolidayFunnel({ code = "" }: { code?: string }) {
         {busy ? "Rendering …" : scene ? `Create: ${scene.label}` : "Pick a moment first"}
       </button>
       <p className="mt-2 text-[13px] font-bold leading-snug text-white/75">
-        {aboPaid ? "Every extra video is 3.99 €." : "The first one starts your topic subscription at 49 € a month — every extra video after that is 3.99 €."}
+        {aboPaid ? "Every extra video is 3.99 €." : "The first one starts your topic subscription at 24,50 € a month — every extra video after that is 3.99 €."}
       </p>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
 
@@ -323,7 +323,7 @@ export default function HolidayFunnel({ code = "" }: { code?: string }) {
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
                     {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    {isStaff ? "Reveal (Admin — free)" : aboPaid ? "Unlock — €3.99" : "Unlock — 49 €/month"}
+                    {isStaff ? "Reveal (Admin — free)" : aboPaid ? "Unlock — €3.99" : "Unlock — 24,50 €/month"}
                   </button>
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe · cancel any time</p>}
                 </div>

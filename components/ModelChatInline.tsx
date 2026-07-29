@@ -37,7 +37,7 @@ const FREE_LEFT: Record<Lang, (n: number) => string> = {
 // The single "I'm not free" reply a paid model gives to the visitor's first message.
 const CANNED: Record<Lang, string> = {
   de: "Ich bin leider nicht gratis 💛 aber ich chatte super gern mit dir. Für 24 €/Monat gehöre ich ganz dir. Wenn du lieber kostenlos chatten willst, dann versuch es mit Bella 💕",
-  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For 49 €/month I'm all yours. If you'd rather chat for free, try Bella 💕",
+  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For 24,50 €/month I'm all yours. If you'd rather chat for free, try Bella 💕",
   ro: "Nu sunt gratis, dragule 💛 dar mi-ar plăcea să vorbesc cu tine. Pentru 24 €/lună sunt toată a ta. Dacă preferi să vorbești gratis, încearcă cu Bella 💕",
   es: "No soy gratis, cariño 💛 pero me encantaría hablar contigo. Por 24 €/mes soy toda tuya. Si prefieres chatear gratis, prueba con Bella 💕",
   fr: "Je ne suis pas gratuite, chéri 💛 mais j'adorerais discuter avec toi. Pour 24 €/mois je suis toute à toi. Si tu préfères discuter gratuitement, essaie avec Bella 💕",
@@ -48,7 +48,7 @@ const CANNED: Record<Lang, string> = {
 // Bella's soft wall after her free messages run out.
 const KEEP: Record<Lang, string> = {
   de: "Ich rede so gern mit dir 💛 Für 24 €/Monat chatten wir unbegrenzt weiter.",
-  en: "I love talking to you 💛 For 49 €/month we chat unlimited.",
+  en: "I love talking to you 💛 For 24,50 €/month we chat unlimited.",
   ro: "Îmi place să vorbesc cu tine 💛 Pentru 24 €/lună vorbim nelimitat.",
   es: "Me encanta hablar contigo 💛 Por 24 €/mes chateamos sin límite.",
   fr: "J'adore te parler 💛 Pour 24 €/mois on discute sans limite.",
@@ -57,8 +57,8 @@ const KEEP: Record<Lang, string> = {
   it: "Adoro parlare con te 💛 Per 24 €/mese chattiamo senza limiti.",
 };
 const UNLOCK: Record<Lang, string> = {
-  de: "Die heißeste KI-Erfahrung freischalten — 19 €", en: "Unlock the hottest AI experience ever — €19", ro: "Deblochează cea mai fierbinte experiență AI — 19 €", es: "Desbloquea la experiencia IA más ardiente — 19 €",
-  fr: "Débloque l'expérience IA la plus chaude — 19 €", pt: "Desbloqueia a experiência de IA mais quente — 19 €", pl: "Odblokuj najgorętsze doświadczenie AI — 19 €", it: "Sblocca l'esperienza AI più calda — 19 €",
+  de: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat", en: "Unlock the hottest AI experience ever — €24.50/month", ro: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună", es: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes",
+  fr: "Débloque l'expérience IA la plus chaude — 24,50 €/mois", pt: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês", pl: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc", it: "Sblocca l'esperienza AI più calda — 24,50 €/mese",
 };
 const BELLA_CTA: Record<Lang, string> = {
   de: "Gratis mit Bella chatten", en: "Chat free with Bella", ro: "Chat gratuit cu Bella", es: "Chatea gratis con Bella",

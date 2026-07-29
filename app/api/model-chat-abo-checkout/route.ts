@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId } from "@/lib/pricing";
+import { topicPriceId, standardCoupon } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -28,6 +28,9 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
+      // 50 % dauerhaft für JEDEN (Owner 29.07.2026) — diese Kasse lief bisher als einzige
+      // ohne Gutschein durch und hat volle 49 € abgebucht.
+      coupon: standardCoupon(),
       successUrl: `${back}${sep}chatpaid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}${sep}chatcancelled=1`,
       metadata: { kind: "model-chat-abo", curatorId },

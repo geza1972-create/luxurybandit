@@ -523,7 +523,7 @@ export default function TryFunnelPage() {
   ) : null;
 
   // Kasse für das ABO — der Einzelkauf 3,99 € ist abgeschafft (Owner 28.07.2026). Der
-  // Aktionscode aus Anzeige/Mail (?code=) reist mit, damit der erste Monat 19 € kostet.
+  // Aktionscode aus Anzeige/Mail (?code=) reist mit, damit ein Sondercode greift; ohne Code gilt ohnehin der 50-%-Standardgutschein (24,50 €).
   const [aboBusy, setAboBusy] = useState(false);
   const startAbo = async () => {
     if (aboBusy) return;
@@ -539,7 +539,7 @@ export default function TryFunnelPage() {
     setAboBusy(false);
   };
   // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
-  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19");
+  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 24,50 €/lună", "Unlock the hottest AI experience ever — €24.50/month");
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.
@@ -1531,7 +1531,7 @@ export default function TryFunnelPage() {
               <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">3,99 €</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
               <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>
               <div className="mt-4 grid gap-2 text-left">
-                {["Your model in the look you picked", "Full video, yours to download", "Want it daily instead? A topic is 49 € a month"].map(perk => (
+                {["Your model in the look you picked", "Full video, yours to download", "Want it daily instead? A topic is 24,50 € a month"].map(perk => (
                   <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#f6cf51]" /><span className="text-[13px] font-bold text-white/85">{perk}</span></div>
                 ))}
               </div>

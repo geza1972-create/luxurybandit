@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, firstMonthCoupon } from "@/lib/pricing";
+import { topicPriceId, standardCoupon } from "@/lib/pricing";
 import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
-      coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? firstMonthCoupon(),
+      coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? standardCoupon(),
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       // kind bleibt "wetter-abo", damit der bestehende Webhook den Abonnenten freischaltet.

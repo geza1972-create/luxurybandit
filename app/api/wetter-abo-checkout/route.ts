@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { couponFor } from "@/lib/promo";
-import { topicPriceId, firstMonthCoupon } from "@/lib/pricing";
+import { topicPriceId, standardCoupon } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 import { readWetterSubscribers } from "@/lib/try-this-look-store";
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const { id, url } = await createSubscriptionCheckout({
       priceId: topicPriceId(),
       email: email || undefined,
-      coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? firstMonthCoupon(),
+      coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? standardCoupon(),
       successUrl: subId ? `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}` : `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: subId ? `${back}&wettercancelled=1` : `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "wetter-abo", ...(subId ? { subId } : {}), modelId },

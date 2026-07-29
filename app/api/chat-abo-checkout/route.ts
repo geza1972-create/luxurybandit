@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout, stripeConfigured } from "@/lib/stripe";
 import { couponFor } from "@/lib/promo";
-import { topicPriceId, firstMonthCoupon } from "@/lib/pricing";
+import { topicPriceId, standardCoupon } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       // Aktionscode aus der Anzeige → Gutschein (Zuordnung liegt serverseitig, siehe lib/promo).
       // Aktionscode aus der Anzeige schlägt den Standard; sonst gilt der
       // Einstiegs-Gutschein nur, falls gesetzt — sonst gilt der volle Preis.
-      coupon: couponFor(String(body?.code ?? "")) ?? firstMonthCoupon(),
+      coupon: couponFor(String(body?.code ?? "")) ?? standardCoupon(),
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "chat-abo", topic: "chat" },
