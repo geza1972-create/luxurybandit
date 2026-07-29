@@ -1278,22 +1278,34 @@ export async function readCardStudioBackup(modelId?: string, scope?: string): Pr
 const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
 export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[] };
 
-export async function readKissConfig(): Promise<KissConfig> {
+// Dieselbe Struktur für JEDES Thema (29.07.2026): `kiss-config.json`, `bella-config.json`, …
+// Der Vorgabewert "kiss" hält alle bestehenden Aufrufe unverändert.
+const themeConfigPath = (theme: string) =>
+  theme === "kiss" ? KISS_CONFIG_PATH : `try-this-look/${theme.replace(/[^a-z0-9-]/gi, "")}-config.json`;
+
+export async function readThemeConfig(theme = "kiss"): Promise<KissConfig> {
   try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`);
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(themeConfigPath(theme))}`);
     if (!res.ok) return { modelIds: [] };
     const data = await res.json().catch(() => null);
     return {
       modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [],
       teaserPath: String(data?.teaserPath ?? "").trim() || undefined,
-      examplePaths: Array.isArray(data?.examplePaths) ? data.examplePaths.map(String).filter(Boolean) : [],
+      // WICHTIG: fehlender Schlüssel bleibt `undefined` (= nie eingerichtet, Vorgaben zeigen),
+      // eine leere Liste bleibt leer (= der Admin hat bewusst alle gelöscht).
+      examplePaths: Array.isArray(data?.examplePaths) ? data.examplePaths.map(String).filter(Boolean) : undefined,
     };
   } catch { return { modelIds: [] }; }
 }
 
-export async function writeKissConfig(config: KissConfig): Promise<void> {
+export async function readKissConfig(): Promise<KissConfig> {
+  const c = await readThemeConfig("kiss");
+  return { ...c, examplePaths: c.examplePaths ?? [] };   // Kiss erwartet seit jeher eine Liste
+}
+
+export async function writeThemeConfig(config: KissConfig, theme = "kiss"): Promise<void> {
   await ensureBucket();
-  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`, {
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(themeConfigPath(theme))}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
     body: JSON.stringify({
@@ -1303,8 +1315,10 @@ export async function writeKissConfig(config: KissConfig): Promise<void> {
       savedAt: new Date().toISOString(),
     }),
   });
-  if (!response.ok) throw new Error(`Kiss-Config konnte nicht gespeichert werden (${response.status}).`);
+  if (!response.ok) throw new Error(`Theme-Config „${theme}" konnte nicht gespeichert werden (${response.status}).`);
 }
+
+export const writeKissConfig = (config: KissConfig) => writeThemeConfig(config, "kiss");
 
 // ── Kiss-Log: jede fertige Kiss-Generierung (fürs Admin-Tool: wer/wann/Model/bezahlt) ──
 const KISS_LOG_PATH = "try-this-look/kiss-log.json";

@@ -6,10 +6,13 @@ import PaidReturn from "@/components/PaidReturn";
 import BellaChatBlock from "@/components/BellaChatBlock";
 import HolidayFunnel from "@/components/HolidayFunnel";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
+import ManageViewToggle from "@/components/ManageViewToggle";
+import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
+import WetterSubscribers from "@/components/WetterSubscribers";
 import { resolveLang } from "@/lib/lang-server";
 import { buildBellaCard } from "@/lib/bella-card";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
-import { getSignedUrl } from "@/lib/try-this-look-store";
+import { getSignedUrl, readThemeConfig, type KissConfig } from "@/lib/try-this-look-store";
 
 /**
  * DIE BELLA-SEITE (Owner 29.07.2026: „wir müssen ein Thema machen nur mit Bella").
@@ -47,18 +50,24 @@ export default async function BellaThemePage({ searchParams }: {
   const sp = (await searchParams) ?? {};
   const L = await resolveLang();   // Sprache aus dem Cookie — für Kaufknopf und Rückkehrer
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+  const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
+  const view = sp.view === "kunde" ? "kunde" : "admin";
+  const showCustomer = !showAdmin || view === "kunde";
 
   const { card } = await buildBellaCard({ surface: "themes", scope: "bella" });
   const first = (card?.name || "Bella").split(" ")[0];
 
-  // Beispiele: dieselben Clips wie im Holiday-Thema — angezogen, kein Dessous oberhalb der
-  // Kasse. Bellas Try-on-Videos sind alle derselbe Lingerie-Look und kommen hier nicht vor.
-  const examples = (await Promise.all([
-    getSignedUrl("try-this-look/videos/holiday-example.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-2.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-3.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-4.mp4").catch(() => ""),
-  ])).filter(Boolean) as string[];
+  // Beispiel-Videos: vom Admin gepflegt (ThemeMediaAdmin unter ?admin=1). Solange noch nichts
+  // eingerichtet ist, liefert /api/theme-media die Holiday-Clips als Vorgabe — dieselbe Liste
+  // steht in DEFAULTS dort. Angezogen, kein Dessous oberhalb der Kasse.
+  const cfg: KissConfig = await readThemeConfig("bella").catch(() => ({ modelIds: [] }));
+  const paths: string[] = cfg.examplePaths ?? [
+    "try-this-look/videos/holiday-example.mp4",
+    "try-this-look/videos/holiday-example-2.mp4",
+    "try-this-look/videos/holiday-example-3.mp4",
+    "try-this-look/videos/holiday-example-4.mp4",
+  ];
+  const examples = (await Promise.all(paths.map(p => getSignedUrl(p).catch(() => "")))).filter(Boolean) as string[];
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -68,6 +77,10 @@ export default async function BellaThemePage({ searchParams }: {
       <TrackView event="bella_hub" lookId="themes-bella" lookName="Bella-Thema" />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+        {showAdmin && <ManageViewToggle view={view} />}
+
+        {showCustomer ? (
+        <div className={showAdmin ? "mt-4" : ""}>
         <Kicker>LuxuryBandit · {first}</Kicker>
         <H1>Tenerife with <Y>{first}</Y> — and you in it</H1>
         <Lead>
@@ -157,6 +170,19 @@ export default async function BellaThemePage({ searchParams }: {
             </Lead>
           </div>
         </section>
+        </div>
+        ) : (
+          // ADMIN-WERKZEUGE (nur mit ?admin=1): Medien des Themas, darunter die Abonnenten —
+          // dieselbe Aufteilung wie bei Kiss und Wetter, damit nichts neu gelernt werden muss.
+          <div className="lb-theme mt-4 space-y-4">
+            <ThemeMediaAdmin
+              theme="bella"
+              title="Bella-Medien"
+              teaserHint="Bild oder Video hochladen — wird das Cover der Bella-Karte im Themes-Katalog."
+            />
+            <WetterSubscribers modelId={BELLA_ID} modelSlug="bella" modelName={first} />
+          </div>
+        )}
       </div>
     </main>
   );
