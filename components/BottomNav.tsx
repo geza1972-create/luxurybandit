@@ -327,12 +327,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">My morning message</span>
                 </button>
               )}
-              {/* Admin-Shortcut: „Urlaub mit Bella"-Landing verwalten (Card-Tool + Reise-Bucher). */}
+              {/* Admin-Shortcut: das BELLA-THEMA verwalten — Beispiel-Videos, Teaser-Cover und
+                  die Abonnenten. Zeigte bis 29.07.2026 auf /urlaub-mit-bella; dort gibt es nur
+                  noch das alte Card-Tool und ein abgeschaltetes Angebot. */}
               {isStaff && (
-                <button type="button" onClick={() => navigate("/urlaub-mit-bella?admin=1")}
+                <button type="button" onClick={() => navigate("/themes/bella?admin=1")}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
                   <Palmtree className="h-4 w-4 shrink-0 text-violet-400" />
-                  <span className="text-[13px] font-bold">Holiday with Bella — manage</span>
+                  <span className="text-[13px] font-bold">Bella — manage (videos, subscribers)</span>
                 </button>
               )}
               {/* Try-On — die Theme-Landing mit Admin-Werkzeugen (Card-Tool + Abonnenten). */}

@@ -50,18 +50,34 @@ export const HOLIDAY_SCENES: HolidayScene[] = [
 ];
 
 /** Der fertige Pixverse-Prompt für eine Szene. */
-// Das Outfit steht NICHT im Prompt (Owner 29.07.2026: „du nimmst unser wardrobe"). Wählt er
-// ein Kleidungsstück, zieht der Trichter sie vorher über FASHN damit an, und das angezogene
-// Bild geht als ihre Referenz ins Video. Ein beschriebenes Outfit liefert irgendein Teil in
-// dieser Farbe — ein angezogenes liefert genau das aus dem Schrank. Deshalb bleibt der Prompt
-// hier bewusst schlank: er beschreibt die Szene, nicht die Kleidung.
+/**
+ * Der Video-Auftrag — Aufbau vom Owner vorgegeben (29.07.2026, wörtlich als Muster geliefert).
+ *
+ * ABLAUF DAHINTER: Erst zieht FASHN die Frau mit dem gewählten Stück aus dem Kleiderschrank
+ * an. DIESES angezogene Bild ist ab dann immer ihre Referenz — nicht ihr Ausgangsfoto und
+ * nicht eine Beschreibung.
+ *
+ * DIE TOKEN SIND NICHT BELIEBIG. Pixverse ordnet sie der Reihe nach den Bildplätzen zu:
+ * das ERSTE @-Token im Text bekommt Bild 1, das zweite Bild 2. Weil hier `@image1` zuerst
+ * steht und der Mann ist, muss die Route SEIN Foto auf Platz 1 schicken und ihres auf
+ * Platz 2 — genau umgekehrt zu früher. Wer die Token vertauscht, ohne die Bilder zu
+ * tauschen, bekommt zwei Männer oder zwei Frauen.
+ *
+ * „Klamotten 1:1 behalten" steht ausdrücklich drin: ohne diesen Satz stylt das Modell das
+ * Outfit um, und dann war das teure Anziehen umsonst. Die Drehung ist Absicht — das Video
+ * zeigt damit nebenbei das Kleidungsstück, für das er bezahlt hat.
+ */
 export function holidayPrompt(scene: HolidayScene): string {
   return (
+    `The man from @image1 and the woman from @image2 are together ${scene.place}. ` +
+    `${scene.action}, chatting and flirting playfully, exchanging smiles and soft laughter, ` +
+    `glancing at each other now and then. ` +
+    `Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and details. ` +
+    `Keep the face of @image1 and the face of @image2 EXACTLY as in the reference photos — ` +
+    `do not change either face. ` +
+    `The woman turns once so her look is fully visible, then he puts his arms around her. ` +
     `Show both people from their knees up to their heads, full figures in frame, filmed from ` +
-    `below pointing slightly upwards. @person (the woman) and @Bild2 (the man) are together ` +
-    `${scene.place}. ${scene.action}. Keep the face of @person and the face of @Bild2 EXACTLY ` +
-    `as in the reference photos — do not change either face. Keep her outfit exactly as in her ` +
-    `reference photo. Natural daylight, cinematic, photorealistic, fluid natural motion. ` +
-    `Fixed camera, no zoom. No text or logos.`
+    `below pointing slightly upwards. Natural daylight, cinematic, photorealistic, fluid ` +
+    `natural motion. Fixed camera, no zoom. No text or logos.`
   );
 }

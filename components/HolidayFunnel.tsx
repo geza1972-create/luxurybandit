@@ -135,7 +135,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
     // (sie + er). Ein Kleidungsstück nur zu BESCHREIBEN liefert ein beliebiges Teil in
     // dieser Farbe, nicht das aus dem Schrank. Kostet ein Bild extra (~3–7 ct) — aber erst
     // hier, nach der Zahlung, nie in der Vorschau.
-    let personRef = modelPhoto;
+    let herRef = modelPhoto;
     const look = looks.find(l => l.id === lookId);
     if (look?.imageUrl) {
       setStatus("Dressing her …");
@@ -153,7 +153,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
         }).then(r => r.json());
         // Scheitert das Anziehen, bricht NICHT der ganze Kauf ab — dann bekommt er das
         // Video mit ihrem Ausgangs-Outfit statt gar keins.
-        if (d?.image || d?.imageUrl) personRef = d.image || d.imageUrl;
+        if (d?.image || d?.imageUrl) herRef = d.image || d.imageUrl;
       } catch { /* siehe oben: weiter mit dem Ausgangsfoto */ }
       if (runRef.current !== token) return;
     }
@@ -162,7 +162,11 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: LOOK_ID, person: personRef, garment: photo, prompt: holidayPrompt(scene) }),
+        // REIHENFOLGE IST PFLICHT: Der Prompt nennt @image1 (den Mann) zuerst, und Pixverse
+        // ordnet das erste Token dem ERSTEN Bildplatz zu — das ist `person`. Also SEIN Foto
+        // auf Platz 1 und ihr angezogenes auf Platz 2. Vertauscht man nur die Token, kommen
+        // zwei Männer oder zwei Frauen heraus.
+        body: JSON.stringify({ lookId: LOOK_ID, person: photo, garment: herRef, prompt: holidayPrompt(scene) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {
