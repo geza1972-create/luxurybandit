@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Check, Download, Plus } from "lucide-react";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -44,6 +45,12 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
 export default function HolidayFunnel({ code = "", presetModelId = "", presetModelName = "" }: {
   code?: string; presetModelId?: string; presetModelName?: string;
 }) {
+  // MESSPUNKTE (Owner 29.07.2026) — dieselben sechs Namen wie im Kiss-Trichter, damit
+  // beide vergleichbar sind. Thema steckt in lookId: die Bella-Seite reicht presetModelId
+  // durch, sonst ist es das allgemeine Holiday-Thema.
+  const theme = presetModelId ? "bella" : "holiday";
+  const track = (step: string) =>
+    void logFunnelEvent(`funnel_${step}`, { lookId: `funnel-${theme}`, lookName: `${theme}-Trichter` });
   const [photo, setPhoto] = useState("");            // SEIN Foto
   const [models, setModels] = useState<Model[]>([]);
   const [pickIdx, setPickIdx] = useState(0);         // Coverflow: vorderste Karte = Auswahl
@@ -113,8 +120,8 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
   const modelPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
   const ready = !!photo && !!modelPhoto && !!scene;
 
-  const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); } catch { /**/ } };
-  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); } catch { /**/ } };
+  const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); track("photo"); } catch { /**/ } };
+  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); track("own_model"); } catch { /**/ } };
 
   const markUsed = (id: string) => {
     setUsed(prev => {
@@ -174,7 +181,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
         if (runRef.current !== token) return;
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
-          setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false);
+          setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false); track("done");
           markUsed(scene.id);
           setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
           return;
@@ -187,6 +194,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
 
   // Immer erst die Fake-Show — auch für Staff, damit der Kundenweg sichtbar bleibt.
   const generate = () => {
+    track("generate");
     if (!ready || busy) return;
     setBusy(true); setTeaser(false); setVideoUrl(""); setStatus("");
     const token = Date.now(); runRef.current = token;
@@ -194,13 +202,14 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
     for (const [at, text] of RENDER_STEPS) setTimeout(() => { if (runRef.current === token) setStatus(text); }, at);
     setTimeout(() => {
       if (runRef.current !== token) return;
-      setBusy(false); setStatus(""); setTeaser(true);
+      setBusy(false); setStatus(""); setTeaser(true); track("paywall");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     }, RENDER_MS);
   };
 
   // Freischalten: erstes Video = Abo 24 €/Monat, jedes weitere = 3,99 € einzeln.
   const unlock = async () => {
+    track("checkout");
     if (payBusy) return;
     if (isStaff) { setBusy(true); const t = Date.now(); runRef.current = t; await realGenerate(t); return; }
     setPayBusy(true); setStatus("");

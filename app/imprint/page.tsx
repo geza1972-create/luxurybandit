@@ -1,4 +1,5 @@
 import InfoPage from "@/components/InfoPage";
+import TrackView from "@/components/TrackView";
 
 export const metadata = { title: "Imprint — LuxuryBandit" };
 
@@ -7,6 +8,9 @@ export const metadata = { title: "Imprint — LuxuryBandit" };
 export default function ImprintPage() {
   return (
     <InfoPage title="Imprint">
+      {/* Owner fragte am 29.07.2026, ob das Impressum angeklickt wird — war nicht
+          beantwortbar, weil die Seite nichts meldete. */}
+      <TrackView event="imprint_view" lookId="legal-imprint" lookName="Impressum" />
       <h2>Provider</h2>
       <p>
         LuxuryBandit<br />

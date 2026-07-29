@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
 import { renewNote } from "@/lib/pricing";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
@@ -91,6 +92,12 @@ const VARIANTS: Record<FunnelVariant, {
 
 export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: FunnelVariant; code?: string }) {
   const V = VARIANTS[variant];
+  // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
+  // Kiss-Durchläufe standen nur im eigenen kiss-log, und wo die Leute abspringen, war
+  // nicht zu sehen. Alle Trichter benutzen dieselben sechs Namen, damit man sie
+  // nebeneinanderlegen kann; das Thema steckt in lookId.
+  const track = (step: string) =>
+    void logFunnelEvent(`funnel_${step}`, { lookId: `funnel-${variant}`, lookName: `${variant}-Trichter` });
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
@@ -138,8 +145,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     return () => { runRef.current = -1; };
   }, []);
 
-  const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); } catch { /**/ } };
-  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); } catch { /**/ } };
+  const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); track("photo"); } catch { /**/ } };
+  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); track("own_model"); } catch { /**/ } };
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
@@ -163,7 +170,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (runRef.current !== token) return;
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
-          setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false);
+          setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false); track("done");
           setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
           // Video-URL im Log nachtragen (Staff: Eintrag jetzt erst anlegen).
           try {
@@ -182,6 +189,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // kein API-Call, keine Kosten) — auch für Staff, damit der Owner den Kunden-Flow sieht.
   // Das ECHTE Rendern passiert erst beim Freischalten (Kunde: nach Stripe; Staff: gratis).
   const generate = async () => {
+    track("generate");
     if (!selPhoto || !photo || busy) return;
     setBusy(true); setTeaser(false); setVideoUrl(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
@@ -195,7 +203,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     }
     setTimeout(async () => {
       if (runRef.current !== token) return;
-      setBusy(false); setStatus(""); setTeaser(true);
+      setBusy(false); setStatus(""); setTeaser(true); track("paywall");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Interesse fürs Admin-Tool loggen (noch ohne Video — das echte rendert nach dem Kauf).
       try {
@@ -208,6 +216,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // 🔓 Freischalten: Kunde → Stripe-Popup + Status-Poll, bei `paid` startet die ECHTE
   // Generierung. Staff → gratis direkt zur echten Generierung (kein Stripe).
   const unlock = async () => {
+    track("checkout");
     if (payBusy) return;
     if (isStaff) {
       setBusy(true);
