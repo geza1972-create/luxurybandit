@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon } from "lucide-react";
+import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, ChevronLeft, ChevronRight, CornerDownRight } from "lucide-react";
 
 /**
  * Admin-Werkzeug für die Medien EINES Themas: Teaser (Cover im /themes-Katalog) und die
@@ -26,6 +26,7 @@ export default function ThemeMediaAdmin({
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [teaserUrl, setTeaserUrl] = useState("");
+  const [teaserPath, setTeaserPath] = useState("");
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
   const [busy, setBusy] = useState("");    // "teaser" | "video" | Pfad (löschen)
@@ -39,6 +40,7 @@ export default function ThemeMediaAdmin({
     .then(r => r.json())
     .then(d => {
       setTeaserUrl(d.teaserUrl ?? "");
+      setTeaserPath(d.teaserPath ?? "");
       setExamples(Array.isArray(d.examples) ? d.examples : []);
       setUsingDefaults(!!d.usingDefaults);
     })
@@ -100,6 +102,36 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
+  // REIHENFOLGE (Owner 29.07.2026: „ich kann die reihenfolge auch nicht ändern").
+  // Pfeile statt Ziehen: Ziehen ist auf dem Handy fummelig und kollidiert mit dem Scrollen.
+  // Die Oberfläche schiebt sofort (damit es sich flüssig anfühlt) und schickt die ganze
+  // neue Liste hinterher — scheitert das Speichern, holen wir den Serverstand zurück.
+  const move = async (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= examples.length) return;
+    const next = [...examples];
+    [next[i], next[j]] = [next[j], next[i]];
+    setExamples(next);
+    setBusy("order"); setMsg("");
+    try {
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ setExamples: next.map(e => e.path) }) });
+      if (!r.ok) { setMsg(`❌ Reihenfolge nicht gespeichert (${r.status}).`); await load(pin); }
+    } catch { setMsg("❌ Netzwerkfehler — Reihenfolge nicht gespeichert."); await load(pin); }
+    finally { setBusy(""); }
+  };
+
+  // „Auch als Beispiel-Video": rettet einen Upload, der im Teaser-Feld gelandet ist, ohne
+  // dass er die Datei ein zweites Mal hochladen muss (genau das ist am 29.07.2026 passiert).
+  const teaserToExamples = async () => {
+    if (!teaserPath) return;
+    setBusy("copy"); setMsg("");
+    try {
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ addExample: teaserPath }) });
+      if (r.ok) { setMsg("✅ Auch als Beispiel-Video übernommen."); await load(pin); }
+      else setMsg(`❌ Übernehmen fehlgeschlagen (${r.status}).`);
+    } finally { setBusy(""); }
+  };
+
   // Fehler NIE verschlucken — sonst wirkt der Klick wirkungslos („kann nicht löschen").
   const removeExample = async (path: string) => {
     setBusy(path); setMsg("");
@@ -121,8 +153,12 @@ export default function ThemeMediaAdmin({
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-black"><ImageIcon className="h-4 w-4 text-black/50" /> {title}</h2>
       <p className="mt-0.5 text-[12px] font-semibold text-black/60">Teaser (Cover im Themes-Katalog) + Beispiel-Videos der Landingpage.</p>
 
-      <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-black/55">Theme-Teaser (Bild oder Video)</p>
-      <div className="mt-2 flex items-center gap-3">
+      {/* ABGESETZT, damit die zwei Bereiche nicht mehr verwechselt werden: hier landete am
+          29.07.2026 ein Video, das in die Galerie sollte. */}
+      <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-black/55">
+        1 · Cover — <span className="text-black/40">EIN Bild oder Video, erscheint im Themes-Katalog</span>
+      </p>
+      <div className="mt-2 flex items-center gap-3 rounded-xl bg-black/[0.03] p-2">
         <button type="button" onClick={() => teaserRef.current?.click()} disabled={busy === "teaser"}
           className="relative grid h-28 w-[84px] shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-[0.98] transition">
           {teaserUrl
@@ -133,30 +169,56 @@ export default function ThemeMediaAdmin({
               : <img src={teaserUrl} alt="" className="h-full w-full object-cover" />)
             : (busy === "teaser" ? <Loader2 className="h-5 w-5 animate-spin text-black/40" /> : <ImageUp className="h-6 w-6 text-black/40" />)}
         </button>
-        <p className="min-w-0 text-[12px] font-bold text-black/70">
-          {teaserUrl ? "Tippen zum Ersetzen." : (teaserHint ?? "Bild oder Video hochladen — wird das Cover im Themes-Katalog.")}
-        </p>
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold text-black/70">
+            {teaserUrl ? "Tippen zum Ersetzen." : (teaserHint ?? "Bild oder Video hochladen — wird das Cover im Themes-Katalog.")}
+          </p>
+          {/* Rettet einen Upload, der hier statt in der Galerie gelandet ist. */}
+          {teaserPath && !examples.some(e => e.path === teaserPath) && (
+            <button type="button" onClick={() => void teaserToExamples()} disabled={busy === "copy"}
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-black/15 px-2.5 py-1 text-[11px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
+              {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <CornerDownRight className="h-3 w-3" />}
+              Auch unten in die Galerie
+            </button>
+          )}
+        </div>
       </div>
       <input ref={teaserRef} type="file" accept="image/*,video/*" className="hidden"
         onChange={e => { void onTeaser(e.target.files?.[0]); e.target.value = ""; }} />
 
-      <p className="mt-4 text-[11px] font-black uppercase tracking-wide text-black/55">Beispiel-Videos (Landing)</p>
+      <p className="mt-5 text-[11px] font-black uppercase tracking-wide text-black/55">
+        2 · Galerie — <span className="text-black/40">die Videos oben auf der Landingpage, in dieser Reihenfolge</span>
+      </p>
       {usingDefaults && (
         <p className="mt-1 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">
           Das sind noch die Vorgaben. Sobald du eines hinzufügst oder löschst, gilt nur noch deine Auswahl.
         </p>
       )}
       <div className="mt-2 grid grid-cols-3 gap-2">
-        {examples.map(e => (
+        {examples.map((e, i) => (
           <div key={e.path} className="relative overflow-hidden rounded-xl border border-black/10">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
+            {/* Platznummer — sonst sieht man nicht, was „Reihenfolge" hier bedeutet. */}
+            <span className="absolute left-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-[11px] font-black text-white">{i + 1}</span>
             {/* Großer Tap-Bereich + z-10, damit der Klick nie im Video landet. */}
             <button type="button" onClick={() => void removeExample(e.path)} disabled={busy === e.path}
               aria-label="Beispiel-Video löschen"
               className="absolute right-1 top-1 z-10 grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white shadow-lg active:scale-95 disabled:opacity-60">
               {busy === e.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </button>
+            {/* Verschieben: Pfeile statt Ziehen — auf dem Handy ist Ziehen fummelig und
+                kollidiert mit dem Scrollen. */}
+            <div className="absolute inset-x-0 bottom-0 z-10 flex justify-between bg-gradient-to-t from-black/70 to-transparent p-1">
+              <button type="button" onClick={() => void move(i, -1)} disabled={i === 0 || busy === "order"}
+                aria-label="Nach vorne" className="grid h-7 w-7 place-items-center rounded-full bg-white/90 text-black active:scale-95 disabled:opacity-25">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => void move(i, 1)} disabled={i === examples.length - 1 || busy === "order"}
+                aria-label="Nach hinten" className="grid h-7 w-7 place-items-center rounded-full bg-white/90 text-black active:scale-95 disabled:opacity-25">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         ))}
         <button type="button" onClick={() => videoRef.current?.click()} disabled={busy === "video"}

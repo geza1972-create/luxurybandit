@@ -60,6 +60,11 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
     teaserPath?: string; addExample?: string; removeExample?: string;
+    // Ganze Liste in neuer Reihenfolge (Owner 29.07.2026: „ich kann die reihenfolge auch
+    // nicht ändern"). Bewusst die VOLLE Liste statt „schiebe X um eins": so kann die
+    // Oberfläche auch umsortieren, ohne dass Server und Browser sich über Zwischenstände
+    // streiten.
+    setExamples?: unknown;
   };
 
   // Signierte Upload-Adresse: der Browser lädt DIREKT zu Supabase, sonst greift das
@@ -81,10 +86,16 @@ export async function POST(request: Request) {
     config.teaserPath = p && p.startsWith("try-this-look/") ? p : undefined;   // "" = entfernen
   }
   if (body.addExample && String(body.addExample).startsWith("try-this-look/")) {
-    list = [...list, String(body.addExample)];
+    const p = String(body.addExample);
+    if (!list.includes(p)) list = [...list, p];   // kein Doppel, wenn zweimal getippt wird
   }
   if (body.removeExample) {
     list = list.filter(p => p !== body.removeExample);
+  }
+  if (Array.isArray(body.setExamples)) {
+    // Nur Pfade aus unserem Speicher, keine Doppel — der Browser bestimmt die Reihenfolge,
+    // aber nicht, WAS in der Liste stehen darf.
+    list = [...new Set(body.setExamples.map(String).filter(p => p.startsWith("try-this-look/")))].slice(0, 20);
   }
 
   await writeThemeConfig({ ...config, examplePaths: list }, theme);
