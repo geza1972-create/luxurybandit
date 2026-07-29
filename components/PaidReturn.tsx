@@ -8,7 +8,7 @@ import { Check, Loader2 } from "lucide-react";
  *
  * Vorher: Stripe schickte den Kunden auf die Themenseite zurück — und dort wusste niemand,
  * dass er gerade bezahlt hat. Die Seite sah aus wie vorher, der Kaufknopf stand noch da,
- * seine 10 Videos waren unsichtbar. Genau der Moment, in dem man das Vertrauen verliert.
+ * seine 5 Videos waren unsichtbar. Genau der Moment, in dem man das Vertrauen verliert.
  *
  * Jetzt: Die Rückkehr trägt `?paid=1&cs=<sitzung>`. Wir fragen Stripe (über
  * /api/checkout-status), ob wirklich bezahlt wurde — der Client behauptet das nie selbst —,
@@ -17,14 +17,14 @@ import { Check, Loader2 } from "lucide-react";
  */
 
 const T: Record<string, { ok: string; okP: string; wait: string; fail: string }> = {
-  en: { ok: "You're in 🎉", okP: "Your subscription is active: 10 videos a month across all topics. Chatting stays free.", wait: "Confirming your payment …", fail: "We could not confirm the payment yet. If you were charged, it will appear in a moment." },
-  de: { ok: "Du bist dabei 🎉", okP: "Dein Abo läuft: 10 Videos im Monat über alle Themen. Chatten bleibt gratis.", wait: "Zahlung wird bestätigt …", fail: "Die Zahlung ist noch nicht bestätigt. Falls abgebucht wurde, erscheint sie gleich." },
-  ro: { ok: "Ești înăuntru 🎉", okP: "Abonamentul e activ: 10 videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", wait: "Confirmăm plata …", fail: "Plata nu e confirmată încă. Dacă a fost debitată, apare imediat." },
-  es: { ok: "¡Ya estás dentro! 🎉", okP: "Tu suscripción está activa: 10 vídeos al mes en todos los temas. Chatear sigue gratis.", wait: "Confirmando el pago …", fail: "Aún no podemos confirmar el pago. Si se cobró, aparecerá enseguida." },
-  fr: { ok: "C'est bon 🎉", okP: "Ton abonnement est actif : 10 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", wait: "Confirmation du paiement …", fail: "Le paiement n'est pas encore confirmé. S'il a été débité, il apparaîtra sous peu." },
-  pt: { ok: "Estás dentro 🎉", okP: "A tua subscrição está ativa: 10 vídeos por mês em todos os temas. Conversar continua grátis.", wait: "A confirmar o pagamento …", fail: "Ainda não confirmámos o pagamento. Se foi cobrado, aparece já." },
-  pl: { ok: "Jesteś w grze 🎉", okP: "Subskrypcja działa: 10 filmów miesięcznie we wszystkich tematach. Czat pozostaje darmowy.", wait: "Potwierdzamy płatność …", fail: "Płatność nie jest jeszcze potwierdzona. Jeśli została pobrana, pojawi się za chwilę." },
-  it: { ok: "Ci sei 🎉", okP: "L'abbonamento è attivo: 10 video al mese in tutti i temi. Chattare resta gratis.", wait: "Confermiamo il pagamento …", fail: "Il pagamento non è ancora confermato. Se è stato addebitato, comparirà a breve." },
+  en: { ok: "You're in 🎉", okP: "Your subscription is active: 5 videos a month across all topics. Chatting stays free.", wait: "Confirming your payment …", fail: "We could not confirm the payment yet. If you were charged, it will appear in a moment." },
+  de: { ok: "Du bist dabei 🎉", okP: "Dein Abo läuft: 5 Videos im Monat über alle Themen. Chatten bleibt gratis.", wait: "Zahlung wird bestätigt …", fail: "Die Zahlung ist noch nicht bestätigt. Falls abgebucht wurde, erscheint sie gleich." },
+  ro: { ok: "Ești înăuntru 🎉", okP: "Abonamentul e activ: 5 videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", wait: "Confirmăm plata …", fail: "Plata nu e confirmată încă. Dacă a fost debitată, apare imediat." },
+  es: { ok: "¡Ya estás dentro! 🎉", okP: "Tu suscripción está activa: 5 vídeos al mes en todos los temas. Chatear sigue gratis.", wait: "Confirmando el pago …", fail: "Aún no podemos confirmar el pago. Si se cobró, aparecerá enseguida." },
+  fr: { ok: "C'est bon 🎉", okP: "Ton abonnement est actif : 5 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", wait: "Confirmation du paiement …", fail: "Le paiement n'est pas encore confirmé. S'il a été débité, il apparaîtra sous peu." },
+  pt: { ok: "Estás dentro 🎉", okP: "A tua subscrição está ativa: 5 vídeos por mês em todos os temas. Conversar continua grátis.", wait: "A confirmar o pagamento …", fail: "Ainda não confirmámos o pagamento. Se foi cobrado, aparece já." },
+  pl: { ok: "Jesteś w grze 🎉", okP: "Subskrypcja działa: 5 filmów miesięcznie we wszystkich tematach. Czat pozostaje darmowy.", wait: "Potwierdzamy płatność …", fail: "Płatność nie jest jeszcze potwierdzona. Jeśli została pobrana, pojawi się za chwilę." },
+  it: { ok: "Ci sei 🎉", okP: "L'abbonamento è attivo: 5 video al mese in tutti i temi. Chattare resta gratis.", wait: "Confermiamo il pagamento …", fail: "Il pagamento non è ancora confermato. Se è stato addebitato, comparirà a breve." },
 };
 
 export default function PaidReturn({ lang = "en" }: { lang?: string }) {

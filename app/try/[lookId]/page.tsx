@@ -460,7 +460,7 @@ export default function TryFunnelPage() {
         <p className="text-[15px] font-black text-white">{L("Ce primești în abonament", "What you get")}</p>
         <div className="mt-2.5 grid gap-2">
           {[
-            L("10 videoclipuri pe lună — în toate temele împreună", "10 videos a month — across every topic"),
+            L("5 videoclipuri pe lună — în toate temele împreună", "5 videos a month — across every topic"),
             L("Orice model în orice ținută: ea se întoarce, tu vezi fiecare parte", "Any model in any look — she turns, you see every side"),
             L("Chat nelimitat, în limba ta — gratuit, oricând", "Unlimited chat in your language — free, any time"),
             L("Sărut, idolul tău, vacanță: aceleași videoclipuri, alte teme", "Kiss, your idol, holiday — same videos, other topics"),

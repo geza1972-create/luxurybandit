@@ -10,14 +10,14 @@ import { trObject } from "@/lib/tr-object";
 
 // THEMA „Chat with an AI girl" — der Chat ist die Hauptsache, das Anziehen die Zugabe.
 // Er wählt eine Frau aus dem Katalog oder lädt eine eigene hoch, schreibt täglich mit ihr
-// und steckt sie in neue Looks: 24,50 €/Monat inkl. 10 Videos/Looks über ALLE Themen,
+// und steckt sie in neue Looks: 24,50 €/Monat inkl. 5 Videos/Looks über ALLE Themen,
 // jedes weitere 3,99 €. Chatten ist gratis.
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Chat with an AI girl — talk every day, dress her in new looks | LuxuryBandit",
-  description: "Pick any woman or upload your own photo of her, then text her every day. Your AI girl answers in your language and wears the looks you choose: Chat free; 24,50 €/month for 10 videos & looks across all topics, extra ones 3.99 €.",
+  description: "Pick any woman or upload your own photo of her, then text her every day. Your AI girl answers in your language and wears the looks you choose: Chat free; 24,50 €/month for 5 videos & looks across all topics, extra ones 3.99 €.",
   keywords: ["chat with ai girl", "ai girlfriend chat", "ai chat girl", "virtual girlfriend app", "ai companion chat", "ai model chat", "dress up ai model", "ai influencer chat"],
   alternates: { canonical: "/themes/chat" },
 };
@@ -37,7 +37,7 @@ export default async function ChatThemePage({ searchParams }: {
     kicker: "LuxuryBandit · Chat",
     h1a: "Chat with an", h1b: "AI girl",
     lead: "Pick one of our models — or upload a photo of the woman you have in mind — and write with her every day. Write in German, English, Romanian, Spanish, French, Italian, Polish — she answers in whatever language you use, and switches the moment you do.",
-    fine: "Chatting is free. The subscription is for the pictures and videos: 24,50 € a month gives you 10 generations across ALL topics together. Every one beyond that is 3.99 €. She is an AI character, and she says so herself every so often.",
+    fine: "Chatting is free. The subscription is for the pictures and videos: 24,50 € a month gives you 5 generations across ALL topics together. Every one beyond that is 3.99 €. She is an AI character, and she says so herself every so often.",
     codeNote: `Your code ${code.toUpperCase()} is active: chatting is free anyway — when you want the videos, you pay just 24.50 € instead of 49 €, for as long as you stay.`,
     s1h: "Any woman, not just ours",
     s1p: "Our catalogue has 46 models you can start with. If none of them is the one you picture, upload a single photo and give her a name — from that moment she is your AI girl, and she is the one who answers you.",

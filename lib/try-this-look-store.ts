@@ -1911,12 +1911,12 @@ export async function setVideoCreditsBalance(email: string, n: number): Promise<
 
 // Wie viele Videos ein Abonnent pro Kalendermonat generieren darf — 25, ueber ALLE Themen
 // zusammen (Owner 27.07.2026). Das Abo verkauft Videos; der Chat ist gratis.
-// 10 statt 25 (Owner 29.07.2026). Grund steht bewusst NUR hier, nicht auf der Seite: ein
-// Trichter-Video kostet rund 1 € in der Produktion. Bei 24,50 € Monatsumsatz waren 25 Videos
-// ein Verlustgeschäft (30 € Kosten gegen 24,50 € Einnahme), 10 sind tragbar, solange die
-// durchschnittliche Nutzung deutlich darunter bleibt.
+// 5 statt 25 (Owner 29.07.2026, in zwei Schritten). Grund steht bewusst NUR hier, nicht auf
+// der Seite: ein Trichter-Video kostet rund 1 €. Bei 24,50 € Umsatz waren 25 Videos ein
+// Verlustgeschäft (30 € Kosten gegen 24,50 €). 10 waren nur 2,4x Aufschlag — der Owner
+// wollte mehr: 5 Videos sind 4,8x, bei 1 € Kosten je Video.
 // Per Env übersteuerbar — steht `SUBSCRIPTION_MONTHLY_CREDITS` auf Vercel, gewinnt die Env.
-export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 10);
+export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 5);
 
 // Serialize monthly-credit grants within this process. The subMonths key makes the grant
 // idempotent, but the read-modify-write on the shared JSON blob is NOT atomic — a return to

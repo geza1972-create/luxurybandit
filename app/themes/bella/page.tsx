@@ -25,7 +25,7 @@ import { getSignedUrl, readThemeConfig, readTryThisLookState, type KissConfig } 
  * hoch und ist WIRKLICH mit im Bild. Kein Zwischenschritt, keine Landeseite vor der
  * Landeseite: der Trichter läuft hier, auf dieser Seite.
  *
- * KEINE NEUE KASSE: Es ist dasselbe Themen-Abo wie überall (24,50 €/Monat, 10 Generierungen
+ * KEINE NEUE KASSE: Es ist dasselbe Themen-Abo wie überall (24,50 €/Monat, 5 Generierungen
  * über alle Themen zusammen). `SubscribeCta topic="holiday"` zeigt auf
  * /api/holiday-abo-checkout. In Stripe ist dafür nichts anzulegen.
  */
@@ -37,7 +37,7 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 export const metadata = {
   title: "Tenerife with Bella — and you in the picture | LuxuryBandit",
   description:
-    "Not her holiday — yours. Upload your photo and Bella is in the video with you: a walk on the beach, coffee, dancing. Chatting with her is free; 24,50 € a month for 10 videos across all topics.",
+    "Not her holiday — yours. Upload your photo and Bella is in the video with you: a walk on the beach, coffee, dancing. Chatting with her is free; 24,50 € a month for 5 videos across all topics.",
   keywords: ["bella", "ai influencer", "holiday video with ai model", "put yourself in a video", "ai girlfriend video", "tenerife"],
   alternates: { canonical: "/themes/bella" },
 };
