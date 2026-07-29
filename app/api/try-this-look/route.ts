@@ -1139,6 +1139,8 @@ export async function POST(request: Request) {
       status?: string;
       utmSource?: string;
       utmCampaign?: string;
+      // Geräte-Kennung aus dem Browser (lb_visitor) — zählt Menschen statt Klicks.
+      device?: string;
       // Seller AI management
       aiEnabled?: boolean;
       aiCreditsLimit?: number;
@@ -1167,18 +1169,24 @@ export async function POST(request: Request) {
       // Traffic source: explicit utm/source wins; else classify the referrer host.
       const utmSource = String(payload.utmSource ?? "").trim();
       const referrer = String(payload.referrer ?? request.headers.get("referer") ?? "").trim();
+      // QUELLENERKENNUNG — am 29.07.2026 repariert. Der alte Code prüfte ungebundene
+      // Teilzeichenfolgen, und „luxurybandit.com" ENTHÄLT „t.co" (in „bandi_t.co_m").
+      // Dadurch wurde jede interne Navigation als Twitter gezählt: 143 von 386 Ereignissen
+      // im Protokoll waren erfundener Twitter-Verkehr. Die eigene Seite wird jetzt ZUERST
+      // geprüft, und alle Muster sind an die Wortgrenze der Domain gebunden.
       const source = (() => {
         const explicit = (String(payload.source ?? "").trim() || utmSource).toLowerCase();
         if (explicit) return explicit;
         if (!referrer) return "direct";
         try {
-          const host = new URL(referrer).hostname.replace(/^www\./, "");
-          if (/instagram|ig\.me|l\.instagram/.test(host)) return "instagram";
-          if (/facebook|fb\.|fb\.me/.test(host)) return "facebook";
-          if (/tiktok/.test(host)) return "tiktok";
-          if (/t\.co|twitter|x\.com/.test(host)) return "twitter";
-          if (/google|bing|duckduckgo/.test(host)) return "search";
-          if (/luxurybandit/.test(host)) return "direct";
+          const host = new URL(referrer).hostname.replace(/^www\./, "").toLowerCase();
+          if (/(^|\.)luxurybandit\./.test(host)) return "direct";       // eigene Seite zuerst
+          if (host === "localhost" || host === "127.0.0.1") return "direct";
+          if (/(^|\.)(instagram\.com|ig\.me)$/.test(host)) return "instagram";
+          if (/(^|\.)(facebook\.com|fb\.com|fb\.me|fbcdn\.net)$/.test(host)) return "facebook";
+          if (/(^|\.)tiktok\.com$/.test(host)) return "tiktok";
+          if (/(^|\.)(t\.co|twitter\.com|x\.com)$/.test(host)) return "twitter";
+          if (/(^|\.)(google|bing|duckduckgo|ecosia|yandex)\./.test(host)) return "search";
           return host;
         } catch { return "direct"; }
       })();
@@ -1188,7 +1196,9 @@ export async function POST(request: Request) {
         name: eventName,
         lookId,
         createdAt: now,
-        userAgent: request.headers.get("user-agent") ?? undefined,
+        // Gekürzt (29.07.2026): der lange In-App-Browser-Anhang (FB_IAB/FBAV/…) blähte jedes
+        // Ereignis auf, ohne etwas auszusagen. Browser und Betriebssystem stehen vorn.
+        userAgent: (request.headers.get("user-agent") ?? "").slice(0, 160) || undefined,
         campaignId: String(payload.campaignId ?? "").trim() || lookId,
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
@@ -1204,6 +1214,10 @@ export async function POST(request: Request) {
         slide: Number(payload.slide) > 0 ? Number(payload.slide) : undefined,
         slides: Number(payload.slides) > 0 ? Number(payload.slides) : undefined,
         visitor: String(payload.visitor ?? "").trim().slice(0, 80) || undefined,
+        // GERÄTE-KENNUNG (neu, 29.07.2026): dieselbe `lb_visitor`-Kennung wie im Chat.
+        // Ohne sie war „wie viele Menschen waren auf der Seite?" nicht beantwortbar —
+        // 385 von 386 Ereignissen hatten keine Zuordnung.
+        device: String(payload.device ?? "").trim().slice(0, 80) || undefined,
         internal: (payload as any).internal === true || undefined,
       });
 
@@ -1345,7 +1359,9 @@ export async function POST(request: Request) {
         name: "lead_submitted",
         lookId,
         createdAt: now,
-        userAgent: request.headers.get("user-agent") ?? undefined,
+        // Gekürzt (29.07.2026): der lange In-App-Browser-Anhang (FB_IAB/FBAV/…) blähte jedes
+        // Ereignis auf, ohne etwas auszusagen. Browser und Betriebssystem stehen vorn.
+        userAgent: (request.headers.get("user-agent") ?? "").slice(0, 160) || undefined,
         campaignId: String(payload.campaignId ?? "").trim() || lookId,
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,

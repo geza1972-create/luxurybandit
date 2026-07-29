@@ -242,7 +242,7 @@ export default function AdminPage() {
   // Wait for credentials (pin from localStorage or Supabase token) before fetching —
   // otherwise the first fire on tab-mount sends no auth and 401s without retrying.
   useEffect(() => { if (tab === "chats" && (pin || token) && !chatsLoaded) void loadChats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, pin, token]);
-  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string };
+  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string; device?: string; internal?: boolean };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
   const [visitsByDay, setVisitsByDay] = useState<Record<string, number>>({}); // per-date SITE visits

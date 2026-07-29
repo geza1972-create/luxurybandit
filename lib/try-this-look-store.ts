@@ -113,7 +113,12 @@ export type TryThisLookEvent = {
   slide?: number;
   slides?: number;
   visitor?: string; // logged-in name/email if known, else undefined (shown as "Guest")
-  internal?: boolean; // fired by an admin/test session → excluded from the funnel counts
+  // GERÄTE-KENNUNG (29.07.2026): die `lb_visitor`-Kennung aus dem Browser — dieselbe, die
+  // Chat und „My Gallery" benutzen. Damit lässt sich zählen, wie viele MENSCHEN da waren,
+  // nicht nur wie viele Klicks es gab, und ein Besucher lässt sich über Chat und Try-on
+  // hinweg verfolgen. Vorher hatten 385 von 386 Ereignissen keinerlei Zuordnung.
+  device?: string;
+  internal?: boolean; // fired by an admin/test or localhost session → excluded from the counts
 };
 
 export type TryThisLookLead = {
@@ -1165,7 +1170,10 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     activeLookIds: state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId],
     stores: state.stores ?? [],
     looks: state.looks.map(({ imageUrl, frontImageUrl, backImageUrl, garmentFrontImageUrl, garmentBackImageUrl, galleryImageUrls, ...look }) => look),
-    events: state.events.slice(0, 500),
+    // 500 reichten für NEUN TAGE — alles davor war unwiederbringlich weg, als der Owner am
+    // 29.07.2026 nach seiner Besucherzahl fragte. 5.000 decken bei heutigem Verkehr rund ein
+    // Vierteljahr ab. Die gekürzte Kennung (userAgent auf 160 Zeichen) hält den Zuwachs klein.
+    events: state.events.slice(0, 5000),
     leads: state.leads.map(({ uploadedPhotoUrl, ...lead }) => lead).slice(0, 500),
     generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200),
     comments: (state.comments ?? []).slice(0, 2000),

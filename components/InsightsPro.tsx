@@ -6,6 +6,7 @@ import { Eye, MousePointerClick, Sparkles, Heart, Users, Trash2, Loader2, Trendi
 export type InsightsEvent = {
   id: string; name: string; createdAt: string; internal?: boolean;
   lookId?: string; lookName?: string; source?: string; country?: string;
+  device?: string;   // Geräte-Kennung (lb_visitor) — zählt MENSCHEN statt Klicks
 };
 type Range = "today" | "7d" | "30d" | "all";
 
@@ -49,6 +50,14 @@ export default function InsightsPro({
       : range === "30d" ? nowMs - 30 * 864e5 : 0;
     const evs = feedEvents.filter(e => !e.internal && new Date(e.createdAt).getTime() >= cutoff);
     const countOf = (n: string) => evs.filter(e => e.name === n).length;
+
+    // VERSCHIEDENE MENSCHEN (29.07.2026). „Website visits" zählt Aufrufe, nicht Personen —
+    // die Frage „wie viele Besucher hatte ich?" war daraus nicht zu beantworten. Gezählt
+    // werden verschiedene Geräte-Kennungen; `mitKennung` zeigt ehrlich, wie viel Prozent der
+    // Ereignisse überhaupt eine tragen (vor dem 29.07. war es fast keines).
+    const mitDevice = evs.filter(e => e.device);
+    const menschen = new Set(mitDevice.map(e => e.device)).size;
+    const abdeckung = evs.length > 0 ? Math.round((mitDevice.length / evs.length) * 100) : 0;
 
     const sumDays = (rec: Record<string, number>) => Object.entries(rec).reduce((s, [day, n]) =>
       range === "all" || new Date(day + "T00:00:00").getTime() >= cutoff ? s + (Number(n) || 0) : s, 0);
@@ -127,7 +136,7 @@ export default function InsightsPro({
 
     return { visits, views, funnel, sources, countries, topLooks, topModels, trend, recruit, chatFunnel, payment,
       tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click"),
-      subscribed: countOf("subscribe_success") };
+      subscribed: countOf("subscribe_success"), menschen, abdeckung };
   }, [feedEvents, viewsByDay, visitsByDay, looks, range]);
 
   const trendMax = Math.max(1, ...data.trend.map(t => Math.max(t.visits, t.views)));
@@ -184,6 +193,25 @@ export default function InsightsPro({
             <p className="text-[10px] font-bold text-ink/35">{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* VERSCHIEDENE MENSCHEN — die Zahl, die vorher niemand beantworten konnte.
+          Bewusst mit Abdeckungs-Hinweis: solange die Geräte-Kennung nicht auf jedem
+          Ereignis sitzt, ist die Zahl eine Untergrenze und darf nicht als Wahrheit gelten. */}
+      <div className={card}>
+        <div className="flex items-baseline justify-between">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Users className="h-4 w-4 text-ink/40" /> Different people</p>
+            <p className="mt-0.5 text-[11px] font-bold text-ink/40">Distinct devices, not clicks. This is the number that answers “how many visitors did I have?”</p>
+          </div>
+          <p className="text-3xl font-black leading-none text-ink">{fmt(data.menschen)}</p>
+        </div>
+        {data.abdeckung < 90 && (
+          <p className="mt-2 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">
+            Only {data.abdeckung}% of events carry a device id, so this is a floor, not the truth.
+            Events logged before 29.07.2026 have none at all — the number becomes reliable from then on.
+          </p>
+        )}
       </div>
 
       {/* Conversion funnel */}
