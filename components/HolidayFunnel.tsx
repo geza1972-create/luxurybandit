@@ -274,15 +274,20 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
       {/* 3 — die Szene: er WÄHLT, kein Zufall. Benutzte sind markiert. */}
       <p className={`mt-6 ${label}`}>3 · What happens</p>
       <p className="mt-1 text-[13px] font-bold text-white">
-        Tap one of {HOLIDAY_SCENES.length} moments. {used.length > 0 ? `${used.length} already made — those are marked, so you never get the same video twice.` : "Nothing is random — you pick."}
+        Swipe through {HOLIDAY_SCENES.length} moments and tap one. {used.length > 0 ? `${used.length} already made — those are marked, so you never get the same video twice.` : "Nothing is random — you pick."}
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      {/* SLIDES statt Kachelliste (Owner 29.07.2026). 25 Momente als zweispaltiges Raster
+          waren 13 Zeilen Scrollen mitten im Trichter — er wischt lieber. EINE Reihe,
+          waagerecht wischbar, mit Einrastpunkten; die Scrollleiste ist ausgeblendet, das
+          angeschnittene nächste Feld zeigt, dass es weitergeht. `-mx-4 px-4` lässt die Reihe
+          bis an den Bildschirmrand laufen, ohne den Innenabstand der Seite zu verlieren. */}
+      <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {scenes.map(s => {
           const on = sceneId === s.id;
           const done = used.includes(s.id);
           return (
             <button key={s.id} type="button" onClick={() => setSceneId(s.id)}
-              className={`relative rounded-xl border p-3 text-left transition ${on ? "border-[#f6cf51] bg-[#f6cf51]/10" : done ? "border-white/15 bg-white/[0.03] opacity-60" : "border-white/25 bg-white/[0.06]"}`}>
+              className={`relative w-[42vw] max-w-[170px] shrink-0 snap-start rounded-xl border p-3 text-left transition ${on ? "border-[#f6cf51] bg-[#f6cf51]/10" : done ? "border-white/15 bg-white/[0.03] opacity-60" : "border-white/25 bg-white/[0.06]"}`}>
               <span className="text-[18px]">{s.emoji}</span>
               <span className={`mt-0.5 block text-[13px] font-black leading-tight ${on ? "text-[#f6cf51]" : "text-white"}`}>{s.label}</span>
               {done && <span className="mt-1 block text-[10px] font-black uppercase tracking-wide text-white/60">already made</span>}

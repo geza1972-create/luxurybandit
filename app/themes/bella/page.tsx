@@ -1,5 +1,4 @@
 import TopNav from "@/components/TopNav";
-import ModelCard from "@/components/ModelCard";
 import TrackView from "@/components/TrackView";
 import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
@@ -10,9 +9,8 @@ import ManageViewToggle from "@/components/ManageViewToggle";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import { resolveLang } from "@/lib/lang-server";
-import { buildBellaCard } from "@/lib/bella-card";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
-import { getSignedUrl, readThemeConfig, type KissConfig } from "@/lib/try-this-look-store";
+import { getSignedUrl, readThemeConfig, readTryThisLookState, type KissConfig } from "@/lib/try-this-look-store";
 
 /**
  * DIE BELLA-SEITE (Owner 29.07.2026: „wir müssen ein Thema machen nur mit Bella").
@@ -54,8 +52,17 @@ export default async function BellaThemePage({ searchParams }: {
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
 
-  const { card } = await buildBellaCard({ surface: "themes", scope: "bella" });
-  const first = (card?.name || "Bella").split(" ")[0];
+  // Nur Name und Foto — seit die Sammelkarte raus ist, wäre buildBellaCard() Verschwendung:
+  // das zählt Generierungen, Follower und rechnet ihren Growth-Score aus, für zwei Felder.
+  // Auf einer Seite, die bezahlten Anzeigenverkehr empfängt, ist das echte Ladezeit.
+  const state = await readTryThisLookState().catch(() => null);
+  const bella = (state?.curators ?? []).find(c => c.id === BELLA_ID) as
+    | { firstName?: string; lastName?: string; modelName?: string; photoUrl?: string } | undefined;
+  const fullName = String(bella?.modelName ?? "").trim()
+    || [bella?.firstName, bella?.lastName].filter(Boolean).join(" ").trim()
+    || "Bella";
+  const first = fullName.split(" ")[0];
+  const avatarUrl = bella?.photoUrl || "";
 
   // Beispiel-Videos: vom Admin gepflegt (ThemeMediaAdmin unter ?admin=1). Solange noch nichts
   // eingerichtet ist, liefert /api/theme-media die Holiday-Clips als Vorgabe — dieselbe Liste
@@ -114,12 +121,11 @@ export default async function BellaThemePage({ searchParams }: {
           <SubscribeCta code={code} lang={L} topic="holiday" />
         </div>
 
-        {/* Erst machen lassen, DANN zeigen, wer sie ist. */}
-        {card && (
-          <div className="-mx-4 mt-12">
-            <ModelCard {...card} showProfileLink />
-          </div>
-        )}
+        {/* Ihre Sammelkarte stand hier und ist am 29.07.2026 wieder raus (Owner: „macht doch
+            keinen Sinn"). Zu Recht: die Karte verkauft den Marktplatz-Gedanken — Growth-Score,
+            „Looking for sponsor", „Sponsor an AI influencer". Diese Seite hat genau eine
+            Aufgabe, nämlich ein Video mit IHM darin. Zwei Angebote auf einer Seite heißt
+            keines. Ihre Karte lebt unverändert auf ihrem Profil weiter. */}
 
         {/* Der Gratis-Chat ist das Einzige, was im System nachweislich zieht. */}
         <section className="mt-12 border-t border-white/10 pt-10">
@@ -131,9 +137,9 @@ export default async function BellaThemePage({ searchParams }: {
           <div className="mt-4">
             <BellaChatBlock
               curatorId={BELLA_ID}
-              modelName={card?.name || "Bella"}
+              modelName={fullName}
               first={first}
-              avatarUrl={card?.photo || ""}
+              avatarUrl={avatarUrl}
               freeLimit={50}
             />
           </div>
