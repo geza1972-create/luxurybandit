@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, CornerDownRight } from "lucide-react";
 import PreviewStudio from "@/components/PreviewStudio";
+import ImageCropper from "@/components/ImageCropper";
+import SortableTiles from "@/components/SortableTiles";
 
 /**
  * Admin-Werkzeug für die Medien EINES Themas: Teaser (Cover im /themes-Katalog) und die
@@ -15,7 +17,7 @@ import PreviewStudio from "@/components/PreviewStudio";
  * Blendet sich ohne Admin-PIN selbst aus.
  */
 
-type Example = { path: string; url: string };
+type Example = { path: string; url: string; pending?: boolean };
 
 export default function ThemeMediaAdmin({
   theme, title, teaserHint,
@@ -32,8 +34,11 @@ export default function ThemeMediaAdmin({
   const [manUrl, setManUrl] = useState("");
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
-  const [dragging, setDragging] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // WAS GERADE ZUGESCHNITTEN WIRD. Solange hier etwas steht, ist NICHTS gespeichert —
+  // der Owner entscheidet im Zuschnitt-Fenster mit „Speichern" oder „Abbrechen".
+  // (Owner-Dauerregel 29.07.2026: kein automatisches Hineinrutschen, und Zuschnitt immer.)
+  const [crop, setCrop] = useState<{ file: File; target: "teaser" | "ref" | "man" } | null>(null);
   const [busy, setBusy] = useState("");    // "teaser" | "video" | Pfad (löschen)
   const [msg, setMsg] = useState("");
   const teaserRef = useRef<HTMLInputElement>(null);
@@ -42,14 +47,16 @@ export default function ThemeMediaAdmin({
   // ALLE Hooks stehen VOR dem `if (!isAdmin) return null` weiter unten. Standen sie danach,
   // wechselt die Zahl der Hooks zwischen den Renders und React bricht die Komponente ab
   // („Rendered more hooks than during the previous render") — genau so passiert am 29.07.2026.
-  const dragFrom = useRef<number | null>(null);
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startXY = useRef<{ x: number; y: number } | null>(null);
-  const examplesRef = useRef<Example[]>([]);
-  examplesRef.current = examples;
 
   const api = `/api/theme-media?theme=${encodeURIComponent(theme)}`;
 
+  // NACH DEM SPEICHERN NICHT NUR EINMAL LESEN.
+  //
+  // Supabase liefert nach einem Schreibvorgang rund 1–2 Sekunden lang noch den ALTEN Stand
+  // (am 29.07.2026 gemessen: sofort danach fehlt das frische Foto, nach ~2 s ist es da).
+  // Genau daran lag „ich sehe das Bild in der Galerie nicht" — der Upload war in Ordnung,
+  // die Oberfläche hat nur zu früh nachgesehen. `loadUntil` fragt so lange nach, bis der
+  // neue Pfad wirklich in der Antwort steht.
   const load = (p: string) => fetch(api, { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
     .then(r => r.json())
     .then(d => {
@@ -61,6 +68,20 @@ export default function ThemeMediaAdmin({
       setUsingDefaults(!!d.usingDefaults);
     })
     .catch(() => {});
+
+  const loadUntil = async (p: string, path: string, tries = 8) => {
+    for (let i = 0; i < tries; i++) {
+      const d = await fetch(api, { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
+        .then(r => r.json()).catch(() => null);
+      if (d) {
+        const da = [...(d.previewRefs ?? []), ...(d.examples ?? [])].some((x: { path: string }) => x.path === path)
+          || d.teaserPath === path || d.manRefPath === path;
+        if (da || i === tries - 1) { await load(p); return da; }
+      }
+      await new Promise(r => setTimeout(r, 450));
+    }
+    return false;
+  };
 
   useEffect(() => {
     let p = "";
@@ -119,17 +140,26 @@ export default function ThemeMediaAdmin({
   };
 
   // Teaser darf Bild ODER Video sein — die Themes-Karte spielt Videos ab.
-  const onTeaser = async (f?: File | null) => {
+  //
+  // BILD → erst zuschneiden, dann speichern. VIDEO → direkt, ein Video lässt sich hier
+  // nicht zuschneiden. In beiden Fällen passiert nichts still: beim Bild bestätigt der
+  // Owner im Zuschnitt-Fenster, beim Video hat er die Datei gerade selbst gewählt.
+  const onTeaser = (f?: File | null) => {
     if (!f) return;
-    setBusy("teaser");
+    if ((f.type || "").startsWith("video/")) { void saveTeaserFile(f, true); return; }
+    setCrop({ file: f, target: "teaser" });
+  };
+
+  const saveTeaserFile = async (f: File, isVideo: boolean) => {
+    setBusy("teaser"); setMsg("");
     try {
-      const isVideo = (f.type || "").startsWith("video/");
       const path = await upload(f, isVideo ? "video" : "image");
-      if (path) {
-        const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ teaserPath: path }) });
-        if (r.ok) { setMsg(`✅ Teaser-${isVideo ? "Video" : "Bild"} gespeichert.`); await load(pin); }
-        else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
-      }
+      if (!path) return;
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ teaserPath: path }) });
+      if (!r.ok) { setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`); return; }
+      setTeaserPath(path);
+      setMsg(`✅ Cover-${isVideo ? "Video" : "Bild"} gespeichert.`);
+      await loadUntil(pin, path);
     } finally { setBusy(""); }
   };
 
@@ -140,7 +170,7 @@ export default function ThemeMediaAdmin({
       const path = await upload(f, "video");
       if (path) {
         const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ addExample: path }) });
-        if (r.ok) { setMsg("✅ Beispiel-Video hinzugefügt."); await load(pin); }
+        if (r.ok) { setMsg("✅ Beispiel-Video hinzugefügt."); await loadUntil(pin, path); }
         else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
       }
     } finally { setBusy(""); }
@@ -156,9 +186,8 @@ export default function ThemeMediaAdmin({
   // die senkrecht scrollt. Würde das Ziehen sofort greifen, könnte man die Seite nicht mehr
   // scrollen, ohne versehentlich umzusortieren. Bewegt sich der Finger vor Ablauf der Zeit,
   // war es eine Scroll-Geste und das Ziehen startet gar nicht erst.
-  const cancelPress = () => { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } };
-
   const saveOrder = async (paths: string[]) => {
+    setExamples(x => paths.map(p => x.find(y => y.path === p)!).filter(Boolean));
     setBusy("order"); setMsg("");
     try {
       const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ setExamples: paths }) });
@@ -166,48 +195,6 @@ export default function ThemeMediaAdmin({
       else setMsg("✅ Reihenfolge gespeichert.");
     } catch { setMsg("❌ Netzwerkfehler — Reihenfolge nicht gespeichert."); await load(pin); }
     finally { setBusy(""); }
-  };
-
-  const onDown = (e: React.PointerEvent<HTMLDivElement>, i: number) => {
-    startXY.current = { x: e.clientX, y: e.clientY };
-    const el = e.currentTarget;
-    const id = e.pointerId;
-    cancelPress();
-    pressTimer.current = setTimeout(() => {
-      dragFrom.current = i;
-      setDragging(i);
-      try { el.setPointerCapture(id); } catch { /**/ }
-      try { navigator.vibrate?.(8); } catch { /**/ }
-    }, 220);
-  };
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragFrom.current === null) {
-      // Noch in der Wartezeit: eine echte Bewegung heißt „scrollen", nicht „ziehen".
-      const s = startXY.current;
-      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) cancelPress();
-      return;
-    }
-    e.preventDefault();
-    const over = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)
-      ?.closest("[data-tile]") as HTMLElement | null;
-    if (!over) return;
-    const to = Number(over.dataset.tile);
-    if (!Number.isFinite(to) || to === dragFrom.current) return;
-    const next = [...examplesRef.current];
-    const [moved] = next.splice(dragFrom.current, 1);
-    next.splice(to, 0, moved);
-    setExamples(next);
-    dragFrom.current = to;
-    setDragging(to);
-  };
-
-  const onUp = () => {
-    cancelPress();
-    if (dragFrom.current === null) return;
-    dragFrom.current = null;
-    setDragging(null);
-    void saveOrder(examplesRef.current.map(e => e.path));
   };
 
   // „Auch als Beispiel-Video": rettet einen Upload, der im Teaser-Feld gelandet ist, ohne
@@ -223,18 +210,50 @@ export default function ThemeMediaAdmin({
   };
 
   // Das angezogene Referenzfoto der Frau. Eigener Platz, damit das Cover unangetastet bleibt.
+  //
+  // AUSWÄHLEN SPEICHERT NICHT. Die Datei geht zuerst in den Zuschnitt; gespeichert wird sie
+  // erst mit dem Knopf dort (Owner-Dauerregel: „ohne save button" mag er nicht).
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  const onRefFile = async (f?: File | null) => {
-    if (!f) return;
-    setBusy("ref");
+  const onRefFile = (f?: File | null) => { if (f) setCrop({ file: f, target: "ref" }); };
+
+  const saveRefFile = async (f: File, previewUrl: string) => {
+    setBusy("ref"); setMsg("");
     try {
       const path = await upload(f, "image");
-      if (path) {
-        const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ addPreviewRef: path }) });
-        if (r.ok) { setMsg("✅ Referenzfoto hinzugefügt — das nächste kannst du direkt einfügen."); await load(pin); }
-        else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
-      }
+      if (!path) return;
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ addPreviewRef: path }) });
+      if (!r.ok) { setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`); return; }
+      // SOFORT SICHTBAR — mit dem eben zugeschnittenen Bild aus dem Browser. Auf den Server
+      // zu warten hiesse hier: 1–2 Sekunden eine Lücke zeigen, wo gerade etwas gespeichert
+      // wurde. Genau das sah wie ein kaputter Upload aus.
+      setRefs(x => [...x, { path, url: previewUrl, pending: true }]);
+      setMsg("✅ Foto gespeichert.");
+      await loadUntil(pin, path);
     } finally { setBusy(""); }
+  };
+  const saveManFile = async (f: File, previewUrl: string) => {
+    setBusy("man"); setMsg("");
+    try {
+      const path = await upload(f, "image");
+      if (!path) return;
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ manRefPath: path }) });
+      if (!r.ok) { setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`); return; }
+      setManUrl(previewUrl);
+      setMsg("✅ Sein Foto gespeichert.");
+      await loadUntil(pin, path);
+    } finally { setBusy(""); }
+  };
+
+  // Reihenfolge der Referenzfotos — dieselbe Regel wie bei den Videos.
+  const saveRefOrder = async (paths: string[]) => {
+    setRefs(x => paths.map(p => x.find(y => y.path === p)!).filter(Boolean));
+    setBusy("order"); setMsg("");
+    try {
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ setPreviewRefs: paths }) });
+      if (!r.ok) { setMsg(`❌ Reihenfolge nicht gespeichert (${r.status}).`); await load(pin); }
+      else setMsg("✅ Reihenfolge gespeichert.");
+    } catch { setMsg("❌ Netzwerkfehler — Reihenfolge nicht gespeichert."); await load(pin); }
+    finally { setBusy(""); }
   };
   // Der Einfüge-Zuhörer oben ruft immer die AKTUELLE Fassung auf.
   pasteRef.current = (f: File) => { void onRefFile(f); };
@@ -259,19 +278,8 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
-  // SEIN Foto — die zweite Referenz im Prüfstand.
-  const onManFile = async (f?: File | null) => {
-    if (!f) return;
-    setBusy("man");
-    try {
-      const path = await upload(f, "image");
-      if (path) {
-        const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ manRefPath: path }) });
-        if (r.ok) { setMsg("✅ Sein Foto gespeichert."); await load(pin); }
-        else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
-      }
-    } finally { setBusy(""); }
-  };
+  // SEIN Foto — die zweite Referenz im Prüfstand. Auch hier: erst zuschneiden, dann speichern.
+  const onManFile = (f?: File | null) => { if (f) setCrop({ file: f, target: "man" }); };
 
   // Fehler NIE verschlucken — sonst wirkt der Klick wirkungslos („kann nicht löschen").
   const removeExample = async (path: string) => {
@@ -346,43 +354,13 @@ export default function ThemeMediaAdmin({
           Das sind noch die Vorgaben. Sobald du eines hinzufügst oder löschst, gilt nur noch deine Auswahl.
         </p>
       )}
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        {examples.map((e, i) => (
-          <div key={e.path}
-            data-tile={i}
-            onPointerDown={ev => onDown(ev, i)}
-            onPointerMove={onMove}
-            onPointerUp={onUp}
-            onPointerCancel={onUp}
-            // `touch-action: none` NUR während des Ziehens — sonst liesse sich die Seite an
-            // dieser Stelle nicht mehr mit dem Finger scrollen.
-            style={{ touchAction: dragging !== null ? "none" : "manipulation" }}
-            className={`relative select-none overflow-hidden rounded-xl border transition ${
-              dragging === i ? "scale-105 border-[#f6cf51] opacity-90 shadow-lg" : "border-black/10"
-            }`}>
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
-            {/* RUHIG HALTEN (Owner 29.07.2026: „das sieht furchtbar aus"). Vorher lagen drei
-                Aufkleber auf jeder Kachel — Nummer, ein fetter roter Kreis und eine Leiste
-                „halten & ziehen". Auf 100 px Breite erschlägt das das Video, das man
-                eigentlich beurteilen will. Jetzt: kleine Nummer, dezenter Löschknopf, sonst
-                nichts. Der Zieh-Hinweis steht einmal über dem Raster, nicht zwölfmal darin.
-                Farben fest als Style — der `lb-theme`-Kasten überschreibt `text-white` sonst
-                mit seinem dunklen Textton, und die Zahl stand schwarz auf schwarz. */}
-            <span style={{ color: "#fff" }}
-              className="absolute bottom-1 left-1 z-10 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-[10px] font-black backdrop-blur-sm">{i + 1}</span>
-            <button type="button" onClick={() => void removeExample(e.path)} disabled={busy === e.path}
-              aria-label="Beispiel-Video löschen" style={{ color: "#fff" }}
-              className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
-              {busy === e.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-            </button>
-          </div>
-        ))}
+      <SortableTiles items={examples} aspect="aspect-[3/4]" kind="video" busyPath={busy}
+        onReorder={saveOrder} onDelete={removeExample} deleteLabel="Beispiel-Video löschen">
         <button type="button" onClick={() => videoRef.current?.click()} disabled={busy === "video"}
           className="grid aspect-[3/4] place-items-center rounded-xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-[0.98] transition">
           {busy === "video" ? <Loader2 className="h-5 w-5 animate-spin text-black/40" /> : <Film className="h-6 w-6 text-black/40" />}
         </button>
-      </div>
+      </SortableTiles>
       <input ref={videoRef} type="file" accept="video/*" className="hidden"
         onChange={e => { void onVideo(e.target.files?.[0]); e.target.value = ""; }} />
 
@@ -427,27 +405,35 @@ export default function ThemeMediaAdmin({
       {refs.length > 0 && (
         <>
           <p className="mt-2 text-[12px] font-bold text-black/60">
-            {refs.length} Foto{refs.length === 1 ? "" : "s"} gespeichert
+            {refs.length} Foto{refs.length === 1 ? "" : "s"} gespeichert — Kachel halten und ziehen zum Umsortieren.
           </p>
-          <div className="mt-1.5 grid grid-cols-3 gap-2">
-            {refs.map(r => (
-              <div key={r.path} className="relative overflow-hidden rounded-xl border border-black/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.url} alt="" className="aspect-[2/3] w-full object-cover" />
-                <button type="button" onClick={() => void removeRef(r.path)} disabled={busy === r.path}
-                  aria-label="Foto löschen" style={{ color: "#fff" }}
-                  className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
-                  {busy === r.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                </button>
-              </div>
-            ))}
-          </div>
+          <SortableTiles items={refs} aspect="aspect-[2/3]" kind="image" busyPath={busy}
+            onReorder={saveRefOrder} onDelete={removeRef} deleteLabel="Foto löschen" />
         </>
       )}
 
       <PreviewStudio theme={theme} refs={refs} manUrl={manUrl} onManFile={onManFile} busyMan={busy === "man"} authHeaders={authH} />
 
       {msg && <p className="mt-2 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{msg}</p>}
+
+      {/* ZUSCHNEIDEN + SPEICHERN. Erscheint, sobald eine Datei gewählt wurde, und ist der
+          EINZIGE Weg, wie ein Bild in den Speicher kommt. Seitenverhältnis passend zur
+          Zielkachel: Cover 3:4 wie im Themes-Katalog, Fotos 2:3 wie im Raster. */}
+      {crop && (
+        <ImageCropper
+          file={crop.file}
+          aspect={crop.target === "teaser" ? 3 / 4 : 2 / 3}
+          title={crop.target === "teaser" ? "Cover zuschneiden" : crop.target === "man" ? "Sein Foto zuschneiden" : "Foto zuschneiden"}
+          onCancel={() => setCrop(null)}
+          onSave={async (f, previewUrl) => {
+            const t = crop.target;
+            setCrop(null);
+            if (t === "teaser") await saveTeaserFile(f, false);
+            else if (t === "man") await saveManFile(f, previewUrl);
+            else await saveRefFile(f, previewUrl);
+          }}
+        />
+      )}
     </div>
   );
 }

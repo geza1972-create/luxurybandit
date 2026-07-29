@@ -52,6 +52,7 @@ export async function GET(request: Request) {
     teaserPath: config.teaserPath ?? "",
     previewRefs: refs.filter(r => r.url),
     manRefUrl,
+    manRefPath: config.manRefPath ?? "",
     examples: examples.filter(e => e.url),
     // `true`, solange die Vorgaben gezeigt werden — die Oberfläche sagt das dem Admin.
     usingDefaults: !config.examplePaths,
@@ -66,6 +67,9 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
     teaserPath?: string; addPreviewRef?: string; removePreviewRef?: string; manRefPath?: string; addExample?: string; removeExample?: string;
+    // Reihenfolge der Referenzfotos — dieselbe Regel wie `setExamples` unten. Owner-Dauerregel
+    // vom 29.07.2026: JEDE Liste muss sich umsortieren lassen, nicht nur die Videos.
+    setPreviewRefs?: unknown;
     // Ganze Liste in neuer Reihenfolge (Owner 29.07.2026: „ich kann die reihenfolge auch
     // nicht ändern"). Bewusst die VOLLE Liste statt „schiebe X um eins": so kann die
     // Oberfläche auch umsortieren, ohne dass Server und Browser sich über Zwischenstände
@@ -100,6 +104,9 @@ export async function POST(request: Request) {
   }
   if (body.removePreviewRef) {
     config.previewRefPaths = (config.previewRefPaths ?? []).filter(p => p !== body.removePreviewRef);
+  }
+  if (Array.isArray(body.setPreviewRefs)) {
+    config.previewRefPaths = [...new Set(body.setPreviewRefs.map(String).filter(p => p.startsWith("try-this-look/")))].slice(0, 20);
   }
   if (typeof body.manRefPath === "string") {
     const p = body.manRefPath.trim();
