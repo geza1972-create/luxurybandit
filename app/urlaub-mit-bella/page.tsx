@@ -1,4 +1,5 @@
 import ModelCard from "@/components/ModelCard";
+import TrackView from "@/components/TrackView";
 import BellaBooking from "@/components/BellaBooking";
 import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
@@ -32,6 +33,12 @@ export default async function UrlaubMitBellaPage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
+            {/* MESSUNG (29.07.2026): Diese Seite hat NICHTS mitgeschrieben — der Owner konnte
+                nicht sagen, woher ihre Besucher kommen, obwohl sie aus Bellas Profil und aus
+                dem Home-Feed verlinkt ist und der beste Instagram-Reel („Go on holiday with
+                Bella in Tenerife") genau diese Überschrift trägt. Ab jetzt: Quelle, Land und
+                Geräte-Kennung wie überall sonst. */}
+            <TrackView event="urlaub_view" lookId="urlaub-mit-bella" lookName="Urlaub mit Bella" />
             {/* Hero */}
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Travel Program</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">

@@ -1,29 +1,36 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
-// Fire-and-forget page-view event for the admin Insights funnel (e.g. the
-// recruiting flow: own-influencer → apply form → application submitted).
-// Admin/preview sessions are flagged internal so they never count.
-export default function TrackView({ event }: { event: string }) {
+// Fire-and-forget page-view event for the admin Insights funnel.
+//
+// Am 29.07.2026 auf logFunnelEvent umgestellt, statt den fetch hier zu wiederholen. Die
+// Kopie hier trug dieselben drei Messfehler wie der andere Logger (keine Geräte-Kennung,
+// `?src=` ignoriert, localhost zählte als echter Besucher) — und einen vierten: `lookId`
+// und `lookName` waren fest auf „recruiting"/„Recruiting" verdrahtet, also erschien JEDE
+// Seite mit TrackView in der Auswertung als Recruiting-Seite. Beides ist jetzt setzbar,
+// mit den alten Werten als Vorgabe, damit bestehende Aufrufe sich nicht ändern.
+export default function TrackView({
+  event,
+  lookId = "recruiting",
+  lookName = "Recruiting",
+}: {
+  event: string;
+  lookId?: string;
+  lookName?: string;
+}) {
   const fired = useRef(false); // StrictMode double-invokes effects in dev
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    let utmSource = "", referrer = "", visitor = "", internal = false;
+    // Angemeldeter Name, falls bekannt — sonst zählt der Besucher als Gast.
+    let visitor = "";
     try {
-      const sp = new URLSearchParams(window.location.search);
-      utmSource = sp.get("utm_source") || sp.get("source") || sp.get("ref") || "";
-      referrer = document.referrer || "";
       const cur = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
       visitor = cur?.firstName ? `${cur.firstName}${cur.lastName ? " " + cur.lastName : ""}` : "";
-      internal = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && localStorage.getItem("lb_preview_model") !== "1";
     } catch { /**/ }
-    fetch("/api/try-this-look", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "event", event, lookId: "recruiting", lookName: "Recruiting", utmSource, referrer, visitor, internal }),
-    }).catch(() => {});
-  }, [event]);
+    void logFunnelEvent(event, { lookId, lookName, ...(visitor ? { visitor } : {}) });
+  }, [event, lookId, lookName]);
   return null;
 }

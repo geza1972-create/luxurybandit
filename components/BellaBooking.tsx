@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signUpWithPassword } from "@/lib/supabase-auth-client";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 export default function BellaBooking({ firstName = "Bella" }: { firstName?: string }) {
   const [name, setName] = useState("");
@@ -23,6 +24,9 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ program: "Teneriffa", model: firstName, name: name.trim(), email: email.trim(), priceUsd: 49 }),
       }).catch(() => {});
+      // Der einzige Abschluss auf dieser Seite — bisher tauchte er in keiner Auswertung auf,
+      // man konnte also nicht sagen, ob überhaupt jemand bucht (29.07.2026).
+      void logFunnelEvent("urlaub_booking", { lookId: "urlaub-mit-bella", lookName: "Urlaub mit Bella" });
       setDone(session ? "in" : "confirm");
     } catch (e) {
       const msg = String((e as Error)?.message || "");
