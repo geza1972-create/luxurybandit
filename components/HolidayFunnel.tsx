@@ -36,7 +36,12 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
   const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f);
 });
 
-export default function HolidayFunnel({ code = "" }: { code?: string }) {
+// `presetModelId` legt fest, WER vorn steht — für Themenseiten, die einer bestimmten Frau
+// gewidmet sind (z. B. /themes/bella). Wechseln bleibt erlaubt: wer lieber eine andere will,
+// wischt einfach weiter. Ohne das Prop bleibt alles wie bisher (Bella vorn).
+export default function HolidayFunnel({ code = "", presetModelId = "", presetModelName = "" }: {
+  code?: string; presetModelId?: string; presetModelName?: string;
+}) {
   const [photo, setPhoto] = useState("");            // SEIN Foto
   const [models, setModels] = useState<Model[]>([]);
   const [pickIdx, setPickIdx] = useState(0);         // Coverflow: vorderste Karte = Auswahl
@@ -65,9 +70,11 @@ export default function HolidayFunnel({ code = "" }: { code?: string }) {
       .then(m => {
         let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
         // ALLE Models, kein Deckel — es waren 46, ich hatte auf 40 abgeschnitten.
-        // Bella steht vorn (Gesicht des Portals), der Rest bleibt in Katalog-Reihenfolge.
-        const bella = all.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
-        if (bella > 0) all = [all[bella], ...all.slice(0, bella), ...all.slice(bella + 1)];
+        // Vorn steht, wem die Seite gewidmet ist (presetModelId); sonst Bella als Gesicht
+        // des Portals. Der Rest bleibt in Katalog-Reihenfolge.
+        const wanted = presetModelId || "curator-1783683672619-td4cy";
+        const first = all.findIndex(x => x.id === wanted || (!presetModelId && /^bella\b/i.test(x.name)));
+        if (first > 0) all = [all[first], ...all.slice(0, first), ...all.slice(first + 1)];
         setModels(all);
       })
       .catch(() => {});
@@ -79,7 +86,7 @@ export default function HolidayFunnel({ code = "" }: { code?: string }) {
       setAboPaid(localStorage.getItem(PAID_KEY) === "1");
     } catch { /**/ }
     return () => { runRef.current = -1; };
-  }, []);
+  }, [presetModelId]);   // Themenseite gibt vor, wer vorn steht
 
   // Szenen: schon benutzte nach hinten, damit oben immer etwas Neues steht.
   const scenes: HolidayScene[] = [
@@ -200,8 +207,12 @@ export default function HolidayFunnel({ code = "" }: { code?: string }) {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 2 — die Frau: Coverflow (Model-Auswahl bleibt Coverflow, Kleidung wäre ein Slider) */}
-      <p className={`mt-6 ${label}`}>2 · Your dream girl</p>
-      <p className="mt-1 text-[13px] font-bold text-white">Swipe the models — or upload your own. The one up front comes with you.</p>
+      <p className={`mt-6 ${label}`}>2 · {presetModelName ? `Your moment with ${presetModelName}` : "Your dream girl"}</p>
+      <p className="mt-1 text-[13px] font-bold text-white">
+        {presetModelName
+          ? `${presetModelName} is up front already — swipe if you would rather take someone else, or upload your own.`
+          : "Swipe the models — or upload your own. The one up front comes with you."}
+      </p>
       {models.length === 0 ? (
         <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
       ) : (() => {

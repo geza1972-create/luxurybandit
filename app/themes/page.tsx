@@ -198,6 +198,11 @@ export default async function ThemesCatalog({ searchParams }: {
   } catch { /**/ }
 
   const THEMES: Theme[] = [
+    // BELLA GANZ VORN (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
+    // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
+    // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
+    // Angebot — jetzt auf /themes/bella mit dem lebenden Trichter.
+    { icon: Palmtree, title: "Tenerife with Bella", tagline: "Not her holiday — yours. Your photo, and she is in the video with you.", href: "/themes/bella", cover: wetterCover, video: urlaubVideo || undefined, chips: "♥ Bella · Your photo · Video" },
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
     // NEU (27.07.2026): nicht mehr „sie reist für dich", sondern ER macht die Videos selbst
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt

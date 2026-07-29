@@ -23,6 +23,12 @@ const BUILTIN: Record<string, string> = {
   // FOREVER50 — DAUERHAFT 50 % (24,50 € statt 49 €). Owner 28.07.2026: den verschenkt sie
   // im Chat als Belohnung. Geprüft in Stripe: percent_off 50, duration "forever".
   FOREVER50: "sRHDMAQE",        // 50 % dauerhaft → 24,50 €/Monat statt 49 € (Preis inkl. MwSt.)
+  // ANZEIGEN-DUELL für /themes/bella (Owner 29.07.2026): zwei Codes, DERSELBE Rabatt wie
+  // FOREVER50 — sie unterscheiden nur die Herkunft. Anzeige A hängt ?code=BELLAA an, B
+  // entsprechend. Damit steht im Stripe-Datensatz, welches Motiv bezahlt hat, statt dass
+  // beide als „irgendwie über Instagram" zusammenlaufen.
+  BELLAA: "sRHDMAQE",
+  BELLAB: "sRHDMAQE",
   // ADMIN-Codes zum DURCHTESTEN bis zur echten Zahlung (100 %, dauerhaft). Bewusst hier
   // und nicht in der Env, damit der Owner auch in der Produktion testen kann.
   ADMIN100: "hvJ8ZO7c",
