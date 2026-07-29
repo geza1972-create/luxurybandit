@@ -1280,7 +1280,7 @@ const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
 // Owner: „du kannst Bella nicht nehmen in Lingerie als Referenz." Ihr Katalogfoto ist ein
 // Lingerie-Bild — als Eingabe an die Bildmoderation gegeben, kommt nichts zurück. Deshalb ein
 // eigener Platz, den der Admin mit einem angezogenen Ganzkörperfoto füllt.
-export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[] };
+export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[]; manRefPath?: string };
 
 // Dieselbe Struktur für JEDES Thema (29.07.2026): `kiss-config.json`, `bella-config.json`, …
 // Der Vorgabewert "kiss" hält alle bestehenden Aufrufe unverändert.
@@ -1301,6 +1301,8 @@ export async function readThemeConfig(theme = "kiss"): Promise<KissConfig> {
       previewRefPaths: Array.isArray(data?.previewRefPaths)
         ? data.previewRefPaths.map(String).filter(Boolean)
         : (String(data?.previewRefPath ?? "").trim() ? [String(data.previewRefPath).trim()] : undefined),
+      // Sein Foto — im Prüfstand die zweite Referenz, damit man das Ergebnis vorher sieht.
+      manRefPath: String(data?.manRefPath ?? "").trim() || undefined,
       // WICHTIG: fehlender Schlüssel bleibt `undefined` (= nie eingerichtet, Vorgaben zeigen),
       // eine leere Liste bleibt leer (= der Admin hat bewusst alle gelöscht).
       examplePaths: Array.isArray(data?.examplePaths) ? data.examplePaths.map(String).filter(Boolean) : undefined,
@@ -1322,6 +1324,7 @@ export async function writeThemeConfig(config: KissConfig, theme = "kiss"): Prom
       modelIds: config.modelIds.slice(0, 100),
       teaserPath: config.teaserPath || undefined,
       previewRefPaths: (config.previewRefPaths ?? []).slice(0, 20),
+      manRefPath: config.manRefPath || undefined,
       examplePaths: (config.examplePaths ?? []).slice(0, 20),
       savedAt: new Date().toISOString(),
     }),

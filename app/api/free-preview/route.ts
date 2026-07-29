@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   if (!key) return NextResponse.json({ error: "Not configured." }, { status: 400 });
 
   const body = (await request.json().catch(() => ({}))) as {
-    person?: string; model?: string; device?: string; theme?: string;
+    person?: string; model?: string; device?: string; theme?: string; prompt?: string;
   };
   const person = String(body.person ?? "");
   const model = String(body.model ?? "");
@@ -67,9 +67,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // NEUTRALE WORTWAHL: Der Kuss ist hier ausdrücklich NICHT das Motiv — er ist das, was das
-  // bezahlte Video daraus macht. Die Vorschau zeigt die beiden nebeneinander.
-  const prompt = [
+  // EIGENER PROMPT (Owner 29.07.2026): Im Prüfstand schreibt der Owner ihn selbst — er hat
+  // in ChatGPT gezeigt, dass ein einziger Satz besser trifft als meine Anweisungsliste.
+  // Die Bedeckungs-Zusage wird trotzdem angehängt: OHNE sie antwortet OpenAI mit
+  // safety_violations=[sexual], nachgewiesen am 29.07.2026.
+  const eigener = String(body.prompt ?? "").trim().slice(0, 2000);
+  const prompt = eigener
+    ? `${eigener}\n\n${COVERAGE_RULE}`
+    : [
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
     "Generate ONE photorealistic image showing BOTH people together in the same scene, standing side by side and smiling at each other.",
     theme === "holiday" || theme === "bella"

@@ -43,6 +43,7 @@ export async function GET(request: Request) {
   const refs = await Promise.all((config.previewRefPaths ?? []).map(async p => ({
     path: p, url: await getSignedUrl(p).catch(() => ""),
   })));
+  const manRefUrl = config.manRefPath ? await getSignedUrl(config.manRefPath).catch(() => "") : "";
   const examples = await Promise.all(paths.map(async p => ({ path: p, url: await getSignedUrl(p).catch(() => "") })));
 
   return NextResponse.json({
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
     teaserUrl,
     teaserPath: config.teaserPath ?? "",
     previewRefs: refs.filter(r => r.url),
+    manRefUrl,
     examples: examples.filter(e => e.url),
     // `true`, solange die Vorgaben gezeigt werden — die Oberfläche sagt das dem Admin.
     usingDefaults: !config.examplePaths,
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
-    teaserPath?: string; addPreviewRef?: string; removePreviewRef?: string; addExample?: string; removeExample?: string;
+    teaserPath?: string; addPreviewRef?: string; removePreviewRef?: string; manRefPath?: string; addExample?: string; removeExample?: string;
     // Ganze Liste in neuer Reihenfolge (Owner 29.07.2026: „ich kann die reihenfolge auch
     // nicht ändern"). Bewusst die VOLLE Liste statt „schiebe X um eins": so kann die
     // Oberfläche auch umsortieren, ohne dass Server und Browser sich über Zwischenstände
@@ -98,6 +100,10 @@ export async function POST(request: Request) {
   }
   if (body.removePreviewRef) {
     config.previewRefPaths = (config.previewRefPaths ?? []).filter(p => p !== body.removePreviewRef);
+  }
+  if (typeof body.manRefPath === "string") {
+    const p = body.manRefPath.trim();
+    config.manRefPath = p && p.startsWith("try-this-look/") ? p : undefined;
   }
   if (body.addExample && String(body.addExample).startsWith("try-this-look/")) {
     const p = String(body.addExample);

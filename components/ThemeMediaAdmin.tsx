@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, CornerDownRight, GripVertical } from "lucide-react";
+import { Loader2, ImageUp, Film, Trash2, Image as ImageIcon, CornerDownRight } from "lucide-react";
+import PreviewStudio from "@/components/PreviewStudio";
 
 /**
  * Admin-Werkzeug für die Medien EINES Themas: Teaser (Cover im /themes-Katalog) und die
@@ -28,6 +29,7 @@ export default function ThemeMediaAdmin({
   const [teaserUrl, setTeaserUrl] = useState("");
   const [teaserPath, setTeaserPath] = useState("");
   const [refs, setRefs] = useState<Example[]>([]);
+  const [manUrl, setManUrl] = useState("");
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
   const [dragging, setDragging] = useState<number | null>(null);
@@ -53,6 +55,7 @@ export default function ThemeMediaAdmin({
       setTeaserUrl(d.teaserUrl ?? "");
       setTeaserPath(d.teaserPath ?? "");
       setRefs(Array.isArray(d.previewRefs) ? d.previewRefs : []);
+      setManUrl(d.manRefUrl ?? "");
       setExamples(Array.isArray(d.examples) ? d.examples : []);
       setUsingDefaults(!!d.usingDefaults);
     })
@@ -255,6 +258,20 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
+  // SEIN Foto — die zweite Referenz im Prüfstand.
+  const onManFile = async (f?: File | null) => {
+    if (!f) return;
+    setBusy("man");
+    try {
+      const path = await upload(f, "image");
+      if (path) {
+        const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ manRefPath: path }) });
+        if (r.ok) { setMsg("✅ Sein Foto gespeichert."); await load(pin); }
+        else setMsg(`❌ Speichern fehlgeschlagen (${r.status}).`);
+      }
+    } finally { setBusy(""); }
+  };
+
   // Fehler NIE verschlucken — sonst wirkt der Klick wirkungslos („kann nicht löschen").
   const removeExample = async (path: string) => {
     setBusy(path); setMsg("");
@@ -377,10 +394,11 @@ export default function ThemeMediaAdmin({
       </p>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {refs.map(r => (
+          // Auswählen passiert im Prüfstand darunter — hier oben wird nur verwaltet.
           <div key={r.path} className="relative overflow-hidden rounded-xl border border-black/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={r.url} alt="" className="aspect-[2/3] w-full object-cover" />
-            <button type="button" onClick={() => void removeRef(r.path)} disabled={busy === r.path}
+            <button type="button" onClick={e => { e.stopPropagation(); void removeRef(r.path); }} disabled={busy === r.path}
               aria-label="Referenzfoto löschen" style={{ color: "#fff" }}
               className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
               {busy === r.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -399,6 +417,8 @@ export default function ThemeMediaAdmin({
       </p>
       <input ref={refFileRef} type="file" accept="image/*" className="hidden"
         onChange={e => { void onRefFile(e.target.files?.[0]); e.target.value = ""; }} />
+
+      <PreviewStudio theme={theme} refs={refs} manUrl={manUrl} onManFile={onManFile} busyMan={busy === "man"} authHeaders={authH} />
 
       {msg && <p className="mt-2 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{msg}</p>}
     </div>
