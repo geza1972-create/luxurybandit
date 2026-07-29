@@ -37,7 +37,11 @@ export default function PreviewStudio({
   busyMan?: boolean;
   authHeaders: () => Record<string, string>;
 }) {
-  const [idx, setIdx] = useState(0);
+  // Auswahl über die URL statt über einen Index: so lassen sich eigene Vorlagen und
+  // Katalog-Models in derselben Auswahl behandeln (Owner 29.07.2026: „du machst mir in
+  // diese box auch die models").
+  const [herUrl, setHerUrl] = useState("");
+  const [models, setModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
   const [prompt, setPrompt] = useState(
     "Mach die beiden zusammen an einem schönen Urlaubsort wie sie sich küssen",
   );
@@ -46,8 +50,23 @@ export default function PreviewStudio({
   const [result, setResult] = useState("");
   const manFileRef = useRef<HTMLInputElement>(null);
 
-  // Wird eine Vorlage gelöscht, darf die Auswahl nicht ins Leere zeigen.
-  useEffect(() => { if (idx >= refs.length) setIdx(0); }, [refs.length, idx]);
+  // Der Katalog — dieselbe Quelle wie die Trichter. Damit kann der Owner hier ausprobieren,
+  // WELCHE Models durch die Bildmoderation kommen; die meisten Katalogfotos sind Lingerie
+  // und werden abgewiesen, bevor der Prompt überhaupt gelesen wird.
+  useEffect(() => {
+    fetch("/api/try-this-look?models=1", { cache: "no-store" })
+      .then(r => r.json())
+      .then(m => setModels((Array.isArray(m.models) ? m.models : []).filter((x: { photoUrl?: string }) => !!x.photoUrl)))
+      .catch(() => {});
+  }, []);
+
+  // Erste eigene Vorlage vorwählen, sobald es eine gibt — und nie ins Leere zeigen.
+  useEffect(() => {
+    if (!herUrl && refs.length) setHerUrl(refs[0].url);
+    if (herUrl && refs.length && !refs.some(r => r.url === herUrl) && !models.some(m => m.photoUrl === herUrl)) {
+      setHerUrl(refs[0]?.url ?? "");
+    }
+  }, [refs, models, herUrl]);
 
   // Die Bilder liegen als signierte Adressen vor; die Route erwartet Data-URLs — dasselbe
   // Format, das der Trichter beim Hochladen erzeugt.
@@ -62,7 +81,7 @@ export default function PreviewStudio({
   };
 
   const run = async () => {
-    const her = refs[idx]?.url;
+    const her = herUrl;
     if (!her || !manUrl) { setMsg("❌ Es fehlt ein Foto von ihr oder von ihm."); return; }
     setBusy(true); setMsg(""); setResult("");
     try {
@@ -88,29 +107,54 @@ export default function PreviewStudio({
   return (
     <div className="mt-4 rounded-2xl border-2 border-black/10 bg-black/[0.02] p-3">
       <p className="text-[11px] font-black uppercase tracking-wide text-black/55">
-        Vorschau erzeugen — <span className="text-black/40">sie, er, dein Satz</span>
+        Vorschau erzeugen — <span className="text-black/40">wen, mit wem, was passiert</span>
       </p>
 
-      {/* 1 — sie: antippen wählt aus */}
-      <p className="mt-3 text-[11px] font-black text-black/45">1 · Welches Foto von ihr?</p>
-      {refs.length === 0 ? (
-        <p className="mt-1 text-[12px] font-bold text-black/40">Noch keine Vorlage — oben eine hinzufügen.</p>
+      {/* 1 — WEN willst du küssen (Owner-Formulierung). Eigene Vorlagen zuerst, dann der
+          Katalog: die Vorlagen sind angezogen und kommen durch die Bildmoderation, die
+          Katalogfotos oft nicht. Genau das kann hier ausprobiert werden. */}
+      <p className="mt-3 text-[13px] font-black text-black">Wen willst du küssen?</p>
+
+      {refs.length > 0 && (
+        <>
+          <p className="mt-1.5 text-[11px] font-black text-black/40">Deine Vorlagen</p>
+          <div className="mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {refs.map(r => (
+              <button key={r.path} type="button" onClick={() => setHerUrl(r.url)}
+                className={`aspect-[2/3] w-[72px] shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                  herUrl === r.url ? "border-[#f6cf51]" : "border-black/10 opacity-60"
+                }`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.url} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <p className="mt-2 text-[11px] font-black text-black/40">
+        Models aus dem Katalog{models.length ? ` (${models.length})` : ""}
+      </p>
+      {models.length === 0 ? (
+        <p className="mt-1 text-[12px] font-bold text-black/40">Wird geladen …</p>
       ) : (
-        <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {refs.map((r, i) => (
-            <button key={r.path} type="button" onClick={() => setIdx(i)}
+        <div className="mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {models.map(m => (
+            <button key={m.id} type="button" onClick={() => setHerUrl(m.photoUrl)} title={m.name}
               className={`relative aspect-[2/3] w-[72px] shrink-0 overflow-hidden rounded-lg border-2 transition ${
-                idx === i ? "border-[#f6cf51]" : "border-black/10 opacity-60"
+                herUrl === m.photoUrl ? "border-[#f6cf51]" : "border-black/10 opacity-60"
               }`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={r.url} alt="" className="h-full w-full object-cover" />
+              <img src={m.photoUrl} alt="" className="h-full w-full object-cover" />
+              <span style={{ color: "#fff" }}
+                className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-[8px] font-black">{m.name}</span>
             </button>
           ))}
         </div>
       )}
 
       {/* 2 — er */}
-      <p className="mt-3 text-[11px] font-black text-black/45">2 · Foto von ihm</p>
+      <p className="mt-3 text-[13px] font-black text-black">Und wer bist du?</p>
       <div className="mt-1.5 flex items-center gap-3">
         <button type="button" onClick={() => manFileRef.current?.click()} disabled={busyMan}
           className="grid aspect-[2/3] w-[72px] shrink-0 place-items-center overflow-hidden rounded-lg border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-[0.98] transition">
@@ -127,7 +171,7 @@ export default function PreviewStudio({
         onChange={e => { const f = e.target.files?.[0]; if (f) void onManFile(f); e.target.value = ""; }} />
 
       {/* 3 — der Satz */}
-      <p className="mt-3 text-[11px] font-black text-black/45">3 · Was soll passieren?</p>
+      <p className="mt-3 text-[13px] font-black text-black">Was soll passieren?</p>
       <textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={3}
         placeholder={beispiel}
         className="mt-1.5 w-full rounded-xl border border-black/15 bg-white p-2.5 text-[13px] font-semibold text-black outline-none focus:border-black/40" />
@@ -136,7 +180,7 @@ export default function PreviewStudio({
         weist OpenAI das Bild ab.
       </p>
 
-      <button type="button" onClick={() => void run()} disabled={busy || !refs.length || !manUrl}
+      <button type="button" onClick={() => void run()} disabled={busy || !herUrl || !manUrl}
         style={{ color: "#fff" }}
         className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[14px] font-black active:scale-95 transition disabled:opacity-40">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
