@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users, Gift, MessageCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
@@ -246,6 +247,7 @@ export default async function ThemesCatalog({ searchParams }: {
     <main className="lb-bg min-h-[100dvh] text-white">
       {/* Startseite: kein Zurück-Pfeil, hier endet der Weg nach hinten. */}
       <TopNav back={false} />
+      <TrackView event="themes_view" lookId="themes-themes" lookName="Themen-Uebersicht" />
 
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
         <Kicker>{c.kicker}</Kicker>

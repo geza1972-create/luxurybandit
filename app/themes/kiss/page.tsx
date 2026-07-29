@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
@@ -40,6 +41,7 @@ export default async function KissThemePage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
+      <TrackView event="kiss_view" lookId="themes-kiss" lookName="Kiss-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {showAdmin && <ManageViewToggle view={view} />}
 

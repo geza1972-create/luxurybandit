@@ -8,7 +8,6 @@ import HolidayFunnel from "@/components/HolidayFunnel";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
-import WetterSubscribers from "@/components/WetterSubscribers";
 import { resolveLang } from "@/lib/lang-server";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
 import { getSignedUrl, readThemeConfig, readTryThisLookState, type KissConfig } from "@/lib/try-this-look-store";
@@ -179,7 +178,18 @@ export default async function BellaThemePage({ searchParams }: {
               title="Bella-Medien"
               teaserHint="Bild oder Video hochladen — wird das Cover der Bella-Karte im Themes-Katalog."
             />
-            <WetterSubscribers modelId={BELLA_ID} modelSlug="bella" modelName={first} />
+            {/* HIER STAND DIE WETTER-ABONNENTENLISTE — am 29.07.2026 wieder entfernt.
+                Der Owner: „Die Wetter Leads sind die Wetter Leads und nicht die Urlaub Leads."
+                Er hat recht, und es war doppelt falsch:
+                  1. FALSCHE LISTE: `wetterSubsPath()` leitet die Bella-ID auf die gemeinsame
+                     `wetter-subscribers.json` um — auf dieser Seite stand also wortwörtlich
+                     das Publikum der Morgennachricht, und ein CSV-Import hier hätte die
+                     Urlaubs-Leads in die Wetter-Liste geschrieben.
+                  2. FALSCHER ZWECK: Das Panel verschickt die tägliche Wetternachricht
+                     (wetter-send / wetter-email-blast / wetter-sms). Für ein Thema, das
+                     einmalig ein Video verkauft, ist das kein sinnvolles Werkzeug.
+                Eine eigene Interessentenliste für dieses Thema existiert noch nicht. Bis es
+                sie gibt, steht hier lieber nichts als die falschen Leute. */}
           </div>
         )}
       </div>

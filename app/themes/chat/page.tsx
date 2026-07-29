@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
@@ -62,6 +63,7 @@ export default async function ChatThemePage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
+      <TrackView event="chat_view" lookId="themes-chat" lookName="Chat-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         <Kicker>{t.kicker}</Kicker>
         <H1>{t.h1a} <Y>{t.h1b}</Y></H1>

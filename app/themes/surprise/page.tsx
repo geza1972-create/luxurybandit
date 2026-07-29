@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import SurpriseFunnel from "@/components/SurpriseFunnel";
 import { getSignedUrl } from "@/lib/try-this-look-store";
@@ -26,6 +27,7 @@ export default async function SurpriseThemePage() {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
+      <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         <div>
             <Kicker>LuxuryBandit · Surprise</Kicker>

@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BirthdayFunnel from "@/components/BirthdayFunnel";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
@@ -41,6 +42,7 @@ export default async function BirthdayThemePage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav subtitle="Birthdays" />
+      <TrackView event="birthday_view" lookId="themes-birthday" lookName="Birthday-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {showAdmin && <ManageViewToggle view={view} />}
 

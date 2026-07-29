@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
@@ -39,6 +40,7 @@ export default async function HolidayThemePage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
+      <TrackView event="holiday_view" lookId="themes-holiday" lookName="Holiday-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         <Kicker>LuxuryBandit · Holiday</Kicker>
         <H1>Holiday with your <Y>dream girl</Y></H1>

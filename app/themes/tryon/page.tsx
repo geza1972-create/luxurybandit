@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import TrackView from "@/components/TrackView";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
@@ -32,6 +33,7 @@ export default async function TryOnThemePage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
+      <TrackView event="tryon_view" lookId="themes-tryon" lookName="Try-On-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {showAdmin && <ManageViewToggle view={view} />}
 
