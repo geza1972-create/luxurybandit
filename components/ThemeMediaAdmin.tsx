@@ -33,6 +33,7 @@ export default function ThemeMediaAdmin({
   const [examples, setExamples] = useState<Example[]>([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
   const [dragging, setDragging] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState("");    // "teaser" | "video" | Pfad (löschen)
   const [msg, setMsg] = useState("");
   const teaserRef = useRef<HTMLInputElement>(null);
@@ -390,33 +391,59 @@ export default function ThemeMediaAdmin({
           Gratis-Vorschau — ihr Katalogfoto ist ein Lingerie-Bild und wird von der
           Bildmoderation am Eingang abgewiesen. */}
       <p className="mt-5 text-[11px] font-black uppercase tracking-wide text-black/55">
-        3 · Referenzfoto von ihr — <span className="text-black/40">angezogen, ganze Figur. Für die Gratis-Vorschau. Bildschirmfoto einfach mit ⌘V einfügen.</span>
+        3 · Fotos von ihr — <span className="text-black/40">angezogen, ganze Figur</span>
       </p>
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        {refs.map(r => (
-          // Auswählen passiert im Prüfstand darunter — hier oben wird nur verwaltet.
-          <div key={r.path} className="relative overflow-hidden rounded-xl border border-black/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={r.url} alt="" className="aspect-[2/3] w-full object-cover" />
-            <button type="button" onClick={e => { e.stopPropagation(); void removeRef(r.path); }} disabled={busy === r.path}
-              aria-label="Referenzfoto löschen" style={{ color: "#fff" }}
-              className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
-              {busy === r.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={() => refFileRef.current?.click()} disabled={busy === "ref"}
-          className="grid aspect-[2/3] place-items-center rounded-xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-[0.98] transition">
-          {busy === "ref" ? <Loader2 className="h-5 w-5 animate-spin text-black/40" /> : <ImageUp className="h-6 w-6 text-black/40" />}
-        </button>
+
+      {/* SICHTBARES FELD statt Tastenkürzel (Owner 29.07.2026: „das mit dem Einfügen ist keine
+          Lösung … ich weiss gar nicht wo ich was einfüge"). Er hat recht: Ein ⌘V, das irgendwo
+          in der Seite wirkt, ist unsichtbar und man muss raten. Hier steht jetzt ein großes
+          Feld, das man ANTIPPEN oder mit einer Datei BEFÜLLEN kann — beides sieht man.
+          Einfügen geht weiterhin, ist aber nur noch die Zugabe, nicht der Weg. */}
+      <div
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => {
+          e.preventDefault(); setDragOver(false);
+          const f = Array.from(e.dataTransfer.files).find(x => x.type.startsWith("image/"));
+          if (f) void onRefFile(f);
+        }}
+        onClick={() => refFileRef.current?.click()}
+        className={`mt-2 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
+          dragOver ? "border-black/50 bg-black/[0.06]" : "border-black/20 bg-black/[0.03]"
+        }`}>
+        {busy === "ref"
+          ? <Loader2 className="h-7 w-7 animate-spin text-black/40" />
+          : <ImageUp className="h-7 w-7 text-black/40" />}
+        <p className="mt-2 text-[14px] font-black text-black">
+          {busy === "ref" ? "Wird hochgeladen …" : "Foto auswählen"}
+        </p>
+        <p className="mt-0.5 text-[12px] font-bold text-black/50">
+          Antippen — oder eine Datei hierher ziehen
+        </p>
       </div>
-      <p className="mt-1.5 text-[12px] font-bold text-black/70">
-        {refs.length
-          ? `${refs.length} Vorlage${refs.length === 1 ? "" : "n"} — jedes weitere Bildschirmfoto einfach mit ⌘V einfügen, es wird sofort gespeichert.`
-          : "Angezogene Fotos von ihr — Kleid oder Oberteil, ganze Figur. Mit ⌘V einfügen oder antippen."}
-      </p>
       <input ref={refFileRef} type="file" accept="image/*" className="hidden"
         onChange={e => { void onRefFile(e.target.files?.[0]); e.target.value = ""; }} />
+
+      {refs.length > 0 && (
+        <>
+          <p className="mt-2 text-[12px] font-bold text-black/60">
+            {refs.length} Foto{refs.length === 1 ? "" : "s"} gespeichert
+          </p>
+          <div className="mt-1.5 grid grid-cols-3 gap-2">
+            {refs.map(r => (
+              <div key={r.path} className="relative overflow-hidden rounded-xl border border-black/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.url} alt="" className="aspect-[2/3] w-full object-cover" />
+                <button type="button" onClick={() => void removeRef(r.path)} disabled={busy === r.path}
+                  aria-label="Foto löschen" style={{ color: "#fff" }}
+                  className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/55 backdrop-blur-sm active:scale-90 transition disabled:opacity-40">
+                  {busy === r.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <PreviewStudio theme={theme} refs={refs} manUrl={manUrl} onManFile={onManFile} busyMan={busy === "man"} authHeaders={authH} />
 
