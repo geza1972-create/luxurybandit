@@ -52,9 +52,10 @@ export default function PrivacyPage() {
         days</strong>; what you paid for stays until you delete it.
       </p>
       <p>
-        <strong>Email offers.</strong> If you enter your email address to receive your picture, you
-        also agree that we may send you offers. Every email has a one-click unsubscribe link, and you
-        can withdraw at any time — it does not affect anything you already bought.
+        <strong>News &amp; offers by email.</strong> If you enter your email address to receive your
+        picture, you also agree that we may send you news and offers — new topics, new models and
+        price offers. Every email has a one-click unsubscribe link, and you can withdraw at any
+        time; it does not affect anything you already bought.
       </p>
 
       <h2>Cookies &amp; the Meta Pixel</h2>

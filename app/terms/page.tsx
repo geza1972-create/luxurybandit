@@ -112,8 +112,9 @@ export default function TermsPage() {
         everything at any time (see <a href="/data-deletion">Data deletion</a>).
       </p>
       <p>
-        When you enter your email address you agree that we may send you offers by email. You can
-        withdraw that at any time — every email carries a one-click unsubscribe link.
+        When you enter your email address you agree that we may send you <strong>news and offers</strong>{" "}
+        by email — new topics, new models and price offers. You can withdraw at any time; every email
+        carries a one-click unsubscribe link, and it does not affect anything you already bought.
       </p>
 
       <h2>7. Acceptable use</h2>

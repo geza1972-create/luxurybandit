@@ -229,6 +229,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    */
   const [consent, setConsent] = useState(false);
   const consentKey = "lb_kiss_consent";
+  /**
+   * Zugestimmt wird durch die HANDLUNG, nicht durch ein Haekchen (Owner 30.07.2026: „mit
+   * klick auf weiter akzeptiert er das schon"). Der Satz dazu steht sichtbar unter dem
+   * Knopf, den er drueckt. Festgehalten wird der Zeitpunkt — ohne ihn ist eine Einwilligung
+   * spaeter nicht belegbar.
+   */
+  const zustimmen = () => {
+    if (consent) return;
+    setConsent(true);
+    try { localStorage.setItem(consentKey, new Date().toISOString()); } catch { /**/ }
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const mailRef = useRef<HTMLInputElement>(null);      // Adressfeld vor der Erzeugung
@@ -617,7 +628,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
      * jemanden, der nie eine Adresse hinterlässt. Wer angemeldet ist oder schon einmal
      * eingetragen hat, merkt davon nichts — `adresseDa` steht dann bereits.
      */
-    if (!consent) { setStatus(T.zustimmungFehlt); return; }
+    zustimmen();   // wer hier tippt, hat den Hinweis bei Schritt 1 passiert
     if (!isStaff && !adresseDa) {
       const e = mail.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
@@ -1055,10 +1066,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
 
       {/* 2) Eigenes Foto */}
-      <button type="button" onClick={() => { wahlMerken(); setSchritt(2); }} disabled={!selPhoto}
+      <button type="button" onClick={() => { zustimmen(); wahlMerken(); setSchritt(2); }} disabled={!selPhoto}
         className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
         {selPhoto ? T.next : T.pickFirst}
       </button>
+      {/* GLEICH BEIM ERSTEN BILD (Owner 30.07.2026: „bei ersten bild muss schon stehen").
+          Wer erst auf Schritt 3 erfaehrt, worauf er sich einlaesst, hat schon zwei Fotos
+          hergegeben. Die beiden Verweise oeffnen in einem neuen Fenster, damit sein Trichter
+          nicht verloren geht. */}
+      <p className="mx-auto mt-2 max-w-[340px] text-center text-[10px] font-medium leading-snug text-white/45">
+        {(() => {
+          const teile = T.zustimmung.split(/(\{agb\}|\{privacy\})/);
+          return teile.map((t, i) =>
+            t === "{agb}" ? <a key={i} href="/terms" target="_blank" rel="noreferrer" className="underline">{T.agbLink}</a>
+            : t === "{privacy}" ? <a key={i} href="/privacy" target="_blank" rel="noreferrer" className="underline">{T.datenschutzLink}</a>
+            : <span key={i}>{t}</span>);
+        })()}
+      </p>
       </>)}
 
       {schritt === 2 && (<>
@@ -1259,35 +1283,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
-      {/* EIN HAEKCHEN, VOR DEM KNOPF (Owner 30.07.2026: „die muessen das abhacken sonst wird
-          es ilegal"). Die alte Zeile darunter war nur ein Hinweis ohne Handlung — das reicht
-          fuer die Nutzungsrechte, aber nicht fuer die Speicherung der Fotos und fuer
-          Werbemails. Deshalb genau EIN Haekchen: mehr kostet Anlaeufe, weniger waere nicht
-          nachweisbar. AGB und Datenschutz sind darin verlinkt, beide oeffnen in einem neuen
-          Fenster, damit sein Trichter nicht verloren geht. */}
-      {!bezahlt && (
-        <label className="mx-auto mt-2 flex max-w-[340px] cursor-pointer items-start gap-2 text-left">
-          <input type="checkbox" checked={consent}
-            onChange={e => {
-              setConsent(e.target.checked);
-              try { if (e.target.checked) localStorage.setItem(consentKey, new Date().toISOString()); else localStorage.removeItem(consentKey); } catch { /**/ }
-            }}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-[#f6cf51]" />
-          <span className="text-[11px] font-medium leading-snug text-white/70">
-            {(() => {
-              // Die zwei Verweise sitzen als Platzhalter im uebersetzten Satz — so bleibt die
-              // Wortstellung in jeder Sprache richtig, statt Text zusammenzukleben.
-              const teile = T.zustimmung.split(/(\{agb\}|\{privacy\})/);
-              return teile.map((t, i) =>
-                t === "{agb}" ? <a key={i} href="/terms" target="_blank" rel="noreferrer" className="underline">{T.agbLink}</a>
-                : t === "{privacy}" ? <a key={i} href="/privacy" target="_blank" rel="noreferrer" className="underline">{T.datenschutzLink}</a>
-                : <span key={i}>{t}</span>);
-            })()}
-          </span>
-        </label>
-      )}
-      {/* Der alte Nutzungshinweis bleibt darunter stehen: er sagt etwas anderes (Rechte an den
-          Fotos, Alter, Verantwortung) und ist keine Einwilligung. */}
+      {/* Der Nutzungshinweis: Rechte an den Fotos, Alter, Verantwortung. Die Zustimmung zu
+          AGB, Datenschutz und Post steht schon bei Schritt 1 (Owner 30.07.2026: „bei ersten
+          bild muss schon stehen und mit klick auf weiter akzeptiert er das schon"). */}
       <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[10px] font-medium leading-snug text-white/45">
         {T.consent}
       </p>
