@@ -227,6 +227,9 @@ export default async function KissThemePage({ searchParams }: {
                       listLabel="Kissing-Leads"
                       linkPath="/themes/kiss"
                       sending={false}
+                      // Von einem Kissing-Lead haben wir nur die Adresse — Stadt, Telefon und
+                      // Geburtstag sind Wetter-Felder und blieben hier immer leer.
+                      nurMail
                     />
                   ),
                 },

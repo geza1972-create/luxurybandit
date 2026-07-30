@@ -52,7 +52,7 @@ const trialExpired = (s: Sub, trialDays: number) =>
   !!s.confirmed && !s.unsubscribed && !!s.createdAt &&
   (Date.now() - new Date(s.createdAt).getTime()) > trialDays * 86_400_000;
 
-export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model", trialDays = 7, linkPath, sending = true, listLabel }: {
+export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model", trialDays = 7, linkPath, sending = true, listLabel, nurMail = false }: {
   modelId?: string; modelSlug?: string; modelName?: string; trialDays?: number;
   // EIGENE LISTE OHNE WETTER-VERSAND (Owner-Regel: „Die Wetter Leads sind die Wetter Leads").
   //
@@ -63,6 +63,16 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   linkPath?: string;      // Ziel des persönlichen Links, Vorgabe: /themes/wetter/<slug>
   sending?: boolean;      // false = nur verwalten (ansehen, ergänzen, löschen, importieren)
   listLabel?: string;     // Überschrift, z. B. „Kissing-Leads"
+  /**
+   * NUR DIE FELDER, DIE ES WIRKLICH GIBT (Owner 30.07.2026: „das muss nicht so gross sein, es
+   * hat nur email").
+   *
+   * Das lange Formular stammt von den Wetter-Abonnenten: Stadt fuers Wetter, Telefon fuer die
+   * Tagesnachricht, Geburtstag fuers Alter. Von einem Kissing-Lead haben wir nichts davon — er
+   * hat eine Adresse eingetippt, sonst nichts. Neun leere Felder sehen aus wie Arbeit, die
+   * niemand machen kann.
+   */
+  nurMail?: boolean;
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
@@ -391,10 +401,11 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           grid-cols-1 setzt minmax(0,1fr) und deckelt das. */}
       <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
         <p className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuen Abonnenten hinzufügen</p>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Name — z. B. Remus"
+        <input value={name} onChange={e => setName(e.target.value)} placeholder={nurMail ? "Name (optional)" : "Name — z. B. Remus"}
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="E-Mail (z. B. aus FB-Lead) — optional" type="email" inputMode="email"
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder={nurMail ? "E-Mail" : "E-Mail (z. B. aus FB-Lead) — optional"} type="email" inputMode="email"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
+{!nurMail && (<>
         <div className="flex gap-2">
           <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-3 focus-within:border-black">
             <span className="shrink-0 text-[11px] font-bold text-white/45">Geburtstag</span>
@@ -423,6 +434,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         </div>
         <input value={postal} onChange={e => setPostal(e.target.value)} placeholder="Postleitzahl (optional)"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
+        </>)}
         <input value={note} onChange={e => setNote(e.target.value)} placeholder="Notiz (optional) — z. B. Freund, Test"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[14px] font-medium text-white outline-none placeholder:text-white/35 focus:border-black" />
         <button type="button" onClick={() => void add()} disabled={busy}
