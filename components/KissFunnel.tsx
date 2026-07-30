@@ -312,6 +312,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const rest = q.toString();
       window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
       setBezahlt(true);
+      setPayBusy(false);
       setSchritt(4);
       setVideoShow(false); setVideoReif(false);   // NICHT wieder die Kaufknoepfe zeigen
     })();
@@ -979,7 +980,28 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 </div>
               )}
 
-              {videoReif && !isStaff && (
+              {/* BEZAHLT ODER AUF DEM WEG DORTHIN — niemals wieder die Kasse zeigen.
+                  Owner 30.07.2026: „schon wieder springt er vom Stripe zurück zum Zahlen.
+                  Dann 1 Minute später kommt das Video plötzlich." Die Kaufflaeche blieb
+                  waehrend Zahlung UND Rendern stehen; fuer den Kunden sah es aus, als solle
+                  er ein zweites Mal zahlen. Ab hier steht dort, was gerade passiert. */}
+              {(payBusy || bezahlt || videoBusy) && !videoUrl && !isStaff && (
+                <div className="absolute inset-0 z-30 grid place-items-center bg-black/70 p-5">
+                  <div className="w-full max-w-[300px] text-center">
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-white" />
+                    <p className="lb-onmedia mt-3 text-[16px] font-black">
+                      {bezahlt || videoBusy ? "Payment received ✓" : "Opening secure checkout …"}
+                    </p>
+                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
+                      {status || (bezahlt || videoBusy
+                        ? "Making your video — this takes about a minute. Stay on this page."
+                        : "Complete the payment in the window that just opened.")}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {videoReif && !isStaff && !payBusy && !bezahlt && !videoBusy && !videoUrl && (
                 <div className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-5">
                   <div className="w-full max-w-[300px] text-center">
                     <p className="lb-onmedia text-[17px] font-black">Your video is ready 🔥</p>
