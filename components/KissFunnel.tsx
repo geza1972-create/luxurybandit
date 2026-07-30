@@ -903,6 +903,80 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           )}
         </div>
       )}
+      {/* DIE GARDEROBE — sichtbar, aber verschlossen (Owner 30.07.2026: „drunter muss die
+          Wardrobe stehen. Es koennte auch jetzt stehen aber ist gesperrt und muesste stehen
+          das wird freigegeben fuer bezahlte Videos"). Zeigen schlaegt versprechen: er sieht,
+          was er bekommt, und das Schloss sagt ihm, wie er drankommt. */}
+      {kleidung.length > 0 && (
+        <div className="relative mt-2 rounded-2xl p-3" style={{ background: "#fff", color: "#1a160f" }}>
+          <div className="flex items-center justify-between">
+            <p className="text-[12px] font-black">Wardrobe & scene</p>
+            {!bezahlt && !isStaff && (
+              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
+                style={{ background: "rgba(0,0,0,0.07)" }}>
+                <Lock className="h-3 w-3" /> Paid videos
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-[11px] font-semibold" style={{ opacity: 0.6 }}>
+            {bezahlt || isStaff
+              ? "Dress her, keep your own clothes or change them, pick the moment."
+              : "Unlocked with a paid video — dress her, pick the moment."}
+          </p>
+
+          <div style={bezahlt || isStaff ? undefined : { opacity: 0.45, filter: "blur(1.5px)", pointerEvents: "none" }}>
+            <p className="mt-2.5 text-[11px] font-black">Her dress</p>
+            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <button type="button" onClick={() => setIhrLook("")}
+                className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
+                style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                As in the photo
+              </button>
+              {kleidung.map(l => (
+                <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
+                  style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[58px] w-[44px] object-cover" />
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-2.5 text-[11px] font-black">Your clothes</p>
+            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <button type="button" onClick={() => setSeinLook("")}
+                className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
+                style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                My own clothes
+              </button>
+              {kleidung.map(l => (
+                <button key={l.id} type="button" onClick={() => setSeinLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
+                  style={{ outline: seinLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[58px] w-[44px] object-cover" />
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-2.5 text-[11px] font-black">The moment</p>
+            <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
+              <button type="button" onClick={() => setSzeneId("")}
+                className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+                style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                ✨ Surprise me
+              </button>
+              {HOLIDAY_SCENES.map(sc => (
+                <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
+                  className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
+                  style={szeneId === sc.id
+                    ? { background: "#1877f2", color: "#fff", whiteSpace: "nowrap" }
+                    : { background: "rgba(0,0,0,0.06)", whiteSpace: "nowrap" }}>
+                  {sc.emoji} {sc.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
         <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
@@ -928,78 +1002,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         {bezahlt ? "✓ Paid — everything below is included" : fillPrices("Picture free · Video {once}")}
       </p>
 
-      {/* DIE GARDEROBE — sichtbar, aber verschlossen (Owner 30.07.2026: „drunter muss die
-          Wardrobe stehen. Es koennte auch jetzt stehen aber ist gesperrt und muesste stehen
-          das wird freigegeben fuer bezahlte Videos"). Zeigen schlaegt versprechen: er sieht,
-          was er bekommt, und das Schloss sagt ihm, wie er drankommt. */}
-      {kleidung.length > 0 && (
-        <div className="relative mt-4 rounded-2xl p-4" style={{ background: "#fff", color: "#1a160f" }}>
-          <div className="flex items-center justify-between">
-            <p className="text-[13px] font-black">Wardrobe & scene</p>
-            {!bezahlt && !isStaff && (
-              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
-                style={{ background: "rgba(0,0,0,0.07)" }}>
-                <Lock className="h-3 w-3" /> Paid videos
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 text-[11px] font-semibold" style={{ opacity: 0.6 }}>
-            {bezahlt || isStaff
-              ? "Dress her, keep your own clothes or change them, pick the moment."
-              : "Unlocked with a paid video — dress her, pick the moment."}
-          </p>
-
-          <div style={bezahlt || isStaff ? undefined : { opacity: 0.45, filter: "blur(1.5px)", pointerEvents: "none" }}>
-            <p className="mt-3 text-[12px] font-black">Her dress</p>
-            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-              <button type="button" onClick={() => setIhrLook("")}
-                className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
-                style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                As in the photo
-              </button>
-              {kleidung.map(l => (
-                <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
-                  style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
-                </button>
-              ))}
-            </div>
-
-            <p className="mt-3 text-[12px] font-black">Your clothes</p>
-            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-              <button type="button" onClick={() => setSeinLook("")}
-                className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
-                style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                My own clothes
-              </button>
-              {kleidung.map(l => (
-                <button key={l.id} type="button" onClick={() => setSeinLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
-                  style={{ outline: seinLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
-                </button>
-              ))}
-            </div>
-
-            <p className="mt-3 text-[12px] font-black">The moment</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <button type="button" onClick={() => setSzeneId("")}
-                className="rounded-full px-3 py-1.5 text-[11px] font-black"
-                style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                ✨ Surprise me
-              </button>
-              {HOLIDAY_SCENES.map(sc => (
-                <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
-                  className="rounded-full px-3 py-1.5 text-[11px] font-black"
-                  style={szeneId === sc.id ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                  {sc.emoji} {sc.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       </>)}
 
       {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
