@@ -136,7 +136,10 @@ export default async function KissThemePage({ searchParams }: {
                 ].map(x => (
                   <Link key={x.href} href={x.href}
                     className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition">
-                    <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/[0.05]">
+                    {/* 9:16 statt 4:3 (Owner 30.07.2026: „die Kacheln sind zu klein, 9:16").
+                        Hochkant zeigt vom Motiv, worauf es ankommt — die Frau, nicht den
+                        Himmel darueber — und ist dasselbe Format wie die Videos selbst. */}
+                    <span className="relative block aspect-[9/16] w-full overflow-hidden bg-white/[0.05]">
                       {!x.img
                         ? <span className="grid h-full w-full place-items-center text-[30px]">{x.e}</span>
                         : /\.(mp4|webm|mov)(\?|$)/i.test(x.img)
