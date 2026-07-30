@@ -219,7 +219,7 @@ export async function POST(request: Request) {
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
-    "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination, embracing each other and smiling, happy and relaxed.",
+    "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed.",
     szene
       ? `Setting: ${szene}.`
       : theme === "holiday" || theme === "bella"
