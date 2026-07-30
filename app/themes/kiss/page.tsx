@@ -89,12 +89,12 @@ export default async function KissThemePage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             {/* Hero */}
-            <Kicker>LuxuryBandit · Kiss</Kicker>
             <H1>Kiss any <Y>model</Y> 💋</H1>
-            <Lead>
-              Pick her, upload your photo — and watch the two of you share a tender kiss in a
-              video. Your little movie moment.
-            </Lead>
+            {/* Kein Vorspann und keine Ueberzeile mehr (Owner 30.07.2026: „das kann raus" — auf die Frage, ob der
+                Absatz „Pick her, upload your photo …" gemeint ist: „ja, Pick her, …").
+                Er kostete auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt.
+                Der Satz steht weiterhin in den Seiten-Metadaten, damit Google und die
+                Anzeigenvorschau nicht leer ausgehen. */}
 
             {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €) */}
             <KissFunnel code={code} />
