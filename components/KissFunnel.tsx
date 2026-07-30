@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
 import { renewNote, fillPrices } from "@/lib/pricing";
@@ -217,6 +218,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [seinLook, setSeinLook] = useState("");   // "" = SEINE Originalkleidung (vorbelegt)
   const [szeneId, setSzeneId] = useState("");     // "" = automatisch eine aussuchen
   const rueckkehrRef = useRef(false);
+  // ZURUECK GEHOERT IN DIE SPRACHZEILE (Owner 30.07.2026: „Back Button in dem Balken mit den
+  // Sprachen stehen"). Der Balken liegt in TopNav, der Schritt hier — statt den Zustand nach
+  // oben zu reichen, haengen wir den Knopf per Portal in die vorhandene Zeile. Ein Ziel, das
+  // es nicht gibt (andere Seiten), heisst einfach: kein Knopf.
+  const [langZeile, setLangZeile] = useState<Element | null>(null);
   const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
   const resultRef = useRef<HTMLDivElement>(null); // Radar/Ergebnis — der Screen springt dorthin
@@ -305,6 +311,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
    * Zwei getrennte Schritte, weil das Bild aus dem Geraetespeicher spaeter zurueckkommt als
    * diese Pruefung: erst die Zahlung bestaetigen, dann liefern, sobald das Bild da ist.
    */
+  useEffect(() => { setLangZeile(document.querySelector("[data-langrow]")); }, []);
+
   useEffect(() => {
     if (rueckkehrRef.current) return;
     const q = new URLSearchParams(window.location.search);
@@ -710,6 +718,19 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
   return (
     <div className="mt-8">
+      {/* ZURUECK IN DER SPRACHZEILE, EINE REIHE (Owner 30.07.2026: „Back Button in dem Balken
+          mit den Sprachen stehen" / „in einer Reihe"). `mr-auto` schiebt ihn in der
+          rechtsbuendigen Zeile nach links — Zurueck links, Sprache rechts, kein zweiter
+          Balken. Erst ab Schritt 2, denn von Schritt 1 fuehrt kein Weg zurueck. */}
+      {langZeile && schritt > 1 && createPortal(
+        <button type="button"
+          onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? 2 : 1)}
+          className="mr-auto h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
+          style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
+          ← Back
+        </button>,
+        langZeile,
+      )}
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
@@ -855,11 +876,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
       {/* 3) Generieren */}
       <div className="mt-4 flex gap-2">
-        <button type="button" onClick={() => setSchritt(1)}
-          style={{ color: "#fff" }}
-          className="h-12 flex-[0.6] rounded-full border border-white/25 text-[13px] font-black active:scale-95 transition">
-          ← Back
-        </button>
         <button type="button" onClick={() => setSchritt(3)} disabled={!photo}
           className="lb-gold flex h-12 flex-1 items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
           {photo ? "Next →" : "Upload your photo"}
@@ -870,22 +886,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       {schritt === 4 && (
         <div className="mb-3 text-center">
           <p className="text-[12px] font-black uppercase tracking-wide text-white/50">4 · Your picture</p>
-          {!busy && (
-            <button type="button" onClick={() => setSchritt(3)}
-              style={{ color: "#fff" }}
-              className="mt-2 h-9 rounded-full border border-white/25 px-4 text-[12px] font-black active:scale-95 transition">
-              ← Back
-            </button>
-          )}
         </div>
       )}
 
       {schritt === 3 && (<>
-      <button type="button" onClick={() => setSchritt(2)}
-        style={{ color: "#fff" }}
-        className="mb-3 h-9 rounded-full border border-white/25 px-4 text-[12px] font-black active:scale-95 transition">
-        ← Back
-      </button>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
       {/* BEIDE NEBENEINANDER (Owner 30.07.2026: „ich sehe uns nicht nebeneinander"). In den
           Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
