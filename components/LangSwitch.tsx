@@ -48,7 +48,10 @@ export default function LangSwitch() {
       <button type="button" onClick={() => setOpen(o => !o)} aria-label="Language"
         className="flex h-9 items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 text-white/80 transition hover:text-white">
         <Globe className="h-4 w-4" />
-        <span className="text-[11px] font-black uppercase">{lang}</span>
+        {/* AUSGESCHRIEBEN statt Kürzel (Owner 30.07.2026: „ich kann es gar nicht lesen. Es
+            muss Sprache ausgeschrieben werden"). Die Namen liegen laengst in lib/lang.ts —
+            „Română", „Deutsch", „English" versteht jeder, „RO" nicht. */}
+        <span className="text-[12px] font-black">{LANG_LABEL[lang] ?? String(lang).toUpperCase()}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-11 z-50 w-40 overflow-hidden rounded-2xl border border-white/10 bg-[#141110] shadow-2xl">
