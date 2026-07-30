@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, type KissLogEntry } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string };
 
   // Admin: einen Eintrag löschen.
   if (body.remove) {
@@ -42,14 +42,43 @@ export async function POST(request: Request) {
   // Eintrag entsteht beim Teaser ohne URL, das echte Video rendert erst nach dem Kauf).
   if (body.update) {
     const videoUrl = String(body.videoUrl ?? "").trim();
-    if (!videoUrl) return NextResponse.json({ error: "videoUrl required." }, { status: 400 });
+    const imagePath = String(body.imagePath ?? "").trim();
+    if (!videoUrl && !imagePath) return NextResponse.json({ error: "videoUrl or imagePath required." }, { status: 400 });
     const entries = await readKissLog();
     const e = entries.find(x => x.id === body.update);
-    if (e) { e.videoUrl = videoUrl; await writeKissLog(entries); }
+    if (e) {
+      if (videoUrl) e.videoUrl = videoUrl;
+      if (imagePath.startsWith("try-this-look/")) e.imagePath = imagePath;
+      await writeKissLog(entries);
+    }
     return NextResponse.json({ ok: true });
   }
 
-  // Neu: eine Generierung (beim Fake-Teaser noch OHNE videoUrl).
+  /**
+   * DAS FOTO WIRD BEIM HOCHLADEN GESPEICHERT, nicht erst beim Ergebnis (Owner 30.07.2026:
+   * „das Bild muss gespeichert werden in dem Moment wo er das hochlädt").
+   *
+   * Sonst sieht man nichts von denen, bei denen die Erzeugung scheitert oder die vorher
+   * abspringen — und genau die sind interessant: sie zeigen, was die Leute WOLLTEN.
+   */
+  let personPath = String(body.personPath ?? "").trim();
+  const personImage = String(body.personImage ?? "");
+  if (!personPath && personImage.startsWith("data:")) {
+    try {
+      const m = /^data:([^;]+);base64,(.+)$/.exec(personImage.trim());
+      if (m) {
+        const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
+        const put = await fetch(up.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": m[1], "x-upsert": "true" },
+          body: new Uint8Array(Buffer.from(m[2], "base64")),
+        });
+        if (put.ok) personPath = up.path;
+      }
+    } catch { /* Ablage ist Zugabe — der Trichter läuft weiter */ }
+  }
+
+  // Neu: eine Generierung (beim Hochladen angelegt, Ergebnis wird nachgetragen).
   const entry: KissLogEntry = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
@@ -58,7 +87,7 @@ export async function POST(request: Request) {
     videoUrl: String(body.videoUrl ?? "").trim() || undefined,
     paid: false,
     imagePath: String(body.imagePath ?? "").trim().startsWith("try-this-look/") ? String(body.imagePath).trim() : undefined,
-    personPath: String(body.personPath ?? "").trim().startsWith("try-this-look/") ? String(body.personPath).trim() : undefined,
+    personPath: personPath.startsWith("try-this-look/") ? personPath : undefined,
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
   };

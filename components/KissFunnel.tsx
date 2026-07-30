@@ -165,7 +165,24 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     return () => { runRef.current = -1; };
   }, []);
 
-  const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); track("photo"); } catch { /**/ } };
+  // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
+  // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
+  // denen, die danach abspringen oder deren Erzeugung scheitert. Genau die zeigen, was die
+  // Leute wollten. Das Ergebnis wird später an denselben Eintrag nachgetragen.
+  const onFile = async (f?: File | null) => {
+    if (!f) return;
+    try {
+      const dataUrl = await fileToDataUrl(f);
+      setPhoto(dataUrl); track("photo");
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const log = await fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
+      }).then(r => r.json()).catch(() => null);
+      if (log?.id) setGenId(log.id);
+    } catch { /**/ }
+  };
   const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); track("own_model"); } catch { /**/ } };
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
@@ -247,12 +264,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (!r.ok || !d.image) { setStatus(d?.error ?? "That did not work."); setBusy(false); return; }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setBusy(false); setStatus("");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+      // Das Ergebnis an den Eintrag hängen, der beim Hochladen entstanden ist. Nur wenn
+      // keiner existiert (z. B. Foto aus einer früheren Sitzung), einen neuen anlegen.
       try {
-        const log = await fetch("/api/kiss-log", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
-        }).then(r2 => r2.json());
-        if (log?.id && runRef.current === token) setGenId(log.id);
+        if (genId) {
+          await fetch("/api/kiss-log", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ update: genId, imagePath: d.imagePath }),
+          });
+        } else {
+          const log = await fetch("/api/kiss-log", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
+          }).then(r2 => r2.json());
+          if (log?.id && runRef.current === token) setGenId(log.id);
+        }
       } catch { /**/ }
     } catch {
       stoppen();
