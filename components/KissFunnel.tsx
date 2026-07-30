@@ -640,7 +640,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       </>)}
 
       {schritt === 2 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo — you, the man</p>
       <button type="button" onClick={() => fileRef.current?.click()}
         className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
@@ -650,9 +650,19 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {/* Platzhalter-Gesicht (abgedunkelt): zeigt auf einen Blick, dass hier ein
                   MANN bzw. der Nutzer selbst hingehört — nicht noch ein Model. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25 grayscale" />
+              {/* DEUTLICH UND FARBIG (Owner 30.07.2026: „du musst das Preview-Bild beim Mann
+                  und Frau deutlicher machen, farbig. Sie sehen das auf dem Handy nicht, weil
+                  zu dunkel"). Ein echter Besucher hat hier am 30.07. um 11:22 eine Frau im
+                  Bikini hochgeladen — und bekam nichts, weil die Bildprüfung das abweist.
+                  Vorher lag das Foto bei 25 % und grau; man sah schlicht nicht, dass dort ein
+                  MANN hingehört. */}
+              <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-75" />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/45" />
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
-              <span className="relative text-[13px] font-black text-[#f6cf51]">Upload your photo</span>
+              <span className="relative text-[14px] font-black text-[#f6cf51]">Upload YOUR photo</span>
+              <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
+                A photo of you — the man in the picture
+              </span>
             </>)}
       </button>
       {photo && (

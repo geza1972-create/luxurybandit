@@ -240,6 +240,7 @@ export async function POST(request: Request) {
       // ZWEI ANLÄUFE JE VORLAGE: erst das ganze Foto, dann nur das Gesicht. Der zweite
       // Anlauf rettet genau die Fälle, an denen die Prüfung wegen Haut/Körper anschlägt.
       let versuchModel = model;
+      let versuchPerson = person;
       let res: Response | null = null;
       let j: { data?: { b64_json?: string }[]; error?: { message?: string } } | null = null;
 
@@ -247,9 +248,17 @@ export async function POST(request: Request) {
         // Zweiter Anlauf nur, wenn dafür noch Zeit ist (er kostet noch einmal ~35 s).
         if (anlauf === 1 && zeitLinks() < 30_000) break;
         if (anlauf === 1) {
-          const gesicht = await gesichtAusschnitt(model, key);
-          if (!gesicht) break;
-          versuchModel = gesicht;
+          // BEIDE Seiten zuschneiden (Owner 30.07.2026: ein Besucher lud um 11:22 eine Frau
+          // im Bikini in das Feld „dein Foto" — abgewiesen, Ergebnis leer). Die Prüfung
+          // stört sich am Körper, egal auf welcher Seite er steht. Also im zweiten Anlauf
+          // von beiden nur das Gesicht schicken.
+          const [gm, gp] = await Promise.all([
+            gesichtAusschnitt(model, key),
+            gesichtAusschnitt(person, key),
+          ]);
+          if (!gm && !gp) break;
+          if (gm) versuchModel = gm;
+          if (gp) versuchPerson = gp;
         }
         const form = new FormData();
         form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
@@ -257,7 +266,7 @@ export async function POST(request: Request) {
         form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
         form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
         form.append("n", "1");
-        const pb = dataUrlToBlob(person), mb = dataUrlToBlob(versuchModel);
+        const pb = dataUrlToBlob(versuchPerson), mb = dataUrlToBlob(versuchModel);
         if (!pb || !mb) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
         form.append("image[]", pb, "person.png");
         form.append("image[]", mb, "model.png");
