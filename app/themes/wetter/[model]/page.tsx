@@ -16,6 +16,7 @@ import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
 import { stripPersonalQuestion } from "@/lib/no-personal-question";
+import UploadsAdmin from "@/components/UploadsAdmin";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -230,7 +231,10 @@ export default async function WetterModelPage({ params, searchParams }: {
   }
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
   const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
-  const previewMode = String(sp.preview ?? "") === "visitor" ? "visitor" : "subscriber";   // Admin-Vorschau: was der User sieht
+  // Admin-Vorschau: was der User sieht — plus der Galerie-Tab (Owner 30.07.2026).
+  const previewMode = ["visitor", "uploads"].includes(String(sp.preview ?? ""))
+    ? (String(sp.preview) as "visitor" | "uploads")
+    : "subscriber";
   // Preis/Trial aus der dynamischen Admin-Preisliste (für die Kleingedruckt-Zeile).
   const trialDays = Number((state as { pricing?: { wetterAboTrialDays?: number } }).pricing?.wetterAboTrialDays ?? 7);
   const monthlyCents = Number((state as { pricing?: { wetterAboMonthlyCents?: number } }).pricing?.wetterAboMonthlyCents ?? 4900);
@@ -339,11 +343,21 @@ export default async function WetterModelPage({ params, searchParams }: {
             <div className="mx-auto mt-3 flex max-w-[300px] gap-1.5 rounded-full border border-white/10 bg-white/[0.04] p-1 text-center text-[12px] font-black">
               <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-amber-400 text-black" : "text-white/60"}`}>👤 Besucher</a>
               <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-amber-400 text-black" : "text-white/60"}`}>🔔 Abonnent</a>
+              {/* DRITTER TAB (Owner 30.07.2026: „ich will eine Galerie haben als Tab neben
+                  Besucher"). Zeigt, wer was hochgeladen hat und was daraus wurde. */}
+              <a href="?admin=1&preview=uploads" className={`flex-1 rounded-full py-2 transition ${previewMode === "uploads" ? "bg-amber-400 text-black" : "text-white/60"}`}>🖼 Galerie</a>
             </div>
-            <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/45">
-              👁 Vorschau — so sieht es der {previewMode === "visitor" ? "neue Besucher" : "Kunde jeden Morgen"}
-            </p>
-            {previewMode === "visitor" ? (
+            {previewMode !== "uploads" && (
+              <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/45">
+                👁 Vorschau — so sieht es der {previewMode === "visitor" ? "neue Besucher" : "Kunde jeden Morgen"}
+              </p>
+            )}
+            {previewMode === "uploads" && (
+              <div className="lb-theme mx-auto mt-4 max-w-md px-4">
+                <UploadsAdmin title="Hochgeladen & erzeugt" />
+              </div>
+            )}
+            {previewMode === "uploads" ? null : previewMode === "visitor" ? (
               <>
                 {visitorPosts.length > 0 && <BellaPostsCarousel posts={visitorPosts} name={modelName} />}
                 {exampleForecast && <p className="mx-auto max-w-md px-5 pt-3 text-center text-[14px] font-bold text-white/80">📍 {exampleForecast.line}</p>}
