@@ -215,7 +215,11 @@ export default async function ThemesCatalog({ searchParams }: {
   } catch { /**/ }
 
   const THEMES: Theme[] = [
-    // BELLA GANZ VORN (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
+    // KISS GANZ VORN (Owner 30.07.2026: „kiss musst du als erstes nehmen"). Auf dieses Thema
+    // laufen die Anzeigen, dort steckt der fertige Trichter mit Kasse — was oben steht,
+    // entscheidet, was die Leute anfassen. Bella rueckt auf Platz zwei.
+    { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
+    // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
     // Angebot — jetzt auf /themes/bella mit dem lebenden Trichter.
@@ -231,7 +235,6 @@ export default async function ThemesCatalog({ searchParams }: {
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
-    { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: ph(4), video: birthdayVideo || undefined, chips: "♥ Name · Video · Send" },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
@@ -288,7 +291,10 @@ export default async function ThemesCatalog({ searchParams }: {
 
 
         {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {/* ZWEI KARTEN JE REIHE (Owner 30.07.2026: „bitte nur 2 Boxen in einer reihe").
+            Bei drei Spalten schrumpfen Bild und Titel auf dem Handy so weit, dass man
+            beides kaum noch liest — der Titel brach nach zwei Woertern ab. */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
           {THEMES_L.map((t) => {
             const Icon = t.icon;
             const active = !!t.href;
