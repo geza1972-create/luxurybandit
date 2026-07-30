@@ -201,7 +201,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [payBusy, setPayBusy] = useState(false);
   // AKTIVE ZUSTIMMUNG (Owner-Vorgabe): niemand rendert ein Video aus fremden Fotos, ohne
   // vorher ausdrücklich bestätigt zu haben, dass er das darf und die Verantwortung trägt.
-  const [consent, setConsent] = useState(false);
+  // Zustimmung gilt durch das Tippen auf den Knopf, nicht durch ein Haekchen davor — der
+  // Hinweis steht direkt darunter. Der Wert bleibt, weil mehrere Knoepfe ihn abfragen.
+  const [consent] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const runRef = useRef(0);
@@ -987,14 +989,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           </div>
         </div>
       )}
-      <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-        <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
-        <span className="text-[12px] font-bold leading-snug text-white/70">
-          Yes, I want this video. I may use these photos, everyone shown is an adult, I keep it
-          private — and I take responsibility for it.
-        </span>
-      </label>
       {/* NACH DER ZAHLUNG HEISST ER ANDERS (Owner 30.07.2026: „muesste dann statt generate
           picture, generate Video stehen (bezahlt)"). Derselbe Platz, andere Aufgabe: vorher
           das Gratis-Bild, danach das bezahlte Video aus Garderobe und Szene. */}
@@ -1010,6 +1004,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           nach dem Warten wie eine Falle an. */}
       <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
         {bezahlt ? "✓ Paid — everything below is included" : fillPrices("Picture free · Video {once}")}
+      </p>
+      {/* NUR EIN HINWEIS, KEINE AKTION (Owner 30.07.2026: „das machst du unter dem Button und
+          ohne Haeckchen … nein, das ist nur eine Info, ohne Aktion"). Das Haekchen stand
+          zwischen ihm und dem Knopf und kostete jeden zweiten Anlauf. Der Inhalt bleibt
+          wortgleich stehen — er ruecht nur hinter die Handlung. */}
+      <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[10px] font-medium leading-snug text-white/45">
+        By generating you confirm you may use these photos, everyone shown is an adult, you
+        keep it private — and you take responsibility for it.
       </p>
 
       </>)}
