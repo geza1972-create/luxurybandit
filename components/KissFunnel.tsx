@@ -244,7 +244,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (runRef.current !== token) return;
       // 429 = Gratis-Bild schon genutzt. Nicht als Fehler zeigen, sondern als Angebot.
       if (r.status === 429 || d?.limit) { setGesperrt(true); setStatus(""); setBusy(false); return; }
-      if (!r.ok || !d.image) { setStatus(d?.error ?? "Das hat nicht geklappt."); setBusy(false); return; }
+      if (!r.ok || !d.image) { setStatus(d?.error ?? "That did not work."); setBusy(false); return; }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setBusy(false); setStatus("");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       try {
@@ -256,7 +256,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       } catch { /**/ }
     } catch {
       stoppen();
-      if (runRef.current === token) { setStatus("Netzwerkfehler."); setBusy(false); }
+      if (runRef.current === token) { setStatus("Network error."); setBusy(false); }
     }
   };
 
@@ -271,7 +271,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
   const adresseSenden = async () => {
     const e = mail.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setStatus("Bitte eine gültige E-Mail-Adresse."); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setStatus("Please enter a valid email address."); return; }
     setMailBusy(true); setStatus("");
     try {
       let device = "";
@@ -281,11 +281,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         body: JSON.stringify({ email: e, imagePath: bildPfad, device }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setStatus(d?.error ?? "Das hat nicht geklappt."); setMailBusy(false); return; }
+      if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
       setFrei(true); setMailBusy(false);
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
-    } catch { setStatus("Netzwerkfehler."); setMailBusy(false); }
+    } catch { setStatus("Network error."); setMailBusy(false); }
   };
 
   const zuVideo = async () => {
@@ -301,7 +301,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       for (let i = 0; i < 90; i++) {
         await new Promise(res => setTimeout(res, 4000));
         if (runRef.current !== token) return;
-        setStatus(`Das Video entsteht … (${Math.round((i + 1) * 4)} s)`);
+        setStatus(`Making the video … (${Math.round((i + 1) * 4)} s)`);
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
           setVideoUrl(p.videoUrl); setStatus(""); setVideoBusy(false);
@@ -310,8 +310,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         }
         if (p?.status === "failed") { setStatus(p.error || "Das Video ist fehlgeschlagen."); setVideoBusy(false); return; }
       }
-      setStatus("Zeitüberschreitung — bitte später erneut."); setVideoBusy(false);
-    } catch { setStatus("Netzwerkfehler."); setVideoBusy(false); }
+      setStatus("Timeout — please try again later."); setVideoBusy(false);
+    } catch { setStatus("Network error."); setVideoBusy(false); }
   };
 
   const unlock = async (einmal = false) => {
@@ -498,22 +498,22 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
         {gesperrt && !bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
-            <p className="text-[16px] font-black text-white">Dein Gratis-Bild ist aufgebraucht</p>
+            <p className="text-[16px] font-black text-white">Your free picture is used up</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
-              Ein Bild pro Person ist gratis. Weiter geht es mit dem Video — oder mit allem.
+              One picture per person is free. Keep going with the video — or unlock everything.
             </p>
             <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {fillPrices("Video machen — {once}")}
+              {fillPrices("Make the video — {once}")}
             </button>
             <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
               style={{ color: "#fff" }}
               className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/40 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-              {fillPrices("Alles freischalten — {price}/Monat")}
+              {fillPrices("Unlock everything — {price}/month")}
             </button>
             <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
-              {renewNote("de")}
+              {renewNote("en")}
             </p>
           </div>
         )}
@@ -532,21 +532,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {!frei && !isStaff && (
                 <div className="absolute inset-0 grid place-items-center bg-black/45 p-5">
                   <div className="w-full max-w-[300px] text-center">
-                    <p className="lb-onmedia text-[16px] font-black">Dein Bild ist fertig ✨</p>
+                    <p className="lb-onmedia text-[16px] font-black">Your picture is ready ✨</p>
                     <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
-                      Trag deine E-Mail ein — dann siehst du es sofort und behältst es.
+                      Enter your email — you see it right away and it stays yours.
                     </p>
                     <input value={mail} onChange={e => setMail(e.target.value)} type="email"
-                      inputMode="email" autoComplete="email" placeholder="deine@email.de"
+                      inputMode="email" autoComplete="email" placeholder="you@email.com"
                       onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
                       className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold text-white outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
                     <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
                       className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                       {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      {mailBusy ? "Einen Moment …" : "Bild ansehen"}
+                      {mailBusy ? "One moment …" : "Show me the picture"}
                     </button>
                     <p className="lb-onmedia mt-2 text-[10px] font-medium leading-snug opacity-70">
-                      Kostenlos. Wir schicken dir das Bild auch per Mail.
+                      Free. We also send the picture to your inbox.
                     </p>
                   </div>
                 </div>
@@ -557,7 +557,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
                   className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                   {videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {videoBusy ? "Video entsteht …" : "In Video umwandeln (Admin — gratis)"}
+                  {videoBusy ? "Making the video …" : "Turn into video (Admin — free)"}
                 </button>
               ) : (
                 <>
