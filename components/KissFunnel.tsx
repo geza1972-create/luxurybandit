@@ -215,7 +215,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
   // 🔓 Freischalten: Kunde → Stripe-Popup + Status-Poll, bei `paid` startet die ECHTE
   // Generierung. Staff → gratis direkt zur echten Generierung (kein Stripe).
-  const unlock = async () => {
+  // `einmal = true` → Einmalkauf 9,99 €, sonst das Abo (Owner 30.07.2026: „Bild gratis,
+  // Video gegen Geld" — wer kein Abo will, soll trotzdem kaufen können).
+  const unlock = async (einmal = false) => {
     track("checkout");
     if (payBusy) return;
     if (isStaff) {
@@ -226,7 +228,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     }
     setPayBusy(true); setStatus("");
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite
@@ -393,11 +395,25 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 <div className="px-6 text-center">
                   <Lock className="mx-auto h-8 w-8 text-[#f6cf51]" />
                   <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
-                  <button type="button" onClick={() => void unlock()} disabled={payBusy}
+                  {/* ZWEI WEGE, Einmalkauf VORN (Owner 30.07.2026: „wir müssen einmalige zahlungen
+                      machen nicht nur abos"). Wer nichts abonnieren will, kauft dieses eine
+                      Video. Das Abo steht darunter, für die, die weitermachen wollen. */}
+                  <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
                     className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock the hottest AI experience ever — {price}/month"}
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : fillPrices("Get this video — {once}, one-off")}
                   </button>
-                  {!isStaff && <p className="lb-onmedia mt-2 text-center text-[10px] font-medium leading-snug opacity-70">{renewNote("en")}</p>}
+                  {!isStaff && (
+                    <>
+                      <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                        style={{ color: "#fff" }}
+                        className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                        {fillPrices("Or unlock everything — {price}/month")}
+                      </button>
+                      <p className="lb-onmedia mt-2 text-center text-[10px] font-medium leading-snug opacity-70">
+                        {fillPrices("{once} buys this one video, no subscription. ")}{renewNote("en")}
+                      </p>
+                    </>
+                  )}
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}
                 </div>
               </div>

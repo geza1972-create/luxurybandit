@@ -17,14 +17,14 @@ import { renewNote, fillPrices } from "@/lib/pricing";
  */
 
 const T: Record<string, { h: string; p: string; cta: string }> = {
-  en: { h: "Get everything", p: "{videos} videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — {price}/month" },
-  de: { h: "Alles freischalten", p: "{videos} Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — {price}/Monat" },
-  ro: { h: "Deblochează tot", p: "{videos} videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — {price}/lună" },
-  es: { h: "Desbloquéalo todo", p: "{videos} vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — {price}/mes" },
-  fr: { h: "Tout débloquer", p: "{videos} vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — {price}/mois" },
-  pt: { h: "Desbloqueia tudo", p: "{videos} vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — {price}/mês" },
-  pl: { h: "Odblokuj wszystko", p: "{videos} filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc" },
-  it: { h: "Sblocca tutto", p: "{videos} video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese" },
+  en: { h: "Get everything", p: "Videos with her — and you in them. Chatting is and stays free.", cta: "Unlock the hottest AI experience ever — {price}/month" },
+  de: { h: "Alles freischalten", p: "Videos mit ihr — und du mit im Bild. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — {price}/Monat" },
+  ro: { h: "Deblochează tot", p: "Videoclipuri cu ea — și cu tine în ele. Chatul este și rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — {price}/lună" },
+  es: { h: "Desbloquéalo todo", p: "Vídeos con ella — y tú en ellos. Chatear es y sigue siendo gratis.", cta: "Desbloquea la experiencia IA más ardiente — {price}/mes" },
+  fr: { h: "Tout débloquer", p: "Des vidéos avec elle — et toi dedans. Le chat est et reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — {price}/mois" },
+  pt: { h: "Desbloqueia tudo", p: "Vídeos com ela — e tu neles. Conversar é e continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — {price}/mês" },
+  pl: { h: "Odblokuj wszystko", p: "Filmy z nią — i z tobą w kadrze. Czat jest i pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc" },
+  it: { h: "Sblocca tutto", p: "Video con lei — e tu dentro. Chattare è e resta gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese" },
 };
 
 export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {

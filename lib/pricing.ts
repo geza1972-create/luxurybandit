@@ -23,6 +23,11 @@ export const TOPIC_MONTHLY_CENTS = 4900;            // 49 € Listenpreis (durch
 export const TOPIC_EFFECTIVE_MONTHLY_CENTS = 2450;  // 24,50 € — was er wirklich zahlt, dauerhaft
 export const EXTRA_VIDEO_CENTS = 399;               // jedes Video über das Abo hinaus
 export const INCLUDED_VIDEOS_PER_MONTH = 5;         // im Abo enthaltene Videos, über ALLE Themen
+// EINMALZAHLUNG (Owner 30.07.2026: „wir müssen einmalige zahlungen machen nicht nur abos …
+// 9,99 euro … beim Küssen"). Nicht jeder will ein Abo; wer einmal etwas kauft, kommt oft
+// später von selbst zum Abo. Der frühere Einzelkauf lag bei 3,99 € und wurde im Juli vom Abo
+// abgelöst — jetzt kommt er zurück, teurer und als eigenständiges Produkt.
+export const ONCE_CENTS = 999;                      // 9,99 € — ein Kauf, kein Abo
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -37,6 +42,7 @@ export const INCLUDED_VIDEOS_PER_MONTH = 5;         // im Abo enthaltene Videos,
  *   {list}   → 49 €      (Listenpreis, durchgestrichen)
  *   {extra}  → 3,99 €    (jedes weitere Video)
  *   {videos} → 5         (im Abo enthalten)
+ *   {once}   → 9,99 €    (Einmalkauf, ohne Abo)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
  */
@@ -52,6 +58,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{price\}/g, eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, lang))
     .replace(/\{list\}/g, eur(TOPIC_MONTHLY_CENTS, lang))
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
+    .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }
 

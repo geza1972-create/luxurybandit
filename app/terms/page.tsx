@@ -1,4 +1,5 @@
 import InfoPage from "@/components/InfoPage";
+import { fillPrices } from "@/lib/pricing";
 
 export const metadata = { title: "Terms of Service — LuxuryBandit" };
 
@@ -30,13 +31,11 @@ export default function TermsPage() {
 
       <h2>3. Subscriptions &amp; payments</h2>
       <p>
-        Browsing and <strong>following</strong> influencers is free. Subscribing to an influencer is a
-        paid monthly subscription (currently <strong>$49.99/month, with a discounted first month of $8</strong>)
-        that unlocks that influencer&rsquo;s <strong>private photos and videos</strong> and chat. Each
-        subscription is <strong>per influencer</strong>. Payments are handled by <strong>Stripe</strong>.
-        The subscription <strong>renews automatically</strong> each month until you cancel; you can{" "}
-        <strong>cancel anytime</strong> from your account, and cancellation takes effect at the end of the
-        current billing period. Except where required by law, payments are non-refundable.
+        Browsing, <strong>following</strong> and <strong>chatting</strong> are free. The paid product is a
+        monthly <strong>topic subscription</strong>: {fillPrices("{price} per month (list price {list}, reduced by 50% for as long as you stay). It includes {videos} generated videos or looks per month across ALL topics together; every further one costs {extra}.", "en")}
+        Payments are handled by <strong>Stripe</strong>. The subscription <strong>renews automatically</strong>{" "}
+        each month until you cancel; you can <strong>cancel anytime</strong> from your account, and
+        cancellation takes effect at the end of the current billing period.
       </p>
 
       <h2>4. AI-generated content &amp; AI chat</h2>
@@ -52,6 +51,32 @@ export default function TermsPage() {
         and it will never send sexually explicit content. You must confirm that you are 18 or older
         before using the chat. For details on how we use AI and where we tell you about it, see our{" "}
         <a href="/ai-notice"><strong>AI Notice</strong></a>.
+      </p>
+
+      <h3>What a generated result is &mdash; and is not</h3>
+      <p>
+        Every image and video is produced by an AI model at the moment you request it. Results are
+        <strong> approximations, never exact reproductions</strong>. Faces, hair, body proportions,
+        clothing details, text and backgrounds may differ from the photos you upload or from the look you
+        selected, and the same request run twice will produce <strong>different results</strong>. We do not
+        promise any particular likeness, resemblance, style, quality or outcome, and a result cannot be
+        reproduced identically on request.
+      </p>
+      <h3>Refunds for generated content</h3>
+      <p>
+        A generation is digital content produced <strong>individually for you, on demand</strong>. By
+        starting a generation you expressly request that we begin immediately and you acknowledge that,
+        once it has begun, you <strong>lose your right of withdrawal</strong> for that item (Art. 16(m)
+        Consumer Rights Directive 2011/83/EU). A delivered result is therefore
+        <strong> not refundable</strong> &mdash; in particular not because it does not look the way you
+        imagined, since that follows from the nature of AI generation described above.
+      </p>
+      <p>
+        This does not take away rights you have by law. If a generation <strong>fails technically</strong>
+        and no result is delivered to you, or if you were charged twice for the same item, write to{" "}
+        <a href="mailto:support@luxurybandit.com"><strong>support@luxurybandit.com</strong></a> and we will
+        re-run it or refund that item. Subscription fees for a month already started are not refunded;
+        cancel before the next renewal to avoid the following charge.
       </p>
 
       <h2>5. Models &amp; earnings</h2>

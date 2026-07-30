@@ -1340,7 +1340,9 @@ export const writeKissConfig = (config: KissConfig) => writeThemeConfig(config, 
 // ein Skript — die Rechnung hoch. Deshalb wird SERVERSEITIG gezählt; ein Zähler im Browser
 // wäre in zehn Sekunden umgangen. Zwei Deckel: pro Gerät und als Notbremse für alle zusammen.
 const FREE_PREVIEW_PATH = "try-this-look/free-preview-counter.json";
-export const FREE_PREVIEW_PER_DEVICE = 2;
+// EIN Versuch, nicht zwei (Owner 30.07.2026: „gratis bekommt er surprise aber 1x kann er
+// generieren"). Wer zweimal darf, probiert herum; wer einmal darf, entscheidet danach.
+export const FREE_PREVIEW_PER_DEVICE = 1;
 export const FREE_PREVIEW_PER_DAY = 300;
 
 /**
