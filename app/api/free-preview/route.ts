@@ -31,6 +31,61 @@ export const dynamic = "force-dynamic";
 const COVERAGE_RULE =
   "Strict coverage requirement: the output MUST depict both people fully and modestly dressed in complete outfits, REGARDLESS of how much skin is visible in the input photos. The clothing must fully cover the chest, cleavage, torso, shoulders and hips with opaque fabric. This is a tasteful editorial photograph of clothed people. Absolutely NO swimwear, bikini, lingerie, underwear, nudity, or exposed intimate areas (chest, cleavage, groin, buttocks). If an input shows swimwear or bare skin, replace it entirely with full, elegant clothing.";
 
+/**
+ * GESICHT AUSSCHNEIDEN, WENN DAS GANZE FOTO ABGEWIESEN WIRD (Owner 30.07.2026: „du musst
+ * eine Lösung finden, das Gesicht extrahieren dann").
+ *
+ * Die Bildprüfung von OpenAI schlägt am KÖRPER an, nicht am Gesicht — ein Bikini- oder
+ * Dessous-Foto wird abgewiesen, bevor der Prompt gelesen wird (am 30.07.2026 vier Mal über
+ * Kreuz gemessen). Vom selben Menschen nur den Kopf zu schicken, umgeht das nicht per Trick:
+ * es entfernt genau den Teil, an dem sich die Prüfung stört, und behält den Teil, auf den es
+ * ankommt — das Gesicht. Der Rest entsteht ohnehin neu, angezogen (COVERAGE_RULE).
+ *
+ * Die Fundstelle kommt vom Seh-Modell; sharp schneidet danach mit Rand aus. Schlägt etwas
+ * davon fehl, gibt es keinen Ausschnitt und der nächste Kandidat rückt nach.
+ */
+async function gesichtAusschnitt(dataUrl: string, key: string): Promise<string> {
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: "Return ONLY compact JSON {\"x\":0-1,\"y\":0-1,\"w\":0-1,\"h\":0-1} for the bounding box of the head (hair to chin) of the main person, as fractions of the image. No prose." },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        }],
+        max_tokens: 60,
+      }),
+    });
+    const j = await res.json().catch(() => null);
+    const txt = String(j?.choices?.[0]?.message?.content ?? "");
+    const m = /\{[^{}]*\}/.exec(txt);
+    if (!m) return "";
+    const box = JSON.parse(m[0]) as { x: number; y: number; w: number; h: number };
+    const bin = /^data:([^;]+);base64,(.+)$/.exec(dataUrl.trim());
+    if (!bin) return "";
+    const sharp = (await import("sharp")).default;
+    const bild = sharp(Buffer.from(bin[2], "base64"));
+    const meta = await bild.metadata();
+    const W = meta.width ?? 0, H = meta.height ?? 0;
+    if (!W || !H) return "";
+    // Grosszügiger Rand: Kopf plus Schultern wirkt natürlicher als ein enger Passbild-Schnitt.
+    const rand = 0.9;
+    const bw = Math.min(1, box.w * (1 + rand)), bh = Math.min(1, box.h * (1 + rand));
+    const bx = Math.max(0, Math.min(1 - bw, box.x - box.w * rand / 2));
+    const by = Math.max(0, Math.min(1 - bh, box.y - box.h * rand / 2));
+    const out = await bild.extract({
+      left: Math.round(bx * W), top: Math.round(by * H),
+      width: Math.max(64, Math.round(bw * W)), height: Math.max(64, Math.round(bh * H)),
+    }).resize({ width: 768 }).jpeg({ quality: 92 }).toBuffer();
+    return `data:image/jpeg;base64,${out.toString("base64")}`;
+  } catch { return ""; }
+}
+
 function dataUrlToBlob(dataUrl: string): Blob | null {
   const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl.trim());
   if (!m) return null;
@@ -139,22 +194,39 @@ export async function POST(request: Request) {
         const buf = Buffer.from(await r.arrayBuffer());
         model = `data:${r.headers.get("content-type") ?? "image/jpeg"};base64,${buf.toString("base64")}`;
       }
-      const form = new FormData();
-      form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
-      form.append("prompt", prompt);
-      form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
-      form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
-      form.append("n", "1");
-      const pb = dataUrlToBlob(person), mb = dataUrlToBlob(model);
-      if (!pb || !mb) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
-      form.append("image[]", pb, "person.png");
-      form.append("image[]", mb, "model.png");
+      // ZWEI ANLÄUFE JE VORLAGE: erst das ganze Foto, dann nur das Gesicht. Der zweite
+      // Anlauf rettet genau die Fälle, an denen die Prüfung wegen Haut/Körper anschlägt.
+      let versuchModel = model;
+      let res: Response | null = null;
+      let j: { data?: { b64_json?: string }[]; error?: { message?: string } } | null = null;
 
-      const res = await fetch("https://api.openai.com/v1/images/edits", {
-        method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
-      });
-      const j = await res.json().catch(() => null);
-      if (res.ok) {
+      for (let anlauf = 0; anlauf < 2; anlauf++) {
+        if (anlauf === 1) {
+          const gesicht = await gesichtAusschnitt(model, key);
+          if (!gesicht) break;
+          versuchModel = gesicht;
+        }
+        const form = new FormData();
+        form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
+        form.append("prompt", prompt);
+        form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
+        form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
+        form.append("n", "1");
+        const pb = dataUrlToBlob(person), mb = dataUrlToBlob(versuchModel);
+        if (!pb || !mb) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
+        form.append("image[]", pb, "person.png");
+        form.append("image[]", mb, "model.png");
+
+        res = await fetch("https://api.openai.com/v1/images/edits", {
+          method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
+        });
+        j = await res.json().catch(() => null);
+        if (res.ok) break;
+        const m = String(j?.error?.message ?? "");
+        if (!/safety|moderation|rejected/i.test(m)) break;   // echter Fehler → nicht weiter probieren
+        letzterFehler = m;
+      }
+      if (res?.ok) {
         const b64 = j?.data?.[0]?.b64_json;
         if (b64) {
           /**
@@ -195,17 +267,22 @@ export async function POST(request: Request) {
       const msg = String(j?.error?.message ?? "");
       // Abgelehnte Vorlage → nächste probieren. Alles andere ist ein echter Fehler.
       if (/safety|moderation|rejected/i.test(msg)) { letzterFehler = msg; continue; }
-      return NextResponse.json({ error: msg || `Bild fehlgeschlagen (${res.status}).` }, { status: 502 });
+      return NextResponse.json({ error: msg || `Bild fehlgeschlagen (${res?.status ?? "?"}).` }, { status: 502 });
     } catch (e) {
       letzterFehler = e instanceof Error ? e.message : "Netzwerkfehler.";
     }
   }
 
   // KLARTEXT statt OpenAI-Englisch: der Owner soll sofort wissen, woran es liegt.
+  // KLARTEXT statt Schweigen (Owner 30.07.2026: „du sollst erkennen dass eine nackte Frau ist
+  // und sagen: leider ein anderes Bild hoch. Lingerie-Fotos sind nur im Abo möglich").
+  // Erst wird still gerettet (Gesichtsausschnitt), und nur wenn auch das nicht durchgeht,
+  // bekommt er diesen Satz — dann weiss er, woran es liegt und was er tun kann.
   const freizuegig = /safety|moderation|rejected/i.test(letzterFehler);
   return NextResponse.json({
     error: freizuegig
-      ? "Das Vorlagenfoto wird von der Bildprüfung abgelehnt (zu freizügig). Nimm ein angezogenes Foto — im Kleid statt in Spitze."
+      ? "Dieses Foto können wir gratis nicht verwenden — bitte ein angezogenes hochladen. Dessous- und Bikini-Bilder gibt es nur im Abo."
       : letzterFehler,
+    reason: freizuegig ? "nudity" : undefined,
   }, { status: 502 });
 }

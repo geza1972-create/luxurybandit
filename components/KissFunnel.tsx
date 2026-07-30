@@ -214,9 +214,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     setBusy(true); setTeaser(false); setVideoUrl(""); setBild(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    // ZEITGEBER MERKEN UND ABBRECHEN. Vorher liefen die Fortschrittstexte einfach weiter und
+    // haben die echte Antwort überschrieben: Die Anfrage war beantwortet — auch mit einem
+    // Fehler wie „Vorlage abgelehnt" —, auf dem Schirm stand aber weiter „Finishing touches …"
+    // und man wartete auf ein Bild, das nie kommt (Owner 30.07.2026: „wo ist die vorschau?").
+    const timer: ReturnType<typeof setTimeout>[] = [];
     for (const [at, text] of RENDER_STEPS) {
-      setTimeout(() => { if (runRef.current === token) setStatus(text); }, at);
+      timer.push(setTimeout(() => { if (runRef.current === token) setStatus(text); }, at));
     }
+    const stoppen = () => { for (const t of timer) clearTimeout(t); timer.length = 0; };
     try {
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -225,6 +231,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device }),
       });
       const d = await r.json().catch(() => ({}));
+      stoppen();
       if (runRef.current !== token) return;
       if (!r.ok || !d.image) { setStatus(d?.error ?? "Das hat nicht geklappt."); setBusy(false); return; }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setBusy(false); setStatus("");
@@ -237,6 +244,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (log?.id && runRef.current === token) setGenId(log.id);
       } catch { /**/ }
     } catch {
+      stoppen();
       if (runRef.current === token) { setStatus("Netzwerkfehler."); setBusy(false); }
     }
   };
