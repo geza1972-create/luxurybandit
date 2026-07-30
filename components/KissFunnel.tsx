@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
 import { renewNote, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
@@ -333,7 +334,24 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
       // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
       // neu lädt. Jetzt wird es abgelegt, sobald es da ist — für jeden.
-      void merken(d.image, d.imagePath ?? "", genId, isStaff);
+      /**
+       * WER ANGEMELDET IST, WIRD NICHT NACH SEINER ADRESSE GEFRAGT (Owner 30.07.2026:
+       * „wieso muss ich eine email eingeben wenn ich eingeloggt bin?").
+       *
+       * Die Adresse ist bekannt — sie noch einmal abzutippen ist eine Hürde ohne Gegenwert.
+       * Der Eintrag in die Kissing-Liste und die Mail mit dem Bild passieren trotzdem, nur
+       * eben still im Hintergrund.
+       */
+      const angemeldet = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
+      void merken(d.image, d.imagePath ?? "", genId, isStaff || !!angemeldet);
+      if (angemeldet) {
+        setMail(angemeldet); setFrei(true);
+        void fetch("/api/kiss-claim", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: angemeldet, imagePath: d.imagePath, device, genId }),
+        }).catch(() => {});
+        track("email");
+      }
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Das Ergebnis an den Eintrag hängen, der beim Hochladen entstanden ist. Nur wenn
       // keiner existiert (z. B. Foto aus einer früheren Sitzung), einen neuen anlegen.
