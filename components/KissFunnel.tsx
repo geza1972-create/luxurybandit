@@ -388,7 +388,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       stoppen();
       if (runRef.current !== token) return;
       // 429 = Gratis-Bild schon genutzt. Nicht als Fehler zeigen, sondern als Angebot.
-      if (r.status === 429 || d?.limit) { setGesperrt(true); setStatus(""); setBusy(false); return; }
+      if (r.status === 429 || d?.limit) {
+        // Der Kasten stand weit unten und ging unter (Owner 30.07.2026: „ja das steht
+        // tatsächlich, aber es geht unter"). Also hinspringen, wie beim Ergebnis auch.
+        setGesperrt(true); setStatus(""); setBusy(false);
+        setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+        return;
+      }
       if (!r.ok || !d.image) {
         setStatus(d?.error ?? "That did not work.");
         setGescheitert(true); setBusy(false);
