@@ -5,6 +5,16 @@ const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // EIGENES BAU-VERZEICHNIS FÜR PRÜFBAUTEN (30.07.2026).
+  //
+  // Bisher musste der Entwicklungsserver für jeden `npm run build` gestoppt werden, weil sich
+  // beide dasselbe `.next` teilen und der Server danach mit „__webpack_modules__ is not a
+  // function" abstürzt. Für den Owner hiess das jedes Mal: mitten im Ausprobieren steht
+  // „Netzwerkfehler", weil die Seite gerade niemanden zum Antworten hat.
+  //
+  // Mit `LB_DIST_DIR=.next-build npm run build` schreibt der Prüfbau woandershin und der
+  // Server läuft weiter. Ohne die Variable bleibt alles wie vorher (Vercel baut normal).
+  distDir: process.env.LB_DIST_DIR || ".next",
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   outputFileTracingRoot: projectRoot,

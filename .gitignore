@@ -17,3 +17,6 @@ state-backup-*.json
 video-backup/
 video-samples/
 state-backup-*.json
+
+# Prüfbauten neben dem laufenden Entwicklungsserver
+.next-build
