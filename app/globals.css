@@ -402,3 +402,12 @@ svg {
   border-color: rgba(24, 119, 242, 0.45) !important;
   background-color: rgba(24, 119, 242, 0.06) !important;
 }
+
+/* WEISSE SCHRIFT, DIE DIREKT AM ELEMENT STEHT (Owner 30.07.2026: „und die weisse schrift auch
+   blau machen"). Mehrere Knoepfe tragen color:#fff als inline-style — auf dunklem Grund
+   richtig, in der hellen Fassung unsichtbar. Ein Attribut-Selektor findet genau diese und
+   faerbt sie blau. Ausgenommen: gefuellte Knoepfe, Text auf Bildern und Eingabefelder — dort
+   ist Weiss gewollt. */
+.lb-fb [style*="#fff"]:not(.lb-gold):not(.lb-buy):not([data-oncard]):not(input):not(.lb-onmedia) {
+  color: #1877F2 !important;
+}
