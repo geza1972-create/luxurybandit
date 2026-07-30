@@ -113,6 +113,14 @@ export async function GET(request: Request) {
           source: "kiss",
         },
         {
+          id: `${e.id}-frau`,
+          imageUrl: e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "",
+          videoUrl: "",
+          name: "Deine Frau",
+          createdAt: e.createdAt || "",
+          source: "kiss-model",
+        },
+        {
           id: `${e.id}-foto`,
           imageUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
           videoUrl: "",

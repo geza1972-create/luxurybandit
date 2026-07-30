@@ -250,7 +250,25 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (log?.id) setGenId(log.id);
     } catch { /**/ }
   };
-  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); track("own_model"); } catch { /**/ } };
+  // Auch IHR Foto wird beim Hochladen abgelegt (Owner 30.07.2026: „ich sehe das Bild von der
+  // Frau nicht, die ich hochgeladen habe"). Gibt es schon einen Eintrag, wird er ergänzt;
+  // sonst entsteht er hier — je nachdem, was er zuerst hochlädt.
+  const onModelFile = async (f?: File | null) => {
+    if (!f) return;
+    try {
+      const dataUrl = await fileToDataUrl(f);
+      setCustomModel(dataUrl); setUseCustom(true); track("own_model");
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const antwort = await fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: genId
+          ? JSON.stringify({ update: genId, modelImage: dataUrl })
+          : JSON.stringify({ modelId: selId, modelName: V.upTitle, device, modelImage: dataUrl }),
+      }).then(r => r.json()).catch(() => null);
+      if (!genId && antwort?.id) setGenId(antwort.id);
+    } catch { /**/ }
+  };
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");

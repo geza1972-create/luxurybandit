@@ -16,12 +16,13 @@ export async function GET(request: Request) {
     ...e,
     imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
     personUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
+    modelUrl: e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "",
   })));
   return NextResponse.json({ entries: mitBildern });
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
     // MIT den Dateien löschen (Owner 30.07.2026: „ich lösche die auch"). Bliebe nur die
     // Zeile weg, lägen die Fotos weiter im Speicher — er hätte gelöscht und es wäre nichts
     // gelöscht.
-    for (const pfad of [weg?.imagePath, weg?.personPath]) {
+    for (const pfad of [weg?.imagePath, weg?.personPath, weg?.modelPath]) {
       if (pfad) await deleteTryThisLookImage(pfad).catch(() => {});
     }
     return NextResponse.json({ ok: true, entries });
@@ -62,12 +63,25 @@ export async function POST(request: Request) {
   if (body.update) {
     const videoUrl = String(body.videoUrl ?? "").trim();
     const imagePath = String(body.imagePath ?? "").trim();
-    if (!videoUrl && !imagePath) return NextResponse.json({ error: "videoUrl or imagePath required." }, { status: 400 });
+    const modelBild = String(body.modelImage ?? "");
+    if (!videoUrl && !imagePath && !modelBild) return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     const entries = await readKissLog();
     const e = entries.find(x => x.id === body.update);
     if (e) {
       if (videoUrl) e.videoUrl = videoUrl;
       if (imagePath.startsWith("try-this-look/")) e.imagePath = imagePath;
+      if (modelBild.startsWith("data:") && !e.modelPath) {
+        const p2 = await (async () => {
+          try {
+            const m = /^data:([^;]+);base64,(.+)$/.exec(modelBild.trim());
+            if (!m) return "";
+            const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
+            const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": m[1], "x-upsert": "true" }, body: new Uint8Array(Buffer.from(m[2], "base64")) });
+            return put.ok ? up.path : "";
+          } catch { return ""; }
+        })();
+        if (p2) e.modelPath = p2;
+      }
       await writeKissLog(entries);
     }
     return NextResponse.json({ ok: true });
@@ -80,22 +94,26 @@ export async function POST(request: Request) {
    * Sonst sieht man nichts von denen, bei denen die Erzeugung scheitert oder die vorher
    * abspringen — und genau die sind interessant: sie zeigen, was die Leute WOLLTEN.
    */
-  let personPath = String(body.personPath ?? "").trim();
-  const personImage = String(body.personImage ?? "");
-  if (!personPath && personImage.startsWith("data:")) {
+  const ablegen = async (dataUrl: string): Promise<string> => {
     try {
-      const m = /^data:([^;]+);base64,(.+)$/.exec(personImage.trim());
-      if (m) {
-        const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
-        const put = await fetch(up.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": m[1], "x-upsert": "true" },
-          body: new Uint8Array(Buffer.from(m[2], "base64")),
-        });
-        if (put.ok) personPath = up.path;
-      }
-    } catch { /* Ablage ist Zugabe — der Trichter läuft weiter */ }
-  }
+      const m = /^data:([^;]+);base64,(.+)$/.exec(String(dataUrl).trim());
+      if (!m) return "";
+      const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
+      const put = await fetch(up.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": m[1], "x-upsert": "true" },
+        body: new Uint8Array(Buffer.from(m[2], "base64")),
+      });
+      return put.ok ? up.path : "";
+    } catch { return ""; }   // Ablage ist Zugabe — der Trichter läuft weiter
+  };
+
+  let personPath = String(body.personPath ?? "").trim();
+  if (!personPath && String(body.personImage ?? "").startsWith("data:")) personPath = await ablegen(String(body.personImage));
+  // AUCH DIE FRAU, die er selbst hochgeladen hat (Owner 30.07.2026: „ich sehe das Bild von
+  // der Frau nicht, die ich hochgeladen habe").
+  let modelPath = String(body.modelPath ?? "").trim();
+  if (!modelPath && String(body.modelImage ?? "").startsWith("data:")) modelPath = await ablegen(String(body.modelImage));
 
   // Neu: eine Generierung (beim Hochladen angelegt, Ergebnis wird nachgetragen).
   const entry: KissLogEntry = {
@@ -107,6 +125,7 @@ export async function POST(request: Request) {
     paid: false,
     imagePath: String(body.imagePath ?? "").trim().startsWith("try-this-look/") ? String(body.imagePath).trim() : undefined,
     personPath: personPath.startsWith("try-this-look/") ? personPath : undefined,
+    modelPath: modelPath.startsWith("try-this-look/") ? modelPath : undefined,
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
   };

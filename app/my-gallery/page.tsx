@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fillPrices } from "@/lib/pricing";
-import { Play, Download, X, Loader2 } from "lucide-react";
+import { Play, Download, X, Loader2, Trash2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -344,6 +344,17 @@ export default function MyGalleryPage() {
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">
                     <Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" />
                   </span>
+                )}
+                {/* LÖSCHEN FÜR DEN BESITZER (Owner 30.07.2026: „muss es auch löschen können
+                    hier"). Nur an eigenen Kiss-Stücken; der Sammel-Löscher oben bleibt Admin.
+                    Klick geht NICHT an die Kachel weiter, sonst öffnet sich das Vollbild. */}
+                {!pin && !selectMode && String(it.source ?? "").startsWith("kiss") && (
+                  <button type="button"
+                    onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
+                    aria-label="Löschen"
+                    className="absolute bottom-1 right-1 z-10 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white backdrop-blur active:scale-90 transition">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 )}
                 <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
                   {it.public ? "Public" : it.feed ? "Show" : "Private"}
