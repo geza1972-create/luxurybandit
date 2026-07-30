@@ -324,7 +324,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
       setBezahlt(true);
       setPayBusy(false);
-      setSchritt(4);
+      setSchritt(3);   // dort steht die Garderobe
       setVideoShow(false); setVideoReif(false);   // NICHT wieder die Kaufknoepfe zeigen
     })();
   }, []);
@@ -332,12 +332,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // Bezahlt — jetzt darf er aussuchen. Der Kleiderschrank wird ERST hier geladen, nicht
   // fuer jeden Besucher: die Liste interessiert nur den, der schon bezahlt hat.
   useEffect(() => {
-    if (!bezahlt || videoUrl || videoBusy || wahl) return;
+    if (videoUrl || videoBusy) return;
+    if (schritt !== 3 && !bezahlt) return;     // Garderobe gehoert auf den Kuss-Schritt
+    if (looks.length) { if (bezahlt) setWahl(true); return; }
     // OHNE BILD KEINE AUSWAHLFLAECHE — die haengt am erzeugten Bild. Wer sein Gratis-
     // Kontingent aufgebraucht hat und trotzdem zahlt, saehe sonst NICHTS. Fuer ihn laeuft
     // der alte Weg sofort los: bezahlt heisst geliefert, ohne Ausnahme.
-    if (!bild) { setBusy(true); const t = Date.now(); runRef.current = t; void realGenerate(t); return; }
-    setWahl(true);
+    if (bezahlt) setWahl(true);
     void Promise.all([
       fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
       fetch("/api/wardrobe-garments", { cache: "no-store" }).then(r => r.json()).catch(() => ({ ids: null })),
@@ -346,7 +347,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       setNurKleidung(Array.isArray(w?.ids) ? w.ids.map(String) : null);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bezahlt, bild, videoUrl, videoBusy]);
+  }, [bezahlt, schritt, videoUrl, videoBusy]);
 
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
@@ -910,17 +911,95 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           private — and I take responsibility for it.
         </span>
       </label>
-      <button type="button" onClick={() => void generate()} disabled={!selPhoto || !photo || !consent || busy}
+      {/* NACH DER ZAHLUNG HEISST ER ANDERS (Owner 30.07.2026: „muesste dann statt generate
+          picture, generate Video stehen (bezahlt)"). Derselbe Platz, andere Aufgabe: vorher
+          das Gratis-Bild, danach das bezahlte Video aus Garderobe und Szene. */}
+      <button type="button" onClick={() => void (bezahlt ? kussVideo() : generate())}
+        disabled={!selPhoto || !photo || !consent || busy || videoBusy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : V.cta}
+        {busy || videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : "💋"}
+        {busy || videoBusy ? (status || "Rendering …") : bezahlt ? "Generate video" : V.cta}
       </button>
       {/* Der Preis steht DIREKT unter dem Knopf, nicht erst hinter dem Ergebnis (Owner
           30.07.2026: „hier muss Generate Picture free Button stehen oben und Video 9,99").
           Er soll vorher wissen, was gratis ist und was kostet — sonst fühlt sich die Kasse
           nach dem Warten wie eine Falle an. */}
       <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
-        {fillPrices("Picture free · Video {once}")}
+        {bezahlt ? "✓ Paid — everything below is included" : fillPrices("Picture free · Video {once}")}
       </p>
+
+      {/* DIE GARDEROBE — sichtbar, aber verschlossen (Owner 30.07.2026: „drunter muss die
+          Wardrobe stehen. Es koennte auch jetzt stehen aber ist gesperrt und muesste stehen
+          das wird freigegeben fuer bezahlte Videos"). Zeigen schlaegt versprechen: er sieht,
+          was er bekommt, und das Schloss sagt ihm, wie er drankommt. */}
+      {kleidung.length > 0 && (
+        <div className="relative mt-4 rounded-2xl p-4" style={{ background: "#fff", color: "#1a160f" }}>
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-black">Wardrobe & scene</p>
+            {!bezahlt && !isStaff && (
+              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
+                style={{ background: "rgba(0,0,0,0.07)" }}>
+                <Lock className="h-3 w-3" /> Paid videos
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-[11px] font-semibold" style={{ opacity: 0.6 }}>
+            {bezahlt || isStaff
+              ? "Dress her, keep your own clothes or change them, pick the moment."
+              : "Unlocked with a paid video — dress her, pick the moment."}
+          </p>
+
+          <div style={bezahlt || isStaff ? undefined : { opacity: 0.45, filter: "blur(1.5px)", pointerEvents: "none" }}>
+            <p className="mt-3 text-[12px] font-black">Her dress</p>
+            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <button type="button" onClick={() => setIhrLook("")}
+                className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
+                style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                As in the photo
+              </button>
+              {kleidung.map(l => (
+                <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
+                  style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-3 text-[12px] font-black">Your clothes</p>
+            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <button type="button" onClick={() => setSeinLook("")}
+                className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
+                style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                My own clothes
+              </button>
+              {kleidung.map(l => (
+                <button key={l.id} type="button" onClick={() => setSeinLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
+                  style={{ outline: seinLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-3 text-[12px] font-black">The moment</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => setSzeneId("")}
+                className="rounded-full px-3 py-1.5 text-[11px] font-black"
+                style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                ✨ Surprise me
+              </button>
+              {HOLIDAY_SCENES.map(sc => (
+                <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
+                  className="rounded-full px-3 py-1.5 text-[11px] font-black"
+                  style={szeneId === sc.id ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                  {sc.emoji} {sc.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       </>)}
 
       {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
@@ -1156,76 +1235,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             {/* NACH DER SHOW: der Kauf. Erst hier fällt der Preis — der Owner will, dass er
                 den Moment erlebt, bevor er zahlt („er hat nämlich nichts bezahlt, nur
                 gegafft"). */}
-            {/* AUSSUCHEN NACH DER ZAHLUNG (Owner 30.07.2026: „ich habe gar nicht die Chance
-                gehabt die Klamotten fuer sie auszuwaehlen" / „und gratis natuerlich, er hat
-                doch bezahlt"). Weisse Flaeche mit dunkler Schrift — die einzige Kombination,
-                die in der hellen wie in der dunklen Fassung sicher lesbar ist. */}
-            {wahl && !videoUrl && !videoBusy && (
-              <div className="mt-3 w-full rounded-2xl p-4 text-left shadow-lg" style={{ background: "#fff", color: "#1a160f" }}>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#16a34a" }}>Payment received ✓</p>
-                <p className="mt-1 text-[17px] font-black">Now make it yours</p>
-                <p className="mt-0.5 text-[12px] font-semibold" style={{ opacity: 0.6 }}>
-                  All of this is included — you already paid.
-                </p>
-
-                <p className="mt-4 text-[12px] font-black">Her dress</p>
-                <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-                  <button type="button" onClick={() => setIhrLook("")}
-                    className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
-                    style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                    As in the photo
-                  </button>
-                  {kleidung.map(l => (
-                    <button key={l.id} type="button" onClick={() => setIhrLook(l.id)}
-                      className="shrink-0 overflow-hidden rounded-xl"
-                      style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mt-4 text-[12px] font-black">Your clothes</p>
-                <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-                  <button type="button" onClick={() => setSeinLook("")}
-                    className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
-                    style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                    My own clothes
-                  </button>
-                  {kleidung.map(l => (
-                    <button key={l.id} type="button" onClick={() => setSeinLook(l.id)}
-                      className="shrink-0 overflow-hidden rounded-xl"
-                      style={{ outline: seinLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mt-4 text-[12px] font-black">The moment</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <button type="button" onClick={() => setSzeneId("")}
-                    className="rounded-full px-3 py-1.5 text-[11px] font-black"
-                    style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                    ✨ Surprise me
-                  </button>
-                  {HOLIDAY_SCENES.map(sc => (
-                    <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
-                      className="rounded-full px-3 py-1.5 text-[11px] font-black"
-                      style={szeneId === sc.id ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                      {sc.emoji} {sc.label}
-                    </button>
-                  ))}
-                </div>
-
-                <button type="button" onClick={() => void kussVideo()}
-                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition"
-                  style={{ background: "#1877f2", color: "#fff" }}>
-                  <Sparkles className="h-4 w-4" /> Make my video
-                </button>
-              </div>
-            )}
-
             <div className={`mt-3 w-full ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
               {isStaff ? (
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
