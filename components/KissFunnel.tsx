@@ -655,8 +655,17 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <button type="button" onClick={() => fileRef.current?.click()}
         className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={photo} alt="" className="h-full w-full object-cover" />
+          ? (<>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo} alt="" className="h-full w-full object-cover" />
+              {/* GROSS UND WEISS: „YOU" (Owner 30.07.2026). Ein echter Besucher lud hier eine
+                  Frau hoch — die Beschriftung daneben reichte nicht. Auf dem Foto selbst
+                  kann man es nicht übersehen. */}
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pb-2 pt-8 text-[26px] font-black tracking-wide"
+                style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
+                YOU
+              </span>
+            </>)
           : (<>
               {/* Platzhalter-Gesicht (abgedunkelt): zeigt auf einen Blick, dass hier ein
                   MANN bzw. der Nutzer selbst hingehört — nicht noch ein Model. */}
@@ -670,7 +679,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-95" />
               <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
-              <span className="relative text-[14px] font-black text-[#f6cf51]">Upload YOUR photo</span>
+              <span className="relative text-[30px] font-black tracking-wide" style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>YOU</span>
+              <span className="relative text-[13px] font-black text-[#f6cf51]">Upload your photo</span>
               <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
                 A photo of you — the man in the picture
               </span>
