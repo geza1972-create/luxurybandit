@@ -59,7 +59,8 @@ export const WEDDING_PROMPT =
   // suit" im Text, ohne die Zuordnung, zieht Pixverse das Kleid mit gleicher
   // Wahrscheinlichkeit dem Mann an. Deshalb hier ausdruecklich: @1 ist der Mann, @2 die Frau.
   "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from "
-  + "slightly below. It is their wedding day: @1 is the groom and wears a dark elegant suit, "
+  + "slightly below. It is their wedding day: @1 is the groom and wears an elegant WHITE suit "
+  + "with a white shirt, "
   + "@2 is the bride and wears an elegant white wedding dress. They stand together in a "
   + "beautiful sunlit wedding setting with white flowers behind them, look at each other, "
   + "smile, lean in slowly and share their wedding kiss on the lips; afterwards they step back "

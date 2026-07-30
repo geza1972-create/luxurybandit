@@ -8,6 +8,7 @@ import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
+import ExampleVideos from "@/components/ExampleVideos";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -60,17 +61,15 @@ export default async function WeddingThemePage({ searchParams }: {
             {/* Derselbe Trichter wie beim Kuss, andere Variante. */}
             <KissFunnel variant="wedding" code={code} lang={L} />
 
+            {/* GROSS UND MIT TON (Owner 30.07.2026: „bitte mit vergroessern und song").
+                Eine Reihe statt zweier Spalten: Ein Hochzeitskuss auf halber Breite ist eine
+                Briefmarke — das ist das Bild, das den Trichter verkauft. Der Ton startet
+                stumm, weil jeder Browser Ton ohne Zutun blockiert; ein Tipp auf den Knopf
+                schaltet ihn an (siehe ExampleVideos). */}
             {examples.length > 0 && (
               <div className="mt-12">
                 <SectionTitle>{T.examples}</SectionTitle>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {examples.map((url, i) => (
-                    <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
-                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                      <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+                <ExampleVideos urls={examples} />
               </div>
             )}
 
