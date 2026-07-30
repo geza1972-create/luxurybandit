@@ -280,8 +280,27 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const c = document.createElement("canvas");
       c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
       c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      // AUCH DIE BEIDEN AUSGANGSFOTOS (Owner 30.07.2026: „wo sind meine Bilder oben?").
+      // Nach der Rueckkehr von Stripe laedt die Seite NEU — sein Upload und die gewaehlte
+      // Frau leben nur im Arbeitsspeicher und waeren weg. Ohne sie zeigt der Kuss-Schritt
+      // leere Plaetze, und „Generate video" haette gar keine Vorlagen: bezahlt, aber nichts
+      // zu rendern. Seines wird verkleinert, ihres ist meist nur eine Adresse.
+      const klein = async (src: string) => {
+        try {
+          const i2 = await new Promise<HTMLImageElement>((res, rej) => {
+            const i3 = new Image(); i3.onload = () => res(i3); i3.onerror = rej; i3.src = src;
+          });
+          const s2 = Math.min(1, 520 / Math.max(i2.width, i2.height));
+          const c2 = document.createElement("canvas");
+          c2.width = Math.round(i2.width * s2); c2.height = Math.round(i2.height * s2);
+          c2.getContext("2d")!.drawImage(i2, 0, 0, c2.width, c2.height);
+          return c2.toDataURL("image/jpeg", 0.78);
+        } catch { return ""; }
+      };
+      const seins = photo.startsWith("data:") ? await klein(photo) : photo;
       localStorage.setItem(MERK_KEY, JSON.stringify({
         bild: c.toDataURL("image/jpeg", 0.82), pfad, id, frei, at: Date.now(),
+        person: seins, model: selPhoto, modelId: picked?.id ?? "", eigen: useCustom,
       }));
     } catch { /* kein Platz → dann eben nur für diese Sitzung */ }
   };
@@ -290,10 +309,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     try {
       const roh = localStorage.getItem(MERK_KEY);
       if (!roh) return;
-      const d = JSON.parse(roh) as { bild?: string; pfad?: string; id?: string; frei?: boolean; at?: number };
+      const d = JSON.parse(roh) as { bild?: string; pfad?: string; id?: string; frei?: boolean; at?: number;
+        person?: string; model?: string; modelId?: string; eigen?: boolean };
       // Nach 24 Stunden nicht mehr — sonst sieht er beim nächsten Besuch ein altes Ergebnis.
       if (!d?.bild || (d.at && Date.now() - d.at > 86_400_000)) { localStorage.removeItem(MERK_KEY); return; }
       setBild(d.bild); setBildPfad(d.pfad ?? ""); setGenId(d.id ?? "");
+      // Die Ausgangsfotos zurueck an ihren Platz — sonst steht er nach der Zahlung vor
+      // leeren Kacheln und einem Knopf, der nichts zu tun hat.
+      if (d.person) setPhoto(d.person);
+      if (d.model) { setCustomModel(d.model); setUseCustom(true); }
       // `frei` nur, wenn die Adresse damals wirklich kam — sonst käme der Kunde durch
       // Neuladen am E-Mail-Feld vorbei.
       setFrei(!!d.frei);
