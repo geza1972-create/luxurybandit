@@ -147,6 +147,16 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // GESCHEITERT — aber nicht verloren (Owner 30.07.2026). Statt einer stummen Fehlermeldung
   // ein Feld: dann bekommt er sein Bild nachgereicht, und wir bekommen die Adresse.
   const [gescheitert, setGescheitert] = useState(false);
+  /**
+   * EIN SCHRITT PRO BILDSCHIRM (Owner 30.07.2026: „wir müssen das Layout ändern. In Schritten.
+   * Er lädt ein Bild von ihr hoch oder wählt ein Model, dann nächster Screen, er lädt ein Bild
+   * von sich hoch, dann nächste ist die Generierung").
+   *
+   * Vorher standen alle drei Schritte untereinander auf einem sehr langen Bildschirm. Am Handy
+   * sah man nie, was als Nächstes kommt, und der Generieren-Knopf war grau, ohne dass klar
+   * wurde warum. Jetzt: eine Aufgabe, ein Knopf, weiter.
+   */
+  const [schritt, setSchritt] = useState<1 | 2 | 3>(1);
   // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
   // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
   // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
@@ -514,6 +524,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
+      {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
+      <div className="mb-3 flex items-center justify-center gap-1.5">
+        {[1, 2, 3].map(n => (
+          <span key={n} className={`h-1.5 rounded-full transition-all ${n === schritt ? "w-6 bg-[#f6cf51]" : n < schritt ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
+        ))}
+      </div>
+
+      {schritt === 1 && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step1}</p>
       <p className="mt-1 text-[13px] font-bold text-white/85">{V.pickHint}</p>
       {(() => {
@@ -590,7 +608,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <input ref={modelFileRef} type="file" accept="image/*" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
 
       {/* 2) Eigenes Foto */}
-      <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
+      <button type="button" onClick={() => setSchritt(2)} disabled={!selPhoto}
+        className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
+        {selPhoto ? "Next →" : "Pick her first"}
+      </button>
+      </>)}
+
+      {schritt === 2 && (<>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
       <button type="button" onClick={() => fileRef.current?.click()}
         className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
@@ -613,7 +638,26 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 3) Generieren */}
-      <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
+      <div className="mt-4 flex gap-2">
+        <button type="button" onClick={() => setSchritt(1)}
+          style={{ color: "#fff" }}
+          className="h-12 flex-[0.6] rounded-full border border-white/25 text-[13px] font-black active:scale-95 transition">
+          ← Back
+        </button>
+        <button type="button" onClick={() => setSchritt(3)} disabled={!photo}
+          className="lb-gold flex h-12 flex-1 items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
+          {photo ? "Next →" : "Upload your photo"}
+        </button>
+      </div>
+      </>)}
+
+      {schritt === 3 && (<>
+      <button type="button" onClick={() => setSchritt(2)}
+        style={{ color: "#fff" }}
+        className="mb-3 h-9 rounded-full border border-white/25 px-4 text-[12px] font-black active:scale-95 transition">
+        ← Back
+      </button>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
       <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
         <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
@@ -633,10 +677,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
         {fillPrices("Picture free · Video {once}")}
       </p>
-      {/* BEIDE ZAHLWEGE AUCH HIER (Owner 30.07.2026: „und auch hier muss der Button mit 9,99
-          und Abo sein"). Wer schon weiss, dass er das Video will, soll nicht erst ein Bild
-          erzeugen müssen. Dieselbe Sperre wie beim Hauptknopf: ohne beide Fotos und ohne
-          Haken geht nichts. */}
+      </>)}
+
+      {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
+          Buttons bleiben dann drunter immer"). Wer schon weiss, dass er das Video will, soll
+          nicht erst durch alle Schritte. Gesperrt, solange Fotos oder Haken fehlen. */}
       {!isStaff && (
         <div className="mt-2 flex gap-2">
           <button type="button" onClick={() => void unlock(true)}
