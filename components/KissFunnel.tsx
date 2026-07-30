@@ -658,6 +658,22 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         ← Back
       </button>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
+      {/* BEIDE NEBENEINANDER (Owner 30.07.2026: „ich sehe uns nicht nebeneinander"). In den
+          Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
+          im Bild landet — sonst generiert er blind. */}
+      {(selPhoto || photo) && (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          {selPhoto && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={selPhoto} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-white/15 object-cover object-top" />
+          )}
+          <span className="text-[20px]">💋</span>
+          {photo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-[#f6cf51]/40 object-cover object-top" />
+          )}
+        </div>
+      )}
       <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
         <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
