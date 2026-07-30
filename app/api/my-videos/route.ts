@@ -100,14 +100,28 @@ export async function GET(request: Request) {
       const meine = log.filter((e: KissLogEntry) =>
         (email && String(e.email ?? "").toLowerCase() === email) ||
         (device && String(e.device ?? "") === device));
-      return await Promise.all(meine.slice(0, 60).map(async (e: KissLogEntry) => ({
-        id: e.id,
-        imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
-        videoUrl: e.videoUrl || "",
-        name: e.modelName || "",
-        createdAt: e.createdAt || "",
-        source: "kiss",
-      })));
+      // BEIDES gehört ihm (Owner 30.07.2026: „nein, das macht man nicht so. Du speicherst
+      // das auch für ihn") — sein hochgeladenes Foto UND das Ergebnis. Eigene Kennung je
+      // Eintrag, sonst kollidieren die beiden in der Liste.
+      const paare = await Promise.all(meine.slice(0, 60).map(async (e: KissLogEntry) => ([
+        {
+          id: e.id,
+          imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
+          videoUrl: e.videoUrl || "",
+          name: e.modelName || "",
+          createdAt: e.createdAt || "",
+          source: "kiss",
+        },
+        {
+          id: `${e.id}-foto`,
+          imageUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
+          videoUrl: "",
+          name: "Dein Foto",
+          createdAt: e.createdAt || "",
+          source: "kiss-upload",
+        },
+      ])));
+      return paare.flat();
     } catch { return []; }
   })();
 
