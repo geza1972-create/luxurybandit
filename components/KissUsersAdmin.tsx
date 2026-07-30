@@ -7,7 +7,7 @@ import { Loader2, Users, Trash2, Play } from "lucide-react";
 // jede fertige Generierung mit Datum, gewähltem Model, bezahlt ja/nein + Video-Link.
 // Weiße Box wie alle Admin-Tools; blendet sich ohne Admin-PIN selbst aus.
 
-type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean };
+type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string };
 
 export default function KissUsersAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -61,6 +61,25 @@ export default function KissUsersAdmin() {
         <div className="mt-3 divide-y divide-black/[0.06]">
           {entries.map(e => (
             <div key={e.id} className="flex items-center gap-3 py-2.5">
+              {/* SEIN FOTO und das ERGEBNIS nebeneinander (Owner 30.07.2026: „ich will die
+                  hochgeladene bilder sehen, damit ich eine ahnung habe was die wollen").
+                  Links wer, rechts was daraus wurde. */}
+              {(e.personUrl || e.imageUrl) && (
+                <div className="flex shrink-0 gap-1">
+                  {e.personUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <a href={e.personUrl} target="_blank" rel="noreferrer" title="Sein hochgeladenes Foto">
+                      <img src={e.personUrl} alt="" className="h-14 w-11 rounded-lg border border-white/15 object-cover" />
+                    </a>
+                  )}
+                  {e.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <a href={e.imageUrl} target="_blank" rel="noreferrer" title="Das erzeugte Bild">
+                      <img src={e.imageUrl} alt="" className="h-14 w-11 rounded-lg border border-[#f6cf51]/50 object-cover" />
+                    </a>
+                  )}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-black text-white">{e.modelName || "(Model unbekannt)"}</p>
                 <p className="text-[11px] font-bold text-white/50">{fmt(e.createdAt)}</p>

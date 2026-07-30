@@ -162,7 +162,10 @@ async function pixverseStartReference(key: string, garment: string, person: stri
   return { videoId: String(gen.Resp.video_id), promptUsed };
 }
 
-async function pixverseStart(key: string, image: string, turnaround = false): Promise<{ videoId?: string; error?: string }> {
+// BILD → VIDEO mit EIGENEM Prompt (Owner 30.07.2026: „ich will hier jetzt ein Bild
+// generieren dann in einem Video umwandeln"). Vorher lag der Prompt fest auf den
+// Mode-Texten — für ein Kuss-Bild ist der falsch. Kommt keiner mit, bleibt alles wie bisher.
+async function pixverseStart(key: string, image: string, turnaround = false, customPrompt = ""): Promise<{ videoId?: string; error?: string }> {
   const blob = await imageToBlob(image);
   if (!blob) return { error: "Could not read the try-on image." };
   const form = new FormData();
@@ -172,7 +175,7 @@ async function pixverseStart(key: string, image: string, turnaround = false): Pr
   if (up?.ErrCode !== 0 || !up?.Resp?.img_id) return { error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` };
   const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
     method: "POST", headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration: turnaround ? 8 : 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: turnaround ? TURNAROUND_PROMPT : FASHION_PROMPT, sound_effect_switch: true, sound_effect_content: MUSIC }),
+    body: JSON.stringify({ duration: turnaround ? 8 : 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: customPrompt.trim() || (turnaround ? TURNAROUND_PROMPT : FASHION_PROMPT), sound_effect_switch: true, sound_effect_content: MUSIC }),
   });
   const gen = await genRes.json().catch(() => null);
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` };
@@ -402,7 +405,7 @@ export async function POST(request: Request) {
   try {
     const r = reference
       ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo)
-      : await pixverseStart(key, image, turnaround);
+      : await pixverseStart(key, image, turnaround, promptWithScene);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });
   } catch (e) {

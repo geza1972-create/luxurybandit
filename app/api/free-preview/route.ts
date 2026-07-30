@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { claimFreePreview, readThemeConfig, getSignedUrl } from "@/lib/try-this-look-store";
+import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -156,7 +156,39 @@ export async function POST(request: Request) {
       const j = await res.json().catch(() => null);
       if (res.ok) {
         const b64 = j?.data?.[0]?.b64_json;
-        if (b64) return NextResponse.json({ image: `data:image/png;base64,${b64}` });
+        if (b64) {
+          /**
+           * BEIDE BILDER AUFHEBEN (Owner 30.07.2026: „ich will die hochgeladene bilder sehen.
+           * Pixverse speichert sie auch").
+           *
+           * Ich hatte zuerst nur das Ergebnis abgelegt und auf die Rechtslage hingewiesen; er
+           * hat entschieden, dass er auch die Vorlagen sehen will — er betreibt den Dienst,
+           * das ist seine Entscheidung. Zweck: verstehen, was die Leute wollen, und
+           * Missbrauch nachvollziehen. Das gehört in die Datenschutzerklärung (dort ergänzt)
+           * und braucht eine Frist — siehe FREE_PREVIEW_KEEP_DAYS.
+           *
+           * Scheitert das Ablegen, bekommt der Besucher trotzdem sein Bild — die Ablage ist
+           * eine Zugabe fürs Werkzeug, kein Teil des Produkts.
+           */
+          const ablegen = async (dataUrl: string, ext: string) => {
+            try {
+              const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl.trim());
+              if (!m) return "";
+              const up = await createSignedUploadUrl("uploads", ext);
+              const put = await fetch(up.uploadUrl, {
+                method: "PUT",
+                headers: { "Content-Type": m[1], "x-upsert": "true" },
+                body: new Uint8Array(Buffer.from(m[2], "base64")),
+              });
+              return put.ok ? up.path : "";
+            } catch { return ""; }
+          };
+          const [bildPfad, personPfad] = await Promise.all([
+            ablegen(`data:image/png;base64,${b64}`, "png"),
+            ablegen(person, "jpg"),
+          ]);
+          return NextResponse.json({ image: `data:image/png;base64,${b64}`, imagePath: bildPfad, personPath: personPfad });
+        }
         letzterFehler = "Kein Bild erhalten.";
         continue;
       }

@@ -112,7 +112,19 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);         // Render-Show oder echte Generierung läuft
   const [status, setStatus] = useState("");
-  const [teaser, setTeaser] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
+  const [teaser, setTeaser] = useState(false);
+  // Das ECHTE Gratis-Bild (Owner 30.07.2026: „ich will hier jetzt ein Bild generieren dann in
+  // einem Video umwandeln"). Es ist der erste Vollbild des späteren Videos — deshalb bleiben
+  // die Gesichter stabil: sie stehen schon im Bild, statt erst beim Rendern zu entstehen.
+  const [bild, setBild] = useState("");
+  // E-MAIL GEGEN BILD (Owner 30.07.2026). Das Bild ist fertig, aber verdeckt, bis er seine
+  // Adresse einträgt — danach sofort sichtbar, ohne Anmeldung, ohne Passwort. Gefragt wird
+  // NACH dem Rendern: wer gewartet hat, trägt ein; wer vorher gefragt wird, springt ab.
+  const [bildPfad, setBildPfad] = useState("");
+  const [mail, setMail] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+  const [frei, setFrei] = useState(false);      // Adresse da → Bild sichtbar
+  const [videoBusy, setVideoBusy] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
@@ -190,45 +202,106 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     } catch { setStatus("Network error."); setBusy(false); }
   };
 
-  // Klick auf „Generate": IMMER erst die Fake-Render-Show (Radar-Scan wie im Try-On,
-  // kein API-Call, keine Kosten) — auch für Staff, damit der Owner den Kunden-Flow sieht.
-  // Das ECHTE Rendern passiert erst beim Freischalten (Kunde: nach Stripe; Staff: gratis).
+  // Klick auf „Generate": ein ECHTES Bild, kostenlos.
+  //
+  // Vorher lief hier eine gespielte Render-Show ohne einen einzigen Aufruf, danach ein
+  // verpixeltes Bild und die Kasse. Ergebnis im eigenen Werkzeug: 9 Durchläufe, 0 Zahlungen —
+  // niemand hat je erlebt, dass es mit seinem Gesicht funktioniert (Owner: „Ohne Gratis-Test
+  // kaufe ich nichts"). Jetzt sieht er zuerst sich und sie, scharf. Bezahlt wird das VIDEO.
   const generate = async () => {
     track("generate");
     if (!selPhoto || !photo || busy) return;
-    setBusy(true); setTeaser(false); setVideoUrl(""); setGenId(""); setStatus("");
+    setBusy(true); setTeaser(false); setVideoUrl(""); setBild(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
-
-    // Der Screen springt runter zum Radar (wie im Try-On).
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
-
-    // Fake-Render-Show: gestaffelte Texte, dann „fertig" (verpixelt).
     for (const [at, text] of RENDER_STEPS) {
       setTimeout(() => { if (runRef.current === token) setStatus(text); }, at);
     }
-    setTimeout(async () => {
+    try {
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const r = await fetch("/api/free-preview", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device }),
+      });
+      const d = await r.json().catch(() => ({}));
       if (runRef.current !== token) return;
-      setBusy(false); setStatus(""); setTeaser(true); track("paywall");
+      if (!r.ok || !d.image) { setStatus(d?.error ?? "Das hat nicht geklappt."); setBusy(false); return; }
+      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setBusy(false); setStatus("");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
-      // Interesse fürs Admin-Tool loggen (noch ohne Video — das echte rendert nach dem Kauf).
       try {
-        const log = await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: selId, modelName: selName }) }).then(r => r.json());
+        const log = await fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
+        }).then(r2 => r2.json());
         if (log?.id && runRef.current === token) setGenId(log.id);
       } catch { /**/ }
-    }, RENDER_MS);
+    } catch {
+      if (runRef.current === token) { setStatus("Netzwerkfehler."); setBusy(false); }
+    }
   };
 
-  // 🔓 Freischalten: Kunde → Stripe-Popup + Status-Poll, bei `paid` startet die ECHTE
-  // Generierung. Staff → gratis direkt zur echten Generierung (kein Stripe).
-  // `einmal = true` → Einmalkauf 9,99 €, sonst das Abo (Owner 30.07.2026: „Bild gratis,
-  // Video gegen Geld" — wer kein Abo will, soll trotzdem kaufen können).
+  // AUS DEM BILD EIN VIDEO. Das erzeugte Bild geht als erster Vollbild an Pixverse; der
+  // Bewegungstext ist der Satz des Owners OHNE die @-Marken — die binden Referenzfotos und
+  // haben hier keine Bedeutung mehr, weil beide Personen schon im Bild stehen.
+  const MOTION_PROMPT =
+    "They look at each other and smile, lean in slowly, and share a brief, tender kiss. "
+    + "Then they step back a little and smile at each other, happy. Keep both faces and "
+    + "appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. "
+    + "Fluid natural motion, photorealistic, high-end look. No text or logos.";
+
+  const adresseSenden = async () => {
+    const e = mail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setStatus("Bitte eine gültige E-Mail-Adresse."); return; }
+    setMailBusy(true); setStatus("");
+    try {
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const r = await fetch("/api/kiss-claim", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e, imagePath: bildPfad, device }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setStatus(d?.error ?? "Das hat nicht geklappt."); setMailBusy(false); return; }
+      setFrei(true); setMailBusy(false);
+      track("email");
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    } catch { setStatus("Netzwerkfehler."); setMailBusy(false); }
+  };
+
+  const zuVideo = async () => {
+    if (!bild || videoBusy) return;
+    setVideoBusy(true); setStatus("");
+    const token = Date.now(); runRef.current = token;
+    try {
+      const start = await fetch("/api/generate-tryon-video", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, image: bild, prompt: MOTION_PROMPT }),
+      }).then(r => r.json());
+      if (!start?.videoId) { setStatus(start?.error ?? "Video-Start fehlgeschlagen."); setVideoBusy(false); return; }
+      for (let i = 0; i < 90; i++) {
+        await new Promise(res => setTimeout(res, 4000));
+        if (runRef.current !== token) return;
+        setStatus(`Das Video entsteht … (${Math.round((i + 1) * 4)} s)`);
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
+        if (p?.status === "done" && p.videoUrl) {
+          setVideoUrl(p.videoUrl); setStatus(""); setVideoBusy(false);
+          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) }); } catch { /**/ }
+          return;
+        }
+        if (p?.status === "failed") { setStatus(p.error || "Das Video ist fehlgeschlagen."); setVideoBusy(false); return; }
+      }
+      setStatus("Zeitüberschreitung — bitte später erneut."); setVideoBusy(false);
+    } catch { setStatus("Netzwerkfehler."); setVideoBusy(false); }
+  };
+
   const unlock = async (einmal = false) => {
     track("checkout");
     if (payBusy) return;
     if (isStaff) {
       setBusy(true);
       const token = Date.now(); runRef.current = token;
-      await realGenerate(token);
+      await zuVideo();
       return;
     }
     setPayBusy(true); setStatus("");
@@ -243,10 +316,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (s?.paid) {
           try { popup.close(); } catch { /**/ }
           setPayBusy(false);
-          // Bezahlt → JETZT das echte Video rendern.
-          setBusy(true);
-          const token = Date.now(); runRef.current = token;
-          await realGenerate(token);
+          // Bezahlt → aus dem BILD, das er schon gesehen hat, das Video machen. Nicht neu
+          // rendern: sonst bekäme er ein anderes Ergebnis als das, für das er bezahlt hat.
+          await zuVideo();
           return;
         }
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
@@ -391,37 +463,65 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         )}
 
         {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
-        {teaser && !videoUrl && !!selPhoto && (
+        {/* DAS ERZEUGTE BILD — scharf, kein Schloss (Owner 30.07.2026: „Bild gratis Mann,
+            Video gegen Geld"). Darunter der Weg zum Video: Admin gratis, Kunde 9,99 € oder Abo. */}
+        {bild && !videoUrl && (
           <div className="mx-auto mt-4 w-fit">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
-              <div className="absolute inset-0 grid place-items-center bg-black/30">
-                <div className="px-6 text-center">
-                  <Lock className="mx-auto h-8 w-8 text-[#f6cf51]" />
-                  <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
-                  {/* ZWEI WEGE, Einmalkauf VORN (Owner 30.07.2026: „wir müssen einmalige zahlungen
-                      machen nicht nur abos"). Wer nichts abonnieren will, kauft dieses eine
-                      Video. Das Abo steht darunter, für die, die weitermachen wollen. */}
-                  <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
-                    className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : fillPrices("Get this video — {once}, one-off")}
-                  </button>
-                  {!isStaff && (
-                    <>
-                      <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
-                        style={{ color: "#fff" }}
-                        className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-                        {fillPrices("Or unlock everything — {price}/month")}
-                      </button>
-                      <p className="lb-onmedia mt-2 text-center text-[10px] font-medium leading-snug opacity-70">
-                        {fillPrices("{once} buys this one video, no subscription. ")}{renewNote("en")}
-                      </p>
-                    </>
-                  )}
-                  {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}
+              <img src={bild} alt=""
+                className={`max-h-[60vh] w-auto object-contain transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
+              {/* VERDECKT, BIS DIE ADRESSE DA IST. Das Bild EXISTIERT bereits — es ist keine
+                  Attrappe wie früher, sondern sein fertiges Ergebnis. Genau deshalb trägt er
+                  ein: er weiß, dass es da ist. */}
+              {!frei && !isStaff && (
+                <div className="absolute inset-0 grid place-items-center bg-black/45 p-5">
+                  <div className="w-full max-w-[300px] text-center">
+                    <p className="lb-onmedia text-[16px] font-black">Dein Bild ist fertig ✨</p>
+                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
+                      Trag deine E-Mail ein — dann siehst du es sofort und behältst es.
+                    </p>
+                    <input value={mail} onChange={e => setMail(e.target.value)} type="email"
+                      inputMode="email" autoComplete="email" placeholder="deine@email.de"
+                      onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
+                      className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold text-white outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                    <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
+                      className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                      {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      {mailBusy ? "Einen Moment …" : "Bild ansehen"}
+                    </button>
+                    <p className="lb-onmedia mt-2 text-[10px] font-medium leading-snug opacity-70">
+                      Kostenlos. Wir schicken dir das Bild auch per Mail.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+            <div className={`mt-3 w-full ${frei || isStaff ? "" : "hidden"}`}>
+              {isStaff ? (
+                <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
+                  className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                  {videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {videoBusy ? "Video entsteht …" : "In Video umwandeln (Admin — gratis)"}
+                </button>
+              ) : (
+                <>
+                  <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+                    className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                    {fillPrices("Turn this into a video — {once}, one-off")}
+                  </button>
+                  <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                    style={{ color: "#fff" }}
+                    className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                    {fillPrices("Or unlock everything — {price}/month")}
+                  </button>
+                  <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/70">
+                    {fillPrices("The picture is yours for free. {once} buys the video, no subscription. ")}{renewNote("en")}
+                  </p>
+                  <p className="mt-1 text-center text-[11px] font-bold text-white/80">Secure checkout by Stripe</p>
+                </>
+              )}
             </div>
           </div>
         )}

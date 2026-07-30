@@ -1395,6 +1395,8 @@ export type KissLogEntry = {
   // (dann liefert Stripe sie, `paidEmail`). Für alle anderen bleibt die Gerätekennung: sie
   // sagt zwar keinen Namen, verbindet aber mehrere Versuche derselben Person und passt zu
   // den Zahlen im Trichter.
+  imagePath?: string;     // das erzeugte Bild
+  personPath?: string;    // sein hochgeladenes Foto (Owner-Entscheidung 30.07.2026)
   email?: string;         // angemeldeter Nutzer beim Erzeugen
   paidEmail?: string;     // von Stripe beim Kauf
   device?: string;        // anonyme Gerätekennung (lb_visitor)
