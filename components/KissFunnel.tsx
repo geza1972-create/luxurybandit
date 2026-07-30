@@ -701,6 +701,17 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               </div>
             )}
 
+            {/* BESTÄTIGUNG, DASS ES AUCH IM POSTFACH LIEGT (Owner 30.07.2026: „und er weiss
+                es gar nicht dass er das per email bekommen hat!"). Ohne diese Zeile bleibt
+                die Mail unbemerkt — und mit ihr der Grund, ein Passwort zu vergeben und
+                wiederzukommen. Der Spam-Hinweis steht dabei, weil eine junge Absender-Domain
+                bei Gmail oft dort landet. */}
+            {frei && !isStaff && mail && (
+              <p className="mt-2 rounded-xl bg-emerald-400/10 px-3 py-2 text-center text-[12px] font-bold leading-snug text-emerald-300">
+                ✓ Sent to {mail} — check your inbox (and spam, just in case).
+              </p>
+            )}
+
             <div className={`mt-3 w-full ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
               {isStaff ? (
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
