@@ -54,7 +54,20 @@ export const KISS_PROMPT =
  * Hochzeit wird ein Paar im T-Shirt. Der Bildausschnitt steht wie überall VORNE.
  */
 export const WEDDING_PROMPT =
-  "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from slightly below. They are a bride and groom on their wedding day — she in an elegant white wedding dress, he in a dark suit — standing together in a beautiful sunlit wedding setting with white flowers behind them. They look at each other, smile, lean in slowly and share their wedding kiss, then step back and laugh happily. Keep @1 and @2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
+  // DIE ROLLEN MUESSEN AM TOKEN HAENGEN, nicht im Satz danach: Die Route bindet @1 an das
+  // erste Bild (SEIN Foto) und @2 an das zweite (IHRES). Stuende nur „she in a dress, he in a
+  // suit" im Text, ohne die Zuordnung, zieht Pixverse das Kleid mit gleicher
+  // Wahrscheinlichkeit dem Mann an. Deshalb hier ausdruecklich: @1 ist der Mann, @2 die Frau.
+  "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from "
+  + "slightly below. It is their wedding day: @1 is the groom and wears a dark elegant suit, "
+  + "@2 is the bride and wears an elegant white wedding dress. They stand together in a "
+  + "beautiful sunlit wedding setting with white flowers behind them, look at each other, "
+  + "smile, lean in slowly and share their wedding kiss on the lips; afterwards they step back "
+  + "a little and laugh happily. Keep the face and appearance of @1 and of @2 exactly the same "
+  + "throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, "
+  + "photorealistic, high-end look. No text or logos. "
+  + "Audio: soft, elegant instrumental wedding music only — ONLY music: absolutely no voices, "
+  + "no talking, no singing, no footsteps, no ambient or foley sound effects.";
 
 export const IDOL_PROMPT =
   "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
@@ -121,6 +134,10 @@ export type FunnelVariant = "kiss" | "idol" | "wedding";
 // Downloads und die Platzhalterbilder.
 const VARIANTS: Record<FunnelVariant, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
+  // MUSIK ZUM BILD (Owner 30.07.2026: „ich habe dir den Song angelegt Bridal-chorus.mp3").
+  // Ein Bild ist still — die Stimmung muss von der Seite kommen. Nur dort gesetzt, wo es
+  // wirklich passt; beim Kuss und beim Idol bliebe Musik Deko.
+  musik?: string;
 }> = {
   kiss: {
     prompt: KISS_PROMPT, done: "kiss-video.mp4",
@@ -136,6 +153,7 @@ const VARIANTS: Record<FunnelVariant, {
   },
   wedding: {
     prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4",
+    musik: "/Bridal-chorus.mp3",
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
     // Upload-Karte steht deshalb vorn und ist vorgewählt — unsere Bräute sind die Ausweiche
     // für die, die kein Foto zur Hand hat.
@@ -261,6 +279,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const mailRef = useRef<HTMLInputElement>(null);      // Adressfeld vor der Erzeugung
+  /**
+   * DER HOCHZEITSMARSCH ZUM BILD (Owner 30.07.2026).
+   *
+   * Er spielt erst, wenn das Bild da ist — nicht beim Laden der Seite: Musik, die jemanden
+   * ueberfaellt, wird weggewischt, Musik zum eigenen Hochzeitsbild traegt den Moment. Sie
+   * beginnt leise und laesst sich mit einem Tipp abstellen; die Wahl bleibt im Geraet.
+   *
+   * Laeuft das bezahlte VIDEO, schweigt sie — das Video bringt seinen eigenen Ton mit, und
+   * zwei Tonspuren uebereinander sind schlimmer als keine.
+   */
+  const musikRef = useRef<HTMLAudioElement>(null);
+  const [ton, setTon] = useState(true);
   const runRef = useRef(0);
   // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
   // Kunde wurde ausgeraubt" / „springt wieder auf unlock video"). Siehe Ablauf weiter unten.
@@ -461,6 +491,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    * diese Pruefung: erst die Zahlung bestaetigen, dann liefern, sobald das Bild da ist.
    */
   useEffect(() => { setLangZeile(document.querySelector("[data-langrow]")); }, []);
+
+  useEffect(() => {
+    try { if (localStorage.getItem("lb_ton") === "0") setTon(false); } catch { /**/ }
+  }, []);
+
+  useEffect(() => {
+    const a = musikRef.current;
+    if (!a) return;
+    const spielen = !!bild && !videoUrl && !videoShow && ton;
+    if (spielen) { a.volume = 0.35; void a.play().catch(() => {}); }
+    else { a.pause(); }
+  }, [bild, videoUrl, videoShow, ton]);
 
   /**
    * Kennen wir seine Adresse, fragen wir einmal nach seinem Stand. Läuft ein Abo (oder liegt
@@ -1460,6 +1502,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         {bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
+              {V.musik && (<>
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <audio ref={musikRef} src={V.musik} loop preload="none" />
+                <button type="button"
+                  onClick={() => { const n = !ton; setTon(n); try { localStorage.setItem("lb_ton", n ? "1" : "0"); } catch { /**/ } }}
+                  aria-label={ton ? "Musik aus" : "Musik an"}
+                  className="absolute right-2 top-2 z-40 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-[16px] backdrop-blur active:scale-95 transition">
+                  {ton ? "🔊" : "🔇"}
+                </button>
+              </>)}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt=""
                 className={`block h-auto w-full object-cover transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
