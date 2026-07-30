@@ -44,13 +44,25 @@ export async function POST(request: Request) {
 
   // 1 · In die Kissing-Liste eintragen (idempotent).
   let neu = false;
+  /**
+   * DIE ABMELDE-KENNUNG (Owner 30.07.2026: „wenn er seine email angibt dann unterschreibt er
+   * dass er von uns angebote bekommt").
+   *
+   * Wer das unterschreiben soll, muss auch wieder herauskommen — sonst ist die Zusage keine.
+   * Bisher stand in der Abmelde-Adresse `s=` LEER: Der Ein-Klick von Gmail und Yahoo lief ins
+   * Nichts, weil niemand wusste, WEN er abmelden soll. Wer nicht herauskommt, drückt „Spam",
+   * und das kostet die Zustellbarkeit für alle anderen mit.
+   */
+  let subId = "";
   try {
     const liste = await readWetterSubscribers(KISS_LIST);
     const da = liste.find(s => (s.email ?? "").trim().toLowerCase() === email);
+    subId = String(da?.id ?? "");
     if (!da) {
       neu = true;
+      subId = `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
       const eintrag: WetterSubscriber = {
-        id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+        id: subId,
         name: String(body.name ?? "").trim().slice(0, 120) || email.split("@")[0],
         email,
         lang: dialInfo("")?.lang || lang,
@@ -99,6 +111,8 @@ export async function POST(request: Request) {
    * sich dort an.
    */
   const galerie = `${origin}/my-gallery`;
+  // Mit Kennung, sonst weiss die Abmeldung nicht, wen sie abmelden soll.
+  const abmelden = `${origin}/api/wetter-unsubscribe?model=${KISS_LIST}&s=${encodeURIComponent(subId)}`;
   /**
    * AUCH WENN NICHTS HERAUSKAM (Owner 30.07.2026: „wieso habe ich seine E-Mail nicht?").
    *
@@ -123,16 +137,19 @@ export async function POST(request: Request) {
       : `It is saved in your gallery — together with everything you make next.`)
     + `</td></tr>`
     + `<tr><td style="padding:0 22px 8px"><a href="${galerie}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch my gallery</a></td></tr>`
-    + `<tr><td style="padding:0 22px 20px;color:#8d8579;font-size:12px;line-height:1.5">`
+    + `<tr><td style="padding:0 22px 14px;color:#8d8579;font-size:12px;line-height:1.5">`
     + `Want to see the two of you move? Turn it into a hot video right there.`
     + `</td></tr>`
+    // SICHTBAR ABMELDEN, nicht nur in der Kopfzeile: Der Ein-Klick im Postfach hilft nur dem,
+    // der ihn findet. Ein Link im Text ist das, was die Zusage im Trichter wirklich einloest.
+    + `<tr><td style="padding:0 22px 20px"><a href="${abmelden}" style="color:#6b655c;font-size:11px">Unsubscribe</a></td></tr>`
     + `</table></td></tr></table></div>`;
 
   const mail = await sendEmail({
     to: email,
     subject: wartend ? "We are on it ✨" : "Your picture is ready ✨",
     html,
-    listUnsubscribe: `${origin}/api/wetter-unsubscribe?model=${KISS_LIST}&s=`,
+    listUnsubscribe: abmelden,
   }).catch(() => ({ ok: false }));
 
   return NextResponse.json({ ok: true, neu, mail: !!(mail as { ok?: boolean }).ok });

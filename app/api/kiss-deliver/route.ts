@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
 
@@ -121,11 +121,26 @@ async function pollen(request: Request, videoId: string): Promise<{ status: stri
   return { status: String(r?.status ?? "processing"), videoUrl: r?.videoUrl, error: r?.error };
 }
 
+/**
+ * Die Abmelde-Adresse MIT Kennung. Wer bei uns unterschreibt, muss auch wieder herauskommen
+ * (Owner 30.07.2026) — ein leeres `s=` meldet niemanden ab und treibt die Leute stattdessen
+ * auf den Spam-Knopf.
+ */
+async function abmeldeLink(o: string, email: string): Promise<string> {
+  try {
+    const liste = await readWetterSubscribers("kiss");
+    const da = liste.find(x => String(x.email ?? "").trim().toLowerCase() === email.trim().toLowerCase());
+    if (da?.id) return `${o}/api/wetter-unsubscribe?model=kiss&s=${encodeURIComponent(String(da.id))}`;
+  } catch { /* ohne Kennung bleibt der Weg ueber /unsubscribe */ }
+  return `${o}/unsubscribe`;
+}
+
 /** Das fertige Video an den Käufer — die Mail ist der Ersatz für den Browser, der zu ist. */
 async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> {
   const to = String(e.paidEmail || e.email || "").trim();
   if (!to || !e.videoUrl) return false;
   const o = origin(request);
+  const abmelden = await abmeldeLink(o, to);
   const html =
     `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
@@ -136,13 +151,14 @@ async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> 
     + `Thank you — here it is. It is also saved in your gallery, so you can watch it again any time.`
     + `</td></tr>`
     + `<tr><td style="padding:0 22px 10px"><a href="${e.videoUrl}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch your video</a></td></tr>`
-    + `<tr><td style="padding:0 22px 20px"><a href="${o}/my-gallery" style="color:#8d8579;font-size:12px">Open my gallery</a></td></tr>`
+    + `<tr><td style="padding:0 22px 6px"><a href="${o}/my-gallery" style="color:#8d8579;font-size:12px">Open my gallery</a></td></tr>`
+    + `<tr><td style="padding:0 22px 20px"><a href="${abmelden}" style="color:#6b655c;font-size:11px">Unsubscribe</a></td></tr>`
     + `</table></td></tr></table></div>`;
   const r = await sendEmail({
     to,
     subject: "Your video is ready 🎬",
     html,
-    listUnsubscribe: `${o}/api/wetter-unsubscribe?model=kiss&s=`,
+    listUnsubscribe: abmelden,
   }).catch(() => ({ ok: false }));
   return !!(r as { ok?: boolean }).ok;
 }
@@ -173,6 +189,7 @@ async function aufgeben(request: Request, e: KissLogEntry): Promise<boolean> {
     + `</table></td></tr></table></div>`;
   const r = await sendEmail({
     to, subject: "We owe you a video", html,
+    listUnsubscribe: await abmeldeLink(o, to),
     ...(support ? { bcc: support, replyTo: support } : {}),
   }).catch(() => ({ ok: false }));
   return !!(r as { ok?: boolean }).ok;
