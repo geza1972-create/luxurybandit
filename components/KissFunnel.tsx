@@ -633,9 +633,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                         {/* Dunkle Scheibe hinter der Schrift: auf einem hellen Foto (und in
                             der hellen Fassung) war der Text sonst nicht zu lesen. */}
                         <span data-oncard="1" className="absolute inset-x-3 top-1/2 z-10 -translate-y-1/2 rounded-2xl bg-black/55 px-2 py-3 backdrop-blur-[2px]" />
-                        <ImageUp data-oncard="1" className="relative z-20 h-9 w-9 text-[#f6cf51]" />
-                        <span style={{textShadow:"0 1px 6px rgba(0,0,0,0.9)"}} data-oncard="1" className="relative z-20 text-[14px] font-black text-[#f6cf51]">{V.upTitle}</span>
-                        <span className="relative text-[11px] font-bold leading-snug text-white/80">{V.upHint}</span>
+                        <ImageUp style={{ color: "#fff" }} className="relative z-20 h-9 w-9" />
+                        <span style={{textShadow:"0 1px 6px rgba(0,0,0,0.9)"}} style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{V.upTitle}</span>
+                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 mt-1 px-2 text-[11px] font-bold leading-snug">{V.upHint}</span>
                       </div>
                     ) : (<>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
