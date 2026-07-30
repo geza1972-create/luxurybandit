@@ -352,7 +352,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, imagePath: bildPfad, device }),
+        body: JSON.stringify({ email: e, imagePath: bildPfad, device, genId }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }

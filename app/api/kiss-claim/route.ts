@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
 
@@ -24,7 +24,7 @@ const KISS_LIST = "kiss";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
-    email?: string; name?: string; imagePath?: string; device?: string; lang?: string;
+    email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -52,6 +52,22 @@ export async function POST(request: Request) {
       await writeWetterSubscribers([eintrag, ...liste], KISS_LIST);
     }
   } catch { /* die Liste darf den Ablauf nie blockieren — er hat sein Bild schon */ }
+
+  /**
+   * DIE ADRESSE AN DEN LOG-EINTRAG HÄNGEN (Owner 30.07.2026: „seine Galerie ist leer").
+   *
+   * Ohne das hängt das erzeugte Bild nur an einer Gerätekennung. Wechselt er das Gerät oder
+   * meldet sich an, findet seine Galerie nichts — obwohl das Bild da ist. Mit der Adresse am
+   * Eintrag kann sie es zuordnen.
+   */
+  try {
+    const genId = String(body.genId ?? "").trim();
+    if (genId) {
+      const eintraege = await readKissLog();
+      const e = eintraege.find(x => x.id === genId);
+      if (e && e.email !== email) { e.email = email; await writeKissLog(eintraege); }
+    }
+  } catch { /* der Besucher hat sein Bild schon — das darf nie blockieren */ }
 
   // 2 · Das Bild per Mail schicken, mit dem Hinweis aufs Passwort.
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";

@@ -140,6 +140,19 @@ export default function MyGalleryPage() {
           const own: Item[] = (Array.isArray(d?.videos) ? d.videos : []).map((v: { id: string; videoUrl: string; posterUrl?: string; name?: string }) => ({
             id: v.id, type: "video" as const, imageUrl: v.posterUrl || "", videoUrl: v.videoUrl, lookName: v.name || "",
           }));
+          // DIE KISS-BILDER GEHÖREN HIER HIN (Owner 30.07.2026: „seine Galerie ist leer,
+          // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
+          // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
+          const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string }) => ({
+              id: b.id,
+              type: (b.videoUrl ? "video" : "image") as "video" | "image",
+              imageUrl: b.imageUrl || "",
+              videoUrl: b.videoUrl || "",
+              lookName: b.name || "",
+            }))
+            .filter((b: Item) => b.imageUrl || b.videoUrl);
+          own.push(...bilder);
           if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
         })
         .catch(() => {})

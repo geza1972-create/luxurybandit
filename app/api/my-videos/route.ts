@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl } from "@/lib/try-this-look-store";
+import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,5 +86,33 @@ export async function GET(request: Request) {
     return { id: gg.id, videoUrl: video, posterUrl: poster, name: gg.lookName || "", createdAt: gg.createdAt || "", source: gg.source || "" };
   }));
 
-  return NextResponse.json({ videos: videos.filter(v => v.videoUrl) }, { headers: { "Cache-Control": "no-store" } });
+  /**
+   * DIE KISS-BILDER GEHÖREN AUCH IN SEINE GALERIE (Owner 30.07.2026: „seine Galerie ist
+   * leer, seine Bilder sind nicht da").
+   *
+   * Sie liegen im Kiss-Log, nicht bei den Try-On-Generierungen — deshalb fand die Galerie
+   * nichts. Zugeordnet wird über die E-Mail (sobald er sie eingetragen hat) oder über die
+   * Gerätekennung, damit es auch ohne Anmeldung sofort da ist.
+   */
+  const bilder = await (async () => {
+    try {
+      const log = await readKissLog();
+      const meine = log.filter((e: KissLogEntry) =>
+        (email && String(e.email ?? "").toLowerCase() === email) ||
+        (device && String(e.device ?? "") === device));
+      return await Promise.all(meine.slice(0, 60).map(async (e: KissLogEntry) => ({
+        id: e.id,
+        imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
+        videoUrl: e.videoUrl || "",
+        name: e.modelName || "",
+        createdAt: e.createdAt || "",
+        source: "kiss",
+      })));
+    } catch { return []; }
+  })();
+
+  return NextResponse.json({
+    videos: videos.filter(v => v.videoUrl),
+    pictures: bilder.filter(b => b.imageUrl || b.videoUrl),
+  }, { headers: { "Cache-Control": "no-store" } });
 }
