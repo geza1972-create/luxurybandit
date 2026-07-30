@@ -41,7 +41,15 @@ export default async function KissThemePage({ searchParams }: {
   const examples: string[] = (await Promise.all((config.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
   return (
-    <main className="lb-bg min-h-screen text-white">
+    /* HELLE FASSUNG FÜR DEN ANZEIGEN-VERKEHR (Owner 30.07.2026: „kannst du light design
+       machen, damit die Leute nicht abschrecken von dem Wechseln, FB und wir? Es muss ähnlich
+       aussehen").
+
+       Facebook ist weiß, diese Seite ist schwarz — der Sprung kostet Klicks. `lb-theme` ist
+       die bereits erprobte Hell-Fassung (läuft so auf /luxury-products): weißer Grund, dunkle
+       Schrift, Gold bleibt Akzent. Über `?light=1` schaltbar, damit beide Fassungen mit
+       derselben Anzeige gegeneinander laufen können — dann entscheiden Zahlen, nicht Geschmack. */
+    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme" : ""}`}>
       <TopNav />
       <TrackView event="kiss_view" lookId="themes-kiss" lookName="Kiss-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
