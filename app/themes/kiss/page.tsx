@@ -8,6 +8,7 @@ import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
+import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-look-store";
@@ -125,6 +126,9 @@ export default async function KissThemePage({ searchParams }: {
               title="Kiss-Medien"
               teaserHint="Bild oder Video hochladen — wird das Cover der Kiss-Karte im Themes-Katalog."
             />
+            {/* Ueberall einhaengbar (Owner 30.07.2026): wer hat was hochgeladen, wann,
+                und was kam heraus. */}
+            <UploadsAdmin title="Hochgeladen & erzeugt" />
             <KissModelsAdmin />
             {/* EIGENE Liste für die Kissing-Leads aus Meta (Owner 29.07.2026, nach seiner
                 Regel „Die Wetter Leads sind die Wetter Leads"). Sie liegt in einer eigenen
