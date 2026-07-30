@@ -646,7 +646,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {fillPrices("Make the hot video — {once}")}
+              {fillPrices("Make hot video — {once}")}
             </button>
             <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
               style={{ color: "#fff" }}
@@ -705,7 +705,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
                   className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                   {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                  {fillPrices("Watch my hot video — {once}")}
+                  {fillPrices("Watch hot video — {once}")}
                 </button>
                 <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                   style={{ color: "#fff" }}
@@ -739,7 +739,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   <button type="button" onClick={videoAnstossen} disabled={payBusy || videoShow}
                     className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                     {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {videoShow ? "Making your hot video …" : "Turn this into a hot video 🔥"}
+                    {videoShow ? "Making your hot video …" : "Make hot video 🔥"}
                   </button>
                   <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                     style={{ color: "#fff" }}
