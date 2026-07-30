@@ -70,6 +70,10 @@ export async function createTryonCheckout(opts: {
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
     client_reference_id: opts.clientReferenceId,
+    // GUTSCHEINFELD AUCH BEIM EINMALKAUF (Owner 30.07.2026: „warum kann ich hier meinen
+    // Gutschein ADMIN1972 nicht eingeben"). Beim Abo gab es das Feld laengst, hier nie —
+    // er konnte seinen eigenen Code also nicht einmal zum Testen benutzen.
+    allow_promotion_codes: true,
     line_items: [
       {
         quantity: 1,
