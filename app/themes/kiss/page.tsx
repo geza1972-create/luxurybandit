@@ -49,7 +49,7 @@ export default async function KissThemePage({ searchParams }: {
        die bereits erprobte Hell-Fassung (läuft so auf /luxury-products): weißer Grund, dunkle
        Schrift, Gold bleibt Akzent. Über `?light=1` schaltbar, damit beide Fassungen mit
        derselben Anzeige gegeneinander laufen können — dann entscheiden Zahlen, nicht Geschmack. */
-    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme" : ""}`}>
+    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
       <TrackView event="kiss_view" lookId="themes-kiss" lookName="Kiss-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">

@@ -323,3 +323,25 @@ svg {
 }
 .lb-swap-top { animation: lb-swap 5s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .lb-swap-top { animation: none; } }
+
+
+/* ── FACEBOOK-BLAU FÜR DIE ANZEIGEN-LANDUNG (.lb-fb) ─────────────────────────────────
+   Owner 30.07.2026: „mach die buttons auch blau wie fb und header auch blau." Grund ist
+   derselbe wie beim hellen Grund: Wer aus Facebook kommt, soll keinen Bruch spüren —
+   gleiche Farbe, gleiches Gefühl, kein „bin ich hier richtig?".
+
+   NUR in dieser Fassung. Das Gold bleibt die Marke; blau ist die Brücke für den bezahlten
+   Verkehr. Deshalb eine eigene Klasse neben .lb-theme und keine Änderung am Gold selbst. */
+.lb-fb [data-topnav="1"] { background-color: #1877F2 !important; border-bottom-color: rgba(255,255,255,0.18) !important; }
+.lb-fb [data-topnav="1"] * { color: #fff !important; }
+
+.lb-fb .lb-gold,
+.lb-fb .lb-buy { background: #1877F2 !important; background-image: none !important; color: #fff !important; }
+.lb-fb .lb-gold *,
+.lb-fb .lb-buy * { color: #fff !important; }
+
+/* Goldene Schrift und Ränder → dasselbe Blau, damit nichts zweifarbig wirkt. */
+.lb-fb [class*="text-[#f6cf51]"] { color: #1877F2 !important; }
+.lb-fb [class*="border-[#f6cf51]"] { border-color: #1877F2 !important; }
+/* Auch Flächen (Fortschrittspunkte, Häkchen, kleine Marken) — sonst bleibt ein gelber Rest. */
+.lb-fb [class*="bg-[#f6cf51]"] { background-color: #1877F2 !important; }
