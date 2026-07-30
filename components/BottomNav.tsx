@@ -483,14 +483,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Card Studio</span>
                 </button>
               )}
-              {/* My Gallery — Admin: alle Videos; normaler User: seine eigenen Try-ons. Vollbild + Download. */}
-              {signedIn && (
-                <button type="button" onClick={() => navigate("/my-gallery")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Film className="h-5 w-5 shrink-0 text-amber-400" />
-                  <span className="text-sm font-black text-white">My Gallery</span>
-                </button>
-              )}
+              {/* „My Gallery" stand hier ein ZWEITES Mal — einmal für alle, einmal für
+                  Angemeldete, beide auf dieselbe Seite. Wer angemeldet war, sah den Eintrag
+                  doppelt (Owner 30.07.2026). Der obere gilt für jeden und bleibt. */}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
               {!!adminPin && !isCurator && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
