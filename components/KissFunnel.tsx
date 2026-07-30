@@ -576,7 +576,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
         const YOURMODEL: Model = { id: "__yourmodel", name: V.upTitle, photoUrl: "" };
         const cards = [...models];
-        const uploadIdx = V.upFirst ? 0 : Math.min(2, cards.length);
+        // IN DIE MITTE, nicht ganz an den Anfang (Owner 30.07.2026: „mach die nicht ganz am
+        // Anfang des Karussells sondern die Mitte"). Vorn wirkte die Upload-Karte wie der
+        // vorgeschriebene Weg; in der Mitte steht sie gleichberechtigt neben unseren Frauen,
+        // und man sieht links wie rechts, dass es Auswahl gibt.
+        const uploadIdx = V.upFirst ? Math.floor(cards.length / 2) : Math.min(2, cards.length);
         cards.splice(uploadIdx, 0, YOURMODEL);
         const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
         // Nach-vorn-holen zentriert NUR (auch die „Your model"-Karte — Owner-Vorgabe);
