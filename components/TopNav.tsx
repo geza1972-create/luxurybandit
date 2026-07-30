@@ -14,7 +14,9 @@ import LangSwitch from "@/components/LangSwitch";
  * Floating-Button). Page-specific chrome (search fields, filter chips, tabs)
  * lives in a SEPARATE row BELOW this bar.
  */
-const MOTTO = "The influencer marketplace";
+// Ohne „The" (Owner 30.07.2026: „entferne THE"). Neben den drei Symbolen rechts war die
+// Zeile zu lang und wurde abgeschnitten — man konnte das Motto nicht lesen.
+const MOTTO = "Influencer marketplace";
 
 export default function TopNav({
   subtitle,
