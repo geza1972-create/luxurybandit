@@ -832,7 +832,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
             <p className="text-[16px] font-black text-white">Your free picture is used up</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
-              One picture per person is free. Keep going with the video — or unlock everything.
+              Three free pictures per person. Keep going with the video — or unlock everything.
             </p>
             <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
