@@ -11,6 +11,7 @@ import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import AdminTabs from "@/components/AdminTabs";
 import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -183,35 +184,55 @@ export default async function KissThemePage({ searchParams }: {
             </section>
           </div>
         ) : (
-          // Kiss-eigene Tools: Medien (Teaser + Beispiel-Videos) → Models-Auswahl → Nutzungen.
-          <div className="lb-theme mt-4 space-y-4">
-            {/* Seit 29.07.2026 dasselbe Werkzeug wie bei Bella (Owner: „ich muss die videos
-                auch hier per drag and drop verschieben können"). Es liest und schreibt
-                DIESELBE Datei wie vorher — `theme="kiss"` zeigt auf kiss-config.json —, bringt
-                aber Platznummern, Ziehen zum Umsortieren und „Cover leeren" mit.
-                Die Model-Auswahl bleibt beim eigenen Werkzeug darunter. */}
-            <ThemeMediaAdmin
-              theme="kiss"
-              title="Kiss-Medien"
-              teaserHint="Bild oder Video hochladen — wird das Cover der Kiss-Karte im Themes-Katalog."
+          /* REITER STATT EINER LANGEN ROLLE (Owner 30.07.2026: „ich brauche die galerie als
+             tab oben damit ich nicht immer runterscrollen muss"). Die Galerie steht vorn und
+             ist der Vorgabe-Reiter — sie ist das, was er am häufigsten ansieht. */
+          <div className="lb-theme mt-4">
+            <AdminTabs
+              storageKey="lb_admin_tab_kiss"
+              tabs={[
+                {
+                  key: "galerie", label: "🖼 Galerie",
+                  // Wer hat was hochgeladen, wann — und was kam heraus.
+                  node: <UploadsAdmin title="Hochgeladen & erzeugt" />,
+                },
+                {
+                  key: "medien", label: "🎬 Medien",
+                  /* Seit 29.07.2026 dasselbe Werkzeug wie bei Bella (Owner: „ich muss die
+                     videos auch hier per drag and drop verschieben können"). Es liest und
+                     schreibt DIESELBE Datei wie vorher — `theme="kiss"` zeigt auf
+                     kiss-config.json —, bringt aber Platznummern, Ziehen zum Umsortieren
+                     und „Cover leeren" mit. */
+                  node: (
+                    <ThemeMediaAdmin
+                      theme="kiss"
+                      title="Kiss-Medien"
+                      teaserHint="Bild oder Video hochladen — wird das Cover der Kiss-Karte im Themes-Katalog."
+                    />
+                  ),
+                },
+                { key: "models", label: "👩 Models", node: <KissModelsAdmin /> },
+                {
+                  key: "leads", label: "✉️ Leads",
+                  /* EIGENE Liste für die Kissing-Leads aus Meta (Owner 29.07.2026, nach
+                     seiner Regel „Die Wetter Leads sind die Wetter Leads"). Sie liegt in
+                     einer eigenen Datei (`wetter-subscribers-kiss.json`) und hat KEINEN
+                     Versandknopf: E-Mail, SMS und Bot bauen fest die Wetter-Nachricht —
+                     diese Leute haben sich für das Kissing-Formular eingetragen und würden
+                     sonst etwas Falsches bekommen. */
+                  node: (
+                    <WetterSubscribers
+                      modelId="kiss"
+                      modelName="Kissing"
+                      listLabel="Kissing-Leads"
+                      linkPath="/themes/kiss"
+                      sending={false}
+                    />
+                  ),
+                },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+              ]}
             />
-            {/* Ueberall einhaengbar (Owner 30.07.2026): wer hat was hochgeladen, wann,
-                und was kam heraus. */}
-            <UploadsAdmin title="Hochgeladen & erzeugt" />
-            <KissModelsAdmin />
-            {/* EIGENE Liste für die Kissing-Leads aus Meta (Owner 29.07.2026, nach seiner
-                Regel „Die Wetter Leads sind die Wetter Leads"). Sie liegt in einer eigenen
-                Datei (`wetter-subscribers-kiss.json`) und hat KEINEN Versandknopf: E-Mail,
-                SMS und Bot bauen fest die Wetter-Nachricht — diese Leute haben sich für das
-                Kissing-Formular eingetragen und würden sonst etwas Falsches bekommen. */}
-            <WetterSubscribers
-              modelId="kiss"
-              modelName="Kissing"
-              listLabel="Kissing-Leads"
-              linkPath="/themes/kiss"
-              sending={false}
-            />
-            <KissUsersAdmin />
           </div>
         )}
       </div>
