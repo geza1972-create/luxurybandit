@@ -106,7 +106,7 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 
 // Reference mode: dress the person (@Bild2) in the garment (@Bild1) AND animate, in
 // one step — keeps the face (FASHN's photo doesn't). Used for lingerie video/360°.
-async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string, slowmo = false): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
+async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string, slowmo = false, hd = false): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
   // Send the caller's prompt EXACTLY as written (no remapping, no extra clauses) — same
@@ -145,7 +145,11 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     duration: turnaround ? 10 : (slowmo ? 10 : 8), // funnel = 8s (Pixverse has no 7s) so the turn + walk fit; slow-mo = 10s
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
-    quality: turnaround ? "720p" : (slowmo ? "1080p" : "360p"),
+    // 360p ist die SPARSTUFE fuer Admin-Vorschauen, die spaeter hochgerechnet werden.
+    // Wer 9,99 EUR bezahlt hat, bekommt sie nicht (Owner 30.07.2026: „wenn jemand 9,99
+    // bezahlt dann kann er auch 8 Sekunden bekommen" — die 8s standen hier schon, die
+    // Aufloesung war der eigentliche Mangel).
+    quality: turnaround ? "720p" : (slowmo || hd ? "1080p" : "360p"),
     aspect_ratio: "3:4",             // 3:4 (passt zu den Wardrobe-Karten); Pixverse V6 unterstützt 16:9/9:16/1:1/3:4/4:3
     // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
     // (the V6 param — the OLD sound_effect_switch is v5-only and V6 rejects it with 400017,
@@ -252,7 +256,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; slowmo?: boolean; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; slowmo?: boolean; hd?: boolean; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -404,7 +408,7 @@ export async function POST(request: Request) {
 
   try {
     const r = reference
-      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo)
+      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true)
       : await pixverseStart(key, image, turnaround, promptWithScene);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });

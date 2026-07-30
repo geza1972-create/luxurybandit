@@ -623,7 +623,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene) }),
+        // hd: er hat bezahlt — 1080p statt der 360p-Sparvorschau, 8 Sekunden.
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene), hd: true }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error ?? "Could not start."); setVideoBusy(false); setWahl(true); return; }
       for (let i = 0; i < 90; i++) {
