@@ -965,15 +965,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           damit die Zeile eine bleibt: links Zurueck + Schalter, rechts die Sprache. */}
       {langZeile && createPortal(
         <>
+          {/* `order` statt `mr-auto`: Die Sprachwahl steht im Balken zuerst im Quelltext, soll
+              aber rechts aussen bleiben — dort klappt ihr Menue ins Bild und nicht heraus.
+              Negative Reihenfolge zieht Zurueck und den Schalter davor. */}
           {schritt > 1 && (
             <button type="button"
               onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? 2 : 1)}
-              className="h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
+              className="order-[-2] h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
               style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
               {T.back}
             </button>
           )}
-          <span className="mr-auto ml-2"><LightSwitch /></span>
+          <span className="order-[-1] mr-2"><LightSwitch /></span>
         </>,
         langZeile,
       )}

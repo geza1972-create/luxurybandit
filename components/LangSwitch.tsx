@@ -19,6 +19,15 @@ export default function LangSwitch() {
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
   const boxRef = useRef<HTMLDivElement>(null);
+  /**
+   * ZU WELCHER SEITE DAS MENUE AUFKLAPPT (Owner 30.07.2026: „Sprachen ausserhalb").
+   *
+   * Es war fest nach links gebunden (`right-0`) — richtig, solange der Knopf ganz rechts sass.
+   * Seit „Zurueck" und der Hell/Dunkel-Schalter danebenstehen, sitzt er links, und das Menue
+   * klappte aus dem Bild. Statt einer festen Seite wird jetzt gemessen: Knopf in der linken
+   * Bildschirmhaelfte → nach rechts aufklappen, sonst nach links.
+   */
+  const [nachRechts, setNachRechts] = useState(false);
 
   useEffect(() => {
     try {
@@ -45,7 +54,12 @@ export default function LangSwitch() {
 
   return (
     <div ref={boxRef} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-label="Language"
+      <button type="button"
+        onClick={() => {
+          const r = boxRef.current?.getBoundingClientRect();
+          if (r) setNachRechts(r.left < window.innerWidth / 2);
+          setOpen(o => !o);
+        }} aria-label="Language"
         className="flex h-9 items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 text-white/80 transition hover:text-white">
         <Globe className="h-4 w-4" />
         {/* AUSGESCHRIEBEN statt Kürzel (Owner 30.07.2026: „ich kann es gar nicht lesen. Es
@@ -54,7 +68,7 @@ export default function LangSwitch() {
         <span className="text-[12px] font-black">{LANG_LABEL[lang] ?? String(lang).toUpperCase()}</span>
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-40 overflow-hidden rounded-2xl border border-white/10 bg-[#141110] shadow-2xl">
+        <div className={`absolute top-11 z-50 w-40 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-white/10 bg-[#141110] shadow-2xl ${nachRechts ? "left-0" : "right-0"}`}>
           {LANGS.map(l => (
             <button key={l} type="button" onClick={() => pick(l)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition hover:bg-white/10">
