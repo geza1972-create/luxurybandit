@@ -861,6 +861,39 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {/* VERDECKT, BIS DIE ADRESSE DA IST. Das Bild EXISTIERT bereits — es ist keine
                   Attrappe wie früher, sondern sein fertiges Ergebnis. Genau deshalb trägt er
                   ein: er weiß, dass es da ist. */}
+              {/* RENDER-SHOW AUF DEM BILD (Owner 30.07.2026: „du musst wieder das Fake-
+                  Rendering zeigen und auf dem Bild machst du den Button"). Vorher lief die
+                  Show über dem Knopf und der Kauf stand in einem Kasten darunter — man sah
+                  das Bild nicht mehr, um das es geht. */}
+              {videoShow && (
+                <div className="absolute inset-0 z-20 grid place-items-center bg-black/55">
+                  <div className="px-6 text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#f6cf51]" />
+                    <p className="lb-onmedia mt-3 text-[14px] font-black">{status || "Making your kiss video …"}</p>
+                  </div>
+                  <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+                </div>
+              )}
+
+              {videoReif && !isStaff && (
+                <div className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-5">
+                  <div className="w-full max-w-[300px] text-center">
+                    <p className="lb-onmedia text-[17px] font-black">Your video is ready 🔥</p>
+                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">Unlock it and watch the two of you.</p>
+                    <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+                      className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                      {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                      {fillPrices("Watch my kiss video — {once}")}
+                    </button>
+                    <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                      style={{ color: "#fff" }}
+                      className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/40 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                      {fillPrices("Or unlock everything — {price}/month")}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {!frei && !isStaff && (
                 <div className="absolute inset-0 grid place-items-center bg-black/45 p-5">
                   <div className="w-full max-w-[300px] text-center">
@@ -887,37 +920,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             {/* NACH DER SHOW: der Kauf. Erst hier fällt der Preis — der Owner will, dass er
                 den Moment erlebt, bevor er zahlt („er hat nämlich nichts bezahlt, nur
                 gegafft"). */}
-            {videoReif && !isStaff && (
-              <div className="mt-3 w-full rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4 text-center">
-                <p className="text-[17px] font-black text-white">Your video is ready 🔥</p>
-                <p className="mt-1 text-[12px] font-bold leading-snug text-white/80">
-                  Unlock it and watch the two of you.
-                </p>
-                <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
-                  className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                  {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                  {fillPrices("Watch my kiss video — {once}")}
-                </button>
-                <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
-                  style={{ color: "#fff" }}
-                  className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/35 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-                  {fillPrices("Or unlock everything — {price}/month")}
-                </button>
-                <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">{renewNote("en")}</p>
-              </div>
-            )}
-
-            {/* BESTÄTIGUNG, DASS ES AUCH IM POSTFACH LIEGT (Owner 30.07.2026: „und er weiss
-                es gar nicht dass er das per email bekommen hat!"). Ohne diese Zeile bleibt
-                die Mail unbemerkt — und mit ihr der Grund, ein Passwort zu vergeben und
-                wiederzukommen. Der Spam-Hinweis steht dabei, weil eine junge Absender-Domain
-                bei Gmail oft dort landet. */}
-            {frei && !isStaff && mail && (
-              <p className="mt-2 rounded-xl bg-emerald-400/10 px-3 py-2 text-center text-[12px] font-bold leading-snug text-emerald-300">
-                ✓ Sent to {mail} — check your inbox (and spam, just in case).
-              </p>
-            )}
-
             <div className={`mt-3 w-full ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
               {isStaff ? (
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
