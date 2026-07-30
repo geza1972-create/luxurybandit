@@ -11,7 +11,7 @@ import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
-import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig } from "@/lib/try-this-look-store";
+import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
 // Kiss-Funnel; darunter Beispiel-Videos + Cross-Selling zu Try-On & Wetter), mit ?admin=1
@@ -48,9 +48,28 @@ export default async function KissThemePage({ searchParams }: {
   await Promise.all(THEMEN.map(async t => {
     try {
       const c = await readThemeConfig(t);
-      if (c.teaserPath) cover[t] = await getSignedUrl(c.teaserPath).catch(() => "");
-    } catch { /* ohne Cover zeigt die Kachel nur den Text */ }
+      // Cover, sonst der erste Beispiel-Clip — dieselbe Reihenfolge wie in der Themenuebersicht.
+      const pfad = c.teaserPath || (c.examplePaths ?? [])[0] || "";
+      if (pfad) cover[t] = await getSignedUrl(pfad).catch(() => "");
+    } catch { /* faellt unten auf ein Model-Foto zurueck */ }
   }));
+
+  /**
+   * RUECKFALL WIE IN DER THEMENUEBERSICHT (Owner 30.07.2026: „warum fehlen da die Videos oder
+   * Bilder? Wir haben sie doch, nimm doch die Originale, es sind doch die von Topics").
+   *
+   * Fuer die meisten Themen ist im Medien-Werkzeug noch kein Cover gepflegt — dort zeigt die
+   * Uebersicht ein Model-Foto aus dem Katalog. Genau das machen wir hier auch, statt eine
+   * leere Kachel mit Emoji zu zeigen.
+   */
+  let fotos: string[] = [];
+  try {
+    const st = await readTryThisLookState();
+    fotos = ((st?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
+      .filter(c => !!c.photoUrl && !c.hidden && c.status !== "removed")
+      .map(c => c.photoUrl as string);
+  } catch { /**/ }
+  THEMEN.forEach((t, i) => { if (!cover[t] && fotos.length) cover[t] = fotos[i % fotos.length]; });
 
   return (
     /* HELLE FASSUNG FÜR DEN ANZEIGEN-VERKEHR (Owner 30.07.2026: „kannst du light design
@@ -118,10 +137,13 @@ export default async function KissThemePage({ searchParams }: {
                   <Link key={x.href} href={x.href}
                     className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition">
                     <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/[0.05]">
-                      {x.img
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={x.img} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
-                        : <span className="grid h-full w-full place-items-center text-[30px]">{x.e}</span>}
+                      {!x.img
+                        ? <span className="grid h-full w-full place-items-center text-[30px]">{x.e}</span>
+                        : /\.(mp4|webm|mov)(\?|$)/i.test(x.img)
+                          // eslint-disable-next-line jsx-a11y/media-has-caption
+                          ? <video src={x.img} muted loop playsInline autoPlay preload="metadata" className="h-full w-full object-cover object-top" />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          : <img src={x.img} alt="" loading="lazy" className="h-full w-full object-cover object-top" />}
                       <span className="absolute left-1.5 top-1.5 text-[18px] drop-shadow">{x.e}</span>
                     </span>
                     <span className="block p-3">
