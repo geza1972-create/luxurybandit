@@ -132,17 +132,21 @@ export async function POST(request: Request) {
   // es ist Winter"). Solche Wörter ziehen Mäntel und Winterkleidung nach sich — genau das
   // Gegenteil von dem, was diese Bilder zeigen sollen. Alle Orte sind sommerlich oder mild.
   const SZENEN = [
-    "at golden hour on a Mediterranean terrace above the sea, summer",
-    "on a sunny beach at sunset, summer evening",
-    "in a sunlit old town street with flowers on the walls, summer",
-    "on a wooden pier over turquoise water, late afternoon in summer",
-    "in a rooftop bar at night in summer, city lights behind them",
-    "in a green park on a bright summer day, sunlight through the trees",
-    "in a garden full of flowers on a bright summer day",
-    "in a café with an open window, bright summer morning",
-    "at a summer festival with paper lanterns overhead",
-    "on a balcony over the old town at blue hour in summer",
+    // ECHTE ORTE STATT ALLGEMEINPLÄTZEN (Owner 30.07.2026: „nenne einige schöne Küsten;
+    // Taormina, Sizilien, Ibiza, Mallorca … Haiti"). Ein benannter Ort erzeugt ein
+    // erkennbares Bild — „a beautiful holiday destination" erzeugt Tapete.
+    "on a terrace in Taormina, Sicily, with the sea and Mount Etna behind them, bright summer day",
+    "on a sunny cliff path in Ibiza above turquoise water, summer",
+    "in a flower-filled street in Mallorca, bright summer light",
+    "on a terrace in Positano on the Amalfi coast, lemon trees and sea behind them",
+    "on a white terrace in Santorini above the blue sea, summer",
+    "in a garden in Capri with bougainvillea and the sea behind them",
+    "on a beach in Haiti with palm trees and turquoise water, bright sunshine",
+    "on the promenade in Nice on the French Riviera, summer afternoon",
+    "on a cliff above the beaches of the Algarve, Portugal, golden light",
+    "in a harbour town on Mykonos, whitewashed walls and blue sea, summer",
   ];
+
   let kandidaten: string[] = [];
   // Für JEDE Erzeugung eine Szene würfeln, nicht nur bei der Überraschung.
   let szene = SZENEN[Math.floor(Math.random() * SZENEN.length)];
