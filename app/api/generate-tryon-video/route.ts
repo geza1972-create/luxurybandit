@@ -146,10 +146,11 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     // 360p ist die SPARSTUFE fuer Admin-Vorschauen, die spaeter hochgerechnet werden.
-    // Wer 9,99 EUR bezahlt hat, bekommt sie nicht (Owner 30.07.2026: „wenn jemand 9,99
-    // bezahlt dann kann er auch 8 Sekunden bekommen" — die 8s standen hier schon, die
-    // Aufloesung war der eigentliche Mangel).
-    quality: turnaround ? "720p" : (slowmo || hd ? "1080p" : "360p"),
+    // Wer bezahlt hat, bekommt sie nicht. Der Owner hat die Latte am 30.07.2026 selbst
+    // gesetzt: „500px sollte schon sein" — 540p ist die Stufe, die Pixverse dafuer hat.
+    // Bewusst NICHT 1080p: das kostet ein Vielfaches und geht aus denselben 9,99 EUR.
+    // Wer mehr will, dreht `hd` hier auf "720p" oder "1080p".
+    quality: turnaround ? "720p" : (slowmo ? "1080p" : hd ? "540p" : "360p"),
     aspect_ratio: "3:4",             // 3:4 (passt zu den Wardrobe-Karten); Pixverse V6 unterstützt 16:9/9:16/1:1/3:4/4:3
     // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
     // (the V6 param — the OLD sound_effect_switch is v5-only and V6 rejects it with 400017,
