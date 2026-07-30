@@ -333,6 +333,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // fuer jeden Besucher: die Liste interessiert nur den, der schon bezahlt hat.
   useEffect(() => {
     if (!bezahlt || videoUrl || videoBusy || wahl) return;
+    // OHNE BILD KEINE AUSWAHLFLAECHE — die haengt am erzeugten Bild. Wer sein Gratis-
+    // Kontingent aufgebraucht hat und trotzdem zahlt, saehe sonst NICHTS. Fuer ihn laeuft
+    // der alte Weg sofort los: bezahlt heisst geliefert, ohne Ausnahme.
+    if (!bild) { setBusy(true); const t = Date.now(); runRef.current = t; void realGenerate(t); return; }
     setWahl(true);
     void Promise.all([
       fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
@@ -342,7 +346,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       setNurKleidung(Array.isArray(w?.ids) ? w.ids.map(String) : null);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bezahlt, videoUrl, videoBusy]);
+  }, [bezahlt, bild, videoUrl, videoBusy]);
 
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
@@ -668,9 +672,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     track("checkout");
     if (payBusy) return;
     if (isStaff) {
-      setBusy(true);
-      const token = Date.now(); runRef.current = token;
-      await zuVideo();
+      // Auch der Admin-Weg fuehrt in die Auswahl — sonst testet er einen Ablauf, den der
+      // Kunde nie sieht.
+      setBezahlt(true);
       return;
     }
     setPayBusy(true); setStatus("");
@@ -686,15 +690,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (s?.paid) {
           try { popup.close(); } catch { /**/ }
           setPayBusy(false);
-          // Bezahlt → aus dem BILD, das er schon gesehen hat, das Video machen. Nicht neu
-          // rendern: sonst bekäme er ein anderes Ergebnis als das, für das er bezahlt hat.
-          // Hat er gar kein Bild (Gratis aufgebraucht), läuft der alte Weg: Video direkt aus
-          // ihren beiden Fotos — dort greift kein Gratis-Deckel.
           trackMetaPixel("Purchase", { value: einmal ? 9.99 : 24.5, currency: "EUR", content_name: einmal ? "Kiss video" : "Topic subscription" });
-          if (bild) { await zuVideo(); return; }
-          setBusy(true);
-          const token2 = Date.now(); runRef.current = token2;
-          await realGenerate(token2);
+          // BEZAHLT → AUSSUCHEN, nicht sofort rendern (Owner 30.07.2026: „Na gut und jetzt?
+          // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier
+          // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
+          // egal ob er ueber das Kassen-Fenster oder ueber die Rueckleitung kam.
+          setBezahlt(true);
           return;
         }
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
