@@ -1637,6 +1637,7 @@ export type WetterClick = {
   // Öffnen allein sagt wenig — die Frage ist, ob danach etwas passiert. Chat und Test lagen
   // bisher nur als GESAMTZAHL vor („17 Chats"), also liess sich nicht sagen, WER. Beides
   // hängt jetzt an derselben Person wie der Klick.
+  open?: number; openAt?: string;     // E-Mail GEÖFFNET (Zählpixel) — nicht dasselbe wie Klick
   chat?: number; chatAt?: string;
   test?: number; testAt?: string; testWhat?: string;   // testWhat: welche Karte er geöffnet hat
 };
@@ -1696,7 +1697,8 @@ export async function readWetterClicks(modelId?: string): Promise<Record<string,
       if (!subId || !art || !zeit) continue;
       const when = new Date(Number(zeit) || 0).toISOString();
       const a = (out[subId] ??= { count: 0, lastAt: when });
-      if (art === "chat") { a.chat = (a.chat ?? 0) + 1; if (!a.chatAt || a.chatAt < when) a.chatAt = when; }
+      if (art === "open") { a.open = (a.open ?? 0) + 1; if (!a.openAt || a.openAt < when) a.openAt = when; }
+      else if (art === "chat") { a.chat = (a.chat ?? 0) + 1; if (!a.chatAt || a.chatAt < when) a.chatAt = when; }
       else if (art === "test") { a.test = (a.test ?? 0) + 1; if (!a.testAt || a.testAt < when) { a.testAt = when; a.testWhat = label || a.testWhat; } }
       else { a.count = (a.count ?? 0) + 1; if (!a.lastAt || a.lastAt < when) a.lastAt = when; if (label) a.src = label; }
     }
@@ -1706,7 +1708,7 @@ export async function readWetterClicks(modelId?: string): Promise<Record<string,
 
 export async function recordWetterClick(
   subId: string, src: string, modelId?: string,
-  kind: "click" | "chat" | "test" = "click", what = "",
+  kind: "click" | "chat" | "test" | "open" = "click", what = "",
 ): Promise<void> {
   const id = String(subId || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
   if (!id) return;
@@ -1718,6 +1720,35 @@ export async function recordWetterClick(
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
     body: JSON.stringify({ subId: id, kind, what: what.slice(0, 40), src: String(src).slice(0, 40), at: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+// ── Versand-Protokoll der E-Mail-Aussendung ────────────────────────────────
+// Wie viele Mails gingen raus, wie viele wurden abgelehnt — und wann. Ohne das stand das
+// Ergebnis nur kurz in der Oberfläche; am Tag danach liess sich „niemand öffnet" nicht von
+// „es kam nie an" trennen (Owner 30.07.2026).
+export type WetterBlast = {
+  at: string; modelId?: string; total: number; sent: number;
+  failed: { email: string; error: string }[];
+};
+const BLAST_LOG_PATH = "try-this-look/wetter-blast-log.json";
+
+export async function readWetterBlastLog(): Promise<WetterBlast[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(BLAST_LOG_PATH)}`);
+    if (!res.ok) return [];
+    const d = await res.json().catch(() => null);
+    return Array.isArray(d?.blasts) ? (d.blasts as WetterBlast[]) : [];
+  } catch { return []; }
+}
+
+export async function writeWetterBlastLog(entry: WetterBlast): Promise<void> {
+  await ensureBucket();
+  const blasts = [entry, ...(await readWetterBlastLog())].slice(0, 100);
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(BLAST_LOG_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ blasts, updatedAt: new Date().toISOString() }),
   }).catch(() => {});
 }
 

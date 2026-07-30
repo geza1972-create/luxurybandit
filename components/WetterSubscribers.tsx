@@ -61,7 +61,9 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [pin, setPin] = useState("");
   const [subs, setSubs] = useState<Sub[]>([]);
   // wer den Link geöffnet hat — und was danach passiert ist (Chat / Angebots-Karte)
-  const [clicks, setClicks] = useState<Record<string, { count: number; lastAt: string; src?: string; chat?: number; chatAt?: string; test?: number; testAt?: string; testWhat?: string }>>({});
+  const [clicks, setClicks] = useState<Record<string, { count: number; lastAt: string; src?: string; open?: number; openAt?: string; chat?: number; chatAt?: string; test?: number; testAt?: string; testWhat?: string }>>({});
+  // Ergebnis der letzten Aussendung — beantwortet „sind die Mails überhaupt rausgegangen?"
+  const [lastBlast, setLastBlast] = useState<{ at: string; total: number; sent: number; failed: { email: string; error: string }[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -108,7 +110,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const load = async () => {
     try {
       const r = await fetch(apiUrl, { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" });
-      if (r.ok) { const d = await r.json(); setSubs(d.subscribers ?? []); setClicks(d.clicks ?? {}); }
+      if (r.ok) { const d = await r.json(); setSubs(d.subscribers ?? []); setClicks(d.clicks ?? {}); setLastBlast(d.lastBlast ?? null); }
     } catch { /**/ } finally { setLoading(false); }
   };
   useEffect(() => { if (isAdmin && pin) void load(); else setLoading(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [isAdmin, pin]);
@@ -262,12 +264,14 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       <h2 className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> {listLabel ?? "Abonnenten"} <span className="text-white/40">({subs.length})</span>
         {(() => {
           // Der Verlauf einer Aussendung in einer Zeile: geöffnet → getestet → geschrieben.
+          const mails = subs.filter(s => clicks[s.id]?.open).length;
           const opened = subs.filter(s => clicks[s.id]?.count).length;
           const tested = subs.filter(s => clicks[s.id]?.test).length;
           const chatted = subs.filter(s => clicks[s.id]?.chat).length;
           return (
             <>
-              {opened > 0 && <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-black text-emerald-400">👁 {opened} geöffnet</span>}
+              {mails > 0 && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-black text-white/80">📬 {mails} Mail geöffnet</span>}
+              {opened > 0 && <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-black text-emerald-400">👁 {opened} Link geklickt</span>}
               {tested > 0 && <span className="rounded-full bg-[#f6cf51]/20 px-2 py-0.5 text-[11px] font-black text-[#f6cf51]">✨ {tested} getestet</span>}
               {chatted > 0 && <span className="rounded-full bg-sky-400/15 px-2 py-0.5 text-[11px] font-black text-sky-400">💬 {chatted} geschrieben</span>}
             </>
@@ -278,6 +282,15 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         <p className="mt-0.5 text-[12px] font-semibold text-white/60">
           Eigene Liste — getrennt von den Wetter-Abonnenten. Ansehen, ergänzen, löschen, importieren.
           Der Wetter-Versand ist hier bewusst aus: diese Leute haben sich für etwas anderes eingetragen.
+        </p>
+      )}
+      {/* WAS BEIM LETZTEN MAL RAUSGING. Ohne diese Zeile weiss man am Tag danach nicht mehr,
+          ob 72 Mails verschickt wurden oder 3 — und deutet Stille falsch. */}
+      {sending && lastBlast && (
+        <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">
+          Letzte Aussendung {new Date(lastBlast.at).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}:
+          {" "}{lastBlast.sent}/{lastBlast.total} verschickt
+          {lastBlast.failed.length > 0 && <span className="text-red-500"> · {lastBlast.failed.length} abgelehnt ({lastBlast.failed[0].error.slice(0, 40)})</span>}
         </p>
       )}
       {sending && <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende — <b>per E-Mail (empfohlen, geht an alle)</b>. Der WhatsApp-Bot erreicht mit der Test-Nummer nur die bei Meta freigegebenen Nummern.</p>}
@@ -425,6 +438,12 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                           ? <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">✓ bestätigt</span>
                           : <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/55">⏳ unbestätigt</span>)}
                     {/* Hat den Link (E-Mail/WhatsApp) geöffnet? */}
+                    {clicks[s.id]?.open ? (
+                      <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/60"
+                        title={`Mail ${clicks[s.id].open}× geöffnet`}>
+                        📬 Mail {new Date(clicks[s.id].openAt as string).toLocaleDateString()}
+                      </span>
+                    ) : null}
                     {clicks[s.id]?.chat ? (
                       <span className="rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-black text-sky-500"
                         title={`${clicks[s.id].chat}× geschrieben`}>

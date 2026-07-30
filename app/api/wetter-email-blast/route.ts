@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readWetterSubscribers, readCardStudioSlides, getSignedUrl, createSignedUploadUrl, isPublicBellaPost, sortBellaPosts, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { writeWetterBlastLog, readWetterSubscribers, readCardStudioSlides, getSignedUrl, createSignedUploadUrl, isPublicBellaPost, sortBellaPosts, type WetterSubscriber } from "@/lib/try-this-look-store";
 import sharp from "sharp";
 import { sendEmail } from "@/lib/email-send";
 
@@ -80,8 +80,20 @@ export async function POST(request: Request) {
     // die Kasse direkt zum Anzeigenpreis (24,50 €/Monat dauerhaft) — sonst müsste der Kunde den
     // Code in Stripe selbst eintippen und sähe 49 €.
     const aboLink = `${link}&code=${encodeURIComponent(ABO_CODE)}&abo=1`;
-    const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub, hero, s.city || "", modelName, aboLink) }).catch(() => ({ ok: false, error: "send failed" as string }));
+    const pixel = `${origin}/api/wetter-open?s=${encodeURIComponent(s.id)}&m=${encodeURIComponent(modelId)}`;
+    const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub, hero, s.city || "", modelName, aboLink, pixel) }).catch(() => ({ ok: false, error: "send failed" as string }));
     results.push({ id: s.id, email: s.email as string, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });
   }
-  return NextResponse.json({ sent: results.filter(r => r.ok).length, total: targets.length, results });
+  // VERSAND PROTOKOLLIEREN. Vorher stand das Ergebnis nur kurz in der Oberfläche und war
+  // beim nächsten Laden weg — am Tag danach wusste niemand mehr, wie viele Mails überhaupt
+  // rausgingen und welche abgelehnt wurden (Owner 30.07.2026, genau diese Frage).
+  const sent = results.filter(r => r.ok).length;
+  await writeWetterBlastLog({
+    at: new Date().toISOString(),
+    modelId,
+    total: targets.length,
+    sent,
+    failed: results.filter(r => !r.ok).map(r => ({ email: r.email, error: r.error ?? "unbekannt" })).slice(0, 200),
+  }).catch(() => {});
+  return NextResponse.json({ sent, total: targets.length, results });
 }

@@ -79,7 +79,7 @@ const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, m => ({ "&": "&amp
 
 // Dunkle Karte in der Marken-Optik (Schwarz + Gold), Tabellen-Layout + Inline-Styles,
 // damit es auch in Outlook/Gmail hält. `hero` = Poster des aktuellen Beitrags (optional).
-export function buildHtml(c: Copy, link: string, unsub: string, hero: string, city: string, modelName: string, aboLink = ""): string {
+export function buildHtml(c: Copy, link: string, unsub: string, hero: string, city: string, modelName: string, aboLink = "", pixel = ""): string {
   const wx = city ? c.wxCity.replace("{city}", esc(city)) : c.wx;
   const row = (icon: string, text: string) =>
     `<tr><td style="padding:3px 0;font-size:14px;color:#e8e2d6;font-family:Arial,Helvetica,sans-serif">`
@@ -146,5 +146,9 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     // einer KI-Persona schreiben — nicht mit einer echten Frau.
     + `<tr><td style="padding:0 8px 14px;text-align:center;font-size:11px;line-height:1.5;color:#6f675c">${esc(c.ai)}</td></tr>`
     + `</table>`
+    // ZÄHLPIXEL ganz am Ende (Owner 30.07.2026). Ohne das lässt sich „nicht zugestellt" nicht
+    // von „gelesen, aber nicht angeklickt" unterscheiden — und genau daran hängt, ob man am
+    // Text oder an der Zustellbarkeit arbeiten muss. Leer = kein Pixel (z. B. Testmail).
+    + (pixel ? `<img src="${pixel}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;opacity:0">` : "")
     + `</td></tr></table></div>`;
 }
