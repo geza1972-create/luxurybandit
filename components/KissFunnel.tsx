@@ -24,12 +24,17 @@ const KISS_LOOK_ID = "look-1784191032626-70e3608b";
 // im Repo, damit die URL nie abläuft (signierte Storage-Links tun das).
 const PLACEHOLDER_MAN = "/kiss-placeholder.jpg";
 
-// Pixverse-Prompt (V6, Raw): @person = das Model (1. Referenz), @Bild2 = das hochgeladene
-// Foto (2. Referenz — Token „Bild2" ist einer der erlaubten Binder der Route). NEUTRALE
-// Wortwahl (keine Intim-/Haut-Wörter — Pixverse flaggt sie), feste Kamera (kein Zoom),
-// Gesichter bleiben exakt gleich. Kurzer, zarter Kuss + Lächeln danach.
+// DER PROMPT KOMMT VOM OWNER, wörtlich (30.07.2026). Vorher stand hier meine eigene
+// Fassung mit @person/@Bild2 — die hatte er nie freigegeben.
+//
+// BINDUNG (Route /api/generate-tryon-video, pixverseStartReference):
+//   @1 → das Foto der Frau (im Trichter `person`)
+//   @2 → sein hochgeladenes Foto (im Trichter `garment`)
+// Beide Token treffen die Muster der Route, es wird also nichts umgeschrieben.
+//
+// NICHTS DARAN ÄNDERN, ohne ihn zu fragen — auch keine „Verbesserung" der Wortwahl.
 export const KISS_PROMPT =
-  "@person and @Bild2 stand close together in a warm, softly lit evening setting with gentle glowing lights behind them. They look at each other and smile, lean in slowly, and share a brief, tender kiss. Then they step back a little and smile at each other, happy. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
+  "@1 and @2 stand close together in a warm, softly lit evening setting with gentle glowing lights behind them. They look at each other and smile, lean in slowly, and share a brief, tender kiss. Then they step back a little and smile at each other, happy. Keep @1 and @2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
 
 // „Your Idol with you": die beiden zusammen auf einer schönen Party — kein Kuss, sondern
 // ein gemeinsamer Moment. Wieder NEUTRALE Wortwahl (Pixverse flaggt Intim-/Haut-Wörter),
