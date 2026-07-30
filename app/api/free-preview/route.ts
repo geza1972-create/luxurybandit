@@ -134,8 +134,30 @@ export async function POST(request: Request) {
     szene = SZENEN[Math.floor(Math.random() * SZENEN.length)];
   }
 
-  if (!person.startsWith("data:") || (!body.surprise && !model.startsWith("data:"))) {
+  /**
+   * KATALOG-MODELS KOMMEN ALS ADRESSE, NICHT ALS BILD (Owner 30.07.2026: „der generiert
+   * nichts und ich weiss nicht wieso").
+   *
+   * Wählt der Besucher eine unserer Frauen, steht in `model` eine https-Adresse aus unserem
+   * Speicher; lädt er eine eigene hoch, steht dort ein eingebettetes Bild. Die Route verlangte
+   * bisher von beiden Seiten ein eingebettetes — bei jedem Katalog-Model brach sie deshalb mit
+   * „Bitte lade zuerst dein Foto hoch" ab, obwohl das Foto längst da war. Genau die Meldung
+   * hat in die Irre geführt.
+   */
+  if (model.startsWith("http")) {
+    try {
+      const r = await fetch(model);
+      if (r.ok) {
+        const buf = Buffer.from(await r.arrayBuffer());
+        model = `data:${r.headers.get("content-type") ?? "image/jpeg"};base64,${buf.toString("base64")}`;
+      }
+    } catch { /* unten wird es sauber abgefangen */ }
+  }
+  if (!person.startsWith("data:")) {
     return NextResponse.json({ error: "Bitte lade zuerst dein Foto hoch." }, { status: 400 });
+  }
+  if (!body.surprise && !model.startsWith("data:")) {
+    return NextResponse.json({ error: "Bitte wähle sie aus oder lade ein Foto von ihr hoch." }, { status: 400 });
   }
 
   /**

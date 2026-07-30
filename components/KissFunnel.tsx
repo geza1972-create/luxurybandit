@@ -127,6 +127,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // GRATIS AUFGEBRAUCHT — aber kein Sackgassen-Text (Owner 30.07.2026: „bei der Sperre muss
   // doch ein Button kommen für Abo oder Video für 9,99 … sonst macht er nicht weiter").
   const [gesperrt, setGesperrt] = useState(false);
+  // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
+  // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
+  // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
+  const [videoShow, setVideoShow] = useState(false);   // Ladeanzeige läuft
+  const [videoReif, setVideoReif] = useState(false);   // Show vorbei → Kaufknöpfe
   const [videoBusy, setVideoBusy] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
@@ -356,6 +361,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     } catch { setStatus("Network error."); setMailBusy(false); }
+  };
+
+  // Der Weg zum Kauf: erst Show, dann Kasse.
+  const videoAnstossen = () => {
+    if (videoShow || payBusy) return;
+    track("video_teaser");
+    setVideoShow(true); setVideoReif(false); setStatus("");
+    const schritte: [number, string][] = [
+      [0, "Reading both faces …"],
+      [1600, "Matching your expressions …"],
+      [3400, "Bringing the moment to life …"],
+      [5200, "Finishing touches …"],
+    ];
+    for (const [at, t] of schritte) setTimeout(() => setStatus(t), at);
+    setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 6800);
   };
 
   const zuVideo = async () => {
@@ -642,7 +662,30 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 </div>
               )}
             </div>
-            <div className={`mt-3 w-full ${frei || isStaff ? "" : "hidden"}`}>
+            {/* NACH DER SHOW: der Kauf. Erst hier fällt der Preis — der Owner will, dass er
+                den Moment erlebt, bevor er zahlt („er hat nämlich nichts bezahlt, nur
+                gegafft"). */}
+            {videoReif && !isStaff && (
+              <div className="mt-3 w-full rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4 text-center">
+                <p className="text-[17px] font-black text-white">Your video is ready 🔥</p>
+                <p className="mt-1 text-[12px] font-bold leading-snug text-white/80">
+                  Unlock it and watch the two of you.
+                </p>
+                <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+                  className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                  {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                  {fillPrices("Watch my video — {once}")}
+                </button>
+                <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                  style={{ color: "#fff" }}
+                  className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/35 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                  {fillPrices("Or unlock everything — {price}/month")}
+                </button>
+                <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">{renewNote("en")}</p>
+              </div>
+            )}
+
+            <div className={`mt-3 w-full ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
               {isStaff ? (
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
                   className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
@@ -651,10 +694,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 </button>
               ) : (
                 <>
-                  <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+                  <button type="button" onClick={videoAnstossen} disabled={payBusy || videoShow}
                     className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    {fillPrices("Turn this into a video — {once}, one-off")}
+                    {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {videoShow ? "Making your video …" : "Turn this into a video"}
                   </button>
                   <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                     style={{ color: "#fff" }}
