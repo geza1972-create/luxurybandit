@@ -369,4 +369,9 @@ svg {
 
 /* Text, der auf Medien liegt (Karussell-Karten, Auflagen ueber dem Bild). */
 .lb-fb .lb-onmedia, .lb-fb .lb-onmedia * { color: #fff !important; }
-.lb-fb [data-oncard="1"], .lb-fb [data-oncard="1"] * { color: #fff !important; }
+/* Auf dem Foto IMMER weiss — Text wie Symbol. Blau auf einem hellen Bild ist unlesbar; die
+   dunkle Scheibe dahinter traegt nur Weiss. Steht bewusst NACH der Blau-Regel, damit es
+   gewinnt. */
+.lb-fb [data-oncard="1"],
+.lb-fb [data-oncard="1"] *,
+.lb-fb [data-oncard="1"] svg { color: #fff !important; stroke: #fff !important; }
