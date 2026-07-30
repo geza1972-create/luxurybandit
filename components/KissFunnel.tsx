@@ -623,8 +623,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        // hd: er hat bezahlt — 1080p statt der 360p-Sparvorschau, 8 Sekunden.
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene), hd: true }),
+        // AUFLOESUNG NOCH NICHT UMGESTELLT (Owner 30.07.2026: „ok, aber jetzt noch nicht
+        // umstellen"). Die Route kann 540p — sie wird nur noch nicht danach gefragt, damit
+        // die Testlaeufe billig bleiben. Umlegen ist ein Wort: `hd: true` ergaenzen.
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error ?? "Could not start."); setVideoBusy(false); setWahl(true); return; }
       for (let i = 0; i < 90; i++) {
