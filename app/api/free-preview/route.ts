@@ -120,14 +120,29 @@ export async function POST(request: Request) {
    * ein beliebiges Bild schicken. So kommen nur die vom Admin gepflegten, ANGEZOGENEN Fotos
    * infrage.
    */
+  /**
+   * IMMER EINE ANDERE SZENE (Owner 30.07.2026: „wieso sehe ich immer die gleiche Szene?").
+   *
+   * Vorher stand für Kiss ein fester Satz im Prompt — „a warm, softly lit evening scene with
+   * gentle glowing lights" — also kam bei jedem dasselbe Abendbild mit Lichterkette heraus.
+   * Die Liste hier gab es zwar schon, wirkte aber nur im Überraschungs-Modus, den der
+   * Trichter nie benutzt. Jetzt wird für JEDE Erzeugung gewürfelt.
+   */
   const SZENEN = [
     "at golden hour on a Mediterranean terrace above the sea",
     "on a quiet beach at sunset, warm light",
     "in a sunlit old town street with flowers on the walls",
     "on a wooden pier over turquoise water, late afternoon",
+    "in a candlelit rooftop bar at night, city lights behind them",
+    "in a green park in spring, soft daylight through the trees",
+    "on a snowy street with warm shop windows behind them",
+    "in a cosy café by the window, morning light",
+    "at a summer festival with paper lanterns overhead",
+    "on a balcony over the old town at blue hour",
   ];
   let kandidaten: string[] = [];
-  let szene = "";
+  // Für JEDE Erzeugung eine Szene würfeln, nicht nur bei der Überraschung.
+  let szene = SZENEN[Math.floor(Math.random() * SZENEN.length)];
   if (body.surprise) {
     const cfg = await readThemeConfig(theme).catch(() => ({ modelIds: [] as string[], previewRefPaths: [] as string[] }));
     const pfade = (cfg.previewRefPaths ?? []).filter(Boolean);
@@ -136,7 +151,6 @@ export async function POST(request: Request) {
     // Bildmoderation abgelehnt, rückt das nächste nach (Schleife unten).
     pfade.sort(() => Math.random() - 0.5);
     kandidaten = pfade.slice(0, 3);
-    szene = SZENEN[Math.floor(Math.random() * SZENEN.length)];
   }
 
   /**
