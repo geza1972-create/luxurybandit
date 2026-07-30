@@ -97,6 +97,25 @@ export default function TermsPage() {
         profile. Don&rsquo;t upload other people&rsquo;s content without consent or anything illegal.
       </p>
 
+      {/* Owner 30.07.2026: „dann muss man das aber erwaehnen in agb". Kurz und konkret —
+          was gespeichert wird, wo, wie lange, wer es sieht. Die 90 Tage sind keine Floskel:
+          der taegliche Cron loescht danach wirklich (siehe /api/kiss-deliver). */}
+      <h2>6a. Photos you upload for a try-on, kiss or video</h2>
+      <p>
+        To make your picture or video we <strong>store the photos you upload</strong> — your own
+        photo and, if you upload one, the photo of the person you picked — together with the
+        result, on our hosting provider&rsquo;s servers <strong>in the EU</strong>. We need them to
+        create your result, to show it in your gallery, and to look into misuse. They are{" "}
+        <strong>never published</strong> and never shown to other users; only our team can view
+        them. We delete photos and results from visits <strong>without a purchase after 90
+        days</strong>; what you paid for stays until you delete it. You can ask us to delete
+        everything at any time (see <a href="/data-deletion">Data deletion</a>).
+      </p>
+      <p>
+        When you enter your email address you agree that we may send you offers by email. You can
+        withdraw that at any time — every email carries a one-click unsubscribe link.
+      </p>
+
       <h2>7. Acceptable use</h2>
       <p>
         Don&rsquo;t misuse the service: no illegal, abusive, harassing, or infringing activity; no

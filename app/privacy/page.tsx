@@ -40,6 +40,22 @@ export default function PrivacyPage() {
         third-party AI models for their own purposes. You can delete your content and account at any
         time (see <a href="/data-deletion">Data deletion</a>).
       </p>
+      {/* Owner 30.07.2026, nach „kann man das nachvollziehen?": Bis hierher stand hier nur, wozu
+          die Fotos benutzt werden — nicht, dass sie GESPEICHERT werden, wie lange und wer sie
+          sieht. Genau das ist der Teil, den ein Besucher wissen muss. */}
+      <p>
+        <strong>We store them.</strong> Your uploaded photo, the photo of the person you picked, and
+        the generated picture or video are saved on our hosting provider&rsquo;s servers{" "}
+        <strong>in the EU</strong> — so we can create your result, keep it in your gallery, and look
+        into misuse. They are never published and never shown to other users; only our team can view
+        them. Photos and results from visits <strong>without a purchase are deleted after 90
+        days</strong>; what you paid for stays until you delete it.
+      </p>
+      <p>
+        <strong>Email offers.</strong> If you enter your email address to receive your picture, you
+        also agree that we may send you offers. Every email has a one-click unsubscribe link, and you
+        can withdraw at any time — it does not affect anything you already bought.
+      </p>
 
       <h2>Cookies &amp; the Meta Pixel</h2>
       <p>

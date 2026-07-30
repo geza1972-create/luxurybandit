@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, deleteTryThisLookImage, type KissLogEntry } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
 
@@ -292,11 +292,46 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
   return { offen, erledigt, log };
 }
 
+/**
+ * DIE AUFBEWAHRUNGSFRIST — die einzige Zusage, die man nicht schreiben darf, ohne sie zu bauen.
+ *
+ * Owner 30.07.2026: „dann muss man das aber erwähnen in agb". In `free-preview` stand seit
+ * Tagen der Kommentar „braucht eine Frist — siehe FREE_PREVIEW_KEEP_DAYS", aber es gab keine
+ * Zeile Code dazu: Kein einziges hochgeladenes Foto wurde je gelöscht. Ein AGB-Satz über eine
+ * Frist wäre damit eine Behauptung gewesen, die das System selbst widerlegt.
+ *
+ * Was gelöscht wird: Fotos und Ergebnisse aus Besuchen OHNE Kauf, älter als die Frist — samt
+ * Dateien, nicht nur der Zeile. Was bleibt: alles, wofür bezahlt wurde. Wer sein Video gekauft
+ * hat, soll es nicht nach drei Monaten verlieren.
+ */
+const AUFBEWAHRUNG_TAGE = Number(process.env.FREE_PREVIEW_KEEP_DAYS ?? 90);
+
+async function aufraeumen(): Promise<string[]> {
+  const log: string[] = [];
+  if (!(AUFBEWAHRUNG_TAGE > 0)) return log;
+  const grenze = Date.now() - AUFBEWAHRUNG_TAGE * 86_400_000;
+  const alle = await readKissLog();
+  const alt = alle.filter(e => !e.paid && Date.parse(e.createdAt ?? "") > 0 && Date.parse(e.createdAt) < grenze);
+  if (!alt.length) return log;
+  for (const e of alt) {
+    for (const pfad of [e.imagePath, e.personPath, e.modelPath]) {
+      if (pfad) await deleteTryThisLookImage(pfad).catch(() => {});
+    }
+  }
+  const weg = new Set(alt.map(e => e.id));
+  await writeKissLog((await readKissLog()).filter(e => !weg.has(e.id)));
+  log.push(`Aufbewahrung: ${alt.length} Besuche ohne Kauf nach ${AUFBEWAHRUNG_TAGE} Tagen geloescht`);
+  return log;
+}
+
 async function lauf(request: Request): Promise<NextResponse> {
   if (!(await darf(request))) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
   const url = new URL(request.url);
   const nurId = String(url.searchParams.get("genId") ?? "").trim();
   const hop = Math.max(0, Number(url.searchParams.get("hop") ?? 0) || 0);
+
+  // Beim taeglichen Rundlauf (kein einzelner Auftrag) zuerst aufraeumen.
+  const aufgeraeumt = !nurId && hop === 0 ? await aufraeumen().catch(() => []) : [];
 
   const bis = Date.now() + RUNDE_MS;
   let letzte = { offen: 0, erledigt: [] as string[], log: [] as string[] };
@@ -319,7 +354,7 @@ async function lauf(request: Request): Promise<NextResponse> {
     void fetch(weiter, { headers: { "cache-control": "no-store" } }).catch(() => {});
   }
 
-  return NextResponse.json({ ok: true, offen: letzte.offen, erledigt: letzte.erledigt, hop, log: letzte.log });
+  return NextResponse.json({ ok: true, offen: letzte.offen, erledigt: letzte.erledigt, hop, log: [...aufgeraeumt, ...letzte.log] });
 }
 
 export async function GET(request: Request) { return lauf(request); }

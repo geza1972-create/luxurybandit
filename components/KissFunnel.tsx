@@ -214,11 +214,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
-  // AKTIVE ZUSTIMMUNG (Owner-Vorgabe): niemand rendert ein Video aus fremden Fotos, ohne
-  // vorher ausdrücklich bestätigt zu haben, dass er das darf und die Verantwortung trägt.
-  // Zustimmung gilt durch das Tippen auf den Knopf, nicht durch ein Haekchen davor — der
-  // Hinweis steht direkt darunter. Der Wert bleibt, weil mehrere Knoepfe ihn abfragen.
-  const [consent] = useState(true);
+  /**
+   * DAS HAEKCHEN (Owner 30.07.2026: „das muss man aber erwaehnen in agb und die muessen das
+   * abhacken sonst wird es ilegal").
+   *
+   * Bis heute galt die Zustimmung durch das Tippen auf den Knopf — bewusst ohne Haekchen, weil
+   * jedes Haekchen Anlaeufe kostet. Fuer die Nutzungsrechte an den Fotos reicht das; fuer die
+   * SPEICHERUNG der Fotos und fuer Werbemails will er eine ausdrueckliche Handlung. Also ein
+   * Haekchen, genau eines, direkt vor dem Knopf.
+   *
+   * Es wird im Geraet gemerkt: Wer einmal zugestimmt hat, soll beim naechsten Bild nicht
+   * wieder klicken muessen. Der Zeitpunkt geht mit an den Server — ohne Nachweis, WANN
+   * zugestimmt wurde, ist eine Einwilligung wertlos.
+   */
+  const [consent, setConsent] = useState(false);
+  const consentKey = "lb_kiss_consent";
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const mailRef = useRef<HTMLInputElement>(null);      // Adressfeld vor der Erzeugung
@@ -304,6 +314,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     } catch { /**/ }
     // KENNEN WIR IHN SCHON? Angemeldetes Konto zuerst, sonst die Adresse aus einem früheren
     // Besuch. Beides erspart ihm das Feld — gefragt wird nur, wer wirklich neu ist.
+    // Einmal zugestimmt, nicht wieder fragen (der Zeitpunkt liegt beim Server).
+    try { if (localStorage.getItem(consentKey)) setConsent(true); } catch { /**/ }
     // Die Auftragsnummer aus diesem Besuch zurueckholen — sonst legt der naechste Upload
     // nach einem Neuladen einen zweiten Eintrag an (halbe Zeilen in der Galerie).
     try {
@@ -605,6 +617,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
      * jemanden, der nie eine Adresse hinterlässt. Wer angemeldet ist oder schon einmal
      * eingetragen hat, merkt davon nichts — `adresseDa` steht dann bereits.
      */
+    if (!consent) { setStatus(T.zustimmungFehlt); return; }
     if (!isStaff && !adresseDa) {
       const e = mail.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
@@ -717,7 +730,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, device, genId, vorab: true }),
+        body: JSON.stringify({ email: e, device, genId, vorab: true, consentAt: new Date().toISOString() }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
@@ -1246,10 +1259,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
-      {/* NUR EIN HINWEIS, KEINE AKTION (Owner 30.07.2026: „das machst du unter dem Button und
-          ohne Haeckchen … nein, das ist nur eine Info, ohne Aktion"). Das Haekchen stand
-          zwischen ihm und dem Knopf und kostete jeden zweiten Anlauf. Der Inhalt bleibt
-          wortgleich stehen — er ruecht nur hinter die Handlung. */}
+      {/* EIN HAEKCHEN, VOR DEM KNOPF (Owner 30.07.2026: „die muessen das abhacken sonst wird
+          es ilegal"). Die alte Zeile darunter war nur ein Hinweis ohne Handlung — das reicht
+          fuer die Nutzungsrechte, aber nicht fuer die Speicherung der Fotos und fuer
+          Werbemails. Deshalb genau EIN Haekchen: mehr kostet Anlaeufe, weniger waere nicht
+          nachweisbar. AGB und Datenschutz sind darin verlinkt, beide oeffnen in einem neuen
+          Fenster, damit sein Trichter nicht verloren geht. */}
+      {!bezahlt && (
+        <label className="mx-auto mt-2 flex max-w-[340px] cursor-pointer items-start gap-2 text-left">
+          <input type="checkbox" checked={consent}
+            onChange={e => {
+              setConsent(e.target.checked);
+              try { if (e.target.checked) localStorage.setItem(consentKey, new Date().toISOString()); else localStorage.removeItem(consentKey); } catch { /**/ }
+            }}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[#f6cf51]" />
+          <span className="text-[11px] font-medium leading-snug text-white/70">
+            {(() => {
+              // Die zwei Verweise sitzen als Platzhalter im uebersetzten Satz — so bleibt die
+              // Wortstellung in jeder Sprache richtig, statt Text zusammenzukleben.
+              const teile = T.zustimmung.split(/(\{agb\}|\{privacy\})/);
+              return teile.map((t, i) =>
+                t === "{agb}" ? <a key={i} href="/terms" target="_blank" rel="noreferrer" className="underline">{T.agbLink}</a>
+                : t === "{privacy}" ? <a key={i} href="/privacy" target="_blank" rel="noreferrer" className="underline">{T.datenschutzLink}</a>
+                : <span key={i}>{t}</span>);
+            })()}
+          </span>
+        </label>
+      )}
+      {/* Der alte Nutzungshinweis bleibt darunter stehen: er sagt etwas anderes (Rechte an den
+          Fotos, Alter, Verantwortung) und ist keine Einwilligung. */}
       <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[10px] font-medium leading-snug text-white/45">
         {T.consent}
       </p>

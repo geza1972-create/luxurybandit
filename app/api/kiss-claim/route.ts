@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
     pending?: boolean;   // Erzeugung gescheitert — wir melden uns, sobald es klappt
     vorab?: boolean;     // vor der Erzeugung: nur eintragen, noch nichts schicken
+    consentAt?: string;  // Zeitpunkt des Haekchens — ohne Nachweis ist eine Einwilligung wertlos
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
   const imagePath = String(body.imagePath ?? "").trim();
   const device = String(body.device ?? "").trim().slice(0, 80);
   const lang = String(body.lang ?? "en").slice(0, 5);
+  // Zeitpunkt des Haekchens, wie ihn der Browser gemeldet hat — auf 40 Zeichen begrenzt.
+  const zustimmung = String(body.consentAt ?? "").trim().slice(0, 40);
 
   // 1 · In die Kissing-Liste eintragen (idempotent).
   let neu = false;
@@ -66,7 +69,15 @@ export async function POST(request: Request) {
         name: String(body.name ?? "").trim().slice(0, 120) || email.split("@")[0],
         email,
         lang: dialInfo("")?.lang || lang,
-        note: `Kiss · ${body.vorab ? "vor der Erzeugung" : body.pending ? "gescheitert" : "Gratis-Bild"}${device ? ` · ${device}` : ""}`,
+        /**
+         * DER NACHWEIS STEHT IN DER NOTIZ (Owner 30.07.2026: „die muessen das abhacken sonst
+         * wird es ilegal"). Eine Einwilligung, die man nicht belegen kann, ist keine — im
+         * Streitfall zaehlt, WANN zugestimmt wurde. Die Notiz ist die Spalte, die der Admin
+         * ohnehin sieht; ein eigenes Feld waere eine Schema-Aenderung fuer denselben Zweck.
+         */
+        note: `Kiss · ${body.vorab ? "vor der Erzeugung" : body.pending ? "gescheitert" : "Gratis-Bild"}`
+          + `${zustimmung ? ` · Zustimmung ${zustimmung}` : ""}`
+          + `${device ? ` · ${device}` : ""}`,
         createdAt: new Date().toISOString(),
       };
       await writeWetterSubscribers([eintrag, ...liste], KISS_LIST);

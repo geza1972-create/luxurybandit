@@ -54,6 +54,8 @@ export type KissText = {
   back: string; examples: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
   privat: string;
+  // Das Haekchen vor der Erzeugung: AGB, Datenschutz, Speicherung, Angebote.
+  zustimmung: string; zustimmungFehlt: string; agbLink: string; datenschutzLink: string;
   // Die im Abo enthaltenen Videos dieses Monats sind aufgebraucht.
   videosWeg: string;
   // Abonnent erkannt: wie viele Videos dieser Monat noch hergibt.
@@ -116,6 +118,8 @@ const EN: KissText = {
   privateNote: "🔒 This video is private — for you only. Please don't share it on social media.",
   back: "← Back", examples: "Real kiss videos 💋",
   privat: "🔒 Private: your photos and your result are never published and never shown to other users. We store them for your gallery — only our team can view them to run the service.",
+  zustimmung: "I accept the {agb} and the {privacy}: my photos are stored to make my picture, and I may receive offers by email.",
+  zustimmungFehlt: "Please accept the terms first.", agbLink: "terms", datenschutzLink: "privacy policy",
   videosWeg: "Your {videos} videos for this month are used up.",
   aboAktiv: (r, g) => `Subscription active · ${r} of ${g} videos left this month`,
   extraTitel: "Your videos for this month are used up",
@@ -178,6 +182,8 @@ const DE: KissText = {
   privateNote: "🔒 Dieses Video ist privat — nur für dich. Bitte teile es nicht in sozialen Medien.",
   back: "← Zurück", examples: "Echte Kuss-Videos 💋",
   privat: "🔒 Privat: deine Fotos und dein Ergebnis werden nie veröffentlicht und keinem anderen Nutzer gezeigt. Wir speichern sie für deine Galerie — einsehen kann sie nur unser Team, um den Dienst zu betreiben.",
+  zustimmung: "Ich akzeptiere die {agb} und die {privacy}: Meine Fotos werden zur Erstellung gespeichert, und ich darf Angebote per E-Mail bekommen.",
+  zustimmungFehlt: "Bitte stimme zuerst zu.", agbLink: "AGB", datenschutzLink: "Datenschutzerklärung",
   videosWeg: "Deine {videos} Videos für diesen Monat sind aufgebraucht.",
   aboAktiv: (r, g) => `Abo aktiv · noch ${r} von ${g} Videos diesen Monat`,
   extraTitel: "Deine Videos für diesen Monat sind aufgebraucht",
@@ -240,6 +246,8 @@ const RO: KissText = {
   privateNote: "🔒 Videoclipul e privat — doar pentru tine. Te rugăm să nu-l distribui pe rețelele sociale.",
   back: "← Înapoi", examples: "Videoclipuri reale cu sărut 💋",
   privat: "🔒 Privat: pozele și rezultatul tău nu sunt niciodată publicate și nu sunt arătate altor utilizatori. Le păstrăm pentru galeria ta — le poate vedea doar echipa noastră, ca să ținem serviciul în funcțiune.",
+  zustimmung: "Accept {agb} și {privacy}: pozele mele sunt păstrate pentru a-mi crea rezultatul și pot primi oferte pe email.",
+  zustimmungFehlt: "Te rog acceptă mai întâi.", agbLink: "termenii", datenschutzLink: "politica de confidențialitate",
   videosWeg: "Cele {videos} videoclipuri ale lunii s-au terminat.",
   aboAktiv: (r, g) => `Abonament activ · ${r} din ${g} videoclipuri rămase luna asta`,
   extraTitel: "Videoclipurile tale pe luna asta s-au terminat",
@@ -302,6 +310,8 @@ const ES: KissText = {
   privateNote: "🔒 Este vídeo es privado — solo para ti. Por favor, no lo compartas en redes sociales.",
   back: "← Atrás", examples: "Vídeos de besos reales 💋",
   privat: "🔒 Privado: tus fotos y tu resultado nunca se publican ni se muestran a otros usuarios. Las guardamos para tu galería — solo nuestro equipo puede verlas para operar el servicio.",
+  zustimmung: "Acepto los {agb} y la {privacy}: mis fotos se guardan para crear mi resultado y puedo recibir ofertas por email.",
+  zustimmungFehlt: "Acepta primero las condiciones.", agbLink: "términos", datenschutzLink: "política de privacidad",
   videosWeg: "Tus {videos} vídeos de este mes se han agotado.",
   aboAktiv: (r, g) => `Suscripción activa · te quedan ${r} de ${g} vídeos este mes`,
   extraTitel: "Tus vídeos de este mes se han agotado",
@@ -364,6 +374,8 @@ const FR: KissText = {
   privateNote: "🔒 Cette vidéo est privée — rien que pour toi. Merci de ne pas la partager sur les réseaux sociaux.",
   back: "← Retour", examples: "De vraies vidéos de baiser 💋",
   privat: "🔒 Privé : tes photos et ton résultat ne sont jamais publiés ni montrés à d'autres utilisateurs. Nous les gardons pour ta galerie — seule notre équipe peut les consulter pour faire tourner le service.",
+  zustimmung: "J'accepte les {agb} et la {privacy} : mes photos sont conservées pour créer mon résultat, et je peux recevoir des offres par e-mail.",
+  zustimmungFehlt: "Merci d'accepter d'abord.", agbLink: "conditions", datenschutzLink: "politique de confidentialité",
   videosWeg: "Tes {videos} vidéos du mois sont épuisées.",
   aboAktiv: (r, g) => `Abonnement actif · ${r} vidéos sur ${g} restantes ce mois-ci`,
   extraTitel: "Tes vidéos du mois sont épuisées",
@@ -426,6 +438,8 @@ const PT: KissText = {
   privateNote: "🔒 Este vídeo é privado — só para ti. Por favor não o partilhes nas redes sociais.",
   back: "← Voltar", examples: "Vídeos de beijo a sério 💋",
   privat: "🔒 Privado: as tuas fotos e o teu resultado nunca são publicados nem mostrados a outros utilizadores. Guardamo-los para a tua galeria — só a nossa equipa os pode ver para operar o serviço.",
+  zustimmung: "Aceito os {agb} e a {privacy}: as minhas fotos são guardadas para criar o resultado e posso receber ofertas por email.",
+  zustimmungFehlt: "Aceita primeiro as condições.", agbLink: "termos", datenschutzLink: "política de privacidade",
   videosWeg: "Os teus {videos} vídeos deste mês acabaram.",
   aboAktiv: (r, g) => `Subscrição ativa · faltam ${r} de ${g} vídeos este mês`,
   extraTitel: "Os teus vídeos deste mês acabaram",
@@ -489,6 +503,8 @@ const IT: KissText = {
   privateNote: "🔒 Questo video è privato — solo per te. Per favore non condividerlo sui social.",
   back: "← Indietro", examples: "Veri video di baci 💋",
   privat: "🔒 Privato: le tue foto e il tuo risultato non vengono mai pubblicati né mostrati ad altri utenti. Li conserviamo per la tua galleria — solo il nostro team può vederli per gestire il servizio.",
+  zustimmung: "Accetto i {agb} e la {privacy}: le mie foto vengono conservate per creare il risultato e posso ricevere offerte via email.",
+  zustimmungFehlt: "Accetta prima le condizioni.", agbLink: "termini", datenschutzLink: "informativa privacy",
   videosWeg: "I tuoi {videos} video di questo mese sono finiti.",
   aboAktiv: (r, g) => `Abbonamento attivo · ${r} di ${g} video rimasti questo mese`,
   extraTitel: "I tuoi video di questo mese sono finiti",
