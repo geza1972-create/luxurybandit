@@ -901,6 +901,18 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                       {i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
                     </span>
                   ))}
+                  {/* Reaktionen als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}
+                  {["wow 🔥", "😍", "yes — kiss her!", "💋", "so hot", "❤️", "omg", "perfect"].map((t, i) => (
+                    <span key={t} className="lb-bubble"
+                      style={{
+                        left: `${8 + (i * 11) % 66}%`,
+                        animationDelay: `${1.2 + (i * 0.72) % 5.4}s`,
+                        animationDuration: `${5 + (i % 3) * 0.6}s`,
+                        ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (10 + (i % 3) * 8)}px`,
+                      }}>
+                      {t}
+                    </span>
+                  ))}
                 </div>
               )}
 
