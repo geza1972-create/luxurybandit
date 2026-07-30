@@ -1342,7 +1342,7 @@ export const writeKissConfig = (config: KissConfig) => writeThemeConfig(config, 
 const FREE_PREVIEW_PATH = "try-this-look/free-preview-counter.json";
 // EIN Versuch, nicht zwei (Owner 30.07.2026: „gratis bekommt er surprise aber 1x kann er
 // generieren"). Wer zweimal darf, probiert herum; wer einmal darf, entscheidet danach.
-export const FREE_PREVIEW_PER_DEVICE = 1;
+export const FREE_PREVIEW_PER_DEVICE = Number(process.env.FREE_PREVIEW_PER_DEVICE ?? 1);
 export const FREE_PREVIEW_PER_DAY = 300;
 
 /**

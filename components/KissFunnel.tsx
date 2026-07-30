@@ -124,6 +124,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [mail, setMail] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
   const [frei, setFrei] = useState(false);      // Adresse da → Bild sichtbar
+  // GRATIS AUFGEBRAUCHT — aber kein Sackgassen-Text (Owner 30.07.2026: „bei der Sperre muss
+  // doch ein Button kommen für Abo oder Video für 9,99 … sonst macht er nicht weiter").
+  const [gesperrt, setGesperrt] = useState(false);
   const [videoBusy, setVideoBusy] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
@@ -226,15 +229,23 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     try {
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      // ADMIN OHNE DECKEL (Owner 30.07.2026: „mach die Sperre für mich raus … damit ich das
+      // testen kann"). Der Schlüssel liegt ohnehin im Gerät; wird er mitgeschickt, erkennt
+      // die Route den Admin und zählt nicht mit. Für alle anderen bleibt der Deckel.
+      let pin = "";
+      try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
       const r = await fetch("/api/free-preview", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device }),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();
       if (runRef.current !== token) return;
+      // 429 = Gratis-Bild schon genutzt. Nicht als Fehler zeigen, sondern als Angebot.
+      if (r.status === 429 || d?.limit) { setGesperrt(true); setStatus(""); setBusy(false); return; }
       if (!r.ok || !d.image) { setStatus(d?.error ?? "Das hat nicht geklappt."); setBusy(false); return; }
-      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setBusy(false); setStatus("");
+      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setBusy(false); setStatus("");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       try {
         const log = await fetch("/api/kiss-log", {
@@ -326,7 +337,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           setPayBusy(false);
           // Bezahlt → aus dem BILD, das er schon gesehen hat, das Video machen. Nicht neu
           // rendern: sonst bekäme er ein anderes Ergebnis als das, für das er bezahlt hat.
-          await zuVideo();
+          // Hat er gar kein Bild (Gratis aufgebraucht), läuft der alte Weg: Video direkt aus
+          // ihren beiden Fotos — dort greift kein Gratis-Deckel.
+          if (bild) { await zuVideo(); return; }
+          setBusy(true);
+          const token2 = Date.now(); runRef.current = token2;
+          await realGenerate(token2);
           return;
         }
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
@@ -478,6 +494,30 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         )}
 
         {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
+        {/* GRATIS AUFGEBRAUCHT → sofort weiter, nicht abwürgen. Ein Satz „schon genutzt"
+            ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
+        {gesperrt && !bild && !videoUrl && (
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+            <p className="text-[16px] font-black text-white">Dein Gratis-Bild ist aufgebraucht</p>
+            <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
+              Ein Bild pro Person ist gratis. Weiter geht es mit dem Video — oder mit allem.
+            </p>
+            <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+              className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+              {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              {fillPrices("Video machen — {once}")}
+            </button>
+            <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+              style={{ color: "#fff" }}
+              className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/40 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+              {fillPrices("Alles freischalten — {price}/Monat")}
+            </button>
+            <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
+              {renewNote("de")}
+            </p>
+          </div>
+        )}
+
         {/* DAS ERZEUGTE BILD — scharf, kein Schloss (Owner 30.07.2026: „Bild gratis Mann,
             Video gegen Geld"). Darunter der Weg zum Video: Admin gratis, Kunde 9,99 € oder Abo. */}
         {bild && !videoUrl && (
