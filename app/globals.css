@@ -411,3 +411,24 @@ svg {
 .lb-fb [style*="#fff"]:not(.lb-gold):not(.lb-buy):not([data-oncard]):not(input):not(.lb-onmedia) {
   color: #1877F2 !important;
 }
+
+/* HERZEN, DIE HOCHSTEIGEN (Owner 30.07.2026: „toll waere wenn da animation wie herzen laufen
+   wuerden auf das Standbild … hunderte von likes"). Ein Standbild wirkt fertig und
+   abgeschlossen; aufsteigende Herzen machen daraus einen Moment, der noch laeuft — dasselbe
+   Mittel wie bei Live-Videos. Reines CSS, kein Skript, keine Ladezeit. */
+@keyframes lb-heart-up {
+  0%   { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  12%  { opacity: 0.95; }
+  70%  { opacity: 0.9; }
+  100% { transform: translate3d(var(--lb-drift, 12px), -260px, 0) scale(1.15); opacity: 0; }
+}
+.lb-heart {
+  position: absolute;
+  bottom: 8%;
+  font-size: 20px;
+  line-height: 1;
+  pointer-events: none;
+  animation: lb-heart-up 4.2s ease-out infinite;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+}
+@media (prefers-reduced-motion: reduce) { .lb-heart { animation: none; opacity: 0; } }

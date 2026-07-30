@@ -885,6 +885,25 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {/* VERDECKT, BIS DIE ADRESSE DA IST. Das Bild EXISTIERT bereits — es ist keine
                   Attrappe wie früher, sondern sein fertiges Ergebnis. Genau deshalb trägt er
                   ein: er weiß, dass es da ist. */}
+              {/* AUFSTEIGENDE HERZEN auf dem fertigen Bild. Erst wenn er es sehen darf —
+                  vorher liegt die E-Mail-Schranke darueber und Herzen waeren nur Unruhe. */}
+              {(frei || isStaff) && !videoShow && (
+                <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                  {[...Array(14)].map((_, i) => (
+                    <span key={i} className="lb-heart"
+                      style={{
+                        left: `${6 + (i * 6.7) % 88}%`,
+                        animationDelay: `${(i * 0.31) % 4.2}s`,
+                        animationDuration: `${3.6 + (i % 5) * 0.35}s`,
+                        fontSize: `${14 + (i % 4) * 5}px`,
+                        ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (8 + (i % 3) * 10)}px`,
+                      }}>
+                      {i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {/* RENDER-SHOW AUF DEM BILD (Owner 30.07.2026: „du musst wieder das Fake-
                   Rendering zeigen und auf dem Bild machst du den Button"). Vorher lief die
                   Show über dem Knopf und der Kauf stand in einem Kasten darunter — man sah
