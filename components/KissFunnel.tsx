@@ -519,6 +519,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   // Leute wollten. Das Ergebnis wird später an denselben Eintrag nachgetragen.
   const onFile = async (f?: File | null) => {
     if (!f) return;
+    // DAS HOCHLADEN IST DIE ZUSTIMMUNG (Owner 30.07.2026: „beim Upload und weiter akzeptiert
+    // er"). Genau hier wird das Foto gespeichert — die Einwilligung darf nicht erst einen
+    // Schritt spaeter kommen, sonst liegt sein Bild vor der Zustimmung bei uns.
+    zustimmen();
     try {
       const dataUrl = await fileToDataUrl(f);
       setPhoto(dataUrl); track("photo");
@@ -557,6 +561,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   // sonst entsteht er hier — je nachdem, was er zuerst hochlädt.
   const onModelFile = async (f?: File | null) => {
     if (!f) return;
+    zustimmen();   // dasselbe wie beim eigenen Foto: gespeichert wird ab diesem Moment
     try {
       const dataUrl = await fileToDataUrl(f);
       setCustomModel(dataUrl); setUseCustom(true); track("own_model");
