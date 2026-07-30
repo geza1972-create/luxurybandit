@@ -92,7 +92,10 @@ export default function TopNav({
       </div>
       {/* Eigene, ruhige Zeile für die Sprache — rechtsbündig, damit Logo und Motto
           darüber ungestört bleiben. */}
-      <div className="mx-auto flex max-w-6xl justify-end px-4 pb-2">
+      {/* Eigene Zeile, mit Kennzeichnung: In der Anzeigen-Fassung (.lb-fb) rutscht sie per
+          CSS UNTER die blaue Leiste (Owner 30.07.2026: „die Sprachen schiebst du mir unter
+          dem Header"). Sonst bleibt alles wie bisher. */}
+      <div data-langrow="1" className="mx-auto flex max-w-6xl justify-end px-4 pb-2">
         <LangSwitch />
       </div>
     </header>

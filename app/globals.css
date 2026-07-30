@@ -345,3 +345,28 @@ svg {
 .lb-fb [class*="border-[#f6cf51]"] { border-color: #1877F2 !important; }
 /* Auch Flächen (Fortschrittspunkte, Häkchen, kleine Marken) — sonst bleibt ein gelber Rest. */
 .lb-fb [class*="bg-[#f6cf51]"] { background-color: #1877F2 !important; }
+
+/* Sprachwahl UNTER die blaue Leiste (Owner 30.07.2026). In der Kopfleiste konkurriert sie
+   mit Logo und Symbolen; darunter steht sie ruhig und stört den ersten Eindruck nicht. */
+.lb-fb [data-topnav="1"] { padding-bottom: 0; }
+.lb-fb [data-langrow="1"] {
+  background: transparent;
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+  position: relative;
+  z-index: 1;
+}
+.lb-fb [data-topnav="1"] [data-langrow="1"] * { color: #1877F2 !important; }
+
+/* WEISSE SCHRIFT AUF BLAU UND AUF BILDERN (Owner 30.07.2026: „bitte auf blau auch weisse
+   schrift und auf das bild ebenso"). Die Hell-Fassung faerbt weisse Schrift dunkel — richtig
+   auf hellem Grund, falsch auf einer blauen Flaeche oder ueber einem Foto. Deshalb hier
+   zurueck auf Weiss. */
+.lb-fb [class*="bg-[#f6cf51]"],
+.lb-fb [class*="bg-[#f6cf51]"] *,
+.lb-fb .lb-gold, .lb-fb .lb-gold *,
+.lb-fb .lb-buy, .lb-fb .lb-buy * { color: #fff !important; }
+
+/* Text, der auf Medien liegt (Karussell-Karten, Auflagen ueber dem Bild). */
+.lb-fb .lb-onmedia, .lb-fb .lb-onmedia * { color: #fff !important; }
+.lb-fb [data-oncard="1"], .lb-fb [data-oncard="1"] * { color: #fff !important; }
