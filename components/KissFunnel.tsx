@@ -43,25 +43,50 @@ export const KISS_PROMPT =
 export const IDOL_PROMPT =
   "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
 
-// Eigenes Foto klein rechnen (Data-URL) — wie im Try-On-Funnel.
+/**
+ * FOTO KLEIN RECHNEN — WebP, und Handyformate annehmen (Owner 30.07.2026: „die musst du dann
+ * verkleinern als WebP automatisch beim Hochladen und auch Handyformate annehmen").
+ *
+ * WARUM ES ZÄHLT: Vercel weist eine Anfrage über ~4,5 MB mit 413 ab, bevor irgendetwas läuft.
+ * Ein Foto vom Handy hat schnell 4–8 MB. WebP ist bei gleicher Qualität rund ein Drittel
+ * kleiner als JPEG — damit bleibt auch ein zweites Bild im Rahmen.
+ *
+ * HANDYFORMATE: iPhones liefern HEIC. `new Image()` kann das ausserhalb von Safari nicht
+ * lesen; `createImageBitmap` kann es in mehr Browsern. Deshalb erst der Weg, dann der alte
+ * als Rückfall. Scheitert beides, sagen wir es — statt still nichts zu tun.
+ */
 async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<string> {
-  const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
-  const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
-  const scale = Math.min(1, max / Math.max(img.width, img.height));
-  const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-  const c = document.createElement("canvas"); c.width = w; c.height = h;
-  c.getContext("2d")!.drawImage(img, 0, 0, w, h);
-  return c.toDataURL("image/jpeg", quality);
+  const zeichnen = (w: number, h: number, mal: (c: CanvasRenderingContext2D) => void) => {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    mal(c.getContext("2d")!);
+    // WebP wo möglich, sonst JPEG (ältere Safari-Fassungen können kein WebP schreiben).
+    const webp = c.toDataURL("image/webp", quality);
+    return webp.startsWith("data:image/webp") ? webp : c.toDataURL("image/jpeg", quality);
+  };
+
+  try {
+    const bmp = await createImageBitmap(file);
+    const sc = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * sc), h = Math.round(bmp.height * sc);
+    const out = zeichnen(w, h, ctx => ctx.drawImage(bmp, 0, 0, w, h));
+    bmp.close?.();
+    return out;
+  } catch { /* dann der klassische Weg */ }
+
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Dieses Bildformat können wir nicht lesen.")); i.src = dataUrl;
+  });
+  const sc = Math.min(1, max / Math.max(img.width, img.height));
+  const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
+  return zeichnen(w, h, ctx => ctx.drawImage(img, 0, 0, w, h));
 }
 
-// Die Render-Show: gestaffelte Status-Texte, damit es sich wie eine echte Generierung anfühlt.
-// DIE TEXTE MÜSSEN SO LANGE LAUFEN WIE DIE ERZEUGUNG (Owner 30.07.2026: „ich habe auf
-// generate picture geklickt, dann kam das Rendern und ist dann verschwunden").
-//
-// Nichts war verschwunden — das Bild kam nach rund 40 Sekunden. Nur liefen die Texte in 14
-// Sekunden durch, danach stand „Finishing touches …" eine halbe Minute unverändert da. Das
-// liest sich wie abgestürzt, und man geht weg. Gemessen: 25–45 s je nach Anlauf (bei einer
-// abgewiesenen Vorlage kommt der Gesichtsausschnitt als zweiter Versuch dazu).
+// Die Fortschrittstexte müssen so lange laufen wie die Erzeugung (25–45 s) — sonst steht der
+// letzte Satz eine halbe Minute unverändert da und es liest sich wie abgestürzt.
 const RENDER_STEPS: [number, string][] = [
   [0, "Analyzing your photo …"],
   [4000, "Matching the two of you …"],
@@ -605,7 +630,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           </div>
         );
       })()}
-      <input ref={modelFileRef} type="file" accept="image/*" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
+      <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
 
       {/* 2) Eigenes Foto */}
       <button type="button" onClick={() => setSchritt(2)} disabled={!selPhoto}
@@ -635,7 +660,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           <RefreshCw className="h-3.5 w-3.5" /> Change photo
         </button>
       )}
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+      <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 3) Generieren */}
       <div className="mt-4 flex gap-2">
