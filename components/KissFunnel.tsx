@@ -5,6 +5,7 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
 import { renewNote, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
@@ -423,6 +424,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           body: JSON.stringify({ email: angemeldet, imagePath: d.imagePath, device, genId }),
         }).catch(() => {});
         track("email");
+        trackMetaPixel("Lead", { content_category: "kiss" });
       }
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Das Ergebnis an den Eintrag hängen, der beim Hochladen entstanden ist. Nur wenn
@@ -471,6 +473,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
       setFrei(true); setMailBusy(false);
       if (gescheitert) { setGescheitert(false); setStatus("Thanks — we will send it to you."); }
+      // META: „Lead" = er hat seine Adresse dagelassen. Genau darauf soll die Kampagne
+      // optimieren, wenn kein Sofort-Formular mehr benutzt wird (Owner 30.07.2026).
+      trackMetaPixel("Lead", { content_category: "kiss" });
       void merken(bild, bildPfad, genId, true);   // ab jetzt übersteht es Kasse und „Zurück"
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
@@ -528,6 +533,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       return;
     }
     setPayBusy(true); setStatus("");
+    trackMetaPixel("InitiateCheckout", { value: einmal ? 9.99 : 24.5, currency: "EUR", content_name: einmal ? "Kiss video" : "Topic subscription" });
     try {
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
@@ -543,6 +549,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           // rendern: sonst bekäme er ein anderes Ergebnis als das, für das er bezahlt hat.
           // Hat er gar kein Bild (Gratis aufgebraucht), läuft der alte Weg: Video direkt aus
           // ihren beiden Fotos — dort greift kein Gratis-Deckel.
+          trackMetaPixel("Purchase", { value: einmal ? 9.99 : 24.5, currency: "EUR", content_name: einmal ? "Kiss video" : "Topic subscription" });
           if (bild) { await zuVideo(); return; }
           setBusy(true);
           const token2 = Date.now(); runRef.current = token2;
