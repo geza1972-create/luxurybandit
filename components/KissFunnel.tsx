@@ -598,7 +598,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             disabled={!selPhoto || !photo || !consent || payBusy}
             className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
             {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-            {fillPrices("Video {once}")}
+            {fillPrices("Hot video {once}")}
           </button>
           <button type="button" onClick={() => void unlock(false)}
             disabled={!selPhoto || !photo || !consent || payBusy}
@@ -646,7 +646,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {fillPrices("Make the video — {once}")}
+              {fillPrices("Make the hot video — {once}")}
             </button>
             <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
               style={{ color: "#fff" }}
@@ -705,7 +705,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
                   className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                   {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                  {fillPrices("Watch my video — {once}")}
+                  {fillPrices("Watch my hot video — {once}")}
                 </button>
                 <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                   style={{ color: "#fff" }}
