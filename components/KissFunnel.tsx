@@ -202,6 +202,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const runRef = useRef(0);
+  // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
+  // Kunde wurde ausgeraubt" / „springt wieder auf unlock video"). Siehe Ablauf weiter unten.
+  const [bezahlt, setBezahlt] = useState(false);
+  const rueckkehrRef = useRef(false);
   const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
   const resultRef = useRef<HTMLDivElement>(null); // Radar/Ergebnis — der Screen springt dorthin
@@ -274,6 +278,51 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     } catch { /**/ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * RUECKKEHR VON DER KASSE — der Kunde darf NIE bezahlt und mit leeren Haenden dastehen.
+   *
+   * Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der Kunde wurde
+   * ausgeraubt … springt wieder auf unlock video statt dass er das Video weiter rendert."
+   *
+   * Ursache: Der Kaufweg oeffnet Stripe in einem zweiten Fenster und wartet dort auf die
+   * Bestaetigung. Blockiert der Browser dieses Fenster — auf dem Handy die Regel —, leitet
+   * die Seite IM SELBEN Fenster weiter (`window.location.href = start.url`). Nach der Zahlung
+   * kommt er mit `?paid=1&cs=<Sitzung>` zurueck, die Seite laedt NEU, der wartende Ablauf ist
+   * weg. Uebrig bleibt das gemerkte Bild samt Kaufknopf: bezahlt, und wieder „Unlock 9,99".
+   *
+   * Zwei getrennte Schritte, weil das Bild aus dem Geraetespeicher spaeter zurueckkommt als
+   * diese Pruefung: erst die Zahlung bestaetigen, dann liefern, sobald das Bild da ist.
+   */
+  useEffect(() => {
+    if (rueckkehrRef.current) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("paid") !== "1") return;
+    const cs = q.get("cs") ?? "";
+    if (!cs || cs.startsWith("{")) return;      // Platzhalter nicht ersetzt → nichts zu pruefen
+    rueckkehrRef.current = true;
+    setStatus("Payment received — preparing your video …");
+    void (async () => {
+      const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`)
+        .then(r => r.json()).catch(() => null);
+      if (!st?.paid) { setStatus(""); rueckkehrRef.current = false; return; }
+      // Sitzungsnummer aus der Adresszeile nehmen: sie gehoert nicht in den Verlauf, und ein
+      // Neuladen soll die Lieferung nicht ein zweites Mal ausloesen.
+      q.delete("paid"); q.delete("cs");
+      const rest = q.toString();
+      window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
+      setBezahlt(true);
+      setSchritt(4);
+      setVideoShow(false); setVideoReif(false);   // NICHT wieder die Kaufknoepfe zeigen
+    })();
+  }, []);
+
+  // Bezahlt — liefern, sobald das Bild aus dem Geraetespeicher zurueck ist.
+  useEffect(() => {
+    if (!bezahlt || !bild || videoUrl || videoBusy) return;
+    void zuVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bezahlt, bild, videoUrl, videoBusy]);
 
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
