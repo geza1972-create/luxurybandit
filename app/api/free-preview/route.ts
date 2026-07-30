@@ -217,9 +217,9 @@ export async function POST(request: Request) {
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : [
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
-    body.surprise
-      ? "Generate ONE photorealistic image showing BOTH people together in the same scene, close together, sharing a warm kiss."
-      : "Generate ONE photorealistic image showing BOTH people together in the same scene, standing side by side and smiling at each other.",
+    // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
+    // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
+    "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination, embracing each other and smiling, happy and relaxed.",
     szene
       ? `Setting: ${szene}.`
       : theme === "holiday" || theme === "bella"
