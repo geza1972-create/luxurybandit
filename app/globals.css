@@ -391,3 +391,14 @@ svg {
 .lb-fb [data-oncard="1"],
 .lb-fb [data-oncard="1"] *,
 .lb-fb [data-oncard="1"] svg { color: #fff !important; stroke: #fff !important; }
+
+/* UMRANDETE KNÖPFE IN DER HELLEN FASSUNG (Owner 30.07.2026: „der rechte button ist weiss").
+   Diese Knöpfe tragen ihre weisse Schrift als inline-style — gedacht für dunklen Grund, auf
+   hellem verschwinden sie. Ein !important im Stylesheet sticht einen einfachen inline-style,
+   deshalb greift es hier. Rand dunkel, Schrift blau; gefüllte Knöpfe bleiben unberührt. */
+.lb-fb button[class*="border-white/"]:not(.lb-gold):not(.lb-buy),
+.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy) {
+  color: #1877F2 !important;
+  border-color: rgba(24, 119, 242, 0.45) !important;
+  background-color: rgba(24, 119, 242, 0.06) !important;
+}
