@@ -25,6 +25,7 @@ const KISS_LIST = "kiss";
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
+    pending?: boolean;   // Erzeugung gescheitert — wir melden uns, sobald es klappt
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
         name: String(body.name ?? "").trim().slice(0, 120) || email.split("@")[0],
         email,
         lang: dialInfo("")?.lang || lang,
-        note: `Kiss · Gratis-Bild${device ? ` · ${device}` : ""}`,
+        note: `Kiss · ${body.pending ? "gescheitert" : "Gratis-Bild"}${device ? ` · ${device}` : ""}`,
         createdAt: new Date().toISOString(),
       };
       await writeWetterSubscribers([eintrag, ...liste], KISS_LIST);
@@ -84,15 +85,28 @@ export async function POST(request: Request) {
    * sich dort an.
    */
   const galerie = `${origin}/my-gallery`;
+  /**
+   * AUCH WENN NICHTS HERAUSKAM (Owner 30.07.2026: „wieso habe ich seine E-Mail nicht?").
+   *
+   * Vier von zehn echten Besuchern haben heute ihr Foto hochgeladen und nie ein Bild
+   * bekommen — einer versuchte es dreimal. Gefragt wurde nach der Adresse aber erst NACH dem
+   * fertigen Bild. Ausgerechnet die Hartnäckigsten hinterliessen so keine Spur.
+   *
+   * Jetzt bekommt auch der Gescheiterte ein Feld — und eine andere Mail: kein „hier ist dein
+   * Bild", sondern ein ehrliches „wir melden uns, sobald es fertig ist".
+   */
+  const wartend = body.pending === true || !bildUrl;
   const html =
     `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
     + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
-    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">Your picture is ready</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">${wartend ? "We are on it" : "Your picture is ready"}</td></tr>`
     + (bildUrl ? `<tr><td style="padding:0 22px 14px"><img src="${bildUrl}" width="476" style="width:100%;border-radius:12px;display:block" alt=""></td></tr>` : "")
     + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
-    + `It is saved in your gallery — together with everything you make next.`
+    + (wartend
+      ? `It did not come through this time — we are looking into it and send you your picture as soon as it is ready.`
+      : `It is saved in your gallery — together with everything you make next.`)
     + `</td></tr>`
     + `<tr><td style="padding:0 22px 8px"><a href="${galerie}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch my gallery</a></td></tr>`
     + `<tr><td style="padding:0 22px 20px;color:#8d8579;font-size:12px;line-height:1.5">`
@@ -102,7 +116,7 @@ export async function POST(request: Request) {
 
   const mail = await sendEmail({
     to: email,
-    subject: "Your picture is ready ✨",
+    subject: wartend ? "We are on it ✨" : "Your picture is ready ✨",
     html,
     listUnsubscribe: `${origin}/api/wetter-unsubscribe?model=${KISS_LIST}&s=`,
   }).catch(() => ({ ok: false }));

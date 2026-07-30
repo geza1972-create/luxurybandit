@@ -144,6 +144,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // GRATIS AUFGEBRAUCHT — aber kein Sackgassen-Text (Owner 30.07.2026: „bei der Sperre muss
   // doch ein Button kommen für Abo oder Video für 9,99 … sonst macht er nicht weiter").
   const [gesperrt, setGesperrt] = useState(false);
+  // GESCHEITERT — aber nicht verloren (Owner 30.07.2026). Statt einer stummen Fehlermeldung
+  // ein Feld: dann bekommt er sein Bild nachgereicht, und wir bekommen die Adresse.
+  const [gescheitert, setGescheitert] = useState(false);
   // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
   // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
   // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
@@ -346,8 +349,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (runRef.current !== token) return;
       // 429 = Gratis-Bild schon genutzt. Nicht als Fehler zeigen, sondern als Angebot.
       if (r.status === 429 || d?.limit) { setGesperrt(true); setStatus(""); setBusy(false); return; }
-      if (!r.ok || !d.image) { setStatus(d?.error ?? "That did not work."); setBusy(false); return; }
-      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setBusy(false); setStatus("");
+      if (!r.ok || !d.image) {
+        setStatus(d?.error ?? "That did not work.");
+        setGescheitert(true); setBusy(false);
+        setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+        return;
+      }
+      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setGescheitert(false); setBusy(false); setStatus("");
       // SOFORT MERKEN, nicht erst nach der Adresse (Owner 30.07.2026: „das rendering ist
       // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
       // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
@@ -411,11 +419,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, imagePath: bildPfad, device, genId }),
+        body: JSON.stringify({ email: e, imagePath: bildPfad, device, genId, pending: gescheitert }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
       setFrei(true); setMailBusy(false);
+      if (gescheitert) { setGescheitert(false); setStatus("Thanks — we will send it to you."); }
       void merken(bild, bildPfad, genId, true);   // ab jetzt übersteht es Kasse und „Zurück"
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
@@ -671,6 +680,32 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         )}
 
         {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
+        {/* GESCHEITERT → Adresse einsammeln statt stumm scheitern. Vier von zehn echten
+            Besuchern haben heute hochgeladen und nichts bekommen; gefragt wurde erst nach dem
+            fertigen Bild, also hinterliessen ausgerechnet sie keine Spur. */}
+        {gescheitert && !bild && !videoUrl && (
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-white/15 bg-white/[0.05] p-5 text-center">
+            <p className="text-[16px] font-black text-white">That did not come through</p>
+            <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
+              Leave your email — we send you your picture as soon as it is ready.
+            </p>
+            <input value={mail} onChange={e => setMail(e.target.value)} type="email"
+              inputMode="email" autoComplete="email" placeholder="you@email.com"
+              onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
+              className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold text-white outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+            <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
+              className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+              {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {mailBusy ? "One moment …" : "Send it to me"}
+            </button>
+            <button type="button" onClick={() => { setGescheitert(false); void generate(); }}
+              style={{ color: "#fff" }}
+              className="mt-2 flex h-10 w-full items-center justify-center rounded-full border border-white/30 text-[12px] font-black active:scale-95 transition">
+              Or try again
+            </button>
+          </div>
+        )}
+
         {/* GRATIS AUFGEBRAUCHT → sofort weiter, nicht abwürgen. Ein Satz „schon genutzt"
             ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
         {gesperrt && !bild && !videoUrl && (

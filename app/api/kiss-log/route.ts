@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
-import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, type KissLogEntry } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,11 +12,31 @@ export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   const entries = await readKissLog();
   // Signierte Adressen dazu, damit das Werkzeug die Bilder direkt anzeigen kann.
+  /**
+   * KATALOG-FRAUEN HABEN KEIN GESPEICHERTES FOTO (Owner 30.07.2026: „wieso sehe ich sein
+   * Upload nicht bei SIE"). Gespeichert wird nur, was der Besucher selbst hochlädt — bei
+   * einer unserer Frauen wäre das eine sinnlose Kopie. Fürs Werkzeug lösen wir das Foto
+   * deshalb beim Anzeigen über die Model-Kennung auf; dann ist die Spalte immer gefüllt.
+   */
+  const katalog = new Map<string, string>();
+  try {
+    const st = await readTryThisLookState();
+    for (const c of (st.curators ?? []) as { id?: string; photoPath?: string; photoUrl?: string }[]) {
+      if (c?.id && (c.photoPath || c.photoUrl)) katalog.set(String(c.id), String(c.photoPath || c.photoUrl));
+    }
+  } catch { /* ohne Katalog bleibt die Spalte eben leer */ }
+
   const mitBildern = await Promise.all(entries.map(async e => ({
     ...e,
     imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
     personUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
-    modelUrl: e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "",
+    modelUrl: e.modelPath
+      ? await getSignedUrl(e.modelPath).catch(() => "")
+      : await (async () => {
+          const p = e.modelId ? katalog.get(String(e.modelId)) : "";
+          if (!p) return "";
+          return p.startsWith("http") ? p : await getSignedUrl(p).catch(() => "");
+        })(),
   })));
   return NextResponse.json({ entries: mitBildern });
 }
