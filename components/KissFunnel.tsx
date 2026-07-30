@@ -54,11 +54,22 @@ async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<st
 }
 
 // Die Render-Show: gestaffelte Status-Texte, damit es sich wie eine echte Generierung anfühlt.
+// DIE TEXTE MÜSSEN SO LANGE LAUFEN WIE DIE ERZEUGUNG (Owner 30.07.2026: „ich habe auf
+// generate picture geklickt, dann kam das Rendern und ist dann verschwunden").
+//
+// Nichts war verschwunden — das Bild kam nach rund 40 Sekunden. Nur liefen die Texte in 14
+// Sekunden durch, danach stand „Finishing touches …" eine halbe Minute unverändert da. Das
+// liest sich wie abgestürzt, und man geht weg. Gemessen: 25–45 s je nach Anlauf (bei einer
+// abgewiesenen Vorlage kommt der Gesichtsausschnitt als zweiter Versuch dazu).
 const RENDER_STEPS: [number, string][] = [
   [0, "Analyzing your photo …"],
   [4000, "Matching the two of you …"],
   [9000, "Rendering the kiss …"],
-  [14000, "Finishing touches …"],
+  [15000, "Getting the light right …"],
+  [21000, "Almost there …"],
+  [28000, "Finishing touches …"],
+  [36000, "Any second now …"],
+  [46000, "Still working — hang on …"],
 ];
 const RENDER_MS = 17000; // Gesamtdauer der Show (~17 s)
 

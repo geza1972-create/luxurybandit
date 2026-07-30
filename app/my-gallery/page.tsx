@@ -18,6 +18,7 @@ type Item = {
   curatorId?: string;
   curatorName?: string;
   garment?: string;   // manuell zugewiesen: "lingerie" | "normal"
+  source?: string;    // "kiss" | "kiss-upload" — nur die darf der Besitzer selbst löschen
   feed?: boolean;
   public?: boolean;
 };
@@ -84,6 +85,29 @@ export default function MyGalleryPage() {
     clearSel();
   };
 
+  /**
+   * SEIN EIGENES LÖSCHEN (Owner 30.07.2026: „kann er sie auch löschen?").
+   *
+   * Der Sammel-Löscher darüber ist admin-gebunden. Ein Kunde muss seine eigenen Stücke
+   * loswerden können, ohne uns zu fragen — die Route lässt es zu, wenn Gerät oder
+   * angemeldete Adresse zum Eintrag passen.
+   */
+  const eigenesLoeschen = async (it: Item) => {
+    const id = it.id.replace(/-foto$/, "");
+    if (typeof window !== "undefined" && !window.confirm("Dieses Bild endgültig löschen?")) return;
+    setItems(list => list.filter(x => x.id !== it.id && x.id !== `${id}-foto` && x.id !== id));
+    try {
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const tok = getStoredAuthSession()?.access_token ?? "";
+      await fetch("/api/kiss-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+        body: JSON.stringify({ remove: id, device }),
+      });
+    } catch { /**/ }
+  };
+
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "slide">("all");          // Videos vs. Slides
   const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "normal" | "reise">("all");
@@ -144,12 +168,13 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
+              source: b.source || "kiss",
             }))
             .filter((b: Item) => b.imageUrl || b.videoUrl);
           own.push(...bilder);

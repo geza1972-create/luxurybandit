@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, type KissLogEntry } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
@@ -22,9 +23,27 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string };
 
-  // Admin: einen Eintrag löschen.
+  /**
+   * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
+   *
+   * Besitzer heisst: dasselbe Gerät wie beim Hochladen, oder ein angemeldetes Konto mit
+   * derselben E-Mail. Ohne diese Prüfung könnte jeder fremde Bilder löschen, indem er eine
+   * Kennung rät.
+   */
   if (body.remove) {
-    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    if (!admin) {
+      const alleJetzt = await readKissLog();
+      const ziel = alleJetzt.find(e => e.id === body.remove);
+      const geraet = String(body.device ?? "").trim();
+      const konto = await getSellerFromRequest(request).catch(() => null);
+      const mail = String(konto?.email ?? "").trim().toLowerCase();
+      const darf = !!ziel && (
+        (!!geraet && ziel.device === geraet) ||
+        (!!mail && String(ziel.email ?? "").toLowerCase() === mail)
+      );
+      if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    }
     const alle = await readKissLog();
     const weg = alle.find(e => e.id === body.remove);
     const entries = alle.filter(e => e.id !== body.remove);
