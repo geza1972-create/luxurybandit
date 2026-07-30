@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fillPrices } from "@/lib/pricing";
 import { Play, Download, X, Loader2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -264,6 +265,24 @@ export default function MyGalleryPage() {
           )}
         </div>
         <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
+
+        {/* WERBUNG FÜRS VIDEO, direkt hier (Owner 30.07.2026: „dort machen wir Werbung noch
+            für turn into Video"). Wer aus der Mail kommt, hat sein Bild vor sich — das ist
+            der Moment für den nächsten Schritt, nicht die Themenübersicht. Nur zeigen, wenn
+            er auch etwas hat; eine leere Galerie mit Werbung wäre nur Lärm. */}
+        {!pin && items.length > 0 && (
+          <a href="/themes/kiss"
+            className="mt-3 flex items-center gap-3 rounded-2xl border border-[#f6cf51]/35 bg-[#f6cf51]/[0.07] p-3.5 active:scale-[0.99] transition">
+            <span className="text-[22px]">🔥</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-black text-white">Turn it into a hot video</span>
+              <span className="mt-0.5 block text-[12px] font-bold leading-snug text-white/70">
+                {fillPrices("See the two of you move — {once}, one-off.")}
+              </span>
+            </span>
+            <span className="lb-gold shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black">Go →</span>
+          </a>
+        )}
 
         {(pin || token) && items.length > 0 && (
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Model suchen — z. B. Bella"

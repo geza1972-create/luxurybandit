@@ -74,7 +74,16 @@ export async function POST(request: Request) {
   let bildUrl = "";
   if (imagePath.startsWith("try-this-look/")) bildUrl = await getSignedUrl(imagePath, 60 * 60 * 24 * 30).catch(() => "");
 
-  const konto = `${origin}/account?email=${encodeURIComponent(email)}&setpw=1`;
+  /**
+   * DER KNOPF FÜHRT IN SEINE GALERIE (Owner 30.07.2026: „hier muss stehen Watch my Gallery
+   * und dann springt er dorthin").
+   *
+   * BEWUSST OHNE die Adresse in der Zeile: eine E-Mail-Adresse in einer URL landet im
+   * Verlauf, in Weiterleitungen und in fremden Protokollen. Auf demselben Gerät findet die
+   * Galerie seine Bilder ohnehin über die Gerätekennung; von einem anderen Gerät meldet er
+   * sich dort an.
+   */
+  const galerie = `${origin}/my-gallery`;
   const html =
     `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
@@ -83,9 +92,12 @@ export async function POST(request: Request) {
     + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">Your picture is ready</td></tr>`
     + (bildUrl ? `<tr><td style="padding:0 22px 14px"><img src="${bildUrl}" width="476" style="width:100%;border-radius:12px;display:block" alt=""></td></tr>` : "")
     + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
-    + `Set a password and it stays in your gallery — together with everything you make next.`
+    + `It is saved in your gallery — together with everything you make next.`
     + `</td></tr>`
-    + `<tr><td style="padding:0 22px 20px"><a href="${konto}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Set my password</a></td></tr>`
+    + `<tr><td style="padding:0 22px 8px"><a href="${galerie}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch my gallery</a></td></tr>`
+    + `<tr><td style="padding:0 22px 20px;color:#8d8579;font-size:12px;line-height:1.5">`
+    + `Want to see the two of you move? Turn it into a hot video right there.`
+    + `</td></tr>`
     + `</table></td></tr></table></div>`;
 
   const mail = await sendEmail({
