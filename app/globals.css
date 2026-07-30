@@ -332,8 +332,13 @@ svg {
 
    NUR in dieser Fassung. Das Gold bleibt die Marke; blau ist die Brücke für den bezahlten
    Verkehr. Deshalb eine eigene Klasse neben .lb-theme und keine Änderung am Gold selbst. */
-.lb-fb [data-topnav="1"] { background-color: #1877F2 !important; border-bottom-color: rgba(255,255,255,0.18) !important; }
-.lb-fb [data-topnav="1"] * { color: #fff !important; }
+/* NUR die obere Zeile ist blau — die Sprachzeile liegt im selben <header>, deshalb liess sie
+   sich nicht per CSS „darunter" schieben (Owner 30.07.2026: „die sprachen sind immer noch im
+   header"). Also faerben wir die Leiste selbst nicht mehr, sondern ihre erste Zeile; die
+   Sprachzeile steht damit optisch unter dem blauen Band. */
+.lb-fb [data-topnav="1"] { background-color: transparent !important; border-bottom-color: rgba(0,0,0,0.08) !important; }
+.lb-fb [data-topnav="1"] > div:first-of-type { background-color: #1877F2 !important; }
+.lb-fb [data-topnav="1"] > div:first-of-type * { color: #fff !important; }
 
 .lb-fb .lb-gold,
 .lb-fb .lb-buy { background: #1877F2 !important; background-image: none !important; color: #fff !important; }
@@ -349,6 +354,7 @@ svg {
 /* Sprachwahl UNTER die blaue Leiste (Owner 30.07.2026). In der Kopfleiste konkurriert sie
    mit Logo und Symbolen; darunter steht sie ruhig und stört den ersten Eindruck nicht. */
 .lb-fb [data-topnav="1"] { padding-bottom: 0; }
+.lb-fb [data-topnav="1"] > div:first-of-type { padding-left: 1rem; padding-right: 1rem; }
 .lb-fb [data-langrow="1"] {
   background: transparent;
   padding-top: 0.5rem;
