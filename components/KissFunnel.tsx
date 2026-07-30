@@ -1056,8 +1056,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
               <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
-                <Sparkles className="h-4 w-4 animate-pulse" />
-                <span className="text-[12px] font-black">{status || "Rendering …"}</span>
+                {/* `lb-onmedia` statt einer eigenen Farbe (Owner 30.07.2026: „die Schrift ist
+                    immer noch unlesbar in schwarz"). Die Zeile hatte GAR KEINE Farbe und erbte
+                    deshalb die dunkle der hellen Fassung — auf einem dunklen Bild also schwarz
+                    auf schwarz. `lb-onmedia` ist die einzige Klasse, die in beiden Fassungen
+                    weiss erzwingt UND von der Blau-Regel in .lb-fb ausgenommen ist; ein inline
+                    `#fff` waere dort zu Blau umgefaerbt worden. */}
+                <Sparkles className="lb-onmedia h-4 w-4 animate-pulse" />
+                <span className="lb-onmedia text-[12px] font-black">{status || "Rendering …"}</span>
               </div>
             </div>
           </div>
