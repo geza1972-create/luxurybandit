@@ -1092,7 +1092,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
         {/* GRATIS AUFGEBRAUCHT → sofort weiter, nicht abwürgen. Ein Satz „schon genutzt"
             ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
-        {gesperrt && !bild && !videoUrl && (
+        {gesperrt && !isStaff && !bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
             <p className="text-[16px] font-black text-white">Your free picture is used up</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
@@ -1103,9 +1103,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
               {fillPrices("Make a real kiss video — {once}")}
             </button>
+            {/* VOLLE WEISSE FLAECHE (Owner 30.07.2026: „Unlock kann ich nicht lesen, es steht
+                in blau auf blau"). Ein umrandeter Knopf uebernimmt die Schriftfarbe der
+                Umgebung — auf dem blauen Kasten heisst das blau auf blau. Weisse Flaeche mit
+                dunkler Schrift liest sich auf jedem Grund; dieselbe Loesung wie beim
+                Kauf-Knopf auf dem Foto. */}
             <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
-              style={{ color: "#fff" }}
-              className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/40 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+              style={{ background: "#fff", color: "#1a160f" }}
+              className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
               {fillPrices("Unlock everything — {price}/month")}
             </button>
             <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
