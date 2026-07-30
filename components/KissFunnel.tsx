@@ -200,7 +200,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
    */
   const MERK_KEY = `lb_kiss_ergebnis_${variant}`;
 
-  const merken = async (dataUrl: string, pfad: string, id: string) => {
+  const merken = async (dataUrl: string, pfad: string, id: string, frei = false) => {
     try {
       // Verkleinert ablegen: der Ablageplatz im Browser fasst nur wenige Megabyte.
       const img = await new Promise<HTMLImageElement>((res, rej) => {
@@ -211,7 +211,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
       c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
       localStorage.setItem(MERK_KEY, JSON.stringify({
-        bild: c.toDataURL("image/jpeg", 0.82), pfad, id, at: Date.now(),
+        bild: c.toDataURL("image/jpeg", 0.82), pfad, id, frei, at: Date.now(),
       }));
     } catch { /* kein Platz → dann eben nur für diese Sitzung */ }
   };
@@ -220,11 +220,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     try {
       const roh = localStorage.getItem(MERK_KEY);
       if (!roh) return;
-      const d = JSON.parse(roh) as { bild?: string; pfad?: string; id?: string; at?: number };
+      const d = JSON.parse(roh) as { bild?: string; pfad?: string; id?: string; frei?: boolean; at?: number };
       // Nach 24 Stunden nicht mehr — sonst sieht er beim nächsten Besuch ein altes Ergebnis.
       if (!d?.bild || (d.at && Date.now() - d.at > 86_400_000)) { localStorage.removeItem(MERK_KEY); return; }
       setBild(d.bild); setBildPfad(d.pfad ?? ""); setGenId(d.id ?? "");
-      setFrei(true);   // die Adresse lag schon vor, sonst wäre es nie sichtbar gewesen
+      // `frei` nur, wenn die Adresse damals wirklich kam — sonst käme der Kunde durch
+      // Neuladen am E-Mail-Feld vorbei.
+      setFrei(!!d.frei);
     } catch { /**/ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -327,6 +329,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       if (r.status === 429 || d?.limit) { setGesperrt(true); setStatus(""); setBusy(false); return; }
       if (!r.ok || !d.image) { setStatus(d?.error ?? "That did not work."); setBusy(false); return; }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setBusy(false); setStatus("");
+      // SOFORT MERKEN, nicht erst nach der Adresse (Owner 30.07.2026: „das rendering ist
+      // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
+      // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
+      // neu lädt. Jetzt wird es abgelegt, sobald es da ist — für jeden.
+      void merken(d.image, d.imagePath ?? "", genId, isStaff);
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Das Ergebnis an den Eintrag hängen, der beim Hochladen entstanden ist. Nur wenn
       // keiner existiert (z. B. Foto aus einer früheren Sitzung), einen neuen anlegen.
@@ -373,7 +380,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
       setFrei(true); setMailBusy(false);
-      void merken(bild, bildPfad, genId);   // ab jetzt übersteht es Kasse und „Zurück"
+      void merken(bild, bildPfad, genId, true);   // ab jetzt übersteht es Kasse und „Zurück"
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     } catch { setStatus("Network error."); setMailBusy(false); }
@@ -503,7 +510,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                       <div className="relative flex h-full w-full flex-col items-center justify-center gap-2 bg-[#241c11] px-3 text-center">
                         {V.upPlaceholder && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={V.upPlaceholder} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-25 grayscale" />
+                          // DEUTLICHER (Owner 30.07.2026: „Bild von Frau, das muss deutlicher
+                          // werden"). Vorher 25 % und grau — man erkannte kaum, dass dort eine
+                          // Frau hingehört. Jetzt 70 % und in Farbe, dazu ein dunkler Verlauf,
+                          // damit die Schrift darüber lesbar bleibt.
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={V.upPlaceholder} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-70" />
+                            <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/45" />
+                          </>
                         )}
                         <ImageUp className="relative h-9 w-9 text-[#f6cf51]" />
                         <span className="relative text-[13px] font-black text-[#f6cf51]">{V.upTitle}</span>
