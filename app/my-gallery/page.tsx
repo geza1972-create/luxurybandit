@@ -194,7 +194,14 @@ export default function MyGalleryPage() {
       .then(async d => {
         const raw = Array.isArray(d.posts) ? d.posts : Array.isArray(d.userGallery) ? d.userGallery : [];
         const vids: Item[] = (raw as Item[]).filter(v => v.videoUrl || v.imageUrl).map(v => ({ ...v, type: "video" as const }));
-        setItems(vids);
+        // ERGÄNZEN, NICHT ERSETZEN (Owner 30.07.2026: „es waren kurz alle Bilder zu sehen,
+        // dann verschwunden"). Die Seite lädt zweimal: erst seine Kiss-Bilder aus
+        // /api/my-videos, danach die Try-On-Liste. Ein `setItems(vids)` warf die erste
+        // Ladung weg — genau das sah man: kurz da, dann fort.
+        setItems(prev => {
+          const behalten = prev.filter(x => !vids.some((v: Item) => v.id === x.id));
+          return [...behalten, ...vids];
+        });
         // Admin: zusätzlich die Card-Studio-Slides (Urlaub/Peter-Fotos) je Model anhängen —
         // damit ALLE Inhalte + Freigabe an EINEM Ort stehen. Slide: public = nicht privat.
         if (!pin) return;
@@ -317,7 +324,7 @@ export default function MyGalleryPage() {
         ) : (!pin && !token) ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/50">Melde dich an, um deine Try-ons zu sehen.</p>
         ) : items.length === 0 ? (
-          <p className="py-16 text-center text-[13px] font-bold text-white/40">Noch keine Videos.</p>
+          <p className="py-16 text-center text-[13px] font-bold text-white/40">Noch nichts hier — mach dein erstes Bild.</p>
         ) : shown.length === 0 ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Keine Treffer für „{query}".</p>
         ) : (
