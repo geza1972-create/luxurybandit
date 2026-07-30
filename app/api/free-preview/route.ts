@@ -128,17 +128,20 @@ export async function POST(request: Request) {
    * Die Liste hier gab es zwar schon, wirkte aber nur im Überraschungs-Modus, den der
    * Trichter nie benutzt. Jetzt wird für JEDE Erzeugung gewürfelt.
    */
+  // KEIN „warm", KEIN Schnee (Owner 30.07.2026: „sag bloss nicht warme Szene, sonst denkt er
+  // es ist Winter"). Solche Wörter ziehen Mäntel und Winterkleidung nach sich — genau das
+  // Gegenteil von dem, was diese Bilder zeigen sollen. Alle Orte sind sommerlich oder mild.
   const SZENEN = [
-    "at golden hour on a Mediterranean terrace above the sea",
-    "on a quiet beach at sunset, warm light",
-    "in a sunlit old town street with flowers on the walls",
-    "on a wooden pier over turquoise water, late afternoon",
-    "in a candlelit rooftop bar at night, city lights behind them",
-    "in a green park in spring, soft daylight through the trees",
-    "on a snowy street with warm shop windows behind them",
-    "in a cosy café by the window, morning light",
+    "at golden hour on a Mediterranean terrace above the sea, summer",
+    "on a sunny beach at sunset, summer evening",
+    "in a sunlit old town street with flowers on the walls, summer",
+    "on a wooden pier over turquoise water, late afternoon in summer",
+    "in a rooftop bar at night in summer, city lights behind them",
+    "in a green park on a bright summer day, sunlight through the trees",
+    "in a garden full of flowers on a bright summer day",
+    "in a café with an open window, bright summer morning",
     "at a summer festival with paper lanterns overhead",
-    "on a balcony over the old town at blue hour",
+    "on a balcony over the old town at blue hour in summer",
   ];
   let kandidaten: string[] = [];
   // Für JEDE Erzeugung eine Szene würfeln, nicht nur bei der Überraschung.
@@ -221,7 +224,7 @@ export async function POST(request: Request) {
       ? `Setting: ${szene}.`
       : theme === "holiday" || theme === "bella"
         ? "Setting: a sunny seaside terrace with the ocean behind them, warm natural daylight."
-        : "Setting: a warm, softly lit evening scene with gentle glowing lights behind them.",
+        : "Setting: a softly lit summer evening with gentle glowing lights behind them.",
     "Preserve BOTH faces, hairstyles and skin tones exactly as in the reference photos — it must clearly be the same two people. An input photo may show only a face or head-and-shoulders; if so, extend it naturally into a full figure that matches their apparent age and build.",
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
