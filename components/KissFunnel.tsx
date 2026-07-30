@@ -909,9 +909,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                       {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                       {fillPrices("Watch my kiss video — {once}")}
                     </button>
+                    {/* VOLLE WEISSE FLÄCHE statt durchsichtig (Owner 30.07.2026: „ich kann den
+                        Button nicht lesen. Es muss weiss sein oder den Button nicht
+                        transparent machen sondern weiss"). Auf einem Foto ist ein
+                        durchsichtiger Knopf nie zuverlässig lesbar — das Motiv darunter
+                        entscheidet. Weisse Fläche mit dunkler Schrift liest sich auf jedem
+                        Bild, in der hellen wie in der dunklen Fassung. */}
                     <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
-                      style={{ color: "#fff" }}
-                      className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-white/40 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                      style={{ background: "#fff", color: "#1a160f" }}
+                      className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
                       {fillPrices("Or unlock everything — {price}/month")}
                     </button>
                   </div>
