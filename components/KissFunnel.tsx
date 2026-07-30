@@ -6,6 +6,8 @@ import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react
 import { renewNote, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
+import { tryonPrompt } from "@/lib/tryon-prompt";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
@@ -205,6 +207,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
   // Kunde wurde ausgeraubt" / „springt wieder auf unlock video"). Siehe Ablauf weiter unten.
   const [bezahlt, setBezahlt] = useState(false);
+  // AUSWAHL NACH DER ZAHLUNG (Owner 30.07.2026: „ich habe gar nicht die Chance gehabt die
+  // Klamotten fuer sie auszuwaehlen"). Wer bezahlt hat, sucht sich Kleid, seine Sachen und
+  // die Szene aus — ohne zweite Kasse: „und gratis natuerlich, er hat doch bezahlt".
+  const [wahl, setWahl] = useState(false);
+  const [looks, setLooks] = useState<{ id: string; name?: string; imageUrl?: string }[]>([]);
+  const [nurKleidung, setNurKleidung] = useState<string[] | null>(null);
+  const [ihrLook, setIhrLook] = useState("");     // "" = wie auf ihrem Foto
+  const [seinLook, setSeinLook] = useState("");   // "" = SEINE Originalkleidung (vorbelegt)
+  const [szeneId, setSzeneId] = useState("");     // "" = automatisch eine aussuchen
   const rueckkehrRef = useRef(false);
   const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
@@ -318,12 +329,20 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     })();
   }, []);
 
-  // Bezahlt — liefern, sobald das Bild aus dem Geraetespeicher zurueck ist.
+  // Bezahlt — jetzt darf er aussuchen. Der Kleiderschrank wird ERST hier geladen, nicht
+  // fuer jeden Besucher: die Liste interessiert nur den, der schon bezahlt hat.
   useEffect(() => {
-    if (!bezahlt || !bild || videoUrl || videoBusy) return;
-    void zuVideo();
+    if (!bezahlt || videoUrl || videoBusy || wahl) return;
+    setWahl(true);
+    void Promise.all([
+      fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+      fetch("/api/wardrobe-garments", { cache: "no-store" }).then(r => r.json()).catch(() => ({ ids: null })),
+    ]).then(([l, w]) => {
+      setLooks(Array.isArray(l?.looks) ? l.looks : []);
+      setNurKleidung(Array.isArray(w?.ids) ? w.ids.map(String) : null);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bezahlt, bild, videoUrl, videoBusy]);
+  }, [bezahlt, videoUrl, videoBusy]);
 
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
@@ -365,6 +384,9 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
+  // Nur echte KLEIDUNGSfotos in die Auswahl — die Liste trennt Kleidung von Fotos, auf
+  // denen eine fremde Frau steht. Fehlt sie, zeigen wir alles statt nichts.
+  const kleidung = looks.filter(l => !!l.imageUrl && (!nurKleidung || nurKleidung.includes(l.id))).slice(0, 24);
   const selName = useCustom ? V.upTitle : (picked?.name ?? "");
   const selId = useCustom ? "custom" : (picked?.id ?? "");
 
@@ -545,6 +567,75 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     ];
     for (const [at, t] of schritte) setTimeout(() => setStatus(t), at);
     setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 6800);
+  };
+
+  /**
+   * ANZIEHEN ueber FASHN — nicht ueber OpenAI (Owner 30.07.2026: „das geht nicht ueber
+   * OpenAI. Dann wird das ganze Bild von ihr an FASHN weitergegeben, weil FASHN das
+   * annimmt"). OpenAI prueft am EINGANG und weist Lingerie ab, bevor der Auftrag gelesen
+   * wird; FASHN nimmt dasselbe Foto an. Scheitert es trotzdem, laeuft es mit dem
+   * Ausgangsfoto weiter — der Kunde hat bezahlt und bekommt auf keinen Fall nichts.
+   */
+  const anziehen = async (wen: string, look: { id: string; name?: string; imageUrl?: string } | undefined, text: string) => {
+    if (!look?.imageUrl || !wen) return wen;
+    setStatus(text);
+    try {
+      const toFile = async (src: string, name: string) => new File([await (await fetch(src)).blob()], name, { type: "image/jpeg" });
+      const fd = new FormData();
+      fd.append("modelImage", await toFile(wen, "person.jpg"));
+      fd.append("image", await toFile(look.imageUrl, "garment.jpg"));
+      fd.append("lookId", look.id);
+      fd.append("mode", "fashion-model");
+      fd.append("aspectRatio", "9:16");
+      fd.append("prompt", tryonPrompt({ garment: look.name || "" }));
+      const d = await fetch("/api/generate-fashn", {
+        method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
+      }).then(r => r.json());
+      return (d?.image || d?.imageUrl || wen) as string;
+    } catch { return wen; }
+  };
+
+  /**
+   * DAS BEZAHLTE VIDEO — erst anziehen, dann filmen.
+   *
+   * Reihenfolge ist Pflicht: `holidayPrompt` nennt @image1 (den Mann) zuerst, und Pixverse
+   * ordnet das erste Token dem ersten Bildplatz zu. Also SEIN Foto als `person`, ihr
+   * angezogenes als `garment`. Wer nur die Token tauscht, bekommt zwei Maenner.
+   */
+  const kussVideo = async () => {
+    if (videoBusy || !selPhoto || !photo) return;
+    setWahl(false); setVideoBusy(true); setStatus("");
+    const token = Date.now(); runRef.current = token;
+    // Keine Szene gewaehlt? Dann nimmt das System eine — „wenn er keine auswaehlt, dann
+    // irgendeine automatisch". Er wartet nie wegen einer Pflichtangabe.
+    const szene: HolidayScene = HOLIDAY_SCENES.find(x => x.id === szeneId)
+      ?? HOLIDAY_SCENES[Math.floor(Date.now() / 1000) % HOLIDAY_SCENES.length];
+    try {
+      const ihr = await anziehen(selPhoto, looks.find(l => l.id === ihrLook), "Dressing her …");
+      if (runRef.current !== token) return;
+      const sein = await anziehen(photo, looks.find(l => l.id === seinLook), "Getting you ready …");
+      if (runRef.current !== token) return;
+      setStatus("Rendering your video … (~1–3 min)");
+      const start = await fetch("/api/generate-tryon-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene) }),
+      }).then(r => r.json());
+      if (!start?.videoId) { setStatus(start?.error ?? "Could not start."); setVideoBusy(false); setWahl(true); return; }
+      for (let i = 0; i < 90; i++) {
+        await new Promise(res => setTimeout(res, 4000));
+        if (runRef.current !== token) return;
+        setStatus(`Making your video … (${Math.round((i + 1) * 4)} s)`);
+        const q = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
+        if (q?.status === "done" && q.videoUrl) {
+          setVideoUrl(q.videoUrl); setStatus(""); setVideoBusy(false);
+          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: q.videoUrl }) }); } catch { /**/ }
+          return;
+        }
+        if (q?.status === "failed") { setStatus(q.error || "The video failed."); setVideoBusy(false); setWahl(true); return; }
+      }
+      setStatus("Timeout — please try again."); setVideoBusy(false); setWahl(true);
+    } catch { setStatus("Network error."); setVideoBusy(false); setWahl(true); }
   };
 
   const zuVideo = async () => {
@@ -991,7 +1082,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   Dann 1 Minute später kommt das Video plötzlich." Die Kaufflaeche blieb
                   waehrend Zahlung UND Rendern stehen; fuer den Kunden sah es aus, als solle
                   er ein zweites Mal zahlen. Ab hier steht dort, was gerade passiert. */}
-              {(payBusy || bezahlt || videoBusy) && !videoUrl && !isStaff && (
+              {(payBusy || (bezahlt && !wahl) || videoBusy) && !videoUrl && !isStaff && (
                 <div className="absolute inset-0 z-30 grid place-items-center bg-black/70 p-5">
                   <div className="w-full max-w-[300px] text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-white" />
@@ -1061,6 +1152,76 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             {/* NACH DER SHOW: der Kauf. Erst hier fällt der Preis — der Owner will, dass er
                 den Moment erlebt, bevor er zahlt („er hat nämlich nichts bezahlt, nur
                 gegafft"). */}
+            {/* AUSSUCHEN NACH DER ZAHLUNG (Owner 30.07.2026: „ich habe gar nicht die Chance
+                gehabt die Klamotten fuer sie auszuwaehlen" / „und gratis natuerlich, er hat
+                doch bezahlt"). Weisse Flaeche mit dunkler Schrift — die einzige Kombination,
+                die in der hellen wie in der dunklen Fassung sicher lesbar ist. */}
+            {wahl && !videoUrl && !videoBusy && (
+              <div className="mt-3 w-full rounded-2xl p-4 text-left shadow-lg" style={{ background: "#fff", color: "#1a160f" }}>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#16a34a" }}>Payment received ✓</p>
+                <p className="mt-1 text-[17px] font-black">Now make it yours</p>
+                <p className="mt-0.5 text-[12px] font-semibold" style={{ opacity: 0.6 }}>
+                  All of this is included — you already paid.
+                </p>
+
+                <p className="mt-4 text-[12px] font-black">Her dress</p>
+                <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+                  <button type="button" onClick={() => setIhrLook("")}
+                    className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
+                    style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                    As in the photo
+                  </button>
+                  {kleidung.map(l => (
+                    <button key={l.id} type="button" onClick={() => setIhrLook(l.id)}
+                      className="shrink-0 overflow-hidden rounded-xl"
+                      style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[12px] font-black">Your clothes</p>
+                <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+                  <button type="button" onClick={() => setSeinLook("")}
+                    className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black"
+                    style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                    My own clothes
+                  </button>
+                  {kleidung.map(l => (
+                    <button key={l.id} type="button" onClick={() => setSeinLook(l.id)}
+                      className="shrink-0 overflow-hidden rounded-xl"
+                      style={{ outline: seinLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={l.imageUrl} alt={l.name ?? ""} className="h-[86px] w-[64px] object-cover" />
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[12px] font-black">The moment</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => setSzeneId("")}
+                    className="rounded-full px-3 py-1.5 text-[11px] font-black"
+                    style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                    ✨ Surprise me
+                  </button>
+                  {HOLIDAY_SCENES.map(sc => (
+                    <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
+                      className="rounded-full px-3 py-1.5 text-[11px] font-black"
+                      style={szeneId === sc.id ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                      {sc.emoji} {sc.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button type="button" onClick={() => void kussVideo()}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition"
+                  style={{ background: "#1877f2", color: "#fff" }}>
+                  <Sparkles className="h-4 w-4" /> Make my video
+                </button>
+              </div>
+            )}
+
             <div className={`mt-3 w-full ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
               {isStaff ? (
                 <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
