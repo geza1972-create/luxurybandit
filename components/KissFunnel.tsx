@@ -634,7 +634,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                             der hellen Fassung) war der Text sonst nicht zu lesen. */}
                         <span data-oncard="1" className="absolute inset-x-3 top-1/2 z-10 -translate-y-1/2 rounded-2xl bg-black/55 px-2 py-3 backdrop-blur-[2px]" />
                         <ImageUp style={{ color: "#fff" }} className="relative z-20 h-9 w-9" />
-                        <span style={{textShadow:"0 1px 6px rgba(0,0,0,0.9)"}} style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{V.upTitle}</span>
+                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{V.upTitle}</span>
                         <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 mt-1 px-2 text-[11px] font-bold leading-snug">{V.upHint}</span>
                       </div>
                     ) : (<>
