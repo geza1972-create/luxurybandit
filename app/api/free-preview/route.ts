@@ -224,7 +224,19 @@ export async function POST(request: Request) {
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
     "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed. "
-    + "She wears a beautiful summery luxurious silk dress.",
+    // IHR EIGENES OBERTEIL BLEIBT (Owner 30.07.2026: „die Dame hatte ein schoenes rotes
+    // Oberteil. Ich haette das gerne behalten. Das war schon aus Seide. Er hat zwar was
+    // Schoenes generiert, aber nicht in ihrer Farbe.")
+    //
+    // Vorher stand hier „She wears a beautiful summery luxurious silk dress" — nach seiner
+    // eigenen Vorgabe vom selben Tag. Der Satz BESCHREIBT ein Kleid, also erfindet das
+    // Modell eines und wirft ihres weg. Jetzt zaehlt die Vorlage: Farbe, Stoff und Schnitt
+    // aus Bild 2 bleiben. Die Deckungsregel oben greift weiterhin — ist ihr Oberteil zu
+    // freizuegig, wird es ergaenzt, nicht ersetzt.
+    + "Keep her outfit from image 2 exactly as it is — the same colour, the same fabric and "
+    + "the same cut. Do not invent a different dress and do not change its colour. "
+    + "If her top is too revealing, extend it into a full elegant garment in THE SAME COLOUR "
+    + "and fabric rather than replacing it with another one.",
     szene
       ? `Setting: ${szene}.`
       : theme === "holiday" || theme === "bella"
