@@ -3,7 +3,12 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
+// LIVE-Seite, lokal nie). Vercel killt eine Funktion nach Ablauf dieser Zeit; eine Erzeugung
+// dauert 25–45 s, mit dem zweiten Anlauf (Gesichtsausschnitt) auch mal 70 s. Auf dem
+// Hobby-Tarif greift trotzdem die 60-s-Grenze — deshalb steht darunter zusätzlich ein
+// eigenes Zeitbudget, das rechtzeitig aufhört und eine Meldung schickt, statt tot umzufallen.
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 /**
@@ -216,8 +221,13 @@ export async function POST(request: Request) {
   // wird eine Vorlage abgelehnt, nehmen wir stillschweigend die nächste.
   const versuche = kandidaten.length ? kandidaten : [""];
   let letzterFehler = "Bild fehlgeschlagen.";
+  // ZEITBUDGET: lieber eine ehrliche Meldung als ein abgewürgter Aufruf. Nach 50 s wird kein
+  // weiterer Anlauf mehr begonnen — die Antwort geht raus, solange noch Zeit ist.
+  const start = Date.now();
+  const zeitLinks = () => 50_000 - (Date.now() - start);
 
   for (const pfad of versuche) {
+    if (zeitLinks() < 15_000) break;   // keine neue Vorlage mehr anfangen
     try {
       if (pfad) {
         const url = await getSignedUrl(pfad, 600).catch(() => "");
@@ -234,6 +244,8 @@ export async function POST(request: Request) {
       let j: { data?: { b64_json?: string }[]; error?: { message?: string } } | null = null;
 
       for (let anlauf = 0; anlauf < 2; anlauf++) {
+        // Zweiter Anlauf nur, wenn dafür noch Zeit ist (er kostet noch einmal ~35 s).
+        if (anlauf === 1 && zeitLinks() < 30_000) break;
         if (anlauf === 1) {
           const gesicht = await gesichtAusschnitt(model, key);
           if (!gesicht) break;
@@ -311,6 +323,13 @@ export async function POST(request: Request) {
   // und sagen: leider ein anderes Bild hoch. Lingerie-Fotos sind nur im Abo möglich").
   // Erst wird still gerettet (Gesichtsausschnitt), und nur wenn auch das nicht durchgeht,
   // bekommt er diesen Satz — dann weiss er, woran es liegt und was er tun kann.
+  // Zeit abgelaufen, ohne Ergebnis → das sagen, statt einen Bildfehler zu behaupten.
+  if (zeitLinks() <= 0) {
+    return NextResponse.json({
+      error: "Das hat diesmal zu lange gedauert — bitte noch einmal versuchen.",
+      reason: "timeout",
+    }, { status: 504 });
+  }
   const freizuegig = /safety|moderation|rejected/i.test(letzterFehler);
   return NextResponse.json({
     error: freizuegig
