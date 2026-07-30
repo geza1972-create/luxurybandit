@@ -217,9 +217,31 @@ export async function POST(request: Request) {
   // Die Bedeckungs-Zusage wird trotzdem angehängt: OHNE sie antwortet OpenAI mit
   // safety_violations=[sexual], nachgewiesen am 29.07.2026.
   const eigener = String(body.prompt ?? "").trim().slice(0, 2000);
+  /**
+   * HOCHZEIT — ein eigener Auftrag, keine Urlaubsszene (Owner 30.07.2026: „ich will eher wie
+   * sie sich einen Hochzeitskuss geben als Bild. Sie und er").
+   *
+   * Warum nicht einfach eine weitere Zeile in der Szenen-Liste: Bei der Hochzeit ändert sich
+   * nicht der Ort, sondern die KLEIDUNG und die Handlung. Steht das Kleid nicht ausdrücklich
+   * im Auftrag, zieht das Modell die Alltagssachen aus den Vorlagen durch — und aus dem
+   * Hochzeitskuss wird ein Paar im T-Shirt vor einer Blumenwand.
+   *
+   * Die Deckungsregel hängt trotzdem hinten dran. Ein Brautkleid ist harmlos, aber das
+   * Eingangsfoto muss es nicht sein, und OpenAI prüft das Foto, nicht die Absicht.
+   */
+  const hochzeit = theme === "wedding";
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
-    : [
+    : hochzeit ? [
+    "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
+    "Generate ONE photorealistic image of these two people on their wedding day: the woman in "
+    + "an elegant white wedding dress, the man in a dark suit, sharing their wedding kiss — "
+    + "leaning in close, eyes closed, happy. Warm sunlight, white flowers and a beautiful "
+    + "wedding setting around them.",
+    "Preserve BOTH faces, hairstyles and skin tones exactly as in the reference photos — it must clearly be the same two people. An input photo may show only a face or head-and-shoulders; if so, extend it naturally into a full figure that matches their apparent age and build.",
+    "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
+    COVERAGE_RULE,
+  ].join("\n\n") : [
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.

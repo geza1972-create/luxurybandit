@@ -589,15 +589,121 @@ const IDOL: Record<Lang, Partial<KissText>> = {
 };
 
 /**
+ * „HOCHZEITSKUSS" — dieselbe Maschine, anderer Moment (Owner 30.07.2026: „ich will eher wie
+ * sie sich einen Hochzeitskuss geben als Bild. Sie und er … vielleicht duplizierst du einfach
+ * Kiss" — „die Frauen lieben Hochzeiten").
+ *
+ * Der wichtige Unterschied steckt nicht im Bild, sondern in den ROLLEN: Hier bedient SIE den
+ * Trichter. Schritt 1 ist die Braut (sie selbst), Schritt 2 der Braeutigam (er). Deshalb
+ * werden hier auch `step2`, `you`, `uploadYou` und `youHint` mituebersetzt — beim Kuss steht
+ * dort „du, der Mann".
+ */
+const HOCHZEIT: Record<Lang, Partial<KissText>> = {
+  en: {
+    pickFirst: "Upload your photo first", uploadFirst: "Upload his photo",
+    step1: "1 · The bride", step2: "2 · The groom", step3: "3 · The wedding kiss", step4: "4 · Your picture",
+    pickHint: "Upload your photo — or swipe to one of our brides.",
+    upTitle: "You, the bride", upHint: "One photo of you is enough.",
+    you: "HIM", uploadYou: "Upload his photo", youHint: "A photo of him — the groom",
+    readyTitle: "Your wedding video is ready 💍", makeVideo: "Make a real wedding video 💍",
+    makingKiss: "Making your wedding video …", watchOnce: "Watch our wedding kiss — {once}",
+    blockedOnce: "Make a real wedding video — {once}",
+    heroA: "Your ", heroY: "wedding kiss", heroB: " 💍",
+    examples: "Real wedding kisses 💍",
+    statusQuality: "Creating your wedding kiss in full quality … (~1–3 min)",
+  },
+  de: {
+    pickFirst: "Lade zuerst dein Foto hoch", uploadFirst: "Lade sein Foto hoch",
+    step1: "1 · Die Braut", step2: "2 · Der Bräutigam", step3: "3 · Der Hochzeitskuss", step4: "4 · Euer Bild",
+    pickHint: "Lade dein Foto hoch — oder wische zu einer unserer Bräute.",
+    upTitle: "Du, die Braut", upHint: "Ein Foto von dir genügt.",
+    you: "ER", uploadYou: "Lade sein Foto hoch", youHint: "Ein Foto von ihm — dem Bräutigam",
+    readyTitle: "Euer Hochzeitsvideo ist fertig 💍", makeVideo: "Echtes Hochzeitsvideo machen 💍",
+    makingKiss: "Euer Hochzeitsvideo entsteht …", watchOnce: "Unseren Hochzeitskuss ansehen — {once}",
+    blockedOnce: "Echtes Hochzeitsvideo machen — {once}",
+    heroA: "Euer ", heroY: "Hochzeitskuss", heroB: " 💍",
+    examples: "Echte Hochzeitsküsse 💍",
+    statusQuality: "Euer Hochzeitskuss entsteht in voller Qualität … (~1–3 Min.)",
+  },
+  ro: {
+    pickFirst: "Încarcă mai întâi poza ta", uploadFirst: "Încarcă poza lui",
+    step1: "1 · Mireasa", step2: "2 · Mirele", step3: "3 · Sărutul de nuntă", step4: "4 · Poza voastră",
+    pickHint: "Încarcă poza ta — sau glisează la una dintre miresele noastre.",
+    upTitle: "Tu, mireasa", upHint: "O poză cu tine e de ajuns.",
+    you: "EL", uploadYou: "Încarcă poza lui", youHint: "O poză cu el — mirele",
+    readyTitle: "Videoclipul vostru de nuntă e gata 💍", makeVideo: "Fă un video real de nuntă 💍",
+    makingKiss: "Se face videoclipul vostru de nuntă …", watchOnce: "Vezi sărutul nostru de nuntă — {once}",
+    blockedOnce: "Fă un video real de nuntă — {once}",
+    heroA: "Sărutul vostru ", heroY: "de nuntă", heroB: " 💍",
+    examples: "Săruturi de nuntă reale 💍",
+    statusQuality: "Sărutul vostru de nuntă se creează la calitate maximă … (~1–3 min)",
+  },
+  es: {
+    pickFirst: "Sube primero tu foto", uploadFirst: "Sube su foto",
+    step1: "1 · La novia", step2: "2 · El novio", step3: "3 · El beso de boda", step4: "4 · Vuestra imagen",
+    pickHint: "Sube tu foto — o desliza hasta una de nuestras novias.",
+    upTitle: "Tú, la novia", upHint: "Basta una foto tuya.",
+    you: "ÉL", uploadYou: "Sube su foto", youHint: "Una foto de él — el novio",
+    readyTitle: "Vuestro vídeo de boda está listo 💍", makeVideo: "Haz un vídeo de boda real 💍",
+    makingKiss: "Creando vuestro vídeo de boda …", watchOnce: "Ver nuestro beso de boda — {once}",
+    blockedOnce: "Haz un vídeo de boda real — {once}",
+    heroA: "Vuestro ", heroY: "beso de boda", heroB: " 💍",
+    examples: "Besos de boda reales 💍",
+    statusQuality: "Creando vuestro beso de boda con la máxima calidad … (~1–3 min)",
+  },
+  fr: {
+    pickFirst: "Téléverse d'abord ta photo", uploadFirst: "Téléverse sa photo",
+    step1: "1 · La mariée", step2: "2 · Le marié", step3: "3 · Le baiser des mariés", step4: "4 · Votre image",
+    pickHint: "Téléverse ta photo — ou glisse vers l'une de nos mariées.",
+    upTitle: "Toi, la mariée", upHint: "Une photo de toi suffit.",
+    you: "LUI", uploadYou: "Téléverse sa photo", youHint: "Une photo de lui — le marié",
+    readyTitle: "Votre vidéo de mariage est prête 💍", makeVideo: "Faire une vraie vidéo de mariage 💍",
+    makingKiss: "Votre vidéo de mariage se fait …", watchOnce: "Voir notre baiser de mariage — {once}",
+    blockedOnce: "Faire une vraie vidéo de mariage — {once}",
+    heroA: "Votre ", heroY: "baiser de mariage", heroB: " 💍",
+    examples: "De vrais baisers de mariage 💍",
+    statusQuality: "Votre baiser de mariage est créé en pleine qualité … (~1–3 min)",
+  },
+  pt: {
+    pickFirst: "Carrega primeiro a tua foto", uploadFirst: "Carrega a foto dele",
+    step1: "1 · A noiva", step2: "2 · O noivo", step3: "3 · O beijo do casamento", step4: "4 · A vossa imagem",
+    pickHint: "Carrega a tua foto — ou desliza para uma das nossas noivas.",
+    upTitle: "Tu, a noiva", upHint: "Basta uma foto tua.",
+    you: "ELE", uploadYou: "Carrega a foto dele", youHint: "Uma foto dele — o noivo",
+    readyTitle: "O vosso vídeo de casamento está pronto 💍", makeVideo: "Fazer um vídeo de casamento a sério 💍",
+    makingKiss: "A fazer o vosso vídeo de casamento …", watchOnce: "Ver o nosso beijo de casamento — {once}",
+    blockedOnce: "Fazer um vídeo de casamento a sério — {once}",
+    heroA: "O vosso ", heroY: "beijo de casamento", heroB: " 💍",
+    examples: "Beijos de casamento a sério 💍",
+    statusQuality: "O vosso beijo de casamento está a ser criado em qualidade máxima … (~1–3 min)",
+  },
+  it: {
+    pickFirst: "Carica prima la tua foto", uploadFirst: "Carica la sua foto",
+    step1: "1 · La sposa", step2: "2 · Lo sposo", step3: "3 · Il bacio degli sposi", step4: "4 · La vostra immagine",
+    pickHint: "Carica la tua foto — o scorri fino a una delle nostre spose.",
+    upTitle: "Tu, la sposa", upHint: "Basta una tua foto.",
+    you: "LUI", uploadYou: "Carica la sua foto", youHint: "Una foto di lui — lo sposo",
+    readyTitle: "Il vostro video di matrimonio è pronto 💍", makeVideo: "Fai un vero video di matrimonio 💍",
+    makingKiss: "Stiamo facendo il vostro video di matrimonio …", watchOnce: "Guarda il nostro bacio di matrimonio — {once}",
+    blockedOnce: "Fai un vero video di matrimonio — {once}",
+    heroA: "Il vostro ", heroY: "bacio di matrimonio", heroB: " 💍",
+    examples: "Veri baci di matrimonio 💍",
+    statusQuality: "Il vostro bacio di matrimonio nasce in piena qualità … (~1–3 min)",
+  },
+};
+
+/**
  * Die fertigen Texte für eine Sprache — Preise schon eingesetzt.
  *
  * Jede Zeichenkette läuft durch `fillPrices`, damit {once}/{price}/{videos} überall gefüllt
  * sind und in KEINER Sprachtabelle eine Zahl steht. Funktionen (z. B. die Sekundenanzeige)
  * bleiben unangetastet, Listen werden Zeile für Zeile gefüllt.
  */
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" = "kiss"): KissText {
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
-  const roh: KissText = variant === "idol" ? { ...TABELLE[l], ...IDOL[l] } : TABELLE[l];
+  const roh: KissText = variant === "idol" ? { ...TABELLE[l], ...IDOL[l] }
+    : variant === "wedding" ? { ...TABELLE[l], ...HOCHZEIT[l] }
+    : TABELLE[l];
   const out = {} as Record<string, unknown>;
   for (const [k, v] of Object.entries(roh)) {
     if (typeof v === "string") out[k] = fillPrices(v, l);

@@ -46,6 +46,16 @@ export const KISS_PROMPT =
 // „Your Idol with you": die beiden zusammen auf einer schönen Party — kein Kuss, sondern
 // ein gemeinsamer Moment. Wieder NEUTRALE Wortwahl (Pixverse flaggt Intim-/Haut-Wörter),
 // feste Kamera, Gesichter bleiben exakt gleich.
+/**
+ * HOCHZEIT — der Kuss vor den Gästen (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
+ *
+ * Wieder NEUTRALE Wortwahl, und die Kleidung steht ausdrücklich drin: Ohne „white wedding
+ * dress" und „dark suit" zieht Pixverse den Alltag aus den Referenzfotos durch, und aus der
+ * Hochzeit wird ein Paar im T-Shirt. Der Bildausschnitt steht wie überall VORNE.
+ */
+export const WEDDING_PROMPT =
+  "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from slightly below. They are a bride and groom on their wedding day — she in an elegant white wedding dress, he in a dark suit — standing together in a beautiful sunlit wedding setting with white flowers behind them. They look at each other, smile, lean in slowly and share their wedding kiss, then step back and laugh happily. Keep @1 and @2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
+
 export const IDOL_PROMPT =
   "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
 
@@ -101,7 +111,7 @@ const RENDER_AT = [0, 4000, 9000, 15000, 21000, 28000, 36000, 46000];
 // egal ob er beim Kuss oder beim Idol anfängt — zweimal fragen wäre eine Hürde ohne Gegenwert.
 const MAIL_KEY = "lb_kiss_mail";
 
-export type FunnelVariant = "kiss" | "idol";
+export type FunnelVariant = "kiss" | "idol" | "wedding";
 
 // Beide Themen teilen sich DIESEN Funnel — nur Prompt und Bilder unterscheiden sich.
 // Kopieren wäre doppelte Wartung: jeder Fix müsste sonst zweimal gemacht werden.
@@ -122,6 +132,14 @@ const VARIANTS: Record<FunnelVariant, {
     // PLATZHALTER: eine FRAU (Owner 30.07.2026: „du musst als Platzhalter bei Image upload
     // eine Frau machen"). Die Karte stand leer und man sah nicht, was dort hingehört —
     // beim Foto von IHM gab es den Hinweis längst.
+    upPlaceholder: "/kiss-woman-placeholder.jpg",
+  },
+  wedding: {
+    prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4",
+    // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
+    // Upload-Karte steht deshalb vorn und ist vorgewählt — unsere Bräute sind die Ausweiche
+    // für die, die kein Foto zur Hand hat.
+    upFirst: true,
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   idol: {
@@ -668,7 +686,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       const r = await fetch("/api/free-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device, code }),
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code }),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();
@@ -846,7 +864,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
         // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: holidayPrompt(szene, { kuss: variant === "kiss" }) }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? WEDDING_PROMPT : holidayPrompt(szene, { kuss: variant === "kiss" }) }),
       }).then(r => r.json());
       if (!start?.videoId) {
         // Kontingent aufgebraucht: eigener Satz in seiner Sprache — und ein Weg weiter,
@@ -1106,7 +1124,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   kann man es nicht übersehen. */}
               <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pb-2 pt-8 text-[26px] font-black tracking-wide"
                 style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
-                YOU
+                {T.you}
               </span>
             </>)
           : (<>
@@ -1122,7 +1140,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
               <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-95" />
               <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
-              <span className="relative text-[30px] font-black tracking-wide" style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>YOU</span>
+              <span className="relative text-[30px] font-black tracking-wide" style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>{T.you}</span>
               <span className="relative text-[13px] font-black text-[#f6cf51]">{T.uploadYou}</span>
               <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
                 {T.youHint}
