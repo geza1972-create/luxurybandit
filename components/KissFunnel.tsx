@@ -165,6 +165,49 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     return () => { runRef.current = -1; };
   }, []);
 
+  /**
+   * DAS ERGEBNIS ÜBERLEBT DEN WEG ZUR KASSE (Owner 30.07.2026).
+   *
+   * „Ich habe das Bild generiert, die E-Mail eingegeben, auf Turn geklickt, bin auf Stripe
+   * gesprungen, dann per Zurück wieder in den Browser — und weg war das Bild. Manchmal
+   * müssen die Leute sich das Bild noch mal anschauen um zu überlegen."
+   *
+   * Das Bild lag nur im Arbeitsspeicher der Seite. Stripe öffnet eine eigene Seite; „Zurück"
+   * lädt den Trichter neu und der Speicher ist leer — ausgerechnet in dem Moment, in dem er
+   * überlegt, ob er zahlt. Deshalb wird es im Gerät abgelegt, verkleinert (das Original wäre
+   * für den Ablageplatz zu gross), zusammen mit dem freigeschalteten Zustand.
+   */
+  const MERK_KEY = `lb_kiss_ergebnis_${variant}`;
+
+  const merken = async (dataUrl: string, pfad: string, id: string) => {
+    try {
+      // Verkleinert ablegen: der Ablageplatz im Browser fasst nur wenige Megabyte.
+      const img = await new Promise<HTMLImageElement>((res, rej) => {
+        const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+      });
+      const max = 900, sc = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      localStorage.setItem(MERK_KEY, JSON.stringify({
+        bild: c.toDataURL("image/jpeg", 0.82), pfad, id, at: Date.now(),
+      }));
+    } catch { /* kein Platz → dann eben nur für diese Sitzung */ }
+  };
+
+  useEffect(() => {
+    try {
+      const roh = localStorage.getItem(MERK_KEY);
+      if (!roh) return;
+      const d = JSON.parse(roh) as { bild?: string; pfad?: string; id?: string; at?: number };
+      // Nach 24 Stunden nicht mehr — sonst sieht er beim nächsten Besuch ein altes Ergebnis.
+      if (!d?.bild || (d.at && Date.now() - d.at > 86_400_000)) { localStorage.removeItem(MERK_KEY); return; }
+      setBild(d.bild); setBildPfad(d.pfad ?? ""); setGenId(d.id ?? "");
+      setFrei(true);   // die Adresse lag schon vor, sonst wäre es nie sichtbar gewesen
+    } catch { /**/ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
   // denen, die danach abspringen oder deren Erzeugung scheitert. Genau die zeigen, was die
@@ -309,6 +352,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
       setFrei(true); setMailBusy(false);
+      void merken(bild, bildPfad, genId);   // ab jetzt übersteht es Kasse und „Zurück"
       track("email");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     } catch { setStatus("Network error."); setMailBusy(false); }
@@ -493,6 +537,26 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
         {fillPrices("Picture free · Video {once}")}
       </p>
+      {/* BEIDE ZAHLWEGE AUCH HIER (Owner 30.07.2026: „und auch hier muss der Button mit 9,99
+          und Abo sein"). Wer schon weiss, dass er das Video will, soll nicht erst ein Bild
+          erzeugen müssen. Dieselbe Sperre wie beim Hauptknopf: ohne beide Fotos und ohne
+          Haken geht nichts. */}
+      {!isStaff && (
+        <div className="mt-2 flex gap-2">
+          <button type="button" onClick={() => void unlock(true)}
+            disabled={!selPhoto || !photo || !consent || payBusy}
+            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
+            {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+            {fillPrices("Video {once}")}
+          </button>
+          <button type="button" onClick={() => void unlock(false)}
+            disabled={!selPhoto || !photo || !consent || payBusy}
+            style={{ color: "#fff" }}
+            className="flex h-11 flex-1 items-center justify-center rounded-full border border-white/30 px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
+            {fillPrices("All in — {price}/mo")}
+          </button>
+        </div>
+      )}
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
       {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
