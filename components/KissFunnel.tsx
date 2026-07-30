@@ -576,14 +576,16 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     if (videoShow || payBusy) return;
     track("video_teaser");
     setVideoShow(true); setVideoReif(false); setStatus("");
+    // VIER SEKUNDEN, NICHT SIEBEN (Owner 30.07.2026: „fake dauert zu lang. Nur 4 Sekunden").
+    // Laenger fuehlt sich nicht wertvoller an, sondern nach Warteschlange — und wer wartet,
+    // springt ab.
     const schritte: [number, string][] = [
       [0, "Reading both faces …"],
-      [1600, "Matching your expressions …"],
-      [3400, "Bringing the moment to life …"],
-      [5200, "Finishing touches …"],
+      [1200, "Matching the two of you …"],
+      [2400, "Bringing the moment to life …"],
     ];
     for (const [at, t] of schritte) setTimeout(() => setStatus(t), at);
-    setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 6800);
+    setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 4000);
   };
 
   /**
@@ -1168,7 +1170,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                 <div className="absolute inset-0 z-20 grid place-items-center bg-black/55">
                   <div className="px-6 text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#f6cf51]" />
-                    <p className="lb-onmedia mt-3 text-[14px] font-black">{status || "Making your kiss video …"}</p>
+                    {/* Weiss per Anweisung, nicht per Klasse (Owner 30.07.2026: „hier steht
+                        was in schwarz und kann es nicht lesen"). Auf einem dunklen Bild
+                        entscheidet der Grund, nicht die Fassung — und `lb-onmedia` kippt in
+                        der hellen Fassung ins Dunkle. */}
+                    <p className="mt-3 text-[14px] font-black" style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.55)" }}>
+                      {status || "Making your kiss video …"}
+                    </p>
                   </div>
                   <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
                 </div>
