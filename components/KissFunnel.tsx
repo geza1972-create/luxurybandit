@@ -91,6 +91,11 @@ const VARIANTS: Record<FunnelVariant, {
     // Anzeigen, also entscheidet die erste Karte über den ganzen Trichter.
     pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
     upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.", upFirst: true,
+    // PLATZHALTER: eine FRAU (Owner 30.07.2026: „du musst als Platzhalter bei Image upload
+    // eine Frau machen"). Die Karte stand leer und man sah nicht, was dort hingehört —
+    // beim Foto von IHM gab es den Hinweis längst. Bewusst blass und grau, damit sie nicht
+    // wie eine getroffene Auswahl wirkt.
+    upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   idol: {
     prompt: IDOL_PROMPT,
@@ -708,7 +713,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   <button type="button" onClick={videoAnstossen} disabled={payBusy || videoShow}
                     className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                     {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {videoShow ? "Making your video …" : "Turn this into a video"}
+                    {videoShow ? "Making your hot video …" : "Turn this into a hot video 🔥"}
                   </button>
                   <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                     style={{ color: "#fff" }}
