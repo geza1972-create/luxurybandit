@@ -928,7 +928,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                     <input value={mail} onChange={e => setMail(e.target.value)} type="email"
                       inputMode="email" autoComplete="email" placeholder="you@email.com"
                       onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
-                      className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold text-white outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                      // Farbe fest am Feld: die Hell-Fassung faerbt `text-white` dunkel — auf
+                      // der schwarzen Auflage war die eingetippte Adresse dann unlesbar.
+                      style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
+                      className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
                     <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
                       className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                       {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
