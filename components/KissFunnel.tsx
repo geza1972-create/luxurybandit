@@ -604,12 +604,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                           // damit die Schrift darüber lesbar bleibt.
                           <>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={V.upPlaceholder} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-70" />
-                            <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/45" />
+                            <img src={V.upPlaceholder} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-95" />
+                            <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                           </>
                         )}
                         <ImageUp className="relative h-9 w-9 text-[#f6cf51]" />
-                        <span className="relative text-[13px] font-black text-[#f6cf51]">{V.upTitle}</span>
+                        <span style={{textShadow:"0 1px 6px rgba(0,0,0,0.9)"}} className="relative text-[14px] font-black text-[#f6cf51]">{V.upTitle}</span>
                         <span className="relative text-[11px] font-bold leading-snug text-white/80">{V.upHint}</span>
                       </div>
                     ) : (<>
@@ -656,8 +656,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   Bikini hochgeladen — und bekam nichts, weil die Bildprüfung das abweist.
                   Vorher lag das Foto bei 25 % und grau; man sah schlicht nicht, dass dort ein
                   MANN hingehört. */}
-              <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-75" />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/45" />
+              <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-95" />
+              <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
               <span className="relative text-[14px] font-black text-[#f6cf51]">Upload YOUR photo</span>
               <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
