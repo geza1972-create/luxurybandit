@@ -216,7 +216,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [nurKleidung, setNurKleidung] = useState<string[] | null>(null);
   const [ihrLook, setIhrLook] = useState("");     // "" = wie auf ihrem Foto
   const [seinLook, setSeinLook] = useState("");   // "" = SEINE Originalkleidung (vorbelegt)
-  const [szeneId, setSzeneId] = useState("");     // "" = automatisch eine aussuchen
+  const [szeneId, setSzeneId] = useState("");
+  // EINE REIHE (Owner 30.07.2026: „eine Reihe habe ich gesagt"). Sichtbar bleibt nur ihr
+  // Kleid; seine Sachen und die Szene liegen hinter einem Aufklapper — wer sie will, tippt.
+  const [mehr, setMehr] = useState(false);     // "" = automatisch eine aussuchen
   const rueckkehrRef = useRef(false);
   // ZURUECK GEHOERT IN DIE SPRACHZEILE (Owner 30.07.2026: „Back Button in dem Balken mit den
   // Sprachen stehen"). Der Balken liegt in TopNav, der Schritt hier — statt den Zustand nach
@@ -341,7 +344,6 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // fuer jeden Besucher: die Liste interessiert nur den, der schon bezahlt hat.
   useEffect(() => {
     if (videoUrl || videoBusy) return;
-    if (schritt !== 3 && !bezahlt) return;     // Garderobe gehoert auf den Kuss-Schritt
     if (looks.length) { if (bezahlt) setWahl(true); return; }
     // OHNE BILD KEINE AUSWAHLFLAECHE — die haengt am erzeugten Bild. Wer sein Gratis-
     // Kontingent aufgebraucht hat und trotzdem zahlt, saehe sonst NICHTS. Fuer ihn laeuft
@@ -355,7 +357,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       setNurKleidung(Array.isArray(w?.ids) ? w.ids.map(String) : null);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bezahlt, schritt, videoUrl, videoBusy]);
+  }, [bezahlt, videoUrl, videoBusy]);
 
   // BEIM HOCHLADEN SPEICHERN (Owner 30.07.2026: „das Bild muss gespeichert werden in dem
   // Moment wo er das hochlädt"). Der Eintrag im Werkzeug entsteht damit sofort — auch bei
@@ -945,8 +947,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               ))}
             </div>
 
-            <p className="mt-2.5 text-[11px] font-black">Your clothes</p>
-            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+            <button type="button" onClick={() => setMehr(m => !m)}
+              className="mt-2.5 text-[11px] font-black" style={{ color: "#1877f2" }}>
+              {mehr ? "− Less" : "+ Your clothes & the moment"}
+            </button>
+            <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>Your clothes</p>
+            <div className={`mt-1.5 flex gap-2 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
               <button type="button" onClick={() => setSeinLook("")}
                 className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
                 style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
@@ -961,8 +967,8 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               ))}
             </div>
 
-            <p className="mt-2.5 text-[11px] font-black">The moment</p>
-            <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
+            <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>The moment</p>
+            <div className={`mt-1.5 flex gap-1.5 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
               <button type="button" onClick={() => setSzeneId("")}
                 className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
                 style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
