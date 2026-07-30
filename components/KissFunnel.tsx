@@ -853,10 +853,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <div ref={resultRef}>
         {/* Radar-Scan (wie der Try-On-„Reveal"): Scanner-Balken + Sucher-Ecken über dem Model-Foto. */}
         {busy && !videoUrl && !!selPhoto && (
-          <div className="mx-auto mt-4 w-fit">
+          <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto object-cover object-top blur-[6px] brightness-75" />
+              <img src={selPhoto} alt="" className="aspect-[3/4] w-full object-cover object-top blur-[6px] brightness-75" />
               {/* Weißer Scanner-Balken, fährt runter und wieder hoch. */}
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
@@ -924,14 +924,20 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           </div>
         )}
 
+        {/* RAHMEN = BILD (Owner 30.07.2026: „das Bild ist schmaler als der Rahmen").
+            Vorher schrumpfte der Kasten mit `w-fit` auf die URSPRUENGLICHE Bildbreite,
+            waehrend `max-h-[60vh]` das Bild kleiner rechnete — rechts blieb ein heller
+            Streifen, und die Herzen flogen daneben, weil die Ueberlagerungen `inset-0`
+            dem Kasten folgen, nicht dem Foto. Jetzt gibt die Breite den Ton an und das
+            Bild fuellt sie aus: Rahmen und Foto koennen nicht auseinanderlaufen. */}
         {/* DAS ERZEUGTE BILD — scharf, kein Schloss (Owner 30.07.2026: „Bild gratis Mann,
             Video gegen Geld"). Darunter der Weg zum Video: Admin gratis, Kunde 9,99 € oder Abo. */}
         {bild && !videoUrl && (
-          <div className="mx-auto mt-4 w-fit">
+          <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt=""
-                className={`max-h-[60vh] w-auto object-contain transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
+                className={`block h-auto w-full object-cover transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
               {/* VERDECKT, BIS DIE ADRESSE DA IST. Das Bild EXISTIERT bereits — es ist keine
                   Attrappe wie früher, sondern sein fertiges Ergebnis. Genau deshalb trägt er
                   ein: er weiß, dass es da ist. */}
@@ -1086,10 +1092,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
         {/* Das ECHTE Video (nach Zahlung / Admin-Reveal) — klar + Download. */}
         {videoUrl && (
-          <div className="mx-auto mt-4 w-fit">
+          <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
+              <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] w-full" />
             </div>
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
