@@ -11,7 +11,7 @@ import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
-import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-look-store";
+import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig } from "@/lib/try-this-look-store";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
 // Kiss-Funnel; darunter Beispiel-Videos + Cross-Selling zu Try-On & Wetter), mit ?admin=1
@@ -39,6 +39,18 @@ export default async function KissThemePage({ searchParams }: {
   // Beispiel-Videos (Admin-gepflegt) — signierte URLs frisch pro Request.
   const config: KissConfig = await readKissConfig().catch(() => ({ modelIds: [] }));
   const examples: string[] = (await Promise.all((config.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
+
+  // COVER DER ANDEREN THEMEN (Owner 30.07.2026: „hier gehoeren die Topics mit Bildern rein,
+  // alle"). Dieselbe Quelle wie in der Themenuebersicht: das im Medien-Werkzeug gepflegte
+  // Cover je Thema. Fehlt eines, bleibt die Kachel ohne Bild — besser als ein toter Verweis.
+  const THEMEN = ["tryon", "wetter", "chat", "holiday", "bella", "idol", "birthday", "surprise"] as const;
+  const cover: Record<string, string> = {};
+  await Promise.all(THEMEN.map(async t => {
+    try {
+      const c = await readThemeConfig(t);
+      if (c.teaserPath) cover[t] = await getSignedUrl(c.teaserPath).catch(() => "");
+    } catch { /* ohne Cover zeigt die Kachel nur den Text */ }
+  }));
 
   return (
     /* HELLE FASSUNG FÜR DEN ANZEIGEN-VERKEHR (Owner 30.07.2026: „kannst du light design
@@ -85,20 +97,39 @@ export default async function KissThemePage({ searchParams }: {
 
             <SubscribeCta code={code} lang={L} />
 
-            {/* Cross-Selling: die anderen Live-Themen */}
+            {/* CROSS-SELLING MIT BILDERN, ALLE THEMEN (Owner 30.07.2026: „hier gehoeren die
+                Topics mit Bildern rein, alle"). Zwei Textkacheln verkaufen nichts — auf
+                dieser Seite hat er gerade ein Bild von sich gesehen, also zeigen wir auch
+                hier, was ihn erwartet. Cover kommen aus denselben Vorgaben wie in der
+                Themenuebersicht; fehlt eines, traegt das Emoji die Kachel. */}
             <div className="mt-12">
               <SectionTitle>You might also love</SectionTitle>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Link href="/themes/tryon" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:scale-[0.98] transition">
-                  <span className="text-[22px]">✨</span>
-                  <p className="mt-1 text-[14px] font-black">Try-On</p>
-                  <p className="mt-0.5 text-[11px] font-bold leading-snug text-white/60">See any look on your dream model — in a video.</p>
-                </Link>
-                <Link href="/themes/wetter/bella" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:scale-[0.98] transition">
-                  <span className="text-[22px]">☀️</span>
-                  <p className="mt-1 text-[14px] font-black">Morning Weather</p>
-                  <p className="mt-0.5 text-[11px] font-bold leading-snug text-white/60">Wake up to her message — your weather, a new look, a chat.</p>
-                </Link>
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
+                {[
+                  { href: "/themes/tryon", t: "Try-On", d: "See any look on your dream model — in a video.", e: "✨", img: cover["tryon"] ?? "" },
+                  { href: "/themes/wetter/bella", t: "Morning Weather", d: "Wake up to her message — your weather, a new look, a chat.", e: "☀️", img: cover["wetter"] ?? "" },
+                  { href: "/themes/chat", t: "Chat with an AI girl", d: "Text her every day — she answers in your language.", e: "💬", img: cover["chat"] ?? "" },
+                  { href: "/themes/holiday", t: "Holiday with her", d: "You and her: beach, kiss, coffee, dancing.", e: "🌴", img: cover["holiday"] ?? "" },
+                  { href: "/themes/bella", t: "Tenerife with Bella", d: "Not her holiday — yours, with you in the picture.", e: "🏝", img: cover["bella"] ?? "" },
+                  { href: "/your-idol", t: "Your idol with you", d: "The two of you together, in one video.", e: "⭐", img: cover["idol"] ?? "" },
+                  { href: "/themes/birthday", t: "Birthday video", d: "She says the name — a video made for one person.", e: "🎂", img: cover["birthday"] ?? "" },
+                  { href: "/themes/surprise", t: "Surprise him", d: "Your photo → a private video only he can open.", e: "🎁", img: cover["surprise"] ?? "" },
+                ].map(x => (
+                  <Link key={x.href} href={x.href}
+                    className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition">
+                    <span className="relative block aspect-[4/3] w-full overflow-hidden bg-white/[0.05]">
+                      {x.img
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={x.img} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
+                        : <span className="grid h-full w-full place-items-center text-[30px]">{x.e}</span>}
+                      <span className="absolute left-1.5 top-1.5 text-[18px] drop-shadow">{x.e}</span>
+                    </span>
+                    <span className="block p-3">
+                      <span className="block text-[13.5px] font-black">{x.t}</span>
+                      <span className="mt-0.5 block text-[11px] font-bold leading-snug text-white/60">{x.d}</span>
+                    </span>
+                  </Link>
+                ))}
               </div>
             </div>
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
