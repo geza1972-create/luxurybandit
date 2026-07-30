@@ -181,7 +181,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
    * sah man nie, was als Nächstes kommt, und der Generieren-Knopf war grau, ohne dass klar
    * wurde warum. Jetzt: eine Aufgabe, ein Knopf, weiter.
    */
-  const [schritt, setSchritt] = useState<1 | 2 | 3>(1);
+  // Schritt 4 = die Erzeugung selbst (Owner 30.07.2026: „ich will dass er auf die nächste
+  // Seite springt wenn er Generate macht und das Rendering zu sehen ist. Dann weiss ich
+  // besser was passiert"). Vorher lief das Rendern unter den Schritten weiter — man sah
+  // nicht, dass überhaupt etwas passiert.
+  const [schritt, setSchritt] = useState<1 | 2 | 3 | 4>(1);
   // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
   // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
   // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
@@ -354,6 +358,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const generate = async () => {
     track("generate");
     if (!selPhoto || !photo || busy) return;
+    setSchritt(4);   // eigener Bildschirm fürs Rendern
     setBusy(true); setTeaser(false); setVideoUrl(""); setBild(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
@@ -551,7 +556,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           holt sie nach vorn (= Auswahl). */}
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
-        {[1, 2, 3].map(n => (
+        {[1, 2, 3, 4].map(n => (
           <span key={n} className={`h-1.5 rounded-full transition-all ${n === schritt ? "w-6 bg-[#f6cf51]" : n < schritt ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
         ))}
       </div>
@@ -685,6 +690,19 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         </button>
       </div>
       </>)}
+
+      {schritt === 4 && (
+        <div className="mb-3 text-center">
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">4 · Your picture</p>
+          {!busy && (
+            <button type="button" onClick={() => setSchritt(3)}
+              style={{ color: "#fff" }}
+              className="mt-2 h-9 rounded-full border border-white/25 px-4 text-[12px] font-black active:scale-95 transition">
+              ← Back
+            </button>
+          )}
+        </div>
+      )}
 
       {schritt === 3 && (<>
       <button type="button" onClick={() => setSchritt(2)}
