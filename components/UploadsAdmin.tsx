@@ -24,6 +24,7 @@ import { Loader2, Trash2, Users } from "lucide-react";
 type Eintrag = {
   id: string; createdAt: string; modelName?: string; email?: string; device?: string;
   paid?: boolean; videoUrl?: string; imageUrl?: string; personUrl?: string; modelUrl?: string;
+  listen?: string[];   // in welchen Abonnentenlisten er schon steht
 };
 
 export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { title?: string }) {
@@ -133,6 +134,14 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { titl
                   <p className="text-[11px] font-bold text-black/50">
                     {zeit(e.createdAt)} · {e.modelName || "—"}
                     {e.device ? ` · ${e.device.slice(0, 10)}` : ""}
+                  </p>
+                  {/* Kennen wir ihn schon? Bekannte anders ansprechen als Neue. */}
+                  <p className="mt-1 flex flex-wrap gap-1">
+                    {(e.listen ?? []).length > 0
+                      ? (e.listen ?? []).map(l => (
+                          <span key={l} className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-black text-sky-600">✓ {l}</span>
+                        ))
+                      : <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-600">★ neu</span>}
                   </p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${e.paid ? "bg-emerald-500/15 text-emerald-600" : "bg-black/[0.06] text-black/50"}`}>

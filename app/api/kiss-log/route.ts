@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
-import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,10 +26,36 @@ export async function GET(request: Request) {
     }
   } catch { /* ohne Katalog bleibt die Spalte eben leer */ }
 
+  /**
+   * STEHT ER SCHON IN EINER LISTE? (Owner 30.07.2026: „du sollst noch vergleichen ob das ein
+   * Typ aus der Member-Liste ist, egal ob Wetter oder Kiss, alle.")
+   *
+   * Geprüft wird über die E-Mail und — für die ohne Adresse — über die Gerätekennung, die
+   * beim Eintragen in der Notiz landet. So sieht er auf einen Blick, ob da ein Bekannter
+   * wiederkommt oder ein Neuer anklopft.
+   */
+  const listen: { name: string; mails: Set<string>; geraete: Set<string> }[] = [];
+  for (const [modelId, name] of [["", "Wetter"], ["kiss", "Kissing"]] as const) {
+    try {
+      const subs = await readWetterSubscribers(modelId || undefined);
+      listen.push({
+        name,
+        mails: new Set(subs.map(x => String(x.email ?? "").trim().toLowerCase()).filter(Boolean)),
+        geraete: new Set(subs.map(x => (String(x.note ?? "").match(/·\s*([A-Za-z0-9-]{8,})\s*$/) || [])[1] ?? "").filter(Boolean)),
+      });
+    } catch { /* eine fehlende Liste darf die Anzeige nicht kippen */ }
+  }
+  const bekanntAus = (e: KissLogEntry) => {
+    const mail = String(e.email ?? "").trim().toLowerCase();
+    const ger = String(e.device ?? "").trim();
+    return listen.filter(l => (mail && l.mails.has(mail)) || (ger && l.geraete.has(ger))).map(l => l.name);
+  };
+
   const mitBildern = await Promise.all(entries.map(async e => ({
     ...e,
     imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
     personUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
+    listen: bekanntAus(e),
     modelUrl: e.modelPath
       ? await getSignedUrl(e.modelPath).catch(() => "")
       : await (async () => {
