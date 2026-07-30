@@ -254,7 +254,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const r = await fetch("/api/free-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device }),
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: "kiss", device, code }),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();

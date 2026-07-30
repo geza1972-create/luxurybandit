@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   if (!key) return NextResponse.json({ error: "Not configured." }, { status: 400 });
 
   const body = (await request.json().catch(() => ({}))) as {
-    person?: string; model?: string; device?: string; theme?: string; prompt?: string; surprise?: boolean;
+    person?: string; model?: string; device?: string; theme?: string; prompt?: string; surprise?: boolean; code?: string;
   };
   const person = String(body.person ?? "");
   const device = String(body.device ?? "").trim().slice(0, 80);
@@ -138,9 +138,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Bitte lade zuerst dein Foto hoch." }, { status: 400 });
   }
 
+  /**
+   * TESTCODE HEBT DEN DECKEL AUF (Owner 30.07.2026: „dann mach doch einen Gutscheincode,
+   * damit ich es 20x testen kann").
+   *
+   * Der Code steht in der Umgebung (FREE_PREVIEW_TEST_CODE) — nicht im Quelltext, sonst
+   * stünde er auf GitHub und jeder könnte den Deckel umgehen. Ohne gesetzte Variable wirkt
+   * kein Code. Der TAGES-Deckel bleibt in jedem Fall stehen: er schützt die Rechnung.
+   */
+  const testCode = process.env.FREE_PREVIEW_TEST_CODE?.trim();
+  const codeOk = !!testCode && String(body.code ?? "").trim().toUpperCase() === testCode.toUpperCase();
+
   // Admins ohne Deckel — sonst kannst du nicht testen, ohne das Tageskontingent zu essen.
   const staff = await isAdminRequest(request).catch(() => false);
-  if (!staff) {
+  if (!staff && !codeOk) {
     if (!device) return NextResponse.json({ error: "Kein Gerät erkannt." }, { status: 400 });
     const claim = await claimFreePreview(device);
     if (!claim.ok) {
