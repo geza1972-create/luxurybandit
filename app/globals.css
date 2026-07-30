@@ -365,6 +365,14 @@ svg {
 /* Sprachwahl in der hellen Fassung: schwarze Schrift auf hellem Grund, klar lesbar. */
 .lb-fb [data-langrow="1"] * { color: #1a160f !important; }
 .lb-fb [data-langrow="1"] button { background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.15) !important; }
+/* Die aufklappende Liste war dunkel — mit der schwarzen Schrift darin also schwarz auf
+   schwarz (Owner 30.07.2026: „auch light"). In der hellen Fassung wird sie hell. */
+.lb-fb [data-langrow="1"] [class*="bg-[#141110]"] {
+  background-color: #ffffff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18) !important;
+}
+.lb-fb [data-langrow="1"] [class*="bg-[#141110]"] button:hover { background: rgba(0,0,0,0.06) !important; }
 
 /* WEISSE SCHRIFT AUF BLAU UND AUF BILDERN (Owner 30.07.2026: „bitte auf blau auch weisse
    schrift und auf das bild ebenso"). Die Hell-Fassung faerbt weisse Schrift dunkel — richtig
