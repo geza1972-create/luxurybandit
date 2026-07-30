@@ -45,13 +45,23 @@ const trialExpired = (s: Sub, trialDays: number) =>
   !!s.confirmed && !s.unsubscribed && !!s.createdAt &&
   (Date.now() - new Date(s.createdAt).getTime()) > trialDays * 86_400_000;
 
-export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model", trialDays = 7 }: {
+export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model", trialDays = 7, linkPath, sending = true, listLabel }: {
   modelId?: string; modelSlug?: string; modelName?: string; trialDays?: number;
+  // EIGENE LISTE OHNE WETTER-VERSAND (Owner-Regel: „Die Wetter Leads sind die Wetter Leads").
+  //
+  // Die Kissing-Leads haben sich für etwas anderes eingetragen. Ihre Liste liegt deshalb in
+  // einer eigenen Datei — und die Versandknöpfe bleiben hier AUS, weil E-Mail, SMS und Bot
+  // fest die Wetter-Nachricht bauen (Wetterlage, Wetter-Link). Ein Klick darauf würde
+  // ihnen etwas schicken, wofür sie sich nie angemeldet haben.
+  linkPath?: string;      // Ziel des persönlichen Links, Vorgabe: /themes/wetter/<slug>
+  sending?: boolean;      // false = nur verwalten (ansehen, ergänzen, löschen, importieren)
+  listLabel?: string;     // Überschrift, z. B. „Kissing-Leads"
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [subs, setSubs] = useState<Sub[]>([]);
-  const [clicks, setClicks] = useState<Record<string, { count: number; lastAt: string; src?: string }>>({});   // wer den Link geöffnet hat
+  // wer den Link geöffnet hat — und was danach passiert ist (Chat / Angebots-Karte)
+  const [clicks, setClicks] = useState<Record<string, { count: number; lastAt: string; src?: string; chat?: number; chatAt?: string; test?: number; testAt?: string; testWhat?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -124,7 +134,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   };
 
   // Persönlicher Link = unsichtbare Kennung `?s=` (kein Name/Telefon in der URL) + WhatsApp-Adresse.
-  const personalLink = (s: Sub) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
+  const personalLink = (s: Sub) =>
+    `${origin}${linkPath ?? `/themes/wetter/${encodeURIComponent(modelSlug)}`}?s=${encodeURIComponent(s.id)}`;
   const waLink = (s: Sub) => {
     const digits = (s.phone || "").replace(/[^\d]/g, "");
     const text = encodeURIComponent(sendText(s.lang || "ro", s.name, personalLink(s)));
@@ -248,11 +259,30 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
-      <h2 className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span>
-        {(() => { const opened = subs.filter(s => clicks[s.id]).length; return opened > 0 ? <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-black text-emerald-400">👁 {opened} geöffnet</span> : null; })()}
+      <h2 className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> {listLabel ?? "Abonnenten"} <span className="text-white/40">({subs.length})</span>
+        {(() => {
+          // Der Verlauf einer Aussendung in einer Zeile: geöffnet → getestet → geschrieben.
+          const opened = subs.filter(s => clicks[s.id]?.count).length;
+          const tested = subs.filter(s => clicks[s.id]?.test).length;
+          const chatted = subs.filter(s => clicks[s.id]?.chat).length;
+          return (
+            <>
+              {opened > 0 && <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-black text-emerald-400">👁 {opened} geöffnet</span>}
+              {tested > 0 && <span className="rounded-full bg-[#f6cf51]/20 px-2 py-0.5 text-[11px] font-black text-[#f6cf51]">✨ {tested} getestet</span>}
+              {chatted > 0 && <span className="rounded-full bg-sky-400/15 px-2 py-0.5 text-[11px] font-black text-sky-400">💬 {chatted} geschrieben</span>}
+            </>
+          );
+        })()}
       </h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende — <b>per E-Mail (empfohlen, geht an alle)</b>. Der WhatsApp-Bot erreicht mit der Test-Nummer nur die bei Meta freigegebenen Nummern.</p>
+      {!sending && (
+        <p className="mt-0.5 text-[12px] font-semibold text-white/60">
+          Eigene Liste — getrennt von den Wetter-Abonnenten. Ansehen, ergänzen, löschen, importieren.
+          Der Wetter-Versand ist hier bewusst aus: diese Leute haben sich für etwas anderes eingetragen.
+        </p>
+      )}
+      {sending && <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende — <b>per E-Mail (empfohlen, geht an alle)</b>. Der WhatsApp-Bot erreicht mit der Test-Nummer nur die bei Meta freigegebenen Nummern.</p>}
       {/* Empfänger-Auswahl (Kästchen unten). „Alle" wählt alle mit Nummer/E-Mail. */}
+      {sending && <>
       <div className="mt-2 flex items-center gap-2">
         <button type="button" onClick={selectAll}
           className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-white/20 px-3 text-[12px] font-black text-white/80 active:scale-95 transition">
@@ -287,6 +317,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       {smsMsg && <p className="mt-1 text-[12px] font-bold text-[#f6cf51]">{smsMsg}</p>}
       {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
       {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
+      </>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
       {(() => {
         const unsub = subs.filter(s => s.unsubscribed).length;
@@ -311,7 +342,11 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       {impMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{impMsg}</p>}
 
       {/* Hinzufügen */}
-      <div className="mt-3 grid gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+      {/* `grid-cols-1` ist hier PFLICHT, nicht Schmuck: ein Raster ohne Spaltenangabe misst die
+          Spalte nach dem breitesten Inhalt, und die langen Platzhaltertexte („Telefon mit
+          Vorwahl — z. B. …") haben die Felder 22 px über den Kasten hinausgedrückt. Tailwinds
+          grid-cols-1 setzt minmax(0,1fr) und deckelt das. */}
+      <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
         <p className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuen Abonnenten hinzufügen</p>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Name — z. B. Remus"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
@@ -390,11 +425,23 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                           ? <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">✓ bestätigt</span>
                           : <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/55">⏳ unbestätigt</span>)}
                     {/* Hat den Link (E-Mail/WhatsApp) geöffnet? */}
-                    {clicks[s.id] && (
+                    {clicks[s.id]?.chat ? (
+                      <span className="rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-black text-sky-500"
+                        title={`${clicks[s.id].chat}× geschrieben`}>
+                        💬 Chat {new Date(clicks[s.id].chatAt as string).toLocaleDateString()}
+                      </span>
+                    ) : null}
+                    {clicks[s.id]?.test ? (
+                      <span className="rounded-full bg-[#f6cf51]/25 px-1.5 py-0.5 text-[9px] font-black text-[#a07b00]"
+                        title={`${clicks[s.id].test}× · ${clicks[s.id].testWhat || ""}`}>
+                        ✨ {clicks[s.id].testWhat || "getestet"}
+                      </span>
+                    ) : null}
+                    {clicks[s.id]?.count ? (
                       <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black text-emerald-500" title={`${clicks[s.id].count}× · ${clicks[s.id].src || ""}`}>
                         👁 geöffnet {new Date(clicks[s.id].lastAt).toLocaleDateString()}
                       </span>
-                    )}
+                    ) : null}
                   </p>
                   {/* E-Mail + Telefon VOLLSTÄNDIG (umbrechend, nicht abgeschnitten). */}
                   {s.email && <p className="break-all text-[12px] font-semibold text-white/65">✉ {s.email}</p>}
@@ -412,7 +459,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                   {copiedId === s.id ? <><Check className="h-4 w-4 text-emerald-400" /> Kopiert</> : <><Copy className="h-4 w-4" /> Link</>}
                 </button>
                 {/* Manuell senden — für Abgemeldete gesperrt (nicht weiter senden!). */}
-                {s.unsubscribed ? (
+                {!sending ? null : s.unsubscribed ? (
                   <span className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 text-[12px] font-black text-white/25">
                     <MessageCircle className="h-4 w-4" /> Abgemeldet
                   </span>
@@ -426,7 +473,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                   <span className="flex h-9 flex-1 items-center justify-center rounded-lg border border-black/20 text-[11px] font-black text-black/45">Keine Nr.</span>
                 )}
                 {/* 🤖 Bot: diesen einen Abonnenten direkt per WhatsApp Cloud API anschreiben. */}
-                {s.phone && !s.unsubscribed && (
+                {sending && s.phone && !s.unsubscribed && (
                   <button type="button" onClick={() => void botSend({ s: s.id })} disabled={botBusy === s.id} aria-label="Per Bot senden"
                     title="Per WhatsApp-Bot senden (kein WhatsApp-Öffnen)"
                     className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#25D366]/50 bg-[#25D366]/10 text-[15px] active:scale-95 transition disabled:opacity-40">

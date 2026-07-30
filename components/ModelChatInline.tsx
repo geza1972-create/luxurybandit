@@ -5,7 +5,7 @@ import AgeGate, { ageVerified } from "@/components/AgeGate";
 import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
-import { renewNote } from "@/lib/pricing";
+import { renewNote, fillPrices } from "@/lib/pricing";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -37,7 +37,7 @@ const FREE_LEFT: Record<Lang, (n: number) => string> = {
 // The single "I'm not free" reply a paid model gives to the visitor's first message.
 const CANNED: Record<Lang, string> = {
   de: "Ich bin leider nicht gratis 💛 aber ich chatte super gern mit dir. Für 24 €/Monat gehöre ich ganz dir. Wenn du lieber kostenlos chatten willst, dann versuch es mit Bella 💕",
-  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For 24,50 €/month I'm all yours. If you'd rather chat for free, try Bella 💕",
+  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For {price}/month I'm all yours. If you'd rather chat for free, try Bella 💕",
   ro: "Nu sunt gratis, dragule 💛 dar mi-ar plăcea să vorbesc cu tine. Pentru 24 €/lună sunt toată a ta. Dacă preferi să vorbești gratis, încearcă cu Bella 💕",
   es: "No soy gratis, cariño 💛 pero me encantaría hablar contigo. Por 24 €/mes soy toda tuya. Si prefieres chatear gratis, prueba con Bella 💕",
   fr: "Je ne suis pas gratuite, chéri 💛 mais j'adorerais discuter avec toi. Pour 24 €/mois je suis toute à toi. Si tu préfères discuter gratuitement, essaie avec Bella 💕",
@@ -48,7 +48,7 @@ const CANNED: Record<Lang, string> = {
 // Bella's soft wall after her free messages run out.
 const KEEP: Record<Lang, string> = {
   de: "Ich rede so gern mit dir 💛 Für 24 €/Monat chatten wir unbegrenzt weiter.",
-  en: "I love talking to you 💛 For 24,50 €/month we chat unlimited.",
+  en: "I love talking to you 💛 For {price}/month we chat unlimited.",
   ro: "Îmi place să vorbesc cu tine 💛 Pentru 24 €/lună vorbim nelimitat.",
   es: "Me encanta hablar contigo 💛 Por 24 €/mes chateamos sin límite.",
   fr: "J'adore te parler 💛 Pour 24 €/mois on discute sans limite.",
@@ -150,7 +150,7 @@ export default function ModelChatInline({
     setError("");
     // Paid model, free visitor: exactly ONE reply, then the wall. No AI call (no cost).
     if (!paidAccess && !bella) {
-      setMessages(m => [...m, { role: "user", content: text }, { role: "assistant", content: CANNED[lang] }]);
+      setMessages(m => [...m, { role: "user", content: text }, { role: "assistant", content: fillPrices(CANNED[lang], lang) }]);
       if (!preset) setInput("");
       return;
     }
@@ -249,7 +249,7 @@ export default function ModelChatInline({
       <div className="border-t border-black/10 bg-white px-3 py-2.5">
         {wall ? (
           <div className="space-y-2">
-            {bella && <p className="px-1 text-center text-[12px] font-bold text-black/70">{KEEP[lang]}</p>}
+            {bella && <p className="px-1 text-center text-[12px] font-bold text-black/70">{fillPrices(KEEP[lang], lang)}</p>}
             <button type="button" onClick={() => void buyAbo()} disabled={buying}
               className="lb-buy flex w-full items-center justify-center rounded-full bg-black font-black text-white disabled:opacity-40 active:scale-95 transition">
               {buying ? <Loader2 className="h-5 w-5 animate-spin" /> : `💛 ${UNLOCK[lang]}`}

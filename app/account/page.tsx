@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import { fillPrices } from "@/lib/pricing";
 import { Kicker, H1, Y, Lead, Fine } from "@/components/Landing";
 import MyTopics from "@/components/MyTopics";
 
@@ -25,7 +26,7 @@ export default function AccountPage() {
         <Kicker>LuxuryBandit · Account</Kicker>
         <H1>My <Y>topics</Y></H1>
         <Lead>Everything you subscribe to, in one place — with the cancel button right next to it.</Lead>
-        <Fine>24,50 € a month: 5 videos across all topics, chatting free (50% off, forever — instead of 49 €).</Fine>
+        <Fine>{fillPrices("{price} a month: {videos} videos across all topics, chatting free (50% off, forever — instead of {list}).", "en")}</Fine>
 
         <MyTopics />
       </div>

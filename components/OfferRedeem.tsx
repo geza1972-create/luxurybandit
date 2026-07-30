@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fillPrices } from "@/lib/pricing";
 import { Loader2, Lock, MessageCircle, CloudSun, Palmtree, Check } from "lucide-react";
 
 /**
@@ -57,7 +58,8 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
         </p>
       ) : (
         <p className="mt-1.5 text-[12px] font-bold text-white/70">
-          You pay 24,50 € a month instead of 49 € — the 50% stays, month after month. 5 videos a month across all topics; chatting costs nothing.
+          {fillPrices("You pay {price} a month instead of {list} — the 50% stays, month after month. "
+            + "{videos} videos a month across all topics; chatting costs nothing.", "en")}
         </p>
       )}
 
@@ -82,7 +84,7 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
 
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Start — 24,50 €/month
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {fillPrices("Start — {price}/month", "en")}
       </button>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
       <p className="mt-3 text-center text-[12px] font-bold text-white/70">

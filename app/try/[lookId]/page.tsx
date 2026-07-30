@@ -10,7 +10,7 @@ import { FeedGate } from "@/components/FeedGate";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
-import { renewNote } from "@/lib/pricing";
+import { renewNote, fillPrices } from "@/lib/pricing";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
@@ -460,7 +460,7 @@ export default function TryFunnelPage() {
         <p className="text-[15px] font-black text-white">{L("Ce primești în abonament", "What you get")}</p>
         <div className="mt-2.5 grid gap-2">
           {[
-            L("5 videoclipuri pe lună — în toate temele împreună", "5 videos a month — across every topic"),
+            fillPrices(L("{videos} videoclipuri pe lună — în toate temele împreună", "{videos} videos a month — across every topic")),
             L("Orice model în orice ținută: ea se întoarce, tu vezi fiecare parte", "Any model in any look — she turns, you see every side"),
             L("Chat nelimitat, în limba ta — gratuit, oricând", "Unlimited chat in your language — free, any time"),
             L("Sărut, idolul tău, vacanță: aceleași videoclipuri, alte teme", "Kiss, your idol, holiday — same videos, other topics"),
@@ -539,7 +539,7 @@ export default function TryFunnelPage() {
     setAboBusy(false);
   };
   // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
-  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 24,50 €/lună", "Unlock the hottest AI experience ever — €24.50/month");
+  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — {price}/lună", "Unlock the hottest AI experience ever — {price}/month");
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.
@@ -1515,7 +1515,7 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : "One video: 3.99 € — no subscription needed."}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : fillPrices("One video: {extra} — no subscription needed.")}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
@@ -1528,10 +1528,10 @@ export default function TryFunnelPage() {
                ist seit 26.07.2026 abgeschafft — hier standen bis jetzt noch die alten Preise. */
             <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-6 text-center">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">This video</p>
-              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">3,99 €</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
+              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">{fillPrices("{extra}")}</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
               <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>
               <div className="mt-4 grid gap-2 text-left">
-                {["Your model in the look you picked", "Full video, yours to download", "Want it daily instead? A topic is 24,50 € a month"].map(perk => (
+                {["Your model in the look you picked", "Full video, yours to download", fillPrices("Want it daily instead? A topic is {price} a month")].map(perk => (
                   <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#f6cf51]" /><span className="text-[13px] font-bold text-white/85">{perk}</span></div>
                 ))}
               </div>
@@ -1770,7 +1770,7 @@ export default function TryFunnelPage() {
           {step === 4 && !(adminPin && !previewAsUser) && (
             <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
               className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Get this video — 3,99 €")}
+              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : fillPrices("Get this video — {extra}"))}
             </button>
           )}
         </div>

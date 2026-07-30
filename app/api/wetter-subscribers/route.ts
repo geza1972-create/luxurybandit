@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     add?: { name?: string; email?: string; birthdate?: string; gender?: string; phone?: string; city?: string; country?: string; postal?: string; lang?: string; note?: string };
     remove?: string;
-    addMany?: { name?: string; email?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string }[];
+    addMany?: { name?: string; email?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string; birthdate?: string }[];
   };
 
   const current = await readWetterSubscribers(modelId);
@@ -53,6 +53,9 @@ export async function POST(request: Request) {
         id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
         name: name || email.split("@")[0],
         email, phone,
+        // Meta liefert das Geburtsdatum mit, wenn das Formular danach fragt — sonst ginge es
+        // beim Sammel-Import verloren und müsste je Person nachgetragen werden.
+        birthdate: String(raw.birthdate ?? "").trim().slice(0, 10),
         city: String(raw.city ?? "").trim().slice(0, 120),
         country: String(raw.country ?? "").trim().slice(0, 80) || geo?.country || "",
         lang: String(raw.lang ?? "").trim().slice(0, 5) || geo?.lang || "en",

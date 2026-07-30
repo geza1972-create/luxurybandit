@@ -8,6 +8,7 @@ import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
+import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-look-store";
 
@@ -125,6 +126,18 @@ export default async function KissThemePage({ searchParams }: {
               teaserHint="Bild oder Video hochladen — wird das Cover der Kiss-Karte im Themes-Katalog."
             />
             <KissModelsAdmin />
+            {/* EIGENE Liste für die Kissing-Leads aus Meta (Owner 29.07.2026, nach seiner
+                Regel „Die Wetter Leads sind die Wetter Leads"). Sie liegt in einer eigenen
+                Datei (`wetter-subscribers-kiss.json`) und hat KEINEN Versandknopf: E-Mail,
+                SMS und Bot bauen fest die Wetter-Nachricht — diese Leute haben sich für das
+                Kissing-Formular eingetragen und würden sonst etwas Falsches bekommen. */}
+            <WetterSubscribers
+              modelId="kiss"
+              modelName="Kissing"
+              listLabel="Kissing-Leads"
+              linkPath="/themes/kiss"
+              sending={false}
+            />
             <KissUsersAdmin />
           </div>
         )}

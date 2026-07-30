@@ -1,5 +1,6 @@
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
+import { fillPrices } from "@/lib/pricing";
 import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
 import BellaChatBlock from "@/components/BellaChatBlock";
@@ -37,7 +38,7 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 export const metadata = {
   title: "Tenerife with Bella — and you in the picture | LuxuryBandit",
   description:
-    "Not her holiday — yours. Upload your photo and Bella is in the video with you: a walk on the beach, coffee, dancing. Chatting with her is free; 24,50 € a month for 5 videos across all topics.",
+    fillPrices("Not her holiday — yours. Upload your photo and Bella is in the video with you: a walk on the beach, coffee, dancing. Chatting with her is free; {price} a month for {videos} videos across all topics.", "en"),
   keywords: ["bella", "ai influencer", "holiday video with ai model", "put yourself in a video", "ai girlfriend video", "tenerife"],
   alternates: { canonical: "/themes/bella" },
 };
@@ -150,10 +151,11 @@ export default async function BellaThemePage({ searchParams }: {
           <div>
             <SectionTitle>What it costs</SectionTitle>
             <Lead>
-              Chatting is free, always. The first video starts your subscription at 24,50 € a month
-              — that is 50 % off 49 €, and it stays 50 % off for as long as you stay. It covers 25
-              videos a month across ALL topics together; every extra video is 3.99 €. Cancel any
-              time in your account; the month you paid for stays yours.
+              {/* Zahlen kommen aus lib/pricing.ts — hier steht keine einzige (Owner 29.07.2026). */}
+              {fillPrices("Chatting is free, always. The first video starts your subscription at {price} a month "
+                + "— that is 50 % off {list}, and it stays 50 % off for as long as you stay. It covers {videos} "
+                + "videos a month across ALL topics together; every extra video is {extra}. Cancel any "
+                + "time in your account; the month you paid for stays yours.", "en")}
             </Lead>
           </div>
           <div>

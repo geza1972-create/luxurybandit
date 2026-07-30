@@ -7,9 +7,10 @@ import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
-import { renewNote } from "@/lib/pricing";
+import { renewNote, fillPrices, priceTag } from "@/lib/pricing";
 import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 import { dayFullMessage, CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
+import { openerFor } from "@/lib/chat-opener";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -30,9 +31,24 @@ const TOMORROW_LBL: Record<string, string> = {
 // {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
 // Kein Name bekannt? Dann Platzhalter SAMT davorstehendem Komma entfernen und Satzzeichen
 // glätten — sonst käme „Guten Morgen, !" beim Abonnenten an.
+// Kosenamen, die die Beitrags-Erzeugung STATT eines Platzhalters schreibt. Owner 29.07.2026:
+// „Wieso steht da Liebling? Da muss der Name stehen." Er hat recht — die Aussendung geht an
+// Leute, deren Namen wir kennen; eine allgemeine Anrede wirkt wie ein Serienbrief.
+// Der Titel kommt fertig aus dem gespeicherten Beitrag, deshalb wird beim ANZEIGEN getauscht.
+const KOSENAME = /\b(liebling|schatz|mein lieber|meine liebe|darling|sweetheart|honey|my love|dragul meu|iubitule|dragă|cariño|mi amor|querido|chéri|mon amour|amore|tesoro|kochanie|skarbie)\b/i;
+
+// Nur der VORNAME in der Anrede. Meta liefert „Sebastian Fleckenstein" — mit vollem Namen
+// liest sich der Gruß wie ein Serienbrief, genau das soll er nicht.
+const vorname = (name: string) => (name || "").trim().split(/\s+/)[0] ?? "";
+
 const personalizeName = (text: string, name: string) => {
-  const n = (name || "").trim();
-  if (n) return text.replace(/\{\s*name\s*\}/gi, n);
+  const n = vorname(name);
+  if (n) {
+    if (/\{\s*name\s*\}/i.test(text)) return text.replace(/\{\s*name\s*\}/gi, n);
+    // Kein Platzhalter, aber ein Kosename → der Name gehört dorthin.
+    if (KOSENAME.test(text)) return text.replace(KOSENAME, n);
+    return text;
+  }
   return text
     .replace(/[,،]?\s*\{\s*name\s*\}/gi, "")   // „, {Name}" bzw. „{Name}" weg
     .replace(/\s+([!?.,])/g, "$1")             // Leerzeichen vor Satzzeichen
@@ -190,7 +206,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
   // Paywall-Texte + Freischalten. Nach 7 Öffnungen sind Video + Chat gesperrt.
-  const priceLabel = `${Math.round(monthlyCents / 100)} €`;
+  // AUS DER PREISTABELLE, nicht aus `monthlyCents` (Owner 29.07.2026: „überall das geändert
+  // wird aus der Preistabelle"). Die Seite übergab 4900 → dieser Kasten sagte „{list}", während
+  // der Kasten darunter schon {price} nannte. Zwei Preise auf einer Seite.
+  const priceLabel = priceTag(L);
   const LOCK: Record<string, { spent: string; sub: string; cta: string; chat: string }> = {
     ro: { spent: "Ți-ai consumat toate creditele", sub: `Continuă cu ${priceLabel}/lună — video complet + chat nelimitat cu ${modelName}.`, cta: `🔓 Deblochează — ${priceLabel}/lună`, chat: "Deblochează pentru a continua conversația" },
     de: { spent: "Du hast alle Credits verbraucht", sub: `Weiter für ${priceLabel}/Monat — komplettes Video + unbegrenzter Chat mit ${modelName}.`, cta: `🔓 Freischalten — ${priceLabel}/Monat`, chat: "Zum Weiterchatten freischalten" },
@@ -238,7 +257,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
   const [unlocking, setUnlocking] = useState(false);
   // Aktionscode aus der Adresse (`?code=BELLA`) — so kommt der Preis aus der Anzeige
-  // (24,50 €/Monat dauerhaft) mit, ohne dass der Kunde in Stripe etwas eintippen muss.
+  // ({price}/Monat dauerhaft) mit, ohne dass der Kunde in Stripe etwas eintippen muss.
   const [promo, setPromo] = useState("");
   useEffect(() => {
     try {
@@ -314,7 +333,18 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   }, [city, L, wxWords]);
 
   // ── Chat mit dem Model (Abonnent = unbegrenzt) ── in der Sprache des Abonnenten.
-  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: firstMessage.trim() || t.opener(name, modelName) }]);
+  // DERSELBE EINSTIEG WIE IM CHAT-THEMA (Owner 29.07.2026: „der chat ist falsch. Wir müssen
+  // den gleichen chat machen wie beim Chat Topic").
+  //
+  // Vorher stand hier der Tagestext aus der Beitrags-Erzeugung — und der endete mit einer
+  // persönlichen Frage („Wie beginnt dein Tag?"). Genau daran brechen die Leute ab; die
+  // Regel lautet seit 29.07.2026: Fragen nur über SIE, geantwortet wird per Knopf. Der
+  // Standard-Gruß der Wetter-Seite („Wie hast du geschlafen?") war derselbe Fehler.
+  //
+  // `openerFor` ist die eine Quelle für alle Chats — Profil, Chat-Thema und jetzt auch hier.
+  // Der Tagestext geht weiterhin als KONTEXT an das Modell (dayContext), er wird nur nicht
+  // mehr als erste Blase gezeigt.
+  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: openerFor(L).text }]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -387,7 +417,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       const ck = `lb_wetter_chatted_${modelId}`;
       if (!sessionStorage.getItem(ck) && !localStorage.getItem("luxurybandit-try-look-admin-pin")) {
         sessionStorage.setItem(ck, "1");
-        fetch("/api/wetter-stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId, kind: "chat" }) }).catch(() => {});
+        // subId mitschicken: sonst steht im Werkzeug nur eine Gesamtzahl und man weiss
+        // nicht, WER geschrieben hat (Owner 29.07.2026).
+        fetch("/api/wetter-stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId, kind: "chat", subId }) }).catch(() => {});
       }
     } catch { /**/ }
     // Hinweise (role "notice") gehören NICHT in den Verlauf fürs Modell — sonst
@@ -492,10 +524,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-6 text-center">
               <Lock className="h-7 w-7 text-white" />
               <p className="text-[19px] font-black leading-tight text-white">{lk.spent}</p>
-              <p className="max-w-xs text-[13px] font-semibold text-white/85">{lk.sub}</p>
+              <p className="max-w-xs text-[13px] font-semibold text-white/85">{fillPrices(lk.sub, L)}</p>
               <button type="button" onClick={e => { e.stopPropagation(); void unlock(); }} disabled={unlocking}
                 className="lb-gold mt-1 flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black disabled:opacity-60">
-                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : lk.cta}
+                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : fillPrices(lk.cta, L)}
               </button>
             </div>
           )}
@@ -513,7 +545,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         {title.trim()
           ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
           : name.trim()
-            ? <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#f6cf51]">{name}!</span></p>
+            ? <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#f6cf51]">{vorname(name)}!</span></p>
             : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre.replace(/[,،]\s*$/, "")}!</p>}
         {city.trim() && (
           <p className="mt-1 text-[14px] font-semibold text-white/70">
@@ -624,8 +656,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         {!chatBlocked && !sending && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (() => {
           const mm = messages[messages.length - 1].content.match(CHIPS_TAG_RE);
           // IMMER KNÖPFE (Owner 29.07.2026): geflirtet wird durch Klicken, nie durch Tippen.
-          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3)
-            : deriveChips(messages[messages.length - 1].content, L);
+          // Solange nur der Einstieg dasteht, gelten seine vier festen Knöpfe (wie im
+          // Chat-Thema) — abgeleitete Knöpfe passen zu einer Antwort, nicht zum Einstieg.
+          const chips = messages.length === 1 && messages[0].content === openerFor(L).text
+            ? openerFor(L).chips
+            : mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3)
+              : deriveChips(messages[messages.length - 1].content, L);
           if (!chips.length) return null;
           return (
             <div className="flex flex-wrap gap-1.5 border-t border-black/10 px-3 pb-1 pt-2">
@@ -654,7 +690,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <div className="flex flex-col items-center gap-1.5 px-4 pb-3 pt-1 text-center">
             <button type="button" onClick={() => void unlock()} disabled={unlocking}
               className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black disabled:opacity-60">
-              {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : lk.cta}
+              {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : fillPrices(lk.cta, L)}
             </button>
           </div>
         )}
@@ -669,24 +705,24 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           erst auf, wenn die Sperre griff. Wer vorher kaufen WOLLTE, konnte es gar nicht. */}
       {!paid && (() => {
         const S: Record<string, { h: string; p: string; cta: string; ctaCode: string }> = {
-          ro: { h: "Toate modelele, toate temele", p: "Orice model, orice ținută, orice temă: 5 videoclipuri pe lună — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună" },
-          de: { h: "Alle Models, alle Themen", p: "Jedes Model, jeder Look, jedes Thema: 5 Videos im Monat — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat" },
-          en: { h: "Every model, every topic", p: "Every model, every look, every topic: 5 videos a month — chatting stays free.", cta: "Unlock the hottest AI experience ever — €24.50/month", ctaCode: "Unlock the hottest AI experience ever — €24.50/month" },
-          es: { h: "Todas las modelos, todos los temas", p: "Cualquier modelo, cualquier look, cualquier tema: 5 vídeos al mes — chatear sigue gratis.", cta: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes" },
-          fr: { h: "Toutes les modèles, tous les thèmes", p: "N'importe quelle modèle, n'importe quelle tenue, n'importe quel thème : 5 vidéos par mois — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 24,50 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 24,50 €/mois" },
-          pt: { h: "Todas as modelos, todos os temas", p: "Qualquer modelo, qualquer look, qualquer tema: 5 vídeos por mês — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês" },
-          pl: { h: "Wszystkie modelki, wszystkie tematy", p: "Dowolna modelka, dowolna stylizacja, dowolny temat: 5 filmów miesięcznie — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc" },
-          it: { h: "Tutte le modelle, tutti i temi", p: "Qualsiasi modella, qualsiasi look, qualsiasi tema: 5 video al mese — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — 24,50 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 24,50 €/mese" },
+          ro: { h: "Toate modelele, toate temele", p: "Orice model, orice ținută, orice temă: {videos} videoclipuri pe lună — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — {price}/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — {price}/lună" },
+          de: { h: "Alle Models, alle Themen", p: "Jedes Model, jeder Look, jedes Thema: {videos} Videos im Monat — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — {price}/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — {price}/Monat" },
+          en: { h: "Every model, every topic", p: "Every model, every look, every topic: {videos} videos a month — chatting stays free.", cta: "Unlock the hottest AI experience ever — {price}/month", ctaCode: "Unlock the hottest AI experience ever — {price}/month" },
+          es: { h: "Todas las modelos, todos los temas", p: "Cualquier modelo, cualquier look, cualquier tema: {videos} vídeos al mes — chatear sigue gratis.", cta: "Desbloquea la experiencia IA más ardiente — {price}/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — {price}/mes" },
+          fr: { h: "Toutes les modèles, tous les thèmes", p: "N'importe quelle modèle, n'importe quelle tenue, n'importe quel thème : {videos} vidéos par mois — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — {price}/mois", ctaCode: "Débloque l'expérience IA la plus chaude — {price}/mois" },
+          pt: { h: "Todas as modelos, todos os temas", p: "Qualquer modelo, qualquer look, qualquer tema: {videos} vídeos por mês — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — {price}/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — {price}/mês" },
+          pl: { h: "Wszystkie modelki, wszystkie tematy", p: "Dowolna modelka, dowolna stylizacja, dowolny temat: {videos} filmów miesięcznie — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc" },
+          it: { h: "Tutte le modelle, tutti i temi", p: "Qualsiasi modella, qualsiasi look, qualsiasi tema: {videos} video al mese — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese", ctaCode: "Sblocca l'esperienza AI più calda — {price}/mese" },
         };
         const x = S[L] ?? S.en;
         return (
           <div id="abo" className="mx-auto mt-6 max-w-md px-4 scroll-mt-24">
             <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
               <p className="text-[16px] font-black text-white">{x.h}</p>
-              <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{x.p}</p>
+              <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{fillPrices(x.p, L)}</p>
               <button type="button" onClick={() => void unlock()} disabled={unlocking}
                 className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : x.ctaCode}
+                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : fillPrices(x.ctaCode, L)}
               </button>
               {/* Der laufende Preis — bewusst dünn und klein, er soll den Knopf nicht erschlagen. */}
               <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(L)}</p>
@@ -724,53 +760,53 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       })()}
 
       {/* Darunter: ALLE Mitmach-Themen. Nichts davon ist gratis — es läuft übers Abo
-          (5 Videos im Monat für 24 €). Deshalb steht auf jeder Karte „Im Abo" statt eines
+          ({videos} Videos im Monat für 24 €). Deshalb steht auf jeder Karte „Im Abo" statt eines
           Gratis-Versprechens. Übersetzt, weil die Abonnenten EU-weit sitzen. */}
       {(() => {
         const P: Record<string, { h: string; sub: string; inAbo: string; items: [string, string, string][] }> = {
-          ro: { h: "Descoperă ceva nou \u2728", sub: "5 videoclipuri pe lună, 24,50 €. Chatul e gratuit.", inAbo: "Continuă", items: [
+          ro: { h: "Descoperă ceva nou \u2728", sub: "{videos} videoclipuri pe lună, {price}. Chatul e gratuit.", inAbo: "Continuă", items: [
             ["\u2728", "Probează o ținută", "Alege un look și un model — îl vezi într-un video."],
             ["\uD83D\uDC8B", "Sărută orice model", "Sau vedeta ta preferată — încarcă o poză."],
             ["\u2B50", "Idolul tău cu tine", "Voi doi împreună, într-un singur video."],
             ["\uD83D\uDD25", "Lenjerie", "O vezi în lenjerie — orice look, în video."],
           ] },
-          de: { h: "Entdecke Neues \u2728", sub: "5 Videos im Monat, 24,50 €. Chatten ist gratis.", inAbo: "Weiter", items: [
+          de: { h: "Entdecke Neues \u2728", sub: "{videos} Videos im Monat, {price}. Chatten ist gratis.", inAbo: "Weiter", items: [
             ["\u2728", "Outfit anprobieren", "Look und Model wählen — du siehst es im Video."],
             ["\uD83D\uDC8B", "Küsse jedes Model", "Oder deinen Superstar — lade einfach ein Foto hoch."],
             ["\u2B50", "Dein Idol mit dir", "Ihr beide zusammen, in einem Video."],
             ["\uD83D\uDD25", "Lingerie", "Sieh sie in Lingerie — jeder Look, im Video."],
           ] },
-          en: { h: "Discover something new \u2728", sub: "5 videos a month, €24.50. Chatting is free.", inAbo: "Continue", items: [
+          en: { h: "Discover something new \u2728", sub: "{videos} videos a month, {price}. Chatting is free.", inAbo: "Continue", items: [
             ["\u2728", "Try on a look", "Pick a look and a model — see it in a video."],
             ["\uD83D\uDC8B", "Kiss any model", "Or your favourite superstar — just upload a photo."],
             ["\u2B50", "Your idol with you", "The two of you together, in one video."],
             ["\uD83D\uDD25", "Lingerie", "See her in lingerie — any look, in a video."],
           ] },
-          es: { h: "Descubre algo nuevo \u2728", sub: "5 vídeos al mes, 24,50 €. Chatear es gratis.", inAbo: "Continuar", items: [
+          es: { h: "Descubre algo nuevo \u2728", sub: "{videos} vídeos al mes, {price}. Chatear es gratis.", inAbo: "Continuar", items: [
             ["\u2728", "Prueba un look", "Elige un look y una modelo — lo ves en un vídeo."],
             ["\uD83D\uDC8B", "Besa a cualquier modelo", "O a tu estrella favorita — sube una foto."],
             ["\u2B50", "Tu ídolo contigo", "Los dos juntos, en un vídeo."],
             ["\uD83D\uDD25", "Lencería", "Verla en lencería — cualquier look, en vídeo."],
           ] },
-          fr: { h: "Découvre du nouveau \u2728", sub: "5 vidéos par mois, 24,50 €. Le chat est gratuit.", inAbo: "Continuer", items: [
+          fr: { h: "Découvre du nouveau \u2728", sub: "{videos} vidéos par mois, {price}. Le chat est gratuit.", inAbo: "Continuer", items: [
             ["\u2728", "Essaie une tenue", "Choisis un look et un modèle — tu le vois en vidéo."],
             ["\uD83D\uDC8B", "Embrasse un modèle", "Ou ta star préférée — envoie une photo."],
             ["\u2B50", "Ton idole avec toi", "Vous deux ensemble, en vidéo."],
             ["\uD83D\uDD25", "Lingerie", "La voir en lingerie — n'importe quel look, en vidéo."],
           ] },
-          pt: { h: "Descobre algo novo \u2728", sub: "5 vídeos por mês, 24,50 €. Conversar é grátis.", inAbo: "Continuar", items: [
+          pt: { h: "Descobre algo novo \u2728", sub: "{videos} vídeos por mês, {price}. Conversar é grátis.", inAbo: "Continuar", items: [
             ["\u2728", "Experimenta um visual", "Escolhe um visual e uma modelo — vês num vídeo."],
             ["\uD83D\uDC8B", "Beija qualquer modelo", "Ou a tua estrela favorita — envia uma foto."],
             ["\u2B50", "O teu ídolo contigo", "Vocês os dois juntos, num vídeo."],
             ["\uD83D\uDD25", "Lingerie", "Vê-la em lingerie — qualquer visual, em vídeo."],
           ] },
-          pl: { h: "Odkryj coś nowego \u2728", sub: "5 filmów miesięcznie, 24,50 €. Czat jest darmowy.", inAbo: "Dalej", items: [
+          pl: { h: "Odkryj coś nowego \u2728", sub: "{videos} filmów miesięcznie, {price}. Czat jest darmowy.", inAbo: "Dalej", items: [
             ["\u2728", "Przymierz stylizację", "Wybierz look i modelkę — zobaczysz to na wideo."],
             ["\uD83D\uDC8B", "Pocałuj modelkę", "Albo swoją gwiazdę — wystarczy zdjęcie."],
             ["\u2B50", "Twój idol z Tobą", "Wy dwoje razem, na jednym wideo."],
             ["\uD83D\uDD25", "Bielizna", "Zobacz ją w bieliźnie — każdy look, na wideo."],
           ] },
-          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "5 video al mese, 24,50 €. Chattare è gratis.", inAbo: "Continua", items: [
+          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "{videos} video al mese, {price}. Chattare è gratis.", inAbo: "Continua", items: [
             ["\u2728", "Prova un look", "Scegli un look e una modella — lo vedi in un video."],
             ["\uD83D\uDC8B", "Bacia una modella", "O la tua star preferita — carica una foto."],
             ["\u2B50", "Il tuo idolo con te", "Voi due insieme, in un video."],
@@ -783,13 +819,24 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         return (
           <div className="mb-8 mt-3">
             <p className="px-0.5 text-[13px] font-black text-white">{p.h}</p>
-            <p className="mb-2 px-0.5 text-[11px] font-bold text-[#f6cf51]">{p.sub}</p>
+            <p className="mb-2 px-0.5 text-[11px] font-bold text-[#f6cf51]">{fillPrices(p.sub, L)}</p>
             <div className="grid grid-cols-2 gap-2.5">
               {p.items.map(([emoji, title, sub], i) => {
                 const [media, isVideo] = MEDIA[i];
                 const alt2 = i === 0 ? tryonLingerie : "";
                 return (
-                  <a key={title} href={HREFS[i]} className="flex flex-col overflow-hidden rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+                  <a key={title} href={HREFS[i]}
+                    // „getestet" = er hat eine der vier Karten geöffnet. Nur melden, wenn wir
+                    // wissen, wer es war — und nie für die eigene Admin-Sitzung.
+                    onClick={() => {
+                      if (!subId) return;
+                      try {
+                        if (localStorage.getItem("luxurybandit-try-look-admin-pin")) return;
+                        fetch("/api/wetter-stats", { method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ modelId, kind: "test", subId, what: ["Look testen", "Kissing", "Idol", "Lingerie"][i] }), keepalive: true }).catch(() => {});
+                      } catch { /**/ }
+                    }}
+                    className="flex flex-col overflow-hidden rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
                     <span className="relative block aspect-[3/4] w-full overflow-hidden bg-white/[0.04]">
                       {media
                         ? (isVideo

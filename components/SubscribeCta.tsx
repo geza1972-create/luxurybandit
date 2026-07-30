@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Lock } from "lucide-react";
-import { renewNote } from "@/lib/pricing";
+import { renewNote, fillPrices } from "@/lib/pricing";
 
 /**
  * DER KAUFKNOPF — einmal gebaut, überall gleich.
@@ -17,14 +17,14 @@ import { renewNote } from "@/lib/pricing";
  */
 
 const T: Record<string, { h: string; p: string; cta: string }> = {
-  en: { h: "Get everything", p: "5 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €24.50/month" },
-  de: { h: "Alles freischalten", p: "5 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat" },
-  ro: { h: "Deblochează tot", p: "5 videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună" },
-  es: { h: "Desbloquéalo todo", p: "5 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes" },
-  fr: { h: "Tout débloquer", p: "5 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 24,50 €/mois" },
-  pt: { h: "Desbloqueia tudo", p: "5 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês" },
-  pl: { h: "Odblokuj wszystko", p: "5 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc" },
-  it: { h: "Sblocca tutto", p: "5 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 24,50 €/mese" },
+  en: { h: "Get everything", p: "{videos} videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — {price}/month" },
+  de: { h: "Alles freischalten", p: "{videos} Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — {price}/Monat" },
+  ro: { h: "Deblochează tot", p: "{videos} videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — {price}/lună" },
+  es: { h: "Desbloquéalo todo", p: "{videos} vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — {price}/mes" },
+  fr: { h: "Tout débloquer", p: "{videos} vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — {price}/mois" },
+  pt: { h: "Desbloqueia tudo", p: "{videos} vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — {price}/mês" },
+  pl: { h: "Odblokuj wszystko", p: "{videos} filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc" },
+  it: { h: "Sblocca tutto", p: "{videos} video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese" },
 };
 
 export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {
@@ -57,11 +57,11 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }:
   return (
     <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
       <p className="text-[17px] font-black text-white">{t.h}</p>
-      <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{t.p}</p>
+      <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{fillPrices(t.p, lang)}</p>
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {t.cta}
+        {fillPrices(t.cta, lang)}
       </button>
       {error && <p className="mt-2 text-[13px] font-bold text-white/80">{error}</p>}
       <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>

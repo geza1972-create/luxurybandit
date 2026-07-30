@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import { fillPrices } from "@/lib/pricing";
 import { Kicker, H1, Y, Lead, Fine } from "@/components/Landing";
 import OfferRedeem from "@/components/OfferRedeem";
 
@@ -37,7 +38,7 @@ export default async function OfferPage({ searchParams }: {
           Pick the topic you want, enter your code, and you are in: your influencer writes to you
           every day, you chat with her and you make videos with her.
         </Lead>
-        <Fine>24,50 € a month for 5 videos across all topics — 50% off, forever, instead of 49 €. Chatting is free. — cancel any time in your account.</Fine>
+        <Fine>{fillPrices("{price} a month for {videos} videos across all topics — 50% off, forever, instead of {list}. Chatting is free. — cancel any time in your account.", "en")}</Fine>
 
         <OfferRedeem initialCode={code} />
       </div>

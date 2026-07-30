@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string };
 
   // Admin: einen Eintrag löschen.
   if (body.remove) {
@@ -43,6 +43,8 @@ export async function POST(request: Request) {
     modelName: String(body.modelName ?? "").trim().slice(0, 60) || undefined,
     videoUrl: String(body.videoUrl ?? "").trim() || undefined,
     paid: false,
+    email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
+    device: String(body.device ?? "").trim().slice(0, 80) || undefined,
   };
   const entries = [entry, ...(await readKissLog())];
   await writeKissLog(entries);

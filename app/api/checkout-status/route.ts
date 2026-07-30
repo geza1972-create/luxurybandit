@@ -64,7 +64,15 @@ export async function GET(request: Request) {
         try {
           const entries = await readKissLog();
           const e = entries.find(x => x.id === genId);
-          if (e && e.paid !== true) { e.paid = true; await writeKissLog(entries); }
+          // Die Zahlung ist die EINZIGE Stelle, an der ein anonymer Kiss-Besucher eine
+          // E-Mail hinterlässt — Stripe fragt sie an der Kasse ab. Hier festhalten, sonst
+          // ist der Käufer hinterher wieder namenlos.
+          const mail = String(s.customerEmail ?? "").trim().toLowerCase();
+          if (e && (e.paid !== true || (mail && !e.paidEmail))) {
+            e.paid = true;
+            if (mail) e.paidEmail = mail;
+            await writeKissLog(entries);
+          }
         } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
       }
     }

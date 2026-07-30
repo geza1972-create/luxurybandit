@@ -1386,6 +1386,16 @@ export type KissLogEntry = {
   modelName?: string;
   videoUrl?: string;      // persistierte (langlebige) Video-URL
   paid?: boolean;         // per Stripe freigeschaltet
+  // WER war das (Owner 29.07.2026: „ich muss auch die emails sehen").
+  //
+  // Der Kiss-Trichter fragt bewusst NICHTS ab — man lädt ein Foto hoch und legt los. Eine
+  // E-Mail gibt es deshalb nur, wenn der Besucher angemeldet ist (`email`) oder bezahlt hat
+  // (dann liefert Stripe sie, `paidEmail`). Für alle anderen bleibt die Gerätekennung: sie
+  // sagt zwar keinen Namen, verbindet aber mehrere Versuche derselben Person und passt zu
+  // den Zahlen im Trichter.
+  email?: string;         // angemeldeter Nutzer beim Erzeugen
+  paidEmail?: string;     // von Stripe beim Kauf
+  device?: string;        // anonyme Gerätekennung (lb_visitor)
 };
 
 export async function readKissLog(): Promise<KissLogEntry[]> {
@@ -1619,14 +1629,42 @@ export async function writeWetterSubscribers(subscribers: WetterSubscriber[], mo
 // ── Wetter-Klick-Tracking ───────────────────────────────────────────────────
 // EIGENER Blob (nicht die Abonnentenliste anfassen → nie clobbern). Map je Abonnent:
 // { count, lastAt, src }. „geöffnet" = er hat den Link (E-Mail/WhatsApp) angeklickt.
-export type WetterClick = { count: number; lastAt: string; src?: string };
+export type WetterClick = {
+  count: number; lastAt: string; src?: string;
+  // WAS DIE PERSON DANACH GETAN HAT (Owner 29.07.2026: „Muss sehen wer das bis morgen
+  // öffnet und was testet oder chatet").
+  //
+  // Öffnen allein sagt wenig — die Frage ist, ob danach etwas passiert. Chat und Test lagen
+  // bisher nur als GESAMTZAHL vor („17 Chats"), also liess sich nicht sagen, WER. Beides
+  // hängt jetzt an derselben Person wie der Klick.
+  chat?: number; chatAt?: string;
+  test?: number; testAt?: string; testWhat?: string;   // testWhat: welche Karte er geöffnet hat
+};
 function wetterClicksPath(modelId?: string) {
   const id = (modelId ?? "").trim();
   return (!id || id === BELLA_STUDIO_ID)
     ? "try-this-look/wetter-clicks.json"
     : `try-this-look/wetter-clicks-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
 }
-export async function readWetterClicks(modelId?: string): Promise<Record<string, WetterClick>> {
+// JE EREIGNIS EINE DATEI — nur so geht bei einer Aussendung nichts verloren.
+//
+// Erster Versuch war „je Person eine Datei". Das löste die Kollision ZWISCHEN Personen, aber
+// nicht die innerhalb einer: Öffnen und Anklicken im selben Moment lasen beide denselben
+// Stand und der zweite Schreibvorgang gewann. Am 29.07.2026 nachgestellt und beobachtet.
+//
+// Jetzt wird NICHTS mehr gelesen und geändert. Jedes Ereignis legt eine eigene Datei an,
+// deren NAME schon alles sagt: wer, was, wofür, wann. Zwei gleichzeitige Ereignisse können
+// sich nicht überschreiben, weil sie nie denselben Namen haben.
+//
+// Gelesen wird mit EINEM Auflisten — die Namen genügen, kein einziger Dateiinhalt muss
+// geholt werden. Deshalb bleibt es auch bei tausenden Ereignissen schnell.
+function wetterActivityDir(modelId?: string) {
+  const id = (modelId ?? "").trim().replace(/[^a-zA-Z0-9-]/g, "") || "default";
+  return `try-this-look/wetter-activity/${id === BELLA_STUDIO_ID.replace(/[^a-zA-Z0-9-]/g, "") ? "default" : id}`;
+}
+const kuerzel = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+
+async function readWetterClicksLegacy(modelId?: string): Promise<Record<string, WetterClick>> {
   try {
     const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterClicksPath(modelId))}`);
     if (!res.ok) return {};
@@ -1634,17 +1672,52 @@ export async function readWetterClicks(modelId?: string): Promise<Record<string,
     return (data && typeof data === "object" && data.clicks && typeof data.clicks === "object") ? data.clicks as Record<string, WetterClick> : {};
   } catch { return {}; }
 }
-export async function recordWetterClick(subId: string, src: string, modelId?: string): Promise<void> {
-  const id = String(subId || "").trim();
+
+export async function readWetterClicks(modelId?: string): Promise<Record<string, WetterClick>> {
+  const out = await readWetterClicksLegacy(modelId);   // Verlauf von vor der Umstellung
+  try {
+    const dir = wetterActivityDir(modelId);
+    const namen: string[] = [];
+    for (let seite = 0; seite < 6; seite++) {          // bis 6000 Ereignisse
+      const res = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prefix: dir, limit: 1000, offset: seite * 1000 }),
+      });
+      if (!res.ok) break;
+      const files = (await res.json().catch(() => [])) as { name?: string }[];
+      const teil = (Array.isArray(files) ? files : []).map(f => String(f?.name ?? "")).filter(n => n.endsWith(".json"));
+      namen.push(...teil);
+      if (teil.length < 1000) break;
+    }
+    for (const n of namen) {
+      // <subId>__<art>__<kuerzel>__<zeit>.json
+      const [subId, art, label, zeit] = n.replace(/\.json$/, "").split("__");
+      if (!subId || !art || !zeit) continue;
+      const when = new Date(Number(zeit) || 0).toISOString();
+      const a = (out[subId] ??= { count: 0, lastAt: when });
+      if (art === "chat") { a.chat = (a.chat ?? 0) + 1; if (!a.chatAt || a.chatAt < when) a.chatAt = when; }
+      else if (art === "test") { a.test = (a.test ?? 0) + 1; if (!a.testAt || a.testAt < when) { a.testAt = when; a.testWhat = label || a.testWhat; } }
+      else { a.count = (a.count ?? 0) + 1; if (!a.lastAt || a.lastAt < when) a.lastAt = when; if (label) a.src = label; }
+    }
+    return out;
+  } catch { return out; }
+}
+
+export async function recordWetterClick(
+  subId: string, src: string, modelId?: string,
+  kind: "click" | "chat" | "test" = "click", what = "",
+): Promise<void> {
+  const id = String(subId || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
   if (!id) return;
   await ensureBucket();
-  const clicks = await readWetterClicks(modelId);
-  const prev = clicks[id];
-  clicks[id] = { count: (prev?.count ?? 0) + 1, lastAt: new Date().toISOString(), src: String(src || prev?.src || "") };
-  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterClicksPath(modelId))}`, {
+  // Der Dateiname IST der Datensatz. Kein Lesen, kein Ändern — nur Anlegen.
+  const label = kuerzel(kind === "test" ? what : src);
+  const pfad = `${wetterActivityDir(modelId)}/${id}__${kind}__${label}__${Date.now()}.json`;
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
-    body: JSON.stringify({ clicks, updatedAt: new Date().toISOString() }),
+    body: JSON.stringify({ subId: id, kind, what: what.slice(0, 40), src: String(src).slice(0, 40), at: new Date().toISOString() }),
   }).catch(() => {});
 }
 

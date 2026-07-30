@@ -15,6 +15,7 @@ import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
+import { stripPersonalQuestion } from "@/lib/no-personal-question";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -323,7 +324,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
             locked={locked} paid={paid} modelSlug={model} monthlyCents={4900} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie} idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
-            title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
+            title={dayLook?.title || ""} caption={stripPersonalQuestion(dayLook?.caption || "")} firstMessage="" dayContext={stripPersonalQuestion(dayLook?.context || "")}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null}
             profileAsk={askProfile ? (
               <WetterProfileAsk sub={subToken} modelId={modelId} lang={subLang}
@@ -353,7 +354,7 @@ export default async function WetterModelPage({ params, searchParams }: {
                  leere Kacheln mit Emoji, und man hält für kaputt, was live läuft. */
               <WetterSubscriberView name="Boy" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
                 day={dayLook?.day || ""} time={dayLook?.time || ""}
-                title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
+                title={dayLook?.title || ""} caption={stripPersonalQuestion(dayLook?.caption || "")} firstMessage="" dayContext={stripPersonalQuestion(dayLook?.context || "")}
                 modelSlug={model} monthlyCents={monthlyCents} crossModels={crossModels}
                 kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie}
                 idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}

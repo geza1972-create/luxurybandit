@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fillPrices } from "@/lib/pricing";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readWetterSubscribers, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { sendSms, smsConfigured } from "@/lib/sms-send";
@@ -17,14 +18,14 @@ const BELLA_ID = "curator-1783683672619-td4cy";
  */
 
 const TEXT: Record<string, (name: string, link: string, stop: string) => string> = {
-  en: (n, l, u) => `Good morning${n ? ` ${n}` : ""}! Your weather + a new look from Bella: ${l} — 24.50 € a month instead of 49 €, forever. Stop: ${u}`,
-  de: (n, l, u) => `Guten Morgen${n ? ` ${n}` : ""}! Dein Wetter + ein neuer Look von Bella: ${l} — dauerhaft 24,50 € statt 49 €. Abmelden: ${u}`,
-  ro: (n, l, u) => `Bună dimineața${n ? ` ${n}` : ""}! Vremea ta + un look nou de la Bella: ${l} — permanent 24,50 € în loc de 49 €. Dezabonare: ${u}`,
-  es: (n, l, u) => `¡Buenos días${n ? ` ${n}` : ""}! Tu clima + un look nuevo de Bella: ${l} — siempre 24,50 € en vez de 49 €. Baja: ${u}`,
-  fr: (n, l, u) => `Bonjour${n ? ` ${n}` : ""} ! Ta météo + un nouveau look de Bella : ${l} — toujours 24,50 € au lieu de 49 €. Stop : ${u}`,
-  pt: (n, l, u) => `Bom dia${n ? ` ${n}` : ""}! O teu tempo + um novo visual da Bella: ${l} — sempre 24,50 € em vez de 49 €. Cancelar: ${u}`,
-  pl: (n, l, u) => `Dzień dobry${n ? ` ${n}` : ""}! Twoja pogoda + nowy look od Belli: ${l} — zawsze 24,50 € zamiast 49 €. Wypisz się: ${u}`,
-  it: (n, l, u) => `Buongiorno${n ? ` ${n}` : ""}! Il tuo meteo + un look nuovo di Bella: ${l} — sempre 24,50 € invece di 49 €. Disiscriviti: ${u}`,
+  en: (n, l, u) => `Good morning${n ? ` ${n}` : ""}! Your weather + a new look from Bella: ${l} — {price} a month instead of {list}, forever. Stop: ${u}`,
+  de: (n, l, u) => `Guten Morgen${n ? ` ${n}` : ""}! Dein Wetter + ein neuer Look von Bella: ${l} — dauerhaft {price} statt {list}. Abmelden: ${u}`,
+  ro: (n, l, u) => `Bună dimineața${n ? ` ${n}` : ""}! Vremea ta + un look nou de la Bella: ${l} — permanent {price} în loc de {list}. Dezabonare: ${u}`,
+  es: (n, l, u) => `¡Buenos días${n ? ` ${n}` : ""}! Tu clima + un look nuevo de Bella: ${l} — siempre {price} en vez de {list}. Baja: ${u}`,
+  fr: (n, l, u) => `Bonjour${n ? ` ${n}` : ""} ! Ta météo + un nouveau look de Bella : ${l} — toujours {price} au lieu de {list}. Stop : ${u}`,
+  pt: (n, l, u) => `Bom dia${n ? ` ${n}` : ""}! O teu tempo + um novo visual da Bella: ${l} — sempre {price} em vez de {list}. Cancelar: ${u}`,
+  pl: (n, l, u) => `Dzień dobry${n ? ` ${n}` : ""}! Twoja pogoda + nowy look od Belli: ${l} — zawsze {price} zamiast {list}. Wypisz się: ${u}`,
+  it: (n, l, u) => `Buongiorno${n ? ` ${n}` : ""}! Il tuo meteo + un look nuovo di Bella: ${l} — sempre {price} invece di {list}. Disiscriviti: ${u}`,
 };
 
 // POST { modelId?, modelSlug?, ids?: string[], all?: boolean }

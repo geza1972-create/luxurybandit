@@ -2,7 +2,7 @@
  * PREISE AN EINER STELLE (Owner-Entscheidung 27.07.2026, Preis halbiert am 29.07.2026).
  *
  * Themen-Abo: Listenpreis **49 €/Monat** — aber JEDER Kunde bekommt automatisch den
- * Gutschein FOREVER50 (50 %, `duration: forever`). Er zahlt damit **dauerhaft 24,50 €/Monat**,
+ * Gutschein FOREVER50 (50 %, `duration: forever`). Er zahlt damit **dauerhaft {price}/Monat**,
  * nicht nur im ersten Monat. Owner 29.07.2026: „überall den Gutschein im Preis rein machen
  * für 50 %. Der Kunde zahlt dauerhaft 50 % weniger."
  *
@@ -22,10 +22,42 @@
 export const TOPIC_MONTHLY_CENTS = 4900;            // 49 € Listenpreis (durchgestrichen)
 export const TOPIC_EFFECTIVE_MONTHLY_CENTS = 2450;  // 24,50 € — was er wirklich zahlt, dauerhaft
 export const EXTRA_VIDEO_CENTS = 399;               // jedes Video über das Abo hinaus
+export const INCLUDED_VIDEOS_PER_MONTH = 5;         // im Abo enthaltene Videos, über ALLE Themen
+
+/**
+ * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
+ *
+ * Owner 29.07.2026: „das machst du ab jetzt so, dass überall das geändert wird aus der
+ * Preistabelle." Anlass: Der Preis war auf 24,50 € und die Videozahl auf 5 gesetzt, aber auf
+ * Italienisch stand weiter „25 video" und auf der Bella-Seite „25 videos a month". Wer eine
+ * Zahl in acht Sprachtabellen abschreibt, vergisst eine — das ist keine Frage der Sorgfalt.
+ *
+ * Deshalb stehen in den Texten nur noch Platzhalter, die hier gefüllt werden:
+ *   {price}  → 24,50 €   (der Preis, den er wirklich zahlt)
+ *   {list}   → 49 €      (Listenpreis, durchgestrichen)
+ *   {extra}  → 3,99 €    (jedes weitere Video)
+ *   {videos} → 5         (im Abo enthalten)
+ *
+ * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
+ */
+export function eur(cents: number, lang?: string): string {
+  const l = String(lang ?? "en").slice(0, 2);
+  const v = cents / 100;
+  const txt = v.toFixed(2).replace(/\.00$/, v % 1 === 0 ? "" : ".00");
+  return l === "en" ? `€${txt}` : `${txt.replace(".", ",")} €`;
+}
+
+export function fillPrices(text: string, lang?: string): string {
+  return String(text ?? "")
+    .replace(/\{price\}/g, eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, lang))
+    .replace(/\{list\}/g, eur(TOPIC_MONTHLY_CENTS, lang))
+    .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
+    .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
+}
 
 /** Anzeige-Texte: immer der halbierte Preis, denn der Gutschein gilt für alle. */
-export const PRICE_LINE_EN = "€24.50/month (50% off, forever)";
-export const PRICE_LINE_DE = "24,50 €/Monat (50 % Rabatt, dauerhaft)";
+export const PRICE_LINE_EN = "{price}/month (50% off, forever)";
+export const PRICE_LINE_DE = "{price}/Monat (50 % Rabatt, dauerhaft)";
 
 /**
  * Der Satz UNTER jedem Kaufknopf: was er zahlt, dass es dauerhaft gilt und dass er
@@ -33,26 +65,23 @@ export const PRICE_LINE_DE = "24,50 €/Monat (50 % Rabatt, dauerhaft)";
  * sonst ist der Preis versteckt.
  */
 const RENEW_NOTE: Record<string, string> = {
-  en: "€24.50/month instead of €49 — 50% off for as long as you stay. Cancel any time.",
-  de: "24,50 €/Monat statt 49 € — die 50 % bleiben dauerhaft. Monatlich kündbar.",
-  ro: "24,50 €/lună în loc de 49 € — cei 50 % rămân pentru totdeauna. Poți renunța oricând.",
-  es: "24,50 €/mes en vez de 49 € — el 50 % se mantiene siempre. Cancela cuando quieras.",
-  fr: "24,50 €/mois au lieu de 49 € — les 50 % restent pour toujours. Résiliable à tout moment.",
-  pt: "24,50 €/mês em vez de 49 € — os 50 % ficam para sempre. Cancela quando quiseres.",
-  pl: "24,50 €/miesiąc zamiast 49 € — 50 % zostaje na zawsze. Możesz zrezygnować w każdej chwili.",
-  it: "24,50 €/mese invece di 49 € — il 50 % resta per sempre. Disdici quando vuoi.",
+  en: "{price}/month instead of {list} — 50% off for as long as you stay. Cancel any time.",
+  de: "{price}/Monat statt {list} — die 50 % bleiben dauerhaft. Monatlich kündbar.",
+  ro: "{price}/lună în loc de {list} — cei 50 % rămân pentru totdeauna. Poți renunța oricând.",
+  es: "{price}/mes en vez de {list} — el 50 % se mantiene siempre. Cancela cuando quieras.",
+  fr: "{price}/mois au lieu de {list} — les 50 % restent pour toujours. Résiliable à tout moment.",
+  pt: "{price}/mês em vez de {list} — os 50 % ficam para sempre. Cancela quando quiseres.",
+  pl: "{price}/miesiąc zamiast {list} — 50 % zostaje na zawsze. Możesz zrezygnować w każdej chwili.",
+  it: "{price}/mese invece di {list} — il 50 % resta per sempre. Disdici quando vuoi.",
 };
 export function renewNote(lang?: string): string {
-  return RENEW_NOTE[String(lang ?? "en").slice(0, 2)] ?? RENEW_NOTE.en;
+  const l = String(lang ?? "en").slice(0, 2);
+  return fillPrices(RENEW_NOTE[l] ?? RENEW_NOTE.en, l);
 }
 
 /** Der Preis, der auf dem Kaufknopf steht („… — 24,50 €"). */
-const PRICE_TAG: Record<string, string> = {
-  en: "€24.50", de: "24,50 €", ro: "24,50 €", es: "24,50 €",
-  fr: "24,50 €", pt: "24,50 €", pl: "24,50 €", it: "24,50 €",
-};
 export function priceTag(lang?: string): string {
-  return PRICE_TAG[String(lang ?? "en").slice(0, 2)] ?? PRICE_TAG.en;
+  return eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, lang);
 }
 
 /** Die Preis-ID des laufenden Themen-Abos (49 €). */
@@ -74,5 +103,5 @@ export function topicPriceId(): string {
 export function standardCoupon(): string | undefined {
   const env = process.env.STRIPE_FIRST_MONTH_COUPON;
   if (typeof env === "string") return env.trim() || undefined;   // leer = Aktion beendet
-  return "sRHDMAQE";   // FOREVER50 — 50 % dauerhaft → 24,50 € statt 49 €
+  return "sRHDMAQE";   // FOREVER50 — 50 % dauerhaft → 24,50 € statt {list}
 }

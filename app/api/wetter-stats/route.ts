@@ -18,14 +18,25 @@ export async function GET(request: Request) {
 // POST { modelId, kind: "view" | "chat" }  (öffentlich) → einen Zähler hochzählen.
 // Der Client sendet NICHT, wenn es die Admin-Session ist (kein Verfälschen).
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; kind?: string; subId?: string; src?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; kind?: string; subId?: string; src?: string; what?: string };
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   // „click" = ein Abonnent hat seinen Link (E-Mail/WhatsApp) geöffnet → pro Person loggen.
   if (body.kind === "click") {
     await recordWetterClick(String(body.subId ?? ""), String(body.src ?? ""), modelId);
     return NextResponse.json({ ok: true });
   }
+  // „test" = der Abonnent hat eine der Angebots-Karten geöffnet. Zählt NUR pro Person —
+  // eine Gesamtsumme dafür gab es nie und braucht es nicht.
+  if (body.kind === "test") {
+    await recordWetterClick(String(body.subId ?? ""), String(body.src ?? ""), modelId, "test", String(body.what ?? ""));
+    return NextResponse.json({ ok: true });
+  }
   const kind = body.kind === "chat" ? "chat" : "view";
   await bumpWetterStat(kind, modelId);
+  // Chat zusätzlich AN DER PERSON festhalten, wenn wir wissen, wer schreibt. Ohne das
+  // steht am Ende „17 Chats" da und niemand weiss, wen man ansprechen soll.
+  if (kind === "chat" && String(body.subId ?? "").trim()) {
+    await recordWetterClick(String(body.subId), "", modelId, "chat");
+  }
   return NextResponse.json({ ok: true });
 }
