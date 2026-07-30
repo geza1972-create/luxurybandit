@@ -10,6 +10,15 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 // Setzt `unsubscribed` (kein Löschen → der Admin sieht es und sendet nicht weiter).
 // POST { modelId, s }  (s = die Abonnenten-Kennung aus dem Link)
 export async function POST(request: Request) {
+  // EIN-KLICK-ABMELDEN NACH RFC 8058 (Owner 30.07.2026, Zustellbarkeit).
+  //
+  // Gmail und Yahoo verlangen von Massenversendern den Kopfzeilen-Eintrag `List-Unsubscribe`
+  // mit `List-Unsubscribe-Post`. Sie schicken dann ein FORMULAR-POST (nicht JSON) an genau
+  // diese Adresse — die Kennung des Abonnenten steht dabei in der URL, nicht im Text.
+  // Deshalb wird sie hier zusätzlich aus der URL gelesen; ohne das liefe der Ein-Klick ins
+  // Leere, der Empfänger drückt stattdessen „Spam", und das kostet uns die Zustellbarkeit
+  // für ALLE anderen.
+  const q = new URL(request.url).searchParams;
   const body = (await request.json().catch(() => ({}))) as {
     modelId?: string; s?: string; email?: string; phone?: string; interests?: string[];
   };
@@ -18,8 +27,8 @@ export async function POST(request: Request) {
   const interests = Array.isArray(body.interests)
     ? body.interests.map(v => String(v).trim().slice(0, 20)).filter(v => ["clothes", "topics", "deals"].includes(v))
     : [];
-  const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
-  const id = String(body.s ?? "").trim();
+  const modelId = String(body.modelId ?? q.get("model") ?? "").trim() || BELLA_ID;
+  const id = String(body.s ?? q.get("s") ?? "").trim();
 
   // Abmelden über die öffentliche Seite /unsubscribe (wer den Link aus der Mail nicht mehr
   // hat). Verlangt E-Mail UND Telefonnummer — mit der E-Mail allein könnte sonst jeder

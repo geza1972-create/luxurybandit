@@ -15,7 +15,25 @@ import nodemailer from "nodemailer";
 
 export type SendResult = { ok: boolean; via?: "smtp" | "resend"; skipped?: string; error?: string };
 
-export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string }): Promise<SendResult> {
+/**
+ * NUR-HTML IST EIN SPAM-MERKMAL. Jede Massenmail braucht auch eine reine Textfassung —
+ * Filter werten das Fehlen als Zeichen für Werbemüll, und Programme ohne HTML zeigen sonst
+ * eine leere Nachricht. Wenn keine mitgegeben wird, bauen wir sie aus dem HTML.
+ */
+function textAusHtml(html: string): string {
+  return String(html ?? "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<(br|\/p|\/tr|\/div|\/h[1-6])[^>]*>/gi, "\n")
+    .replace(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, url, txt) =>
+      `${String(txt).replace(/<[^>]+>/g, "").trim()} (${url})`)
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n").map(z => z.trim()).join("\n")
+    .trim();
+}
+
+export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string }): Promise<SendResult> {
   const to = (opts.to ?? "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, error: "invalid recipient" };
   const replyTo = (opts.replyTo ?? "").trim() || undefined;
@@ -26,6 +44,16 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
   const pass = process.env.SMTP_PASS?.trim();
   const port = Number(process.env.SMTP_PORT?.trim() || "465");
   const from = process.env.SMTP_FROM?.trim() || (user ? `LuxuryBandit <${user}>` : "");
+  const text = (opts.text ?? "").trim() || textAusHtml(opts.html);
+  // KOPFZEILEN FÜR MASSENVERSAND. Gmail und Yahoo verlangen seit 2024 von jedem, der an
+  // viele Empfänger schickt, eine Abmeldung in EINEM Klick direkt aus dem Postfach. Fehlt
+  // sie, drückt der Empfänger „Spam" — und das trifft die Zustellung an alle anderen.
+  const unsubHeaders = opts.listUnsubscribe
+    ? {
+        "List-Unsubscribe": `<${opts.listUnsubscribe}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      }
+    : undefined;
 
   // 1) SMTP (the operator's own mailbox) — preferred.
   if (host && user && pass) {
@@ -36,7 +64,10 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
         secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
         auth: { user, pass },
       });
-      await transporter.sendMail({ from, to, subject: opts.subject, html: opts.html, replyTo, ...(bcc ? { bcc } : {}) });
+      await transporter.sendMail({
+        from, to, subject: opts.subject, html: opts.html, text, replyTo,
+        ...(bcc ? { bcc } : {}), ...(unsubHeaders ? { headers: unsubHeaders } : {}),
+      });
       return { ok: true, via: "smtp" };
     } catch (e) {
       return { ok: false, via: "smtp", error: e instanceof Error ? e.message : "smtp send failed" };
@@ -55,6 +86,8 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
           to: [to],
           subject: opts.subject,
           html: opts.html,
+          text,
+          ...(unsubHeaders ? { headers: unsubHeaders } : {}),
           ...(replyTo ? { reply_to: replyTo } : {}),
           ...(bcc ? { bcc: [bcc] } : {}),
         }),

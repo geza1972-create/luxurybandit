@@ -81,7 +81,11 @@ export async function POST(request: Request) {
     // Code in Stripe selbst eintippen und sähe 49 €.
     const aboLink = `${link}&code=${encodeURIComponent(ABO_CODE)}&abo=1`;
     const pixel = `${origin}/api/wetter-open?s=${encodeURIComponent(s.id)}&m=${encodeURIComponent(modelId)}`;
-    const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub, hero, s.city || "", modelName, aboLink, pixel) }).catch(() => ({ ok: false, error: "send failed" as string }));
+    const r = await sendEmail({
+      to: s.email as string, subject: c.subject,
+      html: buildHtml(c, link, unsub, hero, s.city || "", modelName, aboLink, pixel),
+      listUnsubscribe: unsub,   // Ein-Klick-Abmeldung direkt im Postfach
+    }).catch(() => ({ ok: false, error: "send failed" as string }));
     results.push({ id: s.id, email: s.email as string, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });
   }
   // VERSAND PROTOKOLLIEREN. Vorher stand das Ergebnis nur kurz in der Oberfläche und war
