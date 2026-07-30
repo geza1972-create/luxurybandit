@@ -73,7 +73,7 @@ const VARIANTS: Record<FunnelVariant, {
   kiss: {
     prompt: KISS_PROMPT,
     step1: "1 · Pick her", step3: "3 · The kiss",
-    cta: "Generate the kiss video", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
+    cta: "Generate picture — free", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
     // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
@@ -84,7 +84,7 @@ const VARIANTS: Record<FunnelVariant, {
   idol: {
     prompt: IDOL_PROMPT,
     step1: "1 · Pick your idol", step3: "3 · The moment",
-    cta: "Generate the video", ready: "Your video is ready ✨", done: "your-idol-video.mp4",
+    cta: "Generate picture — free", ready: "Your video is ready ✨", done: "your-idol-video.mp4",
     // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte
     // vorn und ist von Anfang an gewählt; unsere Models sind nur die Alternative daneben.
     pickHint: "Any singer, actress, athlete or influencer — swipe to your own upload, or take one of ours.",
@@ -436,6 +436,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : V.cta}
       </button>
+      {/* Der Preis steht DIREKT unter dem Knopf, nicht erst hinter dem Ergebnis (Owner
+          30.07.2026: „hier muss Generate Picture free Button stehen oben und Video 9,99").
+          Er soll vorher wissen, was gratis ist und was kostet — sonst fühlt sich die Kasse
+          nach dem Warten wie eine Falle an. */}
+      <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
+        {fillPrices("Picture free · Video {once}")}
+      </p>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
       {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
