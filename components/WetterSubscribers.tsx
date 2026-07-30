@@ -78,6 +78,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [selected, setSelected] = useState<Set<string>>(new Set()); // Kästchen = ausgewählt zum Senden
   const [armSend, setArmSend] = useState("");                       // Zwei-Tipp-Bestätigung (kein window.confirm — Handy)
   const [copiedId, setCopiedId] = useState("");
+  const [armDel, setArmDel] = useState("");     // erster Tipp auf den Papierkorb (Zwei-Tipp-Bestätigung)
   const [origin, setOrigin] = useState("");
   const [botBusy, setBotBusy] = useState("");     // subId oder "all", solange der Bot sendet
   const [botMsg, setBotMsg] = useState("");       // Ergebnis-Hinweis nach dem Bot-Versand
@@ -135,11 +136,27 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     finally { setBusy(false); }
   };
 
+  // LÖSCHEN OHNE window.confirm (Owner 30.07.2026: „ich kann die adressen nicht löschen.
+  // Icon funktioniert nicht").
+  //
+  // Der Dialog von `window.confirm` erscheint auf seinem Handy nicht — er wird in der
+  // App-Ansicht unterdrückt. Der Klick lief also ins Leere und der Knopf wirkte kaputt.
+  // Beim Senden war dasselbe Problem längst gelöst: zweimal tippen statt Dialog. Genau das
+  // gilt jetzt auch hier — erster Tipp färbt rot, zweiter löscht, nach 4 Sekunden zurück.
   const remove = async (id: string) => {
-    if (!window.confirm("Diesen Abonnenten löschen?")) return;
+    if (armDel !== id) {
+      setArmDel(id);
+      setTimeout(() => setArmDel(a => (a === id ? "" : a)), 4000);
+      return;
+    }
+    setArmDel("");
+    const vorher = subs;
     setSubs(s => s.filter(x => x.id !== id));
-    try { await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) }); }
-    catch { setError("Löschen fehlgeschlagen."); void load(); }
+    try {
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
+      if (!r.ok) { setError(`Löschen fehlgeschlagen (${r.status}).`); setSubs(vorher); }
+    }
+    catch { setError("Löschen fehlgeschlagen — Netzwerk."); setSubs(vorher); }
   };
 
   // Persönlicher Link = unsichtbare Kennung `?s=` (kein Name/Telefon in der URL) + WhatsApp-Adresse.
@@ -512,9 +529,13 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     {botBusy === s.id ? "…" : "🤖"}
                   </button>
                 )}
-                <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
-                  <Trash2 className="h-4 w-4" />
+                <button type="button" onClick={() => void remove(s.id)}
+                  aria-label={armDel === s.id ? "Wirklich löschen" : "Löschen"}
+                  style={armDel === s.id ? { background: "#dc2626", color: "#fff" } : undefined}
+                  className={`grid h-9 shrink-0 place-items-center rounded-lg border border-red-400/40 transition active:scale-95 ${
+                    armDel === s.id ? "w-auto px-3 text-[12px] font-black" : "w-9 text-red-300"
+                  }`}>
+                  {armDel === s.id ? "Wirklich löschen?" : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
               </div>
