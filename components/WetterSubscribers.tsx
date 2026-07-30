@@ -37,8 +37,15 @@ const sendText = (lang: string, name: string, link: string) => {
   );
 };
 
-// Die eigene Adresse des Owners — ihr Eintrag steht in der Liste immer an erster Stelle.
-const OWNER_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "geza1972@gmail.com").trim().toLowerCase();
+// Die eigenen Adressen des Owners — sein Eintrag steht in der Liste immer an erster Stelle.
+//
+// MEHRZAHL, nicht Einzahl (Owner 30.07.2026): In der Einstellung stehen ZWEI Adressen mit
+// Komma („support@… , geza1972@…"). Vorher wurde die ganze Zeichenkette als EINE Adresse
+// verglichen — sie passte damit auf keinen Eintrag, und die Testmail meldete „steht nicht in
+// der Liste", obwohl er als „Gerry" drinsteht.
+const OWNER_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "geza1972@gmail.com")
+  .split(/[,;\s]+/).map(v => v.trim().toLowerCase()).filter(Boolean);
+const isOwnerEmail = (v?: string) => OWNER_EMAILS.includes(String(v ?? "").trim().toLowerCase());
 
 // Test abgelaufen? (bestätigt, nicht abgemeldet, älter als trialDays)
 const trialExpired = (s: Sub, trialDays: number) =>
@@ -322,7 +329,13 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       {/* TEST an mich selbst: schickt die heutige Mail nur an die Owner-Adresse. Ein Tap,
           ohne Auswahl, ohne Risiko, dass versehentlich die ganze Liste losgeht. */}
       <button type="button"
-        onClick={() => { const me = subs.find(x => String(x.email ?? "").toLowerCase() === OWNER_EMAIL); if (me) void mailSend({ ids: [me.id] }); else setMailMsg(`${OWNER_EMAIL} steht nicht in der Liste — oben eintragen, dann testen.`); }}
+        onClick={() => {
+          const me = subs.find(x => isOwnerEmail(x.email));
+          if (me) void mailSend({ ids: [me.id] });
+          // Wenn wirklich keine der Adressen in der Liste steht, sie EINZELN nennen — sonst
+          // sucht man nach einer Adresse mit Komma darin.
+          else setMailMsg(`Keine deiner Adressen steht in der Liste (${OWNER_EMAILS.join(" · ")}) — oben eintragen, dann testen.`);
+        }}
         disabled={mailBusy}
         className="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-white/25 px-3 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">
         🧪 {mailBusy ? "Sendet…" : "Testmail an mich"}
@@ -413,7 +426,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {/* Owner-Eintrag (Gerry) steht IMMER oben — er testet den Versand an sich selbst,
               und in einer Liste mit 50 Namen sucht man ihn sonst jedes Mal. */}
           {[...subs].sort((a, b) => {
-            const own = (x: typeof a) => (String(x.email ?? "").toLowerCase() === OWNER_EMAIL ? 0 : 1);
+            const own = (x: typeof a) => (isOwnerEmail(x.email) ? 0 : 1);
             return own(a) - own(b);
           }).map(s => {
             const wa = waLink(s);
