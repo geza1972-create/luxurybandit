@@ -12,9 +12,15 @@ export const dynamic = "force-dynamic";
  * „Der muss sich kostenlos anmelden um gratis zu probieren mit email, dann hat er ein Konto …
  * er kann es sofort sehen, aber er kann nur ein Bild generieren."
  *
- * WARUM ERST NACH DEM RENDERN GEFRAGT WIRD: Wer zwei Minuten gewartet und ein fertiges Bild
- * vor sich hat, trägt seine Adresse ein. Wer sie VORHER eingeben soll, springt ab — das ist
- * derselbe Grund, aus dem der Trichter bisher 9 Durchläufe und 0 Zahlungen hatte.
+ * GEFRAGT WIRD VOR DER ERZEUGUNG (Owner 30.07.2026: „deswegen habe ich die emailadresse
+ * nicht"). Vorher stand die Frage hinter dem fertigen Bild — mit dem Ergebnis, dass in der
+ * Galerie bezahlte Bilder ohne eine einzige Adresse lagen. Die Adresse ist das Einzige, was
+ * bleibt, wenn er nicht kauft; sie hinter das Ergebnis zu legen heißt, sie bei genau denen zu
+ * verlieren, die abspringen.
+ *
+ * Deshalb zwei Aufrufe je Besuch:
+ *   1. `vorab: true`  → nur eintragen, KEINE Mail (es gibt noch nichts zu schicken)
+ *   2. danach mit `imagePath` (Bild fertig) oder `pending: true` (gescheitert) → die Mail
  *
  * Die Adresse landet in der KISSING-Liste, nicht bei den Wetter-Abonnenten (Owner-Dauerregel:
  * „Die Wetter Leads sind die Wetter Leads"). Doppelte Adressen werden nicht neu angelegt.
@@ -26,6 +32,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
     pending?: boolean;   // Erzeugung gescheitert — wir melden uns, sobald es klappt
+    vorab?: boolean;     // vor der Erzeugung: nur eintragen, noch nichts schicken
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
         name: String(body.name ?? "").trim().slice(0, 120) || email.split("@")[0],
         email,
         lang: dialInfo("")?.lang || lang,
-        note: `Kiss · ${body.pending ? "gescheitert" : "Gratis-Bild"}${device ? ` · ${device}` : ""}`,
+        note: `Kiss · ${body.vorab ? "vor der Erzeugung" : body.pending ? "gescheitert" : "Gratis-Bild"}${device ? ` · ${device}` : ""}`,
         createdAt: new Date().toISOString(),
       };
       await writeWetterSubscribers([eintrag, ...liste], KISS_LIST);
@@ -69,6 +76,13 @@ export async function POST(request: Request) {
       if (e && e.email !== email) { e.email = email; await writeKissLog(eintraege); }
     }
   } catch { /* der Besucher hat sein Bild schon — das darf nie blockieren */ }
+
+  /**
+   * VORAB = NUR EINTRAGEN. Er hat gerade seine Adresse getippt und wartet auf sein Bild —
+   * eine Mail „wir sind dran" wäre in dieser Sekunde nur Lärm, und sie käme ein zweites Mal,
+   * sobald das Bild fertig ist. Geschickt wird, wenn es etwas zu schicken gibt.
+   */
+  if (body.vorab === true) return NextResponse.json({ ok: true, neu, mail: false });
 
   // 2 · Das Bild per Mail schicken, mit dem Hinweis aufs Passwort.
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";

@@ -25,6 +25,9 @@ type Eintrag = {
   id: string; createdAt: string; modelName?: string; email?: string; device?: string;
   paid?: boolean; videoUrl?: string; imageUrl?: string; personUrl?: string; modelUrl?: string;
   listen?: string[];   // in welchen Abonnentenlisten er schon steht
+  // Bezahlt, aber noch kein Video: was der Server damit gerade macht.
+  videoDueAt?: string; videoId?: string; videoTries?: number; videoError?: string; videoMailedAt?: string;
+  videoDoneId?: string;   // welcher Auftrag schon geliefert ist (Abo: mehrere je Eintrag)
 };
 
 export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { title?: string }) {
@@ -86,9 +89,14 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { titl
     } catch { return ""; }
   };
 
-  const Kachel = ({ url, label }: { url?: string; label: string }) => (
+  // WER STEHT AUF DEM BILD (Owner 30.07.2026: „selbst dann muss ich sehen wen er ausgewählt
+  // hat"). Der Name steht unter der Kachel „Sie" — bei einer Katalog-Frau ihrer, bei einem
+  // eigenen Upload „Your model". Ohne Namen ist ein Foto keine Auskunft.
+  const Kachel = ({ url, label, name }: { url?: string; label: string; name?: string }) => (
     <div className="min-w-0 flex-1">
-      <p className="mb-1 text-[9px] font-black uppercase tracking-wide text-black/40">{label}</p>
+      <p className="mb-1 truncate text-[9px] font-black uppercase tracking-wide text-black/40">
+        {label}{name ? ` · ${name}` : ""}
+      </p>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <a href={url} target="_blank" rel="noreferrer">
@@ -158,10 +166,26 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { titl
               </div>
 
               <div className="mt-2 flex gap-2">
-                <Kachel url={e.modelUrl} label="Sie" />
+                <Kachel url={e.modelUrl} label="Sie" name={e.modelName} />
                 <Kachel url={e.personUrl} label="Er" />
                 <Kachel url={e.imageUrl} label="Ergebnis" />
               </div>
+
+              {/* BEZAHLT, ABER NOCH KEIN VIDEO — der Zustand, der dich Geld kostet, wenn ihn
+                  niemand sieht. Der Server liefert selbst nach (siehe /api/kiss-deliver);
+                  hier steht, wie weit er ist und woran es hakt. */}
+              {e.paid && (e.videoId ? e.videoId !== e.videoDoneId : !e.videoUrl) && (
+                <p className="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] font-bold text-amber-700">
+                  {e.videoError
+                    ? `Video offen — ${e.videoError} (${e.videoTries ?? 0}. Anlauf)`
+                    : e.videoId
+                      ? "Video läuft — der Server holt es ab und schickt es per Mail."
+                      : "Bezahlt — der Server startet das Video gleich."}
+                </p>
+              )}
+              {e.videoUrl && e.videoMailedAt && (
+                <p className="mt-2 text-[10px] font-bold text-emerald-600">✓ Video verschickt</p>
+              )}
 
               {e.videoUrl && (
                 <a href={e.videoUrl} target="_blank" rel="noreferrer"

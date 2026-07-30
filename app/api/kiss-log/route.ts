@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
+import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,8 +68,29 @@ export async function GET(request: Request) {
   return NextResponse.json({ entries: mitBildern });
 }
 
+/**
+ * DAS FOTO WIRD BEIM HOCHLADEN GESPEICHERT, nicht erst beim Ergebnis (Owner 30.07.2026:
+ * „das Bild muss gespeichert werden in dem Moment wo er das hochlädt").
+ *
+ * Sonst sieht man nichts von denen, bei denen die Erzeugung scheitert oder die vorher
+ * abspringen — und genau die sind interessant: sie zeigen, was die Leute WOLLTEN.
+ */
+async function ablegen(dataUrl: string): Promise<string> {
+  try {
+    const m = /^data:([^;]+);base64,(.+)$/.exec(String(dataUrl).trim());
+    if (!m) return "";
+    const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
+    const put = await fetch(up.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": m[1], "x-upsert": "true" },
+      body: new Uint8Array(Buffer.from(m[2], "base64")),
+    });
+    return put.ok ? up.path : "";
+  } catch { return ""; }   // Ablage ist Zugabe — der Trichter läuft weiter
+}
+
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -110,49 +132,59 @@ export async function POST(request: Request) {
     const videoUrl = String(body.videoUrl ?? "").trim();
     const imagePath = String(body.imagePath ?? "").trim();
     const modelBild = String(body.modelImage ?? "");
-    if (!videoUrl && !imagePath && !modelBild) return NextResponse.json({ error: "nothing to update." }, { status: 400 });
+    const personBild = String(body.personImage ?? "");
+    // DIE AUFTRAGSNUMMER DES LAUFENDEN VIDEOS (Owner 30.07.2026: „Server liefert das bezahlte
+    // Video"). Der Browser meldet sie, sobald er den Auftrag gestartet hat — damit der Server
+    // denselben Auftrag zu Ende bringt, statt einen zweiten zu bezahlen.
+    const videoId = String(body.videoId ?? "").trim().slice(0, 80);
+    const modelName = String(body.modelName ?? "").trim().slice(0, 60);
+    const modelId = String(body.modelId ?? "").trim().slice(0, 80);
+    if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName) {
+      return NextResponse.json({ error: "nothing to update." }, { status: 400 });
+    }
     const entries = await readKissLog();
     const e = entries.find(x => x.id === body.update);
     if (e) {
-      if (videoUrl) e.videoUrl = videoUrl;
+      if (videoUrl) {
+        e.videoUrl = videoUrl;
+        // Der Browser hat DIESEN Auftrag zu Ende gebracht — der Server muss ihn nicht noch
+        // einmal abholen und keine Mail schicken. Ohne die Marke bekäme der Kunde sein Video
+        // zweimal: einmal auf dem Schirm, einmal per Post.
+        if (e.videoId) e.videoDoneId = e.videoId;
+      }
+      if (videoId) {
+        e.videoId = videoId;
+        /**
+         * EIN NEUER AUFTRAG BRAUCHT WIEDER EIN NETZ (Owner 30.07.2026: „funktioniert das ganze
+         * mit abo genauso?"). Ein Abonnent macht mehrere Videos hintereinander im selben
+         * Eintrag — jedes einzelne muss der Server zu Ende bringen können, nicht nur das
+         * erste. Die Frist beginnt neu, die Fehlversuche werden zurückgesetzt.
+         */
+        if (e.paid && videoId !== e.videoDoneId) {
+          e.videoDueAt = new Date(Date.now() + GNADENFRIST_MS).toISOString();
+          e.videoTries = 0;
+          e.videoError = undefined;
+        }
+      }
       if (imagePath.startsWith("try-this-look/")) e.imagePath = imagePath;
+      // WEN ER GEWÄHLT HAT, steht am selben Eintrag — auch wenn er es später ändert.
+      if (modelId) e.modelId = modelId;
+      if (modelName) e.modelName = modelName;
       if (modelBild.startsWith("data:") && !e.modelPath) {
-        const p2 = await (async () => {
-          try {
-            const m = /^data:([^;]+);base64,(.+)$/.exec(modelBild.trim());
-            if (!m) return "";
-            const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
-            const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": m[1], "x-upsert": "true" }, body: new Uint8Array(Buffer.from(m[2], "base64")) });
-            return put.ok ? up.path : "";
-          } catch { return ""; }
-        })();
+        const p2 = await ablegen(modelBild);
         if (p2) e.modelPath = p2;
+      }
+      // SEIN Foto gehört an DENSELBEN Eintrag (Owner 30.07.2026: „selbst dann muss ich sehen
+      // wen er ausgewählt hat"). Vorher legte sein Upload einen ZWEITEN Eintrag an — ihr Bild
+      // stand am ersten, seins am zweiten, und in beiden Zeilen fehlte die Hälfte.
+      if (personBild.startsWith("data:") && !e.personPath) {
+        const p3 = await ablegen(personBild);
+        if (p3) e.personPath = p3;
       }
       await writeKissLog(entries);
     }
     return NextResponse.json({ ok: true });
   }
-
-  /**
-   * DAS FOTO WIRD BEIM HOCHLADEN GESPEICHERT, nicht erst beim Ergebnis (Owner 30.07.2026:
-   * „das Bild muss gespeichert werden in dem Moment wo er das hochlädt").
-   *
-   * Sonst sieht man nichts von denen, bei denen die Erzeugung scheitert oder die vorher
-   * abspringen — und genau die sind interessant: sie zeigen, was die Leute WOLLTEN.
-   */
-  const ablegen = async (dataUrl: string): Promise<string> => {
-    try {
-      const m = /^data:([^;]+);base64,(.+)$/.exec(String(dataUrl).trim());
-      if (!m) return "";
-      const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
-      const put = await fetch(up.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": m[1], "x-upsert": "true" },
-        body: new Uint8Array(Buffer.from(m[2], "base64")),
-      });
-      return put.ok ? up.path : "";
-    } catch { return ""; }   // Ablage ist Zugabe — der Trichter läuft weiter
-  };
 
   let personPath = String(body.personPath ?? "").trim();
   if (!personPath && String(body.personImage ?? "").startsWith("data:")) personPath = await ablegen(String(body.personImage));

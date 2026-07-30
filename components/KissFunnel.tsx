@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
-import { renewNote, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
+import { kissText } from "@/lib/kiss-i18n";
+import LightSwitch from "@/components/LightSwitch";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
@@ -91,58 +93,52 @@ async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<st
 
 // Die Fortschrittstexte müssen so lange laufen wie die Erzeugung (25–45 s) — sonst steht der
 // letzte Satz eine halbe Minute unverändert da und es liest sich wie abgestürzt.
-const RENDER_STEPS: [number, string][] = [
-  [0, "Analyzing your photo …"],
-  [4000, "Matching the two of you …"],
-  [9000, "Rendering the kiss …"],
-  [15000, "Getting the light right …"],
-  [21000, "Almost there …"],
-  [28000, "Finishing touches …"],
-  [36000, "Any second now …"],
-  [46000, "Still working — hang on …"],
-];
-const RENDER_MS = 17000; // Gesamtdauer der Show (~17 s)
+// Nur noch die Zeitpunkte — die Sätze dazu stehen übersetzt in `lib/kiss-i18n`
+// (T.renderSteps), Reihenfolge gleich.
+const RENDER_AT = [0, 4000, 9000, 15000, 21000, 28000, 36000, 46000];
+
+// Seine Adresse, einmal eingetragen. Bewusst OHNE Thema im Schlüssel: es ist derselbe Mensch,
+// egal ob er beim Kuss oder beim Idol anfängt — zweimal fragen wäre eine Hürde ohne Gegenwert.
+const MAIL_KEY = "lb_kiss_mail";
 
 export type FunnelVariant = "kiss" | "idol";
 
-// Beide Themen teilen sich DIESEN Funnel — nur Prompt und Beschriftungen unterscheiden
-// sich. Kopieren wäre doppelte Wartung: jeder Fix müsste sonst zweimal gemacht werden.
+// Beide Themen teilen sich DIESEN Funnel — nur Prompt und Bilder unterscheiden sich.
+// Kopieren wäre doppelte Wartung: jeder Fix müsste sonst zweimal gemacht werden.
+//
+// ALLE BESCHRIFTUNGEN STEHEN IN `lib/kiss-i18n` (Owner 30.07.2026, Punkt 4: „Übersetzung in
+// die acht Sprachen"). Hier bleibt nur, was keine Sprache hat: der Prompt, der Dateiname des
+// Downloads und die Platzhalterbilder.
 const VARIANTS: Record<FunnelVariant, {
-  prompt: string; step1: string; step3: string; cta: string; ready: string; done: string;
-  pickHint: string; upTitle: string; upHint: string; upFirst: boolean; upPlaceholder?: string;
+  prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
 }> = {
   kiss: {
-    prompt: KISS_PROMPT,
-    step1: "1 · Pick her", step3: "3 · The kiss",
-    cta: "Generate picture — free", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
+    prompt: KISS_PROMPT, done: "kiss-video.mp4",
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
     // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
     // Anzeigen, also entscheidet die erste Karte über den ganzen Trichter.
-    pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
-    upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.", upFirst: true,
+    upFirst: true,
     // PLATZHALTER: eine FRAU (Owner 30.07.2026: „du musst als Platzhalter bei Image upload
     // eine Frau machen"). Die Karte stand leer und man sah nicht, was dort hingehört —
-    // beim Foto von IHM gab es den Hinweis längst. Bewusst blass und grau, damit sie nicht
-    // wie eine getroffene Auswahl wirkt.
+    // beim Foto von IHM gab es den Hinweis längst.
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   idol: {
-    prompt: IDOL_PROMPT,
-    step1: "1 · Pick your idol", step3: "3 · The moment",
-    cta: "Generate picture — free", ready: "Your video is ready ✨", done: "your-idol-video.mp4",
+    prompt: IDOL_PROMPT, done: "your-idol-video.mp4",
     // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte
     // vorn und ist von Anfang an gewählt; unsere Models sind nur die Alternative daneben.
-    pickHint: "Any singer, actress, athlete or influencer — swipe to your own upload, or take one of ours.",
-    upTitle: "Your idol", upHint: "Any star you like — just upload one screenshot of her or him.", upFirst: true,
+    upFirst: true,
     // Platzhalter-Gesicht auf der Upload-Karte (Aria, abgedunkelt): zeigt auf einen Blick,
     // dass hier ein FOTO hineingehört — genau wie Peter beim eigenen Foto.
     upPlaceholder: "/idol-placeholder.jpg",
   },
 };
 
-export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: FunnelVariant; code?: string }) {
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }: { variant?: FunnelVariant; code?: string; lang?: string }) {
   const V = VARIANTS[variant];
+  // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
+  const T = kissText(lang, variant);
   // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
   // Kiss-Durchläufe standen nur im eigenen kiss-log, und wo die Leute abspringen, war
   // nicht zu sehen. Alle Trichter benutzen dieselben sechs Namen, damit man sie
@@ -163,12 +159,31 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // einem Video umwandeln"). Es ist der erste Vollbild des späteren Videos — deshalb bleiben
   // die Gesichter stabil: sie stehen schon im Bild, statt erst beim Rendern zu entstehen.
   const [bild, setBild] = useState("");
-  // E-MAIL GEGEN BILD (Owner 30.07.2026). Das Bild ist fertig, aber verdeckt, bis er seine
-  // Adresse einträgt — danach sofort sichtbar, ohne Anmeldung, ohne Passwort. Gefragt wird
-  // NACH dem Rendern: wer gewartet hat, trägt ein; wer vorher gefragt wird, springt ab.
+  /**
+   * DIE ADRESSE STEHT VOR DER ERZEUGUNG (Owner 30.07.2026: „deswegen habe ich die
+   * emailadresse nicht").
+   *
+   * Bis heute wurde erst NACH dem fertigen Bild gefragt. Das klang plausibel — wer gewartet
+   * hat, trägt eher ein — kostete aber genau die, die abspringen: In der eigenen Galerie
+   * standen Bilder, für die bezahlt wurde, ohne eine einzige Adresse. Jedes davon ist ein
+   * bezahltes Bild ohne Gegenwert und ein Mensch, den wir nie wieder erreichen.
+   *
+   * Jetzt: erst die Adresse, dann rechnen. Wer angemeldet ist oder schon einmal eingetragen
+   * hat, sieht das Feld gar nicht — die Adresse liegt im Gerät und wird nur noch benutzt.
+   */
   const [bildPfad, setBildPfad] = useState("");
   const [mail, setMail] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
+  const [adresseDa, setAdresseDa] = useState(false);   // wir kennen ihn → kein Feld mehr
+  /**
+   * ABONNENT WIEDERERKANNT (Owner 30.07.2026). „Bezahlt" war bisher ein Zustand dieser einen
+   * Sitzung — wer gestern ein Abo abgeschlossen hatte, war heute wieder ein Fremder. Jetzt
+   * fragt der Trichter mit seiner Adresse nach: läuft ein Abo, und wie viele Videos hat er
+   * diesen Monat noch? Beides kommt vom Server, nichts davon steht im Gerät.
+   */
+  const [aboAktiv, setAboAktiv] = useState(false);
+  const [videosLinks, setVideosLinks] = useState<number | null>(null);
+  const [extraNoetig, setExtraNoetig] = useState(false);   // Kontingent leer → Nachkauf anbieten
   const [frei, setFrei] = useState(false);      // Adresse da → Bild sichtbar
   // GRATIS AUFGEBRAUCHT — aber kein Sackgassen-Text (Owner 30.07.2026: „bei der Sperre muss
   // doch ein Button kommen für Abo oder Video für 9,99 … sonst macht er nicht weiter").
@@ -206,6 +221,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   const [consent] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
+  const mailRef = useRef<HTMLInputElement>(null);      // Adressfeld vor der Erzeugung
   const runRef = useRef(0);
   // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
   // Kunde wurde ausgeraubt" / „springt wieder auf unlock video"). Siehe Ablauf weiter unten.
@@ -241,6 +257,39 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const wanted: string[] = Array.isArray(c.modelIds) ? c.modelIds : [];
       let list = wanted.length ? wanted.map(id => all.find(x => x.id === id)).filter(Boolean) as Model[] : all;
+      /**
+       * NEUE MODELS RÜCKEN VON SELBST NACH (Owner 30.07.2026: „ich habe ein neues Model
+       * hinzugefügt und ist nicht im Karussell drin" — Sinya).
+       *
+       * Die Auswahl ist eine feste Liste von Kennungen. Ein Model, das es beim Anhaken noch
+       * gar nicht gab, kann darin nicht stehen — es blieb unsichtbar, bis jemand daran denkt,
+       * das Werkzeug erneut zu öffnen. Genau das ist passiert.
+       *
+       * Die Unterscheidung macht der Zeitpunkt der letzten Auswahl: Wer DANACH angelegt wurde,
+       * ist neu und kommt ans Ende der Reihe. Wer damals schon da war und nicht angehakt
+       * wurde, war eine Entscheidung und bleibt draussen. Fehlt der Zeitpunkt (Auswahl von
+       * vor dieser Änderung), gilt das jüngste angehakte Model als Stichtag — dasselbe
+       * Ergebnis, ohne dass er irgendetwas nachtragen muss.
+       *
+       * Der Zeitstempel steckt in der Kennung selbst: `curator-<ms>-<zufall>`.
+       */
+      if (wanted.length) {
+        const stempel = (id: string) => Number(/^curator-(\d{10,})/.exec(id)?.[1] ?? 0);
+        const stichtag = c.modelsSavedAt
+          ? Date.parse(String(c.modelsSavedAt)) || 0
+          : Math.max(0, ...wanted.map(stempel));
+        /**
+         * IN DIE MITTE, nicht ans Ende und nicht ganz nach vorn. Das Karussell startet auf
+         * der Upload-Karte, und die sitzt in der Mitte der Reihe — was dort steht, sieht er
+         * sofort, alles andere erst nach vielen Wischern. Ans Ende gehängt wäre ein neues
+         * Model praktisch unsichtbar, und das war ja der Anlass.
+         */
+        const neue = all.filter(x => !wanted.includes(x.id) && stempel(x.id) > stichtag);
+        if (neue.length) {
+          const mitte = Math.floor(list.length / 2);
+          list = [...list.slice(0, mitte), ...neue, ...list.slice(mitte)];
+        }
+      }
       // Bella steht IMMER als Erste (Owner-Vorgabe) — sie ist das Gesicht des Portals.
       const bellaIdx = list.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
       if (bellaIdx > 0) list = [list[bellaIdx], ...list.slice(0, bellaIdx), ...list.slice(bellaIdx + 1)];
@@ -252,6 +301,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     try {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
+    } catch { /**/ }
+    // KENNEN WIR IHN SCHON? Angemeldetes Konto zuerst, sonst die Adresse aus einem früheren
+    // Besuch. Beides erspart ihm das Feld — gefragt wird nur, wer wirklich neu ist.
+    // Die Auftragsnummer aus diesem Besuch zurueckholen — sonst legt der naechste Upload
+    // nach einem Neuladen einen zweiten Eintrag an (halbe Zeilen in der Galerie).
+    try {
+      const roh = localStorage.getItem(GEN_KEY);
+      const d = roh ? JSON.parse(roh) as { id?: string; at?: number } : null;
+      if (d?.id && d.at && Date.now() - d.at < 86_400_000) setGenId(d.id);
+      else if (roh) localStorage.removeItem(GEN_KEY);
+    } catch { /**/ }
+    try {
+      const konto = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
+      const e = String(konto || localStorage.getItem(MAIL_KEY) || "").trim();
+      if (e) { setMail(e); setAdresseDa(true); setFrei(true); }
     } catch { /**/ }
     return () => { runRef.current = -1; };
   }, []);
@@ -269,6 +333,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
    * für den Ablageplatz zu gross), zusammen mit dem freigeschalteten Zustand.
    */
   const MERK_KEY = `lb_kiss_ergebnis_${variant}`;
+  /**
+   * DIE AUFTRAGSNUMMER ÜBERLEBT EIN NEULADEN.
+   *
+   * Sonst passiert wieder genau das, was in der Galerie als halbe Zeile auffiel: Er lädt ihr
+   * Foto hoch, lädt die Seite neu (oder kommt von der Kasse zurück, bevor ein Bild da war),
+   * lädt sein Foto hoch — und weil `genId` nur im Arbeitsspeicher stand, entsteht ein ZWEITER
+   * Eintrag. Sie im einen, er im anderen. Der Merkzettel mit dem Ergebnis half nicht: den gibt
+   * es erst, wenn ein Bild fertig ist.
+   */
+  const GEN_KEY = `lb_kiss_gen_${variant}`;
+  const genMerken = (id: string) => {
+    if (!id) return;
+    setGenId(id);
+    try { localStorage.setItem(GEN_KEY, JSON.stringify({ id, at: Date.now() })); } catch { /**/ }
+  };
 
   const merken = async (dataUrl: string, pfad: string, id: string, frei = false) => {
     try {
@@ -313,14 +392,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         person?: string; model?: string; modelId?: string; eigen?: boolean };
       // Nach 24 Stunden nicht mehr — sonst sieht er beim nächsten Besuch ein altes Ergebnis.
       if (!d?.bild || (d.at && Date.now() - d.at > 86_400_000)) { localStorage.removeItem(MERK_KEY); return; }
-      setBild(d.bild); setBildPfad(d.pfad ?? ""); setGenId(d.id ?? "");
+      setBild(d.bild); setBildPfad(d.pfad ?? ""); if (d.id) genMerken(d.id);
       // Die Ausgangsfotos zurueck an ihren Platz — sonst steht er nach der Zahlung vor
       // leeren Kacheln und einem Knopf, der nichts zu tun hat.
       if (d.person) setPhoto(d.person);
       if (d.model) { setCustomModel(d.model); setUseCustom(true); }
-      // `frei` nur, wenn die Adresse damals wirklich kam — sonst käme der Kunde durch
-      // Neuladen am E-Mail-Feld vorbei.
-      setFrei(!!d.frei);
+      // Kennen wir seine Adresse (aus diesem oder einem früheren Besuch), bleibt das Bild
+      // sichtbar. Das `frei` von damals darf eine bekannte Adresse nie zurücknehmen.
+      setFrei(f => f || !!d.frei);
     } catch { /**/ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -342,6 +421,32 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
    */
   useEffect(() => { setLangZeile(document.querySelector("[data-langrow]")); }, []);
 
+  /**
+   * Kennen wir seine Adresse, fragen wir einmal nach seinem Stand. Läuft ein Abo (oder liegt
+   * ein nachgekauftes Video bereit), ist er freigeschaltet, ohne noch einmal zu zahlen.
+   */
+  useEffect(() => {
+    // ERST WENN DIE ADRESSE STEHT, nicht bei jedem Tastendruck: `mail` ändert sich mit jedem
+    // Zeichen im Feld, und jede Abfrage kostet einen Stripe-Aufruf. Gefragt wird also nur,
+    // wenn er sie abgeschickt hat oder sie aus einem früheren Besuch kommt.
+    if (!adresseDa) return;
+    const e = mail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return;
+    let weg = false;
+    void fetch(`/api/kiss-status?email=${encodeURIComponent(e)}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then((d: { abo?: boolean; left?: number }) => {
+        if (weg) return;
+        setAboAktiv(!!d.abo);
+        setVideosLinks(typeof d.left === "number" ? d.left : null);
+        // Freigeschaltet ist, wer ein laufendes Abo hat ODER noch ein gekauftes Video offen
+        // hat. Beides heisst: er darf jetzt ein Video machen, ohne die Kasse zu sehen.
+        if (d.abo || (d.left ?? 0) > 0) { setBezahlt(true); setExtraNoetig(false); }
+      })
+      .catch(() => {});
+    return () => { weg = true; };
+  }, [adresseDa, mail]);
+
   useEffect(() => {
     if (rueckkehrRef.current) return;
     const q = new URLSearchParams(window.location.search);
@@ -349,7 +454,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     const cs = q.get("cs") ?? "";
     if (!cs || cs.startsWith("{")) return;      // Platzhalter nicht ersetzt → nichts zu pruefen
     rueckkehrRef.current = true;
-    setStatus("Payment received — preparing your video …");
+    setStatus(T.payPrep);
     void (async () => {
       const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`)
         .then(r => r.json()).catch(() => null);
@@ -396,12 +501,33 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       setPhoto(dataUrl); track("photo");
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      /**
+       * EIN BESUCH, EIN EINTRAG (Owner 30.07.2026: „selbst dann muss ich sehen wen er
+       * ausgewählt hat").
+       *
+       * Hier lag der Fehler, den man in der Galerie sah: Sein Foto legte IMMER einen neuen
+       * Eintrag an. Wer zuerst die Frau hochlud, hatte danach zwei halbe Zeilen — in der
+       * einen stand sie, in der anderen er, und in beiden fehlte die Hälfte. Gibt es den
+       * Eintrag schon, wird er ergänzt.
+       */
       const log = await fetch("/api/kiss-log", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
+        body: genId
+          ? JSON.stringify({ update: genId, personImage: dataUrl, modelId: selId, modelName: selName })
+          : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
-      if (log?.id) setGenId(log.id);
+      if (!genId && log?.id) genMerken(log.id);
     } catch { /**/ }
+  };
+
+  // WEN ER GEWÄHLT HAT, an den Eintrag hängen — auch wenn er nach dem Hochladen noch einmal
+  // zu einer anderen Frau wischt. Sonst steht in der Galerie eine Kennung von vorhin.
+  const wahlMerken = () => {
+    if (!genId || !selId) return;
+    void fetch("/api/kiss-log", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ update: genId, modelId: selId, modelName: selName }),
+    }).catch(() => {});
   };
   // Auch IHR Foto wird beim Hochladen abgelegt (Owner 30.07.2026: „ich sehe das Bild von der
   // Frau nicht, die ich hochgeladen habe"). Gibt es schon einen Eintrag, wird er ergänzt;
@@ -416,10 +542,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       const antwort = await fetch("/api/kiss-log", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: genId
-          ? JSON.stringify({ update: genId, modelImage: dataUrl })
-          : JSON.stringify({ modelId: selId, modelName: V.upTitle, device, modelImage: dataUrl }),
+          // Auch der Name wandert mit: hat er vorher eine Katalog-Frau gewählt und lädt
+          // jetzt eine eigene hoch, stünde sonst in der Galerie weiter ihr Name.
+          ? JSON.stringify({ update: genId, modelImage: dataUrl, modelId: "custom", modelName: T.upTitle })
+          : JSON.stringify({ modelId: "custom", modelName: T.upTitle, device, modelImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
-      if (!genId && antwort?.id) setGenId(antwort.id);
+      if (!genId && antwort?.id) genMerken(antwort.id);
     } catch { /**/ }
   };
 
@@ -428,13 +556,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // Nur echte KLEIDUNGSfotos in die Auswahl — die Liste trennt Kleidung von Fotos, auf
   // denen eine fremde Frau steht. Fehlt sie, zeigen wir alles statt nichts.
   const kleidung = looks.filter(l => !!l.imageUrl && (!nurKleidung || nurKleidung.includes(l.id))).slice(0, 24);
-  const selName = useCustom ? V.upTitle : (picked?.name ?? "");
+  const selName = useCustom ? T.upTitle : (picked?.name ?? "");
   const selId = useCustom ? "custom" : (picked?.id ?? "");
 
   // ECHTE Generierung (Pixverse) — läuft nur nach Zahlung oder für Staff.
   const realGenerate = async (token: number): Promise<void> => {
     if (!selPhoto || !photo) return;
-    setStatus("Rendering your kiss in full quality … (~1–3 min)");
+    setStatus(T.statusQuality);
     try {
       // Gleiche Pipeline wie Try-On: person = Model (@person), garment = dein Foto (@Bild2).
       const start = await fetch("/api/generate-tryon-video", {
@@ -442,7 +570,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         body: JSON.stringify({ lookId: KISS_LOOK_ID, person: selPhoto, garment: photo, prompt: V.prompt }),
       }).then(r => r.json());
-      if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
+      if (!start?.videoId) { setStatus(start?.error || T.statusCouldNotStart); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {
         await new Promise(r => setTimeout(r, 5000));
         if (runRef.current !== token) return;
@@ -457,10 +585,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           } catch { /**/ }
           return;
         }
-        if (p?.status === "failed") { setStatus(p.error || "Generation failed."); setBusy(false); return; }
+        if (p?.status === "failed") { setStatus(p.error || T.statusFailed); setBusy(false); return; }
       }
-      setStatus("Timeout — please try again later."); setBusy(false);
-    } catch { setStatus("Network error."); setBusy(false); }
+      setStatus(T.statusTimeout); setBusy(false);
+    } catch { setStatus(T.statusNetwork); setBusy(false); }
   };
 
   // Klick auf „Generate": ein ECHTES Bild, kostenlos.
@@ -471,7 +599,21 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
   // kaufe ich nichts"). Jetzt sieht er zuerst sich und sie, scharf. Bezahlt wird das VIDEO.
   const generate = async () => {
     track("generate");
-    if (!selPhoto || !photo || busy) return;
+    if (!selPhoto || !photo || busy || mailBusy) return;
+    /**
+     * ERST DIE ADRESSE, DANN RECHNEN (Owner 30.07.2026). Kein Bild mehr auf seine Kosten für
+     * jemanden, der nie eine Adresse hinterlässt. Wer angemeldet ist oder schon einmal
+     * eingetragen hat, merkt davon nichts — `adresseDa` steht dann bereits.
+     */
+    if (!isStaff && !adresseDa) {
+      const e = mail.trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
+        setStatus(T.mailInvalid);
+        mailRef.current?.focus();
+        return;
+      }
+      if (!(await adresseVormerken(e))) return;
+    }
     setSchritt(4);   // eigener Bildschirm fürs Rendern
     setBusy(true); setTeaser(false); setVideoUrl(""); setBild(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
@@ -481,9 +623,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     // Fehler wie „Vorlage abgelehnt" —, auf dem Schirm stand aber weiter „Finishing touches …"
     // und man wartete auf ein Bild, das nie kommt (Owner 30.07.2026: „wo ist die vorschau?").
     const timer: ReturnType<typeof setTimeout>[] = [];
-    for (const [at, text] of RENDER_STEPS) {
+    RENDER_AT.forEach((at, i) => {
+      const text = T.renderSteps[i] ?? T.rendering;
       timer.push(setTimeout(() => { if (runRef.current === token) setStatus(text); }, at));
-    }
+    });
     const stoppen = () => { for (const t of timer) clearTimeout(t); timer.length = 0; };
     try {
       let device = "";
@@ -510,35 +653,24 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         return;
       }
       if (!r.ok || !d.image) {
-        setStatus(d?.error ?? "That did not work.");
+        setStatus(d?.error ?? T.statusNotWork);
         setGescheitert(true); setBusy(false);
+        // Er hat seine Adresse VORHER gegeben — also bekommt er auch im Fehlerfall Post:
+        // „wir melden uns", statt still im Nichts zu enden.
+        mailNachreichen("", true);
         setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
         return;
       }
-      setBild(d.image); setBildPfad(d.imagePath ?? ""); setFrei(false); setGesperrt(false); setGescheitert(false); setBusy(false); setStatus("");
+      setBild(d.image); setBildPfad(d.imagePath ?? ""); setGesperrt(false); setGescheitert(false); setBusy(false); setStatus("");
       // SOFORT MERKEN, nicht erst nach der Adresse (Owner 30.07.2026: „das rendering ist
       // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
       // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
       // neu lädt. Jetzt wird es abgelegt, sobald es da ist — für jeden.
-      /**
-       * WER ANGEMELDET IST, WIRD NICHT NACH SEINER ADRESSE GEFRAGT (Owner 30.07.2026:
-       * „wieso muss ich eine email eingeben wenn ich eingeloggt bin?").
-       *
-       * Die Adresse ist bekannt — sie noch einmal abzutippen ist eine Hürde ohne Gegenwert.
-       * Der Eintrag in die Kissing-Liste und die Mail mit dem Bild passieren trotzdem, nur
-       * eben still im Hintergrund.
-       */
-      const angemeldet = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
-      void merken(d.image, d.imagePath ?? "", genId, isStaff || !!angemeldet);
-      if (angemeldet) {
-        setMail(angemeldet); setFrei(true);
-        void fetch("/api/kiss-claim", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: angemeldet, imagePath: d.imagePath, device, genId }),
-        }).catch(() => {});
-        track("email");
-        trackMetaPixel("Lead", { content_category: "kiss" });
-      }
+      // Das Bild ist sofort sichtbar — die Adresse lag schon vor dem Rechnen vor. Und sie
+      // bekommt jetzt, wofür sie gegeben wurde: das fertige Bild per Mail.
+      setFrei(true);
+      void merken(d.image, d.imagePath ?? "", genId, true);
+      mailNachreichen(String(d.imagePath ?? ""));
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Das Ergebnis an den Eintrag hängen, der beim Hochladen entstanden ist. Nur wenn
       // keiner existiert (z. B. Foto aus einer früheren Sitzung), einen neuen anlegen.
@@ -553,12 +685,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
           }).then(r2 => r2.json());
-          if (log?.id && runRef.current === token) setGenId(log.id);
+          if (log?.id && runRef.current === token) genMerken(log.id);
         }
       } catch { /**/ }
     } catch {
       stoppen();
-      if (runRef.current === token) { setStatus("Network error."); setBusy(false); }
+      if (runRef.current === token) { setStatus(T.statusNetwork); setBusy(false); }
     }
   };
 
@@ -571,28 +703,46 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     + "appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. "
     + "Fluid natural motion, photorealistic, high-end look. No text or logos.";
 
-  const adresseSenden = async () => {
-    const e = mail.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setStatus("Please enter a valid email address."); return; }
+  /**
+   * DIE ADRESSE VORMERKEN — vor der ersten Rechnung, ohne Mail.
+   *
+   * Sie geht sofort in die Kissing-Liste und an den Log-Eintrag; geschickt wird noch nichts.
+   * Die Mail folgt, wenn es etwas zu schicken gibt: das fertige Bild — oder, wenn die
+   * Erzeugung scheitert, ein ehrliches „wir melden uns".
+   */
+  const adresseVormerken = async (e: string): Promise<boolean> => {
     setMailBusy(true); setStatus("");
     try {
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, imagePath: bildPfad, device, genId, pending: gescheitert }),
+        body: JSON.stringify({ email: e, device, genId, vorab: true }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setStatus(d?.error ?? "That did not work."); setMailBusy(false); return; }
-      setFrei(true); setMailBusy(false);
-      if (gescheitert) { setGescheitert(false); setStatus("Thanks — we will send it to you."); }
+      if (!r.ok) { setStatus(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
+      try { localStorage.setItem(MAIL_KEY, e); } catch { /**/ }
+      setAdresseDa(true); setFrei(true); setMailBusy(false);
       // META: „Lead" = er hat seine Adresse dagelassen. Genau darauf soll die Kampagne
-      // optimieren, wenn kein Sofort-Formular mehr benutzt wird (Owner 30.07.2026).
-      trackMetaPixel("Lead", { content_category: "kiss" });
-      void merken(bild, bildPfad, genId, true);   // ab jetzt übersteht es Kasse und „Zurück"
+      // optimieren (Owner 30.07.2026) — und jetzt zählt sie auch die, bei denen das Bild
+      // danach scheitert.
+      trackMetaPixel("Lead", { content_category: variant });
       track("email");
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
-    } catch { setStatus("Network error."); setMailBusy(false); }
+      return true;
+    } catch { setStatus(T.statusNetwork); setMailBusy(false); return false; }
+  };
+
+  // Was wir ihm schicken, sobald es etwas zu schicken gibt. `pending` = es hat nicht
+  // geklappt, wir melden uns. Ohne Adresse passiert nichts — dann gibt es auch keine.
+  const mailNachreichen = (imagePath: string, pending = false) => {
+    const e = mail.trim();
+    if (!e) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    void fetch("/api/kiss-claim", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: e, imagePath, device, genId, pending }),
+    }).catch(() => {});
   };
 
   // Der Weg zum Kauf: erst Show, dann Kasse.
@@ -603,12 +753,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     // VIER SEKUNDEN, NICHT SIEBEN (Owner 30.07.2026: „fake dauert zu lang. Nur 4 Sekunden").
     // Laenger fuehlt sich nicht wertvoller an, sondern nach Warteschlange — und wer wartet,
     // springt ab.
-    const schritte: [number, string][] = [
-      [0, "Reading both faces …"],
-      [1200, "Matching the two of you …"],
-      [2400, "Bringing the moment to life …"],
-    ];
-    for (const [at, t] of schritte) setTimeout(() => setStatus(t), at);
+    [0, 1200, 2400].forEach((at, i) => setTimeout(() => setStatus(T.teaseSteps[i] ?? ""), at));
     setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 4000);
   };
 
@@ -649,39 +794,65 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
     if (videoBusy || !selPhoto || !photo) return;
     setWahl(false); setVideoBusy(true); setStatus("");
     const token = Date.now(); runRef.current = token;
+    // Zum Radar springen — sonst steht er vor einem Knopf und sieht nicht, dass etwas läuft.
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     // Keine Szene gewaehlt? Dann nimmt das System eine — „wenn er keine auswaehlt, dann
     // irgendeine automatisch". Er wartet nie wegen einer Pflichtangabe.
     const szene: HolidayScene = HOLIDAY_SCENES.find(x => x.id === szeneId)
       ?? HOLIDAY_SCENES[Math.floor(Date.now() / 1000) % HOLIDAY_SCENES.length];
     try {
-      const ihr = await anziehen(selPhoto, looks.find(l => l.id === ihrLook), "Dressing her …");
+      const ihr = await anziehen(selPhoto, looks.find(l => l.id === ihrLook), T.dressingHer);
       if (runRef.current !== token) return;
-      const sein = await anziehen(photo, looks.find(l => l.id === seinLook), "Getting you ready …");
+      const sein = await anziehen(photo, looks.find(l => l.id === seinLook), T.gettingReady);
       if (runRef.current !== token) return;
-      setStatus("Rendering your video … (~1–3 min)");
+      setStatus(T.renderingVideo);
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // AUFLOESUNG NOCH NICHT UMGESTELLT (Owner 30.07.2026: „ok, aber jetzt noch nicht
         // umstellen"). Die Route kann 540p — sie wird nur noch nicht danach gefragt, damit
         // die Testlaeufe billig bleiben. Umlegen ist ein Wort: `hd: true` ergaenzen.
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: sein, garment: ihr, prompt: holidayPrompt(szene) }),
+        // KUSS AUF DER KUSS-SEITE (Owner 30.07.2026: „sie müssen sich küssen"). Ohne diesen
+        // Schalter endete das bezahlte Video in einer Umarmung — auf genau dem Thema, für das
+        // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
+        // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
+        // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: holidayPrompt(szene, { kuss: variant === "kiss" }) }),
       }).then(r => r.json());
-      if (!start?.videoId) { setStatus(start?.error ?? "Could not start."); setVideoBusy(false); setWahl(true); return; }
+      if (!start?.videoId) {
+        // Kontingent aufgebraucht: eigener Satz in seiner Sprache — und ein Weg weiter,
+        // statt einer Sackgasse.
+        if (start?.extraNeeded) { setExtraNoetig(true); setVideosLinks(0); setStatus(""); }
+        else setStatus(start?.error ?? T.statusCouldNotStart);
+        setVideoBusy(false); setWahl(true); return;
+      }
+      /**
+       * DIE AUFTRAGSNUMMER GEHT SOFORT AN DEN SERVER (Owner 30.07.2026: „Server liefert das
+       * bezahlte Video"). Ab hier ist der Auftrag nicht mehr nur in diesem Browser bekannt:
+       * schliesst er das Fenster, bringt `/api/kiss-deliver` DENSELBEN Auftrag zu Ende und
+       * schickt das Video per Mail — statt einen zweiten zu bezahlen.
+       */
+      if (genId) {
+        void fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ update: genId, videoId: start.videoId }),
+        }).catch(() => {});
+      }
       for (let i = 0; i < 90; i++) {
         await new Promise(res => setTimeout(res, 4000));
         if (runRef.current !== token) return;
-        setStatus(`Making your video … (${Math.round((i + 1) * 4)} s)`);
+        setStatus(T.makingVideo(Math.round((i + 1) * 4)));
         const q = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (q?.status === "done" && q.videoUrl) {
           setVideoUrl(q.videoUrl); setStatus(""); setVideoBusy(false);
+          setVideosLinks(v => (typeof v === "number" ? Math.max(0, v - 1) : v));
           try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: q.videoUrl }) }); } catch { /**/ }
           return;
         }
-        if (q?.status === "failed") { setStatus(q.error || "The video failed."); setVideoBusy(false); setWahl(true); return; }
+        if (q?.status === "failed") { setStatus(q.error || T.videoFailed); setVideoBusy(false); setWahl(true); return; }
       }
-      setStatus("Timeout — please try again."); setVideoBusy(false); setWahl(true);
-    } catch { setStatus("Network error."); setVideoBusy(false); setWahl(true); }
+      setStatus(T.statusTimeout); setVideoBusy(false); setWahl(true);
+    } catch { setStatus(T.statusNetwork); setVideoBusy(false); setWahl(true); }
   };
 
   const zuVideo = async () => {
@@ -697,7 +868,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       for (let i = 0; i < 90; i++) {
         await new Promise(res => setTimeout(res, 4000));
         if (runRef.current !== token) return;
-        setStatus(`Making the video … (${Math.round((i + 1) * 4)} s)`);
+        setStatus(T.makingVideo(Math.round((i + 1) * 4)));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
           setVideoUrl(p.videoUrl); setStatus(""); setVideoBusy(false);
@@ -706,11 +877,17 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         }
         if (p?.status === "failed") { setStatus(p.error || "Das Video ist fehlgeschlagen."); setVideoBusy(false); return; }
       }
-      setStatus("Timeout — please try again later."); setVideoBusy(false);
-    } catch { setStatus("Network error."); setVideoBusy(false); }
+      setStatus(T.statusTimeout); setVideoBusy(false);
+    } catch { setStatus(T.statusNetwork); setVideoBusy(false); }
   };
 
-  const unlock = async (einmal = false) => {
+  /**
+   * DER KAUFWEG — drei Fälle, ein Knopf:
+   *   "once"  → ein Video für {once} (kein Abo)
+   *   "abo"   → das Monatsabo
+   *   "extra" → EIN weiteres Video für {extra}, wenn das Monatskontingent leer ist
+   */
+  const unlock = async (einmal: "once" | "abo" | "extra" = "abo") => {
     track("checkout");
     if (payBusy) return;
     if (isStaff) {
@@ -720,10 +897,10 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       return;
     }
     setPayBusy(true); setStatus("");
-    trackMetaPixel("InitiateCheckout", { value: einmal ? 9.99 : 24.5, currency: "EUR", content_name: einmal ? "Kiss video" : "Topic subscription" });
+    trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
-      if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal === "once", extra: einmal === "extra", email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      if (!start?.url || !start?.sessionId) { setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite
       for (let i = 0; i < 100; i++) {
@@ -732,7 +909,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (s?.paid) {
           try { popup.close(); } catch { /**/ }
           setPayBusy(false);
-          trackMetaPixel("Purchase", { value: einmal ? 9.99 : 24.5, currency: "EUR", content_name: einmal ? "Kiss video" : "Topic subscription" });
+          trackMetaPixel("Purchase", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
           // BEZAHLT → AUSSUCHEN, nicht sofort rendern (Owner 30.07.2026: „Na gut und jetzt?
           // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
@@ -743,7 +920,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
       }
       setPayBusy(false);
-    } catch { setStatus("Network error."); setPayBusy(false); }
+    } catch { setStatus(T.statusNetwork); setPayBusy(false); }
   };
 
   return (
@@ -752,13 +929,23 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           mit den Sprachen stehen" / „in einer Reihe"). `mr-auto` schiebt ihn in der
           rechtsbuendigen Zeile nach links — Zurueck links, Sprache rechts, kein zweiter
           Balken. Erst ab Schritt 2, denn von Schritt 1 fuehrt kein Weg zurueck. */}
-      {langZeile && schritt > 1 && createPortal(
-        <button type="button"
-          onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? 2 : 1)}
-          className="mr-auto h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
-          style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
-          ← Back
-        </button>,
+      {/* DANEBEN DER HELL/DUNKEL-SCHALTER (Owner 30.07.2026: „mach mir bitte einen Schalter
+          für light und dark version neben den Backbutton rechts"). Er steht IMMER da, auch auf
+          Schritt 1 — dort trifft der Anzeigenklick auf, und genau dort entscheidet sich, ob
+          ihn der schwarze Grund abschreckt. `mr-auto` sitzt auf dem jeweils linken Knopf,
+          damit die Zeile eine bleibt: links Zurueck + Schalter, rechts die Sprache. */}
+      {langZeile && createPortal(
+        <>
+          {schritt > 1 && (
+            <button type="button"
+              onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? 2 : 1)}
+              className="h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
+              style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
+              {T.back}
+            </button>
+          )}
+          <span className="mr-auto ml-2"><LightSwitch /></span>
+        </>,
         langZeile,
       )}
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
@@ -772,13 +959,13 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       </div>
 
       {schritt === 1 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step1}</p>
-      <p className="mt-1 text-[13px] font-bold text-white/85">{V.pickHint}</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step1}</p>
+      <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>
       {(() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
-        const YOURMODEL: Model = { id: "__yourmodel", name: V.upTitle, photoUrl: "" };
+        const YOURMODEL: Model = { id: "__yourmodel", name: T.upTitle, photoUrl: "" };
         const cards = [...models];
         // IN DIE MITTE, nicht ganz an den Anfang (Owner 30.07.2026: „mach die nicht ganz am
         // Anfang des Karussells sondern die Mitte"). Vorn wirkte die Upload-Karte wie der
@@ -831,14 +1018,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                             der hellen Fassung) war der Text sonst nicht zu lesen. */}
                         <span data-oncard="1" className="absolute inset-x-3 top-1/2 z-10 -translate-y-1/2 rounded-2xl bg-black/55 px-2 py-3 backdrop-blur-[2px]" />
                         <ImageUp style={{ color: "#fff" }} className="relative z-20 h-9 w-9" />
-                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{V.upTitle}</span>
-                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 mt-1 px-2 text-[11px] font-bold leading-snug">{V.upHint}</span>
+                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{T.upTitle}</span>
+                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 mt-1 px-2 text-[11px] font-bold leading-snug">{T.upHint}</span>
                       </div>
                     ) : (<>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={isUpload ? customModel : m.photoUrl} alt={m.name} draggable={false} className="h-full w-full object-cover object-top" />
                       {isUpload && isActive && (
-                        <span className="absolute inset-x-3 bottom-8 rounded-full bg-black/60 py-1 text-center text-[10px] font-black text-white backdrop-blur">Tap to change photo</span>
+                        <span className="absolute inset-x-3 bottom-8 rounded-full bg-black/60 py-1 text-center text-[10px] font-black text-white backdrop-blur">{T.tapChange}</span>
                       )}
                     </>)}
                     {isActive && (!isUpload || !!customModel) && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#f6cf51] shadow"><Check className="h-4 w-4 text-black" /></span>}
@@ -855,14 +1042,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
 
       {/* 2) Eigenes Foto */}
-      <button type="button" onClick={() => setSchritt(2)} disabled={!selPhoto}
+      <button type="button" onClick={() => { wahlMerken(); setSchritt(2); }} disabled={!selPhoto}
         className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
-        {selPhoto ? "Next →" : "Pick her first"}
+        {selPhoto ? T.next : T.pickFirst}
       </button>
       </>)}
 
       {schritt === 2 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo — you, the man</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step2}</p>
       <button type="button" onClick={() => fileRef.current?.click()}
         className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
@@ -891,15 +1078,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
               <span className="relative text-[30px] font-black tracking-wide" style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>YOU</span>
-              <span className="relative text-[13px] font-black text-[#f6cf51]">Upload your photo</span>
+              <span className="relative text-[13px] font-black text-[#f6cf51]">{T.uploadYou}</span>
               <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
-                A photo of you — the man in the picture
+                {T.youHint}
               </span>
             </>)}
       </button>
       {photo && (
         <button type="button" onClick={() => fileRef.current?.click()} className="mx-auto mt-2 flex items-center gap-1.5 text-[12px] font-black text-white/60">
-          <RefreshCw className="h-3.5 w-3.5" /> Change photo
+          <RefreshCw className="h-3.5 w-3.5" /> {T.changePhoto}
         </button>
       )}
       <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
@@ -908,19 +1095,19 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       <div className="mt-4 flex gap-2">
         <button type="button" onClick={() => setSchritt(3)} disabled={!photo}
           className="lb-gold flex h-12 flex-1 items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
-          {photo ? "Next →" : "Upload your photo"}
+          {photo ? T.next : T.uploadFirst}
         </button>
       </div>
       </>)}
 
       {schritt === 4 && (
         <div className="mb-3 text-center">
-          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">4 · Your picture</p>
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step4}</p>
         </div>
       )}
 
       {schritt === 3 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step3}</p>
       {/* BEIDE NEBENEINANDER (Owner 30.07.2026: „ich sehe uns nicht nebeneinander"). In den
           Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
           im Bild landet — sonst generiert er blind. */}
@@ -944,27 +1131,27 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       {kleidung.length > 0 && (
         <div className="relative mt-2 rounded-2xl p-3" style={{ background: "#fff", color: "#1a160f" }}>
           <div className="flex items-center justify-between">
-            <p className="text-[12px] font-black">Wardrobe & scene</p>
+            <p className="text-[12px] font-black">{T.wardrobe}</p>
             {!bezahlt && !isStaff && (
               <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
                 style={{ background: "rgba(0,0,0,0.07)" }}>
-                <Lock className="h-3 w-3" /> Paid videos
+                <Lock className="h-3 w-3" /> {T.paidBadge}
               </span>
             )}
           </div>
           <p className="mt-0.5 text-[11px] font-semibold" style={{ opacity: 0.6 }}>
             {bezahlt || isStaff
-              ? "Dress her, keep your own clothes or change them, pick the moment."
-              : "Unlocked with a paid video — dress her, pick the moment."}
+              ? T.wardrobeOpen
+              : T.wardrobeLocked}
           </p>
 
           <div style={bezahlt || isStaff ? undefined : { opacity: 0.45, filter: "blur(1.5px)", pointerEvents: "none" }}>
-            <p className="mt-2.5 text-[11px] font-black">Her dress</p>
+            <p className="mt-2.5 text-[11px] font-black">{T.herDress}</p>
             <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
               <button type="button" onClick={() => setIhrLook("")}
                 className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
                 style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                As in the photo
+                {T.asInPhoto}
               </button>
               {kleidung.map(l => (
                 <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
@@ -977,14 +1164,14 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
 
             <button type="button" onClick={() => setMehr(m => !m)}
               className="mt-2.5 text-[11px] font-black" style={{ color: "#1877f2" }}>
-              {mehr ? "− Less" : "+ Your clothes & the moment"}
+              {mehr ? T.moreClose : T.moreOpen}
             </button>
             <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>Your clothes</p>
             <div className={`mt-1.5 flex gap-2 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
               <button type="button" onClick={() => setSeinLook("")}
                 className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
                 style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                My own clothes
+                {T.myOwnClothes}
               </button>
               {kleidung.map(l => (
                 <button key={l.id} type="button" onClick={() => setSeinLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
@@ -995,12 +1182,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               ))}
             </div>
 
-            <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>The moment</p>
+            <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>{T.theMoment}</p>
             <div className={`mt-1.5 flex gap-1.5 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
               <button type="button" onClick={() => setSzeneId("")}
                 className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
                 style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                ✨ Surprise me
+                {T.surpriseMe}
               </button>
               {HOLIDAY_SCENES.map(sc => (
                 <button key={sc.id} type="button" onClick={() => setSzeneId(sc.id)}
@@ -1015,29 +1202,56 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           </div>
         </div>
       )}
+      {/* DIE ADRESSE STEHT VOR DEM KNOPF (Owner 30.07.2026: „deswegen habe ich die
+          emailadresse nicht"). Ein Feld, direkt über „Generate" — kein Konto, kein Passwort,
+          keine zweite Seite. Wer angemeldet ist oder schon einmal eingetragen hat, sieht hier
+          gar nichts: `adresseDa` steht dann bereits. */}
+      {!isStaff && !adresseDa && !bezahlt && (
+        <div className="mt-3">
+          <p className="text-[12px] font-bold text-white/85">
+            {T.mailQuestion}
+          </p>
+          <input ref={mailRef} value={mail} onChange={e => setMail(e.target.value)} type="email"
+            inputMode="email" autoComplete="email" placeholder="you@email.com"
+            onKeyDown={e => { if (e.key === "Enter") void generate(); }}
+            // Farbe fest am Feld: die Hell-Fassung faerbt `text-white` dunkel — auf dem
+            // schwarzen Grund waere die eingetippte Adresse dann unlesbar.
+            style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
+            className="mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+          <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/45">
+            {T.mailNote}
+          </p>
+        </div>
+      )}
       {/* NACH DER ZAHLUNG HEISST ER ANDERS (Owner 30.07.2026: „muesste dann statt generate
           picture, generate Video stehen (bezahlt)"). Derselbe Platz, andere Aufgabe: vorher
           das Gratis-Bild, danach das bezahlte Video aus Garderobe und Szene. */}
       <button type="button" onClick={() => void (bezahlt ? kussVideo() : generate())}
-        disabled={!selPhoto || !photo || !consent || busy || videoBusy}
+        disabled={!selPhoto || !photo || !consent || busy || videoBusy || mailBusy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-        {busy || videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : "💋"}
-        {busy || videoBusy ? (status || "Rendering …") : bezahlt ? "Generate video" : V.cta}
+        {busy || videoBusy || mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : "💋"}
+        {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : bezahlt ? T.ctaVideo : T.ctaFree}
       </button>
       {/* Der Preis steht DIREKT unter dem Knopf, nicht erst hinter dem Ergebnis (Owner
           30.07.2026: „hier muss Generate Picture free Button stehen oben und Video 9,99").
           Er soll vorher wissen, was gratis ist und was kostet — sonst fühlt sich die Kasse
           nach dem Warten wie eine Falle an. */}
       <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
-        {bezahlt ? "✓ Paid — everything below is included" : fillPrices("Picture free · Video {once}")}
+        {bezahlt ? T.paidLine : T.priceLine}
       </p>
+      {/* WAS IHM DIESEN MONAT NOCH ZUSTEHT (Owner 30.07.2026). Ohne diese Zeile weiss ein
+          Abonnent nie, wo er steht — und merkt es erst, wenn nichts mehr geht. */}
+      {aboAktiv && typeof videosLinks === "number" && (
+        <p className="mt-1 text-center text-[11px] font-bold text-[#f6cf51]">
+          {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
+        </p>
+      )}
       {/* NUR EIN HINWEIS, KEINE AKTION (Owner 30.07.2026: „das machst du unter dem Button und
           ohne Haeckchen … nein, das ist nur eine Info, ohne Aktion"). Das Haekchen stand
           zwischen ihm und dem Knopf und kostete jeden zweiten Anlauf. Der Inhalt bleibt
           wortgleich stehen — er ruecht nur hinter die Handlung. */}
       <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[10px] font-medium leading-snug text-white/45">
-        By generating you confirm you may use these photos, everyone shown is an adult, you
-        keep it private — and you take responsibility for it.
+        {T.consent}
       </p>
 
       </>)}
@@ -1045,32 +1259,50 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
       {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
           Buttons bleiben dann drunter immer"). Wer schon weiss, dass er das Video will, soll
           nicht erst durch alle Schritte. Gesperrt, solange Fotos oder Haken fehlen. */}
-      {!isStaff && (
+      {/* WER BEZAHLT HAT, SIEHT KEINE KAUFKNOEPFE MEHR (Owner 30.07.2026: „schon wieder
+          springt er vom Stripe zurück zum Zahlen"). Auf dem Bild wurden sie längst verdeckt —
+          ohne erzeugtes Bild standen sie waehrend des bezahlten Renderns aber weiter da und
+          sahen aus wie eine zweite Rechnung. */}
+      {!isStaff && !bezahlt && !videoUrl && (
         <div className="mt-2 flex gap-2">
-          <button type="button" onClick={() => void unlock(true)}
+          <button type="button" onClick={() => void unlock("once")}
             disabled={!selPhoto || !photo || !consent || payBusy}
             className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
             {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-            {fillPrices("Hot video {once}")}
+            {T.buyOnce}
           </button>
-          <button type="button" onClick={() => void unlock(false)}
+          <button type="button" onClick={() => void unlock("abo")}
             disabled={!selPhoto || !photo || !consent || payBusy}
             style={{ color: "#fff" }}
             className="flex h-11 flex-1 items-center justify-center rounded-full border border-white/30 px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
-            {fillPrices("All in — {price}/mo")}
+            {T.buyAbo}
           </button>
         </div>
       )}
+      {/* DAS VERSPRECHEN STEHT IN JEDEM SCHRITT (Owner 30.07.2026: „du musst sagen dass die
+          Bilder überall privat bleiben und nicht veröffentlicht werden. Nur er sieht die").
+          Es steht bewusst HIER, unter den Kaufknöpfen: dieser Block wird in jedem Schritt
+          gerendert — beim Hochladen ihres Fotos, beim eigenen Gesicht, vor dem Erzeugen und
+          neben dem Ergebnis. Wer sein Gesicht hergibt, will das lesen, bevor er tippt, nicht
+          hinterher. */}
+      <p className="mx-auto mt-2 max-w-[320px] text-center text-[11px] font-bold leading-snug text-white/60">
+        {T.privat}
+      </p>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
       {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
       <div ref={resultRef}>
-        {/* Radar-Scan (wie der Try-On-„Reveal"): Scanner-Balken + Sucher-Ecken über dem Model-Foto. */}
-        {busy && !videoUrl && !!selPhoto && (
+        {/* Radar-Scan (wie der Try-On-„Reveal"): Scanner-Balken + Sucher-Ecken über dem Foto.
+            AUCH BEIM BEZAHLTEN VIDEO (Owner 30.07.2026: „hier sollte radar loading kommen").
+            Bisher lief er nur beim Gratis-Bild; nach der Zahlung stand da ein Knopf mit
+            „Rendering your video …" und sonst nichts — drei Minuten lang. Wer bezahlt hat,
+            muss am deutlichsten sehen, dass etwas passiert. Liegt schon ein Bild vor, trägt
+            es seine eigene Auflage (weiter unten), dann bliebe der Radar doppelt. */}
+        {(busy || videoBusy) && !videoUrl && !bild && !!(selPhoto || photo) && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] w-full object-cover object-top blur-[6px] brightness-75" />
+              <img src={selPhoto || photo} alt="" className="aspect-[3/4] w-full object-cover object-top blur-[6px] brightness-75" />
               {/* Weißer Scanner-Balken, fährt runter und wieder hoch. */}
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
@@ -1093,30 +1325,36 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
           </div>
         )}
 
-        {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
-        {/* GESCHEITERT → Adresse einsammeln statt stumm scheitern. Vier von zehn echten
-            Besuchern haben heute hochgeladen und nichts bekommen; gefragt wurde erst nach dem
-            fertigen Bild, also hinterliessen ausgerechnet sie keine Spur. */}
+        {/* GESCHEITERT — aber die Adresse haben wir schon (sie steht jetzt VOR der Erzeugung).
+            Also kein Formular mehr an dieser Stelle, sondern eine Zusage und ein zweiter
+            Versuch. Die Mail „wir melden uns" ist bereits raus. */}
         {gescheitert && !bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-white/15 bg-white/[0.05] p-5 text-center">
-            <p className="text-[16px] font-black text-white">That did not come through</p>
+            <p className="text-[16px] font-black text-white">{T.failTitle}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
-              Leave your email — we send you your picture as soon as it is ready.
+              {mail
+                ? T.failWithMail(mail)
+                : T.failNoMail}
             </p>
-            <input value={mail} onChange={e => setMail(e.target.value)} type="email"
-              inputMode="email" autoComplete="email" placeholder="you@email.com"
-              onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
-              className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold text-white outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
-            <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
-              className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-              {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {mailBusy ? "One moment …" : "Send it to me"}
-            </button>
             <button type="button" onClick={() => { setGescheitert(false); void generate(); }}
-              style={{ color: "#fff" }}
-              className="mt-2 flex h-10 w-full items-center justify-center rounded-full border border-white/30 text-[12px] font-black active:scale-95 transition">
-              Or try again
+              className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition">
+              <RefreshCw className="h-4 w-4" /> {T.tryAgain}
             </button>
+          </div>
+        )}
+
+        {/* KONTINGENT LEER → EIN WEG WEITER, keine Sackgasse (Owner 30.07.2026: „kann er
+            dann weiter Videos kaufen für 3,99?"). Kein zweites Abo, kein voller Einzelpreis:
+            ein Video zum Abo-Aufpreis, das Abo läuft unberührt weiter. */}
+        {extraNoetig && !videoUrl && !isStaff && (
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+            <p className="text-[16px] font-black text-white">{T.extraTitel}</p>
+            <button type="button" onClick={() => void unlock("extra")} disabled={payBusy}
+              className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+              {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {T.extraCta}
+            </button>
+            <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">{T.extraNote}</p>
           </div>
         )}
 
@@ -1124,27 +1362,27 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
         {gesperrt && !isStaff && !bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
-            <p className="text-[16px] font-black text-white">Your free picture is used up</p>
+            <p className="text-[16px] font-black text-white">{T.blockedTitle}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
-              Three free pictures per person. Keep going with the video — or unlock everything.
+              {T.blockedBody}
             </p>
-            <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+            <button type="button" onClick={() => void unlock("once")} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {fillPrices("Make a real kiss video — {once}")}
+              {T.blockedOnce}
             </button>
             {/* VOLLE WEISSE FLAECHE (Owner 30.07.2026: „Unlock kann ich nicht lesen, es steht
                 in blau auf blau"). Ein umrandeter Knopf uebernimmt die Schriftfarbe der
                 Umgebung — auf dem blauen Kasten heisst das blau auf blau. Weisse Flaeche mit
                 dunkler Schrift liest sich auf jedem Grund; dieselbe Loesung wie beim
                 Kauf-Knopf auf dem Foto. */}
-            <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+            <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
               style={{ background: "#fff", color: "#1a160f" }}
               className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
-              {fillPrices("Unlock everything — {price}/month")}
+              {T.blockedAll}
             </button>
             <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
-              {renewNote("en")}
+              {renewNote(lang)}
             </p>
           </div>
         )}
@@ -1163,11 +1401,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt=""
                 className={`block h-auto w-full object-cover transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
-              {/* VERDECKT, BIS DIE ADRESSE DA IST. Das Bild EXISTIERT bereits — es ist keine
-                  Attrappe wie früher, sondern sein fertiges Ergebnis. Genau deshalb trägt er
-                  ein: er weiß, dass es da ist. */}
-              {/* AUFSTEIGENDE HERZEN auf dem fertigen Bild. Erst wenn er es sehen darf —
-                  vorher liegt die E-Mail-Schranke darueber und Herzen waeren nur Unruhe. */}
+              {/* KEINE SCHRANKE MEHR AUF DEM BILD. Bis 30.07.2026 lag hier das E-Mail-Feld und
+                  das Bild darunter im Unscharfen. Die Adresse wird jetzt VOR der Erzeugung
+                  eingesammelt — wer bis hierher kommt, hat sie längst gegeben und sieht sein
+                  Ergebnis sofort. */}
+              {/* AUFSTEIGENDE HERZEN auf dem fertigen Bild. */}
               {(frei || isStaff) && !videoShow && (
                 <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
                   {[...Array(14)].map((_, i) => (
@@ -1210,7 +1448,7 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                         entscheidet der Grund, nicht die Fassung — und `lb-onmedia` kippt in
                         der hellen Fassung ins Dunkle. */}
                     <p className="mt-3 text-[14px] font-black" style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.55)" }}>
-                      {status || "Making your kiss video …"}
+                      {status || T.makingKiss}
                     </p>
                   </div>
                   <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
@@ -1227,12 +1465,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   <div className="w-full max-w-[300px] text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-white" />
                     <p className="lb-onmedia mt-3 text-[16px] font-black">
-                      {bezahlt || videoBusy ? "Payment received ✓" : "Opening secure checkout …"}
+                      {bezahlt || videoBusy ? T.payReceived : T.payOpening}
                     </p>
                     <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
                       {status || (bezahlt || videoBusy
-                        ? "Making your video — this takes about a minute. Stay on this page."
-                        : "Complete the payment in the window that just opened.")}
+                        ? T.payMaking
+                        : T.payComplete)}
                     </p>
                   </div>
                 </div>
@@ -1241,12 +1479,12 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
               {videoReif && !isStaff && !payBusy && !bezahlt && !videoBusy && !videoUrl && (
                 <div className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-5">
                   <div className="w-full max-w-[300px] text-center">
-                    <p className="lb-onmedia text-[17px] font-black">Your video is ready 🔥</p>
-                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">Unlock it and watch the two of you.</p>
-                    <button type="button" onClick={() => void unlock(true)} disabled={payBusy}
+                    <p className="lb-onmedia text-[17px] font-black">{T.readyTitle}</p>
+                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">{T.readyBody}</p>
+                    <button type="button" onClick={() => void unlock("once")} disabled={payBusy}
                       className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                       {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                      {fillPrices("Watch my kiss video — {once}")}
+                      {T.watchOnce}
                     </button>
                     {/* VOLLE WEISSE FLÄCHE statt durchsichtig (Owner 30.07.2026: „ich kann den
                         Button nicht lesen. Es muss weiss sein oder den Button nicht
@@ -1254,40 +1492,15 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                         durchsichtiger Knopf nie zuverlässig lesbar — das Motiv darunter
                         entscheidet. Weisse Fläche mit dunkler Schrift liest sich auf jedem
                         Bild, in der hellen wie in der dunklen Fassung. */}
-                    <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                    <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                       style={{ background: "#fff", color: "#1a160f" }}
                       className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
-                      {fillPrices("Or unlock everything — {price}/month")}
+                      {T.orAll}
                     </button>
                   </div>
                 </div>
               )}
 
-              {!frei && !isStaff && (
-                <div className="absolute inset-0 grid place-items-center bg-black/45 p-5">
-                  <div className="w-full max-w-[300px] text-center">
-                    <p className="lb-onmedia text-[16px] font-black">Your picture is ready ✨</p>
-                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
-                      Enter your email — you see it right away and it stays yours.
-                    </p>
-                    <input value={mail} onChange={e => setMail(e.target.value)} type="email"
-                      inputMode="email" autoComplete="email" placeholder="you@email.com"
-                      onKeyDown={e => { if (e.key === "Enter") void adresseSenden(); }}
-                      // Farbe fest am Feld: die Hell-Fassung faerbt `text-white` dunkel — auf
-                      // der schwarzen Auflage war die eingetippte Adresse dann unlesbar.
-                      style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
-                      className="mt-3 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
-                    <button type="button" onClick={() => void adresseSenden()} disabled={mailBusy}
-                      className="lb-gold lb-buy mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                      {mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      {mailBusy ? "One moment …" : "Show me the picture"}
-                    </button>
-                    <p className="lb-onmedia mt-2 text-[10px] font-medium leading-snug opacity-70">
-                      Free. We also send the picture to your inbox.
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
             {/* NACH DER SHOW: der Kauf. Erst hier fällt der Preis — der Owner will, dass er
                 den Moment erlebt, bevor er zahlt („er hat nämlich nichts bezahlt, nur
@@ -1304,17 +1517,22 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
                   <button type="button" onClick={videoAnstossen} disabled={payBusy || videoShow}
                     className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                     {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {videoShow ? "Making your kiss video …" : "Make a real kiss video 🔥"}
+                    {videoShow ? T.makingKiss : T.makeVideo}
                   </button>
-                  <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                  <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                     style={{ color: "#fff" }}
                     className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-                    {fillPrices("Or unlock everything — {price}/month")}
+                    {T.orAll}
                   </button>
                   <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/70">
-                    {fillPrices("The picture is yours for free. {once} buys the video, no subscription. ")}{renewNote("en")}
+                    {T.freeNote}{renewNote(lang)}
                   </p>
-                  <p className="mt-1 text-center text-[11px] font-bold text-white/80">Secure checkout by Stripe</p>
+                  {/* Direkt neben dem fertigen Bild noch einmal — hier sieht er zum ersten
+                      Mal sein eigenes Gesicht in unserem Ergebnis. */}
+                  <p className="mt-1.5 text-center text-[11px] font-bold leading-snug text-white/70">
+                    {T.privat}
+                  </p>
+                  <p className="mt-1 text-center text-[11px] font-bold text-white/80">{T.secure}</p>
                 </>
               )}
             </div>
@@ -1330,11 +1548,11 @@ export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: 
             </div>
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
-              ⬇ Download your video
+              {T.download}
             </a>
             {/* Privat-Hinweis (Owner-Vorgabe): nicht in sozialen Medien teilen. */}
             <p className="mx-auto mt-2 max-w-[280px] text-center text-[11px] font-bold leading-snug text-white/55">
-              🔒 This video is private — for you only. Please don't share it on social media.
+              {T.privateNote}
             </p>
           </div>
         )}

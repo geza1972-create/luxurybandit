@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout, createTryonCheckout } from "@/lib/stripe";
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -36,6 +36,35 @@ export async function POST(request: Request) {
    * `kind: "kiss-video"` ist dasselbe Kennzeichen wie beim Abo-Weg — checkout-status markiert
    * damit den Log-Eintrag als bezahlt, ohne dass dort etwas geändert werden muss.
    */
+  /**
+   * EIN VIDEO MEHR, ZUM ABO-PREIS (Owner 30.07.2026: „kann er dann weiter Videos kaufen für
+   * 3,99?"). Für den, dessen Monatskontingent aufgebraucht ist — kein zweites Abo, kein
+   * voller Einzelpreis.
+   *
+   * `kind: "model-video"` ist bewusst wiederverwendet: `/api/checkout-status` schreibt bei
+   * diesem Kennzeichen genau EIN Video-Guthaben auf die mitgegebene Adresse gut, idempotent
+   * je Kassensitzung. Ein eigener Zweig würde dieselbe Logik ein zweites Mal beschreiben.
+   */
+  if (body.extra) {
+    const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return NextResponse.json({ error: "Email required." }, { status: 400 });
+    }
+    try {
+      const { id, url } = await createTryonCheckout({
+        amount: EXTRA_VIDEO_CENTS,
+        currency: "eur",
+        productName: "One more video",
+        successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&extra=1&cs={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+        metadata: { kind: "model-video", email, ...(genId ? { genId } : {}) },
+      });
+      return NextResponse.json({ url, sessionId: id });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
+    }
+  }
+
   if (body.once) {
     try {
       const { id, url } = await createTryonCheckout({

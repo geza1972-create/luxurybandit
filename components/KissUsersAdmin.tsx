@@ -7,7 +7,7 @@ import { Loader2, Users, Trash2, Play } from "lucide-react";
 // jede fertige Generierung mit Datum, gewähltem Model, bezahlt ja/nein + Video-Link.
 // Weiße Box wie alle Admin-Tools; blendet sich ohne Admin-PIN selbst aus.
 
-type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string };
+type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string; modelUrl?: string };
 
 export default function KissUsersAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -61,11 +61,19 @@ export default function KissUsersAdmin() {
         <div className="mt-3 divide-y divide-black/[0.06]">
           {entries.map(e => (
             <div key={e.id} className="flex items-center gap-3 py-2.5">
-              {/* SEIN FOTO und das ERGEBNIS nebeneinander (Owner 30.07.2026: „ich will die
-                  hochgeladene bilder sehen, damit ich eine ahnung habe was die wollen").
-                  Links wer, rechts was daraus wurde. */}
-              {(e.personUrl || e.imageUrl) && (
+              {/* SIE, ER und das ERGEBNIS nebeneinander (Owner 30.07.2026: „ich will die
+                  hochgeladene bilder sehen, damit ich eine ahnung habe was die wollen" und
+                  „selbst dann muss ich sehen wen er ausgewählt hat"). Ihr Foto stand bis
+                  jetzt nicht in dieser Liste — bei einer Katalog-Frau löst die Route es über
+                  ihre Kennung auf, bei einem eigenen Upload liegt es im Speicher. */}
+              {(e.modelUrl || e.personUrl || e.imageUrl) && (
                 <div className="flex shrink-0 gap-1">
+                  {e.modelUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <a href={e.modelUrl} target="_blank" rel="noreferrer" title={`Sie: ${e.modelName || "unbekannt"}`}>
+                      <img src={e.modelUrl} alt="" className="h-14 w-11 rounded-lg border border-white/15 object-cover" />
+                    </a>
+                  )}
                   {e.personUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <a href={e.personUrl} target="_blank" rel="noreferrer" title="Sein hochgeladenes Foto">

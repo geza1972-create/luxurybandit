@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { enrollWetter } from "@/lib/wetter-enroll";
-import { setWetterPaid } from "@/lib/try-this-look-store";
+import { setWetterPaid, grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
+import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
 
@@ -63,6 +64,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
+  /**
+   * DIE VERLAENGERUNG (Owner 30.07.2026: „bekommt er dann nach 30 Tagen 5 videos wieder bei
+   * abo zahlung?").
+   *
+   * Bisher: nein. Gutgeschrieben wurde nur bei der Rueckkehr von einer Kasse — bei der
+   * automatischen Verlaengerung kommt niemand zurueck, es gibt keine Kassensitzung, und der
+   * Abonnent stand im neuen Monat mit leeren Haenden da. Stripe meldet die bezahlte Rechnung;
+   * genau daran haengt jetzt die Gutschrift. Idempotent je Kalendermonat und Adresse, also
+   * schadet auch ein doppelt zugestelltes Ereignis nicht.
+   */
+  if (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
+    const inv = event.data.object as { customer_email?: string; billing_reason?: string };
+    const mail = String(inv?.customer_email ?? "").trim().toLowerCase();
+    if (mail) {
+      try {
+        const stand = await grantMonthlySubscriptionCredits(mail);
+        console.info(`[stripe-webhook] ${event.type} (${inv?.billing_reason ?? "?"}) → Monatsguthaben fuer ${mail}: ${stand}`);
+      } catch (e) { console.warn("[stripe-webhook] Monatsguthaben fehlgeschlagen", e); }
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const meta = (session.metadata as Record<string, unknown> | undefined) ?? {};
@@ -79,6 +102,25 @@ export async function POST(request: Request) {
     } else {
       // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.
       console.info(`[stripe-webhook] checkout.session.completed (${kind}) — ${session.id}${ref ? ` · ${ref}` : ""} · no action (fulfilled elsewhere)`);
+    }
+
+    /**
+     * DAS BEZAHLTE KISS-VIDEO — hier ist der einzige Weg, der auch dann noch funktioniert,
+     * wenn der Kunde seinen Browser geschlossen hat (Owner 30.07.2026: „nach dem ich bezahlt
+     * habe ist nichts passiert, der Kunde wurde ausgeraubt").
+     *
+     * Wir merken den Auftrag vor und stoßen die Lieferung an; gerendert und verschickt wird in
+     * `/api/kiss-deliver`, damit Stripe nicht auf ein Video wartet. Kommt der Kunde doch
+     * zurück, macht `/api/checkout-status` denselben Vermerk — doppelt schadet nicht.
+     */
+    const kissGenId = String(meta?.genId ?? "").trim();
+    if (kissGenId) {
+      const mail = String((session.customer_details as { email?: string } | undefined)?.email ?? session.customer_email ?? "");
+      try {
+        await bezahltVermerken(kissGenId, mail, kind);
+        lieferungAnstossen(new URL(request.url).origin, kissGenId);
+        console.info(`[stripe-webhook] kiss-Auftrag vorgemerkt (${kind}) — ${kissGenId}`);
+      } catch (e) { console.warn("[stripe-webhook] kiss-Auftrag konnte nicht vorgemerkt werden", e); }
     }
 
     // JEDER Kunde — egal welches Thema, Abo oder Einzelkauf — kommt in die Wetter-Liste und

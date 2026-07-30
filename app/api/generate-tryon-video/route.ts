@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit, readKissLog, writeKissLog, grantMonthlySubscriptionCredits, grantVideoCredits } from "@/lib/try-this-look-store";
+import { hasActiveSubscription } from "@/lib/stripe";
+import { INCLUDED_VIDEOS_PER_MONTH, EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -375,12 +377,93 @@ export async function POST(request: Request) {
   // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE
   // — no credit charge, no paywall. End-user charging comes with Stripe.
   const staff = (await authorizeStudio(request)).ok;
+
+  /**
+   * WER BEZAHLT HAT, IST KEIN GAST (Owner 30.07.2026, auf die Frage nach dem Abo).
+   *
+   * Der Deckel darunter erlaubt einem Nicht-Personal EIN Video pro Tag und IP. Gedacht war er
+   * gegen Missbrauch über die nackte API — getroffen hat er den zahlenden Kunden: Sein ZWEITES
+   * Video am selben Tag scheiterte mit „Free limit reached — 1 video per day. Sign up for
+   * more." Wer gerade 9,99 € oder ein Abo bezahlt hat, liest das als Betrug, und zu Recht.
+   *
+   * Der Trichter schickt jetzt seine Auftragsnummer mit. Steht der Eintrag im Kiss-Log auf
+   * bezahlt, geht er am Tagesdeckel vorbei — aber nicht ins Unendliche: gezählt wird pro
+   * Kalendermonat, gedeckelt auf die Zahl, die die Seite verspricht. Der Zähler ist ein
+   * Schutz vor einem offenen Hahn, keine Abrechnung; ein gescheiterter Lauf zählt mit.
+   */
+  let bezahlterAuftrag = false;
+  let guthabenEmail = "";   // von wem wir ein Video abgezogen haben (für die Rückgabe)
+  const genId = String((body as { genId?: string }).genId ?? "").trim();
+  if (!staff && genId) {
+    try {
+      const log = await readKissLog();
+      const eintrag = log.find(x => x.id === genId);
+      if (eintrag?.paid === true) {
+        const mail = String(eintrag.paidEmail || eintrag.email || "").trim().toLowerCase();
+
+        if (eintrag.paidKind === "once") {
+          /**
+           * EINZELKAUF = EIN VIDEO. 9,99 € kaufen genau eines, nicht fünf.
+           *
+           * Gesperrt wird aber erst, wenn wirklich eines geliefert wurde (`videoUrl`) — ein
+           * gescheiterter Versuch darf ihn nicht um seinen Kauf bringen.
+           */
+          if (eintrag.videoUrl) {
+            return NextResponse.json({
+              error: "Your video is already made. The next one is extra.",
+              extraNeeded: true, priceCents: EXTRA_VIDEO_CENTS,
+            }, { status: 402 });
+          }
+          bezahlterAuftrag = true;
+        } else {
+          /**
+           * ABO = DAS MONATSGUTHABEN SEINER PERSON, nicht dieses Auftrags. Gezählt wird an
+           * der E-Mail, damit es dasselbe Guthaben ist, egal in welchem Thema er generiert.
+           *
+           * Ist das Guthaben leer, es besteht aber ein laufendes Abo, wird der Monat hier
+           * nachgetragen: Der einzige Ort, an dem bisher gutgeschrieben wurde, war die
+           * Rückkehr von der Kasse — bei der automatischen Verlängerung kam nie jemand
+           * zurück, und der Abonnent stand mit leeren Händen da.
+           */
+          let rest = mail ? await spendVideoCredit(mail) : null;
+          if (rest === null && mail && await hasActiveSubscription(mail).catch(() => false)) {
+            await grantMonthlySubscriptionCredits(mail).catch(() => 0);
+            rest = await spendVideoCredit(mail);
+          }
+          if (rest === null && mail) {
+            return NextResponse.json({
+              error: `Your ${INCLUDED_VIDEOS_PER_MONTH} videos for this month are used up.`,
+              extraNeeded: true, priceCents: EXTRA_VIDEO_CENTS,
+            }, { status: 402 });
+          }
+          // Ohne bekannte Adresse (Altfall) bleibt der alte Deckel am Auftrag — besser als
+          // einen zahlenden Kunden auszusperren.
+          if (rest === null) {
+            const monat = new Date().toISOString().slice(0, 7);
+            const bisher = eintrag.videoMonth === monat ? (eintrag.videoCount ?? 0) : 0;
+            if (bisher >= INCLUDED_VIDEOS_PER_MONTH) {
+              return NextResponse.json({
+                error: `Your ${INCLUDED_VIDEOS_PER_MONTH} videos for this month are used up.`,
+                extraNeeded: true, priceCents: EXTRA_VIDEO_CENTS,
+              }, { status: 402 });
+            }
+            eintrag.videoMonth = monat;
+            eintrag.videoCount = bisher + 1;
+            await writeKissLog(log);
+          } else {
+            guthabenEmail = mail;
+          }
+          bezahlterAuftrag = true;
+        }
+      }
+    } catch { /* im Zweifel gilt der normale Weg — lieber Deckel als Ausfall */ }
+  }
   // Anti-abuse cap: a non-staff caller (guest / direct API) may trigger at most
   // FREE_VIDEO_GEN_PER_DAY (default 1) generations per IP per day. Guests normally never
   // reach here — GO plays a pre-generated video — so this only bites direct-API abuse and
   // caps runaway Pixverse spend. Admin/staff bypass. Keyed on the Vercel-set client IP
   // (can't be spoofed like a header); device id is only a dev-local fallback.
-  if (!staff) {
+  if (!staff && !bezahlterAuftrag) {
     const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "").trim();
     const device = (request.headers.get("x-lb-device") || "").trim();
     const gateKey = ip ? `ip:${ip}` : device ? `d:${device}` : "anon";
@@ -395,7 +478,12 @@ export async function POST(request: Request) {
     const charge = await chargeCredits(curatorId, VIDEO_CREDITS, "try-on video");
     if (!charge.ok) return NextResponse.json({ error: "Not enough credits for a video.", outOfCredits: true, credits: charge.info }, { status: 402 });
   }
-  const refund = () => { if (chargeOwner) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
+  const refund = () => {
+    if (chargeOwner) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund");
+    // Kommt der Auftrag gar nicht erst zustande, bekommt der Abonnent sein Video zurueck —
+    // sonst kostet ihn ein Fehler auf unserer Seite eines seiner fünf.
+    if (guthabenEmail) { void grantVideoCredits(guthabenEmail, "", 1); guthabenEmail = ""; }
+  };
 
   // TEST: provider=fashn (admin-only) → animiere das fertige Try-on-Bild mit FASHN
   // Image-to-Video statt Pixverse. Prefix "fashn:" für den GET-Poll.

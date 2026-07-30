@@ -8,6 +8,7 @@ import KissUsersAdmin from "@/components/KissUsersAdmin";
 import KissMediaAdmin from "@/components/KissMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import { getSignedUrl } from "@/lib/try-this-look-store";
+import { kissText } from "@/lib/kiss-i18n";
 
 // THEMA „Your Idol with you" — baugleich zur Kiss-Landing (gleicher Funnel, andere
 // Beschriftung + anderer Prompt: die beiden zusammen auf einer Party statt Kuss).
@@ -28,6 +29,7 @@ export default async function YourIdolPage({ searchParams }: {
 }) {
   const sp = (await searchParams) ?? {};
   const L = await resolveLang();   // Sprache der Seite (Cookie) — für den Kaufknopf
+  const T = kissText(L, "idol");   // Überschrift und Vorspann in seiner Sprache
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";
   const view = sp.view === "kunde" ? "kunde" : "admin";
@@ -45,28 +47,21 @@ export default async function YourIdolPage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             <Kicker>LuxuryBandit · Your Idol</Kicker>
-            <H1>Your idol <Y>with you</Y> ✨</H1>
+            {/* In der Sprache des Besuchers (Owner 30.07.2026, Punkt 4) — die Anzeigen laufen
+                in sieben Ländern, und dies ist der erste Satz, den ein Klick zu sehen bekommt. */}
+            <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             {/* Klartext: es geht um JEDE Person, nicht nur um unsere Models. Der Nutzer soll
-                sofort begreifen, dass ein einzelner Screenshot reicht — und dass die Technik
-                dieselbe ist wie bei einem Deepfake (nur eben für ihn selbst, privat). */}
-            <Lead>
-              Take <span className="font-black text-white">any person you admire</span> — a superstar,
-              a singer, an actress, an athlete, an influencer, or one of our models. One screenshot of
-              her or him is enough.
-            </Lead>
-            <Lead className="mt-2">
-              Add a photo of yourself and the AI puts the two of you together at a party, side by
-              side. It works like a <span className="font-black text-white">deepfake</span>: your two
-              faces, one video that looks like it really happened.
-            </Lead>
-            <Fine>AI-generated, not a real recording — and it&apos;s for you, not for social media.</Fine>
+                sofort begreifen, dass ein einzelner Screenshot reicht. */}
+            <Lead>{T.leadA}</Lead>
+            <Lead className="mt-2">{T.leadB}</Lead>
+            <Fine>{T.fine}</Fine>
 
-            {/* Gleicher Funnel wie Kiss, nur andere Variante */}
-            <KissFunnel variant="idol" code={code} />
+            {/* Gleicher Funnel wie Kiss, nur andere Variante — und dieselben acht Sprachen. */}
+            <KissFunnel variant="idol" code={code} lang={L} />
 
             {example && (
               <div className="mt-12">
-                <SectionTitle>The two of you ✨</SectionTitle>
+                <SectionTitle>{T.examples}</SectionTitle>
                 <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video src={example} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />

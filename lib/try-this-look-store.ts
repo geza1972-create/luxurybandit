@@ -1280,7 +1280,17 @@ const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
 // Owner: „du kannst Bella nicht nehmen in Lingerie als Referenz." Ihr Katalogfoto ist ein
 // Lingerie-Bild — als Eingabe an die Bildmoderation gegeben, kommt nichts zurück. Deshalb ein
 // eigener Platz, den der Admin mit einem angezogenen Ganzkörperfoto füllt.
-export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[]; manRefPath?: string };
+/**
+ * `modelsSavedAt` = wann der Admin die Model-Auswahl zuletzt gespeichert hat.
+ *
+ * Owner 30.07.2026: „ich habe ein neues Model hinzugefügt und ist nicht im Karussell drin."
+ * Die Auswahl ist eine feste Liste von Kennungen — ein Model, das es beim Anhaken noch gar
+ * nicht gab, kann darin nicht stehen und blieb deshalb unsichtbar. Mit diesem Zeitpunkt
+ * unterscheidet der Trichter zwei Fälle, die vorher gleich aussahen: NEU (nach der letzten
+ * Auswahl angelegt → kommt automatisch dazu) und BEWUSST DRAUSSEN (existierte damals schon
+ * und wurde nicht angehakt → bleibt draussen).
+ */
+export type KissConfig = { modelIds: string[]; modelsSavedAt?: string; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[]; manRefPath?: string };
 
 // Dieselbe Struktur für JEDES Thema (29.07.2026): `kiss-config.json`, `bella-config.json`, …
 // Der Vorgabewert "kiss" hält alle bestehenden Aufrufe unverändert.
@@ -1294,6 +1304,7 @@ export async function readThemeConfig(theme = "kiss"): Promise<KissConfig> {
     const data = await res.json().catch(() => null);
     return {
       modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [],
+      modelsSavedAt: String(data?.modelsSavedAt ?? "").trim() || undefined,
       teaserPath: String(data?.teaserPath ?? "").trim() || undefined,
       // MEHRERE Referenzfotos (Owner 29.07.2026: „ich will mehrere hochladen"). Ein früher
       // gespeichertes Einzelfoto (`previewRefPath`) wird beim Lesen in die Liste überführt,
@@ -1405,6 +1416,46 @@ export type KissLogEntry = {
   email?: string;         // angemeldeter Nutzer beim Erzeugen
   paidEmail?: string;     // von Stripe beim Kauf
   device?: string;        // anonyme Gerätekennung (lb_visitor)
+
+  /**
+   * DER BEZAHLTE AUFTRAG — damit ihn der SERVER zu Ende bringen kann (Owner 30.07.2026:
+   * „nach dem ich bezahlt habe ist nichts passiert, der Kunde wurde ausgeraubt").
+   *
+   * Bis hierher lief das Rendern allein im Browser des Kunden: Fenster zu, Handy gesperrt,
+   * Netz weg — und das bezahlte Video war für immer verloren, ohne dass irgendwo stand, dass
+   * jemand darauf wartet. Diese Felder sind genau dieser Vermerk. `/api/kiss-deliver` liest
+   * sie, startet oder pollt den Auftrag und schickt das Video per Mail.
+   */
+  videoDueAt?: string;    // ab wann der Server selbst übernimmt (Schonfrist für den Browser)
+  videoId?: string;       // laufender Auftrag beim Anbieter ("pv:123")
+  videoTries?: number;    // wie oft der Server es schon versucht hat (Deckel gegen Dauerlauf)
+  videoError?: string;    // letzter Fehler, damit der Admin es sieht
+  videoMailedAt?: string; // wann das fertige Video verschickt wurde (nie zweimal)
+  videoAlertAt?: string;  // wann wir aufgegeben und den Käufer benachrichtigt haben
+  /**
+   * WELCHER AUFTRAG SCHON GELIEFERT IST. Wichtig fürs Abo (Owner 30.07.2026: „funktioniert das
+   * ganze mit abo genauso?"): Ein Abonnent macht mehrere Videos hintereinander, im selben
+   * Eintrag. Ohne diese Marke wäre „hat schon ein Video" gleichbedeutend mit „fertig" — das
+   * zweite Video hinge dann wieder allein an seinem Browser. Offen ist ein Auftrag genau
+   * dann, wenn `videoId` nicht `videoDoneId` ist.
+   */
+  videoDoneId?: string;
+  /**
+   * WIE VIELE VIDEOS DIESER BEZAHLTE AUFTRAG SCHON GEZOGEN HAT (Owner 30.07.2026).
+   *
+   * Nur als Deckel, nicht als Abrechnung: Die Video-Route lässt einen bezahlten Kunden am
+   * Tagesdeckel für Gäste vorbei — ohne eine Grenze wäre das ein offener Hahn. Gezählt wird
+   * je Kalendermonat, gedeckelt auf die Zahl, die auf der Seite versprochen ist.
+   */
+  videoCount?: number;
+  videoMonth?: string;    // YYYY-MM, zu dem der Zähler gehört
+  /**
+   * WAS er gekauft hat — und damit, was ihm zusteht (Owner 30.07.2026).
+   *   "once" = ein einzelnes Video für 9,99 € → genau EIN geliefertes Video
+   *   "abo"  = das Monatsabo → die enthaltenen Videos, gezählt an seiner E-Mail
+   * Ohne Angabe (Altfälle) gilt der schonendere Weg: wie Abo.
+   */
+  paidKind?: "once" | "abo";
 };
 
 export async function readKissLog(): Promise<KissLogEntry[]> {
@@ -2150,6 +2201,14 @@ export async function bumpDailyGenLimit(
 }
 
 // Spend one credit for a generation. Returns the new balance, or null if none left.
+/** Wie viele Videos diese Adresse noch offen hat — nur lesen, nichts abziehen. */
+export async function videoCreditBalance(email: string): Promise<number> {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const state = await readTryThisLookState();
+  return Math.max(0, Number(state.videoCredits?.balances?.[e] ?? 0));
+}
+
 export async function spendVideoCredit(email: string): Promise<number | null> {
   const e = email.trim().toLowerCase();
   if (!e) return null;

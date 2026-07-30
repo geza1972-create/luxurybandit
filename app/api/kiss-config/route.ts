@@ -16,7 +16,10 @@ export async function GET() {
     path: p,
     url: await getSignedUrl(p).catch(() => ""),
   })));
-  return NextResponse.json({ modelIds: config.modelIds, teaserUrl, teaserPath: config.teaserPath ?? "", examples: examples.filter(e => e.url) });
+  // `modelsSavedAt` geht mit: der Trichter erkennt daran Models, die es beim Anhaken noch
+  // nicht gab, und nimmt sie von selbst dazu (Owner 30.07.2026: „neues Model … ist nicht im
+  // Karussell drin").
+  return NextResponse.json({ modelIds: config.modelIds, modelsSavedAt: config.modelsSavedAt ?? "", teaserUrl, teaserPath: config.teaserPath ?? "", examples: examples.filter(e => e.url) });
 }
 
 export async function POST(request: Request) {
@@ -36,7 +39,12 @@ export async function POST(request: Request) {
 
   // Patch-Merge, damit z. B. ein Teaser-Upload nie die Model-Auswahl überschreibt.
   const config = await readKissConfig();
-  if (Array.isArray(body.modelIds)) config.modelIds = body.modelIds.map(String).filter(Boolean);
+  if (Array.isArray(body.modelIds)) {
+    config.modelIds = body.modelIds.map(String).filter(Boolean);
+    // Zeitpunkt der Auswahl festhalten: Ab jetzt gilt „was es damals gab und nicht angehakt
+    // ist, bleibt draussen" — und alles, was DANACH angelegt wird, kommt automatisch dazu.
+    config.modelsSavedAt = new Date().toISOString();
+  }
   if (typeof body.teaserPath === "string") {
     const p = body.teaserPath.trim();
     config.teaserPath = p && p.startsWith("try-this-look/") ? p : undefined; // "" = Teaser entfernen

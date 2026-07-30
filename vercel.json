@@ -3,5 +3,11 @@
   "framework": "nextjs",
   "env": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/kiss-deliver",
+      "schedule": "0 5 * * *"
+    }
+  ]
 }

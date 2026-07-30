@@ -6,12 +6,18 @@
  * entscheidet nicht. `langFromAccept` bleibt für Stellen, die bewusst die
  * Browsersprache lesen (z. B. Sprache einer E-Mail aus der Telefonvorwahl).
  */
-export const LANGS = ["en", "de", "ro", "es", "fr", "pt", "pl", "it"] as const;
+/**
+ * SIEBEN SPRACHEN — Polnisch ist raus (Owner 30.07.2026: „polnisch entfernen, brauchen wir
+ * nicht"). Diese Liste ist die einzige Quelle: der Umschalter zeigt nur, was hier steht, und
+ * `resolveLang` kann nichts anderes zurückgeben. Wo in älteren Sprachtabellen noch ein
+ * `pl:`-Eintrag liegt, wird er dadurch nie mehr ausgewählt.
+ */
+export const LANGS = ["en", "de", "ro", "es", "fr", "pt", "it"] as const;
 export type Lang = (typeof LANGS)[number];
 
 export const LANG_LABEL: Record<Lang, string> = {
   en: "English", de: "Deutsch", ro: "Română", es: "Español",
-  fr: "Français", pt: "Português", pl: "Polski", it: "Italiano",
+  fr: "Français", pt: "Português", it: "Italiano",
 };
 
 export const LANG_COOKIE = "lb_lang";

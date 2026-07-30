@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits, grantVideoCredits, readTryThisLookState, saveTryThisLookState, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, grantVideoCredits, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,24 +58,25 @@ export async function GET(request: Request) {
       }
     }
 
-    // Kiss-Video bezahlt → den Log-Eintrag als bezahlt markieren (idempotent: paid bleibt true).
-    if (paid && s.metadata.kind === "kiss-video") {
-      const genId = String(s.metadata.genId ?? "").trim();
-      if (genId) {
-        try {
-          const entries = await readKissLog();
-          const e = entries.find(x => x.id === genId);
-          // Die Zahlung ist die EINZIGE Stelle, an der ein anonymer Kiss-Besucher eine
-          // E-Mail hinterlässt — Stripe fragt sie an der Kasse ab. Hier festhalten, sonst
-          // ist der Käufer hinterher wieder namenlos.
-          const mail = String(s.customerEmail ?? "").trim().toLowerCase();
-          if (e && (e.paid !== true || (mail && !e.paidEmail))) {
-            e.paid = true;
-            if (mail) e.paidEmail = mail;
-            await writeKissLog(entries);
-          }
-        } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
-      }
+    /**
+     * KISS/IDOL BEZAHLT → Eintrag als bezahlt vermerken UND den Auftrag vormerken.
+     *
+     * Gilt für beide Kaufwege: den Einzelkauf (`kiss-video`) und das Abo, das aus demselben
+     * Trichter startet und deshalb ebenfalls eine `genId` mitschickt.
+     *
+     * Die Zahlung ist die EINZIGE Stelle, an der ein anonymer Kiss-Besucher eine E-Mail
+     * hinterlässt — Stripe fragt sie an der Kasse ab. Ohne diesen Vermerk ist der Käufer
+     * hinterher namenlos und sein Video unauffindbar.
+     *
+     * `bezahltVermerken` setzt zusätzlich die Frist, ab der der SERVER das Video zu Ende
+     * bringt, falls der Browser des Kunden es nicht tut (Owner: „der Kunde wurde ausgeraubt").
+     */
+    const kissGenId = String(s.metadata.genId ?? "").trim();
+    if (paid && kissGenId) {
+      try {
+        await bezahltVermerken(kissGenId, String(s.customerEmail ?? ""), String(s.metadata.kind ?? ""));
+        lieferungAnstossen(new URL(request.url).origin, kissGenId);
+      } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
     }
 
     // Model paid $3.99 for one more video → grant 1 credit to her email (idempotent).

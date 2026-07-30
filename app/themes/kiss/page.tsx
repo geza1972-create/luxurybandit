@@ -12,6 +12,7 @@ import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
+import { kissText } from "@/lib/kiss-i18n";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
 // Kiss-Funnel; darunter Beispiel-Videos + Cross-Selling zu Try-On & Wetter), mit ?admin=1
@@ -31,6 +32,7 @@ export default async function KissThemePage({ searchParams }: {
 }) {
   const sp = (await searchParams) ?? {};
   const L = await resolveLang();   // Sprache der Seite (Cookie) — für den Kaufknopf
+  const T = kissText(L, "kiss");   // Überschrift in seiner Sprache (Trichtertexte: siehe KissFunnel)
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
   const view = sp.view === "kunde" ? "kunde" : "admin";
@@ -88,21 +90,24 @@ export default async function KissThemePage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            {/* Hero */}
-            <H1>Kiss any <Y>model</Y> 💋</H1>
+            {/* Hero — in der Sprache des Besuchers (Owner 30.07.2026, Punkt 4). Das erste,
+                was ein Anzeigenklick sieht; Englisch kostete hier Klicks. */}
+            <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             {/* Kein Vorspann und keine Ueberzeile mehr (Owner 30.07.2026: „das kann raus" — auf die Frage, ob der
                 Absatz „Pick her, upload your photo …" gemeint ist: „ja, Pick her, …").
                 Er kostete auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt.
                 Der Satz steht weiterhin in den Seiten-Metadaten, damit Google und die
                 Anzeigenvorschau nicht leer ausgehen. */}
 
-            {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €) */}
-            <KissFunnel code={code} />
+            {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €). `lang` kommt aus
+                dem Umschalter bzw. der Browsersprache — der Trichter spricht acht Sprachen
+                (Owner 30.07.2026, Punkt 4 seiner Liste). */}
+            <KissFunnel code={code} lang={L} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {examples.length > 0 && (
               <div className="mt-12">
-                <SectionTitle>Real kiss videos 💋</SectionTitle>
+                <SectionTitle>{T.examples}</SectionTitle>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {examples.map((url, i) => (
                     <div key={i} className="overflow-hidden rounded-2xl border border-white/10">

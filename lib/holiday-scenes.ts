@@ -66,18 +66,55 @@ export const HOLIDAY_SCENES: HolidayScene[] = [
  * „Klamotten 1:1 behalten" steht ausdrücklich drin: ohne diesen Satz stylt das Modell das
  * Outfit um, und dann war das teure Anziehen umsonst. Die Drehung ist Absicht — das Video
  * zeigt damit nebenbei das Kleidungsstück, für das er bezahlt hat.
+ *
+ * DER BILDAUSSCHNITT STEHT VORNE (Owner 30.07.2026: „die Frau sollte bis zum Knie zu sehen
+ * sein"). Genau diese Regel steht seit dem 27.07.2026 oben in dieser Datei — im Auftrag
+ * selbst stand sie trotzdem als vorletzter Satz, und Pixverse hat sie überlesen: das fertige
+ * Video war ein Brustbild. Jetzt ist die Einstellung das Erste, was gelesen wird, mit einem
+ * ausdrücklichen Verbot, tiefer anzuschneiden.
+ *
+ * DER KUSS IST DIE HAUPTSACHE, NICHT DER SCHLUSS (Owner 30.07.2026: „und die küssen sich
+ * nicht, nur umarmen sich" — „sie müssen sich küssen"). Der Auftrag endete fest mit einer
+ * Umarmung, und die Szene daneben (spazieren, lachen, Kaffee) zog das Modell vollends weg vom
+ * Kuss. Auf der Kuss-Seite bekam der Kunde damit alles außer dem, wofür er bezahlt hat.
+ * Deshalb bei `kuss: true`: der Kuss steht als Hauptbewegung VORNE, die Szene ist nur noch
+ * Beiwerk, und am Ende wird er wiederholt. Zweimal genannt, weil einmal überlesen wird.
+ * Für „Holiday" bleibt alles wie gehabt — dort ist die Umarmung richtig.
  */
-export function holidayPrompt(scene: HolidayScene): string {
+export function holidayPrompt(scene: HolidayScene, opts: { kuss?: boolean } = {}): string {
   return (
-    `The man from @image1 and the woman from @image2 are together ${scene.place}. ` +
-    `${scene.action}, chatting and flirting playfully, exchanging smiles and soft laughter, ` +
-    `glancing at each other now and then. ` +
+    `Wide shot, full figures: show the man from @image1 and the woman from @image2 from their ` +
+    `knees up to their heads, both complete in frame with space around them, filmed from ` +
+    `slightly below. Never crop the woman above her knees. ` +
+    `They are together ${scene.place}. ` +
+    (opts.kuss
+      // Der Kuss zuerst und als Hauptbewegung — die Szene daneben ist nur Beiwerk.
+      ? `The main action is a kiss: they look into each other's eyes, lean in slowly and kiss ` +
+        `on the lips, clearly and tenderly, holding the kiss for a moment. Around that they ` +
+        `${scene.action}, smiling and laughing softly. `
+      : `${scene.action}, chatting and flirting playfully, exchanging smiles and soft laughter, ` +
+        `glancing at each other now and then. `) +
     `Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and details. ` +
     `Keep the face of @image1 and the face of @image2 EXACTLY as in the reference photos — ` +
     `do not change either face. ` +
-    `The woman turns once so her look is fully visible, then he puts his arms around her. ` +
-    `Show both people from their knees up to their heads, full figures in frame, filmed from ` +
-    `below pointing slightly upwards. Natural daylight, cinematic, photorealistic, fluid ` +
-    `natural motion. Fixed camera, no zoom. No text or logos.`
+    `The woman turns once so her look is fully visible, then ` +
+    (opts.kuss
+      ? `they kiss on the lips once more and afterwards smile at each other, happy. `
+      : `he puts his arms around her. `) +
+    `Natural daylight, cinematic, photorealistic, fluid ` +
+    `natural motion. Fixed camera, no zoom. No text or logos. ` +
+    /**
+     * DIE TONSPUR MUSS IM AUFTRAG STEHEN (Owner 30.07.2026: „musik fehlt in den videos. Es
+     * sind original stimmen zu hören").
+     *
+     * Pixverse V6 vertont, was im Text steht (`generate_audio_switch`). Da hier „chatting",
+     * „laughter" und „flirting" steht, hat es genau das erzeugt: erfundene Stimmen, die zu
+     * niemandem gehören — im Kuss-Video besonders daneben. Der Bild-zu-Video-Weg der Route
+     * bestellt schon lange ausdrücklich Musik; dieser Weg hat es nie getan. Wortlaut
+     * absichtlich gleich: nur Musik, ausdrücklich keine Stimmen.
+     */
+    `Audio: soft, elegant instrumental background music only — ONLY music: absolutely no ` +
+    `voices, no talking, no whispering, no singing, no footsteps, no ambient or foley sound ` +
+    `effects.`
   );
 }
