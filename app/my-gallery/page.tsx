@@ -268,9 +268,14 @@ export default function MyGalleryPage() {
 
         {/* WERBUNG FÜRS VIDEO, direkt hier (Owner 30.07.2026: „dort machen wir Werbung noch
             für turn into Video"). Wer aus der Mail kommt, hat sein Bild vor sich — das ist
-            der Moment für den nächsten Schritt, nicht die Themenübersicht. Nur zeigen, wenn
-            er auch etwas hat; eine leere Galerie mit Werbung wäre nur Lärm. */}
-        {!pin && items.length > 0 && (
+            der Moment für den nächsten Schritt, nicht die Themenübersicht.
+
+            IMMER zeigen, nicht nur bei gefüllter Galerie (Owner 30.07.2026: „warum soll er
+            kein Bild haben? Er hat nämlich Bilder hochgeladen von sich auf jeden Fall").
+            Seit sein Foto beim Hochladen gespeichert wird, hat praktisch jeder etwas hier —
+            und sieht die Galerie doch einmal leer aus (anderes Gerät), ist das erst recht
+            der Moment, ihn zurückzuholen. */}
+        {!pin && (
           <a href="/themes/kiss"
             className="mt-3 flex items-center gap-3 rounded-2xl border border-[#f6cf51]/35 bg-[#f6cf51]/[0.07] p-3.5 active:scale-[0.99] transition">
             <span className="text-[22px]">🔥</span>
