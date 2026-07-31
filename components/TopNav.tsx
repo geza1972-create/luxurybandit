@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Search, Send, Instagram, ChevronLeft } from "lucide-react";
+import { Search, Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
+import { YOUTUBE_CHANNEL } from "@/lib/social";
 import LangSwitch from "@/components/LangSwitch";
 
 /**
@@ -93,6 +94,11 @@ export default function TopNav({
               <button type="button" onClick={share} className={iconBtn} aria-label="Share">
                 <Send className="h-4 w-4" />
               </button>
+              {/* Bellas Kanal — neben Instagram, damit er auf JEDER Seite steht und nicht
+                  irgendwo einmal. */}
+              <a href={YOUTUBE_CHANNEL} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Bella auf YouTube">
+                <Youtube className="h-4 w-4" />
+              </a>
               <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Instagram">
                 <Instagram className="h-4 w-4" />
               </a>

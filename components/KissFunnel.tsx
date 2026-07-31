@@ -1605,16 +1605,37 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
           {selPhoto && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={selPhoto} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-white/15 object-cover object-top" />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selPhoto} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-white/15 object-cover object-top" />
+              {/* Auch in der Vorschau muss das Foto weggehen koennen (Owner 31.07.2026:
+                  „hier soll man das Bild noch löschen können"). Nur bei EIGENEN Fotos —
+                  ein Katalog-Model laesst sich nicht loeschen, nur wechseln. */}
+              {useCustom && !!customModel && (
+                <button type="button" onClick={() => { fotoLoeschen("sie"); setSchritt(1); }}
+                  aria-label="Foto löschen"
+                  style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
+                  className="absolute -left-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full backdrop-blur transition active:scale-90">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           )}
           {/* Das Sinnbild zwischen den beiden Fotos folgt dem Thema: Kuss-Lippen auf einer
               Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
               ungeprueft mitkommt. */}
           <span className="text-[20px]">{variant === "wedding" ? "💍" : "💋"}</span>
           {photo && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photo} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-[#f6cf51]/40 object-cover object-top" />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-[#f6cf51]/40 object-cover object-top" />
+              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload ? 1 : 2); }}
+                aria-label="Foto löschen"
+                style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
+                className="absolute -right-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full backdrop-blur transition active:scale-90">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </div>
       )}

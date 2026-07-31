@@ -8,6 +8,16 @@
  */
 export const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VbD9Te45K3zR16YL1c2r";
 
+/**
+ * BELLAS YOUTUBE-KANAL (Owner 31.07.2026). Dort liegen die Videos, in denen sie spricht.
+ *
+ * Absichtlich bei YouTube und nicht bei uns: Eine Folge von fünf Minuten wiegt 40 bis 60 MB —
+ * bei tausend Abrufen sind das 40 bis 60 GB Auslieferung, die wir zweimal bezahlen (Speicher
+ * und Traffic). YouTube liefert dieselben Bytes umsonst und bringt über seine Suche Leute,
+ * die uns sonst nie finden.
+ */
+export const YOUTUBE_CHANNEL = "https://www.youtube.com/@bellabyluxurybandit";
+
 const FOLLOW: Record<string, string> = {
   en: "Follow on WhatsApp",
   de: "Auf WhatsApp folgen",
