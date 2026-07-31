@@ -76,8 +76,7 @@ export default function LightSwitch() {
       aria-label={hell ? "Dunkle Ansicht" : "Helle Ansicht"}
       // Gleiche Form und Farbe wie „Zurück" daneben — der Balken soll eine Reihe bleiben,
       // keine Sammlung verschiedener Knöpfe.
-      className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-black active:scale-95 transition"
-      style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
+      className="lb-chip flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-black active:scale-95 transition">
       {hell ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
       {hell ? "Dark" : "Light"}
     </button>

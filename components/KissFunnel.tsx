@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2 } from "lucide-react";
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
@@ -1287,14 +1287,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           {/* `order` statt `mr-auto`: Die Sprachwahl steht im Balken zuerst im Quelltext, soll
               aber rechts aussen bleiben — dort klappt ihr Menue ins Bild und nicht heraus.
               Negative Reihenfolge zieht Zurueck und den Schalter davor. */}
-          {schritt > 1 && (
-            <button type="button"
-              onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? (V.paarUpload ? 1 : 2) : 1)}
-              className="order-[-2] h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
-              style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
-              {T.back}
-            </button>
-          )}
+          {/* ZURUECK STEHT JETZT AM BILD, nicht hier oben (Owner 31.07.2026: „Zurückbutton
+              machst du neben dem Bild bitte"). In der Kopfzeile stand er neben Hell/Dunkel und
+              Sprache — also zwischen Einstellungen, obwohl er zum Trichter gehoert. Am Bild
+              ist er dort, wo der Daumen ohnehin liegt. */}
           <span className="order-[-1] mr-2"><LightSwitch /></span>
         </>,
         langZeile,
@@ -1358,9 +1354,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             {k.foto && (
               <button type="button" onClick={() => fotoLoeschen(k.wer)}
                 aria-label="Foto löschen"
-                style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
-                className="absolute left-1.5 top-1.5 z-10 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition active:scale-90">
-                <X className="h-4 w-4" />
+                style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                className="absolute left-1.5 top-1.5 z-10 grid h-9 w-9 place-items-center rounded-full transition active:scale-90">
+                <Trash2 className="h-4 w-4" />
               </button>
             )}
             </div>
@@ -1466,12 +1462,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                             <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                           </>
                         )}
-                        {/* Dunkle Scheibe hinter der Schrift: auf einem hellen Foto (und in
-                            der hellen Fassung) war der Text sonst nicht zu lesen. */}
-                        <span data-oncard="1" className="absolute inset-x-3 top-1/2 z-10 -translate-y-1/2 rounded-2xl bg-black/55 px-2 py-3 backdrop-blur-[2px]" />
-                        <ImageUp style={{ color: "#fff" }} className="relative z-20 h-9 w-9" />
-                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 text-[15px] font-black">{T.upTitle}</span>
-                        <span style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.95)" }} className="relative z-20 mt-1 px-2 text-[11px] font-bold leading-snug">{T.upHint}</span>
+                        {/* DIE SCHEIBE UMSCHLIESST DEN TEXT (Owner 31.07.2026: „Schrift steht
+                            nicht auf Label"). Vorher war sie ein eigenes Element mit fester
+                            Hoehe HINTER dem Text — in Sprachen mit laengerem Hinweis lief der
+                            Text unten aus ihr heraus und stand halb auf dem hellen Foto. Jetzt
+                            traegt derselbe Kasten den Inhalt und waechst mit ihm. */}
+                        <div data-oncard="1" className="relative z-10 mx-1 flex flex-col items-center gap-1 rounded-2xl bg-black/60 px-3 py-3 backdrop-blur-[2px]">
+                          <ImageUp style={{ color: "#fff" }} className="h-9 w-9" />
+                          <span style={{ color: "#fff" }} className="text-[15px] font-black">{T.upTitle}</span>
+                          <span style={{ color: "#fff" }} className="text-[11px] font-bold leading-snug">{T.upHint}</span>
+                        </div>
                       </div>
                     ) : (<>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1490,9 +1490,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                       <button type="button"
                         onClick={ev => { ev.stopPropagation(); fotoLoeschen("sie"); }}
                         aria-label="Foto löschen"
-                        style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
-                        className="absolute left-2 top-2 z-30 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition active:scale-90">
-                        <X className="h-4 w-4" />
+                        style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                        className="absolute left-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full transition active:scale-90">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
@@ -1535,8 +1535,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
 
       {schritt === 2 && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step2}</p>
+      <div className="mt-2 flex items-start justify-center gap-2">
+        <button type="button" onClick={() => setSchritt(1)}
+          className="lb-chip mt-1 h-9 shrink-0 rounded-full px-3 text-[13px] font-black active:scale-95 transition">
+          {T.back}
+        </button>
+        <div className="relative w-[54%] max-w-[220px]">
       <button type="button" onClick={() => fileRef.current?.click()}
-        className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+        /* DASSELBE FORMAT WIE IHRE KARTE (Owner 31.07.2026: „du hast nicht das gleiche Format
+           wie bei ihr … das ist das richtige Format"). Seine Kachel war quadratisch, ihre 3:4.
+           Zwei Formate nebeneinander sehen nicht nur unruhig aus: Der Zuschnitt-Dialog schneidet
+           in 3:4, also hat das Quadrat oben und unten etwas abgeschnitten, was sie gerade
+           bewusst eingestellt hat. */
+        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
           ? (<>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1560,26 +1571,34 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   Vorher lag das Foto bei 25 % und grau; man sah schlicht nicht, dass dort ein
                   MANN hingehört. */}
               <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-95" />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
-              <span className="relative text-[30px] font-black tracking-wide" style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>{T.you}</span>
-              <span className="relative text-[13px] font-black text-[#f6cf51]">{T.uploadYou}</span>
-              <span className="relative mt-0.5 px-3 text-[11px] font-bold leading-snug text-white/85">
-                {T.youHint}
-              </span>
+              {/* DERSELBE KASTEN WIE AUF IHRER KARTE (Owner 31.07.2026: „die Icons aufs Bild
+                  bitte"). Vorher schwebten Symbol und Schrift frei ueber dem Foto und standen
+                  je nach Motiv auf hellem Grund. Ein Kasten, der mit dem Text waechst, liest
+                  sich auf jedem Bild. */}
+              <div data-oncard="1" className="relative z-10 mx-2 flex flex-col items-center gap-1 rounded-2xl bg-black/60 px-3 py-3 text-center backdrop-blur-[2px]">
+                <ImageUp style={{ color: "#fff" }} className="h-8 w-8" />
+                <span style={{ color: "#fff" }} className="text-[28px] font-black leading-none tracking-wide">{T.you}</span>
+                <span style={{ color: "#fff" }} className="text-[13px] font-black">{T.uploadYou}</span>
+                <span style={{ color: "#fff" }} className="text-[11px] font-bold leading-snug">{T.youHint}</span>
+              </div>
             </>)}
       </button>
-      {photo && (
-        <div className="mt-2 flex items-center justify-center gap-4">
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 text-[12px] font-black text-white/60">
-            <RefreshCw className="h-3.5 w-3.5" /> {T.changePhoto}
-          </button>
-          {/* Wechseln UND entfernen — bisher konnte man nur tauschen. */}
-          <button type="button" onClick={() => fotoLoeschen("er")} className="flex items-center gap-1.5 text-[12px] font-black text-white/60">
-            <X className="h-3.5 w-3.5" /> {T.fotoWeg}
-          </button>
-        </div>
-      )}
+      {/* PAPIERKORB UND HAKEN AUFS BILD (Owner 31.07.2026: „Lösch-Icon und OK aufs Bild
+          bitte") — genau wie auf ihrer Karte. Als Textzeile darunter haben zwei Leute von
+          drei sie uebersehen; auf dem Foto sind sie da, wo das Foto ist. Gewechselt wird
+          weiterhin durch Tippen auf das Bild selbst. */}
+      {photo && (<>
+        <button type="button" onClick={() => fotoLoeschen("er")} aria-label="Foto löschen"
+          style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+          className="absolute left-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full transition active:scale-90">
+          <Trash2 className="h-4 w-4" />
+        </button>
+        <span className="absolute right-2 top-2 z-30 grid h-9 w-9 place-items-center rounded-full bg-[#f6cf51] shadow">
+          <Check className="h-5 w-5 text-black" />
+        </span>
+      </>)}
+      </div>
+      </div>
       <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 3) Generieren */}
@@ -1604,19 +1623,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           im Bild landet — sonst generiert er blind. */}
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
+          {/* Zurueck am Bild, wie in Schritt 2 — nicht oben zwischen den Einstellungen. */}
+          <button type="button" onClick={() => setSchritt(V.paarUpload ? 1 : 2)}
+            className="lb-chip h-9 shrink-0 self-start rounded-full px-3 text-[13px] font-black active:scale-95 transition">
+            {T.back}
+          </button>
           {selPhoto && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-white/15 object-cover object-top" />
+              <img src={selPhoto} alt="" className="aspect-[3/4] w-[140px] max-w-[38vw] rounded-2xl border border-white/15 object-cover object-top" />
               {/* Auch in der Vorschau muss das Foto weggehen koennen (Owner 31.07.2026:
                   „hier soll man das Bild noch löschen können"). Nur bei EIGENEN Fotos —
                   ein Katalog-Model laesst sich nicht loeschen, nur wechseln. */}
               {useCustom && !!customModel && (
                 <button type="button" onClick={() => { fotoLoeschen("sie"); setSchritt(1); }}
                   aria-label="Foto löschen"
-                  style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
-                  className="absolute -left-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full backdrop-blur transition active:scale-90">
-                  <X className="h-3.5 w-3.5" />
+                  style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                  className="absolute -left-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+                  <Trash2 className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -1628,12 +1652,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           {photo && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-[#f6cf51]/40 object-cover object-top" />
+              <img src={photo} alt="" className="aspect-[3/4] w-[140px] max-w-[38vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
               <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload ? 1 : 2); }}
                 aria-label="Foto löschen"
-                style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
-                className="absolute -right-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full backdrop-blur transition active:scale-90">
-                <X className="h-3.5 w-3.5" />
+                style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                className="absolute -right-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           )}

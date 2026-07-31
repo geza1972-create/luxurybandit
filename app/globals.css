@@ -522,3 +522,10 @@ svg {
   background: rgba(160, 122, 52, 0.09) !important;
   border: 1px solid rgba(160, 122, 52, 0.28);
 }
+
+/* ZURUECK UND HELL/DUNKEL — weiss auf dunklem Grund, blau auf hellem (Owner 31.07.2026:
+   „statt blau weisse Schrift bitte auf dark modus"). Blau auf Schwarz ist zu schwach; auf der
+   hellen Fassung ist Blau dagegen die Hausfarbe. Deshalb hier die Vorgabe hell und nur in
+   `.lb-fb` blau — statt zweier Knoepfe, die dasselbe tun. */
+.lb-chip { border: 1px solid rgba(255,255,255,0.35); color: #fff; }
+.lb-fb .lb-chip { border-color: rgba(24,119,242,0.35) !important; color: #1877F2 !important; }
