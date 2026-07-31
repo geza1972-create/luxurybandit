@@ -59,6 +59,7 @@ export const karteDatum = (datum: string | undefined, sprache: string) => {
 
 export default function EinladungKarte({
   sprache, sie, er, datum, ort, adresse, telefon, demo, video, fuss,
+  aufNamen, aufDatum, aufOrt,
 }: {
   sprache: string;
   sie: string;
@@ -83,6 +84,17 @@ export default function EinladungKarte({
   video: ReactNode;
   /** Die eine Herkunftszeile — nur auf der echten Seite, nicht in der Vorschau. */
   fuss?: ReactNode;
+  /**
+   * ANTIPPBARE STELLEN (Owner 31.07.2026: „er klickt auf Name, dann öffnet sich Dialog. Er
+   * klickt auf Ort, öffnet sich Dialog.").
+   *
+   * Wo ein Griff mitgegeben wird, wird die Stelle zum Knopf — mit einer gestrichelten Linie,
+   * solange dort noch nichts steht. Ohne Griff bleibt die Karte, was sie beim Gast ist: ein
+   * Stück Papier, auf dem man nichts anklickt.
+   */
+  aufNamen?: () => void;
+  aufDatum?: () => void;
+  aufOrt?: () => void;
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const tag = karteDatum(datum, sprache);
@@ -99,9 +111,16 @@ export default function EinladungKarte({
         <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.34em]">
           {T.save}
         </p>
-        <h2 className="mt-2 text-center font-serif text-[27px] font-bold leading-tight">
-          {sie} <span className="lb-karte-gold">&amp;</span> {er}
-        </h2>
+        {aufNamen ? (
+          <button type="button" onClick={aufNamen}
+            className="lb-tippbar mx-auto mt-2 block w-full rounded-xl px-2 py-1 text-center font-serif text-[27px] font-bold leading-tight transition active:scale-[0.98]">
+            {sie} <span className="lb-karte-gold">&amp;</span> {er}
+          </button>
+        ) : (
+          <h2 className="mt-2 text-center font-serif text-[27px] font-bold leading-tight">
+            {sie} <span className="lb-karte-gold">&amp;</span> {er}
+          </h2>
+        )}
         <DividerOrnament className="mt-2.5" />
 
         <div className="mt-4 overflow-hidden rounded-[14px]">{video}</div>
@@ -110,16 +129,28 @@ export default function EinladungKarte({
           <>
             <DividerOrnament className="mt-5" />
             <div className="mt-3 space-y-3 text-center">
-              {tag && (
+              {(tag || aufDatum) && (
                 <div>
                   <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.14em]">{T.wann}</p>
-                  <p className="mt-1 font-serif text-[19px] font-bold">{tag}</p>
+                  {aufDatum ? (
+                    <button type="button" onClick={aufDatum}
+                      className="lb-tippbar mx-auto mt-1 block rounded-xl px-3 py-1 font-serif text-[19px] font-bold transition active:scale-[0.98]">
+                      {tag || T.fDatum}
+                    </button>
+                  ) : (
+                    <p className="mt-1 font-serif text-[19px] font-bold">{tag}</p>
+                  )}
                 </div>
               )}
-              {(ort || adresse) && (
+              {(ort || adresse || aufOrt) && (
                 <div>
                   <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.14em]">{T.wo}</p>
-                  {ort && <p className="mt-1 font-serif text-[16px]">{ort}</p>}
+                  {aufOrt ? (
+                    <button type="button" onClick={aufOrt}
+                      className="lb-tippbar mx-auto mt-1 block rounded-xl px-3 py-1 font-serif text-[16px] transition active:scale-[0.98]">
+                      {ort || T.fOrt}
+                    </button>
+                  ) : ort ? <p className="mt-1 font-serif text-[16px]">{ort}</p> : null}
                   {/* Die Anschrift kleiner unter dem Saalnamen — sie wird gelesen, wenn man
                       losfaehrt, nicht wenn man die Einladung oeffnet. */}
                   {adresse && (

@@ -3,7 +3,7 @@ import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { Check, FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe, ChevronRight } from "lucide-react";
-import KissFunnel from "@/components/KissFunnel";
+import EinladungBauen from "@/components/EinladungBauen";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
@@ -194,7 +194,11 @@ export default async function WeddingThemePage({ searchParams }: {
             {T.heroLead && <Lead className="mt-2">{T.heroLead}</Lead>}
 
             {/* Derselbe Trichter wie beim Kuss, andere Variante. */}
-            <KissFunnel variant="wedding" code={code} lang={L} />
+            {/* DIE KARTE IST DIE SEITE (Owner 31.07.2026: „er sieht die Landingpage direkt
+                auf dieser Seite und drückt auf das Bild und öffnet sich ein Dialog … dann hat
+                er's zum Sharen direkt"). Der vierstufige Trichter davor ist weg: Wer zuerst
+                die fertige Karte sieht, weiss sofort, was er baut. */}
+            <EinladungBauen lang={L} />
 
             {/* GROSS UND MIT TON (Owner 30.07.2026: „bitte mit vergroessern und song").
                 Eine Reihe statt zweier Spalten: Ein Hochzeitskuss auf halber Breite ist eine

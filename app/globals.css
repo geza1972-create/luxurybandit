@@ -540,3 +540,9 @@ svg {
   background: rgba(160, 122, 52, 0.22) !important;
   color: #6d4c17 !important;
 }
+/* Antippbare Stellen auf der Einladungskarte, solange sie gebaut wird: eine gestrichelte
+   Linie sagt „hier kannst du tippen", ohne die Karte in ein Formular zu verwandeln. */
+.lb-karte .lb-tippbar {
+  border: 1px dashed rgba(160, 122, 52, 0.45);
+  background: rgba(160, 122, 52, 0.05) !important;
+}
