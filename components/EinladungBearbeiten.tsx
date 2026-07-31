@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Pencil, Send } from "lucide-react";
+import { Loader2, Pencil, Send, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 
 /**
@@ -29,6 +30,7 @@ export default function EinladungBearbeiten({
   const [darf, setDarf] = useState(false);
   const [offen, setOffen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
   const [f, setF] = useState({ sie, er, datum: datum ?? "", ort: ort ?? "", adresse: adresse ?? "", telefon: telefon ?? "" });
 
   useEffect(() => {
@@ -68,7 +70,15 @@ export default function EinladungBearbeiten({
       className="lb-karte-feld h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none" />
   );
 
-  const text = `${f.sie} & ${f.er} 💍 ${typeof window !== "undefined" ? window.location.href : ""}`;
+  const text = `${f.sie} & ${f.er} 💍`;
+
+  const teilen = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
+    } catch { return; }   // abgebrochen ist kein Fehler
+    try { await navigator.clipboard?.writeText(`${text} ${url}`); setKopiert(true); } catch { /**/ }
+  };
 
   return (
     <div className="lb-karte relative mt-4 overflow-hidden rounded-[20px] px-5 py-5">
@@ -95,17 +105,29 @@ export default function EinladungBearbeiten({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center gap-2">
+          {/* ZURUECK — an dieselbe Pruefung gehaengt wie das Bearbeiten (Owner 31.07.2026,
+              zum zweiten Mal: „wie komme ich zurück?").
+              Vorher hing der Weg zurueck allein an der Admin-Kennung. Das Brautpaar hatte gar
+              keinen: Es kommt aus dem Trichter, landet auf seiner Einladung — und sitzt fest.
+              Fuer einen Gast bleibt die Seite nackt, das war und ist die Absicht. */}
+          <Link href="/themes/wedding" aria-label="Zurück"
+            className="lb-karte-absage grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95">
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
           <button type="button" onClick={() => setOffen(true)}
-            className="lb-karte-absage flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95">
+            className="lb-karte-absage flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95">
             <Pencil className="h-4 w-4" /> {T.bearbeiten}
           </button>
-          {/* Verschicken steht daneben, nicht darunter: Bearbeiten und Verschicken sind die
-              zwei Dinge, die sie hier tut — alles andere ist die Einladung selbst. */}
-          <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer"
-            className="lb-karte-wa flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95">
-            <Send className="h-4 w-4" /> {T.teilen}
-          </a>
+          {/* TEILEN UEBER DAS HANDY, nicht ueber eine feste App (Owner 31.07.2026: „wir
+              machen nur share, die Leute schicken das eh übers Handy"). Die Systemauswahl
+              kennt WhatsApp, Signal, SMS, Mail und was sonst installiert ist — und sie kennt
+              es besser als wir. Wo es sie nicht gibt (Rechner), landet der Link in der
+              Zwischenablage; ohne Rueckfall stuende dort sonst ein toter Knopf. */}
+          <button type="button" onClick={() => void teilen()}
+            className="lb-karte-wa flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95">
+            <Send className="h-4 w-4" /> {kopiert ? T.zusDanke : T.teilen}
+          </button>
         </div>
       )}
     </div>

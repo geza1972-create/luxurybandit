@@ -8,7 +8,6 @@ import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
 import EinladungBearbeiten from "@/components/EinladungBearbeiten";
 import LightSwitch from "@/components/LightSwitch";
-import AdminZurueck from "@/components/AdminZurueck";
 
 /**
  * DIE EINLADUNG, wie der Gast sie sieht (Owner 31.07.2026).
@@ -76,10 +75,9 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
             Schalter darf da sein, aber er darf dem Brautpaar nicht die Schau stehlen. */}
         {/* Links der Zurueck-Pfeil (nur fuer den Betreiber sichtbar), rechts hell/dunkel.
             Fuer einen Gast bleibt die Zeile genau so leer wie vorher. */}
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <AdminZurueck />
-          <div className="ml-auto"><LightSwitch /></div>
-        </div>
+        {/* Der Zurueck-Weg sitzt jetzt in der Bearbeiten-Karte — dort, wo auch das Paar ihn
+            findet, nicht nur der Betreiber mit Admin-Kennung. */}
+        <div className="mb-4 flex justify-end"><LightSwitch /></div>
         {/* DIE KARTE — dieselbe Komponente, die im Trichter als Vorschau steht. Was die
             Kundin dort gesehen hat, sieht ihr Gast hier. */}
         <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""}

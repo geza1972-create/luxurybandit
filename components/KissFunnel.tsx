@@ -2312,11 +2312,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                 )}
                 {/* WhatsApp, nicht E-Mail: In Rumaenien, Italien und Frankreich laeuft so
                     etwas ueber WhatsApp-Gruppen. Ein reiner Link, kein Konto, keine Anbindung. */}
-                <a href={`https://wa.me/?text=${encodeURIComponent(`${einlSie} & ${einlEr} 💍 ${einlUrl}`)}`}
-                  target="_blank" rel="noreferrer"
+                <button type="button"
+                  onClick={async () => {
+                    // Systemauswahl statt fester App — dieselbe Regel wie auf der Einladung.
+                    const t = `${einlSie} & ${einlEr} 💍`;
+                    try { if (navigator.share) { await navigator.share({ title: t, text: t, url: einlUrl }); return; } } catch { return; }
+                    try { await navigator.clipboard?.writeText(`${t} ${einlUrl}`); setStatus(T.einlKopiert); } catch { /**/ }
+                  }}
                   className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition">
                   {T.einlWhatsapp}
-                </a>
+                </button>
                 <button type="button"
                   onClick={() => { void navigator.clipboard?.writeText(einlUrl); setStatus(T.einlKopiert); }}
                   style={{ color: "#fff" }}
