@@ -815,6 +815,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     const ihres = wer === "sie" ? "" : customModel;
     if (!seins && !ihres) { try { localStorage.removeItem(FOTO_KEY); } catch { /**/ } }
     else void fotosMerken(seins, ihres, !!ihres);
+    /**
+     * BEIDE SPEICHER RÄUMEN. Der zweite (`MERK_KEY`, der Stand mit dem fertigen Bild) trägt
+     * die Ausgangsfotos ebenfalls — wer nur den ersten leert, sieht das Foto beim nächsten
+     * Laden wieder. Genau darüber ist der Owner gestolpert: „es darf nie da bleiben."
+     */
+    try {
+      const roh = localStorage.getItem(MERK_KEY);
+      if (roh) {
+        const d = JSON.parse(roh) as Record<string, unknown>;
+        if (wer === "sie") { d.model = ""; d.eigen = false; } else d.person = "";
+        localStorage.setItem(MERK_KEY, JSON.stringify(d));
+      }
+    } catch { /**/ }
+    /**
+     * NUR AUS SEINER ANSICHT (Owner 31.07.2026: „jedes Bild darf der User löschen aus seiner
+     * Ansicht. Es darf nie da bleiben. Im System bei mir schon, wenn er das hochgeladen hat.").
+     * Der Eintrag im Protokoll bleibt deshalb absichtlich stehen — dort gehoert er hin.
+     */
   };
 
   const onPaarFile = (f?: File | null) => {
@@ -1463,6 +1481,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                       )}
                     </>)}
                     {isActive && (!isUpload || !!customModel) && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#f6cf51] shadow"><Check className="h-4 w-4 text-black" /></span>}
+                    {/* LÖSCHEN AUCH HIER (Owner 31.07.2026: „das ist der Grund, warum viele
+                        abgebrochen haben"). Ein hochgeladenes Foto liess sich bisher nur
+                        ERSETZEN, nicht entfernen — wer das falsche Bild erwischt hatte, kam
+                        nicht mehr davon los und ging. Das Kreuz raeumt die Ansicht; im
+                        Protokoll bleibt der Eintrag. */}
+                    {isUpload && !!customModel && (
+                      <button type="button"
+                        onClick={ev => { ev.stopPropagation(); fotoLoeschen("sie"); }}
+                        aria-label="Foto löschen"
+                        style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
+                        className="absolute left-2 top-2 z-30 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition active:scale-90">
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
                       <p className="lb-onmedia truncate text-[13px] font-black">{m.name}</p>
                     </div>
@@ -1538,9 +1570,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             </>)}
       </button>
       {photo && (
-        <button type="button" onClick={() => fileRef.current?.click()} className="mx-auto mt-2 flex items-center gap-1.5 text-[12px] font-black text-white/60">
-          <RefreshCw className="h-3.5 w-3.5" /> {T.changePhoto}
-        </button>
+        <div className="mt-2 flex items-center justify-center gap-4">
+          <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 text-[12px] font-black text-white/60">
+            <RefreshCw className="h-3.5 w-3.5" /> {T.changePhoto}
+          </button>
+          {/* Wechseln UND entfernen — bisher konnte man nur tauschen. */}
+          <button type="button" onClick={() => fotoLoeschen("er")} className="flex items-center gap-1.5 text-[12px] font-black text-white/60">
+            <X className="h-3.5 w-3.5" /> {T.fotoWeg}
+          </button>
+        </div>
       )}
       <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 

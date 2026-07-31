@@ -57,7 +57,7 @@ export type KissText = {
   einlAdresse: string; einlTelefon: string;
   einlSprachen: string; einlVorschau: string; kleidTitel: string;
   paarTitel: string; paarHint: string; paarFehler: string; paarBusy: string; paarStoerung: string;
-  paarSchritt1: string; paarSchritt2: string;
+  paarSchritt1: string; paarSchritt2: string; fotoWeg: string;
   bekommstTitel: string; bekommst: string[];
   einlOrt: string; einlMachen: string; einlFertig: string; einlWhatsapp: string; einlKopiert: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
@@ -148,6 +148,7 @@ const EN: KissText = {
   paarStoerung: "That did not work on our side just now — please try again in a moment.",
   paarSchritt1: "1 of 2 — crop YOUR face",
   paarSchritt2: "2 of 2 — now HIS face",
+  fotoWeg: "Remove photo",
   bekommstTitel: "What you get",
   bekommst: [
     "Your own invitation page with your names, the date and the address",
@@ -239,6 +240,7 @@ const DE: KissText = {
   paarStoerung: "Das hat gerade bei uns nicht geklappt — bitte gleich noch einmal versuchen.",
   paarSchritt1: "1 von 2 — schneide DEIN Gesicht zu",
   paarSchritt2: "2 von 2 — jetzt SEIN Gesicht",
+  fotoWeg: "Foto entfernen",
   bekommstTitel: "Das bekommt ihr",
   bekommst: [
     "Eine eigene Einladungsseite mit euren Namen, dem Datum und der Adresse",
@@ -330,6 +332,7 @@ const RO: KissText = {
   paarStoerung: "Nu a funcționat la noi acum — încearcă din nou într-un moment.",
   paarSchritt1: "1 din 2 — decupează fața TA",
   paarSchritt2: "2 din 2 — acum fața LUI",
+  fotoWeg: "Șterge poza",
   bekommstTitel: "Ce primiți",
   bekommst: [
     "O pagină de invitație numai a voastră, cu numele, data și adresa",
@@ -421,6 +424,7 @@ const ES: KissText = {
   paarStoerung: "Ahora mismo ha fallado por nuestro lado — inténtalo de nuevo en un momento.",
   paarSchritt1: "1 de 2 — recorta TU cara",
   paarSchritt2: "2 de 2 — ahora la de ÉL",
+  fotoWeg: "Quitar foto",
   bekommstTitel: "Esto es lo que recibís",
   bekommst: [
     "Vuestra propia página de invitación con vuestros nombres, la fecha y la dirección",
@@ -512,6 +516,7 @@ const FR: KissText = {
   paarStoerung: "Cela n’a pas fonctionné chez nous à l’instant — réessayez dans un instant.",
   paarSchritt1: "1 sur 2 — recadrez VOTRE visage",
   paarSchritt2: "2 sur 2 — maintenant le SIEN",
+  fotoWeg: "Retirer la photo",
   bekommstTitel: "Ce que vous recevez",
   bekommst: [
     "Votre propre page d’invitation avec vos noms, la date et l’adresse",
@@ -603,6 +608,7 @@ const PT: KissText = {
   paarStoerung: "Agora não funcionou do nosso lado — tentem novamente daqui a pouco.",
   paarSchritt1: "1 de 2 — recorta a TUA cara",
   paarSchritt2: "2 de 2 — agora a DELE",
+  fotoWeg: "Remover foto",
   bekommstTitel: "Isto é o que recebem",
   bekommst: [
     "Uma página de convite só vossa, com os nomes, a data e a morada",
@@ -695,6 +701,7 @@ const IT: KissText = {
   paarStoerung: "Ora non ha funzionato da parte nostra — riprova tra un momento.",
   paarSchritt1: "1 di 2 — ritaglia il TUO viso",
   paarSchritt2: "2 di 2 — ora il SUO",
+  fotoWeg: "Rimuovi foto",
   bekommstTitel: "Ecco cosa ricevete",
   bekommst: [
     "Una pagina d’invito tutta vostra, con i nomi, la data e l’indirizzo",
