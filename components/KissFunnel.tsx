@@ -50,11 +50,23 @@ export const KISS_PROMPT =
 // ein gemeinsamer Moment. Wieder NEUTRALE Wortwahl (Pixverse flaggt Intim-/Haut-Wörter),
 // feste Kamera, Gesichter bleiben exakt gleich.
 /**
- * HOCHZEIT — der Kuss vor den Gästen (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
+ * HOCHZEIT — der Blick in die Kamera, KEIN KUSS (Owner 31.07.2026: „ich will aber nicht, dass
+ * sie sich küssen im Video. Sie müssen nur mit dem Gesicht in die Kamera schauen und sich
+ * umarmen." Begruendung im Konzept „Einladung statt Kuss", §2).
  *
- * Wieder NEUTRALE Wortwahl, und die Kleidung steht ausdrücklich drin: Ohne „white wedding
- * dress" und „dark suit" zieht Pixverse den Alltag aus den Referenzfotos durch, und aus der
- * Hochzeit wird ein Paar im T-Shirt. Der Bildausschnitt steht wie überall VORNE.
+ * Drei Gruende, und der dritte wiegt am schwersten:
+ *
+ * 1. Eine Einladung SCHAUT DEN GAST AN. Ein Kuss ist ein Moment zwischen zweien, bei dem der
+ *    Betrachter Zuschauer bleibt. Auf jedem Hochzeitsfoto, das verschickt wird, blickt das
+ *    Paar in die Kamera — das ist kein Zufall.
+ * 2. Der Kuss war die technisch schwaechste Stelle: genau dort, wo sich die Gesichter treffen,
+ *    verzieht die KI sie am ehesten — halb verdeckt, im Profil, in Bewegung. Frontal und ruhig
+ *    stehen beide Gesichter still, und die Gesichter SIND das Produkt (seines und ihres).
+ * 3. Das Video geht an fuenfzig bis hundertfuenfzig Leute, Grosseltern und Kollegen inklusive.
+ *
+ * Wieder NEUTRALE Wortwahl, und die Kleidung steht ausdruecklich drin: Ohne „white wedding
+ * dress" und „white suit" zieht Pixverse den Alltag aus den Referenzfotos durch, und aus der
+ * Hochzeit wird ein Paar im T-Shirt. Der Bildausschnitt steht wie ueberall VORNE.
  */
 export const WEDDING_PROMPT =
   // DIE ROLLEN MUESSEN AM TOKEN HAENGEN, nicht im Satz danach: Die Route bindet @1 an das
@@ -64,10 +76,12 @@ export const WEDDING_PROMPT =
   "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from "
   + "slightly below. It is their wedding day: @1 is the groom and wears an elegant WHITE suit "
   + "with a white shirt, "
-  + "@2 is the bride and wears an elegant white wedding dress. They stand together in a "
-  + "beautiful sunlit wedding setting with white flowers behind them, look at each other, "
-  + "smile, lean in slowly and share their wedding kiss on the lips; afterwards they step back "
-  + "a little and laugh happily. Keep the face and appearance of @1 and of @2 exactly the same "
+  + "@2 is the bride and wears an elegant white wedding dress. They stand close together in a "
+  + "beautiful sunlit wedding setting with white flowers behind them. BOTH LOOK STRAIGHT INTO "
+  + "THE CAMERA the whole time, faces fully visible and turned to the camera, never turning to "
+  + "each other. He puts his arm around her and holds her close, she leans slightly against "
+  + "him; they smile warmly at the camera and laugh happily. They do NOT kiss and their faces "
+  + "never touch. Keep the face and appearance of @1 and of @2 exactly the same "
   + "throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, "
   + "photorealistic, high-end look. No text or logos. "
   + "Audio: soft, elegant instrumental wedding music only — ONLY music: absolutely no voices, "
@@ -174,15 +188,18 @@ const VARIANTS: Record<FunnelVariant, {
    */
   paarUpload?: boolean;
   /**
-   * ABO — ABSICHTLICH NICHT ÜBERALL (Konzept „Hochzeitseinladung", §5: „Nicht ins Abo packen.
-   * Eine Hochzeit hat man einmal; ein Monatsabo dafür wäre unglaubwürdig und die Kündigung
-   * programmiert.").
+   * ABO — pro Thema entschieden.
    *
-   * Owner 31.07.2026, nachdem auf der Hochzeitsseite „Die heisseste KI-Erfahrung freischalten
-   * — 24,50 €/Monat" stand: Das war der Kuss-Trichter, der ungeprüft mitkam. Auf einer
-   * Hochzeitsseite verkauft dieser Satz nicht nur nichts, er beschädigt den Anlass.
+   * Bei der Hochzeit war es zwischendurch AUS: Der Kuss-Trichter hatte „Die heisseste
+   * KI-Erfahrung freischalten — 24,50 €/Monat" mitgebracht, und dieser Satz beschaedigt den
+   * Anlass. Owner 31.07.2026, spaeter am Tag, mit einem anderen Argument: „bei Wedding
+   * machen wir auch ein Abo, bis sie heiraten von mir aus. Auch 24,50, weil wir die Liste
+   * hosten muessen."
    *
-   * Wo das hier falsch ist, wird KEIN Abo angeboten — weder im Trichter noch auf der Seite.
+   * Das dreht die Sache um, und zwar zu Recht: Verkauft wird nicht mehr ein Video, sondern
+   * eine Seite, die MONATE laeuft — Einladung erreichbar halten, Oeffnungen zaehlen,
+   * Gaesteliste fuehren, bis die Hochzeit vorbei ist. Laufende Leistung, laufender Preis; sie
+   * kuendigt nach der Hochzeit. Falsch war nie das Abo, falsch war der Kuss-Werbespruch.
    */
   abo: boolean;
 }> = {
@@ -199,7 +216,7 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   wedding: {
-    prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4", abo: false,
+    prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true,
     musik: "/Bridal-chorus.mp3",
     paarUpload: true,
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die

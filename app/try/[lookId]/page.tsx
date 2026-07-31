@@ -539,7 +539,16 @@ export default function TryFunnelPage() {
     setAboBusy(false);
   };
   // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
-  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — {price}/lună", "Unlock the hottest AI experience ever — {price}/month");
+  /**
+   * PREIS EINSETZEN, NICHT NUR HINSCHREIBEN (Owner 31.07.2026: „im Button ist ein Fehler").
+   *
+   * Auf dem Kaufknopf stand woertlich „{price}/month". Der Platzhalter kommt aus der
+   * Preistabelle und muss durch `fillPrices` — genau dieser Aufruf fehlte, und zwar an allen
+   * drei Stellen, an denen die Beschriftung benutzt wird. Er steht deshalb jetzt IN der
+   * Beschriftung und nicht bei den Aufrufern: Ein vierter Aufruf koennte ihn sonst wieder
+   * vergessen, und das faellt erst auf, wenn ein Kunde davorsteht.
+   */
+  const aboLabel = () => fillPrices(L("Deblochează cea mai fierbinte experiență AI — {price}/lună", "Unlock the hottest AI experience ever — {price}/month"), lang);
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.

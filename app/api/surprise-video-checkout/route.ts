@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ONCE_CENTS } from "@/lib/pricing";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -6,7 +7,17 @@ export const dynamic = "force-dynamic";
 
 // „Surprise him" = EINZELKAUF 3,99 € wie beim Geburtstagsvideo (Owner-Entscheidung).
 // Preis serverseitig fixiert; dem Client nie vertrauen.
-const PRICE_CENTS = 399;
+/**
+ * DER PREIS KOMMT AUS DER TABELLE (Owner 31.07.2026: „das ist falsch. 9,99 Euro").
+ *
+ * Hier stand eine fest eingetippte 399. Genau das soll die Preistabelle verhindern: Wer den
+ * Preis an einer Stelle aendert, aendert ihn ueberall — sonst kassiert eine vergessene Route
+ * weiter den alten Betrag, und das merkt niemand, weil Stripe ja anstandslos bucht.
+ *
+ * 399 war ausserdem der Abo-AUFPREIS (jedes Video ueber die fuenf hinaus). Fuer einen Kauf
+ * ohne Abo gilt der Einzelpreis.
+ */
+const PRICE_CENTS = ONCE_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

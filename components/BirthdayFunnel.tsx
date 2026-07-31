@@ -1,5 +1,7 @@
 "use client";
 
+import { fillPrices } from "@/lib/pricing";
+
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Sparkles, Share2 } from "lucide-react";
 
@@ -178,7 +180,7 @@ export default function BirthdayFunnel({ modelPhoto, modelName = "Bella" }: { mo
                   <p className="lb-onmedia mt-2 text-[15px] font-black">The birthday video for {name.trim()} is ready 🎂</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock & send — €3.99"}
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : fillPrices("Unlock & send — {once}")}
                   </button>
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}
                 </div>
