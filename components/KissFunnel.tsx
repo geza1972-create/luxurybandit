@@ -432,12 +432,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (schritt >= 4) setStufenOffen(false);
   }, [schritt]);
 
-  // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
-  // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
-  // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
-  const [videoShow, setVideoShow] = useState(false);   // Ladeanzeige läuft
-  const [videoReif, setVideoReif] = useState(false);   // Show vorbei → Kaufknöpfe
-  const [videoBusy, setVideoBusy] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
+  // `videoShow`/`videoReif` (die gespielte Render-Show vor der Kasse) sind am 31.07.2026
+  // ersatzlos entfallen — Owner: „ohne diesen Fake". Begruendung bei `unlock` weiter unten.
+  const [videoBusy, setVideoBusy] = useState(false);      // ECHTER Video-Lauf laeuft
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
@@ -770,10 +767,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   useEffect(() => {
     const a = musikRef.current;
     if (!a) return;
-    const spielen = !!bild && !videoUrl && !videoShow && ton;
+    const spielen = !!bild && !videoUrl && ton;
     if (spielen) { a.volume = 0.35; void a.play().catch(() => {}); }
     else { a.pause(); }
-  }, [bild, videoUrl, videoShow, ton]);
+  }, [bild, videoUrl, ton]);
 
   /**
    * Kennen wir seine Adresse, fragen wir einmal nach seinem Stand. Läuft ein Abo (oder liegt
@@ -823,7 +820,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       setBezahlt(true);
       setPayBusy(false);
       setSchritt(3);   // dort steht die Garderobe
-      setVideoShow(false); setVideoReif(false);   // NICHT wieder die Kaufknoepfe zeigen
+
       /**
        * JETZT LIEFERN — ohne dass er noch etwas druecken muss (Owner 31.07.2026: „nach der
        * Zahlung passiert nichts … also Kunde wurde ausgeraubt. Das ist fatal").
@@ -959,20 +956,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     track("photo");
   };
 
-  const kartenGriff = (text: string) => (
+  const kartenGriff = (text: string, tun: () => void = schritteOeffnen, zweit?: { text: string; tun: () => void }) => (
     <div role="button" tabIndex={0} aria-label={text}
-      onClick={schritteOeffnen}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schritteOeffnen(); } }}
-      className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer items-end justify-center p-4">
+      onClick={tun}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tun(); } }}
+      className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer flex-col items-center justify-end gap-2 p-4">
       {/* CI-KNOPF, NICHT KARTEN-GOLD (Owner 31.07.2026: „du nimmst die falschen Farben für
           CTA, kein Gold sondern blau bei light und gelb bei dark").
           `lb-gold` ist genau dieser Knopf: gelb auf dunkel, und die Hell-Fassung faerbt ihn
           blau. Das Karten-Gold (`lb-karte-cta`) bleibt, wo es hingehoert — auf den kleinen
           Knoepfen INNERHALB der Einladung. Ein Kaufknopf muss ueberall gleich aussehen,
           sonst erkennt ihn niemand wieder. */}
-      <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+      <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
         {text}
       </span>
+      {/* Der zweite Weg, kleiner: „Personen ersetzen" steht nach dem Kauf-Knopf, nicht davor.
+          Weisse Flaeche mit dunkler Schrift — auf einem Foto ist ein durchsichtiger Knopf nie
+          zuverlaessig lesbar (Owner 30.07.2026, dieselbe Lehre wie beim Kaufknopf). */}
+      {zweit && (
+        <button type="button"
+          onClick={e => { e.stopPropagation(); zweit.tun(); }}
+          style={{ background: "#fff", color: "#1a160f" }}
+          className="flex h-10 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md transition active:scale-95">
+          {zweit.text}
+        </button>
+      )}
     </div>
   );
 
@@ -1276,19 +1284,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     }).catch(() => {});
   };
 
-  // Der Weg zum Kauf: erst Show, dann Kasse.
-  const videoAnstossen = () => {
-    if (videoShow || payBusy) return;
-    track("video_teaser");
-    setVideoShow(true); setVideoReif(false); setStatus("");
-    // Die Show laeuft AUF der Karte — dorthin springen, sonst rechnet es ausserhalb des Bildes.
-    setTimeout(() => karteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
-    // VIER SEKUNDEN, NICHT SIEBEN (Owner 30.07.2026: „fake dauert zu lang. Nur 4 Sekunden").
-    // Laenger fuehlt sich nicht wertvoller an, sondern nach Warteschlange — und wer wartet,
-    // springt ab.
-    [0, 1200, 2400].forEach((at, i) => setTimeout(() => setStatus(T.teaseSteps[i] ?? ""), at));
-    setTimeout(() => { setVideoShow(false); setVideoReif(true); setStatus(""); }, 4000);
-  };
+  /**
+   * DIE GESPIELTE SHOW VOR DER KASSE IST RAUS (Owner 31.07.2026: „ohne diesen Fake").
+   *
+   * Sie stammte vom 30.07.: „Fake loading und dann sagt: Oh mein Gott ist das heiss — zahlen
+   * um das Ergebnis zu sehen … er hat naemlich nichts bezahlt, nur gegafft." Damals stimmte
+   * das: Vor der Kasse gab es NICHTS zu sehen, also musste Spannung erzeugt werden.
+   *
+   * Seit dem Gratis-Bild ist die Lage umgedreht — sein fertiges Ergebnis liegt vor ihm. Vier
+   * Sekunden Schauspiel darueberzulegen verschiebt den Kauf nur nach hinten und legt Text
+   * ueber sein Bild. Ein Tipp auf den Knopf, und die Kasse geht auf.
+   */
 
   /**
    * ANZIEHEN ueber FASHN — nicht ueber OpenAI (Owner 30.07.2026: „das geht nicht ueber
@@ -1614,85 +1620,92 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt="" width={1024} height={1536}
                 className={`block h-auto w-full transition ${frei || isStaff ? "" : "blur-2xl scale-105"}`} />
-              {(frei || isStaff) && !videoShow && <Reaktionen variant={variant} />}
+              {/* DIE HERZCHEN WEICHEN, SOBALD ETWAS ZU LESEN IST (Owner 31.07.2026: „was
+                  passiert jetzt hier?" — zur Meldung „Kasse wird geoeffnet", die unter
+                  fliegenden Herzen und Zurufen lag).
+                  Sie liegen ueber dem Bild und sind Schmuck; eine Auskunft ueber sein Geld
+                  ist keiner. Wo beide um dieselbe Flaeche streiten, gewinnt die Auskunft. */}
+              {(frei || isStaff) && !payBusy && !videoBusy && !bezahlt && <Reaktionen variant={variant} />}
 
-              {/* RENDER-SHOW AUF DEM BILD (Owner 30.07.2026: „du musst wieder das Fake-
-                  Rendering zeigen und auf dem Bild machst du den Button"). Lief bisher im
-                  Ergebnis-Block darunter — seit das Bild in der Karte steht, gehoert die Show
-                  auf DIESES Bild, sonst rechnet es sichtbar nirgends. */}
-              {videoShow && (
-                <div className="absolute inset-0 z-20 grid place-items-center bg-black/55">
-                  <div className="px-6 text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#f6cf51]" />
-                    {/* Weiss per Anweisung, nicht per Klasse (Owner 30.07.2026: „hier steht
-                        was in schwarz und kann es nicht lesen"). Auf einem dunklen Bild
-                        entscheidet der Grund, nicht die Fassung. */}
-                    <p className="mt-3 text-[14px] font-black" style={{ color: "#fff", textShadow: "0 1px 6px rgba(0,0,0,0.55)" }}>
-                      {status || T.makingKiss}
-                    </p>
-                  </div>
-                  <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
-                </div>
-              )}
+              {/* DIE GESPIELTE RENDER-SHOW IST RAUS (Owner 31.07.2026: „ohne diesen Fake").
+                  Sie stammte aus der Zeit, in der es vor der Kasse NICHTS zu sehen gab —
+                  vier Sekunden Schauspiel als Ersatz fuer ein Ergebnis. Heute liegt sein
+                  fertiges Bild darunter; die Spannung ist echt und braucht kein Vorspiel.
+                  Was blieb, ist die Anzeige fuer das, was wirklich rechnet (unten). */}
 
               {/* BEZAHLT ODER AUF DEM WEG DORTHIN — niemals wieder die Kasse zeigen.
                   Owner 30.07.2026: „schon wieder springt er vom Stripe zurück zum Zahlen."
                   Waehrend Zahlung und Rendern steht hier, was gerade passiert. */}
               {(payBusy || (bezahlt && !wahl) || videoBusy) && !videoUrl && !isStaff && (
-                <div className="absolute inset-0 z-30 grid place-items-center bg-black/70 p-5">
-                  <div className="w-full max-w-[300px] text-center">
-                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-white" />
+                /* VOLLER, RUHIGER GRUND STATT DURCHSCHEINEND (Owner 31.07.2026: „was passiert
+                   jetzt hier?"). Bei `bg-black/70` kaempft jeder Buchstabe gegen das Motiv
+                   darunter; bei 0.88 liest es sich auf jedem Bild. */
+                <div className="absolute inset-0 z-30 grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.88)" }}>
+                  {/* DER RADAR LAEUFT MIT (Owner 31.07.2026: „Radar-Rendering muss kommen …
+                      es sieht so aus als würde nichts mehr kommen"). Ein stehender Text sagt
+                      nicht, ob etwas laeuft oder haengt. Der wandernde Balken sagt es ohne
+                      ein Wort — dieselbe Anzeige wie beim Gratis-Bild, damit er sie kennt. */}
+                  <span className="lb-scanline pointer-events-none absolute inset-x-0 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+                  <div className="relative w-full max-w-[300px] text-center">
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-[#f6cf51]" />
                     <p className="lb-onmedia mt-3 text-[16px] font-black">
                       {bezahlt || videoBusy ? T.payReceived : T.payOpening}
                     </p>
                     <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">
                       {status || (bezahlt || videoBusy ? T.payMaking : T.payComplete)}
                     </p>
+                    {/* EIN WEG ZURUECK, WENN DAS KASSENFENSTER ZU IST (Owner 31.07.2026: „es
+                        sieht so aus als würde nichts mehr kommen").
+                        Ohne ihn stand diese Meldung bis zu fuenf Minuten da — solange laeuft
+                        die Abfrage. Wer die Kasse weggeklickt hat, wartet dann vor einer
+                        Anzeige, hinter der wirklich nichts mehr kommt. Nur waehrend der
+                        Zahlung, NIE waehrend eines bezahlten Laufs: dort waere Abbrechen
+                        genau das Ausrauben, das wir gerade abgestellt haben. */}
+                    {payBusy && !bezahlt && !videoBusy && (
+                      <button type="button" onClick={() => { setPayBusy(false); setStatus(""); }}
+                        style={{ color: "#fff" }}
+                        className="mt-4 inline-flex items-center justify-center rounded-full border border-white/40 px-4 py-2 text-[12px] font-black transition active:scale-95">
+                        {T.back}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* NACH DER SHOW: die Kasse auf dem Bild — Einzelkauf oben, Abo als weisse
-                  Flaeche darunter (Owner: „ich kann den Button nicht lesen … weiss"). */}
-              {videoReif && !isStaff && !payBusy && !bezahlt && !videoBusy && !videoUrl && (
-                <div className="absolute inset-0 z-20 grid place-items-center bg-black/60 p-5">
-                  <div className="w-full max-w-[300px] text-center">
-                    <p className="lb-onmedia text-[17px] font-black">{T.readyTitle}</p>
-                    <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">{T.readyBody}</p>
-                    <button type="button" onClick={() => void unlock(V.einzelkauf ? "once" : "abo")} disabled={payBusy}
-                      className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                      {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                      {V.einzelkauf ? T.watchOnce : T.blockedAll}
-                    </button>
-                    {V.abo && V.einzelkauf && (<>
-                      <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
-                        style={{ background: "#fff", color: "#1a160f" }}
-                        className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
-                        {T.orAll}
-                      </button>
-                      <p className="lb-onmedia mt-1.5 text-center text-[10.5px] font-bold leading-snug opacity-85">
-                        {T.aboWas}
-                      </p>
-                    </>)}
-                  </div>
-                </div>
-              )}
+              {/* Die Ueberblendung „Dein Video ist fertig 🔥" stand hier — sie gehoerte zur
+                  gespielten Show und legte drei Zeilen Text quer ueber sein Bild. Der
+                  Kaufknopf steht jetzt unten auf der Karte, wo er ohnehin hingehoert. */}
 
               {/* Roter Papierkorb, weiss hinterlegt — dieselbe Form wie an jedem anderen Bild
-                  im Projekt, damit man ihn nicht suchen muss. Waehrend Show, Zahlung oder
-                  Rendern verschwindet er: Mitten im bezahlten Lauf loeschen hiesse zahlen
-                  und nichts bekommen. */}
-              {!videoShow && !payBusy && !videoBusy && !bezahlt && (
+                  im Projekt, damit man ihn nicht suchen muss. Waehrend Zahlung oder Rendern
+                  verschwindet er: Mitten im bezahlten Lauf loeschen hiesse zahlen und nichts
+                  bekommen. */}
+              {!payBusy && !videoBusy && !bezahlt && (
                 <button type="button" onClick={ergebnisLoeschen} aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).loeschen}
                   style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                   className="absolute left-2 top-2 z-10 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
                   <Trash2 className="h-5 w-5" />
                 </button>
               )}
-              {/* Der Griff weicht, sobald eine Ueberblendung den Platz braucht — zwei Knoepfe
-                  uebereinander, von denen einer halb verdeckt ist, druecken sich beide schlecht. */}
-              {!videoShow && !videoReif && !payBusy && !videoBusy && !(bezahlt && !wahl) &&
-                kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
+              {/* NACH DEM EINEN VERSUCH STEHT DER KAUFKNOPF DA (Owner 31.07.2026: „nach einem
+                  Versuch muss Button Generate Video stehen 2,99" — „ohne diesen Fake").
+                  Sein Bild ist da; die naechste Frage ist das Video, nicht ein zweites Bild.
+                  Also traegt die Karte den Kaufknopf mit dem Preis (aus der Preistabelle),
+                  „Personen ersetzen" rueckt als zweiter Weg darunter.
+                  OHNE ZWISCHENSCHRITT: Die gespielte Render-Show und die Ueberblendung „Dein
+                  Video ist fertig" sind raus. Sie legten Text ueber Text auf sein Bild und
+                  verkauften vier Sekunden Warten als Arbeit — er hat sein Ergebnis vor
+                  Augen, das ist die Spannung. Ein Tipp, und die Kasse geht auf. */}
+              {/* WER BEZAHLT HAT, SIEHT KEINEN PREIS (Owner 31.07.2026: „wenn bezahlt dann
+                  steht kein Preis"). `ctaVideo` ist genau dieser Knopf ohne Zahl — „Video
+                  erzeugen". Ein Preis vor einem, der schon zahlt, liest sich als zweite
+                  Rechnung; dasselbe galt schon fuer die Kaufknoepfe nach der Stripe-Rueckkehr. */}
+              {!payBusy && !videoBusy && !(bezahlt && !wahl) &&
+                kartenGriff(
+                  bezahlt || isStaff ? T.ctaVideo : T.blockedOnce,
+                  bezahlt || isStaff ? () => void kussVideo() : () => void unlock("once"),
+                  { text: (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen, tun: schritteOeffnen },
+                )}
             </div>
           ) : beispielVideo ? (
             <div className="relative">
@@ -1724,12 +1737,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* Der Knopf unter der Karte ist weg: Er steht jetzt AUF dem Bild, und zwei gleiche
           Aufforderungen uebereinander sind einer zu viel. */}
 
-      {/* NACH DER SHOW: der Kauf — direkt unter der Karte, wie frueher unter dem Bild im
-          Ergebnis-Block. Erst hier faellt der Preis; der Owner will, dass er den Moment
-          erlebt, bevor er zahlt („er hat naemlich nichts bezahlt, nur gegafft"). Beim Admin
-          steht stattdessen der Gratis-Weg. */}
-      {bild && !videoUrl && (
-        <div className={`mx-auto mt-3 w-full max-w-[420px] ${(frei || isStaff) && !videoReif ? "" : "hidden"}`}>
+      {/* UNTER DER KARTE: nur noch das Abo und die Zusagen — der Kaufknopf steht AUF dem
+          Bild (Owner 31.07.2026: „nach einem Versuch muss Button Generate Video stehen 2,99").
+          Zweimal derselbe Preis untereinander ist einer zu viel; hier bleibt der zweite Weg
+          (alles freischalten) und das Kleingedruckte, das Vertrauen schafft.
+          WER BEZAHLT HAT, SIEHT HIER GAR NICHTS MEHR („wenn bezahlt dann steht kein Preis"). */}
+      {bild && !videoUrl && !bezahlt && !payBusy && !videoBusy && (
+        <div className={`mx-auto mt-3 w-full max-w-[420px] ${frei || isStaff ? "" : "hidden"}`}>
           {isStaff ? (
             <button type="button" onClick={() => void zuVideo()} disabled={videoBusy}
               className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
@@ -1738,15 +1752,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             </button>
           ) : (
             <>
-              <button type="button" onClick={videoAnstossen} disabled={payBusy || videoShow}
-                className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {videoShow ? T.makingKiss : T.makeVideo}
-              </button>
               {V.abo && V.einzelkauf && (
                 <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                   style={{ color: "#fff" }}
-                  className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                  className="flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
                   {T.orAll}
                 </button>
               )}
