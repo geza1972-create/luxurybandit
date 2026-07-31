@@ -529,3 +529,14 @@ svg {
    `.lb-fb` blau — statt zweier Knoepfe, die dasselbe tun. */
 .lb-chip { border: 1px solid rgba(255,255,255,0.35); color: #fff; }
 .lb-fb .lb-chip { border-color: rgba(24,119,242,0.35) !important; color: #1877F2 !important; }
+/* Sprechblasen im Gruppenchat der Einladung — dieselben zwei Farben wie die Karte, nur als
+   Blase statt als Zeile. Der Kreis mit dem Anfangsbuchstaben ersetzt ein Profilbild, das wir
+   von Gaesten weder haben noch wollen. */
+.lb-karte .lb-chat-blase {
+  background: rgba(160, 122, 52, 0.10) !important;
+  border: 1px solid rgba(160, 122, 52, 0.18);
+}
+.lb-karte .lb-chat-kreis {
+  background: rgba(160, 122, 52, 0.22) !important;
+  color: #6d4c17 !important;
+}

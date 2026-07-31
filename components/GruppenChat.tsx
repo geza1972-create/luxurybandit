@@ -113,13 +113,24 @@ export default function GruppenChat({
         {liste.length === 0 ? (
           <p className="mt-3 text-center font-serif text-[14px] opacity-70">{T.chatLeer}</p>
         ) : (
-          <ul className="mt-3 space-y-2.5">
+          /* WIE EIN CHAT, NICHT WIE EINE LISTE (Owner 31.07.2026: „das muss wie ein Chat
+             aussehen"). Vorher standen Name und Text untereinander wie Protokollzeilen — man
+             sah nicht, dass hier Menschen miteinander reden. Jetzt Sprechblasen mit einem
+             Kreis davor: Das erkennt jeder in einer halben Sekunde, weil er es aus jedem
+             Messenger kennt. Farben und Serifenschrift bleiben die der Karte — es soll wie
+             ein Chat AUSSEHEN, nicht wie ein fremdes Programm in der Einladung. */
+          <ul className="mt-3 space-y-2">
             {liste.slice(-40).map((m, i) => (
-              <li key={i} className="font-serif text-[14.5px] leading-snug">
-                <span className="font-bold">{m.name}</span>
-                <span className="opacity-45"> · {zeit(m.at)}</span>
-                <br />
-                <span className="opacity-90">{m.text}</span>
+              <li key={i} className="flex items-end gap-2">
+                <span className="lb-chat-kreis grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-black">
+                  {(m.name || "?").trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="lb-chat-blase min-w-0 max-w-[80%] rounded-2xl rounded-bl-md px-3 py-2">
+                  <span className="lb-karte-gold block text-[10.5px] font-black uppercase tracking-[0.1em]">
+                    {m.name}{m.at ? ` · ${zeit(m.at)}` : ""}
+                  </span>
+                  <span className="mt-0.5 block font-serif text-[14.5px] leading-snug">{m.text}</span>
+                </span>
               </li>
             ))}
           </ul>

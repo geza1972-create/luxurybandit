@@ -2,7 +2,7 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
-import { Check, FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe } from "lucide-react";
+import { Check, FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe, ChevronRight } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -237,9 +237,24 @@ export default async function WeddingThemePage({ searchParams }: {
                     Verkaufsseite; erst die eigene Adresse zeigt, wie es sich anfuehlt, wenn
                     man den Link von einem Freund bekommt — und genau die kann er auch selbst
                     verschicken, um es jemandem zu zeigen. */}
+                {/* EINE KARTE, KEIN TEXTLINK (Owner 31.07.2026: „das sieht nach nix aus,
+                    der Button"). Ein umrandeter Zweizeiler liest sich wie Kleingedrucktes.
+                    Mit dem laufenden Bild daneben sieht man in einer halben Sekunde, was
+                    einen erwartet — und tippt darauf, weil es aussieht wie etwas. */}
                 <a href="/einladung/beispiel" target="_blank" rel="noreferrer"
-                  className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#f6cf51]/60 px-4 text-center text-[13px] font-black text-[#f6cf51] transition active:scale-95">
-                  {T.beispielLink}
+                  className="mt-3 flex items-center gap-3 overflow-hidden rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-2.5 transition active:scale-[0.99]">
+                  {examples[0] ? (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video src={examples[0]} muted loop playsInline autoPlay preload="metadata"
+                      className="h-[76px] w-[57px] shrink-0 rounded-xl object-cover" />
+                  ) : (
+                    <span className="h-[76px] w-[57px] shrink-0 rounded-xl bg-black/10" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-black text-[#f6cf51]">{T.beispielLink}</span>
+                    <span className="mt-0.5 block text-[11.5px] font-bold leading-snug text-white/60">{T.einlVorschau}</span>
+                  </span>
+                  <ChevronRight className="mr-1 h-5 w-5 shrink-0 text-[#f6cf51]" />
                 </a>
                 <GruppenChat sprache={L} demo
                   nachrichten={(BEISPIEL_CHAT_TXT[L] ?? BEISPIEL_CHAT_TXT.en).map((t, i) => ({ name: CHAT_NAMEN[i] ?? "Gast", text: t }))}
