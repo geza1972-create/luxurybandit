@@ -763,6 +763,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Creating your wedding kiss in full quality … (~1–3 min)",
     blockedBody: "Three free pictures per person. Now make your wedding video.",
     buyOnce: "Wedding video {once}",
+    blockedAll: "Unlock your invitation — {price}/month",
+    orAll: "Or unlock your invitation — {price}/month",
+    buyAbo: "Invitation {price}/mo",
   },
   de: {
     pickFirst: "Lade zuerst dein Foto hoch", uploadFirst: "Lade sein Foto hoch",
@@ -779,6 +782,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Euer Hochzeitskuss entsteht in voller Qualität … (~1–3 Min.)",
     blockedBody: "Drei Gratis-Bilder pro Person. Macht jetzt euer Hochzeitsvideo.",
     buyOnce: "Hochzeitsvideo {once}",
+    blockedAll: "Einladung freischalten — {price}/Monat",
+    orAll: "Oder Einladung freischalten — {price}/Monat",
+    buyAbo: "Einladung {price}/Mon.",
   },
   ro: {
     pickFirst: "Încarcă mai întâi poza ta", uploadFirst: "Încarcă poza lui",
@@ -795,6 +801,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Sărutul vostru de nuntă se creează la calitate maximă … (~1–3 min)",
     blockedBody: "Trei imagini gratuite de persoană. Faceți acum videoclipul de nuntă.",
     buyOnce: "Video de nuntă {once}",
+    blockedAll: "Deblochează invitația — {price}/lună",
+    orAll: "Sau deblochează invitația — {price}/lună",
+    buyAbo: "Invitație {price}/lună",
   },
   es: {
     pickFirst: "Sube primero tu foto", uploadFirst: "Sube su foto",
@@ -811,6 +820,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Creando vuestro beso de boda con la máxima calidad … (~1–3 min)",
     blockedBody: "Tres imágenes gratis por persona. Haced ahora vuestro vídeo de boda.",
     buyOnce: "Vídeo de boda {once}",
+    blockedAll: "Desbloquear la invitación — {price}/mes",
+    orAll: "O desbloquear la invitación — {price}/mes",
+    buyAbo: "Invitación {price}/mes",
   },
   fr: {
     pickFirst: "Téléverse d'abord ta photo", uploadFirst: "Téléverse sa photo",
@@ -827,6 +839,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Votre baiser de mariage est créé en pleine qualité … (~1–3 min)",
     blockedBody: "Trois images gratuites par personne. Faites maintenant votre vidéo de mariage.",
     buyOnce: "Vidéo de mariage {once}",
+    blockedAll: "Débloquer l’invitation — {price}/mois",
+    orAll: "Ou débloquer l’invitation — {price}/mois",
+    buyAbo: "Invitation {price}/mois",
   },
   pt: {
     pickFirst: "Carrega primeiro a tua foto", uploadFirst: "Carrega a foto dele",
@@ -843,6 +858,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "O vosso beijo de casamento está a ser criado em qualidade máxima … (~1–3 min)",
     blockedBody: "Três imagens grátis por pessoa. Façam agora o vosso vídeo de casamento.",
     buyOnce: "Vídeo de casamento {once}",
+    blockedAll: "Desbloquear o convite — {price}/mês",
+    orAll: "Ou desbloquear o convite — {price}/mês",
+    buyAbo: "Convite {price}/mês",
   },
   it: {
     pickFirst: "Carica prima la tua foto", uploadFirst: "Carica la sua foto",
@@ -859,6 +877,9 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     statusQuality: "Il vostro bacio di matrimonio nasce in piena qualità … (~1–3 min)",
     blockedBody: "Tre immagini gratis a persona. Fate ora il vostro video di nozze.",
     buyOnce: "Video di nozze {once}",
+    blockedAll: "Sblocca l’invito — {price}/mese",
+    orAll: "Oppure sblocca l’invito — {price}/mese",
+    buyAbo: "Invito {price}/mese",
   },
 };
 

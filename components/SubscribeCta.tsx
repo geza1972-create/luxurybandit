@@ -27,8 +27,17 @@ const T: Record<string, { h: string; p: string; cta: string }> = {
   it: { h: "Sblocca tutto", p: "Video con lei — e tu dentro. Chattare è e resta gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese" },
 };
 
-export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {
+export default function SubscribeCta({ code = "", lang = "en", topic = "chat", titel, text, cta }: {
   code?: string; lang?: string; topic?: string;
+  /**
+   * EIGENER WORTLAUT JE THEMA (Owner 31.07.2026, fuer die Hochzeit).
+   *
+   * „Die heisseste KI-Erfahrung freischalten" ist auf einer Hochzeitsseite nicht nur daneben,
+   * es beschaedigt den Anlass. Der Knopf, die Kasse und der Preis bleiben ueberall dieselben —
+   * nur die drei Zeilen daran duerfen zum Thema passen. Preis-Platzhalter funktionieren auch
+   * hier, weil alles durch `fillPrices` geht.
+   */
+  titel?: string; text?: string; cta?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -56,12 +65,12 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }:
 
   return (
     <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
-      <p className="text-[17px] font-black text-white">{t.h}</p>
-      <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{fillPrices(t.p, lang)}</p>
+      <p className="text-[17px] font-black text-white">{titel || t.h}</p>
+      <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{fillPrices(text || t.p, lang)}</p>
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {fillPrices(t.cta, lang)}
+        {fillPrices(cta || t.cta, lang)}
       </button>
       {error && <p className="mt-2 text-[13px] font-bold text-white/80">{error}</p>}
       <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>

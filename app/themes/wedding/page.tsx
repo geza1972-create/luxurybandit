@@ -14,6 +14,7 @@ import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ExampleVideos from "@/components/ExampleVideos";
 import ZusagenKarte from "@/components/ZusagenKarte";
+import SubscribeCta from "@/components/SubscribeCta";
 import GruppenChat from "@/components/GruppenChat";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
@@ -71,6 +72,24 @@ const BEISPIEL_ZUSAGEN = [
  * In allen sieben Sprachen, weil eine Verkaufsseite, die Mehrsprachigkeit verspricht und
  * darunter deutsche Kommentare zeigt, sich selbst widerlegt.
  */
+/**
+ * DAS ANGEBOT (Owner 31.07.2026: „bei Wedding machen wir auch ein Abo, bis sie heiraten von
+ * mir aus. Auch 24,50, weil wir die Liste hosten muessen.").
+ *
+ * Der Satz steht UNTER der Vorlage und der Liste, nie darueber: Erst sieht sie die Karte, dann
+ * was dazugehoert, dann den Preis. Umgekehrt zahlt niemand fuer acht Sekunden Film.
+ *
+ * Der Preis selbst steht nirgends hier — {price} kommt aus lib/pricing.
+ */
+const ANGEBOT: Record<string, { h: string; p: string; cta: string }> = {
+  de: { h: "Eure Einladung, genau so", p: "Eure Seite, das Video, die Zusagen, die News und die Gruppe — wir halten alles am Laufen, bis eure Hochzeit vorbei ist.", cta: "Einladung freischalten — {price}/Monat" },
+  en: { h: "Your invitation, just like this", p: "Your page, the video, the RSVPs, the news and the group — we keep it all running until your wedding is over.", cta: "Unlock your invitation — {price}/month" },
+  ro: { h: "Invitația voastră, exact așa", p: "Pagina voastră, videoclipul, confirmările, noutățile și grupul — le ținem în funcțiune până trece nunta.", cta: "Deblochează invitația — {price}/lună" },
+  es: { h: "Vuestra invitación, tal cual", p: "Vuestra página, el vídeo, las confirmaciones, las novedades y el grupo — lo mantenemos todo hasta que pase la boda.", cta: "Desbloquear la invitación — {price}/mes" },
+  fr: { h: "Votre invitation, exactement ainsi", p: "Votre page, la vidéo, les réponses, les nouvelles et le groupe — nous gardons tout en ligne jusqu’après le mariage.", cta: "Débloquer l’invitation — {price}/mois" },
+  pt: { h: "O vosso convite, tal e qual", p: "A vossa página, o vídeo, as confirmações, as novidades e o grupo — mantemos tudo a funcionar até passar o casamento.", cta: "Desbloquear o convite — {price}/mês" },
+  it: { h: "Il vostro invito, proprio così", p: "La vostra pagina, il video, le conferme, le novità e il gruppo — teniamo tutto attivo finché il matrimonio non è passato.", cta: "Sblocca l’invito — {price}/mese" },
+};
 const BEISPIEL_NEWS_TXT: Record<string, string> = {
   de: "Achtung, neue Änderung: Die Hochzeit findet drinnen statt!",
   en: "Heads up, change of plan: the wedding will be held indoors!",
@@ -235,6 +254,14 @@ export default async function WeddingThemePage({ searchParams }: {
                 ))}
               </ul>
             </div>
+            {/* Preis und Knopf zum Schluss — erst die Karte, dann die Liste, dann die Kasse.
+                BEWUSST AUSSERHALB des Listenkastens: In der hellen Fassung wird der goldene
+                Kasten blau, und ein blauer Knopf darin ist blau auf blau. Auf dem hellen
+                Seitengrund traegt er sich selbst. */}
+            <SubscribeCta code={code} lang={L}
+              titel={(ANGEBOT[L] ?? ANGEBOT.en).h}
+              text={(ANGEBOT[L] ?? ANGEBOT.en).p}
+              cta={(ANGEBOT[L] ?? ANGEBOT.en).cta} />
 
             {/* KEIN ABO AUF DER HOCHZEITSSEITE (Konzept §5, Owner 31.07.2026). Hier stand
                 „Die heisseste KI-Erfahrung freischalten — 24,50 €/Monat": der Kuss-Kasten,

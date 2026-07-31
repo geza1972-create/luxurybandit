@@ -190,6 +190,26 @@ export default async function ThemesCatalog({ searchParams }: {
     ]);
   } catch { /**/ }
 
+  /**
+   * DIE HOCHZEITSKACHEL ZEIGT EINE HOCHZEIT (Owner 31.07.2026: „das Topicvideo hast du nicht
+   * ersetzt").
+   *
+   * Hier stand `ph(9)` — ein Allerwelts-Platzhalter aus dem Bilderstapel, eine Frau im
+   * schwarzen Kleid auf einer Dachterrasse. Auf einer Kachel, die „Hochzeitseinladung" heisst,
+   * ist das kein Schoenheitsfehler: Wer im Katalog scrollt, entscheidet nach dem BILD, ob er
+   * tippt. Ein falsches Motiv kostet uns den Klick, bevor ein Wort gelesen wird.
+   *
+   * Das Video kommt aus dem Medien-Werkzeug des Themas: das ERSTE Beispiel. Damit zeigt die
+   * Kachel immer, was auf der Seite auch wirklich laeuft — wechselt das Beispiel, wechselt die
+   * Kachel mit, ohne dass hier jemand etwas nachtraegt.
+   */
+  let weddingVideo = "";
+  try {
+    const wc = await readThemeConfig("wedding");
+    const erstes = (wc.examplePaths ?? [])[0];
+    if (erstes) weddingVideo = (await getSignedUrl(erstes).catch(() => "")) || "";
+  } catch { /**/ }
+
   let kissCover = "", kissVideo = "";
   try {
     const kc = await readKissConfig();
@@ -221,7 +241,7 @@ export default async function ThemesCatalog({ searchParams }: {
     { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), chips: "♥ Your photo · His photo · Invitation" },
+    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), video: weddingVideo || undefined, chips: "♥ Your photo · His photo · Invitation" },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
