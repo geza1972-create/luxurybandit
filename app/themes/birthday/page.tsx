@@ -4,6 +4,8 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BirthdayFunnel from "@/components/BirthdayFunnel";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import AdminTabs from "@/components/AdminTabs";
+import UploadsAdmin from "@/components/UploadsAdmin";
 import { readTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
 
 // THEMA „Birthdays" — gleiches Schema wie Kiss/Idol (Radar-Show → verpixelt → bezahlen →
@@ -86,8 +88,16 @@ export default async function BirthdayThemePage({ searchParams }: {
             </section>
           </div>
         ) : (
-          <div className="lb-theme mt-4 space-y-4">
-            <KissUsersAdmin />
+          /* Reiter wie ueberall, damit die Werkzeuge an jedem Thema gleich aussehen — und
+             mit der Galerie, die hier bisher ganz fehlte (Owner 31.07.2026). */
+          <div className="lb-theme mt-4">
+            <AdminTabs
+              storageKey="lb_admin_tab_birthday"
+              tabs={[
+                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" /> },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+              ]}
+            />
           </div>
         )}
       </div>

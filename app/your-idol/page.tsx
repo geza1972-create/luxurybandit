@@ -7,6 +7,8 @@ import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import KissMediaAdmin from "@/components/KissMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import AdminTabs from "@/components/AdminTabs";
+import UploadsAdmin from "@/components/UploadsAdmin";
 import { getSignedUrl } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -94,10 +96,20 @@ export default async function YourIdolPage({ searchParams }: {
             </section>
           </div>
         ) : (
-          <div className="lb-theme mt-4 space-y-4">
-            <KissMediaAdmin />
-            <KissModelsAdmin />
-            <KissUsersAdmin />
+          /* DIESELBEN REITER WIE BEI KISS (Owner 31.07.2026: „wir hatten doch die tabs
+             Galerie … und hier sind sie nicht"). Und die GALERIE fehlte hier ganz — dabei
+             ist sie das, was er am haeufigsten ansieht. Sie liest denselben Log wie bei
+             Kiss, zeigt also auch die Idol-Durchlaeufe. */
+          <div className="lb-theme mt-4">
+            <AdminTabs
+              storageKey="lb_admin_tab_idol"
+              tabs={[
+                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" /> },
+                { key: "medien", label: "🎬 Medien", node: <KissMediaAdmin /> },
+                { key: "models", label: "👩 Models", node: <KissModelsAdmin /> },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+              ]}
+            />
           </div>
         )}
       </div>

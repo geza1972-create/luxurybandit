@@ -7,7 +7,7 @@ import { Loader2, Users, Trash2, Play } from "lucide-react";
 // jede fertige Generierung mit Datum, gewähltem Model, bezahlt ja/nein + Video-Link.
 // Weiße Box wie alle Admin-Tools; blendet sich ohne Admin-PIN selbst aus.
 
-type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string; modelUrl?: string };
+type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string; modelUrl?: string; email?: string; paidEmail?: string };
 
 export default function KissUsersAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -89,8 +89,15 @@ export default function KissUsersAdmin() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-black text-white">{e.modelName || "(Model unbekannt)"}</p>
-                <p className="text-[11px] font-bold text-white/50">{fmt(e.createdAt)}</p>
+                {/* DIE ADRESSE GEHOERT AUCH HIERHIN (Owner 31.07.2026: „wo ist seine email?").
+                    Sie stand nur im Galerie-Reiter — wer diese Liste ansah, hielt jeden
+                    Eintrag fuer adresslos, obwohl die Adresse laengst da war. */}
+                <p className="truncate text-[13px] font-black text-white">
+                  {e.email || e.paidEmail || <span className="text-white/40">ohne E-Mail</span>}
+                </p>
+                <p className="truncate text-[11px] font-bold text-white/50">
+                  {fmt(e.createdAt)} · {e.modelName || "(Model unbekannt)"}
+                </p>
               </div>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${e.paid ? "bg-emerald-500/15 text-emerald-600" : "bg-black/[0.06] text-black/50"}`}>
                 {e.paid ? "✓ bezahlt" : "unbezahlt"}
