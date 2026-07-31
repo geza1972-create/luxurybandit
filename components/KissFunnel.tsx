@@ -924,7 +924,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   // niemand hat je erlebt, dass es mit seinem Gesicht funktioniert (Owner: „Ohne Gratis-Test
   // kaufe ich nichts"). Jetzt sieht er zuerst sich und sie, scharf. Bezahlt wird das VIDEO.
   const generate = async () => {
-    track("generate");
+    /**
+     * ZWEI EREIGNISSE, WEIL ES ZWEI DINGE SIND (Owner 31.07.2026, nach der Trichter-Auswertung:
+     * „Adresse eingetippt" lag VOR „Bild erzeugt", was unmoeglich ist).
+     *
+     * Der Grund: `track("generate")` stand ganz oben — es feuerte also auch, wenn gleich danach
+     * abgebrochen wurde, weil ein Foto fehlte oder die Adresse nicht kam. Gemessen wurde damit
+     * „hat auf den Knopf getippt", angezeigt wurde „hat ein Bild erzeugt". Ein Trichter, dessen
+     * Stufen sich widersprechen, ist schlimmer als keiner: Man trifft Entscheidungen darauf.
+     *
+     * Jetzt: `generate_tap` = er wollte, `generate` = es lief wirklich los. Die Luecke dazwischen
+     * ist eine eigene Erkenntnis — dort steht heute die Adressabfrage.
+     */
+    track("generate_tap");
     if (!selPhoto || !photo || busy || mailBusy) return;
     /**
      * ERST DIE ADRESSE, DANN RECHNEN (Owner 30.07.2026). Kein Bild mehr auf seine Kosten für
@@ -941,6 +953,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       }
       if (!(await adresseVormerken(e))) return;
     }
+    // AB HIER LAEUFT ES WIRKLICH — erst hier zaehlt der Trichter ein erzeugtes Bild.
+    track("generate");
     setSchritt(4);   // eigener Bildschirm fürs Rendern
     setBusy(true); setTeaser(false); setVideoUrl(""); setBild(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
@@ -1236,7 +1250,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    *   "extra" → EIN weiteres Video für {extra}, wenn das Monatskontingent leer ist
    */
   const unlock = async (einmal: "once" | "abo" | "extra" = "abo") => {
-    track("checkout");
+    // Derselbe Fehler wie bei `generate`: Das Ereignis stand vor jeder Pruefung und meldete
+    // den Tipp, nicht die Kasse. `checkout_tap` = er wollte, `checkout` = Stripe ist offen.
+    track("checkout_tap");
     if (payBusy) return;
     if (isStaff) {
       // Auch der Admin-Weg fuehrt in die Auswahl — sonst testet er einen Ablauf, den der
@@ -1249,6 +1265,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     try {
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal === "once", extra: einmal === "extra", email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return; }
+      // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
+      track("checkout");
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite
       for (let i = 0; i < 100; i++) {
