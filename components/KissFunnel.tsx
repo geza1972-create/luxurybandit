@@ -14,6 +14,9 @@ import TonKnopf from "@/components/TonKnopf";
 import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
+import TeilenKnopf from "@/components/TeilenKnopf";
+import { TEILEN_TEXT } from "@/components/BeispielGalerie";
+import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
 import LightSwitch from "@/components/LightSwitch";
 
@@ -261,6 +264,9 @@ const VARIANTS: Record<FunnelVariant, {
 }> = {
   kiss: {
     nurEigenes: true,
+    // Ton auch beim BILD (OFFEN.md 0: „die eigene Tonspur aus lib/musik.ts einhaengen, wie
+    // bei der Hochzeit"). Ohne Musik ist das fertige Bild eine Postkarte statt eines Moments.
+    musik: musikFuer("kiss"),
     prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
@@ -274,7 +280,10 @@ const VARIANTS: Record<FunnelVariant, {
   },
   wedding: {
     prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true, einzelkauf: false,
-    musik: "/Bridal-chorus.mp3",
+    // Aus lib/musik.ts, nicht mehr von Hand: Dort steht je Thema EIN Stueck, und der Owner
+    // hat den Hochzeitsmarsch ausdruecklich abgewaehlt („nimm was anderes als Lied") — hier
+    // stand er noch. Zwei Stellen fuer dieselbe Entscheidung laufen auseinander; jetzt eine.
+    musik: musikFuer("wedding"),
     paarUpload: true,
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
     // Upload-Karte steht deshalb vorn und ist vorgewählt — unsere Bräute sind die Ausweiche
@@ -537,6 +546,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // Kleid; seine Sachen und die Szene liegen hinter einem Aufklapper — wer sie will, tippt.
   const [mehr, setMehr] = useState(false);     // "" = automatisch eine aussuchen
   const rueckkehrRef = useRef(false);
+  /** Zahlung bestaetigt, Auftrag noch nicht angestossen — siehe Wachhund unter der Rueckkehr. */
+  const nachZahlungLiefern = useRef(false);
   // ZURUECK GEHOERT IN DIE SPRACHZEILE (Owner 30.07.2026: „Back Button in dem Balken mit den
   // Sprachen stehen"). Der Balken liegt in TopNav, der Schritt hier — statt den Zustand nach
   // oben zu reichen, haengen wir den Knopf per Portal in die vorhandene Zeile. Ein Ziel, das
@@ -813,8 +824,28 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       setPayBusy(false);
       setSchritt(3);   // dort steht die Garderobe
       setVideoShow(false); setVideoReif(false);   // NICHT wieder die Kaufknoepfe zeigen
+      /**
+       * JETZT LIEFERN — ohne dass er noch etwas druecken muss (Owner 31.07.2026: „nach der
+       * Zahlung passiert nichts … also Kunde wurde ausgeraubt. Das ist fatal").
+       *
+       * MEIN FEHLER, und zwar genau durch den Umbau von heute: Der Knopf, der das bezahlte
+       * Video anstoesst, steht seit dem Karten-Umbau IM DIALOG. Nach Stripe laedt die Seite
+       * neu — der Dialog ist zu, `schritt` ist 3, `bezahlt` ist true, und der einzige Weg
+       * zum Video liegt hinter einer geschlossenen Tuer. Bezahlt, und nichts passiert.
+       *
+       * Ein Knopf ist hier ohnehin die falsche Antwort. Wer bezahlt hat, hat seine
+       * Entscheidung getroffen; ihn danach noch einmal fragen zu lassen, ist eine Huerde
+       * zwischen Geld und Ware. Also: Zahlung bestaetigt → Auftrag laeuft.
+       *
+       * Das Anstossen selbst uebernimmt der Wachhund unten, weil die Fotos aus dem
+       * Geraetespeicher SPAETER zurueckkommen als diese Pruefung.
+       */
+      nachZahlungLiefern.current = true;
     })();
   }, []);
+
+  // Der Wachhund zur Zahlung steht weiter unten — er ruft `kussVideo`, und das braucht
+  // `selPhoto`, das erst nach der Model-Auswahl feststeht.
 
   // Bezahlt — jetzt darf er aussuchen. Der Kleiderschrank wird ERST hier geladen, nicht
   // fuer jeden Besucher: die Liste interessiert nur den, der schon bezahlt hat.
@@ -1385,6 +1416,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (variant === "wedding" && bild && !einlUrl) setEinlOffen(true);
   }, [variant, bild, einlUrl]);
 
+  /**
+   * DER WACHHUND ZUR ZAHLUNG (gesetzt bei der Stripe-Rueckkehr und im Kassen-Fenster):
+   * Sobald beide Fotos da sind, laeuft der bezahlte Auftrag los — genau einmal.
+   *
+   * Er steht hier unten, weil er `kussVideo` ruft und das `selPhoto` braucht; weiter oben
+   * waeren beide noch nicht deklariert.
+   *
+   * Ohne Fotos kann er nicht laufen. Das ist kein Verlust: Der Server liefert denselben
+   * Auftrag ohnehin nach (`/api/kiss-deliver`) und schickt das Video per Mail — die Adresse
+   * liegt seit Schritt 3 vor. Hier geht es nur darum, dass er es SIEHT.
+   */
+  useEffect(() => {
+    if (!nachZahlungLiefern.current) return;
+    if (videoUrl || videoBusy) { nachZahlungLiefern.current = false; return; }
+    if (!selPhoto || !photo) return;   // warten, bis der Speicher sie zurueckgegeben hat
+    nachZahlungLiefern.current = false;
+    void kussVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selPhoto, photo, videoUrl, videoBusy, bezahlt]);
+
   const einladungAnlegen = async () => {
     if ((!videoUrl && !bild) || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
     setEinlBusy(true);
@@ -1470,6 +1521,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
           // egal ob er ueber das Kassen-Fenster oder ueber die Rueckleitung kam.
           setBezahlt(true);
+          /**
+           * AUSSUCHEN NUR, WENN ER DIE AUSWAHL AUCH SIEHT (Owner 31.07.2026: „nach der
+           * Zahlung passiert nichts").
+           *
+           * Die Garderobe steht im Dialog. Ueber das Kassen-FENSTER laedt die Seite nicht
+           * neu — hatte er den Dialog offen, steht die Auswahl da und er sucht aus. War er
+           * zu, saehe er dieselbe geschlossene Tuer wie bei der Rueckleitung. Dann gilt die
+           * Regel des Hauses: bezahlt heisst geliefert.
+           */
+          if (!stufenOffen) nachZahlungLiefern.current = true;
           return;
         }
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
@@ -1641,6 +1702,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
                   sie auf dem eigenen Bild belohnen. */}
               <Reaktionen variant={variant} />
+              {/* Beispiele darf jeder verschicken (Owner: „damit die Leute Werbung machen
+                  können") — Ziel ist die Themenseite, Text und Grund stehen in
+                  BeispielGalerie. NUR auf dem Beispiel: Fuers eigene Ergebnis braucht es
+                  erst die Werk-Seite (OFFEN.md 2), sonst verschickt der Knopf das Falsche. */}
+              <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : "kiss"}?utm_source=share`}
+                text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
+                className="absolute left-2 top-2 z-30" />
               {kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
             </div>
           ) : (
@@ -2305,7 +2375,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             „Rendering your video …" und sonst nichts — drei Minuten lang. Wer bezahlt hat,
             muss am deutlichsten sehen, dass etwas passiert. Liegt schon ein Bild vor, trägt
             es seine eigene Auflage (weiter unten), dann bliebe der Radar doppelt. */}
-        {(busy || videoBusy) && !videoUrl && !bild && !!(selPhoto || photo) && (
+        {/* AUCH IN DER LUECKE NACH DER ZAHLUNG (Owner 31.07.2026: „nach der Zahlung passiert
+            nichts"). Zwischen bestaetigter Zahlung und dem Start des Auftrags liegen ein paar
+            Zehntelsekunden, in denen die Fotos aus dem Geraetespeicher zurueckkommen. Ohne
+            `bezahlt` hier stand in dieser Luecke NICHTS auf dem Schirm — und genau daraus
+            entsteht der Eindruck, das Geld sei weg. */}
+        {(busy || videoBusy || (bezahlt && !isStaff)) && !videoUrl && !bild && !!(selPhoto || photo) && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2326,7 +2401,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                     weiss erzwingt UND von der Blau-Regel in .lb-fb ausgenommen ist; ein inline
                     `#fff` waere dort zu Blau umgefaerbt worden. */}
                 <Sparkles className="lb-onmedia h-4 w-4 animate-pulse" />
-                <span className="lb-onmedia text-[12px] font-black">{status || "Rendering …"}</span>
+                {/* Wer bezahlt hat, liest zuerst „Zahlung erhalten" — das ist die Auskunft,
+                    auf die es ihm in dieser Sekunde ankommt. */}
+                <span className="lb-onmedia text-[12px] font-black">
+                  {status || (bezahlt && !busy ? T.payReceived : T.rendering)}
+                </span>
               </div>
             </div>
           </div>
@@ -2367,7 +2446,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
         {/* GRATIS AUFGEBRAUCHT → sofort weiter, nicht abwürgen. Ein Satz „schon genutzt"
             ohne Knopf ist das Ende des Trichters; hier stehen beide Wege direkt darunter. */}
-        {gesperrt && !isStaff && !bild && !videoUrl && (
+        {/* NICHT MEHR, WENN ER BEZAHLT HAT (Owner 31.07.2026: „nach der Zahlung passiert
+            nichts … Kunde wurde ausgeraubt"). Dieser Kasten traegt den Kaufknopf. Blieb er
+            nach der Zahlung stehen, las er sich als zweite Rechnung — und daneben lief das
+            bezahlte Rendern, das er dadurch gar nicht bemerkte. */}
+        {gesperrt && !isStaff && !bild && !videoUrl && !bezahlt && !payBusy && !videoBusy && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
             <p className="text-[16px] font-black text-white">{T.blockedTitle}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">

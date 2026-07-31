@@ -17,18 +17,27 @@ import { Send, Check } from "lucide-react";
  * es. Ohne diesen Rückfall stünde auf jedem Schreibtisch-Browser ein toter Knopf.
  */
 export default function TeilenKnopf({
-  text, label, kopiertLabel, className = "",
+  text, label, kopiertLabel, className = "", url: zielUrl, rund = false,
 }: {
   /** Was neben dem Link steht — z. B. „Ana & Mihai 💍". */
   text: string;
   label: string;
   kopiertLabel: string;
   className?: string;
+  /**
+   * Wohin der Link zeigt — z. B. `/themes/kiss?utm_source=share` (Owner 31.07.2026: „das
+   * kann man auch sharen, damit die Leute Werbung machen können"). Ohne Angabe die aktuelle
+   * Seite; mit `utm_source` sieht die Auswertung, dass der Besuch von einem Teilen kam.
+   */
+  url?: string;
+  /** Als kleiner runder Knopf AUF einem Bild (wie der Ton-Knopf) statt als volle Pille. */
+  rund?: boolean;
 }) {
   const [kopiert, setKopiert] = useState(false);
 
   const teilen = async () => {
-    const url = window.location.href;
+    // Die System-Auswahl braucht eine volle Adresse — ein relativer Pfad wird hier absolut.
+    const url = zielUrl ? new URL(zielUrl, window.location.origin).toString() : window.location.href;
     try {
       if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
     } catch { return; }   // abgebrochen ist kein Fehler, nur ein Nein
@@ -38,6 +47,17 @@ export default function TeilenKnopf({
       setTimeout(() => setKopiert(false), 2500);
     } catch { /* dann eben nicht */ }
   };
+
+  if (rund) {
+    // Dieselbe weisse Scheibe wie Ton- und Loeschknopf, damit man ihn nicht suchen muss.
+    return (
+      <button type="button" onClick={() => void teilen()} aria-label={kopiert ? kopiertLabel : label}
+        style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+        className={`grid h-10 w-10 place-items-center rounded-full transition active:scale-90 ${className}`}>
+        {kopiert ? <Check className="h-5 w-5" /> : <Send className="h-5 w-5" />}
+      </button>
+    );
+  }
 
   return (
     <button type="button" onClick={() => void teilen()}

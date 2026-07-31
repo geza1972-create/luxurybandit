@@ -4,6 +4,19 @@ import { useEffect, useState } from "react";
 
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
+import TeilenKnopf from "@/components/TeilenKnopf";
+
+/**
+ * BEISPIELE DARF JEDER VERSCHICKEN (Owner 31.07.2026: „das kann man auch sharen, damit die
+ * Leute Werbung machen können"). Beim Beispiel ist die THEMENSEITE das richtige Ziel — wer
+ * den Link bekommt, soll ja hierher. Der Text wirbt fuer LuxuryBandit, nicht fuer den
+ * Absender; fuer das EIGENE Ergebnis braucht es erst die Werk-Seite (OFFEN.md, Punkt 2),
+ * sonst verschickt der Knopf das Falsche.
+ */
+export const TEILEN_TEXT: Record<string, string> = {
+  de: "Schau dir das an 💋", en: "Check this out 💋", ro: "Uită-te la asta 💋",
+  es: "Mira esto 💋", fr: "Regarde ça 💋", pt: "Olha isto 💋", it: "Guarda qui 💋",
+};
 
 /**
  * DIE BEISPIELE — dieselbe Karte, mehrmals untereinander.
@@ -76,6 +89,12 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "", gespe
             <div className="relative">
               <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
                 tonText={T.ton} tonAusText={T.tonAus} />
+              {/* Links oben, gegenueber dem Ton-Knopf — ueber dem Griff (z-30), sonst
+                  schluckt die Tipp-Flaeche den Knopf. */}
+              <TeilenKnopf rund url="/themes/kiss?utm_source=share"
+                text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                label={T.teilen} kopiertLabel={T.zusDanke}
+                className="absolute left-2 top-2 z-30" />
               {/* DAS GANZE VIDEO IST DER KNOPF (Owner 31.07.2026: „beim Klick auf Video kommt
                   direkt Upload"). Wer ein Beispiel ansieht und es antippt, meint genau das —
                   ihn dann eine kleine Schaltfläche suchen zu lassen, ist eine Hürde ohne
