@@ -32,10 +32,23 @@ eine Entscheidung war.
   dieselbe Animation im Code laufen sonst nach der ersten Änderung auseinander.
   Die Ebene braucht `pointer-events-none`, sonst schluckt sie den Tipp auf das
   Video (= Upload) und den Ton-Knopf.
-- **Teilen** — `TeilenKnopf` existiert, aber **es fehlt das ZIEL**: Ohne die Seite
-  aus Punkt 2 wuerde er die Themenseite verschicken statt des Ergebnisses. Deshalb
-  erst Punkt 2, dann dieser Knopf. Vorher einbauen waere ein Knopf, der das
-  Falsche tut.
+- **Teilen — und das zerfaellt in ZWEI Faelle, die getrennt zu bauen sind:**
+
+  **a) Beispiele teilen: sofort machbar, keine Vorarbeit noetig.**
+  Owner 31.07.2026: „das kann man auch sharen, damit die Leute Werbung machen
+  können." Bei einem Beispiel IST die Themenseite das richtige Ziel — wer den Link
+  bekommt, soll ja hierher. `TeilenKnopf` mit
+  `/themes/kiss?utm_source=share` genuegt, plus ein Text wie „Schau dir das an".
+  Das haengt an NICHTS und ist der billigste Werbekanal, den wir haben: Der
+  Absender empfiehlt, nicht wir.
+
+  **b) Das EIGENE Ergebnis teilen: braucht erst Punkt 2.**
+  Ohne die Werk-Seite wuerde der Knopf die Themenseite verschicken statt seines
+  Bildes — ein Knopf, der das Falsche tut. Also: erst die Seite, dann der Knopf.
+
+  Wichtig, dass beide unterschiedliche Texte tragen: Beim Beispiel wirbt man fuer
+  LuxuryBandit, beim eigenen Bild zeigt man SICH. Derselbe Satz waere in einem der
+  beiden Faelle peinlich.
 - **Der Video-Spieler** haengt ebenfalls am abgeschalteten Block. Solange der aus
   ist, muss geprueft werden, dass ein BEZAHLTES Video weiterhin ankommt — dieser
   Weg darf unter keinen Umstaenden brechen.
