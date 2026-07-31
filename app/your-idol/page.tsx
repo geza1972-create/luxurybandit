@@ -104,10 +104,10 @@ export default async function YourIdolPage({ searchParams }: {
             <AdminTabs
               storageKey="lb_admin_tab_idol"
               tabs={[
-                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" /> },
+                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" theme="idol" /> },
                 { key: "medien", label: "🎬 Medien", node: <KissMediaAdmin /> },
                 { key: "models", label: "👩 Models", node: <KissModelsAdmin /> },
-                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin theme="idol" /> },
               ]}
             />
           </div>

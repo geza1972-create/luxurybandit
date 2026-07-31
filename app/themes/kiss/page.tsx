@@ -194,7 +194,7 @@ export default async function KissThemePage({ searchParams }: {
                 {
                   key: "galerie", label: "🖼 Galerie",
                   // Wer hat was hochgeladen, wann — und was kam heraus.
-                  node: <UploadsAdmin title="Hochgeladen & erzeugt" />,
+                  node: <UploadsAdmin title="Hochgeladen & erzeugt" theme="kiss" />,
                 },
                 {
                   key: "medien", label: "🎬 Medien",
@@ -233,7 +233,7 @@ export default async function KissThemePage({ searchParams }: {
                     />
                   ),
                 },
-                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin theme="kiss" /> },
               ]}
             />
           </div>

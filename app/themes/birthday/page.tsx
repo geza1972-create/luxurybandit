@@ -94,8 +94,8 @@ export default async function BirthdayThemePage({ searchParams }: {
             <AdminTabs
               storageKey="lb_admin_tab_birthday"
               tabs={[
-                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" /> },
-                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin /> },
+                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" theme="birthday" /> },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin theme="birthday" /> },
               ]}
             />
           </div>

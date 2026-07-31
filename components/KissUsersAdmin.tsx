@@ -9,7 +9,7 @@ import { Loader2, Users, Trash2, Play } from "lucide-react";
 
 type Entry = { id: string; createdAt: string; modelId?: string; modelName?: string; videoUrl?: string; paid?: boolean; imageUrl?: string; personUrl?: string; modelUrl?: string; email?: string; paidEmail?: string };
 
-export default function KissUsersAdmin() {
+export default function KissUsersAdmin({ theme = "kiss" }: { theme?: string }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -23,7 +23,7 @@ export default function KissUsersAdmin() {
       setPin(p); setIsAdmin(!!p && !localStorage.getItem("lb_preview_model"));
     } catch { /**/ }
     if (!p) { setLoading(false); return; }
-    fetch("/api/kiss-log", { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
+    fetch(`/api/kiss-log?theme=${encodeURIComponent(theme)}`, { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
       .then(r => r.ok ? r.json() : { entries: [] })
       .then(d => setEntries(Array.isArray(d.entries) ? d.entries : []))
       .catch(() => {})

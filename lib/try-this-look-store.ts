@@ -1416,6 +1416,15 @@ export type KissLogEntry = {
   email?: string;         // angemeldeter Nutzer beim Erzeugen
   paidEmail?: string;     // von Stripe beim Kauf
   device?: string;        // anonyme Gerätekennung (lb_visitor)
+  /**
+   * AUS WELCHEM THEMA (Owner 31.07.2026: „was suchen die von kiss bei idol?").
+   *
+   * Ein Log für alle Themen war richtig, solange nur der Kuss-Trichter schrieb. Inzwischen
+   * bedient dieselbe Maschine Kiss, Idol und Hochzeit — ohne dieses Feld zeigt jede
+   * Themenseite die Besucher aller anderen mit. Alte Einträge ohne Angabe gelten als „kiss":
+   * dort kamen sie her.
+   */
+  theme?: string;
 
   /**
    * DER BEZAHLTE AUFTRAG — damit ihn der SERVER zu Ende bringen kann (Owner 30.07.2026:

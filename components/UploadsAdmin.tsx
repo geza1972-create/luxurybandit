@@ -30,7 +30,16 @@ type Eintrag = {
   videoDoneId?: string;   // welcher Auftrag schon geliefert ist (Abo: mehrere je Eintrag)
 };
 
-export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { title?: string }) {
+export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = "kiss" }: {
+  title?: string;
+  /**
+   * WELCHES THEMA (Owner 31.07.2026: „was suchen die von kiss bei idol?").
+   *
+   * Der Log ist einer für alle Themen — ohne diese Angabe zeigte jede Themenseite die
+   * Besucher aller anderen mit. Alte Einträge ohne Kennzeichen gelten als „kiss".
+   */
+  theme?: string;
+}) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [rows, setRows] = useState<Eintrag[]>([]);
@@ -47,7 +56,7 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt" }: { titl
     try { p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
     setPin(p); setIsAdmin(!!p);
     if (!p) { setLoading(false); return; }
-    fetch("/api/kiss-log", { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
+    fetch(`/api/kiss-log?theme=${encodeURIComponent(theme)}`, { headers: { "x-try-look-admin-pin": p }, cache: "no-store" })
       .then(r => r.json())
       .then(d => {
         const liste: Eintrag[] = Array.isArray(d?.entries) ? d.entries : [];

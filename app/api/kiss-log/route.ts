@@ -11,7 +11,11 @@ export const dynamic = "force-dynamic";
 // auch anonym); das Admin-Tool auf /themes/kiss listet sie (GET, admin-only).
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
-  const entries = await readKissLog();
+  // NUR DAS EIGENE THEMA (Owner 31.07.2026). Ohne Angabe kommt alles — damit bleibt eine
+  // Gesamtübersicht möglich, ohne dass eine Themenseite die fremden Besucher mitzeigt.
+  const nurThema = String(new URL(request.url).searchParams.get("theme") ?? "").trim();
+  const alle = await readKissLog();
+  const entries = nurThema ? alle.filter(e => (e.theme || "kiss") === nurThema) : alle;
   // Signierte Adressen dazu, damit das Werkzeug die Bilder direkt anzeigen kann.
   /**
    * KATALOG-FRAUEN HABEN KEIN GESPEICHERTES FOTO (Owner 30.07.2026: „wieso sehe ich sein
@@ -90,7 +94,7 @@ async function ablegen(dataUrl: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -168,6 +172,7 @@ export async function POST(request: Request) {
       }
       if (imagePath.startsWith("try-this-look/")) e.imagePath = imagePath;
       // WEN ER GEWÄHLT HAT, steht am selben Eintrag — auch wenn er es später ändert.
+      if (!e.theme && String(body.theme ?? "").trim()) e.theme = String(body.theme).trim().slice(0, 20);
       if (modelId) e.modelId = modelId;
       if (modelName) e.modelName = modelName;
       if (modelBild.startsWith("data:") && !e.modelPath) {
@@ -206,6 +211,7 @@ export async function POST(request: Request) {
     modelPath: modelPath.startsWith("try-this-look/") ? modelPath : undefined,
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
+    theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
   };
   const entries = [entry, ...(await readKissLog())];
   await writeKissLog(entries);

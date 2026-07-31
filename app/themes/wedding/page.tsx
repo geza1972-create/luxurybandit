@@ -91,7 +91,7 @@ export default async function WeddingThemePage({ searchParams }: {
             <AdminTabs
               storageKey="lb_admin_tab_wedding"
               tabs={[
-                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" /> },
+                { key: "galerie", label: "🖼 Galerie", node: <UploadsAdmin title="Hochgeladen & erzeugt" theme="wedding" /> },
                 {
                   key: "medien", label: "🎬 Medien",
                   node: (

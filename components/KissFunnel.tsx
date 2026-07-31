@@ -601,7 +601,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       const log = await fetch("/api/kiss-log", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: genId
-          ? JSON.stringify({ update: genId, personImage: dataUrl, modelId: selId, modelName: selName })
+          ? JSON.stringify({ update: genId, theme: variant, personImage: dataUrl, modelId: selId, modelName: selName })
           : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
       if (!genId && log?.id) genMerken(log.id);
@@ -633,8 +633,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         body: genId
           // Auch der Name wandert mit: hat er vorher eine Katalog-Frau gewählt und lädt
           // jetzt eine eigene hoch, stünde sonst in der Galerie weiter ihr Name.
-          ? JSON.stringify({ update: genId, modelImage: dataUrl, modelId: "custom", modelName: T.upTitle })
-          : JSON.stringify({ modelId: "custom", modelName: T.upTitle, device, modelImage: dataUrl }),
+          ? JSON.stringify({ update: genId, theme: variant, modelImage: dataUrl, modelId: "custom", modelName: T.upTitle })
+          : JSON.stringify({ theme: variant, modelId: "custom", modelName: T.upTitle, device, modelImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
       if (!genId && antwort?.id) genMerken(antwort.id);
     } catch { /**/ }
@@ -773,7 +773,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         } else {
           const log = await fetch("/api/kiss-log", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
+            body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, imagePath: d.imagePath, personPath: d.personPath }),
           }).then(r2 => r2.json());
           if (log?.id && runRef.current === token) genMerken(log.id);
         }
