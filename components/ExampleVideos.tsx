@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
-import EinladungKarte from "@/components/EinladungKarte";
+import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import TonKnopf from "@/components/TonKnopf";
 
 /**
  * BEISPIELVIDEOS — gross, mit Ton, und EINS NACH DEM ANDEREN.
@@ -73,6 +74,7 @@ export default function ExampleVideos({ urls, karte, sprachen, sprachenTitel }: 
   const kartenSprache = demo || karte?.sprache || "en";
   // EIN Paar fuer die eine Karte — die zweite Szene gehoert derselben Einladung.
   const paar = karte?.paare[0];
+  const tonLabel = (KARTE_TEXTE[kartenSprache] ?? KARTE_TEXTE.en).ton;
 
   return (
     <div className={`mt-3 ${karte ? "space-y-5" : "space-y-3"}`}>
@@ -118,12 +120,7 @@ export default function ExampleVideos({ urls, karte, sprachen, sprachenTitel }: 
                     i === aktiv ? "opacity-100" : "opacity-0"
                   }`} />
               ))}
-              <button type="button" onClick={() => setTonAn(t => !t)}
-                aria-label={tonAn ? "Ton aus" : "Ton an"}
-                data-tonknopf="1" data-aufmedien="1"
-                className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-[18px] backdrop-blur transition active:scale-95">
-                {tonAn ? "🔊" : "🔇"}
-              </button>
+              <TonKnopf an={tonAn} label={tonLabel} onClick={() => setTonAn(t => !t)} />
             </div>
           } />
       ) : urls.map((url, i) => (

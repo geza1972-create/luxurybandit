@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import TonKnopf from "@/components/TonKnopf";
 
 /**
  * DAS VIDEO IN DER EINLADUNG — und die eine Zahl, an der alles hängt.
@@ -53,17 +54,7 @@ export default function EinladungAnsicht({ id, videoUrl, zaehlen = true, tonText
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} src={videoUrl} muted loop playsInline autoPlay preload="metadata"
         className="aspect-[3/4] w-full object-cover" />
-      <button type="button" onClick={umschalten} aria-label={ton ? "Ton aus" : (tonText || "Ton an")}
-        data-tonknopf="1"
-        className={`absolute right-3 top-3 flex h-11 items-center gap-1.5 rounded-full bg-black/55 text-[20px] backdrop-blur transition active:scale-95 ${
-          ton || !tonText ? "w-11 justify-center" : "px-3.5"
-        }`}>
-        {ton ? "🔊" : "🔇"}
-        {/* Solange der Ton aus ist, steht das Wort daneben — danach reicht das Symbol. */}
-        {!ton && tonText && (
-          <span className="lb-onmedia text-[12px] font-black" style={{ color: "#fff" }}>{tonText}</span>
-        )}
-      </button>
+      <TonKnopf an={ton} label={tonText} onClick={umschalten} />
     </div>
   );
 }

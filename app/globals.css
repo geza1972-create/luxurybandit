@@ -482,9 +482,17 @@ svg {
 .lb-karte svg { color: #a07a34 !important; stroke: #a07a34 !important; opacity: 0.85; }
 .lb-karte svg circle { fill: #a07a34 !important; }
 .lb-karte .lb-karte-rahmen { border: 1px solid rgba(160, 122, 52, 0.35); }
-/* Der Ton-Knopf liegt auf dem Video und braucht seine dunkle Scheibe — die Regel oben
-   wuerde ihn sonst mit einfaerben. */
-.lb-karte [data-tonknopf="1"] { background: rgba(0,0,0,0.55) !important; }
+/* DER TON-KNOPF IN DER KARTE (Owner 31.07.2026: „mach bitte einen schoenen Sound-Button,
+   das passt nicht auf diesem feinen Design"). Elfenbein mit duenner Goldlinie — dieselben
+   zwei Farben wie die Karte selbst, statt einer grauen Scheibe mit buntem Emoji. Der leichte
+   Schatten hebt ihn vom Foto ab, damit er auf hellen Motiven nicht verschwindet. */
+.lb-karte [data-tonknopf="1"] {
+  background: rgba(253, 250, 244, 0.93) !important;
+  border: 1px solid rgba(160, 122, 52, 0.5) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22) !important;
+}
+.lb-karte [data-tonknopf="1"], .lb-karte [data-tonknopf="1"] * { color: #8a6529 !important; }
+.lb-karte [data-tonknopf="1"] svg { color: #8a6529 !important; stroke: #8a6529 !important; opacity: 1; }
 /* Bedienung, die AUF dem Video liegt, behaelt ihr Weiss — auch in der Einladungskarte, wo
    sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
 .lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
