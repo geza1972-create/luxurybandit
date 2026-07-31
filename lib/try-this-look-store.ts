@@ -1293,7 +1293,16 @@ const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
  * Auswahl angelegt → kommt automatisch dazu) und BEWUSST DRAUSSEN (existierte damals schon
  * und wurde nicht angehakt → bleibt draussen).
  */
-export type KissConfig = { modelIds: string[]; modelsSavedAt?: string; teaserPath?: string; examplePaths?: string[]; previewRefPaths?: string[]; manRefPath?: string };
+export type KissConfig = { modelIds: string[]; modelsSavedAt?: string; teaserPath?: string;
+  /**
+   * STANDBILD ZUM TEASER-VIDEO — fürs Postfach (Owner 31.07.2026: „wir müssen einen
+   * Video-Poster schicken"). Ein Postfach spielt kein Video ab; es zeigt ein Bild, und das
+   * Bild verlinkt dorthin, wo sich das Video bewegt.
+   * Erzeugt von `scripts/kiss-teaser-poster.mjs` — der Frame kommt aus ffmpeg, das es lokal
+   * gibt, auf Vercel aber nicht. Deshalb einmal ablegen statt bei jedem Versand rechnen.
+   */
+  teaserPosterPath?: string;
+  examplePaths?: string[]; previewRefPaths?: string[]; manRefPath?: string };
 
 // Dieselbe Struktur für JEDES Thema (29.07.2026): `kiss-config.json`, `bella-config.json`, …
 // Der Vorgabewert "kiss" hält alle bestehenden Aufrufe unverändert.
@@ -1309,6 +1318,7 @@ export async function readThemeConfig(theme = "kiss"): Promise<KissConfig> {
       modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [],
       modelsSavedAt: String(data?.modelsSavedAt ?? "").trim() || undefined,
       teaserPath: String(data?.teaserPath ?? "").trim() || undefined,
+      teaserPosterPath: String(data?.teaserPosterPath ?? "").trim() || undefined,
       // MEHRERE Referenzfotos (Owner 29.07.2026: „ich will mehrere hochladen"). Ein früher
       // gespeichertes Einzelfoto (`previewRefPath`) wird beim Lesen in die Liste überführt,
       // damit nichts verloren geht.
@@ -1800,6 +1810,46 @@ export async function writeWetterSubscribers(subscribers: WetterSubscriber[], mo
     body,
   });
   if (!res.ok) throw new Error("Abonnenten konnten nicht gespeichert werden.");
+}
+
+// ── Abmeldungen vom Rundbrief ───────────────────────────────────────────────
+/**
+ * DIE SPERRLISTE FÜRS PORTAL, geführt nach E-MAIL — nicht nach Abonnenten-Kennung.
+ *
+ * Owner 31.07.2026, zum Rundbrief an alle. Die Wetter-Abmeldung hängt an EINEM Datensatz;
+ * dieselbe Person steht aber oft in mehreren Quellen (Wetter, Kiss-Log, Generationen). Wer
+ * sich abmeldet, meint sich selbst — nicht einen seiner Einträge. Deshalb eine Liste, die
+ * über allen anderen steht: Wer hier drinsteht, bekommt nie wieder einen Rundbrief.
+ *
+ * Eigene Datei, damit ein Abmelden niemals die Abonnentenliste überschreiben kann.
+ */
+const MAIL_ABMELDE_PFAD = "try-this-look/mail-abmeldungen.json";
+
+export async function readMailAbmeldungen(): Promise<string[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.emails)
+      ? (data.emails as unknown[]).map(v => String(v ?? "").trim().toLowerCase()).filter(Boolean)
+      : [];
+  } catch { return []; }
+}
+
+/** Trägt eine Adresse ein. Mehrfaches Abmelden ist harmlos (idempotent). */
+export async function mailAbmelden(email: string): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return;
+  const liste = await readMailAbmeldungen();
+  if (liste.includes(e)) return;
+  await ensureBucket();
+  const body = JSON.stringify({ emails: [...liste, e].slice(-50_000), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Abmeldung konnte nicht gespeichert werden.");
 }
 
 // ── Wetter-Klick-Tracking ───────────────────────────────────────────────────
