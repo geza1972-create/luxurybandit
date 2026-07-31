@@ -760,6 +760,24 @@ export default function TryFunnelPage() {
           customerName: chosenModelName || (session?.user?.email?.split("@")[0]) || "You",
           ...(chosenModelId ? { curatorId: chosenModelId } : {}),
           ownerEmail: session?.user?.email || "", userId: session?.user?.id || "",
+          /**
+           * AUCH OHNE ANMELDUNG WIEDERFINDBAR (Owner 31.07.2026, zu My Gallery).
+           *
+           * Hier ging nur die E-Mail mit. Wer nicht angemeldet war, erzeugte damit einen
+           * Eintrag ohne JEDES Merkmal — und `/api/my-videos` sucht nach E-Mail ODER Geraet
+           * (route.ts). Ohne beides findet es ihn nie: Das Video war im System, aber fuer
+           * seinen Erzeuger verloren. Die Geraetenummer liegt ohnehin im Browser; sie
+           * mitzuschicken kostet nichts und rettet genau die Gruppe, die noch kein Konto hat.
+           */
+          visitorId: (() => {
+            try {
+              // Anlegen, falls sie fehlt — sonst haengt die Rettung daran, dass vorher
+              // zufaellig ein anderer Baustein die Nummer vergeben hat.
+              let v = localStorage.getItem("lb_visitor") ?? "";
+              if (!v) { v = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", v); }
+              return v;
+            } catch { return ""; }
+          })(),
           // Save the model/before photo so the post gets a real Before/After slide.
           ...(person.startsWith("data:image/") ? { userPhotoImage: person } : person ? { userPhotoUrl: person } : {}),
         }) }).then(r => r.json());

@@ -7,6 +7,7 @@ import { renewNote, fillPrices, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing"
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
 import { CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -428,7 +429,20 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         device = localStorage.getItem("lb_visitor") ?? "";
         if (!device) { device = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", device); }
       } catch { /**/ }
-      const email = (() => { try { return JSON.parse(localStorage.getItem("lb_auth") ?? "{}")?.user?.email ?? ""; } catch { return ""; } })();
+      /**
+       * DIE ANMELDUNG LIEGT NICHT UNTER `lb_auth` (Owner 31.07.2026: „das Video in My Gallery
+       * bleibt" — die Frage, woran es haengt).
+       *
+       * Hier stand `localStorage.getItem("lb_auth")`. Diesen Schluessel gibt es im ganzen
+       * Projekt nicht; die Sitzung liegt unter `luxurybandit-auth-session`. Die Abfrage lief
+       * also immer ins Leere, `email` blieb leer, und jedes Video hing NUR am Geraet — auch
+       * bei angemeldeten Nutzern. Auf einem zweiten Geraet oder nach dem Loeschen der
+       * Browserdaten war es unauffindbar.
+       *
+       * Ein stiller Fehler dieser Art faellt nie auf: Es sieht alles richtig aus, solange man
+       * dasselbe Handy benutzt. Deshalb hier die eine Funktion, die den Schluessel kennt.
+       */
+      const email = getStoredAuthSession()?.user?.email ?? "";
       await fetch("/api/my-videos", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ videoUrl, lookId, curatorId: useCustom ? "" : (picked?.id ?? ""), lookName: herName ? `${herName}` : "", device, email, source: "chat" }),

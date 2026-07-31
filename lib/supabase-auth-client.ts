@@ -52,11 +52,35 @@ const normalizeSession = (payload: Partial<SupabaseAuthSession>) => {
   return payload as SupabaseAuthSession;
 };
 
+/**
+ * EINE ABGELAUFENE SITZUNG IST KEINE SITZUNG (Owner 31.07.2026: „er bleibt nicht eingeloggt
+ * oder doch, weiss ich nicht").
+ *
+ * Genau dieses „weiss ich nicht" war der Fehler, und zwar hier: Geprueft wurden nur
+ * `access_token` und `user.id`, NIE das Ablaufdatum. Ein Zugangs-Token laeuft nach etwa einer
+ * Stunde ab. Danach zeigte die Oberflaeche weiter „angemeldet" — waehrend jeder Serveraufruf
+ * mit 401 zurueckkam. Angemeldet aussehen und abgemeldet sein ist schlimmer als beides
+ * einzeln: Man sucht den Fehler ueberall, nur nicht bei der Anmeldung.
+ *
+ * `erneuerbar` ist der Grund fuer die Ausnahme: Wer ein Refresh-Token hat, ist NICHT
+ * abgemeldet — er wartet nur auf die Erneuerung, die `AuthRefresh` beim naechsten Blick auf
+ * die Seite ohnehin anstoesst. Wuerde man ihn hier abweisen, floege er trotz gueltiger
+ * Anmeldung raus, sobald er das Handy eine Stunde weglegt.
+ */
 export function getStoredAuthSession() {
   try {
     const stored = window.localStorage.getItem(AUTH_STORAGE_KEY);
     if (!stored) return null;
-    return normalizeSession(JSON.parse(stored) as Partial<SupabaseAuthSession>);
+    const s = normalizeSession(JSON.parse(stored) as Partial<SupabaseAuthSession>);
+    if (!s) return null;
+    const abgelaufen = !!s.expires_at && s.expires_at * 1000 <= Date.now();
+    const erneuerbar = !!s.refresh_token;
+    if (abgelaufen && !erneuerbar) {
+      // Kein Weg zurueck: aufraeumen, statt einen toten Ausweis herumliegen zu lassen.
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+    return s;
   } catch {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
