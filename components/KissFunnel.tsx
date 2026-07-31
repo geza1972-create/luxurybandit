@@ -341,7 +341,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * muesste der halbe Zustand durch die Seite gereicht werden.
    */
   useEffect(() => {
-    const auf = () => setStufenOffen(true);
+    const auf = () => { setSchritt(1); setStufenOffen(true); };
     window.addEventListener("lb-schritte-oeffnen", auf);
     return () => window.removeEventListener("lb-schritte-oeffnen", auf);
   }, []);
@@ -923,10 +923,30 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const ALTES_ERGEBNIS_FENSTER = true;
 
+  /**
+   * DIE SCHRITTE OEFFNEN — IMMER BEIM ERSTEN (Owner 31.07.2026: „Klick auf Bilder öffnet
+   * Schritt 4 und ist leer" — „ich kann gar nichts uploaden").
+   *
+   * Das war ein echter Fehler und er hat mich zwei Meldungen gekostet, bis ich ihn verstanden
+   * habe: Wer ein Ergebnis hat, steht auf Schritt 4. Der Knopf oeffnete den Dialog, ohne
+   * zurueckzusetzen — also stand dort der ERGEBNIS-Schritt, und der ist im Dialog leer, weil
+   * das Ergebnis inzwischen in der Karte liegt. Kein Upload, keine Fotos, nichts.
+   *
+   * „Personen ersetzen" heisst von vorn. Also zurueck auf Schritt 1, und zwar an EINER
+   * Stelle, ueber die alle Wege laufen: der Knopf auf der Karte, die Tastatur und der Ruf aus
+   * der Galerie. Drei Aufrufer, die dasselbe tun muessen, sind sonst drei Gelegenheiten, es
+   * einmal zu vergessen.
+   */
+  const schritteOeffnen = () => {
+    setSchritt(1);
+    setStufenOffen(true);
+    track("photo");
+  };
+
   const kartenGriff = (text: string) => (
     <div role="button" tabIndex={0} aria-label={text}
-      onClick={() => { setStufenOffen(true); track("photo"); }}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStufenOffen(true); track("photo"); } }}
+      onClick={schritteOeffnen}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schritteOeffnen(); } }}
       className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
       {/* CI-KNOPF, NICHT KARTEN-GOLD (Owner 31.07.2026: „du nimmst die falschen Farben für
           CTA, kein Gold sondern blau bei light und gelb bei dark").
