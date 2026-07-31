@@ -133,7 +133,7 @@ export default async function KissThemePage({ searchParams }: {
                 {[
                   { href: "/themes/tryon", t: "Try-On", d: "See any look on your dream model — in a video.", e: "✨", img: cover["tryon"] ?? "" },
                   { href: "/themes/wetter/bella", t: "Morning Weather", d: "Wake up to her message — your weather, a new look, a chat.", e: "☀️", img: cover["wetter"] ?? "" },
-                  { href: "/themes/chat", t: "Chat with an AI girl", d: "Text her every day — she answers in your language.", e: "💬", img: cover["chat"] ?? "" },
+                  { href: "/themes/chat", t: "Chat with an AI girl", d: "Text her whenever you want — she answers in your language.", e: "💬", img: cover["chat"] ?? "" },
                   { href: "/themes/holiday", t: "Holiday with her", d: "You and her: beach, kiss, coffee, dancing.", e: "🌴", img: cover["holiday"] ?? "" },
                   { href: "/themes/bella", t: "Tenerife with Bella", d: "Not her holiday — yours, with you in the picture.", e: "🏝", img: cover["bella"] ?? "" },
                   { href: "/your-idol", t: "Your idol with you", d: "The two of you together, in one video.", e: "⭐", img: cover["idol"] ?? "" },
@@ -167,18 +167,26 @@ export default async function KissThemePage({ searchParams }: {
               <div>
                 <SectionTitle>Kiss video AI generator — online, no app</SectionTitle>
                 <Lead>
-                  An AI kiss video maker that works with your own photo: pick one of our AI models or
-                  upload a screenshot of any star, add a picture of yourself, and the kiss video AI
-                  generator renders the two of you sharing one tender kiss. Face swap kiss videos
-                  straight in the browser — nothing to install.
+                  You are in the video, not just watching one. Add a photo of yourself, pick one of
+                  our AI models or upload a screenshot of any star, and the kiss video AI generator
+                  renders the two of you sharing one tender kiss. The first picture is free, so you
+                  see the result before you decide anything. Straight in the browser — nothing to
+                  install.
                 </Lead>
               </div>
               <div>
-                <SectionTitle>One of a kind — and the expensive AI behind it</SectionTitle>
+                {/* Hier standen zwei Superlative, die niemand belegen kann („one of a kind",
+                    „the priciest models available") — dieselben, die auf der Startseite raus
+                    sind. Eine Werbeaussage, die man nicht beweisen kann, ist angreifbar und
+                    klingt beim Leser ohnehin nach Marktschreier. Das echte Kaufargument ist
+                    konkret, ueberpruefbar und erklaert nebenbei den Preis. */}
+                <SectionTitle>Why the face still looks like your face</SectionTitle>
                 <Lead>
-                  No other platform puts a whole AI influencer at your side: she chats, she wears
-                  what you choose, she stars in your videos. We deliberately run the priciest video
-                  models available, because cheap ones lose the face. AI-generated, private, yours.
+                  A kiss is the hardest thing to render: it is exactly where the two faces meet,
+                  half-turned and in motion. We run the video models that hold the face and the
+                  movement — cheaper ones lose both, and then it is not your face any more. That
+                  is the whole point of putting yourself in the picture. AI-generated, private,
+                  yours: your photo is never published and never shown to another user.
                 </Lead>
               </div>
             </section>

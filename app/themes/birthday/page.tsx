@@ -78,11 +78,17 @@ export default async function BirthdayThemePage({ searchParams }: {
                 </Lead>
               </div>
               <div>
-                <SectionTitle>Why this is unlike anything else</SectionTitle>
+                {/* Drei Fehler in drei Zeilen, alle heute schon anderswo behoben: ein
+                    Superlativ, den niemand belegen kann; „influencer marketplace", das das
+                    Produkt nicht mehr trifft; und „sends you a message every morning" — das
+                    taegliche Versprechen, das es nicht mehr gibt. */}
+                <SectionTitle>Why the name actually sounds right</SectionTitle>
                 <Lead>
-                  LuxuryBandit is an AI influencer marketplace, not a video app: the same woman sends
-                  you a message every morning, wears the looks you pick, chats with you — and here she
-                  sings out a birthday. Built on the most expensive AI video models on the market.
+                  A name spoken out loud is where cheap AI falls apart: the mouth stops matching
+                  the word. We run the video models that keep the lips in sync and the face
+                  steady, so it sounds like a person saying that name — not a template with a
+                  caption. And it is the same model you can chat with and put in your other
+                  videos.
                 </Lead>
               </div>
             </section>
