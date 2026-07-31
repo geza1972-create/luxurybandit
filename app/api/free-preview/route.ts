@@ -394,6 +394,32 @@ export async function POST(request: Request) {
     ? "Image 1 is a photo of a real couple: the two people in it are the couple. Use BOTH of their faces from this one photo."
     : "Image 1 is a photo of a real person. Image 2 is a photo of another person.";
 
+  /**
+   * DREI STUFEN NAEHE FUER DEN KUSS — gemessen am 31.07.2026 abends, je Satz mehrfach, mit
+   * denselben zwei Fotos:
+   *
+   *   Kuss auf den Mund     … kam bei 1 von 5 Laeufen durch (safety_violations=[sexual])
+   *   Fast-Kuss (lips almost touching) … 1 von 2
+   *   Umarmung              … jedes Mal
+   *
+   * Die Pruefung WUERFELT bei romantischen Auftraegen mit echten Fotos — derselbe Satz, mal
+   * ja, mal nein. Ein einzelner Versuch je Lauf ist damit kein Produkt. Deshalb unten im
+   * Kuss-Zweig: Kuss und Fast-Kuss PARALLEL (das Zeitbudget traegt keine zwei Anlaeufe
+   * hintereinander), das beste durchgekommene Ergebnis gewinnt; scheitern beide, faengt die
+   * Umarmung auf. So bekommt praktisch jeder ein Bild, und wer Glueck hat, den Kuss.
+   */
+  const SATZ_KUSS =
+    "Generate ONE photorealistic image of these two people as a loving couple sharing a tender, "
+    + "romantic kiss on the lips — lips gently touching, eyes closed, faces close together. "
+    + "A sweet, heartfelt moment, both fully clothed. ";
+  const SATZ_FAST_KUSS =
+    "Generate ONE photorealistic image of these two people as a loving couple leaning in to "
+    + "kiss — faces very close, eyes closed, lips almost touching. A sweet, heartfelt moment, "
+    + "both fully clothed. ";
+  const SATZ_UMARMUNG =
+    "Generate ONE photorealistic image showing BOTH people together, embracing each other "
+    + "and smiling, happy and relaxed. ";
+
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : hochzeit ? [
@@ -409,8 +435,7 @@ export async function POST(request: Request) {
     alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
-  ].filter(Boolean).join("\n\n") : [
-    vorlagenSatz,
+  ].filter(Boolean).join("\n\n") : bauePrompt(
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
     /**
@@ -423,12 +448,20 @@ export async function POST(request: Request) {
      * griechischen Terrasse — der Kern des Versprechens fehlte im Auftrag.
      *
      * „lips touching" steht ausdruecklich da: „kissing" allein reicht dem Modell nicht, es
-     * malt dann Wange an Wange. Und ein Kuss bleibt ein Kuss — die Deckungsregel weiter
-     * unten sorgt dafuer, dass beide angezogen bleiben.
+     * malt dann Wange an Wange. Die Fassungen und ihre gemessenen Durchlassquoten stehen
+     * oben bei SATZ_KUSS.
      */
     theme === "kiss"
-    ? "Generate ONE photorealistic image of these two people sharing a tender kiss on the lips — lips actually touching, eyes closed, faces close together, his hand on her cheek or waist. Intimate but tasteful. "
+    ? SATZ_KUSS
     : "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed. "
+  );
+
+  // Das Geruest um den ersten Satz herum ist fuer alle Stufen dasselbe — Vorlagen, Oberteil,
+  // Szene, Identitaet, Alter, Deckung. Als Funktion, damit die Kuss-Leiter unten drei
+  // Fassungen desselben Auftrags bauen kann, ohne dass sie auseinanderlaufen.
+  function bauePrompt(erster: string): string {
+    return [
+    vorlagenSatz,
     // IHR EIGENES OBERTEIL BLEIBT (Owner 30.07.2026: „die Dame hatte ein schoenes rotes
     // Oberteil. Ich haette das gerne behalten. Das war schon aus Seide. Er hat zwar was
     // Schoenes generiert, aber nicht in ihrer Farbe.")
@@ -438,6 +471,7 @@ export async function POST(request: Request) {
     // Modell eines und wirft ihres weg. Jetzt zaehlt die Vorlage: Farbe, Stoff und Schnitt
     // aus Bild 2 bleiben. Die Deckungsregel oben greift weiterhin — ist ihr Oberteil zu
     // freizuegig, wird es ergaenzt, nicht ersetzt.
+    erster
     + "Keep her outfit from image 2 exactly as it is — the same colour, the same fabric and "
     + "the same cut. Do not invent a different dress and do not change its colour. "
     + "If her top is too revealing, extend it into a full elegant garment in THE SAME COLOUR "
@@ -451,7 +485,8 @@ export async function POST(request: Request) {
     alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
-  ].filter(Boolean).join("\n\n");
+    ].filter(Boolean).join("\n\n");
+  }
 
   // MEHRERE ANLÄUFE, wenn die Bildmoderation eine Vorlage ablehnt.
   //
@@ -484,6 +519,57 @@ export async function POST(request: Request) {
       let res: Response | null = null;
       let j: { data?: { b64_json?: string }[]; error?: { message?: string } } | null = null;
 
+      // Ein OpenAI-Aufruf mit gegebenem Auftrag und Vorlagen — von Leiter wie Anlauf-Schleife
+      // benutzt, damit es genau EINE Stelle gibt, an der der Aufruf gebaut wird.
+      type Antwort = { res: Response; j: { data?: { b64_json?: string }[]; error?: { message?: string } } | null };
+      const openaiBild = async (p: string, vPerson: string, vModel: string): Promise<Antwort | { fehler: string }> => {
+        const form = new FormData();
+        form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
+        form.append("prompt", p);
+        form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
+        form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
+        form.append("n", "1");
+        const pb = dataUrlToBlob(vPerson), mb = dataUrlToBlob(vModel);
+        // Beim gemeinsamen Foto gibt es nur EINE Vorlage — beide Gesichter stehen darauf.
+        if (!pb || (!gemeinsam && !mb)) return { fehler: "Fotos konnten nicht gelesen werden." };
+        form.append("image[]", pb, "person.png");
+        if (mb) form.append("image[]", mb, "model.png");
+        const r = await fetch("https://api.openai.com/v1/images/edits", {
+          method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
+        });
+        return { res: r, j: await r.json().catch(() => null) };
+      };
+      const sicherheitsAblehnung = (a: Antwort) => /safety|moderation|rejected/i.test(String(a.j?.error?.message ?? ""));
+
+      if (theme === "kiss" && !eigener) {
+        /**
+         * DIE KUSS-LEITER (Messwerte oben bei SATZ_KUSS): Kuss und Fast-Kuss PARALLEL, weil
+         * das 50-s-Budget keine zwei Anlaeufe hintereinander traegt (Ablehnung ~21–27 s,
+         * Erfolg ~19–38 s). Kommt der Kuss durch, gewinnt der Kuss; sonst der Fast-Kuss;
+         * sonst — die Ablehnungen kommen frueh genug — die Umarmung als Netz.
+         *
+         * KOSTEN, offen gerechnet: Abgelehnte Auftraege liefern kein Bild; bezahlt werden
+         * Treffer. Erwartet ~1,1 Bilder je Lauf statt 1 — der Preis dafuer, dass ueberhaupt
+         * geliefert wird. Vorher kam bei 3 von 4 Laeufen GAR NICHTS.
+         */
+        const [a, b] = await Promise.all([
+          openaiBild(prompt, versuchPerson, versuchModel),
+          openaiBild(bauePrompt(SATZ_FAST_KUSS), versuchPerson, versuchModel),
+        ]);
+        if ("fehler" in a || "fehler" in b) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
+        let sieger: Antwort | null = a.res.ok ? a : b.res.ok ? b : null;
+        if (!sieger) {
+          letzterFehler = String(a.j?.error?.message ?? b.j?.error?.message ?? letzterFehler);
+          if ((sicherheitsAblehnung(a) || sicherheitsAblehnung(b)) && zeitLinks() > 20_000) {
+            const c = await openaiBild(bauePrompt(SATZ_UMARMUNG), versuchPerson, versuchModel);
+            if (!("fehler" in c)) {
+              if (c.res.ok) sieger = c;
+              else letzterFehler = String(c.j?.error?.message ?? letzterFehler);
+            }
+          }
+        }
+        res = (sieger ?? a).res; j = (sieger ?? a).j;
+      } else
       for (let anlauf = 0; anlauf < 2; anlauf++) {
         // Zweiter Anlauf nur, wenn dafür noch Zeit ist (er kostet noch einmal ~35 s).
         if (anlauf === 1 && zeitLinks() < 30_000) break;
@@ -503,22 +589,9 @@ export async function POST(request: Request) {
           if (gm) versuchModel = gm;
           if (gp) versuchPerson = gp;
         }
-        const form = new FormData();
-        form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
-        form.append("prompt", prompt);
-        form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
-        form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
-        form.append("n", "1");
-        const pb = dataUrlToBlob(versuchPerson), mb = dataUrlToBlob(versuchModel);
-        // Beim gemeinsamen Foto gibt es nur EINE Vorlage — beide Gesichter stehen darauf.
-        if (!pb || (!gemeinsam && !mb)) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
-        form.append("image[]", pb, "person.png");
-        if (mb) form.append("image[]", mb, "model.png");
-
-        res = await fetch("https://api.openai.com/v1/images/edits", {
-          method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
-        });
-        j = await res.json().catch(() => null);
+        const antwort = await openaiBild(prompt, versuchPerson, versuchModel);
+        if ("fehler" in antwort) return NextResponse.json({ error: antwort.fehler }, { status: 400 });
+        res = antwort.res; j = antwort.j;
         if (res.ok) break;
         const m = String(j?.error?.message ?? "");
         if (!/safety|moderation|rejected/i.test(m)) break;   // echter Fehler → nicht weiter probieren
