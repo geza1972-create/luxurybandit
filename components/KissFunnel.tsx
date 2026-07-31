@@ -304,6 +304,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     void logFunnelEvent(`funnel_${step}`, { lookId: `funnel-${variant}`, lookName: `${variant}-Trichter` });
   // Die Schritte liegen im Dialog. Zu ist der Normalfall: Dann steht die Karte allein da.
   const [stufenOffen, setStufenOffen] = useState(false);
+  /**
+   * FRISCH ERZEUGT ODER NUR WIEDERHERGESTELLT? (Owner 31.07.2026: „sieht das der User? Mein
+   * Bild?" — und gleich danach: „er muss das Video sehen".)
+   *
+   * Sein Bild sieht KEIN Fremder: Es liegt in seinem eigenen Browser (MERK_KEY) und wird nie
+   * ausgeliefert. Aber ER sah es — und damit verdeckte ein altes Ergebnis beim naechsten
+   * Besuch genau das, was die Seite verkauft: das VIDEO.
+   *
+   * Deshalb zwei verschiedene Dinge, die vorher eines waren: Ein Bild, das er GERADE erzeugt
+   * hat, gehoert in die Karte — das ist die Belohnung. Ein Bild von gestern gehoert es nicht;
+   * dort laeuft wieder das Beispiel. Der Kaufblock kennt den Unterschied nicht und arbeitet
+   * mit beiden weiter — wer bezahlt hat, soll sein Ergebnis nicht verlieren.
+   */
+  const [frischErzeugt, setFrischErzeugt] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
@@ -824,6 +838,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Nimmt den gemerkten Stand mit: Sonst ist das Foto nach einem Neuladen wieder da, und sie
    * denkt zu Recht, das Löschen sei kaputt.
    */
+  /**
+   * DAS ERGEBNIS AUS SEINER ANSICHT NEHMEN (Owner 31.07.2026: „dann will ich es löschen
+   * können" — und als Dauerregel schon am selben Tag: „jedes Bild darf der User löschen aus
+   * seiner Ansicht. Es darf nie da bleiben.").
+   *
+   * Aus SEINER Ansicht, nicht aus dem System: In der Galerie des Betreibers bleibt es stehen
+   * („bei mir in der Gallerie müssen sie als Beweis bleiben, auch wenn sie es löschen") — das
+   * ist der Nachweis, wer was erzeugt hat. Hier verschwindet nur, was er sieht: der Zustand
+   * und der Browser-Speicher. Danach laeuft in der Karte wieder das Beispielvideo.
+   */
+  const ergebnisLoeschen = () => {
+    setBild(""); setBildPfad(""); setFrischErzeugt(false); setVideoUrl(""); setTeaser(false);
+    try { localStorage.removeItem(MERK_KEY); } catch { /* privater Modus */ }
+  };
+
   const fotoLoeschen = (wer: "sie" | "er") => {
     if (wer === "sie") { setCustomModel(""); setUseCustom(false); }
     else setPhoto("");
@@ -1019,6 +1048,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         return;
       }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setGesperrt(false); setGescheitert(false); setBusy(false); setStatus("");
+      setFrischErzeugt(true);
       // SOFORT MERKEN, nicht erst nach der Adresse (Owner 30.07.2026: „das rendering ist
       // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
       // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
@@ -1364,9 +1394,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         sprache={lang} sie="" er="" demo
         titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
         video={
-          bild ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
+          frischErzeugt && bild ? (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
+              {/* Roter Papierkorb, weiss hinterlegt — dieselbe Form wie an jedem anderen Bild
+                  im Projekt, damit man ihn nicht suchen muss. */}
+              <button type="button" onClick={ergebnisLoeschen} aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).loeschen}
+                style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                className="absolute left-2 top-2 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
           ) : beispielVideo ? (
             <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
               tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
@@ -1383,7 +1422,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <button type="button" onClick={() => { setStufenOffen(true); track("photo"); }}
         className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black transition active:scale-95">
         <Sparkles className="h-4 w-4 shrink-0" />
-        {bild ? (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ersetzen : T.ctaFree}
+        {frischErzeugt && bild ? (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ersetzen : T.ctaFree}
       </button>
 
       {/* ── DIE SCHRITTE, unveraendert, nur in einem Dialog ──────────────────────────────
