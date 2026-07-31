@@ -2,6 +2,7 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
+import { Check } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -39,6 +40,24 @@ export const dynamic = "force-dynamic";
  * einer Aufgabe. Die Begriffe stehen deshalb in Titel, Beschreibung UND im sichtbaren Text —
  * Google bewertet, was auf der Seite steht, nicht was in den Metadaten behauptet wird.
  */
+/**
+ * BEISPIELDATEN FUER DIE KARTEN unter dem Trichter. Erkennbar Muster, kein echtes Paar.
+ * Der Ort wechselt mit der Sprache — eine rumaenische Besucherin soll sich die Einladung
+ * vorstellen koennen, nicht eine fremde Stadt lesen.
+ */
+/** Die Sprachen, in denen die Einladung selbst erscheint — in der jeweiligen Sprache
+ *  geschrieben, damit ein Gast seine eigene erkennt, ohne zu ueberlegen. */
+const SPRACH_LABELS = [
+  { code: "en", label: "English" }, { code: "ro", label: "Română" },
+  { code: "fr", label: "Français" }, { code: "es", label: "Español" },
+  { code: "it", label: "Italiano" }, { code: "pt", label: "Português" },
+  { code: "de", label: "Deutsch" },
+];
+const BEISPIEL_NAMEN: [string, string][] = [["Ana", "Mihai"], ["Elena", "Andrei"]];
+const BEISPIEL_ORT: Record<string, string> = {
+  de: "Berlin", en: "London", ro: "București", es: "Madrid", fr: "Paris", pt: "Lisboa", it: "Roma",
+};
+
 export const metadata = {
   title: "Digital wedding invitation video — send it on WhatsApp | LuxuryBandit",
   description: "Make your wedding invitation as a video: upload one photo of you and one of him, and the two of you appear at your wedding. Send the invitation link on WhatsApp — the picture is free.",
@@ -64,6 +83,10 @@ export default async function WeddingThemePage({ searchParams }: {
   const showCustomer = !showAdmin || view === "kunde";
 
   const cfg = await readThemeConfig("wedding").catch(() => ({ modelIds: [] as string[], examplePaths: [] as string[] }));
+  // Rund hundert Tage voraus: So weit im Voraus verschickt man Einladungen, und es steht
+  // damit immer in der Zukunft — anders als ein eingetipptes Datum.
+  const inHundertTagen = new Date(Date.now() + 100 * 24 * 60 * 60 * 1000);
+  const beispielDatum = inHundertTagen.toISOString().slice(0, 10);
   const examples: string[] = (await Promise.all((cfg.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
   return (
@@ -95,9 +118,38 @@ export default async function WeddingThemePage({ searchParams }: {
             {examples.length > 0 && (
               <div className="mt-12">
                 <SectionTitle>{T.examples}</SectionTitle>
-                <ExampleVideos urls={examples} />
+                {/* IN DER KARTE, NICHT NACKT (Owner 31.07.2026: „unten zeigst du die
+                    Videos. Ich will die Einladungskarte sehen. Der User muss gleich sehen,
+                    was er bekommt"). Namen und Ort sind erkennbar Beispiele; das Datum wird
+                    hier gerechnet und nicht eingetippt, sonst steht in einem halben Jahr ein
+                    Termin in der Vergangenheit auf der Verkaufsseite. */}
+                <ExampleVideos urls={examples} karte={{
+                  sprache: L,
+                  paare: [
+                    { sie: BEISPIEL_NAMEN[0][0], er: BEISPIEL_NAMEN[0][1], datum: beispielDatum, ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en },
+                    { sie: BEISPIEL_NAMEN[1][0], er: BEISPIEL_NAMEN[1][1], datum: beispielDatum, ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en },
+                  ],
+                }}
+                  sprachen={SPRACH_LABELS}
+                  sprachenTitel={T.einlSprachen} />
               </div>
             )}
+            {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen was er bekommt").
+                Direkt unter der Karte: Erst sieht er sie, dann liest er in fuenf Zeilen, was
+                dazugehoert. Jede Zeile ist etwas, das es wirklich gibt — eine Liste, die mehr
+                verspricht als die Seite haelt, kostet beim ersten Kunden mehr, als sie
+                einbringt. */}
+            <div className="mt-5 rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.05] p-4">
+              <p className="text-[15px] font-black text-white">{T.bekommstTitel}</p>
+              <ul className="mt-2 space-y-1.5">
+                {T.bekommst.map((zeile, i) => (
+                  <li key={i} className="flex gap-2 text-[13px] font-bold leading-snug text-white/80">
+                    <Check className="mt-[3px] h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
+                    <span>{zeile}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             {/* KEIN ABO AUF DER HOCHZEITSSEITE (Konzept §5, Owner 31.07.2026). Hier stand
                 „Die heisseste KI-Erfahrung freischalten — 24,50 €/Monat": der Kuss-Kasten,

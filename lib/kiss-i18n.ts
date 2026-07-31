@@ -55,6 +55,7 @@ export type KissText = {
   // Die Hochzeitseinladung am fertigen Video (nur in der Hochzeits-Variante sichtbar).
   einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
   einlSprachen: string; einlVorschau: string;
+  bekommstTitel: string; bekommst: string[];
   einlOrt: string; einlMachen: string; einlFertig: string; einlWhatsapp: string; einlKopiert: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
   privat: string;
@@ -134,6 +135,14 @@ const EN: KissText = {
   einlKnopf: "💌 Send it as your invitation", einlTitel: "Your wedding invitation",
   einlSprachen: "Each guest sees it in their own language — automatically.",
   einlVorschau: "This is what your guests see",
+  bekommstTitel: "What you get",
+  bekommst: [
+    "Your own invitation page with your names, the date and the place",
+    "The video with the two of you in it, with music",
+    "One link for WhatsApp — no app and no sign-up for your guests",
+    "Every guest reads it in their own language, by itself",
+    "You see how many guests opened it — and you can take the link back at any time",
+  ],
   einlSie: "Her first name", einlEr: "His first name", einlDatum: "Date (optional)",
   einlOrt: "Place (optional)", einlMachen: "Create invitation", einlFertig: "Your invitation is ready",
   einlWhatsapp: "Send on WhatsApp", einlKopiert: "Link copied",
@@ -205,6 +214,14 @@ const DE: KissText = {
   einlKnopf: "💌 Als Einladung verschicken", einlTitel: "Eure Hochzeitseinladung",
   einlSprachen: "Jeder Gast sieht sie in seiner Sprache — von selbst.",
   einlVorschau: "So sehen es eure Gäste",
+  bekommstTitel: "Das bekommt ihr",
+  bekommst: [
+    "Eine eigene Einladungsseite mit euren Namen, dem Datum und dem Ort",
+    "Das Video mit euch beiden, mit Musik",
+    "Einen Link für WhatsApp — ohne App und ohne Anmeldung für eure Gäste",
+    "Jeder Gast liest sie von selbst in seiner Sprache",
+    "Ihr seht, wie viele Gäste sie geöffnet haben — und könnt den Link jederzeit zurückziehen",
+  ],
   einlSie: "Ihr Vorname", einlEr: "Sein Vorname", einlDatum: "Datum (optional)",
   einlOrt: "Ort (optional)", einlMachen: "Einladung erstellen", einlFertig: "Eure Einladung ist fertig",
   einlWhatsapp: "Per WhatsApp schicken", einlKopiert: "Link kopiert",
@@ -276,6 +293,14 @@ const RO: KissText = {
   einlKnopf: "💌 Trimite-l ca invitație", einlTitel: "Invitația voastră de nuntă",
   einlSprachen: "Fiecare invitat o vede în limba lui — automat.",
   einlVorschau: "Așa o văd invitații voștri",
+  bekommstTitel: "Ce primiți",
+  bekommst: [
+    "O pagină de invitație numai a voastră, cu numele, data și locul",
+    "Videoclipul cu voi doi, cu muzică",
+    "Un link pentru WhatsApp — fără aplicație și fără cont pentru invitați",
+    "Fiecare invitat o citește singur în limba lui",
+    "Vedeți câți invitați au deschis-o — și puteți retrage linkul oricând",
+  ],
   einlSie: "Prenumele ei", einlEr: "Prenumele lui", einlDatum: "Data (opțional)",
   einlOrt: "Locul (opțional)", einlMachen: "Creează invitația", einlFertig: "Invitația voastră e gata",
   einlWhatsapp: "Trimite pe WhatsApp", einlKopiert: "Link copiat",
@@ -347,6 +372,14 @@ const ES: KissText = {
   einlKnopf: "💌 Enviarlo como invitación", einlTitel: "Vuestra invitación de boda",
   einlSprachen: "Cada invitado la ve en su idioma — automáticamente.",
   einlVorschau: "Así lo ven vuestros invitados",
+  bekommstTitel: "Esto es lo que recibís",
+  bekommst: [
+    "Vuestra propia página de invitación con vuestros nombres, la fecha y el lugar",
+    "El vídeo con vosotros dos, con música",
+    "Un enlace para WhatsApp — sin app y sin registro para vuestros invitados",
+    "Cada invitado la lee en su idioma, automáticamente",
+    "Veis cuántos invitados la han abierto — y podéis retirar el enlace cuando queráis",
+  ],
   einlSie: "Su nombre (ella)", einlEr: "Su nombre (él)", einlDatum: "Fecha (opcional)",
   einlOrt: "Lugar (opcional)", einlMachen: "Crear invitación", einlFertig: "Vuestra invitación está lista",
   einlWhatsapp: "Enviar por WhatsApp", einlKopiert: "Enlace copiado",
@@ -418,6 +451,14 @@ const FR: KissText = {
   einlKnopf: "💌 L'envoyer comme invitation", einlTitel: "Votre invitation de mariage",
   einlSprachen: "Chaque invité la voit dans sa langue — automatiquement.",
   einlVorschau: "Voilà ce que voient vos invités",
+  bekommstTitel: "Ce que vous recevez",
+  bekommst: [
+    "Votre propre page d’invitation avec vos noms, la date et le lieu",
+    "La vidéo avec vous deux, en musique",
+    "Un lien pour WhatsApp — sans appli ni inscription pour vos invités",
+    "Chaque invité la lit dans sa langue, tout seul",
+    "Vous voyez combien d’invités l’ont ouverte — et vous pouvez retirer le lien à tout moment",
+  ],
   einlSie: "Son prénom (elle)", einlEr: "Son prénom (lui)", einlDatum: "Date (facultatif)",
   einlOrt: "Lieu (facultatif)", einlMachen: "Créer l'invitation", einlFertig: "Votre invitation est prête",
   einlWhatsapp: "Envoyer sur WhatsApp", einlKopiert: "Lien copié",
@@ -489,6 +530,14 @@ const PT: KissText = {
   einlKnopf: "💌 Enviar como convite", einlTitel: "O vosso convite de casamento",
   einlSprachen: "Cada convidado vê-o na sua língua — automaticamente.",
   einlVorschau: "É assim que os vossos convidados veem",
+  bekommstTitel: "Isto é o que recebem",
+  bekommst: [
+    "Uma página de convite só vossa, com os nomes, a data e o local",
+    "O vídeo com os dois, com música",
+    "Um link para o WhatsApp — sem app e sem registo para os convidados",
+    "Cada convidado lê-o na sua língua, sozinho",
+    "Veem quantos convidados o abriram — e podem retirar o link quando quiserem",
+  ],
   einlSie: "O primeiro nome dela", einlEr: "O primeiro nome dele", einlDatum: "Data (opcional)",
   einlOrt: "Local (opcional)", einlMachen: "Criar convite", einlFertig: "O vosso convite está pronto",
   einlWhatsapp: "Enviar no WhatsApp", einlKopiert: "Link copiado",
@@ -561,6 +610,14 @@ const IT: KissText = {
   einlKnopf: "💌 Mandalo come invito", einlTitel: "Il vostro invito di matrimonio",
   einlSprachen: "Ogni invitato lo vede nella sua lingua — automaticamente.",
   einlVorschau: "Ecco cosa vedono i vostri invitati",
+  bekommstTitel: "Ecco cosa ricevete",
+  bekommst: [
+    "Una pagina d’invito tutta vostra, con i nomi, la data e il luogo",
+    "Il video con voi due, con la musica",
+    "Un link per WhatsApp — senza app e senza registrazione per i vostri invitati",
+    "Ogni invitato lo legge nella sua lingua, da solo",
+    "Vedete quanti invitati l’hanno aperto — e potete ritirare il link quando volete",
+  ],
   einlSie: "Il nome di lei", einlEr: "Il nome di lui", einlDatum: "Data (facoltativo)",
   einlOrt: "Luogo (facoltativo)", einlMachen: "Crea l'invito", einlFertig: "Il vostro invito è pronto",
   einlWhatsapp: "Invia su WhatsApp", einlKopiert: "Link copiato",

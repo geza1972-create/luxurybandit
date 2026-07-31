@@ -485,3 +485,7 @@ svg {
 /* Der Ton-Knopf liegt auf dem Video und braucht seine dunkle Scheibe — die Regel oben
    wuerde ihn sonst mit einfaerben. */
 .lb-karte [data-tonknopf="1"] { background: rgba(0,0,0,0.55) !important; }
+/* Bedienung, die AUF dem Video liegt, behaelt ihr Weiss — auch in der Einladungskarte, wo
+   sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
+.lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
+.lb-karte [data-aufmedien="1"] svg { color: #fff !important; stroke: #fff !important; fill: #fff !important; opacity: 1; }
