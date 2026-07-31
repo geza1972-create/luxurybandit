@@ -16,7 +16,15 @@ import LangSwitch from "@/components/LangSwitch";
  */
 // Ohne „The" (Owner 30.07.2026: „entferne THE"). Neben den drei Symbolen rechts war die
 // Zeile zu lang und wurde abgeschnitten — man konnte das Motto nicht lesen.
-const MOTTO = "Influencer marketplace";
+/**
+ * DAS MOTTO (Owner 31.07.2026: „das Motto soll nicht mehr Influencer Marketplace stehen,
+ * sondern AI MARKETPLACE").
+ *
+ * Es steht unter dem Logo auf jeder Seite. „Influencer marketplace" beschrieb das Portal, als
+ * es um Models ging; inzwischen macht der Kunde SEIN Video mit SEINEM Foto — das ist keine
+ * Vermittlung von Influencerinnen mehr.
+ */
+const MOTTO = "AI marketplace";
 
 export default function TopNav({
   subtitle,

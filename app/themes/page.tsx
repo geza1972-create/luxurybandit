@@ -16,13 +16,13 @@ import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch laden
 
 export const metadata = {
-  title: "AI influencer marketplace — AI model videos, try-on, deepfake & chat | LuxuryBandit",
+  title: "AI marketplace — AI model videos, try-on, wedding invitations & chat | LuxuryBandit",
   description: fillPrices("One place for AI influencers: chat with an AI model, try on any look in a video, make a kiss or deepfake video with your own photo, get a birthday video with a name. {price}/month incl. {videos} videos across all topics; chatting is free.", "en"),
   keywords: ["ai influencer", "ai influencer generator", "ai model generator", "ai model girl", "ai video generator", "ai video maker", "deepfake video generator", "face swap video ai", "kiss video ai generator", "try on ai clothes", "virtual try on ai", "lingerie try on ai", "birthday video maker", "chat with ai model"],
   alternates: { canonical: "/themes" },
   openGraph: {
-    title: "LuxuryBandit — AI influencers, videos & daily messages",
-    description: "Chat with her, see any look on her in a video, get a message every morning.",
+    title: "LuxuryBandit — AI influencers, your videos & chat",
+    description: "Chat with her, see any look on her in a video, and put yourself in the picture.",
     type: "website",
   },
 };
@@ -39,7 +39,7 @@ type PageCopy = {
   items: [string, string][];
 };
 const C: Record<string, PageCopy> = {
-  ro: { kicker: "LuxuryBandit", h1a: "Alege o temă.", h1b: "Primește-o zilnic.", intro: "Fiecare temă îți trimite conținut zilnic de la influencerul tău — plus un chat cu ea.",
+  ro: { kicker: "LuxuryBandit", h1a: "Alege o temă.", h1b: "Fă-ți videoclipul.", intro: "Fotografia ta, influencerița ta, videoclipul tău — plus un chat cu ea. Noutățile vin din când în când, nu zilnic.",
     codeNote: "Codul tău {CODE} este activ: alege orice temă de mai jos — chatul este gratuit, iar plătești permanent doar {price} în loc de {list}.",
     models: "Vezi modelele noastre și vorbește cu ele →", wardrobe: "Garderobă",
     whatH: "Ce este LuxuryBandit?", whatP: "LuxuryBandit este o piață de influenceri cu influenceri AI. Alegi un model, vorbești cu ea în chat și creezi videoclipuri cu ea în orice ținută — direct în browser, fără aplicație. Fiecare chat este purtat de o persona AI, iar noi o spunem pe fiecare ecran.",
@@ -47,7 +47,7 @@ const C: Record<string, PageCopy> = {
     canH: "Ce poți face?", costH: "Cât costă?", costP: "Chatul este gratuit. Abonamentul este pentru imagini și videoclipuri: {price} pe lună, cu {videos} videoclipuri lunar în toate temele. Fiecare videoclip în plus costă {extra}. Fără abonament, un videoclip costă {once}. Te poți dezabona oricând.",
     noteH: "Bine de știut", noteP: "LuxuryBandit este doar pentru adulți — confirmi că ai peste 18 ani înainte de chat. Persona AI flirtează și te întreabă cum a fost ziua ta, dar nu pretinde niciodată sentimente și nu se dă drept persoană reală. Pentru videoclipuri cu fotografii proprii ești întrebat explicit înainte și confirmi că ai dreptul să folosești fotografia — răspunderea este a ta, iar rezultatul rămâne privat.",
     items: [["Vremea de dimineață","în fiecare dimineață îți scrie: vremea la tine, un look nou și un chat cu ea."],["Probează ținute","alegi o ținută și un model — o vezi purtând-o într-un video, din toate unghiurile."],["Lenjerie și ținute de lux","la fel, în cele mai elegante și mai intime ținute."],["Sărută orice model","încarci poza ta și vă vezi pe amândoi într-un sărut."],["Idolul tău cu tine","alegi idolul tău și vă vedeți împreună la o petrecere."],["Videoclipuri de ziua de naștere","scrii un nume și ea îi urează la mulți ani cu voce tare, pe nume."],["Vacanță cu Bella","călătorește pentru tine și aduce zilnic videoclipuri și povești."]] },
-  de: { kicker: "LuxuryBandit", h1a: "Wähle ein Thema.", h1b: "Bekomm es jeden Tag.", intro: "Jedes Thema schickt dir täglich Inhalte von deiner Influencerin — dazu ein Chat mit ihr.",
+  de: { kicker: "LuxuryBandit", h1a: "Wähle ein Thema.", h1b: "Mach dein Video.", intro: "Dein Foto, deine Influencerin, dein Video — dazu ein Chat mit ihr. Neuigkeiten kommen ab und zu, nicht jeden Tag.",
     codeNote: "Dein Code {CODE} ist aktiv: Wähle unten ein Thema — Chatten ist gratis, und du zahlst dauerhaft nur {price} statt {list}.",
     models: "Unsere Models ansehen & mit ihnen chatten →", wardrobe: "Garderobe",
     whatH: "Was ist LuxuryBandit?", whatP: "LuxuryBandit ist ein Influencer-Marktplatz mit KI-Influencerinnen. Du wählst ein Model, chattest mit ihr und erstellst Videos von ihr in jedem Outfit — direkt im Browser, ohne App. Jeden Chat führt eine KI-Persona, und wir schreiben das auf jedem Bildschirm dazu.",
@@ -55,7 +55,7 @@ const C: Record<string, PageCopy> = {
     canH: "Was kannst du damit machen?", costH: "Was kostet es?", costP: "Chatten ist gratis. Das Abo ist für Bilder und Videos: {price} im Monat, darin {videos} Videos über alle Themen zusammen. Jedes weitere Video kostet {extra}. Ohne Abo kostet ein Video {once}. Du kannst dich jederzeit abmelden.",
     noteH: "Gut zu wissen", noteP: "LuxuryBandit ist nur für Erwachsene — du bestätigst vor dem Chat, dass du 18 oder älter bist. Die KI-Persona flirtet und fragt nach deinem Tag, behauptet aber nie Gefühle und gibt sich nie als echte Person aus. Für Videos mit eigenen Fotos wirst du vorher ausdrücklich gefragt und bestätigst, dass du das Foto verwenden darfst — die Verantwortung dafür trägst du, und das Ergebnis bleibt privat.",
     items: [["Wetter am Morgen","jeden Morgen eine Nachricht: dein Wetter, ein neuer Look von ihr und ein Chat."],["Outfit anprobieren","Outfit und Model wählen — du siehst sie es tragen, von allen Seiten."],["Lingerie & Luxury Looks","dasselbe, in ihren elegantesten und intimsten Looks."],["Küsse jedes Model","lade dein Foto hoch und seht euch beide in einem Kuss."],["Dein Idol mit dir","wähle dein Idol und seht euch zusammen auf einer Party."],["Geburtstagsvideos","Namen eintippen und sie gratuliert laut, mit Namen."],["Urlaub mit Bella","sie reist für dich und bringt täglich Videos und Geschichten mit."]] },
-  en: { kicker: "LuxuryBandit", h1a: "Pick a topic.", h1b: "Get it every day.", intro: "Each topic sends daily content from your influencer — plus a chat with her.",
+  en: { kicker: "LuxuryBandit", h1a: "Pick a topic.", h1b: "Make your video.", intro: "Your photo, your influencer, your video — plus a chat with her. News comes now and then, not every day.",
     codeNote: "Your code {CODE} is active: pick any topic below — chatting is free, and you pay just {price} instead of {list}, for as long as you stay.",
     models: "See our models & chat with them →", wardrobe: "Wardrobe",
     whatH: "What is LuxuryBandit?", whatP: "LuxuryBandit is an influencer marketplace with AI influencers. You pick a model, chat with her and create videos of her in any outfit — all in your browser, no app to install. Every chat is answered by an AI persona, and we say so on every screen.",
@@ -63,7 +63,7 @@ const C: Record<string, PageCopy> = {
     canH: "What can you do with it?", costH: "How much does it cost?", costP: "Chatting is free. The subscription is for pictures and videos: {price} a month, including {videos} videos across all topics. Every further video costs {extra}. Without a subscription, one video is {once}. Cancel any time.",
     noteH: "Good to know", noteP: "LuxuryBandit is for adults only — you confirm you are 18 or older before you can chat. The AI persona flirts and asks about your day, but never claims feelings and never pretends to be a real person. For videos made from your own photos you are asked up front and confirm that you may use that photo — the responsibility is yours, and the result stays private.",
     items: [["Morning Weather","every morning she sends you a message: the weather where you are, a new look of hers, and a chat."],["Try-On","pick an outfit and a model, and watch her wear it in a video, from every angle."],["Lingerie & Luxury Looks","the same, in her most elegant and most intimate looks."],["Kiss any Model","upload your photo and see the two of you share a kiss."],["Your Idol with you","pick your idol and see the two of you together at a party."],["Birthday videos","type a name and she wishes them a happy birthday out loud, by name."],["Holiday with your dream girl","upload your photo, pick her and pick the moment — you make the videos."]] },
-  es: { kicker: "LuxuryBandit", h1a: "Elige un tema.", h1b: "Recíbelo cada día.", intro: "Cada tema te envía contenido diario de tu influencer — además de un chat con ella.",
+  es: { kicker: "LuxuryBandit", h1a: "Elige un tema.", h1b: "Haz tu vídeo.", intro: "Tu foto, tu influencer, tu vídeo — y un chat con ella. Las novedades llegan de vez en cuando, no cada día.",
     codeNote: "Tu código {CODE} está activo: elige cualquier tema abajo — chatear es gratis y pagas siempre solo {price} en vez de {list}.",
     models: "Ver nuestras modelos y chatear con ellas →", wardrobe: "Armario",
     whatH: "¿Qué es LuxuryBandit?", whatP: "LuxuryBandit es un mercado de influencers con influencers de IA. Eliges una modelo, chateas con ella y creas vídeos suyos con cualquier look — en el navegador, sin instalar nada. Cada chat lo lleva una persona virtual (IA), y lo indicamos en cada pantalla.",
@@ -71,7 +71,7 @@ const C: Record<string, PageCopy> = {
     canH: "¿Qué puedes hacer?", costH: "¿Cuánto cuesta?", costP: "Chatear es gratis. La suscripción es para imágenes y vídeos: {price} al mes, con {videos} vídeos en todos los temas. Cada vídeo adicional cuesta {extra}. Sin suscripción, un vídeo cuesta {once}. Cancela cuando quieras.",
     noteH: "Bueno saberlo", noteP: "LuxuryBandit es solo para adultos — confirmas que tienes 18 años o más antes de chatear. La persona de IA coquetea y pregunta por tu día, pero nunca dice tener sentimientos ni finge ser una persona real. Para los vídeos con fotos propias se te pregunta expresamente antes y confirmas que puedes usar esa foto — la responsabilidad es tuya y el resultado es privado.",
     items: [["Clima por la mañana","cada mañana te escribe: tu clima, un look nuevo y un chat con ella."],["Probar looks","elige un look y una modelo — la ves llevándolo en un vídeo, desde todos los ángulos."],["Lencería y looks de lujo","lo mismo, en sus looks más elegantes e íntimos."],["Besa a cualquier modelo","sube tu foto y os veis a los dos en un beso."],["Tu ídolo contigo","elige a tu ídolo y os veis juntos en una fiesta."],["Vídeos de cumpleaños","escribe un nombre y ella felicita en voz alta, por su nombre."],["Vacaciones con Bella","viaja por ti y trae vídeos e historias cada día."]] },
-  fr: { kicker: "LuxuryBandit", h1a: "Choisis un thème.", h1b: "Reçois-le chaque jour.", intro: "Chaque thème t'envoie du contenu quotidien de ton influenceuse — et un chat avec elle.",
+  fr: { kicker: "LuxuryBandit", h1a: "Choisis un thème.", h1b: "Fais ta vidéo.", intro: "Ta photo, ton influenceuse, ta vidéo — et un chat avec elle. Des nouvelles de temps en temps, pas tous les jours.",
     codeNote: "Ton code {CODE} est actif : choisis un thème ci-dessous — le chat est gratuit et tu paies toujours {price} au lieu de {list}.",
     models: "Voir nos modèles et discuter avec elles →", wardrobe: "Dressing",
     whatH: "Qu'est-ce que LuxuryBandit ?", whatP: "LuxuryBandit est une place de marché d'influenceuses avec des influenceuses IA. Tu choisis un modèle, tu discutes avec elle et tu crées des vidéos d'elle dans n'importe quelle tenue — dans le navigateur, sans application. Chaque chat est mené par un personnage IA, et nous l'indiquons sur chaque écran.",
@@ -79,7 +79,7 @@ const C: Record<string, PageCopy> = {
     canH: "Que peux-tu faire ?", costH: "Combien ça coûte ?", costP: "Le chat est gratuit. L'abonnement couvre images et vidéos : {price} par mois, avec {videos} vidéos sur tous les thèmes. Chaque vidéo supplémentaire coûte {extra}. Sans abonnement, une vidéo coûte {once}. Résiliable à tout moment.",
     noteH: "Bon à savoir", noteP: "LuxuryBandit est réservé aux adultes — tu confirmes avoir 18 ans ou plus avant de discuter. Le personnage IA flirte et demande comment s'est passée ta journée, mais ne prétend jamais avoir des sentiments ni être une vraie personne. Pour les vidéos réalisées avec tes propres photos, on te le demande explicitement avant et tu confirmes avoir le droit d'utiliser cette photo — la responsabilité est la tienne et le résultat reste privé.",
     items: [["Météo du matin","chaque matin elle t'écrit : ta météo, un nouveau look et un chat avec elle."],["Essayer une tenue","choisis une tenue et un modèle — tu la vois la porter en vidéo, sous tous les angles."],["Lingerie et looks de luxe","la même chose, dans ses looks les plus élégants et les plus intimes."],["Embrasse un modèle","envoie ta photo et voyez-vous tous les deux dans un baiser."],["Ton idole avec toi","choisis ton idole et voyez-vous ensemble à une fête."],["Vidéos d'anniversaire","écris un prénom et elle souhaite un joyeux anniversaire à voix haute."],["Vacances avec Bella","elle voyage pour toi et rapporte chaque jour vidéos et histoires."]] },
-  pt: { kicker: "LuxuryBandit", h1a: "Escolhe um tema.", h1b: "Recebe-o todos os dias.", intro: "Cada tema envia-te conteúdo diário da tua influencer — e uma conversa com ela.",
+  pt: { kicker: "LuxuryBandit", h1a: "Escolhe um tema.", h1b: "Faz o teu vídeo.", intro: "A tua foto, a tua influencer, o teu vídeo — e um chat com ela. Novidades de vez em quando, não todos os dias.",
     codeNote: "O teu código {CODE} está ativo: escolhe um tema abaixo — conversar é grátis e pagas sempre apenas {price} em vez de {list}.",
     models: "Ver as nossas modelos e conversar com elas →", wardrobe: "Guarda-roupa",
     whatH: "O que é o LuxuryBandit?", whatP: "O LuxuryBandit é um mercado de influencers com influencers de IA. Escolhes uma modelo, conversas com ela e crias vídeos dela com qualquer visual — no browser, sem instalar nada. Cada conversa é conduzida por uma persona de IA, e dizemos isso em cada ecrã.",
@@ -87,7 +87,7 @@ const C: Record<string, PageCopy> = {
     canH: "O que podes fazer?", costH: "Quanto custa?", costP: "Conversar é grátis. A subscrição é para imagens e vídeos: {price} por mês, com {videos} vídeos em todos os temas. Cada vídeo adicional custa {extra}. Sem subscrição, um vídeo custa {once}. Cancela quando quiseres.",
     noteH: "Bom saber", noteP: "O LuxuryBandit é apenas para adultos — confirmas que tens 18 anos ou mais antes de conversar. A persona de IA flirta e pergunta pelo teu dia, mas nunca afirma ter sentimentos nem finge ser uma pessoa real. Para vídeos com fotos tuas és perguntado antes e confirmas que podes usar essa foto — a responsabilidade é tua e o resultado fica privado.",
     items: [["Tempo de manhã","todas as manhãs escreve-te: o teu tempo, um novo visual e uma conversa."],["Experimentar visuais","escolhe um visual e uma modelo — vês-la a usá-lo num vídeo, de todos os ângulos."],["Lingerie e visuais de luxo","o mesmo, nos visuais mais elegantes e mais intimos."],["Beija qualquer modelo","envia a tua foto e vêem-se os dois num beijo."],["O teu ídolo contigo","escolhe o teu ídolo e vêem-se juntos numa festa."],["Vídeos de aniversário","escreve um nome e ela dá os parabéns em voz alta, pelo nome."],["Férias com a Bella","viaja por ti e traz vídeos e histórias todos os dias."]] },
-  pl: { kicker: "LuxuryBandit", h1a: "Wybierz temat.", h1b: "Dostawaj go codziennie.", intro: "Każdy temat przysyła Ci codzienne treści od Twojej influencerki — plus czat z nią.",
+  pl: { kicker: "LuxuryBandit", h1a: "Wybierz temat.", h1b: "Zrób swój film.", intro: "Twoje zdjęcie, twoja influencerka, twój film — plus czat z nią. Nowości od czasu do czasu, nie codziennie.",
     codeNote: "Twój kod {CODE} jest aktywny: wybierz temat poniżej — czat jest darmowy, a płacisz zawsze tylko {price} zamiast {list}.",
     models: "Zobacz nasze modelki i porozmawiaj z nimi →", wardrobe: "Garderoba",
     whatH: "Czym jest LuxuryBandit?", whatP: "LuxuryBandit to platforma influencerek z influencerkami AI. Wybierasz modelkę, rozmawiasz z nią i tworzysz filmy z nią w dowolnej stylizacji — w przeglądarce, bez aplikacji. Każdy czat prowadzi persona AI i mówimy o tym na każdym ekranie.",
@@ -95,7 +95,7 @@ const C: Record<string, PageCopy> = {
     canH: "Co możesz robić?", costH: "Ile to kosztuje?", costP: "Czat jest darmowy. Abonament dotyczy zdjęć i filmów: {price} miesięcznie, w tym {videos} filmów we wszystkich tematach. Każdy kolejny film kosztuje {extra}. Bez abonamentu jeden film kosztuje {once}. Możesz zrezygnować w każdej chwili.",
     noteH: "Warto wiedzieć", noteP: "LuxuryBandit jest tylko dla dorosłych — przed czatem potwierdzasz, że masz 18 lat lub więcej. Persona AI flirtuje i pyta o Twój dzień, ale nigdy nie twierdzi, że ma uczucia, ani nie udaje prawdziwej osoby. W przypadku filmów z własnych zdjęć pytamy Cię wprost i potwierdzasz, że masz prawo użyć tego zdjęcia — odpowiedzialność jest Twoja, a wynik pozostaje prywatny.",
     items: [["Pogoda o poranku","każdego ranka pisze do Ciebie: Twoja pogoda, nowy look i czat."],["Przymierzanie stylizacji","wybierz look i modelkę — zobaczysz ją w nim na wideo, z każdej strony."],["Bielizna i luksusowe stylizacje","to samo, w jej najbardziej eleganckich i intymnych stylizacjach."],["Pocałuj modelkę","wyślij swoje zdjęcie i zobaczcie się oboje w pocałunku."],["Twój idol z Tobą","wybierz swojego idola i zobaczcie się razem na imprezie."],["Filmy urodzinowe","wpisz imię, a ona złoży życzenia na głos, po imieniu."],["Wakacje z Bellą","podróżuje dla Ciebie i codziennie przywozi filmy i historie."]] },
-  it: { kicker: "LuxuryBandit", h1a: "Scegli un tema.", h1b: "Ricevilo ogni giorno.", intro: "Ogni tema ti manda contenuti quotidiani dalla tua influencer — più una chat con lei.",
+  it: { kicker: "LuxuryBandit", h1a: "Scegli un tema.", h1b: "Fai il tuo video.", intro: "La tua foto, la tua influencer, il tuo video — più una chat con lei. Le novità arrivano ogni tanto, non ogni giorno.",
     codeNote: "Il tuo codice {CODE} è attivo: scegli un tema qui sotto — la chat è gratis e paghi sempre solo {price} invece di {list}.",
     models: "Guarda le nostre modelle e chatta con loro →", wardrobe: "Guardaroba",
     whatH: "Che cos'è LuxuryBandit?", whatP: "LuxuryBandit è un marketplace di influencer con influencer IA. Scegli una modella, chatti con lei e crei video di lei con qualsiasi look — nel browser, senza installare nulla. Ogni chat è gestita da una persona virtuale (IA), e lo diciamo su ogni schermata.",
@@ -252,7 +252,7 @@ export default async function ThemesCatalog({ searchParams }: {
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
     // weiter unter /urlaub-mit-bella (Landing + Card-Tool), ist aber nicht mehr verlinkt.
     // Chat = das Thema mit den niedrigsten Kosten pro Kunde (Haiku), deshalb weit vorn.
-    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her every day — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Daily" },
+    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her whenever you want — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free" },
     { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video" },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
@@ -345,7 +345,10 @@ export default async function ThemesCatalog({ searchParams }: {
                     ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">LIVE</span>
                     : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> Soon</span>}
                   {/* Pille unten links — wie „N looks" */}
-                  {active && <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">Daily</span>}
+                  {/* Hier stand „Daily" (Owner 31.07.2026: „der User bekommt es nicht mehr
+                      jeden Tag, ich versende auch keine Wetternews mehr jeden Tag"). Ein
+                      Abzeichen, das ein Versprechen gibt, das wir nicht halten, kostet beim
+                      zweiten Besuch mehr, als es beim ersten bringt. */}
                 </div>
                 <div className="px-2.5 py-2">
                   <p className="truncate text-[13px] font-black text-white">{t.title}</p>
