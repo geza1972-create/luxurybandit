@@ -1803,13 +1803,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         {busy || videoBusy || mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : "💋")}
         {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : bezahlt ? T.ctaVideo : T.ctaFree}
       </button>
-      {/* Der Preis steht DIREKT unter dem Knopf, nicht erst hinter dem Ergebnis (Owner
-          30.07.2026: „hier muss Generate Picture free Button stehen oben und Video 9,99").
-          Er soll vorher wissen, was gratis ist und was kostet — sonst fühlt sich die Kasse
-          nach dem Warten wie eine Falle an. */}
-      <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">
-        {bezahlt ? T.paidLine : T.priceLine}
-      </p>
+      {/* Der Preis stand hier direkt unter dem Erzeugen-Knopf (Owner 30.07.2026: „hier muss
+          Generate Picture free Button stehen oben und Video 9,99"). Am 31.07.2026 wieder
+          entfernt — „das muss auch raus": Der Knopf sagt schon „gratis"; ein Preis daneben,
+          bevor irgendetwas erzeugt wurde, saet genau den Zweifel, den das Wort gratis
+          ausraeumen soll. Nach der Zahlung bleibt die Zeile, dort ist sie eine Auskunft. */}
+      {bezahlt && (
+        <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">{T.paidLine}</p>
+      )}
       {/* WAS IHM DIESEN MONAT NOCH ZUSTEHT (Owner 30.07.2026). Ohne diese Zeile weiss ein
           Abonnent nie, wo er steht — und merkt es erst, wenn nichts mehr geht. */}
       {aboAktiv && typeof videosLinks === "number" && (
@@ -1833,7 +1834,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           springt er vom Stripe zurück zum Zahlen"). Auf dem Bild wurden sie längst verdeckt —
           ohne erzeugtes Bild standen sie waehrend des bezahlten Renderns aber weiter da und
           sahen aus wie eine zweite Rechnung. */}
-      {!isStaff && !bezahlt && !videoUrl && (
+      {/* ERST AB SCHRITT 3 (Owner 31.07.2026: „die Buttons müssen hier nicht stehen" — zu
+          Schritt 1 und 2). Der Gedanke „wer schon weiss, dass er das Video will, soll nicht
+          erst durch alle Schritte" war gut gemeint, hat aber einen Preis neben einen leeren
+          Platz gestellt: In Schritt 1 und 2 hat er noch nichts gesehen, und ein Kaufknopf ohne
+          Ergebnis liest sich als Bezahlschranke. Ab Schritt 3 stehen beide Gesichter da — dort
+          ist die Frage „was kostet es" die richtige.
+
+          NACHGESCHAERFT, weil sie auch in Schritt 3 falsch standen (Owner: „hier müssen die
+          Buttons auch nicht stehen"): Es haengt nicht am Schritt, sondern am ERGEBNIS. Solange
+          kein Bild da ist, verkaufen wir ein Versprechen; ist es da, verkaufen wir etwas, das
+          er gerade gesehen hat. Deshalb `bild` als Bedingung und keine Schrittnummer. */}
+      {!!bild && !isStaff && !bezahlt && !videoUrl && (
         <div className="mt-2 flex gap-2">
           {V.einzelkauf && (
             <button type="button" onClick={() => void unlock("once")}
