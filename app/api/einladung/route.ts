@@ -25,6 +25,7 @@ const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max)
 // POST { videoUrl, sie, er, datum?, ort?, adresse?, telefon?, genId?, device?, email?, lang? } → { id, url }
 // POST { revoke: id, device? }                                            → { ok }
 // POST { open: id }                                                       → { ok }  (Zähler)
+// POST { rsvp: id, name, ja }                                             → { ok }  (Zusage)
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
@@ -47,6 +48,34 @@ export async function POST(request: Request) {
       }
     } catch { /* eine verlorene Zählung darf die Einladung nie stören */ }
     return NextResponse.json({ ok: true });
+  }
+
+  /**
+   * EINE ZUSAGE (Owner 31.07.2026). Angehaengt statt ersetzt, und mit demselben Nachlesen wie
+   * beim Anlegen: Bei einer Hochzeit antworten mehrere Gaeste in derselben Minute — ohne das
+   * hier loescht die letzte Antwort die vorherige, und die Braut haette eine Liste mit Loechern.
+   */
+  const rsvp = sauber(body.rsvp, 60);
+  if (rsvp) {
+    const name = sauber(body.name, 40);
+    if (!name) return NextResponse.json({ error: "Name fehlt." }, { status: 400 });
+    const ja = body.ja !== false;
+    const eintrag = { name, ja, at: new Date().toISOString() };
+    for (let versuch = 0; versuch < 4; versuch++) {
+      const alle = await readEinladungen();
+      const e = alle.find(x => x.id === rsvp);
+      if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      const vorher = e.zusagen ?? [];
+      // Zweimal derselbe Name = Meinung geaendert, kein zweiter Gast.
+      e.zusagen = [...vorher.filter(z => z.name.toLowerCase() !== name.toLowerCase()), eintrag];
+      await writeEinladungen(alle);
+      await new Promise(r => setTimeout(r, 150 + versuch * 200));
+      const nach = (await readEinladungen()).find(x => x.id === rsvp);
+      if (nach?.zusagen?.some(z => z.name.toLowerCase() === name.toLowerCase() && z.ja === ja)) {
+        return NextResponse.json({ ok: true });
+      }
+    }
+    return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
   }
 
   const revoke = sauber(body.revoke, 60);
@@ -124,7 +153,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       id: e.id, videoUrl: e.videoUrl, sie: e.sie, er: e.er,
       datum: e.datum ?? "", ort: e.ort ?? "", adresse: e.adresse ?? "",
-      telefon: e.telefon ?? "", lang: e.lang ?? "en",
+      telefon: e.telefon ?? "", lang: e.lang ?? "en", zusagen: e.zusagen ?? [],
     });
   }
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });

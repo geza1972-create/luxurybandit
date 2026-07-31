@@ -493,3 +493,18 @@ svg {
    erkennt — und mit eigener Schriftfarbe, weil die Karte sonst alles auf Braun stellt. */
 .lb-karte .lb-karte-wa { background: #25D366 !important; }
 .lb-karte .lb-karte-wa, .lb-karte .lb-karte-wa * { color: #0b3d20 !important; }
+/* Zusagen-Karte: Haken gruen, Absage-Kreuz gedeckt, Eingabefeld wie eine Linie auf Papier.
+   Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
+.lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }
+.lb-karte .lb-karte-nein { color: #a33b3b !important; stroke: #a33b3b !important; opacity: 1; }
+.lb-karte .lb-karte-feld {
+  background: rgba(160, 122, 52, 0.07) !important;
+  border: 1px solid rgba(160, 122, 52, 0.35) !important;
+  color: #2a231c !important;
+}
+.lb-karte .lb-karte-feld::placeholder { color: rgba(42, 35, 28, 0.45) !important; }
+.lb-karte .lb-karte-absage {
+  background: transparent !important;
+  border: 1px solid rgba(42, 35, 28, 0.3) !important;
+}
+.lb-karte .lb-karte-wa svg, .lb-karte .lb-karte-absage svg { opacity: 1; }

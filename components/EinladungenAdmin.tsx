@@ -17,6 +17,7 @@ import { Loader2, Mail, Eye, Trash2, ExternalLink } from "lucide-react";
 type Einladung = {
   id: string; createdAt: string; sie?: string; er?: string; datum?: string; ort?: string;
   opens?: number; lastOpenAt?: string; revoked?: boolean; email?: string; lang?: string;
+  zusagen?: { name: string; ja: boolean; at?: string }[];
 };
 
 export default function EinladungenAdmin() {
@@ -90,7 +91,20 @@ export default function EinladungenAdmin() {
                   {e.datum || "ohne Datum"}{e.ort ? ` · ${e.ort}` : ""} · erstellt {zeit(e.createdAt)}
                 </p>
                 {e.email && <p className="truncate text-[10px] font-bold text-black/35">{e.email}</p>}
+                {!!e.zusagen?.length && (
+                  <p className="truncate text-[10px] font-bold text-black/45">
+                    {e.zusagen.map(z => (z.ja ? z.name : `${z.name} ✗`)).join(", ")}
+                  </p>
+                )}
               </div>
+              {/* Zusagen neben den Oeffnungen: Die eine Zahl sagt, ob sie die Einladung
+                  verschickt hat — die andere, ob daraus eine Hochzeit wird. */}
+              {!!e.zusagen?.length && (
+                <span className="shrink-0 rounded-full bg-black/[0.06] px-2 py-0.5 text-[11px] font-black text-black/70">
+                  ✓ {e.zusagen.filter(z => z.ja).length}
+                  {e.zusagen.some(z => !z.ja) && <span className="text-black/40"> · ✗ {e.zusagen.filter(z => !z.ja).length}</span>}
+                </span>
+              )}
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black text-emerald-700">
                 <Eye className="h-3 w-3" /> {e.opens ?? 0}
               </span>

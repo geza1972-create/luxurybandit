@@ -4,6 +4,7 @@ import { readEinladungen } from "@/lib/try-this-look-store";
 import { resolveLang } from "@/lib/lang-server";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import ZusagenKarte from "@/components/ZusagenKarte";
 import LightSwitch from "@/components/LightSwitch";
 
 /**
@@ -64,6 +65,11 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
         <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""} datum={e.datum} ort={e.ort}
           adresse={e.adresse} telefon={e.telefon}
           video={<EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} />} />
+
+        {/* WER KOMMT — direkt unter der Einladung (Owner 31.07.2026). Der Gast sieht, wer
+            schon zugesagt hat, und antwortet selbst; mehr als sein Vorname wird nicht
+            gefragt. Das ist die Gaesteliste des Paares, ohne dass wir Gaestedaten sammeln. */}
+        <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />
 
         {/* DIE EINE ZEILE. Mehr Werbung macht die Einladung unsendbar — und dann gibt es
             diesen Kanal gar nicht. */}

@@ -1493,6 +1493,9 @@ export type Einladung = {
   lang?: string;          // in welcher Sprache die Seite erscheint
   email?: string;         // wem sie gehört — für Widerruf und Zuordnung
   device?: string;
+  // Zusagen: NUR ein Vorname je Gast (Konzept §8 — keine echten Personendaten der Gäste
+  // bei uns). Das ist die Gästeliste, die sie wirklich braucht.
+  zusagen?: { name: string; ja: boolean; at: string }[];
   opens?: number;         // wie oft geöffnet — die Zahl, die über den Kanal entscheidet
   lastOpenAt?: string;
   revoked?: boolean;      // sie hat sie zurückgezogen

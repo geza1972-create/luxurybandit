@@ -13,6 +13,7 @@ import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ExampleVideos from "@/components/ExampleVideos";
+import ZusagenKarte from "@/components/ZusagenKarte";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -52,6 +53,11 @@ const SPRACH_LABELS = [
   { code: "fr", label: "Français" }, { code: "es", label: "Español" },
   { code: "it", label: "Italiano" }, { code: "pt", label: "Português" },
   { code: "de", label: "Deutsch" },
+];
+/** Beispiel-Gaesteliste. Vornamen, wie die echte Liste sie auch nur haette. */
+const BEISPIEL_ZUSAGEN = [
+  { name: "Maria", ja: true }, { name: "Andrei", ja: true }, { name: "Sofia", ja: true },
+  { name: "Luca", ja: false }, { name: "Elena", ja: true },
 ];
 const BEISPIEL_NAMEN: [string, string][] = [["Ana", "Mihai"], ["Elena", "Andrei"]];
 const BEISPIEL_ORT: Record<string, string> = {
@@ -147,6 +153,11 @@ export default async function WeddingThemePage({ searchParams }: {
                 }}
                   sprachen={SPRACH_LABELS}
                   sprachenTitel={T.einlSprachen} />
+                {/* UND DARUNTER DIE ZUSAGEN (Owner 31.07.2026: „ich brauche unter der
+                    Videokarte noch so eine Karte, wo es steht als Beispiel: wer zugesagt
+                    hat"). Dieselbe Komponente wie in der echten Einladung, nur ohne
+                    Knoepfe — was hier steht, gibt es also wirklich. */}
+                <ZusagenKarte sprache={L} demo zusagen={BEISPIEL_ZUSAGEN} />
               </div>
             )}
             {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen was er bekommt").
