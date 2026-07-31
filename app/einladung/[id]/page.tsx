@@ -25,10 +25,26 @@ import LightSwitch from "@/components/LightSwitch";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Einladung",
-  robots: { index: false, follow: false },
-};
+/**
+ * DER TITEL IST DAS, WAS IM CHAT ANKOMMT.
+ *
+ * Er stand fest auf „Einladung" — ein deutsches Wort, das jeder Gast im Browser-Reiter sah,
+ * gleich in welcher Sprache er die Seite las. Und wichtiger: Wer den Link in einen Chat klebt,
+ * bekommt genau diese Zeile als Vorschau. „Einladung" sagt nichts; „Ana & Mihai 💍" ist der
+ * Grund, warum jemand tippt.
+ */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const gast = await resolveLang();
+  const T = KARTE_TEXTE[gast] ?? KARTE_TEXTE.en;
+  const e = (await readEinladungen().catch(() => [])).find(x => x.id === id);
+  const namen = e && !e.revoked && e.sie && e.er ? `${e.sie} & ${e.er} 💍` : "";
+  return {
+    title: namen || T.save,
+    description: namen ? T.save : undefined,
+    robots: { index: false, follow: false },
+  };
+}
 
 
 export default async function EinladungPage({ params }: { params: Promise<{ id: string }> }) {
@@ -77,7 +93,7 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
             Fuer einen Gast bleibt die Zeile genau so leer wie vorher. */}
         {/* Der Zurueck-Weg sitzt jetzt in der Bearbeiten-Karte — dort, wo auch das Paar ihn
             findet, nicht nur der Betreiber mit Admin-Kennung. */}
-        <div className="mb-4 flex justify-end"><LightSwitch /></div>
+        <div className="mb-4 flex justify-end"><LightSwitch hellText={T.hell} dunkelText={T.dunkel} /></div>
         {/* DIE KARTE — dieselbe Komponente, die im Trichter als Vorschau steht. Was die
             Kundin dort gesehen hat, sieht ihr Gast hier. */}
         <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""}
@@ -93,7 +109,7 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
             ) : e.videoUrl ? (
-              <EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} />
+              <EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} tonAusText={T.tonAus} />
             ) : (
               /* PROBEWOCHE: das Gratis-Bild statt des Videos. Fuer den Gast sieht die Karte
                  gleich aus — er weiss nicht, dass hier noch nichts bezahlt wurde, und das

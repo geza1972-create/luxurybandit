@@ -103,7 +103,7 @@ export default function EinladungBearbeiten({
               Vorher hing der Weg zurueck allein an der Admin-Kennung. Das Brautpaar hatte gar
               keinen: Es kommt aus dem Trichter, landet auf seiner Einladung — und sitzt fest.
               Fuer einen Gast bleibt die Seite nackt, das war und ist die Absicht. */}
-          <Link href="/themes/wedding" aria-label="Zurück"
+          <Link href="/themes/wedding" aria-label={T.zurueck}
             className="lb-karte-absage grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95">
             <ChevronLeft className="h-5 w-5" />
           </Link>

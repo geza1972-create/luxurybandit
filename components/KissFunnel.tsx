@@ -2243,7 +2243,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   video={
                     videoUrl
                       ? <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
-                          tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton} />
+                          tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
+                          tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img src={bild} alt="" className="aspect-[3/4] w-full object-cover" />
                   }

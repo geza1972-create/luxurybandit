@@ -27,10 +27,13 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Beispiel-Einladung",
-  robots: { index: false, follow: false },
-};
+/* Der Reitertitel stand fest auf „Beispiel-Einladung" — auf einem rumaenischen Handy also
+   ein deutsches Wort im Browser-Reiter, auf der Seite, die Mehrsprachigkeit vorfuehrt. */
+export async function generateMetadata() {
+  const gast = await resolveLang();
+  const T = KARTE_TEXTE[gast] ?? KARTE_TEXTE.en;
+  return { title: T.save, robots: { index: false, follow: false } };
+}
 
 const NEWS: Record<string, string> = {
   de: "Achtung, neue Änderung: Die Hochzeit findet drinnen statt!",
@@ -91,17 +94,17 @@ export default async function BeispielEinladung() {
             dem Brautpaar, nicht uns. Diese Seite hier ist aber Werbung: Wer sie ansieht, soll
             mit einem Tipp zurueck zum Thema kommen und nicht die Zurueck-Taste suchen. */}
         <div className="mb-4 flex items-center justify-between gap-2">
-          <Link href="/themes/wedding" aria-label="Zurück"
+          <Link href="/themes/wedding" aria-label={T.zurueck}
             className="lb-chip grid h-9 w-9 place-items-center rounded-full transition active:scale-95">
             <ChevronLeft className="h-5 w-5" />
           </Link>
-          <LightSwitch />
+          <LightSwitch hellText={T.hell} dunkelText={T.dunkel} />
         </div>
 
         <EinladungKarte sprache={sprache} sie="Ana" er="Mihai" datum={datum}
           ort={saal} adresse={adresse} telefon="+00 000 000 000" demo
           video={video
-            ? <EinladungAnsicht id="" videoUrl={video} zaehlen={false} tonText={T.ton} />
+            ? <EinladungAnsicht id="" videoUrl={video} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
             : <div className="aspect-[3/4] w-full" />} />
 
         <ZusagenKarte sprache={sprache} demo zusagen={ZUSAGEN} />

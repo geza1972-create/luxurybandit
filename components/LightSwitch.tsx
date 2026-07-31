@@ -46,7 +46,19 @@ function adresseSchreiben(hell: boolean) {
   } catch { /* die Anzeige der Fassung darf nie an der Adresszeile scheitern */ }
 }
 
-export default function LightSwitch() {
+export default function LightSwitch({ hellText = "Light", dunkelText = "Dark" }: {
+  /**
+   * NUR ZEICHEN, KEIN WORT (Owner 31.07.2026: „stimmen die Sprachen überall?").
+   *
+   * Hier stand „Light" / „Dark" — zwei englische Wörter, sichtbar auf jeder Seite, auch auf der
+   * Einladung, die einem italienischen Gast verspricht, seine Sprache zu sprechen. Sonne und
+   * Mond brauchen keine Übersetzung; dieselbe Entscheidung wie beim Ton-Knopf („nur Icon
+   * bitte"). Das Wort bleibt als Vorlesetext für Bildschirmleser — dort in der Sprache der
+   * Seite, wenn sie sie kennt, sonst Englisch wie überall sonst.
+   */
+  hellText?: string;
+  dunkelText?: string;
+}) {
   const [hell, setHell] = useState(false);
 
   useEffect(() => {
@@ -73,12 +85,11 @@ export default function LightSwitch() {
 
   return (
     <button type="button" onClick={umschalten}
-      aria-label={hell ? "Dunkle Ansicht" : "Helle Ansicht"}
+      aria-label={hell ? dunkelText : hellText}
       // Gleiche Form und Farbe wie „Zurück" daneben — der Balken soll eine Reihe bleiben,
-      // keine Sammlung verschiedener Knöpfe.
-      className="lb-chip flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-black active:scale-95 transition">
-      {hell ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
-      {hell ? "Dark" : "Light"}
+      // keine Sammlung verschiedener Knöpfe. Rund statt breit, seit das Wort weg ist.
+      className="lb-chip grid h-9 w-9 place-items-center rounded-full active:scale-95 transition">
+      {hell ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </button>
   );
 }

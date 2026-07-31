@@ -18,6 +18,7 @@ import SubscribeCta from "@/components/SubscribeCta";
 import GruppenChat from "@/components/GruppenChat";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
+import { trObject } from "@/lib/tr-object";
 
 /**
  * THEMA „HOCHZEITSKUSS" (Owner 30.07.2026: „ich will eher wie sie sich einen Hochzeitskuss
@@ -175,6 +176,37 @@ export default async function WeddingThemePage({ searchParams }: {
   const beispielDatum = inHundertTagen.toISOString().slice(0, 10);
   const examples: string[] = (await Promise.all((cfg.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
+  /**
+   * DER TEXT UNTER DER KARTE — IN DER SPRACHE DES BESUCHERS (Owner 31.07.2026: „stimmen die
+   * Sprachen überall?").
+   *
+   * Nein, sie stimmten nicht: Die Karte, die Überschrift und der eine Satz darüber standen auf
+   * Rumänisch, und darunter kamen vier Absätze Englisch. Auf einer Seite, deren wichtigstes
+   * Versprechen „die Einladung spricht die Sprache eurer Gäste" ist, widerlegt das die Seite
+   * selbst — noch bevor jemand ein Foto hochlädt.
+   *
+   * Englische Quelle im Code, Übersetzung zur Laufzeit mit Dauer-Cache (`trObject`, wie auf der
+   * Chat-Seite). Sieben handgepflegte Tabellen pro Seite altern beim ersten Textwechsel, und
+   * dann steht in fünf Sprachen etwas anderes als in zweien.
+   *
+   * Zwei Sätze sind beim Übertragen korrigiert worden, weil sie Entscheidungen von heute
+   * widersprachen: kein Kuss im Video (Owner: „ich will nicht, dass sie sich küssen im Video")
+   * und kein WhatsApp mehr im Versprechen („wir machen nur share").
+   */
+  const t = await trObject({
+    s1h: "A wedding invitation as a video — with the two of you in it",
+    s1p: "Instead of a printed card, your digital wedding invitation is a short video in which you and your partner appear on your own wedding day — you in a white dress, him in a white suit, in the church. Upload one photo of yourself and one of him; the AI does the rest. The picture is free, so you see what it looks like before you decide anything.",
+    /* Ohne das doppelte „you": Daraus machte die Maschine „Ein Link — du sendest ihn so, wie
+       du bereits alles sendest". Kurze Quellsaetze ohne wiederholtes Fuerwort uebersetzen
+       sich in allen sieben Sprachen sauberer. */
+    s2h: "One link, sent from your phone",
+    s2p: "Every invitation gets its own page with your names, the date and the address. You send that one link with your phone, wherever your guests already are. No app for them, no login, no printing, no postage. The invitation speaks your guests' language by itself: whoever opens it reads it in their own — English, Romanian, French, Spanish, Portuguese, Italian or German — so the relatives abroad get the same invitation as everyone at home. You can take the link back at any time, and you see how many guests have opened it.",
+    s3h: "Save the date — in the weeks before the wedding",
+    s3p: "Most couples send a save-the-date two to four months before the wedding and the full invitation six to eight weeks ahead. A video invitation gets watched instead of skimmed, and it works the same for guests abroad — they open the same link on their phone.",
+    s4h: "Your photos stay yours",
+    s4p: "The two photos you upload are used to make your video and nothing else. They are never published and never shown to other users, they are stored on servers in the EU, and everything from a visit without a purchase is deleted after 90 days. The invitation page itself is not listed anywhere and cannot be found on Google — only the people you send the link to can open it.",
+  }, L);
+
   return (
     /* HELL IST DIE VORGABE (Owner 31.07.2026: „default ist light modus"). Umgekehrt zu
        vorher: Die Seite kommt hell, `?light=0` schaltet dunkel. Eine Hochzeit ist hell, und
@@ -200,7 +232,7 @@ export default async function WeddingThemePage({ searchParams }: {
 
                 Für Google ändert sich nichts: Die H1 steht weiter im Quelltext, nur weiter
                 unten. Die Suchmaschine liest die Seite, sie scrollt nicht. */}
-            <EinladungBauen lang={L} />
+            <EinladungBauen lang={L} beispielVideo={examples[0] ?? ""} />
 
             <H1 className="mt-10">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             {/* EIN Satz, mehr nicht (Owner 31.07.2026). Die Überschrift sagt „Einladung",
@@ -227,45 +259,20 @@ export default async function WeddingThemePage({ searchParams }: {
                 Google, nicht fuer den Besucher, und steht weit unterhalb. */}
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
-                <SectionTitle>A wedding invitation as a video — with the two of you in it</SectionTitle>
-                <Lead>
-                  Instead of a printed card: your <strong>digital wedding invitation</strong> is a
-                  short video in which you and your partner appear on your own wedding day — you in
-                  a white dress, him in a white suit, in the church, with the kiss. Upload one photo
-                  of yourself and one of him; the AI does the rest. The picture is free, so you see
-                  what it looks like before you decide anything.
-                </Lead>
+                <SectionTitle>{t.s1h}</SectionTitle>
+                <Lead>{t.s1p}</Lead>
               </div>
               <div>
-                <SectionTitle>Send your invitation on WhatsApp</SectionTitle>
-                <Lead>
-                  Every invitation gets its own page with your names, the date and the place. You
-                  send that one link — on WhatsApp, in your family group, wherever your guests
-                  already are. No app for them, no login, no printing, no postage. The invitation
-                  speaks your guests&rsquo; language by itself: whoever opens it reads it in their
-                  own — English, Romanian, French, Spanish, Portuguese, Italian or German — so the
-                  relatives abroad get the same invitation as everyone at home. You can take the
-                  link back at any time, and you see how many guests have opened it.
-                </Lead>
+                <SectionTitle>{t.s2h}</SectionTitle>
+                <Lead>{t.s2p}</Lead>
               </div>
               <div>
-                <SectionTitle>Save the date — in the weeks before the wedding</SectionTitle>
-                <Lead>
-                  Most couples send a save-the-date two to four months before the wedding and the
-                  full invitation six to eight weeks ahead. A video invitation gets watched instead
-                  of skimmed, and it works the same for guests abroad — they open the same link on
-                  their phone.
-                </Lead>
+                <SectionTitle>{t.s3h}</SectionTitle>
+                <Lead>{t.s3p}</Lead>
               </div>
               <div>
-                <SectionTitle>Your photos stay yours</SectionTitle>
-                <Lead>
-                  The two photos you upload are used to make your video and nothing else. They are
-                  never published and never shown to other users, they are stored on servers in the
-                  EU, and everything from a visit without a purchase is deleted after 90 days. The
-                  invitation page itself is not listed anywhere and cannot be found on Google — only
-                  the people you send the link to can open it.
-                </Lead>
+                <SectionTitle>{t.s4h}</SectionTitle>
+                <Lead>{t.s4p}</Lead>
               </div>
             </section>
           </div>

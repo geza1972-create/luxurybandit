@@ -17,7 +17,7 @@ import TonKnopf from "@/components/TonKnopf";
  *    Vorablader wuerde sonst als Gast gezaehlt — und die Zahl, an der wir messen, ob aus der
  *    Einladung ein Kanal wird, waere wertlos.
  */
-export default function EinladungAnsicht({ id, videoUrl, zaehlen = true, tonText = "" }: {
+export default function EinladungAnsicht({ id, videoUrl, zaehlen = true, tonText = "", tonAusText = "" }: {
   id: string; videoUrl: string;
   /** In der Vorschau im Trichter wird NICHT gezaehlt — sonst zaehlt sich die Kundin selbst
    *  als Gast, und die eine Zahl, an der die Idee gemessen wird, waere geschoent. */
@@ -26,6 +26,8 @@ export default function EinladungAnsicht({ id, videoUrl, zaehlen = true, tonText
    *  Hochzeitsmarsch liegt IM Video, aber jeder Browser startet stumm. Ein blosses Symbol
    *  wird uebersehen; mit dem Wort daneben tippt man drauf. */
   tonText?: string;
+  /** Dasselbe für „Ton aus" — nur für Bildschirmleser, aber in derselben Sprache. */
+  tonAusText?: string;
 }) {
   const [ton, setTon] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -54,7 +56,7 @@ export default function EinladungAnsicht({ id, videoUrl, zaehlen = true, tonText
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={videoRef} src={videoUrl} muted loop playsInline autoPlay preload="metadata"
         className="aspect-[3/4] w-full object-cover" />
-      <TonKnopf an={ton} label={tonText} onClick={umschalten} />
+      <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
     </div>
   );
 }

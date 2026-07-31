@@ -21,16 +21,19 @@
  * auf dunklem Grund); in der Karte faerbt `.lb-karte [data-tonknopf]` sie auf Elfenbein um.
  */
 export default function TonKnopf({
-  an, label = "", onClick, className = "",
+  an, label = "", labelAus = "", onClick, className = "",
 }: {
   an: boolean;
   /** „Ton an" in der Sprache des Gastes — nur sichtbar, solange der Ton aus ist. */
   label?: string;
+  /** „Ton aus" in derselben Sprache. Stand hier fest auf Deutsch: Ein Bildschirmleser las
+   *  einer Rumaenin „Ton aus" vor — auf der einen Seite, die Mehrsprachigkeit verspricht. */
+  labelAus?: string;
   onClick: () => void;
   className?: string;
 }) {
   return (
-    <button type="button" onClick={onClick} aria-label={an ? "Ton aus" : (label || "Ton an")}
+    <button type="button" onClick={onClick} aria-label={an ? (labelAus || "Sound off") : (label || "Sound on")}
       data-tonknopf="1"
       /* `lb-onmedia` ist die Klasse, die die Hell-Fassung ausdruecklich ausnimmt und auf Weiss
          zwingt (Owner 31.07.2026: „ich kann es nicht lesen, es ist schwarze Schrift"). Ohne sie

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
 import ImageCropper from "@/components/ImageCropper";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -33,7 +34,22 @@ const dateiZuDataUrl = (f: File) =>
     r.readAsDataURL(f);
   });
 
-export default function EinladungBauen({ lang }: { lang: string }) {
+export default function EinladungBauen({ lang, beispielVideo = "" }: {
+  lang: string;
+  /**
+   * DAS BEISPIELVIDEO IN DER LEEREN KARTE (Owner 31.07.2026: „ich sehe die Karte hat kein
+   * Video. Muss ein Video haben, sonst kann er sich nicht vorstellen").
+   *
+   * Er hat recht, und es ist der Kern der ganzen Seite: Die Karte soll zeigen, was entsteht.
+   * Ein leerer Rahmen mit einem Hochlade-Zeichen zeigt, was FEHLT — das ist das Gegenteil.
+   * Wer die Braut im Kleid sieht und den Hochzeitsmarsch hoert, weiss in zwei Sekunden,
+   * wofuer er sein Foto hergibt.
+   *
+   * Es ist dasselbe Video, das im Themenkatalog laeuft — kein zweiter Ort, an dem jemand
+   * eins nachtragen muesste. Fehlt es, faellt die Karte auf das Hochlade-Feld zurueck.
+   */
+  beispielVideo?: string;
+}) {
   const T = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
   const F = kissText(lang, "wedding");
 
@@ -155,27 +171,41 @@ export default function EinladungBauen({ lang }: { lang: string }) {
         aufDatum={() => setFeld("wann")}
         aufOrt={() => setFeld("wo")}
         video={
-          /* LEER FLACHER ALS VOLL. Ein leeres Feld im echten Bildformat (3:4) ist auf einem
-             Handy fast fuenfhundert Punkte hoch — dann stehen „Wann", „Wo" und der
-             Verschicken-Knopf unter dem Bildschirmrand, und die Karte, die alles auf einmal
-             zeigen soll, zeigt zwei Zeilen und ein graues Rechteck. Leer also 260 Punkte: immer
-             noch das groesste Feld der Karte und damit klar das erste, was man antippt. Sobald
-             das Bild da ist, springt es auf 3:4 — ab dann ist es die echte Einladung, und die
-             darf nicht anders aussehen als die, die der Gast bekommt. */
-          <button type="button" onClick={() => setFeld("fotos")}
-            className={`relative grid w-full place-items-center overflow-hidden ${bild ? "aspect-[3/4]" : "h-[260px]"}`}>
-            {bild ? (
-              // eslint-disable-next-line @next/next/no-img-element
+          bild ? (
+            <button type="button" onClick={() => setFeld("fotos")}
+              className="relative grid aspect-[3/4] w-full place-items-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
+            </button>
+          ) : beispielVideo ? (
+            /* DAS BEISPIEL LAEUFT, BIS DAS EIGENE BILD DA IST. Der Streifen unten ist der
+               Griff — er faengt erst unter dem Ton-Knopf an (top-16), sonst laege er darueber
+               und man koennte die Musik nicht mehr einschalten. Verschachtelte Knoepfe waeren
+               ausserdem kaputtes HTML. */
+            <div className="relative">
+              <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
+              <button type="button" onClick={() => setFeld("fotos")}
+                className="absolute inset-x-0 bottom-0 top-16 flex items-end justify-center p-3 text-center">
+                <span className="lb-karte-griff flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 font-serif text-[14px] font-bold leading-snug">
+                  <ImageUp className="h-4 w-4 shrink-0" />
+                  {F.pickHint}
+                </span>
+              </button>
+            </div>
+          ) : (
+            /* OHNE BEISPIELVIDEO: leeres Feld, aber flacher als das echte Bildformat. Ein 3:4
+               grosses Nichts ist auf einem Handy fast fuenfhundert Punkte hoch — dann stehen
+               „Wann", „Wo" und der Verschicken-Knopf unter dem Bildschirmrand. */
+            <button type="button" onClick={() => setFeld("fotos")}
+              className="relative grid h-[260px] w-full place-items-center overflow-hidden">
               <span className="lb-tippbar grid h-full w-full place-items-center rounded-xl px-6 text-center">
                 <span>
                   <ImageUp className="lb-karte-gold mx-auto h-9 w-9" />
                   <span className="mt-2 block font-serif text-[15px] font-bold">{F.pickHint}</span>
                 </span>
               </span>
-            )}
-          </button>
+            </button>
+          )
         }
       />
 
@@ -224,7 +254,7 @@ export default function EinladungBauen({ lang }: { lang: string }) {
                 )}
               </button>
               {foto && (
-                <button type="button" aria-label="Foto löschen"
+                <button type="button" aria-label={T.loeschen}
                   onClick={() => (wer === "sie" ? setIhrFoto("") : setSeinFoto(""))}
                   style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                   className="absolute left-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
