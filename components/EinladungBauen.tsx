@@ -69,10 +69,15 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
 
+  // Zwei getrennte Fotos oder eines von beiden (Owner 31.07.2026: „es fehlt Upload gemeinsam").
+  const [weg, setWeg] = useState<"zwei" | "gemeinsam">("zwei");
+  const [paarFoto, setPaarFoto] = useState("");
+
   const [cropDatei, setCropDatei] = useState<File | null>(null);
-  const [cropZiel, setCropZiel] = useState<"sie" | "er" | null>(null);
+  const [cropZiel, setCropZiel] = useState<"sie" | "er" | "paar" | null>(null);
   const ihrRef = useRef<HTMLInputElement>(null);
   const seinRef = useRef<HTMLInputElement>(null);
+  const paarRef = useRef<HTMLInputElement>(null);
 
   // Was schon getippt wurde, ueberlebt einen Seitenwechsel — dieselbe Regel wie im Trichter.
   const SPEICHER = "lb_einl_bau";
@@ -92,8 +97,11 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
+  /** Fertig zum Erzeugen ist, wer den gewaehlten Weg vollstaendig gegangen ist. */
+  const fotosDa = weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
+
   const erzeugen = async () => {
-    if (!ihrFoto || !seinFoto || !mailOk || busy) return;
+    if (!fotosDa || !mailOk || busy) return;
     setBusy(true); setStatus(F.statusQuality);
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -101,7 +109,9 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
     try {
       const d = await fetch("/api/free-preview", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ person: seinFoto, model: ihrFoto, theme: "wedding", device }),
+        body: JSON.stringify(weg === "gemeinsam"
+          ? { paar: paarFoto, theme: "wedding", device }
+          : { person: seinFoto, model: ihrFoto, theme: "wedding", device }),
       }).then(r => r.json());
       if (d?.image) { setBild(d.image); setBildPfad(d.imagePath ?? ""); setStatus(""); setFeld(null); }
       else setStatus(d?.error || F.statusNotWork);
@@ -255,36 +265,74 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       {/* „Eure Fotos", nicht „1 · Die Braut": Die Schrittnummern gehoerten zum Trichter, den es
           nicht mehr gibt. Eine Nummer ohne Schritte davor und danach verwirrt nur. */}
       {feld === "fotos" && dialog(T.fotos, (<>
-        <div className="grid grid-cols-2 gap-2">
-          {/* „Du, die Braut" und „Er, der Bräutigam" — ein Paar Beschriftungen, nicht eine
-              Zeile und ein Abzeichen. `F.you` heisst schlicht „ER"; das war im alten Trichter
-              ein Chip auf dem Bild und liest sich neben „Du, die Braut" wie ein Fehler. */}
-          {([["sie", ihrFoto, ihrRef, F.upTitle], ["er", seinFoto, seinRef, T.fotoEr]] as const).map(([wer, foto, ref, titel]) => (
-            <div key={wer} className="relative">
-              <button type="button" onClick={() => ref.current?.click()}
-                className="lb-tippbar grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
-                {foto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={foto} alt="" className="h-full w-full object-cover object-top" />
-                ) : (
-                  <span className="px-2 text-center font-serif text-[13px] font-bold">{titel}</span>
-                )}
-              </button>
-              {foto && (
-                <button type="button" aria-label={T.loeschen}
-                  onClick={() => (wer === "sie" ? setIhrFoto("") : setSeinFoto(""))}
-                  style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                  className="absolute left-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+        {/* ZWEI WEGE ZUM ZIEL (Owner 31.07.2026: „und es fehlt Upload gemeinsam").
+            Fast jedes Paar hat ein Foto zu zweit — vom Urlaub, von einer Feier. Zwei EINZELNE
+            Fotos zu verlangen ist eine Huerde ohne Grund: Sie muss zwei Bilder suchen, von
+            denen eines meist gar nicht existiert, und genau dort steigen Leute aus.
+            Der Umschalter steht ganz oben, weil er entscheidet, was darunter zu tun ist. */}
+        <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+          {([["zwei", T.fZwei], ["gemeinsam", T.fGemeinsam]] as const).map(([w, label]) => (
+            <button key={w} type="button" onClick={() => setWeg(w)}
+              className={`${weg === w ? "lb-karte-cta" : ""} h-9 rounded-full px-2 text-[12px] font-black leading-tight transition active:scale-95`}>
+              {label}
+            </button>
           ))}
         </div>
+
+        {weg === "zwei" ? (
+          <div className="grid grid-cols-2 gap-2">
+            {/* „Du, die Braut" und „Er, der Bräutigam" — ein Paar Beschriftungen, nicht eine
+                Zeile und ein Abzeichen. `F.you` heisst schlicht „ER"; das war im alten Trichter
+                ein Chip auf dem Bild und liest sich neben „Du, die Braut" wie ein Fehler. */}
+            {([["sie", ihrFoto, ihrRef, F.upTitle], ["er", seinFoto, seinRef, T.fotoEr]] as const).map(([wer, foto, ref, titel]) => (
+              <div key={wer} className="relative">
+                <button type="button" onClick={() => ref.current?.click()}
+                  className="lb-tippbar grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
+                  {foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={foto} alt="" className="h-full w-full object-cover object-top" />
+                  ) : (
+                    <span className="px-2 text-center font-serif text-[13px] font-bold">{titel}</span>
+                  )}
+                </button>
+                {foto && (
+                  <button type="button" aria-label={T.loeschen}
+                    onClick={() => (wer === "sie" ? setIhrFoto("") : setSeinFoto(""))}
+                    style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                    className="absolute left-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Ein breites Feld statt zweier schmaler — und im Querformat (4:3), weil ein Foto
+             von zwei Menschen nebeneinander fast nie hochkant ist. */
+          <div className="relative">
+            <button type="button" onClick={() => paarRef.current?.click()}
+              className="lb-tippbar grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-xl">
+              {paarFoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={paarFoto} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="px-4 text-center font-serif text-[14px] font-bold">{T.fPaar}</span>
+              )}
+            </button>
+            {paarFoto && (
+              <button type="button" aria-label={T.loeschen} onClick={() => setPaarFoto("")}
+                style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                className="absolute left-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Die Adresse steht VOR dem Erzeugen — dieselbe Regel wie im Trichter: kein Bild auf
             unsere Kosten fuer jemanden, der nie erreichbar ist. */}
         {eingabe(mail, setMail, F.mailQuestion, "email")}
-        <button type="button" onClick={() => void erzeugen()} disabled={!ihrFoto || !seinFoto || !mailOk || busy}
+        <button type="button" onClick={() => void erzeugen()} disabled={!fotosDa || !mailOk || busy}
           className="lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-45">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {F.ctaFree}
@@ -294,17 +342,23 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
         <input ref={seinRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
+        <input ref={paarRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("paar"); setCropDatei(f); } e.target.value = ""; }} />
       </>), busy, true)}
 
       {cropDatei && cropZiel && (
-        <ImageCropper file={cropDatei} aspect={3 / 4}
-          title={cropZiel === "sie" ? F.upTitle : F.you}
+        /* Das Paarfoto wird im Querformat zugeschnitten — bei 3:4 faellt regelmaessig einer
+           der beiden aus dem Bild, und dann fehlt genau das Gesicht, um das es geht. */
+        <ImageCropper file={cropDatei} aspect={cropZiel === "paar" ? 4 / 3 : 3 / 4}
+          title={cropZiel === "paar" ? T.fPaar : cropZiel === "sie" ? F.upTitle : T.fotoEr}
           onCancel={() => { setCropDatei(null); setCropZiel(null); }}
           onSave={async (zugeschnitten) => {
             const ziel = cropZiel;
             setCropDatei(null); setCropZiel(null);
             const dataUrl = await dateiZuDataUrl(zugeschnitten);
-            if (ziel === "sie") setIhrFoto(dataUrl); else setSeinFoto(dataUrl);
+            if (ziel === "sie") setIhrFoto(dataUrl);
+            else if (ziel === "er") setSeinFoto(dataUrl);
+            else setPaarFoto(dataUrl);
           }} />
       )}
     </div>

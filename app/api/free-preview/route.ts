@@ -113,6 +113,39 @@ async function alterSchaetzen(dataUrl: string, key: string): Promise<number> {
 }
 
 /**
+ * BEIDE ALTER AUS EINEM BILD — fuer das gemeinsame Foto (Owner 31.07.2026: „es fehlt Upload
+ * gemeinsam"). Eine Anfrage statt zwei, weil beide Gesichter auf demselben Bild stehen.
+ *
+ * Gibt [Mann, Frau] zurueck, damit es zum getrennten Fall passt. Was nicht erkannt wird, ist
+ * 0 und faellt aus dem Auftrag heraus — lieber eine Zahl weniger als eine erfundene.
+ */
+async function alterPaarSchaetzen(dataUrl: string, key: string): Promise<[number, number]> {
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: "This photo shows two people. Return ONLY compact JSON {\"man\":NN,\"woman\":NN} with how old each of them looks in years. If a person of that gender is not visible, use 0. No prose." },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        }],
+        max_tokens: 30,
+      }),
+    });
+    const j = await res.json().catch(() => null);
+    const m = /\{[^{}]*\}/.exec(String(j?.choices?.[0]?.message?.content ?? ""));
+    if (!m) return [0, 0];
+    const o = JSON.parse(m[0]) as { man?: number; woman?: number };
+    const gut = (n: unknown) => (typeof n === "number" && n >= 18 && n <= 90 ? Math.round(n) : 0);
+    return [gut(o.man), gut(o.woman)];
+  } catch { return [0, 0]; }
+}
+
+/**
  * GESICHT AUSSCHNEIDEN, WENN DAS GANZE FOTO ABGEWIESEN WIRD (Owner 30.07.2026: „du musst
  * eine Lösung finden, das Gesicht extrahieren dann").
  *
@@ -179,12 +212,25 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     person?: string; model?: string; device?: string; theme?: string; prompt?: string; surprise?: boolean; code?: string;
-    kleid?: string;
+    kleid?: string; paar?: string;
   };
-  const person = String(body.person ?? "");
+  /**
+   * EIN FOTO VON BEIDEN (Owner 31.07.2026: „und es fehlt Upload gemeinsam").
+   *
+   * Fast jedes Paar hat schon ein Foto zu zweit — vom letzten Urlaub, von einer Feier. Zwei
+   * EINZELNE Fotos zu verlangen ist eine Huerde ohne Grund: Sie muss zwei Bilder suchen, von
+   * denen mindestens eines meist nicht existiert, und genau dort steigen Leute aus.
+   *
+   * Technisch ist es der einfachere Fall, nicht der schwerere: EIN Referenzbild statt zwei,
+   * und beide Gesichter stehen darauf schon nebeneinander — das Modell muss sie nicht erst
+   * zusammensetzen. Es kostet auch weniger, weil ein Bild weniger hochgeladen wird.
+   */
+  const paar = String(body.paar ?? "");
+  const gemeinsam = paar.startsWith("data:");
+  const person = gemeinsam ? paar : String(body.person ?? "");
   const device = String(body.device ?? "").trim().slice(0, 80);
   const theme = String(body.theme ?? "kiss").replace(/[^a-z]/gi, "").toLowerCase();
-  let model = String(body.model ?? "");
+  let model = gemeinsam ? "" : String(body.model ?? "");
 
   /**
    * ÜBERRASCHUNG STATT AUSWAHL (Owner 30.07.2026: „kann sich gratis nichts aussuchen, sondern
@@ -259,7 +305,8 @@ export async function POST(request: Request) {
   if (!person.startsWith("data:")) {
     return NextResponse.json({ error: "Bitte lade zuerst dein Foto hoch." }, { status: 400 });
   }
-  if (!body.surprise && !model.startsWith("data:")) {
+  // Beim gemeinsamen Foto gibt es kein zweites Bild — das ist der Sinn der Sache.
+  if (!gemeinsam && !body.surprise && !model.startsWith("data:")) {
     return NextResponse.json({ error: "Bitte wähle sie aus oder lade ein Foto von ihr hoch." }, { status: 400 });
   }
 
@@ -327,20 +374,30 @@ export async function POST(request: Request) {
    *
    * `person` ist ER, `model` ist SIE — so schickt es der Trichter (siehe EinladungBauen).
    */
-  const [alterEr, alterSie] = key
-    ? await Promise.all([alterSchaetzen(person, key), alterSchaetzen(model, key)])
-    : [0, 0];
+  const [alterEr, alterSie] = !key ? [0, 0]
+    // Beim gemeinsamen Foto stehen beide auf EINEM Bild — eine Anfrage, zwei Zahlen.
+    : gemeinsam ? await alterPaarSchaetzen(paar, key)
+    : await Promise.all([alterSchaetzen(person, key), alterSchaetzen(model, key)]);
   const alterSatz = alterEr || alterSie
     ? "AGES — these are not young models: "
-      + (alterEr ? `the man in image 1 is ${alterEr} years old. ` : "")
-      + (alterSie ? `The woman in image 2 is ${alterSie} years old. ` : "")
+      + (alterEr ? `the man is ${alterEr} years old. ` : "")
+      + (alterSie ? `The woman is ${alterSie} years old. ` : "")
       + "Render them at exactly these ages, with the face, skin and hair of people that age."
     : "";
+
+  /**
+   * DIE ERSTE ZEILE DES AUFTRAGS. Sie sagt dem Modell, WAS es vor sich hat — ein Bild mit
+   * beiden Menschen oder zwei Bilder mit je einem. Steht hier das Falsche, sucht das Modell
+   * im Paarfoto nach einer zweiten Person und erfindet eine.
+   */
+  const vorlagenSatz = gemeinsam
+    ? "Image 1 is a photo of a real couple: the two people in it are the couple. Use BOTH of their faces from this one photo."
+    : "Image 1 is a photo of a real person. Image 2 is a photo of another person.";
 
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : hochzeit ? [
-    "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
+    vorlagenSatz,
     // KEIN KUSS (Konzept „Einladung statt Kuss", §2): Eine Einladung schaut den Gast an, und
     // frontal stehen beide Gesichter still — genau die zwei Gesichter, um die es geht.
     "Generate ONE photorealistic image of these two people on their wedding day: the woman in "
@@ -353,7 +410,7 @@ export async function POST(request: Request) {
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
   ].filter(Boolean).join("\n\n") : [
-    "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
+    vorlagenSatz,
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
     "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed. "
@@ -420,6 +477,9 @@ export async function POST(request: Request) {
           // im Bikini in das Feld „dein Foto" — abgewiesen, Ergebnis leer). Die Prüfung
           // stört sich am Körper, egal auf welcher Seite er steht. Also im zweiten Anlauf
           // von beiden nur das Gesicht schicken.
+          // Beim gemeinsamen Foto NICHT zuschneiden: Der Ausschnitt liefert EIN Gesicht, und
+          // damit waere die zweite Person verschwunden. Lieber diesen Anlauf auslassen.
+          if (gemeinsam) break;
           const [gm, gp] = await Promise.all([
             gesichtAusschnitt(model, key),
             gesichtAusschnitt(person, key),
@@ -435,9 +495,10 @@ export async function POST(request: Request) {
         form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
         form.append("n", "1");
         const pb = dataUrlToBlob(versuchPerson), mb = dataUrlToBlob(versuchModel);
-        if (!pb || !mb) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
+        // Beim gemeinsamen Foto gibt es nur EINE Vorlage — beide Gesichter stehen darauf.
+        if (!pb || (!gemeinsam && !mb)) return NextResponse.json({ error: "Fotos konnten nicht gelesen werden." }, { status: 400 });
         form.append("image[]", pb, "person.png");
-        form.append("image[]", mb, "model.png");
+        if (mb) form.append("image[]", mb, "model.png");
 
         res = await fetch("https://api.openai.com/v1/images/edits", {
           method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form,
