@@ -462,6 +462,25 @@ svg {
 }
 @media (prefers-reduced-motion: reduce) { .lb-bubble { animation: none; opacity: 0; } }
 
+/* ── ZURUFE IN DER KARTE: nur die Woerter, und in Weiss ──────────────────────────────
+   Owner 31.07.2026: „die Wörter raus aus den Labels und in Weiss".
+
+   Zwei Fehler auf einmal, beide sichtbar im selben Bild: Die dunkle Pille machte aus einem
+   leichten Zuruf ein Etikett, das auf dem Foto klebt — und `.lb-karte` faerbte die Schrift
+   DARIN auf Braun, weil die Karte alles auf Elfenbein/Braun stellt. Dunkle Schrift auf
+   dunkler Pille, mitten auf einem hellen Bild.
+
+   Ohne Pille schwebt das Wort im Bild, wie ein Kommentar in einem Video. Der Schatten traegt
+   die Lesbarkeit — er wirkt auf hell wie auf dunkel, eine Flaeche kann das nicht. */
+.lb-karte .lb-bubble {
+  background: none !important;
+  backdrop-filter: none;
+  color: #fff !important;
+  padding: 0;
+  font-size: 15px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.65), 0 0 12px rgba(0,0,0,0.45);
+}
+
 /* ── DIE EINLADUNGSKARTE (.lb-karte) ────────────────────────────────────────────────
    Owner 31.07.2026: „wo das Video ist, hier musst du die Einladung zeigen gleich wie sie
    aussieht, und wenn's geht mit Jugendstil-Ornamenten."

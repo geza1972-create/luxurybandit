@@ -86,7 +86,7 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "", gespe
               <div role="button" tabIndex={0} onClick={starten}
                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); starten(); } }}
                 aria-label={beschriftung}
-                className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
+                className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer items-end justify-center p-4">
                 {/* EIN RICHTIGES CTA (Owner 31.07.2026: „richtiges CTA"). Vorher eine dunkle,
                     halbdurchsichtige Pille — die sah aus wie eine Bildunterschrift und nicht
                     wie etwas, das man drückt. Jetzt dasselbe Gold wie jeder andere Knopf in

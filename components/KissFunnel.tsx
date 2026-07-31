@@ -947,7 +947,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     <div role="button" tabIndex={0} aria-label={text}
       onClick={schritteOeffnen}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schritteOeffnen(); } }}
-      className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
+      className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer items-end justify-center p-4">
       {/* CI-KNOPF, NICHT KARTEN-GOLD (Owner 31.07.2026: „du nimmst die falschen Farben für
           CTA, kein Gold sondern blau bei light und gelb bei dark").
           `lb-gold` ist genau dieser Knopf: gelb auf dunkel, und die Hell-Fassung faerbt ihn
