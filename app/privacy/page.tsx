@@ -77,6 +77,36 @@ export default function PrivacyPage() {
         safeguards apply.
       </p>
 
+      {/* GÄSTEDATEN — eigener Abschnitt, weil hier Daten von Menschen liegen, die nie bei uns
+          waren (Owner 31.07.2026: „auch die Gäste müssen ihre E-Mail angeben"). Wer fremde
+          Adressen speichert, muss sagen, wessen sie sind, wofür sie da sind und wie man sie
+          wieder loswird — und zwar bevor der erste echte Gast zusagt. */}
+      <h2>Wedding invitations: your guests&rsquo; data</h2>
+      <p>
+        If you buy a <strong>wedding invitation</strong>, your guests can answer on your invitation
+        page. A guest gives a <strong>first name</strong> and an <strong>email address</strong> —
+        nothing else. No account, no password, no phone number, no postal address.
+      </p>
+      <p>
+        <strong>Those details belong to you, the couple, not to us.</strong> We store them only to
+        run your invitation: to show you who is coming, to tell you by email when someone answers,
+        and to send your guests the news <em>you</em> write, with the link back to your page. We
+        never use guest addresses for our own advertising, never sell them, and never add them to
+        any other list. News emails go out <strong>one by one</strong>, so no guest ever sees the
+        addresses of the others.
+      </p>
+      <p>
+        The first names of the guests who answered are visible on the invitation page to anyone who
+        has the link — that is what a guest list is for. <strong>Email addresses are never shown
+        there</strong>, not to other guests and not in the page&rsquo;s data.
+      </p>
+      <p>
+        Guest details live and die with the invitation: when you withdraw the invitation, or when it
+        is deleted after the retention period below, they go with it. A guest who wants to be removed
+        earlier can ask you, or write to us through the{" "}
+        <a href="/contact">contact form</a> — we will remove that entry.
+      </p>
+
       <h2>How long we keep it</h2>
       <p>
         We keep your data only as long as it is needed to run your account and the service, and delete
@@ -91,7 +121,7 @@ export default function PrivacyPage() {
         protection authority.
       </p>
 
-      <p className="mt-6 text-xs text-black/40">Last updated: 10 July 2026</p>
+      <p className="mt-6 text-xs text-black/40">Last updated: 31 July 2026</p>
     </InfoPage>
   );
 }

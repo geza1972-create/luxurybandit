@@ -116,8 +116,13 @@ export default function ZusagenKarte({
               <input value={mail} onChange={e => setMail(e.target.value)} placeholder={T.zusMail}
                 type="email" inputMode="email" maxLength={160} autoComplete="email"
                 className="lb-karte-feld mt-2 h-11 w-full rounded-lg px-3 text-center font-serif text-[15px] outline-none" />
+              {/* Der Grund steht am Feld, und der Weg zum Nachlesen daneben — ein Gast, der
+                  seine Adresse hergibt, soll nicht erst eine Fusszeile suchen muessen. */}
               <p className="mt-1.5 text-center font-serif text-[11.5px] leading-snug opacity-70">
-                {T.zusMailWarum}
+                {T.zusMailWarum}{" "}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="underline">
+                  {T.zusDatenschutz}
+                </a>
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => void antworten(true)} disabled={!name.trim() || !mailOk || busy}

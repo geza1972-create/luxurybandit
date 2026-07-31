@@ -27,7 +27,7 @@ const T: Record<string, { h: string; p: string; cta: string }> = {
   it: { h: "Sblocca tutto", p: "Video con lei — e tu dentro. Chattare è e resta gratis.", cta: "Sblocca l'esperienza AI più calda — {price}/mese" },
 };
 
-export default function SubscribeCta({ code = "", lang = "en", topic = "chat", titel, text, cta }: {
+export default function SubscribeCta({ code = "", lang = "en", topic = "chat", titel, text, cta, hell }: {
   code?: string; lang?: string; topic?: string;
   /**
    * EIGENER WORTLAUT JE THEMA (Owner 31.07.2026, fuer die Hochzeit).
@@ -38,6 +38,14 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat", t
    * hier, weil alles durch `fillPrices` geht.
    */
   titel?: string; text?: string; cta?: string;
+  /**
+   * HELLE FASSUNG (Owner 31.07.2026: „das ist sehr anstrengend zum Lesen. Weiss auf blau").
+   *
+   * Der goldene Kasten wird in der Hell-Fassung blau — und ein blauer Knopf auf blauem Grund
+   * verschwindet fast. Auf weissem Grund traegt sich der Knopf selbst, und drei Zeilen dunkle
+   * Schrift liest man in einem Drittel der Zeit.
+   */
+  hell?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,16 +72,19 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat", t
   };
 
   return (
-    <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
-      <p className="text-[17px] font-black text-white">{titel || t.h}</p>
-      <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{fillPrices(text || t.p, lang)}</p>
+    <div className={`mt-8 rounded-2xl p-4 text-center ${hell ? "" : "border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08]"}`}
+      style={hell ? { background: "#fff", color: "#1a160f" } : undefined}>
+      <p className={`text-[17px] font-black ${hell ? "" : "text-white"}`}>{titel || t.h}</p>
+      <p className={`mt-1 text-[14px] font-bold leading-snug ${hell ? "" : "text-white/85"}`}
+        style={hell ? { color: "#2a2620" } : undefined}>{fillPrices(text || t.p, lang)}</p>
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
         {fillPrices(cta || t.cta, lang)}
       </button>
-      {error && <p className="mt-2 text-[13px] font-bold text-white/80">{error}</p>}
-      <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
+      {error && <p className={`mt-2 text-[13px] font-bold ${hell ? "" : "text-white/80"}`}>{error}</p>}
+      <p className={`mt-2 text-[10px] font-medium leading-snug ${hell ? "" : "text-white/55"}`}
+        style={hell ? { color: "rgba(42,38,32,0.6)" } : undefined}>{renewNote(lang)}</p>
     </div>
   );
 }

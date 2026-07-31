@@ -1451,7 +1451,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             // eslint-disable-next-line @next/next/no-img-element
             <img src={selPhoto} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-white/15 object-cover object-top" />
           )}
-          <span className="text-[20px]">💋</span>
+          {/* Das Sinnbild zwischen den beiden Fotos folgt dem Thema: Kuss-Lippen auf einer
+              Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
+              ungeprueft mitkommt. */}
+          <span className="text-[20px]">{variant === "wedding" ? "💍" : "💋"}</span>
           {photo && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={photo} alt="" className="aspect-[3/4] w-[86px] rounded-xl border border-[#f6cf51]/40 object-cover object-top" />
@@ -1587,7 +1590,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       <button type="button" onClick={() => void (bezahlt ? kussVideo() : generate())}
         disabled={!selPhoto || !photo || !consent || busy || videoBusy || mailBusy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-        {busy || videoBusy || mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : "💋"}
+        {busy || videoBusy || mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : "💋")}
         {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : bezahlt ? T.ctaVideo : T.ctaFree}
       </button>
       {/* Der Preis steht DIREKT unter dem Knopf, nicht erst hinter dem Ergebnis (Owner
@@ -1802,8 +1805,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                     </span>
                   ))}
                   {/* Reaktionen als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}
-                  {["wow 🔥", "😍", "yes — kiss her!", "💋", "so hot", "❤️", "omg", "perfect"].map((t, i) => (
-                    <span key={t} className="lb-bubble"
+                  {(variant === "wedding"
+                    ? ["😍", "❤️", "so schön", "💍", "wow", "perfect", "🥂", "💐"]
+                    : ["wow 🔥", "😍", "yes — kiss her!", "💋", "so hot", "❤️", "omg", "perfect"]
+                  ).map((t, i) => (
+                    <span key={i} className="lb-bubble"
                       style={{
                         left: `${8 + (i * 11) % 66}%`,
                         animationDelay: `${1.2 + (i * 0.72) % 5.4}s`,

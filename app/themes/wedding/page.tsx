@@ -2,7 +2,7 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
-import { Check } from "lucide-react";
+import { Check, FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -238,27 +238,43 @@ export default async function WeddingThemePage({ searchParams }: {
                   sie={BEISPIEL_NAMEN[0][0]} er={BEISPIEL_NAMEN[0][1]} />
               </div>
             )}
-            {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen was er bekommt").
-                Direkt unter der Karte: Erst sieht er sie, dann liest er in fuenf Zeilen, was
-                dazugehoert. Jede Zeile ist etwas, das es wirklich gibt — eine Liste, die mehr
-                verspricht als die Seite haelt, kostet beim ersten Kunden mehr, als sie
-                einbringt. */}
-            <div className="mt-5 rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.05] p-4">
-              <p className="text-[15px] font-black text-white">{T.bekommstTitel}</p>
-              <ul className="mt-2 space-y-1.5">
-                {T.bekommst.map((zeile, i) => (
-                  <li key={i} className="flex gap-2 text-[13px] font-bold leading-snug text-white/80">
-                    <Check className="mt-[3px] h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
-                    <span>{zeile}</span>
-                  </li>
-                ))}
+            {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen, was er bekommt").
+                Nachgebessert: „Das ist sehr anstrengend zum Lesen. Weiss auf blau und ohne
+                Icons."
+
+                Er hat recht, und zwar aus zwei Gruenden: Sieben Zeilen weisse Schrift auf
+                gesaettigtem Blau ermuedet nach der dritten — heller Grund mit dunkler Schrift
+                liest sich in einem Drittel der Zeit. Und sieben identische Haken tragen keine
+                Information: Das Auge springt so eine Liste an, findet nichts zum Unterscheiden
+                und liest sie deshalb gar nicht. Ein eigenes Sinnbild je Zeile macht aus der
+                Liste sieben Dinge statt einer Wand.
+
+                Jede Zeile ist etwas, das es wirklich gibt — eine Liste, die mehr verspricht als
+                die Seite haelt, kostet beim ersten Kunden mehr, als sie einbringt. */}
+            <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: "#1a160f" }}>
+              <p className="text-[16px] font-black">{T.bekommstTitel}</p>
+              <ul className="mt-3 space-y-3">
+                {T.bekommst.map((zeile, i) => {
+                  const Symbol = [FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe][i] ?? Check;
+                  return (
+                    <li key={i} className="flex gap-3">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full"
+                        style={{ background: "rgba(24,119,242,0.10)" }}>
+                        <Symbol className="h-4 w-4" style={{ color: "#1877F2" }} />
+                      </span>
+                      <span className="pt-1 text-[13.5px] font-bold leading-snug" style={{ color: "#2a2620" }}>
+                        {zeile}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             {/* Preis und Knopf zum Schluss — erst die Karte, dann die Liste, dann die Kasse.
                 BEWUSST AUSSERHALB des Listenkastens: In der hellen Fassung wird der goldene
                 Kasten blau, und ein blauer Knopf darin ist blau auf blau. Auf dem hellen
                 Seitengrund traegt er sich selbst. */}
-            <SubscribeCta code={code} lang={L}
+            <SubscribeCta code={code} lang={L} hell
               titel={(ANGEBOT[L] ?? ANGEBOT.en).h}
               text={(ANGEBOT[L] ?? ANGEBOT.en).p}
               cta={(ANGEBOT[L] ?? ANGEBOT.en).cta} />
