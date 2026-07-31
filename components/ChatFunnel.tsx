@@ -661,10 +661,10 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           ) : wall ? (
             <div className="text-center">
               <p className="text-[13px] font-black text-black">{u.keep} {herName}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">24,50 € a month — every day, plus your 5 videos a month across all topics.</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">{fillPrices("{price} a month — every day, plus your {videos} videos a month across all topics.", lang)}</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €24.50/month
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {fillPrices("Unlock the hottest AI experience ever — {price}/month", lang)}
               </button>
               <p className="mt-2 text-center text-[10px] font-medium leading-snug text-black/50">{renewNote(lang)}</p>
             </div>
@@ -748,7 +748,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         {dressBusy ? u.dressing : vidBusy ? u.filming
           : (isStaff || paid)
             ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : fillPrices(u.more, chatLang))
-            : "Unlock the hottest AI experience ever — €24.50/month"}
+            : fillPrices("Unlock the hottest AI experience ever — {price}/month", lang)}
       </button>
       {!isStaff && !paid && (
         <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>

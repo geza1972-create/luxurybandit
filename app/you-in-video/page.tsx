@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Upload, Sparkles, Lock, Play, Loader2, Check, Download } from "lucide-react";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import { EXTRA_VIDEO_CENTS, eur } from "@/lib/pricing";
 
 // Self-insertion funnel — "You, in a video, in any look."
 // The user picks one of our looks, uploads a selfie, watches a (staged) render,
@@ -13,7 +14,10 @@ import { trackMetaPixel } from "@/lib/meta-pixel";
 // the video that was stashed in localStorage before the redirect.
 
 const STRIPE_LINK = "https://buy.stripe.com/3cI9ALeO0c3Y5PY2RecIE03";
-const PRICE_LABEL = "$3.99";
+// EINE Zahl fuer Beschriftung UND Pixel-Meldung (Owner 31.07.2026). Vorher stand 3,99 hier
+// dreimal: als Text und zweimal als Zahl an Meta — die liefen beim Preiswechsel auseinander.
+const PRICE_LABEL = eur(EXTRA_VIDEO_CENTS);
+const PRICE_VALUE = EXTRA_VIDEO_CENTS / 100;
 const LS_PENDING = "lb_yiv_pending"; // JSON of the picked clip, kept across the Stripe hop
 
 type Clip = { id: string; videoUrl: string; imageUrl: string; thumbUrl?: string };
@@ -75,7 +79,7 @@ function YouInVideoInner() {
       if (raw) {
         setPicked(JSON.parse(raw) as Clip);
         setStep("unlocked");
-        trackMetaPixel("Purchase", { value: 3.99, currency: "USD" });
+        trackMetaPixel("Purchase", { value: PRICE_VALUE, currency: "USD" });
         logFunnelEvent("yiv_paid");
       }
     } catch { /* ignore */ }
@@ -152,7 +156,7 @@ function YouInVideoInner() {
 
   const pay = () => {
     try { if (picked) localStorage.setItem(LS_PENDING, JSON.stringify(picked)); } catch { /* ignore */ }
-    trackMetaPixel("InitiateCheckout", { value: 3.99, currency: "USD" });
+    trackMetaPixel("InitiateCheckout", { value: PRICE_VALUE, currency: "USD" });
     logFunnelEvent("yiv_pay_click");
     window.location.href = STRIPE_LINK;
   };

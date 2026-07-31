@@ -22,6 +22,7 @@ const JOURNEY_CURATOR_IDS = new Set([BELLA_ID]); // Bella
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
+import { fillPrices } from "@/lib/pricing";
 
 // Wardrobe category label — "Community"/boudoir reads as "Lingerie" in wardrobe contexts.
 const catLabel = (slug: LookCategory) => (slug === "boudoir" ? "Lingerie" : LOOK_CATEGORIES.find(c => c.slug === slug)?.label ?? slug);
@@ -983,7 +984,7 @@ export default function CuratorPublicPage() {
 
   const makeVideoAsModel = async (t: TryOn, retried = false) => {
     if (photoVidBusy) return;
-    if (!retried && !window.confirm("Your first video is free, each additional one costs $3.99. Continue?")) return;
+    if (!retried && !window.confirm(fillPrices("Your first video is free, each additional one costs {extra}. Continue?"))) return;
     setPhotoVidBusy(t.id);
     try {
       const res = await fetch("/api/generate-tryon-video", {
@@ -1518,7 +1519,7 @@ export default function CuratorPublicPage() {
             <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
               <p className="text-base font-black text-white">Pick a garment for her video</p>
-              <p className="mb-2 text-[12px] font-bold text-white/85">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. First video free, then $3.99.</p>
+              <p className="mb-2 text-[12px] font-bold text-white/85">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. {fillPrices("First video free, then {extra}.")}</p>
               {/* Collection filter — she only sees collections RELEASED to her (admin sees
                   all). "Alle" + one chip per released collection. */}
               {(() => {

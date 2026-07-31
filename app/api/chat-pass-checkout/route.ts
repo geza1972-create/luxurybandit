@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,10 @@ export const dynamic = "force-dynamic";
 // and tells the client to unlock the chat for 30 minutes.
 // Uses the STRIPE_CHAT_PASS_PRICE_ID Stripe Price when set (so the price is managed in Stripe);
 // otherwise falls back to a fixed $3.99 built in code.
-const PRICE_CENTS = 399;
+// PREIS AUS DER TABELLE, nicht von Hand (Owner 31.07.2026: „und auch wo 3,99 steht
+// auch 2,99"). Chat-Pass (KEIN Video — mitgezogen auf Ansage des Owners). Hier stand 399 fest — beim Preiswechsel haette diese Route
+// als einzige weiter den alten Betrag abgebucht, waehrend die Seite 2,99 verspricht.
+const PRICE_CENTS = EXTRA_VIDEO_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

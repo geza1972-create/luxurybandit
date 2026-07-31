@@ -224,7 +224,10 @@ export type PricingConfig = {
 // Defaults = the numbers agreed for the own-a-model concept. The admin can override each.
 export const DEFAULT_PRICING: Required<PricingConfig> = {
   subscriptionMonthlyCents: 499,   // $4.99 / month membership
-  videoGenCents: 399,              // $3.99 per generated video / try-on
+  // 2,99 statt 3,99 (Owner 31.07.2026: „und auch wo 3,99 steht auch 2,99").
+  // ACHTUNG: Das hier ist nur der VORGABEWERT. Der geltende Preis steht in Supabase
+  // und wird im Admin unter „Generate a video / try-on" gesetzt — der schlaegt diesen.
+  videoGenCents: 299,              // $2.99 per generated video / try-on
   ownPhotoUploadCents: 0,          // free
   freshBaseCents: 999,             // $9.99 fresh AI model
   realModelBaseCents: 10000,       // $100 real model floor
@@ -237,7 +240,7 @@ export const DEFAULT_PRICING: Required<PricingConfig> = {
   followerValueCents: 100,         // +$1 value per super-follower
   lookValueCents: 0,               // looks add no value on their own
   dayValueCents: 100,              // +$1 value per day owned
-  chatPassCents: 399,              // $3.99 paid chat pass
+  chatPassCents: 299,              // $2.99 paid chat pass (mitgezogen, siehe videoGenCents)
   chatPassMinutes: 30,             // 30-minute chat pass
   chatFreeMessages: 10,            // 10 free messages first
   chatDailyMessages: 40,           // Bella-Abo: 40 chat messages / day per subscriber (caps Haiku cost)

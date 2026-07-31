@@ -5,6 +5,7 @@ import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Check, Download, Plus } fr
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { logFunnelEvent } from "@/lib/track-funnel";
+import { fillPrices } from "@/lib/pricing";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -392,7 +393,11 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
         {busy ? "Rendering …" : scene ? `Create: ${scene.label}` : "Pick a moment first"}
       </button>
       <p className="mt-2 text-[13px] font-bold leading-snug text-white/75">
-        {aboPaid ? "Every extra video is 3.99 €." : "The first one starts your topic subscription at 24,50 € a month — every extra video after that is 3.99 €."}
+        {/* Die Zahlen standen hier von Hand: 3,99 und 24,50. Beim Preiswechsel haette der
+            Urlaubs-Trichter als einziger weiter den alten Preis genannt. */}
+        {fillPrices(aboPaid
+          ? "Every extra video is {extra}."
+          : "The first one starts your topic subscription at {price} a month — every extra video after that is {extra}.", "en")}
       </p>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
 
@@ -426,7 +431,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
                     {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    {isStaff ? "Reveal (Admin — free)" : aboPaid ? "Unlock — €3.99" : "Unlock — 24,50 €/month"}
+                    {isStaff ? "Reveal (Admin — free)" : fillPrices(aboPaid ? "Unlock — {extra}" : "Unlock — {price}/month", "en")}
                   </button>
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe · cancel any time</p>}
                 </div>
@@ -448,7 +453,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
             </a>
             <button type="button" onClick={() => { setVideoUrl(""); setSceneId(""); setTeaser(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[14px] font-black text-white/85 active:scale-95 transition">
-              <Plus className="h-4 w-4" /> Next moment — 3.99 €
+              <Plus className="h-4 w-4" /> {fillPrices("Next moment — {extra}", "en")}
             </button>
           </div>
         )}

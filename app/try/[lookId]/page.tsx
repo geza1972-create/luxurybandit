@@ -1478,7 +1478,7 @@ export default function TryFunnelPage() {
                       <p className="mb-1 text-center text-[12px] font-black text-[#e7c877]/90">{L("Un model nou în fiecare zi · Vezi-te pe tine · Vorbește cu ea", "A new model every day · See yourself in any look · Chat with her")}</p>
                       <button type="button" onClick={() => router.push(`/you-in-video?lang=${lang}`)}
                         className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                        <Sparkles className="h-5 w-5" /> {L("Vezi-te pe TINE în video — $3.99 🎬", "See yourself in this video — $3.99 🎬")}
+                        <Sparkles className="h-5 w-5" /> {fillPrices(L("Vezi-te pe TINE în video — {extra} 🎬", "See yourself in this video — {extra} 🎬"))}
                       </button>
                       {chosenModelId && (
                         <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}

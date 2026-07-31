@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
+import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Jedes WEITERE Holiday-Video: 3,99 € einzeln (das erste startet das Abo — siehe
 // holiday-abo-checkout). Preis serverseitig fixiert; dem Client nie vertrauen.
-const PRICE_CENTS = 399;
+// PREIS AUS DER TABELLE, nicht von Hand (Owner 31.07.2026: „und auch wo 3,99 steht
+// auch 2,99"). Jedes weitere Holiday-Video. Hier stand 399 fest — beim Preiswechsel haette diese Route
+// als einzige weiter den alten Betrag abgebucht, waehrend die Seite 2,99 verspricht.
+const PRICE_CENTS = EXTRA_VIDEO_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

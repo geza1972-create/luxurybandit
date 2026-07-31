@@ -21,13 +21,56 @@
 
 export const TOPIC_MONTHLY_CENTS = 4900;            // 49 € Listenpreis (durchgestrichen)
 export const TOPIC_EFFECTIVE_MONTHLY_CENTS = 2450;  // 24,50 € — was er wirklich zahlt, dauerhaft
-export const EXTRA_VIDEO_CENTS = 399;               // jedes Video über das Abo hinaus
-export const INCLUDED_VIDEOS_PER_MONTH = 5;         // im Abo enthaltene Videos, über ALLE Themen
+/**
+ * MEHR VIDEOS, GUENSTIGER (Owner 31.07.2026: „ich glaube wir müssen die Videopreise auf 2,99
+ * senken und im Abo 10 Videos" — kurz darauf korrigiert: „nicht 10, sondern 12").
+ *
+ * Was sich damit rechnerisch aendert — das Abo bleibt bei {price}:
+ *
+ *   vorher   5 Videos für 24,50 €  =  4,90 € je Video, jedes weitere 3,99 €
+ *   jetzt   12 Videos für 24,50 €  =  2,04 € je Video, jedes weitere 2,99 €
+ *
+ * Das Verhaeltnis stimmt weiter: Ein Video ueber das Abo hinaus kostet mehr (2,99) als eines
+ * im Abo (2,04). Waere es umgekehrt, waere das Abo eine Strafe fuer treue Kunden.
+ *
+ * 12 ist ausserdem die bessere Zahl als 10, ohne dass es geplant war: Es ist die einzige, bei
+ * der „eines fuer jeden Monat" mitschwingt — und es liest sich als grosszuegig, nicht als
+ * gerundet.
+ *
+ * Der Einmalkauf bleibt bei {once} fuer EIN Video. Das ist Absicht und kein Widerspruch: Er
+ * ist der teure Weg fuer den, der kein Abo will — und der Abstand zum Abo ist jetzt so gross,
+ * dass die Rechnung sich von selbst erklaert.
+ *
+ * WAS DAS KOSTET: Zwoelf Videos im Monat sind bei uns zwoelf Pixverse-Laeufe (8 s, 540p). Was
+ * der Lauf wirklich kostet, steht in KEINEM Kommentar dieses Projekts — das laesst sich nur
+ * an der Pixverse-Abrechnung ablesen. Bei einem Euro je Video (die Hausnummer aus
+ * try-this-look-store.ts) waeren zwoelf Videos 12 € von 24,50 €, und dann traegt das Abo sich
+ * nicht mehr. Das gehoert gegen die echte Rechnung geprueft, nicht geschaetzt.
+ */
+export const EXTRA_VIDEO_CENTS = 299;               // jedes Video über das Abo hinaus
+export const INCLUDED_VIDEOS_PER_MONTH = 12;        // im Abo enthaltene Videos, über ALLE Themen
 // EINMALZAHLUNG (Owner 30.07.2026: „wir müssen einmalige zahlungen machen nicht nur abos …
 // 9,99 euro … beim Küssen"). Nicht jeder will ein Abo; wer einmal etwas kauft, kommt oft
 // später von selbst zum Abo. Der frühere Einzelkauf lag bei 3,99 € und wurde im Juli vom Abo
 // abgelöst — jetzt kommt er zurück, teurer und als eigenständiges Produkt.
-export const ONCE_CENTS = 999;                      // 9,99 € — ein Kauf, kein Abo
+/**
+ * DER EINMALKAUF FAELLT AUF DEN VIDEOPREIS (Owner 31.07.2026: „2,99 statt 9,99").
+ *
+ * Damit kostet JEDES einzelne Video 2,99 € — mit Abo wie ohne. Das ist einfacher zu erklaeren
+ * als zwei verschiedene Einzelpreise, und der Abstand zum Abo traegt die Entscheidung allein:
+ * zwoelf Videos einzeln waeren 35,88 €, im Abo sind es 24,50 € plus alles andere.
+ *
+ * ZWEI DINGE, DIE BEI 2,99 ANDERS SIND ALS BEI 9,99:
+ *
+ * 1. Stripes feste Gebuehr faellt ins Gewicht. Rund 0,25 € je Vorgang plus Prozente sind bei
+ *    9,99 € etwa 3 %, bei 2,99 € rund 9 %. Von jedem Einmalkauf bleiben also spuerbar weniger
+ *    als drei Euro.
+ * 2. Was ein Video bei Pixverse wirklich kostet, steht in keinem Kommentar dieses Projekts.
+ *    Bei einem Euro je Video (die Hausnummer aus try-this-look-store.ts) bliebe nach Gebuehr
+ *    und Erzeugung rund 1,70 € — das traegt. Laege der Lauf bei zwei Euro, waere der
+ *    Einmalkauf ein Verlustgeschaeft. Das gehoert an der Pixverse-Abrechnung geprueft.
+ */
+export const ONCE_CENTS = 299;                      // 2,99 € — ein Kauf, kein Abo
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -40,8 +83,8 @@ export const ONCE_CENTS = 999;                      // 9,99 € — ein Kauf, ke
  * Deshalb stehen in den Texten nur noch Platzhalter, die hier gefüllt werden:
  *   {price}  → 24,50 €   (der Preis, den er wirklich zahlt)
  *   {list}   → 49 €      (Listenpreis, durchgestrichen)
- *   {extra}  → 3,99 €    (jedes weitere Video)
- *   {videos} → 5         (im Abo enthalten)
+ *   {extra}  → 2,99 €    (jedes weitere Video)
+ *   {videos} → 12        (im Abo enthalten)
  *   {once}   → 9,99 €    (Einmalkauf, ohne Abo)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.

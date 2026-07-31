@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit, readKissLog, writeKissLog, grantMonthlySubscriptionCredits, grantVideoCredits } from "@/lib/try-this-look-store";
 import { hasActiveSubscription } from "@/lib/stripe";
-import { INCLUDED_VIDEOS_PER_MONTH, EXTRA_VIDEO_CENTS } from "@/lib/pricing";
+import { INCLUDED_VIDEOS_PER_MONTH, EXTRA_VIDEO_CENTS, eur } from "@/lib/pricing";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -368,7 +368,10 @@ export async function POST(request: Request) {
     const balance = await spendVideoCredit(modelEmail); // spend a PAID credit (no free grant)
     if (balance === null) {
       return NextResponse.json(
-        { error: "Each video is $3.99.", paymentRequired: true, priceCents: 399, priceLabel: "$3.99" },
+        // Betrag und Beschriftung aus derselben Zahl (Owner 31.07.2026: „auch wo 3,99 steht auch
+        // 2,99"). Vorher standen hier DREI feste 3,99 nebeneinander — Text, Betrag, Label.
+        { error: `Each video is ${eur(EXTRA_VIDEO_CENTS)}.`, paymentRequired: true,
+          priceCents: EXTRA_VIDEO_CENTS, priceLabel: eur(EXTRA_VIDEO_CENTS) },
         { status: 402 }
       );
     }

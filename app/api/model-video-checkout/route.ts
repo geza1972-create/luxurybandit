@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 // $3.99 checkout for a model to generate ONE more video (her first is free). Opens in a
 // popup; the profile page polls /api/checkout-status, which grants 1 video credit to her
 // email on success (kind:"model-video"). Price is fixed server-side — never trust a client.
-const PRICE_CENTS = 399;
+// PREIS AUS DER TABELLE, nicht von Hand (Owner 31.07.2026: „und auch wo 3,99 steht
+// auch 2,99"). Ein weiteres Video fuer ein Model. Hier stand 399 fest — beim Preiswechsel haette diese Route
+// als einzige weiter den alten Betrag abgebucht, waehrend die Seite 2,99 verspricht.
+const PRICE_CENTS = EXTRA_VIDEO_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

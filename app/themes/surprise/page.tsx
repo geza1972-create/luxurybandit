@@ -3,6 +3,7 @@ import TrackView from "@/components/TrackView";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import SurpriseFunnel from "@/components/SurpriseFunnel";
 import { getSignedUrl } from "@/lib/try-this-look-store";
+import { fillPrices } from "@/lib/pricing";
 
 // THEMA „Surprise him" (ehemals City Secrets) — SIE lädt ihr eigenes Foto hoch, zahlt
 // 3,99 € und schickt ihm ein privates Video. Gleiches Schema wie überall: Fake-Render →
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Surprise your boyfriend tonight — one private video | LuxuryBandit",
-  description: "Upload your own photo, and we turn it into a short private video for him: he gets a plain email with a link only he can open. 3.99 €, nothing is posted anywhere.",
+  description: fillPrices("Upload your own photo, and we turn it into a short private video for him: he gets a plain email with a link only he can open. {extra}, nothing is posted anywhere."),
   keywords: ["surprise your boyfriend", "surprise him tonight", "private video for boyfriend", "romantic surprise idea", "ai video from photo", "photo to video ai", "send a private video"],
   alternates: { canonical: "/themes/surprise" },
 };
@@ -37,7 +38,7 @@ export default async function SurpriseThemePage() {
               short video that is yours to download and send to him yourself.
             </Lead>
             <Fine>
-              You decide how much you show. 3.99 € per video. Nothing is posted anywhere.
+              You decide how much you show. {fillPrices("{extra} per video.")} Nothing is posted anywhere.
             </Fine>
 
             {/* Das Ergebnis steht GANZ OBEN (Owner): erst sehen, was rauskommt, dann lesen. */}

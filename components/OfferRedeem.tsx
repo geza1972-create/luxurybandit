@@ -53,8 +53,11 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
           der 50-%-Gutschein gilt für JEDEN und DAUERHAFT — mit Code wie ohne. */}
       {code.trim() ? (
         <p className="mt-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[13px] font-bold leading-snug text-[#f6cf51]">
-          Code {code.trim().toUpperCase()} applied: <span className="font-black">24,50 € a month instead of 49 €</span>,
-          for as long as you stay — 5 videos a month across all topics, chatting free.
+          {/* Derselbe Satz wie im Zweig darunter, nur mit Code — und genau hier standen die
+              Zahlen von Hand: 24,50 / 49 / 5. Der Nachbarzweig fuellte laengst richtig. */}
+          Code {code.trim().toUpperCase()} applied:{" "}
+          <span className="font-black">{fillPrices("{price} a month instead of {list}", "en")}</span>,
+          {fillPrices(" for as long as you stay — {videos} videos a month across all topics, chatting free.", "en")}
         </p>
       ) : (
         <p className="mt-1.5 text-[12px] font-bold text-white/70">

@@ -63,7 +63,7 @@ export default function CuratorApplyPage() {
     },
   }[lang];
   // Prices come from the admin-editable price list (change once there). Defaults until loaded.
-  const [pricing, setPricing] = useState({ subscriptionMonthlyCents: 499, chatPassCents: 399, videoGenCents: 399 });
+  const [pricing, setPricing] = useState({ subscriptionMonthlyCents: 499, chatPassCents: 299, videoGenCents: 299 });
   useEffect(() => { fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d.pricing) setPricing(p => ({ ...p, ...d.pricing })); }).catch(() => {}); }, []);
   const fmtPrice = (c: number) => { const n = Math.max(0, Math.round(c)) / 100; return `$${n % 1 ? n.toFixed(2) : n.toLocaleString("en-US")}`; };
   const [photo, setPhoto] = useState("");

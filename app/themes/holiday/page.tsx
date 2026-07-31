@@ -85,7 +85,7 @@ export default async function HolidayThemePage({ searchParams }: {
           <div>
             <SectionTitle>What it costs</SectionTitle>
             <Lead>
-              {fillPrices("The first video starts your subscription at {price} a month: {videos} videos a month across ALL topics together — Holiday, Chat, Kiss, whatever you feel like. Every extra video after that is 3.99 €. You can cancel the subscription in your account at any time; the month you paid for stays yours.", "en")}
+              {fillPrices("The first video starts your subscription at {price} a month: {videos} videos a month across ALL topics together — Holiday, Chat, Kiss, whatever you feel like. Every extra video after that is {extra}. You can cancel the subscription in your account at any time; the month you paid for stays yours.", "en")}
             </Lead>
           </div>
           <div>

@@ -7,6 +7,7 @@ import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import { readTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
+import { fillPrices } from "@/lib/pricing";
 
 // THEMA „Birthdays" — gleiches Schema wie Kiss/Idol (Radar-Show → verpixelt → bezahlen →
 // echter Render), aber EINZELKAUF 3,99 € statt Abo: so ein Video verschenkt man einmal.
@@ -18,7 +19,7 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 
 export const metadata = {
   title: "Birthday video maker with a name — AI happy birthday video | LuxuryBandit",
-  description: "Personalised birthday video message: type the name, and the AI birthday video maker has her say happy birthday out loud, by name. One video, 3.99 €, ready to send.",
+  description: fillPrices("Personalised birthday video message: type the name, and the AI birthday video maker has her say happy birthday out loud, by name. One video, {extra}, ready to send."),
   keywords: ["birthday video maker", "birthday video message", "personalized birthday video", "ai birthday video", "happy birthday video with name", "birthday video maker online", "ai video generator"],
   alternates: { canonical: "/themes/birthday" },
 };
@@ -74,7 +75,7 @@ export default async function BirthdayThemePage({ searchParams }: {
                 <Lead>
                   A personalised birthday video message without templates: type the name, and the AI
                   birthday video maker has her wish them a happy birthday out loud — by name, lips in
-                  sync, cake and candles included. One video, 3.99 €, then share it wherever you like.
+                  sync, cake and candles included. {fillPrices("One video, {extra}, then share it wherever you like.")}
                 </Lead>
               </div>
               <div>

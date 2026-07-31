@@ -1,14 +1,29 @@
-// Vorlage der täglichen Wetter-E-Mail (Texte + HTML) — BEWUSST ohne Server-Importe,
+// Vorlage der täglichen Wetter-E-Mail (Texte + HTML) — BEWUSST ohne SERVER-Importe,
 // damit sie pur bleibt und sich unabhängig rendern/prüfen lässt.
 
-// Kanal-Adresse hier gespiegelt (Quelle: lib/social.ts) — die Vorlage bleibt importfrei.
+// Kanal-Adresse hier gespiegelt (Quelle: lib/social.ts) — die Vorlage bleibt sonst importfrei.
 const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VbD9Te45K3zR16YL1c2r";
+
+/**
+ * PREISE SIND DIE AUSNAHME VON „IMPORTFREI" (Owner 31.07.2026: „wir müssen die Videopreise auf
+ * 2,99 senken und im Abo 10 Videos").
+ *
+ * Hier standen „5 Videos im Monat" und „24,50 €/Monat" fest getippt, in sieben Sprachen. Beim
+ * Preiswechsel waeren also sieben Mails mit der falschen Zahl rausgegangen — und eine
+ * verschickte Mail kann man nicht zurueckholen. Genau deshalb gibt es die Dauerregel „Zahlen
+ * nur aus der Tabelle".
+ *
+ * Eine gespiegelte Zahl ist bei einer Kanaladresse harmlos (sie aendert sich nie). Bei einem
+ * Preis ist sie eine Falle. `lib/pricing` ist ein reines Modul ohne Server-Abhaengigkeiten —
+ * die Vorlage bleibt damit pruefbar.
+ */
+import { fillPrices } from "@/lib/pricing";
 
 export type Copy = {
   subject: string; preheader: string; greet: string; lead: string; body: string;
   wx: string; wxCity: string; look: string; chat: string;
   cta: string; bye: string; unsub: string; ai: string;
-  // Abo-Angebot in der Mail: derselbe Preis wie auf der Seite (24,50 €/Monat dauerhaft,
+  // Abo-Angebot in der Mail: derselbe Preis wie auf der Seite ({price}/Monat dauerhaft,
   // statt 49 €) — der Gutschein wird automatisch gesetzt, der Kunde tippt nichts ein.
   aboH: string; aboP: string; aboCta: string; whats: string;
 };
@@ -25,51 +40,59 @@ export function copy(lang: string, name: string): Copy {
       wx: "Cum e vremea mâine", wxCity: "Cum e vremea mâine în {city}", look: "Look-ul de azi", chat: "Și un chat, dacă vrei",
       cta: "Vezi acum", bye: "O zi bună,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te",
       ai: "Bella este o persoană virtuală (AI) creată de LuxuryBandit \u2014 nu o persoană reală.",
-      aboH: "Toate funcțiile, deblocate", aboP: "Alegi singur cele mai fierbinți ținute și le generezi: orice model — sau superstarul tău — în orice ținută, la chat sau într-un sărut. 5 videoclipuri pe lună în toate temele, chatul rămâne gratuit.", aboCta: "Deblochează cea mai fierbinte experiență AI — 24,50 €/lună", whats: "💬 Urmărește pe WhatsApp" },
+      aboH: "Toate funcțiile, deblocate", aboP: "Alegi singur cele mai fierbinți ținute și le generezi: orice model — sau superstarul tău — în orice ținută, la chat sau într-un sărut. {videos} videoclipuri pe lună în toate temele, chatul rămâne gratuit.", aboCta: "Deblochează cea mai fierbinte experiență AI — {price}/lună", whats: "💬 Urmărește pe WhatsApp" },
     de: { subject: c("Guten Abend") + " \u2728", preheader: "Dein Wetter für morgen und ein neuer Look.",
       greet: c("Guten Abend"), lead: "Dein Wetter für morgen und der Look von heute \u2728", body: "Der Tag ist rum. Dein Wetter für morgen steht bereit, dazu ein neuer Look \u2014 und ich bin da, wenn du reden magst.",
       wx: "Wie das Wetter morgen wird", wxCity: "Wie das Wetter morgen in {city} wird", look: "Der Look von heute", chat: "Und ein Chat, wenn du magst",
       cta: "Jetzt ansehen", bye: "Einen schönen Tag,", unsub: "Keine Nachrichten mehr? Hier abmelden",
       ai: "Bella ist eine KI-Persona von LuxuryBandit \u2014 keine echte Person.",
-      aboH: "Alle Funktionen freischalten", aboP: "Die heißesten Looks suchst du selbst aus und generierst sie: jedes Model — oder deinen Superstar — in jedem Look, im Chat, oder mit einem Kuss. 5 Videos im Monat über alle Themen, Chatten bleibt gratis.", aboCta: "Die heißeste KI-Erfahrung freischalten — 24,50 €/Monat", whats: "💬 Auf WhatsApp folgen" },
+      aboH: "Alle Funktionen freischalten", aboP: "Die heißesten Looks suchst du selbst aus und generierst sie: jedes Model — oder deinen Superstar — in jedem Look, im Chat, oder mit einem Kuss. {videos} Videos im Monat über alle Themen, Chatten bleibt gratis.", aboCta: "Die heißeste KI-Erfahrung freischalten — {price}/Monat", whats: "💬 Auf WhatsApp folgen" },
     en: { subject: c("Good evening") + " \u2728", preheader: "Your weather for tomorrow and a new look.",
       greet: c("Good evening"), lead: "Your weather for tomorrow and today's look \u2728", body: "The day is done. Your weather for tomorrow is ready, plus a new look \u2014 and I'm here if you feel like talking.",
       wx: "How tomorrow looks", wxCity: "How tomorrow looks in {city}", look: "Today's look", chat: "And a chat, if you like",
       cta: "See it now", bye: "Have a good day,", unsub: "Don't want these emails? Unsubscribe",
       ai: "Bella is an AI persona created by LuxuryBandit \u2014 not a real person.",
-      aboH: "Unlock everything", aboP: "Pick the hottest looks yourself and generate them: any model — or your favourite star — in any look, in a chat, or in a kiss. 5 videos a month across all topics, chatting stays free.", aboCta: "Unlock the hottest AI experience ever — €24.50/month", whats: "💬 Follow on WhatsApp" },
+      aboH: "Unlock everything", aboP: "Pick the hottest looks yourself and generate them: any model — or your favourite star — in any look, in a chat, or in a kiss. {videos} videos a month across all topics, chatting stays free.", aboCta: "Unlock the hottest AI experience ever — {price}/month", whats: "💬 Follow on WhatsApp" },
     es: { subject: c("Buenas noches") + " \u2728", preheader: "Tu clima de mañana y un look nuevo.",
       greet: c("Buenas noches"), lead: "Tu clima de mañana y el look de hoy \u2728", body: "El día se acabó. Tu clima de mañana está listo, y también un look nuevo \u2014 y estoy aquí si te apetece hablar.",
       wx: "Qué tiempo hará mañana", wxCity: "Qué tiempo hará mañana en {city}", look: "El look de hoy", chat: "Y un chat, si te apetece",
       cta: "Verlo ahora", bye: "Que tengas buen día,", unsub: "¿No quieres estos emails? Darse de baja",
       ai: "Bella es una persona virtual (IA) creada por LuxuryBandit \u2014 no es una persona real.",
-      aboH: "Desbloquea todo", aboP: "Eliges tú mismo los looks más atrevidos y los generas: cualquier modelo — o tu superestrella — con cualquier look, en un chat o en un beso. 5 vídeos al mes en todos los temas, chatear sigue gratis.", aboCta: "Desbloquea la experiencia IA más ardiente — 24,50 €/mes", whats: "💬 Síguenos en WhatsApp" },
+      aboH: "Desbloquea todo", aboP: "Eliges tú mismo los looks más atrevidos y los generas: cualquier modelo — o tu superestrella — con cualquier look, en un chat o en un beso. {videos} vídeos al mes en todos los temas, chatear sigue gratis.", aboCta: "Desbloquea la experiencia IA más ardiente — {price}/mes", whats: "💬 Síguenos en WhatsApp" },
     fr: { subject: c("Bonsoir") + " \u2728", preheader: "Ta météo de demain et un nouveau look.",
       greet: c("Bonsoir"), lead: "Ta météo de demain et le look du jour \u2728", body: "La journée est finie. Ta météo de demain est prête, avec un nouveau look \u2014 et je suis là si tu veux parler.",
       wx: "Le temps qu'il fera demain", wxCity: "Le temps qu'il fera demain à {city}", look: "Le look du jour", chat: "Et un chat, si tu veux",
       cta: "Voir maintenant", bye: "Bonne journée,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner",
       ai: "Bella est un personnage virtuel (IA) créé par LuxuryBandit \u2014 pas une personne réelle.",
-      aboH: "Tout débloquer", aboP: "Tu choisis toi-même les looks les plus chauds et tu les génères : n'importe quelle modèle — ou ta star préférée — dans n'importe quelle tenue, en chat ou dans un baiser. 5 vidéos par mois sur tous les thèmes, le chat reste gratuit.", aboCta: "Débloque l'expérience IA la plus chaude — 24,50 €/mois", whats: "💬 Suivre sur WhatsApp" },
+      aboH: "Tout débloquer", aboP: "Tu choisis toi-même les looks les plus chauds et tu les génères : n'importe quelle modèle — ou ta star préférée — dans n'importe quelle tenue, en chat ou dans un baiser. {videos} vidéos par mois sur tous les thèmes, le chat reste gratuit.", aboCta: "Débloque l'expérience IA la plus chaude — {price}/mois", whats: "💬 Suivre sur WhatsApp" },
     pt: { subject: c("Boa noite") + " \u2728", preheader: "O teu tempo de amanhã e um novo visual.",
       greet: c("Boa noite"), lead: "O teu tempo de amanhã e o visual de hoje \u2728", body: "O dia acabou. O teu tempo de amanhã está pronto, e também um novo visual \u2014 e estou aqui se quiseres falar.",
       wx: "Como estará o tempo amanhã", wxCity: "Como estará amanhã em {city}", look: "O visual de hoje", chat: "E uma conversa, se quiseres",
       cta: "Ver agora", bye: "Bom dia,", unsub: "Não queres estes emails? Cancelar subscrição",
       ai: "A Bella é uma persona de IA criada pela LuxuryBandit \u2014 não é uma pessoa real.",
-      aboH: "Desbloqueia tudo", aboP: "Escolhes tu mesmo os looks mais atrevidos e geras: qualquer modelo — ou a tua estrela — em qualquer look, num chat ou num beijo. 5 vídeos por mês em todos os temas, conversar continua grátis.", aboCta: "Desbloqueia a experiência de IA mais quente — 24,50 €/mês", whats: "💬 Segue no WhatsApp" },
+      aboH: "Desbloqueia tudo", aboP: "Escolhes tu mesmo os looks mais atrevidos e geras: qualquer modelo — ou a tua estrela — em qualquer look, num chat ou num beijo. {videos} vídeos por mês em todos os temas, conversar continua grátis.", aboCta: "Desbloqueia a experiência de IA mais quente — {price}/mês", whats: "💬 Segue no WhatsApp" },
     pl: { subject: c("Dobry wieczór") + " \u2728", preheader: "Twoja pogoda na jutro i nowy look.",
       greet: c("Dobry wieczór"), lead: "Twoja pogoda na jutro i dzisiejszy look \u2728", body: "Dzień się skończył. Pogoda na jutro jest gotowa, a do tego nowy look \u2014 i jestem tu, jeśli masz ochotę pogadać.",
       wx: "Jaka pogoda jutro", wxCity: "Jaka pogoda jutro w {city}", look: "Dzisiejszy look", chat: "I czat, jeśli chcesz",
       cta: "Zobacz teraz", bye: "Miłego dnia,", unsub: "Nie chcesz tych e-maili? Wypisz się",
       ai: "Bella to persona AI stworzona przez LuxuryBandit \u2014 nie jest prawdziwą osobą.",
-      aboH: "Odblokuj wszystko", aboP: "Sam wybierasz najgorętsze stylizacje i je generujesz: dowolna modelka — albo Twoja gwiazda — w każdej stylizacji, na czacie albo w pocałunku. 5 filmów miesięcznie we wszystkich tematach, czat pozostaje darmowy.", aboCta: "Odblokuj najgorętsze doświadczenie AI — 24,50 €/miesiąc", whats: "💬 Obserwuj na WhatsAppie" },
+      aboH: "Odblokuj wszystko", aboP: "Sam wybierasz najgorętsze stylizacje i je generujesz: dowolna modelka — albo Twoja gwiazda — w każdej stylizacji, na czacie albo w pocałunku. {videos} filmów miesięcznie we wszystkich tematach, czat pozostaje darmowy.", aboCta: "Odblokuj najgorętsze doświadczenie AI — {price}/miesiąc", whats: "💬 Obserwuj na WhatsAppie" },
     it: { subject: c("Buonasera") + " \u2728", preheader: "Il tuo meteo di domani e un nuovo look.",
       greet: c("Buonasera"), lead: "Il tuo meteo di domani e il look di oggi \u2728", body: "La giornata è finita. Il meteo di domani è pronto, e anche un nuovo look \u2014 e ci sono, se hai voglia di parlare.",
       wx: "Che tempo farà domani", wxCity: "Che tempo farà domani a {city}", look: "Il look di oggi", chat: "E una chat, se ti va",
       cta: "Guarda ora", bye: "Buona giornata,", unsub: "Non vuoi più queste email? Disiscriviti",
       ai: "Bella è una persona virtuale (IA) creata da LuxuryBandit \u2014 non è una persona reale.",
-      aboH: "Sblocca tutto", aboP: "Scegli tu i look più caldi e li generi: qualsiasi modella — o la tua star — in qualsiasi look, in chat o in un bacio. 5 video al mese in tutti i temi, chattare resta gratis.", aboCta: "Sblocca l'esperienza AI più calda — 24,50 €/mese", whats: "💬 Segui su WhatsApp" },
+      aboH: "Sblocca tutto", aboP: "Scegli tu i look più caldi e li generi: qualsiasi modella — o la tua star — in qualsiasi look, in chat o in un bacio. {videos} video al mese in tutti i temi, chattare resta gratis.", aboCta: "Sblocca l'esperienza AI più calda — {price}/mese", whats: "💬 Segui su WhatsApp" },
   };
-  return T[lang] ?? T.en;
+  /* EIN Durchlauf ueber alle Felder — so kann kein Text die Fuellung vergessen, auch keiner,
+     der spaeter dazukommt. Das ist der Unterschied zu „an der richtigen Stelle einsetzen":
+     Die richtige Stelle vergisst irgendwann jemand. */
+  const roh = T[lang] ?? T.en;
+  const out = {} as Copy;
+  for (const [k, v] of Object.entries(roh)) {
+    (out as Record<string, string>)[k] = typeof v === "string" ? fillPrices(v, lang) : v;
+  }
+  return out;
 }
 
 
@@ -116,7 +139,7 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     + `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#d8d2c6">${c.body}</p>`
     + `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${row("☀", wx)}${row("✦", c.look)}${row("💬", c.chat)}</table>`
     + `</td></tr>`
-    // ABO-ANGEBOT — derselbe Preis wie auf der Seite (24,50 €/Monat dauerhaft statt 49 €).
+    // ABO-ANGEBOT — derselbe Preis wie auf der Seite ({price}/Monat dauerhaft statt 49 €).
     // Der Rabattcode hängt im Link, der Kunde muss nichts eintippen. Ohne aboLink fällt
     // der Block weg, die Mail bleibt gültig.
     + (aboLink

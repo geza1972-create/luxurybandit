@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
+import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Jeder Look ÜBER die 5 im Abo enthaltenen: 3,99 € einzeln.
-const PRICE_CENTS = 399;
+// PREIS AUS DER TABELLE, nicht von Hand (Owner 31.07.2026: „und auch wo 3,99 steht
+// auch 2,99"). Jeder Look ueber das Abo hinaus. Hier stand 399 fest — beim Preiswechsel haette diese Route
+// als einzige weiter den alten Betrag abgebucht, waehrend die Seite 2,99 verspricht.
+const PRICE_CENTS = EXTRA_VIDEO_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {
