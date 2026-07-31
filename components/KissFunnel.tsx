@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2 } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft } from "lucide-react";
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
@@ -1535,10 +1535,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
 
       {schritt === 2 && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step2}</p>
-      <div className="mt-2 flex items-start justify-center gap-2">
-        <button type="button" onClick={() => setSchritt(1)}
-          className="lb-chip mt-1 h-9 shrink-0 rounded-full px-3 text-[13px] font-black active:scale-95 transition">
-          {T.back}
+      <div className="mt-2 flex items-center justify-center gap-2">
+        {/* NUR DER PFEIL (Owner 31.07.2026). Mit Wort war der Knopf breiter als das halbe
+            Bild und schob die Kachel aus der Mitte — auf einem 375er Bildschirm ist Platz das
+            knappste Gut. Der Pfeil allein versteht jeder. */}
+        <button type="button" onClick={() => setSchritt(1)} aria-label={T.back}
+          className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+          <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="relative w-[54%] max-w-[220px]">
       <button type="button" onClick={() => fileRef.current?.click()}
@@ -1624,14 +1627,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
           {/* Zurueck am Bild, wie in Schritt 2 — nicht oben zwischen den Einstellungen. */}
-          <button type="button" onClick={() => setSchritt(V.paarUpload ? 1 : 2)}
-            className="lb-chip h-9 shrink-0 self-start rounded-full px-3 text-[13px] font-black active:scale-95 transition">
-            {T.back}
+          <button type="button" onClick={() => setSchritt(V.paarUpload ? 1 : 2)} aria-label={T.back}
+            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+            <ChevronLeft className="h-5 w-5" />
           </button>
           {selPhoto && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] w-[140px] max-w-[38vw] rounded-2xl border border-white/15 object-cover object-top" />
+              <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
               {/* Auch in der Vorschau muss das Foto weggehen koennen (Owner 31.07.2026:
                   „hier soll man das Bild noch löschen können"). Nur bei EIGENEN Fotos —
                   ein Katalog-Model laesst sich nicht loeschen, nur wechseln. */}
@@ -1652,7 +1655,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           {photo && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo} alt="" className="aspect-[3/4] w-[140px] max-w-[38vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
+              <img src={photo} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
               <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload ? 1 : 2); }}
                 aria-label="Foto löschen"
                 style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
@@ -1667,7 +1670,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           Wardrobe stehen. Es koennte auch jetzt stehen aber ist gesperrt und muesste stehen
           das wird freigegeben fuer bezahlte Videos"). Zeigen schlaegt versprechen: er sieht,
           was er bekommt, und das Schloss sagt ihm, wie er drankommt. */}
-      {(kleidung.length > 0 || variant === "wedding") && (
+      {/* NUR NACH DER ZAHLUNG (Owner 31.07.2026: „das machst du in der Gratis-Version raus").
+          Vorher stand die Garderobe verschlossen und verschwommen da — Gedanke damals: zeigen
+          schlaegt versprechen. In der Praxis ist es ein grauer Kasten mit einem Schloss, der
+          vor dem Gratis-Bild Platz und Aufmerksamkeit nimmt und wie eine Bezahlschranke
+          aussieht, bevor ueberhaupt etwas passiert ist. Wer bezahlt hat, sieht sie sofort. */}
+      {(bezahlt || isStaff) && (kleidung.length > 0 || variant === "wedding") && (
         <div className="relative mt-2 rounded-2xl p-3" style={{ background: "#fff", color: "#1a160f" }}>
           <div className="flex items-center justify-between">
             <p className="text-[12px] font-black">{T.wardrobe}</p>
