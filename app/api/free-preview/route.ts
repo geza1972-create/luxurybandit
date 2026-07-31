@@ -69,6 +69,50 @@ const IDENTITAET_RULE =
   + "into a full figure that matches their apparent age and build.";
 
 /**
+ * DAS ALTER ALS ZAHL (Owner 31.07.2026, nach der Pruefung: „es sieht irgendwie zu jung aus").
+ *
+ * Am 31.07.2026 gemessen, dieselben zwei Vorlagen zweimal durch: Mit dem Satz „keep their real
+ * age, keep wrinkles, no de-aging" wurde das Ergebnis nur MINIMAL aelter — etwas Grau an den
+ * Schlaefen, sonst dieselbe glatte Haut, dasselbe geschaetzte Alter um die vierzig bei einem
+ * Mann, der auf seinem Foto Mitte fuenfzig ist.
+ *
+ * Der Grund: „behalte das Alter" ist eine Verneinung ohne Ziel. Das Modell weiss nicht, WAS es
+ * behalten soll — es kennt nur seinen eigenen Durchschnitt, und der ist ein Hochzeitspaar aus
+ * dem Katalog. Eine ZAHL ist ein Ziel: „a 54-year-old man" trifft es, weil das Modell zu jedem
+ * Jahrzehnt gelernte Merkmale hat.
+ *
+ * Deshalb schaetzt das Seh-Modell zuerst beide Alter — es steckt fuer den Gesichtsausschnitt
+ * ohnehin schon in dieser Datei. Zwei Aufrufe kosten zusammen einen Bruchteil eines Cents und
+ * rund eine Sekunde; das Bild selbst kostet das Fuenfzigfache.
+ *
+ * Scheitert die Schaetzung, faellt es still auf den Auftrag ohne Zahl zurueck. Ein Gratis-Bild
+ * darf nie an einer Nebensache hängen.
+ */
+async function alterSchaetzen(dataUrl: string, key: string): Promise<number> {
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: "How old does the main person in this photo look? Answer with ONE number only, the age in years. No words." },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        }],
+        max_tokens: 8,
+      }),
+    });
+    const j = await res.json().catch(() => null);
+    const n = parseInt(String(j?.choices?.[0]?.message?.content ?? "").replace(/\D+/g, ""), 10);
+    // Alles ausserhalb 18–90 ist geraten und nicht gemessen — dann lieber keine Zahl.
+    return Number.isFinite(n) && n >= 18 && n <= 90 ? n : 0;
+  } catch { return 0; }
+}
+
+/**
  * GESICHT AUSSCHNEIDEN, WENN DAS GANZE FOTO ABGEWIESEN WIRD (Owner 30.07.2026: „du musst
  * eine Lösung finden, das Gesicht extrahieren dann").
  *
@@ -273,6 +317,26 @@ export async function POST(request: Request) {
    * Katalogfoto ablesen wuerde.
    */
   const kleid = String(body.kleid ?? "").trim().slice(0, 200) || "an elegant white wedding dress";
+
+  /**
+   * DIE BEIDEN ALTER, BEVOR DER AUFTRAG GESCHRIEBEN WIRD.
+   *
+   * Beide Schaetzungen laufen gleichzeitig — nacheinander waeren es zwei Sekunden Wartezeit
+   * fuer nichts. Kommt keine Zahl zurueck, bleibt der Satz leer und der Auftrag geht ohne
+   * Zahl raus; das Gratis-Bild darf nie an einer Nebensache scheitern.
+   *
+   * `person` ist ER, `model` ist SIE — so schickt es der Trichter (siehe EinladungBauen).
+   */
+  const [alterEr, alterSie] = key
+    ? await Promise.all([alterSchaetzen(person, key), alterSchaetzen(model, key)])
+    : [0, 0];
+  const alterSatz = alterEr || alterSie
+    ? "AGES — these are not young models: "
+      + (alterEr ? `the man in image 1 is ${alterEr} years old. ` : "")
+      + (alterSie ? `The woman in image 2 is ${alterSie} years old. ` : "")
+      + "Render them at exactly these ages, with the face, skin and hair of people that age."
+    : "";
+
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : hochzeit ? [
@@ -285,9 +349,10 @@ export async function POST(request: Request) {
     + "he has his arm around her. They do NOT kiss and their faces do not touch. Warm "
     + "sunlight, white flowers and a beautiful wedding setting around them.",
     IDENTITAET_RULE,
+    alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
-  ].join("\n\n") : [
+  ].filter(Boolean).join("\n\n") : [
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
@@ -311,9 +376,10 @@ export async function POST(request: Request) {
         ? "Setting: a sunny seaside terrace with the ocean behind them, warm natural daylight."
         : "Setting: a softly lit summer evening with gentle glowing lights behind them.",
     IDENTITAET_RULE,
+    alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   // MEHRERE ANLÄUFE, wenn die Bildmoderation eine Vorlage ablehnt.
   //
