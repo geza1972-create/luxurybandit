@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Search, Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
+import { Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
 import { YOUTUBE_CHANNEL } from "@/lib/social";
 import LangSwitch from "@/components/LangSwitch";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
- * the 3 CI icons (Search · Share · Instagram) by default — pass `actions` to
+ * the CI icons (Share · YouTube · Instagram) by default — pass `actions` to
  * override them (e.g. /stores wires the Search icon to its own search bar).
  *
  * KEIN Hamburger-Menü mehr hier — das Menü lebt appweit UNTEN (BottomNav's
@@ -81,16 +81,20 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: the 3 CI icons (or a page override). No menu button — menu is in the bottom nav.
+        {/* Right: the CI icons (or a page override). No menu button — menu is in the bottom nav.
             Die SPRACHWAHL steht NICHT mehr hier: sie hat auf schmalen Geräten das Wortmark
             überlagert und das Motto abgeschnitten (Owner 28.07.2026) — sie sitzt jetzt in
             einer eigenen Zeile unter dem Header. */}
         <div className="flex shrink-0 items-center gap-2">
           {actions ?? (
             <>
-              <button type="button" onClick={() => router.push("/stores?view=grid")} className={iconBtn} aria-label="Search">
-                <Search className="h-4 w-4" />
-              </button>
+              {/* DIE SUCHE IST INS MENUE GEZOGEN (Owner 31.07.2026: „man kann den Namen
+                  nicht lesen. Vielleicht die Suche im Menü").
+                  Vier Symbole neben dem Wortmark liessen fuer „LUXURYBANDIT" zu wenig Platz —
+                  der Name ist das eine, was auf jeder Seite lesbar sein MUSS. Verloren geht
+                  nichts: Das Menue fuehrt mit „Models" auf dieselbe Seite, und zwar fuer
+                  jeden, nicht nur fuer Personal. */
+              }
               <button type="button" onClick={share} className={iconBtn} aria-label="Share">
                 <Send className="h-4 w-4" />
               </button>
