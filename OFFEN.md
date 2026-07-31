@@ -1,4 +1,31 @@
-# Offen — Stand 31.07.2026, Ende der Sitzung
+# Offen — Stand 31.07.2026, spät abends
+
+## Abend-Nachtrag (Branch `kiss-karte`, Commit fb61efa — noch NICHT auf main)
+
+**Erledigt und am echten Lauf geprueft:**
+- Der alte Ergebnis-Block ist AUFGELOEST (geloescht, nicht nur abgeschaltet): Unschaerfe,
+  Render-Show, Zahl-Ueberblendungen, Kasse und Musik leben jetzt auf dem Bild IN der Karte;
+  die Kaufzeile (Video/Abo/Hinweise) steht direkt unter der Karte. Das Bild steht nur noch
+  einmal auf der Seite. Der Video-Spieler (`videoUrl`) blieb unangetastet.
+- Kontingent-Zeile ganz oben („Abo aktiv · noch X von Y Videos"), aktualisiert sich nach
+  einem Kauf; bei leerem Kontingent springt die Seite zur Verbraucht-Meldung mit Kaufknopf
+  (Owner-Zurufe vom Abend).
+- Punkt 0b ist BEANTWORTET, gemessen mit denselben zwei Fotos: Die OpenAI-Bildpruefung
+  springt auf den TEXT an und WUERFELT — Kuss auf den Mund 1/5 durch, Fast-Kuss („lips
+  almost touching") 1/2, Umarmung immer. `moderation=low` hilft nicht. Deshalb in
+  `free-preview`: Kuss + Fast-Kuss PARALLEL, Umarmung als Netz — es kommt immer ein Bild,
+  mit ~60 % Kuss/Fast-Kuss je Lauf. Erwartete Mehrkosten ~0,1 Bild je Lauf.
+
+**Offen aus dem Abend:**
+- Owner gefragt, ob ein dritter Parallel-Arm (zweiter Fast-Kuss-Wurf, ~80 % Kuss-Quote,
+  ~0,4 Bilder je Lauf teurer) gewuenscht ist — Antwort steht aus.
+- Merge auf `main` steht aus (Owner-Freigabe).
+- Nicht am Bildschirm geprueft (Code 1:1 aus dem alten Block umgezogen): die
+  Zahl-Ueberblendungen nach Stripe-Rueckkehr und der bezahlte Video-Weg — kostet Geld.
+
+---
+
+# Stand vom Nachmittag
 
 Reihenfolge = Empfehlung. Alles darüber ist erledigt und auf `main`.
 
