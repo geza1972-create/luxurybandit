@@ -1844,8 +1844,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           NACHGESCHAERFT, weil sie auch in Schritt 3 falsch standen (Owner: „hier müssen die
           Buttons auch nicht stehen"): Es haengt nicht am Schritt, sondern am ERGEBNIS. Solange
           kein Bild da ist, verkaufen wir ein Versprechen; ist es da, verkaufen wir etwas, das
-          er gerade gesehen hat. Deshalb `bild` als Bedingung und keine Schrittnummer. */}
-      {!!bild && !isStaff && !bezahlt && !videoUrl && (
+          er gerade gesehen hat.
+
+          ABER `bild` ALLEIN REICHT NICHT: Es wird aus dem Browser wiederhergestellt, damit ein
+          Seitenwechsel das Ergebnis nicht verliert. Wer gestern etwas erzeugt hat und heute neu
+          anfaengt, hatte die Knoepfe damit schon in Schritt 1 wieder vor der Nase (Owner
+          31.07.2026: „hast du mir die Buttons wieder rein gemacht?"). Es braucht beides: ein
+          Ergebnis UND den Schritt, auf dem es zu sehen ist. */}
+      {schritt >= 4 && !!bild && !isStaff && !bezahlt && !videoUrl && (
         <div className="mt-2 flex gap-2">
           {V.einzelkauf && (
             <button type="button" onClick={() => void unlock("once")}
@@ -2101,13 +2107,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                         durchsichtiger Knopf nie zuverlässig lesbar — das Motiv darunter
                         entscheidet. Weisse Fläche mit dunkler Schrift liest sich auf jedem
                         Bild, in der hellen wie in der dunklen Fassung. */}
-                    {V.abo && V.einzelkauf && (
+                    {V.abo && V.einzelkauf && (<>
                       <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                         style={{ background: "#fff", color: "#1a160f" }}
                         className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
                         {T.orAll}
                       </button>
-                    )}
+                      {/* WAS IM ABO DRIN IST (Owner 31.07.2026: „hier müsste eine Info stehen,
+                          was er alles bekommt fürs Abo"). Ein Preis ohne Leistung daneben ist
+                          eine Zumutung: Er soll nicht raten, ob 24,50 € ein Video oder hundert
+                          sind. Zahlen kommen aus der Preistabelle, nicht aus dem Text. */}
+                      <p className="lb-onmedia mt-1.5 text-center text-[10.5px] font-bold leading-snug opacity-85">
+                        {T.aboWas}
+                      </p>
+                    </>)}
                   </div>
                 </div>
               )}
