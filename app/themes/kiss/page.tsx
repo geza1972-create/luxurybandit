@@ -103,7 +103,9 @@ export default async function KissThemePage({ searchParams }: {
             {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €). `lang` kommt aus
                 dem Umschalter bzw. der Browsersprache — der Trichter spricht acht Sprachen
                 (Owner 30.07.2026, Punkt 4 seiner Liste). */}
-            <KissFunnel code={code} lang={L} />
+            {/* Dasselbe Beispielvideo, das weiter unten im Katalog laeuft — es fuellt jetzt
+                die Karte oben, bis das eigene Bild da ist. Kein zweiter Ort zum Pflegen. */}
+            <KissFunnel code={code} lang={L} beispielVideo={examples[0] ?? ""} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {examples.length > 0 && (

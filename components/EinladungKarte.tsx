@@ -61,7 +61,7 @@ export const karteDatum = (datum: string | undefined, sprache: string) => {
 
 export default function EinladungKarte({
   sprache, sie, er, datum, ort, adresse, telefon, demo, video, fuss,
-  aufNamen, aufDatum, aufOrt,
+  aufNamen, aufDatum, aufOrt, titel,
 }: {
   sprache: string;
   sie: string;
@@ -97,8 +97,18 @@ export default function EinladungKarte({
   aufNamen?: () => void;
   aufDatum?: () => void;
   aufOrt?: () => void;
+  /**
+   * EIGENE UEBERSCHRIFT statt „Hochzeitseinladung" (Owner 31.07.2026: „wir machen das jetzt
+   * wie Hochzeit, das Layout" — fuer den Kuss).
+   *
+   * Dieselbe Karte traegt jetzt zwei Dinge: eine Einladung mit Namen, Datum und Ort, und ein
+   * einzelnes Werk ohne all das. Ohne `sie`/`er` faellt die Namenszeile weg — eine leere
+   * Zeile mit einem goldenen „&" darin waere ein sichtbarer Fehler.
+   */
+  titel?: string;
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
+  const hatNamen = !!(sie || er);
   const tag = karteDatum(datum, sprache);
 
   return (
@@ -111,9 +121,9 @@ export default function EinladungKarte({
 
       <div className="relative">
         <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.34em]">
-          {T.save}
+          {titel || T.save}
         </p>
-        {aufNamen ? (
+        {!hatNamen ? null : aufNamen ? (
           <button type="button" onClick={aufNamen}
             className="lb-tippbar mx-auto mt-2 block w-full rounded-xl px-2 py-1 text-center font-serif text-[27px] font-bold leading-tight transition active:scale-[0.98]">
             {sie} <span className="lb-karte-gold">&amp;</span> {er}
@@ -123,7 +133,7 @@ export default function EinladungKarte({
             {sie} <span className="lb-karte-gold">&amp;</span> {er}
           </h2>
         )}
-        <DividerOrnament className="mt-2.5" />
+        {hatNamen && <DividerOrnament className="mt-2.5" />}
 
         <div className="mt-4 overflow-hidden rounded-[14px]">{video}</div>
 

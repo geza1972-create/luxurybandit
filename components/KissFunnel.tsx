@@ -278,7 +278,21 @@ const VARIANTS: Record<FunnelVariant, {
   },
 };
 
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }: { variant?: FunnelVariant; code?: string; lang?: string }) {
+/**
+ * DIE KARTE IST DIE SEITE — auch beim Kuss (Owner 31.07.2026: „wir machen das jetzt wie
+ * Hochzeit, das Layout, also die Karte ist sichtbar und mit Dialog").
+ *
+ * Bei der Hochzeit hat das den Trichter ersetzt. Der Grund war nicht Geschmack, sondern die
+ * Reihenfolge des Verstehens: Wer zuerst das fertige Ergebnis sieht, weiss sofort, was er
+ * baut. Wer zuerst vier Schritte sieht, muss es sich vorstellen — und die meisten tun das
+ * nicht, sie gehen.
+ *
+ * HIER wurde bewusst NICHT neu gebaut, sondern umgehaengt: Der Kuss-Trichter traegt die
+ * Kasse, die Video-Lieferung und das Monatsguthaben. Die vier Schritte wandern unveraendert
+ * in einen Dialog, die Karte kommt darueber, und der Kaufblock bleibt, wo er war. Kein
+ * einziger Handgriff am bezahlten Weg — der laeuft gerade.
+ */
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "" }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string }) {
   const V = VARIANTS[variant];
   // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
   const T = kissText(lang, variant);
@@ -288,6 +302,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   // nebeneinanderlegen kann; das Thema steckt in lookId.
   const track = (step: string) =>
     void logFunnelEvent(`funnel_${step}`, { lookId: `funnel-${variant}`, lookName: `${variant}-Trichter` });
+  // Die Schritte liegen im Dialog. Zu ist der Normalfall: Dann steht die Karte allein da.
+  const [stufenOffen, setStufenOffen] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
@@ -1337,6 +1353,52 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
+      {/* ── DIE KARTE. Immer sichtbar, immer oben. ────────────────────────────────────────
+          Sie zeigt das Ergebnis, sobald es da ist — davor das Beispielvideo des Themas. So
+          sieht der Besucher in der ersten Sekunde, was entsteht, statt es sich vorstellen zu
+          muessen. Ein Tipp auf den Knopf darunter oeffnet die Schritte.
+
+          OHNE NAMEN: Beim Kuss gibt es kein Brautpaar. Dieselbe Karte, nur die Namenszeile
+          faellt weg (siehe EinladungKarte). */}
+      <EinladungKarte
+        sprache={lang} sie="" er="" demo
+        titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
+        video={
+          bild ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
+          ) : beispielVideo ? (
+            <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
+              tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
+              tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+          ) : (
+            <div className="grid h-[260px] w-full place-items-center px-6 text-center">
+              <span className="font-serif text-[15px] font-bold">{T.pickHint}</span>
+            </div>
+          )
+        }
+      />
+      {/* EIN Knopf unter der Karte — er oeffnet die Schritte. Kein zweiter Weg daneben:
+          Genau daran ist die Hochzeitsseite vorher gescheitert („mehrere CTAs"). */}
+      <button type="button" onClick={() => { setStufenOffen(true); track("photo"); }}
+        className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black transition active:scale-95">
+        <Sparkles className="h-4 w-4 shrink-0" />
+        {bild ? (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ersetzen : T.ctaFree}
+      </button>
+
+      {/* ── DIE SCHRITTE, unveraendert, nur in einem Dialog ──────────────────────────────
+          Model waehlen (unsere Frauen ODER ein eigenes Foto — Owner 31.07.2026: „hier nehmen
+          die Leute auch ein Model … jeder hat ein Model auf dem Handy"), sein Foto, der Kuss.
+          Nichts davon ist angefasst: Der Kuss-Trichter traegt Kasse, Video-Lieferung und
+          Monatsguthaben, und der laeuft gerade. Umgehaengt, nicht neu gebaut. */}
+      {stufenOffen && (
+      <div className="fixed inset-0 z-[80] overflow-y-auto" style={{ background: "rgba(0,0,0,0.72)" }}
+        onClick={() => setStufenOffen(false)}>
+        <div className="lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4" onClick={e => e.stopPropagation()}>
+          <button type="button" onClick={() => setStufenOffen(false)} aria-label={T.back}
+            className="lb-chip mb-3 grid h-9 w-9 place-items-center rounded-full transition active:scale-95">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
         {(V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
@@ -1865,6 +1927,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       </p>
 
       </>)}
+        </div>
+      </div>
+      )}
 
       {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
           Buttons bleiben dann drunter immer"). Wer schon weiss, dass er das Video will, soll
