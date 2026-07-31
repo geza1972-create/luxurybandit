@@ -1,7 +1,6 @@
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
-import SubscribeCta from "@/components/SubscribeCta";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import UploadsAdmin from "@/components/UploadsAdmin";
@@ -100,7 +99,10 @@ export default async function WeddingThemePage({ searchParams }: {
               </div>
             )}
 
-            <SubscribeCta code={code} lang={L} />
+            {/* KEIN ABO AUF DER HOCHZEITSSEITE (Konzept §5, Owner 31.07.2026). Hier stand
+                „Die heisseste KI-Erfahrung freischalten — 24,50 €/Monat": der Kuss-Kasten,
+                der beim Duplizieren ungeprueft mitkam. Eine Hochzeit hat man einmal — ein
+                Monatsabo dafuer ist unglaubwuerdig, und der Ton passt zum Anlass nicht. */}
 
             {/* DER SICHTBARE TEXT IST DAS SEO (Owner 31.07.2026: „mach die texte nach
                 konzept auf der seite. Es muss seo tauglich sein"). Vier Abschnitte entlang
@@ -123,7 +125,10 @@ export default async function WeddingThemePage({ searchParams }: {
                 <Lead>
                   Every invitation gets its own page with your names, the date and the place. You
                   send that one link — on WhatsApp, in your family group, wherever your guests
-                  already are. No app for them, no login, no printing, no postage. You can take the
+                  already are. No app for them, no login, no printing, no postage. The invitation
+                  speaks your guests&rsquo; language by itself: whoever opens it reads it in their
+                  own — English, Romanian, French, Spanish, Portuguese, Italian or German — so the
+                  relatives abroad get the same invitation as everyone at home. You can take the
                   link back at any time, and you see how many guests have opened it.
                 </Lead>
               </div>

@@ -9,6 +9,8 @@ import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
+import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
 import { kissText } from "@/lib/kiss-i18n";
 import LightSwitch from "@/components/LightSwitch";
 
@@ -150,9 +152,21 @@ const VARIANTS: Record<FunnelVariant, {
    * Frauen ist dort nicht Auswahl, sondern Irritation, und es kostet einen ganzen Schritt.
    */
   paarUpload?: boolean;
+  /**
+   * ABO — ABSICHTLICH NICHT ÜBERALL (Konzept „Hochzeitseinladung", §5: „Nicht ins Abo packen.
+   * Eine Hochzeit hat man einmal; ein Monatsabo dafür wäre unglaubwürdig und die Kündigung
+   * programmiert.").
+   *
+   * Owner 31.07.2026, nachdem auf der Hochzeitsseite „Die heisseste KI-Erfahrung freischalten
+   * — 24,50 €/Monat" stand: Das war der Kuss-Trichter, der ungeprüft mitkam. Auf einer
+   * Hochzeitsseite verkauft dieser Satz nicht nur nichts, er beschädigt den Anlass.
+   *
+   * Wo das hier falsch ist, wird KEIN Abo angeboten — weder im Trichter noch auf der Seite.
+   */
+  abo: boolean;
 }> = {
   kiss: {
-    prompt: KISS_PROMPT, done: "kiss-video.mp4",
+    prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
     // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
@@ -164,7 +178,7 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   wedding: {
-    prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4",
+    prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4", abo: false,
     musik: "/Bridal-chorus.mp3",
     paarUpload: true,
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
@@ -174,7 +188,7 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   idol: {
-    prompt: IDOL_PROMPT, done: "your-idol-video.mp4",
+    prompt: IDOL_PROMPT, done: "your-idol-video.mp4", abo: true,
     // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte
     // vorn und ist von Anfang an gewählt; unsere Models sind nur die Alternative daneben.
     upFirst: true,
@@ -1111,12 +1125,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             { wer: "sie", foto: customModel, ref: modelFileRef, titel: T.upTitle, hinweis: T.upHint, platzhalter: V.upPlaceholder },
             { wer: "er", foto: photo, ref: fileRef, titel: T.you, hinweis: T.youHint, platzhalter: PLACEHOLDER_MAN },
           ] as const).map(k => (
-            <button key={k.wer} type="button" onClick={() => k.ref.current?.click()}
+            <button key={k.wer} type="button" onClick={() => k.ref.current?.click()} data-oncard="1"
               className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
               {k.foto ? (<>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={k.foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-[15px] font-black"
+                <span className="lb-onmedia absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-[15px] font-black"
                   style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
                   {k.titel}
                 </span>
@@ -1130,11 +1144,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                 </>)}
                 <ImageUp className="relative h-7 w-7 text-[#f6cf51]" />
-                <span className="relative px-1 text-[14px] font-black leading-tight"
+                <span className="lb-onmedia relative px-1 text-[14px] font-black leading-tight"
                   style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
                   {k.titel}
                 </span>
-                <span className="relative px-2 text-[10px] font-bold leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                <span className="lb-onmedia relative px-2 text-[10px] font-bold leading-snug"
+                  style={{ color: "rgba(255,255,255,0.85)", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
                   {k.hinweis}
                 </span>
               </>)}
@@ -1473,12 +1488,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
             {T.buyOnce}
           </button>
-          <button type="button" onClick={() => void unlock("abo")}
-            disabled={!selPhoto || !photo || !consent || payBusy}
-            style={{ color: "#fff" }}
-            className="flex h-11 flex-1 items-center justify-center rounded-full border border-white/30 px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
-            {T.buyAbo}
-          </button>
+          {V.abo && (
+            <button type="button" onClick={() => void unlock("abo")}
+              disabled={!selPhoto || !photo || !consent || payBusy}
+              style={{ color: "#fff" }}
+              className="flex h-11 flex-1 items-center justify-center rounded-full border border-white/30 px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
+              {T.buyAbo}
+            </button>
+          )}
         </div>
       )}
       {/* DAS VERSPRECHEN STEHT IN JEDEM SCHRITT (Owner 30.07.2026: „du musst sagen dass die
@@ -1548,7 +1565,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         {/* KONTINGENT LEER → EIN WEG WEITER, keine Sackgasse (Owner 30.07.2026: „kann er
             dann weiter Videos kaufen für 3,99?"). Kein zweites Abo, kein voller Einzelpreis:
             ein Video zum Abo-Aufpreis, das Abo läuft unberührt weiter. */}
-        {extraNoetig && !videoUrl && !isStaff && (
+        {extraNoetig && V.abo && !videoUrl && !isStaff && (
           <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
             <p className="text-[16px] font-black text-white">{T.extraTitel}</p>
             <button type="button" onClick={() => void unlock("extra")} disabled={payBusy}
@@ -1578,14 +1595,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                 Umgebung — auf dem blauen Kasten heisst das blau auf blau. Weisse Flaeche mit
                 dunkler Schrift liest sich auf jedem Grund; dieselbe Loesung wie beim
                 Kauf-Knopf auf dem Foto. */}
-            <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
-              style={{ background: "#fff", color: "#1a160f" }}
-              className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
-              {T.blockedAll}
-            </button>
-            <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
-              {renewNote(lang)}
-            </p>
+            {V.abo && (<>
+              <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
+                style={{ background: "#fff", color: "#1a160f" }}
+                className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
+                {T.blockedAll}
+              </button>
+              <p className="mt-2 text-[10px] font-medium leading-snug text-white/60">
+                {renewNote(lang)}
+              </p>
+            </>)}
           </div>
         )}
 
@@ -1704,11 +1723,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                         durchsichtiger Knopf nie zuverlässig lesbar — das Motiv darunter
                         entscheidet. Weisse Fläche mit dunkler Schrift liest sich auf jedem
                         Bild, in der hellen wie in der dunklen Fassung. */}
-                    <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
-                      style={{ background: "#fff", color: "#1a160f" }}
-                      className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
-                      {T.orAll}
-                    </button>
+                    {V.abo && (
+                      <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
+                        style={{ background: "#fff", color: "#1a160f" }}
+                        className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
+                        {T.orAll}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1731,13 +1752,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                     {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     {videoShow ? T.makingKiss : T.makeVideo}
                   </button>
-                  <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
-                    style={{ color: "#fff" }}
-                    className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-                    {T.orAll}
-                  </button>
+                  {V.abo && (
+                    <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
+                      style={{ color: "#fff" }}
+                      className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                      {T.orAll}
+                    </button>
+                  )}
                   <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/70">
-                    {T.freeNote}{renewNote(lang)}
+                    {T.freeNote}{V.abo ? renewNote(lang) : ""}
                   </p>
                   {/* Direkt neben dem fertigen Bild noch einmal — hier sieht er zum ersten
                       Mal sein eigenes Gesicht in unserem Ergebnis. */}
@@ -1766,6 +1789,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                 Gaeste schickt. Das ist die einzige Stelle im Portal, an der ein Kunde uns die
                 naechsten Besucher bringt — deshalb steht der Knopf direkt unter dem Video,
                 im Moment der Freude, und nicht irgendwo im Menue. */}
+            {/* DIE EINLADUNG ZUM ANSEHEN (Owner 31.07.2026: „wo das Video ist, hier musst du
+                die Einladung zeigen gleich wie sie aussieht, und wenn's geht mit Jugendstil-
+                Ornamenten").
+
+                Vorher stand hier nur ein Knopf — sie sollte kaufen, was sie nie gesehen hat.
+                Jetzt liegt die fertige Karte unter dem Video und schreibt sich beim Tippen
+                mit. Es ist DIESELBE Komponente wie auf der Seite, die der Gast öffnet; eine
+                nachgebaute Vorschau würde irgendwann etwas anderes zeigen. */}
+            {variant === "wedding" && !einlUrl && (
+              <div className="mt-4">
+                <p className="mb-2 text-center text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
+                  {T.einlVorschau}
+                </p>
+                <EinladungKarte
+                  sprache={lang}
+                  sie={einlSie.trim() || T.einlSie}
+                  er={einlEr.trim() || T.einlEr}
+                  datum={einlDatum}
+                  ort={einlOrt.trim()}
+                  video={
+                    <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                      tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton} />
+                  }
+                />
+              </div>
+            )}
             {variant === "wedding" && !einlUrl && (
               einlOffen ? (
                 <div className="mt-3 rounded-2xl border border-white/15 bg-white/[0.05] p-4">
@@ -1792,10 +1841,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   </button>
                 </div>
               ) : (
-                <button type="button" onClick={() => setEinlOffen(true)}
-                  className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#f6cf51]/60 text-[13px] font-black text-[#f6cf51] active:scale-95 transition">
-                  {T.einlKnopf}
-                </button>
+                <>
+                  <button type="button" onClick={() => setEinlOffen(true)}
+                    className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#f6cf51]/60 text-[13px] font-black text-[#f6cf51] active:scale-95 transition">
+                    {T.einlKnopf}
+                  </button>
+                  {/* Das Argument, das bei Hochzeiten wirklich zieht: Ein guter Teil der Gäste
+                      sitzt im Ausland. Seit die Einladung die Sprache des GASTES nimmt, ist
+                      der Satz wahr — vorher las ein Franzose die rumänische Fassung. */}
+                  <p className="mt-1.5 text-center text-[11px] font-bold text-white/55">🌍 {T.einlSprachen}</p>
+                </>
               )
             )}
             {einlUrl && (

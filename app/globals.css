@@ -364,7 +364,15 @@ svg {
 }
 /* Sprachwahl in der hellen Fassung: schwarze Schrift auf hellem Grund, klar lesbar. */
 .lb-fb [data-langrow="1"] * { color: #1a160f !important; }
-.lb-fb [data-langrow="1"] button { background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.15) !important; }
+/* NICHT DURCHSICHTIG (Owner 31.07.2026: „die chips duerfen nicht transparent sein").
+   Vorher lagen die Chips als fast durchsichtige Flaeche ueber dem grossen Kopfbild — dunkle
+   Schrift auf einem dunklen Foto, also unlesbar. Sie tragen ihren eigenen weissen Grund; was
+   dahinter liegt, ist damit egal. */
+.lb-fb [data-langrow="1"] button {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.18) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18) !important;
+}
 /* Die aufklappende Liste war dunkel — mit der schwarzen Schrift darin also schwarz auf
    schwarz (Owner 30.07.2026: „auch light"). In der hellen Fassung wird sie hell. */
 .lb-fb [data-langrow="1"] [class*="bg-[#141110]"] {
@@ -453,3 +461,27 @@ svg {
   box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
 @media (prefers-reduced-motion: reduce) { .lb-bubble { animation: none; opacity: 0; } }
+
+/* ── DIE EINLADUNGSKARTE (.lb-karte) ────────────────────────────────────────────────
+   Owner 31.07.2026: „wo das Video ist, hier musst du die Einladung zeigen gleich wie sie
+   aussieht, und wenn's geht mit Jugendstil-Ornamenten."
+
+   Die Karte ist bewusst das EINZIGE im Portal, das seine Farben behält: Sie steht einmal auf
+   dem dunklen Trichter (als Vorschau) und einmal auf der hellen Einladungsseite — und muss an
+   beiden Stellen gleich aussehen, sonst verschickt sie etwas anderes, als sie gesehen hat.
+   Eine gedruckte Karte ist elfenbein, ganz gleich, auf welchem Tisch sie liegt.
+
+   Das !important ist hier kein Trick, sondern nötig: Die helle Fassung faerbt Text und Ränder
+   per !important blau um; ohne das hier stünde in der Einladung Facebook-Blau. */
+.lb-karte { background: #fdfaf4 !important; }
+.lb-karte, .lb-karte p, .lb-karte h1, .lb-karte h2, .lb-karte span, .lb-karte a {
+  color: #2a231c !important;
+}
+/* Gold traegt die Zierde: Ornamente, Überschriften, das „&" zwischen den Namen. */
+.lb-karte .lb-karte-gold, .lb-karte .lb-karte-gold * { color: #a07a34 !important; }
+.lb-karte svg { color: #a07a34 !important; stroke: #a07a34 !important; opacity: 0.85; }
+.lb-karte svg circle { fill: #a07a34 !important; }
+.lb-karte .lb-karte-rahmen { border: 1px solid rgba(160, 122, 52, 0.35); }
+/* Der Ton-Knopf liegt auf dem Video und braucht seine dunkle Scheibe — die Regel oben
+   wuerde ihn sonst mit einfaerben. */
+.lb-karte [data-tonknopf="1"] { background: rgba(0,0,0,0.55) !important; }
