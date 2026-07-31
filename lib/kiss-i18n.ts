@@ -66,6 +66,16 @@ export type KissText = {
   extraTitel: string; extraCta: string; extraNote: string;
   // Die Überschrift der Seite (das Gold-Wort steht getrennt) und der Vorspann von „Your Idol".
   heroA: string; heroY: string; heroB: string;
+  /**
+   * EIN SATZ UNTER DER UEBERSCHRIFT (Owner 31.07.2026: „unter dem titel muss doch ein kurzer
+   * satz zu der Einladungs seite").
+   *
+   * Bewusst nur bei der Hochzeit gefuellt: Beim Kuss hat der Owner den Vorspann selbst
+   * streichen lassen, weil er auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt
+   * kostete. Hier ist er noetig, weil die Ueberschrift „Einladung" sagt und der erste Schritt
+   * nach zwei Fotos fragt — dazwischen fehlt sonst die Erklaerung.
+   */
+  heroLead: string;
   leadA: string; leadB: string; fine: string;
 };
 
@@ -132,6 +142,7 @@ const EN: KissText = {
   extraTitel: "Your videos for this month are used up",
   extraCta: "One more video — {extra}", extraNote: "One video, no new subscription. Your subscription keeps running.",
   heroA: "Kiss any ", heroY: "model", heroB: " 💋",
+  heroLead: "",
   leadA: "Take any person you admire — a superstar, a singer, an actress, an athlete, an influencer, or one of our models. One screenshot of her or him is enough.",
   leadB: "Add a photo of yourself and the AI puts the two of you together at a party, side by side. Your two faces, one video that looks like it really happened.",
   fine: "AI-generated, not a real recording — and it's for you, not for social media.",
@@ -200,6 +211,7 @@ const DE: KissText = {
   extraTitel: "Deine Videos für diesen Monat sind aufgebraucht",
   extraCta: "Noch ein Video — {extra}", extraNote: "Ein Video, kein neues Abo. Dein Abo läuft normal weiter.",
   heroA: "Küsse jede ", heroY: "Frau", heroB: " 💋",
+  heroLead: "",
   leadA: "Nimm jeden Menschen, den du bewunderst — einen Superstar, eine Sängerin, eine Schauspielerin, eine Sportlerin, eine Influencerin oder eine unserer Frauen. Ein einziges Bildschirmfoto genügt.",
   leadB: "Leg ein Foto von dir dazu, und die KI stellt euch beide nebeneinander auf eine Party. Eure zwei Gesichter, ein Video, das aussieht, als wäre es wirklich passiert.",
   fine: "Von KI erzeugt, keine echte Aufnahme — und für dich gedacht, nicht für soziale Medien.",
@@ -268,6 +280,7 @@ const RO: KissText = {
   extraTitel: "Videoclipurile tale pe luna asta s-au terminat",
   extraCta: "Încă un videoclip — {extra}", extraNote: "Un videoclip, fără abonament nou. Abonamentul tău merge mai departe.",
   heroA: "Sărută orice ", heroY: "femeie", heroB: " 💋",
+  heroLead: "",
   leadA: "Ia orice persoană pe care o admiri — o vedetă, o cântăreață, o actriță, o sportivă, o influenceriță sau una dintre femeile noastre. O singură captură de ecran e de ajuns.",
   leadB: "Adaugă o poză cu tine și inteligența artificială vă pune pe amândoi, unul lângă altul, la o petrecere. Două chipuri, un videoclip care pare real.",
   fine: "Generat de inteligență artificială, nu o înregistrare reală — și e pentru tine, nu pentru rețelele sociale.",
@@ -336,6 +349,7 @@ const ES: KissText = {
   extraTitel: "Tus vídeos de este mes se han agotado",
   extraCta: "Un vídeo más — {extra}", extraNote: "Un vídeo, sin nueva suscripción. La tuya sigue igual.",
   heroA: "Besa a cualquier ", heroY: "modelo", heroB: " 💋",
+  heroLead: "",
   leadA: "Coge a cualquier persona que admires — una superestrella, una cantante, una actriz, una deportista, una influencer o una de nuestras modelos. Basta una captura de pantalla.",
   leadB: "Añade una foto tuya y la IA os pone a los dos juntos en una fiesta, uno al lado del otro. Vuestras dos caras, un vídeo que parece real.",
   fine: "Generado por IA, no es una grabación real — y es para ti, no para las redes sociales.",
@@ -404,6 +418,7 @@ const FR: KissText = {
   extraTitel: "Tes vidéos du mois sont épuisées",
   extraCta: "Une vidéo de plus — {extra}", extraNote: "Une vidéo, sans nouvel abonnement. Le tien continue normalement.",
   heroA: "Embrasse n'importe quelle ", heroY: "femme", heroB: " 💋",
+  heroLead: "",
   leadA: "Prends n'importe qui que tu admires — une superstar, une chanteuse, une actrice, une sportive, une influenceuse ou l'une de nos modèles. Une seule capture d'écran suffit.",
   leadB: "Ajoute une photo de toi et l'IA vous met tous les deux côte à côte à une fête. Vos deux visages, une vidéo qui semble réelle.",
   fine: "Généré par IA, ce n'est pas un vrai enregistrement — et c'est pour toi, pas pour les réseaux sociaux.",
@@ -472,6 +487,7 @@ const PT: KissText = {
   extraTitel: "Os teus vídeos deste mês acabaram",
   extraCta: "Mais um vídeo — {extra}", extraNote: "Um vídeo, sem nova subscrição. A tua continua igual.",
   heroA: "Beija qualquer ", heroY: "modelo", heroB: " 💋",
+  heroLead: "",
   leadA: "Escolhe qualquer pessoa que admires — uma estrela, uma cantora, uma atriz, uma atleta, uma influenciadora ou uma das nossas modelos. Basta uma captura de ecrã.",
   leadB: "Junta uma foto tua e a IA coloca-vos aos dois lado a lado numa festa. Os vossos dois rostos, um vídeo que parece real.",
   fine: "Gerado por IA, não é uma gravação real — e é para ti, não para as redes sociais.",
@@ -541,6 +557,7 @@ const IT: KissText = {
   extraTitel: "I tuoi video di questo mese sono finiti",
   extraCta: "Un altro video — {extra}", extraNote: "Un video, nessun nuovo abbonamento. Il tuo continua normalmente.",
   heroA: "Bacia qualsiasi ", heroY: "modella", heroB: " 💋",
+  heroLead: "",
   leadA: "Prendi chiunque tu ammiri — una superstar, una cantante, un'attrice, una sportiva, un'influencer o una delle nostre modelle. Basta uno screenshot.",
   leadB: "Aggiungi una tua foto e l'IA mette voi due insieme a una festa, fianco a fianco. I vostri due volti, un video che sembra vero.",
   fine: "Generato dall'IA, non è una registrazione reale — ed è per te, non per i social.",
@@ -640,6 +657,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Making your wedding video …", watchOnce: "Watch our wedding kiss — {once}",
     blockedOnce: "Make a real wedding video — {once}",
     heroA: "Your ", heroY: "wedding invitation", heroB: " 💍",
+    heroLead: "A video with the two of you — the invitation you send on WhatsApp.",
     examples: "Real wedding kisses 💍",
     statusQuality: "Creating your wedding kiss in full quality … (~1–3 min)",
   },
@@ -653,6 +671,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Euer Hochzeitsvideo entsteht …", watchOnce: "Unseren Hochzeitskuss ansehen — {once}",
     blockedOnce: "Echtes Hochzeitsvideo machen — {once}",
     heroA: "Eure ", heroY: "Hochzeitseinladung", heroB: " 💍",
+    heroLead: "Ein Video mit euch beiden — die Einladung, die ihr per WhatsApp verschickt.",
     examples: "Echte Hochzeitsküsse 💍",
     statusQuality: "Euer Hochzeitskuss entsteht in voller Qualität … (~1–3 Min.)",
   },
@@ -666,6 +685,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Se face videoclipul vostru de nuntă …", watchOnce: "Vezi sărutul nostru de nuntă — {once}",
     blockedOnce: "Fă un video real de nuntă — {once}",
     heroA: "Invitația voastră ", heroY: "de nuntă", heroB: " 💍",
+    heroLead: "Un videoclip cu voi doi — invitația pe care o trimiteți pe WhatsApp.",
     examples: "Săruturi de nuntă reale 💍",
     statusQuality: "Sărutul vostru de nuntă se creează la calitate maximă … (~1–3 min)",
   },
@@ -679,6 +699,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Creando vuestro vídeo de boda …", watchOnce: "Ver nuestro beso de boda — {once}",
     blockedOnce: "Haz un vídeo de boda real — {once}",
     heroA: "Vuestra ", heroY: "invitación de boda", heroB: " 💍",
+    heroLead: "Un vídeo con vosotros dos — la invitación que enviáis por WhatsApp.",
     examples: "Besos de boda reales 💍",
     statusQuality: "Creando vuestro beso de boda con la máxima calidad … (~1–3 min)",
   },
@@ -692,6 +713,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Votre vidéo de mariage se fait …", watchOnce: "Voir notre baiser de mariage — {once}",
     blockedOnce: "Faire une vraie vidéo de mariage — {once}",
     heroA: "Votre ", heroY: "faire-part de mariage", heroB: " 💍",
+    heroLead: "Une vidéo avec vous deux — le faire-part que vous envoyez sur WhatsApp.",
     examples: "De vrais baisers de mariage 💍",
     statusQuality: "Votre baiser de mariage est créé en pleine qualité … (~1–3 min)",
   },
@@ -705,6 +727,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "A fazer o vosso vídeo de casamento …", watchOnce: "Ver o nosso beijo de casamento — {once}",
     blockedOnce: "Fazer um vídeo de casamento a sério — {once}",
     heroA: "O vosso ", heroY: "convite de casamento", heroB: " 💍",
+    heroLead: "Um vídeo com vocês os dois — o convite que enviam pelo WhatsApp.",
     examples: "Beijos de casamento a sério 💍",
     statusQuality: "O vosso beijo de casamento está a ser criado em qualidade máxima … (~1–3 min)",
   },
@@ -718,6 +741,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     makingKiss: "Stiamo facendo il vostro video di matrimonio …", watchOnce: "Guarda il nostro bacio di matrimonio — {once}",
     blockedOnce: "Fai un vero video di matrimonio — {once}",
     heroA: "Il vostro ", heroY: "invito di matrimonio", heroB: " 💍",
+    heroLead: "Un video con voi due — l'invito che mandate su WhatsApp.",
     examples: "Veri baci di matrimonio 💍",
     statusQuality: "Il vostro bacio di matrimonio nasce in piena qualità … (~1–3 min)",
   },

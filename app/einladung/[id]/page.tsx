@@ -52,7 +52,9 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
     : "";
 
   return (
-    <main className="lb-bg min-h-screen text-white">
+    /* Hell als Vorgabe (Owner 31.07.2026: „default ist light modus") — eine
+       Hochzeitseinladung ist hell; der Schalter oben rechts stellt auf dunkel. */
+    <main className="lb-bg lb-theme lb-fb min-h-screen text-white">
       <div className="mx-auto w-full max-w-[440px] px-4 pb-16 pt-6">
         {/* HELL UND DUNKEL AUCH HIER (Owner 31.07.2026: „und es muss light und dark sein").
             Klein und in der Ecke: Diese Seite ist eine Einladung, kein Bedienfeld — der

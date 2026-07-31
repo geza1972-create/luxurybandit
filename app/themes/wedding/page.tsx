@@ -68,7 +68,11 @@ export default async function WeddingThemePage({ searchParams }: {
   const examples: string[] = (await Promise.all((cfg.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
   return (
-    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
+    /* HELL IST DIE VORGABE (Owner 31.07.2026: „default ist light modus"). Umgekehrt zu
+       vorher: Die Seite kommt hell, `?light=0` schaltet dunkel. Eine Hochzeit ist hell, und
+       der Sprung von der weissen Anzeige auf eine schwarze Seite kostete Klicks. Der
+       Schalter im Balken ueberstimmt beides und merkt sich die Wahl. */
+    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "0" ? "" : " lb-theme lb-fb"}`}>
       <TopNav />
       <TrackView event="wedding_view" lookId="themes-wedding" lookName="Hochzeits-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
@@ -77,6 +81,9 @@ export default async function WeddingThemePage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+            {/* EIN Satz, mehr nicht (Owner 31.07.2026). Die Überschrift sagt „Einladung",
+                der erste Schritt fragt nach zwei Fotos — dazwischen fehlte die Erklärung. */}
+            {T.heroLead && <Lead className="mt-2">{T.heroLead}</Lead>}
 
             {/* Derselbe Trichter wie beim Kuss, andere Variante. */}
             <KissFunnel variant="wedding" code={code} lang={L} />
