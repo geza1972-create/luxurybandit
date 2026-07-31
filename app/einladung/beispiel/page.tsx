@@ -7,6 +7,7 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
 import LightSwitch from "@/components/LightSwitch";
+import TeilenKnopf from "@/components/TeilenKnopf";
 
 /**
  * DIE BEISPIEL-EINLADUNG — dieselbe Seite, die ein Gast bekommt (Owner 31.07.2026: „das muss
@@ -108,6 +109,14 @@ export default async function BeispielEinladung() {
         <GruppenChat sprache={sprache} demo sie="Ana" er="Mihai"
           news={[{ text: NEWS[sprache] ?? NEWS.en }]}
           nachrichten={(CHAT[sprache] ?? CHAT.en).map((t, i) => ({ name: NAMEN[i] ?? "Gast", text: t }))} />
+
+        {/* VERSCHICKEN (Owner 31.07.2026: „wo kann ich das jetzt versenden? sharen?").
+            Auf dieser Seite ist es kein Nebenweg, sondern der Zweck: Sie ist da, um sie
+            jemandem zu zeigen. Auf der ECHTEN Einladung steht derselbe Knopf nur beim
+            Brautpaar — ein Gast soll die Einladung eines Freundes nicht weiterverteilen. */}
+        <div className="mt-5">
+          <TeilenKnopf text="Ana & Mihai 💍" label={T.teilen} kopiertLabel={T.zusDanke} />
+        </div>
 
         {/* Hier steht mehr als auf einer echten Einladung: Diese Seite IST die Werbung, im
             Gegensatz zu der, die eine Kundin verschickt — dort wäre derselbe Satz peinlich. */}
