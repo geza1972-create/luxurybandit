@@ -5,6 +5,7 @@ import { resolveLang } from "@/lib/lang-server";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ZusagenKarte from "@/components/ZusagenKarte";
+import GruppenChat from "@/components/GruppenChat";
 import LightSwitch from "@/components/LightSwitch";
 import AdminZurueck from "@/components/AdminZurueck";
 
@@ -76,6 +77,10 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
             schon zugesagt hat, und antwortet selbst; mehr als sein Vorname wird nicht
             gefragt. Das ist die Gaesteliste des Paares, ohne dass wir Gaestedaten sammeln. */}
         <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />
+
+        {/* NEUIGKEITEN UND GRUPPE — der Grund, warum der Gast ueber den Link wiederkommt. */}
+        <GruppenChat sprache={sprache} id={e.id} nachrichten={e.chat ?? []} news={e.news ?? []}
+          sie={e.sie} er={e.er} />
 
         {/* DIE EINE ZEILE. Mehr Werbung macht die Einladung unsendbar — und dann gibt es
             diesen Kanal gar nicht. */}

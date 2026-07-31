@@ -14,6 +14,7 @@ import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ExampleVideos from "@/components/ExampleVideos";
 import ZusagenKarte from "@/components/ZusagenKarte";
+import GruppenChat from "@/components/GruppenChat";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -59,6 +60,57 @@ const BEISPIEL_ZUSAGEN = [
   { name: "Maria", ja: true }, { name: "Andrei", ja: true }, { name: "Sofia", ja: true },
   { name: "Luca", ja: false }, { name: "Elena", ja: true },
 ];
+/**
+ * BEISPIEL-NEUIGKEIT UND -GESPRAECH (Saetze vom Owner, 31.07.2026).
+ *
+ * Bewusst genau diese: Sitzordnung, Musikwunsch, Wetter, eine kurzfristige Aenderung und ein
+ * vergessenes Kleid. Das ist, was in einer Hochzeitsgruppe wirklich steht — und jeder Satz
+ * zeigt nebenbei, wofuer das Abo bezahlt wird. Eine erfundene Nettigkeit („wir freuen uns so")
+ * zeigt gar nichts.
+ *
+ * In allen sieben Sprachen, weil eine Verkaufsseite, die Mehrsprachigkeit verspricht und
+ * darunter deutsche Kommentare zeigt, sich selbst widerlegt.
+ */
+const BEISPIEL_NEWS_TXT: Record<string, string> = {
+  de: "Achtung, neue Änderung: Die Hochzeit findet drinnen statt!",
+  en: "Heads up, change of plan: the wedding will be held indoors!",
+  ro: "Atenție, o schimbare: nunta va avea loc în interior!",
+  es: "¡Atención, un cambio: la boda se celebrará dentro!",
+  fr: "Attention, changement : le mariage aura lieu à l’intérieur !",
+  pt: "Atenção, mudança: o casamento vai ser dentro!",
+  it: "Attenzione, cambio: il matrimonio si terrà al chiuso!",
+};
+const BEISPIEL_CHAT_TXT: Record<string, string[]> = {
+  de: ["Jochen und Gina sitzen am Tisch 6.",
+       "Können wir eine Volksmusik-Band bekommen?",
+       "Wie wird das Wetter?",
+       "Hilfe, ich habe mein Kleid zu Hause vergessen — wo finde ich eins in der Stadt?"],
+  en: ["Jochen and Gina are at table 6.",
+       "Could we get a folk band?",
+       "What’s the weather going to be like?",
+       "Help, I left my dress at home — where can I find one in town?"],
+  ro: ["Jochen și Gina stau la masa 6.",
+       "Putem avea o formație de muzică populară?",
+       "Cum va fi vremea?",
+       "Ajutor, mi-am uitat rochia acasă — de unde pot lua una în oraș?"],
+  es: ["Jochen y Gina están en la mesa 6.",
+       "¿Podemos tener un grupo de música popular?",
+       "¿Qué tiempo va a hacer?",
+       "¡Socorro! Me he dejado el vestido en casa — ¿dónde encuentro uno en la ciudad?"],
+  fr: ["Jochen et Gina sont à la table 6.",
+       "Peut-on avoir un groupe de musique folklorique ?",
+       "Quel temps va-t-il faire ?",
+       "Au secours, j’ai oublié ma robe à la maison — où en trouver une en ville ?"],
+  pt: ["O Jochen e a Gina estão na mesa 6.",
+       "Podemos ter um grupo de música popular?",
+       "Como vai estar o tempo?",
+       "Socorro, esqueci-me do vestido em casa — onde arranjo um na cidade?"],
+  it: ["Jochen e Gina sono al tavolo 6.",
+       "Possiamo avere un gruppo di musica popolare?",
+       "Che tempo farà?",
+       "Aiuto, ho dimenticato il vestito a casa — dove ne trovo uno in città?"],
+};
+const CHAT_NAMEN = ["Ana", "Andrei", "Maria", "Sofia"];
 const BEISPIEL_NAMEN: [string, string][] = [["Ana", "Mihai"], ["Elena", "Andrei"]];
 const BEISPIEL_ORT: Record<string, string> = {
   de: "Schlosshotel Grunewald", en: "The Old Manor House", ro: "Casa Timiș",
@@ -158,6 +210,13 @@ export default async function WeddingThemePage({ searchParams }: {
                     hat"). Dieselbe Komponente wie in der echten Einladung, nur ohne
                     Knoepfe — was hier steht, gibt es also wirklich. */}
                 <ZusagenKarte sprache={L} demo zusagen={BEISPIEL_ZUSAGEN} />
+                {/* UND DARUNTER DIE GRUPPE (Owner 31.07.2026: „du musst das zeigen und
+                    simulieren mit einigen Kommentaren unter der Gaesteliste"). Dieselbe
+                    Komponente wie in der echten Einladung, nur ohne Eingabefeld. */}
+                <GruppenChat sprache={L} demo
+                  nachrichten={(BEISPIEL_CHAT_TXT[L] ?? BEISPIEL_CHAT_TXT.en).map((t, i) => ({ name: CHAT_NAMEN[i] ?? "Gast", text: t }))}
+                  news={[{ text: BEISPIEL_NEWS_TXT[L] ?? BEISPIEL_NEWS_TXT.en }]}
+                  sie={BEISPIEL_NAMEN[0][0]} er={BEISPIEL_NAMEN[0][1]} />
               </div>
             )}
             {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen was er bekommt").

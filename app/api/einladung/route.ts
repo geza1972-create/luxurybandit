@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readEinladungen, writeEinladungen, type Einladung } from "@/lib/try-this-look-store";
+import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,10 @@ const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max)
 // POST { videoUrl, sie, er, datum?, ort?, adresse?, telefon?, genId?, device?, email?, lang? } → { id, url }
 // POST { revoke: id, device? }                                            → { ok }
 // POST { open: id }                                                       → { ok }  (Zähler)
-// POST { rsvp: id, name, ja }                                             → { ok }  (Zusage)
+// POST { rsvp: id, name, ja, email }                                      → { ok }  (Zusage)
+// POST { setVideo: id, videoUrl, device }                                 → { ok, left } (Tausch)
+// POST { chat: id, name, text }                                           → { ok, chat }
+// POST { news: id, text, device }                                          → { ok, empfaenger }
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
@@ -59,8 +63,14 @@ export async function POST(request: Request) {
   if (rsvp) {
     const name = sauber(body.name, 40);
     if (!name) return NextResponse.json({ error: "Name fehlt." }, { status: 400 });
+    // Die Adresse des Gastes ist Pflicht: Das Paar muss ihn erreichen können, wenn sich
+    // Uhrzeit oder Ort ändern. Wofür sie ist, steht am Eingabefeld — nicht nur in den AGB.
+    const gastMail = sauber(body.email, 160).toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gastMail)) {
+      return NextResponse.json({ error: "E-Mail fehlt." }, { status: 400 });
+    }
     const ja = body.ja !== false;
-    const eintrag = { name, ja, at: new Date().toISOString() };
+    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail };
     for (let versuch = 0; versuch < 4; versuch++) {
       const alle = await readEinladungen();
       const e = alle.find(x => x.id === rsvp);
@@ -72,10 +82,136 @@ export async function POST(request: Request) {
       await new Promise(r => setTimeout(r, 150 + versuch * 200));
       const nach = (await readEinladungen()).find(x => x.id === rsvp);
       if (nach?.zusagen?.some(z => z.name.toLowerCase() === name.toLowerCase() && z.ja === ja)) {
+        /**
+         * DAS PAAR ERFAEHRT ES SOFORT (Owner 31.07.2026: „die Leute werden per E-Mail
+         * benachrichtigt, wenn jemand zusagt").
+         *
+         * Bewusst NACH dem bestaetigten Schreiben und ohne `await` im Erfolgsweg: Eine
+         * klemmende Mail darf die Zusage nie verschlucken — der Gast hat geantwortet, das
+         * zaehlt. Die Zahl im Betreff spart den Klick: Sie sieht am Handy, wo sie steht.
+         */
+        const jaZahl = (nach.zusagen ?? []).filter(z => z.ja).length;
+        const neinZahl = (nach.zusagen ?? []).length - jaZahl;
+        if (nach.email) {
+          void sendEmail({
+            to: nach.email,
+            subject: ja ? `${name} kommt zu eurer Hochzeit (${jaZahl} Zusagen)`
+                        : `${name} kann leider nicht (${jaZahl} Zusagen, ${neinZahl} Absagen)`,
+            replyTo: gastMail,
+            text: `${name} hat geantwortet: ${ja ? "kommt" : "kann leider nicht"}.\n`
+              + `E-Mail: ${gastMail}\n\n`
+              + `Stand: ${jaZahl} Zusagen, ${neinZahl} Absagen.\n`
+              + `Eure Einladung: ${origin}/einladung/${rsvp}\n`,
+            html: `<p><strong>${name}</strong> hat geantwortet: <strong>${ja ? "kommt" : "kann leider nicht"}</strong>.</p>`
+              + `<p>E-Mail: <a href="mailto:${gastMail}">${gastMail}</a></p>`
+              + `<p>Stand: <strong>${jaZahl}</strong> Zusagen, ${neinZahl} Absagen.</p>`
+              + `<p><a href="${origin}/einladung/${rsvp}">Eure Einladung ansehen</a></p>`,
+          }).catch(() => {});
+        }
         return NextResponse.json({ ok: true });
       }
     }
     return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
+  }
+
+  /**
+   * DAS VIDEO TAUSCHEN — bis zu fuenfmal (Owner 31.07.2026: „sie koennen das Video 5 mal
+   * aendern. Die Gaeste sehen immer den neuesten Stand").
+   *
+   * Der Link bleibt derselbe. Das ist der ganze Witz: Sie hat ihn schon an achtzig Leute
+   * verschickt — ein zweiter Link waere fuer sie eine Katastrophe. Wer die Einladung nach dem
+   * Tausch oeffnet, sieht das neue Video; wer sie vorher offen hatte, beim naechsten Laden.
+   *
+   * Fuenf, weil jeder Tausch ein bezahlter Render ist — und weil eine Einladung, die staendig
+   * ihr Gesicht wechselt, fuer die Gaeste keine Einladung mehr ist.
+   */
+  /**
+   * EINE NACHRICHT IM GRUPPENCHAT. Angehaengt mit Nachlesen, wie ueberall in dieser Datei:
+   * In einer Gruppe schreiben mehrere gleichzeitig, und ohne das verschwinden Nachrichten.
+   */
+  /**
+   * EINE NEUIGKEIT — und die Mail an alle Gaeste.
+   *
+   * Nur das Paar (dasselbe Geraet) oder der Admin. Die Mail traegt den LINK, nicht den ganzen
+   * Text: Der Gast soll zurueck auf die Einladung kommen, dort steht der neueste Stand, dort
+   * ist die Gruppe. Genau dafuer zahlt das Paat — pardon, das Paar — jeden Monat.
+   */
+  const news = sauber(body.news, 60);
+  if (news) {
+    const text = sauber(body.text, 800);
+    if (!text) return NextResponse.json({ error: "Text fehlt." }, { status: 400 });
+    const alle = await readEinladungen();
+    const e = alle.find(x => x.id === news);
+    if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    const geraet = sauber(body.device, 80);
+    if (!admin && !(geraet && e.device === geraet)) {
+      return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    }
+    e.news = [{ text, at: new Date().toISOString() }, ...(e.news ?? [])].slice(0, 50);
+    await writeEinladungen(alle);
+
+    // An jede Adresse EINZELN, nie in ein gemeinsames An-Feld: Sonst sieht jeder Gast die
+    // Adressen aller anderen, und das waere ein Datenleck im Namen unserer Kundin.
+    const link = `${origin}/einladung/${news}`;
+    const gaeste = [...new Set((e.zusagen ?? []).map(z => z.email).filter(Boolean) as string[])];
+    const betreff = `${e.sie} & ${e.er}: Neuigkeiten zur Hochzeit`;
+    for (const adresse of gaeste.slice(0, 300)) {
+      void sendEmail({
+        to: adresse,
+        subject: betreff,
+        replyTo: e.email || undefined,
+        text: `${text}\n\nAlles Weitere und die Gruppe: ${link}\n`,
+        html: `<p>${text.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`
+          + `<p><a href="${link}">Zur Einladung — dort steht der neueste Stand und die Gruppe</a></p>`,
+      }).catch(() => {});
+    }
+    return NextResponse.json({ ok: true, empfaenger: gaeste.length, news: e.news });
+  }
+
+  const chat = sauber(body.chat, 60);
+  if (chat) {
+    const name = sauber(body.name, 40);
+    const text = sauber(body.text, 500);
+    if (!name || !text) return NextResponse.json({ error: "Name oder Text fehlt." }, { status: 400 });
+    const eintrag = { name, text, at: new Date().toISOString() };
+    for (let versuch = 0; versuch < 4; versuch++) {
+      const alle = await readEinladungen();
+      const e = alle.find(x => x.id === chat);
+      if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      // Deckel: Ein voller Chat darf die eine Datei nicht sprengen, in der alle Einladungen
+      // liegen. Die aeltesten fallen raus — bei einer Hochzeit zaehlt das Neueste.
+      e.chat = [...(e.chat ?? []), eintrag].slice(-300);
+      await writeEinladungen(alle);
+      await new Promise(r => setTimeout(r, 150 + versuch * 200));
+      const nach = (await readEinladungen()).find(x => x.id === chat);
+      if (nach?.chat?.some(c => c.at === eintrag.at && c.text === text)) {
+        return NextResponse.json({ ok: true, chat: nach.chat ?? [] });
+      }
+    }
+    return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
+  }
+
+  const setVideo = sauber(body.setVideo, 60);
+  if (setVideo) {
+    const neuesVideo = sauber(body.videoUrl, 2000);
+    if (!neuesVideo) return NextResponse.json({ error: "Video fehlt." }, { status: 400 });
+    const alle = await readEinladungen();
+    const e = alle.find(x => x.id === setVideo);
+    if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    const geraet = sauber(body.device, 80);
+    if (!admin && !(geraet && e.device === geraet)) {
+      return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    }
+    const schon = e.videoChanges ?? 0;
+    if (!admin && schon >= 5) {
+      return NextResponse.json({ error: "Limit", left: 0 }, { status: 409 });
+    }
+    e.videoUrl = neuesVideo;
+    e.videoChanges = schon + 1;
+    await writeEinladungen(alle);
+    return NextResponse.json({ ok: true, left: Math.max(0, 5 - (e.videoChanges ?? 0)) });
   }
 
   const revoke = sauber(body.revoke, 60);
@@ -153,7 +289,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       id: e.id, videoUrl: e.videoUrl, sie: e.sie, er: e.er,
       datum: e.datum ?? "", ort: e.ort ?? "", adresse: e.adresse ?? "",
-      telefon: e.telefon ?? "", lang: e.lang ?? "en", zusagen: e.zusagen ?? [],
+      telefon: e.telefon ?? "", lang: e.lang ?? "en",
+      // Oeffentlich sind Vornamen und Texte — NIE die Adressen der Gaeste.
+      zusagen: (e.zusagen ?? []).map(z => ({ name: z.name, ja: z.ja })),
+      chat: e.chat ?? [],
+      news: e.news ?? [],
     });
   }
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });

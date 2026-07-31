@@ -1493,9 +1493,44 @@ export type Einladung = {
   lang?: string;          // in welcher Sprache die Seite erscheint
   email?: string;         // wem sie gehört — für Widerruf und Zuordnung
   device?: string;
-  // Zusagen: NUR ein Vorname je Gast (Konzept §8 — keine echten Personendaten der Gäste
-  // bei uns). Das ist die Gästeliste, die sie wirklich braucht.
-  zusagen?: { name: string; ja: boolean; at: string }[];
+  /**
+   * Zusagen: Vorname UND E-Mail des Gastes (Owner 31.07.2026: „auch die Gäste müssen ihre
+   * E-Mail angeben, weil sie noch News zur Hochzeit bekommen können").
+   *
+   * Das kehrt §8 des ersten Konzepts um („keine echten Personendaten der Gäste bei uns") und
+   * ist eine bewusste Entscheidung: Ohne Adresse kann das Paar seine Gäste nicht erreichen,
+   * wenn sich Uhrzeit oder Ort ändern — und genau dafür zahlt es. Dafür MUSS an der Eingabe
+   * stehen, wofür die Adresse ist; sie gehört dem Paar, nicht uns.
+   */
+  zusagen?: { name: string; ja: boolean; at: string; email?: string }[];
+  /**
+   * Wie oft das Video schon getauscht wurde (Owner: „sie können das Video 5 mal ändern.
+   * Die Gäste sehen immer den neuesten Stand"). Begrenzt, weil jeder Tausch ein bezahlter
+   * Render ist — und weil eine Einladung, die dreimal die Woche ihr Gesicht wechselt, für
+   * die Gäste keine Einladung mehr ist.
+   */
+  videoChanges?: number;
+  /**
+   * DER GRUPPENCHAT (Owner 31.07.2026: „und mach noch einen Gruppenchat. Das koennen sie auch
+   * bekommen.").
+   *
+   * Bewusst hier IN der Einladung und nicht als eigenes Ding: Es ist der Chat DIESER Hochzeit,
+   * er lebt und stirbt mit ihr, und die Loeschfrist gilt automatisch mit. Vorname und Text,
+   * mehr nicht — wer laenger reden will, hat WhatsApp.
+   */
+  chat?: { name: string; text: string; at: string }[];
+  /**
+   * NEUIGKEITEN DES PAARES (Owner 31.07.2026: „die Gaeste werden immer wieder ueber den Link
+   * rein muessen, um die neuesten News zu bekommen, den sie per E-Mail erhalten").
+   *
+   * Das ist der Kreislauf, fuer den das Abo bezahlt wird: Das Paar schreibt etwas, alle Gaeste
+   * bekommen eine Mail MIT DEM LINK, und auf der Einladung steht der neueste Stand. Deshalb
+   * gehoert die Adresse des Gastes zur Zusage — ohne sie gibt es diesen Kreis nicht.
+   *
+   * Bewusst getrennt vom Chat: Was das Paar schreibt, gilt. Was die Gaeste schreiben, ist
+   * Gespraech.
+   */
+  news?: { text: string; at: string }[];
   opens?: number;         // wie oft geöffnet — die Zahl, die über den Kanal entscheidet
   lastOpenAt?: string;
   revoked?: boolean;      // sie hat sie zurückgezogen

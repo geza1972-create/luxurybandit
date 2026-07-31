@@ -1,0 +1,150 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Send } from "lucide-react";
+import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
+import { KARTE_TEXTE } from "@/components/EinladungKarte";
+
+/**
+ * NEUIGKEITEN UND GRUPPENCHAT — die dritte Karte unter der Einladung.
+ *
+ * Owner 31.07.2026: „und mach noch einen Gruppenchat. Das können sie auch bekommen." und
+ * „die Gäste werden immer wieder über den Link rein müssen, um die neuesten News zu bekommen,
+ * den sie per E-Mail erhalten. So bleiben sie immer auf dem Laufenden und können auch
+ * miteinander in der Gruppe chatten."
+ *
+ * DAS IST DER KREISLAUF, FÜR DEN DAS ABO BEZAHLT WIRD. Ein Video ist eine Datei — die kauft
+ * man einmal. Eine Hochzeit dauert Monate: Uhrzeit ändert sich, Saal ändert sich, Gäste
+ * fragen. Das Paar schreibt eine Neuigkeit, jeder Gast bekommt eine Mail MIT DEM LINK, kommt
+ * zurück und sieht den neuesten Stand — und die anderen Gäste. Deshalb gehört die Adresse zur
+ * Zusage, und deshalb ist es ein Abo und kein Einmalkauf.
+ *
+ * Zwei getrennte Bereiche in einer Karte: Was das PAAR schreibt, gilt (oben, hervorgehoben).
+ * Was die GÄSTE schreiben, ist Gespräch (darunter). Wer das vermischt, hat eine Pinnwand, auf
+ * der niemand mehr findet, wann die Trauung beginnt.
+ */
+
+export type Nachricht = { name: string; text: string; at?: string };
+export type Neuigkeit = { text: string; at?: string };
+
+export default function GruppenChat({
+  sprache, id, nachrichten, news = [], demo, sie, er,
+}: {
+  sprache: string;
+  /** Ohne Kennung (Verkaufsseite) gibt es kein Eingabefeld — die Karte steht zum Ansehen da. */
+  id?: string;
+  nachrichten: Nachricht[];
+  news?: Neuigkeit[];
+  demo?: boolean;
+  /** Für die Überschrift der Neuigkeiten: „Von Ana & Mihai". */
+  sie?: string;
+  er?: string;
+}) {
+  const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
+  const [liste, setListe] = useState<Nachricht[]>(nachrichten);
+  const [name, setName] = useState("");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const eigenerName = useRef(false);
+
+  /**
+   * Den Vornamen aus der Zusage übernehmen: Wer gerade „Ich komme" getippt hat, soll ihn für
+   * die erste Nachricht nicht noch einmal eintippen. Eine zweite Hürde direkt nach der ersten
+   * kostet mehr Leute, als der Chat wert wäre.
+   */
+  useEffect(() => {
+    if (eigenerName.current || !id) return;
+    try {
+      const gemerkt = localStorage.getItem(`lb_einl_name_${id}`) ?? "";
+      if (gemerkt) { setName(gemerkt); eigenerName.current = true; }
+    } catch { /* egal */ }
+  }, [id]);
+
+  const senden = async () => {
+    const n = name.trim(), t = text.trim();
+    if (!n || !t || !id || busy) return;
+    setBusy(true);
+    const r = await fetch("/api/einladung", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat: id, name: n, text: t }),
+    }).then(x => x.json()).catch(() => null);
+    setBusy(false);
+    if (!r?.ok) return;
+    try { localStorage.setItem(`lb_einl_name_${id}`, n); } catch { /* egal */ }
+    // Die Antwort bringt den ganzen Verlauf zurück — damit stehen auch die Nachrichten da,
+    // die in der Zwischenzeit von anderen kamen.
+    setListe(Array.isArray(r.chat) ? r.chat : [...liste, { name: n, text: t }]);
+    setText("");
+  };
+
+  const zeit = (s?: string) => {
+    if (!s) return "";
+    try {
+      return new Date(s).toLocaleDateString(sprache === "en" ? "en-GB" : `${sprache}-${sprache.toUpperCase()}`,
+        { day: "numeric", month: "short" });
+    } catch { return ""; }
+  };
+
+  return (
+    <div className="lb-karte relative mt-4 overflow-hidden rounded-[20px] px-5 pb-6 pt-7 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+      <CornerOrnaments />
+      <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
+
+      <div className="relative">
+        <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.28em]">
+          {T.chatTitel}
+        </p>
+        <DividerOrnament className="mt-2.5" />
+
+        {/* WAS DAS PAAR SCHREIBT, GILT — deshalb oben und mit eigenem Rahmen. */}
+        {news.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {news.slice(0, 3).map((n, i) => (
+              <div key={i} className="lb-karte-news rounded-[12px] px-3.5 py-2.5">
+                <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.14em]">
+                  {sie && er ? `${sie} & ${er}` : ""} {zeit(n.at)}
+                </p>
+                <p className="mt-0.5 whitespace-pre-line font-serif text-[14.5px] leading-snug">{n.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {liste.length === 0 ? (
+          <p className="mt-3 text-center font-serif text-[14px] opacity-70">{T.chatLeer}</p>
+        ) : (
+          <ul className="mt-3 space-y-2.5">
+            {liste.slice(-40).map((m, i) => (
+              <li key={i} className="font-serif text-[14.5px] leading-snug">
+                <span className="font-bold">{m.name}</span>
+                <span className="opacity-45"> · {zeit(m.at)}</span>
+                <br />
+                <span className="opacity-90">{m.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {id && !demo && (
+          <div className="mt-4">
+            <DividerOrnament />
+            <input value={name} onChange={e => setName(e.target.value)} placeholder={T.zusName}
+              maxLength={40} autoComplete="given-name"
+              className="lb-karte-feld mt-3 h-11 w-full rounded-lg px-3 text-center font-serif text-[15px] outline-none" />
+            <div className="mt-2 flex gap-2">
+              <input value={text} onChange={e => setText(e.target.value)} placeholder={T.chatFeld}
+                maxLength={500}
+                onKeyDown={e => { if (e.key === "Enter") void senden(); }}
+                className="lb-karte-feld h-11 min-w-0 flex-1 rounded-lg px-3 font-serif text-[15px] outline-none" />
+              <button type="button" onClick={() => void senden()} disabled={!name.trim() || !text.trim() || busy}
+                aria-label={T.chatSenden}
+                className="lb-karte-wa grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-45">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

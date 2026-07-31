@@ -516,3 +516,9 @@ svg {
   border: 1px solid rgba(42, 35, 28, 0.3) !important;
 }
 .lb-karte .lb-karte-wa svg, .lb-karte .lb-karte-absage svg { opacity: 1; }
+/* Neuigkeiten des Paares: eigener, leicht getönter Rahmen — was das Paar schreibt, gilt, und
+   soll sich vom Geplauder der Gäste abheben, ohne aus der Karte zu fallen. */
+.lb-karte .lb-karte-news {
+  background: rgba(160, 122, 52, 0.09) !important;
+  border: 1px solid rgba(160, 122, 52, 0.28);
+}
