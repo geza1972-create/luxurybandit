@@ -13,11 +13,27 @@ Reihenfolge = Empfehlung. Alles darüber ist erledigt und auf `main`.
 Seit dem Umbau trägt die **Karte oben** das Ergebnis. Der alte Ergebnis-Bildschirm
 (`components/KissFunnel.tsx:2248`) rendert es ein zweites Mal darunter.
 
-**Nicht einfach löschen:** An diesem Block hängen die aufsteigenden Herzen, der
-Ton-Knopf und der **Video-Spieler**. Wer bezahlt hat, bekommt sein Video dort.
-Richtig ist wahrscheinlich: Der Block rendert nur noch, wenn es ein VIDEO oder
-einen Teaser gibt — beim reinen Bild reicht die Karte. Vorher prüfen, welche
-Zustände sonst noch daran hängen (`frei`, `isStaff`, `videoShow`, `teaser`).
+**Der Owner hat entschieden, wie es aufzulösen ist:**
+
+> „und ich will die Karte am Ende sehen mit Herzchen drauf und Sound und
+> Sharen-Möglichkeit"
+
+Also nicht „den einen oder den anderen zeigen", sondern: **alles wandert in die
+Karte**, und der alte Ergebnis-Bildschirm entfällt ganz. Am Ende steht EIN Ding
+auf der Seite — die Karte — und die trägt:
+
+- das Bild bzw. nach dem Kauf das **Video** (der Spieler muss mit)
+- die aufsteigenden **Herzchen**
+- den **Ton-Knopf** (in der Karte gibt es ihn schon, `EinladungAnsicht`)
+- den **Teilen-Knopf** (`TeilenKnopf` existiert) → führt auf die Seite aus Punkt 2
+
+Das ist auch der Grund, warum Punkt 2 (eigene Seite je Werk) direkt danach kommt:
+Der Teilen-Knopf braucht ein Ziel.
+
+**Beim Umbau aufpassen**, welche Zustände am alten Block hängen: `frei`,
+`isStaff`, `videoShow`, `teaser`, die Unschärfe vor dem Kauf und der
+Video-Spieler. Wer bezahlt hat, muss sein Video sehen — dieser Weg darf unter
+keinen Umständen brechen.
 
 ### b) Der Kuss-Trichter erzeugt gar keinen Kuss
 
