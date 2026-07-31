@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X } from "lucide-react";
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
@@ -11,6 +11,7 @@ import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import TonKnopf from "@/components/TonKnopf";
+import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import { kissText } from "@/lib/kiss-i18n";
 import LightSwitch from "@/components/LightSwitch";
@@ -417,6 +418,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const [paarBusy, setPaarBusy] = useState(false);
   const [paarFehler, setPaarFehler] = useState("");
   const paarRef = useRef<HTMLInputElement>(null);
+  /**
+   * ZUSCHNEIDEN UND SPEICHERN vor dem Hochladen (Hausregel „Foto-Upload", Pflicht 1 und 2).
+   *
+   * Handyfotos sind nie im Format der Kachel; ohne Zuschnitt schneidet `object-cover` blind —
+   * und ausgerechnet den Kopf. Genau daran haengt hier alles: Stimmt das Gesicht nicht, wird
+   * nicht gebucht. Sie sieht den Ausschnitt also VORHER und bestaetigt ihn.
+   */
+  const [cropDatei, setCropDatei] = useState<File | null>(null);
+  const [cropZiel, setCropZiel] = useState<"sie" | "er" | null>(null);
   const [einlAdresse, setEinlAdresse] = useState("");
   const [einlTelefon, setEinlTelefon] = useState("");
   const [einlUrl, setEinlUrl] = useState("");
@@ -776,6 +786,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    * dritten Sonderwegs — sonst haetten wir zwei Arten, wie ein Gesicht in den Trichter kommt,
    * und eine davon wuerde beim naechsten Umbau vergessen.
    */
+  /**
+   * LÖSCHEN — sichtbar, an jeder Kachel (Hausregel „Foto-Upload", Pflicht 3; Owner
+   * 31.07.2026: „ich will das Bild auch löschen können").
+   *
+   * Nimmt den gemerkten Stand mit: Sonst ist das Foto nach einem Neuladen wieder da, und sie
+   * denkt zu Recht, das Löschen sei kaputt.
+   */
+  const fotoLoeschen = (wer: "sie" | "er") => {
+    if (wer === "sie") { setCustomModel(""); setUseCustom(false); }
+    else setPhoto("");
+    const seins = wer === "er" ? "" : photo;
+    const ihres = wer === "sie" ? "" : customModel;
+    if (!seins && !ihres) { try { localStorage.removeItem(FOTO_KEY); } catch { /**/ } }
+    else void fotosMerken(seins, ihres, !!ihres);
+  };
+
   const onPaarFile = async (f?: File | null) => {
     if (!f || paarBusy) return;
     zustimmen();
@@ -1287,7 +1313,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             { wer: "sie", foto: customModel, ref: modelFileRef, titel: T.upTitle, hinweis: T.upHint, platzhalter: V.upPlaceholder },
             { wer: "er", foto: photo, ref: fileRef, titel: T.you, hinweis: T.youHint, platzhalter: PLACEHOLDER_MAN },
           ] as const).map(k => (
-            <button key={k.wer} type="button" onClick={() => k.ref.current?.click()} data-oncard="1"
+            <div key={k.wer} className="relative">
+            <button type="button" onClick={() => k.ref.current?.click()} data-oncard="1"
               className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
               {k.foto ? (<>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1316,15 +1343,45 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                 </span>
               </>)}
             </button>
+            {/* LÖSCHEN — sichtbar an der Kachel, nicht versteckt in einem Menü (Hausregel).
+                Eigener Knopf NEBEN dem Kachelknopf: Ein Knopf im Knopf ist ungültiges HTML und
+                öffnet am Handy zuverlässig das Falsche. */}
+            {k.foto && (
+              <button type="button" onClick={() => fotoLoeschen(k.wer)}
+                aria-label="Foto löschen"
+                style={{ background: "rgba(0,0,0,0.62)", color: "#fff" }}
+                className="absolute left-1.5 top-1.5 z-10 grid h-8 w-8 place-items-center rounded-full backdrop-blur transition active:scale-90">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            </div>
           ))}
-          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
         </div>
       )}
 
       {/* DER KÜRZERE WEG: ein Foto statt zwei. Steht UNTER den beiden Kacheln und nicht
           darüber — wer schon eines hochgeladen hat, soll nicht umdenken müssen; wer noch
           gar nichts hat, findet hier den bequemeren Weg. */}
+      {/* ZUSCHNITT MIT SPEICHERN UND ABBRECHEN — nichts rutscht von allein hinein. */}
+      {cropDatei && cropZiel && (
+        <ImageCropper
+          file={cropDatei}
+          aspect={3 / 4}
+          title={cropZiel === "sie" ? T.upTitle : T.you}
+          onCancel={() => { setCropDatei(null); setCropZiel(null); }}
+          onSave={async (zugeschnitten) => {
+            const ziel = cropZiel;
+            setCropDatei(null); setCropZiel(null);
+            if (ziel === "sie") await onModelFile(zugeschnitten);
+            else await onFile(zugeschnitten);
+          }}
+        />
+      )}
+
       {V.paarUpload && (
         <div className="mt-2">
           <button type="button" onClick={() => paarRef.current?.click()} disabled={paarBusy}
