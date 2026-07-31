@@ -26,6 +26,13 @@ auf der Seite — die Karte — und die trägt:
 - die aufsteigenden **Herzchen**
 - den **Ton-Knopf** (in der Karte gibt es ihn schon, `EinladungAnsicht`)
 - den **Teilen-Knopf** (`TeilenKnopf` existiert) → führt auf die Seite aus Punkt 2
+- darunter **einen** Kaufknopf: „Video generieren — {extra}" (Owner 31.07.2026:
+  „und dann Button Video generieren 2,99"). Die Zahl kommt als Platzhalter aus
+  `lib/pricing`, nie getippt — sonst steht sie beim nächsten Preiswechsel falsch
+  da. Heute stehen an dieser Stelle ZWEI Knöpfe nebeneinander („Heißes Video
+  2,99 €" und „Alles drin — 24,50 €/Monat"); einer davon muss weg oder unter den
+  anderen, sonst ist es wieder die Lage, die der Owner auf der Hochzeitsseite
+  beanstandet hat („mehrere CTAs").
 
 Das ist auch der Grund, warum Punkt 2 (eigene Seite je Werk) direkt danach kommt:
 Der Teilen-Knopf braucht ein Ziel.
