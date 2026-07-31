@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { resolveLang } from "@/lib/lang-server";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -84,7 +85,17 @@ export default async function BeispielEinladung() {
   return (
     <main className="lb-bg lb-theme lb-fb min-h-screen text-white">
       <div className="mx-auto w-full max-w-[440px] px-4 pb-16 pt-6">
-        <div className="mb-4 flex justify-end"><LightSwitch /></div>
+        {/* SICHTBARER RUECKWEG (Owner 31.07.2026, zum dritten Mal an einem Tag: „wie komme
+            ich zurück?"). Auf der ECHTEN Einladung ist die nackte Seite Absicht — sie gehoert
+            dem Brautpaar, nicht uns. Diese Seite hier ist aber Werbung: Wer sie ansieht, soll
+            mit einem Tipp zurueck zum Thema kommen und nicht die Zurueck-Taste suchen. */}
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <Link href="/themes/wedding" aria-label="Zurück"
+            className="lb-chip grid h-9 w-9 place-items-center rounded-full transition active:scale-95">
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+          <LightSwitch />
+        </div>
 
         <EinladungKarte sprache={sprache} sie="Ana" er="Mihai" datum={datum}
           ort={saal} adresse={adresse} telefon="+00 000 000 000" demo
