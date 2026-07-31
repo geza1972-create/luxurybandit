@@ -1,63 +1,80 @@
 "use client";
 
-import { UserRoundCog } from "lucide-react";
-import { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
 
 /**
- * DIE BEISPIELE — eine Reihe, und jedes ist ein Startpunkt.
+ * DIE BEISPIELE — dieselbe Karte, mehrmals untereinander.
  *
- * Owner 31.07.2026: „mach lieber die Galerie nicht in zwei Reihen sondern in einer Reihe, und
- * du machst den Button Replace People auf jedem."
+ * Owner 31.07.2026, in drei Schritten bis hierher: „mach lieber die Galerie nicht in zwei
+ * Reihen sondern in einer Reihe, und du machst den Button Replace People auf jedem" — dann,
+ * nach dem ersten Versuch: „du machst diese Karte mehrmals untereinander und nimmst unsere
+ * Kiss-Videos."
  *
- * Beides zusammen ändert, wozu diese Galerie da ist. Vorher war sie Deko: zwei Reihen kleiner
- * Kacheln, die man ansieht und dann nach unten wegscrollt. Jetzt ist jedes Beispiel ein
- * Angebot — „genau das, aber mit uns beiden". Der Knopf spricht aus, was der Besucher ohnehin
- * denkt, wenn ihm eines gefällt.
+ * Der zweite Vorschlag ist der bessere, und der Grund ist derselbe wie oben auf der Seite:
+ * Eine Kachel in einem Raster ist ein Vorschaubild. Dieselbe Karte mit Ornamenten, in voller
+ * Breite, ist ein ERGEBNIS — sie sieht aus wie das, was er bekommt, weil es dieselbe Datei
+ * ist. Und wer scrollt, sieht viermal dasselbe Versprechen statt einmal acht Briefmarken.
  *
- * EINE REIHE, seitlich zu wischen: In zwei Reihen war jede Kachel halb so breit, und ein
- * Gesicht auf halber Breite verkauft nichts. Nebeneinander ist jede Kachel groß, und Wischen
- * kennt jeder vom Handy. `snap` lässt sie sauber einrasten statt zwischen zwei Videos stehen
- * zu bleiben.
+ * Auf jeder Karte derselbe Knopf: „Personen ersetzen". Damit ist jedes Beispiel ein
+ * Startpunkt und nicht Deko — „genau das, aber mit uns beiden".
  *
- * WARUM EIN EREIGNIS UND KEIN PROP: Die Galerie steht auf der SEITE (Server), der Trichter ist
- * ein eigener Baustein darüber. Sie können sich nicht gegenseitig aufrufen, ohne dass man den
- * halben Zustand durch die Seite reicht. Ein Fenster-Ereignis ist hier das kleinere Übel: eine
- * Zeile hier, eine Zeile dort, und keine Datei weiß mehr über die andere, als sie muss.
+ * WARUM EIN FENSTER-EREIGNIS UND KEIN PROP: Die Karten stehen auf der SEITE (Server), der
+ * Trichter ist ein eigener Baustein darüber. Ein Prop hieße, den halben Trichter-Zustand
+ * durch die Seite zu reichen. So ist es eine Zeile hier, eine dort.
  */
 
 /** Der Name des Ereignisses — auch der Trichter hört genau darauf. */
 export const SCHRITTE_OEFFNEN = "lb-schritte-oeffnen";
 
-export default function BeispielGalerie({ videos, lang = "en" }: { videos: string[]; lang?: string }) {
+export default function BeispielGalerie({ videos, lang = "en", titel = "" }: {
+  videos: string[];
+  lang?: string;
+  /** Überschrift auf jeder Karte — beim Kuss „Der Kuss". Leer nimmt die Vorgabe der Karte. */
+  titel?: string;
+}) {
   const T = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
   if (!videos.length) return null;
 
   const starten = () => {
-    // Erst nach oben — sonst öffnet sich der Dialog, während er unten in der Galerie steht,
-    // und er sieht nicht, was passiert ist.
+    // Erst nach oben — sonst öffnet sich der Dialog, während er unten steht, und er sieht
+    // nicht, was passiert ist.
     try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch { /**/ }
     try { window.dispatchEvent(new CustomEvent(SCHRITTE_OEFFNEN)); } catch { /**/ }
   };
 
   return (
-    <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2">
+    <div className="space-y-5">
       {videos.map((url, i) => (
-        <div key={i} className="relative w-[78%] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video src={url} muted loop playsInline autoPlay preload="metadata"
-            className="aspect-[3/4] w-full object-cover" />
-          {/* Der Knopf liegt AUF dem Video, unten mittig — dort, wo der Daumen ohnehin ist.
-              `lb-onmedia` zwingt ihn auf Weiss: Ohne das faerbt die helle Fassung die Schrift
-              dunkel, und dunkel auf einer dunklen Scheibe ueber einem Foto liest niemand. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-3">
-            <button type="button" onClick={starten}
-              className="lb-onmedia pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[13px] font-black backdrop-blur transition active:scale-95"
-              style={{ background: "rgba(20,15,8,0.66)" }}>
-              <UserRoundCog className="h-4 w-4 shrink-0" />
-              {T.menschenErsetzen}
-            </button>
-          </div>
-        </div>
+        <EinladungKarte
+          key={i} sprache={lang} sie="" er="" demo titel={titel || undefined}
+          video={
+            <div className="relative">
+              <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
+                tonText={T.ton} tonAusText={T.tonAus} />
+              {/* DAS GANZE VIDEO IST DER KNOPF (Owner 31.07.2026: „beim Klick auf Video kommt
+                  direkt Upload"). Wer ein Beispiel ansieht und es antippt, meint genau das —
+                  ihn dann eine kleine Schaltfläche suchen zu lassen, ist eine Hürde ohne
+                  Grund.
+                  Die Fläche beginnt erst unter dem Ton-Knopf (`top-16`), sonst läge sie
+                  darüber und die Musik wäre nicht mehr einzuschalten. Ein <div> und kein
+                  <button>, weil ein Knopf im Knopf kaputtes HTML ist. */}
+              <div role="button" tabIndex={0} onClick={starten}
+                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); starten(); } }}
+                aria-label={T.menschenErsetzen}
+                className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
+                {/* EIN RICHTIGES CTA (Owner 31.07.2026: „richtiges CTA"). Vorher eine dunkle,
+                    halbdurchsichtige Pille — die sah aus wie eine Bildunterschrift und nicht
+                    wie etwas, das man drückt. Jetzt dasselbe Gold wie jeder andere Knopf in
+                    der Karte, volle Breite. */}
+                {/* Derselbe CI-Knopf wie oben: gelb auf dunkel, blau in der Hell-Fassung. */}
+                <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+                  {T.menschenErsetzen}
+                </span>
+              </div>
+            </div>
+          }
+        />
       ))}
     </div>
   );

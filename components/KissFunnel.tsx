@@ -220,6 +220,19 @@ const VARIANTS: Record<FunnelVariant, {
    */
   paarUpload?: boolean;
   /**
+   * NUR DAS EIGENE FOTO, KEIN KATALOG (Owner 31.07.2026: „du machst nur upload your photo,
+   * nicht unsere Models").
+   *
+   * Das kehrt seine eigene Ueberlegung von zwei Minuten vorher um — und zwar richtig: „jeder
+   * hat ein Model auf dem Handy". Wer ohnehin ein Foto der Frau hat, um die es ihm geht, dem
+   * ist eine Reihe fremder Frauen kein Angebot, sondern ein Schritt im Weg. Und wer keines
+   * hat, ist nicht der Kunde dieses Trichters.
+   *
+   * Das Karussell bleibt im Code: Andere Themen leben davon, und die Frauen sind gepflegt.
+   * Hier faellt nur die Auswahl weg — uebrig bleibt die eine Karte, die zaehlt.
+   */
+  nurEigenes?: boolean;
+  /**
    * ABO — pro Thema entschieden.
    *
    * Bei der Hochzeit war es zwischendurch AUS: Der Kuss-Trichter hatte „Die heisseste
@@ -246,6 +259,7 @@ const VARIANTS: Record<FunnelVariant, {
   einzelkauf: boolean;
 }> = {
   kiss: {
+    nurEigenes: true,
     prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
@@ -333,7 +347,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
-  const [useCustom, setUseCustom] = useState(VARIANTS[variant].upFirst); // „Your Model"-Karte vorn
+  const [useCustom, setUseCustom] = useState(VARIANTS[variant].nurEigenes || VARIANTS[variant].upFirst); // „Your Model"-Karte vorn
   const [photo, setPhoto] = useState("");          // eigenes Foto (Data-URL)
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
@@ -860,6 +874,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * ist der Nachweis, wer was erzeugt hat. Hier verschwindet nur, was er sieht: der Zustand
    * und der Browser-Speicher. Danach laeuft in der Karte wieder das Beispielvideo.
    */
+  /**
+   * DER GRIFF AUF DER KARTE (Owner 31.07.2026: „richtiges CTA und beim Klick auf Video kommt
+   * direkt Upload" — „und das genauso", fuer die Karte oben).
+   *
+   * Das ganze Bild ist der Knopf: Wer ein Beispiel ansieht und antippt, meint genau das. Ihn
+   * danach eine kleine Schaltflaeche suchen zu lassen, ist eine Huerde ohne Grund.
+   *
+   * Die Flaeche faengt erst unter dem Ton-Knopf an (`top-16`), sonst laege sie darueber und
+   * die Musik waere nicht mehr einzuschalten. Ein <div> statt <button>, weil ein Knopf im
+   * Knopf kaputtes HTML ist — und darin ein <span> in Gold, damit es aussieht wie jeder
+   * andere Knopf der Karte und nicht wie eine Bildunterschrift.
+   */
+  const kartenGriff = (text: string) => (
+    <div role="button" tabIndex={0} aria-label={text}
+      onClick={() => { setStufenOffen(true); track("photo"); }}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStufenOffen(true); track("photo"); } }}
+      className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
+      {/* CI-KNOPF, NICHT KARTEN-GOLD (Owner 31.07.2026: „du nimmst die falschen Farben für
+          CTA, kein Gold sondern blau bei light und gelb bei dark").
+          `lb-gold` ist genau dieser Knopf: gelb auf dunkel, und die Hell-Fassung faerbt ihn
+          blau. Das Karten-Gold (`lb-karte-cta`) bleibt, wo es hingehoert — auf den kleinen
+          Knoepfen INNERHALB der Einladung. Ein Kaufknopf muss ueberall gleich aussehen,
+          sonst erkennt ihn niemand wieder. */}
+      <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+        {text}
+      </span>
+    </div>
+  );
+
   const ergebnisLoeschen = () => {
     setBild(""); setBildPfad(""); setFrischErzeugt(false); setVideoUrl(""); setTeaser(false);
     try { localStorage.removeItem(MERK_KEY); } catch { /* privater Modus */ }
@@ -1414,14 +1457,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   im Projekt, damit man ihn nicht suchen muss. */}
               <button type="button" onClick={ergebnisLoeschen} aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).loeschen}
                 style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                className="absolute left-2 top-2 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
+                className="absolute left-2 top-2 z-10 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
                 <Trash2 className="h-5 w-5" />
               </button>
+              {kartenGriff((KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
             </div>
           ) : beispielVideo ? (
-            <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
-              tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
-              tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+            <div className="relative">
+              <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
+                tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
+                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+              {kartenGriff((KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
+            </div>
           ) : (
             <div className="grid h-[260px] w-full place-items-center px-6 text-center">
               <span className="font-serif text-[15px] font-bold">{T.pickHint}</span>
@@ -1429,13 +1476,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           )
         }
       />
-      {/* EIN Knopf unter der Karte — er oeffnet die Schritte. Kein zweiter Weg daneben:
-          Genau daran ist die Hochzeitsseite vorher gescheitert („mehrere CTAs"). */}
-      <button type="button" onClick={() => { setStufenOffen(true); track("photo"); }}
-        className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black transition active:scale-95">
-        <Sparkles className="h-4 w-4 shrink-0" />
-        {frischErzeugt && bild ? (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ersetzen : T.ctaFree}
-      </button>
+      {/* Der Knopf unter der Karte ist weg: Er steht jetzt AUF dem Bild, und zwei gleiche
+          Aufforderungen uebereinander sind einer zu viel. */}
 
       {/* ── DIE SCHRITTE, unveraendert, nur in einem Dialog ──────────────────────────────
           Model waehlen (unsere Frauen ODER ein eigenes Foto — Owner 31.07.2026: „hier nehmen
@@ -1458,8 +1500,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </div>
 
       {schritt === 1 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step1}</p>
-      <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>
+      {/* Ohne Katalog heisst der Schritt nicht mehr „Waehle sie" — es gibt nichts zu waehlen.
+          Und der Hinweis „oder wische zu einer von uns" waere schlicht falsch. */}
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.nurEigenes ? T.upTitle : T.step1}</p>
+      {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
+          es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
+      {!V.nurEigenes && <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>}
 
       {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
           bei der Hochzeit sind es IHRE beiden Gesichter, und beide gehoeren auf einen
@@ -1562,16 +1608,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
 
       {!V.paarUpload && (() => {
-        if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
+        // Ohne Katalog gibt es nichts zu laden — sonst dreht sich hier ewig ein Rad.
+        if (!V.nurEigenes && models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
         const YOURMODEL: Model = { id: "__yourmodel", name: T.upTitle, photoUrl: "" };
-        const cards = [...models];
+        const cards = V.nurEigenes ? [] : [...models];
         // IN DIE MITTE, nicht ganz an den Anfang (Owner 30.07.2026: „mach die nicht ganz am
         // Anfang des Karussells sondern die Mitte"). Vorn wirkte die Upload-Karte wie der
         // vorgeschriebene Weg; in der Mitte steht sie gleichberechtigt neben unseren Frauen,
         // und man sieht links wie rechts, dass es Auswahl gibt.
-        const uploadIdx = V.upFirst ? Math.floor(cards.length / 2) : Math.min(2, cards.length);
+        const uploadIdx = V.nurEigenes ? 0 : V.upFirst ? Math.floor(cards.length / 2) : Math.min(2, cards.length);
         cards.splice(uploadIdx, 0, YOURMODEL);
         const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
         // Nach-vorn-holen zentriert NUR (auch die „Your model"-Karte — Owner-Vorgabe);

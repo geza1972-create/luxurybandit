@@ -29,6 +29,23 @@ export const metadata = {
   alternates: { canonical: "/themes/kiss" },
 };
 
+/** Was das Abo beim Kuss wirklich bietet — Zahlen als Platzhalter, nie getippt. */
+const KISS_ABO: Record<string, string> = {
+  de: "{videos} Videos im Monat aus deinen eigenen Fotos, über alle Themen. Jedes weitere {extra}. Chatten bleibt gratis.",
+  en: "{videos} videos a month from your own photos, across all topics. Every further one {extra}. Chatting stays free.",
+  ro: "{videos} videoclipuri pe lună din pozele tale, în toate temele. Fiecare în plus {extra}. Chatul rămâne gratuit.",
+  es: "{videos} vídeos al mes con tus propias fotos, en todos los temas. Cada uno más {extra}. Chatear sigue gratis.",
+  fr: "{videos} vidéos par mois à partir de tes propres photos, sur tous les thèmes. Chaque vidéo en plus {extra}. Le chat reste gratuit.",
+  pt: "{videos} vídeos por mês com as tuas próprias fotos, em todos os temas. Cada um a mais {extra}. Conversar continua grátis.",
+  it: "{videos} video al mese dalle tue foto, in tutti i temi. Ogni altro {extra}. Chattare resta gratis.",
+};
+const KISS_CTA: Record<string, string> = {
+  de: "Freischalten — {price}/Monat", en: "Unlock — {price}/month",
+  ro: "Deblochează — {price}/lună", es: "Desbloquear — {price}/mes",
+  fr: "Débloquer — {price}/mois", pt: "Desbloquear — {price}/mês",
+  it: "Sblocca — {price}/mese",
+};
+
 export default async function KissThemePage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
@@ -44,36 +61,8 @@ export default async function KissThemePage({ searchParams }: {
   const config: KissConfig = await readKissConfig().catch(() => ({ modelIds: [] }));
   const examples: string[] = (await Promise.all((config.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
-  // COVER DER ANDEREN THEMEN (Owner 30.07.2026: „hier gehoeren die Topics mit Bildern rein,
-  // alle"). Dieselbe Quelle wie in der Themenuebersicht: das im Medien-Werkzeug gepflegte
-  // Cover je Thema. Fehlt eines, bleibt die Kachel ohne Bild — besser als ein toter Verweis.
-  const THEMEN = ["tryon", "wetter", "chat", "holiday", "bella", "idol", "birthday", "surprise"] as const;
-  const cover: Record<string, string> = {};
-  await Promise.all(THEMEN.map(async t => {
-    try {
-      const c = await readThemeConfig(t);
-      // Cover, sonst der erste Beispiel-Clip — dieselbe Reihenfolge wie in der Themenuebersicht.
-      const pfad = c.teaserPath || (c.examplePaths ?? [])[0] || "";
-      if (pfad) cover[t] = await getSignedUrl(pfad).catch(() => "");
-    } catch { /* faellt unten auf ein Model-Foto zurueck */ }
-  }));
-
-  /**
-   * RUECKFALL WIE IN DER THEMENUEBERSICHT (Owner 30.07.2026: „warum fehlen da die Videos oder
-   * Bilder? Wir haben sie doch, nimm doch die Originale, es sind doch die von Topics").
-   *
-   * Fuer die meisten Themen ist im Medien-Werkzeug noch kein Cover gepflegt — dort zeigt die
-   * Uebersicht ein Model-Foto aus dem Katalog. Genau das machen wir hier auch, statt eine
-   * leere Kachel mit Emoji zu zeigen.
-   */
-  let fotos: string[] = [];
-  try {
-    const st = await readTryThisLookState();
-    fotos = ((st?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
-      .filter(c => !!c.photoUrl && !c.hidden && c.status !== "removed")
-      .map(c => c.photoUrl as string);
-  } catch { /**/ }
-  THEMEN.forEach((t, i) => { if (!cover[t] && fotos.length) cover[t] = fotos[i % fotos.length]; });
+  /* Die Cover der anderen Themen wurden nur fuer „You might also love" geladen — acht
+     Supabase-Abfragen je Seitenaufruf. Der Block ist raus (siehe unten), also auch das. */
 
   return (
     /* HELLE FASSUNG FÜR DEN ANZEIGEN-VERKEHR (Owner 30.07.2026: „kannst du light design
@@ -109,56 +98,40 @@ export default async function KissThemePage({ searchParams }: {
             <KissFunnel code={code} lang={L} beispielVideo={examples[0] ?? ""} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
-            {examples.length > 0 && (
+            {/* MEHR VON DEMSELBEN, ALS KARTEN (Owner 31.07.2026: „du machst diese Karte
+                mehrmals untereinander und nimmst unsere Kiss-Videos"). Dieselbe Karte wie
+                oben, viermal — jede mit „Personen ersetzen". Wer scrollt, sieht viermal das
+                Ergebnis, das er haben kann, statt acht Briefmarken. */}
+            {examples.length > 1 && (
               <div className="mt-12">
                 <SectionTitle>{T.examples}</SectionTitle>
-                <BeispielGalerie videos={examples} lang={L} />
+                <div className="mt-3">
+                  <BeispielGalerie videos={examples.slice(1)} lang={L}
+                    titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")} />
+                </div>
               </div>
             )}
 
-            <SubscribeCta code={code} lang={L} />
+            {/* EIGENER WORTLAUT, WEIL DER ALTE NICHT MEHR STIMMT (Owner 31.07.2026: „das
+                passt nicht").
+                Dort stand „Videos mit ihr — und du mit im Bild". Es gibt keine „ihr" mehr:
+                Seit heute nimmt dieser Trichter nur noch SEINE eigenen Fotos („du machst nur
+                upload your photo, nicht unsere Models"). Der Satz warb also fuer einen
+                Katalog, den es auf dieser Seite nicht mehr gibt.
+                Und „die heisseste KI-Erfahrung" ist eine Behauptung — die Zahl daneben ist
+                ein Angebot. Zahlen kommen aus lib/pricing, nie von Hand. */}
+            <SubscribeCta code={code} lang={L}
+              text={KISS_ABO[L] ?? KISS_ABO.en}
+              cta={KISS_CTA[L] ?? KISS_CTA.en} />
 
-            {/* CROSS-SELLING MIT BILDERN, ALLE THEMEN (Owner 30.07.2026: „hier gehoeren die
-                Topics mit Bildern rein, alle"). Zwei Textkacheln verkaufen nichts — auf
-                dieser Seite hat er gerade ein Bild von sich gesehen, also zeigen wir auch
-                hier, was ihn erwartet. Cover kommen aus denselben Vorgaben wie in der
-                Themenuebersicht; fehlt eines, traegt das Emoji die Kachel. */}
-            <div className="mt-12">
-              <SectionTitle>You might also love</SectionTitle>
-              <div className="mt-3 grid grid-cols-2 gap-2.5">
-                {[
-                  { href: "/themes/tryon", t: "Try-On", d: "See any look on your dream model — in a video.", e: "✨", img: cover["tryon"] ?? "" },
-                  { href: "/themes/wetter/bella", t: "Morning Weather", d: "Wake up to her message — your weather, a new look, a chat.", e: "☀️", img: cover["wetter"] ?? "" },
-                  { href: "/themes/chat", t: "Chat with an AI girl", d: "Text her whenever you want — she answers in your language.", e: "💬", img: cover["chat"] ?? "" },
-                  { href: "/themes/holiday", t: "Holiday with her", d: "You and her: beach, kiss, coffee, dancing.", e: "🌴", img: cover["holiday"] ?? "" },
-                  { href: "/themes/bella", t: "Tenerife with Bella", d: "Not her holiday — yours, with you in the picture.", e: "🏝", img: cover["bella"] ?? "" },
-                  { href: "/your-idol", t: "Your idol with you", d: "The two of you together, in one video.", e: "⭐", img: cover["idol"] ?? "" },
-                  { href: "/themes/birthday", t: "Birthday video", d: "She says the name — a video made for one person.", e: "🎂", img: cover["birthday"] ?? "" },
-                  { href: "/themes/surprise", t: "Surprise him", d: "Your photo → a private video only he can open.", e: "🎁", img: cover["surprise"] ?? "" },
-                ].map(x => (
-                  <Link key={x.href} href={x.href}
-                    className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition">
-                    {/* 9:16 statt 4:3 (Owner 30.07.2026: „die Kacheln sind zu klein, 9:16").
-                        Hochkant zeigt vom Motiv, worauf es ankommt — die Frau, nicht den
-                        Himmel darueber — und ist dasselbe Format wie die Videos selbst. */}
-                    <span className="relative block aspect-[9/16] w-full overflow-hidden bg-white/[0.05]">
-                      {!x.img
-                        ? <span className="grid h-full w-full place-items-center text-[30px]">{x.e}</span>
-                        : /\.(mp4|webm|mov)(\?|$)/i.test(x.img)
-                          // eslint-disable-next-line jsx-a11y/media-has-caption
-                          ? <video src={x.img} muted loop playsInline autoPlay preload="metadata" className="h-full w-full object-cover object-top" />
-                          // eslint-disable-next-line @next/next/no-img-element
-                          : <img src={x.img} alt="" loading="lazy" className="h-full w-full object-cover object-top" />}
-                      <span className="absolute left-1.5 top-1.5 text-[18px] drop-shadow">{x.e}</span>
-                    </span>
-                    <span className="block p-3">
-                      <span className="block text-[13.5px] font-black">{x.t}</span>
-                      <span className="mt-0.5 block text-[11px] font-bold leading-snug text-white/60">{x.d}</span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
+            {/* „YOU MIGHT ALSO LOVE" IST RAUS (Owner 31.07.2026: „das machst du eh falsch,
+                falsche Bilder").
+                Er hat recht, und der Fehler stand im Code: Fuer Themen ohne eigenes Cover
+                nahm die Kachel EIN BELIEBIGES Kuratorinnen-Foto (`fotos[i % fotos.length]`).
+                Damit warb „Birthday video" mit einer fremden Frau, die nichts mit
+                Geburtstagen zu tun hat — acht Kacheln, die etwas anderes versprechen als
+                das, was dahinter liegt. Ein zufaelliges Bild ist schlimmer als gar keines.
+                An dieser Stelle stehen jetzt unsere eigenen Kuss-Videos als Karten. */}
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
                 <SectionTitle>Kiss video AI generator — online, no app</SectionTitle>
