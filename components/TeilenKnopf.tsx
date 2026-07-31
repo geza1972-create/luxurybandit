@@ -41,7 +41,7 @@ export default function TeilenKnopf({
 
   return (
     <button type="button" onClick={() => void teilen()}
-      className={`lb-karte-wa flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 ${className}`}>
+      className={`lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 ${className}`}>
       {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
       {kopiert ? kopiertLabel : label}
     </button>

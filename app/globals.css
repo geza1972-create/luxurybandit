@@ -497,10 +497,27 @@ svg {
    sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
 .lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
 .lb-karte [data-aufmedien="1"] svg { color: #fff !important; stroke: #fff !important; fill: #fff !important; opacity: 1; }
-/* Der Zusage-Knopf in der Einladungskarte: gruen wie WhatsApp, damit man ihn ohne Text
-   erkennt — und mit eigener Schriftfarbe, weil die Karte sonst alles auf Braun stellt. */
-.lb-karte .lb-karte-wa { background: #25D366 !important; }
-.lb-karte .lb-karte-wa, .lb-karte .lb-karte-wa * { color: #0b3d20 !important; }
+/* DER KNOPF IN DER KARTE — GOLD, NICHT GRUEN (Owner 31.07.2026: „grüne Buttons bitte nicht,
+   bleib in CI").
+   Er war WhatsApp-Gruen (#25D366), weil hier einmal ein WhatsApp-Knopf stand. Der ist seit
+   heute weg („das mit WhatsApp bitte entfernen, wir machen nur share") — die Farbe war
+   uebriggeblieben und stand danach auf Speichern, Erzeugen und Verschicken. Gruen gehoert
+   nicht zu uns: Das CI ist Gold auf Dunkel und Blau in der hellen Fassung.
+   Gold ist hier die richtige Wahl und nicht Blau, weil der Knopf INNERHALB der elfenbeinfarbenen
+   Karte sitzt — dieselbe Farbe wie ihre Ornamente. Blau haette ein Stueck Website in eine
+   gedruckte Einladung gesetzt. Deshalb faellt die Karte auch nicht unter die Blau-Regel der
+   hellen Fassung (siehe `.lb-fb`): Sie ist Papier, keine Seite.
+   Die Klasse hiess `lb-karte-wa`; der tote Name haette die Farbe irgendwann zurueckgeholt.
+
+   Ohne `.lb-karte`-Vorsatz, weil der Verschicken-Knopf auf der Beispiel-Einladung UNTER den
+   Karten steht, nicht in einer. Vorher griff die Regel dort nicht und er war durchsichtig —
+   ein unsichtbarer Knopf auf genau der Seite, deren einziger Zweck das Verschicken ist. */
+.lb-karte-cta {
+  background: linear-gradient(160deg, #d9ab4e 0%, #c08f2e 45%, #a07a34 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(160, 122, 52, 0.28);
+}
+.lb-karte-cta, .lb-karte-cta * { color: #fffaf0 !important; }
+.lb-karte-cta svg { color: #fffaf0 !important; stroke: #fffaf0 !important; opacity: 1; }
 /* Zusagen-Karte: Haken gruen, Absage-Kreuz gedeckt, Eingabefeld wie eine Linie auf Papier.
    Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
 .lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }
@@ -515,7 +532,7 @@ svg {
   background: transparent !important;
   border: 1px solid rgba(42, 35, 28, 0.3) !important;
 }
-.lb-karte .lb-karte-wa svg, .lb-karte .lb-karte-absage svg { opacity: 1; }
+.lb-karte .lb-karte-cta svg, .lb-karte .lb-karte-absage svg { opacity: 1; }
 /* Neuigkeiten des Paares: eigener, leicht getönter Rahmen — was das Paar schreibt, gilt, und
    soll sich vom Geplauder der Gäste abheben, ohne aus der Karte zu fallen. */
 .lb-karte .lb-karte-news {

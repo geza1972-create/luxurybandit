@@ -149,7 +149,7 @@ export default function GruppenChat({
                 className="lb-karte-feld h-11 min-w-0 flex-1 rounded-lg px-3 font-serif text-[15px] outline-none" />
               <button type="button" onClick={() => void senden()} disabled={!name.trim() || !text.trim() || busy}
                 aria-label={T.chatSenden}
-                className="lb-karte-wa grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-45">
+                className="lb-karte-cta grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-45">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>

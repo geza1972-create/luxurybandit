@@ -119,15 +119,21 @@ export default function EinladungBauen({ lang }: { lang: string }) {
       className="lb-karte-feld h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none" />
   );
 
-  /** Ein Dialog, überall gleich: Titel, Felder, Fertig. Kein zweites Bedienmuster. */
-  const dialog = (titel: string, inhalt: React.ReactNode, fertigAus = false) => (
+  /**
+   * Ein Dialog, überall gleich: Titel, Felder, Fertig. Kein zweites Bedienmuster.
+   *
+   * `zweitrangig` macht den Fertig-Knopf zum Umriss. Im Foto-Dialog steht schon „Bild erzeugen"
+   * — zwei gleich starke Goldknöpfe übereinander lassen den Benutzer raten, welcher der Weg
+   * nach vorn ist. Pro Dialog genau ein gefüllter Knopf.
+   */
+  const dialog = (titel: string, inhalt: React.ReactNode, fertigAus = false, zweitrangig = false) => (
     <div className="fixed inset-0 z-[80] grid place-items-end sm:place-items-center" style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={() => setFeld(null)}>
       <div className="lb-karte w-full max-w-[440px] rounded-t-[22px] p-5 sm:rounded-[22px]" onClick={e => e.stopPropagation()}>
         <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.28em]">{titel}</p>
         <div className="mt-3 space-y-2">{inhalt}</div>
         <button type="button" onClick={() => setFeld(null)} disabled={fertigAus}
-          className="lb-karte-wa mt-4 flex h-11 w-full items-center justify-center rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">
+          className={`${zweitrangig ? "lb-karte-absage" : "lb-karte-cta"} mt-4 flex h-11 w-full items-center justify-center rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45`}>
           {T.speichern}
         </button>
       </div>
@@ -149,8 +155,15 @@ export default function EinladungBauen({ lang }: { lang: string }) {
         aufDatum={() => setFeld("wann")}
         aufOrt={() => setFeld("wo")}
         video={
+          /* LEER FLACHER ALS VOLL. Ein leeres Feld im echten Bildformat (3:4) ist auf einem
+             Handy fast fuenfhundert Punkte hoch — dann stehen „Wann", „Wo" und der
+             Verschicken-Knopf unter dem Bildschirmrand, und die Karte, die alles auf einmal
+             zeigen soll, zeigt zwei Zeilen und ein graues Rechteck. Leer also 260 Punkte: immer
+             noch das groesste Feld der Karte und damit klar das erste, was man antippt. Sobald
+             das Bild da ist, springt es auf 3:4 — ab dann ist es die echte Einladung, und die
+             darf nicht anders aussehen als die, die der Gast bekommt. */
           <button type="button" onClick={() => setFeld("fotos")}
-            className="relative grid aspect-[3/4] w-full place-items-center overflow-hidden">
+            className={`relative grid w-full place-items-center overflow-hidden ${bild ? "aspect-[3/4]" : "h-[260px]"}`}>
             {bild ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={bild} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -179,7 +192,7 @@ export default function EinladungBauen({ lang }: { lang: string }) {
       )}
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/75">{status}</p>}
 
-      {feld === "namen" && dialog(T.zusTitel, (<>
+      {feld === "namen" && dialog(T.namen, (<>
         {eingabe(sie, setSie, T.fSie)}
         {eingabe(er, setEr, T.fEr)}
       </>))}
@@ -192,9 +205,14 @@ export default function EinladungBauen({ lang }: { lang: string }) {
         {eingabe(telefon, setTelefon, T.fTelefon, "tel")}
       </>))}
 
-      {feld === "fotos" && dialog(F.step1, (<>
+      {/* „Eure Fotos", nicht „1 · Die Braut": Die Schrittnummern gehoerten zum Trichter, den es
+          nicht mehr gibt. Eine Nummer ohne Schritte davor und danach verwirrt nur. */}
+      {feld === "fotos" && dialog(T.fotos, (<>
         <div className="grid grid-cols-2 gap-2">
-          {([["sie", ihrFoto, ihrRef, F.upTitle], ["er", seinFoto, seinRef, F.you]] as const).map(([wer, foto, ref, titel]) => (
+          {/* „Du, die Braut" und „Er, der Bräutigam" — ein Paar Beschriftungen, nicht eine
+              Zeile und ein Abzeichen. `F.you` heisst schlicht „ER"; das war im alten Trichter
+              ein Chip auf dem Bild und liest sich neben „Du, die Braut" wie ein Fehler. */}
+          {([["sie", ihrFoto, ihrRef, F.upTitle], ["er", seinFoto, seinRef, T.fotoEr]] as const).map(([wer, foto, ref, titel]) => (
             <div key={wer} className="relative">
               <button type="button" onClick={() => ref.current?.click()}
                 className="lb-tippbar grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
@@ -220,7 +238,7 @@ export default function EinladungBauen({ lang }: { lang: string }) {
             unsere Kosten fuer jemanden, der nie erreichbar ist. */}
         {eingabe(mail, setMail, F.mailQuestion, "email")}
         <button type="button" onClick={() => void erzeugen()} disabled={!ihrFoto || !seinFoto || !mailOk || busy}
-          className="lb-karte-wa flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-45">
+          className="lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-45">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {F.ctaFree}
         </button>
@@ -229,7 +247,7 @@ export default function EinladungBauen({ lang }: { lang: string }) {
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
         <input ref={seinRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
-      </>), busy)}
+      </>), busy, true)}
 
       {cropDatei && cropZiel && (
         <ImageCropper file={cropDatei} aspect={3 / 4}

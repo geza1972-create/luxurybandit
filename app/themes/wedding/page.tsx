@@ -188,17 +188,24 @@ export default async function WeddingThemePage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+            {/* DIE KARTE STEHT GANZ OBEN (Owner 31.07.2026: „er sieht die Landingpage direkt
+                auf dieser Seite und drückt auf das Bild und öffnet sich ein Dialog … Alle
+                Texte dann unter der Karte").
+
+                Der vierstufige Trichter davor ist weg, und die Überschrift ist unter die
+                Karte gerutscht. Grund ist nicht Geschmack, sondern die Reihenfolge des
+                Verstehens: Die Karte sagt in einer halben Sekunde, was hier entsteht — ein
+                Absatz braucht dafür zehn Sekunden Lesen, und die gibt uns kaum jemand. Wer
+                die Karte sieht, füllt sie aus wie ein Formular, das er schon kennt.
+
+                Für Google ändert sich nichts: Die H1 steht weiter im Quelltext, nur weiter
+                unten. Die Suchmaschine liest die Seite, sie scrollt nicht. */}
+            <EinladungBauen lang={L} />
+
+            <H1 className="mt-10">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             {/* EIN Satz, mehr nicht (Owner 31.07.2026). Die Überschrift sagt „Einladung",
                 der erste Schritt fragt nach zwei Fotos — dazwischen fehlte die Erklärung. */}
             {T.heroLead && <Lead className="mt-2">{T.heroLead}</Lead>}
-
-            {/* Derselbe Trichter wie beim Kuss, andere Variante. */}
-            {/* DIE KARTE IST DIE SEITE (Owner 31.07.2026: „er sieht die Landingpage direkt
-                auf dieser Seite und drückt auf das Bild und öffnet sich ein Dialog … dann hat
-                er's zum Sharen direkt"). Der vierstufige Trichter davor ist weg: Wer zuerst
-                die fertige Karte sieht, weiss sofort, was er baut. */}
-            <EinladungBauen lang={L} />
 
             {/* GROSS UND MIT TON (Owner 30.07.2026: „bitte mit vergroessern und song").
                 Eine Reihe statt zweier Spalten: Ein Hochzeitskuss auf halber Breite ist eine

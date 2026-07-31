@@ -90,7 +90,7 @@ export default function EinladungBearbeiten({
               {T.abbrechen}
             </button>
             <button type="button" onClick={() => void speichern()} disabled={busy || !f.sie.trim() || !f.er.trim()}
-              className="lb-karte-wa flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">
+              className="lb-karte-cta flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {T.speichern}
             </button>
