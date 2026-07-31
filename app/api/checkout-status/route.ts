@@ -6,14 +6,48 @@ import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * DIE TESTKLAPPE FÜR DEN KAUFWEG — nur auf dem Entwicklungsrechner.
+ *
+ * Warum es sie gibt (Owner 31.07.2026): Der Stripe-Schluessel dieses Projekts ist der
+ * LIVE-Schluessel. Der Weg „bezahlt → Video kommt" liess sich deshalb nie pruefen, ohne
+ * echtes Geld auszugeben — und genau darum brach er am 31.07.2026 unbemerkt: Nach der
+ * Zahlung passierte nichts, „also Kunde wurde ausgeraubt. Das ist fatal."
+ *
+ * Ein Weg, den man nicht pruefen kann, bricht irgendwann. Und er bricht an der teuersten
+ * Stelle, die es gibt — nach der Zahlung.
+ *
+ * DREI SCHLOESSER, und alle drei muessen offen sein:
+ *   1. `LB_TEST_CHECKOUT` muss gesetzt sein. Diese Variable existiert auf Vercel NICHT und
+ *      gehoert dort auch nie hinein — sie steht nur in der lokalen `.env.local`.
+ *   2. `NODE_ENV` darf nicht `production` sein. Selbst wenn jemand die Variable versehentlich
+ *      in die Produktion traegt, passiert nichts.
+ *   3. Die Sitzungsnummer muss mit `TEST-` beginnen. Eine echte Stripe-Nummer beginnt mit
+ *      `cs_`; eine echte Zahlung kann also nie in diesen Zweig geraten.
+ *
+ * Was hier zurueckkommt, ist genau das, was der Browser nach einer echten Zahlung sieht —
+ * mehr nicht. Es wird nichts gutgeschrieben und nichts geliefert; geprueft wird der WEG,
+ * nicht die Buchhaltung.
+ */
+const testKlappeOffen = (sessionId: string) =>
+  !!process.env.LB_TEST_CHECKOUT
+  && process.env.NODE_ENV !== "production"
+  && sessionId.startsWith("TEST-");
+
 // Called when the customer returns from Stripe Checkout. Confirms the session was
 // actually paid before the client unlocks the paid try-on tier.
 export async function GET(request: Request) {
+  const sessionId = new URL(request.url).searchParams.get("session_id")?.trim();
+  if (!sessionId) return NextResponse.json({ error: "session_id required." }, { status: 400 });
+
+  if (testKlappeOffen(sessionId)) {
+    console.warn("[checkout-status] TESTKLAPPE — vorgetaeuschte Zahlung, nur lokal:", sessionId);
+    return NextResponse.json({ paid: true, status: "complete", tier: "", lookId: "", kind: "kiss-video", test: true });
+  }
+
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments not configured." }, { status: 503 });
   }
-  const sessionId = new URL(request.url).searchParams.get("session_id")?.trim();
-  if (!sessionId) return NextResponse.json({ error: "session_id required." }, { status: 400 });
 
   try {
     const s = await getCheckoutSession(sessionId);

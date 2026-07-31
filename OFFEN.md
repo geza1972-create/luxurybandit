@@ -35,10 +35,22 @@ der Radar laeuft in der Zahl-/Render-Anzeige mit.
 **Offen aus dem Abend:**
 - Owner gefragt, ob ein dritter Parallel-Arm (zweiter Fast-Kuss-Wurf, ~80 % Kuss-Quote,
   ~0,4 Bilder je Lauf teurer) gewuenscht ist — Antwort steht aus.
-- **Dev-Testklappe fuer den Kaufweg.** Der Stripe-Schluessel ist der LIVE-Schluessel, also
-  kann dieser Weg nicht ohne echtes Geld geprueft werden — genau deshalb ist er heute
-  unbemerkt gebrochen. Eine dev-only Klappe (checkout-status liefert `paid`, wenn eine
-  Umgebungsvariable gesetzt ist, die auf Vercel NICHT existiert) macht ihn pruefbar.
+**Dev-Testklappe fuer den Kaufweg — GEBAUT und benutzt.**
+
+`app/api/checkout-status/route.ts`: liefert `paid: true` nur, wenn ALLE drei Schloesser offen
+sind — `LB_TEST_CHECKOUT` gesetzt (steht in `.env.local`, das per `.gitignore` nie mitgeht und
+auf Vercel nicht existiert), `NODE_ENV !== "production"`, und die Sitzungsnummer beginnt mit
+`TEST-` (echte Stripe-Nummern beginnen mit `cs_`). Alle drei am 31.07.2026 einzeln geprueft.
+
+So testet man den Kaufweg in dreissig Sekunden:
+
+1. Fotos in den Speicher legen (oder einmal normal bis Schritt 3 durchklicken)
+2. `http://localhost:PORT/themes/kiss?paid=1&cs=TEST-kaufweg` aufrufen
+3. Erwartung: KEIN Kaufknopf, der Auftrag laeuft von selbst, Radar laeuft, am Ende das Video
+
+**ACHTUNG, kostet trotzdem:** Die Klappe taeuscht die ZAHLUNG vor, nicht die ERZEUGUNG. Ein
+echter Pixverse-Lauf (~1 €) geht dabei los. Also sparsam benutzen — und wer nur die Anzeige
+pruefen will, faengt `/api/generate-tryon-video` im Browser ab (window.fetch ueberschreiben).
 
 ---
 
