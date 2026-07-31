@@ -318,6 +318,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * mit beiden weiter — wer bezahlt hat, soll sein Ergebnis nicht verlieren.
    */
   const [frischErzeugt, setFrischErzeugt] = useState(false);
+
+  /**
+   * „PERSONEN ERSETZEN" AUS DER GALERIE (Owner 31.07.2026). Jedes Beispiel unten traegt einen
+   * Knopf; er scrollt nach oben und oeffnet hier die Schritte. Ueber ein Fenster-Ereignis,
+   * weil Galerie und Trichter zwei getrennte Bausteine auf derselben Seite sind — sonst
+   * muesste der halbe Zustand durch die Seite gereicht werden.
+   */
+  useEffect(() => {
+    const auf = () => setStufenOffen(true);
+    window.addEventListener("lb-schritte-oeffnen", auf);
+    return () => window.removeEventListener("lb-schritte-oeffnen", auf);
+  }, []);
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)

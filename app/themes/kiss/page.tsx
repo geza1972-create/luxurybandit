@@ -5,6 +5,7 @@ import { resolveLang } from "@/lib/lang-server";
 import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
+import BeispielGalerie from "@/components/BeispielGalerie";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -111,14 +112,7 @@ export default async function KissThemePage({ searchParams }: {
             {examples.length > 0 && (
               <div className="mt-12">
                 <SectionTitle>{T.examples}</SectionTitle>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {examples.map((url, i) => (
-                    <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
-                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                      <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+                <BeispielGalerie videos={examples} lang={L} />
               </div>
             )}
 
