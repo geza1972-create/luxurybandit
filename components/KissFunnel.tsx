@@ -427,6 +427,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    */
   const [cropDatei, setCropDatei] = useState<File | null>(null);
   const [cropZiel, setCropZiel] = useState<"sie" | "er" | null>(null);
+  /**
+   * PAARFOTO: DIESELBE DATEI ZWEIMAL DURCH DEN ZUSCHNITT — sie schneidet erst ihr Gesicht
+   * heraus, dann seins.
+   *
+   * Der erste Versuch liess einen Vision-Aufruf die zwei Koepfe finden. Das ist gescheitert,
+   * und zwar nicht knapp: gpt-4o-mini gab fuer dasselbe Foto 0,55/0,35/0,25/0,25 zurueck —
+   * glatte Zahlen, also geraten statt gemessen. Ergebnis waren zwei Ausschnitte mit BEIDEN
+   * Gesichtern darin, und eine Referenz mit zwei Gesichtern ist schlimmer als gar keine:
+   * Pixverse bindet dann das falsche.
+   *
+   * Der Mensch vor dem Bildschirm weiss dagegen sofort, wer wer ist. Zweimal schieben und
+   * zoomen dauert Sekunden, kostet nichts, kann nicht fehlschlagen — und der Gewinn bleibt:
+   * Sie braucht nur EIN Foto statt zwei.
+   */
+  const [paarQuelle, setPaarQuelle] = useState<File | null>(null);
   const [einlAdresse, setEinlAdresse] = useState("");
   const [einlTelefon, setEinlTelefon] = useState("");
   const [einlUrl, setEinlUrl] = useState("");
@@ -802,37 +817,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     else void fotosMerken(seins, ihres, !!ihres);
   };
 
-  const onPaarFile = async (f?: File | null) => {
-    if (!f || paarBusy) return;
+  const onPaarFile = (f?: File | null) => {
+    if (!f) return;
     zustimmen();
-    setPaarFehler(""); setPaarBusy(true);
-    try {
-      const dataUrl = await fileToDataUrl(f);
-      const r = await fetch("/api/paar-teilen", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl }),
-      }).then(x => x.json()).catch(() => null);
-      if (!r?.ok || !r.sie || !r.er) {
-        // „technik" = bei UNS klemmt etwas (Ratenlimit, Ausfall). Dann darf dort nicht stehen,
-        // ihr Foto sei schuld — sie wuerde sonst vergeblich andere Fotos ausprobieren.
-        setPaarFehler(r?.error === "technik" ? T.paarStoerung : T.paarFehler);
-        setPaarBusy(false); return;
-      }
-      setCustomModel(r.sie); setUseCustom(true);
-      setPhoto(r.er);
-      track("paar_foto");
-      let device = "";
-      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
-      const log = await fetch("/api/kiss-log", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: genId
-          ? JSON.stringify({ update: genId, theme: variant, modelImage: r.sie, personImage: r.er, modelId: "custom", modelName: T.upTitle })
-          : JSON.stringify({ theme: variant, modelId: "custom", modelName: T.upTitle, device, modelImage: r.sie, personImage: r.er }),
-      }).then(x => x.json()).catch(() => null);
-      if (!genId && log?.id) genMerken(log.id);
-      void fotosMerken(r.er, r.sie, true);
-    } catch { setPaarFehler(T.paarFehler); }
-    setPaarBusy(false);
+    setPaarFehler("");
+    setPaarQuelle(f);          // fuer den zweiten Durchgang aufheben
+    setCropZiel("sie");
+    setCropDatei(f);
   };
 
   // WEN ER GEWÄHLT HAT, an den Eintrag hängen — auch wenn er nach dem Hochladen noch einmal
@@ -1371,30 +1362,36 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         <ImageCropper
           file={cropDatei}
           aspect={3 / 4}
-          title={cropZiel === "sie" ? T.upTitle : T.you}
-          onCancel={() => { setCropDatei(null); setCropZiel(null); }}
+          title={paarQuelle
+            ? (cropZiel === "sie" ? T.paarSchritt1 : T.paarSchritt2)
+            : (cropZiel === "sie" ? T.upTitle : T.you)}
+          onCancel={() => { setCropDatei(null); setCropZiel(null); setPaarQuelle(null); }}
           onSave={async (zugeschnitten) => {
             const ziel = cropZiel;
+            const quelle = paarQuelle;
             setCropDatei(null); setCropZiel(null);
             if (ziel === "sie") await onModelFile(zugeschnitten);
             else await onFile(zugeschnitten);
+            // Beim Paarfoto direkt weiter zum zweiten Gesicht — dieselbe Datei, anderes Ziel.
+            if (quelle && ziel === "sie") { setCropZiel("er"); setCropDatei(quelle); }
+            else setPaarQuelle(null);
           }}
         />
       )}
 
       {V.paarUpload && (
         <div className="mt-2">
-          <button type="button" onClick={() => paarRef.current?.click()} disabled={paarBusy}
+          <button type="button" onClick={() => paarRef.current?.click()}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/25 px-3 py-2.5 text-[12px] font-black text-white/80 transition active:scale-[0.99] disabled:opacity-60">
-            {paarBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
-            {paarBusy ? T.paarBusy : T.paarTitel}
+            <ImageUp className="h-4 w-4" />
+            {T.paarTitel}
           </button>
           <p className="mt-1 text-center text-[10.5px] font-bold text-white/50">{T.paarHint}</p>
           {paarFehler && (
             <p className="mt-1 text-center text-[11px] font-bold leading-snug text-white/80">{paarFehler}</p>
           )}
           <input ref={paarRef} type="file" accept="image/*,.heic,.heif" className="hidden"
-            onChange={e => void onPaarFile(e.target.files?.[0])} />
+            onChange={e => { onPaarFile(e.target.files?.[0]); e.target.value = ""; }} />
         </div>
       )}
 
