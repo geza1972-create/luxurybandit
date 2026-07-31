@@ -4,6 +4,42 @@ Reihenfolge = Empfehlung. Alles darüber ist erledigt und auf `main`.
 
 ---
 
+## 0 · ZWEI FEHLER, ZUERST (beide vom Owner gesehen, beide noch offen)
+
+### a) Das Ergebnis steht zweimal auf der Seite
+
+> „und hier kommt zwei mal das Bild"
+
+Seit dem Umbau trägt die **Karte oben** das Ergebnis. Der alte Ergebnis-Bildschirm
+(`components/KissFunnel.tsx:2248`) rendert es ein zweites Mal darunter.
+
+**Nicht einfach löschen:** An diesem Block hängen die aufsteigenden Herzen, der
+Ton-Knopf und der **Video-Spieler**. Wer bezahlt hat, bekommt sein Video dort.
+Richtig ist wahrscheinlich: Der Block rendert nur noch, wenn es ein VIDEO oder
+einen Teaser gibt — beim reinen Bild reicht die Karte. Vorher prüfen, welche
+Zustände sonst noch daran hängen (`frei`, `isStaff`, `videoShow`, `teaser`).
+
+### b) Der Kuss-Trichter erzeugt gar keinen Kuss
+
+> „das Bild ohne Kuss"
+
+Der Grund steht in `app/api/free-preview/route.ts`: Kiss benutzt den **generischen**
+Auftragszweig, und der sagt wörtlich
+
+> „showing BOTH people together at a beautiful holiday destination …
+> **embracing each other and smiling**"
+
+Kein Kuss — das ist der Auftrag für **Holiday**. Kiss und Holiday teilen sich
+denselben Zweig. Die Hochzeit hat einen eigenen (dort steht ausdrücklich, dass
+sie sich NICHT küssen sollen). Kiss braucht ebenso einen eigenen: küssend,
+Gesichter berühren sich, sonst dieselben Regeln (`IDENTITAET_RULE`, `alterSatz`,
+`COVERAGE_RULE`).
+
+Das ist kein Schönheitsfehler — das Produkt heißt „Küsse jede Frau" und liefert
+eine Umarmung.
+
+---
+
 ## 1 · Guthaben statt Einzelkauf (die Idee des Owners)
 
 > „bei anderen schreiben sie 2,99 aber sie müssen mindestens das Konto mit 9,99

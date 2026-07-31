@@ -404,6 +404,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // besser was passiert"). Vorher lief das Rendern unter den Schritten weiter — man sah
   // nicht, dass überhaupt etwas passiert.
   const [schritt, setSchritt] = useState<1 | 2 | 3 | 4>(1);
+
+  /**
+   * SCHRITT 4 GEHOERT NICHT MEHR IN DEN DIALOG (Owner 31.07.2026: „hier kommt nichts" — ein
+   * leeres Fenster mit der Ueberschrift „4 · Dein Bild").
+   *
+   * Er hat recht, und es ist eine Folge des Umbaus: Schritt 4 WAR der Ergebnis-Bildschirm.
+   * Seit die Karte oben das Ergebnis traegt, ist im Dialog nichts mehr uebrig — die
+   * Ueberschrift stand allein da.
+   *
+   * Statt die Ueberschrift zu verstecken, schliesst der Dialog. Das ist die ehrlichere
+   * Antwort: Wer bei Schritt 4 ist, hat sein Bild — und das steht dahinter. Hier zaehlt jeder
+   * Weg dorthin, nicht nur die frische Erzeugung: auch das bezahlte Video, der
+   * wiederhergestellte Stand und der Sprung aus der Galerie.
+   */
+  useEffect(() => {
+    if (schritt >= 4) setStufenOffen(false);
+  }, [schritt]);
+
   // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
   // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
   // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
