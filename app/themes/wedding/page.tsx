@@ -8,6 +8,7 @@ import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
+import EinladungenAdmin from "@/components/EinladungenAdmin";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
@@ -124,6 +125,9 @@ export default async function WeddingThemePage({ searchParams }: {
                     />
                   ),
                 },
+                // DIE EINLADUNGEN mit ihren Oeffnungen — die eine Zahl, an der sich
+                // entscheidet, ob aus dem Video ein Kanal wird (Konzept, Tor 2).
+                { key: "einladungen", label: "💌 Einladungen", node: <EinladungenAdmin /> },
                 { key: "videos", label: "▶ Videos", node: <KissUsersAdmin theme="wedding" /> },
               ]}
             />

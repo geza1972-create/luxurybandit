@@ -86,8 +86,27 @@ export async function POST(request: Request) {
     device: sauber(body.device, 80) || undefined,
     opens: 0,
   };
-  const alle = await readEinladungen();
-  await writeEinladungen([eintrag, ...alle]);
+  /**
+   * SCHREIBEN UND NACHSEHEN, OB ES ANKAM.
+   *
+   * Die Liste liegt in EINER Datei: Zwei Einladungen in derselben Sekunde lesen beide den
+   * alten Stand, beide schreiben — und die zweite loescht die erste. Beim Test am 31.07.2026
+   * ist genau das passiert (zwei angelegt, eine ueberlebt). Fuer eine Kundin hiesse das: Link
+   * verschickt, Einladung tot.
+   *
+   * Deshalb wird nach dem Schreiben nachgelesen und im Zweifel noch einmal geschrieben. Kein
+   * echtes Sperren — das gibt der Speicher nicht her —, aber es faengt den Fall ab, der
+   * realistisch vorkommt: zwei Leute gleichzeitig, nicht zwanzig.
+   */
+  let drin = false;
+  for (let versuch = 0; versuch < 4 && !drin; versuch++) {
+    const alle = await readEinladungen();
+    if (alle.some(x => x.id === id)) { drin = true; break; }
+    await writeEinladungen([eintrag, ...alle]);
+    await new Promise(r => setTimeout(r, 200 + versuch * 250));
+    drin = (await readEinladungen()).some(x => x.id === id);
+  }
+  if (!drin) return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
   return NextResponse.json({ ok: true, id, url: `${origin}/einladung/${id}` });
 }
 
