@@ -17,8 +17,21 @@ eine Entscheidung war.
 
 - **Ton** — beim Bild gibt es keinen; die eigene Tonspur aus `lib/musik.ts`
   einhaengen, wie bei der Hochzeit. Beim Video traegt `EinladungAnsicht` ihn schon.
-- **Herzchen** — die aufsteigenden Herzen liegen noch im abgeschalteten Block
-  (`KissFunnel.tsx`, Suche nach „AUFSTEIGENDE HERZEN"); von dort in die Karte holen.
+- **Herzchen und Kommentare** — „wow 🔥", „yes — kiss her!", „so hot", „omg",
+  „perfect" plus die aufsteigenden Herzen. Sie liegen im abgeschalteten Block:
+  `components/KissFunnel.tsx:2277` (Herzen) und `:2295` (die Wortliste).
+
+  **Auf BEIDE, nicht nur aufs Ergebnis** (Owner 31.07.2026: „auch im Original
+  Herzchen und wow"). Also auch über dem Beispielvideo in der Karte — und damit
+  auch über den Karten weiter unten (`BeispielGalerie`). Der Grund ist gut: Die
+  Herzchen sind das, was das Bild von einem Foto zu einem *Moment* macht. Auf dem
+  Beispiel verkaufen sie; auf dem eigenen Ergebnis belohnen sie.
+
+  **Sauber lösen, nicht kopieren:** ein eigener Baustein (z. B.
+  `components/Reaktionen.tsx`), den die Karte über Bild ODER Video legt. Zweimal
+  dieselbe Animation im Code laufen sonst nach der ersten Änderung auseinander.
+  Die Ebene braucht `pointer-events-none`, sonst schluckt sie den Tipp auf das
+  Video (= Upload) und den Ton-Knopf.
 - **Teilen** — `TeilenKnopf` existiert, aber **es fehlt das ZIEL**: Ohne die Seite
   aus Punkt 2 wuerde er die Themenseite verschicken statt des Ergebnisses. Deshalb
   erst Punkt 2, dann dieser Knopf. Vorher einbauen waere ein Knopf, der das
