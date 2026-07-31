@@ -4,43 +4,32 @@ Reihenfolge = Empfehlung. Alles darüber ist erledigt und auf `main`.
 
 ---
 
-## 0 · ZWEI FEHLER, ZUERST (beide vom Owner gesehen, beide noch offen)
+## 0 · Die Karte am Ende — teils erledigt, Rest offen
 
-### a) Das Ergebnis steht zweimal auf der Seite
+**Erledigt und geprueft:** Das Ergebnis steht jetzt IN der Karte (nicht mehr an
+zweiter Stelle darunter), mit „Personen ersetzen" und dem roten Loeschknopf. Auf
+der Seite ist nur noch EIN grosses Bild. Der alte Ergebnis-Bildschirm ist ueber
+`ALTES_ERGEBNIS_FENSTER` in `KissFunnel.tsx` abgeschaltet — bewusst als benannte
+Konstante und nicht als `false &&`, damit beim naechsten Lesen klar ist, dass es
+eine Entscheidung war.
 
-> „und hier kommt zwei mal das Bild"
+**Noch offen, in die Karte:**
 
-Seit dem Umbau trägt die **Karte oben** das Ergebnis. Der alte Ergebnis-Bildschirm
-(`components/KissFunnel.tsx:2248`) rendert es ein zweites Mal darunter.
+- **Ton** — beim Bild gibt es keinen; die eigene Tonspur aus `lib/musik.ts`
+  einhaengen, wie bei der Hochzeit. Beim Video traegt `EinladungAnsicht` ihn schon.
+- **Herzchen** — die aufsteigenden Herzen liegen noch im abgeschalteten Block
+  (`KissFunnel.tsx`, Suche nach „AUFSTEIGENDE HERZEN"); von dort in die Karte holen.
+- **Teilen** — `TeilenKnopf` existiert, aber **es fehlt das ZIEL**: Ohne die Seite
+  aus Punkt 2 wuerde er die Themenseite verschicken statt des Ergebnisses. Deshalb
+  erst Punkt 2, dann dieser Knopf. Vorher einbauen waere ein Knopf, der das
+  Falsche tut.
+- **Der Video-Spieler** haengt ebenfalls am abgeschalteten Block. Solange der aus
+  ist, muss geprueft werden, dass ein BEZAHLTES Video weiterhin ankommt — dieser
+  Weg darf unter keinen Umstaenden brechen.
 
-**Der Owner hat entschieden, wie es aufzulösen ist:**
+---
 
-> „und ich will die Karte am Ende sehen mit Herzchen drauf und Sound und
-> Sharen-Möglichkeit"
-
-Also nicht „den einen oder den anderen zeigen", sondern: **alles wandert in die
-Karte**, und der alte Ergebnis-Bildschirm entfällt ganz. Am Ende steht EIN Ding
-auf der Seite — die Karte — und die trägt:
-
-- das Bild bzw. nach dem Kauf das **Video** (der Spieler muss mit)
-- die aufsteigenden **Herzchen**
-- den **Ton-Knopf** (in der Karte gibt es ihn schon, `EinladungAnsicht`)
-- den **Teilen-Knopf** (`TeilenKnopf` existiert) → führt auf die Seite aus Punkt 2
-- darunter **einen** Kaufknopf: „Video generieren — {extra}" (Owner 31.07.2026:
-  „und dann Button Video generieren 2,99"). Die Zahl kommt als Platzhalter aus
-  `lib/pricing`, nie getippt — sonst steht sie beim nächsten Preiswechsel falsch
-  da. Heute stehen an dieser Stelle ZWEI Knöpfe nebeneinander („Heißes Video
-  2,99 €" und „Alles drin — 24,50 €/Monat"); einer davon muss weg oder unter den
-  anderen, sonst ist es wieder die Lage, die der Owner auf der Hochzeitsseite
-  beanstandet hat („mehrere CTAs").
-
-Das ist auch der Grund, warum Punkt 2 (eigene Seite je Werk) direkt danach kommt:
-Der Teilen-Knopf braucht ein Ziel.
-
-**Beim Umbau aufpassen**, welche Zustände am alten Block hängen: `frei`,
-`isStaff`, `videoShow`, `teaser`, die Unschärfe vor dem Kauf und der
-Video-Spieler. Wer bezahlt hat, muss sein Video sehen — dieser Weg darf unter
-keinen Umständen brechen.
+## 0b · EIN FEHLER, DER BLEIBT
 
 ### b) Der Kuss-Trichter erzeugt gar keinen Kuss
 

@@ -904,6 +904,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Knopf kaputtes HTML ist — und darin ein <span> in Gold, damit es aussieht wie jeder
    * andere Knopf der Karte und nicht wie eine Bildunterschrift.
    */
+  /**
+   * Der alte Ergebnis-Bildschirm ist aus. Kein `false &&` im Code, damit beim naechsten Lesen
+   * klar ist, dass das eine Entscheidung war und kein Versehen — und damit man ihn zum
+   * Vergleich in einer Zeile wieder einschalten kann.
+   */
+  const ALTES_ERGEBNIS_FENSTER = false;
+
   const kartenGriff = (text: string) => (
     <div role="button" tabIndex={0} aria-label={text}
       onClick={() => { setStufenOffen(true); track("photo"); }}
@@ -1481,7 +1488,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         sprache={lang} sie="" er="" demo
         titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
         video={
-          frischErzeugt && bild ? (
+          /* DAS ERGEBNIS GEHOERT IN DIE KARTE (Owner 31.07.2026: „auf dieser Seite will ich
+             nicht mein Bild als zweiter Stelle sehen. Es muss in die Karte sein und Replace
+             People Button wieder drauf").
+             Ich hatte hier zwischen „gerade erzeugt" und „wiederhergestellt" unterschieden,
+             damit ein altes Bild nicht das Beispielvideo verdeckt. Der Anlass dafuer war aber
+             ein anderer: Es gab damals GAR KEIN Beispielvideo (examplePaths war leer). Jetzt
+             gibt es eines — und wer ein Ergebnis hat, will es sehen, nicht suchen. Ohne
+             Ergebnis laeuft weiter das Beispiel. */
+          bild ? (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
@@ -2231,7 +2246,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             Bild fuellt sie aus: Rahmen und Foto koennen nicht auseinanderlaufen. */}
         {/* DAS ERZEUGTE BILD — scharf, kein Schloss (Owner 30.07.2026: „Bild gratis Mann,
             Video gegen Geld"). Darunter der Weg zum Video: Admin gratis, Kunde 9,99 € oder Abo. */}
-        {bild && !videoUrl && (
+        {/* NICHT MEHR ZWEIMAL (Owner 31.07.2026: „hier kommt zwei mal das Bild" — „ich will
+            nicht mein Bild als zweiter Stelle sehen").
+            Dieser Block WAR der Ergebnis-Bildschirm. Seit die Karte oben das Ergebnis traegt,
+            zeigte er dasselbe Foto ein zweites Mal darunter. Er bleibt trotzdem stehen, denn
+            an ihm haengt der VIDEO-Spieler: Wer bezahlt hat, bekommt sein Video hier. Beim
+            reinen Bild schweigt er jetzt.
+            Herzchen, Ton und Teilen sollen laut Owner ohnehin in die Karte wandern — das ist
+            Punkt 0a in OFFEN.md und der Schritt, der diesen Block ganz aufloest. */}
+        {ALTES_ERGEBNIS_FENSTER && bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {V.musik && (<>
