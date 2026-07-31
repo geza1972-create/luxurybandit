@@ -1090,6 +1090,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // Der Kasten stand weit unten und ging unter (Owner 30.07.2026: „ja das steht
         // tatsächlich, aber es geht unter"). Also hinspringen, wie beim Ergebnis auch.
         setGesperrt(true); setStatus(""); setBusy(false);
+        /**
+         * DEN KARTEN UNTEN BESCHEID SAGEN (Owner 31.07.2026: „ein zweites gibt es nicht, es
+         * kostet Geld, ich habe das in 1 geändert" — und danach Weg 3 gewaehlt).
+         *
+         * Vier Karten mit „Personen ersetzen" versprechen vier Versuche. Es gibt genau einen.
+         * Wer nach dem Verbrauch noch dreimal dieselbe Einladung liest, laedt zweimal Fotos
+         * hoch und bekommt zweimal eine Absage — das ist der Moment, in dem Leute schliessen
+         * statt zu kaufen. Ab jetzt tragen die Karten den Kaufknopf.
+         *
+         * Im Speicher, nicht nur im Zustand: Der Deckel gilt je Geraet und Tag, also muss die
+         * Beschriftung auch einen Seitenwechsel ueberleben.
+         */
+        try { localStorage.setItem("lb_gratis_verbraucht", "1"); } catch { /* privater Modus */ }
+        try { window.dispatchEvent(new CustomEvent("lb-gratis-verbraucht")); } catch { /**/ }
         setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
         return;
       }
@@ -1460,14 +1474,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 className="absolute left-2 top-2 z-10 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
                 <Trash2 className="h-5 w-5" />
               </button>
-              {kartenGriff((KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
+              {kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
             </div>
           ) : beispielVideo ? (
             <div className="relative">
               <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
-              {kartenGriff((KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
+              {kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
             </div>
           ) : (
             <div className="grid h-[260px] w-full place-items-center px-6 text-center">

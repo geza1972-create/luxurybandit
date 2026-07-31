@@ -106,8 +106,11 @@ export default async function KissThemePage({ searchParams }: {
               <div className="mt-12">
                 <SectionTitle>{T.examples}</SectionTitle>
                 <div className="mt-3">
+                  {/* `blockedOnce` traegt schon den Preis (kissText laeuft durch fillPrices) —
+                      hier wird keine Zahl getippt. */}
                   <BeispielGalerie videos={examples.slice(1)} lang={L}
-                    titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")} />
+                    titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
+                    gesperrtText={T.blockedOnce} />
                 </div>
               </div>
             )}

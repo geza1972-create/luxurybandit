@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 
@@ -27,14 +29,36 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 /** Der Name des Ereignisses — auch der Trichter hört genau darauf. */
 export const SCHRITTE_OEFFNEN = "lb-schritte-oeffnen";
 
-export default function BeispielGalerie({ videos, lang = "en", titel = "" }: {
+export default function BeispielGalerie({ videos, lang = "en", titel = "", gesperrtText = "" }: {
   videos: string[];
   lang?: string;
   /** Überschrift auf jeder Karte — beim Kuss „Der Kuss". Leer nimmt die Vorgabe der Karte. */
   titel?: string;
+  /**
+   * WAS DA STEHT, WENN DER GRATIS-VERSUCH WEG IST (Owner 31.07.2026: „ein zweites gibt es
+   * nicht, es kostet Geld, ich habe das in 1 geändert").
+   *
+   * Es gibt genau EINEN Gratis-Versuch je Gerät und Tag. Vier Karten mit „Personen ersetzen"
+   * versprechen vier — wer den zweiten probiert, lädt Fotos hoch und bekommt eine Absage.
+   * Das ist der Moment, in dem Leute schließen statt zu kaufen. Danach tragen die Karten
+   * den Kaufknopf: dieselbe Wirkung, aber ehrlich.
+   */
+  gesperrtText?: string;
 }) {
   const T = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
+  const [gesperrt, setGesperrt] = useState(false);
+
+  useEffect(() => {
+    // Beim Laden nachsehen (der Deckel gilt je Gerät) und danach auf den Trichter hören.
+    try { if (localStorage.getItem("lb_gratis_verbraucht") === "1") setGesperrt(true); } catch { /**/ }
+    const zu = () => setGesperrt(true);
+    window.addEventListener("lb-gratis-verbraucht", zu);
+    return () => window.removeEventListener("lb-gratis-verbraucht", zu);
+  }, []);
+
   if (!videos.length) return null;
+  // Der Tipp fuehrt in beiden Faellen an dieselbe Stelle — dort steht dann der Kaufweg.
+  const beschriftung = gesperrt && gesperrtText ? gesperrtText : T.menschenErsetzen;
 
   const starten = () => {
     // Erst nach oben — sonst öffnet sich der Dialog, während er unten steht, und er sieht
@@ -61,7 +85,7 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "" }: {
                   <button>, weil ein Knopf im Knopf kaputtes HTML ist. */}
               <div role="button" tabIndex={0} onClick={starten}
                 onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); starten(); } }}
-                aria-label={T.menschenErsetzen}
+                aria-label={beschriftung}
                 className="absolute inset-x-0 bottom-0 top-16 flex cursor-pointer items-end justify-center p-4">
                 {/* EIN RICHTIGES CTA (Owner 31.07.2026: „richtiges CTA"). Vorher eine dunkle,
                     halbdurchsichtige Pille — die sah aus wie eine Bildunterschrift und nicht
@@ -69,7 +93,7 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "" }: {
                     der Karte, volle Breite. */}
                 {/* Derselbe CI-Knopf wie oben: gelb auf dunkel, blau in der Hell-Fassung. */}
                 <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
-                  {T.menschenErsetzen}
+                  {beschriftung}
                 </span>
               </div>
             </div>
