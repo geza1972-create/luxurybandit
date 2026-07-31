@@ -136,6 +136,27 @@ export type FunnelVariant = "kiss" | "idol" | "wedding";
 // ALLE BESCHRIFTUNGEN STEHEN IN `lib/kiss-i18n` (Owner 30.07.2026, Punkt 4: „Übersetzung in
 // die acht Sprachen"). Hier bleibt nur, was keine Sprache hat: der Prompt, der Dateiname des
 // Downloads und die Platzhalterbilder.
+/**
+ * EIN BILD KLEINER RECHNEN, bevor es in den Ablageplatz des Browsers geht.
+ *
+ * Der fasst nur wenige Megabyte; ein Handyfoto allein ist oft schon groesser. 520 px lange
+ * Kante reicht fuer eine Vorschaukachel voellig — das grosse Original liegt ohnehin auf dem
+ * Server. Geht etwas schief, lieber nichts speichern als die Seite aufhalten.
+ */
+async function verkleinern(src: string, max = 520): Promise<string> {
+  if (!src || !src.startsWith("data:")) return src;   // schon eine Adresse: nichts zu tun
+  try {
+    const bild = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src;
+    });
+    const sc = Math.min(1, max / Math.max(bild.width, bild.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bild.width * sc); c.height = Math.round(bild.height * sc);
+    c.getContext("2d")!.drawImage(bild, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.78);
+  } catch { return ""; }
+}
+
 const VARIANTS: Record<FunnelVariant, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
   // MUSIK ZUM BILD (Owner 30.07.2026: „ich habe dir den Song angelegt Bridal-chorus.mp3").
@@ -464,6 +485,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     try { localStorage.setItem(GEN_KEY, JSON.stringify({ id, at: Date.now() })); } catch { /**/ }
   };
 
+  /**
+   * DIE HOCHGELADENEN FOTOS UEBERLEBEN DEN SEITENWECHSEL.
+   *
+   * Owner 31.07.2026: „die Bilder bitte weiter speichern beim Hochladen, und wenn ich auf die
+   * nächste Seite gehe und zurück, dürfen sie nicht verloren gehen."
+   *
+   * Bisher wurden die beiden Ausgangsfotos nur zusammen mit einem FERTIGEN Bild gesichert
+   * (`merken`). Wer hochlud und vorher noch einmal woanders hinschaute, kam auf leere Kacheln
+   * zurueck und musste von vorn anfangen — an der Stelle, an der er schon Arbeit investiert
+   * hatte. Deshalb wird ab dem Hochladen gesichert, nicht erst ab dem Ergebnis.
+   *
+   * Klein gerechnet, weil der Ablageplatz im Browser nur wenige Megabyte fasst; die grossen
+   * Originale liegen auf dem Server am selben Eintrag.
+   */
+  const FOTO_KEY = `lb_kiss_fotos_${variant}`;
+  const fotosMerken = async (seins: string, ihres: string, eigen: boolean) => {
+    try {
+      localStorage.setItem(FOTO_KEY, JSON.stringify({
+        person: await verkleinern(seins),
+        model: await verkleinern(ihres),
+        eigen, at: Date.now(),
+      }));
+    } catch { /* kein Platz → dann eben nur für diese Sitzung */ }
+  };
+
   const merken = async (dataUrl: string, pfad: string, id: string, frei = false) => {
     try {
       // Verkleinert ablegen: der Ablageplatz im Browser fasst nur wenige Megabyte.
@@ -479,19 +525,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       // Frau leben nur im Arbeitsspeicher und waeren weg. Ohne sie zeigt der Kuss-Schritt
       // leere Plaetze, und „Generate video" haette gar keine Vorlagen: bezahlt, aber nichts
       // zu rendern. Seines wird verkleinert, ihres ist meist nur eine Adresse.
-      const klein = async (src: string) => {
-        try {
-          const i2 = await new Promise<HTMLImageElement>((res, rej) => {
-            const i3 = new Image(); i3.onload = () => res(i3); i3.onerror = rej; i3.src = src;
-          });
-          const s2 = Math.min(1, 520 / Math.max(i2.width, i2.height));
-          const c2 = document.createElement("canvas");
-          c2.width = Math.round(i2.width * s2); c2.height = Math.round(i2.height * s2);
-          c2.getContext("2d")!.drawImage(i2, 0, 0, c2.width, c2.height);
-          return c2.toDataURL("image/jpeg", 0.78);
-        } catch { return ""; }
-      };
-      const seins = photo.startsWith("data:") ? await klein(photo) : photo;
+      const seins = await verkleinern(photo);
       localStorage.setItem(MERK_KEY, JSON.stringify({
         bild: c.toDataURL("image/jpeg", 0.82), pfad, id, frei, at: Date.now(),
         person: seins, model: selPhoto, modelId: picked?.id ?? "", eigen: useCustom,
@@ -500,6 +534,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   };
 
   useEffect(() => {
+    /**
+     * ZUERST die reinen Uploads: Sie gibt es auch dann, wenn noch nichts erzeugt wurde —
+     * genau der Fall, in dem er die Seite verlaesst und zurueckkommt. Ein spaeter geladener
+     * Stand aus `MERK_KEY` (mit fertigem Bild) ueberschreibt sie danach, weil er neuer ist.
+     */
+    try {
+      const rohF = localStorage.getItem(FOTO_KEY);
+      if (rohF) {
+        const f = JSON.parse(rohF) as { person?: string; model?: string; eigen?: boolean; at?: number };
+        if (f?.at && Date.now() - f.at > 86_400_000) {
+          localStorage.removeItem(FOTO_KEY);
+        } else {
+          if (f?.person) setPhoto(f.person);
+          if (f?.model) { setCustomModel(f.model); if (f.eigen) setUseCustom(true); }
+        }
+      }
+    } catch { /**/ }
     try {
       const roh = localStorage.getItem(MERK_KEY);
       if (!roh) return;
@@ -648,6 +699,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
       if (!genId && log?.id) genMerken(log.id);
+      void fotosMerken(dataUrl, selPhoto, useCustom);
     } catch { /**/ }
   };
 
@@ -680,6 +732,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           : JSON.stringify({ theme: variant, modelId: "custom", modelName: T.upTitle, device, modelImage: dataUrl }),
       }).then(r => r.json()).catch(() => null);
       if (!genId && antwort?.id) genMerken(antwort.id);
+      void fotosMerken(photo, dataUrl, true);
     } catch { /**/ }
   };
 
