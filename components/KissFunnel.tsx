@@ -10,6 +10,7 @@ import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import TonKnopf from "@/components/TonKnopf";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import { kissText } from "@/lib/kiss-i18n";
 import LightSwitch from "@/components/LightSwitch";
@@ -76,17 +77,23 @@ export const KISS_PROMPT =
  * Auswahl, sondern fünfmal dieselbe Frage. Und bewusst nur fünf: Wer eine Braut vor zwanzig
  * Kleider stellt, bekommt keine Entscheidung, sondern einen Abbruch.
  *
+ * Nachgebessert am selben Tag (Owner: „die Galerie ist doch fürchtbar. Es müssen luxuriöse
+ * italienische Kleider sein."). Der erste Satz sah nach Versandhaus aus. Drei Dinge fehlten,
+ * und alle drei sind der Unterschied: das MATERIAL beim Namen nennen (Mikado, Duchesse,
+ * Chantilly), die HANDARBEIT nennen (appliziert, drapiert, bestickt) — und das LICHT. Eine
+ * weisse Box ist ein Produktfoto; ein italienisches Atelier mit Bogenfenstern ist Couture.
+ *
  * Jedes trägt seine eigene englische Beschreibung. Die wandert wörtlich in den Bild- und in
  * den Videoauftrag — deshalb steht sie hier neben dem Bild und nicht an drei Stellen verstreut,
  * wo eine davon beim nächsten Ändern vergessen würde.
  */
 export type Kleid = { id: string; bild: string; beschreibung: string };
 export const WEDDING_KLEIDER: Kleid[] = [
-  { id: "klassisch",  bild: "/kleid-klassisch.jpg",  beschreibung: "a classic A-line ivory wedding gown with a sweetheart neckline and a long flowing veil" },
-  { id: "prinzessin", bild: "/kleid-prinzessin.jpg", beschreibung: "a voluminous princess ball gown in soft white tulle with an off-shoulder neckline" },
-  { id: "spitze",     bild: "/kleid-spitze.jpg",     beschreibung: "a fitted lace mermaid wedding gown with long lace sleeves and a high neckline" },
-  { id: "seide",      bild: "/kleid-seide.jpg",      beschreibung: "a minimal silk slip wedding dress with thin straps and clean simple lines" },
-  { id: "boho",       bild: "/kleid-boho.jpg",       beschreibung: "a bohemian lace wedding dress with flutter sleeves and a soft relaxed silhouette" },
+  { id: "klassisch",  bild: "/kleid-klassisch.jpg",  beschreibung: "a sculptural Italian couture wedding gown in heavy ivory silk mikado with a structured off-shoulder corset bodice, a full duchesse satin skirt and a long cathedral train" },
+  { id: "prinzessin", bild: "/kleid-prinzessin.jpg", beschreibung: "a grand Italian couture ball gown in layers of silk organza with a hand-draped sweetheart bodice and an immense romantic skirt" },
+  { id: "spitze",     bild: "/kleid-spitze.jpg",     beschreibung: "a fitted Italian couture mermaid gown covered in hand-appliqued Chantilly lace with long lace sleeves and an illusion neckline" },
+  { id: "seide",      bild: "/kleid-seide.jpg",      beschreibung: "a minimal Italian couture column gown in heavy silk crepe with architectural draping and a deep open back" },
+  { id: "perlen",     bild: "/kleid-perlen.jpg",     beschreibung: "an Italian couture gown hand-embroidered with pearls and crystals on fine tulle, a shimmering fitted silhouette" },
 ];
 const KLEID_VORGABE = "an elegant white wedding dress";
 
@@ -226,9 +233,19 @@ const VARIANTS: Record<FunnelVariant, {
    * kuendigt nach der Hochzeit. Falsch war nie das Abo, falsch war der Kuss-Werbespruch.
    */
   abo: boolean;
+  /**
+   * EINZELKAUF — bei der Hochzeit ABSICHTLICH NICHT (Owner 31.07.2026: „es gibt kein Video
+   * hier fuer 9,99. Es gibt nur die ganze Einladung.").
+   *
+   * Ein Video fuer 9,99 neben einer Einladung fuer 24,50 im Monat ist kein zweites Angebot,
+   * sondern eine Ausrede: Der billigere Knopf gewinnt, und die Kundin geht mit einer Datei
+   * nach Hause statt mit der Seite, die ihre Hochzeit traegt. Verkauft wird hier das Ganze
+   * oder gar nichts.
+   */
+  einzelkauf: boolean;
 }> = {
   kiss: {
-    prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true,
+    prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
     // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
@@ -240,7 +257,7 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   wedding: {
-    prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true,
+    prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true, einzelkauf: false,
     musik: "/Bridal-chorus.mp3",
     paarUpload: true,
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
@@ -250,7 +267,7 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   idol: {
-    prompt: IDOL_PROMPT, done: "your-idol-video.mp4", abo: true,
+    prompt: IDOL_PROMPT, done: "your-idol-video.mp4", abo: true, einzelkauf: true,
     // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte
     // vorn und ist von Anfang an gewählt; unsere Models sind nur die Alternative daneben.
     upFirst: true,
@@ -1259,36 +1276,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         </div>
       )}
 
-      {/* DAS KLEID (Owner 31.07.2026). Steht unter den beiden Fotos, nicht davor: Erst die
-          Gesichter — das ist der Grund, warum sie hier ist —, dann die Wahl, die Freude macht.
-          Ohne Auswahl laeuft alles weiter wie bisher; keine Pflicht, keine Sperre. */}
-      {variant === "wedding" && (
-        <div className="mt-4">
-          <p className="text-[13px] font-black text-white/85">{T.kleidTitel}</p>
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {WEDDING_KLEIDER.map(k => {
-              const an = kleid === k.beschreibung;
-              return (
-                <button key={k.id} type="button"
-                  onClick={() => setKleid(an ? "" : k.beschreibung)}
-                  aria-pressed={an}
-                  className={`relative h-[122px] w-[86px] shrink-0 overflow-hidden rounded-xl border-2 transition active:scale-95 ${
-                    an ? "border-[#f6cf51]" : "border-white/15"
-                  }`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={k.bild} alt="" className="h-full w-full object-cover" />
-                  {an && (
-                    <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51] shadow">
-                      <Check className="h-3.5 w-3.5 text-black" />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {!V.paarUpload && (() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
@@ -1475,7 +1462,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           Wardrobe stehen. Es koennte auch jetzt stehen aber ist gesperrt und muesste stehen
           das wird freigegeben fuer bezahlte Videos"). Zeigen schlaegt versprechen: er sieht,
           was er bekommt, und das Schloss sagt ihm, wie er drankommt. */}
-      {kleidung.length > 0 && (
+      {(kleidung.length > 0 || variant === "wedding") && (
         <div className="relative mt-2 rounded-2xl p-3" style={{ background: "#fff", color: "#1a160f" }}>
           <div className="flex items-center justify-between">
             <p className="text-[12px] font-black">{T.wardrobe}</p>
@@ -1494,25 +1481,49 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
 
           <div style={bezahlt || isStaff ? undefined : { opacity: 0.45, filter: "blur(1.5px)", pointerEvents: "none" }}>
             <p className="mt-2.5 text-[11px] font-black">{T.herDress}</p>
-            <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
-              <button type="button" onClick={() => setIhrLook("")}
-                className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
-                style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
-                {T.asInPhoto}
-              </button>
-              {kleidung.map(l => (
-                <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
-                  style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={l.imageUrl} alt={l.name ?? ""} className="h-[58px] w-[44px] object-cover" />
-                </button>
-              ))}
-            </div>
+            {/* BEI DER HOCHZEIT DIE COUTURE-KLEIDER (Owner 31.07.2026: „hier müssen weiter
+                stehen, exklusive" — davor standen an dieser Stelle Lingerie-Sets aus dem
+                Katalog, auf einer Hochzeitsseite).
 
-            <button type="button" onClick={() => setMehr(m => !m)}
-              className="mt-2.5 text-[11px] font-black" style={{ color: "#1877f2" }}>
-              {mehr ? T.moreClose : T.moreOpen}
-            </button>
+                Und der Knopf „Wie auf dem Foto" ist weg (Owner: „diese Button fliegt raus"):
+                Auf ihrem eigenen Foto trägt sie kein Brautkleid — die Wahl „wie auf dem Foto"
+                heisst hier also „im Alltagsoberteil heiraten" und ist keine Wahl, sondern ein
+                Fehler, der nur darauf wartet, angetippt zu werden. Es sind grosse Kacheln, weil
+                ein Kleid in 44 Pixel Breite nicht zu erkennen ist. */}
+            {variant === "wedding" ? (
+              <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+                {WEDDING_KLEIDER.map(k => (
+                  <button key={k.id} type="button" onClick={() => setKleid(kleid === k.beschreibung ? "" : k.beschreibung)}
+                    className="shrink-0 overflow-hidden rounded-xl"
+                    style={{ outline: kleid === k.beschreibung ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={k.bild} alt="" className="h-[124px] w-[86px] object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+                <button type="button" onClick={() => setIhrLook("")}
+                  className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
+                  style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
+                  {T.asInPhoto}
+                </button>
+                {kleidung.map(l => (
+                  <button key={l.id} type="button" onClick={() => setIhrLook(l.id)} className="shrink-0 overflow-hidden rounded-xl"
+                    style={{ outline: ihrLook === l.id ? "3px solid #1877f2" : "1px solid rgba(0,0,0,0.12)" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={l.imageUrl} alt={l.name ?? ""} className="h-[58px] w-[44px] object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {variant !== "wedding" && (
+              <button type="button" onClick={() => setMehr(m => !m)}
+                className="mt-2.5 text-[11px] font-black" style={{ color: "#1877f2" }}>
+                {mehr ? T.moreClose : T.moreOpen}
+              </button>
+            )}
             <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>Your clothes</p>
             <div className={`mt-1.5 flex gap-2 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
               <button type="button" onClick={() => setSeinLook("")}
@@ -1611,12 +1622,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           sahen aus wie eine zweite Rechnung. */}
       {!isStaff && !bezahlt && !videoUrl && (
         <div className="mt-2 flex gap-2">
-          <button type="button" onClick={() => void unlock("once")}
-            disabled={!selPhoto || !photo || !consent || payBusy}
-            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
-            {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-            {T.buyOnce}
-          </button>
+          {V.einzelkauf && (
+            <button type="button" onClick={() => void unlock("once")}
+              disabled={!selPhoto || !photo || !consent || payBusy}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
+              {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+              {T.buyOnce}
+            </button>
+          )}
           {V.abo && (
             <button type="button" onClick={() => void unlock("abo")}
               disabled={!selPhoto || !photo || !consent || payBusy}
@@ -1714,17 +1727,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
               {T.blockedBody}
             </p>
-            <button type="button" onClick={() => void unlock("once")} disabled={payBusy}
-              className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {T.blockedOnce}
-            </button>
+            {V.einzelkauf ? (
+              <button type="button" onClick={() => void unlock("once")} disabled={payBusy}
+                className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {T.blockedOnce}
+              </button>
+            ) : (
+              <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
+                className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {T.blockedAll}
+              </button>
+            )}
             {/* VOLLE WEISSE FLAECHE (Owner 30.07.2026: „Unlock kann ich nicht lesen, es steht
                 in blau auf blau"). Ein umrandeter Knopf uebernimmt die Schriftfarbe der
                 Umgebung — auf dem blauen Kasten heisst das blau auf blau. Weisse Flaeche mit
                 dunkler Schrift liest sich auf jedem Grund; dieselbe Loesung wie beim
                 Kauf-Knopf auf dem Foto. */}
-            {V.abo && (<>
+            {V.abo && V.einzelkauf && (<>
               <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                 style={{ background: "#fff", color: "#1a160f" }}
                 className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
@@ -1751,12 +1772,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
               {V.musik && (<>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <audio ref={musikRef} src={V.musik} loop preload="none" />
-                <button type="button"
+                {/* Derselbe gezeichnete Knopf wie auf der Einladung (Owner 31.07.2026: „hier
+                    steht das haessliche Sound-Icon"). Ein Emoji ist auf jedem Geraet ein
+                    anderes buntes Bild und faellt aus jedem Design heraus. */}
+                <TonKnopf an={ton} label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                   onClick={() => { const n = !ton; setTon(n); try { localStorage.setItem("lb_ton", n ? "1" : "0"); } catch { /**/ } }}
-                  aria-label={ton ? "Musik aus" : "Musik an"}
-                  className="absolute right-2 top-2 z-40 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-[16px] backdrop-blur active:scale-95 transition">
-                  {ton ? "🔊" : "🔇"}
-                </button>
+                  className="z-40" />
               </>)}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt=""
@@ -1841,10 +1862,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   <div className="w-full max-w-[300px] text-center">
                     <p className="lb-onmedia text-[17px] font-black">{T.readyTitle}</p>
                     <p className="lb-onmedia mt-1 text-[12px] font-bold opacity-85">{T.readyBody}</p>
-                    <button type="button" onClick={() => void unlock("once")} disabled={payBusy}
+                    <button type="button" onClick={() => void unlock(V.einzelkauf ? "once" : "abo")} disabled={payBusy}
                       className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                       {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                      {T.watchOnce}
+                      {V.einzelkauf ? T.watchOnce : T.blockedAll}
                     </button>
                     {/* VOLLE WEISSE FLÄCHE statt durchsichtig (Owner 30.07.2026: „ich kann den
                         Button nicht lesen. Es muss weiss sein oder den Button nicht
@@ -1852,7 +1873,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                         durchsichtiger Knopf nie zuverlässig lesbar — das Motiv darunter
                         entscheidet. Weisse Fläche mit dunkler Schrift liest sich auf jedem
                         Bild, in der hellen wie in der dunklen Fassung. */}
-                    {V.abo && (
+                    {V.abo && V.einzelkauf && (
                       <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                         style={{ background: "#fff", color: "#1a160f" }}
                         className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">

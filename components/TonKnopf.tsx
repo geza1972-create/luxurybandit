@@ -31,7 +31,12 @@ export default function TonKnopf({
   return (
     <button type="button" onClick={onClick} aria-label={an ? "Ton aus" : (label || "Ton an")}
       data-tonknopf="1"
-      className={`absolute right-3 top-3 flex h-10 items-center gap-1.5 rounded-full bg-black/50 backdrop-blur transition active:scale-95 ${
+      /* `lb-onmedia` ist die Klasse, die die Hell-Fassung ausdruecklich ausnimmt und auf Weiss
+         zwingt (Owner 31.07.2026: „ich kann es nicht lesen, es ist schwarze Schrift"). Ohne sie
+         erbt der Knopf ausserhalb der Einladungskarte die dunkle Schrift der hellen Fassung —
+         dunkel auf einer dunklen Scheibe ueber einem Foto. In der Karte gewinnen die
+         `.lb-karte`-Regeln, weil sie im Stylesheet spaeter stehen: dort bleibt er golden. */
+      className={`lb-onmedia absolute right-3 top-3 flex h-10 items-center gap-1.5 rounded-full bg-black/50 backdrop-blur transition active:scale-95 ${
         an || !label ? "w-10 justify-center" : "pl-3 pr-3.5"
       } ${className}`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"

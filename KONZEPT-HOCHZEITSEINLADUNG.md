@@ -99,6 +99,11 @@ Der Aufpreis ist kein Gierpreis: Sie vergleicht ihn nicht mit deinem Videopreis,
 Papiereinladungen und Druckkosten. Und er trennt sauber die Gruppe A von B — wer 19,90 € zahlt,
 hat wirklich eine Hochzeit.
 
+> **ÜBERHOLT am 31.07.2026.** Der Owner hat entschieden: doch ein Abo, 24,50 € im Monat, „bis
+> sie heiraten". Begründung, die den Absatz unten aussticht: Wir hosten die Seite, die
+> Gästeliste, die Neuigkeiten und die Gruppe über Monate. Das ist laufende Leistung, kein
+> einmaliger Download. Der Satz unten galt, solange das Produkt eine Videodatei war.
+
 **Nicht ins Abo packen.** Eine Hochzeit hat man einmal; ein Monatsabo dafür wäre unglaubwürdig
 und die Kündigung programmiert.
 
@@ -152,7 +157,11 @@ Was **nicht** zählt: verkaufte Videos. Die zählen schon woanders.
 - **Kein Massenversand über uns.** Sie verschickt selbst über WhatsApp. Sobald wir im Namen
   einer Kundin an hundert fremde Adressen schreiben, sind wir ein Massenversender mit allen
   Pflichten — und einer Sperrgefahr, die dein Konto nicht verträgt.
-- Keine echten Personendaten der Gäste bei uns. Wer zusagt, tippt einen Vornamen, mehr nicht.
+- ~~Keine echten Personendaten der Gäste bei uns. Wer zusagt, tippt einen Vornamen, mehr
+  nicht.~~ **ÜBERHOLT am 31.07.2026:** Der Gast gibt Vorname UND E-Mail an. Ohne Adresse kann
+  das Paar seine Gäste nicht erreichen, wenn sich Uhrzeit oder Ort ändert — und genau dafür
+  zahlt es jeden Monat. Auflage: Der Grund steht AM Eingabefeld, nicht in den AGB; Mails gehen
+  einzeln raus, nie in ein gemeinsames An-Feld; die Löschfrist der Einladung gilt mit.
 
 ---
 

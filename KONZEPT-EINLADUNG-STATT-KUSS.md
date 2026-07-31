@@ -87,7 +87,24 @@ geänderte Video-Auftrag.
 Er steht **unter der Beispielkarte**, nicht darüber. Erst sieht sie das Ding, dann den Preis;
 das ist die ganze Ordnung des Trichters und der Grund, warum das Bild gratis ist.
 
-### Der Preis: 24 € statt 9,99 €
+> **NACHGETRAGEN am 31.07.2026, noch am selben Tag.** Der Owner hat das Preismodell geändert:
+> *„bei Wedding machen wir auch ein Abo, bis sie heiraten von mir aus. Auch 24,50, weil wir die
+> Liste hosten müssen."* Und: *„es gibt kein Video hier für 9,99. Es gibt nur die ganze
+> Einladung. Für was anderes sollen sie Kiss Topic nehmen."*
+>
+> **Es gilt also: 24,50 € im Monat, kein Einzelkauf.** Der Abschnitt darunter beschreibt den
+> verworfenen Einmalpreis — er bleibt stehen, weil die Abwägung weiter stimmt (der Vergleich
+> ist die Papiereinladung, nicht unser Videopreis). Nur die Zahl ist eine andere.
+>
+> Der Grund für das Abo ist gut und trägt: Verkauft wird keine Datei, sondern eine Seite, die
+> Monate läuft — erreichbar halten, Öffnungen zählen, Gästeliste führen, Neuigkeiten an alle
+> Gäste mailen. Laufende Leistung, laufender Preis; sie kündigt nach der Hochzeit.
+>
+> Und ein Einzelvideo für 9,99 € daneben wäre kein zweites Angebot, sondern eine Ausrede: Der
+> billigere Knopf gewinnt, und die Kundin geht mit einer Datei nach Hause statt mit der Seite,
+> die ihre Hochzeit trägt. Wer nur ein Video will, ist beim Kuss-Thema richtig.
+
+### Der Preis: 24 € statt 9,99 € (verworfen — siehe Kasten oben)
 
 **Dafür spricht:**
 - Sie vergleicht nicht mit unserem Videopreis, sondern mit **Papiereinladungen**: 80 Karten
