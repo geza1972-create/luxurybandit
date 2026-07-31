@@ -413,6 +413,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const [einlBusy, setEinlBusy] = useState(false);
   /** Das gewaehlte Brautkleid. Leer = unsere Vorgabe, damit der Trichter ohne Auswahl laeuft. */
   const [kleid, setKleid] = useState("");
+  /** Paarfoto: laeuft, waehrend der Server die zwei Gesichter herausschneidet. */
+  const [paarBusy, setPaarBusy] = useState(false);
+  const [paarFehler, setPaarFehler] = useState("");
+  const paarRef = useRef<HTMLInputElement>(null);
   const [einlAdresse, setEinlAdresse] = useState("");
   const [einlTelefon, setEinlTelefon] = useState("");
   const [einlUrl, setEinlUrl] = useState("");
@@ -761,6 +765,48 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       if (!genId && log?.id) genMerken(log.id);
       void fotosMerken(dataUrl, selPhoto, useCustom);
     } catch { /**/ }
+  };
+
+  /**
+   * EIN FOTO VON BEIDEN (Owner 31.07.2026: „man kann auch ein gemeinsames Foto zulassen").
+   *
+   * Der Server schneidet die zwei Gesichter heraus; danach ist der Zustand exakt derselbe wie
+   * nach zwei einzelnen Uploads. Deshalb werden hier auch beide bestehenden Wege benutzt
+   * (`onModelFile`-Ergebnis und `onFile`-Ergebnis in Form der zwei Zustaende) statt eines
+   * dritten Sonderwegs — sonst haetten wir zwei Arten, wie ein Gesicht in den Trichter kommt,
+   * und eine davon wuerde beim naechsten Umbau vergessen.
+   */
+  const onPaarFile = async (f?: File | null) => {
+    if (!f || paarBusy) return;
+    zustimmen();
+    setPaarFehler(""); setPaarBusy(true);
+    try {
+      const dataUrl = await fileToDataUrl(f);
+      const r = await fetch("/api/paar-teilen", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      }).then(x => x.json()).catch(() => null);
+      if (!r?.ok || !r.sie || !r.er) {
+        // „technik" = bei UNS klemmt etwas (Ratenlimit, Ausfall). Dann darf dort nicht stehen,
+        // ihr Foto sei schuld — sie wuerde sonst vergeblich andere Fotos ausprobieren.
+        setPaarFehler(r?.error === "technik" ? T.paarStoerung : T.paarFehler);
+        setPaarBusy(false); return;
+      }
+      setCustomModel(r.sie); setUseCustom(true);
+      setPhoto(r.er);
+      track("paar_foto");
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const log = await fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: genId
+          ? JSON.stringify({ update: genId, theme: variant, modelImage: r.sie, personImage: r.er, modelId: "custom", modelName: T.upTitle })
+          : JSON.stringify({ theme: variant, modelId: "custom", modelName: T.upTitle, device, modelImage: r.sie, personImage: r.er }),
+      }).then(x => x.json()).catch(() => null);
+      if (!genId && log?.id) genMerken(log.id);
+      void fotosMerken(r.er, r.sie, true);
+    } catch { setPaarFehler(T.paarFehler); }
+    setPaarBusy(false);
   };
 
   // WEN ER GEWÄHLT HAT, an den Eintrag hängen — auch wenn er nach dem Hochladen noch einmal
@@ -1273,6 +1319,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           ))}
           <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+        </div>
+      )}
+
+      {/* DER KÜRZERE WEG: ein Foto statt zwei. Steht UNTER den beiden Kacheln und nicht
+          darüber — wer schon eines hochgeladen hat, soll nicht umdenken müssen; wer noch
+          gar nichts hat, findet hier den bequemeren Weg. */}
+      {V.paarUpload && (
+        <div className="mt-2">
+          <button type="button" onClick={() => paarRef.current?.click()} disabled={paarBusy}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/25 px-3 py-2.5 text-[12px] font-black text-white/80 transition active:scale-[0.99] disabled:opacity-60">
+            {paarBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
+            {paarBusy ? T.paarBusy : T.paarTitel}
+          </button>
+          <p className="mt-1 text-center text-[10.5px] font-bold text-white/50">{T.paarHint}</p>
+          {paarFehler && (
+            <p className="mt-1 text-center text-[11px] font-bold leading-snug text-white/80">{paarFehler}</p>
+          )}
+          <input ref={paarRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => void onPaarFile(e.target.files?.[0])} />
         </div>
       )}
 

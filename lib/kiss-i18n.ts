@@ -56,6 +56,7 @@ export type KissText = {
   einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
   einlAdresse: string; einlTelefon: string;
   einlSprachen: string; einlVorschau: string; kleidTitel: string;
+  paarTitel: string; paarHint: string; paarFehler: string; paarBusy: string; paarStoerung: string;
   bekommstTitel: string; bekommst: string[];
   einlOrt: string; einlMachen: string; einlFertig: string; einlWhatsapp: string; einlKopiert: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
@@ -139,6 +140,11 @@ const EN: KissText = {
   einlSprachen: "Each guest sees it in their own language — automatically.",
   einlVorschau: "This is what your guests see",
   kleidTitel: "Pick your dress (optional)",
+  paarTitel: "Or one photo of the two of you",
+  paarHint: "We cut both of you out of it.",
+  paarFehler: "We could not find two faces in that photo — try another one, or upload the two photos separately.",
+  paarBusy: "Reading the photo …",
+  paarStoerung: "That did not work on our side just now — please try again in a moment.",
   bekommstTitel: "What you get",
   bekommst: [
     "Your own invitation page with your names, the date and the address",
@@ -223,6 +229,11 @@ const DE: KissText = {
   einlSprachen: "Jeder Gast sieht sie in seiner Sprache — von selbst.",
   einlVorschau: "So sehen es eure Gäste",
   kleidTitel: "Wähle dein Kleid (freiwillig)",
+  paarTitel: "Oder ein Foto von euch beiden",
+  paarHint: "Wir schneiden euch beide daraus.",
+  paarFehler: "Auf dem Foto waren keine zwei Gesichter zu finden — nimm ein anderes, oder lade die zwei Fotos einzeln hoch.",
+  paarBusy: "Foto wird gelesen …",
+  paarStoerung: "Das hat gerade bei uns nicht geklappt — bitte gleich noch einmal versuchen.",
   bekommstTitel: "Das bekommt ihr",
   bekommst: [
     "Eine eigene Einladungsseite mit euren Namen, dem Datum und der Adresse",
@@ -307,6 +318,11 @@ const RO: KissText = {
   einlSprachen: "Fiecare invitat o vede în limba lui — automat.",
   einlVorschau: "Așa o văd invitații voștri",
   kleidTitel: "Alege-ți rochia (opțional)",
+  paarTitel: "Sau o poză cu voi doi",
+  paarHint: "Vă decupăm pe amândoi din ea.",
+  paarFehler: "Nu am găsit două fețe în poză — încearcă alta sau încarcă cele două poze separat.",
+  paarBusy: "Se citește poza …",
+  paarStoerung: "Nu a funcționat la noi acum — încearcă din nou într-un moment.",
   bekommstTitel: "Ce primiți",
   bekommst: [
     "O pagină de invitație numai a voastră, cu numele, data și adresa",
@@ -391,6 +407,11 @@ const ES: KissText = {
   einlSprachen: "Cada invitado la ve en su idioma — automáticamente.",
   einlVorschau: "Así lo ven vuestros invitados",
   kleidTitel: "Elige tu vestido (opcional)",
+  paarTitel: "O una foto de los dos",
+  paarHint: "Os recortamos a los dos de ella.",
+  paarFehler: "No encontramos dos caras en esa foto — prueba con otra o sube las dos fotos por separado.",
+  paarBusy: "Leyendo la foto …",
+  paarStoerung: "Ahora mismo ha fallado por nuestro lado — inténtalo de nuevo en un momento.",
   bekommstTitel: "Esto es lo que recibís",
   bekommst: [
     "Vuestra propia página de invitación con vuestros nombres, la fecha y la dirección",
@@ -475,6 +496,11 @@ const FR: KissText = {
   einlSprachen: "Chaque invité la voit dans sa langue — automatiquement.",
   einlVorschau: "Voilà ce que voient vos invités",
   kleidTitel: "Choisissez votre robe (facultatif)",
+  paarTitel: "Ou une photo de vous deux",
+  paarHint: "Nous vous découpons tous les deux.",
+  paarFehler: "Nous n’avons pas trouvé deux visages sur cette photo — essayez-en une autre, ou envoyez les deux photos séparément.",
+  paarBusy: "Lecture de la photo …",
+  paarStoerung: "Cela n’a pas fonctionné chez nous à l’instant — réessayez dans un instant.",
   bekommstTitel: "Ce que vous recevez",
   bekommst: [
     "Votre propre page d’invitation avec vos noms, la date et l’adresse",
@@ -559,6 +585,11 @@ const PT: KissText = {
   einlSprachen: "Cada convidado vê-o na sua língua — automaticamente.",
   einlVorschau: "É assim que os vossos convidados veem",
   kleidTitel: "Escolhe o teu vestido (opcional)",
+  paarTitel: "Ou uma foto dos dois",
+  paarHint: "Recortamos os dois a partir dela.",
+  paarFehler: "Não encontrámos duas caras nessa foto — tentem outra ou enviem as duas fotos em separado.",
+  paarBusy: "A ler a foto …",
+  paarStoerung: "Agora não funcionou do nosso lado — tentem novamente daqui a pouco.",
   bekommstTitel: "Isto é o que recebem",
   bekommst: [
     "Uma página de convite só vossa, com os nomes, a data e a morada",
@@ -644,6 +675,11 @@ const IT: KissText = {
   einlSprachen: "Ogni invitato lo vede nella sua lingua — automaticamente.",
   einlVorschau: "Ecco cosa vedono i vostri invitati",
   kleidTitel: "Scegli il tuo abito (facoltativo)",
+  paarTitel: "Oppure una foto di voi due",
+  paarHint: "Vi ritagliamo entrambi da lì.",
+  paarFehler: "Non abbiamo trovato due volti in quella foto — provane un’altra o carica le due foto separatamente.",
+  paarBusy: "Lettura della foto …",
+  paarStoerung: "Ora non ha funzionato da parte nostra — riprova tra un momento.",
   bekommstTitel: "Ecco cosa ricevete",
   bekommst: [
     "Una pagina d’invito tutta vostra, con i nomi, la data e l’indirizzo",
