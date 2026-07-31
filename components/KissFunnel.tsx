@@ -13,7 +13,6 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import TonKnopf from "@/components/TonKnopf";
 import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
-import Reaktionen from "@/components/Reaktionen";
 import { kissText } from "@/lib/kiss-i18n";
 import LightSwitch from "@/components/LightSwitch";
 
@@ -221,19 +220,6 @@ const VARIANTS: Record<FunnelVariant, {
    */
   paarUpload?: boolean;
   /**
-   * NUR DAS EIGENE FOTO, KEIN KATALOG (Owner 31.07.2026: „du machst nur upload your photo,
-   * nicht unsere Models").
-   *
-   * Das kehrt seine eigene Ueberlegung von zwei Minuten vorher um — und zwar richtig: „jeder
-   * hat ein Model auf dem Handy". Wer ohnehin ein Foto der Frau hat, um die es ihm geht, dem
-   * ist eine Reihe fremder Frauen kein Angebot, sondern ein Schritt im Weg. Und wer keines
-   * hat, ist nicht der Kunde dieses Trichters.
-   *
-   * Das Karussell bleibt im Code: Andere Themen leben davon, und die Frauen sind gepflegt.
-   * Hier faellt nur die Auswahl weg — uebrig bleibt die eine Karte, die zaehlt.
-   */
-  nurEigenes?: boolean;
-  /**
    * ABO — pro Thema entschieden.
    *
    * Bei der Hochzeit war es zwischendurch AUS: Der Kuss-Trichter hatte „Die heisseste
@@ -260,7 +246,6 @@ const VARIANTS: Record<FunnelVariant, {
   einzelkauf: boolean;
 }> = {
   kiss: {
-    nurEigenes: true,
     prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
@@ -293,21 +278,7 @@ const VARIANTS: Record<FunnelVariant, {
   },
 };
 
-/**
- * DIE KARTE IST DIE SEITE — auch beim Kuss (Owner 31.07.2026: „wir machen das jetzt wie
- * Hochzeit, das Layout, also die Karte ist sichtbar und mit Dialog").
- *
- * Bei der Hochzeit hat das den Trichter ersetzt. Der Grund war nicht Geschmack, sondern die
- * Reihenfolge des Verstehens: Wer zuerst das fertige Ergebnis sieht, weiss sofort, was er
- * baut. Wer zuerst vier Schritte sieht, muss es sich vorstellen — und die meisten tun das
- * nicht, sie gehen.
- *
- * HIER wurde bewusst NICHT neu gebaut, sondern umgehaengt: Der Kuss-Trichter traegt die
- * Kasse, die Video-Lieferung und das Monatsguthaben. Die vier Schritte wandern unveraendert
- * in einen Dialog, die Karte kommt darueber, und der Kaufblock bleibt, wo er war. Kein
- * einziger Handgriff am bezahlten Weg — der laeuft gerade.
- */
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "" }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string }) {
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }: { variant?: FunnelVariant; code?: string; lang?: string }) {
   const V = VARIANTS[variant];
   // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
   const T = kissText(lang, variant);
@@ -317,38 +288,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // nebeneinanderlegen kann; das Thema steckt in lookId.
   const track = (step: string) =>
     void logFunnelEvent(`funnel_${step}`, { lookId: `funnel-${variant}`, lookName: `${variant}-Trichter` });
-  // Die Schritte liegen im Dialog. Zu ist der Normalfall: Dann steht die Karte allein da.
-  const [stufenOffen, setStufenOffen] = useState(false);
-  /**
-   * FRISCH ERZEUGT ODER NUR WIEDERHERGESTELLT? (Owner 31.07.2026: „sieht das der User? Mein
-   * Bild?" — und gleich danach: „er muss das Video sehen".)
-   *
-   * Sein Bild sieht KEIN Fremder: Es liegt in seinem eigenen Browser (MERK_KEY) und wird nie
-   * ausgeliefert. Aber ER sah es — und damit verdeckte ein altes Ergebnis beim naechsten
-   * Besuch genau das, was die Seite verkauft: das VIDEO.
-   *
-   * Deshalb zwei verschiedene Dinge, die vorher eines waren: Ein Bild, das er GERADE erzeugt
-   * hat, gehoert in die Karte — das ist die Belohnung. Ein Bild von gestern gehoert es nicht;
-   * dort laeuft wieder das Beispiel. Der Kaufblock kennt den Unterschied nicht und arbeitet
-   * mit beiden weiter — wer bezahlt hat, soll sein Ergebnis nicht verlieren.
-   */
-  const [frischErzeugt, setFrischErzeugt] = useState(false);
-
-  /**
-   * „PERSONEN ERSETZEN" AUS DER GALERIE (Owner 31.07.2026). Jedes Beispiel unten traegt einen
-   * Knopf; er scrollt nach oben und oeffnet hier die Schritte. Ueber ein Fenster-Ereignis,
-   * weil Galerie und Trichter zwei getrennte Bausteine auf derselben Seite sind — sonst
-   * muesste der halbe Zustand durch die Seite gereicht werden.
-   */
-  useEffect(() => {
-    const auf = () => { setSchritt(1); setStufenOffen(true); };
-    window.addEventListener("lb-schritte-oeffnen", auf);
-    return () => window.removeEventListener("lb-schritte-oeffnen", auf);
-  }, []);
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
-  const [useCustom, setUseCustom] = useState(VARIANTS[variant].nurEigenes || VARIANTS[variant].upFirst); // „Your Model"-Karte vorn
+  const [useCustom, setUseCustom] = useState(VARIANTS[variant].upFirst); // „Your Model"-Karte vorn
   const [photo, setPhoto] = useState("");          // eigenes Foto (Data-URL)
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
@@ -405,24 +348,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // besser was passiert"). Vorher lief das Rendern unter den Schritten weiter — man sah
   // nicht, dass überhaupt etwas passiert.
   const [schritt, setSchritt] = useState<1 | 2 | 3 | 4>(1);
-
-  /**
-   * SCHRITT 4 GEHOERT NICHT MEHR IN DEN DIALOG (Owner 31.07.2026: „hier kommt nichts" — ein
-   * leeres Fenster mit der Ueberschrift „4 · Dein Bild").
-   *
-   * Er hat recht, und es ist eine Folge des Umbaus: Schritt 4 WAR der Ergebnis-Bildschirm.
-   * Seit die Karte oben das Ergebnis traegt, ist im Dialog nichts mehr uebrig — die
-   * Ueberschrift stand allein da.
-   *
-   * Statt die Ueberschrift zu verstecken, schliesst der Dialog. Das ist die ehrlichere
-   * Antwort: Wer bei Schritt 4 ist, hat sein Bild — und das steht dahinter. Hier zaehlt jeder
-   * Weg dorthin, nicht nur die frische Erzeugung: auch das bezahlte Video, der
-   * wiederhergestellte Stand und der Sprung aus der Galerie.
-   */
-  useEffect(() => {
-    if (schritt >= 4) setStufenOffen(false);
-  }, [schritt]);
-
   // SPANNUNG VOR DER KASSE (Owner 30.07.2026: „Fake loading und dann sagt: Oh mein Gott ist
   // das heiss — zahlen um das Ergebnis zu sehen … er hat nämlich nichts bezahlt, nur gegafft").
   // Erst die Render-Show über SEINEM Bild, dann die Kasse. Nicht sofort auf Stripe springen.
@@ -883,88 +808,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Nimmt den gemerkten Stand mit: Sonst ist das Foto nach einem Neuladen wieder da, und sie
    * denkt zu Recht, das Löschen sei kaputt.
    */
-  /**
-   * DAS ERGEBNIS AUS SEINER ANSICHT NEHMEN (Owner 31.07.2026: „dann will ich es löschen
-   * können" — und als Dauerregel schon am selben Tag: „jedes Bild darf der User löschen aus
-   * seiner Ansicht. Es darf nie da bleiben.").
-   *
-   * Aus SEINER Ansicht, nicht aus dem System: In der Galerie des Betreibers bleibt es stehen
-   * („bei mir in der Gallerie müssen sie als Beweis bleiben, auch wenn sie es löschen") — das
-   * ist der Nachweis, wer was erzeugt hat. Hier verschwindet nur, was er sieht: der Zustand
-   * und der Browser-Speicher. Danach laeuft in der Karte wieder das Beispielvideo.
-   */
-  /**
-   * DER GRIFF AUF DER KARTE (Owner 31.07.2026: „richtiges CTA und beim Klick auf Video kommt
-   * direkt Upload" — „und das genauso", fuer die Karte oben).
-   *
-   * Das ganze Bild ist der Knopf: Wer ein Beispiel ansieht und antippt, meint genau das. Ihn
-   * danach eine kleine Schaltflaeche suchen zu lassen, ist eine Huerde ohne Grund.
-   *
-   * Die Flaeche faengt erst unter dem Ton-Knopf an (`top-16`), sonst laege sie darueber und
-   * die Musik waere nicht mehr einzuschalten. Ein <div> statt <button>, weil ein Knopf im
-   * Knopf kaputtes HTML ist — und darin ein <span> in Gold, damit es aussieht wie jeder
-   * andere Knopf der Karte und nicht wie eine Bildunterschrift.
-   */
-  /**
-   * WIEDER AN — Korrektur einer Fehlentscheidung von mir (Owner 31.07.2026: „die Leute sehen
-   * gerade kein Ergebnis").
-   *
-   * Ich hatte diesen Block abgeschaltet, weil das Bild zweimal auf der Seite stand. Die Karte
-   * oben zeigt aber NUR das fertige, freigegebene Bild. Dieser Block traegt drei Zustaende,
-   * die sie nicht kennt:
-   *
-   *   1. die UNSCHAERFE vor der Zahlung (`frei || isStaff` — sonst `blur-2xl`),
-   *   2. die Render-Show waehrend der Erzeugung (`videoShow`),
-   *   3. die Herzchen und Zurufe.
-   *
-   * Ein Ergebnis doppelt zu sehen ist haesslich. Gar keines zu sehen ist kaputt. Also erst
-   * richtig, dann schoen: Der Block bleibt an, bis die Karte alle drei Zustaende traegt und
-   * das an einem echten Durchlauf geprueft ist — nicht nur an der Darstellung.
-   */
-  const ALTES_ERGEBNIS_FENSTER = true;
-
-  /**
-   * DIE SCHRITTE OEFFNEN — IMMER BEIM ERSTEN (Owner 31.07.2026: „Klick auf Bilder öffnet
-   * Schritt 4 und ist leer" — „ich kann gar nichts uploaden").
-   *
-   * Das war ein echter Fehler und er hat mich zwei Meldungen gekostet, bis ich ihn verstanden
-   * habe: Wer ein Ergebnis hat, steht auf Schritt 4. Der Knopf oeffnete den Dialog, ohne
-   * zurueckzusetzen — also stand dort der ERGEBNIS-Schritt, und der ist im Dialog leer, weil
-   * das Ergebnis inzwischen in der Karte liegt. Kein Upload, keine Fotos, nichts.
-   *
-   * „Personen ersetzen" heisst von vorn. Also zurueck auf Schritt 1, und zwar an EINER
-   * Stelle, ueber die alle Wege laufen: der Knopf auf der Karte, die Tastatur und der Ruf aus
-   * der Galerie. Drei Aufrufer, die dasselbe tun muessen, sind sonst drei Gelegenheiten, es
-   * einmal zu vergessen.
-   */
-  const schritteOeffnen = () => {
-    setSchritt(1);
-    setStufenOffen(true);
-    track("photo");
-  };
-
-  const kartenGriff = (text: string) => (
-    <div role="button" tabIndex={0} aria-label={text}
-      onClick={schritteOeffnen}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schritteOeffnen(); } }}
-      className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer items-end justify-center p-4">
-      {/* CI-KNOPF, NICHT KARTEN-GOLD (Owner 31.07.2026: „du nimmst die falschen Farben für
-          CTA, kein Gold sondern blau bei light und gelb bei dark").
-          `lb-gold` ist genau dieser Knopf: gelb auf dunkel, und die Hell-Fassung faerbt ihn
-          blau. Das Karten-Gold (`lb-karte-cta`) bleibt, wo es hingehoert — auf den kleinen
-          Knoepfen INNERHALB der Einladung. Ein Kaufknopf muss ueberall gleich aussehen,
-          sonst erkennt ihn niemand wieder. */}
-      <span className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
-        {text}
-      </span>
-    </div>
-  );
-
-  const ergebnisLoeschen = () => {
-    setBild(""); setBildPfad(""); setFrischErzeugt(false); setVideoUrl(""); setTeaser(false);
-    try { localStorage.removeItem(MERK_KEY); } catch { /* privater Modus */ }
-  };
-
   const fotoLoeschen = (wer: "sie" | "er") => {
     if (wer === "sie") { setCustomModel(""); setUseCustom(false); }
     else setPhoto("");
@@ -1147,20 +990,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // Der Kasten stand weit unten und ging unter (Owner 30.07.2026: „ja das steht
         // tatsächlich, aber es geht unter"). Also hinspringen, wie beim Ergebnis auch.
         setGesperrt(true); setStatus(""); setBusy(false);
-        /**
-         * DEN KARTEN UNTEN BESCHEID SAGEN (Owner 31.07.2026: „ein zweites gibt es nicht, es
-         * kostet Geld, ich habe das in 1 geändert" — und danach Weg 3 gewaehlt).
-         *
-         * Vier Karten mit „Personen ersetzen" versprechen vier Versuche. Es gibt genau einen.
-         * Wer nach dem Verbrauch noch dreimal dieselbe Einladung liest, laedt zweimal Fotos
-         * hoch und bekommt zweimal eine Absage — das ist der Moment, in dem Leute schliessen
-         * statt zu kaufen. Ab jetzt tragen die Karten den Kaufknopf.
-         *
-         * Im Speicher, nicht nur im Zustand: Der Deckel gilt je Geraet und Tag, also muss die
-         * Beschriftung auch einen Seitenwechsel ueberleben.
-         */
-        try { localStorage.setItem("lb_gratis_verbraucht", "1"); } catch { /* privater Modus */ }
-        try { window.dispatchEvent(new CustomEvent("lb-gratis-verbraucht")); } catch { /**/ }
         setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
         return;
       }
@@ -1174,7 +1003,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         return;
       }
       setBild(d.image); setBildPfad(d.imagePath ?? ""); setGesperrt(false); setGescheitert(false); setBusy(false); setStatus("");
-      setFrischErzeugt(true);
       // SOFORT MERKEN, nicht erst nach der Adresse (Owner 30.07.2026: „das rendering ist
       // schon wieder abgebrochen" — nach ?cancelled=1 von Stripe). Beim Admin wird das
       // E-Mail-Feld übersprungen, also lief das Merken dort nie: Bild weg, sobald die Seite
@@ -1509,72 +1337,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
-      {/* ── DIE KARTE. Immer sichtbar, immer oben. ────────────────────────────────────────
-          Sie zeigt das Ergebnis, sobald es da ist — davor das Beispielvideo des Themas. So
-          sieht der Besucher in der ersten Sekunde, was entsteht, statt es sich vorstellen zu
-          muessen. Ein Tipp auf den Knopf darunter oeffnet die Schritte.
-
-          OHNE NAMEN: Beim Kuss gibt es kein Brautpaar. Dieselbe Karte, nur die Namenszeile
-          faellt weg (siehe EinladungKarte). */}
-      <EinladungKarte
-        sprache={lang} sie="" er="" demo
-        titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
-        video={
-          /* DAS ERGEBNIS GEHOERT IN DIE KARTE (Owner 31.07.2026: „auf dieser Seite will ich
-             nicht mein Bild als zweiter Stelle sehen. Es muss in die Karte sein und Replace
-             People Button wieder drauf").
-             Ich hatte hier zwischen „gerade erzeugt" und „wiederhergestellt" unterschieden,
-             damit ein altes Bild nicht das Beispielvideo verdeckt. Der Anlass dafuer war aber
-             ein anderer: Es gab damals GAR KEIN Beispielvideo (examplePaths war leer). Jetzt
-             gibt es eines — und wer ein Ergebnis hat, will es sehen, nicht suchen. Ohne
-             Ergebnis laeuft weiter das Beispiel. */
-          bild ? (
-            <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
-              {(frei || isStaff) && <Reaktionen variant={variant} />}
-              {/* Roter Papierkorb, weiss hinterlegt — dieselbe Form wie an jedem anderen Bild
-                  im Projekt, damit man ihn nicht suchen muss. */}
-              <button type="button" onClick={ergebnisLoeschen} aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).loeschen}
-                style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                className="absolute left-2 top-2 z-10 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
-                <Trash2 className="h-5 w-5" />
-              </button>
-              {kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
-            </div>
-          ) : beispielVideo ? (
-            <div className="relative">
-              <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
-                tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
-                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
-              {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
-                  sie auf dem eigenen Bild belohnen. */}
-              <Reaktionen variant={variant} />
-              {kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
-            </div>
-          ) : (
-            <div className="grid h-[260px] w-full place-items-center px-6 text-center">
-              <span className="font-serif text-[15px] font-bold">{T.pickHint}</span>
-            </div>
-          )
-        }
-      />
-      {/* Der Knopf unter der Karte ist weg: Er steht jetzt AUF dem Bild, und zwei gleiche
-          Aufforderungen uebereinander sind einer zu viel. */}
-
-      {/* ── DIE SCHRITTE, unveraendert, nur in einem Dialog ──────────────────────────────
-          Model waehlen (unsere Frauen ODER ein eigenes Foto — Owner 31.07.2026: „hier nehmen
-          die Leute auch ein Model … jeder hat ein Model auf dem Handy"), sein Foto, der Kuss.
-          Nichts davon ist angefasst: Der Kuss-Trichter traegt Kasse, Video-Lieferung und
-          Monatsguthaben, und der laeuft gerade. Umgehaengt, nicht neu gebaut. */}
-      {stufenOffen && (
-      <div className="fixed inset-0 z-[80] overflow-y-auto" style={{ background: "rgba(0,0,0,0.72)" }}
-        onClick={() => setStufenOffen(false)}>
-        <div className="lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4" onClick={e => e.stopPropagation()}>
-          <button type="button" onClick={() => setStufenOffen(false)} aria-label={T.back}
-            className="lb-chip mb-3 grid h-9 w-9 place-items-center rounded-full transition active:scale-95">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
         {(V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
@@ -1583,12 +1345,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </div>
 
       {schritt === 1 && (<>
-      {/* Ohne Katalog heisst der Schritt nicht mehr „Waehle sie" — es gibt nichts zu waehlen.
-          Und der Hinweis „oder wische zu einer von uns" waere schlicht falsch. */}
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.nurEigenes ? T.upTitle : T.step1}</p>
-      {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
-          es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
-      {!V.nurEigenes && <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>}
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step1}</p>
+      <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>
 
       {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
           bei der Hochzeit sind es IHRE beiden Gesichter, und beide gehoeren auf einen
@@ -1691,17 +1449,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
 
       {!V.paarUpload && (() => {
-        // Ohne Katalog gibt es nichts zu laden — sonst dreht sich hier ewig ein Rad.
-        if (!V.nurEigenes && models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
+        if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
         const YOURMODEL: Model = { id: "__yourmodel", name: T.upTitle, photoUrl: "" };
-        const cards = V.nurEigenes ? [] : [...models];
+        const cards = [...models];
         // IN DIE MITTE, nicht ganz an den Anfang (Owner 30.07.2026: „mach die nicht ganz am
         // Anfang des Karussells sondern die Mitte"). Vorn wirkte die Upload-Karte wie der
         // vorgeschriebene Weg; in der Mitte steht sie gleichberechtigt neben unseren Frauen,
         // und man sieht links wie rechts, dass es Auswahl gibt.
-        const uploadIdx = V.nurEigenes ? 0 : V.upFirst ? Math.floor(cards.length / 2) : Math.min(2, cards.length);
+        const uploadIdx = V.upFirst ? Math.floor(cards.length / 2) : Math.min(2, cards.length);
         cards.splice(uploadIdx, 0, YOURMODEL);
         const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
         // Nach-vorn-holen zentriert NUR (auch die „Your model"-Karte — Owner-Vorgabe);
@@ -2108,9 +1865,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </p>
 
       </>)}
-        </div>
-      </div>
-      )}
 
       {/* BLEIBT IMMER STEHEN, in jedem Schritt (Owner 30.07.2026: „die Beispielvideos und
           Buttons bleiben dann drunter immer"). Wer schon weiss, dass er das Video will, soll
@@ -2282,15 +2036,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             Bild fuellt sie aus: Rahmen und Foto koennen nicht auseinanderlaufen. */}
         {/* DAS ERZEUGTE BILD — scharf, kein Schloss (Owner 30.07.2026: „Bild gratis Mann,
             Video gegen Geld"). Darunter der Weg zum Video: Admin gratis, Kunde 9,99 € oder Abo. */}
-        {/* NICHT MEHR ZWEIMAL (Owner 31.07.2026: „hier kommt zwei mal das Bild" — „ich will
-            nicht mein Bild als zweiter Stelle sehen").
-            Dieser Block WAR der Ergebnis-Bildschirm. Seit die Karte oben das Ergebnis traegt,
-            zeigte er dasselbe Foto ein zweites Mal darunter. Er bleibt trotzdem stehen, denn
-            an ihm haengt der VIDEO-Spieler: Wer bezahlt hat, bekommt sein Video hier. Beim
-            reinen Bild schweigt er jetzt.
-            Herzchen, Ton und Teilen sollen laut Owner ohnehin in die Karte wandern — das ist
-            Punkt 0a in OFFEN.md und der Schritt, der diesen Block ganz aufloest. */}
-        {ALTES_ERGEBNIS_FENSTER && bild && !videoUrl && (
+        {bild && !videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {V.musik && (<>
@@ -2310,8 +2056,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   das Bild darunter im Unscharfen. Die Adresse wird jetzt VOR der Erzeugung
                   eingesammelt — wer bis hierher kommt, hat sie längst gegeben und sieht sein
                   Ergebnis sofort. */}
-              {/* Dieselbe Ebene wie in der Karte — ein Baustein, keine zweite Kopie. */}
-              {(frei || isStaff) && !videoShow && <Reaktionen variant={variant} />}
+              {/* AUFSTEIGENDE HERZEN auf dem fertigen Bild. */}
+              {(frei || isStaff) && !videoShow && (
+                <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                  {[...Array(14)].map((_, i) => (
+                    <span key={i} className="lb-heart"
+                      style={{
+                        left: `${6 + (i * 6.7) % 88}%`,
+                        animationDelay: `${(i * 0.31) % 4.2}s`,
+                        animationDuration: `${3.6 + (i % 5) * 0.35}s`,
+                        fontSize: `${14 + (i % 4) * 5}px`,
+                        ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (8 + (i % 3) * 10)}px`,
+                      }}>
+                      {i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
+                    </span>
+                  ))}
+                  {/* Reaktionen als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}
+                  {(variant === "wedding"
+                    ? ["😍", "❤️", "so schön", "💍", "wow", "perfect", "🥂", "💐"]
+                    : ["wow 🔥", "😍", "yes — kiss her!", "💋", "so hot", "❤️", "omg", "perfect"]
+                  ).map((t, i) => (
+                    <span key={i} className="lb-bubble"
+                      style={{
+                        left: `${8 + (i * 11) % 66}%`,
+                        animationDelay: `${1.2 + (i * 0.72) % 5.4}s`,
+                        animationDuration: `${5 + (i % 3) * 0.6}s`,
+                        ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (10 + (i % 3) * 8)}px`,
+                      }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* RENDER-SHOW AUF DEM BILD (Owner 30.07.2026: „du musst wieder das Fake-
                   Rendering zeigen und auf dem Bild machst du den Button"). Vorher lief die
