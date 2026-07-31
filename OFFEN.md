@@ -29,26 +29,20 @@ eine Entscheidung war.
 
 ---
 
-## 0b · EIN FEHLER, DER BLEIBT
+## 0b · Der Kuss-Auftrag ist gesetzt — aber ungeprueft
 
-### b) Der Kuss-Trichter erzeugt gar keinen Kuss
+Kiss hat seit 31.07.2026 einen eigenen Auftrag: „sharing a tender kiss on the lips
+— lips actually touching, eyes closed". Vorher lief es im generischen Zweig, und
+der sagt „embracing each other at a beautiful holiday destination" — der Auftrag
+fuer Holiday.
 
-> „das Bild ohne Kuss"
+**Nicht am Ergebnis geprueft.** `FREE_PREVIEW_PER_DEVICE` steht auf 1 und der
+Owner hat gesagt: „es kostet Geld". Ein Durchlauf gehoert gemacht, bevor Werbung
+darauf laeuft. Zwei Dinge dabei ansehen:
 
-Der Grund steht in `app/api/free-preview/route.ts`: Kiss benutzt den **generischen**
-Auftragszweig, und der sagt wörtlich
-
-> „showing BOTH people together at a beautiful holiday destination …
-> **embracing each other and smiling**"
-
-Kein Kuss — das ist der Auftrag für **Holiday**. Kiss und Holiday teilen sich
-denselben Zweig. Die Hochzeit hat einen eigenen (dort steht ausdrücklich, dass
-sie sich NICHT küssen sollen). Kiss braucht ebenso einen eigenen: küssend,
-Gesichter berühren sich, sonst dieselben Regeln (`IDENTITAET_RULE`, `alterSatz`,
-`COVERAGE_RULE`).
-
-Das ist kein Schönheitsfehler — das Produkt heißt „Küsse jede Frau" und liefert
-eine Umarmung.
+- Kuessen sie sich wirklich (Lippen), oder wieder Wange an Wange?
+- Kommt die Bildpruefung durch? Ein Kuss ist harmlos, aber `COVERAGE_RULE` und
+  das Eingangsfoto entscheiden — bei Ablehnung greift der Gesichtsausschnitt.
 
 ---
 

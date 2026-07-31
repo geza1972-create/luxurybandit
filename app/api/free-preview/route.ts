@@ -413,7 +413,22 @@ export async function POST(request: Request) {
     vorlagenSatz,
     // Owner 30.07.2026: „sag sie umarmen sich an einem schönen Urlaubsort." Umarmen trifft
     // besser als „nebeneinander stehen" — es erzeugt Nähe, ohne dass die Bildprüfung anspringt.
-    "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed. "
+    /**
+     * BEIM KUSS WIRD GEKUESST (Owner 31.07.2026: „das Bild ohne Kuss" — „hast du den Prompt
+     * in Kuss geändert?").
+     *
+     * Kiss lief bis hierher im GENERISCHEN Zweig, und der lautet woertlich „embracing each
+     * other and smiling at a beautiful holiday destination". Das ist der Auftrag fuer
+     * HOLIDAY. Das Produkt heisst „Kuesse jede Frau" und lieferte eine Umarmung auf einer
+     * griechischen Terrasse — der Kern des Versprechens fehlte im Auftrag.
+     *
+     * „lips touching" steht ausdruecklich da: „kissing" allein reicht dem Modell nicht, es
+     * malt dann Wange an Wange. Und ein Kuss bleibt ein Kuss — die Deckungsregel weiter
+     * unten sorgt dafuer, dass beide angezogen bleiben.
+     */
+    theme === "kiss"
+    ? "Generate ONE photorealistic image of these two people sharing a tender kiss on the lips — lips actually touching, eyes closed, faces close together, his hand on her cheek or waist. Intimate but tasteful. "
+    : "Generate ONE photorealistic image showing BOTH people together at a beautiful holiday destination with lots of sunshine and flowers around them, embracing each other and smiling, happy and relaxed. "
     // IHR EIGENES OBERTEIL BLEIBT (Owner 30.07.2026: „die Dame hatte ein schoenes rotes
     // Oberteil. Ich haette das gerne behalten. Das war schon aus Seide. Er hat zwar was
     // Schoenes generiert, aber nicht in ihrer Farbe.")

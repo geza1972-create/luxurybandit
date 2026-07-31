@@ -110,6 +110,8 @@ export default function EinladungKarte({
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const hatNamen = !!(sie || er);
   const tag = karteDatum(datum, sprache);
+  /** Steht unter dem Bild noch etwas? Datum, Ort, Nummer oder die Herkunftszeile. */
+  const hatUnten = !!(tag || ort || adresse || telefon || fuss || aufDatum || aufOrt);
 
   return (
     <div className="lb-karte relative overflow-hidden rounded-[20px] px-5 pb-6 pt-7 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
@@ -135,7 +137,13 @@ export default function EinladungKarte({
         )}
         {hatNamen && <DividerOrnament className="mt-2.5" />}
 
-        <div className="mt-4 overflow-hidden rounded-[14px]">{video}</div>
+        {/* ABSTAND NACH UNTEN, WENN NICHTS MEHR FOLGT (Owner 31.07.2026: „unten die
+            Ornamente brauchen Abstand zum Bild").
+            Auf der Einladung stehen unter dem Bild noch Datum, Ort und Nummer — die halten
+            die Eckranken auf Abstand. Beim Kuss faellt das alles weg, das Bild ist das letzte
+            Element, und die unteren Ranken sassen direkt darauf. Eine gedruckte Karte hat
+            unten immer einen Rand; ohne ihn sieht sie nach Fehler aus, nicht nach Karte. */}
+        <div className={`mt-4 overflow-hidden rounded-[14px] ${hatUnten ? "" : "mb-5"}`}>{video}</div>
 
         {/* Beim Gast entscheidet der INHALT, ob die Zeile steht — eine leere Zeile „Wann" auf
             einer verschickten Einladung waere ein Fehler. Beim Bauen entscheidet der GRIFF:
