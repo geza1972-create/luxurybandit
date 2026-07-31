@@ -1890,7 +1890,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           anfaengt, hatte die Knoepfe damit schon in Schritt 1 wieder vor der Nase (Owner
           31.07.2026: „hast du mir die Buttons wieder rein gemacht?"). Es braucht beides: ein
           Ergebnis UND den Schritt, auf dem es zu sehen ist. */}
-      {schritt >= 4 && !!bild && !isStaff && !bezahlt && !videoUrl && (
+      {V.einzelkauf && schritt >= 4 && !!bild && !isStaff && !bezahlt && !videoUrl && (
         <div className="mt-2 flex gap-2">
           {V.einzelkauf && (
             <button type="button" onClick={() => void unlock("once")}
@@ -2182,7 +2182,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                     {videoShow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     {videoShow ? T.makingKiss : T.makeVideo}
                   </button>
-                  {V.abo && (
+                  {V.abo && V.einzelkauf && (
                     <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                       style={{ color: "#fff" }}
                       className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">

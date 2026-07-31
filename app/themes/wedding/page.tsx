@@ -201,118 +201,19 @@ export default async function WeddingThemePage({ searchParams }: {
                 Briefmarke — das ist das Bild, das den Trichter verkauft. Der Ton startet
                 stumm, weil jeder Browser Ton ohne Zutun blockiert; ein Tipp auf den Knopf
                 schaltet ihn an (siehe ExampleVideos). */}
-            {examples.length > 0 && (
-              <div className="mt-12">
-                <SectionTitle>{T.examples}</SectionTitle>
-                {/* IN DER KARTE, NICHT NACKT (Owner 31.07.2026: „unten zeigst du die
-                    Videos. Ich will die Einladungskarte sehen. Der User muss gleich sehen,
-                    was er bekommt"). Namen und Ort sind erkennbar Beispiele; das Datum wird
-                    hier gerechnet und nicht eingetippt, sonst steht in einem halben Jahr ein
-                    Termin in der Vergangenheit auf der Verkaufsseite. */}
-                <ExampleVideos urls={examples} karte={{
-                  sprache: L,
-                  paare: [
-                    {
-                      sie: BEISPIEL_NAMEN[0][0], er: BEISPIEL_NAMEN[0][1], datum: beispielDatum,
-                      ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en,
-                      adresse: BEISPIEL_ADRESSE[L] ?? BEISPIEL_ADRESSE.en,
-                      // Nummer nur zum Zeigen — der Knopf ist auf der Verkaufsseite nicht
-                      // verlinkt, sonst schreiben Fremde einer erfundenen Nummer.
-                      telefon: "+00 000 000 000", demo: true,
-                    },
-                  ],
-                }}
-                  sprachen={SPRACH_LABELS}
-                  sprachenTitel={T.einlSprachen} />
-                {/* UND DARUNTER DIE ZUSAGEN (Owner 31.07.2026: „ich brauche unter der
-                    Videokarte noch so eine Karte, wo es steht als Beispiel: wer zugesagt
-                    hat"). Dieselbe Komponente wie in der echten Einladung, nur ohne
-                    Knoepfe — was hier steht, gibt es also wirklich. */}
-                <ZusagenKarte sprache={L} demo zusagen={BEISPIEL_ZUSAGEN} />
-                {/* UND DARUNTER DIE GRUPPE (Owner 31.07.2026: „du musst das zeigen und
-                    simulieren mit einigen Kommentaren unter der Gaesteliste"). Dieselbe
-                    Komponente wie in der echten Einladung, nur ohne Eingabefeld. */}
-                {/* DER VERWEIS AUFS ECHTE BEISPIEL (Owner 31.07.2026: „das muss als Preview
-                    verlinkt werden in der Topic"). Die Karten hier sind eine Vorschau IN der
-                    Verkaufsseite; erst die eigene Adresse zeigt, wie es sich anfuehlt, wenn
-                    man den Link von einem Freund bekommt — und genau die kann er auch selbst
-                    verschicken, um es jemandem zu zeigen. */}
-                {/* EINE KARTE, KEIN TEXTLINK (Owner 31.07.2026: „das sieht nach nix aus,
-                    der Button"). Ein umrandeter Zweizeiler liest sich wie Kleingedrucktes.
-                    Mit dem laufenden Bild daneben sieht man in einer halben Sekunde, was
-                    einen erwartet — und tippt darauf, weil es aussieht wie etwas. */}
-                <a href="/einladung/beispiel" target="_blank" rel="noreferrer"
-                  className="mt-3 flex items-center gap-3 overflow-hidden rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-2.5 transition active:scale-[0.99]">
-                  {examples[0] ? (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video src={examples[0]} muted loop playsInline autoPlay preload="metadata"
-                      className="h-[76px] w-[57px] shrink-0 rounded-xl object-cover" />
-                  ) : (
-                    <span className="h-[76px] w-[57px] shrink-0 rounded-xl bg-black/10" />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-black text-[#f6cf51]">{T.beispielLink}</span>
-                    <span className="mt-0.5 block text-[11.5px] font-bold leading-snug text-white/60">{T.einlVorschau}</span>
-                  </span>
-                  <ChevronRight className="mr-1 h-5 w-5 shrink-0 text-[#f6cf51]" />
-                </a>
-                <GruppenChat sprache={L} demo
-                  nachrichten={(BEISPIEL_CHAT_TXT[L] ?? BEISPIEL_CHAT_TXT.en).map((t, i) => ({ name: CHAT_NAMEN[i] ?? "Gast", text: t }))}
-                  news={[{ text: BEISPIEL_NEWS_TXT[L] ?? BEISPIEL_NEWS_TXT.en }]}
-                  sie={BEISPIEL_NAMEN[0][0]} er={BEISPIEL_NAMEN[0][1]} />
-              </div>
-            )}
-            {/* WAS ER BEKOMMT (Owner 31.07.2026: „du musst noch zeigen, was er bekommt").
-                Nachgebessert: „Das ist sehr anstrengend zum Lesen. Weiss auf blau und ohne
-                Icons."
+            {/* HIER WIRD NUR ERZEUGT (Owner 31.07.2026: „es ist alles so kompliziert auf
+                dieser Seite, ich verstehe nichts mehr. Mehrere CTAs" — „auf dieser Seite
+                generiert der User nur, sonst darf er nichts sehen").
 
-                Er hat recht, und zwar aus zwei Gruenden: Sieben Zeilen weisse Schrift auf
-                gesaettigtem Blau ermuedet nach der dritten — heller Grund mit dunkler Schrift
-                liest sich in einem Drittel der Zeit. Und sieben identische Haken tragen keine
-                Information: Das Auge springt so eine Liste an, findet nichts zum Unterscheiden
-                und liest sie deshalb gar nicht. Ein eigenes Sinnbild je Zeile macht aus der
-                Liste sieben Dinge statt einer Wand.
+                Gezaehlt waren es 16 anklickbare Dinge und DREI verschiedene Preis-Knoepfe.
+                Jeder einzelne war fuer sich begruendbar; zusammen haben sie die eine Frage
+                zugedeckt, auf die es ankommt: zwei Fotos hochladen und auf Erzeugen tippen.
 
-                Jede Zeile ist etwas, das es wirklich gibt — eine Liste, die mehr verspricht als
-                die Seite haelt, kostet beim ersten Kunden mehr, als sie einbringt. */}
-            <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: "#1a160f" }}>
-              <p className="text-[16px] font-black">{T.bekommstTitel}</p>
-              <ul className="mt-3 space-y-3">
-                {T.bekommst.map((zeile, i) => {
-                  const Symbol = [FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe][i] ?? Check;
-                  return (
-                    <li key={i} className="flex gap-3">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full"
-                        style={{ background: "rgba(24,119,242,0.10)" }}>
-                        <Symbol className="h-4 w-4" style={{ color: "#1877F2" }} />
-                      </span>
-                      <span className="pt-1 text-[13.5px] font-bold leading-snug" style={{ color: "#2a2620" }}>
-                        {zeile}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-            {/* Preis und Knopf zum Schluss — erst die Karte, dann die Liste, dann die Kasse.
-                BEWUSST AUSSERHALB des Listenkastens: In der hellen Fassung wird der goldene
-                Kasten blau, und ein blauer Knopf darin ist blau auf blau. Auf dem hellen
-                Seitengrund traegt er sich selbst. */}
-            <SubscribeCta code={code} lang={L} hell
-              titel={(ANGEBOT[L] ?? ANGEBOT.en).h}
-              text={(ANGEBOT[L] ?? ANGEBOT.en).p}
-              cta={(ANGEBOT[L] ?? ANGEBOT.en).cta} />
-
-            {/* KEIN ABO AUF DER HOCHZEITSSEITE (Konzept §5, Owner 31.07.2026). Hier stand
-                „Die heisseste KI-Erfahrung freischalten — 24,50 €/Monat": der Kuss-Kasten,
-                der beim Duplizieren ungeprueft mitkam. Eine Hochzeit hat man einmal — ein
-                Monatsabo dafuer ist unglaubwuerdig, und der Ton passt zum Anlass nicht. */}
-
-            {/* DER SICHTBARE TEXT IST DAS SEO (Owner 31.07.2026: „mach die texte nach
-                konzept auf der seite. Es muss seo tauglich sein"). Vier Abschnitte entlang
-                dessen, was Menschen wirklich eintippen: eine Einladung als Video, digital
-                verschicken, was es kostet, wie privat es bleibt. Keine Stichwortliste —
-                Saetze, die auch ein Mensch liest, sonst wertet Google sie ab. */}
+                Beispiele, Sprachauswahl, Vorschaukarte, Leistungsliste und Kaufkasten sind
+                deshalb weg. Sie sind nicht falsch — sie stehen nur am falschen Ort. Was er
+                bekommt, sieht er in SEINER Einladung, gleich nachdem das Bild fertig ist;
+                bezahlt wird, wenn die Probewoche endet. Der Text unten bleibt: Er ist fuer
+                Google, nicht fuer den Besucher, und steht weit unterhalb. */}
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
                 <SectionTitle>A wedding invitation as a video — with the two of you in it</SectionTitle>
