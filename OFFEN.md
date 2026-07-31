@@ -1,6 +1,6 @@
 # Offen — Stand 31.07.2026, spät abends
 
-## Abend-Nachtrag (Branch `kiss-karte`, Commit fb61efa — noch NICHT auf main)
+## Abend-Nachtrag — alles auf `main` (zuletzt a0f3664)
 
 **Erledigt und am echten Lauf geprueft:**
 - Der alte Ergebnis-Block ist AUFGELOEST (geloescht, nicht nur abgeschaltet): Unschaerfe,
@@ -16,12 +16,29 @@
   `free-preview`: Kuss + Fast-Kuss PARALLEL, Umarmung als Netz — es kommt immer ein Bild,
   mit ~60 % Kuss/Fast-Kuss je Lauf. Erwartete Mehrkosten ~0,1 Bild je Lauf.
 
+**Der bezahlte Weg — einmal FATAL gebrochen, gefixt, vom Owner mit echtem Geld bestaetigt:**
+
+Der Umbau hatte den Knopf, der das bezahlte Video anstoesst, in den DIALOG verschoben. Nach
+Stripe laedt die Seite neu, der Dialog ist zu — bezahlt, und nichts passierte („also Kunde
+wurde ausgeraubt. Das ist fatal"). Seit a0f3664:
+
+- Zahlung bestaetigt → der Auftrag laeuft VON SELBST (Wachhund wartet, bis die Fotos aus dem
+  Geraetespeicher zurueck sind, und startet genau einmal). Rueckleitung wie Kassenfenster.
+- Kein Kaufknopf mehr, sobald bezahlt ist — er las sich als zweite Rechnung.
+- **Vom Owner am 31.07.2026 spaet abends live durchgespielt: „ja es hat geklappt".**
+
+**Die gespielte Render-Show ist ersatzlos raus** („ohne diesen Fake"). Sie stammte aus der
+Zeit ohne Gratis-Bild. Heute traegt die Karte den Kaufknopf mit Preis, darunter „Personen
+ersetzen"; wer bezahlt hat, liest „Video erzeugen" ohne Zahl. Herzchen weichen jeder Meldung,
+der Radar laeuft in der Zahl-/Render-Anzeige mit.
+
 **Offen aus dem Abend:**
 - Owner gefragt, ob ein dritter Parallel-Arm (zweiter Fast-Kuss-Wurf, ~80 % Kuss-Quote,
   ~0,4 Bilder je Lauf teurer) gewuenscht ist — Antwort steht aus.
-- Merge auf `main` steht aus (Owner-Freigabe).
-- Nicht am Bildschirm geprueft (Code 1:1 aus dem alten Block umgezogen): die
-  Zahl-Ueberblendungen nach Stripe-Rueckkehr und der bezahlte Video-Weg — kostet Geld.
+- **Dev-Testklappe fuer den Kaufweg.** Der Stripe-Schluessel ist der LIVE-Schluessel, also
+  kann dieser Weg nicht ohne echtes Geld geprueft werden — genau deshalb ist er heute
+  unbemerkt gebrochen. Eine dev-only Klappe (checkout-status liefert `paid`, wenn eine
+  Umgebungsvariable gesetzt ist, die auf Vercel NICHT existiert) macht ihn pruefbar.
 
 ---
 
