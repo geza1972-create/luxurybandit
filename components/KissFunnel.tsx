@@ -293,6 +293,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    */
   const musikRef = useRef<HTMLAudioElement>(null);
   const [ton, setTon] = useState(true);
+  /**
+   * DIE EINLADUNG (Owner 31.07.2026: „ich will dass die Leute das auch als Einladung für die
+   * Hochzeit schicken das Video an die Freunde").
+   *
+   * Bewusst ein Knopf AM fertigen Video und kein Schritt im Trichter: Nur ein kleiner Teil der
+   * Besucherinnen heiratet wirklich. Ein Pflichtfeld „Datum" würde alle anderen vertreiben —
+   * und die sind die Mehrheit.
+   */
+  const [einlOffen, setEinlOffen] = useState(false);
+  const [einlSie, setEinlSie] = useState("");
+  const [einlEr, setEinlEr] = useState("");
+  const [einlDatum, setEinlDatum] = useState("");
+  const [einlOrt, setEinlOrt] = useState("");
+  const [einlBusy, setEinlBusy] = useState(false);
+  const [einlUrl, setEinlUrl] = useState("");
   const runRef = useRef(0);
   // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
   // Kunde wurde ausgeraubt" / „springt wieder auf unlock video"). Siehe Ablauf weiter unten.
@@ -944,6 +959,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       }
       setStatus(T.statusTimeout); setVideoBusy(false); setWahl(true);
     } catch { setStatus(T.statusNetwork); setVideoBusy(false); setWahl(true); }
+  };
+
+  const einladungAnlegen = async () => {
+    if (!videoUrl || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
+    setEinlBusy(true);
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    try {
+      const r = await fetch("/api/einladung", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl, genId, device, lang,
+          sie: einlSie.trim(), er: einlEr.trim(),
+          datum: einlDatum, ort: einlOrt.trim(), email: mail.trim(),
+        }),
+      }).then(x => x.json());
+      if (r?.url) { setEinlUrl(r.url); track("einladung"); }
+      else setStatus(r?.error ?? T.statusNotWork);
+    } catch { setStatus(T.statusNetwork); }
+    setEinlBusy(false);
   };
 
   const zuVideo = async () => {
@@ -1666,6 +1701,61 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
             </a>
+            {/* NUR BEI DER HOCHZEIT: aus dem Video wird eine Einladung, die sie an ihre
+                Gaeste schickt. Das ist die einzige Stelle im Portal, an der ein Kunde uns die
+                naechsten Besucher bringt — deshalb steht der Knopf direkt unter dem Video,
+                im Moment der Freude, und nicht irgendwo im Menue. */}
+            {variant === "wedding" && !einlUrl && (
+              einlOffen ? (
+                <div className="mt-3 rounded-2xl border border-white/15 bg-white/[0.05] p-4">
+                  <p className="text-[14px] font-black text-white">{T.einlTitel}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <input value={einlSie} onChange={e => setEinlSie(e.target.value)} placeholder={T.einlSie}
+                      style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                      className="h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                    <input value={einlEr} onChange={e => setEinlEr(e.target.value)} placeholder={T.einlEr}
+                      style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                      className="h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                  </div>
+                  <input value={einlDatum} onChange={e => setEinlDatum(e.target.value)} type="date" aria-label={T.einlDatum}
+                    style={{ color: "#fff", colorScheme: "dark" }}
+                    className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none focus:border-[#f6cf51]" />
+                  <input value={einlOrt} onChange={e => setEinlOrt(e.target.value)} placeholder={T.einlOrt}
+                    style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                    className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                  <button type="button" onClick={() => void einladungAnlegen()}
+                    disabled={einlBusy || !einlSie.trim() || !einlEr.trim()}
+                    className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-50">
+                    {einlBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {T.einlMachen}
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setEinlOffen(true)}
+                  className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#f6cf51]/60 text-[13px] font-black text-[#f6cf51] active:scale-95 transition">
+                  {T.einlKnopf}
+                </button>
+              )
+            )}
+            {einlUrl && (
+              <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4 text-center">
+                <p className="text-[14px] font-black text-white">{T.einlFertig}</p>
+                <p className="mt-1 break-all text-[11px] font-bold text-white/60">{einlUrl}</p>
+                {/* WhatsApp, nicht E-Mail: In Rumaenien, Italien und Frankreich laeuft so
+                    etwas ueber WhatsApp-Gruppen. Ein reiner Link, kein Konto, keine Anbindung. */}
+                <a href={`https://wa.me/?text=${encodeURIComponent(`${einlSie} & ${einlEr} 💍 ${einlUrl}`)}`}
+                  target="_blank" rel="noreferrer"
+                  className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition">
+                  {T.einlWhatsapp}
+                </a>
+                <button type="button"
+                  onClick={() => { void navigator.clipboard?.writeText(einlUrl); setStatus(T.einlKopiert); }}
+                  style={{ color: "#fff" }}
+                  className="mt-2 flex h-10 w-full items-center justify-center rounded-full border border-white/30 text-[12px] font-black active:scale-95 transition">
+                  {T.einlKopiert.replace("…", "")}
+                </button>
+              </div>
+            )}
             {/* Privat-Hinweis (Owner-Vorgabe): nicht in sozialen Medien teilen. */}
             <p className="mx-auto mt-2 max-w-[280px] text-center text-[11px] font-bold leading-snug text-white/55">
               {T.privateNote}

@@ -1467,6 +1467,54 @@ export type KissLogEntry = {
   paidKind?: "once" | "abo";
 };
 
+/**
+ * DIE HOCHZEITSEINLADUNG (Owner 31.07.2026: „ich will dass die Leute das auch als Einladung
+ * für die Hochzeit schicken das Video an die Freunde").
+ *
+ * Eine eigene Liste, nicht ein Feld am Kiss-Log: Eine Einladung hat einen anderen Lebenslauf
+ * als eine Generierung — sie wird geteilt, geöffnet, gezählt und irgendwann widerrufen. Und
+ * sie ist das Einzige im Portal, das ÖFFENTLICH abrufbar ist; das gehört sauber getrennt von
+ * den Daten, die nur der Admin sehen darf.
+ *
+ * Die Kennung ist der ganze Schutz: lang und zufällig, nirgends verzeichnet, `noindex`.
+ */
+const EINLADUNGEN_PATH = "try-this-look/einladungen.json";
+export type Einladung = {
+  id: string;             // steht in der Adresse
+  createdAt: string;
+  genId?: string;         // zu welcher Generierung sie gehört
+  videoUrl?: string;      // das fertige Video (langlebig signiert)
+  sie?: string;           // ihr Vorname
+  er?: string;            // sein Vorname
+  datum?: string;         // YYYY-MM-DD
+  ort?: string;
+  lang?: string;          // in welcher Sprache die Seite erscheint
+  email?: string;         // wem sie gehört — für Widerruf und Zuordnung
+  device?: string;
+  opens?: number;         // wie oft geöffnet — die Zahl, die über den Kanal entscheidet
+  lastOpenAt?: string;
+  revoked?: boolean;      // sie hat sie zurückgezogen
+};
+
+export async function readEinladungen(): Promise<Einladung[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(EINLADUNGEN_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.entries) ? (data.entries as Einladung[]) : [];
+  } catch { return []; }
+}
+
+export async function writeEinladungen(entries: Einladung[]): Promise<void> {
+  await ensureBucket();
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(EINLADUNGEN_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ entries: entries.slice(0, 2000), savedAt: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error(`Einladungen konnten nicht gespeichert werden (${response.status}).`);
+}
+
 export async function readKissLog(): Promise<KissLogEntry[]> {
   try {
     const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}`);

@@ -52,6 +52,9 @@ export type KissText = {
   // Ergebnis
   download: string; privateNote: string;
   back: string; examples: string;
+  // Die Hochzeitseinladung am fertigen Video (nur in der Hochzeits-Variante sichtbar).
+  einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
+  einlOrt: string; einlMachen: string; einlFertig: string; einlWhatsapp: string; einlKopiert: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
   privat: string;
   // Das Haekchen vor der Erzeugung: AGB, Datenschutz, Speicherung, Angebote.
@@ -117,6 +120,10 @@ const EN: KissText = {
   download: "⬇ Download your video",
   privateNote: "🔒 This video is private — for you only. Please don't share it on social media.",
   back: "← Back", examples: "Real kiss videos 💋",
+  einlKnopf: "💌 Send it as your invitation", einlTitel: "Your wedding invitation",
+  einlSie: "Her first name", einlEr: "His first name", einlDatum: "Date (optional)",
+  einlOrt: "Place (optional)", einlMachen: "Create invitation", einlFertig: "Your invitation is ready",
+  einlWhatsapp: "Send on WhatsApp", einlKopiert: "Link copied",
   privat: "🔒 Private: your photos and your result are never published and never shown to other users.",
   zustimmung: "By uploading a photo and tapping Next you accept the {agb} and the {privacy}, and news & offers by email.",
   zustimmungFehlt: "Please accept the terms first.", agbLink: "terms", datenschutzLink: "privacy policy",
@@ -181,6 +188,10 @@ const DE: KissText = {
   download: "⬇ Dein Video herunterladen",
   privateNote: "🔒 Dieses Video ist privat — nur für dich. Bitte teile es nicht in sozialen Medien.",
   back: "← Zurück", examples: "Echte Kuss-Videos 💋",
+  einlKnopf: "💌 Als Einladung verschicken", einlTitel: "Eure Hochzeitseinladung",
+  einlSie: "Ihr Vorname", einlEr: "Sein Vorname", einlDatum: "Datum (optional)",
+  einlOrt: "Ort (optional)", einlMachen: "Einladung erstellen", einlFertig: "Eure Einladung ist fertig",
+  einlWhatsapp: "Per WhatsApp schicken", einlKopiert: "Link kopiert",
   privat: "🔒 Privat: deine Fotos und dein Ergebnis werden nie veröffentlicht und keinem anderen Nutzer gezeigt.",
   zustimmung: "Mit dem Hochladen eines Fotos und mit „Weiter“ akzeptierst du die {agb} und die {privacy}, und News und Angebote per E-Mail.",
   zustimmungFehlt: "Bitte stimme zuerst zu.", agbLink: "AGB", datenschutzLink: "Datenschutzerklärung",
@@ -245,6 +256,10 @@ const RO: KissText = {
   download: "⬇ Descarcă videoclipul",
   privateNote: "🔒 Videoclipul e privat — doar pentru tine. Te rugăm să nu-l distribui pe rețelele sociale.",
   back: "← Înapoi", examples: "Videoclipuri reale cu sărut 💋",
+  einlKnopf: "💌 Trimite-l ca invitație", einlTitel: "Invitația voastră de nuntă",
+  einlSie: "Prenumele ei", einlEr: "Prenumele lui", einlDatum: "Data (opțional)",
+  einlOrt: "Locul (opțional)", einlMachen: "Creează invitația", einlFertig: "Invitația voastră e gata",
+  einlWhatsapp: "Trimite pe WhatsApp", einlKopiert: "Link copiat",
   privat: "🔒 Privat: pozele și rezultatul tău nu sunt niciodată publicate și nu sunt arătate altor utilizatori.",
   zustimmung: "Încărcând o poză și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
   zustimmungFehlt: "Te rog acceptă mai întâi.", agbLink: "termenii", datenschutzLink: "politica de confidențialitate",
@@ -309,6 +324,10 @@ const ES: KissText = {
   download: "⬇ Descargar tu vídeo",
   privateNote: "🔒 Este vídeo es privado — solo para ti. Por favor, no lo compartas en redes sociales.",
   back: "← Atrás", examples: "Vídeos de besos reales 💋",
+  einlKnopf: "💌 Enviarlo como invitación", einlTitel: "Vuestra invitación de boda",
+  einlSie: "Su nombre (ella)", einlEr: "Su nombre (él)", einlDatum: "Fecha (opcional)",
+  einlOrt: "Lugar (opcional)", einlMachen: "Crear invitación", einlFertig: "Vuestra invitación está lista",
+  einlWhatsapp: "Enviar por WhatsApp", einlKopiert: "Enlace copiado",
   privat: "🔒 Privado: tus fotos y tu resultado nunca se publican ni se muestran a otros usuarios.",
   zustimmung: "Al subir una foto y pulsar Siguiente aceptas los {agb} y la {privacy}, y novedades y ofertas por email.",
   zustimmungFehlt: "Acepta primero las condiciones.", agbLink: "términos", datenschutzLink: "política de privacidad",
@@ -373,6 +392,10 @@ const FR: KissText = {
   download: "⬇ Télécharger ta vidéo",
   privateNote: "🔒 Cette vidéo est privée — rien que pour toi. Merci de ne pas la partager sur les réseaux sociaux.",
   back: "← Retour", examples: "De vraies vidéos de baiser 💋",
+  einlKnopf: "💌 L'envoyer comme invitation", einlTitel: "Votre invitation de mariage",
+  einlSie: "Son prénom (elle)", einlEr: "Son prénom (lui)", einlDatum: "Date (facultatif)",
+  einlOrt: "Lieu (facultatif)", einlMachen: "Créer l'invitation", einlFertig: "Votre invitation est prête",
+  einlWhatsapp: "Envoyer sur WhatsApp", einlKopiert: "Lien copié",
   privat: "🔒 Privé : tes photos et ton résultat ne sont jamais publiés ni montrés à d'autres utilisateurs.",
   zustimmung: "En téléversant une photo et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
   zustimmungFehlt: "Merci d'accepter d'abord.", agbLink: "conditions", datenschutzLink: "politique de confidentialité",
@@ -437,6 +460,10 @@ const PT: KissText = {
   download: "⬇ Descarregar o teu vídeo",
   privateNote: "🔒 Este vídeo é privado — só para ti. Por favor não o partilhes nas redes sociais.",
   back: "← Voltar", examples: "Vídeos de beijo a sério 💋",
+  einlKnopf: "💌 Enviar como convite", einlTitel: "O vosso convite de casamento",
+  einlSie: "O primeiro nome dela", einlEr: "O primeiro nome dele", einlDatum: "Data (opcional)",
+  einlOrt: "Local (opcional)", einlMachen: "Criar convite", einlFertig: "O vosso convite está pronto",
+  einlWhatsapp: "Enviar no WhatsApp", einlKopiert: "Link copiado",
   privat: "🔒 Privado: as tuas fotos e o teu resultado nunca são publicados nem mostrados a outros utilizadores.",
   zustimmung: "Ao carregar uma foto e tocar em Seguinte aceitas os {agb} e a {privacy}, e novidades e ofertas por email.",
   zustimmungFehlt: "Aceita primeiro as condições.", agbLink: "termos", datenschutzLink: "política de privacidade",
@@ -502,6 +529,10 @@ const IT: KissText = {
   download: "⬇ Scarica il tuo video",
   privateNote: "🔒 Questo video è privato — solo per te. Per favore non condividerlo sui social.",
   back: "← Indietro", examples: "Veri video di baci 💋",
+  einlKnopf: "💌 Mandalo come invito", einlTitel: "Il vostro invito di matrimonio",
+  einlSie: "Il nome di lei", einlEr: "Il nome di lui", einlDatum: "Data (facoltativo)",
+  einlOrt: "Luogo (facoltativo)", einlMachen: "Crea l'invito", einlFertig: "Il vostro invito è pronto",
+  einlWhatsapp: "Invia su WhatsApp", einlKopiert: "Link copiato",
   privat: "🔒 Privato: le tue foto e il tuo risultato non vengono mai pubblicati né mostrati ad altri utenti.",
   zustimmung: "Caricando una foto e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
   zustimmungFehlt: "Accetta prima le condizioni.", agbLink: "termini", datenschutzLink: "informativa privacy",
