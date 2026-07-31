@@ -1196,8 +1196,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     } catch { setStatus(T.statusNetwork); setVideoBusy(false); setWahl(true); }
   };
 
+  /**
+   * DIE EINLADUNG ENTSTEHT SCHON AUS DEM GRATIS-BILD (Owner 31.07.2026: „lass doch die Seite
+   * bauen für gratis für die Leute, mit dem Bild nur und Chat und alles").
+   *
+   * Vorher brauchte es das bezahlte Video. Damit stand der einzige Kanal, der sich selbst
+   * weitertraegt, hinter der Kasse — und wurde nie benutzt. Jetzt verschickt sie die Einladung
+   * in der Probewoche an ihre fuenfzig bis hundertfuenfzig Gaeste, und jeder von ihnen sieht,
+   * was das Ding kann, bevor irgendjemand bezahlt hat.
+   */
   const einladungAnlegen = async () => {
-    if (!videoUrl || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
+    if ((!videoUrl && !bild) || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
     setEinlBusy(true);
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -1205,7 +1214,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       const r = await fetch("/api/einladung", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          videoUrl, genId, device, lang,
+          videoUrl, bildPfad: videoUrl ? "" : bildPfad, genId, device, lang,
           sie: einlSie.trim(), er: einlEr.trim(),
           adresse: einlAdresse.trim(), telefon: einlTelefon.trim(),
           datum: einlDatum, ort: einlOrt.trim(), email: mail.trim(),
@@ -2206,7 +2215,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                 Jetzt liegt die fertige Karte unter dem Video und schreibt sich beim Tippen
                 mit. Es ist DIESELBE Komponente wie auf der Seite, die der Gast öffnet; eine
                 nachgebaute Vorschau würde irgendwann etwas anderes zeigen. */}
-            {variant === "wedding" && !einlUrl && (
+            {variant === "wedding" && !einlUrl && (!!videoUrl || !!bild) && (
               <div className="mt-4">
                 <p className="mb-2 text-center text-[11px] font-black uppercase tracking-[0.2em] text-white/45">
                   {T.einlVorschau}
@@ -2220,13 +2229,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   adresse={einlAdresse.trim()}
                   telefon={einlTelefon.trim()}
                   video={
-                    <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
-                      tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton} />
+                    videoUrl
+                      ? <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                          tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton} />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={bild} alt="" className="aspect-[3/4] w-full object-cover" />
                   }
                 />
               </div>
             )}
-            {variant === "wedding" && !einlUrl && (
+            {variant === "wedding" && !einlUrl && (!!videoUrl || !!bild) && (
               einlOffen ? (
                 <div className="mt-3 rounded-2xl border border-white/15 bg-white/[0.05] p-4">
                   <p className="text-[14px] font-black text-white">{T.einlTitel}</p>
@@ -2280,6 +2292,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
               <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4 text-center">
                 <p className="text-[14px] font-black text-white">{T.einlFertig}</p>
                 <p className="mt-1 break-all text-[11px] font-bold text-white/60">{einlUrl}</p>
+                {/* Die Frist steht DA, wo der Link steht — nicht im Kleingedruckten. Wer sie
+                    erst beim Ablauf erfaehrt, hat sie schon an achtzig Leute verschickt und
+                    fuehlt sich hereingelegt; wer sie vorher liest, entscheidet in Ruhe. */}
+                {!videoUrl && (
+                  <p className="mt-2 text-[11px] font-bold leading-snug text-white/70">{T.probeHinweis}</p>
+                )}
                 {/* WhatsApp, nicht E-Mail: In Rumaenien, Italien und Frankreich laeuft so
                     etwas ueber WhatsApp-Gruppen. Ein reiner Link, kein Konto, keine Anbindung. */}
                 <a href={`https://wa.me/?text=${encodeURIComponent(`${einlSie} & ${einlEr} 💍 ${einlUrl}`)}`}

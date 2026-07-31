@@ -1484,6 +1484,22 @@ export type Einladung = {
   createdAt: string;
   genId?: string;         // zu welcher Generierung sie gehört
   videoUrl?: string;      // das fertige Video (langlebig signiert)
+  /**
+   * PROBEWOCHE (Owner 31.07.2026: „lass doch die Seite bauen für gratis für die Leute, mit dem
+   * Bild nur und Chat und alles … aber das läuft dann ab, wenn sie es nicht bezahlen, nach
+   * einer Woche").
+   *
+   * Warum das mehr ist als Grosszuegigkeit: Eine Einladung geht an fuenfzig bis
+   * hundertfuenfzig Menschen. In der Probewoche verschickt sie sie — und jeder Gast sieht,
+   * was das Ding kann, bevor irgendjemand bezahlt hat. Das ist der einzige Kanal im Portal,
+   * der sich selbst weitertraegt; ihn hinter die Kasse zu stellen, hiesse ihn abzuschalten.
+   *
+   * `bildUrl` = die Gratis-Fassung mit dem Standbild. `probeBis` = wann Schluss ist.
+   * `bezahlt` = das Abo laeuft, dann gilt keine Frist mehr.
+   */
+  bildUrl?: string;
+  probeBis?: string;
+  bezahlt?: boolean;
   sie?: string;           // ihr Vorname
   er?: string;            // sein Vorname
   datum?: string;         // YYYY-MM-DD

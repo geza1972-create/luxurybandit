@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readEinladungen, writeEinladungen, type Einladung } from "@/lib/try-this-look-store";
+import { readEinladungen, writeEinladungen, getSignedUrl, type Einladung } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
@@ -230,10 +230,24 @@ export async function POST(request: Request) {
   }
 
   const videoUrl = sauber(body.videoUrl, 2000);
+  /**
+   * DAS BILD KOMMT ALS PFAD, NICHT ALS DATEN-URL.
+   *
+   * Im Trichter liegt das Gratis-Bild als base64-Zeichenkette von ein bis zwei Megabyte. Die
+   * wandert sonst in dieselbe JSON-Datei, in der ALLE Einladungen stehen — nach zwanzig
+   * Einladungen waere die Datei unbrauchbar langsam, und jede Zusage muesste sie neu schreiben.
+   *
+   * Deshalb hier der Speicherpfad, den wir einmal langlebig signieren (zehn Jahre, wie beim
+   * Video). Eine Einladung soll auch in einem Jahr noch aufgehen, wenn ein Gast sie hervorholt.
+   */
+  const bildPfad = sauber(body.bildPfad, 400);
+  const bildUrl = bildPfad.startsWith("try-this-look/")
+    ? ((await getSignedUrl(bildPfad, 60 * 60 * 24 * 365 * 10).catch(() => "")) || "")
+    : sauber(body.bildUrl, 2000);
   const sie = sauber(body.sie, 40);
   const er = sauber(body.er, 40);
-  if (!videoUrl || !sie || !er) {
-    return NextResponse.json({ error: "Video und beide Namen sind nötig." }, { status: 400 });
+  if ((!videoUrl && !bildUrl) || !sie || !er) {
+    return NextResponse.json({ error: "Ein Bild oder Video und beide Namen sind nötig." }, { status: 400 });
   }
 
   // Kennung: lang genug, dass sie niemand rät, kurz genug für eine Nachricht.
@@ -242,7 +256,11 @@ export async function POST(request: Request) {
     id,
     createdAt: new Date().toISOString(),
     genId: sauber(body.genId, 80) || undefined,
-    videoUrl,
+    videoUrl: videoUrl || undefined,
+    bildUrl: bildUrl || undefined,
+    // SIEBEN TAGE, ab dem Anlegen. Lang genug, um sie wirklich zu verschicken und Antworten
+    // zu bekommen; kurz genug, dass die Entscheidung nicht auf die lange Bank kommt.
+    probeBis: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     sie, er,
     datum: sauber(body.datum, 10) || undefined,
     ort: sauber(body.ort, 120) || undefined,
@@ -287,7 +305,8 @@ export async function GET(request: Request) {
     if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
     // Öffentlich, deshalb NUR was auf der Seite steht — keine Adresse, keine Gerätekennung.
     return NextResponse.json({
-      id: e.id, videoUrl: e.videoUrl, sie: e.sie, er: e.er,
+      id: e.id, videoUrl: e.videoUrl, bildUrl: e.bildUrl, probeBis: e.probeBis, bezahlt: !!e.bezahlt,
+      sie: e.sie, er: e.er,
       datum: e.datum ?? "", ort: e.ort ?? "", adresse: e.adresse ?? "",
       telefon: e.telefon ?? "", lang: e.lang ?? "en",
       // Oeffentlich sind Vornamen und Texte — NIE die Adressen der Gaeste.

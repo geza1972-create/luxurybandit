@@ -35,7 +35,19 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const alle = await readEinladungen().catch(() => []);
   const e = alle.find(x => x.id === id);
-  if (!e || e.revoked || !e.videoUrl) notFound();
+  if (!e || e.revoked || !(e.videoUrl || e.bildUrl)) notFound();
+
+  /**
+   * DIE PROBEWOCHE (Owner 31.07.2026). Sieben Tage lang laeuft die Einladung vollstaendig —
+   * mit Zusagen, Neuigkeiten und Gruppe. Danach ist zu, bis das Paar freischaltet.
+   *
+   * Absichtlich eine FREUNDLICHE Sperre und keine leere Seite: Auf der anderen Seite sitzen
+   * die Gaeste, die nichts dafuer koennen. Sie sollen wissen, dass die Hochzeit stattfindet
+   * und woran es liegt — sonst denken sie, es sei abgesagt.
+   */
+  const abgelaufen = !e.bezahlt && !!e.probeBis && new Date(e.probeBis).getTime() < Date.now();
+  const tageUebrig = e.bezahlt || !e.probeBis ? 0
+    : Math.max(0, Math.ceil((new Date(e.probeBis).getTime() - Date.now()) / 86_400_000));
 
   /**
    * DIE SPRACHE DES GASTES, NICHT DIE DES BRAUTPAARS (Owner 31.07.2026: „sollen wir nicht
@@ -69,18 +81,45 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
         </div>
         {/* DIE KARTE — dieselbe Komponente, die im Trichter als Vorschau steht. Was die
             Kundin dort gesehen hat, sieht ihr Gast hier. */}
-        <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""} datum={e.datum} ort={e.ort}
-          adresse={e.adresse} telefon={e.telefon}
-          video={<EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} />} />
+        <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""}
+          datum={abgelaufen ? undefined : e.datum} ort={abgelaufen ? undefined : e.ort}
+          adresse={abgelaufen ? undefined : e.adresse} telefon={abgelaufen ? undefined : e.telefon}
+          video={
+            abgelaufen ? (
+              /* Kein Bild und kein Video mehr — aber ein klarer Satz statt eines leeren Rahmens. */
+              <div className="grid aspect-[3/4] w-full place-items-center px-6 text-center">
+                <div>
+                  <p className="font-serif text-[17px] font-bold">{T.abgelaufen}</p>
+                  <p className="mt-2 font-serif text-[14px] leading-snug opacity-75">{T.abgelaufenGast}</p>
+                </div>
+              </div>
+            ) : e.videoUrl ? (
+              <EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} />
+            ) : (
+              /* PROBEWOCHE: das Gratis-Bild statt des Videos. Fuer den Gast sieht die Karte
+                 gleich aus — er weiss nicht, dass hier noch nichts bezahlt wurde, und das
+                 soll er auch nicht: Es ist ihre Einladung, nicht unsere Verkaufsseite. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={e.bildUrl} alt="" className="aspect-[3/4] w-full object-cover" />
+            )
+          } />
 
         {/* WER KOMMT — direkt unter der Einladung (Owner 31.07.2026). Der Gast sieht, wer
             schon zugesagt hat, und antwortet selbst; mehr als sein Vorname wird nicht
             gefragt. Das ist die Gaesteliste des Paares, ohne dass wir Gaestedaten sammeln. */}
-        <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />
+        {!abgelaufen && <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />}
 
         {/* NEUIGKEITEN UND GRUPPE — der Grund, warum der Gast ueber den Link wiederkommt. */}
-        <GruppenChat sprache={sprache} id={e.id} nachrichten={e.chat ?? []} news={e.news ?? []}
-          sie={e.sie} er={e.er} />
+        {!abgelaufen && (
+          <GruppenChat sprache={sprache} id={e.id} nachrichten={e.chat ?? []} news={e.news ?? []}
+            sie={e.sie} er={e.er} />
+        )}
+
+        {/* NUR FUER DAS PAAR SICHTBAR: wie lange die Probewoche noch laeuft. Der Gast sieht das
+            nicht — fuer ihn ist es einfach die Einladung seiner Freunde. */}
+        {!e.bezahlt && !abgelaufen && tageUebrig > 0 && (
+          <p className="mt-3 text-center text-[11px] font-bold text-white/45">{T.probeTage(tageUebrig)}</p>
+        )}
 
         {/* DIE EINE ZEILE. Mehr Werbung macht die Einladung unsendbar — und dann gibt es
             diesen Kanal gar nicht. */}

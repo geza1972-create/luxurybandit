@@ -55,7 +55,7 @@ export type KissText = {
   back: string; examples: string;
   // Die Hochzeitseinladung am fertigen Video (nur in der Hochzeits-Variante sichtbar).
   einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
-  einlAdresse: string; einlTelefon: string;
+  einlAdresse: string; einlTelefon: string; probeHinweis: string;
   einlSprachen: string; einlVorschau: string; kleidTitel: string;
   paarTitel: string; paarHint: string; paarFehler: string; paarBusy: string; paarStoerung: string;
   paarSchritt1: string; paarSchritt2: string; fotoWeg: string;
@@ -140,6 +140,7 @@ const EN: KissText = {
   einlKnopf: "💌 Send it as your invitation", einlTitel: "Your wedding invitation",
   einlAdresse: "Street, no., postcode, town",
   einlTelefon: "Your WhatsApp number — for RSVPs",
+  probeHinweis: "Free for 7 days — send it to your guests, collect their answers. After that you unlock it with the subscription; the link and every answer stay.",
   einlSprachen: "Each guest sees it in their own language — automatically.",
   einlVorschau: "This is what your guests see",
   kleidTitel: "Pick your dress (optional)",
@@ -233,6 +234,7 @@ const DE: KissText = {
   einlKnopf: "💌 Als Einladung verschicken", einlTitel: "Eure Hochzeitseinladung",
   einlAdresse: "Straße, Nr., PLZ, Ort",
   einlTelefon: "Eure WhatsApp-Nummer — für Zusagen",
+  probeHinweis: "7 Tage frei — verschickt sie an eure Gäste und sammelt die Antworten. Danach schaltet ihr sie im Abo frei; der Link und alle Antworten bleiben.",
   einlSprachen: "Jeder Gast sieht sie in seiner Sprache — von selbst.",
   einlVorschau: "So sehen es eure Gäste",
   kleidTitel: "Wähle dein Kleid (freiwillig)",
@@ -326,6 +328,7 @@ const RO: KissText = {
   einlKnopf: "💌 Trimite-l ca invitație", einlTitel: "Invitația voastră de nuntă",
   einlAdresse: "Strada, nr., cod poștal, oraș",
   einlTelefon: "Numărul vostru de WhatsApp — pentru confirmări",
+  probeHinweis: "7 zile gratuit — trimiteți-o invitaților și strângeți răspunsurile. Apoi o activați cu abonamentul; linkul și toate răspunsurile rămân.",
   einlSprachen: "Fiecare invitat o vede în limba lui — automat.",
   einlVorschau: "Așa o văd invitații voștri",
   kleidTitel: "Alege-ți rochia (opțional)",
@@ -419,6 +422,7 @@ const ES: KissText = {
   einlKnopf: "💌 Enviarlo como invitación", einlTitel: "Vuestra invitación de boda",
   einlAdresse: "Calle, nº, código postal, ciudad",
   einlTelefon: "Vuestro número de WhatsApp — para confirmaciones",
+  probeHinweis: "7 días gratis — enviadla a vuestros invitados y recoged las respuestas. Después la activáis con la suscripción; el enlace y todas las respuestas se quedan.",
   einlSprachen: "Cada invitado la ve en su idioma — automáticamente.",
   einlVorschau: "Así lo ven vuestros invitados",
   kleidTitel: "Elige tu vestido (opcional)",
@@ -512,6 +516,7 @@ const FR: KissText = {
   einlKnopf: "💌 L'envoyer comme invitation", einlTitel: "Votre invitation de mariage",
   einlAdresse: "Rue, n°, code postal, ville",
   einlTelefon: "Votre numéro WhatsApp — pour les réponses",
+  probeHinweis: "7 jours gratuits — envoyez-la à vos invités et récoltez les réponses. Ensuite vous l’activez avec l’abonnement ; le lien et toutes les réponses restent.",
   einlSprachen: "Chaque invité la voit dans sa langue — automatiquement.",
   einlVorschau: "Voilà ce que voient vos invités",
   kleidTitel: "Choisissez votre robe (facultatif)",
@@ -605,6 +610,7 @@ const PT: KissText = {
   einlKnopf: "💌 Enviar como convite", einlTitel: "O vosso convite de casamento",
   einlAdresse: "Rua, n.º, código postal, cidade",
   einlTelefon: "O vosso número de WhatsApp — para confirmações",
+  probeHinweis: "7 dias grátis — enviem-no aos convidados e recolham as respostas. Depois ativam-no com a subscrição; o link e todas as respostas ficam.",
   einlSprachen: "Cada convidado vê-o na sua língua — automaticamente.",
   einlVorschau: "É assim que os vossos convidados veem",
   kleidTitel: "Escolhe o teu vestido (opcional)",
@@ -699,6 +705,7 @@ const IT: KissText = {
   einlKnopf: "💌 Mandalo come invito", einlTitel: "Il vostro invito di matrimonio",
   einlAdresse: "Via, n., CAP, città",
   einlTelefon: "Il vostro numero WhatsApp — per le conferme",
+  probeHinweis: "7 giorni gratis — inviatelo agli invitati e raccogliete le risposte. Poi lo attivate con l’abbonamento; il link e tutte le risposte restano.",
   einlSprachen: "Ogni invitato lo vede nella sua lingua — automaticamente.",
   einlVorschau: "Ecco cosa vedono i vostri invitati",
   kleidTitel: "Scegli il tuo abito (facoltativo)",
