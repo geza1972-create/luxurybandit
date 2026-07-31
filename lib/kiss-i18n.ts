@@ -56,7 +56,7 @@ export type KissText = {
   // Die Hochzeitseinladung am fertigen Video (nur in der Hochzeits-Variante sichtbar).
   einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
   einlAdresse: string; einlTelefon: string; probeHinweis: string;
-  einlSprachen: string; einlVorschau: string; kleidTitel: string;
+  einlSprachen: string; einlVorschau: string; kleidTitel: string; beispielLink: string;
   paarTitel: string; paarHint: string; paarFehler: string; paarBusy: string; paarStoerung: string;
   paarSchritt1: string; paarSchritt2: string; fotoWeg: string;
   bekommstTitel: string; bekommst: string[];
@@ -144,6 +144,7 @@ const EN: KissText = {
   einlSprachen: "Each guest sees it in their own language — automatically.",
   einlVorschau: "This is what your guests see",
   kleidTitel: "Pick your dress (optional)",
+  beispielLink: "Open a real invitation — the way your guests see it →",
   paarTitel: "Or one photo of the two of you",
   paarHint: "Use it twice: first your face, then his.",
   paarFehler: "We could not find two faces in that photo — try another one, or upload the two photos separately.",
@@ -238,6 +239,7 @@ const DE: KissText = {
   einlSprachen: "Jeder Gast sieht sie in seiner Sprache — von selbst.",
   einlVorschau: "So sehen es eure Gäste",
   kleidTitel: "Wähle dein Kleid (freiwillig)",
+  beispielLink: "Eine echte Einladung ansehen — so, wie eure Gäste sie sehen →",
   paarTitel: "Oder ein Foto von euch beiden",
   paarHint: "Zweimal benutzt: erst dein Gesicht, dann seins.",
   paarFehler: "Auf dem Foto waren keine zwei Gesichter zu finden — nimm ein anderes, oder lade die zwei Fotos einzeln hoch.",
@@ -332,6 +334,7 @@ const RO: KissText = {
   einlSprachen: "Fiecare invitat o vede în limba lui — automat.",
   einlVorschau: "Așa o văd invitații voștri",
   kleidTitel: "Alege-ți rochia (opțional)",
+  beispielLink: "Vezi o invitație reală — exact cum o văd invitații voștri →",
   paarTitel: "Sau o poză cu voi doi",
   paarHint: "Se folosește de două ori: întâi fața ta, apoi a lui.",
   paarFehler: "Nu am găsit două fețe în poză — încearcă alta sau încarcă cele două poze separat.",
@@ -426,6 +429,7 @@ const ES: KissText = {
   einlSprachen: "Cada invitado la ve en su idioma — automáticamente.",
   einlVorschau: "Así lo ven vuestros invitados",
   kleidTitel: "Elige tu vestido (opcional)",
+  beispielLink: "Abrir una invitación real — tal como la ven vuestros invitados →",
   paarTitel: "O una foto de los dos",
   paarHint: "Se usa dos veces: primero tu cara, luego la suya.",
   paarFehler: "No encontramos dos caras en esa foto — prueba con otra o sube las dos fotos por separado.",
@@ -520,6 +524,7 @@ const FR: KissText = {
   einlSprachen: "Chaque invité la voit dans sa langue — automatiquement.",
   einlVorschau: "Voilà ce que voient vos invités",
   kleidTitel: "Choisissez votre robe (facultatif)",
+  beispielLink: "Ouvrir une vraie invitation — comme vos invités la voient →",
   paarTitel: "Ou une photo de vous deux",
   paarHint: "Utilisée deux fois : d’abord votre visage, puis le sien.",
   paarFehler: "Nous n’avons pas trouvé deux visages sur cette photo — essayez-en une autre, ou envoyez les deux photos séparément.",
@@ -614,6 +619,7 @@ const PT: KissText = {
   einlSprachen: "Cada convidado vê-o na sua língua — automaticamente.",
   einlVorschau: "É assim que os vossos convidados veem",
   kleidTitel: "Escolhe o teu vestido (opcional)",
+  beispielLink: "Abrir um convite real — tal como os convidados o veem →",
   paarTitel: "Ou uma foto dos dois",
   paarHint: "Usada duas vezes: primeiro a tua cara, depois a dele.",
   paarFehler: "Não encontrámos duas caras nessa foto — tentem outra ou enviem as duas fotos em separado.",
@@ -709,6 +715,7 @@ const IT: KissText = {
   einlSprachen: "Ogni invitato lo vede nella sua lingua — automaticamente.",
   einlVorschau: "Ecco cosa vedono i vostri invitati",
   kleidTitel: "Scegli il tuo abito (facoltativo)",
+  beispielLink: "Apri un invito vero — come lo vedono i vostri invitati →",
   paarTitel: "Oppure una foto di voi due",
   paarHint: "Usata due volte: prima il tuo viso, poi il suo.",
   paarFehler: "Non abbiamo trovato due volti in quella foto — provane un’altra o carica le due foto separatamente.",

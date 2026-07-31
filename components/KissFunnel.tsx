@@ -1205,6 +1205,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
    * in der Probewoche an ihre fuenfzig bis hundertfuenfzig Gaeste, und jeder von ihnen sieht,
    * was das Ding kann, bevor irgendjemand bezahlt hat.
    */
+  /**
+   * NACH DEM BILD DIREKT IN DIE EINLADUNG (Owner 31.07.2026: „nach dem sie das Bild generiert
+   * haben, sehen sie direkt das hier und dann werden sie es editieren können und sharen").
+   *
+   * Vorher war ein Knopf dazwischen („Als Einladung verschicken"). Ein Knopf ist eine Frage,
+   * und an dieser Stelle ist die Antwort immer ja — sie ist wegen der Einladung hier. Also
+   * steht das Formular schon offen, wenn ihr Bild fertig ist.
+   */
+  useEffect(() => {
+    if (variant === "wedding" && bild && !einlUrl) setEinlOffen(true);
+  }, [variant, bild, einlUrl]);
+
   const einladungAnlegen = async () => {
     if ((!videoUrl && !bild) || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
     setEinlBusy(true);

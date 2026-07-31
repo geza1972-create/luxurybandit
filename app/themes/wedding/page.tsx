@@ -232,6 +232,15 @@ export default async function WeddingThemePage({ searchParams }: {
                 {/* UND DARUNTER DIE GRUPPE (Owner 31.07.2026: „du musst das zeigen und
                     simulieren mit einigen Kommentaren unter der Gaesteliste"). Dieselbe
                     Komponente wie in der echten Einladung, nur ohne Eingabefeld. */}
+                {/* DER VERWEIS AUFS ECHTE BEISPIEL (Owner 31.07.2026: „das muss als Preview
+                    verlinkt werden in der Topic"). Die Karten hier sind eine Vorschau IN der
+                    Verkaufsseite; erst die eigene Adresse zeigt, wie es sich anfuehlt, wenn
+                    man den Link von einem Freund bekommt — und genau die kann er auch selbst
+                    verschicken, um es jemandem zu zeigen. */}
+                <a href="/einladung/beispiel" target="_blank" rel="noreferrer"
+                  className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-[#f6cf51]/60 px-4 text-center text-[13px] font-black text-[#f6cf51] transition active:scale-95">
+                  {T.beispielLink}
+                </a>
                 <GruppenChat sprache={L} demo
                   nachrichten={(BEISPIEL_CHAT_TXT[L] ?? BEISPIEL_CHAT_TXT.en).map((t, i) => ({ name: CHAT_NAMEN[i] ?? "Gast", text: t }))}
                   news={[{ text: BEISPIEL_NEWS_TXT[L] ?? BEISPIEL_NEWS_TXT.en }]}

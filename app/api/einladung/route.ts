@@ -30,6 +30,8 @@ const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max)
 // POST { setVideo: id, videoUrl, device }                                 → { ok, left } (Tausch)
 // POST { chat: id, name, text }                                           → { ok, chat }
 // POST { news: id, text, device }                                          → { ok, empfaenger }
+// POST { pruefen: id, device }                                            → { darf }
+// POST { edit: id, device, sie, er, datum, ort, adresse, telefon }        → { ok }
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
@@ -136,6 +138,51 @@ export async function POST(request: Request) {
    * Text: Der Gast soll zurueck auf die Einladung kommen, dort steht der neueste Stand, dort
    * ist die Gruppe. Genau dafuer zahlt das Paat — pardon, das Paar — jeden Monat.
    */
+  /**
+   * DARF ICH BEARBEITEN? Der Browser fragt mit seiner Geraetekennung nach, statt dass wir die
+   * Kennung des Paares oeffentlich ausliefern — sonst koennte sie jeder abschreiben und sich
+   * damit als Brautpaar ausgeben.
+   */
+  const pruefen = sauber(body.pruefen, 60);
+  if (pruefen) {
+    const alle = await readEinladungen();
+    const e = alle.find(x => x.id === pruefen);
+    if (!e) return NextResponse.json({ darf: false });
+    const admin = await isAdminRequest(request).catch(() => false);
+    const geraet = sauber(body.device, 80);
+    return NextResponse.json({ darf: admin || (!!geraet && e.device === geraet) });
+  }
+
+  /**
+   * ÄNDERN (Owner 31.07.2026: „sie werden das editieren können, also muss ein Edit-Button
+   * stehen").
+   *
+   * Der Link bleibt derselbe — das ist der ganze Punkt. Eine Hochzeit verschiebt sich, der
+   * Saal wechselt, die Uhrzeit auch; wer dafuer einen zweiten Link braucht, muss ihn an
+   * achtzig Leute nachschicken und weiss nie, wer noch den alten hat.
+   */
+  const edit = sauber(body.edit, 60);
+  if (edit) {
+    const alle = await readEinladungen();
+    const e = alle.find(x => x.id === edit);
+    if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    const geraet = sauber(body.device, 80);
+    if (!admin && !(geraet && e.device === geraet)) {
+      return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    }
+    const sieNeu = sauber(body.sie, 40), erNeu = sauber(body.er, 40);
+    if (sieNeu) e.sie = sieNeu;
+    if (erNeu) e.er = erNeu;
+    // Leere Felder loeschen den Wert ausdruecklich — sonst wird man einen Tippfehler nie los.
+    e.datum = sauber(body.datum, 10) || undefined;
+    e.ort = sauber(body.ort, 120) || undefined;
+    e.adresse = sauber(body.adresse, 160) || undefined;
+    e.telefon = sauber(body.telefon, 32).replace(/[^0-9+ ]/g, "") || undefined;
+    await writeEinladungen(alle);
+    return NextResponse.json({ ok: true });
+  }
+
   const news = sauber(body.news, 60);
   if (news) {
     const text = sauber(body.text, 800);

@@ -6,6 +6,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
+import EinladungBearbeiten from "@/components/EinladungBearbeiten";
 import LightSwitch from "@/components/LightSwitch";
 import AdminZurueck from "@/components/AdminZurueck";
 
@@ -107,6 +108,11 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
         {/* WER KOMMT — direkt unter der Einladung (Owner 31.07.2026). Der Gast sieht, wer
             schon zugesagt hat, und antwortet selbst; mehr als sein Vorname wird nicht
             gefragt. Das ist die Gaesteliste des Paares, ohne dass wir Gaestedaten sammeln. */}
+        {/* Bearbeiten und Verschicken — der Knopf erscheint nur beim Brautpaar; ein Gast
+            sieht an dieser Stelle gar nichts. */}
+        <EinladungBearbeiten id={e.id} sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""}
+          datum={e.datum} ort={e.ort} adresse={e.adresse} telefon={e.telefon} />
+
         {!abgelaufen && <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />}
 
         {/* NEUIGKEITEN UND GRUPPE — der Grund, warum der Gast ueber den Link wiederkommt. */}
