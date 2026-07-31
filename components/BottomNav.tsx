@@ -361,6 +361,16 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Kiss — manage</span>
                 </button>
               )}
+              {/* Hochzeitskuss — dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den
+                  Trichter (Owner 31.07.2026: „ist das im Menü eingebunden?" — war es nicht).
+                  Steht direkt hinter Kiss, weil beide dasselbe Werkzeug haben. */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/wedding?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Heart className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Wedding — manage</span>
+                </button>
+              )}
               {/* Birthdays — Name eingeben, sie gratuliert, teilen (3,99 € pro Video). */}
               {isStaff && (
                 <button type="button" onClick={() => navigate("/themes/birthday?admin=1")}
