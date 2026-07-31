@@ -37,6 +37,38 @@ const COVERAGE_RULE =
   "Strict coverage requirement: the output MUST depict both people fully and modestly dressed in complete outfits, REGARDLESS of how much skin is visible in the input photos. The clothing must fully cover the chest, cleavage, torso, shoulders and hips with opaque fabric. This is a tasteful editorial photograph of clothed people. Absolutely NO swimwear, bikini, lingerie, underwear, nudity, or exposed intimate areas (chest, cleavage, groin, buttocks). If an input shows swimwear or bare skin, replace it entirely with full, elegant clothing.";
 
 /**
+ * DAS ALTER BLEIBT (Owner 31.07.2026: „es sieht irgendwie zu jung aus, beide").
+ *
+ * Er hat den Fehler gesehen, und der stand in unserem eigenen Auftrag: Wir verlangten
+ * „Gesichter, Frisuren und Hauttoene erhalten" — vom ALTER war nie die Rede. Genau das
+ * glaettet ein Bildmodell zuerst, weil sein ganzes Trainingsmaterial retuschiert ist: Falten
+ * weg, Hautstruktur weg, graues Haar dunkler, Kinnlinie straffer. Bei „Hochzeitsfoto" wird es
+ * schlimmer, nicht besser — die Hochglanz-Brautfotografie ist der Bildvorrat, aus dem es
+ * schoepft.
+ *
+ * Deshalb steht hier jetzt ausdruecklich, was NICHT geschoenert werden darf. Ein Modell
+ * loescht nichts, was man ihm einzeln benennt; „erhalte das Gesicht" ist ihm zu allgemein,
+ * „behalte die Lachfalten" nicht.
+ *
+ * Das ist auch geschaeftlich der Punkt: Wer sich selbst nicht wiedererkennt, verschickt die
+ * Einladung nicht. Ein zwanzig Jahre juengeres Paar ist kein Kompliment, sondern ein fremdes
+ * Paar — und die Gaeste sehen es sofort.
+ */
+const IDENTITAET_RULE =
+  "Preserve BOTH faces exactly as in the reference photos — same bone structure, same nose, "
+  + "same hairstyle and hair colour, same skin tone, same facial hair, same glasses. It must "
+  + "clearly be the same two people.\n\n"
+  + "CRITICAL — KEEP THEIR REAL AGE. Do NOT make them look younger, slimmer or more "
+  + "conventionally attractive. Keep wrinkles, laugh lines, forehead lines, eye bags, skin "
+  + "texture and pores, grey or thinning or receding hair, and the existing jawline and neck "
+  + "exactly as they appear in the reference photos. No beauty filter, no airbrushing, no skin "
+  + "smoothing, no de-aging, no slimming. If a person looks 55 in the reference photo, they "
+  + "must look 55 in the result. This is an unretouched photograph of real adults, not a "
+  + "bridal magazine cover.\n\n"
+  + "An input photo may show only a face or head-and-shoulders; if so, extend it naturally "
+  + "into a full figure that matches their apparent age and build.";
+
+/**
  * GESICHT AUSSCHNEIDEN, WENN DAS GANZE FOTO ABGEWIESEN WIRD (Owner 30.07.2026: „du musst
  * eine Lösung finden, das Gesicht extrahieren dann").
  *
@@ -252,7 +284,7 @@ export async function POST(request: Request) {
     + "together and BOTH LOOK STRAIGHT INTO THE CAMERA, faces fully visible, smiling warmly; "
     + "he has his arm around her. They do NOT kiss and their faces do not touch. Warm "
     + "sunlight, white flowers and a beautiful wedding setting around them.",
-    "Preserve BOTH faces, hairstyles and skin tones exactly as in the reference photos — it must clearly be the same two people. An input photo may show only a face or head-and-shoulders; if so, extend it naturally into a full figure that matches their apparent age and build.",
+    IDENTITAET_RULE,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
   ].join("\n\n") : [
@@ -278,7 +310,7 @@ export async function POST(request: Request) {
       : theme === "holiday" || theme === "bella"
         ? "Setting: a sunny seaside terrace with the ocean behind them, warm natural daylight."
         : "Setting: a softly lit summer evening with gentle glowing lights behind them.",
-    "Preserve BOTH faces, hairstyles and skin tones exactly as in the reference photos — it must clearly be the same two people. An input photo may show only a face or head-and-shoulders; if so, extend it naturally into a full figure that matches their apparent age and build.",
+    IDENTITAET_RULE,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,
   ].join("\n\n");
