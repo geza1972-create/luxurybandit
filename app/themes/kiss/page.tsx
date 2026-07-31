@@ -29,15 +29,22 @@ export const metadata = {
   alternates: { canonical: "/themes/kiss" },
 };
 
-/** Was das Abo beim Kuss wirklich bietet — Zahlen als Platzhalter, nie getippt. */
+/**
+ * Was das Abo beim Kuss wirklich bietet — Zahlen als Platzhalter, nie getippt.
+ *
+ * OHNE „Chatten bleibt gratis" (Owner 31.07.2026: „chatten gibts hier nicht"). Der Satz kam
+ * aus dem alten Abo-Text und stimmt auf den Chat-Seiten — hier verspricht er etwas, das es
+ * auf dieser Seite gar nicht gibt. Ein Versprechen, das der Besucher nicht einloesen kann,
+ * kostet mehr Vertrauen, als der Satz an Wert bringt.
+ */
 const KISS_ABO: Record<string, string> = {
-  de: "{videos} Videos im Monat aus deinen eigenen Fotos, über alle Themen. Jedes weitere {extra}. Chatten bleibt gratis.",
-  en: "{videos} videos a month from your own photos, across all topics. Every further one {extra}. Chatting stays free.",
-  ro: "{videos} videoclipuri pe lună din pozele tale, în toate temele. Fiecare în plus {extra}. Chatul rămâne gratuit.",
-  es: "{videos} vídeos al mes con tus propias fotos, en todos los temas. Cada uno más {extra}. Chatear sigue gratis.",
-  fr: "{videos} vidéos par mois à partir de tes propres photos, sur tous les thèmes. Chaque vidéo en plus {extra}. Le chat reste gratuit.",
-  pt: "{videos} vídeos por mês com as tuas próprias fotos, em todos os temas. Cada um a mais {extra}. Conversar continua grátis.",
-  it: "{videos} video al mese dalle tue foto, in tutti i temi. Ogni altro {extra}. Chattare resta gratis.",
+  de: "{videos} Videos im Monat aus deinen eigenen Fotos, über alle Themen. Jedes weitere {extra}.",
+  en: "{videos} videos a month from your own photos, across all topics. Every further one {extra}.",
+  ro: "{videos} videoclipuri pe lună din pozele tale, în toate temele. Fiecare în plus {extra}.",
+  es: "{videos} vídeos al mes con tus propias fotos, en todos los temas. Cada uno más {extra}.",
+  fr: "{videos} vidéos par mois à partir de tes propres photos, sur tous les thèmes. Chaque vidéo en plus {extra}.",
+  pt: "{videos} vídeos por mês com as tuas próprias fotos, em todos os temas. Cada um a mais {extra}.",
+  it: "{videos} video al mese dalle tue foto, in tutti i temi. Ogni altro {extra}.",
 };
 const KISS_CTA: Record<string, string> = {
   de: "Freischalten — {price}/Monat", en: "Unlock — {price}/month",
