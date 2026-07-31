@@ -19,7 +19,8 @@ import LightSwitch from "@/components/LightSwitch";
 // Zahlung (24-€-Abo, 5 Videos/Monat) startet die ECHTE Pixverse-Generierung (gleiche Pipeline wie Try-On: zwei
 // Referenzen an @-Tokens, Raw-Prompt, 360p = Pixverse-Minimum) → Video klar anzeigen.
 // Staff (Admin-PIN) überspringt alles: echte Generierung sofort, unverpixelt.
-// Welche Models im Grid stehen, wählt der Admin im Kiss-Models-Tool (/api/kiss-config).
+// Welche Models im Grid stehen, waehlt der Admin im Models-Werkzeug SEINES Themas
+// (/api/theme-media?theme=kiss|idol|wedding) — die Hochzeit hat andere Frauen als der Kuss.
 
 type Model = { id: string; name: string; photoUrl: string };
 
@@ -319,10 +320,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const resultRef = useRef<HTMLDivElement>(null); // Radar/Ergebnis — der Screen springt dorthin
 
   useEffect(() => {
-    // Model-Grid: Admin-Auswahl aus /api/kiss-config (leer = alle Models).
+    // Model-Grid: Admin-Auswahl des eigenen Themas (leer = alle Models).
     Promise.all([
       fetch("/api/try-this-look?models=1").then(r => r.json()).catch(() => ({})),
-      fetch("/api/kiss-config").then(r => r.json()).catch(() => ({})),
+      fetch(`/api/theme-media?theme=${encodeURIComponent(variant)}`).then(r => r.json()).catch(() => ({})),
     ]).then(([m, c]) => {
       const all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const wanted: string[] = Array.isArray(c.modelIds) ? c.modelIds : [];
@@ -807,7 +808,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, device, genId, vorab: true, consentAt: new Date().toISOString() }),
+        body: JSON.stringify({ email: e, device, genId, theme: variant, vorab: true, consentAt: new Date().toISOString() }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
@@ -831,7 +832,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     void fetch("/api/kiss-claim", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: e, imagePath, device, genId, pending }),
+      body: JSON.stringify({ email: e, imagePath, device, genId, theme: variant, pending }),
     }).catch(() => {});
   };
 

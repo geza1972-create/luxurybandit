@@ -26,13 +26,22 @@ export const dynamic = "force-dynamic";
  * „Die Wetter Leads sind die Wetter Leads"). Doppelte Adressen werden nicht neu angelegt.
  */
 
-const KISS_LIST = "kiss";
+/**
+ * JEDES THEMA HAT SEINE EIGENE LISTE (Owner-Dauerregel „Die Wetter Leads sind die Wetter
+ * Leads", am 31.07.2026 auf die Hochzeit ausgeweitet).
+ *
+ * Wer sich fuer den Hochzeitskuss eingetragen hat, hat nicht um Kuss-Post gebeten. Ohne
+ * Trennung bekaeme er spaeter eine Nachricht zu einem Thema, das er nie gesehen hat — und
+ * drueckt dann Spam. Die Liste heisst wie das Thema; alles Unbekannte bleibt „kiss".
+ */
+const LISTEN = ["kiss", "idol", "wedding"] as const;
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
     pending?: boolean;   // Erzeugung gescheitert — wir melden uns, sobald es klappt
     vorab?: boolean;     // vor der Erzeugung: nur eintragen, noch nichts schicken
+    theme?: string;      // kiss | idol | wedding — bestimmt, in welche Liste er kommt
     consentAt?: string;  // Zeitpunkt des Haekchens — ohne Nachweis ist eine Einwilligung wertlos
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
@@ -42,6 +51,7 @@ export async function POST(request: Request) {
   const imagePath = String(body.imagePath ?? "").trim();
   const device = String(body.device ?? "").trim().slice(0, 80);
   const lang = String(body.lang ?? "en").slice(0, 5);
+  const KISS_LIST = (LISTEN as readonly string[]).includes(String(body.theme ?? "")) ? String(body.theme) : "kiss";
   // Zeitpunkt des Haekchens, wie ihn der Browser gemeldet hat — auf 40 Zeichen begrenzt.
   const zustimmung = String(body.consentAt ?? "").trim().slice(0, 40);
 
@@ -75,7 +85,7 @@ export async function POST(request: Request) {
          * Streitfall zaehlt, WANN zugestimmt wurde. Die Notiz ist die Spalte, die der Admin
          * ohnehin sieht; ein eigenes Feld waere eine Schema-Aenderung fuer denselben Zweck.
          */
-        note: `Kiss · ${body.vorab ? "vor der Erzeugung" : body.pending ? "gescheitert" : "Gratis-Bild"}`
+        note: `${KISS_LIST} · ${body.vorab ? "vor der Erzeugung" : body.pending ? "gescheitert" : "Gratis-Bild"}`
           + `${zustimmung ? ` · Zustimmung ${zustimmung}` : ""}`
           + `${device ? ` · ${device}` : ""}`,
         createdAt: new Date().toISOString(),

@@ -8,6 +8,9 @@ import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
+import KissModelsAdmin from "@/components/KissModelsAdmin";
+import KissUsersAdmin from "@/components/KissUsersAdmin";
+import WetterSubscribers from "@/components/WetterSubscribers";
 import ExampleVideos from "@/components/ExampleVideos";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
@@ -102,6 +105,26 @@ export default async function WeddingThemePage({ searchParams }: {
                     />
                   ),
                 },
+                // EIGENE BRAEUTE (Owner 31.07.2026: „ich will die Wedding-Seite managen wie
+                // Kiss"). Die Auswahl liegt in der Hochzeits-Datei, nicht in der von Kiss —
+                // wer hier anhakt, aendert nur dieses Karussell.
+                { key: "models", label: "👰 Bräute", node: <KissModelsAdmin theme="wedding" /> },
+                // EIGENE LISTE, nach derselben Regel wie bei den Wetter-Leads: Wer sich fuer
+                // die Hochzeit eingetragen hat, hat nicht um Kuss-Post gebeten.
+                {
+                  key: "leads", label: "✉️ Leads",
+                  node: (
+                    <WetterSubscribers
+                      modelId="wedding"
+                      modelName="Hochzeit"
+                      listLabel="Hochzeits-Leads"
+                      linkPath="/themes/wedding"
+                      sending={false}
+                      nurMail
+                    />
+                  ),
+                },
+                { key: "videos", label: "▶ Videos", node: <KissUsersAdmin theme="wedding" /> },
               ]}
             />
           </div>

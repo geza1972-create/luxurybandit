@@ -9,7 +9,15 @@ import { Loader2, Check, Heart } from "lucide-react";
 
 type Model = { id: string; name: string; photoUrl: string };
 
-export default function KissModelsAdmin() {
+export default function KissModelsAdmin({ theme = "kiss" }: {
+  /**
+   * WELCHES THEMA (Owner 31.07.2026: „ich will die Wedding-Seite managen wie Kiss").
+   *
+   * Vorher schrieb dieses Werkzeug fest in die Kiss-Auswahl — wer auf der Hochzeitsseite
+   * Models anhakte, aenderte damit das Kuss-Karussell. Jetzt hat jedes Thema seine eigene.
+   */
+  theme?: string;
+} = {}) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [models, setModels] = useState<Model[]>([]);
@@ -25,7 +33,7 @@ export default function KissModelsAdmin() {
     } catch { /**/ }
     Promise.all([
       fetch("/api/try-this-look?models=1").then(r => r.json()).catch(() => ({})),
-      fetch("/api/kiss-config").then(r => r.json()).catch(() => ({})),
+      fetch(`/api/theme-media?theme=${encodeURIComponent(theme)}`).then(r => r.json()).catch(() => ({})),
     ]).then(([m, c]) => {
       setModels((Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl));
       setSelected(new Set(Array.isArray(c.modelIds) ? c.modelIds : []));
@@ -42,7 +50,7 @@ export default function KissModelsAdmin() {
   const save = async () => {
     setBusy(true); setMsg("");
     try {
-      const r = await fetch("/api/kiss-config", {
+      const r = await fetch(`/api/theme-media?theme=${encodeURIComponent(theme)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin },
         body: JSON.stringify({ modelIds: [...selected] }),

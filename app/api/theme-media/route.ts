@@ -48,6 +48,16 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     theme,
+    /**
+     * DIE MODEL-AUSWAHL GEHOERT ZUM THEMA (Owner 31.07.2026: „ich will die Wedding-Seite
+     * managen wie Kiss").
+     *
+     * Bisher lasen Trichter und Models-Werkzeug fest `/api/kiss-config` — also die
+     * Kiss-Auswahl, egal auf welcher Themenseite man stand. Bei der Hochzeit sollen aber
+     * andere Frauen im Karussell stehen als beim Kuss. Dieselbe Datei je Thema, ein Feld.
+     */
+    modelIds: config.modelIds ?? [],
+    modelsSavedAt: config.modelsSavedAt ?? "",
     teaserUrl,
     teaserPath: config.teaserPath ?? "",
     previewRefs: refs.filter(r => r.url),
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
     // Oberfläche auch umsortieren, ohne dass Server und Browser sich über Zwischenstände
     // streiten.
     setExamples?: unknown;
+    modelIds?: unknown;
   };
 
   // Signierte Upload-Adresse: der Browser lädt DIREKT zu Supabase, sonst greift das
@@ -91,6 +102,11 @@ export async function POST(request: Request) {
   // Löschen eines Vorgabe-Clips wirkungslos bleiben, weil er beim nächsten Laden zurückkäme.
   let list = config.examplePaths ?? [...(DEFAULTS[theme] ?? [])];
 
+  if (Array.isArray(body.modelIds)) {
+    config.modelIds = body.modelIds.map(String).filter(Boolean);
+    // Zeitpunkt der Auswahl: danach angelegte Models ruecken von selbst ins Karussell.
+    config.modelsSavedAt = new Date().toISOString();
+  }
   if (typeof body.teaserPath === "string") {
     const p = body.teaserPath.trim();
     config.teaserPath = p && p.startsWith("try-this-look/") ? p : undefined;   // "" = entfernen
