@@ -518,18 +518,9 @@ svg {
 }
 .lb-karte-cta, .lb-karte-cta * { color: #fffaf0 !important; }
 .lb-karte-cta svg { color: #fffaf0 !important; stroke: #fffaf0 !important; opacity: 1; }
-/* DER GRIFF AUF DEM BEISPIELVIDEO — „Ein Foto von dir, eins von ihm".
-   Er liegt auf einem laufenden Video, also auf hell und dunkel abwechselnd. Deshalb nicht
-   elfenbein wie die Karte, sondern eine dunkle Scheibe mit weisser Schrift: das ist die
-   einzige Kombination, die auf einem weissen Brautkleid UND auf einer dunklen Kirchenbank
-   lesbar bleibt. Dieselbe Loesung wie beim Ton-Knopf daneben. */
-.lb-karte .lb-karte-griff, .lb-karte .lb-karte-griff * {
-  background: rgba(20, 15, 8, 0.62);
-  color: #fffaf0 !important;
-  backdrop-filter: blur(3px);
-}
-.lb-karte .lb-karte-griff * { background: none; }
-.lb-karte .lb-karte-griff svg { color: #fffaf0 !important; stroke: #fffaf0 !important; opacity: 1; }
+/* Der Streifen mit dem ganzen Satz auf dem Video ist weg (Owner 31.07.2026: „auf das Bild ein
+   richtiges CTA Replace Photo, mehr nicht") — dort steht jetzt derselbe goldene Knopf wie
+   ueberall in der Karte. Ein Sonderstil weniger. */
 /* Zusagen-Karte: Haken gruen, Absage-Kreuz gedeckt, Eingabefeld wie eine Linie auf Papier.
    Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
 .lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }

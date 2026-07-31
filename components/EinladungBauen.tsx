@@ -172,25 +172,42 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         aufOrt={() => setFeld("wo")}
         video={
           bild ? (
-            <button type="button" onClick={() => setFeld("fotos")}
-              className="relative grid aspect-[3/4] w-full place-items-center overflow-hidden">
+            /* Derselbe Knopf auf dem eigenen Bild — hier heisst „Foto ersetzen" endlich
+               woertlich, was es tut. Vorher war das ganze Bild ein unsichtbarer Knopf; wer
+               das nicht erraet, sitzt mit dem ersten Ergebnis fest, das die KI ausspuckt. */
+            <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={bild} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            </button>
+              <img src={bild} alt="" className="aspect-[3/4] w-full object-cover" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
+                <button type="button" onClick={() => setFeld("fotos")}
+                  className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
+                  <ImageUp className="h-4 w-4 shrink-0" />
+                  {T.ersetzen}
+                </button>
+              </div>
+            </div>
           ) : beispielVideo ? (
-            /* DAS BEISPIEL LAEUFT, BIS DAS EIGENE BILD DA IST. Der Streifen unten ist der
-               Griff — er faengt erst unter dem Ton-Knopf an (top-16), sonst laege er darueber
-               und man koennte die Musik nicht mehr einschalten. Verschachtelte Knoepfe waeren
-               ausserdem kaputtes HTML. */
+            /* DAS BEISPIEL LAEUFT, BIS DAS EIGENE BILD DA IST.
+
+               EIN RICHTIGER KNOPF, MEHR NICHT (Owner 31.07.2026: „auf das Bild ein richtiges
+               CTA Replace Photo, mehr nicht"). Vorher lag hier ein breiter Streifen mit dem
+               ganzen Satz „Ein Foto von dir, eins von ihm — mehr braucht es nicht". Das ist
+               eine Erklaerung, kein Knopf: Es sieht aus wie eine Bildunterschrift, und auf
+               Bildunterschriften tippt niemand. Zwei Woerter auf einer goldenen Pille sagen,
+               dass hier etwas passiert.
+
+               Nur der Knopf ist antippbar, nicht die ganze Flaeche — sonst waere es ein Knopf
+               im Knopf, und das ist kaputtes HTML. Er sitzt unten mittig, weit weg vom
+               Ton-Knopf oben rechts. */
             <div className="relative">
               <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
-              <button type="button" onClick={() => setFeld("fotos")}
-                className="absolute inset-x-0 bottom-0 top-16 flex items-end justify-center p-3 text-center">
-                <span className="lb-karte-griff flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 font-serif text-[14px] font-bold leading-snug">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
+                <button type="button" onClick={() => setFeld("fotos")}
+                  className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
                   <ImageUp className="h-4 w-4 shrink-0" />
-                  {F.pickHint}
-                </span>
-              </button>
+                  {T.ersetzen}
+                </button>
+              </div>
             </div>
           ) : (
             /* OHNE BEISPIELVIDEO: leeres Feld, aber flacher als das echte Bildformat. Ein 3:4
