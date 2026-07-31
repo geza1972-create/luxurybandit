@@ -103,6 +103,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     person?: string; model?: string; device?: string; theme?: string; prompt?: string; surprise?: boolean; code?: string;
+    kleid?: string;
   };
   const person = String(body.person ?? "");
   const device = String(body.device ?? "").trim().slice(0, 80);
@@ -230,14 +231,27 @@ export async function POST(request: Request) {
    * Eingangsfoto muss es nicht sein, und OpenAI prüft das Foto, nicht die Absicht.
    */
   const hochzeit = theme === "wedding";
+  /**
+   * DAS GEWAEHLTE BRAUTKLEID (Owner 31.07.2026). Der Trichter schickt die Beschreibung des
+   * Kleides mit, das sie angetippt hat. Ohne Auswahl bleibt es bei unserer Vorgabe — die
+   * Wahl darf nie Bedingung sein, sonst steht vor dem Gratis-Bild eine Pflicht.
+   *
+   * Nur Text, kein zweites Referenzbild: Ein drittes Bild kostet bei jedem Aufruf mit, und
+   * ein Kleid laesst sich in einem Satz genauer beschreiben, als ein Modell es aus einem
+   * Katalogfoto ablesen wuerde.
+   */
+  const kleid = String(body.kleid ?? "").trim().slice(0, 200) || "an elegant white wedding dress";
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : hochzeit ? [
     "Image 1 is a photo of a real person. Image 2 is a photo of another person.",
+    // KEIN KUSS (Konzept „Einladung statt Kuss", §2): Eine Einladung schaut den Gast an, und
+    // frontal stehen beide Gesichter still — genau die zwei Gesichter, um die es geht.
     "Generate ONE photorealistic image of these two people on their wedding day: the woman in "
-    + "an elegant white wedding dress, the man in a dark suit, sharing their wedding kiss — "
-    + "leaning in close, eyes closed, happy. Warm sunlight, white flowers and a beautiful "
-    + "wedding setting around them.",
+    + kleid + ", the man in an elegant WHITE suit with a white shirt. They stand close "
+    + "together and BOTH LOOK STRAIGHT INTO THE CAMERA, faces fully visible, smiling warmly; "
+    + "he has his arm around her. They do NOT kiss and their faces do not touch. Warm "
+    + "sunlight, white flowers and a beautiful wedding setting around them.",
     "Preserve BOTH faces, hairstyles and skin tones exactly as in the reference photos — it must clearly be the same two people. An input photo may show only a face or head-and-shoulders; if so, extend it naturally into a full figure that matches their apparent age and build.",
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
     COVERAGE_RULE,

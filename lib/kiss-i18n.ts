@@ -55,7 +55,7 @@ export type KissText = {
   // Die Hochzeitseinladung am fertigen Video (nur in der Hochzeits-Variante sichtbar).
   einlKnopf: string; einlTitel: string; einlSie: string; einlEr: string; einlDatum: string;
   einlAdresse: string; einlTelefon: string;
-  einlSprachen: string; einlVorschau: string;
+  einlSprachen: string; einlVorschau: string; kleidTitel: string;
   bekommstTitel: string; bekommst: string[];
   einlOrt: string; einlMachen: string; einlFertig: string; einlWhatsapp: string; einlKopiert: string;
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
@@ -138,6 +138,7 @@ const EN: KissText = {
   einlTelefon: "Your WhatsApp number — for RSVPs",
   einlSprachen: "Each guest sees it in their own language — automatically.",
   einlVorschau: "This is what your guests see",
+  kleidTitel: "Pick your dress (optional)",
   bekommstTitel: "What you get",
   bekommst: [
     "Your own invitation page with your names, the date and the address",
@@ -221,6 +222,7 @@ const DE: KissText = {
   einlTelefon: "Eure WhatsApp-Nummer — für Zusagen",
   einlSprachen: "Jeder Gast sieht sie in seiner Sprache — von selbst.",
   einlVorschau: "So sehen es eure Gäste",
+  kleidTitel: "Wähle dein Kleid (freiwillig)",
   bekommstTitel: "Das bekommt ihr",
   bekommst: [
     "Eine eigene Einladungsseite mit euren Namen, dem Datum und der Adresse",
@@ -304,6 +306,7 @@ const RO: KissText = {
   einlTelefon: "Numărul vostru de WhatsApp — pentru confirmări",
   einlSprachen: "Fiecare invitat o vede în limba lui — automat.",
   einlVorschau: "Așa o văd invitații voștri",
+  kleidTitel: "Alege-ți rochia (opțional)",
   bekommstTitel: "Ce primiți",
   bekommst: [
     "O pagină de invitație numai a voastră, cu numele, data și adresa",
@@ -387,6 +390,7 @@ const ES: KissText = {
   einlTelefon: "Vuestro número de WhatsApp — para confirmaciones",
   einlSprachen: "Cada invitado la ve en su idioma — automáticamente.",
   einlVorschau: "Así lo ven vuestros invitados",
+  kleidTitel: "Elige tu vestido (opcional)",
   bekommstTitel: "Esto es lo que recibís",
   bekommst: [
     "Vuestra propia página de invitación con vuestros nombres, la fecha y la dirección",
@@ -470,6 +474,7 @@ const FR: KissText = {
   einlTelefon: "Votre numéro WhatsApp — pour les réponses",
   einlSprachen: "Chaque invité la voit dans sa langue — automatiquement.",
   einlVorschau: "Voilà ce que voient vos invités",
+  kleidTitel: "Choisissez votre robe (facultatif)",
   bekommstTitel: "Ce que vous recevez",
   bekommst: [
     "Votre propre page d’invitation avec vos noms, la date et l’adresse",
@@ -553,6 +558,7 @@ const PT: KissText = {
   einlTelefon: "O vosso número de WhatsApp — para confirmações",
   einlSprachen: "Cada convidado vê-o na sua língua — automaticamente.",
   einlVorschau: "É assim que os vossos convidados veem",
+  kleidTitel: "Escolhe o teu vestido (opcional)",
   bekommstTitel: "Isto é o que recebem",
   bekommst: [
     "Uma página de convite só vossa, com os nomes, a data e a morada",
@@ -637,6 +643,7 @@ const IT: KissText = {
   einlTelefon: "Il vostro numero WhatsApp — per le conferme",
   einlSprachen: "Ogni invitato lo vede nella sua lingua — automaticamente.",
   einlVorschau: "Ecco cosa vedono i vostri invitati",
+  kleidTitel: "Scegli il tuo abito (facoltativo)",
   bekommstTitel: "Ecco cosa ricevete",
   bekommst: [
     "Una pagina d’invito tutta vostra, con i nomi, la data e l’indirizzo",

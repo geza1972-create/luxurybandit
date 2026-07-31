@@ -68,7 +68,29 @@ export const KISS_PROMPT =
  * dress" und „white suit" zieht Pixverse den Alltag aus den Referenzfotos durch, und aus der
  * Hochzeit wird ein Paar im T-Shirt. Der Bildausschnitt steht wie ueberall VORNE.
  */
-export const WEDDING_PROMPT =
+/**
+ * DIE FÜNF BRAUTKLEIDER (Owner 31.07.2026: „hier machst du eine andere Garderobe. Es werden
+ * Hochzeitskleider sein. Du kannst hier welche generieren, 5 mit Models.").
+ *
+ * Bewusst fünf klar UNTERSCHIEDLICHE Schnitte — fünf Varianten desselben Kleides sind keine
+ * Auswahl, sondern fünfmal dieselbe Frage. Und bewusst nur fünf: Wer eine Braut vor zwanzig
+ * Kleider stellt, bekommt keine Entscheidung, sondern einen Abbruch.
+ *
+ * Jedes trägt seine eigene englische Beschreibung. Die wandert wörtlich in den Bild- und in
+ * den Videoauftrag — deshalb steht sie hier neben dem Bild und nicht an drei Stellen verstreut,
+ * wo eine davon beim nächsten Ändern vergessen würde.
+ */
+export type Kleid = { id: string; bild: string; beschreibung: string };
+export const WEDDING_KLEIDER: Kleid[] = [
+  { id: "klassisch",  bild: "/kleid-klassisch.jpg",  beschreibung: "a classic A-line ivory wedding gown with a sweetheart neckline and a long flowing veil" },
+  { id: "prinzessin", bild: "/kleid-prinzessin.jpg", beschreibung: "a voluminous princess ball gown in soft white tulle with an off-shoulder neckline" },
+  { id: "spitze",     bild: "/kleid-spitze.jpg",     beschreibung: "a fitted lace mermaid wedding gown with long lace sleeves and a high neckline" },
+  { id: "seide",      bild: "/kleid-seide.jpg",      beschreibung: "a minimal silk slip wedding dress with thin straps and clean simple lines" },
+  { id: "boho",       bild: "/kleid-boho.jpg",       beschreibung: "a bohemian lace wedding dress with flutter sleeves and a soft relaxed silhouette" },
+];
+const KLEID_VORGABE = "an elegant white wedding dress";
+
+export const weddingPrompt = (kleid: string) =>
   // DIE ROLLEN MUESSEN AM TOKEN HAENGEN, nicht im Satz danach: Die Route bindet @1 an das
   // erste Bild (SEIN Foto) und @2 an das zweite (IHRES). Stuende nur „she in a dress, he in a
   // suit" im Text, ohne die Zuordnung, zieht Pixverse das Kleid mit gleicher
@@ -76,7 +98,7 @@ export const WEDDING_PROMPT =
   "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from "
   + "slightly below. It is their wedding day: @1 is the groom and wears an elegant WHITE suit "
   + "with a white shirt, "
-  + "@2 is the bride and wears an elegant white wedding dress. They stand close together in a "
+  + `@2 is the bride and wears ${kleid || KLEID_VORGABE}. They stand close together in a ` +
   + "beautiful sunlit wedding setting with white flowers behind them. BOTH LOOK STRAIGHT INTO "
   + "THE CAMERA the whole time, faces fully visible and turned to the camera, never turning to "
   + "each other. He puts his arm around her and holds her close, she leans slightly against "
@@ -86,6 +108,8 @@ export const WEDDING_PROMPT =
   + "photorealistic, high-end look. No text or logos. "
   + "Audio: soft, elegant instrumental wedding music only — ONLY music: absolutely no voices, "
   + "no talking, no singing, no footsteps, no ambient or foley sound effects.";
+
+export const WEDDING_PROMPT = weddingPrompt("");
 
 export const IDOL_PROMPT =
   "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
@@ -370,6 +394,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const [einlDatum, setEinlDatum] = useState("");
   const [einlOrt, setEinlOrt] = useState("");
   const [einlBusy, setEinlBusy] = useState(false);
+  /** Das gewaehlte Brautkleid. Leer = unsere Vorgabe, damit der Trichter ohne Auswahl laeuft. */
+  const [kleid, setKleid] = useState("");
   const [einlAdresse, setEinlAdresse] = useState("");
   const [einlTelefon, setEinlTelefon] = useState("");
   const [einlUrl, setEinlUrl] = useState("");
@@ -842,7 +868,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       const r = await fetch("/api/free-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code }),
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code, kleid}),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();
@@ -1020,7 +1046,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
         // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? WEDDING_PROMPT : holidayPrompt(szene, { kuss: variant === "kiss" }) }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? weddingPrompt(kleid) : holidayPrompt(szene, { kuss: variant === "kiss" }) }),
       }).then(r => r.json());
       if (!start?.videoId) {
         // Kontingent aufgebraucht: eigener Satz in seiner Sprache — und ein Weg weiter,
@@ -1230,6 +1256,36 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           ))}
           <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+        </div>
+      )}
+
+      {/* DAS KLEID (Owner 31.07.2026). Steht unter den beiden Fotos, nicht davor: Erst die
+          Gesichter — das ist der Grund, warum sie hier ist —, dann die Wahl, die Freude macht.
+          Ohne Auswahl laeuft alles weiter wie bisher; keine Pflicht, keine Sperre. */}
+      {variant === "wedding" && (
+        <div className="mt-4">
+          <p className="text-[13px] font-black text-white/85">{T.kleidTitel}</p>
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {WEDDING_KLEIDER.map(k => {
+              const an = kleid === k.beschreibung;
+              return (
+                <button key={k.id} type="button"
+                  onClick={() => setKleid(an ? "" : k.beschreibung)}
+                  aria-pressed={an}
+                  className={`relative h-[122px] w-[86px] shrink-0 overflow-hidden rounded-xl border-2 transition active:scale-95 ${
+                    an ? "border-[#f6cf51]" : "border-white/15"
+                  }`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={k.bild} alt="" className="h-full w-full object-cover" />
+                  {an && (
+                    <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51] shadow">
+                      <Check className="h-3.5 w-3.5 text-black" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
