@@ -1487,7 +1487,9 @@ export type Einladung = {
   sie?: string;           // ihr Vorname
   er?: string;            // sein Vorname
   datum?: string;         // YYYY-MM-DD
-  ort?: string;
+  ort?: string;           // Saal oder Restaurant
+  adresse?: string;       // Strasse, Hausnummer, PLZ, Stadt — der Gast muss HIN finden
+  telefon?: string;       // WhatsApp-Nummer des Paares: darueber sagen die Gaeste zu
   lang?: string;          // in welcher Sprache die Seite erscheint
   email?: string;         // wem sie gehört — für Widerruf und Zuordnung
   device?: string;

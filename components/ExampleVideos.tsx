@@ -30,7 +30,7 @@ export default function ExampleVideos({ urls, karte, sprachen, sprachenTitel }: 
   urls: string[];
   /** Gesetzt = jedes Beispiel steht in einer Einladungskarte. Die Beispieldaten kommen vom
    *  Server, damit das Datum nicht mit der Zeit veraltet. */
-  karte?: { sprache: string; paare: { sie: string; er: string; datum?: string; ort?: string }[] };
+  karte?: { sprache: string; paare: { sie: string; er: string; datum?: string; ort?: string; adresse?: string; telefon?: string; demo?: boolean }[] };
   /**
    * DIE SPRACHEN ZUM ANTIPPEN (Owner 31.07.2026: „du hast unten in dem Text die Faehigkeit
    * von Multi-Language nicht gezeigt").
@@ -71,6 +71,8 @@ export default function ExampleVideos({ urls, karte, sprachen, sprachenTitel }: 
 
   // Die angetippte Sprache gewinnt; ohne Wahl steht die Karte in der Sprache der Seite.
   const kartenSprache = demo || karte?.sprache || "en";
+  // EIN Paar fuer die eine Karte — die zweite Szene gehoert derselben Einladung.
+  const paar = karte?.paare[0];
 
   return (
     <div className={`mt-3 ${karte ? "space-y-5" : "space-y-3"}`}>
@@ -95,48 +97,59 @@ export default function ExampleVideos({ urls, karte, sprachen, sprachenTitel }: 
           </div>
         </div>
       )}
-      {urls.map((url, i) => {
-        /* Video samt Bedienung als EIN Block — er steht entweder fuer sich oder in der Karte. */
-        const medium = (
-          <div className="relative overflow-hidden">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video ref={el => { refs.current[i] = el; }} src={url}
-              muted playsInline autoPlay={i === 0} preload="metadata"
-              onEnded={weiter}
-              className="aspect-[3/4] w-full object-cover" />
+      {/* EINE KARTE, DIE SZENEN WECHSELN DARIN (Owner 31.07.2026: „nein, eine Karte und
+          beide Videos laufen nacheinander in derselben Karte").
 
-            {/* Das wartende Video zeigt, dass es laufen KANN — sonst sieht ein stehendes Bild
-                wie ein Fehler aus. Ein Tipp zieht es sofort vor. */}
-            {i !== aktiv && (
-              <button type="button" onClick={() => setAktiv(i)} aria-label="Dieses Video abspielen"
-                data-aufmedien="1"
-                className="absolute inset-0 grid place-items-center bg-black/35 transition active:scale-[0.99]">
-                <span className="grid h-14 w-14 place-items-center rounded-full bg-black/55 backdrop-blur">
-                  <Play className="ml-0.5 h-6 w-6 fill-white text-white" />
-                </span>
+          Zwei Karten untereinander sahen aus wie zwei Einladungen — dabei ist es EINE
+          Einladung, die man in zwei Szenen sieht. Alle Videos liegen deshalb uebereinander
+          im selben Rahmen; sichtbar ist immer nur das laufende, und am Ende blendet das
+          naechste auf. Die Karte ringsum bleibt stehen, genau wie beim Gast. */}
+      {karte && paar ? (
+        <EinladungKarte sprache={kartenSprache} sie={paar.sie} er={paar.er}
+          datum={paar.datum} ort={paar.ort} adresse={paar.adresse}
+          telefon={paar.telefon} demo={paar.demo}
+          video={
+            <div className="relative aspect-[3/4] w-full overflow-hidden">
+              {urls.map((url, i) => (
+                /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                <video key={i} ref={el => { refs.current[i] = el; }} src={url}
+                  muted playsInline autoPlay={i === 0} preload="metadata" onEnded={weiter}
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+                    i === aktiv ? "opacity-100" : "opacity-0"
+                  }`} />
+              ))}
+              <button type="button" onClick={() => setTonAn(t => !t)}
+                aria-label={tonAn ? "Ton aus" : "Ton an"}
+                data-tonknopf="1" data-aufmedien="1"
+                className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-[18px] backdrop-blur transition active:scale-95">
+                {tonAn ? "🔊" : "🔇"}
               </button>
-            )}
-
-            <button type="button"
-              onClick={() => { if (i !== aktiv) { setAktiv(i); setTonAn(true); } else setTonAn(t => !t); }}
-              aria-label={tonAn && i === aktiv ? "Ton aus" : "Ton an"}
-              data-tonknopf="1" data-aufmedien="1"
-              className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-[18px] backdrop-blur transition active:scale-95">
-              {tonAn && i === aktiv ? "🔊" : "🔇"}
+            </div>
+          } />
+      ) : urls.map((url, i) => (
+        <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10">
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video ref={el => { refs.current[i] = el; }} src={url}
+            muted playsInline autoPlay={i === 0} preload="metadata" onEnded={weiter}
+            className="aspect-[3/4] w-full object-cover" />
+          {i !== aktiv && (
+            <button type="button" onClick={() => setAktiv(i)} aria-label="Dieses Video abspielen"
+              data-aufmedien="1"
+              className="absolute inset-0 grid place-items-center bg-black/35 transition active:scale-[0.99]">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-black/55 backdrop-blur">
+                <Play className="ml-0.5 h-6 w-6 fill-white text-white" />
+              </span>
             </button>
-          </div>
-        );
-
-        const paar = karte?.paare[i % Math.max(1, karte.paare.length)];
-        return karte && paar ? (
-          <EinladungKarte key={i} sprache={kartenSprache} sie={paar.sie} er={paar.er}
-            datum={paar.datum} ort={paar.ort} video={medium} />
-        ) : (
-          <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10">
-            {medium}
-          </div>
-        );
-      })}
+          )}
+          <button type="button"
+            onClick={() => { if (i !== aktiv) { setAktiv(i); setTonAn(true); } else setTonAn(t => !t); }}
+            aria-label={tonAn && i === aktiv ? "Ton aus" : "Ton an"}
+            data-tonknopf="1" data-aufmedien="1"
+            className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-[18px] backdrop-blur transition active:scale-95">
+            {tonAn && i === aktiv ? "🔊" : "🔇"}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

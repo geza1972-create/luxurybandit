@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 
 const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
-// POST { videoUrl, sie, er, datum?, ort?, genId?, device?, email?, lang? } → { id, url }
+// POST { videoUrl, sie, er, datum?, ort?, adresse?, telefon?, genId?, device?, email?, lang? } → { id, url }
 // POST { revoke: id, device? }                                            → { ok }
 // POST { open: id }                                                       → { ok }  (Zähler)
 export async function POST(request: Request) {
@@ -81,6 +81,9 @@ export async function POST(request: Request) {
     sie, er,
     datum: sauber(body.datum, 10) || undefined,
     ort: sauber(body.ort, 120) || undefined,
+    adresse: sauber(body.adresse, 160) || undefined,
+    // Nur Ziffern, Plus und Leerzeichen — daraus baut die Karte den wa.me-Link.
+    telefon: sauber(body.telefon, 32).replace(/[^0-9+ ]/g, "") || undefined,
     lang: sauber(body.lang, 5) || "en",
     email: sauber(body.email, 160).toLowerCase() || undefined,
     device: sauber(body.device, 80) || undefined,
@@ -120,7 +123,8 @@ export async function GET(request: Request) {
     // Öffentlich, deshalb NUR was auf der Seite steht — keine Adresse, keine Gerätekennung.
     return NextResponse.json({
       id: e.id, videoUrl: e.videoUrl, sie: e.sie, er: e.er,
-      datum: e.datum ?? "", ort: e.ort ?? "", lang: e.lang ?? "en",
+      datum: e.datum ?? "", ort: e.ort ?? "", adresse: e.adresse ?? "",
+      telefon: e.telefon ?? "", lang: e.lang ?? "en",
     });
   }
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });

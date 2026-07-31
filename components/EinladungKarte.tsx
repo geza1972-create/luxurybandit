@@ -24,15 +24,15 @@ import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
  */
 
 export const KARTE_TEXTE: Record<string, {
-  save: string; wann: string; wo: string; herkunft: string; eigenes: string; ton: string;
+  save: string; wann: string; wo: string; herkunft: string; eigenes: string; ton: string; wa: string;
 }> = {
-  de: { save: "Wir heiraten", wann: "Wann", wo: "Wo", herkunft: "Dieses Video ist mit LuxuryBandit gemacht.", eigenes: "Macht euer eigenes", ton: "Ton an" },
-  en: { save: "We're getting married", wann: "When", wo: "Where", herkunft: "This video was made with LuxuryBandit.", eigenes: "Make your own", ton: "Sound on" },
-  ro: { save: "Ne căsătorim", wann: "Când", wo: "Unde", herkunft: "Videoclipul e făcut cu LuxuryBandit.", eigenes: "Faceți-l pe al vostru", ton: "Pornește sunetul" },
-  es: { save: "Nos casamos", wann: "Cuándo", wo: "Dónde", herkunft: "Este vídeo está hecho con LuxuryBandit.", eigenes: "Haced el vuestro", ton: "Activar sonido" },
-  fr: { save: "Nous nous marions", wann: "Quand", wo: "Où", herkunft: "Cette vidéo est faite avec LuxuryBandit.", eigenes: "Faites la vôtre", ton: "Activer le son" },
-  pt: { save: "Vamos casar", wann: "Quando", wo: "Onde", herkunft: "Este vídeo foi feito com LuxuryBandit.", eigenes: "Façam o vosso", ton: "Ligar o som" },
-  it: { save: "Ci sposiamo", wann: "Quando", wo: "Dove", herkunft: "Questo video è fatto con LuxuryBandit.", eigenes: "Fate il vostro", ton: "Attiva l’audio" },
+  de: { save: "Hochzeitseinladung", wann: "Wann", wo: "Wo", herkunft: "Dieses Video ist mit LuxuryBandit gemacht.", eigenes: "Macht euer eigenes", ton: "Ton an", wa: "Zusagen per WhatsApp" },
+  en: { save: "Wedding invitation", wann: "When", wo: "Where", herkunft: "This video was made with LuxuryBandit.", eigenes: "Make your own", ton: "Sound on", wa: "RSVP on WhatsApp" },
+  ro: { save: "Invitație la nuntă", wann: "Când", wo: "Unde", herkunft: "Videoclipul e făcut cu LuxuryBandit.", eigenes: "Faceți-l pe al vostru", ton: "Pornește sunetul", wa: "Confirmă pe WhatsApp" },
+  es: { save: "Invitación de boda", wann: "Cuándo", wo: "Dónde", herkunft: "Este vídeo está hecho con LuxuryBandit.", eigenes: "Haced el vuestro", ton: "Activar sonido", wa: "Confirmar por WhatsApp" },
+  fr: { save: "Invitation de mariage", wann: "Quand", wo: "Où", herkunft: "Cette vidéo est faite avec LuxuryBandit.", eigenes: "Faites la vôtre", ton: "Activer le son", wa: "Répondre sur WhatsApp" },
+  pt: { save: "Convite de casamento", wann: "Quando", wo: "Onde", herkunft: "Este vídeo foi feito com LuxuryBandit.", eigenes: "Façam o vosso", ton: "Ligar o som", wa: "Confirmar no WhatsApp" },
+  it: { save: "Invito di nozze", wann: "Quando", wo: "Dove", herkunft: "Questo video è fatto con LuxuryBandit.", eigenes: "Fate il vostro", ton: "Attiva l’audio", wa: "Conferma su WhatsApp" },
 };
 
 const ORTE: Record<string, string> = {
@@ -51,13 +51,27 @@ export const karteDatum = (datum: string | undefined, sprache: string) => {
 };
 
 export default function EinladungKarte({
-  sprache, sie, er, datum, ort, video, fuss,
+  sprache, sie, er, datum, ort, adresse, telefon, demo, video, fuss,
 }: {
   sprache: string;
   sie: string;
   er: string;
   datum?: string;
   ort?: string;
+  /** Strasse, Hausnummer, PLZ, Stadt (Owner 31.07.2026: „da muss auch eine genaue Adresse
+   *  rein mit Postleitzahl"). Ein Saalname allein hilft keinem Gast, der hinfahren muss. */
+  adresse?: string;
+  /**
+   * DIE WHATSAPP-NUMMER DES PAARES — und damit die Zusage.
+   *
+   * Owner 31.07.2026: „und WA Nummer". Das ist der ehrliche Weg zur Gaesteliste: Der Gast
+   * schreibt DEM PAAR, nicht uns. Keine fremden Personendaten bei uns, kein Konto fuer den
+   * Gast, und es funktioniert am ersten Tag — anders als ein eigenes Zusage-System.
+   */
+  telefon?: string;
+  /** Auf der Verkaufsseite: Knopf zeigen, aber NICHT verlinken. Sonst schreiben Fremde einer
+   *  erfundenen Nummer — oder schlimmer, einer echten. */
+  demo?: boolean;
   video: ReactNode;
   /** Die eine Herkunftszeile — nur auf der echten Seite, nicht in der Vorschau. */
   fuss?: ReactNode;
@@ -90,18 +104,39 @@ export default function EinladungKarte({
             <div className="mt-3 space-y-3 text-center">
               {tag && (
                 <div>
-                  <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.26em]">{T.wann}</p>
+                  <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.14em]">{T.wann}</p>
                   <p className="mt-1 font-serif text-[19px] font-bold">{tag}</p>
                 </div>
               )}
-              {ort && (
+              {(ort || adresse) && (
                 <div>
-                  <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.26em]">{T.wo}</p>
-                  <p className="mt-1 font-serif text-[16px]">{ort}</p>
+                  <p className="lb-karte-gold text-[9.5px] font-black uppercase tracking-[0.14em]">{T.wo}</p>
+                  {ort && <p className="mt-1 font-serif text-[16px]">{ort}</p>}
+                  {/* Die Anschrift kleiner unter dem Saalnamen — sie wird gelesen, wenn man
+                      losfaehrt, nicht wenn man die Einladung oeffnet. */}
+                  {adresse && (
+                    <p className="mt-0.5 whitespace-pre-line font-serif text-[13px] leading-snug opacity-80">
+                      {adresse}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           </>
+        )}
+
+        {/* ZUSAGEN — direkt an ihr Handy. */}
+        {telefon && (
+          demo ? (
+            <div className="lb-karte-wa mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black opacity-70">
+              <span>💬</span>{T.wa}
+            </div>
+          ) : (
+            <a href={`https://wa.me/${telefon.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
+              className="lb-karte-wa mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black transition active:scale-95">
+              <span>💬</span>{T.wa}
+            </a>
+          )
         )}
 
         {fuss}

@@ -332,6 +332,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
   const [einlDatum, setEinlDatum] = useState("");
   const [einlOrt, setEinlOrt] = useState("");
   const [einlBusy, setEinlBusy] = useState(false);
+  const [einlAdresse, setEinlAdresse] = useState("");
+  const [einlTelefon, setEinlTelefon] = useState("");
   const [einlUrl, setEinlUrl] = useState("");
   const runRef = useRef(0);
   // ZAHLUNG ERKANNT (Owner 30.07.2026: „nach dem ich bezahlt habe ist nichts passiert, der
@@ -997,6 +999,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
         body: JSON.stringify({
           videoUrl, genId, device, lang,
           sie: einlSie.trim(), er: einlEr.trim(),
+          adresse: einlAdresse.trim(), telefon: einlTelefon.trim(),
           datum: einlDatum, ort: einlOrt.trim(), email: mail.trim(),
         }),
       }).then(x => x.json());
@@ -1808,6 +1811,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                   er={einlEr.trim() || T.einlEr}
                   datum={einlDatum}
                   ort={einlOrt.trim()}
+                  adresse={einlAdresse.trim()}
+                  telefon={einlTelefon.trim()}
                   video={
                     <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
                       tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton} />
@@ -1831,6 +1836,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
                     style={{ color: "#fff", colorScheme: "dark" }}
                     className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none focus:border-[#f6cf51]" />
                   <input value={einlOrt} onChange={e => setEinlOrt(e.target.value)} placeholder={T.einlOrt}
+                    style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                    className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                  {/* GENAUE ANSCHRIFT (Owner 31.07.2026: „da muss auch eine genaue Adresse rein
+                      mit Postleitzahl und WA Nummer"). Der Saalname steht oben, hier steht,
+                      wohin man faehrt. */}
+                  <input value={einlAdresse} onChange={e => setEinlAdresse(e.target.value)}
+                    placeholder={T.einlAdresse} autoComplete="street-address"
+                    style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+                    className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+                  {/* Die Nummer ist die Gaesteliste: Der Gast schreibt IHR, nicht uns. */}
+                  <input value={einlTelefon} onChange={e => setEinlTelefon(e.target.value)}
+                    placeholder={T.einlTelefon} type="tel" inputMode="tel" autoComplete="tel"
                     style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
                     className="mt-2 h-11 w-full rounded-lg border border-white/25 bg-black/40 px-3 text-[14px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
                   <button type="button" onClick={() => void einladungAnlegen()}

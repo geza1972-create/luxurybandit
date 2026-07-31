@@ -55,7 +55,16 @@ const SPRACH_LABELS = [
 ];
 const BEISPIEL_NAMEN: [string, string][] = [["Ana", "Mihai"], ["Elena", "Andrei"]];
 const BEISPIEL_ORT: Record<string, string> = {
-  de: "Berlin", en: "London", ro: "București", es: "Madrid", fr: "Paris", pt: "Lisboa", it: "Roma",
+  de: "Schlosshotel Grunewald", en: "The Old Manor House", ro: "Casa Timiș",
+  es: "Hacienda Los Olivos", fr: "Château de Villandry", pt: "Quinta da Aveleda", it: "Villa Bellosguardo",
+};
+/** Die Anschrift MIT Postleitzahl — sie ist der Punkt, an dem sich eine Einladung von einem
+ *  huebschen Video unterscheidet. Erkennbar Beispiel, kein echter Ort. */
+const BEISPIEL_ADRESSE: Record<string, string> = {
+  de: "Musterstraße 12, 14193 Berlin", en: "12 Sample Lane, SW1A 1AA London",
+  ro: "Str. Exemplu 12, 106100 Sinaia", es: "Calle Ejemplo 12, 28001 Madrid",
+  fr: "12 rue Exemple, 75008 Paris", pt: "Rua Exemplo 12, 1200-001 Lisboa",
+  it: "Via Esempio 12, 00187 Roma",
 };
 
 export const metadata = {
@@ -126,8 +135,14 @@ export default async function WeddingThemePage({ searchParams }: {
                 <ExampleVideos urls={examples} karte={{
                   sprache: L,
                   paare: [
-                    { sie: BEISPIEL_NAMEN[0][0], er: BEISPIEL_NAMEN[0][1], datum: beispielDatum, ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en },
-                    { sie: BEISPIEL_NAMEN[1][0], er: BEISPIEL_NAMEN[1][1], datum: beispielDatum, ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en },
+                    {
+                      sie: BEISPIEL_NAMEN[0][0], er: BEISPIEL_NAMEN[0][1], datum: beispielDatum,
+                      ort: BEISPIEL_ORT[L] ?? BEISPIEL_ORT.en,
+                      adresse: BEISPIEL_ADRESSE[L] ?? BEISPIEL_ADRESSE.en,
+                      // Nummer nur zum Zeigen — der Knopf ist auf der Verkaufsseite nicht
+                      // verlinkt, sonst schreiben Fremde einer erfundenen Nummer.
+                      telefon: "+00 000 000 000", demo: true,
+                    },
                   ],
                 }}
                   sprachen={SPRACH_LABELS}

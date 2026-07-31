@@ -489,3 +489,7 @@ svg {
    sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
 .lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
 .lb-karte [data-aufmedien="1"] svg { color: #fff !important; stroke: #fff !important; fill: #fff !important; opacity: 1; }
+/* Der Zusage-Knopf in der Einladungskarte: gruen wie WhatsApp, damit man ihn ohne Text
+   erkennt — und mit eigener Schriftfarbe, weil die Karte sonst alles auf Braun stellt. */
+.lb-karte .lb-karte-wa { background: #25D366 !important; }
+.lb-karte .lb-karte-wa, .lb-karte .lb-karte-wa * { color: #0b3d20 !important; }

@@ -62,6 +62,7 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
         {/* DIE KARTE — dieselbe Komponente, die im Trichter als Vorschau steht. Was die
             Kundin dort gesehen hat, sieht ihr Gast hier. */}
         <EinladungKarte sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""} datum={e.datum} ort={e.ort}
+          adresse={e.adresse} telefon={e.telefon}
           video={<EinladungAnsicht id={e.id} videoUrl={e.videoUrl} tonText={T.ton} />} />
 
         {/* DIE EINE ZEILE. Mehr Werbung macht die Einladung unsendbar — und dann gibt es
