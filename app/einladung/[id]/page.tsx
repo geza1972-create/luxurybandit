@@ -114,8 +114,12 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
               /* PROBEWOCHE: das Gratis-Bild statt des Videos. Fuer den Gast sieht die Karte
                  gleich aus — er weiss nicht, dass hier noch nichts bezahlt wurde, und das
                  soll er auch nicht: Es ist ihre Einladung, nicht unsere Verkaufsseite. */
+              /* Volle Hoehe, kein Schnitt — dieselbe Regel wie beim Bauen (Owner 31.07.2026:
+                 „das Bild ist abgeschnitten"). Die KI liefert 2:3, der Kasten stand auf dem
+                 3:4 des Videos. Was der Gast sieht, muss vollstaendig sein: Hier haengt es
+                 sieben Tage lang, und niemand kann es nachbessern. */
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={e.bildUrl} alt="" className="aspect-[3/4] w-full object-cover" />
+              <img src={e.bildUrl} alt="" width={1024} height={1536} className="block h-auto w-full" />
             )
           } />
 

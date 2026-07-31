@@ -186,8 +186,17 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
                woertlich, was es tut. Vorher war das ganze Bild ein unsichtbarer Knopf; wer
                das nicht erraet, sitzt mit dem ersten Ergebnis fest, das die KI ausspuckt. */
             <div className="relative">
+              {/* DAS BILD BEHAELT SEINE HOEHE (Owner 31.07.2026: „Achtung, das Bild ist
+                  abgeschnitten").
+                  Der Kasten stand auf 3:4 — das Mass des VIDEOS (gemessen: 480×640). Die KI
+                  liefert aber 1024×1536, also 2:3, und `object-cover` schnitt davon elf
+                  Prozent der Hoehe weg: oben ein Stueck Kopf, unten die Haende. Genau die
+                  Stellen, auf die jemand schaut, der sich selbst sucht.
+                  Statt zu schneiden, waechst die Karte mit. `width`/`height` stehen dran,
+                  damit der Platz schon reserviert ist, bevor das Bild geladen hat — sonst
+                  springt die halbe Seite, wenn es ankommt. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={bild} alt="" className="aspect-[3/4] w-full object-cover" />
+              <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
                 <button type="button" onClick={() => setFeld("fotos")}
                   className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
