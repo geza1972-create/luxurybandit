@@ -221,7 +221,7 @@ export default async function ThemesCatalog({ searchParams }: {
     { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    { icon: Heart, title: "Your wedding kiss", tagline: "You in a white dress, him in a suit — your wedding kiss, as a picture and a video.", href: "/themes/wedding", cover: ph(9), chips: "♥ Your photo · His photo · Wedding" },
+    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), chips: "♥ Your photo · His photo · Invitation" },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem

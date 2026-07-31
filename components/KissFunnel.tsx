@@ -140,6 +140,16 @@ const VARIANTS: Record<FunnelVariant, {
   // Ein Bild ist still — die Stimmung muss von der Seite kommen. Nur dort gesetzt, wo es
   // wirklich passt; beim Kuss und beim Idol bliebe Musik Deko.
   musik?: string;
+  /**
+   * BEIDE FOTOS AUF EINEM BILDSCHIRM, KEIN KARUSSELL (Owner 31.07.2026: „hier stehen mehrere
+   * Models. Die Leute werden nur sich brauchen" und „ich haette gerne die zwei bilder zum
+   * hochladen nebeneinander").
+   *
+   * Beim Kuss ist die Auswahl der Frau das Produkt — da gehoert das Karussell hin. Bei der
+   * Hochzeit gibt es nichts auszusuchen: Es sind IHRE zwei Gesichter. Ein Karussell fremder
+   * Frauen ist dort nicht Auswahl, sondern Irritation, und es kostet einen ganzen Schritt.
+   */
+  paarUpload?: boolean;
 }> = {
   kiss: {
     prompt: KISS_PROMPT, done: "kiss-video.mp4",
@@ -156,6 +166,7 @@ const VARIANTS: Record<FunnelVariant, {
   wedding: {
     prompt: WEDDING_PROMPT, done: "hochzeitskuss.mp4",
     musik: "/Bridal-chorus.mp3",
+    paarUpload: true,
     // SIE bedient diesen Trichter: Schritt 1 ist SIE selbst (die Braut), Schritt 2 ER. Die
     // Upload-Karte steht deshalb vorn und ist vorgewählt — unsere Bräute sind die Ausweiche
     // für die, die kein Foto zur Hand hat.
@@ -1067,7 +1078,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
               Negative Reihenfolge zieht Zurueck und den Schalter davor. */}
           {schritt > 1 && (
             <button type="button"
-              onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? 2 : 1)}
+              onClick={() => setSchritt(schritt === 4 ? 3 : schritt === 3 ? (V.paarUpload ? 1 : 2) : 1)}
               className="order-[-2] h-9 rounded-full px-4 text-[13px] font-black active:scale-95 transition"
               style={{ border: "1px solid rgba(24,119,242,0.35)", color: "#1877f2" }}>
               {T.back}
@@ -1082,7 +1093,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           holt sie nach vorn (= Auswahl). */}
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
-        {[1, 2, 3, 4].map(n => (
+        {(V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
           <span key={n} className={`h-1.5 rounded-full transition-all ${n === schritt ? "w-6 bg-[#f6cf51]" : n < schritt ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
         ))}
       </div>
@@ -1090,7 +1101,51 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
       {schritt === 1 && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step1}</p>
       <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>
-      {(() => {
+
+      {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
+          bei der Hochzeit sind es IHRE beiden Gesichter, und beide gehoeren auf einen
+          Bildschirm. Das spart den ganzen zweiten Schritt. */}
+      {V.paarUpload && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {([
+            { wer: "sie", foto: customModel, ref: modelFileRef, titel: T.upTitle, hinweis: T.upHint, platzhalter: V.upPlaceholder },
+            { wer: "er", foto: photo, ref: fileRef, titel: T.you, hinweis: T.youHint, platzhalter: PLACEHOLDER_MAN },
+          ] as const).map(k => (
+            <button key={k.wer} type="button" onClick={() => k.ref.current?.click()}
+              className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+              {k.foto ? (<>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={k.foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-[15px] font-black"
+                  style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
+                  {k.titel}
+                </span>
+                <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#f6cf51] shadow">
+                  <Check className="h-4 w-4 text-black" />
+                </span>
+              </>) : (<>
+                {k.platzhalter && (<>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={k.platzhalter} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-95" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                </>)}
+                <ImageUp className="relative h-7 w-7 text-[#f6cf51]" />
+                <span className="relative px-1 text-[14px] font-black leading-tight"
+                  style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
+                  {k.titel}
+                </span>
+                <span className="relative px-2 text-[10px] font-bold leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                  {k.hinweis}
+                </span>
+              </>)}
+            </button>
+          ))}
+          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+        </div>
+      )}
+
+      {!V.paarUpload && (() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
@@ -1168,12 +1223,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en" }:
           </div>
         );
       })()}
-      <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
+      {!V.paarUpload && (
+        <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
+      )}
 
-      {/* 2) Eigenes Foto */}
-      <button type="button" onClick={() => { zustimmen(); wahlMerken(); setSchritt(2); }} disabled={!selPhoto}
+      {/* Weiter — bei der Hochzeit erst, wenn BEIDE Fotos da sind, und direkt zu Schritt 3. */}
+      <button type="button"
+        onClick={() => { zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2); }}
+        disabled={V.paarUpload ? (!selPhoto || !photo) : !selPhoto}
         className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
-        {selPhoto ? T.next : T.pickFirst}
+        {V.paarUpload
+          ? (selPhoto && photo ? T.next : !selPhoto ? T.pickFirst : T.uploadFirst)
+          : (selPhoto ? T.next : T.pickFirst)}
       </button>
       {/* GLEICH BEIM ERSTEN BILD (Owner 30.07.2026: „bei ersten bild muss schon stehen").
           Wer erst auf Schritt 3 erfaehrt, worauf er sich einlaesst, hat schon zwei Fotos

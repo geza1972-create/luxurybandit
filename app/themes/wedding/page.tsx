@@ -30,10 +30,26 @@ import { kissText } from "@/lib/kiss-i18n";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * SEO AUF „HOCHZEITSEINLADUNG", nicht auf „Hochzeitskuss" (Owner 31.07.2026: „das muss doch
+ * heissen Hochzeitseinladung, weil die Leute danach suchen werden").
+ *
+ * Er hat recht, und es ist der wichtigere Punkt: „AI wedding kiss" sucht niemand — das ist
+ * unser Wort fuer unsere Technik. Gesucht wird „Hochzeitseinladung digital", „invitatie de
+ * nunta video", „faire-part de mariage video": Menschen mit einem Datum, einer Gaesteliste und
+ * einer Aufgabe. Die Begriffe stehen deshalb in Titel, Beschreibung UND im sichtbaren Text —
+ * Google bewertet, was auf der Seite steht, nicht was in den Metadaten behauptet wird.
+ */
 export const metadata = {
-  title: "Wedding kiss AI generator — you two on your wedding day | LuxuryBandit",
-  description: "Upload your photo and his: the AI puts the two of you in a white dress and a suit, sharing your wedding kiss — as a picture, free, and as a video.",
-  keywords: ["wedding kiss ai", "ai wedding photo", "wedding video ai generator", "ai wedding picture", "future wedding photo ai"],
+  title: "Digital wedding invitation video — send it on WhatsApp | LuxuryBandit",
+  description: "Make your wedding invitation as a video: upload one photo of you and one of him, and the two of you appear at your wedding. Send the invitation link on WhatsApp — the picture is free.",
+  keywords: [
+    "wedding invitation video", "digital wedding invitation", "send wedding invitation whatsapp",
+    "online wedding invitation", "save the date video", "video invitation wedding",
+    "invitatie de nunta video", "invitatie de nunta online", "faire-part de mariage video",
+    "invitación de boda digital", "convite de casamento digital", "invito di matrimonio video",
+    "digitale Hochzeitseinladung", "Hochzeitseinladung Video",
+  ],
   alternates: { canonical: "/themes/wedding" },
 };
 
@@ -79,13 +95,48 @@ export default async function WeddingThemePage({ searchParams }: {
 
             <SubscribeCta code={code} lang={L} />
 
+            {/* DER SICHTBARE TEXT IST DAS SEO (Owner 31.07.2026: „mach die texte nach
+                konzept auf der seite. Es muss seo tauglich sein"). Vier Abschnitte entlang
+                dessen, was Menschen wirklich eintippen: eine Einladung als Video, digital
+                verschicken, was es kostet, wie privat es bleibt. Keine Stichwortliste —
+                Saetze, die auch ein Mensch liest, sonst wertet Google sie ab. */}
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
-                <SectionTitle>Your wedding photo, before the wedding</SectionTitle>
+                <SectionTitle>A wedding invitation as a video — with the two of you in it</SectionTitle>
                 <Lead>
-                  Upload one photo of yourself and one of him. The AI dresses you in a white
-                  wedding dress and him in a suit and puts the two of you in your wedding kiss —
-                  the picture is free, the video costs. Nothing is published, it is yours.
+                  Instead of a printed card: your <strong>digital wedding invitation</strong> is a
+                  short video in which you and your partner appear on your own wedding day — you in
+                  a white dress, him in a white suit, in the church, with the kiss. Upload one photo
+                  of yourself and one of him; the AI does the rest. The picture is free, so you see
+                  what it looks like before you decide anything.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>Send your invitation on WhatsApp</SectionTitle>
+                <Lead>
+                  Every invitation gets its own page with your names, the date and the place. You
+                  send that one link — on WhatsApp, in your family group, wherever your guests
+                  already are. No app for them, no login, no printing, no postage. You can take the
+                  link back at any time, and you see how many guests have opened it.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>Save the date — in the weeks before the wedding</SectionTitle>
+                <Lead>
+                  Most couples send a save-the-date two to four months before the wedding and the
+                  full invitation six to eight weeks ahead. A video invitation gets watched instead
+                  of skimmed, and it works the same for guests abroad — they open the same link on
+                  their phone.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>Your photos stay yours</SectionTitle>
+                <Lead>
+                  The two photos you upload are used to make your video and nothing else. They are
+                  never published and never shown to other users, they are stored on servers in the
+                  EU, and everything from a visit without a purchase is deleted after 90 days. The
+                  invitation page itself is not listed anywhere and cannot be found on Google — only
+                  the people you send the link to can open it.
                 </Lead>
               </div>
             </section>

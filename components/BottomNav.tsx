@@ -368,7 +368,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <button type="button" onClick={() => navigate("/themes/wedding?admin=1")}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
                   <Heart className="h-4 w-4 shrink-0 text-violet-400" />
-                  <span className="text-[13px] font-bold">Wedding — manage</span>
+                  <span className="text-[13px] font-bold">Wedding invitation — manage</span>
                 </button>
               )}
               {/* Birthdays — Name eingeben, sie gratuliert, teilen (3,99 € pro Video). */}
