@@ -29,32 +29,52 @@ export type KussSzene = {
   bild: string;
   /** Komplette Szene mit Kuss fürs bezahlte Video (Pixverse, neutrale Wörter). */
   video: string;
+  /**
+   * Die Auswahl-Kachel im Trichter — ein STANDBILD AUS DEN ECHTEN BEISPIELVIDEOS
+   * (Owner 01.08.2026: die KI-Templates waren „furchtbar", die Video-Standbilder „toll").
+   * Liegt in public/szenen/, damit es versioniert mit dem Code reist.
+   */
+  kachel: string;
 };
 
 export const KUSS_SZENEN: KussSzene[] = [
-  {
-    id: "lichterkette",
-    name: "Abend im Lichterketten-Zimmer",
-    bild: "a cozy living room in the evening, warm strings of small fairy lights glowing on the wall behind them, soft warm indoor light, intimate homely atmosphere",
-    video: "In a cozy living room in the evening, warm fairy lights glowing on the wall behind them, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
-  },
+  /**
+   * KURATIERT vom Owner am 01.08.2026 an den Standbildern der echten Beispielvideos:
+   * Altstadt und Terrasse „sind toll", dazu bestellt: „wir brauchen noch welche draussen
+   * und closeup". Lichterkette und Strandpromenade sind wieder raus.
+   *
+   * „light elegant summer clothing" steht in JEDEM Bild-Prompt (Owner: „du hast
+   * Winterklamotten"): Die Deckungsregel verlangt blickdichten Stoff, und ohne Jahreszeit
+   * uebersetzt das Modell „bedeckt" in Jacken und Pullover — sogar am Sommerstrand.
+   * Bedeckt bleibt bedeckt, aber sommerlich.
+   */
   {
     id: "altstadt",
-    name: "Altstadt-Gasse am Nachmittag",
-    bild: "a picturesque old-town street with pastel-coloured historic facades and cobblestones, soft afternoon daylight, a few blurred passers-by far in the background",
-    video: "On a picturesque old-town street with pastel historic facades and cobblestones in soft afternoon light, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
+    kachel: "/szenen/kiss-altstadt.jpg",
+    name: "Altstadt-Platz am Abend",
+    bild: "a picturesque old-town square at golden hour, pastel-coloured historic facades and cobblestones softly blurred behind them, warm evening light; both in light elegant summer clothing",
+    video: "On a picturesque old-town square at golden hour, pastel facades behind them, both in light elegant summer clothing, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
   },
   {
     id: "terrasse",
+    kachel: "/szenen/kiss-terrasse.jpg",
     name: "Frühstücks-Terrasse",
-    bild: "a bright breakfast terrace in the morning, a set table with coffee and orange juice in the foreground, city rooftops softly blurred behind them, fresh morning light",
-    video: "On a bright breakfast terrace in the morning with coffee on the table, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
+    bild: "a bright breakfast terrace in the morning, a set table with coffee and orange juice in the foreground, soft daylight, relaxed holiday mood; both in light elegant summer clothing",
+    video: "On a bright breakfast terrace in the morning with coffee on the table, both in light elegant summer clothing, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
   },
   {
-    id: "strandpromenade",
-    name: "Strandpromenade bei Sonnenuntergang",
-    bild: "a seaside promenade at golden hour, palm trees and the sea behind them, warm sunset light on their faces, gentle breeze in the hair",
-    video: "On a seaside promenade at golden hour with palm trees and the sea behind them, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
+    id: "draussen",
+    kachel: "/szenen/kiss-draussen.jpg",
+    name: "Draussen in der Natur",
+    bild: "outdoors in beautiful nature at golden hour, soft green landscape and warm sunlight behind them, gentle breeze; both in light elegant summer clothing",
+    video: "Outdoors in beautiful nature at golden hour, warm sunlight behind them, both in light elegant summer clothing, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
+  },
+  {
+    id: "closeup",
+    kachel: "/szenen/kiss-closeup.jpg",
+    name: "Closeup — ganz nah",
+    bild: "an intimate close-up of the two of them, faces filling the frame, soft window light, shallow depth of field, tender mood; both in light elegant summer clothing",
+    video: "An intimate close-up, their faces filling the frame in soft light, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
   },
 ];
 

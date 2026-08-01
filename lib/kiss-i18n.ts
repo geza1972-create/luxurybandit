@@ -36,6 +36,8 @@ export type KissText = {
   landFrage: string;
   /** Teilen-Dialog (Owner 01.08.2026: „in dem Moment wo er shart muss er wissen dass es public wird"). */
   shareTitel: string; shareText: string; shareOk: string; shareCancel: string;
+  /** Überschrift der Szenen-Kacheln (Owner 01.08.2026); Wahl ist freiwillig. */
+  szeneTitel: string;
   // Knopf und Kleingedrucktes
   ctaFree: string; ctaVideo: string; rendering: string; priceLine: string; paidLine: string; consent: string;
   buyOnce: string; buyAbo: string;
@@ -108,6 +110,7 @@ const EN: KissText = {
   mailNote: "Free. We send you the picture and keep it in your gallery.",
   landFrage: "Your country",
   shareTitel: "Sharing makes it public", shareText: "Anyone with the link can see your card. Only the finished result is shown — never the photos you uploaded.", shareOk: "Got it — share", shareCancel: "Cancel",
+  szeneTitel: "Pick a scene — or let us surprise you",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
@@ -205,6 +208,7 @@ const DE: KissText = {
   mailNote: "Kostenlos. Wir schicken dir das Bild und heben es in deiner Galerie auf.",
   landFrage: "Dein Land",
   shareTitel: "Teilen macht es öffentlich", shareText: "Jeder mit dem Link kann deine Karte sehen. Gezeigt wird nur das fertige Ergebnis — niemals deine hochgeladenen Fotos.", shareOk: "Verstanden — teilen", shareCancel: "Abbrechen",
+  szeneTitel: "Such dir eine Szene aus — oder lass dich überraschen",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
@@ -302,6 +306,7 @@ const RO: KissText = {
   mailNote: "Gratuit. Îți trimitem poza și o păstrăm în galeria ta.",
   landFrage: "Țara ta",
   shareTitel: "Dacă distribui, devine public", shareText: "Oricine are linkul îți poate vedea cardul. Se arată doar rezultatul final — niciodată pozele încărcate de tine.", shareOk: "Am înțeles — distribuie", shareCancel: "Anulează",
+  szeneTitel: "Alege o scenă — sau lasă-te surprins",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
@@ -399,6 +404,7 @@ const ES: KissText = {
   mailNote: "Gratis. Te enviamos la imagen y la guardamos en tu galería.",
   landFrage: "Tu país",
   shareTitel: "Compartir lo hace público", shareText: "Cualquiera con el enlace puede ver tu tarjeta. Solo se muestra el resultado final — nunca las fotos que subiste.", shareOk: "Entendido — compartir", shareCancel: "Cancelar",
+  szeneTitel: "Elige una escena — o déjate sorprender",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
@@ -496,6 +502,7 @@ const FR: KissText = {
   mailNote: "Gratuit. Nous t'envoyons l'image et la gardons dans ta galerie.",
   landFrage: "Ton pays",
   shareTitel: "Partager le rend public", shareText: "Toute personne avec le lien peut voir ta carte. Seul le résultat final est montré — jamais tes photos envoyées.", shareOk: "Compris — partager", shareCancel: "Annuler",
+  szeneTitel: "Choisis une scène — ou laisse-toi surprendre",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
@@ -593,6 +600,7 @@ const PT: KissText = {
   mailNote: "Grátis. Enviamos-te a imagem e guardamo-la na tua galeria.",
   landFrage: "O teu país",
   shareTitel: "Partilhar torna-o público", shareText: "Qualquer pessoa com o link pode ver o teu cartão. Só se mostra o resultado final — nunca as fotos que enviaste.", shareOk: "Entendi — partilhar", shareCancel: "Cancelar",
+  szeneTitel: "Escolhe uma cena — ou deixa-te surpreender",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
@@ -691,6 +699,7 @@ const IT: KissText = {
   mailNote: "Gratis. Ti mandiamo l'immagine e la teniamo nella tua galleria.",
   landFrage: "Il tuo paese",
   shareTitel: "Condividere lo rende pubblico", shareText: "Chiunque abbia il link può vedere la tua card. Si mostra solo il risultato finale — mai le foto che hai caricato.", shareOk: "Ho capito — condividi", shareCancel: "Annulla",
+  szeneTitel: "Scegli una scena — o lasciati sorprendere",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",

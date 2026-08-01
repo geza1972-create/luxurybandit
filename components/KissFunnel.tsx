@@ -18,6 +18,7 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
+import { KUSS_SZENEN, kussSzene } from "@/lib/kuss-szenen";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 
 import LightSwitch from "@/components/LightSwitch";
@@ -407,6 +408,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Ohne sein ausdrückliches Ja im Dialog wird nichts freigegeben und nichts geteilt.
    */
   const [shareFrage, setShareFrage] = useState(false);
+  /**
+   * DIE GEWÄHLTE SZENE (Owner 01.08.2026: „die User suchen sich eine Szene aus und wollen
+   * diese Szene nachbauen"). "" = keine Wahl, und dann ändert sich NICHTS am Auftrag — die
+   * Natur-Ergebnisse, die dem Owner gefallen, bleiben der Standard.
+   */
+  const [kussSzeneId, setKussSzeneId] = useState("");
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
   const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
   /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
@@ -1265,7 +1272,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       const r = await fetch("/api/free-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code, kleid}),
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code, kleid, szene: kussSzeneId }),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();
@@ -1464,7 +1471,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
         // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? weddingPrompt(kleid) : holidayPrompt(szene, { kuss: variant === "kiss" }) }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? weddingPrompt(kleid)
+            /* Gewaehlte Szene → ihr BEHALTENER Video-Prompt (lib/kuss-szenen), wortgleich —
+               der Kunde hat genau diese Kulisse bestellt. Ohne Wahl wie bisher. */
+            : (variant === "kiss" && kussSzene(kussSzeneId)?.video) || holidayPrompt(szene, { kuss: variant === "kiss" }) }),
       }).then(r => r.json());
       if (!start?.videoId) {
         // Kontingent aufgebraucht: eigener Satz in seiner Sprache — und ein Weg weiter,
@@ -2468,6 +2478,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      {/* DIE SZENEN-KACHELN (Owner 01.08.2026). Vier Standbilder aus den ECHTEN
+          Beispielvideos — die KI-Templates waren „furchtbar", die Video-Standbilder „toll".
+          Antippen wählt, nochmal tippen wählt ab; keine Pflicht. Nur beim Kuss — Hochzeit
+          hat ihre eigene Kulisse (Kleid + Zeremonie). */}
+      {variant === "kiss" && schritt >= 3 && !bild && !videoUrl && (
+        <div className="mt-3">
+          <p className="text-[12px] font-bold text-white/85">{T.szeneTitel}</p>
+          <div className="mt-1.5 grid grid-cols-4 gap-2">
+            {KUSS_SZENEN.map(sz => (
+              <button key={sz.id} type="button"
+                onClick={() => setKussSzeneId(w => (w === sz.id ? "" : sz.id))}
+                aria-pressed={kussSzeneId === sz.id}
+                className={`relative overflow-hidden rounded-xl border transition active:scale-95 ${kussSzeneId === sz.id ? "border-[#f6cf51] ring-2 ring-[#f6cf51]" : "border-white/20"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sz.kachel} alt={sz.name} className="aspect-[3/4] w-full object-cover" />
+                {kussSzeneId === sz.id && (
+                  <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]">
+                    <Check className="h-3.5 w-3.5 text-black" />
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       )}
