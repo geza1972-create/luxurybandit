@@ -32,6 +32,35 @@ Zeit ohne Gratis-Bild. Heute traegt die Karte den Kaufknopf mit Preis, darunter 
 ersetzen"; wer bezahlt hat, liest „Video erzeugen" ohne Zahl. Herzchen weichen jeder Meldung,
 der Radar laeuft in der Zahl-/Render-Anzeige mit.
 
+## Alterssperre — steht im Gratis-Weg, FEHLT bei Pixverse und FASHN
+
+Owner 31.07.2026: „ich habe auch Kinderbilder gesehen, die hochgeladen werden, das bitte
+sperren." Die vorhandenen hat er selbst geloescht und prueft die Liste weiter von Hand.
+
+**Gebaut:** `lib/minderjaehrig-pruefen.ts`, eingehaengt in `/api/free-preview` VOR jeder
+Erzeugung. Zwei Signale (direkte Ja/Nein-Frage + Altersschaetzung), Grenze 18 — nicht hoeher,
+weil eine jung aussehende Erwachsene sonst mit einer beleidigenden Meldung ausgesperrt wuerde
+(Owner: „eine 18-Jaehrige kann auch juenger aussehen"). Bei Ausfall des Seh-Modells wird
+GESPERRT; umstellbar mit `MINOR_CHECK_FAIL_OPEN=true`.
+
+**Warum es vorher durchkam:** `alterSchaetzen` gibt fuer alles ausserhalb 18–90 eine 0
+zurueck, und 0 heisst im Code „nicht erkannt". Das Kind wurde also erkannt und das Ergebnis
+weggeworfen.
+
+**OFFEN, bewusste Owner-Entscheidung („lass es so laufen"):**
+`/api/generate-tryon-video` (Pixverse) und `/api/generate-fashn` haben KEINE Alterspruefung.
+Das ist der Lingerie- und Bademoden-Weg, der absichtlich an OpenAI vorbeilaeuft — OpenAIs
+Filter schuetzt dort also nicht. Zwei Zeilen je Route (`pruefeAlterAlle` wie in free-preview),
+falls das spaeter gewuenscht ist.
+
+## E-Mail-Pruefung am Eingang — fertig
+
+`lib/email-pruefen.ts`, eingehaengt in `/api/kiss-claim` (das Tor VOR der Erzeugung: der
+Trichter schaltet das Erzeugen erst frei, wenn die Adresse durchgeht). Gesperrt: seed.lb,
+`.invalid`, Wegwerf-/Inkognito-Anbieter, Namen mit 6+ Ziffern, Laenderendungen ausserhalb
+EU/EWR. Meldung in sieben Sprachen, sagt WAS falsch ist. Geprueft an echten Faellen:
+`gl12341234123@gmail.com` faellt, `maria1987@outlook.de` und `ion23@yahoo.com` gehen durch.
+
 **Offen aus dem Abend:**
 - Owner gefragt, ob ein dritter Parallel-Arm (zweiter Fast-Kuss-Wurf, ~80 % Kuss-Quote,
   ~0,4 Bilder je Lauf teurer) gewuenscht ist — Antwort steht aus.

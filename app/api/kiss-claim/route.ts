@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
+import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,12 +46,28 @@ export async function POST(request: Request) {
     consentAt?: string;  // Zeitpunkt des Haekchens — ohne Nachweis ist eine Einwilligung wertlos
   };
   const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse." }, { status: 400 });
+  const lang = String(body.lang ?? "en").slice(0, 5);
+  /**
+   * HIER STEHT DAS TOR (Owner 31.07.2026: „die die verdächtig sind, da wird nichts erzeugt.
+   * Es muss die Meldung stehen dass die E-Mail falsch ist.").
+   *
+   * DIESE ROUTE IST DIE RICHTIGE STELLE, und zwar nur sie: Der Trichter meldet die Adresse
+   * hier an, BEVOR er erzeugt, und schaltet das Erzeugen erst frei, wenn die Antwort in
+   * Ordnung ist (`adresseVormerken` in KissFunnel). Ein Nein hier heisst also: kein Bild,
+   * keine Kosten, und der Nutzer liest im Klartext, was mit seiner Adresse nicht stimmt.
+   *
+   * Bisher stand hier nur „ist ein @ drin" — daran kam `gl12341234123@gmail.com` mühelos
+   * vorbei, und jede solche Adresse kostet uns ein Bild und einen Rückläufer.
+   */
+  const pruefung = pruefeEmail(email);
+  if (!pruefung.ok) {
+    return NextResponse.json(
+      { error: emailFehlerText(pruefung.grund, lang), emailUngueltig: true, grund: pruefung.grund },
+      { status: 400 },
+    );
   }
   const imagePath = String(body.imagePath ?? "").trim();
   const device = String(body.device ?? "").trim().slice(0, 80);
-  const lang = String(body.lang ?? "en").slice(0, 5);
   const KISS_LIST = (LISTEN as readonly string[]).includes(String(body.theme ?? "")) ? String(body.theme) : "kiss";
   // Zeitpunkt des Haekchens, wie ihn der Browser gemeldet hat — auf 40 Zeichen begrenzt.
   const zustimmung = String(body.consentAt ?? "").trim().slice(0, 40);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
+import { pruefeAlterAlle, altersFehlerText } from "@/lib/minderjaehrig-pruefen";
 
 export const runtime = "nodejs";
 // 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
@@ -230,6 +231,8 @@ export async function POST(request: Request) {
   const person = gemeinsam ? paar : String(body.person ?? "");
   const device = String(body.device ?? "").trim().slice(0, 80);
   const theme = String(body.theme ?? "kiss").replace(/[^a-z]/gi, "").toLowerCase();
+  // Sprache für die Meldungen der Alterssperre — eine Absage muss er verstehen können.
+  const lang = String((body as { lang?: string }).lang ?? "en").slice(0, 5);
   let model = gemeinsam ? "" : String(body.model ?? "");
 
   /**
@@ -374,6 +377,29 @@ export async function POST(request: Request) {
    *
    * `person` ist ER, `model` ist SIE — so schickt es der Trichter (siehe EinladungBauen).
    */
+  /**
+   * ══ DIE ALTERSSPERRE ══ (Owner 31.07.2026: „ich habe auch Kinderbilder gesehen, die
+   * hochgeladen werden, das bitte sperren.")
+   *
+   * SIE STEHT VOR ALLEM ANDEREN — vor dem Auftrag, vor dem Anziehen, vor jedem bezahlten
+   * Aufruf. Ein Kinderfoto darf diese Kette nicht einmal betreten.
+   *
+   * Und sie steht VOR der Altersschätzung darunter, obwohl beide dasselbe Modell fragen:
+   * Die Schätzung dient dem Aussehen des Ergebnisses, diese Prüfung entscheidet, ob es
+   * überhaupt eins gibt. Zwei verschiedene Fragen — sie zusammenzulegen war der Fehler, durch
+   * den es bisher durchkam (`alterSchaetzen` wirft alles unter 18 als „nicht erkannt" weg).
+   */
+  if (key) {
+    const alterOk = await pruefeAlterAlle(gemeinsam ? [paar] : [person, model], key);
+    if (!alterOk.ok) {
+      console.warn(`[free-preview] GESPERRT — Alterspruefung: ${alterOk.grund} (Thema ${theme})`);
+      return NextResponse.json(
+        { error: altersFehlerText(alterOk.grund, lang), altersSperre: true, grund: alterOk.grund },
+        { status: 422 },
+      );
+    }
+  }
+
   const [alterEr, alterSie] = !key ? [0, 0]
     // Beim gemeinsamen Foto stehen beide auf EINEM Bild — eine Anfrage, zwei Zahlen.
     : gemeinsam ? await alterPaarSchaetzen(paar, key)
