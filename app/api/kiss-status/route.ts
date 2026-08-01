@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits, videoCreditBalance } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, videoCreditBalance, readGuthabenCents } from "@/lib/try-this-look-store";
 import { INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 
 export const runtime = "nodejs";
@@ -36,7 +36,9 @@ export async function GET(request: Request) {
     // Das Guthaben zählt auch ohne Abo: wer ein Einzelvideo für 3,99 € nachgekauft hat, hat
     // eines offen, ohne Abonnent zu sein.
     const left = await videoCreditBalance(email).catch(() => 0);
-    return NextResponse.json({ abo, left, includes: INCLUDED_VIDEOS_PER_MONTH });
+    // Das Euro-Guthaben der Aufladung (Owner 01.08.2026) — fuer die Zeile im Trichter.
+    const walletCents = await readGuthabenCents(email).catch(() => 0);
+    return NextResponse.json({ abo, left, includes: INCLUDED_VIDEOS_PER_MONTH, walletCents });
   } catch {
     return NextResponse.json({ abo: false, left: 0, includes: INCLUDED_VIDEOS_PER_MONTH });
   }

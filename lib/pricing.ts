@@ -79,6 +79,9 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
 // angelegte Preis-ID price_1TzXLz1jPNCWoiztla7ACpBL ist das dortige Gegenstück und wird vom
 // Code nicht benutzt; massgeblich ist DIESE Zahl. Zurück zum alten Preis = 299.
 export const ONCE_CENTS = 149;                      // 1,49 € — ein Kauf, kein Abo (Preistest)
+// Die Aufladung (Owner 01.08.2026, Variante B: Zusatzangebot neben dem Einzelkauf; Guthaben
+// verfällt nie, keine Barauszahlung). Eine Stufe reicht zum Start.
+export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -110,6 +113,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{list\}/g, eur(TOPIC_MONTHLY_CENTS, lang))
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
+    .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }
 

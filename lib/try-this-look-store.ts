@@ -470,6 +470,15 @@ export type TryThisLookState = {
   // welcomed = emails that already got their free welcome credits (granted once).
   // subMonths = "email|YYYY-MM" keys already granted the monthly subscriber allowance (idempotency).
   videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[]; subMonths?: string[]; genLog?: Record<string, number> };
+  /**
+   * DAS EURO-GUTHABEN (Owner 01.08.2026, Variante B: Aufladung 9,99 als Zusatzangebot neben
+   * dem Einzelkauf). In CENT und je E-MAIL — nicht in Video-Stück, damit es jeden Preistest
+   * übersteht: Heute kostet ein Video 149 Cent, morgen vielleicht wieder 299; das Guthaben
+   * bleibt einfach Geld. VERFÄLLT NIE (Owner-Entscheidung, die rechtlich sicherste Form),
+   * keine Barauszahlung. Idempotenz läuft über videoCredits.redeemed — dieselbe Liste wie
+   * bei allen Kassenvorgängen, damit es nur EINE gibt.
+   */
+  guthabenCents?: Record<string, number>;
   // Admin-managed carousel slides for the /urlaub-mit-bella landing card — an intro image
   // (e.g. "Das ist Peter" + description) and example videos, injected into Bella's ModelCard
   // carousel. Persist PATHS only; buildBellaCard signs them on read.
@@ -2359,6 +2368,51 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
   state.videoCredits = vc;
   await saveTryThisLookState(state);
   return { credits: vc.balances[e], granted: true };
+}
+
+/** Euro-Guthaben eines Kunden in Cent (0, wenn keins). */
+export async function readGuthabenCents(email: string): Promise<number> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return 0;
+  const state = await readTryThisLookState();
+  return Math.max(0, Math.round(Number(state.guthabenCents?.[e] ?? 0)));
+}
+
+/** Aufladung gutschreiben — idempotent je Kassensitzung (dieselbe redeemed-Liste wie überall). */
+export async function guthabenAufladen(email: string, sessionId: string, cents: number): Promise<{ cents: number; granted: boolean }> {
+  const e = String(email ?? "").trim().toLowerCase();
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.redeemed = vc.redeemed ?? [];
+  const g = (state.guthabenCents = state.guthabenCents ?? {});
+  if (!e || cents <= 0) return { cents: Math.max(0, Number(g[e] ?? 0)), granted: false };
+  if (sessionId && vc.redeemed.includes(sessionId)) return { cents: Math.max(0, Number(g[e] ?? 0)), granted: false };
+  g[e] = Math.max(0, Math.round(Number(g[e] ?? 0))) + Math.round(cents);
+  if (sessionId) vc.redeemed.push(sessionId);
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return { cents: g[e], granted: true };
+}
+
+/**
+ * Ein Video vom Guthaben bezahlen — idempotent je Schlüssel (z. B. `wallet-<genId>`), damit
+ * ein doppelter Klick oder eine Wiederholung nach Netzfehler nie zweimal abbucht.
+ */
+export async function guthabenAbbuchen(email: string, schluessel: string, cents: number): Promise<{ ok: boolean; rest: number }> {
+  const e = String(email ?? "").trim().toLowerCase();
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.redeemed = vc.redeemed ?? [];
+  const g = (state.guthabenCents = state.guthabenCents ?? {});
+  const stand = Math.max(0, Math.round(Number(g[e] ?? 0)));
+  if (!e || cents <= 0) return { ok: false, rest: stand };
+  if (schluessel && vc.redeemed.includes(schluessel)) return { ok: true, rest: stand };   // schon bezahlt
+  if (stand < cents) return { ok: false, rest: stand };
+  g[e] = stand - Math.round(cents);
+  if (schluessel) vc.redeemed.push(schluessel);
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return { ok: true, rest: g[e] };
 }
 
 // Admin: set a user's video-credit balance to an absolute value (0 = reset). Unlike

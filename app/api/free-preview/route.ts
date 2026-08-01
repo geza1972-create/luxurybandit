@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
+import { kussSzene } from "@/lib/kuss-szenen";
 
 export const runtime = "nodejs";
 // 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
@@ -439,17 +440,28 @@ export async function POST(request: Request) {
    * hintereinander), das beste durchgekommene Ergebnis gewinnt; scheitern beide, faengt die
    * Umarmung auf. So bekommt praktisch jeder ein Bild, und wer Glueck hat, den Kuss.
    */
+  /**
+   * DIE GEWÄHLTE SZENE (Owner 01.08.2026: „die User suchen sich eine Szene aus und wollen
+   * diese Szene nachbauen"). Kommt eine bekannte Kennung mit, wird ihr BEHALTENER Prompt aus
+   * lib/kuss-szenen als „Setting:" an alle drei Leiter-Stufen gehängt — Kuss, Fast-Kuss und
+   * Umarmung spielen dann in derselben Kulisse. Ohne (oder mit unbekannter) Kennung ändert
+   * sich NICHTS: Der Auftrag bleibt ohne Szenen-Satz, und das Modell malt weiter die Natur,
+   * die dem Owner gefällt („die wir gerade generieren sind sehr schön in der Natur").
+   */
+  const szeneWahl = kussSzene((body as { szene?: string }).szene);
+  const szeneSatz = szeneWahl ? `Setting: ${szeneWahl.bild}. ` : "";
+
   const SATZ_KUSS =
     "Generate ONE photorealistic image of these two people as a loving couple sharing a tender, "
     + "romantic kiss on the lips — lips gently touching, eyes closed, faces close together. "
-    + "A sweet, heartfelt moment, both fully clothed. ";
+    + "A sweet, heartfelt moment, both fully clothed. " + szeneSatz;
   const SATZ_FAST_KUSS =
     "Generate ONE photorealistic image of these two people as a loving couple leaning in to "
     + "kiss — faces very close, eyes closed, lips almost touching. A sweet, heartfelt moment, "
-    + "both fully clothed. ";
+    + "both fully clothed. " + szeneSatz;
   const SATZ_UMARMUNG =
     "Generate ONE photorealistic image showing BOTH people together, embracing each other "
-    + "and smiling, happy and relaxed. ";
+    + "and smiling, happy and relaxed. " + szeneSatz;
 
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`

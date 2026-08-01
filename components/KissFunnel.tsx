@@ -407,6 +407,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Ohne sein ausdrückliches Ja im Dialog wird nichts freigegeben und nichts geteilt.
    */
   const [shareFrage, setShareFrage] = useState(false);
+  /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
+  const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
+  /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
+  const nachAufladungKaufen = useRef(false);
 
   const werkTeilen = async () => {
     setShareFrage(false);
@@ -856,10 +860,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     let weg = false;
     void fetch(`/api/kiss-status?email=${encodeURIComponent(e)}`, { cache: "no-store" })
       .then(r => r.json())
-      .then((d: { abo?: boolean; left?: number }) => {
+      .then((d: { abo?: boolean; left?: number; walletCents?: number }) => {
         if (weg) return;
         setAboAktiv(!!d.abo);
         setVideosLinks(typeof d.left === "number" ? d.left : null);
+        setGuthabenCents(typeof d.walletCents === "number" ? d.walletCents : null);
         // Freigeschaltet ist, wer ein laufendes Abo hat ODER noch ein gekauftes Video offen
         // hat. Beides heisst: er darf jetzt ein Video machen, ohne die Kasse zu sehen.
         if (d.abo || (d.left ?? 0) > 0) { setBezahlt(true); setExtraNoetig(false); }
@@ -1597,7 +1602,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    *   "abo"   → das Monatsabo
    *   "extra" → EIN weiteres Video für {extra}, wenn das Monatskontingent leer ist
    */
-  const unlock = async (einmal: "once" | "abo" | "extra" = "abo") => {
+  const unlock = async (einmal: "once" | "abo" | "extra" | "auflade" = "abo") => {
     // Derselbe Fehler wie bei `generate`: Das Ereignis stand vor jeder Pruefung und meldete
     // den Tipp, nicht die Kasse. `checkout_tap` = er wollte, `checkout` = Stripe ist offen.
     track("checkout_tap");
@@ -1611,7 +1616,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     setPayBusy(true); setStatus("");
     trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal === "once", extra: einmal === "extra", email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      /**
+       * VOM GUTHABEN BEZAHLT (Owner 01.08.2026): Der Server hat abgebucht, gestempelt und die
+       * Lieferung vorgemerkt — hier ist die Zahlung damit BESTÄTIGT, ohne Kasse, ohne Fenster.
+       * Derselbe Weg wie nach einer Stripe-Zahlung: Auftrag laeuft von selbst los.
+       */
+      if (start?.walletPaid) {
+        trackMetaPixel("Purchase", { currency: "EUR", content_name: "Kiss video (wallet)" });
+        track("checkout");
+        setGuthabenCents(typeof start.rest === "number" ? start.rest : null);
+        setPayBusy(false);
+        setBezahlt(true);
+        if (!stufenOffen) nachZahlungLiefern.current = true;
+        return;
+      }
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return; }
       // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
       track("checkout");
@@ -1623,6 +1642,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         if (s?.paid) {
           try { popup.close(); } catch { /**/ }
           setPayBusy(false);
+          /**
+           * AUFLADUNG BEZAHLT → jetzt NAHTLOS das gewuenschte Video vom frischen Guthaben
+           * kaufen (Owner 01.08.2026). Er hat 9,99 geladen, weil er DIESES Video wollte —
+           * ihn danach noch einmal auf den Kaufknopf zu schicken, waere eine zweite Huerde.
+           */
+          if (einmal === "auflade") {
+            if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
+            trackMetaPixel("Purchase", { currency: "EUR", content_name: "Account credit" });
+            void unlock("once");
+            return;
+          }
           trackMetaPixel("Purchase", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
           // BEZAHLT → AUSSUCHEN, nicht sofort rendern (Owner 30.07.2026: „Na gut und jetzt?
           // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier

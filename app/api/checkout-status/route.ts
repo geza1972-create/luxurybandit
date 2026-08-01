@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits, grantVideoCredits, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
@@ -105,6 +105,28 @@ export async function GET(request: Request) {
      * `bezahltVermerken` setzt zusätzlich die Frist, ab der der SERVER das Video zu Ende
      * bringt, falls der Browser des Kunden es nicht tut (Owner: „der Kunde wurde ausgeraubt").
      */
+    /**
+     * AUFLADUNG (Owner 01.08.2026): Guthaben gutschreiben, idempotent je Sitzung — und dann
+     * NICHTS weiter. Insbesondere darf der Kiss-Block darunter NICHT laufen: Die Aufladung
+     * traegt eine genId (damit der Trichter danach weiss, welches Video er vom Guthaben
+     * kaufen soll), aber sie IST kein Videokauf. Ohne diese Weiche wuerde die 9,99-Aufladung
+     * den Eintrag als bezahlt stempeln und ein Gratis-Video anstossen.
+     */
+    let walletCents: number | undefined;
+    if (paid && s.metadata.kind === "aufladung") {
+      const email = (String(s.metadata.email ?? "") || s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
+      const cents = Number(s.metadata.cents ?? 0) || 999;
+      if (email) {
+        try { walletCents = (await guthabenAufladen(email, sessionId, cents)).cents; }
+        catch (e) { console.warn("[checkout-status] Aufladung fehlgeschlagen", e); }
+      }
+      return NextResponse.json({
+        paid, topup: true, kind: "aufladung",
+        email: (String(s.metadata.email ?? "") || s.customerEmail || "").trim().toLowerCase() || undefined,
+        ...(walletCents !== undefined ? { walletCents } : {}),
+      });
+    }
+
     const kissGenId = String(s.metadata.genId ?? "").trim();
     if (paid && kissGenId) {
       try {

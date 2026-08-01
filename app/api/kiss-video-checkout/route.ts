@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS } from "@/lib/pricing";
+import { guthabenAbbuchen } from "@/lib/try-this-look-store";
+import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout, createTryonCheckout } from "@/lib/stripe";
 
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -65,7 +67,51 @@ export async function POST(request: Request) {
     }
   }
 
+  /**
+   * KONTO AUFLADEN — 9,99 (Owner 01.08.2026, Variante B: Zusatzangebot; der Einzelkauf
+   * bleibt). Die Rueckkehr traegt `topup=1`, NICHT `paid=1`: Eine Aufladung ist kein
+   * Videokauf — sie darf weder den Eintrag als bezahlt stempeln noch ein Video anstossen.
+   * Das erledigt der Trichter danach selbst, indem er den Einzelkauf wiederholt, der nun
+   * aus dem Guthaben bezahlt wird.
+   */
+  if (body.aufladen) {
+    const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return NextResponse.json({ error: "Email required." }, { status: 400 });
+    }
+    try {
+      const { id, url } = await createTryonCheckout({
+        amount: TOPUP_CENTS,
+        currency: "eur",
+        productName: "Account credit",
+        successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+        metadata: { kind: "aufladung", email, cents: String(TOPUP_CENTS), ...(genId ? { genId } : {}) },
+      });
+      return NextResponse.json({ url, sessionId: id });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
+    }
+  }
+
   if (body.once) {
+    /**
+     * ERST DAS GUTHABEN, DANN STRIPE (Variante B). Wer aufgeladen hat, zahlt hier ohne
+     * Kasse: abbuchen (idempotent je genId — ein Doppelklick bucht nie zweimal), den
+     * Eintrag als bezahlt stempeln, die Server-Lieferung vormerken, fertig. Der Trichter
+     * behandelt `walletPaid` wie eine bestaetigte Zahlung.
+     */
+    const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
+    if (email && genId) {
+      try {
+        const ab = await guthabenAbbuchen(email, `wallet-${genId}`, ONCE_CENTS);
+        if (ab.ok) {
+          await bezahltVermerken(genId, email, "kiss-video");
+          lieferungAnstossen(origin, genId);
+          return NextResponse.json({ walletPaid: true, rest: ab.rest });
+        }
+      } catch { /* Guthaben-Weg kaputt → normale Kasse, der Kunde merkt nichts */ }
+    }
     try {
       const { id, url } = await createTryonCheckout({
         amount: ONCE_CENTS,
