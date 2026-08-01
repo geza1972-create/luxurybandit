@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -885,6 +885,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   useEffect(() => {
     if (rueckkehrRef.current) return;
     const q = new URLSearchParams(window.location.search);
+    /**
+     * RUECKKEHR VON DER AUFLADUNG (topup=1, bewusst NICHT paid=1 — eine Aufladung ist kein
+     * Videokauf). Zahlung bestaetigen, Guthaben anzeigen, Adresse aus der Kasse uebernehmen —
+     * und dann den GEWUENSCHTEN Kauf von selbst anschliessen: Er hat 9,99 geladen, weil er
+     * DIESES Video wollte. Das erledigt der Effekt hinter `unlock` (nachAufladungKaufen).
+     */
+    if (q.get("topup") === "1") {
+      const cs = q.get("cs") ?? "";
+      if (!cs || cs.startsWith("{")) return;
+      rueckkehrRef.current = true;
+      setStatus(T.payPrep);
+      void (async () => {
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`)
+          .then(r => r.json()).catch(() => null);
+        rueckkehrRef.current = false;
+        if (!st?.paid) { setStatus(""); return; }
+        q.delete("topup"); q.delete("cs");
+        const rest = q.toString();
+        window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
+        if (typeof st.walletCents === "number") setGuthabenCents(st.walletCents);
+        if (st.email) { setMail(String(st.email)); setAdresseDa(true); setFrei(true); try { localStorage.setItem(MAIL_KEY, String(st.email)); } catch { /**/ } }
+        setStatus("");
+        nachAufladungKaufen.current = true;
+      })();
+      return;
+    }
     if (q.get("paid") !== "1") return;
     const cs = q.get("cs") ?? "";
     if (!cs || cs.startsWith("{")) return;      // Platzhalter nicht ersetzt → nichts zu pruefen
@@ -1687,6 +1713,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     } catch { setStatus(T.statusNetwork); setPayBusy(false); }
   };
 
+  /**
+   * NACH DER AUFLADUNGS-RUECKKEHR den gewuenschten Kauf anschliessen (Owner 01.08.2026).
+   * Steht hinter `unlock`, weil er es ruft; ein Ref statt State, damit es genau EINMAL
+   * feuert. `unlock("once")` findet das frische Guthaben und antwortet walletPaid — ohne
+   * Kasse, ohne Fenster; danach uebernimmt der Zahlungs-Wachhund wie bei jeder Zahlung.
+   */
+  useEffect(() => {
+    if (!nachAufladungKaufen.current) return;
+    if (!genId || !mail.trim()) return;   // warten, bis beides aus dem Speicher zurueck ist
+    nachAufladungKaufen.current = false;
+    void unlock("once");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genId, mail, guthabenCents]);
+
   return (
     <div className="mt-8">
       {/* ZURUECK IN DER SPRACHZEILE, EINE REIHE (Owner 30.07.2026: „Back Button in dem Balken
@@ -1726,6 +1766,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           die Seite oeffnet, sah nirgends, wo er steht. Sie erscheint nur, wenn wir ihn kennen
           (Adresse da und Abo oder Guthaben) — fuer den Erstbesucher ist „0 von 12" keine
           Auskunft, sondern eine Drohung. */}
+      {/* DAS EURO-GUTHABEN, sichtbar (Owner-Idee: „Anzeige noch 2 Videos übrig — sichtbar,
+          sonst wirkt das Guthaben wie weg"). Umgerechnet in Videos zum AKTUELLEN Preis —
+          das Guthaben ist Geld, die Zahl daneben nur seine Übersetzung. */}
+      {typeof guthabenCents === "number" && guthabenCents > 0 && (
+        <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
+          {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / ONCE_CENTS)} 🎬
+        </p>
+      )}
       {typeof videosLinks === "number" && (aboAktiv || videosLinks > 0) && (
         <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
           {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
@@ -1955,6 +2003,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   className="flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
                   {T.orAll}
                 </button>
+              )}
+              {/* KONTO AUFLADEN — 9,99 (Owner 01.08.2026, Variante B: Zusatzangebot, der
+                  Einzelkauf bleibt). Nach der Kasse zahlt jedes weitere Video ohne Fenster
+                  aus dem Guthaben; der Hinweis darunter ist die AGB-Zusage in Kurzform. */}
+              {V.einzelkauf && (
+                <>
+                  <button type="button" onClick={() => void unlock("auflade")} disabled={payBusy}
+                    style={{ color: "#fff" }}
+                    className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
+                    {fillPrices(T.aufladen, lang)}
+                  </button>
+                  <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/60">
+                    {T.aufladenHinweis}
+                  </p>
+                </>
               )}
               <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/70">
                 {T.freeNote}{V.abo ? renewNote(lang) : ""}

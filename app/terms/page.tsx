@@ -37,6 +37,14 @@ export default function TermsPage() {
         each month until you cancel; you can <strong>cancel anytime</strong> from your account, and
         cancellation takes effect at the end of the current billing period.
       </p>
+      <p>
+        {/* Die Guthaben-Zusage (Owner 01.08.2026: Aufladung 9,99, verfaellt NIE — die
+            rechtlich sicherste Form; genau dieser Satz macht sie verbindlich). */}
+        You can also buy single videos, or <strong>top up an account balance</strong>{" "}
+        ({fillPrices("{topup}", "en")}) and pay per video from it ({fillPrices("{once}", "en")} each).
+        Account balance <strong>never expires</strong>, is tied to your e-mail address, and is{" "}
+        <strong>not redeemable for cash</strong>.
+      </p>
 
       <h2>4. AI-generated content &amp; AI chat</h2>
       <p>

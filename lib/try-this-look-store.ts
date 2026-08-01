@@ -1007,6 +1007,9 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     modelChats: state.modelChats ?? [],
     directMessages: state.directMessages ?? [],
     videoCredits: state.videoCredits ?? { balances: {}, redeemed: [] },
+    // Auch HIER noetig (zweite Haelfte des 01.08.-Fundes): Das Normalisieren baut den
+    // Zustand Feld fuer Feld neu — was fehlt, ist nach jedem READ weg, noch vor dem Merge.
+    guthabenCents: state.guthabenCents ?? {},
     bellaSlides: state.bellaSlides ?? [],
     tripBookings: state.tripBookings ?? [],
     emailLog: state.emailLog ?? [],
@@ -1145,6 +1148,14 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       directMessages: unionById((state.directMessages ?? []) as any, (latest.directMessages ?? []) as any) as any,
       // Video credits: our version wins per email (we just read→modified→saved), plus
       // any emails only latest knows about; redeemed session-ids are unioned (idempotency).
+      /**
+       * EURO-GUTHABEN — MUSS hier stehen (gefunden am 01.08.2026 im Selbsttest, BEVOR es
+       * Geld kostete): Der Save merged Feld für Feld; ein Feld, das hier fehlt, wird beim
+       * nächsten Speichern verworfen. Genau so verschwand das frisch aufgeladene Guthaben
+       * (aufladen 999 → Endstand 0). Unsere Version gewinnt je E-Mail (read→modify→save),
+       * fremde Mails aus `latest` bleiben erhalten — dasselbe Muster wie `balances`.
+       */
+      guthabenCents: { ...(latest.guthabenCents ?? {}), ...(state.guthabenCents ?? {}) },
       videoCredits: {
         balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
         redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
@@ -1215,7 +1226,19 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       balances: state.videoCredits?.balances ?? {},
       redeemed: (state.videoCredits?.redeemed ?? []).slice(-5000),
       welcomed: (state.videoCredits?.welcomed ?? []).slice(-20000),
+      subMonths: (state.videoCredits?.subMonths ?? []).slice(-20000),
     },
+    /**
+     * DRITTER UND ENTSCHEIDENDER ORT (01.08.2026): Dieser Schlank-Serialisierer schreibt
+     * das JSON, das wirklich im Speicher landet — Feld fuer Feld. read-Normalisierung und
+     * save-Merge hatten das Guthaben schon, hier fiel es trotzdem weg: aufladen meldete
+     * 999, die Datei enthielt nichts. Lehre: Ein neues Zustandsfeld hat DREI Pflichtorte —
+     * readTryThisLookState, der Konflikt-Merge und dieser Serialisierer. Fehlt einer,
+     * verliert man Geldbetraege lautlos.
+     * (`subMonths` oben war hier ebenfalls nie aufgefuehrt und verschwand bei jedem Save —
+     * die Monats-Gutschrift blieb nur idempotent, weil der Webhook sie neu setzte.)
+     */
+    guthabenCents: state.guthabenCents ?? {},
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),
