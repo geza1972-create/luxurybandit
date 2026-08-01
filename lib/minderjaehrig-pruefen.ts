@@ -69,7 +69,18 @@ const FAIL_OPEN = process.env.MINOR_CHECK_FAIL_OPEN === "true";
  * Speicher. Wer auch das durchlassen will, setzt `MINOR_CHECK_MODE=alles-durch` — dann steht
  * die Entscheidung wenigstens sichtbar in der Konfiguration.
  */
-const MODUS = (process.env.MINOR_CHECK_MODE ?? "sperren").trim().toLowerCase();
+/**
+ * VORGABE IST BEOBACHTEN, NICHT SPERREN — Korrektur vom 01.08.2026.
+ *
+ * Der Owner hatte den Beobachten-Modus angeordnet („wir lassen erst mal alles durch"), aber
+ * die Umgebungsvariable stand nur in der lokalen .env.local. Auf Vercel existierte sie nicht
+ * — dort lief die Sperre die Nacht durch SCHARF, mitsamt „im Zweifel abweisen". In dieser
+ * Nacht blieben echte Versuche ohne Ergebnis. Die Vorgabe im CODE muss dem entsprechen, was
+ * angeordnet ist; eine Variable, die man setzen muss, damit die Anordnung gilt, ist falsch
+ * herum. Scharf stellen heisst jetzt ausdrücklich: MINOR_CHECK_MODE=sperren auf Vercel.
+ * (Kind + nackt bleibt in jedem Modus abgewiesen, siehe unten.)
+ */
+const MODUS = (process.env.MINOR_CHECK_MODE ?? "beobachten").trim().toLowerCase();
 const NUR_BEOBACHTEN = MODUS === "beobachten" || MODUS === "alles-durch";
 const AUCH_EINDEUTIGE_DURCH = MODUS === "alles-durch";
 

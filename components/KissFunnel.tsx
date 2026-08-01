@@ -398,6 +398,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * dort tippt er die Korrektur) und beim nächsten Tastendruck verschwindet.
    */
   const [mailFehler, setMailFehler] = useState("");
+  /** Roter Hinweis am Weiter-Knopf von Schritt 1, wenn ohne Foto gedrückt wird (01.08.2026). */
+  const [weiterHinweis, setWeiterHinweis] = useState("");
   /**
    * DAS LAND (Owner 31.07.2026). Vorbelegt aus der Seitensprache — siehe Kommentar am Feld.
    * Es reist mit der Adresse an `kiss-claim` und macht den nächsten Rundbrief mehrsprachig.
@@ -1115,6 +1117,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
+  // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
+  useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Nur echte KLEIDUNGSfotos in die Auswahl — die Liste trennt Kleidung von Fotos, auf
   // denen eine fremde Frau steht. Fehlt sie, zeigen wir alles statt nichts.
   const kleidung = looks.filter(l => !!l.imageUrl && (!nurKleidung || nurKleidung.includes(l.id))).slice(0, 24);
@@ -2058,15 +2062,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
       )}
 
-      {/* Weiter — bei der Hochzeit erst, wenn BEIDE Fotos da sind, und direkt zu Schritt 3. */}
-      <button type="button"
-        onClick={() => { zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2); }}
-        disabled={V.paarUpload ? (!selPhoto || !photo) : !selPhoto}
-        className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
-        {V.paarUpload
-          ? (selPhoto && photo ? T.next : !selPhoto ? T.pickFirst : T.uploadFirst)
-          : (selPhoto ? T.next : T.pickFirst)}
-      </button>
+      {/* Weiter — bei der Hochzeit erst, wenn BEIDE Fotos da sind, und direkt zu Schritt 3.
+          OHNE FOTO GEHT ES NICHT WEITER (Owner 01.08.2026: „wenn er hier kein Bild hochlädt
+          dann darf er nicht weiter gehen"). Der Knopf war schon gesperrt — aber STUMM: blass,
+          und ein Tipp darauf tat nichts. Wer nicht weiss, warum, drückt dreimal und geht.
+          Jetzt liegt der Klick auf der Hülle: Ist kein Foto da, erscheint der Grund in Rot.
+          Dazu die Wache IM onClick — falls irgendein Stil die Sperre je aushebelt. */}
+      <div onClick={() => {
+        if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) {
+          setWeiterHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst);
+        }
+      }}>
+        <button type="button"
+          onClick={() => {
+            if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) return;
+            setWeiterHinweis("");
+            zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2);
+          }}
+          disabled={V.paarUpload ? (!selPhoto || !photo) : !selPhoto}
+          className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
+          {V.paarUpload
+            ? (selPhoto && photo ? T.next : !selPhoto ? T.pickFirst : T.uploadFirst)
+            : (selPhoto ? T.next : T.pickFirst)}
+        </button>
+        {weiterHinweis && (
+          <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
+            {weiterHinweis}
+          </p>
+        )}
+      </div>
       {/* GLEICH BEIM ERSTEN BILD (Owner 30.07.2026: „bei ersten bild muss schon stehen").
           Wer erst auf Schritt 3 erfaehrt, worauf er sich einlaesst, hat schon zwei Fotos
           hergegeben. Die beiden Verweise oeffnen in einem neuen Fenster, damit sein Trichter
