@@ -11,7 +11,30 @@ import { readTryThisLookState, saveTryThisLookState } from "./try-this-look-stor
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ENABLED = process.env.CREATOR_CREDITS_ENABLED !== "false"; // on by default
-export const STARTER_CREDITS = Number(process.env.STARTER_CREDITS ?? 30);
+
+/**
+ * KEIN GESCHENKTES GUTHABEN MEHR (Owner 31.07.2026: „die Models bekommen keine Credits mehr").
+ *
+ * Bis heute bekam jede Anmeldung 30 Credits — genug für 15 Try-ons, bezahlt von uns. Das
+ * stammt aus der Zeit, als Kuratorinnen ihre eigenen Looks beweisen sollten; das Modell ist
+ * ein anderes geworden. Ein Startgeschenk zieht ausserdem genau die an, die es aufbrauchen
+ * und verschwinden.
+ *
+ * ZWEI ZAHLEN, nicht eine, weil sie zwei verschiedene Dinge bedeuten:
+ *   - `STARTER_CREDITS` = was eine NEUE Anmeldung bekommt. Jetzt 0.
+ *   - `EARN_ENABLED`    = ob Guthaben durch Likes und Try-ons von selbst DAZUKOMMT. Jetzt aus.
+ * Beides musste weg: Das eine ohne das andere hiesse „kein Geschenk, aber Nachschub gratis".
+ *
+ * WAS BLEIBT: Der Admin kann jederzeit von Hand Guthaben geben (`setCuratorCredits`,
+ * `grantCredits` mit kind "admin"), und Gekauftes wird selbstverständlich gutgeschrieben.
+ * Abgestellt ist nur das, was von allein passierte.
+ *
+ * BESTEHENDE GUTHABEN BLEIBEN. Wer heute 28 Credits hat, behält sie — rückwirkend wegnehmen
+ * wäre etwas anderes als „ab jetzt gibt es nichts mehr geschenkt".
+ * Zum Zurückdrehen genügt `STARTER_CREDITS=30` bzw. `CREATOR_EARN_ENABLED=true`.
+ */
+export const STARTER_CREDITS = Number(process.env.STARTER_CREDITS ?? 0);
+const EARN_ENABLED = process.env.CREATOR_EARN_ENABLED === "true";   // aus, sofern nicht ausdrücklich an
 export const TRYON_CREDITS = Number(process.env.TRYON_CREDITS ?? 2);
 export const SEARCH_CREDITS = Number(process.env.SEARCH_CREDITS ?? 1);
 // A 5s Pixverse try-on video is much pricier than a still try-on (~€0.20+),
@@ -41,9 +64,21 @@ function info(credits: number, spent: number, earned: number): CreditsInfo {
   return { credits: Math.max(0, credits), spent, earned, enabled: ENABLED };
 }
 
-// Treat a brand-new creator (no credits field yet) as having the starter grant.
+/**
+ * ALTE KONTEN OHNE GUTHABEN-FELD BEHALTEN IHRE 30.
+ *
+ * Vor dem 31.07.2026 wurde bei der Anmeldung nichts gespeichert — ein fehlendes Feld HIESS
+ * „hat das Startguthaben". Würde hier jetzt einfach `STARTER_CREDITS` (= 0) stehen, wären
+ * über Nacht sämtliche Altkonten bei null: kein Eintrag im Verlauf, keine Meldung, das
+ * Guthaben einfach weg. Das wäre keine Regeländerung, sondern eine stille Enteignung.
+ *
+ * Neue Anmeldungen schreiben ihre 0 ausdrücklich ins Feld (siehe /api/curator) und sind
+ * davon nicht betroffen.
+ */
+const ALTBESTAND_CREDITS = 30;
+
 function balanceOf(cur: { credits?: number }): number {
-  return typeof cur.credits === "number" ? cur.credits : STARTER_CREDITS;
+  return typeof cur.credits === "number" ? cur.credits : ALTBESTAND_CREDITS;
 }
 
 export async function getCuratorCredits(curatorId: string): Promise<CreditsInfo | null> {
@@ -144,6 +179,12 @@ export async function awardEngagementCredits(curatorId: string, totals: { tryons
   const idx = (state.curators ?? []).findIndex(c => c.id === curatorId);
   if (idx < 0) return null;
   const cur = state.curators![idx];
+  // NICHTS MEHR VON SELBST (Owner 31.07.2026: „die Models bekommen keine Credits mehr").
+  // Die Meilensteine bleiben im Code stehen — abgeschaltet, nicht gelöscht: Wird das Modell
+  // wieder gedreht, ist `CREATOR_EARN_ENABLED=true` ein Wort statt einer Neufassung.
+  if (!EARN_ENABLED) {
+    return { info: info(balanceOf(cur), cur.creditsSpent ?? 0, cur.creditsEarned ?? 0), awarded: [] };
+  }
   const already = new Set(cur.awardedMilestones ?? []);
   const awarded: { label: string; credits: number; key: string }[] = [];
   for (const m of EARN_MILESTONES) {

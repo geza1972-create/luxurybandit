@@ -15,7 +15,10 @@ type Curator = {
   photoUrl?: string; createdAt?: string; credits?: number; creditsSpent?: number; creditsEarned?: number;
 };
 
-const STARTER_CREDITS = 30; // mirrors lib/curator-budget.ts
+// Altkonten ohne Guthaben-Feld gelten als 30 (siehe ALTBESTAND_CREDITS in
+// lib/curator-budget.ts). NEUE Models bekommen seit 31.07.2026 nichts mehr geschenkt —
+// hier steht deshalb der Altbestand, nicht das Startguthaben.
+const ALTBESTAND_CREDITS = 30;
 
 export default function AdminCurators() {
   const [curators, setCurators] = useState<Curator[]>([]);
@@ -132,7 +135,7 @@ export default function AdminCurators() {
                   {tasteLine(c) && <p className="mt-0.5 line-clamp-1 text-[11px] font-bold text-ink/45">{tasteLine(c)}</p>}
                   <a href={`/curator/${c.id}`} className="mt-0.5 inline-block text-[11px] font-black text-cobalt">{lookCounts[c.id] ?? 0} look{(lookCounts[c.id] ?? 0) === 1 ? "" : "s"} →</a>
                   {(() => {
-                    const credits = c.credits ?? STARTER_CREDITS;
+                    const credits = c.credits ?? ALTBESTAND_CREDITS;
                     const spent = c.creditsSpent ?? 0;
                     const earned = c.creditsEarned ?? 0;
                     const out = credits <= 0;
@@ -177,17 +180,17 @@ export default function AdminCurators() {
                 <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-3.5">
                   <div className="flex items-center justify-between">
                     <span className={label} style={{ margin: 0 }}>Credits</span>
-                    <span className="text-[11px] font-black text-ink/50">{edit.credits ?? STARTER_CREDITS} left · {edit.creditsSpent ?? 0} spent · {edit.creditsEarned ?? 0} earned</span>
+                    <span className="text-[11px] font-black text-ink/50">{edit.credits ?? ALTBESTAND_CREDITS} left · {edit.creditsSpent ?? 0} spent · {edit.creditsEarned ?? 0} earned</span>
                   </div>
-                  <p className="mt-1 text-[11px] font-bold leading-4 text-ink/40">Try-on = 2 credits · web search = 1 credit. New creators start with {STARTER_CREDITS}; they earn more from likes & try-ons, or buy more.</p>
+                  <p className="mt-1 text-[11px] font-bold leading-4 text-ink/40">Try-on = 2 credits · web search = 1 credit. New models get NO free credits and earn none automatically — grant them here, or they buy their own.</p>
                   <div className="mt-2.5 flex items-end gap-2">
                     <div className="flex-1">
                       <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.12em] text-ink/40">Balance (credits)</span>
                       <input type="number" step="1" min="0" className={field}
-                        value={edit.credits ?? STARTER_CREDITS}
+                        value={edit.credits ?? ALTBESTAND_CREDITS}
                         onChange={e => setEdit({ ...edit, credits: Math.max(0, Math.round(parseFloat(e.target.value || "0"))) })} />
                     </div>
-                    <button type="button" disabled={saving} onClick={() => void setCredits(edit.id, { credits: edit.credits ?? STARTER_CREDITS })}
+                    <button type="button" disabled={saving} onClick={() => void setCredits(edit.id, { credits: edit.credits ?? ALTBESTAND_CREDITS })}
                       className="h-11 shrink-0 rounded-md bg-black px-4 text-xs font-black text-white disabled:opacity-50 active:scale-95 transition">Set</button>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">

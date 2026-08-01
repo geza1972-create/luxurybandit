@@ -602,8 +602,16 @@ export async function POST(request: Request) {
         consentAt: new Date().toISOString(),
         consentText: String((payload as any).consentText ?? "").trim() || "Accepted the model rules & terms (18+, real photos).",
       } : {}),
-      credits: STARTER_CREDITS, // starter grant to prove themselves
-      creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }],
+      /**
+       * KEIN STARTGUTHABEN MEHR (Owner 31.07.2026: „die Models bekommen keine Credits mehr").
+       * `STARTER_CREDITS` steht seither auf 0. Die Zahl wird trotzdem AUSDRÜCKLICH
+       * geschrieben — ein fehlendes Feld bedeutet im Guthaben-Baustein „Altkonto mit 30",
+       * und genau diese Verwechslung würde neuen Anmeldungen 30 Credits schenken.
+       */
+      credits: STARTER_CREDITS,
+      ...(STARTER_CREDITS > 0
+        ? { creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }] }
+        : { creditLog: [] }),
     };
 
     const state = await readTryThisLookState();
