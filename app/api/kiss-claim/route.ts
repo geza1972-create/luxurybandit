@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
-import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
+import { pruefeEmail, emailFehlerText, wirktErfunden } from "@/lib/email-pruefen";
 import { landAusKopfzeile } from "@/lib/land-erkennen";
 
 export const runtime = "nodejs";
@@ -64,6 +64,20 @@ export async function POST(request: Request) {
   if (!pruefung.ok) {
     return NextResponse.json(
       { error: emailFehlerText(pruefung.grund, lang), emailUngueltig: true, grund: pruefung.grund },
+      { status: 400 },
+    );
+  }
+  /**
+   * STUFE ZWEI: TASTATUR-GEHÄMMER (Owner 01.08.2026: „diese E-Mail hast du akzeptiert" —
+   * `hsaadsasdello@gmail.com` bestand jede Regel). Das Sprachmodell beurteilt, ob der
+   * Namensteil nach Mensch oder nach Getippe aussieht; im Zweifel und bei Ausfall gilt die
+   * Adresse. Nur bei `vorab` (dem Tor VOR der Erzeugung) — wer hier durch ist, wird beim
+   * zweiten Aufruf (Bild fertig/gescheitert) nicht noch einmal geprüft und bezahlt.
+   */
+  if (body.vorab === true && await wirktErfunden(email, process.env.OPENAI_API_KEY?.trim() ?? "")) {
+    console.warn(`[kiss-claim] Adresse wirkt erfunden: ${email}`);
+    return NextResponse.json(
+      { error: emailFehlerText("erfunden", lang), emailUngueltig: true, grund: "erfunden" },
       { status: 400 },
     );
   }

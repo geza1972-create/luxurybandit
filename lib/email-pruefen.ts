@@ -16,7 +16,7 @@
  */
 
 export type Pruefung = { ok: true } | { ok: false; grund: Grund };
-export type Grund = "format" | "wegwerf" | "zahlen" | "land" | "gesperrt";
+export type Grund = "format" | "wegwerf" | "zahlen" | "land" | "gesperrt" | "erfunden";
 
 /**
  * WEGWERFADRESSEN. Die bekannten Anbieter für Zehn-Minuten-Postfächer; wer eine davon
@@ -123,6 +123,51 @@ export function pruefeEmail(email: unknown): Pruefung {
 }
 
 /**
+ * DIE TIEFENPRÜFUNG: TASTATUR-GEHÄMMER (Owner 01.08.2026: „diese E-Mail hast du akzeptiert"
+ * — zu `hsaadsasdello@gmail.com`).
+ *
+ * Diese Adresse besteht jede Regel: echter Anbieter, keine Ziffern, saubere Form. Was sie
+ * verrät, ist die SPRACHE — „hsaadsasdello" ist kein Name, kein Wort, kein Spitzname,
+ * sondern Getippe. So etwas erkennt keine Regel, sondern Sprachgefühl; Regeln dafür zu
+ * stapeln (Vokalanteil, Konsonantenläufe, Tastaturmuster) sperrt irgendwann echte rumänische
+ * und ungarische Namen aus.
+ *
+ * Deshalb fragt diese Prüfung dasselbe günstige Seh-/Sprachmodell, das schon die Alter
+ * schätzt (~Bruchteil eines Cents, eine Sekunde — das Gratis-Bild dahinter kostet das
+ * Hundertfache). IM ZWEIFEL DURCHLASSEN: Ein abgewiesener echter Kunde ist teurer als ein
+ * verschenktes Bild. Fällt das Modell aus, gilt die Adresse — die Regeln davor haben sie ja
+ * schon bestanden; diese Stufe ist Wirtschaftlichkeit, nicht Sicherheit.
+ */
+export async function wirktErfunden(email: string, key: string): Promise<boolean> {
+  const lokal = String(email ?? "").trim().toLowerCase().split("@")[0] ?? "";
+  if (!key || lokal.length < 6) return false;   // kurze Namen sind fast immer echt (ion, ana)
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini",
+        messages: [{
+          role: "user",
+          content:
+            "You judge whether an email local part looks like a REAL person's address or like random keyboard mashing.\n"
+            + `Local part: "${lokal}"\n`
+            + "Real examples (answer no): maria.popescu, ion23, geza1972, sophiebordo, alexandra.trifan.91, krzysztof.w, andreea_kiss93, bandiszidonia\n"
+            + "Mashing examples (answer yes): hsaadsasdello, asdfgh, qwerqwer, jkfdsjkfds, xnyrbz\n"
+            + "Names may be Romanian, Hungarian, German, Arabic or Slavic — unusual spelling alone is NOT mashing. When unsure, answer no.\n"
+            + 'Answer ONLY compact JSON: {"mash":true|false}',
+        }],
+        max_tokens: 10,
+      }),
+    });
+    if (!res.ok) return false;
+    const j = await res.json().catch(() => null);
+    const m = String(j?.choices?.[0]?.message?.content ?? "").match(/\{[\s\S]*\}/);
+    return m ? (JSON.parse(m[0]) as { mash?: boolean }).mash === true : false;
+  } catch { return false; }
+}
+
+/**
  * DIE MELDUNG FÜR DEN NUTZER (Owner: „es muss die Meldung stehen dass die E-Mail falsch ist").
  *
  * Sie sagt, WAS nicht stimmt, und nennt einen Ausweg. Ein blosses „ungültig" lässt den, der
@@ -137,6 +182,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "Mit einer Wegwerf-Adresse können wir dir dein Bild nicht schicken. Bitte nimm deine richtige E-Mail.",
     zahlen: "Diese Adresse sieht nicht echt aus (zu viele Zahlen). Bitte nimm deine richtige E-Mail.",
     land: "Diese E-Mail-Endung können wir nicht annehmen. Bitte nimm eine gängige Adresse, z. B. Gmail, Yahoo oder Outlook.",
+        erfunden: "Diese Adresse sieht nicht nach einer echten E-Mail aus. Bitte nimm deine richtige Adresse — dorthin schicken wir dein Bild.",
     gesperrt: "Diese E-Mail-Adresse können wir nicht annehmen. Bitte nimm deine richtige E-Mail.",
   },
   en: {
@@ -144,6 +190,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "We can't send your picture to a throwaway address. Please use your real email.",
     zahlen: "That address doesn't look real (too many numbers). Please use your real email.",
     land: "We can't accept that email ending. Please use a common address, e.g. Gmail, Yahoo or Outlook.",
+        erfunden: "That address doesn't look like a real email. Please use your real address — that's where we send your picture.",
     gesperrt: "We can't accept that email address. Please use your real email.",
   },
   ro: {
@@ -151,6 +198,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "Nu îți putem trimite poza pe o adresă temporară. Folosește te rog e-mailul tău real.",
     zahlen: "Adresa nu pare reală (prea multe cifre). Folosește te rog e-mailul tău real.",
     land: "Nu putem accepta această terminație de e-mail. Folosește o adresă obișnuită, de ex. Gmail, Yahoo sau Outlook.",
+        erfunden: "Adresa nu pare un e-mail real. Folosește te rog adresa ta reală — acolo îți trimitem poza.",
     gesperrt: "Nu putem accepta această adresă de e-mail. Folosește te rog e-mailul tău real.",
   },
   es: {
@@ -158,6 +206,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "No podemos enviarte tu foto a una dirección temporal. Usa tu correo real.",
     zahlen: "Esa dirección no parece real (demasiados números). Usa tu correo real.",
     land: "No podemos aceptar esa terminación de correo. Usa una dirección común, p. ej. Gmail, Yahoo u Outlook.",
+        erfunden: "Esa dirección no parece un correo real. Usa tu dirección real — allí te enviamos tu foto.",
     gesperrt: "No podemos aceptar esa dirección de correo. Usa tu correo real.",
   },
   fr: {
@@ -165,6 +214,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "Nous ne pouvons pas envoyer ta photo à une adresse jetable. Utilise ton vrai e-mail.",
     zahlen: "Cette adresse ne semble pas réelle (trop de chiffres). Utilise ton vrai e-mail.",
     land: "Nous ne pouvons pas accepter cette terminaison. Utilise une adresse courante, p. ex. Gmail, Yahoo ou Outlook.",
+        erfunden: "Cette adresse ne ressemble pas à un vrai e-mail. Utilise ta vraie adresse — c'est là que nous envoyons ta photo.",
     gesperrt: "Nous ne pouvons pas accepter cette adresse e-mail. Utilise ton vrai e-mail.",
   },
   pt: {
@@ -172,6 +222,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "Não podemos enviar a tua foto para um endereço descartável. Usa o teu e-mail real.",
     zahlen: "Esse endereço não parece real (números a mais). Usa o teu e-mail real.",
     land: "Não podemos aceitar essa terminação. Usa um endereço comum, p. ex. Gmail, Yahoo ou Outlook.",
+        erfunden: "Esse endereço não parece um e-mail real. Usa o teu endereço real — é para lá que enviamos a tua foto.",
     gesperrt: "Não podemos aceitar esse e-mail. Usa o teu e-mail real.",
   },
   it: {
@@ -179,6 +230,7 @@ const TEXTE: Record<string, Record<Grund, string>> = {
     wegwerf: "Non possiamo inviare la tua foto a un indirizzo usa e getta. Usa la tua email vera.",
     zahlen: "Questo indirizzo non sembra reale (troppi numeri). Usa la tua email vera.",
     land: "Non possiamo accettare questa terminazione. Usa un indirizzo comune, es. Gmail, Yahoo o Outlook.",
+        erfunden: "Questo indirizzo non sembra una vera email. Usa il tuo indirizzo reale — è lì che inviamo la tua foto.",
     gesperrt: "Non possiamo accettare questo indirizzo email. Usa la tua email vera.",
   },
 };
