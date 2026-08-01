@@ -130,6 +130,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, entries });
   }
 
+  /**
+   * FREIGEBEN FUERS TEILEN (Owner 01.08.2026: „in dem Moment wo er shart muss er wissen dass
+   * es public wird"). Der Teilen-Dialog im Trichter ruft das hier, NACHDEM der Besitzer die
+   * Frage bestaetigt hat. Erst dieser Stempel macht die Werk-Seite /w/[id] sichtbar — und
+   * zwar nur das ERGEBNIS, nie die hochgeladenen Vorlagen. Besitzer heisst wie beim Loeschen:
+   * dasselbe Geraet oder das angemeldete Konto.
+   */
+  if ((body as { share?: string }).share) {
+    const zielId = String((body as { share?: string }).share);
+    const alle = await readKissLog();
+    const ziel = alle.find(e => e.id === zielId);
+    if (!ziel) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    if (!admin) {
+      const geraet = String(body.device ?? "").trim();
+      const konto = await getSellerFromRequest(request).catch(() => null);
+      const mail = String(konto?.email ?? "").trim().toLowerCase();
+      const darf = (!!geraet && ziel.device === geraet) || (!!mail && String(ziel.email ?? "").toLowerCase() === mail);
+      if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    }
+    if (!ziel.sharedAt) { ziel.sharedAt = new Date().toISOString(); await writeKissLog(alle); }
+    return NextResponse.json({ ok: true });
+  }
+
   // Update: nach der Zahlung liefert der Funnel die ECHTE Video-URL nach (Fake-Flow:
   // Eintrag entsteht beim Teaser ohne URL, das echte Video rendert erst nach dem Kauf).
   if (body.update) {

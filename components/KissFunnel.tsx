@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send } from "lucide-react";
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
@@ -400,6 +400,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [mailFehler, setMailFehler] = useState("");
   /** Roter Hinweis am Weiter-Knopf von Schritt 1, wenn ohne Foto gedrückt wird (01.08.2026). */
   const [weiterHinweis, setWeiterHinweis] = useState("");
+  /**
+   * DER TEILEN-DIALOG (Owner 01.08.2026: „in dem Moment wo er shart muss er wissen dass es
+   * public wird"). Teilen heisst seither: die KARTE wird unter /w/[id] öffentlich, der
+   * Empfänger bekommt unten den Generator-Knopf — Werbung, die der Absender verschickt.
+   * Ohne sein ausdrückliches Ja im Dialog wird nichts freigegeben und nichts geteilt.
+   */
+  const [shareFrage, setShareFrage] = useState(false);
+
+  const werkTeilen = async () => {
+    setShareFrage(false);
+    if (!genId) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    // Freigabe OHNE await: Safari verwirft die Teilen-Geste, wenn vorher ein Netzaufruf
+    // wartet. Der Stempel ist in Millisekunden gesetzt; der Empfänger klickt in Minuten.
+    void fetch("/api/kiss-log", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ share: genId, device }),
+    }).catch(() => {});
+    const url = `${window.location.origin}/w/${encodeURIComponent(genId)}?l=${encodeURIComponent(String(lang).slice(0, 2))}&utm_source=share`;
+    const text = TEILEN_TEXT[lang] ?? TEILEN_TEXT.en;
+    try {
+      if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
+    } catch { return; }   // abgebrochen ist kein Nein zur Freigabe, nur keins zum Senden
+    try { await navigator.clipboard?.writeText(`${text} ${url}`); setStatus((KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke); } catch { /**/ }
+  };
   /**
    * DAS LAND (Owner 31.07.2026). Vorbelegt aus der Seitensprache — siehe Kommentar am Feld.
    * Es reist mit der Adresse an `kiss-claim` und macht den nächsten Rundbrief mehrsprachig.
@@ -1690,11 +1716,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
               <Reaktionen variant={variant} />
-              <TeilenKnopf rund datei={videoUrl} dateiName={variant}
-                text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
-                className="absolute left-2 top-2 z-30" />
+              {genId ? (
+                <button type="button" onClick={() => setShareFrage(true)}
+                  aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                  style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                  className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
+                  <Send className="h-5 w-5" />
+                </button>
+              ) : (
+                <TeilenKnopf rund datei={videoUrl} dateiName={variant}
+                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                  label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                  kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
+                  className="absolute left-2 top-2 z-30" />
+              )}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 p-4">
                 <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
                   className="lb-gold pointer-events-auto flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)] active:scale-95 transition">
@@ -1783,11 +1818,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {(frei || isStaff) && !payBusy && !videoBusy && (
                 /* Unter dem Ton-Knopf (der sitzt right-3 top-3) — zwei Scheiben uebereinander
                    drueckt sonst niemand richtig. */
-                <TeilenKnopf rund datei={bild} dateiName={variant}
-                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                  label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                  kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
-                  className={`absolute right-3 z-30 ${V.musik ? "top-16" : "top-3"}`} />
+                genId ? (
+                  <button type="button" onClick={() => setShareFrage(true)}
+                    aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                    style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                    className={`absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90 ${V.musik ? "top-16" : "top-3"}`}>
+                    <Send className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <TeilenKnopf rund datei={bild} dateiName={variant}
+                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                    kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
+                    className={`absolute right-3 z-30 ${V.musik ? "top-16" : "top-3"}`} />
+                )
               )}
               {/* Roter Papierkorb, weiss hinterlegt — dieselbe Form wie an jedem anderen Bild
                   im Projekt, damit man ihn nicht suchen muss. Waehrend Zahlung oder Rendern
@@ -2536,6 +2580,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         {T.privat}
       </p>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
+
+      {/* DER TEILEN-DIALOG: erst wissen, dann öffentlich (Owner 01.08.2026). */}
+      {shareFrage && (
+        <div className="fixed inset-0 z-[95] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
+          onClick={() => setShareFrage(false)}>
+          <div className="w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-[18px] font-black" style={{ color: "#1a160f" }}>{T.shareTitel}</p>
+            <p className="mt-2 text-[13px] font-bold leading-snug" style={{ color: "#5b5344" }}>{T.shareText}</p>
+            <button type="button" onClick={() => void werkTeilen()}
+              className="lb-gold lb-buy mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition">
+              <Send className="h-4 w-4" /> {T.shareOk}
+            </button>
+            <button type="button" onClick={() => setShareFrage(false)}
+              style={{ color: "#5b5344" }}
+              className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-black/15 text-[13px] font-black active:scale-95 transition">
+              {T.shareCancel}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
       <div ref={resultRef}>

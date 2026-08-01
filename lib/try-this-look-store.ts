@@ -1440,6 +1440,13 @@ export type KissLogEntry = {
   altersWarnung?: string;
   altersGeschaetzt?: number;   // geschätztes Alter der jüngsten Person, 0 = unbekannt
   /**
+   * ÖFFENTLICH GETEILT (Owner 01.08.2026: „in dem Moment wo er shart muss er wissen dass es
+   * public wird"). Erst wenn der Besitzer das im Teilen-Dialog bestätigt hat, zeigt die
+   * Werk-Seite /w/[id] sein ERGEBNIS — nie die hochgeladenen Vorlagen. Ohne diesen Stempel
+   * ist die Seite für jeden Eintrag privat, auch wenn jemand die Kennung rät.
+   */
+  sharedAt?: string;
+  /**
    * AUS WELCHEM THEMA (Owner 31.07.2026: „was suchen die von kiss bei idol?").
    *
    * Ein Log für alle Themen war richtig, solange nur der Kuss-Trichter schrieb. Inzwischen
