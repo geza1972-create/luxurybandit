@@ -212,6 +212,8 @@ async function verkleinern(src: string, max = 520): Promise<string> {
 
 const VARIANTS: Record<FunnelVariant, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
+  /** Kein Gratis-Bild — erst bezahlen (Hochzeit, Owner 01.08.2026). */
+  keinGratis?: boolean;
   // MUSIK ZUM BILD (Owner 30.07.2026: „ich habe dir den Song angelegt Bridal-chorus.mp3").
   // Ein Bild ist still — die Stimmung muss von der Seite kommen. Nur dort gesetzt, wo es
   // wirklich passt; beim Kuss und beim Idol bliebe Musik Deko.
@@ -282,7 +284,18 @@ const VARIANTS: Record<FunnelVariant, {
     upPlaceholder: "/kiss-woman-placeholder.jpg",
   },
   wedding: {
-    prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true, einzelkauf: false,
+    /**
+     * BEZAHLT VON ANFANG AN (Owner 01.08.2026: „Es kostet von Anfang an 1,49 pro Video …
+     * Sie werden nichts testen dürfen kostenlos"). `einzelkauf` schaltet den 1,49-Kauf und
+     * damit auch den Aufladen-Knopf frei; `keinGratis` unten macht daraus die Regel.
+     *
+     * Warum bei der Hochzeit anders als beim Kuss: Der Kuss verkauft eine Neugier — ohne
+     * Gratis-Bild glaubt niemand, dass es mit seinem Gesicht klappt. Die Braut kommt mit
+     * einer Absicht und einem Datum; sie braucht keinen Beweis, sondern ein Ergebnis. Was
+     * sie bekommt, zeigt die Beispiel-Einladung, die man teilen kann.
+     */
+    prompt: WEDDING_PROMPT, done: "hochzeitseinladung.mp4", abo: true, einzelkauf: true,
+    keinGratis: true,
     // Aus lib/musik.ts, nicht mehr von Hand: Dort steht je Thema EIN Stueck, und der Owner
     // hat den Hochzeitsmarsch ausdruecklich abgewaehlt („nimm was anderes als Lied") — hier
     // stand er noch. Zwei Stellen fuer dieselbe Entscheidung laufen auseinander; jetzt eine.
@@ -1262,6 +1275,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * eingetragen hat, merkt davon nichts — `adresseDa` steht dann bereits.
      */
     zustimmen();   // wer hier tippt, hat den Hinweis bei Schritt 1 passiert
+    /**
+     * KEIN GRATIS-VERSUCH BEI DER HOCHZEIT (Owner 01.08.2026). Erst zahlen — aus dem
+     * Guthaben, wenn eins da ist (dann ohne Kasse), sonst über Stripe. Nach der Zahlung
+     * läuft `generate` von selbst weiter (`bezahlt` steht dann, der Wachhund übernimmt).
+     */
+    if (V.keinGratis && !bezahlt && !isStaff) {
+      if (!adresseDa) { const e = mail.trim(); if (!(await adresseVormerken(e))) return; }
+      void unlock("once");
+      return;
+    }
     if (!isStaff && !adresseDa) {
       const e = mail.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
@@ -1298,7 +1321,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       const r = await fetch("/api/free-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code, kleid, szene: kussSzeneId }),
+        body: JSON.stringify({ person: photo, model: selPhoto, theme: variant === "wedding" ? "wedding" : "kiss", device, code, kleid, szene: kussSzeneId, email: mail.trim() }),
       });
       const d = await r.json().catch(() => ({}));
       stoppen();
@@ -1721,11 +1744,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   useEffect(() => {
     if (!nachAufladungKaufen.current) return;
-    if (!genId || !mail.trim()) return;   // warten, bis beides aus dem Speicher zurueck ist
+    if (!mail.trim()) return;   // warten, bis die Adresse aus dem Speicher zurueck ist
     nachAufladungKaufen.current = false;
+    /**
+     * WOFUER hat er aufgeladen? Hat er noch KEIN Bild, wollte er eins (Kuss ab dem zweiten
+     * Versuch, oder die Hochzeit, die von Anfang an kostet) — dann erzeugen. Liegt schon ein
+     * Bild da, wollte er das VIDEO. Zwei Wege, eine Rueckkehr.
+     */
+    if (!bild) { void generate(); return; }
+    if (!genId) return;
     void unlock("once");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genId, mail, guthabenCents]);
+  }, [genId, mail, guthabenCents, bild]);
 
   return (
     <div className="mt-8">
@@ -2836,6 +2866,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 Umgebung — auf dem blauen Kasten heisst das blau auf blau. Weisse Flaeche mit
                 dunkler Schrift liest sich auf jedem Grund; dieselbe Loesung wie beim
                 Kauf-Knopf auf dem Foto. */}
+            {/* AUFLADEN GENAU HIER (Owner 01.08.2026: „bei Kiss Credits fuer 9,99 ab der
+                zweiten Versuch"). Das ist der Moment, in dem er mehr will — der Knopf muss
+                dort stehen, wo die Sperre ihn trifft, nicht irgendwo weiter unten. */}
+            <button type="button" onClick={() => void unlock("auflade")} disabled={payBusy}
+              style={{ background: "#fff", color: "#1a160f" }}
+              className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
+              {fillPrices(T.aufladen, lang)}
+            </button>
+            <p className="mt-1 text-[10px] font-medium leading-snug text-white/60">{T.aufladenHinweis}</p>
             {V.abo && V.einzelkauf && (<>
               <button type="button" onClick={() => void unlock("abo")} disabled={payBusy}
                 style={{ background: "#fff", color: "#1a160f" }}

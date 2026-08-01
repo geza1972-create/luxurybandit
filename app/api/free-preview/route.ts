@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { kussSzene } from "@/lib/kuss-szenen";
+import { guthabenAbbuchen } from "@/lib/try-this-look-store";
+import { ONCE_CENTS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 // 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
@@ -330,12 +332,31 @@ export async function POST(request: Request) {
     if (!device) return NextResponse.json({ error: "Kein Gerät erkannt." }, { status: 400 });
     const claim = await claimFreePreview(device);
     if (!claim.ok) {
-      return NextResponse.json({
-        error: claim.reason === "day"
-          ? "Heute sind alle Gratis-Vorschauen aufgebraucht — morgen wieder."
-          : "Du hast deine Gratis-Vorschau heute schon genutzt.",
-        limit: claim.reason,
-      }, { status: 429 });
+      /**
+       * AB DEM ZWEITEN VERSUCH AUS DEM GUTHABEN (Owner 01.08.2026: „bei Kiss haben wir
+       * Credits für 9,99 ab der zweiten Versuch" — „das können wir hier auch machen").
+       *
+       * Der erste Versuch bleibt gratis; er ist der Beweis, dass es mit SEINEM Gesicht
+       * klappt. Wer mehr will, zahlt aus dem aufgeladenen Konto — ohne Kasse, ohne Fenster,
+       * ein Tipp. Idempotent je Gerät+Sekunde, damit ein Doppelklick nie zweimal abbucht.
+       *
+       * Ohne Guthaben bleibt die 429-Antwort wie bisher; der Trichter zeigt dann den
+       * Aufladen-Knopf. `guthaben: true` sagt ihm, dass genau das die Lösung ist.
+       */
+      const mail = String((body as { email?: string }).email ?? "").trim().toLowerCase();
+      const bezahlt = mail
+        ? await guthabenAbbuchen(mail, `bild-${device}-${Math.floor(Date.now() / 1000)}`, ONCE_CENTS).catch(() => ({ ok: false, rest: 0 }))
+        : { ok: false, rest: 0 };
+      if (!bezahlt.ok) {
+        return NextResponse.json({
+          error: claim.reason === "day"
+            ? "Heute sind alle Gratis-Vorschauen aufgebraucht — morgen wieder."
+            : "Du hast deine Gratis-Vorschau heute schon genutzt.",
+          limit: claim.reason,
+          guthaben: true,
+        }, { status: 429 });
+      }
+      console.warn(`[free-preview] aus dem Guthaben bezahlt: ${mail} — Rest ${bezahlt.rest} Cent`);
     }
   }
 

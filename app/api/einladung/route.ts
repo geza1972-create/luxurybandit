@@ -305,9 +305,22 @@ export async function POST(request: Request) {
     genId: sauber(body.genId, 80) || undefined,
     videoUrl: videoUrl || undefined,
     bildUrl: bildUrl || undefined,
-    // SIEBEN TAGE, ab dem Anlegen. Lang genug, um sie wirklich zu verschicken und Antworten
-    // zu bekommen; kurz genug, dass die Entscheidung nicht auf die lange Bank kommt.
-    probeBis: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    /**
+     * EIN MONAT, ab dem Anlegen (Owner 01.08.2026: „sie können es für 1,49 behalten, aber ab
+     * dem zweiten Monat müssen sie Abo bezahlen für 24 im Monat, wenn sie die Karte behalten
+     * wollen"). Vorher standen hier sieben Tage Probe.
+     *
+     * Der Unterschied ist nicht die Zahl, sondern die Geschichte: Sieben Tage sind eine
+     * Probe, die man beweisen muss. Ein Monat ist das GEKAUFTE — für 1,49 gehört ihr die
+     * Einladung, sie verschickt sie, sammelt Zusagen, führt die Gruppe. Erst wenn die
+     * Hochzeit länger her ist als ein Monat, wird aus dem Kauf ein Abo: 24,50 im Monat, wenn
+     * die Karte samt Gästegruppe weiterleben soll.
+     *
+     * Für die meisten Hochzeiten reicht der Monat vor dem Fest — genau deshalb ist die
+     * Verlängerung ein echtes Angebot und keine Falle: Wer die Erinnerung behalten will,
+     * zahlt weiter; wer nicht, hat trotzdem bekommen, wofür er bezahlt hat.
+     */
+    probeBis: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     sie, er,
     datum: sauber(body.datum, 10) || undefined,
     ort: sauber(body.ort, 120) || undefined,
