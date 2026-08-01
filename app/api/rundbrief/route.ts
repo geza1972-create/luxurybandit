@@ -115,7 +115,14 @@ const TEXTE: Record<string, {
   },
 };
 
-const html = (t: typeof TEXTE.de, link: string, unsub: string, poster: string) => `
+/**
+ * Die Kampagnen-Kennung — sie steht im utm der Zielseite UND am Zählpixel, damit Öffnungen
+ * und Klicks derselben Aussendung zusammenfinden. Für die nächste Aussendung hochzählen
+ * oder umbenennen; die Öffnungen landen je Kampagne in einer eigenen Datei.
+ */
+const KAMPAGNE = "kiss-fix";
+
+const html = (t: typeof TEXTE.de, link: string, unsub: string, poster: string, pixel: string) => `
 <div style="margin:0;padding:24px 12px;background:#100d08">
  <div style="max-width:520px;margin:0 auto;background:#fffdf7;border-radius:18px;overflow:hidden;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color:#1a160f">
   <div style="padding:26px 26px 6px">
@@ -133,6 +140,7 @@ const html = (t: typeof TEXTE.de, link: string, unsub: string, poster: string) =
    <p style="margin:6px 0 0;font-size:12px"><a href="${unsub}" style="color:#6b6355">${t.abmelden}</a></p>
   </div>
  </div>
+ ${pixel ? `<img src="${pixel}" alt="" width="1" height="1" style="display:block;width:1px;height:1px;border:0">` : ""}
 </div>`;
 
 /**
@@ -207,12 +215,14 @@ export async function POST(request: Request) {
     const t = TEXTE[(e.lang ?? vorgabe).slice(0, 2)] ?? TEXTE.en;
     // Der Preis kommt aus der Preistabelle — nie von Hand getippt (Dauerregel im Projekt).
     const preis = fillPrices(t.preis);
-    const link = `${origin}/themes/kiss?utm_source=rundbrief&utm_campaign=kiss-fix`;
+    const link = `${origin}/themes/kiss?utm_source=rundbrief&utm_campaign=${KAMPAGNE}`;
     const unsub = `${origin}/api/mail-abmelden?email=${encodeURIComponent(e.email)}`;
+    // Das Zählpixel — je Empfänger seine Adresse, je Aussendung ihre Kampagne.
+    const pixel = `${origin}/api/rundbrief-offen?e=${encodeURIComponent(e.email)}&k=${encodeURIComponent(KAMPAGNE)}`;
     const r = await sendEmail({
       to: e.email,
       subject: t.betreff,
-      html: html({ ...t, preis }, link, unsub, poster),
+      html: html({ ...t, preis }, link, unsub, poster, pixel),
       listUnsubscribe: unsub,
     }).catch(() => ({ ok: false, error: "send failed" }));
     ergebnisse.push({ email: e.email, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });

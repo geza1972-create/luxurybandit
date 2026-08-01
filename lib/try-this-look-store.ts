@@ -1882,6 +1882,48 @@ export async function mailFreigeben(email: string): Promise<void> {
   if (!res.ok) throw new Error("Sperre konnte nicht aufgehoben werden.");
 }
 
+// ── Rundbrief: Öffnungen ────────────────────────────────────────────────────
+/**
+ * WER HAT DEN RUNDBRIEF GEÖFFNET (Owner 01.08.2026: „wieviele haben drauf geklickt?" — „ja"
+ * zum Zählpixel).
+ *
+ * Beim ersten Versand konnten wir nur KLICKS zählen (utm auf der Zielseite). Damit sind zwei
+ * völlig verschiedene Probleme ununterscheidbar: Mail nie angekommen (Zustellproblem) oder
+ * gelesen, aber nicht geklickt (Inhaltsproblem). Das Pixel trennt die beiden — dieselbe
+ * Technik wie bei den Wetter-Mails, eigene Datei je Kampagne.
+ *
+ * Nach E-MAIL geführt, nicht nach Abonnenten-Kennung: Der Rundbrief geht an Empfänger aus
+ * fünf Quellen, von denen die meisten gar keine Kennung haben.
+ */
+export type RundbriefOeffnung = { count: number; firstAt: string; lastAt: string };
+
+const rundbriefOffenPfad = (kampagne: string) =>
+  `try-this-look/rundbrief-offen-${kampagne.replace(/[^a-z0-9-]/gi, "")}.json`;
+
+export async function readRundbriefOeffnungen(kampagne: string): Promise<Record<string, RundbriefOeffnung>> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(rundbriefOffenPfad(kampagne))}`);
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return data?.oeffnungen && typeof data.oeffnungen === "object" ? data.oeffnungen as Record<string, RundbriefOeffnung> : {};
+  } catch { return {}; }
+}
+
+export async function vermerkRundbriefOeffnung(kampagne: string, email: string): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return;
+  const alle = await readRundbriefOeffnungen(kampagne);
+  const jetzt = new Date().toISOString();
+  const da = alle[e];
+  alle[e] = da ? { ...da, count: da.count + 1, lastAt: jetzt } : { count: 1, firstAt: jetzt, lastAt: jetzt };
+  await ensureBucket();
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(rundbriefOffenPfad(kampagne))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ oeffnungen: alle, updatedAt: jetzt }),
+  });
+}
+
 // ── Wetter-Klick-Tracking ───────────────────────────────────────────────────
 // EIGENER Blob (nicht die Abonnentenliste anfassen → nie clobbern). Map je Abonnent:
 // { count, lastAt, src }. „geöffnet" = er hat den Link (E-Mail/WhatsApp) angeklickt.
