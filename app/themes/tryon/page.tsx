@@ -66,8 +66,8 @@ export default async function TryOnThemePage({ searchParams }: {
                 <SectionTitle>The only place where she also talks back</SectionTitle>
                 <Lead>
                   Other try-on tools stop at the picture. Here the AI model you dressed also chats
-                  with you, sends you a message every morning and stars in your own videos — powered
-                  by the most expensive video AI we can buy, so the garment and the face survive.
+                  with you and stars in your own videos — powered by the most expensive video AI
+                  we can buy, so the garment and the face survive.
                 </Lead>
               </div>
             </section>

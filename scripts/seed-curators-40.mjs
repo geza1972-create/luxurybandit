@@ -84,7 +84,7 @@ async function main() {
     const a = ARCH[n % ARCH.length];
     const first = FIRST[n], last = LAST[n];
     const name = `${first} ${last}`;
-    const persona = { firstName: first, lastName: last, email: `${first}.${last}@seed.lb`.toLowerCase(), genderFocus: "women", instagram: `${first}.${last}`.toLowerCase(), ...a };
+    const persona = { firstName: first, lastName: last, email: `${first}.${last}@seed.invalid`.toLowerCase(), genderFocus: "women", instagram: `${first}.${last}`.toLowerCase(), ...a };
     console.log(`=== ${idx}. ${name} ===`);
     let id;
     try { id = await createCurator({ ...persona, photo: await fileDataUrl(`${idx}.jpg`) }); } catch (e) { console.log("    ✗ create error:", e.message); continue; }

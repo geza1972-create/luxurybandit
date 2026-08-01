@@ -1,87 +1,32 @@
-# Offen — Stand 31.07.2026, spät abends
+# Offen — Stand 01.08.2026 abends
 
-## Abend-Nachtrag — alles auf `main` (zuletzt a0f3664)
+## Heute erledigt (alles auf main)
+- Werk-Seite /w/[id]: Teilen zeigt die KARTE oeffentlich, erst nach ausdruecklichem Ja
+  (sharedAt); Privat-Zusage in 7 Sprachen praezisiert („nur oeffentlich, wenn du selbst
+  teilst"). Empfaenger-Knopf „Mach auch du eins" mit utm_source=share.
+- Liefer-Mail fuehrt aufs Portal (my-gallery), nicht mehr zur Video-Datei (Punkt 3 ERLEDIGT).
+- Preistest: Einzelvideo 1,49 (ONCE_CENTS), Abo 20 Videos — dabei Widerspruch behoben:
+  beworben 12, gutgeschrieben 5. ACHTUNG: Env SUBSCRIPTION_MONTHLY_CREDITS auf Vercel
+  pruefen, sie wuerde gewinnen.
+- Alterskontrolle RAUS (Owner: „OpenAI blockiert eh schon zu viel");
+  lib/minderjaehrig-pruefen.ts liegt bereit, Wiedereinhaengen = je 1 Zeile.
+- E-Mail-Tor: Regeln + KI-Gehaemmer-Pruefung (hsaadsasdello faellt), Absagen ROT am Feld.
+- Rundbrief-Maschine komplett (Zaehlen/Test/Alle, Sperrliste+Loeschknopf, Zaehlpixel je
+  Kampagne). Erste Aussendung „kiss-fix": 115/115, 3 Rueckläufer → gesperrt.
+- Vorschauvideo: Kuss-Nahaufnahme nach vorn; H1 „Kiss somebody" statt „Kiss any model";
+  bezahltes Video wohnt in der Karte (Herzchen, Teilen, Download, Autosprung);
+  Galerie findet Stripe-Kaeufer (paidEmail); Suche nur Admin; Land unsichtbar per
+  Vercel-Kopfzeile; tote Versprechen (Morgen-Nachricht, „Free to join", pl) bereinigt;
+  Seed-Skripte auf @seed.invalid.
 
-**Erledigt und am echten Lauf geprueft:**
-- Der alte Ergebnis-Block ist AUFGELOEST (geloescht, nicht nur abgeschaltet): Unschaerfe,
-  Render-Show, Zahl-Ueberblendungen, Kasse und Musik leben jetzt auf dem Bild IN der Karte;
-  die Kaufzeile (Video/Abo/Hinweise) steht direkt unter der Karte. Das Bild steht nur noch
-  einmal auf der Seite. Der Video-Spieler (`videoUrl`) blieb unangetastet.
-- Kontingent-Zeile ganz oben („Abo aktiv · noch X von Y Videos"), aktualisiert sich nach
-  einem Kauf; bei leerem Kontingent springt die Seite zur Verbraucht-Meldung mit Kaufknopf
-  (Owner-Zurufe vom Abend).
-- Punkt 0b ist BEANTWORTET, gemessen mit denselben zwei Fotos: Die OpenAI-Bildpruefung
-  springt auf den TEXT an und WUERFELT — Kuss auf den Mund 1/5 durch, Fast-Kuss („lips
-  almost touching") 1/2, Umarmung immer. `moderation=low` hilft nicht. Deshalb in
-  `free-preview`: Kuss + Fast-Kuss PARALLEL, Umarmung als Netz — es kommt immer ein Bild,
-  mit ~60 % Kuss/Fast-Kuss je Lauf. Erwartete Mehrkosten ~0,1 Bild je Lauf.
-
-**Der bezahlte Weg — einmal FATAL gebrochen, gefixt, vom Owner mit echtem Geld bestaetigt:**
-
-Der Umbau hatte den Knopf, der das bezahlte Video anstoesst, in den DIALOG verschoben. Nach
-Stripe laedt die Seite neu, der Dialog ist zu — bezahlt, und nichts passierte („also Kunde
-wurde ausgeraubt. Das ist fatal"). Seit a0f3664:
-
-- Zahlung bestaetigt → der Auftrag laeuft VON SELBST (Wachhund wartet, bis die Fotos aus dem
-  Geraetespeicher zurueck sind, und startet genau einmal). Rueckleitung wie Kassenfenster.
-- Kein Kaufknopf mehr, sobald bezahlt ist — er las sich als zweite Rechnung.
-- **Vom Owner am 31.07.2026 spaet abends live durchgespielt: „ja es hat geklappt".**
-
-**Die gespielte Render-Show ist ersatzlos raus** („ohne diesen Fake"). Sie stammte aus der
-Zeit ohne Gratis-Bild. Heute traegt die Karte den Kaufknopf mit Preis, darunter „Personen
-ersetzen"; wer bezahlt hat, liest „Video erzeugen" ohne Zahl. Herzchen weichen jeder Meldung,
-der Radar laeuft in der Zahl-/Render-Anzeige mit.
-
-## Alterssperre — steht im Gratis-Weg, FEHLT bei Pixverse und FASHN
-
-Owner 31.07.2026: „ich habe auch Kinderbilder gesehen, die hochgeladen werden, das bitte
-sperren." Die vorhandenen hat er selbst geloescht und prueft die Liste weiter von Hand.
-
-**Gebaut:** `lib/minderjaehrig-pruefen.ts`, eingehaengt in `/api/free-preview` VOR jeder
-Erzeugung. Zwei Signale (direkte Ja/Nein-Frage + Altersschaetzung), Grenze 18 — nicht hoeher,
-weil eine jung aussehende Erwachsene sonst mit einer beleidigenden Meldung ausgesperrt wuerde
-(Owner: „eine 18-Jaehrige kann auch juenger aussehen"). Bei Ausfall des Seh-Modells wird
-GESPERRT; umstellbar mit `MINOR_CHECK_FAIL_OPEN=true`.
-
-**Warum es vorher durchkam:** `alterSchaetzen` gibt fuer alles ausserhalb 18–90 eine 0
-zurueck, und 0 heisst im Code „nicht erkannt". Das Kind wurde also erkannt und das Ergebnis
-weggeworfen.
-
-**OFFEN, bewusste Owner-Entscheidung („lass es so laufen"):**
-`/api/generate-tryon-video` (Pixverse) und `/api/generate-fashn` haben KEINE Alterspruefung.
-Das ist der Lingerie- und Bademoden-Weg, der absichtlich an OpenAI vorbeilaeuft — OpenAIs
-Filter schuetzt dort also nicht. Zwei Zeilen je Route (`pruefeAlterAlle` wie in free-preview),
-falls das spaeter gewuenscht ist.
-
-## E-Mail-Pruefung am Eingang — fertig
-
-`lib/email-pruefen.ts`, eingehaengt in `/api/kiss-claim` (das Tor VOR der Erzeugung: der
-Trichter schaltet das Erzeugen erst frei, wenn die Adresse durchgeht). Gesperrt: seed.lb,
-`.invalid`, Wegwerf-/Inkognito-Anbieter, Namen mit 6+ Ziffern, Laenderendungen ausserhalb
-EU/EWR. Meldung in sieben Sprachen, sagt WAS falsch ist. Geprueft an echten Faellen:
-`gl12341234123@gmail.com` faellt, `maria1987@outlook.de` und `ion23@yahoo.com` gehen durch.
-
-**Offen aus dem Abend:**
-- Owner gefragt, ob ein dritter Parallel-Arm (zweiter Fast-Kuss-Wurf, ~80 % Kuss-Quote,
-  ~0,4 Bilder je Lauf teurer) gewuenscht ist — Antwort steht aus.
-**Dev-Testklappe fuer den Kaufweg — GEBAUT und benutzt.**
-
-`app/api/checkout-status/route.ts`: liefert `paid: true` nur, wenn ALLE drei Schloesser offen
-sind — `LB_TEST_CHECKOUT` gesetzt (steht in `.env.local`, das per `.gitignore` nie mitgeht und
-auf Vercel nicht existiert), `NODE_ENV !== "production"`, und die Sitzungsnummer beginnt mit
-`TEST-` (echte Stripe-Nummern beginnen mit `cs_`). Alle drei am 31.07.2026 einzeln geprueft.
-
-So testet man den Kaufweg in dreissig Sekunden:
-
-1. Fotos in den Speicher legen (oder einmal normal bis Schritt 3 durchklicken)
-2. `http://localhost:PORT/themes/kiss?paid=1&cs=TEST-kaufweg` aufrufen
-3. Erwartung: KEIN Kaufknopf, der Auftrag laeuft von selbst, Radar laeuft, am Ende das Video
-
-**ACHTUNG, kostet trotzdem:** Die Klappe taeuscht die ZAHLUNG vor, nicht die ERZEUGUNG. Ein
-echter Pixverse-Lauf (~1 €) geht dabei los. Also sparsam benutzen — und wer nur die Anzeige
-pruefen will, faengt `/api/generate-tryon-video` im Browser ab (window.fetch ueberschreiben).
-
----
+## Entscheidungen, die nur der Owner treffen kann
+1. CREDIT-SPERRE der Models: Ein Model mit 0 Guthaben erzeugt nichts („Out of credits").
+   Startguthaben/Verdienen sind aus; die SPERRE steht noch. Optionen: ganz raus / nur
+   eigene Models frei / lassen. Daten: in einem Jahr bremste sie genau EINE echte Fremde.
+2. Guthaben-System statt Einzelkauf (Aufladung 9,99): rechtlich AGB-Frage (Verfall in der
+   EU) — vor dem Bauen entscheiden.
+3. Pixverse-Preis von der Abrechnung ablesen (traegt 1,49?) und OPENAI_PREVIEW_QUALITY
+   („low" = glatte Haut).
 
 # Stand vom Nachmittag
 

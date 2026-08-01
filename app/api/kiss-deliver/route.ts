@@ -150,8 +150,17 @@ async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> 
     + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
     + `Thank you — here it is. It is also saved in your gallery, so you can watch it again any time.`
     + `</td></tr>`
-    + `<tr><td style="padding:0 22px 10px"><a href="${e.videoUrl}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch your video</a></td></tr>`
-    + `<tr><td style="padding:0 22px 6px"><a href="${o}/my-gallery" style="color:#8d8579;font-size:12px">Open my gallery</a></td></tr>`
+    /**
+     * DER KNOPF FÜHRT AUFS PORTAL, NICHT ZUR DATEI (OFFEN.md Punkt 3, Owner: „sie sollen das
+     * Bild nicht per E-Mail bekommen am besten, damit sie es nicht haben und immer wieder auf
+     * das Portal kommen können").
+     *
+     * Vorher stand hier die rohe Video-Adresse: Wer sie hatte, brauchte uns nie wieder — und
+     * sie ist signiert, nach Ablauf wäre der Knopf in einer alten Mail tot. Die Galerie
+     * dagegen lebt, zeigt das Video für immer (sie signiert bei jedem Aufruf frisch) und
+     * steht neben dem Kaufknopf fürs nächste. Genau dorthin soll jeder Klick aus einer Mail.
+     */
+    + `<tr><td style="padding:0 22px 10px"><a href="${o}/my-gallery?utm_source=liefermail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch your video</a></td></tr>`
     + `<tr><td style="padding:0 22px 20px"><a href="${abmelden}" style="color:#6b655c;font-size:11px">Unsubscribe</a></td></tr>`
     + `</table></td></tr></table></div>`;
   const r = await sendEmail({
