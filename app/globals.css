@@ -585,3 +585,24 @@ svg {
   border: 1px dashed rgba(160, 122, 52, 0.45);
   background: rgba(160, 122, 52, 0.05) !important;
 }
+
+/* EINGABEFELDER IN DER HELLEN FASSUNG (Owner 31.07.2026, Bildschirmfoto vom Land-Feld:
+   „das machst du mit autofil" — und davor stand da ein grauer Kasten).
+
+   Adressfeld und Land-Auswahl tragen `color:#fff` direkt am Element und `bg-black/50` als
+   Klasse. Auf dunklem Grund ist das richtig. In der hellen Fassung liegt derselbe halb
+   deckende Schwarzton auf WEISS — daraus wird ein grauer Block mit weisser Schrift, also
+   Grau in Grau. Genau der Kasten aus dem Bildschirmfoto.
+
+   Die Regel weiter oben nimmt `input` ausdruecklich aus (dort ist Weiss gewollt, wenn das
+   Feld auf einem Bild liegt). Diese beiden Felder stehen aber IN der hellen Karte, nicht auf
+   einem Bild. Deshalb bekommen sie eine eigene Klasse und hier ihre helle Fassung: weisser
+   Grund, dunkle Schrift — wie jedes andere Formularfeld auch. */
+.lb-fb .lb-eingabe {
+  background-color: #fff !important;
+  color: #1a160f !important;
+  -webkit-text-fill-color: #1a160f !important;
+  caret-color: #1a160f !important;
+  border-color: rgba(0, 0, 0, 0.22) !important;
+}
+.lb-fb .lb-eingabe::placeholder { color: rgba(0, 0, 0, 0.38) !important; }

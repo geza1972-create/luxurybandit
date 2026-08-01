@@ -18,6 +18,7 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
+import { landAusZeitzone } from "@/lib/land-erkennen";
 
 /**
  * DIE LÄNDERLISTE — kurz gehalten, mit „anderes" am Ende.
@@ -408,8 +409,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Es reist mit der Adresse an `kiss-claim` und macht den nächsten Rundbrief mehrsprachig.
    */
   const [land, setLand] = useState("");
-  // Vorbelegen, sobald die Seitensprache feststeht — der Nutzer soll nichts tun müssen.
-  useEffect(() => { setLand(l => l || (SPRACHE_ZU_LAND[String(lang).slice(0, 2)] ?? "")); }, [lang]);
+  /**
+   * AUTOMATISCH FÜLLEN (Owner 31.07.2026: „das machst du mit Autofill").
+   *
+   * Reihenfolge nach Verlässlichkeit: Zeitzone des Geräts zuerst — ein Rumäne mit englisch
+   * eingestelltem Handy hat trotzdem `Europe/Bucharest`. Erst wenn die Zone unbekannt ist,
+   * zählt die Seitensprache. Der Server bessert später mit Vercels Länderkennung nach, die
+   * jede Vermutung des Browsers schlägt.
+   */
+  useEffect(() => {
+    setLand(l => l || landAusZeitzone() || (SPRACHE_ZU_LAND[String(lang).slice(0, 2)] ?? ""));
+  }, [lang]);
   const [adresseDa, setAdresseDa] = useState(false);   // wir kennen ihn → kein Feld mehr
   /**
    * ABONNENT WIEDERERKANNT (Owner 30.07.2026). „Bezahlt" war bisher ein Zustand dieser einen
@@ -2321,7 +2331,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             // Farbe fest am Feld: die Hell-Fassung faerbt `text-white` dunkel — auf dem
             // schwarzen Grund waere die eingetippte Adresse dann unlesbar.
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
-            className="mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+            className="lb-eingabe mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
           {/**
             * DAS LAND, GLEICH NEBEN DER ADRESSE (Owner 31.07.2026: „die Leute müssen E-Mail
             * und Land eingeben beim Generieren").
@@ -2336,12 +2346,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             * und ist nur zum Ändern da. Eine Pflichtangabe vor einem Gratis-Bild verliert
             * Leute; eine vorausgefüllte kostet niemanden etwas.
             */}
+          {/* GRAUER KASTEN WAR FALSCH (Owner 31.07.2026, Bildschirmfoto): Ein `select` erbt
+              auf dem Handy die Systemfarbe und stand als graue Fläche mitten im schwarzen
+              Trichter. Dieselben Werte wie das Adressfeld darüber, damit die beiden als ein
+              Paar zu lesen sind — und `appearance-none` samt eigenem Pfeil, sonst malt jedes
+              Betriebssystem etwas anderes hin. */}
           <select value={land} onChange={e => setLand(e.target.value)}
             aria-label={T.landFrage}
-            style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
-            className="mt-2 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[14px] font-bold outline-none focus:border-[#f6cf51]">
+            style={{ color: "#fff", WebkitTextFillColor: "#fff", backgroundColor: "rgba(0,0,0,0.5)" }}
+            className="lb-eingabe mt-2 h-12 w-full appearance-none rounded-xl border border-white/25 bg-black/50 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f6cf51%22 stroke-width=%223%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-[length:14px] bg-[right:1rem_center] bg-no-repeat px-3 text-center text-[15px] font-bold outline-none focus:border-[#f6cf51]">
             {LAENDER.map(([code, name]) => (
-              <option key={code} value={code} style={{ color: "#111" }}>{name}</option>
+              <option key={code} value={code} style={{ color: "#111", background: "#fff" }}>{name}</option>
             ))}
           </select>
           <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/45">

@@ -3,6 +3,7 @@ import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLo
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
 import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
+import { landAusKopfzeile } from "@/lib/land-erkennen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,7 +103,10 @@ export async function POST(request: Request) {
          * nächste Rundbrief mehrsprachig wird: Beim ersten Versand hatten 49 von 115
          * Empfängern keine Sprache — fast alles Kiss-Nutzer, weil hier nie ein Land stand.
          */
-        country: String(body.land ?? "").trim().slice(0, 40) || undefined,
+        // Vercels Länderkennung schlägt die Vermutung des Browsers — sie kommt vom Netz,
+        // nicht von einer Einstellung, die jeder verstellen kann. Lokal fehlt sie, dann
+        // zählt die Zeitzone aus dem Browser.
+        country: landAusKopfzeile(request) || String(body.land ?? "").trim().slice(0, 40) || undefined,
         /**
          * DER NACHWEIS STEHT IN DER NOTIZ (Owner 30.07.2026: „die muessen das abhacken sonst
          * wird es ilegal"). Eine Einwilligung, die man nicht belegen kann, ist keine — im
