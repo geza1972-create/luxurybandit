@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fillPrices } from "@/lib/pricing";
 import { notFound } from "next/navigation";
 import { readEinladungen } from "@/lib/try-this-look-store";
 import { resolveLang } from "@/lib/lang-server";
@@ -143,6 +144,32 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
             nicht — fuer ihn ist es einfach die Einladung seiner Freunde. */}
         {!e.bezahlt && !abgelaufen && tageUebrig > 0 && (
           <p className="mt-3 text-center text-[11px] font-bold text-white/45">{T.probeTage(tageUebrig)}</p>
+        )}
+
+        {/**
+          * DER WEG ZURÜCK (Owner 01.08.2026: „ab dem zweiten Monat müssen sie Abo bezahlen für
+          * 24 im Monat, wenn sie die Karte behalten wollen").
+          *
+          * Bisher endete eine abgelaufene Einladung in einer Sackgasse: „Das Brautpaar muss sie
+          * wieder freischalten" — ohne zu sagen WIE. Der Satz stand auf der Gästeseite und war
+          * für das Brautpaar unsichtbar; wer verlängern wollte, fand nichts.
+          *
+          * Der Knopf steht bewusst UNTER der Karte und nicht darin: Auf der Karte liest ihn
+          * jeder Gast, und eine Hochzeitseinladung mit einem Preisschild darauf verschickt
+          * niemand. Hier sieht ihn, wer die abgelaufene Karte öffnet — und das ist in aller
+          * Regel das Paar selbst.
+          */}
+        {abgelaufen && (
+          <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+            <p className="text-[14px] font-black text-white">{T.wiederTitel}</p>
+            <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
+              {fillPrices(T.wiederText, sprache)}
+            </p>
+            <Link href={`/themes/wedding?utm_source=einladung&abo=1&e=${encodeURIComponent(e.id)}`}
+              className="lb-gold mt-3 flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black active:scale-95 transition">
+              {fillPrices(T.wiederKnopf, sprache)}
+            </Link>
+          </div>
         )}
 
         {/* DIE EINE ZEILE. Mehr Werbung macht die Einladung unsendbar — und dann gibt es
