@@ -32,11 +32,48 @@ export type Empfaenger = {
   lang?: string;
   /** Woher wir ihn kennen — nur fürs Protokoll, damit man Herkunft nachvollziehen kann. */
   quellen: string[];
+  /**
+   * HAT DIESE PERSON DAS PORTAL WIRKLICH BENUTZT — oder ist sie nur eine Zeile aus einem
+   * Anzeigenformular?
+   *
+   * Der Unterschied entscheidet über die Zustellbarkeit. Wer ein Bild erzeugt, gekauft oder
+   * seine Adresse doppelt bestätigt hat, existiert nachweislich. Eine Adresse aus einem
+   * Meta-Anzeigenformular hat nie jemand geprüft: Dort tippt man im Vorbeigehen, und Meta
+   * füllt Felder automatisch vor. Genau daraus entstehen die Unzustellbar-Berichte.
+   */
+  bestaetigt: boolean;
 };
 
 /** Kleingeschrieben und getrimmt — sonst gilt „A@B.de" als andere Person als „a@b.de". */
 const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
 const gueltig = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+
+/**
+ * ATTRAPPEN AUSSORTIEREN — die wichtigste Zeile dieser Datei.
+ *
+ * Owner 31.07.2026: Eine Testmail brachte sofort einen Unzustellbar-Bericht zurück
+ * („550-5.1.1 The email account that you tried to reach does not exist") für eine erfundene
+ * Kuratorinnen-Adresse.
+ *
+ * WARUM DAS GEFÄHRLICH IST, und zwar mehr als es aussieht: Die Kuratorinnen-Liste stammt
+ * grösstenteils aus dem Seeding. Dort stehen unsere eigene Support-Adresse (vielfach!),
+ * `.invalid`, `@seed.lb` und ausgedachte Gmail-Adressen. Verschickt man an so eine Liste,
+ * kommt ein grosser Teil als unzustellbar zurück — und GENAU DARAN messen Gmail und Hostinger,
+ * ob ein Absender seine Empfänger kennt. Eine hohe Rücklaufquote kostet nicht diese eine Mail,
+ * sondern die Zustellbarkeit der DOMAIN. Danach landet auch die Liefermail eines zahlenden
+ * Kunden im Spam-Ordner. Ein schlechter Rundbrief kann also den bezahlten Weg beschädigen.
+ *
+ * Deshalb: erkennbare Attrappen fliegen raus, bevor irgendetwas rausgeht. Lieber ein paar
+ * echte Adressen zu wenig als die Domain verbrannt.
+ */
+const ATTRAPPE = /@(luxurybandit\.com|.*\.invalid|seed\.lb|example\.(com|org|net)|test|local|localhost|mailinator\.com)$/i;
+const istAttrappe = (e: string) =>
+  ATTRAPPE.test(e)
+  // Unsere eigene Adresse ist bei den Seed-Models als Platzhalter eingetragen — ein
+  // Rundbrief an uns selbst, 20-mal, sagt niemandem etwas.
+  || e.startsWith("support@")
+  || e.includes("+seed")
+  || e.startsWith("noreply@") || e.startsWith("no-reply@");
 
 /**
  * Sammelt alle Adressen des Portals, entdoppelt sie und wirft die Abgemeldeten raus.
@@ -47,16 +84,23 @@ const gueltig = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
  */
 export async function alleEmpfaenger(): Promise<Empfaenger[]> {
   const nachEmail = new Map<string, Empfaenger>();
-  const dazu = (email: unknown, quelle: string, name?: unknown, lang?: unknown) => {
+  const dazu = (email: unknown, quelle: string, name?: unknown, lang?: unknown, bestaetigt = false) => {
     const e = norm(email);
-    if (!gueltig(e)) return;
+    if (!gueltig(e) || istAttrappe(e)) return;
     const da = nachEmail.get(e);
-    if (da) { if (!da.quellen.includes(quelle)) da.quellen.push(quelle); return; }
+    if (da) {
+      if (!da.quellen.includes(quelle)) da.quellen.push(quelle);
+      // Einmal bestätigt bleibt bestätigt: Wer in EINER Quelle nachweislich existiert, ist
+      // eine echte Person — auch wenn er anderswo nur als Anzeigen-Zeile auftaucht.
+      if (bestaetigt) da.bestaetigt = true;
+      return;
+    }
     nachEmail.set(e, {
       email: e,
       name: String(name ?? "").trim() || undefined,
       lang: String(lang ?? "").trim().slice(0, 5) || undefined,
       quellen: [quelle],
+      bestaetigt,
     });
   };
 
@@ -66,7 +110,9 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
     const subs = await readWetterSubscribers();
     for (const s of subs as WetterSubscriber[]) {
       if (s.unsubscribed === true) continue;
-      dazu(s.email, "wetter", s.name, s.lang);
+      // `confirmed` = doppelte Bestätigung per E-Mail. Die 42 unbestätigten sind fast alle
+      // Meta-Anzeigen-Leads (siehe `note`) — dort kommen die Rückläufer her.
+      dazu(s.email, "wetter", s.name, s.lang, s.confirmed === true);
     }
   } catch { /* eine Quelle darf ausfallen, ohne den ganzen Versand zu kippen */ }
 
@@ -76,16 +122,19 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
     const st = await readTryThisLookState();
     for (const c of (st.curators ?? []) as Array<{ email?: string; firstName?: string; modelName?: string; status?: string }>) {
       if (c.status === "removed") continue;
-      dazu(c.email, "kuratorin", c.firstName || c.modelName);
+      // Eine Kuratorin hat sich selbst angemeldet und ein Konto — das zaehlt als bestaetigt.
+      dazu(c.email, "kuratorin", c.firstName || c.modelName, undefined, true);
     }
     for (const l of (st.leads ?? []) as Array<{ email?: string; name?: string; marketingConsent?: boolean }>) {
       // NUR MIT EINWILLIGUNG. Ein Lead ist eine Kaufanfrage, kein Rundbrief-Abo — hier steht
       // das Häkchen ausdrücklich im Datensatz, also richten wir uns danach.
       if (l.marketingConsent !== true) continue;
-      dazu(l.email, "lead", l.name);
+      // Ein Lead hat ein Formular ausgefuellt, aber nie etwas erzeugt: nicht bestaetigt.
+      dazu(l.email, "lead", l.name, undefined, false);
     }
     for (const g of (st.generations ?? []) as Array<{ ownerEmail?: string; customerName?: string }>) {
-      dazu(g.ownerEmail, "generation", g.customerName);
+      // Wer eine Generation besitzt, hat das Portal nachweislich benutzt.
+      dazu(g.ownerEmail, "generation", g.customerName, undefined, true);
     }
   } catch { /* siehe oben */ }
 
@@ -93,8 +142,9 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
   try {
     const log = await readKissLog();
     for (const e of log as KissLogEntry[]) {
-      dazu(e.email, "kiss");
-      dazu(e.paidEmail, "kiss-kauf");
+      // Erzeugt = benutzt; bezahlt = von Stripe geprueft. Beides ist ein Nachweis.
+      dazu(e.email, "kiss", undefined, undefined, true);
+      dazu(e.paidEmail, "kiss-kauf", undefined, undefined, true);
     }
   } catch { /* siehe oben */ }
 

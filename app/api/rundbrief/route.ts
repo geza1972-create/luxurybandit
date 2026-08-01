@@ -170,17 +170,31 @@ async function posterBauen(): Promise<string> {
 
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-  const body = (await request.json().catch(() => ({}))) as { test?: string; all?: boolean; lang?: string };
+  const body = (await request.json().catch(() => ({}))) as { test?: string; all?: boolean; lang?: string; nurBestaetigte?: boolean };
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";
   const vorgabe = String(body.lang ?? "en").slice(0, 5);
 
-  const empfaenger = await alleEmpfaenger();
+  const alle = await alleEmpfaenger();
+  /**
+   * `nurBestaetigte` lässt die unbestätigten Anzeigen-Leads weg (Owner 31.07.2026, nach dem
+   * ersten Unzustellbar-Bericht). Sie sind die Gruppe, aus der die Rückläufer kommen, und
+   * eine hohe Rücklaufquote beschädigt die Zustellbarkeit der ganzen Domain — bis hin zur
+   * Liefermail eines zahlenden Kunden.
+   */
+  const empfaenger = body.nurBestaetigte ? alle.filter(e => e.bestaetigt) : alle;
 
   // ZÄHLEN, NICHT SENDEN — der Normalfall ohne `test` und ohne `all`.
   if (!body.test && !body.all) {
     const nachQuelle: Record<string, number> = {};
     for (const e of empfaenger) for (const q of e.quellen) nachQuelle[q] = (nachQuelle[q] ?? 0) + 1;
-    return NextResponse.json({ gesendet: 0, empfaenger: empfaenger.length, nachQuelle, hinweis: "Nur gezählt. Zum Senden: { test: \"adresse\" } oder { all: true }." });
+    return NextResponse.json({
+      gesendet: 0,
+      empfaenger: empfaenger.length,
+      bestaetigt: alle.filter(e => e.bestaetigt).length,
+      unbestaetigt: alle.filter(e => !e.bestaetigt).length,
+      nachQuelle,
+      hinweis: "Nur gezählt. Zum Senden: { test: \"adresse\" } oder { all: true }.",
+    });
   }
 
   const poster = await posterBauen();
