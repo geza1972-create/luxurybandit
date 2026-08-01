@@ -17,7 +17,7 @@ import { Send, Check } from "lucide-react";
  * es. Ohne diesen Rückfall stünde auf jedem Schreibtisch-Browser ein toter Knopf.
  */
 export default function TeilenKnopf({
-  text, label, kopiertLabel, className = "", url: zielUrl, rund = false,
+  text, label, kopiertLabel, className = "", url: zielUrl, rund = false, datei, dateiName,
 }: {
   /** Was neben dem Link steht — z. B. „Ana & Mihai 💍". */
   text: string;
@@ -32,12 +32,34 @@ export default function TeilenKnopf({
   url?: string;
   /** Als kleiner runder Knopf AUF einem Bild (wie der Ton-Knopf) statt als volle Pille. */
   rund?: boolean;
+  /**
+   * DIE DATEI SELBST TEILEN (Owner 01.08.2026: „auch das Bild soll er sharen können").
+   *
+   * Beim eigenen Ergebnis gibt es (noch) keine Werk-Seite — ein Link würde die Themenseite
+   * verschicken statt seines Bildes. Die Web-Share-API kann stattdessen die DATEI übergeben:
+   * WhatsApp bekommt das Foto oder Video selbst, wie aus der Galerie des Handys. Adresse
+   * (auch data:) wird geholt und als Datei angeboten; kann das Gerät keine Dateien teilen,
+   * fällt es auf den Link zurück.
+   */
+  datei?: string;
+  dateiName?: string;
 }) {
   const [kopiert, setKopiert] = useState(false);
 
   const teilen = async () => {
     // Die System-Auswahl braucht eine volle Adresse — ein relativer Pfad wird hier absolut.
     const url = zielUrl ? new URL(zielUrl, window.location.origin).toString() : window.location.href;
+    if (datei) {
+      try {
+        const blob = await (await fetch(datei)).blob();
+        const endung = blob.type.includes("video") ? "mp4" : "jpg";
+        const file = new File([blob], `${dateiName || "luxurybandit"}.${endung}`, { type: blob.type || "image/jpeg" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text });
+          return;
+        }
+      } catch { return; }   // abgebrochen ist kein Fehler, nur ein Nein
+    }
     try {
       if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
     } catch { return; }   // abgebrochen ist kein Fehler, nur ein Nein

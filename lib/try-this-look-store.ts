@@ -2375,7 +2375,10 @@ export async function setVideoCreditsBalance(email: string, n: number): Promise<
 // Verlustgeschäft (30 € Kosten gegen 24,50 €). 10 waren nur 2,4x Aufschlag — der Owner
 // wollte mehr: 5 Videos sind 4,8x, bei 1 € Kosten je Video.
 // Per Env übersteuerbar — steht `SUBSCRIPTION_MONTHLY_CREDITS` auf Vercel, gewinnt die Env.
-export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 5);
+// 20 (Owner 01.08.2026: „im Abo sind es dann 20 Videos"). Vorher stand hier 5, während die
+// Seite 12 bewarb — der Abonnent bekam weniger als die Hälfte des Versprochenen gutgeschrieben.
+// Werbung (INCLUDED_VIDEOS_PER_MONTH in lib/pricing) und Gutschrift müssen dieselbe Zahl sein.
+export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 20);
 
 // Serialize monthly-credit grants within this process. The subMonths key makes the grant
 // idempotent, but the read-modify-write on the shared JSON blob is NOT atomic — a return to

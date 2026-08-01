@@ -3,7 +3,6 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
-import { pruefeAlterAlle, altersFehlerText } from "@/lib/minderjaehrig-pruefen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -144,30 +143,8 @@ export async function POST(request: Request) {
     const videoId = String(body.videoId ?? "").trim().slice(0, 80);
     const modelName = String(body.modelName ?? "").trim().slice(0, 60);
     const modelId = String(body.modelId ?? "").trim().slice(0, 80);
-    /**
-     * DERSELBE SCHUTZ AUCH HIER (Owner 31.07.2026).
-     *
-     * Dieser Zweig ergänzt einen bestehenden Eintrag — und legt dabei genauso Bilder ab
-     * (`ablegen` weiter unten). Wer die Prüfung nur an der einen Stelle einbaut, hat eine
-     * Tür geschlossen und die zweite offen gelassen; über „Personen ersetzen" läuft der
-     * Nutzer genau durch diese hier.
-     */
-    const neu = [modelBild, personBild].filter(b => b.startsWith("data:"));
-    const KEY = process.env.OPENAI_API_KEY?.trim() ?? "";
-    if (KEY && neu.length) {
-      const geprueft = await pruefeAlterAlle(neu, KEY);
-      if (!geprueft.ok) {
-        console.error(
-          `[kiss-log/update] UPLOAD ABGEWIESEN — Alterspruefung: ${geprueft.grund}`
-          + ` | Eintrag ${String(body.update).slice(0, 40)} | ${new Date().toISOString()}`,
-        );
-        return NextResponse.json(
-          { error: altersFehlerText(geprueft.grund, String((body as { lang?: string }).lang ?? "en")), altersSperre: true },
-          { status: 422 },
-        );
-      }
-    }
-
+    // Die Alterspruefung stand hier vom 31.07. bis 01.08.2026 — entfernt auf Anweisung
+    // (Owner: „mach die Alterskontrolle raus. OpenAI blockiert eh schon zu viel").
     if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName) {
       return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     }
@@ -217,48 +194,13 @@ export async function POST(request: Request) {
   }
 
   /**
-   * ══ GEPRÜFT WIRD VOR DEM ABLEGEN ══ (Owner 31.07.2026: „ich weiss aber nicht wenn Leute
-   * Kinderpornografie hochladen wie es ist. Wir dürfen sowas nicht zulassen.")
-   *
-   * DAS IST DIE ENTSCHEIDENDE STELLE — wichtiger als die Sperre vor der Erzeugung.
-   *
-   * Hier wird das hochgeladene Foto in unseren Speicher geschrieben, und zwar SOFORT beim
-   * Hochladen, lange bevor jemand auf „erzeugen" drückt (Owner 30.07.2026: „das Bild muss
-   * gespeichert werden in dem Moment wo er das hochlädt"). Für das Werkzeug ist das richtig.
-   * Für strafbares Material ist es das Gegenteil: Es läge dann bei UNS, in unserem Speicher,
-   * unter unserem Namen — auch wenn danach nie ein Bild erzeugt wird.
-   *
-   * Eine Sperre erst vor der Erzeugung kommt also zu spät. Sie verhindert das Ergebnis, nicht
-   * den Besitz. Deshalb steht die Prüfung hier davor: Was nicht durchgeht, wird nie
-   * geschrieben — es gibt keinen Pfad, keine Datei, nichts zu löschen.
-   *
-   * Wir speichern auch KEINE Kopie „zur Beweissicherung". Das ist eine Entscheidung für den
-   * Anwalt und die Behörde, nicht für eine Codezeile; im Zweifel gilt: nicht anfassen, nicht
-   * behalten. Protokolliert wird nur, DASS es passiert ist — mit Gerätekennung und Zeit.
+   * DIE ALTERSSPERRE IST RAUS (Owner 01.08.2026: „mach die Alterskontrolle raus. OpenAI
+   * blockiert eh schon zu viel"). Sie prüfte hier jedes Foto VOR dem Ablegen (31.07.–01.08.);
+   * das Argument des Owners: gpt-image-1 weist problematische Aufträge ohnehin selbst ab, die
+   * Vorprüfung war doppelt und kostete je Upload Zeit und einen API-Aufruf. Der Owner prüft
+   * die Galerie-Liste laufend von Hand und löscht selbst. `lib/minderjaehrig-pruefen.ts`
+   * bleibt liegen — Wiedereinhängen ist eine Zeile; alte Warnzeichen bleiben sichtbar.
    */
-  const AI_KEY = process.env.OPENAI_API_KEY?.trim() ?? "";
-  const neueBilder = [String(body.personImage ?? ""), String(body.modelImage ?? "")]
-    .filter(b => b.startsWith("data:"));
-  // Was auffiel, wandert an den Eintrag und wird in der Galerie zum Warnzeichen.
-  let warnung = ""; let geschaetzt = 0;
-  if (AI_KEY && neueBilder.length) {
-    const geprueft = await pruefeAlterAlle(neueBilder, AI_KEY);
-    if (geprueft.ok) { warnung = geprueft.warnung ?? ""; geschaetzt = geprueft.alter; }
-    if (!geprueft.ok) {
-      // Nur die Tatsache, nie das Bild. Die Gerätekennung erlaubt es, Wiederholungstäter zu
-      // erkennen, ohne irgendetwas aufzubewahren.
-      console.error(
-        `[kiss-log] UPLOAD ABGEWIESEN — Alterspruefung: ${geprueft.grund}`
-        + ` | Geraet ${String(body.device ?? "").slice(0, 40) || "unbekannt"}`
-        + ` | Thema ${String(body.theme ?? "kiss")} | ${new Date().toISOString()}`,
-      );
-      return NextResponse.json(
-        { error: altersFehlerText(geprueft.grund, String((body as { lang?: string }).lang ?? "en")), altersSperre: true },
-        { status: 422 },
-      );
-    }
-  }
-
   let personPath = String(body.personPath ?? "").trim();
   if (!personPath && String(body.personImage ?? "").startsWith("data:")) personPath = await ablegen(String(body.personImage));
   // AUCH DIE FRAU, die er selbst hochgeladen hat (Owner 30.07.2026: „ich sehe das Bild von
@@ -280,9 +222,6 @@ export async function POST(request: Request) {
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
     theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
-    // Nur gesetzt, wenn etwas auffiel — daraus wird das Zeichen in der Galerie.
-    altersWarnung: warnung || undefined,
-    altersGeschaetzt: geschaetzt || undefined,
   };
   const entries = [entry, ...(await readKissLog())];
   await writeKissLog(entries);

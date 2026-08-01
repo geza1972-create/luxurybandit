@@ -48,7 +48,11 @@ export const TOPIC_EFFECTIVE_MONTHLY_CENTS = 2450;  // 24,50 € — was er wirk
  * nicht mehr. Das gehoert gegen die echte Rechnung geprueft, nicht geschaetzt.
  */
 export const EXTRA_VIDEO_CENTS = 299;               // jedes Video über das Abo hinaus
-export const INCLUDED_VIDEOS_PER_MONTH = 12;        // im Abo enthaltene Videos, über ALLE Themen
+// 20 statt 12 (Owner 01.08.2026: „im Abo sind es dann 20 Videos" — Teil des Preistests,
+// zusammen mit dem Einzelvideo für 1,49). ACHTUNG: Die GUTSCHRIFT je Monat steht in
+// try-this-look-store (SUBSCRIPTION_MONTHLY_CREDITS) und ist am selben Tag mitgezogen —
+// vorher STAND SIE AUF 5, während hier 12 beworben wurde: Werbung und Ware widersprachen sich.
+export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos, über ALLE Themen
 // EINMALZAHLUNG (Owner 30.07.2026: „wir müssen einmalige zahlungen machen nicht nur abos …
 // 9,99 euro … beim Küssen"). Nicht jeder will ein Abo; wer einmal etwas kauft, kommt oft
 // später von selbst zum Abo. Der frühere Einzelkauf lag bei 3,99 € und wurde im Juli vom Abo
@@ -70,7 +74,11 @@ export const INCLUDED_VIDEOS_PER_MONTH = 12;        // im Abo enthaltene Videos,
  *    und Erzeugung rund 1,70 € — das traegt. Laege der Lauf bei zwei Euro, waere der
  *    Einmalkauf ein Verlustgeschaeft. Das gehoert an der Pixverse-Abrechnung geprueft.
  */
-export const ONCE_CENTS = 299;                      // 2,99 € — ein Kauf, kein Abo
+// 1,49 statt 2,99 (Owner 01.08.2026: „ich will testen ob es am Preis liegt dass die Leute
+// nichts kaufen"). Der Kauf läuft über price_data mit diesem Betrag — die im Stripe-Dashboard
+// angelegte Preis-ID price_1TzXLz1jPNCWoiztla7ACpBL ist das dortige Gegenstück und wird vom
+// Code nicht benutzt; massgeblich ist DIESE Zahl. Zurück zum alten Preis = 299.
+export const ONCE_CENTS = 149;                      // 1,49 € — ein Kauf, kein Abo (Preistest)
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.

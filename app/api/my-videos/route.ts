@@ -97,8 +97,17 @@ export async function GET(request: Request) {
   const bilder = await (async () => {
     try {
       const log = await readKissLog();
+      /**
+       * AUCH DIE STRIPE-ADRESSE ZAEHLT (Owner 01.08.2026: „ich habe auf Watch my gallery
+       * geklickt, aber das Bild ist nicht drin").
+       *
+       * Der Liefer-Mail-Link oeffnet die Galerie mit der E-MAIL — auf einem anderen Geraet
+       * gibt es keine Geraetekennung. Verglichen wurde aber nur `e.email` (die getippte
+       * Adresse). Wer seine Adresse erst an der KASSE hinterlassen hat, steht nur in
+       * `paidEmail` — sein bezahltes Bild war fuer ihn unauffindbar, obwohl die Mail kam.
+       */
       const meine = log.filter((e: KissLogEntry) =>
-        (email && String(e.email ?? "").toLowerCase() === email) ||
+        (email && (String(e.email ?? "").toLowerCase() === email || String(e.paidEmail ?? "").toLowerCase() === email)) ||
         (device && String(e.device ?? "") === device));
       // BEIDES gehört ihm (Owner 30.07.2026: „nein, das macht man nicht so. Du speicherst
       // das auch für ihn") — sein hochgeladenes Foto UND das Ergebnis. Eigene Kennung je

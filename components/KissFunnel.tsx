@@ -1119,6 +1119,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
+
+  /**
+   * ZUM VIDEO SPRINGEN (Owner 01.08.2026: „der User weiss nicht ob er warten soll oder
+   * haengt und die Generierung ist weiter unten. Muss runterspringen"). Das fertige Video
+   * wohnt jetzt in der Karte oben — sobald es eintrifft, faehrt die Seite hin. Wer waehrend
+   * der drei Minuten gescrollt hat, steht sonst vor totem Bildschirm, waehrend oben laengst
+   * sein Video laeuft.
+   */
+  useEffect(() => {
+    if (!videoUrl) return;
+    const t = setTimeout(() => karteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl]);
   // Nur echte KLEIDUNGSfotos in die Auswahl — die Liste trennt Kleidung von Fotos, auf
   // denen eine fremde Frau steht. Fehlt sie, zeigen wir alles statt nichts.
   const kleidung = looks.filter(l => !!l.imageUrl && (!nurKleidung || nurKleidung.includes(l.id))).slice(0, 24);
@@ -1664,7 +1678,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
              ein anderer: Es gab damals GAR KEIN Beispielvideo (examplePaths war leer). Jetzt
              gibt es eines — und wer ein Ergebnis hat, will es sehen, nicht suchen. Ohne
              Ergebnis laeuft weiter das Beispiel. */
-          bild ? (
+          videoUrl ? (
+            /* DAS BEZAHLTE VIDEO WOHNT IN DER KARTE (Owner 01.08.2026: „die Generierung ist
+               weiter unten … muss in einer Karte sein, auch mit Herzchen und sharen können").
+               Vorher lief es im Ergebnisbereich unter der Seite — wer nicht scrollte, sah nach
+               „Payment received" nichts weiter und wusste nicht, ob es haengt. Jetzt: dieselbe
+               Karte wie beim Bild, Tap-Play-Spieler, Herzchen, Teilen als DATEI, Download im
+               Griff. Die Seite springt hierher, sobald das Video eintrifft (useEffect). */
+            <div className="relative">
+              <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
+                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+              <Reaktionen variant={variant} />
+              <TeilenKnopf rund datei={videoUrl} dateiName={variant}
+                text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
+                className="absolute left-2 top-2 z-30" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 p-4">
+                <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
+                  className="lb-gold pointer-events-auto flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)] active:scale-95 transition">
+                  {T.download}
+                </a>
+              </div>
+            </div>
+          ) : bild ? (
             <div className="relative">
               {/* Die eigene Tonspur (nur wo `V.musik` steht, heute die Hochzeit). Sie hing am
                   alten Ergebnis-Block; der ist aufgeloest, das Bild lebt hier. */}
@@ -1738,6 +1776,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   gespielten Show und legte drei Zeilen Text quer ueber sein Bild. Der
                   Kaufknopf steht jetzt unten auf der Karte, wo er ohnehin hingehoert. */}
 
+              {/* TEILEN AUCH BEIM BILD (Owner 01.08.2026: „auch das Bild soll er sharen
+                  können") — als DATEI, siehe TeilenKnopf: ohne Werk-Seite würde ein Link nur
+                  die Themenseite verschicken, die Datei ist sein Ergebnis selbst. Rechts oben,
+                  gegenüber dem Löschknopf; während Zahlung/Rendern weicht er wie alles andere. */}
+              {(frei || isStaff) && !payBusy && !videoBusy && (
+                /* Unter dem Ton-Knopf (der sitzt right-3 top-3) — zwei Scheiben uebereinander
+                   drueckt sonst niemand richtig. */
+                <TeilenKnopf rund datei={bild} dateiName={variant}
+                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                  label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                  kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
+                  className={`absolute right-3 z-30 ${V.musik ? "top-16" : "top-3"}`} />
+              )}
               {/* Roter Papierkorb, weiss hinterlegt — dieselbe Form wie an jedem anderen Bild
                   im Projekt, damit man ihn nicht suchen muss. Waehrend Zahlung oder Rendern
                   verschwindet er: Mitten im bezahlten Lauf loeschen hiesse zahlen und nichts

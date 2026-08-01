@@ -325,7 +325,11 @@ export default function MyGalleryPage() {
           </a>
         )}
 
-        {(pin || token) && items.length > 0 && (
+        {/* NUR FUER DEN ADMIN (Owner 01.08.2026: „wozu die Suche wenn er nichts findet?").
+            Der Kunde hat zwei Dutzend eigene Bilder — eine Model-Suche findet darin fast nie
+            etwas und wirkt kaputt („Keine Treffer fuer Bella"). Der Admin hat Hunderte, fuer
+            ihn bleibt sie. */}
+        {pin && items.length > 0 && (
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Model suchen — z. B. Bella"
             className="mt-3 h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[14px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/40" />
         )}

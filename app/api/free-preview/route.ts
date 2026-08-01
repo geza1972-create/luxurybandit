@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
-import { pruefeAlterAlle, altersFehlerText } from "@/lib/minderjaehrig-pruefen";
 
 export const runtime = "nodejs";
 // 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
@@ -378,28 +377,16 @@ export async function POST(request: Request) {
    * `person` ist ER, `model` ist SIE — so schickt es der Trichter (siehe EinladungBauen).
    */
   /**
-   * ══ DIE ALTERSSPERRE ══ (Owner 31.07.2026: „ich habe auch Kinderbilder gesehen, die
-   * hochgeladen werden, das bitte sperren.")
+   * DIE ALTERSSPERRE IST RAUS (Owner 01.08.2026: „mach die Alterskontrolle raus. OpenAI
+   * blockiert eh schon zu viel").
    *
-   * SIE STEHT VOR ALLEM ANDEREN — vor dem Auftrag, vor dem Anziehen, vor jedem bezahlten
-   * Aufruf. Ein Kinderfoto darf diese Kette nicht einmal betreten.
-   *
-   * Und sie steht VOR der Altersschätzung darunter, obwohl beide dasselbe Modell fragen:
-   * Die Schätzung dient dem Aussehen des Ergebnisses, diese Prüfung entscheidet, ob es
-   * überhaupt eins gibt. Zwei verschiedene Fragen — sie zusammenzulegen war der Fehler, durch
-   * den es bisher durchkam (`alterSchaetzen` wirft alles unter 18 als „nicht erkannt" weg).
+   * Sie stand hier einen Tag (Beobachten-Modus, davor eine Nacht scharf) und hat in dieser
+   * Nacht mutmasslich echte Läufe gekostet. Das Argument des Owners trägt: gpt-image-1 prüft
+   * jedes Bild ohnehin selbst und weist Minderjährige in romantischen Aufträgen ab — eine
+   * zweite Prüfung davor war doppelt und kostete je Upload Zeit und einen API-Aufruf.
+   * `lib/minderjaehrig-pruefen.ts` bleibt liegen (eine Zeile zum Wiedereinhängen), die
+   * Warnzeichen alter Einträge bleiben in der Galerie sichtbar.
    */
-  if (key) {
-    const alterOk = await pruefeAlterAlle(gemeinsam ? [paar] : [person, model], key);
-    if (!alterOk.ok) {
-      console.warn(`[free-preview] GESPERRT — Alterspruefung: ${alterOk.grund} (Thema ${theme})`);
-      return NextResponse.json(
-        { error: altersFehlerText(alterOk.grund, lang), altersSperre: true, grund: alterOk.grund },
-        { status: 422 },
-      );
-    }
-  }
-
   const [alterEr, alterSie] = !key ? [0, 0]
     // Beim gemeinsamen Foto stehen beide auf EINEM Bild — eine Anfrage, zwei Zahlen.
     : gemeinsam ? await alterPaarSchaetzen(paar, key)
