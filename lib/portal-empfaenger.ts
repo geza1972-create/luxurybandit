@@ -66,9 +66,33 @@ const gueltig = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
  * Deshalb: erkennbare Attrappen fliegen raus, bevor irgendetwas rausgeht. Lieber ein paar
  * echte Adressen zu wenig als die Domain verbrannt.
  */
-const ATTRAPPE = /@(luxurybandit\.com|.*\.invalid|seed\.lb|example\.(com|org|net)|test|local|localhost|mailinator\.com)$/i;
-const istAttrappe = (e: string) =>
+const ATTRAPPE = /@(luxurybandit\.com|.*\.invalid|example\.(com|org|net)|test|local|localhost|mailinator\.com)$/i;
+
+/**
+ * `.lb` IST GESPERRT (Owner 31.07.2026: „ab jetzt .lb blockieren").
+ *
+ * Die Seed-Skripte haben sich `@seed.lb` als Phantasie-Endung ausgedacht — „lb" für
+ * LuxuryBandit. Nur ist `.lb` KEINE Phantasie: Es ist die Länderkennung des Libanon, also
+ * eine echte, registrierbare Endung. Zwei Folgen, beide unerwünscht:
+ *
+ *   1. Ein Mailserver versucht die Zustellung WIRKLICH, findet nichts und wirft die Mail als
+ *      unzustellbar zurück. Genau diese Rückläufer kosten uns die Zustellbarkeit der Domain.
+ *   2. Registriert jemand `seed.lb`, gingen unsere Mails an einen FREMDEN Empfänger.
+ *
+ * GESPERRT WIRD `seed.lb`, NICHT die ganze Endung `.lb` (Owner 31.07.2026, auf Nachfrage
+ * präzisiert). Das ist die richtige Grenze: Gesperrt gehört unsere eigene Erfindung, nicht
+ * ein ganzes Land. Ein Filter, der `.lb` pauschal wirft, würde einen echten libanesischen
+ * Kunden aussperren, ohne dass es je jemandem auffiele — und eine unsichtbar aussortierte
+ * echte Adresse ist schlimmer als eine durchgerutschte falsche.
+ *
+ * Richtig wäre in den Seed-Skripten `.invalid` (RFC 2606): per Norm nie registrierbar, jeder
+ * Mailserver weiß das und versucht gar nicht erst zuzustellen.
+ */
+const GESPERRTE_DOMAIN = /@(.*\.)?seed\.lb$/i;
+
+export const istAttrappe = (e: string) =>
   ATTRAPPE.test(e)
+  || GESPERRTE_DOMAIN.test(e)
   // Unsere eigene Adresse ist bei den Seed-Models als Platzhalter eingetragen — ein
   // Rundbrief an uns selbst, 20-mal, sagt niemandem etwas.
   || e.startsWith("support@")

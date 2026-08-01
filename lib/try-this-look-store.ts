@@ -1852,6 +1852,26 @@ export async function mailAbmelden(email: string): Promise<void> {
   if (!res.ok) throw new Error("Abmeldung konnte nicht gespeichert werden.");
 }
 
+/**
+ * Nimmt eine Adresse wieder aus der Sperrliste (nur Admin, siehe /api/mail-abmelden).
+ * Ein Löschknopf ohne Rücknahme wäre eine Falle — ein Fehlklick auf den falschen Namen
+ * dürfte niemanden dauerhaft aussperren.
+ */
+export async function mailFreigeben(email: string): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return;
+  const liste = await readMailAbmeldungen();
+  if (!liste.includes(e)) return;
+  await ensureBucket();
+  const body = JSON.stringify({ emails: liste.filter(x => x !== e), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Sperre konnte nicht aufgehoben werden.");
+}
+
 // ── Wetter-Klick-Tracking ───────────────────────────────────────────────────
 // EIGENER Blob (nicht die Abonnentenliste anfassen → nie clobbern). Map je Abonnent:
 // { count, lastAt, src }. „geöffnet" = er hat den Link (E-Mail/WhatsApp) angeklickt.

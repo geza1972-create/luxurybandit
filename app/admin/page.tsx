@@ -996,12 +996,55 @@ export default function AdminPage() {
   const [emailSelected, setEmailSelected] = useState<Set<string>>(new Set());
   const [emailSendBusy, setEmailSendBusy] = useState<"test" | "broadcast" | "">("");
   const [emailSendMsg, setEmailSendMsg] = useState("");
+  /**
+   * DIE SPERRLISTE (Owner 31.07.2026: „wieso kann ich die nicht löschen?").
+   *
+   * Die Empfängerliste hatte nur Häkchen — Attrappen wie `@seed.lb` liessen sich abwählen,
+   * aber nie loswerden. Beim nächsten Öffnen standen sie wieder da, und irgendwann drückt
+   * jemand „Alle".
+   *
+   * GELÖSCHT WIRD NICHT DER MENSCH, SONDERN DIE POST: Der Eintrag wandert in die Sperrliste
+   * (dieselbe, die auch die Ein-Klick-Abmeldung füllt). Das Model, der Kunde, seine Videos —
+   * alles bleibt. Ein Klick soll keinen Datensatz vernichten.
+   */
+  const [emailGesperrt, setEmailGesperrt] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void fetch("/api/mail-abmelden?liste=1", { headers: headers() })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (Array.isArray(d?.emails)) setEmailGesperrt(new Set(d.emails.map((x: string) => String(x).toLowerCase()))); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const emailSperren = async (email: string) => {
+    const e = email.trim().toLowerCase();
+    if (!e) return;
+    // Sofort aus der Anzeige nehmen — die Sperre gilt ohnehin, auch wenn das Netz hakt.
+    setEmailGesperrt(s => new Set(s).add(e));
+    setEmailSelected(s => { const n = new Set(s); n.delete(e); return n; });
+    try {
+      await fetch(`/api/mail-abmelden?email=${encodeURIComponent(e)}`, { method: "POST", headers: headers() });
+    } catch { /* beim nächsten Laden wird die Liste ohnehin frisch geholt */ }
+  };
+
+  const emailFreigeben = async (email: string) => {
+    const e = email.trim().toLowerCase();
+    setEmailGesperrt(s => { const n = new Set(s); n.delete(e); return n; });
+    try {
+      await fetch("/api/mail-abmelden", {
+        method: "PUT", headers: { ...headers(), "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e }),
+      });
+    } catch { /* siehe oben */ }
+  };
+
   const emailAllRecipients = useMemo(() => {
     const byEmail = new Map<string, { email: string; name: string; source: string }>();
     for (const u of users) { if (u.email && !byEmail.has(u.email)) byEmail.set(u.email, { email: u.email, name: u.name || "", source: "user" }); }
     for (const c of curators) { const e = (c.email ?? "").trim().toLowerCase(); if (e && !byEmail.has(e)) byEmail.set(e, { email: e, name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.modelName || "", source: "model" }); }
-    return [...byEmail.values()].sort((a, b) => a.email.localeCompare(b.email));
-  }, [users, curators]);
+    // Gesperrte fliegen raus — sonst wäre „löschen" nur ein Gefühl.
+    return [...byEmail.values()].filter(r => !emailGesperrt.has(r.email)).sort((a, b) => a.email.localeCompare(b.email));
+  }, [users, curators, emailGesperrt]);
   const emailFilteredRecipients = useMemo(() => {
     const q = emailRecipientQuery.trim().toLowerCase();
     if (!q) return emailAllRecipients;
@@ -3132,17 +3175,46 @@ export default function AdminPage() {
               </div>
               <input value={emailRecipientQuery} onChange={e => setEmailRecipientQuery(e.target.value)} placeholder="Nach Name oder E-Mail suchen…"
                 className="mt-2 h-9 w-full rounded-lg border border-black/15 bg-panel px-3 text-[13px] font-medium text-ink outline-none focus:border-amber-500" />
+              {/* Die Gesperrten sind nicht weg, nur weggeräumt — mit einem Weg zurück. */}
+              {emailGesperrt.size > 0 && (
+                <details className="mt-2 rounded-lg border border-black/10 bg-black/[0.02] px-3 py-2">
+                  <summary className="cursor-pointer text-[11px] font-black text-ink/50">
+                    {emailGesperrt.size} aus dem Verteiler genommen
+                  </summary>
+                  <div className="mt-1.5 space-y-1">
+                    {[...emailGesperrt].sort().map(e => (
+                      <div key={e} className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-ink/60">{e}</span>
+                        <button type="button" onClick={() => void emailFreigeben(e)}
+                          className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/70 active:scale-95">
+                          zurückholen
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
               <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-black/10">
                 {emailFilteredRecipients.length === 0 ? (
                   <p className="p-3 text-center text-[12px] text-ink/50">Keine Nutzer gefunden.</p>
                 ) : emailFilteredRecipients.map(r => (
-                  <label key={r.email} className="flex cursor-pointer items-center gap-2 border-b border-black/5 px-3 py-2 last:border-0">
-                    <input type="checkbox" checked={emailSelected.has(r.email)} onChange={() => toggleEmailRecipient(r.email)} className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12px] font-bold text-ink">{r.name || r.email}</span>
-                      <span className="block truncate text-[11px] text-ink/50">{r.email} · {r.source === "model" ? "Model" : "User"}</span>
-                    </span>
-                  </label>
+                  <div key={r.email} className="flex items-center gap-2 border-b border-black/5 px-3 py-2 last:border-0">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                      <input type="checkbox" checked={emailSelected.has(r.email)} onChange={() => toggleEmailRecipient(r.email)} className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12px] font-bold text-ink">{r.name || r.email}</span>
+                        <span className="block truncate text-[11px] text-ink/50">{r.email} · {r.source === "model" ? "Model" : "User"}</span>
+                      </span>
+                    </label>
+                    {/* LÖSCHEN heisst hier: bekommt keine Post mehr. Der Datensatz bleibt —
+                        deshalb „aus dem Verteiler nehmen" und kein rotes Mülleimer-Symbol,
+                        das Endgültigkeit verspricht, die es nicht gibt. */}
+                    <button type="button" onClick={() => void emailSperren(r.email)}
+                      title="Aus dem Verteiler nehmen (Datensatz bleibt, jederzeit umkehrbar)"
+                      className="shrink-0 rounded-full px-2 py-1 text-[11px] font-black text-ink/40 transition hover:bg-black/5 hover:text-ink active:scale-95">
+                      ✕
+                    </button>
+                  </div>
                 ))}
               </div>
               <button type="button" onClick={() => void sendBroadcastEmail()}

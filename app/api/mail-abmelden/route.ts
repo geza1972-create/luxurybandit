@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { mailAbmelden } from "@/lib/try-this-look-store";
+import { mailAbmelden, readMailAbmeldungen, mailFreigeben } from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +54,14 @@ async function abmelden(request: Request): Promise<string> {
 }
 
 export async function GET(request: Request) {
+  /**
+   * ADMIN: die Sperrliste ansehen (`?liste=1`). Ohne diese Auskunft ist eine Sperrliste
+   * eine Schublade ohne Griff — man trägt etwas ein und sieht nie wieder nach, ob es wirkt.
+   */
+  if (new URL(request.url).searchParams.get("liste") === "1") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    return NextResponse.json({ emails: await readMailAbmeldungen() });
+  }
   await abmelden(request);
   return seite("Abgemeldet");
 }
@@ -61,4 +70,24 @@ export async function POST(request: Request) {
   await abmelden(request);
   // Der Ein-Klick des Postfachs liest keine Seite — ihm genügt 200.
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * ADMIN: eine Sperre WIEDER AUFHEBEN.
+ *
+ * Ein Löschknopf ohne Rücknahme ist eine Falle: Ein Fehlklick auf den falschen Namen wäre
+ * sonst endgültig, und niemand traut sich mehr, ihn zu benutzen. Nur für den Admin — ein
+ * Fremder darf sich nicht selbst wieder in den Verteiler heben.
+ */
+export async function PUT(request: Request) {
+  if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+  const { email } = (await request.json().catch(() => ({}))) as { email?: string };
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return NextResponse.json({ error: "email fehlt." }, { status: 400 });
+  try {
+    await mailFreigeben(e);
+    return NextResponse.json({ ok: true, emails: await readMailAbmeldungen() });
+  } catch {
+    return NextResponse.json({ error: "Konnte die Sperre nicht aufheben." }, { status: 502 });
+  }
 }
