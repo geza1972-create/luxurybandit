@@ -20,25 +20,6 @@ import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 
-/**
- * DIE LÄNDERLISTE — kurz gehalten, mit „anderes" am Ende.
- *
- * Bewusst KEINE Liste aller 195 Staaten: Auf einem Handy scrollt niemand durch zweihundert
- * Zeilen, bevor er ein Gratis-Bild bekommt. Drin ist, woher unsere Besucher kommen (die
- * Länder der Abonnenten, gemessen am 31.07.2026), der Rest fällt unter „anderes" und
- * bekommt Englisch — dieselbe Vorgabe wie bisher, also kein Rückschritt für niemanden.
- */
-const LAENDER: [string, string][] = [
-  ["ro", "România"], ["de", "Deutschland"], ["at", "Österreich"], ["ch", "Schweiz"],
-  ["fr", "France"], ["be", "Belgique"], ["it", "Italia"], ["es", "España"],
-  ["pt", "Portugal"], ["gb", "United Kingdom"], ["ie", "Ireland"], ["us", "United States"],
-  ["nl", "Nederland"], ["md", "Moldova"], ["", "— anderes / other —"],
-];
-
-/** Welche Sprache spricht man dort — für die Vorbelegung des Feldes. */
-const SPRACHE_ZU_LAND: Record<string, string> = {
-  ro: "ro", de: "de", fr: "fr", it: "it", es: "es", pt: "pt", en: "gb",
-};
 import LightSwitch from "@/components/LightSwitch";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
@@ -418,7 +399,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * jede Vermutung des Browsers schlägt.
    */
   useEffect(() => {
-    setLand(l => l || landAusZeitzone() || (SPRACHE_ZU_LAND[String(lang).slice(0, 2)] ?? ""));
+    /**
+     * NUR die Zeitzone, KEIN Rückfall auf die Seitensprache mehr.
+     *
+     * Die Sprache sagt, was jemand liest — nicht, wo er sitzt. Aus „liest Englisch" folgt
+     * „Vereinigtes Königreich", und das war auf dem Bildschirm des Owners zu sehen. Eine
+     * falsche Angabe ist schlechter als gar keine: Sie sieht aus wie Wissen und schickt den
+     * nächsten Rundbrief in der falschen Sprache los.
+     *
+     * Bleibt das Feld leer, entscheidet der Server über Vercels Länderkennung — die weiss es
+     * wirklich.
+     */
+    setLand(l => l || landAusZeitzone());
   }, [lang]);
   const [adresseDa, setAdresseDa] = useState(false);   // wir kennen ihn → kein Feld mehr
   /**
@@ -2333,32 +2325,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="lb-eingabe mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
           {/**
-            * DAS LAND, GLEICH NEBEN DER ADRESSE (Owner 31.07.2026: „die Leute müssen E-Mail
-            * und Land eingeben beim Generieren").
+            * DAS LAND WIRD ERKANNT, NICHT GEFRAGT (Owner 31.07.2026: „das machst du mit
+            * Autofill" — „ist das für dich Autofill?" zu einem Feld, das „Belgique" zeigte).
             *
-            * WARUM ES SICH LOHNT, gemessen am selben Tag: Beim Rundbrief hatten 49 von 115
-            * Empfängern keine Sprache — fast alles Kiss-Nutzer, weil der Trichter sie nie
-            * erfasst hat. Sie bekamen Englisch, obwohl die grösste Gruppe rumänisch ist.
-            * Das Land ist das einzige Feld, das eine Sprache verlässlich mitbringt.
+            * HIER STAND EIN AUSWAHLFELD, und das war der Fehler. Es war nur VORBELEGT, nicht
+            * ausgefüllt: Jeder Fehlgriff der Vermutung stand damit gross auf dem Bildschirm,
+            * und der Nutzer musste ihn korrigieren. Ein sichtbares Feld, das man richtigstellen
+            * muss, ist kein Autofill — es ist eine Frage mit einer falschen Antwort davor.
             *
-            * VORBELEGT MIT DER SEITENSPRACHE, und das ist der Punkt: Wer auf Rumänisch liest,
-            * sitzt fast immer in Rumänien. Er muss nichts tun — das Feld steht schon richtig
-            * und ist nur zum Ändern da. Eine Pflichtangabe vor einem Gratis-Bild verliert
-            * Leute; eine vorausgefüllte kostet niemanden etwas.
+            * Jetzt reist das Land unsichtbar mit (`land`, aus der Zeitzone). Auf dem Server
+            * schlägt Vercels echte Länderkennung diese Vermutung ohnehin — die kommt vom Netz
+            * und ist richtig, während eine Geräte-Zeitzone auf Reisen oder hinter einem VPN
+            * daneben liegt. Genau das war „Belgique".
+            *
+            * Erkennen wir nichts, bleibt das Feld leer — wie vor heute. Niemand wird gefragt,
+            * niemand sieht einen falschen Wert, und vor dem Gratis-Bild steht eine Hürde
+            * weniger.
             */}
-          {/* GRAUER KASTEN WAR FALSCH (Owner 31.07.2026, Bildschirmfoto): Ein `select` erbt
-              auf dem Handy die Systemfarbe und stand als graue Fläche mitten im schwarzen
-              Trichter. Dieselben Werte wie das Adressfeld darüber, damit die beiden als ein
-              Paar zu lesen sind — und `appearance-none` samt eigenem Pfeil, sonst malt jedes
-              Betriebssystem etwas anderes hin. */}
-          <select value={land} onChange={e => setLand(e.target.value)}
-            aria-label={T.landFrage}
-            style={{ color: "#fff", WebkitTextFillColor: "#fff", backgroundColor: "rgba(0,0,0,0.5)" }}
-            className="lb-eingabe mt-2 h-12 w-full appearance-none rounded-xl border border-white/25 bg-black/50 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f6cf51%22 stroke-width=%223%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-[length:14px] bg-[right:1rem_center] bg-no-repeat px-3 text-center text-[15px] font-bold outline-none focus:border-[#f6cf51]">
-            {LAENDER.map(([code, name]) => (
-              <option key={code} value={code} style={{ color: "#111", background: "#fff" }}>{name}</option>
-            ))}
-          </select>
           <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/45">
             {T.mailNote}
           </p>
