@@ -44,6 +44,37 @@ export type Empfaenger = {
   bestaetigt: boolean;
 };
 
+/**
+ * DIE SPRACHE AUS DEM LAND (Owner 31.07.2026: „ich hoffe der Brief ist multilanguage").
+ *
+ * Der Brief KANN sieben Sprachen — nur wissen wir bei den meisten Empfängern nicht, welche.
+ * Gemessen am 31.07.2026: Von 52 Kiss-Adressen hat KEINE EINZIGE eine Sprache gespeichert,
+ * der Trichter fragt sie nie ab. Ohne diese Ableitung bekäme also ausgerechnet die Gruppe,
+ * für die der Brief geschrieben ist, eine englische Mail.
+ *
+ * Das Land steht dagegen oft da — mal als Kürzel, mal ausgeschrieben, mal in Landessprache
+ * („România", „Italia", „España"). Deshalb wird beides erkannt.
+ *
+ * Polnisch fehlt mit Absicht: Es ist am 30.07.2026 aus dem Portal geflogen. Die vier
+ * polnischen Abonnenten bekommen Englisch — eine Sprache, die es nicht mehr gibt, wäre
+ * schlechter als eine, die jeder versteht.
+ */
+const LAND_SPRACHE: Record<string, string> = {
+  ro: "ro", romania: "ro", "românia": "ro", rumaenien: "ro", md: "ro", moldova: "ro",
+  de: "de", deutschland: "de", germany: "de", at: "de", austria: "de", ch: "de",
+  fr: "fr", france: "fr", frankreich: "fr", be: "fr", belgium: "fr", belgique: "fr",
+  it: "it", italia: "it", italy: "it", italien: "it",
+  es: "es", "espana": "es", "españa": "es", spain: "es", spanien: "es", mx: "es", ar: "es",
+  pt: "pt", portugal: "pt", br: "pt", brasil: "pt",
+  gb: "en", uk: "en", "united kingdom": "en", us: "en", usa: "en", ie: "en",
+};
+
+export function spracheAusLand(land: unknown): string {
+  const l = String(land ?? "").trim().toLowerCase();
+  if (!l) return "";
+  return LAND_SPRACHE[l] ?? LAND_SPRACHE[l.slice(0, 2)] ?? "";
+}
+
 /** Kleingeschrieben und getrimmt — sonst gilt „A@B.de" als andere Person als „a@b.de". */
 const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
 const gueltig = (v: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
@@ -136,7 +167,10 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
       if (s.unsubscribed === true) continue;
       // `confirmed` = doppelte Bestätigung per E-Mail. Die 42 unbestätigten sind fast alle
       // Meta-Anzeigen-Leads (siehe `note`) — dort kommen die Rückläufer her.
-      dazu(s.email, "wetter", s.name, s.lang, s.confirmed === true);
+      // Gespeicherte Sprache zuerst; sonst aus dem Land. Polnisch gibt es nicht mehr — die
+      // vier Betroffenen fallen auf Englisch, siehe LAND_SPRACHE.
+      const sp = String(s.lang ?? "").slice(0, 2) === "pl" ? "" : s.lang;
+      dazu(s.email, "wetter", s.name, sp || spracheAusLand(s.country), s.confirmed === true);
     }
   } catch { /* eine Quelle darf ausfallen, ohne den ganzen Versand zu kippen */ }
 

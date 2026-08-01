@@ -39,7 +39,7 @@ const LISTEN = ["kiss", "idol", "wedding"] as const;
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
-    email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string;
+    email?: string; name?: string; imagePath?: string; device?: string; lang?: string; genId?: string; land?: string;
     pending?: boolean;   // Erzeugung gescheitert — wir melden uns, sobald es klappt
     vorab?: boolean;     // vor der Erzeugung: nur eintragen, noch nichts schicken
     theme?: string;      // kiss | idol | wedding — bestimmt, in welche Liste er kommt
@@ -96,6 +96,13 @@ export async function POST(request: Request) {
         name: String(body.name ?? "").trim().slice(0, 120) || email.split("@")[0],
         email,
         lang: dialInfo("")?.lang || lang,
+        /**
+         * DAS LAND (Owner 31.07.2026: „die Leute müssen E-Mail und Land eingeben beim
+         * Generieren"). Es kommt aus dem Feld neben der Adresse und ist der Grund, warum der
+         * nächste Rundbrief mehrsprachig wird: Beim ersten Versand hatten 49 von 115
+         * Empfängern keine Sprache — fast alles Kiss-Nutzer, weil hier nie ein Land stand.
+         */
+        country: String(body.land ?? "").trim().slice(0, 40) || undefined,
         /**
          * DER NACHWEIS STEHT IN DER NOTIZ (Owner 30.07.2026: „die muessen das abhacken sonst
          * wird es ilegal"). Eine Einwilligung, die man nicht belegen kann, ist keine — im

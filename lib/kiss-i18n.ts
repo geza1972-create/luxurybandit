@@ -32,6 +32,8 @@ export type KissText = {
   yourClothes: string; myOwnClothes: string; theMoment: string; surpriseMe: string;
   // Adresse vor der Erzeugung
   mailQuestion: string; mailNote: string; mailInvalid: string; oneMoment: string;
+  /** Beschriftung des Land-Feldes neben der Adresse (Owner 31.07.2026). */
+  landFrage: string;
   // Knopf und Kleingedrucktes
   ctaFree: string; ctaVideo: string; rendering: string; priceLine: string; paidLine: string; consent: string;
   buyOnce: string; buyAbo: string;
@@ -102,6 +104,7 @@ const EN: KissText = {
   yourClothes: "Your clothes", myOwnClothes: "My own clothes", theMoment: "The moment", surpriseMe: "✨ Surprise me",
   mailQuestion: "Where should we send your picture?",
   mailNote: "Free. We send you the picture and keep it in your gallery.",
+  landFrage: "Your country",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
@@ -197,6 +200,7 @@ const DE: KissText = {
   yourClothes: "Deine Sachen", myOwnClothes: "Meine eigenen Sachen", theMoment: "Der Moment", surpriseMe: "✨ Überrasch mich",
   mailQuestion: "Wohin sollen wir dein Bild schicken?",
   mailNote: "Kostenlos. Wir schicken dir das Bild und heben es in deiner Galerie auf.",
+  landFrage: "Dein Land",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
@@ -292,6 +296,7 @@ const RO: KissText = {
   yourClothes: "Hainele tale", myOwnClothes: "Hainele mele", theMoment: "Momentul", surpriseMe: "✨ Surprinde-mă",
   mailQuestion: "Unde să-ți trimitem poza?",
   mailNote: "Gratuit. Îți trimitem poza și o păstrăm în galeria ta.",
+  landFrage: "Țara ta",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
@@ -387,6 +392,7 @@ const ES: KissText = {
   yourClothes: "Tu ropa", myOwnClothes: "Mi propia ropa", theMoment: "El momento", surpriseMe: "✨ Sorpréndeme",
   mailQuestion: "¿A dónde te enviamos tu imagen?",
   mailNote: "Gratis. Te enviamos la imagen y la guardamos en tu galería.",
+  landFrage: "Tu país",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
@@ -482,6 +488,7 @@ const FR: KissText = {
   yourClothes: "Tes vêtements", myOwnClothes: "Mes propres vêtements", theMoment: "Le moment", surpriseMe: "✨ Surprends-moi",
   mailQuestion: "Où devons-nous envoyer ton image ?",
   mailNote: "Gratuit. Nous t'envoyons l'image et la gardons dans ta galerie.",
+  landFrage: "Ton pays",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
@@ -577,6 +584,7 @@ const PT: KissText = {
   yourClothes: "A tua roupa", myOwnClothes: "A minha própria roupa", theMoment: "O momento", surpriseMe: "✨ Surpreende-me",
   mailQuestion: "Para onde enviamos a tua imagem?",
   mailNote: "Grátis. Enviamos-te a imagem e guardamo-la na tua galeria.",
+  landFrage: "O teu país",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
@@ -673,6 +681,7 @@ const IT: KissText = {
   yourClothes: "I tuoi vestiti", myOwnClothes: "I miei vestiti", theMoment: "Il momento", surpriseMe: "✨ Sorprendimi",
   mailQuestion: "Dove ti mandiamo la tua immagine?",
   mailNote: "Gratis. Ti mandiamo l'immagine e la teniamo nella tua galleria.",
+  landFrage: "Il tuo paese",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",

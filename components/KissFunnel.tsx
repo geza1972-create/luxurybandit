@@ -18,6 +18,26 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
+
+/**
+ * DIE LÄNDERLISTE — kurz gehalten, mit „anderes" am Ende.
+ *
+ * Bewusst KEINE Liste aller 195 Staaten: Auf einem Handy scrollt niemand durch zweihundert
+ * Zeilen, bevor er ein Gratis-Bild bekommt. Drin ist, woher unsere Besucher kommen (die
+ * Länder der Abonnenten, gemessen am 31.07.2026), der Rest fällt unter „anderes" und
+ * bekommt Englisch — dieselbe Vorgabe wie bisher, also kein Rückschritt für niemanden.
+ */
+const LAENDER: [string, string][] = [
+  ["ro", "România"], ["de", "Deutschland"], ["at", "Österreich"], ["ch", "Schweiz"],
+  ["fr", "France"], ["be", "Belgique"], ["it", "Italia"], ["es", "España"],
+  ["pt", "Portugal"], ["gb", "United Kingdom"], ["ie", "Ireland"], ["us", "United States"],
+  ["nl", "Nederland"], ["md", "Moldova"], ["", "— anderes / other —"],
+];
+
+/** Welche Sprache spricht man dort — für die Vorbelegung des Feldes. */
+const SPRACHE_ZU_LAND: Record<string, string> = {
+  ro: "ro", de: "de", fr: "fr", it: "it", es: "es", pt: "pt", en: "gb",
+};
 import LightSwitch from "@/components/LightSwitch";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
@@ -383,6 +403,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [bildPfad, setBildPfad] = useState("");
   const [mail, setMail] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
+  /**
+   * DAS LAND (Owner 31.07.2026). Vorbelegt aus der Seitensprache — siehe Kommentar am Feld.
+   * Es reist mit der Adresse an `kiss-claim` und macht den nächsten Rundbrief mehrsprachig.
+   */
+  const [land, setLand] = useState("");
+  // Vorbelegen, sobald die Seitensprache feststeht — der Nutzer soll nichts tun müssen.
+  useEffect(() => { setLand(l => l || (SPRACHE_ZU_LAND[String(lang).slice(0, 2)] ?? "")); }, [lang]);
   const [adresseDa, setAdresseDa] = useState(false);   // wir kennen ihn → kein Feld mehr
   /**
    * ABONNENT WIEDERERKANNT (Owner 30.07.2026). „Bezahlt" war bisher ein Zustand dieser einen
@@ -1269,7 +1296,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const r = await fetch("/api/kiss-claim", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: e, device, genId, theme: variant, vorab: true, consentAt: new Date().toISOString() }),
+        // `land` und `lang` reisen mit — ohne sie steht der naechste Rundbrief wieder vor
+        // 49 Empfaengern, deren Sprache niemand kennt (gemessen 31.07.2026).
+        body: JSON.stringify({ email: e, device, genId, theme: variant, vorab: true, land, lang, consentAt: new Date().toISOString() }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setStatus(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
@@ -2293,6 +2322,28 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             // schwarzen Grund waere die eingetippte Adresse dann unlesbar.
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+          {/**
+            * DAS LAND, GLEICH NEBEN DER ADRESSE (Owner 31.07.2026: „die Leute müssen E-Mail
+            * und Land eingeben beim Generieren").
+            *
+            * WARUM ES SICH LOHNT, gemessen am selben Tag: Beim Rundbrief hatten 49 von 115
+            * Empfängern keine Sprache — fast alles Kiss-Nutzer, weil der Trichter sie nie
+            * erfasst hat. Sie bekamen Englisch, obwohl die grösste Gruppe rumänisch ist.
+            * Das Land ist das einzige Feld, das eine Sprache verlässlich mitbringt.
+            *
+            * VORBELEGT MIT DER SEITENSPRACHE, und das ist der Punkt: Wer auf Rumänisch liest,
+            * sitzt fast immer in Rumänien. Er muss nichts tun — das Feld steht schon richtig
+            * und ist nur zum Ändern da. Eine Pflichtangabe vor einem Gratis-Bild verliert
+            * Leute; eine vorausgefüllte kostet niemanden etwas.
+            */}
+          <select value={land} onChange={e => setLand(e.target.value)}
+            aria-label={T.landFrage}
+            style={{ color: "#fff", WebkitTextFillColor: "#fff" }}
+            className="mt-2 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[14px] font-bold outline-none focus:border-[#f6cf51]">
+            {LAENDER.map(([code, name]) => (
+              <option key={code} value={code} style={{ color: "#111" }}>{name}</option>
+            ))}
+          </select>
           <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/45">
             {T.mailNote}
           </p>
