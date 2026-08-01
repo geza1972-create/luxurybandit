@@ -887,12 +887,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * einen stand sie, in der anderen er, und in beiden fehlte die Hälfte. Gibt es den
        * Eintrag schon, wird er ergänzt.
        */
-      const log = await fetch("/api/kiss-log", {
+      const antwort = await fetch("/api/kiss-log", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: genId
-          ? JSON.stringify({ update: genId, theme: variant, personImage: dataUrl, modelId: selId, modelName: selName })
-          : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl }),
-      }).then(r => r.json()).catch(() => null);
+          ? JSON.stringify({ update: genId, theme: variant, personImage: dataUrl, modelId: selId, modelName: selName, lang })
+          : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl, lang }),
+      }).catch(() => null);
+      const log = await antwort?.json().catch(() => null);
+      /**
+       * DIE ABSAGE MUSS MAN SEHEN (Owner 31.07.2026, zur Alterssperre).
+       *
+       * Hier stand nur `.then(r => r.json())` — eine Absage des Servers fiel damit lautlos
+       * unter den Tisch, und das Foto blieb im Trichter stehen, als waere alles in Ordnung.
+       * Der Nutzer haette weitergeklickt und erst viel spaeter erfahren, dass nichts geht.
+       * Jetzt: Bild sofort wieder weg, Grund im Klartext.
+       */
+      if (antwort && !antwort.ok && log?.altersSperre) {
+        setPhoto(""); setStatus(String(log.error ?? ""));
+        return;
+      }
       if (!genId && log?.id) genMerken(log.id);
       void fotosMerken(dataUrl, selPhoto, useCustom);
     } catch { /**/ }
