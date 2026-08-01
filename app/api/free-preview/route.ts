@@ -404,10 +404,28 @@ export async function POST(request: Request) {
     // Beim gemeinsamen Foto stehen beide auf EINEM Bild — eine Anfrage, zwei Zahlen.
     : gemeinsam ? await alterPaarSchaetzen(paar, key)
     : await Promise.all([alterSchaetzen(person, key), alterSchaetzen(model, key)]);
+  /**
+   * OHNE „the man" (Owner 01.08.2026: „warum kam da keine Kuss-Szene?" — zwei FRAUEN
+   * hochgeladen, es kam die Umarmung).
+   *
+   * Der Satz sagte „the man is 25 years old" — auf einem Bild, auf dem kein Mann ist. Ein
+   * Auftrag, der sich selbst widerspricht, macht die ohnehin würfelnde Prüfung nicht
+   * gnädiger, und das Modell weicht auf die sichere Pose aus. Zwei Frauen (oder zwei
+   * Männer) sind aber ein völlig normaler Fall: Freundinnen, Schwestern, ein Paar.
+   *
+   * Bei GETRENNTEN Fotos ist die Foto-Nummer ohnehin die präzisere Zuordnung als das
+   * Geschlecht — „the person in the first photo" trifft immer. Nur beim gemeinsamen Foto
+   * bleibt die alte Formulierung, wenn das Seh-Modell BEIDE Geschlechter bestätigt hat;
+   * sonst wird auch dort neutral formuliert.
+   */
   const alterSatz = alterEr || alterSie
     ? "AGES — these are not young models: "
-      + (alterEr ? `the man is ${alterEr} years old. ` : "")
-      + (alterSie ? `The woman is ${alterSie} years old. ` : "")
+      + (gemeinsam
+        ? (alterEr && alterSie
+          ? `the man is ${alterEr} years old. The woman is ${alterSie} years old. `
+          : `one of the two people is ${alterEr || alterSie} years old. `)
+        : (alterEr ? `the person in the first photo is ${alterEr} years old. ` : "")
+          + (alterSie ? `The person in the second photo is ${alterSie} years old. ` : ""))
       + "Render them at exactly these ages, with the face, skin and hair of people that age."
     : "";
 
