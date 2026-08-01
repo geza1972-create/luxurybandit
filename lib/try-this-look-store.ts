@@ -1430,6 +1430,16 @@ export type KissLogEntry = {
   paidEmail?: string;     // von Stripe beim Kauf
   device?: string;        // anonyme Gerätekennung (lb_visitor)
   /**
+   * DAS URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in
+   * der Galerie ein Warnzeichen drauf").
+   *
+   * Steht nur da, wenn etwas AUFFIEL. Im Beobachten-Modus geht der Eintrag trotzdem durch —
+   * genau dafür ist das Feld: Ohne es liesse man alles durch und wüsste hinterher nicht,
+   * was die Prüfung erkannt hat. Werte: minderjaehrig · nacktheit · kind-nackt · unklar.
+   */
+  altersWarnung?: string;
+  altersGeschaetzt?: number;   // geschätztes Alter der jüngsten Person, 0 = unbekannt
+  /**
    * AUS WELCHEM THEMA (Owner 31.07.2026: „was suchen die von kiss bei idol?").
    *
    * Ein Log für alle Themen war richtig, solange nur der Kuss-Trichter schrieb. Inzwischen

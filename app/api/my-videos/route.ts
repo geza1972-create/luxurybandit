@@ -111,6 +111,10 @@ export async function GET(request: Request) {
           name: e.modelName || "",
           createdAt: e.createdAt || "",
           source: "kiss",
+          // Das Urteil der Alters- und Nacktheitspruefung — daraus wird in der Galerie das
+          // Warnzeichen (Owner 31.07.2026). Steht nur da, wenn etwas auffiel.
+          warnung: e.altersWarnung || "",
+          alter: e.altersGeschaetzt || 0,
         },
         {
           id: `${e.id}-frau`,
@@ -119,6 +123,10 @@ export async function GET(request: Request) {
           name: "Deine Frau",
           createdAt: e.createdAt || "",
           source: "kiss-model",
+          // Die Warnung gilt dem ganzen Vorgang: Das Ergebnis entsteht aus BEIDEN Vorlagen,
+          // also traegt jede das Zeichen. Sonst sucht man das auffaellige Bild einzeln.
+          warnung: e.altersWarnung || "",
+          alter: e.altersGeschaetzt || 0,
         },
         {
           id: `${e.id}-foto`,
@@ -127,6 +135,8 @@ export async function GET(request: Request) {
           name: "Dein Foto",
           createdAt: e.createdAt || "",
           source: "kiss-upload",
+          warnung: e.altersWarnung || "",
+          alter: e.altersGeschaetzt || 0,
         },
       ])));
       return paare.flat();

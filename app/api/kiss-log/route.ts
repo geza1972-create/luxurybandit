@@ -239,8 +239,11 @@ export async function POST(request: Request) {
   const AI_KEY = process.env.OPENAI_API_KEY?.trim() ?? "";
   const neueBilder = [String(body.personImage ?? ""), String(body.modelImage ?? "")]
     .filter(b => b.startsWith("data:"));
+  // Was auffiel, wandert an den Eintrag und wird in der Galerie zum Warnzeichen.
+  let warnung = ""; let geschaetzt = 0;
   if (AI_KEY && neueBilder.length) {
     const geprueft = await pruefeAlterAlle(neueBilder, AI_KEY);
+    if (geprueft.ok) { warnung = geprueft.warnung ?? ""; geschaetzt = geprueft.alter; }
     if (!geprueft.ok) {
       // Nur die Tatsache, nie das Bild. Die Gerätekennung erlaubt es, Wiederholungstäter zu
       // erkennen, ohne irgendetwas aufzubewahren.
@@ -277,6 +280,9 @@ export async function POST(request: Request) {
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
     theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
+    // Nur gesetzt, wenn etwas auffiel — daraus wird das Zeichen in der Galerie.
+    altersWarnung: warnung || undefined,
+    altersGeschaetzt: geschaetzt || undefined,
   };
   const entries = [entry, ...(await readKissLog())];
   await writeKissLog(entries);

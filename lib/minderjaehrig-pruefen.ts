@@ -21,9 +21,19 @@
  * versehentlich durch einen Ausfall.
  */
 
+export type AltersGrund = "minderjaehrig" | "nacktheit" | "kind-nackt" | "unklar" | "kein-gesicht";
+
 export type AltersPruefung =
-  | { ok: true; alter: number }
-  | { ok: false; grund: "minderjaehrig" | "unklar" | "kein-gesicht" };
+  /**
+   * `ok: true` heisst „darf weiter" — NICHT „ist unauffällig".
+   *
+   * Im Beobachten-Modus geht auch ein auffälliger Fall durch; dann steht `warnung` darauf.
+   * Genau die trägt der Eintrag später als Zeichen in der Galerie (Owner 31.07.2026: „du
+   * machst mir aber in der Galerie ein Warnzeichen drauf"). Ohne dieses Feld wäre das
+   * Beobachten wertlos: Man liesse alles durch und wüsste hinterher nicht, was auffiel.
+   */
+  | { ok: true; alter: number; warnung?: AltersGrund }
+  | { ok: false; grund: AltersGrund; alter?: number };
 
 /**
  * DIE GRENZE IST 18 — NICHT HÖHER (Owner 31.07.2026: „eine 18-Jährige kann auch jünger
@@ -42,7 +52,28 @@ export type AltersPruefung =
 const MINDESTALTER = Number(process.env.MINOR_CHECK_MIN_AGE ?? 18);
 const FAIL_OPEN = process.env.MINOR_CHECK_FAIL_OPEN === "true";
 
-type Antwort = { minor?: boolean; age?: number; face?: boolean };
+/**
+ * BEOBACHTEN ODER SPERREN (Owner 31.07.2026: „wir machen so, wir lassen erst mal alles durch
+ * um zu testen was du erkennst").
+ *
+ * Richtige Reihenfolge: Erst sehen, was die Prüfung erkennt, dann scharf stellen. Eine
+ * Sperre, deren Trefferquote niemand kennt, weist am ersten Tag zehn echte Kundinnen ab.
+ *
+ * `beobachten` prüft ganz normal und PROTOKOLLIERT das Urteil — lässt aber durch.
+ * `sperren`   weist ab (der Zustand, für den das alles gebaut ist).
+ *
+ * EINE AUSNAHME BLEIBT AUCH IM BEOBACHTEN-MODUS: Ein eindeutiges „minor: true" wird IMMER
+ * abgewiesen. Der Zweck des Beobachtens ist, die Grauzone zu vermessen — die Fälle, in denen
+ * die Prüfung unsicher ist oder eine junge Erwachsene für ein Kind halten könnte. Für den
+ * eindeutigen Fall gibt es nichts zu vermessen, und das Material läge sonst in unserem
+ * Speicher. Wer auch das durchlassen will, setzt `MINOR_CHECK_MODE=alles-durch` — dann steht
+ * die Entscheidung wenigstens sichtbar in der Konfiguration.
+ */
+const MODUS = (process.env.MINOR_CHECK_MODE ?? "sperren").trim().toLowerCase();
+const NUR_BEOBACHTEN = MODUS === "beobachten" || MODUS === "alles-durch";
+const AUCH_EINDEUTIGE_DURCH = MODUS === "alles-durch";
+
+type Antwort = { minor?: boolean; age?: number; face?: boolean; nude?: boolean };
 
 /**
  * Fragt das Seh-Modell direkt — nicht „wie alt", sondern „ist hier jemand unter 18".
@@ -66,7 +97,7 @@ async function fragen(dataUrl: string, key: string): Promise<Antwort | null> {
               type: "text",
               text:
                 "You are a safety check for an adult-content pipeline. Look at every person in this image.\n"
-                + "Return ONLY compact JSON: {\"minor\":true|false,\"age\":NN,\"face\":true|false}\n"
+                + "Return ONLY compact JSON: {\"minor\":true|false,\"age\":NN,\"face\":true|false,\"nude\":true|false}\n"
                 // Die Grenze muss BEIDE Richtungen benennen. Stand hier nur „im Zweifel ja",
                 // schlug das Modell auch bei jung aussehenden Erwachsenen an — der Einwand des
                 // Owners vom 31.07.2026 („eine 18-Jährige kann auch jünger aussehen").
@@ -75,6 +106,12 @@ async function fragen(dataUrl: string, key: string): Promise<Antwort | null> {
                 + "  But if you genuinely cannot tell whether someone is a child, answer true.\n"
                 + "- age: the apparent age in years of the youngest person. Always give a number, never 0.\n"
                 + "- face: true if at least one human face is clearly visible.\n"
+                // Wäsche und Bademode sind das Geschäft dieses Portals und ausdrücklich KEINE
+                // Nacktheit (Owner 31.07.2026: „Lingerie ist nicht verboten"). Ohne diese
+                // Abgrenzung meldet das Modell jedes Dessous-Foto als nackt und der Trichter
+                // stünde still.
+                + "- nude: true ONLY if genitals, buttocks or female nipples are visible.\n"
+                + "  Lingerie, underwear, swimwear and bikinis are NOT nude — answer false for them.\n"
                 + "No prose, no explanation.",
             },
             { type: "image_url", image_url: { url: dataUrl } },
@@ -105,22 +142,56 @@ export async function pruefeAlter(dataUrl: string, key: string): Promise<AltersP
   const a = (await fragen(dataUrl, key)) ?? (await fragen(dataUrl, key));
 
   if (!a) {
-    if (FAIL_OPEN) {
-      console.warn("[alterspruefung] Seh-Modell nicht erreichbar — durchgelassen (MINOR_CHECK_FAIL_OPEN)");
-      return { ok: true, alter: 0 };
+    if (FAIL_OPEN || NUR_BEOBACHTEN) {
+      console.warn("[alterspruefung] Seh-Modell nicht erreichbar — durchgelassen");
+      return { ok: true, alter: 0, warnung: "unklar" };
     }
     console.error("[alterspruefung] Seh-Modell nicht erreichbar — GESPERRT (Sicherheitsvorgabe)");
     return { ok: false, grund: "unklar" };
   }
 
-  if (a.minor === true) return { ok: false, grund: "minderjaehrig" };
+  const alter = Number.isFinite(Number(a.age)) ? Number(a.age) : 0;
 
-  const alter = Number(a.age);
-  if (Number.isFinite(alter) && alter > 0 && alter < MINDESTALTER) {
-    return { ok: false, grund: "minderjaehrig" };
+  /**
+   * ══ DIE EINE REGEL OHNE AUSNAHME ══ (Owner 31.07.2026: „Kinder, Nacktheit …")
+   *
+   * Kind UND nackt wird IMMER abgewiesen — in jedem Modus, auch in „alles-durch", auch wenn
+   * jemand die Umgebungsvariablen verstellt. Hier gibt es nichts zu beobachten und nichts
+   * abzuwägen: Das Material darf unseren Speicher nicht berühren, und der Testbetrieb ist
+   * kein Grund, der das aufwiegt.
+   *
+   * Deshalb steht diese Prüfung VOR allen anderen Zweigen und liest sich nicht aus einer
+   * Konfiguration.
+   */
+  if (a.minor === true && a.nude === true) {
+    console.error(`[alterspruefung] KIND + NACKTHEIT — abgewiesen, ohne Ausnahme | ${new Date().toISOString()}`);
+    return { ok: false, grund: "kind-nackt", alter };
   }
 
-  return { ok: true, alter: Number.isFinite(alter) ? alter : 0 };
+  // Nacktheit bei Erwachsenen: kein Verbot, aber ein Zeichen in der Galerie. Unsere Kette
+  // erzeugt bekleidete Bilder; eine nackte Vorlage ist ein Hinweis, dass jemand etwas
+  // anderes versucht.
+  if (a.nude === true) {
+    console.warn(`[alterspruefung] Nacktheit erkannt (alter≈${alter}) — modus=${MODUS}`);
+    if (NUR_BEOBACHTEN) return { ok: true, alter, warnung: "nacktheit" };
+    return { ok: false, grund: "nacktheit", alter };
+  }
+
+  // Der eindeutige Fall: das Modell sagt selbst „minderjährig".
+  if (a.minor === true) {
+    console.warn(`[alterspruefung] minderjaehrig erkannt (alter≈${alter}) — modus=${MODUS}`);
+    if (AUCH_EINDEUTIGE_DURCH) return { ok: true, alter, warnung: "minderjaehrig" };
+    return { ok: false, grund: "minderjaehrig", alter };
+  }
+
+  // Der Grenzfall: das Modell sagt „erwachsen", die Zahl liegt aber darunter.
+  if (alter > 0 && alter < MINDESTALTER) {
+    console.warn(`[alterspruefung] Alter ${alter} unter ${MINDESTALTER} — modus=${MODUS}`);
+    if (NUR_BEOBACHTEN) return { ok: true, alter, warnung: "minderjaehrig" };
+    return { ok: false, grund: "minderjaehrig", alter };
+  }
+
+  return { ok: true, alter };
 }
 
 /** Prüft mehrere Bilder gleichzeitig; das erste Nein gewinnt. */
@@ -132,7 +203,12 @@ export async function pruefeAlterAlle(bilder: string[], key: string): Promise<Al
   if (nein) return nein;
   // Das jüngste gefundene Alter zurückgeben — der Auftrag nutzt es ohnehin weiter.
   const alter = ergebnisse.map(r => (r.ok ? r.alter : 0)).filter(n => n > 0);
-  return { ok: true, alter: alter.length ? Math.min(...alter) : 0 };
+  // Eine Warnung an EINEM Bild macht den ganzen Vorgang auffällig: Es wird ja ein Bild aus
+  // beiden Vorlagen. Die schwerere Warnung gewinnt.
+  const rang: AltersGrund[] = ["kind-nackt", "minderjaehrig", "nacktheit", "unklar", "kein-gesicht"];
+  const warnungen = ergebnisse.flatMap(r => (r.ok && r.warnung ? [r.warnung] : []));
+  const warnung = rang.find(g => warnungen.includes(g));
+  return { ok: true, alter: alter.length ? Math.min(...alter) : 0, ...(warnung ? { warnung } : {}) };
 }
 
 /**
@@ -170,8 +246,34 @@ const TEXTE: Record<string, { minderjaehrig: string; unklar: string }> = {
   },
 };
 
-export function altersFehlerText(grund: "minderjaehrig" | "unklar" | "kein-gesicht", lang?: string): string {
+/** Für Nacktheit gibt es einen eigenen Satz — „minderjährig" wäre dort eine falsche Anschuldigung. */
+const NACKT: Record<string, string> = {
+  de: "Auf diesem Foto ist Nacktheit zu sehen. Bitte nimm ein Foto, auf dem du bekleidet bist.",
+  en: "This photo contains nudity. Please use a photo where you are dressed.",
+  ro: "Această poză conține nuditate. Folosește te rog o poză în care ești îmbrăcat.",
+  es: "Esta foto contiene desnudez. Usa una foto en la que estés vestido.",
+  fr: "Cette photo contient de la nudité. Utilise une photo où tu es habillé.",
+  pt: "Esta foto contém nudez. Usa uma foto em que estejas vestido.",
+  it: "Questa foto contiene nudità. Usa una foto in cui sei vestito.",
+};
+
+export function altersFehlerText(grund: AltersGrund, lang?: string): string {
   const l = String(lang ?? "en").slice(0, 2).toLowerCase();
   const t = TEXTE[l] ?? TEXTE.en;
-  return grund === "minderjaehrig" ? t.minderjaehrig : t.unklar;
+  if (grund === "nacktheit") return NACKT[l] ?? NACKT.en;
+  // „kind-nackt" bekommt bewusst denselben Satz wie „minderjährig": Der Nutzer muss wissen,
+  // dass es nicht geht — eine genauere Beschreibung dessen, was wir erkannt haben, gehört
+  // nicht in eine Meldung an ihn.
+  return grund === "minderjaehrig" || grund === "kind-nackt" ? t.minderjaehrig : t.unklar;
+}
+
+/** Kurzes Zeichen für die Galerie — was der Admin auf einen Blick sehen soll. */
+export function warnZeichen(grund: AltersGrund): { zeichen: string; text: string } {
+  switch (grund) {
+    case "kind-nackt": return { zeichen: "⛔", text: "Kind + Nacktheit — abgewiesen" };
+    case "minderjaehrig": return { zeichen: "⚠️", text: "Könnte minderjährig sein" };
+    case "nacktheit": return { zeichen: "🔞", text: "Nacktheit erkannt" };
+    case "unklar": return { zeichen: "❓", text: "Nicht prüfbar" };
+    default: return { zeichen: "❓", text: "Kein Gesicht erkannt" };
+  }
 }

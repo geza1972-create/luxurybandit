@@ -10,6 +10,26 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 // im Funnel, /api/try-this-look?adminPosts=1) — von überall über das Menü erreichbar.
 // Tippen öffnet Vollbild mit Download. Nur für den Admin (PIN aus dem Browser).
 
+/**
+ * DIE WARNZEICHEN (Owner 31.07.2026: „du machst mir aber in der Galerie ein Warnzeichen
+ * drauf"). Sie stehen hier und nicht im Prüf-Baustein, weil sie zur ANZEIGE gehören — der
+ * Server liefert nur das nüchterne Urteil.
+ */
+const WARN_ZEICHEN: Record<string, string> = {
+  "kind-nackt": "⛔",
+  minderjaehrig: "⚠️",
+  nacktheit: "🔞",
+  unklar: "❓",
+  "kein-gesicht": "❓",
+};
+const WARN_TEXT: Record<string, string> = {
+  "kind-nackt": "Kind + Nacktheit — wurde abgewiesen",
+  minderjaehrig: "Könnte minderjährig sein — bitte ansehen",
+  nacktheit: "Nacktheit erkannt",
+  unklar: "Konnte nicht geprüft werden",
+  "kein-gesicht": "Kein Gesicht erkannt",
+};
+
 type Item = {
   id: string;
   type?: "video" | "slide";   // Try-on-Video vs. Card-Studio-Slide (Urlaub/Peter-Fotos)
@@ -20,6 +40,13 @@ type Item = {
   curatorName?: string;
   garment?: string;   // manuell zugewiesen: "lingerie" | "normal"
   source?: string;    // "kiss" | "kiss-upload" — nur die darf der Besitzer selbst löschen
+  /**
+   * URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in der
+   * Galerie ein Warnzeichen drauf"). Nur gesetzt, wenn etwas auffiel — im Beobachten-Modus
+   * geht der Upload durch UND traegt das Zeichen.
+   */
+  warnung?: string;
+  alter?: number;
   feed?: boolean;
   public?: boolean;
 };
@@ -169,13 +196,15 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
               source: b.source || "kiss",
+              warnung: b.warnung || "",
+              alter: b.alter || 0,
             }))
             .filter((b: Item) => b.imageUrl || b.videoUrl);
           own.push(...bilder);
@@ -336,6 +365,16 @@ export default function MyGalleryPage() {
                 className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                {/* WARNZEICHEN — links oben, damit es nicht mit dem Auswahl-Haekchen rechts
+                    kollidiert. Rot hinterlegt statt nur als Symbol: Ein Emoji auf einem
+                    bunten Foto uebersieht man, und genau diese Kacheln soll man finden. */}
+                {it.warnung && (
+                  <span title={WARN_TEXT[it.warnung] ?? it.warnung}
+                    className="pointer-events-none absolute left-1 top-1 z-10 flex items-center gap-1 rounded-full bg-red-600/90 px-1.5 py-0.5 text-[10px] font-black text-white shadow">
+                    {WARN_ZEICHEN[it.warnung] ?? "⚠️"}
+                    {it.alter ? <span>~{it.alter}</span> : null}
+                  </span>
+                )}
                 {/* Auswahl-Häkchen (Videos UND Slides). */}
                 {selectMode && (
                   <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
