@@ -200,8 +200,23 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
   try {
     const log = await readKissLog();
     for (const e of log as KissLogEntry[]) {
-      // Erzeugt = benutzt; bezahlt = von Stripe geprueft. Beides ist ein Nachweis.
-      dazu(e.email, "kiss", undefined, undefined, true);
+      /**
+       * ERZEUGT IST NICHT BESTÄTIGT — Korrektur vom 31.07.2026.
+       *
+       * Hier stand „erzeugt = benutzt = echte Person". Der Rundbrief hat das widerlegt:
+       * `adolfomanuelmaartin@gmail.com` und `racheldevlin22@gmail.com` kamen als unzustellbar
+       * zurück, und beide stehen im Kiss-Log. Sie haben ein Bild erzeugt — mit einer Adresse,
+       * die es nicht gibt.
+       *
+       * Der Grund liegt im Trichter selbst: Man tippt eine Adresse ein und bekommt sofort sein
+       * Gratis-Bild. Niemand prüft, ob die Adresse existiert; es gibt keinen Bestätigungslink,
+       * und es soll auch keinen geben — er wäre eine Hürde vor dem Gratis-Bild. Wer sie
+       * umgehen will, tippt eben etwas Erfundenes. Genau das ist passiert.
+       *
+       * BEZAHLT IST ETWAS ANDERES: Diese Adresse kommt von Stripe, aus einer echten Zahlung
+       * mit echter Karte. Sie bleibt bestätigt.
+       */
+      dazu(e.email, "kiss", undefined, undefined, false);
       dazu(e.paidEmail, "kiss-kauf", undefined, undefined, true);
     }
   } catch { /* siehe oben */ }

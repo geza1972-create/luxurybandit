@@ -386,6 +386,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [mail, setMail] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
   /**
+   * DER ADRESS-FEHLER, DIREKT AM FELD (Owner 31.07.2026: „das habe ich eingegeben und kam
+   * kein Error und keine Generierung" — zu `dfasf@seed.lb`).
+   *
+   * Die Sperre GRIFF, aber ihre Meldung landete in der allgemeinen Status-Zeile: weiss/60,
+   * weit unten unter den Kaufhinweisen — auf der hellen Fassung buchstäblich unsichtbar.
+   * Eine Absage, die man nicht sieht, fühlt sich an wie ein kaputter Knopf; er drückt noch
+   * dreimal und geht.
+   *
+   * Eigener Zustand statt `status`, damit die Meldung AM FELD klebt (dort schaut er hin,
+   * dort tippt er die Korrektur) und beim nächsten Tastendruck verschwindet.
+   */
+  const [mailFehler, setMailFehler] = useState("");
+  /**
    * DAS LAND (Owner 31.07.2026). Vorbelegt aus der Seitensprache — siehe Kommentar am Feld.
    * Es reist mit der Adresse an `kiss-claim` und macht den nächsten Rundbrief mehrsprachig.
    */
@@ -1170,11 +1183,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (!isStaff && !adresseDa) {
       const e = mail.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
-        setStatus(T.mailInvalid);
+        setMailFehler(T.mailInvalid);
         mailRef.current?.focus();
         return;
       }
-      if (!(await adresseVormerken(e))) return;
+      if (!(await adresseVormerken(e))) { mailRef.current?.focus(); return; }
     }
     // AB HIER LAEUFT ES WIRKLICH — erst hier zaehlt der Trichter ein erzeugtes Bild.
     track("generate");
@@ -1303,7 +1316,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         body: JSON.stringify({ email: e, device, genId, theme: variant, vorab: true, land, lang, consentAt: new Date().toISOString() }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setStatus(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
+      // Die Absage gehoert ANS FELD, nicht in die Status-Zeile weiter unten — siehe mailFehler.
+      if (!r.ok) { setMailFehler(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
       try { localStorage.setItem(MAIL_KEY, e); } catch { /**/ }
       setAdresseDa(true); setFrei(true); setMailBusy(false);
       // META: „Lead" = er hat seine Adresse dagelassen. Genau darauf soll die Kampagne
@@ -2317,13 +2331,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <p className="text-[12px] font-bold text-white/85">
             {T.mailQuestion}
           </p>
-          <input ref={mailRef} value={mail} onChange={e => setMail(e.target.value)} type="email"
+          <input ref={mailRef} value={mail}
+            onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}
+            type="email"
             inputMode="email" autoComplete="email" placeholder="you@email.com"
             onKeyDown={e => { if (e.key === "Enter") void generate(); }}
             // Farbe fest am Feld: die Hell-Fassung faerbt `text-white` dunkel — auf dem
             // schwarzen Grund waere die eingetippte Adresse dann unlesbar.
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="lb-eingabe mt-1.5 h-12 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/40 focus:border-[#f6cf51]" />
+          {/* ROT UND AM FELD — auf heller wie dunkler Fassung lesbar (fester Farbwert, keine
+              Theme-Klasse). Verschwindet beim naechsten Tastendruck. */}
+          {mailFehler && (
+            <p role="alert" style={{ color: "#ef4444" }}
+              className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
+              {mailFehler}
+            </p>
+          )}
           {/**
             * DAS LAND WIRD ERKANNT, NICHT GEFRAGT (Owner 31.07.2026: „das machst du mit
             * Autofill" — „ist das für dich Autofill?" zu einem Feld, das „Belgique" zeigte).
