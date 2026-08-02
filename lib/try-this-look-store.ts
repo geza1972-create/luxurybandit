@@ -1390,6 +1390,75 @@ export async function writeThemeConfig(config: KissConfig, theme = "kiss"): Prom
 
 export const writeKissConfig = (config: KissConfig) => writeThemeConfig(config, "kiss");
 
+// ── Grußkarten-Prüfstand: EIGENE Datei, nicht state.json ────────────────────────────
+// Bewusst getrennt vom großen Shared-State: der Prüfstand schreibt Einwilligungen und
+// Generierungen, und ein Read-Merge-Unfall im Hauptzustand (siehe Lösch-Wiederauferstehung
+// bei Generationen/Leads) darf hier gar nicht erst möglich werden.
+export type GrussTemplate = {
+  id: string;
+  videoPath: string;       // vorproduzierter Karten-Clip in unserem Storage
+  label: string;           // z. B. „Paris — Geburtstag"
+  script: string;          // FESTES Skript, das der Nutzer beim Aufnehmen abliest
+  createdAt: string;
+};
+export type GrussConsent = {
+  id: string;              // = generationId, damit Einwilligung ↔ Video zuordenbar bleibt
+  at: string;              // ISO-Zeitstempel der aktiven Bestätigung
+  text: string;            // der bestätigte Wortlaut, so wie er angezeigt wurde
+  templateId: string;
+  facePath: string;
+  audioPath: string;
+  userAgent?: string;
+  ip?: string;
+};
+export type GrussGeneration = {
+  id: string;
+  at: string;
+  templateId: string;
+  facePath: string;
+  audioPath: string;
+  status: "running" | "done" | "failed";
+  // fal-Request-IDs werden VOR dem Warten gespeichert: stirbt die Funktion beim Polling,
+  // kann „resume" das bezahlte Ergebnis später abholen, ohne neu zu generieren.
+  swapRequestId?: string;
+  swapVideoUrl?: string;   // fal-URL des getauschten Zwischenvideos (läuft ab — nur für resume)
+  lipsyncRequestId?: string;
+  videoPath?: string;      // fertiges Video in unserem Storage
+  error?: string;
+  finishedAt?: string;
+};
+export type GrussState = {
+  templates: GrussTemplate[];
+  consents: GrussConsent[];
+  generations: GrussGeneration[];
+};
+const GRUSS_STATE_PATH = "try-this-look/gruss-test.json";
+
+export async function readGrussState(): Promise<GrussState> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(GRUSS_STATE_PATH)}`);
+    if (!res.ok) return { templates: [], consents: [], generations: [] };
+    const data = await res.json().catch(() => null);
+    return {
+      templates: Array.isArray(data?.templates) ? data.templates : [],
+      consents: Array.isArray(data?.consents) ? data.consents : [],
+      generations: Array.isArray(data?.generations) ? data.generations : [],
+    };
+  } catch {
+    return { templates: [], consents: [], generations: [] };
+  }
+}
+
+export async function writeGrussState(state: GrussState): Promise<void> {
+  await ensureBucket();
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(GRUSS_STATE_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ ...state, savedAt: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error(`Grußkarten-Zustand konnte nicht gespeichert werden (${response.status}).`);
+}
+
 // ── Kiss-Log: jede fertige Kiss-Generierung (fürs Admin-Tool: wer/wann/Model/bezahlt) ──
 // ── GRATIS-VORSCHAUBILD: Tagesdeckel ────────────────────────────────────────────────
 // Ein verschenktes Bild kostet echtes Geld. Ohne Bremse dreht ein einziger Besucher — oder
