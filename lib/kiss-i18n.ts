@@ -23,13 +23,16 @@ export type KissText = {
   // Schritte
   step1: string; step2: string; step3: string; step4: string;
   pickHint: string; upTitle: string; upHint: string; tapChange: string;
+  /** Sichtbarer Hinweis, wenn Bild/Video fertig sind, aber die Namen noch das Beispiel zeigen
+   *  (03.08.2026: „ich kann es nicht sharen" — der Verschicken-Knopf blieb sonst stumm weg). */
+  namenVorSenden: string;
   /** Knopf über dem BEISPIEL-Video/-Bild in der Bau-Karte, solange nichts eigenes drin ist
    *  (Owner 02.08.2026 abends: „nicht Inlocuiește poza, sondern Inlocuiește datele"). Sobald
    *  Name, Datum und Ort ein Beispiel zeigen statt einer leeren Formularbeschriftung, sagt
    *  „Foto ersetzen" nur die halbe Wahrheit — der Knopf lädt zum Ausfüllen der GANZEN Karte
    *  ein, nicht nur des Bildes. Nur in der Hochzeit benutzt (EinladungBauen.tsx).*/
   datenErsetzen: string;
-  next: string; pickFirst: string; uploadFirst: string;
+  next: string; nextPaid: string; pickFirst: string; uploadFirst: string;
   aboWas: string;
   you: string; uploadYou: string; youHint: string; changePhoto: string;
   // Garderobe
@@ -54,7 +57,7 @@ export type KissText = {
   // Fortschritt
   renderSteps: string[]; teaseSteps: string[];
   // Meldungen
-  statusQuality: string; statusCouldNotStart: string; statusFailed: string;
+  statusQuality: string; statusCouldNotStart: string; statusFailed: string; statusPayCancelled: string;
   statusTimeout: string; statusNetwork: string; statusNotWork: string;
   dressingHer: string; gettingReady: string; renderingVideo: string; makingVideo: (s: number) => string;
   videoFailed: string; payPrep: string;
@@ -105,9 +108,10 @@ const EN: KissText = {
   step1: "1 · Pick her", step2: "2 · Your photo — you, the man", step3: "3 · The kiss", step4: "4 · Your picture",
   pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
   datenErsetzen: "Change photo",
+  namenVorSenden: "Tap your names above to send it",
   upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.",
   tapChange: "Tap to change photo",
-  next: "Next — free →", pickFirst: "Pick her first", uploadFirst: "Upload your photo",
+  next: "Next — free →", nextPaid: "Next →", pickFirst: "Pick her first", uploadFirst: "Upload your photo",
   aboWas: "{videos} videos a month across every topic · every further one {extra} · chatting free · cancel any time",
   you: "YOU", uploadYou: "Upload your photo", youHint: "A photo of you — the man in the picture",
   changePhoto: "Change photo",
@@ -137,6 +141,7 @@ const EN: KissText = {
   teaseSteps: ["Reading both faces …", "Matching the two of you …", "Bringing the moment to life …"],
   statusQuality: "Rendering your kiss in full quality … (~1–3 min)",
   statusCouldNotStart: "Could not start.", statusFailed: "Generation failed.",
+  statusPayCancelled: "Payment window closed without paying — tap the button to try again.",
   statusTimeout: "Timeout — please try again later.", statusNetwork: "Network error.",
   statusNotWork: "That did not work.",
   dressingHer: "Dressing her …", gettingReady: "Getting you ready …",
@@ -206,9 +211,10 @@ const DE: KissText = {
   step1: "1 · Wähle sie", step2: "2 · Dein Foto — du, der Mann", step3: "3 · Der Kuss", step4: "4 · Dein Bild",
   pickHint: "Lade die Frau hoch, die du küssen willst — oder wische zu einer von uns.",
   datenErsetzen: "Foto wechseln",
+  namenVorSenden: "Tippt oben auf eure Namen, um zu verschicken",
   upTitle: "Deine Frau", upHint: "Küsse jeden Star — lade einfach ein Bildschirmfoto hoch.",
   tapChange: "Tippen, um das Foto zu wechseln",
-  next: "Weiter — gratis →", pickFirst: "Wähle zuerst sie", uploadFirst: "Lade dein Foto hoch",
+  next: "Weiter — gratis →", nextPaid: "Weiter →", pickFirst: "Wähle zuerst sie", uploadFirst: "Lade dein Foto hoch",
   aboWas: "{videos} Videos im Monat über alle Themen · jedes weitere {extra} · Chatten gratis · monatlich kündbar",
   you: "DU", uploadYou: "Lade dein Foto hoch", youHint: "Ein Foto von dir — der Mann im Bild",
   changePhoto: "Foto wechseln",
@@ -238,6 +244,7 @@ const DE: KissText = {
   teaseSteps: ["Beide Gesichter werden gelesen …", "Ihr beide werdet zusammengeführt …", "Der Moment wird lebendig …"],
   statusQuality: "Dein Kuss wird in voller Qualität erzeugt … (~1–3 Min.)",
   statusCouldNotStart: "Start nicht möglich.", statusFailed: "Erzeugung fehlgeschlagen.",
+  statusPayCancelled: "Zahlungsfenster wurde ohne Zahlung geschlossen — tippe den Knopf erneut an.",
   statusTimeout: "Zeitüberschreitung — bitte später noch einmal versuchen.", statusNetwork: "Netzwerkfehler.",
   statusNotWork: "Das hat nicht geklappt.",
   dressingHer: "Sie wird angezogen …", gettingReady: "Du wirst fertig gemacht …",
@@ -307,9 +314,10 @@ const RO: KissText = {
   step1: "1 · Alege-o", step2: "2 · Poza ta — tu, bărbatul", step3: "3 · Sărutul", step4: "4 · Poza ta",
   pickHint: "Încarcă femeia pe care vrei s-o săruți — sau glisează la una dintre ale noastre.",
   datenErsetzen: "Schimbă poza",
+  namenVorSenden: "Atingeți numele voastre mai sus ca să trimiteți",
   upTitle: "Femeia ta", upHint: "Sărută orice vedetă — încarcă o simplă captură de ecran.",
   tapChange: "Atinge ca să schimbi poza",
-  next: "Continuă — gratuit →", pickFirst: "Alege-o mai întâi", uploadFirst: "Încarcă poza ta",
+  next: "Continuă — gratuit →", nextPaid: "Continuă →", pickFirst: "Alege-o mai întâi", uploadFirst: "Încarcă poza ta",
   aboWas: "{videos} videoclipuri pe lună în toate temele · fiecare în plus {extra} · chat gratuit · anulezi oricând",
   you: "TU", uploadYou: "Încarcă poza ta", youHint: "O poză cu tine — bărbatul din imagine",
   changePhoto: "Schimbă poza",
@@ -339,6 +347,7 @@ const RO: KissText = {
   teaseSteps: ["Se citesc ambele chipuri …", "Vă potrivim pe amândoi …", "Momentul prinde viață …"],
   statusQuality: "Sărutul tău se generează la calitate maximă … (~1–3 min)",
   statusCouldNotStart: "Nu am putut porni.", statusFailed: "Generarea a eșuat.",
+  statusPayCancelled: "Fereastra de plată s-a închis fără plată — atinge butonul pentru a încerca din nou.",
   statusTimeout: "A durat prea mult — încearcă mai târziu.", statusNetwork: "Eroare de rețea.",
   statusNotWork: "Nu a mers.",
   dressingHer: "O îmbrăcăm …", gettingReady: "Te pregătim …",
@@ -408,9 +417,10 @@ const ES: KissText = {
   step1: "1 · Elígela", step2: "2 · Tu foto — tú, el hombre", step3: "3 · El beso", step4: "4 · Tu imagen",
   pickHint: "Sube la mujer a la que quieres besar — o desliza hasta una de las nuestras.",
   datenErsetzen: "Cambiar foto",
+  namenVorSenden: "Tocad vuestros nombres arriba para enviarlo",
   upTitle: "Tu modelo", upHint: "Besa a cualquier estrella — sube solo una captura de pantalla.",
   tapChange: "Toca para cambiar la foto",
-  next: "Seguir — gratis →", pickFirst: "Elígela primero", uploadFirst: "Sube tu foto",
+  next: "Seguir — gratis →", nextPaid: "Seguir →", pickFirst: "Elígela primero", uploadFirst: "Sube tu foto",
   aboWas: "{videos} vídeos al mes en todos los temas · cada uno más {extra} · chat gratis · cancela cuando quieras",
   you: "TÚ", uploadYou: "Sube tu foto", youHint: "Una foto tuya — el hombre de la imagen",
   changePhoto: "Cambiar foto",
@@ -440,6 +450,7 @@ const ES: KissText = {
   teaseSteps: ["Leyendo las dos caras …", "Uniéndoos a los dos …", "Dando vida al momento …"],
   statusQuality: "Creando tu beso con la máxima calidad … (~1–3 min)",
   statusCouldNotStart: "No se pudo iniciar.", statusFailed: "La generación ha fallado.",
+  statusPayCancelled: "La ventana de pago se cerró sin pagar — toca el botón para volver a intentarlo.",
   statusTimeout: "Ha tardado demasiado — inténtalo más tarde.", statusNetwork: "Error de red.",
   statusNotWork: "Eso no ha funcionado.",
   dressingHer: "Vistiéndola …", gettingReady: "Preparándote a ti …",
@@ -509,9 +520,10 @@ const FR: KissText = {
   step1: "1 · Choisis-la", step2: "2 · Ta photo — toi, l'homme", step3: "3 · Le baiser", step4: "4 · Ton image",
   pickHint: "Téléverse la femme que tu veux embrasser — ou glisse vers l'une des nôtres.",
   datenErsetzen: "Changer la photo",
+  namenVorSenden: "Touchez vos prénoms ci-dessus pour l'envoyer",
   upTitle: "Ton modèle", upHint: "Embrasse n'importe quelle star — une capture d'écran suffit.",
   tapChange: "Touche pour changer la photo",
-  next: "Continuer — gratuit →", pickFirst: "Choisis-la d'abord", uploadFirst: "Téléverse ta photo",
+  next: "Continuer — gratuit →", nextPaid: "Continuer →", pickFirst: "Choisis-la d'abord", uploadFirst: "Téléverse ta photo",
   aboWas: "{videos} vidéos par mois sur tous les thèmes · chaque vidéo en plus {extra} · chat gratuit · résiliable à tout moment",
   you: "TOI", uploadYou: "Téléverse ta photo", youHint: "Une photo de toi — l'homme sur l'image",
   changePhoto: "Changer la photo",
@@ -541,6 +553,7 @@ const FR: KissText = {
   teaseSteps: ["Lecture des deux visages …", "On vous réunit tous les deux …", "Le moment prend vie …"],
   statusQuality: "Ton baiser est créé en pleine qualité … (~1–3 min)",
   statusCouldNotStart: "Impossible de démarrer.", statusFailed: "La génération a échoué.",
+  statusPayCancelled: "La fenêtre de paiement s'est fermée sans paiement — retape sur le bouton pour réessayer.",
   statusTimeout: "Cela a pris trop de temps — réessaie plus tard.", statusNetwork: "Erreur réseau.",
   statusNotWork: "Ça n'a pas marché.",
   dressingHer: "On l'habille …", gettingReady: "On te prépare …",
@@ -610,9 +623,10 @@ const PT: KissText = {
   step1: "1 · Escolhe-a", step2: "2 · A tua foto — tu, o homem", step3: "3 · O beijo", step4: "4 · A tua imagem",
   pickHint: "Carrega a mulher que queres beijar — ou desliza para uma das nossas.",
   datenErsetzen: "Trocar foto",
+  namenVorSenden: "Toquem nos vossos nomes acima para enviar",
   upTitle: "A tua modelo", upHint: "Beija qualquer estrela — basta uma captura de ecrã.",
   tapChange: "Toca para trocar a foto",
-  next: "Continuar — grátis →", pickFirst: "Escolhe-a primeiro", uploadFirst: "Carrega a tua foto",
+  next: "Continuar — grátis →", nextPaid: "Continuar →", pickFirst: "Escolhe-a primeiro", uploadFirst: "Carrega a tua foto",
   aboWas: "{videos} vídeos por mês em todos os temas · cada um a mais {extra} · chat grátis · cancelas quando quiseres",
   you: "TU", uploadYou: "Carrega a tua foto", youHint: "Uma foto tua — o homem na imagem",
   changePhoto: "Trocar foto",
@@ -623,6 +637,7 @@ const PT: KissText = {
   moreOpen: "+ A tua roupa e o momento", moreClose: "− Menos",
   yourClothes: "A tua roupa", myOwnClothes: "A minha própria roupa", theMoment: "O momento", surpriseMe: "✨ Surpreende-me",
   mailQuestion: "Para onde enviamos a tua imagem?",
+  gateTitel: "Primeiro o teu email — para podermos enviar-te o resultado.", gateWeiter: "Continuar",
   mailNote: "Grátis. Enviamos-te a imagem e guardamo-la na tua galeria.",
   landFrage: "O teu país",
   shareTitel: "Partilhar torna-o público", shareText: "Qualquer pessoa com o link pode ver o teu cartão. Só se mostra o resultado final — nunca as fotos que enviaste.", shareOk: "Entendi — partilhar", shareCancel: "Cancelar",
@@ -641,6 +656,7 @@ const PT: KissText = {
   teaseSteps: ["A ler os dois rostos …", "A juntar-vos aos dois …", "O momento ganha vida …"],
   statusQuality: "O teu beijo está a ser criado em qualidade máxima … (~1–3 min)",
   statusCouldNotStart: "Não foi possível iniciar.", statusFailed: "A geração falhou.",
+  statusPayCancelled: "A janela de pagamento fechou sem pagar — toca no botão para tentar novamente.",
   statusTimeout: "Demorou demasiado — tenta mais tarde.", statusNetwork: "Erro de rede.",
   statusNotWork: "Isso não resultou.",
   dressingHer: "A vesti-la …", gettingReady: "A preparar-te …",
@@ -711,9 +727,10 @@ const IT: KissText = {
   step1: "1 · Scegli lei", step2: "2 · La tua foto — tu, l'uomo", step3: "3 · Il bacio", step4: "4 · La tua immagine",
   pickHint: "Carica la donna che vuoi baciare — o scorri fino a una delle nostre.",
   datenErsetzen: "Cambia foto",
+  namenVorSenden: "Toccate i vostri nomi qui sopra per inviarlo",
   upTitle: "La tua modella", upHint: "Bacia qualsiasi star — basta uno screenshot.",
   tapChange: "Tocca per cambiare la foto",
-  next: "Avanti — gratis →", pickFirst: "Prima scegli lei", uploadFirst: "Carica la tua foto",
+  next: "Avanti — gratis →", nextPaid: "Avanti →", pickFirst: "Prima scegli lei", uploadFirst: "Carica la tua foto",
   aboWas: "{videos} video al mese su tutti i temi · ogni altro {extra} · chat gratis · disdici quando vuoi",
   you: "TU", uploadYou: "Carica la tua foto", youHint: "Una foto di te — l'uomo nell'immagine",
   changePhoto: "Cambia foto",
@@ -724,6 +741,7 @@ const IT: KissText = {
   moreOpen: "+ I tuoi vestiti e il momento", moreClose: "− Meno",
   yourClothes: "I tuoi vestiti", myOwnClothes: "I miei vestiti", theMoment: "Il momento", surpriseMe: "✨ Sorprendimi",
   mailQuestion: "Dove ti mandiamo la tua immagine?",
+  gateTitel: "Prima la tua email — così possiamo inviarti il risultato.", gateWeiter: "Continua",
   mailNote: "Gratis. Ti mandiamo l'immagine e la teniamo nella tua galleria.",
   landFrage: "Il tuo paese",
   shareTitel: "Condividere lo rende pubblico", shareText: "Chiunque abbia il link può vedere la tua card. Si mostra solo il risultato finale — mai le foto che hai caricato.", shareOk: "Ho capito — condividi", shareCancel: "Annulla",
@@ -742,6 +760,7 @@ const IT: KissText = {
   teaseSteps: ["Leggiamo i due volti …", "Vi mettiamo insieme …", "Il momento prende vita …"],
   statusQuality: "Il tuo bacio nasce in piena qualità … (~1–3 min)",
   statusCouldNotStart: "Non è stato possibile avviare.", statusFailed: "La generazione è fallita.",
+  statusPayCancelled: "La finestra di pagamento si è chiusa senza pagare — tocca di nuovo il pulsante per riprovare.",
   statusTimeout: "Ci è voluto troppo — riprova più tardi.", statusNetwork: "Errore di rete.",
   statusNotWork: "Non ha funzionato.",
   dressingHer: "La vestiamo …", gettingReady: "Ti prepariamo …",
@@ -901,6 +920,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · Your picture",
     pickHint: "One photo of you, one of him — that is all it takes.",
     datenErsetzen: "Replace the details",
+    namenVorSenden: "Tap your names above to send the invitation",
+    szeneTitel: "Pick your scene",
     upTitle: "You, the bride",
     upHint: "One photo of you is enough.",
     you: "HIM",
@@ -950,6 +971,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · Euer Bild",
     pickHint: "Ein Foto von dir, eins von ihm — mehr braucht es nicht.",
     datenErsetzen: "Daten ersetzen",
+    namenVorSenden: "Tippt oben auf eure Namen, um die Einladung zu verschicken",
+    szeneTitel: "Wählt eure Szene",
     upTitle: "Du, die Braut",
     upHint: "Ein Foto von dir genügt.",
     you: "ER",
@@ -999,6 +1022,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · Poza voastră",
     pickHint: "O poză cu tine, una cu el — atât e nevoie.",
     datenErsetzen: "Înlocuiește datele",
+    namenVorSenden: "Atingeți numele voastre mai sus ca să trimiteți invitația",
+    szeneTitel: "Alegeți scena voastră",
     upTitle: "Tu, mireasa",
     upHint: "O poză cu tine e de ajuns.",
     you: "EL",
@@ -1048,6 +1073,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · Vuestra imagen",
     pickHint: "Una foto tuya, una de él — no hace falta más.",
     datenErsetzen: "Sustituir los datos",
+    namenVorSenden: "Tocad vuestros nombres arriba para enviar la invitación",
+    szeneTitel: "Elegid vuestra escena",
     upTitle: "Tú, la novia",
     upHint: "Basta una foto tuya.",
     you: "ÉL",
@@ -1097,6 +1124,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · Votre image",
     pickHint: "Une photo de toi, une de lui — c'est tout.",
     datenErsetzen: "Remplacer les infos",
+    namenVorSenden: "Touchez vos prénoms ci-dessus pour envoyer l'invitation",
+    szeneTitel: "Choisissez votre scène",
     upTitle: "Toi, la mariée",
     upHint: "Une photo de toi suffit.",
     you: "LUI",
@@ -1146,6 +1175,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · A vossa imagem",
     pickHint: "Uma foto tua, uma dele — é tudo o que é preciso.",
     datenErsetzen: "Substituir os dados",
+    namenVorSenden: "Toquem nos vossos nomes acima para enviar o convite",
+    szeneTitel: "Escolham a vossa cena",
     upTitle: "Tu, a noiva",
     upHint: "Basta uma foto tua.",
     you: "ELE",
@@ -1195,6 +1226,8 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     step4: "4 · La vostra immagine",
     pickHint: "Una tua foto, una di lui — non serve altro.",
     datenErsetzen: "Sostituisci i dati",
+    namenVorSenden: "Toccate i vostri nomi qui sopra per inviare l'invito",
+    szeneTitel: "Scegliete la vostra scena",
     upTitle: "Tu, la sposa",
     upHint: "Basta una tua foto.",
     you: "LUI",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { kussSzene } from "@/lib/kuss-szenen";
+import { weddingBildPrompt } from "@/lib/wedding-prompt";
 import { guthabenAbbuchen } from "@/lib/try-this-look-store";
 import { ONCE_CENTS } from "@/lib/pricing";
 
@@ -484,17 +485,18 @@ export async function POST(request: Request) {
     "Generate ONE photorealistic image showing BOTH people together, embracing each other "
     + "and smiling, happy and relaxed. " + szeneSatz;
 
+  /**
+   * DIE GEWÄHLTE HOCHZEITS-SZENE (Owner 03.08.2026: „4 templatevideos wie beim kissing …
+   * eins davon ist küssen"). Dieselbe Kennung wie bei Kiss, eigene Quelle in
+   * `lib/wedding-prompt.ts` — drei Szenen bleiben ohne Kuss (bisheriger Standard), eine
+   * ersetzt „schaut in die Kamera" durch einen Kuss. Ohne (oder mit unbekannter) Kennung
+   * ändert sich nichts: derselbe Auftrag wie vor dieser Änderung.
+   */
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : hochzeit ? [
     vorlagenSatz,
-    // KEIN KUSS (Konzept „Einladung statt Kuss", §2): Eine Einladung schaut den Gast an, und
-    // frontal stehen beide Gesichter still — genau die zwei Gesichter, um die es geht.
-    "Generate ONE photorealistic image of these two people on their wedding day: the woman in "
-    + kleid + ", the man in an elegant WHITE suit with a white shirt. They stand close "
-    + "together and BOTH LOOK STRAIGHT INTO THE CAMERA, faces fully visible, smiling warmly; "
-    + "he has his arm around her. They do NOT kiss and their faces do not touch. Warm "
-    + "sunlight, white flowers and a beautiful wedding setting around them.",
+    weddingBildPrompt(kleid, (body as { szene?: string }).szene),
     IDENTITAET_RULE,
     alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",

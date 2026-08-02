@@ -2,6 +2,155 @@
 
 Stand 02.08.2026 (abends, 2. Fassung — Preismodell vom Owner geändert).
 
+---
+
+## Ä15 — Vier echte Testkauf-Befunde behoben (03.08.2026 nachts)
+
+Der Owner hat den kompletten Ablauf einmal SELBST durchgeklickt (echte Fotos, echte
+E-Mail, Szene „Der Kuss" gewählt, echt bezahlt) und einen Screenshot samt vier
+Rückmeldungen geschickt:
+
+> „dialog muss nach der bezahlung sofort schliessen und die seite mit rendering offen
+> sein. mit radar rendering. Und jetzt verstehe ich nicht. Ich habe ein Foto statt Video
+> und dann? Ich habe die Daten ersetzt wie Datum, Straße, Ort. Und ich kann es nicht
+> shären. Was ist das bitte?"
+
+Vier echte Befunde, vier Korrekturen in `components/EinladungBauen.tsx`:
+
+**1. Dialog blieb ueber die GESAMTE Erzeugung offen** (Bild UND Video, bis zu drei
+Minuten), mit nur einem Knopftext als Lebenszeichen — die Karte selbst blieb verdeckt.
+Jetzt schliesst der Dialog (`setFeld(null)`) sofort nachdem die Zahlung bestaetigt ist
+(oder `bezahlt` schon stand), noch VOR dem Bild-Aufruf — nicht erst, wenn das Bild
+zurueckkommt.
+
+**2. Kein „Radar-Rendering"** — der Owner kannte das schon vom Kuss-Trichter
+(`KissFunnel.tsx`: Scanner-Balken + Sucher-Ecken über dem eigenen Foto, waehrend
+generiert wird) und vermisste es hier. Jetzt zeigt die Karte selbst genau dieses Muster
+(`.lb-scanline`-Animation, vier Ecken, Verlaufsbanner mit Status), solange bezahlt/erzeugt
+wird und noch kein Bild da ist — über dem EIGENEN hochgeladenen Foto (geweichzeichnet),
+nicht über dem Beispielvideo, damit klar ist: an SEINEM Foto wird gearbeitet.
+
+**3. „Ich habe ein Foto statt Video und dann?"** — sobald das Standbild ankam, aber das
+Video im Hintergrund noch lief, stand nirgendwo auf dem Bild selbst, dass noch etwas
+kommt; nur eine kleine graue Zeile weit darunter. Jetzt traegt das fertige Standbild
+waehrend `busy` einen Status-Banner direkt auf dem Bild („Euer Video wird erstellt …"
+o. ae. aus `F.renderingVideo`/laufendem Status) statt des „Foto ersetzen"-Knopfes; der
+Knopf kommt erst zurueck, wenn nichts mehr laeuft.
+
+**4. „Ich kann es nicht sharen"** — der Verschicken-Knopf braucht `bild && sie.trim() &&
+er.trim()`. Der Owner hatte Datum/Ort/Adresse geaendert, aber die NAMEN standen noch auf
+dem Beispiel „Ana & Mihai" — und der Knopf blieb deshalb unsichtbar, ohne zu sagen wieso.
+Derselbe Fehler, den `plan.md` schon am Erzeugen-Knopf gefunden hatte (stumme Sperre statt
+sichtbarer Hinweis), jetzt am Verschicken-Knopf behoben: Sind Bild/Video fertig, aber die
+Namen fehlen noch, steht dort jetzt sichtbar (`lb-karte-fehler`, rot) „Tippt oben auf eure
+Namen, um die Einladung zu verschicken" (7 Sprachen, neuer Schlüssel `namenVorSenden`).
+
+**Beim Bauen gefunden und nebenbei behoben:** Der erste Entwurf des Radar-Blocks fiel bei
+fehlendem eigenen Foto auf `beispielVideo` zurueck — das ist aber ein VIDEO, kein Bild,
+und in einem `<img src>` daher immer kaputt. Live geprueft (Screenshot zeigt die
+Sucher-Ecken korrekt, aber ein kaputtes Bild-Symbol), dann entfernt: Der Radar-Zweig ist
+nur erreichbar, nachdem `erzeugen()` bereits `fotosDa` geprueft hat, das eigene Foto ist
+an dieser Stelle also immer vorhanden — der Rueckfall war unerreichbarer, irrefuehrender
+Code.
+
+**Geprüft:** `tsc --noEmit` sauber. Radar-Overlay-Struktur live bestaetigt (temporaerer,
+sofort zurueckgenommener `busy`-Test-Flag — kein echter Kauf ausgeloest). Seite laedt
+nach allen Aenderungen fehlerfrei, Konsole leer. NICHT End-zu-Ende mit echter Zahlung
+geprueft (das war bereits der Testkauf des Owners, der diese Befunde brachte) — ein
+zweiter Testkauf durch den Owner nach dieser Korrektur waere der naechste sinnvolle
+Schritt, bevor Anzeigen laufen.
+
+---
+
+## Ä14 — Vier Szenen-Kacheln bei der Video-Erzeugung, eine davon küsst (03.08.2026)
+
+Owner: „bei video erstellung machen wir 4 templatesvideos wie beim kissing. Und user sucht
+sich aus die Szene. Eins davon ist küssen." Direkt umgesetzt, derselbe Mechanismus wie
+`lib/kuss-szenen.ts`/`KUSS_SZENEN` bei Kiss — dort wählt der Kunde eine von vier festen
+Szenen mit BEHALTENEM Prompt; hier genauso, nur mit Braut/Bräutigam-Rollen statt zwei
+beliebigen Personen, und NUR EINE der vier Szenen ersetzt „schaut in die Kamera, kein Kuss"
+(bisheriger einziger Standard) durch einen Kuss.
+
+- **`lib/wedding-prompt.ts`:** neuer Typ `WeddingSzene`, Liste `WEDDING_SZENEN` (4 Einträge:
+  „Kirche — am Altar", „Garten bei Sonnenuntergang", „Ballsaal", „Der erste Kuss" — nur die
+  letzte hat `kuss: true`), Lookup `weddingSzene(id)`. `weddingPrompt(kleid, szeneId?)` nimmt
+  jetzt ein zweites, optionales Argument — ohne Wahl (`weddingPrompt("")`, wie überall sonst
+  im Code aufgerufen) ändert sich **nichts**, wortgleich der bisherige Auftrag. Neue Funktion
+  `weddingBildPrompt(kleid, szeneId?)` — dieselbe Quelle für das GRATIS-STANDBILD, die vorher
+  nur als Video existierte (der Datei-Kopf verspricht seit jeher „AN EINER STELLE, fuer Bild
+  UND Video" — jetzt stimmt das auch für die Szene).
+- **`app/api/free-preview/route.ts`:** die bisher fest verdrahtete Hochzeits-Bildzeile durch
+  `weddingBildPrompt(kleid, body.szene)` ersetzt; liest `szene` aus dem Request-Body.
+- **`components/EinladungBauen.tsx`:** neuer State `szeneId`, 4er-Kachelraster im
+  „Eure Fotos"-Dialog (exakt das KissFunnel-Muster: Antippen wählt, nochmal Antippen wählt
+  ab, keine Pflicht) — `szeneId` geht in `videoErzeugen()`s Prompt UND in beide
+  `/api/free-preview`-Aufrufe (Zwei-Fotos- und Gemeinsames-Foto-Weg).
+- **`lib/kiss-i18n.ts`:** `szeneTitel` (existierte nur in der Kiss-Basistabelle, Wortlaut
+  „…oder lass dich überraschen" — passt nicht, denn bei der Hochzeit ist „keine Wahl" kein
+  Zufall, sondern der bekannte Standard) jetzt auch im `HOCHZEIT`-Block überschrieben, alle
+  7 Sprachen, ohne die „Überraschung"-Formulierung.
+
+**PLATZHALTER-KACHELN, nicht code-bezogen:** Bei Kiss sind die vier Kacheln echte
+Standbilder aus vier bezahlt erzeugten Beispielvideos (`public/szenen/kiss-*.jpg`). Für die
+Hochzeit gibt es das noch nicht — vier echte Beispielvideos zu erzeugen kostet echtes Geld
+(Foto+Video je Szene) UND braucht ein Referenz-Paar, das gezeigt werden darf. Bis dahin
+zeigen die vier Kacheln ersatzweise die vorhandenen Brautkleid-Fotos aus `WEDDING_KLEIDER`
+(`/kleid-klassisch.jpg` usw.) — funktional korrekt (Auswahl, Prompt, Bau alles fertig),
+aber die Bilder zeigen noch nicht, was die jeweilige Szene wirklich zeigt. Austauschen,
+sobald der Owner entscheidet, ob/wann vier echte Beispiele erzeugt werden sollen.
+
+**Geprüft:** `tsc --noEmit` sauber in allen vier geänderten Dateien. Im Browser (mobil, DE):
+Dialog zeigt „Wählt eure Szene" mit 4 Kacheln; Antippen setzt Goldrand + Häkchen, nochmal
+Antippen entfernt es; Konsole ohne Fehler. Nicht geprüft (kostet echtes Geld je Versuch):
+ob die gewählte Szene tatsächlich im erzeugten Bild/Video ankommt — das prüft sich erst im
+Owner-Testkauf mit, der ohnehin noch aussteht.
+
+---
+
+## Ä14b — Die vier Kacheln: doch keine Platzhalter mehr (03.08.2026, direkt danach)
+
+Zwei Owner-Rückmeldungen, unmittelbar nacheinander:
+
+1. Screenshot der vier Platzhalter-Kacheln (Brautkleid-Fotos aus `WEDDING_KLEIDER`):
+   **„man sieht die braut gar nicht"** — und tatsächlich zeigten die meisten dieser
+   Katalogfotos das Kleid von hinten/seitlich ohne Gesicht. Schlimmer als nur „noch nicht
+   fertig": Die Kacheln sahen wie eine KLEIDERAUSWAHL aus, nicht wie eine SZENEN-Auswahl —
+   der Owner probierte den Dialog aus und verstand ihn deshalb komplett falsch: „ich wähle
+   eine Braut und ein Kleid, aber das wollte ich gar nicht … ich wollte eine Video-Szene
+   auswählen. Küssen, Umarmen, Trinken, In der Kirche."
+2. Auf die Rückfrage, was stattdessen in die Kacheln soll (Text-Chips ohne Bild / echte
+   Beispielvideos jetzt erzeugen / Szenen-Auswahl vorerst weglassen — mit Kosten-Hinweis
+   ca. 1–3 €, weil dafür ein zeigbares Referenzpaar gebraucht wird): **„du hast doch Bella
+   und Peter"** — der Owner erinnerte an ein bereits vorhandenes, an anderer Stelle
+   etabliertes Beispielpaar (Bella: `lib/bella-card.ts`, Foto `public/Bella/
+   bella-curvy-base.png`; Peter: `/kiss-placeholder.jpg`, das Männergesicht-Platzhalterfoto
+   aus `KissFunnel.tsx`) — spart die zwei Referenzfoto-Generierungen aus der ursprünglichen
+   Kostenschätzung komplett.
+
+**Was daraufhin gemacht wurde:** Für jede der vier Szenen EIN echter Aufruf von
+`/api/free-preview` (Admin-PIN, kein Tages-Deckel) mit Bella als `model`, Peter als
+`person`, `theme: "wedding"`, `szene: <id>` — alle vier auf Anhieb gelungen, auch die
+Kuss-Szene ohne Wiederholung. Die vier Standbilder liegen jetzt fest im Repo unter
+`public/szenen-hochzeit/hochzeit-{kirche,garten,ballsaal,kuss}.jpg` (mit `sharp` auf
+300×400 verkleinert, ~22 KB je Datei — dieselbe Größenordnung wie `public/szenen/kiss-*.jpg`
+bei Kiss). `WEDDING_SZENEN` in `lib/wedding-prompt.ts` zeigt jetzt auf diese Dateien statt
+auf `WEDDING_KLEIDER`.
+
+**Tatsächliche Kosten:** nur vier Bild-Erzeugungen (OpenAI, „low"-Stufe) — deutlich unter
+der genannten 1–3-€-Schätzung, weil kein Referenzpaar mehr erzeugt werden musste. Keine
+Video-Generierung (Pixverse) angestoßen — bewusst gespart: Der Kuss-Video-Satz in
+`weddingPrompt` ist wortgleich an Kiss' eigenen, seit Wochen live bewährten Kuss-Satz
+angelehnt („look at each other, smile, lean in slowly and share a brief tender kiss, then
+smile at each other happily") — dieselbe Formulierung, die bei `KUSS_SZENEN` täglich
+funktioniert, nur mit @1/@2 statt „the two people". Falls der Owner das dennoch einmal
+als echtes Video sehen will (nicht nur als Standbild): eigener, kleiner Auftrag, kein
+Blocker für diese Änderung.
+
+**Geprüft:** Alle vier neuen Bilder einzeln angesehen (zeigen klar Braut+Bräutigam, korrekte
+Szene, Kuss-Bild zeigt tatsächlich Lippen auf Lippen). `tsc --noEmit` sauber. Im Browser
+(mobil, DE) bestätigt: Dialog zeigt jetzt die vier echten Fotos statt der Kleiderfotos,
+Konsole ohne Fehler.
+
 Dieser Plan ist für die Umsetzung durch ein Modell geschrieben: Jede Änderung nennt Datei,
 Ankerstelle und den fertigen neuen Text. **Nichts dazuerfinden, nichts weglassen.**
 Alle Code-Zitate sind am 02.08.2026 gegen den echten Stand geprüft.

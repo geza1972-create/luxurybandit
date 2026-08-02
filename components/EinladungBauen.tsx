@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
+import { Check, Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import ImageCropper from "@/components/ImageCropper";
 import LightSwitch from "@/components/LightSwitch";
 import { kissText } from "@/lib/kiss-i18n";
-import { weddingPrompt, KISS_LOOK_ID } from "@/lib/wedding-prompt";
+import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID } from "@/lib/wedding-prompt";
 import { fillPrices } from "@/lib/pricing";
 
 /**
@@ -125,6 +125,13 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   const [weg, setWeg] = useState<"zwei" | "gemeinsam">("zwei");
   const [paarFoto, setPaarFoto] = useState("");
 
+  /**
+   * DIE SZENE (Owner 03.08.2026: „4 templatevideos wie beim kissing. Und user sucht sich aus
+   * die Szene. Eins davon ist küssen"). "" = keine Wahl, und dann ändert sich NICHTS am
+   * Auftrag — dieselbe Regel wie bei Kiss (`kussSzeneId` in KissFunnel.tsx).
+   */
+  const [szeneId, setSzeneId] = useState("");
+
   const [cropDatei, setCropDatei] = useState<File | null>(null);
   const [cropZiel, setCropZiel] = useState<"sie" | "er" | "paar" | null>(null);
   const ihrRef = useRef<HTMLInputElement>(null);
@@ -167,6 +174,26 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
     [],
   );
 
+  /**
+   * AB DEM EIGENEN ERGEBNIS HOEREN DIE BEISPIELE AUF (03.08.2026 — die eigentliche Ursache
+   * hinter „ich kann es nicht sharen. Was ist das bitte?").
+   *
+   * Solange die Karte leer ist, verkaufen die Beispiele (Owner: „in der Karte muss doch
+   * stehen ein Beispiel eines Namens und eine schöne Adresse") — da ist das richtig.
+   * Sobald aber das EIGENE Bild in der Karte steht, richten dieselben Beispiele Schaden an:
+   *
+   *  - Der Owner sah „Ana & Mihai" ueber SEINEM Foto und hatte keinen Grund zu ahnen, dass
+   *    die Namen noch fehlen — er hat Datum und Ort ersetzt, die Namen nicht. Genau deshalb
+   *    blieb der Verschicken-Knopf weg (`bild && sie.trim() && er.trim()`).
+   *  - Und schlimmer: `einladungAnlegen()` schickt `ort.trim()`, also LEER — waehrend auf der
+   *    Karte „Schlosshotel Grunewald" stand. Was er sah, war nicht, was er verschickt haette.
+   *
+   * Ab jetzt fallen die Felder mit dem eigenen Ergebnis auf ihren normalen Leer-Zustand
+   * zurueck (gestrichelt und antippbar, siehe `EinladungKarte`) — was auf der Karte steht,
+   * ist wieder genau das, was gespeichert wird.
+   */
+  const eigenes = !!bild || !!videoUrl;
+
   /** Fertig zum Erzeugen ist, wer den gewaehlten Weg vollstaendig gegangen ist. */
   const fotosDa = weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
   // Sobald beide Bedingungen wieder stimmen, hat der rote Hinweis seinen Zweck erfüllt.
@@ -186,6 +213,19 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    * zurueck, auch mit vollem Konto. Existiert noch keiner, wird er hier angelegt.
    */
   const bezahlen = async (): Promise<boolean> => {
+    /**
+     * DAS FENSTER SOFORT OEFFNEN, VOR JEDEM AWAIT (03.08.2026). Browser erlauben
+     * `window.open` ohne Blockade nur, wenn es NOCH im selben Atemzug wie der Klick steht.
+     * Ein `await fetch(...)` davor reicht vielen Browsern (vor allem Safari und mobiles
+     * Chrome) schon, um das Fenster STILL zu blockieren — kein Fehler, keine Meldung,
+     * einfach nichts. Hier standen bis zu ZWEI Anfragen davor (Kiss-Log + Kasse), das war
+     * also der schlimmste Fall. Das leere Fenster steht jetzt vor allem anderen; die
+     * Adresse traegt es erst nach, wenn sie da ist.
+     *
+     * Derselbe Fehler und dieselbe Loesung wie in `KissFunnel.tsx:unlock()` — dort am
+     * selben Tag unabhaengig gefunden.
+     */
+    const popup = window.open("", "_blank", "popup,width=480,height=780");
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     let gid = genId;
@@ -203,18 +243,30 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ genId: gid, once: true, email: mail.trim(), returnTo: window.location.pathname + window.location.search }),
       }).then(r => r.json());
-      if (start?.walletPaid) { setBezahlt(true); return true; }
-      if (!start?.url || !start?.sessionId) { setStatus(start?.error || F.statusNotWork); return false; }
-      const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
+      // Aus dem Guthaben bezahlt — das leere Fenster wurde nie gebraucht.
+      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } setBezahlt(true); return true; }
+      if (!start?.url || !start?.sessionId) {
+        try { popup?.close(); } catch { /**/ }
+        setStatus(start?.error || F.statusNotWork); return false;
+      }
+      // Popup blockiert → gleiche Seite. Lieber ein Seitenwechsel als eine tote Warteschleife.
       if (!popup) { window.location.href = start.url; return false; }
+      try { popup.location.href = start.url; }
+      catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
         if (s?.paid) { try { popup.close(); } catch { /**/ } setBezahlt(true); return true; }
         if (popup.closed && i > 2) break;
       }
+      // Fuenf Minuten ohne Zahlung: das Fenster nicht offen stehen lassen.
+      try { popup.close(); } catch { /**/ }
       return false;
-    } catch { setStatus(F.statusNetwork); return false; }
+    } catch {
+      // Netzwerkfehler — das leere Fenster darf nicht als weisse Seite stehen bleiben.
+      try { popup?.close(); } catch { /**/ }
+      setStatus(F.statusNetwork); return false;
+    }
   };
 
   /**
@@ -239,7 +291,7 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person, garment, prompt: weddingPrompt("") }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person, garment, prompt: weddingPrompt("", szeneId) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || F.statusCouldNotStart); return; }
       if (genId) {
@@ -274,15 +326,24 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         const ok = await bezahlen();
         if (!ok) { setBusy(false); return; }
       }
+      /**
+       * DIALOG SCHLIESST SOFORT NACH DER ZAHLUNG (03.08.2026, echter Testkauf des Owners:
+       * „dialog muss nach der bezahlung sofort schliessen und die seite mit rendering offen
+       * sein. mit radar rendering"). Vorher blieb der Dialog ueber Bild UND Video hinweg
+       * offen — bis zu drei Minuten lang ein Knopf mit Text statt der Karte selbst, die doch
+       * zeigen soll, was entsteht. Jetzt sieht er sofort die Karte mit dem Radar-Scan
+       * (weiter unten im `video`-Slot), genau wie beim Kuss-Trichter nach der Zahlung.
+       */
+      setFeld(null);
       setStatus(F.statusQuality);
       const d = await fetch("/api/free-preview", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(weg === "gemeinsam"
-          ? { paar: paarFoto, theme: "wedding", device, email: mail.trim() }
-          : { person: seinFoto, model: ihrFoto, theme: "wedding", device, email: mail.trim() }),
+          ? { paar: paarFoto, theme: "wedding", device, email: mail.trim(), szene: szeneId }
+          : { person: seinFoto, model: ihrFoto, theme: "wedding", device, email: mail.trim(), szene: szeneId }),
       }).then(r => r.json());
       if (d?.image) {
-        setBild(d.image); setBildPfad(d.imagePath ?? ""); setFeld(null);
+        setBild(d.image); setBildPfad(d.imagePath ?? "");
         if (genId) void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, imagePath: d.imagePath }) }).catch(() => {});
         // DAS BEZAHLTE VIDEO LAEUFT VON SELBST WEITER — sie hat fuer das Video bezahlt, nicht
         // fuer das Standbild; das Standbild ist nur die schnelle Vorschau.
@@ -349,20 +410,49 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         <span className="order-[-1] mr-2"><LightSwitch /></span>,
         langZeile,
       )}
+      {/* Die Beispiele (Name/Datum/Ort/Adresse) stehen nur, solange nichts Eigenes da ist —
+          danach der normale Leer-Zustand, damit auf der Karte steht, was auch verschickt
+          wird. Begruendung ausfuehrlich bei `eigenes` weiter oben. */}
       <EinladungKarte
         sprache={lang}
-        sie={sie.trim() || BEISPIEL_SIE}
-        er={er.trim() || BEISPIEL_ER}
-        datum={datum || beispielDatum}
-        ort={ort.trim() || BEISPIEL_ORT[lang] || BEISPIEL_ORT.en}
-        adresse={adresse.trim() || BEISPIEL_ADRESSE[lang] || BEISPIEL_ADRESSE.en}
+        sie={sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE)}
+        er={er.trim() || (eigenes ? T.fEr : BEISPIEL_ER)}
+        datum={datum || (eigenes ? "" : beispielDatum)}
+        ort={ort.trim() || (eigenes ? "" : (BEISPIEL_ORT[lang] || BEISPIEL_ORT.en))}
+        adresse={adresse.trim() || (eigenes ? "" : (BEISPIEL_ADRESSE[lang] || BEISPIEL_ADRESSE.en))}
         telefon={telefon.trim()}
         demo
         aufNamen={() => setFeld("namen")}
         aufDatum={() => setFeld("wann")}
         aufOrt={() => setFeld("wo")}
         video={
-          bild ? (
+          busy && !bild ? (
+            /* RADAR-RENDERING (03.08.2026, Owner-Testkauf: „mit radar rendering"). Dasselbe
+               Muster wie im Kuss-Trichter (KissFunnel.tsx: Scanner-Balken + Sucher-Ecken über
+               dem eigenen Foto) — hier auf der Karte selbst, weil die Karte hier die einzige
+               Bühne ist. Zeigt das eigene hochgeladene Foto (geweichzeichnet), nicht das
+               Beispielvideo: Wer bezahlt hat, soll sehen, dass AN SEINEM Foto gearbeitet
+               wird, nicht am Beispiel von jemand anderem. Kein Rückfall auf `beispielVideo`
+               noetig — dieser Zweig ist nur erreichbar, nachdem `erzeugen()` bereits auf
+               `fotosDa` geprueft hat, das eigene Foto ist an dieser Stelle also immer da
+               (live geprueft: ein `beispielVideo`-Rueckfall in einem `<img>` liefert ohnehin
+               nur ein kaputtes Bild, `beispielVideo` ist ein Video, keine Bilddatei). */
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={weg === "gemeinsam" ? paarFoto : (ihrFoto || seinFoto)}
+                alt="" className="aspect-[3/4] w-full object-cover object-top blur-[6px] brightness-75" />
+              <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+              <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+              <div className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+              <div className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+              <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+              <div className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
+                <Sparkles className="lb-onmedia h-4 w-4 animate-pulse" />
+                <span className="lb-onmedia text-[12px] font-black">{status || F.oneMoment}</span>
+              </div>
+            </div>
+          ) : bild ? (
             /* Derselbe Knopf auf dem eigenen Bild — hier heisst „Foto ersetzen" endlich
                woertlich, was es tut. Vorher war das ganze Bild ein unsichtbarer Knopf; wer
                das nicht erraet, sitzt mit dem ersten Ergebnis fest, das die KI ausspuckt. */
@@ -378,13 +468,25 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
                   springt die halbe Seite, wenn es ankommt. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={bild} alt="" width={1024} height={1536} className="block h-auto w-full" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
-                <button type="button" onClick={() => setFeld("fotos")}
-                  className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
-                  <ImageUp className="h-4 w-4 shrink-0" />
-                  {T.ersetzen}
-                </button>
-              </div>
+              {busy ? (
+                /* DAS VIDEO ENTSTEHT NOCH (03.08.2026, Owner: „ich habe ein Foto statt Video
+                   und dann?"). Vorher stand hier schon der „Foto ersetzen"-Knopf, sobald das
+                   Standbild da war — obwohl im Hintergrund noch das bezahlte Video lief, und
+                   nirgendwo AUF dem Bild stand, dass da noch etwas kommt. Jetzt steht der
+                   Status direkt auf dem Foto, dort wo der Blick ohnehin hinfaellt. */
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
+                  <Loader2 className="lb-onmedia h-4 w-4 shrink-0 animate-spin" />
+                  <span className="lb-onmedia text-[12px] font-black">{status || F.renderingVideo}</span>
+                </div>
+              ) : (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
+                  <button type="button" onClick={() => setFeld("fotos")}
+                    className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
+                    <ImageUp className="h-4 w-4 shrink-0" />
+                    {T.ersetzen}
+                  </button>
+                </div>
+              )}
             </div>
           ) : beispielVideo ? (
             /* DAS BEISPIEL LAEUFT, BIS DAS EIGENE BILD DA IST.
@@ -446,6 +548,17 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           </button>
           <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/60">{F.probeHinweis}</p>
         </div>
+      )}
+      {/* SICHTBARER HINWEIS STATT STILLEM FEHLEN (03.08.2026, Owner-Testkauf: „ich kann es
+          nicht sharen. Was ist das bitte?"). Das Bild war fertig, Datum/Ort waren eingetragen
+          — aber die Namen standen noch auf dem Beispiel „Ana & Mihai", und der Verschicken-
+          Knopf blieb deshalb unsichtbar, ohne zu sagen wieso. Derselbe Fehler, den plan.md
+          schon beim Erzeugen-Knopf gefunden hatte (stumm statt sichtbar), hier am Verschicken-
+          Knopf noch einmal. */}
+      {bild && !busy && (!sie.trim() || !er.trim()) && (
+        <p role="alert" className="lb-karte-fehler mt-3 text-center text-[12.5px] font-black leading-snug">
+          {F.namenVorSenden}
+        </p>
       )}
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/75">{status}</p>}
 
@@ -528,6 +641,30 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
             )}
           </div>
         )}
+
+        {/* DIE SZENEN-KACHELN (Owner 03.08.2026: „4 templatevideos wie beim kissing … eins
+            davon ist küssen"). Genau dasselbe Muster wie bei Kiss (KissFunnel.tsx, KUSS_SZENEN):
+            vier Standbilder, Antippen wählt, nochmal Antippen wählt ab, keine Pflicht — ohne
+            Wahl läuft der bisherige Auftrag unveraendert weiter. */}
+        <div className="mt-1">
+          <p className="text-[12px] font-bold text-white/85">{F.szeneTitel}</p>
+          <div className="mt-1.5 grid grid-cols-4 gap-2">
+            {WEDDING_SZENEN.map(sz => (
+              <button key={sz.id} type="button"
+                onClick={() => setSzeneId(w => (w === sz.id ? "" : sz.id))}
+                aria-pressed={szeneId === sz.id}
+                className={`relative overflow-hidden rounded-xl border transition active:scale-95 ${szeneId === sz.id ? "border-[#f6cf51] ring-2 ring-[#f6cf51]" : "border-white/20"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sz.kachel} alt={sz.name} className="aspect-[3/4] w-full object-cover" />
+                {szeneId === sz.id && (
+                  <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]">
+                    <Check className="h-3.5 w-3.5 text-black" />
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Die Adresse steht VOR dem Erzeugen — dieselbe Regel wie im Trichter: kein Bild auf
             unsere Kosten fuer jemanden, der nie erreichbar ist. */}
