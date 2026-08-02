@@ -326,8 +326,15 @@ export default async function ThemesCatalog({ searchParams }: {
                 <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
                   {/* Cover: Werbevideo (aktiv) → Foto → Icon-Wasserzeichen (coming soon, kein Bild) */}
                   {t.video ? (
+                    /* KEIN `t.cover`-Rueckfall als Poster (02.08.2026, Owner: „kurz andere
+                       Poster, irgendwelche Models"): `cover` ist bei mehreren Karten (Wedding,
+                       Holiday, Idol, Birthdays, Luxury, Surprise) ein themenfremdes Platzhalter-
+                       Modelfoto aus dem Bilderstapel (`ph()`), gedacht als Fallback-BILD, wenn es
+                       KEIN Video gibt. Als Video-Poster blitzte genau dieses fremde Gesicht auf,
+                       bis das echte Themenvideo geladen hatte. Nur ein Thema-eigenes `t.poster`
+                       (z. B. Wetter) darf hier stehen; sonst lieber kein Poster als ein falsches. */
                     // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video src={t.video} poster={t.poster || t.cover || undefined}
+                    <video src={t.video} poster={t.poster || undefined}
                       autoPlay muted loop playsInline preload="metadata"
                       className="h-full w-full object-cover object-top" />
                   ) : t.cover ? (

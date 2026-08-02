@@ -42,6 +42,14 @@ export default function GruppenChat({
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const [liste, setListe] = useState<Nachricht[]>(nachrichten);
+  /**
+   * OHNE DAS BLIEB DER CHAT IN DER ERSTEN SPRACHE STECKEN (02.08.2026: Sprache auf „Română"
+   * gestellt, die Nachrichten blieben deutsch). `useState(nachrichten)` liest den Startwert nur
+   * beim ersten Rendern — wechselt die Sprache danach und die Elternseite schickt eine neue
+   * `nachrichten`-Liste (z. B. die Demo-Nachrichten in der jeweiligen Sprache), bleibt `liste`
+   * beim alten Stand, weil React den Anfangswert eines `useState` nie nachträglich übernimmt.
+   */
+  useEffect(() => { setListe(nachrichten); }, [nachrichten]);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);

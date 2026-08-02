@@ -403,9 +403,16 @@ svg {
 /* UMRANDETE KNÖPFE IN DER HELLEN FASSUNG (Owner 30.07.2026: „der rechte button ist weiss").
    Diese Knöpfe tragen ihre weisse Schrift als inline-style — gedacht für dunklen Grund, auf
    hellem verschwinden sie. Ein !important im Stylesheet sticht einen einfachen inline-style,
-   deshalb greift es hier. Rand dunkel, Schrift blau; gefüllte Knöpfe bleiben unberührt. */
-.lb-fb button[class*="border-white/"]:not(.lb-gold):not(.lb-buy),
-.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy) {
+   deshalb greift es hier. Rand dunkel, Schrift blau; gefüllte Knöpfe bleiben unberührt.
+
+   AUSGENOMMEN die Sprachzeile (Owner 31.07.2026 hatte dort schon einmal „die chips duerfen
+   nicht transparent sein" verlangt, Regel weiter oben bei `[data-langrow="1"] button`) — diese
+   Regel hier hat wegen der zwei :not()-Klauseln MEHR Spezifität als die Langrow-Regel und hat
+   deren weissen Grund seither still ueberstimmt: Der Sprachknopf bekam wieder einen fast
+   durchsichtigen blauen Fleck statt einer eigenen weissen Flaeche, sobald ein Foto darunterlag
+   (02.08.2026, vom Owner gemeldet: „den Chip fuer die Sprachen muss auch weiss sein"). */
+.lb-fb button[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button),
+.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button) {
   color: #1877F2 !important;
   border-color: rgba(24, 119, 242, 0.45) !important;
   background-color: rgba(24, 119, 242, 0.06) !important;
@@ -544,6 +551,11 @@ svg {
    Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
 .lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }
 .lb-karte .lb-karte-nein { color: #a33b3b !important; stroke: #a33b3b !important; opacity: 1; }
+/* Fehlerhinweis IN der Karte: ein Inline-`color` verliert gegen die !important-Braunregel
+   oben — der „rote" Hinweis am Erzeugen-Knopf stand deshalb unsichtbar in Karten-Braun da.
+   Rot-600 statt des 500ers der dunklen Seiten, weil auf Creme erst das die Kontrastgrenze
+   fuer kleine Schrift schafft. */
+.lb-karte .lb-karte-fehler { color: #dc2626 !important; }
 .lb-karte .lb-karte-feld {
   background: rgba(160, 122, 52, 0.07) !important;
   border: 1px solid rgba(160, 122, 52, 0.35) !important;

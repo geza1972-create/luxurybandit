@@ -1580,7 +1580,12 @@ export type Einladung = {
    * wenn sich Uhrzeit oder Ort ändern — und genau dafür zahlt es. Dafür MUSS an der Eingabe
    * stehen, wofür die Adresse ist; sie gehört dem Paar, nicht uns.
    */
-  zusagen?: { name: string; ja: boolean; at: string; email?: string }[];
+  /**
+   * `menu` — welches Essen ein zusagender Gast will (Owner 02.08.2026: „die Leute müssen bei
+   * der Bestätigung angeben ob sie vegetarisch, vegan oder normal essen wollen"). Nur bei einer
+   * Zusage gesetzt; wer absagt, isst nicht mit.
+   */
+  zusagen?: { name: string; ja: boolean; at: string; email?: string; menu?: "normal" | "vegetarisch" | "vegan" }[];
   /**
    * Wie oft das Video schon getauscht wurde (Owner: „sie können das Video 5 mal ändern.
    * Die Gäste sehen immer den neuesten Stand"). Begrenzt, weil jeder Tausch ein bezahlter

@@ -72,7 +72,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-Mail fehlt." }, { status: 400 });
     }
     const ja = body.ja !== false;
-    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail };
+    // Nur bei einer Zusage relevant (Owner 02.08.2026: „vegetarisch, vegan oder normal") —
+    // wer absagt, bekommt kein Menü, egal was mitgeschickt wurde.
+    const menuRoh = sauber(body.menu, 20);
+    const menu: "normal" | "vegetarisch" | "vegan" | undefined =
+      ja && (menuRoh === "vegetarisch" || menuRoh === "vegan" || menuRoh === "normal") ? menuRoh : undefined;
+    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail, menu };
     for (let versuch = 0; versuch < 4; versuch++) {
       const alle = await readEinladungen();
       const e = alle.find(x => x.id === rsvp);
@@ -370,7 +375,7 @@ export async function GET(request: Request) {
       datum: e.datum ?? "", ort: e.ort ?? "", adresse: e.adresse ?? "",
       telefon: e.telefon ?? "", lang: e.lang ?? "en",
       // Oeffentlich sind Vornamen und Texte — NIE die Adressen der Gaeste.
-      zusagen: (e.zusagen ?? []).map(z => ({ name: z.name, ja: z.ja })),
+      zusagen: (e.zusagen ?? []).map(z => ({ name: z.name, ja: z.ja, menu: z.menu })),
       chat: e.chat ?? [],
       news: e.news ?? [],
     });

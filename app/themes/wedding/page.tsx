@@ -2,7 +2,7 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
-import { Check, FileText, Video, MessageCircle, UserCheck, Mail, MessagesSquare, Globe, ChevronRight } from "lucide-react";
+import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungBauen from "@/components/EinladungBauen";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -12,13 +12,12 @@ import EinladungenAdmin from "@/components/EinladungenAdmin";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
-import ExampleVideos from "@/components/ExampleVideos";
 import ZusagenKarte from "@/components/ZusagenKarte";
-import SubscribeCta from "@/components/SubscribeCta";
 import GruppenChat from "@/components/GruppenChat";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
+import { fillPrices } from "@/lib/pricing";
 
 /**
  * THEMA „HOCHZEITSKUSS" (Owner 30.07.2026: „ich will eher wie sie sich einen Hochzeitskuss
@@ -44,118 +43,51 @@ export const dynamic = "force-dynamic";
  * einer Aufgabe. Die Begriffe stehen deshalb in Titel, Beschreibung UND im sichtbaren Text —
  * Google bewertet, was auf der Seite steht, nicht was in den Metadaten behauptet wird.
  */
-/**
- * BEISPIELDATEN FUER DIE KARTEN unter dem Trichter. Erkennbar Muster, kein echtes Paar.
- * Der Ort wechselt mit der Sprache — eine rumaenische Besucherin soll sich die Einladung
- * vorstellen koennen, nicht eine fremde Stadt lesen.
- */
-/** Die Sprachen, in denen die Einladung selbst erscheint — in der jeweiligen Sprache
- *  geschrieben, damit ein Gast seine eigene erkennt, ohne zu ueberlegen. */
-const SPRACH_LABELS = [
-  { code: "en", label: "English" }, { code: "ro", label: "Română" },
-  { code: "fr", label: "Français" }, { code: "es", label: "Español" },
-  { code: "it", label: "Italiano" }, { code: "pt", label: "Português" },
-  { code: "de", label: "Deutsch" },
-];
-/** Beispiel-Gaesteliste. Vornamen, wie die echte Liste sie auch nur haette. */
-const BEISPIEL_ZUSAGEN = [
-  { name: "Maria", ja: true }, { name: "Andrei", ja: true }, { name: "Sofia", ja: true },
-  { name: "Luca", ja: false }, { name: "Elena", ja: true },
-];
-/**
- * BEISPIEL-NEUIGKEIT UND -GESPRAECH (Saetze vom Owner, 31.07.2026).
- *
- * Bewusst genau diese: Sitzordnung, Musikwunsch, Wetter, eine kurzfristige Aenderung und ein
- * vergessenes Kleid. Das ist, was in einer Hochzeitsgruppe wirklich steht — und jeder Satz
- * zeigt nebenbei, wofuer das Abo bezahlt wird. Eine erfundene Nettigkeit („wir freuen uns so")
- * zeigt gar nichts.
- *
- * In allen sieben Sprachen, weil eine Verkaufsseite, die Mehrsprachigkeit verspricht und
- * darunter deutsche Kommentare zeigt, sich selbst widerlegt.
- */
-/**
- * DAS ANGEBOT (Owner 31.07.2026: „bei Wedding machen wir auch ein Abo, bis sie heiraten von
- * mir aus. Auch 24,50, weil wir die Liste hosten muessen.").
- *
- * Der Satz steht UNTER der Vorlage und der Liste, nie darueber: Erst sieht sie die Karte, dann
- * was dazugehoert, dann den Preis. Umgekehrt zahlt niemand fuer acht Sekunden Film.
- *
- * Der Preis selbst steht nirgends hier — {price} kommt aus lib/pricing.
- */
-const ANGEBOT: Record<string, { h: string; p: string; cta: string }> = {
-  de: { h: "Eure Einladung, genau so", p: "Eure Seite, das Video, die Zusagen, die News und die Gruppe — wir halten alles am Laufen, bis eure Hochzeit vorbei ist.", cta: "Einladung freischalten — {price}/Monat" },
-  en: { h: "Your invitation, just like this", p: "Your page, the video, the RSVPs, the news and the group — we keep it all running until your wedding is over.", cta: "Unlock your invitation — {price}/month" },
-  ro: { h: "Invitația voastră, exact așa", p: "Pagina voastră, videoclipul, confirmările, noutățile și grupul — le ținem în funcțiune până trece nunta.", cta: "Deblochează invitația — {price}/lună" },
-  es: { h: "Vuestra invitación, tal cual", p: "Vuestra página, el vídeo, las confirmaciones, las novedades y el grupo — lo mantenemos todo hasta que pase la boda.", cta: "Desbloquear la invitación — {price}/mes" },
-  fr: { h: "Votre invitation, exactement ainsi", p: "Votre page, la vidéo, les réponses, les nouvelles et le groupe — nous gardons tout en ligne jusqu’après le mariage.", cta: "Débloquer l’invitation — {price}/mois" },
-  pt: { h: "O vosso convite, tal e qual", p: "A vossa página, o vídeo, as confirmações, as novidades e o grupo — mantemos tudo a funcionar até passar o casamento.", cta: "Desbloquear o convite — {price}/mês" },
-  it: { h: "Il vostro invito, proprio così", p: "La vostra pagina, il video, le conferme, le novità e il gruppo — teniamo tutto attivo finché il matrimonio non è passato.", cta: "Sblocca l’invito — {price}/mese" },
-};
-const BEISPIEL_NEWS_TXT: Record<string, string> = {
-  de: "Achtung, neue Änderung: Die Hochzeit findet drinnen statt!",
-  en: "Heads up, change of plan: the wedding will be held indoors!",
-  ro: "Atenție, o schimbare: nunta va avea loc în interior!",
-  es: "¡Atención, un cambio: la boda se celebrará dentro!",
-  fr: "Attention, changement : le mariage aura lieu à l’intérieur !",
-  pt: "Atenção, mudança: o casamento vai ser dentro!",
-  it: "Attenzione, cambio: il matrimonio si terrà al chiuso!",
-};
-const BEISPIEL_CHAT_TXT: Record<string, string[]> = {
-  de: ["Jochen und Gina sitzen am Tisch 6.",
-       "Können wir eine Volksmusik-Band bekommen?",
-       "Wie wird das Wetter?",
-       "Hilfe, ich habe mein Kleid zu Hause vergessen — wo finde ich eins in der Stadt?"],
-  en: ["Jochen and Gina are at table 6.",
-       "Could we get a folk band?",
-       "What’s the weather going to be like?",
-       "Help, I left my dress at home — where can I find one in town?"],
-  ro: ["Jochen și Gina stau la masa 6.",
-       "Putem avea o formație de muzică populară?",
-       "Cum va fi vremea?",
-       "Ajutor, mi-am uitat rochia acasă — de unde pot lua una în oraș?"],
-  es: ["Jochen y Gina están en la mesa 6.",
-       "¿Podemos tener un grupo de música popular?",
-       "¿Qué tiempo va a hacer?",
-       "¡Socorro! Me he dejado el vestido en casa — ¿dónde encuentro uno en la ciudad?"],
-  fr: ["Jochen et Gina sont à la table 6.",
-       "Peut-on avoir un groupe de musique folklorique ?",
-       "Quel temps va-t-il faire ?",
-       "Au secours, j’ai oublié ma robe à la maison — où en trouver une en ville ?"],
-  pt: ["O Jochen e a Gina estão na mesa 6.",
-       "Podemos ter um grupo de música popular?",
-       "Como vai estar o tempo?",
-       "Socorro, esqueci-me do vestido em casa — onde arranjo um na cidade?"],
-  it: ["Jochen e Gina sono al tavolo 6.",
-       "Possiamo avere un gruppo di musica popolare?",
-       "Che tempo farà?",
-       "Aiuto, ho dimenticato il vestito a casa — dove ne trovo uno in città?"],
-};
-const CHAT_NAMEN = ["Ana", "Andrei", "Maria", "Sofia"];
-const BEISPIEL_NAMEN: [string, string][] = [["Ana", "Mihai"], ["Elena", "Andrei"]];
-const BEISPIEL_ORT: Record<string, string> = {
-  de: "Schlosshotel Grunewald", en: "The Old Manor House", ro: "Casa Timiș",
-  es: "Hacienda Los Olivos", fr: "Château de Villandry", pt: "Quinta da Aveleda", it: "Villa Bellosguardo",
-};
-/** Die Anschrift MIT Postleitzahl — sie ist der Punkt, an dem sich eine Einladung von einem
- *  huebschen Video unterscheidet. Erkennbar Beispiel, kein echter Ort. */
-const BEISPIEL_ADRESSE: Record<string, string> = {
-  de: "Musterstraße 12, 14193 Berlin", en: "12 Sample Lane, SW1A 1AA London",
-  ro: "Str. Exemplu 12, 106100 Sinaia", es: "Calle Ejemplo 12, 28001 Madrid",
-  fr: "12 rue Exemple, 75008 Paris", pt: "Rua Exemplo 12, 1200-001 Lisboa",
-  it: "Via Esempio 12, 00187 Roma",
-};
 
 export const metadata = {
-  title: "Digital wedding invitation video — send it on WhatsApp | LuxuryBandit",
-  description: "Make your wedding invitation as a video: upload one photo of you and one of him, and the two of you appear at your wedding. Send the invitation link on WhatsApp — the picture is free.",
+  title: "Wedding invitation video & online wedding planner | LuxuryBandit",
+  description: "Your wedding invitation as a video, made from two photos — plus RSVPs, menu choices and a group chat for your guests on one page. Send one link; each guest reads it in their own language.",
   keywords: [
     "wedding invitation video", "digital wedding invitation", "send wedding invitation whatsapp",
     "online wedding invitation", "save the date video", "video invitation wedding",
-    "invitatie de nunta video", "invitatie de nunta online", "faire-part de mariage video",
-    "invitación de boda digital", "convite de casamento digital", "invito di matrimonio video",
-    "digitale Hochzeitseinladung", "Hochzeitseinladung Video",
+    "online wedding planner", "wedding planner app", "wedding rsvp online", "digital guest list",
+    "invitatie de nunta video", "invitatie de nunta online", "planificator de nunta online",
+    "faire-part de mariage video", "organisateur de mariage en ligne",
+    "invitación de boda digital", "organizador de boda online",
+    "convite de casamento digital", "organizador de casamento online",
+    "invito di matrimonio video", "wedding planner online",
+    "digitale Hochzeitseinladung", "Hochzeitseinladung Video", "Hochzeitsplaner online", "digitale Gästeliste Hochzeit",
   ],
   alternates: { canonical: "/themes/wedding" },
+};
+
+/**
+ * DIE DEMO UNTER DEM TRICHTER (Owner 01.08.2026: „ich sehe Chat und Einladungsliste auf
+ * dieser Seite nicht" — „User muss wissen sofort was er bekommt").
+ *
+ * Die Beispiel-Einladung zeigt Zusagen und Gruppenchat laengst — aber eben erst nach einem
+ * Klick. Die Braut, die hier ankommt, entscheidet auf DIESER Seite; also stehen beide
+ * Bausteine jetzt direkt darunter, als Demo (Antworten wird nur vorgespielt, nichts wird
+ * gespeichert). Daten wie auf /einladung/beispiel.
+ */
+/**
+ * NAMEN ALS PAAR ODER MIT NACHNAME (Owner 02.08.2026: „Namen müssen hier als paar oder mit
+ * Nachname stehen"). Ein einzelner Vorname wirkte auf der Demo wie ein Platzhalter — echte
+ * Gästelisten zeigen entweder das Paar, das gemeinsam zugesagt hat, oder einen vollen Namen.
+ */
+const DEMO_ZUSAGEN = [
+  { name: "Maria & Radu", ja: true, menu: "vegetarisch" as const }, { name: "Andrei Ionescu", ja: true },
+  { name: "Sofia & Matei", ja: true, menu: "vegan" as const }, { name: "Luca Popescu", ja: false }, { name: "Elena & Cristian", ja: true },
+];
+const DEMO_NAMEN = ["Maria", "Andrei", "Maria", "Sofia"];
+const DEMO_CHAT: Record<string, string[]> = {
+  de: ["Jochen und Gina sitzen am Tisch 6.", "Können wir eine Volksmusik-Band bekommen?", "Wie wird das Wetter?", "Hilfe, ich habe mein Kleid zu Hause vergessen — wo finde ich eins in der Stadt?"],
+  en: ["Jochen and Gina are at table 6.", "Could we get a folk band?", "What's the weather going to be like?", "Help, I left my dress at home — where can I find one in town?"],
+  ro: ["Jochen și Gina stau la masa 6.", "Putem avea o formație de muzică populară?", "Cum va fi vremea?", "Ajutor, mi-am uitat rochia acasă — de unde pot lua una în oraș?"],
+  es: ["Jochen y Gina están en la mesa 6.", "¿Podemos tener un grupo de música popular?", "¿Qué tiempo va a hacer?", "¡Socorro! Me he dejado el vestido en casa — ¿dónde encuentro uno en la ciudad?"],
+  fr: ["Jochen et Gina sont à la table 6.", "Peut-on avoir un groupe folklorique ?", "Quel temps fera-t-il ?", "Au secours, j'ai oublié ma robe — où en trouver une en ville ?"],
+  pt: ["O Jochen e a Gina estão na mesa 6.", "Podemos ter uma banda de música popular?", "Como vai estar o tempo?", "Socorro, deixei o vestido em casa — onde arranjo um na cidade?"],
+  it: ["Jochen e Gina sono al tavolo 6.", "Possiamo avere una band di musica popolare?", "Che tempo farà?", "Aiuto, ho dimenticato il vestito a casa — dove ne trovo uno in città?"],
 };
 
 export default async function WeddingThemePage({ searchParams }: {
@@ -170,10 +102,6 @@ export default async function WeddingThemePage({ searchParams }: {
   const showCustomer = !showAdmin || view === "kunde";
 
   const cfg = await readThemeConfig("wedding").catch(() => ({ modelIds: [] as string[], examplePaths: [] as string[] }));
-  // Rund hundert Tage voraus: So weit im Voraus verschickt man Einladungen, und es steht
-  // damit immer in der Zukunft — anders als ein eingetipptes Datum.
-  const inHundertTagen = new Date(Date.now() + 100 * 24 * 60 * 60 * 1000);
-  const beispielDatum = inHundertTagen.toISOString().slice(0, 10);
   const examples: string[] = (await Promise.all((cfg.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
   /**
@@ -195,7 +123,7 @@ export default async function WeddingThemePage({ searchParams }: {
    */
   const t = await trObject({
     s1h: "A wedding invitation as a video — with the two of you in it",
-    s1p: "Instead of a printed card, your digital wedding invitation is a short video in which you and your partner appear on your own wedding day — you in a white dress, him in a white suit, in the church. Upload one photo of yourself and one of him; the AI does the rest. The picture is free, so you see what it looks like before you decide anything.",
+    s1p: fillPrices("Instead of a printed card, your digital wedding invitation is a short video in which you and your partner appear on your own wedding day — you in a white dress, him in a white suit, in the church. Upload one photo of yourself and one of him; the AI does the rest. Every video costs {once} — there is no free trial.", "en"),
     /* Ohne das doppelte „you": Daraus machte die Maschine „Ein Link — du sendest ihn so, wie
        du bereits alles sendest". Kurze Quellsaetze ohne wiederholtes Fuerwort uebersetzen
        sich in allen sieben Sprachen sauberer. */
@@ -205,6 +133,8 @@ export default async function WeddingThemePage({ searchParams }: {
     s3p: "Most couples send a save-the-date two to four months before the wedding and the full invitation six to eight weeks ahead. A video invitation gets watched instead of skimmed, and it works the same for guests abroad — they open the same link on their phone.",
     s4h: "Your photos stay yours",
     s4p: "The two photos you upload are used to make your video and nothing else. They are never published and never shown to other users, they are stored on servers in the EU, and everything from a visit without a purchase is deleted after 90 days. The invitation page itself is not listed anywhere and cannot be found on Google — only the people you send the link to can open it.",
+    zusCap: "Included with your invitation: your guests answer with one tap — you see the list and every menu choice.",
+    chatCap: "Also included: the group chat for all your guests — no app, no login needed.",
   }, L);
 
   return (
@@ -237,7 +167,16 @@ export default async function WeddingThemePage({ searchParams }: {
             <H1 className="mt-10">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             {/* EIN Satz, mehr nicht (Owner 31.07.2026). Die Überschrift sagt „Einladung",
                 der erste Schritt fragt nach zwei Fotos — dazwischen fehlte die Erklärung. */}
-            {T.heroLead && <Lead className="mt-2">{T.heroLead}</Lead>}
+            {T.heroLead && <Lead className="mt-2">{fillPrices(T.heroLead, L)}</Lead>}
+
+            {/* SOFORT SEHEN, WAS MAN BEKOMMT: Zusagenliste und Gruppenchat als Demo. */}
+            <div className="mt-6 space-y-4">
+              <p className="text-center text-[12px] font-bold leading-snug text-white/60">✓ {t.zusCap}</p>
+              <ZusagenKarte sprache={KARTE_TEXTE[L] ? L : "en"} demo zusagen={DEMO_ZUSAGEN} />
+              <p className="pt-2 text-center text-[12px] font-bold leading-snug text-white/60">✓ {t.chatCap}</p>
+              <GruppenChat sprache={KARTE_TEXTE[L] ? L : "en"} demo sie="Ana" er="Mihai"
+                nachrichten={(DEMO_CHAT[L] ?? DEMO_CHAT.en).map((t, i) => ({ name: DEMO_NAMEN[i] ?? "Gast", text: t }))} />
+            </div>
 
             {/* GROSS UND MIT TON (Owner 30.07.2026: „bitte mit vergroessern und song").
                 Eine Reihe statt zweier Spalten: Ein Hochzeitskuss auf halber Breite ist eine

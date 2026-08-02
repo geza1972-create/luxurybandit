@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X, Loader2 } from "lucide-react";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -31,7 +31,13 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
  * Mehr als der Vorname steht dort nicht.
  */
 
-export type Zusage = { name: string; ja: boolean; at?: string; email?: string };
+/**
+ * MENÜWAHL BEI DER ZUSAGE (Owner 02.08.2026: „die Leute müssen bei der Bestätigung angeben ob
+ * sie vegetarisch, vegan oder normal essen wollen"). Nur bei einer Zusage sinnvoll — wer absagt,
+ * isst nicht mit; `menu` bleibt dann leer.
+ */
+export type Menu = "normal" | "vegetarisch" | "vegan";
+export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu };
 
 export default function ZusagenKarte({
   sprache, id, zusagen, demo,
@@ -44,8 +50,13 @@ export default function ZusagenKarte({
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const [liste, setListe] = useState<Zusage[]>(zusagen);
+  // Derselbe Fehler wie im Gruppenchat behoben (02.08.2026): `useState(zusagen)` liest den
+  // Anfangswert nur einmal — ändert sich die Liste danach (z. B. Demo-Namen), bliebe `liste`
+  // stehen, ohne dass es hier bislang aufgefallen ist.
+  useEffect(() => { setListe(zusagen); }, [zusagen]);
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
+  const [menu, setMenu] = useState<Menu>("normal");
   const [busy, setBusy] = useState(false);
   const [fertig, setFertig] = useState(false);
 
@@ -58,16 +69,17 @@ export default function ZusagenKarte({
     const n = name.trim();
     if (!n || !mailOk || !id || busy) return;
     setBusy(true);
+    // Das Menü zaehlt nur bei einer Zusage — wer absagt, isst nicht mit.
     const r = await fetch("/api/einladung", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim() }),
+      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt ? menu : undefined }),
     }).catch(() => null);
     setBusy(false);
     if (!r?.ok) return;
     // Sofort anzeigen, statt die Seite neu zu laden — die Antwort soll sich anfuehlen wie
     // ein Haendedruck, nicht wie ein Formular.
-    setListe(l => [...l, { name: n, ja: kommt }]);
-    setName(""); setMail("");
+    setListe(l => [...l, { name: n, ja: kommt, menu: kommt ? menu : undefined }]);
+    setName(""); setMail(""); setMenu("normal");
     setFertig(true);
   };
 
@@ -95,6 +107,14 @@ export default function ZusagenKarte({
                   ? <Check className="lb-karte-ja h-4 w-4 shrink-0" />
                   : <X className="lb-karte-nein h-4 w-4 shrink-0" />}
                 <span className={z.ja ? "" : "opacity-55 line-through"}>{z.name}</span>
+                {/* NUR WENN ES VOM NORMALEN ABWEICHT — „normal" ist der Regelfall, ein Etikett
+                    dafür wäre Rauschen. Vegetarisch/vegan ist genau die Information, für die
+                    das Paar beim Caterer nachfragen muss. */}
+                {z.ja && z.menu && z.menu !== "normal" && (
+                  <span className="lb-karte-gold shrink-0 text-[10px] font-black uppercase tracking-wide opacity-80">
+                    {z.menu === "vegan" ? T.zusMenuVegan : T.zusMenuVeg}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -124,6 +144,23 @@ export default function ZusagenKarte({
                   {T.zusDatenschutz}
                 </a>
               </p>
+              {/* DAS MENÜ GEHÖRT ZUR ZUSAGE (Owner 02.08.2026: „die Leute müssen bei der
+                  Bestätigung angeben ob sie vegetarisch, vegan oder normal essen wollen").
+                  „Normal" steht vor, weil das die meisten essen — niemand soll extra tippen
+                  müssen, nur weil er nichts Besonderes braucht. Zählt nur bei „Ja"; wer absagt,
+                  sieht die Wahl trotzdem (einfacher als sie ein- und auszublenden), sie wird
+                  beim Absenden nur nicht mitgeschickt. */}
+              <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
+                {T.zusMenuFrage}
+              </p>
+              <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([m, label]) => (
+                  <button key={m} type="button" onClick={() => setMenu(m)}
+                    className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => void antworten(true)} disabled={!name.trim() || !mailOk || busy}
                   className="lb-karte-cta flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">

@@ -63,9 +63,11 @@ const ORT: Record<string, [string, string]> = {
   it: ["Villa Bellosguardo", "Via Esempio 12, 00187 Roma"],
 };
 const NAMEN = ["Maria", "Andrei", "Maria", "Sofia"];
+// NAMEN ALS PAAR ODER MIT NACHNAME (Owner 02.08.2026) — dieselbe Korrektur wie in der Demo
+// auf /themes/wedding: ein einzelner Vorname wirkte wie ein Platzhalter.
 const ZUSAGEN = [
-  { name: "Maria", ja: true }, { name: "Andrei", ja: true },
-  { name: "Sofia", ja: true }, { name: "Luca", ja: false }, { name: "Elena", ja: true },
+  { name: "Maria & Radu", ja: true, menu: "vegetarisch" as const }, { name: "Andrei Ionescu", ja: true },
+  { name: "Sofia & Matei", ja: true, menu: "vegan" as const }, { name: "Luca Popescu", ja: false }, { name: "Elena & Cristian", ja: true },
 ];
 
 export default async function BeispielEinladung() {

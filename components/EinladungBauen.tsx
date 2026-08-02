@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import ImageCropper from "@/components/ImageCropper";
+import LightSwitch from "@/components/LightSwitch";
 import { kissText } from "@/lib/kiss-i18n";
+import { weddingPrompt, KISS_LOOK_ID } from "@/lib/wedding-prompt";
+import { fillPrices } from "@/lib/pricing";
 
 /**
  * DIE KARTE IST DIE BEDIENUNG.
@@ -66,8 +70,27 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   const [seinFoto, setSeinFoto] = useState("");
   const [bild, setBild] = useState("");
   const [bildPfad, setBildPfad] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  /**
+   * KEIN GRATIS-TEST BEI DER HOCHZEIT (Owner 01.08.2026: „Es kostet von Anfang an 1,49 pro
+   * Video … Sie werden nichts testen dürfen kostenlos"). `genId` ist der Kiss-Log-Eintrag
+   * dieser Generierung — dieselbe Kennung, an der `guthabenAbbuchen`, die Video-Warteschleife
+   * und die serverseitige Zustellung (`/api/kiss-deliver`) haengen; ohne sie faellt der Kauf
+   * immer auf Stripe zurueck statt aufs Guthaben. `bezahlt` steht, sobald die Kasse (Guthaben
+   * oder Stripe) bestaetigt hat.
+   */
+  const [genId, setGenId] = useState("");
+  const [bezahlt, setBezahlt] = useState(false);
+  /**
+   * ROTER HINWEIS AM „BILD ERZEUGEN"-KNOPF (02.08.2026, plan.md Punkt 1b: „ich drücke drauf
+   * und passiert nichts"). Genau dasselbe Muster wie im alten Trichter (KissFunnel) — nur
+   * dass DIESER Knopf hier der ist, den der Besucher wirklich sieht: Seit dem 31.07.2026 läuft
+   * die Hochzeitsseite über diese Karten-Dialoge, nicht mehr über den Trichter. Der Knopf war
+   * schon gesperrt, wenn Fotos oder eine gültige E-Mail fehlten — aber stumm.
+   */
+  const [hinweis, setHinweis] = useState("");
 
   // Zwei getrennte Fotos oder eines von beiden (Owner 31.07.2026: „es fehlt Upload gemeinsam").
   const [weg, setWeg] = useState<"zwei" | "gemeinsam">("zwei");
@@ -78,6 +101,17 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   const ihrRef = useRef<HTMLInputElement>(null);
   const seinRef = useRef<HTMLInputElement>(null);
   const paarRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * HELL/DUNKEL-SCHALTER (plan.md, Punkt 3: „Dark Modus einfügen" — unklar war nur WO, weil
+   * der Owner keine Seite nannte). Jetzt eindeutig: `KissFunnel.tsx:1764` setzt genau diesen
+   * Schalter portalt in `TopNav`s Sprachzeile (`[data-langrow]`) — auf jeder Themenseite, die
+   * `KissFunnel` rendert. `/themes/wedding` rendert seit dem 31.07.2026 aber `EinladungBauen`
+   * statt `KissFunnel` (siehe plan.md, Abschnitt „KORREKTUR") — der Schalter fehlte deshalb
+   * nur hier, nirgendwo bewusst weggelassen. Derselbe Mechanismus, hier nachgezogen.
+   */
+  const [langZeile, setLangZeile] = useState<Element | null>(null);
+  useEffect(() => { setLangZeile(document.querySelector("[data-langrow]")); }, []);
 
   // Was schon getippt wurde, ueberlebt einen Seitenwechsel — dieselbe Regel wie im Trichter.
   const SPEICHER = "lb_einl_bau";
@@ -99,21 +133,125 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
 
   /** Fertig zum Erzeugen ist, wer den gewaehlten Weg vollstaendig gegangen ist. */
   const fotosDa = weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
+  // Sobald beide Bedingungen wieder stimmen, hat der rote Hinweis seinen Zweck erfüllt.
+  useEffect(() => { if (fotosDa && mailOk) setHinweis(""); }, [fotosDa, mailOk]);
+
+  /**
+   * DIE KASSE — Guthaben, wenn eins da ist, sonst Stripe (02.08.2026, Owner 01.08.2026: „1,49
+   * pro Video … Kontoaufladung mit 9,99€"). Portiert aus `unlock("once")` in
+   * `components/KissFunnel.tsx:1675` — dort lief das schon fuer Kiss/Idol, nur eben nie fuer
+   * die Hochzeit, weil `KissFunnel` seit dem 31.07.2026 auf `/themes/wedding` gar nicht mehr
+   * rendert (`plan.md`, Abschnitt „KORREKTUR"). Anders als dort: hier wird die Kasse mit
+   * `await` direkt in `erzeugen()` verkettet, kein Watchdog-Effekt noetig — dieser Bildschirm
+   * kennt ohnehin nur „gerade beschaeftigt", nicht mehrere Bezahl-Wege gleichzeitig.
+   *
+   * Braucht einen `genId` (den Kiss-Log-Eintrag dieser Generierung), damit `guthabenAbbuchen`
+   * idempotent gegen genau DIESEN Versuch bucht — ohne ihn faellt jeder Kauf auf Stripe
+   * zurueck, auch mit vollem Konto. Existiert noch keiner, wird er hier angelegt.
+   */
+  const bezahlen = async (): Promise<boolean> => {
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    let gid = genId;
+    if (!gid) {
+      try {
+        const log = await fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: "wedding", device, email: mail.trim() }),
+        }).then(r => r.json());
+        if (log?.id) { gid = String(log.id); setGenId(gid); }
+      } catch { /* ohne genId faellt die Kasse auf Stripe zurueck — kein Abbruch noetig */ }
+    }
+    try {
+      const start = await fetch("/api/kiss-video-checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ genId: gid, once: true, email: mail.trim(), returnTo: window.location.pathname + window.location.search }),
+      }).then(r => r.json());
+      if (start?.walletPaid) { setBezahlt(true); return true; }
+      if (!start?.url || !start?.sessionId) { setStatus(start?.error || F.statusNotWork); return false; }
+      const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
+      if (!popup) { window.location.href = start.url; return false; }
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
+        if (s?.paid) { try { popup.close(); } catch { /**/ } setBezahlt(true); return true; }
+        if (popup.closed && i > 2) break;
+      }
+      return false;
+    } catch { setStatus(F.statusNetwork); return false; }
+  };
+
+  /**
+   * DAS BEZAHLTE VIDEO — portiert aus `kussVideo()` in `components/KissFunnel.tsx:1506`.
+   * Anders als dort: kein `anziehen()`-Umweg ueber FASHN, denn die Hochzeit hat hier keine
+   * Kleider-Auswahl (kein `ihrLook`/`seinLook`) — die Originalfotos gehen direkt an Pixverse,
+   * das Kleid steht nur im Prompt-Text.
+   *
+   * REIHENFOLGE IST PFLICHT (derselbe Grund wie dort): `weddingPrompt` bindet @1 an den
+   * BRAEUTIGAM und @2 an die BRAUT — `person` muss also SEIN Foto sein, `garment` IHRES.
+   *
+   * BEIM GEMEINSAMEN FOTO gibt es kein zweites Referenzbild — dasselbe Paarfoto geht an beide
+   * Plaetze. Das ist nicht dieselbe Qualitaet wie zwei getrennte Fotos (Pixverse erwartet in
+   * Referenz-Modus normalerweise zwei EINZELNE Gesichter), aber besser als gar kein Video;
+   * noch nicht mit echten Kaeufen geprueft, siehe Rueckmeldung an den Owner.
+   */
+  const videoErzeugen = async () => {
+    const person = weg === "gemeinsam" ? paarFoto : seinFoto;
+    const garment = weg === "gemeinsam" ? paarFoto : ihrFoto;
+    if (!person || !garment) return;
+    setStatus(F.renderingVideo);
+    try {
+      const start = await fetch("/api/generate-tryon-video", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person, garment, prompt: weddingPrompt("") }),
+      }).then(r => r.json());
+      if (!start?.videoId) { setStatus(start?.error || F.statusCouldNotStart); return; }
+      if (genId) {
+        void fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ update: genId, videoId: start.videoId }),
+        }).catch(() => {});
+      }
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        setStatus(F.makingVideo(Math.round((i + 1) * 4)));
+        const q = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
+        if (q?.status === "done" && q.videoUrl) {
+          setVideoUrl(q.videoUrl); setStatus("");
+          if (genId) void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: q.videoUrl }) }).catch(() => {});
+          return;
+        }
+        if (q?.status === "failed") { setStatus(q.error || F.videoFailed); return; }
+      }
+      setStatus(F.statusTimeout);
+    } catch { setStatus(F.statusNetwork); }
+  };
 
   const erzeugen = async () => {
     if (!fotosDa || !mailOk || busy) return;
-    setBusy(true); setStatus(F.statusQuality);
+    setBusy(true); setStatus(F.oneMoment);
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     try { localStorage.setItem("lb_kiss_mail", mail.trim()); } catch { /**/ }
     try {
+      if (!bezahlt) {
+        const ok = await bezahlen();
+        if (!ok) { setBusy(false); return; }
+      }
+      setStatus(F.statusQuality);
       const d = await fetch("/api/free-preview", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(weg === "gemeinsam"
-          ? { paar: paarFoto, theme: "wedding", device }
-          : { person: seinFoto, model: ihrFoto, theme: "wedding", device }),
+          ? { paar: paarFoto, theme: "wedding", device, email: mail.trim() }
+          : { person: seinFoto, model: ihrFoto, theme: "wedding", device, email: mail.trim() }),
       }).then(r => r.json());
-      if (d?.image) { setBild(d.image); setBildPfad(d.imagePath ?? ""); setStatus(""); setFeld(null); }
+      if (d?.image) {
+        setBild(d.image); setBildPfad(d.imagePath ?? ""); setFeld(null);
+        if (genId) void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, imagePath: d.imagePath }) }).catch(() => {});
+        // DAS BEZAHLTE VIDEO LAEUFT VON SELBST WEITER — sie hat fuer das Video bezahlt, nicht
+        // fuer das Standbild; das Standbild ist nur die schnelle Vorschau.
+        await videoErzeugen();
+      }
       else setStatus(d?.error || F.statusNotWork);
     } catch { setStatus(F.statusNetwork); }
     setBusy(false);
@@ -128,7 +266,10 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       const r = await fetch("/api/einladung", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bildPfad, sie: sie.trim(), er: er.trim(), datum,
+          // Das Video, wenn es bis hierher fertig wurde — sonst das Standbild, damit die
+          // Einladung auf keinen Fall an einem noch laufenden Video haengen bleibt.
+          videoUrl: videoUrl || undefined, bildPfad: videoUrl ? undefined : bildPfad,
+          genId, sie: sie.trim(), er: er.trim(), datum,
           ort: ort.trim(), adresse: adresse.trim(), telefon: telefon.trim(),
           lang, device, email: mail.trim(),
         }),
@@ -168,6 +309,10 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
 
   return (
     <div>
+      {langZeile && createPortal(
+        <span className="order-[-1] mr-2"><LightSwitch /></span>,
+        langZeile,
+      )}
       <EinladungKarte
         sprache={lang}
         sie={sie.trim() || T.fSie}
@@ -244,6 +389,12 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           )
         }
       />
+
+      {/* Der laufende Preis steht VOR dem Kauf da, nicht erst nach der Erzeugung — bei
+          Anzeigen-Traffic ist ein verstecktes Abo eine Rückbuchung mit Ansage. */}
+      <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/60">
+        {fillPrices(T.preise, lang)}
+      </p>
 
       {/* Verschicken steht erst da, wenn es etwas zu verschicken gibt. */}
       {bild && sie.trim() && er.trim() && (
@@ -341,11 +492,38 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         {/* Die Adresse steht VOR dem Erzeugen — dieselbe Regel wie im Trichter: kein Bild auf
             unsere Kosten fuer jemanden, der nie erreichbar ist. */}
         {eingabe(mail, setMail, F.mailQuestion, "email")}
-        <button type="button" onClick={() => void erzeugen()} disabled={!fotosDa || !mailOk || busy}
-          className="lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-45">
+        {/**
+          * STUMM GESPERRT WAR DER FEHLER (plan.md Punkt 1b: „ich drücke drauf und passiert
+          * nichts") — UND EIN ECHTER KNOPF FUER DEN HINWEIS (02.08.2026, live geprüft): Ein
+          * `disabled`-Knopf feuert in keinem Browser ein `click`-Ereignis, auch nicht an einem
+          * umschliessenden Element — ein Klick auf die Huelle darum kommt also NIE an. Der
+          * Knopf bleibt deshalb bewusst aktiv (nur das Aussehen dimmt sich); fehlt etwas,
+          * meldet der Klick es, statt zu verpuffen.
+          */}
+        <button type="button"
+          onClick={() => {
+            if (busy) return;
+            if (!fotosDa) { setHinweis(F.pickFirst); return; }
+            if (!mailOk) { setHinweis(F.mailInvalid); return; }
+            setHinweis("");
+            void erzeugen();
+          }}
+          className={`lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95${(!fotosDa || !mailOk || busy) ? " opacity-45" : ""}`}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {F.ctaFree}
+          {/* KEIN GRATIS-VERSPRECHEN AUF EINEM KNOPF, DER KEINS EINHAELT (plan.md Punkt 1a,
+              02.08.2026: hier tatsaechlich behoben, nicht nur im toten `KissFunnel`-Pfad).
+              `ctaFree` sagt „gratis" — seit der Kasse oben stimmt das nicht mehr. Waehrend
+              Kasse/Bild/Video laufen, steht der laufende Status auf dem Knopf, nicht drei
+              Minuten lang derselbe Satz. */}
+          {busy ? (status || F.oneMoment) : F.ctaVideo}
         </button>
+        {hinweis && (
+          /* `lb-karte-fehler` statt Inline-Rot: In der Karte gewinnt die !important-Braunregel
+             gegen jeden Inline-`style` — nur eine eigene !important-Klasse kommt dagegen an. */
+          <p role="alert" className="lb-karte-fehler mt-1.5 text-center text-[12.5px] font-black leading-snug">
+            {hinweis}
+          </p>
+        )}
         <p className="text-center font-serif text-[11px] leading-snug opacity-70">{F.consent}</p>
         <input ref={ihrRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />

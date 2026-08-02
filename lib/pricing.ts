@@ -96,7 +96,7 @@ export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
  *   {list}   → 49 €      (Listenpreis, durchgestrichen)
  *   {extra}  → 2,99 €    (jedes weitere Video)
  *   {videos} → 12        (im Abo enthalten)
- *   {once}   → 9,99 €    (Einmalkauf, ohne Abo)
+ *   {once}   → 1,49 €    (Einmalkauf, ohne Abo)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
  */

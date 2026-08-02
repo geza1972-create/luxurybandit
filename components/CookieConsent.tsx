@@ -28,7 +28,7 @@ export default function CookieConsent() {
   if (!show) return null;
 
   return (
-    <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[180] flex items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/98 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-white backdrop-blur">
+    <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[180] flex items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-white backdrop-blur">
       <p className="min-w-0 flex-1 text-[11px] font-semibold leading-snug text-white/80">
         Cookies to measure our ads.{" "}
         <a href="/privacy" className="text-amber-400 underline underline-offset-2">Details</a>

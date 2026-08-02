@@ -20,6 +20,7 @@ import { musikFuer } from "@/lib/musik";
 import { kissText } from "@/lib/kiss-i18n";
 import { KUSS_SZENEN, kussSzene } from "@/lib/kuss-szenen";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
 import LightSwitch from "@/components/LightSwitch";
 
@@ -34,9 +35,6 @@ import LightSwitch from "@/components/LightSwitch";
 // (/api/theme-media?theme=kiss|idol|wedding) — die Hochzeit hat andere Frauen als der Kuss.
 
 type Model = { id: string; name: string; photoUrl: string };
-
-// Referenz-Look fürs Billing/Routing der Route (gleicher Default wie der Try-On-Funnel).
-const KISS_LOOK_ID = "look-1784191032626-70e3608b";
 
 // Platzhalter im Upload-Feld: ein MÄNNERGESICHT (Peter), abgedunkelt hinterlegt. Ohne das
 // laden Nutzer erfahrungsgemäß noch ein Model hoch statt sich selbst. Als statische Datei
@@ -94,37 +92,12 @@ export const KISS_PROMPT =
  * Jedes trägt seine eigene englische Beschreibung. Die wandert wörtlich in den Bild- und in
  * den Videoauftrag — deshalb steht sie hier neben dem Bild und nicht an drei Stellen verstreut,
  * wo eine davon beim nächsten Ändern vergessen würde.
+ *
+ * KISS_LOOK_ID/Kleid/WEDDING_KLEIDER/weddingPrompt/WEDDING_PROMPT ziehen seit 02.08.2026 aus
+ * `lib/wedding-prompt.ts` — `components/EinladungBauen.tsx` braucht sie fuer denselben
+ * Video-Kauf jetzt auch, und ein Component-zu-Component-Import haette das ganze (sehr grosse)
+ * KissFunnel-Bundle mit auf die Hochzeitsseite gezogen.
  */
-export type Kleid = { id: string; bild: string; beschreibung: string };
-export const WEDDING_KLEIDER: Kleid[] = [
-  { id: "klassisch",  bild: "/kleid-klassisch.jpg",  beschreibung: "a sculptural Italian couture wedding gown in heavy ivory silk mikado with a structured off-shoulder corset bodice, a full duchesse satin skirt and a long cathedral train" },
-  { id: "prinzessin", bild: "/kleid-prinzessin.jpg", beschreibung: "a grand Italian couture ball gown in layers of silk organza with a hand-draped sweetheart bodice and an immense romantic skirt" },
-  { id: "spitze",     bild: "/kleid-spitze.jpg",     beschreibung: "a fitted Italian couture mermaid gown covered in hand-appliqued Chantilly lace with long lace sleeves and an illusion neckline" },
-  { id: "seide",      bild: "/kleid-seide.jpg",      beschreibung: "a minimal Italian couture column gown in heavy silk crepe with architectural draping and a deep open back" },
-  { id: "perlen",     bild: "/kleid-perlen.jpg",     beschreibung: "an Italian couture gown hand-embroidered with pearls and crystals on fine tulle, a shimmering fitted silhouette" },
-];
-const KLEID_VORGABE = "an elegant white wedding dress";
-
-export const weddingPrompt = (kleid: string) =>
-  // DIE ROLLEN MUESSEN AM TOKEN HAENGEN, nicht im Satz danach: Die Route bindet @1 an das
-  // erste Bild (SEIN Foto) und @2 an das zweite (IHRES). Stuende nur „she in a dress, he in a
-  // suit" im Text, ohne die Zuordnung, zieht Pixverse das Kleid mit gleicher
-  // Wahrscheinlichkeit dem Mann an. Deshalb hier ausdruecklich: @1 ist der Mann, @2 die Frau.
-  "Wide shot, full figures: show @1 and @2 from their knees up to their heads, filmed from "
-  + "slightly below. It is their wedding day: @1 is the groom and wears an elegant WHITE suit "
-  + "with a white shirt, "
-  + `@2 is the bride and wears ${kleid || KLEID_VORGABE}. They stand close together in a ` +
-  + "beautiful sunlit wedding setting with white flowers behind them. BOTH LOOK STRAIGHT INTO "
-  + "THE CAMERA the whole time, faces fully visible and turned to the camera, never turning to "
-  + "each other. He puts his arm around her and holds her close, she leans slightly against "
-  + "him; they smile warmly at the camera and laugh happily. They do NOT kiss and their faces "
-  + "never touch. Keep the face and appearance of @1 and of @2 exactly the same "
-  + "throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, "
-  + "photorealistic, high-end look. No text or logos. "
-  + "Audio: soft, elegant instrumental wedding music only — ONLY music: absolutely no voices, "
-  + "no talking, no singing, no footsteps, no ambient or foley sound effects.";
-
-export const WEDDING_PROMPT = weddingPrompt("");
 
 export const IDOL_PROMPT =
   "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
@@ -414,6 +387,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [mailFehler, setMailFehler] = useState("");
   /** Roter Hinweis am Weiter-Knopf von Schritt 1, wenn ohne Foto gedrückt wird (01.08.2026). */
   const [weiterHinweis, setWeiterHinweis] = useState("");
+  /**
+   * ROTER HINWEIS AM GENERATE-KNOPF (02.08.2026, plan.md Punkt 1b: „ich drücke drauf und
+   * passiert nichts"). Der Knopf war schon gesperrt, wenn Foto oder Zustimmung fehlten — aber
+   * STUMM, wie der Weiter-Knopf es vorher auch war. Derselbe Fix: Klick auf die Hülle nennt
+   * den fehlenden Grund, statt dass der Knopf einfach nichts tut.
+   */
+  const [generateHinweis, setGenerateHinweis] = useState("");
   /**
    * DER TEILEN-DIALOG (Owner 01.08.2026: „in dem Moment wo er shart muss er wissen dass es
    * public wird"). Teilen heisst seither: die KARTE wird unter /w/[id] öffentlich, der
@@ -1196,6 +1176,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
+  // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
+  useEffect(() => {
+    if (selPhoto && photo && consent) setGenerateHinweis("");
+  }, [selPhoto, photo, consent]);
 
   /**
    * ZUM VIDEO SPRINGEN (Owner 01.08.2026: „der User weiss nicht ob er warten soll oder
@@ -2294,31 +2278,34 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           OHNE FOTO GEHT ES NICHT WEITER (Owner 01.08.2026: „wenn er hier kein Bild hochlädt
           dann darf er nicht weiter gehen"). Der Knopf war schon gesperrt — aber STUMM: blass,
           und ein Tipp darauf tat nichts. Wer nicht weiss, warum, drückt dreimal und geht.
-          Jetzt liegt der Klick auf der Hülle: Ist kein Foto da, erscheint der Grund in Rot.
-          Dazu die Wache IM onClick — falls irgendein Stil die Sperre je aushebelt. */}
-      <div onClick={() => {
-        if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) {
-          setWeiterHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst);
-        }
-      }}>
-        <button type="button"
-          onClick={() => {
-            if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) return;
-            setWeiterHinweis("");
-            zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2);
-          }}
-          disabled={V.paarUpload ? (!selPhoto || !photo) : !selPhoto}
-          className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-40">
-          {V.paarUpload
-            ? (selPhoto && photo ? T.next : !selPhoto ? T.pickFirst : T.uploadFirst)
-            : (selPhoto ? T.next : T.pickFirst)}
-        </button>
-        {weiterHinweis && (
-          <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
-            {weiterHinweis}
-          </p>
-        )}
-      </div>
+
+          DER KNOPF BLEIBT AKTIV (02.08.2026, live geprüft — nicht nur vermutet): Ein
+          `disabled`-Knopf feuert in keinem Browser ein `click`, auch nicht an einer
+          umschliessenden Huelle — `parent.addEventListener("click", …)` blieb im echten
+          Browser stumm, wenn `target.click()` auf einem `disabled`-Knopf lief. Die vorige
+          Fassung („Klick auf die Huelle") sah nach einer Loesung aus und war keine: Genau
+          der Knopf, der stumm blieb, sollte den Klick fangen, konnte es aber nie. Jetzt
+          bleibt der Knopf ein echter, klickbarer Knopf; nur sein Aussehen dimmt sich, und
+          die Bedingung steht im eigenen onClick. */}
+      <button type="button"
+        onClick={() => {
+          if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) {
+            setWeiterHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst);
+            return;
+          }
+          setWeiterHinweis("");
+          zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2);
+        }}
+        className={`lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition${(V.paarUpload ? (!selPhoto || !photo) : !selPhoto) ? " opacity-40" : ""}`}>
+        {V.paarUpload
+          ? (selPhoto && photo ? T.next : !selPhoto ? T.pickFirst : T.uploadFirst)
+          : (selPhoto ? T.next : T.pickFirst)}
+      </button>
+      {weiterHinweis && (
+        <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
+          {weiterHinweis}
+        </p>
+      )}
       {/* GLEICH BEIM ERSTEN BILD (Owner 30.07.2026: „bei ersten bild muss schon stehen").
           Wer erst auf Schritt 3 erfaehrt, worauf er sich einlaesst, hat schon zwei Fotos
           hergegeben. Die beiden Verweise oeffnen in einem neuen Fenster, damit sein Trichter
@@ -2651,12 +2638,33 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* NACH DER ZAHLUNG HEISST ER ANDERS (Owner 30.07.2026: „muesste dann statt generate
           picture, generate Video stehen (bezahlt)"). Derselbe Platz, andere Aufgabe: vorher
           das Gratis-Bild, danach das bezahlte Video aus Garderobe und Szene. */}
-      <button type="button" onClick={() => void (bezahlt ? kussVideo() : generate())}
-        disabled={!selPhoto || !photo || !consent || busy || videoBusy || mailBusy}
-        className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
+      {/* STUMM GESPERRT WAR DER FEHLER (02.08.2026, plan.md Punkt 1b: „ich drücke drauf und
+          passiert nichts") — UND DER KNOPF BLEIBT DESHALB AKTIV: ein `disabled`-Knopf feuert
+          in keinem Browser ein `click`, auch nicht an einer umschliessenden Huelle (live
+          geprüft, nicht nur vermutet). Nur sein Aussehen dimmt sich; die Bedingung und der
+          Hinweis stehen im eigenen onClick. */}
+      <button type="button"
+        onClick={() => {
+          if (busy || videoBusy || mailBusy) return;
+          if (!selPhoto || !photo) { setGenerateHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst); return; }
+          if (!consent) { setGenerateHinweis(T.zustimmungFehlt); return; }
+          setGenerateHinweis("");
+          void (bezahlt ? kussVideo() : generate());
+        }}
+        className={`lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition${(!selPhoto || !photo || !consent || busy || videoBusy || mailBusy) ? " opacity-50" : ""}`}>
         {busy || videoBusy || mailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : "💋")}
-        {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : bezahlt ? T.ctaVideo : T.ctaFree}
+        {/* KEIN GRATIS-VERSPRECHEN AUF EINEM KNOPF, DER KEINS EINHAELT (plan.md Punkt 1a).
+            `ctaFree` sagt „gratis" — bei der Hochzeit stimmt das seit `keinGratis` nicht
+            mehr. `ctaVideo` ist ohnehin schon eigens uebersetzt („Einladung erstellen" u. a.)
+            und passt vor wie nach der Zahlung: der Klick loest in beiden Faellen dieselbe
+            Handlung aus (unlock zahlt zuerst, dann laeuft generate von selbst weiter). */}
+        {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : (bezahlt || V.keinGratis) ? T.ctaVideo : T.ctaFree}
       </button>
+      {generateHinweis && (
+        <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
+          {generateHinweis}
+        </p>
+      )}
       {/* Der Preis stand hier direkt unter dem Erzeugen-Knopf (Owner 30.07.2026: „hier muss
           Generate Picture free Button stehen oben und Video 9,99"). Am 31.07.2026 wieder
           entfernt — „das muss auch raus": Der Knopf sagt schon „gratis"; ein Preis daneben,

@@ -160,7 +160,7 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
           * Regel das Paar selbst.
           */}
         {abgelaufen && (
-          <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+          <div className="mt-8 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
             <p className="text-[14px] font-black text-white">{T.wiederTitel}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
               {fillPrices(T.wiederText, sprache)}
