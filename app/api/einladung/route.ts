@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readEinladungen, writeEinladungen, getSignedUrl, type Einladung } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
+import { TRIAL_DAYS } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max)
 // POST { rsvp: id, name, ja, email }                                      → { ok }  (Zusage)
 // POST { setVideo: id, videoUrl, device }                                 → { ok, left } (Tausch)
 // POST { chat: id, name, text }                                           → { ok, chat }
+// POST { chatLoeschen: id, at, name, text, device }                       → { ok, chat }
 // POST { news: id, text, device }                                          → { ok, empfaenger }
 // POST { pruefen: id, device }                                            → { darf }
 // POST { edit: id, device, sie, er, datum, ort, adresse, telefon }        → { ok }
@@ -77,7 +79,10 @@ export async function POST(request: Request) {
     const menuRoh = sauber(body.menu, 20);
     const menu: "normal" | "vegetarisch" | "vegan" | undefined =
       ja && (menuRoh === "vegetarisch" || menuRoh === "vegan" || menuRoh === "normal") ? menuRoh : undefined;
-    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail, menu };
+    // Gästezahl hinter dieser EINEN Zusage (Owner 02.08.2026: „die Gästezahl muss noch klar
+    // stehen") — geklemmt auf 1–10, nur bei einer Zusage gespeichert, wer absagt zählt nicht mit.
+    const personen = Math.max(1, Math.min(10, Math.round(Number(body.personen) || 1)));
+    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail, menu, personen: ja ? personen : undefined };
     for (let versuch = 0; versuch < 4; versuch++) {
       const alle = await readEinladungen();
       const e = alle.find(x => x.id === rsvp);
@@ -244,6 +249,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
   }
 
+  /**
+   * CHAT-NACHRICHT LÖSCHEN (Ä12, Owner 02.08.2026, nach Beratung ueber Chat-Zugriff): Der
+   * Gruppenchat bleibt bewusst offen fuer jeden mit dem Link — kein Passwort, keine
+   * Zusage-Pflicht. Das Sicherheitsventil ist stattdessen ein Radiergummi: Nur das
+   * Brautpaar (dasselbe Geraet wie beim Anlegen, oder der Admin) kann eine einzelne
+   * unpassende Nachricht entfernen. Gaeste sehen den Loeschknopf nie (siehe GruppenChat.tsx).
+   *
+   * DIESELBE Wiederauferstehungs-Gefahr wie beim Schreiben: Ein gleichzeitig schreibender
+   * Gast koennte eine gerade geloeschte Nachricht sonst per Lesen-Aendern-Schreiben auf der
+   * gemeinsamen Datei wiederbeleben. Darum dieselbe Pruef-Schleife wie beim Senden oben.
+   */
+  const chatLoeschen = sauber(body.chatLoeschen, 60);
+  if (chatLoeschen) {
+    const at = sauber(body.at, 40);
+    const name = sauber(body.name, 40);
+    const text = sauber(body.text, 500);
+    if (!at || !text) return NextResponse.json({ error: "Nachricht fehlt." }, { status: 400 });
+    const admin = await isAdminRequest(request).catch(() => false);
+    const geraet = sauber(body.device, 80);
+    for (let versuch = 0; versuch < 4; versuch++) {
+      const alle = await readEinladungen();
+      const e = alle.find(x => x.id === chatLoeschen);
+      if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      if (!admin && !(geraet && e.device === geraet)) {
+        return NextResponse.json({ error: "Not yours." }, { status: 403 });
+      }
+      const vorher = e.chat?.length ?? 0;
+      e.chat = (e.chat ?? []).filter(c => !(c.at === at && c.text === text && c.name === name));
+      if (e.chat.length === vorher) return NextResponse.json({ ok: true, chat: e.chat }); // schon weg
+      await writeEinladungen(alle);
+      await new Promise(r => setTimeout(r, 150 + versuch * 200));
+      const nach = (await readEinladungen()).find(x => x.id === chatLoeschen);
+      if (!nach?.chat?.some(c => c.at === at && c.text === text && c.name === name)) {
+        return NextResponse.json({ ok: true, chat: nach?.chat ?? [] });
+      }
+    }
+    return NextResponse.json({ error: "Konnte nicht gelöscht werden." }, { status: 503 });
+  }
+
   const setVideo = sauber(body.setVideo, 60);
   if (setVideo) {
     const neuesVideo = sauber(body.videoUrl, 2000);
@@ -324,8 +368,12 @@ export async function POST(request: Request) {
      * Für die meisten Hochzeiten reicht der Monat vor dem Fest — genau deshalb ist die
      * Verlängerung ein echtes Angebot und keine Falle: Wer die Erinnerung behalten will,
      * zahlt weiter; wer nicht, hat trotzdem bekommen, wofür er bezahlt hat.
+     *
+     * Update 02.08.2026 (Owner): zurück auf 7 Tage — „nach 7 Tagen mit Abo laufen, nicht
+     * nächsten Monat". Die Zahl kommt aus TRIAL_DAYS in lib/pricing.ts, damit Seite,
+     * Preiszeile und diese Frist nie wieder auseinanderlaufen.
      */
-    probeBis: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    probeBis: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
     sie, er,
     datum: sauber(body.datum, 10) || undefined,
     ort: sauber(body.ort, 120) || undefined,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
@@ -60,6 +60,20 @@ export async function GET(request: Request) {
       if (email) {
         try { await grantMonthlySubscriptionCredits(email); }
         catch (e) { console.warn("[checkout-status] Monatsguthaben fehlgeschlagen", e); }
+      }
+    }
+
+    /**
+     * EINLADUNGS-ABO (Ä11, Owner 02.08.2026): schaltet Zusagen/Menü/Gruppenchat für GENAU
+     * DIESE Einladung frei und hält ihre Seite über die Probezeit hinaus online. Bewusst
+     * `kind === "einladung-plan"`, nicht „…-abo" — sonst würde der Block direkt darüber
+     * zusätzlich das themenübergreifende Monatsguthaben gutschreiben, ein anderes Produkt.
+     */
+    if (paid && s.metadata.kind === "einladung-plan") {
+      const einladungId = String(s.metadata.einladungId ?? "").trim();
+      if (einladungId) {
+        try { await einladungAboVermerken(einladungId); }
+        catch (e) { console.warn("[checkout-status] Einladungs-Abo fehlgeschlagen", e); }
       }
     }
 

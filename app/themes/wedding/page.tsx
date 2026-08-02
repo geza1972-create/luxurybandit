@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Wedding invitation video & online wedding planner | LuxuryBandit",
-  description: "Your wedding invitation as a video, made from two photos — plus RSVPs, menu choices and a group chat for your guests on one page. Send one link; each guest reads it in their own language.",
+  description: "Your wedding invitation as a video, made from two photos — plus the guest list, menu choices and a group chat on one page. Send one link; each guest reads it in their own language.",
   keywords: [
     "wedding invitation video", "digital wedding invitation", "send wedding invitation whatsapp",
     "online wedding invitation", "save the date video", "video invitation wedding",
@@ -76,8 +76,8 @@ export const metadata = {
  * Gästelisten zeigen entweder das Paar, das gemeinsam zugesagt hat, oder einen vollen Namen.
  */
 const DEMO_ZUSAGEN = [
-  { name: "Maria & Radu", ja: true, menu: "vegetarisch" as const }, { name: "Andrei Ionescu", ja: true },
-  { name: "Sofia & Matei", ja: true, menu: "vegan" as const }, { name: "Luca Popescu", ja: false }, { name: "Elena & Cristian", ja: true },
+  { name: "Maria & Radu", ja: true, menu: "vegetarisch" as const, personen: 2 }, { name: "Andrei Ionescu", ja: true, personen: 1 },
+  { name: "Sofia & Matei", ja: true, menu: "vegan" as const, personen: 2 }, { name: "Luca Popescu", ja: false }, { name: "Elena & Cristian", ja: true, personen: 2 },
 ];
 const DEMO_NAMEN = ["Maria", "Andrei", "Maria", "Sofia"];
 const DEMO_CHAT: Record<string, string[]> = {
@@ -133,8 +133,10 @@ export default async function WeddingThemePage({ searchParams }: {
     s3p: "Most couples send a save-the-date two to four months before the wedding and the full invitation six to eight weeks ahead. A video invitation gets watched instead of skimmed, and it works the same for guests abroad — they open the same link on their phone.",
     s4h: "Your photos stay yours",
     s4p: "The two photos you upload are used to make your video and nothing else. They are never published and never shown to other users, they are stored on servers in the EU, and everything from a visit without a purchase is deleted after 90 days. The invitation page itself is not listed anywhere and cannot be found on Google — only the people you send the link to can open it.",
-    zusCap: "Included with your invitation: your guests answer with one tap — you see the list and every menu choice.",
-    chatCap: "Also included: the group chat for all your guests — no app, no login needed.",
+    zusCap: "With the subscription: your guests reply with one tap and say how many are coming — you always see the exact guest count and every menu choice.",
+    chatCap: "Also in the subscription: the group chat for all your guests — no app, no login needed.",
+    kicker: "Digital wedding planner",
+    claim: "Your wedding invitation as a video — plus the guest list, menu choices and a group chat. All in one link.",
   }, L);
 
   return (
@@ -161,13 +163,18 @@ export default async function WeddingThemePage({ searchParams }: {
                 die Karte sieht, füllt sie aus wie ein Formular, das er schon kennt.
 
                 Für Google ändert sich nichts: Die H1 steht weiter im Quelltext, nur weiter
-                unten. Die Suchmaschine liest die Seite, sie scrollt nicht. */}
-            <EinladungBauen lang={L} beispielVideo={examples[0] ?? ""} />
+                unten. Die Suchmaschine liest die Seite, sie scrollt nicht.
 
-            <H1 className="mt-10">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-            {/* EIN Satz, mehr nicht (Owner 31.07.2026). Die Überschrift sagt „Einladung",
-                der erste Schritt fragt nach zwei Fotos — dazwischen fehlte die Erklärung. */}
-            {T.heroLead && <Lead className="mt-2">{fillPrices(T.heroLead, L)}</Lead>}
+                Update 02.08.2026: Die Überschrift steht wieder ÜBER der Karte — Owner:
+                „Oben muss gleich stehen, was ich verkaufe." Oben stehen genau drei Zeilen
+                (Kicker, H1, ein Satz); alle ABSÄTZE bleiben weiter unter der Karte. */}
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">{t.kicker}</p>
+            <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+            <Lead className="mt-2">{t.claim}</Lead>
+
+            <div className="mt-5">
+              <EinladungBauen lang={L} beispielVideo={examples[0] ?? ""} />
+            </div>
 
             {/* SOFORT SEHEN, WAS MAN BEKOMMT: Zusagenliste und Gruppenchat als Demo. */}
             <div className="mt-6 space-y-4">

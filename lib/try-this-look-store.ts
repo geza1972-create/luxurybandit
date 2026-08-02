@@ -1654,7 +1654,12 @@ export type Einladung = {
    * der Bestätigung angeben ob sie vegetarisch, vegan oder normal essen wollen"). Nur bei einer
    * Zusage gesetzt; wer absagt, isst nicht mit.
    */
-  zusagen?: { name: string; ja: boolean; at: string; email?: string; menu?: "normal" | "vegetarisch" | "vegan" }[];
+  /**
+   * `personen` — wie viele Gäste hinter EINER Zusage stehen (Owner 02.08.2026: „die
+   * Gästezahl muss noch klar stehen"). „Maria & Radu" ist eine Zusage, aber zwei Gäste —
+   * die Kopfzahl für Saal und Küche zählt Personen, nicht Zusagen.
+   */
+  zusagen?: { name: string; ja: boolean; at: string; email?: string; menu?: "normal" | "vegetarisch" | "vegan"; personen?: number }[];
   /**
    * Wie oft das Video schon getauscht wurde (Owner: „sie können das Video 5 mal ändern.
    * Die Gäste sehen immer den neuesten Stand"). Begrenzt, weil jeder Tausch ein bezahlter
@@ -1705,6 +1710,26 @@ export async function writeEinladungen(entries: Einladung[]): Promise<void> {
     body: JSON.stringify({ entries: entries.slice(0, 2000), savedAt: new Date().toISOString() }),
   });
   if (!response.ok) throw new Error(`Einladungen konnten nicht gespeichert werden (${response.status}).`);
+}
+
+/**
+ * DAS EINLADUNGS-ABO BESTÄTIGT (Ä11, Owner 02.08.2026: „Wenn er die auch nutzen will, dann
+ * muss er gleich Abo abschliessen"). Wird von `/api/checkout-status` aufgerufen, sobald
+ * Stripe eine `kind: "einladung-plan"`-Zahlung bestätigt hat — NIE vom Client direkt, sonst
+ * könnte sich jeder selbst als bezahlt eintragen.
+ *
+ * Reines Umlegen eines Schalters, kein Zähler — zweimal aufrufen ist harmlos (Stripe schickt
+ * den Kunden nur einmal bezahlt zurück, aber ein erneuter Aufruf würde nichts kaputt machen).
+ * Deshalb genügt hier ein einfaches Lesen-Ändern-Schreiben wie bei `setVideo`/`revoke` in
+ * `app/api/einladung/route.ts` — anders als beim Gruppenchat, wo mehrere Gäste gleichzeitig
+ * schreiben, gibt es hier nur genau EINEN Schreiber (Stripe, einmal).
+ */
+export async function einladungAboVermerken(id: string): Promise<void> {
+  const alle = await readEinladungen();
+  const e = alle.find(x => x.id === id);
+  if (!e) return;
+  e.bezahlt = true;
+  await writeEinladungen(alle);
 }
 
 export async function readKissLog(): Promise<KissLogEntry[]> {

@@ -5,6 +5,8 @@ import { Loader2, Pencil, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import TeilenKnopf from "@/components/TeilenKnopf";
+import EinladungAboKnopf from "@/components/EinladungAboKnopf";
+import { fillPrices } from "@/lib/pricing";
 
 /**
  * BEARBEITEN UND VERSCHICKEN — sichtbar nur für das Brautpaar.
@@ -22,10 +24,12 @@ import TeilenKnopf from "@/components/TeilenKnopf";
  * sich als Brautpaar ausgeben. Für einen Gast gibt es diesen Knopf schlicht nicht.
  */
 export default function EinladungBearbeiten({
-  id, sprache, sie, er, datum, ort, adresse, telefon,
+  id, sprache, sie, er, datum, ort, adresse, telefon, bezahlt,
 }: {
   id: string; sprache: string;
   sie: string; er: string; datum?: string; ort?: string; adresse?: string; telefon?: string;
+  /** Ohne Abo bekommt nur das Paar (nie die Gäste) den Abo-Kasten zu sehen (Ä9). */
+  bezahlt: boolean;
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const [darf, setDarf] = useState(false);
@@ -73,6 +77,7 @@ export default function EinladungBearbeiten({
   const text = `${f.sie} & ${f.er} 💍`;
 
   return (
+    <>
     <div className="lb-karte relative mt-4 overflow-hidden rounded-[20px] px-5 py-5">
       {offen ? (
         <div className="space-y-2">
@@ -115,5 +120,21 @@ export default function EinladungBearbeiten({
         </div>
       )}
     </div>
+    {/* ABO-KASTEN NUR FUERS PAAR, NIE FUER GAESTE (Ä9, Owner 02.08.2026: „für 1,49 bekommt
+        er die Einladung ohne die anderen Features. Wenn er die auch nutzen will, dann muss
+        er gleich Abo abschliessen"). Gleiche Optik wie der Reaktivierungs-Kasten in
+        app/einladung/[id]/page.tsx — dasselbe Ziel, hier aber VOR dem Ablauf der Probezeit.
+        Der Knopf startet jetzt echt die Kasse (Ä11) — vorher fuehrte er auf `/themes/wedding
+        ?abo=1&e=…`, ein Link, den nichts im Code auswertete. */}
+    {!bezahlt && (
+      <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+        <p className="text-[14px] font-black text-white">{T.aboTitel}</p>
+        <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
+          {fillPrices(T.aboText, sprache)}
+        </p>
+        <EinladungAboKnopf einladungId={id} label={fillPrices(T.aboKnopf, sprache)} pruefText={T.aboPruefen} />
+      </div>
+    )}
+    </>
   );
 }

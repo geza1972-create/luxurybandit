@@ -79,6 +79,10 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
 // angelegte Preis-ID price_1TzXLz1jPNCWoiztla7ACpBL ist das dortige Gegenstück und wird vom
 // Code nicht benutzt; massgeblich ist DIESE Zahl. Zurück zum alten Preis = 299.
 export const ONCE_CENTS = 149;                      // 1,49 € — ein Kauf, kein Abo (Preistest)
+// Owner 02.08.2026: „ich dachte ich lasse es nach 7 tagen mit abo laufen nicht nächsten
+// monat" — dreht die 30-Tage-Entscheidung vom 01.08. zurück auf 7 Tage. Eine Zahl hier,
+// damit Seite, Preiszeile (Ä5) und die tatsächliche Probefrist (Ä8) nie auseinanderlaufen.
+export const TRIAL_DAYS = 7;                        // Tage, die die Seite ohne Abo online bleibt
 // Die Aufladung (Owner 01.08.2026, Variante B: Zusatzangebot neben dem Einzelkauf; Guthaben
 // verfällt nie, keine Barauszahlung). Eine Stufe reicht zum Start.
 export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
@@ -97,6 +101,7 @@ export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
  *   {extra}  → 2,99 €    (jedes weitere Video)
  *   {videos} → 12        (im Abo enthalten)
  *   {once}   → 1,49 €    (Einmalkauf, ohne Abo)
+ *   {days}   → 7         (Probezeit ohne Abo, siehe TRIAL_DAYS)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
  */
@@ -114,6 +119,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
+    .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }
 

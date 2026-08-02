@@ -185,8 +185,18 @@ async function verkleinern(src: string, max = 520): Promise<string> {
 
 const VARIANTS: Record<FunnelVariant, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
-  /** Kein Gratis-Bild — erst bezahlen (Hochzeit, Owner 01.08.2026). */
+  /** Kein Gratis-Bild — erst bezahlen (Hochzeit, Owner 01.08.2026; Kuss, Owner 02.08.2026). */
   keinGratis?: boolean;
+  /**
+   * NUR NOCH GUTHABEN, KEIN EINZEL-STRIPE (Kuss, Owner 02.08.2026: „nicht so wie bei
+   * Hochzeit. Die werden die kaufen Credits für 9,99 gleich").
+   *
+   * Bei der Hochzeit bleibt `unlock("once")` der Weg — ohne Guthaben oeffnet er die
+   * 1,49-€-Kasse fuer EIN Video. Beim Kuss ist das nicht mehr gewollt: Ohne Guthaben geht es
+   * direkt zur 9,99-€-Aufladung, nie zur Einzel-Kasse. `unlock("once")` bleibt der Weg, WENN
+   * das Guthaben reicht (dann bucht der Server lautlos ab, ohne Kassenfenster).
+   */
+  nurGuthaben?: boolean;
   // MUSIK ZUM BILD (Owner 30.07.2026: „ich habe dir den Song angelegt Bridal-chorus.mp3").
   // Ein Bild ist still — die Stimmung muss von der Seite kommen. Nur dort gesetzt, wo es
   // wirklich passt; beim Kuss und beim Idol bliebe Musik Deko.
@@ -246,6 +256,7 @@ const VARIANTS: Record<FunnelVariant, {
     // bei der Hochzeit"). Ohne Musik ist das fertige Bild eine Postkarte statt eines Moments.
     musik: musikFuer("kiss"),
     prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
+    keinGratis: true, nurGuthaben: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
     // Models sind die Alternative daneben, nicht der Anfang. Auf diese Seite laufen die
@@ -459,6 +470,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   }, [lang]);
   const [adresseDa, setAdresseDa] = useState(false);   // wir kennen ihn → kein Feld mehr
   /**
+   * KEIN UPLOAD OHNE E-MAIL (Owner 03.08.2026: „sie dürfen nicht ein Mal hochladen ohne
+   * Email anzugeben"). Bisher lag das Adressfeld erst kurz vor „Generate" — jedes Foto war
+   * da längst hochgeladen und im Werkzeug gespeichert (`onFile`/`onModelFile` legen den
+   * Log-Eintrag sofort an, unabhaengig von der Adresse). Jetzt haelt ein Tor VOR dem ersten
+   * Upload an: fehlt die Adresse, wird das Foto zwischengehalten (`gateDatei`) statt
+   * hochgeladen, bis die E-Mail bestaetigt ist — dann laeuft genau dieses Foto nach.
+   */
+  const [gateOffen, setGateOffen] = useState(false);
+  const gateDatei = useRef<{ art: "person" | "model"; file: File } | null>(null);
+  /**
    * ABONNENT WIEDERERKANNT (Owner 30.07.2026). „Bezahlt" war bisher ein Zustand dieser einen
    * Sitzung — wer gestern ein Abo abgeschlossen hatte, war heute wieder ein Fremder. Jetzt
    * fragt der Trichter mit seiner Adresse nach: läuft ein Abo, und wie viele Videos hat er
@@ -541,6 +562,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const mailRef = useRef<HTMLInputElement>(null);      // Adressfeld vor der Erzeugung
+  const mailGateRef = useRef<HTMLInputElement>(null);   // Adressfeld im Upload-Tor
   /**
    * DER HOCHZEITSMARSCH ZUM BILD (Owner 30.07.2026).
    *
@@ -970,6 +992,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // Leute wollten. Das Ergebnis wird später an denselben Eintrag nachgetragen.
   const onFile = async (f?: File | null) => {
     if (!f) return;
+    // KEIN UPLOAD OHNE ADRESSE (Owner 03.08.2026). Admin/Staff bleibt ausgenommen, sonst
+    // testet niemand mehr ohne Adresse einzutippen.
+    if (!isStaff && !adresseDa) { gateDatei.current = { art: "person", file: f }; setGateOffen(true); return; }
+    await onFileEcht(f);
+  };
+  const onFileEcht = async (f: File) => {
     // DAS HOCHLADEN IST DIE ZUSTIMMUNG (Owner 30.07.2026: „beim Upload und weiter akzeptiert
     // er"). Genau hier wird das Foto gespeichert — die Einwilligung darf nicht erst einen
     // Schritt spaeter kommen, sonst liegt sein Bild vor der Zustimmung bei uns.
@@ -1153,6 +1181,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // sonst entsteht er hier — je nachdem, was er zuerst hochlädt.
   const onModelFile = async (f?: File | null) => {
     if (!f) return;
+    if (!isStaff && !adresseDa) { gateDatei.current = { art: "model", file: f }; setGateOffen(true); return; }
+    await onModelFileEcht(f);
+  };
+  const onModelFileEcht = async (f: File) => {
     zustimmen();   // dasselbe wie beim eigenen Foto: gespeichert wird ab diesem Moment
     try {
       const dataUrl = await fileToDataUrl(f);
@@ -1266,6 +1298,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      */
     if (V.keinGratis && !bezahlt && !isStaff) {
       if (!adresseDa) { const e = mail.trim(); if (!(await adresseVormerken(e))) return; }
+      /**
+       * KUSS: NUR GUTHABEN (Owner 02.08.2026). Reicht das Aufgeladene, bucht der Server
+       * lautlos ab (`unlock("once")` faellt dann nie auf die 1,49-€-Kasse zurueck, weil sie
+       * vorher schon abgebucht hat). Reicht es nicht, geht es direkt zur 9,99-€-Aufladung —
+       * nie zur Einzel-Kasse.
+       */
+      if (V.nurGuthaben && (guthabenCents ?? 0) < ONCE_CENTS) { void unlock("auflade"); return; }
       void unlock("once");
       return;
     }
@@ -1416,6 +1455,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       track("email");
       return true;
     } catch { setStatus(T.statusNetwork); setMailBusy(false); return false; }
+  };
+
+  /**
+   * DAS TOR-FORMULAR (Owner 03.08.2026). Bestaetigt die im Tor eingetippte Adresse und laesst
+   * danach GENAU DAS Foto nachlaufen, das den Deckel ausgeloest hat — der Besucher merkt vom
+   * Umweg nichts, sein Tipp auf „Weiter" fuehlt sich an wie ein einziger Schritt.
+   */
+  const gateWeiter = async () => {
+    const e = mail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setMailFehler(T.mailInvalid); mailGateRef.current?.focus(); return; }
+    if (!(await adresseVormerken(e))) { mailGateRef.current?.focus(); return; }
+    setGateOffen(false);
+    const wartend = gateDatei.current; gateDatei.current = null;
+    if (wartend?.art === "person") await onFileEcht(wartend.file);
+    else if (wartend?.art === "model") await onModelFileEcht(wartend.file);
   };
 
   // Was wir ihm schicken, sobald es etwas zu schicken gibt. `pending` = es hat nicht

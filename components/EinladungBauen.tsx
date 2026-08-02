@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -10,6 +10,35 @@ import LightSwitch from "@/components/LightSwitch";
 import { kissText } from "@/lib/kiss-i18n";
 import { weddingPrompt, KISS_LOOK_ID } from "@/lib/wedding-prompt";
 import { fillPrices } from "@/lib/pricing";
+
+/**
+ * BEISPIEL-INHALT FÜR DIE LEERE KARTE (Owner 02.08.2026 abends: „in der Karte muss doch
+ * stehen ein Beispiel eines Namens und eine schöne Adresse").
+ *
+ * Vorher fiel jedes leere Feld auf seine eigene Formularbeschriftung zurück — „Ihr Vorname",
+ * „Prenumele ei" stand dann wörtlich auf der Karte, wie ein Formular, nicht wie eine
+ * Einladung. Ein echtes Beispiel zeigt sofort, wie GUT das Ergebnis aussieht, sobald man es
+ * ausfüllt hat — dieselbe Karte, die schon leer überzeugen soll.
+ *
+ * Namen bewusst NICHT je Sprache übersetzt (Namen übersetzt man nicht) — „Ana & Mihai" ist
+ * dieselbe Geschichte, die auch die Gruppenchat-Demo auf der Themenseite erzählt.
+ * Ort/Adresse waren fast wortgleich schon einmal in `app/themes/wedding/page.tsx` als
+ * `BEISPIEL_ORT`/`BEISPIEL_ADRESSE` vorhanden, wurden aber nie verwendet und darum als toter
+ * Code entfernt (Änderungsplan Ä6) — hier ziehen sie um an die Stelle, wo sie tatsächlich
+ * gebraucht werden: die Bau-Karte selbst, nicht die Themenseite.
+ */
+const BEISPIEL_SIE = "Ana";
+const BEISPIEL_ER = "Mihai";
+const BEISPIEL_ORT: Record<string, string> = {
+  de: "Schlosshotel Grunewald", en: "The Old Manor House", ro: "Casa Timiș",
+  es: "Hacienda Los Olivos", fr: "Château de Villandry", pt: "Quinta da Aveleda", it: "Villa Bellosguardo",
+};
+const BEISPIEL_ADRESSE: Record<string, string> = {
+  de: "Musterstraße 12, 14193 Berlin", en: "12 Sample Lane, SW1A 1AA London",
+  ro: "Str. Exemplu 12, 106100 Sinaia", es: "Calle Ejemplo 12, 28001 Madrid",
+  fr: "12 rue Exemple, 75008 Paris", pt: "Rua Exemplo 12, 1200-001 Lisboa",
+  it: "Via Esempio 12, 00187 Roma",
+};
 
 /**
  * DIE KARTE IST DIE BEDIENUNG.
@@ -130,6 +159,13 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   }, [sie, er, datum, ort, adresse, telefon, mail]);
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
+
+  /** Rund hundert Tage voraus: So weit im Voraus verschickt man Einladungen, und das
+   *  Beispieldatum liegt damit immer in der Zukunft — anders als ein fest getipptes Datum. */
+  const beispielDatum = useMemo(
+    () => new Date(Date.now() + 100 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    [],
+  );
 
   /** Fertig zum Erzeugen ist, wer den gewaehlten Weg vollstaendig gegangen ist. */
   const fotosDa = weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
@@ -315,11 +351,11 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       )}
       <EinladungKarte
         sprache={lang}
-        sie={sie.trim() || T.fSie}
-        er={er.trim() || T.fEr}
-        datum={datum}
-        ort={ort.trim()}
-        adresse={adresse.trim()}
+        sie={sie.trim() || BEISPIEL_SIE}
+        er={er.trim() || BEISPIEL_ER}
+        datum={datum || beispielDatum}
+        ort={ort.trim() || BEISPIEL_ORT[lang] || BEISPIEL_ORT.en}
+        adresse={adresse.trim() || BEISPIEL_ADRESSE[lang] || BEISPIEL_ADRESSE.en}
         telefon={telefon.trim()}
         demo
         aufNamen={() => setFeld("namen")}
@@ -366,10 +402,14 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
             <div className="relative">
               <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
+                {/* NICHT „Foto ersetzen" (Owner 02.08.2026 abends): Die Karte zeigt jetzt einen
+                    kompletten Beispiel-Datensatz (Name, Datum, Ort, Adresse UND Video) — ein
+                    Knopf, der nur vom Bild spricht, sagt nicht mehr, was hier wirklich passiert.
+                    `F.datenErsetzen` lädt zum Ausfüllen der GANZEN Karte ein. */}
                 <button type="button" onClick={() => setFeld("fotos")}
                   className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
                   <ImageUp className="h-4 w-4 shrink-0" />
-                  {T.ersetzen}
+                  {F.datenErsetzen}
                 </button>
               </div>
             </div>

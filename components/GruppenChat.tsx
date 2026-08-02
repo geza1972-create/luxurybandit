@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, X } from "lucide-react";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 
@@ -54,6 +54,39 @@ export default function GruppenChat({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const eigenerName = useRef(false);
+
+  /**
+   * NUR DAS BRAUTPAAR DARF LÖSCHEN (Ä12, Owner 02.08.2026, nach Beratung ueber Chat-Zugriff:
+   * der Chat bleibt offen fuer jeden mit dem Link — Loeschen ist das Sicherheitsventil, nicht
+   * eine Zugriffssperre). Derselbe Pruef-Mechanismus wie in `EinladungBearbeiten.tsx`: der
+   * Server entscheidet anhand der Geraetekennung (oder Admin-PIN), niemals der Browser allein.
+   */
+  const [darf, setDarf] = useState(false);
+  useEffect(() => {
+    if (!id || demo) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+    if (!device && !pin) return;
+    void fetch("/api/einladung", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+      body: JSON.stringify({ pruefen: id, device }),
+    }).then(r => r.json()).then(d => setDarf(!!d?.darf)).catch(() => {});
+  }, [id, demo]);
+
+  const loeschen = async (m: Nachricht) => {
+    if (!id) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+    const r = await fetch("/api/einladung", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+      body: JSON.stringify({ chatLoeschen: id, device, at: m.at ?? "", name: m.name, text: m.text }),
+    }).then(r2 => r2.json()).catch(() => null);
+    if (r?.ok) setListe(Array.isArray(r.chat) ? r.chat : liste.filter(x => x !== m));
+  };
 
   /**
    * Den Vornamen aus der Zusage übernehmen: Wer gerade „Ich komme" getippt hat, soll ihn für
@@ -139,6 +172,14 @@ export default function GruppenChat({
                   </span>
                   <span className="mt-0.5 block font-serif text-[14.5px] leading-snug">{m.text}</span>
                 </span>
+                {/* NUR FUERS PAAR (Ä12) — Gaeste sehen dieses ✕ nie. Rot als eigene Klasse, nie
+                    als Inline-Style: `!important`-Regeln der Karte fressen sonst Inline-Farben. */}
+                {darf && (
+                  <button type="button" onClick={() => void loeschen(m)} aria-label={T.chatLoeschen}
+                    className="lb-karte-fehler grid h-6 w-6 shrink-0 place-items-center rounded-full transition active:scale-90">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

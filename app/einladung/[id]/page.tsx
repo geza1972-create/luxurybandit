@@ -8,6 +8,7 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
 import EinladungBearbeiten from "@/components/EinladungBearbeiten";
+import EinladungAboKnopf from "@/components/EinladungAboKnopf";
 import LightSwitch from "@/components/LightSwitch";
 
 /**
@@ -130,12 +131,14 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
         {/* Bearbeiten und Verschicken — der Knopf erscheint nur beim Brautpaar; ein Gast
             sieht an dieser Stelle gar nichts. */}
         <EinladungBearbeiten id={e.id} sprache={sprache} sie={e.sie ?? ""} er={e.er ?? ""}
-          datum={e.datum} ort={e.ort} adresse={e.adresse} telefon={e.telefon} />
+          datum={e.datum} ort={e.ort} adresse={e.adresse} telefon={e.telefon} bezahlt={!!e.bezahlt} />
 
-        {!abgelaufen && <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />}
+        {/* ZUSAGEN, MENÜ, CHAT UND NEWS KOMMEN MIT DEM ABO (Owner 02.08.2026: „für 1,49
+            bekommt er die Einladung ohne die anderen Features"). Ohne Abo sieht der Gast
+            nur die Karte — kein leerer Kasten, kein Preisschild. */}
+        {!!e.bezahlt && !abgelaufen && <ZusagenKarte sprache={sprache} id={e.id} zusagen={e.zusagen ?? []} />}
 
-        {/* NEUIGKEITEN UND GRUPPE — der Grund, warum der Gast ueber den Link wiederkommt. */}
-        {!abgelaufen && (
+        {!!e.bezahlt && !abgelaufen && (
           <GruppenChat sprache={sprache} id={e.id} nachrichten={e.chat ?? []} news={e.news ?? []}
             sie={e.sie} er={e.er} />
         )}
@@ -165,10 +168,9 @@ export default async function EinladungPage({ params }: { params: Promise<{ id: 
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
               {fillPrices(T.wiederText, sprache)}
             </p>
-            <Link href={`/themes/wedding?utm_source=einladung&abo=1&e=${encodeURIComponent(e.id)}`}
-              className="lb-gold mt-3 flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black active:scale-95 transition">
-              {fillPrices(T.wiederKnopf, sprache)}
-            </Link>
+            {/* Startet jetzt echt die Abo-Kasse (Ä11) — vorher fuehrte der Knopf auf
+                `/themes/wedding?abo=1&e=…`, einen Link, den nichts im Code auswertete. */}
+            <EinladungAboKnopf einladungId={e.id} label={fillPrices(T.wiederKnopf, sprache)} pruefText={T.aboPruefen} />
           </div>
         )}
 

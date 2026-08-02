@@ -37,7 +37,7 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
  * isst nicht mit; `menu` bleibt dann leer.
  */
 export type Menu = "normal" | "vegetarisch" | "vegan";
-export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu };
+export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu; personen?: number };
 
 export default function ZusagenKarte({
   sprache, id, zusagen, demo,
@@ -57,11 +57,15 @@ export default function ZusagenKarte({
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
   const [menu, setMenu] = useState<Menu>("normal");
+  // Gästezahl hinter DIESER Zusage (Ä10, Owner 02.08.2026: „die Gästezahl muss noch klar
+  // stehen"). Vorgabe 1 wie beim Menü — nie leer, klicken statt tippen.
+  const [personen, setPersonen] = useState(1);
   const [busy, setBusy] = useState(false);
   const [fertig, setFertig] = useState(false);
 
-  const ja = liste.filter(z => z.ja).length;
-  const nein = liste.length - ja;
+  // Kopfzahl zaehlt PERSONEN, nicht Zusagen — „Maria & Radu" sind zwei Gaeste.
+  const gaeste = liste.filter(z => z.ja).reduce((s, z) => s + (z.personen ?? 1), 0);
+  const nein = liste.filter(z => !z.ja).length;
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
@@ -72,14 +76,14 @@ export default function ZusagenKarte({
     // Das Menü zaehlt nur bei einer Zusage — wer absagt, isst nicht mit.
     const r = await fetch("/api/einladung", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt ? menu : undefined }),
+      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt ? menu : undefined, personen: kommt ? personen : undefined }),
     }).catch(() => null);
     setBusy(false);
     if (!r?.ok) return;
     // Sofort anzeigen, statt die Seite neu zu laden — die Antwort soll sich anfuehlen wie
     // ein Haendedruck, nicht wie ein Formular.
-    setListe(l => [...l, { name: n, ja: kommt, menu: kommt ? menu : undefined }]);
-    setName(""); setMail(""); setMenu("normal");
+    setListe(l => [...l, { name: n, ja: kommt, menu: kommt ? menu : undefined, personen: kommt ? personen : undefined }]);
+    setName(""); setMail(""); setMenu("normal"); setPersonen(1);
     setFertig(true);
   };
 
@@ -93,7 +97,7 @@ export default function ZusagenKarte({
           {T.zusTitel}
         </p>
         <p className="mt-1.5 text-center font-serif text-[17px] font-bold">
-          {T.zusZahl(ja, nein)}
+          {T.zusGaeste(gaeste, nein)}
         </p>
         <DividerOrnament className="mt-2.5" />
 
@@ -158,6 +162,20 @@ export default function ZusagenKarte({
                   <button key={m} type="button" onClick={() => setMenu(m)}
                     className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
                     {label}
+                  </button>
+                ))}
+              </div>
+              {/* GÄSTEZAHL HINTER DER ZUSAGE (Ä10c, Owner 02.08.2026: „die Gästezahl muss noch
+                  klar stehen"). EXAKT dasselbe Knopf-Muster wie die Menü-Chips darüber:
+                  klicken statt tippen, Chips nie leer, Vorgabe 1. */}
+              <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
+                {T.zusWieViele}
+              </p>
+              <div className="mt-1.5 grid grid-cols-6 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                {([1, 2, 3, 4, 5, 6] as const).map(n => (
+                  <button key={n} type="button" onClick={() => setPersonen(n)}
+                    className={`${personen === n ? "lb-karte-cta" : ""} h-9 rounded-full text-[13px] font-black transition active:scale-95`}>
+                    {n}
                   </button>
                 ))}
               </div>

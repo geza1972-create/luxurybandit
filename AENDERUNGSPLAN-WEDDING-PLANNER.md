@@ -8,28 +8,123 @@ Alle Code-Zitate sind am 02.08.2026 gegen den echten Stand geprüft.
 
 ---
 
-## STAND NACH DEM 1. LAUF (02.08.2026 spätabends — ZUERST lesen)
+## STAND NACH DEM 2. LAUF (02.08.2026 nachts — ZUERST lesen)
 
-Der erste Umsetzungs-Lauf hat die 1. Fassung dieses Plans abgearbeitet; DANACH wurde der
-Plan auf das neue Preismodell erweitert. Am Code per Grep verifiziert:
+Am Code UND im Browser verifiziert (Grep + lokale Vorschau, mobil, RO):
 
-- **Erledigt — nicht mehr anfassen:** Ä1 (Metadaten), Ä2 (`s1p`-Platzhalter),
-  Ä6 (toter Code raus), Ä7 (Preis-Kommentar).
-- **Umgesetzt, aber mit inzwischen FALSCHEN Texten — auf die Fassung in DIESEM Plan
-  korrigieren:**
-  - Ä3: Beschriftungen sagen „Included with your invitation …" — muss die Abo-Fassung
-    aus 3a werden (Features sind NICHT mehr inklusive).
-  - Ä5: `preise` sagt „erster Monat inklusive · danach {price}/Monat" — muss die
-    {days}-Fassung aus 5a werden; **Ä5c (TRIAL_DAYS + `{days}` in `fillPrices`) fehlt
-    komplett** — ohne sie stünde wörtlich „{days}" auf der Seite.
-- **Alte Ä4-Fassung umgesetzt** (`heroLead` wurde neu GESCHRIEBEN statt gelöscht; die H1
-  steht noch unter der Karte, kein Kicker/Claim): Jetzt gilt Ä4 dieser Fassung —
-  Kicker + H1 + Claim ÜBER die Karte, H1-Block unten raus, `heroLead` in `HOCHZEIT`
-  in allen 7 Sprachen ganz LÖSCHEN (auch die Neufassung fliegt).
-- **Komplett offen:** Ä8 (`route.ts` steht noch auf `30 * 24 * …`, `probeHinweis` sagt
-  noch „one month"), Ä9, Ä10, Ä11, Ä12.
+- **Erledigt — nicht mehr anfassen:** Ä1–Ä10. Kopf über der Karte steht (Kicker/H1/Claim),
+  Preiszeile zeigt „1,49 € · 7 Tage · 24,50 €", Beschriftungen in Abo-Fassung,
+  `heroLead` aus `HOCHZEIT` gelöscht, `TRIAL_DAYS` überall, Abo-Sperre auf der
+  Einladungsseite aktiv, Gästezahl zählt Personen („vin 7 invitați · 1 refuz").
+- **Offen — NUR das ist noch zu tun:** **Ä11** (Abo-Kasse — `?abo=1` läuft weiterhin ins
+  Leere) und **Ä12** (Chat-Löschen fürs Paar).
+- **DEPLOY-SPERRE:** Dieser Stand darf NICHT committet/gepusht werden, bevor Ä11 steht.
+  Grund: Die Abo-Sperre (Ä9) ist aktiv, aber es gibt keinen Kaufweg — live wären Zusagen/
+  Chat für jede neue Einladung gesperrt UND unkaufbar, und der Abo-Knopf des Paares
+  führte ins Leere. Erst Ä11, dann Freigabe durch den Owner.
+- **Wortwahl-Regel (Owner 02.08.2026: „RSVPs verstehe ich selber nicht"):** Das Wort
+  „RSVP" ist aus allen sichtbaren Texten entfernt — englische Quelle sagt „guest list"
+  (→ Gästeliste/lista de invitați). NIE wieder „RSVP" in sichtbare Texte schreiben;
+  erlaubt bleibt es nur als unsichtbares Such-Stichwort in `metadata.keywords`.
+- Volles `tsc --noEmit` zeigt ~109 ALT-Fehler in nicht angefassten Dateien
+  (`app/api/try-this-look/route.ts`, `.next/`-Typen, Profile-Route) — Altbestand, nicht
+  Teil dieses Plans, nicht „mitfixen". Alle Plan-Dateien sind fehlerfrei.
 - Die Änderungen an `app/themes/page.tsx` und `components/CookieConsent.tsx` im
   Arbeitsverzeichnis stammen aus einer ANDEREN Sitzung — liegen lassen.
+
+**Ä13, direkt umgesetzt (02.08.2026 spätabends, Owner-Feedback live am Screenshot):**
+- H1 heisst jetzt „euer Hochzeitsplaner" statt „eure Hochzeitseinladung" in allen 7
+  Sprachen (`heroA`/`heroY`/`heroB` im `HOCHZEIT`-Block, `lib/kiss-i18n.ts`) — Owner: „oben
+  muss stehen was ich verkaufe", der Kicker allein sagte „Planer", die grosse Überschrift
+  sagte weiter „Einladung".
+- Die leere Bau-Karte (`components/EinladungBauen.tsx`) zeigt jetzt ein GANZES Beispiel
+  statt Formular-Beschriftungen als Inhalt: Name „Ana & Mihai", ein Datum ~100 Tage voraus,
+  Ort „Casa Timiș" + volle Adresse mit PLZ (7 Sprachen, `BEISPIEL_ORT`/`BEISPIEL_ADRESSE` —
+  inhaltlich identisch mit den in Ä6 als toter Code gelöschten Konstanten aus
+  `page.tsx`, jetzt aber tatsächlich verwendet, an der Stelle wo sie hingehören). Owner:
+  „in der Karte muss doch stehen ein Beispiel eines Namens und eine schöne Adresse."
+  Bleibt reiner Anzeige-Fallback — an `erzeugen()`/`einladungAnlegen()` geht weiterhin nur
+  das, was der Nutzer selbst eingetippt hat.
+- Der Knopf über dem Beispielvideo heisst nicht mehr „Foto ersetzen"/„Înlocuiește poza",
+  sondern „Daten ersetzen"/„Înlocuiește datele" (neuer Schlüssel `datenErsetzen` in
+  `KissText`, in ALLEN 7 Sprachen sowohl in der Basis-`TABELLE` als auch im
+  `HOCHZEIT`-Override befüllt — Basis-Wert wird für Kiss nie angezeigt, existiert nur
+  weil `TABELLE: Record<Lang, KissText>` keine fehlenden Schlüssel zulässt). Owner: „nicht
+  Inlocuiește poza, sondern Inlocuiește datele." Der Knopf auf dem ECHTEN, selbst
+  erzeugten Bild heisst weiterhin „Foto ersetzen" (`T.ersetzen`) — dort stimmt das Wort.
+- `tsc --noEmit` sauber für beide Dateien; im Browser (mobil, RO) geprüft: Karte zeigt
+  „Ana & Mihai", „10 noiembrie 2026", „Casa Timiș" + Adresse, Knopf „Înlocuiește datele".
+
+---
+
+## STAND NACH DEM 3. LAUF (02.08.2026 nachts, Ä11 + Ä12 direkt umgesetzt, nicht von
+Sonnet) — DAS GILT ALS NÄCHSTES
+
+Auf Owner-Wunsch („ja, dann machs") direkt gebaut statt an Sonnet delegiert. Am Code UND
+per curl/Browser gegen den lokalen Dev-Server geprüft.
+
+**Ä11 — Abo-Kasse — FERTIG:**
+- Neue Route `app/api/einladung-abo-checkout/route.ts`: prüft, dass die Einladung existiert,
+  öffnet dieselbe Stripe-Abo-Kasse wie die anderen Themen (`topicPriceId()` + `standardCoupon()`
+  — 24,50 €/Monat), `metadata.kind = "einladung-plan"` (bewusst NICHT „…-abo", sonst hätte
+  `checkout-status`s bestehende `/-abo$/`-Regel zusätzlich das themenübergreifende
+  Monatsguthaben gutgeschrieben — ein anderes Produkt).
+- `app/api/checkout-status/route.ts`: neuer Zweig für `kind === "einladung-plan"` ruft
+  `einladungAboVermerken(einladungId)` auf.
+- `lib/try-this-look-store.ts`: neue Funktion `einladungAboVermerken(id)` — liest, setzt
+  `bezahlt: true`, schreibt zurück (Lesen-Ändern-Schreiben wie bei `setVideo`/`revoke`,
+  keine Retry-Schleife nötig — genau EIN Schreiber, Stripe, einmal).
+- Neuer Baustein `components/EinladungAboKnopf.tsx` (`"use client"`): EIN Knopf für ZWEI
+  Stellen — der Abo-Kasten in `EinladungBearbeiten.tsx` (noch in der Probezeit) UND der
+  Reaktivierungs-Kasten in `app/einladung/[id]/page.tsx` (Probezeit abgelaufen). Beide
+  zeigten vorher denselben toten `<Link href="/themes/wedding?abo=1&e=…">`. Der Baustein
+  startet die Kasse, erkennt die Rückkehr `?abopaid=1&cs=<sitzung>` (derselbe Mechanismus
+  wie `PaidReturn.tsx`), fragt `/api/checkout-status` und lädt bei Erfolg die Seite komplett
+  neu (kein zweiter Wahrheitsstand im Browser).
+- Neuer Text-Schlüssel `aboPruefen` in `KARTE_TEXTE` (alle 7 Sprachen): „Zahlung wird
+  bestätigt …" während der Rückkehr-Prüfung.
+- **Live geprüft:** Reale Stripe-Checkout-Session erfolgreich erzeugt (`checkout.stripe.com`,
+  `cs_live_…` — LIVE-Schlüssel, wie im Code dokumentiert) — **NICHT abgeschlossen**, kein
+  Geld bewegt. Rückkehr-Mechanismus (`?abopaid=1&cs=…` → Prüfung → Reload) über die
+  vorhandene lokale Testklappe (`LB_TEST_CHECKOUT=1`) durchlaufen — bestätigt NUR den
+  Client-Kreislauf, nicht `einladungAboVermerken` selbst (die Testklappe antwortet mit
+  einem fest verdrahteten `kind:"kiss-video"`, bevor mein neuer Zweig erreicht wird).
+
+**Ä12 — Chat-Löschen fürs Brautpaar — FERTIG:**
+- Neuer Zweig `chatLoeschen` in `app/api/einladung/route.ts`: gleiche Besitzprüfung wie
+  `setVideo` (Admin ODER passendes Gerät), gleiche Prüf-Schleife wie beim Chat-Schreiben
+  (verhindert, dass eine gleichzeitig geschriebene Nachricht die gerade gelöschte
+  wiederbelebt), idempotent (zweimal löschen ist harmlos).
+- `components/GruppenChat.tsx`: eigene `darf`-Erkennung (derselbe `pruefen`-Aufruf wie in
+  `EinladungBearbeiten.tsx`), neues ✕ an jeder Sprechblase NUR wenn `darf` — Gäste sehen es
+  nie. Farbe über `lb-karte-fehler` (Dauerregel, nie Inline-Style).
+- Neuer Text-Schlüssel `chatLoeschen` (aria-label) in `KARTE_TEXTE`, alle 7 Sprachen.
+- **Live geprüft, Ende-zu-Ende, über curl gegen den echten Dev-Server:** Ohne PIN/passendes
+  Gerät → `403 "Not yours."`. Mit Admin-PIN → Nachricht gelöscht, `chat: []` zurückgegeben,
+  Löschung bestätigt beim erneuten Lesen (persistiert), zweites Löschen derselben Nachricht
+  → weiterhin `ok:true` (idempotent bestätigt). Test-Nachricht danach wiederhergestellt.
+
+**Randnotiz, nicht code-bezogen:** Der lokale Dev-Server zeigte zwischendurch das bekannte
+Muster „stale/korruptes `.next`" (`ENOENT … .next/server/app/api/einladung/route.js`) nach
+mehreren schnellen `.next`-Löschungen unter Last — zweimal `preview_stop` → `rm -rf .next`
+→ `preview_start` → **in Ruhe warten, nicht sofort mit parallelen Requests hämmern** hat es
+behoben. Kein Code-Fehler, siehe Dauerregel „Dev-Server stale bundle".
+
+**Damit sind ALLE 12 Änderungen dieses Plans umgesetzt.** Offen bleiben nur die drei
+Owner-Entscheidungen aus dem Abschnitt „Ausdrücklich NICHT in diesem Plan" (küssendes
+Beispielvideo, `?src=fb`-Ansicht ohne Marketplace-Kopf, Owner-Testkauf) — und der
+Owner-Testkauf ist jetzt WIRKLICH die letzte Hürde vor dem ersten Anzeigen-Euro, weil die
+Kasse (Ä11) jetzt tatsächlich funktioniert.
+
+**Volles `tsc --noEmit`:** null Fehler in JEDER heute berührten Datei. Die verbleibenden
+Fehler liegen ausschließlich in nie angefassten Dateien (`app/about/page.tsx`,
+`app/admin/*`, `app/api/curator/*`, `app/api/look-dupes/*`, `app/api/generate-daily-stories`,
+`app/api/img-proxy`, `app/api/profile/[username]`, `app/api/try-this-look/route.ts`,
+`.next/`-generierte Typen) — Altbestand, nicht Teil dieses Plans.
+
+**Weiterhin NICHT committet/gepusht.** Die Deploy-Sperre ist jetzt aufgehoben, sobald der
+Owner den Stand gesichtet hat — vorher lag sie an den fehlenden Änderungen 11/12, die jetzt
+stehen.
 
 ---
 
