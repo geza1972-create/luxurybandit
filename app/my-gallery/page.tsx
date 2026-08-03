@@ -7,6 +7,7 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import { musikFuer } from "@/lib/musik";
+import { geburtstagTitel } from "@/lib/geburtstag";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -670,14 +671,14 @@ export default function MyGalleryPage() {
                 * Empfaenger „Diese Karte ist privat" — ein toter Link, verschickt in gutem
                 * Glauben.
                 */}
-              {open.videoUrl && (
-                <button type="button" disabled={teilenBusy}
-                  onClick={(e) => { e.stopPropagation(); void teilen(open); }}
-                  className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-[13px] font-black text-white active:scale-95 disabled:opacity-50">
-                  {teilenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {teilenText || "Teilen"}
-                </button>
-              )}
+              {/* DER TEILEN-KNOPF STAND HIER — jetzt sitzt er AUF DER KARTE (Owner 03.08.2026:
+                  „und die haben kein Share-Button auf der Karte").
+                  Beides nebeneinander waere zweimal derselbe Knopf fuer dieselbe Sache, einmal
+                  im Werkzeugbalken und einmal am Werk — genau die Doppelung, die uns beim
+                  zweiten Video-Spieler schon passiert ist. Die Karte ist das, was verschickt
+                  wird; der Knopf gehoert dorthin. Bei einem BILD (kein Video, keine Karte)
+                  bleibt der Download-Knopf hier der einzige Weg — geteilt werden nur Werke.
+                  Die Funktion `teilen` ist unveraendert; nur ihr Knopf ist umgezogen. */}
               <button type="button" onClick={(e) => { e.stopPropagation(); void download(open); }} disabled={downloading}
                 className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
                 {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
@@ -705,7 +706,26 @@ export default function MyGalleryPage() {
             {open.videoUrl ? (
               <div className="w-full max-w-[420px]">
                 <EinladungKarte sprache="en" sie="" er="" demo
-                  titel={open.theme === "wedding" ? "The Wedding" : open.theme === "idol" ? "Your Idol" : "Unforgettable kiss gift"}
+                  /**
+                   * DIE ÜBERSCHRIFT GEHÖRT ZUM THEMA (Owner 03.08.2026, mit einem Bild einer
+                   * Geburtstagskarte, auf der „UNFORGETTABLE KISS GIFT" stand).
+                   *
+                   * Hier standen drei Fälle und ein Sammelbecken: alles, was nicht Hochzeit
+                   * oder Idol war, hieß „Kiss gift" — also auch jedes Geburtstags-, Tanz- und
+                   * Urlaubsvideo. Auf einem Geschenk an einen bestimmten Menschen steht damit
+                   * der Name eines fremden Produkts.
+                   *
+                   * Beim Geburtstag steht der Gruß selbst oben, wörtlich wie im Trichter
+                   * (`geburtstagTitel`) — „Happy birthday to you Geza". Das Geburtstagskind
+                   * bekommt kein Produkt, es bekommt einen Gruß.
+                   */
+                  titel={
+                    open.theme === "wedding" ? "The Wedding"
+                      : open.theme === "idol" ? "Your Idol"
+                      : open.theme === "birthday" ? geburtstagTitel(open.empfaenger || "")
+                      : open.theme === "poledance" ? "Your dance"
+                      : open.theme === "holiday" ? "Your holiday"
+                      : "Unforgettable kiss gift"}
                   fuss={
                     <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
                       erstellt durch luxurybandit.com
@@ -717,6 +737,31 @@ export default function MyGalleryPage() {
                         musik={musikFuer(open.theme || "kiss")} tonAutomatisch
                         tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus} />
                       <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
+                      {/**
+                        * TEILEN GEHÖRT AUF DIE KARTE (Owner 03.08.2026: „und die haben kein
+                        * Share-Button auf der Karte").
+                        *
+                        * Es gab einen — im schwarzen Kopfbalken darüber, zwischen „X" und
+                        * „Download", wo er über der Seitenkopfzeile klebt. Die Karte IST aber
+                        * das, was verschickt wird; der Knopf dafür gehört darauf, nicht in die
+                        * Werkzeugleiste eines Betrachters. Genau so steht es in
+                        * `Landingpage.md` und so macht es die Beispiel-Galerie: links oben,
+                        * gegenüber dem Ton-Knopf, auf z-30.
+                        *
+                        * Derselbe Aufruf wie oben (`teilen`) — erst freischalten, dann den
+                        * /w/<id>-Link verschicken, nie umgekehrt.
+                        */}
+                      <button type="button" disabled={teilenBusy}
+                        onClick={e => { e.stopPropagation(); void teilen(open); }}
+                        aria-label="Teilen"
+                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-white backdrop-blur transition active:scale-90 disabled:opacity-50">
+                        {teilenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </button>
+                      {!!teilenText && (
+                        <span className="absolute left-2 top-14 z-30 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
+                          {teilenText}
+                        </span>
+                      )}
                     </div>
                   } />
               </div>
