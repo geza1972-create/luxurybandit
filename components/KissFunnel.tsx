@@ -3216,11 +3216,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 const r = await fetch("/api/generate-tryon-video", {
                   method: "POST",
                   headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-                  body: JSON.stringify({ dryRun: true, lookId: KISS_LOOK_ID, person, garment: outfit }),
+                  body: JSON.stringify({ dryRun: true, lookId: KISS_LOOK_ID, person, garment: outfit,
+                    prompt: neuerLook ? undefined : V.prompt }),
                 }).then(x => x.json());
                 setProbe(
                   `Person: ${r.pixverseReceivedPerson ? "angekommen (" + r.personImgId + ")" : "NICHT angekommen"}\n` +
                   `Outfit: ${r.pixverseReceivedGarment ? "angekommen (" + r.garmentImgId + ")" : "NICHT angekommen"}` +
+                  (r.bindung ? `\nBindung: Person ${r.bindung.person} · Outfit ${r.bindung.outfit}${r.bindung.gleich ? "  ← BEIDE GLEICH, Fehler!" : ""}` : "") +
+                  (r.promptGesendet ? `\nPrompt: ${r.promptGesendet}` : "") +
                   (r.error ? `\nFehler: ${r.error}` : ""),
                 );
               } catch (e) { setProbe("Fehlgeschlagen: " + (e instanceof Error ? e.message : "unbekannt")); }

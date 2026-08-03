@@ -344,8 +344,25 @@ export async function POST(request: Request) {
   // assigns — this shows the images actually reach Pixverse, WITHOUT generating a video.
   if (body.dryRun && reference) {
     const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
+    /**
+     * WAS WIRKLICH GESENDET WIRD (Owner 03.08.2026, Bildschirmfoto aus Pixverse: beide Bilder
+     * hiessen dort `@image2`, und im Prompt fehlte der erste Verweis — „The woman from ␣
+     * dances").
+     *
+     * Die Bindungslogik nachgerechnet ergibt Person=@image1, Outfit=@image2. Pixverse zeigt
+     * etwas anderes. Einer von beiden irrt, und solange der TATSAECHLICH gesendete Text nicht
+     * sichtbar ist, raten wir. Der Probelauf gibt ihn jetzt zurueck — kostenlos, vor jedem
+     * echten Lauf pruefbar.
+     */
+    const probeTokens = [...new Set((promptWithScene?.match(/@([A-Za-z0-9_]+)/g) || []).map(t => t.slice(1)))];
+    const probePerson = probeTokens.find(t => /^(bild1|1|person|model|frau|woman)$/i.test(t)) ?? probeTokens[0] ?? "Bild1";
+    const probeOutfit = probeTokens.find(t => t !== probePerson && /^(bild2|2|outfit|kleid|garment)$/i.test(t))
+      ?? probeTokens.find(t => t !== probePerson) ?? "Bild2";
     return NextResponse.json({
       dryRun: true,
+      promptGesendet: promptWithScene,
+      bindung: { person: "@" + probePerson, outfit: "@" + probeOutfit,
+                 gleich: probePerson === probeOutfit },
       pixverseReceivedPerson: !!pId, personImgId: pId, personBytes: person.startsWith("data:") ? "(data url)" : person.slice(0, 60),
       pixverseReceivedGarment: !!gId, garmentImgId: gId, garmentBytes: garment.startsWith("data:") ? "(data url)" : garment.slice(0, 60),
     });
