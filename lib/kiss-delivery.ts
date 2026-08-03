@@ -16,14 +16,36 @@ import { readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 // Erst danach übernimmt der Server — sonst liefen zwei Erzeugungen für dasselbe Geld.
 export const GNADENFRIST_MS = 4 * 60 * 1000;
 
-/** Zahlung festhalten und den Auftrag vormerken. Idempotent — mehrfach aufrufbar. */
+/**
+ * Zahlung festhalten und den Auftrag vormerken. Idempotent — mehrfach aufrufbar.
+ *
+ * FEHLT DER AUFTRAG, WIRD ER ANGELEGT (03.08.2026) — und das ist keine Bequemlichkeit,
+ * sondern die Reparatur einer Sackgasse, aus der ein Kunde nie wieder herausfand:
+ *
+ *   1. Sein Auftrag ging durch gleichzeitige Schreiber verloren (behoben, siehe writeKissLog),
+ *      seine Zahlung nicht — die steht dauerhaft in `videoCredits.redeemed`.
+ *   2. Sein Browser merkt sich die Auftragsnummer 24 Stunden lang.
+ *   3. Beim naechsten Versuch sagt `guthabenAbbuchen` „schon bezahlt" (richtig, idempotent),
+ *      diese Funktion fand aber nichts zu stempeln und gab `false` — was der Aufrufer
+ *      ignorierte. Der Browser bekam „bezahlt", die Video-Route fand keinen bezahlten
+ *      Auftrag und wies ab. Endlos, ohne weitere Kosten, aber auch ohne jede Aussicht.
+ *
+ * Einen leeren Eintrag anzulegen ist die einzige Antwort, die den Kunden NICHT ein zweites Mal
+ * zahlen laesst: Die alte Nummer behaelt ihren Zahlungsschluessel, bekommt wieder einen
+ * Koerper, und der Browser — der die Fotos noch hat — liefert weiter. Ohne Fotos im Protokoll
+ * kann die Server-Nachlieferung nichts ausrichten; der Browser steht in diesem Moment aber
+ * ohnehin davor, und das ist der Weg, der zaehlt.
+ */
 export async function bezahltVermerken(genId: string, email = "", kind = ""): Promise<boolean> {
   const id = String(genId ?? "").trim();
   if (!id) return false;
   try {
     const entries = await readKissLog();
-    const e = entries.find(x => x.id === id);
-    if (!e) return false;
+    let e = entries.find(x => x.id === id);
+    if (!e) {
+      e = { id, createdAt: new Date().toISOString(), paid: false, wiederhergestellt: true };
+      entries.unshift(e);
+    }
     const mail = String(email ?? "").trim().toLowerCase();
     const vorher = JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind]);
     e.paid = true;

@@ -1607,6 +1607,13 @@ export type KissLogEntry = {
    * aelter als 90 Tage ist, bevor je eine Mail draussen war.
    */
   geschenkWarnAt?: string;
+  /**
+   * Dieser Eintrag wurde aus einer ZAHLUNG wiederhergestellt, nicht aus einem Upload — sein
+   * Auftrag war verlorengegangen, das Geld nicht. Er traegt deshalb keine Fotos; geliefert
+   * wird er vom Browser des Kunden, der sie noch hat. Das Merkmal steht hier, damit man solche
+   * Faelle spaeter zaehlen kann statt sie zu suchen.
+   */
+  wiederhergestellt?: boolean;
 
   /**
    * DER BEZAHLTE AUFTRAG — damit ihn der SERVER zu Ende bringen kann (Owner 30.07.2026:

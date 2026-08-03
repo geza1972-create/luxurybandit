@@ -125,7 +125,20 @@ export async function POST(request: Request) {
       try {
         const ab = await guthabenAbbuchen(email, `wallet-${genId}`, preis);
         if (ab.ok) {
-          await bezahltVermerken(genId, email, "kiss-video");
+          /**
+           * NUR „BEZAHLT" MELDEN, WENN DER STEMPEL AUCH SITZT (03.08.2026).
+           *
+           * Hier stand der Aufruf ohne Rueckfrage. Konnte er den Auftrag nicht stempeln — weil
+           * es ihn nicht mehr gab —, meldete die Kasse trotzdem `walletPaid`. Der Browser
+           * glaubte sich bezahlt, die Video-Route sah keinen bezahlten Auftrag und wies ab:
+           * ein Kreis, aus dem der Kunde nie herauskam. `bezahltVermerken` legt fehlende
+           * Auftraege inzwischen selbst wieder an; scheitert es trotzdem, ist die ehrliche
+           * Antwort ein Fehler und nicht ein falsches Ja.
+           */
+          const gestempelt = await bezahltVermerken(genId, email, "kiss-video");
+          if (!gestempelt) {
+            return NextResponse.json({ error: "Auftrag nicht auffindbar — bitte neu starten." }, { status: 409 });
+          }
           lieferungAnstossen(origin, genId);
           return NextResponse.json({ walletPaid: true, rest: ab.rest });
         }
