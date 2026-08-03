@@ -1892,6 +1892,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         try { popup?.close(); } catch { /**/ }
         setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return;
       }
+      /**
+       * NUR-GUTHABEN-THEMEN KENNEN KEIN EINZEL-STRIPE (Owner 02.08.2026: „kein Einzel-Stripe
+       * wie bei Hochzeit"; Frage 03.08.: „und wenn Konto nicht ausreicht?"). Scheitert die
+       * Abbuchung serverseitig (Anzeige war veraltet, Rest zu klein), schickte die Kasse
+       * bisher still das alte 1,49-€-Fenster — der eine Weg, den es beim Kuss nicht geben
+       * soll. Stattdessen: Wahl-Dialog auf, nachladen, und der Rest verrechnet sich.
+       */
+      if (einmal === "once" && V.nurGuthaben && !isStaff) {
+        try { popup?.close(); } catch { /**/ }
+        setPayBusy(false); setAufladeWahl(true); return;
+      }
       // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
       track("checkout");
       // Popup blockiert → gleiche Seite. Lieber ein Seitenwechsel als eine tote Warteschleife.
