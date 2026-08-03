@@ -545,7 +545,19 @@ export default function MyGalleryPage() {
 
       {/* Vollbild-Ansicht mit Download */}
       {open && (
-        <div className="fixed inset-0 z-[120] flex flex-col bg-black/95" onClick={() => setOpen(null)}>
+        /**
+         * IN DER HANDY-SPALTE, NICHT ueber den ganzen Bildschirm (Owner 03.08.2026: „mach
+         * bitte mobile Format, du hast jetzt Desktop").
+         *
+         * Diese App ist eine 440-px-Spalte (`.lb-frame`) — auch am Rechner. Ein `fixed
+         * inset-0` kennt diese Spalte aber nicht: Es haengt am Fenster und spannte sich ueber
+         * die ganze Breite, mit „Teilen" und „Download" an den aeusseren Ecken, waehrend die
+         * Karte einsam in der Mitte stand. `lb-phone-col` ist die vorhandene Antwort darauf
+         * (globals.css) und wird schon von den Overlays im Try-on und im Profil benutzt:
+         * Sie zieht ein fest positioniertes Element in dieselbe Spalte wie den Rest.
+         * Auf dem Handy aendert sie nichts — die Regel gilt erst ab 480 px.
+         */
+        <div className="lb-phone-col fixed inset-0 z-[120] flex flex-col bg-black/95" onClick={() => setOpen(null)}>
           <div className="flex items-center justify-between p-3">
             <button type="button" onClick={() => setOpen(null)}
               className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95">
