@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
-import { pruefeEmail, emailFehlerText, wirktErfunden } from "@/lib/email-pruefen";
+// `wirktErfunden` wird nicht mehr gerufen (siehe unten) — die Funktion bleibt in
+// lib/email-pruefen.ts liegen, falls der Owner die Stufe je zurueckwill.
+import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
 import { landAusKopfzeile } from "@/lib/land-erkennen";
 
 export const runtime = "nodejs";
@@ -68,19 +70,21 @@ export async function POST(request: Request) {
     );
   }
   /**
-   * STUFE ZWEI: TASTATUR-GEHÄMMER (Owner 01.08.2026: „diese E-Mail hast du akzeptiert" —
-   * `hsaadsasdello@gmail.com` bestand jede Regel). Das Sprachmodell beurteilt, ob der
-   * Namensteil nach Mensch oder nach Getippe aussieht; im Zweifel und bei Ausfall gilt die
-   * Adresse. Nur bei `vorab` (dem Tor VOR der Erzeugung) — wer hier durch ist, wird beim
-   * zweiten Aufruf (Bild fertig/gescheitert) nicht noch einmal geprüft und bezahlt.
+   * STUFE ZWEI IST RAUS (Owner 03.08.2026: „ich habe dir gesagt, du sollst alle Sperren
+   * rausmachen" — Bildschirmfoto: `tigl10722@gmail.com` abgewiesen mit „doesn't look like a
+   * real email").
+   *
+   * Hier urteilte ein Sprachmodell darueber, ob der Namensteil „nach Mensch oder nach Getippe"
+   * aussieht. Es hat die eigene Adresse des Owners fuer erfunden gehalten — und das ist kein
+   * Ausrutscher, sondern die Bauart: Ein Raten ueber Namen trifft jeden, dessen Name nicht nach
+   * dem Durchschnitt klingt. Die Kosten sind zudem einseitig verteilt. Ein durchgelassener
+   * Spammer kostet uns ein Bild; ein abgewiesener Kunde kostet uns den Kunden — und er hat
+   * gerade bezahlt.
+   *
+   * Das Argument des Owners von der Zahlen-Regel gilt hier genauso: „die Leute koennen jetzt eh
+   * nicht mehr generieren ohne zu bezahlen." Wer zahlen muss, spammt nicht. Damit ist der
+   * ganze Zweck dieser Stufe entfallen, nicht nur ihre Treffsicherheit.
    */
-  if (body.vorab === true && await wirktErfunden(email, process.env.OPENAI_API_KEY?.trim() ?? "")) {
-    console.warn(`[kiss-claim] Adresse wirkt erfunden: ${email}`);
-    return NextResponse.json(
-      { error: emailFehlerText("erfunden", lang), emailUngueltig: true, grund: "erfunden" },
-      { status: 400 },
-    );
-  }
   const imagePath = String(body.imagePath ?? "").trim();
   const device = String(body.device ?? "").trim().slice(0, 80);
   const KISS_LIST = (LISTEN as readonly string[]).includes(String(body.theme ?? "")) ? String(body.theme) : "kiss";

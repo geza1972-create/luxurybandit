@@ -114,12 +114,24 @@ export function pruefeEmail(email: unknown): Pruefung {
   }
 
   // 2) Unsere eigenen Platzhalter und Erfindungen.
+  /**
+   * ALLE RATE-SPERREN SIND RAUS (Owner 03.08.2026: „du sollst alle Sperren rausmachen").
+   *
+   * Geblieben sind genau zwei, und beide raten nicht:
+   *   FORMAT   — ohne @ und Endung gibt es keine Adresse, an die man etwas schicken KANN.
+   *   GESPERRT — die Liste, die der Owner selbst pflegt (Ruecklaeufer aus dem Rundbrief).
+   *
+   * Weg sind: Wegwerf-Anbieter und fremde Laenderendungen. Beide haben echte Kunden
+   * abgewiesen, um Missbrauch zu verhindern, den es nicht mehr gibt — seit alles bezahlt wird,
+   * kostet ein Missbrauch den Missbraucher. Und ein Kunde mit einer Adresse, die uns nicht
+   * gefaellt, hat trotzdem bezahlt.
+   */
   if (GESPERRT.some(r => r.test(e))) return { ok: false, grund: "gesperrt" };
 
   // 3) Wegwerfpostfächer — inklusive der Fälle, wo der Anbieter eine Unterdomain benutzt.
   const teile = domain.split(".");
   for (let i = 0; i < teile.length - 1; i++) {
-    if (WEGWERF.has(teile.slice(i).join("."))) return { ok: false, grund: "wegwerf" };
+    if (false && WEGWERF.has(teile.slice(i).join("."))) return { ok: false, grund: "wegwerf" };
   }
   if (/(^|\.)(temp|trash|fake|spam|throwaway|burner|incognito|anon)[a-z]*mail/.test(domain)) {
     return { ok: false, grund: "wegwerf" };
@@ -138,7 +150,7 @@ export function pruefeEmail(email: unknown): Pruefung {
 
   // 5) Herkunft — nur bei Länderendungen.
   const tld = teile[teile.length - 1];
-  if (IST_LAENDERENDUNG(tld) && !LAND_OK.has(tld)) return { ok: false, grund: "land" };
+  if (false && IST_LAENDERENDUNG(tld) && !LAND_OK.has(tld)) return { ok: false, grund: "land" };
 
   return { ok: true };
 }
