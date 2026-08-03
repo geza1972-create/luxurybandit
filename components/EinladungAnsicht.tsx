@@ -192,9 +192,19 @@ export default function EinladungAnsicht({
             void v.play().then(() => { setLaeuft(true); setTon(true); })
               .catch(() => { /* Ton verweigert: wenigstens das Bild */ v.muted = true; void v.play(); setLaeuft(true); });
           }}
-          /* z-20, NICHT z-10: Die Zuruf-Ebene (`Reaktionen`) liegt auf z-10 und wird spaeter
-             gezeichnet — ein aufsteigendes 🥳 sass sonst mitten auf dem Abspieldreieck. */
-          className="absolute inset-0 z-20 grid place-items-center bg-black/25 transition active:bg-black/35">
+          /**
+           * EIN KREIS IN DER MITTE, NICHT DIE GANZE FLAECHE (Owner 03.08.2026: „wenn ich auf
+           * Play klicke, dann geht er weiter zum Upload, also es geht kein Play").
+           *
+           * GEMESSEN: Ueber der Beispielkarte liegt die Upload-Flaeche
+           * (`absolute inset-x-0 bottom-0 top-16 z-20`) — dieselbe Ebene wie mein Knopf, und
+           * sie steht spaeter im Dokument, also gewann sie jeden Klick.
+           *
+           * Ganzflaechig war ohnehin falsch: Der Rest der Karte SOLL zum Upload fuehren, das
+           * ist der eigentliche Weg der Seite. Nur der Kreis gehoert dem Abspielen. z-30 wie
+           * der Teilen-Knopf; der sitzt in der Ecke, hier ist die Mitte — sie ueberlappen nicht.
+           */
+          className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 grid h-16 w-16 place-items-center rounded-full transition active:scale-95">
           <span className="grid h-16 w-16 place-items-center rounded-full bg-white/90 shadow-lg">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="ml-1 h-7 w-7 text-black">
               <path d="M8 5v14l11-7z" />
