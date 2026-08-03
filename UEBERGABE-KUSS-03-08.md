@@ -78,31 +78,28 @@ Zu beobachten dabei:
 - Kommt ein Pixverse-Auftrag zustande? (Kontrolle: `video-log.json`, Feld `videoId`)
 - Sieht das Video aus wie die Vorlage? (siehe 2c)
 
-### 2b. Rendern in der Karte + Prozentanzeige — **nicht gebaut**
-Owner: „kannst du nicht in der Karte oben rendern lassen und Prozente hinschreiben?"
-Heutiger Zustand: Der Radar existiert **doppelt** — als Overlay in der Karte
-(`KissFunnel.tsx`, Bedingung `payBusy || (bezahlt && !wahl) || videoBusy`) **und** im
-Ergebnisbereich darunter. Prozente gibt es nirgends; der Poll läuft in 4-s-Schritten
-(90 Durchgänge = 6 min Deckel), daraus ließe sich ein ehrlicher Fortschritt ableiten.
-**Zu tun:** unteren Radar für Kuss abschalten, Prozentzahl in die Karte.
+### 2b. Rendern in der Karte + Prozentanzeige — ERLEDIGT (03.08. abends)
+Der untere Radar ist bei Themen ohne Gratis-Bild ganz weg, die Prozentzahl steht in der Karte.
 
-### 2c. Lingerie-Kette nie live gelaufen
-Die vier 3,99-Vorlagen (`public/Kisslingerie`) sind verdrahtet: FASHN zieht sie in das
-Wäschestück der Vorlage um, dann Pixverse mit dem Owner-Prompt. **Kein einziger echter
-Lauf.** Unklar bleibt:
-- Trifft das Ergebnis die Stimmung der Beispielvideos?
-- Stimmt die Zuordnung Vorlage → Wäschestück? (Grau vs. Silber war geraten —
-  `lib/kuss-szenen.ts`, Feld `garment`, eine Zeile je Vorlage)
+**Nachtrag, derselbe Abend:** Es gab noch einen blinden Fleck, und er traf ausgerechnet den,
+der testet. `karteRendert` trug ein `&& !isStaff` - als Hoeflichkeit gedacht, damit der Admin
+die Karte unverdeckt sieht. Zusammen mit `V.keinGratis` (das den unteren Kasten abschaltet)
+blieben fuer den Admin BEIDE Anzeigen aus: Owner, nach einem Kauf, "wo wird jetzt nach dem
+Kaufen gerendert? Ich sehe nichts." `isStaff` ist dort ersatzlos gefallen - der Admin sieht
+jetzt genau das, was der Kunde sieht.
 
-### 2d. Doppelter FASHN-Lauf im Randfall
-Ist der alte Auftrag verbraucht, läuft das Anziehen zweimal (einmal vor der Server-Absage,
-einmal im frischen Lauf). Kostet einen zusätzlichen FASHN-Lauf. Sauber wäre, die
-Verbraucht-Prüfung **vor** das Anziehen zu ziehen.
+### 2c. Lingerie-Kette - HINFAELLIG (03.08.2026)
+Owner am selben Tag: "das mit der Lingerie ist eh nicht allzu serioes - wir machen das raus."
+Die vier 3,99-Vorlagen, der FASHN-Lauf davor, der Waesche-Schritt und die zweite Kachelreihe
+sind aus dem Kuss verschwunden; `LINGERIE_CENTS` und der Platzhalter dafuer gibt es nicht mehr.
+Die Videos liegen weiter unter `public/Kisslingerie/`, damit ein `git revert` nicht an
+fehlenden Dateien scheitert. **Hier ist nichts mehr zu testen.**
 
-### 2e. Werbetexte stimmen nicht mehr
-`app/themes/page.tsx` (alle Sprachen) und `app/themes/kiss/page.tsx:151`: „Das erste Bild
-ist gratis, in jedem Thema" / „The first picture is free". Für Kuss und Hochzeit falsch,
-seit es kein Gratis-Bild mehr gibt. (Wurde als eigene Hintergrundaufgabe angelegt.)
+### 2d. Doppelter FASHN-Lauf im Randfall - ERLEDIGT
+Die Verbraucht-Pruefung steht jetzt vor dem Anziehen.
+
+### 2e. Werbetexte - ERLEDIGT
+Der Satz mit dem gratis ersten Bild ist aus allen Sprachtabellen raus.
 
 ### 2f. Phantom-Guthaben aus dem Gutschein-Loch
 `gl12341234123@gmail.com` und `luxurybandit.kette@gmail.com` tragen je **9,99 €**, die nie

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
-import { guthabenLesen, type Gestrandet } from "@/lib/guthaben-konto";
+import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
 // Aliasiert: `T.mailVorschlag` ist der TEXT, `mailTippfehler` die Pruefung — zwei Dinge,
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
@@ -585,6 +585,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
+  /* Erstattung unter dem fertigen Video: scharf (erster Tipp), laeuft, erledigt. */
+  const [erstattScharf, setErstattScharf] = useState(false);
+  const [erstattBusy, setErstattBusy] = useState(false);
+  const [erstattet, setErstattet] = useState(false);
   /**
    * DAS HAEKCHEN (Owner 30.07.2026: „das muss man aber erwaehnen in agb und die muessen das
    * abhacken sonst wird es ilegal").
@@ -2251,8 +2255,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * eine Absage gehoert auf dieselbe Buehne wie das Ergebnis. Gilt nur fuer Themen ohne
    * Gratis-Bild: Dort gibt es kein zweites Bild, das die Nachricht tragen koennte.
    */
-  const karteAbsage = !!status && bezahlt && !videoBusy && !payBusy && !videoUrl && !isStaff && !!V.keinGratis;
-  const karteRendert = (payBusy || (bezahlt && !wahl) || videoBusy || karteAbsage) && !videoUrl && !isStaff;
+  /**
+   * DER ADMIN SAH ALS EINZIGER GAR NICHTS (Owner 03.08.2026: „wo wird jetzt nach dem Kaufen
+   * gerendert? Ich sehe nichts. Du hast doch schon alles beim Geburtstag und Kiss").
+   *
+   * Hier stand `&& !isStaff` — gedacht als Hoeflichkeit, damit der Admin die Karte unverdeckt
+   * pruefen kann. In Wahrheit war es eine Falle, und zwar genau fuer den, der testet:
+   *
+   *   Karte:  Schicht aus, weil `!isStaff` falsch ist.
+   *   Unten:  Kasten aus, weil `V.keinGratis` bei Kuss, Hochzeit und Tanz wahr ist.
+   *
+   * Beide Anzeigen schlossen sich also gegenseitig aus, und uebrig blieb ein Bildschirm, auf
+   * dem nach dem Kauf nichts passiert. Ein Vorschau-Modus, der etwas anderes zeigt als der
+   * Ernstfall, ist schlimmer als gar keiner — dieselbe Lehre wie beim Probelauf mit
+   * abgefangenen Antworten.
+   *
+   * `isStaff` faellt hier ersatzlos weg: Der Admin sieht ab jetzt genau das, was der Kunde
+   * sieht. Wer die Karte unverdeckt braucht, hat sie, sobald der Lauf vorbei ist — die Schicht
+   * lebt nur waehrend `payBusy`, `videoBusy` oder der Luecke dazwischen.
+   */
+  const karteAbsage = !!status && bezahlt && !videoBusy && !payBusy && !videoUrl && !!V.keinGratis;
+  const karteRendert = (payBusy || (bezahlt && !wahl) || videoBusy || karteAbsage) && !videoUrl;
 
   /**
    * DIE RENDER-SCHICHT DER KARTE — EINMAL definiert, in JEDEM Kartenzustand benutzt.
@@ -3936,6 +3959,55 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
             </a>
+
+            {/**
+             * GELD ZURUECK, OHNE UNS ZU SCHREIBEN (Owner 03.08.2026: „hier gehoert eigentlich
+             * ein Refund").
+             *
+             * Die Route gab es schon (`/api/kiss-erstattung`) — es fehlte der Knopf. Sie zahlt
+             * EINMAL je Auftrag, nur wenn bezahlt UND geliefert wurde, und schreibt aufs
+             * Guthaben statt auf die Karte: Das ist sofort da, kostet keine Stripe-Gebuehr und
+             * laesst ihn es gleich noch einmal versuchen.
+             *
+             * ZWEI TIPPS, KEIN SYSTEMDIALOG — dieselbe Hausregel wie beim Loeschen: Der erste
+             * Tipp faerbt rot, der zweite fuehrt aus, nach drei Sekunden ist er wieder harmlos.
+             *
+             * Er steht UNTER dem Herunterladen-Knopf und in schlichtem Grau: Wer zufrieden ist,
+             * soll ihn nicht als Erstes sehen. Wer es nicht ist, findet ihn genau dort, wo er
+             * sucht — statt uns zu schreiben und drei Tage zu warten.
+             */}
+            {!!genId && bezahlt && (
+              erstattet ? (
+                <p className="mt-2 text-center text-[12px] font-black text-[#f6cf51]">{T.erstattet}</p>
+              ) : (
+                <button type="button" disabled={erstattBusy}
+                  onClick={async () => {
+                    if (!erstattScharf) {
+                      setErstattScharf(true);
+                      setTimeout(() => setErstattScharf(false), 3000);
+                      return;
+                    }
+                    setErstattScharf(false); setErstattBusy(true);
+                    try {
+                      const r = await fetch("/api/kiss-erstattung", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ genId, email: (mail || aktiveAdresse() || "").trim() }),
+                      });
+                      const d = await r.json().catch(() => ({}));
+                      /* Der Konto-Chip oben zieht sofort nach — sonst steht das Geld schon auf
+                         dem Konto und der Kunde sieht es erst beim naechsten Laden. */
+                      if (r.ok && d?.ok) { setErstattet(true); try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ } }
+                      else setStatus(String(d?.error || T.statusNetwork));
+                    } catch { setStatus(T.statusNetwork); }
+                    setErstattBusy(false);
+                  }}
+                  className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-full text-[12px] font-black transition active:scale-95 ${
+                    erstattScharf ? "bg-red-600 text-white" : "border border-white/20 text-white/60"}`}>
+                  {erstattBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {erstattScharf ? T.erstattenSicher : T.erstatten}
+                </button>
+              )
+            )}
 
             {/**
              * NOCH EINS, MIT EINEM ANDEREN LOOK (Owner 03.08.2026: „hier habe ich eine

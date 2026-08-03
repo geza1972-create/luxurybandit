@@ -113,10 +113,11 @@ export default function MyGalleryPage() {
     const { sel, vids, slds } = splitSel();
     if (!sel.length) return;
     if (typeof window !== "undefined" && !window.confirm(`${sel.length} Element(e) endgültig löschen?`)) return;
-    setItems(list => list.filter(x => !sel.includes(x.id)));
     for (const id of vids) { try { await fetch("/api/try-this-look", { method: "POST", headers: hdr(), body: JSON.stringify({ action: "delete-generation", id }) }); } catch { /**/ } }
     await patchSlides(slds, { remove: true });
     clearSel();
+    /* Auch hier: erst der Server, dann die Anzeige — nicht umgekehrt (siehe unten). */
+    window.location.reload();
   };
 
   /**
@@ -181,7 +182,21 @@ export default function MyGalleryPage() {
           : (d?.error || "Löschen hat nicht geklappt. Bitte noch einmal versuchen."));
         return;
       }
-      setItems(list => list.filter(x => x.id !== it.id && x.id !== `${id}-foto` && x.id !== id));
+      /**
+       * NACH DEM LOESCHEN WIRD DIE SEITE NEU GELADEN (Owner 03.08.2026: „wieso kommt nach
+       * Löschen der Kacheln kein Reload der Seite?").
+       *
+       * Hier stand nur `setItems(...)` — die Kachel verschwand aus MEINER Liste im Browser.
+       * Genau das war schon einmal die Ursache: Die Anzeige sagte „weg", der Server hatte
+       * etwas anderes getan, und beim naechsten Laden stand das Stueck wieder da. Eine Liste,
+       * die der Browser fuer sich weiterfuehrt, ist eine zweite Wahrheit neben der echten.
+       *
+       * Die Galerie zieht ihre Kacheln aus DREI Quellen (Kiss-Log, /api/my-videos, Slides) in
+       * einem gewachsenen Effekt zusammen; es gibt keine eine Funktion, die man nachrufen
+       * koennte. Ein Neuladen ist hier deshalb nicht die faule, sondern die ehrliche Loesung:
+       * Was danach steht, steht wirklich auf dem Server.
+       */
+      window.location.reload();
     } catch {
       alert("Keine Verbindung. Bitte noch einmal versuchen.");
     }
