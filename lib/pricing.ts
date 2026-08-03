@@ -106,6 +106,39 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
 // der Waesche-Schritt und die zweite Kachelreihe weg — ein Kuss-Video kostet {once}, fertig.
 
 /**
+ * DIE HOCHZEIT: EINMALIG KAUFEN, LAUFZEIT WAEHLEN (Owner 03.08.2026).
+ *
+ * „Ich will dafuer schon 24,99 Euro haben, aber dann wird gleich alles freigeschaltet: Chat,
+ * Gaestelliste, Video" — und kurz darauf: „die muessen dann die Preise waehlen: 3 Monate 24 €,
+ * 6 Monate 49 €, 1 Jahr 99 €."
+ *
+ * KEIN ABO MEHR. Damit faellt der teuerste Teil des Codes weg, gemessen an dem was er
+ * einbringt: Abo-Kasse, Kuendigungslogik, `hasActiveSubscription` bei jedem Aufruf,
+ * Monatsgutschriften, Kontingent-Zeilen. Die Hochzeit laeuft ueber denselben Weg wie jedes
+ * andere Geschenk — nur mit einem groesseren Betrag und einer waehlbaren Laufzeit.
+ *
+ * DIE LEITER BELOHNT DIE LAENGERE BINDUNG NICHT — das ist gemessen, nicht gemeint:
+ *   3 Monate  24 €  =  8,00 € je Monat
+ *   6 Monate  49 €  =  8,17 € je Monat
+ *  12 Monate  99 €  =  8,25 € je Monat
+ * Wer rechnet, nimmt viermal die kleine Stufe (96 € statt 99 €). Die grossen Stufen verkaufen
+ * sich trotzdem — an alle, die nicht rechnen und nicht dreimal verlaengern wollen. Wenn die
+ * Leiter kippen soll, sind es zwei Zahlen hier: z. B. 39 € und 69 €.
+ *
+ * DREI VIDEO-VERSUCHE sind in JEDER Stufe enthalten (Owner: „was ist, wenn Leute das Video
+ * austauschen wollen?"). Gescheiterte Laeufe zaehlen nicht mit — sonst bezahlt der Kunde
+ * unsere Stoerung. Danach kostet jedes weitere Video den normalen Preis aus dem Guthaben.
+ */
+export const HOCHZEIT_STUFEN = [
+  { monate: 3, cents: 2400 },
+  { monate: 6, cents: 4900 },
+  { monate: 12, cents: 9900 },
+] as const;
+
+/** Wie viele Video-Laeufe in jeder Hochzeits-Stufe stecken (der erste plus zwei Tausche). */
+export const HOCHZEIT_VIDEO_LAEUFE = 3;
+
+/**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
  *
  * Owner 29.07.2026: „das machst du ab jetzt so, dass überall das geändert wird aus der

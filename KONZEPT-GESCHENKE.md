@@ -222,13 +222,12 @@ Schritt 1 und 2 kann ich sofort anfangen — beide brauchen keine weitere Entsch
 2. **12 Monate Hosting im Geschenkpreis** — oder kürzer/länger? Die Zahl entscheidet, wie lange
    ein geteilter Link lebt, und der Link ist die Werbung.
 3. ~~**Hochzeit aufteilen** (Video kaufen, Seite mieten)~~ — **entschieden 03.08.2026: NEIN.**
-   Ein Paket, **24,99 € einmalig**, schaltet alles frei (Video, Einladungsseite, Zusagen,
-   Neuigkeiten, Gruppenchat), **kein Abo**. Läuft nach drei Monaten ab, dann noch einmal zahlen.
+   Ein Paket, **kein Abo**, schaltet alles frei (Video, Einladungsseite, Zusagen, Neuigkeiten,
+   Gruppenchat). Der Kunde **wählt die Laufzeit**: 3 Monate 24 €, 6 Monate 49 €, 1 Jahr 99 €
+   (`HOCHZEIT_STUFEN`), drei Video-Versuche in jeder Stufe.
    Das ist besser als der Vorschlag oben: Zwei Kaufwege nebeneinander wären genau die
    Sonderprogrammierung, die vermieden werden soll — so hat der Marktplatz EINEN Kaufweg.
-   Laufzeit: **drei Monate ab Kauf** (Owner 03.08.2026, gegen meinen Vorschlag „ab
-   Hochzeitsdatum" — wer früh kauft, verlängert einmal, und das ist ein zweiter Verkauf).
-   Drei Video-Versuche enthalten. Details in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5.
+   Details in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5.
 4. **Preis je Geschenk** — welche Zahlen? Erst wenn die Pixverse-Abrechnung gelesen ist; die
    Kosten je Lauf stehen bis heute in keinem Kommentar dieses Projekts (siehe `lib/pricing.ts`).
 5. **Chat und Morgenwetter** — bleiben sie im Portal, oder sind sie im Geschenke-Marktplatz ein
