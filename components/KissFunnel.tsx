@@ -801,6 +801,37 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * es erst, wenn ein Bild fertig ist.
    */
   const GEN_KEY = `lb_kiss_gen_${variant}`;
+  /**
+   * DER KLEIDERSCHRANK ALS LOOK-GALERIE (Owner 03.08.2026: „hier habe ich eine Sackgasse. Ich
+   * müsste hier doch ‚Generate new‘ mit einem anderen Look. Also wir müssen doch die
+   * Look-Galerie einfügen").
+   *
+   * Er hat recht, und es ist eine Sackgasse mit Ansage: Nach dem fertigen Video stand genau ein
+   * Knopf da — Herunterladen. Wer gerade 3,99 € ausgegeben hat und zufrieden ist, ist der
+   * BESTE Kunde fuer das naechste; ihm nichts anzubieten ist die teuerste Hoeflichkeit des
+   * Portals.
+   *
+   * Die Galerie gibt es laengst: `wardrobe === true` im Bestand, 87 Stueck, dieselbe Liste, aus
+   * der frueher der Chat ankleidete. Kein neues Bildmaterial noetig.
+   */
+  const [garderobe, setGarderobe] = useState<{ id: string; name?: string; imageUrl: string }[]>([]);
+  const [neuerLook, setNeuerLook] = useState("");
+  useEffect(() => {
+    // Nur wo es etwas zu tauschen gibt: Geschenke mit festem Set (Tanz, Geburtstag).
+    if (!V.nurSie || !V.garmentBild) return;
+    let ok = true;
+    fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json())
+      .then(d => {
+        if (!ok) return;
+        const alle = (Array.isArray(d?.looks) ? d.looks : [])
+          .filter((l: { wardrobe?: boolean; imageUrl?: string }) => l.wardrobe === true && !!l.imageUrl)
+          .slice(0, 40);
+        setGarderobe(alle);
+      }).catch(() => {});
+    return () => { ok = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const genMerken = (id: string) => {
     if (!id) return;
     setGenId(id);
@@ -1762,7 +1793,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * `/Pooldance/…`-Pfad ist nur im Browser eine Adresse; die Route kann ihn nicht holen,
        * und Pixverse lehnt den Auftrag mit „upload failed (reference images)" ab.
        */
-      const refOutfit = V.nurSie ? await alsDatenUrl(V.garmentBild ?? "") : ihr;
+      /* Hat er in der Galerie etwas gewaehlt, gilt DAS statt des festen Sets. */
+      const refOutfit = V.nurSie ? await alsDatenUrl(neuerLook || V.garmentBild || "") : ihr;
       if (runRef.current !== token) return;
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
@@ -2444,12 +2476,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
                   className="absolute left-2 top-2 z-30" />
               )}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 p-4">
-                <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
-                  className="lb-gold pointer-events-auto flex h-12 w-full items-center justify-center rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)] active:scale-95 transition">
-                  {T.download}
-                </a>
-              </div>
+              {/* HIER STAND „Herunterladen" EIN ZWEITES MAL (Owner 03.08.2026: „Download steht
+                  schon unten").
+
+                  Er lag QUER UEBER dem fertigen Video und verdeckte dessen unteres Viertel —
+                  genau die Stelle, auf die der Kunde schaut, wenn er sein Ergebnis zum ersten
+                  Mal sieht. Derselbe Knopf steht wenige Zentimeter tiefer noch einmal, dort wo
+                  er hingehoert: UNTER der Karte, nicht auf ihr. Die Karte ist das Geschenk;
+                  ein Knopf darauf ist wie ein Preisschild darauf. */}
             </div>
           ) : bild ? (
             <div className="relative">
@@ -3788,6 +3822,55 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
             </a>
+
+            {/**
+             * NOCH EINS, MIT EINEM ANDEREN LOOK (Owner 03.08.2026: „hier habe ich eine
+             * Sackgasse. Ich müsste hier doch ‚Generate new‘ mit einem anderen Look").
+             *
+             * Steht UNTER dem Herunterladen-Knopf, nicht darueber: Erst bekommt er, wofuer er
+             * bezahlt hat, dann das Angebot. Umgekehrt waere es ein Verkaufsgespraech vor der
+             * Lieferung.
+             *
+             * Ein Tipp genuegt. Dahinter laeuft genau der Weg, den der Owner am selben Tag
+             * gefordert hat („das muss am Stueck passieren"): frischer Auftrag, stille
+             * Abbuchung vom Guthaben, der Wachhund erzeugt. Kein Kasten, keine Rueckfrage.
+             */}
+            {!!videoUrl && V.nurSie && garderobe.length > 0 && (
+              <div className="mt-6">
+                <p className="text-center text-[12.5px] font-black text-white">{T.nochEins}</p>
+                <p className="mt-0.5 text-center text-[11.5px] font-semibold text-white/60">
+                  {fillPrices(T.nochEinsPreis, lang)}
+                </p>
+                <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {garderobe.map(l => (
+                    <button key={l.id} type="button" disabled={videoBusy || payBusy}
+                      onClick={async () => {
+                        /* Das gewaehlte Stueck merken, damit `refOutfit` es nimmt — und dann
+                           denselben nahtlosen Weg gehen wie beim zweiten Video. */
+                        setNeuerLook(l.imageUrl);
+                        setStatus(T.oneMoment);
+                        let device = "";
+                        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+                        const log = await fetch("/api/kiss-log", {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ theme: variant, device, lang, email: mail.trim(), personImage: photo }),
+                        }).then(r => r.json()).catch(() => null);
+                        if (log?.id) {
+                          genMerken(log.id);
+                          setBezahlt(false); setVideoUrl(""); setBild("");
+                          void unlock("once", log.id);
+                          return;
+                        }
+                        setStatus(T.statusCouldNotStart);
+                      }}
+                      className="w-[92px] shrink-0 snap-start overflow-hidden rounded-xl border-2 border-white/20 bg-white transition active:scale-95 disabled:opacity-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={l.imageUrl} alt="" draggable={false} className="aspect-[3/4] w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* NUR BEI DER HOCHZEIT: aus dem Video wird eine Einladung, die sie an ihre
                 Gaeste schickt. Das ist die einzige Stelle im Portal, an der ein Kunde uns die
                 naechsten Besucher bringt — deshalb steht der Knopf direkt unter dem Video,

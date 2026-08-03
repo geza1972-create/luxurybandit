@@ -41,6 +41,8 @@ export type KissText = {
   yourClothes: string; myOwnClothes: string; theMoment: string; surpriseMe: string;
   // Adresse vor der Erzeugung
   mailQuestion: string; mailNote: string; mailInvalid: string; oneMoment: string;
+  /* Noch eins, anderer Look - unter dem fertigen Video (Owner 03.08.2026). */
+  nochEins: string; nochEinsPreis: string;
   /** Das Tor VOR dem ersten Upload (Owner 03.08.2026): Titel und Weiter-Knopf. */
   gateTitel: string; gateWeiter: string;
   /** Beschriftung des Land-Feldes neben der Adresse (Owner 31.07.2026). */
@@ -205,7 +207,7 @@ const EN: KissText = {
   aufladeWahlTitel: "How much would you like to top up?",
   guthabenVorabHinweis: "One video costs {once}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
-  mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …",
+  mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …", nochEins: "Another one, another look", nochEinsPreis: "Tap an outfit - {tanz} from your balance, straight away.",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
   consent: "By generating you confirm you may use these photos, everyone shown is an adult, you keep it private — and you take full responsibility for it. Nudity photos are not accepted. Uploading someone else's photo without their consent is not legal — that responsibility is yours.",
@@ -325,7 +327,7 @@ const DE: KissText = {
   aufladeWahlTitel: "Wie viel möchtest du aufladen?",
   guthabenVorabHinweis: "Ein Video kostet {once}. Bezahlt wird aus deinem Guthaben — die kleinste Aufladung ist {topup}, der Rest bleibt dir für weitere Videos.",
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
-  mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …",
+  mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …", nochEins: "Noch eins, anderer Look", nochEinsPreis: "Tipp ein Outfit an - {tanz} vom Guthaben, sofort.",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
   consent: "Mit dem Erzeugen bestätigst du: Du darfst diese Fotos verwenden, alle Abgebildeten sind erwachsen, du behältst es privat — und du trägst die Verantwortung dafür. Nacktbilder werden nicht akzeptiert. Ein Foto einer anderen Person ohne deren Zustimmung hochzuladen ist nicht legal — dafür trägst du selbst die Verantwortung.",
@@ -445,7 +447,7 @@ const RO: KissText = {
   aufladeWahlTitel: "Cât vrei să încarci?",
   guthabenVorabHinweis: "Un videoclip costă {once}. Se plătește din creditul tău — cea mai mică încărcare este {topup}, iar restul îți rămâne pentru alte videoclipuri.",
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
-  mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …",
+  mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …", nochEins: "Inca unul, alt look", nochEinsPreis: "Atinge o tinuta - {tanz} din sold, imediat.",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
   consent: "Prin generare confirmi că ai dreptul să folosești aceste poze, că toate persoanele sunt adulte, că păstrezi rezultatul privat — și că îți asumi răspunderea. Pozele cu nuditate nu sunt acceptate. Încărcarea pozei altei persoane fără acordul ei nu este legală — răspunderea îți aparține.",
@@ -565,7 +567,7 @@ const ES: KissText = {
   aufladeWahlTitel: "¿Cuánto quieres recargar?",
   guthabenVorabHinweis: "Un vídeo cuesta {once}. Se paga con tu saldo — la recarga mínima es {topup}, y lo que sobra se queda para más vídeos.",
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
-  mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …",
+  mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …", nochEins: "Otro mas, otro look", nochEinsPreis: "Toca un look - {tanz} de tu saldo, al momento.",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
   consent: "Al generar confirmas que puedes usar estas fotos, que todas las personas son adultas, que lo mantendrás privado — y que asumes la responsabilidad. No se aceptan fotos con desnudez. Subir la foto de otra persona sin su consentimiento no es legal — esa responsabilidad es tuya.",
@@ -685,7 +687,7 @@ const FR: KissText = {
   aufladeWahlTitel: "Combien veux-tu recharger ?",
   guthabenVorabHinweis: "Une vidéo coûte {once}. Le paiement se fait sur ton crédit — la recharge minimale est {topup}, et le reste te reste pour d'autres vidéos.",
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
-  mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …",
+  mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …", nochEins: "Encore une, autre look", nochEinsPreis: "Touche une tenue - {tanz} depuis ton solde, tout de suite.",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
   consent: "En générant, tu confirmes que tu peux utiliser ces photos, que toutes les personnes sont majeures, que tu gardes le résultat privé — et que tu en assumes la responsabilité. Les photos dénudées ne sont pas acceptées. Téléverser la photo d'une autre personne sans son consentement n'est pas légal — cette responsabilité t'incombe.",
@@ -805,7 +807,7 @@ const PT: KissText = {
   aufladeWahlTitel: "Quanto queres carregar?",
   guthabenVorabHinweis: "Um vídeo custa {once}. Paga-se com o teu saldo — o carregamento mínimo é {topup}, e o que sobra fica para mais vídeos.",
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
-  mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …",
+  mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …", nochEins: "Mais um, outro look", nochEinsPreis: "Toca num look - {tanz} do teu saldo, ja.",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
   consent: "Ao gerar confirmas que podes usar estas fotos, que todas as pessoas são adultas, que manténs o resultado privado — e que assumes a responsabilidade. Não são aceites fotos com nudez. Carregar a foto de outra pessoa sem o seu consentimento não é legal — essa responsabilidade é tua.",
@@ -926,7 +928,7 @@ const IT: KissText = {
   aufladeWahlTitel: "Quanto vuoi ricaricare?",
   guthabenVorabHinweis: "Un video costa {once}. Si paga con il tuo credito — la ricarica minima è {topup}, e quel che avanza resta per altri video.",
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
-  mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …",
+  mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …", nochEins: "Ancora uno, altro look", nochEinsPreis: "Tocca un outfit - {tanz} dal saldo, subito.",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",
   consent: "Generando confermi di poter usare queste foto, che tutte le persone sono maggiorenni, che lo terrai privato — e che te ne assumi la responsabilità. Le foto con nudità non sono accettate. Caricare la foto di un'altra persona senza il suo consenso non è legale — quella responsabilità è tua.",
