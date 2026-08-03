@@ -10,7 +10,12 @@ export const maxDuration = 30;
 // Cheap + fast — a chat runs many turns, so keep cost low. (Latest small model.)
 const MODEL = "claude-haiku-4-5-20251001";
 
-const MAX_HISTORY = 30;        // last N turns sent to the model
+/**
+ * 12 statt 30 (Owner 03.08.2026: „das billigste"). Der Verlauf ist der zweite Kostenposten
+ * nach dem Vorspann und der einzige, der WAECHST. Bei 1-3-Satz-Nachrichten sind zwoelf Zuege
+ * mehr Gedaechtnis, als ein Flirt braucht — was davor lag, steht ohnehin im Protokoll.
+ */
+const MAX_HISTORY = 12;        // last N turns sent to the model
 const MAX_TOKENS = 260;        // ~a few texting-style sentences
 const MAX_LOG_MESSAGES = 80;   // per-conversation cap kept in the log
 
@@ -196,18 +201,41 @@ export async function POST(request: Request) {
   const LANG_NAMES: Record<string, string> = { en: "English", ro: "Romanian", de: "German", fr: "French", es: "Spanish", it: "Italian" };
   const langHint = LANG_NAMES[String(body.lang ?? "").slice(0, 2).toLowerCase()] ?? "";
 
-  const system =
+  /**
+   * DER SYSTEM-TEXT IST IN ZWEI HAELFTEN GETEILT — das ist eine KOSTEN-Massnahme, keine
+   * inhaltliche (Owner 03.08.2026: „mach es so, dass der Mann einfach mit ihr chattet und mich
+   * fast nix kostet. Er chattet doch nur wegen dem Bild.").
+   *
+   * GEMESSEN: Eine Nachricht kostete 0,33 Cent — davon waren 0,04 das eigentliche Gespraech
+   * und 0,29 der Persoenlichkeits-Text, den wir bei JEDER Nachricht neu mitschickten. 88 %
+   * fuer etwas, das sich nie aendert. Bei hundert Nachrichten schickten wir denselben Text
+   * hundertmal.
+   *
+   * DIE LOESUNG IST NICHT, DIE REGELN ZU KUERZEN. Fast jede Zeile darunter traegt ein Datum
+   * und einen Grund — keine Job-Fragen (29.07.), die Antwort-Knoepfe (28.07.), die
+   * Gespraechs-Reihenfolge (28.07.), „nur umschauen ist kein Nein" (28.07.), die
+   * Gefuehls-Grenze. Das sind Wochen an Feinarbeit; sie fuer einen Drittel Cent wegzuschneiden
+   * waere der teuerste Sparbeschluss des Projekts.
+   *
+   * STATTDESSEN: nicht mehr doppelt bezahlen. Der Zwischenspeicher kostet denselben Vorspann
+   * beim zweiten Mal ein Zehntel. Er greift aber nur, wenn der Vorspann BYTE-GLEICH bleibt —
+   * und genau daran waere er hier gescheitert: `userName`, `langHint` und `dayContext` standen
+   * mitten drin. Ein einziges wechselndes Zeichen entwertet alles dahinter.
+   *
+   * Also: STABIL zuerst (Regeln + Persoenlichkeit + Hausregeln — gleich fuer jeden Fan
+   * derselben Frau), danach erst das Wechselnde. Der Speicher liegt damit je MODELL, nicht je
+   * Besucher: Der zweite Fan derselben Frau liest, was der erste bezahlt hat.
+   */
+  const systemStabil =
     `You are ${modelName}, a fashion model on LuxuryBandit — a luxury virtual try-on app. ` +
-    `You are texting with a fan${userName ? ` named ${userName}` : ""}. Stay fully in character as ${modelName}, a real person. ` +
+    `You are texting with a fan. Stay fully in character as ${modelName}, a real person. ` +
     `Always speak in the FIRST PERSON as ${modelName} ("I", "me", "my") — NEVER refer to ${modelName} or yourself in the third person (never "${modelName} is…", "she is…", "talk to her"). ` +
     (bio ? `Your public bio: ${bio}. ` : "") +
     (style ? `Your fashion style: ${style}. ` : "") +
     (persona ? `\n\nHOW YOU BEHAVE (follow this closely):\n${persona}\n` : "") +
-    (String(body.dayContext ?? "").trim() ? `\n\nWHAT YOU'RE DOING TODAY (weave in naturally when it fits, don't recite it):\n${String(body.dayContext).trim()}\n` : "") +
     (globalNote ? `\n\nHOUSE RULES (apply to every conversation):\n${globalNote}\n` : "") +
     `\n\nYou are perfectly fluent in EVERY language. ALWAYS reply in the SAME language the fan writes in (German, English, French, Spanish, Italian, etc.), and switch instantly if they switch. ` +
     `NEVER say your German/French/etc. is not good, never claim you only speak English, and never ask them to switch languages — just reply naturally in their language. ` +
-    (langHint ? `The fan picked ${langHint} as their preferred language — reply in ${langHint} by default, unless they clearly write in a different language (then follow them). ` : "") +
     `\n\nDefault style if not overridden above: warm, confident, playful and flirty — like a real woman texting someone she finds charming. ` +
     `Talk like a NORMAL woman about real life: your day, feelings, relationships, dating, music, travel, food, dreams — whatever comes up. ` +
     `Do NOT act like a salesperson: never push the app, never pressure them to "try on" a look or use LuxuryBandit. Only mention fashion or your looks if the fan brings it up first. ` +
@@ -248,6 +276,28 @@ export async function POST(request: Request) {
     // beantwortbar sein — offene Fragen („erzähl mir von dir") sind eine Sackgasse.
     `\n\nHE DOES NOT TYPE — HE TAPS. Only ever ask questions he can answer by tapping one of your three suggestions: a choice ("this one or that one?") or a yes/no ("want to see more?"). NEVER ask open questions that force him to write free text ("tell me about yourself", "what exactly…", "describe…"). ` +
     `\n\nFORMAT (mandatory, every single message): after your reply, add ONE last line in exactly this format:\n[[CHIPS: first | second | third]]\nThree possible answers HE could tap, in his language, each under 5 words, phrased as if he says them, and fitting the question you just asked. If you asked "which one do you like best?", they must be answers to that. Never leave this line out, never explain it.`;
+
+  /**
+   * DIE WECHSELNDEN TEILE — hinter der Speicher-Marke, deshalb entwerten sie nichts.
+   * Sein Name, seine Sprache und was sie heute tut aendern sich je Besucher und je Tag; stuenden
+   * sie oben, haette jeder Fan seinen eigenen Vorspann und der Speicher liefe ins Leere.
+   */
+  const systemWechselnd = [
+    userName ? `The fan's name is ${userName}.` : "",
+    langHint ? `The fan picked ${langHint} as their preferred language — reply in ${langHint} by default, unless they clearly write in a different language (then follow them).` : "",
+    String(body.dayContext ?? "").trim() ? `WHAT YOU'RE DOING TODAY (weave in naturally when it fits, don't recite it):\n${String(body.dayContext).trim()}` : "",
+  ].filter(Boolean).join("\n");
+
+  /**
+   * `cache_control` sitzt auf dem STABILEN Block. Ist er kuerzer als Haikus Mindestmass
+   * (4.096 Token), passiert schlicht nichts — kein Fehler, keine Mehrkosten, nur kein Spareffekt.
+   * Mit einer ordentlichen Persoenlichkeit ist er darueber, und dann kostet er ab der zweiten
+   * Nachricht ein Zehntel.
+   */
+  const systemBloecke: Anthropic.TextBlockParam[] = [
+    { type: "text", text: systemStabil, cache_control: { type: "ephemeral" } },
+    ...(systemWechselnd ? [{ type: "text" as const, text: systemWechselnd }] : []),
+  ];
 
   // Log the finished exchange so the admin can read it (re-reads state so it isn't stale by
   // the time the stream ends). Never let logging break the chat.
@@ -319,7 +369,7 @@ export async function POST(request: Request) {
       let full = "";
       try {
         const ai = await client.messages.create({
-          model: MODEL, max_tokens: MAX_TOKENS, system,
+          model: MODEL, max_tokens: MAX_TOKENS, system: systemBloecke,
           messages: history as Anthropic.MessageParam[], stream: true,
         });
         for await (const ev of ai) {

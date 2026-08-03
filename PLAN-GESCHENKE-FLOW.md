@@ -273,6 +273,43 @@ Das klingt falsch und ist gerechnet richtig. **Bis das gemacht ist, gelten halbe
 kostet uns einen Erzeugungslauf; ein Paket mit beliebig vielen wäre bei einem Vielnutzer ein
 Verlustgeschäft.
 
+### Der Chat kostet jetzt fast nichts — Owner-Entscheidung 03.08.2026
+
+> „Mach es so, dass der Mann einfach mit ihr chattet und mich fast nix kostet. Das andere zahlt
+> er eh nicht. Er chattet doch nur wegen dem Bild. Also ein einfacher Chat. Das Billigste."
+
+**Gemessen, wo das Geld hinging:** 0,33 Cent je Nachricht — davon **0,04 das eigentliche
+Gespräch** und **0,29 der Persönlichkeits-Text**, den wir bei jeder Nachricht neu mitschickten.
+88 % für etwas, das sich nie ändert. Bei hundert Nachrichten hundertmal derselbe Text.
+
+**Nicht gekürzt wurde eine einzige Regel.** Fast jede Zeile darin trägt ein Datum und einen
+Grund: keine Job-Fragen (29.07.), die Antwort-Knöpfe (28.07.), die Gesprächs-Reihenfolge
+(28.07.), „nur umschauen ist kein Nein" (28.07.), die Gefühls-Grenze. Das sind Wochen
+Feinarbeit — sie für einen Drittel Cent wegzuschneiden wäre der teuerste Sparbeschluss des
+Projekts.
+
+**Stattdessen: nicht mehr doppelt bezahlen.** Der System-Text ist jetzt zweigeteilt — stabil
+(Regeln + Persönlichkeit + Hausregeln) mit `cache_control`, danach erst das Wechselnde (Name,
+Sprache, Tagesgeschehen). Genau daran wäre der Speicher sonst gescheitert: Ein einziges
+wechselndes Zeichen entwertet alles dahinter. Der Speicher liegt damit **je Modell, nicht je
+Besucher** — der zweite Fan derselben Frau liest, was der erste bezahlt hat. Dazu Verlaufsfenster
+30 → 12.
+
+| | vorher | nachher |
+|---|---|---|
+| je Nachricht | 0,33 Cent | **0,09 Cent** (−74 %) |
+| 100 Nachrichten | 0,33 € | **0,09 €** |
+| 1.000 | 3,27 € | **0,86 €** |
+| 10.000 | 32,66 € | **8,65 €** |
+
+Greift der Speicher nicht (zu kurze Persönlichkeit, unter Haikus 4.096 Token), passiert schlicht
+nichts — kein Fehler, keine Mehrkosten, nur kein Spareffekt. Dann bleiben 0,29 Cent.
+
+**OFFEN — die Preisfrage kippt damit:** „Das andere zahlt er eh nicht" heißt, die Chat-Stufen
+(`CHAT_STUFEN`, 14,99–119,99 €) sind womöglich tot und der Chat wird gratis, mit dem **Look zu
+2,99 €** als eigentlichem Verkauf. Das ist eine Umkehr der Entscheidung von derselben Stunde und
+noch nicht getroffen — `CHAT_STUFEN` steht unverändert, bis der Owner es sagt.
+
 ### Zu tun
 
 - `abo: false`; Preise aus `CHAT_STUFEN`, Stufen-Wähler wie bei der Hochzeit
