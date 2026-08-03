@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
-import { CHAT_STUFEN } from "@/lib/pricing";
+import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
+import { CHAT_STUFEN, chatPriceId } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,12 +32,18 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
   const returnTo = String(body.returnTo ?? "/themes/chat");
   try {
-    const { id, url } = await createTryonCheckout({
+    const { id, url } = await createPackCheckout({
+      /**
+       * DIE PREIS-KENNUNG SCHLAEGT DEN SELBSTGEBAUTEN BETRAG (Owner 03.08.2026). Damit steht der
+       * Preis in Stripes eigenem Katalog: richtige Belege, richtige Auswertung, richtige Steuer.
+       * `amount` und `currency` bleiben als Rueckfall, falls die Kennung je fehlt.
+       */
+      priceId: chatPriceId(),
       amount: stufe.cents,
       currency: "eur",
       metadata: { kind: "chat-zugang", monate: String(stufe.monate) },
-      // Der Text steht auf dem Stripe-Beleg — er soll sagen, was gekauft wurde, nicht „Zugang".
-      productName: `Chat access — ${stufe.monate === 12 ? "1 year" : `${stufe.monate} month${stufe.monate === 1 ? "" : "s"}`}`,
+      /* Nur ein Rueckfall: Steht die Preis-Kennung, kommt der Name aus Stripes Katalog. */
+      productName: `Chat access — ${stufe.monate} month`,
       successUrl: `${origin}${returnTo}${returnTo.includes("?") ? "&" : "?"}chat_paid=1`,
       cancelUrl: `${origin}${returnTo}`,
       email: String(body.email ?? "").trim() || undefined,

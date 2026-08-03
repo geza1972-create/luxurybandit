@@ -119,7 +119,7 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
  * darueber laufen — und weil eine zweite Laufzeit damit ein Tabelleneintrag ist, kein Umbau.
  */
 export const CHAT_STUFEN = [
-  { monate: 1, cents: 1499 },
+  { monate: 1, cents: 1400 },   // = die Stripe-Preis-Kennung unten. Beide zusammen aendern!
 ] as const;
 
 /**
@@ -129,6 +129,27 @@ export const CHAT_STUFEN = [
  * ausreizt, nicht vor dem Durchschnitt, der weit darunter liegt.
  */
 export const CHAT_KONTINGENT: Record<number, number> = { 1: 1000 };
+
+/**
+ * DIE STRIPE-PREIS-KENNUNG FUER DEN CHAT-MONAT (Owner 03.08.2026: „hier ist es
+ * price_1U0L0B1jPNCWoiztRdsEyMXa").
+ *
+ * Nachgeschlagen, statt geglaubt — und dabei zwei Dinge gefunden:
+ *   Typ:    one_time  ✓  (kein Abo; eine wiederkehrende haette das gerade Entfernte zurueckgeholt)
+ *   Betrag: 1400 Cent     ABER der Produktname in Stripe lautet „Luxurybandit Chat 14,99€".
+ *
+ * DER KUNDE LIEST ALSO 14,99 UND ZAHLT 14,00. Das ist ein Tippfehler im Stripe-Konto, den nur
+ * der Owner dort beheben kann. `CHAT_STUFEN` steht deshalb auf 1400: Was wir ANZEIGEN, muss
+ * sein, was tatsaechlich abgebucht wird — ein Preisschild, das ueber dem liegt, was die Kasse
+ * nimmt, ist der einzige Fehler dieser Art, den man nicht wegerklaeren kann.
+ *
+ * WIRD DER PREIS IN STRIPE KORRIGIERT, muss CHAT_STUFEN mitwandern. Die beiden Zahlen haengen
+ * ab jetzt zusammen und stehen an zwei Orten — das ist die Schwaeche dieser Loesung und der
+ * Grund, warum es hier kommentiert steht.
+ */
+export function chatPriceId(): string {
+  return process.env.STRIPE_CHAT_PRICE_ID?.trim() || "price_1U0L0B1jPNCWoiztRdsEyMXa";
+}
 
 
 /**
