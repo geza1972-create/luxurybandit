@@ -232,14 +232,29 @@ export async function getCheckoutSession(id: string): Promise<{
   clientReferenceId: string;
   customerEmail: string;
 }> {
-  // `expand`: Ohne das liefert Stripe im Rabatt nur die Kennung (`promo_1Tt7…`), nicht den
-  // Code, den der Kunde getippt hat — und genau den brauchen wir fuer die Freigabe-Liste.
+  /**
+   * ZWEI AUFRUFE STATT EINES TIEFEN `expand` — Stripe erlaubt hoechstens VIER Ebenen.
+   *
+   * Der erste Versuch expandierte `total_details.breakdown.discounts.discount.promotion_code`
+   * (fuenf) und bekam dafuer einen FEHLER zurueck. Das war kein Schoenheitsfehler: Diese
+   * Funktion beantwortet JEDE Rueckkehr von der Kasse — mit dem Fehler war der ganze
+   * Zahlweg tot, fuer jeden Kunden, nicht nur fuer Gutscheine.
+   *
+   * Jetzt vier Ebenen (erlaubt) fuer den Rabatt, und die Kennung des Aktionscodes wird bei
+   * Bedarf einzeln aufgeloest. Der zweite Aufruf passiert nur, wenn ueberhaupt ein Gutschein
+   * im Spiel war — der Normalfall kostet nichts.
+   */
   const s = await stripeRequest("GET",
-    `/checkout/sessions/${encodeURIComponent(id)}?expand[]=total_details.breakdown.discounts.discount.promotion_code`);
-  const rabatte = (s.total_details?.breakdown?.discounts ?? []) as Array<{ discount?: { promotion_code?: { code?: string } | string } }>;
-  const code = rabatte
-    .map(d => (typeof d?.discount?.promotion_code === "object" ? d.discount?.promotion_code?.code : "") ?? "")
-    .find(Boolean) ?? "";
+    `/checkout/sessions/${encodeURIComponent(id)}?expand[]=total_details.breakdown`);
+  const rabatte = (s.total_details?.breakdown?.discounts ?? []) as Array<{ discount?: { promotion_code?: string } }>;
+  const promoId = rabatte.map(d => String(d?.discount?.promotion_code ?? "")).find(Boolean) ?? "";
+  let code = "";
+  if (promoId) {
+    try {
+      const pc = await stripeRequest("GET", `/promotion_codes/${encodeURIComponent(promoId)}`);
+      code = String(pc?.code ?? "");
+    } catch { /* Code nicht aufloesbar → gilt als nicht freigegeben, also nur der Zahlbetrag */ }
+  }
   return {
     paymentStatus: String(s.payment_status ?? ""),
     status: String(s.status ?? ""),
