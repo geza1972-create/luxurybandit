@@ -754,7 +754,23 @@ export default function MyGalleryPage() {
                       <button type="button" disabled={teilenBusy}
                         onClick={e => { e.stopPropagation(); void teilen(open); }}
                         aria-label="Teilen"
-                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/55 text-white backdrop-blur transition active:scale-90 disabled:opacity-50">
+                        /**
+                         * `data-aufmedien="1"` IST HIER PFLICHT, NICHT SCHMUCK (Owner
+                         * 03.08.2026: „was ist das für eine Farbe schon wieder? Wir hatten das
+                         * doch weiss").
+                         *
+                         * In `globals.css` steht `.lb-karte svg { color: #a07a34 !important }`
+                         * — die Karte zieht JEDES Symbol in ihrem Inneren auf Gold, damit sie
+                         * wie gedruckt aussieht. Mein `text-white` verliert gegen `!important`,
+                         * und heraus kam ein goldener Pfeil auf dunklem Bild.
+                         *
+                         * Der vorgesehene Ausweg ist dieses Attribut: `.lb-karte
+                         * [data-aufmedien="1"] svg` faerbt zurueck auf Weiss. Es gilt fuer
+                         * alles, was AUF dem Video liegt statt auf dem Karton — dieselbe Regel
+                         * wie beim Ton-Knopf und der Prozentzahl.
+                         */
+                        data-aufmedien="1"
+                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur transition active:scale-90 disabled:opacity-50">
                         {teilenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       </button>
                       {!!teilenText && (
