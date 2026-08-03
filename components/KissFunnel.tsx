@@ -938,7 +938,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           .then(r => r.json()).catch(() => null);
         rueckkehrRef.current = false;
         if (!st?.paid) { setStatus(""); return; }
-        q.delete("topup"); q.delete("cs");
+        q.delete("topup"); q.delete("cs"); q.delete("cancelled");
         const rest = q.toString();
         window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
         if (typeof st.walletCents === "number") setGuthabenCents(st.walletCents);
@@ -1854,7 +1854,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", lingerie: lingerieGewaehlt, email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", lingerie: lingerieGewaehlt, email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
+        /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
+           ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
+           cancelled=1 in der Adresse; als Ruecksprungziel weitergereicht, stand nach der
+           ERFOLGREICHEN Zahlung wieder „abgebrochen" in der Zeile. */
+        const q = new URLSearchParams(window.location.search);
+        for (const k of ["cancelled", "paid", "topup", "cs", "extra"]) q.delete(k);
+        const rest = q.toString();
+        return window.location.pathname + (rest ? `?${rest}` : "");
+      })() }) }).then(r => r.json());
       /**
        * VOM GUTHABEN BEZAHLT (Owner 01.08.2026): Der Server hat abgebucht, gestempelt und die
        * Lieferung vorgemerkt — hier ist die Zahlung damit BESTÄTIGT, ohne Kasse, ohne Fenster.
@@ -1938,6 +1947,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   useEffect(() => {
     if (!nachAufladungKaufen.current) return;
     if (!mail.trim()) return;   // warten, bis die Adresse aus dem Speicher zurueck ist
+    /**
+     * AUCH AUF DIE FOTOS WARTEN (Owner 03.08.2026: „jetzt ist die Generierung weg und es
+     * kommt die Landingpage"). Nach der Kassen-Rueckkehr laedt die Seite neu; die Fotos
+     * kommen ERST DANACH aus dem Geraetespeicher zurueck. Der Effekt feuerte vorher schon
+     * auf die Adresse hin, `generate()` brach ohne Fotos still ab — und weil die Marke
+     * dabei schon verbraucht war, blieb die Kette fuer immer tot. Erst wenn ALLES da ist,
+     * wird die Marke verbraucht.
+     */
+    if (!selPhoto || !photo) return;
     nachAufladungKaufen.current = false;
     /**
      * WOFUER hat er aufgeladen? Hat er noch KEIN Bild, wollte er eins (Kuss ab dem zweiten
@@ -1948,7 +1966,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (!genId) return;
     void unlock("once");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genId, mail, guthabenCents, bild]);
+  }, [genId, mail, guthabenCents, bild, selPhoto, photo]);
 
   return (
     <div className="mt-8">

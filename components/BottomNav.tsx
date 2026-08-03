@@ -284,8 +284,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         try { window.dispatchEvent(new CustomEvent("lb-abgemeldet")); } catch { /**/ }
         setIsCurator(false);
         setSignedIn(false);
-        await signOut();
-        router.push("/stores");
+        // signOut darf die Weiterleitung nie verhindern — ohne aktive Supabase-Sitzung
+        // (Kuss-Adresse!) wirft es, und der Kunde bliebe auf der alten Seite stehen.
+        try { await signOut(); } catch { /**/ }
+        // Nach dem Abmelden auf die THEMEN-Seite (Owner 03.08.2026) — sie ist die
+        // Startseite des Portals; /stores war der alte Einstieg aus der Model-Zeit.
+        router.push("/themes");
       };
 
       return (

@@ -125,8 +125,16 @@ export function pruefeEmail(email: unknown): Pruefung {
     return { ok: false, grund: "wegwerf" };
   }
 
-  // 4) Zahlenkolonnen im Namensteil.
-  if (zuVieleZahlen(lokal)) return { ok: false, grund: "zahlen" };
+  /**
+   * 4) ZAHLENKOLONNEN — ABGESCHALTET (Owner 03.08.2026: „du kannst jetzt Zahlen zulassen,
+   * die Leute können jetzt eh nicht mehr generieren ohne zu bezahlen").
+   *
+   * Die Regel schuetzte die GRATIS-Bilder vor Phantasieadressen. Seit nichts mehr gratis
+   * ist, prueft die Kasse die Ernsthaftigkeit besser als jede Adress-Heuristik — und eine
+   * echte Kundin mit Nummern-Adresse (gl12341234123@… war echt!) ist teurer als jede
+   * ersparte Zustellung. `zuVieleZahlen` bleibt liegen; Wiedereinschalten ist eine Zeile.
+   */
+  void zuVieleZahlen;
 
   // 5) Herkunft — nur bei Länderendungen.
   const tld = teile[teile.length - 1];
