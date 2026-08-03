@@ -46,7 +46,19 @@ export const POLEDANCE_PROMPT =
  * signierter Link läuft ab, dieser Pfad nie — und das Set ist Teil des Produkts, nicht
  * gepflegter Inhalt.
  */
-export const POLEDANCE_SET = "/Pooldance/poledance-set.jpg";
+/**
+ * WEBP STATT PNG/JPEG (Owner 03.08.2026: „natürlich verkleinern, in WebP sogar").
+ *
+ * Die vier neuen Sets kamen als PNG mit je gut zwei Megabyte — zusammen 16 MB im Repo, die bei
+ * jedem Deploy mitreisen und beim Kunden geladen werden, nur damit sie als Referenz an Pixverse
+ * gehen. Auf 1080 Breite und WebP/82 sind es 145 bis 189 kB: rund 92 % weniger, ohne dass man
+ * einen Unterschied sieht. Groesser braucht es nicht — Pixverse rendert 540p bis 1080p.
+ *
+ * GEPRUEFT, BEVOR DIE PNG GELOESCHT WURDEN: Pixverse nimmt WebP an (Probelauf, Bild-Kennung
+ * 884296575 zurueckgemeldet). Ein Format, das der Anbieter ablehnt, waere die teuerste Art,
+ * Speicherplatz zu sparen.
+ */
+export const POLEDANCE_SET = "/Pooldance/poledance-set.webp";
 
 /**
  * DAS BEISPIELVIDEO und sein Standbild. Der Ordnername bleibt „Pooldance", so wie der Owner
@@ -76,10 +88,10 @@ export const POLEDANCE_POSTER = "/Pooldance/poledance-poster.jpg";
  */
 export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
   { id: "haus",    bild: POLEDANCE_SET,                    name: "Pink Neon" },
-  { id: "pink",    bild: "/Pooldance/set-pink.png",        name: "Pink Harness" },
-  { id: "blau",    bild: "/Pooldance/set-blau.png",        name: "Blue Lace" },
-  { id: "rot",     bild: "/Pooldance/set-rot-latex.png",   name: "Red Latex" },
-  { id: "schwarz", bild: "/Pooldance/set-schwarz-latex.png", name: "Black Latex" },
+  { id: "pink",    bild: "/Pooldance/set-pink.webp",        name: "Pink Harness" },
+  { id: "blau",    bild: "/Pooldance/set-blau.webp",        name: "Blue Lace" },
+  { id: "rot",     bild: "/Pooldance/set-rot-latex.webp",   name: "Red Latex" },
+  { id: "schwarz", bild: "/Pooldance/set-schwarz-latex.webp", name: "Black Latex" },
 ];
 
 /**
