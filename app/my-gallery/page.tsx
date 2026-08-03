@@ -354,7 +354,19 @@ export default function MyGalleryPage() {
 
         {loading ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Lädt…</p>
-        ) : (!pin && !token) ? (
+        ) : (!pin && !token && items.length === 0) ? (
+          /**
+           * NUR NOCH SPERREN, WENN WIRKLICH NICHTS DA IST (Owner 03.08.2026: „ich sehe das
+           * Video nirgendwo" — nach einer BEZAHLTEN Erzeugung).
+           *
+           * Vorher sperrte diese Zeile JEDEN ohne Anmeldung/PIN aus — waehrend die Zahl im
+           * Titel laengst „3" sagte: Die Stuecke waren ueber die GERAETEKENNUNG geladen und
+           * zugeordnet, nur die Anzeige verweigerte sie. Wer zahlt und dann vor einer
+           * Anmelde-Aufforderung steht, liest das als „Video weg". Die Kennung ist dieselbe
+           * Zuordnung, mit der die Galerie seit je liest (Owner-Entscheidung „C": Geraet UND
+           * Konto) — was ihm gehoert, sieht er. Anmelden lohnt weiterhin: nur damit folgt
+           * die Galerie auf andere Geraete.
+           */
           <p className="py-16 text-center text-[13px] font-bold text-white/50">Melde dich an, um deine Try-ons zu sehen.</p>
         ) : items.length === 0 ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Noch nichts hier — mach dein erstes Bild.</p>
@@ -367,8 +379,25 @@ export default function MyGalleryPage() {
               return (
               <div key={it.id} onClick={() => selectMode ? toggleSel(it.id) : setOpen(it)}
                 className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                {/**
+                  * VIDEO OHNE VORSCHAUBILD → DAS VIDEO IST DIE KACHEL (Owner 03.08.2026:
+                  * „ich sehe das Video nirgendwo", nach einem BEZAHLTEN Lauf).
+                  *
+                  * Seit der Kuss ohne Gratis-Bild laeuft, hat sein Eintrag kein `imagePath`
+                  * mehr — nur `videoUrl`. Diese Kachel zeigte aber IMMER `<img>`: leere
+                  * Adresse, schwarze Flaeche, winziges Play-Symbol. Sein bezahltes Video war
+                  * technisch da und praktisch unsichtbar. `preload="metadata"` holt nur das
+                  * erste Standbild, nicht den Film — nie schwarz, nichts laedt unnoetig
+                  * (Hausregel aus der Feed-Spezifikation: nie ein schwarzer Kasten).
+                  */}
+                {!it.imageUrl && it.videoUrl ? (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video src={it.videoUrl} preload="metadata" muted playsInline
+                    className="h-full w-full object-cover object-top" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                )}
                 {/* WARNZEICHEN — links oben, damit es nicht mit dem Auswahl-Haekchen rechts
                     kollidiert. Rot hinterlegt statt nur als Symbol: Ein Emoji auf einem
                     bunten Foto uebersieht man, und genau diese Kacheln soll man finden. */}

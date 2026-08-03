@@ -86,6 +86,11 @@ export const TRIAL_DAYS = 7;                        // Tage, die die Seite ohne 
 // Die Aufladung (Owner 01.08.2026, Variante B: Zusatzangebot neben dem Einzelkauf; Guthaben
 // verfällt nie, keine Barauszahlung). Eine Stufe reicht zum Start.
 export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
+// DAS LINGERIE-VIDEO (Owner 03.08.2026: „das kostet 3,99 und dafür musst du die Frau mit
+// FASHN in einer unserer Lingerie-Bilder anziehen und dann in Video umwandeln"). Teurer als
+// das normale Video ({once}), weil ein FASHN-Lauf (Anziehen) VOR dem Pixverse-Lauf steht —
+// zwei bezahlte Erzeugungen statt einer. Abgebucht wird wie immer aus dem Guthaben.
+export const LINGERIE_CENTS = 399;                  // 3,99 € — Kuss-Video mit Lingerie-Look
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -119,6 +124,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
+    .replace(/\{lingerie\}/g, eur(LINGERIE_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }

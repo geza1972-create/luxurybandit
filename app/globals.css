@@ -43,7 +43,11 @@
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
   }
   /* The ADMIN dashboard is a real desktop tool — break it out of the mobile phone column. */
-  .lb-frame:has(.lb-admin) {
+  .lb-frame:has(.lb-admin),
+  /* Same for the LuxbanditCut/LuxbanditFit workbench: brushes, a paint surface and a
+     side-by-side before/after are unusable in a 440px column. On phones nothing changes —
+     this rule only exists above the 480px breakpoint. */
+  .lb-frame:has(.lb-werkbank) {
     width: 100%;
     max-width: none;
     margin: 0;
@@ -618,3 +622,12 @@ svg {
   border-color: rgba(0, 0, 0, 0.22) !important;
 }
 .lb-fb .lb-eingabe::placeholder { color: rgba(0, 0, 0, 0.38) !important; }
+
+/* DUENNER, DUNKLER WISCHBALKEN (Owner 03.08.2026: „Scrollbalken bitte nicht weiss").
+   Fuer die Wisch-Zeilen des Kuss-Trichters (Waesche, Szenen): Auf dunklem Grund war der
+   Standard-Balken ein weisser Fremdkoerper. Duenn und halbtransparent — sichtbar genug zum
+   Greifen, leise genug, um kein Gestaltungselement zu sein. */
+.lb-wisch { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.28) transparent; }
+.lb-wisch::-webkit-scrollbar { height: 5px; }
+.lb-wisch::-webkit-scrollbar-track { background: transparent; }
+.lb-wisch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.28); border-radius: 999px; }

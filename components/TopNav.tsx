@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
 import { YOUTUBE_CHANNEL } from "@/lib/social";
 import LangSwitch from "@/components/LangSwitch";
+import GuthabenChip from "@/components/GuthabenChip";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
@@ -52,8 +53,13 @@ export default function TopNav({
   };
   const iconBtn = "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white";
 
+  // z-50 statt z-30 (Owner 03.08.2026: „share button ist drüber"): Die Knoepfe AUF den
+  // Karten (Teilen, Ton, Loeschen) stehen ebenfalls auf z-30 — als spaetere Elemente im
+  // Dokument gewannen sie gegen den klebenden Header und schwebten beim Scrollen ueber
+  // Guthaben-Chip und Sprachwahl. 50 liegt ueber allem Seiteninhalt und unter allem, was
+  // wirklich darueber gehoert: Menue (60/61), BottomNav (70), Dialoge (80–96).
   return (
-    <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
+    <header data-topnav="1" className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         {back && canBack && (
           <button type="button" onClick={() => router.back()} aria-label="Back"
@@ -115,7 +121,14 @@ export default function TopNav({
       {/* Eigene Zeile, mit Kennzeichnung: In der Anzeigen-Fassung (.lb-fb) rutscht sie per
           CSS UNTER die blaue Leiste (Owner 30.07.2026: „die Sprachen schiebst du mir unter
           dem Header"). Sonst bleibt alles wie bisher. */}
-      <div data-langrow="1" className="mx-auto flex max-w-6xl justify-end px-4 pb-2">
+      {/* GUTHABEN LINKS, SPRACHE RECHTS (Owner 03.08.2026: „könnte das Guthaben im Header
+          stehen? … mit Icon bitte"). Der Chip zeigt sich nur, wenn wir die Adresse kennen —
+          siehe GuthabenChip. `justify-between` statt `justify-end`: ohne Chip rückt die
+          Sprache dank des leeren ersten Kinds trotzdem nach rechts. */}
+      <div data-langrow="1" className="mx-auto flex max-w-6xl items-center justify-between px-4 pb-2">
+        {/* Der Span steht IMMER — rendert der Chip nichts, bleibt er leer, und
+            `justify-between` schiebt die Sprache weiter nach rechts wie bisher. */}
+        <span><GuthabenChip /></span>
         <LangSwitch />
       </div>
     </header>

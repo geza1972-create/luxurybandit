@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, LINGERIE_CENTS } from "@/lib/pricing";
 import { guthabenAbbuchen } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; lingerie?: boolean };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -101,10 +101,19 @@ export async function POST(request: Request) {
      * Eintrag als bezahlt stempeln, die Server-Lieferung vormerken, fertig. Der Trichter
      * behandelt `walletPaid` wie eine bestaetigte Zahlung.
      */
+    /**
+     * LINGERIE KOSTET MEHR (Owner 03.08.2026: „das kostet 3,99 … die Frau mit FASHN
+     * anziehen und dann in Video umwandeln"): Der Aufpreis bezahlt den FASHN-Lauf VOR dem
+     * Pixverse-Lauf. Der Trichter meldet die Wahl mit; der Preis selbst kommt wie immer aus
+     * der Preistabelle. Der Abbuchungs-Schluessel traegt die Wahl mit, damit derselbe
+     * Eintrag erst ein normales und spaeter ein Lingerie-Video kaufen kann — sonst hielte
+     * die Idempotenz den zweiten, teureren Kauf faelschlich fuer den Doppelklick des ersten.
+     */
+    const preis = body.lingerie === true ? LINGERIE_CENTS : ONCE_CENTS;
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
-        const ab = await guthabenAbbuchen(email, `wallet-${genId}`, ONCE_CENTS);
+        const ab = await guthabenAbbuchen(email, `wallet-${genId}${body.lingerie ? "-lingerie" : ""}`, preis);
         if (ab.ok) {
           await bezahltVermerken(genId, email, "kiss-video");
           lieferungAnstossen(origin, genId);
@@ -114,9 +123,9 @@ export async function POST(request: Request) {
     }
     try {
       const { id, url } = await createTryonCheckout({
-        amount: ONCE_CENTS,
+        amount: preis,
         currency: "eur",
-        productName: "Kiss video — one-off",
+        productName: body.lingerie ? "Kiss lingerie video — one-off" : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
         metadata: { kind: "kiss-video", ...(genId ? { genId } : {}), ...(subId ? { subId } : {}) },

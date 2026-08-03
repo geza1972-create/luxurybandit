@@ -49,8 +49,23 @@ export type KissText = {
   shareTitel: string; shareText: string; shareOk: string; shareCancel: string;
   /** Überschrift der Szenen-Kacheln (Owner 01.08.2026); Wahl ist freiwillig. */
   szeneTitel: string;
+  /** Wäsche-Zeile bei Lingerie-Vorlagen (Owner 03.08.2026: „dann ist ein Schritt mehr“). */
+  waescheTitel: string;
+  /** Nach dem gelieferten Einzelkauf: neuer Anlauf statt 2,99-Nachkauf (Owner 03.08.2026). */
+  nochmalVideo: string;
   /** Aufladung 9,99 (Owner 01.08.2026, Variante B) — Knopf, Hinweis, Guthaben-Zeile. */
   aufladen: string; aufladenHinweis: string; guthaben: string;
+  /**
+   * DIE ZWEI ZAHLEN, BEVOR ER TIPPT (Owner 03.08.2026: „hier muss doch stehen dass das Video
+   * 1,49 kostet aber er muss das Konto mit mindestens 9,99 Euro aufladen. Sonst fühlt er
+   * sich ausgeraubt").
+   *
+   * Der Knopf löst bei Kiss zuerst die AUFLADUNG aus, nicht den Videokauf. Wer {once} im Kopf
+   * hat und dann {topup} auf der Kassenseite liest, denkt an Betrug — zu Recht. Beide Zahlen
+   * gehören VOR den Klick, zusammen mit dem Satz, der die Differenz erklärt: der Rest bleibt
+   * ihm.
+   */
+  guthabenVorabHinweis: string;
   // Knopf und Kleingedrucktes
   ctaFree: string; ctaVideo: string; rendering: string; priceLine: string; paidLine: string; consent: string;
   buyOnce: string; buyAbo: string;
@@ -127,6 +142,9 @@ const EN: KissText = {
   landFrage: "Your country",
   shareTitel: "Sharing makes it public", shareText: "Anyone with the link can see your card. Only the finished result is shown — never the photos you uploaded.", shareOk: "Got it — share", shareCancel: "Cancel",
   szeneTitel: "Pick a scene — or let us surprise you",
+  waescheTitel: "Pick her lingerie — or keep the one from the video",
+  nochmalVideo: "Generate another video",
+  guthabenVorabHinweis: "One video costs {once}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
@@ -230,6 +248,9 @@ const DE: KissText = {
   landFrage: "Dein Land",
   shareTitel: "Teilen macht es öffentlich", shareText: "Jeder mit dem Link kann deine Karte sehen. Gezeigt wird nur das fertige Ergebnis — niemals deine hochgeladenen Fotos.", shareOk: "Verstanden — teilen", shareCancel: "Abbrechen",
   szeneTitel: "Such dir eine Szene aus — oder lass dich überraschen",
+  waescheTitel: "Such ihre Wäsche aus — oder lass die aus dem Video",
+  nochmalVideo: "Noch ein Video generieren",
+  guthabenVorabHinweis: "Ein Video kostet {once}. Bezahlt wird aus deinem Guthaben — die kleinste Aufladung ist {topup}, der Rest bleibt dir für weitere Videos.",
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
@@ -333,6 +354,9 @@ const RO: KissText = {
   landFrage: "Țara ta",
   shareTitel: "Dacă distribui, devine public", shareText: "Oricine are linkul îți poate vedea cardul. Se arată doar rezultatul final — niciodată pozele încărcate de tine.", shareOk: "Am înțeles — distribuie", shareCancel: "Anulează",
   szeneTitel: "Alege o scenă — sau lasă-te surprins",
+  waescheTitel: "Alege lenjeria ei — sau păstreaz-o pe cea din videoclip",
+  nochmalVideo: "Generează încă un videoclip",
+  guthabenVorabHinweis: "Un videoclip costă {once}. Se plătește din creditul tău — cea mai mică încărcare este {topup}, iar restul îți rămâne pentru alte videoclipuri.",
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
@@ -436,6 +460,9 @@ const ES: KissText = {
   landFrage: "Tu país",
   shareTitel: "Compartir lo hace público", shareText: "Cualquiera con el enlace puede ver tu tarjeta. Solo se muestra el resultado final — nunca las fotos que subiste.", shareOk: "Entendido — compartir", shareCancel: "Cancelar",
   szeneTitel: "Elige una escena — o déjate sorprender",
+  waescheTitel: "Elige su lencería — o deja la del vídeo",
+  nochmalVideo: "Generar otro vídeo",
+  guthabenVorabHinweis: "Un vídeo cuesta {once}. Se paga con tu saldo — la recarga mínima es {topup}, y lo que sobra se queda para más vídeos.",
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
@@ -539,6 +566,9 @@ const FR: KissText = {
   landFrage: "Ton pays",
   shareTitel: "Partager le rend public", shareText: "Toute personne avec le lien peut voir ta carte. Seul le résultat final est montré — jamais tes photos envoyées.", shareOk: "Compris — partager", shareCancel: "Annuler",
   szeneTitel: "Choisis une scène — ou laisse-toi surprendre",
+  waescheTitel: "Choisis sa lingerie — ou garde celle de la vidéo",
+  nochmalVideo: "Générer une autre vidéo",
+  guthabenVorabHinweis: "Une vidéo coûte {once}. Le paiement se fait sur ton crédit — la recharge minimale est {topup}, et le reste te reste pour d'autres vidéos.",
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
@@ -642,6 +672,9 @@ const PT: KissText = {
   landFrage: "O teu país",
   shareTitel: "Partilhar torna-o público", shareText: "Qualquer pessoa com o link pode ver o teu cartão. Só se mostra o resultado final — nunca as fotos que enviaste.", shareOk: "Entendi — partilhar", shareCancel: "Cancelar",
   szeneTitel: "Escolhe uma cena — ou deixa-te surpreender",
+  waescheTitel: "Escolhe a lingerie dela — ou deixa a do vídeo",
+  nochmalVideo: "Gerar mais um vídeo",
+  guthabenVorabHinweis: "Um vídeo custa {once}. Paga-se com o teu saldo — o carregamento mínimo é {topup}, e o que sobra fica para mais vídeos.",
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
@@ -746,6 +779,9 @@ const IT: KissText = {
   landFrage: "Il tuo paese",
   shareTitel: "Condividere lo rende pubblico", shareText: "Chiunque abbia il link può vedere la tua card. Si mostra solo il risultato finale — mai le foto che hai caricato.", shareOk: "Ho capito — condividi", shareCancel: "Annulla",
   szeneTitel: "Scegli una scena — o lasciati sorprendere",
+  waescheTitel: "Scegli la sua lingerie — o lascia quella del video",
+  nochmalVideo: "Genera un altro video",
+  guthabenVorabHinweis: "Un video costa {once}. Si paga con il tuo credito — la ricarica minima è {topup}, e quel che avanza resta per altri video.",
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",

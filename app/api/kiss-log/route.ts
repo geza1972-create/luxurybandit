@@ -3,9 +3,76 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
+import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * NACKTHEIT WIRD AM EINGANG ABGEWIESEN (Owner 03.08.2026: „wenn Leute nackte Frauen
+ * hochladen muss die Meldung kommen, dieses Bild kann nicht akzeptiert werden. Ich will aber
+ * als Admin den Verlauf sehen beim Uploadbilder").
+ *
+ * WARUM JETZT UND NICHT MEHR SPAETER: Bis heute fiel Nacktheit erst bei der Erzeugung auf —
+ * OpenAI wies das Bild ab, und der Trichter sagte „gratis nicht verwendbar". Seit der Kuss
+ * ohne Gratis-Bild direkt an die Kasse geht, gaebe es diesen Moment nicht mehr: Der Besucher
+ * wuerde ZAHLEN und erst danach erfahren, dass sein Foto nie durchkommt. Die Absage gehoert
+ * an den Upload, nicht hinter die Kasse.
+ *
+ * DIE ZWEI FAELLE SIND NICHT DASSELBE — daher zwei verschiedene Antworten:
+ *
+ *   Erwachsen + nackt → abweisen, ABER ABLEGEN. Der Owner will den Verlauf sehen; ohne
+ *                       Ablage stuende in seiner Galerie eine leere Zeile und er wuesste
+ *                       nicht, was jemand versucht hat. Der Eintrag traegt `altersWarnung`,
+ *                       damit das Warnzeichen in der Galerie steht.
+ *   Kind + nackt      → abweisen und NICHTS ablegen. Das ist die eine Regel ohne Ausnahme
+ *                       (siehe lib/minderjaehrig-pruefen.ts): Dieses Material darf unseren
+ *                       Speicher nicht beruehren — auch nicht, um es dem Owner zu zeigen.
+ *
+ * NICHT WIEDER EINGEHAENGT wird die ALTERSSPERRE fuer bekleidete Bilder: Die hat der Owner
+ * am 01.08.2026 ausdruecklich entfernt („mach die Alterskontrolle raus"). Hier wirkt allein
+ * die Nacktheit — ein `minderjaehrig`-Urteil ohne Nacktheit laesst dieses Tor durch.
+ */
+type NacktUrteil = { abweisen: boolean; ablegen: boolean; warnung?: string; alter?: number };
+
+async function nacktheitsTor(bilder: string[]): Promise<NacktUrteil> {
+  const key = process.env.OPENAI_API_KEY?.trim();
+  const echte = bilder.filter(b => String(b ?? "").startsWith("data:"));
+  // Ohne Schluessel oder ohne Bild gibt es nichts zu pruefen — dann wie bisher durchlassen.
+  if (!key || !echte.length) return { abweisen: false, ablegen: true };
+  const urteile = await Promise.all(echte.map(b => pruefeAlter(b, key).catch(() => null)));
+
+  // Kind + nackt zuerst: dieser Fall darf nicht in den Speicher, egal was sonst noch gilt.
+  if (urteile.some(u => u && !u.ok && u.grund === "kind-nackt")) {
+    console.error(`[upload-tor] KIND + NACKTHEIT — abgewiesen, nichts abgelegt | ${new Date().toISOString()}`);
+    return { abweisen: true, ablegen: false, warnung: "kind-nackt" };
+  }
+  /**
+   * Die Bibliothek antwortet je nach `MINOR_CHECK_MODE` unterschiedlich: im Beobachten-Modus
+   * (der Vorgabe) kommt Nacktheit als `ok: true` mit `warnung`, scharf gestellt als
+   * `ok: false` mit `grund`. Fuer dieses Tor zaehlt BEIDES als Nacktheit — der Owner hat sie
+   * heute abgewiesen haben wollen, unabhaengig davon, wie die Umgebung eingestellt ist.
+   */
+  const nackt = urteile.some(u => !!u && ((u.ok && u.warnung === "nacktheit") || (!u.ok && u.grund === "nacktheit")));
+  if (nackt) {
+    const alter = urteile.map(u => (u && u.ok ? u.alter : u && !u.ok ? u.alter ?? 0 : 0)).find(n => !!n) ?? 0;
+    console.warn(`[upload-tor] Nacktheit erkannt — abgewiesen, aber abgelegt (alter≈${alter})`);
+    return { abweisen: true, ablegen: true, warnung: "nacktheit", alter };
+  }
+  return { abweisen: false, ablegen: true };
+}
+
+/** Die Absage, die der Besucher liest — in seiner Sprache, kurz und ohne Vorwurf. */
+const ABGELEHNT: Record<string, string> = {
+  en: "This image cannot be accepted. Please upload a photo with clothes on.",
+  de: "Dieses Bild kann nicht akzeptiert werden. Bitte lade ein Foto mit Kleidung hoch.",
+  ro: "Această imagine nu poate fi acceptată. Te rugăm să încarci o poză în care ești îmbrăcat.",
+  es: "Esta imagen no se puede aceptar. Sube una foto con ropa, por favor.",
+  fr: "Cette image ne peut pas être acceptée. Merci d'envoyer une photo habillé.",
+  pt: "Esta imagem não pode ser aceite. Por favor carrega uma foto com roupa.",
+  it: "Questa immagine non può essere accettata. Carica una foto vestito, per favore.",
+};
+const abgelehntText = (lang?: string) => ABGELEHNT[String(lang ?? "en").slice(0, 2)] ?? ABGELEHNT.en;
 
 // Kiss-Log: der Funnel meldet jede FERTIGE Generierung (POST, öffentlich — der Funnel läuft
 // auch anonym); das Admin-Tool auf /themes/kiss listet sie (GET, admin-only).
@@ -94,7 +161,7 @@ async function ablegen(dataUrl: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -172,6 +239,15 @@ export async function POST(request: Request) {
     if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName) {
       return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     }
+    /**
+     * DAS TOR GILT AUCH FUERS ZWEITE FOTO (Owner 03.08.2026). Der zweite Upload laeuft ueber
+     * `update` an denselben Eintrag — ohne diese Pruefung waere genau er das Schlupfloch:
+     * erst ein harmloses Bild, dann das andere.
+     */
+    const torU = await nacktheitsTor([personBild, modelBild]);
+    if (torU.abweisen && !torU.ablegen) {
+      return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true }, { status: 400 });
+    }
     const entries = await readKissLog();
     const e = entries.find(x => x.id === body.update);
     if (e) {
@@ -212,7 +288,21 @@ export async function POST(request: Request) {
         const p3 = await ablegen(personBild);
         if (p3) e.personPath = p3;
       }
+      // Warnzeichen auch hier setzen — sonst traegt es nur, wer beim ERSTEN Bild auffiel.
+      if (torU.warnung) { e.altersWarnung = torU.warnung; if (torU.alter) e.altersGeschaetzt = torU.alter; }
+      /**
+       * DIE ADRESSE NACHTRAGEN (Owner 03.08.2026: „die email wird nicht erfasst, nichts").
+       * Das Upload-Tor im Trichter erzwingt sie VOR dem ersten Foto — aber der Eintrag
+       * entsteht erst MIT dem Foto. Also bringt jeder Upload sie mit, und hier landet sie
+       * am Eintrag. Nie ueberschreiben: Die erste bestaetigte Adresse bleibt.
+       */
+      const mailU = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
+      if (mailU && !e.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailU)) e.email = mailU;
       await writeKissLog(entries);
+    }
+    // Abgelegt (der Owner sieht den Verlauf), aber der Besucher bekommt die Absage.
+    if (torU.abweisen) {
+      return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true }, { status: 400 });
     }
     return NextResponse.json({ ok: true });
   }
@@ -225,6 +315,13 @@ export async function POST(request: Request) {
    * die Galerie-Liste laufend von Hand und löscht selbst. `lib/minderjaehrig-pruefen.ts`
    * bleibt liegen — Wiedereinhängen ist eine Zeile; alte Warnzeichen bleiben sichtbar.
    */
+  // DAS TOR VOR DER ABLAGE (Owner 03.08.2026) — siehe `nacktheitsTor` oben.
+  const tor = await nacktheitsTor([String(body.personImage ?? ""), String(body.modelImage ?? "")]);
+  if (tor.abweisen && !tor.ablegen) {
+    // Kind + nackt: nichts ablegen, keine Zeile, nur die Absage.
+    return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true }, { status: 400 });
+  }
+
   let personPath = String(body.personPath ?? "").trim();
   if (!personPath && String(body.personImage ?? "").startsWith("data:")) personPath = await ablegen(String(body.personImage));
   // AUCH DIE FRAU, die er selbst hochgeladen hat (Owner 30.07.2026: „ich sehe das Bild von
@@ -246,8 +343,20 @@ export async function POST(request: Request) {
     email: String(body.email ?? "").trim().toLowerCase().slice(0, 160) || undefined,
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
     theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
+    // Das Warnzeichen für die Galerie — nur gesetzt, wenn etwas auffiel.
+    altersWarnung: tor.warnung,
+    altersGeschaetzt: tor.alter || undefined,
   };
   const entries = [entry, ...(await readKissLog())];
   await writeKissLog(entries);
+  /**
+   * ABGELEGT UND TROTZDEM ABGEWIESEN (Owner 03.08.2026). Die Zeile steht jetzt in der
+   * Galerie — mit Bild und Warnzeichen, damit der Owner den Verlauf sieht. Der Besucher
+   * bekommt die Absage. Die Kennung reist mit: Laedt er gleich ein anderes Foto hoch, soll
+   * es an DENSELBEN Eintrag, nicht in eine zweite halbe Zeile.
+   */
+  if (tor.abweisen) {
+    return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true, id: entry.id }, { status: 400 });
+  }
   return NextResponse.json({ ok: true, id: entry.id });
 }

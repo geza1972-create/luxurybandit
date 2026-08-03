@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit, readKissLog, writeKissLog, grantMonthlySubscriptionCredits, grantVideoCredits } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit, readKissLog, writeKissLog, grantMonthlySubscriptionCredits, grantVideoCredits, addVideoLog } from "@/lib/try-this-look-store";
 import { hasActiveSubscription } from "@/lib/stripe";
 import { INCLUDED_VIDEOS_PER_MONTH, EXTRA_VIDEO_CENTS, eur } from "@/lib/pricing";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
@@ -461,20 +461,57 @@ export async function POST(request: Request) {
       }
     } catch { /* im Zweifel gilt der normale Weg — lieber Deckel als Ausfall */ }
   }
+  /**
+   * WER DAS AUSGELOEST HAT — WIRD AB JETZT AUFGESCHRIEBEN (Owner 03.08.2026: „wer hat das
+   * hier generiert?", zu drei Pixverse-Laeufen, die er nicht selbst gestartet hat).
+   *
+   * Die Frage war nicht zu beantworten: Diese Route hat NICHTS mitgeschrieben. Nur der
+   * Kuss-Trichter meldete seine Auftraege ueber /api/kiss-log nach — alles vom
+   * Holiday-Trichter, vom Pruefstand oder aus einem direkten API-Aufruf lief spurlos durch.
+   * Am 02.08.2026 standen 37 Besucher im Kuss-Protokoll, kein einziger mit Video, und
+   * trotzdem lief die Pixverse-Rechnung.
+   *
+   * `quelle` kommt aus dem Referer, weil der Trichter kein Thema mitschickt und ich den
+   * bezahlten Weg dafuer nicht anfassen wollte: Die Seite, von der der Aufruf kam, sagt
+   * genau das Gewuenschte (…/themes/kiss, …/themes/holiday, /tools/…), und sie kostet nichts.
+   */
+  const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "").trim();
+  const device = (request.headers.get("x-lb-device") || "").trim();
+  const quelle = (() => {
+    const ref = request.headers.get("referer") || "";
+    try { return new URL(ref).pathname.slice(0, 60) || "unbekannt"; } catch { return "unbekannt"; }
+  })();
+  /** Schreibt einen Eintrag. Wirft nie und wird NICHT abgewartet — ein Protokoll darf eine
+   *  bezahlte Erzeugung weder verzoegern noch kippen. */
+  const protokoll = (videoId?: string, fehler?: string) => {
+    void addVideoLog({
+      at: new Date().toISOString(),
+      quelle, staff, bezahlt: bezahlterAuftrag,
+      email: guthabenEmail || undefined,
+      device: device || undefined,
+      ip: ip || undefined,
+      genId: genId || undefined,
+      videoId, anbieter: "pixverse", fehler,
+    });
+  };
+
   // Anti-abuse cap: a non-staff caller (guest / direct API) may trigger at most
   // FREE_VIDEO_GEN_PER_DAY (default 1) generations per IP per day. Guests normally never
   // reach here — GO plays a pre-generated video — so this only bites direct-API abuse and
   // caps runaway Pixverse spend. Admin/staff bypass. Keyed on the Vercel-set client IP
   // (can't be spoofed like a header); device id is only a dev-local fallback.
   if (!staff && !bezahlterAuftrag) {
-    const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "").trim();
-    const device = (request.headers.get("x-lb-device") || "").trim();
     const gateKey = ip ? `ip:${ip}` : device ? `d:${device}` : "anon";
     const gate = await bumpDailyGenLimit(gateKey);
-    if (!gate.ok) return NextResponse.json(
-      { error: "Free limit reached — 1 video per day. Sign up for more.", limitReached: true, resetsDaily: true, limit: gate.limit },
-      { status: 429 },
-    );
+    if (!gate.ok) {
+      // Auch die Abweisung gehoert ins Protokoll: Sie zeigt, WER es versucht hat — und ob
+      // jemand dauernd gegen die Grenze laeuft.
+      protokoll(undefined, "tagesgrenze");
+      return NextResponse.json(
+        { error: "Free limit reached — 1 video per day. Sign up for more.", limitReached: true, resetsDaily: true, limit: gate.limit },
+        { status: 429 },
+      );
+    }
   }
   const chargeOwner = !!curatorId && !staff;
   if (chargeOwner) {
@@ -502,9 +539,16 @@ export async function POST(request: Request) {
     const r = reference
       ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true)
       : await pixverseStart(key, image, turnaround, promptWithScene);
-    if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
+    if (!r.videoId) {
+      protokoll(undefined, String(r.error ?? "start fehlgeschlagen").slice(0, 200));
+      refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 });
+    }
+    // DIE NUMMER IST DIE BRUECKE ZUR PIXVERSE-ABRECHNUNG: Mit ihr laesst sich ein Lauf dort
+    // eindeutig einem Besucher hier zuordnen — genau das fehlte am 02.08.2026.
+    protokoll(`pv:${r.videoId}`);
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });
   } catch (e) {
+    protokoll(undefined, e instanceof Error ? e.message.slice(0, 200) : "Ausnahme");
     refund();
     return NextResponse.json({ error: e instanceof Error ? e.message : "Video generation failed." }, { status: 500 });
   }

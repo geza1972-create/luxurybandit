@@ -1161,6 +1161,33 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
         redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
         welcomed: Array.from(new Set([...(latest.videoCredits?.welcomed ?? []), ...(state.videoCredits?.welcomed ?? [])])).slice(-20000),
         subMonths: Array.from(new Set([...(latest.videoCredits?.subMonths ?? []), ...(state.videoCredits?.subMonths ?? [])])).slice(-20000),
+        /**
+         * DER TAGESZAEHLER FEHLTE HIER — UND DAMIT GAB ES KEINE GRENZE (Owner 03.08.2026:
+         * „er hat 3 Videos generiert. Ich habe das nicht generiert").
+         *
+         * `bumpDailyGenLimit` schrieb brav nach `videoCredits.genLog` — aber dieser Merge
+         * baute `videoCredits` neu zusammen, OHNE `genLog`, und der Schlank-Serialisierer
+         * weiter unten ebenso. Der Zaehler wurde also bei JEDEM Speichervorgang
+         * weggeworfen; beim naechsten Aufruf stand wieder 0 da. „1 Gratis-Video pro Tag"
+         * hat nie gegriffen, und jeder Gast konnte beliebig viele Pixverse-Laeufe ausloesen.
+         * Das ist kein Schoenheitsfehler, das ist die Rechnung.
+         *
+         * DER HOEHERE WERT GEWINNT, nicht der zuletzt geschriebene: Bei einem Ausgabenschutz
+         * darf ein gleichzeitiger, aelterer Speichervorgang den Stand niemals SENKEN. Und es
+         * bleibt nur der heutige Tag stehen — sonst holt der Merge die alten Tage zurueck,
+         * die `bumpDailyGenLimit` gerade ausgeraeumt hat, und die Karte waechst ewig.
+         */
+        genLog: (() => {
+          const heute = new Date().toISOString().slice(0, 10);
+          const zusammen: Record<string, number> = {};
+          for (const quelle of [latest.videoCredits?.genLog ?? {}, state.videoCredits?.genLog ?? {}]) {
+            for (const [k, v] of Object.entries(quelle)) {
+              if (!k.endsWith(`|${heute}`)) continue;
+              zusammen[k] = Math.max(Number(zusammen[k] ?? 0), Number(v ?? 0));
+            }
+          }
+          return zusammen;
+        })(),
       },
       // Events are an append-only analytics log fired constantly (views, tryon/bandit/
       // product clicks). Without a union-merge a concurrent `view` save clobbers a
@@ -1227,6 +1254,11 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       redeemed: (state.videoCredits?.redeemed ?? []).slice(-5000),
       welcomed: (state.videoCredits?.welcomed ?? []).slice(-20000),
       subMonths: (state.videoCredits?.subMonths ?? []).slice(-20000),
+      // DIE ZWEITE STELLE, an der der Tageszaehler verlorenging (Owner 03.08.2026). Dieser
+      // Serialisierer entscheidet, was WIRKLICH in der Datei landet — was hier fehlt, ist
+      // weg, auch wenn der Merge oben es richtig gemacht hat. Beide Stellen muessen `genLog`
+      // fuehren, sonst ist die Gratis-Grenze wieder wirkungslos.
+      genLog: state.videoCredits?.genLog ?? {},
     },
     /**
      * DRITTER UND ENTSCHEIDENDER ORT (01.08.2026): Dieser Schlank-Serialisierer schreibt
@@ -1739,6 +1771,69 @@ export async function readKissLog(): Promise<KissLogEntry[]> {
     const data = await res.json().catch(() => null);
     return Array.isArray(data?.entries) ? (data.entries as KissLogEntry[]) : [];
   } catch { return []; }
+}
+
+/**
+ * WER HAT DAS VIDEO ERZEUGT (Owner 03.08.2026: „wer hat das hier generiert?" — zu drei
+ * Pixverse-Läufen, die er nicht selbst gestartet hat).
+ *
+ * DIE FRAGE WAR NICHT ZU BEANTWORTEN, und das ist der Grund für diese Datei: `/api/
+ * generate-tryon-video` hat bis heute NICHTS mitgeschrieben. Nur der Kuss-Trichter meldete
+ * seine Aufträge über `/api/kiss-log` nach. Alles, was über den Holiday-Trichter, den
+ * Prüfstand oder einen direkten API-Aufruf lief, hinterliess keine Spur — kein Name, kein
+ * Gerät, keine Uhrzeit. Am 02.08.2026 standen 37 Besucher im Kuss-Protokoll, kein einziger
+ * mit Video, und trotzdem lief die Pixverse-Rechnung. Ein Dienst, der Geld ausgibt und nicht
+ * aufschreibt wofür, ist nicht prüfbar.
+ *
+ * BEWUSST OHNE BILDER: Hier steht nur, WER WANN WAS ausgelöst hat — keine Fotos, keine
+ * Datenurls. Das Protokoll soll die Rechnung erklären, nicht die Galerie verdoppeln (die
+ * Bilder liegen im Kuss-Protokoll, siehe KissLogEntry).
+ */
+export type VideoLogEntry = {
+  at: string;             // ISO-Zeit des Auftrags
+  quelle: string;         // welcher Trichter/welche Oberfläche (kiss · holiday · studio · …)
+  staff: boolean;         // Admin/Prüfstand → umgeht jede Grenze, deshalb eigens vermerkt
+  bezahlt: boolean;       // bezahlter Auftrag (genId mit paid) oder Gratis-Kontingent
+  email?: string;
+  device?: string;
+  ip?: string;            // die Kennung, auf der die Tagesgrenze zählt
+  genId?: string;         // Eintrag im Kuss-Protokoll, falls es einen gibt
+  videoId?: string;       // Pixverse-Auftragsnummer — die Brücke zur Pixverse-Abrechnung
+  anbieter?: string;      // pixverse · fal · …
+  fehler?: string;        // abgewiesen/fehlgeschlagen: warum
+};
+
+const VIDEO_LOG_PATH = "try-this-look/video-log.json";
+
+export async function readVideoLog(): Promise<VideoLogEntry[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(VIDEO_LOG_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.entries) ? (data.entries as VideoLogEntry[]) : [];
+  } catch { return []; }
+}
+
+/**
+ * Schreibt EINEN Eintrag dazu. Absichtlich „lesen, vorne anhängen, schreiben" wie beim
+ * Kuss-Protokoll — bei diesen Mengen (ein Video dauert Minuten) ist das unkritisch, und es
+ * kommt ohne zusätzliche Technik aus.
+ *
+ * WIRFT NIE. Ein Protokoll darf eine laufende, bezahlte Erzeugung nicht kippen — lieber eine
+ * Lücke in der Liste als ein Kunde ohne Video.
+ */
+export async function addVideoLog(eintrag: VideoLogEntry): Promise<void> {
+  try {
+    const alle = await readVideoLog();
+    await ensureBucket();
+    await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(VIDEO_LOG_PATH)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body: JSON.stringify({ entries: [eintrag, ...alle].slice(0, 1000), savedAt: new Date().toISOString() }),
+    });
+  } catch (e) {
+    console.warn("[video-log] konnte nicht geschrieben werden:", e instanceof Error ? e.message : e);
+  }
 }
 
 export async function writeKissLog(entries: KissLogEntry[]): Promise<void> {

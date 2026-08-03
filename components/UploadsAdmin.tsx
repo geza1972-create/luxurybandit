@@ -28,6 +28,21 @@ type Eintrag = {
   // Bezahlt, aber noch kein Video: was der Server damit gerade macht.
   videoDueAt?: string; videoId?: string; videoTries?: number; videoError?: string; videoMailedAt?: string;
   videoDoneId?: string;   // welcher Auftrag schon geliefert ist (Abo: mehrere je Eintrag)
+  /**
+   * WAS DIE EINGANGSPRUEFUNG ERKANNT HAT (Owner 03.08.2026: „ich will aber als Admin den
+   * Verlauf sehen beim Uploadbilder"). Steht nur da, wenn etwas auffiel — der abgewiesene
+   * Upload liegt trotzdem hier, sonst waere der Verlauf lueckenhaft.
+   */
+  altersWarnung?: string;
+  altersGeschaetzt?: number;
+};
+
+/** Klartext fuers Warnzeichen — „nacktheit" allein liest sich wie ein Datenbankfeld. */
+const WARN_TEXT: Record<string, string> = {
+  nacktheit: "Nacktheit — abgewiesen",
+  "kind-nackt": "KIND + NACKTHEIT",
+  minderjaehrig: "wirkt minderjährig",
+  unklar: "Prüfung unklar",
 };
 
 export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = "kiss" }: {
@@ -154,6 +169,15 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   </p>
                   {/* Kennen wir ihn schon? Bekannte anders ansprechen als Neue. */}
                   <p className="mt-1 flex flex-wrap gap-1">
+                    {/* DAS WARNZEICHEN ZUERST (Owner 03.08.2026): Wenn ein Upload abgewiesen
+                        wurde, ist das die wichtigste Auskunft der Zeile — es muss vor
+                        „bekannt/neu" stehen, nicht dahinter. */}
+                    {e.altersWarnung && (
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-black text-red-600">
+                        ⚠ {WARN_TEXT[e.altersWarnung] ?? e.altersWarnung}
+                        {e.altersGeschaetzt ? ` (≈${e.altersGeschaetzt})` : ""}
+                      </span>
+                    )}
                     {(e.listen ?? []).length > 0
                       ? (e.listen ?? []).map(l => (
                           <span key={l} className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-black text-sky-600">✓ {l}</span>
