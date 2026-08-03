@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fillPrices } from "@/lib/pricing";
+import { fillPrices, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPIC_EFFECTIVE_MONTHLY_CENTS, HOCHZEIT_STUFEN, eur } from "@/lib/pricing";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -28,7 +28,20 @@ export const metadata = {
   },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string; cover2?: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string; cover2?: string;
+  /**
+   * DER EINSTIEGSPREIS AUF DER KACHEL (Owner 03.08.2026: "erst mal will ich die Topics in
+   * einer Reihe und die Preise haben ab...").
+   *
+   * Bewusst als fertiger Text und nicht als Zahl: Die Themen kosten heute NICHT dasselbe.
+   * Kuss, Geburtstag und Ueberraschung nehmen einen Einzelpreis; die Hochzeit hat seit dem
+   * 03.08. eine Stufenleiter; Urlaub und Chat haengen noch am Abo. Ein einheitliches
+   * "ab 1,49" waere auf zwei Kacheln schlicht gelogen — und der Unterschied zeigt auf einen
+   * Blick, welche Themen noch umziehen muessen (siehe PLAN-GESCHENKE-FLOW.md).
+   *
+   * Die Zahlen kommen aus lib/pricing, nie von Hand (Hausregel seit 29.07.2026).
+   */
+  abPreis?: string };
 
 // Startseite = mehrsprachig nach BROWSERSPRACHE (kein Umschalter nötig, kein Deutsch für
 // alle). Gleiche Sprachliste wie das Wetter-Thema, damit beides zusammenpasst.
@@ -226,14 +239,44 @@ export default async function ThemesCatalog({ searchParams }: {
     }
   } catch { /**/ }
 
+  /**
+   * DIE EINSTIEGSPREISE — aus lib/pricing, nie getippt.
+   *
+   * `ab` steht davor, weil es der GUENSTIGSTE Weg ist, nicht der einzige: Beim Kuss kostet ein
+   * weiteres Video wieder dasselbe, bei der Hochzeit gibt es laengere Stufen, und beim Chat ist
+   * das Reden gratis, ein neuer Look aber nicht.
+   */
+  /**
+   * DIE DREI WOERTER UM DIE ZAHL HERUM sind ebenfalls Sprache — und genau das ging beim ersten
+   * Versuch schief: Auf der englischen Seite stand „ab €24.50/Monat" und „gratis". Eine Zahl
+   * aus der Preistabelle nuetzt nichts, wenn das Wort davor aus der falschen Sprache kommt.
+   */
+  const P = ({
+    de: { ab: "ab", pm: "/Monat", frei: "gratis", look: "Look" },
+    en: { ab: "from", pm: "/month", frei: "free", look: "Look" },
+    ro: { ab: "de la", pm: "/lună", frei: "gratuit", look: "Ținută" },
+    es: { ab: "desde", pm: "/mes", frei: "gratis", look: "Look" },
+    fr: { ab: "à partir de", pm: "/mois", frei: "gratuit", look: "Look" },
+    pt: { ab: "a partir de", pm: "/mês", frei: "grátis", look: "Look" },
+    it: { ab: "da", pm: "/mese", frei: "gratis", look: "Look" },
+  } as Record<string, { ab: string; pm: string; frei: string; look: string }>)[L] ?? { ab: "from", pm: "/month", frei: "free", look: "Look" };
+
+  const AB_EINZEL = `${P.ab} ${eur(ONCE_CENTS, L)}`;
+  const AB_HOCHZEIT = `${P.ab} ${eur(HOCHZEIT_STUFEN[0].cents, L)}`;
+  /* Urlaub und Chat haengen noch am Abo — hier steht, was sie WIRKLICH kosten, nicht was sie
+     nach dem Umzug kosten werden. Ein zu frueher Geschenk-Preis waere eine Zusage, die der
+     Trichter dahinter nicht einloest. */
+  const AB_ABO = `${P.ab} ${eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, L)}${P.pm}`;
+  const AB_CHAT = `${P.frei} · ${P.look} ${eur(EXTRA_VIDEO_CENTS, L)}`;
+
   const THEMES: Theme[] = [
     // KISS GANZ VORN (Owner 30.07.2026: „kiss musst du als erstes nehmen"). Auf dieses Thema
     // laufen die Anzeigen, dort steckt der fertige Trichter mit Kasse — was oben steht,
     // entscheidet, was die Leute anfassen. Bella rueckt auf Platz zwei.
-    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
+    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), video: weddingVideo || undefined, chips: "♥ Your photo · His photo · Invitation" },
+    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), video: weddingVideo || undefined, chips: "♥ Your photo · His photo · Invitation", abPreis: AB_HOCHZEIT },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
@@ -244,20 +287,20 @@ export default async function ThemesCatalog({ searchParams }: {
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
     // weiter unter /urlaub-mit-bella (Landing + Card-Tool), ist aber nicht mehr verlinkt.
     // Chat = das Thema mit den niedrigsten Kosten pro Kunde (Haiku), deshalb weit vorn.
-    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her whenever you want — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free" },
-    { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video" },
+    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her whenever you want — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free", abPreis: AB_CHAT },
+    { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video", abPreis: AB_ABO },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
-    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: ph(4), video: birthdayVideo || undefined, chips: "♥ Name · Video · Send" },
+    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: ph(4), video: birthdayVideo || undefined, chips: "♥ Name · Video · Send", abPreis: AB_EINZEL },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.
     { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), video: lingerieVideo || undefined, chips: "♥ Lingerie · Model · Video" },
     // „City Secrets" ist zu „Surprise him" geworden (Owner, 27.07.2026): SIE lädt ihr
     // eigenes Foto hoch und schickt IHM ein privates Video — 3,99 € pro Video.
-    { icon: Gift, title: "Surprise him", tagline: "Your photo → a private video only he can open.", href: "/themes/surprise", cover: ph(2), video: surpriseVideo || undefined, chips: "♥ Your photo · Private link · {extra}" },
+    { icon: Gift, title: "Surprise him", tagline: "Your photo → a private video only he can open.", href: "/themes/surprise", cover: ph(2), video: surpriseVideo || undefined, chips: "♥ Your photo · Private link · {extra}", abPreis: AB_EINZEL },
   ];
 
   /**
@@ -337,16 +380,20 @@ export default async function ThemesCatalog({ searchParams }: {
 
 
         {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
-        {/* ZWEI KARTEN JE REIHE (Owner 30.07.2026: „bitte nur 2 Boxen in einer reihe").
-            Bei drei Spalten schrumpfen Bild und Titel auf dem Handy so weit, dass man
-            beides kaum noch liest — der Titel brach nach zwei Woertern ab. */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        {/* EINE KACHEL JE REIHE (Owner 03.08.2026: „erst mal will ich die Topics in einer
+            Reihe und die Preise haben ab...").
+            Vorher zwei je Reihe (Owner 30.07.2026) — das war richtig, solange die Kachel nur
+            Titel und Untertitel trug. Mit dem Preis kommt eine dritte Zeile dazu, und die
+            entscheidet ueber den Klick: In einer halbbreiten Kachel stuende sie abgeschnitten
+            neben einem abgeschnittenen Titel. Ein Geschenk, dessen Preis man raten muss,
+            verkauft sich nicht. */}
+        <div className="mt-6 grid grid-cols-1 gap-3">
           {THEMES_L.map((t) => {
             const Icon = t.icon;
             const active = !!t.href;
             const inner = (
               <>
-                <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
+                <div className="relative w-[104px] shrink-0 aspect-[3/4] overflow-hidden lb-media-bg">
                   {/* Cover: Werbevideo (aktiv) → Foto → Icon-Wasserzeichen (coming soon, kein Bild) */}
                   {t.video ? (
                     /* KEIN `t.cover`-Rueckfall als Poster (02.08.2026, Owner: „kurz andere
@@ -382,16 +429,26 @@ export default async function ThemesCatalog({ searchParams }: {
                       Abzeichen, das ein Versprechen gibt, das wir nicht halten, kostet beim
                       zweiten Besuch mehr, als es beim ersten bringt. */}
                 </div>
-                <div className="px-2.5 py-2">
-                  <p className="truncate text-[13px] font-black text-white">{t.title}</p>
-                  <p className="truncate text-[11px] font-bold text-white/80">{t.tagline}</p>
-                  <p className="mt-0.5 truncate text-[9px] font-black uppercase tracking-wide text-[#f6cf51]/70">
-                    {active ? fillPrices(t.chips || "♥ Weather · New look · Chat", L) : "Coming soon"}
-                  </p>
+                <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
+                  {/* Kein `truncate` mehr am Titel: In der vollen Breite ist Platz, und
+                      „Schick einen Kuss an den Menschen, den du liebst" ist der Satz, der
+                      verkauft — abgeschnitten verkauft er nichts. */}
+                  <p className="text-[14px] font-black leading-tight text-white">{t.title}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[11.5px] font-semibold leading-snug text-white/75">{t.tagline}</p>
+                  <div className="mt-1.5 flex items-baseline gap-2">
+                    {/* DER PREIS IST DIE WICHTIGSTE ZEILE der Kachel — er steht deshalb vorn
+                        und in Gold, nicht als Fussnote hinter den Merkmalen. */}
+                    {active && t.abPreis && (
+                      <span className="shrink-0 text-[13px] font-black text-[#f6cf51]">{t.abPreis}</span>
+                    )}
+                    <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide text-white/40">
+                      {active ? fillPrices(t.chips || "♥ Weather · New look · Chat", L) : "Coming soon"}
+                    </span>
+                  </div>
                 </div>
               </>
             );
-            const cls = "flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity";
+            const cls = "flex items-stretch overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity";
             return active
               ? <Link key={t.title} href={withCode(t.href!)} className={cls}>{inner}</Link>
               : <div key={t.title} className={`${cls} opacity-90`}>{inner}</div>;
