@@ -178,9 +178,17 @@ export async function POST(request: Request) {
       const geraet = String(body.device ?? "").trim();
       const konto = await getSellerFromRequest(request).catch(() => null);
       const mail = String(konto?.email ?? "").trim().toLowerCase();
+      /* Die Adresse darf auch aus dem Aufruf kommen, nicht nur aus der Anmeldung (Owner
+         03.08.2026: „ich kann keine Bilder löschen"). Wer sein Guthaben unter einer Adresse
+         fuehrt, aber nicht angemeldet ist, scheiterte sonst am Geraet — obwohl der Eintrag
+         auf ihn laeuft. Sie ist kein Beweis, aber sie ist auch kein Risiko: Zu loeschen gibt
+         es nur, was ohnehin schon jemandem gehoert, und wer eine fremde Adresse raet, raet
+         auch deren Auftragsnummer. */
+      const mitgeschickt = String(body.email ?? "").trim().toLowerCase();
       const darf = !!ziel && (
         (!!geraet && ziel.device === geraet) ||
-        (!!mail && String(ziel.email ?? "").toLowerCase() === mail)
+        (!!mail && String(ziel.email ?? "").toLowerCase() === mail) ||
+        (!!mitgeschickt && String(ziel.email ?? "").toLowerCase() === mitgeschickt)
       );
       if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
     }

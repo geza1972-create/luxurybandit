@@ -127,20 +127,47 @@ export default function MyGalleryPage() {
    * loswerden können, ohne uns zu fragen — die Route lässt es zu, wenn Gerät oder
    * angemeldete Adresse zum Eintrag passen.
    */
+  /**
+   * LOESCHEN SAGT JETZT, WENN ES NICHT GEHT (Owner 03.08.2026: „ich kann keine Bilder
+   * löschen").
+   *
+   * HIER LAG DER FEHLER, UND ER WAR EINE STILLE LUEGE: Die Kachel verschwand sofort aus der
+   * Anzeige, der Server antwortete mit 403 („Not yours."), und der `catch` verschluckte es.
+   * Beim naechsten Laden war das Bild wieder da. Fuer den Kunden sieht das aus, als komme es
+   * von den Toten zurueck — und er versucht es wieder und wieder.
+   *
+   * ZWEI AENDERUNGEN:
+   * 1) Die ADRESSE reist mit. Der Server erlaubt Loeschen, wenn GERAET oder angemeldete
+   *    Adresse zum Eintrag passen. Wer den Browser gewechselt hat, scheiterte bisher am
+   *    Geraet, obwohl seine Adresse am Eintrag steht.
+   * 2) Die Kachel verschwindet ERST, wenn der Server zugestimmt hat — und wenn nicht, sagt
+   *    eine Meldung warum. Optimistisch loeschen ist richtig, wenn es fast immer klappt;
+   *    hier klappte es fast nie.
+   */
   const eigenesLoeschen = async (it: Item) => {
     const id = it.id.replace(/-foto$/, "");
     if (typeof window !== "undefined" && !window.confirm("Dieses Bild endgültig löschen?")) return;
-    setItems(list => list.filter(x => x.id !== it.id && x.id !== `${id}-foto` && x.id !== id));
     try {
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       const tok = getStoredAuthSession()?.access_token ?? "";
-      await fetch("/api/kiss-log", {
+      const adresse = aktiveAdresse();
+      const r = await fetch("/api/kiss-log", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
-        body: JSON.stringify({ remove: id, device }),
+        body: JSON.stringify({ remove: id, device, email: adresse }),
       });
-    } catch { /**/ }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        alert(d?.error === "Not yours."
+          ? "Dieses Stück gehört zu einer anderen Adresse oder einem anderen Gerät. Melde dich mit der Adresse an, mit der du es erzeugt hast."
+          : (d?.error || "Löschen hat nicht geklappt. Bitte noch einmal versuchen."));
+        return;
+      }
+      setItems(list => list.filter(x => x.id !== it.id && x.id !== `${id}-foto` && x.id !== id));
+    } catch {
+      alert("Keine Verbindung. Bitte noch einmal versuchen.");
+    }
   };
 
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
