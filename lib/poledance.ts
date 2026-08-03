@@ -98,6 +98,17 @@ export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
   { id: "blau",    bild: "/Pooldance/set-blau.webp",       name: "Blue Lace" },
   { id: "gruen",   bild: "/Pooldance/set-gruen.webp",      name: "Neon Green" },
   { id: "lack",    bild: "/Pooldance/set-rot-lack.webp",   name: "Red Latex" },
+  /**
+   * DAS SIEBTE SET FAELLT AUS DER REIHE, und das ist bewusst so vermerkt: Es steht in einem
+   * dunklen Studio, nicht im Neon-Club. Die anderen sechs bringen die Szene mit, die der
+   * Prompt beschreibt — dieses bringt eine andere.
+   *
+   * Zwei Ausgaenge sind denkbar: Pixverse nimmt nur das Outfit und baut den Club aus dem Text
+   * (dann ist es das eleganteste der Reihe), oder es folgt dem Bild und stellt sie in einen
+   * dunklen Raum. Der Owner hat es in Pixverse getestet und freigegeben; welcher Fall
+   * eintritt, zeigt der erste Lauf hier.
+   */
+  { id: "studio",  bild: "/Pooldance/set-schwarz-studio.webp", name: "Black Harness" },
 ];
 
 /**
