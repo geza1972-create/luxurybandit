@@ -56,6 +56,29 @@ const KUSS_LIEBE: Record<string, string[]> = {
   it: ["ti amo ❤️", "mi manchi tantissimo", "insieme per sempre", "il nostro amore è indistruttibile"],
 };
 
+/**
+ * DIE GEBURTSTAGS-ZEILEN (Owner 03.08.2026, Thema „She sings Happy Birthday").
+ *
+ * Hier liefen zuerst die KUSS-Saetze mit: „I miss you so much", „Our love is unbreakable",
+ * „Together forever". Ueber einem Geburtstagsvideo gelesen, sagt das etwas voellig anderes als
+ * gemeint — eine Tochter, die ihrem Vater gratuliert, schickt keine Liebeserklaerung.
+ *
+ * Mittelsatz-Form wie bei den Liebeszeilen, damit „Anna, alles Gute" entsteht und ohne Namen
+ * der erste Buchstabe grossgeschrieben werden kann.
+ */
+const GEBURTSTAG_ZEILEN: Record<string, string[]> = {
+  en: ["happy birthday 🎂", "have a wonderful day", "this one is for you", "make a wish 🕯️"],
+  de: ["alles Gute zum Geburtstag 🎂", "hab einen wunderschönen Tag", "das hier ist für dich", "wünsch dir was 🕯️"],
+  ro: ["la mulți ani 🎂", "să ai o zi minunată", "asta e pentru tine", "pune-ți o dorință 🕯️"],
+  es: ["feliz cumpleaños 🎂", "que tengas un día precioso", "esto es para ti", "pide un deseo 🕯️"],
+  fr: ["joyeux anniversaire 🎂", "passe une journée magnifique", "c'est pour toi", "fais un vœu 🕯️"],
+  pt: ["parabéns 🎂", "tem um dia maravilhoso", "isto é para ti", "faz um pedido 🕯️"],
+  it: ["buon compleanno 🎂", "passa una giornata bellissima", "questo è per te", "esprimi un desiderio 🕯️"],
+};
+
+/** Jubel ohne Namen — beim Geburtstag dieselbe Rolle wie „wow 🔥" beim Kuss. */
+const GEBURTSTAG_JUBEL = ["🎉", "🥳", "🎈", "🎂"];
+
 /** Zurufe von aussen — die bekommen NIE einen Namen: „Anna, wow 🔥" ist kein Liebesgruss. */
 const KUSS_JUBEL = ["wow 🔥", "😍", "💋", "so hot"];
 
@@ -120,8 +143,19 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
    * Die Blase hat `white-space: nowrap`, ein langer Name schoebe sie aus der Karte heraus.
    */
   const wen = String(name ?? "").replace(/\s+/g, " ").trim().slice(0, 18);
+  const mischen = (liebe: string[], jubel: string[]) => {
+    // Abwechselnd, damit nicht vier Namenszeilen hintereinander aufsteigen.
+    const out: string[] = [];
+    for (let i = 0; i < Math.max(liebe.length, jubel.length); i++) {
+      if (liebe[i]) out.push(liebe[i]);
+      if (jubel[i]) out.push(jubel[i]);
+    }
+    return out;
+  };
   const zurufe = variant === "wedding"
     ? (HOCHZEIT_ZURUFE[l] ?? HOCHZEIT_ZURUFE.en)
+    : variant === "birthday"
+      ? mischen((GEBURTSTAG_ZEILEN[l] ?? GEBURTSTAG_ZEILEN.en).map(t => (wen ? `${wen}, ${t}` : grossErster(t))), GEBURTSTAG_JUBEL)
     : (() => {
       // Welche Saetze aufsteigen, haengt am Thema — die Mechanik darunter bleibt dieselbe.
       const tanz = variant === "poledance";

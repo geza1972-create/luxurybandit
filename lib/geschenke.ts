@@ -25,6 +25,7 @@
 import { musikFuer } from "@/lib/musik";
 import { WEDDING_PROMPT } from "@/lib/wedding-prompt";
 import { POLEDANCE_PROMPT, POLEDANCE_SET } from "@/lib/poledance";
+import { GEBURTSTAG_PROMPT, GEBURTSTAG_SET } from "@/lib/geburtstag";
 
 
 // Platzhalter im Upload-Feld: ein MÄNNERGESICHT (Peter), abgedunkelt hinterlegt. Ohne das
@@ -49,7 +50,7 @@ export const IDOL_PROMPT =
 
 /** Welche Geschenke es gibt. Frueher `FunnelVariant` — der Name sagte, wie es gebaut ist,
  *  nicht was es ist. */
-export type GeschenkId = "kiss" | "idol" | "wedding" | "poledance";
+export type GeschenkId = "kiss" | "idol" | "wedding" | "poledance" | "birthday";
 
 export const GESCHENKE: Record<GeschenkId, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
@@ -216,12 +217,51 @@ export const GESCHENKE: Record<GeschenkId, {
     // Der Name geht an IHN — dieselbe Mechanik wie beim Kuss („Anna, ich liebe dich").
     empfaengerName: true,
     upFirst: true,
-    // Platzhalter: dieselbe Frau wie beim Kuss. Sie zeigt, dass hier ein Foto hingehört —
-    // welches, sagt der Hinweis am Feld (ganzer Körper, nicht nur der Kopf).
-    upPlaceholder: "/kiss-woman-placeholder.jpg",
-    // Keine eigene Tonspur: Pixverse V6 erzeugt die Musik selbst und trifft die
-    // Club-Stimmung besser als jedes Stück, das wir darüberlegen könnten.
+    /**
+     * PLATZHALTER: EIN GANZER KOERPER, KEINE BRAUT.
+     *
+     * Hier stand zuerst `kiss-woman-placeholder.jpg` — eine Frau im Brautkleid. Auf einer
+     * Seite, die einen Poledance verkauft, fragt man sich dann, was man da eigentlich
+     * hochladen soll. Dieses Bild zeigt genau, was gebraucht wird: eine Frau in voller Figur,
+     * angezogen, stehend. Der Platzhalter beantwortet damit dieselbe Frage wie der Hinweis
+     * daneben („am besten ganzer Körper") — nur schneller, weil man ihn nicht liest.
+     */
+    upPlaceholder: "/apply-example-body.jpg",
+    /**
+     * DIE TONSPUR KOMMT VOM OWNER (03.08.2026: „du nimmst für diese Videos den Soundtrack,
+     * den ich dir in dem gleichen Ordner Pooldance reingelegt habe").
+     *
+     * Sie liegt in `public/Pooldance/` bei ihrem Video — der Pfad steht in lib/musik.ts,
+     * damit hier wie ueberall nur EIN Name steht und nicht ein zweiter Dateipfad.
+     */
+    musik: musikFuer("poledance"),
+  },  /**
+   * DER GEBURTSTAG — gebaut als Zwilling des Tanzes (Owner 03.08.2026: „genau wie Surprise
+   * him machen").
+   *
+   * Gleiche Mechanik, andere Vorlage: EIN Foto von ihr hinauf, der Name dessen, der Geburtstag
+   * hat, dazu — und Pixverse setzt sie in Bellas Look, mit Bellas Torte, in Bellas Raum.
+   *
+   * DIREKT AN PIXVERSE, kein Anziehen davor (Owner: „das muss direkt an Pixverse"). Deshalb
+   * `garmentBild` statt eines FASHN-Laufs: Die Vorlage geht als zweites Referenzbild mit, so
+   * wie beim Tanz. Ein Zwischenschritt ueber FASHN wuerde die Torte und den Raum verlieren —
+   * FASHN zieht um, es baut keine Szene.
+   */
+  birthday: {
+    prompt: GEBURTSTAG_PROMPT, done: "happy-birthday-video.mp4", abo: false, einzelkauf: true,
+    keinGratis: true, nurGuthaben: true,
+    nurEigenes: true, nurSie: true, garmentBild: GEBURTSTAG_SET,
+    // Der Name geht an das GEBURTSTAGSKIND — er steht oben auf der Karte, nicht im Video.
+    empfaengerName: true,
+    upFirst: true,
+    /* Derselbe Platzhalter wie beim Tanz: eine Frau in voller Figur, angezogen, stehend. Er
+       beantwortet die Frage „was soll ich hochladen?", ohne dass jemand den Hinweis liest. */
+    upPlaceholder: "/apply-example-body.jpg",
+    /* KEINE TONSPUR: Sie singt. Der Ton kommt aus dem Video selbst (Owner: „es muss die
+       originale Stimme des Videos sein") — siehe `eigenerTon` in KissFunnel. */
+    musik: "",
   },
+
   idol: {
     prompt: IDOL_PROMPT, done: "your-idol-video.mp4", abo: true, einzelkauf: true,
     // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte

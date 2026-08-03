@@ -1679,11 +1679,122 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
  * sind und in KEINER Sprachtabelle eine Zahl steht. Funktionen (z. B. die Sekundenanzeige)
  * bleiben unangetastet, Listen werden Zeile für Zeile gefüllt.
  */
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" = "kiss"): KissText {
+
+/**
+ * DER GEBURTSTAG (Owner 03.08.2026: „genau wie Surprise him machen").
+ *
+ * Dieselben Schluessel wie beim Tanz, damit derselbe Trichter sie findet. Nur die Saetze sind
+ * andere — und ein Unterschied ist wichtig: Beim Tanz gehoert der Name IHM, hier gehoert er
+ * dem Geburtstagskind, und er steht OBEN AUF DER KARTE („Happy birthday to you {Name}"),
+ * nicht in den fliegenden Zeilen.
+ */
+const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
+  en: {
+    step1: "1 · Your photo", step3: "2 · Your birthday video",
+    pickFirst: "Upload your photo",
+    upTitle: "Your photo", upHint: "One photo of you — full body works best.",
+    mailQuestion: "Where should we send your video?",
+    namenFrage: "Whose birthday is it? The name goes on the card", namenPlatzhalter: "Anna",
+    heroA: "She sings ", heroY: "Happy Birthday", heroB: " 🎂",
+    wieGeht: ["Upload one photo of yourself.", "Type the birthday name.", "Send the video — to them alone."],
+    wieGehtPrivat: "Nobody else sees it. Your video stays private unless you send it yourself.",
+    priceLine: "Video {tanz}", buyOnce: "Birthday video {tanz}",
+    makeVideo: "Make my birthday video — {tanz} 🎂", makingKiss: "Making your birthday video …",
+    watchOnce: "Watch my video — {tanz}", blockedOnce: "Make a real birthday video — {tanz}",
+    readyBody: "Unlock it and watch her sing.",
+  },
+  de: {
+    step1: "1 · Dein Foto", step3: "2 · Dein Geburtstagsvideo",
+    pickFirst: "Lade dein Foto hoch",
+    upTitle: "Dein Foto", upHint: "Ein Foto von dir — am besten ganzer Körper.",
+    mailQuestion: "Wohin sollen wir dein Video schicken?",
+    namenFrage: "Wer hat Geburtstag? Der Name kommt auf die Karte", namenPlatzhalter: "Anna",
+    heroA: "Sie singt ", heroY: "Happy Birthday", heroB: " 🎂",
+    wieGeht: ["Lade ein Foto von dir hoch.", "Schreib den Namen des Geburtstagskinds dazu.", "Schick das Video — nur ihm oder ihr."],
+    wieGehtPrivat: "Niemand sonst sieht es. Dein Video bleibt privat, bis du es selbst verschickst.",
+    priceLine: "Video {tanz}", buyOnce: "Geburtstagsvideo {tanz}",
+    makeVideo: "Mein Geburtstagsvideo — {tanz} 🎂", makingKiss: "Dein Geburtstagsvideo entsteht …",
+    watchOnce: "Mein Video ansehen — {tanz}", blockedOnce: "Echtes Geburtstagsvideo — {tanz}",
+    readyBody: "Schalte es frei und sieh sie singen.",
+  },
+  ro: {
+    step1: "1 · Poza ta", step3: "2 · Videoclipul tău",
+    pickFirst: "Încarcă poza ta",
+    upTitle: "Poza ta", upHint: "O poză cu tine — de preferat corp întreg.",
+    mailQuestion: "Unde să-ți trimitem videoclipul?",
+    namenFrage: "Cine își serbează ziua? Numele apare pe felicitare", namenPlatzhalter: "Ana",
+    heroA: "Ea cântă ", heroY: "La mulți ani", heroB: " 🎂",
+    wieGeht: ["Încarcă o poză cu tine.", "Scrie numele sărbătoritului.", "Trimite videoclipul — doar lui."],
+    wieGehtPrivat: "Nimeni altcineva nu îl vede. Rămâne privat până îl trimiți tu.",
+    priceLine: "Videoclip {tanz}", buyOnce: "Videoclip aniversar {tanz}",
+    makeVideo: "Fă videoclipul meu — {tanz} 🎂", makingKiss: "Se creează videoclipul tău …",
+    watchOnce: "Vezi videoclipul — {tanz}", blockedOnce: "Videoclip aniversar real — {tanz}",
+    readyBody: "Deblochează-l și ascult-o cântând.",
+  },
+  es: {
+    step1: "1 · Tu foto", step3: "2 · Tu vídeo de cumpleaños",
+    pickFirst: "Sube tu foto",
+    upTitle: "Tu foto", upHint: "Una foto tuya — mejor de cuerpo entero.",
+    mailQuestion: "¿A dónde enviamos tu vídeo?",
+    namenFrage: "¿Quién cumple años? El nombre aparece en la tarjeta", namenPlatzhalter: "Ana",
+    heroA: "Ella canta ", heroY: "Cumpleaños feliz", heroB: " 🎂",
+    wieGeht: ["Sube una foto tuya.", "Escribe el nombre del cumpleañero.", "Envía el vídeo — solo a esa persona."],
+    wieGehtPrivat: "Nadie más lo ve. Tu vídeo es privado hasta que lo envíes tú.",
+    priceLine: "Vídeo {tanz}", buyOnce: "Vídeo de cumpleaños {tanz}",
+    makeVideo: "Crear mi vídeo — {tanz} 🎂", makingKiss: "Creando tu vídeo …",
+    watchOnce: "Ver mi vídeo — {tanz}", blockedOnce: "Vídeo de cumpleaños real — {tanz}",
+    readyBody: "Desbloquéalo y escúchala cantar.",
+  },
+  fr: {
+    step1: "1 · Ta photo", step3: "2 · Ta vidéo d'anniversaire",
+    pickFirst: "Envoie ta photo",
+    upTitle: "Ta photo", upHint: "Une photo de toi — de préférence en pied.",
+    mailQuestion: "Où envoyons-nous ta vidéo ?",
+    namenFrage: "C'est l'anniversaire de qui ? Le prénom sera sur la carte", namenPlatzhalter: "Anna",
+    heroA: "Elle chante ", heroY: "Joyeux anniversaire", heroB: " 🎂",
+    wieGeht: ["Envoie une photo de toi.", "Écris le prénom de la personne.", "Envoie la vidéo — à elle seule."],
+    wieGehtPrivat: "Personne d'autre ne la voit. Elle reste privée jusqu'à ce que tu l'envoies.",
+    priceLine: "Vidéo {tanz}", buyOnce: "Vidéo d'anniversaire {tanz}",
+    makeVideo: "Créer ma vidéo — {tanz} 🎂", makingKiss: "Ta vidéo se prépare …",
+    watchOnce: "Voir ma vidéo — {tanz}", blockedOnce: "Vraie vidéo d'anniversaire — {tanz}",
+    readyBody: "Débloque-la et écoute-la chanter.",
+  },
+  pt: {
+    step1: "1 · A tua foto", step3: "2 · O teu vídeo de aniversário",
+    pickFirst: "Carrega a tua foto",
+    upTitle: "A tua foto", upHint: "Uma foto tua — de preferência de corpo inteiro.",
+    mailQuestion: "Para onde enviamos o teu vídeo?",
+    namenFrage: "De quem é o aniversário? O nome fica no cartão", namenPlatzhalter: "Ana",
+    heroA: "Ela canta ", heroY: "Parabéns a você", heroB: " 🎂",
+    wieGeht: ["Carrega uma foto tua.", "Escreve o nome do aniversariante.", "Envia o vídeo — só a essa pessoa."],
+    wieGehtPrivat: "Mais ninguém o vê. Fica privado até seres tu a enviá-lo.",
+    priceLine: "Vídeo {tanz}", buyOnce: "Vídeo de aniversário {tanz}",
+    makeVideo: "Criar o meu vídeo — {tanz} 🎂", makingKiss: "A criar o teu vídeo …",
+    watchOnce: "Ver o meu vídeo — {tanz}", blockedOnce: "Vídeo de aniversário real — {tanz}",
+    readyBody: "Desbloqueia e ouve-a cantar.",
+  },
+  it: {
+    step1: "1 · La tua foto", step3: "2 · Il tuo video di compleanno",
+    pickFirst: "Carica la tua foto",
+    upTitle: "La tua foto", upHint: "Una foto di te — meglio a figura intera.",
+    mailQuestion: "Dove ti mandiamo il video?",
+    namenFrage: "Di chi è il compleanno? Il nome va sul biglietto", namenPlatzhalter: "Anna",
+    heroA: "Lei canta ", heroY: "Tanti auguri", heroB: " 🎂",
+    wieGeht: ["Carica una foto di te.", "Scrivi il nome del festeggiato.", "Manda il video — solo a lui o lei."],
+    wieGehtPrivat: "Nessun altro lo vede. Resta privato finché non lo mandi tu.",
+    priceLine: "Video {tanz}", buyOnce: "Video di compleanno {tanz}",
+    makeVideo: "Crea il mio video — {tanz} 🎂", makingKiss: "Sto creando il tuo video …",
+    watchOnce: "Guarda il mio video — {tanz}", blockedOnce: "Video di compleanno vero — {tanz}",
+    readyBody: "Sbloccalo e ascoltala cantare.",
+  },
+};
+
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
   const roh: KissText = variant === "idol" ? { ...TABELLE[l], ...IDOL[l] }
     : variant === "wedding" ? { ...TABELLE[l], ...HOCHZEIT[l] }
     : variant === "poledance" ? { ...TABELLE[l], ...POLEDANCE[l] }
+    : variant === "birthday" ? { ...TABELLE[l], ...GEBURTSTAG[l] }
     : TABELLE[l];
   const out = {} as Record<string, unknown>;
   for (const [k, v] of Object.entries(roh)) {

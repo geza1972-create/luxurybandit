@@ -25,6 +25,15 @@ export const STUECKE = {
   hochzeitsmarsch: "/Bridal-chorus.mp3",                             // 136 s · der Klassiker
   offen: "/sigmamusicart-no-copyright-music-537751.mp3",              // 123 s
   wasser: "/kontraa-water-afro-pop-music-445661.mp3",                 //  69 s · kurz, tanzbar
+  /**
+   * DER TANZ HAT SEINE EIGENE SPUR (Owner 03.08.2026: „du nimmst für diese Videos den
+   * Soundtrack, den ich dir in dem gleichen Ordner Pooldance reingelegt habe").
+   *
+   * Sie liegt bei ihrem Video statt bei den anderen Stuecken in `public/` — das ist Absicht:
+   * Video, Standbild, Outfit und Musik dieses Produkts wohnen zusammen in einem Ordner, und
+   * wer das Thema anfasst, findet alles an einer Stelle. 147 s, 128 kbit/s.
+   */
+  tanz: "/Pooldance/poledance.mp3",                                   // 147 s · vom Owner geliefert
 } as const;
 
 /**
@@ -42,7 +51,13 @@ const NACH_THEMA: Record<string, string> = {
   bella: STUECKE.sommer,
   idol: STUECKE.weite,
   birthday: STUECKE.sommer,
-  surprise: STUECKE.fruehling,
+  // Der Tanz bekommt die Spur, die der Owner selbst dazugelegt hat — nicht das Pop-Stueck aus
+  // der Sammlung. „Surprise him" hiess frueher ein ruhiges Video mit Ansprache; seit dem
+  // 03.08.2026 ist es ein Poledance im Neonlicht, und eine Akustikgitarre darunter waere so
+  // komisch wie der Hochzeitsmarsch am Strand. Beide Kennungen zeigen auf dasselbe Stueck:
+  // „surprise" ist der Ordnername der Seite, „poledance" der des Geschenks.
+  surprise: STUECKE.tanz,
+  poledance: STUECKE.tanz,
 };
 
 /** Das Stück für ein Thema; unbekannte Themen bekommen das ruhige. */

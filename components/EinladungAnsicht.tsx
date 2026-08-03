@@ -192,7 +192,9 @@ export default function EinladungAnsicht({
             void v.play().then(() => { setLaeuft(true); setTon(true); })
               .catch(() => { /* Ton verweigert: wenigstens das Bild */ v.muted = true; void v.play(); setLaeuft(true); });
           }}
-          className="absolute inset-0 z-10 grid place-items-center bg-black/25 transition active:bg-black/35">
+          /* z-20, NICHT z-10: Die Zuruf-Ebene (`Reaktionen`) liegt auf z-10 und wird spaeter
+             gezeichnet — ein aufsteigendes 🥳 sass sonst mitten auf dem Abspieldreieck. */
+          className="absolute inset-0 z-20 grid place-items-center bg-black/25 transition active:bg-black/35">
           <span className="grid h-16 w-16 place-items-center rounded-full bg-white/90 shadow-lg">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="ml-1 h-7 w-7 text-black">
               <path d="M8 5v14l11-7z" />

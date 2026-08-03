@@ -31,6 +31,7 @@ import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as
 import { kissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT } from "@/lib/poledance";
+import { GEBURTSTAG_PROMPT, geburtstagTitel } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
@@ -364,7 +365,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Auflade-Waehler oeffnet. Was die KASSE abbucht, entscheidet sie selbst am gespeicherten
    * Auftrag — ein Browser darf sich seinen Preis nicht aussuchen.
    */
-  const videoPreisCents = variant === "poledance" ? POLEDANCE_CENTS : ONCE_CENTS;
+  /* Der Geburtstag kostet wie der Tanz: dieselbe Kette (ein Pixverse-Lauf mit zwei Referenzen),
+     dieselbe Laenge. Ein eigener Preis waere eine Zahl mehr zu pflegen, ohne einen Unterschied
+     dahinter. */
+  const videoPreisCents = (variant === "poledance" || variant === "birthday") ? POLEDANCE_CENTS : ONCE_CENTS;
+
+  /**
+   * BEIM GEBURTSTAG KLINGT DAS VIDEO SELBST (Owner 03.08.2026: „nein, es muss die originale
+   * Stimme des Videos sein").
+   *
+   * Das ganze Produkt heisst „She sings Happy Birthday" — die Stimme IST der Inhalt. Unsere
+   * Tonspur darueber waere eine zweite Stimme, die gegen die erste anredet, und der Gruss ginge
+   * darin unter. Ueberall sonst ist es umgekehrt: Acht-Sekunden-Videos ohne eigenen Ton
+   * bekommen Musik, weil ihre Tonspur bei jeder Schleife von vorn ansetzt.
+   */
+  const eigenerTon = variant === "birthday";
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
   const [aufladeWahl, setAufladeWahl] = useState(false);
   /** Im Auflade-Waehler: Adresse steht offen im Feld und ist noch nicht bestaetigt. */
@@ -1771,11 +1786,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * {tanz}. Ein sichtbar schlechteres Video als das beworbene ist kein Sparen.
            * Es kostet mehr je Lauf — eine Zeile zum Zurueckdrehen, wenn die Rechnung es sagt.
            */
-          ...(variant === "poledance" ? { hd: true } : {}),
+          ...(variant === "poledance" || variant === "birthday" ? { hd: true } : {}),
           prompt: variant === "wedding" ? weddingPrompt(kleid)
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */
             : variant === "poledance" ? POLEDANCE_PROMPT
+            : variant === "birthday" ? GEBURTSTAG_PROMPT
             /* DIE UEBERRASCHUNG: eine der vier Kuss-Szenen, gezogen aus der Auftragsnummer
                (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als Ueberraschung").
                MIT RAHMEN, nicht roh (Owner 03.08.2026: „falsche Personen im video"): Der nackte
@@ -2339,7 +2355,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <div ref={karteRef}>
       <EinladungKarte
         sprache={lang} sie="" er="" demo
-        titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
+        /**
+         * BEIM GEBURTSTAG STEHT DER GRUSS OBEN, NICHT DER SCHRITTNAME (Owner 03.08.2026:
+         * „oben steht in der Karte nur ‚Happy birthday to you {Name}‘").
+         *
+         * Sonst trug die Karte „Your birthday video" — eine Beschreibung dessen, was man
+         * gekauft hat. Das Geburtstagskind bekommt aber kein Produkt, es bekommt einen Gruss.
+         */
+        titel={variant === "birthday"
+          ? geburtstagTitel(empfaenger)
+          : String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
         /**
          * DIE HERKUNFTSZEILE GEHOERT AUF JEDE KARTE (Owner 03.08.2026: „ich bitte dich,
          * benutze IMMER die Cards für die Videos mit Titel oben und Made by
@@ -2387,7 +2412,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * jeder Schleife wieder auf dem ersten Takt.
                 */}
               <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
-                musik={V.musik} tonAutomatisch
+                {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: V.musik, tonAutomatisch: true })}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
               <Reaktionen variant={variant} lang={lang} name={empfaenger} />
@@ -2513,7 +2538,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   ohne Eintrag bleibt es bei der bisherigen Vorgabe, es aendert sich also
                   nichts fuer die Themen, die keine eigene Spur haben. */}
               <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
-                {...(V.musik ? { musik: V.musik } : {})}
+                {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
               {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
@@ -2529,7 +2554,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   DAS ZIEL FOLGT DEM THEMA: Sonst wirbt der Tanz fuer den Kuss, und wer den
                   Link bekommt, landet bei einem Produkt, das er nie gesehen hat. */}
               {!karteRendert && (
-                <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : "kiss"}?utm_source=share`}
+                <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : "kiss"}?utm_source=share`}
                   text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
                   label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                   kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
@@ -3777,6 +3802,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   video={
                     videoUrl
                       ? <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                          {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : {})}
                           tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                           tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
                       // eslint-disable-next-line @next/next/no-img-element
