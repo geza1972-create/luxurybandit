@@ -87,8 +87,21 @@ function zuVieleZahlen(lokal: string): boolean {
   return ziffern > 0 && ziffern > buchstaben;
 }
 
+/**
+ * VOM OWNER BESTAETIGTE AUSNAHMEN (03.08.2026: „diese Adresse ist echt, die kannst du
+ * zulassen" — zu gl12341234123@gmail.com, die an der Ziffern-Regel scheiterte).
+ *
+ * Die Regel bleibt richtig: elf Ziffern im Namensteil sind in 99 % der Faelle Tastatur-
+ * Gehaemmer. Aber eine Regel, die einen ECHTEN Kunden aussperrt, braucht ein Ventil — und
+ * das Ventil ist eine Liste, die der Owner fuellt, kein Aufweichen der Regel fuer alle.
+ */
+const OWNER_ERLAUBT = new Set([
+  "gl12341234123@gmail.com",
+]);
+
 export function pruefeEmail(email: unknown): Pruefung {
   const e = String(email ?? "").trim().toLowerCase();
+  if (OWNER_ERLAUBT.has(e)) return { ok: true };
 
   // 1) Form. Genau ein @, etwas davor, ein Punkt dahinter, keine Leerzeichen.
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) return { ok: false, grund: "format" };
@@ -139,6 +152,8 @@ export function pruefeEmail(email: unknown): Pruefung {
  * schon bestanden; diese Stufe ist Wirtschaftlichkeit, nicht Sicherheit.
  */
 export async function wirktErfunden(email: string, key: string): Promise<boolean> {
+  // Die Owner-Liste sticht auch das Sprachgefuehl: Er hat diese Adresse als echt bestaetigt.
+  if (OWNER_ERLAUBT.has(String(email ?? "").trim().toLowerCase())) return false;
   const lokal = String(email ?? "").trim().toLowerCase().split("@")[0] ?? "";
   if (!key || lokal.length < 6) return false;   // kurze Namen sind fast immer echt (ion, ana)
   try {
