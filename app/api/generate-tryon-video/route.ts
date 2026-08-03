@@ -202,6 +202,46 @@ async function pixverseStart(key: string, image: string, turnaround = false, cus
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` };
   return { videoId: String(gen.Resp.video_id) };
 }
+/**
+ * BEWEGUNGSSTEUERUNG („Mimic") — DAS FERTIGE VIDEO GIBT DIE BEWEGUNG VOR, IHR FOTO DIE PERSON.
+ *
+ * Owner 03.08.2026: „wir müssen wie beim Geburtstag machen, wir geben die Videos als Referenz"
+ * · „es ist fast wie ein Faceswap" · und zur Ursache: „der nimmt ein Teil von ihrer Wäsche und
+ * von unserem, wenn sie ein T-Shirt trägt. Das ist das Problem."
+ *
+ * DAS IST DIE LOESUNG FUER EIN PROBLEM, DAS KEIN PROMPT LOEST. Im Referenz-Modus sieht Pixverse
+ * ZWEI Kleidungsstuecke — ihr Oberteil auf dem Foto und unser Set — und nimmt von beiden. Wir
+ * haben es heute mit „She wears ONLY the outfit from @image2" versucht; das Ergebnis war eine
+ * Frau, die ein gruenes Set ueber einem roten Langarmshirt traegt. Man kann einem Modell nicht
+ * wegreden, was es sieht.
+ *
+ * Hier gibt es nichts zu mischen: Im fertigen Tanzvideo IST die Kleidung schon richtig. Pixverse
+ * uebertraegt nur noch die Person.
+ *
+ * DER HAKEN: `media/upload` holt das Video ueber eine OEFFENTLICHE Adresse. Auf luxurybandit.com
+ * geht das; von einem Entwicklungsrechner nicht — Pixverse kann `localhost` nicht erreichen.
+ * Deshalb faellt der Weg lokal auf den Referenz-Modus zurueck, statt mit einem Fehler zu enden.
+ */
+async function pixverseStartMimic(key: string, videoUrl: string, person: string, hd: boolean): Promise<{ videoId?: string; error?: string }> {
+  const [mediaId, imgId] = await Promise.all([
+    pixverseUploadVideo(key, videoUrl),
+    pixverseUpload(key, person),
+  ]);
+  if (!mediaId) return { error: "Pixverse konnte das Referenzvideo nicht laden (oeffentliche Adresse noetig)." };
+  if (!imgId) return { error: "Pixverse upload failed (person)." };
+  const res = await fetch(`${PV_BASE}/video/mimic/generate`, {
+    method: "POST", headers: pvHeaders(key, true),
+    /* Kein Prompt: Die Bewegung kommt aus dem Video, die Person aus dem Bild. Es gibt nichts
+       zu beschreiben — und damit auch nichts, was ein Modell missverstehen koennte. */
+    body: JSON.stringify({ img_id: imgId, video_media_id: mediaId, quality: hd ? "720p" : "540p" }),
+  });
+  const d = await res.json().catch(() => null);
+  if (d?.ErrCode !== 0 || !d?.Resp?.video_id) {
+    return { error: String(d?.ErrMsg ?? "mimic start failed") };
+  }
+  return { videoId: `pv:${d.Resp.video_id}` };
+}
+
 // ── Upscale an existing (persisted) video to HD ──────────────────────────────
 // Upload the finished video to Pixverse (media/upload → media_id), then run upscale and poll
 // like any other generation — so admins can replace a good 360p test video with a 1080p one.
@@ -613,9 +653,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const r = reference
-      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true)
-      : await pixverseStart(key, image, turnaround, promptWithScene);
+    /**
+     * DREI WEGE, IN DIESER REIHENFOLGE (Owner 03.08.2026: „wir geben die Videos als Referenz").
+     *
+     * 1) BEWEGUNGSSTEUERUNG, wenn ein Referenzvideo mitkommt UND es oeffentlich erreichbar ist.
+     *    Sie loest das Kleider-Mischen, das kein Prompt loest — siehe pixverseStartMimic.
+     * 2) REFERENZ-MODUS (zwei Bilder), der bisherige Weg.
+     * 3) Bild-und-Text, wenn nur ein Bild da ist.
+     *
+     * Der Rueckfall von 1 auf 2 ist Absicht und kein Notbehelf: Auf einem Entwicklungsrechner
+     * kann Pixverse das Video nicht holen (`localhost`), und ein Kunde soll deswegen nicht vor
+     * einer Fehlermeldung stehen. In der Anzeige des Owners ist der Unterschied sichtbar —
+     * Mimic-Laeufe tragen keinen Prompt.
+     */
+    const mimicUrl = String((body as { mimicVideoUrl?: string }).mimicVideoUrl ?? "").trim();
+    let r = mimicUrl && /^https?:\/\//i.test(mimicUrl) && !/localhost|127\.0\.0\.1/i.test(mimicUrl)
+      ? await pixverseStartMimic(key, mimicUrl, person, body.hd === true)
+      : { videoId: undefined as string | undefined, error: undefined as string | undefined };
+    if (!r.videoId) {
+      if (mimicUrl && r.error) protokoll(undefined, `mimic: ${r.error} — falle auf Referenz zurueck`);
+      r = reference
+        ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true)
+        : await pixverseStart(key, image, turnaround, promptWithScene);
+    }
     if (!r.videoId) {
       protokoll(undefined, String(r.error ?? "start fehlgeschlagen").slice(0, 200));
       refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 });

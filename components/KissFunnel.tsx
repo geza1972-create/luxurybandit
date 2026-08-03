@@ -1827,6 +1827,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
         body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: refPerson, garment: refOutfit,
           /**
+           * DAS REFERENZVIDEO FUER DIE BEWEGUNGSSTEUERUNG (Owner 03.08.2026: „wir geben die
+           * Videos als Referenz"). Als VOLLSTAENDIGE Adresse, weil Pixverse es selbst holt —
+           * ein Pfad wie „/Pooldance/…" ist nur im Browser eine Adresse.
+           *
+           * Nur beim Tanz und nur, wenn ein Beispielvideo da ist. Die Route faellt von selbst
+           * auf den Referenz-Modus zurueck, wenn sie es nicht erreichen kann (lokal).
+           */
+          ...(variant === "poledance" && beispielVideo
+            ? { mimicVideoUrl: new URL(beispielVideo, window.location.origin).href }
+            : {}),
+          /**
            * 540p BEIM TANZ (`hd`), nicht 360p.
            *
            * Die Route rendert ohne diesen Schalter in 360p — die Sparstufe fuer
