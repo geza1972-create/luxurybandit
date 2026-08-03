@@ -8,7 +8,7 @@ import { guthabenLesen, type Gestrandet } from "@/lib/guthaben-konto";
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2 } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -30,6 +30,7 @@ import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
 import { kissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
+import { POLEDANCE_PROMPT } from "@/lib/poledance";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
@@ -146,8 +147,15 @@ const RENDER_AT = [0, 4000, 9000, 15000, 21000, 28000, 36000, 46000];
 // Seine Adresse, einmal eingetragen. Bewusst OHNE Thema im Schlüssel: es ist derselbe Mensch,
 // egal ob er beim Kuss oder beim Idol anfängt — zweimal fragen wäre eine Hürde ohne Gegenwert.
 const MAIL_KEY = "lb_kiss_mail";
-/** Der Name, an den der Kuss geht — ueberlebt Neuladen und Kassen-Rueckkehr wie die Fotos. */
-const NAME_KEY = "lb_kiss_name";
+/**
+ * Der Name, an den der Gruss geht — ueberlebt Neuladen und Kassen-Rueckkehr wie die Fotos.
+ *
+ * JE THEMA EIN NAME (03.08.2026, beim Bau des Tanzes aufgefallen): Der Schluessel war global,
+ * und damit stand auf dem Tanzvideo der Name, den jemand beim KUSS eingetippt hatte — „Anna,
+ * das ist fuer dich" auf einem Video, das an Chris geht. Die Adresse bleibt bewusst global
+ * (derselbe Mensch, ein Konto); der Empfaenger ist es nicht.
+ */
+const nameKey = (thema: string) => `lb_kiss_name_${thema}`;
 
 
 // Beide Themen teilen sich DIESEN Funnel — nur Prompt und Bilder unterscheiden sich.
@@ -312,7 +320,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Kachelreihe und die getrennte Bild-Kette (OpenAI weist Dessous am Eingang ab, Pixverse
    * nicht). Mit dem Produkt faellt beides weg: eine Erzeugung, ein Preis, ein Schritt weniger.
    */
-  const videoPreisCents = ONCE_CENTS;
+  /**
+   * DER TANZ KOSTET MEHR (Owner 03.08.2026: „eigentlich nicht, es soll 3,99 kosten").
+   * Nur diese eine Zeile entscheidet, wie viel Guthaben der Trichter verlangt, bevor er den
+   * Auflade-Waehler oeffnet. Was die KASSE abbucht, entscheidet sie selbst am gespeicherten
+   * Auftrag — ein Browser darf sich seinen Preis nicht aussuchen.
+   */
+  const videoPreisCents = variant === "poledance" ? POLEDANCE_CENTS : ONCE_CENTS;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
   const [aufladeWahl, setAufladeWahl] = useState(false);
   /** Im Auflade-Waehler: Adresse steht offen im Feld und ist noch nicht bestaetigt. */
@@ -702,7 +716,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       if (d?.id && d.at && Date.now() - d.at < 86_400_000) setGenId(d.id);
       else if (roh) localStorage.removeItem(GEN_KEY);
     } catch { /**/ }
-    try { const n = localStorage.getItem(NAME_KEY); if (n) setEmpfaenger(n); } catch { /**/ }
+    try { const n = localStorage.getItem(nameKey(variant)); if (n) setEmpfaenger(n); } catch { /**/ }
     try {
       const konto = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
       const e = String(konto || localStorage.getItem(MAIL_KEY) || "").trim();
@@ -1228,12 +1242,29 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
+  /**
+   * SIND DIE FOTOS DA? — an EINER Stelle beantwortet.
+   *
+   * Der Trichter fragte das an dreizehn Stellen als `!selPhoto || !photo`. Beim Tanz gibt es
+   * `photo` (den Mann) gar nicht mehr (Owner 03.08.2026: „der Upload-Mann wird nicht mehr
+   * gebraucht") — dreizehnmal dieselbe Bedingung umzubauen heisst, sie zwoelfmal richtig und
+   * einmal falsch umzubauen, und die eine falsche ist ein Knopf, der ewig grau bleibt.
+   */
+  const fotosDa = V.nurSie ? !!selPhoto : (!!selPhoto && !!photo);
+  /**
+   * DER AUFRUF AUF DER KARTE — „Personen ersetzen" stimmt nur, wo es Personen im Plural gibt.
+   *
+   * Beim Tanz steht EINE Frau im Video, und das ist sie selbst. „Personen ersetzen" liest
+   * sich dort wie ein Werkzeug fuer ein fremdes Bild statt wie die Einladung, das eigene Foto
+   * hochzuladen. `uploadYou` ist in allen sieben Sprachen gepflegt und sagt genau das.
+   */
+  const kartenAufruf = V.nurSie ? T.uploadYou : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen;
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
   useEffect(() => {
-    if (selPhoto && photo && consent) setGenerateHinweis("");
-  }, [selPhoto, photo, consent]);
+    if (fotosDa && consent) setGenerateHinweis("");
+  }, [fotosDa, consent]);
 
   /**
    * ZUM VIDEO SPRINGEN (Owner 01.08.2026: „der User weiss nicht ob er warten soll oder
@@ -1256,7 +1287,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
   // ECHTE Generierung (Pixverse) — läuft nur nach Zahlung oder für Staff.
   const realGenerate = async (token: number): Promise<void> => {
-    if (!selPhoto || !photo) return;
+    if (!fotosDa) return;
     setStatus(T.statusQuality);
     try {
       // Gleiche Pipeline wie Try-On: person = Model (@person), garment = dein Foto (@Bild2).
@@ -1306,7 +1337,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * ist eine eigene Erkenntnis — dort steht heute die Adressabfrage.
      */
     track("generate_tap");
-    if (!selPhoto || !photo || busy || mailBusy) return;
+    if (!fotosDa || busy || mailBusy) return;
     /**
      * ERST DIE ADRESSE, DANN RECHNEN (Owner 30.07.2026). Kein Bild mehr auf seine Kosten für
      * jemanden, der nie eine Adresse hinterlässt. Wer angemeldet ist oder schon einmal
@@ -1563,7 +1594,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * angezogenes als `garment`. Wer nur die Token tauscht, bekommt zwei Maenner.
    */
   const kussVideo = async () => {
-    if (videoBusy || !selPhoto || !photo) return;
+    if (videoBusy || !fotosDa) return;
     setWahl(false); setVideoBusy(true); setStatus("");
     setVideoStart(Date.now()); setFortschritt(0);
     /**
@@ -1628,7 +1659,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         selPhoto.slice(-64), photo.slice(-64), ihrVorlage?.id ?? "", seinVorlage?.id ?? "",
       ].join("|");
       let ihr: string, sein: string;
-      if (angezogen.current?.schluessel === anziehSchluessel) {
+      /**
+       * BEIM TANZ WIRD NICHT VORHER ANGEZOGEN — Pixverse macht beides in einem Zug.
+       *
+       * Der Fusion-Lauf bekommt zwei Referenzbilder: ihr Foto (@image1) und das Set
+       * (@image2), und der Prompt sagt „wearing the outfit from @image2". Genau so ist das
+       * Beispielvideo entstanden, das der Owner mitgeliefert hat.
+       *
+       * Ein FASHN-Lauf davor waere hier NICHT nur ueberfluessig, sondern schaedlich: Er
+       * liefert ein neues Bild, dessen Gesicht schon einmal durch ein Modell gelaufen ist —
+       * und Pixverse haette dann eine Kopie als Vorlage statt des Originals. Ein Lauf
+       * weniger, ein Gesicht besser, und der Preis traegt sich trotzdem.
+       *
+       * `sein` ist hier kein Mensch, sondern das Kleidungsstueck. Der Name bleibt, weil er
+       * unten die Stelle `garment` fuellt — und `garment` ist genau das, was es ist.
+       */
+      if (V.nurSie) {
+        ihr = selPhoto;
+        sein = "";   // es gibt keinen Mann — was hier stuende, waere eine Erfindung
+      } else if (angezogen.current?.schluessel === anziehSchluessel) {
         ({ ihr, sein } = angezogen.current);
       } else {
         ihr = await anziehen(selPhoto, ihrVorlage, T.dressingHer);
@@ -1638,6 +1687,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         angezogen.current = { schluessel: anziehSchluessel, ihr, sein };
       }
       setStatus(T.renderingVideo);
+      /**
+       * WELCHES BILD AUF WELCHEN PLATZ — die Stelle, an der man ein Video verschenken kann.
+       *
+       * Die Route bindet `person` an das ERSTE @-Token des Prompts und `garment` an das
+       * zweite (pixverseStartReference). Daraus folgt:
+       *
+       *   Kuss  — Prompt „@1 and @2 …":  @1 = ER    → person = sein
+       *                                  @2 = SIE   → garment = ihr
+       *   Tanz  — Prompt „The woman from @image1 … the outfit from @image2":
+       *                                  @image1 = SIE     → person = ihr Foto
+       *                                  @image2 = das Set → garment = das Set
+       *
+       * Wer die zwei beim Tanz vertauscht, bekommt ein Video, in dem ein Kleidungsstueck die
+       * Hauptrolle spielt und eine erfundene Frau das Outfit traegt. Genau dieser Fehler hat
+       * beim Kuss schon einmal ein bezahltes Video mit fremden Gesichtern erzeugt.
+       */
+      const refPerson = V.nurSie ? ihr : sein;
+      const refOutfit = V.nurSie ? (V.garmentBild ?? "") : ihr;
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -1649,7 +1716,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
         // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: sein, garment: ihr, prompt: variant === "wedding" ? weddingPrompt(kleid)
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: refPerson, garment: refOutfit,
+          /**
+           * 540p BEIM TANZ (`hd`), nicht 360p.
+           *
+           * Die Route rendert ohne diesen Schalter in 360p — die Sparstufe fuer
+           * Admin-Vorschauen, die spaeter hochgerechnet werden. Beim Kuss steht sie noch, weil
+           * der Owner am 30.07.2026 sagte „ok, aber jetzt noch nicht umstellen". Beim Tanz
+           * geht das nicht: Das Beispiel, das die Kundin anklickt, ist 540p, und sie zahlt
+           * {tanz}. Ein sichtbar schlechteres Video als das beworbene ist kein Sparen.
+           * Es kostet mehr je Lauf — eine Zeile zum Zurueckdrehen, wenn die Rechnung es sagt.
+           */
+          ...(variant === "poledance" ? { hd: true } : {}),
+          prompt: variant === "wedding" ? weddingPrompt(kleid)
+            /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
+               das Beispielvideo mit genau diesem Text entstanden ist. */
+            : variant === "poledance" ? POLEDANCE_PROMPT
             /* DIE UEBERRASCHUNG: eine der vier Kuss-Szenen, gezogen aus der Auftragsnummer
                (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als Ueberraschung").
                MIT RAHMEN, nicht roh (Owner 03.08.2026: „falsche Personen im video"): Der nackte
@@ -1765,7 +1847,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   useEffect(() => {
     if (!nachZahlungLiefern.current) return;
     if (videoUrl || videoBusy) { nachZahlungLiefern.current = false; return; }
-    if (!selPhoto || !photo) return;   // warten, bis der Speicher sie zurueckgegeben hat
+    if (!fotosDa) return;   // warten, bis der Speicher sie zurueckgegeben hat
     nachZahlungLiefern.current = false;
     void kussVideo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1962,7 +2044,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * dabei schon verbraucht war, blieb die Kette fuer immer tot. Erst wenn ALLES da ist,
      * wird die Marke verbraucht.
      */
-    if (!selPhoto || !photo) return;
+    if (!fotosDa) return;
     nachAufladungKaufen.current = false;
     /**
      * WOFUER hat er aufgeladen? Hat er noch KEIN Bild, wollte er eins (Kuss ab dem zweiten
@@ -2136,7 +2218,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           liest sich als Fehler. */}
       {typeof guthabenCents === "number" && guthabenCents > 0 && !isStaff && (
         <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
-          {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / ONCE_CENTS)} 🎬
+          {/* „wie viele Videos ist das?" — gerechnet mit dem Preis DIESES Themas, nicht mit
+              dem des Kusses. Beim Tanz haette 3,50 € sonst „2 Videos" versprochen und beim
+              Klick nicht einmal fuer eines gereicht. */}
+          {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / videoPreisCents)} 🎬
         </p>
       )}
       {/**
@@ -2180,6 +2265,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <EinladungKarte
         sprache={lang} sie="" er="" demo
         titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
+        /**
+         * DIE HERKUNFTSZEILE GEHOERT AUF JEDE KARTE (Owner 03.08.2026: „ich bitte dich,
+         * benutze IMMER die Cards für die Videos mit Titel oben und Made by
+         * Luxurybandit.com").
+         *
+         * Sie stand bisher nur auf der Werk-Seite, die der EMPFAENGER oeffnet — hier, wo der
+         * Kunde sein eigenes Ergebnis sieht und es weiterschickt, fehlte sie. Dabei ist das
+         * die Karte, von der Bildschirmfotos gemacht werden.
+         *
+         * KEINE INLINE-FARBE: `.lb-karte` faerbt per `!important` alles auf dunkles Braun und
+         * schlaegt jedes `style`. Nur eine `lb-karte-*`-Klasse kommt dagegen an — genau daran
+         * ist am 03.08. schon einmal eine Prozentzahl unsichtbar geworden.
+         */
+        fuss={
+          <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+            made by luxurybandit.com
+          </p>
+        }
         video={
           /* DAS ERGEBNIS GEHOERT IN DIE KARTE (Owner 31.07.2026: „auf dieser Seite will ich
              nicht mein Bild als zweiter Stelle sehen. Es muss in die Karte sein und Replace
@@ -2324,12 +2427,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 kartenGriff(
                   bezahlt || isStaff ? T.ctaVideo : T.blockedOnce,
                   bezahlt || isStaff ? () => void kussVideo() : () => void unlock("once"),
-                  { text: (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen, tun: schritteOeffnen },
+                  { text: kartenAufruf, tun: schritteOeffnen },
                 )}
             </div>
           ) : beispielVideo ? (
             <div className="relative">
+              {/* DIE TONSPUR DES THEMAS, nicht die Vorgabe (03.08.2026). Hier fehlte der
+                  Parameter, also lief unter JEDEM Beispiel das ruhige Hochzeitsstueck — auch
+                  unter einem Tanz im Neonclub. `V.musik` steht in lib/geschenke je Geschenk;
+                  ohne Eintrag bleibt es bei der bisherigen Vorgabe, es aendert sich also
+                  nichts fuer die Themen, die keine eigene Spur haben. */}
               <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
+                {...(V.musik ? { musik: V.musik } : {})}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
               {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
@@ -2341,9 +2450,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {/* Beispiele darf jeder verschicken (Owner: „damit die Leute Werbung machen
                   können") — Ziel ist die Themenseite, Text und Grund stehen in
                   BeispielGalerie. NUR auf dem Beispiel: Fuers eigene Ergebnis braucht es
-                  erst die Werk-Seite (OFFEN.md 2), sonst verschickt der Knopf das Falsche. */}
+                  erst die Werk-Seite (OFFEN.md 2), sonst verschickt der Knopf das Falsche.
+                  DAS ZIEL FOLGT DEM THEMA: Sonst wirbt der Tanz fuer den Kuss, und wer den
+                  Link bekommt, landet bei einem Produkt, das er nie gesehen hat. */}
               {!karteRendert && (
-                <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : "kiss"}?utm_source=share`}
+                <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : "kiss"}?utm_source=share`}
                   text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
                   label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                   kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
@@ -2352,7 +2463,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {/* „Personen ersetzen" weicht ebenfalls: Mitten im bezahlten Lauf die Personen
                   zu tauschen hiesse zahlen und nichts bekommen — derselbe Grund, aus dem der
                   Loeschknopf ueber dem eigenen Bild waehrend des Laufs verschwindet. */}
-              {!karteRendert && kartenGriff(gesperrt ? T.blockedOnce : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen)}
+              {!karteRendert && kartenGriff(gesperrt ? T.blockedOnce : kartenAufruf)}
               {/* HIER LEBT DER KUSS-LAUF. Ohne Gratis-Bild ist DIESER Zweig der, den der
                   Kunde waehrend seines bezahlten Videos vor sich hat — die Schicht gehoert
                   also vor allem hierher, nicht nur ins Bild darueber. */}
@@ -2439,7 +2550,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           </button>
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
-        {(V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
+        {/* Beim Tanz sind es ZWEI Punkte: ihr Foto, dann der Tanz. Ein dritter, grauer Punkt
+            fuer einen Schritt, den es nicht gibt, sieht aus wie ein haengender Trichter. */}
+        {(V.nurSie ? [1, 3] : V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
           <span key={n} className={`h-1.5 rounded-full transition-all ${n === schritt ? "w-6 bg-[#f6cf51]" : n < schritt ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
         ))}
       </div>
@@ -2690,7 +2803,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             {T.namenFrage}
           </label>
           <input id="lb-empfaenger" value={empfaenger}
-            onChange={e => { setEmpfaenger(e.target.value); try { localStorage.setItem(NAME_KEY, e.target.value); } catch { /**/ } }}
+            onChange={e => { setEmpfaenger(e.target.value); try { localStorage.setItem(nameKey(variant), e.target.value); } catch { /**/ } }}
             type="text" autoComplete="given-name" maxLength={18} placeholder={T.namenPlatzhalter}
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="lb-eingabe mt-1 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/35 focus:border-[#f6cf51]" />
@@ -2703,7 +2816,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             return;
           }
           setWeiterHinweis("");
-          zustimmen(); wahlMerken(); setSchritt(V.paarUpload ? 3 : 2);
+          // Der Tanz ueberspringt Schritt 2 — dort stand SEIN Foto, und es gibt keines mehr.
+          zustimmen(); wahlMerken(); setSchritt(V.paarUpload || V.nurSie ? 3 : 2);
         }}
         className={`lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition${(V.paarUpload ? (!selPhoto || !photo) : !selPhoto) ? " opacity-40" : ""}`}>
         {V.paarUpload
@@ -2832,7 +2946,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
           {/* Zurueck am Bild, wie in Schritt 2 — nicht oben zwischen den Einstellungen. */}
-          <button type="button" onClick={() => setSchritt(V.paarUpload ? 1 : 2)} aria-label={T.back}
+          <button type="button" onClick={() => setSchritt(V.paarUpload || V.nurSie ? 1 : 2)} aria-label={T.back}
             className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -2856,12 +2970,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {/* Das Sinnbild zwischen den beiden Fotos folgt dem Thema: Kuss-Lippen auf einer
               Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
               ungeprueft mitkommt. */}
-          <span className="text-[20px]">{variant === "wedding" ? "💍" : "💋"}</span>
-          {photo && (
+          <span className="text-[20px]">{variant === "wedding" ? "💍" : V.nurSie ? "💃" : "💋"}</span>
+          {/* BEIM TANZ STEHT RECHTS DAS OUTFIT, NICHT EIN ZWEITER MENSCH.
+              Das ist genau das Paar, das gleich an Pixverse geht — sie und das Set. Und es
+              beantwortet die Frage, die sonst offen bleibt: „was ziehe ich da eigentlich an?"
+              Loeschen laesst es sich nicht; es ist unser Bild, nicht ihres. */}
+          {V.nurSie && !!V.garmentBild && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={V.garmentBild} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
+          )}
+          {!V.nurSie && photo && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
-              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload ? 1 : 2); }}
+              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload || V.nurSie ? 1 : 2); }}
                 aria-label="Foto löschen"
                 style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                 className="absolute -right-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
@@ -3068,19 +3190,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <button type="button"
         onClick={() => {
           if (busy || videoBusy || mailBusy || payBusy) return;
-          if (!selPhoto || !photo) { setGenerateHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst); return; }
+          if (!fotosDa) { setGenerateHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst); return; }
           if (!consent) { setGenerateHinweis(T.zustimmungFehlt); return; }
           setGenerateHinweis("");
           void (bezahlt ? kussVideo() : generate());
         }}
-        className={`lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition${(!selPhoto || !photo || !consent || busy || videoBusy || mailBusy || payBusy) ? " opacity-50" : ""}`}>
+        className={`lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition${(!fotosDa || !consent || busy || videoBusy || mailBusy || payBusy) ? " opacity-50" : ""}`}>
         {/* PAYBUSY FEHLTE HIER (Owner 03.08.2026: „wieso gehts hier nicht weiter?"). Bei
             `keinGratis`-Themen loest dieser Knopf zuerst `unlock()` aus (Guthaben-Abbuchung
             oder Stripe-Aufladung) — das laeuft ueber `payBusy`, nicht `busy`. Ohne `payBusy`
             hier blieb der Knopf waehrend dieser paar Sekunden unveraendert stehen: kein
             Spinner, kein Hinweis, nichts — wer in dem Moment noch einmal tippte, wirkte wie
             gegen eine Wand. */}
-        {busy || videoBusy || mailBusy || payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : "💋")}
+        {/* Das Sinnbild folgt dem Thema — Kuss-Lippen auf dem Knopf eines Tanzvideos sind
+            derselbe Fehler wie der Kuss-Werbespruch auf der Hochzeitsseite. */}
+        {busy || videoBusy || mailBusy || payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : variant === "poledance" ? "💃" : "💋")}
         {/* KEIN GRATIS-VERSPRECHEN AUF EINEM KNOPF, DER KEINS EINHAELT (plan.md Punkt 1a).
             `ctaFree` sagt „gratis" — bei der Hochzeit stimmt das seit `keinGratis` nicht
             mehr. `ctaVideo` ist ohnehin schon eigens uebersetzt („Einladung erstellen" u. a.)
@@ -3173,7 +3297,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <div className="mt-2 flex gap-2">
           {V.einzelkauf && (
             <button type="button" onClick={() => void unlock("once")}
-              disabled={!selPhoto || !photo || !consent || payBusy}
+              disabled={!fotosDa || !consent || payBusy}
               className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/60 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-40">
               {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
               {T.buyOnce}
@@ -3181,7 +3305,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           )}
           {V.abo && (
             <button type="button" onClick={() => void unlock("abo")}
-              disabled={!selPhoto || !photo || !consent || payBusy}
+              disabled={!fotosDa || !consent || payBusy}
               style={{ color: "#fff" }}
               className="flex h-11 flex-1 items-center justify-center rounded-full border border-white/30 px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
               {T.buyAbo}
@@ -3285,7 +3409,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               <button key={stufe} type="button" disabled={payBusy || adresseAendern}
                 onClick={() => { setAufladeWahl(false); void unlock("auflade", undefined, stufe); }}
                 className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                {fillPrices(stufe === TOPUP_CENTS ? "{topup}" : "{topup2}", lang)} · {Math.floor(stufe / ONCE_CENTS)} 🎬
+                {fillPrices(stufe === TOPUP_CENTS ? "{topup}" : "{topup2}", lang)} · {Math.floor(stufe / videoPreisCents)} 🎬
               </button>
             ))}
             <p className="mt-3 text-center text-[10px] font-medium leading-snug text-black/50">{T.aufladenHinweis}</p>

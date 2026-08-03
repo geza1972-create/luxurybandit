@@ -59,6 +59,31 @@ const KUSS_LIEBE: Record<string, string[]> = {
 /** Zurufe von aussen — die bekommen NIE einen Namen: „Anna, wow 🔥" ist kein Liebesgruss. */
 const KUSS_JUBEL = ["wow 🔥", "😍", "💋", "so hot"];
 
+/**
+ * DER TANZ SAGT ETWAS ANDERES ALS DER KUSS (03.08.2026).
+ *
+ * Die Kuss-Zeilen liefen hier ungeprueft mit — auf dem Tanzvideo stand „Chris, unsere Liebe
+ * ist unzerbrechlich". Das ist nicht falsch uebersetzt, es ist die falsche Karte: Der Kuss ist
+ * eine Liebeserklaerung, der Tanz eine Ueberraschung. „Das ist fuer dich" trifft, was sie
+ * verschickt; „fuer immer zusammen" traegt eine Ernsthaftigkeit hinein, die niemand bestellt
+ * hat — und auf einem Video, das ein Geschenk sein soll, klingt sie schnell nach zu viel.
+ *
+ * Mittelsatz-Form wie oben, aus demselben Grund: Mit Namen wird „Chris, das ist fuer dich",
+ * ohne Namen wird der erste Buchstabe grossgeschrieben.
+ */
+const TANZ_LIEBE: Record<string, string[]> = {
+  en: ["this one is for you", "surprise 💃", "thinking of you", "only for your eyes"],
+  de: ["das ist für dich", "Überraschung 💃", "ich denk an dich", "nur für deine Augen"],
+  ro: ["asta e pentru tine", "surpriză 💃", "mă gândesc la tine", "doar pentru ochii tăi"],
+  es: ["esto es para ti", "sorpresa 💃", "estoy pensando en ti", "solo para tus ojos"],
+  fr: ["c'est pour toi", "surprise 💃", "je pense à toi", "rien que pour tes yeux"],
+  pt: ["isto é para ti", "surpresa 💃", "estou a pensar em ti", "só para os teus olhos"],
+  it: ["questo è per te", "sorpresa 💃", "sto pensando a te", "solo per i tuoi occhi"],
+};
+
+/** Zurufe beim Tanz — ohne Kuss-Lippen, sonst bewirbt das Tanzvideo den Kuss. */
+const TANZ_JUBEL = ["wow 🔥", "😍", "💃", "so hot"];
+
 const HOCHZEIT_ZURUFE: Record<string, string[]> = {
   en: ["😍", "❤️", "so beautiful", "💍", "wow", "perfect", "🥂", "💐"],
   de: ["😍", "❤️", "so schön", "💍", "wow", "perfect", "🥂", "💐"],
@@ -98,12 +123,16 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
   const zurufe = variant === "wedding"
     ? (HOCHZEIT_ZURUFE[l] ?? HOCHZEIT_ZURUFE.en)
     : (() => {
-      const liebe = (KUSS_LIEBE[l] ?? KUSS_LIEBE.en).map(t => (wen ? `${wen}, ${t}` : grossErster(t)));
+      // Welche Saetze aufsteigen, haengt am Thema — die Mechanik darunter bleibt dieselbe.
+      const tanz = variant === "poledance";
+      const quelle = tanz ? (TANZ_LIEBE[l] ?? TANZ_LIEBE.en) : (KUSS_LIEBE[l] ?? KUSS_LIEBE.en);
+      const jubel = tanz ? TANZ_JUBEL : KUSS_JUBEL;
+      const liebe = quelle.map(t => (wen ? `${wen}, ${t}` : grossErster(t)));
       // Abwechselnd Liebe und Jubel, damit nicht vier Namenszeilen hintereinander aufsteigen.
       const gemischt: string[] = [];
-      for (let i = 0; i < Math.max(liebe.length, KUSS_JUBEL.length); i++) {
+      for (let i = 0; i < Math.max(liebe.length, jubel.length); i++) {
         if (liebe[i]) gemischt.push(liebe[i]);
-        if (KUSS_JUBEL[i]) gemischt.push(KUSS_JUBEL[i]);
+        if (jubel[i]) gemischt.push(jubel[i]);
       }
       return gemischt;
     })();

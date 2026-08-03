@@ -31,21 +31,45 @@ import { useEffect, useRef, useState } from "react";
 export const UEBERBLENDUNG = 0.7;
 
 export default function SchleifenVideo({
-  src, poster, className = "", stumm = true,
+  src, poster, className = "", stumm = true, schleife = true, spielerRef,
 }: {
   src: string;
   poster?: string;
   className?: string;
   /** Fast immer stumm: Den Ton tragen unsere eigenen Tonspuren (lib/musik.ts). */
   stumm?: boolean;
+  /**
+   * OHNE SCHLEIFE LAEUFT ES GENAU EINMAL (Owner 03.08.2026: „hier bitte kein Loop").
+   *
+   * Die weiche Schleife ist fuer Videos ohne Anfang und Ende — eine Kachel, die sich bewegt.
+   * Ein Video, in dem jemand SPRICHT, hat beides: Wer den Satz zu Ende gehoert hat, will ihn
+   * nicht sofort wieder von vorn. Dann ist ein Standbild am Schluss die richtige Antwort und
+   * ein zweiter Spieler ueberfluessig.
+   */
+  schleife?: boolean;
+  /** Zugriff auf den laufenden Spieler — fuer einen Ton-Knopf ausserhalb. */
+  spielerRef?: React.RefObject<HTMLVideoElement | null>;
 }) {
   const a = useRef<HTMLVideoElement>(null);
   const b = useRef<HTMLVideoElement>(null);
   const [vorne, setVorne] = useState<"a" | "b">("a");
 
+  /* Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann. */
+  useEffect(() => { if (spielerRef) spielerRef.current = a.current; }, [spielerRef]);
+
   useEffect(() => {
     const va = a.current, vb = b.current;
-    if (!va || !vb) return;
+    if (!va) return;
+    /**
+     * OHNE SCHLEIFE: einmal anspielen, danach nichts weiter — kein Takt, kein zweiter Spieler.
+     *
+     * DIESE PRUEFUNG STAND ZUERST HINTER `if (!va || !vb) return`, und damit lief gar nichts:
+     * Den zweiten Spieler gibt es ohne Schleife nicht, `vb` war also null und die Funktion
+     * stieg aus, bevor sie zum Abspielen kam. Ein Video, das stumm und still dasteht, sieht
+     * aus wie ein kaputtes Standbild.
+     */
+    if (!schleife) { void va.play().catch(() => { /* Autoplay verweigert */ }); return; }
+    if (!vb) return;
     let laeuft = true;
     const takt = setInterval(() => {
       if (!laeuft) return;
@@ -65,7 +89,7 @@ export default function SchleifenVideo({
     }, 120);
     void va.play().catch(() => { /* Autoplay verweigert — dann bleibt das Standbild stehen */ });
     return () => { laeuft = false; clearInterval(takt); };
-  }, [vorne, src]);
+  }, [vorne, src, schleife]);
 
   /**
    * ZWEITE FALLE: BEIDE Spieler bleiben stumm. Waeren sie es nicht, hoerte man den Ton
@@ -77,12 +101,16 @@ export default function SchleifenVideo({
     <div className="relative h-full w-full overflow-hidden">
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={a} src={src} poster={poster || undefined} muted={stumm} playsInline autoPlay preload="auto"
-        style={{ opacity: vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
+        style={{ opacity: !schleife || vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
         className={gemeinsam} />
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <video ref={b} src={src} muted={stumm} playsInline preload="auto"
-        style={{ opacity: vorne === "b" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
-        className={`absolute inset-0 ${gemeinsam}`} />
+      {/* Der zweite Spieler existiert NUR fuer die Ueberblendung. Ohne Schleife waere er ein
+          zweites Mal dieselben Megabyte, die niemand sieht. */}
+      {schleife && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video ref={b} src={src} muted={stumm} playsInline preload="auto"
+          style={{ opacity: vorne === "b" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
+          className={`absolute inset-0 ${gemeinsam}`} />
+      )}
     </div>
   );
 }

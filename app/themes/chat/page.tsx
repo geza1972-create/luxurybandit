@@ -1,5 +1,5 @@
 import TopNav from "@/components/TopNav";
-import SchleifenVideo from "@/components/SchleifenVideo";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
 import { fillPrices } from "@/lib/pricing";
 import TrackView from "@/components/TrackView";
 import PaidReturn from "@/components/PaidReturn";
@@ -54,20 +54,13 @@ export default async function ChatThemePage({ searchParams }: {
     // Monat. Das Anziehen ist raus (03.08.2026); was bleibt, ist ihr eigener Bestand —
     // der kostet uns nichts und ist genau der Grund, warum er weiterschreibt.
     s3p: "Ask her to show you another one and she does — her own photos, as often as you like, at no extra cost. The pictures are hers; the conversation is what you pay for.",
+    tonAn: "Sound", tonAus: "Mute",
     s4h: "Flirty, but honest",
     s4p: "She flirts, she asks about your day, she teases. What she never does is claim she missed you or that she has feelings — and every so often she reminds you in the chat that she is an AI. That is deliberate: nobody should fall for something that cannot love them back.",
   }, L);
 
-  // Beispiele oben als Slider: echte Ergebnisse aus derselben Anzieh-Pipeline, die der
-  // Kunde benutzt. Fehlen sie im Storage, erscheint der Slider einfach nicht.
-  const photos = (await Promise.all([
-    getSignedUrl("try-this-look/uploads/chat-example-1.jpg").catch(() => ""),
-    getSignedUrl("try-this-look/uploads/chat-example-2.jpg").catch(() => ""),
-  ])).filter(Boolean) as string[];
-  // Dazu VORHANDENE Clips aus dem Bestand (kein neuer Render) — ohne Dessous-Try-ons.
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3007";
-  const clips: { id: string; video: string; poster: string }[] = await fetch(`${base}/api/showcase-clips?limit=6`, { cache: "no-store" })
-    .then(r => r.json()).then(d => (Array.isArray(d?.items) ? d.items : [])).catch(() => []);
+  /* Hier wurden die Beispielbilder und die Showcase-Clips geholt — beide nur fuer den
+     geloeschten Streifen. Zwei Netzaufrufe je Seitenaufruf fuer Daten, die niemand mehr sieht. */
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -94,29 +87,26 @@ export default async function ChatThemePage({ searchParams }: {
           * Der Pfad ist prozentkodiert, weil die Datei Leerzeichen im Namen hat. Auf Vercel
           * zaehlt ausserdem die Gross-/Kleinschreibung — „/Chat/" mit grossem C ist Absicht.
           */}
-        <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-          <div className="aspect-[9/16] w-full">
-            <SchleifenVideo src="/Chat/Private%20Chat%20Invitation_1080p.mp4" />
-          </div>
+        <div className="mt-5">
+          <EinladungAnsicht
+            id="chat-einladung"
+            videoUrl="/Chat/Private%20Chat%20Invitation_1080p.mp4"
+            zaehlen={false}
+            schleife={false}
+            verhaeltnis="aspect-[9/16]"
+            originalton
+            musik=""
+            tonText={t.tonAn}
+            tonAusText={t.tonAus}
+          />
         </div>
 
-        {(photos.length > 0 || clips.length > 0) && (
-          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {clips.map(c => (
-              <div key={c.id} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-                  className="aspect-[3/4] w-full object-cover" />
-              </div>
-            ))}
-            {photos.map((url, i) => (
-              <div key={`p${i}`} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="aspect-[3/4] w-full object-cover object-top" />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* HIER STAND DER BEISPIEL-STREIFEN (Owner 03.08.2026, mit Bildschirmfoto: „das ist
+            ueberfluessig"). Zwei Fotos aus dem Speicher und bis zu sechs Kacheln aus
+            `/api/showcase-clips` — Ergebnisse aus der ANZIEH-Kette, die es seit heute nicht mehr
+            gibt. Sie zeigten also ein Produkt, das man nicht mehr kaufen kann, direkt unter der
+            Einladung, die das echte zeigt. Zwei Angebote nebeneinander, von denen eines nicht
+            existiert. */}
 
         {code && (
           <p className="mt-4 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-3 text-[13px] font-bold leading-snug text-[#f6cf51]">{fillPrices(t.codeNote, L)}</p>

@@ -47,6 +47,7 @@ const HOCHZEITS_MUSIK = "/mickeyscat-moment-of-peace-mickeyscat-554494.mp3";
 
 export default function EinladungAnsicht({
   id, videoUrl, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
+  originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]",
 }: {
   id: string; videoUrl: string;
   /** In der Vorschau im Trichter wird NICHT gezaehlt — sonst zaehlt sich die Kundin selbst
@@ -69,9 +70,37 @@ export default function EinladungAnsicht({
    * Er hat gerade dafuer bezahlt und auf einen Knopf getippt, also darf es klingen.
    */
   tonAutomatisch?: boolean;
+  /**
+   * DIE STIMME AUS DEM VIDEO STATT UNSERER MUSIK (Owner 03.08.2026: „man muss die
+   * Originalstimme hoeren").
+   *
+   * Sonst gilt hier das Gegenteil: Unsere Videos sind acht Sekunden lang, ihre Tonspur saesse
+   * bei jeder Schleife wieder auf dem ersten Takt, und deshalb liegt Musik darunter. Spricht
+   * jemand IM Video, ist das falsch — dann ist die Stimme der Inhalt und Musik darueber eine
+   * zweite Stimme, die dagegen anredet.
+   *
+   * DER KNOPF BLEIBT NOETIG, auch wenn der Ton „an" sein soll: Browser lassen keinen Ton ohne
+   * eine Geste des Besuchers zu. Das Video startet also stumm mit sichtbarem „Ton an" — ein
+   * Versprechen auf Ton, das der Browser bricht, waere schlimmer als der eine Fingertipp.
+   */
+  originalton?: boolean;
+  /** Weiterreichen an `SchleifenVideo` — ohne Schleife laeuft es genau einmal. */
+  schleife?: boolean;
+  /**
+   * DAS SEITENVERHAELTNIS DER FLAECHE — stand fest auf 3:4.
+   *
+   * Das passt zu allem, was unsere Kette erzeugt (Kuss, Hochzeit: 3:4). Das Einladungsvideo des
+   * Owners ist 1080x1920, also 9:16 — in einer 3:4-Flaeche mit `object-cover` verschwindet rund
+   * ein Viertel der Hoehe, oben und unten. Bei einem Video, in dem jemand spricht, ist das
+   * genau das Gesicht oder der Kopf.
+   *
+   * GEMESSEN, NICHT GESCHAETZT: Flaeche 343x457 (0,750) gegen Video 1080x1920 (0,563).
+   */
+  verhaeltnis?: string;
 }) {
   const [ton, setTon] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);   // nur fuer den Originalton gebraucht
   const gezaehlt = useRef(false);
 
   useEffect(() => {
@@ -111,6 +140,17 @@ export default function EinladungAnsicht({
   }, [musik, tonAutomatisch, videoUrl]);
 
   const umschalten = () => {
+    /* ORIGINALTON: nicht die Tonspur daneben, sondern das Video selbst stummschalten. */
+    if (originalton) {
+      const v = videoRef.current;
+      if (!v) return;
+      const an = !ton;
+      setTon(an);
+      v.muted = !an;
+      v.volume = 1;
+      if (an) void v.play().catch(() => setTon(false));
+      return;
+    }
     const a = audioRef.current;
     if (!a) return;
     const an = !ton;
@@ -129,19 +169,23 @@ export default function EinladungAnsicht({
           acht Sekunden lang und saesse bei jeder Schleife wieder auf dem ersten Takt.
           Die weiche Schleife macht `SchleifenVideo`; sie stand frueher hier und wohnt jetzt
           dort, weil die Themen-Kacheln sie ebenfalls brauchen. */}
-      <div className="aspect-[3/4] w-full">
-        <SchleifenVideo src={videoUrl} />
+      <div className={`${verhaeltnis} w-full`}>
+        <SchleifenVideo src={videoUrl} schleife={schleife} stumm spielerRef={originalton ? videoRef : undefined} />
       </div>
-      {musik && (
-        <>
-          {/* `preload="none"`: Ein Stueck von zweieinhalb Minuten sind ein paar Megabyte. Wer
-              nie auf den Lautsprecher tippt — und das sind die meisten — soll sie nicht
-              herunterladen. Geladen wird beim ersten Tipp. */}
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <audio ref={audioRef} src={musik} loop preload="none" />
-          <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
-        </>
-      )}
+      {/* BEIM ORIGINALTON GIBT ES KEINE TONSPUR DANEBEN — nur den Knopf, der das Video
+          selbst stummschaltet. Deshalb haengt der Knopf nicht mehr allein an `musik`. */}
+      {originalton
+        ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
+        : musik && (
+          <>
+            {/* `preload="none"`: Ein Stueck von zweieinhalb Minuten sind ein paar Megabyte. Wer
+                nie auf den Lautsprecher tippt — und das sind die meisten — soll sie nicht
+                herunterladen. Geladen wird beim ersten Tipp. */}
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio ref={audioRef} src={musik} loop preload="none" />
+            <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
+          </>
+        )}
     </div>
   );
 }
