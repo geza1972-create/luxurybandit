@@ -255,7 +255,16 @@ const VARIANTS: Record<FunnelVariant, {
     // Ton auch beim BILD (OFFEN.md 0: „die eigene Tonspur aus lib/musik.ts einhaengen, wie
     // bei der Hochzeit"). Ohne Musik ist das fertige Bild eine Postkarte statt eines Moments.
     musik: musikFuer("kiss"),
-    prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: true, einzelkauf: true,
+    /**
+     * KEIN ABO BEIM KUSS (Owner 03.08.2026: „wir haben so was gar nicht mehr, 2,99 im
+     * Abokauf. Wir haben nur Credits. Schaffe Abo für Kissing ab").
+     *
+     * Der Kuss verkauft EIN Erlebnis, kein Monatsverhaeltnis: Wer sein Video hat, ist
+     * fertig — das Abo daneben war eine zweite, teurere Tuer, die von der einfachen
+     * Aufladung ablenkt. Damit fallen auch die Abo-Folgen weg: kein „X von 20 Videos",
+     * kein {extra}-Nachkauf, keine Verlaengerungs-Zusage. Hochzeit und Idol behalten es.
+     */
+    prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: false, einzelkauf: true,
     keinGratis: true, nurGuthaben: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere
@@ -2049,7 +2058,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / ONCE_CENTS)} 🎬
         </p>
       )}
-      {typeof videosLinks === "number" && (aboAktiv || videosLinks > 0) && (
+      {V.abo && typeof videosLinks === "number" && (aboAktiv || videosLinks > 0) && (
         <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
           {/* Altbestand groesser als die Abo-Menge (z. B. Seed-Konten): „8083 von 20"
               waere gelogen — dann nur die nackte Zahl. */}
@@ -3132,7 +3141,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
       {/* WAS IHM DIESEN MONAT NOCH ZUSTEHT (Owner 30.07.2026). Ohne diese Zeile weiss ein
           Abonnent nie, wo er steht — und merkt es erst, wenn nichts mehr geht. */}
-      {aboAktiv && typeof videosLinks === "number" && (
+      {V.abo && aboAktiv && typeof videosLinks === "number" && (
         <p className="mt-1 text-center text-[11px] font-bold text-[#f6cf51]">
           {/* Altbestand groesser als die Abo-Menge (z. B. Seed-Konten): „8083 von 20"
               waere gelogen — dann nur die nackte Zahl. */}

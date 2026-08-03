@@ -2,7 +2,6 @@ import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
-import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import BeispielGalerie from "@/components/BeispielGalerie";
@@ -37,21 +36,6 @@ export const metadata = {
  * auf dieser Seite gar nicht gibt. Ein Versprechen, das der Besucher nicht einloesen kann,
  * kostet mehr Vertrauen, als der Satz an Wert bringt.
  */
-const KISS_ABO: Record<string, string> = {
-  de: "{videos} Videos im Monat aus deinen eigenen Fotos, über alle Themen. Jedes weitere {extra}.",
-  en: "{videos} videos a month from your own photos, across all topics. Every further one {extra}.",
-  ro: "{videos} videoclipuri pe lună din pozele tale, în toate temele. Fiecare în plus {extra}.",
-  es: "{videos} vídeos al mes con tus propias fotos, en todos los temas. Cada uno más {extra}.",
-  fr: "{videos} vidéos par mois à partir de tes propres photos, sur tous les thèmes. Chaque vidéo en plus {extra}.",
-  pt: "{videos} vídeos por mês com as tuas próprias fotos, em todos os temas. Cada um a mais {extra}.",
-  it: "{videos} video al mese dalle tue foto, in tutti i temi. Ogni altro {extra}.",
-};
-const KISS_CTA: Record<string, string> = {
-  de: "Freischalten — {price}/Monat", en: "Unlock — {price}/month",
-  ro: "Deblochează — {price}/lună", es: "Desbloquear — {price}/mes",
-  fr: "Débloquer — {price}/mois", pt: "Desbloquear — {price}/mês",
-  it: "Sblocca — {price}/mese",
-};
 
 export default async function KissThemePage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
@@ -130,9 +114,13 @@ export default async function KissThemePage({ searchParams }: {
                 Katalog, den es auf dieser Seite nicht mehr gibt.
                 Und „die heisseste KI-Erfahrung" ist eine Behauptung — die Zahl daneben ist
                 ein Angebot. Zahlen kommen aus lib/pricing, nie von Hand. */}
-            <SubscribeCta code={code} lang={L}
-              text={KISS_ABO[L] ?? KISS_ABO.en}
-              cta={KISS_CTA[L] ?? KISS_CTA.en} />
+            {/* DER ABO-BLOCK IST RAUS (Owner 03.08.2026: „wir haben so was gar nicht mehr,
+                2,99 im Abokauf. Wir haben nur Credits. Schaffe Abo für Kissing ab").
+                Hier stand „20 Videos im Monat … jedes weitere 2,99 €" und „Freischalten —
+                24,50 €/Monat" — beides gibt es fuer den Kuss nicht mehr. Der einzige Weg
+                ist die Aufladung im Trichter darueber; ein Monatspreis daneben zieht genau
+                die Aufmerksamkeit ab, die der 4,99-Einstieg braucht. Der Baustein bleibt
+                fuer Hochzeit, Wetter und Chat. */}
 
             {/* „YOU MIGHT ALSO LOVE" IST RAUS (Owner 31.07.2026: „das machst du eh falsch,
                 falsche Bilder").
