@@ -613,7 +613,12 @@ export default function MyGalleryPage() {
             {open.videoUrl ? (
               <div className="w-full max-w-[420px]">
                 <EinladungKarte sprache="en" sie="" er="" demo
-                  titel={open.theme === "wedding" ? "The Wedding" : open.theme === "idol" ? "Your Idol" : "The Kiss"}
+                  titel={open.theme === "wedding" ? "The Wedding" : open.theme === "idol" ? "Your Idol" : "Unforgettable kiss gift"}
+                  fuss={
+                    <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+                      erstellt durch luxurybandit.com
+                    </p>
+                  }
                   video={
                     <div className="relative">
                       <EinladungAnsicht id="" videoUrl={open.videoUrl} zaehlen={false}

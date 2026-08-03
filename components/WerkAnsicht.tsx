@@ -29,8 +29,16 @@ const TEXTE: Record<string, { cta: string; zurueck: string; hinweis: string; pri
   it: { cta: "Crea il tuo — gratis", zurueck: "Rimanda un bacio 💋", hinweis: "Creato con LuxuryBandit", privat: "Questa card è privata.", laden: "Un attimo …" },
 };
 
+/**
+ * DER TITEL UEBER DER KARTE (Owner 03.08.2026: „oben muss stehen nicht The Kiss, das ist zu
+ * trocken — Unforgettable kiss gift, und drunter erstellt durch luxurybandit.com").
+ *
+ * „The Kiss" beschrieb den INHALT. Der Empfaenger sieht aber zuerst, WAS ER BEKOMMEN HAT:
+ * ein Geschenk. Das Wort steht jetzt drin, und es steht dort, wo bei einer gedruckten Karte
+ * die Praegung sitzt.
+ */
 const TITEL: Record<string, string> = {
-  kiss: "The Kiss", wedding: "The Wedding", idol: "Your Idol",
+  kiss: "Unforgettable kiss gift", wedding: "The Wedding", idol: "Your Idol",
 };
 
 export default function WerkAnsicht({ id }: { id: string }) {
@@ -75,6 +83,16 @@ export default function WerkAnsicht({ id }: { id: string }) {
       <EinladungKarte
         sprache={lang} sie="" er="" demo
         titel={TITEL[theme] ?? TITEL.kiss}
+        /* DIE SIGNATUR UNTEN (Owner: „drunter erstellt durch luxurybandit.com" — „oder unten").
+           Unten statt direkt unter dem Titel: Dort steht bei einer gedruckten Karte der
+           Hersteller, und oben soll der Gruss stehen, nicht die Herkunft. Sie ist zugleich
+           der einzige Hinweis, den ein Empfaenger auf uns bekommt — die Karte selbst wirbt
+           nicht, sie schenkt. */
+        fuss={
+          <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+            erstellt durch luxurybandit.com
+          </p>
+        }
         /**
          * MUSIK VON SELBST, AUCH BEIM EMPFAENGER (Owner 03.08.2026: „die Musik soll
          * automatisch an sein").

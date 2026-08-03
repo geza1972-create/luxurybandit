@@ -435,6 +435,22 @@ svg {
    wuerden auf das Standbild … hunderte von likes"). Ein Standbild wirkt fertig und
    abgeschlossen; aufsteigende Herzen machen daraus einen Moment, der noch laeuft — dasselbe
    Mittel wie bei Live-Videos. Reines CSS, kein Skript, keine Ladezeit. */
+/* EIGENE BEWEGUNG FUER DIE ZEILEN, mit laengerem Weg (03.08.2026).
+   Die Zeilen teilten sich die Herz-Bewegung: 260 px Laufweg. Bei acht Zeilen im gleichen Takt
+   sind das 32 px Abstand — eine zweizeilige Blase ist rund 40 px hoch, sie MUSSTEN sich also
+   beruehren, egal wie gleichmaessig der Versatz ist (Owner: „die Labels duerfen sich nicht
+   ueberlappen"). 480 px ergeben 60 px Abstand und damit Luft auch fuer zwei Zeilen. */
+@keyframes lb-bubble-up {
+  0%   { transform: translate3d(-50%, 0, 0) scale(0.9); opacity: 0; }
+  /* 0.65 statt 1 (Owner 03.08.2026: „die Schrift nicht zu 100 % Kraft, sondern 65").
+     Die Zeilen liegen UEBER dem Gesicht der beiden — bei voller Deckkraft sind sie ein
+     Aufkleber, der das Bild zudeckt. Bei 65 % schweben sie darueber und man sieht weiter,
+     worum es geht: den Kuss. */
+  10%  { opacity: 0.65; }
+  78%  { opacity: 0.65; }
+  100% { transform: translate3d(calc(-50% + var(--lb-drift, 12px)), -480px, 0) scale(1); opacity: 0; }
+}
+
 @keyframes lb-heart-up {
   0%   { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
   12%  { opacity: 0.95; }
@@ -443,6 +459,7 @@ svg {
 }
 .lb-heart {
   position: absolute;
+  z-index: 1;
   bottom: 8%;
   font-size: 20px;
   line-height: 1;
@@ -464,6 +481,9 @@ svg {
    Jetzt: mittig verankert, hoechstens 86 % breit, und laengere Saetze duerfen umbrechen. */
 .lb-bubble {
   position: absolute;
+  /* Ueber den Herzchen (z-index 1): Ein Herz, das quer ueber "Szidonia, I love you" fliegt,
+     macht den Satz unlesbar - und der Satz ist die Botschaft, das Herz ist Schmuck. */
+  z-index: 2;
   bottom: 6%;
   left: 50%;
   max-width: 86%;
@@ -477,8 +497,9 @@ svg {
   line-height: 1.35;
   text-align: center;
   pointer-events: none;
-  animation: lb-heart-up 5.4s ease-out infinite;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  /* Kein Schatten (Owner 03.08.2026: „mach die Labels Schatten raus") — der dunkle
+     Grund der Blase traegt die Lesbarkeit schon, der Schatten machte sie nur schwer. */
+  animation: lb-bubble-up 6s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) { .lb-bubble { animation: none; opacity: 0; } }
 

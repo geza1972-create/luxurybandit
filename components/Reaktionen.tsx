@@ -70,6 +70,21 @@ const HOCHZEIT_ZURUFE: Record<string, string[]> = {
 };
 
 /** „anna" → „Anna". Nur der erste Buchstabe, der Rest bleibt wie getippt (McKenna, d'Angelo). */
+/**
+ * WIE LANGE EINE ZEILE VON UNTEN NACH OBEN BRAUCHT — fuer ALLE gleich (Owner 03.08.2026:
+ * „die Texte und Herzchen ueberlappen sich haesslich unten und oben, sie muessen
+ * nacheinander erscheinen").
+ *
+ * Die Startzeiten waren schon gleichmaessig verteilt — die LAUFZEITEN aber nicht (5 / 5,6 /
+ * 6,2 s). Bei einer endlosen Animation heisst das: Nach der ersten Runde driften die Zeilen
+ * auseinander, holen sich ein und stehen uebereinander. Genau das war auf der Karte zu sehen
+ * („our love is un-so hot-ble").
+ *
+ * EIN Takt fuer alle plus `i * Takt / Anzahl` als Versatz heisst: Zeile i ist IMMER um
+ * denselben Bruchteil voraus. Der Abstand bleibt derselbe, egal wie lange die Karte laeuft.
+ */
+const BLASEN_TAKT = 6;
+
 const grossErster = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
 export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }: { variant?: string; lang?: string; name?: string }) {
@@ -114,9 +129,8 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
            auf derselben Sekunde und damit uebereinander. */
         <span key={`b${i}`} className="lb-bubble"
           style={{
-            transform: "translateX(-50%)",
-            animationDelay: `${(i * 5.4) / Math.max(zurufe.length, 1)}s`,
-            animationDuration: `${5 + (i % 3) * 0.6}s`,
+            animationDelay: `${(i * BLASEN_TAKT) / Math.max(zurufe.length, 1)}s`,
+            animationDuration: `${BLASEN_TAKT}s`,
             ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (10 + (i % 3) * 8)}px`,
           }}>
           {t}
