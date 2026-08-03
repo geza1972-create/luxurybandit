@@ -1597,6 +1597,16 @@ export type KissLogEntry = {
    * Personalisierung waere genau dort weg, wo sie gemeint ist.
    */
   empfaenger?: string;
+  /**
+   * WANN DIE ABLAUF-MAIL RAUS IST (Owner 03.08.2026: „90 Tage").
+   *
+   * Ein bezahltes Geschenk bleibt 90 Tage online, dann laeuft der Link ab. Sieben Tage vorher
+   * geht eine Mail raus — und `/api/aufraeumen` loescht NUR, was diesen Stempel traegt. Ohne
+   * ihn bekaeme der Kunde die Warnung siebenmal (der Cron laeuft taeglich, das Fenster ist
+   * sieben Tage breit), und schlimmer: Der erste scharfe Lauf haette alles genommen, was
+   * aelter als 90 Tage ist, bevor je eine Mail draussen war.
+   */
+  geschenkWarnAt?: string;
 
   /**
    * DER BEZAHLTE AUFTRAG — damit ihn der SERVER zu Ende bringen kann (Owner 30.07.2026:

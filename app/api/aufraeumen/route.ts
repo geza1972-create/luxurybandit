@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readKissLog, writeKissLog, deleteTryThisLookImage, type KissLogEntry } from "@/lib/try-this-look-store";
+import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -57,15 +58,24 @@ const ANONYM_TAGE = Number(process.env.AUFRAEUMEN_ANONYM_TAGE ?? 7);
 const BESUCH_TAGE = Number(process.env.FREE_PREVIEW_KEEP_DAYS ?? process.env.AUFRAEUMEN_BESUCH_TAGE ?? 90);
 
 /**
- * WIE LANGE EIN BEZAHLTES GESCHENK ONLINE BLEIBT — noch NICHT entschieden (KONZEPT-GESCHENKE.md
- * §7.2), deshalb `0` = niemals loeschen.
+ * WIE LANGE EIN BEZAHLTES GESCHENK ONLINE BLEIBT — 90 Tage (Owner 03.08.2026: „90 Tage").
  *
- * Bewusst als ausgeschaltete Zahl und nicht als fehlender Code: Der geteilte Link IST das
- * Geschenk beim Empfaenger und zugleich der einzige Werbekanal, der sich selbst weitertraegt.
- * Ihn stillschweigend ablaufen zu lassen, waere die teuerste Ersparnis dieses Projekts. Wenn
- * der Owner eine Frist nennt, ist es eine Zahl — und die Vorwarnung per Mail gehoert dazu.
+ * Das ist die einzige Frist hier, die einem KUNDEN etwas wegnimmt, und deshalb die einzige mit
+ * einer Vorwarnung (VORWARNUNG_TAGE). Der geteilte Link IST das Geschenk beim Empfaenger und
+ * zugleich der einzige Werbekanal, der sich selbst weitertraegt — ihn stillschweigend ablaufen
+ * zu lassen, waere die teuerste Ersparnis dieses Projekts.
+ *
+ * Was verschwindet: das Ergebnis (Bild/Video) und damit die Werk-Seite /w/<id>. Was bleibt:
+ * der Log-Eintrag, damit die Seite „abgelaufen" sagen kann statt „gibt es nicht".
  */
-const GESCHENK_TAGE = Number(process.env.AUFRAEUMEN_GESCHENK_TAGE ?? 0);
+const GESCHENK_TAGE = Number(process.env.AUFRAEUMEN_GESCHENK_TAGE ?? 90);
+
+/**
+ * SO VIELE TAGE VORHER GEHT DIE MAIL RAUS. Sieben, weil ein Geschenk etwas ist, das man noch
+ * einmal herunterladen oder weiterschicken will — dafuer braucht ein Mensch ein Wochenende,
+ * keine 24 Stunden.
+ */
+const VORWARNUNG_TAGE = Number(process.env.AUFRAEUMEN_VORWARNUNG_TAGE ?? 7);
 
 const TAG_MS = 24 * 60 * 60 * 1000;
 
@@ -168,9 +178,32 @@ export async function GET(request: Request) {
     entschlackt.push(e);
   }
 
-  /** 3. ABGELAUFENE GESCHENKE — nur, wenn der Owner eine Frist gesetzt hat (sonst 0 = nie). */
+  /**
+   * 3. ABGELAUFENE GESCHENKE — 90 Tage (Owner 03.08.2026), und NIE ohne Vorwarnung.
+   *
+   * Zwei Mengen, sieben Tage auseinander: Wer bald ablaeuft, bekommt eine Mail; wer abgelaufen
+   * IST und die Mail bekommen hat, verliert sein Ergebnis. Die Reihenfolge ist der ganze Punkt —
+   * ein bezahltes Geschenk still verschwinden zu lassen, waere genau das „Ausrauben", das
+   * dieser Trichter an anderer Stelle mit viel Aufwand abgestellt hat.
+   *
+   * `geschenkWarnAt` am Eintrag macht die Mail idempotent: Der Cron laeuft taeglich, die
+   * Warnfrist ist sieben Tage breit — ohne den Stempel bekaeme der Kunde sie siebenmal.
+   */
+  const warnen = fGeschenk > 0
+    ? entschlackt.filter(e => istErgebnis(e)
+        && !(e as { geschenkWarnAt?: string }).geschenkWarnAt
+        && alterTage(e) >= fGeschenk - VORWARNUNG_TAGE
+        && alterTage(e) < fGeschenk
+        && hatAdresse(e))
+    : [];
+  /**
+   * Geloescht wird NUR, was gewarnt wurde — oder was gar keine Adresse hat, an die man haette
+   * warnen koennen. Ohne diese Bedingung haette der erste scharfe Lauf alles genommen, was
+   * aelter als 90 Tage ist, bevor je eine Mail draussen war.
+   */
   const abgelaufen = fGeschenk > 0
-    ? entschlackt.filter(e => istErgebnis(e) && alterTage(e) >= fGeschenk)
+    ? entschlackt.filter(e => istErgebnis(e) && alterTage(e) >= fGeschenk
+        && (!!(e as { geschenkWarnAt?: string }).geschenkWarnAt || !hatAdresse(e)))
     : [];
 
   const dateien = [
@@ -190,20 +223,48 @@ export async function GET(request: Request) {
     },
     dateien: { geloescht: dateien.length, davonVorlagen: vorlagenWeg.length },
     abgelaufeneGeschenke: abgelaufen.length,
-    fristen: { vorlagen: fVorlagen, anonym: fAnonym, besuch: fBesuch, geschenk: fGeschenk || "aus (nicht entschieden)" },
+    vorgewarnt: warnen.length,
+    fristen: { vorlagen: fVorlagen, anonym: fAnonym, besuch: fBesuch, geschenk: fGeschenk || "aus", vorwarnung: VORWARNUNG_TAGE },
   };
 
   if (probe) return NextResponse.json({ ok: true, ...bericht, hinweis: "Probelauf — es wurde nichts geloescht." });
 
   // Erst die Dateien, dann das Log: Bricht es dazwischen ab, bleiben verwaiste Dateien uebrig
   // (aufraeumbar) statt Log-Eintraege, die auf nichts mehr zeigen (fuer den Kunden kaputt).
+  /**
+   * ERST WARNEN, DANN LOESCHEN — in dieser Reihenfolge und in DIESEM Lauf.
+   *
+   * Die Mail nennt das Datum und fuehrt in die Galerie: Dort liegt das Video, dort kann er es
+   * herunterladen, dort steht der Kaufknopf fuers naechste. Ein Ablauf ist eine schlechte
+   * Nachricht — sie darf wenigstens einen Weg anbieten.
+   */
+  const origin = new URL(request.url).origin;
+  let gewarnt = 0;
+  for (const e of warnen) {
+    const an = String(e.email ?? (e as { paidEmail?: string }).paidEmail ?? "").trim();
+    const tage = Math.max(1, Math.ceil(fGeschenk - alterTage(e)));
+    const html = `<div style="font-family:system-ui,Arial,sans-serif;background:#faf7f0;padding:24px">`
+      + `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+      + `<table width="100%" style="max-width:520px;background:#fff;border-radius:16px">`
+      + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Dein Video bleibt noch ${tage} Tage online</td></tr>`
+      + `<tr><td style="padding:0 22px 14px;font-size:14px;line-height:1.55;color:#5b5344">`
+      + `Wir halten jedes Geschenk ${fGeschenk} Tage bereit. Danach laeuft der Link ab — lade dir dein Video vorher herunter, dann behaeltst du es fuer immer.</td></tr>`
+      + `<tr><td style="padding:0 22px 20px"><a href="${origin}/my-gallery?utm_source=ablaufmail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Zu meiner Galerie</a></td></tr>`
+      + `</table></td></tr></table></div>`;
+    const r = await sendEmail({ to: an, subject: `Dein Video bleibt noch ${tage} Tage online`, html }).catch(() => ({ ok: false }));
+    if ((r as { ok?: boolean }).ok) {
+      (e as { geschenkWarnAt?: string }).geschenkWarnAt = new Date().toISOString();
+      gewarnt++;
+    }
+  }
+
   let weg = 0;
   for (const p of dateien) {
     try { await deleteTryThisLookImage(p); weg++; } catch { /* eine Datei darf den Lauf nie stoppen */ }
   }
-  if (anonym.length || vorlagenWeg.length) {
+  if (anonym.length || vorlagenWeg.length || gewarnt) {
     await writeKissLog(entschlackt).catch(() => { /* naechster Lauf holt es nach */ });
   }
 
-  return NextResponse.json({ ok: true, ...bericht, dateienWirklichGeloescht: weg });
+  return NextResponse.json({ ok: true, ...bericht, dateienWirklichGeloescht: weg, mailsVerschickt: gewarnt });
 }

@@ -88,8 +88,8 @@ müssen die übrigen Blobs geprüft werden, nicht nur Kiss-Log und state.json.)*
 |---|---|---|
 | Hochgeladene Vorlagen (sein/ihr Foto) | **7 Tage**, auch bei Bezahlung | Sie sind nur Zutat. Nach der Lieferung braucht sie niemand — und niemand will, dass wir sie behalten. |
 | Auftrag ohne Adresse, ohne Ergebnis | **7 Tage**, dann ganz weg | Kein Mensch dahinter, den wir erreichen könnten. |
-| Bezahltes Geschenk (Video/Bild) | **12 Monate** im Preis enthalten | Der Link ist das Geschenk. Stirbt er früh, stirbt er beim Empfänger — und mit ihm unsere Werbung. |
-| Danach | Download bleibt, Link läuft aus (mit Vorwarnung per Mail) | Ehrlich und billig. Wer ihn behalten will, verlängert. |
+| Bezahltes Geschenk (Video/Bild) | **90 Tage** (Owner 03.08.2026) | Der Link ist das Geschenk. Stirbt er früh, stirbt er beim Empfänger — und mit ihm unsere Werbung. Deshalb 7 Tage vorher eine Mail. |
+| Danach | Link läuft aus; wer heruntergeladen hat, behält die Datei | Ehrlich und billig — die Vorwarnung sagt genau das. |
 | Gehostete Seite (Hochzeit) | **solange das Abo läuft** + 30 Tage Nachfrist | Genau dafür ist das Abo da. |
 
 ### Stand 03.08.2026 — gebaut
@@ -103,8 +103,11 @@ müssen die übrigen Blobs geprüft werden, nicht nur Kiss-Log und state.json.)*
 - **`?probe=1`** zählt nur. Die Fristen sind dabei über `?vorlagen=&anonym=&besuch=&geschenk=`
   durchspielbar — **nur im Probelauf**, sonst wäre `?vorlagen=0` ein Löschknopf für alles.
 - Belegt am echten Protokoll (88 Aufträge): scharf **0** Löschungen (die Daten sind vier Tage
-  alt), bei `vorlagen=1` **126** Vorlagen, bei `besuch=1` **63** Aufträge, bei `geschenk=1`
-  **4** Ergebnisse. Die Frist für Geschenke steht auf `0` = **aus**, bis der Owner sie nennt.
+  alt), bei `vorlagen=1` **126** Vorlagen, bei `besuch=1` **63** Aufträge.
+- **Geschenke: 90 Tage**, mit Mail sieben Tage vorher. Gelöscht wird **nur**, was den
+  Warn-Stempel trägt — oder was gar keine Adresse hat, an die man hätte warnen können.
+  Geprüft mit einer Frist von 1 Tag: 1 Eintrag fällig (ein anonym geteilter Link ohne
+  Adresse), **0 Kunden mit Adresse ungewarnt**.
 
 ---
 
@@ -208,7 +211,9 @@ Schritt 1 und 2 kann ich sofort anfangen — beide brauchen keine weitere Entsch
 
 ## 7. Was nur der Owner entscheiden kann
 
-1. **Die 591 verwaisten Dateien (256 MB)** — löschen? Vorher prüfe ich alle übrigen Blobs, nicht
+1. ~~**Wie lange ein bezahltes Geschenk online bleibt**~~ — **entschieden: 90 Tage** (03.08.2026),
+   mit Mail sieben Tage vorher. Gelöscht wird nur, was gewarnt wurde.
+2. **Die 591 verwaisten Dateien (256 MB)** — löschen? Vorher prüfe ich alle übrigen Blobs, nicht
    nur Kiss-Log und state.json. Freigabe nötig.
 2. **12 Monate Hosting im Geschenkpreis** — oder kürzer/länger? Die Zahl entscheidet, wie lange
    ein geteilter Link lebt, und der Link ist die Werbung.
