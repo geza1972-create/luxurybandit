@@ -1,7 +1,6 @@
 import TopNav from "@/components/TopNav";
 import { fillPrices } from "@/lib/pricing";
 import TrackView from "@/components/TrackView";
-import SubscribeCta from "@/components/SubscribeCta";
 import PaidReturn from "@/components/PaidReturn";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
@@ -17,7 +16,7 @@ import { trObject } from "@/lib/tr-object";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Chat with an AI girl — talk every day, dress her in new looks | LuxuryBandit",
+  title: "Chat with an AI girl — pick her, write with her | LuxuryBandit",
   description: fillPrices("Pick any woman or upload your own photo of her, then text her every day. Your AI girl answers in your language and wears the looks you choose: Chat free; {price}/month for {videos} videos & looks across all topics, extra ones {extra}.", "en"),
   keywords: ["chat with ai girl", "ai girlfriend chat", "ai chat girl", "virtual girlfriend app", "ai companion chat", "ai model chat", "dress up ai model", "ai influencer chat"],
   alternates: { canonical: "/themes/chat" },
@@ -104,7 +103,16 @@ export default async function ChatThemePage({ searchParams }: {
 
         <ChatFunnel code={code} lang={L} />
 
-        <SubscribeCta code={code} lang={L} />
+        {/* HIER STAND DIE ABO-KARTE `SubscribeCta` (Owner 03.08.2026, mit Bild: „das stimmt
+            nicht und kommt raus").
+
+            Sie versprach dreierlei, das es im Chat seit heute nicht mehr gibt: „Videos mit
+            ihr — und dir darin", „Chat ist und bleibt gratis" und ein Abo zu 24,50 €/Monat,
+            „jederzeit kündbar". Nach dem Umbau ist der Chat nach sieben Nachrichten
+            kostenpflichtig, es gibt keine Videos und kein Abo, das man kündigen könnte.
+
+            Die Karte lebt weiter auf /themes/holiday, /themes/bella und /your-idol — dort
+            gilt das Abo noch. Sie zu löschen hätte deren Verkauf mit abgeräumt. */}
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>

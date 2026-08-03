@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fillPrices, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPIC_EFFECTIVE_MONTHLY_CENTS, HOCHZEIT_STUFEN, eur } from "@/lib/pricing";
+import { fillPrices, ONCE_CENTS, TOPIC_EFFECTIVE_MONTHLY_CENTS, HOCHZEIT_STUFEN, CHAT_STUFEN, eur } from "@/lib/pricing";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -267,7 +267,9 @@ export default async function ThemesCatalog({ searchParams }: {
      nach dem Umzug kosten werden. Ein zu frueher Geschenk-Preis waere eine Zusage, die der
      Trichter dahinter nicht einloest. */
   const AB_ABO = `${P.ab} ${eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, L)}${P.pm}`;
-  const AB_CHAT = `${P.frei} · ${P.look} ${eur(EXTRA_VIDEO_CENTS, L)}`;
+  /* Hier stand „gratis · Look 2,99" — beides falsch seit dem 03.08.2026: Das Anziehen ist raus,
+     und der Chat ist nur die ersten Nachrichten frei. Jetzt der ehrliche Einstieg aus CHAT_STUFEN. */
+  const AB_CHAT = `${P.ab} ${eur(CHAT_STUFEN[0].cents, L)}`;
 
   const THEMES: Theme[] = [
     // KISS GANZ VORN (Owner 30.07.2026: „kiss musst du als erstes nehmen"). Auf dieses Thema
@@ -287,7 +289,7 @@ export default async function ThemesCatalog({ searchParams }: {
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
     // weiter unter /urlaub-mit-bella (Landing + Card-Tool), ist aber nicht mehr verlinkt.
     // Chat = das Thema mit den niedrigsten Kosten pro Kunde (Haiku), deshalb weit vorn.
-    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her whenever you want — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free", abPreis: AB_CHAT },
+    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Pick one of our women and write with her — she answers in your language.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free", abPreis: AB_CHAT },
     { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video", abPreis: AB_ABO },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
