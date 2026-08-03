@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState, chatZugangGewaehren } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
@@ -69,6 +69,21 @@ export async function GET(request: Request) {
      * `kind === "einladung-plan"`, nicht „…-abo" — sonst würde der Block direkt darüber
      * zusätzlich das themenübergreifende Monatsguthaben gutschreiben, ein anderes Produkt.
      */
+    /**
+     * CHAT-ZUGANG (Owner 03.08.2026). Wie die Bloecke daneben: Der Server traegt ein, was
+     * bezahlt wurde — nicht der Browser. Vorher merkte sich der Chat die Zahlung in
+     * `localStorage`; das galt ewig, war auf dem zweiten Geraet weg und mit einer Zeile in der
+     * Konsole gefaelscht.
+     */
+    if (paid && s.metadata.kind === "chat-zugang") {
+      const email = (s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
+      const monate = Number(s.metadata.monate ?? 0);
+      if (email && monate > 0) {
+        try { await chatZugangGewaehren(email, String(sessionId), monate); }
+        catch { /* nie den Kassen-Rueckweg an einer Nebensache scheitern lassen */ }
+      }
+    }
+
     if (paid && s.metadata.kind === "einladung-plan") {
       const einladungId = String(s.metadata.einladungId ?? "").trim();
       if (einladungId) {

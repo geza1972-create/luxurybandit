@@ -479,6 +479,19 @@ export type TryThisLookState = {
    * bei allen Kassenvorgängen, damit es nur EINE gibt.
    */
   guthabenCents?: Record<string, number>;
+  /**
+   * CHAT-ZUGANG BIS WANN — je E-Mail ein ISO-Datum (Owner 03.08.2026: „er kauft ein Model, ein
+   * Chat"; Preise aus CHAT_STUFEN).
+   *
+   * AN DER ADRESSE, NICHT AM GERAET. Vorher stand nach der Zahlung nur `lb_chat_abo` im
+   * Browser — der galt ewig, war auf jedem zweiten Geraet weg und mit einer Zeile in der
+   * Konsole gefaelscht. Geld haengt an einer E-Mail (siehe guthabenCents daneben).
+   *
+   * `redeemedZugang` ist die Idempotenz: dieselbe Stripe-Sitzung darf die Laufzeit nicht
+   * zweimal verlaengern, wenn der Browser die Statusabfrage wiederholt.
+   */
+  chatZugang?: Record<string, string>;
+  redeemedZugang?: string[];
   // Admin-managed carousel slides for the /urlaub-mit-bella landing card — an intro image
   // (e.g. "Das ist Peter" + description) and example videos, injected into Bella's ModelCard
   // carousel. Persist PATHS only; buildBellaCard signs them on read.
@@ -1010,6 +1023,8 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     // Auch HIER noetig (zweite Haelfte des 01.08.-Fundes): Das Normalisieren baut den
     // Zustand Feld fuer Feld neu — was fehlt, ist nach jedem READ weg, noch vor dem Merge.
     guthabenCents: state.guthabenCents ?? {},
+    chatZugang: state.chatZugang ?? {},
+    redeemedZugang: state.redeemedZugang ?? [],
     bellaSlides: state.bellaSlides ?? [],
     tripBookings: state.tripBookings ?? [],
     emailLog: state.emailLog ?? [],
@@ -1156,6 +1171,9 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
        * fremde Mails aus `latest` bleiben erhalten — dasselbe Muster wie `balances`.
        */
       guthabenCents: { ...(latest.guthabenCents ?? {}), ...(state.guthabenCents ?? {}) },
+      // Gleiches Muster: je E-Mail gewinnt unsere Fassung, fremde Adressen aus `latest` bleiben.
+      chatZugang: { ...(latest.chatZugang ?? {}), ...(state.chatZugang ?? {}) },
+      redeemedZugang: Array.from(new Set([...(latest.redeemedZugang ?? []), ...(state.redeemedZugang ?? [])])),
       videoCredits: {
         balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
         redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
@@ -1271,6 +1289,8 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
      * die Monats-Gutschrift blieb nur idempotent, weil der Webhook sie neu setzte.)
      */
     guthabenCents: state.guthabenCents ?? {},
+    chatZugang: state.chatZugang ?? {},
+    redeemedZugang: (state.redeemedZugang ?? []).slice(-5000),
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),
@@ -2700,6 +2720,49 @@ export async function guthabenAufladen(email: string, sessionId: string, cents: 
  * Ein Video vom Guthaben bezahlen — idempotent je Schlüssel (z. B. `wallet-<genId>`), damit
  * ein doppelter Klick oder eine Wiederholung nach Netzfehler nie zweimal abbucht.
  */
+/**
+ * CHAT-ZUGANG VERLAENGERN — nach bezahltem Kauf (Owner 03.08.2026: „er kauft ein Model, ein Chat").
+ *
+ * VERLAENGERT AB DEM SPAETEREN VON HEUTE UND DEM BISHERIGEN ENDE. Wer im Juli drei Monate kauft
+ * und im August noch einmal, bekommt zwei Monate DAZU — nicht ab heute gerechnet, sonst
+ * verschenkt der treue Kunde den Rest, den er schon bezahlt hat. Genau dieser Fehler ist der
+ * Grund, warum Verlaengerungen ueberall unbeliebt sind.
+ *
+ * IDEMPOTENT ueber `redeemedZugang`: Der Browser fragt den Zahlungsstatus in einer Schleife ab;
+ * ohne diese Liste verlaengerte jede Antwort erneut.
+ */
+export async function chatZugangGewaehren(email: string, sessionId: string, monate: number): Promise<{ bis: string; granted: boolean }> {
+  const e = String(email ?? "").trim().toLowerCase();
+  const m = Math.max(1, Math.round(Number(monate) || 1));
+  if (!e || !sessionId) return { bis: "", granted: false };
+  const state = await readTryThisLookState();
+  const gemacht = (state.redeemedZugang = state.redeemedZugang ?? []);
+  const tabelle = (state.chatZugang = state.chatZugang ?? {});
+  if (gemacht.includes(sessionId)) return { bis: String(tabelle[e] ?? ""), granted: false };
+
+  const jetzt = Date.now();
+  const bisher = Date.parse(String(tabelle[e] ?? "")) || 0;
+  const start = new Date(Math.max(jetzt, bisher));
+  start.setMonth(start.getMonth() + m);
+  const bis = start.toISOString();
+
+  tabelle[e] = bis;
+  gemacht.push(sessionId);
+  await writeTryThisLookState(state);
+  return { bis, granted: true };
+}
+
+/** Bis wann er schreiben darf — leer heisst: gar nicht (oder abgelaufen). */
+export async function chatZugangBis(email: string): Promise<string> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return "";
+  const state = await readTryThisLookState();
+  const bis = String(state.chatZugang?.[e] ?? "");
+  /* Abgelaufenes wird NICHT geloescht, nur nicht mehr gemeldet: Der Eintrag ist der Beleg
+     dafuer, dass er einmal gekauft hat — und die Grundlage fuer die Verlaengerung oben. */
+  return bis && Date.parse(bis) > Date.now() ? bis : "";
+}
+
 export async function guthabenAbbuchen(email: string, schluessel: string, cents: number): Promise<{ ok: boolean; rest: number }> {
   const e = String(email ?? "").trim().toLowerCase();
   const state = await readTryThisLookState();

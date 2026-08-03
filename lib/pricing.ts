@@ -106,60 +106,30 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
 // der Waesche-Schritt und die zweite Kachelreihe weg — ein Kuss-Video kostet {once}, fertig.
 
 /**
- * DER CHAT: ZUGANG AUF ZEIT, KEIN ABO (Owner 03.08.2026).
+ * EIN MONAT, EIN PREIS (Owner 03.08.2026: „weisst du was, wir machen es simple, wir machen nur
+ * ein Monat").
  *
- * „Chat ist genauso wie Hochzeit. Es hat verschiedene Preise: 1 Monat, 2, 3, das ganze Jahr.
- * Und trotzdem ist es am Tag an Chat limitiert."
+ * Hier standen vier Stufen — 1 / 2 / 3 / 12 Monate zu 14,99 / 24,99 / 34,99 / 119,99 EUR, mit
+ * Waehler im Trichter. Der Owner hat sie noch am selben Abend gestrichen, und das ist die
+ * bessere Entscheidung: Ein Waehler ist eine Frage, die man dem Kunden stellt, bevor er weiss,
+ * ob ihm das Produkt gefaellt. Bei einem Chat, den er sieben Nachrichten lang kennt, ist „ja
+ * oder nein" die einzige Frage, die er beantworten kann.
  *
- * Damit faellt die LETZTE Abo-Stelle der Plattform. Danach gibt es genau EINEN Kaufweg: aus dem
- * Guthaben bezahlen — entweder ein Geschenk (einmalig) oder Zugang fuer eine gewaehlte Zeit.
- * Kein `createSubscriptionCheckout`, keine Kuendigung, kein `hasActiveSubscription`, keine
- * Monatsgutschriften. Das ist der groesste Wegfall an Code, den dieser Umbau bringt.
- *
- * KEIN TAGESLIMIT MEHR, SONDERN EIN KONTINGENT (Owner 03.08.2026: „10 Nachrichten? Das ist
- * aber echt wenig" — und: „du musst machen insgesamt, nicht pro Tag. Vielleicht will er den
- * ganzen Tag mit ihr reden").
- *
- * Das alte `DAILY_MSGS = 10` bestrafte genau den Kunden, den wir wollen: den, der sich
- * festredet. Ein Kontingent deckelt dieselben Kosten, ohne jemandem den Abend abzuschneiden —
- * er darf alles an einem Tag verbrauchen.
- *
- * DIE ZAHLEN SIND GERECHNET, NICHT GERATEN (Haiku 4.5: 1,00 $/Mio Eingabe, 5,00 $/Mio Ausgabe):
- *   System-Text 3.171 Token + Verlauf (bis 30) + Antwort (max 260) = rund 0,5 Euro-Cent je
- *   Nachricht. MIT Zwischenspeicher rund 0,25.
- *
- * ACHTUNG, DER ZWISCHENSPEICHER GREIFT HEUTE NICHT: Haiku 4.5 speichert erst ab 4.096 Token
- * Vorspann, unser System-Text hat 3.171. Wir zahlen ihn also bei JEDER Nachricht voll. Ihn zu
- * VERLAENGERN macht ihn billiger — das klingt falsch und ist gerechnet richtig. Solange das
- * nicht gemacht ist, gelten die halben Kontingente.
- */
-export const CHAT_KONTINGENT: Record<number, number> = {
-  1: 1000,   // 14,99 EUR — Extremfall 2,50 EUR Modellkosten (17 %)
-  2: 2000,   // 24,99 EUR — 5,00 EUR (20 %)
-  3: 3000,   // 34,99 EUR — 7,50 EUR (21 %)
-  12: 10000, // 119,99 EUR — 25,00 EUR (21 %)
-};
-
-/*
- * Der Deckel schuetzt vor dem EINEN, der zehntausend Nachrichten schreibt — nicht vor dem
- * Durchschnitt, der weit darunter liegt und deshalb nichts kostet.
- *
- * LOOKS SIND NICHT ENTHALTEN (Owner-Entscheidung, gleiche Stunde): Jeder neue Look kostet
- * weiter {extra} aus dem Guthaben. Er kostet uns einen Erzeugungslauf, und ein Paket, das
- * beliebig viele einschliesst, waere bei einem Vielnutzer ein Verlustgeschaeft.
- *
- * Die Leiter belohnt hier die laengere Bindung, anders als bei der Hochzeit:
- *   1 Monat  14,99 = 14,99 je Monat
- *   2 Monate 24,99 = 12,50 je Monat
- *   3 Monate 34,99 = 11,66 je Monat
- *  12 Monate 119,99 = 10,00 je Monat
+ * Als Liste (statt einer blanken Zahl) bleibt es stehen, weil Kasse und Trichter bereits
+ * darueber laufen — und weil eine zweite Laufzeit damit ein Tabelleneintrag ist, kein Umbau.
  */
 export const CHAT_STUFEN = [
   { monate: 1, cents: 1499 },
-  { monate: 2, cents: 2499 },
-  { monate: 3, cents: 3499 },
-  { monate: 12, cents: 11999 },
 ] as const;
+
+/**
+ * WIE VIELE NACHRICHTEN IM MONAT. Gerechnet mit 0,09 Euro-Cent je Nachricht (nach dem Umbau am
+ * Zwischenspeicher, siehe app/api/model-chat): 1.000 Nachrichten kosten rund 0,86 EUR von
+ * 14,99 EUR. Alles am Stueck verbrauchbar — der Deckel schuetzt vor dem EINEN, der ihn
+ * ausreizt, nicht vor dem Durchschnitt, der weit darunter liegt.
+ */
+export const CHAT_KONTINGENT: Record<number, number> = { 1: 1000 };
+
 
 /**
  * DIE HOCHZEIT: EINMALIG KAUFEN, LAUFZEIT WAEHLEN (Owner 03.08.2026).

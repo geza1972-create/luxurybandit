@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
 import { fillPrices, CHAT_STUFEN, eur } from "@/lib/pricing";
+import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
 import { CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
@@ -138,11 +139,11 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const [usedLooks, setUsedLooks] = useState(0);
   const [paid, setPaid] = useState(false);
   /**
-   * WELCHE LAUFZEIT ER GEWAEHLT HAT. Vorbelegt sind die 3 Monate — die mittlere Stufe, damit
-   * die Wahl nicht von der billigsten aus nach oben verhandelt werden muss.
+   * EIN MONAT, EIN PREIS (Owner 03.08.2026: „wir machen nur ein Monat" · „niemand kauft mehr").
+   * Hier stand ein Zustand fuer die gewaehlte Laufzeit — es gibt nichts mehr zu waehlen.
    */
-  const [stufe, setStufe] = useState<number>(3);
-  const gewaehlt = CHAT_STUFEN.find(x => x.monate === stufe) ?? CHAT_STUFEN[0];
+  const gewaehlt = CHAT_STUFEN[0];
+  const stufe = gewaehlt.monate;
 
   /**
    * DIE WOERTER UM DIE ZAHL HERUM SIND EBENFALLS SPRACHE — dieselbe Falle wie auf der
@@ -162,6 +163,8 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     const t = T[lang] ?? T.en;
     const dauer = (m: number) => (m === 12 ? t.jahr : `${m} ${m === 1 ? t.monat : t.monate}`);
     return { dauer, laeuft: (m: number) => t.laeuft.replace("{n}", dauer(m)) };
+    /* `dauer` kann weiter mehrere Laufzeiten — falls je eine zweite dazukommt, ist sie ein
+       Tabelleneintrag in CHAT_STUFEN und kein Umbau hier. */
   })();
 
   const [payBusy, setPayBusy] = useState(false);
@@ -171,6 +174,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const [chatLang, setChatLang] = useState("en");   // Startsprache ihrer Antworten
   const [today, setToday] = useState(0);          // heute schon geschrieben
   const [gesamt, setGesamt] = useState(0);        // insgesamt geschrieben (entscheidet ueber die Wand)
+  const [zugangBis, setZugangBis] = useState(""); // ISO-Datum vom Server; leer = kein Zugang
   const modelFileRef = useRef<HTMLInputElement>(null);
   const swipeRef = useRef(0);
   const swipedRef = useRef(false);
@@ -197,7 +201,25 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     try {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
-      setPaid(localStorage.getItem(PAID_KEY) === "1");
+      /**
+       * DER SERVER ENTSCHEIDET, NICHT DER BROWSER (Owner 03.08.2026).
+       *
+       * Hier stand `setPaid(localStorage.getItem(PAID_KEY) === "1")` — ein Ja/Nein ohne Ablauf,
+       * auf dem zweiten Geraet weg und mit einer Zeile in der Konsole gesetzt. Jetzt fragt der
+       * Trichter unter der Adresse nach, bis wann er schreiben darf.
+       *
+       * Das alte Merkmal bleibt als Rueckfall stehen, bis die Leute die neue Kasse durchlaufen
+       * haben: Wer gestern bezahlt hat, soll heute nicht vor einer Wand stehen.
+       */
+      const altGekauft = localStorage.getItem(PAID_KEY) === "1";
+      setPaid(altGekauft);
+      const adr = aktiveAdresse();
+      if (adr) {
+        fetch(`/api/chat-zugang?email=${encodeURIComponent(adr)}`)
+          .then(r => r.json())
+          .then(d => { if (d?.bis) { setPaid(true); setZugangBis(String(d.bis)); } })
+          .catch(() => { /* Netz weg: es bleibt beim Rueckfall oben */ });
+      }
       // Startsprache = die gewählte Seitensprache (Cookie), sonst Browser, sonst EN.
       const m2 = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
       const fromCookie = m2 ? decodeURIComponent(m2[1]).slice(0, 2) : "";
@@ -622,15 +644,11 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
             <div className="text-center">
               <p className="text-[13px] font-black text-black">{u.keep} {herName}</p>
               <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">{u.anyLang}</p>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                {CHAT_STUFEN.map(st => (
-                  <button key={st.monate} type="button" onClick={() => setStufe(st.monate)}
-                    className={`rounded-xl border-2 px-2 py-2 text-left transition ${st.monate === stufe ? "border-black bg-black/[0.04]" : "border-black/15"}`}>
-                    <span className="block text-[11px] font-black text-black/60">{P.dauer(st.monate)}</span>
-                    <span className="block text-[15px] font-black text-black">{eur(st.cents, lang)}</span>
-                  </button>
-                ))}
-              </div>
+              {/* HIER STAND DER STUFEN-WAEHLER (1/2/3/12 Monate). Owner 03.08.2026, kurz nach dem
+                  Einbau: „weisst du was, wir machen es simple, wir machen nur ein Monat." Richtig —
+                  ein Waehler ist eine Frage, die man stellt, bevor der Kunde weiss, ob ihm das
+                  Produkt gefaellt. Nach sieben Nachrichten kann er „ja oder nein" beantworten,
+                  nicht „ein oder drei Monate". */}
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
                 {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
