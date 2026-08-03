@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fillPrices } from "@/lib/pricing";
-import { Play, Download, X, Loader2, Trash2 } from "lucide-react";
+import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -272,6 +272,45 @@ export default function MyGalleryPage() {
 
   // Cross-origin (Supabase) → per Blob laden, damit der Browser wirklich SPEICHERT
   // statt nur zu öffnen. Fällt auf „in neuem Tab öffnen" zurück, falls CORS blockt.
+  /** Teilen-Rueckmeldung: „kopiert" statt eines stummen Knopfs. */
+  const [teilenBusy, setTeilenBusy] = useState(false);
+  const [teilenText, setTeilenText] = useState("");
+
+  /**
+   * TEILEN: erst freischalten, dann verschicken.
+   *
+   * Die Werk-Seite /w/<id> ist privat, bis der Besitzer teilt — das ist die Zusage, die im
+   * Trichter unter jedem Schritt steht. Deshalb ZUERST der Stempel und erst danach der Link;
+   * andersherum verschickt er einen Link, hinter dem „Diese Karte ist privat" steht.
+   *
+   * Schlaegt das Freischalten fehl (Try-on-Videos zum Beispiel haben gar keinen Werk-Eintrag),
+   * geht die direkte Video-Adresse raus. Lieber ein nackter Link als kein Link.
+   */
+  const teilen = async (it: Item) => {
+    setTeilenBusy(true); setTeilenText("");
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    let url = it.videoUrl ?? "";
+    try {
+      const r = await fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ share: it.id, device }),
+      });
+      if (r.ok) url = `${window.location.origin}/w/${encodeURIComponent(it.id)}`;
+    } catch { /* bleibt bei der direkten Adresse */ }
+    try {
+      if (navigator.share) {
+        await navigator.share({ url });
+        setTeilenText("");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setTeilenText("Link kopiert");
+        setTimeout(() => setTeilenText(""), 2500);
+      }
+    } catch { /* abgebrochen — keine Meldung, er hat sich bewusst dagegen entschieden */ }
+    setTeilenBusy(false);
+  };
+
   const download = async (it: Item) => {
     const url = it.videoUrl || it.imageUrl;
     if (!url) return;
@@ -402,9 +441,24 @@ export default function MyGalleryPage() {
                   * (Hausregel aus der Feed-Spezifikation: nie ein schwarzer Kasten).
                   */}
                 {!it.imageUrl && it.videoUrl ? (
+                  /**
+                   * `#t=0.1` IST DAS POSTER (Owner 03.08.2026: „das Video ist ohne Poster in
+                   * der Galerie").
+                   *
+                   * `preload="metadata"` holt Laenge und Masse — aber KEIN Bild. Genau das
+                   * hiess auf dem Schirm: schwarze Kachel mit Play-Dreieck. Das Zeitfragment
+                   * sagt dem Browser, an welche Stelle er springen soll, und dann zeichnet er
+                   * dieses eine Bild. Kostet ein paar Kilobyte statt eines eigenen
+                   * Poster-Bildes, das erst irgendwer erzeugen muesste.
+                   *
+                   * `pointer-events-none`: Ein `<video>` schluckt auf dem Rechner den Klick,
+                   * bevor er die Kachel erreicht — deshalb liess sich das Video „nicht
+                   * vergroessern". Das Element ist hier reine Anzeige; geklickt wird die
+                   * Kachel darunter.
+                   */
                   // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <video src={it.videoUrl} preload="metadata" muted playsInline
-                    className="h-full w-full object-cover object-top" />
+                  <video src={`${it.videoUrl}#t=0.1`} preload="metadata" muted playsInline
+                    className="pointer-events-none h-full w-full object-cover object-top" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
@@ -489,10 +543,34 @@ export default function MyGalleryPage() {
               className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95">
               <X className="h-5 w-5" />
             </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); void download(open); }} disabled={downloading}
-              className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
-              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
-            </button>
+            <div className="flex items-center gap-2">
+              {/**
+                * TEILEN AUCH VOM RECHNER (Owner 03.08.2026: „ich kann es nicht sharen. Ich will
+                * das auch vom Rechner dann den Link schicken").
+                *
+                * Auf dem Handy oeffnet `navigator.share` das Systemmenue (WhatsApp, Mail …).
+                * Auf dem Rechner gibt es das fast nirgends — dort wird der Link in die
+                * Zwischenablage gelegt und der Knopf sagt „kopiert". Beides fuehrt zum selben
+                * Ziel: der Werk-Seite /w/<id>, die den Kuss in der Karte zeigt.
+                *
+                * Der Link wird VORHER freigeschaltet (`share`), denn die Werk-Seite ist privat,
+                * bis der Besitzer ausdruecklich teilt. Ohne diesen Schritt bekaeme der
+                * Empfaenger „Diese Karte ist privat" — ein toter Link, verschickt in gutem
+                * Glauben.
+                */}
+              {open.videoUrl && (
+                <button type="button" disabled={teilenBusy}
+                  onClick={(e) => { e.stopPropagation(); void teilen(open); }}
+                  className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-[13px] font-black text-white active:scale-95 disabled:opacity-50">
+                  {teilenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {teilenText || "Teilen"}
+                </button>
+              )}
+              <button type="button" onClick={(e) => { e.stopPropagation(); void download(open); }} disabled={downloading}
+                className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
+                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
+              </button>
+            </div>
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center p-3" onClick={(e) => e.stopPropagation()}>
             {open.videoUrl ? (
