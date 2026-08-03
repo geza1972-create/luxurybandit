@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import SchleifenVideo from "@/components/SchleifenVideo";
 import { fillPrices } from "@/lib/pricing";
 import TrackView from "@/components/TrackView";
 import PaidReturn from "@/components/PaidReturn";
@@ -78,6 +79,26 @@ export default async function ChatThemePage({ searchParams }: {
         <Lead>{t.lead}</Lead>
         <PaidReturn lang={L} />
         <Fine>{fillPrices(t.fine, L)}</Fine>
+
+        {/*
+          * DAS EINLADUNGSVIDEO (Owner 03.08.2026: „für den Chat nimm das Video, das ich dir in
+          * public unter Chat reingestellt habe").
+          *
+          * Es steht GROSS und ALLEIN ueber dem Kachelstreifen, nicht als siebte Kachel darin.
+          * Der Owner hat es „Private Chat Invitation" genannt — eine Einladung ist etwas, das
+          * man ansieht, keine Auswahl, durch die man wischt.
+          *
+          * `SchleifenVideo` statt `loop` ist die Hausregel seit heute Vormittag: Am Ende steht
+          * ein anderes Bild als am Anfang, `loop` schnitte also alle paar Sekunden hart um.
+          *
+          * Der Pfad ist prozentkodiert, weil die Datei Leerzeichen im Namen hat. Auf Vercel
+          * zaehlt ausserdem die Gross-/Kleinschreibung — „/Chat/" mit grossem C ist Absicht.
+          */}
+        <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+          <div className="aspect-[9/16] w-full">
+            <SchleifenVideo src="/Chat/Private%20Chat%20Invitation_1080p.mp4" />
+          </div>
+        </div>
 
         {(photos.length > 0 || clips.length > 0) && (
           <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

@@ -1,92 +1,139 @@
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
-import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
-import SurpriseFunnel from "@/components/SurpriseFunnel";
-import { getSignedUrl } from "@/lib/try-this-look-store";
-import { fillPrices } from "@/lib/pricing";
+import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
+import { Lock } from "lucide-react";
+import KissFunnel from "@/components/KissFunnel";
+import { resolveLang } from "@/lib/lang-server";
+import { kissText } from "@/lib/kiss-i18n";
+import { POLEDANCE_VIDEO } from "@/lib/poledance";
 
-// THEMA „Surprise him" (ehemals City Secrets) — SIE lädt ihr eigenes Foto hoch, zahlt
-// 3,99 € und schickt ihm ein privates Video. Gleiches Schema wie überall: Fake-Render →
-// Teaser → zahlen → echter Render. Neu ist nur der Versandweg (privater Link per E-Mail).
+/**
+ * THEMA „SURPRISE HIM" — DER TANZ (Owner 03.08.2026).
+ *
+ * DIE SEITE IST NEU GEBAUT, NICHT ERGAENZT. Vorher lief hier ein eigener Trichter
+ * (`components/SurpriseFunnel.tsx`, 333 Zeilen) mit einem eigenen Weg: Schein-Rendern,
+ * Teaser, zahlen, echtes Rendern, Versand per E-Mail-Link. Der Owner hat entschieden, dass
+ * dieses Thema „ueber den gleichen Trichter wie Kiss" laeuft — und damit faellt der zweite
+ * Weg weg. Ein Trichter, ein Guthaben, eine Kasse, eine Auslieferung, ein Pflegeort.
+ *
+ * WAS DIE SEITE UEBERNIMMT: den Aufbau der Kuss-Seite (Owner: „das gleiche Design") —
+ * Ueberschrift, drei Zeilen „so geht es", die Privat-Zusage, der Trichter, das Beispielvideo
+ * und die Anlaesse. In derselben Reihenfolge und aus derselben Sprachtabelle.
+ */
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Surprise your boyfriend tonight — one private video | LuxuryBandit",
-  description: fillPrices("Upload your own photo, and we turn it into a short private video for him: he gets a plain email with a link only he can open. {extra}, nothing is posted anywhere."),
-  keywords: ["surprise your boyfriend", "surprise him tonight", "private video for boyfriend", "romantic surprise idea", "ai video from photo", "photo to video ai", "send a private video"],
+  title: "Surprise him with a hot pole dance — one private AI video | LuxuryBandit",
+  description: "Upload one photo of yourself and the AI puts you in the outfit and on the pole: a short private video, made for him alone. Nothing is posted anywhere.",
+  keywords: ["surprise your boyfriend", "surprise him tonight", "pole dance video", "private video for boyfriend", "ai video from photo", "photo to video ai", "romantic surprise idea"],
   alternates: { canonical: "/themes/surprise" },
 };
 
-export default async function SurpriseThemePage() {
-  // Beispielfoto (Gina in Rot) — liegt im Storage unter diesem festen Pfad. Fehlt es,
-  // zeigt die Upload-Karte einfach nur die Aufforderung.
-  const example = (await getSignedUrl("try-this-look/uploads/surprise-example.jpg").catch(() => "")) || "";
-  // Beispielvideo: genau das, was hinten rauskommt (Gina im roten Set, sie spricht ihn an).
-  const exampleVideo = (await getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => "")) || "";
+export default async function SurpriseThemePage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const L = await resolveLang();              // Sprache der Seite (Cookie)
+  const T = kissText(L, "poledance");         // Ueberschrift und Zeilen in seiner Sprache
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
 
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        <div>
-            <Kicker>LuxuryBandit · Surprise</Kicker>
-            <H1>Surprise him <Y>tonight</Y></H1>
-            <Lead>
-              One photo of you is enough. Pick a set, type his name — and you say it out loud in a
-              short video that is yours to download and send to him yourself.
-            </Lead>
-            <Fine>
-              You decide how much you show. {fillPrices("{extra} per video.")} Nothing is posted anywhere.
-            </Fine>
+        <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
 
-            {/* Das Ergebnis steht GANZ OBEN (Owner): erst sehen, was rauskommt, dann lesen. */}
-            {exampleVideo && (
-              <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video src={exampleVideo} controls loop playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
-              </div>
-            )}
+        {/* DREI ZEILEN, BEVOR SIE SCROLLT — wie beim Kuss. Die Zeile darunter ist die
+            wichtigste: Niemand laedt ein Foto von sich in Unterwaesche hoch, ohne zu wissen,
+            wer es sieht. Die Antwort ist gut, also gehoert sie nach oben. */}
+        <ol className="mt-3 space-y-1.5">
+          {T.wieGeht.map((zeile: string, i: number) => (
+            <li key={i} className="flex gap-2.5 text-[13.5px] font-semibold leading-snug text-white/75">
+              <span className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[11px] font-black text-[#f6cf51]">
+                {i + 1}
+              </span>
+              {zeile}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-[#f6cf51]">
+          <Lock className="mt-[2px] h-3.5 w-3.5 shrink-0" />
+          {T.wieGehtPrivat}
+        </p>
 
-            <SurpriseFunnel example={example} />
+        {/* DAS ERGEBNIS ZUERST (Owner, seit dem Kuss die Hausordnung): erst sehen, was
+            herauskommt, dann lesen, wie es geht. Es ist genau das Video, mit dem der Owner
+            den Auftrag gegeben hat — und genau das, was die Kette hinten ausspuckt.
 
+            IN DER KARTE, NICHT IN EINEM KASTEN (Owner 03.08.2026: „ich bitte dich, benutze
+            IMMER die Cards für die Videos mit Titel oben und Made by Luxurybandit.com. Genau
+            wie Kiss"). Hier stand ein nacktes gerundetes Rechteck — dieselbe Datei, aber ohne
+            Rahmen, ohne Ranken, ohne Herkunft. Das ist der Unterschied zwischen einer Vorschau
+            und einem Geschenk: Die Karte ist das Produkt, das Video ist nur ihr Inhalt.
 
-            <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
-              <div>
-                <SectionTitle>How it stays private</SectionTitle>
-                <Lead>
-                  We do not send it for you and we do not publish it: the video lands as a download
-                  on your phone, and you decide who ever sees it. It appears in no feed, no gallery
-                  and no profile. Want the file gone from our side too? Write to us and it is deleted.
-                </Lead>
-              </div>
-              <div>
-                <SectionTitle>Only for photos of yourself</SectionTitle>
-                <Lead>
-                  Before anything renders you confirm that the photo shows you and that you are 18 or
-                  older. Please keep it that way: making an intimate video of someone else, or passing
-                  one on without their consent, is a criminal offence in most countries.
-                </Lead>
-              </div>
-              <div>
-                <SectionTitle>She says his name out loud</SectionTitle>
-                <Lead>
-                  Type his first name and the video speaks it: “Hello Michael, how are you?” — your
-                  face, your voice moment, his name. That is what turns a nice clip into something he
-                  knows was made for him alone. Nothing generic, no template greeting.
-                </Lead>
-              </div>
-              <div>
-                <SectionTitle>A romantic surprise idea that is actually yours</SectionTitle>
-                <Lead>
-                  Not a template, not a card: it is your photo, moving, in your own light. Upload it,
-                  watch the result first, and only then decide whether to send it. Made with the same
-                  video AI we use for our AI influencers — the expensive one, so your face stays your face.
-                </Lead>
-              </div>
-            </section>
+            `EinladungAnsicht` bringt Ton-Knopf und die weiche Schleife mit (zwei Spieler
+            blenden ineinander, kein `loop` — Hausregel: kein Schnitt alle sieben Sekunden). */}
+        {/* NUR EINE KARTE, UND ES IST DIE DES TRICHTERS.
+            Hier stand kurzzeitig eine zweite, eigene Karte ueber dem Trichter — und darunter
+            stand die des Trichters leer da. Zweimal dasselbe Video untereinander ist kein
+            „mehr zeigen", sondern ein Fehler, den jeder sieht. Der Trichter nimmt das
+            Beispiel entgegen und fuellt seine eigene Karte damit; sobald ihr Video fertig
+            ist, tritt es an dieselbe Stelle. Genau wie beim Kuss.
+
+            Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
+        <KissFunnel variant="poledance" code={code} lang={L} beispielVideo={POLEDANCE_VIDEO} />
+
+        {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
+            Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.
+            Umgekehrt waere es eine Predigt vor dem Beweis. */}
+        <div className="mt-12">
+          <SectionTitle>{T.anlaesseTitel}</SectionTitle>
+          <ul className="mt-3 space-y-2">
+            {T.anlaesse.map((zeile: string, i: number) => (
+              <li key={i} className="flex gap-2.5 text-[14px] font-semibold leading-snug text-white/75">
+                <span className="mt-[3px] text-[13px] leading-none text-[#f6cf51]">❤</span>
+                {zeile}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 border-l-2 border-[#f6cf51]/50 pl-3 text-[15px] font-black leading-snug text-white">
+            {T.anlaesseSchluss}
+          </p>
         </div>
+
+        <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
+          <div>
+            <SectionTitle>How it stays private</SectionTitle>
+            <Lead>
+              We do not send it for you and we do not publish it: the video lands in your gallery
+              and as a download on your phone, and you decide who ever sees it. It appears in no
+              feed and on no profile. Want the file gone from our side too? Write to us and it is
+              deleted.
+            </Lead>
+          </div>
+          <div>
+            {/* Diese Ueberschrift bleibt aus der alten Seite — sie ist der Satz, der hier am
+                meisten zaehlt, und er stand schon vor diesem Umbau richtig da. */}
+            <SectionTitle>Only for photos of yourself</SectionTitle>
+            <Lead>
+              Before anything renders you confirm that the photo shows you — or someone who has
+              allowed you to use it — and that everyone shown is 18 or older. Please keep it that
+              way: making an intimate video of someone else, or passing one on without their
+              consent, is a criminal offence in most countries.
+            </Lead>
+          </div>
+          <div>
+            <SectionTitle>Why your face still looks like your face</SectionTitle>
+            <Lead>
+              Your photo and the outfit go to the video model together, in one pass — so what
+              moves on screen is built from your own picture rather than from a copy of it. That is
+              the whole point of putting yourself in the video, and it is what the price pays for.
+              AI-generated, private, yours.
+            </Lead>
+          </div>
+        </section>
       </div>
     </main>
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS } from "@/lib/pricing";
-import { guthabenAbbuchen } from "@/lib/try-this-look-store";
+import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, poledancePriceId, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS } from "@/lib/pricing";
+import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout, createTryonCheckout } from "@/lib/stripe";
@@ -115,11 +115,22 @@ export async function POST(request: Request) {
      * behandelt `walletPaid` wie eine bestaetigte Zahlung.
      */
     /**
-     * EIN PREIS (Owner 03.08.2026: „wir machen das raus" — zum Lingerie-Video).
-     * Hier stand ein zweiter Preis, der einen FASHN-Lauf VOR dem Pixverse-Lauf bezahlte.
-     * Das Produkt ist raus, also auch der Aufpreis und der Sonderweg dahin.
+     * ZWEI PREISE — UND DER AUFTRAG ENTSCHEIDET, NICHT DER BROWSER (Owner 03.08.2026: der
+     * Tanz „soll 3,99 kosten", der Kuss bleibt bei {once}).
+     *
+     * Der Trichter schickt kein Preisschild mit, und er wird auch nicht danach gefragt: Ein
+     * Browser, der „ich bin ein Kuss" behauptet, koennte sich ein Tanz-Video zum halben Preis
+     * holen. Massgeblich ist das Thema, das beim ANLEGEN des Auftrags gespeichert wurde —
+     * lange bevor Geld im Spiel war.
+     *
+     * Findet sich der Auftrag nicht, gilt {once}. Das ist der billigere Weg und damit der
+     * hoefliche Irrtum: Lieber einmal zu wenig verlangt als einem Kunden zu viel abgebucht.
      */
-    const preis = ONCE_CENTS;
+    const thema = genId
+      ? await readKissLog().then(l => String(l.find(x => x.id === genId)?.theme ?? "")).catch(() => "")
+      : "";
+    const tanz = thema === "poledance";
+    const preis = tanz ? POLEDANCE_CENTS : ONCE_CENTS;
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
@@ -148,7 +159,12 @@ export async function POST(request: Request) {
       const { id, url } = await createTryonCheckout({
         amount: preis,
         currency: "eur",
-        productName: "Kiss video — one-off",
+        // Der Tanz laeuft ueber die im Stripe-Konto angelegte Kennung (Owner 03.08.2026) —
+        // Produktname und Steuerverhalten stehen dann dort, wo er sie sieht. `amount` bleibt
+        // trotzdem gesetzt: Es ist der Wert, gegen den die Kennung geprueft wurde, und der
+        // Rueckfall, falls die Kennung je gezogen wird.
+        ...(tanz ? { priceId: poledancePriceId() } : {}),
+        productName: tanz ? "Pole dance video — one-off" : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
         /**
