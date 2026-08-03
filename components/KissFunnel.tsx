@@ -30,7 +30,7 @@ import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
 import { kissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
-import { POLEDANCE_PROMPT, POLEDANCE_SETS, poledancePromptFuerSet } from "@/lib/poledance";
+import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
 import { GEBURTSTAG_PROMPT, geburtstagTitel } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
@@ -826,6 +826,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const garderobe = V.nurSie && variant === "poledance" ? POLEDANCE_SETS.map(x => ({ id: x.id, name: x.name, imageUrl: x.bild })) : [];
   const [neuerLook, setNeuerLook] = useState("");
+  /**
+   * WELCHEN FERTIGEN TANZ SIE UEBERNIMMT (Owner 03.08.2026: „es muss auf jeder Karte ein
+   * Replace Model stehen"). Leer = der erste; die Route faellt ohne ihn auf den Referenz-Modus
+   * zurueck.
+   */
+  const [refVideo, setRefVideo] = useState("");
   const [probe, setProbe] = useState("");   // Ergebnis des Probelaufs (nur Admin)
 
   const genMerken = (id: string) => {
@@ -1834,8 +1840,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * Nur beim Tanz und nur, wenn ein Beispielvideo da ist. Die Route faellt von selbst
            * auf den Referenz-Modus zurueck, wenn sie es nicht erreichen kann (lokal).
            */
-          ...(variant === "poledance" && beispielVideo
-            ? { mimicVideoUrl: new URL(beispielVideo, window.location.origin).href }
+          ...(variant === "poledance" && (refVideo || beispielVideo)
+            ? { mimicVideoUrl: new URL(refVideo || beispielVideo, window.location.origin).href }
             : {}),
           /**
            * 540p BEIM TANZ (`hd`), nicht 360p.
@@ -3171,38 +3177,45 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         </div>
       )}
       {/**
-        * DIE LOOK-AUSWAHL, DIREKT UNTER DEN ZWEI KACHELN (Owner 03.08.2026: „es müsste doch
-        * hier kommen" — mit Bildschirmfoto des Schritts VOR dem Erzeugen — und: „drunter").
+        * JEDE KARTE EIN TANZ, JEDE KARTE EIN KNOPF (Owner 03.08.2026: „es muss auf jeder Karte
+        * ein Replace Model stehen" · „wir geben die Videos als Referenz").
         *
-        * Ich hatte sie zuerst nur UNTER das fertige Video gesetzt. Das war die halbe Antwort:
-        * Dort hilft sie beim naechsten Video, hier entscheidet sie ueber DIESES. Wer das feste
-        * Neon-Set sieht und nichts anderes wollen darf, hat keine Wahl — er hat eine Vorgabe.
+        * HIER STAND DIE SET-AUSWAHL — sechs Standbilder, aus denen Pixverse einen Tanz erfinden
+        * sollte. Daran ist heute alles gescheitert, was scheitern konnte: erst der Kleiderschrank
+        * (keine Szene), dann das Springen, dann das gruene Set ueber ihrem roten Shirt. Die
+        * Ursache hat der Owner benannt: „der nimmt ein Teil von ihrer Wäsche und von unserem."
         *
-        * Der grosse weisse Garderoben-Kasten weiter unten bleibt, wo er ist: Der erscheint erst
-        * NACH der Zahlung (Owner 31.07.2026) und ist eine andere Sache. Diese Zeile hier ist
-        * eine Auswahl vor dem Kauf, kein Katalog danach.
+        * Ein fertiger Tanz hat keine dieser Fragen. Bewegung, Outfit, Stange und Neon sind
+        * darin richtig; sie uebernimmt ihn, und mehr passiert nicht. Der Knopf sagt genau das.
+        *
+        * Die Karten liegen IM Trichter und nicht auf der Seite, weil das Foto hier liegt: Ein
+        * Tipp genuegt, kein Sprung, kein zweiter Ort, an dem dasselbe noch einmal steht.
         */}
-      {V.nurSie && !!V.garmentBild && garderobe.length > 0 && !!selPhoto && (
-        <div className="mt-3">
-          <p className="text-[11px] font-black uppercase tracking-wide text-[#f6cf51]/80">{T.nochEins}</p>
-          <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {/* Das Haus-Set zuerst — es ist das, mit dem das Beispielvideo entstanden ist. */}
-            {/* Das Haus-Set steht als erster Eintrag IN der Liste (lib/poledance.ts) — kein
-                kuenstlicher Zusatz mehr, sonst staende es zweimal da. */}
-            {garderobe.map(l => {
-              const an = (neuerLook || V.garmentBild) === l.imageUrl;
+      {variant === "poledance" && !!selPhoto && !videoUrl && (
+        <div className="mt-4">
+          <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.nochEins}</p>
+          <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {POLEDANCE_REFERENZEN.map(r => {
+              const an = (refVideo || POLEDANCE_REFERENZEN[0].video) === r.video;
               return (
-                <button key={l.id} type="button" onClick={() => setNeuerLook(l.imageUrl === V.garmentBild ? "" : l.imageUrl)}
-                  className={`relative w-[74px] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-white transition active:scale-95 ${an ? "border-[#f6cf51]" : "border-white/20"}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={l.imageUrl} alt="" draggable={false} className="aspect-[3/4] w-full object-cover" />
-                  {an && <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-[#f6cf51]"><Check className="h-3 w-3 text-black" /></span>}
-                </button>
+                <div key={r.id} className={`w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl border-2 transition ${an ? "border-[#f6cf51]" : "border-white/15"}`}>
+                  {/* Standbild aus dem Video selbst: `#t=0.1` ist ein Bild ohne zweite Datei —
+                      `preload="metadata"` laedt dafuer nur den Kopf, nicht den ganzen Film. */}
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={`${r.video}#t=0.1`} muted playsInline preload="metadata"
+                    className="aspect-[3/4] w-full object-cover" />
+                  <button type="button"
+                    onClick={() => { setRefVideo(r.video); setStatus(""); }}
+                    className={`flex h-9 w-full items-center justify-center gap-1.5 text-[11px] font-black transition active:scale-95 ${an ? "bg-[#f6cf51] text-black" : "bg-white/10 text-white/80"}`}>
+                    {an ? <><Check className="h-3.5 w-3.5" /> {T.replaceGewaehlt}</> : T.replaceModel}
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       )}
+
       {/**
         * DER PROBELAUF — NUR FUER DEN ADMIN (Owner 03.08.2026: „ja", auf den Vorschlag, ihn
         * einzubauen).

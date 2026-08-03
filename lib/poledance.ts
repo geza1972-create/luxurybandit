@@ -155,7 +155,32 @@ export const poledancePromptFuerSet = (): string =>
  */
 export const POLEDANCE_BEISPIELE: { id: string; video: string }[] = [
   { id: "b1", video: POLEDANCE_VIDEO },
-  { id: "b2", video: "/Pooldance/beispiel-2.mp4" },
-  { id: "b3", video: "/Pooldance/beispiel-3.mp4" },
+  { id: "b2", video: "/Pooldance/ref-1.mp4" },
+  { id: "b3", video: "/Pooldance/ref-5.mp4" },
+];
+
+/**
+ * DIE REFERENZVIDEOS FUER DIE BEWEGUNGSSTEUERUNG (Owner 03.08.2026: „ich habe dir noch
+ * Referenzvideos reingemacht" · „es muss auf jeder Karte ein Replace Model stehen").
+ *
+ * DAS IST DER GANZE TRICHTER IN EINER LISTE. Jede Karte zeigt einen fertigen Tanz — Bewegung,
+ * Outfit, Stange, Neon sind darin schon richtig — und der Knopf darauf heisst: nimm DIESEN und
+ * setz mich hinein. Es gibt nichts zu beschreiben und nichts zu mischen; genau daran sind
+ * heute alle Versuche mit Prompt und Set-Bild gescheitert.
+ *
+ * Alle 3:4 mit Tonspur, 3 bis 7 Sekunden, vom Owner in Pixverse erzeugt.
+ */
+export const POLEDANCE_REFERENZEN: { id: string; video: string }[] = [
+  { id: "r0", video: POLEDANCE_VIDEO },
+  { id: "r1", video: "/Pooldance/ref-1.mp4" },
+  { id: "r2", video: "/Pooldance/ref-2.mp4" },
+  { id: "r3", video: "/Pooldance/ref-3.mp4" },
+  { id: "r4", video: "/Pooldance/ref-4.mp4" },
+  { id: "r5", video: "/Pooldance/ref-5.mp4" },
+  /* ALLE, die da sind (Owner 03.08.2026: „du sollst alle Videos nehmen"). Die beiden
+     Beispielvideos von vorhin sind ebenfalls fertige Taenze — sie nur unten auf der Seite zu
+     zeigen und hier nicht anzubieten, waere eine Trennung ohne Grund. */
+  { id: "r6", video: "/Pooldance/beispiel-2.mp4" },
+  { id: "r7", video: "/Pooldance/beispiel-3.mp4" },
 ];
 
