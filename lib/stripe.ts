@@ -225,15 +225,28 @@ export async function getCheckoutSession(id: string): Promise<{
   status: string;          // "open" | "complete" | "expired"
   metadata: Record<string, string>;
   amountTotal: number | null;
+  /** Der BESTELLWERT vor Rabatt — bei einem 100-%-Gutschein ist `amountTotal` null/0. */
+  amountSubtotal: number | null;
+  /** Der eingeloeste Aktionscode im Klartext („ADMIN1972"), falls einer benutzt wurde. */
+  promoCode: string;
   clientReferenceId: string;
   customerEmail: string;
 }> {
-  const s = await stripeRequest("GET", `/checkout/sessions/${encodeURIComponent(id)}`);
+  // `expand`: Ohne das liefert Stripe im Rabatt nur die Kennung (`promo_1Tt7…`), nicht den
+  // Code, den der Kunde getippt hat — und genau den brauchen wir fuer die Freigabe-Liste.
+  const s = await stripeRequest("GET",
+    `/checkout/sessions/${encodeURIComponent(id)}?expand[]=total_details.breakdown.discounts.discount.promotion_code`);
+  const rabatte = (s.total_details?.breakdown?.discounts ?? []) as Array<{ discount?: { promotion_code?: { code?: string } | string } }>;
+  const code = rabatte
+    .map(d => (typeof d?.discount?.promotion_code === "object" ? d.discount?.promotion_code?.code : "") ?? "")
+    .find(Boolean) ?? "";
   return {
     paymentStatus: String(s.payment_status ?? ""),
     status: String(s.status ?? ""),
     metadata: (s.metadata ?? {}) as Record<string, string>,
     amountTotal: typeof s.amount_total === "number" ? s.amount_total : null,
+    amountSubtotal: typeof s.amount_subtotal === "number" ? s.amount_subtotal : null,
+    promoCode: String(code).trim().toUpperCase(),
     clientReferenceId: String(s.client_reference_id ?? ""),
     customerEmail: String(s.customer_details?.email ?? s.customer_email ?? ""),
   };

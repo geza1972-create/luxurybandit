@@ -136,7 +136,32 @@ export async function GET(request: Request) {
        * mit einem kursierenden Code haette dasselbe Loch. `amountTotal` ist Stripes Zahl
        * NACH Rabatt; die Metadaten bleiben nur Rueckfall fuer Alt-Sessions ohne Betrag.
        */
-      const cents = typeof s.amountTotal === "number" ? s.amountTotal : (Number(s.metadata.cents ?? 0) || 999);
+      /**
+       * FREIGEGEBENE GUTSCHEINE SCHREIBEN DEN BESTELLWERT GUT (Owner 03.08.2026: „wenn ich mit
+       * Gutschein bezahle und tatsaechlich 0 Euro habe, dann muss ich zumindest die
+       * Videocredits sehen im Wert von 4,99").
+       *
+       * Er hat recht, und zwar handelsrechtlich: Ein 100-%-Gutschein IST eine Bezahlung — man
+       * hat sie nur selbst verschenkt. Die Regel „gutgeschrieben wird, was bezahlt wurde"
+       * bleibt trotzdem der Standard, denn ohne sie ist jeder kursierende Code eine offene
+       * Kasse (so entstanden die 9,99 EUR Phantom-Guthaben auf zwei Konten).
+       *
+       * Die Aufloesung ist eine LISTE: Nur ausdruecklich benannte Codes schreiben den
+       * Bestellwert gut, alles andere nur den gezahlten Betrag. Aendern ohne Code-Aenderung
+       * ueber `STRIPE_GUTSCHRIFT_CODES` (kommagetrennt, leer = keiner).
+       *
+       * ACHTUNG, und das gehoert zur Entscheidung dazu: Ein Code auf dieser Liste ist nur so
+       * sicher wie seine Stripe-Einstellungen. ADMIN1972 stand am 03.08.2026 auf UNBEGRENZT
+       * einloesbar, fuer jeden, ohne Ablaufdatum — und war bereits 18-mal benutzt. Wer ihn
+       * kennt, holt sich damit beliebig viel Guthaben. Die Grenze gehoert nach Stripe
+       * (max_redemptions / customer / expires_at), nicht hierher.
+       */
+      const gutschriftCodes = String(process.env.STRIPE_GUTSCHRIFT_CODES ?? "ADMIN1972")
+        .split(",").map(x => x.trim().toUpperCase()).filter(Boolean);
+      const freigegeben = !!s.promoCode && gutschriftCodes.includes(s.promoCode);
+      const gezahlt = typeof s.amountTotal === "number" ? s.amountTotal : (Number(s.metadata.cents ?? 0) || 999);
+      const bestellt = typeof s.amountSubtotal === "number" ? s.amountSubtotal : gezahlt;
+      const cents = freigegeben ? Math.max(gezahlt, bestellt) : gezahlt;
       if (email) {
         try { walletCents = (await guthabenAufladen(email, sessionId, cents)).cents; }
         catch (e) { console.warn("[checkout-status] Aufladung fehlgeschlagen", e); }

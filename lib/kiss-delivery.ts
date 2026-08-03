@@ -43,7 +43,13 @@ export async function bezahltVermerken(genId: string, email = "", kind = ""): Pr
     const entries = await readKissLog();
     let e = entries.find(x => x.id === id);
     if (!e) {
-      e = { id, createdAt: new Date().toISOString(), paid: false, wiederhergestellt: true };
+      /**
+       * `email` UND `paidEmail` setzen (03.08.2026): Die Galerie sucht ueber beide, andere
+       * Stellen nur ueber `email`. Ein wiederhergestellter Auftrag, der nur `paidEmail`
+       * traegt, ist fuer seinen Besitzer halb unsichtbar — genau so passiert.
+       */
+      e = { id, createdAt: new Date().toISOString(), paid: false, wiederhergestellt: true,
+            email: String(email ?? "").trim().toLowerCase() || undefined };
       entries.unshift(e);
     }
     const mail = String(email ?? "").trim().toLowerCase();

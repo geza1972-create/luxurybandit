@@ -45,7 +45,7 @@ import TonKnopf from "@/components/TonKnopf";
 const HOCHZEITS_MUSIK = "/mickeyscat-moment-of-peace-mickeyscat-554494.mp3";
 
 export default function EinladungAnsicht({
-  id, videoUrl, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK,
+  id, videoUrl, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
 }: {
   id: string; videoUrl: string;
   /** In der Vorschau im Trichter wird NICHT gezaehlt — sonst zaehlt sich die Kundin selbst
@@ -58,6 +58,16 @@ export default function EinladungAnsicht({
   tonAusText?: string;
   /** Die Tonspur. Leer heisst: kein Ton-Knopf, stilles Video. */
   musik?: string;
+  /**
+   * TON VON SELBST AN (Owner 03.08.2026: „ich will unsere Musik und die soll dann automatisch
+   * an sein. Wenn ich die Seite verlasse, dann stopp").
+   *
+   * Nur fuer das FERTIGE Video gedacht, nicht fuer Beispiele auf einer Seite, die gerade erst
+   * geladen hat: Musik, die einen Besucher beim Ankommen anspringt, schalten Browser zu Recht
+   * ab — und wer sie doch hoert, schliesst die Seite. Beim eigenen Ergebnis ist es umgekehrt:
+   * Er hat gerade dafuer bezahlt und auf einen Knopf getippt, also darf es klingen.
+   */
+  tonAutomatisch?: boolean;
 }) {
   const [ton, setTon] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,6 +82,33 @@ export default function EinladungAnsicht({
       body: JSON.stringify({ open: id }),
     }).catch(() => {});
   }, [id, zaehlen]);
+
+  /**
+   * ANSCHALTEN, SOBALD ES ETWAS ZU HOEREN GIBT — und wieder aus, sobald die Seite weg ist.
+   *
+   * Der Browser erlaubt Ton nur nach einer Geste des Benutzers. Beim fertigen Video ist die da
+   * (er hat „Video erzeugen" getippt), also klappt es fast immer; wenn nicht, bleibt der Knopf
+   * stehen und `ton` faellt still auf aus zurueck — kein Fehler, nur ein Tipp mehr.
+   *
+   * Das Aufraeumen ist der wichtigere Teil: Ohne es laeuft die Musik weiter, wenn er
+   * weiterklickt oder den Tab wechselt. `pagehide` deckt ab, was `unmount` nicht sieht — auf
+   * iOS wird eine Seite beim Wegwischen eingefroren statt abgebaut.
+   */
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !musik || !tonAutomatisch) return;
+    a.volume = 0.75;
+    void a.play().then(() => setTon(true)).catch(() => setTon(false));
+    const anhalten = () => { try { a.pause(); } catch { /**/ } };
+    const beiWechsel = () => { if (document.visibilityState === "hidden") anhalten(); };
+    window.addEventListener("pagehide", anhalten);
+    document.addEventListener("visibilitychange", beiWechsel);
+    return () => {
+      anhalten();
+      window.removeEventListener("pagehide", anhalten);
+      document.removeEventListener("visibilitychange", beiWechsel);
+    };
+  }, [musik, tonAutomatisch, videoUrl]);
 
   const umschalten = () => {
     const a = audioRef.current;

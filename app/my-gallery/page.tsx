@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fillPrices } from "@/lib/pricing";
 import { Play, Download, X, Loader2, Trash2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
+import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // „My Gallery" als eigene Seite: ALLE generierten Try-on-Videos (dieselbe Quelle wie
@@ -184,7 +185,17 @@ export default function MyGalleryPage() {
     // EIGENE VIDEOS (Chat/Try-on ohne Konto): haengen am Geraet — und zusaetzlich an der
     // E-Mail, sobald er angemeldet ist (Owner 28.07.2026). Laeuft unabhaengig vom Admin-Weg.
     const device = (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })();
-    const mail = getStoredAuthSession()?.user?.email ?? "";
+    /**
+     * DIESELBE ADRESSE WIE ALLE ANDEREN (Owner 03.08.2026: „und in meiner Galerie ist nichts
+     * gespeichert" — angemeldet, Video erzeugt, Galerie leer).
+     *
+     * Hier stand NUR die Supabase-Sitzung. Wer sich mit seiner Kuss-Adresse angemeldet hat —
+     * der uebliche Weg im Trichter, und der einzige fuer jemanden ohne Konto — hatte an dieser
+     * Stelle gar keine Adresse: Die Anfrage ging mit leerem `email` raus und fand nichts,
+     * obwohl sein bezahltes Video mit genau dieser Adresse im Protokoll stand.
+     * `aktiveAdresse()` ist dieselbe Regel wie im Header-Chip und im Trichter.
+     */
+    const mail = aktiveAdresse();
     if (device || mail) {
       fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" })
         .then(r => r.json())

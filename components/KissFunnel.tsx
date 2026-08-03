@@ -2015,16 +2015,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         /* VOLLER, RUHIGER GRUND STATT DURCHSCHEINEND (Owner 31.07.2026: „was passiert
            jetzt hier?"). Bei `bg-black/70` kaempft jeder Buchstabe gegen das Motiv
            darunter; bei 0.88 liest es sich auf jedem Bild. */
-        // z-50, nicht z-30: Ueber dem Beispielvideo sitzen Ton-Knopf (z-40) und Teilen-Knopf
-        // (z-30). Bei z-30 stachen sie durch die Schicht, und die Prozentzahl stand zwischen
-        // fliegenden Herzen — lesbar war beides nicht mehr.
+        // z-[45]: ZWISCHEN den Knoepfen der Karte und der Kopfzeile.
+        //
+        // Bei z-30 stachen Ton-Knopf (z-40) und Teilen-Knopf (z-30) durch die Schicht, und die
+        // Prozentzahl stand zwischen fliegenden Herzen. Bei z-50 war es andersherum: Die
+        // Schicht deckte die KOPFZEILE zu (TopNav liegt ebenfalls auf z-50, und bei gleichem
+        // Rang gewinnt das spaetere Element im Dokument) — Guthaben, Galerie und Sprache lagen
+        // dann unter einem schwarzen Schleier, waehrend das Video rechnete (Owner 03.08.2026:
+        // „Loading ist ueber dem Header"). 45 ist der Wert, der beides loest.
         //
         // `data-aufmedien="1"` ist PFLICHT, nicht Zierde: Diese Schicht liegt IN der
         // Einladungskarte, und `.lb-karte p/span/…` faerbt dort alles per `!important` auf
         // dunkles Braun — Inline-Farben und `lb-onmedia` verlieren dagegen. Ohne das Attribut
         // stand die Prozentzahl in #2a231c auf 88 % Schwarz, also praktisch unsichtbar
         // (gemessen, nicht vermutet). Die Regel dazu steht in globals.css bei .lb-karte.
-        <div data-aufmedien="1" className="absolute inset-0 z-50 grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.88)" }}>
+        <div data-aufmedien="1" className="absolute inset-0 z-[45] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.88)" }}>
           {/* DER RADAR LAEUFT MIT (Owner 31.07.2026: „Radar-Rendering muss kommen …
               es sieht so aus als würde nichts mehr kommen"). Ein stehender Text sagt
               nicht, ob etwas laeuft oder haengt. Der wandernde Balken sagt es ohne
@@ -2192,7 +2197,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                Karte wie beim Bild, Tap-Play-Spieler, Herzchen, Teilen als DATEI, Download im
                Griff. Die Seite springt hierher, sobald das Video eintrifft (useEffect). */
             <div className="relative">
+              {/**
+                * UNSERE MUSIK, UND SIE LAEUFT VON SELBST (Owner 03.08.2026: „es laeuft die
+                * Original-Musik und das ist schlecht. Ich will unsere Musik und die soll dann
+                * automatisch an sein").
+                *
+                * Zwei Fehler steckten hier: Ohne `musik` nahm der Baustein seinen Standard —
+                * den HOCHZEITS-Ton, unter einem Kussvideo. Und ohne `tonAutomatisch` blieb er
+                * stumm, bis jemand den Lautsprecher fand. Die Tonspur des Videos selbst
+                * bleibt stumm (siehe lib/musik.ts): Sie ist acht Sekunden lang und saesse bei
+                * jeder Schleife wieder auf dem ersten Takt.
+                */}
               <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                musik={V.musik} tonAutomatisch
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
               <Reaktionen variant={variant} lang={lang} name={empfaenger} />
@@ -3508,8 +3525,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         {videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="overflow-hidden rounded-3xl border border-white/10">
+              {/* STUMM (Owner 03.08.2026). Dieser Spieler lief als EINZIGER mit der Tonspur
+                  des Videos — das war die „Original-Musik", die er hoerte: acht Sekunden, die
+                  bei jeder Schleife von vorn ansetzen, waehrend in der Karte darueber unsere
+                  Tonspur laeuft. Zwei Toene gleichzeitig, und der falsche war lauter. */}
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] w-full" />
+              <video src={videoUrl} muted controls autoPlay loop playsInline className="aspect-[3/4] w-full" />
             </div>
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
