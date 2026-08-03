@@ -55,7 +55,17 @@ export default function TopNav({
    *   - schon navigiert → `router.back()` wie bisher; dann IST das vorige Blatt seins.
    */
   const pathname = usePathname();
-  const HEIM = "/themes";
+  /**
+   * NACH HAUSE HEISST JETZT „/" (03.08.2026): Seit die Wurzel die Themen selbst ausliefert
+   * (app/page.tsx, vorher eine Weiterleitung), ist sie die echte Startadresse. Wer den Pfeil
+   * oder das Logo antippt, soll danach `luxurybandit.com` in der Adresszeile stehen haben —
+   * das ist die Adresse, die er weitergibt und die er sich merkt.
+   *
+   * /themes zeigt dieselbe Seite und bleibt ueberall verlinkt; deshalb gilt sie hier als
+   * ZWEITE Heimatadresse: Auf ihr darf ebenso wenig ein Zurueck-Pfeil stehen wie auf „/".
+   */
+  const HEIM = "/";
+  const HEIM_ALT = "/themes";
   const [tiefe, setTiefe] = useState(0);
   useEffect(() => {
     let n = 0;
@@ -66,7 +76,7 @@ export default function TopNav({
     setTiefe(n);
   }, [pathname]);
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
-  const canBack = pathname !== HEIM;
+  const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
   const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
   const ig = process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit";
   const share = () => {
@@ -92,9 +102,9 @@ export default function TopNav({
             <ChevronLeft className="h-6 w-6" />
           </button>
         )}
-        {/* Brand → STARTSEITE = die Themen (/themes). Direkt die echte Route, nicht "/",
-            damit die Client-Navigation nicht erst über den Redirect läuft. */}
-        <button type="button" onClick={() => router.push("/themes")} aria-label="Home"
+        {/* Brand → STARTSEITE = "/". Hier stand /themes, weil "/" frueher nur weiterleitete;
+            seit die Wurzel die Themen selbst ausliefert, ist der Umweg unnoetig. */}
+        <button type="button" onClick={() => router.push(HEIM)} aria-label="Home"
           className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
           <span className="relative h-9 w-9 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}

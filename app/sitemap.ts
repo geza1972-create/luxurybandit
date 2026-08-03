@@ -9,10 +9,13 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
+    // „/" ist die Startseite und liefert die Themen selbst aus (app/page.tsx). /themes zeigt
+    // dieselbe Seite, nennt aber „/" als kanonische Fassung — eine Adresse, die auf eine
+    // andere verweist, gehoert nicht in die Sitemap, sonst schickt man die Suchmaschine
+    // absichtlich auf die Zweitfassung.
     { url: `${BASE}/`, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/stores`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/bella`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE}/themes`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/wetter/bella`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/models-wanted`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/own-influencer`, changeFrequency: "weekly", priority: 0.8 },

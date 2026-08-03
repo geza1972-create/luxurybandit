@@ -12,12 +12,28 @@ import ScrollTop from "@/components/ScrollTop";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
-  title: "LuxuryBandit — Your Dream Model, In Any Look",
-  description: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality AI video — dancing or turning, your call. Follow her, message her, shop her looks. Models: upload one photo, get styled in luxury looks and earn with every look.",
-  keywords: ["AI fashion models", "virtual try-on", "AI fashion", "luxury fashion", "fashion model video", "outfit video", "AI model", "designer looks", "become a model", "LuxuryBandit"],
+  /**
+   * DER STANDARDTITEL IST DER TITEL DES GANZEN HAUSES (Owner 03.08.2026, Bildschirmfoto aus
+   * Bing: „wenn ich auf meine Adresse klicke, komme ich auf die model seite").
+   *
+   * Was hier steht, tragen ALLE Seiten ohne eigene Angaben — und das sind die Client-Seiten
+   * /stores, /home, /curators, jedes Model-Profil. Hier stand die alte Aufstellung („Your
+   * Dream Model, In Any Look. Pick a model, choose a designer outfit …"). Zwei Folgen:
+   *
+   *   1. Der Suchtreffer der Marke warb fuer Models statt fuer Geschenke.
+   *   2. Weil die Model-Galerie denselben Titel trug wie die Startseite, hielt Bing SIE fuer
+   *      die Startseite und schickte den Besucher dorthin.
+   *
+   * Jetzt beschreibt der Standard, was der Marktplatz heute verkauft: ein Video-Geschenk mit
+   * dem eigenen Foto. Preise stehen bewusst nicht drin — Zahlen kommen aus lib/pricing, und
+   * ein statisches Metafeld kann sie nicht mitpflegen (Hausregel seit 29.07.2026).
+   */
+  title: "LuxuryBandit — Pick a gift. Send it today.",
+  description: "Your photo and theirs — a kiss, a wedding invitation, a birthday video, a surprise. Choose an AI model, upload one photo, and get a video with you in it: made in minutes, in your browser, sent to one person. Nobody else sees it.",
+  keywords: ["ai video gift", "ai video generator", "kiss video ai", "wedding invitation video", "birthday video maker", "ai model", "ai influencer", "face swap video ai", "personalised video", "LuxuryBandit"],
   openGraph: {
-    title: "LuxuryBandit — Your Dream Model, In Any Look",
-    description: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality AI video. Follow her, message her, shop her looks. New looks every day.",
+    title: "LuxuryBandit — Pick a gift. Send it today.",
+    description: "Your photo and theirs — a kiss, a wedding invitation, a birthday. One video, made in minutes, for one person.",
     type: "website",
   },
   // fb:app_id on EVERY page — the "luxurybandit" Meta app (also powers FB login).

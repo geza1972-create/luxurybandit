@@ -17,14 +17,25 @@ import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 // Aktiv: Wetter am Morgen (/themes/wetter/<model>). Weitere sind vorbereitet (coming soon).
 export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch laden
 
+/**
+ * DIESE ANGABEN GELTEN FUER „/" MIT (app/page.tsx zieht sie sich herueber).
+ *
+ * Der Titel fuehrt mit der MARKE und danach mit dem, was es hier zu holen gibt. Vorher stand
+ * „AI marketplace — …" vorn: Bei einer Suche nach „luxurybandit" ist der Markenname aber genau
+ * das Wort, das der Suchende wiederfinden will. Die Stichwoerter dahinter bleiben, sie tragen
+ * die Suchtreffer jenseits der Marke.
+ *
+ * `canonical: "/"` — nicht „/themes": Beide Adressen zeigen dieselbe Seite, und die Marke
+ * gehoert an die blanke Adresse. So sammelt „/" die Kraft beider, statt sie zu teilen.
+ */
 export const metadata = {
-  title: "AI marketplace — AI model videos, try-on, wedding invitations & chat | LuxuryBandit",
-  description: fillPrices("One place for AI influencers: chat with an AI model, try on any look in a video, make a kiss or deepfake video with your own photo, get a birthday video with a name. {price}/month incl. {videos} videos across all topics; chatting is free.", "en"),
-  keywords: ["ai influencer", "ai influencer generator", "ai model generator", "ai model girl", "ai video generator", "ai video maker", "deepfake video generator", "face swap video ai", "kiss video ai generator", "try on ai clothes", "virtual try on ai", "lingerie try on ai", "birthday video maker", "chat with ai model"],
-  alternates: { canonical: "/themes" },
+  title: "LuxuryBandit — AI video gifts: kiss, wedding, birthday",
+  description: fillPrices("Pick a gift and send it today: a kiss, a wedding invitation, a birthday video, a surprise. Upload your photo, choose an AI model, and get a video with you in it — in minutes, in your browser, for one person only.", "en"),
+  keywords: ["ai video generator", "ai video maker", "kiss video ai generator", "wedding invitation video", "birthday video maker", "video gift", "ai influencer", "ai model generator", "ai model girl", "face swap video ai", "deepfake video generator", "chat with ai model"],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "LuxuryBandit — AI influencers, your videos & chat",
-    description: "Chat with her, see any look on her in a video, and put yourself in the picture.",
+    title: "LuxuryBandit — pick a gift, send it today",
+    description: "Your photo and theirs — a kiss, a wedding invitation, a birthday. One video, made in minutes, for one person.",
     type: "website",
   },
 };

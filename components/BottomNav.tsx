@@ -292,7 +292,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         try { await signOut(); } catch { /**/ }
         // Nach dem Abmelden auf die THEMEN-Seite (Owner 03.08.2026) — sie ist die
         // Startseite des Portals; /stores war der alte Einstieg aus der Model-Zeit.
-        router.push("/themes");
+        // Seit dem 03.08. liegt sie auf "/" selbst, nicht mehr hinter einer Weiterleitung.
+        router.push("/");
       };
 
       return (
@@ -326,9 +327,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-white/10">
-              {/* Home = STARTSEITE, und die sind seit 2026-07-27 die Themen (/themes).
+              {/* Home = STARTSEITE, und die sind seit 2026-07-27 die Themen. Seit dem
+                  03.08.2026 liegen sie auf "/" selbst — der Menuepunkt fuehrt deshalb auf die
+                  blanke Adresse, nicht mehr auf /themes.
                   Zu den Models führt der Button oben auf der Startseite + „Models" unten. */}
-              <button type="button" onClick={() => navigate("/themes")}
+              <button type="button" onClick={() => navigate("/")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>
