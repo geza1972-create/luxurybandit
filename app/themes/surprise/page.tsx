@@ -5,7 +5,9 @@ import { Lock } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { POLEDANCE_VIDEO } from "@/lib/poledance";
+import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE } from "@/lib/poledance";
+import EinladungKarte from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
 
 /**
  * THEMA „SURPRISE HIM" — DER TANZ (Owner 03.08.2026).
@@ -84,6 +86,35 @@ export default async function SurpriseThemePage({ searchParams }: {
 
             Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
         <KissFunnel variant="poledance" code={code} lang={L} beispielVideo={POLEDANCE_VIDEO} />
+
+        {/**
+          * MEHR BEISPIELE, ALS KARTEN (Owner 03.08.2026: „ich brauche auf dieser Seite noch
+          * einige Beispiel-Videos als Cards").
+          *
+          * Sie stehen UNTER dem Trichter: Wer schon hochgeladen hat, soll nicht an drei
+          * fremden Videos vorbeiscrollen muessen, bevor er seines bekommt. Wer noch zoegert,
+          * findet hier den Beweis, dass es mehr als ein Ergebnis gibt.
+          *
+          * Jedes in einer Karte mit Titel und Herkunftszeile — Hausregel: ein Video wohnt in
+          * der Karte, nie als nacktes <video>. Ein Beispiel, das anders aussieht als das
+          * Ergebnis, verkauft das falsche Produkt.
+          */}
+        <div className="mt-10 space-y-5">
+          <p className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white/50">
+            {T.step3?.replace(/^\s*\d+\s*[·.\-]\s*/, "") ?? "Your dance"}
+          </p>
+          {POLEDANCE_BEISPIELE.map(b => (
+            <EinladungKarte key={b.id} sprache={L} sie="" er="" demo
+              titel={T.step3?.replace(/^\s*\d+\s*[·.\-]\s*/, "") ?? "Your dance"}
+              fuss={
+                <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+                  made by luxurybandit.com
+                </p>
+              }
+              video={<EinladungAnsicht id="" videoUrl={b.video} zaehlen={false} musik="" />}
+            />
+          ))}
+        </div>
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.

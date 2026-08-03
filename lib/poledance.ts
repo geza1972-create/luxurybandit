@@ -125,3 +125,21 @@ export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
 export const poledancePromptFuerSet = (): string =>
   POLEDANCE_PROMPT + " No text, no letters, no writing anywhere in the frame.";
 
+/**
+ * WEITERE BEISPIELVIDEOS (Owner 03.08.2026: „ich brauche auf dieser Seite noch einige Beispiel-
+ * Videos als Cards, ich habe dir noch zwei reingelegt").
+ *
+ * ALS KARTEN, NICHT ALS NACKTE VIDEOS — Hausregel seit heute (PLAN-GESCHENKE-FLOW.md §2). Ein
+ * Beispiel, das anders aussieht als das Ergebnis, verkauft das falsche Produkt: Die Karte IST
+ * das Geschenk, das Video nur ihr Inhalt.
+ *
+ * Alle drei sind 3:4 mit Tonspur, wie die Kette sie ausgibt. Das erste ist zugleich das
+ * Beispiel IM Trichter (`POLEDANCE_VIDEO`) — dort steht es oben in der Karte, hier unten in
+ * der Reihe; dasselbe Video an zwei Orten mit verschiedener Aufgabe ist kein Doppel.
+ */
+export const POLEDANCE_BEISPIELE: { id: string; video: string }[] = [
+  { id: "b1", video: POLEDANCE_VIDEO },
+  { id: "b2", video: "/Pooldance/beispiel-2.mp4" },
+  { id: "b3", video: "/Pooldance/beispiel-3.mp4" },
+];
+
