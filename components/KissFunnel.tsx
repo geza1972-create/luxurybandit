@@ -1795,6 +1795,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       /* Hat er in der Galerie etwas gewaehlt, gilt DAS statt des festen Sets. */
       const refOutfit = V.nurSie ? await alsDatenUrl(neuerLook || V.garmentBild || "") : ihr;
+      /**
+       * EIN SCHRANK-STUECK TRAEGT KEINE SZENE (Owner 03.08.2026: „ich habe eine Wäsche gewählt
+       * und hat kein Tanzvideo generiert … sie springt statt zu tanzen").
+       *
+       * Das Haus-Set (`poledance-set.jpg`) ist nicht nur ein Outfit: Es zeigt die Waesche VOR
+       * dem Neon, mit der Stange — der Prompt muss den Ort deshalb kaum beschreiben, das Bild
+       * liefert ihn. Ein Stueck aus dem Kleiderschrank ist ein freigestelltes Produktfoto auf
+       * Weiss. Pixverse bekommt dann das Outfit und KEINEN Ort und erfindet eine Bewegung —
+       * beim Owner ein Springen statt eines Tanzes.
+       *
+       * Also traegt in dem Fall der TEXT, was sonst das Bild trug. Zwei Saetze mehr, aber nur
+       * dann: Beim Haus-Set bleibt der Prompt woertlich der, mit dem das Beispielvideo
+       * entstanden ist — daran wird nichts angefasst.
+       */
+      const promptFuerLauf = neuerLook
+        ? `${V.prompt} She dances on a pole in a neon-lit club, full body in frame, ` +
+          `slow controlled movement, feet on the floor. She does not jump.`
+        : V.prompt;
       if (runRef.current !== token) return;
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
@@ -1822,7 +1840,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           prompt: variant === "wedding" ? weddingPrompt(kleid)
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */
-            : variant === "poledance" ? POLEDANCE_PROMPT
+            : variant === "poledance" ? promptFuerLauf
             : variant === "birthday" ? GEBURTSTAG_PROMPT
             /* DIE UEBERRASCHUNG: eine der vier Kuss-Szenen, gezogen aus der Auftragsnummer
                (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als Ueberraschung").
