@@ -144,7 +144,21 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // looks good the admin upscales THAT clip to HD (1080p) via the upscale action — so
     // we only pay HD on the keepers. (360p is Pixverse's floor; there is no 320p tier.)
     model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
-    duration: turnaround ? 10 : (slowmo ? 10 : 8), // funnel = 8s (Pixverse has no 7s) so the turn + walk fit; slow-mo = 10s
+    /**
+     * SIEBEN SEKUNDEN, NICHT ACHT (Owner 03.08.2026: „ich habe festgestellt, dass die Videos
+     * bei 7 Sek unproblematisch die Unterwäsche annehmen bei Pixverse").
+     *
+     * Das ist der Unterschied zwischen einem Geschenk und einer Absage: Bei acht Sekunden hat
+     * Pixverse denselben Auftrag abgelehnt und die Ablehnung als Lippenbewegung ausgegeben
+     * („I'm not able to create…"). Warum die Laenge das Urteil verschiebt, wissen wir nicht —
+     * die Beobachtung stammt aus den Laeufen des Owners, nicht aus einer Doku.
+     *
+     * HIER STAND „Pixverse has no 7s" — DAS WAR FALSCH. Direkt gegen die API geprueft, bevor
+     * die Zahl geaendert wurde: `duration: 7` antwortet mit `ErrCode: 0 · success`. Ein
+     * Kommentar, der eine Einschraenkung behauptet, die es nicht gibt, ist teurer als gar
+     * keiner — er haelt den naechsten Leser von genau der Loesung ab.
+     */
+    duration: turnaround ? 10 : (slowmo ? 10 : 7),
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     // 360p ist die SPARSTUFE fuer Admin-Vorschauen, die spaeter hochgerechnet werden.
