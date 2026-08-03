@@ -8,7 +8,7 @@ import { kissText } from "@/lib/kiss-i18n";
 import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
 
 /**
- * THEMA "SHE SINGS HAPPY BIRTHDAY" (Owner 03.08.2026: "genau wie Surprise him machen. Ein
+ * THEMA "SHE SAYS HAPPY BIRTHDAY" (Owner 03.08.2026: "genau wie Surprise him machen. Ein
  * Bild von sich hochladen und den Namen von dem, der Geburtstag hat, eingeben - dann wird
  * eine Dame in einem Look generiert, mit der Torte in der Hand, genau wie Bella, und auch
  * die Umgebung ist gleich. Das muss direkt an Pixverse.").
@@ -25,8 +25,8 @@ import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "She sings Happy Birthday — one private AI video | LuxuryBandit",
-  description: "Upload one photo of yourself, type the birthday name, and she sings Happy Birthday with the cake in her hands - a private video, made in minutes.",
+  title: "She says Happy Birthday — one private AI video | LuxuryBandit",
+  description: "Upload one photo of yourself, type the birthday name, and she says Happy Birthday with the cake in her hands - a private video, made in minutes.",
   keywords: ["happy birthday video", "personalised birthday video", "ai birthday greeting", "birthday video with name", "send a birthday video"],
   alternates: { canonical: "/themes/birthday" },
 };

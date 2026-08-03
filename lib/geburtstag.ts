@@ -17,27 +17,30 @@
 /**
  * DER PROMPT.
  *
- * Der Owner hat den Kern wörtlich vorgegeben: **„She sings Happy Birthday."** Drumherum steht
- * nur, was Pixverse braucht, um die zwei Referenzbilder auseinanderzuhalten — exakt dieselbe
- * Bindung wie beim Tanz, die dort nachweislich funktioniert:
+ * Owner 03.08.2026, nach dem ersten Blick auf das Ergebnis: „Prompt ist ‚happy birthday to you!
+ * happy birthday to you!‘ — weil sie nicht singen kann."
  *
+ * DAS IST DER GANZE UNTERSCHIED, und er ist grösser als er aussieht: „She sings Happy Birthday"
+ * beschreibt eine HANDLUNG, die das Modell nachbauen soll — und Gesang ist genau das, was es
+ * nicht kann; heraus kommt ein Mund, der sich zu nichts bewegt. Die WÖRTER dagegen kann es:
+ * Es formt Lippen zu einem Satz, den man ihm gibt. Also steht der Satz jetzt da, wörtlich und
+ * zweimal, so wie der Owner ihn geschickt hat.
+ *
+ * DIE BINDUNG DER BILDER bleibt wie beim Tanz, wo sie nachweislich trägt:
  *   @image1 → das Foto der Kundin   (im Trichter `person`)
  *   @image2 → Bellas Vorlage        (im Trichter `garment`)
  *
- * Die Route (`app/api/generate-tryon-video`) kennt „image1" nicht als festen Namen, also greift
- * ihr Rückfall: erstes @-Token = die Person, zweites = die Vorlage. Genau richtig.
+ * NEUTRALE WÖRTER (Hausregel): „outfit", nicht „lingerie", kein „lace", kein „skin".
  *
- * NEUTRALE WÖRTER (Hausregel, siehe Merkzettel „Pixverse nimmt Lingerie-Vorlagen"): „outfit",
- * nicht „lingerie", kein „lace", kein „skin". Der Tanz-Prompt ist mit derselben Wortwahl
- * durchgegangen; das Bild darf zeigen, was der Text nicht benennt.
- *
- * KEIN TEXT IM VIDEO: Bellas Vorlage trägt „Hey Darling, Happy Birthday!" eingebrannt. Ohne
- * den letzten Halbsatz schreibt Pixverse solche Schriftzüge gern mit ins Bild — dann stünde
- * ein fremder Gruß auf dem Geschenk, das jemand für einen bestimmten Menschen macht.
+ * KEIN TEXT IM VIDEO: Bellas Vorlage trägt „Hey Darling, Happy Birthday!" eingebrannt — im
+ * Beispielvideo scheint es sogar durch. Ohne den letzten Halbsatz schreibt Pixverse solche
+ * Schriftzüge gern mit, und dann stünde ein fremder Gruss auf einem Geschenk für einen ganz
+ * bestimmten Menschen.
  */
 export const GEBURTSTAG_PROMPT =
-  "The woman from @image1 sings Happy Birthday, holding the cake from @image2, " +
-  "wearing the outfit from @image2, in the same warm candlelit room. " +
+  "The woman from @image1 says: \"Happy birthday to you! Happy birthday to you!\" " +
+  "She holds the cake from @image2 and wears the outfit from @image2, " +
+  "in the same warm candlelit room. " +
   "No text, no letters, no writing anywhere in the frame.";
 
 /**
