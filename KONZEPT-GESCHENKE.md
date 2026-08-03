@@ -8,6 +8,10 @@
 
 ---
 
+> **Der Bauplan dazu:** [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) — der fertige
+> Kuss-Ablauf als Vorlage für alle weiteren Geschenke, samt der Regeln, die nicht verhandelbar
+> sind, weil jede davon schon einmal Geld gekostet hat.
+
 ## 0. Der Satz
 
 **LuxuryBandit ist der Ort, an dem man Geschenke macht, die es sonst nicht gibt: einen Kuss,
@@ -217,7 +221,13 @@ Schritt 1 und 2 kann ich sofort anfangen — beide brauchen keine weitere Entsch
    nur Kiss-Log und state.json. Freigabe nötig.
 2. **12 Monate Hosting im Geschenkpreis** — oder kürzer/länger? Die Zahl entscheidet, wie lange
    ein geteilter Link lebt, und der Link ist die Werbung.
-3. **Hochzeit aufteilen** (Video kaufen, Seite mieten) — oder Hochzeit weiter als ein Paket?
+3. ~~**Hochzeit aufteilen** (Video kaufen, Seite mieten)~~ — **entschieden 03.08.2026: NEIN.**
+   Ein Paket, **24,99 € einmalig**, schaltet alles frei (Video, Einladungsseite, Zusagen,
+   Neuigkeiten, Gruppenchat), **kein Abo**. Läuft nach drei Monaten ab, dann noch einmal zahlen.
+   Das ist besser als der Vorschlag oben: Zwei Kaufwege nebeneinander wären genau die
+   Sonderprogrammierung, die vermieden werden soll — so hat der Marktplatz EINEN Kaufweg.
+   Eine Änderung dazu in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5: drei Monate ab dem
+   **Hochzeitsdatum**, nicht ab Kauf — sonst stirbt die Seite vor der Feier.
 4. **Preis je Geschenk** — welche Zahlen? Erst wenn die Pixverse-Abrechnung gelesen ist; die
    Kosten je Lauf stehen bis heute in keinem Kommentar dieses Projekts (siehe `lib/pricing.ts`).
 5. **Chat und Morgenwetter** — bleiben sie im Portal, oder sind sie im Geschenke-Marktplatz ein
