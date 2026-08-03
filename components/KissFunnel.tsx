@@ -832,6 +832,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * zurueck.
    */
   const [refVideo, setRefVideo] = useState("");
+  /**
+   * DIE WAHL KOMMT VON DER LANDINGPAGE (Owner 03.08.2026: „die Auswahl findet auf der
+   * Landingpage statt").
+   *
+   * `TanzAuswahl` steht dort als eigener Baustein und meldet die Wahl per Ereignis — der
+   * einfachste Weg zwischen zwei Bausteinen, die kein gemeinsames Elternteil haben. Beim Laden
+   * wird zusaetzlich gelesen, was gespeichert ist: Wer waehlt, dann hochlaedt und dabei die
+   * Seite neu laedt, soll seine Wahl nicht verlieren.
+   */
+  useEffect(() => {
+    try { const g = localStorage.getItem("lb_tanz_ref"); if (g) setRefVideo(g); } catch { /**/ }
+    const hoeren = (e: Event) => setRefVideo(String((e as CustomEvent).detail ?? ""));
+    window.addEventListener("lb-tanz-ref", hoeren);
+    return () => window.removeEventListener("lb-tanz-ref", hoeren);
+  }, []);
   const [probe, setProbe] = useState("");   // Ergebnis des Probelaufs (nur Admin)
 
   const genMerken = (id: string) => {
@@ -3176,45 +3191,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           )}
         </div>
       )}
-      {/**
-        * JEDE KARTE EIN TANZ, JEDE KARTE EIN KNOPF (Owner 03.08.2026: „es muss auf jeder Karte
-        * ein Replace Model stehen" · „wir geben die Videos als Referenz").
-        *
-        * HIER STAND DIE SET-AUSWAHL — sechs Standbilder, aus denen Pixverse einen Tanz erfinden
-        * sollte. Daran ist heute alles gescheitert, was scheitern konnte: erst der Kleiderschrank
-        * (keine Szene), dann das Springen, dann das gruene Set ueber ihrem roten Shirt. Die
-        * Ursache hat der Owner benannt: „der nimmt ein Teil von ihrer Wäsche und von unserem."
-        *
-        * Ein fertiger Tanz hat keine dieser Fragen. Bewegung, Outfit, Stange und Neon sind
-        * darin richtig; sie uebernimmt ihn, und mehr passiert nicht. Der Knopf sagt genau das.
-        *
-        * Die Karten liegen IM Trichter und nicht auf der Seite, weil das Foto hier liegt: Ein
-        * Tipp genuegt, kein Sprung, kein zweiter Ort, an dem dasselbe noch einmal steht.
-        */}
-      {variant === "poledance" && !!selPhoto && !videoUrl && (
-        <div className="mt-4">
-          <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.nochEins}</p>
-          <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {POLEDANCE_REFERENZEN.map(r => {
-              const an = (refVideo || POLEDANCE_REFERENZEN[0].video) === r.video;
-              return (
-                <div key={r.id} className={`w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl border-2 transition ${an ? "border-[#f6cf51]" : "border-white/15"}`}>
-                  {/* Standbild aus dem Video selbst: `#t=0.1` ist ein Bild ohne zweite Datei —
-                      `preload="metadata"` laedt dafuer nur den Kopf, nicht den ganzen Film. */}
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={`${r.video}#t=0.1`} muted playsInline preload="metadata"
-                    className="aspect-[3/4] w-full object-cover" />
-                  <button type="button"
-                    onClick={() => { setRefVideo(r.video); setStatus(""); }}
-                    className={`flex h-9 w-full items-center justify-center gap-1.5 text-[11px] font-black transition active:scale-95 ${an ? "bg-[#f6cf51] text-black" : "bg-white/10 text-white/80"}`}>
-                    {an ? <><Check className="h-3.5 w-3.5" /> {T.replaceGewaehlt}</> : T.replaceModel}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* DIE TANZ-AUSWAHL STEHT AUF DER LANDINGPAGE, NICHT HIER (Owner 03.08.2026: „hier
+          nicht — die Auswahl findet auf der Landingpage statt").
+          Sie lag kurz in diesem Trichter, weil das Foto hier liegt. Der Owner will sie davor:
+          Wer die Seite oeffnet, soll erst SEHEN, was es gibt, und dann hochladen — nicht
+          umgekehrt. Der Baustein heisst `TanzAuswahl`; seine Wahl kommt ueber ein Ereignis
+          hier an (siehe `refVideo` oben). */}
 
       {/**
         * DER PROBELAUF — NUR FUER DEN ADMIN (Owner 03.08.2026: „ja", auf den Vorschlag, ihn
