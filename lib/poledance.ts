@@ -59,3 +59,36 @@ export const POLEDANCE_SET = "/Pooldance/poledance-set.jpg";
  */
 export const POLEDANCE_VIDEO = "/Pooldance/poledance.mp4";
 export const POLEDANCE_POSTER = "/Pooldance/poledance-poster.jpg";
+
+/**
+ * DIE SET-AUSWAHL (Owner 03.08.2026: „ich habe dir Bilder generiert, schon mit BG und
+ * Unterwäsche, die kannst du nehmen").
+ *
+ * VIER SETS STATT EINEM — und zwar genau in der Bauart, die nachweislich funktioniert: die
+ * Waesche VOR dem Neon, mit Boden und Tiefe. Das ist der Unterschied, an dem der Versuch mit
+ * dem Kleiderschrank gescheitert ist: Ein freigestelltes Produktfoto auf Weiss gibt Pixverse
+ * das Outfit und KEINEN Ort — heraus kam eine Frau, die in ihrem Wohnzimmer springt. Diese
+ * Bilder tragen die Szene mit, genau wie das erste.
+ *
+ * ZWEI VON IHNEN TRAGEN LEUCHTSCHRIFT („HEART LATEX", „ELECTRIC LATEX"). Pixverse schreibt
+ * solche Schriftzuege gern ins Video — deshalb steht im Prompt ausdruecklich, dass kein Text
+ * ins Bild gehoert. Dieselbe Falle wie bei Bellas Geburtstagsvorlage.
+ */
+export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
+  { id: "haus",    bild: POLEDANCE_SET,                    name: "Pink Neon" },
+  { id: "pink",    bild: "/Pooldance/set-pink.png",        name: "Pink Harness" },
+  { id: "blau",    bild: "/Pooldance/set-blau.png",        name: "Blue Lace" },
+  { id: "rot",     bild: "/Pooldance/set-rot-latex.png",   name: "Red Latex" },
+  { id: "schwarz", bild: "/Pooldance/set-schwarz-latex.png", name: "Black Latex" },
+];
+
+/**
+ * DER PROMPT FUER EIN GEWAEHLTES SET.
+ *
+ * Der Grundtext bleibt woertlich der des Owners — daran wird nichts angefasst. Angehaengt wird
+ * nur der Satz gegen die Leuchtschrift, und der gilt fuer ALLE Sets: Auch die ohne Schrift
+ * haben Leuchtreklame im Hintergrund, die Pixverse als Buchstaben missdeuten kann.
+ */
+export const poledancePromptFuerSet = (): string =>
+  POLEDANCE_PROMPT + " No text, no letters, no writing anywhere in the frame.";
+

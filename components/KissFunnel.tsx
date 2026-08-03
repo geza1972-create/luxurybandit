@@ -30,7 +30,7 @@ import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
 import { kissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
-import { POLEDANCE_PROMPT } from "@/lib/poledance";
+import { POLEDANCE_PROMPT, POLEDANCE_SETS, poledancePromptFuerSet } from "@/lib/poledance";
 import { GEBURTSTAG_PROMPT, geburtstagTitel } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
@@ -814,24 +814,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Die Galerie gibt es laengst: `wardrobe === true` im Bestand, 87 Stueck, dieselbe Liste, aus
    * der frueher der Chat ankleidete. Kein neues Bildmaterial noetig.
    */
-  const [garderobe, setGarderobe] = useState<{ id: string; name?: string; imageUrl: string }[]>([]);
+  /**
+   * DIE SET-AUSWAHL (Owner 03.08.2026: „ich habe dir Bilder generiert, schon mit BG und
+   * Unterwäsche, die kannst du nehmen").
+   *
+   * HIER STAND DER KLEIDERSCHRANK — 87 freigestellte Produktfotos auf Weiss. Der Versuch ist
+   * gescheitert, und zwar sichtbar: Pixverse bekam das Outfit und KEINEN Ort und liess sie in
+   * ihrem Wohnzimmer springen. Der Owner hat daraufhin vier Sets erzeugt, die die Szene
+   * MITBRINGEN — Waesche vor Neon, wie das erste. Sie stehen fest in lib/poledance.ts: Sie sind
+   * Teil des Produkts, kein gepflegter Inhalt, und ein signierter Speicher-Link laeuft ab.
+   */
+  const garderobe = V.nurSie && variant === "poledance" ? POLEDANCE_SETS.map(x => ({ id: x.id, name: x.name, imageUrl: x.bild })) : [];
   const [neuerLook, setNeuerLook] = useState("");
   const [probe, setProbe] = useState("");   // Ergebnis des Probelaufs (nur Admin)
-  useEffect(() => {
-    // Nur wo es etwas zu tauschen gibt: Geschenke mit festem Set (Tanz, Geburtstag).
-    if (!V.nurSie || !V.garmentBild) return;
-    let ok = true;
-    fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json())
-      .then(d => {
-        if (!ok) return;
-        const alle = (Array.isArray(d?.looks) ? d.looks : [])
-          .filter((l: { wardrobe?: boolean; imageUrl?: string }) => l.wardrobe === true && !!l.imageUrl)
-          .slice(0, 40);
-        setGarderobe(alle);
-      }).catch(() => {});
-    return () => { ok = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const genMerken = (id: string) => {
     if (!id) return;
@@ -1810,10 +1805,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * dann: Beim Haus-Set bleibt der Prompt woertlich der, mit dem das Beispielvideo
        * entstanden ist — daran wird nichts angefasst.
        */
-      const promptFuerLauf = neuerLook
-        ? `${V.prompt} She dances on a pole in a neon-lit club, full body in frame, ` +
-          `slow controlled movement, feet on the floor. She does not jump.`
-        : V.prompt;
+      /**
+       * GEGEN DIE LEUCHTSCHRIFT (Owner-Sets „HEART LATEX" / „ELECTRIC LATEX").
+       *
+       * Der Grundtext bleibt woertlich der des Owners. Angehaengt wird nur der Satz, der Text
+       * aus dem Bild haelt — und der gilt fuer ALLE Sets: Auch die ohne Schriftzug haben
+       * Leuchtreklame im Hintergrund, die Pixverse als Buchstaben missdeuten kann.
+       */
+      const promptFuerLauf = poledancePromptFuerSet();
       if (runRef.current !== token) return;
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
@@ -3177,10 +3176,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <p className="text-[11px] font-black uppercase tracking-wide text-[#f6cf51]/80">{T.nochEins}</p>
           <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {/* Das Haus-Set zuerst — es ist das, mit dem das Beispielvideo entstanden ist. */}
-            {[{ id: "__set", imageUrl: V.garmentBild! }, ...garderobe].map(l => {
+            {/* Das Haus-Set steht als erster Eintrag IN der Liste (lib/poledance.ts) — kein
+                kuenstlicher Zusatz mehr, sonst staende es zweimal da. */}
+            {garderobe.map(l => {
               const an = (neuerLook || V.garmentBild) === l.imageUrl;
               return (
-                <button key={l.id} type="button" onClick={() => setNeuerLook(l.id === "__set" ? "" : l.imageUrl)}
+                <button key={l.id} type="button" onClick={() => setNeuerLook(l.imageUrl === V.garmentBild ? "" : l.imageUrl)}
                   className={`relative w-[74px] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-white transition active:scale-95 ${an ? "border-[#f6cf51]" : "border-white/20"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={l.imageUrl} alt="" draggable={false} className="aspect-[3/4] w-full object-cover" />
