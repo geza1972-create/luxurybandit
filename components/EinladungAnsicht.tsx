@@ -101,6 +101,15 @@ export default function EinladungAnsicht({
   const [ton, setTon] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);   // nur fuer den Originalton gebraucht
+  /**
+   * LAEUFT ES GERADE? Nur fuer den Abspielknopf beim Originalton.
+   *
+   * Ein stummes Video darf von allein starten, ein lautes nie — der Browser laesst Ton erst
+   * nach einer Geste zu. Bei einem Video, in dem jemand SPRICHT, ist ein stummer Start aber
+   * kein Start: Man sieht Lippen, die sich bewegen, und haelt es fuer kaputt. Also steht es
+   * still mit einem Abspielknopf, und der eine Tipp bringt Bild UND Stimme.
+   */
+  const [laeuft, setLaeuft] = useState(false);
   const gezaehlt = useRef(false);
 
   useEffect(() => {
@@ -172,10 +181,27 @@ export default function EinladungAnsicht({
       <div className={`${verhaeltnis} w-full`}>
         <SchleifenVideo src={videoUrl} schleife={schleife} stumm spielerRef={originalton ? videoRef : undefined} />
       </div>
-      {/* BEIM ORIGINALTON GIBT ES KEINE TONSPUR DANEBEN — nur den Knopf, der das Video
-          selbst stummschaltet. Deshalb haengt der Knopf nicht mehr allein an `musik`. */}
+      {/* DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht. Er liegt ueber der
+          ganzen Flaeche: Wer auf ein stehendes Video tippt, meint immer „ab jetzt". */}
+      {originalton && !laeuft && (
+        <button type="button" aria-label={tonText || "Play"}
+          onClick={() => {
+            const v = videoRef.current;
+            if (!v) return;
+            v.muted = false; v.volume = 1;
+            void v.play().then(() => { setLaeuft(true); setTon(true); })
+              .catch(() => { /* Ton verweigert: wenigstens das Bild */ v.muted = true; void v.play(); setLaeuft(true); });
+          }}
+          className="absolute inset-0 z-10 grid place-items-center bg-black/25 transition active:bg-black/35">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-white/90 shadow-lg">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="ml-1 h-7 w-7 text-black">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
       {originalton
-        ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
+        ? laeuft && <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten} />
         : musik && (
           <>
             {/* `preload="none"`: Ein Stueck von zweieinhalb Minuten sind ein paar Megabyte. Wer

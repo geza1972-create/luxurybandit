@@ -117,7 +117,20 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
   const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f);
 });
 
-export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; lang?: string }) {
+export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
+  code?: string;
+  lang?: string;
+  /**
+   * NUR EINE FRAU, KEINE AUSWAHL (Owner 03.08.2026: „wir machen nur Bella als Chat fertig.
+   * Kein Modelauswahl").
+   *
+   * Die Kennung der einen Frau; leer heisst: alle zeigen, wie bisher. Steht sie, faellt
+   * Abschnitt 1 weg — und mit ihm die Frage, die vor der eigentlichen Frage stand. Wer erst
+   * aus vierzig Gesichtern waehlen muss, hat noch kein Wort geschrieben; wer Bella vor sich
+   * hat, schreibt ihr.
+   */
+  nurEine?: string;
+}) {
   const u = UI[lang] ?? UI.en;
   // Die KI haengt drei Antwortvorschlaege an ([[CHIPS: a | b | c]]). Wir schneiden sie aus
   // dem Text und zeigen sie als Knoepfe — getippt wird nur, wer will (Owner 28.07.2026).
@@ -191,6 +204,13 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const bella = all.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
       if (bella > 0) all = [all[bella], ...all.slice(0, bella), ...all.slice(bella + 1)];
+      /* Auf EINE begrenzen, wenn die Seite es so will. Findet sich die Kennung nicht (Zustand
+         umgezogen, Frau geloescht), bleibt die Liste wie sie ist — eine leere Auswahl waere
+         schlimmer als eine ungewollte. */
+      if (nurEine) {
+        const nur = all.filter(x => x.id === nurEine);
+        if (nur.length) all = nur;
+      }
       setModels(all);
       const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
       // NUR der Kleiderschrank (`wardrobe`): der restliche Katalog sind Partner-Produkte
@@ -451,7 +471,9 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
 
   return (
     <div className="mt-8">
-      {/* 1 — sie aussuchen */}
+      {/* 1 — sie aussuchen. Faellt weg, sobald die Seite nur EINE Frau will: Eine Auswahl mit
+          einem Eintrag ist keine Auswahl, sondern ein Knopf, der nichts tut. */}
+      {!nurEine && <>
       <p className={label}>{u.s1}</p>
       <p className="mt-1 text-[13px] font-bold text-white">{u.s1p}</p>
       {models.length === 0 ? (
@@ -513,6 +535,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         <input value={customName} onChange={e => setCustomName(e.target.value)} maxLength={30}
           placeholder={u.nameHer} className={`mt-3 ${input}`} />
       )}
+      </>}
 
       {/* 2 — der Chat: die Hauptsache */}
       <p className={`mt-6 ${label}`}>{u.s2}</p>

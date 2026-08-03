@@ -293,7 +293,12 @@ export default async function ThemesCatalog({ searchParams }: {
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
     // weiter unter /urlaub-mit-bella (Landing + Card-Tool), ist aber nicht mehr verlinkt.
     // Chat = das Thema mit den niedrigsten Kosten pro Kunde (Haiku), deshalb weit vorn.
-    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Pick one of our women and write with her — she answers in your language.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Free", abPreis: AB_CHAT },
+    /* DAS EINLADUNGSVIDEO STATT EINES PLATZHALTERFOTOS (Owner 03.08.2026: „auch hier muss
+       das richtige Video stehen"). `cover: ph(3)` war ein themenfremdes Modelfoto aus dem
+       Bilderstapel — die Kachel zeigte irgendeine Frau, waehrend die Seite dahinter ein
+       bestimmtes Video hat. Die Merkmale stimmten ebenfalls nicht mehr: „Looks" ist raus
+       (das Anziehen ist weg) und „Free" gilt nur fuer die ersten Nachrichten. */
+    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "One woman, one chat — she answers in your language, day after day.", href: "/themes/chat", video: "/Chat/Private%20Chat%20Invitation_1080p.mp4", chips: "♥ Chat · First messages free", abPreis: AB_CHAT },
     { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video", abPreis: AB_ABO },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
