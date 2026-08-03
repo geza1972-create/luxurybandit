@@ -3169,11 +3169,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
               ungeprueft mitkommt. */}
           <span className="text-[20px]">{variant === "wedding" ? "💍" : V.nurSie ? "💃" : "💋"}</span>
-          {/* BEIM TANZ STEHT RECHTS DAS OUTFIT, NICHT EIN ZWEITER MENSCH.
-              Das ist genau das Paar, das gleich an Pixverse geht — sie und das Set. Und es
-              beantwortet die Frage, die sonst offen bleibt: „was ziehe ich da eigentlich an?"
-              Loeschen laesst es sich nicht; es ist unser Bild, nicht ihres. */}
-          {V.nurSie && !!V.garmentBild && (
+          {/* RECHTS STEHT, WAS WIRKLICH LOSGESCHICKT WIRD.
+              Owner 03.08.2026: „was soll das jetzt wieder? Ich habe ein ganz anderes Video
+              ausgesucht" — er hatte auf der Landingpage einen Tanz gewaehlt, und hier stand
+              trotzdem das alte Waesche-Set.
+
+              ES WAR NICHT NUR DIE FALSCHE KACHEL, ES WAR EIN FALSCHES VERSPRECHEN: Im
+              Bewegungs-Modus (`/video/mimic/generate`) gehen an Pixverse GENAU ZWEI Dinge —
+              ihr Foto und das gewaehlte Video. Ein Outfit-Bild wird gar nicht mitgeschickt;
+              Kleidung, Licht und Bewegung kommen alle aus dem Video. Ein pinkes Set neben
+              einem gruenen Tanz zu zeigen, hiess also: das Falsche ankuendigen.
+
+              Ein Standbild aus dem Video selbst (`#t=0.1`, `preload="metadata"` laedt nur den
+              Dateikopf) — dieselbe Datei, kein zweites Bild zu pflegen. */}
+          {V.nurSie && variant === "poledance" && (refVideo || beispielVideo) && (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video src={`${refVideo || beispielVideo}#t=0.1`} muted playsInline preload="metadata"
+              className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
+          )}
+          {V.nurSie && variant !== "poledance" && !!V.garmentBild && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={neuerLook || V.garmentBild} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}

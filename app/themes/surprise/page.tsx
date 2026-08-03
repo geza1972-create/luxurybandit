@@ -97,7 +97,7 @@ export default async function SurpriseThemePage({ searchParams }: {
           * und jede traegt „Replace model": Ein Beispiel, das man nur betrachten kann, ist eine
           * Vitrine; eines mit Knopf ist der Trichter selbst.
           */}
-        <TanzAuswahl titel={T.nochEins} knopf={T.replaceModel} gewaehlt={T.replaceGewaehlt} />
+        <TanzAuswahl lang={L} titel={T.nochEins} knopf={T.replaceModel} gewaehlt={T.replaceGewaehlt} />
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.

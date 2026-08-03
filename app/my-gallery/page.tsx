@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fillPrices } from "@/lib/pricing";
-import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
+import { Play, Download, X, Loader2, Trash2, Send, Gift, Heart, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -144,9 +143,27 @@ export default function MyGalleryPage() {
    *    eine Meldung warum. Optimistisch loeschen ist richtig, wenn es fast immer klappt;
    *    hier klappte es fast nie.
    */
+  /**
+   * ZWEI TIPPS STATT SYSTEMDIALOG (Owner 03.08.2026: „du hast mal das Löschen viel eleganter
+   * gemacht als das — es wurde rot, das Icon").
+   *
+   * Hier stand `window.confirm()`: eine weiße Systemkiste mit blauem „OK/Abbrechen" mitten in
+   * einer schwarzen Galerie, in der Sprache des Browsers statt in seiner. Der erste Tipp
+   * färbt den Papierkorb jetzt rot, der zweite löscht wirklich, und nach drei Sekunden ist er
+   * wieder harmlos — ein Knopf, der scharf bleibt, ist eine Falle für den nächsten Fingertipp.
+   *
+   * Die ID und nicht `true`: Sonst leuchten alle Papierkörbe der Galerie gleichzeitig rot.
+   * Dasselbe Muster wie das Abmelden in `components/WetterProfileAsk.tsx`.
+   */
+  const [loeschScharf, setLoeschScharf] = useState("");
   const eigenesLoeschen = async (it: Item) => {
     const id = it.id.replace(/-foto$/, "");
-    if (typeof window !== "undefined" && !window.confirm("Dieses Bild endgültig löschen?")) return;
+    if (loeschScharf !== it.id) {
+      setLoeschScharf(it.id);
+      setTimeout(() => setLoeschScharf(s => (s === it.id ? "" : s)), 3000);
+      return;
+    }
+    setLoeschScharf("");
     try {
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -387,29 +404,60 @@ export default function MyGalleryPage() {
         </div>
         <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
 
-        {/* WERBUNG FÜRS VIDEO, direkt hier (Owner 30.07.2026: „dort machen wir Werbung noch
-            für turn into Video"). Wer aus der Mail kommt, hat sein Bild vor sich — das ist
-            der Moment für den nächsten Schritt, nicht die Themenübersicht.
+        {/* DER „TURN IT INTO A HOT VIDEO"-STREIFEN IST RAUS (Owner 03.08.2026: „das raus", mit
+            einem Bild des Streifens).
 
-            IMMER zeigen, nicht nur bei gefüllter Galerie (Owner 30.07.2026: „warum soll er
-            kein Bild haben? Er hat nämlich Bilder hochgeladen von sich auf jeden Fall").
-            Seit sein Foto beim Hochladen gespeichert wird, hat praktisch jeder etwas hier —
-            und sieht die Galerie doch einmal leer aus (anderes Gerät), ist das erst recht
-            der Moment, ihn zurückzuholen. */}
+            Er stammte vom 30.07. („dort machen wir Werbung noch für turn into Video") und warb
+            mit „{once}, one-off" — dem 1,49-Einzelkauf, den der Kuss am 03.08. hinter sich
+            gelassen hat: Bezahlt wird jetzt über zwei Aufladungen (4,99 / 9,99), das Einzel-
+            Stripe kommt nie mehr. Der Streifen versprach damit einen Weg, den es nicht mehr
+            gibt — und stand ausgerechnet über der Galerie, in der der Kunde das Ergebnis
+            betrachtet, für das er schon bezahlt hat.
+
+            AN SEINER STELLE EIN WEG, KEINE WERBUNG (Owner 03.08.2026: „‚Choose a topic‘
+            vielleicht, aber nicht irgendein Banner. Dann springt er auf die Topics").
+
+            Der Unterschied ist der Ton: Der Streifen vorher rief etwas aus und nannte einen
+            Preis; das hier sagt nur, wohin es weitergeht. Es nennt KEINE Zahl — welches Thema
+            was kostet, steht auf der Themenseite, und zwar aus `lib/pricing.ts`. Wer gerade
+            sein fertiges Video ansieht, ist genau der, der ein zweites macht — er braucht
+            keinen Anreiz, nur die Tür.
+
+            UND ES IST KEINE ZEILE, SONDERN DIE THEMEN SELBST (Owner 03.08.2026: „das hast du
+            aber lieblos jetzt gemacht" — zu einem grauen Kasten mit „Choose a topic" und einem
+            Pfeil).
+
+            Der graue Kasten war ein Schild, das auf eine Tür zeigt. Das hier IST die Tür: Jedes
+            Thema steht als eigener Kreis da und springt direkt in seinen Trichter — ein Tipp
+            statt zwei. „Choose a topic" ist nur noch die Überschrift darüber, und „Alle"
+            am Ende führt für den Rest auf die Themenseite. */}
         {!pin && (
-          <a href="/themes/kiss"
-            className="mt-3 flex items-center gap-3 rounded-2xl border border-[#f6cf51]/35 bg-[#f6cf51]/[0.07] p-3.5 active:scale-[0.99] transition">
-            <span className="text-[22px]">🔥</span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] font-black text-white">Turn it into a hot video</span>
-              <span className="mt-0.5 block text-[12px] font-bold leading-snug text-white/70">
-                {fillPrices("See the two of you move — {once}, one-off.")}
-              </span>
-            </span>
-            <span className="lb-gold shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black">Go →</span>
-          </a>
+          <div className="mt-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f6cf51]/80">Choose a topic</p>
+            {/* Waagerecht scrollen statt umbrechen: Auf einem Handy passen vier Kreise nebeneinander,
+                der Rest liegt eine Daumenbewegung entfernt. `-mx-4 px-4` laesst die Reihe am Rand
+                der Seite beginnen und enden — sonst sieht der letzte Kreis abgeschnitten aus.
+                `scrollbar-none` gibt es hier nicht als Klasse; auf dem Handy ist ohnehin keine da. */}
+            <div className="-mx-4 mt-2.5 flex gap-3 overflow-x-auto px-4 pb-1">
+              {[
+                { icon: Heart, name: "Kiss", href: "/themes/kiss" },
+                { icon: Gift, name: "Surprise", href: "/themes/surprise" },
+                { icon: Cake, name: "Birthday", href: "/themes/birthday" },
+                { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
+                { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
+                { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
+                { icon: LayoutGrid, name: "Alle", href: "/themes" },
+              ].map(t => (
+                <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
+                  <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-[#f6cf51]/30 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51] transition group-active:scale-90">
+                    <t.icon className="h-[22px] w-[22px]" />
+                  </span>
+                  <span className="text-center text-[10.5px] font-black leading-none text-white/70">{t.name}</span>
+                </a>
+              ))}
+            </div>
+          </div>
         )}
-
         {/* NUR FUER DEN ADMIN (Owner 01.08.2026: „wozu die Suche wenn er nichts findet?").
             Der Kunde hat zwei Dutzend eigene Bilder — eine Model-Suche findet darin fast nie
             etwas und wirkt kaputt („Keine Treffer fuer Bella"). Der Admin hat Hunderte, fuer
@@ -523,9 +571,11 @@ export default function MyGalleryPage() {
                 {!pin && !selectMode && String(it.source ?? "").startsWith("kiss") && (
                   <button type="button"
                     onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
-                    aria-label="Löschen"
-                    className="absolute bottom-1 right-1 z-10 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white backdrop-blur active:scale-90 transition">
-                    <Trash2 className="h-3.5 w-3.5" />
+                    aria-label={loeschScharf === it.id ? "Wirklich löschen — nochmal tippen" : "Löschen"}
+                    /* Rot IST die Rückfrage. Etwas größer, damit der zweite Tipp nicht danebengeht. */
+                    className={`absolute bottom-1 right-1 z-10 grid place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${
+                      loeschScharf === it.id ? "h-9 w-9 bg-red-600 ring-2 ring-white/70" : "h-7 w-7 bg-black/65"}`}>
+                    <Trash2 className={loeschScharf === it.id ? "h-4 w-4" : "h-3.5 w-3.5"} />
                   </button>
                 )}
                 <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>

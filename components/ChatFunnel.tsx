@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
-import { fillPrices, CHAT_STUFEN, eur } from "@/lib/pricing";
+import { fillPrices, CHAT_STUFEN, CHAT_KONTINGENT, eur } from "@/lib/pricing";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
@@ -28,14 +28,20 @@ type Msg = { role: "user" | "assistant" | "notice"; content: string };
  * Server. Wer den Browser wechselt, fängt bei 0 an. Ein echter Zähler pro Kunde fehlt noch.
  */
 
-// Chat ist GRATIS (Owner 27.07.2026) — bezahlt wird nur das Generieren.
-// Das Tageslimit war lange eine reine Skript-Bremse (200/Tag). Seit 28.07.2026 ist es
-// dieselbe Zahl wie auf der Wetter-Seite: 10 pro Tag. Danach sieht der Vielschreiber das
-// Angebot, statt unbegrenzt auf unsere Kosten zu schreiben.
-// 10 Gratis-Nachrichten pro Tag (Owner 28.07.2026, vorher 200). Gleiche Zahl wie auf der
-// Wetter-Seite: genug fuer eine echte Unterhaltung, und der Vielschreiber sieht das Angebot.
-const DAILY_MSGS = 10;
-const DAY_KEY = "lb_chat_day";
+/**
+ * ES GIBT KEIN TAGESLIMIT MEHR (Owner 03.08.2026: „du musst machen INSGESAMT, nicht pro Tag.
+ * Vielleicht will er den ganzen Tag mit ihr reden").
+ *
+ * Hier stand `DAILY_MSGS = 10`: nach zehn Zuegen war Schluss bis morgen. Das war die Bremse aus
+ * der Zeit, als der Chat gratis war und nur unsere Kosten zu decken hatte. Seit er GEKAUFT wird,
+ * ist sie das Gegenteil von dem, was er verkauft: Wer 14,99 zahlt und nach zehn Saetzen vor
+ * „morgen wieder" steht, hat sich vertan — und schreibt uns das auch.
+ *
+ * An seine Stelle treten zwei Zahlen, die beide GESAMT zaehlen und beide aus der Preistabelle
+ * kommen: `FREI_MSGS` fuer den, der noch nichts bezahlt hat, und `CHAT_KONTINGENT` fuer den, der
+ * bezahlt hat. Der Tageszaehler (`lb_chat_day`) bleibt ungenutzt liegen; ihn zu loeschen wuerde
+ * keinem helfen und alte Browser unnoetig anfassen.
+ */
 /**
  * WIE VIELE NACHRICHTEN ER UMSONST BEKOMMT, bevor der Waehler kommt.
  *
@@ -61,47 +67,47 @@ const REMIND_EVERY = 15;       // KI-Hinweis im Verlauf
 const UI: Record<string, {
   s1: string; s1p: string; own: string; ownHint: string; nameHer: string;
   s2: string; s3: string; incl: string; left: string; put: string; putHer: string; more: string;
-  free: string; today: string; anyLang: string; keep: string; keepP: string; unlock: string;
+  free: string; today: string; uebrig: string; anyLang: string; keep: string; keepP: string; unlock: string;
   dayFull: string; dayFullP: string; sayHi: string; pickFirst: string; write: string; save: string; show: string; dressing: string; filming: string; soundOn: string; soundOff: string;
 }> = {
   en: { s1: "1 · Choose her", s1p: "Swipe our models — or upload a photo of the woman you have in mind.", own: "Your own", ownHint: "Upload one photo — she becomes your AI girl.", nameHer: "Give her a name",
         s2: "2 · Talk to her", s3: "3 · Dress her", incl: "{videos} videos & looks a month are included — across all topics.", left: "left this month (all topics together) — every extra one is {extra}.",
-        put: "Put this on {name}", putHer: "Put this on her", more: "One more look — {extra}", free: "Chatting is free", today: "messages left today", anyLang: "Any language — she answers in yours.",
+        put: "Put this on {name}", putHer: "Put this on her", more: "One more look — {extra}", free: "Chatting is free", today: "messages left today", uebrig: "messages left", anyLang: "Any language — she answers in yours.",
         keep: "Keep talking to", keepP: "Unlock the pictures and videos.", unlock: "Unlock", dayFull: "That's a lot of talking for one day 💛", dayFullP: "is back tomorrow — your subscription keeps running.",
         sayHi: "Say hi to", pickFirst: "Pick her first, then start talking.", write: "Write to", save: "Save the photo", show: "Show it to her in the chat — she reacts to what she is wearing.", dressing: "Dressing her …", filming: "Filming her turn … (1–3 min)", soundOn: "Sound on", soundOff: "Sound off" },
   de: { s1: "1 · Wähle sie", s1p: "Wisch durch unsere Models — oder lade ein Foto der Frau hoch, die du im Kopf hast.", own: "Deine eigene", ownHint: "Ein Foto hochladen — sie wird deine KI-Frau.", nameHer: "Gib ihr einen Namen",
         s2: "2 · Schreib mit ihr", s3: "3 · Zieh sie an", incl: "{videos} Videos & Looks im Monat sind enthalten — über alle Themen.", left: "übrig diesen Monat (alle Themen zusammen) — jedes weitere {extra}.",
-        put: "Zieh es {name} an", putHer: "Zieh es ihr an", more: "Noch ein Look — {extra}", free: "Chatten ist gratis", today: "Nachrichten heute übrig", anyLang: "Jede Sprache — sie antwortet in deiner.",
+        put: "Zieh es {name} an", putHer: "Zieh es ihr an", more: "Noch ein Look — {extra}", free: "Chatten ist gratis", today: "Nachrichten heute übrig", uebrig: "Nachrichten übrig", anyLang: "Jede Sprache — sie antwortet in deiner.",
         keep: "Weiter schreiben mit", keepP: "Schalte Bilder und Videos frei.", unlock: "Freischalten", dayFull: "Das war viel für einen Tag 💛", dayFullP: "ist morgen wieder da — dein Abo läuft weiter.",
         sayHi: "Sag Hallo zu", pickFirst: "Wähle sie zuerst, dann kann es losgehen.", write: "Schreib an", save: "Foto speichern", show: "Zeig es ihr im Chat — sie reagiert darauf, was sie trägt.", dressing: "Sie zieht sich um …", filming: "Ihr Dreh-Video entsteht … (1–3 Min.)", soundOn: "Ton an", soundOff: "Ton aus" },
   ro: { s1: "1 · Alege-o", s1p: "Glisează prin modelele noastre — sau încarcă poza femeii la care te gândești.", own: "A ta", ownHint: "Încarcă o poză — devine fata ta AI.", nameHer: "Dă-i un nume",
         s2: "2 · Scrie-i", s3: "3 · Îmbrac-o", incl: "{videos} videoclipuri și ținute pe lună sunt incluse — în toate temele.", left: "rămase luna aceasta (toate temele) — fiecare în plus {extra}.",
-        put: "Îmbrac-o pe {name}", putHer: "Îmbrac-o", more: "Încă o ținută — {extra}", free: "Chatul este gratuit", today: "mesaje rămase azi", anyLang: "Orice limbă — îți răspunde în limba ta.",
+        put: "Îmbrac-o pe {name}", putHer: "Îmbrac-o", more: "Încă o ținută — {extra}", free: "Chatul este gratuit", today: "mesaje rămase azi", uebrig: "mesaje rămase", anyLang: "Orice limbă — îți răspunde în limba ta.",
         keep: "Continuă conversația cu", keepP: "Deblochează pozele și videoclipurile.", unlock: "Deblochează", dayFull: "A fost mult pentru o zi 💛", dayFullP: "revine mâine — abonamentul rămâne activ.",
         sayHi: "Salut-o pe", pickFirst: "Alege-o mai întâi, apoi începe.", write: "Scrie-i lui", save: "Salvează poza", show: "Arată-i în chat — reacționează la ce poartă.", dressing: "Se îmbracă …", filming: "Se filmează … (1–3 min)", soundOn: "Sunet", soundOff: "Fără sunet" },
   es: { s1: "1 · Elígela", s1p: "Desliza por nuestras modelos — o sube una foto de la mujer que tienes en mente.", own: "La tuya", ownHint: "Sube una foto — será tu chica IA.", nameHer: "Ponle un nombre",
         s2: "2 · Habla con ella", s3: "3 · Vístela", incl: "{videos} vídeos y looks al mes están incluidos — en todos los temas.", left: "restantes este mes (todos los temas) — cada extra {extra}.",
-        put: "Pónselo a {name}", putHer: "Pónselo a ella", more: "Otro look — {extra}", free: "Chatear es gratis", today: "mensajes restantes hoy", anyLang: "Cualquier idioma — responde en el tuyo.",
+        put: "Pónselo a {name}", putHer: "Pónselo a ella", more: "Otro look — {extra}", free: "Chatear es gratis", today: "mensajes restantes hoy", uebrig: "mensajes restantes", anyLang: "Cualquier idioma — responde en el tuyo.",
         keep: "Sigue hablando con", keepP: "Desbloquea las fotos y los vídeos.", unlock: "Desbloquear", dayFull: "Ha sido mucho por hoy 💛", dayFullP: "vuelve mañana — tu suscripción sigue activa.",
         sayHi: "Saluda a", pickFirst: "Elígela primero y empieza.", write: "Escribe a", save: "Guardar la foto", show: "Enséñaselo en el chat — reacciona a lo que lleva puesto.", dressing: "Se está vistiendo …", filming: "Grabando su vídeo … (1–3 min)", soundOn: "Sonido", soundOff: "Silencio" },
   fr: { s1: "1 · Choisis-la", s1p: "Fais défiler nos modèles — ou charge la photo de la femme que tu imagines.", own: "La tienne", ownHint: "Charge une photo — elle devient ta fille IA.", nameHer: "Donne-lui un prénom",
         s2: "2 · Parle avec elle", s3: "3 · Habille-la", incl: "{videos} vidéos et looks par mois sont inclus — sur tous les thèmes.", left: "restants ce mois-ci (tous thèmes) — chaque extra {extra}.",
-        put: "Habille {name} avec ça", putHer: "Habille-la avec ça", more: "Encore un look — {extra}", free: "Le chat est gratuit", today: "messages restants aujourd'hui", anyLang: "Toutes les langues — elle répond dans la tienne.",
+        put: "Habille {name} avec ça", putHer: "Habille-la avec ça", more: "Encore un look — {extra}", free: "Le chat est gratuit", today: "messages restants aujourd'hui", uebrig: "messages restants", anyLang: "Toutes les langues — elle répond dans la tienne.",
         keep: "Continue à parler avec", keepP: "Débloque les photos et les vidéos.", unlock: "Débloquer", dayFull: "Ça fait beaucoup pour aujourd'hui 💛", dayFullP: "revient demain — ton abonnement continue.",
         sayHi: "Dis bonjour à", pickFirst: "Choisis-la d'abord, puis commence.", write: "Écris à", save: "Enregistrer la photo", show: "Montre-lui dans le chat — elle réagit à ce qu'elle porte.", dressing: "Elle s'habille …", filming: "On filme sa vidéo … (1–3 min)", soundOn: "Son", soundOff: "Muet" },
   pt: { s1: "1 · Escolhe-a", s1p: "Desliza pelas nossas modelos — ou carrega a foto da mulher em que pensas.", own: "A tua", ownHint: "Carrega uma foto — passa a ser a tua rapariga IA.", nameHer: "Dá-lhe um nome",
         s2: "2 · Fala com ela", s3: "3 · Veste-a", incl: "{videos} vídeos e looks por mês estão incluídos — em todos os temas.", left: "restantes este mês (todos os temas) — cada extra {extra}.",
-        put: "Veste isto à {name}", putHer: "Veste-lho", more: "Mais um look — {extra}", free: "Conversar é grátis", today: "mensagens restantes hoje", anyLang: "Qualquer idioma — responde no teu.",
+        put: "Veste isto à {name}", putHer: "Veste-lho", more: "Mais um look — {extra}", free: "Conversar é grátis", today: "mensagens restantes hoje", uebrig: "mensagens restantes", anyLang: "Qualquer idioma — responde no teu.",
         keep: "Continua a falar com", keepP: "Desbloqueia as fotos e os vídeos.", unlock: "Desbloquear", dayFull: "Foi muito por hoje 💛", dayFullP: "volta amanhã — a tua subscrição continua.",
         sayHi: "Diz olá a", pickFirst: "Escolhe-a primeiro e começa.", write: "Escreve a", save: "Guardar a foto", show: "Mostra-lhe no chat — ela reage ao que veste.", dressing: "Está a vestir-se …", filming: "A filmar o vídeo … (1–3 min)", soundOn: "Som", soundOff: "Sem som" },
   pl: { s1: "1 · Wybierz ją", s1p: "Przesuwaj nasze modelki — albo wgraj zdjęcie kobiety, o której myślisz.", own: "Twoja własna", ownHint: "Wgraj jedno zdjęcie — zostanie Twoją dziewczyną AI.", nameHer: "Nadaj jej imię",
         s2: "2 · Napisz do niej", s3: "3 · Ubierz ją", incl: "{videos} filmów i stylizacji miesięcznie w cenie — we wszystkich tematach.", left: "pozostało w tym miesiącu (wszystkie tematy) — każda kolejna {extra}.",
-        put: "Ubierz w to {name}", putHer: "Ubierz ją w to", more: "Jeszcze jedna stylizacja — {extra}", free: "Czat jest darmowy", today: "wiadomości dziś", anyLang: "Dowolny język — odpowie w Twoim.",
+        put: "Ubierz w to {name}", putHer: "Ubierz ją w to", more: "Jeszcze jedna stylizacja — {extra}", free: "Czat jest darmowy", today: "wiadomości dziś", uebrig: "wiadomości pozostało", anyLang: "Dowolny język — odpowie w Twoim.",
         keep: "Pisz dalej z", keepP: "Odblokuj zdjęcia i filmy.", unlock: "Odblokuj", dayFull: "Sporo jak na jeden dzień 💛", dayFullP: "wróci jutro — subskrypcja działa dalej.",
         sayHi: "Przywitaj się z", pickFirst: "Najpierw ją wybierz, potem zacznij.", write: "Napisz do", save: "Zapisz zdjęcie", show: "Pokaż jej to na czacie — zareaguje na to, co ma na sobie.", dressing: "Właśnie się przebiera …", filming: "Nagrywamy jej wideo … (1–3 min)", soundOn: "Dźwięk", soundOff: "Wycisz" },
   it: { s1: "1 · Scegli lei", s1p: "Scorri le nostre modelle — o carica la foto della donna che hai in mente.", own: "La tua", ownHint: "Carica una foto — diventa la tua ragazza IA.", nameHer: "Dalle un nome",
         s2: "2 · Parla con lei", s3: "3 · Vestila", incl: "{videos} video e look al mese sono inclusi — in tutti i temi.", left: "rimasti questo mese (tutti i temi) — ogni extra {extra}.",
-        put: "Vestila così: {name}", putHer: "Vestila così", more: "Un altro look — {extra}", free: "Chattare è gratis", today: "messaggi rimasti oggi", anyLang: "Qualsiasi lingua — risponde nella tua.",
+        put: "Vestila così: {name}", putHer: "Vestila così", more: "Un altro look — {extra}", free: "Chattare è gratis", today: "messaggi rimasti oggi", uebrig: "messaggi rimasti", anyLang: "Qualsiasi lingua — risponde nella tua.",
         keep: "Continua a scrivere con", keepP: "Sblocca le foto e i video.", unlock: "Sblocca", dayFull: "È stato tanto per oggi 💛", dayFullP: "torna domani — l'abbonamento resta attivo.",
         sayHi: "Saluta", pickFirst: "Prima scegli lei, poi inizia.", write: "Scrivi a", save: "Salva la foto", show: "Mostraglielo in chat — reagisce a ciò che indossa.", dressing: "Si sta vestendo …", filming: "Stiamo girando il video … (1–3 min)", soundOn: "Audio", soundOff: "Muto" },
 };
@@ -185,7 +191,6 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState("");
   const [chatLang, setChatLang] = useState("en");   // Startsprache ihrer Antworten
-  const [today, setToday] = useState(0);          // heute schon geschrieben
   const [gesamt, setGesamt] = useState(0);        // insgesamt geschrieben (entscheidet ueber die Wand)
   const [zugangBis, setZugangBis] = useState(""); // ISO-Datum vom Server; leer = kein Zugang
   const modelFileRef = useRef<HTMLInputElement>(null);
@@ -247,9 +252,6 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
       const want = CHAT_LANGS.some(([c]) => c === fromCookie) ? fromCookie
         : CHAT_LANGS.some(([c]) => c === nav) ? nav : "en";
       setChatLang(want);
-      const raw = JSON.parse(localStorage.getItem(DAY_KEY) || "{}");
-      const stamp = new Date().toISOString().slice(0, 10);
-      setToday(raw?.day === stamp ? Number(raw.n) || 0 : 0);
       try { setGesamt(Number(localStorage.getItem(GESAMT_KEY)) || 0); } catch { /**/ }
       setUsedLooks(Number(localStorage.getItem(USED_LOOKS_KEY) || "0") || 0);
     } catch { /**/ }
@@ -263,8 +265,21 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
    * DIE WAND: nach `FREI_MSGS` Zuegen waehlt er eine Laufzeit — es sei denn, er hat schon
    * bezahlt oder ist Personal. Stand vorher hart auf `false`.
    */
-  const wall = !isStaff && !paid && gesamt >= FREI_MSGS;
-  const dayFull = !isStaff && today >= DAILY_MSGS;
+  /**
+   * EIN TOPF, ZWEI GROESSEN — und beide zaehlen GESAMT, nicht pro Tag.
+   *
+   * Wer noch nichts bezahlt hat, bekommt `FREI_MSGS`. Wer bezahlt hat, bekommt `CHAT_KONTINGENT`
+   * aus der Preistabelle (ein Monat = 1.000 Nachrichten). Ist der Topf leer, steht dieselbe
+   * Wand da wie beim ersten Mal — und das ist genau richtig: Er kauft den naechsten Monat.
+   *
+   * BEKANNTE LUECKE, ehrlich benannt: `gesamt` liegt im Browser (`lb_chat_ges`), nicht auf dem
+   * Server. Wer den Browser wechselt, faengt bei null an — dieselbe Luecke wie beim
+   * Look-Zaehler oben. Bei 0,09 Cent je Nachricht sind 1.000 Nachrichten rund 90 Cent auf einen
+   * Verkauf von {price}; ein Server-Zaehler lohnt erst, wenn jemand das ausnutzt.
+   */
+  const kontingent = CHAT_KONTINGENT[gewaehlt.monate] ?? CHAT_KONTINGENT[1] ?? 1000;
+  const topf = paid ? kontingent : FREI_MSGS;
+  const wall = !isStaff && gesamt >= topf;
 
   // KURATIERTE VIDEOS für den „ich zeige mich"-Moment ([[SHOW_LINGERIE]]). Ohne sie
   // verspricht sie ein Bild und liefert nichts (Owner 28.07.2026). Gleiche Quelle wie im
@@ -348,15 +363,9 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
   // `preset` = ein angetippter Antwort-Knopf aus ihrem Einstieg; sonst das Getippte.
   const send = async (preset?: string) => {
     const text = (preset ?? draft).trim();
-    if (!text || sending || wall || dayFull) return;
-    // Tagesstand mitzählen (pro Gerät und Kalendertag).
-    try {
-      const stamp = new Date().toISOString().slice(0, 10);
-      const n = today + 1;
-      localStorage.setItem(DAY_KEY, JSON.stringify({ day: stamp, n }));
-      setToday(n);
-      setGesamt(g => { const next = g + 1; try { localStorage.setItem(GESAMT_KEY, String(next)); } catch { /**/ } return next; });
-    } catch { /**/ }
+    if (!text || sending || wall) return;
+    // Nur noch EIN Zaehler: der Gesamtstand. Der Tagesstand ist am 03.08. weggefallen.
+    setGesamt(g => { const next = g + 1; try { localStorage.setItem(GESAMT_KEY, String(next)); } catch { /**/ } return next; });
     const next: Msg[] = [...msgs, { role: "user", content: text }];
     setMsgs(next); if (!preset) setDraft(""); setSending(true); scrollFeed();
     try {
@@ -595,7 +604,7 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
           {/* ANTWORT-KNÖPFE — am Anfang ihre Einstiegsfrage, danach die drei Vorschläge, die
               die KI an jede Nachricht hängt. Leute klicken lieber, als zu tippen; getippt
               wird nur, wer mag (Owner 28.07.2026). */}
-          {chosen && !sending && !dayFull && (() => {
+          {chosen && !sending && (() => {
             const lastAssistant = [...msgs].reverse().find(m => m.role === "assistant")?.content ?? "";
             const noUserYet = msgs.every(m => m.role !== "user");
             // IMMER KNÖPFE (Owner 29.07.2026): geflirtet wird durch Klicken. Vorschläge von
@@ -644,14 +653,11 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
 
         {/* Eingabe / Wand */}
         <div className="border-t border-black/10 px-3 py-2.5">
-          {dayFull ? (
-            <div className="rounded-xl bg-black/[0.05] p-3 text-center">
-              <p className="text-[13px] font-black text-black">{u.dayFull}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">
-                {herName} {u.dayFullP}
-              </p>
-            </div>
-          ) : wall ? (
+          {/* HIER STAND „Das war viel fuer einen Tag" — der Tagesdeckel (Owner 03.08.2026:
+              „insgesamt, nicht pro Tag"). Ein Kunde, der bezahlt hat und abends vor
+              „morgen wieder" steht, ist ein Kunde, der sich vertan fuehlt. Es gibt jetzt nur
+              noch EINEN Halt: den leeren Topf — und der fuehrt zum Kaufen, nicht ins Bett. */}
+          {wall ? (
             /*
              * DER STUFEN-WAEHLER STATT DER ABO-WAND (Owner 03.08.2026: „er kauft ein Model, ein
              * Chat" — und zu den Preisen: „die Stufen von vorhin").
@@ -697,7 +703,7 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
                   der Radar laeuft, ein neues Bild erscheint. Das ist KEIN Anziehen — die Bilder
                   existieren laengst, es kostet uns nichts, und es ist der Suchtfaktor des Chats.
                   Nur der Knopf lag im geloeschten Abschnitt; die Funktion dahinter lebt. */}
-              {chosen && !dayFull && (
+              {chosen && (
                 <button type="button" onClick={showNext} disabled={showBusy}
                   className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/20 text-[12px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
                   {showBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔥"}
@@ -706,7 +712,7 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
               )}
               {chosen && (
                 <p className="mt-1.5 text-[11px] font-bold text-black/50">
-                  {`${u.free} · ${Math.max(0, DAILY_MSGS - today)} ${u.today}`}
+                  {`${Math.max(0, topf - gesamt)} ${u.uebrig}`}
                   {" · "}{u.anyLang}
                 </p>
               )}

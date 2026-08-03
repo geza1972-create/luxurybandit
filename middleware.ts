@@ -15,6 +15,27 @@ function requiresAuth(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
 }
 
+/**
+ * DER ZWEITE WEG HINEIN — ein PIN im Link statt eines Anmeldefensters.
+ *
+ * Owner 03.08.2026, mit einem Bildschirmfoto von „Authentication required" auf
+ * /admin/tools/luxbanditcut. Die Annahme drei Absaetze weiter oben („opened … in a normal
+ * browser") stimmte nicht: Er hatte die Werkbank im EINGEBAUTEN Vorschau-Browser offen, und
+ * der zeigt kein Basic-Auth-Fenster. Damit ist die Wand fuer ihn nicht ueberwindbar — nicht
+ * mit dem richtigen PIN, nicht mit irgendetwas. Genau der Fehler, den der Kommentar oben fuer
+ * `/admin` schon einmal beschrieben hat.
+ *
+ * DIE SPERRE BLEIBT (Owner-Entscheidung): Wer den PIN nicht hat, kommt weiterhin nicht rein.
+ * Neu ist nur ein zweiter Schluessel fuer dieselbe Tuer — `?pin=…` einmal aufrufen, danach
+ * traegt ein Keks den Nachweis.
+ *
+ * WARUM DER PIN SOFORT AUS DER ADRESSZEILE FLIEGT: Ein Geheimnis in einer URL landet im
+ * Verlauf, in Server-Protokollen und im `Referer` jedes Bildes, das die Seite laedt. Deshalb
+ * antwortet dieser Zweig mit einer Umleitung auf dieselbe Seite OHNE `pin` und legt den
+ * Nachweis in einen `HttpOnly`-Keks: Nach dem ersten Klick steht der PIN nirgends mehr.
+ */
+const PIN_KEKS = "lb_tools_pin";
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -30,10 +51,37 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const auth = request.headers.get("authorization") ?? "";
-    let authorised = false;
+    /**
+     * DER PIN IM LINK — einmal, dann nie wieder sichtbar.
+     *
+     * Steht er dran und stimmt er, geht es NICHT einfach weiter: Es folgt eine Umleitung auf
+     * dieselbe Adresse ohne `pin`, mit dem Keks im Gepaeck. Sonst bliebe das Geheimnis in der
+     * Adresszeile stehen, und der naechste Bildschirmfoto-Moment verteilt es.
+     *
+     * Ein FALSCHER PIN faellt bewusst durch: Er landet unten bei der 401, statt eine eigene
+     * Meldung zu bekommen. „Der PIN war falsch" ist eine Auskunft, die nur dem nuetzt, der
+     * raet.
+     */
+    const pinAusLink = request.nextUrl.searchParams.get("pin");
+    if (pinAusLink && pinAusLink === adminPin) {
+      const ziel = request.nextUrl.clone();
+      ziel.searchParams.delete("pin");
+      const antwort = NextResponse.redirect(ziel);
+      antwort.cookies.set(PIN_KEKS, adminPin, {
+        httpOnly: true,          // kein Zugriff aus JavaScript — auch nicht fuer fremde Skripte
+        sameSite: "lax",
+        secure: request.nextUrl.protocol === "https:",   // lokal laeuft es ueber http
+        path: "/",               // deckt /tools UND /admin/tools ab
+        maxAge: 60 * 60 * 24 * 30,   // 30 Tage, dann meldet er sich neu an
+      });
+      return antwort;
+    }
 
-    if (auth.startsWith("Basic ")) {
+    const auth = request.headers.get("authorization") ?? "";
+    // Der Keks aus einem frueheren `?pin=…` — der Weg, der auch im eingebauten Browser geht.
+    let authorised = request.cookies.get(PIN_KEKS)?.value === adminPin;
+
+    if (!authorised && auth.startsWith("Basic ")) {
       try {
         // atob works in edge runtime
         const decoded = atob(auth.slice(6));
