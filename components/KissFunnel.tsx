@@ -1815,8 +1815,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * mit denselben Fotos, neue Nummer, Abbuchung uebers normale Guthaben
            * (`unlock("once")`), und der Zahlungs-Wachhund startet die Erzeugung von allein.
            * Ein Klick aussen, eine Kette innen.
+           *
+           * DIE BEDINGUNG HING AM NAMEN, NICHT AN DER EIGENSCHAFT (Owner 03.08.2026: „hier
+           * ist die Generierung abgebrochen, nachdem ich ein Bild hochgeladen habe" —
+           * Bildschirmfoto: 8,49 EUR Guthaben, und trotzdem oeffnete sich der Auflade-Waehler).
+           *
+           * GEMESSEN im Auftragsprotokoll: Sein letzter Tanz-Auftrag hatte bereits ein Video
+           * (`paid=true, kind=once, videoUrl` gesetzt). Der Server antwortete also voellig
+           * richtig mit `extraNeeded` — nur lief der nahtlose Weg darunter ausschliesslich
+           * fuer `variant === "kiss"`. Tanz und Geburtstag fielen in den Kaufkasten und
+           * verlangten Geld von jemandem, der genug hatte.
+           *
+           * `V.nurGuthaben` trifft genau die drei Geschenke, die aus dem Guthaben zahlen
+           * (Kuss, Tanz, Geburtstag). Ein viertes bekommt den Weg damit automatisch — genau
+           * dafuer steht die Eigenschaft in der Tabelle und nicht der Name hier im Code.
            */
-          if (variant === "kiss") {
+          if (V.nurGuthaben) {
             setStatus(T.oneMoment);
             let device = "";
             try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
