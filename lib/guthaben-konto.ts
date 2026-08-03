@@ -43,9 +43,32 @@ export function kontoAdresse(): string {
   try { return (getStoredAuthSession()?.user?.email ?? "").trim().toLowerCase(); } catch { return ""; }
 }
 
-/** Die Adresse, die dieses Geraet aus einem frueheren Besuch kennt. */
+/**
+ * ALLE ORTE, an denen eine Adresse dieses Geraets liegen kann — in der Reihenfolge ihrer
+ * Verlaesslichkeit (bestaetigt/bezahlt vor bloss eingetippt).
+ *
+ * Owner 03.08.2026: „du musst schauen, dass ich eingeloggt bin auf ALLEN Topicseiten, wenn
+ * ich meine E-Mail angebe um zu generieren." Die Adresse entstand an vier Stellen und lag
+ * unter vier Namen; gelesen wurde nur der erste. Wer sie an der Kasse oder am Feed-Tor
+ * hinterlassen hatte, galt auf jeder anderen Seite wieder als Fremder — kein Konto im
+ * Header, kein „Signed in" im Menue, und beim naechsten Thema dieselbe Frage von vorn.
+ */
+const MAIL_KEYS = [MAIL_KEY, "lb_customer_email", "lb_paid_email", "lb_lead_email"] as const;
+
+/** Die Adresse, die dieses Geraet aus einem frueheren Besuch kennt — egal WO sie entstand. */
 export function geraetAdresse(): string {
-  try { return (localStorage.getItem(MAIL_KEY) ?? "").trim().toLowerCase(); } catch { return ""; }
+  for (const k of MAIL_KEYS) {
+    try {
+      const v = (localStorage.getItem(k) ?? "").trim().toLowerCase();
+      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return v;
+    } catch { /* privater Modus */ }
+  }
+  return "";
+}
+
+/** Abmelden: ALLE Spuren loeschen — sonst holt der Rueckfall die Adresse gleich wieder. */
+export function vergissGeraetAdresse(): void {
+  for (const k of MAIL_KEYS) { try { localStorage.removeItem(k); } catch { /**/ } }
 }
 
 /**

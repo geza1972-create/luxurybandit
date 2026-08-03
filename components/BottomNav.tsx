@@ -5,6 +5,7 @@ import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
+import { geraetAdresse, vergissGeraetAdresse } from "@/lib/guthaben-konto";
 
 // Der Try-on-Funnel im Menü: MUSS ein Kleidungsstück (Wardrobe-Garment) sein, damit
 // die linke Karte das Produktbild zeigt — ein voller Look zeigt sonst das Model-Bild.
@@ -68,7 +69,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
       // Auch die im Trichter bestaetigte Adresse zaehlt (Owner 03.08.2026) — siehe unten
       // bei displayName: wer seine E-Mail dagelassen hat, ist angemeldet, nicht fremd.
-      const kussMail0 = (() => { try { return localStorage.getItem("lb_kiss_mail") ?? ""; } catch { return ""; } })();
+      // Dieselbe Quelle wie der Header-Chip — sonst sagt das Menue „fremd", waehrend oben
+      // sein Konto steht (Owner 03.08.2026: auf ALLEN Topicseiten angemeldet sein).
+      const kussMail0 = geraetAdresse();
       setSignedIn(!!getStoredAuthSession() || !!c.id || !!adminPin || !!kussMail0.trim());
       if (c.id) {
         fetch(`/api/curator?me=1`, { headers: { "x-curator-id": c.id } })
@@ -255,7 +258,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
        * ganzen Seite. Das Supabase-Konto bleibt VORRANGIG; die Kuss-Adresse ist der
        * Rueckfall fuer die grosse Mehrheit ohne Konto.
        */
-      const kussMail = (() => { try { return localStorage.getItem("lb_kiss_mail") ?? ""; } catch { return ""; } })();
+      const kussMail = geraetAdresse();
       const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "") || kussMail.split("@")[0]).trim();
       const displayEmail = curator?.email || session?.user?.email || kussMail || "";
       // Staff = admin or a creator/model. Plain members get a trimmed menu (Home · Models ·
@@ -280,7 +283,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
          * dem Guthaben-Chip im Header Bescheid, der sonst bis zum naechsten Fensterwechsel
          * den alten Stand zeigte.
          */
-        try { localStorage.removeItem("lb_kiss_mail"); } catch { /**/ }
+        vergissGeraetAdresse();   // ALLE Adress-Spuren, nicht nur die vom Kuss
         try { window.dispatchEvent(new CustomEvent("lb-abgemeldet")); } catch { /**/ }
         setIsCurator(false);
         setSignedIn(false);

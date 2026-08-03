@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
 import { YOUTUBE_CHANNEL } from "@/lib/social";
@@ -41,8 +41,33 @@ export default function TopNav({
   // ZURÜCK: Regel im Haus — jede Seite braucht einen sichtbaren Rückweg. Auf den Browser-
   // Button ist kein Verlass (In-App-Browser von Instagram/Facebook haben oft keinen).
   // Nur zeigen, wenn es auch etwas zum Zurückgehen gibt (Direktaufruf hat keine Historie).
-  const [canBack, setCanBack] = useState(false);
-  useEffect(() => { try { setCanBack(window.history.length > 1); } catch { /**/ } }, []);
+  /**
+   * DER PFEIL FUEHRT NACH HAUSE, NICHT BLIND ZURUECK (Owner 03.08.2026: „wieso komme ich
+   * mit einem Backbutton immer zu Models? … Home sollte kommen, die Topic-Seite").
+   *
+   * `router.back()` folgt der BROWSER-Historie — da steht irgendwann /stores?view=models,
+   * und dann landet der Pfeil dort, egal wo man gerade ist. Das ist kein Zurueck mehr,
+   * sondern Zufall.
+   *
+   * Jetzt zaehlt diese Sitzung mit, wie viele Seiten der App schon besucht wurden:
+   *   - noch keine (Direkteinstieg, Anzeige, geteilter Link) → Pfeil fuehrt auf /themes,
+   *     die Startseite. Das ist immer richtig und nie eine fremde Seite.
+   *   - schon navigiert → `router.back()` wie bisher; dann IST das vorige Blatt seins.
+   */
+  const pathname = usePathname();
+  const HEIM = "/themes";
+  const [tiefe, setTiefe] = useState(0);
+  useEffect(() => {
+    let n = 0;
+    try {
+      n = Number(sessionStorage.getItem("lb_nav_tiefe") ?? 0) || 0;
+      sessionStorage.setItem("lb_nav_tiefe", String(n + 1));
+    } catch { /**/ }
+    setTiefe(n);
+  }, [pathname]);
+  // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
+  const canBack = pathname !== HEIM;
+  const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
   const ig = process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit";
   const share = () => {
     try {
@@ -62,7 +87,7 @@ export default function TopNav({
     <header data-topnav="1" className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         {back && canBack && (
-          <button type="button" onClick={() => router.back()} aria-label="Back"
+          <button type="button" onClick={zurueck} aria-label="Back"
             className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90 transition hover:text-white">
             <ChevronLeft className="h-6 w-6" />
           </button>
