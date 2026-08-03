@@ -98,12 +98,21 @@ export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
   { id: "blau",    bild: "/Pooldance/set-blau.webp",       name: "Blue Lace" },
   { id: "gruen",   bild: "/Pooldance/set-gruen.webp",      name: "Neon Green" },
   { id: "lack",    bild: "/Pooldance/set-rot-lack.webp",   name: "Red Latex" },
-  /* HIER STAND EIN SIEBTES SET — schwarzes Harness vor dunklem Studio (Owner 03.08.2026:
-     „mach das wieder raus, das wird nicht angenommen").
-     Es fiel als einziges aus der Reihe: kein Neon, sondern ein dunkler Raum. Genau die Frage,
-     die ich beim Einbau vermerkt hatte — traegt das Bild die Szene, die der Prompt beschreibt? —
-     hat Pixverse mit Nein beantwortet. Die anderen sechs bringen den Club mit; dieses brachte
-     etwas anderes, und dann faellt der Auftrag durch. */
+  /**
+   * DAS ROTE STUDIO-SET — angenommen (Owner 03.08.2026: „ich habe dir noch eins reingemacht und
+   * das wird angenommen").
+   *
+   * UND ES WIDERLEGT, WAS ICH EINE HALBE STUNDE VORHER ALS REGEL AUFGESCHRIEBEN HATTE. Nach der
+   * Absage des schwarzen Harness-Sets stand hier: „Ein Set traegt den Auftrag nur, wenn es die
+   * SZENE mitbringt, die im Prompt steht." Dieses Bild hat DENSELBEN dunklen Studio-Hintergrund
+   * wie das abgelehnte — nur ist die Waesche rot statt schwarz — und es geht durch.
+   *
+   * Die Szene war also nicht der Grund. Woran es wirklich liegt, wissen wir nicht: Farbe,
+   * Kontrast, wie viel Haut die Silhouette suggeriert — Pixverse sagt es nicht. Was bleibt, ist
+   * die einzige Regel, die heute jedes Mal gestimmt hat: VORHER IN PIXVERSE TESTEN, wie der
+   * Owner es tut. Ein Set gehoert erst in diese Liste, wenn es dort durchgelaufen ist.
+   */
+  { id: "rotstudio", bild: "/Pooldance/set-rot-studio.webp", name: "Red Studio" },
 ];
 
 /**
