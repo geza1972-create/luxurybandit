@@ -139,31 +139,39 @@ Kündigungslogik, `hasActiveSubscription` bei jedem Aufruf, monatliche Gutschrif
 Kontingent-Zeilen, „Abo aktiv"-Zustände im Trichter. **All das entfällt.** Die Hochzeit läuft
 dann über denselben Guthaben-Topf wie jedes andere Geschenk — nur mit einem größeren Betrag.
 
-### Die Laufzeit: drei Monate AB KAUF — Owner-Entscheidung 03.08.2026
+### Die Laufzeit wählt der Kunde — Owner-Entscheidung 03.08.2026
 
-> Owner: „was ich nicht will, ist mit 3 Monate ab Hochzeit."
+> Owner: „was ich nicht will, ist mit 3 Monate ab Hochzeit.“ - und dann: „die müssen dann die Preise wählen: 3 Monate 24 €, 6 Monate 49 €, 1 Jahr 99 €.“
 
-Ich hatte vorgeschlagen, ab dem Hochzeitsdatum zu rechnen, damit eine früh gekaufte Seite nicht
-vor der Feier stirbt. Der Owner hat das abgelehnt, und die Entscheidung hat eine Logik, die im
-Vorschlag fehlte: **Wer früh kauft, verlängert einmal.** Das ist kein Nebeneffekt, sondern ein
-zweiter Verkauf — bei einem Produkt, dessen Nutzen mit der Nähe zur Hochzeit steigt.
+Damit ist das Frühkäufer-Problem gelöst, ohne ab dem Hochzeitsdatum zu rechnen: Wer ein
+halbes Jahr vorher plant, kauft die passende Stufe. Die Zahlen stehen in `lib/pricing.ts`
+(`HOCHZEIT_STUFEN`), nie im Text.
 
-Also: **drei Monate ab Kauf.** Verlängern = noch einmal 24,99 €.
+| Laufzeit | Preis | je Monat |
+|---|---|---|
+| 3 Monate | 24 € | 8,00 € |
+| 6 Monate | 49 € | 8,17 € |
+| 1 Jahr | 99 € | 8,25 € |
 
-**Was dazugehört, damit das fair bleibt** — nicht als Einschränkung, sondern weil es sonst als
-Falle wirkt und Rückbuchungen kostet:
+**Die Leiter belohnt die längere Bindung nicht** - eine Beobachtung, keine Kritik, und der
+Owner hat sie gesehen („ja, dann ist es halt so“): Wer rechnet, nimmt viermal die kleine Stufe (96 € statt 99 €). Die
+großen Stufen verkaufen sich trotzdem an alle, die nicht rechnen und nicht dreimal verlängern
+wollen. Soll die Leiter kippen, sind es zwei Zahlen in `lib/pricing.ts`.
 
-- Die Laufzeit steht **vor dem Kauf** auf dem Knopf, nicht im Kleingedruckten: „Deine
-  Einladungsseite ist drei Monate online."
-- **Warn-Mail sieben Tage vorher** mit einem Verlängern-Knopf — dieselbe Maschine wie beim
+**Was dazugehört, damit die Frist nicht als Falle wirkt** - nicht aus Vorsicht, sondern weil
+Rückbuchungen teurer sind als jede Hosting-Ersparnis:
+
+- Die gewählte Laufzeit steht **auf dem Kaufknopf**, nicht im Kleingedruckten.
+- **Warn-Mail sieben Tage vor Ablauf** mit einem Verlängern-Knopf - dieselbe Maschine wie beim
   Geschenk (`/api/aufraeumen`), nur ein anderer Text. Wer verlängert, tut es genau dann.
 - Nach Ablauf verschwindet die **Seite**, nicht das Video: Das Video gehört ihm, es bleibt in
-  seiner Galerie und im Download. Sonst verliert er mit der Frist auch das, wofür er bezahlt hat.
+  seiner Galerie und im Download. Sonst verliert er mit der Frist auch das, wofür er bezahlt
+  hat.
 
-### Was 24,99 € freischalten
+### Was der Kauf freischaltet
 
-Alles auf einmal, kein zweiter Kauf: Video, Einladungsseite, Zusagen/Gästeliste, Neuigkeiten,
-Gruppenchat. Ein Preis, ein Klick, ein Versprechen.
+Alles auf einmal, in JEDER Stufe: Video, Einladungsseite, Zusagen/Gästeliste, Neuigkeiten,
+Gruppenchat. Die Stufe bestimmt nur, wie lange die Seite lebt - nicht, was sie kann.
 
 ### Video tauschen — Owner-Entscheidung 03.08.2026: DREI Versuche enthalten
 
@@ -180,12 +188,12 @@ Bei 1,49 € muss das so sein: Ein Pixverse-Lauf kostet uns rund einen Euro, ein
 wäre ein Verlustgeschäft.
 
 **Bei der Hochzeit trägt dieselbe Regel nicht.** Dort ist das Video das Herzstück einer Seite,
-die Monate lebt und die alle Gäste sehen — und bei 24,99 € ist „was ist, wenn es schlecht wird?"
+die Monate lebt und die alle Gäste sehen — und bei 24 € aufwärts ist „was ist, wenn es schlecht wird?"
 die größte Frage vor dem Kauf. Bei der eigenen Hochzeit ist das keine kleine Sorge. Wer sie mit
 „dann zahl noch mal" beantwortet, verliert den Verkauf an der teuersten Stelle.
 
-**Also: drei Läufe sind enthalten** (das erste Video plus zwei Tausche), danach kostet jedes
-weitere den normalen Videopreis aus dem Guthaben. Rund 3 € Kosten von 24,99 € — und es ist
+**Also: drei Läufe sind enthalten** (das erste Video plus zwei Tausche), in JEDER Stufe, danach kostet jedes
+weitere den normalen Videopreis aus dem Guthaben. Rund 3 € Kosten von mindestens 24 € — und es ist
 genau das, was aus einem Video ein *Paket* macht.
 
 **Wie es gebaut wird:**
@@ -205,7 +213,8 @@ genau das, was aus einem Video ein *Paket* macht.
 Der Trichter der Hochzeit ist schon eine Variante desselben Bausteins (`abo`, `einzelkauf`,
 `keinGratis` in `lib/geschenke.ts`). Zu tun ist:
 
-- `abo: false`, `preisCents: 2499` am Hochzeits-Eintrag
+- `abo: false` am Hochzeits-Eintrag; die Preise kommen aus `HOCHZEIT_STUFEN`
+- ein Stufen-Wähler vor der Kasse - dieselbe Form wie der Auflade-Wähler beim Kuss
 - die Abo-Prüfung in der Einladungsseite durch „bezahlt + nicht abgelaufen" ersetzen
 - `gueltigBis` am Einladungs-Eintrag, gesetzt beim Kauf
 - Warn-Mail und Ablauf in `/api/aufraeumen` ergänzen (die Maschine steht)
@@ -222,5 +231,5 @@ genau EINEN Kaufweg.
 - **Ob Geschenke sich verkaufen.** 210 Aufträge in neun Tagen, zwei bezahlt. Der Ablauf ist
   jetzt repariert und bewiesen; ob die Leute kaufen, entscheidet die Werbung.
 - **Was ein Lauf wirklich kostet.** Steht bis heute in keinem Kommentar dieses Projekts. Ohne
-  diese Zahl ist jeder Preis geraten — auch die 1,49 € und die 24,99 €.
+  diese Zahl ist jeder Preis geraten — auch die 1,49 EUR und die 24/49/99 EUR.
 - **Die Preise der übrigen Geschenke.** Erst die Pixverse-Abrechnung lesen.
