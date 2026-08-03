@@ -39,7 +39,10 @@ export default function GuthabenChip() {
     };
     holen();
     window.addEventListener("focus", holen);
-    return () => { weg = true; window.removeEventListener("focus", holen); };
+    // Beim Abmelden sofort leeren — nicht erst beim naechsten Fensterwechsel (03.08.2026).
+    const abmelden = () => setCents(null);
+    window.addEventListener("lb-abgemeldet", abmelden);
+    return () => { weg = true; window.removeEventListener("focus", holen); window.removeEventListener("lb-abgemeldet", abmelden); };
   }, []);
 
   /**

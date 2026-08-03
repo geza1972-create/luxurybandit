@@ -273,7 +273,17 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         setShowProfileMenu(false);
         try { localStorage.removeItem("lb_curator"); } catch { /**/ }
         try { localStorage.removeItem("luxurybandit-try-look-admin-pin"); } catch { /**/ }
+        /**
+         * AUCH DIE KUSS-ADRESSE GEHT MIT RAUS (Owner 03.08.2026: „ich kann mich nicht
+         * ausloggen im Menü"). Seit sie als Anmeldung zaehlt, muss Abmelden sie auch
+         * loeschen — sonst steht nach dem Klick weiter „Signed in" da. Das Ereignis sagt
+         * dem Guthaben-Chip im Header Bescheid, der sonst bis zum naechsten Fensterwechsel
+         * den alten Stand zeigte.
+         */
+        try { localStorage.removeItem("lb_kiss_mail"); } catch { /**/ }
+        try { window.dispatchEvent(new CustomEvent("lb-abgemeldet")); } catch { /**/ }
         setIsCurator(false);
+        setSignedIn(false);
         await signOut();
         router.push("/stores");
       };
@@ -580,7 +590,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Try-Ons</span>
                 </button>
               )}
-              {signedIn ? (
+              {/* Auch mit Kuss-Adresse sichtbar — wer als angemeldet gilt, braucht den
+                  Ausgang (Owner 03.08.2026). */}
+              {(signedIn || kussMail) ? (
                 <button type="button" onClick={() => void handleSignOut()}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <LogOut className="h-5 w-5 text-red-400 shrink-0" />
