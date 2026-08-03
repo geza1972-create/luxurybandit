@@ -1855,12 +1855,71 @@ export async function addVideoLog(eintrag: VideoLogEntry): Promise<void> {
   }
 }
 
-export async function writeKissLog(entries: KissLogEntry[]): Promise<void> {
+/**
+ * SCHREIBEN HEISST VEREINIGEN, NICHT UEBERSCHREIBEN (03.08.2026).
+ *
+ * WAS PASSIERT IST: Ein Kunde zahlte 1,49 € aus dem Guthaben — die Abbuchung steht bis heute
+ * in `videoCredits.redeemed` (`wallet-91e53d90-…`), das Geld ist weg (999 → 850 Cent). Sein
+ * AUFTRAG dagegen war eine Minute spaeter spurlos verschwunden: kein Eintrag mit dieser
+ * Kennung, kein `paid`, nichts zu liefern. Auf dem Schirm stand danach „Videos are paid —
+ * please top up your balance", obwohl er gerade bezahlt hatte.
+ *
+ * WARUM: Jeder Aufrufer las das GANZE Protokoll, aenderte eine Zeile und schrieb das GANZE
+ * Protokoll zurueck. Am Kuss haengen aber mehrere Schreiber gleichzeitig — zwei Foto-Uploads
+ * ein paar Sekunden auseinander, `kiss-claim` mit der Adresse, `checkout-status` mit dem
+ * Bezahlt-Stempel, die Video-Route mit der Auftragsnummer. Wer als Letzter schrieb, hatte
+ * seinen Stand vielleicht VOR der Aenderung des anderen gelesen — und loeschte sie damit
+ * wieder weg. Bei zwei Uploads sieht man es als zwei halbe Auftraege (einer mit ihrem, einer
+ * mit seinem Foto); beim Bezahlt-Stempel sieht man es als ausgeraubten Kunden.
+ *
+ * DIE LOESUNG IST DIESELBE WIE BEIM state.json: Beim Schreiben wird der JETZIGE Stand noch
+ * einmal gelesen und dazugemischt. Was der Aufrufer nicht kennt, hat ein anderer inzwischen
+ * angelegt — das bleibt. Was der Aufrufer ausdruecklich loeschen will, nennt er in
+ * `geloescht`; ohne diese Liste kaeme jede Loeschung beim naechsten Schreiben zurueck (genau
+ * dieser Fehler kostete das Projekt schon einmal die Loeschfunktion).
+ *
+ * Felder gewinnt IMMER der Aufrufer: Er hat gerade etwas geaendert, der gelesene Stand ist
+ * aelter. Nur ganze Eintraege, die er gar nicht kennt, kommen aus dem Speicher dazu.
+ */
+/**
+ * SCHREIBVORGAENGE NACHEINANDER, NICHT DURCHEINANDER.
+ *
+ * Das Mischen allein reicht NICHT, und das ist gemessen: Zwei gleichzeitige Anfragen lesen
+ * beide den alten Stand, mischen beide dagegen und schreiben beide — der Zweite gewinnt und
+ * nimmt den Ersten mit. Lesen-Mischen-Schreiben muss also am Stueck laufen.
+ *
+ * Dieselbe Kette wie bei `creditGrantChain` weiter unten, aus demselben Anlass: Dort wurden
+ * zweimal 40 Credits gutgeschrieben, weil mehrere Aufrufe gleichzeitig an derselben Zahl
+ * zogen. Sie deckt Rennen INNERHALB einer Instanz ab — der haeufige Fall, denn die zwei
+ * Foto-Uploads eines Besuchers landen fast immer auf derselben. Ueber Instanzen hinweg bleibt
+ * das Mischen die zweite Verteidigungslinie.
+ */
+let kissLogKette: Promise<unknown> = Promise.resolve();
+
+export async function writeKissLog(entries: KissLogEntry[], geloescht?: string[]): Promise<void> {
+  const lauf = kissLogKette.then(() => writeKissLogInner(entries, geloescht));
+  kissLogKette = lauf.catch(() => {});   // ein Fehler darf die Kette nie reissen lassen
+  return lauf;
+}
+
+async function writeKissLogInner(entries: KissLogEntry[], geloescht?: string[]): Promise<void> {
   await ensureBucket();
+  let zuSchreiben = entries;
+  try {
+    const jetzt = await readKissLog();
+    const kenntEr = new Set(entries.map(e => e.id));
+    const weg = new Set(geloescht ?? []);
+    const fremd = jetzt.filter(e => !kenntEr.has(e.id) && !weg.has(e.id));
+    if (fremd.length) {
+      // Neueste zuerst — dieselbe Ordnung, die die Route beim Anlegen herstellt (`[neu, ...alt]`).
+      zuSchreiben = [...entries, ...fremd].sort((a, b) =>
+        String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+    }
+  } catch { /* Konnte den aktuellen Stand nicht lesen → lieber schreiben als gar nichts */ }
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
-    body: JSON.stringify({ entries: entries.slice(0, 500), savedAt: new Date().toISOString() }),
+    body: JSON.stringify({ entries: zuSchreiben.slice(0, 500), savedAt: new Date().toISOString() }),
   });
   if (!response.ok) throw new Error(`Kiss-Log konnte nicht gespeichert werden (${response.status}).`);
 }

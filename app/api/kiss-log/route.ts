@@ -187,7 +187,9 @@ export async function POST(request: Request) {
     const alle = await readKissLog();
     const weg = alle.find(e => e.id === body.remove);
     const entries = alle.filter(e => e.id !== body.remove);
-    await writeKissLog(entries);
+    // Die Kennung ausdruecklich als geloescht melden: `writeKissLog` mischt sonst den
+    // gerade gelesenen Stand dazu — und holte den Eintrag damit sofort zurueck.
+    await writeKissLog(entries, [String(body.remove)]);
     // MIT den Dateien löschen (Owner 30.07.2026: „ich lösche die auch"). Bliebe nur die
     // Zeile weg, lägen die Fotos weiter im Speicher — er hätte gelöscht und es wäre nichts
     // gelöscht.

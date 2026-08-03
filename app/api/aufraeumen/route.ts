@@ -263,7 +263,10 @@ export async function GET(request: Request) {
     try { await deleteTryThisLookImage(p); weg++; } catch { /* eine Datei darf den Lauf nie stoppen */ }
   }
   if (anonym.length || vorlagenWeg.length || gewarnt) {
-    await writeKissLog(entschlackt).catch(() => { /* naechster Lauf holt es nach */ });
+    // Die geloeschten Kennungen mitgeben — sonst mischt `writeKissLog` sie aus dem
+    // gespeicherten Stand wieder herein und der Aufraeumer raeumte nie etwas auf.
+    await writeKissLog(entschlackt, anonym.map(e => e.id))
+      .catch(() => { /* naechster Lauf holt es nach */ });
   }
 
   return NextResponse.json({ ok: true, ...bericht, dateienWirklichGeloescht: weg, mailsVerschickt: gewarnt });
