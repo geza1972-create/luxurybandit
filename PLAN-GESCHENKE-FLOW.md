@@ -246,9 +246,28 @@ Monatsgutschriften. Das ist der größte Wegfall an Code, den dieser ganze Umbau
 Anders als bei der Hochzeit **belohnt diese Leiter die längere Bindung** — das Jahr kostet je
 Monat ein Drittel weniger als der Einzelmonat. Zahlen in `lib/pricing.ts` (`CHAT_STUFEN`).
 
-**Das Tageslimit bleibt** (`DAILY_MSGS`, heute 10 Nachrichten). Es ist der einzige Deckel auf
-einer Sache, die je Nachricht Geld kostet — ohne ihn wäre ein Jahrespaket ein offenes Konto bei
-einem Sprachmodell. Der Kunde kauft **Zeit, nicht Menge**, und das gehört auch so auf die Seite.
+**Kein Tageslimit, sondern ein Kontingent** (Owner: „10 Nachrichten? Das ist aber echt wenig"
+— und: „du musst machen insgesamt, nicht pro Tag. Vielleicht will er den ganzen Tag mit ihr
+reden"). Das alte `DAILY_MSGS = 10` bestrafte genau den Kunden, den wir wollen: den, der sich
+festredet.
+
+| Paket | Kontingent | Modellkosten im Extremfall |
+|---|---|---|
+| 1 Monat | 1.000 Nachrichten | 2,50 € (17 %) |
+| 2 Monate | 2.000 | 5,00 € (20 %) |
+| 3 Monate | 3.000 | 7,50 € (21 %) |
+| 1 Jahr | 10.000 | 25,00 € (21 %) |
+
+Alles am Stück verbrauchbar. Der Deckel schützt vor dem **einen**, der zehntausend Nachrichten
+schreibt — nicht vor dem Durchschnitt, der weit darunter liegt und deshalb nichts kostet.
+
+**Gerechnet, nicht geraten** (Haiku 4.5: 1,00 $/Mio Eingabe, 5,00 $/Mio Ausgabe): System-Text
+3.171 Token + Verlauf (bis 30) + Antwort (max 260) ≈ **0,5 Euro-Cent je Nachricht**.
+
+**Und ein Fund, der das halbiert:** Der System-Text ist bei jeder Nachricht identisch — genau
+wofür es den Zwischenspeicher gibt. Er greift nur nicht: Haiku 4.5 speichert erst ab **4.096
+Token**, unserer hat 3.171. Ihn zu **verlängern** macht ihn also **billiger** (0,5 → 0,25 Cent).
+Das klingt falsch und ist gerechnet richtig. **Bis das gemacht ist, gelten halbe Kontingente.**
 
 **Looks sind nicht enthalten:** Jeder neue Look kostet weiter {extra} aus dem Guthaben. Er
 kostet uns einen Erzeugungslauf; ein Paket mit beliebig vielen wäre bei einem Vielnutzer ein
@@ -257,6 +276,8 @@ Verlustgeschäft.
 ### Zu tun
 
 - `abo: false`; Preise aus `CHAT_STUFEN`, Stufen-Wähler wie bei der Hochzeit
+- `DAILY_MSGS` raus, `CHAT_KONTINGENT` rein (Restzähler sichtbar machen)
+- System-Text über 4.096 Token bringen, damit der Zwischenspeicher greift
 - `chat-abo-checkout` durch den Guthaben-Weg ersetzen; `chat-look-checkout` bleibt
 - `gueltigBis` statt `lb_chat_abo`; Warn-Mail vor Ablauf (`/api/aufraeumen`, die Maschine steht)
 - Abo-Sätze aus den Sprachtabellen (`dein Abo läuft weiter` …)

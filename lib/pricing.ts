@@ -116,9 +116,33 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
  * Kein `createSubscriptionCheckout`, keine Kuendigung, kein `hasActiveSubscription`, keine
  * Monatsgutschriften. Das ist der groesste Wegfall an Code, den dieser Umbau bringt.
  *
- * DAS TAGESLIMIT BLEIBT (`DAILY_MSGS` in ChatFunnel, heute 10 Nachrichten). Es ist der einzige
- * Deckel auf einer Sache, die je Nachricht Geld kostet — ohne ihn waere ein Jahrespaket ein
- * offenes Konto bei einem Sprachmodell. Der Kunde kauft ZEIT, nicht Menge.
+ * KEIN TAGESLIMIT MEHR, SONDERN EIN KONTINGENT (Owner 03.08.2026: „10 Nachrichten? Das ist
+ * aber echt wenig" — und: „du musst machen insgesamt, nicht pro Tag. Vielleicht will er den
+ * ganzen Tag mit ihr reden").
+ *
+ * Das alte `DAILY_MSGS = 10` bestrafte genau den Kunden, den wir wollen: den, der sich
+ * festredet. Ein Kontingent deckelt dieselben Kosten, ohne jemandem den Abend abzuschneiden —
+ * er darf alles an einem Tag verbrauchen.
+ *
+ * DIE ZAHLEN SIND GERECHNET, NICHT GERATEN (Haiku 4.5: 1,00 $/Mio Eingabe, 5,00 $/Mio Ausgabe):
+ *   System-Text 3.171 Token + Verlauf (bis 30) + Antwort (max 260) = rund 0,5 Euro-Cent je
+ *   Nachricht. MIT Zwischenspeicher rund 0,25.
+ *
+ * ACHTUNG, DER ZWISCHENSPEICHER GREIFT HEUTE NICHT: Haiku 4.5 speichert erst ab 4.096 Token
+ * Vorspann, unser System-Text hat 3.171. Wir zahlen ihn also bei JEDER Nachricht voll. Ihn zu
+ * VERLAENGERN macht ihn billiger — das klingt falsch und ist gerechnet richtig. Solange das
+ * nicht gemacht ist, gelten die halben Kontingente.
+ */
+export const CHAT_KONTINGENT: Record<number, number> = {
+  1: 1000,   // 14,99 EUR — Extremfall 2,50 EUR Modellkosten (17 %)
+  2: 2000,   // 24,99 EUR — 5,00 EUR (20 %)
+  3: 3000,   // 34,99 EUR — 7,50 EUR (21 %)
+  12: 10000, // 119,99 EUR — 25,00 EUR (21 %)
+};
+
+/*
+ * Der Deckel schuetzt vor dem EINEN, der zehntausend Nachrichten schreibt — nicht vor dem
+ * Durchschnitt, der weit darunter liegt und deshalb nichts kostet.
  *
  * LOOKS SIND NICHT ENTHALTEN (Owner-Entscheidung, gleiche Stunde): Jeder neue Look kostet
  * weiter {extra} aus dem Guthaben. Er kostet uns einen Erzeugungslauf, und ein Paket, das
