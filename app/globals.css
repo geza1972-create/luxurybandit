@@ -493,7 +493,11 @@ svg {
   backdrop-filter: blur(3px);
   color: #fff;
   font-size: 12px;
-  font-weight: 800;
+  /* 500 statt 800 (Owner 03.08.2026: „die animierte Schrift nicht bold"). Fett war noetig,
+     solange die Zeilen mit Schatten ueber dem nackten Bild lagen. Sie haben inzwischen eine
+     dunkle Pille als Grund und 65 % Deckkraft — da wirkt Fett wie ein Aufkleber, nicht wie
+     ein Zuruf. */
+  font-weight: 500;
   line-height: 1.35;
   text-align: center;
   pointer-events: none;

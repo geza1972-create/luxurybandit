@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fillPrices } from "@/lib/pricing";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
+import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
 import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users, Gift, MessageCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -355,10 +356,12 @@ export default async function ThemesCatalog({ searchParams }: {
                        KEIN Video gibt. Als Video-Poster blitzte genau dieses fremde Gesicht auf,
                        bis das echte Themenvideo geladen hatte. Nur ein Thema-eigenes `t.poster`
                        (z. B. Wetter) darf hier stehen; sonst lieber kein Poster als ein falsches. */
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video src={t.video} poster={t.poster || undefined}
-                      autoPlay muted loop playsInline preload="metadata"
-                      className="h-full w-full object-cover object-top" />
+                    /* WEICHE SCHLEIFE (Owner 03.08.2026: „auch bei den Topics-Video die
+                       gleiche Ueberblendung"). Sechs Kacheln mit `loop` heisst: sechs harte
+                       Schnitte, jeder zu einem anderen Zeitpunkt — eine unruhige Wand. Der
+                       Baustein blendet zwei Spieler ineinander, siehe SchleifenVideo. */
+                    <SchleifenVideo src={t.video} poster={t.poster || undefined}
+                      className="object-top" />
                   ) : t.cover ? (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
