@@ -816,6 +816,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const [garderobe, setGarderobe] = useState<{ id: string; name?: string; imageUrl: string }[]>([]);
   const [neuerLook, setNeuerLook] = useState("");
+  const [probe, setProbe] = useState("");   // Ergebnis des Probelaufs (nur Admin)
   useEffect(() => {
     // Nur wo es etwas zu tauschen gibt: Geschenke mit festem Set (Tanz, Geburtstag).
     if (!V.nurSie || !V.garmentBild) return;
@@ -3188,6 +3189,46 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               );
             })}
           </div>
+        </div>
+      )}
+      {/**
+        * DER PROBELAUF — NUR FUER DEN ADMIN (Owner 03.08.2026: „ja", auf den Vorschlag, ihn
+        * einzubauen).
+        *
+        * Er laedt genau die zwei Bilder zu Pixverse hoch, die ein echter Lauf schicken wuerde,
+        * und meldet die Kennungen zurueck — OHNE ein Video zu erzeugen, also ohne Kosten. Die
+        * Faehigkeit steckte schon in der Route (`dryRun`); es fehlte nur ein Weg, sie
+        * auszuloesen.
+        *
+        * WAS ER BEANTWORTET und was nicht: Kommen beide Bilder an, ist die Bindung in Ordnung —
+        * dann liegt ein misslungenes Video an Pixverse' Urteil, nicht an unserem Aufruf. Kommt
+        * eines NICHT an, haben wir den Fehler. Eine Ablehnung („I'm not able to create…") kann
+        * er NICHT vorhersagen; dafuer braeuchte es einen echten, bezahlten Lauf.
+        */}
+      {isStaff && V.nurSie && !!selPhoto && (
+        <div className="mt-3 rounded-2xl border border-white/15 p-3">
+          <button type="button"
+            onClick={async () => {
+              setProbe("läuft …");
+              try {
+                const person = await verkleinern(selPhoto, 720);
+                const outfit = await alsDatenUrl(neuerLook || V.garmentBild || "");
+                const r = await fetch("/api/generate-tryon-video", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+                  body: JSON.stringify({ dryRun: true, lookId: KISS_LOOK_ID, person, garment: outfit }),
+                }).then(x => x.json());
+                setProbe(
+                  `Person: ${r.pixverseReceivedPerson ? "angekommen (" + r.personImgId + ")" : "NICHT angekommen"}\n` +
+                  `Outfit: ${r.pixverseReceivedGarment ? "angekommen (" + r.garmentImgId + ")" : "NICHT angekommen"}` +
+                  (r.error ? `\nFehler: ${r.error}` : ""),
+                );
+              } catch (e) { setProbe("Fehlgeschlagen: " + (e instanceof Error ? e.message : "unbekannt")); }
+            }}
+            className="flex h-10 w-full items-center justify-center rounded-full border border-white/25 text-[12px] font-black text-white/80 active:scale-95 transition">
+            🔍 Probelauf — kommen beide Bilder bei Pixverse an? (kostenlos)
+          </button>
+          {probe && <pre className="mt-2 whitespace-pre-wrap text-[11px] font-semibold leading-snug text-white/70">{probe}</pre>}
         </div>
       )}
       {/* DIE GARDEROBE — sichtbar, aber verschlossen (Owner 30.07.2026: „drunter muss die
