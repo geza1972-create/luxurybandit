@@ -129,7 +129,14 @@ export async function GET(request: Request) {
     let walletCents: number | undefined;
     if (paid && s.metadata.kind === "aufladung") {
       const email = (String(s.metadata.email ?? "") || s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
-      const cents = Number(s.metadata.cents ?? 0) || 999;
+      /**
+       * GUTGESCHRIEBEN WIRD, WAS BEZAHLT WURDE (03.08.2026). Vorher zaehlte der BESTELL-
+       * Wert aus den Metadaten — mit einem 100%-Gutschein im Kassenfeld hiess das: 0 €
+       * bezahlt, 9,99 € Guthaben. Dreimal so passiert (Owner-Test gl123…), und jeder Kunde
+       * mit einem kursierenden Code haette dasselbe Loch. `amountTotal` ist Stripes Zahl
+       * NACH Rabatt; die Metadaten bleiben nur Rueckfall fuer Alt-Sessions ohne Betrag.
+       */
+      const cents = typeof s.amountTotal === "number" ? s.amountTotal : (Number(s.metadata.cents ?? 0) || 999);
       if (email) {
         try { walletCents = (await guthabenAufladen(email, sessionId, cents)).cents; }
         catch (e) { console.warn("[checkout-status] Aufladung fehlgeschlagen", e); }
