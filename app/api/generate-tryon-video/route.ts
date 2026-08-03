@@ -459,6 +459,27 @@ export async function POST(request: Request) {
           bezahlterAuftrag = true;
         }
       }
+      /**
+       * ABO OHNE STEMPEL AM AUFTRAG (Owner 03.08.2026: „wieso steht schon wieder 1 video
+       * per day? Free?" — nach einem Abo-Abschluss mit 100%-Gutschein).
+       *
+       * Das Abo haengt an der ADRESSE, der Stempel aber am AUFTRAG — wer sein Abo in einem
+       * anderen Moment abschloss (Gutschein-Kasse, anderes Thema), stand hier als Gast da
+       * und lief in die Gast-Sperre. Jetzt: Traegt der Eintrag eine Adresse mit laufendem
+       * Abo, gilt der Abo-Weg — Monatsvideo abbuchen, weiter.
+       */
+      if (!bezahlterAuftrag && eintrag) {
+        const mail2 = String(eintrag.email || eintrag.paidEmail || "").trim().toLowerCase();
+        if (mail2 && await hasActiveSubscription(mail2).catch(() => false)) {
+          let rest = await spendVideoCredit(mail2);
+          if (rest === null) { await grantMonthlySubscriptionCredits(mail2).catch(() => 0); rest = await spendVideoCredit(mail2); }
+          if (rest !== null) { bezahlterAuftrag = true; guthabenEmail = mail2; }
+          else return NextResponse.json({
+            error: `Your ${INCLUDED_VIDEOS_PER_MONTH} videos for this month are used up.`,
+            extraNeeded: true, priceCents: EXTRA_VIDEO_CENTS,
+          }, { status: 402 });
+        }
+      }
     } catch { /* im Zweifel gilt der normale Weg — lieber Deckel als Ausfall */ }
   }
   /**
@@ -507,8 +528,13 @@ export async function POST(request: Request) {
       // Auch die Abweisung gehoert ins Protokoll: Sie zeigt, WER es versucht hat — und ob
       // jemand dauernd gegen die Grenze laeuft.
       protokoll(undefined, "tagesgrenze");
+      // Die Zahl in der Meldung muss zur Grenze passen (Owner 03.08.2026: bei Grenze 0
+      // stand hier „1 video per day" — eine Meldung, die nicht stimmt, liest sich als Bug).
       return NextResponse.json(
-        { error: "Free limit reached — 1 video per day. Sign up for more.", limitReached: true, resetsDaily: true, limit: gate.limit },
+        { error: gate.limit <= 0
+            ? "Videos are paid — please top up your balance."
+            : `Free limit reached — ${gate.limit} video per day. Sign up for more.`,
+          limitReached: true, resetsDaily: true, limit: gate.limit },
         { status: 429 },
       );
     }

@@ -66,7 +66,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       setPreviewName(c.firstName ?? "");
       // Any session counts as signed in: Supabase login, curator, or the studio admin PIN.
       const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
-      setSignedIn(!!getStoredAuthSession() || !!c.id || !!adminPin);
+      // Auch die im Trichter bestaetigte Adresse zaehlt (Owner 03.08.2026) — siehe unten
+      // bei displayName: wer seine E-Mail dagelassen hat, ist angemeldet, nicht fremd.
+      const kussMail0 = (() => { try { return localStorage.getItem("lb_kiss_mail") ?? ""; } catch { return ""; } })();
+      setSignedIn(!!getStoredAuthSession() || !!c.id || !!adminPin || !!kussMail0.trim());
       if (c.id) {
         fetch(`/api/curator?me=1`, { headers: { "x-curator-id": c.id } })
           .then(r => r.ok ? r.json() : null)
@@ -244,8 +247,17 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
       const isPinAdmin = !!adminPin && !session && !curator?.id;
       const signedIn = !!session || !!curator?.id || !!adminPin;
-      const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "")).trim();
-      const displayEmail = curator?.email || session?.user?.email || "";
+      /**
+       * DIE KUSS-ADRESSE ZAEHLT ALS ANGEMELDET (Owner 03.08.2026: „in dem Moment wo ich
+       * meine E-Mail eingebe, bin ich sofort angemeldet"). Wer im Trichter seine Adresse
+       * bestaetigt hat, ist fuer uns kein Fremder — Guthaben, Galerie und Lieferung haengen
+       * laengst daran. Ein Menue, das ihn danach „Not signed in" nennt, widerspricht der
+       * ganzen Seite. Das Supabase-Konto bleibt VORRANGIG; die Kuss-Adresse ist der
+       * Rueckfall fuer die grosse Mehrheit ohne Konto.
+       */
+      const kussMail = (() => { try { return localStorage.getItem("lb_kiss_mail") ?? ""; } catch { return ""; } })();
+      const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "") || kussMail.split("@")[0]).trim();
+      const displayEmail = curator?.email || session?.user?.email || kussMail || "";
       // Staff = admin or a creator/model. Plain members get a trimmed menu (Home · Models ·
       // My subscriptions · Account), no Looks/Wardrobe/Luxury/Saved.
       // Admin tools/content show ONLY for an admin who is NOT currently acting as a model.
@@ -282,7 +294,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-black text-white">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
-                {signedIn ? (
+                {/* Direkt aus der Adresse abgeleitet, nicht nur aus dem State — derselbe
+                    Grund wie beim Namen darueber: Wer seine Kuss-Adresse dagelassen hat,
+                    IST angemeldet (Owner 03.08.2026). */}
+                {(signedIn || kussMail) ? (
                   <p className="flex items-center gap-1 truncate text-[11px] font-bold text-amber-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                     {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
