@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { fillPrices } from "@/lib/pricing";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
 import TopNav from "@/components/TopNav";
+import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
+import Reaktionen from "@/components/Reaktionen";
+import { musikFuer } from "@/lib/musik";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -41,6 +45,8 @@ type Item = {
   curatorName?: string;
   garment?: string;   // manuell zugewiesen: "lingerie" | "normal"
   source?: string;    // "kiss" | "kiss-upload" — nur die darf der Besitzer selbst löschen
+  theme?: string;     // fuer die Karten-Vorschau: kiss | wedding | idol
+  empfaenger?: string; // der Name, der in den aufsteigenden Zeilen steht
   /**
    * URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in der
    * Galerie ein Warnzeichen drauf"). Nur gesetzt, wenn etwas auffiel — im Beobachten-Modus
@@ -207,13 +213,15 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
               source: b.source || "kiss",
+              theme: b.theme || "kiss",
+              empfaenger: b.empfaenger || "",
               warnung: b.warnung || "",
               alter: b.alter || 0,
             }))
@@ -572,11 +580,37 @@ export default function MyGalleryPage() {
               </button>
             </div>
           </div>
-          <div className="flex min-h-0 flex-1 items-center justify-center p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-3" onClick={(e) => e.stopPropagation()}>
+            {/**
+              * DIE KARTE, NICHT DIE VIDEODATEI (Owner 03.08.2026: „ich will nicht das Video
+              * teilen, sondern die Karte. Also muss beim Klick die Karte mit Musik und
+              * Herzchen kommen — die werde ich sharen").
+              *
+              * Hier stand ein nackter Spieler. Der zeigt zwar dasselbe Video, aber nicht das
+              * GESCHENK: keine Karte, keine aufsteigenden Zeilen, keine Musik. Wer vor dem
+              * Verschicken nur den nackten Film sieht, weiss nicht, was beim Empfaenger
+              * ankommt — und genau das soll er hier pruefen koennen.
+              *
+              * Dieselben Bausteine wie `/w/<id>` (WerkAnsicht): EinladungKarte + der
+              * Ansichts-Baustein mit Ton + Reaktionen. Was er hier sieht, ist Zeile fuer
+              * Zeile das, was der Link zeigt — samt Musik von selbst (Owner 03.08.2026: „die
+              * Musik soll automatisch an sein"). Sie laeuft erst, wenn er eine Kachel
+              * ANTIPPT, nie beim Blaettern: Das Vollbild oeffnet sich auf seinen Klick hin,
+              * und genau diese Geste braucht der Browser ohnehin, um Ton zuzulassen.
+              */}
             {open.videoUrl ? (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
-              <video src={open.videoUrl} poster={open.imageUrl || undefined} controls autoPlay playsInline
-                className="max-h-full max-w-full rounded-2xl object-contain" />
+              <div className="w-full max-w-[420px]">
+                <EinladungKarte sprache="en" sie="" er="" demo
+                  titel={open.theme === "wedding" ? "The Wedding" : open.theme === "idol" ? "Your Idol" : "The Kiss"}
+                  video={
+                    <div className="relative">
+                      <EinladungAnsicht id="" videoUrl={open.videoUrl} zaehlen={false}
+                        musik={musikFuer(open.theme || "kiss")} tonAutomatisch
+                        tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus} />
+                      <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
+                    </div>
+                  } />
+              </div>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={open.imageUrl} alt={open.lookName ?? ""} className="max-h-full max-w-full rounded-2xl object-contain" />

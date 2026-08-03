@@ -120,6 +120,14 @@ export async function GET(request: Request) {
           name: e.modelName || "",
           createdAt: e.createdAt || "",
           source: "kiss",
+          /**
+           * FUER DIE KARTEN-VORSCHAU (Owner 03.08.2026: „ich will nicht das Video teilen,
+           * sondern die Karte. Also muss beim Klick die Karte mit Musik und Herzchen kommen").
+           * Ohne den Namen stiege in der Vorschau „ich liebe dich" auf statt „Anna, ich liebe
+           * dich" — und die Karte sieht anders aus als die, die der Empfaenger bekommt.
+           */
+          theme: e.theme || "kiss",
+          empfaenger: e.empfaenger || "",
           // Das Urteil der Alters- und Nacktheitspruefung — daraus wird in der Galerie das
           // Warnzeichen (Owner 31.07.2026). Steht nur da, wenn etwas auffiel.
           warnung: e.altersWarnung || "",

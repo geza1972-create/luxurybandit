@@ -108,10 +108,14 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
       ))}
       {/* Zurufe als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}
       {zurufe.map((t, i) => (
+        /* KEIN eigenes `left` mehr — die Blase haengt mittig (globals.css) und weicht nur
+           noch seitlich aus (`--lb-drift`). Der Zeitversatz ist GLEICHMAESSIG ueber die
+           Laufzeit verteilt statt per Modulo gewuerfelt: Vorher lagen zwei Zeilen manchmal
+           auf derselben Sekunde und damit uebereinander. */
         <span key={`b${i}`} className="lb-bubble"
           style={{
-            left: `${8 + (i * 11) % 66}%`,
-            animationDelay: `${1.2 + (i * 0.72) % 5.4}s`,
+            transform: "translateX(-50%)",
+            animationDelay: `${(i * 5.4) / Math.max(zurufe.length, 1)}s`,
             animationDuration: `${5 + (i % 3) * 0.6}s`,
             ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (10 + (i % 3) * 8)}px`,
           }}>

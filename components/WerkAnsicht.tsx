@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
+import { musikFuer } from "@/lib/musik";
 
 /**
  * DIE GETEILTE KARTE (Owner 01.08.2026: „nicht als Bild sondern als eigene Karte, weil er
@@ -74,10 +75,23 @@ export default function WerkAnsicht({ id }: { id: string }) {
       <EinladungKarte
         sprache={lang} sie="" er="" demo
         titel={TITEL[theme] ?? TITEL.kiss}
+        /**
+         * MUSIK VON SELBST, AUCH BEIM EMPFAENGER (Owner 03.08.2026: „die Musik soll
+         * automatisch an sein").
+         *
+         * Hier zaehlt es am meisten: Das ist die Seite, die der beschenkte Mensch oeffnet.
+         * Ohne Ton ist es ein Videoschnipsel, mit Ton ein Moment. Erlaubt der Browser den Ton
+         * nicht (manche verlangen erst eine Geste), bleibt der Lautsprecher-Knopf stehen und
+         * ein Tipp genuegt — es geht nichts verloren.
+         *
+         * `musik` je Thema statt des Standards: Sonst laege der HOCHZEITS-Ton unter einem
+         * Kussvideo.
+         */
         video={
           <div className="relative">
             {video ? (
               <EinladungAnsicht id="" videoUrl={video} zaehlen={false}
+                musik={musikFuer(theme)} tonAutomatisch
                 tonText={K.ton} tonAusText={K.tonAus} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
