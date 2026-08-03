@@ -755,23 +755,29 @@ export default function MyGalleryPage() {
                         onClick={e => { e.stopPropagation(); void teilen(open); }}
                         aria-label="Teilen"
                         /**
-                         * `data-aufmedien="1"` IST HIER PFLICHT, NICHT SCHMUCK (Owner
-                         * 03.08.2026: „was ist das für eine Farbe schon wieder? Wir hatten das
-                         * doch weiss").
+                         * WEISSE SCHEIBE, GOLDENER PFEIL — GENAU WIE BEIM TANZ (Owner
+                         * 03.08.2026: „nein, der Kreis war weiss und das Icon gold" · „etwas wie
+                         * der Sound" · „wie bei Poledance").
                          *
-                         * In `globals.css` steht `.lb-karte svg { color: #a07a34 !important }`
-                         * — die Karte zieht JEDES Symbol in ihrem Inneren auf Gold, damit sie
-                         * wie gedruckt aussieht. Mein `text-white` verliert gegen `!important`,
-                         * und heraus kam ein goldener Pfeil auf dunklem Bild.
+                         * Zwei Fehlversuche davor, und beide aus demselben Grund: Ich habe die
+                         * Farbe selbst bestimmt, statt die Rezeptur zu nehmen, die auf den
+                         * Tanz-Karten schon steht. Erst eine dunkle Scheibe mit goldenem Pfeil
+                         * (weil `.lb-karte svg` jedes Symbol auf Gold zieht), dann eine dunkle
+                         * Scheibe mit weissem Pfeil — und daneben sass unveraendert der
+                         * Elfenbein-Ton-Knopf. Zwei Gestaltungen fuer dieselbe Sorte Bedienung,
+                         * auf derselben Karte, nebeneinander.
                          *
-                         * Der vorgesehene Ausweg ist dieses Attribut: `.lb-karte
-                         * [data-aufmedien="1"] svg` faerbt zurueck auf Weiss. Es gilt fuer
-                         * alles, was AUF dem Video liegt statt auf dem Karton — dieselbe Regel
-                         * wie beim Ton-Knopf und der Prozentzahl.
+                         * DIE VORLAGE IST `TeilenKnopf` mit `rund` (BeispielGalerie, Tanz):
+                         * weisser Grund per `style`, und `.lb-karte svg` macht den Pfeil von
+                         * selbst golden. Kein `data-aufmedien` — das waere Weiss auf Weiss.
+                         * Der Hintergrund darf hier per `style` kommen: Die !important-Regeln
+                         * der Karte treffen `color`/`stroke`, nicht `background`.
                          */
-                        data-aufmedien="1"
-                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur transition active:scale-90 disabled:opacity-50">
-                        {teilenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90 disabled:opacity-50">
+                        {/* h-5 wie in `TeilenKnopf`, nicht h-4 — sonst sitzt ein kleinerer
+                            Pfeil in derselben Scheibe wie der Ton-Knopf gegenueber. */}
+                        {teilenBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                       </button>
                       {!!teilenText && (
                         <span className="absolute left-2 top-14 z-30 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
