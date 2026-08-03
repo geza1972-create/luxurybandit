@@ -78,6 +78,21 @@ export async function createTryonCheckout(opts: {
    * fragt Stripe wie bisher.
    */
   email?: string;
+  /**
+   * EINE IM STRIPE-KONTO ANGELEGTE PREIS-KENNUNG statt eines hier zusammengebauten Betrags
+   * (Owner 03.08.2026, zum Tanz-Video: „price_1U0LHX1jPNCWoiztjZ7uM8x6 nimm das").
+   *
+   * Vorteil: Produktname, Steuerverhalten und Betrag stehen dann DORT, wo der Owner sie auch
+   * sieht und aendern kann — statt in zwei Codezeilen. `createPackCheckout` macht es seit
+   * jeher so; hier fehlte es nur.
+   *
+   * Gefahr, und deshalb steht sie hier: Der Betrag im Konto und `amount` koennen
+   * auseinanderlaufen. Wer eine Kennung setzt, muss den Betrag in lib/pricing.ts danebenhalten
+   * — der Kunde liest den einen und zahlt den anderen. Beim Chat-Preis war genau das der Fall
+   * (Produkt „14,99 €", Preis 14,00). Fuer diese Kennung nachgeschlagen und geprueft:
+   * 399 Cent, one_time, aktiv, Steuer inklusive — passt zu POLEDANCE_CENTS.
+   */
+  priceId?: string;
 }): Promise<{ id: string; url: string }> {
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
@@ -90,14 +105,16 @@ export async function createTryonCheckout(opts: {
     // er konnte seinen eigenen Code also nicht einmal zum Testen benutzen.
     allow_promotion_codes: true,
     line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: opts.currency,
-          unit_amount: opts.amount,
-          product_data: { name: opts.productName },
-        },
-      },
+      opts.priceId
+        ? { price: opts.priceId, quantity: 1 }
+        : {
+            quantity: 1,
+            price_data: {
+              currency: opts.currency,
+              unit_amount: opts.amount,
+              product_data: { name: opts.productName },
+            },
+          },
     ],
     // Marks these as per-try-on payments so the (credits-oriented) webhook ignores them.
     metadata: { kind: "tryon", ...opts.metadata },

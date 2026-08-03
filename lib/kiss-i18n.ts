@@ -1092,6 +1092,217 @@ const IDOL: Record<Lang, Partial<KissText>> = {
 };
 
 /**
+ * „SURPRISE HIM" — der Tanz (Owner 03.08.2026: „surprise him with a pool hot dance video …
+ * der Upload-Mann wird nicht mehr gebraucht. Die Frau wird hochgeladen, sie selbst").
+ *
+ * Drei Dinge kehren sich gegenueber dem Kuss um, und nur die stehen hier:
+ *
+ * 1. ES IST EIN FOTO, NICHT ZWEI. Schritt 2 („dein Foto — du, der Mann") faellt weg, also
+ *    ruecken die Nummern: aus „1 · 3" wird „1 · 2". Die Zahlen stehen IM Text, nicht im Code —
+ *    sonst zaehlt der Trichter „1, 3" und der Kunde fragt sich, was er uebersprungen hat.
+ * 2. SIE BEDIENT DEN TRICHTER. Beim Kuss laedt er sie hoch; hier laedt sie SICH SELBST hoch
+ *    und schickt IHM etwas. „Sein Name" statt „ihr Name", „dein Foto" statt „ihr Foto".
+ * 3. DIE ZUSTIMMUNG TRAEGT EINEN HALBSATZ MEHR: „die Person auf dem Foto bist du oder hat es
+ *    dir erlaubt". Beim Kuss laedt jemand ein Gesicht hoch, das gekuesst wird; hier landet ein
+ *    Gesicht in Unterwaesche. Das ist derselbe Upload und eine andere Tragweite — und der Satz
+ *    kostet nichts ausser einer Zeile.
+ *
+ * PREIS: {tanz} statt {once} (Owner 03.08.2026: „eigentlich nicht, es soll 3,99 kosten").
+ * Die Zahl steht nirgends hier — nur der Platzhalter, gefuellt aus lib/pricing.ts.
+ */
+const POLEDANCE: Record<Lang, Partial<KissText>> = {
+  en: {
+    step1: "1 · Your photo", step3: "2 · Your dance", pickFirst: "Upload your photo",
+    upTitle: "Your photo", upHint: "One photo of you — full body works best, so there is something to move.",
+    mailQuestion: "Where should we send your video?",
+    namenFrage: "His name — it appears on the card (optional)", namenPlatzhalter: "Chris",
+    heroA: "Surprise him with ", heroY: "a hot pole dance", heroB: " 💃",
+    wieGeht: ["Upload one photo of yourself.", "We put you in the outfit and on the pole.", "Send it to him — to him alone."],
+    wieGehtPrivat: "Nobody else sees it. Your video stays private unless you send it yourself.",
+    priceLine: "Video {tanz}", buyOnce: "Hot video {tanz}",
+    guthabenVorabHinweis: "One video costs {tanz}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
+    makeVideo: "Make my dance video — {tanz} 🔥", makingKiss: "Making your dance video …",
+    watchOnce: "Watch my video — {tanz}", blockedOnce: "Make a real dance video — {tanz}",
+    readyBody: "Unlock it and watch yourself dance.",
+    statusQuality: "Rendering your dance in full quality … (~1–3 min)",
+    renderSteps: [
+      "Reading your photo …", "Putting on the outfit …", "Setting the neon lights …",
+      "Getting the movement right …", "Almost there …", "Finishing touches …",
+      "Any second now …", "Still working — hang on …",
+    ],
+    teaseSteps: ["Reading your face …", "Putting on the outfit …", "Lighting the stage …"],
+    examples: "Real dance videos 💃",
+    consent: "By generating you confirm that the person in the photo is you or has allowed you to use it, that everyone shown is an adult, that you keep the result private — and that you take full responsibility for it. Nudity photos are not accepted.",
+    anlaesseTitel: "Why send one",
+    anlaesse: ["He is away and the evening is long.", "Your anniversary — and he already has everything.", "You want to see his face when he opens it.", "No reason at all. That is the best one."],
+    anlaesseSchluss: "It is not a message. It is a surprise he will not forget.",
+    kussZurueck: "Make your own 💃",
+  },
+  de: {
+    step1: "1 · Dein Foto", step3: "2 · Dein Tanz", pickFirst: "Lade dein Foto hoch",
+    upTitle: "Dein Foto", upHint: "Ein Foto von dir — am besten ganzer Körper, damit sich etwas bewegen kann.",
+    mailQuestion: "Wohin sollen wir dein Video schicken?",
+    namenFrage: "Sein Name — er erscheint auf der Karte (freiwillig)", namenPlatzhalter: "Chris",
+    heroA: "Überrasch ihn mit ", heroY: "einem heißen Poledance", heroB: " 💃",
+    wieGeht: ["Lade ein Foto von dir hoch.", "Wir stecken dich in das Outfit und an die Stange.", "Schick es ihm — nur ihm."],
+    wieGehtPrivat: "Niemand sonst sieht es. Dein Video bleibt privat, solange du es nicht selbst verschickst.",
+    priceLine: "Video {tanz}", buyOnce: "Heißes Video {tanz}",
+    guthabenVorabHinweis: "Ein Video kostet {tanz}. Du zahlst aus deinem Guthaben — die kleinste Aufladung ist {topup}, und was übrig bleibt, gehört weiter dir.",
+    makeVideo: "Mein Tanzvideo machen — {tanz} 🔥", makingKiss: "Dein Tanzvideo entsteht …",
+    watchOnce: "Mein Video ansehen — {tanz}", blockedOnce: "Echtes Tanzvideo machen — {tanz}",
+    readyBody: "Schalte es frei und sieh dich tanzen.",
+    statusQuality: "Dein Tanz wird in voller Qualität gerendert … (~1–3 Min.)",
+    renderSteps: [
+      "Dein Foto wird gelesen …", "Das Outfit wird angelegt …", "Das Neonlicht wird gesetzt …",
+      "Die Bewegung entsteht …", "Fast fertig …", "Letzter Schliff …",
+      "Gleich ist es so weit …", "Noch einen Moment …",
+    ],
+    teaseSteps: ["Dein Gesicht wird gelesen …", "Das Outfit wird angelegt …", "Die Bühne wird beleuchtet …"],
+    examples: "Echte Tanzvideos 💃",
+    consent: "Mit dem Erzeugen bestätigst du, dass die Person auf dem Foto du bist oder dir erlaubt hat, es zu benutzen, dass alle gezeigten Personen erwachsen sind, dass du das Ergebnis privat behältst — und dass du die Verantwortung dafür trägst. Nacktfotos werden nicht angenommen.",
+    anlaesseTitel: "Warum du eins schickst",
+    anlaesse: ["Er ist weg und der Abend ist lang.", "Euer Jahrestag — und er hat schon alles.", "Du willst sein Gesicht sehen, wenn er es öffnet.", "Gar kein Anlass. Das ist der beste."],
+    anlaesseSchluss: "Das ist keine Nachricht. Das ist eine Überraschung, die er nicht vergisst.",
+    kussZurueck: "Mach dir selbst eins 💃",
+  },
+  ro: {
+    step1: "1 · Poza ta", step3: "2 · Dansul tău", pickFirst: "Încarcă poza ta",
+    upTitle: "Poza ta", upHint: "O poză cu tine — cel mai bine tot corpul, ca să aibă ce mișca.",
+    mailQuestion: "Unde să-ți trimitem videoclipul?",
+    namenFrage: "Numele lui — apare pe felicitare (opțional)", namenPlatzhalter: "Chris",
+    heroA: "Surprinde-l cu ", heroY: "un dans la bară", heroB: " 💃",
+    wieGeht: ["Încarcă o singură poză cu tine.", "Te punem în ținută și la bară.", "Trimite-i-l — doar lui."],
+    wieGehtPrivat: "Nimeni altcineva nu îl vede. Videoclipul rămâne privat dacă nu îl trimiți tu.",
+    priceLine: "Video {tanz}", buyOnce: "Video fierbinte {tanz}",
+    guthabenVorabHinweis: "Un videoclip costă {tanz}. Plătești din soldul contului — cea mai mică reîncărcare e {topup}, iar restul rămâne al tău pentru alte videoclipuri.",
+    makeVideo: "Fă-mi videoclipul cu dans — {tanz} 🔥", makingKiss: "Se face videoclipul tău …",
+    watchOnce: "Vreau să-mi văd videoclipul — {tanz}", blockedOnce: "Fă un video real cu dans — {tanz}",
+    readyBody: "Deblochează-l și vezi-te dansând.",
+    statusQuality: "Dansul tău se randează la calitate maximă … (~1–3 min)",
+    renderSteps: [
+      "Îți citim poza …", "Îmbrăcăm ținuta …", "Punem luminile de neon …",
+      "Potrivim mișcarea …", "Aproape gata …", "Ultimele retușuri …",
+      "Imediat …", "Încă lucrăm — mai stai puțin …",
+    ],
+    teaseSteps: ["Îți citim chipul …", "Îmbrăcăm ținuta …", "Aprindem scena …"],
+    examples: "Videoclipuri reale cu dans 💃",
+    consent: "Prin generare confirmi că persoana din poză ești tu sau ți-a dat voie să o folosești, că toate persoanele sunt adulte, că păstrezi rezultatul privat — și că îți asumi răspunderea. Pozele cu nuditate nu sunt acceptate.",
+    anlaesseTitel: "De ce să trimiți unul",
+    anlaesse: ["El e plecat și seara e lungă.", "Aniversarea voastră — și el are deja de toate.", "Vrei să-i vezi fața când îl deschide.", "Fără niciun motiv. Ăsta e cel mai bun."],
+    anlaesseSchluss: "Nu e un mesaj. E o surpriză pe care n-o uită.",
+    kussZurueck: "Fă-ți și tu unul 💃",
+  },
+  es: {
+    step1: "1 · Tu foto", step3: "2 · Tu baile", pickFirst: "Sube tu foto",
+    upTitle: "Tu foto", upHint: "Una foto tuya — mejor de cuerpo entero, para que haya algo que mover.",
+    mailQuestion: "¿Adónde te enviamos tu vídeo?",
+    namenFrage: "Su nombre — aparece en la tarjeta (opcional)", namenPlatzhalter: "Chris",
+    heroA: "Sorpréndelo con ", heroY: "un baile en barra", heroB: " 💃",
+    wieGeht: ["Sube una sola foto tuya.", "Te ponemos el conjunto y te subimos a la barra.", "Envíaselo — solo a él."],
+    wieGehtPrivat: "Nadie más lo ve. Tu vídeo sigue siendo privado mientras no lo envíes tú.",
+    priceLine: "Vídeo {tanz}", buyOnce: "Vídeo caliente {tanz}",
+    guthabenVorabHinweis: "Un vídeo cuesta {tanz}. Pagas con el saldo de tu cuenta — la recarga más pequeña es {topup}, y lo que sobre sigue siendo tuyo para más vídeos.",
+    makeVideo: "Hacer mi vídeo de baile — {tanz} 🔥", makingKiss: "Creando tu vídeo de baile …",
+    watchOnce: "Ver mi vídeo — {tanz}", blockedOnce: "Haz un vídeo de baile real — {tanz}",
+    readyBody: "Desbloquéalo y mírate bailar.",
+    statusQuality: "Renderizando tu baile en máxima calidad … (~1–3 min)",
+    renderSteps: [
+      "Leyendo tu foto …", "Poniendo el conjunto …", "Colocando las luces de neón …",
+      "Ajustando el movimiento …", "Casi está …", "Últimos retoques …",
+      "En cualquier momento …", "Seguimos trabajando — un poco más …",
+    ],
+    teaseSteps: ["Leyendo tu cara …", "Poniendo el conjunto …", "Iluminando el escenario …"],
+    examples: "Vídeos de baile reales 💃",
+    consent: "Al generar confirmas que la persona de la foto eres tú o te ha dado permiso para usarla, que todas las personas son adultas, que mantienes el resultado en privado — y que asumes la responsabilidad. No se aceptan fotos con desnudos.",
+    anlaesseTitel: "Por qué enviar uno",
+    anlaesse: ["Él está lejos y la noche es larga.", "Vuestro aniversario — y él ya lo tiene todo.", "Quieres ver su cara cuando lo abra.", "Sin motivo alguno. Ese es el mejor."],
+    anlaesseSchluss: "No es un mensaje. Es una sorpresa que no olvida.",
+    kussZurueck: "Hazte el tuyo 💃",
+  },
+  fr: {
+    step1: "1 · Ta photo", step3: "2 · Ta danse", pickFirst: "Envoie ta photo",
+    upTitle: "Ta photo", upHint: "Une photo de toi — de préférence en entier, pour qu'il y ait de quoi bouger.",
+    mailQuestion: "Où devons-nous envoyer ta vidéo ?",
+    namenFrage: "Son prénom — il apparaît sur la carte (facultatif)", namenPlatzhalter: "Chris",
+    heroA: "Surprends-le avec ", heroY: "une danse à la barre", heroB: " 💃",
+    wieGeht: ["Envoie une seule photo de toi.", "On te met la tenue et on te place à la barre.", "Envoie-la-lui — à lui seul."],
+    wieGehtPrivat: "Personne d'autre ne la voit. Ta vidéo reste privée tant que tu ne l'envoies pas toi-même.",
+    priceLine: "Vidéo {tanz}", buyOnce: "Vidéo chaude {tanz}",
+    guthabenVorabHinweis: "Une vidéo coûte {tanz}. Tu paies avec le solde de ton compte — la plus petite recharge est {topup}, et ce qui reste t'appartient pour d'autres vidéos.",
+    makeVideo: "Faire ma vidéo de danse — {tanz} 🔥", makingKiss: "Ta vidéo de danse se fait …",
+    watchOnce: "Voir ma vidéo — {tanz}", blockedOnce: "Faire une vraie vidéo de danse — {tanz}",
+    readyBody: "Débloque-la et regarde-toi danser.",
+    statusQuality: "Ta danse est rendue en pleine qualité … (~1–3 min)",
+    renderSteps: [
+      "Lecture de ta photo …", "On enfile la tenue …", "On règle les néons …",
+      "On ajuste le mouvement …", "Presque fini …", "Dernières retouches …",
+      "C'est pour tout de suite …", "On travaille encore — patiente …",
+    ],
+    teaseSteps: ["Lecture de ton visage …", "On enfile la tenue …", "On éclaire la scène …"],
+    examples: "Vraies vidéos de danse 💃",
+    consent: "En générant, tu confirmes que la personne sur la photo est toi ou t'a autorisée à l'utiliser, que toutes les personnes sont majeures, que tu gardes le résultat privé — et que tu en assumes la responsabilité. Les photos de nu ne sont pas acceptées.",
+    anlaesseTitel: "Pourquoi en envoyer une",
+    anlaesse: ["Il est loin et la soirée est longue.", "Votre anniversaire — et il a déjà tout.", "Tu veux voir sa tête quand il l'ouvre.", "Aucune raison. C'est la meilleure."],
+    anlaesseSchluss: "Ce n'est pas un message. C'est une surprise qu'il n'oublie pas.",
+    kussZurueck: "Fais la tienne 💃",
+  },
+  pt: {
+    step1: "1 · A tua foto", step3: "2 · A tua dança", pickFirst: "Carrega a tua foto",
+    upTitle: "A tua foto", upHint: "Uma foto tua — de preferência de corpo inteiro, para haver o que mexer.",
+    mailQuestion: "Para onde enviamos o teu vídeo?",
+    namenFrage: "O nome dele — aparece no cartão (opcional)", namenPlatzhalter: "Chris",
+    heroA: "Surpreende-o com ", heroY: "uma dança no varão", heroB: " 💃",
+    wieGeht: ["Carrega uma única foto tua.", "Vestimos-te o conjunto e pomos-te no varão.", "Envia-lho — só a ele."],
+    wieGehtPrivat: "Mais ninguém o vê. O teu vídeo fica privado enquanto não o enviares tu.",
+    priceLine: "Vídeo {tanz}", buyOnce: "Vídeo quente {tanz}",
+    guthabenVorabHinweis: "Um vídeo custa {tanz}. Pagas com o saldo da tua conta — o carregamento mais pequeno é {topup}, e o que sobrar continua a ser teu para mais vídeos.",
+    makeVideo: "Fazer o meu vídeo de dança — {tanz} 🔥", makingKiss: "A fazer o teu vídeo de dança …",
+    watchOnce: "Ver o meu vídeo — {tanz}", blockedOnce: "Fazer um vídeo de dança a sério — {tanz}",
+    readyBody: "Desbloqueia-o e vê-te a dançar.",
+    statusQuality: "A tua dança está a ser gerada em qualidade máxima … (~1–3 min)",
+    renderSteps: [
+      "A ler a tua foto …", "A vestir o conjunto …", "A pôr as luzes de néon …",
+      "A acertar o movimento …", "Quase lá …", "Últimos retoques …",
+      "É já a seguir …", "Ainda a trabalhar — aguenta …",
+    ],
+    teaseSteps: ["A ler o teu rosto …", "A vestir o conjunto …", "A iluminar o palco …"],
+    examples: "Vídeos de dança a sério 💃",
+    consent: "Ao gerar confirmas que a pessoa na foto és tu ou te autorizou a usá-la, que todas as pessoas são adultas, que manténs o resultado privado — e que assumes a responsabilidade. Fotos com nudez não são aceites.",
+    anlaesseTitel: "Porquê enviar um",
+    anlaesse: ["Ele está longe e a noite é longa.", "O vosso aniversário — e ele já tem tudo.", "Queres ver a cara dele quando abrir.", "Sem motivo nenhum. Esse é o melhor."],
+    anlaesseSchluss: "Não é uma mensagem. É uma surpresa que ele não esquece.",
+    kussZurueck: "Faz o teu 💃",
+  },
+  it: {
+    step1: "1 · La tua foto", step3: "2 · Il tuo ballo", pickFirst: "Carica la tua foto",
+    upTitle: "La tua foto", upHint: "Una foto di te — meglio a figura intera, così c'è qualcosa da muovere.",
+    mailQuestion: "Dove ti mandiamo il video?",
+    namenFrage: "Il suo nome — compare sulla card (facoltativo)", namenPlatzhalter: "Chris",
+    heroA: "Sorprendilo con ", heroY: "un ballo alla pole", heroB: " 💃",
+    wieGeht: ["Carica una sola foto di te.", "Ti mettiamo il completo e ti portiamo alla pole.", "Mandaglielo — solo a lui."],
+    wieGehtPrivat: "Non lo vede nessun altro. Il tuo video resta privato finché non lo mandi tu.",
+    priceLine: "Video {tanz}", buyOnce: "Video bollente {tanz}",
+    guthabenVorabHinweis: "Un video costa {tanz}. Paghi dal saldo del tuo conto — la ricarica più piccola è {topup}, e quello che avanza resta tuo per altri video.",
+    makeVideo: "Fai il mio video di ballo — {tanz} 🔥", makingKiss: "Stiamo facendo il tuo video di ballo …",
+    watchOnce: "Guarda il mio video — {tanz}", blockedOnce: "Fai un vero video di ballo — {tanz}",
+    readyBody: "Sbloccalo e guardati ballare.",
+    statusQuality: "Il tuo ballo viene generato in piena qualità … (~1–3 min)",
+    renderSteps: [
+      "Leggiamo la tua foto …", "Indossiamo il completo …", "Sistemiamo le luci al neon …",
+      "Mettiamo a punto il movimento …", "Ci siamo quasi …", "Ultimi ritocchi …",
+      "Da un momento all'altro …", "Ancora al lavoro — un attimo …",
+    ],
+    teaseSteps: ["Leggiamo il tuo viso …", "Indossiamo il completo …", "Illuminiamo il palco …"],
+    examples: "Veri video di ballo 💃",
+    consent: "Generando confermi che la persona nella foto sei tu o ti ha autorizzata a usarla, che tutte le persone sono maggiorenni, che tieni il risultato privato — e che te ne assumi la responsabilità. Le foto di nudo non sono accettate.",
+    anlaesseTitel: "Perché mandarne uno",
+    anlaesse: ["Lui è lontano e la serata è lunga.", "Il vostro anniversario — e lui ha già tutto.", "Vuoi vedere la sua faccia quando lo apre.", "Nessun motivo. È il migliore."],
+    anlaesseSchluss: "Non è un messaggio. È una sorpresa che non dimentica.",
+    kussZurueck: "Fatti il tuo 💃",
+  },
+};
+
+/**
  * „HOCHZEITSKUSS" — dieselbe Maschine, anderer Moment (Owner 30.07.2026: „ich will eher wie
  * sie sich einen Hochzeitskuss geben als Bild. Sie und er … vielleicht duplizierst du einfach
  * Kiss" — „die Frauen lieben Hochzeiten").
@@ -1468,10 +1679,11 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
  * sind und in KEINER Sprachtabelle eine Zahl steht. Funktionen (z. B. die Sekundenanzeige)
  * bleiben unangetastet, Listen werden Zeile für Zeile gefüllt.
  */
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" = "kiss"): KissText {
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
   const roh: KissText = variant === "idol" ? { ...TABELLE[l], ...IDOL[l] }
     : variant === "wedding" ? { ...TABELLE[l], ...HOCHZEIT[l] }
+    : variant === "poledance" ? { ...TABELLE[l], ...POLEDANCE[l] }
     : TABELLE[l];
   const out = {} as Record<string, unknown>;
   for (const [k, v] of Object.entries(roh)) {

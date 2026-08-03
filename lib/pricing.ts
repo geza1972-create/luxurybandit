@@ -100,6 +100,42 @@ export const TOPUP_CENTS = 499;                     // 4,99 € Konto-Aufladung 
 // zweite Stufe daneben — wer mehr laedt, hat laenger Ruhe. Die Kasse akzeptiert NUR diese
 // beiden Werte (Whitelist in kiss-video-checkout), egal was ein Browser schickt.
 export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung (grosse Stufe)
+/**
+ * DER TANZ KOSTET MEHR (Owner 03.08.2026, zum Poledance-Video: erst „der gleiche Preis",
+ * kurz darauf korrigiert — „eigentlich nicht, es soll 3,99 kosten").
+ *
+ * Es ist derselbe Betrag, den vorher das Lingerie-Video trug. Damals bezahlte er einen
+ * ZWEITEN Erzeugungslauf (FASHN zog um, dann filmte Pixverse); hier laeuft nur einer, weil
+ * Pixverse Fusion beides in einem Zug macht. Der Aufpreis ist diesmal also Marge, nicht
+ * Kosten — eine Preisentscheidung des Owners, keine Rechnung.
+ *
+ * WICHTIG: Diese Zahl gilt an ZWEI Stellen, und sie muessen zusammenbleiben — auf dem Knopf
+ * im Trichter UND in der Kasse (`app/api/kiss-video-checkout`). Dort wird der Preis am
+ * gespeicherten Auftrag entschieden, nicht an dem, was der Browser behauptet: Ein Preisschild,
+ * das ueber dem liegt, was die Kasse nimmt (oder darunter), ist der eine Fehler, den man nicht
+ * wegerklaeren kann.
+ */
+export const POLEDANCE_CENTS = 399;                 // 3,99 € — ein Tanz-Video
+
+/**
+ * DIE STRIPE-PREIS-KENNUNG FUER DAS TANZ-VIDEO (Owner 03.08.2026: „price_1U0LHX1jPNCWoizt
+ * jZ7uM8x6 nimm das").
+ *
+ * NACHGESCHLAGEN, STATT GEGLAUBT — dieselbe Pruefung wie beim Chat-Preis, und diesmal ohne
+ * Fund:
+ *   Betrag: 399 Cent  ✓  (deckt sich mit POLEDANCE_CENTS oben)
+ *   Typ:    one_time  ✓  (kein Abo — eine wiederkehrende Kennung waere hier ein Dauerauftrag)
+ *   Steuer: inklusive ✓  (Verbraucher sehen den Endpreis, Owner-Regel vom 27.07.2026)
+ *   Aktiv:  ja        ✓
+ * Produktname im Konto: „Luxurybandit Pool Dance".
+ *
+ * DIE BEIDEN ZAHLEN HAENGEN AB JETZT ZUSAMMEN: Wird der Betrag in Stripe geaendert, muss
+ * POLEDANCE_CENTS mitwandern — sonst steht auf dem Knopf etwas anderes, als die Kasse nimmt.
+ * Das ist die Schwaeche dieser Loesung und der Grund, warum es hier kommentiert steht.
+ */
+export function poledancePriceId(): string {
+  return process.env.STRIPE_POLEDANCE_PRICE_ID?.trim() || "price_1U0LHX1jPNCWoiztjZ7uM8x6";
+}
 // DAS LINGERIE-VIDEO IST RAUS (Owner 03.08.2026: „das mit der Lingerie ist eh nicht allzu
 // seriös" — „wir machen das raus"). Hier stand LINGERIE_CENTS = 399: der zweite Videopreis,
 // der einen FASHN-Lauf vor dem Pixverse-Lauf bezahlte. Mit dem Produkt fallen der Aufpreis,
@@ -119,7 +155,7 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
  * darueber laufen — und weil eine zweite Laufzeit damit ein Tabelleneintrag ist, kein Umbau.
  */
 export const CHAT_STUFEN = [
-  { monate: 1, cents: 1400 },   // = die Stripe-Preis-Kennung unten. Beide zusammen aendern!
+  { monate: 1, cents: 1499 },   // = die Stripe-Preis-Kennung unten. Beide zusammen aendern!
 ] as const;
 
 /**
@@ -131,24 +167,25 @@ export const CHAT_STUFEN = [
 export const CHAT_KONTINGENT: Record<number, number> = { 1: 1000 };
 
 /**
- * DIE STRIPE-PREIS-KENNUNG FUER DEN CHAT-MONAT (Owner 03.08.2026: „hier ist es
- * price_1U0L0B1jPNCWoiztRdsEyMXa").
+ * DIE STRIPE-PREIS-KENNUNG FUER DEN CHAT-MONAT (Owner 03.08.2026:
+ * „price_1U0LLs1jPNCWoiztHFs712cY neuer Preis").
  *
- * Nachgeschlagen, statt geglaubt — und dabei zwei Dinge gefunden:
+ * Nachgeschlagen wie die erste — und diesmal stimmt alles zusammen:
  *   Typ:    one_time  ✓  (kein Abo; eine wiederkehrende haette das gerade Entfernte zurueckgeholt)
- *   Betrag: 1400 Cent     ABER der Produktname in Stripe lautet „Luxurybandit Chat 14,99€".
+ *   Betrag: 1499 Cent  ✓  = CHAT_STUFEN
+ *   Name:   „Luxurybandit Chat 14,99€"  ✓
  *
- * DER KUNDE LIEST ALSO 14,99 UND ZAHLT 14,00. Das ist ein Tippfehler im Stripe-Konto, den nur
- * der Owner dort beheben kann. `CHAT_STUFEN` steht deshalb auf 1400: Was wir ANZEIGEN, muss
- * sein, was tatsaechlich abgebucht wird — ein Preisschild, das ueber dem liegt, was die Kasse
- * nimmt, ist der einzige Fehler dieser Art, den man nicht wegerklaeren kann.
+ * DIE VORGAENGERIN (price_1U0L0B…) STAND AUF 1400 CENT bei gleichem Namen — der Kunde haette
+ * 14,99 gelesen und 14,00 gezahlt. Der Owner hat sie ersetzt statt korrigiert; die alte bleibt
+ * in seinem Konto aktiv, wird von hier aber nicht mehr gerufen.
  *
- * WIRD DER PREIS IN STRIPE KORRIGIERT, muss CHAT_STUFEN mitwandern. Die beiden Zahlen haengen
- * ab jetzt zusammen und stehen an zwei Orten — das ist die Schwaeche dieser Loesung und der
- * Grund, warum es hier kommentiert steht.
+ * WER DEN PREIS AENDERT, aendert ZWEI Zahlen: diese Kennung und CHAT_STUFEN. Sie stehen an
+ * verschiedenen Orten, und nur die Kennung entscheidet, was wirklich abgebucht wird — die
+ * Tabelle entscheidet nur, was der Kunde vorher liest. Laufen sie auseinander, faellt es erst
+ * auf, wenn sich jemand beschwert.
  */
 export function chatPriceId(): string {
-  return process.env.STRIPE_CHAT_PRICE_ID?.trim() || "price_1U0L0B1jPNCWoiztRdsEyMXa";
+  return process.env.STRIPE_CHAT_PRICE_ID?.trim() || "price_1U0LLs1jPNCWoiztHFs712cY";
 }
 
 
@@ -199,6 +236,7 @@ export const HOCHZEIT_VIDEO_LAEUFE = 3;
  *   {extra}  → 2,99 €    (jedes weitere Video)
  *   {videos} → 12        (im Abo enthalten)
  *   {once}   → 1,49 €    (Einmalkauf, ohne Abo)
+ *   {tanz}   → 3,99 €    (ein Tanz-Video, siehe POLEDANCE_CENTS)
  *   {days}   → 7         (Probezeit ohne Abo, siehe TRIAL_DAYS)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
@@ -216,6 +254,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{list\}/g, eur(TOPIC_MONTHLY_CENTS, lang))
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
+    .replace(/\{tanz\}/g, eur(POLEDANCE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))

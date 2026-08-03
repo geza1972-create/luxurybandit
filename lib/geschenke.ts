@@ -24,6 +24,7 @@
 
 import { musikFuer } from "@/lib/musik";
 import { WEDDING_PROMPT } from "@/lib/wedding-prompt";
+import { POLEDANCE_PROMPT, POLEDANCE_SET } from "@/lib/poledance";
 
 
 // Platzhalter im Upload-Feld: ein MÄNNERGESICHT (Peter), abgedunkelt hinterlegt. Ohne das
@@ -48,7 +49,7 @@ export const IDOL_PROMPT =
 
 /** Welche Geschenke es gibt. Frueher `FunnelVariant` — der Name sagte, wie es gebaut ist,
  *  nicht was es ist. */
-export type GeschenkId = "kiss" | "idol" | "wedding";
+export type GeschenkId = "kiss" | "idol" | "wedding" | "poledance";
 
 export const GESCHENKE: Record<GeschenkId, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
@@ -98,6 +99,25 @@ export const GESCHENKE: Record<GeschenkId, {
    * Hier faellt nur die Auswahl weg — uebrig bleibt die eine Karte, die zaehlt.
    */
   nurEigenes?: boolean;
+  /**
+   * NUR SIE — EIN FOTO STATT ZWEI (Owner 03.08.2026, zum Tanz: „du musst dass der Upload-Mann
+   * nicht mehr gebraucht wird. Die Frau wird hochgeladen, sie selbst").
+   *
+   * Der Kuss braucht zwei Gesichter, weil zwei Menschen darin vorkommen. Hier kommt nur EINE
+   * Person vor — sie. Das zweite Referenzbild ist kein Mensch, sondern das Outfit
+   * (`garmentBild` unten), und das liegt fest im Repo statt im Upload.
+   *
+   * Was der Schalter im Trichter abstellt: die zweite Upload-Karte, den Platzhalter-Mann, die
+   * Pflichtprüfung „beide Fotos da" und einen ganzen Schritt (aus vier werden drei). Was er
+   * NICHT anfasst: Tor, Zuschnitt, Guthaben, Kasse, Auslieferung — alles wie beim Kuss.
+   */
+  nurSie?: boolean;
+  /**
+   * DAS ZWEITE REFERENZBILD, FEST STATT HOCHGELADEN. Steht es hier, schickt der Trichter ihr
+   * Foto als `person` und DIESES Bild als `garment` an Pixverse — der Fusion-Lauf zieht sie
+   * damit an und animiert in EINEM Zug. Kein FASHN-Lauf davor: ein Lauf, ein Preis.
+   */
+  garmentBild?: string;
   /**
    * ABO — pro Thema entschieden.
    *
@@ -174,6 +194,33 @@ export const GESCHENKE: Record<GeschenkId, {
     // für die, die kein Foto zur Hand hat.
     upFirst: true,
     upPlaceholder: "/kiss-woman-placeholder.jpg",
+  },
+  /**
+   * DER TANZ — „Surprise him" (Owner 03.08.2026). SIE bedient diesen Trichter und schickt
+   * IHM etwas; beim Kuss ist es umgekehrt. Deshalb steht hier alles auf eine Person:
+   * `nurEigenes` (kein Models-Karussell), `nurSie` (kein zweites Foto), und das Outfit
+   * kommt aus dem Repo statt aus einem Upload.
+   *
+   * PREIS WIE EIN KUSS-VIDEO (Owner: „der gleiche Preis") — und das ist auch gerechnet
+   * richtig: Der Fusion-Lauf zieht an UND filmt in einem Zug, es ist also EIN bezahlter
+   * Pixverse-Lauf wie beim Kuss. Die alte Lingerie-Kette brauchte zwei (FASHN + Pixverse)
+   * und kostete deshalb mehr. Die Zahl selbst steht in lib/pricing.ts, nie hier.
+   *
+   * KEIN GRATIS-BILD, NUR GUTHABEN — dieselbe Entscheidung wie beim Kuss. Ein OpenAI-Bild
+   * gäbe es hier ohnehin nicht: OpenAI weist Wäsche am Eingang ab, Pixverse nicht.
+   */
+  poledance: {
+    prompt: POLEDANCE_PROMPT, done: "pole-dance-video.mp4", abo: false, einzelkauf: true,
+    keinGratis: true, nurGuthaben: true,
+    nurEigenes: true, nurSie: true, garmentBild: POLEDANCE_SET,
+    // Der Name geht an IHN — dieselbe Mechanik wie beim Kuss („Anna, ich liebe dich").
+    empfaengerName: true,
+    upFirst: true,
+    // Platzhalter: dieselbe Frau wie beim Kuss. Sie zeigt, dass hier ein Foto hingehört —
+    // welches, sagt der Hinweis am Feld (ganzer Körper, nicht nur der Kopf).
+    upPlaceholder: "/kiss-woman-placeholder.jpg",
+    // Keine eigene Tonspur: Pixverse V6 erzeugt die Musik selbst und trifft die
+    // Club-Stimmung besser als jedes Stück, das wir darüberlegen könnten.
   },
   idol: {
     prompt: IDOL_PROMPT, done: "your-idol-video.mp4", abo: true, einzelkauf: true,
