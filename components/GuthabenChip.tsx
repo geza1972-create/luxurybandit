@@ -31,6 +31,20 @@ export default function GuthabenChip() {
   useEffect(() => {
     let weg = false;
     const holen = () => {
+      /**
+       * BEI MODELS KEIN GUTHABEN (Owner 03.08.2026: „kein Guthaben bei den Models").
+       *
+       * Models sind keine Kunden: Ihr Credit-System ist ein anderes und liegt seit dem
+       * 01.08.2026 eingefroren (kein Startguthaben, kein Verdienen). Ein Kunden-Konto im
+       * Header wuerde ihnen ein Guthaben versprechen, das es fuer sie nicht gibt — und die
+       * Galerie daneben zeigt ohnehin die Kunden-Sicht. Gilt auch fuer den Vorschau-Modus
+       * („View as model"), sonst sieht der Owner beim Pruefen etwas anderes als das Model.
+       */
+      let model = false;
+      try {
+        model = !!(JSON.parse(localStorage.getItem("lb_curator") ?? "{}")?.id) || !!localStorage.getItem("lb_preview_model");
+      } catch { /**/ }
+      if (model) { setCents(null); return; }
       let mail = "";
       try { mail = getStoredAuthSession()?.user?.email ?? ""; } catch { /**/ }
       if (!mail) { try { mail = localStorage.getItem("lb_kiss_mail") ?? ""; } catch { /**/ } }
