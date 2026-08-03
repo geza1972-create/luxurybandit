@@ -2041,14 +2041,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         * „Guthaben: 0,00 €" entgegenzuhalten, ist keine Auskunft, sondern eine Abweisung —
         * dieselbe Ueberlegung wie bei der Kontingent-Zeile darunter.
         */}
-      {typeof guthabenCents === "number" && (adresseDa || guthabenCents > 0) && !isStaff && (
+      {/* Nur bei echtem Guthaben (Owner 03.08.2026: „es steht falsch") — den Nullstand
+          zeigt seit heute der Header-Chip; dieselbe Zahl zweimal, einmal davon als 0,
+          liest sich als Fehler. */}
+      {typeof guthabenCents === "number" && guthabenCents > 0 && !isStaff && (
         <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
           {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / ONCE_CENTS)} 🎬
         </p>
       )}
       {typeof videosLinks === "number" && (aboAktiv || videosLinks > 0) && (
         <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
-          {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
+          {/* Altbestand groesser als die Abo-Menge (z. B. Seed-Konten): „8083 von 20"
+              waere gelogen — dann nur die nackte Zahl. */}
+          {videosLinks > INCLUDED_VIDEOS_PER_MONTH
+            ? `${videosLinks} 🎬`
+            : T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
       <div ref={karteRef}>
@@ -3127,7 +3134,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Abonnent nie, wo er steht — und merkt es erst, wenn nichts mehr geht. */}
       {aboAktiv && typeof videosLinks === "number" && (
         <p className="mt-1 text-center text-[11px] font-bold text-[#f6cf51]">
-          {T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
+          {/* Altbestand groesser als die Abo-Menge (z. B. Seed-Konten): „8083 von 20"
+              waere gelogen — dann nur die nackte Zahl. */}
+          {videosLinks > INCLUDED_VIDEOS_PER_MONTH
+            ? `${videosLinks} 🎬`
+            : T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
       {/* Der Nutzungshinweis: Rechte an den Fotos, Alter, Verantwortung. Die Zustimmung zu
