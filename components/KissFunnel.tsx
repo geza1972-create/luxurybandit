@@ -171,6 +171,44 @@ const nameKey = (thema: string) => `lb_kiss_name_${thema}`;
  * Kante reicht fuer eine Vorschaukachel voellig — das grosse Original liegt ohnehin auf dem
  * Server. Geht etwas schief, lieber nichts speichern als die Seite aufhalten.
  */
+/**
+ * EIN BILD AUS DEM REPO ALS DATEN-URL — damit der Server es ueberhaupt annehmen kann.
+ *
+ * DER FEHLER, DER DAS KOSTETE (03.08.2026, erster echter Tanz-Lauf des Owners): „Pixverse
+ * upload failed (reference images)." Das Set ging als `/Pooldance/poledance-set.jpg` an die
+ * Route — ein SEITEN-RELATIVER Pfad. Im Browser ist das eine gueltige Adresse; auf dem Server
+ * gibt es kein „relativ zu welcher Seite", und `imageToBlob` bricht mit „Failed to parse URL"
+ * ab. Pixverse bekam dann nur EIN Referenzbild statt zwei und lehnte den ganzen Auftrag ab.
+ *
+ * Der Browser dagegen kann den Pfad aufloesen. Also holt er die Datei und schickt sie als
+ * `data:`-URL mit — genau so, wie die hochgeladenen Fotos ohnehin reisen. Das ist auch der
+ * Weg, der auf Vercel sicher funktioniert: Er muss keine eigene Adresse erraten.
+ *
+ * Einmal geholt, bleibt es liegen (`datenUrlCache`) — dasselbe Bild geht bei jedem Anlauf
+ * mit, und ein zweiter Kauf soll es nicht noch einmal laden.
+ */
+const datenUrlCache = new Map<string, string>();
+async function alsDatenUrl(pfad: string): Promise<string> {
+  if (!pfad || pfad.startsWith("data:")) return pfad;
+  const gemerkt = datenUrlCache.get(pfad);
+  if (gemerkt) return gemerkt;
+  try {
+    const blob = await (await fetch(pfad)).blob();
+    const url = await new Promise<string>((res, rej) => {
+      const f = new FileReader();
+      f.onload = () => res(String(f.result));
+      f.onerror = rej;
+      f.readAsDataURL(blob);
+    });
+    datenUrlCache.set(pfad, url);
+    return url;
+  } catch {
+    // Lieber den Pfad zurueckgeben als gar nichts: Dann scheitert es sichtbar an derselben
+    // Stelle wie vorher, statt still ein leeres Bild zu schicken.
+    return pfad;
+  }
+}
+
 async function verkleinern(src: string, max = 520): Promise<string> {
   if (!src || !src.startsWith("data:")) return src;   // schon eine Adresse: nichts zu tun
   try {
@@ -1704,7 +1742,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * beim Kuss schon einmal ein bezahltes Video mit fremden Gesichtern erzeugt.
        */
       const refPerson = V.nurSie ? ihr : sein;
-      const refOutfit = V.nurSie ? (V.garmentBild ?? "") : ihr;
+      /**
+       * Das Set reist als Daten-URL, nicht als Pfad — siehe `alsDatenUrl` oben. Ein
+       * `/Pooldance/…`-Pfad ist nur im Browser eine Adresse; die Route kann ihn nicht holen,
+       * und Pixverse lehnt den Auftrag mit „upload failed (reference images)" ab.
+       */
+      const refOutfit = V.nurSie ? await alsDatenUrl(V.garmentBild ?? "") : ihr;
+      if (runRef.current !== token) return;
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -2082,7 +2126,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * hatten eigene, aehnliche Bedingungen und liefen beim Kuss deshalb gleichzeitig. Jetzt
    * fragt die untere diese hier — sie kann gar nicht mehr danebenliegen.
    */
-  const karteRendert = (payBusy || (bezahlt && !wahl) || videoBusy) && !videoUrl && !isStaff;
+  /**
+   * EINE ABSAGE BLEIBT IN DER KARTE STEHEN (Owner 03.08.2026: „wieso rendert er schon wieder
+   * woanders. Ich habe dir gesagt du sollst es richtig machen in der Karte").
+   *
+   * Bis hierher galt: Scheitert der Lauf, setzt der Trichter `wahl` auf wahr — damit faellt
+   * `karteRendert` weg, die Schicht in der Karte verschwindet, und die Fehlermeldung tauchte
+   * in dem geblendeten Kasten WEIT DARUNTER wieder auf. Der Kunde sah seinen bezahlten
+   * Auftrag also an genau der Stelle scheitern, an der er ihn nie gestartet hat.
+   *
+   * Der Lauf ist vorbei (kein Spinner, keine Prozente) — aber die Karte ist die Buehne, und
+   * eine Absage gehoert auf dieselbe Buehne wie das Ergebnis. Gilt nur fuer Themen ohne
+   * Gratis-Bild: Dort gibt es kein zweites Bild, das die Nachricht tragen koennte.
+   */
+  const karteAbsage = !!status && bezahlt && !videoBusy && !payBusy && !videoUrl && !isStaff && !!V.keinGratis;
+  const karteRendert = (payBusy || (bezahlt && !wahl) || videoBusy || karteAbsage) && !videoUrl && !isStaff;
 
   /**
    * DIE RENDER-SCHICHT DER KARTE — EINMAL definiert, in JEDEM Kartenzustand benutzt.
@@ -2118,10 +2176,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               ein Wort — dieselbe Anzeige wie beim Gratis-Bild, damit er sie kennt. */}
           <span className="lb-scanline pointer-events-none absolute inset-x-0 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
           <div className="relative w-full max-w-[300px] text-center">
-            <Loader2 className="mx-auto h-7 w-7 animate-spin text-[#f6cf51]" />
-            <p className="lb-onmedia mt-3 text-[16px] font-black">
-              {bezahlt || videoBusy ? T.payReceived : T.payOpening}
-            </p>
+            {/* Bei einer Absage laeuft nichts mehr — ein drehender Kreis daneben behauptete,
+                es ginge weiter, und genau das haelt Leute minutenlang vor dem Schirm fest. */}
+            {karteAbsage ? (
+              <p className="lb-onmedia text-[16px] font-black">{T.failTitle}</p>
+            ) : (<>
+              <Loader2 className="mx-auto h-7 w-7 animate-spin text-[#f6cf51]" />
+              <p className="lb-onmedia mt-3 text-[16px] font-black">
+                {bezahlt || videoBusy ? T.payReceived : T.payOpening}
+              </p>
+            </>)}
             {/* DIE PROZENTZAHL, GROSS (Owner: „Prozente hinschreiben"). Nur waehrend
                 des echten Video-Laufs — waehrend der Zahlung gibt es nichts zu zaehlen,
                 und eine Zahl, die dort schon liefe, wuerde einen Fortschritt behaupten,
@@ -2147,6 +2211,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 der wirklich nichts mehr kommt. Nur waehrend der Zahlung, NIE waehrend eines
                 bezahlten Laufs: dort waere Abbrechen genau das Ausrauben, das wir gerade
                 abgestellt haben. */}
+            {/* NACH EINER ABSAGE: ein Knopf, kein Sackgassen-Text. Der Auftrag ist bezahlt und
+                gilt weiter — `kussVideo()` startet ihn mit denselben Fotos noch einmal, ohne
+                dass irgendwo neu abgebucht wird. Ohne diesen Knopf bliebe dem Kunden nur, die
+                Seite neu zu laden, und dann steht er wieder am Anfang. */}
+            {karteAbsage && (
+              <button type="button" onClick={() => { setStatus(""); void kussVideo(); }}
+                style={{ color: "#fff" }}
+                className="mt-4 inline-flex items-center justify-center rounded-full border border-white/40 px-4 py-2 text-[12px] font-black transition active:scale-95">
+                {T.tryAgain}
+              </button>
+            )}
             {payBusy && !bezahlt && !videoBusy && (
               <button type="button" onClick={() => { setPayBusy(false); setStatus(""); }}
                 style={{ color: "#fff" }}
@@ -3489,7 +3564,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             ganzen bezahlten Laufs leer — und dieser Radar lief die volle Zeit ZUSAETZLICH zur
             Anzeige in der Karte. Zwei Ladeanzeigen fuer einen Vorgang lesen sich wie zwei
             Vorgaenge; die in der Karte ist die, auf die er schaut. */}
-        {(busy || videoBusy || (bezahlt && !isStaff)) && !karteRendert && !videoUrl && !bild && !!(selPhoto || photo) && (
+        {/* OHNE GRATIS-BILD GIBT ES DIESEN KASTEN GAR NICHT MEHR (Owner 03.08.2026: „wieso
+            rendert er schon wieder woanders … du sollst es richtig machen in der Karte").
+            `!karteRendert` allein reichte nicht: In dem Moment, in dem ein Lauf SCHEITERTE,
+            ging die Schicht in der Karte aus — und dieser Kasten sprang an ihre Stelle, weit
+            unterhalb. Bei Kuss, Hochzeit und Tanz ist die Karte die einzige Buehne; die
+            Absage steht jetzt dort (siehe `karteAbsage`). Themen MIT Gratis-Bild behalten den
+            Kasten, dort ist er die einzige Anzeige. */}
+        {(busy || videoBusy || (bezahlt && !isStaff)) && !karteRendert && !V.keinGratis && !videoUrl && !bild && !!(selPhoto || photo) && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -3648,14 +3730,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         {/* Das ECHTE Video (nach Zahlung / Admin-Reveal) — klar + Download. */}
         {videoUrl && (
           <div className="mx-auto mt-4 w-full max-w-[420px]">
-            <div className="overflow-hidden rounded-3xl border border-white/10">
-              {/* STUMM (Owner 03.08.2026). Dieser Spieler lief als EINZIGER mit der Tonspur
-                  des Videos — das war die „Original-Musik", die er hoerte: acht Sekunden, die
-                  bei jeder Schleife von vorn ansetzen, waehrend in der Karte darueber unsere
-                  Tonspur laeuft. Zwei Toene gleichzeitig, und der falsche war lauter. */}
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={videoUrl} muted controls autoPlay loop playsInline className="aspect-[3/4] w-full" />
-            </div>
+            {/* HIER STAND DAS VIDEO EIN ZWEITES MAL (Owner 03.08.2026: „wieso das Video jetzt
+                unten?").
+
+                Es war der letzte Rest des alten Ergebnis-Blocks: Der wurde am 31.07. in die
+                KARTE aufgeloest, „der Video-Spieler darunter blieb" — und genau das stand als
+                Notiz eine Zeile hoeher, ohne dass jemand die Folge gezogen haette. Sobald das
+                Video fertig war, lief dasselbe Bild zweimal untereinander: oben in der Karte
+                mit Rahmen, Zurufen und Ton-Knopf, darunter nackt in einem grauen Kasten — mit
+                `loop`, also mit dem harten Schnitt, den wir ueberall sonst abgeschafft haben.
+
+                Es faellt nur auf, WENN ein Video existiert. Deshalb hat es den Umbau
+                ueberlebt: Auf einer frischen Seite sieht man es nie.
+
+                Der Herunterladen-Knopf bleibt — er ist der Grund, warum dieser Block
+                ueberhaupt da ist. */}
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}

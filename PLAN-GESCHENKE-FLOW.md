@@ -72,6 +72,24 @@ dasselbe.
 **Das Vorschaubild im Chat ist NIE sein Foto.** Es erscheint in der Chatliste, auf dem
 Sperrbildschirm und in jeder Weiterleitung.
 
+**Ein Video wohnt in der KARTE — nie als nacktes `<video>`.** (Owner 03.08.2026: „ich bitte
+dich, benutze IMMER die Cards für die Videos, mit Titel oben und Made by luxurybandit.com" ·
+„immer Karte benutzen zum Sharen" · „wieso das Video jetzt unten?")
+
+`<EinladungAnsicht>` statt `<video>`, überall: im Trichter, in der Galerie, auf der geteilten
+Seite, auf einer Landingpage. Drei Schalter, je nach Video:
+
+| Schalter | Wann |
+|---|---|
+| `schleife={false}` | wenn jemand **spricht** — einen Satz will niemand sofort wieder von vorn |
+| `originalton` | wenn die **Stimme der Inhalt** ist; sonst redet unsere Musik dagegen an |
+| `verhaeltnis="aspect-[9/16]"` | wenn das Video **nicht 3:4** ist — sonst schneidet `object-cover` den Kopf ab |
+
+**Und: DAS VIDEO STEHT GENAU EINMAL AUF DER SEITE.** Das ist der Fehler, der sich zweimal
+eingeschlichen hat — beide Male, weil ein alter Block „erstmal stehen blieb". Er fällt nur auf,
+wenn ein Video wirklich existiert; auf einer frischen Seite sieht man ihn nie, und deshalb
+überlebt er jeden Umbau. Wer am Trichter arbeitet, prüft mit fertigem Video, nicht mit leerem.
+
 **Kein `loop` bei Videos** — `SchleifenVideo` blendet zwei Spieler ineinander.
 
 **Preise nur aus `lib/pricing.ts`**, Texte nur aus den Sprachtabellen. Nie eine Zahl in einen Satz
