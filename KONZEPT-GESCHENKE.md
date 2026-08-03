@@ -230,8 +230,10 @@ Schritt 1 und 2 kann ich sofort anfangen — beide brauchen keine weitere Entsch
    Details in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5.
 4. **Preis je Geschenk** — welche Zahlen? Erst wenn die Pixverse-Abrechnung gelesen ist; die
    Kosten je Lauf stehen bis heute in keinem Kommentar dieses Projekts (siehe `lib/pricing.ts`).
-5. **Chat und Morgenwetter** — bleiben sie im Portal, oder sind sie im Geschenke-Marktplatz ein
-   Fremdkörper? Sie sind das Einzige, was kein Geschenk ist.
+5. ~~**Chat und Morgenwetter**~~ — **Chat entschieden 03.08.2026:** kein Abo mehr, sondern
+   **Zugang auf Zeit** (1/2/3 Monate, 1 Jahr zu 14,99/24,99/34,99/119,99 €, `CHAT_STUFEN`),
+   Tageslimit bleibt, Looks kosten weiter extra. Damit fällt die letzte Abo-Stelle der
+   Plattform. Morgenwetter ist ausgeblendet und damit vorerst keine offene Frage.
 
 ---
 

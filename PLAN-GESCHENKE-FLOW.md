@@ -115,7 +115,7 @@ Empfohlen, weil jedes Thema das vorige billiger macht:
 2. **Geburtstag** umziehen (kleinster Trichter, 210 Zeilen).
 3. **Überraschung** (333), **Urlaub** (463).
 4. **Hochzeit** — siehe Abschnitt 5, sie ist der Sonderfall.
-5. **Chat** bleibt, was er ist: kein Geschenk, sondern ein laufender Dienst.
+5. **Chat** — kein Geschenk, sondern ZUGANG AUF ZEIT. Siehe Abschnitt 6.
 
 ---
 
@@ -226,7 +226,44 @@ genau EINEN Kaufweg.
 
 ---
 
-## 6. Was dieser Plan nicht löst
+## 6. Der Chat — Owner-Entscheidung 03.08.2026
+
+> „Chat ist genauso wie Hochzeit. Es hat verschiedene Preise: 1 Monat, 2, 3, das ganze Jahr.
+> Und trotzdem ist es am Tag an Chat limitiert."
+
+**Damit fällt die letzte Abo-Stelle der Plattform.** Danach gibt es genau EINEN Kaufweg: aus
+dem Guthaben bezahlen — entweder ein Geschenk (einmalig) oder Zugang für eine gewählte Zeit.
+Kein `createSubscriptionCheckout`, keine Kündigung, kein `hasActiveSubscription`, keine
+Monatsgutschriften. Das ist der größte Wegfall an Code, den dieser ganze Umbau bringt.
+
+| Laufzeit | Preis | je Monat |
+|---|---|---|
+| 1 Monat | 14,99 € | 14,99 € |
+| 2 Monate | 24,99 € | 12,50 € |
+| 3 Monate | 34,99 € | 11,66 € |
+| 1 Jahr | 119,99 € | 10,00 € |
+
+Anders als bei der Hochzeit **belohnt diese Leiter die längere Bindung** — das Jahr kostet je
+Monat ein Drittel weniger als der Einzelmonat. Zahlen in `lib/pricing.ts` (`CHAT_STUFEN`).
+
+**Das Tageslimit bleibt** (`DAILY_MSGS`, heute 10 Nachrichten). Es ist der einzige Deckel auf
+einer Sache, die je Nachricht Geld kostet — ohne ihn wäre ein Jahrespaket ein offenes Konto bei
+einem Sprachmodell. Der Kunde kauft **Zeit, nicht Menge**, und das gehört auch so auf die Seite.
+
+**Looks sind nicht enthalten:** Jeder neue Look kostet weiter {extra} aus dem Guthaben. Er
+kostet uns einen Erzeugungslauf; ein Paket mit beliebig vielen wäre bei einem Vielnutzer ein
+Verlustgeschäft.
+
+### Zu tun
+
+- `abo: false`; Preise aus `CHAT_STUFEN`, Stufen-Wähler wie bei der Hochzeit
+- `chat-abo-checkout` durch den Guthaben-Weg ersetzen; `chat-look-checkout` bleibt
+- `gueltigBis` statt `lb_chat_abo`; Warn-Mail vor Ablauf (`/api/aufraeumen`, die Maschine steht)
+- Abo-Sätze aus den Sprachtabellen (`dein Abo läuft weiter` …)
+
+---
+
+## 7. Was dieser Plan nicht löst
 
 - **Ob Geschenke sich verkaufen.** 210 Aufträge in neun Tagen, zwei bezahlt. Der Ablauf ist
   jetzt repariert und bewiesen; ob die Leute kaufen, entscheidet die Werbung.

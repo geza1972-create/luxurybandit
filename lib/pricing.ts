@@ -106,6 +106,38 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
 // der Waesche-Schritt und die zweite Kachelreihe weg — ein Kuss-Video kostet {once}, fertig.
 
 /**
+ * DER CHAT: ZUGANG AUF ZEIT, KEIN ABO (Owner 03.08.2026).
+ *
+ * „Chat ist genauso wie Hochzeit. Es hat verschiedene Preise: 1 Monat, 2, 3, das ganze Jahr.
+ * Und trotzdem ist es am Tag an Chat limitiert."
+ *
+ * Damit faellt die LETZTE Abo-Stelle der Plattform. Danach gibt es genau EINEN Kaufweg: aus dem
+ * Guthaben bezahlen — entweder ein Geschenk (einmalig) oder Zugang fuer eine gewaehlte Zeit.
+ * Kein `createSubscriptionCheckout`, keine Kuendigung, kein `hasActiveSubscription`, keine
+ * Monatsgutschriften. Das ist der groesste Wegfall an Code, den dieser Umbau bringt.
+ *
+ * DAS TAGESLIMIT BLEIBT (`DAILY_MSGS` in ChatFunnel, heute 10 Nachrichten). Es ist der einzige
+ * Deckel auf einer Sache, die je Nachricht Geld kostet — ohne ihn waere ein Jahrespaket ein
+ * offenes Konto bei einem Sprachmodell. Der Kunde kauft ZEIT, nicht Menge.
+ *
+ * LOOKS SIND NICHT ENTHALTEN (Owner-Entscheidung, gleiche Stunde): Jeder neue Look kostet
+ * weiter {extra} aus dem Guthaben. Er kostet uns einen Erzeugungslauf, und ein Paket, das
+ * beliebig viele einschliesst, waere bei einem Vielnutzer ein Verlustgeschaeft.
+ *
+ * Die Leiter belohnt hier die laengere Bindung, anders als bei der Hochzeit:
+ *   1 Monat  14,99 = 14,99 je Monat
+ *   2 Monate 24,99 = 12,50 je Monat
+ *   3 Monate 34,99 = 11,66 je Monat
+ *  12 Monate 119,99 = 10,00 je Monat
+ */
+export const CHAT_STUFEN = [
+  { monate: 1, cents: 1499 },
+  { monate: 2, cents: 2499 },
+  { monate: 3, cents: 3499 },
+  { monate: 12, cents: 11999 },
+] as const;
+
+/**
  * DIE HOCHZEIT: EINMALIG KAUFEN, LAUFZEIT WAEHLEN (Owner 03.08.2026).
  *
  * „Ich will dafuer schon 24,99 Euro haben, aber dann wird gleich alles freigeschaltet: Chat,
