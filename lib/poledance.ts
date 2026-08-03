@@ -82,16 +82,22 @@ export const POLEDANCE_POSTER = "/Pooldance/poledance-poster.jpg";
  * das Outfit und KEINEN Ort — heraus kam eine Frau, die in ihrem Wohnzimmer springt. Diese
  * Bilder tragen die Szene mit, genau wie das erste.
  *
- * ZWEI VON IHNEN TRAGEN LEUCHTSCHRIFT („HEART LATEX", „ELECTRIC LATEX"). Pixverse schreibt
- * solche Schriftzuege gern ins Video — deshalb steht im Prompt ausdruecklich, dass kein Text
- * ins Bild gehoert. Dieselbe Falle wie bei Bellas Geburtstagsvorlage.
+ * DIE ZWEITE FUHRE (Owner 03.08.2026: „ich habe dir neue Bilder reingelegt und getestet in
+ * Pixverse, die werden alle angenommen"). Er hat sie selbst dort durchlaufen lassen, bevor er
+ * sie geschickt hat — die erste Reihe ersetzt, nicht ergaenzt.
+ *
+ * EINES TRAEGT LEUCHTSCHRIFT („Play Dirty Love"). Pixverse schreibt solche Zuege gern ins
+ * Video — deshalb steht im Prompt ausdruecklich, dass kein Text ins Bild gehoert, und zwar
+ * fuer alle: Auch die uebrigen haben Leuchtreklame im Hintergrund. Dieselbe Falle wie bei
+ * Bellas Geburtstagsvorlage.
  */
 export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
   { id: "haus",    bild: POLEDANCE_SET,                    name: "Pink Neon" },
-  { id: "pink",    bild: "/Pooldance/set-pink.webp",        name: "Pink Harness" },
-  { id: "blau",    bild: "/Pooldance/set-blau.webp",        name: "Blue Lace" },
-  { id: "rot",     bild: "/Pooldance/set-rot-latex.webp",   name: "Red Latex" },
-  { id: "schwarz", bild: "/Pooldance/set-schwarz-latex.webp", name: "Black Latex" },
+  { id: "rot",     bild: "/Pooldance/set-rot-satin.webp",  name: "Red Satin" },
+  { id: "schwarz", bild: "/Pooldance/set-schwarz.webp",    name: "Black Leather" },
+  { id: "blau",    bild: "/Pooldance/set-blau.webp",       name: "Blue Lace" },
+  { id: "gruen",   bild: "/Pooldance/set-gruen.webp",      name: "Neon Green" },
+  { id: "lack",    bild: "/Pooldance/set-rot-lack.webp",   name: "Red Latex" },
 ];
 
 /**
