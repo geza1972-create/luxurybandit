@@ -8,6 +8,10 @@
     {
       "path": "/api/kiss-deliver",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/aufraeumen",
+      "schedule": "30 4 * * *"
     }
   ]
 }

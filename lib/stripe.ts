@@ -64,12 +64,27 @@ export async function createTryonCheckout(opts: {
   cancelUrl: string;
   metadata: Record<string, string>;
   clientReferenceId?: string;
+  /**
+   * DIE ADRESSE, DIE WIR SCHON KENNEN (Owner 03.08.2026: „ich versteh nicht warum ich in
+   * Stripe noch mal die Email angeben muss, hier kann ein Fehler passieren").
+   *
+   * Er hat recht, und der Fehler ist teuer: Guthaben, bezahlte Auftraege und die Galerie
+   * haengen alle an einer E-Mail. Tippt jemand an der Kasse eine ANDERE als im Trichter,
+   * zerfaellt sein Kauf in zwei Haelften — das Geld auf der einen Adresse, das Video auf der
+   * anderen, und die Galerie findet nichts.
+   *
+   * `customer_email` fuellt das Feld nicht nur vor, Stripe sperrt es dann auch: Es GIBT den
+   * Tippfehler danach nicht mehr. Bleibt leer, wenn wir ihn wirklich nicht kennen — dann
+   * fragt Stripe wie bisher.
+   */
+  email?: string;
 }): Promise<{ id: string; url: string }> {
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
-    client_reference_id: opts.clientReferenceId,
+    ...(opts.email ? { customer_email: opts.email } : {}),
+    client_reference_id: opts.clientReferenceId ?? opts.email,
     // GUTSCHEINFELD AUCH BEIM EINMALKAUF (Owner 30.07.2026: „warum kann ich hier meinen
     // Gutschein ADMIN1972 nicht eingeben"). Beim Abo gab es das Feld laengst, hier nie —
     // er konnte seinen eigenen Code also nicht einmal zum Testen benutzen.

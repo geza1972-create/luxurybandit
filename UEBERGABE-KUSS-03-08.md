@@ -1,5 +1,40 @@
 # Übergabe — Kuss-Trichter, Stand 03.08.2026 (für den nächsten Chat)
 
+> ## NACHTRAG, spätere Sitzung am 03.08. — was seitdem erledigt ist
+>
+> **Aus dieser Liste abgearbeitet:** 2b (Prozente in der Karte, doppelter Radar weg),
+> 2d (doppelter FASHN-Lauf), 2e (Gratis-Bild-Versprechen). **Offen bleiben:** 2a (echter
+> Lauf Ende zu Ende — nur der Owner), 2c (Lingerie-Kette nie live), 2f (Phantom-Guthaben),
+> 2g (Testadressen im Verteiler).
+>
+> **Dazugekommen — das Guthaben hing an der falschen Adresse.** Owner: „mein Kontostand
+> zeigt 0 Euro an, aber ich habe Geld drauf." Er hatte recht UND der Chip hatte recht:
+> 8,50 € lagen auf `geza1972@gmail.com`, angemeldet war er als `tigl10722@gmail.com`.
+> Guthaben hängt an einer E-Mail; wer als Gast auflädt und sich danach mit einem anderen
+> Konto anmeldet, sieht sein Geld nie wieder. Jetzt sagt der Chip, WO es liegt, und ein Tipp
+> schaltet zurück. Umgebucht wird nichts — ein Browser, der eine Adresse behauptet, ist kein
+> Nachweis, dass sie ihm gehört.
+>
+> **Und der Riss dahinter:** Die Stripe-Kasse fragte die Adresse ein zweites Mal ab
+> (Owner: „hier kann ein Fehler passieren"). Sie wird jetzt mit `customer_email` vorbelegt
+> und ist damit gesperrt. Weil das Trichter-Feld dadurch die EINZIGE Stelle ist, an der die
+> Adresse entsteht, trägt der Auflade-Wähler jetzt die Korrekturmöglichkeit (Art. 8
+> Verbraucherrechte-RL) und das Feld eine Tippfehler-Erkennung (`lib/mail-tippfehler.ts`,
+> Damerau — `gmial`, `gmx.ed`, `gmail.con` werden gefunden).
+>
+> **Der Kuss ist jetzt eine GRUSSKARTE** (Owner: „ich will das als Kiss Grußkarte machen").
+> Titel „Send a kiss to the one you love", drei Schritte darunter, Privat-Zusage nach oben,
+> Anlässe-Abschnitt unten, Name des Empfängers im Trichter → die aufsteigenden Zeilen heißen
+> dann „Anna, ich liebe dich". Der Empfänger auf `/w/[id]` bekommt „Kuss zurückschicken"
+> statt „Mach auch du eins — gratis" (das war seit dem Gratis-Aus ohnehin falsch); er zahlt
+> normal (Owner-Entscheidung).
+>
+> **Eine Falle, die diese Sitzung gekostet hat:** In der Einladungskarte (`.lb-karte`) färbt
+> CSS per `!important` ALLES auf dunkles Braun — `lb-onmedia` und Inline-Farben verlieren
+> dagegen. Die Prozentzahl stand deshalb in #2a231c auf 88 % Schwarz. Der Ausweg heißt
+> `data-aufmedien="1"` am umschließenden Element (siehe globals.css bei `.lb-karte`).
+
+
 > **Owner am Ende der Sitzung:** „ich habe dir so viele aufgaben gegeben, nicht viel
 > draus gemacht."
 >

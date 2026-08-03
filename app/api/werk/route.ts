@@ -34,6 +34,8 @@ export async function GET(request: Request) {
       theme: e.theme || "kiss",
       bild,
       video: e.videoUrl || "",
+      // Der Name macht aus den aufsteigenden Zeilen SEINE Botschaft — genau hier zaehlt das.
+      empfaenger: e.empfaenger || "",
     }, { headers: { "Cache-Control": "public, max-age=300" } });
   } catch {
     return NextResponse.json({ error: "private" }, { status: 404 });

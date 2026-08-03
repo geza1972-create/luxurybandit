@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, LINGERIE_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS } from "@/lib/pricing";
 import { guthabenAbbuchen } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
@@ -14,13 +14,15 @@ export const dynamic = "force-dynamic";
 // Ein Preis fuer alle Themen (lib/pricing): 49 EUR/Monat. Die alte 24-EUR-ID ist raus.
 const PRICE_ID = topicPriceId();
 
+const GUELTIGE_MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 // POST { genId?, subId?, returnTo? } → startet das Abo. Nach Zahlung schaltet der
 // Stripe-Webhook frei; der Client pollt /api/checkout-status.
 export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; lingerie?: boolean; topupCents?: number };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; topupCents?: number };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -59,6 +61,9 @@ export async function POST(request: Request) {
         productName: "One more video",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&extra=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+        // Die Adresse ist an dieser Stelle geprueft — also fuellt sie das Kassenfeld und
+        // sperrt es. Ein zweites Eintippen kann nur falsch sein, nie richtiger.
+        email,
         metadata: { kind: "model-video", email, ...(genId ? { genId } : {}) },
       });
       return NextResponse.json({ url, sessionId: id });
@@ -90,6 +95,10 @@ export async function POST(request: Request) {
         productName: "Account credit",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+        // HIER WIEGT ES AM SCHWERSTEN: Die Aufladung schreibt echtes Geld auf eine Adresse.
+        // Eine an der Kasse vertippte Adresse hiesse Guthaben auf einem Konto, das dem Kunden
+        // nicht gehoert und das er nie wiedersieht.
+        email,
         metadata: { kind: "aufladung", email, cents: String(stufe), ...(genId ? { genId } : {}) },
       });
       return NextResponse.json({ url, sessionId: id });
@@ -106,18 +115,15 @@ export async function POST(request: Request) {
      * behandelt `walletPaid` wie eine bestaetigte Zahlung.
      */
     /**
-     * LINGERIE KOSTET MEHR (Owner 03.08.2026: „das kostet 3,99 … die Frau mit FASHN
-     * anziehen und dann in Video umwandeln"): Der Aufpreis bezahlt den FASHN-Lauf VOR dem
-     * Pixverse-Lauf. Der Trichter meldet die Wahl mit; der Preis selbst kommt wie immer aus
-     * der Preistabelle. Der Abbuchungs-Schluessel traegt die Wahl mit, damit derselbe
-     * Eintrag erst ein normales und spaeter ein Lingerie-Video kaufen kann — sonst hielte
-     * die Idempotenz den zweiten, teureren Kauf faelschlich fuer den Doppelklick des ersten.
+     * EIN PREIS (Owner 03.08.2026: „wir machen das raus" — zum Lingerie-Video).
+     * Hier stand ein zweiter Preis, der einen FASHN-Lauf VOR dem Pixverse-Lauf bezahlte.
+     * Das Produkt ist raus, also auch der Aufpreis und der Sonderweg dahin.
      */
-    const preis = body.lingerie === true ? LINGERIE_CENTS : ONCE_CENTS;
+    const preis = ONCE_CENTS;
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
-        const ab = await guthabenAbbuchen(email, `wallet-${genId}${body.lingerie ? "-lingerie" : ""}`, preis);
+        const ab = await guthabenAbbuchen(email, `wallet-${genId}`, preis);
         if (ab.ok) {
           await bezahltVermerken(genId, email, "kiss-video");
           lieferungAnstossen(origin, genId);
@@ -129,10 +135,17 @@ export async function POST(request: Request) {
       const { id, url } = await createTryonCheckout({
         amount: preis,
         currency: "eur",
-        productName: body.lingerie ? "Kiss lingerie video — one-off" : "Kiss video — one-off",
+        productName: "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
-        metadata: { kind: "kiss-video", ...(genId ? { genId } : {}), ...(subId ? { subId } : {}) },
+        /**
+         * Hier war der Riss am tiefsten: Die Adresse stand nicht einmal in den Metadaten,
+         * und `checkout-status` stempelt den bezahlten Auftrag mit `s.customerEmail` — also
+         * mit dem, was der Kunde an der Kasse tippte. Wich das vom Trichter ab, lag sein
+         * bezahltes Video unter einer Adresse, unter der die Galerie nie sucht.
+         */
+        ...(GUELTIGE_MAIL.test(email) ? { email } : {}),
+        metadata: { kind: "kiss-video", ...(email ? { email } : {}), ...(genId ? { genId } : {}), ...(subId ? { subId } : {}) },
       });
       return NextResponse.json({ url, sessionId: id });
     } catch (e) {

@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop, Moon, Sun, Lock } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop, Moon, Sun, Lock, Scissors } from "lucide-react";
 import { readPhotoFile, PhotoCropper } from "../curators/taste-form";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -1798,6 +1798,14 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
             ✉️ Emails
           </button>
+          {/* LuxbanditCut liegt auf einer EIGENEN Seite (voller Arbeitsplatz mit Zuschneiden,
+              Galerie und Konto) — deshalb ein Link statt eines Reiters: als Reiter würde der
+              ganze Bild-Editor in dieses ohnehin riesige Admin-Bündel wandern. Zurück kommt
+              er über den „Zurück"-Pfeil, den nur der Betreiber dort sieht. */}
+          <a href="/admin/tools/luxbanditcut" title="LuxbanditCut — Apparel Extractor &amp; LuxbanditFit"
+            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black text-ink/50 transition active:scale-95">
+            <Scissors className="h-4 w-4" /> Cut
+          </a>
         </div>
 
         {/* Models tab → two sub-views: the model LIST, and TOOLS (kill-switches, newsletter,

@@ -105,9 +105,65 @@ export type KissText = {
   videosWeg: string;
   // Abonnent erkannt: wie viele Videos dieser Monat noch hergibt.
   aboAktiv: (rest: number, gesamt: number) => string;
+  /**
+   * SEIN GELD LIEGT AUF EINER ANDEREN ADRESSE (Owner 03.08.2026: „mein Kontostand zeigt
+   * 0 Euro an, aber ich habe Geld drauf").
+   *
+   * Guthaben haengt an einer E-Mail. Wer als Gast auflaedt und sich danach mit einem anderen
+   * Konto anmeldet, sieht 0,00 € — und der naechste Schritt waere eine zweite Aufladung fuer
+   * etwas, das schon bezahlt ist. Der Satz nennt Betrag UND Adresse: Ohne die Adresse ist er
+   * ein Raetsel, ohne den Betrag ein Verdacht.
+   */
+  gestrandet: (betrag: string, adresse: string) => string;
+  gestrandetCta: string;
+  /**
+   * DER TIPPFEHLER-VORSCHLAG unter dem Adressfeld (Owner 03.08.2026: „sonst zahlt er mit der
+   * falschen Email und ist nie wieder drin falls er sich vertippt").
+   *
+   * Ein Angebot, keine Absage: Wer wirklich eine seltene Domain hat, tippt einfach weiter.
+   */
+  mailVorschlag: (vorschlag: string) => string;
+  /**
+   * DIE KORREKTURMOEGLICHKEIT VOR DER ZAHLUNG (Art. 8 Verbraucherrechte-RL / Art. 11
+   * E-Commerce-RL: Eingabefehler muessen VOR der zahlungspflichtigen Bestellung erkennbar und
+   * berichtigbar sein). Seit die Kasse mit `customer_email` gesperrt ist, ist das hier die
+   * letzte Stelle, an der die Adresse noch zu retten ist.
+   */
+  zahlungAdresse: string; zahlungAdresseAendern: string; zahlungAdresseSpeichern: string;
   extraTitel: string; extraCta: string; extraNote: string;
   // Die Überschrift der Seite (das Gold-Wort steht getrennt) und der Vorspann von „Your Idol".
   heroA: string; heroY: string; heroB: string;
+  /**
+   * DIE GRUSSKARTE, IN DREI ZEILEN (Owner 03.08.2026: „ich will das als Kiss Grußkarte machen
+   * … dann muss stehen unter dem Titel kurz wie das funktioniert").
+   *
+   * Wer von einer Anzeige kommt, sieht ein Kussvideo und weiss nicht, was er damit soll. Drei
+   * kurze Zeilen beantworten das, bevor er scrollt — und die dritte traegt die Zusage, ohne
+   * die niemand ein Foto von sich hochlaedt: Es bleibt privat, bis er selbst teilt.
+   */
+  wieGehtTitel: string; wieGeht: string[]; wieGehtPrivat: string;
+  /**
+   * WARUM MAN EINEN SCHICKT (Owner 03.08.2026: „unten soll dann stehn warum man das machen
+   * sollte. Es zeigt Liebe, es zeigt etwas schönes … du vermisst jemandem, das ist ein
+   * Liebesbeweis").
+   *
+   * Anlaesse, keine Warnungen — der Owner hat das am 03.08. ausdruecklich so entschieden. Ein
+   * „bitte nicht" direkt vor dem Kaufknopf bremst genau die Stimmung, aus der heraus jemand
+   * einen Kuss verschickt; der Nutzungshinweis weiter unten traegt die Pflichten ohnehin.
+   */
+  anlaesseTitel: string; anlaesse: string[]; anlaesseSchluss: string;
+  /** Der Knopf beim Empfaenger: einen Kuss zurueckschicken (zahlt normal, Owner 03.08.2026). */
+  kussZurueck: string;
+  /**
+   * AN WEN GEHT DER KUSS? (Owner 03.08.2026: „schreib auch den Namen an wem du es senden
+   * willst, da rein … dann erscheint in den Texten Anna, I love you, I miss you so much …
+   * also es ist personalisiert dann").
+   *
+   * Der Name ist FREIWILLIG und bleibt es: Ohne ihn steigen dieselben Saetze ohne Anrede auf.
+   * Eine Pflichtangabe waere hier die teuerste Art, jemanden zu verlieren — sie stuende
+   * zwischen ihm und dem einzigen Schritt, auf den es ankommt, dem Hochladen.
+   */
+  namenFrage: string; namenPlatzhalter: string;
   /**
    * EIN SATZ UNTER DER UEBERSCHRIFT (Owner 31.07.2026: „unter dem titel muss doch ein kurzer
    * satz zu der Einladungs seite").
@@ -219,9 +275,22 @@ const EN: KissText = {
   zustimmungFehlt: "Please accept the terms first.", agbLink: "terms", datenschutzLink: "privacy policy",
   videosWeg: "Your {videos} videos for this month are used up.",
   aboAktiv: (r, g) => `Subscription active · ${r} of ${g} videos left this month`,
+  gestrandet: (b, a) => `You have ${b} — but on ${a}, not on the account you are signed in with right now.`,
+  gestrandetCta: "Switch to that address",
+  mailVorschlag: (v) => `Did you mean ${v}?`,
+  zahlungAdresse: "Your video and your balance run on this address:",
+  zahlungAdresseAendern: "Change", zahlungAdresseSpeichern: "Save",
   extraTitel: "Your videos for this month are used up",
   extraCta: "One more video — {extra}", extraNote: "One video, no new subscription. Your subscription keeps running.",
-  heroA: "Kiss ", heroY: "somebody", heroB: " 💋",
+  heroA: "Send a kiss to ", heroY: "the one you love", heroB: " 💋",
+  wieGehtTitel: "How it works",
+  wieGeht: ["Upload a photo of you and one of them.", "We turn the two of you into one kiss video.", "Send it — to them alone."],
+  wieGehtPrivat: "Nobody else sees it. Your card stays private unless you share it yourself.",
+  anlaesseTitel: "Why send one",
+  anlaesse: ["You miss them, and a text message does not say it.", "You see each other far too rarely.", "Something needs saying that you cannot type.", "There is nothing to celebrate — that is exactly the point."],
+  anlaesseSchluss: "A kiss you had made is not a message. It is proof.",
+  kussZurueck: "Send a kiss back 💋",
+  namenFrage: "Her or his name — it appears in the card (optional)", namenPlatzhalter: "Anna",
   heroLead: "",
   leadA: "Take any person you admire — a superstar, a singer, an actress, an athlete, an influencer, or one of our models. One screenshot of her or him is enough.",
   leadB: "Add a photo of yourself and the AI puts the two of you together at a party, side by side. Your two faces, one video that looks like it really happened.",
@@ -326,9 +395,22 @@ const DE: KissText = {
   zustimmungFehlt: "Bitte stimme zuerst zu.", agbLink: "AGB", datenschutzLink: "Datenschutzerklärung",
   videosWeg: "Deine {videos} Videos für diesen Monat sind aufgebraucht.",
   aboAktiv: (r, g) => `Abo aktiv · noch ${r} von ${g} Videos diesen Monat`,
+  gestrandet: (b, a) => `Du hast ${b} — aber auf ${a}, nicht auf dem Konto, mit dem du gerade angemeldet bist.`,
+  gestrandetCta: "Zu dieser Adresse wechseln",
+  mailVorschlag: (v) => `Meintest du ${v}?`,
+  zahlungAdresse: "Dein Video und dein Guthaben laufen auf dieser Adresse:",
+  zahlungAdresseAendern: "Ändern", zahlungAdresseSpeichern: "Speichern",
   extraTitel: "Deine Videos für diesen Monat sind aufgebraucht",
   extraCta: "Noch ein Video — {extra}", extraNote: "Ein Video, kein neues Abo. Dein Abo läuft normal weiter.",
-  heroA: "Küss ", heroY: "jemanden", heroB: " 💋",
+  heroA: "Schick einen Kuss an ", heroY: "den Menschen, den du liebst", heroB: " 💋",
+  wieGehtTitel: "So geht es",
+  wieGeht: ["Lade ein Foto von dir hoch und eins von ihr oder ihm.", "Wir machen aus euch beiden ein Kussvideo.", "Verschick es — nur an diesen einen Menschen."],
+  wieGehtPrivat: "Niemand sonst sieht es. Deine Karte bleibt privat, solange du sie nicht selbst teilst.",
+  anlaesseTitel: "Warum man einen schickt",
+  anlaesse: ["Du vermisst jemanden, und eine Nachricht sagt es nicht.", "Ihr seht euch viel zu selten.", "Es ist etwas zu sagen, das man nicht tippen kann.", "Es gibt nichts zu feiern — genau darum geht es."],
+  anlaesseSchluss: "Ein Kuss, den du machen lässt, ist keine Nachricht. Er ist ein Liebesbeweis.",
+  kussZurueck: "Kuss zurückschicken 💋",
+  namenFrage: "Ihr oder sein Name — er erscheint in der Karte (freiwillig)", namenPlatzhalter: "Anna",
   heroLead: "",
   leadA: "Nimm jeden Menschen, den du bewunderst — einen Superstar, eine Sängerin, eine Schauspielerin, eine Sportlerin, eine Influencerin oder eine unserer Frauen. Ein einziges Bildschirmfoto genügt.",
   leadB: "Leg ein Foto von dir dazu, und die KI stellt euch beide nebeneinander auf eine Party. Eure zwei Gesichter, ein Video, das aussieht, als wäre es wirklich passiert.",
@@ -433,9 +515,22 @@ const RO: KissText = {
   zustimmungFehlt: "Te rog acceptă mai întâi.", agbLink: "termenii", datenschutzLink: "politica de confidențialitate",
   videosWeg: "Cele {videos} videoclipuri ale lunii s-au terminat.",
   aboAktiv: (r, g) => `Abonament activ · ${r} din ${g} videoclipuri rămase luna asta`,
+  gestrandet: (b, a) => `Ai ${b} — dar pe ${a}, nu pe contul cu care ești autentificat acum.`,
+  gestrandetCta: "Comută pe acea adresă",
+  mailVorschlag: (v) => `Ai vrut să scrii ${v}?`,
+  zahlungAdresse: "Videoclipul și creditul tău merg pe această adresă:",
+  zahlungAdresseAendern: "Schimbă", zahlungAdresseSpeichern: "Salvează",
   extraTitel: "Videoclipurile tale pe luna asta s-au terminat",
   extraCta: "Încă un videoclip — {extra}", extraNote: "Un videoclip, fără abonament nou. Abonamentul tău merge mai departe.",
-  heroA: "Sărută ", heroY: "pe cineva", heroB: " 💋",
+  heroA: "Trimite un sărut ", heroY: "persoanei pe care o iubești", heroB: " 💋",
+  wieGehtTitel: "Cum funcționează",
+  wieGeht: ["Încarcă o poză cu tine și una cu ea sau el.", "Facem din voi doi un videoclip cu un sărut.", "Trimite-l — doar acelei persoane."],
+  wieGehtPrivat: "Nimeni altcineva nu îl vede. Felicitarea ta rămâne privată dacă nu o distribui tu.",
+  anlaesseTitel: "De ce să trimiți unul",
+  anlaesse: ["Ți-e dor de cineva, iar un mesaj nu spune asta.", "Vă vedeți mult prea rar.", "E ceva de spus ce nu poate fi scris.", "Nu e nimic de sărbătorit — exact despre asta e vorba."],
+  anlaesseSchluss: "Un sărut pe care pui să fie făcut nu e un mesaj. E o dovadă de dragoste.",
+  kussZurueck: "Trimite un sărut înapoi 💋",
+  namenFrage: "Numele ei sau al lui — apare în felicitare (opțional)", namenPlatzhalter: "Anna",
   heroLead: "",
   leadA: "Ia orice persoană pe care o admiri — o vedetă, o cântăreață, o actriță, o sportivă, o influenceriță sau una dintre femeile noastre. O singură captură de ecran e de ajuns.",
   leadB: "Adaugă o poză cu tine și inteligența artificială vă pune pe amândoi, unul lângă altul, la o petrecere. Două chipuri, un videoclip care pare real.",
@@ -540,9 +635,22 @@ const ES: KissText = {
   zustimmungFehlt: "Acepta primero las condiciones.", agbLink: "términos", datenschutzLink: "política de privacidad",
   videosWeg: "Tus {videos} vídeos de este mes se han agotado.",
   aboAktiv: (r, g) => `Suscripción activa · te quedan ${r} de ${g} vídeos este mes`,
+  gestrandet: (b, a) => `Tienes ${b} — pero en ${a}, no en la cuenta con la que has iniciado sesión ahora.`,
+  gestrandetCta: "Cambiar a esa dirección",
+  mailVorschlag: (v) => `¿Querías decir ${v}?`,
+  zahlungAdresse: "Tu vídeo y tu saldo van a esta dirección:",
+  zahlungAdresseAendern: "Cambiar", zahlungAdresseSpeichern: "Guardar",
   extraTitel: "Tus vídeos de este mes se han agotado",
   extraCta: "Un vídeo más — {extra}", extraNote: "Un vídeo, sin nueva suscripción. La tuya sigue igual.",
-  heroA: "Besa a ", heroY: "alguien", heroB: " 💋",
+  heroA: "Envía un beso a ", heroY: "quien tú quieres", heroB: " 💋",
+  wieGehtTitel: "Cómo funciona",
+  wieGeht: ["Sube una foto tuya y otra de ella o de él.", "Convertimos a los dos en un vídeo de un beso.", "Envíalo — solo a esa persona."],
+  wieGehtPrivat: "Nadie más lo ve. Tu tarjeta sigue siendo privada mientras no la compartas tú.",
+  anlaesseTitel: "Por qué enviar uno",
+  anlaesse: ["Echas de menos a alguien y un mensaje no lo dice.", "Os veis demasiado poco.", "Hay algo que decir que no se puede escribir.", "No hay nada que celebrar — de eso se trata."],
+  anlaesseSchluss: "Un beso que mandas hacer no es un mensaje. Es una prueba de amor.",
+  kussZurueck: "Devolver el beso 💋",
+  namenFrage: "Su nombre — aparece en la tarjeta (opcional)", namenPlatzhalter: "Ana",
   heroLead: "",
   leadA: "Coge a cualquier persona que admires — una superestrella, una cantante, una actriz, una deportista, una influencer o una de nuestras modelos. Basta una captura de pantalla.",
   leadB: "Añade una foto tuya y la IA os pone a los dos juntos en una fiesta, uno al lado del otro. Vuestras dos caras, un vídeo que parece real.",
@@ -647,9 +755,22 @@ const FR: KissText = {
   zustimmungFehlt: "Merci d'accepter d'abord.", agbLink: "conditions", datenschutzLink: "politique de confidentialité",
   videosWeg: "Tes {videos} vidéos du mois sont épuisées.",
   aboAktiv: (r, g) => `Abonnement actif · ${r} vidéos sur ${g} restantes ce mois-ci`,
+  gestrandet: (b, a) => `Tu as ${b} — mais sur ${a}, pas sur le compte avec lequel tu es connecté en ce moment.`,
+  gestrandetCta: "Passer à cette adresse",
+  mailVorschlag: (v) => `Tu voulais dire ${v} ?`,
+  zahlungAdresse: "Ta vidéo et ton crédit sont liés à cette adresse :",
+  zahlungAdresseAendern: "Modifier", zahlungAdresseSpeichern: "Enregistrer",
   extraTitel: "Tes vidéos du mois sont épuisées",
   extraCta: "Une vidéo de plus — {extra}", extraNote: "Une vidéo, sans nouvel abonnement. Le tien continue normalement.",
-  heroA: "Embrasse ", heroY: "quelqu'un", heroB: " 💋",
+  heroA: "Envoie un baiser à ", heroY: "la personne que tu aimes", heroB: " 💋",
+  wieGehtTitel: "Comment ça marche",
+  wieGeht: ["Ajoute une photo de toi et une d'elle ou de lui.", "On fait de vous deux une vidéo d'un baiser.", "Envoie-la — à cette personne seule."],
+  wieGehtPrivat: "Personne d'autre ne la voit. Ta carte reste privée tant que tu ne la partages pas toi-même.",
+  anlaesseTitel: "Pourquoi en envoyer un",
+  anlaesse: ["Cette personne te manque, et un message ne le dit pas.", "Vous vous voyez beaucoup trop rarement.", "Il y a quelque chose à dire qui ne s'écrit pas.", "Il n'y a rien à fêter — c'est justement le propos."],
+  anlaesseSchluss: "Un baiser que tu fais faire n'est pas un message. C'est une preuve d'amour.",
+  kussZurueck: "Renvoyer un baiser 💋",
+  namenFrage: "Son prénom — il apparaît dans la carte (facultatif)", namenPlatzhalter: "Anna",
   heroLead: "",
   leadA: "Prends n'importe qui que tu admires — une superstar, une chanteuse, une actrice, une sportive, une influenceuse ou l'une de nos modèles. Une seule capture d'écran suffit.",
   leadB: "Ajoute une photo de toi et l'IA vous met tous les deux côte à côte à une fête. Vos deux visages, une vidéo qui semble réelle.",
@@ -754,9 +875,22 @@ const PT: KissText = {
   zustimmungFehlt: "Aceita primeiro as condições.", agbLink: "termos", datenschutzLink: "política de privacidade",
   videosWeg: "Os teus {videos} vídeos deste mês acabaram.",
   aboAktiv: (r, g) => `Subscrição ativa · faltam ${r} de ${g} vídeos este mês`,
+  gestrandet: (b, a) => `Tens ${b} — mas em ${a}, não na conta com que iniciaste sessão agora.`,
+  gestrandetCta: "Mudar para esse endereço",
+  mailVorschlag: (v) => `Querias dizer ${v}?`,
+  zahlungAdresse: "O teu vídeo e o teu saldo ficam neste endereço:",
+  zahlungAdresseAendern: "Alterar", zahlungAdresseSpeichern: "Guardar",
   extraTitel: "Os teus vídeos deste mês acabaram",
   extraCta: "Mais um vídeo — {extra}", extraNote: "Um vídeo, sem nova subscrição. A tua continua igual.",
-  heroA: "Beija ", heroY: "alguém", heroB: " 💋",
+  heroA: "Envia um beijo a ", heroY: "quem tu amas", heroB: " 💋",
+  wieGehtTitel: "Como funciona",
+  wieGeht: ["Carrega uma foto tua e outra dela ou dele.", "Transformamos os dois num vídeo de um beijo.", "Envia-o — só a essa pessoa."],
+  wieGehtPrivat: "Mais ninguém o vê. O teu postal fica privado enquanto não o partilhares tu.",
+  anlaesseTitel: "Porque se envia um",
+  anlaesse: ["Tens saudades de alguém, e uma mensagem não diz isso.", "Veem-se demasiado pouco.", "Há algo para dizer que não se escreve.", "Não há nada a festejar — é mesmo disso que se trata."],
+  anlaesseSchluss: "Um beijo que mandas fazer não é uma mensagem. É uma prova de amor.",
+  kussZurueck: "Devolver o beijo 💋",
+  namenFrage: "O nome dela ou dele — aparece no postal (opcional)", namenPlatzhalter: "Ana",
   heroLead: "",
   leadA: "Escolhe qualquer pessoa que admires — uma estrela, uma cantora, uma atriz, uma atleta, uma influenciadora ou uma das nossas modelos. Basta uma captura de ecrã.",
   leadB: "Junta uma foto tua e a IA coloca-vos aos dois lado a lado numa festa. Os vossos dois rostos, um vídeo que parece real.",
@@ -862,9 +996,22 @@ const IT: KissText = {
   zustimmungFehlt: "Accetta prima le condizioni.", agbLink: "termini", datenschutzLink: "informativa privacy",
   videosWeg: "I tuoi {videos} video di questo mese sono finiti.",
   aboAktiv: (r, g) => `Abbonamento attivo · ${r} di ${g} video rimasti questo mese`,
+  gestrandet: (b, a) => `Hai ${b} — ma su ${a}, non sull'account con cui hai effettuato l'accesso adesso.`,
+  gestrandetCta: "Passa a quell'indirizzo",
+  mailVorschlag: (v) => `Intendevi ${v}?`,
+  zahlungAdresse: "Il tuo video e il tuo credito sono legati a questo indirizzo:",
+  zahlungAdresseAendern: "Modifica", zahlungAdresseSpeichern: "Salva",
   extraTitel: "I tuoi video di questo mese sono finiti",
   extraCta: "Un altro video — {extra}", extraNote: "Un video, nessun nuovo abbonamento. Il tuo continua normalmente.",
-  heroA: "Bacia ", heroY: "qualcuno", heroB: " 💋",
+  heroA: "Manda un bacio a ", heroY: "chi ami", heroB: " 💋",
+  wieGehtTitel: "Come funziona",
+  wieGeht: ["Carica una foto tua e una di lei o di lui.", "Trasformiamo voi due in un video con un bacio.", "Mandalo — solo a quella persona."],
+  wieGehtPrivat: "Nessun altro lo vede. Il tuo biglietto resta privato finché non lo condividi tu.",
+  anlaesseTitel: "Perché mandarne uno",
+  anlaesse: ["Ti manca qualcuno, e un messaggio non lo dice.", "Vi vedete troppo di rado.", "C'è qualcosa da dire che non si può scrivere.", "Non c'è niente da festeggiare — è proprio questo il punto."],
+  anlaesseSchluss: "Un bacio che fai fare non è un messaggio. È una prova d'amore.",
+  kussZurueck: "Rimanda un bacio 💋",
+  namenFrage: "Il suo nome — appare nel biglietto (facoltativo)", namenPlatzhalter: "Anna",
   heroLead: "",
   leadA: "Prendi chiunque tu ammiri — una superstar, una cantante, un'attrice, una sportiva, un'influencer o una delle nostre modelle. Basta uno screenshot.",
   leadB: "Aggiungi una tua foto e l'IA mette voi due insieme a una festa, fianco a fianco. I vostri due volti, un video che sembra vero.",

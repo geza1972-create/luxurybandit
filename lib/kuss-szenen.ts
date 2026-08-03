@@ -50,7 +50,6 @@ export type KussSzene = {
    * sie in einen Lingerie-Look aus der Garderobe um; der Aufpreis bezahlt diesen zweiten
    * Erzeugungslauf. Preis kommt aus lib/pricing (LINGERIE_CENTS), nie von hier.
    */
-  lingerie?: true;
   /**
    * WOERTLICH FESTGEHALTENER AUFTRAG (Owner 03.08.2026, zur Surprise-Kachel: er hat den
    * kompletten Pixverse-Prompt mitgeliefert). Steht er hier, gewinnt er unveraendert —
@@ -152,6 +151,24 @@ export function kussSzene(id: unknown): KussSzene | null {
 }
 
 /**
+ * EINE ZUFAELLIGE KUSS-SZENE — die Ueberraschung (Owner 03.08.2026: „wir machen die ganze
+ * Videoauswahl raus. Die Leute bekommen ein Zufalls-Video als Ueberraschung mit Kuss").
+ *
+ * Die vier Prompts sind dieselben, die vorher hinter den Kacheln lagen — es geht nichts
+ * verloren ausser der Wahl. Ohne `Math.random()`: Der Trichter rendert erst auf dem Server und
+ * dann im Browser; eine echte Zufallszahl waere dort zweimal verschieden und React wuerde die
+ * Seite beim ersten Zeichnen einmal komplett neu aufbauen. Die Auftragsnummer ist ohnehin je
+ * Kunde verschieden und damit die bessere Quelle: derselbe Auftrag, dieselbe Szene — wer neu
+ * laedt, bekommt nicht ploetzlich eine andere Kulisse versprochen.
+ */
+export function zufallsSzene(saat?: string): KussSzene {
+  const s = String(saat ?? "");
+  let n = 0;
+  for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0;
+  return KUSS_SZENEN[n % KUSS_SZENEN.length];
+}
+
+/**
  * DER VIDEO-AUFTRAG EINER SZENE — MIT DEN BEIDEN GESICHTERN (Owner 03.08.2026: „auch noch
  * falsche Personen im video", nach einem BEZAHLTEN Lauf mit gewaehlter Szene).
  *
@@ -168,109 +185,19 @@ export function kussSzene(id: unknown): KussSzene | null {
  * Gesichtstreue ausdruecklich verlangt; ein Modell haelt nur, was man ihm benennt.
  */
 /**
- * DIE LINGERIE-VORLAGE (Owner 03.08.2026: „ich habe dir ein Kisslingerie-Ordner gemacht in
- * public. Du kannst das auch als Video-Template nehmen. Aber das kostet 3,99 und dafür musst
- * du die Frau mit FASHN in einer unserer Lingerie-Bilder anziehen und dann in Video
- * umwandeln" — mit dem Pixverse-Prompt dazu).
+ * DIE LINGERIE-VORLAGEN SIND RAUS (Owner 03.08.2026: „das mit der Lingerie ist eh nicht allzu
+ * seriös" — „wir machen das raus").
  *
- * ANDERS ALS DIE VIER SZENEN OBEN: teurer (LINGERIE_CENTS statt ONCE_CENTS, siehe
- * lib/pricing), die Kachel-Vorschau ist das ECHTE Beispielvideo aus public/Kisslingerie, und
- * VOR dem Pixverse-Lauf zieht FASHN sie um — das erledigt der bestehende Garderobe-Schritt
- * nach der Zahlung (`anziehen()` im Trichter nimmt Lingerie an, siehe Notiz
- * pixverse-accepts-lingerie-refs; OpenAI täte das nicht). Waehlt sie dort nichts, bleibt ihr
- * eigenes Oberteil — der Prompt verlangt ohnehin „clothes from @image2 exactly 1:1".
+ * Hier standen vier Dessous-Vorlagen mit eigenem Preis, eigenem Prompt und einem FASHN-Lauf
+ * VOR dem Pixverse-Lauf. Sie waren die Wurzel fast aller Umstaendlichkeit im Kuss-Trichter:
+ * zweiter Preis, Waesche-Schritt, zweite Kachelreihe, getrennte Bild-Kette (OpenAI weist
+ * Dessous am Eingang ab, Pixverse nicht). Und sie passten nicht zu dem, was der Kuss seit dem
+ * 03.08. ist: eine Grusskarte an einen Menschen, den man liebt.
  *
- * DER PROMPT ist der Owner-Text, ins Englische vervollstaendigt (Pixverse liest Englisch)
- * und um die zwei Hausklauseln ergaenzt, ohne die jeder Auftrag schiefgeht: Gesichter exakt
- * halten und NUR Musik (sonst erfindet V6 Stimmen).
+ * Die Videos liegen weiter unter `public/Kisslingerie/` — sie sind bezahlte Arbeit, und ein
+ * `git revert` dieses Umbaus soll nicht an fehlenden Dateien scheitern.
  */
-// Die zwei Hausklauseln, ohne die jeder Pixverse-Auftrag schiefgeht: Gesichter exakt
-// halten, und NUR Musik (sonst erfindet V6 Stimmen zu „chatting/laughter").
-const GESICHTER_UND_MUSIK =
-  "Keep the face of @image1 and the face of @image2 EXACTLY as in the reference photos — " +
-  "do not change either face. " +
-  "Cinematic, photorealistic, fluid natural motion. Fixed camera, no zoom. No text or logos. " +
-  "Audio: soft, elegant instrumental background music only — ONLY music: absolutely no " +
-  "voices, no talking, no whispering, no singing, no footsteps, no ambient or foley sound " +
-  "effects.";
 
-export type KussLingerieVorlage = {
-  id: string; name: string; vorschau: string; video: string;
-  /** Das Waeschestueck aus UNSERER Galerie, das FASHN als Vorgabe anzieht (Owner
-   *  03.08.2026: „wenn du nicht unsere an FASHN gibst, der wird dir es nicht genauso
-   *  machen“). Der Kunde darf in der Waesche-Zeile umwaehlen — das hier ist der
-   *  Standard, mit dem das Beispielvideo entstand. Look-Kennungen aus der Galerie. */
-  garment?: string;
-};
-
-export const KUSS_LINGERIE: KussLingerieVorlage[] = [
-  {
-    id: "lingerie-teneriffa",
-    name: "Lingerie — Teneriffa-Terrasse",
-    vorschau: "/Kisslingerie/lingerie-teneriffa.mp4",
-    garment: "look-1783189555707",   // Purple Pearls Flower Lingerie Set — das lila Strapsset aus dem Video
-    // Owner-Prompt vom 03.08.2026, ins Englische vervollstaendigt (Pixverse liest Englisch).
-    video:
-      "The man from @image1 and the woman from @image2 stroll together along a sunny Tenerife " +
-      "terrace overlooking the ocean, admiring the beautiful view, chatting and flirting " +
-      "playfully, exchanging smiles and soft laughter, glancing at each other now and then. " +
-      "Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and " +
-      "details. The woman turns once so her look is fully visible, then he embraces her and " +
-      "they kiss on the lips, tenderly. " + GESICHTER_UND_MUSIK,
-  },
-  {
-    // Das zweite Beispielvideo aus dem Ordner („1 and 2 stand close…"). Eigener Prompt in
-    // derselben Bauart — Abendlicht statt Terrasse; der Schluss (Drehung → Umarmung → Kuss)
-    // ist der vom Owner vorgegebene.
-    id: "lingerie-abend",
-    name: "Lingerie — Abend, ganz nah",
-    vorschau: "/Kisslingerie/lingerie-abend.mp4",
-    garment: "look-1783241820256-374a4401",   // Grey sheer embroidered bodysuit — das graue Bustier aus dem Video
-    video:
-      "The man from @image1 and the woman from @image2 stand close together in a softly lit " +
-      "room in the evening, warm lights glowing gently behind them, looking into each " +
-      "other's eyes, chatting and flirting playfully, exchanging smiles and soft laughter. " +
-      "Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and " +
-      "details. The woman turns once so her look is fully visible, then he embraces her and " +
-      "they kiss on the lips, tenderly. " + GESICHTER_UND_MUSIK,
-  },
-  {
-    // Drittes Beispielvideo (Owner 03.08.2026: „ich habe dir noch ein Video reingelegt mit
-    // roter Lingerie"). Gleiche Bauart; das Rot kommt vom FASHN-Anziehen, nicht vom Prompt —
-    // der verlangt wie immer nur „clothes from @image2 exactly 1:1".
-    id: "lingerie-rot",
-    name: "Lingerie — Rot",
-    vorschau: "/Kisslingerie/lingerie-rot.mp4",
-    garment: "look-1783330596917-113182bb",   // Red Satin Lace Set — die rote Waesche aus dem Video
-    video:
-      "The man from @image1 and the woman from @image2 are together on a sunny old-town " +
-      "square with pastel houses behind them, looking into each other's eyes, chatting and " +
-      "flirting playfully, exchanging smiles and soft laughter. " +
-      "Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and " +
-      "details. The woman turns once so her look is fully visible, then he embraces her and " +
-      "they kiss on the lips, tenderly. " + GESICHTER_UND_MUSIK,
-  },
-  {
-    // Viertes Beispielvideo (Owner 03.08.2026, gleich nachgelegt). Gleiche Bauart.
-    id: "lingerie-4",
-    name: "Lingerie — Schwarz, Meerblick",
-    vorschau: "/Kisslingerie/lingerie-4.mp4",
-    garment: "look-1783241581773-2e62b126",   // Black lace lingerie set — das schwarze Set aus dem Video
-    video:
-      "The man from @image1 and the woman from @image2 walk together on a white terrace " +
-      "high above the blue sea, looking into each other's eyes, chatting and flirting " +
-      "playfully, exchanging smiles and soft laughter. " +
-      "Please keep the clothes from @image2 exactly 1:1 — the same cut, colour, fabric and " +
-      "details. The woman turns once so her look is fully visible, then he embraces her and " +
-      "they kiss on the lips, tenderly. " + GESICHTER_UND_MUSIK,
-  },
-];
-
-/** Lingerie-Vorlage per Kennung — dieselbe Mechanik wie kussSzene(). */
-export function kussLingerie(id: unknown): KussLingerieVorlage | null {
-  const s = String(id ?? "").trim();
-  return KUSS_LINGERIE.find(x => x.id === s) ?? null;
-}
 
 export function kussSzeneVideoPrompt(szene: KussSzene): string {
   // Ein woertlich festgehaltener Auftrag gewinnt (Surprise-Kachel, Owner 03.08.2026).

@@ -1,6 +1,7 @@
 "use client";
 
 import { AccountPanel } from "@/components/AccountPanel";
+import AdminZurueck from "@/components/AdminZurueck";
 import { ImageEditor } from "@/components/ImageEditor";
 import { LuxuryBandiLanding } from "@/components/LuxuryBandiLanding";
 import { OutfitBuilder } from "@/components/OutfitBuilder";
@@ -79,23 +80,34 @@ export default function LuxbanditCutTool() {
         ];
 
   return (
-    <main className="min-h-screen bg-[#fbfaf7] pb-20">
+    // `lb-werkbank`: Schaltet am Rechner die 440-px-Handy-Spalte ab (Regel in globals.css).
+    <main className="lb-werkbank min-h-screen bg-[#fbfaf7] pb-20">
       <section className="border-b border-black/10 bg-white">
-        <div className="mx-auto w-full max-w-[1800px] px-6 py-5">
-          <div className="grid gap-4">
-            <div className="flex items-center gap-3 text-3xl font-black text-cobalt md:text-4xl">
-              <div className="grid h-14 w-14 place-items-center rounded-md border border-cobalt/20 bg-cobalt text-xl font-black text-white shadow-soft">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-5 md:px-6">
+          {/* `min-w-0`: Ein Raster gibt seinen Spalten sonst die Breite des breitesten Inhalts
+              („min-content"). Die Kopfzeile war 364 px breit und hat damit die ganze Seite
+              13 px über den Handy-Rand geschoben. */}
+          <div className="grid min-w-0 gap-4">
+            {/* Nur der Betreiber sieht den Pfeil — er kommt sonst aus dem Werkzeug nicht
+                zurück ins Admin-Menü. Für alle anderen ist hier nichts. */}
+            <div className="flex"><AdminZurueck ziel="/admin" /></div>
+            {/* Kopfzeile darf umbrechen: vorher stand Zeichen + Name + Arbeitsbereich in EINER
+                starren Zeile. */}
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-cobalt/20 bg-cobalt text-base font-black text-white shadow-soft md:h-14 md:w-14 md:text-xl">
                 LC
               </div>
-              LuxbanditCut
+              {/* Der Name stand vorher ZWEIMAL untereinander — einmal hier, einmal als
+                  Überschrift darunter. Auf dem Handy kostete das den halben ersten Bildschirm.
+                  Jetzt trägt die Überschrift den Namen, und zwar nur einmal. */}
+              <h1 className="min-w-0 text-2xl font-black leading-none text-cobalt md:text-4xl">LuxbanditCut</h1>
               {workspace ? (
-                <span className="rounded-full border border-cobalt/20 bg-cobalt/10 px-3 py-1 text-xs font-black text-cobalt">
+                <span className="min-w-0 break-words rounded-full border border-cobalt/20 bg-cobalt/10 px-2.5 py-1 text-[11px] font-black text-cobalt md:px-3 md:text-xs">
                   Workspace: {workspace.label}
                 </span>
               ) : null}
             </div>
-            <h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">LuxbanditCut</h1>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
+            <p className="max-w-3xl text-sm font-semibold leading-6 text-ink/65">
               Extract apparel from real photos and turn it into clean product images ready for your listings.
             </p>
             <AccountPanel />
@@ -171,20 +183,20 @@ export default function LuxbanditCutTool() {
               </div>
             </div>
             {activeTool === "extractor" ? (
-            <div className="flex items-center gap-4 rounded-md border border-black/10 bg-white p-4 shadow-soft">
-              <img src="/shopcut-logo.svg" alt="Apparel Extractor logo" className="h-20 w-36 rounded-md border border-black/10 bg-white object-cover shadow-soft" />
-              <div>
-                <h2 className="text-2xl font-black text-ink md:text-3xl">Apparel Extractor</h2>
+            <div className="flex items-center gap-3 rounded-md border border-black/10 bg-white p-3 shadow-soft md:gap-4 md:p-4">
+              <img src="/shopcut-logo.svg" alt="Apparel Extractor logo" className="h-14 w-24 shrink-0 rounded-md border border-black/10 bg-white object-cover shadow-soft md:h-20 md:w-36" />
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-ink md:text-3xl">Apparel Extractor</h2>
                 <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
                   Extract apparel from source photos, prepare Design Ready assets, then use them in LuxbanditFit.
                 </p>
               </div>
             </div>
             ) : (
-            <div className="flex items-center gap-4 rounded-md border border-black/10 bg-white p-4 shadow-soft">
-              <img src="/tryout-logo%202.svg" alt="LuxbanditFit logo" className="h-20 w-36 rounded-md border border-black/10 bg-white object-cover shadow-soft" />
-              <div>
-                <h2 className="text-2xl font-black text-ink md:text-3xl">LuxbanditFit</h2>
+            <div className="flex items-center gap-3 rounded-md border border-black/10 bg-white p-3 shadow-soft md:gap-4 md:p-4">
+              <img src="/tryout-logo%202.svg" alt="LuxbanditFit logo" className="h-14 w-24 shrink-0 rounded-md border border-black/10 bg-white object-cover shadow-soft md:h-20 md:w-36" />
+              <div className="min-w-0">
+                <h2 className="text-xl font-black text-ink md:text-3xl">LuxbanditFit</h2>
                 <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
                   Combine saved apparel assets from different photos, select one model, and create a new fashion design image.
                 </p>
@@ -210,7 +222,7 @@ export default function LuxbanditCutTool() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1800px] px-6 py-5">
+      <section className="mx-auto w-full max-w-[1800px] min-w-0 px-4 py-5 md:px-6">
         {activeTool === "extractor" ? <ImageEditor viewName="Apparel" onContinueToLuxbanditFit={() => setActiveTool("outfit")} /> : <OutfitBuilder />}
       </section>
     </main>

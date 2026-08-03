@@ -3,7 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 // /admin is NOT here: it gates itself with the admin PIN (client form + every
 // admin API verifies x-try-look-admin-pin server-side). HTTP Basic Auth broke in
 // embedded/in-app browsers (no login dialog → "Authentication required" wall).
-const PROTECTED_PREFIXES = ["/tools"];
+//
+// /admin/tools IS here — and is the one exception to the line above. These are the
+// LuxbanditCut/LuxbanditFit workbenches: /tools/… has always been behind Basic Auth,
+// but the /admin/… twin was a bare re-export with no gate at all, so the same editor
+// was reachable by anyone who knew the URL. The in-app-browser problem does not apply
+// here: this is an owner surface opened from the admin menu in a normal browser.
+const PROTECTED_PREFIXES = ["/tools", "/admin/tools"];
 
 function requiresAuth(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
@@ -56,5 +62,7 @@ export const config = {
   matcher: [
     "/tools",
     "/tools/:path*",
+    "/admin/tools",
+    "/admin/tools/:path*",
   ],
 };

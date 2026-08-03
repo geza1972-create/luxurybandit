@@ -527,6 +527,10 @@ svg {
    sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
 .lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
 .lb-karte [data-aufmedien="1"] svg { color: #fff !important; stroke: #fff !important; fill: #fff !important; opacity: 1; }
+/* Die Prozentzahl im Render-Fenster der Karte bleibt GOLD. Sie braucht eine eigene Zeile,
+   weil `[data-aufmedien="1"] *` eine Zeile darueber alles auf Weiss zieht — dieselbe Falle
+   wie bei lb-karte-ja/-nein, und aus demselben Grund hier geloest statt per Inline-Farbe. */
+.lb-karte [data-aufmedien="1"] .lb-karte-prozent { color: #f6cf51 !important; }
 /* DER KNOPF IN DER KARTE — GOLD, NICHT GRUEN (Owner 31.07.2026: „grüne Buttons bitte nicht,
    bleib in CI").
    Er war WhatsApp-Gruen (#25D366), weil hier einmal ein WhatsApp-Knopf stand. Der ist seit

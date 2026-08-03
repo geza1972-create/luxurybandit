@@ -384,6 +384,14 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [editorSize, setEditorSize] = useState<EditorSize>({ width: CANVAS_SIZE, height: CANVAS_SIZE });
+  // Wie breit die Zeichenfläche ANGEZEIGT wird. Früher fest 820 px — auf dem Handy stand
+  // damit ein 820-px-Bild in einem 291-px-Fenster: man sah eine Ecke und musste in zwei
+  // Richtungen schieben. Jetzt wird das Fenster gemessen und das Bild passt sich an; auf
+  // dem Rechner bleibt 820 die Obergrenze, dort ändert sich also nichts.
+  // Die Mal-Ebene behält ihre volle Auflösung (editorSize) — nur die ANZEIGE schrumpft,
+  // und alle Zeiger-Rechnungen gehen über getBoundingClientRect, also verhältnismäßig.
+  const editorViewportRef = useRef<HTMLDivElement | null>(null);
+  const [editorViewportWidth, setEditorViewportWidth] = useState(CANVAS_SIZE);
   const [toolMode, setToolMode] = useState<ToolMode>("keep");
   const [isPrecisionMode] = useState(true);
   const [background, setBackground] = useState<BackgroundValue>("white");
@@ -541,6 +549,22 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
   useEffect(() => {
     editorSizeRef.current = editorSize;
   }, [editorSize]);
+
+  // Breite des Zeichenfenster-Kastens mitlesen (Drehen des Handys, Aufklappen von Leisten).
+  useEffect(() => {
+    const el = editorViewportRef.current;
+    if (!el) return;
+    const messen = () => {
+      const stil = getComputedStyle(el);
+      const innen = el.clientWidth - (parseFloat(stil.paddingLeft) || 0) - (parseFloat(stil.paddingRight) || 0);
+      setEditorViewportWidth(Math.max(160, Math.round(innen)));
+    };
+    messen();
+    if (typeof ResizeObserver === "undefined") return;
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(el);
+    return () => beobachter.disconnect();
+  }, []);
 
   const resizeCanvas = (canvas: HTMLCanvasElement, size: EditorSize) => {
     if (canvas.width !== size.width) canvas.width = size.width;
@@ -2073,6 +2097,18 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
 
   const activeRetouchProviderLabel = aiRetouchProvider === "fashn" && aiRetouchMode === "preserve" ? "FASHN" : "OpenAI";
 
+  // Anzeigegröße der Zeichenfläche: so groß wie das Fenster hergibt, höchstens 820.
+  // Die lange Seite bekommt das Maß, die kurze Seite folgt dem Seitenverhältnis des Bildes —
+  // ein Hochformat wird also schmaler statt verzerrt.
+  const editorDisplayBase = Math.min(CANVAS_SIZE, editorViewportWidth);
+  const editorIsLandscape = editorSize.width >= editorSize.height;
+  const editorBoxWidth = editorIsLandscape
+    ? editorDisplayBase
+    : Math.round(editorDisplayBase * (editorSize.width / Math.max(editorSize.height, 1)));
+  const editorBoxHeight = editorIsLandscape
+    ? Math.round(editorDisplayBase * (editorSize.height / Math.max(editorSize.width, 1)))
+    : editorDisplayBase;
+
   return (
     <div className="grid gap-4">
       <div ref={stepOneRef} className="flex flex-col gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
@@ -2327,14 +2363,14 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
               />
             </div>
           </div>
-          <div className="max-h-[86vh] overflow-auto rounded-md border border-black/15 bg-panel p-3">
+          <div ref={editorViewportRef} className="max-h-[86vh] overflow-auto rounded-md border border-black/15 bg-panel p-2 sm:p-3">
           <div
             className="relative mx-auto"
             style={{
-              width: Math.round((editorSize.width >= editorSize.height ? 820 : Math.round(820 * (editorSize.width / editorSize.height))) * zoom),
-              minWidth: Math.round((editorSize.width >= editorSize.height ? 820 : Math.round(820 * (editorSize.width / editorSize.height))) * zoom),
-              height: Math.round((editorSize.width >= editorSize.height ? 820 * (editorSize.height / editorSize.width) : 820) * zoom),
-              minHeight: Math.round((editorSize.width >= editorSize.height ? 820 * (editorSize.height / editorSize.width) : 820) * zoom)
+              width: Math.round(editorBoxWidth * zoom),
+              minWidth: Math.round(editorBoxWidth * zoom),
+              height: Math.round(editorBoxHeight * zoom),
+              minHeight: Math.round(editorBoxHeight * zoom)
             }}
           >
           <div

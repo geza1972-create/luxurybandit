@@ -1,12 +1,21 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import CreatorProfilePage from "@/components/CreatorProfilePage";
 
-// Lazy-load the LuxbanditCut workspace.
-const LuxbanditWorkspace = dynamic(() => import("@/components/LuxbanditCutTool"), { ssr: false });
+// DIE WERKBANK HAT NUR NOCH EINE TUER.
+//
+// Frueher rendete dieser Pfad die LuxbanditCut-Werkbank direkt — und weil es ein
+// Auffang-Pfad ist, tat er das fuer JEDE zweiteilige Adresse: /gerry/extractor genauso
+// wie /foo/bar. Beides kam mit Status 200 und ganz ohne Anmeldung durch, waehrend
+// /tools/… laengst hinter der Passwortabfrage lag. Die teuren Knoepfe der Werkbank
+// waren damit fuer jeden erreichbar, der irgendeine Adresse riet.
+//
+// Jetzt leitet dieser Pfad auf die geschuetzte Adresse um. Alte Verweise funktionieren
+// weiter, sie landen nur an der Tuer statt daneben. Die Werkbank braucht ohnehin keinen
+// Namen aus der Adresse — sie bekam hier nie einen mit.
+const WERKBANK = "/admin/tools/luxbanditcut";
 
 export default function CreatorOrWorkspace() {
   const params = useParams();
@@ -20,7 +29,8 @@ export default function CreatorOrWorkspace() {
   // page only when no curator matches (e.g. a Supabase-only creator).
   const [resolved, setResolved] = useState(false);
   useEffect(() => {
-    if (hasProject || !creatorSlug) { setResolved(true); return; }
+    if (hasProject) { router.replace(WERKBANK); return; }
+    if (!creatorSlug) { setResolved(true); return; }
     let active = true;
     fetch(`/api/curator?bySlug=${encodeURIComponent(creatorSlug)}`)
       .then(r => r.ok ? r.json() : null)
@@ -33,11 +43,9 @@ export default function CreatorOrWorkspace() {
     return () => { active = false; };
   }, [creatorSlug, hasProject, router]);
 
-  // /gerry/extractor, /gerry/tool/... → LuxbanditCut workspace
-  if (hasProject) return <LuxbanditWorkspace />;
-
-  // Resolving (or redirecting) → spinner; once resolved with no curator, legacy page.
-  if (!resolved) {
+  // Resolving (or redirecting — auch die Werkbank oben) → spinner; once resolved with no
+  // curator, legacy page.
+  if (hasProject || !resolved) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/20 border-t-black" />

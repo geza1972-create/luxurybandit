@@ -1,6 +1,12 @@
 .DS_Store
 .env*.local
 .env.local.save
+# Auch Sicherungen mit Suffix: `.env*.local` greift NICHT bei `.env.local.bak-024453`,
+# weil der Stern nicht ueber den Punkt hinaus passt. Genau so eine Datei lag am
+# 03.08.2026 ungeschuetzt im Verzeichnis — ein `git add .` haette alle Schluessel
+# veroeffentlicht (Supabase-Service-Key, Stripe, OpenAI).
+.env.local.*
+.env.*.bak*
 .next/
 node_modules/
 outputs/

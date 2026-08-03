@@ -151,7 +151,17 @@ export async function GET(request: Request) {
     const kissGenId = String(s.metadata.genId ?? "").trim();
     if (paid && kissGenId) {
       try {
-        await bezahltVermerken(kissGenId, String(s.customerEmail ?? ""), String(s.metadata.kind ?? ""));
+        /**
+         * DIE ADRESSE AUS DEM TRICHTER SCHLAEGT DIE AUS DER KASSE (Owner 03.08.2026: „hier
+         * kann ein Fehler passieren").
+         *
+         * Seit die Kasse mit `customer_email` vorbelegt und gesperrt wird, sind beide fast
+         * immer gleich. Fast: Alt-Sitzungen und der Abo-Weg tragen die Sperre nicht. Und wenn
+         * sie auseinandergehen, ist die Trichter-Adresse die richtige — sie ist die, unter
+         * der sein Guthaben liegt und unter der die Galerie sucht.
+         */
+        const kaeufer = (String(s.metadata.email ?? "").trim() || String(s.customerEmail ?? "").trim()).toLowerCase();
+        await bezahltVermerken(kissGenId, kaeufer, String(s.metadata.kind ?? ""));
         lieferungAnstossen(new URL(request.url).origin, kissGenId);
       } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
     }

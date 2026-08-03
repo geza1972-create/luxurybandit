@@ -3,6 +3,7 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
+import { Lock } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
 import BeispielGalerie from "@/components/BeispielGalerie";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
@@ -75,6 +76,30 @@ export default async function KissThemePage({ searchParams }: {
             {/* Hero — in der Sprache des Besuchers (Owner 30.07.2026, Punkt 4). Das erste,
                 was ein Anzeigenklick sieht; Englisch kostete hier Klicks. */}
             <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+
+            {/* DREI ZEILEN, BEVOR ER SCROLLT (Owner 03.08.2026: „ich will das als Kiss
+                Grußkarte machen … dann muss stehen unter dem Titel kurz wie das
+                funktioniert").
+                Vorher stand hier NICHTS — der Vorspann war im Juli entfernt worden, weil er
+                eine halbe Handy-Hoehe kostete und nichts erklaerte. Diese drei Zeilen kosten
+                weniger und erklaeren alles: hochladen, erzeugen, verschicken.
+                Die vierte Zeile ist die wichtigste. Niemand laedt ein Foto von sich UND
+                seiner Partnerin hoch, ohne zu wissen, wer es sieht — und die Antwort ist gut,
+                also gehoert sie nach oben und nicht ins Kleingedruckte. */}
+            <ol className="mt-3 space-y-1.5">
+              {T.wieGeht.map((zeile: string, i: number) => (
+                <li key={i} className="flex gap-2.5 text-[13.5px] font-semibold leading-snug text-white/75">
+                  <span className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[11px] font-black text-[#f6cf51]">
+                    {i + 1}
+                  </span>
+                  {zeile}
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-[#f6cf51]">
+              <Lock className="mt-[2px] h-3.5 w-3.5 shrink-0" />
+              {T.wieGehtPrivat}
+            </p>
             {/* Kein Vorspann und keine Ueberzeile mehr (Owner 30.07.2026: „das kann raus" — auf die Frage, ob der
                 Absatz „Pick her, upload your photo …" gemeint ist: „ja, Pick her, …").
                 Er kostete auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt.
@@ -106,6 +131,34 @@ export default async function KissThemePage({ searchParams }: {
               </div>
             )}
 
+            {/* WARUM MAN EINEN SCHICKT (Owner 03.08.2026: „unten soll dann stehn warum man
+                das machen sollte. Es zeigt Liebe, es zeigt etwas schönes … du vermisst
+                jemandem, das ist ein Liebesbeweis").
+                ANLAESSE, KEINE WARNUNGEN — vom Owner am 03.08. ausdruecklich so entschieden.
+                Ein „bitte nicht" an dieser Stelle bremst genau die Stimmung, aus der heraus
+                jemand einen Kuss verschickt; die Pflichten traegt der Nutzungshinweis im
+                Trichter darueber.
+                Die Zeilen stehen NACH den Beispielen: Erst sieht er, was dabei herauskommt,
+                dann liest er, warum es ihn angeht. Umgekehrt waere es eine Predigt vor dem
+                Beweis. */}
+            <div className="mt-12">
+              <SectionTitle>{T.anlaesseTitel}</SectionTitle>
+              <ul className="mt-3 space-y-2">
+                {T.anlaesse.map((zeile: string, i: number) => (
+                  <li key={i} className="flex gap-2.5 text-[14px] font-semibold leading-snug text-white/75">
+                    <span className="mt-[3px] text-[13px] leading-none text-[#f6cf51]">❤</span>
+                    {zeile}
+                  </li>
+                ))}
+              </ul>
+              {/* Der Schlusssatz ist der Satz des Owners, nur zugespitzt: „das ist ein
+                  Liebesbeweis". Er steht abgesetzt, weil er das Argument traegt — alles
+                  darueber sind nur die Gelegenheiten dazu. */}
+              <p className="mt-4 border-l-2 border-[#f6cf51]/50 pl-3 text-[15px] font-black leading-snug text-white">
+                {T.anlaesseSchluss}
+              </p>
+            </div>
+
             {/* EIGENER WORTLAUT, WEIL DER ALTE NICHT MEHR STIMMT (Owner 31.07.2026: „das
                 passt nicht").
                 Dort stand „Videos mit ihr — und du mit im Bild". Es gibt keine „ihr" mehr:
@@ -136,9 +189,8 @@ export default async function KissThemePage({ searchParams }: {
                 <Lead>
                   You are in the video, not just watching one. Add a photo of yourself, pick one of
                   our AI models or upload a screenshot of any star, and the kiss video AI generator
-                  renders the two of you sharing one tender kiss. The first picture is free, so you
-                  see the result before you decide anything. Straight in the browser — nothing to
-                  install.
+                  renders the two of you sharing one tender kiss. Straight in the browser — nothing
+                  to install.
                 </Lead>
               </div>
               <div>

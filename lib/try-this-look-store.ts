@@ -1588,6 +1588,15 @@ export type KissLogEntry = {
    * dort kamen sie her.
    */
   theme?: string;
+  /**
+   * AN WEN GEHT DER GRUSS (Owner 03.08.2026: „schreib auch den Namen an wem du es senden
+   * willst … dann erscheint in den Texten Anna, I love you").
+   *
+   * Er reist mit dem Eintrag, weil die Karte erst beim EMPFAENGER ihre Wirkung hat: Ohne ihn
+   * stuende auf der geteilten Seite wieder „I love you" statt „Anna, I love you" — die
+   * Personalisierung waere genau dort weg, wo sie gemeint ist.
+   */
+  empfaenger?: string;
 
   /**
    * DER BEZAHLTE AUFTRAG — damit ihn der SERVER zu Ende bringen kann (Owner 30.07.2026:

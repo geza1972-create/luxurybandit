@@ -100,11 +100,10 @@ export const TOPUP_CENTS = 499;                     // 4,99 € Konto-Aufladung 
 // zweite Stufe daneben — wer mehr laedt, hat laenger Ruhe. Die Kasse akzeptiert NUR diese
 // beiden Werte (Whitelist in kiss-video-checkout), egal was ein Browser schickt.
 export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung (grosse Stufe)
-// DAS LINGERIE-VIDEO (Owner 03.08.2026: „das kostet 3,99 und dafür musst du die Frau mit
-// FASHN in einer unserer Lingerie-Bilder anziehen und dann in Video umwandeln"). Teurer als
-// das normale Video ({once}), weil ein FASHN-Lauf (Anziehen) VOR dem Pixverse-Lauf steht —
-// zwei bezahlte Erzeugungen statt einer. Abgebucht wird wie immer aus dem Guthaben.
-export const LINGERIE_CENTS = 399;                  // 3,99 € — Kuss-Video mit Lingerie-Look
+// DAS LINGERIE-VIDEO IST RAUS (Owner 03.08.2026: „das mit der Lingerie ist eh nicht allzu
+// seriös" — „wir machen das raus"). Hier stand LINGERIE_CENTS = 399: der zweite Videopreis,
+// der einen FASHN-Lauf vor dem Pixverse-Lauf bezahlte. Mit dem Produkt fallen der Aufpreis,
+// der Waesche-Schritt und die zweite Kachelreihe weg — ein Kuss-Video kostet {once}, fertig.
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -139,7 +138,6 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
-    .replace(/\{lingerie\}/g, eur(LINGERIE_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }
