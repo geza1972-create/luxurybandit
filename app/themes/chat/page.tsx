@@ -38,14 +38,22 @@ export default async function ChatThemePage({ searchParams }: {
     kicker: "LuxuryBandit · Chat",
     h1a: "Chat with an", h1b: "AI girl",
     lead: "Pick one of our models — or upload a photo of the woman you have in mind — and write with her every day. Write in German, English, Romanian, Spanish, French, Italian, Polish — she answers in whatever language you use, and switches the moment you do.",
-    fine: "Chatting is free. The subscription is for the pictures and videos: {price} a month gives you {videos} generations across ALL topics together. Every one beyond that is {extra}. She is an AI character, and she says so herself every so often.",
-    codeNote: `Your code ${code.toUpperCase()} is active: chatting is free anyway — when you want the videos, you pay just {price} instead of {list}, for as long as you stay.`,
+    // NEU 03.08.2026 (Owner: „er kauft ein Model, ein Chat"): Hier stand das Abo fuer
+    // Bilder und Videos — beides ist heute aus dem Chat entfernt. Ein Werbesatz, der ein
+    // Produkt beschreibt, das man nicht mehr kaufen kann, kostet mehr als er bringt.
+    fine: "The first messages are free. Then you pick how long you want to keep writing with her — one payment, no subscription, nothing to cancel.",
+    // Auch der Gutschein-Satz sprach von Videos und einem Dauerpreis „solange du bleibst".
+    // Ohne Abo gibt es kein Bleiben — es gibt eine Laufzeit, die er selbst waehlt.
+    codeNote: `Your code ${code.toUpperCase()} is active — your discount is applied at checkout.`,
     s1h: "Any woman, not just ours",
     s1p: "Our catalogue has 46 models you can start with. If none of them is the one you picture, upload a single photo and give her a name — from that moment she is your AI girl, and she is the one who answers you.",
     s2h: "She speaks your language",
     s2p: "Nearly every language works: start in German and she writes German, switch to English mid-conversation and she follows you. No settings, no language picker — just write the way you normally would.",
-    s3h: "She wears what you choose",
-    s3p: "Every dress, outfit and lingerie set in our wardrobe can go on her: pick one, and a minute later you have the photo of her in it. They come out of your 25 a month — the same pot you use for videos in every other topic.",
+    s3h: "She shows you her pictures",
+    // Hier stand „She wears what you choose" mit dem Kleiderschrank und den 25 Bildern im
+    // Monat. Das Anziehen ist raus (03.08.2026); was bleibt, ist ihr eigener Bestand —
+    // der kostet uns nichts und ist genau der Grund, warum er weiterschreibt.
+    s3p: "Ask her to show you another one and she does — her own photos, as often as you like, at no extra cost. The pictures are hers; the conversation is what you pay for.",
     s4h: "Flirty, but honest",
     s4p: "She flirts, she asks about your day, she teases. What she never does is claim she missed you or that she has feelings — and every so often she reminds you in the chat that she is an AI. That is deliberate: nobody should fall for something that cannot love them back.",
   }, L);

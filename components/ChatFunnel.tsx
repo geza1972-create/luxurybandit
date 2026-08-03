@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
-import { renewNote, fillPrices, INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
+import { fillPrices, CHAT_STUFEN, eur } from "@/lib/pricing";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
 import { CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
@@ -35,10 +35,22 @@ type Msg = { role: "user" | "assistant" | "notice"; content: string };
 // Wetter-Seite: genug fuer eine echte Unterhaltung, und der Vielschreiber sieht das Angebot.
 const DAILY_MSGS = 10;
 const DAY_KEY = "lb_chat_day";
+/**
+ * WIE VIELE NACHRICHTEN ER UMSONST BEKOMMT, bevor der Waehler kommt.
+ *
+ * Vorher war der Chat GRATIS (`const wall = false` — „Chat kostet nichts"), und bezahlt wurde
+ * nur, was er sich anziehen liess. Mit dem Anziehen faellt genau die Kasse weg; ohne eine neue
+ * gaebe es nach dem Umbau gar keinen Verkauf mehr (Owner 03.08.2026: „er kauft ein Model, ein
+ * Chat").
+ *
+ * Sieben, weil er sie erst mal reden hoeren muss. Ein Waehler auf der ersten Nachricht verkauft
+ * eine Katze im Sack; nach sieben Zuegen weiss er, ob ihm gefaellt, wie sie schreibt.
+ */
+const FREI_MSGS = 7;
+const GESAMT_KEY = "lb_chat_ges";
 // Zahl kommt aus der Preistabelle, nirgends abgeschrieben (Owner 29.07.2026: „überall das
 // geändert wird aus der Preistabelle"). Vorher stand sie hier UND in acht Sprachtabellen —
 // und auf Italienisch blieb sie bei 25 stehen.
-const LOOKS_INCLUDED = INCLUDED_VIDEOS_PER_MONTH;
 const USED_LOOKS_KEY = "lb_chat_looks";
 const PAID_KEY = "lb_chat_abo";
 const REMIND_EVERY = 15;       // KI-Hinweis im Verlauf
@@ -121,23 +133,44 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [looks, setLooks] = useState<Look[]>([]);
-  const [lookIdx, setLookIdx] = useState(0);
-  const [dressed, setDressed] = useState("");
-  const [dressBusy, setDressBusy] = useState(false);
-  const [vidUrl, setVidUrl] = useState("");        // Dreh-Video zum angezogenen Foto
-  const [vidBusy, setVidBusy] = useState(false);
-  const [musicOn, setMusicOn] = useState(false);   // Musik erst auf Tippen (Autoplay ist blockiert)
   const musicRef = useRef<HTMLAudioElement>(null);
   const vidRef = useRef<HTMLVideoElement>(null);
   const [usedLooks, setUsedLooks] = useState(0);
   const [paid, setPaid] = useState(false);
+  /**
+   * WELCHE LAUFZEIT ER GEWAEHLT HAT. Vorbelegt sind die 3 Monate — die mittlere Stufe, damit
+   * die Wahl nicht von der billigsten aus nach oben verhandelt werden muss.
+   */
+  const [stufe, setStufe] = useState<number>(3);
+  const gewaehlt = CHAT_STUFEN.find(x => x.monate === stufe) ?? CHAT_STUFEN[0];
+
+  /**
+   * DIE WOERTER UM DIE ZAHL HERUM SIND EBENFALLS SPRACHE — dieselbe Falle wie auf der
+   * Themenseite am selben Tag, wo „ab €24.50/Monat" auf einer englischen Seite stand. Eine
+   * Zahl aus der Preistabelle nuetzt nichts, wenn das Wort daneben aus der falschen Sprache kommt.
+   */
+  const P = (() => {
+    const T: Record<string, { monat: string; monate: string; jahr: string; laeuft: string }> = {
+      de: { monat: "Monat", monate: "Monate", jahr: "1 Jahr", laeuft: "Laeuft nach {n} ab — kein Abo, nichts kuendigen." },
+      en: { monat: "month", monate: "months", jahr: "1 year", laeuft: "Ends after {n} — no subscription, nothing to cancel." },
+      ro: { monat: "lună", monate: "luni", jahr: "1 an", laeuft: "Se încheie după {n} — fără abonament." },
+      es: { monat: "mes", monate: "meses", jahr: "1 año", laeuft: "Termina tras {n} — sin suscripción." },
+      fr: { monat: "mois", monate: "mois", jahr: "1 an", laeuft: "Se termine après {n} — sans abonnement." },
+      pt: { monat: "mês", monate: "meses", jahr: "1 ano", laeuft: "Termina após {n} — sem subscrição." },
+      it: { monat: "mese", monate: "mesi", jahr: "1 anno", laeuft: "Finisce dopo {n} — nessun abbonamento." },
+    };
+    const t = T[lang] ?? T.en;
+    const dauer = (m: number) => (m === 12 ? t.jahr : `${m} ${m === 1 ? t.monat : t.monate}`);
+    return { dauer, laeuft: (m: number) => t.laeuft.replace("{n}", dauer(m)) };
+  })();
+
   const [payBusy, setPayBusy] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState("");
   const [chatLang, setChatLang] = useState("en");   // Startsprache ihrer Antworten
   const [today, setToday] = useState(0);          // heute schon geschrieben
+  const [gesamt, setGesamt] = useState(0);        // insgesamt geschrieben (entscheidet ueber die Wand)
   const modelFileRef = useRef<HTMLInputElement>(null);
   const swipeRef = useRef(0);
   const swipedRef = useRef(false);
@@ -158,10 +191,8 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
       // NUR der Kleiderschrank (`wardrobe`): der restliche Katalog sind Partner-Produkte
       // — Schuhe, Mäntel, Designerkleider —, die nie zum Anziehen freigegeben wurden.
-      const ls: Look[] = (Array.isArray(st?.looks) ? st.looks : [])
-        .filter((l: { id: string; imageUrl?: string; wardrobe?: boolean }) => l.wardrobe === true && !!l.imageUrl && (!ok || ok.has(l.id)))
-        .map((l: Look) => ({ id: l.id, name: l.name, imageUrl: l.imageUrl }));
-      setLooks(ls);
+      /* Hier wurde der Kleiderschrank gefiltert und in `looks` gelegt — die Leiste, aus der er
+         ein Kleidungsstueck waehlte. Ohne Anziehen waehlt niemand mehr etwas aus. */
     });
     try {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
@@ -177,6 +208,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       const raw = JSON.parse(localStorage.getItem(DAY_KEY) || "{}");
       const stamp = new Date().toISOString().slice(0, 10);
       setToday(raw?.day === stamp ? Number(raw.n) || 0 : 0);
+      try { setGesamt(Number(localStorage.getItem(GESAMT_KEY)) || 0); } catch { /**/ }
       setUsedLooks(Number(localStorage.getItem(USED_LOOKS_KEY) || "0") || 0);
     } catch { /**/ }
   }, []);
@@ -185,25 +217,19 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const herName = useCustom ? customName.trim() : (picked?.name?.split(" ")[0] ?? "");
   const herPhoto = useCustom ? customPhoto : (picked?.photoUrl ?? "");
   const chosen = !!herPhoto;
-  const wall = false;   // Chat kostet nichts
+  /**
+   * DIE WAND: nach `FREI_MSGS` Zuegen waehlt er eine Laufzeit — es sei denn, er hat schon
+   * bezahlt oder ist Personal. Stand vorher hart auf `false`.
+   */
+  const wall = !isStaff && !paid && gesamt >= FREI_MSGS;
   const dayFull = !isStaff && today >= DAILY_MSGS;
-  const looksLeft = Math.max(0, LOOKS_INCLUDED - usedLooks);
 
   // KURATIERTE VIDEOS für den „ich zeige mich"-Moment ([[SHOW_LINGERIE]]). Ohne sie
   // verspricht sie ein Bild und liefert nichts (Owner 28.07.2026). Gleiche Quelle wie im
   // Wetter-Chat; Public = frei abspielbar, Private = 🔒 → Abo.
-  const [teaseVideos, setTeaseVideos] = useState<{ id: string; locked: boolean; posterUrl: string; videoUrl: string }[]>([]);
-  useEffect(() => {
-    const cid = useCustom ? "" : (picked?.id ?? "");
-    if (!cid) { setTeaseVideos([]); return; }
-    let ok = true;
-    fetch(`/api/try-this-look?modelVideos=${encodeURIComponent(cid)}&lingerie=1`)
-      .then(r => r.json())
-      .then(d => { if (ok && Array.isArray(d.videos)) setTeaseVideos(d.videos); })
-      .catch(() => {});
-    return () => { ok = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picked?.id, useCustom]);
+  /* HIER LAG DER ABRUF DER LINGERIE-VIDEOS (`?modelVideos=…&lingerie=1`). Er lief bei JEDEM
+     Chat-Aufruf, auch wenn nie ein Video kam — jetzt sowieso, weil die KI nichts mehr anbietet.
+     Ein Netzaufruf fuer Daten, die niemand sieht, ist kein harmloser Rest. */
   // BILDER VON „FREUNDINNEN" — Nachschub für den Gratis-Chat, alles längst vorhanden
   // (keine neue Generierung). Zweite Runde zeigt andere Bilder (Owner 28.07.2026).
   const [friendPics, setFriendPics] = useState<{ id: string; url: string }[]>([]);
@@ -287,6 +313,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       const n = today + 1;
       localStorage.setItem(DAY_KEY, JSON.stringify({ day: stamp, n }));
       setToday(n);
+      setGesamt(g => { const next = g + 1; try { localStorage.setItem(GESAMT_KEY, String(next)); } catch { /**/ } return next; });
     } catch { /**/ }
     const next: Msg[] = [...msgs, { role: "user", content: text }];
     setMsgs(next); if (!preset) setDraft(""); setSending(true); scrollFeed();
@@ -356,11 +383,16 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const unlock = async (forLook = false) => {
     if (payBusy) return;
     setPayBusy(true); setStatus("");
-    const endpoint = forLook && paid ? "/api/chat-look-checkout" : "/api/chat-abo-checkout";
+    /**
+     * EINE KASSE STATT ZWEI (Owner 03.08.2026). Vorher: `chat-look-checkout` fuer den
+     * naechsten Look, `chat-abo-checkout` fuer das Monatsabo. Beides ist weg — es gibt nur
+     * noch den Zugang, und die gewaehlte Laufzeit faehrt mit.
+     */
+    const endpoint = "/api/chat-zugang-checkout";
     try {
       const start = await fetch(endpoint, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, returnTo: window.location.pathname + window.location.search }),
+        body: JSON.stringify({ code, monate: stufe, returnTo: window.location.pathname + window.location.search }),
       }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
@@ -372,7 +404,6 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           try { popup.close(); } catch { /**/ }
           if (!forLook || !paid) { setPaid(true); try { localStorage.setItem(PAID_KEY, "1"); } catch { /**/ } }
           setPayBusy(false);
-          if (forLook) void dressHer(true);
           return;
         }
         if (popup.closed && i > 2) break;
@@ -385,99 +416,14 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   };
 
   // Anziehen: das gewählte Teil auf IHR Foto (unsere Try-on-Pipeline, kein Video).
-  const dressHer = async (afterPay = false) => {
-    const look = looks[lookIdx];
-    if (!herPhoto || !look?.imageUrl || dressBusy) return;
-    if (!isStaff && !paid) { void unlock(false); return; }                 // ohne Abo geht gar nichts
-    if (!isStaff && paid && looksLeft === 0 && !afterPay) { void unlock(true); return; }  // 6. Look kostet extra
-    setDressBusy(true); setStatus(u.dressing); setDressed("");
-    try {
-      const toFile = async (src: string, name: string) => {
-        const blob = await fetch(src).then(r => r.blob());
-        return new File([blob], name, { type: blob.type || "image/jpeg" });
-      };
-      const fd = new FormData();
-      fd.append("modelImage", await toFile(herPhoto, "person.jpg"));
-      fd.append("image", await toFile(look.imageUrl, "garment.jpg"));
-      fd.append("lookId", look.id);
-      fd.append("mode", "fashion-model");
-      fd.append("aspectRatio", "9:16");
-      fd.append("prompt", tryonPrompt({ garment: look.name || "" }));
-      const d = await fetch("/api/generate-fashn", {
-        method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
-      }).then(r => r.json());
-      const img = d?.image || d?.imageUrl || "";
-      if (!img) { setStatus(d?.error || "That photo didn't work — try another one."); setDressBusy(false); return; }
-      setDressed(img); setStatus("");
-      setUsedLooks(n => { const v = n + 1; try { localStorage.setItem(USED_LOOKS_KEY, String(v)); } catch { /**/ } return v; });
-      // ZWEITER SCHRITT — das Video: sie steht an einem schönen Urlaubsort, sagt „Hello
-      // darling, how are you?" und dreht sich einmal ganz herum (Owner 28.07.2026).
-      // Dasselbe Muster wie im Surprise-Funnel: EIN Referenzfoto auf beide Slots, der
-      // Prompt nennt nur @person — zwei Referenzen lassen Pixverse Gesichter erfinden.
-      await makeTurnVideo(img, look.id);
-    } catch { setStatus("Network error."); }
-    setDressBusy(false);
-  };
-
-
-  // Kopie fuer „My Gallery" — laeuft im Hintergrund; scheitert sie, bleibt das Video im
-  // Fenster trotzdem sichtbar.
-  const saveToGallery = async (videoUrl: string, lookId: string) => {
-    try {
-      let device = "";
-      try {
-        device = localStorage.getItem("lb_visitor") ?? "";
-        if (!device) { device = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", device); }
-      } catch { /**/ }
-      /**
-       * DIE ANMELDUNG LIEGT NICHT UNTER `lb_auth` (Owner 31.07.2026: „das Video in My Gallery
-       * bleibt" — die Frage, woran es haengt).
-       *
-       * Hier stand `localStorage.getItem("lb_auth")`. Diesen Schluessel gibt es im ganzen
-       * Projekt nicht; die Sitzung liegt unter `luxurybandit-auth-session`. Die Abfrage lief
-       * also immer ins Leere, `email` blieb leer, und jedes Video hing NUR am Geraet — auch
-       * bei angemeldeten Nutzern. Auf einem zweiten Geraet oder nach dem Loeschen der
-       * Browserdaten war es unauffindbar.
-       *
-       * Ein stiller Fehler dieser Art faellt nie auf: Es sieht alles richtig aus, solange man
-       * dasselbe Handy benutzt. Deshalb hier die eine Funktion, die den Schluessel kennt.
-       */
-      const email = getStoredAuthSession()?.user?.email ?? "";
-      await fetch("/api/my-videos", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoUrl, lookId, curatorId: useCustom ? "" : (picked?.id ?? ""), lookName: herName ? `${herName}` : "", device, email, source: "chat" }),
-      });
-    } catch { /**/ }
-  };
-
-  // Aus dem angezogenen Foto das Dreh-Video machen (mit Musik im Player darunter).
-  const makeTurnVideo = async (dressedImage: string, lookId: string) => {
-    setVidUrl(""); setVidBusy(true); setStatus(u.filming);
-    try {
-      const start = await fetch("/api/generate-tryon-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId, person: dressedImage, garment: dressedImage, prompt: chatLookVideoPrompt(pickHolidayScene()) }),
-      }).then(r => r.json()).catch(() => null);
-      if (!start?.videoId) { setStatus(start?.error || ""); setVidBusy(false); return; }
-      for (let i = 0; i < 72; i++) {
-        await new Promise(r => setTimeout(r, 5000));
-        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`)
-          .then(r => r.json()).catch(() => null);
-        if (p?.status === "done" && p.videoUrl) {
-          setVidUrl(String(p.videoUrl)); setStatus(""); setVidBusy(false);
-          // In SEINE Galerie legen (Geraet + Konto): die Anbieter-Adresse verfaellt nach
-          // Stunden — ohne eigene Kopie waere das Video morgen weg (Owner 28.07.2026).
-          void saveToGallery(String(p.videoUrl), lookId);
-          return;
-        }
-        if (p?.status === "failed") { setStatus(p.error || ""); setVidBusy(false); return; }
-      }
-      setStatus("");
-    } catch { /* das Foto ist schon da — ohne Video ist der Schritt trotzdem nicht leer */ }
-    setVidBusy(false);
-  };
-
+  /*
+   * HIER LAGEN `dressHer`, `saveToGallery` UND `makeTurnVideo` (Owner 03.08.2026: „wir machen
+   * das Anziehen raus").
+   *
+   * Zusammen fast hundert Zeilen: Foto und Kleidungsstueck an FASHN schicken, das Ergebnis
+   * abholen, daraus ein Dreh-Video erzeugen lassen, es in die Galerie legen. Der teuerste Weg
+   * im Chat — und ab jetzt der einzige, den es nicht mehr gibt.
+   */
   const label = "text-[12px] font-black uppercase tracking-wide text-[#f6cf51]";
   const input = "h-12 w-full rounded-xl border border-white/30 bg-white/[0.08] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]";
 
@@ -594,22 +540,10 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                 <img src={(m.content.match(/\[\[PIC:([^\]]+)\]\]/i) ?? [])[1] ?? ""} alt=""
                   className="aspect-[3/4] w-40 rounded-xl border border-[#f6cf51]/40 object-cover" />
               )}
-              {m.role === "assistant" && /\[\[SHOW_LINGERIE\]\]/i.test(m.content) && teaseVideos.length > 0 && (
-                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {/* NUR EINS (Owner 28.07.2026) — eine Reihe ist ein Katalog, eines nach
-                      dem anderen ist eine Show. */}
-                  {teaseVideos.slice(0, 1).map(v => (
-                    // IM CHAT SIND ALLE FREI (Owner 28.07.2026) — auch die sonst gesperrten.
-                    // Die Videos sind längst erzeugt; sie herzuzeigen kostet uns nichts und
-                    // baut die Bindung auf. Bezahlt wird, was ER erzeugen will.
-                    <button key={v.id} type="button" onClick={() => setPlaying(v.videoUrl)}
-                      className="relative w-40 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 active:scale-95 transition">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={v.posterUrl} alt="" className="aspect-[3/4] w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* HIER STAND DIE LINGERIE-LEISTE ([[SHOW_LINGERIE]]) — sie zeigte ein Video,
+                  sobald die KI sich anbot. Der Modelltext bietet seit dem 03.08.2026 nichts
+                  mehr an, also feuerte sie ohnehin nie wieder; stehen zu lassen hiesse, eine
+                  Falle fuer den naechsten Leser aufzustellen. */}
               </div>
             )
           )}
@@ -673,14 +607,38 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               </p>
             </div>
           ) : wall ? (
+            /*
+             * DER STUFEN-WAEHLER STATT DER ABO-WAND (Owner 03.08.2026: „er kauft ein Model, ein
+             * Chat" — und zu den Preisen: „die Stufen von vorhin").
+             *
+             * Hier stand EIN Knopf zu einem Monatsabo, und darueber der Satz „plus deine
+             * {videos} Videos pro Monat" — ein Versprechen auf die Videos, die es seit heute
+             * nicht mehr gibt. Jetzt waehlt er die Laufzeit, wie bei der Hochzeit, und wie dort
+             * ist es KEIN Abo: einmal zahlen, danach laeuft es aus. Damit hat die Plattform
+             * genau einen Kaufweg.
+             *
+             * Die Zahlen kommen aus CHAT_STUFEN, nie von Hand (Hausregel seit 29.07.2026).
+             */
             <div className="text-center">
               <p className="text-[13px] font-black text-black">{u.keep} {herName}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">{fillPrices("{price} a month — every day, plus your {videos} videos a month across all topics.", lang)}</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">{u.anyLang}</p>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {CHAT_STUFEN.map(st => (
+                  <button key={st.monate} type="button" onClick={() => setStufe(st.monate)}
+                    className={`rounded-xl border-2 px-2 py-2 text-left transition ${st.monate === stufe ? "border-black bg-black/[0.04]" : "border-black/15"}`}>
+                    <span className="block text-[11px] font-black text-black/60">{P.dauer(st.monate)}</span>
+                    <span className="block text-[15px] font-black text-black">{eur(st.cents, lang)}</span>
+                  </button>
+                ))}
+              </div>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {fillPrices("Unlock the hottest AI experience ever — {price}/month", lang)}
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {u.unlock} — {eur(gewaehlt.cents, lang)}
               </button>
-              <p className="mt-2 text-center text-[10px] font-medium leading-snug text-black/50">{renewNote(lang)}</p>
+              {/* KEIN `renewNote` MEHR: der Satz versprach eine monatliche Verlaengerung, die es
+                  ohne Abo nicht gibt. */}
+              <p className="mt-2 text-center text-[10px] font-medium leading-snug text-black/50">{P.laeuft(gewaehlt.monate)}</p>
             </div>
           ) : (
             <>
@@ -694,6 +652,17 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                   <Send className="h-4 w-4" />
                 </button>
               </div>
+              {/* GERETTET AUS ABSCHNITT 3 (Owner 28.07.2026, „Striptease auf Befehl"): Er tippt,
+                  der Radar laeuft, ein neues Bild erscheint. Das ist KEIN Anziehen — die Bilder
+                  existieren laengst, es kostet uns nichts, und es ist der Suchtfaktor des Chats.
+                  Nur der Knopf lag im geloeschten Abschnitt; die Funktion dahinter lebt. */}
+              {chosen && !dayFull && (
+                <button type="button" onClick={showNext} disabled={showBusy}
+                  className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/20 text-[12px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
+                  {showBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔥"}
+                  {(({ de: "Zeig mir noch eins", en: "Show me another one", ro: "Mai arată-mi una", es: "Enséñame otra", fr: "Montre-m'en une autre", pt: "Mostra-me outra", it: "Mostrami un'altra" } as Record<string, string>)[lang]) ?? "Show me another one"}
+                </button>
+              )}
               {chosen && (
                 <p className="mt-1.5 text-[11px] font-bold text-black/50">
                   {`${u.free} · ${Math.max(0, DAILY_MSGS - today)} ${u.today}`}
@@ -705,110 +674,22 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         </div>
       </div>
 
-      {/* 3 — anziehen */}
-      <p className={`mt-6 ${label}`}>{u.s3}</p>
-      <p className="mt-1 text-[13px] font-bold text-white">
-        {/* fillPrices setzt Preis und Videozahl aus lib/pricing.ts ein — in den Sprachtabellen
-            stehen nur Platzhalter. */}
-        {fillPrices(paid || isStaff ? `${looksLeft}/${LOOKS_INCLUDED} ${u.left}` : u.incl, chatLang)}
-      </p>
-      {looks.length === 0 ? (
-        <div className="grid h-24 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
-      ) : (
-        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {looks.map((l, i) => {
-            const on = i === lookIdx;
-            return (
-              <button key={l.id} type="button" onClick={() => setLookIdx(i)}
-                className={`relative w-[104px] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-white transition ${on ? "border-[#f6cf51]" : "border-white/20"}`}>
-                <span className="block aspect-[3/4] w-full">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={l.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
-                </span>
-                {on && <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]"><Check className="h-3.5 w-3.5 text-black" /></span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {/* WÄHREND DES ANZIEHENS: ihr Foto unscharf mit Scanner-Balken darüber — ein Spinner
-          im Knopf sah aus, als sei die Seite hängengeblieben (Owner 28.07.2026). */}
-      {(dressBusy || vidBusy) && (dressed || herPhoto) && (
-        <div className="relative mx-auto mt-3 aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded-2xl border border-[#f6cf51]/30">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={dressed || herPhoto} alt="" className="h-full w-full scale-105 object-cover object-top blur-[6px] brightness-75" />
-          <span className="lb-scanline absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#f6cf51] to-transparent shadow-[0_0_12px_#f6cf51]" />
-          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8 text-center text-[12px] font-black text-white">
-            {status || "…"}
-          </span>
-        </div>
-      )}
-      {/* AUF BEFEHL ZEIGEN — gratis, unbegrenzt, mit Radar. Das ist der Suchtfaktor
-          (Owner 28.07.2026); bezahlt wird erst, was ER selbst erzeugen will. */}
-      {chosen && !dayFull && (
-        <button type="button" onClick={showNext} disabled={showBusy}
-          className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[13px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-60">
-          {showBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔥"}
-          {showBusy
-            ? ((({ de: "Sie zieht sich um …", en: "She's changing …", ro: "Se schimbă …", es: "Se está cambiando …", fr: "Elle se change …", pt: "Está a trocar …", pl: "Przebiera się …", it: "Si sta cambiando …" } as Record<string, string>)[lang]) ?? "She's changing …")
-            : ((({ de: "Zeig mir noch eins", en: "Show me another one", ro: "Mai arată-mi una", es: "Enséñame otra", fr: "Montre-m'en une autre", pt: "Mostra-me outra", pl: "Pokaż mi jeszcze jedno", it: "Mostrami un'altra" } as Record<string, string>)[lang]) ?? "Show me another one")}
-        </button>
-      )}
-      {/* Ohne Abo führt dieser Knopf zur KASSE — dann muss er das auch draufschreiben.
-          Vorher hieß er „Zieh es ihr an" und sprang wortlos zu Stripe (Owner 28.07.2026). */}
-      <button type="button" onClick={() => void dressHer()} disabled={!chosen || dressBusy || vidBusy}
-        className="lb-gold lb-buy mt-2 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-50">
-        {(dressBusy || vidBusy) ? <Loader2 className="h-4 w-4 animate-spin" /> : (isStaff || paid) ? <Shirt className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-        {dressBusy ? u.dressing : vidBusy ? u.filming
-          : (isStaff || paid)
-            ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : fillPrices(u.more, chatLang))
-            : fillPrices("Unlock the hottest AI experience ever — {price}/month", lang)}
-      </button>
-      {!isStaff && !paid && (
-        <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
-      )}
-      {status && !dressBusy && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
-
-      {dressed && (
-        <div className="mx-auto mt-4 w-fit">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10">
-            {vidUrl ? (<>
-              {/* DAS DREH-VIDEO: sie sagt „Hello darling, how are you?" und dreht sich einmal
-                  ganz herum. Musik läuft erst auf Tippen — Ton von allein ist gesperrt. */}
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video ref={vidRef} src={vidUrl} poster={dressed} autoPlay loop playsInline muted
-                className="max-h-[60vh] w-auto object-cover" />
-              <button type="button"
-                onClick={() => {
-                  // TON: das Video traegt IHRE STIMME („Hello darling …") — die kommt zuerst,
-                  // die Musik liegt leise darunter. `muted` wird am Element selbst gesetzt;
-                  // als JSX-Attribut allein greift die Umschaltung nicht zuverlaessig.
-                  const v = vidRef.current, a = musicRef.current;
-                  const next = !musicOn;
-                  setMusicOn(next);
-                  try {
-                    if (v) { v.muted = !next; v.volume = 1; if (next) { v.currentTime = 0; void v.play(); } }
-                    if (a) { a.volume = 0.22; if (next) void a.play(); else a.pause(); }
-                  } catch { /**/ }
-                }}
-                className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-[12px] font-black text-white backdrop-blur active:scale-90 transition">
-                {musicOn ? <>🔊 {u.soundOff}</> : <>🔇 {u.soundOn}</>}
-              </button>
-              <audio ref={musicRef} src="/fassounds-escape-your-love-upbeat-fashion-pop-dance-412230.mp3" loop preload="none" />
-            </>) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={dressed} alt="" className="max-h-[60vh] w-auto object-cover" />
-            )}
-          </div>
-          <a href={vidUrl || dressed} download={vidUrl ? "her-new-video.mp4" : "her-new-look.jpg"} target="_blank" rel="noreferrer"
-            className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
-            <Download className="h-4 w-4" /> {u.save}
-          </a>
-          <p className="mx-auto mt-2 max-w-[280px] text-center text-[12px] font-bold leading-snug text-white/70">
-            <Sparkles className="mr-1 inline h-3.5 w-3.5" /> {u.show}
-          </p>
-        </div>
-      )}
+      {/*
+       * HIER STAND ABSCHNITT 3 — ANZIEHEN (Owner 03.08.2026: „wir machen das Anziehen raus,
+       * also einfach Model auswaehlen und fertig" · „er kauft ein Model, ein Chat").
+       *
+       * Rund hundert Zeilen: die Look-Leiste zum Durchwischen, der Anzieh-Knopf, der
+       * Scanner-Balken waehrend des Erzeugens, das Dreh-Video mit ihrer Stimme, der
+       * Ton-Umschalter und der Herunterladen-Knopf. Alles gestrichen.
+       *
+       * WARUM DAS RICHTIG IST, obwohl es Arbeit war: Der Trichter verkaufte zwei Dinge
+       * gleichzeitig — Reden UND Anziehen — und der Kunde musste beides verstehen, bevor er
+       * eines kaufen konnte. Jetzt gibt es einen Satz: Such dir eine aus und rede mit ihr.
+       *
+       * Die Strings dazu (put, putHer, more, s3, incl, left, save, dressing, filming, soundOn,
+       * soundOff) stehen noch in den acht Sprachtabellen. Sie kosten nichts und sagen dem
+       * naechsten Leser, was hier einmal war.
+       */}
     </div>
   );
 }
