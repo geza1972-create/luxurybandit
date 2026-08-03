@@ -118,12 +118,28 @@ export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
 /**
  * DER PROMPT FUER EIN GEWAEHLTES SET.
  *
- * Der Grundtext bleibt woertlich der des Owners — daran wird nichts angefasst. Angehaengt wird
- * nur der Satz gegen die Leuchtschrift, und der gilt fuer ALLE Sets: Auch die ohne Schrift
- * haben Leuchtreklame im Hintergrund, die Pixverse als Buchstaben missdeuten kann.
+ * Der Grundtext bleibt woertlich der des Owners — daran wird nichts angefasst. Angehaengt sind
+ * zwei Klauseln, jede gegen einen Fehler, den wir GESEHEN haben:
+ *
+ * 1) UMZIEHEN, NICHT ANZIEHEN. „wearing the outfit from @image2" liest Pixverse als
+ *    ZUSAETZLICH — im Lauf des Owners lag das gruene Set ueber ihrem roten Oberteil, sie trug
+ *    beides uebereinander. Beim ersten Beispielvideo fiel das nie auf, weil die Vorlage keine
+ *    konkurrierende Kleidung zeigte. Der Zusatz sagt jetzt ausdruecklich: NUR dieses Set,
+ *    nichts darunter, nichts darueber.
+ *
+ * 2) KEIN TEXT. Eines der Sets traegt Leuchtschrift, alle haben Leuchtreklame im Hintergrund;
+ *    Pixverse schreibt solche Zuege gern mit ins Video.
+ *
+ * Beides steht im Prompt und nicht im Bild, weil wir die Bilder des Owners nicht anfassen —
+ * sie sind in Pixverse getestet, so wie sie sind.
  */
 export const poledancePromptFuerSet = (): string =>
-  POLEDANCE_PROMPT + " No text, no letters, no writing anywhere in the frame.";
+  POLEDANCE_PROMPT +
+  // SIE ZIEHT SICH UM, SIE ZIEHT NICHT AN (Owner 03.08.2026: „der hat was Grausames gemacht,
+  // ich habe sowas noch nie gesehen" — das Set lag UEBER ihrem roten Oberteil, sie trug beides).
+  " She wears ONLY the outfit from @image2 and nothing else; it completely replaces her own" +
+  " clothes. She is not wearing any top, shirt, dress or sleeves underneath or over it." +
+  " No text, no letters, no writing anywhere in the frame.";
 
 /**
  * WEITERE BEISPIELVIDEOS (Owner 03.08.2026: „ich brauche auf dieser Seite noch einige Beispiel-
