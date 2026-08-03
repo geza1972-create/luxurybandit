@@ -3125,7 +3125,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               Loeschen laesst es sich nicht; es ist unser Bild, nicht ihres. */}
           {V.nurSie && !!V.garmentBild && (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={V.garmentBild} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
+            <img src={neuerLook || V.garmentBild} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}
           {!V.nurSie && photo && (
             <div className="relative">
@@ -3139,6 +3139,37 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               </button>
             </div>
           )}
+        </div>
+      )}
+      {/**
+        * DIE LOOK-AUSWAHL, DIREKT UNTER DEN ZWEI KACHELN (Owner 03.08.2026: „es müsste doch
+        * hier kommen" — mit Bildschirmfoto des Schritts VOR dem Erzeugen — und: „drunter").
+        *
+        * Ich hatte sie zuerst nur UNTER das fertige Video gesetzt. Das war die halbe Antwort:
+        * Dort hilft sie beim naechsten Video, hier entscheidet sie ueber DIESES. Wer das feste
+        * Neon-Set sieht und nichts anderes wollen darf, hat keine Wahl — er hat eine Vorgabe.
+        *
+        * Der grosse weisse Garderoben-Kasten weiter unten bleibt, wo er ist: Der erscheint erst
+        * NACH der Zahlung (Owner 31.07.2026) und ist eine andere Sache. Diese Zeile hier ist
+        * eine Auswahl vor dem Kauf, kein Katalog danach.
+        */}
+      {V.nurSie && !!V.garmentBild && garderobe.length > 0 && !!selPhoto && (
+        <div className="mt-3">
+          <p className="text-[11px] font-black uppercase tracking-wide text-[#f6cf51]/80">{T.nochEins}</p>
+          <div className="-mx-4 mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Das Haus-Set zuerst — es ist das, mit dem das Beispielvideo entstanden ist. */}
+            {[{ id: "__set", imageUrl: V.garmentBild! }, ...garderobe].map(l => {
+              const an = (neuerLook || V.garmentBild) === l.imageUrl;
+              return (
+                <button key={l.id} type="button" onClick={() => setNeuerLook(l.id === "__set" ? "" : l.imageUrl)}
+                  className={`relative w-[74px] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-white transition active:scale-95 ${an ? "border-[#f6cf51]" : "border-white/20"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l.imageUrl} alt="" draggable={false} className="aspect-[3/4] w-full object-cover" />
+                  {an && <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-[#f6cf51]"><Check className="h-3 w-3 text-black" /></span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
       {/* DIE GARDEROBE — sichtbar, aber verschlossen (Owner 30.07.2026: „drunter muss die
