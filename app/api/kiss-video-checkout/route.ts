@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, LINGERIE_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, LINGERIE_CENTS } from "@/lib/pricing";
 import { guthabenAbbuchen } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; lingerie?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; lingerie?: boolean; topupCents?: number };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -79,14 +79,18 @@ export async function POST(request: Request) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return NextResponse.json({ error: "Email required." }, { status: 400 });
     }
+    // ZWEI STUFEN, WHITELIST (Owner 03.08.2026: „biete beide an"): Der Trichter WÜNSCHT
+    // einen Betrag, die Kasse kennt nur die zwei aus der Preistabelle — alles andere
+    // faellt auf die kleine Stufe zurueck. Gutgeschrieben wird ohnehin, was BEZAHLT wurde.
+    const stufe = Number(body.topupCents) === TOPUP_GROSS_CENTS ? TOPUP_GROSS_CENTS : TOPUP_CENTS;
     try {
       const { id, url } = await createTryonCheckout({
-        amount: TOPUP_CENTS,
+        amount: stufe,
         currency: "eur",
         productName: "Account credit",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
-        metadata: { kind: "aufladung", email, cents: String(TOPUP_CENTS), ...(genId ? { genId } : {}) },
+        metadata: { kind: "aufladung", email, cents: String(stufe), ...(genId ? { genId } : {}) },
       });
       return NextResponse.json({ url, sessionId: id });
     } catch (e) {

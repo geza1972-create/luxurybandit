@@ -53,6 +53,8 @@ export type KissText = {
   waescheTitel: string;
   /** Nach dem gelieferten Einzelkauf: neuer Anlauf statt 2,99-Nachkauf (Owner 03.08.2026). */
   nochmalVideo: string;
+  /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
+  aufladeWahlTitel: string;
   /** Aufladung 9,99 (Owner 01.08.2026, Variante B) — Knopf, Hinweis, Guthaben-Zeile. */
   aufladen: string; aufladenHinweis: string; guthaben: string;
   /**
@@ -144,6 +146,7 @@ const EN: KissText = {
   szeneTitel: "Pick a scene — or let us surprise you",
   waescheTitel: "Pick her lingerie — or keep the one from the video",
   nochmalVideo: "Generate another video",
+  aufladeWahlTitel: "How much would you like to top up?",
   guthabenVorabHinweis: "One video costs {once}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …",
@@ -250,6 +253,7 @@ const DE: KissText = {
   szeneTitel: "Such dir eine Szene aus — oder lass dich überraschen",
   waescheTitel: "Such ihre Wäsche aus — oder lass die aus dem Video",
   nochmalVideo: "Noch ein Video generieren",
+  aufladeWahlTitel: "Wie viel möchtest du aufladen?",
   guthabenVorabHinweis: "Ein Video kostet {once}. Bezahlt wird aus deinem Guthaben — die kleinste Aufladung ist {topup}, der Rest bleibt dir für weitere Videos.",
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …",
@@ -356,6 +360,7 @@ const RO: KissText = {
   szeneTitel: "Alege o scenă — sau lasă-te surprins",
   waescheTitel: "Alege lenjeria ei — sau păstreaz-o pe cea din videoclip",
   nochmalVideo: "Generează încă un videoclip",
+  aufladeWahlTitel: "Cât vrei să încarci?",
   guthabenVorabHinweis: "Un videoclip costă {once}. Se plătește din creditul tău — cea mai mică încărcare este {topup}, iar restul îți rămâne pentru alte videoclipuri.",
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …",
@@ -462,6 +467,7 @@ const ES: KissText = {
   szeneTitel: "Elige una escena — o déjate sorprender",
   waescheTitel: "Elige su lencería — o deja la del vídeo",
   nochmalVideo: "Generar otro vídeo",
+  aufladeWahlTitel: "¿Cuánto quieres recargar?",
   guthabenVorabHinweis: "Un vídeo cuesta {once}. Se paga con tu saldo — la recarga mínima es {topup}, y lo que sobra se queda para más vídeos.",
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …",
@@ -568,6 +574,7 @@ const FR: KissText = {
   szeneTitel: "Choisis une scène — ou laisse-toi surprendre",
   waescheTitel: "Choisis sa lingerie — ou garde celle de la vidéo",
   nochmalVideo: "Générer une autre vidéo",
+  aufladeWahlTitel: "Combien veux-tu recharger ?",
   guthabenVorabHinweis: "Une vidéo coûte {once}. Le paiement se fait sur ton crédit — la recharge minimale est {topup}, et le reste te reste pour d'autres vidéos.",
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …",
@@ -674,6 +681,7 @@ const PT: KissText = {
   szeneTitel: "Escolhe uma cena — ou deixa-te surpreender",
   waescheTitel: "Escolhe a lingerie dela — ou deixa a do vídeo",
   nochmalVideo: "Gerar mais um vídeo",
+  aufladeWahlTitel: "Quanto queres carregar?",
   guthabenVorabHinweis: "Um vídeo custa {once}. Paga-se com o teu saldo — o carregamento mínimo é {topup}, e o que sobra fica para mais vídeos.",
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …",
@@ -781,6 +789,7 @@ const IT: KissText = {
   szeneTitel: "Scegli una scena — o lasciati sorprendere",
   waescheTitel: "Scegli la sua lingerie — o lascia quella del video",
   nochmalVideo: "Genera un altro video",
+  aufladeWahlTitel: "Quanto vuoi ricaricare?",
   guthabenVorabHinweis: "Un video costa {once}. Si paga con il tuo credito — la ricarica minima è {topup}, e quel che avanza resta per altri video.",
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …",

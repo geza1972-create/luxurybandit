@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2 } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, LINGERIE_CENTS, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, LINGERIE_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -440,6 +440,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    *  Kachel oeffnet das Vollbild — Szenen als Bild, Lingerie-Vorlagen als laufendes Video.
    *  Antippen der Kachel selbst bleibt die WAHL; zwei Handgriffe, zwei Knoepfe. */
   const [szeneZoom, setSzeneZoom] = useState<{ src: string; video?: boolean; poster?: string } | null>(null);
+  /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
+  const [aufladeWahl, setAufladeWahl] = useState(false);
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
   const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
   /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
@@ -1368,7 +1370,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * nie zur Einzel-Kasse.
        */
       // `videoPreisCents` statt fest {once}: Lingerie kostet mehr (Owner 03.08.2026).
-      if (V.nurGuthaben && (guthabenCents ?? 0) < videoPreisCents) { void unlock("auflade"); return; }
+      if (V.nurGuthaben && (guthabenCents ?? 0) < videoPreisCents) { setAufladeWahl(true); return; }
       void unlock("once");
       return;
     }
@@ -1831,7 +1833,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   // `genIdFrisch`: wer GERADE einen neuen Eintrag angelegt hat, reicht die Nummer hier
   // direkt durch — der React-Zustand traegt sie erst einen Render spaeter (03.08.2026).
-  const unlock = async (einmal: "once" | "abo" | "extra" | "auflade" = "abo", genIdFrisch?: string) => {
+  const unlock = async (einmal: "once" | "abo" | "extra" | "auflade" = "abo", genIdFrisch?: string, topupCents?: number) => {
     // Derselbe Fehler wie bei `generate`: Das Ereignis stand vor jeder Pruefung und meldete
     // den Tipp, nicht die Kasse. `checkout_tap` = er wollte, `checkout` = Stripe ist offen.
     track("checkout_tap");
@@ -1854,7 +1856,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", lingerie: lingerieGewaehlt, email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, lingerie: lingerieGewaehlt, email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
            cancelled=1 in der Adresse; als Ruecksprungziel weitergereicht, stand nach der
@@ -2263,7 +2265,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   aus dem Guthaben; der Hinweis darunter ist die AGB-Zusage in Kurzform. */}
               {V.einzelkauf && (
                 <>
-                  <button type="button" onClick={() => void unlock("auflade")} disabled={payBusy}
+                  <button type="button" onClick={() => setAufladeWahl(true)} disabled={payBusy}
                     style={{ color: "#fff" }}
                     className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
                     {fillPrices(T.aufladen, lang)}
@@ -3179,6 +3181,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           hochzuladen, sobald `adresseDa` fehlt, und legen das Foto in `gateDatei` beiseite.
           Kein Abbrechen-Kreuz: ohne Adresse gibt es kein Foto, das man stattdessen zeigen
           koennte — schliessen hiesse nur, das Foto stillschweigend zu verwerfen. */}
+      {/* DER AUFLADE-WAEHLER (Owner 03.08.2026: „biete beide an"): zwei Stufen aus der
+          Preistabelle, jede mit ihrer Videozahl uebersetzt — das Guthaben ist Geld, die
+          Zahl daneben nur seine Bedeutung. Abbrechen ist erlaubt: Anders als beim
+          Upload-Tor geht hier nichts verloren, die Wahl steht ja noch. */}
+      {aufladeWahl && (
+        <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
+          onClick={() => setAufladeWahl(false)}>
+          <div className="w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.aufladeWahlTitel}</p>
+            {[TOPUP_CENTS, TOPUP_GROSS_CENTS].map(stufe => (
+              <button key={stufe} type="button" disabled={payBusy}
+                onClick={() => { setAufladeWahl(false); void unlock("auflade", undefined, stufe); }}
+                className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
+                {fillPrices(stufe === TOPUP_CENTS ? "{topup}" : "{topup2}", lang)} · {Math.floor(stufe / ONCE_CENTS)} 🎬
+              </button>
+            ))}
+            <p className="mt-3 text-center text-[10px] font-medium leading-snug text-black/50">{T.aufladenHinweis}</p>
+          </div>
+        </div>
+      )}
+
       {gateOffen && (
         <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}>
           <div className="w-full max-w-[340px] rounded-3xl bg-white p-6 text-center">
@@ -3371,7 +3394,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             {/* AUFLADEN GENAU HIER (Owner 01.08.2026: „bei Kiss Credits fuer 9,99 ab der
                 zweiten Versuch"). Das ist der Moment, in dem er mehr will — der Knopf muss
                 dort stehen, wo die Sperre ihn trifft, nicht irgendwo weiter unten. */}
-            <button type="button" onClick={() => void unlock("auflade")} disabled={payBusy}
+            <button type="button" onClick={() => setAufladeWahl(true)} disabled={payBusy}
               style={{ background: "#fff", color: "#1a160f" }}
               className="mt-2 flex h-11 w-full items-center justify-center rounded-full text-[12px] font-black shadow-md active:scale-95 transition disabled:opacity-60">
               {fillPrices(T.aufladen, lang)}

@@ -85,7 +85,21 @@ export const ONCE_CENTS = 149;                      // 1,49 € — ein Kauf, ke
 export const TRIAL_DAYS = 7;                        // Tage, die die Seite ohne Abo online bleibt
 // Die Aufladung (Owner 01.08.2026, Variante B: Zusatzangebot neben dem Einzelkauf; Guthaben
 // verfällt nie, keine Barauszahlung). Eine Stufe reicht zum Start.
-export const TOPUP_CENTS = 999;                     // 9,99 € Konto-Aufladung
+/**
+ * KLEINER EINSTIEG STATT 9,99 (Owner 03.08.2026: „ok, dann mach eine kleinere Aufladung").
+ *
+ * Der Anlass sind Daten, keine Meinung: In der Nacht zum 03.08. haben DREI echte Besucher
+ * beide Fotos hochgeladen, auf „Video erzeugen" getippt, die 9,99-€-Kasse geoeffnet — und
+ * alle drei dort abgebrochen. Beworben ist das Video mit {once}; eine Kasse, die dann das
+ * Siebenfache verlangt, liest sich als Falle. 4,99 € sind drei Videos (oder ein
+ * Lingerie-Video mit Rest) — klein genug zum Anfangen, gross genug, dass ein Rest bleibt,
+ * der zum Wiederkommen einlaedt.
+ */
+export const TOPUP_CENTS = 499;                     // 4,99 € Konto-Aufladung (kleine Stufe)
+// „biete beide an" (Owner 03.08.2026, direkt nach der Verkleinerung): Die 9,99 bleiben als
+// zweite Stufe daneben — wer mehr laedt, hat laenger Ruhe. Die Kasse akzeptiert NUR diese
+// beiden Werte (Whitelist in kiss-video-checkout), egal was ein Browser schickt.
+export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung (grosse Stufe)
 // DAS LINGERIE-VIDEO (Owner 03.08.2026: „das kostet 3,99 und dafür musst du die Frau mit
 // FASHN in einer unserer Lingerie-Bilder anziehen und dann in Video umwandeln"). Teurer als
 // das normale Video ({once}), weil ein FASHN-Lauf (Anziehen) VOR dem Pixverse-Lauf steht —
@@ -124,6 +138,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
+    .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
     .replace(/\{lingerie\}/g, eur(LINGERIE_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
