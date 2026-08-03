@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
 
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -84,9 +83,19 @@ export default function TanzAuswahl({ lang = "en", titel, knopf, gewaehlt }: {
      Nummer. So heisst das Beispiel oben genauso wie sein eigenes Ergebnis spaeter. */
   const karteTitel = String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "");
 
+  /**
+   * NICHTS IST VORGEWAEHLT, BIS ER WAEHLT.
+   *
+   * Hier stand `|| POLEDANCE_REFERENZEN[0].video`: Wer die Seite oeffnete, sah auf der ersten
+   * Karte „Gewaehlt" — fuer eine Wahl, die er nie getroffen hat. Das ist dieselbe Sorte
+   * Unwahrheit wie eine Kachel, die verschwindet, bevor der Server zugestimmt hat.
+   *
+   * Der Trichter braucht die Vorauswahl auch nicht: Er faellt von sich aus auf `beispielVideo`
+   * zurueck, wenn nichts gewaehlt wurde (`refVideo || beispielVideo`).
+   */
   const [wahl, setWahl] = useState("");
   useEffect(() => {
-    try { setWahl(localStorage.getItem("lb_tanz_ref") || POLEDANCE_REFERENZEN[0].video); } catch { /**/ }
+    try { setWahl(localStorage.getItem("lb_tanz_ref") || ""); } catch { /**/ }
   }, []);
 
   const waehlen = (video: string) => {
@@ -108,8 +117,14 @@ export default function TanzAuswahl({ lang = "en", titel, knopf, gewaehlt }: {
         {POLEDANCE_REFERENZEN.map(r => {
           const an = wahl === r.video;
           return (
+            /* DER GOLDRAHMEN IST DIE EIGENTLICHE MARKIERUNG. Der Knopf sagt WAS passiert, der
+               Rahmen sagt WELCHE es ist — beim Scrollen durch acht gleich aufgebaute Karten
+               sieht man einen Rahmen von weitem, ein Wort im Knopf erst beim Lesen.
+               `EinladungKarte` nimmt kein `className`, also traegt ihn eine Huelle. */
+            <div key={r.id}
+              className={an ? "rounded-[24px] ring-2 ring-[#f6cf51] ring-offset-4 ring-offset-black" : ""}>
             <EinladungKarte
-              key={r.id} sprache={lang} sie="" er="" demo titel={karteTitel}
+              sprache={lang} sie="" er="" demo titel={karteTitel}
               video={
                 <div className="relative">
                   <NahDran platzhalter={r.video}>
@@ -133,15 +148,26 @@ export default function TanzAuswahl({ lang = "en", titel, knopf, gewaehlt }: {
                     className="absolute inset-x-0 bottom-0 top-16 z-20 flex cursor-pointer items-end justify-center p-4">
                     {/* Ein echtes CTA: dasselbe Gold wie jeder andere Knopf, volle Breite.
                         Eine dunkle, halbdurchsichtige Pille sah aus wie eine Bildunterschrift
-                        und nicht wie etwas, das man drueckt. */}
-                    <span className={`flex h-12 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)] ${
-                      an ? "bg-white/90 text-black" : "lb-gold"}`}>
-                      {an ? <><Check className="h-4 w-4" /> {gewaehlt}</> : knopf}
+                        und nicht wie etwas, das man drueckt.
+
+                        DAS GOLD BLEIBT AUCH BEI DER GEWAEHLTEN KARTE. Hier stand fuer sie
+                        `bg-white/90` — und damit sah ausgerechnet die gewaehlte Karte blass
+                        und abgeschaltet aus, waehrend die sieben anderen leuchteten. Genau
+                        verkehrt herum: Was er genommen hat, ist der staerkste Zustand, nicht
+                        der schwaechste. Unterschieden wird jetzt nur noch durch den Haken und
+                        das Wort — und durch den Goldrahmen um die Karte. */}
+                    <span className="lb-gold flex h-12 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-black shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+                      {/* EIN SCHRIFTZEICHEN, KEIN SYMBOL-BAUSTEIN: `.lb-karte svg` faerbt jedes
+                          Icon in der Karte auf Gold — ein goldener Haken auf goldenem Knopf ist
+                          nicht zu sehen. Das Zeichen erbt dagegen die dunkle Kartenschrift und
+                          steht klar darauf. (Derselbe !important-Griff wie beim Teilen-Knopf.) */}
+                      {an ? <>✓ {gewaehlt}</> : knopf}
                     </span>
                   </div>
                 </div>
               }
             />
+            </div>
           );
         })}
       </div>
