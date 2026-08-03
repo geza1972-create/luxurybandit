@@ -1,5 +1,11 @@
 # Plan — Hochzeitseinladung zahlungspflichtig machen (Stand 02.08.2026)
 
+> **03.08.2026 — WEITERGEZOGEN:** Der Kuss-Trichter hat seither eine eigene, ausführliche
+> Übergabe: **[UEBERGABE-KUSS-03-08.md](UEBERGABE-KUSS-03-08.md)**. Dort steht, was offen
+> ist (vor allem: **noch kein einziger echter Video-Lauf**), welcher Fehler die Erzeugung
+> blockierte und welche Fallen diese Sitzung gekostet haben. Der Plan hier bleibt für die
+> Hochzeit gültig.
+
 ## Auftrag, wörtlich (Owner 01.08.2026)
 
 > „wir müssen was vorbereite und zwar die hochzeitseinladung. Es kostet von
