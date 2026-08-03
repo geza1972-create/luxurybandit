@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissLog, writeKissLog, deleteTryThisLookImage, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, deleteTryThisLookImage, chatZugangAblaufend, chatZugangGewarnt, type KissLogEntry } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
@@ -258,6 +258,39 @@ export async function GET(request: Request) {
     }
   }
 
+  /**
+   * DIE CHAT-ABLAUFMAIL (Owner 03.08.2026: „ok, dann mach die Warn-Mail").
+   *
+   * Sie haengt hier und nicht in einem eigenen Cron, weil dieser Lauf ohnehin taeglich kommt.
+   * Ein zweiter Zeitplan waere eine zweite Stelle, an der etwas nicht laeuft — und man merkt es
+   * bei Mails immer erst, wenn jemand sich beschwert, dass keine kam.
+   *
+   * WAS SIE NICHT TUT: verkaufen. Sie sagt, wann Schluss ist, und bietet einen Knopf. Wer
+   * weiterschreiben will, klickt; wer nicht, soll nicht das Gefuehl haben, gedraengt zu werden —
+   * er hat schon einmal bezahlt.
+   *
+   * Der Vermerk wird erst NACH erfolgreichem Versand gesetzt: Faellt der Mailserver aus,
+   * versucht es der naechste Lauf erneut, statt den Kunden stumm ablaufen zu lassen.
+   */
+  let chatGewarnt = 0;
+  try {
+    for (const z of await chatZugangAblaufend(VORWARNUNG_TAGE)) {
+      const html = `<div style="font-family:system-ui,Arial,sans-serif;background:#faf7f0;padding:24px">`
+        + `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+        + `<table width="100%" style="max-width:520px;background:#fff;border-radius:16px">`
+        + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Noch ${z.restTage} Tage, dann ist Schluss</td></tr>`
+        + `<tr><td style="padding:0 22px 14px;font-size:14px;line-height:1.55;color:#5b5344">`
+        + `Dein Chat-Monat endet in ${z.restTage} Tagen. Danach kannst du ihr nicht mehr schreiben — `
+        + `euer Verlauf bleibt, du kommst nur nicht mehr rein. Wenn du weiterschreiben willst, verlaengere hier.`
+        + `</td></tr>`
+        + `<tr><td style="padding:0 22px 20px"><a href="${origin}/themes/chat?utm_source=ablaufmail" style="display:inline-block;background:#1a160f;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:bold">Weiterschreiben</a></td></tr>`
+        + `</table></td></tr></table></div>`;
+      const r = await sendEmail({ to: z.email, subject: `Noch ${z.restTage} Tage, dann ist Schluss`, html })
+        .catch(() => ({ ok: false }));
+      if ((r as { ok?: boolean }).ok) { await chatZugangGewarnt(z.email); chatGewarnt++; }
+    }
+  } catch { /* eine kaputte Mailrunde darf das Aufraeumen nie stoppen */ }
+
   let weg = 0;
   for (const p of dateien) {
     try { await deleteTryThisLookImage(p); weg++; } catch { /* eine Datei darf den Lauf nie stoppen */ }
@@ -269,5 +302,5 @@ export async function GET(request: Request) {
       .catch(() => { /* naechster Lauf holt es nach */ });
   }
 
-  return NextResponse.json({ ok: true, ...bericht, dateienWirklichGeloescht: weg, mailsVerschickt: gewarnt });
+  return NextResponse.json({ ok: true, ...bericht, dateienWirklichGeloescht: weg, mailsVerschickt: gewarnt, chatAblaufMails: chatGewarnt });
 }

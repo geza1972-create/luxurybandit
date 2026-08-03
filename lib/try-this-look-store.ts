@@ -492,6 +492,15 @@ export type TryThisLookState = {
    */
   chatZugang?: Record<string, string>;
   redeemedZugang?: string[];
+  /**
+   * WANN WIR VOR DEM ABLAUF GEWARNT HABEN — je E-Mail ein ISO-Datum.
+   *
+   * Der Aufraeumer laeuft TAEGLICH. Ohne diesen Vermerk bekaeme jeder, dessen Monat in sieben
+   * Tagen endet, sieben Mails — und der Kunde, den man halten will, ist der erste, der sich
+   * abmeldet. Der Vermerk wird beim naechsten Kauf geloescht, damit der uebernaechste Ablauf
+   * wieder gemeldet werden kann.
+   */
+  chatZugangWarn?: Record<string, string>;
   // Admin-managed carousel slides for the /urlaub-mit-bella landing card — an intro image
   // (e.g. "Das ist Peter" + description) and example videos, injected into Bella's ModelCard
   // carousel. Persist PATHS only; buildBellaCard signs them on read.
@@ -1024,6 +1033,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     // Zustand Feld fuer Feld neu — was fehlt, ist nach jedem READ weg, noch vor dem Merge.
     guthabenCents: state.guthabenCents ?? {},
     chatZugang: state.chatZugang ?? {},
+    chatZugangWarn: state.chatZugangWarn ?? {},
     redeemedZugang: state.redeemedZugang ?? [],
     bellaSlides: state.bellaSlides ?? [],
     tripBookings: state.tripBookings ?? [],
@@ -1173,6 +1183,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       guthabenCents: { ...(latest.guthabenCents ?? {}), ...(state.guthabenCents ?? {}) },
       // Gleiches Muster: je E-Mail gewinnt unsere Fassung, fremde Adressen aus `latest` bleiben.
       chatZugang: { ...(latest.chatZugang ?? {}), ...(state.chatZugang ?? {}) },
+      chatZugangWarn: { ...(latest.chatZugangWarn ?? {}), ...(state.chatZugangWarn ?? {}) },
       redeemedZugang: Array.from(new Set([...(latest.redeemedZugang ?? []), ...(state.redeemedZugang ?? [])])),
       videoCredits: {
         balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
@@ -1290,6 +1301,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
      */
     guthabenCents: state.guthabenCents ?? {},
     chatZugang: state.chatZugang ?? {},
+    chatZugangWarn: state.chatZugangWarn ?? {},
     redeemedZugang: (state.redeemedZugang ?? []).slice(-5000),
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
@@ -2748,8 +2760,41 @@ export async function chatZugangGewaehren(email: string, sessionId: string, mona
 
   tabelle[e] = bis;
   gemacht.push(sessionId);
+  /* Der Warnvermerk gehoert zum ALTEN Ablauf. Bleibt er stehen, gilt der naechste als schon
+     gemeldet und der Kunde erfaehrt nie, dass sein zweiter Monat endet. */
+  if (state.chatZugangWarn) delete state.chatZugangWarn[e];
   await writeTryThisLookState(state);
   return { bis, granted: true };
+}
+
+/**
+ * WER IN DEN NAECHSTEN `tage` TAGEN ABLAEUFT und noch keine Mail bekommen hat.
+ *
+ * Bereits ABGELAUFENE kommen NICHT mit: Eine Mail „dein Zugang endet morgen", die drei Tage
+ * nach dem Ende ankommt, ist keine Warnung mehr, sondern eine Verhoehnung.
+ */
+export async function chatZugangAblaufend(tage: number): Promise<{ email: string; bis: string; restTage: number }[]> {
+  const state = await readTryThisLookState();
+  const tabelle = state.chatZugang ?? {};
+  const gewarnt = state.chatZugangWarn ?? {};
+  const jetzt = Date.now();
+  const grenze = jetzt + Math.max(1, tage) * 86400_000;
+  return Object.entries(tabelle)
+    .filter(([email, bis]) => {
+      if (gewarnt[email]) return false;
+      const t = Date.parse(String(bis));
+      return Number.isFinite(t) && t > jetzt && t <= grenze;
+    })
+    .map(([email, bis]) => ({ email, bis: String(bis), restTage: Math.max(1, Math.ceil((Date.parse(String(bis)) - jetzt) / 86400_000)) }));
+}
+
+/** Vermerken, dass die Mail raus ist — erst NACH erfolgreichem Versand aufrufen. */
+export async function chatZugangGewarnt(email: string): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return;
+  const state = await readTryThisLookState();
+  (state.chatZugangWarn = state.chatZugangWarn ?? {})[e] = new Date().toISOString();
+  await writeTryThisLookState(state);
 }
 
 /** Bis wann er schreiben darf — leer heisst: gar nicht (oder abgelaufen). */
