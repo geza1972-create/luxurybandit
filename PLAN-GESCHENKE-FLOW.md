@@ -159,6 +159,41 @@ vorher**, dieselbe Maschine (`/api/aufraeumen`).
 Alles auf einmal, kein zweiter Kauf: Video, Einladungsseite, Zusagen/Gästeliste, Neuigkeiten,
 Gruppenchat. Ein Preis, ein Klick, ein Versprechen.
 
+### Video tauschen — Owner-Entscheidung 03.08.2026: DREI Versuche enthalten
+
+> Owner: „aber was ist, wenn Leute das Video austauschen wollen?"
+
+**Die heutige Regel für Geschenke bleibt, wie sie ist, und sie ist richtig:**
+
+| Fall | Kosten |
+|---|---|
+| Der Lauf **scheitert** (Anbieter, Absage, Netz) | **nichts** — der Abbuchungsschlüssel ist `wallet-<genId>`, er hängt am Auftrag, nicht am Versuch |
+| Das Video ist da, der Kunde will ein **anderes** | neuer Auftrag, voller Preis |
+
+Bei 1,49 € muss das so sein: Ein Pixverse-Lauf kostet uns rund einen Euro, ein Gratis-Tausch
+wäre ein Verlustgeschäft.
+
+**Bei der Hochzeit trägt dieselbe Regel nicht.** Dort ist das Video das Herzstück einer Seite,
+die Monate lebt und die alle Gäste sehen — und bei 24,99 € ist „was ist, wenn es schlecht wird?"
+die größte Frage vor dem Kauf. Bei der eigenen Hochzeit ist das keine kleine Sorge. Wer sie mit
+„dann zahl noch mal" beantwortet, verliert den Verkauf an der teuersten Stelle.
+
+**Also: drei Läufe sind enthalten** (das erste Video plus zwei Tausche), danach kostet jedes
+weitere den normalen Videopreis aus dem Guthaben. Rund 3 € Kosten von 24,99 € — und es ist
+genau das, was aus einem Video ein *Paket* macht.
+
+**Wie es gebaut wird:**
+
+- Am Einladungs-Eintrag ein Zähler (`videoLaeufe`), der bei jedem ERFOLGREICHEN Lauf hochzählt.
+  Gescheiterte Läufe zählen nicht — sonst bezahlt der Kunde unsere Störung.
+- Unter drei: der Tausch läuft ohne Kasse. Ab drei: derselbe Weg wie beim Kuss (Guthaben,
+  sonst Auflade-Wähler).
+- **Das alte Video wird beim Tausch gelöscht.** Es zeigt niemand mehr an, und es liegt sonst
+  bis zum Ablauf der Seite im Speicher.
+- Der bezahlte Zustand bleibt unangetastet — getauscht wird nur `videoUrl`.
+- Die Seite ist womöglich schon GETEILT: Gäste haben den Link. Ein Tausch ändert, was sie sehen,
+  und das ist gewollt — die Seite ist ein lebendes Werk, kein verschickter Anhang.
+
 ### Aufwand ehrlich geschätzt
 
 Der Trichter der Hochzeit ist schon eine Variante desselben Bausteins (`abo`, `einzelkauf`,
@@ -168,6 +203,7 @@ Der Trichter der Hochzeit ist schon eine Variante desselben Bausteins (`abo`, `e
 - die Abo-Prüfung in der Einladungsseite durch „bezahlt + nicht abgelaufen" ersetzen
 - `gueltigBis` am Einladungs-Eintrag, gesetzt beim Kauf
 - Warn-Mail und Ablauf in `/api/aufraeumen` ergänzen (die Maschine steht)
+- `videoLaeufe` am Eintrag + die Drei-Versuche-Regel beim Tausch
 - Abo-Texte aus den sieben Sprachtabellen entfernen
 
 **Das ist ein überschaubarer Umbau, kein zweiter Trichter** — und danach hat der Marktplatz
