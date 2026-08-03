@@ -470,7 +470,27 @@ export async function POST(request: Request) {
        */
       if (!bezahlterAuftrag && eintrag) {
         const mail2 = String(eintrag.email || eintrag.paidEmail || "").trim().toLowerCase();
-        if (mail2 && await hasActiveSubscription(mail2).catch(() => false)) {
+        /**
+         * GEKAUFTE VIDEO-CREDITS ZAEHLEN AUCH OHNE STEMPEL AM AUFTRAG (Owner 03.08.2026:
+         * „es wird gar kein Video erzeugt … der ist nur am Rendern, und ich sehe keinen
+         * Auftrag an Pixverse" — „ein mega Fehler").
+         *
+         * DER BRUCH LAG ZWISCHEN BROWSER UND SERVER: Der Trichter setzt „bezahlt", sobald
+         * die Adresse Video-Credits hat (KissFunnel: `d.abo || d.left > 0`) und ueberspringt
+         * dann die Kasse. Diese Route kannte aber nur zwei bezahlte Wege — Auftrag mit
+         * `paid: true` oder laufendes Abo. Credits prueft sie nie. Ergebnis: Der Kunde sieht
+         * „Bezahlt", drueckt, und der Server behandelt ihn als Gast — seit die Gratis-Grenze
+         * auf 0 steht, heisst das Absage statt Video. Es traefe JEDEN, der ein Video
+         * nachgekauft hat (2,99 = ein Credit).
+         *
+         * Zuerst die Credits, dann das Abo: Wer beides hat, soll das bereits BEZAHLTE Stueck
+         * zuerst verbrauchen, nicht sein Monatskontingent.
+         */
+        if (mail2) {
+          const restCred = await spendVideoCredit(mail2).catch(() => null);
+          if (restCred !== null) { bezahlterAuftrag = true; guthabenEmail = mail2; }
+        }
+        if (!bezahlterAuftrag && mail2 && await hasActiveSubscription(mail2).catch(() => false)) {
           let rest = await spendVideoCredit(mail2);
           if (rest === null) { await grantMonthlySubscriptionCredits(mail2).catch(() => 0); rest = await spendVideoCredit(mail2); }
           if (rest !== null) { bezahlterAuftrag = true; guthabenEmail = mail2; }
