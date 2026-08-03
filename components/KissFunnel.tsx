@@ -944,6 +944,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const rest = q.toString();
         window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
         if (typeof st.walletCents === "number") setGuthabenCents(st.walletCents);
+        try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
         if (st.email) { setMail(String(st.email)); setAdresseDa(true); setFrei(true); try { localStorage.setItem(MAIL_KEY, String(st.email)); } catch { /**/ } }
         setStatus("");
         nachAufladungKaufen.current = true;
@@ -1514,6 +1515,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       if (!r.ok) { setMailFehler(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
       try { localStorage.setItem(MAIL_KEY, e); } catch { /**/ }
       setAdresseDa(true); setFrei(true); setMailBusy(false);
+      // Der Konto-Chip im Header lauscht darauf — er soll SOFORT zeigen, dass wir ihn
+      // kennen, nicht erst beim naechsten Fensterwechsel (Owner 03.08.2026).
+      try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
       // META: „Lead" = er hat seine Adresse dagelassen. Genau darauf soll die Kampagne
       // optimieren (Owner 30.07.2026) — und jetzt zählt sie auch die, bei denen das Bild
       // danach scheitert.
@@ -1876,6 +1880,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         trackMetaPixel("Purchase", { currency: "EUR", content_name: "Kiss video (wallet)" });
         track("checkout");
         setGuthabenCents(typeof start.rest === "number" ? start.rest : null);
+        try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
         setPayBusy(false);
         setBezahlt(true);
         /**
@@ -2303,8 +2308,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           die Leute auch ein Model … jeder hat ein Model auf dem Handy"), sein Foto, der Kuss.
           Nichts davon ist angefasst: Der Kuss-Trichter traegt Kasse, Video-Lieferung und
           Monatsguthaben, und der laeuft gerade. Umgehaengt, nicht neu gebaut. */}
+      {/* z-40 statt z-[80] + Abstand oben (Owner 03.08.2026: „hier sollte ich das Menü
+          auch haben … und Credit sollte auch hier angezeigt werden"): Die Kopfzeile
+          (z-50, mit Konto-Chip und Galerie) bleibt damit UEBER dem Dialog sichtbar und
+          klickbar — wer im Trichter seine Adresse bestaetigt, sieht sofort oben seinen
+          Stand. Die eigenen Fenster des Trichters (Tor 96, Waehler 96, Teilen 95) liegen
+          weiterhin darueber. */}
       {stufenOffen && (
-      <div className="fixed inset-0 z-[80] overflow-y-auto" style={{ background: "rgba(0,0,0,0.72)" }}
+      <div className="fixed inset-0 z-40 overflow-y-auto pt-36" style={{ background: "rgba(0,0,0,0.72)" }}
         onClick={() => setStufenOffen(false)}>
         <div className="lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4" onClick={e => e.stopPropagation()}>
           <button type="button" onClick={() => setStufenOffen(false)} aria-label={T.back}

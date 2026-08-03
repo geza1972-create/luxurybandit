@@ -24,6 +24,9 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
  */
 export default function GuthabenChip() {
   const [cents, setCents] = useState<number | null>(null);
+  /** Video-Credits aus dem aelteren System (Abo/Extra-Kaeufe) — wer davon welche hat,
+   *  ist NICHT „leer", auch wenn das Euro-Guthaben 0 ist (Owner-Fall tigl10722, 03.08.2026). */
+  const [links, setLinks] = useState(0);
 
   useEffect(() => {
     let weg = false;
@@ -34,7 +37,9 @@ export default function GuthabenChip() {
       if (!mail.trim()) { setCents(null); return; }
       fetch(`/api/kiss-status?email=${encodeURIComponent(mail.trim())}`, { cache: "no-store" })
         .then(r => r.json())
-        .then(d => { if (!weg && typeof d?.walletCents === "number") setCents(d.walletCents); })
+        .then(d => { if (weg) return;
+          if (typeof d?.walletCents === "number") setCents(d.walletCents);
+          setLinks(typeof d?.left === "number" ? d.left : 0); })
         .catch(() => {});
     };
     holen();
@@ -42,7 +47,10 @@ export default function GuthabenChip() {
     // Beim Abmelden sofort leeren — nicht erst beim naechsten Fensterwechsel (03.08.2026).
     const abmelden = () => setCents(null);
     window.addEventListener("lb-abgemeldet", abmelden);
-    return () => { weg = true; window.removeEventListener("focus", holen); window.removeEventListener("lb-abgemeldet", abmelden); };
+    // Der Trichter meldet Adress-Bestaetigung und jede Guthaben-Aenderung — der Chip
+    // zieht sofort nach, ohne Fensterwechsel (Owner 03.08.2026).
+    window.addEventListener("lb-guthaben-neu", holen);
+    return () => { weg = true; window.removeEventListener("focus", holen); window.removeEventListener("lb-abgemeldet", abmelden); window.removeEventListener("lb-guthaben-neu", holen); };
   }, []);
 
   /**
@@ -58,7 +66,9 @@ export default function GuthabenChip() {
       <Link href="/themes/kiss" aria-label="Guthaben"
         className={`${chip} border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[#f6cf51]`}>
         <Wallet className="h-3.5 w-3.5" />
-        {(cents / 100).toFixed(2).replace(".", ",")} €
+        {cents > 0 || links <= 0
+          ? `${(cents / 100).toFixed(2).replace(".", ",")} €`
+          : `${links} 🎬`}
       </Link>
       <Link href="/my-gallery" aria-label="My Gallery"
         className={`${chip} border-white/20 bg-white/5 text-white/85`}>
