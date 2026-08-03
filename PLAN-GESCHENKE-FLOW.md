@@ -139,20 +139,26 @@ Kündigungslogik, `hasActiveSubscription` bei jedem Aufruf, monatliche Gutschrif
 Kontingent-Zeilen, „Abo aktiv"-Zustände im Trichter. **All das entfällt.** Die Hochzeit läuft
 dann über denselben Guthaben-Topf wie jedes andere Geschenk — nur mit einem größeren Betrag.
 
-### Die eine Änderung an deinem Vorschlag
+### Die Laufzeit: drei Monate AB KAUF — Owner-Entscheidung 03.08.2026
 
-**Drei Monate ab KAUF sind gefährlich.** Eine Hochzeit wird oft ein halbes Jahr vorher geplant.
-Wer im März kauft und im September heiratet, steht im Juni vor einer toten Einladungsseite —
-mit Gästen, die schon zugesagt haben. Das ist der schlimmste Moment, den dieses Produkt haben
-kann.
+> Owner: „was ich nicht will, ist mit 3 Monate ab Hochzeit."
 
-**Vorschlag: drei Monate ab dem HOCHZEITSDATUM**, mindestens aber drei Monate ab Kauf. Die Seite
-kennt das Datum ohnehin (es steht auf der Einladung). Damit lebt sie von der Einladung bis nach
-der Feier — genau die Spanne, in der sie gebraucht wird — und die Kosten bleiben gedeckelt, weil
-eine Hochzeitsseite ein paar Dateien und ein Video ist.
+Ich hatte vorgeschlagen, ab dem Hochzeitsdatum zu rechnen, damit eine früh gekaufte Seite nicht
+vor der Feier stirbt. Der Owner hat das abgelehnt, und die Entscheidung hat eine Logik, die im
+Vorschlag fehlte: **Wer früh kauft, verlängert einmal.** Das ist kein Nebeneffekt, sondern ein
+zweiter Verkauf — bei einem Produkt, dessen Nutzen mit der Nähe zur Hochzeit steigt.
 
-Verlängern = noch einmal zahlen, wie du sagst. Und wie beim Geschenk: **Warn-Mail sieben Tage
-vorher**, dieselbe Maschine (`/api/aufraeumen`).
+Also: **drei Monate ab Kauf.** Verlängern = noch einmal 24,99 €.
+
+**Was dazugehört, damit das fair bleibt** — nicht als Einschränkung, sondern weil es sonst als
+Falle wirkt und Rückbuchungen kostet:
+
+- Die Laufzeit steht **vor dem Kauf** auf dem Knopf, nicht im Kleingedruckten: „Deine
+  Einladungsseite ist drei Monate online."
+- **Warn-Mail sieben Tage vorher** mit einem Verlängern-Knopf — dieselbe Maschine wie beim
+  Geschenk (`/api/aufraeumen`), nur ein anderer Text. Wer verlängert, tut es genau dann.
+- Nach Ablauf verschwindet die **Seite**, nicht das Video: Das Video gehört ihm, es bleibt in
+  seiner Galerie und im Download. Sonst verliert er mit der Frist auch das, wofür er bezahlt hat.
 
 ### Was 24,99 € freischalten
 

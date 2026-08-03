@@ -226,8 +226,9 @@ Schritt 1 und 2 kann ich sofort anfangen — beide brauchen keine weitere Entsch
    Neuigkeiten, Gruppenchat), **kein Abo**. Läuft nach drei Monaten ab, dann noch einmal zahlen.
    Das ist besser als der Vorschlag oben: Zwei Kaufwege nebeneinander wären genau die
    Sonderprogrammierung, die vermieden werden soll — so hat der Marktplatz EINEN Kaufweg.
-   Eine Änderung dazu in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5: drei Monate ab dem
-   **Hochzeitsdatum**, nicht ab Kauf — sonst stirbt die Seite vor der Feier.
+   Laufzeit: **drei Monate ab Kauf** (Owner 03.08.2026, gegen meinen Vorschlag „ab
+   Hochzeitsdatum" — wer früh kauft, verlängert einmal, und das ist ein zweiter Verkauf).
+   Drei Video-Versuche enthalten. Details in [PLAN-GESCHENKE-FLOW.md](PLAN-GESCHENKE-FLOW.md) §5.
 4. **Preis je Geschenk** — welche Zahlen? Erst wenn die Pixverse-Abrechnung gelesen ist; die
    Kosten je Lauf stehen bis heute in keinem Kommentar dieses Projekts (siehe `lib/pricing.ts`).
 5. **Chat und Morgenwetter** — bleiben sie im Portal, oder sind sie im Geschenke-Marktplatz ein
