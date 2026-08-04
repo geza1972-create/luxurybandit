@@ -12,6 +12,10 @@
     {
       "path": "/api/aufraeumen",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/ruecklaeufer",
+      "schedule": "0 6 * * *"
     }
   ]
 }

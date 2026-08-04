@@ -2187,7 +2187,12 @@ const MAIL_ABMELDE_PFAD = "try-this-look/mail-abmeldungen.json";
 
 export async function readMailAbmeldungen(): Promise<string[]> {
   try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`);
+    // `no-cache` ist hier PFLICHT, nicht Vorsicht: Wer eine Liste liest, um sie gleich
+    // ergänzt zurückzuschreiben, darf keinen alten Stand bekommen — sonst löscht der
+    // Rückschreiber die Einträge, die zwischen Lesen und Schreiben dazugekommen sind.
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`, {
+      headers: { "cache-control": "no-cache, max-age=0" },
+    });
     if (!res.ok) return [];
     const data = await res.json().catch(() => null);
     return Array.isArray(data?.emails)
@@ -2196,20 +2201,57 @@ export async function readMailAbmeldungen(): Promise<string[]> {
   } catch { return []; }
 }
 
+/**
+ * TRÄGT MEHRERE ADRESSEN IN EINEM ZUG EIN — und genau das ist der Punkt.
+ *
+ * DER FEHLER, DER DAS ERZWANG (gemessen 04.08.2026): Der Rückläufer-Leser fand zwei tote
+ * Adressen und meldete beide als gesperrt. In der Liste stand hinterher nur EINE. Ursache ist
+ * das Muster „lesen, ergänzen, ganz zurückschreiben": Der zweite Aufruf las noch den Stand von
+ * vor dem ersten Schreibvorgang und überschrieb ihn mit seiner eigenen Fassung. Der erste
+ * Eintrag war weg — lautlos, denn beide Aufrufe meldeten Erfolg.
+ *
+ * Das ist keine Kleinigkeit: Eine verlorene Sperre heisst, dass eine tote Adresse beim nächsten
+ * Rundbrief wieder angeschrieben wird — und Rückläufer sind genau das, was die Zustellbarkeit
+ * der Domain kostet. Bei einer verlorenen ABMELDUNG wäre es schlimmer: Dann schreiben wir
+ * jemandem, der ausdrücklich Nein gesagt hat.
+ *
+ * Deshalb: EIN Lesen, EIN Schreiben für den ganzen Schwung — und danach nachsehen, ob wirklich
+ * alles angekommen ist. Fehlt etwas, wird einmal nachgelegt.
+ */
+export async function mailAbmeldenViele(emails: string[]): Promise<string[]> {
+  const wollen = [...new Set(
+    (emails ?? []).map(v => String(v ?? "").trim().toLowerCase())
+      .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)),
+  )];
+  if (!wollen.length) return [];
+
+  const schreiben = async (): Promise<string[]> => {
+    const liste = await readMailAbmeldungen();
+    const da = new Set(liste);
+    const neu = wollen.filter(e => !da.has(e));
+    if (!neu.length) return [];
+    await ensureBucket();
+    const body = JSON.stringify({ emails: [...liste, ...neu].slice(-50_000), updatedAt: new Date().toISOString() });
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body,
+    });
+    if (!res.ok) throw new Error("Abmeldung konnte nicht gespeichert werden.");
+    return neu;
+  };
+
+  const neu = await schreiben();
+  // Nachsehen statt vertrauen. Hat ein gleichzeitiger Schreiber dazwischengefunkt, fehlt hier
+  // etwas — dann einmal nachlegen. Ein zweiter Fehlschlag wird gemeldet, nicht verschluckt.
+  const jetzt = new Set(await readMailAbmeldungen());
+  if (wollen.some(e => !jetzt.has(e))) await schreiben();
+  return neu;
+}
+
 /** Trägt eine Adresse ein. Mehrfaches Abmelden ist harmlos (idempotent). */
 export async function mailAbmelden(email: string): Promise<void> {
-  const e = String(email ?? "").trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return;
-  const liste = await readMailAbmeldungen();
-  if (liste.includes(e)) return;
-  await ensureBucket();
-  const body = JSON.stringify({ emails: [...liste, e].slice(-50_000), updatedAt: new Date().toISOString() });
-  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(MAIL_ABMELDE_PFAD)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
-    body,
-  });
-  if (!res.ok) throw new Error("Abmeldung konnte nicht gespeichert werden.");
+  await mailAbmeldenViele([email]);
 }
 
 /**
@@ -2230,6 +2272,113 @@ export async function mailFreigeben(email: string): Promise<void> {
     body,
   });
   if (!res.ok) throw new Error("Sperre konnte nicht aufgehoben werden.");
+}
+
+// ── Rückläufer: das Protokoll ───────────────────────────────────────────────
+/**
+ * WER WURDE WANN UND WARUM GESPERRT (Owner 04.08.2026, zum Rückläufer-Leser).
+ *
+ * Die Sperrliste selbst ist nur eine Aufzählung von Adressen — sie sagt nicht, wie eine
+ * hineingekommen ist. Solange ein Mensch sie von Hand füllte, wusste er es. Sobald ein Cron
+ * nachts sperrt, weiss es niemand mehr: Beschwert sich jemand, er bekomme keine Post, gäbe es
+ * ohne dieses Protokoll keine Antwort ausser Achselzucken.
+ *
+ * Deshalb steht hier der Klartext des Mailservers dabei („550 5.1.1 … does not exist"). Das ist
+ * der Beleg, mit dem sich eine Sperre entweder verteidigen oder zurücknehmen lässt.
+ */
+const RUECKLAEUFER_PFAD = "try-this-look/ruecklaeufer-log.json";
+
+export type RuecklaeuferEintrag = {
+  email: string;
+  status: string;
+  grund: string;
+  betreff: string;
+  am: string;
+};
+
+export async function readRuecklaeuferLog(): Promise<RuecklaeuferEintrag[]> {
+  try {
+    // Gelesen wird, um gleich anzuhängen — also nie aus dem Cache, siehe `readMailAbmeldungen`.
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(RUECKLAEUFER_PFAD)}`, {
+      headers: { "cache-control": "no-cache, max-age=0" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.eintraege) ? (data.eintraege as RuecklaeuferEintrag[]) : [];
+  } catch { return []; }
+}
+
+/** Hängt an. Die letzten 5000 reichen — älter als das schaut niemand nach. */
+export async function vermerkRuecklaeufer(neu: RuecklaeuferEintrag[]): Promise<void> {
+  if (!neu.length) return;
+  const alt = await readRuecklaeuferLog();
+  await ensureBucket();
+  const body = JSON.stringify({ eintraege: [...alt, ...neu].slice(-5000), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(RUECKLAEUFER_PFAD)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Rückläufer-Protokoll konnte nicht geschrieben werden.");
+}
+
+// ── Rundbrief: wer ist schon dran gewesen ───────────────────────────────────
+/**
+ * WEM WURDE DIESE AUSSENDUNG SCHON GESCHICKT (Owner 04.08.2026, „weiter mit mails rückgang").
+ *
+ * DAS PROBLEM, DAS OHNE DIESE DATEI UNLÖSBAR IST: Rückläufer werden nur dann billig, wenn man
+ * in kleinen Schüben sendet — 50 raus, am nächsten Tag die toten Adressen sperren, die
+ * nächsten 50. Nur liess sich das gar nicht durchführen: Der Rundbrief kannte bloss „alle auf
+ * einmal" und merkte sich nichts. Brach er nach der Hälfte ab (die Route hat 300 Sekunden, bei
+ * 350 ms Abstand je Mail ist das nicht viel Luft), wusste niemand, wo er stehengeblieben war —
+ * und ein zweiter Lauf schrieb die erste Hälfte ein zweites Mal an.
+ *
+ * ZWEIMAL DASSELBE ZU SCHICKEN IST NICHT NUR PEINLICH: Genau das drückt der Empfänger als
+ * „Spam" weg, und diese Meldung wiegt bei Gmail schwerer als jeder Rückläufer.
+ *
+ * Geführt wird nach KAMPAGNE, nicht global — die nächste Aussendung soll dieselben Leute ja
+ * wieder erreichen dürfen.
+ */
+const RUNDBRIEF_GESENDET_PFAD = "try-this-look/rundbrief-gesendet.json";
+
+type GesendetDatei = Record<string, Record<string, string>>;
+
+async function readGesendetDatei(): Promise<GesendetDatei> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(RUNDBRIEF_GESENDET_PFAD)}`, {
+      headers: { "cache-control": "no-cache, max-age=0" },
+    });
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return (data?.kampagnen && typeof data.kampagnen === "object" ? data.kampagnen : {}) as GesendetDatei;
+  } catch { return {}; }
+}
+
+/** Die Adressen, die diese Kampagne schon bekommen haben. */
+export async function readRundbriefGesendet(kampagne: string): Promise<Set<string>> {
+  const alle = await readGesendetDatei();
+  return new Set(Object.keys(alle[String(kampagne)] ?? {}));
+}
+
+/**
+ * Vermerkt einen ganzen Schub in EINEM Schreibvorgang — nie einen nach dem anderen, sonst
+ * überschreiben sich die Vermerke gegenseitig (siehe `mailAbmeldenViele`).
+ */
+export async function vermerkRundbriefGesendet(kampagne: string, emails: string[]): Promise<void> {
+  const k = String(kampagne);
+  const neu = [...new Set((emails ?? []).map(v => String(v ?? "").trim().toLowerCase()).filter(Boolean))];
+  if (!neu.length) return;
+  const alle = await readGesendetDatei();
+  const jetzt = new Date().toISOString();
+  alle[k] = { ...(alle[k] ?? {}) };
+  for (const e of neu) alle[k][e] = jetzt;
+  await ensureBucket();
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(RUNDBRIEF_GESENDET_PFAD)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ kampagnen: alle, updatedAt: jetzt }),
+  });
+  if (!res.ok) throw new Error("Versand-Vermerk konnte nicht gespeichert werden.");
 }
 
 // ── Rundbrief: Öffnungen ────────────────────────────────────────────────────

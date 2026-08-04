@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
+import { readKissConfig, getSignedUrl, createSignedUploadUrl, readRundbriefGesendet, vermerkRundbriefGesendet } from "@/lib/try-this-look-store";
 import { alleEmpfaenger } from "@/lib/portal-empfaenger";
 import { sendEmail } from "@/lib/email-send";
 import { fillPrices } from "@/lib/pricing";
@@ -178,7 +178,7 @@ async function posterBauen(): Promise<string> {
 
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-  const body = (await request.json().catch(() => ({}))) as { test?: string; all?: boolean; lang?: string; nurBestaetigte?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { test?: string; all?: boolean; lang?: string; nurBestaetigte?: boolean; anzahl?: number };
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";
   const vorgabe = String(body.lang ?? "en").slice(0, 5);
 
@@ -191,6 +191,15 @@ export async function POST(request: Request) {
    */
   const empfaenger = body.nurBestaetigte ? alle.filter(e => e.bestaetigt) : alle;
 
+  /**
+   * WER HAT DIESE AUSSENDUNG SCHON — die Grundlage für Schub-Versand. Stabile Reihenfolge nach
+   * Adresse, damit zwei Läufe nicht dieselbe Person zweimal und eine andere nie erwischen.
+   */
+  const schonDran = await readRundbriefGesendet(KAMPAGNE);
+  const offen = empfaenger
+    .filter(e => !schonDran.has(e.email))
+    .sort((a, b) => a.email.localeCompare(b.email));
+
   // ZÄHLEN, NICHT SENDEN — der Normalfall ohne `test` und ohne `all`.
   if (!body.test && !body.all) {
     const nachQuelle: Record<string, number> = {};
@@ -198,19 +207,48 @@ export async function POST(request: Request) {
     return NextResponse.json({
       gesendet: 0,
       empfaenger: empfaenger.length,
+      schonGeschickt: empfaenger.length - offen.length,
+      offen: offen.length,
       bestaetigt: alle.filter(e => e.bestaetigt).length,
       unbestaetigt: alle.filter(e => !e.bestaetigt).length,
       nachQuelle,
-      hinweis: "Nur gezählt. Zum Senden: { test: \"adresse\" } oder { all: true }.",
+      kampagne: KAMPAGNE,
+      hinweis: "Nur gezählt. Zum Senden: { test: \"adresse\" } oder { all: true, anzahl: 50 }.",
     });
   }
 
   const poster = await posterBauen();
+  /**
+   * DER SCHUB (Owner 04.08.2026). `anzahl` begrenzt die Aussendung; ohne Angabe gilt 50 —
+   * absichtlich nicht „alle", denn die Voreinstellung ist der Knopf, den jemand um Mitternacht
+   * müde drückt.
+   *
+   * ZWEI GRÜNDE, und beide kosten sonst die Domain:
+   *   1. Die Rücklaufquote wird an der einzelnen Aussendung gemessen. 50 Adressen mit drei
+   *      Toten sind eine Randnotiz; 164 auf einmal mit zehn Toten sind ein Muster.
+   *   2. Diese Route hat 300 Sekunden. Bei 350 ms Abstand je Mail plus Sendezeit ist bei etwa
+   *      der Hälfte der Liste Schluss — bisher brach sie dann mittendrin ab, ohne Spur.
+   * Zwischen zwei Schüben läuft der Rückläufer-Leser (nachts um 6) und sperrt, was tot ist.
+   */
+  const anzahl = Math.max(1, Math.min(500, Number(body.anzahl) || 50));
   const ziele = body.test
     ? [{ email: String(body.test).trim().toLowerCase(), name: "", lang: vorgabe, quellen: ["test"] }]
-    : empfaenger;
+    : offen.slice(0, anzahl);
 
   const ergebnisse: { email: string; ok: boolean; error?: string }[] = [];
+  /**
+   * ZWISCHENDURCH VERMERKEN, nicht erst am Schluss. Bricht die Route ab — Zeitlimit, Absturz,
+   * Hostinger drosselt —, wäre ein Vermerk am Ende nie geschrieben worden, und der nächste
+   * Lauf schriebe den ganzen Schub ein zweites Mal an. So gehen im schlimmsten Fall die
+   * letzten paar verloren statt aller.
+   */
+  let puffer: string[] = [];
+  const vermerken = async () => {
+    if (!puffer.length) return;
+    try { await vermerkRundbriefGesendet(KAMPAGNE, puffer); puffer = []; }
+    catch { /* lieber doppelt vermerken als den Versand abbrechen */ }
+  };
+
   for (const e of ziele) {
     const t = TEXTE[(e.lang ?? vorgabe).slice(0, 2)] ?? TEXTE.en;
     // Der Preis kommt aus der Preistabelle — nie von Hand getippt (Dauerregel im Projekt).
@@ -225,11 +263,15 @@ export async function POST(request: Request) {
       html: html({ ...t, preis }, link, unsub, poster, pixel),
       listUnsubscribe: unsub,
     }).catch(() => ({ ok: false, error: "send failed" }));
-    ergebnisse.push({ email: e.email, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });
+    const ok = !!(r as { ok?: boolean }).ok;
+    ergebnisse.push({ email: e.email, ok, error: (r as { error?: string }).error });
+    // Nur erfolgreich Zugestelltes gilt als erledigt — wer nicht rausging, kommt wieder dran.
+    if (ok && !body.test) { puffer.push(e.email); if (puffer.length >= 25) await vermerken(); }
     // EIN KLEINER ABSTAND zwischen den Mails. Hostinger drosselt bei Stoßversand, und eine
     // gedrosselte Verbindung kostet uns die Zustellung an alle danach.
     if (!body.test) await new Promise(r2 => setTimeout(r2, 350));
   }
+  await vermerken();
 
   const gesendet = ergebnisse.filter(r => r.ok).length;
   return NextResponse.json({
@@ -237,6 +279,9 @@ export async function POST(request: Request) {
     versucht: ziele.length,
     test: !!body.test,
     posterDabei: !!poster,
+    kampagne: KAMPAGNE,
+    // Was nach diesem Schub noch aussteht — damit man weiss, ob und wann der nächste dran ist.
+    verbleibend: body.test ? 0 : Math.max(0, offen.length - gesendet),
     fehler: ergebnisse.filter(r => !r.ok).slice(0, 50),
   });
 }

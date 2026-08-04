@@ -1038,6 +1038,43 @@ export default function AdminPage() {
     } catch { /* siehe oben */ }
   };
 
+  /**
+   * RÜCKLÄUFER HOLEN (Owner 04.08.2026: „ich habe eine Menge emails die zurückkammen").
+   *
+   * Bisher las der Besitzer die Unzustellbar-Berichte selbst im Postfach und tippte die
+   * Adressen ab. Was er übersah, blieb im Verteiler und wurde beim nächsten Rundbrief wieder
+   * angeschrieben — und genau daran messen Gmail und Yahoo, ob ein Absender seine Empfänger
+   * kennt. Der Knopf macht daraus einen Griff; nachts erledigt es ausserdem ein Cron.
+   *
+   * WAS DER KNOPF NICHT ENTSCHEIDET: Gesperrt wird nur, was ein Mailserver als tote Adresse
+   * gemeldet hat. Alles Zweifelhafte — vor allem Abweisungen der Gegenseite (5.7.x), die auch
+   * eine gesunde Adresse treffen können — landet in `rueckUnsicher` und wartet auf einen
+   * Menschen. Diese Trennung ist der ganze Punkt: Eine zu Unrecht gesperrte Adresse fällt
+   * niemandem auf, denn sie beschwert sich nicht.
+   */
+  const [rueckBusy, setRueckBusy] = useState(false);
+  const [rueckMsg, setRueckMsg] = useState("");
+  const [rueckUnsicher, setRueckUnsicher] = useState<Array<{ email: string; status: string; grund: string }>>([]);
+
+  const ruecklaeuferHolen = async () => {
+    setRueckBusy(true); setRueckMsg(""); setRueckUnsicher([]);
+    try {
+      const r = await fetch("/api/ruecklaeufer?tage=30", { method: "POST", headers: headers() });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.fehler) { setRueckMsg(String(d.fehler || "Postfach nicht erreichbar.")); return; }
+      const neu = (d.gesperrt ?? []) as Array<{ email: string }>;
+      setEmailGesperrt(s => { const n = new Set(s); for (const x of neu) n.add(x.email); return n; });
+      setRueckUnsicher(d.unsicher ?? []);
+      setRueckMsg(neu.length
+        ? `${neu.length} tote ${neu.length === 1 ? "Adresse" : "Adressen"} aus dem Verteiler genommen.`
+        : `Nichts Neues — ${d.kandidaten ?? 0} Berichte durchgesehen.`);
+    } catch {
+      setRueckMsg("Postfach nicht erreichbar.");
+    } finally {
+      setRueckBusy(false);
+    }
+  };
+
   const emailAllRecipients = useMemo(() => {
     const byEmail = new Map<string, { email: string; name: string; source: string }>();
     for (const u of users) { if (u.email && !byEmail.has(u.email)) byEmail.set(u.email, { email: u.email, name: u.name || "", source: "user" }); }
@@ -3201,6 +3238,36 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </details>
+              )}
+              {/* Das Postfach nach Unzustellbar-Berichten durchsehen — der Griff zum Cron. */}
+              <button type="button" onClick={() => void ruecklaeuferHolen()} disabled={rueckBusy}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] py-2 text-[12px] font-black text-ink/70 transition hover:bg-black/[0.06] active:scale-95 disabled:opacity-40">
+                {rueckBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Inbox className="h-3.5 w-3.5" />}
+                {rueckBusy ? "Sieht im Postfach nach…" : "Rückläufer aus dem Postfach holen"}
+              </button>
+              {rueckMsg && <p className="mt-1.5 text-[11px] font-bold text-ink/60">{rueckMsg}</p>}
+              {/* Was der Mailserver NICHT eindeutig als tote Adresse gemeldet hat. Hier
+                  entscheidet ein Mensch — deshalb steht der Grund im Klartext daneben. */}
+              {rueckUnsicher.length > 0 && (
+                <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+                  <p className="text-[11px] font-black text-amber-700">
+                    {rueckUnsicher.length} unklar — nicht gesperrt, bitte selbst entscheiden
+                  </p>
+                  <div className="mt-1.5 space-y-1.5">
+                    {rueckUnsicher.map(u => (
+                      <div key={u.email} className="flex items-start gap-2">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] font-bold text-ink">{u.email}</span>
+                          <span className="block truncate text-[10px] font-medium text-ink/55">{u.status ? `${u.status} · ` : ""}{u.grund}</span>
+                        </span>
+                        <button type="button" onClick={() => { void emailSperren(u.email); setRueckUnsicher(l => l.filter(x => x.email !== u.email)); }}
+                          className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/70 active:scale-95">
+                          trotzdem sperren
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
               <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-black/10">
                 {emailFilteredRecipients.length === 0 ? (
