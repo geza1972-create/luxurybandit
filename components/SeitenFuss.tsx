@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Instagram, Youtube } from "lucide-react";
+import { YOUTUBE_CHANNEL } from "@/lib/social";
 
 /**
  * DER FUSS UNTER JEDER THEMENSEITE (Owner 05.08.2026: „und wir machen auf jeder Topicseite
@@ -57,6 +59,21 @@ export default function SeitenFuss({ className = "" }: { className?: string }) {
         {links.map(([href, text]) => (
           <Link key={href} href={href} className="hover:text-white">{text}</Link>
         ))}
+      </div>
+      {/* INSTAGRAM UND YOUTUBE (Owner 06.08.2026: „instagram und you tube icon in dem
+          footer") — dieselben Ziele und dieselben Kreise wie in der Kopfzeile (TopNav
+          `iconBtn`), die Adresse aus EINER Quelle (`lib/social`, NEXT_PUBLIC_INSTAGRAM_HANDLE).
+          Bewusst kein Client-Code: zwei <a>, der Fuss bleibt ein Server-Baustein. */}
+      <div className="mt-4 flex items-center gap-2">
+        <a href={YOUTUBE_CHANNEL} target="_blank" rel="noopener noreferrer" aria-label="Bella auf YouTube"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white">
+          <Youtube className="h-4 w-4" />
+        </a>
+        <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`}
+          target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white">
+          <Instagram className="h-4 w-4" />
+        </a>
       </div>
       {/* Die Marke zum Schluss — sie beantwortet die Frage „bei wem war ich hier eigentlich",
           wenn jemand die Seite geteilt bekommen hat und die Kopfzeile längst weggescrollt ist. */}
