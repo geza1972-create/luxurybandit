@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
+import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
+  ThemenKachel, ThemenGestaltWahl, useThemenGestalt, SCHEIBEN_TINTE,
+  type ThemenKachelDaten } from "@/components/CI";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -31,10 +33,30 @@ const FARBEN = [
   { name: "Grund (dunkel)", wert: "#141110" },
 ];
 
+/* Zwei echte Themen als Muster — eines mit Video, eines „bald". Mehr braucht es nicht, um
+   die zwei Gestalten zu vergleichen; die vollstaendige Liste steht auf der Themenseite. */
+const MUSTER_THEMEN: ThemenKachelDaten[] = [
+  {
+    titel: "Sende einen Kuss an die Person, die du liebst",
+    zeile: "Dein Foto und ihres — ein Video mit euch beiden, nur für sie.",
+    href: "/themes/kiss",
+    video: "/Kiss/Video4-kiss-normal.mp4",
+    merkmale: "♥ Wähle sie · Dein Foto · Kuss",
+    abPreis: "ab 15 €",
+  },
+  {
+    titel: "Noch nicht offen",
+    zeile: "So sieht ein Thema aus, das es bald gibt.",
+    merkmale: "",
+    platzhalter: <Sparkles className="h-16 w-16 text-white/10" strokeWidth={1.25} />,
+  },
+];
+
 export default function CIMuster() {
   const [dialogOffen, setDialogOffen] = useState<"hell" | "dunkel" | null>(null);
   const [chipWahl, setChipWahl] = useState("a");
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
+  const gestalt = useThemenGestalt();
 
   const abschnitt = (titel: string) => (
     <p className="mb-2 mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{titel}</p>
@@ -74,6 +96,21 @@ export default function CIMuster() {
         Das alte Altgold ist abgeschafft: Symbole und Kartenschrift sind Tinte (#1a160f),
         die Ornamente schwarz im Dunkeln und blau im Hellen.
       </Fine>
+
+      {abschnitt("Schriften — zwei, und nur zwei")}
+      {/* Stand bis 06.08.2026 nirgends (Owner: „die selbe schrift art bitte wie in der Card
+          aber wie ich sehe das steht gar nicht unter fonds") — die Serife der Karte war
+          15-mal als `font-serif` von Hand getippt. Jetzt setzt sie `.lb-karte` selbst. */}
+      <div className="grid grid-cols-1 gap-2">
+        <Kasten>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Überall — System-Sans</p>
+          <p className="mt-1 text-[17px] font-black leading-tight text-white">Wähl ein Geschenk. Verschick es heute.</p>
+        </Kasten>
+        <div className="lb-karte rounded-2xl p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">In der Karte — Serife</p>
+          <p className="mt-1 text-[17px] font-black leading-tight">Wähl ein Geschenk. Verschick es heute.</p>
+        </div>
+      </div>
 
       {abschnitt("Typo (components/Landing)")}
       <Kasten className="space-y-2">
@@ -132,6 +169,17 @@ export default function CIMuster() {
         <Knopf art="gold" disabled><Laden />Dein Video entsteht …</Knopf>
         <Laden art="flaeche" text="Wir suchen die passenden Stücke — das dauert ein paar Sekunden." />
       </Kasten>
+
+      {abschnitt("Topic-Kasten — hier wird die Gestalt gewählt")}
+      {/* HIER wird gestaltet, nicht im Trichter (Owner 06.08.2026: „ich habe dir gesagt das
+          wir nicht hier gestalten sondern in der bibliothek"). Die Wahl bleibt im Browser
+          stehen und gilt danach auch auf der Themenseite — dieselbe Quelle, ein Eintrag. */}
+      <ThemenGestaltWahl art={gestalt.art} waehle={gestalt.waehle} className="mb-3" />
+      <div className="grid grid-cols-1 gap-3">
+        {MUSTER_THEMEN.map(t => (
+          <ThemenKachel key={t.titel} thema={t} art={gestalt.art} baldZeile="Coming soon" />
+        ))}
+      </div>
 
       {abschnitt("Themen-Kreise — die Tür zu jedem Thema")}
       {/* Aus der Galerie in die Bibliothek geholt (Owner 06.08.2026: „die kommen auch in

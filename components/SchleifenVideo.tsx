@@ -57,7 +57,7 @@ function nachhelfen(v: HTMLVideoElement) {
 }
 
 export default function SchleifenVideo({
-  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover",
+  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover", natuerlich = false,
 }: {
   src: string;
   poster?: string;
@@ -71,6 +71,17 @@ export default function SchleifenVideo({
    * und der Feed davon leben; die KARTE bittet um `contain`.
    */
   passform?: "cover" | "contain";
+  /**
+   * DAS VIDEO GIBT SEINE EIGENE HOEHE (Owner 06.08.2026: „boa der volle ist aber grausam.
+   * Abgeschnitenen Videos braucht keine Mensch").
+   *
+   * Sonst bestimmt die Huelle das Format, und das Video muss sich fuegen: entweder es wird
+   * beschnitten (`cover`) oder es bekommt Balken (`contain`). Beides ist falsch, wenn die
+   * Flaeche sowieso die ganze Breite hat — dann soll das Video einfach so hoch sein, wie es
+   * ist. Das ist hier keine Kleinigkeit: Unsere Themen-Videos sind teils 3:4, teils 9:16.
+   * EIN festes Verhaeltnis fuer alle heisst zwangslaeufig, dass die Haelfte beschnitten wird.
+   */
+  natuerlich?: boolean;
   /** Fast immer stumm: Den Ton tragen unsere eigenen Tonspuren (lib/musik.ts). */
   stumm?: boolean;
   /**
@@ -132,12 +143,16 @@ export default function SchleifenVideo({
    * harter Schnitt aussieht.
    */
   const gemeinsam = `h-full w-full ${passform === "contain" ? "object-contain" : "object-cover"} ${className}`;
+  /* Natuerlich: Der VORDERE Spieler bekommt keine Hoehe vorgeschrieben und spannt damit die
+     Huelle auf; der hintere legt sich absolut darueber. Beide zeigen dieselbe Quelle, also
+     passt er auf den Pixel. */
+  const ersterKl = natuerlich ? `block h-auto w-full ${className}` : gemeinsam;
   return (
-    <div className="lb-schleife relative h-full w-full overflow-hidden">
+    <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={a} src={src} poster={poster || undefined} muted={stumm} playsInline autoPlay preload="auto"
         style={{ opacity: !schleife || vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
-        className={gemeinsam} />
+        className={ersterKl} />
       {/* Der zweite Spieler existiert NUR fuer die Ueberblendung. Ohne Schleife waere er ein
           zweites Mal dieselben Megabyte, die niemand sieht. */}
       {schleife && (

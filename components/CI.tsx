@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
+import { CornerOrnaments } from "@/components/BoxOrnaments";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -292,56 +293,145 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
 }) {
   const aktiv = !!thema.href;
   const voll = art === "voll";
+  /**
+   * IN DER VOLLEN GESTALT GIBT DIE KACHEL KEIN FORMAT VOR (Owner 06.08.2026: „boa der volle
+   * ist aber grausam. Abgeschnitenen Videos braucht keine Mensch").
+   *
+   * Zuerst stand hier ein festes `aspect-[4/3]`, und `object-cover` hat alles darüber
+   * weggeschnitten — bei einem Hochformat war das die halbe Aufnahme. Die Themen-Videos
+   * sind ausserdem NICHT gleich: teils 3:4, teils 9:16. Ein festes Verhältnis für alle
+   * heisst zwangsläufig, dass die Hälfte beschnitten wird. Über die ganze Breite braucht es
+   * gar keinen Rahmen: Das Video ist so hoch, wie es ist, und man sieht die ganze Aufnahme.
+   * In der schmalen Reihe bleibt die feste 3:4-Briefmarke — dort MUSS ein Format her, sonst
+   * hätte jede Zeile eine andere Höhe.
+   */
   const medien = (
-    <div className={`relative shrink-0 overflow-hidden lb-media-bg ${voll ? "aspect-[4/3] w-full" : "aspect-[3/4] w-[104px]"}`}>
+    <div className={`relative shrink-0 overflow-hidden lb-media-bg ${voll ? "w-full" : "aspect-[3/4] w-[104px]"}`}>
       {thema.video ? (
-        <SchleifenVideo src={thema.video} poster={thema.poster || undefined} className="object-top" />
+        <SchleifenVideo src={thema.video} poster={thema.poster || undefined}
+          natuerlich={voll} className={voll ? "" : "object-top"} />
       ) : thema.bild ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {thema.bild2 && <img src={thema.bild2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
+          {thema.bild2 && <img src={thema.bild2} alt="" className={voll ? "absolute inset-0 h-full w-full object-cover object-top" : "absolute inset-0 h-full w-full object-cover object-top"} />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={thema.bild} alt=""
-            className={`absolute inset-0 h-full w-full object-cover object-top ${aktiv ? "" : "brightness-[0.8]"} ${thema.bild2 ? "lb-swap-top" : ""}`} />
+            className={`${voll ? "block h-auto w-full" : "absolute inset-0 h-full w-full object-cover object-top"} ${aktiv ? "" : "brightness-[0.8]"} ${thema.bild2 ? "lb-swap-top" : ""}`} />
         </>
       ) : (
-        <div className="absolute inset-0 grid place-items-center">{thema.platzhalter}</div>
+        <div className={voll ? "grid aspect-[3/4] place-items-center" : "absolute inset-0 grid place-items-center"}>{thema.platzhalter}</div>
       )}
       {aktiv
         ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">{live}</span>
         : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> {bald}</span>}
     </div>
   );
-  const text = (
-    <div className={`flex min-w-0 flex-1 flex-col justify-center ${voll ? "px-3.5 py-3" : "px-3 py-2.5"}`}>
-      {/* Kein `truncate` am Titel: „Schick einen Kuss an den Menschen, den du liebst" ist
-          der Satz, der verkauft — abgeschnitten verkauft er nichts. */}
-      <p className={`font-black leading-tight text-white ${voll ? "text-[16px]" : "text-[14px]"}`}>{thema.titel}</p>
-      <p className={`mt-0.5 font-semibold leading-snug text-white/75 ${voll ? "text-[12.5px]" : "line-clamp-2 text-[11.5px]"}`}>{thema.zeile}</p>
-      <div className="mt-1.5 flex items-baseline gap-2">
-        {aktiv && thema.abPreis && (
-          <span className={`shrink-0 font-black text-[#f6cf51] ${voll ? "text-[15px]" : "text-[13px]"}`}>{thema.abPreis}</span>
-        )}
-        <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide text-white/40">
-          {aktiv ? thema.merkmale : baldZeile}
-        </span>
-      </div>
+  /* Kein `truncate` am Titel: „Schick einen Kuss an den Menschen, den du liebst" ist der
+     Satz, der verkauft — abgeschnitten verkauft er nichts.
+     Auf dem Karten-Papier schreibt `.lb-karte` die Farben per !important vor: Titel und
+     Zeile werden Tinte, die Schrift ist eine Serife. Deshalb hier KEINE Farbklassen — sie
+     würden ohnehin überstimmt (Memory `lb-karte-important-frisst-inline-farben`). Die
+     Rangfolge macht das Gewicht. */
+  const preiszeile = (
+    <div className={`flex items-baseline gap-2 ${voll ? "justify-center" : "mt-1.5"}`}>
+      {/* DER PREIS IST DIE WICHTIGSTE ZEILE — er steht vorn, nicht als Fussnote hinter den
+          Merkmalen. Ein Geschenk, dessen Preis man raten muss, verkauft sich nicht. */}
+      {aktiv && thema.abPreis && (
+        <span className={`lb-karte-gold shrink-0 font-black ${voll ? "text-[16px]" : "text-[13px]"}`}>{thema.abPreis}</span>
+      )}
+      <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide opacity-55">
+        {aktiv ? thema.merkmale : baldZeile}
+      </span>
     </div>
   );
-  const kl = `overflow-hidden rounded-2xl bg-white/[0.04] transition-opacity ${voll ? "block" : "flex items-stretch"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
+  /* IN DER VOLLEN GESTALT STEHT DER TITEL OBEN — wie auf jeder Karte des Hauses (Memory
+     `karten-fuer-videos`: „Titel oben, made by unten"). Das ist nicht nur Gewohnheit: Die
+     Eckranken sitzen in den vier Ecken, und unter dem Bild waere kein Platz mehr fuer sie
+     neben dem Text. Oben flankieren sie den Titel, unten die Preiszeile — genau wie sie es
+     auf der Einladung tun. Die waagerechten Polster (`px-10`) halten den Text von den
+     Ranken frei. */
+  const text = voll ? null : (
+    <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
+      <p className="text-[14px] font-black leading-tight">{thema.titel}</p>
+      <p className="mt-0.5 line-clamp-2 text-[11.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      {preiszeile}
+    </div>
+  );
+  /**
+   * DIE KACHEL IST EINE KARTE (Owner 06.08.2026: „und die werden in voller breite so wie
+   * auch klein wie die cards designt also weiss und abgerundete sachen. In voller breite
+   * mit ornamente").
+   *
+   * Vorher war sie eine dunkle Fläche mit weisser Schrift — dasselbe Grau wie alles andere
+   * auf der Seite. Jetzt trägt sie das Papier des Hauses: elfenbein, rund, Serifenschrift,
+   * und über die ganze Breite mit den Eckranken, die auch auf der Einladung stehen. Das ist
+   * dieselbe Handschrift wie das Produkt selbst — wer die Startseite sieht, sieht schon,
+   * was er verschickt.
+   *
+   * Die Ornamente NUR in der vollen Gestalt: In der schmalen Reihe ist die Kachel 104 Pixel
+   * hoch, dort wären vier Ecken nur Krümel.
+   */
+  const kl = `lb-karte relative overflow-hidden rounded-[22px] transition-opacity ${voll ? "block p-3" : "flex items-stretch"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
+  const inhalt = voll ? (
+    <>
+      <CornerOrnaments />
+      <p className="px-10 pt-1 text-center text-[17px] font-black leading-tight">{thema.titel}</p>
+      <p className="mt-1 px-6 text-center text-[12.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      <div className="mt-2.5 overflow-hidden rounded-[16px]">{medien}</div>
+      <div className="px-10 pb-1 pt-2.5">{preiszeile}</div>
+    </>
+  ) : (
+    <>{medien}{text}</>
+  );
   return aktiv
-    ? <a href={thema.href} className={kl}>{medien}{text}</a>
-    : <div className={kl}>{medien}{text}</div>;
+    ? <a href={thema.href} className={kl}>{inhalt}</a>
+    : <div className={kl}>{inhalt}</div>;
 }
 
 /**
- * DIE THEMEN-LISTE — die sechs Kacheln plus der Umschalter zwischen den zwei Gestalten
- * (Owner 06.08.2026: „Ich werde mit einem toogle button von hier umschalten können").
+ * WELCHE GESTALT GILT — eine Wahl, die im Browser stehen bleibt.
  *
- * Der Umschalter zeigt sich NUR dem Admin (PIN im Browser, wie in der Galerie): Er ist ein
- * Werkzeug zum Vergleichen, keine Einstellung für den Kunden — der soll die eine Gestalt
- * sehen, für die wir uns entschieden haben, und nicht vor einer Designfrage stehen.
- * Die Wahl bleibt im Browser stehen, damit man sie nicht bei jedem Laden neu trifft.
+ * GEWÄHLT WIRD AUF `/ci`, NICHT AUF DER THEMENSEITE (Owner 06.08.2026: „ich habe dir gesagt
+ * das wir nicht hier gestalten sondern in der bibliothek"). Der Umschalter stand zuerst über
+ * den echten Kacheln im Trichter — falsch: Der Trichter ist die Auslage, nicht die Werkbank.
+ * Der Kunde soll die eine Gestalt sehen, für die wir uns entschieden haben, und nicht vor
+ * einer Designfrage stehen. Verglichen wird auf der Muster-Seite; was dort gewählt wird,
+ * gilt danach überall, weil beide Seiten denselben Eintrag lesen.
+ */
+const GESTALT_SCHLUESSEL = "lb-topic-gestalt";
+export function useThemenGestalt() {
+  const [art, setArt] = useState<"reihe" | "voll">("reihe");
+  useEffect(() => {
+    try {
+      const w = localStorage.getItem(GESTALT_SCHLUESSEL);
+      if (w === "voll" || w === "reihe") setArt(w);
+    } catch { /* Privatmodus — dann eben die Vorgabe */ }
+  }, []);
+  const waehle = (w: "reihe" | "voll") => {
+    setArt(w);
+    try { localStorage.setItem(GESTALT_SCHLUESSEL, w); } catch { /**/ }
+  };
+  return { art, waehle };
+}
+
+/** Der Umschalter — gehört auf die Muster-Seite `/ci`, nicht in einen Trichter. */
+export function ThemenGestaltWahl({ art, waehle, className = "" }: {
+  art: "reihe" | "voll";
+  waehle: (w: "reihe" | "voll") => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Gestalt</span>
+      <Knopf art="chip" aktiv={art === "reihe"} onClick={() => waehle("reihe")}>Reihe</Knopf>
+      <Knopf art="chip" aktiv={art === "voll"} onClick={() => waehle("voll")}>Volle Breite</Knopf>
+    </div>
+  );
+}
+
+/**
+ * DIE THEMEN-LISTE — die Kacheln in der gewählten Gestalt. KEIN Umschalter darin: gewählt
+ * wird auf `/ci` (siehe `useThemenGestalt`), hier wird nur noch gezeigt.
  */
 export function ThemenListe({ themen, live, bald, baldZeile, className = "" }: {
   themen: ThemenKachelDaten[];
@@ -350,33 +440,12 @@ export function ThemenListe({ themen, live, bald, baldZeile, className = "" }: {
   baldZeile?: string;
   className?: string;
 }) {
-  const [art, setArt] = useState<"reihe" | "voll">("reihe");
-  const [admin, setAdmin] = useState(false);
-  useEffect(() => {
-    try {
-      setAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin"));
-      const w = localStorage.getItem("lb-topic-gestalt");
-      if (w === "voll" || w === "reihe") setArt(w);
-    } catch { /* Privatmodus — dann eben die Vorgabe */ }
-  }, []);
-  const waehle = (w: "reihe" | "voll") => {
-    setArt(w);
-    try { localStorage.setItem("lb-topic-gestalt", w); } catch { /**/ }
-  };
+  const { art } = useThemenGestalt();
   return (
-    <div className={className}>
-      {admin && (
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Gestalt</span>
-          <Knopf art="chip" aktiv={art === "reihe"} onClick={() => waehle("reihe")}>Reihe</Knopf>
-          <Knopf art="chip" aktiv={art === "voll"} onClick={() => waehle("voll")}>Volle Breite</Knopf>
-        </div>
-      )}
-      <div className="grid grid-cols-1 gap-3">
-        {themen.map(t => (
-          <ThemenKachel key={t.titel} thema={t} art={art} live={live} bald={bald} baldZeile={baldZeile} />
-        ))}
-      </div>
+    <div className={`grid grid-cols-1 gap-3 ${className}`}>
+      {themen.map(t => (
+        <ThemenKachel key={t.titel} thema={t} art={art} live={live} bald={bald} baldZeile={baldZeile} />
+      ))}
     </div>
   );
 }

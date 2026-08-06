@@ -67,7 +67,21 @@ Form: `rounded-full`, `h-11`/`h-12`, `font-black`, `active:scale-95 transition`.
 
 ## 3. Typo
 
-- Eine Familie (System-Sans), Gewichte nur `font-bold` / `font-black`. Kein Serif, kein Light.
+**Zwei Schriften, und nur zwei** (Owner 06.08.2026: „die selbe schrift art bitte wie in der
+Card aber wie ich sehe das steht gar nicht unter fonds"):
+
+| Wo | Schrift | Wer setzt sie |
+|---|---|---|
+| Überall in der App | System-Sans, Gewichte nur `font-bold`/`font-black` | `body` in globals.css |
+| **In der Einladungskarte** | **Serife** (`ui-serif, Georgia, Cambria, "Times New Roman"`) | die Klasse `.lb-karte` selbst — nie von Hand |
+
+Die Karte ist Papier, kein Bildschirm; die Serife ist der Unterschied zwischen „KI-Werkzeug"
+und „Einladung". Sie stand bis 06.08.2026 nirgends als Regel, sondern 15-mal als `font-serif`
+an einzelnen Zeilen in `EinladungKarte.tsx` — wer eine neue Zeile in die Karte schrieb, bekam
+die Hausschrift und merkte den Bruch erst im Bild. Jetzt erbt alles in der Karte die Serife.
+**Ausser Knöpfen:** ein Kaufknopf ist Bedienung, kein Papier, und bleibt in der Hausschrift.
+
+- Kein Light-Gewicht, nirgends.
 - Kicker über der H1: `text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]`
 - H1: `text-[34px] font-black leading-[1.05]`, ein Wort davon in `text-[#f6cf51]`
 - H2: `text-[22px] font-black leading-tight`
