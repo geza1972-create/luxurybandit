@@ -732,10 +732,16 @@ svg {
    Zwei Klassen statt einer, damit die Spezifitaet (0,3,0) die Pauschalregeln schlaegt,
    egal in welcher Reihenfolge sie stehen. Der INAKTIVE Chip holt Rand und Schrift ganz
    hier her, statt aus Tailwind: eine `border-white/`-Klasse haette ihn in `.lb-fb` blau
-   umrandet — mit genau dem Rand, der dem aktiven gehoert. */
+   umrandet — mit genau dem Rand, der dem aktiven gehoert.
+
+   DER INAKTIVE HAT GAR KEINEN RAND (Owner 06.08.2026, zweiter Durchgang: „aktiv soll wie
+   inaktiv aussehen und inaktiv ohne rand und graue schrift"). Nur EINE der beiden Wahlen
+   traegt eine Linie — dann liest man die Wahl auf einen Blick, statt zwei Umrandungen zu
+   vergleichen. Der Rand bleibt als `transparent` stehen, damit beide Chips gleich hoch
+   sind; verschwaende er ganz, waere der gewaehlte einen Pixel groesser als die anderen. */
 .lb-wahl.lb-wahl-aus {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.75);
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.55);
 }
 .lb-fb .lb-wahl.lb-wahl-an,
 .lb-fb .lb-wahl.lb-wahl-an * {
@@ -747,9 +753,22 @@ svg {
 }
 .lb-fb .lb-wahl.lb-wahl-aus,
 .lb-fb .lb-wahl.lb-wahl-aus * {
-  color: rgba(26, 22, 15, 0.6) !important;
+  color: rgba(26, 22, 15, 0.45) !important;
 }
 .lb-fb .lb-wahl.lb-wahl-aus {
   background-color: transparent !important;
-  border-color: rgba(0, 0, 0, 0.18) !important;
+  border-color: transparent !important;
+}
+
+/* DER TEASER-KASTEN IST EINE FLAECHE, KEIN KNOPF — dieselbe Falle wie beim Chip. Die
+   Pauschalregel machte aus dem 10-%-Hauch des `Kasten art="gold"` in `.lb-fb` einen
+   massiven blauen Block ueber die halbe Seite, mit weisser Schrift darin. Ein Teaser
+   soll etwas ANBIETEN, nicht so aussehen, als loese er beim Antippen etwas aus. */
+.lb-fb .lb-teaser {
+  background-color: rgba(24, 119, 242, 0.07) !important;
+  border-color: rgba(24, 119, 242, 0.45) !important;
+}
+.lb-fb .lb-teaser,
+.lb-fb .lb-teaser * {
+  color: #1a160f !important;
 }

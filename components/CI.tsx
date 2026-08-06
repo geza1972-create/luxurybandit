@@ -102,11 +102,12 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
         // 10-%-Hauch. Aus dem Hauch würde eine Füllung, aus dem Chip wieder ein Knopf.
         : `lb-wahl ${aktiv ? "lb-wahl-an" : "lb-wahl-aus"} flex min-h-11 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv
           ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]"
-          // KEIN `border-white/…` am inaktiven Chip: in der hellen Fassung greift auf
-          // genau diesen Teilstring eine Regel, die daraus einen blau umrandeten Chip
-          // macht — der Rand, der dem AKTIVEN gehört. Rand und Schrift kommen deshalb
-          // aus `lb-wahl-aus` (unten in globals.css), für beide Fassungen.
-          : "bg-white/[0.04]"}`);
+          // Der inaktive Chip trägt NICHTS: kein Rand, keine Fläche, nur graue Schrift
+          // (Owner 06.08.2026: „inaktiv ohne rand und graue schrift"). Rand und Schrift
+          // kommen aus `lb-wahl-aus` in globals.css statt aus Tailwind — eine
+          // `border-white/…`-Klasse hätte ihn in der hellen Fassung blau umrandet, mit
+          // genau dem Rand, der dem AKTIVEN gehört.
+          : ""}`);
   return (
     <button type="button" onClick={onClick} disabled={disabled}
       {...(art === "chip" ? { "aria-pressed": aktiv } : {})}
@@ -218,7 +219,12 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
   const kl = karte
     ? "lb-karte-rahmen rounded-2xl"
     : art === "gold"
-      ? "rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
+      // `lb-teaser` aus demselben Grund wie `lb-wahl` am Chip: in der hellen Fassung
+      // färbt eine Pauschalregel alles solide blau, was `bg-[#f6cf51]` im Klassennamen
+      // trägt — sie trifft per Teilstring auch diesen 10-%-Hauch. Ohne die Kennung wurde
+      // aus dem Teaser dort ein massiver blauer Block: eine Fläche, die aussieht wie ein
+      // Knopf über die halbe Seite.
+      ? "lb-teaser rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
       : "rounded-2xl border border-white/20 bg-white/[0.05]";
   return <div className={`${kl} ${polster} ${className}`}>{children}</div>;
 }
