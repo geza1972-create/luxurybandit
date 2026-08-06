@@ -23,11 +23,15 @@ import { X } from "lucide-react";
  * Einladungskarte". Dort gewinnen die `!important`-Regeln von `.lb-karte` gegen jede
  * Tailwind-Farbe — deshalb schalten die Bausteine dort auf die `lb-karte-*`-Klassen um
  * (Memory `lb-karte-important-frisst-inline-farben`). Ohne `karte` gilt die dunkle
- * CI-Welt: Gold #f6cf51 als Akzent, weisse Scheiben mit Altgold #a07a34 auf Medien.
+ * CI-Welt: Gelb #f6cf51 als Akzent, weisse Scheiben mit schwarzem Zeichen auf Medien.
  */
 
-/** Das Altgold der Scheiben-Symbole — dieselbe Zahl wie bei den drei Karten-Knöpfen. */
-export const SCHEIBEN_GOLD = "#a07a34";
+/**
+ * DIE TINTE DER SCHEIBEN-SYMBOLE — SCHWARZ, NICHT GOLD (Owner 06.08.2026: „icons genauso,
+ * statt gold, schwarz bitte" · „dann brauchen wir gold nicht mehr als farbe"). Das Altgold
+ * #a07a34 ist komplett abgeschafft; Gold gibt es nur noch als das gelbe #f6cf51 der Knöpfe.
+ */
+export const SCHEIBEN_TINTE = "#1a160f";
 /** Das Absage-Rot — fest, damit es in heller wie dunkler Fassung Rot bleibt. */
 export const ABSAGE_ROT = "#dc2626";
 
@@ -52,7 +56,7 @@ export function Scheibe({ onClick, label, rot = false, klein = false, durchsicht
 }) {
   return (
     <button type="button" onClick={onClick} aria-label={label}
-      style={{ background: "#fff", color: rot ? ABSAGE_ROT : SCHEIBEN_GOLD, boxShadow: "0 2px 10px rgba(0,0,0,0.35)", ...(durchsichtig ? { opacity: 0.7 } : {}) }}
+      style={{ background: "#fff", color: rot ? ABSAGE_ROT : SCHEIBEN_TINTE, boxShadow: "0 2px 10px rgba(0,0,0,0.35)", ...(durchsichtig ? { opacity: 0.7 } : {}) }}
       className={`grid ${klein ? "h-9 w-9" : "h-10 w-10"} place-items-center rounded-full transition active:scale-90 ${className}`}>
       {children}
     </button>

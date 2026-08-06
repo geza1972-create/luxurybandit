@@ -176,7 +176,7 @@ export default function PlanSlide({ lang, bilder }: { lang: Lang; bilder?: Parti
           {/* DIE DREI SYMBOLE — rechts, eine Spalte, feste Plätze (Skill `card`). */}
           <button type="button" onClick={() => setGross(true)} aria-label={T.karteGross}
             className={`absolute right-3 top-3 z-30 ${scheibe}`} style={scheibeStil}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a07a34" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a160f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 4 4 4 4 9" /><line x1="4" y1="4" x2="10" y2="10" />
               <polyline points="15 4 20 4 20 9" /><line x1="20" y1="4" x2="14" y2="10" />
               <polyline points="4 15 4 20 9 20" /><line x1="4" y1="20" x2="10" y2="14" />
@@ -239,7 +239,7 @@ export default function PlanSlide({ lang, bilder }: { lang: Lang; bilder?: Parti
             {strecke}
             <button type="button" onClick={() => setGross(false)} aria-label={T.karteKlein}
               className={`absolute right-3 top-3 z-30 ${scheibe}`} style={scheibeStil}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a07a34" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a160f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="4 9 9 9 9 4" /><line x1="10" y1="10" x2="4" y2="4" />
                 <polyline points="20 9 15 9 15 4" /><line x1="14" y1="10" x2="20" y2="4" />
                 <polyline points="9 20 9 15 4 15" /><line x1="10" y1="14" x2="4" y2="20" />

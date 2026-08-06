@@ -424,6 +424,19 @@ Guthaben-Zahlweg in die Liste.
   das Produkt oder Guthaben" über den Chips), die Foto-Zeile („Wir weisen nichts ab:
   deine Fehler, deine Verantwortung", 7 Sprachen) und die Katalog-Kachel des Gutscheins
   (verkauft das neue Produkt statt des Einwickelns).
+- **DIE GOLD-REGELN vom Nachmittag** (alle zentral in globals.css, sofort überall):
+  1. „gold darf gar nicht vorkommen in den buttons" — `.lb-karte-cta` trägt jetzt den
+     GELBEN `.lb-gold`-Verlauf mit dunkler Schrift; Altgold-Knopfflächen gibt es nicht mehr.
+  2. „das was gold ist muss schwarz hier · in der kard ebenso" — `.lb-karte-gold` färbt
+     Kartentitel, „Von", Wann/Wo, Dialog-Zwischentitel und made-by jetzt in dunkler
+     Kartentinte (#1a160f); der Klassenname bleibt als Akzent-Marker.
+  3. „auch eingabe ränder" — `lb-karte-feld` hat neutrale dunkle Ränder statt Altgold-Tönung.
+  Das Altgold #a07a34 lebt NUR noch auf den Scheiben-Symbolen.
+- **/ci ausgebaut:** LightSwitch oben (die ganze Muster-Seite kippt per Umschalter in die
+  helle Fassung — Owner: „per umschalten die light version"), die ECHTE Karte mit
+  Ornamenten, Karussell-Punkten (zwei Folien), den drei Scheiben und dem gelben
+  Kaufaufruf darunter; YouTube/Instagram sind aus der Kopfzeile in den Seitenfuss gezogen,
+  „CI" steht immer sichtbar in der Info-&-Legal-Zeile des Menüs.
 
 ## 4. Fallen, die heute Zeit gekostet haben
 

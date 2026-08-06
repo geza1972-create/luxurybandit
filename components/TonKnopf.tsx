@@ -61,7 +61,7 @@ export default function TonKnopf({
          Knöpfe sollen auf dem Bild liegen, nicht darauf kleben. Als `opacity` am ganzen
          Knopf, damit Scheibe und Zeichen gemeinsam zurücktreten; halbtransparent nur im
          Hintergrund liesse das Zeichen davor stehen wie ausgeschnitten. */
-      style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)", opacity: 0.7 }}
+      style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)", opacity: 0.7 }}
       className={`${platz} grid h-10 w-10 place-items-center rounded-full transition active:scale-95 ${className}`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"
         strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-5 w-5 shrink-0">

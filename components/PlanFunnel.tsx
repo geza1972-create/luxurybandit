@@ -214,7 +214,7 @@ export default function PlanFunnel({ lang }: { lang: Lang }) {
               onClick={() => { setFoto(""); setErgebnis(""); setSchritt("start"); }}
               className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full transition active:scale-90"
               style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,.35)", opacity: 0.7 }}>
-              <Trash2 className="h-5 w-5" style={{ color: "#a07a34" }} />
+              <Trash2 className="h-5 w-5" style={{ color: "#1a160f" }} />
             </button>
           </div>
         </div>

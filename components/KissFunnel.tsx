@@ -2569,7 +2569,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                      verschickt wird (Link oder Datei), statt es zu erraten. */
                   <button type="button" onClick={() => setShareFrage(true)}
                     aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                    style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                    style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                     className="grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
                     <Send className="h-5 w-5" />
                   </button>

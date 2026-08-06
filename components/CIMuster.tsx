@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, SCHEIBEN_GOLD } from "@/components/CI";
+import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, SCHEIBEN_TINTE } from "@/components/CI";
+import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import EinladungAnsicht from "@/components/EinladungAnsicht";
+import TeilenKnopf from "@/components/TeilenKnopf";
+import KartenKarussell from "@/components/KartenKarussell";
+import LightSwitch from "@/components/LightSwitch";
 
 /**
  * DIE MUSTER-SEITE DER CI-BIBLIOTHEK (Owner 06.08.2026: „ich will die Bibliothek immer
@@ -20,7 +25,7 @@ import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, SCHEIBEN_GOLD } from "@/c
 
 const FARBEN = [
   { name: "Gold (Akzent dunkel)", wert: "#f6cf51" },
-  { name: "Altgold (Scheiben-Symbol)", wert: SCHEIBEN_GOLD },
+  { name: "Tinte (Symbole & Karte)", wert: SCHEIBEN_TINTE },
   { name: "Absage-Rot", wert: "#dc2626" },
   { name: "Karte (Elfenbein)", wert: "#faf6ec" },
   { name: "Grund (dunkel)", wert: "#141110" },
@@ -37,6 +42,11 @@ export default function CIMuster() {
 
   return (
     <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      {/* DIE HELLE FASSUNG PER UMSCHALTER (Owner 06.08.2026: „nein, per umschalten die light
+          version"): derselbe LightSwitch wie auf der Einladungsseite hängt `lb-theme lb-fb`
+          an <main> — die GANZE Muster-Seite kippt, und man sieht jeden Baustein in beiden
+          Welten, statt eines nachgebauten Hell-Kastens. */}
+      <div className="mb-3 flex justify-end"><LightSwitch /></div>
       <Kicker>LuxuryBandit · CI</Kicker>
       <H1>Die <Y>Bausteine</Y> des Hauses</H1>
       <Lead className="mt-2">
@@ -56,6 +66,14 @@ export default function CIMuster() {
           </div>
         ))}
       </div>
+
+      {/* DIE GOLD-REGEL (Owner 06.08.2026: „gold darf gar nicht vorkommen in den buttons" ·
+          „dann brauchen wir gold nicht mehr als farbe") — sichtbar HIERHER. */}
+      <Fine className="mt-2">
+        Die Gold-Regel: Es gibt nur EIN Gold — das gelbe #f6cf51 der Knöpfe und Akzente.
+        Das alte Altgold ist abgeschafft: Symbole und Kartenschrift sind Tinte (#1a160f),
+        die Ornamente schwarz im Dunkeln und blau im Hellen.
+      </Fine>
 
       {abschnitt("Typo (components/Landing)")}
       <div className="space-y-2 rounded-2xl border border-white/15 p-4">
@@ -102,7 +120,9 @@ export default function CIMuster() {
       {/* Die Karten-Welt hat eigene !important-Farben — der `karte`-Schalter stellt jeden
           Baustein darauf um. Genau diese Falle hat am 05.08. eine Fehlerfarbe verschluckt. */}
       <div className="lb-karte rounded-[22px] p-5">
-        <p className="lb-karte-gold mb-2 text-[11px] font-black uppercase tracking-[0.2em]">In der Einladungskarte</p>
+        {/* Ohne Gold-Klasse (Owner 06.08.2026: „das was gold ist muss schwarz hier") — in
+            der Karte sind Zwischentitel dunkel, das Gold gehört Titel, „Von" und made-by. */}
+        <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em]">In der Einladungskarte</p>
         <Eingabe karte placeholder="E-Mail des Beschenkten" />
         <Fehlerzeile karte>Absage in der Karte — eigene Klasse, echtes Rot.</Fehlerzeile>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -111,6 +131,52 @@ export default function CIMuster() {
         </div>
         <Knopf art="umriss" karte className="mt-2">Zweitweg in der Karte</Knopf>
       </div>
+
+      {abschnitt("Die Karte — Ornamente, Video, drei Scheiben")}
+      {/**
+        * DIE GANZE KARTE ALS LEBENDES EXEMPLAR (Owner 06.08.2026: „und die card muss du auch
+        * anlegen — die ornamente video butons"): DIESELBE `EinladungKarte`, die Trichter und
+        * Empfängerseite rendern — Jugendstil-Ornamente, Titel oben, das Video in
+        * `EinladungAnsicht` (bringt Vergrössern · Teilen · Ton als Scheiben-Spalte rechts
+        * mit, Skill `card`), Botschaft, „Von …" und der made-by-Link unten. Wer eine Karte
+        * braucht, nimmt GENAU diese zwei Bausteine — nie ein nacktes <video>.
+        */}
+      <EinladungKarte
+        sprache="de"
+        sie="" er=""
+        titel={KARTE_TEXTE.de.gutscheinTitel}
+        botschaft="So sieht jede Karte des Hauses aus — Titel oben, die drei Scheiben auf dem Video, deine Botschaft hier."
+        von="Bella"
+        demo
+        video={
+          /* Karussell mit ZWEI Folien, damit die Punkte zu sehen sind (Owner: „bei der
+             karte fehlt … die karusell punkte") — genau wie auf den Themenseiten. */
+          <KartenKarussell folien={[
+            "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4",
+            "/Kiss/kiss.mp4",
+          ].map((url, i) => (
+            <EinladungAnsicht key={i} id="" videoUrl={url}
+              zaehlen={false} originalton musik=""
+              tonText={KARTE_TEXTE.de.ton} tonAusText={KARTE_TEXTE.de.tonAus}
+              grossText={KARTE_TEXTE.de.gross} kleinText={KARTE_TEXTE.de.klein}
+              teilen={
+                <TeilenKnopf rund url="/ci" text="LuxuryBandit CI" label={KARTE_TEXTE.de.teilen} kopiertLabel={KARTE_TEXTE.de.zusDanke} />
+              } />
+          ))} />
+        }
+        fuss={
+          <a href="/?utm_source=karte"
+            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+            made by luxurybandit.com
+          </a>
+        }
+      />
+      {/* Der Kaufaufruf UNTER der Karte — hell, volle Breite, der EINE Goldknopf des
+          Bildschirms (Owner: „bei der karte fehlt ein cta"). */}
+      <Knopf art="gold" className="mt-2">
+        <Sparkles className="h-4 w-4" />
+        So steht der Kaufaufruf unter der Karte
+      </Knopf>
 
       {abschnitt("Dialog — mit eingebautem Ausgang")}
       <Knopf art="umriss" onClick={() => setDialogOffen(true)}>Dialog öffnen</Knopf>
