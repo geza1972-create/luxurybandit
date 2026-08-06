@@ -560,12 +560,11 @@ svg {
 .lb-karte, .lb-karte p, .lb-karte h1, .lb-karte h2, .lb-karte span, .lb-karte a {
   color: #2a231c !important;
 }
-/* Gold traegt die Zierde: Ornamente, Überschriften, das „&" zwischen den Namen. */
 /* SCHWARZ STATT ALTGOLD IN DER KARTE (Owner 06.08.2026: „das was gold ist muss schwarz
    hier" · „in der kard ebenso"): Titel, „Von", Wann/Wo, Dialog-Zwischentitel und made-by
    tragen jetzt die dunkle Kartentinte. Der Klassenname bleibt — er markiert weiterhin die
-   AKZENT-Zeilen der Karte; nur ihre Farbe ist keine goldene mehr. Das Altgold #a07a34 lebt
-   allein auf den Scheiben-Symbolen weiter. */
+   AKZENT-Zeilen der Karte; nur ihre Farbe ist keine goldene mehr. Das Altgold #a07a34 ist
+   damit NIRGENDS mehr im Haus. */
 .lb-karte .lb-karte-gold, .lb-karte .lb-karte-gold * { color: #1a160f !important; }
 /* ORNAMENTE UND ZEICHEN IN DER KARTE: SCHWARZ IM DUNKLEN, BLAU IM HELLEN (Owner
    06.08.2026: „icons genauso, statt gold, schwarz bitte" · „ornamente schwarz im dark und
@@ -575,18 +574,27 @@ svg {
 .lb-karte svg circle { fill: #1a160f !important; }
 .lb-theme .lb-karte svg { color: #1877F2 !important; stroke: #1877F2 !important; }
 .lb-theme .lb-karte svg circle { fill: #1877F2 !important; }
-.lb-karte .lb-karte-rahmen { border: 1px solid rgba(160, 122, 52, 0.35); }
+/* DER RAND DER KARTE folgt der Ornament-Regel (Owner 06.08.2026: „hier ist noch gold statt
+   blau. Der Rand bei der Kard" · „auch bei dark ist gold statt schwarz"): die feine
+   Innenlinie ist Tinte im Dunkeln und Blau in der hellen Fassung — dieselben zwei Farben
+   wie die Eckranken, die sie optisch zusammenhält. */
+.lb-karte .lb-karte-rahmen { border: 1px solid rgba(26, 22, 15, 0.55); }
+.lb-theme .lb-karte .lb-karte-rahmen { border-color: rgba(24, 119, 242, 0.6); }
 /* DER TON-KNOPF IN DER KARTE (Owner 31.07.2026: „mach bitte einen schoenen Sound-Button,
    das passt nicht auf diesem feinen Design"). Elfenbein mit duenner Goldlinie — dieselben
    zwei Farben wie die Karte selbst, statt einer grauen Scheibe mit buntem Emoji. Der leichte
    Schatten hebt ihn vom Foto ab, damit er auf hellen Motiven nicht verschwindet. */
 .lb-karte [data-tonknopf="1"] {
   background: rgba(253, 250, 244, 0.93) !important;
-  border: 1px solid rgba(160, 122, 52, 0.5) !important;
+  border: 1px solid rgba(26, 22, 15, 0.4) !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22) !important;
 }
-.lb-karte [data-tonknopf="1"], .lb-karte [data-tonknopf="1"] * { color: #8a6529 !important; }
-.lb-karte [data-tonknopf="1"] svg { color: #8a6529 !important; stroke: #8a6529 !important; opacity: 1; }
+.lb-karte [data-tonknopf="1"], .lb-karte [data-tonknopf="1"] * { color: #1a160f !important; }
+.lb-karte [data-tonknopf="1"] svg { color: #1a160f !important; stroke: #1a160f !important; opacity: 1; }
+/* … und wie alle Zeichen der Karte in der hellen Fassung blau (Ornament-Regel). */
+.lb-theme .lb-karte [data-tonknopf="1"] { border-color: rgba(24, 119, 242, 0.5) !important; }
+.lb-theme .lb-karte [data-tonknopf="1"], .lb-theme .lb-karte [data-tonknopf="1"] * { color: #1877F2 !important; }
+.lb-theme .lb-karte [data-tonknopf="1"] svg { color: #1877F2 !important; stroke: #1877F2 !important; }
 /* Bedienung, die AUF dem Video liegt, behaelt ihr Weiss — auch in der Einladungskarte, wo
    sonst alles auf Elfenbein/Gold gestellt wird (Ton-Knopf, Abspiel-Zeichen). */
 .lb-karte [data-aufmedien="1"], .lb-karte [data-aufmedien="1"] * { color: #fff !important; }
@@ -648,8 +656,8 @@ svg {
 /* Neuigkeiten des Paares: eigener, leicht getönter Rahmen — was das Paar schreibt, gilt, und
    soll sich vom Geplauder der Gäste abheben, ohne aus der Karte zu fallen. */
 .lb-karte .lb-karte-news {
-  background: rgba(160, 122, 52, 0.09) !important;
-  border: 1px solid rgba(160, 122, 52, 0.28);
+  background: rgba(26, 22, 15, 0.05) !important;
+  border: 1px solid rgba(26, 22, 15, 0.25);
 }
 
 /* ZURUECK UND HELL/DUNKEL — weiss auf dunklem Grund, blau auf hellem (Owner 31.07.2026:
@@ -662,18 +670,18 @@ svg {
    Blase statt als Zeile. Der Kreis mit dem Anfangsbuchstaben ersetzt ein Profilbild, das wir
    von Gaesten weder haben noch wollen. */
 .lb-karte .lb-chat-blase {
-  background: rgba(160, 122, 52, 0.10) !important;
-  border: 1px solid rgba(160, 122, 52, 0.18);
+  background: rgba(26, 22, 15, 0.06) !important;
+  border: 1px solid rgba(26, 22, 15, 0.16);
 }
 .lb-karte .lb-chat-kreis {
-  background: rgba(160, 122, 52, 0.22) !important;
-  color: #6d4c17 !important;
+  background: rgba(26, 22, 15, 0.16) !important;
+  color: #1a160f !important;
 }
 /* Antippbare Stellen auf der Einladungskarte, solange sie gebaut wird: eine gestrichelte
    Linie sagt „hier kannst du tippen", ohne die Karte in ein Formular zu verwandeln. */
 .lb-karte .lb-tippbar {
-  border: 1px dashed rgba(160, 122, 52, 0.45);
-  background: rgba(160, 122, 52, 0.05) !important;
+  border: 1px dashed rgba(26, 22, 15, 0.45);
+  background: rgba(26, 22, 15, 0.04) !important;
 }
 
 /* EINGABEFELDER IN DER HELLEN FASSUNG (Owner 31.07.2026, Bildschirmfoto vom Land-Feld:

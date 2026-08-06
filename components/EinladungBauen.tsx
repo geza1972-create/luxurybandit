@@ -1418,7 +1418,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             Menschen voraus. Hier gibt es nur ihn — und daneben seinen Gutschein, der kein Foto
             ist, sondern ein Link. */}
         {!gutschein && (
-        <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+        <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: "rgba(26,22,15,0.07)" }}>
           {([["zwei", T.fZwei], ["gemeinsam", T.fGemeinsam]] as const).map(([w, label]) => (
             <button key={w} type="button" onClick={() => setWeg(w)}
               className={`${weg === w ? "lb-karte-cta" : ""} h-9 rounded-full px-2 text-[12px] font-black leading-tight transition active:scale-95`}>

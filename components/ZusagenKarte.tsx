@@ -200,7 +200,7 @@ export default function ZusagenKarte({
                 <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
                   {T.zusMenuFrage}
                 </p>
-                <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(26,22,15,0.07)" }}>
                   {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([m, label]) => (
                     <button key={m} type="button" onClick={() => setMenu(m)}
                       className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
@@ -214,7 +214,7 @@ export default function ZusagenKarte({
                 <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
                   {T.zusWieViele}
                 </p>
-                <div className="mt-1.5 grid grid-cols-6 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                <div className="mt-1.5 grid grid-cols-6 gap-1 rounded-full p-1" style={{ background: "rgba(26,22,15,0.07)" }}>
                   {([1, 2, 3, 4, 5, 6] as const).map(n => (
                     <button key={n} type="button" onClick={() => setPersonen(n)}
                       className={`${personen === n ? "lb-karte-cta" : ""} h-9 rounded-full text-[13px] font-black transition active:scale-95`}>
