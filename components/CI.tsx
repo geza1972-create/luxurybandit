@@ -100,14 +100,17 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
         // `lb-wahl` ist die Kennung für die helle Fassung: dort färbt eine Pauschalregel
         // ALLES blau und solide, was `bg-[#f6cf51]` im Klassennamen trägt — auch einen
         // 10-%-Hauch. Aus dem Hauch würde eine Füllung, aus dem Chip wieder ein Knopf.
+        // DIE WERTE SIND DIE DER KOPFZEILE (Owner 06.08.2026 zeigte auf das Guthaben- und
+        // das Galerie-Chip in `GuthabenChip`: „hier ist es richtig"). Beide sind seit dem
+        // 03.08. im Einsatz und sind damit die Vorlage, nicht eine zweite Meinung:
+        // gewählt = gelber Rand auf 40 %, ein Hauch Gold, gelbe Schrift; ungewählt =
+        // weisser Rand auf 20 %, ein Hauch Weiss, Schrift weiss/85.
         : `lb-wahl ${aktiv ? "lb-wahl-an" : "lb-wahl-aus"} flex min-h-11 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv
-          ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]"
-          // Der inaktive Chip trägt NICHTS: kein Rand, keine Fläche, nur graue Schrift
-          // (Owner 06.08.2026: „inaktiv ohne rand und graue schrift"). Rand und Schrift
-          // kommen aus `lb-wahl-aus` in globals.css statt aus Tailwind — eine
-          // `border-white/…`-Klasse hätte ihn in der hellen Fassung blau umrandet, mit
-          // genau dem Rand, der dem AKTIVEN gehört.
-          : ""}`);
+          ? "border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[#f6cf51]"
+          // Rand und Schrift des ungewählten kommen aus `lb-wahl-aus` in globals.css statt
+          // aus Tailwind: eine `border-white/…`-Klasse hätte ihn in der hellen Fassung
+          // blau umrandet — mit genau dem Rand, der dem GEWÄHLTEN gehört.
+          : "bg-white/5"}`);
   return (
     <button type="button" onClick={onClick} disabled={disabled}
       {...(art === "chip" ? { "aria-pressed": aktiv } : {})}

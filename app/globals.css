@@ -734,14 +734,14 @@ svg {
    hier her, statt aus Tailwind: eine `border-white/`-Klasse haette ihn in `.lb-fb` blau
    umrandet — mit genau dem Rand, der dem aktiven gehoert.
 
-   DER INAKTIVE HAT GAR KEINEN RAND (Owner 06.08.2026, zweiter Durchgang: „aktiv soll wie
-   inaktiv aussehen und inaktiv ohne rand und graue schrift"). Nur EINE der beiden Wahlen
-   traegt eine Linie — dann liest man die Wahl auf einen Blick, statt zwei Umrandungen zu
-   vergleichen. Der Rand bleibt als `transparent` stehen, damit beide Chips gleich hoch
-   sind; verschwaende er ganz, waere der gewaehlte einen Pixel groesser als die anderen. */
+   DER UNGEWAEHLTE HAT EINEN RAND (Owner 06.08.2026: „wir brauchen einen rand bei inaktiv").
+   Ohne Rand verlor er seine Umrisse und war nicht mehr als Ding zu erkennen, auf das man
+   tippen kann. Die Wahl liest man an der FARBE des Randes: gelb beim gewaehlten, leises
+   Weiss beim Rest — genau wie die zwei Chips der Kopfzeile, auf die der Owner gezeigt hat
+   („hier ist es richtig": Guthaben gelb umrandet, Galerie weiss umrandet). */
 .lb-wahl.lb-wahl-aus {
-  border-color: transparent;
-  color: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
 }
 .lb-fb .lb-wahl.lb-wahl-an,
 .lb-fb .lb-wahl.lb-wahl-an * {
@@ -753,11 +753,14 @@ svg {
 }
 .lb-fb .lb-wahl.lb-wahl-aus,
 .lb-fb .lb-wahl.lb-wahl-aus * {
-  color: rgba(26, 22, 15, 0.45) !important;
+  color: rgba(26, 22, 15, 0.55) !important;
 }
 .lb-fb .lb-wahl.lb-wahl-aus {
   background-color: transparent !important;
-  border-color: transparent !important;
+  /* GRAU, nicht blau (Owner 06.08.2026: „bei light brauchen wir einen grauen rand beim
+     chip"). Blau ist in der hellen Fassung die Hausfarbe und gehoert dem GEWAEHLTEN; ein
+     blauer Rand am ungewaehlten hat beide gleich wichtig aussehen lassen. */
+  border-color: rgba(0, 0, 0, 0.25) !important;
 }
 
 /* DER TEASER-KASTEN IST EINE FLAECHE, KEIN KNOPF — dieselbe Falle wie beim Chip. Die
