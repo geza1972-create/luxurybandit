@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { Upload, Loader2, Trash2, Check, Lock, Sparkles } from "lucide-react";
 import ImageCropper from "@/components/ImageCropper";
-import HandelZeile from "@/components/HandelZeile";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import Reaktionen from "@/components/Reaktionen";
 import { planBildPrompt } from "@/lib/plan-prompt";
@@ -159,19 +158,9 @@ export default function PlanFunnel({ lang }: { lang: Lang }) {
 
   return (
     <div className="mt-6">
-      {/**
-        * ── 0 · DER HANDEL ─────────────────────────────────────────────────────────
-        *
-        * Owner 04.08.2026 (KONZEPT-GESCHENKE-UND-IDEEN.md Punkt 2): „Der Handel steht VOR der
-        * Arbeit, nie danach."
-        *
-        * VOR der Adresse und vor dem Foto, nicht darunter: Was gratis ist (das Bild, mit dem
-        * Muster darüber) und was kostet (die Analyse) entscheidet, ob er überhaupt anfängt.
-        * `gratisZeile` weiter unten steht erst über dem Erzeugen-Knopf — da hat er das Foto
-        * längst gesucht, zugeschnitten und gespeichert. Bei {plan} kauft niemand auf Verdacht;
-        * er muss vorher wissen, worauf das hinausläuft.
-        */}
-      <HandelZeile thema="plan" lang={lang} className="mb-5" />
+      {/* HIER STAND DIE PREISZEILE (HandelZeile) — raus am 06.08.2026 wie im Kuss-Trichter
+          (Owner: „Diese Anmerkung wurde von Opus eingebaut ohne meine Zustimmung."). Der
+          Preis steht auf dem Preis-Chip der Seite und am Kaufknopf. */}
       {/* Auch hier haengt das Ergebnis am Foto — und auch hier wird nichts abgewiesen. */}
       <FotoAnleitung lang={lang} className="mb-5" />
 

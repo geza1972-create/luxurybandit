@@ -36,7 +36,6 @@ import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
 import LightSwitch from "@/components/LightSwitch";
-import HandelZeile from "@/components/HandelZeile";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import KartenKarussell from "@/components/KartenKarussell";
 
@@ -2823,10 +2822,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <div className="fixed inset-0 z-40 overflow-y-auto pt-36" style={{ background: "rgba(0,0,0,0.72)" }}
         onClick={() => setStufenOffen(false)}>
         <div className="lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4" onClick={e => e.stopPropagation()}>
-          <button type="button" onClick={() => setStufenOffen(false)} aria-label={T.back}
-            className="lb-chip mb-3 grid h-9 w-9 place-items-center rounded-full transition active:scale-95">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+          {/* HIER STAND EIN ZWEITER ZURÜCK-PFEIL (Owner 06.08.2026: „Zwei mal back button")
+              — direkt unter dem Pfeil der Kopfzeile sah er aus wie ein Versehen. Der Dialog
+              schliesst weiter durch Tippen NEBEN ihn (auf den abgedunkelten Rand), und der
+              Pfeil oben in der Kopfzeile bleibt der eine Rückweg. */}
       {/* Fortschritt — drei Punkte, damit er weiss, wo er steht. */}
       <div className="mb-3 flex items-center justify-center gap-1.5">
         {/* Beim Tanz sind es ZWEI Punkte: ihr Foto, dann der Tanz. Ein dritter, grauer Punkt
@@ -2844,23 +2843,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
       {!V.nurEigenes && <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>}
 
-      {/**
-        * DER HANDEL VOR DER ARBEIT (Owner 04.08.2026, KONZEPT-GESCHENKE-UND-IDEEN.md Punkt 2:
-        * „Der Handel steht VOR der Arbeit, nie danach").
-        *
-        * HIER und nicht drei Schritte weiter: Schritt 1 ist der Eingang — darunter stehen die
-        * Upload-Felder. Wer ein Foto sucht, zuschneidet und hochlaedt, hat gearbeitet; erst
-        * danach einen Preis zu zeigen ist genau die Ueberraschung, die wir Canva vorwerfen.
-        *
-        * Der Satz kommt aus `lib/handel.ts` — eine Quelle fuer alle Trichter und sieben
-        * Sprachen, Zahlen aus `lib/pricing`. „Your Idol" steht nicht in der Leiter und
-        * bekaeme ohnehin nichts; die Bedingung haelt nur TypeScript sauber.
-        */}
-      {variant !== "idol" && <HandelZeile thema={variant} lang={lang} className="mt-3" />}
+      {/* HIER STAND „Das Video kostet 15 €." (HandelZeile) — raus am 06.08.2026 (Owner:
+          „Diese Anmerkung wurde von Opus eingebaut ohne meine Zustimmung."). Der Preis steht
+          auf dem Preis-Chip der Seite und auf dem Kaufknopf — eine dritte Zeile mitten im
+          Schritt war zu viel (Skill `bezahlung` §8: „hier müssen wir sparen"). */}
 
-      {/* DAS SCHILD AM FOTOAUTOMATEN (Owner 05.08.2026). Erst was es kostet, dann was das Foto
-          koennen muss — beides, bevor er sein Foto sucht. Abgewiesen wird nichts; wer die
-          Anweisung gesehen hat, traegt die Folgen seines Fotos selbst (so auch im AGB). */}
+      {/* DAS SCHILD AM FOTOAUTOMATEN (Owner 05.08.2026): was das Foto koennen muss, bevor er
+          es sucht. Abgewiesen wird nichts; wer die Anweisung gesehen hat, traegt die Folgen
+          seines Fotos selbst (so auch im AGB). */}
       <FotoAnleitung lang={lang} className="mt-3" />
 
       {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
@@ -3024,7 +3014,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                             traegt derselbe Kasten den Inhalt und waechst mit ihm. */}
                         <div data-oncard="1" className="relative z-10 mx-1 flex flex-col items-center gap-1 rounded-2xl bg-black/60 px-3 py-3 backdrop-blur-[2px]">
                           <ImageUp style={{ color: "#fff" }} className="h-9 w-9" />
-                          <span style={{ color: "#fff" }} className="text-[15px] font-black">{T.upTitle}</span>
+                          {/* Ohne Katalog steht „Deine Frau" schon als Schritt-Überschrift
+                              darüber — dreimal derselbe Titel auf einem Bildschirm war einer
+                              der Fehler vom 06.08. (Owner: „Es sind so viele Fehler"). */}
+                          {!V.nurEigenes && <span style={{ color: "#fff" }} className="text-[15px] font-black">{T.upTitle}</span>}
                           <span style={{ color: "#fff" }} className="text-[11px] font-bold leading-snug">{T.upHint}</span>
                         </div>
                       </div>
@@ -3050,9 +3043,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
+                    {/* Der Namensbalken gilt den KATALOG-Frauen. Auf der leeren Upload-Karte
+                        stand er als drittes „Deine Frau" unter Überschrift und Kacheltitel. */}
+                    {!(isUpload && !customModel) && (
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
                       <p className="lb-onmedia truncate text-[13px] font-black">{m.name}</p>
                     </div>
+                    )}
                   </div>
                 </div>
               );
@@ -3613,8 +3610,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         * Seit dem 05.08.2026 ist die Aufladung DERSELBE Betrag wie der Preis (Owner: „aufladen
         * muss mann dann mit 14,99€ mindestens"). Es gibt keinen Rest, keine Differenz und
         * nichts zu erklären — und ein Satz, der „der Rest bleibt dir" verspricht, wäre jetzt
-        * schlicht falsch. Was er wissen muss, steht in Schritt 1 am Eingang (`HandelZeile`):
-        * „Das Video kostet {once}."
+        * schlicht falsch. Den Preis nennt der Preis-Chip der Seite und der Kaufknopf (die
+        * HandelZeile im Schritt ist seit dem 06.08.2026 raus — Owner: „ohne meine
+        * Zustimmung").
         *
         * Der Text bleibt in `lib/kiss-i18n.ts` (`guthabenVorabHinweis`) in sieben Sprachen
         * stehen: Wird die Aufladung je wieder grösser als der Preis, gehört er zurück — und
@@ -3811,8 +3809,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
 
       {gateOffen && (
-        <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}>
-          <div className="w-full max-w-[340px] rounded-3xl bg-white p-6 text-center">
+        /* SCHLIESSBAR (Owner 06.08.2026: „hier kann der user den Dialog gar nicht mehr
+           schliessen"): Tipp auf den dunklen Rand ODER das Kreuz macht zu — dieselbe Regel
+           wie bei jedem Dialog im Haus. Die Adresse bleibt Pflicht fürs ERZEUGEN; das Tor
+           öffnet beim nächsten Versuch einfach wieder. Ein Tor ohne Ausgang hält niemanden
+           zum Kaufen fest — es hält ihn nur vom Weiterschauen ab. */
+        <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
+          onClick={() => setGateOffen(false)}>
+          <div className="relative w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
+            <button type="button" aria-label="✕" onClick={() => setGateOffen(false)}
+              style={{ color: "#1a160f" }}
+              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+              <X className="h-4 w-4" />
+            </button>
             <p className="text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.gateTitel}</p>
             <input ref={mailGateRef} value={mail}
               onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}

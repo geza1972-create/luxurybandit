@@ -6,8 +6,9 @@ import { fotoText } from "@/lib/foto-anleitung";
  * DAS SCHILD AM FOTOAUTOMATEN — vier Beispiele, ein Satz (Owner 05.08.2026: „es ist wie beim
  * Fotoautomat für Passbilder … man muss die Anweisung schreiben und auch visuell zeigen").
  *
- * Steht ÜBER den Upload-Feldern, zusammen mit der Preiszeile (`HandelZeile`): erst was es
- * kostet, dann was das Foto können muss — beides, bevor er arbeitet.
+ * Steht ÜBER den Upload-Feldern: was das Foto können muss, bevor er arbeitet. (Die
+ * Preiszeile daneben ist seit dem 06.08.2026 raus — der Preis steht am Chip und am
+ * Kaufknopf.)
  *
  * MIT BELLA UND PETER, NICHT MIT ZEICHNUNGEN (Owner: „Piktogramme will ich nicht haben, die
  * sehen blöd aus. Wir haben Bella und Peter als Beispiel immer"). Beide liegen längst im Repo

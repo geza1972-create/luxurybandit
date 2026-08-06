@@ -396,6 +396,16 @@ Guthaben-Zahlweg in die Liste.
   kiss-stand-close.mp4); die alten Supabase-Admin-Beispiele verdoppelten dieselben Küsse.
 - **Herzchen/Zurufe liegen jetzt IN der Karussell-Folie** („hier sammeln sich die Icons und
   Schrift. Das stört.") — vorher flogen sie über Punkte, Kaufknopf und made-by-Zeile.
+- **Die Preiszeile „Das Video kostet 15 €." ist RAUS** — aus dem Kuss-Schritt und dem
+  Plan-Trichter, samt `HandelZeile`/`lib/handel` (Owner: „Diese Anmerkung wurde von Opus
+  eingebaut ohne meine Zustimmung."). Der Preis steht am Chip und am Kaufknopf.
+- **Nur noch EIN Zurück-Pfeil** im Kuss-Trichter — der runde im Stufen-Dialog doppelte den
+  Kopfzeilen-Pfeil; schliessen geht weiter per Tipp neben den Dialog.
+- **Das E-Mail-Tor ist schliessbar** („hier kann der user den Dialog gar nicht mehr
+  schliessen") — Kreuz oben rechts + Tipp auf den Rand; die Adresse bleibt Pflicht fürs
+  Erzeugen, das Tor kommt beim nächsten Versuch wieder.
+- **„Deine Frau" steht nur noch EINMAL** in Schritt 1 — vorher Überschrift + Kacheltitel +
+  Namensbalken übereinander.
 
 ## 4. Fallen, die heute Zeit gekostet haben
 
