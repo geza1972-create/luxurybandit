@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Download, X, Loader2, Trash2, Send, Gift, Heart, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid } from "lucide-react";
+import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
+import { ThemenKreise } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -450,28 +451,10 @@ export default function MyGalleryPage() {
         {!pin && (
           <div className="mt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f6cf51]/80">Choose a topic</p>
-            {/* Waagerecht scrollen statt umbrechen: Auf einem Handy passen vier Kreise nebeneinander,
-                der Rest liegt eine Daumenbewegung entfernt. `-mx-4 px-4` laesst die Reihe am Rand
-                der Seite beginnen und enden — sonst sieht der letzte Kreis abgeschnitten aus.
-                `scrollbar-none` gibt es hier nicht als Klasse; auf dem Handy ist ohnehin keine da. */}
-            <div className="-mx-4 mt-2.5 flex gap-3 overflow-x-auto px-4 pb-1">
-              {[
-                { icon: Heart, name: "Kiss", href: "/themes/kiss" },
-                { icon: Gift, name: "Surprise", href: "/themes/surprise" },
-                { icon: Cake, name: "Birthday", href: "/themes/birthday" },
-                { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
-                { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
-                { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
-                { icon: LayoutGrid, name: "Alle", href: "/themes" },
-              ].map(t => (
-                <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
-                  <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-[#f6cf51]/30 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51] transition group-active:scale-90">
-                    <t.icon className="h-[22px] w-[22px]" />
-                  </span>
-                  <span className="text-center text-[10.5px] font-black leading-none text-white/70">{t.name}</span>
-                </a>
-              ))}
-            </div>
+            {/* Die Reihe selbst ist seit 06.08.2026 der Bibliotheks-Baustein `ThemenKreise`
+                (Owner: „die kommen auch in die Bibliothek. Und scrollbalken wird dann
+                transparent") — hier entstanden, jetzt aus components/CI.tsx geholt. */}
+            <ThemenKreise className="mt-2.5" />
           </div>
         )}
         {/* NUR FUER DEN ADMIN (Owner 01.08.2026: „wozu die Suche wenn er nichts findet?").

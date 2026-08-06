@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, SCHEIBEN_TINTE } from "@/components/CI";
+import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -107,6 +107,11 @@ export default function CIMuster() {
           <Knopf art="chip" aktiv={chipWahl === "b"} onClick={() => setChipWahl("b")}>Chip inaktiv</Knopf>
         </div>
       </div>
+
+      {abschnitt("Themen-Kreise — die Tür zu jedem Thema")}
+      {/* Aus der Galerie in die Bibliothek geholt (Owner 06.08.2026: „die kommen auch in
+          die Bibliothek. Und scrollbalken wird dann transparent") — wischt ohne Balken. */}
+      <ThemenKreise />
 
       {abschnitt("Eingabe + Fehlerzeile — dunkle Welt")}
       <div className="rounded-2xl border border-white/15 p-4">

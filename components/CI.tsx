@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { X, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -130,6 +130,49 @@ export function Fehlerzeile({ karte = false, className = "", children }: {
       className={`${karte ? "lb-karte-fehler " : ""}mt-1.5 text-center text-[12.5px] font-black leading-snug ${className}`}>
       {children}
     </p>
+  );
+}
+
+/**
+ * DIE THEMEN-KREISE — die Tür zu jedem Thema als wischbare Reihe (Owner 06.08.2026:
+ * „die kommen auch in die Bibliothek. Und scrollbalken wird dann transparent").
+ *
+ * Entstanden in der Galerie (Owner 03.08.: „‚Choose a topic' vielleicht, aber nicht
+ * irgendein Banner. Dann springt er auf die Topics" — und zum grauen Kasten: „das hast
+ * du aber lieblos jetzt gemacht"): Kein Schild, das auf eine Tür zeigt — jedes Thema
+ * IST die Tür und springt direkt in seinen Trichter, ein Tipp statt zwei.
+ *
+ * Die Reihe wischt waagerecht OHNE Balken (`lb-wisch`), beginnt am Seitenrand
+ * (`-mx-4 px-4` — sonst sieht der letzte Kreis abgeschnitten aus) und nennt KEINE
+ * Preise: was ein Thema kostet, sagt seine Seite, aus `lib/pricing.ts`.
+ *
+ * Die Vorgabe-Liste sind alle Themen samt „Alle" — wer eine engere Reihe braucht
+ * (z. B. ohne das eigene Thema), reicht `themen` herein.
+ */
+export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] = [
+  { icon: Heart, name: "Kiss", href: "/themes/kiss" },
+  { icon: Gift, name: "Surprise", href: "/themes/surprise" },
+  { icon: Cake, name: "Birthday", href: "/themes/birthday" },
+  { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
+  { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
+  { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
+  { icon: LayoutGrid, name: "Alle", href: "/themes" },
+];
+export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
+  themen?: { icon: LucideIcon; name: string; href: string }[];
+  className?: string;
+}) {
+  return (
+    <div className={`lb-wisch -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
+      {themen.map(t => (
+        <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
+          <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-[#f6cf51]/30 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51] transition group-active:scale-90">
+            <t.icon className="h-[22px] w-[22px]" />
+          </span>
+          <span className="text-center text-[10.5px] font-black leading-none text-white/70">{t.name}</span>
+        </a>
+      ))}
+    </div>
   );
 }
 

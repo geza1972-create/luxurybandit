@@ -705,11 +705,15 @@ svg {
 }
 .lb-fb .lb-eingabe::placeholder { color: rgba(0, 0, 0, 0.38) !important; }
 
-/* DUENNER, DUNKLER WISCHBALKEN (Owner 03.08.2026: „Scrollbalken bitte nicht weiss").
-   Fuer die Wisch-Zeilen des Kuss-Trichters (Waesche, Szenen): Auf dunklem Grund war der
-   Standard-Balken ein weisser Fremdkoerper. Duenn und halbtransparent — sichtbar genug zum
-   Greifen, leise genug, um kein Gestaltungselement zu sein. */
-.lb-wisch { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.28) transparent; }
-.lb-wisch::-webkit-scrollbar { height: 5px; }
-.lb-wisch::-webkit-scrollbar-track { background: transparent; }
-.lb-wisch::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.28); border-radius: 999px; }
+/* WISCH-FLAECHEN OHNE BALKEN — die EINE Klasse dafuer (Owner 06.08.2026: „scrollbalken
+   wird dann transparent"; davor 03.08.: „Scrollbalken bitte nicht weiss", damals noch ein
+   duenner halbtransparenter Balken). Was man mit dem Daumen wischt, braucht keinen Balken:
+   er ist Desktop-Laerm und sagt „Tabelle", wo „Wischen" gemeint ist.
+
+   Am 06.08. rollierend ueber ALLE 46 Wisch-Flaechen gelegt — vorher tippte jede Stelle
+   dieselbe Beschwoerung `[-ms-overflow-style:none] [scrollbar-width:none]
+   [&::-webkit-scrollbar]:hidden` neu ab (und fuenf Reihen im Kuss-Trichter vergassen sie,
+   die zeigten einen weissen Balken). Gilt in BEIDE Richtungen: waagerechte Reihen
+   (Szenen, Chips, Karussells) wie senkrechte Wischflaechen (der Feed). */
+.lb-wisch { scrollbar-width: none; -ms-overflow-style: none; }
+.lb-wisch::-webkit-scrollbar { display: none; }

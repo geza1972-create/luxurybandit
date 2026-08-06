@@ -9,11 +9,17 @@ Der Owner hat das mehrfach korrigiert — es wird **nicht** neu erfunden und **n
 
 Diese Regeln werden nicht pro Seite neu UMGESETZT, sondern als fertige Bausteine aus
 **`components/CI.tsx`** geholt: `Scheibe`, `Knopf` (gold · umriss · chip), `Eingabe`,
-`Fehlerzeile`, `Dialog` — jeder mit `karte`-Schalter für die Einladungskarte. Typo aus
-`components/Landing.tsx`, Karten aus `EinladungKarte`/`EinladungAnsicht`/`KartenKarussell`,
-Upload aus `UploadKachel`. **Fehlt ein Baustein, wird er erst in die Bibliothek gebaut und
-dann benutzt** — nie als Einzelstück in der Seite. Lebende Muster-Seite: **`/ci`**
-(`components/CIMuster.tsx` — neue Bausteine dort mit ausstellen).
+`Fehlerzeile`, `Dialog`, `ThemenKreise` — die kleinen mit `karte`-Schalter für die
+Einladungskarte. Typo aus `components/Landing.tsx`, Karten aus
+`EinladungKarte`/`EinladungAnsicht`/`KartenKarussell`, Upload aus `UploadKachel`.
+Waagerechte Wisch-Reihen tragen `lb-wisch` — der Scrollbalken ist unsichtbar („scrollbalken
+wird dann transparent").
+
+**Der Arbeitsgang** (Owner: „alles was wir bauen und neu ist wird erst mal geprüft in der
+Bibliothek und wenn es nicht gibt, dann müssen wir es erst mal dort eintragen"): erst in
+der Bibliothek und auf **`/ci`** nachsehen → fehlt der Baustein, ERST in `components/CI.tsx`
+bauen und in `components/CIMuster.tsx` ausstellen → dann in der Seite benutzen. Nie als
+Einzelstück in der Seite.
 
 ## 1. Die CI-Farben
 
