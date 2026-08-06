@@ -345,17 +345,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                     hier „Themes" und auf der Startseite „topics". Ein Ding, ein Name. */}
                 <span className="text-sm font-black text-white">Topics</span>
               </button>
-              {/* CI-BIBLIOTHEK — die Muster-Seite der Bausteine (Owner 06.08.2026: „ich will
-                  die Bibliothek immer abrufen können. Am besten in jedem Menü einbauen. Damit
-                  ich es local sehen kann"). Staff-Punkt wie die Werkzeuge darunter; die Seite
-                  selbst ist offen und noindex — /ci geht auch ohne Menü immer. */}
-              {isStaff && (
-                <button type="button" onClick={() => navigate("/ci")}
-                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
-                  <Shield className="h-4 w-4 shrink-0 text-violet-400" />
-                  <span className="text-[13px] font-bold">CI-Bibliothek — Bausteine</span>
-                </button>
-              )}
+              {/* Die CI-Bibliothek steht als „CI" in der Info-&-Legal-Zeile unten — immer
+                  sichtbar, auch ohne Anmeldung (Owner 06.08.2026: „ich sehe die Bibliothek
+                  nicht im Menü" — der Staff-Punkt hier war ohne Anmeldung unsichtbar). */}
               {/* Admin-Shortcut: Wetter-am-Morgen verwalten (?admin=1). */}
               {isStaff && (
                 <button type="button" onClick={() => navigate("/themes/wetter/bella?admin=1")}
@@ -646,6 +638,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">Terms</button>
                 <button type="button" onClick={() => navigate("/privacy")} className="hover:text-white">Privacy</button>
                 <button type="button" onClick={() => navigate("/imprint")} className="hover:text-white">Imprint</button>
+                {/* DIE CI-BIBLIOTHEK — IMMER SICHTBAR (Owner 06.08.2026: „ich sehe die
+                    Bibliothek nicht im Menü" — der Staff-Punkt war ohne Anmeldung
+                    unsichtbar). Klein in dieser Zeile: für uns jederzeit erreichbar, für
+                    Kunden nur ein unscheinbares Wort; die Seite ist offen und noindex. */}
+                <button type="button" onClick={() => navigate("/ci")} className="text-white/50 hover:text-white">CI</button>
               </div>
             </div>
           </div>

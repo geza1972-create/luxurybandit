@@ -2,14 +2,13 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Send, Instagram, Youtube, ChevronLeft } from "lucide-react";
-import { YOUTUBE_CHANNEL } from "@/lib/social";
+import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
 import GuthabenChip from "@/components/GuthabenChip";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
- * the CI icons (Share · YouTube · Instagram) by default — pass `actions` to
+ * the CI icon (Share; YouTube/Instagram live im SeitenFuss) by default — pass `actions` to
  * override them (e.g. /stores wires the Search icon to its own search bar).
  *
  * KEIN Hamburger-Menü mehr hier — das Menü lebt appweit UNTEN (BottomNav's
@@ -110,7 +109,6 @@ export default function TopNav({
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
   const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
   const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
-  const ig = process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit";
   const share = () => {
     try {
       const url = window.location.href;
@@ -171,14 +169,10 @@ export default function TopNav({
               <button type="button" onClick={share} className={iconBtn} aria-label="Share">
                 <Send className="h-4 w-4" />
               </button>
-              {/* Bellas Kanal — neben Instagram, damit er auf JEDER Seite steht und nicht
-                  irgendwo einmal. */}
-              <a href={YOUTUBE_CHANNEL} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Bella auf YouTube">
-                <Youtube className="h-4 w-4" />
-              </a>
-              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Instagram">
-                <Instagram className="h-4 w-4" />
-              </a>
+              {/* YOUTUBE UND INSTAGRAM SIND IN DEN FUSS GEZOGEN (Owner 06.08.2026:
+                  „instagram und you tube icon in dem footer" · „oben raus"). Oben bleibt
+                  nur der Teilen-Pfeil — mehr Luft für den Namen; die Kanäle stehen jetzt
+                  in `SeitenFuss` auf jeder Seite. */}
             </>
           )}
         </div>
