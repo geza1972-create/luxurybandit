@@ -1418,7 +1418,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             GUTSCHEIN GIBT ES KEIN FOTO MEHR (Owner 06.08.2026: „ich will hier eigentlich gar
             nicht dass die Leute ihre eigene Bilder uploaden. Das wird keiner machen. Wir
             haben die Bella, die die Botschaft bringt.") — also auch keine Foto-Anleitung. */}
-        {!gutschein && <FotoAnleitung lang={lang} karte />}
+        {!gutschein && <FotoAnleitung lang={lang} karte paar={weg === "gemeinsam"} />}
         {/* ZWEI WEGE ZUM ZIEL (Owner 31.07.2026: „und es fehlt Upload gemeinsam").
             Fast jedes Paar hat ein Foto zu zweit — vom Urlaub, von einer Feier. Zwei EINZELNE
             Fotos zu verlangen ist eine Huerde ohne Grund: Sie muss zwei Bilder suchen, von
@@ -1715,34 +1715,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
               : fillPrices(T.ctaBild, lang)}
         </button>
         )}
-        {/**
-          * DER ZWEITE WEG: gleich ein Video (Owner 04.08.2026: „User kann bei der Generierung
-          * wählen was er will. Bild oder Video").
-          *
-          * Umriss statt gefüllt, und darunter statt daneben: Zwei gleich starke Knöpfe
-          * nebeneinander lassen den Kunden raten, welcher der normale ist. Das Bild ist der
-          * Regelfall — es kostet ein Drittel und die Einladung ist damit vollständig. Wer das
-          * Video will, findet es eine Zeile tiefer und sieht sofort, was es kostet.
-          */}
-        {/* NUR EIN KAUFKNOPF BEIM GUTSCHEIN (Owner 05.08.2026: „Direct un Videoclip raus").
-            Bild oder gleich Video ist die Wahl der Einladung — dort erzeugen WIR das Video.
-            Beim Gutschein bringt er sein eigenes mit oder nimmt unser fertiges; es gibt
-            nichts zu waehlen, also auch keinen zweiten Knopf. */}
-        {!gutschein && (
-        <button type="button"
-          onClick={() => {
-            if (busy) return;
-            if (!fotosDa) { setHinweis(F.pickFirst); return; }
-            if (urlaub && (!sie.trim() || !er.trim())) { setHinweis(T.namen); return; }
-            if (!mailOk) { setHinweis(F.mailInvalid); return; }
-            setHinweis("");
-            void erzeugen(true);
-          }}
-          className={`lb-karte-absage mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black transition active:scale-95${(!fotosDa || !mailOk || busy || (urlaub && (!sie.trim() || !er.trim()))) ? " opacity-45" : ""}`}>
-          <Sparkles className="h-4 w-4" />
-          {fillPrices(T.ctaVideoGleich, lang)}
-        </button>
-        )}
+        {/* HIER STAND „LIEBER GLEICH EIN VIDEO — {videoauf}" (Owner 06.08.2026: „das muss
+            raus. niemand weiss was das ist."). Seit Bild und Video beide {once} kosten, war
+            der Zweitknopf ein Rätsel zum selben Preis. Der Weg zum Video bleibt: „Daraus ein
+            Video machen" unter der fertigen Karte und auf der Einladungsseite. */}
         {hinweis && (
           /* `lb-karte-fehler` statt Inline-Rot: In der Karte gewinnt die !important-Braunregel
              gegen jeden Inline-`style` — nur eine eigene !important-Klasse kommt dagegen an. */

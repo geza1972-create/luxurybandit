@@ -50,18 +50,18 @@ export type WeddingSzene = {
   kachel: string;
 };
 
+/**
+ * NUR NOCH ZWEI SZENEN (Owner 06.08.2026: „brauchen wir nur 2 Szenen. Das erste und letzte
+ * mit dem Kuss. Szene 123 sind ehe gleich."). Garten und Ballsaal sahen auf den Kacheln aus
+ * wie die Kirche — vier Kacheln, die dasselbe versprechen, sind keine Wahl, sondern Rätselei.
+ * Der echte Unterschied ist das VERHALTEN: Blick in die Kamera oder der erste Kuss.
+ * Alte Kennungen („garten", „ballsaal") fallen über `weddingSzene` auf „keine Szene" zurück —
+ * gespeicherte Entwürfe brechen nicht.
+ */
 export const WEDDING_SZENEN: WeddingSzene[] = [
   {
     id: "kirche", name: "Kirche — am Altar", kuss: false, kachel: "/szenen-hochzeit/hochzeit-kirche.jpg",
     ort: "in a grand church at the altar, tall arched windows with soft light streaming in behind them, white flowers along the aisle",
-  },
-  {
-    id: "garten", name: "Garten bei Sonnenuntergang", kuss: false, kachel: "/szenen-hochzeit/hochzeit-garten.jpg",
-    ort: "in a beautiful sunlit garden at golden hour, a rose arch and green foliage behind them",
-  },
-  {
-    id: "ballsaal", name: "Ballsaal", kuss: false, kachel: "/szenen-hochzeit/hochzeit-ballsaal.jpg",
-    ort: "in an elegant ballroom with crystal chandeliers and soft golden light, wedding reception tables blurred in the background",
   },
   {
     id: "kuss", name: "Der erste Kuss", kuss: true, kachel: "/szenen-hochzeit/hochzeit-kuss.jpg",

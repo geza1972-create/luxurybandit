@@ -52,10 +52,17 @@ function Beispiel({ ok, label, children }: { ok?: boolean; label: string; childr
   );
 }
 
-export default function FotoAnleitung({ lang, karte = false, className = "" }: {
+export default function FotoAnleitung({ lang, karte = false, paar = false, className = "" }: {
   lang?: string;
   /** Innerhalb der Einladungskarte (`lb-karte`) — dort trägt die Karte ihre eigene Schrift. */
   karte?: boolean;
+  /**
+   * PAAR-MODUS (Owner 06.08.2026: „Oben steht dass nur eine Person gewählt werden kann. Das
+   * stimmt nicht. Wenn man den Tab ein Foto von uns wählen klickt."): Beim gemeinsamen Foto
+   * dreht das vierte Beispiel um — zwei Personen im Bild sind dort GENAU richtig. Dasselbe
+   * Bild, grünes Häkchen statt rotem Kreuz, eigene Beschriftung.
+   */
+  paar?: boolean;
   className?: string;
 }) {
   const T = fotoText(lang);
@@ -90,8 +97,9 @@ export default function FotoAnleitung({ lang, karte = false, className = "" }: {
           <img src={BELLA} alt="" className={bild} style={{ transform: "scale(0.34)", transformOrigin: "center 30%" }} />
         </Beispiel>
 
-        {/* Zwei Personen — Bella und Peter nebeneinander im selben Rahmen. */}
-        <Beispiel label={T.zwei}>
+        {/* Zwei Personen — Bella und Peter nebeneinander im selben Rahmen. Im Paar-Modus ist
+            genau DAS richtig (Häkchen), bei zwei Einzelfotos falsch (Kreuz). */}
+        <Beispiel ok={paar} label={paar ? T.zweiOk : T.zwei}>
           <span className="absolute inset-0 flex">
             <img src={BELLA} alt="" className="h-full w-1/2 object-cover object-top" />
             <img src={PETER} alt="" className="h-full w-1/2 object-cover object-top" />

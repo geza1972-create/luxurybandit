@@ -382,6 +382,21 @@ offen — wenn Spam kommt, braucht sie einen Deckel; Themenseiten-Verlinkung
 (`/themes/gutschein?topic=…`) steht bereit, aber noch nirgends verlinkt; Chat erst nach
 Guthaben-Zahlweg in die Liste.
 
+## 3f. Nachtrag 06.08. mittags — vier Sicht-Fixe nach dem ersten Push
+
+- **Foto-Anleitung im Paar-Modus** (Owner: „Oben steht dass nur eine Person gewählt werden
+  kann. Das stimmt nicht."): Beim Tab „Ein Foto von uns beiden" dreht das vierte Beispiel um
+  — grünes Häkchen, „Ihr beide — gross und scharf" (`FotoAnleitung paar`, `zweiOk` ×7).
+- **Hochzeit: nur noch ZWEI Szenen** („Szene 123 sind ehe gleich") — Kirche und Der erste
+  Kuss; alte Kennungen fallen auf „keine Szene" zurück.
+- **„Lieber gleich ein Video — {videoauf}" ist raus** („niemand weiss was das ist") — seit
+  Bild und Video beide {once} kosten, war der Zweitknopf ein Rätsel. Der Weg zum Video
+  bleibt „Daraus ein Video machen" unter der fertigen Karte.
+- **Kuss-Karte spielt die vier Videos aus `public/Kiss`** — und NUR die (lokal, umbenannt:
+  kiss-stand-close.mp4); die alten Supabase-Admin-Beispiele verdoppelten dieselben Küsse.
+- **Herzchen/Zurufe liegen jetzt IN der Karussell-Folie** („hier sammeln sich die Icons und
+  Schrift. Das stört.") — vorher flogen sie über Punkte, Kaufknopf und made-by-Zeile.
+
 ## 4. Fallen, die heute Zeit gekostet haben
 
 - **`.next` zerbricht immer wieder.** Symptom: „ich sehe nichts", Fehler an einer festen

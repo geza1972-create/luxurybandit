@@ -14,7 +14,7 @@ import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
 import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
-import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
+import { readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
@@ -50,9 +50,20 @@ export default async function KissThemePage({ searchParams }: {
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
 
-  // Beispiel-Videos (Admin-gepflegt) — signierte URLs frisch pro Request.
-  const config: KissConfig = await readKissConfig().catch(() => ({ modelIds: [] }));
-  const examples: string[] = (await Promise.all((config.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
+  /**
+   * DIE VIER FERTIGEN VIDEOS AUS public/Kiss — und NUR diese (Owner 06.08.2026: „bei Kiss in
+   * der Card, nimm bitte die Videos die sich in /public/Kiss befinden"). Lokal statt
+   * signierter Supabase-Adressen: keine Speicher-Abfragen je Aufruf, die Karte ist nie leer,
+   * wenn der Speicher hakt — und keine acht Folien, weil die alten Admin-Beispiele
+   * (`config.examplePaths`) dieselben Küsse noch einmal zeigten. Die stehen weiter im
+   * Admin-Werkzeug, gerendert werden sie hier nicht mehr.
+   */
+  const examples: string[] = [
+    "/Kiss/kiss.mp4",
+    "/Kiss/Video4-kiss-normal.mp4",
+    "/Kiss/kiss-stand-close.mp4",
+    "/Kiss/1785526379575-f07947ab-363f-4b74-85bf-89aebaff8e31.mp4",
+  ];
 
   /* Die Cover der anderen Themen wurden nur fuer „You might also love" geladen — acht
      Supabase-Abfragen je Seitenaufruf. Der Block ist raus (siehe unten), also auch das. */

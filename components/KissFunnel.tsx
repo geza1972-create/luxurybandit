@@ -2690,11 +2690,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   ohne Eintrag bleibt es bei der bisherigen Vorgabe, es aendert sich also
                   nichts fuer die Themen, die keine eigene Spur haben. */}
               {/* JEDES BEISPIEL EINE FOLIE — bei nur einem gibt `KartenKarussell` es
-                  unveraendert zurueck, ohne Bahn und ohne Punkte. Ueberlagerungen (Herzchen,
-                  Griff, Renderschicht) bleiben DARUEBER stehen und wandern nicht mit: Sie
-                  gehoeren zur Karte, nicht zum einzelnen Video. */}
+                  unveraendert zurueck, ohne Bahn und ohne Punkte.
+                  DIE HERZCHEN LIEGEN IN DER FOLIE, nicht ueber der ganzen Karte (Owner
+                  06.08.2026, mit Bild: „hier sammeln sich die Icons und Schrift. Das
+                  stört."): Als Karten-Ebene flogen sie ueber Punkte, Kaufknopf und
+                  made-by-Zeile — genau ueber die Bedienung. In der Folie decken sie exakt
+                  das Video und nichts darunter. */}
               <KartenKarussell folien={beispiele.map((url, i) => (
-              <EinladungAnsicht key={i} id="" videoUrl={url} zaehlen={false}
+              <div key={i} className="relative">
+              <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
@@ -2710,6 +2714,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
                 )} />
+              {!karteRendert && <Reaktionen variant={variant} lang={lang} name={empfaenger} />}
+              </div>
               ))} />
               {/* Der sichtbare Kaufaufruf — auf dem Papier, nicht auf dem Bild. */}
               {!karteRendert && (
@@ -2718,12 +2724,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   {gesperrt ? T.blockedOnce : kartenAufruf}
                 </button>
               )}
-              {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
-                  sie auf dem eigenen Bild belohnen.
-                  WAEHREND DES LAUFS NICHT: Dieselbe Regel wie ueber dem eigenen Bild —
-                  Herzchen sind Schmuck, eine Auskunft ueber sein Geld ist keiner. Wo beide um
-                  dieselbe Flaeche streiten, gewinnt die Auskunft. */}
-              {!karteRendert && <Reaktionen variant={variant} lang={lang} name={empfaenger} />}
+              {/* Die Herzchen-Ebene ist in die Folie gezogen (siehe Karussell oben) — hier
+                  lag sie ueber der GANZEN Karte samt Punkten und Kaufknopf. */}
               {/* „Personen ersetzen" weicht ebenfalls: Mitten im bezahlten Lauf die Personen
                   zu tauschen hiesse zahlen und nichts bekommen — derselbe Grund, aus dem der
                   Loeschknopf ueber dem eigenen Bild waehrend des Laufs verschwindet. */}
