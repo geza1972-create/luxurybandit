@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
+import { zweifarbig } from "@/components/Landing";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -336,10 +337,17 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
     <div className={`flex items-baseline gap-2 ${voll ? "justify-center" : "mt-1.5"}`}>
       {/* DER PREIS IST DIE WICHTIGSTE ZEILE — er steht vorn, nicht als Fussnote hinter den
           Merkmalen. Ein Geschenk, dessen Preis man raten muss, verkauft sich nicht. */}
+      {/* `lb-karte-gold` wirkt NUR innerhalb von `.lb-karte` — seit die Reihe wieder dunkel
+          ist, braucht sie das Haus-Gold als eigene Klasse, sonst stünde der Preis dort in
+          schlichtem Weiss (Memory `lb-karte-important-frisst-inline-farben`). */}
       {aktiv && thema.abPreis && (
-        <span className={`lb-karte-gold shrink-0 font-black ${voll ? "text-[16px]" : "text-[13px]"}`}>{thema.abPreis}</span>
+        <span className={`shrink-0 font-black ${voll ? "lb-karte-gold text-[17px]" : "text-[#f6cf51] text-[15px]"}`}>{thema.abPreis}</span>
       )}
-      <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide opacity-55">
+      {/* UMBRECHEN STATT ABSCHNEIDEN. Mit `truncate` endete die Zeile mitten im Wort
+          („♥ DEIN GESCHENK · DEINE NACHRICH…") — bei 9px fiel das kaum auf, bei 10px liest
+          es sich wie ein Fehler. Zwei Zeilen sind erlaubt; die Höhe gibt ohnehin das Video
+          daneben vor. */}
+      <span className="min-w-0 line-clamp-2 text-[10px] font-black uppercase tracking-wide opacity-70">
         {aktiv ? thema.merkmale : baldZeile}
       </span>
     </div>
@@ -350,10 +358,30 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
      neben dem Text. Oben flankieren sie den Titel, unten die Preiszeile — genau wie sie es
      auf der Einladung tun. Die waagerechten Polster (`px-10`) halten den Text von den
      Ranken frei. */
+  /**
+   * DIE KACHEL IST EINE ÜBERSCHRIFT, KEINE FUSSNOTE (Owner 06.08.2026, mit zwei
+   * Bildschirmfotos nebeneinander: „die Schrift ist zu klein im Vergleich zu oben").
+   *
+   * Er hat recht, und die Zahlen sagen es auch: Der Titel stand auf 14px, die Zeile darunter
+   * auf 11,5px — der Fliesstext der Seite darüber ist 15px (`Lead`). Damit war die
+   * Überschrift des Produkts KLEINER als der Erklärtext über ihr, und die Merkmalzeile mit
+   * 9px bei 55 % Deckkraft lag unter jedem Lesbarkeits-Boden des Hauses (Skill `ci-design`:
+   * Kleingedrucktes nie schwächer als 75 %).
+   *
+   * Jetzt trägt die Kachel die Rangfolge, die ihr zusteht: Titel 17px über dem 15er-Fliesstext,
+   * Zeile 13,5px darunter, Preis 15px — er ist die Zeile, die verkauft. Grösser geht nicht:
+   * In der schmalen Reihe stehen daneben 104 Pixel Video, und ein 20er-Titel bräuchte drei
+   * Zeilen für „Sende einen Kuss an die Person, die du liebst".
+   */
   const text = voll ? null : (
     <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
-      <p className="text-[14px] font-black leading-tight">{thema.titel}</p>
-      <p className="mt-0.5 line-clamp-2 text-[11.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      {/* ZWEIFARBIG WIE JEDE ÜBERSCHRIFT DES HAUSES (Owner 06.08.2026: erst „Und der Titel
+          jetzt gelb", nach dem Ansehen „nein, es sieht nicht gut aus … die gelbe schrift",
+          dann „zweifarbig"). Ganz in Gold nahm der Titel dem goldenen Preis darunter den
+          Rang; so führt der Anfang in Weiss, und das Gold sitzt auf dem Schluss der Zeile —
+          dieselbe Teilung, die `SectionTitle` benutzt (`zweifarbig` in Landing.tsx). */}
+      <p className="text-[17px] font-black leading-tight">{zweifarbig(thema.titel, { einzelwortGold: false, halb: true })}</p>
+      <p className="mt-1 line-clamp-2 text-[13.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
       {preiszeile}
     </div>
   );
@@ -370,13 +398,30 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    *
    * Die Ornamente NUR in der vollen Gestalt: In der schmalen Reihe ist die Kachel 104 Pixel
    * hoch, dort wären vier Ecken nur Krümel.
+   *
+   * DAS PAPIER BLEIBT DER VOLLEN BREITE (Owner 06.08.2026, beim Ansehen: „die weissen Flächen
+   * bei den kleinen gefallen mir gar nicht").
+   *
+   * Die Regel von oben galt zuerst für BEIDE Gestalten — und in der Reihe wurde daraus etwas
+   * anderes, als sie versprach: Eine Karte ist ein Blatt Papier, auf dem etwas STEHT. Neben
+   * einer 104-Pixel-Briefmarke bleibt aber kein Blatt übrig, sondern ein weisser Balken, der
+   * halb so breit ist wie die Zeile darin — und acht davon untereinander sind eine Leiter aus
+   * hellen Klötzen, nicht eine Auslage. Über die ganze Breite stimmt das Bild dagegen: Dort
+   * IST die Kachel das Blatt, mit Ranken in den Ecken und dem Video darauf.
+   *
+   * In der Reihe trägt sie deshalb wieder die dunkle Fläche des Hauses — Rand, Hauch Weiss,
+   * weisse Schrift, goldener Preis. Das Video ist dort die Farbe, nicht das Papier.
    */
-  const kl = `lb-karte relative overflow-hidden rounded-[22px] transition-opacity ${voll ? "block p-3" : "flex items-stretch"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
+  const kl = `relative overflow-hidden rounded-[22px] transition-opacity ${voll
+    ? "lb-karte block p-3"
+    : "flex items-stretch border border-white/15 bg-white/[0.05] text-white"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
   const inhalt = voll ? (
     <>
       <CornerOrnaments />
-      <p className="px-10 pt-1 text-center text-[17px] font-black leading-tight">{thema.titel}</p>
-      <p className="mt-1 px-6 text-center text-[12.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      {/* Über die ganze Breite darf der Titel eine Stufe grösser als in der Reihe — hier
+          steht kein Video daneben, das ihm die Breite nimmt. */}
+      <p className="px-10 pt-1 text-center text-[20px] font-black leading-tight">{thema.titel}</p>
+      <p className="mt-1 px-6 text-center text-[14px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
       <div className="mt-2.5 overflow-hidden rounded-[16px]">{medien}</div>
       <div className="px-10 pb-1 pt-2.5">{preiszeile}</div>
     </>
