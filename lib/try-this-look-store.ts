@@ -432,6 +432,20 @@ export type TryThisLookState = {
   tryonPaused?: boolean;
   // When true, a NEW model chat no longer fires the admin WhatsApp/email alert (chats still log).
   chatNotifyPaused?: boolean;
+  /**
+   * DIE GESTALT DER THEMEN-KACHELN — „reihe" (Briefmarke links, Text rechts) oder „voll"
+   * (Karte über die ganze Breite, mit Ranken und Video).
+   *
+   * Sie stand vorher NUR im localStorage, und daran ist sie gescheitert (Owner 06.08.2026:
+   * „ich habe in der Biblio auf volle Breite geschaltet aber online ist es nicht auf live
+   * aktiv"): Der Browser-Speicher gehört EINEM Browser auf EINER Adresse — die Wahl reiste
+   * weder von localhost zur echten Seite noch vom Owner zu irgendeinem Besucher.
+   *
+   * Hier gilt sie für alle, und ein Wechsel braucht keine Auslieferung. Fehlt der Eintrag,
+   * gilt die Vorgabe im Code (`voll`). Der Umschalter auf `/ci` bleibt daneben bestehen —
+   * ohne Admin-Kennung ändert er weiterhin nur die eigene Ansicht zum Vergleichen.
+   */
+  themenGestalt?: "reihe" | "voll";
   // Admin-managed wardrobe: outfit images shown in the Try-On funnel gallery, so a user
   // can pick an outfit to see the video's model (or their own avatar) wearing it.
   outfits?: TryThisLookOutfit[];
@@ -1016,6 +1030,10 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     pricing: { ...DEFAULT_PRICING, ...(state.pricing ?? {}), stripeIds: { ...DEFAULT_PRICING.stripeIds, ...(state.pricing?.stripeIds ?? {}) } },
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
+    /* Die Gestalt der Themen-Kacheln. MUSS an BEIDEN Merge-Stellen stehen — ein neues
+       Feld, das hier fehlt, wird beim Speichern still weggeworfen (Memory
+       `delete-resurrection-merge-bug`), und der Schalter schaltet dann scheinbar nichts. */
+    themenGestalt: state.themenGestalt === "reihe" || state.themenGestalt === "voll" ? state.themenGestalt : undefined,
     outfits: state.outfits ?? [],
     collections: state.collections ?? [],
     wardrobeVocab: state.wardrobeVocab,
@@ -1311,6 +1329,10 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     occasions: (state.occasions ?? []).slice(0, 5000),
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
+    /* Die Gestalt der Themen-Kacheln. MUSS an BEIDEN Merge-Stellen stehen — ein neues
+       Feld, das hier fehlt, wird beim Speichern still weggeworfen (Memory
+       `delete-resurrection-merge-bug`), und der Schalter schaltet dann scheinbar nichts. */
+    themenGestalt: state.themenGestalt === "reihe" || state.themenGestalt === "voll" ? state.themenGestalt : undefined,
     pricing: state.pricing ?? DEFAULT_PRICING,
   };
 

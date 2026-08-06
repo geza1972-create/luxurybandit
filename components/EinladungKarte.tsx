@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
+import { KartenTitel } from "@/components/CI";
 
 /**
  * DIE EINLADUNGSKARTE — eine Datei für zwei Orte.
@@ -316,17 +317,10 @@ export default function EinladungKarte({
             EINEN KUSS" in derselben Schrift ist eine Zumutung — gesperrte Versalien liest man
             Buchstabe für Buchstabe. Ab 18 Zeichen also normale Schreibung, etwas grösser und
             ohne Sperrung; der Titel bleibt gold und mittig, nur die Auszeichnung fällt weg. */}
-        {(() => {
-          const t = titel || T.save;
-          const lang = t.length > 18;
-          return (
-            <p className={`lb-karte-gold text-center font-black ${lang
-              ? "text-[13px] leading-snug tracking-normal"
-              : "text-[10px] uppercase tracking-[0.34em]"}`}>
-              {t}
-            </p>
-          );
-        })()}
+        {/* Die Zeile liegt jetzt in der Bibliothek (`KartenTitel` in components/CI.tsx) — die
+            Themen-Kachel benutzt dieselbe, damit „genau das gleiche Design" auch dasselbe
+            bleibt, wenn sich eines Tages etwas daran ändert. */}
+        <KartenTitel>{titel || T.save}</KartenTitel>
         {!hatNamen ? null : aufNamen ? (
           <button type="button" onClick={aufNamen}
             className="lb-tippbar mx-auto mt-2 block w-full rounded-xl px-2 py-1 text-center font-serif text-[27px] font-bold leading-tight transition active:scale-[0.98]">

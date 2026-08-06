@@ -165,11 +165,20 @@ export default async function ThemesCatalog({ searchParams }: {
   // Platzhalter-Cover für die „coming soon"-Themen = echte Model-Fotos aus dem Katalog
   // (signierte URLs, keine intimen Bilder). Später bekommt jedes Thema sein eigenes Ad-Video.
   let placeholders: string[] = [];
+  /**
+   * DIE GESTALT KOMMT VOM SERVER, NICHT AUS DEM BROWSER (Owner 06.08.2026: „online ist es
+   * nicht auf live aktiv" · „ja mach es"). Sie wird HIER gelesen und als Eigenschaft nach
+   * unten gereicht: Damit steht die richtige Gestalt schon im ersten ausgelieferten Bild —
+   * ein Nachladen im Browser würde die Kacheln erst in der einen und dann in der anderen
+   * Gestalt zeigen, und dieses Zucken sieht jeder Besucher.
+   */
+  let gestalt: "reihe" | "voll" | undefined;
   try {
     const state = await readTryThisLookState();
     placeholders = ((state?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
       .filter(c => c.id !== BELLA_ID && !!c.photoUrl && !c.hidden && c.status !== "removed")
       .map(c => c.photoUrl as string);
+    if (state?.themenGestalt === "reihe" || state?.themenGestalt === "voll") gestalt = state.themenGestalt;
   } catch { /**/ }
   const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
 
@@ -540,6 +549,7 @@ export default async function ThemesCatalog({ searchParams }: {
             Client-Baustein durchreichen, gerendertes JSX schon. */}
         <ThemenListe
           className="mt-6"
+          gestalt={gestalt}
           baldZeile="Coming soon"
           themen={THEMES_L.map(t => ({
             titel: t.title,

@@ -267,6 +267,32 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
  * in Gold, nicht als Fussnote hinter den Merkmalen. Ein Geschenk, dessen Preis man raten
  * muss, verkauft sich nicht.
  */
+/**
+ * DIE TITELZEILE DER KARTE — gelb, mittig, und ab einer gewissen Länge nicht mehr gesperrt
+ * (Owner 06.08.2026 zur Themen-Kachel: „ich brauche genau das gleiche design. Selbe Schrift
+ * wie bei card").
+ *
+ * Sie stand nur in `EinladungKarte` und war damit nirgendwo sonst zu haben — die Kachel hatte
+ * sich deshalb eine eigene Überschrift gebaut, und zwei Dinge, die dasselbe sein sollen, sahen
+ * verschieden aus. Jetzt liegt sie hier: Karte und Kachel holen dieselbe Zeile.
+ *
+ * DIE LÄNGENREGEL GEHÖRT DAZU, sie ist der Grund für die zwei Gestalten: Ein kurzer Titel wie
+ * „HOCHZEITSEINLADUNG" trägt Versalien mit weiter Sperrung — das liest sich als Auszeichnung.
+ * „Mein Geschenk für dich: Ein Gutschein!" in derselben Schrift ist eine Zumutung, gesperrte
+ * Versalien liest man Buchstabe für Buchstabe. Ab 18 Zeichen also normale Schreibung, etwas
+ * grösser, ohne Sperrung.
+ */
+export function KartenTitel({ children, className = "" }: { children: string; className?: string }) {
+  const lang = String(children ?? "").length > 18;
+  return (
+    <p className={`lb-karte-gold text-center font-black ${lang
+      ? "text-[13px] leading-snug tracking-normal"
+      : "text-[10px] uppercase tracking-[0.34em]"} ${className}`}>
+      {children}
+    </p>
+  );
+}
+
 export type ThemenKachelDaten = {
   titel: string;
   zeile: string;
@@ -333,8 +359,15 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
      Zeile werden Tinte, die Schrift ist eine Serife. Deshalb hier KEINE Farbklassen — sie
      würden ohnehin überstimmt (Memory `lb-karte-important-frisst-inline-farben`). Die
      Rangfolge macht das Gewicht. */
+  /* IN DER KARTE STEHEN PREIS UND MERKMALE ÜBEREINANDER, nicht nebeneinander (06.08.2026,
+     beim Ansehen des Rahmens): Nebeneinander brach die Merkmalzeile um, und ihre zweite
+     Zeile lief in die unteren Eckranken. Gestapelt und mittig ist ausserdem die Ordnung
+     einer gedruckten Karte — in der Reihe bleibt es nebeneinander, dort gibt das Video
+     daneben die Höhe vor. */
   const preiszeile = (
-    <div className={`flex items-baseline gap-2 ${voll ? "justify-center" : "mt-1.5"}`}>
+    <div className={voll
+      ? "flex flex-col items-center gap-0.5"
+      : "mt-1.5 flex items-baseline gap-2"}>
       {/* DER PREIS IST DIE WICHTIGSTE ZEILE — er steht vorn, nicht als Fussnote hinter den
           Merkmalen. Ein Geschenk, dessen Preis man raten muss, verkauft sich nicht. */}
       {/* `lb-karte-gold` wirkt NUR innerhalb von `.lb-karte` — seit die Reihe wieder dunkel
@@ -347,7 +380,7 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
           („♥ DEIN GESCHENK · DEINE NACHRICH…") — bei 9px fiel das kaum auf, bei 10px liest
           es sich wie ein Fehler. Zwei Zeilen sind erlaubt; die Höhe gibt ohnehin das Video
           daneben vor. */}
-      <span className="min-w-0 line-clamp-2 text-[10px] font-black uppercase tracking-wide opacity-70">
+      <span className={`min-w-0 line-clamp-2 text-[10px] font-black uppercase tracking-wide opacity-70 ${voll ? "text-center" : ""}`}>
         {aktiv ? thema.merkmale : baldZeile}
       </span>
     </div>
@@ -413,17 +446,33 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    * weisse Schrift, goldener Preis. Das Video ist dort die Farbe, nicht das Papier.
    */
   const kl = `relative overflow-hidden rounded-[22px] transition-opacity ${voll
-    ? "lb-karte block p-3"
+    ? "lb-karte block px-4 pb-4 pt-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
     : "flex items-stretch border border-white/15 bg-white/[0.05] text-white"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
+  /**
+   * DIE FEINE INNENLINIE GEHÖRT DAZU (Owner 06.08.2026: „der rahmen fehlt wie bei der
+   * Landingpage card. Die Ornamente sind da").
+   *
+   * Genau wie in `EinladungKarte`: Vier Ranken allein sitzen als Krümel in den Ecken; erst
+   * die Linie dazwischen hält sie zusammen und macht daraus eine gedruckte Karte statt vier
+   * Verzierungen. Es ist dieselbe Klasse `lb-karte-rahmen` und keine eigene Linie — sie
+   * folgt damit ohne Zutun der Ornament-Regel: Tinte im Dunkeln, Blau in der hellen Fassung.
+   * Der Schatten kommt aus demselben Grund mit: Ein Blatt Papier liegt auf etwas.
+   */
   const inhalt = voll ? (
     <>
       <CornerOrnaments />
-      {/* Über die ganze Breite darf der Titel eine Stufe grösser als in der Reihe — hier
-          steht kein Video daneben, das ihm die Breite nimmt. */}
-      <p className="px-10 pt-1 text-center text-[20px] font-black leading-tight">{thema.titel}</p>
-      <p className="mt-1 px-6 text-center text-[14px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
-      <div className="mt-2.5 overflow-hidden rounded-[16px]">{medien}</div>
-      <div className="px-10 pb-1 pt-2.5">{preiszeile}</div>
+      <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
+      {/* `relative`, damit der Inhalt ÜBER der Linie liegt und nicht von ihr durchkreuzt wird. */}
+      <div className="relative">
+        {/* DIESELBE TITELZEILE WIE AUF DER ECHTEN KARTE (Owner 06.08.2026: „ich brauche genau
+            das gleiche design. Selbe Schrift wie bei card") — ein Baustein, zwei Orte. */}
+        <KartenTitel className="px-10">{thema.titel}</KartenTitel>
+        <p className="mt-1 px-6 text-center text-[14px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+        <div className="mt-3 overflow-hidden rounded-[14px]">{medien}</div>
+        {/* `pb-2` hält die letzte Zeile von den unteren Eckranken frei — sie sitzen 8 Pixel
+            über dem Rand und sind 28 hoch. */}
+        <div className="px-10 pb-2 pt-3">{preiszeile}</div>
+      </div>
     </>
   ) : (
     <>{medien}{text}</>
@@ -455,25 +504,57 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
  * ist gefallen, die Kacheln laufen über die ganze Breite mit Ranken und Video. Wer auf `/ci`
  * umschaltet, überstimmt das für sich zum Vergleichen; für die Welt gilt diese Zeile.
  *
- * Soll die Gestalt einmal OHNE Auslieferung wechselbar sein, gehört sie in den Zustand auf
- * dem Server (state.json) statt in den Browser — dann ist es ein echter Schalter. Bis dahin
- * ist ein Wechsel hier ein Commit, und das ist ehrlicher als ein Knopf, der nur so aussieht,
- * als gälte er für alle.
+ * JETZT IST ES EIN ECHTER SCHALTER (Owner 06.08.2026: „ja mach es"). Die Wahl steht im
+ * Zustand auf dem Server (`state.themenGestalt`, gelesen von der Themen-Seite, geschrieben
+ * über `/api/themen-gestalt`) — sie gilt für alle und braucht keine Auslieferung. Schreiben
+ * darf nur, wer die Admin-Kennung mitschickt; für alle anderen bleibt der Umschalter genau
+ * das, was er vorher für jeden war: eine Vorschau im eigenen Browser.
+ *
+ * `gesetzt` sagt dem Aufrufer, ob in DIESEM Browser überhaupt etwas gewählt wurde. Nur dann
+ * überstimmt der Browser-Eintrag die Gestalt vom Server — sonst sähe der Owner auf ewig
+ * seine alte Vorschau statt dessen, was er gerade für alle geschaltet hat.
  */
 const GESTALT_SCHLUESSEL = "lb-topic-gestalt";
 export function useThemenGestalt() {
   const [art, setArt] = useState<"reihe" | "voll">("voll");
+  const [gesetzt, setGesetzt] = useState(false);
   useEffect(() => {
     try {
       const w = localStorage.getItem(GESTALT_SCHLUESSEL);
-      if (w === "voll" || w === "reihe") setArt(w);
+      if (w === "voll" || w === "reihe") { setArt(w); setGesetzt(true); }
     } catch { /* Privatmodus — dann eben die Vorgabe */ }
+    /* Ohne eigene Wahl gilt, was auf dem Server steht — damit zeigt auch die Muster-Seite
+       den Stand, der gerade für alle gilt, statt der Vorgabe im Code. */
+    void fetch("/api/themen-gestalt", { cache: "no-store" }).then(r => r.json()).then(d => {
+      if (d?.art === "reihe" || d?.art === "voll") {
+        setArt(a => {
+          try { return localStorage.getItem(GESTALT_SCHLUESSEL) ? a : d.art; } catch { return d.art; }
+        });
+      }
+    }).catch(() => {});
   }, []);
   const waehle = (w: "reihe" | "voll") => {
+    setGesetzt(true);
+    /**
+     * FÜR ALLE, WENN DIE KENNUNG DA IST. Der Owner schaltet auf `/ci` und meint damit die
+     * ganze Seite — nicht seinen Browser. Die Route lehnt ohne Admin-Kennung ab; dann bleibt
+     * es bei der Vorschau hier, und niemand kann das Aussehen der Startseite umstellen,
+     * indem er `/ci` öffnet.
+     */
+    try {
+      const pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
+      if (pin) {
+        void fetch("/api/themen-gestalt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin },
+          body: JSON.stringify({ art: w }),
+        }).catch(() => {});
+      }
+    } catch { /**/ }
     setArt(w);
     try { localStorage.setItem(GESTALT_SCHLUESSEL, w); } catch { /**/ }
   };
-  return { art, waehle };
+  return { art, waehle, gesetzt };
 }
 
 /** Der Umschalter — gehört auf die Muster-Seite `/ci`, nicht in einen Trichter. */
@@ -495,14 +576,22 @@ export function ThemenGestaltWahl({ art, waehle, className = "" }: {
  * DIE THEMEN-LISTE — die Kacheln in der gewählten Gestalt. KEIN Umschalter darin: gewählt
  * wird auf `/ci` (siehe `useThemenGestalt`), hier wird nur noch gezeigt.
  */
-export function ThemenListe({ themen, live, bald, baldZeile, className = "" }: {
+export function ThemenListe({ themen, live, bald, baldZeile, gestalt, className = "" }: {
   themen: ThemenKachelDaten[];
   live?: string;
   bald?: string;
   baldZeile?: string;
+  /**
+   * Die Gestalt vom SERVER — die Themen-Seite liest sie aus dem Zustand und reicht sie
+   * herein. Damit steht sie schon im ersten ausgelieferten Bild; der Browser-Eintrag
+   * (localStorage) bleibt daneben als persönliche Vorschau und überstimmt sie nur dort,
+   * wo jemand auf `/ci` verglichen hat.
+   */
+  gestalt?: "reihe" | "voll";
   className?: string;
 }) {
-  const { art } = useThemenGestalt();
+  const { art: gewaehlt, gesetzt } = useThemenGestalt();
+  const art = gesetzt ? gewaehlt : (gestalt ?? gewaehlt);
   return (
     <div className={`grid grid-cols-1 gap-3 ${className}`}>
       {themen.map(t => (
