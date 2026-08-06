@@ -39,7 +39,23 @@ export async function translateMany(texts: string[], lang: string): Promise<stri
           model: "gpt-4o-mini", temperature: 0,
           messages: [{
             role: "user",
-            content: `Translate each string in this JSON array into ${target}. Keep emojis, names and tone. If a string is ALREADY in ${target}, return it EXACTLY unchanged — never translate it into any other language. The output must be in ${target} only. Return ONLY a JSON array of the translated strings, same length and order.\n\n${JSON.stringify(misses.map(m => m.text))}`,
+            /**
+             * IMMER DUZEN (05.08.2026). Englisch kennt nur ein „you", also entscheidet die
+             * Maschine die Anrede selbst — und sie entscheidet unterschiedlich: Auf der
+             * Gutschein-Seite kam „Laden SIE den Gutschein hoch, den SIE bereits haben"
+             * heraus, während die Chat-Seite daneben duzt. Auf derselben Seite zwei Anreden
+             * zu haben, liest sich wie zwei verschiedene Firmen.
+             *
+             * Das Du ist die Hausanrede: Jede handgeschriebene Zeile im Projekt duzt („Schenk
+             * ihm eine perfekte KI-Freundin", „Lade ein Foto von dir hoch"), und es passt zu
+             * dem, was hier verkauft wird — ein Geschenk an einen Menschen, den man mag.
+             *
+             * WIRKT NUR AUF NEUE TEXTE. Übersetztes liegt dauerhaft im Zwischenspeicher
+             * (`${lang}::${text}`) und wird nie neu geholt — das spart Geld und ist sonst
+             * richtig. Wer eine alte Zeile umstellen will, ändert ihren englischen Wortlaut;
+             * damit ist es ein neuer Schlüssel und sie geht durch die Maschine.
+             */
+            content: `Translate each string in this JSON array into ${target}. Keep emojis, names and tone. Always address the reader INFORMALLY (German du/dein, Romanian tu/tău, Spanish tú/tu, French tu/ton, Portuguese tu/teu, Italian tu/tuo) — never the polite form (Sie, dumneavoastră, usted, vous, você formal, Lei). If a string is ALREADY in ${target}, return it EXACTLY unchanged — never translate it into any other language. The output must be in ${target} only. Return ONLY a JSON array of the translated strings, same length and order.\n\n${JSON.stringify(misses.map(m => m.text))}`,
           }],
         }),
       });

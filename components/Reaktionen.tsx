@@ -107,6 +107,37 @@ const TANZ_LIEBE: Record<string, string[]> = {
 /** Zurufe beim Tanz — ohne Kuss-Lippen, sonst bewirbt das Tanzvideo den Kuss. */
 const TANZ_JUBEL = ["wow 🔥", "😍", "💃", "so hot"];
 
+/**
+ * DAS SYSTEM RUFT NICHT „WOW", ES RUFT „MACH ES" (Owner 04.08.2026: „hier brauche ich auch
+ * die Animationen, mit Herzchen aber ‚do it‘, also motivierende Wörter").
+ *
+ * DREI REGELN, DIE HIER ANDERS SIND ALS BEIM KUSS:
+ *
+ * 1. KEINE HERZEN. Auf dem Kussbild sind Herzen der Inhalt; über einem Mann vor seiner
+ *    künftigen Werkstatt wären sie eine andere Geschichte. Stattdessen ⚡🔥👊💪👑 — Antrieb,
+ *    nicht Zuneigung.
+ *
+ * 2. SIE SPRECHEN IHN AN, sie behaupten nichts ÜBER ihn. „Mach es" ist ein Zuruf; „er hat es
+ *    geschafft" wäre eine erfundene Bewertung — in der EU angreifbar und genau das, was der
+ *    Kommentar oben zu den Sprechblasen ausschliesst.
+ *
+ * 3. KEINE ZAHLEN, KEIN GELD. Kein „10k im Monat", kein „reich in einem Jahr". Das ist die
+ *    harte Grenze des ganzen Themas (Skill `business-analyse`): Ein Zuruf darf antreiben,
+ *    aber nichts versprechen.
+ */
+const SYSTEM_ZURUFE: Record<string, string[]> = {
+  en: ["DO IT", "no excuses", "start today", "your move", "get up", "prove them wrong", "not Monday — today", "one call away"],
+  de: ["MACH ES", "keine Ausreden", "fang heute an", "du bist dran", "steh auf", "zeig's ihnen", "nicht Montag — heute", "ein Anruf reicht"],
+  ro: ["FĂ-O", "fără scuze", "începe azi", "e rândul tău", "ridică-te", "arată-le", "nu luni — azi", "un telefon"],
+  es: ["HAZLO", "sin excusas", "empieza hoy", "te toca", "levántate", "demuéstralo", "no el lunes — hoy", "una llamada"],
+  fr: ["FAIS-LE", "aucune excuse", "commence aujourd'hui", "à toi", "lève-toi", "prouve-leur", "pas lundi — aujourd'hui", "un appel"],
+  pt: ["FAZ ISSO", "sem desculpas", "começa hoje", "é a tua vez", "levanta-te", "mostra-lhes", "não segunda — hoje", "uma chamada"],
+  it: ["FALLO", "niente scuse", "inizia oggi", "tocca a te", "alzati", "faglielo vedere", "non lunedì — oggi", "una telefonata"],
+};
+
+/** Die Zeichen, die statt der Herzen aufsteigen. */
+const SYSTEM_ZEICHEN = ["⚡", "🔥", "👊", "💪", "👑"];
+
 const HOCHZEIT_ZURUFE: Record<string, string[]> = {
   en: ["😍", "❤️", "so beautiful", "💍", "wow", "perfect", "🥂", "💐"],
   de: ["😍", "❤️", "so schön", "💍", "wow", "perfect", "🥂", "💐"],
@@ -152,7 +183,11 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
     }
     return out;
   };
-  const zurufe = variant === "wedding"
+  const zurufe = variant === "plan"
+    /* Das System spricht ihn an, statt ihn zu beschreiben - und NIE mit Namen: „Andrei,
+       mach es" waere ein Zuruf von jemandem, den es nicht gibt. */
+    ? (SYSTEM_ZURUFE[l] ?? SYSTEM_ZURUFE.en)
+    : variant === "wedding"
     ? (HOCHZEIT_ZURUFE[l] ?? HOCHZEIT_ZURUFE.en)
     : variant === "birthday"
       ? mischen((GEBURTSTAG_ZEILEN[l] ?? GEBURTSTAG_ZEILEN.en).map(t => (wen ? `${wen}, ${t}` : grossErster(t))), GEBURTSTAG_JUBEL)
@@ -181,7 +216,9 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
             fontSize: `${14 + (i % 4) * 5}px`,
             ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (8 + (i % 3) * 10)}px`,
           }}>
-          {i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
+          {variant === "plan"
+            ? SYSTEM_ZEICHEN[i % SYSTEM_ZEICHEN.length]
+            : i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
         </span>
       ))}
       {/* Zurufe als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}

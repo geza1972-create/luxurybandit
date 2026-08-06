@@ -4,6 +4,7 @@ import { resolveLang } from "@/lib/lang-server";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungBauen from "@/components/EinladungBauen";
+import ThemenVorspann from "@/components/ThemenVorspann";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
@@ -14,6 +15,8 @@ import KissUsersAdmin from "@/components/KissUsersAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
+import ThemenPreis from "@/components/ThemenPreis";
+import SeitenFuss from "@/components/SeitenFuss";
 import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
@@ -171,6 +174,19 @@ export default async function WeddingThemePage({ searchParams }: {
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">{t.kicker}</p>
             <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
             <Lead className="mt-2">{t.claim}</Lead>
+            <ThemenPreis thema="wedding" lang={L} className="mt-3" />
+
+            {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner
+                05.08.2026: „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite").
+                Hier fehlte der ganze Block: Zwischen Preis und Karte stand nichts, was sagt,
+                WOFÜR man das kauft. Die drei Schritte hatte diese Seite nie — sie erbte die
+                Kuss-Schritte („Wir machen aus euch beiden ein Kussvideo"), die auf einer
+                Hochzeitsseite falsch sind; jetzt stehen eigene in `lib/kiss-i18n` (HOCHZEIT).
+                Die Privatzeile ist hier besonders wichtig: Wer die Adresse seines Saals und
+                die Namen seiner Gäste einträgt, will wissen, dass die Seite nicht auffindbar
+                ist. */}
+            <ThemenVorspann anlass={T.anlass} grund={T.grund}
+              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
             <div className="mt-5">
               <EinladungBauen lang={L} beispielVideo={examples[0] ?? ""} />
@@ -266,6 +282,10 @@ export default async function WeddingThemePage({ searchParams }: {
           </div>
         )}
       </div>
+        {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
+            Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
+            gesehen. Siehe components/SeitenFuss. */}
+        <SeitenFuss />
     </main>
   );
 }

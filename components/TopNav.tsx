@@ -19,14 +19,36 @@ import GuthabenChip from "@/components/GuthabenChip";
 // Ohne „The" (Owner 30.07.2026: „entferne THE"). Neben den drei Symbolen rechts war die
 // Zeile zu lang und wurde abgeschnitten — man konnte das Motto nicht lesen.
 /**
- * DAS MOTTO (Owner 31.07.2026: „das Motto soll nicht mehr Influencer Marketplace stehen,
- * sondern AI MARKETPLACE").
+ * DAS MOTTO — „das Geschenkideen-Portal" (Owner 04.08.2026: „Luxurybandit das Geschenkideen
+ * Portal." · „und das sind LuxuryBandit Geschenke alle!!!!!! Wir haben es.").
  *
- * Es steht unter dem Logo auf jeder Seite. „Influencer marketplace" beschrieb das Portal, als
- * es um Models ging; inzwischen macht der Kunde SEIN Video mit SEINEM Foto — das ist keine
- * Vermittlung von Influencerinnen mehr.
+ * DRITTE FASSUNG, UND DIE ERSTE, DIE DEN AUFTRAG NENNT. Vorher stand hier „Influencer
+ * marketplace" (als es um die Vermittlung von Models ging), dann „AI marketplace" (31.07.2026,
+ * als der Kunde sein eigenes Video mit seinem eigenen Foto machte). Beide beschrieben die
+ * TECHNIK. „Geschenkideen-Portal" beschreibt, wofür jemand herkommt — und das ist seit dem
+ * 04.08. die Klammer über allem: Kuss, Hochzeit, Gutschein, Geburtstag, Urlaub, Tanz, Bella
+ * und das System sind acht Anlässe EINES Produkts, nämlich eines Geschenks.
+ *
+ * NICHT ALS SUCHWORT GEDACHT (Konzept §0): „geschenkideen" ist Amazon-Land, dort gewinnt
+ * niemand. Das hier ist Marke im Seitenkopf; gesucht wird über die Anlass-Seiten.
+ *
+ * SIEBEN SPRACHEN, OHNE ARTIKEL. Der Artikel ist bewusst weg — derselbe Grund, aus dem der
+ * Owner am 30.07.2026 „entferne THE" sagte: Neben den drei Symbolen rechts ist die Zeile sonst
+ * zu lang und wird abgeschnitten (sie steht auf `truncate`).
+ *
+ * DIE SPRACHE KOMMT AUS DEM KEKS, nicht vom Server: Diese Leiste ist eine Client-Komponente
+ * und steht auf jeder Seite, auch auf statischen. Beim allerersten Bild steht deshalb kurz
+ * Englisch da — genauso wie beim Sprachumschalter daneben, der es seit jeher so macht.
  */
-const MOTTO = "AI marketplace";
+const MOTTO: Record<string, string> = {
+  en: "Gift ideas portal",
+  de: "Geschenkideen-Portal",
+  ro: "Portal de idei de cadouri",
+  es: "Portal de ideas para regalos",
+  fr: "Portail d'idées cadeaux",
+  pt: "Portal de ideias de presentes",
+  it: "Portale di idee regalo",
+};
 
 export default function TopNav({
   subtitle,
@@ -75,6 +97,16 @@ export default function TopNav({
     } catch { /**/ }
     setTiefe(n);
   }, [pathname]);
+
+  /* Das Motto in seiner Sprache — aus demselben Keks, den der Sprachumschalter setzt. */
+  const [motto, setMotto] = useState(MOTTO.en);
+  useEffect(() => {
+    try {
+      const m = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
+      const l = m ? decodeURIComponent(m[1]).slice(0, 2) : "";
+      if (l && MOTTO[l]) setMotto(MOTTO[l]);
+    } catch { /* kein Keks lesbar: Englisch steht schon da */ }
+  }, [pathname]);
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
   const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
   const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
@@ -117,7 +149,7 @@ export default function TopNav({
             {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                 kommt allenfalls dahinter, ersetzt es aber nie. */}
             <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
-              {MOTTO}
+              {motto}
             </span>
           </span>
         </button>

@@ -328,6 +328,12 @@ svg {
 .lb-swap-top { animation: lb-swap 5s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .lb-swap-top { animation: none; } }
 
+/* HIER STAND `.lb-strecke` — drei Bilder, die sich in einer Kachel ineinander blenden.
+   Am 04.08.2026 wieder entfernt (Owner: „ich sehe keine Animation, aber eigentlich brauche
+   ich nur Bild 3"). In einer 104 px breiten Kachel liest sich eine Bildstrecke nicht als
+   Verwandlung, sondern als Flackern. Die Strecke lebt gross auf der Themenseite weiter
+   (components/PlanSlide). */
+
 
 /* ── FACEBOOK-BLAU FÜR DIE ANZEIGEN-LANDUNG (.lb-fb) ─────────────────────────────────
    Owner 30.07.2026: „mach die buttons auch blau wie fb und header auch blau." Grund ist
@@ -420,6 +426,19 @@ svg {
   color: #1877F2 !important;
   border-color: rgba(24, 119, 242, 0.45) !important;
   background-color: rgba(24, 119, 242, 0.06) !important;
+}
+/* DAS SYMBOL IM CHIP FOLGT DER SCHRIFT (Owner 04.08.2026: „Icon Galerie auch blau").
+   Gemessen am Galerie-Chip: Die Regel darueber faerbt den LINK blau, aber `.lb-fb
+   [data-langrow="1"] *` faerbt ALLES darin dunkel — und das Symbol erbt nichts mehr, weil
+   `currentColor` an dieser Stelle bereits ueberschrieben ist. Ergebnis: blaue Schrift,
+   schwarzer Pfeil daneben.
+   Diese Zeile holt das Symbol zurueck auf dieselbe Farbe wie die Schrift. Sie steht NACH
+   beiden Regeln und nennt `svg` ausdruecklich, hat also mehr Spezifitaet als der
+   `*`-Selektor der Sprachzeile. */
+.lb-fb button[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button) svg,
+.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button) svg {
+  color: #1877F2 !important;
+  stroke: #1877F2 !important;
 }
 
 /* WEISSE SCHRIFT, DIE DIREKT AM ELEMENT STEHT (Owner 30.07.2026: „und die weisse schrift auch

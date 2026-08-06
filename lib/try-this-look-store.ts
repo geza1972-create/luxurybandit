@@ -1728,6 +1728,49 @@ export type Einladung = {
   adresse?: string;       // Strasse, Hausnummer, PLZ, Stadt — der Gast muss HIN finden
   telefon?: string;       // WhatsApp-Nummer des Paares: darueber sagen die Gaeste zu
   lang?: string;          // in welcher Sprache die Seite erscheint
+  /**
+   * DER ANLASS (Owner 04.08.2026: „du machst eine Invitation für Urlaub an jemandem").
+   *
+   * Fehlt das Feld, ist es eine Hochzeit — so waren alle Einladungen vor diesem Tag gemeint,
+   * und sie müssen unverändert weiterlaufen. `"holiday"` schaltet auf die Urlaubs-Fassung:
+   * andere Überschrift, und der Eingeladene kann nur zusagen oder absagen (kein Menü, keine
+   * Gästezahl, kein Gruppenchat — das sind Hochzeitssachen für viele Gäste).
+   */
+  /**
+   * WELCHES THEMA DIESE KARTE IST. Fehlt es, ist es eine HOCHZEIT — der Urzustand.
+   *
+   * „gutschein" kam am 05.08.2026 dazu (Owner: „ich habe bezahlt und jetzt?"). Bis dahin
+   * nahm `/api/einladung` nur „holiday" an und warf alles andere weg; ein bezahlter Gutschein
+   * landete dadurch als Hochzeitseinladung mit Menuewahl, Gaesteliste und Gruppenchat.
+   */
+  thema?: "holiday" | "gutschein";
+  /**
+   * DER LINK ZU SEINEM GUTSCHEIN — und ausdrücklich NUR ein Link (Owner 05.08.2026: „es ist
+   * ein Risiko für die Häcker"; Konzept §3b). Nie eine Datei, nie der Code: Gespeicherte
+   * Codes wären ein Stapel fremdes Geld bei uns; ein Verweis ist nur eine Adresse, die
+   * ohnehin im Postfach des Käufers liegt. Der Empfänger bekommt ihn hinter dem Knopf
+   * „Gutschein öffnen" — nie im Video, nie in der Vorschau (WhatsApp liefert die sonst mit).
+   */
+  /**
+   * DER TOPIC-GUTSCHEIN IN DER KARTE (Owner 06.08.2026: „jeder Topic als Gutschein
+   * einfügen"; fremde Händler-Links sind am selben Tag abgeschafft — „wir machen keine
+   * fremde gutscheine mehr"). Der Käufer legt ein LuxuryBandit-Geschenk bei: Guthaben in
+   * Höhe des Themenpreises auf dem Konto des Beschenkten. Alle drei Felder liest die
+   * Einladungs-Route nach der Zahlung aus dem STRIPE-Kassenvermerk — nie aus dem Browser,
+   * der könnte sich sonst ein 60-€-Etikett auf eine unbezahlte Karte schreiben.
+   * `lbGutscheinEmpfaenger` erscheint öffentlich NUR maskiert (a•••@gmail.com).
+   */
+  lbGutscheinCents?: number;
+  lbGutscheinTopic?: string;
+  lbGutscheinEmpfaenger?: string;
+  /**
+   * DER LETZTE TAG und DIE BOTSCHAFT unter dem Bild — beide nur beim Urlaub
+   * (Owner 04.08.2026: „das Datum von wann bis wann" · „vielleicht will derjenige mehr
+   * schreiben"). Fehlen sie, zeigt die Karte einen einzelnen Tag und keine Botschaft —
+   * genau so, wie jede Einladung von vor diesem Tag aussah.
+   */
+  bisDatum?: string;
+  botschaft?: string;
   email?: string;         // wem sie gehört — für Widerruf und Zuordnung
   device?: string;
   /**

@@ -17,13 +17,30 @@
  * Lautsprecher sagt dasselbe in einem Viertel des Platzes; das Wort bleibt als Vorlesetext
  * fuer Bildschirmleser erhalten.
  *
- * Die dunkle Grundform bleibt fuer die Faelle AUSSERHALB der Karte (andere Themen, Beispiele
- * auf dunklem Grund); in der Karte faerbt `.lb-karte [data-tonknopf]` sie auf Elfenbein um.
+ * ÜBERALL WEISS, AUCH AUF DUNKLEN SEITEN (Owner 04.08.2026, auf die Frage hell-oder-dunkel:
+ * „a" — überall die weisse Scheibe).
+ *
+ * Vorher war die Grundform dunkel und durchscheinend, und nur INNERHALB der Einladungskarte
+ * faerbte `.lb-karte [data-tonknopf]` sie auf Elfenbein um. Dieselbe Karte sah damit im Feed
+ * anders aus als auf der Einladungsseite — drei Knoepfe, die man an jeder Stelle neu suchen
+ * musste. Jetzt gilt eine Form: weisse Scheibe, goldenes Zeichen, wie beim Teilen-Knopf des
+ * Tanzes. Siehe Skill `card`.
  */
 export default function TonKnopf({
-  an, label = "", labelAus = "", onClick, className = "",
+  an, label = "", labelAus = "", onClick, className = "", platz = "absolute right-3 top-3",
 }: {
   an: boolean;
+  /**
+   * WO ER SITZT. Vorgabe ist oben rechts — so steht er ausserhalb der Einladungskarte
+   * (Beispielvideos, Kuss-Trichter) seit jeher.
+   *
+   * AUF DER KARTE ist er der DRITTE der drei Symbole (Owner 04.08.2026: „mach alle rechts
+   * und vergrössern ganz oben" · „und Sound als dritte") und rutscht deshalb nach unten.
+   * Als eigenes Prop und nicht über `className`: Zwei `top-*`-Klassen am selben Element
+   * gewinnt nicht die spätere im String, sondern die spätere im Stylesheet — das ist nicht
+   * vorhersagbar. Siehe Skill `card`.
+   */
+  platz?: string;
   /** „Ton an" in der Sprache des Gastes — nur sichtbar, solange der Ton aus ist. */
   label?: string;
   /** „Ton aus" in derselben Sprache. Stand hier fest auf Deutsch: Ein Bildschirmleser las
@@ -35,14 +52,19 @@ export default function TonKnopf({
   return (
     <button type="button" onClick={onClick} aria-label={an ? (labelAus || "Sound off") : (label || "Sound on")}
       data-tonknopf="1"
-      /* `lb-onmedia` ist die Klasse, die die Hell-Fassung ausdruecklich ausnimmt und auf Weiss
-         zwingt (Owner 31.07.2026: „ich kann es nicht lesen, es ist schwarze Schrift"). Ohne sie
-         erbt der Knopf ausserhalb der Einladungskarte die dunkle Schrift der hellen Fassung —
-         dunkel auf einer dunklen Scheibe ueber einem Foto. In der Karte gewinnen die
-         `.lb-karte`-Regeln, weil sie im Stylesheet spaeter stehen: dort bleibt er golden. */
-      className={`lb-onmedia absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-black/50 backdrop-blur transition active:scale-95 ${className}`}>
+      /* WEISS UND GOLD, ÜBERALL. Die Farben stehen als `style`, nicht als Klasse: Auf der
+         hellen Fassung (`lb-theme`) und in der Karte (`.lb-karte`) greifen Umfaerbe-Regeln,
+         die jede Tailwind-Klasse ueberschreiben wuerden. In der Karte gewinnt danach
+         `.lb-karte [data-tonknopf]` mit `!important` — und setzt genau dasselbe Gold. Beide
+         Wege enden also bei derselben Optik, siehe Skill `card`. */
+      /* 30 % durchscheinend (Owner 04.08.2026: „jetzt 30% transparent alle Icons") — die
+         Knöpfe sollen auf dem Bild liegen, nicht darauf kleben. Als `opacity` am ganzen
+         Knopf, damit Scheibe und Zeichen gemeinsam zurücktreten; halbtransparent nur im
+         Hintergrund liesse das Zeichen davor stehen wie ausgeschnitten. */
+      style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)", opacity: 0.7 }}
+      className={`${platz} grid h-10 w-10 place-items-center rounded-full transition active:scale-95 ${className}`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-[18px] w-[18px] shrink-0">
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-5 w-5 shrink-0">
         <path d="M4.5 9.4v5.2h3L11.8 18V6L7.5 9.4h-3z" />
         {an ? (
           <>

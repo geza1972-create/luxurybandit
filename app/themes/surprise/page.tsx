@@ -1,14 +1,16 @@
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { H1, Y, SectionTitle, Lead } from "@/components/Landing";
-import { Lock } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
+import ThemenVorspann from "@/components/ThemenVorspann";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE } from "@/lib/poledance";
 import TanzAuswahl from "@/components/TanzAuswahl";
 import EinladungKarte from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
+import ThemenPreis from "@/components/ThemenPreis";
+import SeitenFuss from "@/components/SeitenFuss";
 
 /**
  * THEMA „SURPRISE HIM" — DER TANZ (Owner 03.08.2026).
@@ -47,24 +49,16 @@ export default async function SurpriseThemePage({ searchParams }: {
       <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+        <ThemenPreis thema="surprise" lang={L} className="mt-3" />
 
-        {/* DREI ZEILEN, BEVOR SIE SCROLLT — wie beim Kuss. Die Zeile darunter ist die
-            wichtigste: Niemand laedt ein Foto von sich in Unterwaesche hoch, ohne zu wissen,
-            wer es sieht. Die Antwort ist gut, also gehoert sie nach oben. */}
-        <ol className="mt-3 space-y-1.5">
-          {T.wieGeht.map((zeile: string, i: number) => (
-            <li key={i} className="flex gap-2.5 text-[13.5px] font-semibold leading-snug text-white/75">
-              <span className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[11px] font-black text-[#f6cf51]">
-                {i + 1}
-              </span>
-              {zeile}
-            </li>
-          ))}
-        </ol>
-        <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-[#f6cf51]">
-          <Lock className="mt-[2px] h-3.5 w-3.5 shrink-0" />
-          {T.wieGehtPrivat}
-        </p>
+        {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner 05.08.2026:
+            „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite" · „was ich
+            vermisse jetzt bei topics … die Schritte, die Begründung, der Anlass").
+            Hier standen nur die drei Schritte; Anlass und Grund fehlten — also genau die zwei
+            Zeilen, an denen er erkennt, ob das Ding für ihn ist. Der Aufbau steht jetzt in
+            `components/ThemenVorspann`, die Texte in `lib/kiss-i18n`. */}
+        <ThemenVorspann anlass={T.anlass} grund={T.grund}
+          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
         {/* DAS ERGEBNIS ZUERST (Owner, seit dem Kuss die Hausordnung): erst sehen, was
             herauskommt, dann lesen, wie es geht. Es ist genau das Video, mit dem der Owner
@@ -149,6 +143,10 @@ export default async function SurpriseThemePage({ searchParams }: {
           </div>
         </section>
       </div>
+        {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
+            Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
+            gesehen. Siehe components/SeitenFuss. */}
+        <SeitenFuss />
     </main>
   );
 }

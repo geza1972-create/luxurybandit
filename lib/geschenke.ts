@@ -159,8 +159,26 @@ export const GESCHENKE: Record<GeschenkId, {
      * Aufladung ablenkt. Damit fallen auch die Abo-Folgen weg: kein „X von 20 Videos",
      * kein {extra}-Nachkauf, keine Verlaengerungs-Zusage. Hochzeit und Idol behalten es.
      */
+    /**
+     * NICHTS GRATIS — DIE ENTSCHEIDUNG STEHT (Owner 05.08.2026: „ich will auch keine bilder
+     * mehr verschenken. Die Leute wollen das, aber sollen sie nichts gratis bekommen").
+     *
+     * Am selben Tag war das Gratis-Bild kurz zurueck, weil das Konzept es zum Traeger des
+     * 15-€-Preises erklaert („bei 14,99 € kauft niemand mehr auf Verdacht"). Der Owner hat es
+     * gehoert und anders entschieden — es ist seine Entscheidung, und sie ist hiermit
+     * festgehalten, damit sie nicht beim naechsten Lesen des Konzepts wieder umgedreht wird.
+     *
+     * WAS DAS HEISST: Erst zahlen, dann erzeugen. Der Handel steht trotzdem VOR der Arbeit —
+     * die Zeile am Eingang (`components/HandelZeile`) sagt vor dem ersten Upload, was es
+     * kostet. Nur eben ohne Gratis-Stufe.
+     *
+     * `nurGuthaben` BLEIBT DRAUSSEN, und das hat mit gratis nichts zu tun: Es zwang den Kauf
+     * ueber die Aufladung, weil ein 1,49-€-Video neben einer 4,99-€-Kasse wie eine Falle
+     * aussah. Aufladung und Preis sind jetzt dieselbe Zahl ({once}) — der direkte Kauf ist
+     * damit der kuerzere Weg, und vorhandenes Guthaben wird ohnehin zuerst verrechnet.
+     */
+    keinGratis: true,
     prompt: KISS_PROMPT, done: "kiss-video.mp4", abo: false, einzelkauf: true,
-    keinGratis: true, nurGuthaben: true,
     empfaengerName: true,
     // „Your model" steht seit 29.07.2026 VORN und ist vorgewählt (Owner). Derselbe Gedanke
     // wie bei „Your Idol": Wer hierher kommt, hat meist schon jemanden im Kopf — unsere

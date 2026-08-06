@@ -46,7 +46,7 @@ export default function PrivacyPage() {
       <p>
         <strong>We store them.</strong> Your uploaded photo, the photo of the person you picked, and
         the generated picture or video are saved on our hosting provider&rsquo;s servers{" "}
-        <strong>in the EU</strong> — so we can create your result, keep it in your gallery, and look
+        <strong>in Frankfurt, Germany</strong> (Supabase, EU) — so we can create your result, keep it in your gallery, and look
         into misuse. They are never published and never shown to other users; only our team can view
         them. Photos and results from visits <strong>without a purchase are deleted after 90
         days</strong>; what you paid for stays until you delete it.
@@ -69,7 +69,8 @@ export default function PrivacyPage() {
       <h2>Who we share it with</h2>
       <p>
         We do <strong>not sell your personal data</strong>. We use trusted service providers only to
-        run LuxuryBandit, for example: <strong>Supabase</strong> (hosting, database, image storage),
+        run LuxuryBandit, for example: <strong>Supabase</strong> (hosting, database and image
+        storage &mdash; on servers in <strong>Frankfurt, Germany</strong>),
         <strong> Stripe</strong> (payments), and AI providers for the chat and the try-on videos
         (<strong>Anthropic</strong>, <strong>OpenAI</strong>, <strong>fal.ai</strong>,{" "}
         <strong>Pixverse</strong>). With your consent, <strong>Meta</strong> receives pixel data for ad

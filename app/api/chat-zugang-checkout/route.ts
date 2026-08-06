@@ -21,7 +21,29 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { monate?: number; returnTo?: string; email?: string };
+  const body = (await request.json().catch(() => ({}))) as { monate?: number; returnTo?: string; email?: string; empfaenger?: string };
+
+  /**
+   * ZWEI ADRESSEN: DEINE UND DIE DES BESCHENKTEN (Owner 05.08.2026: „man muss bei denen zwei
+   * Email angeben. Deine und für wen das ist. Fertig.").
+   *
+   * DAS WAR DER HAKEN, den er selbst gefunden hat: „sonst steht es mit der E-Mail des Käufers
+   * in Verbindung." Beim Kuss ist das egal — dort entsteht eine DATEI, die er selbst
+   * verschickt. Der Chat-Monat ist aber eine BERECHTIGUNG, und auf der Adresse des Käufers ist
+   * sie für den Beschenkten wertlos: Der Monat läuft auf dem falschen Konto ab, während der
+   * andere vor der Wand steht.
+   *
+   * LEER HEISST „FÜR MICH SELBST" — der Fall, den der Owner ausdrücklich mitgenannt hat („es
+   * sei denn, jemand kauft das für sich"). Dann bekommt der Käufer den Monat, wie bisher.
+   *
+   * Kleingeschrieben, bevor irgendetwas damit passiert: Der Zugang hängt an genau dieser
+   * Zeichenkette (`chatZugang[e]`), und „Anna@Gmail.com" wäre ein anderes Konto als
+   * „anna@gmail.com". Wer sein Geschenk dann sucht, findet ein leeres.
+   */
+  const empfaenger = String(body.empfaenger ?? "").trim().toLowerCase();
+  if (empfaenger && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(empfaenger)) {
+    return NextResponse.json({ error: "Die Adresse des Beschenkten sieht nicht wie eine E-Mail aus." }, { status: 400 });
+  }
 
   /**
    * WEISSE LISTE STATT ZAHL AUS DEM AUFRUF: Nur Laufzeiten, die es wirklich gibt. Ein
@@ -41,7 +63,10 @@ export async function POST(request: Request) {
       priceId: chatPriceId(),
       amount: stufe.cents,
       currency: "eur",
-      metadata: { kind: "chat-zugang", monate: String(stufe.monate) },
+      /* Die Adresse des Beschenkten reist als KASSEN-Vermerk mit, nicht als Behauptung des
+         Browsers: `/api/checkout-status` liest sie nach der Zahlung von Stripe zurueck. Waere
+         es umgekehrt, koennte sich jeder Zugang auf eine beliebige Adresse buchen. */
+      metadata: { kind: "chat-zugang", monate: String(stufe.monate), ...(empfaenger ? { empfaenger } : {}) },
       /* Nur ein Rueckfall: Steht die Preis-Kennung, kommt der Name aus Stripes Katalog. */
       productName: `Chat access — ${stufe.monate} month`,
       successUrl: `${origin}${returnTo}${returnTo.includes("?") ? "&" : "?"}chat_paid=1`,

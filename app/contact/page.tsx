@@ -83,8 +83,12 @@ export default function ContactPage() {
             <p className="max-w-xs text-sm font-medium text-black/55">
               Thanks for reaching out. A confirmation is on its way to <span className="font-bold text-black">{email}</span> — we&apos;ll get back to you as soon as we can.
             </p>
-            <Link href="/stores" className="mt-2 rounded-full bg-black px-5 py-2.5 text-sm font-black text-white active:scale-95 transition-transform">
-              Back to the feed
+            {/* NACH DEM ABSENDEN ZUR STARTSEITE, nicht in den Models-Marktplatz (05.08.2026,
+                derselbe Fall wie beim Zurück-Pfeil der Rechtsseiten): Wer hier schreibt, kam
+                meist von einer Geschenkseite. „Back to the feed" schickte ihn stattdessen zu
+                den Influencern — eine Seite, die mit seinem Anliegen nichts zu tun hat. */}
+            <Link href="/" className="mt-2 rounded-full bg-black px-5 py-2.5 text-sm font-black text-white active:scale-95 transition-transform">
+              Back to LuxuryBandit
             </Link>
           </div>
         ) : (

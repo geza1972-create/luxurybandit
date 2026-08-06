@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { readKissLog, writeKissLog, guthabenAufladen } from "@/lib/try-this-look-store";
 import { POLEDANCE_CENTS, ONCE_CENTS } from "@/lib/pricing";
+import { isAdminRequest } from "@/lib/admin-auth";
+import { notifyAdminWhatsApp } from "@/lib/notify-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,17 +21,31 @@ export const dynamic = "force-dynamic";
  * feststellen — das Modell haelt sein Ergebnis fuer korrekt, der Server sieht ein fertiges
  * MP4. Nur der Mensch davor sieht, dass sie zwei Oberteile uebereinander traegt.
  *
- * WAS DEN MISSBRAUCH BEGRENZT — bewusst kein Formular, keine Pruefung, kein Warten:
+ * ANGEFRAGT, NICHT GENOMMEN (Owner 05.08.2026: „die können eventuell Rückerstattung
+ * anfordern, aber ich muss es freigeben").
+ *
+ * Bis hierher zahlte diese Route SOFORT aus — zwei Tipps, und das Guthaben war zurueck. Das
+ * war richtig, solange ein Video 1,49 € kostete: Der Missbrauch war billiger als die Pruefung.
+ * Bei {once} kippt die Rechnung, und der Owner will die Entscheidung selbst treffen. Der
+ * Nebeneffekt ist der wertvollere: Wer weiss, dass ein Mensch draufschaut, fordert nicht aus
+ * Gewohnheit zurueck — und wer wirklich ein kaputtes Video hat, wartet die paar Stunden gern.
+ *
+ * ZWEI WEGE DURCH DIESELBE ROUTE:
+ *   POST { genId }                      → der Kunde FRAGT AN. Nichts wird gebucht.
+ *   POST { genId, freigeben: true }     → der OWNER gibt frei. Erst hier wandert Guthaben.
+ * Die Freigabe verlangt `isAdminRequest`; ohne sie ist der zweite Weg nicht erreichbar, egal
+ * was ein Browser schickt.
+ *
+ * WAS DEN MISSBRAUCH BEGRENZT:
  *   - EINMAL je Auftrag (`erstattetAm` am Eintrag, plus `redeemed`-Liste im Guthaben).
- *   - Nur wer BEZAHLT hat und ein Video BEKOMMEN hat. Ein gescheiterter Lauf wird ohnehin
- *     nie abgebucht.
+ *   - Nur wer BEZAHLT hat. Ein gescheiterter Lauf wird ohnehin nie abgebucht.
  *   - Das Guthaben wandert zurueck, kein Geld: Es bleibt im Haus, und der naechste Versuch
  *     kostet ihn nichts extra. Genau das will man — er soll es NOCH einmal versuchen.
  *
  * Der Betrag ist der des Themas, nicht ein pauschaler: Ein Tanz kostet 3,99, ein Kuss 1,49.
  */
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; email?: string };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; email?: string; grund?: string; freigeben?: boolean };
   const genId = String(body.genId ?? "").trim();
   if (!genId) return NextResponse.json({ error: "genId fehlt." }, { status: 400 });
 
@@ -43,12 +59,60 @@ export async function POST(request: Request) {
   if (!eintrag.paid || !adresse) {
     return NextResponse.json({ error: "Für diesen Auftrag wurde nichts abgebucht." }, { status: 400 });
   }
+  /**
+   * ERST NACH DEM VIDEO (Owner 05.08.2026: „er kann erst nach der Video-Erstellung das Geld
+   * anfordern").
+   *
+   * Bis hierher genügte „bezahlt". Damit hätte jemand nach dem BILD zurückfordern können —
+   * also mitten im Lauf, bevor der teure Teil überhaupt gemacht ist. Das ist keine Erstattung,
+   * das ist ein Rückzieher auf halber Strecke, und er kostet uns die Erzeugung.
+   *
+   * Fehlt das Video, weil der Lauf gescheitert ist, gibt es hier ohnehin nichts zu erstatten:
+   * Ein gescheiterter Lauf wird nie abgebucht.
+   */
+  if (!String((eintrag as { videoUrl?: string }).videoUrl ?? "").trim()) {
+    return NextResponse.json({ error: "Erstattung geht erst, wenn das Video fertig ist." }, { status: 400 });
+  }
   if ((eintrag as { erstattetAm?: string }).erstattetAm) {
     return NextResponse.json({ ok: true, schon: true });
   }
 
   const thema = String(eintrag.theme || "kiss");
   const cents = (thema === "poledance" || thema === "birthday") ? POLEDANCE_CENTS : ONCE_CENTS;
+
+  type Antrag = { erstattungAngefragt?: string; erstattungGrund?: string; erstattetAm?: string };
+  const e = eintrag as Antrag;
+
+  /**
+   * WEG 1 — DER KUNDE FRAGT AN. Es wird NICHTS gebucht, nur vermerkt und gemeldet.
+   *
+   * Zweimal anfragen aendert nichts: Der erste Zeitstempel bleibt stehen, damit die Liste
+   * beim Owner nicht wandert und er sieht, seit wann jemand wartet.
+   */
+  if (!body.freigeben) {
+    if (!e.erstattungAngefragt) {
+      e.erstattungAngefragt = new Date().toISOString();
+      e.erstattungGrund = String(body.grund ?? "").trim().slice(0, 400) || undefined;
+      await writeKissLog(log).catch(() => { /* die Meldung unten geht trotzdem raus */ });
+      /* Die Meldung ist der eigentliche Mechanismus: Ein Vermerk, den niemand liest, ist
+         dasselbe wie kein Vermerk. Scheitert der Versand, bleibt der Vermerk stehen. */
+      notifyAdminWhatsApp(
+        [`Rückerstattung angefragt — ${thema} · ${(cents / 100).toFixed(2)} €`,
+         `Auftrag: ${genId}`, `Adresse: ${adresse}`,
+         e.erstattungGrund ? `Grund: ${e.erstattungGrund}` : ""].filter(Boolean).join("\n"),
+      );
+    }
+    return NextResponse.json({ ok: true, angefragt: true, seit: e.erstattungAngefragt });
+  }
+
+  /**
+   * WEG 2 — DER OWNER GIBT FREI. Nur mit Admin-Nachweis; ohne ihn ist hier Schluss, und zwar
+   * mit 403 statt mit einer stillen Nichtbuchung: Ein Weg, der scheinbar funktioniert, aber
+   * kein Geld bewegt, ist schlimmer als eine klare Absage.
+   */
+  if (!(await isAdminRequest(request).catch(() => false))) {
+    return NextResponse.json({ error: "Nur der Betreiber kann freigeben." }, { status: 403 });
+  }
 
   /* Der Schluessel haengt am Auftrag: Zweimal dieselbe Anfrage — der Browser wiederholt gern —
      zahlt trotzdem nur einmal zurueck. */

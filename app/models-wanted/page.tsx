@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import LandingHeader from "@/components/LandingHeader";
+import NurAdmin from "@/components/NurAdmin";
 
 // Public, server-rendered recruiting landing — the one page Google CAN index for
 // "become an AI model / devino model" (the /curators/apply form is a client form and
@@ -86,6 +87,9 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const t = T[lang];
   const canonical = lang === "en" ? "/models-wanted?lang=en" : "/models-wanted";
   return {
+    /* NOINDEX (05.08.2026): Die Seite ist fuer Besucher zu — was Google noch
+       schickt, landet auf einer Weiterleitung. Erst gar nicht einladen. */
+    robots: { index: false, follow: false },
     title: t.metaTitle,
     description: t.metaDesc,
     alternates: {
@@ -132,6 +136,11 @@ export default async function ModelsWantedPage({ searchParams }: { searchParams:
   const otherLang = lang === "en" ? "ro" : "en";
 
   return (
+    /* NUR NOCH FUER PERSONAL (Owner 05.08.2026: „die gibt es nicht mehr, nur fuer den Admin").
+       Der Vorhang steht ganz aussen, damit gar nichts von der Seite aufblitzt; Besucher werden
+       zur Startseite ersetzt (nicht geschoben), sonst liegt sie weiter im Verlauf — genau das
+       war seine Beobachtung: „kommt immer wieder, wenn ich auf Back klicke". */
+    <NurAdmin>
     <div className="min-h-[100dvh] bg-[#faf7f0] text-slate-900" lang={t.htmlLang}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPosting) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }} />
@@ -204,5 +213,6 @@ export default async function ModelsWantedPage({ searchParams }: { searchParams:
         <p className="mt-6 text-center text-[12px] font-semibold text-slate-400">© LuxuryBandit · <Link href={`/models-wanted?lang=${otherLang}`} className="underline">{otherLang.toUpperCase()}</Link></p>
       </div>
     </div>
+    </NurAdmin>
   );
 }

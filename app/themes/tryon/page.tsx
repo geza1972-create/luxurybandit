@@ -5,6 +5,7 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import SeitenFuss from "@/components/SeitenFuss";
 
 // THEMA „Try-On" — Landing im Wetter-/Urlaub-Muster: oben die Kundenansicht (Hero + CTA in
 // den Anprobier-Funnel), darunter NUR mit ?admin=1 die Admin-Werkzeuge (eigenes Card-Tool
@@ -81,6 +82,10 @@ export default async function TryOnThemePage({ searchParams }: {
           </div>
         )}
       </div>
+        {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
+            Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
+            gesehen. Siehe components/SeitenFuss. */}
+        <SeitenFuss />
     </main>
   );
 }

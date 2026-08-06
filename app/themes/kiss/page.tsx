@@ -3,9 +3,8 @@ import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
-import { Lock } from "lucide-react";
 import KissFunnel from "@/components/KissFunnel";
-import BeispielGalerie from "@/components/BeispielGalerie";
+import ThemenVorspann from "@/components/ThemenVorspann";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
@@ -13,6 +12,8 @@ import UploadsAdmin from "@/components/UploadsAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import AdminTabs from "@/components/AdminTabs";
+import ThemenPreis from "@/components/ThemenPreis";
+import SeitenFuss from "@/components/SeitenFuss";
 import { readKissConfig, getSignedUrl, type KissConfig, readThemeConfig, readTryThisLookState } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 
@@ -76,30 +77,19 @@ export default async function KissThemePage({ searchParams }: {
             {/* Hero — in der Sprache des Besuchers (Owner 30.07.2026, Punkt 4). Das erste,
                 was ein Anzeigenklick sieht; Englisch kostete hier Klicks. */}
             <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+            <ThemenPreis thema="kiss" lang={L} className="mt-3" />
 
-            {/* DREI ZEILEN, BEVOR ER SCROLLT (Owner 03.08.2026: „ich will das als Kiss
-                Grußkarte machen … dann muss stehen unter dem Titel kurz wie das
-                funktioniert").
-                Vorher stand hier NICHTS — der Vorspann war im Juli entfernt worden, weil er
-                eine halbe Handy-Hoehe kostete und nichts erklaerte. Diese drei Zeilen kosten
-                weniger und erklaeren alles: hochladen, erzeugen, verschicken.
-                Die vierte Zeile ist die wichtigste. Niemand laedt ein Foto von sich UND
-                seiner Partnerin hoch, ohne zu wissen, wer es sieht — und die Antwort ist gut,
-                also gehoert sie nach oben und nicht ins Kleingedruckte. */}
-            <ol className="mt-3 space-y-1.5">
-              {T.wieGeht.map((zeile: string, i: number) => (
-                <li key={i} className="flex gap-2.5 text-[13.5px] font-semibold leading-snug text-white/75">
-                  <span className="mt-[1px] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[11px] font-black text-[#f6cf51]">
-                    {i + 1}
-                  </span>
-                  {zeile}
-                </li>
-              ))}
-            </ol>
-            <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-[#f6cf51]">
-              <Lock className="mt-[2px] h-3.5 w-3.5 shrink-0" />
-              {T.wieGehtPrivat}
-            </p>
+            {/**
+              * ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE (Owner 05.08.2026: „was noch fehlt
+              * ist der Anlass und Grund").
+              *
+              * Der Block stand hier ausgeschrieben und war die Vorlage für alle Themenseiten —
+              * abschreiben musste ihn trotzdem jede. Seit dem 05.08. abends ist er ein eigener
+              * Baustein (`components/ThemenVorspann`), den Geburtstag, Tanz, Hochzeit und
+              * Urlaub genauso setzen. Die Begründung für die Reihenfolge steht dort.
+              */}
+            <ThemenVorspann anlass={T.anlass} grund={T.grund}
+              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
             {/* Kein Vorspann und keine Ueberzeile mehr (Owner 30.07.2026: „das kann raus" — auf die Frage, ob der
                 Absatz „Pick her, upload your photo …" gemeint ist: „ja, Pick her, …").
                 Er kostete auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt.
@@ -111,25 +101,19 @@ export default async function KissThemePage({ searchParams }: {
                 (Owner 30.07.2026, Punkt 4 seiner Liste). */}
             {/* Dasselbe Beispielvideo, das weiter unten im Katalog laeuft — es fuellt jetzt
                 die Karte oben, bis das eigene Bild da ist. Kein zweiter Ort zum Pflegen. */}
-            <KissFunnel code={code} lang={L} beispielVideo={examples[0] ?? ""} />
+            <KissFunnel code={code} lang={L} beispielVideos={examples} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {/* MEHR VON DEMSELBEN, ALS KARTEN (Owner 31.07.2026: „du machst diese Karte
                 mehrmals untereinander und nimmst unsere Kiss-Videos"). Dieselbe Karte wie
                 oben, viermal — jede mit „Personen ersetzen". Wer scrollt, sieht viermal das
                 Ergebnis, das er haben kann, statt acht Briefmarken. */}
-            {examples.length > 1 && (
-              <div className="mt-12">
-                <SectionTitle>{T.examples}</SectionTitle>
-                <div className="mt-3">
-                  {/* `blockedOnce` traegt schon den Preis (kissText laeuft durch fillPrices) —
-                      hier wird keine Zahl getippt. */}
-                  <BeispielGalerie videos={examples.slice(1)} lang={L}
-                    titel={String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
-                    gesperrtText={T.blockedOnce} />
-                </div>
-              </div>
-            )}
+            {/* DIE ZWEITE KARTE IST WEG (Owner 05.08.2026: „nein, es sind zwei Karten").
+                Hier stand die Beispiel-Galerie — erst als Stapel, dann als eigene Karte mit
+                Karussell. Beides war eine ZWEITE Karte unter der ersten, und genau das wollte
+                er nicht: „eine Karte und die Videos wechseln sich ab in der Karte."
+                Alle Beispiele liegen jetzt in der Karte oben (`beispielVideos` am Trichter).
+                Die Seite ist damit um eine ganze Handy-Höhe je Beispiel kürzer. */}
 
             {/* WARUM MAN EINEN SCHICKT (Owner 03.08.2026: „unten soll dann stehn warum man
                 das machen sollte. Es zeigt Liebe, es zeigt etwas schönes … du vermisst
@@ -266,6 +250,10 @@ export default async function KissThemePage({ searchParams }: {
           </div>
         )}
       </div>
+        {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
+            Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
+            gesehen. Siehe components/SeitenFuss. */}
+        <SeitenFuss />
     </main>
   );
 }

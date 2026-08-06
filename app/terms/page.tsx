@@ -70,6 +70,24 @@ export default function TermsPage() {
         promise any particular likeness, resemblance, style, quality or outcome, and a result cannot be
         reproduced identically on request.
       </p>
+      {/* Owner 05.08.2026: „manchmal haben sie blöde Bilder hochgeladen und dann ist er
+          schuld, nicht wir" — „das muss im AGB auch schreiben".
+          KEIN FOTO-TOR (Owner, direkt danach: „nein, sie werden nicht abgewiesen"). Ich hatte
+          vorgeschlagen, unbrauchbare Uploads vor der Kasse abzuweisen; er will das nicht, und
+          der Satz darueber ist deshalb aus diesem Absatz wieder verschwunden. Wichtig: Er darf
+          hier auch nicht stehen, solange es ihn nicht gibt — eine Pruefung zu behaupten, die
+          nicht stattfindet, waere eine Zusage, an der man uns misst. Der Text sagt jetzt, was
+          gilt: Die Vorlage ist seine, das Risiko auch. */}
+      <h3>Your photo decides the result</h3>
+      <p>
+        The result is built from the photo <strong>you</strong> upload, and it can only be as good as
+        that photo. A blurry or dark picture, a face that is small, turned away, covered by sunglasses
+        or a hand, several people in one photo, a screenshot of a screen, or a drawing instead of a
+        photograph will produce a poor result. That is a limit of the source material, not a fault in
+        the service, and it is <strong>not a ground for a refund</strong>. For the best chance of a
+        good result, use a <strong>sharp, well-lit photo in which one face is clearly visible</strong>.
+      </p>
+
       <h3>Refunds for generated content</h3>
       <p>
         A generation is digital content produced <strong>individually for you, on demand</strong>. By
@@ -85,6 +103,20 @@ export default function TermsPage() {
         <a href="mailto:support@luxurybandit.com"><strong>support@luxurybandit.com</strong></a> and we will
         re-run it or refund that item. Subscription fees for a month already started are not refunded;
         cancel before the next renewal to avoid the following charge.
+      </p>
+      {/* Owner 05.08.2026: „die können eventuell Rückerstattung anfordern, aber ich muss es
+          freigeben." Genau das tut `app/api/kiss-erstattung` seit demselben Tag: Der Kunde
+          fragt an, gebucht wird erst nach der Freigabe des Betreibers.
+          NUR WAS ES WIRKLICH GIBT: Die drei Bildversuche, die der Owner sich ueberlegt hat,
+          stehen hier NICHT — sie sind noch nicht gebaut. Eine Zusage im AGB, die der Code
+          nicht einloest, ist schlimmer als gar keine. Sie kommt in denselben Absatz, sobald
+          der Zaehler steht. */}
+      <p>
+        Beyond those cases you may <strong>ask</strong> us for a refund from the finished result in the
+        app. Each request is looked at <strong>individually by a person</strong> and granted at our
+        discretion; there is no automatic entitlement. If we grant it, the amount comes back as{" "}
+        <strong>account balance</strong> so your next attempt costs you nothing extra &mdash; it is not
+        paid out in cash.
       </p>
 
       <h2>5. Models &amp; earnings</h2>

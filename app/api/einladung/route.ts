@@ -2,7 +2,72 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readEinladungen, writeEinladungen, getSignedUrl, type Einladung } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
-import { TRIAL_DAYS } from "@/lib/pricing";
+import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
+import { TRIAL_DAYS, LAUFZEIT_TAGE, ONCE_CENTS } from "@/lib/pricing";
+import { einloeseToken } from "@/lib/einloese-token";
+
+/**
+ * DIE ZWEI GUTSCHEIN-MAILS (Owner 06.08.2026: „es kommt eine bestätigung dass der Gutschein
+ * versendet wurde und email geht an beide raus. Käufer und Empfänger."). In der Sprache, in
+ * der die Karte gebaut wurde — die beste Vermutung für beide Seiten.
+ */
+const MAIL_TEXTE: Record<string, {
+  empfBetreff: (von: string) => string;
+  empfText: (von: string, link: string) => string;
+  kaeuferBetreff: string;
+  kaeuferText: (empf: string, link: string) => string;
+  knopf: string;
+}> = {
+  de: {
+    empfBetreff: v => `🎁 ${v} hat ein Geschenk für dich`,
+    empfText: (v, l) => `${v} hat dir eine Gutschein-Karte geschickt.\n\nÖffne sie hier — dein Geschenk wartet hinter dem Knopf:\n${l}\n\nDas Guthaben gehört zu dieser E-Mail-Adresse.`,
+    kaeuferBetreff: "Dein Gutschein ist verschickt 🎁",
+    kaeuferText: (e, l) => `Deine Gutschein-Karte ist fertig${e ? ` und per E-Mail an ${e} unterwegs` : ""}.\n\nDein Link — du kannst ihn zusätzlich selbst verschicken:\n${l}`,
+    knopf: "Zur Karte",
+  },
+  en: {
+    empfBetreff: v => `🎁 ${v} has a present for you`,
+    empfText: (v, l) => `${v} sent you a voucher card.\n\nOpen it here — your present is waiting behind the button:\n${l}\n\nThe credit belongs to this email address.`,
+    kaeuferBetreff: "Your voucher is on its way 🎁",
+    kaeuferText: (e, l) => `Your voucher card is ready${e ? ` and on its way to ${e} by email` : ""}.\n\nYour link — you can also send it yourself:\n${l}`,
+    knopf: "Open the card",
+  },
+  ro: {
+    empfBetreff: v => `🎁 ${v} are un cadou pentru tine`,
+    empfText: (v, l) => `${v} ți-a trimis un card cu un voucher.\n\nDeschide-l aici — cadoul tău așteaptă în spatele butonului:\n${l}\n\nCreditul aparține acestei adrese de e-mail.`,
+    kaeuferBetreff: "Voucherul tău e pe drum 🎁",
+    kaeuferText: (e, l) => `Cardul tău cu voucher e gata${e ? ` și pe drum spre ${e} pe e-mail` : ""}.\n\nLinkul tău — îl poți trimite și tu:\n${l}`,
+    knopf: "Deschide cardul",
+  },
+  es: {
+    empfBetreff: v => `🎁 ${v} tiene un regalo para ti`,
+    empfText: (v, l) => `${v} te ha enviado una tarjeta con un vale.\n\nÁbrela aquí — tu regalo espera detrás del botón:\n${l}\n\nEl saldo pertenece a esta dirección de correo.`,
+    kaeuferBetreff: "Tu vale está en camino 🎁",
+    kaeuferText: (e, l) => `Tu tarjeta con el vale está lista${e ? ` y en camino a ${e} por correo` : ""}.\n\nTu enlace — también puedes enviarlo tú:\n${l}`,
+    knopf: "Abrir la tarjeta",
+  },
+  fr: {
+    empfBetreff: v => `🎁 ${v} a un cadeau pour toi`,
+    empfText: (v, l) => `${v} t'a envoyé une carte avec un bon cadeau.\n\nOuvre-la ici — ton cadeau t'attend derrière le bouton :\n${l}\n\nLe crédit appartient à cette adresse e-mail.`,
+    kaeuferBetreff: "Ton bon cadeau est en route 🎁",
+    kaeuferText: (e, l) => `Ta carte est prête${e ? ` et en route vers ${e} par e-mail` : ""}.\n\nTon lien — tu peux aussi l'envoyer toi-même :\n${l}`,
+    knopf: "Ouvrir la carte",
+  },
+  pt: {
+    empfBetreff: v => `🎁 ${v} tem um presente para ti`,
+    empfText: (v, l) => `${v} enviou-te um cartão com um vale.\n\nAbre-o aqui — o teu presente espera atrás do botão:\n${l}\n\nO saldo pertence a este endereço de e-mail.`,
+    kaeuferBetreff: "O teu vale vai a caminho 🎁",
+    kaeuferText: (e, l) => `O teu cartão com o vale está pronto${e ? ` e a caminho de ${e} por e-mail` : ""}.\n\nO teu link — também o podes enviar tu:\n${l}`,
+    knopf: "Abrir o cartão",
+  },
+  it: {
+    empfBetreff: v => `🎁 ${v} ha un regalo per te`,
+    empfText: (v, l) => `${v} ti ha mandato una card con un buono.\n\nAprila qui — il tuo regalo ti aspetta dietro il pulsante:\n${l}\n\nIl credito appartiene a questo indirizzo e-mail.`,
+    kaeuferBetreff: "Il tuo buono è in viaggio 🎁",
+    kaeuferText: (e, l) => `La tua card con il buono è pronta${e ? ` e in viaggio verso ${e} via e-mail` : ""}.\n\nIl tuo link — puoi anche inviarlo tu:\n${l}`,
+    knopf: "Apri la card",
+  },
+};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -342,8 +407,67 @@ export async function POST(request: Request) {
     : sauber(body.bildUrl, 2000);
   const sie = sauber(body.sie, 40);
   const er = sauber(body.er, 40);
-  if ((!videoUrl && !bildUrl) || !sie || !er) {
+  /* Das Thema entscheidet die Pflichten, also steht es VOR der Prüfung. Weisse Liste wie
+     unten beim Eintrag: Unbekanntes wird zur Hochzeit, dem Urzustand dieser Karte. */
+  const themaWahl = sauber(body.thema, 20) === "holiday" ? "holiday" as const
+    : sauber(body.thema, 20) === "gutschein" ? "gutschein" as const : undefined;
+  const gutschein = themaWahl === "gutschein";
+  /**
+   * BEIM GUTSCHEIN GIBT ES KEIN „ER" (Owner 05.08.2026): Einer schenkt einem, und wer der
+   * Empfänger ist, steht in der Botschaft — nicht in einem Namensfeld. Verlangt wird nur der
+   * Absendername, sonst öffnet jemand ein Geschenk und weiss nicht, von wem es kommt.
+   */
+  if ((!videoUrl && !bildUrl) || !sie || (!er && !gutschein)) {
     return NextResponse.json({ error: "Ein Bild oder Video und beide Namen sind nötig." }, { status: 400 });
+  }
+  /**
+   * DIE GUTSCHEIN-KARTE IST GRATIS (Owner 06.08.2026: „er muss nur den kredit oder das
+   * produkt bezahlen, dass ers verschenken möchte. … Die Gutscheingenerierung kostet
+   * nichts."). Hier stand für einen Tag eine 402-Sperre auf dem bezahlten 9,99-Auftrag —
+   * sie ist mit dem Preis gefallen: Die Karte ist Text plus unser fertiges Bella-Video und
+   * kostet uns nichts; bezahlt wird nur das GESCHENK darin, und das prüft sein eigener
+   * Kaufweg (das Stripe-Etikett unten). Der Gratis-Trichter ist Absicht — genau der eine,
+   * den das Konzept offen lassen wollte (§3b, „der Gratis-Schritt").
+   */
+
+  /**
+   * DER BEIGELEGTE TOPIC-GUTSCHEIN (Owner 06.08.2026: „jeder Topic als Gutschein einfügen").
+   *
+   * Der Browser liefert nur die SITZUNGSNUMMER seines Gutschein-Kaufs; was darin steckt
+   * (Betrag, Thema, Empfänger), wird von Stripe zurückgelesen — Skill `bezahlung` §3. Ein
+   * Client, der Betrag oder Thema selbst behaupten dürfte, würde sich ein 60-€-Etikett auf
+   * eine unbezahlte Karte schreiben. Gutgeschrieben hat das Guthaben längst
+   * `/api/checkout-status` (idempotent je Sitzung) — hier wird nur das ETIKETT für die Karte
+   * geholt. Und es ist eine Nebensache: Scheitert das Lesen, geht die Karte trotzdem raus,
+   * nur ohne Etikett — das Guthaben selbst liegt sicher beim Beschenkten.
+   *
+   * DIE TESTKLAPPE trägt dieselben drei Schlösser wie in `/api/checkout-status`: lokale
+   * Umgebungsvariable, nie in Produktion, Sitzungsnummer muss mit `TEST-` beginnen (eine
+   * echte beginnt mit `cs_`). Sie liefert ein festes 15-€-Kuss-Etikett — geprüft wird der
+   * WEG, nicht die Buchhaltung.
+   */
+  const lbSession = gutschein ? sauber(body.lbGutscheinSession, 200) : "";
+  let lbGutschein: Pick<Einladung, "lbGutscheinCents" | "lbGutscheinTopic" | "lbGutscheinEmpfaenger"> = {};
+  if (lbSession) {
+    const testKlappeOffen = !!process.env.LB_TEST_CHECKOUT
+      && process.env.NODE_ENV !== "production"
+      && lbSession.startsWith("TEST-");
+    try {
+      if (testKlappeOffen) {
+        console.warn("[einladung] TESTKLAPPE — vorgetaeuschter Gutschein, nur lokal:", lbSession);
+        lbGutschein = { lbGutscheinCents: ONCE_CENTS, lbGutscheinTopic: "kiss", lbGutscheinEmpfaenger: "test@example.com" };
+      } else if (stripeConfigured()) {
+        const s = await getCheckoutSession(lbSession);
+        const bezahltOk = s.paymentStatus === "paid" || s.paymentStatus === "no_payment_required";
+        if (bezahltOk && s.metadata.kind === "gutschein") {
+          lbGutschein = {
+            lbGutscheinCents: (typeof s.amountTotal === "number" ? s.amountTotal : Number(s.metadata.cents ?? 0)) || undefined,
+            lbGutscheinTopic: String(s.metadata.topic ?? "") || undefined,
+            lbGutscheinEmpfaenger: String(s.metadata.empfaenger ?? "").trim().toLowerCase() || undefined,
+          };
+        }
+      }
+    } catch { /* Etikett ist Best-effort — die Karte blockiert das nie */ }
   }
 
   // Kennung: lang genug, dass sie niemand rät, kurz genug für eine Nachricht.
@@ -373,7 +497,9 @@ export async function POST(request: Request) {
      * nächsten Monat". Die Zahl kommt aus TRIAL_DAYS in lib/pricing.ts, damit Seite,
      * Preiszeile und diese Frist nie wieder auseinanderlaufen.
      */
-    probeBis: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+    /* Beim Gutschein sind es die 30 Tage jeder GEKAUFTEN Seite (LAUFZEIT_TAGE, Owner:
+       „alle haben ein Verfallsdatum. 30 Tage") — er ist bezahlt, keine Probewoche. */
+    probeBis: new Date(Date.now() + (gutschein ? LAUFZEIT_TAGE : TRIAL_DAYS) * 24 * 60 * 60 * 1000).toISOString(),
     sie, er,
     datum: sauber(body.datum, 10) || undefined,
     ort: sauber(body.ort, 120) || undefined,
@@ -381,6 +507,25 @@ export async function POST(request: Request) {
     // Nur Ziffern, Plus und Leerzeichen — daraus baut die Karte den wa.me-Link.
     telefon: sauber(body.telefon, 32).replace(/[^0-9+ ]/g, "") || undefined,
     lang: sauber(body.lang, 5) || "en",
+    /**
+     * WELCHER ANLASS (Owner 04.08.2026: die Urlaubs-Einladung). Steuert, was der Eingeladene
+     * zu sehen bekommt — bei „holiday" nur Ja/Nein, kein Menü, keine Gästezahl, kein
+     * Gruppenchat: Eine Urlaubs-Einladung geht an EINEN Menschen, da gibt es nichts zu
+     * verwalten.
+     *
+     * Fehlt das Feld, ist es eine Hochzeit. Das ist wichtig: Alle Einladungen, die vor
+     * diesem Tag angelegt wurden, tragen es nicht — sie müssen weiter genau so aussehen wie
+     * bisher, sonst verlieren bereits verschickte Links über Nacht ihre Gästeliste.
+     */
+    /* Weisse Liste statt Durchreichen: Nur Themen, die die Anzeige auch kennt. Ein unbekannter
+       Wert wird zu `undefined` und damit zur Hochzeit — dem Urzustand dieser Karte. */
+    thema: themaWahl,
+    /* Fremde Gutscheine (Link-Feld) sind seit 06.08.2026 abgeschafft — es liegt nur noch
+       UNSER Geschenk in der Karte, verifiziert über die Stripe-Sitzung oben. */
+    ...lbGutschein,
+    bisDatum: sauber(body.bisDatum, 10) || undefined,
+    /* 300 Zeichen wie im Formular — der Deckel gilt auch hier, weil der Browser luegen kann. */
+    botschaft: sauber(body.botschaft, 300) || undefined,
     email: sauber(body.email, 160).toLowerCase() || undefined,
     device: sauber(body.device, 80) || undefined,
     opens: 0,
@@ -406,6 +551,43 @@ export async function POST(request: Request) {
     drin = (await readEinladungen()).some(x => x.id === id);
   }
   if (!drin) return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 503 });
+
+  /**
+   * DIE ZWEI MAILS — Käufer UND Empfänger (Owner 06.08.2026). Best-effort wie jede Mail in
+   * dieser Datei: Die Karte scheitert nie an SMTP.
+   *
+   * DER EMPFÄNGER-LINK IST UNTERSCHRIEBEN (`?e=…&t=…`): Die Karte hinterlegt seine Adresse
+   * dann als Geräte-Login — Klick in der Mail heisst angemeldet, Guthaben sichtbar, und
+   * „Jetzt einlösen" landet auf der Themenseite des Geschenks mit geladenem Konto. Der
+   * NACKTE Karten-Link (weitergeleitet, im Chat) meldet niemanden an — sonst würde jeder
+   * Mitleser zum Kontoinhaber. Begründung ausführlich in lib/einloese-token.
+   */
+  if (gutschein) {
+    const M = MAIL_TEXTE[String(eintrag.lang ?? "en")] ?? MAIL_TEXTE.en;
+    const kartenLink = `${origin}/einladung/${id}`;
+    const empf = String(lbGutschein.lbGutscheinEmpfaenger ?? "");
+    const alsHtml = (text: string, link: string) =>
+      `<p>${text.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`
+      + `<p><a href="${link}">${M.knopf} 🎁</a></p>`;
+    if (empf) {
+      const einloeseLink = `${kartenLink}?e=${encodeURIComponent(empf)}&t=${einloeseToken(id, empf)}`;
+      void sendEmail({
+        to: empf,
+        subject: M.empfBetreff(sie),
+        replyTo: eintrag.email || undefined,
+        text: M.empfText(sie, einloeseLink),
+        html: alsHtml(M.empfText(sie, einloeseLink), einloeseLink),
+      }).catch(() => {});
+    }
+    if (eintrag.email) {
+      void sendEmail({
+        to: eintrag.email,
+        subject: M.kaeuferBetreff,
+        text: M.kaeuferText(empf, kartenLink),
+        html: alsHtml(M.kaeuferText(empf, kartenLink), kartenLink),
+      }).catch(() => {});
+    }
+  }
   return NextResponse.json({ ok: true, id, url: `${origin}/einladung/${id}` });
 }
 

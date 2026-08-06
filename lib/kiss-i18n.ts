@@ -26,6 +26,25 @@ export type KissText = {
   /** Sichtbarer Hinweis, wenn Bild/Video fertig sind, aber die Namen noch das Beispiel zeigen
    *  (03.08.2026: „ich kann es nicht sharen" — der Verschicken-Knopf blieb sonst stumm weg). */
   namenVorSenden: string;
+  /**
+   * DER TOPIC-GUTSCHEIN IM BAU-SCHRITT (Owner 06.08.2026: „jeder Topic als Gutschein
+   * einfügen"). Optional, weil nur die GUTSCHEIN-Variante sie befüllt — die Grundtabellen
+   * der anderen Anlässe brauchen diese Zeilen nie.
+   */
+  lbTitel?: string;
+  lbHilfe?: string;
+  lbEmpfaenger?: string;
+  lbFehlerMail?: string;
+  /** {was} wird durch das gewählte Geschenk ersetzt (T.gutscheinTopics in EinladungKarte). */
+  lbFertig?: string;
+  /** Zeile über den nackten Guthaben-Stufen („oder Credit", Owner 06.08.2026). */
+  lbGuthaben?: string;
+  /**
+   * Der Kaufknopf, wenn ein Produkt gewählt ist ({preis} = Produktpreis). Die Karte selbst
+   * kostet dann NICHTS (Owner 06.08.2026: „er wird ein produkt auswählen aus dem katalog und
+   * bezahlt das und versendet das an jemandem. Die Gutscheingenerierung kostet nichts.").
+   */
+  lbCta?: string;
   /** Knopf über dem BEISPIEL-Video/-Bild in der Bau-Karte, solange nichts eigenes drin ist
    *  (Owner 02.08.2026 abends: „nicht Inlocuiește poza, sondern Inlocuiește datele"). Sobald
    *  Name, Datum und Ort ein Beispiel zeigen statt einer leeren Formularbeschriftung, sagt
@@ -56,6 +75,15 @@ export type KissText = {
   shareTitel: string; shareText: string; shareOk: string; shareCancel: string;
   /** Überschrift der Szenen-Kacheln (Owner 01.08.2026); Wahl ist freiwillig. */
   szeneTitel: string;
+  /**
+   * DER ORT DER URLAUBS-EINLADUNG (Owner 04.08.2026: „hier muss doch gleich die Adresse
+   * eingeben werden, damit AI weiss was er machen soll").
+   *
+   * Steht im Foto-Dialog an der Stelle, an der die Hochzeit ihre vier Szenen zeigt. Der
+   * Text geht direkt in den Bild- und Video-Auftrag (`holidayInvitePrompt`) — er ist die
+   * einzige Angabe, mit der das Modell weiss, WO die beiden stehen sollen.
+   */
+  ortFrage: string; ortPlatzhalter: string; ortHinweis: string;
   /** Wäsche-Zeile bei Lingerie-Vorlagen (Owner 03.08.2026: „dann ist ein Schritt mehr“). */
   waescheTitel: string;
   /** Nach dem gelieferten Einzelkauf: neuer Anlauf statt 2,99-Nachkauf (Owner 03.08.2026). */
@@ -150,6 +178,40 @@ export type KissText = {
    */
   wieGehtTitel: string; wieGeht: string[]; wieGehtPrivat: string;
   /**
+   * ANLASS UND GRUND — die zwei Bloecke, die der Owner am 05.08.2026 auf der Kiss-Seite
+   * vermisst hat: „was mir gefaellt und alle Topic-Seiten sollen so aufgebaut werden ist die
+   * Kiss-Seite … also die Anleitung ist das. Aber was noch fehlt ist der Anlass und Grund."
+   *
+   * SIE STEHEN VOR DER ANLEITUNG, und die Reihenfolge ist die Begruendung:
+   *   `anlass` — WOFUER. Die Zeile, in der er sich wiedererkennt („zum Jahrestag", „nach einem
+   *              Streit"). Zugleich das, wonach in jeder Sprache wirklich gesucht wird: nicht
+   *              nach dem Produkt, sondern nach Empfaenger und Anlass
+   *              (KONZEPT-GESCHENKE-UND-IDEEN.md §1, Befund 4).
+   *   `grund`  — WARUM. Ein Satz, der sagt, was es ihm bringt. Er steht fett, weil er die
+   *              Entscheidung traegt; die Anleitung darunter beantwortet nur noch das Wie.
+   *
+   * Erst danach kommen die drei Schritte: Wer noch nicht weiss, ob es fuer ihn ist, liest
+   * keine Anleitung.
+   */
+  anlass: string; grund: string;
+  /**
+   * WAS OBEN AUF DER KARTE STEHT (Owner 05.08.2026: „in der Karte steht jetzt ganz trocken
+   * ‚The Kiss'").
+   *
+   * Er hat recht, und es war ein Versehen mit Ansage: Dort stand `step3` — der SCHRITTNAME
+   * aus dem Trichter („3 · Der Kuss"), nur ohne die Nummer. Ein Ablaufschritt als Überschrift
+   * einer Grusskarte ist genau so trocken, wie es klingt: Es beschreibt, was man gekauft hat,
+   * nicht, was der andere bekommt.
+   *
+   * Beim Geburtstag steht es seit dem 03.08. richtig — `geburtstagTitel(empfaenger)` macht
+   * daraus „Happy birthday to you, Anna". Dasselbe hier.
+   *
+   * DER WORTLAUT KOMMT VOM OWNER (05.08.2026): „Da soll der Name stehen: Mein Geschenk für
+   * dich: Einen Kuss." Damit sagt die Karte in einer Zeile, was sie ist (ein GESCHENK, nicht
+   * ein Video), von wem sie kommt und für wen — und der Empfänger liest seinen Namen zuerst.
+   */
+  karteTitel: (name: string) => string;
+  /**
    * WARUM MAN EINEN SCHICKT (Owner 03.08.2026: „unten soll dann stehn warum man das machen
    * sollte. Es zeigt Liebe, es zeigt etwas schönes … du vermisst jemandem, das ist ein
    * Liebesbeweis").
@@ -207,6 +269,7 @@ const EN: KissText = {
   landFrage: "Your country",
   shareTitel: "Sharing makes it public", shareText: "Anyone with the link can see your card. Only the finished result is shown — never the photos you uploaded.", shareOk: "Got it — share", shareCancel: "Cancel",
   szeneTitel: "Pick a scene — or let us surprise you",
+  ortFrage: "Where are you going?", ortPlatzhalter: "Tenerife", ortHinweis: "The place goes into the video — write it the way you would tell them.",
   waescheTitel: "Pick her lingerie — or keep the one from the video",
   nochmalVideo: "Generate another video",
   aufladeWahlTitel: "How much would you like to top up?",
@@ -291,6 +354,9 @@ const EN: KissText = {
   extraCta: "One more video — {extra}", extraNote: "One video, no new subscription. Your subscription keeps running.",
   heroA: "Send a kiss to ", heroY: "the one you love", heroB: " 💋",
   wieGehtTitel: "How it works",
+  karteTitel: (n: string) => (n ? `My gift for ${n}: a kiss` : "My gift for you: a kiss"),
+  anlass: "For your anniversary · for a birthday · for Valentine’s · when you haven’t seen each other in a while · after a fight · just because",
+  grund: "A message gets read and forgotten. A video of the two of you kissing, they keep.",
   wieGeht: ["Upload a photo of you and one of them.", "We turn the two of you into one kiss video.", "Send it — to them alone."],
   wieGehtPrivat: "Nobody else sees it. Your card stays private unless you share it yourself.",
   anlaesseTitel: "Why send one",
@@ -327,6 +393,7 @@ const DE: KissText = {
   landFrage: "Dein Land",
   shareTitel: "Teilen macht es öffentlich", shareText: "Jeder mit dem Link kann deine Karte sehen. Gezeigt wird nur das fertige Ergebnis — niemals deine hochgeladenen Fotos.", shareOk: "Verstanden — teilen", shareCancel: "Abbrechen",
   szeneTitel: "Such dir eine Szene aus — oder lass dich überraschen",
+  ortFrage: "Wohin geht es?", ortPlatzhalter: "Teneriffa", ortHinweis: "Der Ort kommt ins Video — schreib ihn so, wie du es ihr oder ihm sagen würdest.",
   waescheTitel: "Such ihre Wäsche aus — oder lass die aus dem Video",
   nochmalVideo: "Noch ein Video generieren",
   aufladeWahlTitel: "Wie viel möchtest du aufladen?",
@@ -411,6 +478,9 @@ const DE: KissText = {
   extraCta: "Noch ein Video — {extra}", extraNote: "Ein Video, kein neues Abo. Dein Abo läuft normal weiter.",
   heroA: "Schick einen Kuss an ", heroY: "den Menschen, den du liebst", heroB: " 💋",
   wieGehtTitel: "So geht es",
+  karteTitel: (n: string) => (n ? `Mein Geschenk für ${n}: einen Kuss` : "Mein Geschenk für dich: einen Kuss"),
+  anlass: "Zum Jahrestag · zum Geburtstag · zum Valentinstag · wenn ihr euch lange nicht gesehen habt · nach einem Streit · einfach so",
+  grund: "Eine Nachricht wird gelesen und vergessen. Ein Video, in dem ihr beide küsst, behält sie.",
   wieGeht: ["Lade ein Foto von dir hoch und eins von ihr oder ihm.", "Wir machen aus euch beiden ein Kussvideo.", "Verschick es — nur an diesen einen Menschen."],
   wieGehtPrivat: "Niemand sonst sieht es. Deine Karte bleibt privat, solange du sie nicht selbst teilst.",
   anlaesseTitel: "Warum man einen schickt",
@@ -447,6 +517,7 @@ const RO: KissText = {
   landFrage: "Țara ta",
   shareTitel: "Dacă distribui, devine public", shareText: "Oricine are linkul îți poate vedea cardul. Se arată doar rezultatul final — niciodată pozele încărcate de tine.", shareOk: "Am înțeles — distribuie", shareCancel: "Anulează",
   szeneTitel: "Alege o scenă — sau lasă-te surprins",
+  ortFrage: "Unde mergeți?", ortPlatzhalter: "Tenerife", ortHinweis: "Locul intră în videoclip — scrie-l așa cum i-ai spune.",
   waescheTitel: "Alege lenjeria ei — sau păstreaz-o pe cea din videoclip",
   nochmalVideo: "Generează încă un videoclip",
   aufladeWahlTitel: "Cât vrei să încarci?",
@@ -531,6 +602,9 @@ const RO: KissText = {
   extraCta: "Încă un videoclip — {extra}", extraNote: "Un videoclip, fără abonament nou. Abonamentul tău merge mai departe.",
   heroA: "Trimite un sărut ", heroY: "persoanei pe care o iubești", heroB: " 💋",
   wieGehtTitel: "Cum funcționează",
+  karteTitel: (n: string) => (n ? `Cadoul meu pentru ${n}: un sărut` : "Cadoul meu pentru tine: un sărut"),
+  anlass: "De aniversarea voastră · de ziua ei · de Valentine’s Day · când nu v-ați văzut de mult · după o ceartă · pur și simplu",
+  grund: "Un mesaj se citește și se uită. Un videoclip în care vă sărutați îl păstrează.",
   wieGeht: ["Încarcă o poză cu tine și una cu ea sau el.", "Facem din voi doi un videoclip cu un sărut.", "Trimite-l — doar acelei persoane."],
   wieGehtPrivat: "Nimeni altcineva nu îl vede. Felicitarea ta rămâne privată dacă nu o distribui tu.",
   anlaesseTitel: "De ce să trimiți unul",
@@ -567,6 +641,7 @@ const ES: KissText = {
   landFrage: "Tu país",
   shareTitel: "Compartir lo hace público", shareText: "Cualquiera con el enlace puede ver tu tarjeta. Solo se muestra el resultado final — nunca las fotos que subiste.", shareOk: "Entendido — compartir", shareCancel: "Cancelar",
   szeneTitel: "Elige una escena — o déjate sorprender",
+  ortFrage: "¿A dónde vais?", ortPlatzhalter: "Tenerife", ortHinweis: "El lugar entra en el vídeo — escríbelo como se lo dirías.",
   waescheTitel: "Elige su lencería — o deja la del vídeo",
   nochmalVideo: "Generar otro vídeo",
   aufladeWahlTitel: "¿Cuánto quieres recargar?",
@@ -651,6 +726,9 @@ const ES: KissText = {
   extraCta: "Un vídeo más — {extra}", extraNote: "Un vídeo, sin nueva suscripción. La tuya sigue igual.",
   heroA: "Envía un beso a ", heroY: "quien tú quieres", heroB: " 💋",
   wieGehtTitel: "Cómo funciona",
+  karteTitel: (n: string) => (n ? `Mi regalo para ${n}: un beso` : "Mi regalo para ti: un beso"),
+  anlass: "Por vuestro aniversario · por su cumpleaños · por San Valentín · cuando lleváis tiempo sin veros · después de una discusión · porque sí",
+  grund: "Un mensaje se lee y se olvida. Un vídeo en el que os besáis, se lo queda.",
   wieGeht: ["Sube una foto tuya y otra de ella o de él.", "Convertimos a los dos en un vídeo de un beso.", "Envíalo — solo a esa persona."],
   wieGehtPrivat: "Nadie más lo ve. Tu tarjeta sigue siendo privada mientras no la compartas tú.",
   anlaesseTitel: "Por qué enviar uno",
@@ -687,6 +765,7 @@ const FR: KissText = {
   landFrage: "Ton pays",
   shareTitel: "Partager le rend public", shareText: "Toute personne avec le lien peut voir ta carte. Seul le résultat final est montré — jamais tes photos envoyées.", shareOk: "Compris — partager", shareCancel: "Annuler",
   szeneTitel: "Choisis une scène — ou laisse-toi surprendre",
+  ortFrage: "Où partez-vous ?", ortPlatzhalter: "Tenerife", ortHinweis: "Le lieu entre dans la vidéo — écris-le comme tu le lui dirais.",
   waescheTitel: "Choisis sa lingerie — ou garde celle de la vidéo",
   nochmalVideo: "Générer une autre vidéo",
   aufladeWahlTitel: "Combien veux-tu recharger ?",
@@ -771,6 +850,9 @@ const FR: KissText = {
   extraCta: "Une vidéo de plus — {extra}", extraNote: "Une vidéo, sans nouvel abonnement. Le tien continue normalement.",
   heroA: "Envoie un baiser à ", heroY: "la personne que tu aimes", heroB: " 💋",
   wieGehtTitel: "Comment ça marche",
+  karteTitel: (n: string) => (n ? `Mon cadeau pour ${n} : un baiser` : "Mon cadeau pour toi : un baiser"),
+  anlass: "Pour votre anniversaire · pour son anniversaire · pour la Saint-Valentin · quand vous ne vous êtes pas vus depuis longtemps · après une dispute · sans raison",
+  grund: "Un message se lit et s’oublie. Une vidéo où vous vous embrassez, elle la garde.",
   wieGeht: ["Ajoute une photo de toi et une d'elle ou de lui.", "On fait de vous deux une vidéo d'un baiser.", "Envoie-la — à cette personne seule."],
   wieGehtPrivat: "Personne d'autre ne la voit. Ta carte reste privée tant que tu ne la partages pas toi-même.",
   anlaesseTitel: "Pourquoi en envoyer un",
@@ -807,6 +889,7 @@ const PT: KissText = {
   landFrage: "O teu país",
   shareTitel: "Partilhar torna-o público", shareText: "Qualquer pessoa com o link pode ver o teu cartão. Só se mostra o resultado final — nunca as fotos que enviaste.", shareOk: "Entendi — partilhar", shareCancel: "Cancelar",
   szeneTitel: "Escolhe uma cena — ou deixa-te surpreender",
+  ortFrage: "Para onde vão?", ortPlatzhalter: "Tenerife", ortHinweis: "O lugar entra no vídeo — escreve-o como lho dirias.",
   waescheTitel: "Escolhe a lingerie dela — ou deixa a do vídeo",
   nochmalVideo: "Gerar mais um vídeo",
   aufladeWahlTitel: "Quanto queres carregar?",
@@ -891,6 +974,9 @@ const PT: KissText = {
   extraCta: "Mais um vídeo — {extra}", extraNote: "Um vídeo, sem nova subscrição. A tua continua igual.",
   heroA: "Envia um beijo a ", heroY: "quem tu amas", heroB: " 💋",
   wieGehtTitel: "Como funciona",
+  karteTitel: (n: string) => (n ? `O meu presente para ${n}: um beijo` : "O meu presente para ti: um beijo"),
+  anlass: "Pelo vosso aniversário · pelo aniversário dela · pelo Dia dos Namorados · quando há muito não se veem · depois de uma discussão · sem motivo nenhum",
+  grund: "Uma mensagem lê-se e esquece-se. Um vídeo em que se beijam, esse fica.",
   wieGeht: ["Carrega uma foto tua e outra dela ou dele.", "Transformamos os dois num vídeo de um beijo.", "Envia-o — só a essa pessoa."],
   wieGehtPrivat: "Mais ninguém o vê. O teu postal fica privado enquanto não o partilhares tu.",
   anlaesseTitel: "Porque se envia um",
@@ -928,6 +1014,7 @@ const IT: KissText = {
   landFrage: "Il tuo paese",
   shareTitel: "Condividere lo rende pubblico", shareText: "Chiunque abbia il link può vedere la tua card. Si mostra solo il risultato finale — mai le foto che hai caricato.", shareOk: "Ho capito — condividi", shareCancel: "Annulla",
   szeneTitel: "Scegli una scena — o lasciati sorprendere",
+  ortFrage: "Dove andate?", ortPlatzhalter: "Tenerife", ortHinweis: "Il luogo entra nel video — scrivilo come glielo diresti.",
   waescheTitel: "Scegli la sua lingerie — o lascia quella del video",
   nochmalVideo: "Genera un altro video",
   aufladeWahlTitel: "Quanto vuoi ricaricare?",
@@ -1012,6 +1099,9 @@ const IT: KissText = {
   extraCta: "Un altro video — {extra}", extraNote: "Un video, nessun nuovo abbonamento. Il tuo continua normalmente.",
   heroA: "Manda un bacio a ", heroY: "chi ami", heroB: " 💋",
   wieGehtTitel: "Come funziona",
+  karteTitel: (n: string) => (n ? `Il mio regalo per ${n}: un bacio` : "Il mio regalo per te: un bacio"),
+  anlass: "Per il vostro anniversario · per il suo compleanno · per San Valentino · quando non vi vedete da tanto · dopo un litigio · senza motivo",
+  grund: "Un messaggio si legge e si dimentica. Un video in cui vi baciate, quello lo tiene.",
   wieGeht: ["Carica una foto tua e una di lei o di lui.", "Trasformiamo voi due in un video con un bacio.", "Mandalo — solo a quella persona."],
   wieGehtPrivat: "Nessun altro lo vede. Il tuo biglietto resta privato finché non lo condividi tu.",
   anlaesseTitel: "Perché mandarne uno",
@@ -1119,6 +1209,8 @@ const IDOL: Record<Lang, Partial<KissText>> = {
  */
 const POLEDANCE: Record<Lang, Partial<KissText>> = {
   en: {
+    anlass: "For your anniversary · for his birthday · when you are in different cities · after a long week apart · when you want to say it without words",
+    grund: "A photo gets a heart back. A video of you on the pole he watches again.",
     step1: "1 · Your photo", step3: "2 · Your dance", pickFirst: "Upload your photo",
     upTitle: "Your photo", upHint: "One photo of you — full body works best, so there is something to move.",
     mailQuestion: "Where should we send your video?",
@@ -1126,6 +1218,7 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     heroA: "Surprise him with ", heroY: "a hot pole dance", heroB: " 💃",
     wieGeht: ["Upload one photo of yourself.", "We put you in the outfit and on the pole.", "Send it to him — to him alone."],
     wieGehtPrivat: "Nobody else sees it. Your video stays private unless you send it yourself.",
+    karteTitel: (n: string) => (n ? `My gift for ${n}: a dance` : "My gift for you: a dance"),
     priceLine: "Video {tanz}", buyOnce: "Hot video {tanz}",
     guthabenVorabHinweis: "One video costs {tanz}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
     makeVideo: "Make my dance video — {tanz} 🔥", makingKiss: "Making your dance video …",
@@ -1146,6 +1239,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Make your own 💃",
   },
   de: {
+    anlass: "Zum Jahrestag · zu seinem Geburtstag · wenn ihr in verschiedenen Städten seid · nach einer langen Woche getrennt · wenn du es ohne Worte sagen willst",
+    grund: "Auf ein Foto kommt ein Herz zurück. Ein Video, in dem du an der Stange tanzt, sieht er wieder und wieder.",
     step1: "1 · Dein Foto", step3: "2 · Dein Tanz", pickFirst: "Lade dein Foto hoch",
     upTitle: "Dein Foto", upHint: "Ein Foto von dir — am besten ganzer Körper, damit sich etwas bewegen kann.",
     mailQuestion: "Wohin sollen wir dein Video schicken?",
@@ -1153,6 +1248,7 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     heroA: "Überrasch ihn mit ", heroY: "einem heißen Poledance", heroB: " 💃",
     wieGeht: ["Lade ein Foto von dir hoch.", "Wir stecken dich in das Outfit und an die Stange.", "Schick es ihm — nur ihm."],
     wieGehtPrivat: "Niemand sonst sieht es. Dein Video bleibt privat, solange du es nicht selbst verschickst.",
+    karteTitel: (n: string) => (n ? `Mein Geschenk für ${n}: einen Tanz` : "Mein Geschenk für dich: einen Tanz"),
     priceLine: "Video {tanz}", buyOnce: "Heißes Video {tanz}",
     guthabenVorabHinweis: "Ein Video kostet {tanz}. Du zahlst aus deinem Guthaben — die kleinste Aufladung ist {topup}, und was übrig bleibt, gehört weiter dir.",
     makeVideo: "Mein Tanzvideo machen — {tanz} 🔥", makingKiss: "Dein Tanzvideo entsteht …",
@@ -1173,6 +1269,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Mach dir selbst eins 💃",
   },
   ro: {
+    anlass: "De aniversarea voastră · de ziua lui · când sunteți în orașe diferite · după o săptămână lungă departe · când vrei să o spui fără cuvinte",
+    grund: "La o poză primești o inimioară. Un videoclip în care dansezi la bară îl privește din nou.",
     step1: "1 · Poza ta", step3: "2 · Dansul tău", pickFirst: "Încarcă poza ta",
     upTitle: "Poza ta", upHint: "O poză cu tine — cel mai bine tot corpul, ca să aibă ce mișca.",
     mailQuestion: "Unde să-ți trimitem videoclipul?",
@@ -1200,6 +1298,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Fă-ți și tu unul 💃",
   },
   es: {
+    anlass: "Por vuestro aniversario · por su cumpleaños · cuando estáis en ciudades distintas · después de una semana larga separados · cuando quieres decírselo sin palabras",
+    grund: "A una foto te devuelven un corazón. Un vídeo en el que bailas en la barra lo vuelve a ver.",
     step1: "1 · Tu foto", step3: "2 · Tu baile", pickFirst: "Sube tu foto",
     upTitle: "Tu foto", upHint: "Una foto tuya — mejor de cuerpo entero, para que haya algo que mover.",
     mailQuestion: "¿Adónde te enviamos tu vídeo?",
@@ -1227,6 +1327,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Hazte el tuyo 💃",
   },
   fr: {
+    anlass: "Pour votre anniversaire · pour son anniversaire à lui · quand vous êtes dans deux villes · après une longue semaine loin l'un de l'autre · quand tu veux le dire sans mots",
+    grund: "À une photo, il répond par un cœur. Une vidéo où tu danses à la barre, il la regarde encore.",
     step1: "1 · Ta photo", step3: "2 · Ta danse", pickFirst: "Envoie ta photo",
     upTitle: "Ta photo", upHint: "Une photo de toi — de préférence en entier, pour qu'il y ait de quoi bouger.",
     mailQuestion: "Où devons-nous envoyer ta vidéo ?",
@@ -1254,6 +1356,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Fais la tienne 💃",
   },
   pt: {
+    anlass: "Pelo vosso aniversário · pelo aniversário dele · quando estão em cidades diferentes · depois de uma semana longa longe · quando queres dizê-lo sem palavras",
+    grund: "A uma foto respondem com um coração. Um vídeo em que danças no varão ele vê outra vez.",
     step1: "1 · A tua foto", step3: "2 · A tua dança", pickFirst: "Carrega a tua foto",
     upTitle: "A tua foto", upHint: "Uma foto tua — de preferência de corpo inteiro, para haver o que mexer.",
     mailQuestion: "Para onde enviamos o teu vídeo?",
@@ -1281,6 +1385,8 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     kussZurueck: "Faz o teu 💃",
   },
   it: {
+    anlass: "Per il vostro anniversario · per il suo compleanno · quando siete in due città · dopo una settimana lunga lontani · quando vuoi dirlo senza parole",
+    grund: "A una foto risponde con un cuore. Un video in cui balli alla pole se lo riguarda.",
     step1: "1 · La tua foto", step3: "2 · Il tuo ballo", pickFirst: "Carica la tua foto",
     upTitle: "La tua foto", upHint: "Una foto di te — meglio a figura intera, così c'è qualcosa da muovere.",
     mailQuestion: "Dove ti mandiamo il video?",
@@ -1321,6 +1427,10 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
  */
 const HOCHZEIT: Record<Lang, Partial<KissText>> = {
   en: {
+    anlass: "For the engagement · for the save the date · for the invitation itself · when your guests are spread over three countries · when nobody answers the paper card",
+    grund: "A printed card ends up in a drawer. A page with your video, the replies and the guest list stays open on their phone.",
+    wieGeht: ["Upload one photo of her and one of him.", "We make your wedding video and your own invitation page.", "Send one link — the replies land with you."],
+    wieGehtPrivat: "Your page is not listed anywhere and Google cannot find it — only the people you send the link to can open it.",
     pickFirst: "Upload your photo first",
     mailQuestion: "Your email address",
     uploadFirst: "Upload his photo",
@@ -1372,6 +1482,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "One extra render, not a new subscription. Yours keeps running.",
   },
   de: {
+    anlass: "Zur Verlobung · für Save the Date · für die Einladung selbst · wenn eure Gäste über drei Länder verteilt sind · wenn auf die Papierkarte niemand antwortet",
+    grund: "Eine gedruckte Karte landet in der Schublade. Eine Seite mit eurem Video, den Zusagen und der Gästeliste bleibt auf dem Handy offen.",
+    wieGeht: ["Lade ein Foto von ihr hoch und eins von ihm.", "Wir machen euer Hochzeitsvideo und eure eigene Einladungsseite.", "Verschickt einen Link — die Zusagen landen bei euch."],
+    wieGehtPrivat: "Eure Seite steht nirgends und Google findet sie nicht — öffnen kann sie nur, wem ihr den Link schickt.",
     pickFirst: "Lade zuerst dein Foto hoch",
     mailQuestion: "Deine E-Mail-Adresse",
     uploadFirst: "Lade sein Foto hoch",
@@ -1423,6 +1537,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "Eine weitere Fassung, kein neues Abo. Euer Abo läuft normal weiter.",
   },
   ro: {
+    anlass: "La logodnă · pentru save the date · pentru invitația propriu-zisă · când invitații sunt în trei țări · când la invitația pe hârtie nu răspunde nimeni",
+    grund: "O invitație tipărită ajunge în sertar. O pagină cu videoclipul vostru, confirmările și lista de invitați rămâne deschisă pe telefon.",
+    wieGeht: ["Încarcă o poză cu ea și una cu el.", "Facem videoclipul vostru de nuntă și pagina voastră de invitație.", "Trimiteți un singur link — confirmările ajung la voi."],
+    wieGehtPrivat: "Pagina voastră nu este listată nicăieri și Google nu o găsește — o poate deschide doar cine primește linkul.",
     pickFirst: "Încarcă mai întâi poza ta",
     mailQuestion: "Adresa ta de email",
     uploadFirst: "Încarcă poza lui",
@@ -1474,6 +1592,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "O versiune în plus, nu un abonament nou. Al vostru merge mai departe.",
   },
   es: {
+    anlass: "Para la pedida · para el save the date · para la invitación misma · cuando vuestros invitados están en tres países · cuando nadie contesta a la tarjeta de papel",
+    grund: "Una invitación impresa acaba en un cajón. Una página con vuestro vídeo, las respuestas y la lista de invitados se queda abierta en el móvil.",
+    wieGeht: ["Sube una foto de ella y otra de él.", "Hacemos vuestro vídeo de boda y vuestra propia página de invitación.", "Enviad un solo enlace — las respuestas os llegan a vosotros."],
+    wieGehtPrivat: "Vuestra página no está listada en ningún sitio y Google no la encuentra — solo la abre quien recibe el enlace.",
     pickFirst: "Sube primero tu foto",
     mailQuestion: "Tu dirección de correo electrónico",
     uploadFirst: "Sube su foto",
@@ -1525,6 +1647,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "Una versión más, no una suscripción nueva. La vuestra sigue igual.",
   },
   fr: {
+    anlass: "Pour les fiançailles · pour le save the date · pour l'invitation elle-même · quand vos invités sont dans trois pays · quand personne ne répond au carton",
+    grund: "Un carton imprimé finit dans un tiroir. Une page avec votre vidéo, les réponses et la liste des invités reste ouverte sur le téléphone.",
+    wieGeht: ["Ajoutez une photo d'elle et une de lui.", "On fait votre vidéo de mariage et votre page d'invitation.", "Envoyez un seul lien — les réponses vous arrivent."],
+    wieGehtPrivat: "Votre page n'est listée nulle part et Google ne la trouve pas — seuls ceux à qui vous envoyez le lien peuvent l'ouvrir.",
     pickFirst: "Téléverse d'abord ta photo",
     mailQuestion: "Ton adresse e-mail",
     uploadFirst: "Téléverse sa photo",
@@ -1576,6 +1702,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "Une version en plus, pas un nouvel abonnement. Le vôtre continue.",
   },
   pt: {
+    anlass: "Para o noivado · para o save the date · para o próprio convite · quando os convidados estão em três países · quando ninguém responde ao convite em papel",
+    grund: "Um convite impresso acaba numa gaveta. Uma página com o vosso vídeo, as respostas e a lista de convidados fica aberta no telemóvel.",
+    wieGeht: ["Carrega uma foto dela e outra dele.", "Fazemos o vosso vídeo de casamento e a vossa página de convite.", "Enviem um único link — as respostas chegam a vocês."],
+    wieGehtPrivat: "A vossa página não está listada em lado nenhum e o Google não a encontra — só a abre quem recebe o link.",
     pickFirst: "Carrega primeiro a tua foto",
     mailQuestion: "O teu endereço de email",
     uploadFirst: "Carrega a foto dele",
@@ -1627,6 +1757,10 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
     extraNote: "Mais uma versão, não uma nova subscrição. A vossa continua.",
   },
   it: {
+    anlass: "Per il fidanzamento · per il save the date · per l'invito vero e proprio · quando gli invitati sono in tre paesi · quando alla partecipazione di carta non risponde nessuno",
+    grund: "Una partecipazione stampata finisce in un cassetto. Una pagina con il vostro video, le conferme e la lista degli invitati resta aperta sul telefono.",
+    wieGeht: ["Carica una foto di lei e una di lui.", "Facciamo il vostro video di nozze e la vostra pagina d'invito.", "Mandate un solo link — le conferme arrivano a voi."],
+    wieGehtPrivat: "La vostra pagina non è elencata da nessuna parte e Google non la trova — la apre solo chi riceve il link.",
     pickFirst: "Carica prima la tua foto",
     mailQuestion: "La tua email",
     uploadFirst: "Carica la sua foto",
@@ -1680,6 +1814,292 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
 };
 
 /**
+ * DIE URLAUBS-EINLADUNG (Owner 04.08.2026: „du machst eine Invitation für Urlaub an
+ * jemandem. DU und ich. Das sendet der User dann an die Person. Es wird genauso wie bei
+ * Wedding Datum Ort eingetragen").
+ *
+ * DAS IST EIN KONZEPTWECHSEL, kein neuer Text. Bis heute war „Urlaub" ein Fantasievideo mit
+ * einer Frau aus unserem Katalog — für ihn allein, niemand sonst sah es je. Jetzt ist es
+ * eine EINLADUNG an einen echten Menschen: „Komm mit mir." Damit wandert das Thema von der
+ * Kiss-Maschine (ein Video für mich) in die Hochzeits-Maschine (eine Karte, die ich
+ * verschicke) — dieselben Felder, derselbe Bau-Dialog, dieselbe Seite mit Zusage.
+ *
+ * ZWEI UNTERSCHIEDE ZUR HOCHZEIT, und beide haengen am selben Punkt: Eine Hochzeit hat
+ * GAESTE, ein Urlaub hat EINEN Menschen.
+ *   1. Kein „ihr beide" in der Anrede: Hier baut EINER die Karte fuer EINE Person. Deshalb
+ *      „dein"/„deine" statt „euer"/„eure" — bei der Hochzeit bauen es die Brautleute
+ *      gemeinsam, hier ist es eine Ueberraschung fuer die andere Seite.
+ *   2. Kein Menue, keine Gaestezahl, kein Gruppenchat (Owner-Entscheidung 04.08.2026:
+ *      „nur zusagen oder absagen"). Wer eingeladen wird, sagt Ja oder Nein — mehr gibt es
+ *      bei zwei Menschen nicht zu verwalten.
+ *
+ * `upTitle`/`you` sind bewusst NICHT „die Braut"/„der Braeutigam", sondern „du"/„sie oder er":
+ * Wer jemanden in den Urlaub einlaedt, ist kein Paar in Rollen, und die Einladung soll auch
+ * fuer Freunde, Geschwister und Eltern stimmen.
+ */
+const URLAUB: Record<Lang, Partial<KissText>> = {
+  en: {
+    anlass: "For a surprise · for the proposal · for a family holiday · for the honeymoon · when you want to ask, not just tell",
+    grund: "Anyone can forward a hotel link. A video where the two of you are already there gets a yes.",
+    wieGeht: ["Upload a photo of you and one of them.", "We put the two of you in the place you picked.", "Send it — and they answer yes or no right there."],
+    wieGehtPrivat: "Your page is not listed anywhere and Google cannot find it — only the person you send the link to can open it.",
+    pickFirst: "Upload your photo first",
+    mailQuestion: "Your email address",
+    uploadFirst: "Upload their photo",
+    pickHint: "One photo of you, one of them — that is all it takes.",
+    datenErsetzen: "Replace the details",
+    namenVorSenden: "Tap your names above to send the invitation",
+    szeneTitel: "Pick your scene",
+    upTitle: "You",
+    upHint: "One photo of you is enough.",
+    you: "THEM",
+    uploadYou: "Upload their photo",
+    youHint: "A photo of the person you are inviting",
+    readyTitle: "Your invitation is ready 🌴",
+    makingKiss: "Your invitation is being made …",
+    heroA: "Invite someone ",
+    heroY: "to come away with you",
+    heroB: " 🌴",
+    examples: "This is what your invitation looks like",
+    statusQuality: "Your invitation video is being created in full quality … (~1–3 min)",
+    ctaVideo: "Create the invitation",
+    download: "⬇ Download your invitation video",
+    payMaking: "Your invitation is being made — about a minute. Stay on this page.",
+    payPrep: "Payment received — your invitation is being prepared …",
+    privateNote: "🔒 This is private — just for you and the person you send it to.",
+    renderingVideo: "Your invitation is being created … (~1–3 min)",
+    videoFailed: "The invitation could not be created.",
+    readyBody: "Unlock it and send it to them.",
+    blockedOnce: "Unlock the invitation",
+    buyOnce: "Unlock the invitation",
+    extraCta: "One more version — {extra}",
+    extraNote: "One extra render, not a new subscription. Yours keeps running.",
+  },
+  de: {
+    anlass: "Für eine Überraschung · für den Antrag · für den Familienurlaub · für die Flitterwochen · wenn du fragen willst statt nur zu erzählen",
+    grund: "Einen Hotel-Link kann jeder weiterschicken. Ein Video, in dem ihr beide schon dort seid, bekommt ein Ja.",
+    wieGeht: ["Lade ein Foto von dir hoch und eins von ihr oder ihm.", "Wir setzen euch beide an den Ort, den du gewählt hast.", "Verschick es — die Antwort kommt direkt auf der Seite."],
+    wieGehtPrivat: "Deine Seite steht nirgends und Google findet sie nicht — öffnen kann sie nur, wem du den Link schickst.",
+    pickFirst: "Lade zuerst dein Foto hoch",
+    mailQuestion: "Deine E-Mail-Adresse",
+    uploadFirst: "Lade ihr Foto hoch",
+    pickHint: "Ein Foto von dir, eins von ihr oder ihm — mehr braucht es nicht.",
+    datenErsetzen: "Daten ersetzen",
+    namenVorSenden: "Tippe oben auf eure Namen, um die Einladung zu verschicken",
+    szeneTitel: "Wähl deine Szene",
+    upTitle: "Du",
+    upHint: "Ein Foto von dir genügt.",
+    you: "SIE ODER ER",
+    uploadYou: "Lade ihr Foto hoch",
+    youHint: "Ein Foto der Person, die du einlädst",
+    readyTitle: "Deine Einladung ist fertig 🌴",
+    makingKiss: "Deine Einladung entsteht …",
+    heroA: "Lade jemanden ein, ",
+    heroY: "mitzukommen",
+    heroB: " 🌴",
+    examples: "So sieht deine Einladung aus",
+    statusQuality: "Dein Einladungsvideo entsteht in voller Qualität … (~1–3 Min.)",
+    ctaVideo: "Einladung erstellen",
+    download: "⬇ Dein Einladungsvideo herunterladen",
+    payMaking: "Deine Einladung entsteht — das dauert etwa eine Minute. Bleib auf dieser Seite.",
+    payPrep: "Zahlung erhalten — deine Einladung wird vorbereitet …",
+    privateNote: "🔒 Das ist privat — nur für dich und die Person, der du es schickst.",
+    renderingVideo: "Deine Einladung wird erstellt … (~1–3 Min.)",
+    videoFailed: "Die Einladung ist fehlgeschlagen.",
+    readyBody: "Schalte sie frei und verschick sie.",
+    blockedOnce: "Einladung freischalten",
+    buyOnce: "Einladung freischalten",
+    extraCta: "Noch eine Fassung — {extra}",
+    extraNote: "Eine Fassung extra, kein neues Abo. Deins läuft weiter.",
+  },
+  ro: {
+    anlass: "Pentru o surpriză · pentru cerere · pentru vacanța în familie · pentru luna de miere · când vrei să întrebi, nu doar să anunți",
+    grund: "Un link de hotel poate trimite oricine. Un videoclip în care sunteți deja acolo primește un da.",
+    wieGeht: ["Încarcă o poză cu tine și una cu ea sau el.", "Vă punem pe amândoi în locul pe care l-ai ales.", "Trimite-l — răspunsul vine chiar pe pagină."],
+    wieGehtPrivat: "Pagina ta nu este listată nicăieri și Google nu o găsește — o poate deschide doar cine primește linkul.",
+    pickFirst: "Încarcă mai întâi poza ta",
+    mailQuestion: "Adresa ta de e-mail",
+    uploadFirst: "Încarcă poza lui sau a ei",
+    pickHint: "O poză cu tine, una cu el sau ea — atât e nevoie.",
+    datenErsetzen: "Schimbă datele",
+    namenVorSenden: "Atinge numele de mai sus ca să trimiți invitația",
+    szeneTitel: "Alege scena",
+    upTitle: "Tu",
+    upHint: "O poză cu tine e de ajuns.",
+    you: "EL SAU EA",
+    uploadYou: "Încarcă poza lui sau a ei",
+    youHint: "O poză cu persoana pe care o inviți",
+    readyTitle: "Invitația ta e gata 🌴",
+    makingKiss: "Se face invitația ta …",
+    heroA: "Invită pe cineva ",
+    heroY: "să vină cu tine",
+    heroB: " 🌴",
+    examples: "Așa arată invitația ta",
+    statusQuality: "Videoclipul invitației se creează la calitate maximă … (~1–3 min)",
+    ctaVideo: "Creează invitația",
+    download: "⬇ Descarcă videoclipul invitației",
+    payMaking: "Invitația se face — durează cam un minut. Rămâi pe pagină.",
+    payPrep: "Plata a fost primită — invitația se pregătește …",
+    privateNote: "🔒 E privat — doar pentru tine și persoana căreia i-o trimiți.",
+    renderingVideo: "Invitația ta se creează … (~1–3 min)",
+    videoFailed: "Invitația nu a putut fi creată.",
+    readyBody: "Deblocheaz-o și trimite-i-o.",
+    blockedOnce: "Deblochează invitația",
+    buyOnce: "Deblochează invitația",
+    extraCta: "Încă o variantă — {extra}",
+    extraNote: "O variantă în plus, nu un abonament nou. Al tău merge mai departe.",
+  },
+  es: {
+    anlass: "Para una sorpresa · para la pedida · para las vacaciones en familia · para la luna de miel · cuando quieres preguntar, no solo contar",
+    grund: "Un enlace de hotel lo reenvía cualquiera. Un vídeo en el que ya estáis allí recibe un sí.",
+    wieGeht: ["Sube una foto tuya y otra de ella o de él.", "Os ponemos a los dos en el lugar que has elegido.", "Envíalo — la respuesta llega en la propia página."],
+    wieGehtPrivat: "Tu página no está listada en ningún sitio y Google no la encuentra — solo la abre quien recibe el enlace.",
+    pickFirst: "Sube primero tu foto",
+    mailQuestion: "Tu correo electrónico",
+    uploadFirst: "Sube su foto",
+    pickHint: "Una foto tuya y una suya — no hace falta más.",
+    datenErsetzen: "Cambiar los datos",
+    namenVorSenden: "Toca vuestros nombres arriba para enviar la invitación",
+    szeneTitel: "Elige tu escena",
+    upTitle: "Tú",
+    upHint: "Basta con una foto tuya.",
+    you: "ÉL O ELLA",
+    uploadYou: "Sube su foto",
+    youHint: "Una foto de la persona a la que invitas",
+    readyTitle: "Tu invitación está lista 🌴",
+    makingKiss: "Se está creando tu invitación …",
+    heroA: "Invita a alguien ",
+    heroY: "a irse contigo",
+    heroB: " 🌴",
+    examples: "Así se ve tu invitación",
+    statusQuality: "Tu vídeo de invitación se crea en máxima calidad … (~1–3 min)",
+    ctaVideo: "Crear la invitación",
+    download: "⬇ Descargar el vídeo de tu invitación",
+    payMaking: "Tu invitación se está creando — tarda un minuto. Quédate en esta página.",
+    payPrep: "Pago recibido — se está preparando tu invitación …",
+    privateNote: "🔒 Esto es privado — solo para ti y la persona a la que se lo envías.",
+    renderingVideo: "Tu invitación se está creando … (~1–3 min)",
+    videoFailed: "No se ha podido crear la invitación.",
+    readyBody: "Desbloquéala y envíasela.",
+    blockedOnce: "Desbloquear la invitación",
+    buyOnce: "Desbloquear la invitación",
+    extraCta: "Otra versión — {extra}",
+    extraNote: "Una versión más, no una suscripción nueva. La tuya sigue.",
+  },
+  fr: {
+    anlass: "Pour une surprise · pour la demande · pour les vacances en famille · pour la lune de miel · quand tu veux demander, pas seulement annoncer",
+    grund: "Un lien d'hôtel, tout le monde peut le transférer. Une vidéo où vous y êtes déjà, ça reçoit un oui.",
+    wieGeht: ["Ajoute une photo de toi et une d'elle ou de lui.", "On vous met tous les deux à l'endroit que tu as choisi.", "Envoie-la — la réponse arrive directement sur la page."],
+    wieGehtPrivat: "Ta page n'est listée nulle part et Google ne la trouve pas — seule la personne à qui tu envoies le lien peut l'ouvrir.",
+    pickFirst: "Ajoute d’abord ta photo",
+    mailQuestion: "Ton adresse e-mail",
+    uploadFirst: "Ajoute sa photo",
+    pickHint: "Une photo de toi, une de lui ou d’elle — il n’en faut pas plus.",
+    datenErsetzen: "Modifier les informations",
+    namenVorSenden: "Touche vos prénoms en haut pour envoyer l’invitation",
+    szeneTitel: "Choisis ta scène",
+    upTitle: "Toi",
+    upHint: "Une photo de toi suffit.",
+    you: "LUI OU ELLE",
+    uploadYou: "Ajoute sa photo",
+    youHint: "Une photo de la personne que tu invites",
+    readyTitle: "Ton invitation est prête 🌴",
+    makingKiss: "Ton invitation se prépare …",
+    heroA: "Invite quelqu'un ",
+    heroY: "à partir avec toi",
+    heroB: " 🌴",
+    examples: "Voilà à quoi ressemble ton invitation",
+    statusQuality: "Ta vidéo d’invitation est créée en pleine qualité … (~1–3 min)",
+    ctaVideo: "Créer l’invitation",
+    download: "⬇ Télécharger la vidéo de ton invitation",
+    payMaking: "Ton invitation se prépare — environ une minute. Reste sur cette page.",
+    payPrep: "Paiement reçu — ton invitation se prépare …",
+    privateNote: "🔒 C’est privé — seulement pour toi et la personne à qui tu l’envoies.",
+    renderingVideo: "Ton invitation est en cours de création … (~1–3 min)",
+    videoFailed: "L’invitation n’a pas pu être créée.",
+    readyBody: "Débloque-la et envoie-la.",
+    blockedOnce: "Débloquer l’invitation",
+    buyOnce: "Débloquer l’invitation",
+    extraCta: "Une version de plus — {extra}",
+    extraNote: "Une version en plus, pas un nouvel abonnement. Le tien continue.",
+  },
+  pt: {
+    anlass: "Para uma surpresa · para o pedido · para as férias em família · para a lua de mel · quando queres perguntar, não só contar",
+    grund: "Um link de hotel qualquer um reencaminha. Um vídeo em que já estão os dois lá recebe um sim.",
+    wieGeht: ["Carrega uma foto tua e outra dela ou dele.", "Pomos os dois no sítio que escolheste.", "Envia — a resposta chega na própria página."],
+    wieGehtPrivat: "A tua página não está listada em lado nenhum e o Google não a encontra — só a abre quem recebe o link.",
+    pickFirst: "Carrega primeiro a tua foto",
+    mailQuestion: "O teu e-mail",
+    uploadFirst: "Carrega a foto dele ou dela",
+    pickHint: "Uma foto tua, uma dele ou dela — é tudo o que é preciso.",
+    datenErsetzen: "Alterar os dados",
+    namenVorSenden: "Toca nos vossos nomes acima para enviar o convite",
+    szeneTitel: "Escolhe a tua cena",
+    upTitle: "Tu",
+    upHint: "Basta uma foto tua.",
+    you: "ELE OU ELA",
+    uploadYou: "Carrega a foto dele ou dela",
+    youHint: "Uma foto da pessoa que estás a convidar",
+    readyTitle: "O teu convite está pronto 🌴",
+    makingKiss: "O teu convite está a ser feito …",
+    heroA: "Convida alguém ",
+    heroY: "a ir contigo",
+    heroB: " 🌴",
+    examples: "É assim que fica o teu convite",
+    statusQuality: "O vídeo do teu convite está a ser criado em qualidade máxima … (~1–3 min)",
+    ctaVideo: "Criar o convite",
+    download: "⬇ Descarregar o vídeo do teu convite",
+    payMaking: "O teu convite está a ser feito — cerca de um minuto. Fica nesta página.",
+    payPrep: "Pagamento recebido — o teu convite está a ser preparado …",
+    privateNote: "🔒 Isto é privado — só para ti e para a pessoa a quem o envias.",
+    renderingVideo: "O teu convite está a ser criado … (~1–3 min)",
+    videoFailed: "Não foi possível criar o convite.",
+    readyBody: "Desbloqueia-o e envia-lho.",
+    blockedOnce: "Desbloquear o convite",
+    buyOnce: "Desbloquear o convite",
+    extraCta: "Mais uma versão — {extra}",
+    extraNote: "Uma versão extra, não uma nova subscrição. A tua continua.",
+  },
+  it: {
+    anlass: "Per una sorpresa · per la proposta · per le vacanze in famiglia · per la luna di miele · quando vuoi chiedere, non solo annunciare",
+    grund: "Un link di un hotel lo inoltra chiunque. Un video in cui siete già lì si prende un sì.",
+    wieGeht: ["Carica una foto tua e una di lei o di lui.", "Vi mettiamo tutti e due nel posto che hai scelto.", "Mandalo — la risposta arriva sulla pagina stessa."],
+    wieGehtPrivat: "La tua pagina non è elencata da nessuna parte e Google non la trova — la apre solo chi riceve il link.",
+    pickFirst: "Carica prima la tua foto",
+    mailQuestion: "Il tuo indirizzo e-mail",
+    uploadFirst: "Carica la sua foto",
+    pickHint: "Una foto tua, una sua — non serve altro.",
+    datenErsetzen: "Cambia i dati",
+    namenVorSenden: "Tocca i vostri nomi qui sopra per inviare l’invito",
+    szeneTitel: "Scegli la tua scena",
+    upTitle: "Tu",
+    upHint: "Basta una foto tua.",
+    you: "LUI O LEI",
+    uploadYou: "Carica la sua foto",
+    youHint: "Una foto della persona che inviti",
+    readyTitle: "Il tuo invito è pronto 🌴",
+    makingKiss: "Il tuo invito si sta creando …",
+    heroA: "Invita qualcuno ",
+    heroY: "a partire con te",
+    heroB: " 🌴",
+    examples: "Ecco come sarà il tuo invito",
+    statusQuality: "Il video del tuo invito si crea in piena qualità … (~1–3 min)",
+    ctaVideo: "Crea l’invito",
+    download: "⬇ Scarica il video del tuo invito",
+    payMaking: "Il tuo invito si sta creando — circa un minuto. Resta su questa pagina.",
+    payPrep: "Pagamento ricevuto — il tuo invito si sta preparando …",
+    privateNote: "🔒 È privato — solo per te e per la persona a cui lo mandi.",
+    renderingVideo: "Il tuo invito si sta creando … (~1–3 min)",
+    videoFailed: "Non è stato possibile creare l’invito.",
+    readyBody: "Sbloccalo e mandaglielo.",
+    blockedOnce: "Sblocca l’invito",
+    buyOnce: "Sblocca l’invito",
+    extraCta: "Un’altra versione — {extra}",
+    extraNote: "Una versione in più, non un nuovo abbonamento. Il tuo continua.",
+  },
+};
+
+/**
  * Die fertigen Texte für eine Sprache — Preise schon eingesetzt.
  *
  * Jede Zeichenkette läuft durch `fillPrices`, damit {once}/{price}/{videos} überall gefüllt
@@ -1697,12 +2117,14 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
  */
 const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
   en: {
+    anlass: "For an 18th · for a 60th · for Mum · for your sister · for a friend abroad · when a message is not enough",
+    grund: "Everyone sends the same message. A video that says the name out loud gets shown around.",
     step1: "1 · Your photo", step3: "2 · Your birthday video",
     pickFirst: "Upload your photo",
     upTitle: "Your photo", upHint: "One photo of you — full body works best.",
     mailQuestion: "Where should we send your video?",
     namenFrage: "Whose birthday is it? The name goes on the card", namenPlatzhalter: "Anna",
-    heroA: "She says ", heroY: "Happy Birthday", heroB: " 🎂",
+    heroA: "Let her say ", heroY: "Happy Birthday", heroB: " 🎂",
     wieGeht: ["Upload one photo of yourself.", "Type the birthday name.", "Send the video — to them alone."],
     wieGehtPrivat: "Nobody else sees it. Your video stays private unless you send it yourself.",
     priceLine: "Video {tanz}", buyOnce: "Birthday video {tanz}",
@@ -1711,12 +2133,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Unlock it and hear her say it.",
   },
   de: {
+    anlass: "Zum 18. · zum 60. · für Mama · für die Schwester · für den Freund im Ausland · wenn eine Nachricht zu wenig ist",
+    grund: "Alle schicken dieselbe Nachricht. Ein Video, das den Namen laut ausspricht, wird herumgezeigt.",
     step1: "1 · Dein Foto", step3: "2 · Dein Geburtstagsvideo",
     pickFirst: "Lade dein Foto hoch",
     upTitle: "Dein Foto", upHint: "Ein Foto von dir — am besten ganzer Körper.",
     mailQuestion: "Wohin sollen wir dein Video schicken?",
     namenFrage: "Wer hat Geburtstag? Der Name kommt auf die Karte", namenPlatzhalter: "Anna",
-    heroA: "Sie sagt ", heroY: "Happy Birthday", heroB: " 🎂",
+    heroA: "Lass sie ", heroY: "Happy Birthday", heroB: " sagen 🎂",
     wieGeht: ["Lade ein Foto von dir hoch.", "Schreib den Namen des Geburtstagskinds dazu.", "Schick das Video — nur ihm oder ihr."],
     wieGehtPrivat: "Niemand sonst sieht es. Dein Video bleibt privat, bis du es selbst verschickst.",
     priceLine: "Video {tanz}", buyOnce: "Geburtstagsvideo {tanz}",
@@ -1725,12 +2149,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Schalte es frei und hör sie.",
   },
   ro: {
+    anlass: "La 18 ani · la 60 · pentru mama · pentru sora ta · pentru prietenul de departe · când un mesaj nu e de ajuns",
+    grund: "Toată lumea trimite același mesaj. Un videoclip care rostește numele cu voce tare se arată mai departe.",
     step1: "1 · Poza ta", step3: "2 · Videoclipul tău",
     pickFirst: "Încarcă poza ta",
     upTitle: "Poza ta", upHint: "O poză cu tine — de preferat corp întreg.",
     mailQuestion: "Unde să-ți trimitem videoclipul?",
     namenFrage: "Cine își serbează ziua? Numele apare pe felicitare", namenPlatzhalter: "Ana",
-    heroA: "Ea spune ", heroY: "La mulți ani", heroB: " 🎂",
+    heroA: "Pune-o să spună ", heroY: "La mulți ani", heroB: " 🎂",
     wieGeht: ["Încarcă o poză cu tine.", "Scrie numele sărbătoritului.", "Trimite videoclipul — doar lui."],
     wieGehtPrivat: "Nimeni altcineva nu îl vede. Rămâne privat până îl trimiți tu.",
     priceLine: "Videoclip {tanz}", buyOnce: "Videoclip aniversar {tanz}",
@@ -1739,12 +2165,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Deblochează-l și ascult-o.",
   },
   es: {
+    anlass: "Para un 18 · para un 60 · para mamá · para tu hermana · para el amigo que está lejos · cuando un mensaje se queda corto",
+    grund: "Todos mandan el mismo mensaje. Un vídeo que dice el nombre en voz alta se enseña a todo el mundo.",
     step1: "1 · Tu foto", step3: "2 · Tu vídeo de cumpleaños",
     pickFirst: "Sube tu foto",
     upTitle: "Tu foto", upHint: "Una foto tuya — mejor de cuerpo entero.",
     mailQuestion: "¿A dónde enviamos tu vídeo?",
     namenFrage: "¿Quién cumple años? El nombre aparece en la tarjeta", namenPlatzhalter: "Ana",
-    heroA: "Ella dice ", heroY: "Cumpleaños feliz", heroB: " 🎂",
+    heroA: "Haz que diga ", heroY: "Cumpleaños feliz", heroB: " 🎂",
     wieGeht: ["Sube una foto tuya.", "Escribe el nombre del cumpleañero.", "Envía el vídeo — solo a esa persona."],
     wieGehtPrivat: "Nadie más lo ve. Tu vídeo es privado hasta que lo envíes tú.",
     priceLine: "Vídeo {tanz}", buyOnce: "Vídeo de cumpleaños {tanz}",
@@ -1753,12 +2181,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Desbloquéalo y escúchala.",
   },
   fr: {
+    anlass: "Pour ses 18 ans · pour ses 60 ans · pour maman · pour ta sœur · pour l'ami à l'étranger · quand un message ne suffit pas",
+    grund: "Tout le monde envoie le même message. Une vidéo qui prononce le prénom à voix haute, on la montre autour de soi.",
     step1: "1 · Ta photo", step3: "2 · Ta vidéo d'anniversaire",
     pickFirst: "Envoie ta photo",
     upTitle: "Ta photo", upHint: "Une photo de toi — de préférence en pied.",
     mailQuestion: "Où envoyons-nous ta vidéo ?",
     namenFrage: "C'est l'anniversaire de qui ? Le prénom sera sur la carte", namenPlatzhalter: "Anna",
-    heroA: "Elle dit ", heroY: "Joyeux anniversaire", heroB: " 🎂",
+    heroA: "Fais-lui dire ", heroY: "Joyeux anniversaire", heroB: " 🎂",
     wieGeht: ["Envoie une photo de toi.", "Écris le prénom de la personne.", "Envoie la vidéo — à elle seule."],
     wieGehtPrivat: "Personne d'autre ne la voit. Elle reste privée jusqu'à ce que tu l'envoies.",
     priceLine: "Vidéo {tanz}", buyOnce: "Vidéo d'anniversaire {tanz}",
@@ -1767,12 +2197,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Débloque-la et écoute-la.",
   },
   pt: {
+    anlass: "Para os 18 · para os 60 · para a mãe · para a tua irmã · para o amigo que está longe · quando uma mensagem não chega",
+    grund: "Toda a gente manda a mesma mensagem. Um vídeo que diz o nome em voz alta anda a ser mostrado a todos.",
     step1: "1 · A tua foto", step3: "2 · O teu vídeo de aniversário",
     pickFirst: "Carrega a tua foto",
     upTitle: "A tua foto", upHint: "Uma foto tua — de preferência de corpo inteiro.",
     mailQuestion: "Para onde enviamos o teu vídeo?",
     namenFrage: "De quem é o aniversário? O nome fica no cartão", namenPlatzhalter: "Ana",
-    heroA: "Ela diz ", heroY: "Parabéns a você", heroB: " 🎂",
+    heroA: "Põe-na a dizer ", heroY: "Parabéns a você", heroB: " 🎂",
     wieGeht: ["Carrega uma foto tua.", "Escreve o nome do aniversariante.", "Envia o vídeo — só a essa pessoa."],
     wieGehtPrivat: "Mais ninguém o vê. Fica privado até seres tu a enviá-lo.",
     priceLine: "Vídeo {tanz}", buyOnce: "Vídeo de aniversário {tanz}",
@@ -1781,12 +2213,14 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     readyBody: "Desbloqueia e ouve-a.",
   },
   it: {
+    anlass: "Per i 18 · per i 60 · per la mamma · per tua sorella · per l'amico lontano · quando un messaggio non basta",
+    grund: "Tutti mandano lo stesso messaggio. Un video che pronuncia il nome ad alta voce lo fanno girare.",
     step1: "1 · La tua foto", step3: "2 · Il tuo video di compleanno",
     pickFirst: "Carica la tua foto",
     upTitle: "La tua foto", upHint: "Una foto di te — meglio a figura intera.",
     mailQuestion: "Dove ti mandiamo il video?",
     namenFrage: "Di chi è il compleanno? Il nome va sul biglietto", namenPlatzhalter: "Anna",
-    heroA: "Lei dice ", heroY: "Tanti auguri", heroB: " 🎂",
+    heroA: "Falle dire ", heroY: "Tanti auguri", heroB: " 🎂",
     wieGeht: ["Carica una foto di te.", "Scrivi il nome del festeggiato.", "Manda il video — solo a lui o lei."],
     wieGehtPrivat: "Nessun altro lo vede. Resta privato finché non lo mandi tu.",
     priceLine: "Video {tanz}", buyOnce: "Video di compleanno {tanz}",
@@ -1796,10 +2230,206 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
   },
 };
 
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" = "kiss"): KissText {
+
+/**
+ * GUTSCHEIN VERPACKEN — die Beschriftungen des Trichters (Owner 05.08.2026: „Man, wir haben
+ * doch einen Trichter. Du hast den verlassen.").
+ *
+ * Er hat recht: `EinladungBauen` IST die Maschine, Hochzeit und Urlaub sind Varianten davon.
+ * Der Gutschein wird die dritte — kein zweites Bauteil, sondern dieselbe Datei mit anderen
+ * Worten. Deshalb steht hier nur, was ANDERS heisst; alles Übrige erbt er aus TABELLE.
+ *
+ * WAS DIE VARIANTE UNTERSCHEIDET, in einem Satz: Bei Hochzeit und Urlaub lädt er ZWEI Fotos
+ * hoch und wir setzen die beiden in eine Szene. Beim Gutschein gibt es keine zweite Person und
+ * keine Szene — es gibt IHN (ein Video von sich, oder unseres) und SEINEN GUTSCHEIN (den Link
+ * des Händlers). Deshalb heisst der zweite Platz hier nicht „sie oder er", sondern „der
+ * Gutschein".
+ */
+const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
+  en: {
+    pickFirst: "Upload your video first",
+    mailQuestion: "Your email address",
+    uploadFirst: "Add your voucher",
+    pickHint: "One video of you — or use ours.",
+    datenErsetzen: "Replace the details",
+    upTitle: "You",
+    upHint: "A short video of you, or one photo.",
+    you: "THE VOUCHER",
+    uploadYou: "Add your voucher",
+    youHint: "The link your shop sent you",
+    readyTitle: "Your voucher card is ready 🎁",
+    makingKiss: "Your card is being made …",
+    examples: "This is what your card looks like",
+    ctaVideo: "Create the card",
+    /* Die Hochzeits-Zeile („Tippt oben auf eure Namen") spricht ein Paar an — beim
+       Gutschein fehlt nur der EINE Absendername im „Von"-Feld der Karte. */
+    namenVorSenden: "Tap “From” on the card and add your name",
+    lbTitel: "What are you gifting?",
+    lbHilfe: "The credit lands on their account — that email is their login, and they redeem it on any theme page.",
+    lbEmpfaenger: "Their email address",
+    lbFehlerMail: "First add the email of the person you are gifting it to.",
+    lbFertig: "Paid — {was} is ready for them. Now send the card.",
+    lbGuthaben: "Or plain credit:",
+    lbCta: "Pay for the gift — {preis}",
+  },
+  de: {
+    pickFirst: "Lade zuerst dein Video hoch",
+    mailQuestion: "Deine E-Mail-Adresse",
+    uploadFirst: "Füge deinen Gutschein an",
+    pickHint: "Ein Video von dir — oder nimm unseres.",
+    datenErsetzen: "Angaben ersetzen",
+    upTitle: "Du",
+    upHint: "Ein kurzes Video von dir, oder ein Foto.",
+    you: "DER GUTSCHEIN",
+    uploadYou: "Füge deinen Gutschein an",
+    youHint: "Der Link, den dir der Händler geschickt hat",
+    readyTitle: "Deine Gutschein-Karte ist fertig 🎁",
+    makingKiss: "Deine Karte entsteht …",
+    examples: "So sieht deine Karte aus",
+    ctaVideo: "Karte erstellen",
+    namenVorSenden: "Tipp auf der Karte auf „Von“ und trag deinen Namen ein",
+    lbTitel: "Was schenkst du?",
+    lbHilfe: "Das Guthaben landet auf ihrem Konto — die E-Mail ist zugleich ihr Login, einlösbar auf jeder Themenseite.",
+    lbEmpfaenger: "E-Mail des Beschenkten",
+    lbFehlerMail: "Trag zuerst die E-Mail des Beschenkten ein.",
+    lbFertig: "Bezahlt — {was} liegt bereit. Jetzt die Karte verschicken.",
+    lbGuthaben: "Oder nur Guthaben:",
+    lbCta: "Geschenk bezahlen — {preis}",
+  },
+  ro: {
+    pickFirst: "Încarcă mai întâi videoclipul tău",
+    mailQuestion: "Adresa ta de e-mail",
+    uploadFirst: "Adaugă voucherul tău",
+    pickHint: "Un videoclip cu tine — sau folosește-l pe al nostru.",
+    datenErsetzen: "Înlocuiește datele",
+    upTitle: "Tu",
+    upHint: "Un scurt videoclip cu tine, sau o poză.",
+    you: "VOUCHERUL",
+    uploadYou: "Adaugă voucherul tău",
+    youHint: "Linkul pe care ți l-a trimis magazinul",
+    readyTitle: "Cardul tău cu voucher e gata 🎁",
+    makingKiss: "Se face cardul tău …",
+    examples: "Așa arată cardul tău",
+    ctaVideo: "Creează cardul",
+    namenVorSenden: "Atinge „De la” pe card și scrie-ți numele",
+    lbTitel: "Ce dăruiești?",
+    lbHilfe: "Creditul ajunge în contul lor — e-mailul e chiar loginul lor și se folosește pe orice pagină de teme.",
+    lbEmpfaenger: "E-mailul persoanei",
+    lbFehlerMail: "Scrie mai întâi e-mailul persoanei căreia îi dăruiești.",
+    lbFertig: "Plătit — {was} e pregătit. Trimite acum cardul.",
+    lbGuthaben: "Sau doar credit:",
+    lbCta: "Plătește cadoul — {preis}",
+  },
+  es: {
+    pickFirst: "Sube primero tu vídeo",
+    mailQuestion: "Tu correo electrónico",
+    uploadFirst: "Añade tu vale",
+    pickHint: "Un vídeo tuyo — o usa el nuestro.",
+    datenErsetzen: "Cambiar los datos",
+    upTitle: "Tú",
+    upHint: "Un vídeo corto tuyo, o una foto.",
+    you: "EL VALE",
+    uploadYou: "Añade tu vale",
+    youHint: "El enlace que te mandó la tienda",
+    readyTitle: "Tu tarjeta con el vale está lista 🎁",
+    makingKiss: "Se está creando tu tarjeta …",
+    examples: "Así se ve tu tarjeta",
+    ctaVideo: "Crear la tarjeta",
+    namenVorSenden: "Toca «Desde» en la tarjeta y escribe tu nombre",
+    lbTitel: "¿Qué regalas?",
+    lbHilfe: "El saldo llega a su cuenta — ese correo es su login y lo canjea en cualquier página de temas.",
+    lbEmpfaenger: "El correo de la persona",
+    lbFehlerMail: "Escribe primero el correo de la persona.",
+    lbFertig: "Pagado — {was} está listo. Ahora envía la tarjeta.",
+    lbGuthaben: "O solo saldo:",
+    lbCta: "Pagar el regalo — {preis}",
+  },
+  fr: {
+    pickFirst: "Ajoute d'abord ta vidéo",
+    mailQuestion: "Ton adresse e-mail",
+    uploadFirst: "Ajoute ton bon cadeau",
+    pickHint: "Une vidéo de toi — ou prends la nôtre.",
+    datenErsetzen: "Remplacer les infos",
+    upTitle: "Toi",
+    upHint: "Une courte vidéo de toi, ou une photo.",
+    you: "LE BON",
+    uploadYou: "Ajoute ton bon cadeau",
+    youHint: "Le lien que la boutique t'a envoyé",
+    readyTitle: "Ta carte avec le bon est prête 🎁",
+    makingKiss: "On fabrique ta carte …",
+    examples: "Voilà à quoi ressemble ta carte",
+    ctaVideo: "Créer la carte",
+    namenVorSenden: "Touche « Du » sur la carte et ajoute ton prénom",
+    lbTitel: "Qu'est-ce que tu offres ?",
+    lbHilfe: "Le crédit arrive sur son compte — cet e-mail est aussi son login, à utiliser sur n'importe quelle page.",
+    lbEmpfaenger: "L'e-mail de la personne",
+    lbFehlerMail: "Ajoute d'abord l'e-mail de la personne.",
+    lbFertig: "Payé — {was} est prêt. Envoie la carte maintenant.",
+    lbGuthaben: "Ou juste du crédit :",
+    lbCta: "Payer le cadeau — {preis}",
+  },
+  pt: {
+    pickFirst: "Carrega primeiro o teu vídeo",
+    mailQuestion: "O teu e-mail",
+    uploadFirst: "Junta o teu vale",
+    pickHint: "Um vídeo teu — ou usa o nosso.",
+    datenErsetzen: "Substituir os dados",
+    upTitle: "Tu",
+    upHint: "Um vídeo curto teu, ou uma foto.",
+    you: "O VALE",
+    uploadYou: "Junta o teu vale",
+    youHint: "O link que a loja te enviou",
+    readyTitle: "O teu cartão com o vale está pronto 🎁",
+    makingKiss: "O teu cartão está a ser feito …",
+    examples: "É assim que fica o teu cartão",
+    ctaVideo: "Criar o cartão",
+    namenVorSenden: "Toca em «De» no cartão e escreve o teu nome",
+    lbTitel: "O que vais oferecer?",
+    lbHilfe: "O saldo entra na conta deles — esse e-mail é o login deles e usa-se em qualquer página de temas.",
+    lbEmpfaenger: "O e-mail da pessoa",
+    lbFehlerMail: "Escreve primeiro o e-mail da pessoa.",
+    lbFertig: "Pago — {was} está pronto. Agora envia o cartão.",
+    lbGuthaben: "Ou só saldo:",
+    lbCta: "Pagar o presente — {preis}",
+  },
+  it: {
+    pickFirst: "Carica prima il tuo video",
+    mailQuestion: "Il tuo indirizzo e-mail",
+    uploadFirst: "Aggiungi il tuo buono",
+    pickHint: "Un video tuo — oppure usa il nostro.",
+    datenErsetzen: "Sostituisci i dati",
+    upTitle: "Tu",
+    upHint: "Un breve video tuo, o una foto.",
+    you: "IL BUONO",
+    uploadYou: "Aggiungi il tuo buono",
+    youHint: "Il link che ti ha mandato il negozio",
+    readyTitle: "La tua card con il buono è pronta 🎁",
+    makingKiss: "Stiamo facendo la tua card …",
+    examples: "Ecco come sarà la tua card",
+    ctaVideo: "Crea la card",
+    namenVorSenden: "Tocca “Dal” sulla card e scrivi il tuo nome",
+    lbTitel: "Cosa regali?",
+    lbHilfe: "Il credito arriva sul loro conto — quell'e-mail è il loro login e si usa su qualsiasi pagina dei temi.",
+    lbEmpfaenger: "L'e-mail della persona",
+    lbFehlerMail: "Scrivi prima l'e-mail della persona.",
+    lbFertig: "Pagato — {was} è pronto. Ora invia la card.",
+    lbGuthaben: "Oppure solo credito:",
+    lbCta: "Paga il regalo — {preis}",
+  },
+};
+
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "holiday" | "gutschein" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
+  /* Der Urlaub legt sich auf die HOCHZEIT, nicht auf die Grundtabelle: Er ist dieselbe
+     Einladungs-Maschine und braucht deren Schlüssel (Datum, Ort, Zusage, Probewoche).
+     Nur die Anrede und der Anlass sind andere — und genau die stehen in URLAUB. */
   const roh: KissText = variant === "idol" ? { ...TABELLE[l], ...IDOL[l] }
     : variant === "wedding" ? { ...TABELLE[l], ...HOCHZEIT[l] }
+    : variant === "holiday" ? { ...TABELLE[l], ...HOCHZEIT[l], ...URLAUB[l] }
+    /* Der Gutschein legt sich auf die HOCHZEIT wie der Urlaub: Er braucht deren Schlüssel
+       (Karte, Botschaft, Versand, Probezeit) und tauscht nur die Anrede und den zweiten
+       Platz aus — dort steht statt eines Menschen sein Gutschein. */
+    : variant === "gutschein" ? { ...TABELLE[l], ...HOCHZEIT[l], ...GUTSCHEIN[l] }
     : variant === "poledance" ? { ...TABELLE[l], ...POLEDANCE[l] }
     : variant === "birthday" ? { ...TABELLE[l], ...GEBURTSTAG[l] }
     : TABELLE[l];

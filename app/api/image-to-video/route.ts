@@ -44,11 +44,43 @@ export async function POST(request: Request) {
   if (up?.ErrCode !== 0 || !up?.Resp?.img_id) return NextResponse.json({ error: `Pixverse Upload fehlgeschlagen: ${up?.ErrMsg ?? upRes.status}` }, { status: 502 });
 
   // 2) generate video from that frame + prompt
-  const model = process.env.PIXVERSE_MODEL?.trim() || "v5";
+  /**
+   * V6 UND 360P (Owner 05.08.2026: „du musst 360px nehmen und 5sek. das reicht vollkommend").
+   *
+   * WAS AM 05.08. VERGLICHEN WURDE — derselbe Auftrag, zweimal:
+   *
+   *   unsere Route  v5 · 720p · Bild→Video · kein Ton-Schalter  → 1184×1280, STUMM
+   *   seine Hand    V6 · 360P · Fusion      · Audio: True       → 480×640 (3:4), MIT STIMME
+   *
+   * Daraus folgen drei Dinge, und nur zwei davon stehen hier:
+   *
+   *   1. MODELL V6 statt v5. Die Stimme ist ein V6-Merkmal; auf v5 gibt es sie nicht,
+   *      egal was im Auftragstext steht.
+   *   2. 360P STATT 720P. Der Owner hat es gemessen und für ausreichend befunden — es ist
+   *      ausserdem die billigere Stufe, und auf einer Karte im Telefon sieht man den
+   *      Unterschied nicht.
+   *   3. DER TON IST JETZT AN — `generate_audio_switch`, siehe unten. Hier stand, er fehle
+   *      und man müsse den Feldnamen raten. Das war unnötig: Er steht seit Wochen in
+   *      `app/api/generate-tryon-video`, wo die Videos Ton haben. Nachsehen schlägt raten.
+   *
+   * Das Seitenverhältnis übernimmt Pixverse VOM VORLAGENBILD — es gibt hier keinen
+   * Parameter dafür. Wer 3:4 will, gibt eine 3:4-Vorlage.
+   */
+  const model = process.env.PIXVERSE_MODEL?.trim() || "v6";
+  const quality = process.env.PIXVERSE_QUALITY?.trim() || "360p";
   const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
     method: "POST",
     headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration, img_id: up.Resp.img_id, model, motion_mode: "normal", quality: "720p", prompt }),
+    /**
+     * DER TON-SCHALTER — er stand die ganze Zeit nebenan (Owner 05.08.2026: „sie sagt im Video
+     * gar nichts").
+     *
+     * `generate_audio_switch` ist der V6-Name; das alte `sound_effect_switch` gilt nur bis v5
+     * und V6 lehnt es mit 400017 ab. Genau daran waren die Videos dieser Route stumm: Sie
+     * schickte gar kein Ton-Feld, und ich hatte den Namen nicht raten wollen — dabei steht er
+     * seit Wochen in `app/api/generate-tryon-video`, wo die Videos Ton haben.
+     */
+    body: JSON.stringify({ duration, img_id: up.Resp.img_id, model, motion_mode: "normal", quality, prompt, generate_audio_switch: true }),
   });
   const gen = await genRes.json().catch(() => null);
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return NextResponse.json({ error: `Pixverse Generate fehlgeschlagen: ${gen?.ErrMsg ?? genRes.status}` }, { status: 502 });

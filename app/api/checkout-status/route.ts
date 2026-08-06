@@ -76,7 +76,11 @@ export async function GET(request: Request) {
      * Konsole gefaelscht.
      */
     if (paid && s.metadata.kind === "chat-zugang") {
-      const email = (s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
+      /* DER MONAT GEHOERT DEM BESCHENKTEN (Owner 05.08.2026: „zwei Email … deine und für wen
+         das ist"). Steht keine Empfaengeradresse im Vermerk, hat er es fuer sich selbst
+         gekauft — dann bekommt er ihn, wie bisher. */
+      const email = (String(s.metadata.empfaenger ?? "").trim().toLowerCase()
+        || s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
       const monate = Number(s.metadata.monate ?? 0);
       if (email && monate > 0) {
         try { await chatZugangGewaehren(email, String(sessionId), monate); }
@@ -166,12 +170,19 @@ export async function GET(request: Request) {
        * ueber `STRIPE_GUTSCHRIFT_CODES` (kommagetrennt, leer = keiner).
        *
        * ACHTUNG, und das gehoert zur Entscheidung dazu: Ein Code auf dieser Liste ist nur so
-       * sicher wie seine Stripe-Einstellungen. ADMIN1972 stand am 03.08.2026 auf UNBEGRENZT
+       * sicher wie seine Stripe-Einstellungen. Der erste stand am 03.08.2026 auf UNBEGRENZT
        * einloesbar, fuer jeden, ohne Ablaufdatum — und war bereits 18-mal benutzt. Wer ihn
        * kennt, holt sich damit beliebig viel Guthaben. Die Grenze gehoert nach Stripe
        * (max_redemptions / customer / expires_at), nicht hierher.
+       *
+       * KEIN VORGABEWERT MEHR IM QUELLTEXT (Owner 05.08.2026: „Wir verraten nicht den Code").
+       * Hier stand der Code als Rueckfall — also lesbar fuer jeden, der das Projekt sieht, und
+       * mitgewandert in jede Kopie. Fehlt die Umgebungsvariable, ist die Liste jetzt LEER: dann
+       * schreibt jeder Kauf nur den GEZAHLTEN Betrag gut. Das ist der sichere Ausfall — im
+       * schlimmsten Fall bekommt der Owner bei einem eigenen Test zu wenig gutgeschrieben,
+       * statt dass ein kursierender Code die Kasse oeffnet.
        */
-      const gutschriftCodes = String(process.env.STRIPE_GUTSCHRIFT_CODES ?? "ADMIN1972")
+      const gutschriftCodes = String(process.env.STRIPE_GUTSCHRIFT_CODES ?? "")
         .split(",").map(x => x.trim().toUpperCase()).filter(Boolean);
       const freigegeben = !!s.promoCode && gutschriftCodes.includes(s.promoCode);
       const gezahlt = typeof s.amountTotal === "number" ? s.amountTotal : (Number(s.metadata.cents ?? 0) || 999);
@@ -185,6 +196,42 @@ export async function GET(request: Request) {
         paid, topup: true, kind: "aufladung",
         email: (String(s.metadata.email ?? "") || s.customerEmail || "").trim().toLowerCase() || undefined,
         ...(walletCents !== undefined ? { walletCents } : {}),
+      });
+    }
+
+    /**
+     * DER LUXURYBANDIT-GUTSCHEIN — das Guthaben geht an den BESCHENKTEN (Owner 05.08.2026:
+     * „Credits? Warum nicht.").
+     *
+     * Ein eigener Zweig und nicht der Aufladungs-Block darüber, weil dort die Adresse des
+     * KÄUFERS gutgeschrieben wird. Hier steht die des Empfängers im Kassenvermerk, den die
+     * Kasse gesetzt hat — nicht der Browser. Genau deshalb ist er hier sicher: Ein Client, der
+     * seine eigene Adresse hineinschreiben könnte, würde sich selbst Geld schenken.
+     *
+     * `guthabenAufladen` ist idempotent über die Sitzungskennung. Der Browser fragt den
+     * Zahlungsstatus in einer Schleife ab; ohne diese Sperre schriebe jede Antwort erneut gut.
+     *
+     * UND HIER GILT DIE GUTSCHRIFT-CODE-AUSNAHME BEWUSST NICHT. Der Block oben schreibt bei
+     * einem freigegebenen Gutschrift-Code den BESTELLWERT gut statt des gezahlten Betrags.
+     * Auf einer Kasse, die auf eine FREMDE Adresse auflädt, wäre das eine Geldpresse: Wer den
+     * Code kennt, schenkt sich über eine Zweitadresse beliebig viel Guthaben und lässt sich
+     * nicht einmal mehr am eigenen Konto erkennen. Verschenkt der Owner selbst etwas, geht das
+     * über das Admin-Werkzeug (serverseitig, angemeldet) — nicht über einen Code, der im Netz
+     * kursieren kann.
+     */
+    if (paid && s.metadata.kind === "gutschein") {
+      const empfaenger = String(s.metadata.empfaenger ?? "").trim().toLowerCase();
+      const cents = typeof s.amountTotal === "number" ? s.amountTotal : Number(s.metadata.cents ?? 0) || 0;
+      let gutscheinCents: number | undefined;
+      if (empfaenger && cents > 0) {
+        try { gutscheinCents = (await guthabenAufladen(empfaenger, sessionId, cents)).cents; }
+        catch (e) { console.warn("[checkout-status] Gutschein fehlgeschlagen", e); }
+      }
+      return NextResponse.json({
+        paid, kind: "gutschein", empfaenger: empfaenger || undefined, cents,
+        /* Das Thema des Topic-Gutscheins — der Trichter zeigt damit die Bestätigung an. */
+        topic: String(s.metadata.topic ?? "") || undefined,
+        ...(gutscheinCents !== undefined ? { walletCents: gutscheinCents } : {}),
       });
     }
 

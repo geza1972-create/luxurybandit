@@ -142,6 +142,51 @@ export const poledancePromptFuerSet = (): string =>
   " No text, no letters, no writing anywhere in the frame.";
 
 /**
+ * DER AUSTAUSCH-PROMPT — „REPLACE MODEL", DER ECHTE.
+ *
+ * Owner 04.08.2026: „das ist kein echter faceswap beim Pooldance. Du musst nach dem Model
+ * schauen bei Pixverse. Im Ergebnis werden die Klamotten nicht uebernommen aus dem Video."
+ *
+ * ER HAT RECHT GEHABT, UND ZWAR AUS EINEM ANDEREN GRUND ALS GEDACHT. Bis heute lief der Tanz
+ * ueber `video/mimic/generate` — „Motion Control". Was das laut Pixverse tut, steht in deren
+ * eigener Doku: „the subject's appearance from the reference image with motion from the video".
+ * Also: die BEWEGUNG aus dem Video, das AUSSEHEN aus dem Foto — und Aussehen schliesst ihre
+ * Kleidung ein. Mimic ist kein Austausch, sondern eine Bewegungsschablone. Genau das Ergebnis,
+ * das er beschrieben hat.
+ *
+ * WAS STATTDESSEN GILT — GEMESSEN, NICHT GELESEN (drei bezahlte Laeufe am 04.08.2026 gegen
+ * `public/Pooldance/poledance.mp4`, jeweils Standbilder angesehen):
+ *
+ *   1. `video/swap/generate` (das „Replace Model" der Oberflaeche): Gesicht, Haare und Figur
+ *      der Vorlage sitzen perfekt, Stange, Neon, Kamera und Choreografie bleiben exakt das
+ *      Original — aber sie tanzt in der STRASSENKLEIDUNG aus ihrem Foto. Die Waesche des
+ *      Videos ist weg. 72 Credits, 540p, 54 s.
+ *   2. Dasselbe als `video/modify/generate` MIT dem ausdruecklichen Satz „She wears exactly
+ *      the same outfit as the woman in the original video — do not change the outfit":
+ *      identisches Ergebnis, Bluse und Hose. Der Satz aendert nichts. 80 Credits, 102 s.
+ *   3. Feinere Masken gibt es nicht: `video/mask/selection` liefert an drei Zeitpunkten nur
+ *      `person`, `background` und zwei Requisiten — kein Gesicht, keine Kleidung einzeln.
+ *
+ * DARAUS FOLGT DIE UMKEHRUNG, AUF DER DIESER PROMPT STEHT: Kein Pixverse-Weg holt das Outfit
+ * AUS dem Video. Jeder holt es aus der VORLAGE. Also wird das Set zur zweiten Vorlage — dann
+ * ist „ihre Kleidung" eben das Set. Vierter Lauf, mit @img1 als Set: Ihr Gesicht, das rote
+ * Set, die Stange und die Bewegung des Originals. Ein Lauf, 80 Credits — der Preis aus
+ * KONZEPT-POLEDANCE.md §5 traegt sich also weiterhin, es braucht KEINEN FASHN-Lauf davor.
+ *
+ * DIE DREI MARKEN SIND VORGESCHRIEBEN, nicht frei gewaehlt (Pixverse-Doku zu Modify):
+ *   @selection0 → die Maske (die Taenzerin im Video)   @img0 → SIE   @img1 → das Set
+ * Und: „the number of masks and images must match the references used in the prompt" — wer
+ * @img1 schreibt, muss ein zweites Bild mitschicken, sonst bricht der Auftrag ab.
+ *
+ * NEUTRALE WOERTER wie ueberall: „outfit", kein „lingerie", kein „lace", kein „skin".
+ */
+export const poledanceSwapPrompt = (): string =>
+  "Replace the woman in @selection0 with the woman from @img0. Keep the face and hair of " +
+  "the woman from @img0 exactly. She wears only the outfit from @img1. The pole, the club, " +
+  "the neon lighting, the camera and all movements stay exactly as in the original video. " +
+  "No text, no letters, no writing anywhere in the frame.";
+
+/**
  * WEITERE BEISPIELVIDEOS (Owner 03.08.2026: „ich brauche auf dieser Seite noch einige Beispiel-
  * Videos als Cards, ich habe dir noch zwei reingelegt").
  *

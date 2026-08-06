@@ -14,7 +14,7 @@ import { Loader2, Lock, MessageCircle, CloudSun, Palmtree, Check } from "lucide-
  */
 
 const TOPICS = [
-  { id: "chat",    label: "Chat with an AI girl",     hint: "Write with her every day · chatting is free", icon: MessageCircle, endpoint: "/api/chat-abo-checkout" },
+  { id: "chat",    label: "Chat with Bella",         hint: "Write with her every day · the first messages are free", icon: MessageCircle, endpoint: "/api/chat-abo-checkout" },
   { id: "holiday", label: "Holiday with your dream girl", hint: "You and her — 25 moments to pick from",  icon: Palmtree,      endpoint: "/api/holiday-abo-checkout" },
   { id: "wetter",  label: "Morning Weather",          hint: "Her message every morning · chat",           icon: CloudSun,      endpoint: "/api/wetter-abo-checkout" },
 ];

@@ -3,8 +3,8 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { kussSzene } from "@/lib/kuss-szenen";
 import { weddingBildPrompt } from "@/lib/wedding-prompt";
-import { guthabenAbbuchen } from "@/lib/try-this-look-store";
-import { ONCE_CENTS } from "@/lib/pricing";
+import { musterAufDataUrl } from "@/lib/wasserzeichen";
+import { holidayBildPrompt } from "@/lib/holiday-invite";
 
 export const runtime = "nodejs";
 // 300 s statt 60 (Owner 30.07.2026: „das rendering bricht immer wieder ab" — auf der
@@ -334,30 +334,48 @@ export async function POST(request: Request) {
     const claim = await claimFreePreview(device);
     if (!claim.ok) {
       /**
-       * AB DEM ZWEITEN VERSUCH AUS DEM GUTHABEN (Owner 01.08.2026: „bei Kiss haben wir
-       * Credits für 9,99 ab der zweiten Versuch" — „das können wir hier auch machen").
+       * AUFGEBRAUCHT HEISST AUFGEBRAUCHT — NICHT „STILL ABBUCHEN" (05.08.2026).
        *
-       * Der erste Versuch bleibt gratis; er ist der Beweis, dass es mit SEINEM Gesicht
-       * klappt. Wer mehr will, zahlt aus dem aufgeladenen Konto — ohne Kasse, ohne Fenster,
-       * ein Tipp. Idempotent je Gerät+Sekunde, damit ein Doppelklick nie zweimal abbucht.
+       * Hier stand: Ist das Tageskontingent leer, wird der nächste Versuch lautlos aus dem
+       * Guthaben bezahlt (Owner 01.08.2026: „bei Kiss haben wir Credits ab dem zweiten
+       * Versuch"). Das war vertretbar, solange ONCE_CENTS 1,49 € waren — ein Bild mehr für
+       * anderthalb Euro.
        *
-       * Ohne Guthaben bleibt die 429-Antwort wie bisher; der Trichter zeigt dann den
-       * Aufladen-Knopf. `guthaben: true` sagt ihm, dass genau das die Lösung ist.
+       * MIT {once} IST DASSELBE VERHALTEN EIN FEHLER: Es würde den Preis des ganzen Produkts
+       * für EIN weiteres Standbild abbuchen — ohne Kasse, ohne Rückfrage, ohne dass irgendwo
+       * ein Preis dafür stand. Und es traf ausgerechnet den, der schon bezahlt hat: Bei
+       * Themen, die VOR der Erzeugung kassieren, läuft dieser Aufruf NACH der Zahlung, und ab
+       * dem vierten Lauf am Tag wurde ein zweites Mal abgebucht (FREE_PREVIEW_PER_DEVICE = 3).
+       *
+       * Jetzt endet es hier mit 429. Der Trichter kennt diese Antwort und zeigt genau das
+       * Richtige: den Kaufknopf für das Video. Das Gratis-Bild ist der Beweis, nicht die Ware.
        */
-      const mail = String((body as { email?: string }).email ?? "").trim().toLowerCase();
-      const bezahlt = mail
-        ? await guthabenAbbuchen(mail, `bild-${device}-${Math.floor(Date.now() / 1000)}`, ONCE_CENTS).catch(() => ({ ok: false, rest: 0 }))
-        : { ok: false, rest: 0 };
-      if (!bezahlt.ok) {
-        return NextResponse.json({
-          error: claim.reason === "day"
-            ? "Heute sind alle Gratis-Vorschauen aufgebraucht — morgen wieder."
-            : "Du hast deine Gratis-Vorschau heute schon genutzt.",
-          limit: claim.reason,
-          guthaben: true,
-        }, { status: 429 });
-      }
-      console.warn(`[free-preview] aus dem Guthaben bezahlt: ${mail} — Rest ${bezahlt.rest} Cent`);
+      /**
+       * DER DECKEL BLEIBT — ABER DER SATZ MUSS ZUM KUNDEN PASSEN (Owner 05.08.2026: „nein,
+       * Schwachsinn, er kann doch nicht unendlich Bilder generieren. Er kann eine E-Mail
+       * schreiben, dass es nicht klappt, dann schaue ich mir seine Uploads an").
+       *
+       * Ich hatte vorgeschlagen, die Grenze für bezahlte Läufe aufzuheben; er hat es
+       * abgelehnt, und sein Argument sticht: Ohne Grenze erzeugt jemand unbegrenzt Bilder auf
+       * seine Rechnung, und der Weg über eine Mail ist der ehrlichere Filter — dabei sieht er
+       * gleich, was hochgeladen wurde.
+       *
+       * GEÄNDERT HAT SICH NUR DER TEXT — und zwar zweimal am selben Tag. Erst stand hier
+       * „für heute ist Schluss, morgen wieder"; der Owner hat es kassiert: „nein, das kannst
+       * du nicht schreiben. Wenn die 3 Bilder ihm nicht gefallen, dann soll er Kontakt
+       * aufnehmen. Es ist doch AI, es ist kein Fotograf, das ist jedem bewusst."
+       *
+       * Beides stimmt. „Morgen wieder" klingt nach einem Automaten, der täglich neu ausspuckt
+       * — nach DREI Bildern zu einem Kauf ist aber Schluss, nicht bis morgen. Und der
+       * entschuldigende Ton behandelt Streuung als Panne: Dass ein Bildmodell nicht zweimal
+       * dasselbe liefert, weiss jeder, der es benutzt; wer sich dafür entschuldigt, macht aus
+       * einer Eigenschaft einen Fehler. Der Satz sagt jetzt nur die Zahl und den Weg.
+       */
+      return NextResponse.json({
+        error: "Das waren deine drei Bilder. Wenn keines davon passt, schreib uns an support@luxurybandit.com.",
+        limit: claim.reason,
+        guthaben: true,
+      }, { status: 429 });
     }
   }
 
@@ -379,6 +397,17 @@ export async function POST(request: Request) {
    * Eingangsfoto muss es nicht sein, und OpenAI prüft das Foto, nicht die Absicht.
    */
   const hochzeit = theme === "wedding";
+  /**
+   * DIE URLAUBS-EINLADUNG (Owner 04.08.2026) — dieselbe Bauart wie die Hochzeit, nur ein
+   * anderer Anlass.
+   *
+   * ACHTUNG, ZWEI VERSCHIEDENE DINGE HEISSEN „holiday": Das ALTE Urlaubs-Thema (Fantasievideo
+   * mit einem Model aus dem Katalog, weiter unten in `bauePrompt` behandelt) schickt
+   * `theme: "holiday"` OHNE `einladung`. Die neue Einladung setzt das Flag — nur dann läuft
+   * der eigene Auftrag. So bleibt `/themes/bella` unverändert, das denselben Themennamen
+   * benutzt.
+   */
+  const urlaubsEinladung = theme === "holiday" && (body as { einladung?: boolean }).einladung === true;
   /**
    * DAS GEWAEHLTE BRAUTKLEID (Owner 31.07.2026). Der Trichter schickt die Beschreibung des
    * Kleides mit, das sie angetippt hat. Ohne Auswahl bleibt es bei unserer Vorgabe — die
@@ -494,9 +523,11 @@ export async function POST(request: Request) {
    */
   const prompt = eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
-    : hochzeit ? [
+    : (hochzeit || urlaubsEinladung) ? [
     vorlagenSatz,
-    weddingBildPrompt(kleid, (body as { szene?: string }).szene),
+    urlaubsEinladung
+      ? holidayBildPrompt((body as { szene?: string }).szene, (body as { ort?: string }).ort)
+      : weddingBildPrompt(kleid, (body as { szene?: string }).szene),
     IDENTITAET_RULE,
     alterSatz,
     "Show them from the knees up, both fully in frame. Natural, realistic result. No text, logos, badges or overlays.",
@@ -692,11 +723,26 @@ export async function POST(request: Request) {
               return put.ok ? up.path : "";
             } catch { return ""; }
           };
-          const [bildPfad, personPfad] = await Promise.all([
-            ablegen(`data:image/png;base64,${b64}`, "png"),
+          /**
+           * SAUBER SPEICHERN, GEWASSERZEICHNET AUSLIEFERN (Owner 04.08.2026: „gratis wird ab
+           * jetzt mit wasserzeichen muster aufs bild gezeigt" · „die können das runterladen
+           * mit wasserzeichen").
+           *
+           * `ablegen` bekommt die SAUBERE Fassung — sie ist die Ware, die er später bezahlt,
+           * und sie liegt im Storage, wo der Kunde nicht hinkommt. Der Browser bekommt die
+           * gewasserzeichnete: Die darf er herunterladen und verschicken, und jedes
+           * weitergegebene Bild trägt unsere Adresse in eine fremde Gruppe.
+           *
+           * Wer diese beiden vertauscht, verkauft ein Bild mit Wasserzeichen oder verschenkt
+           * ein sauberes. Siehe lib/wasserzeichen.ts.
+           */
+          const sauber = `data:image/png;base64,${b64}`;
+          const [bildPfad, personPfad, mitMuster] = await Promise.all([
+            ablegen(sauber, "png"),
             ablegen(person, "jpg"),
+            musterAufDataUrl(sauber),
           ]);
-          return NextResponse.json({ image: `data:image/png;base64,${b64}`, imagePath: bildPfad, personPath: personPfad });
+          return NextResponse.json({ image: mitMuster, imagePath: bildPfad, personPath: personPfad });
         }
         letzterFehler = "Kein Bild erhalten.";
         continue;

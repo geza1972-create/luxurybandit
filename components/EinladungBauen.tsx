@@ -5,11 +5,31 @@ import { createPortal } from "react-dom";
 import { Check, Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
+import KartenKarussell from "@/components/KartenKarussell";
+import UploadKachel from "@/components/UploadKachel";
+import TeilenKnopf from "@/components/TeilenKnopf";
+import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import ImageCropper from "@/components/ImageCropper";
 import LightSwitch from "@/components/LightSwitch";
+import FotoAnleitung from "@/components/FotoAnleitung";
 import { kissText } from "@/lib/kiss-i18n";
 import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID } from "@/lib/wedding-prompt";
+import { holidayInvitePrompt, HOLIDAY_SZENEN } from "@/lib/holiday-invite";
+import { gutscheinPrompt } from "@/lib/gutschein-prompt";
+import { guthabenLesen } from "@/lib/guthaben-konto";
+import { AUFLADE_STUFEN, ONCE_CENTS, GUTSCHEIN_CENTS, GUTSCHEIN_STUFEN, eur, themenPreisCents, type ThemenSchluessel } from "@/lib/pricing";
 import { fillPrices } from "@/lib/pricing";
+
+/**
+ * JEDES TOPIC ALS GUTSCHEIN (Owner 06.08.2026: „jeder Topic als Gutschein einfügen" ·
+ * „eigentlich muss man jede Topic als Geschenk anbieten können … noch einfacher ist es, man
+ * sendet das als Gutschein"). Die Karte ist der Geschenkweg für alle Themen: Der Käufer legt
+ * ein LuxuryBandit-Geschenk bei, das Guthaben dafür landet auf der E-Mail des Beschenkten —
+ * die ist zugleich sein Login. Namen und Preise kommen aus EINER Quelle je Seite
+ * (KARTE_TEXTE.gutscheinTopics · themenPreisCents); der Chat fehlt, bis er aus dem Guthaben
+ * zahlbar ist (Begründung in app/api/gutschein-checkout).
+ */
+const LB_TOPICS: ThemenSchluessel[] = ["kiss", "birthday", "surprise", "holiday", "wedding"];
 
 /**
  * BEISPIEL-INHALT FÜR DIE LEERE KARTE (Owner 02.08.2026 abends: „in der Karte muss doch
@@ -41,6 +61,22 @@ const BEISPIEL_ADRESSE: Record<string, string> = {
 };
 
 /**
+ * DER BEISPIEL-ORT DES URLAUBS (04.08.2026).
+ *
+ * „Schlosshotel Grunewald, Musterstraße 12, 14193 Berlin" ist ein Hochzeitssaal mit einer
+ * Anfahrt — auf einer Urlaubs-Einladung liest sich das wie ein Fehler. Beim Urlaub ist der
+ * ORT das Versprechen (er geht sogar in den Video-Auftrag, siehe `holidayInvitePrompt`), und
+ * die zweite Zeile sagt nicht, wo der Saal steht, sondern wie lange man bleibt.
+ *
+ * Ein Ziel, das es wirklich gibt, und keine Musterstraße: Wer „Teneriffa" liest, sieht sofort
+ * seinen eigenen Urlaub darin — bei „Musterort 12" sieht er ein Formular.
+ */
+const BEISPIEL_ORT_URLAUB: Record<string, string> = {
+  de: "Teneriffa", en: "Tenerife", ro: "Tenerife", es: "Tenerife",
+  fr: "Tenerife", pt: "Tenerife", it: "Tenerife",
+};
+
+/**
  * DIE KARTE IST DIE BEDIENUNG.
  *
  * Owner 31.07.2026: „oder er sieht die Landingpage direkt auf dieser Seite und drückt auf das
@@ -57,7 +93,18 @@ const BEISPIEL_ADRESSE: Record<string, string> = {
  * Maße. Was hier steht, steht dort.
  */
 
-type Feld = "namen" | "wann" | "wo" | "fotos" | null;
+type Feld = "namen" | "wann" | "wo" | "fotos" | "botschaft" | null;
+
+/**
+ * WIE LANG DIE BOTSCHAFT WERDEN DARF (Owner 04.08.2026: „vielleicht will derjenige mehr
+ * schreiben").
+ *
+ * 300 Zeichen sind vier bis fünf Zeilen — genug für einen echten Gedanken („ich hab schon
+ * geschaut, im November ist es da noch warm …") und wenig genug, dass die Karte eine Karte
+ * bleibt und kein Brief. Ohne Grenze kippt das Verhältnis von Bild zu Text, und die Karte
+ * sieht auf einem Handy aus wie eine Textnachricht mit Foto.
+ */
+const BOTSCHAFT_MAX = 300;
 
 const dateiZuDataUrl = (f: File) =>
   new Promise<string>((res, rej) => {
@@ -67,8 +114,36 @@ const dateiZuDataUrl = (f: File) =>
     r.readAsDataURL(f);
   });
 
-export default function EinladungBauen({ lang, beispielVideo = "" }: {
+/* DIESELBEN PLATZHALTER WIE IM KUSS (`lib/geschenke`): ein Frauen- und ein Männergesicht,
+   gross und gut belichtet. Kein zweiter Satz Beispielbilder, der auseinanderlaufen kann. */
+const PLACEHOLDER_FRAU = "/kiss-woman-placeholder.jpg";
+const PLACEHOLDER_MANN = "/kiss-placeholder.jpg";
+
+export default function EinladungBauen({ lang, beispielVideo = "", beispielVideos, variant = "wedding" }: {
   lang: string;
+  /**
+   * WELCHE EINLADUNG (Owner 04.08.2026: „du machst eine Invitation für Urlaub an jemandem …
+   * es ist dasselbe Modul").
+   *
+   * Eine Variante, keine zweite Datei — genau wie `kissText` es schon für Kuss, Idol, Tanz
+   * und Geburtstag macht. Jede Korrektur an dieser Karte (Zuschnitt, Zustimmung, Kasse,
+   * serverseitige Lieferung, sieben Sprachen) gilt damit für beide Anlässe; eine Kopie
+   * müsste jede davon zweimal bekommen und wäre nach der ersten Woche auseinandergelaufen.
+   *
+   * Der Unterschied ist klein und steht an genau drei Stellen: die Texte (`kissText`), die
+   * Szenen samt Auftrag (`weddingPrompt` bzw. `holidayInvitePrompt`) und das Thema, das an
+   * Kiss-Log, Vorschau und Einladung mitgeht.
+   */
+  /**
+   * DIE DRITTE VARIANTE: DER GUTSCHEIN (Owner 05.08.2026: „Man, wir haben doch einen Trichter.
+   * Du hast den verlassen." — nachdem daneben ein zweites Bauteil entstanden war).
+   *
+   * Und sie ist die erste, bei der KEIN Video erzeugt wird. Hochzeit und Urlaub setzen zwei
+   * Menschen in eine Szene; beim Gutschein gibt es weder eine zweite Person noch eine Szene.
+   * Es gibt IHN — ein Video von sich, oder unser fertiges — und SEINEN GUTSCHEIN, und der ist
+   * nur ein Link. Deshalb faellt hier alles weg, was mit Szene, Datum und Ort zu tun hat.
+   */
+  variant?: "wedding" | "holiday" | "gutschein";
   /**
    * DAS BEISPIELVIDEO IN DER LEEREN KARTE (Owner 31.07.2026: „ich sehe die Karte hat kein
    * Video. Muss ein Video haben, sonst kann er sich nicht vorstellen").
@@ -82,18 +157,155 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    * eins nachtragen muesste. Fehlt es, faellt die Karte auf das Hochlade-Feld zurueck.
    */
   beispielVideo?: string;
+  /**
+   * MEHRERE BEISPIELE IN DERSELBEN KARTE (Owner 04.08.2026: „du machst mir die weiteren
+   * Videos in der einen Karte, die da ist, als nachfolgende. Wie Karussell").
+   *
+   * Vorher lag jedes weitere Beispiel in einer EIGENEN Karte darunter. Für eine Galerie ist
+   * das richtig; hier oben schob es das Formular aus dem Bild und liess offen, welche der
+   * Karten gerade gemeint ist. Jetzt eine Karte, in der man wischt.
+   *
+   * Leer oder einelementig verhält es sich wie `beispielVideo` — dann gibt es nichts zu
+   * wischen und auch keine Punkte.
+   */
+  beispielVideos?: string[];
 }) {
   const T = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
-  const F = kissText(lang, "wedding");
+  const F = kissText(lang, variant);
+  const urlaub = variant === "holiday";
+  /**
+   * DER GUTSCHEIN VERHAELT SICH WIE DER URLAUB — mit drei Ausnahmen, die unten stehen: keine
+   * Szene, keine zweite Person, kein Datum. Deshalb dieser zweite Schalter statt eines
+   * dritten Zweigs ueberall: `botschaftFrei` fasst zusammen, was BEIDE koennen (eine freie
+   * Botschaft statt Menuewahl), `gutschein` nur das, was ausschliesslich hier gilt.
+   */
+  const gutschein = variant === "gutschein";
+  const botschaftFrei = urlaub || gutschein;
+  /* Ein Beispiel oder viele — der Rest des Bausteins fragt nur noch diese eine Liste. */
+  const beispiele = (beispielVideos?.length ? beispielVideos : (beispielVideo ? [beispielVideo] : [])).filter(Boolean);
+  /* Die Szenen beider Anlässe auf eine Form gebracht: Kennung, Name, Kachel (die beim Urlaub
+     fehlen darf). Der Kuss-Schalter der Hochzeit interessiert die Auswahl nicht — er steckt
+     im Auftrag, nicht in der Kachel. */
+  /* Beim Gutschein bleibt die Liste LEER: Es wird nichts erzeugt, also gibt es nichts zu
+     waehlen. Eine leere Liste blendet den ganzen Szenen-Schritt aus, ohne dass an zehn
+     Stellen ein `gutschein &&` stehen muss. */
+  const SZENEN: { id: string; name: string; kachel?: string }[] =
+    gutschein ? [] : urlaub ? HOLIDAY_SZENEN : WEDDING_SZENEN;
 
+  /* FREMDE GUTSCHEINE SIND ABGESCHAFFT (Owner 06.08.2026: „wir machen keine fremde
+     gutscheine mehr. Da wir ehe keiner machen. Also raus."). Hier stand das Link-Feld für
+     den Händler-Gutschein; verschenkt wird nur noch UNSERES — Produkt oder Guthaben. */
+  /**
+   * DER BEIGELEGTE TOPIC-GUTSCHEIN. `lbGekauft` steht erst, wenn die Kasse „bezahlt" gemeldet
+   * hat — Betrag und Thema kommen aus der SERVER-Antwort, nicht aus dem Klick. Die
+   * Sitzungsnummer geht beim Verschicken mit; die Einladungs-Route liest das Etikett dann
+   * noch einmal direkt bei Stripe nach (Skill `bezahlung` §3).
+   */
+  const [lbGekauft, setLbGekauft] = useState<{ topic: string; cents: number; session: string } | null>(null);
+  const [lbMail, setLbMail] = useState("");
+  const [lbFehler, setLbFehler] = useState("");
+  const [lbBusy, setLbBusy] = useState(false);
+  /** Läuft gerade der Kauf GENAU dieses Chips? Steuert nur den Spinner darauf. */
+  const [lbLaeuft, setLbLaeuft] = useState("");
+  /**
+   * DIE AUSWAHL VOR DER KASSE (Owner 06.08.2026: „wie wählt er unser Produkt aus oder
+   * Credit?" · „er muss nur den kredit oder das produkt bezahlen, dass ers verschenken
+   * möchte"). `topic: ""` heisst nacktes Guthaben in Höhe von `cents`. Bezahlt wird beim
+   * Tipp auf den Kaufknopf — die Karte selbst kostet nichts.
+   */
+  const [lbWahl, setLbWahl] = useState<{ topic: string; cents: number } | null>(null);
+  /**
+   * ZUERST DAS GUTHABEN, DANN STRIPE (Owner 05.08.2026: „eigentlich sollte zuerst Dialog
+   * kommen, Konto aufladen, dann kommt Stripe" · „hier öffnet sich direkt Stripe").
+   *
+   * UND DER WÄHLER KOMMT NUR, WENN ES NICHT REICHT (Owner am selben Abend: „und das kommt,
+   * falls er nicht genügend Geld hat"). Wer schon aufgeladen hat, tippt auf kaufen und es
+   * passiert — ein Dialog, der auch dem Zahlenden im Weg steht, kostet genau die Kunden, die
+   * schon bezahlt haben.
+   *
+   * Dasselbe Muster wie im Kuss (`KissFunnel`, `V.nurGuthaben`), dieselbe Kasse
+   * (`kiss-video-checkout` kennt `aufladen` und `topupCents`) — nur hier verdrahtet. Die
+   * Regeln stehen im Skill `bezahlung`.
+   */
+  const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
+  const [aufladeWahl, setAufladeWahl] = useState(false);
+  /**
+   * WAS DER AUFLADE-WÄHLER DANACH KAUFEN SOLL. Die Stufen ersetzen den Kaufknopf — aber
+   * welchen? Bild, gleich-Video und das nachträgliche Aufwerten sind drei verschiedene Käufe
+   * mit drei verschiedenen Fortsetzungen. Vorher rief die Stufe stumpf `bezahlen(false, …)`
+   * auf: Der Video-Wunsch war vergessen, und nach der Zahlung ging es nirgends weiter —
+   * bezahlt, aber keine Erzeugung, kein Ergebnis (Owner 05.08.2026: „die Zahlung geht
+   * nicht"). Jetzt merkt sich der Wähler den unterbrochenen Kauf und steigt nach dem
+   * Aufladen wieder GENAU DORT ein.
+   */
+  const [aufladeZiel, setAufladeZiel] = useState<"bild" | "video" | "aufwerten">("bild");
+
+  /** Was diese Karte kostet — aus der Tabelle, nie hier getippt. */
+  const preisCents = gutschein ? GUTSCHEIN_CENTS : ONCE_CENTS;
   const [feld, setFeld] = useState<Feld>(null);
   const [sie, setSie] = useState("");
   const [er, setEr] = useState("");
   const [datum, setDatum] = useState("");
+  /**
+   * DER LETZTE TAG — nur beim Urlaub (Owner 04.08.2026: „das Datum von wann bis wann").
+   *
+   * FREIWILLIG, und das mit Absicht: Wer jemanden fragt, ob er mitkommt, hat meistens noch
+   * nicht gebucht. Ein Pflichtfeld zwänge zu einer Zahl, die noch niemand kennt — bleibt es
+   * leer, steht auf der Karte einfach der eine Tag statt eines Zeitraums.
+   */
+  const [bisDatum, setBisDatum] = useState("");
+  /** Die Botschaft unter dem Bild. Leer heisst: der Vorgabesatz gilt (siehe `botschaftText`). */
+  const [botschaft, setBotschaft] = useState("");
   const [ort, setOrt] = useState("");
   const [adresse, setAdresse] = useState("");
   const [telefon, setTelefon] = useState("");
   const [mail, setMail] = useState("");
+
+  /**
+   * DEN KONTOSTAND HOLEN, SOBALD EINE ADRESSE DASTEHT — nicht erst beim Klick.
+   *
+   * Beim Klick darf nichts `await`en, bevor `window.open` gelaufen ist: Safari und mobiles
+   * Chrome blockieren das Fenster sonst STILL. Also steht die Zahl vorher bereit und wird beim
+   * Tippen nur noch gelesen.
+   *
+   * Fehlt die Adresse oder ist sie unvollständig, bleibt der Stand auf 0 — dann erscheinen die
+   * Aufladestufen, was ohne Konto genau richtig ist.
+   */
+  useEffect(() => {
+    const e = mail.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setGuthabenCents(0); return; }
+    let weg = false;
+    void guthabenLesen(e).then(st => { if (!weg) setGuthabenCents(st?.cents ?? 0); }).catch(() => {});
+    return () => { weg = true; };
+  }, [mail]);
+
+  /**
+   * RÜCKKEHR VOM GUTSCHEIN-KAUF, WENN DAS POPUP BLOCKIERT WAR. Dann lief die Zahlung als
+   * Seitenwechsel, und die Warteschleife dieses Trichters ist mit der Seite gestorben — die
+   * Kasse hängt `?gutschein=1&cs=…` an die Rückkehr. GENAU EINE Statusabfrage bucht das
+   * Guthaben (idempotent) und stellt die Bestätigung wieder her. Und `?topic=` stellt ein
+   * verlinktes Thema im Wähler nach vorn.
+   */
+  useEffect(() => {
+    if (!gutschein) return;
+    const p = new URLSearchParams(window.location.search);
+    const t = String(p.get("topic") ?? "");
+    if ((LB_TOPICS as string[]).includes(t)) setLbWahl({ topic: t, cents: themenPreisCents(t as ThemenSchluessel) });
+    const cs = String(p.get("cs") ?? "");
+    if (p.get("gutschein") !== "1" || !cs) return;
+    void fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).then(s => {
+      if (s?.paid && (s.kind === "gutschein" || s.test)) {
+        setLbGekauft({ topic: String(s.topic ?? ""), cents: Number(s.cents ?? 0) || 0, session: cs });
+      }
+    }).catch(() => {});
+    /* Die Kennung aus der Adresse nehmen: Ein Neuladen soll nicht wie eine zweite Zahlung
+       aussehen (gebucht würde ohnehin nichts doppelt — guthabenAufladen ist idempotent). */
+    try {
+      p.delete("gutschein"); p.delete("cs");
+      const rest = p.toString();
+      window.history.replaceState(null, "", window.location.pathname + (rest ? `?${rest}` : ""));
+    } catch { /**/ }
+  }, [gutschein]);
 
   const [ihrFoto, setIhrFoto] = useState("");
   const [seinFoto, setSeinFoto] = useState("");
@@ -150,20 +362,46 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
   useEffect(() => { setLangZeile(document.querySelector("[data-langrow]")); }, []);
 
   // Was schon getippt wurde, ueberlebt einen Seitenwechsel — dieselbe Regel wie im Trichter.
-  const SPEICHER = "lb_einl_bau";
+  /**
+   * EIN ENTWURF JE THEMA (Owner 05.08.2026: „die Botschaft für den Gutschein passt überhaupt
+   * nicht" — auf der Gutschein-Karte stand sein Urlaubstext, auf Deutsch, auf einer rumänischen
+   * Seite).
+   *
+   * Der Schlüssel hiess „lb_einl_bau" für ALLE Varianten. Hochzeit, Urlaub und Gutschein
+   * schrieben also in dieselbe Schublade: Wer eine Hochzeitseinladung anfängt und danach den
+   * Gutschein öffnet, findet dort seine Brautnamen, sein Datum und seinen Hochzeitstext. Es
+   * fiel nur deshalb nicht früher auf, weil es bis heute Abend zwei Varianten gab, die einander
+   * ähnlich sehen.
+   *
+   * Der Zusatz macht drei getrennte Schubladen. Alte Einträge unter dem nackten Namen bleiben
+   * liegen und werden nicht mehr gelesen — sie schaden nicht, und ein Aufräumen wäre mehr Code
+   * als Nutzen.
+   */
+  const SPEICHER = `lb_einl_bau_${variant}`;
   useEffect(() => {
     try {
       const d = JSON.parse(localStorage.getItem(SPEICHER) || "{}");
       if (d.sie) setSie(d.sie); if (d.er) setEr(d.er);
       if (d.datum) setDatum(d.datum); if (d.ort) setOrt(d.ort);
+      if (d.bisDatum) setBisDatum(d.bisDatum); if (d.botschaft) setBotschaft(d.botschaft);
       if (d.adresse) setAdresse(d.adresse); if (d.telefon) setTelefon(d.telefon);
       if (d.mail) setMail(d.mail);
+      /**
+       * DIE GESCHENK-WAHL ÜBERLEBT DEN SEITENWECHSEL ZU STRIPE. Bei blockiertem Popup läuft
+       * die Kasse als Navigation; ohne diese drei Zeilen käme der Käufer zurück und Wahl,
+       * Empfänger-Adresse und sein GEKAUFTES Geschenk wären weg. Alles davon ist nur
+       * Anzeige-Zustand — was zählt, liest der Server aus der Stripe-Sitzung, eine hier
+       * hineditierte „gekauft"-Zeile kauft nichts.
+       */
+      if (d.lbMail) setLbMail(String(d.lbMail));
+      if (d.lbWahl?.cents) setLbWahl({ topic: String(d.lbWahl.topic ?? ""), cents: Number(d.lbWahl.cents) });
+      if (d.lbGekauft?.session) setLbGekauft({ topic: String(d.lbGekauft.topic ?? ""), cents: Number(d.lbGekauft.cents) || 0, session: String(d.lbGekauft.session) });
     } catch { /**/ }
     try { setMail(m => m || localStorage.getItem("lb_kiss_mail") || ""); } catch { /**/ }
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(SPEICHER, JSON.stringify({ sie, er, datum, ort, adresse, telefon, mail })); } catch { /**/ }
-  }, [sie, er, datum, ort, adresse, telefon, mail]);
+    try { localStorage.setItem(SPEICHER, JSON.stringify({ sie, er, datum, bisDatum, botschaft, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft })); } catch { /**/ }
+  }, [sie, er, datum, bisDatum, botschaft, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft]);
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
@@ -194,8 +432,32 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    */
   const eigenes = !!bild || !!videoUrl;
 
+  /**
+   * DER VORGABESATZ ZÄHLT ALS GESCHRIEBEN. Er steht auf der Karte, sobald das Feld leer ist,
+   * und er wird auch so gespeichert und verschickt — wer nichts ändert, verschickt genau das,
+   * was er gesehen hat. Das ist der Unterschied zu einem Platzhalter: Ein Platzhalter
+   * verschwindet beim Tippen und hinterlässt eine Lücke, wenn niemand tippt.
+   */
+  const botschaftText = botschaftFrei
+    ? (botschaft.trim() || (gutschein ? T.fBotschaftGutschein : T.fBotschaft))
+    : "";
+
   /** Fertig zum Erzeugen ist, wer den gewaehlten Weg vollstaendig gegangen ist. */
-  const fotosDa = weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
+  /**
+   * WANN DARF ER ABSENDEN?
+   *
+   * BEIM GUTSCHEIN IST ES NICHT DAS FOTO, SONDERN DER LINK. Sein eigenes Video ist ausdruecklich
+   * freiwillig — wer keins hochlaedt, verschickt unser fertiges (Owner 05.08.2026). Ohne den
+   * Link des Haendlers waere die Karte dagegen leer: Dann verschenkt er eine schoene Huelle
+   * ohne Inhalt, und genau das faellt erst dem Beschenkten auf.
+   */
+  /* BEIM GUTSCHEIN GIBT ES NICHTS ZU ERFUELLEN (Owner 05.08.2026, zum Link-Feld: „raus").
+     Sein eigenes Video ist freiwillig — ohne laeuft unser fertiges. Der Gutschein selbst wird
+     spaeter angehaengt, beim Bearbeiten der Karte, nicht in diesem Dialog. Pflicht bleibt
+     allein die E-Mail-Adresse. */
+  const fotosDa = gutschein
+    ? true
+    : weg === "gemeinsam" ? !!paarFoto : !!ihrFoto && !!seinFoto;
   // Sobald beide Bedingungen wieder stimmen, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (fotosDa && mailOk) setHinweis(""); }, [fotosDa, mailOk]);
 
@@ -212,7 +474,20 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    * idempotent gegen genau DIESEN Versuch bucht — ohne ihn faellt jeder Kauf auf Stripe
    * zurueck, auch mit vollem Konto. Existiert noch keiner, wird er hier angelegt.
    */
-  const bezahlen = async (): Promise<boolean> => {
+  /**
+   * `topupCents` = er hat eine Aufladestufe gewaehlt. Dann geht es NICHT um diese eine Karte,
+   * sondern um Geld aufs Konto — die Kasse legt es dort ab, und der naechste Kauf laeuft
+   * wieder ueber das Guthaben. Ohne die Zahl ist es der normale Weg: erst Konto, dann Stripe.
+   */
+  /**
+   * `kontoFrisch` = das Konto wurde SOEBEN in diesem Aufruf aufgeladen. Dann wird die
+   * Client-Prüfung unten übersprungen, denn `guthabenCents` ist hier eine EINGEFRORENE
+   * Zahl aus dem Render des Klicks — die Aufladung dazwischen sieht sie nie. Genau daran
+   * ist der Kauf am 05.08.2026 gestorben: aufgeladen, zurück vom Stripe, und die alte Null
+   * öffnete den Aufladewähler ERNEUT — Geld auf dem Konto, Kauf nie ausgeführt. Ob das
+   * Konto wirklich reicht, entscheidet ohnehin der Server beim Abbuchen (Skill `bezahlung`).
+   */
+  const bezahlen = async (videoAufpreis = false, topupCents?: number, kontoFrisch = false): Promise<boolean> => {
     /**
      * DAS FENSTER SOFORT OEFFNEN, VOR JEDEM AWAIT (03.08.2026). Browser erlauben
      * `window.open` ohne Blockade nur, wenn es NOCH im selben Atemzug wie der Klick steht.
@@ -225,6 +500,31 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
      * Derselbe Fehler und dieselbe Loesung wie in `KissFunnel.tsx:unlock()` — dort am
      * selben Tag unabhaengig gefunden.
      */
+    /**
+     * ZUERST DAS GUTHABEN (Owner 05.08.2026: „hier öffnet sich direkt Stripe" · „eigentlich
+     * sollte zuerst Dialog kommen, Konto aufladen, dann kommt Stripe").
+     *
+     * Reicht das Konto, bucht die Kasse selbst davon ab und meldet `walletPaid` — dann sieht
+     * er Stripe nie. Reicht es nicht, zeigen wir die Stufen, und zwar IN diesem Dialog: Er ist
+     * schon ein Fenster, und ein Fenster über einem Fenster ist eine Sackgasse (Owner: „weil
+     * das schon ein Dialogfenster ist").
+     *
+     * DIE PRÜFUNG STEHT VOR `window.open`. Ein Fenster, das aufgeht und sofort wieder
+     * zugemacht wird, blinkt — und auf dem Handy bleibt es manchmal als leerer Tab stehen.
+     */
+    /**
+     * KEIN `await` VOR `window.open` — die Warnung steht direkt darüber, und ich bin genau
+     * hineingelaufen (Owner 05.08.2026: „das klappt jetzt nicht").
+     *
+     * Die Guthaben-Abfrage stand hier und hat das Fenster still blockieren lassen. Sie läuft
+     * jetzt SCHON BEIM TIPPEN der Adresse (siehe der Effekt weiter oben); beim Klick steht die
+     * Zahl also längst da und wird nur noch gelesen — ohne `await`, ohne Blockade.
+     */
+    if (!topupCents && !kontoFrisch && (guthabenCents ?? 0) < preisCents) {
+      setAufladeWahl(true);
+      return false;
+    }
+
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -233,7 +533,7 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       try {
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ theme: "wedding", device, email: mail.trim() }),
+          body: JSON.stringify({ theme: variant, device, email: mail.trim() }),
         }).then(r => r.json());
         if (log?.id) { gid = String(log.id); setGenId(gid); }
       } catch { /* ohne genId faellt die Kasse auf Stripe zurueck — kein Abbruch noetig */ }
@@ -241,10 +541,17 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
     try {
       const start = await fetch("/api/kiss-video-checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genId: gid, once: true, email: mail.trim(), returnTo: window.location.pathname + window.location.search }),
+        body: JSON.stringify({ genId: gid, once: !topupCents, videoAufpreis, thema: variant,
+          ...(topupCents ? { aufladen: true, topupCents } : {}),
+          email: mail.trim(), returnTo: window.location.pathname + window.location.search }),
       }).then(r => r.json());
-      // Aus dem Guthaben bezahlt — das leere Fenster wurde nie gebraucht.
-      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } setBezahlt(true); return true; }
+      // Aus dem Guthaben bezahlt — das leere Fenster wurde nie gebraucht. Der Rest kommt in
+      // den Zustand: Der NÄCHSTE Kauf (etwa „Daraus ein Video") prüft gegen die echte Zahl,
+      // nicht gegen den Stand von vor dieser Abbuchung.
+      if (start?.walletPaid) {
+        if (typeof start.rest === "number") setGuthabenCents(start.rest);
+        try { popup?.close(); } catch { /**/ } setBezahlt(true); return true;
+      }
       if (!start?.url || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setStatus(start?.error || F.statusNotWork); return false;
@@ -256,7 +563,36 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
-        if (s?.paid) { try { popup.close(); } catch { /**/ } setBezahlt(true); return true; }
+        if (s?.paid) {
+          try { popup.close(); } catch { /**/ }
+          /**
+           * NACH EINER AUFLADUNG IST DIE KARTE NOCH NICHT BEZAHLT (Owner 05.08.2026: „und der
+           * Weg zurück vom Stripe?").
+           *
+           * Hier stand `setBezahlt(true)` für JEDE bezahlte Sitzung — auch für eine reine
+           * Aufladung. Das Geld lag dann auf dem Konto, der Trichter hielt die Karte für
+           * bezahlt und erzeugte los, ohne dass je etwas abgebucht wurde. Genau dieselbe Sorte
+           * Fehler wie vorhin bei „ich habe bezahlt und jetzt?", nur andersherum: einmal
+           * bezahlt und nichts bekommen, einmal bekommen und nichts bezahlt.
+           *
+           * Richtig ist: Aufladung gutgeschrieben → denselben Kauf NOCH EINMAL versuchen. Jetzt
+           * reicht das Konto, die Kasse bucht ab und meldet `walletPaid` — ohne zweites Stripe.
+           *
+           * MIT `kontoFrisch`, und das ist der Punkt, an dem der Kauf am 05.08.2026 starb:
+           * Der Wiederholungsaufruf las `guthabenCents` aus der EINGEFRORENEN Momentaufnahme
+           * dieses Klicks — also den Stand von VOR der Aufladung — und öffnete den
+           * Aufladewähler gleich noch einmal. Der Kunde hatte bezahlt, das Geld lag auf dem
+           * Konto, und der Trichter verlangte die nächste Aufladung. `kontoFrisch` sagt dem
+           * Wiederholungsaufruf, dass soeben aufgeladen wurde; ob es wirklich reicht, prüft
+           * der Server beim Abbuchen. Und `busy` bleibt stehen — es gehört `erzeugen`, das
+           * nach dieser Rückkehr direkt mit der Erzeugung weitermacht.
+           */
+          if (topupCents) {
+            if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
+            return await bezahlen(videoAufpreis, undefined, true);
+          }
+          setBezahlt(true); return true;
+        }
         if (popup.closed && i > 2) break;
       }
       // Fuenf Minuten ohne Zahlung: das Fenster nicht offen stehen lassen.
@@ -267,6 +603,135 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       try { popup?.close(); } catch { /**/ }
       setStatus(F.statusNetwork); return false;
     }
+  };
+
+  /**
+   * DEN TOPIC-GUTSCHEIN KAUFEN — eigene Kasse (`/api/gutschein-checkout`), bewusst NICHT über
+   * das eigene Guthaben: Das Geld gehört dem BESCHENKTEN, und Konto-zu-Konto-Umbuchungen gibt
+   * es nicht (Memory `guthaben-haengt-an-einer-adresse`). Immer Stripe, immer mit der Adresse
+   * des Beschenkten im Kassenvermerk. Dasselbe Fenster-vor-await- und Schleifen-Muster wie
+   * `bezahlen` weiter oben — inklusive der Regel, dass die Bestätigung (Betrag, Thema) aus
+   * der SERVER-Antwort kommt, nie aus dem Klick.
+   */
+  const lbKaufen = async (wahl: { topic: string; cents: number }): Promise<boolean> => {
+    if (lbBusy || lbGekauft) return !!lbGekauft;
+    const emp = lbMail.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emp)) { setLbFehler(F.lbFehlerMail ?? ""); return false; }
+    setLbFehler(""); setLbBusy(true); setLbLaeuft(wahl.topic || String(wahl.cents));
+    const popup = window.open("", "_blank", "popup,width=480,height=780");
+    let gekauft = false;
+    try {
+      const start = await fetch("/api/gutschein-checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        /* Produkt ODER nacktes Guthaben — der Server prueft beides gegen seine weisse
+           Liste; ein erfundener Betrag faellt dort auf die kleinste Stufe zurueck. */
+        body: JSON.stringify({ ...(wahl.topic ? { topic: wahl.topic } : { cents: wahl.cents }),
+          empfaenger: emp, email: mail.trim(),
+          returnTo: window.location.pathname + window.location.search }),
+      }).then(r => r.json());
+      if (!start?.url || !start?.sessionId) {
+        try { popup?.close(); } catch { /**/ }
+        setLbFehler(start?.error || F.statusNotWork);
+      } else if (!popup) {
+        // Popup blockiert → Seitenwechsel; die Rückkehr fängt der Effekt oben (?gutschein=1&cs=…).
+        window.location.href = start.url; return false;
+      } else {
+        try { popup.location.href = start.url; }
+        catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
+        for (let i = 0; i < 100; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
+          if (s?.paid) {
+            gekauft = true;
+            setLbGekauft({ topic: String(s.topic ?? wahl.topic), cents: Number(s.cents ?? 0) || wahl.cents, session: String(start.sessionId) });
+            break;
+          }
+          if (popup.closed && i > 2) break;
+        }
+        try { popup.close(); } catch { /**/ }
+      }
+    } catch {
+      try { popup?.close(); } catch { /**/ }
+      setLbFehler(F.statusNetwork);
+    }
+    setLbBusy(false);
+    if (!gekauft) setLbLaeuft("");
+    return gekauft;
+  };
+
+  /**
+   * DIE GESCHENK-WAHL — EIN Markup, zwei Orte (Owner 06.08.2026: „wie wählt er unser Produkt
+   * aus oder Credit?"). Im Kauf-Dialog (`sofort=false`) ist der Chip eine AUSWAHL — bezahlt
+   * wird beim Kaufknopf darunter, noch in derselben Klick-Geste. Unter der Karte
+   * (`sofort=true`) kauft der Chip direkt. `sofort` schaltet zugleich die Farbwelt: Im Dialog
+   * gelten die Karten-Klassen (die !important-Regeln der elfenbeinfarbenen Karte schlagen
+   * jede Tailwind-Farbe), auf der dunklen Seite die CI-Klassen.
+   */
+  const geschenkWahl = (sofort: boolean) => {
+    const label = sofort ? "text-[#f6cf51]" : "lb-karte-gold";
+    const hilfe = sofort ? "text-white/75" : "opacity-70";
+    const feld = sofort
+      ? "border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60"
+      : "lb-karte-feld";
+    const chip = (aktiv: boolean) => aktiv
+      ? (sofort ? "bg-[#f6cf51] text-black" : "lb-karte-cta")
+      : (sofort ? "bg-white/10 text-white/85" : "lb-karte-absage");
+    const tippen = (wahl: { topic: string; cents: number }) => {
+      if (sofort) { void lbKaufen(wahl); return; }
+      setLbWahl(w => (w && w.topic === wahl.topic && w.cents === wahl.cents) ? null : wahl);
+    };
+    const aktiv = (wahl: { topic: string; cents: number }) =>
+      !!lbWahl && lbWahl.topic === wahl.topic && lbWahl.cents === wahl.cents;
+    return (<>
+      <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbTitel}</p>
+      <p className={`mt-1 text-[11px] font-bold leading-snug ${hilfe}`}>{F.lbHilfe}</p>
+      {lbGekauft ? (
+        <p className={`mt-2 text-[13px] font-black leading-snug ${sofort ? "text-[#f6cf51]" : "lb-karte-gold"}`}>
+          {(F.lbFertig ?? "").replace("{was}",
+            T.gutscheinTopics[lbGekauft.topic as keyof typeof T.gutscheinTopics] ?? eur(lbGekauft.cents, lang))}
+        </p>
+      ) : (<>
+        <input value={lbMail} onChange={e => { setLbMail(e.target.value); if (lbFehler) setLbFehler(""); }}
+          type="email" inputMode="email" placeholder={F.lbEmpfaenger}
+          className={`mt-2 h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none ${feld}`} />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {[...LB_TOPICS].sort((a, b) => (a === lbWahl?.topic ? -1 : b === lbWahl?.topic ? 1 : 0)).map(t => {
+            const wahl = { topic: t, cents: themenPreisCents(t) };
+            return (
+              <button key={t} type="button" disabled={lbBusy} aria-pressed={aktiv(wahl)}
+                onClick={() => tippen(wahl)}
+                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight transition active:scale-95 disabled:opacity-60 ${chip(aktiv(wahl))}`}>
+                {lbLaeuft === t && lbBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
+                {T.gutscheinTopics[t as keyof typeof T.gutscheinTopics]} · {eur(themenPreisCents(t), lang)}
+              </button>
+            );
+          })}
+        </div>
+        {/* „oder Credit" (Owner 06.08.) — nacktes Guthaben, der Beschenkte sucht selbst aus. */}
+        <p className={`mt-3 text-[11px] font-bold leading-snug ${hilfe}`}>{F.lbGuthaben}</p>
+        <div className="mt-1 grid grid-cols-3 gap-2">
+          {GUTSCHEIN_STUFEN.map(c => {
+            const wahl = { topic: "", cents: c };
+            return (
+              <button key={c} type="button" disabled={lbBusy} aria-pressed={aktiv(wahl)}
+                onClick={() => tippen(wahl)}
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-black transition active:scale-95 disabled:opacity-60 ${chip(aktiv(wahl))}`}>
+                {lbLaeuft === String(c) && lbBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
+                {eur(c, lang)}
+              </button>
+            );
+          })}
+        </div>
+        {lbFehler && (
+          /* Fixes Rot: Auf der dunklen Seite als style (dort gibt es keine !important-Falle),
+             in der Karte über die eigene Klasse — siehe Memory lb-karte-important. */
+          <p role="alert" style={sofort ? { color: "#dc2626" } : undefined}
+            className={`${sofort ? "" : "lb-karte-fehler "}mt-1.5 text-center text-[12.5px] font-black leading-snug`}>
+            {lbFehler}
+          </p>
+        )}
+      </>)}
+    </>);
   };
 
   /**
@@ -284,14 +749,44 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    * noch nicht mit echten Kaeufen geprueft, siehe Rueckmeldung an den Owner.
    */
   const videoErzeugen = async () => {
-    const person = weg === "gemeinsam" ? paarFoto : seinFoto;
-    const garment = weg === "gemeinsam" ? paarFoto : ihrFoto;
+    /**
+     * BEIM GUTSCHEIN IST ES EIN MENSCH, NICHT ZWEI (Owner 05.08.2026: „es kommt keine
+     * Generierung").
+     *
+     * Genau daran lag es: Pixverse Fusion bekommt ZWEI Vorlagen (@1 der Bräutigam, @2 die
+     * Braut), und die Zeile darunter stieg still aus, sobald eine davon fehlte. Der Gutschein
+     * hat nur SEIN Foto — also keine zweite Vorlage, also kein Lauf, also keine Meldung.
+     *
+     * Er bekommt sein eigenes Foto zweimal. Das ist kein Trick: Fusion braucht zwei Plätze,
+     * und wenn beide dieselbe Person zeigen, bleibt genau diese Person im Bild. Was sie tut,
+     * steht ohnehin im Auftrag (`gutscheinPrompt`) — Umschlag hoch, ein Satz.
+     *
+     * OHNE FOTO PASSIERT WEITER NICHTS, und das ist richtig: Dann läuft unser fertiges Video
+     * in der Karte (Owner: „er kann dieses Mal auch das Original-Video versenden").
+     */
+    const person = gutschein ? ihrFoto : (weg === "gemeinsam" ? paarFoto : seinFoto);
+    const garment = gutschein ? ihrFoto : (weg === "gemeinsam" ? paarFoto : ihrFoto);
     if (!person || !garment) return;
     setStatus(F.renderingVideo);
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person, garment, prompt: weddingPrompt("", szeneId) }),
+        /* Beim Urlaub geht der ORT mit in den Auftrag: „Komm mit mir nach Teneriffa" steht auf
+           der Karte, also muss Teneriffa auch im Video zu sehen sein. Bei der Hochzeit ist der
+           Ort nur die Adresse für die Gäste — die Kulisse bestimmt allein die Szene. */
+        body: JSON.stringify({
+          lookId: KISS_LOOK_ID, genId, person, garment,
+          /* Der Gutschein hat keine Szene — sein Auftrag steht fest: Umschlag hoch, ein Satz.
+             Deshalb ohne `szeneId`, siehe lib/gutschein-prompt. */
+          prompt: gutschein ? gutscheinPrompt()
+            : urlaub ? holidayInvitePrompt(szeneId, ort.trim())
+            : weddingPrompt("", szeneId),
+          /* FUENF SEKUNDEN BEIM GUTSCHEIN (Owner 05.08.2026: „5 sek. das reicht vollkommend").
+             Es ist eine Geste und ein Satz — „I have something for you!" ist nach drei Sekunden
+             gesagt. Hochzeit und Urlaub bleiben bei sieben: dort faehrt die Kamera durch eine
+             Szene, und die braucht die Zeit. */
+          ...(gutschein ? { sekunden: 5 } : {}),
+        }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || F.statusCouldNotStart); return; }
       if (genId) {
@@ -315,15 +810,79 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
     } catch { setStatus(F.statusNetwork); }
   };
 
-  const erzeugen = async () => {
+  /**
+   * DARAUS EIN VIDEO MACHEN — nachträglich, freiwillig (Owner 04.08.2026).
+   *
+   * Erst zahlen, dann rendern. `bezahlt` wird hier bewusst NICHT geprüft: Das steht schon
+   * auf `true` vom Bild-Kauf, und der Aufpreis ist ein zweiter Kauf. Wer ihn zweimal
+   * auslöst, zahlt zweimal — davor schützt `videoBusy`, nicht ein Flag.
+   *
+   * DER LINK BLEIBT DERSELBE: Wer die Einladung schon verschickt hat, dessen Empfänger sieht
+   * beim nächsten Öffnen das Video statt des Bildes. Deshalb ist das Aufwerten NACH dem
+   * Verschicken kein Sonderfall, sondern der Normalfall — und ein besseres Geschäft als ein
+   * Video, für das man vor dem ersten Ergebnis bezahlen soll.
+   */
+  const [videoBusy, setVideoBusy] = useState(false);
+  /**
+   * `topupCents` kommt aus dem Aufladewähler: Reichte das Konto nicht, merkt sich der Wähler
+   * über `aufladeZiel`, DASS es dieser Kauf war, und ruft ihn mit der gewählten Stufe erneut
+   * auf — aufladen, abbuchen, und dann läuft die Erzeugung hier ganz normal weiter.
+   */
+  const videoNachtraeglich = async (topupCents?: number) => {
+    if (videoBusy || busy) return;
+    setAufladeZiel("aufwerten");
+    setVideoBusy(true); setHinweis("");
+    try {
+      const ok = await bezahlen(true, topupCents);
+      if (ok) await videoErzeugen();
+    } catch { setStatus(F.statusNetwork); }
+    setVideoBusy(false);
+  };
+
+  /**
+   * BILD ODER VIDEO — DIE WAHL STEHT VORN (Owner 04.08.2026: „wir machen das noch einfacher.
+   * User kann bei der Generierung wählen was er will. Bild oder Video." · „er kann das später
+   * immer noch in Video umwandeln").
+   *
+   * Vorher gab es einen Knopf: bezahlen, Bild bekommen — und erst danach erfuhr er, dass es
+   * auch ein Video gibt. Eine Entscheidung gehoert an die Stelle, an der man sie ohnehin
+   * trifft, nicht hinterher als Nachschlag.
+   *
+   * `alsVideo` entscheidet ZWEI Dinge: was die Kasse verlangt (1,49 oder 3,99) und ob nach
+   * dem Bild noch der Video-Lauf folgt. Wer Bild waehlt, kann spaeter umwandeln — der Knopf
+   * dafuer steht unter der fertigen Karte und auf der Einladungsseite.
+   */
+  const erzeugen = async (alsVideo = false, topupCents?: number) => {
     if (!fotosDa || !mailOk || busy) return;
+    /* Damit der Aufladewähler weiss, WELCHEN Kauf er nach dem Aufladen fortsetzt. */
+    setAufladeZiel(alsVideo ? "video" : "bild");
     setBusy(true); setStatus(F.oneMoment);
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     try { localStorage.setItem("lb_kiss_mail", mail.trim()); } catch { /**/ }
     try {
+      /**
+       * GUTSCHEIN: BEZAHLT WIRD NUR DAS GESCHENK (Owner 06.08.2026: „er muss nur den kredit
+       * oder das produkt bezahlen, dass ers verschenken möchte" · „Die Gutscheingenerierung
+       * kostet nichts.").
+       *
+       * Kein 9,99-Kauf, kein Vorschaubild, kein Upload — Bella bringt die Botschaft (Owner:
+       * „ich will hier eigentlich gar nicht dass die Leute ihre eigene Bilder uploaden"),
+       * die Karte ist die Gratis-Hülle. Ist ein Geschenk gewählt, startet hier seine Kasse
+       * (`lbKaufen` öffnet sein Fenster noch in derselben Klick-Geste); ohne Wahl ist die
+       * Karte sofort fertig — dann verpackt er seinen eigenen Händler-Link, den er woanders
+       * längst bezahlt hat.
+       */
+      if (gutschein) {
+        if (lbWahl && !lbGekauft) {
+          const ok = await lbKaufen(lbWahl);
+          if (!ok) { setBusy(false); return; }
+        }
+        setFeld(null); setStatus(""); setBusy(false);
+        return;
+      }
       if (!bezahlt) {
-        const ok = await bezahlen();
+        const ok = await bezahlen(alsVideo, topupCents);
         if (!ok) { setBusy(false); return; }
       }
       /**
@@ -338,24 +897,54 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       setStatus(F.statusQuality);
       const d = await fetch("/api/free-preview", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(weg === "gemeinsam"
-          ? { paar: paarFoto, theme: "wedding", device, email: mail.trim(), szene: szeneId }
-          : { person: seinFoto, model: ihrFoto, theme: "wedding", device, email: mail.trim(), szene: szeneId }),
+        /* `einladung: true` trennt die neue Urlaubs-EINLADUNG vom alten Urlaubs-Thema, das
+           unter demselben Namen `holiday` läuft (/themes/bella). Siehe die Begründung in
+           app/api/free-preview/route.ts. */
+        body: JSON.stringify({
+          theme: variant, device, email: mail.trim(), szene: szeneId,
+          ...(urlaub ? { einladung: true, ort: ort.trim() } : {}),
+          ...(weg === "gemeinsam" ? { paar: paarFoto } : { person: seinFoto, model: ihrFoto }),
+        }),
       }).then(r => r.json());
       if (d?.image) {
         setBild(d.image); setBildPfad(d.imagePath ?? "");
         if (genId) void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, imagePath: d.imagePath }) }).catch(() => {});
-        // DAS BEZAHLTE VIDEO LAEUFT VON SELBST WEITER — sie hat fuer das Video bezahlt, nicht
-        // fuer das Standbild; das Standbild ist nur die schnelle Vorschau.
-        await videoErzeugen();
+        /**
+         * HIER LIEF DAS VIDEO UNGEFRAGT WEITER — und das war ein echter Fehler
+         * (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn er das Video generieren
+         * möchte, dann kann er das nachträglich für 3,99").
+         *
+         * Der Owner hat es selbst erlebt: Er bezahlte 1,49, bekam das Bild — und danach
+         * startete der Code ein Video, für das nichts abgebucht war. Auf dem Schirm stand
+         * „Videos are paid — please top up your balance", ohne dass er je ein Video bestellt
+         * hatte. Ein Fehler, den er sich nicht erklären konnte, an der teuersten Stelle.
+         *
+         * Für 1,49 gibt es das Bild, und die Einladung damit ist vollständig.
+         *
+         * NUR WER VIDEO GEWAEHLT HAT, bekommt jetzt eins — und hat dafuer 3,99 bezahlt. Das
+         * Standbild ist dabei kein Zwischenschritt zum Wegwerfen: Es steht sofort in der
+         * Karte, waehrend das Video laeuft, und bleibt die Vorlage, falls der Lauf scheitert.
+         */
+        if (alsVideo) await videoErzeugen();
+        else setStatus("");
       }
       else setStatus(d?.error || F.statusNotWork);
     } catch { setStatus(F.statusNetwork); }
     setBusy(false);
   };
 
+  /**
+   * BEIM GUTSCHEIN GEHT UNSER BELLA-VIDEO RAUS — die Karte ist die Gratis-Hülle (Owner
+   * 06.08.2026: „Die Gutscheingenerierung kostet nichts."). Es gibt kein `bild`, kein „er"
+   * (einer schenkt einem) und keine Karten-Kasse mehr; verlangt wird nur der Absendername,
+   * sonst weiss der Empfänger nicht, von wem das Geschenk kommt. Das BEZAHLTE liegt
+   * höchstens IM Geschenk: dessen Etikett liest `/api/einladung` aus der Stripe-Sitzung —
+   * der Browser behauptet dort nichts.
+   */
   const einladungAnlegen = async () => {
-    if (!bild || !sie.trim() || !er.trim() || busy) return;
+    const gutscheinVideo = gutschein ? (videoUrl || beispiele[0] || "") : "";
+    if (gutschein ? (!sie.trim() || !gutscheinVideo) : (!bild || !sie.trim() || !er.trim())) return;
+    if (busy) return;
     setBusy(true);
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -364,15 +953,43 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // Das Video, wenn es bis hierher fertig wurde — sonst das Standbild, damit die
-          // Einladung auf keinen Fall an einem noch laufenden Video haengen bleibt.
-          videoUrl: videoUrl || undefined, bildPfad: videoUrl ? undefined : bildPfad,
+          // Einladung auf keinen Fall an einem noch laufenden Video haengen bleibt. Beim
+          // Gutschein ersatzweise unser fertiges Video (siehe `gutscheinVideo` oben).
+          videoUrl: (gutschein ? gutscheinVideo : videoUrl) || undefined,
+          bildPfad: (videoUrl || gutschein) ? undefined : bildPfad,
           genId, sie: sie.trim(), er: er.trim(), datum,
+          /* Nur beim Urlaub: Enddatum und Botschaft. Ohne diese zwei Zeilen sieht der
+             Absender sie auf seiner Bau-Karte — und der Empfaenger bekommt sie nie. */
+          /* Der Gutschein hat eine Botschaft, aber KEIN Datum — er lädt zu nichts ein. */
+          ...(botschaftFrei ? { ...(urlaub ? { bisDatum } : {}), botschaft: botschaftText } : {}),
+          /* Nur die SITZUNGSNUMMER des beigelegten Topic-Gutscheins — Betrag und Thema liest
+             die Route bei Stripe nach, eine Behauptung des Browsers zählt dort nicht. */
+          ...(gutschein && lbGekauft ? { lbGutscheinSession: lbGekauft.session } : {}),
           ort: ort.trim(), adresse: adresse.trim(), telefon: telefon.trim(),
+          /* Das Thema reist mit der Einladung: Die Seite, die der Eingeladene öffnet, muss
+             wissen, ob sie „Hochzeitseinladung" mit Menü und Gruppenchat zeigt oder eine
+             Urlaubs-Einladung mit nur Ja/Nein. */
+          thema: variant,
           lang, device, email: mail.trim(),
         }),
       }).then(x => x.json());
-      // Direkt auf die eigene Einladung: dort wird bearbeitet und verschickt.
-      if (r?.url) window.location.href = r.url;
+      // Direkt auf die eigene Einladung: dort wird bearbeitet und verschickt. Beim Gutschein
+      // mit Bestätigungszeile obendrauf (Owner 06.08.: „ich hoffe es kommt eine bestätigung
+      // dass der Gutschein versendet wurde") — die E-Mails hat der Server gerade verschickt.
+      if (r?.url) {
+        /* Das Geschenk ist jetzt AN DIESER Karte — Wahl und Kauf aus dem Entwurf leeren,
+           SYNCHRON vor dem Seitenwechsel (der React-Effekt käme zu spät): Sonst trüge die
+           nächste Karte dieses Käufers dasselbe Etikett, obwohl das Guthaben nur einmal
+           existiert. */
+        if (gutschein) {
+          try {
+            const d = JSON.parse(localStorage.getItem(SPEICHER) || "{}");
+            delete d.lbGekauft; delete d.lbWahl;
+            localStorage.setItem(SPEICHER, JSON.stringify(d));
+          } catch { /**/ }
+        }
+        window.location.href = gutschein ? `${r.url}?verschickt=1` : r.url;
+      }
       else setStatus(r?.error || F.statusNotWork);
     } catch { setStatus(F.statusNetwork); }
     setBusy(false);
@@ -390,16 +1007,32 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
    * — zwei gleich starke Goldknöpfe übereinander lassen den Benutzer raten, welcher der Weg
    * nach vorn ist. Pro Dialog genau ein gefüllter Knopf.
    */
-  const dialog = (titel: string, inhalt: React.ReactNode, fertigAus = false, zweitrangig = false) => (
+  /* OHNE SPEICHERN-KNOPF (Owner 05.08.2026: „Salveaza raus"). Es wird nichts gespeichert,
+     was nicht schon steht — die Eingaben landen sofort im Zustand und auf der Karte.
+     Geschlossen wird durch Tippen neben den Dialog. */
+  const dialog = (titel: string, inhalt: React.ReactNode, fertigAus = false, zweitrangig = false, ohneSpeichern = true) => (
     <div className="fixed inset-0 z-[80] grid place-items-end sm:place-items-center" style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={() => setFeld(null)}>
-      <div className="lb-karte w-full max-w-[440px] rounded-t-[22px] p-5 sm:rounded-[22px]" onClick={e => e.stopPropagation()}>
+      {/**
+        * DER DIALOG MUSS SCROLLEN (Owner 05.08.2026: „ich sehe nicht alles und kann auch nicht
+        * gescrollt werden. Es muss alles im Screen passen").
+        *
+        * Er lag als feste Box im Bildschirm: Was nicht hineinpasste, war weg — und damit auch
+        * die Kaufknöpfe ganz unten. Auf einem kleinen Handy ist der Foto-Dialog mit Handelzeile,
+        * Anleitung, Kachel und zwei Knöpfen sicher höher als der Bildschirm.
+        *
+        * `max-h-[88vh]` plus `overflow-y-auto` löst beides: Die Box wird nie höher als der
+        * Bildschirm, und was darüber hinausgeht, erreicht man mit dem Daumen.
+        */}
+      <div className="lb-karte flex max-h-[88vh] w-full max-w-[440px] flex-col overflow-y-auto overscroll-contain rounded-t-[22px] p-5 sm:rounded-[22px]" onClick={e => e.stopPropagation()}>
         <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.28em]">{titel}</p>
         <div className="mt-3 space-y-2">{inhalt}</div>
-        <button type="button" onClick={() => setFeld(null)} disabled={fertigAus}
-          className={`${zweitrangig ? "lb-karte-absage" : "lb-karte-cta"} mt-4 flex h-11 w-full items-center justify-center rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45`}>
-          {T.speichern}
-        </button>
+        {!ohneSpeichern && (
+          <button type="button" onClick={() => setFeld(null)} disabled={fertigAus}
+            className={`${zweitrangig ? "lb-karte-absage" : "lb-karte-cta"} mt-4 flex h-11 w-full items-center justify-center rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45`}>
+            {T.speichern}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -415,18 +1048,76 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           wird. Begruendung ausfuehrlich bei `eigenes` weiter oben. */}
       <EinladungKarte
         sprache={lang}
-        sie={sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE)}
-        er={er.trim() || (eigenes ? T.fEr : BEISPIEL_ER)}
-        datum={datum || (eigenes ? "" : beispielDatum)}
-        ort={ort.trim() || (eigenes ? "" : (BEISPIEL_ORT[lang] || BEISPIEL_ORT.en))}
-        adresse={adresse.trim() || (eigenes ? "" : (BEISPIEL_ADRESSE[lang] || BEISPIEL_ADRESSE.en))}
+        /* Der Kartentitel ist das Erste, was auf der Karte steht — er MUSS zum Anlass passen.
+           Ohne das steht „Hochzeitseinladung" über einem Strandvideo. */
+        /* Ohne eigenen Titel steht „Hochzeitseinladung" über einer Gutschein-Karte. */
+        titel={gutschein ? T.gutscheinTitel : urlaub ? T.urlaubTitel : undefined}
+        /**
+         * KEIN PAAR UND KEIN DATUM BEIM GUTSCHEIN (Owner 05.08.2026: „da steht aber jetzt
+         * Ana und Mihai" · „alles ist durcheinander. Es ist die Karte von Urlaub").
+         *
+         * Die Beispielwerte sind für Hochzeit und Urlaub gedacht: zwei Namen, ein Datum,
+         * ein Ort. Beim Gutschein gibt es nichts davon — er verschenkt etwas, er lädt
+         * nirgendwohin ein. Leere Felder blendet `EinladungKarte` von selbst aus.
+         */
+        sie={gutschein ? "" : (sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE))}
+        er={gutschein ? "" : (er.trim() || (eigenes ? T.fEr : BEISPIEL_ER))}
+        datum={gutschein ? "" : (datum || (eigenes ? "" : beispielDatum))}
+        bisDatum={urlaub ? bisDatum : undefined}
+        botschaft={botschaftFrei ? botschaftText : undefined}
+        /**
+         * „VON …" UNTER DER BOTSCHAFT (Owner 05.08.2026: „kannst du es machen von: …").
+         *
+         * Bei Hochzeit und Urlaub steht oben das PAAR — der Empfänger weiss sofort, von wem
+         * die Karte kommt. Beim Gutschein gibt es keine Namenszeile; ohne diese Zeile öffnet
+         * jemand ein Geschenk und weiss nicht, wer es geschickt hat. Es ist derselbe
+         * `sie`-Zustand wie bei den anderen Anlässen, nur an einer anderen Stelle gezeigt —
+         * kein zweites Feld, das man vergessen könnte zu speichern.
+         */
+        von={gutschein ? sie.trim() : undefined}
+        aufVon={gutschein ? () => setFeld("namen") : undefined}
+        aufBotschaft={botschaftFrei ? () => setFeld("botschaft") : undefined}
+        /* Die Bestätigungszeile steht schon beim Bauen auf der Karte — der Absender soll
+           sehen, was der Empfänger sieht. Ohne Griff: hier gibt es nichts anzutippen. */
+        bestaetigen={urlaub ? T.bestaetigen : undefined}
+        /* Kein Ort beim Gutschein: Er verschenkt etwas, er lädt nirgendwohin ein. */
+        ort={gutschein ? "" : (ort.trim() || (eigenes ? "" : (urlaub ? (BEISPIEL_ORT_URLAUB[lang] || BEISPIEL_ORT_URLAUB.en) : (BEISPIEL_ORT[lang] || BEISPIEL_ORT.en))))}
+        /* KEINE ADRESSE BEIM URLAUB. Sie ist ein Hochzeitsfeld: „Straße, Nr., PLZ" sagt
+           fünfzig Gästen, wo der Saal steht. Ein Urlaub hat ein Ziel und einen Zeitraum —
+           beides steht schon auf der Karte, und eine dritte Zeile darunter wiederholt nur. */
+        adresse={botschaftFrei ? undefined : (adresse.trim() || (eigenes ? "" : (BEISPIEL_ADRESSE[lang] || BEISPIEL_ADRESSE.en)))}
         telefon={telefon.trim()}
         demo
-        aufNamen={() => setFeld("namen")}
-        aufDatum={() => setFeld("wann")}
-        aufOrt={() => setFeld("wo")}
+        /**
+         * BEIM GUTSCHEIN GIBT ES NICHTS EINZUTRAGEN AUSSER DER BOTSCHAFT (Owner 05.08.2026:
+         * „es muss ein Text sein unten, nicht Datum … Wo. Es kann alles mögliche sein").
+         *
+         * Diese drei Griffe sind der Grund, warum „Wann" und „Wo" auf der Karte STEHEN
+         * BLEIBEN, auch wenn nichts drinsteht: `EinladungKarte` zeigt den Block, sobald es
+         * etwas anzutippen gibt (`tag || ort || aufDatum || aufOrt`) — sonst käme man nie an
+         * die Felder heran. Beim Gutschein soll man aber gar nicht herankommen: Er verschenkt
+         * etwas, er lädt zu keinem Termin an keinen Ort. Ohne die Griffe verschwindet der
+         * ganze Abschnitt, und unter dem Video steht nur noch seine Botschaft — die darf alles
+         * Mögliche sein.
+         */
+        aufNamen={gutschein ? undefined : () => setFeld("namen")}
+        aufDatum={gutschein ? undefined : () => setFeld("wann")}
+        aufOrt={gutschein ? undefined : () => setFeld("wo")}
+        /* DIE HERKUNFTSZEILE GEHÖRT AUF JEDE KARTE (Owner 03.08. „benutze IMMER die Cards …
+           mit Titel oben und Made by Luxurybandit.com" · 06.08. „und auch link drauf") —
+           dieselbe Zeile wie auf der Kuss-Karte und auf der Seite des Empfängers: Der
+           Absender verschickt, was er hier sieht. */
+        fuss={
+          <a href="/?utm_source=karte"
+            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+            made by luxurybandit.com
+          </a>
+        }
         video={
-          busy && !bild ? (
+          /* Radar nur, wenn es ein eigenes Foto zu scannen gibt. Der Gutschein ohne Foto ist
+             waehrend der Kasse ebenfalls `busy` — dann bliebe hier ein leeres, kaputtes
+             <img> stehen; stattdessen laeuft das Beispiel weiter. */
+          busy && !bild && (weg === "gemeinsam" ? paarFoto : (ihrFoto || seinFoto)) ? (
             /* RADAR-RENDERING (03.08.2026, Owner-Testkauf: „mit radar rendering"). Dasselbe
                Muster wie im Kuss-Trichter (KissFunnel.tsx: Scanner-Balken + Sucher-Ecken über
                dem eigenen Foto) — hier auf der Karte selbst, weil die Karte hier die einzige
@@ -452,6 +1143,25 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
                 <span className="lb-onmedia text-[12px] font-black">{status || F.oneMoment}</span>
               </div>
             </div>
+          ) : gutschein && videoUrl ? (
+            /**
+             * SEIN EIGENES GUTSCHEIN-VIDEO — fertig erzeugt, in DERSELBEN Karte (Skill
+             * `card`: die drei Symbole kommen aus `EinladungAnsicht`, nie von Hand).
+             * Vorher fiel die Anzeige hier auf das Beispiel-Karussell zurück: Sie hatte
+             * bezahlt, ihr Video war fertig — und die Karte zeigte weiter unser Muster.
+             * `originalton`, denn die Tonspur ist beim Gutschein das Produkt (ihre Stimme,
+             * ihr Satz) — Musik darüber würde genau das übertönen. Nur beim Gutschein:
+             * Hochzeit und Urlaub behalten ihr Standbild samt „Foto ersetzen", dort ist das
+             * Video für den Empfänger, nicht für die Bau-Ansicht.
+             */
+            <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+              originalton musik=""
+              tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein}
+              teilen={
+                <TeilenKnopf rund url={`/themes/gutschein?utm_source=share`}
+                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                  label={T.teilen} kopiertLabel={T.zusDanke} />
+              } />
           ) : bild ? (
             /* Derselbe Knopf auf dem eigenen Bild — hier heisst „Foto ersetzen" endlich
                woertlich, was es tut. Vorher war das ganze Bild ein unsichtbarer Knopf; wer
@@ -488,7 +1198,10 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
                 </div>
               )}
             </div>
-          ) : beispielVideo ? (
+          ) : beispiele.length ? (
+            /* FRAGMENT, WEIL HIER ZWEI GESCHWISTER STEHEN: die Karte und der Kaufaufruf
+               darunter. Ohne die Klammer ist es kaputtes JSX — genau daran sind die drei
+               Seiten am 05.08.2026 kurz auf 500 gelaufen. */
             /* DAS BEISPIEL LAEUFT, BIS DAS EIGENE BILD DA IST.
 
                EIN RICHTIGER KNOPF, MEHR NICHT (Owner 31.07.2026: „auf das Bild ein richtiges
@@ -501,20 +1214,60 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
                Nur der Knopf ist antippbar, nicht die ganze Flaeche — sonst waere es ein Knopf
                im Knopf, und das ist kaputtes HTML. Er sitzt unten mittig, weit weg vom
                Ton-Knopf oben rechts. */
+            <>
+
             <div className="relative">
-              <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
-                {/* NICHT „Foto ersetzen" (Owner 02.08.2026 abends): Die Karte zeigt jetzt einen
-                    kompletten Beispiel-Datensatz (Name, Datum, Ort, Adresse UND Video) — ein
-                    Knopf, der nur vom Bild spricht, sagt nicht mehr, was hier wirklich passiert.
-                    `F.datenErsetzen` lädt zum Ausfüllen der GANZEN Karte ein. */}
-                <button type="button" onClick={() => setFeld("fotos")}
-                  className="lb-karte-cta pointer-events-auto flex h-11 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black transition active:scale-95">
-                  <ImageUp className="h-4 w-4 shrink-0" />
-                  {F.datenErsetzen}
-                </button>
-              </div>
+              {/* ALLE DREI, AUCH AUF DER VORSCHAU (Owner 04.08.2026: „wirklich bei allen: bei
+                      Previews, Templates, generierten"). Geteilt wird hier die THEMENSEITE — sein
+                      eigenes Ergebnis gibt es ja noch nicht, und ein Knopf, der nichts hat,
+                      waere schlimmer als keiner. */}
+                  <KartenKarussell folien={beispiele.map((url, i) => (
+                    <EinladungAnsicht key={i} id="" videoUrl={url} zaehlen={false}
+                      /**
+                       * BEIM GUTSCHEIN ZÄHLT DIE STIMME, NICHT DIE MUSIK (Owner 05.08.2026:
+                       * „Hier habe ich ein Original-Sound bei Gutschein").
+                       *
+                       * `EinladungAnsicht` legt ohne diese zwei Angaben den HOCHZEITSMARSCH
+                       * darüber (`musik = HOCHZEITS_MUSIK`, `originalton = false`) und schaltet
+                       * die Tonspur des Videos stumm. Bei Hochzeit und Urlaub ist das genau
+                       * richtig — dort erzeugen wir stumme Videos und die Musik trägt die
+                       * Stimmung. Beim Gutschein ist die Tonspur das PRODUKT: Bella sagt „I
+                       * have something for you". Musik darüber würde das Einzige übertönen,
+                       * wofür das Video da ist.
+                       */
+                      originalton={gutschein}
+                      musik={gutschein ? "" : undefined}
+                      tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein}
+                      teilen={
+                        <TeilenKnopf rund url={`/themes/${gutschein ? "gutschein" : urlaub ? "holiday" : "wedding"}?utm_source=share`}
+                          text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                          label={T.teilen} kopiertLabel={T.zusDanke} />
+                      } />
+                  ))} />
             </div>
+            {/**
+              * DER KAUFAUFRUF STEHT UNTER DER KARTE, HELL UND ÜBER DIE GANZE BREITE — wie beim
+              * Kuss (Owner 05.08.2026: „was sind das für Buttons? Wir haben doch ein CI" ·
+              * „wozu haben wir Kuss gemacht?").
+              *
+              * Vorher schwebte er gedeckt AUF dem Video (`lb-karte-cta`, halbe Breite). Damit
+              * gab es zwei Kaufaufrufe in zwei Farben und an zwei Plätzen für dieselbe
+              * Handlung — auf der Kuss-Karte hell und unten, auf der Einladung dunkel und
+              * mittig im Bild. Der Kuss ist die Vorlage, also gewinnt seiner.
+              *
+              * `lb-gold` ist die CI-Farbe (globals.css). `lb-karte-cta` bleibt für die kleinen
+              * Knöpfe INNERHALB der Karte richtig — dort, wo gedecktes Altgold zum Elfenbein
+              * gehört. Der Kaufaufruf gehört nicht dazu: Er ist der eine Knopf, der auffallen
+              * MUSS.
+              */}
+            {!!beispiele.length && (
+              <button type="button" onClick={() => setFeld("fotos")}
+                className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.2)] active:scale-95 transition">
+                <ImageUp className="h-4 w-4 shrink-0" />
+                {F.datenErsetzen}
+              </button>
+            )}
+            </>
           ) : (
             /* OHNE BEISPIELVIDEO: leeres Feld, aber flacher als das echte Bildformat. Ein 3:4
                grosses Nichts ist auf einem Handy fast fuenfhundert Punkte hoch — dann stehen
@@ -533,20 +1286,63 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
       />
 
       {/* Der laufende Preis steht VOR dem Kauf da, nicht erst nach der Erzeugung — bei
-          Anzeigen-Traffic ist ein verstecktes Abo eine Rückbuchung mit Ansage. */}
+          Anzeigen-Traffic ist ein verstecktes Abo eine Rückbuchung mit Ansage. Beim
+          Gutschein steht der Preis schon auf dem Kaufknopf, und die Urlaubszeile nennt
+          Bild- und Videopreise, die es dort nicht gibt — keine zweite Zeile (Skill
+          `bezahlung` §8: „hier müssen wir sparen"). */}
+      {!gutschein && (
       <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/60">
-        {fillPrices(T.preise, lang)}
+        {fillPrices(botschaftFrei ? T.preiseUrlaub : T.preise, lang)}
       </p>
+      )}
 
-      {/* Verschicken steht erst da, wenn es etwas zu verschicken gibt. */}
-      {bild && sie.trim() && er.trim() && (
+      {/**
+        * DARAUS EIN VIDEO MACHEN — 3,99 € (Owner 04.08.2026).
+        *
+        * Steht nur da, wenn es ein Bild gibt und noch KEIN Video. Bewusst der zweitrangige
+        * Knopf (Umriss statt gefüllt): Die Hauptsache ist das Verschicken darüber — die
+        * Einladung mit Bild ist vollständig, das Video ist eine Aufwertung. Ein zweiter
+        * goldener Knopf daneben liesse den Kunden raten, welcher der Weg nach vorn ist.
+        */}
+      {bild && !videoUrl && (
+        <button type="button" onClick={() => void videoNachtraeglich()} disabled={videoBusy || busy}
+          className="lb-karte-absage mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">
+          {videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {videoBusy ? (status || F.oneMoment) : fillPrices(T.videoDaraus, lang)}
+        </button>
+      )}
+
+      {/**
+        * NACH DEM KAUF: SEIN GUTSCHEIN-LINK (Owner 05.08.2026: „nicht hier auf der
+        * Landingpage. Erst beim Editieren des Gutscheins" — und zum Feld im Kauf-Dialog:
+        * „raus"). Genau HIER ist das Editieren: bezahlt, die Karte steht, jetzt kommt der
+        * Inhalt hinein. Nur der LINK, nie eine Datei, nie der Code (Konzept §3b) — der Code
+        * bleibt beim Händler, bei uns liegt nichts zu stehlen. Freiwillig: Ohne Link geht
+        * die Karte trotzdem raus, dann ist sie Botschaft ohne Anhang.
+        */}
+      {/* IMMER SICHTBAR (Owner 06.08.2026: „wie wählt er unser Produkt aus oder Credit?"):
+          Die Geschenk-Wahl steht offen unter der Karte, nicht hinter einer Kasse. Hier kauft
+          der Chip DIREKT (`sofort`) — im Dialog derselbe Baustein als Auswahl. */}
+      {gutschein && (
+        <div className="mt-4">
+          {geschenkWahl(true)}
+        </div>
+      )}
+      {/* Verschicken steht erst da, wenn es etwas zu verschicken gibt. Beim Gutschein heisst
+          das nur: ein Absendername — die Karte ist gratis (Owner 06.08.), bezahlt wird
+          höchstens das Geschenk darin, und das prüft sein eigener Kaufweg. */}
+      {(gutschein ? !!sie.trim() : !!(bild && sie.trim() && er.trim())) && (
         <div className="mt-4">
           <button type="button" onClick={() => void einladungAnlegen()} disabled={busy}
             className="lb-gold lb-buy flex h-12 w-full items-center justify-center gap-2 rounded-full font-black transition active:scale-95 disabled:opacity-60">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {T.teilen}
           </button>
+          {/* Der Probe-Satz erzählt vom Hochzeits-Abo — auf der Gutschein-Karte wäre er
+              gelogen (gekauft ist gekauft, 30 Tage online, kein Abo). */}
+          {!gutschein && (
           <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/60">{F.probeHinweis}</p>
+          )}
         </div>
       )}
       {/* SICHTBARER HINWEIS STATT STILLEM FEHLEN (03.08.2026, Owner-Testkauf: „ich kann es
@@ -555,19 +1351,59 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           Knopf blieb deshalb unsichtbar, ohne zu sagen wieso. Derselbe Fehler, den plan.md
           schon beim Erzeugen-Knopf gefunden hatte (stumm statt sichtbar), hier am Verschicken-
           Knopf noch einmal. */}
-      {bild && !busy && (!sie.trim() || !er.trim()) && (
+      {/* Beim Gutschein fehlt höchstens der Absendername („Von") — derselbe sichtbare
+          Hinweis statt eines stumm fehlenden Knopfs; der Text kommt aus der
+          GUTSCHEIN-Tabelle (kiss-i18n), die Hochzeits-Zeile spricht von „euren Namen".
+          Er erscheint erst, wenn schon etwas in der Karte liegt (Geschenk oder Link) —
+          vorher wäre er ein roter Satz auf einer noch leeren Seite. */}
+      {(gutschein ? (!!lbGekauft && !busy && !sie.trim()) : (bild && !busy && (!sie.trim() || !er.trim()))) && (
         <p role="alert" className="lb-karte-fehler mt-3 text-center text-[12.5px] font-black leading-snug">
           {F.namenVorSenden}
         </p>
       )}
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/75">{status}</p>}
 
-      {feld === "namen" && dialog(T.namen, (<>
+      {/* BEIM GUTSCHEIN NUR EIN NAME: der des Absenders. Zwei Namensfelder setzen ein Paar
+          voraus — hier verschenkt EINER an EINEN, und wer der Empfänger ist, steht in seiner
+          Botschaft, nicht in einem Feld. */}
+      {/* `fDu` („Dein Vorname"), NICHT `fSie` („Ihr Vorname") — Owner 05.08.2026: „Prenumele
+          ei? als von wem. Das heisst Prenumele tau!". `fSie` ist die BRAUT; hier steht der
+          Absender, und der ist der, der das Feld ausfüllt. */}
+      {feld === "namen" && dialog(gutschein ? T.fVon : T.namen, gutschein
+        ? eingabe(sie, setSie, T.fDu)
+        : (<>
         {eingabe(sie, setSie, T.fSie)}
         {eingabe(er, setEr, T.fEr)}
       </>))}
 
-      {feld === "wann" && dialog(T.wann, eingabe(datum, setDatum, T.fDatum, "date"))}
+      {/* BEIM URLAUB ZWEI DATEN, VON–BIS. Das zweite steht ohne Sternchen da: Wer noch nicht
+          gebucht hat, lässt es leer, und die Karte zeigt dann den einen Tag. */}
+      {feld === "wann" && dialog(T.wann, urlaub ? (<>
+        {eingabe(datum, setDatum, T.fVon, "date")}
+        {eingabe(bisDatum, setBisDatum, T.fBis, "date")}
+      </>) : eingabe(datum, setDatum, T.fDatum, "date"))}
+
+      {/**
+        * DIE BOTSCHAFT — ein mehrzeiliges Feld, kein einzeiliges (Owner 04.08.2026:
+        * „vielleicht will derjenige mehr schreiben").
+        *
+        * Der Vorgabesatz steht als Startwert IM Feld, nicht als Platzhalter: Wer ihn behalten
+        * will, tut nichts; wer ihn ändern will, tippt darüber. Ein Platzhalter wäre hier
+        * falsch — er verschwindet beim ersten Tastendruck und lässt jemanden mit einem leeren
+        * Feld zurück, obwohl auf der Karte gerade noch ein Satz stand.
+        */}
+      {feld === "botschaft" && dialog(T.fBotschaftTitel, (
+        <>
+          <textarea
+            value={botschaft || (gutschein ? T.fBotschaftGutschein : T.fBotschaft)}
+            onChange={e => setBotschaft(e.target.value.slice(0, BOTSCHAFT_MAX))}
+            rows={4} maxLength={BOTSCHAFT_MAX}
+            className="lb-karte-feld w-full resize-none rounded-lg px-3 py-2 font-serif text-[15px] leading-snug outline-none" />
+          <p className="text-right font-serif text-[11px] opacity-60">
+            {(botschaft || (gutschein ? T.fBotschaftGutschein : T.fBotschaft)).length}/{BOTSCHAFT_MAX}
+          </p>
+        </>
+      ))}
 
       {feld === "wo" && dialog(T.wo, (<>
         {eingabe(ort, setOrt, T.fOrt)}
@@ -577,12 +1413,21 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
 
       {/* „Eure Fotos", nicht „1 · Die Braut": Die Schrittnummern gehoerten zum Trichter, den es
           nicht mehr gibt. Eine Nummer ohne Schritte davor und danach verwirrt nur. */}
-      {feld === "fotos" && dialog(T.fotos, (<>
+      {feld === "fotos" && dialog(gutschein ? (F.lbTitel ?? T.fotos) : botschaftFrei ? T.fotosUrlaub : T.fotos, (<>
+        {/* Dieselbe Anweisung wie im Kuss-Trichter — hier in der Karten-Fassung. BEIM
+            GUTSCHEIN GIBT ES KEIN FOTO MEHR (Owner 06.08.2026: „ich will hier eigentlich gar
+            nicht dass die Leute ihre eigene Bilder uploaden. Das wird keiner machen. Wir
+            haben die Bella, die die Botschaft bringt.") — also auch keine Foto-Anleitung. */}
+        {!gutschein && <FotoAnleitung lang={lang} karte />}
         {/* ZWEI WEGE ZUM ZIEL (Owner 31.07.2026: „und es fehlt Upload gemeinsam").
             Fast jedes Paar hat ein Foto zu zweit — vom Urlaub, von einer Feier. Zwei EINZELNE
             Fotos zu verlangen ist eine Huerde ohne Grund: Sie muss zwei Bilder suchen, von
             denen eines meist gar nicht existiert, und genau dort steigen Leute aus.
             Der Umschalter steht ganz oben, weil er entscheidet, was darunter zu tun ist. */}
+        {/* KEIN UMSCHALTER BEIM GUTSCHEIN: „zwei Fotos" oder „eins von uns beiden" setzt zwei
+            Menschen voraus. Hier gibt es nur ihn — und daneben seinen Gutschein, der kein Foto
+            ist, sondern ein Link. */}
+        {!gutschein && (
         <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
           {([["zwei", T.fZwei], ["gemeinsam", T.fGemeinsam]] as const).map(([w, label]) => (
             <button key={w} type="button" onClick={() => setWeg(w)}
@@ -591,32 +1436,49 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
             </button>
           ))}
         </div>
+        )}
 
-        {weg === "zwei" ? (
+        {gutschein ? (
+          /**
+           * KEIN UPLOAD MEHR (Owner 06.08.2026: „Das wird keiner machen. Wir haben die
+           * Bella, die die Botschaft bringt."). Der Dialog ist jetzt: Botschaft, Absender,
+           * und die GESCHENK-WAHL — sein Händler-Link oder eines unserer Produkte bzw.
+           * nacktes Guthaben. Bezahlt wird nur das Gewählte; die Karte kostet nichts.
+           */
+          <>
+            {/* BOTSCHAFT UND ABSENDER GLEICH HIER (Owner 05.08.2026: „dafür dein Text rein /
+                Botschaft … und deinen Namen"). Bei Hochzeit und Urlaub tippt man dafür auf die
+                Karte; beim Gutschein gibt es sonst nichts mehr zu tun, also stehen die zwei
+                Felder direkt im Weg nach vorn — sonst verschickt er die Vorgabe, ohne je
+                gemerkt zu haben, dass sie änderbar war. */}
+            <p className="mt-1 text-[12px] font-black uppercase tracking-wide lb-karte-gold">{T.fBotschaftTitel}</p>
+            <textarea
+              value={botschaft || T.fBotschaftGutschein}
+              onChange={e => setBotschaft(e.target.value.slice(0, BOTSCHAFT_MAX))}
+              rows={3} maxLength={BOTSCHAFT_MAX}
+              className="lb-karte-feld mt-1.5 w-full resize-none rounded-lg px-3 py-2 font-serif text-[15px] leading-snug outline-none" />
+
+            <p className="mt-3 text-[12px] font-black uppercase tracking-wide lb-karte-gold">{T.fVon}</p>
+            <input value={sie} onChange={e => setSie(e.target.value.slice(0, 40))}
+              placeholder={T.fDu} maxLength={40}
+              className="lb-karte-feld mt-1.5 h-12 w-full rounded-lg px-3 font-serif text-[15px] outline-none" />
+
+            {geschenkWahl(false)}
+          </>
+        ) : weg === "zwei" ? (
           <div className="grid grid-cols-2 gap-2">
             {/* „Du, die Braut" und „Er, der Bräutigam" — ein Paar Beschriftungen, nicht eine
                 Zeile und ein Abzeichen. `F.you` heisst schlicht „ER"; das war im alten Trichter
                 ein Chip auf dem Bild und liest sich neben „Du, die Braut" wie ein Fehler. */}
-            {([["sie", ihrFoto, ihrRef, F.upTitle], ["er", seinFoto, seinRef, T.fotoEr]] as const).map(([wer, foto, ref, titel]) => (
-              <div key={wer} className="relative">
-                <button type="button" onClick={() => ref.current?.click()}
-                  className="lb-tippbar grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
-                  {foto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={foto} alt="" className="h-full w-full object-cover object-top" />
-                  ) : (
-                    <span className="px-2 text-center font-serif text-[13px] font-bold">{titel}</span>
-                  )}
-                </button>
-                {foto && (
-                  <button type="button" aria-label={T.loeschen}
-                    onClick={() => (wer === "sie" ? setIhrFoto("") : setSeinFoto(""))}
-                    style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                    className="absolute left-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+            {([
+              { wer: "sie", foto: ihrFoto, ref: ihrRef, titel: F.upTitle, hinweis: F.upHint, platz: PLACEHOLDER_FRAU },
+              { wer: "er", foto: seinFoto, ref: seinRef, titel: botschaftFrei ? T.fotoEingeladen : T.fotoEr, hinweis: F.youHint, platz: PLACEHOLDER_MANN },
+            ] as const).map(k => (
+              <UploadKachel key={k.wer}
+                foto={k.foto} titel={k.titel} hinweis={k.hinweis} platzhalter={k.platz}
+                onWaehlen={() => k.ref.current?.click()}
+                onLoeschen={() => (k.wer === "sie" ? setIhrFoto("") : setSeinFoto(""))}
+                loeschenLabel={T.loeschen} />
             ))}
           </div>
         ) : (
@@ -642,20 +1504,116 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           </div>
         )}
 
-        {/* DIE SZENEN-KACHELN (Owner 03.08.2026: „4 templatevideos wie beim kissing … eins
-            davon ist küssen"). Genau dasselbe Muster wie bei Kiss (KissFunnel.tsx, KUSS_SZENEN):
-            vier Standbilder, Antippen wählt, nochmal Antippen wählt ab, keine Pflicht — ohne
-            Wahl läuft der bisherige Auftrag unveraendert weiter. */}
-        <div className="mt-1">
+        {/**
+         * BEIM URLAUB STEHT HIER DER ORT, NICHT EINE SZENE (Owner 04.08.2026: „hier muss doch
+         * gleich die Adresse eingeben werden, damit AI weiss was er machen soll" — „die Szene
+         * ist hier nicht wichtig auszuwählen" — „also lieber die Adresse").
+         *
+         * Er hat recht, und es ist mehr als eine Umsortierung: Bei der Hochzeit ist die Kulisse
+         * beliebig (Kirche, Garten, Ballsaal) — eine von vier reicht. Beim Urlaub IST der Ort
+         * das Versprechen. „Komm mit mir nach Teneriffa" und dann ein beliebiger Strand: Dann
+         * zeigt das Video etwas anderes als die Karte darunter verspricht.
+         *
+         * Das Feld ist DASSELBE `ort`, das auf der Karte unter „Wo" steht — ein Zustand, zwei
+         * Orte zum Eintippen. Wer es hier ausfüllt, sieht es sofort oben auf der Karte stehen.
+         * Und `holidayInvitePrompt` reicht genau diesen Text an das Bild- und das Videomodell
+         * weiter; das ist die Antwort auf „damit AI weiss was er machen soll".
+         *
+         * Die vier Szenen-Kacheln sind damit beim Urlaub weg — mitsamt dem Problem, dass zwei
+         * davon kein brauchbares Bild hatten.
+         */}
+        {urlaub ? (<>
+          {/**
+           * DIE NAMEN STEHEN HIER MIT (Owner 04.08.2026: „Wann gebe ich die Namen ein, Ana und
+           * Mihai?").
+           *
+           * Die Antwort war bis dahin: gar nicht hier — man musste auf der Karte auf die Namen
+           * tippen. Das ist so gewollt (Owner 31.07.2026: „er klickt auf Name, dann öffnet sich
+           * Dialog") und BLEIBT auch: Die Karte ist die Bedienung. Nur war sie hier die
+           * EINZIGE Bedienung, und das ist der Fehler.
+           *
+           * Denn die Namen wurden zum Erzeugen nie verlangt: Man konnte Fotos hochladen,
+           * bezahlen, das Video bekommen — und erst danach stand da „Tippt oben auf eure
+           * Namen, um die Einladung zu verschicken". Wer das nicht erriet, hatte ein bezahltes
+           * Video und keine Einladung.
+           *
+           * Also stehen sie jetzt AUCH hier, in dem Dialog, in dem ohnehin alles
+           * zusammenkommt, was die Karte und der Auftrag brauchen. Es ist derselbe Zustand
+           * (`sie`/`er`) — wer sie oben auf der Karte antippt, findet sie hier ausgefüllt und
+           * umgekehrt. Zwei Wege zum selben Feld, kein zweiter Datensatz.
+           */}
+          {/* NEUTRALE BESCHRIFTUNGEN: `fSie`/`fEr` sind Braut und Bräutigam. Hier lädt einer
+              einen Menschen ein, und wer das ist, wissen wir nicht. */}
+          <div className="grid grid-cols-2 gap-2">
+            {eingabe(sie, setSie, T.fDu)}
+            {eingabe(er, setEr, T.fEingeladen)}
+          </div>
+          <div className="mt-1">
+            <p className="text-[12px] font-bold text-white/85">{F.ortFrage}</p>
+            {eingabe(ort, setOrt, F.ortPlatzhalter)}
+            <p className="mt-1 text-center font-serif text-[11.5px] leading-snug opacity-70">{F.ortHinweis}</p>
+          </div>
+
+          {/**
+            * ALLES IN EINEM DURCHGANG — auch Datum und Botschaft.
+            *
+            * Die Karte bleibt die Bedienung: Wer oben auf „Wann" oder auf die Botschaft
+            * tippt, öffnet weiterhin seinen Dialog, und es ist derselbe Zustand. Aber sie
+            * darf nicht die EINZIGE Bedienung sein — genau daran ist der Owner gescheitert
+            * („Wann gebe ich die Namen ein?"), und bei Datum und Botschaft wäre es derselbe
+            * Weg: bezahlen, Ergebnis bekommen, und erst dann merken, dass die Karte halb
+            * leer ist.
+            *
+            * Hier steht jetzt alles beisammen, was auf die Karte kommt, in der Reihenfolge,
+            * in der ein Mensch es denkt: wer → wohin → wann → was du sagen willst → eure
+            * Fotos → erzeugen.
+            */}
+          <div className="mt-1">
+            <p className="text-[12px] font-bold text-white/85">{T.wann}</p>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {eingabe(datum, setDatum, T.fVon, "date")}
+              {eingabe(bisDatum, setBisDatum, T.fBis, "date")}
+            </div>
+          </div>
+
+          <div className="mt-1">
+            <p className="text-[12px] font-bold text-white/85">{T.fBotschaftTitel}</p>
+            {/* Der Vorgabesatz steht IM Feld, nicht als Platzhalter: Wer ihn behalten will,
+                tut nichts. Ein Platzhalter verschwände beim ersten Tastendruck. */}
+            <textarea
+              value={botschaft || T.fBotschaft}
+              onChange={e => setBotschaft(e.target.value.slice(0, BOTSCHAFT_MAX))}
+              rows={3} maxLength={BOTSCHAFT_MAX}
+              className="lb-karte-feld mt-1 w-full resize-none rounded-lg px-3 py-2 font-serif text-[15px] leading-snug outline-none" />
+            <p className="text-right font-serif text-[11px] opacity-60">
+              {(botschaft || T.fBotschaft).length}/{BOTSCHAFT_MAX}
+            </p>
+          </div>
+        </>) : (
+        /* Ohne Szenen keine Ueberschrift: Beim Gutschein wird nichts erzeugt, also gibt es
+           nichts auszuwaehlen. Der Kommentar steht VOR dem Ausdruck und nicht als JSX-Kind —
+           in einem Ternaer-Zweig waere eine geschweifte Kommentarklammer ein zweites Kind und
+           damit kaputtes JSX. */
+        <div className={SZENEN.length ? "mt-1" : "hidden"}>
           <p className="text-[12px] font-bold text-white/85">{F.szeneTitel}</p>
           <div className="mt-1.5 grid grid-cols-4 gap-2">
-            {WEDDING_SZENEN.map(sz => (
+            {SZENEN.map(sz => (
               <button key={sz.id} type="button"
                 onClick={() => setSzeneId(w => (w === sz.id ? "" : sz.id))}
                 aria-pressed={szeneId === sz.id}
                 className={`relative overflow-hidden rounded-xl border transition active:scale-95 ${szeneId === sz.id ? "border-[#f6cf51] ring-2 ring-[#f6cf51]" : "border-white/20"}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={sz.kachel} alt={sz.name} className="aspect-[3/4] w-full object-cover" />
+                {sz.kachel ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={sz.kachel} alt={sz.name} className="aspect-[3/4] w-full object-cover" />
+                ) : (
+                  /* NOCH KEIN BILD FÜR DIESE SZENE (siehe lib/holiday-invite.ts). Dann nennt
+                     die Kachel die Szene beim Namen, statt ein fremdes Bild zu zeigen — das
+                     wäre ein Versprechen, das der Auftrag nicht einlöst. `lb-tippbar` ist
+                     dieselbe gestrichelte Fläche wie bei den leeren Foto-Kacheln darüber. */
+                  <span className="lb-tippbar grid aspect-[3/4] w-full place-items-center px-1 text-center font-serif text-[10px] font-bold leading-tight">
+                    {sz.name}
+                  </span>
+                )}
                 {szeneId === sz.id && (
                   <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51]">
                     <Check className="h-3.5 w-3.5 text-black" />
@@ -665,6 +1623,7 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
             ))}
           </div>
         </div>
+        )}
 
         {/* Die Adresse steht VOR dem Erzeugen — dieselbe Regel wie im Trichter: kein Bild auf
             unsere Kosten fuer jemanden, der nie erreichbar ist. */}
@@ -677,23 +1636,113 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           * Knopf bleibt deshalb bewusst aktiv (nur das Aussehen dimmt sich); fehlt etwas,
           * meldet der Klick es, statt zu verpuffen.
           */}
+        {/**
+          * DIE AUFLADESTUFEN STEHEN HIER, NICHT IN EINEM ZWEITEN FENSTER (Owner 05.08.2026:
+          * „weil das schon ein Dialogfenster ist").
+          *
+          * Sie ersetzen den Kaufknopf, sobald das Guthaben nicht reicht — an derselben Stelle,
+          * auf die er gerade getippt hat. Ein Fenster über einem Fenster ist eine Sackgasse:
+          * Man weiss nicht mehr, welches „Zurück" welches schliesst.
+          *
+          * Sie erscheinen NUR, wenn das Geld fehlt (Owner: „und das kommt, falls er nicht
+          * genügend Geld hat") — wer aufgeladen hat, tippt auf kaufen und es passiert.
+          */}
+        {aufladeWahl ? (
+          <div className="mt-1">
+            <p className="text-center font-serif text-[14px] leading-snug">
+              {fillPrices(gutschein ? T.ctaGutschein : T.ctaBild, lang)}
+            </p>
+            {AUFLADE_STUFEN.filter(c => c >= preisCents).map(stufe => (
+              <button key={stufe} type="button" disabled={busy}
+                /* Die Stufe setzt den UNTERBROCHENEN Kauf fort — durch `erzeugen` bzw. das
+                   Aufwerten, nicht durch ein nacktes `bezahlen`: Nur so läuft nach dem
+                   Aufladen auch die Erzeugung weiter, statt dass Geld auf dem Konto liegt
+                   und nichts passiert (Owner 05.08.2026: „die Zahlung geht nicht"). */
+                onClick={() => {
+                  setAufladeWahl(false);
+                  void (aufladeZiel === "aufwerten" ? videoNachtraeglich(stufe) : erzeugen(aufladeZiel === "video", stufe));
+                }}
+                className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-60">
+                {eur(stufe, lang)}
+              </button>
+            ))}
+          </div>
+        ) : (
         <button type="button"
           onClick={() => {
             if (busy) return;
             if (!fotosDa) { setHinweis(F.pickFirst); return; }
+            /**
+             * DIE NAMEN VOR DER KASSE, NICHT DANACH (Owner 04.08.2026: „Wann gebe ich die
+             * Namen ein, Ana und Mihai?").
+             *
+             * Ohne Namen entsteht ein bezahltes Video, aber KEINE verschickbare Einladung —
+             * `einladungAnlegen()` verlangt sie, und der Verschicken-Knopf bleibt bis dahin
+             * unsichtbar. Diesen Weg zu Ende zu gehen und die Rechnung erst am Ziel zu
+             * präsentieren, ist genau die Sorte Sackgasse, an der Leute schliessen statt
+             * nachzubessern. Zwei Vornamen kosten fünf Sekunden — vorher.
+             *
+             * Nur beim Urlaub, weil nur dort die Felder in diesem Dialog stehen. Bei der
+             * Hochzeit sitzen sie auf der Karte, und dort ist der bestehende Hinweis nach dem
+             * Bild der richtige Weg — sonst sperrt eine Prüfung ein Feld, das gar nicht auf
+             * diesem Bildschirm steht.
+             */
+            if (urlaub && (!sie.trim() || !er.trim())) { setHinweis(T.namen); return; }
             if (!mailOk) { setHinweis(F.mailInvalid); return; }
+            /* Ein gewähltes Geschenk braucht die Adresse des Beschenkten — dort landet das
+               Guthaben, sie ist sein Login. Sichtbar rot statt stummem Nichtstun. */
+            if (gutschein && lbWahl && !lbGekauft && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lbMail.trim())) {
+              setHinweis(F.lbFehlerMail ?? ""); return;
+            }
             setHinweis("");
-            void erzeugen();
+            void erzeugen(false);
           }}
-          className={`lb-karte-cta flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95${(!fotosDa || !mailOk || busy) ? " opacity-45" : ""}`}>
+          className={`lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95${(!fotosDa || !mailOk || busy || (urlaub && (!sie.trim() || !er.trim()))) ? " opacity-45" : ""}`}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {/* KEIN GRATIS-VERSPRECHEN AUF EINEM KNOPF, DER KEINS EINHAELT (plan.md Punkt 1a,
               02.08.2026: hier tatsaechlich behoben, nicht nur im toten `KissFunnel`-Pfad).
               `ctaFree` sagt „gratis" — seit der Kasse oben stimmt das nicht mehr. Waehrend
               Kasse/Bild/Video laufen, steht der laufende Status auf dem Knopf, nicht drei
               Minuten lang derselbe Satz. */}
-          {busy ? (status || F.oneMoment) : F.ctaVideo}
+          {/* Beim Gutschein steht auf dem Knopf, was WIRKLICH bezahlt wird: der Preis des
+              gewählten Geschenks — oder „Karte erstellen", denn die Karte selbst ist gratis
+              (Owner 06.08.2026: „Die Gutscheingenerierung kostet nichts."). */}
+          {busy ? (status || F.oneMoment)
+            : gutschein
+              ? (lbWahl && !lbGekauft
+                ? (F.lbCta ?? "").replace("{preis}", eur(lbWahl.cents, lang))
+                : (F.ctaVideo ?? ""))
+              : fillPrices(T.ctaBild, lang)}
         </button>
+        )}
+        {/**
+          * DER ZWEITE WEG: gleich ein Video (Owner 04.08.2026: „User kann bei der Generierung
+          * wählen was er will. Bild oder Video").
+          *
+          * Umriss statt gefüllt, und darunter statt daneben: Zwei gleich starke Knöpfe
+          * nebeneinander lassen den Kunden raten, welcher der normale ist. Das Bild ist der
+          * Regelfall — es kostet ein Drittel und die Einladung ist damit vollständig. Wer das
+          * Video will, findet es eine Zeile tiefer und sieht sofort, was es kostet.
+          */}
+        {/* NUR EIN KAUFKNOPF BEIM GUTSCHEIN (Owner 05.08.2026: „Direct un Videoclip raus").
+            Bild oder gleich Video ist die Wahl der Einladung — dort erzeugen WIR das Video.
+            Beim Gutschein bringt er sein eigenes mit oder nimmt unser fertiges; es gibt
+            nichts zu waehlen, also auch keinen zweiten Knopf. */}
+        {!gutschein && (
+        <button type="button"
+          onClick={() => {
+            if (busy) return;
+            if (!fotosDa) { setHinweis(F.pickFirst); return; }
+            if (urlaub && (!sie.trim() || !er.trim())) { setHinweis(T.namen); return; }
+            if (!mailOk) { setHinweis(F.mailInvalid); return; }
+            setHinweis("");
+            void erzeugen(true);
+          }}
+          className={`lb-karte-absage mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black transition active:scale-95${(!fotosDa || !mailOk || busy || (urlaub && (!sie.trim() || !er.trim()))) ? " opacity-45" : ""}`}>
+          <Sparkles className="h-4 w-4" />
+          {fillPrices(T.ctaVideoGleich, lang)}
+        </button>
+        )}
         {hinweis && (
           /* `lb-karte-fehler` statt Inline-Rot: In der Karte gewinnt die !important-Braunregel
              gegen jeden Inline-`style` — nur eine eigene !important-Klasse kommt dagegen an. */
@@ -708,13 +1757,13 @@ export default function EinladungBauen({ lang, beispielVideo = "" }: {
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
         <input ref={paarRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("paar"); setCropDatei(f); } e.target.value = ""; }} />
-      </>), busy, true)}
+      </>), busy, true, true)}
 
       {cropDatei && cropZiel && (
         /* Das Paarfoto wird im Querformat zugeschnitten — bei 3:4 faellt regelmaessig einer
            der beiden aus dem Bild, und dann fehlt genau das Gesicht, um das es geht. */
         <ImageCropper file={cropDatei} aspect={cropZiel === "paar" ? 4 / 3 : 3 / 4}
-          title={cropZiel === "paar" ? T.fPaar : cropZiel === "sie" ? F.upTitle : T.fotoEr}
+          title={cropZiel === "paar" ? T.fPaar : cropZiel === "sie" ? F.upTitle : (botschaftFrei ? T.fotoEingeladen : T.fotoEr)}
           onCancel={() => { setCropDatei(null); setCropZiel(null); }}
           onSave={async (zugeschnitten) => {
             const ziel = cropZiel;

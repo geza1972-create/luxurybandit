@@ -108,7 +108,7 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 
 // Reference mode: dress the person (@Bild2) in the garment (@Bild1) AND animate, in
 // one step — keeps the face (FASHN's photo doesn't). Used for lingerie video/360°.
-async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string, slowmo = false, hd = false): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
+async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string, slowmo = false, hd = false, sekunden = 0): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
   // Send the caller's prompt EXACTLY as written (no remapping, no extra clauses) — same
@@ -158,7 +158,11 @@ async function pixverseStartReference(key: string, garment: string, person: stri
      * Kommentar, der eine Einschraenkung behauptet, die es nicht gibt, ist teurer als gar
      * keiner — er haelt den naechsten Leser von genau der Loesung ab.
      */
-    duration: turnaround ? 10 : (slowmo ? 10 : 7),
+    /* KUERZER, WENN DER AUFRUFER ES SAGT (Owner 05.08.2026, zum Gutschein: „5 sek. das
+       reicht vollkommend"). Ohne Angabe bleibt es bei 7 — die Laenge, die Kuss, Hochzeit und
+       Urlaub seit Wochen fahren. Erlaubt sind nur Werte, die Pixverse kennt; alles andere
+       faellt auf die Vorgabe zurueck, statt einen Lauf mit einer erfundenen Zahl zu starten. */
+    duration: turnaround ? 10 : (slowmo ? 10 : ([5, 7, 8].includes(sekunden) ? sekunden : 7)),
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     // 360p ist die SPARSTUFE fuer Admin-Vorschauen, die spaeter hochgerechnet werden.
@@ -313,7 +317,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; slowmo?: boolean; hd?: boolean; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; slowmo?: boolean; sekunden?: number; hd?: boolean; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -388,6 +392,8 @@ export async function POST(request: Request) {
   // Slow motion (admin, per-video): add a slow-mo cue so Pixverse renders the movement
   // slower AND generates matching-tempo music (no playback-rate audio distortion).
   const slowmo = body.slowmo === true;
+  /* Weisse Liste, keine Zahl aus dem Browser: siehe `duration` in pixverseStartReference. */
+  const sekunden = [5, 7, 8].includes(Number(body.sekunden)) ? Number(body.sekunden) : 0;
   // NB: avoid the word "cinematic" — Pixverse reads it as a camera move (zoom/dolly).
   // Ask for slow MOVEMENT + a fixed camera so it never zooms.
   if (slowmo && promptWithScene) promptWithScene = `${promptWithScene} Alles in sanfter Zeitlupe, langsame ruhige Bewegungen. Feststehende Kamera, kein Zoom, keine Kamerafahrt.`;
@@ -673,7 +679,7 @@ export async function POST(request: Request) {
     if (!r.videoId) {
       if (mimicUrl && r.error) protokoll(undefined, `mimic: ${r.error} — falle auf Referenz zurueck`);
       r = reference
-        ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true)
+        ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true, sekunden)
         : await pixverseStart(key, image, turnaround, promptWithScene);
     }
     if (!r.videoId) {

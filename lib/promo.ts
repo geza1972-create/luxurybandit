@@ -29,10 +29,19 @@ const BUILTIN: Record<string, string> = {
   // beide als „irgendwie über Instagram" zusammenlaufen.
   BELLAA: "sRHDMAQE",
   BELLAB: "sRHDMAQE",
-  // ADMIN-Codes zum DURCHTESTEN bis zur echten Zahlung (100 %, dauerhaft). Bewusst hier
-  // und nicht in der Env, damit der Owner auch in der Produktion testen kann.
-  ADMIN100: "hvJ8ZO7c",
-  ADMIN1972: "c1YEsyFu",
+  /**
+   * DIE ADMIN-CODES STEHEN NICHT MEHR HIER (Owner 05.08.2026: „Wir verraten nicht den Code").
+   *
+   * Es waren zwei 100-%-Gutscheine zum Durchtesten bis zur echten Zahlung, und der Kommentar
+   * daneben sagte sogar, sie stuenden bewusst im Quelltext, damit man auch in der Produktion
+   * testen kann. Das war der Fehler: Wer das Projekt sieht, sieht sie — und ein 100-%-Code
+   * kauft jedes Produkt umsonst. Einer davon war am 03.08.2026 schon 18-mal eingeloest.
+   *
+   * Sie leben jetzt in `STRIPE_PROMO_CODES` (JSON, wird unten ueber die eingebauten gelegt).
+   * Lokal stehen sie in `.env.local`; fuer die Produktion gehoert dieselbe Variable in die
+   * Vercel-Umgebung. Fehlt sie, gibt es die Admin-Codes einfach nicht — die Kasse verlangt
+   * dann den vollen Preis, was der richtige Ausfall ist.
+   */
 };
 
 export function couponFor(code: string): string | undefined {

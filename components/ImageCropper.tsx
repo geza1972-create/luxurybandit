@@ -22,19 +22,38 @@ import { Check, X, ZoomIn } from "lucide-react";
  * auftaucht (Trichter, Bildmodelle, Vorschau).
  */
 
+/**
+ * DIE BESCHRIFTUNGEN SIND ÜBERSCHREIBBAR (04.08.2026). Sie standen fest auf Deutsch, und
+ * damit sprach der Dialog auf jeder englischen Seite plötzlich Deutsch — auf der
+ * Urlaubsseite mitten im Trichter. Die Vorgaben bleiben deutsch, damit sich für die
+ * bestehenden Aufrufer (Hochzeit, Kuss, Admin-Werkzeuge) nichts ändert.
+ */
+type CropTexte = { hinweis: string; abbrechen: string; speichern: string; speichert: string };
+
+const CROP_TEXTE: CropTexte = {
+  hinweis: "Bild verschieben — mit dem Regler näher heran.",
+  abbrechen: "Abbrechen",
+  speichern: "Speichern",
+  speichert: "Speichert …",
+};
+
 export default function ImageCropper({
   file,
   aspect = 2 / 3,
   title = "Ausschnitt wählen",
+  texte,
   onCancel,
   onSave,
 }: {
   file: File;
   aspect?: number;                       // Breite / Höhe der Zielkachel
   title?: string;
+  /** Nur setzen, wo die Seite nicht deutsch ist — sonst bleibt es bei CROP_TEXTE. */
+  texte?: Partial<CropTexte>;
   onCancel: () => void;
   onSave: (cropped: File, previewUrl: string) => void | Promise<void>;
 }) {
+  const TX = { ...CROP_TEXTE, ...texte };
   const [src, setSrc] = useState("");
   const [nat, setNat] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
@@ -121,7 +140,7 @@ export default function ImageCropper({
       <div className="w-full max-w-[380px] rounded-2xl p-4" style={{ background: "#fff" }}>
         <div className="flex items-center justify-between">
           <p className="text-[14px] font-black" style={{ color: "#111" }}>{title}</p>
-          <button type="button" onClick={onCancel} aria-label="Abbrechen"
+          <button type="button" onClick={onCancel} aria-label={TX.abbrechen}
             className="grid h-8 w-8 place-items-center rounded-full" style={{ background: "#eee", color: "#111" }}>
             <X className="h-4 w-4" />
           </button>
@@ -149,7 +168,7 @@ export default function ImageCropper({
         </div>
 
         <p className="mt-2 text-[11px] font-bold" style={{ color: "rgba(0,0,0,0.5)" }}>
-          Bild verschieben — mit dem Regler näher heran.
+          {TX.hinweis}
         </p>
         <div className="mt-1 flex items-center gap-2">
           <ZoomIn className="h-4 w-4" style={{ color: "rgba(0,0,0,0.4)" }} />
@@ -162,13 +181,13 @@ export default function ImageCropper({
           <button type="button" onClick={onCancel}
             className="h-11 flex-1 rounded-full text-[14px] font-black"
             style={{ background: "#eee", color: "#111" }}>
-            Abbrechen
+            {TX.abbrechen}
           </button>
           <button type="button" onClick={() => void save()} disabled={saving || !nat.w}
             className="flex h-11 flex-[1.4] items-center justify-center gap-2 rounded-full text-[14px] font-black"
             style={{ background: saving || !nat.w ? "#c9c9c9" : "#111", color: "#fff" }}>
             <Check className="h-4 w-4" />
-            {saving ? "Speichert …" : "Speichern"}
+            {saving ? TX.speichert : TX.speichern}
           </button>
         </div>
       </div>

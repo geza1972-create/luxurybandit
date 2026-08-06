@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, poledancePriceId, EXTRA_VIDEO_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS } from "@/lib/pricing";
 import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; email?: string; aufladen?: boolean; topupCents?: number };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -84,10 +84,11 @@ export async function POST(request: Request) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return NextResponse.json({ error: "Email required." }, { status: 400 });
     }
-    // ZWEI STUFEN, WHITELIST (Owner 03.08.2026: „biete beide an"): Der Trichter WÜNSCHT
-    // einen Betrag, die Kasse kennt nur die zwei aus der Preistabelle — alles andere
-    // faellt auf die kleine Stufe zurueck. Gutgeschrieben wird ohnehin, was BEZAHLT wurde.
-    const stufe = Number(body.topupCents) === TOPUP_GROSS_CENTS ? TOPUP_GROSS_CENTS : TOPUP_CENTS;
+    // EINE STUFE JE PREIS, WHITELIST (Owner 05.08.2026: „man muss also 14,99, 29,00 und 59,00
+    // anbieten. 4,99 € kann man auch anbieten und auch 9,99 €"): Der Trichter WÜNSCHT einen
+    // Betrag, die Kasse kennt nur die Leiter aus der Preistabelle — alles andere faellt auf
+    // die kleinste Stufe zurueck. Gutgeschrieben wird ohnehin, was BEZAHLT wurde.
+    const stufe = aufladeStufe(body.topupCents);
     try {
       const { id, url } = await createTryonCheckout({
         amount: stufe,
@@ -130,7 +131,27 @@ export async function POST(request: Request) {
       ? await readKissLog().then(l => String(l.find(x => x.id === genId)?.theme ?? "")).catch(() => "")
       : "";
     const tanz = thema === "poledance";
-    const preis = tanz ? POLEDANCE_CENTS : ONCE_CENTS;
+    /**
+     * DER VIDEO-AUFPREIS (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn er das Video
+     * generieren möchte, dann kann er das nachträglich für 3,99").
+     *
+     * Das ist der EINZIGE Preis, den der Browser mitbestimmen darf — und zwar nur nach OBEN.
+     * Die Regel oben („massgeblich ist das Thema, nicht der Browser") schuetzt davor, dass
+     * sich jemand ein teures Video billig holt. Hier ist es umgekehrt: Wer `videoAufpreis`
+     * setzt, verlangt MEHR zu zahlen als die Vorgabe. Ein Angreifer, der das faelscht,
+     * schadet nur sich selbst — deshalb genuegt hier das Flag.
+     *
+     * Beim Tanz bleibt es beim Tanzpreis: Dort IST das Video das Produkt, es gibt kein Bild
+     * davor und also auch nichts aufzuwerten.
+     */
+    const videoAufpreis = body.videoAufpreis === true && !tanz;
+    /* DIE GUTSCHEIN-KARTE KOSTET WENIGER (Owner 05.08.2026: „15 € ist zu viel für den
+       Gutschein. Es muss 9,99 sein"). Weisse Liste statt Betrag aus dem Aufruf: Der Browser
+       sagt nur, WELCHES Thema — die Zahl steht in lib/pricing. */
+    const gutschein = String(body.thema ?? "") === "gutschein";
+    const preis = tanz ? POLEDANCE_CENTS
+      : gutschein ? GUTSCHEIN_CENTS
+      : videoAufpreis ? VIDEO_UPGRADE_CENTS : ONCE_CENTS;
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
@@ -159,11 +180,18 @@ export async function POST(request: Request) {
       const { id, url } = await createTryonCheckout({
         amount: preis,
         currency: "eur",
-        // Der Tanz laeuft ueber die im Stripe-Konto angelegte Kennung (Owner 03.08.2026) —
-        // Produktname und Steuerverhalten stehen dann dort, wo er sie sieht. `amount` bleibt
-        // trotzdem gesetzt: Es ist der Wert, gegen den die Kennung geprueft wurde, und der
-        // Rueckfall, falls die Kennung je gezogen wird.
-        ...(tanz ? { priceId: poledancePriceId() } : {}),
+        /**
+         * KEINE PREIS-KENNUNG MEHR, NUR DER BETRAG (05.08.2026, Owner: „5,10,15,30,60").
+         *
+         * Hier stand kurz die gemeinsame 14,99-Kennung des Owners. Mit den runden Preisen
+         * steht sie auf 1499, waehrend ONCE_CENTS 1500 sagt — eine Kennung, die der Tabelle
+         * hinterherhinkt, bucht einen anderen Betrag ab als der Knopf verspricht. Bei
+         * `price_data` kann das nicht passieren: Der Betrag IST die Tabelle.
+         *
+         * Was der Kunde auf der Kassenseite liest, steht in `productName` darunter — dafuer
+         * braucht es kein Produkt in Stripe. Kennungen bleiben nur dort Pflicht, wo Stripe
+         * sie verlangt: bei den ABOS (hochzeitAboPriceId / chatAboPriceId).
+         */
         productName: tanz ? "Pole dance video — one-off" : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

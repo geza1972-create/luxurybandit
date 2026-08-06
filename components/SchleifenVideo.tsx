@@ -31,11 +31,20 @@ import { useEffect, useRef, useState } from "react";
 export const UEBERBLENDUNG = 0.7;
 
 export default function SchleifenVideo({
-  src, poster, className = "", stumm = true, schleife = true, spielerRef,
+  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover",
 }: {
   src: string;
   poster?: string;
   className?: string;
+  /**
+   * WIE DAS VIDEO IN DIE FLAECHE PASST (Owner 05.08.2026: „mach das Video ganz zu sehen").
+   *
+   * `cover` fuellt die Flaeche und SCHNEIDET ab, was nicht hineinpasst — bei einem 9:16-Video
+   * in einer 3:4-Karte ist das rund ein Viertel der Hoehe, oben und unten. `contain` zeigt das
+   * ganze Bild und laesst stattdessen Rand stehen. Vorgabe bleibt `cover`, weil die Kacheln
+   * und der Feed davon leben; die KARTE bittet um `contain`.
+   */
+  passform?: "cover" | "contain";
   /** Fast immer stumm: Den Ton tragen unsere eigenen Tonspuren (lib/musik.ts). */
   stumm?: boolean;
   /**
@@ -96,7 +105,7 @@ export default function SchleifenVideo({
    * waehrend der Ueberblendung doppelt und leicht versetzt — das klingt kaputter als ein
    * harter Schnitt aussieht.
    */
-  const gemeinsam = `h-full w-full object-cover ${className}`;
+  const gemeinsam = `h-full w-full ${passform === "contain" ? "object-contain" : "object-cover"} ${className}`;
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

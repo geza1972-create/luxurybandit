@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
+import KartenKarussell from "@/components/KartenKarussell";
 import TeilenKnopf from "@/components/TeilenKnopf";
 
 /**
@@ -42,9 +43,15 @@ export const TEILEN_TEXT: Record<string, string> = {
 /** Der Name des Ereignisses — auch der Trichter hört genau darauf. */
 export const SCHRITTE_OEFFNEN = "lb-schritte-oeffnen";
 
-export default function BeispielGalerie({ videos, lang = "en", titel = "", gesperrtText = "" }: {
+export default function BeispielGalerie({ videos, lang = "en", titel = "", gesperrtText = "", ziel = "/themes/kiss" }: {
   videos: string[];
   lang?: string;
+  /**
+   * WOHIN DER TEILEN-KNOPF ZEIGT. Stand fest auf `/themes/kiss` — seit die Karten auch auf
+   * der Urlaubs-Seite stehen (04.08.2026), haette jede geteilte Urlaubs-Karte den Empfaenger
+   * auf die Kuss-Seite geschickt. Der Link muss dorthin, wo das Video herkommt.
+   */
+  ziel?: string;
   /** Überschrift auf jeder Karte — beim Kuss „Der Kuss". Leer nimmt die Vorgabe der Karte. */
   titel?: string;
   /**
@@ -80,21 +87,36 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "", gespe
     try { window.dispatchEvent(new CustomEvent(SCHRITTE_OEFFNEN)); } catch { /**/ }
   };
 
+  /**
+   * EINE KARTE, DIE VIDEOS WECHSELN SICH DARIN AB (Owner 05.08.2026: „ich will nicht mehr
+   * mehrere Karten, sondern eine Karte und die Videos wechseln sich ab in der Karte" — „so
+   * wird die Seite kürzer").
+   *
+   * Hier stand eine Karte JE VIDEO, untereinander. Bei vier Beispielen sind das vier volle
+   * Handy-Höhen mit demselben Versprechen — der Besucher scrollt an allem vorbei, was danach
+   * kommt, oder er hört vorher auf. Jetzt trägt EINE Karte alle Beispiele, und wer mehr sehen
+   * will, wischt.
+   *
+   * `KartenKarussell` gab es schon (04.08.2026, für die Bau-Karte: „wie Karussell"). Bei einem
+   * einzigen Video gibt es weder Bahn noch Punkte — dann ist es wieder genau die eine Karte,
+   * die es vorher auch war.
+   */
   return (
-    <div className="space-y-5">
-      {videos.map((url, i) => (
-        <EinladungKarte
-          key={i} sprache={lang} sie="" er="" demo titel={titel || undefined}
-          video={
-            <div className="relative">
+    <EinladungKarte
+      sprache={lang} sie="" er="" demo titel={titel || undefined}
+      video={
+        <KartenKarussell folien={videos.map((url, i) => (
+            <div key={i} className="relative">
+              {/* DIE DREI SYMBOLE SETZT DIE KARTE (Skill `card`): Vergroessern links,
+                  Ton rechts, Teilen darunter. Hier stand der Teilen-Knopf frueher von Hand
+                  links oben — eine von sechs Stellen, an denen er seinen eigenen Platz hatte. */}
               <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
-                tonText={T.ton} tonAusText={T.tonAus} />
-              {/* Links oben, gegenueber dem Ton-Knopf — ueber dem Griff (z-30), sonst
-                  schluckt die Tipp-Flaeche den Knopf. */}
-              <TeilenKnopf rund url="/themes/kiss?utm_source=share"
-                text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                label={T.teilen} kopiertLabel={T.zusDanke}
-                className="absolute left-2 top-2 z-30" />
+                tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein}
+                teilen={
+                  <TeilenKnopf rund url={`${ziel}?utm_source=share`}
+                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    label={T.teilen} kopiertLabel={T.zusDanke} />
+                } />
               {/* DAS GANZE VIDEO IST DER KNOPF (Owner 31.07.2026: „beim Klick auf Video kommt
                   direkt Upload"). Wer ein Beispiel ansieht und es antippt, meint genau das —
                   ihn dann eine kleine Schaltfläche suchen zu lassen, ist eine Hürde ohne
@@ -116,9 +138,8 @@ export default function BeispielGalerie({ videos, lang = "en", titel = "", gespe
                 </span>
               </div>
             </div>
-          }
-        />
-      ))}
-    </div>
+          ))} />
+      }
+    />
   );
 }

@@ -39,14 +39,43 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
 export type Menu = "normal" | "vegetarisch" | "vegan";
 export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu; personen?: number };
 
+/**
+ * WANN DIE ANTWORT KAM — kurz, in der Sprache des Lesers.
+ *
+ * Kein volles ISO-Datum: „2026-08-04T14:32:11.402Z" ist eine Maschinenangabe. „4. Aug.,
+ * 14:32" liest man im Vorbeigehen. Die Zeitzone ist die des Betrachters — er will wissen,
+ * wann es bei IHM war, nicht auf unserem Server.
+ */
+const ORTE: Record<string, string> = {
+  de: "de-DE", en: "en-GB", ro: "ro-RO", es: "es-ES", fr: "fr-FR", pt: "pt-PT", it: "it-IT",
+};
+function zeitpunkt(iso: string, sprache: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return d.toLocaleString(ORTE[sprache] ?? "en-GB",
+      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  } catch { return ""; }
+}
+
 export default function ZusagenKarte({
-  sprache, id, zusagen, demo,
+  sprache, id, zusagen, demo, schlicht,
 }: {
   sprache: string;
   /** Kennung der Einladung — ohne sie (Verkaufsseite) gibt es keine Knoepfe. */
   id?: string;
   zusagen: Zusage[];
   demo?: boolean;
+  /**
+   * NUR JA ODER NEIN (Owner 04.08.2026, für die Urlaubs-Einladung: „nur zusagen oder
+   * absagen").
+   *
+   * Menüwahl und Gästezahl sind Hochzeitssachen: Sie beantworten Fragen, die man bei
+   * fünfzig Gästen und einem Caterer hat. Eine Urlaubs-Einladung geht an EINEN Menschen —
+   * dort sind es zwei Pflichtfragen, die niemand beantworten muss, direkt vor dem einzigen
+   * Knopf, auf den es ankommt. Jede Frage vor einem Ja kostet Antworten.
+   */
+  schlicht?: boolean;
 }) {
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   const [liste, setListe] = useState<Zusage[]>(zusagen);
@@ -76,13 +105,13 @@ export default function ZusagenKarte({
     // Das Menü zaehlt nur bei einer Zusage — wer absagt, isst nicht mit.
     const r = await fetch("/api/einladung", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt ? menu : undefined, personen: kommt ? personen : undefined }),
+      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt && !schlicht ? menu : undefined, personen: kommt && !schlicht ? personen : undefined }),
     }).catch(() => null);
     setBusy(false);
     if (!r?.ok) return;
     // Sofort anzeigen, statt die Seite neu zu laden — die Antwort soll sich anfuehlen wie
     // ein Haendedruck, nicht wie ein Formular.
-    setListe(l => [...l, { name: n, ja: kommt, menu: kommt ? menu : undefined, personen: kommt ? personen : undefined }]);
+    setListe(l => [...l, { name: n, ja: kommt, menu: kommt && !schlicht ? menu : undefined, personen: kommt && !schlicht ? personen : undefined }]);
     setName(""); setMail(""); setMenu("normal"); setPersonen(1);
     setFertig(true);
   };
@@ -93,11 +122,13 @@ export default function ZusagenKarte({
       <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
 
       <div className="relative">
+        {/* „Wer kommt · 3 Gäste kommen" zählt eine Gästeliste. Beim Urlaub antwortet EINE
+            Person, und dann ist die Zahl keine Auskunft, sondern ein Missverständnis. */}
         <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.28em]">
-          {T.zusTitel}
+          {schlicht ? T.zusTitelUrlaub : T.zusTitel}
         </p>
         <p className="mt-1.5 text-center font-serif text-[17px] font-bold">
-          {T.zusGaeste(gaeste, nein)}
+          {schlicht ? T.zusGaesteUrlaub(gaeste, nein) : T.zusGaeste(gaeste, nein)}
         </p>
         <DividerOrnament className="mt-2.5" />
 
@@ -111,6 +142,16 @@ export default function ZusagenKarte({
                   ? <Check className="lb-karte-ja h-4 w-4 shrink-0" />
                   : <X className="lb-karte-nein h-4 w-4 shrink-0" />}
                 <span className={z.ja ? "" : "opacity-55 line-through"}>{z.name}</span>
+                {/* WANN GEANTWORTET WURDE (Owner 04.08.2026: „Datum Uhrzeit der Bestätigung").
+                    `at` wird seit jeher gespeichert und war nie zu sehen. Bei einer Hochzeit
+                    mit achtzig Zusagen ist das Rauschen; bei EINER Antwort ist es die halbe
+                    Nachricht — „sie hat vor zehn Minuten zugesagt" ist etwas anderes als
+                    „irgendwann". Deshalb steht es hinten und klein, nicht als eigene Zeile. */}
+                {z.at && (
+                  <span className="ml-auto shrink-0 font-serif text-[11.5px] opacity-55">
+                    {zeitpunkt(z.at, sprache)}
+                  </span>
+                )}
                 {/* NUR WENN ES VOM NORMALEN ABWEICHT — „normal" ist der Regelfall, ein Etikett
                     dafür wäre Rauschen. Vegetarisch/vegan ist genau die Information, für die
                     das Paar beim Caterer nachfragen muss. */}
@@ -154,31 +195,34 @@ export default function ZusagenKarte({
                   müssen, nur weil er nichts Besonderes braucht. Zählt nur bei „Ja"; wer absagt,
                   sieht die Wahl trotzdem (einfacher als sie ein- und auszublenden), sie wird
                   beim Absenden nur nicht mitgeschickt. */}
-              <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
-                {T.zusMenuFrage}
-              </p>
-              <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
-                {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([m, label]) => (
-                  <button key={m} type="button" onClick={() => setMenu(m)}
-                    className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {/* GÄSTEZAHL HINTER DER ZUSAGE (Ä10c, Owner 02.08.2026: „die Gästezahl muss noch
-                  klar stehen"). EXAKT dasselbe Knopf-Muster wie die Menü-Chips darüber:
-                  klicken statt tippen, Chips nie leer, Vorgabe 1. */}
-              <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
-                {T.zusWieViele}
-              </p>
-              <div className="mt-1.5 grid grid-cols-6 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
-                {([1, 2, 3, 4, 5, 6] as const).map(n => (
-                  <button key={n} type="button" onClick={() => setPersonen(n)}
-                    className={`${personen === n ? "lb-karte-cta" : ""} h-9 rounded-full text-[13px] font-black transition active:scale-95`}>
-                    {n}
-                  </button>
-                ))}
-              </div>
+              {/* Menü und Gästezahl nur bei der Hochzeit — siehe `schlicht` oben. */}
+              {!schlicht && (<>
+                <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
+                  {T.zusMenuFrage}
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                  {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([m, label]) => (
+                    <button key={m} type="button" onClick={() => setMenu(m)}
+                      className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {/* GÄSTEZAHL HINTER DER ZUSAGE (Ä10c, Owner 02.08.2026: „die Gästezahl muss noch
+                    klar stehen"). EXAKT dasselbe Knopf-Muster wie die Menü-Chips darüber:
+                    klicken statt tippen, Chips nie leer, Vorgabe 1. */}
+                <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
+                  {T.zusWieViele}
+                </p>
+                <div className="mt-1.5 grid grid-cols-6 gap-1 rounded-full p-1" style={{ background: "rgba(160,122,52,0.10)" }}>
+                  {([1, 2, 3, 4, 5, 6] as const).map(n => (
+                    <button key={n} type="button" onClick={() => setPersonen(n)}
+                      className={`${personen === n ? "lb-karte-cta" : ""} h-9 rounded-full text-[13px] font-black transition active:scale-95`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </>)}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => void antworten(true)} disabled={!name.trim() || !mailOk || busy}
                   className="lb-karte-cta flex h-11 items-center justify-center gap-1.5 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">

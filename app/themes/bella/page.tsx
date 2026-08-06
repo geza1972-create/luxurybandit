@@ -9,6 +9,7 @@ import HolidayFunnel from "@/components/HolidayFunnel";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ManageViewToggle from "@/components/ManageViewToggle";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
+import SeitenFuss from "@/components/SeitenFuss";
 import { resolveLang } from "@/lib/lang-server";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
 import { getSignedUrl, readThemeConfig, readTryThisLookState, type KissConfig } from "@/lib/try-this-look-store";
@@ -195,6 +196,10 @@ export default async function BellaThemePage({ searchParams }: {
           </div>
         )}
       </div>
+        {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
+            Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
+            gesehen. Siehe components/SeitenFuss. */}
+        <SeitenFuss />
     </main>
   );
 }

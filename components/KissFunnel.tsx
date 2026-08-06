@@ -8,7 +8,7 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2 } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, TOPUP_CENTS, TOPUP_GROSS_CENTS, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -36,6 +36,9 @@ import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
 import LightSwitch from "@/components/LightSwitch";
+import HandelZeile from "@/components/HandelZeile";
+import FotoAnleitung from "@/components/FotoAnleitung";
+import KartenKarussell from "@/components/KartenKarussell";
 
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
@@ -239,8 +242,24 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * in einen Dialog, die Karte kommt darueber, und der Kaufblock bleibt, wo er war. Kein
  * einziger Handgriff am bezahlten Weg — der laeuft gerade.
  */
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "" }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string }) {
+/**
+ * EINE KARTE, ALLE BEISPIELE (Owner 05.08.2026: „ich will nicht mehr mehrere Karten, sondern
+ * eine Karte und die Videos wechseln sich ab in der Karte" — „so wird die Seite kürzer" — und
+ * auf die erste Fassung mit Galerie darunter: „nein, es sind zwei Karten").
+ *
+ * `beispielVideos` ersetzt das einzelne `beispielVideo`: Alle Beispiele liegen jetzt IN der
+ * einen Karte oben und wechseln per Wischen. Die Beispiel-Galerie weiter unten auf der
+ * Themenseite faellt damit weg — sie war die zweite Karte.
+ *
+ * `beispielVideo` bleibt als Prop bestehen, weil mehrere Seiten es so uebergeben; es ist
+ * schlicht der erste Eintrag der Liste.
+ */
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
   const V = VARIANTS[variant];
+  /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
+     Seite bisher als `beispielVideo` geschickt hat — die Karte startet also mit demselben
+     Video wie vorher. */
+  const beispiele = Array.from(new Set([...(beispielVideos ?? []), beispielVideo].filter(Boolean)));
   // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
   const T = kissText(lang, variant);
   // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
@@ -2481,9 +2500,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * Sonst trug die Karte „Your birthday video" — eine Beschreibung dessen, was man
          * gekauft hat. Das Geburtstagskind bekommt aber kein Produkt, es bekommt einen Gruss.
          */
+        /* KEIN SCHRITTNAME MEHR ALS KARTENTITEL (Owner 05.08.2026: „ganz trocken ‚The
+           Kiss'"). `karteTitel` adressiert die Karte an den Menschen, für den sie ist —
+           genau wie es der Geburtstag seit dem 03.08. macht. */
         titel={variant === "birthday"
           ? geburtstagTitel(empfaenger)
-          : String(T.step3 ?? "").replace(/^\s*\d+\s*[·.\-]\s*/, "")}
+          : T.karteTitel(empfaenger.trim())}
         /**
          * DIE HERKUNFTSZEILE GEHOERT AUF JEDE KARTE (Owner 03.08.2026: „ich bitte dich,
          * benutze IMMER die Cards für die Videos mit Titel oben und Made by
@@ -2498,9 +2520,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * ist am 03.08. schon einmal eine Prozentzahl unsichtbar geworden.
          */
         fuss={
-          <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
+          /* Als LINK (Owner 06.08.2026: „Made by Luxurybandit.com und auch link drauf") —
+             dieselbe Zeile wie auf Einladungs- und Gutschein-Karte, ein Tipp führt heim. */
+          <a href="/?utm_source=karte"
+            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
             made by luxurybandit.com
-          </p>
+          </a>
         }
         video={
           /* DAS ERGEBNIS GEHOERT IN DIE KARTE (Owner 31.07.2026: „auf dieser Seite will ich
@@ -2530,25 +2555,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * bleibt stumm (siehe lib/musik.ts): Sie ist acht Sekunden lang und saesse bei
                 * jeder Schleife wieder auf dem ersten Takt.
                 */}
+              {/* Die drei Symbole setzt die Karte selbst (Skill `card`): Vergroessern links,
+                  Ton rechts, Teilen darunter. Der Teilen-Knopf stand hier von Hand links
+                  oben — eine von sechs solchen Stellen. */}
               <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: V.musik, tonAutomatisch: true })}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
-                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
+                grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross}
+                kleinText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).klein}
+                teilen={genId ? (
+                  /* Mit `genId` gibt es eine Werk-Seite — dann fragt der Knopf erst, WAS
+                     verschickt wird (Link oder Datei), statt es zu erraten. */
+                  <button type="button" onClick={() => setShareFrage(true)}
+                    aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                    style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                    className="grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
+                    <Send className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <TeilenKnopf rund datei={videoUrl} dateiName={variant}
+                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                    kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
+                )} />
               <Reaktionen variant={variant} lang={lang} name={empfaenger} />
-              {genId ? (
-                <button type="button" onClick={() => setShareFrage(true)}
-                  aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                  style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                  className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
-                  <Send className="h-5 w-5" />
-                </button>
-              ) : (
-                <TeilenKnopf rund datei={videoUrl} dateiName={variant}
-                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                  label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                  kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
-                  className="absolute left-2 top-2 z-30" />
-              )}
               {/* HIER STAND „Herunterladen" EIN ZWEITES MAL (Owner 03.08.2026: „Download steht
                   schon unten").
 
@@ -2651,40 +2682,65 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   { text: kartenAufruf, tun: schritteOeffnen },
                 )}
             </div>
-          ) : beispielVideo ? (
+          ) : beispiele.length ? (
             <div className="relative">
               {/* DIE TONSPUR DES THEMAS, nicht die Vorgabe (03.08.2026). Hier fehlte der
                   Parameter, also lief unter JEDEM Beispiel das ruhige Hochzeitsstueck — auch
                   unter einem Tanz im Neonclub. `V.musik` steht in lib/geschenke je Geschenk;
                   ohne Eintrag bleibt es bei der bisherigen Vorgabe, es aendert sich also
                   nichts fuer die Themen, die keine eigene Spur haben. */}
-              <EinladungAnsicht id="" videoUrl={beispielVideo} zaehlen={false}
+              {/* JEDES BEISPIEL EINE FOLIE — bei nur einem gibt `KartenKarussell` es
+                  unveraendert zurueck, ohne Bahn und ohne Punkte. Ueberlagerungen (Herzchen,
+                  Griff, Renderschicht) bleiben DARUEBER stehen und wandern nicht mit: Sie
+                  gehoeren zur Karte, nicht zum einzelnen Video. */}
+              <KartenKarussell folien={beispiele.map((url, i) => (
+              <EinladungAnsicht key={i} id="" videoUrl={url} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
-                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />
+                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
+                grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross}
+                kleinText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).klein}
+                /* Beispiele darf jeder verschicken (Owner: „damit die Leute Werbung machen
+                   koennen") — Ziel ist die Themenseite. WAEHREND DES LAUFS NICHT: Wo eine
+                   Auskunft ueber sein Geld und ein Teilen-Knopf um dieselbe Flaeche streiten,
+                   gewinnt die Auskunft. Den Platz bestimmt jetzt die Karte (Skill `card`). */
+                teilen={karteRendert ? undefined : (
+                  <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : "kiss"}?utm_source=share`}
+                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                    kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
+                )} />
+              ))} />
+              {/* Der sichtbare Kaufaufruf — auf dem Papier, nicht auf dem Bild. */}
+              {!karteRendert && (
+                <button type="button" onClick={schritteOeffnen}
+                  className="lb-gold mt-2 flex h-12 w-full items-center justify-center rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.2)] active:scale-95 transition">
+                  {gesperrt ? T.blockedOnce : kartenAufruf}
+                </button>
+              )}
               {/* „auch im Original Herzchen und wow" — auf dem Beispiel verkaufen sie, was
                   sie auf dem eigenen Bild belohnen.
                   WAEHREND DES LAUFS NICHT: Dieselbe Regel wie ueber dem eigenen Bild —
                   Herzchen sind Schmuck, eine Auskunft ueber sein Geld ist keiner. Wo beide um
                   dieselbe Flaeche streiten, gewinnt die Auskunft. */}
               {!karteRendert && <Reaktionen variant={variant} lang={lang} name={empfaenger} />}
-              {/* Beispiele darf jeder verschicken (Owner: „damit die Leute Werbung machen
-                  können") — Ziel ist die Themenseite, Text und Grund stehen in
-                  BeispielGalerie. NUR auf dem Beispiel: Fuers eigene Ergebnis braucht es
-                  erst die Werk-Seite (OFFEN.md 2), sonst verschickt der Knopf das Falsche.
-                  DAS ZIEL FOLGT DEM THEMA: Sonst wirbt der Tanz fuer den Kuss, und wer den
-                  Link bekommt, landet bei einem Produkt, das er nie gesehen hat. */}
-              {!karteRendert && (
-                <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : "kiss"}?utm_source=share`}
-                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                  label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                  kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
-                  className="absolute left-2 top-2 z-30" />
-              )}
               {/* „Personen ersetzen" weicht ebenfalls: Mitten im bezahlten Lauf die Personen
                   zu tauschen hiesse zahlen und nichts bekommen — derselbe Grund, aus dem der
                   Loeschknopf ueber dem eigenen Bild waehrend des Laufs verschwindet. */}
-              {!karteRendert && kartenGriff(gesperrt ? T.blockedOnce : kartenAufruf)}
+              {/* DER KNOPF LIEGT NICHT MEHR AUF DEM VIDEO (Owner 05.08.2026, mit Bild: „mach
+                  das Video ganz zu sehen und Button auf weissen Rahmen").
+                  Er lag als goldene Pille ueber dem unteren Drittel — zusammen mit den
+                  aufsteigenden Herzchen verdeckte er genau die Stelle, an der sich die beiden
+                  kuessen. Jetzt steht er UNTER dem Video auf dem Karten-Papier: Das Video ist
+                  frei, und der Knopf ist trotzdem das Erste, was man unter dem Bild sieht.
+                  DIE FLAECHE BLEIBT TIPPBAR (`kartenGriff` ohne sichtbaren Knopf ist keine
+                  Option) — wer aufs Video tippt, kommt weiterhin in den Trichter; der Knopf
+                  sagt es jetzt nur an einer Stelle, an der er nichts zudeckt. */}
+              {/* HIER LAG DIE UNSICHTBARE TRICHTER-FLAECHE — sie ist weg (Owner 05.08.2026:
+                  „Klick auf Video vergrössert Video habe ich gesagt"). Zwei Dinge koennen sich
+                  denselben Tipp nicht teilen: Solange diese Flaeche darueber lag, kam das
+                  Vergroessern nie an. Der Weg in den Trichter ist der goldene Knopf UNTER dem
+                  Video — sichtbar, beschriftet und einen Fingerbreit entfernt. */}
               {/* HIER LEBT DER KUSS-LAUF. Ohne Gratis-Bild ist DIESER Zweig der, den der
                   Kunde waehrend seines bezahlten Videos vor sich hat — die Schicht gehoert
                   also vor allem hierher, nicht nur ins Bild darueber. */}
@@ -2785,6 +2841,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
           es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
       {!V.nurEigenes && <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>}
+
+      {/**
+        * DER HANDEL VOR DER ARBEIT (Owner 04.08.2026, KONZEPT-GESCHENKE-UND-IDEEN.md Punkt 2:
+        * „Der Handel steht VOR der Arbeit, nie danach").
+        *
+        * HIER und nicht drei Schritte weiter: Schritt 1 ist der Eingang — darunter stehen die
+        * Upload-Felder. Wer ein Foto sucht, zuschneidet und hochlaedt, hat gearbeitet; erst
+        * danach einen Preis zu zeigen ist genau die Ueberraschung, die wir Canva vorwerfen.
+        *
+        * Der Satz kommt aus `lib/handel.ts` — eine Quelle fuer alle Trichter und sieben
+        * Sprachen, Zahlen aus `lib/pricing`. „Your Idol" steht nicht in der Leiter und
+        * bekaeme ohnehin nichts; die Bedingung haelt nur TypeScript sauber.
+        */}
+      {variant !== "idol" && <HandelZeile thema={variant} lang={lang} className="mt-3" />}
+
+      {/* DAS SCHILD AM FOTOAUTOMATEN (Owner 05.08.2026). Erst was es kostet, dann was das Foto
+          koennen muss — beides, bevor er sein Foto sucht. Abgewiesen wird nichts; wer die
+          Anweisung gesehen hat, traegt die Folgen seines Fotos selbst (so auch im AGB). */}
+      <FotoAnleitung lang={lang} className="mt-3" />
 
       {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
           bei der Hochzeit sind es IHRE beiden Gesichter, und beide gehoeren auf einen
@@ -2983,8 +3058,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           </div>
         );
       })()}
+      {/**
+        * DER ZUSCHNITT HAT HIER GEFEHLT (Owner 03.08.2026, zum Tanz: „du hast auch kein crop
+        * beim Upload gemacht").
+        *
+        * Die Hausregel gilt fuer JEDES Upload-Feld — Speichern-Knopf, Zuschnitt, Loeschen. Der
+        * Weg mit ZWEI Kacheln (Hochzeit) hat ihn seit jeher; dieser Weg — die „Your model"-Karte
+        * im Karussell — schob die Datei direkt in `onModelFile` und damit ungeschnitten weiter.
+        * Kuss, Geburtstag und Tanz laufen alle hier durch; beim Tanz faellt es nur am staerksten
+        * auf, weil ein Handyfoto im Hochformat sonst blind von `object-cover` beschnitten wird
+        * und der Kopf wegfaellt.
+        *
+        * UND ES IST NICHT NUR KOSMETIK: Was hier herauskommt, ist die Vorlage fuer den Austausch
+        * bei Pixverse. Ein schiefer Ausschnitt ist ein schiefes Ergebnis.
+        */}
       {!V.paarUpload && (
-        <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
+        <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
       )}
 
       {/* DIE ABSAGE ZUM HOCHGELADENEN FOTO (Owner 03.08.2026) — direkt unter den Kacheln,
@@ -3511,26 +3601,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <p className="mt-1.5 text-center text-[12px] font-bold text-white/70">{T.paidLine}</p>
       )}
       {/**
-        * BEIDE ZAHLEN VOR DEM KLICK (Owner 03.08.2026: „hier muss doch stehen dass das Video
-        * {once} kostet aber er muss das Konto mit mindestens {topup} aufladen. Sonst fühlt er
-        * sich ausgeraubt").
+        * HIER STAND DER SATZ ÜBER DIE LÜCKE — und die Lücke gibt es nicht mehr.
         *
-        * Der Knopf darüber löst bei Kiss zuerst die AUFLADUNG aus, nicht den Videokauf: Wer
-        * kein Guthaben hat, landet auf einer Kassenseite über {topup} — für ein Video, das
-        * {once} kostet. Ohne diesen Satz ist das ein Schreck im falschen Moment, und der Satz
-        * „der Rest bleibt dir" ist der ganze Unterschied zwischen Aufladung und Abzocke.
+        * Er kam am 03.08.2026 vom Owner: „hier muss doch stehen dass das Video {once} kostet
+        * aber er muss das Konto mit mindestens {topup} aufladen. Sonst fühlt er sich
+        * ausgeraubt." Das war richtig, solange ein Video 1,49 € kostete und die kleinste
+        * Aufladung 4,99 € — dazwischen lag ein Rest, den man ansprechen musste.
         *
-        * Nur wo es zutrifft: Bezahlte, Personal und Themen ohne Guthaben-Zwang sehen nichts.
-        * Hat er schon genug Guthaben, wird auch nichts aufgeladen — dann stimmt der Satz
-        * nicht mehr und verschwindet.
+        * Seit dem 05.08.2026 ist die Aufladung DERSELBE Betrag wie der Preis (Owner: „aufladen
+        * muss mann dann mit 14,99€ mindestens"). Es gibt keinen Rest, keine Differenz und
+        * nichts zu erklären — und ein Satz, der „der Rest bleibt dir" verspricht, wäre jetzt
+        * schlicht falsch. Was er wissen muss, steht in Schritt 1 am Eingang (`HandelZeile`):
+        * „Das Video kostet {once}."
+        *
+        * Der Text bleibt in `lib/kiss-i18n.ts` (`guthabenVorabHinweis`) in sieben Sprachen
+        * stehen: Wird die Aufladung je wieder grösser als der Preis, gehört er zurück — und
+        * zwar hierher.
         */}
-      {V.nurGuthaben && !bezahlt && !isStaff && (guthabenCents ?? 0) < videoPreisCents && (
-        <p className="mx-auto mt-1.5 max-w-[340px] text-center text-[11.5px] font-bold leading-snug text-white/70">
-          {/* Bei Lingerie-Wahl nennt der Satz den Lingerie-Preis — sonst stuende „1,49"
-              neben einer 3,99-Kachel, und genau solche Widersprueche lesen sich als Falle. */}
-          {fillPrices(T.guthabenVorabHinweis, lang)}
-        </p>
-      )}
       {/* WAS IHM DIESEN MONAT NOCH ZUSTEHT (Owner 30.07.2026). Ohne diese Zeile weiss ein
           Abonnent nie, wo er steht — und merkt es erst, wenn nichts mehr geht. */}
       {V.abo && aboAktiv && typeof videosLinks === "number" && (
@@ -3687,16 +3774,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 </>
               )}
             </div>
-            {[TOPUP_CENTS, TOPUP_GROSS_CENTS].map(stufe => (
+            {/**
+              * DIE GANZE LEITER, NICHT ZWEI FESTE KNOEPFE (Owner 05.08.2026: „wer für Hochzeit
+              * kaufen will, dem muss man 29,00 anbieten … man muss also 14,99, 29,00 und 59,00
+              * anbieten. 4,99 € kann man auch anbieten und auch 9,99 €, wer weiss welche
+              * Produkte wir noch umstellen werden oder neue Produkte kommen").
+              *
+              * Hier standen `TOPUP_CENTS` und `TOPUP_GROSS_CENTS` — zwei Zahlen im Trichter, die
+              * bei jedem neuen Preis nachgezogen werden mussten. Jetzt liest der Dialog die
+              * Leiter aus `lib/pricing`: Kommt ein Produkt dazu, kommt seine Stufe von selbst
+              * mit, und niemand kann eine Aufladung anbieten, die die Kasse nicht kennt.
+              *
+              * DAS ERSTE, WAS SEIN VIDEO DECKT, steht als „reicht" da — bei fuenf Betraegen
+              * waere sonst reine Rechenarbeit, welcher der richtige ist. Zaehlen wird nur, wo
+              * die Stufe ueberhaupt fuer eines reicht: „4,99 € · 0 🎬" ist keine Auskunft,
+              * sondern ein Angebot, das nichts kauft.
+              */}
+            {AUFLADE_STUFEN.map(stufe => {
+              const stueck = Math.floor(stufe / videoPreisCents);
+              return (
               // Solange die Adresse offen im Feld steht, ist sie nicht bestaetigt — dann darf
               // die Kasse nicht aufgehen: Sie wuerde die ALTE Adresse mitnehmen, und genau
               // diese stille Abweichung soll der Kasten hier verhindern.
               <button key={stufe} type="button" disabled={payBusy || adresseAendern}
                 onClick={() => { setAufladeWahl(false); void unlock("auflade", undefined, stufe); }}
                 className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                {fillPrices(stufe === TOPUP_CENTS ? "{topup}" : "{topup2}", lang)} · {Math.floor(stufe / videoPreisCents)} 🎬
+                {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
               </button>
-            ))}
+              );
+            })}
             <p className="mt-3 text-center text-[10px] font-medium leading-snug text-black/50">{T.aufladenHinweis}</p>
           </div>
         </div>

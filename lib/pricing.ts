@@ -47,7 +47,38 @@ export const TOPIC_EFFECTIVE_MONTHLY_CENTS = 2450;  // 24,50 € — was er wirk
  * try-this-look-store.ts) waeren zwoelf Videos 12 € von 24,50 €, und dann traegt das Abo sich
  * nicht mehr. Das gehoert gegen die echte Rechnung geprueft, nicht geschaetzt.
  */
-export const EXTRA_VIDEO_CENTS = 299;               // jedes Video über das Abo hinaus
+/**
+ * JEDES WEITERE VIDEO: 3,99 € (Owner 05.08.2026: „er kann weitere Videos generieren für 3,99
+ * eventuell, aber muss sein Konto aufladen. So machen es die anderen").
+ *
+ * Der Anlass war die Erstattungsfrage, und die Antwort ist besser als Geld zurück: Wer mit
+ * seinem Video nicht zufrieden ist, macht ein neues — für einen Bruchteil des Kaufpreises,
+ * aus dem Guthaben, ohne dass jemand etwas prüfen oder freigeben muss.
+ *
+ * WARUM DAS RECHNERISCH TRÄGT: Das erste Video kostet {once} und bezahlt das ganze Produkt —
+ * die Bildversuche, die Karte, die Seite, den Versand. Jedes weitere ist nur noch EIN
+ * Pixverse-Lauf (rund ein Euro). 3,99 € lassen also Luft und sind trotzdem so klein, dass ein
+ * zweiter Versuch keine Entscheidung ist.
+ *
+ * Owner am selben Tag, zur Grosszügigkeit: „ich habe so viele Videos umsonst generiert bei
+ * Pixverse, wer gibt mir das Geld zurück? Niemand." Der Satz gehört hierher, weil er die
+ * Grenze markiert — wir schenken keine Läufe, wir machen den nächsten billig.
+ */
+export const EXTRA_VIDEO_CENTS = 399;               // 3,99 € — jedes weitere Video
+
+/**
+ * JEDES WEITERE BILD: 1,49 € (Owner 05.08.2026: „Bilder 1,49 und Videos für 3,99").
+ *
+ * Damit steht die Nachkauf-Leiter vollständig, und sie folgt den echten Kosten statt einem
+ * Gefühl: Ein Bild ist ein gpt-image-1-Lauf für ein paar Cent, ein Video ein Pixverse-Lauf für
+ * rund einen Euro. 1,49 € und 3,99 € halten denselben Abstand wie die Erzeugung selbst.
+ *
+ * WO ES GREIFT: nach dem Kauf. Die drei Bilder, die zum Geschenk gehören, bleiben inbegriffen
+ * (siehe den Deckel in `claimFreePreview`) — wer darüber hinaus will, kauft nach, aus dem
+ * Guthaben, ohne Kasse und ohne Rückfrage. Das ist zugleich die Antwort auf „ich bin nicht
+ * zufrieden": ein neuer Versuch für 1,49 € statt einer Erstattung über {once}.
+ */
+export const EXTRA_BILD_CENTS = 149;                // 1,49 € — jedes weitere Bild
 // 20 statt 12 (Owner 01.08.2026: „im Abo sind es dann 20 Videos" — Teil des Preistests,
 // zusammen mit dem Einzelvideo für 1,49). ACHTUNG: Die GUTSCHRIFT je Monat steht in
 // try-this-look-store (SUBSCRIPTION_MONTHLY_CREDITS) und ist am selben Tag mitgezogen —
@@ -74,11 +105,52 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
  *    und Erzeugung rund 1,70 € — das traegt. Laege der Lauf bei zwei Euro, waere der
  *    Einmalkauf ein Verlustgeschaeft. Das gehoert an der Pixverse-Abrechnung geprueft.
  */
-// 1,49 statt 2,99 (Owner 01.08.2026: „ich will testen ob es am Preis liegt dass die Leute
-// nichts kaufen"). Der Kauf läuft über price_data mit diesem Betrag — die im Stripe-Dashboard
-// angelegte Preis-ID price_1TzXLz1jPNCWoiztla7ACpBL ist das dortige Gegenstück und wird vom
-// Code nicht benutzt; massgeblich ist DIESE Zahl. Zurück zum alten Preis = 299.
-export const ONCE_CENTS = 149;                      // 1,49 € — ein Kauf, kein Abo (Preistest)
+/**
+ * 14,99 € — DER PREIS JEDES GESCHENKS (Owner 04.08.2026: „wir machen die Preise ab 14,99 €";
+ * Kennung geliefert am 05.08.2026: „hier ist der Preis für 14,99 für alle, die 14,99 kosten").
+ *
+ * Der Weg dahin steht in KONZEPT-GESCHENKE-UND-IDEEN.md §8.1 und ist die Umkehr eines
+ * Irrtums: 1,49 € trug nicht einmal die Erzeugung. Die Stripe-Gebuehr allein frisst rund
+ * 0,30 €; ein Pixverse-Video kostet grob einen Euro (die Hausnummer aus
+ * try-this-look-store.ts) — es blieben also etwa 0,19 €.
+ *
+ * DAS BILD IST DABEI NICHT DER TEURE TEIL, und diese Verwechslung steht auch im Konzept
+ * (KONZEPT-GESCHENKE-UND-IDEEN.md §3b: „~1 € Erzeugung" fuer ein Bild): Das Gratis-Bild laeuft
+ * ueber gpt-image-1 in der Stufe `low` und kostet ein paar CENT, nicht einen Euro — beim Kuss
+ * wegen des doppelten Laufs (Kuss + Fast-Kuss) grob 3 bis 6. Die Route sagt es selbst: „Ein
+ * Video kostet rund das Zwanzigfache und bleibt deshalb hinter der Kasse."
+ *
+ * Das ist keine Kleinigkeit, denn auf der falschen Zahl steht eine Entscheidung: Ein
+ * Gratis-Bild, das einen Euro kostet, kann man sich nur an einer Stelle leisten — eines fuer
+ * vier Cent ueberall. Zweimal wurde nach unten getestet — 9,99 → 2,99 → 1,49 —, nie nach
+ * oben, und verkauft hat keiner der drei Preise nennenswert. Billiger war also nie die
+ * Antwort.
+ *
+ * WAS DIESEN PREIS TRÄGT, und ohne das ist er nicht zu halten: das **Gratis-Bild mit
+ * Wasserzeichen**. Bei 1,49 € kauft jemand auf Verdacht, bei 14,99 € niemand — er muss sein
+ * Ergebnis gesehen haben, bevor er zahlt. Deshalb hängen Punkt 1 (Wasserzeichen), Punkt 2
+ * (der Handel am Eingang) und diese Zahl zusammen und gehen NUR ZUSAMMEN live.
+ *
+ * GILT FÜR: Kuss, Geburtstag, Urlaub, Tanz, Gutschein — jedes Geschenk, einmal bezahlt.
+ * NICHT für den Hochzeitsplaner (29 € Kauf, siehe HOCHZEIT_START_CENTS) und nicht für das
+ * System (60 €, siehe PLAN_CENTS).
+ */
+export const ONCE_CENTS = 1500;                     // 15 € — ein Geschenk, einmal bezahlt
+
+/**
+ * DIE GUTSCHEIN-KARTE KOSTET WENIGER (Owner 05.08.2026: „15 € ist zu viel für den Gutschein.
+ * Es muss 9,99 sein").
+ *
+ * Und das ist keine Willkür, sondern rechnet sich: Bei Kuss, Hochzeit und Urlaub bezahlen die
+ * 15 € eine ERZEUGUNG mit zwei Menschen in einer Szene — mehrere Läufe, zwei Vorlagen, Kulisse.
+ * Die Gutschein-Karte ist fünf Sekunden mit EINEM Foto, und wer gar keins hochlädt, bekommt
+ * unser fertiges Video: dann kostet sie uns nichts ausser der Seite.
+ *
+ * Der zweite Grund ist der Käufer. Er hat schon bezahlt — für den Gutschein, den er verpackt.
+ * Die Verpackung darf nicht so viel kosten wie ein Geschenk; sonst rechnet er nach und
+ * verschickt die nackte E-Mail, gegen die wir antreten.
+ */
+export const GUTSCHEIN_CENTS = 999;                 // 9,99 € — die Verpackung, nicht das Geschenk
 // Owner 02.08.2026: „ich dachte ich lasse es nach 7 tagen mit abo laufen nicht nächsten
 // monat" — dreht die 30-Tage-Entscheidung vom 01.08. zurück auf 7 Tage. Eine Zahl hier,
 // damit Seite, Preiszeile (Ä5) und die tatsächliche Probefrist (Ä8) nie auseinanderlaufen.
@@ -95,11 +167,27 @@ export const TRIAL_DAYS = 7;                        // Tage, die die Seite ohne 
  * Lingerie-Video mit Rest) — klein genug zum Anfangen, gross genug, dass ein Rest bleibt,
  * der zum Wiederkommen einlaedt.
  */
-export const TOPUP_CENTS = 499;                     // 4,99 € Konto-Aufladung (kleine Stufe)
+/**
+ * DIE KLEINSTE AUFLADUNG IST EIN GESCHENK (Owner 05.08.2026: „aufladen muss mann dann mit
+ * 14,99€ mindestens").
+ *
+ * Das ist keine Preiserhöhung, sondern das Ende einer Lücke. 4,99 € stammten aus der Zeit des
+ * 1,49-€-Videos: Man lud drei Videos auf einmal auf, und der Rest blieb liegen. Bei 14,99 € je
+ * Geschenk kauft eine 4,99-€-Aufladung GAR NICHTS — der Kunde hätte bezahlt und stünde vor
+ * demselben Knopf wie vorher. Das ist der schlimmste aller Fälle.
+ *
+ * WAS DAMIT VERSCHWINDET, und das ist der eigentliche Gewinn: der Satz, der die Differenz
+ * erklären musste (Owner 03.08.2026: „hier muss doch stehen dass das Video 1,49 kostet aber er
+ * muss das Konto mit mindestens 9,99 aufladen. Sonst fühlt er sich ausgeraubt"). Aufladung und
+ * Preis sind ab jetzt dieselbe Zahl — es gibt nichts mehr zu erklären, und nichts, worüber
+ * sich jemand getäuscht fühlen könnte.
+ */
+export const TOPUP_CENTS = 1500;                    // 15 € — genau ein Geschenk
 // „biete beide an" (Owner 03.08.2026, direkt nach der Verkleinerung): Die 9,99 bleiben als
 // zweite Stufe daneben — wer mehr laedt, hat laenger Ruhe. Die Kasse akzeptiert NUR diese
 // beiden Werte (Whitelist in kiss-video-checkout), egal was ein Browser schickt.
-export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung (grosse Stufe)
+/** 29,00 € — die Stufe, die den Hochzeitsplaner deckt. Die ganze Leiter steht am Dateiende. */
+export const TOPUP_GROSS_CENTS = 3000;
 /**
  * DER TANZ KOSTET MEHR (Owner 03.08.2026, zum Poledance-Video: erst „der gleiche Preis",
  * kurz darauf korrigiert — „eigentlich nicht, es soll 3,99 kosten").
@@ -115,27 +203,72 @@ export const TOPUP_GROSS_CENTS = 999;               // 9,99 € Konto-Aufladung 
  * das ueber dem liegt, was die Kasse nimmt (oder darunter), ist der eine Fehler, den man nicht
  * wegerklaeren kann.
  */
-export const POLEDANCE_CENTS = 399;                 // 3,99 € — ein Tanz-Video
+// 14,99 statt 3,99 (Owner 05.08.2026: eine Kennung „für alle, die 14,99 kosten"). Der Tanz und
+// der Geburtstag sind Geschenke wie der Kuss, und Geschenke kosten ab jetzt alle dasselbe. Die
+// eigene Konstante bleibt trotzdem stehen: Wer dem Tanz je einen anderen Preis geben will,
+// ändert dann EINE Zahl — und nicht aus Versehen den Preis jedes anderen Geschenks mit.
+export const POLEDANCE_CENTS = 1500;                // 15 € — Tanz- und Geburtstagsvideo
 
 /**
- * DIE STRIPE-PREIS-KENNUNG FUER DAS TANZ-VIDEO (Owner 03.08.2026: „price_1U0LHX1jPNCWoizt
- * jZ7uM8x6 nimm das").
+ * DAS VIDEO ZUR FERTIGEN EINLADUNG (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn
+ * er das Video generieren möchte, dann kann er das nachträglich für 3,99").
  *
- * NACHGESCHLAGEN, STATT GEGLAUBT — dieselbe Pruefung wie beim Chat-Preis, und diesmal ohne
- * Fund:
- *   Betrag: 399 Cent  ✓  (deckt sich mit POLEDANCE_CENTS oben)
- *   Typ:    one_time  ✓  (kein Abo — eine wiederkehrende Kennung waere hier ein Dauerauftrag)
- *   Steuer: inklusive ✓  (Verbraucher sehen den Endpreis, Owner-Regel vom 27.07.2026)
- *   Aktiv:  ja        ✓
- * Produktname im Konto: „Luxurybandit Pool Dance".
- *
- * DIE BEIDEN ZAHLEN HAENGEN AB JETZT ZUSAMMEN: Wird der Betrag in Stripe geaendert, muss
- * POLEDANCE_CENTS mitwandern — sonst steht auf dem Knopf etwas anderes, als die Kasse nimmt.
- * Das ist die Schwaeche dieser Loesung und der Grund, warum es hier kommentiert steht.
+ * EIGENE ZAHL, obwohl sie heute gleich POLEDANCE_CENTS ist. Beides auf dieselbe Konstante
+ * zu legen hiesse: Wer den Preis des Tanz-Videos ändert, ändert stillschweigend den
+ * Aufpreis jeder Einladung mit. Genau solche versteckten Kopplungen haben die Hochzeit
+ * 24 € kosten lassen, während die Kasse 1,49 € nahm.
  */
-export function poledancePriceId(): string {
-  return process.env.STRIPE_POLEDANCE_PRICE_ID?.trim() || "price_1U0LHX1jPNCWoiztjZ7uM8x6";
-}
+/**
+ * SEIT 05.08.2026 DERSELBE PREIS WIE DAS GESCHENK — und das ist kein Aufschlag, sondern eine
+ * Umkehr: Das BILD ist ab jetzt gratis (mit Wasserzeichen), bezahlt wird das VIDEO. „Bild
+ * 1,49 € · Video 3,99 €" hatte den Kunden vor eine Wahl gestellt, bevor er irgendetwas
+ * gesehen hatte; jetzt sieht er erst sein Bild und entscheidet dann über das Video.
+ *
+ * Die eigene Konstante bleibt aus demselben Grund stehen wie POLEDANCE_CENTS: damit ein
+ * späterer eigener Preis fürs Aufwerten EINE Zahl ist und nicht der stille Zwilling von
+ * ONCE_CENTS.
+ */
+export const VIDEO_UPGRADE_CENTS = 1500;            // 15 € — aus der Einladung ein Video machen
+
+/**
+ * DAS LUXURYBANDIT SYSTEM (Owner 04.08.2026: erst „Den Plan verkaufen wir für 9,99 €", eine
+ * Stunde später korrigiert — „wir machen das aber für 59 €, weil sonst das nach nichts
+ * anhört").
+ *
+ * ER HAT RECHT, UND ES IST KEINE GESCHMACKSFRAGE: Der Preis ist beim Verkauf eines „Systems"
+ * Teil des Produkts. Ein System für 9,99 € klingt nach Spielerei; für 59 € klingt es nach
+ * einer Sache, für die jemand gearbeitet hat. Wer hier billiger wird, zerstört, was er
+ * verkauft (dieselbe Regel, die im Bericht unter „Status" steht).
+ *
+ * WAS DARAN HÄNGT — die Kasse ist eine andere:
+ *   - 59 € kommen NICHT aus den Auflade-Stufen (4,99 / 9,99). Der Normalweg ist der direkte
+ *     Kauf über Stripe (`{ kaufen: true }` in app/api/plan-checkout). Guthaben wird weiterhin
+ *     zuerst geprüft — es deckt den Betrag nur, wenn jemand viel aufgeladen hat.
+ *   - Der Beweis VOR der Kasse wiegt jetzt schwerer. Bei 9,99 € kauft man auf Verdacht; bei
+ *     59 € niemand. Das Gratis-Bild und das, was er vom Lauf schon gesehen hat, entscheiden.
+ *
+ * PRO ANALYSE, KEIN ABO (siehe Skill `business-analyse`): Jeder Lauf ist geschlossen und
+ * bezahlt. Wer morgen die nächste Idee prüfen will, zahlt morgen wieder.
+ */
+export const PLAN_CENTS = 6000;                     // 60 € — eine Analyse, das LuxuryBandit System
+
+/**
+ * DIE 59-€-KENNUNG DES SYSTEMS IST AUS DEMSELBEN GRUND WEG (05.08.2026): Sie steht auf 5900,
+ * PLAN_CENTS auf 6000. `app/api/plan-checkout` nimmt den Betrag jetzt direkt aus dieser Datei.
+ */
+
+/**
+ * HIER STAND DIE GEMEINSAME 14,99-KENNUNG — und sie ist weg, seit die Preise rund sind
+ * (Owner 05.08.2026: „5,10,15,30,60").
+ *
+ * `price_1U0LLs…` steht auf 1499, ONCE_CENTS auf 1500. Eine Kennung, die der Tabelle
+ * hinterherhinkt, bucht einen anderen Betrag ab, als auf dem Knopf steht. Deshalb laufen ALLE
+ * EINMALKÄUFE jetzt über `price_data` mit dem Betrag aus dieser Datei: Preisschild und Kasse
+ * sind damit dieselbe Zahl und können nicht mehr auseinanderlaufen.
+ *
+ * KENNUNGEN BLEIBEN NUR DORT PFLICHT, WO STRIPE SIE VERLANGT — bei den Abos, siehe
+ * `hochzeitAboPriceId()` und `chatAboPriceId()` weiter unten.
+ */
 // DAS LINGERIE-VIDEO IST RAUS (Owner 03.08.2026: „das mit der Lingerie ist eh nicht allzu
 // seriös" — „wir machen das raus"). Hier stand LINGERIE_CENTS = 399: der zweite Videopreis,
 // der einen FASHN-Lauf vor dem Pixverse-Lauf bezahlte. Mit dem Produkt fallen der Aufpreis,
@@ -154,9 +287,53 @@ export function poledancePriceId(): string {
  * Als Liste (statt einer blanken Zahl) bleibt es stehen, weil Kasse und Trichter bereits
  * darueber laufen — und weil eine zweite Laufzeit damit ein Tabelleneintrag ist, kein Umbau.
  */
+/**
+ * UND ES IST EIN GESCHENK, KEIN ABO (Owner 05.08.2026: „Chat mit Ai 14,99/im monat das stimmt
+ * nicht. Man verschenkt es für den Preis von 14,99 einmallig für einen monat. Derjenige der es
+ * bekommt kann es aber verlängern. Wir haben nur ein mal preise gross geschrieben.").
+ *
+ * Damit steht der Chat neben dem Kuss und dem Tanz, nicht neben der Hochzeitsseite: Einer
+ * bezahlt EINMAL, ein anderer bekommt einen Monat. Was daraus folgt und leicht zu uebersehen
+ * ist — DER EMPFAENGER VERLAENGERT, NICHT DER KAEUFER. Wer hier je eine wiederkehrende Kennung
+ * einsetzt, bucht dem Schenker Monat fuer Monat etwas ab, das er verschenkt hat.
+ *
+ * `chatPriceId()` unten ist deshalb `one_time` — nachgeschlagen, nicht geglaubt.
+ */
 export const CHAT_STUFEN = [
   { monate: 1, cents: 1499 },   // = die Stripe-Preis-Kennung unten. Beide zusammen aendern!
 ] as const;
+
+/**
+ * WAS IM CHAT-MONAT DRIN IST — UND AB WANN ER ZAHLT (Owner 05.08.2026, in drei Sätzen):
+ *
+ *   „ja, sie liefert die vorgenerierten im chat"
+ *   „und bilder auch, die wir haben"
+ *   „wenn alle verbraucht sind, dann können wir ihm das tryon anbieten. Das haben wir doch
+ *    schon. Aber ich glaube die Videos sind dort zu günstig."
+ *
+ * Damit ist der Monat sauber in zwei Hälften geteilt, und die Trennlinie ist nicht Grosszügigkeit
+ * sondern KOSTEN:
+ *
+ *   GRATIS   der VORHANDENE Bestand — die vorgenerierten Videos und die Bilder, die wir
+ *            ohnehin liegen haben. Sie kosten uns bei jedem Ausspielen nichts, also darf sie
+ *            jeder haben, so oft er will. Das ist der Grund, warum ein Monat für einen festen
+ *            Preis überhaupt trägt.
+ *   BEZAHLT  alles, was NEU ERZEUGT wird — jeder Lauf kostet uns echtes Geld (Pixverse). Wenn
+ *            der Bestand durch ist, geht es im Try-on weiter, das es längst gibt.
+ *
+ * EIN NEUES VIDEO MIT BELLA: 9,99 € (Owner: „aber das muss er kaufen. für 9,99"). Und das ist
+ * zugleich seine Antwort auf die eigene Frage, ob das Try-on zu billig sei — dort kostet ein
+ * weiteres Video EXTRA_VIDEO_CENTS, also 3,99 €. Die beiden Zahlen stehen nebeneinander und
+ * meinen dasselbe Ding: einen Pixverse-Lauf. Wer sie angleichen will, ändert EINE von beiden
+ * hier; solange sie auseinanderstehen, ist das eine Entscheidung und kein Versehen.
+ *
+ * NOCH NICHT GEBAUT ist der Knopf im Chat. Das Anziehen und das Dreh-Video sind am 03.08.2026
+ * ausgebaut worden (Owner damals: „wir machen das Anziehen raus"); der Chat liefert heute Text
+ * und Bilder. Die Zahl steht hier zuerst, damit sie an EINER Stelle steht, wenn der Knopf kommt
+ * — bis dahin nennt sie kein Trichter, und auf keiner Seite steht ein Preis dafür (Owner:
+ * „das schreibst du nicht was es kostet").
+ */
+export const BELLA_VIDEO_CENTS = 999;              // 9,99 € — ein NEU erzeugtes Video mit ihr
 
 /**
  * WIE VIELE NACHRICHTEN IM MONAT. Gerechnet mit 0,09 Euro-Cent je Nachricht (nach dem Umbau am
@@ -190,37 +367,119 @@ export function chatPriceId(): string {
 
 
 /**
- * DIE HOCHZEIT: EINMALIG KAUFEN, LAUFZEIT WAEHLEN (Owner 03.08.2026).
+ * DER HOCHZEITSPLANER: 29 € IM MONAT, BIS DIE HOCHZEIT WAR (Owner 05.08.2026, Kennung
+ * `price_1U0zUB1jPNCWoiztqsf49Xn2` — am selben Tag gegen die Stripe-API gelesen: 2900 Cent,
+ * EUR, Steuer inklusive, aktiv, Produktname „LuxuryBandit 29€").
  *
- * „Ich will dafuer schon 24,99 Euro haben, aber dann wird gleich alles freigeschaltet: Chat,
- * Gaestelliste, Video" — und kurz darauf: „die muessen dann die Preise waehlen: 3 Monate 24 €,
- * 6 Monate 49 €, 1 Jahr 99 €."
+ * ACHTUNG, DIE ZAHL IST 29,00 € — NICHT 29,99 €, wie es im Konzept steht. Massgeblich ist,
+ * was die Kasse nimmt, und das ist die Kennung des Owners.
  *
- * KEIN ABO MEHR. Damit faellt der teuerste Teil des Codes weg, gemessen an dem was er
- * einbringt: Abo-Kasse, Kuendigungslogik, `hasActiveSubscription` bei jedem Aufruf,
- * Monatsgutschriften, Kontingent-Zeilen. Die Hochzeit laeuft ueber denselben Weg wie jedes
- * andere Geschenk — nur mit einem groesseren Betrag und einer waehlbaren Laufzeit.
+ * WARUM HIER EIN ABO STEHT UND SONST NIRGENDS (Owner 05.08.2026: „was aber Canva und CapCut
+ * macht ist immer abo, deswegen sind die reich geworden genau wie Spotify und Netflix"):
+ * Verkauft wird keine Datei, sondern eine SEITE, die monatelang läuft — Einladung erreichbar,
+ * Zusagen, Gästeliste, Menüwahl, Gruppenchat. Wer sich ein Jahr vor der Hochzeit verlobt,
+ * zahlt zwölfmal und kündigt danach, völlig zu Recht: ein Abo mit natürlichem Ende.
  *
- * DIE LEITER BELOHNT DIE LAENGERE BINDUNG NICHT — das ist gemessen, nicht gemeint:
- *   3 Monate  24 €  =  8,00 € je Monat
- *   6 Monate  49 €  =  8,17 € je Monat
- *  12 Monate  99 €  =  8,25 € je Monat
- * Wer rechnet, nimmt viermal die kleine Stufe (96 € statt 99 €). Die grossen Stufen verkaufen
- * sich trotzdem — an alle, die nicht rechnen und nicht dreimal verlaengern wollen. Wenn die
- * Leiter kippen soll, sind es zwei Zahlen hier: z. B. 39 € und 69 €.
+ * Für die GESCHENKE gilt das ausdrücklich nicht (Owner am selben Tag: „das sind Geschenke,
+ * die jemand anders kauft und die haben ein Ablaufdatum. Der User kann das verlängern") —
+ * dort läuft nichts von allein, dort verlängert ein Mensch, und zwar zum selben Preis.
  *
- * DREI VIDEO-VERSUCHE sind in JEDER Stufe enthalten (Owner: „was ist, wenn Leute das Video
- * austauschen wollen?"). Gescheiterte Laeufe zaehlen nicht mit — sonst bezahlt der Kunde
- * unsere Stoerung. Danach kostet jedes weitere Video den normalen Preis aus dem Guthaben.
+ * HIER STAND EINE STUFENLEITER: 3 / 6 / 12 Monate zu 24 / 49 / 99 €. Sie wurde von KEINER
+ * Kasse gelesen, nur von einer Kachel — während die Kasse in Wahrheit 1,49 € nahm. Genau der
+ * Widerspruch, der `themenPreisCents` weiter unten erzwungen hat.
  */
-export const HOCHZEIT_STUFEN = [
-  { monate: 3, cents: 2400 },
-  { monate: 6, cents: 4900 },
-  { monate: 12, cents: 9900 },
-] as const;
+// 29 UND NICHT 30 (Owner 05.08.2026: das Abo ist mit 29/Monat in Stripe angelegt). Die runden
+// Zahlen gelten fuer die Geschenke und die Aufladeleiter; die beiden Abos behalten die Preise,
+// die im Stripe-Konto stehen — massgeblich ist immer, was die Kasse wirklich nimmt.
+export const HOCHZEIT_START_CENTS = 2900;           // 29 € — der Kauf, erster Monat inklusive
 
-/** Wie viele Video-Laeufe in jeder Hochzeits-Stufe stecken (der erste plus zwei Tausche). */
+/**
+ * DIE VERLAENGERUNG KOSTET WENIGER ALS DER KAUF (Owner 05.08.2026, zum Hochzeitsplaner: „aber
+ * den kann man auch verlängern für 14,99 im monat").
+ *
+ * Und das ist die einzige Stelle, an der „selbe preis immer" nicht gilt — aus einem guten
+ * Grund: Der erste Monat bezahlt die ARBEIT (das Video, die Bilder, die fertige Seite), jeder
+ * weitere nur noch das HOSTING (Seite erreichbar, Zusagen, Gaesteliste, Chat). Wer dafuer
+ * jeden Monat den vollen Kaufpreis verlangt, laesst die Seite ablaufen statt sie zu verkaufen.
+ *
+ * ES IST DIESELBE ZAHL WIE DER CHAT-MONAT — aber NICHT DERSELBE KAUFWEG (Owner 05.08.2026:
+ * „Chat mit Ai 14,99/im monat das stimmt nicht. Man verschenkt es für den Preis von 14,99
+ * einmallig für einen monat. Derjenige der es bekommt kann es aber verlängern.").
+ *
+ * Hier stand, beides laufe ueber dieselbe wiederkehrende Kennung. Das war falsch und hat den
+ * Chat zu einem Abo gemacht, das er nie war:
+ *
+ *   Hochzeits-Seite  →  ABO, verlaengert sich selbst  (`chatAboPriceId`, recurring)
+ *   Chat             →  GESCHENK, ein Monat, einmal bezahlt  (`chatPriceId`, one_time)
+ *
+ * Und der Unterschied ist kein technischer, sondern der ganze Sinn: Ein Geschenk verschenkt
+ * man, es laeuft ab, und VERLAENGERN DARF DER, DER ES BEKOMMEN HAT. Ein Abo, das dem Schenker
+ * jeden Monat Geld abbucht, waere bei einem Geschenk ein Fehler — er hat es ja weggegeben.
+ * Genau das steht drei Absaetze weiter oben schon fuer alle Geschenke: „dort laeuft nichts von
+ * allein, dort verlaengert ein Mensch, und zwar zum selben Preis."
+ */
+export const VERLAENGERUNG_MONAT_CENTS = 1499;      // 14,99 € je weiterem Monat
+
+/**
+ * DIE WIEDERKEHRENDEN KENNUNGEN — DIE EINZIGEN ZWEI, DIE ES NOCH NICHT GIBT.
+ *
+ * Ein Abo braucht in Stripe einen `recurring`-Preis; die beiden Kennungen vom 05.08.2026 sind
+ * `one_time` und taugen dafür nicht. Beide entstehen im Stripe-Konto des Owners (Claude hat
+ * keinen Zugang) und kommen dann über die Umgebung herein:
+ *
+ *   STRIPE_HOCHZEIT_ABO_PRICE_ID   29,00 €/Monat, Steuer inklusive
+ *   STRIPE_CHAT_ABO_PRICE_ID       14,99 €/Monat, Steuer inklusive
+ *
+ * KEIN RÜCKFALL AUF EINE EINMAL-KENNUNG. Fehlt die Variable, gibt es einen leeren String und
+ * die Kasse muss hörbar abbrechen — ein Abo, das versehentlich als Einmalkauf durchgeht,
+ * fällt erst im übernächsten Monat auf, wenn das Geld nie kam.
+ */
+export function hochzeitAboPriceId(): string {
+  return process.env.STRIPE_HOCHZEIT_ABO_PRICE_ID?.trim() || "";
+}
+
+/**
+ * DIE EINE WIEDERKEHRENDE KENNUNG — und sie gehoert der HOCHZEITS-SEITE, nicht dem Chat
+ * (Owner 05.08.2026: „price_1U106O1jPNCWoiztdAUB9pEA hier ist es für die abos").
+ *
+ * DER NAME IST GEBLIEBEN, DER ZWECK NICHT. Sie hiess `chatAboPriceId`, weil der Chat einmal als
+ * Monatsabo geplant war. Am selben Tag hat der Owner das geradegerueckt („Man verschenkt es für
+ * den Preis von 14,99 einmallig für einen monat"), und seither ruft sie genau EINE Kasse:
+ * `app/api/einladung-abo-checkout` — die Verlaengerung der Hochzeitsseite. Der Chat laeuft ueber
+ * `chatPriceId()` (one_time). Wer den Namen aendert, aendert vier Fundstellen; wer ihn liest,
+ * liest bitte diesen Absatz mit.
+ *
+ * NACHGESCHLAGEN, STATT GEGLAUBT — am 05.08.2026 gegen die Stripe-API gelesen:
+ *   Betrag: 1499 Cent  ✓  = VERLAENGERUNG_MONAT_CENTS
+ *   Typ:    recurring, alle 1 Monat  ✓  (die Seite laeuft weiter, solange er zahlt; ein
+ *                                        Einmalpreis waere hier ein Monat, der still endet)
+ *   Steuer: inklusive  ✓   ·   Aktiv: ja  ✓   ·   Produkt: „LuxuryBandit Abo"
+ *
+ * 14,99 UND NICHT 15 — mit Absicht (Owner 05.08.2026, auf die Rückfrage: „14,99 ist richtig").
+ * Die runden Zahlen gelten für die Geschenke und die Aufladeleiter; diese Zahl bleibt bei 14,99.
+ * Wer sie ändert, ändert BEIDES: VERLAENGERUNG_MONAT_CENTS und den Preis in Stripe.
+ *
+ * KEIN GUTSCHEIN AUF DIESE KENNUNG. `standardCoupon()` ist FOREVER50 — auf 14,99 € ergaebe er
+ * 7,49 € fuer immer, eine Zahl, die auf keinem Knopf steht.
+ */
+export function chatAboPriceId(): string {
+  return process.env.STRIPE_CHAT_ABO_PRICE_ID?.trim() || "price_1U106O1jPNCWoiztdAUB9pEA";
+}
+
+/** Wie viele Video-Laeufe im Hochzeitsplaner stecken (der erste plus zwei Tausche). */
 export const HOCHZEIT_VIDEO_LAEUFE = 3;
+
+/**
+ * WIE LANGE EINE GEKAUFTE SEITE LEBT — 30 Tage (Owner 04.08.2026: „alle haben ein
+ * Verfallsdatum. 30 Tage").
+ *
+ * Und was danach kommt, ist der Motor des Ganzen (Owner 05.08.2026): „die haben ein
+ * Ablaufdatum … der User kann das verlängern". Verlängern kostet **denselben Preis wie der
+ * Kauf** („selbe preis immer") — deshalb steht dafür hier KEINE eigene Zahl, sondern
+ * `verlaengerungCents()` unten liest denselben Eintrag. Zwei Zahlen für dasselbe Ding laufen
+ * sonst auseinander, und dann verlangt die Verlängerung etwas anderes als der Kauf.
+ */
+export const LAUFZEIT_TAGE = 30;
 
 /**
  * ZAHLEN NUR NOCH VON HIER — nie wieder in Sprachtabellen tippen.
@@ -232,6 +491,9 @@ export const HOCHZEIT_VIDEO_LAEUFE = 3;
  *
  * Deshalb stehen in den Texten nur noch Platzhalter, die hier gefüllt werden:
  *   {price}  → 24,50 €   (der Preis, den er wirklich zahlt)
+ *   {monat}  → 14,99 €   (die Hochzeits-Verlängerung, das einzige Abo)
+ *   {bella}  → 9,99 €    (ein Video mit Bella — der Beschenkte kauft es)
+ *   {gutschein} → 9,99 € (die Gutschein-Karte — die Verpackung, nicht das Geschenk)
  *   {list}   → 49 €      (Listenpreis, durchgestrichen)
  *   {extra}  → 2,99 €    (jedes weitere Video)
  *   {videos} → 12        (im Abo enthalten)
@@ -251,12 +513,17 @@ export function eur(cents: number, lang?: string): string {
 export function fillPrices(text: string, lang?: string): string {
   return String(text ?? "")
     .replace(/\{price\}/g, eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, lang))
+    .replace(/\{monat\}/g, eur(VERLAENGERUNG_MONAT_CENTS, lang))
+    .replace(/\{bella\}/g, eur(BELLA_VIDEO_CENTS, lang))
+    .replace(/\{gutschein\}/g, eur(GUTSCHEIN_CENTS, lang))
     .replace(/\{list\}/g, eur(TOPIC_MONTHLY_CENTS, lang))
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{tanz\}/g, eur(POLEDANCE_CENTS, lang))
+    .replace(/\{videoauf\}/g, eur(VIDEO_UPGRADE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
+    .replace(/\{plan\}/g, eur(PLAN_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }
@@ -285,6 +552,32 @@ export function renewNote(lang?: string): string {
   return fillPrices(RENEW_NOTE[l] ?? RENEW_NOTE.en, l);
 }
 
+/**
+ * DER SATZ UNTER DEN BEIDEN ABO-KNÖPFEN — und er darf NICHT `renewNote` sein.
+ *
+ * `renewNote` verspricht „{price}/Monat statt {list} — die 50 % bleiben dauerhaft". Das gehört
+ * zum alten Themen-Abo, wo der Dauergutschein FOREVER50 die 49 € auf 24,50 € drückt und beide
+ * Zahlen deshalb stimmen. Die zwei Abos, die es noch gibt (Chat und Hochzeits-Verlängerung),
+ * laufen seit 05.08.2026 über `chatAboPriceId()` — 14,99 €, wiederkehrend, OHNE Gutschein.
+ * Stünde `renewNote` darunter, läse der Kunde 24,50 € statt 49 € und Stripe nähme 14,99 €:
+ * drei Zahlen für einen Preis, und keine davon die richtige.
+ *
+ * Kein durchgestrichener Listenpreis, weil es keinen gibt. 14,99 € IST der Preis.
+ */
+const ABO_NOTE: Record<string, string> = {
+  en: "{monat}/month. Cancel any time.",
+  de: "{monat}/Monat. Monatlich kündbar.",
+  ro: "{monat}/lună. Poți renunța oricând.",
+  es: "{monat}/mes. Cancela cuando quieras.",
+  fr: "{monat}/mois. Résiliable à tout moment.",
+  pt: "{monat}/mês. Cancela quando quiseres.",
+  it: "{monat}/mese. Disdici quando vuoi.",
+};
+export function aboNote(lang?: string): string {
+  const l = String(lang ?? "en").slice(0, 2);
+  return fillPrices(ABO_NOTE[l] ?? ABO_NOTE.en, l);
+}
+
 /** Der Preis, der auf dem Kaufknopf steht („… — 24,50 €"). */
 export function priceTag(lang?: string): string {
   return eur(TOPIC_EFFECTIVE_MONTHLY_CENTS, lang);
@@ -310,4 +603,231 @@ export function standardCoupon(): string | undefined {
   const env = process.env.STRIPE_FIRST_MONTH_COUPON;
   if (typeof env === "string") return env.trim() || undefined;   // leer = Aktion beendet
   return "sRHDMAQE";   // FOREVER50 — 50 % dauerhaft → 24,50 € statt {list}
+}
+
+/**
+ * WAS EIN THEMA KOSTET — EINE QUELLE FÜR KACHEL UND LANDINGPAGE.
+ *
+ * Owner 04.08.2026: „auf jeder Landingpage muss auch der Preis stehen wie auf der Topicseite.
+ * Ich weiss es selber nicht was es kostet."
+ *
+ * Der zweite Satz ist der wichtige, und er hatte einen konkreten Grund: Die Kachel im Katalog
+ * und die Kasse dahinter lasen VERSCHIEDENE Zahlen. Bei der Hochzeit stand „ab 24 €" auf der
+ * Kachel (aus `HOCHZEIT_STUFEN`) — abgebucht wurden 1,49 € (`ONCE_CENTS` über
+ * `/api/kiss-video-checkout`). `HOCHZEIT_STUFEN` wurde von KEINER Kasse gelesen, nur von der
+ * Kachel. Zwei Zahlen für dasselbe Thema, und keine Stelle im Code, an der auffällt, dass sie
+ * sich widersprechen.
+ *
+ * Deshalb steht hier ab jetzt EINE Tabelle, und sie nennt für jedes Thema den Betrag, den die
+ * KASSE wirklich nimmt — nachgeschlagen an der Route, nicht an der Absicht:
+ *
+ *   kiss / wedding / holiday / birthday → ONCE_CENTS      (kiss-video-checkout, birthday-…)
+ *   surprise                            → POLEDANCE_CENTS (kiss-video-checkout, `tanz`)
+ *   chat                                → CHAT_STUFEN[0]  (chat-zugang-checkout)
+ *   bella / tryon                       → Themen-Abo      (topicPriceId)
+ *
+ * WER EINEN PREIS ÄNDERT, ändert ihn hier UND in der Kasse dahinter (bei Stripe-Preis-IDs
+ * zusätzlich im Stripe-Konto). Diese Tabelle entscheidet nur, was der Kunde LIEST.
+ */
+export type ThemenSchluessel =
+  | "kiss" | "wedding" | "holiday" | "birthday" | "surprise" | "chat" | "bella" | "tryon" | "plan"
+  /* Gutschein verpacken (Owner 05.08.2026) — ein Geschenk wie die anderen, also ONCE_CENTS
+     ueber den `default`-Zweig unten. Verkauft wird die VERPACKUNG, nie der Gutschein selbst:
+     in der EU ist der ein Zahlungsinstrument, siehe KONZEPT-GESCHENKE-UND-IDEEN.md §3b. */
+  | "gutschein";
+
+const AB_WORT: Record<string, { ab: string; pm: string }> = {
+  de: { ab: "ab", pm: "/Monat" }, en: { ab: "from", pm: "/month" },
+  ro: { ab: "de la", pm: "/lună" }, es: { ab: "desde", pm: "/mes" },
+  fr: { ab: "à partir de", pm: "/mois" }, pt: { ab: "a partir de", pm: "/mês" },
+  it: { ab: "da", pm: "/mese" },
+};
+
+/** Der Betrag in Cent, den die Kasse dieses Themas wirklich nimmt. */
+export function themenPreisCents(thema: ThemenSchluessel): number {
+  switch (thema) {
+    case "plan": return PLAN_CENTS;      // 59 EUR - das System, ein Einmalkauf
+    case "surprise": return POLEDANCE_CENTS;
+    case "wedding": return HOCHZEIT_START_CENTS;   // 29 EUR Kauf; Verlaengerung siehe unten
+    case "chat": return CHAT_STUFEN[0].cents;
+    /**
+     * DIE GUTSCHEIN-KARTE IST GRATIS (Owner 06.08.2026: „Die Gutscheingenerierung kostet
+     * nichts. … er muss nur den kredit oder das produkt bezahlen"). Auf dem Schild steht
+     * deshalb das billigste GESCHENK, das man hineinlegen kann — nicht mehr die abgeschaffte
+     * 9,99-Verpackungsgebühr. `GUTSCHEIN_CENTS` bleibt nur als Altlast der toten
+     * kiss-video-checkout-Weiche stehen.
+     */
+    case "gutschein": return ONCE_CENTS;   // „ab 15 €" — das billigste Geschenk darin
+    case "bella": case "tryon": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
+    default: return ONCE_CENTS;   // kiss, holiday, birthday — ein Geschenk, einmal bezahlt
+  }
+}
+
+/**
+ * Läuft dieses Thema auf einen Monatspreis statt auf einen Einmalkauf?
+ *
+ * DER CHAT STEHT SEIT DEM 05.08.2026 ABENDS NICHT MEHR HIER (Owner: „Chat mit Ai 14,99/im
+ * monat das stimmt nicht. Man verschenkt es für den Preis von 14,99 einmallig für einen
+ * monat."). Auf dem Schild stand „ab 14,99 €/Monat" — das liest sich als laufende Zahlung,
+ * und genau die gibt es nicht: Einer zahlt EINMAL, ein anderer bekommt einen Monat, und
+ * verlängern tut danach der Empfänger. Ein Geschenk, das jemand einmal verschickt, bleibt ein
+ * Einmalkauf — dasselbe gilt für Kuss, Geburtstag, Urlaub und Tanz.
+ *
+ * Die HOCHZEIT steht aus einem anderen Grund nicht hier: Die 29 € sind ein Kauf mit 30 Tagen
+ * darin, kein Monatspreis. „ab 29 €/Monat" auf der Kachel wäre teurer, als es ist — was danach
+ * kommt, sind 14,99 € (VERLAENGERUNG_MONAT_CENTS), und das gehört in den Text, nicht ins
+ * Schild. Übrig bleiben `bella` und `tryon`, die letzten zwei Seiten am alten Themen-Abo.
+ */
+export function istMonatspreis(thema: ThemenSchluessel): boolean {
+  return thema === "bella" || thema === "tryon";
+}
+
+/**
+ * WAS DAS VERLÄNGERN KOSTET — „selbe preis immer" (Owner 05.08.2026).
+ *
+ * Keine eigene Zahl, mit Absicht: Die Verlängerung liest denselben Eintrag wie der Kauf. Zwei
+ * Zahlen für dasselbe Ding wären zwei Gelegenheiten, sie auseinanderlaufen zu lassen — und
+ * dann verlangt die Verlängerung etwas anderes als das Preisschild von gestern.
+ *
+ * Die Funktion steht trotzdem hier und wird überall gerufen, wo verlängert wird: Sie ist die
+ * EINE Stelle, an der ein späterer, günstigerer Verlängerungspreis eingebaut würde.
+ */
+export function verlaengerungCents(thema: ThemenSchluessel): number {
+  // Hochzeit und Chat leben weiter und kosten monatlich dasselbe (Owner 05.08.2026). Alles
+  // andere ist ein Geschenk: Wer die Seite behalten will, zahlt dafuer denselben Preis wie
+  // beim Kauf — „selbe preis immer".
+  if (thema === "wedding" || thema === "chat") return VERLAENGERUNG_MONAT_CENTS;
+  return themenPreisCents(thema);
+}
+
+/**
+ * Die Preiszeile, wie sie auf der Kachel steht: „ab 1,49 €" bzw. „ab 24,50 €/Monat".
+ * Dieselbe Zeichenkette auf der Landingpage — sonst liest der Besucher zwei Preise für
+ * dasselbe Ding und glaubt keinem von beiden.
+ */
+export function themenPreisZeile(thema: ThemenSchluessel, lang?: string): string {
+  const W = AB_WORT[String(lang ?? "en")] ?? AB_WORT.en;
+  const zahl = eur(themenPreisCents(thema), lang);
+  return `${W.ab} ${zahl}${istMonatspreis(thema) ? W.pm : ""}`;
+}
+
+/**
+ * DIE AUFLADE-LEITER — EINE STUFE JE PREIS, DEN ES GIBT (Owner 05.08.2026: „wer für Hochzeit
+ * kaufen will, dem muss man 29,00 anbieten … man muss also 14,99, 29,00 und 59,00 anbieten.
+ * 4,99 € kann man auch anbieten und auch 9,99 €, wer weiss welche Produkte wir noch umstellen
+ * werden oder neue Produkte kommen").
+ *
+ * WARUM EINE LISTE UND KEINE ZWEI KONSTANTEN: Jedes Produkt hat einen Preis, und wer es über
+ * das Guthaben kaufen will, muss GENAU diesen Betrag aufladen können. Solange die Stufen
+ * einzeln im Code standen, hiess ein neues Produkt zwangsläufig eine vergessene Stufe — und
+ * dann lädt jemand 14,99 € auf für etwas, das 29,00 € kostet und steht mit bezahltem Geld vor
+ * demselben Knopf wie vorher. Genau der Fall, den der Owner hier abräumt.
+ *
+ *   5 · 10        die freien Stufen. Sie kaufen HEUTE kein einziges Produkt (das billigste
+ *                 kostet 14,99) — sie bleiben stehen, weil sie morgen wieder eines kaufen.
+ *
+ *                 GLATT STATT KRUMM (Owner 05.08.2026: „dann können wir 5 Euro machen statt
+ *                 4,99 damit wir kürzere Preise haben"). Vorher 4,99 und 9,99. Die beiden
+ *                 hängen an KEINEM Produkt und an keiner Stripe-Kennung — sie sind reine
+ *                 Beträge über `price_data`, also kostet die Änderung nichts als diese Zeile.
+ *                 10 zieht mit, weil „5 € · 9,99 € · 14,99 €" nach Flickwerk aussieht: Wer
+ *                 kurze Preise will, braucht sie nebeneinander, sonst wirkt die krumme Zahl
+ *                 wie ein Versehen.
+ *   14,99         jedes Geschenk: Kuss, Geburtstag, Urlaub, Tanz  (ONCE_CENTS)
+ *   30            die grosse freie Stufe (der Hochzeitsplaner laeuft ueber Stripe, nicht
+ *                 ueber das Guthaben — siehe die Anmerkung unter der Liste)
+ *   59,00         das LuxuryBandit System, eine Analyse           (PLAN_CENTS)
+ *
+ * DIE DREI OBEREN STUFEN LESEN DIE PREISE, statt sie abzuschreiben: Wer oben einen Preis
+ * ändert, ändert die Stufe mit. Zwei Zahlen für dasselbe Ding wären zwei Gelegenheiten, sie
+ * auseinanderlaufen zu lassen — und dann deckt die angebotene Aufladung den Preis nicht mehr.
+ *
+ * SIE STEHT AM DATEIENDE, und das ist kein Geschmack: `const` lässt sich vor seiner eigenen
+ * Zeile nicht lesen. Weiter oben notiert hätte diese Liste beim Laden des Moduls einen
+ * ReferenceError geworfen, weil ONCE_CENTS und PLAN_CENTS erst darunter stehen.
+ *
+ * DIE KASSE NIMMT NUR, WAS HIER STEHT — Whitelist über `aufladeStufe()` in
+ * `app/api/kiss-video-checkout` und `app/api/plan-checkout`. Was ein Browser sonst schickt,
+ * fällt auf die kleinste Stufe: lieber zu wenig abgebucht als ein nie angebotener Betrag.
+ */
+// DIE VIERTE STUFE STEHT FEST AUF 30 und liest NICHT mehr den Hochzeitspreis: Seit die
+// Hochzeit ein Abo ist, bucht Stripe sie monatlich ab, nie aus dem Guthaben — eine Stufe ueber
+// 29 € haette also kein Produkt mehr, das sie kauft. Die Leiter bleibt die, die der Owner am
+// 05.08.2026 diktiert hat: 5 · 10 · 15 · 30 · 60.
+/**
+ * DIE 3 € SIND EIN ZUSCHUSS, KEIN KAUF (Owner 05.08.2026: „Ich füge noch ein Credit ein 3 Euro
+ * oder?" — auf den Einwand, dass 3 € unter jedem Preis liegen: „muss er auch nicht kaufen, er
+ * legt noch drauf").
+ *
+ * Er hat recht, und der Einwand war zu eng gedacht: Guthaben ist additiv. 3 € kaufen allein
+ * nichts (das billigste Video kostet EXTRA_VIDEO_CENTS, das billigste Geschenk ONCE_CENTS),
+ * aber sie liegen auf dem Konto und der Rest wird dazugelegt. Als Einstiegsstufe und als
+ * Werbe-Zuschuss ist das genau richtig.
+ *
+ * UND SIE TAUCHT BEIM GESCHENK-GUTSCHEIN TROTZDEM NICHT AUF — automatisch, ohne zweite Liste:
+ * `GUTSCHEIN_STUFEN` filtert alles unter ONCE_CENTS weg. Der Unterschied ist der LESER. Wer
+ * sich selbst auflädt, weiss, dass er nachlegt. Wer ein GESCHENK öffnet, weiss es nicht — und
+ * ein Präsent, das erst nach einer eigenen Zahlung funktioniert, ist eine Rechnung mit
+ * Schleife. Deshalb: unten offen, beim Verschenken bei 15 € Schluss.
+ */
+export const AUFLADE_STUFEN = [300, 500, 1000, ONCE_CENTS, 3000, PLAN_CENTS] as const;
+
+/**
+ * DAS WERBEGESCHENK AN BESTANDSKUNDEN (Owner 05.08.2026: „auch meine Kunden können das
+ * einlösen. Als Werbegeschenk … dann haben sie 3 Euro auf dem Konto").
+ *
+ * Es ist die UNTERSTE Stufe der Leiter, gelesen statt abgeschrieben: Was wir verschenken, ist
+ * derselbe Betrag, den man auch kaufen kann — sonst stünde irgendwann eine Zahl im Rundbrief,
+ * die es im Laden nicht gibt.
+ *
+ * WARUM ES SICH TRÄGT: 3 € kaufen allein nichts (das billigste Video kostet EXTRA_VIDEO_CENTS),
+ * aber sie liegen auf dem Konto — und der Kunde legt drauf. Es ist ein Zuschuss, kein Kauf.
+ * Verschenkt wird das über `app/api/werbe-guthaben`, mit unterschriebenem Link und genau
+ * einmal je Adresse und Kampagne.
+ */
+export const WERBE_GUTSCHRIFT_CENTS = AUFLADE_STUFEN[0];
+
+/** Ist dieser Betrag eine angebotene Stufe? Sonst gilt die kleinste. */
+export function aufladeStufe(cents: unknown): number {
+  const n = Number(cents);
+  return (AUFLADE_STUFEN as readonly number[]).includes(n) ? n : AUFLADE_STUFEN[0];
+}
+
+/**
+ * DER LUXURYBANDIT-GUTSCHEIN — Guthaben verschenken (Owner 05.08.2026: „Sollen wir aber hier
+ * tatsächlich Gutscheine für unser Portal verkaufen, falls die Leute keine Ideen haben?" ·
+ * „Credits? Warum nicht.").
+ *
+ * ES IST DER EINZIGE GUTSCHEIN, DEN WIR VERKAUFEN DÜRFEN, und der Unterschied ist kein
+ * juristisches Haar: Bei einem FREMDEN Gutschein halten wir fremdes Geld und eine fremde
+ * Zahlungsverpflichtung. Hier halten wir eine Leistung, die wir selbst erbringen — ein
+ * Einzweckgutschein. Und wer unsere Datenbank knackt, findet Guthaben, das an eine Adresse
+ * gebunden ist und nur Videos bei uns kauft, statt eines Stapels fremder Codes.
+ *
+ * ER BEANTWORTET DIE FRAGE, DIE DAS PORTAL STELLT: „Geschenkideen" sucht, wer KEINE Idee hat.
+ * Dem acht Produkte hinzuhalten hilft nicht — er weiss ja nicht, was der andere mag. Der
+ * Gutschein dreht es um: Er verschenkt die Wahl.
+ *
+ * ZWEI BEDINGUNGEN, UND BEIDE STECKEN IN DIESER ZEILE:
+ *
+ *   1. MINDESTENS EIN GESCHENK. Deshalb wird gefiltert statt abgeschrieben: Die Stufen 5 und
+ *      10 aus der Aufladeleiter kaufen KEIN einziges Produkt (das billigste kostet ONCE_CENTS).
+ *      Ein Gutschein, den man öffnet und der nichts kauft, ist eine Enttäuschung mit Schleife —
+ *      und zwar vor den Augen dessen, der ihn geschenkt hat. Ändert sich der Produktpreis,
+ *      zieht die Untergrenze automatisch mit; abgeschriebene Zahlen tun das nicht.
+ *   2. ER LÄUFT NICHT AB. Auf jedem Geschenk liegen LAUFZEIT_TAGE (30). Hier gilt das
+ *      ausdrücklich NICHT: Verfallendes Guthaben ist in mehreren EU-Ländern nicht haltbar und
+ *      überall der zuverlässigste Weg zu Beschwerden. Der Gutschein wartet, bis er eingelöst
+ *      wird. Wer je eine Frist einbaut, ändert damit die Rechtslage, nicht nur eine Zahl.
+ *
+ * DAS GUTHABEN HÄNGT AN DER ADRESSE DES BESCHENKTEN, nicht an der des Käufers — das ist der
+ * ganze technische Unterschied zur normalen Aufladung (`guthabenAufladen`, Memory
+ * `guthaben-haengt-an-einer-adresse`). Die Kasse muss die Empfängeradresse also mitführen.
+ */
+export const GUTSCHEIN_STUFEN: number[] = AUFLADE_STUFEN.filter(c => c >= ONCE_CENTS);
+
+/** Ist dieser Betrag eine angebotene Gutschein-Stufe? Sonst gilt die kleinste (= ein Geschenk). */
+export function gutscheinStufe(cents: unknown): number {
+  const n = Number(cents);
+  return GUTSCHEIN_STUFEN.includes(n) ? n : GUTSCHEIN_STUFEN[0];
 }

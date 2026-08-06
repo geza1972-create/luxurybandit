@@ -494,13 +494,23 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Film className="h-5 w-5 shrink-0 text-[#f6cf51]" />
                 <span className="text-sm font-black text-white">My Gallery</span>
               </button>
-              {/* Models Wanted — recruiting CTA → the indexable recruiting landing (it explains the
-                  deal, then CTAs into the free application form). Also gives that SEO page a real
-                  internal link from every screen, so Google can discover and rank it. */}
-              {!isCurator && (
+              {/**
+                * „MODELS WANTED" IST FUER BESUCHER ZU (Owner 05.08.2026: „die Model-Seite kommt
+                * immer wieder, wenn ich auf Back klicke … du machst die Seite fuer User dicht.
+                * Die gibt es nicht mehr, nur fuer den Admin. Auch im Menue machst es raus").
+                *
+                * Der Eintrag stand fuer JEDEN, der kein Kurator ist — also fuer genau die
+                * Kaeufer, die ein Geschenk machen wollen. Auf einem Geschenkideen-Portal ist
+                * „Werde Model" kein Angebot, sondern ein Abzweig, der vom Kauf wegfuehrt.
+                *
+                * Nur noch fuer Personal (`isStaff`), damit der Owner selbst hinkommt, ohne die
+                * Adresse zu tippen. Die Seite selbst weist Fremde ausserdem serverseitig ab —
+                * ein fehlender Menuepunkt ist keine Sperre.
+                */}
+              {isStaff && (
                 <button type="button" onClick={() => navigate("/models-wanted")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <UserPlus className="h-5 w-5 shrink-0 text-amber-400" />
+                  <UserPlus className="h-5 w-5 shrink-0 text-[#f6cf51]" />
                   <span className="text-sm font-black text-white">Models Wanted</span>
                 </button>
               )}
@@ -618,6 +628,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/85">
                 <button type="button" onClick={() => navigate("/contact")} className="hover:text-white">Contact</button>
+                {/* „About" war einen Abend lang raus (Owner 05.08.2026: „auch im Menü About
+                    ist falsch verlinkt") — die Seite beschrieb noch den Influencer-Marktplatz.
+                    Seit sie neu geschrieben ist, steht sie wieder hier UND im Footer. */}
                 <button type="button" onClick={() => navigate("/about")} className="hover:text-white">About</button>
                 <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">Terms</button>
                 <button type="button" onClick={() => navigate("/privacy")} className="hover:text-white">Privacy</button>

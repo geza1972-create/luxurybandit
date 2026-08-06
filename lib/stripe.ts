@@ -101,7 +101,7 @@ export async function createTryonCheckout(opts: {
     ...(opts.email ? { customer_email: opts.email } : {}),
     client_reference_id: opts.clientReferenceId ?? opts.email,
     // GUTSCHEINFELD AUCH BEIM EINMALKAUF (Owner 30.07.2026: „warum kann ich hier meinen
-    // Gutschein ADMIN1972 nicht eingeben"). Beim Abo gab es das Feld laengst, hier nie —
+    // Gutschein nicht eingeben"). Beim Abo gab es das Feld laengst, hier nie —
     // er konnte seinen eigenen Code also nicht einmal zum Testen benutzen.
     allow_promotion_codes: true,
     line_items: [
@@ -244,7 +244,7 @@ export async function getCheckoutSession(id: string): Promise<{
   amountTotal: number | null;
   /** Der BESTELLWERT vor Rabatt — bei einem 100-%-Gutschein ist `amountTotal` null/0. */
   amountSubtotal: number | null;
-  /** Der eingeloeste Aktionscode im Klartext („ADMIN1972"), falls einer benutzt wurde. */
+  /** Der eingeloeste Aktionscode im Klartext (der eingetippte Code), falls einer benutzt wurde. */
   promoCode: string;
   clientReferenceId: string;
   customerEmail: string;
