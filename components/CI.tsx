@@ -442,10 +442,27 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
  * Der Kunde soll die eine Gestalt sehen, für die wir uns entschieden haben, und nicht vor
  * einer Designfrage stehen. Verglichen wird auf der Muster-Seite; was dort gewählt wird,
  * gilt danach überall, weil beide Seiten denselben Eintrag lesen.
+ *
+ * ABER NUR IN DIESEM BROWSER (Owner 06.08.2026: „ich habe in der Biblio auf volle Breite
+ * geschaltet aber online ist es nicht auf live aktiv").
+ *
+ * Der Eintrag liegt im `localStorage`, und der gehört EINEM Browser auf EINER Adresse. Auf
+ * localhost geschaltet, bleibt die Wahl auf localhost; und selbst auf der echten Seite
+ * geschaltet, sähe sie nur der Owner — jeder Besucher käme mit leerem Speicher und bekäme
+ * die Vorgabe. Der Umschalter ist also ein Vorschaufenster, kein Hebel des Hauses.
+ *
+ * WAS ALLE SEHEN, STEHT DESHALB HIER: die Vorgabe. Sie ist jetzt `voll` — die Entscheidung
+ * ist gefallen, die Kacheln laufen über die ganze Breite mit Ranken und Video. Wer auf `/ci`
+ * umschaltet, überstimmt das für sich zum Vergleichen; für die Welt gilt diese Zeile.
+ *
+ * Soll die Gestalt einmal OHNE Auslieferung wechselbar sein, gehört sie in den Zustand auf
+ * dem Server (state.json) statt in den Browser — dann ist es ein echter Schalter. Bis dahin
+ * ist ein Wechsel hier ein Commit, und das ist ehrlicher als ein Knopf, der nur so aussieht,
+ * als gälte er für alle.
  */
 const GESTALT_SCHLUESSEL = "lb-topic-gestalt";
 export function useThemenGestalt() {
-  const [art, setArt] = useState<"reihe" | "voll">("reihe");
+  const [art, setArt] = useState<"reihe" | "voll">("voll");
   useEffect(() => {
     try {
       const w = localStorage.getItem(GESTALT_SCHLUESSEL);
