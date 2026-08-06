@@ -407,6 +407,24 @@ Guthaben-Zahlweg in die Liste.
 - **„Deine Frau" steht nur noch EINMAL** in Schritt 1 — vorher Überschrift + Kacheltitel +
   Namensbalken übereinander.
 
+## 3g. Die CI-BIBLIOTHEK steht (Owner: „bau die CI-Bibliothek")
+
+- **`components/CI.tsx`**: `Scheibe` · `Knopf` (gold/umriss/chip) · `Eingabe` ·
+  `Fehlerzeile` · `Dialog` (Rand-Tipp + Scheiben-Kreuz eingebaut — ein Tor ohne Ausgang
+  kann nicht mehr entstehen). Jeder Baustein kennt `karte` für die !important-Welt der
+  Einladungskarte. Regeln bleiben in den Skills `ci-design`/`card`; der Skill verweist
+  jetzt zuerst auf die Bibliothek.
+- **`/ci` ist die lebende Muster-Seite** (Farben, Landing-Typo, alle Bausteine in beiden
+  Welten, Dialog-Demo, Verweise auf die grossen Bausteine) — im Menü als Staff-Punkt
+  „CI-Bibliothek — Bausteine", die Adresse geht immer, `noindex`.
+- **Erste Umsteller** (rollierend, kein Big-Bang): E-Mail-Tor (Dialog), Zuschnitt-Kreuz
+  (Scheibe), Geschenk-Wahl des Gutscheins (Eingabe/Knopf-Chips/Fehlerzeile). Alles im
+  Browser gegengeprüft. Weitere Stellen wandern um, sobald sie ohnehin angefasst werden.
+- Auch neu: Zwischentitel der Geschenk-Wahl („Wem schenkst du?" über der E-Mail, „Wähle
+  das Produkt oder Guthaben" über den Chips), die Foto-Zeile („Wir weisen nichts ab:
+  deine Fehler, deine Verantwortung", 7 Sprachen) und die Katalog-Kachel des Gutscheins
+  (verkauft das neue Produkt statt des Einwickelns).
+
 ## 4. Fallen, die heute Zeit gekostet haben
 
 - **`.next` zerbricht immer wieder.** Symptom: „ich sehe nichts", Fehler an einer festen

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, X, ZoomIn } from "lucide-react";
+import { Scheibe } from "@/components/CI";
 
 /**
  * ZUSCHNEIDEN VOR DEM SPEICHERN — Pflicht bei jedem Bild-Upload.
@@ -140,14 +141,10 @@ export default function ImageCropper({
       <div className="w-full max-w-[380px] rounded-2xl p-4" style={{ background: "#fff" }}>
         <div className="flex items-center justify-between">
           <p className="text-[14px] font-black" style={{ color: "#111" }}>{title}</p>
-          {/* Weisse Scheibe, goldenes Zeichen — die EINE Schliessen-Scheibe des Hauses
-              (Skill `card`; Owner 06.08.2026: „wir müssen doch alle im CI farben benutzen").
-              Vorher grau/schwarz, das dritte eigene Kreuz-Design im Projekt. */}
-          <button type="button" onClick={onCancel} aria-label={TX.abbrechen}
-            className="grid h-9 w-9 place-items-center rounded-full transition active:scale-90"
-            style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}>
+          {/* Die CI-Scheibe (components/CI) — die EINE Schliessen-Scheibe des Hauses. */}
+          <Scheibe klein label={TX.abbrechen} onClick={onCancel}>
             <X className="h-4 w-4" />
-          </button>
+          </Scheibe>
         </div>
 
         <div ref={frameRef}

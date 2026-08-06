@@ -20,6 +20,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
+import { Dialog } from "@/components/CI";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
  * Geschenke-Marktplatz). Sie stand hier mitten im Trichter — damit war „ein neues
@@ -3809,22 +3810,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
 
       {gateOffen && (
-        /* SCHLIESSBAR (Owner 06.08.2026: „hier kann der user den Dialog gar nicht mehr
-           schliessen"): Tipp auf den dunklen Rand ODER das Kreuz macht zu — dieselbe Regel
-           wie bei jedem Dialog im Haus. Die Adresse bleibt Pflicht fürs ERZEUGEN; das Tor
-           öffnet beim nächsten Versuch einfach wieder. Ein Tor ohne Ausgang hält niemanden
-           zum Kaufen fest — es hält ihn nur vom Weiterschauen ab. */
-        <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
-          onClick={() => setGateOffen(false)}>
-          <div className="relative w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
-            {/* Weisse Scheibe, goldenes Zeichen, weicher Schatten — dieselbe Scheibe wie die
-                drei Karten-Knöpfe (Skill `card`; Owner 06.08.2026: „wir müssen doch alle im
-                CI farben benutzen"). */}
-            <button type="button" aria-label="✕" onClick={() => setGateOffen(false)}
-              style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full transition active:scale-90">
-              <X className="h-4 w-4" />
-            </button>
+        /* DER CI-DIALOG (components/CI): Rand-Tipp und Scheiben-Kreuz schliessen — beides
+           eingebaut, nicht abwählbar (Owner 06.08.2026: „hier kann der user den Dialog gar
+           nicht mehr schliessen"). Die Adresse bleibt Pflicht fürs ERZEUGEN; das Tor öffnet
+           beim nächsten Versuch einfach wieder. */
+        <Dialog zu={() => setGateOffen(false)}>
             {/* `px-7`, damit die Zeile NIE unter das Kreuz läuft (Owner 06.08.2026: „Das X
                 klebt an der Schrift") — symmetrisch, weil der Titel zentriert ist. */}
             <p className="mt-1 px-7 text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.gateTitel}</p>
@@ -3855,8 +3845,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             <p className="mt-3 text-center text-[10px] font-medium leading-snug text-black/50">
               {T.privat}
             </p>
-          </div>
-        </div>
+        </Dialog>
       )}
 
       {shareFrage && (

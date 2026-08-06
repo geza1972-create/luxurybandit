@@ -32,6 +32,13 @@ export type KissText = {
    * der anderen Anlässe brauchen diese Zeilen nie.
    */
   lbTitel?: string;
+  /**
+   * DIE ZWEI ZWISCHENTITEL (Owner 06.08.2026: „Hier muss doch stehen, An wem schenkst du.
+   * Weiter unten Wähle das Produkt aus oder Kreditbetrag als Titel."): Über der E-Mail steht,
+   * WEM geschenkt wird; über den Chips, WAS gewählt wird. Ein Titel je Frage.
+   */
+  lbWem?: string;
+  lbWahlTitel?: string;
   lbHilfe?: string;
   lbEmpfaenger?: string;
   lbFehlerMail?: string;
@@ -2265,6 +2272,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
        Gutschein fehlt nur der EINE Absendername im „Von"-Feld der Karte. */
     namenVorSenden: "Tap “From” on the card and add your name",
     lbTitel: "What are you gifting?",
+    lbWem: "Who are you gifting?",
+    lbWahlTitel: "Pick the product or credit",
     lbHilfe: "The credit lands on their account — that email is their login, and they redeem it on any theme page.",
     lbEmpfaenger: "Their email address",
     lbFehlerMail: "First add the email of the person you are gifting it to.",
@@ -2289,6 +2298,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Karte erstellen",
     namenVorSenden: "Tipp auf der Karte auf „Von“ und trag deinen Namen ein",
     lbTitel: "Was schenkst du?",
+    lbWem: "Wem schenkst du?",
+    lbWahlTitel: "Wähle das Produkt oder Guthaben",
     lbHilfe: "Das Guthaben landet auf ihrem Konto — die E-Mail ist zugleich ihr Login, einlösbar auf jeder Themenseite.",
     lbEmpfaenger: "E-Mail des Beschenkten",
     lbFehlerMail: "Trag zuerst die E-Mail des Beschenkten ein.",
@@ -2313,6 +2324,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Creează cardul",
     namenVorSenden: "Atinge „De la” pe card și scrie-ți numele",
     lbTitel: "Ce dăruiești?",
+    lbWem: "Cui dăruiești?",
+    lbWahlTitel: "Alege produsul sau creditul",
     lbHilfe: "Creditul ajunge în contul lor — e-mailul e chiar loginul lor și se folosește pe orice pagină de teme.",
     lbEmpfaenger: "E-mailul persoanei",
     lbFehlerMail: "Scrie mai întâi e-mailul persoanei căreia îi dăruiești.",
@@ -2337,6 +2350,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Crear la tarjeta",
     namenVorSenden: "Toca «Desde» en la tarjeta y escribe tu nombre",
     lbTitel: "¿Qué regalas?",
+    lbWem: "¿A quién se lo regalas?",
+    lbWahlTitel: "Elige el producto o el saldo",
     lbHilfe: "El saldo llega a su cuenta — ese correo es su login y lo canjea en cualquier página de temas.",
     lbEmpfaenger: "El correo de la persona",
     lbFehlerMail: "Escribe primero el correo de la persona.",
@@ -2361,6 +2376,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Créer la carte",
     namenVorSenden: "Touche « Du » sur la carte et ajoute ton prénom",
     lbTitel: "Qu'est-ce que tu offres ?",
+    lbWem: "À qui offres-tu ?",
+    lbWahlTitel: "Choisis le produit ou le crédit",
     lbHilfe: "Le crédit arrive sur son compte — cet e-mail est aussi son login, à utiliser sur n'importe quelle page.",
     lbEmpfaenger: "L'e-mail de la personne",
     lbFehlerMail: "Ajoute d'abord l'e-mail de la personne.",
@@ -2385,6 +2402,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Criar o cartão",
     namenVorSenden: "Toca em «De» no cartão e escreve o teu nome",
     lbTitel: "O que vais oferecer?",
+    lbWem: "A quem ofereces?",
+    lbWahlTitel: "Escolhe o produto ou o saldo",
     lbHilfe: "O saldo entra na conta deles — esse e-mail é o login deles e usa-se em qualquer página de temas.",
     lbEmpfaenger: "O e-mail da pessoa",
     lbFehlerMail: "Escreve primeiro o e-mail da pessoa.",
@@ -2409,6 +2428,8 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     ctaVideo: "Crea la card",
     namenVorSenden: "Tocca “Dal” sulla card e scrivi il tuo nome",
     lbTitel: "Cosa regali?",
+    lbWem: "A chi lo regali?",
+    lbWahlTitel: "Scegli il prodotto o il credito",
     lbHilfe: "Il credito arriva sul loro conto — quell'e-mail è il loro login e si usa su qualsiasi pagina dei temi.",
     lbEmpfaenger: "L'e-mail della persona",
     lbFehlerMail: "Scrivi prima l'e-mail della persona.",

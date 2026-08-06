@@ -9,6 +9,7 @@ import KartenKarussell from "@/components/KartenKarussell";
 import UploadKachel from "@/components/UploadKachel";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
+import { Eingabe, Fehlerzeile, Knopf } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import LightSwitch from "@/components/LightSwitch";
 import FotoAnleitung from "@/components/FotoAnleitung";
@@ -670,12 +671,6 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
   const geschenkWahl = (sofort: boolean) => {
     const label = sofort ? "text-[#f6cf51]" : "lb-karte-gold";
     const hilfe = sofort ? "text-white/75" : "opacity-70";
-    const feld = sofort
-      ? "border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60"
-      : "lb-karte-feld";
-    const chip = (aktiv: boolean) => aktiv
-      ? (sofort ? "bg-[#f6cf51] text-black" : "lb-karte-cta")
-      : (sofort ? "bg-white/10 text-white/85" : "lb-karte-absage");
     const tippen = (wahl: { topic: string; cents: number }) => {
       if (sofort) { void lbKaufen(wahl); return; }
       setLbWahl(w => (w && w.topic === wahl.topic && w.cents === wahl.cents) ? null : wahl);
@@ -683,7 +678,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     const aktiv = (wahl: { topic: string; cents: number }) =>
       !!lbWahl && lbWahl.topic === wahl.topic && lbWahl.cents === wahl.cents;
     return (<>
-      <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbTitel}</p>
+      {/* EIN TITEL JE FRAGE (Owner 06.08.2026: „Hier muss doch stehen, An wem schenkst du.
+          Weiter unten Wähle das Produkt aus oder Kreditbetrag als Titel."): Über der
+          E-Mail das WEM, über den Chips das WAS. */}
+      <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbWem}</p>
       <p className={`mt-1 text-[11px] font-bold leading-snug ${hilfe}`}>{F.lbHilfe}</p>
       {lbGekauft ? (
         <p className={`mt-2 text-[13px] font-black leading-snug ${sofort ? "text-[#f6cf51]" : "lb-karte-gold"}`}>
@@ -691,19 +689,19 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             T.gutscheinTopics[lbGekauft.topic as keyof typeof T.gutscheinTopics] ?? eur(lbGekauft.cents, lang))}
         </p>
       ) : (<>
-        <input value={lbMail} onChange={e => { setLbMail(e.target.value); if (lbFehler) setLbFehler(""); }}
-          type="email" inputMode="email" placeholder={F.lbEmpfaenger}
-          className={`mt-2 h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none ${feld}`} />
+        <Eingabe karte={!sofort} value={lbMail}
+          onChange={e => { setLbMail(e.target.value); if (lbFehler) setLbFehler(""); }}
+          type="email" inputMode="email" placeholder={F.lbEmpfaenger} className="mt-2" />
+        <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbWahlTitel}</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {[...LB_TOPICS].sort((a, b) => (a === lbWahl?.topic ? -1 : b === lbWahl?.topic ? 1 : 0)).map(t => {
             const wahl = { topic: t, cents: themenPreisCents(t) };
             return (
-              <button key={t} type="button" disabled={lbBusy} aria-pressed={aktiv(wahl)}
-                onClick={() => tippen(wahl)}
-                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight transition active:scale-95 disabled:opacity-60 ${chip(aktiv(wahl))}`}>
+              <Knopf key={t} art="chip" karte={!sofort} aktiv={aktiv(wahl)} disabled={lbBusy}
+                onClick={() => tippen(wahl)}>
                 {lbLaeuft === t && lbBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
                 {T.gutscheinTopics[t as keyof typeof T.gutscheinTopics]} · {eur(themenPreisCents(t), lang)}
-              </button>
+              </Knopf>
             );
           })}
         </div>
@@ -713,23 +711,15 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           {GUTSCHEIN_STUFEN.map(c => {
             const wahl = { topic: "", cents: c };
             return (
-              <button key={c} type="button" disabled={lbBusy} aria-pressed={aktiv(wahl)}
-                onClick={() => tippen(wahl)}
-                className={`flex h-11 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-black transition active:scale-95 disabled:opacity-60 ${chip(aktiv(wahl))}`}>
+              <Knopf key={c} art="chip" karte={!sofort} aktiv={aktiv(wahl)} disabled={lbBusy}
+                onClick={() => tippen(wahl)}>
                 {lbLaeuft === String(c) && lbBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : null}
                 {eur(c, lang)}
-              </button>
+              </Knopf>
             );
           })}
         </div>
-        {lbFehler && (
-          /* Fixes Rot: Auf der dunklen Seite als style (dort gibt es keine !important-Falle),
-             in der Karte über die eigene Klasse — siehe Memory lb-karte-important. */
-          <p role="alert" style={sofort ? { color: "#dc2626" } : undefined}
-            className={`${sofort ? "" : "lb-karte-fehler "}mt-1.5 text-center text-[12.5px] font-black leading-snug`}>
-            {lbFehler}
-          </p>
-        )}
+        <Fehlerzeile karte={!sofort}>{lbFehler}</Fehlerzeile>
       </>)}
     </>);
   };
