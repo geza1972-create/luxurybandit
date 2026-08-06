@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MadeBy } from "@/components/CI";
 import TonKnopf from "@/components/TonKnopf";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import Reaktionen from "@/components/Reaktionen";
@@ -212,10 +213,7 @@ export default function PlanSlide({ lang, bilder }: { lang: Lang; bilder?: Parti
           <p className="text-[13.5px] font-bold leading-snug text-white/85">{st.text}</p>
         </div>
         {/* Herkunft unten — Karten-Regel, als LINK (Owner 06.08.2026: „und auch link drauf") */}
-        <a href="/?utm_source=karte"
-          className="block pb-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/30">
-          made by luxurybandit.com
-        </a>
+        <MadeBy />
       </article>
 
       {/* Zeitleiste unter der Karte — anklickbar, damit er selbst springen kann. */}

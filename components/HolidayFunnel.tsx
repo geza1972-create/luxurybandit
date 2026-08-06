@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Sparkles, ImageUp, Check, Download, Plus, ChevronLeft, Trash2 } from "lucide-react";
+import { MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { logFunnelEvent } from "@/lib/track-funnel";
@@ -304,13 +305,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
           titel={presetModelName ? `${presetModelName} & you` : "Your holiday"}
           /* Die Herkunftszeile gehoert auf JEDE Karte (Owner 03.08.2026). Keine Inline-Farbe:
              `.lb-karte` faerbt per !important und schlaegt jedes style-Attribut. */
-          fuss={
-            /* Als LINK (Owner 06.08.2026: „und auch link drauf") — wie auf allen Karten. */
-            <a href="/?utm_source=karte"
-              className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-              made by luxurybandit.com
-            </a>
-          }
+          fuss={<MadeBy karte />}
           video={
             <div className="relative">
               {/* Die drei Symbole setzt die Karte selbst (Skill `card`). */}

@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import { MadeBy } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import EinladungKarte from "@/components/EinladungKarte";
 import { BELLA_ID } from "@/lib/bella-card";
@@ -242,13 +243,7 @@ export default async function ChatThemePage({ searchParams }: {
           <EinladungKarte
             sprache={L} sie="" er="" demo
             titel={W.kartenTitel}
-            fuss={
-              /* Als LINK (Owner 06.08.2026: „und auch link drauf") — wie auf allen Karten. */
-              <a href="/?utm_source=karte"
-                className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-                made by luxurybandit.com
-              </a>
-            }
+            fuss={<MadeBy karte />}
             /**
              * EINE KARTE, MEHRERE VIDEOS (Owner 05.08.2026: „Am besten in der karte oben im
              * karusell" · „Mach noch zwei da rein").

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MadeBy } from "@/components/CI";
 import { fillPrices, eur } from "@/lib/pricing";
 import { notFound } from "next/navigation";
 import { readEinladungen } from "@/lib/try-this-look-store";
@@ -194,12 +195,7 @@ export default async function EinladungPage({ params, searchParams }: {
            * auf die Startseite: Die blanke Adresse IST das Portal. Keine Inline-Farbe,
            * `.lb-karte` gewinnt per !important — nur `lb-karte-gold` kommt an.
            */
-          fuss={
-            <a href="/?utm_source=karte"
-              className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-              made by luxurybandit.com
-            </a>
-          }
+          fuss={<MadeBy karte />}
           /* Botschaft, Zeitraum und die Bitte um Antwort — alles nur beim Urlaub. Der
              Griff `aufBestaetigen` fehlt hier bewusst: Die Zeile ist auf einer Server-Seite
              gerendert, ein Sprung braucht Browser-Code. Sie steht als Hinweis da; die

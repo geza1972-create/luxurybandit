@@ -20,7 +20,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
-import { Dialog } from "@/components/CI";
+import { Dialog, MadeBy } from "@/components/CI";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
  * Geschenke-Marktplatz). Sie stand hier mitten im Trichter — damit war „ein neues
@@ -2519,14 +2519,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * schlaegt jedes `style`. Nur eine `lb-karte-*`-Klasse kommt dagegen an — genau daran
          * ist am 03.08. schon einmal eine Prozentzahl unsichtbar geworden.
          */
-        fuss={
-          /* Als LINK (Owner 06.08.2026: „Made by Luxurybandit.com und auch link drauf") —
-             dieselbe Zeile wie auf Einladungs- und Gutschein-Karte, ein Tipp führt heim. */
-          <a href="/?utm_source=karte"
-            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-            made by luxurybandit.com
-          </a>
-        }
+        fuss={<MadeBy karte />}
         video={
           /* DAS ERGEBNIS GEHOERT IN DIE KARTE (Owner 31.07.2026: „auf dieser Seite will ich
              nicht mein Bild als zweiter Stelle sehen. Es muss in die Karte sein und Replace

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
+import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -194,12 +194,7 @@ export default function CIMuster() {
               } />
           ))} />
         }
-        fuss={
-          <a href="/?utm_source=karte"
-            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-            made by luxurybandit.com
-          </a>
-        }
+        fuss={<MadeBy karte />}
       />
       {/* Der Kaufaufruf UNTER der Karte — hell, volle Breite, der EINE Goldknopf des
           Bildschirms (Owner: „bei der karte fehlt ein cta"). */}

@@ -245,6 +245,35 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
 }
 
 /**
+ * DIE HERKUNFTSZEILE — „made by luxurybandit.com" unter jeder Karte (Skill `card`, Memory
+ * `karten-fuer-videos`: Titel oben, diese Zeile unten). Sie ist ein LINK (Owner 06.08.2026:
+ * „Made by Luxurybandit.com und auch link drauf") — ein Tipp führt heim, und weil jede
+ * verschickte Karte bei Fremden landet, ist das die Zeile, über die das Haus gefunden wird.
+ *
+ * IN DER KARTE IST SIE EIN AKTIVER CHIP (Owner 06.08.2026: „das als aktiver chip machen in
+ * der karte"). Vorher stand sie als blasse Grossbuchstaben-Zeile auf 70 % Deckkraft da —
+ * lesbar, aber nichts, was nach „hier kann man tippen" aussah, obwohl genau das der Zweck
+ * ist. Als umrandeter Chip trägt sie dieselbe Gestalt wie jede andere getroffene Wahl im
+ * Haus, und man sieht, dass sie irgendwohin führt.
+ *
+ * Sie stand am 06.08. an fünf Stellen von Hand im Code — dieselben Klassen, fünfmal
+ * abgetippt.
+ */
+export function MadeBy({ karte = false, className = "" }: {
+  karte?: boolean;
+  className?: string;
+}) {
+  return (
+    <a href="/?utm_source=karte"
+      className={karte
+        ? `lb-karte-rahmen lb-karte-gold mx-auto mt-3 flex w-fit items-center justify-center rounded-full px-3.5 py-1.5 text-center text-[9px] font-bold uppercase tracking-[0.22em] ${className}`
+        : `block pb-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/30 ${className}`}>
+      made by luxurybandit.com
+    </a>
+  );
+}
+
+/**
  * DIE THEMEN-KREISE — die Tür zu jedem Thema als wischbare Reihe (Owner 06.08.2026:
  * „die kommen auch in die Bibliothek. Und scrollbalken wird dann transparent").
  *

@@ -9,7 +9,7 @@ import KartenKarussell from "@/components/KartenKarussell";
 import UploadKachel from "@/components/UploadKachel";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
-import { Eingabe, Fehlerzeile, Knopf } from "@/components/CI";
+import { Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import LightSwitch from "@/components/LightSwitch";
 import FotoAnleitung from "@/components/FotoAnleitung";
@@ -1209,12 +1209,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
            mit Titel oben und Made by Luxurybandit.com" · 06.08. „und auch link drauf") —
            dieselbe Zeile wie auf der Kuss-Karte und auf der Seite des Empfängers: Der
            Absender verschickt, was er hier sieht. */
-        fuss={
-          <a href="/?utm_source=karte"
-            className="lb-karte-gold mt-3 block text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
-            made by luxurybandit.com
-          </a>
-        }
+        fuss={<MadeBy karte />}
         video={
           /* Radar nur, wenn es ein eigenes Foto zu scannen gibt. Der Gutschein ohne Foto ist
              waehrend der Kasse ebenfalls `busy` — dann bliebe hier ein leeres, kaputtes
