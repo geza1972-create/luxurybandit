@@ -557,23 +557,15 @@ svg {
    Das !important ist hier kein Trick, sondern nötig: Die helle Fassung faerbt Text und Ränder
    per !important blau um; ohne das hier stünde in der Einladung Facebook-Blau. */
 .lb-karte { background: #fdfaf4 !important; }
-/* DIE KARTEN-SCHRIFT — eine SERIFE, und zwar hier, nicht 15-mal von Hand (Owner 06.08.2026:
-   „die selbe schrift art bitte wie in der Card aber wie ich sehe das steht gar nicht unter
-   fonds").
+/* DIE KARTEN-SCHRIFT IST EINE SERIFE — aber sie wird je Zeile gesetzt (`font-serif`), NICHT
+   pauschal an `.lb-karte`.
 
-   Genau so war es: Die Karte ist seit jeher in einer Serife gesetzt, aber das stand nirgends
-   als Regel — es stand 15-mal als `font-serif` an einzelnen Zeilen in EinladungKarte.tsx.
-   Wer eine neue Zeile in die Karte schrieb (wie die Themen-Kachel), bekam die Hausschrift
-   und merkte den Bruch erst im Bild. Jetzt traegt es die Karte selbst, und alles darin
-   erbt es.
-
-   AUSSER KNOEPFEN: Ein Kaufknopf ist Bedienung, kein Papier. Er bleibt in der Hausschrift,
-   sonst liest er sich wie eine Zeile der Einladung und nicht wie etwas, das man drueckt. */
-.lb-karte { font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
-.lb-karte button,
-.lb-karte [role="button"] {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-}
+   Am 06.08.2026 stand hier kurz `.lb-karte { font-family: serif }`. Das war falsch und der
+   Owner hat es sofort gesehen („du hast die Card kaputt gemacht bei allen"): Eine Karte
+   besteht nicht nur aus den Zeilen, die wie gedruckt aussehen sollen — darin stecken
+   Kleingedrucktes, Chips, Formularfelder, Zaehlerzeilen. Die trugen alle die Hausschrift,
+   aus gutem Grund, und wurden mit einem Schlag zu Serifen. Wer die Serife will, schreibt
+   `font-serif` an die Zeile; die Karte schreibt sie niemandem vor. */
 .lb-karte, .lb-karte p, .lb-karte h1, .lb-karte h2, .lb-karte span, .lb-karte a {
   color: #2a231c !important;
 }

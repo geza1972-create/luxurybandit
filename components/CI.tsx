@@ -5,6 +5,7 @@ import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles,
 import SchleifenVideo from "@/components/SchleifenVideo";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
+import KartenKarussell from "@/components/KartenKarussell";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -284,8 +285,17 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
  */
 export function KartenTitel({ children, className = "" }: { children: string; className?: string }) {
   const lang = String(children ?? "").length > 18;
+  /**
+   * DIE SCHRIFT STEHT AM BAUSTEIN, NICHT AM ORT (Owner 06.08.2026: „du gehst nicht nach CI.
+   * Jedeasmal ist eine andere schrift art über das Video").
+   *
+   * Genau das war der Fehler: Die Zeile setzte keine Schrift, sie ERBTE sie. In der
+   * Einladungskarte stand ringsum `font-serif`, also war sie eine Serife; in der Themen-
+   * Kachel stand nichts, also war sie die Hausschrift. Ein Baustein, der je nach Nachbarn
+   * anders aussieht, ist keiner — deshalb trägt er die Karten-Serife jetzt selbst.
+   */
   return (
-    <p className={`lb-karte-gold text-center font-black ${lang
+    <p className={`lb-karte-gold text-center font-serif font-black ${lang
       ? "text-[13px] leading-snug tracking-normal"
       : "text-[10px] uppercase tracking-[0.34em]"} ${className}`}>
       {children}
@@ -312,14 +322,21 @@ export type ThemenKachelDaten = {
 };
 export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", className = "" }: {
   thema: ThemenKachelDaten;
-  art?: "reihe" | "voll";
+  /**
+   * `reihe` schmale Zeile · `voll` eigene Karte über die ganze Breite ·
+   * `folie` derselbe Inhalt wie `voll`, aber OHNE eigenes Kartenpapier — für das Karussell,
+   * das alle Themen in EINER Karte zeigt (Owner 06.08.2026: „Die Videos müssen in die
+   * oberste Karte erscheinen und nicht untereinander. Also im Karussell").
+   */
+  art?: "reihe" | "voll" | "folie";
   live?: string;
   bald?: string;
   baldZeile?: string;
   className?: string;
 }) {
   const aktiv = !!thema.href;
-  const voll = art === "voll";
+  const folie = art === "folie";
+  const voll = art === "voll" || folie;
   /**
    * IN DER VOLLEN GESTALT GIBT DIE KACHEL KEIN FORMAT VOR (Owner 06.08.2026: „boa der volle
    * ist aber grausam. Abgeschnitenen Videos braucht keine Mensch").
@@ -332,21 +349,39 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    * In der schmalen Reihe bleibt die feste 3:4-Briefmarke — dort MUSS ein Format her, sonst
    * hätte jede Zeile eine andere Höhe.
    */
+  /**
+   * ALLE KACHELN HABEN DIE GRÖSSE DER HOCHZEIT (Owner 06.08.2026: „die Videso müssen alle
+   * gleich gross sein" · „nimm die grösse von hochzeit" · „doch abscheiden kannst du").
+   *
+   * Das Hochzeitsvideo ist 3:4 — und mit ihm vier der sechs Themen-Videos; die füllen die
+   * Fläche also randlos. Die beiden Hochformate (9:16, Gutschein und Chat) werden dafür
+   * beschnitten, und das ist ausdrücklich erlaubt. Der Weg dorthin ging über zwei Irrwege:
+   * jedes Video in seiner eigenen Höhe (nichts beschnitten, dafür jede Kachel anders hoch
+   * und Löcher in der Wischbahn) und eingepasst mit Papierstreifen (gleich gross, aber
+   * kleiner als die Fläche). Eine feste Fläche mit `cover` ist beides: gleich gross, und
+   * das Video steht randlos darin.
+   */
   const medien = (
-    <div className={`relative shrink-0 overflow-hidden lb-media-bg ${voll ? "w-full" : "aspect-[3/4] w-[104px]"}`}>
+    <div className={`relative shrink-0 overflow-hidden lb-media-bg aspect-[3/4] ${voll ? "w-full" : "w-[104px]"}`}>
+      {/* GESCHNITTEN WIRD OBEN UND UNTEN, NIE SEITLICH (Owner 06.08.2026: „aber nicht
+          seitlich abscheiden sondern oben unten"). Ein Hochformat in einer 3:4-Fläche
+          verliert ohnehin nur Höhe — aber `object-top` nahm alles davon UNTEN weg und
+          schnitt damit einseitig. Mittig verteilt es sich auf beide Enden, und der Mensch
+          im Bild bleibt in der Mitte, wo er hingehört. In der schmalen Reihe bleibt es
+          oben angeschlagen: Dort sind 104 Pixel Breite, da zählt das Gesicht. */}
       {thema.video ? (
         <SchleifenVideo src={thema.video} poster={thema.poster || undefined}
-          natuerlich={voll} className={voll ? "" : "object-top"} />
+          className={voll ? "object-center" : "object-top"} />
       ) : thema.bild ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {thema.bild2 && <img src={thema.bild2} alt="" className={voll ? "absolute inset-0 h-full w-full object-cover object-top" : "absolute inset-0 h-full w-full object-cover object-top"} />}
+          {thema.bild2 && <img src={thema.bild2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={thema.bild} alt=""
-            className={`${voll ? "block h-auto w-full" : "absolute inset-0 h-full w-full object-cover object-top"} ${aktiv ? "" : "brightness-[0.8]"} ${thema.bild2 ? "lb-swap-top" : ""}`} />
+            className={`absolute inset-0 h-full w-full object-cover ${voll ? "object-center" : "object-top"} ${aktiv ? "" : "brightness-[0.8]"} ${thema.bild2 ? "lb-swap-top" : ""}`} />
         </>
       ) : (
-        <div className={voll ? "grid aspect-[3/4] place-items-center" : "absolute inset-0 grid place-items-center"}>{thema.platzhalter}</div>
+        <div className="absolute inset-0 grid place-items-center">{thema.platzhalter}</div>
       )}
       {aktiv
         ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">{live}</span>
@@ -458,21 +493,61 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    * folgt damit ohne Zutun der Ornament-Regel: Tinte im Dunkeln, Blau in der hellen Fassung.
    * Der Schatten kommt aus demselben Grund mit: Ein Blatt Papier liegt auf etwas.
    */
+  /* Der Inhalt einer vollen Kachel — als eigene Karte (`voll`) wie als Folie im Karussell
+     (`folie`) derselbe. Nur das Papier drumherum unterscheidet sich: Bei der Folie liefert es
+     die EINE Karte, in der das Karussell steckt. */
+  const vollInhalt = (
+    <div className="relative">
+      {/* DIESELBE TITELZEILE WIE AUF DER ECHTEN KARTE (Owner 06.08.2026: „ich brauche genau
+          das gleiche design. Selbe Schrift wie bei card") — ein Baustein, zwei Orte. */}
+      {/* ÜBER DEM VIDEO STEHT NUR DER TITEL (Owner 06.08.2026: „hier ghört nur titel rein
+          oben über das video"). Vorher stand die erklärende Zeile mit darüber — das sind
+          zwei Textblöcke, bevor man das Video sieht, und auf einer Karte ist oben der Platz
+          für die eine Zeile, die den Anlass nennt. Alles Erklärende gehört unter das Bild:
+          erst sehen, dann lesen. */}
+      <KartenTitel className="px-10">{thema.titel}</KartenTitel>
+      <div className="mt-3 overflow-hidden rounded-[14px]">{medien}</div>
+      {/* `font-serif` an der Zeile, NICHT an `.lb-karte` — dort war es am 06.08.2026 kurz
+          pauschal gesetzt und hat jede Karte im Haus umgestellt, bis hin zu Chips und
+          Formularfeldern („du hast die Card kaputt gemacht bei allen"). */}
+      <p className="mt-2.5 px-6 text-center font-serif text-[14px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      {/* `pb-2` hält die letzte Zeile von den unteren Eckranken frei — sie sitzen 8 Pixel
+          über dem Rand und sind 28 hoch. */}
+      <div className="px-10 pb-2 pt-2">{preiszeile}</div>
+    </div>
+  );
+  /**
+   * ALS FOLIE OHNE EIGENES PAPIER (Owner 06.08.2026: „Die Videos müssen in die oberste Karte
+   * erscheinen und nicht untereinander. Also im Karussell").
+   *
+   * Acht Karten untereinander sind acht Versprechen, von denen man sieben wegscrollt — und
+   * sie verstossen gegen die Regel des Hauses: nie zwei Karten übereinander (Skill `card`).
+   * Die Folie trägt deshalb kein Blatt, keine Ranken und keine Innenlinie; das alles gehört
+   * der einen Karte, die das Karussell hält. Anklickbar bleibt sie: Jede Folie führt auf ihr
+   * eigenes Thema.
+   */
+  if (folie) {
+    /* DIE FOLIE ENDET AM VIDEO (Owner 06.08.2026: „jetzt die sliderpunkte unter dem video").
+       Die Punkte zeichnet das Karussell direkt hinter die Wischbahn — sie stehen also genau
+       dort, wo die Folie aufhört. Solange Zeile und Preis mit IN der Folie lagen, hörte sie
+       erst darunter auf und die Punkte rutschten ans Ende der ganzen Kachel. Jetzt trägt die
+       Folie Titel und Video, den Rest zeigt `ThemenListe` unter den Punkten. */
+    const nurBild = (
+      <div className="relative">
+        <KartenTitel className="px-10">{thema.titel}</KartenTitel>
+        <div className="mt-3 overflow-hidden rounded-[14px]">{medien}</div>
+      </div>
+    );
+    return aktiv
+      ? <a href={thema.href} className={`block px-1 transition-opacity active:opacity-80 ${className}`}>{nurBild}</a>
+      : <div className={`block px-1 opacity-90 ${className}`}>{nurBild}</div>;
+  }
   const inhalt = voll ? (
     <>
       <CornerOrnaments />
       <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
       {/* `relative`, damit der Inhalt ÜBER der Linie liegt und nicht von ihr durchkreuzt wird. */}
-      <div className="relative">
-        {/* DIESELBE TITELZEILE WIE AUF DER ECHTEN KARTE (Owner 06.08.2026: „ich brauche genau
-            das gleiche design. Selbe Schrift wie bei card") — ein Baustein, zwei Orte. */}
-        <KartenTitel className="px-10">{thema.titel}</KartenTitel>
-        <p className="mt-1 px-6 text-center text-[14px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
-        <div className="mt-3 overflow-hidden rounded-[14px]">{medien}</div>
-        {/* `pb-2` hält die letzte Zeile von den unteren Eckranken frei — sie sitzen 8 Pixel
-            über dem Rand und sind 28 hoch. */}
-        <div className="px-10 pb-2 pt-3">{preiszeile}</div>
-      </div>
+      {vollInhalt}
     </>
   ) : (
     <>{medien}{text}</>
@@ -592,6 +667,54 @@ export function ThemenListe({ themen, live, bald, baldZeile, gestalt, className 
 }) {
   const { art: gewaehlt, gesetzt } = useThemenGestalt();
   const art = gesetzt ? gewaehlt : (gestalt ?? gewaehlt);
+  /** Welche Folie steht vorn — der Text darunter gehört ihr (siehe unten bei `onAktiv`). */
+  const [vorn, setVorn] = useState(0);
+  /**
+   * DIE VOLLE GESTALT IST EINE KARTE MIT KARUSSELL, KEIN STAPEL (Owner 06.08.2026: „laut
+   * unser templates. Die Videos müssen in die oberste Karte erscheinen und nicht
+   * untereinander. Also im Karussell").
+   *
+   * Acht Karten untereinander sind acht Blätter Papier auf einer Seite — die Hausregel sagt
+   * ausdrücklich: nie zwei Karten übereinander (Skill `card`, Memory `karten-fuer-videos`).
+   * Und praktisch verliert es: Wer die erste sieht, scrollt an sieben weiteren vorbei, und
+   * jedes Video darunter lädt für jemanden, der nie hinsieht.
+   *
+   * Also EINE Karte, alle Themen darin zum Wischen — und sie läuft von selbst weiter, damit
+   * auch der die anderen sieht, der nicht wischt (`KartenKarussell`). Jede Folie bleibt ihr
+   * eigener Weg: Sie führt auf ihr Thema, mit Titel, Zeile und Preis.
+   */
+  if (art === "voll") {
+    return (
+      <div className={`lb-karte relative overflow-hidden rounded-[22px] px-4 pb-4 pt-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)] ${className}`}>
+        <CornerOrnaments />
+        <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
+        <div className="relative">
+          <KartenKarussell onAktiv={setVorn} folien={themen.map(t => (
+            <ThemenKachel key={t.titel} thema={t} art="folie" live={live} bald={bald} baldZeile={baldZeile} />
+          ))} />
+          {/* DER TEXT DER VORDEREN FOLIE — UNTER DEN PUNKTEN (Owner 06.08.2026: „jetzt die
+              sliderpunkte unter dem video"). Die Punkte zeichnet das Karussell direkt hinter
+              die Wischbahn; damit sie unmittelbar unter dem Video sitzen, endet die Folie
+              dort, und Zeile wie Preis stehen hier — sie wechseln mit der Folie. */}
+          {themen[vorn] && (
+            <a href={themen[vorn].href || undefined} className="block">
+              <p className="mt-2 px-6 text-center font-serif text-[14px] font-semibold leading-snug opacity-75">
+                {themen[vorn].zeile}
+              </p>
+              <div className="flex flex-col items-center gap-0.5 px-10 pb-2 pt-2">
+                {themen[vorn].abPreis && (
+                  <span className="lb-karte-gold shrink-0 font-serif text-[17px] font-black">{themen[vorn].abPreis}</span>
+                )}
+                <span className="line-clamp-2 text-center text-[10px] font-black uppercase tracking-wide opacity-70">
+                  {themen[vorn].href ? themen[vorn].merkmale : baldZeile}
+                </span>
+              </div>
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`grid grid-cols-1 gap-3 ${className}`}>
       {themen.map(t => (

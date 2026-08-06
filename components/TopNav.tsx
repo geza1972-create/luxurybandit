@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
+import LightSwitch from "@/components/LightSwitch";
 import GuthabenChip from "@/components/GuthabenChip";
 
 /**
@@ -190,7 +191,19 @@ export default function TopNav({
         {/* Der Span steht IMMER — rendert der Chip nichts, bleibt er leer, und
             `justify-between` schiebt die Sprache weiter nach rechts wie bisher. */}
         <span><GuthabenChip /></span>
-        <LangSwitch />
+        {/* HELL/DUNKEL STEHT IMMER HIER (Owner 06.08.2026: „der light und dark shalter muss
+            immer da sein im header").
+            Bisher hängte ihn jede Seite selbst ein — per Portal im Kuss-Trichter, als
+            eigener Baustein auf der Plan-Seite, von Hand im Seiteninhalt auf der Muster-
+            Seite. Ergebnis: Auf den meisten Seiten gab es ihn gar nicht, und wo es ihn gab,
+            an drei verschiedenen Stellen. Jetzt trägt ihn die Kopfzeile selbst, also jede
+            Seite mit Kopfzeile.
+            LINKS von der Sprache, weil deren Menü nach rechts aufklappt und sonst aus dem
+            Bild liefe. */}
+        <span className="flex items-center gap-2">
+          <LightSwitch />
+          <LangSwitch />
+        </span>
       </div>
     </header>
   );

@@ -3,7 +3,6 @@ import TrackView from "@/components/TrackView";
 import ThemeMediaAdmin from "@/components/ThemeMediaAdmin";
 import PlanSlide from "@/components/PlanSlide";
 import PlanFunnel from "@/components/PlanFunnel";
-import LightSwitchImHeader from "@/components/LightSwitchImHeader";
 import { H1, Y, SectionTitle, Lead, Fine, Kicker } from "@/components/Landing";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Upload, Lock, Check } from "lucide-react";
@@ -85,9 +84,8 @@ export default async function PlanThemePage({ searchParams }: {
       {!adminAnsicht ? (
         <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
 
-          {/* Hell/Dunkel wandert per Portal in die Kopfzeile — links neben Guthaben,
-              Galerie und Sprache, genau wie bei Kiss. Hier steht deshalb nichts. */}
-          <LightSwitchImHeader />
+          {/* Hell/Dunkel steht seit 06.08.2026 in `TopNav` selbst (Owner: „der light und
+              dark shalter muss immer da sein im header") — hier ist nichts mehr nötig. */}
 
           {/* 1 · DIE FRAGE — und was er dafür bekommt, steht in der Überschrift
               (Owner: „hier steht nicht was wir liefern … einen Plan"). */}

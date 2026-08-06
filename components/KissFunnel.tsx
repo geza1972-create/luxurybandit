@@ -36,7 +36,6 @@ import { GEBURTSTAG_PROMPT, geburtstagTitel } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
-import LightSwitch from "@/components/LightSwitch";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import KartenKarussell from "@/components/KartenKarussell";
 
@@ -2398,19 +2397,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Schritt 1 — dort trifft der Anzeigenklick auf, und genau dort entscheidet sich, ob
           ihn der schwarze Grund abschreckt. `mr-auto` sitzt auf dem jeweils linken Knopf,
           damit die Zeile eine bleibt: links Zurueck + Schalter, rechts die Sprache. */}
-      {langZeile && createPortal(
-        <>
-          {/* `order` statt `mr-auto`: Die Sprachwahl steht im Balken zuerst im Quelltext, soll
-              aber rechts aussen bleiben — dort klappt ihr Menue ins Bild und nicht heraus.
-              Negative Reihenfolge zieht Zurueck und den Schalter davor. */}
-          {/* ZURUECK STEHT JETZT AM BILD, nicht hier oben (Owner 31.07.2026: „Zurückbutton
-              machst du neben dem Bild bitte"). In der Kopfzeile stand er neben Hell/Dunkel und
-              Sprache — also zwischen Einstellungen, obwohl er zum Trichter gehoert. Am Bild
-              ist er dort, wo der Daumen ohnehin liegt. */}
-          <span className="order-[-1] mr-2"><LightSwitch /></span>
-        </>,
-        langZeile,
-      )}
+      {/* Der Hell/Dunkel-Schalter stand hier per Portal in der Sprachzeile. Seit dem
+          06.08.2026 traegt ihn `TopNav` selbst (Owner: „der light und dark shalter muss
+          immer da sein im header") — ein zweiter waere ein Doppel. */}
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}

@@ -10,7 +10,6 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import KartenKarussell from "@/components/KartenKarussell";
-import LightSwitch from "@/components/LightSwitch";
 
 /**
  * DIE MUSTER-SEITE DER CI-BIBLIOTHEK (Owner 06.08.2026: „ich will die Bibliothek immer
@@ -65,10 +64,11 @@ export default function CIMuster() {
   return (
     <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
       {/* DIE HELLE FASSUNG PER UMSCHALTER (Owner 06.08.2026: „nein, per umschalten die light
-          version"): derselbe LightSwitch wie auf der Einladungsseite hängt `lb-theme lb-fb`
-          an <main> — die GANZE Muster-Seite kippt, und man sieht jeden Baustein in beiden
-          Welten, statt eines nachgebauten Hell-Kastens. */}
-      <div className="mb-3 flex justify-end"><LightSwitch /></div>
+          version"): Der Schalter hängt `lb-theme lb-fb` an <main> — die GANZE Muster-Seite
+          kippt, und man sieht jeden Baustein in beiden Welten, statt eines nachgebauten
+          Hell-Kastens. Er stand bis zum selben Tag hier im Seiteninhalt; jetzt sitzt er in
+          der Kopfzeile, wo er auf JEDER Seite steht („der light und dark shalter muss immer
+          da sein im header"). */}
       <Kicker>LuxuryBandit · CI</Kicker>
       <H1>Die <Y>Bausteine</Y> des Hauses</H1>
       <Lead className="mt-2">

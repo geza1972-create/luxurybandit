@@ -11,7 +11,6 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
-import LightSwitch from "@/components/LightSwitch";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import { kissText } from "@/lib/kiss-i18n";
 import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID } from "@/lib/wedding-prompt";
@@ -1141,10 +1140,8 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
 
   return (
     <div>
-      {langZeile && createPortal(
-        <span className="order-[-1] mr-2"><LightSwitch /></span>,
-        langZeile,
-      )}
+      {/* Hell/Dunkel steht seit 06.08.2026 in `TopNav` selbst — das Portal hierher ist
+          entfallen, es haette einen zweiten Schalter ergeben. */}
       {/* Die Beispiele (Name/Datum/Ort/Adresse) stehen nur, solange nichts Eigenes da ist —
           danach der normale Leer-Zustand, damit auf der Karte steht, was auch verschickt
           wird. Begruendung ausfuehrlich bei `eigenes` weiter oben. */}

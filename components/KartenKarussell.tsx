@@ -25,9 +25,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * Jede Folie ist eine vollständige `EinladungAnsicht` mit ihren drei Symbolen (Skill `card`):
  * Was man sieht, kann man vergrössern, teilen und hören — auch das dritte Video.
  */
-export default function KartenKarussell({ folien }: {
+export default function KartenKarussell({ folien, onAktiv }: {
   /** Eine `EinladungAnsicht` je Video. Eine einzelne Folie kommt ohne Punkte aus. */
   folien: ReactNode[];
+  /**
+   * Welche Folie steht vorn — für alles, was AUSSERHALB der Bahn zur vorderen Folie gehört.
+   * Gebraucht, seit die Punkte direkt unter dem Video stehen sollen (Owner 06.08.2026: „jetzt
+   * die sliderpunkte unter dem video"): Dafür endet die Folie am Video, und der Text der
+   * vorderen Folie steht unter den Punkten — er muss also wissen, welche gerade vorn ist.
+   */
+  onAktiv?: (i: number) => void;
 }) {
   const bahn = useRef<HTMLDivElement>(null);
   const [aktiv, setAktiv] = useState(0);
@@ -51,6 +58,24 @@ export default function KartenKarussell({ folien }: {
   const eigenesBis = useRef(0);
   /** Vorwaerts (1) oder rueckwaerts (−1) — dreht an den beiden Enden. */
   const richtung = useRef(1);
+
+  /**
+   * DIE BAHN BEKOMMT KEINE GERECHNETE HOEHE — und das ist eine bewusste Entscheidung, kein
+   * Vergessen (Owner 06.08.2026: „die punkte sind genau unter dem video und die lnge ist
+   * dynamisch" · „jetzt schau dir mach das loch an" · dann aber „die Videso müssen alle
+   * gleich gross sein" · „nimm die grösse von hochzeit").
+   *
+   * Das Loch ueber dem Titel kam daher, dass die Folien verschieden hoch waren: 3:4 neben
+   * 9:16. Eine Wischbahn ist so hoch wie ihre HOECHSTE Folie, und der Rest wurde erst unten,
+   * dann (mit `items-center`) oben und unten verteilt — ein Loch blieb es so oder so.
+   *
+   * Kurz stand hier eine Messung, die der Bahn die Hoehe der vorderen Folie gab. Sie war
+   * eine Fehlerquelle: Sie lief, bevor das Video seine Hoehe kannte, und klemmte die Bahn
+   * auf 434 statt 530 Pixel ab — das Video war unten abgeschnitten und liess sich im Rahmen
+   * verschieben. Ueberfluessig wurde sie ohnehin, als der Owner die Formatfrage anders
+   * entschied: Jede Folie traegt jetzt dieselbe feste 3:4-Flaeche. Gleiche Folien brauchen
+   * keinen Ausgleich — keine Hoehe ist hier die richtige Hoehe.
+   */
 
   useEffect(() => {
     if (!selbstLaeuft || folien.length < 2) return;
@@ -93,7 +118,9 @@ export default function KartenKarussell({ folien }: {
     const el = bahn.current;
     if (!el) return;
     const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
-    setAktiv(Math.max(0, Math.min(folien.length - 1, i)));
+    const n = Math.max(0, Math.min(folien.length - 1, i));
+    setAktiv(n);
+    onAktiv?.(n);
     /* Kam dieses Scrollen nicht von uns, hat er selbst gewischt — dann uebernimmt er. */
     if (Date.now() > eigenesBis.current) setSelbstLaeuft(false);
   };
@@ -107,8 +134,16 @@ export default function KartenKarussell({ folien }: {
 
   return (
     <div className="relative">
+      {/* OBEN ANGESCHLAGEN UND MITWACHSEND — die Höhe kommt aus der vorderen Folie (siehe
+          `hoehe` oben). `items-start`, damit jede Folie am Titel beginnt; die Höhe der Bahn
+          folgt ihr, also entsteht darunter auch kein Rest. Der Übergang macht den Wechsel
+          weich, sonst ruckt die halbe Seite, wenn eine höhere Folie hereinwischt. */}
       <div ref={bahn} onScroll={gescrollt}
-        className="lb-wisch flex snap-x snap-mandatory overflow-x-auto">
+        /* `overflow-y-hidden` (Owner 06.08.2026: „achtung video kann ich vertical scrollen,
+           das soll natürlich nicht"): Steht eine Achse auf `auto`, macht der Browser die
+           andere gleich mit — dann liess sich das Video im Rahmen hoch- und runterschieben
+           wie ein eigenes Fenster. */
+        className="lb-wisch flex snap-x snap-mandatory items-start overflow-x-auto overflow-y-hidden">
         {folien.map((f, i) => (
           <div key={i} className="w-full shrink-0 snap-center">{f}</div>
         ))}
