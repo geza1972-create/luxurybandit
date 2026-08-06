@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { Upload, Loader2, Trash2, Check, Lock, Sparkles } from "lucide-react";
+import { Knopf } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import Reaktionen from "@/components/Reaktionen";
@@ -226,11 +227,10 @@ export default function PlanFunnel({ lang }: { lang: Lang }) {
           <p className="text-[14px] font-black text-white">{T.ideeFrage}</p>
           <div className="mt-2.5 flex gap-2.5">
             {[[true, T.ideeJa], [false, T.ideeNein]].map(([wert, text]) => (
-              <button key={String(wert)} type="button" onClick={() => setHatIdee(wert as boolean)}
-                className={`h-11 flex-1 rounded-full text-[14px] font-black transition active:scale-95 ${
-                  hatIdee === wert ? "bg-[#f6cf51] text-black" : "bg-white/10 text-white/80"}`}>
+              <Knopf key={String(wert)} art="chip" aktiv={hatIdee === wert}
+                onClick={() => setHatIdee(wert as boolean)} className="flex-1 text-[14px]">
                 {text as string}
-              </button>
+              </Knopf>
             ))}
           </div>
           {hatIdee === true && (

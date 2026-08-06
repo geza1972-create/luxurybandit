@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, MapPin, Check, BellOff } from "lucide-react";
+import { Knopf } from "@/components/CI";
 
 /**
  * Fragt fehlende Stadt/Telefonnummer nach — und bietet direkt daneben das Abbestellen an.
@@ -91,10 +92,10 @@ export default function WetterProfileAsk({ sub, modelId, lang = "en", askName = 
       {askGender && (
         <div className="mt-2 flex gap-2">
           {(["m", "f", "x"] as const).map(g => (
-            <button key={g} type="button" onClick={() => setGender(g)}
-              className={`h-10 flex-1 rounded-xl border text-[13px] font-black transition ${gender === g ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/30 bg-white/[0.08] text-white/85"}`}>
+            <Knopf key={g} art="chip" aktiv={gender === g} onClick={() => setGender(g)}
+              className="flex-1 text-[13px]">
               {t.g[g]}
-            </button>
+            </Knopf>
           ))}
         </div>
       )}

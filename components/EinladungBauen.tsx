@@ -33,6 +33,15 @@ import { fillPrices } from "@/lib/pricing";
 const LB_TOPICS: ThemenSchluessel[] = ["kiss", "birthday", "surprise", "holiday", "wedding"];
 
 /**
+ * DER NOTNAGEL FÜR DIE RÜCKKEHR AUS DER KASSE (06.08.2026: „das hat schon mal nicht
+ * geklappt"). Hier liegt die Stripe-Sitzungsnummer des Gutschein-Kaufs, gesetzt BEVOR die
+ * Seite gewechselt wird. Kommt der Besucher ohne `?cs=…` zurück — verlorene Weiterleitung,
+ * App-Wechsel auf dem Handy, wiederhergestellter Tab —, löst der Effekt beim Mounten sie von
+ * hier ein. Doppelt einlösen ist ungefährlich: gebucht wird idempotent je Sitzungsnummer.
+ */
+const GUTSCHEIN_CS = "lb_gutschein_cs";
+
+/**
  * BEISPIEL-INHALT FÜR DIE LEERE KARTE (Owner 02.08.2026 abends: „in der Karte muss doch
  * stehen ein Beispiel eines Namens und eine schöne Adresse").
  *
@@ -650,25 +659,31 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
       if (!start?.url || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setLbFehler(start?.error || F.statusNotWork);
-      } else if ((() => { try { localStorage.setItem(GUTSCHEIN_CS, String(start.sessionId)); } catch { /**/ } return false; })()) {
-        /* nie erreicht — die Nummer wird nur GEMERKT, bevor irgendein Weg die Seite verlässt */
-      } else if (!popup) {
-        // Popup blockiert → Seitenwechsel; die Rückkehr fängt der Effekt oben (?gutschein=1&cs=…).
-        window.location.href = start.url; return false;
       } else {
-        try { popup.location.href = start.url; }
-        catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
-        for (let i = 0; i < 100; i++) {
-          await new Promise(r => setTimeout(r, 3000));
-          const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
-          if (s?.paid) {
-            gekauft = true;
-            setLbGekauft({ topic: String(s.topic ?? wahl.topic), cents: Number(s.cents ?? 0) || wahl.cents, session: String(start.sessionId) });
-            break;
+        /* DIE NUMMER MERKEN, BEVOR IRGENDEIN WEG DIE SEITE VERLÄSST — der Effekt beim Mounten
+           löst sie notfalls ein, falls `?cs=…` die Rückkehr nicht übersteht. */
+        try { localStorage.setItem(GUTSCHEIN_CS, String(start.sessionId)); } catch { /**/ }
+        if (!popup) {
+          // Popup blockiert → Seitenwechsel; die Rückkehr fängt der Effekt oben (?gutschein=1&cs=…).
+          window.location.href = start.url; return false;
+        } else {
+          try { popup.location.href = start.url; }
+          catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
+          for (let i = 0; i < 100; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
+            if (s?.paid) {
+              gekauft = true;
+              setLbGekauft({ topic: String(s.topic ?? wahl.topic), cents: Number(s.cents ?? 0) || wahl.cents, session: String(start.sessionId) });
+              /* Eingelöst — die Notfall-Nummer darf weg, sonst holt sie der nächste Aufruf
+                 dieses Trichters noch einmal hervor und hängt ein Etikett an eine neue Karte. */
+              try { localStorage.removeItem(GUTSCHEIN_CS); } catch { /**/ }
+              break;
+            }
+            if (popup.closed && i > 2) break;
           }
-          if (popup.closed && i > 2) break;
+          try { popup.close(); } catch { /**/ }
         }
-        try { popup.close(); } catch { /**/ }
       }
     } catch {
       try { popup?.close(); } catch { /**/ }
@@ -681,17 +696,26 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
 
   /**
    * DIE GESCHENK-WAHL — EIN Markup, zwei Orte (Owner 06.08.2026: „wie wählt er unser Produkt
-   * aus oder Credit?"). Im Kauf-Dialog (`sofort=false`) ist der Chip eine AUSWAHL — bezahlt
-   * wird beim Kaufknopf darunter, noch in derselben Klick-Geste. Unter der Karte
-   * (`sofort=true`) kauft der Chip direkt. `sofort` schaltet zugleich die Farbwelt: Im Dialog
-   * gelten die Karten-Klassen (die !important-Regeln der elfenbeinfarbenen Karte schlagen
-   * jede Tailwind-Farbe), auf der dunklen Seite die CI-Klassen.
+   * aus oder Credit?").
+   *
+   * ERST WÄHLEN, DANN AUF EINEN KNOPF ZAHLEN (Owner 06.08.2026: „zuerst muss Geschenk
+   * auswählen dann mit Button Zahlen. Sonst wird er überascht sein").
+   *
+   * Vorher kaufte der Chip unter der Karte SOFORT: ein Tipp auf „ein Kussvideo · 15 €" und
+   * das Kassenfenster stand da. Wer nur schauen wollte, was es gibt, stand plötzlich in
+   * Stripe — und das ist der Moment, in dem jemand abbricht und nicht wiederkommt. Ein Chip
+   * ist eine Auswahl, kein Kauf. Bezahlt wird an EINER Stelle: dem goldenen Knopf darunter,
+   * auf dem der Preis steht.
+   *
+   * `sofort` heisst deshalb nur noch: unter der Karte (dunkle Welt, eigener Kaufknopf) statt
+   * im Kauf-Dialog (Karten-Welt, dessen grosser Knopf zahlt und erzeugt in einem Zug). Es
+   * schaltet die Farbwelt — im Dialog gelten die Karten-Klassen, deren !important-Regeln
+   * jede Tailwind-Farbe schlagen.
    */
   const geschenkWahl = (sofort: boolean) => {
     const label = sofort ? "text-[#f6cf51]" : "lb-karte-gold";
     const hilfe = sofort ? "text-white/75" : "opacity-70";
     const tippen = (wahl: { topic: string; cents: number }) => {
-      if (sofort) { void lbKaufen(wahl); return; }
       setLbWahl(w => (w && w.topic === wahl.topic && w.cents === wahl.cents) ? null : wahl);
     };
     const aktiv = (wahl: { topic: string; cents: number }) =>
@@ -712,8 +736,20 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           onChange={e => { setLbMail(e.target.value); if (lbFehler) setLbFehler(""); }}
           type="email" inputMode="email" placeholder={F.lbEmpfaenger} className="mt-2" />
         <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbWahlTitel}</p>
+        {/**
+          * DIE REIHENFOLGE STEHT FEST (Owner 06.08.2026: „Die Chips springen nach klicken nach
+          * links").
+          *
+          * Hier sortierte eine Zeile das Gewählte nach vorn. Beim alten Sofortkauf fiel das
+          * kaum auf — der Chip war ja gleich weg. Seit der Chip nur noch WÄHLT, springt beim
+          * Antippen die halbe Reihe um: Der Finger zeigt auf „ein Tanzvideo", und an dieser
+          * Stelle steht danach etwas anderes. Wer zweimal vergleichen will, sucht jedes Mal neu.
+          *
+          * Eine Auswahl darf sich nicht bewegen. Gewählt wird durch FARBE (der Chip wird gold),
+          * nicht durch einen neuen Platz.
+          */}
         <div className="mt-2 grid grid-cols-2 gap-2">
-          {[...LB_TOPICS].sort((a, b) => (a === lbWahl?.topic ? -1 : b === lbWahl?.topic ? 1 : 0)).map(t => {
+          {LB_TOPICS.map(t => {
             const wahl = { topic: t, cents: themenPreisCents(t) };
             return (
               <Knopf key={t} art="chip" karte={!sofort} aktiv={aktiv(wahl)} disabled={lbBusy}
@@ -739,6 +775,23 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           })}
         </div>
         <Fehlerzeile karte={!sofort}>{lbFehler}</Fehlerzeile>
+        {/**
+          * DER KAUFKNOPF — nur unter der Karte. Im Dialog zahlt sein grosser Knopf („Geschenk
+          * bezahlen — {preis}") und erzeugt gleich danach; ein zweiter gefüllter Knopf im
+          * selben Fenster liesse den Nutzer raten, welcher der Weg nach vorn ist (CI: genau
+          * EIN gefüllter Knopf je Bildschirm).
+          *
+          * Er erscheint erst mit einer Wahl — vorher gibt es nichts zu bezahlen, und ein
+          * Knopf ohne Preis darauf ist genau die Überraschung, die hier weg soll. `lbKaufen`
+          * öffnet sein Kassenfenster noch in DIESER Klick-Geste (Safari sonst still blockiert),
+          * die fehlende Empfängeradresse fängt es selbst als rote Zeile ab.
+          */}
+        {sofort && lbWahl && (
+          <Knopf art="gold" className="mt-3" disabled={lbBusy} onClick={() => void lbKaufen(lbWahl)}>
+            {lbBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {lbBusy ? F.oneMoment : (F.lbCta ?? "").replace("{preis}", eur(lbWahl.cents, lang))}
+          </Knopf>
+        )}
       </>)}
     </>);
   };
@@ -1000,6 +1053,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             const d = JSON.parse(localStorage.getItem(SPEICHER) || "{}");
             delete d.lbGekauft; delete d.lbWahl;
             localStorage.setItem(SPEICHER, JSON.stringify(d));
+            /* Auch den Notnagel — sonst holt der Trichter dieselbe Sitzung beim nächsten
+               Öffnen wieder hervor und etikettiert eine zweite Karte mit einem Geschenk,
+               das es nur einmal gibt. */
+            localStorage.removeItem(GUTSCHEIN_CS);
           } catch { /**/ }
         }
         /* Die Ziffer ist das ERGEBNIS des Versands, nicht die Absicht: `0`, wenn die Mail an
@@ -1340,8 +1397,9 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         * die Karte trotzdem raus, dann ist sie Botschaft ohne Anhang.
         */}
       {/* IMMER SICHTBAR (Owner 06.08.2026: „wie wählt er unser Produkt aus oder Credit?"):
-          Die Geschenk-Wahl steht offen unter der Karte, nicht hinter einer Kasse. Hier kauft
-          der Chip DIREKT (`sofort`) — im Dialog derselbe Baustein als Auswahl. */}
+          Die Geschenk-Wahl steht offen unter der Karte, nicht hinter einer Kasse. Getippt wird
+          eine AUSWAHL, bezahlt am goldenen Knopf darunter (Owner: „zuerst muss Geschenk
+          auswählen dann mit Button Zahlen") — im Dialog zahlt dessen eigener grosser Knopf. */}
       {gutschein && (
         <div className="mt-4">
           {geschenkWahl(true)}
@@ -1352,11 +1410,23 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           höchstens das Geschenk darin, und das prüft sein eigener Kaufweg. */}
       {(gutschein ? !!sie.trim() : !!(bild && sie.trim() && er.trim())) && (
         <div className="mt-4">
-          <button type="button" onClick={() => void einladungAnlegen()} disabled={busy}
-            className="lb-gold lb-buy flex h-12 w-full items-center justify-center gap-2 rounded-full font-black transition active:scale-95 disabled:opacity-60">
+          {/**
+            * EIN GEFÜLLTER KNOPF JE BILDSCHIRM (CI-Regel).
+            *
+            * Seit die Geschenk-Wahl ihren eigenen Kaufknopf hat, standen hier zwei goldene
+            * Knöpfe direkt übereinander: „Geschenk bezahlen — 29 €" und „Verschicken". Zwei
+            * gleich starke Knöpfe sind keine Wahl, sondern eine Ratefrage — und die falsche
+            * Antwort verschickt eine Karte, deren Geschenk noch nicht bezahlt ist.
+            *
+            * Solange ein Geschenk gewählt und NICHT bezahlt ist, wird Verschicken zum
+            * Zweitweg. Es bleibt möglich: Die Karte ist gratis, sie darf auch ohne Geschenk
+            * raus. Aber der Weg nach vorn ist dann sichtbar der Kauf.
+            */}
+          <Knopf art={gutschein && lbWahl && !lbGekauft ? "umriss" : "gold"} className="lb-buy"
+            onClick={() => void einladungAnlegen()} disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {T.teilen}
-          </button>
+          </Knopf>
           {/* Der Probe-Satz erzählt vom Hochzeits-Abo — auf der Gutschein-Karte wäre er
               gelogen (gekauft ist gekauft, 30 Tage online, kein Abo). */}
           {!gutschein && (

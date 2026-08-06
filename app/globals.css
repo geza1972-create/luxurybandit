@@ -717,3 +717,39 @@ svg {
    (Szenen, Chips, Karussells) wie senkrechte Wischflaechen (der Feed). */
 .lb-wisch { scrollbar-width: none; -ms-overflow-style: none; }
 .lb-wisch::-webkit-scrollbar { display: none; }
+
+/* DER CHIP IST KEIN KNOPF — auch nicht in der hellen Fassung (Owner 06.08.2026: „ein chip
+   darf nicht wie ein button aussehen. Es muss als aktiv mit gelber umrandung sein und bg
+   gelb transparent fast schwarz").
+
+   In der dunklen Welt machen das die Tailwind-Klassen des Bausteins `Knopf art="chip"`
+   allein. In `.lb-fb` nicht: dort faerbt eine Pauschalregel ALLES solide blau mit weisser
+   Schrift, was `bg-[#f6cf51]` im Klassennamen traegt — und die trifft per Teilstring auch
+   den 10-%-Hauch des aktiven Chips. Aus dem Hauch wurde eine Fuellung, aus dem Chip wieder
+   ein Knopf; der inaktive bekam ueber die `border-white/`-Regel sogar den blauen Rand, den
+   der AKTIVE tragen sollte. Genau verkehrt herum.
+
+   Zwei Klassen statt einer, damit die Spezifitaet (0,3,0) die Pauschalregeln schlaegt,
+   egal in welcher Reihenfolge sie stehen. Der INAKTIVE Chip holt Rand und Schrift ganz
+   hier her, statt aus Tailwind: eine `border-white/`-Klasse haette ihn in `.lb-fb` blau
+   umrandet — mit genau dem Rand, der dem aktiven gehoert. */
+.lb-wahl.lb-wahl-aus {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+}
+.lb-fb .lb-wahl.lb-wahl-an,
+.lb-fb .lb-wahl.lb-wahl-an * {
+  color: #1877F2 !important;
+}
+.lb-fb .lb-wahl.lb-wahl-an {
+  background-color: rgba(24, 119, 242, 0.08) !important;
+  border-color: #1877F2 !important;
+}
+.lb-fb .lb-wahl.lb-wahl-aus,
+.lb-fb .lb-wahl.lb-wahl-aus * {
+  color: rgba(26, 22, 15, 0.6) !important;
+}
+.lb-fb .lb-wahl.lb-wahl-aus {
+  background-color: transparent !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}

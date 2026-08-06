@@ -93,7 +93,14 @@ export default function GutscheinVersand({ id, sprache, ok, bestaetigung }: {
   return (
     <div className="mb-3">
       <Fehlerzeile>{zustand === "fehler" ? T.erneutFehler : T.fehler}</Fehlerzeile>
-      <Knopf art="umriss" className="mt-2 w-full" onClick={() => void nochmal()} disabled={zustand === "laeuft"}>
+      {/* GEFÜLLT, NICHT UMRISS: Diese Zeile steht ÜBER der Karte, also auf dem Seitengrund —
+          und der ist hier hell (eine Einladung ist hell, Vorgabe des Hauses). Der Umriss-Knopf
+          der Bibliothek ist für die dunkle Welt gezeichnet (weisse Schrift, weisser Rand) und
+          verschwindet auf Elfenbein; die Karten-Fassung `lb-karte-absage` greift nur INNERHALB
+          von `.lb-karte`. Bleibt der gefüllte — und er ist ohnehin die einzige Handlung hier.
+          Dass er auf DIESER Seite blau statt gold erscheint, ist Absicht: Die Einladungsseite
+          trägt `lb-fb`, und diese Haut färbt `lb-gold` auf Facebook-Blau (globals.css). */}
+      <Knopf art="gold" className="mt-2 w-full" onClick={() => void nochmal()} disabled={zustand === "laeuft"}>
         {zustand === "laeuft" ? T.laeuft : T.knopf}
       </Knopf>
     </div>

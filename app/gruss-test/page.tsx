@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic, Plus, RefreshCw, Square, Trash2, Video, X } from "lucide-react";
+import { Knopf } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import SortableTiles, { type Tile } from "@/components/SortableTiles";
 import LandingHeader from "@/components/LandingHeader";
@@ -287,16 +288,9 @@ function KartenSchritt({
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {templates.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onPick(t.id)}
-                className={`rounded-full px-3 py-1.5 text-[12px] font-black transition active:scale-95 ${
-                  pickedId === t.id ? "bg-[#f6cf51] text-black" : "bg-white/10 text-white/80"
-                }`}
-              >
+              <Knopf key={t.id} art="chip" aktiv={pickedId === t.id} onClick={() => onPick(t.id)}>
                 {pickedId === t.id ? "✓ " : ""}{t.label}
-              </button>
+              </Knopf>
             ))}
           </div>
         </div>

@@ -67,7 +67,15 @@ export function Scheibe({ onClick, label, rot = false, klein = false, durchsicht
  * DER KNOPF — drei Gestalten, eine Herkunft (Skill `ci-design`):
  *   gold    der EINE Primärknopf des Bildschirms (`.lb-gold`, h-12, nie zwei davon)
  *   umriss  der Zweitweg — dunkle Welt: Rand + weiss/85; Karte: `lb-karte-absage`
- *   chip    eine Wahl — aktiv gold gefüllt (Karte: `lb-karte-cta`), inaktiv gedeckt
+ *   chip    eine Wahl — aktiv NUR umrandet, nie gefüllt
+ *
+ * EIN CHIP DARF NICHT WIE EIN KNOPF AUSSEHEN (Owner 06.08.2026: „ein chip darf nicht wie
+ * ein button aussehen. Es muss als aktiv mit gelber umrandung sein und bg gelb transparent
+ * fast schwarz"). Vorher war der aktive Chip gold GEFÜLLT mit schwarzer Schrift — dieselbe
+ * Gestalt wie der Kaufknopf. Auf einem Bildschirm mit sechs Szenen-Chips standen damit
+ * sechs Dinge, die aussahen, als lösten sie etwas aus; der eine Knopf, der wirklich kauft,
+ * ging darin unter. Jetzt zeigt der aktive Chip nur einen gelben Rand und einen fast
+ * schwarzen Hauch Gold darunter: sichtbar gewählt, aber kein Knopf.
  */
 export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, disabled = false, className = "", children }: {
   art?: "gold" | "umriss" | "chip";
@@ -86,8 +94,19 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
         ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
         : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
       : /* chip */ (karte
-        ? `${aktiv ? "lb-karte-cta" : "lb-karte-absage"} flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight`
-        : `flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv ? "bg-[#f6cf51] text-black" : "bg-white/10 text-white/85"}`);
+        // In der Karte gibt es kein Gold für Flächen — dort macht der Kartenrahmen die
+        // Wahl sichtbar (`lb-karte-rahmen`), gefüllt wird auch hier nichts.
+        ? `${aktiv ? "lb-karte-rahmen" : ""} flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv ? "" : "opacity-60"}`
+        // `lb-wahl` ist die Kennung für die helle Fassung: dort färbt eine Pauschalregel
+        // ALLES blau und solide, was `bg-[#f6cf51]` im Klassennamen trägt — auch einen
+        // 10-%-Hauch. Aus dem Hauch würde eine Füllung, aus dem Chip wieder ein Knopf.
+        : `lb-wahl ${aktiv ? "lb-wahl-an" : "lb-wahl-aus"} flex min-h-11 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv
+          ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]"
+          // KEIN `border-white/…` am inaktiven Chip: in der hellen Fassung greift auf
+          // genau diesen Teilstring eine Regel, die daraus einen blau umrandeten Chip
+          // macht — der Rand, der dem AKTIVEN gehört. Rand und Schrift kommen deshalb
+          // aus `lb-wahl-aus` (unten in globals.css), für beide Fassungen.
+          : "bg-white/[0.04]"}`);
   return (
     <button type="button" onClick={onClick} disabled={disabled}
       {...(art === "chip" ? { "aria-pressed": aktiv } : {})}

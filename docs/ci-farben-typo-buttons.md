@@ -55,8 +55,8 @@ linear-gradient(160deg, #fbe89a 0%, #f6cf51 30%, #e9ae2b 58%, #c9861a 100%)
 |---|---|---|
 | Primär auf dunkel | `.lb-gold` (globals.css) | die EINE Hauptaktion pro Screen: CTA, Abo, Generieren, Senden |
 | Sekundär auf dunkel | `.lb-black3d` oder `border border-white/20 text-white/85` | „Mehr erfahren", Garderobe, Nebenwege |
-| Aktiver Chip / Tab | `bg-[#f6cf51] text-black` | ausgewählter Filter, aktive Sprache |
-| Inaktiver Chip | `bg-white/10 text-white/80` | |
+| Aktiver Chip / Tab | `border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]` | NUR umrandet — nie gold gefüllt (Owner 06.08.2026: „ein chip darf nicht wie ein button aussehen") |
+| Inaktiver Chip | `border-white/20 bg-white/[0.04] text-white/75` | |
 
 Form: `rounded-full`, `h-11`/`h-12`, `font-black`, `active:scale-95 transition`.
 `.lb-gold` nie flach nachbauen (`bg-[#f6cf51]` als Button = falsch, der Gradient ist die CI).
