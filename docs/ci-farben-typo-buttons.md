@@ -3,6 +3,18 @@
 Quelle der Wahrheit für jedes Stück UI. Wer hier abweicht, baut es falsch.
 Der Owner hat das mehrfach korrigiert — es wird **nicht** neu erfunden und **nicht** neu gefragt.
 
+## 0. PFLICHT: Bausteine aus der Bibliothek (Owner 06.08.2026)
+
+> „du holst alles was du baust aus der bibliothek raus"
+
+Diese Regeln werden nicht pro Seite neu UMGESETZT, sondern als fertige Bausteine aus
+**`components/CI.tsx`** geholt: `Scheibe`, `Knopf` (gold · umriss · chip), `Eingabe`,
+`Fehlerzeile`, `Dialog` — jeder mit `karte`-Schalter für die Einladungskarte. Typo aus
+`components/Landing.tsx`, Karten aus `EinladungKarte`/`EinladungAnsicht`/`KartenKarussell`,
+Upload aus `UploadKachel`. **Fehlt ein Baustein, wird er erst in die Bibliothek gebaut und
+dann benutzt** — nie als Einzelstück in der Seite. Lebende Muster-Seite: **`/ci`**
+(`components/CIMuster.tsx` — neue Bausteine dort mit ausstellen).
+
 ## 1. Die CI-Farben
 
 Alles leitet sich vom Logo-Gradient ab, der in `app/globals.css` als `.lb-gold` steht:
