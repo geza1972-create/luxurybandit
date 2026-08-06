@@ -3817,12 +3817,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
           onClick={() => setGateOffen(false)}>
           <div className="relative w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
+            {/* Weisse Scheibe, goldenes Zeichen, weicher Schatten — dieselbe Scheibe wie die
+                drei Karten-Knöpfe (Skill `card`; Owner 06.08.2026: „wir müssen doch alle im
+                CI farben benutzen"). */}
             <button type="button" aria-label="✕" onClick={() => setGateOffen(false)}
-              style={{ color: "#1a160f" }}
-              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+              style={{ background: "#fff", color: "#a07a34", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full transition active:scale-90">
               <X className="h-4 w-4" />
             </button>
-            <p className="text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.gateTitel}</p>
+            {/* `px-7`, damit die Zeile NIE unter das Kreuz läuft (Owner 06.08.2026: „Das X
+                klebt an der Schrift") — symmetrisch, weil der Titel zentriert ist. */}
+            <p className="mt-1 px-7 text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.gateTitel}</p>
             <input ref={mailGateRef} value={mail}
               onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}
               type="email" inputMode="email" autoComplete="email" placeholder="you@email.com"
