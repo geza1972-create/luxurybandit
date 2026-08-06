@@ -983,7 +983,7 @@ export default function TryThisLookPage() {
                   {activeLookImageIndex + 1}/{lookImages.length}
                 </div>
               </div>
-              <div className="grid min-w-0 grid-cols-4 gap-1.5 sm:flex sm:snap-x sm:overflow-x-auto sm:pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="lb-wisch grid min-w-0 grid-cols-4 gap-1.5 sm:flex sm:snap-x sm:overflow-x-auto sm:pb-1">
                 {lookImages.map((image, index) => {
                   const active = index === activeLookImageIndex;
                   return (

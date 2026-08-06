@@ -44,7 +44,7 @@ export default function AdminTabs({ tabs, storageKey = "lb_admin_tab" }: {
     <div>
       {/* Bleibt oben stehen: `sticky` klebt die Reihe unter die Kopfzeile, damit der Wechsel
           auch dann einen Tipp kostet, wenn er weit unten in einer Liste ist. */}
-      <div className="sticky top-0 z-30 -mx-1 mb-3 flex gap-1.5 overflow-x-auto rounded-2xl bg-[#0d0b0a]/95 px-1 py-2 backdrop-blur">
+      <div className="lb-wisch sticky top-0 z-30 -mx-1 mb-3 flex gap-1.5 overflow-x-auto rounded-2xl bg-[#0d0b0a]/95 px-1 py-2 backdrop-blur">
         {tabs.map(t => (
           <button key={t.key} type="button" onClick={() => waehlen(t.key)}
             className="shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black transition active:scale-95"

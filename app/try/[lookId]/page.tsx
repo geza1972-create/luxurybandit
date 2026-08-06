@@ -489,7 +489,7 @@ export default function TryFunnelPage() {
   const examplesRow = examples.length > 0 ? (
     <div className="mx-auto mt-6 w-full max-w-sm">
       <p className="text-[13px] font-black text-white">{L("Așa arată rezultatul:", "This is what you get:")}</p>
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="lb-wisch mt-2 flex gap-2 overflow-x-auto pb-1">
         {examples.map(ex => (
           <button key={ex.id} type="button" onClick={() => router.push(`/post/${ex.id}`)}
             className="relative w-[42%] shrink-0 overflow-hidden rounded-xl border border-white/15 active:scale-95 transition">
@@ -1341,7 +1341,7 @@ export default function TryFunnelPage() {
             <>
               <div className="mt-4">
                 <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/80">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/75">swipe →</span></p>
-                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="lb-wisch -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
                   {gGarments.length === 0 ? (
                     <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/80" /></div>
                   ) : gGarments.map(g => (

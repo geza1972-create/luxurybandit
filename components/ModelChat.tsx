@@ -344,7 +344,7 @@ export default function ModelChat({
                 </div>
                 {/* Her "want to see me in these?" lingerie looks → tap to try her on. */}
                 {offersLingerie && lingerieLooks.length > 0 && (
-                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="lb-wisch -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                     {lingerieLooks.slice(0, 6).map(l => (
                       <button key={l.id} type="button" onClick={() => openTryOn(l.id, l.img)}
                         className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-400/30 bg-white/5 active:scale-95 transition">

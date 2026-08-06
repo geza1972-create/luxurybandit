@@ -506,7 +506,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
           waagerecht wischbar, mit Einrastpunkten; die Scrollleiste ist ausgeblendet, das
           angeschnittene nächste Feld zeigt, dass es weitergeht. `-mx-4 px-4` lässt die Reihe
           bis an den Bildschirmrand laufen, ohne den Innenabstand der Seite zu verlieren. */}
-      <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="lb-wisch -mx-4 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2">
         {scenes.map(s => {
           const on = sceneId === s.id;
           const done = used.includes(s.id);

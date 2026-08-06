@@ -1055,7 +1055,7 @@ export default function TryonPage() {
     return looksToShow.length === 0 ? null : (
     <div className="w-full max-w-md">
       <p className={`mb-2 text-sm font-black ${dark ? "text-white" : "text-black"}`}>Try these looks too ✨</p>
-      <div className="flex items-start gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="lb-wisch flex items-start gap-2.5 overflow-x-auto pb-1">
         {looksToShow.map(l => (
           <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
             className="w-24 shrink-0 text-left active:scale-95 transition-transform">

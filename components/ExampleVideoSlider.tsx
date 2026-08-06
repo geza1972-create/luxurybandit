@@ -60,7 +60,7 @@ export default function ExampleVideoSlider({ urls }: { urls: string[] }) {
 
   return (
     <div className="relative">
-      <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="lb-wisch -mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
         {urls.map((url, i) => (
           <button key={i} type="button" onClick={() => toggle(i)} aria-label={paused[i] ? "Play" : "Pause"}
             className="relative w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">

@@ -131,7 +131,7 @@ export default function ModelCard({
           caption) overlaid. Swipe to browse; the thumb strip below navigates the same slides. */}
       <div className="relative aspect-[4/5] w-full bg-black">
         <div ref={slidesRef} onScroll={onSlidesScroll}
-          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          className="lb-wisch flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain">
           {strip.map((c, i) => {
             const locked = !!c.private && !isMember;
             const isIntro = !!c.intro;
@@ -273,7 +273,7 @@ export default function ModelCard({
 
       {/* Thumb strip — navigates the same slides. Tap → the carousel swipes to that slide. */}
       {strip.length > 1 && (
-        <div className="flex gap-1.5 overflow-x-auto px-3 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="lb-wisch flex gap-1.5 overflow-x-auto px-3 py-2.5">
           {strip.map((c, i) => {
             const locked = !!c.private && !isMember;
             const active = i === activeSlide;

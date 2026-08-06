@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { X, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
+import { X, Loader2, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -131,6 +131,77 @@ export function Fehlerzeile({ karte = false, className = "", children }: {
       {children}
     </p>
   );
+}
+
+/**
+ * DIE LADEANZEIGE — der eine Kreisel des Hauses. Am 06.08.2026 stand er rund 250-mal
+ * von Hand getippt im Code, in vier Grössen (h-3, h-3.5, h-4, h-5, h-6) und einem halben
+ * Dutzend Farben. Zwei Plätze reichen, und die Bibliothek kennt beide:
+ *   knopf    im Knopf, neben oder statt der Beschriftung (h-4 — die häufigste Grösse)
+ *   flaeche  mittig auf einer wartenden Fläche, mit einer Zeile darunter, die SAGT,
+ *            worauf gewartet wird — ein Kreisel ohne Wort lässt den Nutzer raten,
+ *            ob die Seite arbeitet oder hängt
+ *
+ * `karte` färbt ihn für die elfenbeinfarbene Einladungskarte in Tinte statt Weiss.
+ */
+export function Laden({ art = "knopf", karte = false, text, className = "" }: {
+  art?: "knopf" | "flaeche";
+  karte?: boolean;
+  /** Nur für `flaeche`: die Zeile unter dem Kreisel — „Dein Video entsteht …". */
+  text?: string;
+  className?: string;
+}) {
+  const tinte = karte ? SCHEIBEN_TINTE : undefined;
+  if (art === "knopf") {
+    return <Loader2 aria-hidden className={`h-4 w-4 animate-spin ${className}`} style={tinte ? { color: tinte } : undefined} />;
+  }
+  return (
+    <div role="status" className={`flex flex-col items-center justify-center gap-2 py-6 ${className}`}>
+      <Loader2 aria-hidden className={`h-6 w-6 animate-spin ${karte ? "" : "text-white/70"}`}
+        style={tinte ? { color: tinte } : undefined} />
+      {text && (
+        <p className={`text-center text-[13px] font-bold leading-snug ${karte ? "" : "text-white/75"}`}
+          style={tinte ? { color: tinte } : undefined}>{text}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * DER KASTEN — die eine abgesetzte Fläche des Hauses (Owner 06.08.2026: „Farben,
+ * Schriften, Icons, Buttons, teaser, cards, header" — der Teaser-Kasten war der letzte
+ * grosse Baustein, den jede Seite selbst zeichnete).
+ *
+ * WARUM: Am 06.08. gab es 82 solcher Flächen in 21 verschiedenen Rezepturen — mal
+ * `border-white/10 bg-white/[0.03]`, mal `/15` und `[0.04]`, mal `/20` und `[0.06]`.
+ * Niemand hatte sich das ausgedacht, es war nur jedes Mal neu abgetippt. Zwei Gestalten
+ * reichen, und die Bibliothek kennt sie:
+ *   still   der ruhige Kasten — abgesetzt, aber leise (Abschnitte, Listen, Hinweise)
+ *   gold    der Teaser — die Fläche, die etwas ANBIETET (Angebot, Gutschein, Hinweis
+ *           mit Folgen). Höchstens einer pro Bildschirm, wie beim Goldknopf.
+ *
+ * DER RAND IST /20, NICHT /10 (Skill `ci-design`, Kontrast-Untergrenze): „ein
+ * white/15-Rand auf Schwarz ist im Tageslicht unsichtbar". Wer den Kasten aus der
+ * Bibliothek holt, hält die Regel automatisch ein.
+ *
+ * `polster` statt Polsterung im `className`: zwei Tailwind-Polster (p-4 und p-3) haben
+ * dieselbe Spezifität — welches gewinnt, entscheidet dann die Reihenfolge im erzeugten
+ * Stylesheet, nicht die im String. Deshalb gibt es genau EINEN Platz dafür.
+ */
+export function Kasten({ art = "still", karte = false, polster = "p-4", className = "", children }: {
+  art?: "still" | "gold";
+  karte?: boolean;
+  /** Die eine Polster-Stelle — "p-4" (Vorgabe), "p-3", "p-5" oder "p-0". */
+  polster?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const kl = karte
+    ? "lb-karte-rahmen rounded-2xl"
+    : art === "gold"
+      ? "rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
+      : "rounded-2xl border border-white/20 bg-white/[0.05]";
+  return <div className={`${kl} ${polster} ${className}`}>{children}</div>;
 }
 
 /**

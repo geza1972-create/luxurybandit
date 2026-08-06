@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Dialog, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
+import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, ThemenKreise, SCHEIBEN_TINTE } from "@/components/CI";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -76,17 +76,17 @@ export default function CIMuster() {
       </Fine>
 
       {abschnitt("Typo (components/Landing)")}
-      <div className="space-y-2 rounded-2xl border border-white/15 p-4">
+      <Kasten className="space-y-2">
         <Kicker>Kicker · so beginnt jede Seite</Kicker>
         <H1>H1 mit <Y>Goldwort</Y></H1>
         <SectionTitle>SectionTitle zweifarbig</SectionTitle>
         <StepLabel>StepLabel · 1 · Schritt</StepLabel>
         <Lead>Lead — der Fliesstext, weiss/85, nie dünner.</Lead>
         <Fine>Fine — das Kleingedruckte.</Fine>
-      </div>
+      </Kasten>
 
       {abschnitt("Scheibe — der eine runde Knopf")}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/15 p-4">
+      <Kasten className="flex flex-wrap items-center gap-3">
         <Scheibe label="Vergrössern"><Maximize2 className="h-5 w-5" /></Scheibe>
         <Scheibe label="Teilen"><Send className="h-5 w-5" /></Scheibe>
         <Scheibe label="Ton"><Volume2 className="h-5 w-5" /></Scheibe>
@@ -96,17 +96,42 @@ export default function CIMuster() {
         <span className="text-[11px] font-bold leading-snug text-white/60">
           gross · klein · rot · 30 % (auf Video)
         </span>
-      </div>
+      </Kasten>
 
       {abschnitt("Knopf — gold · umriss · chip")}
-      <div className="space-y-2 rounded-2xl border border-white/15 p-4">
+      <Kasten className="space-y-2">
         <Knopf art="gold"><Sparkles className="h-4 w-4" />Der EINE Goldknopf</Knopf>
         <Knopf art="umriss">Der Zweitweg (Umriss)</Knopf>
         <div className="grid grid-cols-2 gap-2">
           <Knopf art="chip" aktiv={chipWahl === "a"} onClick={() => setChipWahl("a")}>Chip aktiv</Knopf>
           <Knopf art="chip" aktiv={chipWahl === "b"} onClick={() => setChipWahl("b")}>Chip inaktiv</Knopf>
         </div>
+      </Kasten>
+
+      {abschnitt("Kasten — still · gold (Teaser)")}
+      {/* Der letzte grosse Eigenbau: 82 Flächen in 21 Rezepturen (Owner 06.08.2026:
+          „… teaser, cards, header"). Der Rand ist /20, damit er im Tageslicht steht. */}
+      <div className="space-y-2">
+        <Kasten>
+          <p className="text-[13px] font-bold leading-snug text-white/85">
+            Der stille Kasten — abgesetzt, aber leise. Abschnitte, Listen, Hinweise.
+          </p>
+        </Kasten>
+        <Kasten art="gold">
+          <p className="text-[13px] font-bold leading-snug text-white/85">
+            Der Teaser — die Fläche, die etwas anbietet. Höchstens einer pro Bildschirm.
+          </p>
+        </Kasten>
       </div>
+
+      {abschnitt("Ladeanzeige — im Knopf · auf der Fläche")}
+      {/* Der Kreisel stand am 06.08.2026 rund 250-mal von Hand im Code, in vier Grössen.
+          Auf der Fläche steht IMMER eine Zeile darunter — ein Kreisel ohne Wort lässt
+          den Nutzer raten, ob gearbeitet wird oder etwas hängt. */}
+      <Kasten className="space-y-3">
+        <Knopf art="gold" disabled><Laden />Dein Video entsteht …</Knopf>
+        <Laden art="flaeche" text="Wir suchen die passenden Stücke — das dauert ein paar Sekunden." />
+      </Kasten>
 
       {abschnitt("Themen-Kreise — die Tür zu jedem Thema")}
       {/* Aus der Galerie in die Bibliothek geholt (Owner 06.08.2026: „die kommen auch in
@@ -114,12 +139,12 @@ export default function CIMuster() {
       <ThemenKreise />
 
       {abschnitt("Eingabe + Fehlerzeile — dunkle Welt")}
-      <div className="rounded-2xl border border-white/15 p-4">
+      <Kasten>
         <Eingabe placeholder="you@email.com" type="email" />
         {fehlerZeigen && <Fehlerzeile>So sieht eine Absage aus — rot, am Feld.</Fehlerzeile>}
         <button type="button" onClick={() => setFehlerZeigen(f => !f)}
           className="mt-2 text-[11px] font-bold text-white/50 underline">Fehler an/aus</button>
-      </div>
+      </Kasten>
 
       {abschnitt("Dieselben Bausteine IN der Karte")}
       {/* Die Karten-Welt hat eigene !important-Farben — der `karte`-Schalter stellt jeden

@@ -615,7 +615,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                 {/* „Willst du mich in diesen Looks sehen?" — Public = gratis (direkt abspielbar),
                     Private = 🔒 (→ Abo). Kuratiert über den Public/Private-Toggle in My Gallery. */}
                 {offers && videos.length > 0 && (
-                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="lb-wisch -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                     {videos.map(v => (
                       <button key={v.id} type="button" onClick={() => v.locked ? openLocked() : setPlaying(v.videoUrl)}
                         className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 bg-black/5 active:scale-95 transition">
@@ -743,7 +743,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         return (
           <div className="mb-6 mt-3">
             <p className="mb-2 px-0.5 text-[12px] font-black text-white/85">{heading}</p>
-            <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="lb-wisch -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
               {crossModels.map(m => (
                 <a key={m.href} href={m.href} className="group w-[96px] shrink-0 snap-start">
                   <div className="relative overflow-hidden rounded-xl border border-[#f6cf51]/25">

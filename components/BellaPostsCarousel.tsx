@@ -83,7 +83,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
     // stecken sie in jedem Beitrag und wandern beim Wischen mit.
     <div className="relative">
       <div ref={trackRef} onScroll={onScroll}
-        className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        className="lb-wisch flex snap-x snap-mandatory overflow-x-auto">
         {posts.map((p, i) => (
           <article key={p.id} className="w-full shrink-0 snap-center">
             {/* Feste Höhe für JEDE Slide (3:4). Sonst ist eine Slide hoch, die nächste

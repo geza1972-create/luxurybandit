@@ -121,7 +121,7 @@ export default function PreviewStudio({
       {refs.length > 0 && (
         <>
           <p className="mt-1.5 text-[11px] font-black text-black/40">Deine Vorlagen</p>
-          <div className="mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="lb-wisch mt-1 flex gap-2 overflow-x-auto pb-1">
             {refs.map(r => (
               <button key={r.path} type="button" onClick={() => setHerUrl(r.url)}
                 className={`aspect-[2/3] w-[72px] shrink-0 overflow-hidden rounded-lg border-2 transition ${
@@ -141,7 +141,7 @@ export default function PreviewStudio({
       {models.length === 0 ? (
         <p className="mt-1 text-[12px] font-bold text-black/40">Wird geladen …</p>
       ) : (
-        <div className="mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="lb-wisch mt-1 flex gap-2 overflow-x-auto pb-1">
           {models.map(m => (
             <button key={m.id} type="button" onClick={() => setHerUrl(m.photoUrl)} title={m.name}
               className={`relative aspect-[2/3] w-[72px] shrink-0 overflow-hidden rounded-lg border-2 transition ${

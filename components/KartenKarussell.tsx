@@ -108,7 +108,7 @@ export default function KartenKarussell({ folien }: {
   return (
     <div className="relative">
       <div ref={bahn} onScroll={gescrollt}
-        className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        className="lb-wisch flex snap-x snap-mandatory overflow-x-auto">
         {folien.map((f, i) => (
           <div key={i} className="w-full shrink-0 snap-center">{f}</div>
         ))}

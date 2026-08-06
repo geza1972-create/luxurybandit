@@ -348,7 +348,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
       style={{ transform: `translateY(calc(${offset * 100}% + ${verticalDrag}px))`, transition, willChange: "transform" }}>
       <div className="absolute inset-0 overflow-hidden">
         <div ref={scrollerRef} onScroll={onScroll}
-          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          className="lb-wisch flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden">
           {slides.map((s, i) => (
             <div key={i} className="relative h-full w-full shrink-0 snap-center bg-black">
               {s.kind === "video" ? (
@@ -2888,7 +2888,7 @@ function StoresPage() {
 
             {/* Feeds | Models toggle — Home has two views: the try-on feeds, and the
                 gallery of models (browse a model, then see her in looks). */}
-            <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="lb-wisch flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2">
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
               {/* Wardrobe-Tab jetzt für ALLE (vorher isAdmin) — der Kleiderschrank ist öffentlich. */}
@@ -2912,7 +2912,7 @@ function StoresPage() {
                   </div>
                 )}
                 {/* Sort (newest first = default) + hair-color filter */}
-                <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="lb-wisch flex gap-2 overflow-x-auto px-3 pb-2 pt-1">
                   <button type="button" onClick={() => { setModelSort("new"); setHairFilter(""); }}
                     className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/80"}`}>All</button>
                   <button type="button" onClick={() => { setModelSort("looks"); setHairFilter(""); }}
@@ -3014,7 +3014,7 @@ function StoresPage() {
               <>
                 {/* Type filter — Alle + garment types (gowns / dresses / resort / lingerie). */}
                 {garmentTypes.length > 0 && (
-                  <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="lb-wisch flex gap-1.5 overflow-x-auto px-3 py-2">
                     <button type="button" onClick={() => setGarmentType(null)}
                       className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>Alle</button>
                     {garmentTypes.map(c => (
@@ -3105,7 +3105,7 @@ function StoresPage() {
                 pool (new user videos land here — the admin reviews & promotes); Private =
                 admin-only view of unshared try-ons. Admin also gets a select toggle for
                 bulk-moving posts between tiers. */}
-            <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="lb-wisch flex items-center gap-1.5 overflow-x-auto px-3 py-2">
               <button type="button" onClick={() => setTierFilter("public")}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>
                 All
@@ -3498,7 +3498,7 @@ function StoresPage() {
             {/* Admin feed toolbar */}
             {isAdmin && (
               <div className="border-b border-black/5 bg-white">
-                <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="lb-wisch flex items-center gap-2 overflow-x-auto px-3 py-2">
                   {selectedLookIds.size > 0 && (
                     <>
                       <button type="button" disabled={feedBulkWorking} onClick={() => void bulkHideLooks()}

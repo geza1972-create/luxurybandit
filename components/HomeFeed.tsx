@@ -848,7 +848,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         )}
 
         {/* Horizontal media carousel: video first, image second */}
-        <div ref={carouselRef} className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        <div ref={carouselRef} className="lb-wisch absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
           onScroll={(e) => {
             const i = Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth);
             if (i !== active) setActive(i); // the effect handles play/pause + mute
@@ -1470,7 +1470,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
         </div>
         <div className="border-t border-black/8" style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}>
           {/* Quick emoji bar */}
-          <div className="flex gap-1 overflow-x-auto px-3 pt-2 pb-1 text-2xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="lb-wisch flex gap-1 overflow-x-auto px-3 pt-2 pb-1 text-2xl">
             {["❤️","🔥","😍","🙌","👏","😮","😂","✨","🖤","💯","👀","🥹","💅","👑","😎","🤍"].map(e => (
               <button key={e} type="button" onClick={() => setText(t => t + e)}
                 className="shrink-0 px-1 leading-none active:scale-125 transition-transform">{e}</button>
@@ -1635,7 +1635,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
       {/* Phone-width column, centered, so a wide screen doesn't blow the square video
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
-        <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scrollRef} className="lb-wisch h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black">
           {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} realModelIds={realModelIds} onOpenModelSearch={() => setModelPickerOpen(true)} />)}
         </div>
       </div>

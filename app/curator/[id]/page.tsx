@@ -1536,7 +1536,7 @@ export default function CuratorPublicPage() {
                 return (
                   <>
                     {releasedCols.length > 0 && (
-                      <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                      <div className="lb-wisch mb-3 flex gap-2 overflow-x-auto pb-1">
                         <button type="button" onClick={() => setGvCol(null)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${gvCol === null ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>Alle</button>
                         {releasedCols.map(c => (
                           <button key={c.id} type="button" onClick={() => setGvCol(c.id)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${gvCol === c.id ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>{c.name}</button>
@@ -1879,7 +1879,7 @@ export default function CuratorPublicPage() {
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
           </div>
           <div ref={reelRef} onScroll={onReelScroll}
-            className="flex flex-1 snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            className="lb-wisch flex flex-1 snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4">
             {videos.map(t => (
               // 3:4 like the generated videos — width drives the height (no crop).
               <div key={t.id} className="relative aspect-[9/16] w-[84vw] max-w-[400px] shrink-0 snap-center">

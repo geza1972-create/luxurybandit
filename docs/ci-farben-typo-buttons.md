@@ -9,11 +9,17 @@ Der Owner hat das mehrfach korrigiert — es wird **nicht** neu erfunden und **n
 
 Diese Regeln werden nicht pro Seite neu UMGESETZT, sondern als fertige Bausteine aus
 **`components/CI.tsx`** geholt: `Scheibe`, `Knopf` (gold · umriss · chip), `Eingabe`,
-`Fehlerzeile`, `Dialog`, `ThemenKreise` — die kleinen mit `karte`-Schalter für die
-Einladungskarte. Typo aus `components/Landing.tsx`, Karten aus
+`Fehlerzeile`, `Kasten` (still · gold), `Laden`, `Dialog`, `ThemenKreise` — die kleinen mit
+`karte`-Schalter für die Einladungskarte. Typo aus `components/Landing.tsx`, Karten aus
 `EinladungKarte`/`EinladungAnsicht`/`KartenKarussell`, Upload aus `UploadKachel`.
-Waagerechte Wisch-Reihen tragen `lb-wisch` — der Scrollbalken ist unsichtbar („scrollbalken
-wird dann transparent").
+Wisch-Flächen tragen `lb-wisch` — der Scrollbalken ist unsichtbar („scrollbalken wird dann
+transparent"); nie wieder `[&::-webkit-scrollbar]:hidden` abtippen.
+
+Der **Kasten** ist die eine abgesetzte Fläche: `still` für Abschnitte und Hinweise, `gold`
+für den Teaser, der etwas anbietet (höchstens einer pro Bildschirm, wie der Goldknopf).
+Sein Rand ist `white/20`, nicht `/10` — ein `/15`-Rand auf Schwarz ist im Tageslicht
+unsichtbar. Polsterung nur über `polster`, nie über `className` (zwei Tailwind-Polster
+haben dieselbe Spezifität; welches gewinnt, entscheidet sonst der Zufall).
 
 **Der Arbeitsgang** (Owner: „alles was wir bauen und neu ist wird erst mal geprüft in der
 Bibliothek und wenn es nicht gibt, dann müssen wir es erst mal dort eintragen"): erst in

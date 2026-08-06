@@ -110,7 +110,7 @@ export default function EntdeckenPage() {
       {/* Category tabs */}
       <div className="border-b border-black/8 bg-white/95 backdrop-blur-md">
         <div className="mx-auto max-w-lg px-4">
-          <div className="flex gap-2 py-3 overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="lb-wisch flex gap-2 py-3 overflow-x-auto">
             {FIXED_CATEGORIES.map(({ key, label, emoji }) => (
               <button key={key} type="button" onClick={() => setCategory(key)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition ${

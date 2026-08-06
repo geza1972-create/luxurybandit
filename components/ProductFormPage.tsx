@@ -628,7 +628,7 @@ export default function ProductFormPage({ editId }: { editId: string | null }) {
               {/* Select image */}
               <div>
                 <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-black/40">Select product image</p>
-                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="lb-wisch flex gap-2 overflow-x-auto pb-1">
                   {form.gallery.filter(s => s.preview).map((slot, idx) => {
                     const realIdx = form.gallery.indexOf(slot);
                     return (

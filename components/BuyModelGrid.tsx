@@ -16,7 +16,7 @@ export default function BuyModelGrid({ models }: { models: Model[] }) {
         <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
         <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE sponsor, ever</p>
       </div>
-      <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="lb-wisch mt-3 flex snap-x gap-2 overflow-x-auto pb-1">
         {models.map((m, i) => (
           <Link key={i} href="/curators/apply"
             className="group relative block aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">

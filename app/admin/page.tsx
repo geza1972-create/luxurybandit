@@ -2782,7 +2782,7 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && modelsView === "list" && (
-          <div className="mt-2 overflow-x-auto pb-16 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="lb-wisch mt-2 overflow-x-auto pb-16">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
@@ -3402,7 +3402,7 @@ export default function AdminPage() {
                             <textarea defaultValue={p.description ?? ""} placeholder="Was ist drin? Angebotstext fürs Owner-Paket…" onBlur={e => void updateProgram(p.id, { description: e.target.value.trim() })}
                               className="mt-2 h-14 w-full rounded-md border border-black/15 px-2 py-1 text-[12px] text-ink outline-none focus:border-teal-500" />
                             {pool.length > 0 && (
-                              <div className="mt-2 flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                              <div className="lb-wisch mt-2 flex gap-1 overflow-x-auto">
                                 {pool.slice(0, 14).map(l => (
                                   <img key={l.id} src={safeLookImage(l)} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
                                 ))}
@@ -3514,7 +3514,7 @@ export default function AdminPage() {
       {/* ── AI-face big view: enlarge, crop (in-place, keeps booking), or delete ── */}
       {bigFace && !faceCropSrc && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4" onClick={e => { if (e.target === e.currentTarget) setBigFace(null); }}>
-          <div className="flex max-h-[92dvh] w-full max-w-sm flex-col items-center overflow-y-auto rounded-2xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="lb-wisch flex max-h-[92dvh] w-full max-w-sm flex-col items-center overflow-y-auto rounded-2xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={bigFace.imageUrl} alt="" className="max-h-[42vh] w-auto shrink-0 rounded-2xl object-contain" />
             <p className="mt-2 text-[12px] font-bold text-white/80">{bigFace.sold ? "🔴 Sold — hidden from the picker" : bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>

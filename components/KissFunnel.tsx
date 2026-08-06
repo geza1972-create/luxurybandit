@@ -3417,7 +3417,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 Fehler, der nur darauf wartet, angetippt zu werden. Es sind grosse Kacheln, weil
                 ein Kleid in 44 Pixel Breite nicht zu erkennen ist. */}
             {variant === "wedding" ? (
-              <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <div className="lb-wisch mt-1.5 flex gap-2 overflow-x-auto pb-1">
                 {WEDDING_KLEIDER.map(k => (
                   <button key={k.id} type="button" onClick={() => setKleid(kleid === k.beschreibung ? "" : k.beschreibung)}
                     className="shrink-0 overflow-hidden rounded-xl"
@@ -3428,7 +3428,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 ))}
               </div>
             ) : (
-              <div className="mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              <div className="lb-wisch mt-1.5 flex gap-2 overflow-x-auto pb-1">
                 <button type="button" onClick={() => setIhrLook("")}
                   className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
                   style={ihrLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
@@ -3452,7 +3452,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               </button>
             )}
             <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>Your clothes</p>
-            <div className={`mt-1.5 flex gap-2 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
+            <div className={`lb-wisch mt-1.5 flex gap-2 overflow-x-auto pb-1 ${mehr ?"" : "hidden"}`}>
               <button type="button" onClick={() => setSeinLook("")}
                 className="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black"
                 style={seinLook === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
@@ -3468,7 +3468,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             </div>
 
             <p className={`mt-2.5 text-[11px] font-black ${mehr ? "" : "hidden"}`}>{T.theMoment}</p>
-            <div className={`mt-1.5 flex gap-1.5 overflow-x-auto pb-1 ${mehr ? "" : "hidden"}`}>
+            <div className={`lb-wisch mt-1.5 flex gap-1.5 overflow-x-auto pb-1 ${mehr ?"" : "hidden"}`}>
               <button type="button" onClick={() => setSzeneId("")}
                 className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black"
                 style={szeneId === "" ? { background: "#1877f2", color: "#fff" } : { background: "rgba(0,0,0,0.06)" }}>
@@ -4138,7 +4138,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 <p className="mt-0.5 text-center text-[11.5px] font-semibold text-white/60">
                   {fillPrices(T.nochEinsPreis, lang)}
                 </p>
-                <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="lb-wisch -mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
                   {garderobe.map(l => (
                     <button key={l.id} type="button" disabled={videoBusy || payBusy}
                       onClick={async () => {
