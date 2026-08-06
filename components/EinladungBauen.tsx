@@ -292,11 +292,28 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     const p = new URLSearchParams(window.location.search);
     const t = String(p.get("topic") ?? "");
     if ((LB_TOPICS as string[]).includes(t)) setLbWahl({ topic: t, cents: themenPreisCents(t as ThemenSchluessel) });
-    const cs = String(p.get("cs") ?? "");
-    if (p.get("gutschein") !== "1" || !cs) return;
+    /**
+     * DIE SITZUNGSNUMMER STEHT NICHT NUR IN DER ADRESSE (06.08.2026: „das hat schon mal nicht
+     * geklappt").
+     *
+     * Die Rückkehr aus einer Kasse ist der zerbrechlichste Schritt im ganzen Weg: Auf dem
+     * Handy springt Stripe in eine eigene App und zurück, dazwischen liegen Weiterleitungen,
+     * und ein `?cs=…` überlebt das nicht immer. Ging es verloren, war der Kauf für den
+     * Trichter unsichtbar — mit allem, was daran hing: kein Etikett, kein Empfänger, keine
+     * Mail. Bezahlt war trotzdem.
+     *
+     * Deshalb liegt die Nummer zusätzlich im Gerät (gesetzt VOR dem Seitenwechsel) und wird
+     * hier notfalls von dort eingelöst. Doppelt einlösen kostet nichts: `guthabenAufladen` ist
+     * idempotent über genau diese Nummer.
+     */
+    let gemerkt = "";
+    try { gemerkt = localStorage.getItem(GUTSCHEIN_CS) ?? ""; } catch { /**/ }
+    const cs = String(p.get("cs") ?? "") || gemerkt;
+    if (!cs || (p.get("gutschein") !== "1" && !gemerkt)) return;
     void fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).then(s => {
       if (s?.paid && (s.kind === "gutschein" || s.test)) {
         setLbGekauft({ topic: String(s.topic ?? ""), cents: Number(s.cents ?? 0) || 0, session: cs });
+        try { localStorage.removeItem(GUTSCHEIN_CS); } catch { /**/ }
       }
     }).catch(() => {});
     /* Die Kennung aus der Adresse nehmen: Ein Neuladen soll nicht wie eine zweite Zahlung
@@ -633,6 +650,8 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
       if (!start?.url || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setLbFehler(start?.error || F.statusNotWork);
+      } else if ((() => { try { localStorage.setItem(GUTSCHEIN_CS, String(start.sessionId)); } catch { /**/ } return false; })()) {
+        /* nie erreicht — die Nummer wird nur GEMERKT, bevor irgendein Weg die Seite verlässt */
       } else if (!popup) {
         // Popup blockiert → Seitenwechsel; die Rückkehr fängt der Effekt oben (?gutschein=1&cs=…).
         window.location.href = start.url; return false;
@@ -955,6 +974,11 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           /* Nur die SITZUNGSNUMMER des beigelegten Topic-Gutscheins — Betrag und Thema liest
              die Route bei Stripe nach, eine Behauptung des Browsers zählt dort nicht. */
           ...(gutschein && lbGekauft ? { lbGutscheinSession: lbGekauft.session } : {}),
+          /* WOHIN die Karte geht, darf der Browser sagen — WAS drin ist, nicht (die Route
+             liest Betrag und Thema weiter nur bei Stripe). Ohne diese Zeile stirbt die
+             Zustellung mit, sobald die Rückkehr aus der Kasse hakt: keine Sitzungsnummer,
+             kein Empfänger, keine Mail — bei längst gebuchtem Guthaben. */
+          ...(gutschein && lbMail.trim() ? { lbGutscheinEmpfaenger: lbMail.trim() } : {}),
           ort: ort.trim(), adresse: adresse.trim(), telefon: telefon.trim(),
           /* Das Thema reist mit der Einladung: Die Seite, die der Eingeladene öffnet, muss
              wissen, ob sie „Hochzeitseinladung" mit Menü und Gruppenchat zeigt oder eine
@@ -978,7 +1002,12 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             localStorage.setItem(SPEICHER, JSON.stringify(d));
           } catch { /**/ }
         }
-        window.location.href = gutschein ? `${r.url}?verschickt=1` : r.url;
+        /* Die Ziffer ist das ERGEBNIS des Versands, nicht die Absicht: `0`, wenn die Mail an
+           den Beschenkten gescheitert ist — dann zeigt die Karte es rot und bietet „nochmal
+           senden" an, statt „verschickt" zu behaupten. Ohne Empfängeradresse meldet der
+           Server gar keinen Versuch; das bleibt der freundliche Fall („schick den Link"). */
+        const versandOk = r?.mails?.empfaenger !== false;
+        window.location.href = gutschein ? `${r.url}?verschickt=${versandOk ? "1" : "0"}` : r.url;
       }
       else setStatus(r?.error || F.statusNotWork);
     } catch { setStatus(F.statusNetwork); }

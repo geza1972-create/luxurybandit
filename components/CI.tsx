@@ -248,14 +248,25 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
 }
 
 /**
- * DER DIALOG — das weisse, mittige Fenster (E-Mail-Tor, Aufladewähler-Familie). ZWEI
- * Ausgänge sind eingebaut und nicht abwählbar: Tipp auf den dunklen Rand und die
+ * DER DIALOG — das mittige Fenster (E-Mail-Tor, Aufladewähler-Familie, Abo-Fenster).
+ * ZWEI Ausgänge sind eingebaut und nicht abwählbar: Tipp auf den dunklen Rand und die
  * Scheibe mit dem Kreuz (Owner 06.08.2026: „hier kann der user den Dialog gar nicht
  * mehr schliessen" — ein Tor ohne Ausgang hält niemanden zum Kaufen fest, es hält ihn
- * nur vom Weiterschauen ab). Der Inhalt läuft auf hellem Grund — Textfarben dort als
- * `style` mit #1a160f, wie im Tor.
+ * nur vom Weiterschauen ab).
+ *
+ * ZWEI GESTALTEN, weil es im Haus zwei Sorten Fenster gibt:
+ *   hell    die weisse Karte — das Tor, die Frage, die Entscheidung (Vorgabe).
+ *           Textfarben darin als `style` mit #1a160f, wie im Tor.
+ *   dunkel  das Fenster, das AUF der dunklen Welt liegt und ihre Farben behält
+ *           (Abo- und Freischalt-Fenster). Weisse Schrift, Gold #f6cf51 als Akzent.
+ *
+ * Die dunkle Gestalt kam am 06.08.2026 dazu: `PremiumDialog` und `SubscribeDialog` waren
+ * von Hand gebaut, und weil sie niemandem gehörten, trugen sie 16-mal `amber-*` als
+ * Akzent — die eine Farbe, die der Skill auf dunklen Kundenflächen ausdrücklich verbietet.
+ * Ein Baustein, der nur Weiss kann, treibt genau solche Eigenbauten hervor.
  */
-export function Dialog({ zu, z = 96, className = "", children }: {
+export function Dialog({ art = "hell", zu, z = 96, className = "", children }: {
+  art?: "hell" | "dunkel";
   /** Schliessen — an Rand UND Kreuz gebunden. */
   zu: () => void;
   /** Stapelhöhe: 96 ist die Fenster-Ebene des Kuss-Trichters (über Kopfzeile und Stufen). */
@@ -263,10 +274,11 @@ export function Dialog({ zu, z = 96, className = "", children }: {
   className?: string;
   children: ReactNode;
 }) {
+  const dunkel = art === "dunkel";
   return (
     <div className="fixed inset-0 grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)", zIndex: z }}
       onClick={zu}>
-      <div className={`relative w-full max-w-[340px] rounded-3xl bg-white p-6 text-center ${className}`}
+      <div className={`relative w-full ${dunkel ? "max-w-sm border border-[#f6cf51]/25 bg-[#141210]" : "max-w-[340px] bg-white"} rounded-3xl p-6 text-center ${className}`}
         onClick={e => e.stopPropagation()}>
         <Scheibe klein label="✕" onClick={zu} className="absolute right-3 top-3">
           <X className="h-4 w-4" />

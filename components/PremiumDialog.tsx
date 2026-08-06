@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Crown, Check, X, Loader2 } from "lucide-react";
+import { Crown, Check } from "lucide-react";
+import { Dialog, Knopf, Laden, Kasten, Fehlerzeile } from "@/components/CI";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import { logFunnelEvent } from "@/lib/track-funnel";
@@ -56,52 +57,48 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm" onClick={close}>
-      <div className="relative w-full max-w-sm rounded-3xl border border-amber-400/20 bg-[#141210] p-6 text-center" onClick={e => e.stopPropagation()}>
-        <button type="button" onClick={close} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
-        <p className="mt-2.5 text-[12px] font-black uppercase tracking-[0.2em] text-amber-400">Subscription</p>
-        <h3 className="mt-1 text-lg font-black text-white">{title}</h3>
-        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/75">{subtitle}</p>
+    <Dialog art="dunkel" z={100} zu={close}>
+      <span className="lb-gold mx-auto grid h-14 w-14 place-items-center rounded-2xl text-black"><Crown className="h-7 w-7" /></span>
+      <p className="mt-2.5 text-[12px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">Subscription</p>
+      <h3 className="mt-1 text-lg font-black text-white">{title}</h3>
+      <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/85">{subtitle}</p>
 
-        {/* Price — $8 first month, then the monthly price from the price list, shown BIG. */}
-        <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-4">
-          <p className="flex items-end justify-center gap-2">
-            <span className="text-6xl font-black leading-none text-white">$8</span>
-            <span className="mb-1 text-left text-[13px] font-black leading-tight text-amber-300">first<br />month</span>
-          </p>
-          <p className="mt-2 text-[12px] font-bold text-white/85">then {monthly}/mo · cancel anytime</p>
-        </div>
+      {/* Price — $8 first month, then the monthly price from the price list, shown BIG. */}
+      <Kasten art="gold" polster="px-4 py-4" className="mt-4">
+        <p className="flex items-end justify-center gap-2">
+          <span className="text-6xl font-black leading-none text-white">$8</span>
+          <span className="mb-1 text-left text-[13px] font-black leading-tight text-[#f6cf51]">first<br />month</span>
+        </p>
+        <p className="mt-2 text-[12px] font-bold text-white/85">then {monthly}/mo · cancel anytime</p>
+      </Kasten>
 
-        {/* Perks */}
-        <div className="mt-4 grid gap-2 text-left">
-          {["Unlimited chat with her", "All her private photos & videos", "Cancel anytime"].map(perk => (
-            <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5">
-              <Check className="h-4 w-4 shrink-0 text-amber-400" />
-              <span className="text-[13px] font-bold text-white/80">{perk}</span>
-            </div>
-          ))}
-        </div>
-
-        <button type="button" onClick={() => buy()} disabled={busy}
-          className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Subscribe — $8 first month</>}
-        </button>
-        {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
-        {signedIn ? (
-          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/85">Maybe later</button>
-        ) : (
-          <>
-            <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
-              <span className="text-sm font-black text-amber-300">Create free account · $0</span>
-              <span className="text-[11px] font-bold text-amber-300/70">Watch &amp; chat — free</span>
-            </button>
-            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/85 underline underline-offset-2">
-              Register as a Model →
-            </a>
-          </>
-        )}
+      {/* Perks */}
+      <div className="mt-4 grid gap-2 text-left">
+        {["Unlimited chat with her", "All her private photos & videos", "Cancel anytime"].map(perk => (
+          <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5">
+            <Check className="h-4 w-4 shrink-0 text-[#f6cf51]" />
+            <span className="text-[13px] font-bold text-white/85">{perk}</span>
+          </div>
+        ))}
       </div>
-    </div>
+
+      <Knopf art="gold" onClick={() => buy()} disabled={busy} className="mt-5">
+        {busy ? <Laden /> : <>Subscribe — $8 first month</>}
+      </Knopf>
+      {error && <Fehlerzeile>{error}</Fehlerzeile>}
+      {signedIn ? (
+        <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/85">Maybe later</button>
+      ) : (
+        <>
+          <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-[#f6cf51]/60 px-5 py-2.5 active:scale-95 transition-transform">
+            <span className="text-sm font-black text-[#f6cf51]">Create free account · $0</span>
+            <span className="text-[11px] font-bold text-[#f6cf51]/75">Watch &amp; chat — free</span>
+          </button>
+          <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/85 underline underline-offset-2">
+            Register as a Model →
+          </a>
+        </>
+      )}
+    </Dialog>
   );
 }

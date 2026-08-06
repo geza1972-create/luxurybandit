@@ -32,7 +32,7 @@ const FARBEN = [
 ];
 
 export default function CIMuster() {
-  const [dialogOffen, setDialogOffen] = useState(false);
+  const [dialogOffen, setDialogOffen] = useState<"hell" | "dunkel" | null>(null);
   const [chipWahl, setChipWahl] = useState("a");
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
 
@@ -208,14 +208,23 @@ export default function CIMuster() {
         So steht der Kaufaufruf unter der Karte
       </Knopf>
 
-      {abschnitt("Dialog — mit eingebautem Ausgang")}
-      <Knopf art="umriss" onClick={() => setDialogOffen(true)}>Dialog öffnen</Knopf>
+      {abschnitt("Dialog — hell · dunkel, Ausgang eingebaut")}
+      {/* Zwei Gestalten: die weisse Karte für Tor und Entscheidung, das dunkle Fenster für
+          Abo und Freischalten. Beide schliessen über Kreuz UND Tipp auf den Rand — das ist
+          nicht abwählbar (Owner 06.08.2026: „hier kann der user den Dialog gar nicht mehr
+          schliessen"). Die dunkle Gestalt kam dazu, weil PremiumDialog und SubscribeDialog
+          von Hand gebaut waren und dabei 16-mal `amber-*` trugen — verbotene Farbe. */}
+      <div className="grid grid-cols-2 gap-2">
+        <Knopf art="umriss" onClick={() => setDialogOffen("hell")}>Hell öffnen</Knopf>
+        <Knopf art="umriss" onClick={() => setDialogOffen("dunkel")}>Dunkel öffnen</Knopf>
+      </div>
       {dialogOffen && (
-        <Dialog zu={() => setDialogOffen(false)}>
-          <p className="mt-1 px-7 text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>
+        <Dialog art={dialogOffen} zu={() => setDialogOffen(null)}>
+          <p className={`mt-1 px-7 text-[16px] font-black leading-snug ${dialogOffen === "dunkel" ? "text-white" : ""}`}
+            style={dialogOffen === "hell" ? { color: "#1a160f" } : undefined}>
             Jeder Dialog kann zu — Kreuz oder Tipp daneben.
           </p>
-          <Knopf art="gold" className="mt-4" onClick={() => setDialogOffen(false)}>Verstanden</Knopf>
+          <Knopf art="gold" className="mt-4" onClick={() => setDialogOffen(null)}>Verstanden</Knopf>
         </Dialog>
       )}
 

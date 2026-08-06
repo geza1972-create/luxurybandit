@@ -16,6 +16,7 @@ import LightSwitch from "@/components/LightSwitch";
 import { Gift } from "lucide-react";
 import { einloeseToken } from "@/lib/einloese-token";
 import GeschenkAnmeldung from "@/components/GeschenkAnmeldung";
+import GutscheinVersand from "@/components/GutscheinVersand";
 
 /**
  * DIE EINLADUNG, wie der Gast sie sieht (Owner 31.07.2026).
@@ -145,9 +146,17 @@ export default async function EinladungPage({ params, searchParams }: {
   const angemeldet = gutschein && !!eParam
     && eParam === String(e.lbGutscheinEmpfaenger ?? "").trim().toLowerCase()
     && tParam === einloeseToken(id, eParam);
-  /* Die Bestätigung nach dem Anlegen (Owner: „es kommt eine bestätigung dass der Gutschein
-     versendet wurde") — der Käufer landet mit `?verschickt=1` hier. */
-  const verschickt = gutschein && String(sp.verschickt ?? "") === "1";
+  /**
+   * DIE BESTÄTIGUNG NACH DEM ANLEGEN (Owner: „es kommt eine bestätigung dass der Gutschein
+   * versendet wurde") — der Käufer landet mit `?verschickt=…` hier.
+   *
+   * DIE ZIFFER IST DAS ERGEBNIS, NICHT DIE ABSICHT (06.08.2026): `1` heisst, der Server hat
+   * die Mail an den Beschenkten wirklich losbekommen, `0` heisst, sie ist gescheitert. Vorher
+   * gab es nur `1`, weil der Versand ins Leere lief und niemand ihn abfragte — die Karte
+   * behauptete dann „verschickt", während beim Beschenkten nie etwas ankam.
+   */
+  const versandZiffer = String(sp.verschickt ?? "");
+  const verschickt = gutschein && (versandZiffer === "1" || versandZiffer === "0");
   return (
     /* Hell als Vorgabe (Owner 31.07.2026: „default ist light modus") — eine
        Hochzeitseinladung ist hell; der Schalter oben rechts stellt auf dunkel. */
@@ -164,11 +173,10 @@ export default async function EinladungPage({ params, searchParams }: {
         {angemeldet && <GeschenkAnmeldung adresse={eParam} />}
         {/* Die Verschickt-Bestätigung für den Käufer — mit oder ohne Empfänger-Mail. */}
         {verschickt && (
-          <p className="mb-3 rounded-xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] px-3 py-2 text-center text-[12.5px] font-bold leading-snug text-white/85">
-            {e.lbGutscheinEmpfaenger
+          <GutscheinVersand id={id} sprache={sprache} ok={versandZiffer === "1"}
+            bestaetigung={e.lbGutscheinEmpfaenger
               ? T.verschicktMit.replace("{mail}", maskiert(e.lbGutscheinEmpfaenger))
-              : T.verschicktOhne}
-          </p>
+              : T.verschicktOhne} />
         )}
         {/* DIE KARTE — dieselbe Komponente, die im Trichter als Vorschau steht. Was die
             Kundin dort gesehen hat, sieht ihr Gast hier. */}

@@ -89,7 +89,58 @@ export const dynamic = "force-dynamic";
 
 const sauber = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
+/**
+ * DIE ZWEI GUTSCHEIN-MAILS — UND OB SIE WIRKLICH RAUS SIND (06.08.2026: „vorher sollte eine
+ * bestätigung kommen, dass emails gesendet wurden. Und es kam nichts an.").
+ *
+ * VORHER WAR DER VERSAND UNSICHTBAR: `void sendEmail(...).catch(() => {})`. `sendEmail` wirft
+ * nie — es GIBT `{ok:false}` ZURÜCK, ohne Postfach sogar nur ein `console.warn`. Beides fiel
+ * damit in ein weggeworfenes Versprechen, die Antwort sagte `ok:true`, und die Karte behauptete
+ * anschliessend „verschickt". Nachgestellt am 06.08. mit der Testklappe: Karte angelegt,
+ * Antwort `ok:true`, kein einziger Log-Eintrag, keine Mail. Genau der Zustand, in dem ein
+ * Käufer bezahlt hat und niemand merkt, dass sein Geschenk nie ankam.
+ *
+ * JETZT WIRD GEWARTET UND BERICHTET. Der Aufrufer bekommt je Mail ein `true`/`false` und kann
+ * die Wahrheit anzeigen — und was fehlschlug, steht im Log mit Adresse und Grund.
+ */
+async function gutscheinMailen(e: Einladung, origin: string): Promise<{ empfaenger?: boolean; kaeufer?: boolean; an?: string }> {
+  const M = MAIL_TEXTE[String(e.lang ?? "en")] ?? MAIL_TEXTE.en;
+  const kartenLink = `${origin}/einladung/${e.id}`;
+  const empf = String(e.lbGutscheinEmpfaenger ?? "").trim().toLowerCase();
+  const sie = String(e.sie ?? "");
+  const alsHtml = (text: string, link: string) =>
+    `<p>${text.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`
+    + `<p><a href="${link}">${M.knopf} 🎁</a></p>`;
+  const ergebnis: { empfaenger?: boolean; kaeufer?: boolean; an?: string } = {};
+  if (empf) {
+    ergebnis.an = empf;
+    /* Der signierte Link — nur er meldet den Beschenkten an. Begründung in lib/einloese-token. */
+    const einloeseLink = `${kartenLink}?e=${encodeURIComponent(empf)}&t=${einloeseToken(e.id, empf)}`;
+    const r = await sendEmail({
+      to: empf,
+      subject: M.empfBetreff(sie),
+      replyTo: e.email || undefined,
+      text: M.empfText(sie, einloeseLink),
+      html: alsHtml(M.empfText(sie, einloeseLink), einloeseLink),
+    }).catch((err: unknown) => ({ ok: false, error: err instanceof Error ? err.message : "throw" }));
+    ergebnis.empfaenger = !!r.ok;
+    if (!r.ok) console.warn("[einladung] Gutschein-Mail an den Beschenkten fehlgeschlagen:", empf, (r as { error?: string }).error);
+  }
+  if (e.email) {
+    const r = await sendEmail({
+      to: e.email,
+      subject: M.kaeuferBetreff,
+      text: M.kaeuferText(empf, kartenLink),
+      html: alsHtml(M.kaeuferText(empf, kartenLink), kartenLink),
+    }).catch((err: unknown) => ({ ok: false, error: err instanceof Error ? err.message : "throw" }));
+    ergebnis.kaeufer = !!r.ok;
+    if (!r.ok) console.warn("[einladung] Gutschein-Mail an den Käufer fehlgeschlagen:", e.email, (r as { error?: string }).error);
+  }
+  return ergebnis;
+}
+
 // POST { videoUrl, sie, er, datum?, ort?, adresse?, telefon?, genId?, device?, email?, lang? } → { id, url }
+// POST { nachsenden: id }                                                  → { ok, mails }
 // POST { revoke: id, device? }                                            → { ok }
 // POST { open: id }                                                       → { ok }  (Zähler)
 // POST { rsvp: id, name, ja, email }                                      → { ok }  (Zusage)
@@ -103,6 +154,22 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
     || new URL(request.url).origin;
+
+  /**
+   * NOCHMAL SENDEN (06.08.2026). Ein SMTP-Aussetzer darf nicht heissen, dass ein bezahltes
+   * Geschenk für immer im Nichts hängt — der Käufer sieht jetzt, dass es schiefging, und
+   * bekommt einen Knopf. Kein Gerätenachweis nötig: Verschickt wird ausschliesslich an die
+   * Adressen, die BEREITS an dieser Karte stehen; ein Fremder kann damit nichts umleiten,
+   * höchstens dieselbe Mail ein zweites Mal auslösen.
+   */
+  const nachsenden = sauber(body.nachsenden, 60);
+  if (nachsenden) {
+    const alle = await readEinladungen();
+    const e = alle.find(x => x.id === nachsenden);
+    if (!e || e.revoked) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (e.thema !== "gutschein") return NextResponse.json({ error: "Kein Gutschein." }, { status: 400 });
+    return NextResponse.json({ ok: true, mails: await gutscheinMailen(e, origin) });
+  }
 
   /**
    * ÖFFNUNG ZÄHLEN. Bewusst vom Browser gemeldet und nicht beim Ausliefern der Seite: Ein
@@ -470,6 +537,25 @@ export async function POST(request: Request) {
     } catch { /* Etikett ist Best-effort — die Karte blockiert das nie */ }
   }
 
+  /**
+   * DIE ZUSTELLADRESSE DARF NICHT AN DER STRIPE-ABFRAGE STERBEN (06.08.2026, nachgestellt).
+   *
+   * Vorher hing alles an EINEM Faden: Scheiterte die Rückkehr aus der Kasse, kam keine
+   * Sitzungsnummer mit, also las die Route keine Stripe-Sitzung, also blieb der Empfänger
+   * leer — und weil die Mail unten hinter `if (empf)` steht, wurde die Karte angelegt und
+   * NIEMAND bekam etwas. Das Guthaben lag da längst beim Beschenkten.
+   *
+   * Getrennt wird deshalb GELD und ZUSTELLUNG. Betrag und Thema — das Etikett auf der Karte —
+   * kommen weiterhin ausschliesslich von Stripe; der Browser kann sich kein 60-€-Etikett
+   * andichten. WOHIN die Karte geht, darf er sagen: Mehr als eine Mail an genau diese Adresse
+   * löst es nicht aus, und der Anmelde-Token (HMAC über Karte + Adresse) landet ebenfalls nur
+   * in diesem einen Postfach.
+   */
+  if (gutschein && !lbGutschein.lbGutscheinEmpfaenger) {
+    const ausTrichter = sauber(body.lbGutscheinEmpfaenger, 120).toLowerCase();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ausTrichter)) lbGutschein.lbGutscheinEmpfaenger = ausTrichter;
+  }
+
   // Kennung: lang genug, dass sie niemand rät, kurz genug für eine Nachricht.
   const id = `${crypto.randomUUID().replace(/-/g, "").slice(0, 18)}`;
   const eintrag: Einladung = {
@@ -562,33 +648,11 @@ export async function POST(request: Request) {
    * NACKTE Karten-Link (weitergeleitet, im Chat) meldet niemanden an — sonst würde jeder
    * Mitleser zum Kontoinhaber. Begründung ausführlich in lib/einloese-token.
    */
+  let mails: { empfaenger?: boolean; kaeufer?: boolean; an?: string } | undefined;
   if (gutschein) {
-    const M = MAIL_TEXTE[String(eintrag.lang ?? "en")] ?? MAIL_TEXTE.en;
-    const kartenLink = `${origin}/einladung/${id}`;
-    const empf = String(lbGutschein.lbGutscheinEmpfaenger ?? "");
-    const alsHtml = (text: string, link: string) =>
-      `<p>${text.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`
-      + `<p><a href="${link}">${M.knopf} 🎁</a></p>`;
-    if (empf) {
-      const einloeseLink = `${kartenLink}?e=${encodeURIComponent(empf)}&t=${einloeseToken(id, empf)}`;
-      void sendEmail({
-        to: empf,
-        subject: M.empfBetreff(sie),
-        replyTo: eintrag.email || undefined,
-        text: M.empfText(sie, einloeseLink),
-        html: alsHtml(M.empfText(sie, einloeseLink), einloeseLink),
-      }).catch(() => {});
-    }
-    if (eintrag.email) {
-      void sendEmail({
-        to: eintrag.email,
-        subject: M.kaeuferBetreff,
-        text: M.kaeuferText(empf, kartenLink),
-        html: alsHtml(M.kaeuferText(empf, kartenLink), kartenLink),
-      }).catch(() => {});
-    }
+    mails = await gutscheinMailen(eintrag, origin);
   }
-  return NextResponse.json({ ok: true, id, url: `${origin}/einladung/${id}` });
+  return NextResponse.json({ ok: true, id, url: `${origin}/einladung/${id}`, ...(mails ? { mails } : {}) });
 }
 
 // GET (admin) → alle Einladungen mit ihren Öffnungen; GET ?id= → eine einzelne (öffentlich).
