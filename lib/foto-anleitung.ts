@@ -46,8 +46,9 @@ export type FotoText = {
    */
   zweiOk: string;
   /**
-   * DER SATZ, DER DIE VERANTWORTUNG SETZT — und der ehrlich sein muss: Wir weisen nichts ab.
-   * Er verspricht also keine Prüfung (die es nicht gibt), sondern sagt die Folge.
+   * DER SATZ, DER DIE VERANTWORTUNG SETZT (Owner 06.08.2026: „Es muss gesagt werden, wir
+   * weisen nichts ab — deine Fehler, deine Verantwortung."). Keine weiche Folgen-Erklärung
+   * mehr — die klare Ansage, dieselbe wie im AGB („Your photo decides the result").
    */
   fuss: string;
 };
@@ -59,7 +60,7 @@ const DE: FotoText = {
   weit: "Nicht zu weit weg",
   zwei: "Nur eine Person",
   zweiOk: "Ihr beide — gross und scharf",
-  fuss: "Nichts vor dem Gesicht — keine Hand, keine Sonnenbrille. Wir weisen kein Foto ab, aber aus einem schlechten Foto wird kein gutes Ergebnis.",
+  fuss: "Nichts vor dem Gesicht — keine Hand, keine Sonnenbrille. Wir weisen nichts ab: deine Fehler, deine Verantwortung.",
 };
 
 const EN: FotoText = {
@@ -69,7 +70,7 @@ const EN: FotoText = {
   weit: "Not too far away",
   zwei: "One person only",
   zweiOk: "Both of you — big and sharp",
-  fuss: "Nothing in front of the face — no hand, no sunglasses. We don’t reject any photo, but a poor photo cannot become a good result.",
+  fuss: "Nothing in front of the face — no hand, no sunglasses. We reject nothing: your mistakes, your responsibility.",
 };
 
 const RO: FotoText = {
@@ -79,7 +80,7 @@ const RO: FotoText = {
   weit: "Nu prea departe",
   zwei: "O singură persoană",
   zweiOk: "Voi doi — mari și clari",
-  fuss: "Nimic în fața feței — nicio mână, niciun ochelar de soare. Nu respingem nicio poză, dar dintr-o poză proastă nu iese un rezultat bun.",
+  fuss: "Nimic în fața feței — nicio mână, niciun ochelar de soare. Nu respingem nimic: greșelile tale, responsabilitatea ta.",
 };
 
 const ES: FotoText = {
@@ -89,7 +90,7 @@ const ES: FotoText = {
   weit: "No demasiado lejos",
   zwei: "Solo una persona",
   zweiOk: "Los dos — grandes y nítidos",
-  fuss: "Nada delante de la cara — ni mano ni gafas de sol. No rechazamos ninguna foto, pero de una foto mala no sale un buen resultado.",
+  fuss: "Nada delante de la cara — ni mano ni gafas de sol. No rechazamos nada: tus errores, tu responsabilidad.",
 };
 
 const FR: FotoText = {
@@ -99,7 +100,7 @@ const FR: FotoText = {
   weit: "Pas trop loin",
   zwei: "Une seule personne",
   zweiOk: "Vous deux — grands et nets",
-  fuss: "Rien devant le visage — ni main ni lunettes de soleil. Nous ne refusons aucune photo, mais une mauvaise photo ne donne pas un bon résultat.",
+  fuss: "Rien devant le visage — ni main ni lunettes de soleil. Nous ne refusons rien : tes erreurs, ta responsabilité.",
 };
 
 const PT: FotoText = {
@@ -109,7 +110,7 @@ const PT: FotoText = {
   weit: "Não demasiado longe",
   zwei: "Só uma pessoa",
   zweiOk: "Vocês os dois — grandes e nítidos",
-  fuss: "Nada à frente do rosto — nem mão nem óculos de sol. Não recusamos nenhuma foto, mas de uma foto má não sai um bom resultado.",
+  fuss: "Nada à frente do rosto — nem mão nem óculos de sol. Não recusamos nada: os teus erros, a tua responsabilidade.",
 };
 
 const IT: FotoText = {
@@ -119,7 +120,7 @@ const IT: FotoText = {
   weit: "Non troppo lontano",
   zwei: "Una sola persona",
   zweiOk: "Voi due — grandi e nitidi",
-  fuss: "Niente davanti al viso — né mano né occhiali da sole. Non rifiutiamo nessuna foto, ma da una foto scadente non nasce un buon risultato.",
+  fuss: "Niente davanti al viso — né mano né occhiali da sole. Non rifiutiamo niente: i tuoi errori, la tua responsabilità.",
 };
 
 const TABELLE: Record<Lang, FotoText> = { de: DE, en: EN, ro: RO, es: ES, fr: FR, pt: PT, it: IT };
