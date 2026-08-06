@@ -30,6 +30,32 @@ import { useEffect, useRef, useState } from "react";
  *  gleichzeitig liest; lang genug, dass es kein Schnitt mehr ist. */
 export const UEBERBLENDUNG = 0.7;
 
+/**
+ * WENN DER BROWSER DAS ABSPIELEN VERWEIGERT (Owner 06.08.2026: „Der Play button darf doch
+ * nicht so grob sein").
+ *
+ * Der grobe Knopf auf den Themen-Kacheln war nie unserer — er ist der EINGEBAUTE des
+ * Browsers. Safari und iOS zeichnen ihn ueber jedes Video, das nicht laeuft: eine fette
+ * graue Scheibe mit weissem Dreieck, mitten auf dem Bild, in keiner Hausfarbe. Auf einem
+ * Geraet im Stromsparmodus oder mit strengen Autoplay-Regeln sah damit jede Kachel so aus.
+ *
+ * Wir malen KEINEN eigenen Knopf an seine Stelle: Die Kachel ist als Ganzes ein Link in
+ * ihren Trichter, ein Knopf darin haette zwei Ziele auf derselben Flaeche. Stattdessen
+ * versucht das Video es beim ersten Fingertipp irgendwo auf der Seite noch einmal — dann
+ * erlaubt der Browser es, weil eine Geste vorausging. Bis dahin steht das Standbild, und
+ * das ist ein sauberes Bild statt eines fremden Knopfes. Der native Knopf selbst ist in
+ * globals.css abgeschaltet (`.lb-schleife video`).
+ */
+function nachhelfen(v: HTMLVideoElement) {
+  const nochmal = () => {
+    void v.play().catch(() => { /* immer noch nicht — dann bleibt das Standbild */ });
+    window.removeEventListener("pointerdown", nochmal);
+    window.removeEventListener("touchstart", nochmal);
+  };
+  window.addEventListener("pointerdown", nochmal, { once: true, passive: true });
+  window.addEventListener("touchstart", nochmal, { once: true, passive: true });
+}
+
 export default function SchleifenVideo({
   src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover",
 }: {
@@ -77,7 +103,7 @@ export default function SchleifenVideo({
      * stieg aus, bevor sie zum Abspielen kam. Ein Video, das stumm und still dasteht, sieht
      * aus wie ein kaputtes Standbild.
      */
-    if (!schleife) { void va.play().catch(() => { /* Autoplay verweigert */ }); return; }
+    if (!schleife) { void va.play().catch(() => nachhelfen(va)); return; }
     if (!vb) return;
     let laeuft = true;
     const takt = setInterval(() => {
@@ -96,7 +122,7 @@ export default function SchleifenVideo({
         setVorne(v => (v === "a" ? "b" : "a"));
       }
     }, 120);
-    void va.play().catch(() => { /* Autoplay verweigert — dann bleibt das Standbild stehen */ });
+    void va.play().catch(() => nachhelfen(va));
     return () => { laeuft = false; clearInterval(takt); };
   }, [vorne, src, schleife]);
 
@@ -107,7 +133,7 @@ export default function SchleifenVideo({
    */
   const gemeinsam = `h-full w-full ${passform === "contain" ? "object-contain" : "object-cover"} ${className}`;
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="lb-schleife relative h-full w-full overflow-hidden">
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={a} src={src} poster={poster || undefined} muted={stumm} playsInline autoPlay preload="auto"
         style={{ opacity: !schleife || vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}

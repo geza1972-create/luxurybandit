@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 import { POLEDANCE_VIDEO, POLEDANCE_POSTER } from "@/lib/poledance";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
+import { ThemenListe } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
@@ -530,73 +531,28 @@ export default async function ThemesCatalog({ searchParams }: {
             entscheidet ueber den Klick: In einer halbbreiten Kachel stuende sie abgeschnitten
             neben einem abgeschnittenen Titel. Ein Geschenk, dessen Preis man raten muss,
             verkauft sich nicht. */}
-        <div className="mt-6 grid grid-cols-1 gap-3">
-          {THEMES_L.map((t) => {
-            const Icon = t.icon;
-            const active = !!t.href;
-            const inner = (
-              <>
-                <div className="relative w-[104px] shrink-0 aspect-[3/4] overflow-hidden lb-media-bg">
-                  {/* Cover: Werbevideo (aktiv) → Foto → Icon-Wasserzeichen (coming soon, kein Bild) */}
-                  {t.video ? (
-                    /* KEIN `t.cover`-Rueckfall als Poster (02.08.2026, Owner: „kurz andere
-                       Poster, irgendwelche Models"): `cover` ist bei mehreren Karten (Wedding,
-                       Holiday, Idol, Birthdays, Luxury, Surprise) ein themenfremdes Platzhalter-
-                       Modelfoto aus dem Bilderstapel (`ph()`), gedacht als Fallback-BILD, wenn es
-                       KEIN Video gibt. Als Video-Poster blitzte genau dieses fremde Gesicht auf,
-                       bis das echte Themenvideo geladen hatte. Nur ein Thema-eigenes `t.poster`
-                       (z. B. Wetter) darf hier stehen; sonst lieber kein Poster als ein falsches. */
-                    /* WEICHE SCHLEIFE (Owner 03.08.2026: „auch bei den Topics-Video die
-                       gleiche Ueberblendung"). Sechs Kacheln mit `loop` heisst: sechs harte
-                       Schnitte, jeder zu einem anderen Zeitpunkt — eine unruhige Wand. Der
-                       Baustein blendet zwei Spieler ineinander, siehe SchleifenVideo. */
-                    <SchleifenVideo src={t.video} poster={t.poster || undefined}
-                      className="object-top" />
-                  ) : t.cover ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {t.cover2 && <img src={t.cover2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={t.cover} alt="" className={"absolute inset-0 h-full w-full object-cover object-top " + (active ? "" : "brightness-[0.8] ") + (t.cover2 ? "lb-swap-top" : "")} />
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 grid place-items-center"><Icon className="h-16 w-16 text-white/10" strokeWidth={1.25} /></div>
-                  )}
-                  {/* Badge oben rechts — wie der GS-Badge der Models */}
-                  {active
-                    ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">LIVE</span>
-                    : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> Soon</span>}
-                  {/* Pille unten links — wie „N looks" */}
-                  {/* Hier stand „Daily" (Owner 31.07.2026: „der User bekommt es nicht mehr
-                      jeden Tag, ich versende auch keine Wetternews mehr jeden Tag"). Ein
-                      Abzeichen, das ein Versprechen gibt, das wir nicht halten, kostet beim
-                      zweiten Besuch mehr, als es beim ersten bringt. */}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
-                  {/* Kein `truncate` mehr am Titel: In der vollen Breite ist Platz, und
-                      „Schick einen Kuss an den Menschen, den du liebst" ist der Satz, der
-                      verkauft — abgeschnitten verkauft er nichts. */}
-                  <p className="text-[14px] font-black leading-tight text-white">{t.title}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[11.5px] font-semibold leading-snug text-white/75">{t.tagline}</p>
-                  <div className="mt-1.5 flex items-baseline gap-2">
-                    {/* DER PREIS IST DIE WICHTIGSTE ZEILE der Kachel — er steht deshalb vorn
-                        und in Gold, nicht als Fussnote hinter den Merkmalen. */}
-                    {active && t.abPreis && (
-                      <span className="shrink-0 text-[13px] font-black text-[#f6cf51]">{t.abPreis}</span>
-                    )}
-                    <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide text-white/40">
-                      {active ? fillPrices(t.chips || "♥ Weather · New look · Chat", L) : "Coming soon"}
-                    </span>
-                  </div>
-                </div>
-              </>
-            );
-            const cls = "flex items-stretch overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity";
-            return active
-              ? <Link key={t.title} href={withCode(t.href!)} className={cls}>{inner}</Link>
-              : <div key={t.title} className={`${cls} opacity-90`}>{inner}</div>;
-          })}
-        </div>
+        {/* DIE KACHELN KOMMEN AUS DER BIBLIOTHEK (Owner 06.08.2026: „mach mir in die
+            bibliotheck auch ein Topic kasten" · „wir machen zwei Designs … Ich werde mit
+            einem toogle button von hier umschalten koennen"). Die Gestalt-Umschaltung und
+            beide Gestalten leben in components/CI.tsx; hier stehen nur noch die Daten.
+            Das Wasserzeichen fuer Themen ohne Bild reicht diese Server-Seite fertig
+            herein — ein Icon ist eine Funktion und laesst sich nicht an einen
+            Client-Baustein durchreichen, gerendertes JSX schon. */}
+        <ThemenListe
+          className="mt-6"
+          baldZeile="Coming soon"
+          themen={THEMES_L.map(t => ({
+            titel: t.title,
+            zeile: t.tagline,
+            href: t.href ? withCode(t.href) : undefined,
+            bild: t.cover,
+            bild2: t.cover2,
+            video: t.video,
+            poster: t.poster,
+            merkmale: fillPrices(t.chips || "\u2665 Weather \u00b7 New look \u00b7 Chat", L),
+            abPreis: t.abPreis,
+            platzhalter: <t.icon className="h-16 w-16 text-white/10" strokeWidth={1.25} />,
+          }))} />
 
         {/* ── SEO / Erklärtext ──────────────────────────────────────────────────────
             Echter, lesbarer Text für Suchmaschinen UND Menschen: was LuxuryBandit ist

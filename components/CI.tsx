@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { X, Loader2, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
+import SchleifenVideo from "@/components/SchleifenVideo";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -242,6 +243,142 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
       ? "lb-teaser rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
       : "rounded-2xl border border-white/20 bg-white/[0.05]";
   return <div className={`${kl} ${polster} ${className}`}>{children}</div>;
+}
+
+/**
+ * DER TOPIC-KASTEN — die Kachel, mit der ein Thema sich verkauft (Owner 06.08.2026: „mach
+ * mir in die bibliotheck auch ein Topic kasten").
+ *
+ * Sie ist das meistgesehene Stück UI des Hauses: Wer auf die Startseite kommt, sieht als
+ * Erstes sechs davon. Trotzdem war sie in `app/themes/page.tsx` eingewachsen und nirgends
+ * sonst zu holen.
+ *
+ * ZWEI GESTALTEN (Owner 06.08.2026: „wir machen zwei Designs. Ein mall so wie es ist und
+ * ein mal volle breite. Ich werde mit einem toogle button von hier umschalten können"):
+ *   reihe  wie bisher — schmales Vorschaubild links, Text rechts. Sechs Themen passen
+ *          untereinander auf einen Bildschirm, man überfliegt sie.
+ *   voll   das Bild über die ganze Breite, Text darunter. Ein Thema füllt den Blick; man
+ *          sieht das Video statt einer Briefmarke, aber man scrollt länger.
+ * Welche besser verkauft, entscheidet nicht die Meinung, sondern der Umschalter darüber.
+ *
+ * DER PREIS IST DIE WICHTIGSTE ZEILE (aus der alten Fassung übernommen): er steht vorn und
+ * in Gold, nicht als Fussnote hinter den Merkmalen. Ein Geschenk, dessen Preis man raten
+ * muss, verkauft sich nicht.
+ */
+export type ThemenKachelDaten = {
+  titel: string;
+  zeile: string;
+  /** Ohne `href` ist das Thema „bald" — die Kachel ist dann kein Link. */
+  href?: string;
+  bild?: string;
+  /** Zweites Bild darunter für die Überblendung der Startseite. */
+  bild2?: string;
+  video?: string;
+  poster?: string;
+  /** Die Merkmal-Zeile („♥ Ihr Foto · Sein Foto · Kuss"). */
+  merkmale?: string;
+  /** „ab 15 €" — kommt IMMER aus lib/pricing.ts, nie von Hand getippt. */
+  abPreis?: string;
+  /** Wasserzeichen, wenn es weder Bild noch Video gibt — die Server-Seite reicht es fertig herein. */
+  platzhalter?: ReactNode;
+};
+export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", className = "" }: {
+  thema: ThemenKachelDaten;
+  art?: "reihe" | "voll";
+  live?: string;
+  bald?: string;
+  baldZeile?: string;
+  className?: string;
+}) {
+  const aktiv = !!thema.href;
+  const voll = art === "voll";
+  const medien = (
+    <div className={`relative shrink-0 overflow-hidden lb-media-bg ${voll ? "aspect-[4/3] w-full" : "aspect-[3/4] w-[104px]"}`}>
+      {thema.video ? (
+        <SchleifenVideo src={thema.video} poster={thema.poster || undefined} className="object-top" />
+      ) : thema.bild ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {thema.bild2 && <img src={thema.bild2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thema.bild} alt=""
+            className={`absolute inset-0 h-full w-full object-cover object-top ${aktiv ? "" : "brightness-[0.8]"} ${thema.bild2 ? "lb-swap-top" : ""}`} />
+        </>
+      ) : (
+        <div className="absolute inset-0 grid place-items-center">{thema.platzhalter}</div>
+      )}
+      {aktiv
+        ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">{live}</span>
+        : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> {bald}</span>}
+    </div>
+  );
+  const text = (
+    <div className={`flex min-w-0 flex-1 flex-col justify-center ${voll ? "px-3.5 py-3" : "px-3 py-2.5"}`}>
+      {/* Kein `truncate` am Titel: „Schick einen Kuss an den Menschen, den du liebst" ist
+          der Satz, der verkauft — abgeschnitten verkauft er nichts. */}
+      <p className={`font-black leading-tight text-white ${voll ? "text-[16px]" : "text-[14px]"}`}>{thema.titel}</p>
+      <p className={`mt-0.5 font-semibold leading-snug text-white/75 ${voll ? "text-[12.5px]" : "line-clamp-2 text-[11.5px]"}`}>{thema.zeile}</p>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        {aktiv && thema.abPreis && (
+          <span className={`shrink-0 font-black text-[#f6cf51] ${voll ? "text-[15px]" : "text-[13px]"}`}>{thema.abPreis}</span>
+        )}
+        <span className="min-w-0 truncate text-[9px] font-black uppercase tracking-wide text-white/40">
+          {aktiv ? thema.merkmale : baldZeile}
+        </span>
+      </div>
+    </div>
+  );
+  const kl = `overflow-hidden rounded-2xl bg-white/[0.04] transition-opacity ${voll ? "block" : "flex items-stretch"} ${aktiv ? "active:opacity-80" : "opacity-90"} ${className}`;
+  return aktiv
+    ? <a href={thema.href} className={kl}>{medien}{text}</a>
+    : <div className={kl}>{medien}{text}</div>;
+}
+
+/**
+ * DIE THEMEN-LISTE — die sechs Kacheln plus der Umschalter zwischen den zwei Gestalten
+ * (Owner 06.08.2026: „Ich werde mit einem toogle button von hier umschalten können").
+ *
+ * Der Umschalter zeigt sich NUR dem Admin (PIN im Browser, wie in der Galerie): Er ist ein
+ * Werkzeug zum Vergleichen, keine Einstellung für den Kunden — der soll die eine Gestalt
+ * sehen, für die wir uns entschieden haben, und nicht vor einer Designfrage stehen.
+ * Die Wahl bleibt im Browser stehen, damit man sie nicht bei jedem Laden neu trifft.
+ */
+export function ThemenListe({ themen, live, bald, baldZeile, className = "" }: {
+  themen: ThemenKachelDaten[];
+  live?: string;
+  bald?: string;
+  baldZeile?: string;
+  className?: string;
+}) {
+  const [art, setArt] = useState<"reihe" | "voll">("reihe");
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    try {
+      setAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin"));
+      const w = localStorage.getItem("lb-topic-gestalt");
+      if (w === "voll" || w === "reihe") setArt(w);
+    } catch { /* Privatmodus — dann eben die Vorgabe */ }
+  }, []);
+  const waehle = (w: "reihe" | "voll") => {
+    setArt(w);
+    try { localStorage.setItem("lb-topic-gestalt", w); } catch { /**/ }
+  };
+  return (
+    <div className={className}>
+      {admin && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">Gestalt</span>
+          <Knopf art="chip" aktiv={art === "reihe"} onClick={() => waehle("reihe")}>Reihe</Knopf>
+          <Knopf art="chip" aktiv={art === "voll"} onClick={() => waehle("voll")}>Volle Breite</Knopf>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3">
+        {themen.map(t => (
+          <ThemenKachel key={t.titel} thema={t} art={art} live={live} bald={bald} baldZeile={baldZeile} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /**

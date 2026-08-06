@@ -9,8 +9,9 @@ Der Owner hat das mehrfach korrigiert — es wird **nicht** neu erfunden und **n
 
 Diese Regeln werden nicht pro Seite neu UMGESETZT, sondern als fertige Bausteine aus
 **`components/CI.tsx`** geholt: `Scheibe`, `Knopf` (gold · umriss · chip), `Eingabe`,
-`Fehlerzeile`, `Kasten` (still · gold), `Laden`, `Dialog` (hell · dunkel), `ThemenKreise` —
-die kleinen mit `karte`-Schalter für die Einladungskarte. Typo aus `components/Landing.tsx`, Karten aus
+`Fehlerzeile`, `Kasten` (still · gold), `Laden`, `Dialog` (hell · dunkel), `ThemenKreise`,
+`ThemenKachel`/`ThemenListe` (art: reihe · voll), `MadeBy` — die kleinen mit `karte`-Schalter
+für die Einladungskarte. Typo aus `components/Landing.tsx`, Karten aus
 `EinladungKarte`/`EinladungAnsicht`/`KartenKarussell`, Upload aus `UploadKachel`.
 Wisch-Flächen tragen `lb-wisch` — der Scrollbalken ist unsichtbar („scrollbalken wird dann
 transparent"); nie wieder `[&::-webkit-scrollbar]:hidden` abtippen.

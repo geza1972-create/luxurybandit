@@ -730,6 +730,24 @@ svg {
 .lb-wisch { scrollbar-width: none; -ms-overflow-style: none; }
 .lb-wisch::-webkit-scrollbar { display: none; }
 
+/* KEIN FREMDER ABSPIEL-KNOPF AUF UNSEREN VIDEOS (Owner 06.08.2026: „Der Play button darf
+   doch nicht so grob sein").
+
+   Der grobe Knopf auf den Themen-Kacheln war nie unserer: Safari und iOS zeichnen einen
+   eigenen ueber jedes Video, das nicht laeuft — eine fette graue Scheibe mit weissem
+   Dreieck, mitten im Bild, in keiner Hausfarbe. Auf Geraeten, die Autoplay verweigern
+   (Stromsparmodus, strenge Einstellungen), sah damit jede Kachel so aus.
+
+   Nur fuer die Schleifen-Videos (`.lb-schleife`), nie pauschal fuer jedes `video`: Wo wir
+   die Bedienung ABSICHTLICH dem Browser ueberlassen (`controls`), muss sein Knopf bleiben.
+   Was das Video stattdessen tut, steht in components/SchleifenVideo.tsx. */
+.lb-schleife video::-webkit-media-controls,
+.lb-schleife video::-webkit-media-controls-start-playback-button,
+.lb-schleife video::-webkit-media-controls-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
 /* DER CHIP IST KEIN KNOPF — auch nicht in der hellen Fassung (Owner 06.08.2026: „ein chip
    darf nicht wie ein button aussehen. Es muss als aktiv mit gelber umrandung sein und bg
    gelb transparent fast schwarz").
