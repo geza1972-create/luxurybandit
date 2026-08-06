@@ -320,8 +320,21 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     const cs = String(p.get("cs") ?? "") || gemerkt;
     if (!cs || (p.get("gutschein") !== "1" && !gemerkt)) return;
     void fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).then(s => {
-      if (s?.paid && (s.kind === "gutschein" || s.test)) {
-        setLbGekauft({ topic: String(s.topic ?? ""), cents: Number(s.cents ?? 0) || 0, session: cs });
+      /**
+       * „BEZAHLT — 0 € LIEGT BEREIT" DARF ES NICHT GEBEN (06.08.2026 beim Durchgehen des
+       * Trichters gesehen). Eine bezahlte Sitzung ohne Betrag ist kein Geschenk, sondern eine
+       * Zeile, die den Käufer glauben lässt, sein Geld sei verschwunden. Erkannt wird der Kauf
+       * deshalb nur mit einem echten Betrag oder einem Thema; alles andere bleibt ungekauft,
+       * und der Kaufknopf steht weiter da.
+       */
+      const cents = Number(s?.cents ?? 0) || 0;
+      const topic = String(s?.topic ?? "");
+      /* Die Testklappe kennt keinen Betrag — für den lokalen Durchgang die kleinste Stufe,
+         damit die Bestätigung aussieht wie nach einem echten Kauf. Nie in der Produktion:
+         `test` setzt `/api/checkout-status` nur hinter seinen drei Schlössern. */
+      const echt = s?.test ? (cents || GUTSCHEIN_STUFEN[0]) : cents;
+      if (s?.paid && (s.kind === "gutschein" || s.test) && (echt > 0 || topic)) {
+        setLbGekauft({ topic, cents: echt, session: cs });
         try { localStorage.removeItem(GUTSCHEIN_CS); } catch { /**/ }
       }
     }).catch(() => {});
@@ -726,12 +739,25 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           E-Mail das WEM, über den Chips das WAS. */}
       <p className={`mt-4 text-[12px] font-black uppercase tracking-wide ${label}`}>{F.lbWem}</p>
       <p className={`mt-1 text-[11px] font-bold leading-snug ${hilfe}`}>{F.lbHilfe}</p>
-      {lbGekauft ? (
+      {lbGekauft ? (<>
         <p className={`mt-2 text-[13px] font-black leading-snug ${sofort ? "text-[#f6cf51]" : "lb-karte-gold"}`}>
           {(F.lbFertig ?? "").replace("{was}",
             T.gutscheinTopics[lbGekauft.topic as keyof typeof T.gutscheinTopics] ?? eur(lbGekauft.cents, lang))}
         </p>
-      ) : (<>
+        {/**
+          * WOHIN ES GEHT, SCHWARZ AUF WEISS (Owner 06.08.2026: „Anzeigen").
+          *
+          * Mit dem Kauf verschwindet das Empfänger-Feld — ab hier ist die Adresse nicht mehr
+          * änderbar, und das Guthaben hängt an genau dieser Zeichenkette. Ein Tippfehler
+          * schenkt einem Postfach, das es nicht gibt, und umbuchen gibt es nicht. Also steht
+          * sie da, ungekürzt, solange der Käufer noch etwas tun kann.
+          */}
+        {lbMail.trim() && (
+          <p className={`mt-1 break-all text-[11px] font-bold leading-snug ${hilfe}`}>
+            {(F.lbGehtAn ?? "").replace("{mail}", lbMail.trim())}
+          </p>
+        )}
+      </>) : (<>
         <Eingabe karte={!sofort} value={lbMail}
           onChange={e => { setLbMail(e.target.value); if (lbFehler) setLbFehler(""); }}
           type="email" inputMode="email" placeholder={F.lbEmpfaenger} className="mt-2" />

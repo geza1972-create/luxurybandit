@@ -44,6 +44,18 @@ export type KissText = {
   lbFehlerMail?: string;
   /** {was} wird durch das gewählte Geschenk ersetzt (T.gutscheinTopics in EinladungKarte). */
   lbFertig?: string;
+  /**
+   * DIE ADRESSE NACH DEM KAUF, VOLL AUSGESCHRIEBEN ({mail}) — Owner 06.08.2026 auf die Frage,
+   * was mit einem Tippfehler passiert: „Anzeigen".
+   *
+   * Mit dem Kauf verschwindet das Empfänger-Feld, und das Guthaben hängt ab da an genau dieser
+   * Zeichenkette (Memory `guthaben-haengt-an-einer-adresse`: umbuchen gibt es nicht). Wer sich
+   * vertippt hat, schenkt einem Postfach, das es nicht gibt. Deshalb steht die Adresse hier
+   * ungekürzt: Das ist der Bildschirm des KÄUFERS, er hat sie selbst getippt — maskiert würde
+   * sie genau den Buchstaben verbergen, um den es geht. (Auf der Karte, die JEDER öffnen kann,
+   * bleibt sie maskiert.)
+   */
+  lbGehtAn?: string;
   /** Zeile über den nackten Guthaben-Stufen („oder Credit", Owner 06.08.2026). */
   lbGuthaben?: string;
   /**
@@ -2278,6 +2290,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "Their email address",
     lbFehlerMail: "First add the email of the person you are gifting it to.",
     lbFertig: "Paid — {was} is ready for them. Now send the card.",
+    lbGehtAn: "Goes to {mail} — that is where the credit sits.",
     lbGuthaben: "Or plain credit:",
     lbCta: "Pay for the gift — {preis}",
   },
@@ -2304,6 +2317,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "E-Mail des Beschenkten",
     lbFehlerMail: "Trag zuerst die E-Mail des Beschenkten ein.",
     lbFertig: "Bezahlt — {was} liegt bereit. Jetzt die Karte verschicken.",
+    lbGehtAn: "Geht an {mail} — dort liegt das Guthaben.",
     lbGuthaben: "Oder nur Guthaben:",
     lbCta: "Geschenk bezahlen — {preis}",
   },
@@ -2330,6 +2344,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "E-mailul persoanei",
     lbFehlerMail: "Scrie mai întâi e-mailul persoanei căreia îi dăruiești.",
     lbFertig: "Plătit — {was} e pregătit. Trimite acum cardul.",
+    lbGehtAn: "Merge la {mail} — acolo stă creditul.",
     lbGuthaben: "Sau doar credit:",
     lbCta: "Plătește cadoul — {preis}",
   },
@@ -2356,6 +2371,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "El correo de la persona",
     lbFehlerMail: "Escribe primero el correo de la persona.",
     lbFertig: "Pagado — {was} está listo. Ahora envía la tarjeta.",
+    lbGehtAn: "Va a {mail} — ahí está el saldo.",
     lbGuthaben: "O solo saldo:",
     lbCta: "Pagar el regalo — {preis}",
   },
@@ -2382,6 +2398,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "L'e-mail de la personne",
     lbFehlerMail: "Ajoute d'abord l'e-mail de la personne.",
     lbFertig: "Payé — {was} est prêt. Envoie la carte maintenant.",
+    lbGehtAn: "Va à {mail} — c’est là qu’est le crédit.",
     lbGuthaben: "Ou juste du crédit :",
     lbCta: "Payer le cadeau — {preis}",
   },
@@ -2408,6 +2425,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "O e-mail da pessoa",
     lbFehlerMail: "Escreve primeiro o e-mail da pessoa.",
     lbFertig: "Pago — {was} está pronto. Agora envia o cartão.",
+    lbGehtAn: "Vai para {mail} — é aí que está o saldo.",
     lbGuthaben: "Ou só saldo:",
     lbCta: "Pagar o presente — {preis}",
   },
@@ -2434,6 +2452,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
     lbEmpfaenger: "L'e-mail della persona",
     lbFehlerMail: "Scrivi prima l'e-mail della persona.",
     lbFertig: "Pagato — {was} è pronto. Ora invia la card.",
+    lbGehtAn: "Va a {mail} — lì si trova il credito.",
     lbGuthaben: "Oppure solo credito:",
     lbCta: "Paga il regalo — {preis}",
   },

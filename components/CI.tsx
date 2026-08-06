@@ -95,8 +95,10 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
         : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
       : /* chip */ (karte
         // In der Karte gibt es kein Gold für Flächen — dort macht der Kartenrahmen die
-        // Wahl sichtbar (`lb-karte-rahmen`), gefüllt wird auch hier nichts.
-        ? `${aktiv ? "lb-karte-rahmen" : ""} flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv ? "" : "opacity-60"}`
+        // Wahl sichtbar, gefüllt wird auch hier nichts. BEIDE tragen den Rahmen (Owner
+        // 06.08.2026: „wir brauchen einen rand bei inaktiv"); den ungewählten nimmt die
+        // halbe Deckkraft zurück, so ist seine Linie da, aber leise.
+        ? `lb-karte-rahmen flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv ? "" : "opacity-55"}`
         // `lb-wahl` ist die Kennung für die helle Fassung: dort färbt eine Pauschalregel
         // ALLES blau und solide, was `bg-[#f6cf51]` im Klassennamen trägt — auch einen
         // 10-%-Hauch. Aus dem Hauch würde eine Füllung, aus dem Chip wieder ein Knopf.
@@ -124,6 +126,16 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
  * DAS EINGABEFELD — dunkle Welt nach der Kontrast-Regel des Skills (`border-white/30`,
  * `bg-white/[0.08]`, Platzhalter weiss/60 — ein `white/15`-Rand ist im Tageslicht
  * unsichtbar); in der Karte `lb-karte-feld`.
+ *
+ * DAS FELD, IN DAS MAN SCHREIBT, ZEIGT DAS AUCH (Owner 06.08.2026: „wenn ich schreibe wird
+ * der rand aktiv also blau bei light"). Vorher hatte der Baustein GAR keinen Fokus-Rand:
+ * `outline-none` nahm den des Browsers weg und setzte nichts an seine Stelle — auf einem
+ * Formular mit drei Feldern sah man nicht, in welchem man gerade tippt. Der aktive Rand
+ * ist die Akzentfarbe der jeweiligen Welt: Gold draussen, Blau in der hellen Fassung,
+ * Tinte in der Karte (dort gibt es kein Gold für Ränder, Ornament-Regel).
+ *
+ * `lb-eingabe` ist die Kennung, an der die helle Fassung Felder erkennt (weisser Grund,
+ * dunkle Schrift statt Weiss-auf-Weiss) — der Baustein trug sie bisher nicht.
  */
 export function Eingabe({ karte = false, className = "", ...rest }: {
   karte?: boolean;
@@ -133,7 +145,7 @@ export function Eingabe({ karte = false, className = "", ...rest }: {
     <input {...rest}
       className={`h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none ${karte
         ? "lb-karte-feld"
-        : "border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60"} ${className}`} />
+        : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${className}`} />
   );
 }
 

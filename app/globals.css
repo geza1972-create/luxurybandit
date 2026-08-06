@@ -648,6 +648,14 @@ svg {
   color: #2a231c !important;
 }
 .lb-karte .lb-karte-feld::placeholder { color: rgba(42, 35, 28, 0.45) !important; }
+/* DAS FELD, IN DAS MAN SCHREIBT, ZEIGT DAS AUCH (Owner 06.08.2026: „wenn ich schreibe wird
+   der rand aktiv also blau bei light"). Der Baustein `Eingabe` nimmt dem Browser mit
+   `outline-none` seinen eigenen Fokus-Rahmen weg — ohne Ersatz sah man auf einem Formular
+   mit drei Feldern nicht, in welchem man gerade tippt. In der Karte folgt der aktive Rand
+   der Ornament-Regel: Tinte im Dunkeln, Blau in der hellen Fassung. Gold gibt es dort
+   nicht fuer Raender. */
+.lb-karte .lb-karte-feld:focus { border-color: rgba(26, 22, 15, 0.75) !important; }
+.lb-theme .lb-karte .lb-karte-feld:focus { border-color: #1877F2 !important; }
 .lb-karte .lb-karte-absage {
   background: transparent !important;
   border: 1px solid rgba(42, 35, 28, 0.3) !important;
@@ -704,6 +712,10 @@ svg {
   border-color: rgba(0, 0, 0, 0.22) !important;
 }
 .lb-fb .lb-eingabe::placeholder { color: rgba(0, 0, 0, 0.38) !important; }
+/* … und beim Tippen wird der Rand BLAU (Owner 06.08.2026: „wenn ich schreibe wird der rand
+   aktiv also blau bei light"). Muss hier stehen und nicht als Tailwind-`focus:`-Klasse: die
+   Regel darueber setzt `border-color` mit !important, dagegen kommt keine Utility an. */
+.lb-fb .lb-eingabe:focus { border-color: #1877F2 !important; }
 
 /* WISCH-FLAECHEN OHNE BALKEN — die EINE Klasse dafuer (Owner 06.08.2026: „scrollbalken
    wird dann transparent"; davor 03.08.: „Scrollbalken bitte nicht weiss", damals noch ein
