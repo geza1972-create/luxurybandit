@@ -345,7 +345,10 @@ export default async function ThemesCatalog({ searchParams }: {
      * Es ist ausserdem das einzige Thema mit einer FRIST: Gutscheine sind ein
      * Dezember-Geschäft. Wer es im November nicht stehen hat, wartet ein Jahr.
      */
-    { icon: Gift, title: "Wrap a gift card", tagline: "Your voucher as a video card — your face, your message, one tap to open it.", href: "/themes/gutschein", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your voucher · Your video · One link", abPreis: AB_GUTSCHEIN },
+    /* NEUES PRODUKT SEIT 06.08.2026 (Owner: „der text stimmt nicht"): verkauft wird UNSER
+       Gutschein — Geschenk oder Guthaben wählen, Bella bringt die Botschaft, die Karte geht
+       per E-Mail raus. „dein Gesicht" und „dein Gutschein" gibt es nicht mehr. */
+    { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
     { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), video: weddingVideo || undefined, chips: "♥ Your photo · His photo · Invitation", abPreis: AB_HOCHZEIT },
