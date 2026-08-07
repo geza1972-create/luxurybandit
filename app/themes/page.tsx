@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 import { POLEDANCE_VIDEO, POLEDANCE_POSTER } from "@/lib/poledance";
+import { GEBURTSTAG_SET, GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
 import TopNav from "@/components/TopNav";
@@ -207,11 +208,14 @@ export default async function ThemesCatalog({ searchParams }: {
     if (j) urlaubVideo = (await getSignedUrl(j.path).catch(() => "")) || "";
   } catch { /**/ }
 
-  // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt.
-  let birthdayVideo = "", surpriseVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
+  // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt. Der GEBURTSTAG steht nicht
+  // mehr hier: Sein Kachel-Video ist per Dauerregel (Owner 07.08.2026: „das video aus der
+  // Landingpage Card ist gleich auch das video für die Topic auf der Topicseite") dasselbe
+  // wie das Beispielvideo der Landingpage — GEBURTSTAG_VIDEO aus lib/geburtstag, ein Pfad
+  // statt zwei Quellen, die auseinanderlaufen.
+  let surpriseVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
   try {
-    [birthdayVideo, surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
-      getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => ""),
+    [surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
       // „Surprise him": bewusst der VOLLE Schwenk von unten nach oben (Owner-Entscheidung) —
       // genau dieser Aufbau ist der Reiz der Karte, nicht der zugeschnittene Ausschnitt.
       getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
@@ -309,6 +313,9 @@ export default async function ThemesCatalog({ searchParams }: {
   const AB_EINZEL = themenPreisZeile("kiss", L);
   /* Der Gutschein ist ein Geschenk wie die anderen — dieselbe Zahl aus derselben Tabelle. */
   const AB_GUTSCHEIN = themenPreisZeile("gutschein", L);
+  /* Der Geburtstag hat seit 07.08.2026 seinen eigenen Startpreis (GEBURTSTAG_CENTS) — die
+     Kachel muss dieselbe Zahl tragen wie Landingpage-Schild und Kasse. */
+  const AB_GEBURTSTAG = themenPreisZeile("birthday", L);
   /**
    * HIER STAND „ab 24 €" — UND DAS WAR FALSCH (04.08.2026 nachgeprüft).
    *
@@ -388,7 +395,7 @@ export default async function ThemesCatalog({ searchParams }: {
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
-    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: ph(4), video: birthdayVideo || undefined, chips: "♥ Name · Video · Send", abPreis: AB_EINZEL },
+    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: GEBURTSTAG_SET, video: GEBURTSTAG_VIDEO, chips: "♥ Name · Video · Send", abPreis: AB_GEBURTSTAG },
     // DER LUXURYBANDIT PLAN (Owner 04.08.2026). Kein Geschenk, sondern eine Analyse: zwanzig
     // erzeugte Kunden, Fachleute und Nachbarn streiten über seine Idee, am Ende steht sein
     // Plan. Der Trichter dahinter wird noch gebaut — bis dahin steht die Seite als Vorschau
