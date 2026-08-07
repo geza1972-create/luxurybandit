@@ -131,7 +131,8 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
  * Ergebnis gesehen haben, bevor er zahlt. Deshalb hängen Punkt 1 (Wasserzeichen), Punkt 2
  * (der Handel am Eingang) und diese Zahl zusammen und gehen NUR ZUSAMMEN live.
  *
- * GILT FÜR: Kuss, Geburtstag, Urlaub, Tanz, Gutschein — jedes Geschenk, einmal bezahlt.
+ * GILT FÜR: Kuss, Urlaub, Tanz, Gutschein — jedes Geschenk, einmal bezahlt. Der GEBURTSTAG
+ * hat seit dem 07.08.2026 seinen eigenen Startpreis (GEBURTSTAG_CENTS, 4,99 €).
  * NICHT für den Hochzeitsplaner (29 € Kauf, siehe HOCHZEIT_START_CENTS) und nicht für das
  * System (60 €, siehe PLAN_CENTS).
  */
@@ -207,7 +208,20 @@ export const TOPUP_GROSS_CENTS = 3000;
 // der Geburtstag sind Geschenke wie der Kuss, und Geschenke kosten ab jetzt alle dasselbe. Die
 // eigene Konstante bleibt trotzdem stehen: Wer dem Tanz je einen anderen Preis geben will,
 // ändert dann EINE Zahl — und nicht aus Versehen den Preis jedes anderen Geschenks mit.
-export const POLEDANCE_CENTS = 1500;                // 15 € — Tanz- und Geburtstagsvideo
+export const POLEDANCE_CENTS = 1500;                // 15 € — das Tanz-Video
+
+/**
+ * DER GEBURTSTAG STARTET BEI 4,99 (Owner 07.08.2026: „wir nehemen für dieses Video 4,99 als
+ * start" — direkt nach der Abnahme der neuen Vorlage, „alles passt perfekt").
+ *
+ * Das bricht bewusst die 15-€-Einheitsregel vom 05.08. — NUR für den Geburtstag, als
+ * Startpreis für den Markttest. Die Rechnung trägt: Die neue Kette (OpenAI-Avatar medium
+ * ~6 ct + HeyGen v3 ~20 ct, gemessen am 07.08.) kostet ~26 Cent je Video, und ein
+ * Impulskauf unter 5 € braucht keinen Beweis vorab. Eigene Konstante nach dem Hausmuster:
+ * Wer den Startpreis später anhebt, ändert EINE Zahl — und nicht aus Versehen den Preis
+ * jedes anderen Geschenks mit.
+ */
+export const GEBURTSTAG_CENTS = 499;                // 4,99 € — das Geburtstagsvideo, Startpreis
 
 /**
  * DAS VIDEO ZUR FERTIGEN EINLADUNG (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn
@@ -499,6 +513,7 @@ export const LAUFZEIT_TAGE = 30;
  *   {videos} → 12        (im Abo enthalten)
  *   {once}   → 1,49 €    (Einmalkauf, ohne Abo)
  *   {tanz}   → 3,99 €    (ein Tanz-Video, siehe POLEDANCE_CENTS)
+ *   {geburtstag} → 4,99 € (das Geburtstagsvideo, siehe GEBURTSTAG_CENTS)
  *   {days}   → 7         (Probezeit ohne Abo, siehe TRIAL_DAYS)
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
@@ -520,6 +535,7 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{extra\}/g, eur(EXTRA_VIDEO_CENTS, lang))
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{tanz\}/g, eur(POLEDANCE_CENTS, lang))
+    .replace(/\{geburtstag\}/g, eur(GEBURTSTAG_CENTS, lang))
     .replace(/\{videoauf\}/g, eur(VIDEO_UPGRADE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
@@ -659,7 +675,8 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
      */
     case "gutschein": return ONCE_CENTS;   // „ab 15 €" — das billigste Geschenk darin
     case "bella": case "tryon": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
-    default: return ONCE_CENTS;   // kiss, holiday, birthday — ein Geschenk, einmal bezahlt
+    case "birthday": return GEBURTSTAG_CENTS;   // 4,99 € Startpreis (Owner 07.08.2026)
+    default: return ONCE_CENTS;   // kiss, holiday — ein Geschenk, einmal bezahlt
   }
 }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ONCE_CENTS } from "@/lib/pricing";
+import { GEBURTSTAG_CENTS } from "@/lib/pricing";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * 399 war ausserdem der Abo-AUFPREIS (jedes Video ueber die fuenf hinaus). Fuer einen Kauf
  * ohne Abo gilt der Einzelpreis.
  */
-const PRICE_CENTS = ONCE_CENTS;
+const PRICE_CENTS = GEBURTSTAG_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

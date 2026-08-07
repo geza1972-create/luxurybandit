@@ -8,7 +8,7 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2 } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, GEBURTSTAG_CENTS, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -383,10 +383,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Auflade-Waehler oeffnet. Was die KASSE abbucht, entscheidet sie selbst am gespeicherten
    * Auftrag — ein Browser darf sich seinen Preis nicht aussuchen.
    */
-  /* Der Geburtstag kostet wie der Tanz: dieselbe Kette (ein Pixverse-Lauf mit zwei Referenzen),
-     dieselbe Laenge. Ein eigener Preis waere eine Zahl mehr zu pflegen, ohne einen Unterschied
-     dahinter. */
-  const videoPreisCents = (variant === "poledance" || variant === "birthday") ? POLEDANCE_CENTS : ONCE_CENTS;
+  /* Der Geburtstag hat seit dem 07.08.2026 seinen eigenen Startpreis (Owner: „wir nehemen für
+     dieses Video 4,99 als start") — Begründung und Rechnung stehen bei GEBURTSTAG_CENTS in
+     lib/pricing.ts. */
+  const videoPreisCents = variant === "poledance" ? POLEDANCE_CENTS : variant === "birthday" ? GEBURTSTAG_CENTS : ONCE_CENTS;
 
   /**
    * BEIM GEBURTSTAG KLINGT DAS VIDEO SELBST (Owner 03.08.2026: „nein, es muss die originale
