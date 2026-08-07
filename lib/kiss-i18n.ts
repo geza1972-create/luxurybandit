@@ -617,7 +617,7 @@ const RO: KissText = {
   zustimmung: "Încărcând o poză și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
   /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
      HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
-  zustimmungAufnahme: "Înregistrându-te și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
+  zustimmungAufnahme: "Filmându-te și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
   zustimmungFehlt: "Te rog acceptă mai întâi.", agbLink: "termenii", datenschutzLink: "politica de confidențialitate",
   videosWeg: "Cele {videos} videoclipuri ale lunii s-au terminat.",
   aboAktiv: (r, g) => `Abonament activ · ${r} din ${g} videoclipuri rămase luna asta`,
@@ -871,7 +871,7 @@ const FR: KissText = {
   zustimmung: "En téléversant une photo et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
   /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
      HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
-  zustimmungAufnahme: "En t'enregistrant et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
+  zustimmungAufnahme: "En te filmant et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
   zustimmungFehlt: "Merci d'accepter d'abord.", agbLink: "conditions", datenschutzLink: "politique de confidentialité",
   videosWeg: "Tes {videos} vidéos du mois sont épuisées.",
   aboAktiv: (r, g) => `Abonnement actif · ${r} vidéos sur ${g} restantes ce mois-ci`,
@@ -1126,7 +1126,7 @@ const IT: KissText = {
   zustimmung: "Caricando una foto e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
   /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
      HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
-  zustimmungAufnahme: "Registrandoti e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
+  zustimmungAufnahme: "Filmandoti e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
   zustimmungFehlt: "Accetta prima le condizioni.", agbLink: "termini", datenschutzLink: "informativa privacy",
   videosWeg: "I tuoi {videos} video di questo mese sono finiti.",
   aboAktiv: (r, g) => `Abbonamento attivo · ${r} di ${g} video rimasti questo mese`,
