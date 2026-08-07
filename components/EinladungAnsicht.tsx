@@ -231,12 +231,19 @@ export default function EinladungAnsicht({
     };
   }, [originalton, schleife]);
 
-  const umschalten = () => {
-    /* ORIGINALTON: nicht die Tonspur daneben, sondern das Video selbst stummschalten. */
+  /**
+   * TON AN ODER AUS — EINE Stelle für beide Wege (Owner 07.08.2026: „wenn jemand das Video
+   * vegrössert, muss der sound starten" · „beim schiessen stoppt der sound").
+   *
+   * Vorher stand das nur im Ton-Knopf. Das Vergrössern brauchte dieselbe Schaltung, und sie
+   * ein zweites Mal zu schreiben hiesse, zwei Fassungen davon zu pflegen — eine davon würde
+   * die Feinheit vergessen, dass es je nach Video zwei verschiedene Tonquellen gibt:
+   * entweder das Video selbst (`originalton`) oder die Musikspur daneben.
+   */
+  const tonSetzen = (an: boolean) => {
     if (originalton) {
       const v = videoRef.current;
       if (!v) return;
-      const an = !ton;
       setTon(an);
       v.muted = !an;
       v.volume = 1;
@@ -245,7 +252,6 @@ export default function EinladungAnsicht({
     }
     const a = audioRef.current;
     if (!a) return;
-    const an = !ton;
     setTon(an);
     if (an) {
       a.volume = 0.75;   // Hintergrund, nicht Konzert
@@ -254,6 +260,7 @@ export default function EinladungAnsicht({
       a.pause();
     }
   };
+  const umschalten = () => tonSetzen(!ton);
 
   /**
    * VERGRÖSSERN — EIGENE ÜBERLAGERUNG STATT BROWSER-VOLLBILD (04.08.2026, gemessen).
@@ -279,6 +286,21 @@ export default function EinladungAnsicht({
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", zu); document.body.style.overflow = vorher; };
   }, [gross]);
+  /**
+   * GROSS HEISST MIT TON, KLEIN HEISST OHNE (Owner 07.08.2026: „wenn jemand das Video
+   * vegrössert, muss der sound starten" · „beim schiessen stoppt der sound").
+   *
+   * In der Kachel läuft alles stumm nebeneinander — sechs Videos mit Ton wären ein Lärm, den
+   * niemand will. Wer aber EINS gross macht, hat sich für dieses eine entschieden; dann ist
+   * Stille die falsche Antwort. Und beim Schliessen muss der Ton mitgehen, sonst redet nach
+   * dem Zumachen etwas weiter, das man nicht mehr sieht.
+   *
+   * Das Vergrössern ist immer ein Tipp, also eine Geste — genau die verlangt der Browser,
+   * bevor er Ton zulässt. Deshalb funktioniert es hier und nicht beim Laden der Seite.
+   */
+  const tonRef = useRef(tonSetzen);
+  tonRef.current = tonSetzen;
+  useEffect(() => { tonRef.current(gross); }, [gross]);
 
   return (
     <div ref={rahmenRef}

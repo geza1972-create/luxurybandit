@@ -42,7 +42,12 @@ const MUSTER_THEMEN: ThemenKachelDaten[] = [
     titel: "Sende einen Kuss an die Person, die du liebst",
     zeile: "Dein Foto und ihres — ein Video mit euch beiden, nur für sie.",
     href: "/themes/kiss",
-    video: "/Kiss/Video4-kiss-normal.mp4",
+    video: "/Kiss/kiss-beispiel.mp4",
+    /* MIT POSTER — sonst zeigt die Vorlage genau das, was auf der echten Seite ein Fehler
+       wäre: eine schwarze Fläche mit einer Abspiel-Scheibe darauf (Owner 07.08.2026: „den
+       CTA bei Cards Und Poster fehlt"). Das Standbild ist das erste Bild des eigenen
+       Videos und liegt fest im Repo. */
+    poster: "/Kiss/kiss-poster.jpg",
     merkmale: "♥ Wähle sie · Dein Foto · Kuss",
     abPreis: "ab 15 €",
   },
@@ -190,7 +195,12 @@ export default function CIMuster() {
       <ThemenGestaltWahl art={gestalt.art} waehle={gestalt.waehle} className="mb-3" />
       <div className="grid grid-cols-1 gap-3">
         {MUSTER_THEMEN.map(t => (
-          <ThemenKachel key={t.titel} thema={t} art={gestalt.art} baldZeile="Coming soon" />
+          /* MIT KAUFKNOPF — die Vorlage zeigt die Karte so, wie sie im Trichter steht
+             (Landingpage.md: „CTA auf jeder Karte"). Ohne ihn stand hier eine Karte ohne
+             Kaufweg, in der Bibliothek, als Muster für alle (Owner 07.08.2026: „siehst du
+             das eine CTA?"). */
+          <ThemenKachel key={t.titel} thema={t} art={gestalt.art} baldZeile="Coming soon"
+            cta="Jetzt gestalten" />
         ))}
       </div>
 

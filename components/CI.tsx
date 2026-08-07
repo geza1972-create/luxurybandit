@@ -321,8 +321,15 @@ export type ThemenKachelDaten = {
   /** Wasserzeichen, wenn es weder Bild noch Video gibt — die Server-Seite reicht es fertig herein. */
   platzhalter?: ReactNode;
 };
-export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", ton, onTon, className = "" }: {
+export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", cta, ton, onTon, className = "" }: {
   thema: ThemenKachelDaten;
+  /**
+   * Der Wortlaut des Kaufknopfs — „CTA auf jeder Karte" (Landingpage.md, Memory
+   * `videos-auf-landingpages`). Der Aufrufer liefert ihn in seiner Sprache; ohne ihn
+   * erscheint kein Knopf. Nur in der vollen Gestalt: In der schmalen Reihe ist die ganze
+   * Zeile der Knopf.
+   */
+  cta?: string;
   /**
    * `reihe` schmale Zeile · `voll` eigene Karte über die ganze Breite ·
    * `folie` derselbe Inhalt wie `voll`, aber OHNE eigenes Kartenpapier — für das Karussell,
@@ -560,20 +567,60 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
         <div className="mt-3 overflow-hidden rounded-[14px]">{medien}</div>
       </div>
     );
-    return aktiv
-      ? <a href={thema.href} className={`block px-1 transition-opacity active:opacity-80 ${className}`}>{nurBild}</a>
-      : <div className={`block px-1 opacity-90 ${className}`}>{nurBild}</div>;
+    /* AUCH DIE FOLIE IST KEIN LINK (Owner 07.08.2026: „das geht nicht play button und klick
+       link gleichzeitig auf video"). Auf dem Video liegt der Abspiel-Knopf; der Kaufweg ist
+       der CTA, den `ThemenListe` unter die Punkte setzt. */
+    return <div className={`block px-1 ${aktiv ? "" : "opacity-90"} ${className}`}>{nurBild}</div>;
   }
+  /**
+   * DER KAUFKNOPF GEHÖRT IN DIE VORLAGE, NICHT IN DIE SEITE (Owner 07.08.2026: „du hast in
+   * der bibliothek den button einfügen müssen in der vorlage. den CTA bei Cards … fehlt" ·
+   * auf die Rückfrage, ob einer zu sehen sei: „siehst du das eine CTA?").
+   *
+   * Die Regel steht seit langem (Landingpage.md, Memory `videos-auf-landingpages`): CTA auf
+   * JEDER Karte. Er hing aber an der Themen-LISTE — also hatte die Karte einen, solange sie
+   * durch die Liste lief, und keinen, wenn jemand den Baustein direkt nahm. Genau so stand
+   * sie auf der Muster-Seite: eine Karte ohne Kaufknopf, in der Bibliothek, als Vorlage für
+   * alle. Jetzt trägt ihn die Karte selbst.
+   *
+   * Gestalt: `lb-karte-cta` (der gelbe Verlauf der Karte, Landingpage.md §3), volle Breite,
+   * rund. KEIN `<a>` darin, wenn die Karte schon ein Link ist — ein Link im Link ist
+   * ungültiges HTML und tippt unvorhersagbar; die Karte selbst führt ja ans selbe Ziel.
+   */
+  const kaufknopf = voll && cta && aktiv ? (
+    <div className="px-6 pb-1 pt-2.5">
+      <a href={thema.href} className="lb-karte-cta flex h-11 items-center justify-center rounded-full text-[13px] font-black transition active:scale-95">
+        {cta}
+      </a>
+    </div>
+  ) : null;
   const inhalt = voll ? (
     <>
       <CornerOrnaments />
       <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
       {/* `relative`, damit der Inhalt ÜBER der Linie liegt und nicht von ihr durchkreuzt wird. */}
       {vollInhalt}
+      {kaufknopf}
     </>
   ) : (
     <>{medien}{text}</>
   );
+  /**
+   * DIE VOLLE KARTE IST KEIN LINK — der CTA ist es (Owner 07.08.2026: „das geht nicht play
+   * button und klick link gleichzeitig auf video das weisst du doch").
+   *
+   * Er hat recht, und es war mein Fehler: Auf dem Video liegt seit heute ein Abspiel-Knopf,
+   * und die ganze Karte war gleichzeitig ein Link. Damit lagen zwei Ziele auf derselben
+   * Fläche — ein Tipp aufs Video hätte gestartet UND weggeführt, und welches von beidem
+   * gewinnt, entscheidet die Verschachtelung, nicht die Absicht. (Ein `<a>` im `<a>` ist
+   * ausserdem ungültiges HTML.)
+   *
+   * Die alte Regel „ganze Fläche tippbar" (Landingpage.md) galt für eine Karte OHNE
+   * Bedienung darauf. Sobald das Video eigene Knöpfe trägt, muss der Kaufweg ein eigener
+   * Knopf sein — dafür steht der CTA jetzt auf jeder Karte. In der schmalen Reihe bleibt
+   * die ganze Zeile ein Link: Dort gibt es keinen Abspiel-Knopf, das Video läuft von selbst.
+   */
+  if (voll) return <div className={kl}>{inhalt}</div>;
   return aktiv
     ? <a href={thema.href} className={kl}>{inhalt}</a>
     : <div className={kl}>{inhalt}</div>;
