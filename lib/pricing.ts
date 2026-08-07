@@ -787,7 +787,11 @@ export function themenPreisZeile(thema: ThemenSchluessel, lang?: string): string
  * ein Präsent, das erst nach einer eigenen Zahlung funktioniert, ist eine Rechnung mit
  * Schleife. Deshalb: unten offen, beim Verschenken bei 15 € Schluss.
  */
-export const AUFLADE_STUFEN = [300, 500, 1000, ONCE_CENTS, 3000, PLAN_CENTS] as const;
+/* UNTEN BEI 5 EURO (Owner 07.08.2026: "dann fangen wir bei 5 euro an"). Die 3 Euro standen
+   hier als kleinste Stufe — sie kaufen aber kein einziges Video, das billigste kostet mehr.
+   Ein Betrag, der nichts kauft, gehoert nicht in eine Kaufleiter; als WERBEGESCHENK bleibt
+   er bestehen (unten), denn dort ist er ein Zuschuss und kein Angebot. */
+export const AUFLADE_STUFEN = [500, 1000, ONCE_CENTS, 3000, PLAN_CENTS] as const;
 
 /**
  * DAS WERBEGESCHENK AN BESTANDSKUNDEN (Owner 05.08.2026: „auch meine Kunden können das
@@ -802,7 +806,12 @@ export const AUFLADE_STUFEN = [300, 500, 1000, ONCE_CENTS, 3000, PLAN_CENTS] as 
  * Verschenkt wird das über `app/api/werbe-guthaben`, mit unterschriebenem Link und genau
  * einmal je Adresse und Kampagne.
  */
-export const WERBE_GUTSCHRIFT_CENTS = AUFLADE_STUFEN[0];
+/* EIGENE ZAHL, seit die Leiter bei 5 Euro beginnt (07.08.2026): Frueher war das die unterste
+   Stufe, gelesen statt abgeschrieben. Das Werbegeschenk soll aber 3 Euro bleiben — es ist ein
+   Zuschuss, kein Kauf, und darf deshalb unter dem kleinsten Kaufbetrag liegen. Haette ich die
+   Leseregel stehen lassen, waere aus dem Geschenk still ein 5-Euro-Geschenk geworden: echtes
+   Geld an Bestandskunden, ohne dass jemand es entschieden haette. */
+export const WERBE_GUTSCHRIFT_CENTS = 300;
 
 /** Ist dieser Betrag eine angebotene Stufe? Sonst gilt die kleinste. */
 export function aufladeStufe(cents: unknown): number {

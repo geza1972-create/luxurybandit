@@ -2416,6 +2416,29 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   // `genIdFrisch`: wer GERADE einen neuen Eintrag angelegt hat, reicht die Nummer hier
   // direkt durch — der React-Zustand traegt sie erst einen Render spaeter (03.08.2026).
+  /**
+   * WAS HAT DIE AUFLADUNG UNTERBROCHEN? (Owner 07.08.2026: „ich habe bezahlt und nach der
+   * bezahlung verschfindet strpefenster und bleibt credit auswahl" — mit 60 € auf dem Konto,
+   * es lag also NICHT am Betrag.)
+   *
+   * GEMESSEN: Der Popup-Weg rief nach jeder Aufladung `unlock("once")` — einen Kauf fuer
+   * eine Auftragsnummer, die es an dieser Stelle noch gar nicht gibt. Unterbrochen wurde
+   * naemlich `generate()`: Der Waehler geht dort auf, BEVOR ein Auftrag entsteht. Der Server
+   * fand keinen Auftrag, antwortete mit einer Kasse statt „bezahlt" — und der Zweig darunter
+   * machte denselben Waehler wieder auf. Bezahlt, nichts passiert.
+   *
+   * Genau das verbietet Skill `bezahlung` §1: „Der Waehler muss sich merken, WELCHEN Kauf er
+   * unterbrochen hat … nicht ein nacktes `bezahlen` ins Leere." Die Entscheidung steht
+   * deshalb EINMAL hier und wird von beiden Rueckwegen benutzt (Popup wie Seiten-Rueckkehr),
+   * sonst laufen die zwei Fassungen beim naechsten Umbau auseinander.
+   */
+  const nachAufladungWeiter = () => {
+    /* Kein Bild? Dann wollte er eines — erzeugen. Liegt schon eines da, wollte er das VIDEO. */
+    if (!bild) { void generate(); return; }
+    if (!genId) return;
+    void unlock("once");
+  };
+
   const unlock = async (einmal: "once" | "abo" | "extra" | "auflade" = "abo", genIdFrisch?: string, topupCents?: number) => {
     // Derselbe Fehler wie bei `generate`: Das Ereignis stand vor jeder Pruefung und meldete
     // den Tipp, nicht die Kasse. `checkout_tap` = er wollte, `checkout` = Stripe ist offen.
@@ -2519,7 +2542,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           if (einmal === "auflade") {
             if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
             trackMetaPixel("Purchase", { currency: "EUR", content_name: "Account credit" });
-            void unlock("once");
+            nachAufladungWeiter();
             return;
           }
           trackMetaPixel("Purchase", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
@@ -2571,9 +2594,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * Versuch, oder die Hochzeit, die von Anfang an kostet) — dann erzeugen. Liegt schon ein
      * Bild da, wollte er das VIDEO. Zwei Wege, eine Rueckkehr.
      */
-    if (!bild) { void generate(); return; }
-    if (!genId) return;
-    void unlock("once");
+    nachAufladungWeiter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genId, mail, guthabenCents, bild, selPhoto, photo]);
 
