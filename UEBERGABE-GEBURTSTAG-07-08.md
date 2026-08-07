@@ -177,6 +177,12 @@ Seiten anfassen. **Vor jedem Push lokal bauen** (`npx next build` in einem abget
 Arbeitsbaum) — ein roter Deploy hat heute schon einmal Zeit gekostet. Nach dem Deploy live
 gegenprüfen und das Ergebnis mit Zahlen zeigen, nicht behaupten.
 
-Achtung: An `components/CI.tsx`, `components/CIMuster.tsx` und `components/EinladungAnsicht.tsx`
-arbeitet parallel ein zweiter Chat. Dort **selektiv committen** (HEAD-Fassung + nur die
-eigenen Zeilen), sonst schickt man fremde, halbfertige Arbeit mit.
+**Achtung, im Arbeitsstand liegt fremde Arbeit.** Ein zweiter Chat arbeitet parallel im
+selben Verzeichnis — heute Abend an `app/themes/luxurybandit-plan/page.tsx`,
+`components/PlanSlide.tsx`, `lib/plan-i18n.ts`; davor an `components/CI.tsx`,
+`components/CIMuster.tsx`, `components/EinladungAnsicht.tsx`.
+
+Deshalb **nie `git commit -a`, nie `git add .`**. Vor jedem Commit `git status` lesen und nur
+die eigenen Pfade nennen. Liegt fremde Arbeit in einer Datei, die man selbst geändert hat,
+selektiv committen (HEAD-Fassung + nur die eigenen Zeilen) — sonst schickt man halbfertige
+Arbeit eines anderen mit, und sie geht auf den eigenen Commit.
