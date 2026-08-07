@@ -498,6 +498,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [nimmtAuf, setNimmtAuf] = useState(false);
   /** Kamera oder Mikrofon verweigert — dann erscheint der Foto-Upload als Ausweichweg. */
   const [kameraAus, setKameraAus] = useState(false);
+  /**
+   * DIE AUFNAHME ZUM ANSCHAUEN — eine `blob:`-Adresse, NICHT die Daten-URL.
+   *
+   * Owner 07.08.2026, am Handy: „ich kann das video nicht abspielen." Safari spielt ein
+   * Video aus einer `data:`-Adresse nicht ab: Es verlangt Byte-Bereiche, die eine
+   * Daten-URL nicht liefern kann. Das Standbild als Poster erschien deshalb, der Ton
+   * blieb aus, und ein Tipp tat nichts.
+   *
+   * Also zwei Adressen fuer dieselben Daten: die Daten-URL reist zum Server (`aufnahme`),
+   * die `blob:`-Adresse bleibt im Browser und wird abgespielt. Sie wird beim naechsten
+   * Versuch freigegeben — sonst haelt jede verworfene Aufnahme ihren Speicher.
+   */
+  const [aufnahmeUrl, setAufnahmeUrl] = useState("");
   /** Die Absage an der Aufnahme — leer, schwarz oder zu kurz. */
   const [aufnahmeFehler, setAufnahmeFehler] = useState("");
   /** Sekunden bis zum Deckel — sonst weiss niemand, dass gerade aufgenommen wird. */
@@ -506,6 +519,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const stueckeRef = useRef<Blob[]>([]);
   /** Das Bild, in dem man sich beim Sprechen sieht. */
   const vorschauRef = useRef<HTMLVideoElement | null>(null);
+  /** Der laufende Kamerastrom — gehalten, damit ein Effekt ihn anhaengen kann. */
+  const stromRef = useRef<MediaStream | null>(null);
   /**
    * DAS ERSTE BILD DER AUFNAHME — daraus wird das Avatar.
    *
@@ -597,6 +612,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       rec.ondataavailable = ev => { if (ev.data.size) stueckeRef.current.push(ev.data); };
       rec.onstop = () => {
         strom.getTracks().forEach(t => t.stop());
+        stromRef.current = null;
         if (vorschauRef.current) vorschauRef.current.srcObject = null;
         const blob = new Blob(stueckeRef.current, { type: rec.mimeType || "video/webm" });
         const url = URL.createObjectURL(blob);
@@ -612,11 +628,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * Kaufknopf zu.
          */
         void standbildZiehen(url).then(({ bild, brauchbar, dauer }) => {
-          URL.revokeObjectURL(url);
           setNimmtAuf(false);
-          if (!bild || !brauchbar) { setAufnahmeFehler(SW.leer); return; }
-          if (dauer && dauer < 1.5) { setAufnahmeFehler(SW.kurz); return; }
+          /* Bei einer Absage wird die Adresse sofort frei — es gibt nichts anzuschauen. */
+          if (!bild || !brauchbar) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.leer); return; }
+          if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); return; }
           setAufnahmeFehler("");
+          setAufnahmeUrl(url);   // bleibt bestehen — daraus spielt der Spieler
           setCustomModel(bild); setUseCustom(true);
           const leser = new FileReader();
           leser.onloadend = () => setAufnahme(String(leser.result || ""));
@@ -628,6 +645,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Der vorige Versuch wird ungueltig, sobald ein neuer laeuft — sonst stuende ein
          gutes altes Foto neben einer misslungenen neuen Aufnahme, und der Kaufknopf
          waere frei, obwohl gerade nichts entstanden ist. */
+      setAufnahmeUrl(a => { if (a) URL.revokeObjectURL(a); return ""; });
       setAufnahme(""); setCustomModel(""); setAufnahmeFehler(""); setKameraAus(false);
       setNimmtAuf(true); setRestSek(12);
       const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
@@ -635,7 +653,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Die LIVE-Vorschau, damit man sich beim Sprechen sieht — ohne sie filmt man blind
          die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
          nächsten Durchlauf. */
-      setTimeout(() => { if (vorschauRef.current) { vorschauRef.current.srcObject = strom; void vorschauRef.current.play().catch(() => {}); } }, 0);
+      stromRef.current = strom;
       /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
          Datei erzeugen, die das Tor abweist. */
       setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
@@ -662,6 +680,29 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     }
   };
   const aufnahmeStopp = () => { try { aufnehmerRef.current?.stop(); } catch { /**/ } };
+
+  /**
+   * DAS SELBSTBILD HAENGT SICH AN, SOBALD ES DAS BILD GIBT (Owner 07.08.2026: „aber ich
+   * sehe mich im fenster nicht beim aufnehmen").
+   *
+   * Vorher stand das Anhaengen direkt hinter `setNimmtAuf(true)` in einem `setTimeout(…, 0)`.
+   * Das ist ein Rennen, das man nicht gewinnen kann: Der Zustand loest ein Neuzeichnen aus,
+   * und ob das `<video>` in diesem Augenblick schon im Baum steht, entscheidet React — nicht
+   * die Reihenfolge meiner Zeilen. Traf der Zeitgeber zu frueh, war `vorschauRef.current`
+   * null, und der Strom hing nirgends. Man sprach in eine schwarze Flaeche.
+   *
+   * Ein Effekt auf `nimmtAuf` laeuft NACH dem Zeichnen — dann gibt es das Element mit
+   * Sicherheit. `muted` ist Pflicht: Ein Vorschaubild mit dem eigenen Ton wuerde ruecktkoppeln.
+   */
+  useEffect(() => {
+    const v = vorschauRef.current;
+    const strom = stromRef.current;
+    if (!nimmtAuf || !v || !strom) return;
+    v.srcObject = strom;
+    v.muted = true;
+    void v.play().catch(() => { /* das Standbild bleibt — die Aufnahme laeuft trotzdem */ });
+    return () => { try { v.srcObject = null; } catch { /**/ } };
+  }, [nimmtAuf]);
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
   const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
   /**
@@ -3480,9 +3521,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       Flaeche, bis jemand darauf tippt, und die sieht aus wie eine leere
                       Aufnahme (genau die Verwechslung vom 07.08.). Das Standbild ist
                       ohnehin da: Es ist das Avatar, das aus dieser Aufnahme entstand. */}
-                  {aufnahme && !nimmtAuf && (
+                  {aufnahmeUrl && !nimmtAuf && (
                     // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video controls playsInline src={aufnahme} poster={customModel || undefined}
+                    <video controls playsInline src={aufnahmeUrl || undefined} poster={customModel || undefined}
                       className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover" />
                   )}
                   {kameraAus && (

@@ -557,6 +557,12 @@ export default async function ThemesCatalog({ searchParams }: {
   const AUSGEBLENDET = new Set([
     "Tenerife with Bella",
     "Morning Weather",
+    /* Owner 07.08.2026: „wir blenden ers mal Bella raus aus der Topic seite." Damit ist
+       Bella als Thema vollständig aus dem Katalog — die beiden Zeilen darüber waren es
+       schon, der Chat war der letzte. Die Seite /themes/chat bleibt erreichbar und der
+       Trichter dahinter lebt; nur der Katalog zeigt ihn nicht mehr. „Erst mal": Ein Titel
+       hier heraus, und er ist zurück. */
+    "Chat with Bella",
     "Try-On",
     "Your Idol with you",
     "Luxury Looks",
