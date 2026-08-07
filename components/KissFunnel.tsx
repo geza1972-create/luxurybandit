@@ -20,7 +20,8 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl } from "@/components/CI";
+import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
  * Geschenke-Marktplatz). Sie stand hier mitten im Trichter — damit war „ein neues
@@ -257,14 +258,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:" },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -454,6 +455,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * (Memory `geschenk-kette-openai-heygen`) — bis dahin trägt diese Wahl.
    */
   const [stimme, setStimme] = useState<"frau" | "mann">("frau");
+  /**
+   * WELCHER LOOK (Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen. Die
+   * müssen absolut cool werden. Es gibt jetzt nur eins die Frau mit der Torte").
+   *
+   * Die Wahl steht VOR der Kasse — dieselbe Regel wie beim Kuss, wo Szene und Garderobe
+   * am 03.08. vor die Kasse gerückt sind („Ich will keine Wäsche ein zweites Mal
+   * auswählen"). Wer nach dem Bezahlen noch aussuchen muss, hat das Gefühl, die Ware
+   * nicht gesehen zu haben.
+   *
+   * Vorgabe ist der erste — der abgenommene Black Tie, aus dem das Beispielvideo der
+   * Landingpage stammt. Wer nichts antippt, bekommt genau das, was er auf der Karte
+   * gesehen hat.
+   */
+  const [look, setLook] = useState(GEBURTSTAG_LOOKS[0].id);
   /**
    * DIE EIGENE STIMME (Owner 07.08.2026: „ok, dann machen wir das"): Ein Mikro-Knopf
    * nimmt den vorgelesenen Satz auf (max. 15 s), man hört ihn vor, und beim Erzeugen
@@ -1952,7 +1967,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
         // weist wie bei Pixverse den bezahlten Auftrag aus.
-        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme,
+        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look,
           /* Die eigene Aufnahme schlägt die Chip-Stimme — aber nur, wenn der Chip gewählt
              UND wirklich etwas aufgenommen ist. */
           ...(eigene && aufnahme ? { audio: aufnahme } : {}) }),
@@ -2041,7 +2056,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
             const log = await fetch("/api/kiss-log", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger, stimme,
+              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger, stimme, look,
                 personImage: photo, ...(useCustom && customModel ? { modelImage: customModel } : {}) }),
             }).then(r => r.json()).catch(() => null);
             setVideoBusy(false);
@@ -2074,7 +2089,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           /* `empfaenger` wandert mit in den Auftrag: Der Nachliefer-Wachhund braucht den
              Namen, wenn er den Geburtstag nach Browser-Schluss neu anstossen muss — die
              neue Kette SPRICHT ihn ja. */
-          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme }),
+          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme, look }),
         }).catch(() => {});
       }
       for (let i = 0; i < 90; i++) {
@@ -3213,6 +3228,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! Enjoy your special day. This little video is just for you.`;
             return (
               <div className="mt-2">
+                {/**
+                  * DER LOOK ZUERST, DIE STIMME DANACH — in der Reihenfolge, in der man ein
+                  * Geschenk aussucht: erst wie es AUSSIEHT, dann wie es klingt. Beides
+                  * steht vor der Kasse (siehe `look` oben).
+                  *
+                  * Nur wenn es überhaupt etwas zu wählen gibt: Bei einem einzigen Look
+                  * wäre eine Reihe mit einer Kachel keine Wahl, sondern ein Hinweis, dass
+                  * man keine hat.
+                  */}
+                {GEBURTSTAG_LOOKS.length > 1 && (
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-center text-[11px] font-bold text-white/55">{SW.look}</p>
+                    <BildWahl wert={look} waehle={setLook} bilder={GEBURTSTAG_LOOKS} className="justify-center" />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <span className="text-[11px] font-bold text-white/55">{SW.frage}</span>
                   <Knopf art="chip" aktiv={!eigene && stimme === "frau"} onClick={() => { setEigene(false); setStimme("frau"); }}>{SW.frau}</Knopf>

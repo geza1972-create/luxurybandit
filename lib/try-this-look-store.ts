@@ -1653,6 +1653,9 @@ export type KissLogEntry = {
   empfaenger?: string;
   /** Stimmwahl des Geburtstags — „frau" (Joy) oder „mann" (Daniel), siehe /api/geburtstag-video. */
   stimme?: "frau" | "mann";
+  /** Der gewaehlte Geburtstags-Look (`lib/geburtstag-looks.ts`). Fehlt er, nimmt die
+   *  Route den abgenommenen — ein Auftrag von vor der Wahl bleibt damit gueltig. */
+  look?: string;
   /**
    * WANN DIE ABLAUF-MAIL RAUS IST (Owner 03.08.2026: „90 Tage").
    *

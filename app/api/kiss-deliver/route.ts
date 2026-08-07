@@ -109,7 +109,7 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
     const g = await fetch(`${origin(request)}/api/geburtstag-video`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(pinG ? { "x-try-look-admin-pin": pinG } : {}) },
-      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau" }),
+      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau", look: e.look }),
     }).then(x => x.json()).catch(() => null);
     if (!g?.videoId) return { error: String(g?.error ?? "Geburtstags-Start fehlgeschlagen.") };
     return { videoId: String(g.videoId) };

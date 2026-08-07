@@ -880,3 +880,57 @@ export function Dialog({ art = "hell", zu, z = 96, className = "", children }: {
     </div>
   );
 }
+
+/**
+ * BILDWAHL — eine Reihe Bildkacheln, aus denen genau EINE gewählt ist.
+ *
+ * Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen. Die müssen absolut
+ * cool werden." Bis dahin gab es diese Reihe nur handgerollt im Kuss-Trichter (die
+ * Garderoben-Kacheln) — mit eigenem Rand, eigener Grösse, eigenem Wisch-Verhalten. Der
+ * Geburtstag hätte sie ein zweites Mal gebraucht, und ab da wären es zwei Fassungen
+ * gewesen, die auseinanderlaufen.
+ *
+ * DREI DINGE, DIE MAN LEICHT FALSCH MACHT und die hier eingebaut sind:
+ *
+ * 1. DIE AUSWAHL MUSS MAN SEHEN, AUCH AUF EINEM DUNKLEN BILD. Ein Rand in Weiss oder
+ *    Gelb verschwindet auf einem hellen bzw. goldenen Motiv. Deshalb liegt die gewählte
+ *    Kachel in einem gelben RING MIT ABSTAND (`ring-2` + `ring-offset-2` auf dem dunklen
+ *    Grund) — der Abstand trennt ihn vom Bild, egal was darauf ist.
+ * 2. DIE REIHE WISCHT, OHNE BALKEN — Klasse `lb-wisch` (Hausregel seit 06.08.2026). Ohne
+ *    sie steht auf dem Handy ein grauer Balken unter den Kacheln.
+ * 3. DAS WORT GEHOERT UNTER DAS BILD, nicht darauf. Schrift auf einem beliebigen Foto ist
+ *    mal lesbar und mal nicht; darunter ist sie es immer.
+ *
+ * Kein `karte`-Schalter: Diese Reihe steht im Trichter auf der dunklen Welt, nie in der
+ * !important-Welt der Einladungskarte.
+ */
+export function BildWahl({ bilder, wert, waehle, className = "" }: {
+  bilder: { id: string; name: string; bild: string }[];
+  /** Die Kennung der gewählten Kachel. */
+  wert: string;
+  waehle: (id: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`lb-wisch flex gap-2 overflow-x-auto pb-1 ${className}`}>
+      {bilder.map(b => {
+        const an = b.id === wert;
+        return (
+          <button key={b.id} type="button" onClick={() => waehle(b.id)}
+            aria-pressed={an}
+            className="shrink-0 text-center transition active:scale-95">
+            <span className={`block overflow-hidden rounded-xl ${an
+              ? "ring-2 ring-[#f6cf51] ring-offset-2 ring-offset-[#0b0a09]"
+              : "ring-1 ring-white/20"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={b.bild} alt={b.name} className="h-[104px] w-[78px] object-cover" />
+            </span>
+            <span className={`mt-1.5 block text-[11px] font-black ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+              {b.name}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

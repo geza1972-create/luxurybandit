@@ -4,8 +4,11 @@ import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
-  ThemenKachel, ThemenGestaltWahl, useThemenGestalt, SCHEIBEN_TINTE,
+  ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
   type ThemenKachelDaten } from "@/components/CI";
+/* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
+   zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
+import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -54,6 +57,7 @@ const MUSTER_THEMEN: ThemenKachelDaten[] = [
 export default function CIMuster() {
   const [dialogOffen, setDialogOffen] = useState<"hell" | "dunkel" | null>(null);
   const [chipWahl, setChipWahl] = useState("a");
+  const [bildWahl, setBildWahl] = useState(GEBURTSTAG_LOOKS[0].id);
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
   const gestalt = useThemenGestalt();
 
@@ -143,6 +147,15 @@ export default function CIMuster() {
           <Knopf art="chip" aktiv={chipWahl === "a"} onClick={() => setChipWahl("a")}>Chip aktiv</Knopf>
           <Knopf art="chip" aktiv={chipWahl === "b"} onClick={() => setChipWahl("b")}>Chip inaktiv</Knopf>
         </div>
+      </Kasten>
+
+      {abschnitt("BildWahl — eine Reihe Bildkacheln, eine gewählt")}
+      {/* Der gelbe Ring hat ABSTAND zum Bild: Ein Rand direkt am Motiv verschwindet auf
+          einem hellen oder goldenen Foto. Hier stehen absichtlich zwei sehr verschiedene
+          Motive nebeneinander — ein dunkles und ein helles —, damit man auf der
+          Muster-Seite sieht, dass die Auswahl auf beiden trägt. */}
+      <Kasten>
+        <BildWahl wert={bildWahl} waehle={setBildWahl} bilder={GEBURTSTAG_LOOKS} />
       </Kasten>
 
       {abschnitt("Kasten — still · gold (Teaser)")}

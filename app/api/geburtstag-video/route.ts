@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
+import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
  * DIE GEBURTSTAGS-KETTE — der Kundenweg der am 07.08.2026 abgenommenen Vorlage
@@ -36,34 +37,14 @@ const VOICE_FRAU = "550dbffd479e4353aea0bab5bdebef39";  // „Joy"
 const VOICE_MANN = "0c23804af39a4946ac6fda42bfff2738";  // „Daniel"
 
 /**
- * DER AVATAR-PROMPT — ALLGEMEIN formuliert (Owner 07.08.2026: „die frau muss einen
- * schönnen passenden feierkleid tragen … Aber falls ein mann sich hochlädt dann er muss
- * natürlich kein Kleid haben. Es muss als generell formuliert werden") und mit der
- * Coverage-Regel, ohne die OpenAI Aufträge als sexual abweist (Memory
- * `openai-tryon-safety-rule`). Schokotorte statt rosa: „Ich brauche eine schöne
- * Schokoladentorte." Kein Text im Bild — Schrift überlebt die Video-Stufe nicht sauber.
+ * DER AVATAR-PROMPT UND DIE BEWEGUNG WOHNEN JETZT IN `lib/geburtstag-looks.ts` — hier
+ * standen sie als zwei feste Zeichenketten, und damit bekam jeder Käufer dasselbe Bild
+ * (Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen … Es gibt jetzt nur
+ * eins die Frau mit der Torte").
  *
- * EINE PERSON, EIN BILD — die Wache gegen das Doppelbild (07.08.2026 gemessen, beim
- * Erzeugen der Look-Kandidaten). Hier stand „an elegant evening dress for a woman, an
- * elegant dark suit for a man": zwei Geschlechter in einem Satz, und das Modell liest das
- * als AUFTRAG, beide zu zeigen. Herausgekommen ist ein zweigeteiltes Bild — links die Frau
- * im Kleid, rechts ein Mann im Smoking. Bei einem Kunden wäre das ein Fremder im Geschenk.
- *
- * Die Absicht des Owners bleibt („falls ein Mann sich hochlädt, dann er muss natürlich kein
- * Kleid haben"), sie wird nur anders gesagt: Die Kleidung soll zu DIESER Person passen —
- * welche das ist, sieht das Modell auf dem Foto. Kein Geschlecht wird mehr genannt, also
- * kann auch keines danebengestellt werden. Dazu die ausdrückliche Ansage „ein einziges
- * Bild, keine Collage": Der zweite Anlauf mit diesen Worten sass auf Anhieb.
+ * Dort steht auch, warum das Gerüst nur EINMAL existiert: Die Wache gegen das Doppelbild
+ * und die Coverage-Regel dürfen kein Look vergessen können.
  */
-const AVATAR_PROMPT =
-  "Use the exact same person from the reference photo: same face, same hair, same skin. " +
-  "A single portrait of that one person only - one single image, not a collage, not a split " +
-  "image, no second person. Photorealistic, 3:4 framing, they look straight into the camera " +
-  "with a warm gentle smile, mouth closed, holding a beautiful elegant chocolate birthday cake " +
-  "in both hands: dark glossy chocolate ganache, delicate chocolate curls, gold sprinkle " +
-  "accents and one lit golden candle. Dress them in beautiful festive celebration attire that " +
-  "suits this person. Fully and modestly covered, full coverage guaranteed. Neutral warm grey " +
-  "studio background, soft light. No text, no letters, no logos anywhere in the image.";
 
 /**
  * DER GESPROCHENE SATZ — einmal „Happy birthday" (Owner: „sie soll nich zwei mal Happy
@@ -76,11 +57,6 @@ function spruch(nameRoh: string): string {
     ? `Happy birthday to you, dear ${name}! Enjoy your special day. This little video is just for you.`
     : "Happy birthday to you! Enjoy your special day. This little video is just for you.";
 }
-
-const MOTION_PROMPT =
-  "They smile warmly and gently present the chocolate cake slightly towards the camera. " +
-  "Subtle natural movement of head, hair and shoulders, the candle flame flickers softly. " +
-  "Calm elegant celebratory energy.";
 
 /** Kundenfoto (Daten-URL oder https-Adresse) als Bytes — mit Deckel gegen Riesendateien. */
 async function fotoBytes(person: string): Promise<Buffer | null> {
@@ -101,14 +77,14 @@ async function fotoBytes(person: string): Promise<Buffer | null> {
 }
 
 /** Das Avatar bei OpenAI — Qualität medium („medum reicht"), mit Rückfall aufs Basismodell. */
-async function avatarBauen(foto: Buffer): Promise<{ bild?: Buffer; error?: string }> {
+async function avatarBauen(foto: Buffer, prompt: string): Promise<{ bild?: Buffer; error?: string }> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return { error: "OPENAI_API_KEY fehlt." };
   const modell = process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-1";
   const lauf = async (model: string) => {
     const fd = new FormData();
     fd.append("model", model);
-    fd.append("prompt", AVATAR_PROMPT);
+    fd.append("prompt", prompt);
     fd.append("size", "1024x1536");
     fd.append("quality", "medium");
     fd.append("image[]", new Blob([new Uint8Array(foto)], { type: "image/jpeg" }), "person.jpg");
@@ -128,7 +104,14 @@ export async function POST(request: Request) {
   const heygen = process.env.HEYGEN_API_KEY?.trim();
   if (!heygen) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
 
-  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string; audio?: string };
+  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string; audio?: string; look?: string };
+  /**
+   * DER GEWÄHLTE LOOK (Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen").
+   * Unbekannt oder gar nicht mitgeschickt ergibt den abgenommenen — ein Auftrag, der vor
+   * dieser Wahl entstanden ist (etwa im Nachliefer-Wachhund), bekommt damit genau das
+   * Video, das er bestellt hat.
+   */
+  const look = geburtstagLook(body.look);
   /**
    * KEIN GRATIS-WEG: Erzeugt wird für Personal (PIN) oder für einen bezahlten Auftrag
    * (`genId` aus dem Kassenweg — dieselbe Vertrauensstufe wie die Pixverse-Route; die
@@ -144,7 +127,7 @@ export async function POST(request: Request) {
   if (!foto) return NextResponse.json({ error: "Kundenfoto fehlt oder ist zu gross." }, { status: 400 });
 
   // 1) Avatar bauen
-  const avatar = await avatarBauen(foto);
+  const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));
   if (!avatar.bild) return NextResponse.json({ error: avatar.error }, { status: 502 });
 
   // 2) Avatar als Look anmelden
@@ -196,7 +179,7 @@ export async function POST(request: Request) {
          Hochformat (`verhaeltnis`); eine feste 9:16-Stufe würde stattdessen beschneiden. */
       aspect_ratio: "auto",
       resolution: "720p",
-      motion_prompt: MOTION_PROMPT,
+      motion_prompt: look.bewegung,
       expressiveness: "medium",
       engine: { type: "avatar_iv" },
     }),
