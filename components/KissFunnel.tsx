@@ -20,7 +20,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
@@ -258,14 +258,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, or upload a photo instead.", erst: "Record yourself first" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser — oder lade ein Foto hoch.", erst: "Erst aufnehmen" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser — sau încarcă o poză.", erst: "Întâi înregistrează-te" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador — o sube una foto.", erst: "Primero grábate" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur — ou envoie une photo.", erst: "Enregistre-toi d'abord" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador — ou envia uma foto.", erst: "Primeiro grava-te" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser — o carica una foto.", erst: "Prima registrati" },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -434,6 +434,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * bekommen Musik, weil ihre Tonspur bei jeder Schleife von vorn ansetzt.
    */
   const eigenerTon = variant === "birthday";
+  /**
+   * DER GEBURTSTAG NIMMT SICH SELBST AUF, STATT EIN FOTO HOCHZULADEN (Owner 07.08.2026:
+   * „Das ganze ist zu kompliziert. Wir brauchen nur das. Dein Name, szene auswählen dan
+   * button Selbstaufnehmen mit dem script was er sagen soll" · „dann generieren").
+   *
+   * Aus dem Video kommen Standbild UND Stimme (siehe `aufnahmeStart`) — der Foto-Upload
+   * und die Wahl zwischen Frauen- und Männerstimme sind damit überflüssig. Vier Dinge
+   * bleiben: Name, Look, Aufnahme, Erzeugen.
+   *
+   * Der Upload ist nicht gelöscht, nur zur Seite gestellt: Verweigert jemand Kamera oder
+   * Mikrofon (`kameraAus`), erscheint er wieder. Ein Trichter mit genau EINEM Weg ist
+   * eine Sackgasse, sobald dieser Weg versperrt ist.
+   */
+  const selbstVideo = variant === "birthday";
+  /** Die Worte der Aufnahme-Zeile — auch der Kaufknopf braucht sie, nicht nur der Kasten. */
+  const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
   const [aufladeWahl, setAufladeWahl] = useState(false);
   /** Im Auflade-Waehler: Adresse steht offen im Feld und ist noch nicht bestaetigt. */
@@ -454,7 +470,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Vorgabe Frau. Die DAUERLÖSUNG bleibt die eigene Stimme aus dem Selfie-Video
    * (Memory `geschenk-kette-openai-heygen`) — bis dahin trägt diese Wahl.
    */
-  const [stimme, setStimme] = useState<"frau" | "mann">("frau");
+  /* Seit dem 07.08. waehlt niemand mehr: Der Geburtstag spricht immer mit der eigenen
+     Aufnahme. Der Wert bleibt als Rueckfall im Auftrag, falls eine Aufnahme fehlt. */
+  const stimme: "frau" | "mann" = "frau";
   /**
    * WELCHER LOOK (Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen. Die
    * müssen absolut cool werden. Es gibt jetzt nur eins die Frau mit der Torte").
@@ -476,35 +494,104 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * audio/webm — beides wird als Daten-URL verschickt, der Server legt es ab und HeyGen
    * synchronisiert die Lippen darauf.
    */
-  const [eigene, setEigene] = useState(false);        // dritter Chip gewählt?
   const [aufnahme, setAufnahme] = useState("");       // die Aufnahme als Daten-URL
   const [nimmtAuf, setNimmtAuf] = useState(false);
+  /** Kamera oder Mikrofon verweigert — dann erscheint der Foto-Upload als Ausweichweg. */
+  const [kameraAus, setKameraAus] = useState(false);
   const aufnehmerRef = useRef<MediaRecorder | null>(null);
   const stueckeRef = useRef<Blob[]>([]);
+  /** Das Bild, in dem man sich beim Sprechen sieht. */
+  const vorschauRef = useRef<HTMLVideoElement | null>(null);
+  /**
+   * DAS ERSTE BILD DER AUFNAHME — daraus wird das Avatar.
+   *
+   * Ein Video liefert beides, was die Kette braucht: ein Gesicht und eine Stimme. Das
+   * Standbild ziehen wir im Browser heraus, damit nichts Zusätzliches hochgeladen werden
+   * muss. NICHT das allererste Bild: In der ersten halben Sekunde regelt die Kamera noch
+   * Helligkeit und Schärfe, und ein verwaschenes Bild wäre die Vorlage für alles Weitere.
+   */
+  const standbildZiehen = (blobUrl: string): Promise<string> => new Promise(fertig => {
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = blobUrl;
+    const abbruch = setTimeout(() => fertig(""), 6000);
+    const malen = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        const ctx = c.getContext("2d");
+        if (!ctx || !c.width) { clearTimeout(abbruch); return fertig(""); }
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        clearTimeout(abbruch);
+        fertig(c.toDataURL("image/jpeg", 0.9));
+      } catch { clearTimeout(abbruch); fertig(""); }
+    };
+    v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 2); };
+    v.onseeked = malen;
+    v.onerror = () => { clearTimeout(abbruch); fertig(""); };
+  });
+
+  /**
+   * EINE AUFNAHME, ZWEI ZWECKE (Owner 07.08.2026: „wenn ich mich selbst aufnehme brauche
+   * ich doch kein bild upload" · „Wir brauchen nur das. Dein Name, szene auswählen dan
+   * button Selbstaufnehmen mit dem script was er sagen soll").
+   *
+   * Das Video liefert das Standbild (→ Avatar) UND den Ton (→ die eigene Stimme; HeyGen
+   * nimmt eine Videodatei als `audio_url` und zieht die Tonspur selbst heraus, am
+   * 07.08. bewiesen). Damit fällt der Foto-Upload weg — ein Schritt weniger.
+   *
+   * KLEIN AUFNEHMEN IST PFLICHT, kein Feinschliff: Die Datei reist als Daten-URL im
+   * JSON-Körper, und Vercel nimmt nur rund 4,5 MB an (Memory
+   * `large-uploads-direct-to-supabase`). 480×640 bei 700 kbit/s ergibt in zwölf Sekunden
+   * gut ein Megabyte, als Base64 knapp anderthalb — das passt. In 720p wäre derselbe
+   * Satz das Vielfache und der Auftrag würde am Tor abgewiesen.
+   */
   const aufnahmeStart = async () => {
     try {
-      const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const typ = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.("audio/mp4")
-        ? "audio/mp4"
-        : MediaRecorder.isTypeSupported?.("audio/webm") ? "audio/webm" : "";
-      const rec = new MediaRecorder(strom, typ ? { mimeType: typ } : undefined);
+      const strom = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 640 }, frameRate: { ideal: 24 } },
+      });
+      const typ = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.("video/mp4")
+        ? "video/mp4"
+        : MediaRecorder.isTypeSupported?.("video/webm") ? "video/webm" : "";
+      const rec = new MediaRecorder(strom, {
+        ...(typ ? { mimeType: typ } : {}),
+        videoBitsPerSecond: 700_000,
+        audioBitsPerSecond: 64_000,
+      });
       stueckeRef.current = [];
       rec.ondataavailable = ev => { if (ev.data.size) stueckeRef.current.push(ev.data); };
       rec.onstop = () => {
         strom.getTracks().forEach(t => t.stop());
-        const blob = new Blob(stueckeRef.current, { type: rec.mimeType || "audio/webm" });
-        const leser = new FileReader();
-        leser.onloadend = () => setAufnahme(String(leser.result || ""));
-        leser.readAsDataURL(blob);
-        setNimmtAuf(false);
+        if (vorschauRef.current) vorschauRef.current.srcObject = null;
+        const blob = new Blob(stueckeRef.current, { type: rec.mimeType || "video/webm" });
+        const url = URL.createObjectURL(blob);
+        /* Erst das Standbild, dann die Daten-URL: Wer den Kaufknopf sofort sieht, aber ohne
+           Bild dasteht, hat einen Knopf, der nichts erzeugen kann. */
+        void standbildZiehen(url).then(bild => {
+          if (bild) { setCustomModel(bild); setUseCustom(true); }
+          URL.revokeObjectURL(url);
+          const leser = new FileReader();
+          leser.onloadend = () => setAufnahme(String(leser.result || ""));
+          leser.readAsDataURL(blob);
+          setNimmtAuf(false);
+        });
       };
       rec.start();
       aufnehmerRef.current = rec;
-      setAufnahme(""); setNimmtAuf(true);
-      /* 15 Sekunden reichen für den Satz dreimal — ein vergessener Stopp soll keine
-         Riesendatei erzeugen. */
-      setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 15000);
-    } catch { setNimmtAuf(false); /* Mikrofon verweigert — die Chips bleiben der Weg. */ }
+      setAufnahme(""); setKameraAus(false); setNimmtAuf(true);
+      /* Die LIVE-Vorschau, damit man sich beim Sprechen sieht — ohne sie filmt man blind
+         die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
+         nächsten Durchlauf. */
+      setTimeout(() => { if (vorschauRef.current) { vorschauRef.current.srcObject = strom; void vorschauRef.current.play().catch(() => {}); } }, 0);
+      /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
+         Datei erzeugen, die das Tor abweist. */
+      setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+    } catch {
+      /* Kamera oder Mikrofon verweigert — dann bleibt der Foto-Upload als Weg, sonst
+         steht der Käufer vor einer Tür ohne Klinke. */
+      setNimmtAuf(false); setKameraAus(true);
+    }
   };
   const aufnahmeStopp = () => { try { aufnehmerRef.current?.stop(); } catch { /**/ } };
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
@@ -1970,7 +2057,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look,
           /* Die eigene Aufnahme schlägt die Chip-Stimme — aber nur, wenn der Chip gewählt
              UND wirklich etwas aufgenommen ist. */
-          ...(eigene && aufnahme ? { audio: aufnahme } : {}) }),
+          /* Die Aufnahme schlägt die Chip-Stimme. Beim Geburtstag ist sie der einzige
+             Weg, also braucht es kein `eigene` mehr davor. */
+          ...(aufnahme ? { audio: aufnahme } : {}) }),
       }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -2940,6 +3029,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {schritt === 1 && (<>
       {/* Ohne Katalog heisst der Schritt nicht mehr „Waehle sie" — es gibt nichts zu waehlen.
           Und der Hinweis „oder wische zu einer von uns" waere schlicht falsch. */}
+      {/**
+        * DER GANZE FOTO-BLOCK ENTFAELLT BEIM GEBURTSTAG (Owner 07.08.2026, mit Bild vom
+        * Abschnitt „Dein Foto": „das brauchen wir nicht").
+        *
+        * Die Aufnahme weiter unten liefert das Bild selbst — Ueberschrift, Anleitung und
+        * Upload-Karussell waeren drei Abschnitte fuer einen Schritt, den es nicht mehr
+        * gibt. Sie kommen zurueck, sobald jemand Kamera oder Mikrofon verweigert
+        * (`kameraAus`): Dann ist der Upload wieder der einzige Weg, und ohne die Anleitung
+        * lieferte er schlechte Fotos.
+        */}
+      {(!selbstVideo || kameraAus) && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.nurEigenes ? T.upTitle : T.step1}</p>
       {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
           es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
@@ -3055,7 +3155,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         </div>
       )}
 
-      {!V.paarUpload && (() => {
+      </>)}
+
+      {(!selbstVideo || kameraAus) && !V.paarUpload && (() => {
         // Ohne Katalog gibt es nichts zu laden — sonst dreht sich hier ewig ein Rad.
         if (!V.nurEigenes && models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
@@ -3222,7 +3324,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {/* Die Stimmen-Wahl direkt unterm Namen: Der Name ist das, was GESPROCHEN wird —
               die Stimme gehört daneben, nicht in einen eigenen Schritt. */}
           {variant === "birthday" && (() => {
-            const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
             /* Der Satz, den die Kette spricht — WÖRTLICH derselbe wie in der Route, damit
                das Vorgelesene und das Erzeugte nie auseinanderlaufen. */
             const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! Enjoy your special day. This little video is just for you.`;
@@ -3243,35 +3344,57 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                     <BildWahl wert={look} waehle={setLook} bilder={GEBURTSTAG_LOOKS} className="justify-center" />
                   </div>
                 )}
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span className="text-[11px] font-bold text-white/55">{SW.frage}</span>
-                  <Knopf art="chip" aktiv={!eigene && stimme === "frau"} onClick={() => { setEigene(false); setStimme("frau"); }}>{SW.frau}</Knopf>
-                  <Knopf art="chip" aktiv={!eigene && stimme === "mann"} onClick={() => { setEigene(false); setStimme("mann"); }}>{SW.mann}</Knopf>
-                  <Knopf art="chip" aktiv={eigene} onClick={() => setEigene(e => !e)}>🎙 {SW.selbst}</Knopf>
-                </div>
-                {eigene && (
-                  <div className="mt-3 rounded-xl border border-white/20 bg-white/[0.05] p-3 text-center">
-                    <p className="text-[11px] font-bold text-white/55">{SW.lies}</p>
-                    <p className="mt-1 text-[14px] font-black leading-snug text-white">{satz}</p>
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      {!nimmtAuf ? (
-                        <button type="button" onClick={() => void aufnahmeStart()}
-                          className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
-                          <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : "REC"}
-                        </button>
-                      ) : (
-                        <button type="button" onClick={aufnahmeStopp}
-                          className="flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-5 text-[14px] font-black text-white active:scale-95 transition">
-                          <Square className="h-4 w-4" /> {SW.stopp}
-                        </button>
-                      )}
-                    </div>
-                    {aufnahme && !nimmtAuf && (
-                      /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                      <audio controls src={aufnahme} className="mx-auto mt-3 h-9 w-full" />
+                {/**
+                  * DIE AUFNAHME STEHT OFFEN DA — kein Chip davor (Owner 07.08.2026: „Das
+                  * ganze ist zu kompliziert. Wir brauchen nur das … button Selbstaufnehmen
+                  * mit dem script was er sagen soll").
+                  *
+                  * Vorher lagen hier drei Chips (Frau · Mann · Selbst aufnehmen), und der
+                  * Satz erschien erst nach einem Tipp auf den dritten. Wer sich ohnehin
+                  * selbst aufnimmt, braucht keine Computerstimme zur Wahl — und ein
+                  * eingeklappter Schritt ist auf dem Handy ein Schritt, den niemand sieht
+                  * (derselbe Tag, zur Look-Reihe: „ich habe das unten gar nicht gesehen
+                  * weil das ausser screen war").
+                  */}
+                <div className="rounded-xl border border-white/20 bg-white/[0.05] p-3 text-center">
+                  <p className="text-[11px] font-bold text-white/75">{SW.lies}</p>
+                  <p className="mt-1 text-[14px] font-black leading-snug text-white">{satz}</p>
+                  {/* DAS BILD, IN DEM MAN SICH SIEHT — nur waehrend der Aufnahme. Ohne es
+                      spricht man in eine schwarze Flaeche und weiss nicht, ob man drauf ist.
+                      Gespiegelt wie ein Spiegel (`scaleX(-1)`), weil jede Selfie-Kamera das
+                      so zeigt; die AUFNAHME selbst bleibt unspiegelt. */}
+                  {nimmtAuf && (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video ref={vorschauRef} muted playsInline
+                      className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover"
+                      style={{ transform: "scaleX(-1)" }} />
+                  )}
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    {!nimmtAuf ? (
+                      <button type="button" onClick={() => void aufnahmeStart()}
+                        className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
+                        <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : SW.selbst}
+                      </button>
+                    ) : (
+                      <button type="button" onClick={aufnahmeStopp}
+                        className="flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-5 text-[14px] font-black text-white active:scale-95 transition">
+                        <Square className="h-4 w-4" /> {SW.stopp}
+                      </button>
                     )}
                   </div>
-                )}
+                  {/* Die eigene Aufnahme zum Anschauen — mit Ton, denn beides wird benutzt:
+                      das Standbild als Avatar, die Tonspur als Stimme. */}
+                  {aufnahme && !nimmtAuf && (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video controls playsInline src={aufnahme}
+                      className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover" />
+                  )}
+                  {kameraAus && (
+                    <p className="mt-2 text-[11px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
+                      {SW.kameraAus}
+                    </p>
+                  )}
+                </div>
               </div>
             );
           })()}
@@ -3280,7 +3403,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <button type="button"
         onClick={() => {
           if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) {
-            setWeiterHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst);
+            setWeiterHinweis(V.paarUpload && selPhoto ? T.uploadFirst : selbstVideo ? SW.erst : T.pickFirst);
             return;
           }
           setWeiterHinweis("");
@@ -3288,9 +3411,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           zustimmen(); wahlMerken(); setSchritt(V.paarUpload || V.nurSie ? 3 : 2);
         }}
         className={`lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition${(V.paarUpload ? (!selPhoto || !photo) : !selPhoto) ? " opacity-40" : ""}`}>
+        {/* OHNE AUFNAHME HEISST DER KNOPF NICHT „Lade dein Foto hoch" (Owner 07.08.2026:
+            „das brauchen wir nicht") — beim Geburtstag gibt es kein Foto mehr, das man
+            hochladen koennte. Er sagt dann, was wirklich fehlt: die Aufnahme. */}
         {V.paarUpload
           ? (selPhoto && photo ? (V.keinGratis ? T.nextPaid : T.next) : !selPhoto ? T.pickFirst : T.uploadFirst)
-          : (selPhoto ? (V.keinGratis ? T.nextPaid : T.next) : T.pickFirst)}
+          : (selPhoto ? (V.keinGratis ? T.nextPaid : T.next) : selbstVideo ? SW.erst : T.pickFirst)}
       </button>
       {weiterHinweis && (
         <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
@@ -3303,7 +3429,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           nicht verloren geht. */}
       <p className="mx-auto mt-2 max-w-[340px] text-center text-[10px] font-medium leading-snug text-white/45">
         {(() => {
-          const teile = T.zustimmung.split(/(\{agb\}|\{privacy\})/);
+          /* Ohne Foto-Upload waere „Mit dem Hochladen eines Fotos" schlicht falsch. */
+          const teile = (selbstVideo ? T.zustimmungAufnahme : T.zustimmung).split(/(\{agb\}|\{privacy\})/);
           return teile.map((t, i) =>
             t === "{agb}" ? <a key={i} href="/terms" target="_blank" rel="noreferrer" className="underline">{T.agbLink}</a>
             : t === "{privacy}" ? <a key={i} href="/privacy" target="_blank" rel="noreferrer" className="underline">{T.datenschutzLink}</a>

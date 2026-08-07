@@ -912,20 +912,35 @@ export function BildWahl({ bilder, wert, waehle, className = "" }: {
   className?: string;
 }) {
   return (
-    <div className={`lb-wisch flex gap-2 overflow-x-auto pb-1 ${className}`}>
+    /**
+     * DIE POLSTERUNG IST NICHT KOSMETIK (Owner 07.08.2026, mit Bild: „Der Rahmen ist
+     * abgeschnitten bei Bild 1"): Ein Ring liegt AUSSERHALB der Kachel, und eine
+     * Wisch-Fläche schneidet alles ab, was über ihren Rand ragt — bei der ersten und der
+     * letzten Kachel also genau die Hälfte des Rings. Die 6 px ringsum sind der Platz, den
+     * er braucht. `px-1.5` statt `pl-1.5`, sonst fehlt er am anderen Ende.
+     */
+    <div className={`lb-wisch flex gap-2 overflow-x-auto px-1.5 py-1.5 ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         return (
           <button key={b.id} type="button" onClick={() => waehle(b.id)}
             aria-pressed={an}
             className="shrink-0 text-center transition active:scale-95">
-            <span className={`block overflow-hidden rounded-xl ${an
+            {/**
+              * DAS MASS STEHT AM RAHMEN, NICHT AM BILD (Owner 07.08.2026: „bei 2 das Bild
+              * füllt nicht das format"). Trug das `img` die Grösse, bestimmte der Ring die
+              * Grösse des Rahmens mit — und ein Bild mit anderem Seitenverhältnis liess
+              * Rand stehen, statt die Fläche zu füllen. Jetzt hat der Rahmen ein festes
+              * Mass, und das Bild füllt ihn (`h-full w-full object-cover`), egal welches
+              * Verhältnis die Datei hat.
+              */}
+            <span className={`block h-[104px] w-[78px] overflow-hidden rounded-xl ${an
               ? "ring-2 ring-[#f6cf51] ring-offset-2 ring-offset-[#0b0a09]"
               : "ring-1 ring-white/20"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.bild} alt={b.name} className="h-[104px] w-[78px] object-cover" />
+              <img src={b.bild} alt={b.name} className="block h-full w-full object-cover" />
             </span>
-            <span className={`mt-1.5 block text-[11px] font-black ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+            <span className={`mt-1.5 block max-w-[78px] text-[11px] font-black leading-tight ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
               {b.name}
             </span>
           </button>

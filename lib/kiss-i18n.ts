@@ -154,7 +154,7 @@ export type KissText = {
   // Das Versprechen, das in jedem Schritt steht (Owner 30.07.2026).
   privat: string;
   // Das Haekchen vor der Erzeugung: AGB, Datenschutz, Speicherung, Angebote.
-  zustimmung: string; zustimmungFehlt: string; agbLink: string; datenschutzLink: string;
+  zustimmung: string; zustimmungAufnahme: string; zustimmungFehlt: string; agbLink: string; datenschutzLink: string;
   // Die im Abo enthaltenen Videos dieses Monats sind aufgebraucht.
   videosWeg: string;
   // Abonnent erkannt: wie viele Videos dieser Monat noch hergibt.
@@ -361,6 +361,9 @@ const EN: KissText = {
   einlWhatsapp: "Send the invitation", einlKopiert: "Link copied",
   privat: "🔒 Private: your photos always stay private. Your result is only published if you share it yourself.",
   zustimmung: "By uploading a photo and tapping Next you accept the {agb} and the {privacy}, and news & offers by email.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "By recording yourself and tapping Next you accept the {agb} and the {privacy}, and news & offers by email.",
   zustimmungFehlt: "Please accept the terms first.", agbLink: "terms", datenschutzLink: "privacy policy",
   videosWeg: "Your {videos} videos for this month are used up.",
   aboAktiv: (r, g) => `Subscription active · ${r} of ${g} videos left this month`,
@@ -485,6 +488,9 @@ const DE: KissText = {
   einlWhatsapp: "Einladung verschicken", einlKopiert: "Link kopiert",
   privat: "🔒 Privat: deine Fotos bleiben immer privat. Dein Ergebnis wird nur öffentlich, wenn du es selbst teilst.",
   zustimmung: "Mit dem Hochladen eines Fotos und mit „Weiter“ akzeptierst du die {agb} und die {privacy}, und News und Angebote per E-Mail.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "Mit deiner Aufnahme und mit „Weiter“ akzeptierst du die {agb} und die {privacy}, und News und Angebote per E-Mail.",
   zustimmungFehlt: "Bitte stimme zuerst zu.", agbLink: "AGB", datenschutzLink: "Datenschutzerklärung",
   videosWeg: "Deine {videos} Videos für diesen Monat sind aufgebraucht.",
   aboAktiv: (r, g) => `Abo aktiv · noch ${r} von ${g} Videos diesen Monat`,
@@ -609,6 +615,9 @@ const RO: KissText = {
   einlWhatsapp: "Trimite invitația", einlKopiert: "Link copiat",
   privat: "🔒 Privat: pozele tale rămân mereu private. Rezultatul devine public doar dacă îl distribui chiar tu.",
   zustimmung: "Încărcând o poză și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "Înregistrându-te și apăsând „Mai departe“ accepți {agb} și {privacy}, precum și noutățile și ofertele pe email.",
   zustimmungFehlt: "Te rog acceptă mai întâi.", agbLink: "termenii", datenschutzLink: "politica de confidențialitate",
   videosWeg: "Cele {videos} videoclipuri ale lunii s-au terminat.",
   aboAktiv: (r, g) => `Abonament activ · ${r} din ${g} videoclipuri rămase luna asta`,
@@ -733,6 +742,9 @@ const ES: KissText = {
   einlWhatsapp: "Enviar la invitación", einlKopiert: "Enlace copiado",
   privat: "🔒 Privado: tus fotos siempre quedan privadas. Tu resultado solo se publica si tú mismo lo compartes.",
   zustimmung: "Al subir una foto y pulsar Siguiente aceptas los {agb} y la {privacy}, y novedades y ofertas por email.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "Al grabarte y pulsar Siguiente aceptas los {agb} y la {privacy}, y novedades y ofertas por email.",
   zustimmungFehlt: "Acepta primero las condiciones.", agbLink: "términos", datenschutzLink: "política de privacidad",
   videosWeg: "Tus {videos} vídeos de este mes se han agotado.",
   aboAktiv: (r, g) => `Suscripción activa · te quedan ${r} de ${g} vídeos este mes`,
@@ -857,6 +869,9 @@ const FR: KissText = {
   einlWhatsapp: "Envoyer l’invitation", einlKopiert: "Lien copié",
   privat: "🔒 Privé : tes photos restent toujours privées. Ton résultat n'est publié que si tu le partages toi-même.",
   zustimmung: "En téléversant une photo et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "En t'enregistrant et en appuyant sur Suivant, tu acceptes les {agb} et la {privacy}, ainsi que les nouveautés et offres par e-mail.",
   zustimmungFehlt: "Merci d'accepter d'abord.", agbLink: "conditions", datenschutzLink: "politique de confidentialité",
   videosWeg: "Tes {videos} vidéos du mois sont épuisées.",
   aboAktiv: (r, g) => `Abonnement actif · ${r} vidéos sur ${g} restantes ce mois-ci`,
@@ -981,6 +996,9 @@ const PT: KissText = {
   einlWhatsapp: "Enviar o convite", einlKopiert: "Link copiado",
   privat: "🔒 Privado: as tuas fotos ficam sempre privadas. O teu resultado só é publicado se fores tu a partilhá-lo.",
   zustimmung: "Ao carregar uma foto e tocar em Seguinte aceitas os {agb} e a {privacy}, e novidades e ofertas por email.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "Ao gravares-te e tocar em Seguinte aceitas os {agb} e a {privacy}, e novidades e ofertas por email.",
   zustimmungFehlt: "Aceita primeiro as condições.", agbLink: "termos", datenschutzLink: "política de privacidade",
   videosWeg: "Os teus {videos} vídeos deste mês acabaram.",
   aboAktiv: (r, g) => `Subscrição ativa · faltam ${r} de ${g} vídeos este mês`,
@@ -1106,6 +1124,9 @@ const IT: KissText = {
   einlWhatsapp: "Invia l’invito", einlKopiert: "Link copiato",
   privat: "🔒 Privato: le tue foto restano sempre private. Il tuo risultato viene pubblicato solo se lo condividi tu.",
   zustimmung: "Caricando una foto e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
+  /* Wo es keinen Foto-Upload gibt (Geburtstag seit 07.08.2026), waere die Zusage zum
+     HOCHLADEN eines Fotos schlicht falsch — dieselbe Zusage, richtig benannt. */
+  zustimmungAufnahme: "Registrandoti e toccando Avanti accetti i {agb} e la {privacy}, e novità e offerte via email.",
   zustimmungFehlt: "Accetta prima le condizioni.", agbLink: "termini", datenschutzLink: "informativa privacy",
   videosWeg: "I tuoi {videos} video di questo mese sono finiti.",
   aboAktiv: (r, g) => `Abbonamento attivo · ${r} di ${g} video rimasti questo mese`,
