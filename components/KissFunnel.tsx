@@ -274,6 +274,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      Video wie vorher. */
   const beispiele = Array.from(new Set([...(beispielVideos ?? []), beispielVideo].filter(Boolean)));
   /**
+   * DAS POSTER HEISST WIE SEIN VIDEO (Owner 07.08.2026: „jetzt muss ich wissen warum beim
+   * ersten video ein poster fehlt").
+   *
+   * Eine Namensregel statt einer zweiten Liste: `/Kiss/kiss-beispiel.mp4` gehört zu
+   * `/Kiss/kiss-beispiel.jpg`. Zwei getrennte Listen laufen beim ersten neuen Video
+   * auseinander — bei einer Regel kann das nicht passieren, und wer ein Video dazulegt,
+   * legt das Standbild daneben, ohne im Code etwas zu ändern.
+   *
+   * Die Standbilder sind das erste Bild des eigenen Videos (ffmpeg, fest im Repo). Fehlt
+   * eines, ist es kein Fehler: Der Baustein zeigt dann den dunklen Grund wie bisher.
+   */
+  const posterZu = (url: string) => url.replace(/\.(mp4|mov|webm)(\?.*)?$/i, ".jpg");
+  /**
    * WAS VORN STEHT, WIRD NACHGETANZT (Owner 07.08.2026: „es ist eine kard zu viel auf der
    * Pool seite") — die eigene Auswahl-Karte (`TanzAuswahl`) ist von der Tanz-Seite
    * verschwunden; die Referenzen liegen jetzt als Folien IN dieser einen Karte, und als
@@ -2771,7 +2784,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   das Video und nichts darunter. */}
               <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
-              <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
+              <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}

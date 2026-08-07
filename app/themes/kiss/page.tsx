@@ -58,11 +58,22 @@ export default async function KissThemePage({ searchParams }: {
    * (`config.examplePaths`) dieselben Küsse noch einmal zeigten. Die stehen weiter im
    * Admin-Werkzeug, gerendert werden sie hier nicht mehr.
    */
+  /**
+   * NUR DATEIEN, DIE ES GIBT (Owner 07.08.2026: „jetzt muss ich wissen warum beim ersten
+   * video ein poster fehlt").
+   *
+   * Hier standen vier Namen, und ZWEI davon lagen nicht in `public/Kiss`: `kiss.mp4` und
+   * `1785526379575-f07947ab-…mp4`. Der Browser meldet dafuer `MediaError 4` und zeigt eine
+   * leere Flaeche — und weil die erste Folie eine davon war, empfing die Kuss-Seite jeden
+   * Besucher mit einem leeren Blatt. Ein fehlendes Poster war es nie; es fehlte das VIDEO.
+   *
+   * Dafuer lag `kiss-beispiel.mp4` ungenutzt daneben. Wer diese Liste anfasst, prueft die
+   * Namen gegen `ls public/Kiss` — ein Tippfehler ist hier unsichtbar, bis die Karte leer ist.
+   */
   const examples: string[] = [
-    "/Kiss/kiss.mp4",
+    "/Kiss/kiss-beispiel.mp4",
     "/Kiss/Video4-kiss-normal.mp4",
     "/Kiss/kiss-stand-close.mp4",
-    "/Kiss/1785526379575-f07947ab-363f-4b74-85bf-89aebaff8e31.mp4",
   ];
 
   /* Die Cover der anderen Themen wurden nur fuer „You might also love" geladen — acht
