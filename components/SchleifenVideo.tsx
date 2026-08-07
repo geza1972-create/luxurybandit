@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Play } from "lucide-react";
 
 /**
  * EIN VIDEO, DAS OHNE SCHNITT VON VORN BEGINNT.
@@ -57,7 +58,7 @@ function nachhelfen(v: HTMLVideoElement) {
 }
 
 export default function SchleifenVideo({
-  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover", natuerlich = false,
+  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover", natuerlich = false, autostart = true,
 }: {
   src: string;
   poster?: string;
@@ -95,10 +96,22 @@ export default function SchleifenVideo({
   schleife?: boolean;
   /** Zugriff auf den laufenden Spieler — fuer einen Ton-Knopf ausserhalb. */
   spielerRef?: React.RefObject<HTMLVideoElement | null>;
+  /**
+   * OHNE AUTOSTART WARTET DAS VIDEO AUF DEN TIPP (Owner 07.08.2026: „poster müssen geladen
+   * werden, und videos sollen nicht automatisch starten. Weil auf dem handy ewig dauert").
+   *
+   * Das ist der Trick, mit dem es überall „sofort da" wirkt: Erst steht NUR das Poster
+   * (ein Bild, lädt in einem Wimpernschlag) mit der Play-Scheibe darauf — kein einziges
+   * Video-Byte wird geladen, denn der Spieler wird erst beim Tipp eingehängt. Der Tipp
+   * ist zugleich die Nutzer-Geste, mit der jeder Browser auch ein Video MIT Ton anfahren
+   * lässt.
+   */
+  autostart?: boolean;
 }) {
   const a = useRef<HTMLVideoElement>(null);
   const b = useRef<HTMLVideoElement>(null);
   const [vorne, setVorne] = useState<"a" | "b">("a");
+  const [gestartet, setGestartet] = useState(autostart);
 
   /* Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann. */
   useEffect(() => { if (spielerRef) spielerRef.current = a.current; }, [spielerRef]);
@@ -135,7 +148,7 @@ export default function SchleifenVideo({
     }, 120);
     void va.play().catch(() => nachhelfen(va));
     return () => { laeuft = false; clearInterval(takt); };
-  }, [vorne, src, schleife]);
+  }, [vorne, src, schleife, gestartet]);
 
   /**
    * ZWEITE FALLE: BEIDE Spieler bleiben stumm. Waeren sie es nicht, hoerte man den Ton
@@ -147,6 +160,29 @@ export default function SchleifenVideo({
      Huelle auf; der hintere legt sich absolut darueber. Beide zeigen dieselbe Quelle, also
      passt er auf den Pixel. */
   const ersterKl = natuerlich ? `block h-auto w-full ${className}` : gemeinsam;
+  /* Vor dem Start: nur Poster + Play-Scheibe, kein <video> im Baum — null geladene Bytes.
+     Die Scheibe ist die weisse Haus-Scheibe (Skill `card`); sie steht hier von Hand, weil
+     `Scheibe` in CI.tsx wohnt und CI.tsx diesen Baustein importiert — der Import zurück
+     wäre ein Kreis. */
+  if (!gestartet) {
+    return (
+      <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
+        {poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" className={natuerlich ? `block h-auto w-full ${className}` : gemeinsam} />
+        ) : (
+          <div className="absolute inset-0 lb-media-bg" />
+        )}
+        <button type="button" aria-label="Play" onClick={() => setGestartet(true)}
+          className="absolute inset-0 z-10 grid place-items-center">
+          <span className="grid h-12 w-12 place-items-center rounded-full opacity-70 shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
+            style={{ background: "#fff" }}>
+            <Play className="h-5 w-5" style={{ color: "#1a160f" }} fill="#1a160f" />
+          </span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
