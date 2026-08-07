@@ -578,6 +578,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const aufnahmeStart = async () => {
     try {
+      /* Auf einer unverschluesselten Adresse gibt es `mediaDevices` gar nicht — dann
+         waere der Zugriff darauf ein nichtssagender TypeError. Lieber vorher fragen. */
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("KeineKameraSchnittstelle");
       const strom = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 640 }, frameRate: { ideal: 24 } },
@@ -636,10 +639,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
          Datei erzeugen, die das Tor abweist. */
       setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
-    } catch {
-      /* Kamera oder Mikrofon verweigert — dann bleibt der Foto-Upload als Weg, sonst
-         steht der Käufer vor einer Tür ohne Klinke. */
+    } catch (e) {
+      /**
+       * WARUM ES NICHT GING, GEHOERT AUF DEN BILDSCHIRM (Owner 07.08.2026: „Dann der Button
+       * geht nicht").
+       *
+       * „Geht nicht" hat hier mindestens vier Ursachen, und sie verlangen verschiedene
+       * Antworten: verweigerte Erlaubnis, gar keine Kamera am Geraet, ein Browser ohne
+       * `mediaDevices` (Safari gibt sie auf einer UNVERSCHLUESSELTEN Adresse nicht heraus —
+       * auf `http://localhost` also auch nicht), oder eine Kamera, die schon ein anderes
+       * Programm haelt. Ohne den Grund raet der Kaeufer, und wir raten mit.
+       *
+       * Der Name des Fehlers steht deshalb in Klammern dahinter. Er ist nicht schoen, aber
+       * er ist der Unterschied zwischen „erlaub es im Browser" und „nimm ein anderes Geraet".
+       */
+      /* Ein selbst geworfener Fehler heisst schlicht „Error" — dann sagt die Nachricht
+         mehr als der Name. Bei den Browser-Fehlern (NotAllowedError, NotFoundError,
+         NotReadableError) ist es umgekehrt. */
+      const grund = e instanceof Error ? (e.name === "Error" ? e.message : e.name) : "?";
       setNimmtAuf(false); setKameraAus(true);
+      setAufnahmeFehler(`${SW.kameraAus} (${grund})`);
     }
   };
   const aufnahmeStopp = () => { try { aufnehmerRef.current?.stop(); } catch { /**/ } };
@@ -1614,7 +1633,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * sich dort wie ein Werkzeug fuer ein fremdes Bild statt wie die Einladung, das eigene Foto
    * hochzuladen. `uploadYou` ist in allen sieben Sprachen gepflegt und sagt genau das.
    */
-  const kartenAufruf = V.nurSie ? T.uploadYou : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen;
+  /* „Lade dein Foto hoch" auf der Karte, wo es keinen Foto-Upload mehr gibt (Owner
+     07.08.2026: „da steht Lade dein Foto hoch erst mal ist falsch") — der Aufruf sagt
+     jetzt, was wirklich passiert. */
+  const kartenAufruf = selbstVideo ? SW.selbst
+    : V.nurSie ? T.uploadYou : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen;
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
