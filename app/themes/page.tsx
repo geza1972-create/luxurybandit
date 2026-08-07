@@ -355,7 +355,12 @@ export default async function ThemesCatalog({ searchParams }: {
     // KISS GANZ VORN (Owner 30.07.2026: „kiss musst du als erstes nehmen"). Auf dieses Thema
     // laufen die Anzeigen, dort steckt der fertige Trichter mit Kasse — was oben steht,
     // entscheidet, was die Leute anfassen. Bella rueckt auf Platz zwei.
-    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
+    /* POSTER-SWEEP 07.08.2026 (Owner, Kachel für Kachel: „bei Kuss [falsch] · Bei gutschein
+       fehlt · Bei Chat fehlt · Bei uralub falsch · Hochzeit auch falsch"): Jede Video-Kachel
+       trägt als Poster das ERSTE BILD ihres eigenen Videos (per ffmpeg gezogen) — und Video
+       wie Poster liegen als feste Dateien im Repo statt an ablaufenden signierten Links
+       (Dauerregel Memory `landingpage-video-ist-kachel-video`: eine Quelle, nie zwei). */
+    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: "/Kiss/kiss-poster.jpg", poster: "/Kiss/kiss-poster.jpg", video: "/Kiss/kiss-beispiel.mp4", chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
     /**
      * GUTSCHEIN VERPACKEN AUF PLATZ ZWEI (Konzept §3b: „Es ist das einzige Geschenkprodukt mit
      * gemessener Suchnachfrage — und es gehört deshalb an Platz zwei").
@@ -371,10 +376,10 @@ export default async function ThemesCatalog({ searchParams }: {
     /* NEUES PRODUKT SEIT 06.08.2026 (Owner: „der text stimmt nicht"): verkauft wird UNSER
        Gutschein — Geschenk oder Guthaben wählen, Bella bringt die Botschaft, die Karte geht
        per E-Mail raus. „dein Gesicht" und „dein Gutschein" gibt es nicht mehr. */
-    { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
+    { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: ph(9), video: weddingVideo || undefined, chips: "♥ Your photo · His photo · Invitation", abPreis: AB_HOCHZEIT },
+    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Your photo · His photo · Invitation", abPreis: AB_HOCHZEIT },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
@@ -390,13 +395,13 @@ export default async function ThemesCatalog({ searchParams }: {
        Bilderstapel — die Kachel zeigte irgendeine Frau, waehrend die Seite dahinter ein
        bestimmtes Video hat. Die Merkmale stimmten ebenfalls nicht mehr: „Looks" ist raus
        (das Anziehen ist weg) und „Free" gilt nur fuer die ersten Nachrichten. */
-    { icon: MessageCircle, title: "Chat with Bella", tagline: "One woman, one chat — she answers in your language, day after day.", href: "/themes/chat", video: "/Chat/Private%20Chat%20Invitation_1080p.mp4", chips: "♥ Chat · First messages free", abPreis: AB_CHAT },
+    { icon: MessageCircle, title: "Chat with Bella", tagline: "One woman, one chat — she answers in your language, day after day.", href: "/themes/chat", cover: "/Chat/chat-poster.jpg", poster: "/Chat/chat-poster.jpg", video: "/Chat/Private%20Chat%20Invitation_1080p.mp4", chips: "♥ Chat · First messages free", abPreis: AB_CHAT },
     /* URLAUB IST JETZT EINE EINLADUNG (Owner 04.08.2026). Hier stand „Holiday with your
        dream girl … 25 moments" — das alte Fantasie-Thema mit unserem Model-Katalog. Es lebt
        unverändert weiter als „Tenerife with Bella" (/themes/bella); unter DIESEM Namen lädt
        man ab heute einen echten Menschen ein. Preis wie die Hochzeit, weil es dieselbe
        Einladungs-Maschine ist — nicht mehr das Themen-Abo. */
-    { icon: Palmtree, title: "Holiday invitation video", tagline: "Ask someone to come away with you — a video of you both, already there.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · Their photo · Invitation", abPreis: AB_HOCHZEIT },
+    { icon: Palmtree, title: "Holiday invitation video", tagline: "Ask someone to come away with you — a video of you both, already there.", href: "/themes/holiday", cover: "/Holiday/urlaub-poster.jpg", poster: "/Holiday/urlaub-poster.jpg", video: "/Holiday/urlaub-beispiel.mp4", chips: "♥ Your photo · Their photo · Invitation", abPreis: AB_HOCHZEIT },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
