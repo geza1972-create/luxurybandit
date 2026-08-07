@@ -3755,8 +3755,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}
           {V.nurSie && variant !== "poledance" && !!V.garmentBild && (
+            /**
+              * DIE KARTE ZEIGT DEN GEWAEHLTEN LOOK (Owner 07.08.2026, mit Bild: „und ich
+              * waehle den Mann aus und am ende kommt die Frau").
+              *
+              * Hier stand `V.garmentBild` — beim Geburtstag ein FESTES Bild aus
+              * `lib/geschenke.ts` (das Black-Tie-Set). Seit es drei Looks zur Wahl gibt, war
+              * das schlicht falsch: Wer Skyline tippte, sah zwei Schritte spaeter wieder die
+              * Frau im schwarzen Kleid — also eine Ankuendigung, die nicht zu seinem Auftrag
+              * passt. Das ist der schlimmste Zeitpunkt dafuer: direkt ueber dem Kaufknopf.
+              */
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={neuerLook || V.garmentBild} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
+            <img src={selbstVideo
+              ? ((GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).bild)
+              : (neuerLook || V.garmentBild)}
+              alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}
           {!V.nurSie && photo && (
             <div className="relative">
