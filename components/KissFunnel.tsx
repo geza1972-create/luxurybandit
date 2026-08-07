@@ -7,7 +7,7 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // Aliasiert: `T.mailVorschlag` ist der TEXT, `mailTippfehler` die Pruefung — zwei Dinge,
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2 } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, GEBURTSTAG_CENTS, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
@@ -256,15 +256,15 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * `beispielVideo` bleibt als Prop bestehen, weil mehrere Seiten es so uebergeben; es ist
  * schlicht der erste Eintrag der Liste.
  */
-/** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, zwei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo" },
+/** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo" },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -441,6 +441,44 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * (Memory `geschenk-kette-openai-heygen`) — bis dahin trägt diese Wahl.
    */
   const [stimme, setStimme] = useState<"frau" | "mann">("frau");
+  /**
+   * DIE EIGENE STIMME (Owner 07.08.2026: „ok, dann machen wir das"): Ein Mikro-Knopf
+   * nimmt den vorgelesenen Satz auf (max. 15 s), man hört ihn vor, und beim Erzeugen
+   * geht die Aufnahme statt der Computerstimme mit. iPhone liefert audio/mp4, Android
+   * audio/webm — beides wird als Daten-URL verschickt, der Server legt es ab und HeyGen
+   * synchronisiert die Lippen darauf.
+   */
+  const [eigene, setEigene] = useState(false);        // dritter Chip gewählt?
+  const [aufnahme, setAufnahme] = useState("");       // die Aufnahme als Daten-URL
+  const [nimmtAuf, setNimmtAuf] = useState(false);
+  const aufnehmerRef = useRef<MediaRecorder | null>(null);
+  const stueckeRef = useRef<Blob[]>([]);
+  const aufnahmeStart = async () => {
+    try {
+      const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const typ = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.("audio/mp4")
+        ? "audio/mp4"
+        : MediaRecorder.isTypeSupported?.("audio/webm") ? "audio/webm" : "";
+      const rec = new MediaRecorder(strom, typ ? { mimeType: typ } : undefined);
+      stueckeRef.current = [];
+      rec.ondataavailable = ev => { if (ev.data.size) stueckeRef.current.push(ev.data); };
+      rec.onstop = () => {
+        strom.getTracks().forEach(t => t.stop());
+        const blob = new Blob(stueckeRef.current, { type: rec.mimeType || "audio/webm" });
+        const leser = new FileReader();
+        leser.onloadend = () => setAufnahme(String(leser.result || ""));
+        leser.readAsDataURL(blob);
+        setNimmtAuf(false);
+      };
+      rec.start();
+      aufnehmerRef.current = rec;
+      setAufnahme(""); setNimmtAuf(true);
+      /* 15 Sekunden reichen für den Satz dreimal — ein vergessener Stopp soll keine
+         Riesendatei erzeugen. */
+      setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 15000);
+    } catch { setNimmtAuf(false); /* Mikrofon verweigert — die Chips bleiben der Weg. */ }
+  };
+  const aufnahmeStopp = () => { try { aufnehmerRef.current?.stop(); } catch { /**/ } };
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
   const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
   /**
@@ -1901,7 +1939,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
         // weist wie bei Pixverse den bezahlten Auftrag aus.
-        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme }),
+        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme,
+          /* Die eigene Aufnahme schlägt die Chip-Stimme — aber nur, wenn der Chip gewählt
+             UND wirklich etwas aufgenommen ist. */
+          ...(eigene && aufnahme ? { audio: aufnahme } : {}) }),
       }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -3154,11 +3195,40 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               die Stimme gehört daneben, nicht in einen eigenen Schritt. */}
           {variant === "birthday" && (() => {
             const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
+            /* Der Satz, den die Kette spricht — WÖRTLICH derselbe wie in der Route, damit
+               das Vorgelesene und das Erzeugte nie auseinanderlaufen. */
+            const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! Enjoy your special day. This little video is just for you.`;
             return (
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <span className="text-[11px] font-bold text-white/55">{SW.frage}</span>
-                <Knopf art="chip" aktiv={stimme === "frau"} onClick={() => setStimme("frau")}>{SW.frau}</Knopf>
-                <Knopf art="chip" aktiv={stimme === "mann"} onClick={() => setStimme("mann")}>{SW.mann}</Knopf>
+              <div className="mt-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span className="text-[11px] font-bold text-white/55">{SW.frage}</span>
+                  <Knopf art="chip" aktiv={!eigene && stimme === "frau"} onClick={() => { setEigene(false); setStimme("frau"); }}>{SW.frau}</Knopf>
+                  <Knopf art="chip" aktiv={!eigene && stimme === "mann"} onClick={() => { setEigene(false); setStimme("mann"); }}>{SW.mann}</Knopf>
+                  <Knopf art="chip" aktiv={eigene} onClick={() => setEigene(e => !e)}>🎙 {SW.selbst}</Knopf>
+                </div>
+                {eigene && (
+                  <div className="mt-3 rounded-xl border border-white/20 bg-white/[0.05] p-3 text-center">
+                    <p className="text-[11px] font-bold text-white/55">{SW.lies}</p>
+                    <p className="mt-1 text-[14px] font-black leading-snug text-white">{satz}</p>
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      {!nimmtAuf ? (
+                        <button type="button" onClick={() => void aufnahmeStart()}
+                          className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
+                          <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : "REC"}
+                        </button>
+                      ) : (
+                        <button type="button" onClick={aufnahmeStopp}
+                          className="flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-5 text-[14px] font-black text-white active:scale-95 transition">
+                          <Square className="h-4 w-4" /> {SW.stopp}
+                        </button>
+                      )}
+                    </div>
+                    {aufnahme && !nimmtAuf && (
+                      /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                      <audio controls src={aufnahme} className="mx-auto mt-3 h-9 w-full" />
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}

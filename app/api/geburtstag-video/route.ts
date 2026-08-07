@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
 
 /**
  * DIE GEBURTSTAGS-KETTE — der Kundenweg der am 07.08.2026 abgenommenen Vorlage
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
   const heygen = process.env.HEYGEN_API_KEY?.trim();
   if (!heygen) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
 
-  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string };
+  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string; audio?: string };
   /**
    * KEIN GRATIS-WEG: Erzeugt wird für Personal (PIN) oder für einen bezahlten Auftrag
    * (`genId` aus dem Kassenweg — dieselbe Vertrauensstufe wie die Pixverse-Route; die
@@ -142,15 +143,43 @@ export async function POST(request: Request) {
   const lookId = up?.data?.talking_photo_id;
   if (!lookId) return NextResponse.json({ error: "HeyGen-Look-Anmeldung fehlgeschlagen." }, { status: 502 });
 
+  /**
+   * DIE EIGENE STIMME (Owner 07.08.2026: „es ist möglich, dass der user seine stimme
+   * aufnimmt? einen satzt vorliesst?" → „ok, dann machen wir das"): Kommt eine Aufnahme
+   * mit, spricht das Avatar GENAU sie — lippensynchron, in jeder Sprache, und „das ist
+   * nicht meine Stimme" ist damit vollständig erledigt. Die Aufnahme wandert in UNSEREN
+   * Speicher (HeyGen holt sie per signiertem Link) — kein Format-Ratespiel beim
+   * HeyGen-Asset-Upload, und wir behalten sie für Support-Fälle. Ohne Aufnahme gilt die
+   * Chip-Wahl (Joy/Daniel) wie bisher. Scheitert ein Neustart über den Wachhund, fällt
+   * er auf die Chip-Stimme zurück — die Aufnahme liegt nur im Startaufruf, nicht im
+   * Auftrag (bewusst, ein eigener Ausbauschritt).
+   */
+  let audioUrl = "";
+  if (body.audio?.startsWith("data:audio")) {
+    const mime = body.audio.slice(5, body.audio.indexOf(";"));
+    const bytes = Buffer.from(body.audio.slice(body.audio.indexOf(",") + 1), "base64");
+    if (bytes.length > 2_000 && bytes.length < 6_000_000) {
+      const ext = mime.includes("mp4") ? "m4a" : mime.includes("mpeg") ? "mp3" : "webm";
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+      const pfad = await uploadTryThisLookBytes("uploads", ab, mime, ext).catch(() => "");
+      if (pfad) audioUrl = (await getSignedUrl(pfad).catch(() => "")) || "";
+    }
+    if (!audioUrl) return NextResponse.json({ error: "Die Aufnahme kam nicht an — bitte neu aufnehmen oder eine Stimme wählen." }, { status: 400 });
+  }
+
   // 3) Video über den AKTUELLEN Endpunkt (v3; der alte av4-Weg fällt am 31.10.2026 weg)
   const gen = await fetch("https://api.heygen.com/v3/videos", {
     method: "POST", headers: { ...H, "Content-Type": "application/json" },
     body: JSON.stringify({
       type: "avatar",
       avatar_id: lookId,
-      script: spruch(body.name ?? ""),
-      voice_id: body.stimme === "mann" ? VOICE_MANN : VOICE_FRAU,
-      voice_settings: { speed: 1.0 },
+      ...(audioUrl
+        ? { audio_url: audioUrl }
+        : {
+            script: spruch(body.name ?? ""),
+            voice_id: body.stimme === "mann" ? VOICE_MANN : VOICE_FRAU,
+            voice_settings: { speed: 1.0 },
+          }),
       /* „auto" übernimmt das Format des Looks (2:3 aus OpenAI) — die Karte trägt jedes
          Hochformat (`verhaeltnis`); eine feste 9:16-Stufe würde stattdessen beschneiden. */
       aspect_ratio: "auto",
