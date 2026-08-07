@@ -46,11 +46,22 @@ import TonKnopf from "@/components/TonKnopf";
 const HOCHZEITS_MUSIK = "/mickeyscat-moment-of-peace-mickeyscat-554494.mp3";
 
 export default function EinladungAnsicht({
-  id, videoUrl, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
+  id, videoUrl, poster, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
   originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]",
   teilen, grossText = "", kleinText = "",
 }: {
   id: string; videoUrl: string;
+  /**
+   * DAS STANDBILD, DAS STEHT, BEVOR DAS VIDEO DA IST (Owner 07.08.2026: „jetzt muss ich
+   * wissen warum beim ersten video ein poster fehlt").
+   *
+   * Diese Ansicht kannte bis dahin GAR KEINS — kein einziges Beispielvideo im Haus hatte
+   * eines. Solange alles von selbst startete, fiel es nicht auf; seit die Videos auf den
+   * Tipp warten, steht ohne Poster eine leere Flaeche da, wo das Angebot stehen sollte.
+   * Und wenn eine Videodatei fehlt, ist die Karte ohne Poster vollstaendig leer, statt
+   * wenigstens das Bild zu zeigen.
+   */
+  poster?: string;
   /** In der Vorschau im Trichter wird NICHT gezaehlt — sonst zaehlt sich die Kundin selbst
    *  als Gast, und die eine Zahl, an der die Idee gemessen wird, waere geschoent. */
   zaehlen?: boolean;
