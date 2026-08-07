@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
+import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
@@ -209,5 +209,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `HeyGen-Start fehlgeschlagen: ${(gen as { error?: { message?: string } | null })?.error?.message ?? "keine Kennung"}` }, { status: 502 });
   }
 
-  return NextResponse.json({ ok: true, videoId: `hg:${videoId}`, status: "processing" });
+  /**
+   * POSTER UND GESICHT IN DEN AUFTRAG (Owner 07.08.2026 abends: „tolles poster (ironisch)
+   * ich sehe nichts" — die Ergebnis-Karte zeigte eine leere braune Fläche).
+   *
+   * Das Avatar-Bild IST das erste Vollbild des Videos — es lag schon in der Hand und wurde
+   * weggeworfen. Jetzt: hochladen, als `imagePath` in den Auftrag (Galerie-Poster), als
+   * `posterUrl` in die Antwort (Ergebnis-Karte sofort). Und das KUNDENFOTO als `personPath`
+   * dazu — bis heute wurde es NIRGENDS gespeichert: Der Nachliefer-Wachhund konnte nach
+   * einem Browser-Schluss nur mit dem falschen alten `modelPath` neu starten, und kein
+   * Ähnlichkeitstest war je nachprüfbar (Fall 24eb8a77: im Auftrag hing das Beispielbild
+   * einer Frau, während der Kunde sich selbst gefilmt hatte).
+   *
+   * NACH dem HeyGen-Start, nicht davor: Die Uploads kosten ~1–2 s, und die gehören nicht
+   * zwischen Klick und Auftragsstart. Scheitert hier etwas, fehlt nur das Poster — das
+   * Video selbst läuft längst.
+   */
+  let posterUrl = "";
+  try {
+    const pb = avatar.bild.buffer.slice(avatar.bild.byteOffset, avatar.bild.byteOffset + avatar.bild.byteLength) as ArrayBuffer;
+    const posterPfad = await uploadTryThisLookBytes("uploads", pb, "image/png", "png");
+    posterUrl = (await getSignedUrl(posterPfad).catch(() => "")) || "";
+    let personPfad = "";
+    try {
+      const fb = foto.buffer.slice(foto.byteOffset, foto.byteOffset + foto.byteLength) as ArrayBuffer;
+      personPfad = await uploadTryThisLookBytes("uploads", fb, "image/jpeg", "jpg");
+    } catch { /* das Gesicht ist Beigabe zum Poster — nie der Grund zu scheitern */ }
+    const genIdStr = String(body.genId ?? "").trim();
+    if (genIdStr) {
+      const entries = await readKissLog();
+      const eintrag = entries.find(x => x.id === genIdStr);
+      if (eintrag) {
+        eintrag.imagePath = posterPfad;
+        if (personPfad) eintrag.personPath = personPfad;
+        await writeKissLog(entries);
+      }
+    }
+  } catch { /* Poster ist Beigabe — am gestarteten Video ändert ein Fehlschlag nichts */ }
+
+  return NextResponse.json({ ok: true, videoId: `hg:${videoId}`, status: "processing", ...(posterUrl ? { posterUrl } : {}) });
 }

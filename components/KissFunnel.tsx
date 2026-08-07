@@ -507,6 +507,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * die Tonspur als WAV mit; das Video bleibt der Rückfall, falls das Dekodieren scheitert.
    */
   const [tonspur, setTonspur] = useState("");
+  /**
+   * DAS POSTER DES ERGEBNIS-VIDEOS (Owner 07.08.2026 abends: „tolles poster (ironisch)
+   * ich sehe nichts"). Beim Geburtstag liefert die Route das Avatar-Bild als `posterUrl`
+   * mit — es ist das erste Vollbild des Videos. Ohne Poster zeigt die Karte bis zum
+   * ersten Tipp eine leere Fläche (Hausregel video-playback-behavior: nie schwarz).
+   */
+  const [videoPoster, setVideoPoster] = useState("");
   const [nimmtAuf, setNimmtAuf] = useState(false);
   /** Kamera oder Mikrofon verweigert — dann erscheint der Foto-Upload als Ausweichweg. */
   const [kameraAus, setKameraAus] = useState(false);
@@ -2409,6 +2416,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * schliesst er das Fenster, bringt `/api/kiss-deliver` DENSELBEN Auftrag zu Ende und
        * schickt das Video per Mail — statt einen zweiten zu bezahlen.
        */
+      /* Das Poster aus der Antwort — die Route hat das Avatar-Bild hochgeladen; es ist das
+         erste Vollbild des Videos und gehört auf die Karte, bevor jemand tippt. */
+      if (start.posterUrl) setVideoPoster(String(start.posterUrl));
       if (genId) {
         void fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -3046,7 +3056,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {/* Die drei Symbole setzt die Karte selbst (Skill `card`): Vergroessern links,
                   Ton rechts, Teilen darunter. Der Teilen-Knopf stand hier von Hand links
                   oben — eine von sechs solchen Stellen. */}
-              <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+              <EinladungAnsicht id="" videoUrl={videoUrl} poster={videoPoster || undefined} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: V.musik, tonAutomatisch: true })}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
