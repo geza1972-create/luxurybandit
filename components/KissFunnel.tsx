@@ -2552,10 +2552,37 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * ihn danach noch einmal auf den Kaufknopf zu schicken, waere eine zweite Huerde.
            */
           if (einmal === "auflade") {
-            if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
             if (s.gutgeschrieben === 0) setAufladeNull(true);   // 100-%-Code: bezahlt, aber 0 € wert
             trackMetaPixel("Purchase", { currency: "EUR", content_name: "Account credit" });
-            nachAufladungWeiter();
+            /**
+             * NICHT DIREKT WEITERKAUFEN (Owner 07.08.2026: „wieso ist die generierung
+             * unterbrochen?" — Chip 5,00 €, und trotzdem stand der Wähler wieder da).
+             *
+             * GEMESSEN: `nachAufladungWeiter()` lief hier SYNCHRON — aus der Closure dieses
+             * Polls, in der `guthabenCents` noch die Momentaufnahme von VOR der Aufladung
+             * ist (0,02 €). Der Wächter in `generate()` las die alte Zahl, hielt das Konto
+             * für leer und öffnete den Wähler erneut — dessen rote Zeile dann mit dem
+             * FRISCHEN Stand „5 €" gezeichnet wurde: Der Dialog widersprach sich selbst.
+             * Genau die Falle aus Skill `bezahlung` §1 („eingefrorene Momentaufnahme") —
+             * dort für die Seiten-Rückkehr gelöst, hier im Popup-Weg übersehen.
+             *
+             * Der Seiten-Rückweg macht es längst richtig: Marke setzen, Stand schreiben,
+             * und der Effekt hinter `unlock` (nachAufladungKaufen) kauft mit der Closure
+             * des NÄCHSTEN Renders — die den frischen Stand trägt. Denselben Weg nimmt
+             * jetzt auch das Popup.
+             *
+             * NUR wenn sich der Stand wirklich ÄNDERT: Ein gleicher Wert löst keinen
+             * Render aus (React), der Effekt feuerte nie — der Kauf bliebe wortlos stehen.
+             * Ist der Stand gleich (0-€-Code) oder fehlt die Zahl, stimmt die eingefrorene
+             * Momentaufnahme aber ohnehin, und der Direktaufruf entscheidet richtig: Er
+             * öffnet den Wähler, jetzt mit der roten aufladungNull-Zeile.
+             */
+            if (typeof s.walletCents === "number" && s.walletCents !== guthabenCents) {
+              nachAufladungKaufen.current = true;
+              setGuthabenCents(s.walletCents);
+            } else {
+              nachAufladungWeiter();
+            }
             return;
           }
           trackMetaPixel("Purchase", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
