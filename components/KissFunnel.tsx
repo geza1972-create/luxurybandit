@@ -2485,7 +2485,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       if (einmal === "once" && V.nurGuthaben && !isStaff) {
         try { popup?.close(); } catch { /**/ }
-        setPayBusy(false); setAufladeWahl(true); return;
+        /**
+         * NIE WORTLOS DENSELBEN DIALOG WIEDER AUFMACHEN (Owner 07.08.2026: „ich habe bezahlt
+         * und nach der bezahlung … bleibt credit auswahl").
+         *
+         * Kommt man hier NACH einer Aufladung an, hat der Kunde gerade echtes Geld gezahlt
+         * und sieht denselben Wähler erneut — ohne ein Wort, warum. Die Leiter bietet seit
+         * heute nur noch deckende Beträge an, damit das gar nicht passieren kann; sollte es
+         * doch (veralteter Kontostand, zwei Käufe gleichzeitig), sagt die Zeile darüber
+         * wenigstens, dass es am Guthaben liegt.
+         */
+        setPayBusy(false);
+        setStatus(fillPrices(T.aufladenHinweis, lang));
+        setAufladeWahl(true); return;
       }
       // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
       track("checkout");
@@ -4212,7 +4224,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * die Stufe ueberhaupt fuer eines reicht: „4,99 € · 0 🎬" ist keine Auskunft,
               * sondern ein Angebot, das nichts kauft.
               */}
-            {AUFLADE_STUFEN.map(stufe => {
+            {/**
+              * NUR STUFEN, DIE DEN KAUF WIRKLICH DECKEN (Owner 07.08.2026: „ich habe bezahlt
+              * und nach der bezahlung verschfindet strpefenster und bleibt credit auswahl").
+              *
+              * GEMESSEN: Der Geburtstag kostet 4,99 €, die Leiter begann bei 3 €. Wer die
+              * kleinste Stufe tippte, zahlte echtes Geld — und hatte danach IMMER NOCH zu
+              * wenig. Der Anschlusskauf scheiterte, und derselbe Wähler ging wortlos wieder
+              * auf. Aus Kundensicht: bezahlt, nichts passiert. Das ist der schlimmste
+              * Zustand, den ein Kaufweg haben kann.
+              *
+              * Der Kommentar darüber sagt es seit dem 05.08. schon („ein Angebot, das nichts
+              * kauft") — gezählt wurde danach, angeboten aber trotzdem. Jetzt zählt das
+              * VORHANDENE Guthaben mit: Angeboten wird, was zusammen mit dem, was schon da
+              * ist, für dieses Video reicht. Bleibt nichts übrig (ein Produkt teurer als die
+              * höchste Stufe), steht die ganze Leiter da — lieber eine Teilzahlung als eine
+              * Wand ohne Knopf.
+              */}
+            {(() => {
+              const deckend = AUFLADE_STUFEN.filter(s => (guthabenCents ?? 0) + s >= videoPreisCents);
+              return (deckend.length ? deckend : [...AUFLADE_STUFEN]);
+            })().map(stufe => {
               const stueck = Math.floor(stufe / videoPreisCents);
               return (
               // Solange die Adresse offen im Feld steht, ist sie nicht bestaetigt — dann darf
