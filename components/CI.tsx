@@ -919,7 +919,11 @@ export function BildWahl({ bilder, wert, waehle, className = "" }: {
      * letzten Kachel also genau die Hälfte des Rings. Die 6 px ringsum sind der Platz, den
      * er braucht. `px-1.5` statt `pl-1.5`, sonst fehlt er am anderen Ende.
      */
-    <div className={`lb-wisch flex gap-2 overflow-x-auto px-1.5 py-1.5 ${className}`}>
+    /* `items-start`: Ein Knopf zentriert seinen Inhalt senkrecht. Braucht EIN Wort zwei
+       Zeilen („Gold & Confetti") und das daneben nur eine, wird der hohe Knopf mittig
+       ausgerichtet — und sein Bild sass sieben Pixel hoeher als das Nachbarbild. Oben
+       ausgerichtet stehen alle Kacheln auf derselben Linie, egal wie lang ihr Name ist. */
+    <div className={`lb-wisch flex items-start gap-2 overflow-x-auto px-1.5 py-1.5 ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         return (
@@ -934,9 +938,22 @@ export function BildWahl({ bilder, wert, waehle, className = "" }: {
               * Mass, und das Bild füllt ihn (`h-full w-full object-cover`), egal welches
               * Verhältnis die Datei hat.
               */}
-            <span className={`block h-[104px] w-[78px] overflow-hidden rounded-xl ${an
-              ? "ring-2 ring-[#f6cf51] ring-offset-2 ring-offset-[#0b0a09]"
-              : "ring-1 ring-white/20"}`}>
+            {/**
+              * NUR DIE FARBE WECHSELT, NIE DIE GEOMETRIE (Owner 07.08.2026, mit Bild: „oh
+              * Mann, man versetzt niemals Bilder").
+              *
+              * Hier stand `ring-2 … ring-offset-2` fuer die Wahl und `ring-1` daneben. Ein
+              * Ring liegt AUSSERHALB der Flaeche: Die gewaehlte Kachel wuchs damit um acht
+              * Pixel, und das Bild darin sass eine Zeile hoeher als sein Nachbar. Beim
+              * Antippen sprang die ganze Reihe.
+              *
+              * Jetzt tragen BEIDE Zustaende denselben Ring und denselben Abstand — es
+              * wechselt ausschliesslich die Farbe. Der dunkle Abstandsring bleibt in beiden
+              * Faellen: Ohne ihn verschwindet Gold auf einem goldenen Motiv.
+              */}
+            <span className={`block h-[104px] w-[78px] overflow-hidden rounded-xl ring-2 ring-offset-2 ring-offset-[#0b0a09] ${an
+              ? "ring-[#f6cf51]"
+              : "ring-white/15"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={b.bild} alt={b.name} className="block h-full w-full object-cover" />
             </span>

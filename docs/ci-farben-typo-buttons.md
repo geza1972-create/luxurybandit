@@ -65,6 +65,26 @@ Die Vorlage für beide ist das Chip-Paar der Kopfzeile in `components/GuthabenCh
 Form: `rounded-full`, `h-11`/`h-12`, `font-black`, `active:scale-95 transition`.
 `.lb-gold` nie flach nachbauen (`bg-[#f6cf51]` als Button = falsch, der Gradient ist die CI).
 
+### 2a. Auswahl verschiebt NIE (Owner 07.08.2026: „man versetzt niemals Bilder")
+
+Ein gewähltes Element — Chip, Kachel, Tab, Bildkachel — darf sich weder vergrössern noch
+verschieben. **Es wechselt ausschliesslich die Farbe.** Jeder Zustand trägt dieselbe
+Rahmenstärke, denselben Abstand, dieselbe Polsterung.
+
+Gemessen an `BildWahl` (components/CI.tsx): dort stand `ring-2 … ring-offset-2` für die
+Wahl und `ring-1` daneben. Ein Ring liegt AUSSERHALB der Fläche, die gewählte Kachel wuchs
+um acht Pixel — beim Antippen sprang die ganze Reihe, weil das Bild eine Zeile höher sass
+als sein Nachbar.
+
+| | |
+|---|---|
+| Richtig | `ring-2 ring-offset-2` an BEIDEN Zuständen, nur `ring-[#f6cf51]` gegen `ring-white/15` |
+| Falsch | verschiedene Rahmenstärken · `border` nur im aktiven Zustand · `scale` · ein zusätzliches `p-*` am Gewählten |
+
+Der dunkle Abstandsring gehört in BEIDE Zustände: Ohne ihn verschwindet Gold auf einem
+goldenen Motiv. Und eine Wisch-Fläche (`lb-wisch`) schneidet ihn an der ersten und letzten
+Kachel ab, wenn die Fläche keine Polsterung hat (`px-1.5 py-1.5`).
+
 ## 3. Typo
 
 **Zwei Schriften, und nur zwei** (Owner 06.08.2026: „die selbe schrift art bitte wie in der
