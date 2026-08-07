@@ -32,8 +32,8 @@
  *
  * NEUTRALE WÖRTER (Hausregel): „outfit", nicht „lingerie", kein „lace", kein „skin".
  *
- * KEIN TEXT IM VIDEO: Bellas Vorlage trägt „Hey Darling, Happy Birthday!" eingebrannt — im
- * Beispielvideo scheint es sogar durch. Ohne den letzten Halbsatz schreibt Pixverse solche
+ * KEIN TEXT IM VIDEO: Die alte Bella-Vorlage trug „Hey Darling, Happy Birthday!" eingebrannt —
+ * daher stammt der Halbsatz; er bleibt als Wache. Ohne ihn schreibt Pixverse solche
  * Schriftzüge gern mit, und dann stünde ein fremder Gruss auf einem Geschenk für einen ganz
  * bestimmten Menschen.
  */
@@ -44,20 +44,35 @@ export const GEBURTSTAG_PROMPT =
   "No text, no letters, no writing anywhere in the frame.";
 
 /**
- * BELLAS VORLAGE — das zweite Referenzbild.
+ * DIE VORLAGE — das zweite Referenzbild.
  *
- * Sie liefert drei Dinge auf einmal, die der Owner einzeln genannt hat: den Look, die Torte in
- * der Hand und die Umgebung. Deshalb steht sie an BEIDEN Stellen im Prompt oben.
+ * Sie liefert drei Dinge auf einmal: den Look, die Torte in der Hand und die Umgebung.
+ * Deshalb steht sie an BEIDEN Stellen im Prompt oben.
+ *
+ * SEIT 07.08.2026 DAS SCHOKO-SET STATT DER DESSOUS-VORLAGE (Owner: „generiere ein Video
+ * dass nicht nach erotik aussieht", dann „der Look und die Torte sind sehr gut"): festliches
+ * Kleid statt Wäsche, Schokoladentorte statt rosa („Ich brauche eine schöne Schokoladentorte"),
+ * auf 3:4 beschnitten — das Kartenmaß des Trichters. Ein Geschenk „für Mama, für die
+ * Schwester" (so die eigene Anlass-Zeile) darf nicht wie ein Erotik-Produkt aussehen; genau
+ * daran ist der Eigentümer-Test am 07.08. hängen geblieben. Die Kleidung ist im Prompt
+ * ALLGEMEIN zu halten (Owner: „falls ein Mann sich hochlädt, dann er muss natürlich kein
+ * Kleid haben"). Die alte Datei (birthday-set.png) bleibt unangerufen liegen, für den
+ * Fall eines Rückbaus.
  *
  * Statisch im Repo, nicht im Speicher: Ein signierter Link läuft ab, dieser Pfad nie — und die
- * Vorlage ist Teil des Produkts, nicht gepflegter Inhalt. Der Dateiname war
- * „ChatGPT Image 19. Juli 2026, 19_30_42.png"; umbenannt, weil Leerzeichen und Kommas in URLs
- * kodiert werden müssen und auf Vercel zusätzlich die Groß-/Kleinschreibung zählt.
+ * Vorlage ist Teil des Produkts, nicht gepflegter Inhalt.
  */
-export const GEBURTSTAG_SET = "/Birthday/birthday-set.png";
+export const GEBURTSTAG_SET = "/Birthday/birthday-set-schoko.jpg";
 
-/** Das Beispielvideo, das der Owner mitgeliefert hat — der Beweis, dass der Prompt trägt. */
-export const GEBURTSTAG_VIDEO = "/Birthday/hbd.mp4";
+/**
+ * DAS BEISPIELVIDEO — seit 07.08.2026 aus der neuen Kette erzeugt, nicht mehr mitgeliefert:
+ * OpenAI-Avatar (gpt-image-1.5, Qualität medium — „medum reicht") → HeyGen `POST /v3/videos`
+ * (engine avatar_iv, Look = dieses Set, aspect „auto" ergibt 3:4, Tempo 1.0, 720p, Stimme
+ * „Joy"). 4,6 Sekunden, ~20 Cent laut Verbrauchszähler; abgenommen mit „alles passt perfekt".
+ * Zugleich der Beweis, dass dieselbe Strecke Kundenvideos automatisch erzeugen kann —
+ * der Trichter selbst ruft bis zu seinem Umbau weiter Pixverse mit GEBURTSTAG_PROMPT.
+ */
+export const GEBURTSTAG_VIDEO = "/Birthday/hbd-schoko.mp4";
 
 /**
  * DIE ZEILE ÜBER DER KARTE (Owner wörtlich: „Oben steht in der Karte nur ‚Happy birthday to
