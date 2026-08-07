@@ -348,8 +348,12 @@ export default function EinladungAnsicht({
           wie den eigenen Send-Knopf des Kuss-Trichters. */}
       {teilen && <div className={`absolute right-3 z-30 opacity-70 ${gross ? "top-[60px]" : "top-3"}`}>{teilen}</div>}
 
+      {/* DIE TON-SCHEIBE STEHT IMMER (Owner 07.08.2026, zur Muster-Karte: „hier fehlt auch
+          sound icon") — vorher erschien sie beim Originalton erst, wenn das Video lief, und
+          eine pausierte Karte zeigte zwei statt drei Scheiben (Skill `card`: immer alle,
+          immer am selben Platz). Der Schalter wirkt, sobald das Video läuft. */}
       {originalton
-        ? laeuft && <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
+        ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
             platz={`absolute right-3 z-30 ${gross ? "top-[108px]" : "top-[60px]"}`} />
         : musik && (
           <>
