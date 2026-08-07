@@ -591,7 +591,10 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
  */
 const GESTALT_SCHLUESSEL = "lb-topic-gestalt";
 export function useThemenGestalt() {
-  const [art, setArt] = useState<"reihe" | "voll">("voll");
+  /* Vorgabe „reihe" (Owner 07.08.2026: „als default für die topics sind die kleine Reihe
+     Cards") — kehrt die Voll-Vorgabe vom 06.08. um; der Server-Schalter kann weiterhin
+     beides für alle setzen. */
+  const [art, setArt] = useState<"reihe" | "voll">("reihe");
   const [gesetzt, setGesetzt] = useState(false);
   useEffect(() => {
     try {
