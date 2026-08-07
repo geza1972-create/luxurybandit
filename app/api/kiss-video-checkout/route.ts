@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS, geschenkPreisCents } from "@/lib/pricing";
 import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { couponFor } from "@/lib/promo";
@@ -149,9 +149,21 @@ export async function POST(request: Request) {
        Gutschein. Es muss 9,99 sein"). Weisse Liste statt Betrag aus dem Aufruf: Der Browser
        sagt nur, WELCHES Thema — die Zahl steht in lib/pricing. */
     const gutschein = String(body.thema ?? "") === "gutschein";
+    /**
+     * DER PREIS DES GESCHENKS STEHT IN DER PREISTABELLE, NICHT HIER (07.08.2026).
+     *
+     * Hier stand `: ONCE_CENTS` — und damit kostete der Geburtstag an der Kasse 15 €, während
+     * der Trichter 4,99 € verlangte. Wer mit 8,01 € Guthaben kaufte, kam nie durch: Die
+     * Abbuchung scheiterte an den 15 €, und dahinter entstand eine 15-€-Stripe-Sitzung für ein
+     * Video zu 4,99 €. `geschenkPreisCents` ist ab jetzt die eine Zeile, die beide Seiten
+     * lesen — der Trichter für „reicht das Guthaben?", die Kasse fürs Abbuchen.
+     *
+     * Massgeblich bleibt das GESPEICHERTE Thema des Auftrags, nicht das, was der Browser
+     * behauptet — die Regel darüber gilt unverändert.
+     */
     const preis = tanz ? POLEDANCE_CENTS
       : gutschein ? GUTSCHEIN_CENTS
-      : videoAufpreis ? VIDEO_UPGRADE_CENTS : ONCE_CENTS;
+      : videoAufpreis ? VIDEO_UPGRADE_CENTS : geschenkPreisCents(thema);
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
@@ -192,7 +204,12 @@ export async function POST(request: Request) {
          * braucht es kein Produkt in Stripe. Kennungen bleiben nur dort Pflicht, wo Stripe
          * sie verlangt: bei den ABOS (hochzeitAboPriceId / chatAboPriceId).
          */
-        productName: tanz ? "Pole dance video — one-off" : "Kiss video — one-off",
+        /* Was auf der Kassenseite steht, muss dasselbe Ding meinen wie der Betrag daneben.
+           „Kiss video" über einem Geburtstagsvideo ist für den Kunden ein fremder Posten auf
+           der Abrechnung — und für uns eine Rückbuchung, die niemand zuordnen kann. */
+        productName: tanz ? "Pole dance video — one-off"
+          : thema === "birthday" ? "Birthday video — one-off"
+          : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
         /**

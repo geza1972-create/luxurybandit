@@ -8,7 +8,7 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, ONCE_CENTS, POLEDANCE_CENTS, GEBURTSTAG_CENTS, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -422,7 +422,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   /* Der Geburtstag hat seit dem 07.08.2026 seinen eigenen Startpreis (Owner: „wir nehemen für
      dieses Video 4,99 als start") — Begründung und Rechnung stehen bei GEBURTSTAG_CENTS in
      lib/pricing.ts. */
-  const videoPreisCents = variant === "poledance" ? POLEDANCE_CENTS : variant === "birthday" ? GEBURTSTAG_CENTS : ONCE_CENTS;
+  /* EINE ZEILE FÜR BEIDE SEITEN (07.08.2026): Hier stand dieselbe Ternär-Kette noch einmal,
+     während die Kasse den Geburtstag gar nicht kannte — 4,99 € verlangt, 15 € abgebucht.
+     `geschenkPreisCents` liegt jetzt in lib/pricing und wird von der Kasse mitgelesen. */
+  const videoPreisCents = geschenkPreisCents(variant);
 
   /**
    * BEIM GEBURTSTAG KLINGT DAS VIDEO SELBST (Owner 03.08.2026: „nein, es muss die originale

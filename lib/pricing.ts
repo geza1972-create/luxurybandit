@@ -224,6 +224,35 @@ export const POLEDANCE_CENTS = 1500;                // 15 € — das Tanz-Video
 export const GEBURTSTAG_CENTS = 499;                // 4,99 € — das Geburtstagsvideo, Startpreis
 
 /**
+ * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
+ *
+ * GEMESSEN am 07.08.2026, nicht vermutet: Der Trichter verlangte für den Geburtstag 4,99 €
+ * Guthaben (`videoPreisCents`), die Kasse buchte 15 € ab (`ONCE_CENTS`) — sie kannte den
+ * Geburtstag schlicht nicht. Der Kunde mit 8,01 € auf dem Konto kam damit NIE durch: Die
+ * Abbuchung scheiterte an 15 €, und die Stripe-Sitzung, die dahinter entstand, lautete auf
+ * 15,00 € für ein Video zu 4,99 €. Genau die Leiche liegt vom 07.08. um 14:26:27 in der
+ * Stripe-Liste.
+ *
+ * Zwei Stellen mit demselben Wissen über denselben Preis — dieselbe Falle wie bei der
+ * Hochzeit („ab 24 €" auf der Kachel, 1,49 € an der Kasse). Deshalb steht die Zuordnung ab
+ * jetzt HIER, und beide Seiten lesen sie.
+ *
+ * Der Schlüssel ist die `GeschenkId` aus lib/geschenke (kiss | idol | wedding | poledance |
+ * birthday) — also das, was beim ANLEGEN des Auftrags gespeichert wurde. Nicht zu verwechseln
+ * mit `ThemenSchluessel` weiter unten, der für den Tanz „surprise" heisst; der beschildert die
+ * Katalog-Kachel, dieser hier bucht Geld ab.
+ *
+ * Ein unbekannter Schlüssel fällt auf ONCE_CENTS zurück — den Regelpreis eines Geschenks.
+ */
+export function geschenkPreisCents(geschenk: string): number {
+  switch (String(geschenk ?? "")) {
+    case "poledance": return POLEDANCE_CENTS;
+    case "birthday": return GEBURTSTAG_CENTS;
+    default: return ONCE_CENTS;   // kiss, idol, wedding — ein Geschenk, einmal bezahlt
+  }
+}
+
+/**
  * DAS VIDEO ZUR FERTIGEN EINLADUNG (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn
  * er das Video generieren möchte, dann kann er das nachträglich für 3,99").
  *
