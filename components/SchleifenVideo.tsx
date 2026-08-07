@@ -58,7 +58,7 @@ function nachhelfen(v: HTMLVideoElement) {
 }
 
 export default function SchleifenVideo({
-  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover", natuerlich = false, autostart = true,
+  src, poster, className = "", stumm = true, schleife = true, spielerRef, passform = "cover", natuerlich = false, autostart = true, start,
 }: {
   src: string;
   poster?: string;
@@ -107,11 +107,20 @@ export default function SchleifenVideo({
    * lässt.
    */
   autostart?: boolean;
+  /**
+   * DER GRIFF VON AUSSEN (07.08.2026, Owner: „warum der playbutton nict funktioniert?"):
+   * Eine Karte mit EIGENER Play-Scheibe (Originalton in `EinladungAnsicht`) öffnet das
+   * Tor über diesen Schalter statt über die eingebaute Scheibe. Ist `start` überhaupt
+   * gesetzt (auch als false), zeichnet das Tor KEINE eigene Scheibe — sonst lägen zwei
+   * Scheiben übereinander, und der Tipp erreichte immer nur eine.
+   */
+  start?: boolean;
 }) {
   const a = useRef<HTMLVideoElement>(null);
   const b = useRef<HTMLVideoElement>(null);
   const [vorne, setVorne] = useState<"a" | "b">("a");
   const [gestartet, setGestartet] = useState(autostart);
+  useEffect(() => { if (start) setGestartet(true); }, [start]);
 
   /* Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann. */
   useEffect(() => { if (spielerRef) spielerRef.current = a.current; }, [spielerRef]);
@@ -173,13 +182,15 @@ export default function SchleifenVideo({
         ) : (
           <div className="absolute inset-0 lb-media-bg" />
         )}
-        <button type="button" aria-label="Play" onClick={() => setGestartet(true)}
-          className="absolute inset-0 z-10 grid place-items-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full opacity-70 shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-            style={{ background: "#fff" }}>
-            <Play className="h-5 w-5" style={{ color: "#1a160f" }} fill="#1a160f" />
-          </span>
-        </button>
+        {start === undefined && (
+          <button type="button" aria-label="Play" onClick={() => setGestartet(true)}
+            className="absolute inset-0 z-10 grid place-items-center">
+            <span className="grid h-12 w-12 place-items-center rounded-full opacity-70 shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
+              style={{ background: "#fff" }}>
+              <Play className="h-5 w-5" style={{ color: "#1a160f" }} fill="#1a160f" />
+            </span>
+          </button>
+        )}
       </div>
     );
   }

@@ -261,18 +261,41 @@ export default function EinladungAnsicht({
         onClick={() => setGross(g => !g)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setGross(g => !g); } }}
         className={`cursor-pointer ${gross ? "h-full max-h-full w-auto" : `${verhaeltnis} w-full`}`}>
-        <SchleifenVideo src={videoUrl} schleife={schleife} stumm spielerRef={originalton ? videoRef : undefined} />
+        {/**
+          * ZWEI TIPPS, ZWEI DINGE (Owner 07.08.2026: „klick auf video play startet das video.
+          * Klick wieder auf video, öffnet das video groß").
+          *
+          * Der ERSTE Tipp trifft die Abspiel-Scheibe, die vor dem Start über dem Poster liegt
+          * — danach ist sie weg, und jeder weitere Tipp trifft die Fläche darunter, die
+          * vergrössert. Das ergibt sich von selbst, sobald `autostart` aus ist: Solange das
+          * Video von allein lief, gab es die Scheibe nie, und der erste Tipp vergrösserte
+          * sofort ein Video, das der Besucher noch gar nicht gesehen hatte.
+          *
+          * Nebenbei ist es das, was der Owner am selben Tag zum Laden gesagt hat („videos
+          * sollen nicht automatisch starten. Weil auf dem handy ewig dauert"): Vor dem Tipp
+          * steht nur das Poster, es wird kein einziges Video-Byte geladen.
+          */}
+        {/* Beim Originalton steuert UNSERE Scheibe das Tor (`start`), und der Spieler
+            startet gleich ungestummt — die Geste ist ja gerade passiert. Ohne Originalton
+            behält das Tor seine eigene Scheibe (Musik kommt ohnehin von nebenan). */}
+        <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
+          start={originalton ? laeuft : undefined}
+          schleife={schleife} stumm={originalton ? !laeuft : true}
+          spielerRef={originalton ? videoRef : undefined} />
       </div>
       {/* DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht. Er liegt ueber der
           ganzen Flaeche: Wer auf ein stehendes Video tippt, meint immer „ab jetzt". */}
       {originalton && !laeuft && (
         <button type="button" aria-label={tonText || "Play"}
           onClick={() => {
+            /* EIN TIPP, BEIDE TORE (07.08.2026, Owner: „warum der playbutton nict
+               funktioniert?"): Vor dem Tipp ist unten GAR KEIN Spieler eingehängt
+               (`autostart={false}` lädt keine Bytes) — der alte Griff zum `videoRef` fand
+               nichts und brach mit `if (!v) return` wortlos ab. Jetzt öffnet `start`
+               das Tor; steht der Spieler schon, wird er direkt laut. */
+            setLaeuft(true); setTon(true);
             const v = videoRef.current;
-            if (!v) return;
-            v.muted = false; v.volume = 1;
-            void v.play().then(() => { setLaeuft(true); setTon(true); })
-              .catch(() => { /* Ton verweigert: wenigstens das Bild */ v.muted = true; void v.play(); setLaeuft(true); });
+            if (v) { v.muted = false; v.volume = 1; void v.play().catch(() => { v.muted = true; void v.play(); }); }
           }}
           /**
            * EIN KREIS IN DER MITTE, NICHT DIE GANZE FLAECHE (Owner 03.08.2026: „wenn ich auf
