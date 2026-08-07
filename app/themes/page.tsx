@@ -149,23 +149,54 @@ export default async function ThemesCatalog({ searchParams }: {
 
   const L = await resolveLang();   // gewählte Sprache (Cookie) > Browsersprache
   const c = C[L] ?? C.en;
+  /**
+   * ALLES AUF EINMAL HOLEN, NICHT NACHEINANDER (07.08.2026, gemessen: 4,0 s bis zum ersten
+   * Byte — dreimal hintereinander, immer derselbe Wert).
+   *
+   * Hier standen neun Blöcke UNTEREINANDER, jeder mit eigenem `await` auf Supabase. Und
+   * `readCardStudioSlides(BELLA_ID)` wurde DREIMAL über das Netz geholt — für das Wetter, für
+   * die Try-On-Karte und für den Urlaub, jedes Mal dieselbe Antwort. Zusammen rund zwanzig
+   * Hin- und Rückwege, einer nach dem anderen. Das waren die vier Sekunden; das Video hat
+   * damit nichts zu tun, es lädt erst, wenn dieses HTML längst beim Besucher ist.
+   *
+   * WARUM DAS TEUER WAR: Diese Seite IST die Startseite (app/page.tsx liefert sie aus) und
+   * damit das Ziel der Werbung. Vier Sekunden weißer Bildschirm zahlt man bei Meta zweimal —
+   * einmal für den Klick und einmal für den, der vorher abbricht. Google misst dieselbe Zeit
+   * und crawlt eine langsame neue Domain seltener (Search Console, 07.08.2026: 198 Adressen
+   * „Gefunden – zurzeit nicht indexiert", also nicht einmal abgerufen).
+   *
+   * WAS SICH ÄNDERT: nichts an den Werten, nur an der Reihenfolge. Bellas Folien werden
+   * EINMAL geholt und von allen dreien geteilt, und die Blöcke laufen nebeneinander statt
+   * hintereinander. Jeder behält sein eigenes `try`, damit ein Ausfall weiterhin nur seine
+   * eigene Kachel leer lässt und nie die ganze Seite.
+   *
+   * WER HIER ETWAS ANFÜGT: als weiteres Versprechen ins `Promise.all` unten, NICHT als
+   * `await` davor — ein einziges vorgezogenes `await` legt die Ersparnis wieder still.
+   */
+  const bellaSlidesP = readCardStudioSlides(BELLA_ID).catch(() => []);
+
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
   // Besucher auf /themes/wetter/bella sieht. Fallback: Bellas Foto.
-  let wetterCover = "", wetterVideo = "", wetterPoster = "";
-  try {
-    const { card } = await buildBellaCard({ surface: "themes" });
-    wetterCover = card?.photo || "";
-    const slides = (await readCardStudioSlides(BELLA_ID)).filter(isPublicBellaPost).sort(sortBellaPosts);
-    const adVid = slides.find(s => s.kind === "video" && (s as { ad?: boolean }).ad === true) ?? slides.find(s => s.kind === "video");
-    if (adVid) {
-      wetterVideo = await getSignedUrl(adVid.path).catch(() => "");
-      wetterPoster = adVid.posterPath ? await getSignedUrl(adVid.posterPath).catch(() => "") : "";
-    }
-  } catch { /**/ }
+  const wetterP = (async () => {
+    let cover = "", video = "", poster = "";
+    try {
+      const { card } = await buildBellaCard({ surface: "themes" });
+      cover = card?.photo || "";
+      // `.filter()` gibt eine neue Liste — das `.sort()` darf die geteilten Folien nicht umsortieren.
+      const slides = (await bellaSlidesP).filter(isPublicBellaPost).sort(sortBellaPosts);
+      const adVid = slides.find(s => s.kind === "video" && (s as { ad?: boolean }).ad === true) ?? slides.find(s => s.kind === "video");
+      if (adVid) {
+        [video, poster] = await Promise.all([
+          getSignedUrl(adVid.path).catch(() => ""),
+          adVid.posterPath ? getSignedUrl(adVid.posterPath).catch(() => "") : Promise.resolve(""),
+        ]);
+      }
+    } catch { /**/ }
+    return { cover, video, poster };
+  })();
 
   // Platzhalter-Cover für die „coming soon"-Themen = echte Model-Fotos aus dem Katalog
   // (signierte URLs, keine intimen Bilder). Später bekommt jedes Thema sein eigenes Ad-Video.
-  let placeholders: string[] = [];
   /**
    * DIE GESTALT KOMMT VOM SERVER, NICHT AUS DEM BROWSER (Owner 06.08.2026: „online ist es
    * nicht auf live aktiv" · „ja mach es"). Sie wird HIER gelesen und als Eigenschaft nach
@@ -173,57 +204,64 @@ export default async function ThemesCatalog({ searchParams }: {
    * ein Nachladen im Browser würde die Kacheln erst in der einen und dann in der anderen
    * Gestalt zeigen, und dieses Zucken sieht jeder Besucher.
    */
-  let gestalt: "reihe" | "voll" | undefined;
-  try {
-    const state = await readTryThisLookState();
-    placeholders = ((state?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
-      .filter(c => c.id !== BELLA_ID && !!c.photoUrl && !c.hidden && c.status !== "removed")
-      .map(c => c.photoUrl as string);
-    if (state?.themenGestalt === "reihe" || state?.themenGestalt === "voll") gestalt = state.themenGestalt;
-  } catch { /**/ }
-  const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
+  const stateP = (async () => {
+    let placeholders: string[] = [];
+    let gestalt: "reihe" | "voll" | undefined;
+    try {
+      const state = await readTryThisLookState();
+      placeholders = ((state?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
+        .filter(c => c.id !== BELLA_ID && !!c.photoUrl && !c.hidden && c.status !== "removed")
+        .map(c => c.photoUrl as string);
+      if (state?.themenGestalt === "reihe" || state?.themenGestalt === "voll") gestalt = state.themenGestalt;
+    } catch { /**/ }
+    return { placeholders, gestalt };
+  })();
 
   // Kiss-Teaser (vom Admin im Kiss-Medien-Tool hochgeladen) als Cover der Kiss-Karte.
   // Er darf BILD ODER VIDEO sein — ein Video muss ins `video`-Feld, sonst landet eine
   // .mp4 in einem <img> und die Karte zeigt ein kaputtes Bild.
   // Try-On-Karte: dieselbe Überblendung wie im Wetter — Bella im weißen Kleid ↔ in Lingerie.
   const WHITE_DRESS = "try-this-look/uploads/1784915142061-c0ea5633-a652-40bb-8476-bebf69c64658.jpg";
-  let tryonDressed = "", tryonLingerie = "";
-  try {
-    const slides = (await readCardStudioSlides(BELLA_ID)).filter(isPublicBellaPost);
-    const pickPath = (x: { kind?: string; path?: string; posterPath?: string }) => (x.kind === "video" ? x.posterPath : x.path) || "";
-    const normal = slides.find(x => x.garmentCat === "normal" && pickPath(x));
-    tryonDressed = (await getSignedUrl((normal && pickPath(normal)) || WHITE_DRESS).catch(() => "")) || "";
-    const ling = slides.find(x => x.garmentCat === "lingerie" && pickPath(x));
-    if (ling) tryonLingerie = (await getSignedUrl(pickPath(ling)).catch(() => "")) || "";
-  } catch { /**/ }
+  const tryonP = (async () => {
+    let dressed = "", lingerie = "";
+    try {
+      const slides = (await bellaSlidesP).filter(isPublicBellaPost);
+      const pickPath = (x: { kind?: string; path?: string; posterPath?: string }) => (x.kind === "video" ? x.posterPath : x.path) || "";
+      const normal = slides.find(x => x.garmentCat === "normal" && pickPath(x));
+      const ling = slides.find(x => x.garmentCat === "lingerie" && pickPath(x));
+      [dressed, lingerie] = await Promise.all([
+        getSignedUrl((normal && pickPath(normal)) || WHITE_DRESS).catch(() => ""),
+        ling ? getSignedUrl(pickPath(ling)).catch(() => "") : Promise.resolve(""),
+      ]);
+    } catch { /**/ }
+    return { dressed, lingerie };
+  })();
 
   // Holiday-Karte: eines der Urlaubs-Videos (Peter & Bella) — die liegen auf der Fläche
   // „lp-journey" und haben kein Poster, also spielt die Karte das Video direkt ab.
-  let urlaubVideo = "";
-  try {
-    const all = await readCardStudioSlides(BELLA_ID);
-    const j = all.find(x => x.kind === "video" && !x.customer && !x.hidden && !x.private && !x.pendingApproval
-      && (x.pages ?? []).includes("lp-journey") && x.path);
-    if (j) urlaubVideo = (await getSignedUrl(j.path).catch(() => "")) || "";
-  } catch { /**/ }
+  const urlaubP = (async () => {
+    try {
+      const all = await bellaSlidesP;
+      const j = all.find(x => x.kind === "video" && !x.customer && !x.hidden && !x.private && !x.pendingApproval
+        && (x.pages ?? []).includes("lp-journey") && x.path);
+      if (j) return (await getSignedUrl(j.path).catch(() => "")) || "";
+    } catch { /**/ }
+    return "";
+  })();
 
   // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt. Der GEBURTSTAG steht nicht
   // mehr hier: Sein Kachel-Video ist per Dauerregel (Owner 07.08.2026: „das video aus der
   // Landingpage Card ist gleich auch das video für die Topic auf der Topicseite") dasselbe
   // wie das Beispielvideo der Landingpage — GEBURTSTAG_VIDEO aus lib/geburtstag, ein Pfad
   // statt zwei Quellen, die auseinanderlaufen.
-  let surpriseVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
-  try {
-    [surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
-      // „Surprise him": bewusst der VOLLE Schwenk von unten nach oben (Owner-Entscheidung) —
-      // genau dieser Aufbau ist der Reiz der Karte, nicht der zugeschnittene Ausschnitt.
-      getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
-      getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
-      getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
-      getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
-    ]);
-  } catch { /**/ }
+  const ownVideosP = Promise.all([
+    // „Surprise him": bewusst der VOLLE Schwenk von unten nach oben (Owner-Entscheidung) —
+    // genau dieser Aufbau ist der Reiz der Karte, nicht der zugeschnittene Ausschnitt.
+    getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
+  ]).catch(() => ["", "", "", ""]);
 
   /**
    * DIE HOCHZEITSKACHEL ZEIGT EINE HOCHZEIT (Owner 31.07.2026: „das Topicvideo hast du nicht
@@ -238,47 +276,72 @@ export default async function ThemesCatalog({ searchParams }: {
    * Kachel immer, was auf der Seite auch wirklich laeuft — wechselt das Beispiel, wechselt die
    * Kachel mit, ohne dass hier jemand etwas nachtraegt.
    */
-  let weddingVideo = "";
-  try {
-    const wc = await readThemeConfig("wedding");
-    const erstes = (wc.examplePaths ?? [])[0];
-    if (erstes) weddingVideo = (await getSignedUrl(erstes).catch(() => "")) || "";
-  } catch { /**/ }
+  const weddingP = (async () => {
+    try {
+      const wc = await readThemeConfig("wedding");
+      const erstes = (wc.examplePaths ?? [])[0];
+      if (erstes) return (await getSignedUrl(erstes).catch(() => "")) || "";
+    } catch { /**/ }
+    return "";
+  })();
 
-  let kissCover = "", kissVideo = "";
-  try {
-    const kc = await readKissConfig();
-    if (kc.teaserPath) {
-      const url = await getSignedUrl(kc.teaserPath).catch(() => "");
-      if (/\.(mp4|webm|mov)$/i.test(kc.teaserPath)) kissVideo = url; else kissCover = url;
-    }
-  } catch { /**/ }
+  const kissP = (async () => {
+    let cover = "", video = "";
+    try {
+      const kc = await readKissConfig();
+      if (kc.teaserPath) {
+        const url = await getSignedUrl(kc.teaserPath).catch(() => "");
+        if (/\.(mp4|webm|mov)$/i.test(kc.teaserPath)) video = url; else cover = url;
+      }
+    } catch { /**/ }
+    return { cover, video };
+  })();
 
   // PLAN-THEMA: dasselbe Muster wie Kiss — Cover und Beispielvideo kommen aus dem
   // Medien-Werkzeug unter /themes/luxurybandit-plan?admin=1.
-  let planCover = "", planVideo = "";
-  try {
-    const pc = await readThemeConfig("plan");
-    if (pc.teaserPath) {
-      const url = await getSignedUrl(pc.teaserPath).catch(() => "");
-      if (/\.(mp4|webm|mov)$/i.test(pc.teaserPath)) planVideo = url; else planCover = url;
-    }
-  } catch { /**/ }
+  const planP = (async () => {
+    let cover = "", video = "";
+    try {
+      const pc = await readThemeConfig("plan");
+      if (pc.teaserPath) {
+        const url = await getSignedUrl(pc.teaserPath).catch(() => "");
+        if (/\.(mp4|webm|mov)$/i.test(pc.teaserPath)) video = url; else cover = url;
+      }
+    } catch { /**/ }
+    return { cover, video };
+  })();
 
   // BELLA-THEMA: dasselbe Muster wie Kiss — das Cover kommt aus dem Medien-Werkzeug
   // (/themes/bella?admin=1 → „1 · Cover"). Beim Anlegen der Karte am 29.07.2026 hatte ich
   // das vergessen: sie zeigte stur Bellas Profilfoto, obwohl im Panel „erscheint im
   // Themes-Katalog" steht. Ist kein Cover gesetzt, gilt das ERSTE Video der Galerie —
   // damit die Karte auch dann das zeigt, was oben auf der Landingpage läuft.
-  let bellaCover = "", bellaVideo = "";
-  try {
-    const bc = await readThemeConfig("bella");
-    const p = bc.teaserPath || (bc.examplePaths ?? [])[0] || "";
-    if (p) {
-      const url = await getSignedUrl(p).catch(() => "");
-      if (url) { if (/\.(mp4|webm|mov)$/i.test(p)) bellaVideo = url; else bellaCover = url; }
-    }
-  } catch { /**/ }
+  const bellaP = (async () => {
+    let cover = "", video = "";
+    try {
+      const bc = await readThemeConfig("bella");
+      const p = bc.teaserPath || (bc.examplePaths ?? [])[0] || "";
+      if (p) {
+        const url = await getSignedUrl(p).catch(() => "");
+        if (url) { if (/\.(mp4|webm|mov)$/i.test(p)) video = url; else cover = url; }
+      }
+    } catch { /**/ }
+    return { cover, video };
+  })();
+
+  // DIE EINE Wartestelle für alle neun Blöcke — ab hier ist alles da.
+  const [wetter, st, tryon, urlaubVideo, ownVideos, weddingVideo, kiss, plan, bellaThema] = await Promise.all([
+    wetterP, stateP, tryonP, urlaubP, ownVideosP, weddingP, kissP, planP, bellaP,
+  ]);
+
+  const { cover: wetterCover, video: wetterVideo, poster: wetterPoster } = wetter;
+  const { placeholders, gestalt } = st;
+  const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
+  const { dressed: tryonDressed, lingerie: tryonLingerie } = tryon;
+  const [surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = ownVideos;
+  const { cover: kissCover, video: kissVideo } = kiss;
+  const { cover: planCover, video: planVideo } = plan;
+  const { cover: bellaCover, video: bellaVideo } = bellaThema;
 
   /**
    * DIE EINSTIEGSPREISE — aus lib/pricing, nie getippt.
