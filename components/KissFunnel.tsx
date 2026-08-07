@@ -703,8 +703,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         void standbildZiehen(url).then(({ bild, brauchbar, dauer }) => {
           setNimmtAuf(false);
           /* Bei einer Absage wird die Adresse sofort frei — es gibt nichts anzuschauen. */
-          if (!bild || !brauchbar) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.leer); return; }
-          if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); return; }
+          /* Jede rote Absage meldet ihren GRUND ins Insights (Owner 07.08.2026 abends:
+             „Es kam eine rote Meldung, ich weiss nicht wieso" — und wir wussten es auch
+             nicht: Der Grund stand nur auf seinem Bildschirm). */
+          if (!bild || !brauchbar) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.leer); track("aufnahme_leer"); return; }
+          if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); track("aufnahme_kurz"); return; }
           setAufnahmeFehler("");
           setAufnahmeUrl(url);   // bleibt bestehen — daraus spielt der Spieler
           setCustomModel(bild); setUseCustom(true);
@@ -775,6 +778,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       const grund = e instanceof Error ? (e.name === "Error" ? e.message : e.name) : "?";
       setNimmtAuf(false); setKameraAus(true);
       setAufnahmeFehler(`${SW.kameraAus} (${grund})`);
+      /* Der Grund geht mit ins Insights — sonst steht er nur auf dem Bildschirm des Kunden. */
+      track(`aufnahme_kamera_${grund.replace(/[^A-Za-z]/g, "").slice(0, 24) || "unbekannt"}`);
     }
   };
   const aufnahmeStopp = () => {
@@ -3673,31 +3678,42 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       so zeigt; die AUFNAHME selbst bleibt unspiegelt. */}
                   {nimmtAuf && (
                     /**
-                     * GRÖSSER, MIT UMRISS UND VORLAUF (Owner 07.08.2026: „das Video startet
-                     * sofort … keine zeit mich zu positionieren" · „sollen wir da ein umriss
-                     * machen für den kopf … Und das fenster soll grösser sein").
-                     *
-                     * 150 px waren zum Positionieren zu klein — man sah nicht, ob man drin
-                     * ist. Der gestrichelte Umriss sagt ohne ein Wort (sieben Sprachen!),
-                     * wohin das Gesicht gehört; die grosse Zahl zählt den Vorlauf herunter,
-                     * erst bei null läuft die Aufnahme. Aus diesem Bild wird das Avatar —
-                     * je besser das Gesicht sitzt, desto ähnlicher wird es.
+                     * VOLLBILD (Owner 07.08.2026 abends: „Die Video aufname muss sich
+                     * fullsize öffnen"). Das 240-px-Fenster in der Karte war zum
+                     * Positionieren immer noch zu klein. Jetzt liegt die Aufnahme über dem
+                     * ganzen Bildschirm — und der SATZ steht mit im Overlay, oben: Wer
+                     * abliest, darf dafür nicht aus dem Vollbild müssen. Umriss und
+                     * 3-2-1-Vorlauf wie gehabt; der Stopp-Knopf wandert mit nach unten
+                     * (der in der Karte darunter liegt jetzt verdeckt und entfällt).
+                     * z-[98]: über den Dialogen (z-[96]), unter nichts.
                      */
-                    <div className="relative mx-auto mt-3 w-[240px] max-w-full">
+                    <div className="fixed inset-0 z-[98] bg-black">
                       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                       <video ref={vorschauRef} muted playsInline
-                        className="aspect-[3/4] w-full rounded-xl object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                         style={{ transform: "scaleX(-1)" }} />
                       <div aria-hidden
-                        className="pointer-events-none absolute left-1/2 top-[7%] h-[54%] w-[58%] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
+                        className="pointer-events-none absolute left-1/2 top-[11%] h-[42%] w-[64%] max-w-[340px] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
+                      <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-5 pb-10 pt-4 text-center">
+                        <p className="text-[11px] font-bold text-white/75">{SW.lies}</p>
+                        <p className="mt-1 text-[16px] font-black leading-snug text-white">{satz}</p>
+                      </div>
                       {vorlauf > 0 && (
                         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                          <span className="text-[72px] font-black leading-none text-white"
+                          <span className="text-[96px] font-black leading-none text-white"
                             style={{ textShadow: "0 2px 12px rgba(0,0,0,0.85)" }}>
                             {vorlauf}
                           </span>
                         </div>
                       )}
+                      <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/85 to-transparent px-5 pb-8 pt-10">
+                        <button type="button" onClick={aufnahmeStopp}
+                          className="flex h-12 items-center justify-center gap-2 rounded-full border-2 bg-black/40 px-6 text-[15px] font-black text-white active:scale-95 transition"
+                          style={{ borderColor: ABSAGE_ROT }}>
+                          <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
+                          {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
+                        </button>
+                      </div>
                     </div>
                   )}
                   <div className="mt-3 flex items-center justify-center gap-2">
@@ -3706,18 +3722,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
                         <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : SW.selbst}
                       </button>
-                    ) : (
-                      /* DIE SEKUNDEN STEHEN AUF DEM KNOPF (Owner 07.08.2026: „ich habe
-                         nichts aufgenommen"). Ohne sie sieht eine laufende Aufnahme genau
-                         so aus wie gar keine — und nach dem Deckel steht man vor einem
-                         Ergebnis, von dem man nicht wusste, dass es entsteht. */
-                      <button type="button" onClick={aufnahmeStopp}
-                        className="flex h-11 items-center justify-center gap-2 rounded-full border-2 px-5 text-[14px] font-black text-white active:scale-95 transition"
-                        style={{ borderColor: ABSAGE_ROT }}>
-                        <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
-                        {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
-                      </button>
-                    )}
+                    ) : null /* Der Stopp-Knopf lebt im Vollbild-Overlay — hier wäre er verdeckt. */}
                   </div>
                   {aufnahmeFehler && (
                     <p className="mt-2 text-[12px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
@@ -4762,6 +4767,33 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
             </a>
+            {/**
+              * ZURÜCK VOM ERGEBNIS (Owner 07.08.2026 abends: „und hier kann ich nicht
+              * zurück"). Das fertige Video war eine Sackgasse: Herunterladen oder gar
+              * nichts. Derselbe Weg wie beim Kuss-„Noch ein Video": frischer Auftrag
+              * (der alte ist mit seinem einen Video abgegolten und bleibt in der
+              * Galerie), Zustand zurück auf „vor der Zahlung" — Aufnahme und Look
+              * stehen noch, ein Tipp auf Generieren zahlt und startet normal.
+              */}
+            {variant === "birthday" && (
+              <button type="button" disabled={payBusy || videoBusy}
+                onClick={() => void (async () => {
+                  let device = "";
+                  try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+                  const log = await fetch("/api/kiss-log", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(),
+                      ...(customModel ? { modelImage: customModel } : {}) }),
+                  }).then(r => r.json()).catch(() => null);
+                  if (log?.id) genMerken(log.id);
+                  setVideoUrl(""); setVideoPoster(""); setBezahlt(false); setStatus("");
+                  setGesperrt(false); setErstattet(false); setErstattScharf(false);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                })()}
+                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/20 text-[13.5px] font-black text-white active:scale-95 transition disabled:opacity-60">
+                <RefreshCw className="h-4 w-4" /> {T.nochmalVideo}
+              </button>
+            )}
 
             {/**
              * GELD ZURUECK, OHNE UNS ZU SCHREIBEN (Owner 03.08.2026: „hier gehoert eigentlich
