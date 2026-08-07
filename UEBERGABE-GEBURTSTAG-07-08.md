@@ -128,6 +128,39 @@ die Kamera).
 
 ---
 
+## 6a · Der Fall „ich habe 60 € aufgeladen" — nachgeprüft, nicht vermutet
+
+Der Owner meldete am 07.08. abends, er habe 60 € geladen und der Chip stehe auf 0,02 €.
+**Gemessen** (`readGuthabenCents`, nur gelesen):
+
+| Adresse | Stand |
+|---|---|
+| tigl10722@gmail.com | 0,02 € |
+| geza1972@gmail.com | 8,01 € |
+
+**Stripe-Sitzung `cs_live_b1AdF2JgC0654PIh`, 14:26:01:** `payment_status: paid`,
+**`amount_total: 0,00 €`**, `metadata.cents: 6000`.
+
+→ Es floss **kein Geld**. Ein 100-%-Gutscheincode war im Spiel. `app/api/checkout-status`
+schreibt bewusst nur den GEZAHLTEN Betrag gut (`gezahlt = amountTotal`), sonst ist jeder
+kursierende Code eine offene Kasse — genau so entstanden am 03.08. Phantom-Guthaben von
+9,99 € auf zwei Konten. **Das System hat richtig gehandelt.**
+
+**Was fehlt, ist das Wort dazu:** Der Kunde sieht „bezahlt" und einen unveränderten
+Kontostand, ohne Erklärung. Hier gehört eine Zeile hin — „mit deinem Gutschein waren es
+0,00 €, deshalb kein Guthaben" —, sonst sieht es aus wie ein verschwundener Betrag.
+
+**Zweiter Fund derselben Spur:** Um 14:26:27 legte der Server eine Kasse über **15,00 €**
+an, `kind: kiss-video` — für einen **Geburtstags**-Auftrag zu 4,99 €. Sie blieb unbezahlt,
+weil der `nurGuthaben`-Wächter in `unlock` danach zuschlägt. Aber:
+
+- Die Sitzung entsteht **vor** dem Wächter (der `fetch` steht davor) — falscher Preis,
+  falsches Produkt, jedes Mal eine Leiche in der Stripe-Liste.
+- Der Wächter lautet `!isStaff`. Für **Personal ist er ausgeschaltet** — der Owner selbst
+  bekäme also die 15-€-Kasse zu sehen.
+
+Beides ist ungefixt. Es ist der erste Punkt für den neuen Chat.
+
 ## 7 · Offene Punkte am Rand
 
 - Der Trichter berechnet für den Geburtstag weiterhin `refOutfit` (`alsDatenUrl` auf das
