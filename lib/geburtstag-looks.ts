@@ -109,6 +109,15 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
      */
     id: "skyline",
     name: "Skyline",
+    /**
+     * AUF DIESER KACHEL STEHT EIN MANN (Owner 07.08.2026: „mach den typ auch rein").
+     *
+     * Nicht Kosmetik: Zeigen alle Kacheln eine Frau, sieht ein Mann sich nirgends —
+     * und die Kette KANN Maenner, der Prompt nennt seit demselben Tag gar kein
+     * Geschlecht mehr. Eine gemischte Reihe sagt das ohne ein Wort. Das Bild ist mit
+     * genau diesem Prompt entstanden, aus dieser Datei geladen — es ist zugleich der
+     * Beweis, dass der Look mit einem Mann traegt.
+     */
     bild: "/Birthday/look-skyline.jpg",
     torte: "a birthday cake with many lit candles: cream frosting with dark chocolate curls",
     haltung:
