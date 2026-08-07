@@ -20,7 +20,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy } from "@/components/CI";
+import { Dialog, MadeBy, Knopf } from "@/components/CI";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
  * Geschenke-Marktplatz). Sie stand hier mitten im Trichter — damit war „ein neues
@@ -256,6 +256,17 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * `beispielVideo` bleibt als Prop bestehen, weil mehrere Seiten es so uebergeben; es ist
  * schlicht der erste Eintrag der Liste.
  */
+/** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, zwei Chips (siehe `stimme` unten). */
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo" },
+};
+
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
   const V = VARIANTS[variant];
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
@@ -421,6 +432,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * soll seinen Gruss nicht neu beschriften muessen.
    */
   const [empfaenger, setEmpfaenger] = useState("");
+  /**
+   * WESSEN STIMME SPRICHT (Owner 07.08.2026, nach dem Peter-Test: „Peter hat eine
+   * Frauenstimme. Das war eben das problem, dass wir sagten") — die Geburtstags-Kette
+   * spricht den Gruss WÖRTLICH, also muss die Stimme zur hochgeladenen Person passen.
+   * Zwei Chips statt einer Frage zum Tippen (Memory `chat-no-personal-questions`);
+   * Vorgabe Frau. Die DAUERLÖSUNG bleibt die eigene Stimme aus dem Selfie-Video
+   * (Memory `geschenk-kette-openai-heygen`) — bis dahin trägt diese Wahl.
+   */
+  const [stimme, setStimme] = useState<"frau" | "mann">("frau");
   /** Euro-Guthaben in Cent (Aufladung 9,99; Owner 01.08.2026 Variante B). null = unbekannt. */
   const [guthabenCents, setGuthabenCents] = useState<number | null>(null);
   /**
@@ -1879,9 +1899,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       const start = variant === "birthday" ? await fetch("/api/geburtstag-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        // Kundenfoto + Empfängername — mehr braucht die Kette nicht; `genId` weist wie
-        // bei Pixverse den bezahlten Auftrag aus.
-        body: JSON.stringify({ genId, person: refPerson, name: empfaenger }),
+        // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
+        // weist wie bei Pixverse den bezahlten Auftrag aus.
+        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme }),
       }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -1967,7 +1987,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
             const log = await fetch("/api/kiss-log", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger,
+              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger, stimme,
                 personImage: photo, ...(useCustom && customModel ? { modelImage: customModel } : {}) }),
             }).then(r => r.json()).catch(() => null);
             setVideoBusy(false);
@@ -2000,7 +2020,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           /* `empfaenger` wandert mit in den Auftrag: Der Nachliefer-Wachhund braucht den
              Namen, wenn er den Geburtstag nach Browser-Schluss neu anstossen muss — die
              neue Kette SPRICHT ihn ja. */
-          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger }),
+          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme }),
         }).catch(() => {});
       }
       for (let i = 0; i < 90; i++) {
@@ -3130,6 +3150,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             type="text" autoComplete="given-name" maxLength={18} placeholder={T.namenPlatzhalter}
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="lb-eingabe mt-1 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/35 focus:border-[#f6cf51]" />
+          {/* Die Stimmen-Wahl direkt unterm Namen: Der Name ist das, was GESPROCHEN wird —
+              die Stimme gehört daneben, nicht in einen eigenen Schritt. */}
+          {variant === "birthday" && (() => {
+            const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
+            return (
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <span className="text-[11px] font-bold text-white/55">{SW.frage}</span>
+                <Knopf art="chip" aktiv={stimme === "frau"} onClick={() => setStimme("frau")}>{SW.frau}</Knopf>
+                <Knopf art="chip" aktiv={stimme === "mann"} onClick={() => setStimme("mann")}>{SW.mann}</Knopf>
+              </div>
+            );
+          })()}
         </div>
       )}
       <button type="button"

@@ -1651,6 +1651,8 @@ export type KissLogEntry = {
    * Personalisierung waere genau dort weg, wo sie gemeint ist.
    */
   empfaenger?: string;
+  /** Stimmwahl des Geburtstags — „frau" (Joy) oder „mann" (Daniel), siehe /api/geburtstag-video. */
+  stimme?: "frau" | "mann";
   /**
    * WANN DIE ABLAUF-MAIL RAUS IST (Owner 03.08.2026: „90 Tage").
    *

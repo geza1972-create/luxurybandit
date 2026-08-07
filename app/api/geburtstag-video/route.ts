@@ -24,8 +24,15 @@ export const runtime = "nodejs";
    HeyGen-Aufrufe — dieselbe Obergrenze wie die Pixverse-Route. */
 export const maxDuration = 120;
 
-/** „Joy" — die warme Frauenstimme, mit der die Vorlage abgenommen wurde. */
-const VOICE_JOY = "550dbffd479e4353aea0bab5bdebef39";
+/**
+ * ZWEI STIMMEN, PASSEND ZUR PERSON (Owner 07.08.2026, nach dem Peter-Test: „Peter hat
+ * eine Frauenstimme. Das war eben das problem, dass wir sagten"): „Joy" für Frauen —
+ * die Stimme der abgenommenen Vorlage — und „Daniel" für Männer. Die Wahl trifft der
+ * Kunde per Chip im Trichter; Vorgabe Frau. Dauerlösung bleibt die eigene Stimme aus
+ * dem Selfie-Video.
+ */
+const VOICE_FRAU = "550dbffd479e4353aea0bab5bdebef39";  // „Joy"
+const VOICE_MANN = "0c23804af39a4946ac6fda42bfff2738";  // „Daniel"
 
 /**
  * DER AVATAR-PROMPT — ALLGEMEIN formuliert (Owner 07.08.2026: „die frau muss einen
@@ -108,7 +115,7 @@ export async function POST(request: Request) {
   const heygen = process.env.HEYGEN_API_KEY?.trim();
   if (!heygen) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
 
-  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string };
+  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string };
   /**
    * KEIN GRATIS-WEG: Erzeugt wird für Personal (PIN) oder für einen bezahlten Auftrag
    * (`genId` aus dem Kassenweg — dieselbe Vertrauensstufe wie die Pixverse-Route; die
@@ -142,7 +149,7 @@ export async function POST(request: Request) {
       type: "avatar",
       avatar_id: lookId,
       script: spruch(body.name ?? ""),
-      voice_id: VOICE_JOY,
+      voice_id: body.stimme === "mann" ? VOICE_MANN : VOICE_FRAU,
       voice_settings: { speed: 1.0 },
       /* „auto" übernimmt das Format des Looks (2:3 aus OpenAI) — die Karte trägt jedes
          Hochformat (`verhaeltnis`); eine feste 9:16-Stufe würde stattdessen beschneiden. */

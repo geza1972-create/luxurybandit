@@ -161,7 +161,7 @@ async function ablegen(dataUrl: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -291,6 +291,9 @@ export async function POST(request: Request) {
       // deshalb ueberschreibt er hier, statt nur beim Anlegen gesetzt zu werden.
       const empf = String(body.empfaenger ?? "").replace(/\s+/g, " ").trim().slice(0, 18);
       if (empf) e.empfaenger = empf;
+      /* Die Stimmwahl des Geburtstags — der Nachliefer-Wachhund braucht sie beim Neustart
+         (Owner 07.08.2026: „Peter hat eine Frauenstimme"). Nur die zwei bekannten Werte. */
+      if (body.stimme === "mann" || body.stimme === "frau") e.stimme = body.stimme;
       if (modelBild.startsWith("data:") && !e.modelPath) {
         const p2 = await ablegen(modelBild);
         if (p2) e.modelPath = p2;
@@ -358,6 +361,7 @@ export async function POST(request: Request) {
     device: String(body.device ?? "").trim().slice(0, 80) || undefined,
     theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
     empfaenger: String(body.empfaenger ?? "").replace(/\s+/g, " ").trim().slice(0, 18) || undefined,
+    stimme: body.stimme === "mann" || body.stimme === "frau" ? body.stimme : undefined,
     // Das Warnzeichen für die Galerie — nur gesetzt, wenn etwas auffiel.
     altersWarnung: tor.warnung,
     altersGeschaetzt: tor.alter || undefined,
