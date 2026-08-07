@@ -518,6 +518,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [aufnahmeFehler, setAufnahmeFehler] = useState("");
   /** Sekunden bis zum Deckel — sonst weiss niemand, dass gerade aufgenommen wird. */
   const [restSek, setRestSek] = useState(0);
+  /**
+   * DER VORLAUF VOR DER AUFNAHME (Owner 07.08.2026: „das Video startet sofort wenn ich auf
+   * filmeaza-te klicke und ich habe keine zeit mich zu positionieren").
+   *
+   * Vorher lief `rec.start()` im selben Atemzug wie der Klick — die ersten Sekunden jeder
+   * Aufnahme zeigten das Hinhalten der Kamera, und genau aus diesen Sekunden zieht die
+   * Kette ihr Standbild (→ Avatar). Jetzt: Kamera an, man sieht sich im Fenster mit dem
+   * Kopf-Umriss, 3-2-1, DANN erst nimmt der Recorder auf. 0 = kein Vorlauf.
+   */
+  const [vorlauf, setVorlauf] = useState(0);
+  const vorlaufTakt = useRef<ReturnType<typeof setInterval> | null>(null);
   const aufnehmerRef = useRef<MediaRecorder | null>(null);
   const stueckeRef = useRef<Blob[]>([]);
   /** Das Bild, in dem man sich beim Sprechen sieht. */
@@ -643,23 +654,45 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           leser.readAsDataURL(blob);
         });
       };
-      rec.start();
       aufnehmerRef.current = rec;
       /* Der vorige Versuch wird ungueltig, sobald ein neuer laeuft — sonst stuende ein
          gutes altes Foto neben einer misslungenen neuen Aufnahme, und der Kaufknopf
          waere frei, obwohl gerade nichts entstanden ist. */
       setAufnahmeUrl(a => { if (a) URL.revokeObjectURL(a); return ""; });
       setAufnahme(""); setCustomModel(""); setAufnahmeFehler(""); setKameraAus(false);
-      setNimmtAuf(true); setRestSek(12);
-      const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-      setTimeout(() => clearInterval(takt), 12500);
       /* Die LIVE-Vorschau, damit man sich beim Sprechen sieht — ohne sie filmt man blind
          die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
          nächsten Durchlauf. */
       stromRef.current = strom;
-      /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
-         Datei erzeugen, die das Tor abweist. */
-      setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+      setNimmtAuf(true);
+      /**
+       * ERST POSITIONIEREN, DANN AUFNEHMEN (Owner 07.08.2026: „das Video startet sofort …
+       * ich habe keine zeit mich zu positionieren"). Drei Sekunden Vorlauf: Die Vorschau
+       * steht schon (Effekt auf `nimmtAuf`), der Umriss zeigt, wohin das Gesicht gehört —
+       * der Recorder startet erst, wenn die Zahl auf null ist. Wichtig fuers STANDBILD:
+       * Es wird aus den ersten Sekunden der AUFNAHME gezogen; ohne Vorlauf zeigte es das
+       * Hinhalten der Kamera, und daraus wurde das Avatar.
+       */
+      setVorlauf(3);
+      let vor = 3;
+      vorlaufTakt.current = setInterval(() => {
+        vor -= 1;
+        if (vor > 0) { setVorlauf(vor); return; }
+        if (vorlaufTakt.current) { clearInterval(vorlaufTakt.current); vorlaufTakt.current = null; }
+        setVorlauf(0);
+        try { rec.start(); } catch {
+          /* Der Strom ist zwischen Klick und Start gestorben (Tab-Wechsel, Kamera entzogen). */
+          strom.getTracks().forEach(t => t.stop());
+          setNimmtAuf(false); setKameraAus(true); setAufnahmeFehler(SW.kameraAus);
+          return;
+        }
+        setRestSek(12);
+        const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
+        setTimeout(() => clearInterval(takt), 12500);
+        /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
+           Datei erzeugen, die das Tor abweist. */
+        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+      }, 1000);
     } catch (e) {
       /**
        * WARUM ES NICHT GING, GEHOERT AUF DEN BILDSCHIRM (Owner 07.08.2026: „Dann der Button
@@ -682,7 +715,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       setAufnahmeFehler(`${SW.kameraAus} (${grund})`);
     }
   };
-  const aufnahmeStopp = () => { try { aufnehmerRef.current?.stop(); } catch { /**/ } };
+  const aufnahmeStopp = () => {
+    /* Im VORLAUF gibt es noch nichts zu stoppen — nur aufzuräumen: Zähler aus, Kamera
+       freigeben, zurück zum Knopf. Ein `rec.stop()` auf einem nie gestarteten Recorder
+       würde werfen und die Kamera brennen lassen. */
+    if (vorlaufTakt.current) {
+      clearInterval(vorlaufTakt.current); vorlaufTakt.current = null;
+      setVorlauf(0); setNimmtAuf(false);
+      try { stromRef.current?.getTracks().forEach(t => t.stop()); } catch { /**/ }
+      stromRef.current = null;
+      if (vorschauRef.current) vorschauRef.current.srcObject = null;
+      return;
+    }
+    try { aufnehmerRef.current?.stop(); } catch { /**/ }
+  };
 
   /**
    * DAS SELBSTBILD HAENGT SICH AN, SOBALD ES DAS BILD GIBT (Owner 07.08.2026: „aber ich
@@ -3559,10 +3605,33 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       Gespiegelt wie ein Spiegel (`scaleX(-1)`), weil jede Selfie-Kamera das
                       so zeigt; die AUFNAHME selbst bleibt unspiegelt. */}
                   {nimmtAuf && (
-                    // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video ref={vorschauRef} muted playsInline
-                      className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover"
-                      style={{ transform: "scaleX(-1)" }} />
+                    /**
+                     * GRÖSSER, MIT UMRISS UND VORLAUF (Owner 07.08.2026: „das Video startet
+                     * sofort … keine zeit mich zu positionieren" · „sollen wir da ein umriss
+                     * machen für den kopf … Und das fenster soll grösser sein").
+                     *
+                     * 150 px waren zum Positionieren zu klein — man sah nicht, ob man drin
+                     * ist. Der gestrichelte Umriss sagt ohne ein Wort (sieben Sprachen!),
+                     * wohin das Gesicht gehört; die grosse Zahl zählt den Vorlauf herunter,
+                     * erst bei null läuft die Aufnahme. Aus diesem Bild wird das Avatar —
+                     * je besser das Gesicht sitzt, desto ähnlicher wird es.
+                     */
+                    <div className="relative mx-auto mt-3 w-[240px] max-w-full">
+                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                      <video ref={vorschauRef} muted playsInline
+                        className="aspect-[3/4] w-full rounded-xl object-cover"
+                        style={{ transform: "scaleX(-1)" }} />
+                      <div aria-hidden
+                        className="pointer-events-none absolute left-1/2 top-[7%] h-[54%] w-[58%] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
+                      {vorlauf > 0 && (
+                        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                          <span className="text-[72px] font-black leading-none text-white"
+                            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.85)" }}>
+                            {vorlauf}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <div className="mt-3 flex items-center justify-center gap-2">
                     {!nimmtAuf ? (
@@ -3597,7 +3666,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   {aufnahmeUrl && !nimmtAuf && (
                     // eslint-disable-next-line jsx-a11y/media-has-caption
                     <video controls playsInline src={aufnahmeUrl || undefined} poster={customModel || undefined}
-                      className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover" />
+                      className="mx-auto mt-3 aspect-[3/4] w-[240px] max-w-full rounded-xl object-cover" />
                   )}
                   {kameraAus && (
                     <p className="mt-2 text-[11px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
