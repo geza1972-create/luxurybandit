@@ -112,6 +112,19 @@ export type KissText = {
   /** Aufladung 9,99 (Owner 01.08.2026, Variante B) — Knopf, Hinweis, Guthaben-Zeile. */
   aufladen: string; aufladenHinweis: string; guthaben: string;
   /**
+   * WARUM DER WÄHLER OFFEN IST (Owner 07.08.2026: „wieso bekomme ich keine Meldung, nicht
+   * genügend Credit?"). Er öffnete an drei Rückwegen wortlos wieder — der Kunde sah nach
+   * einer Zahlung denselben Dialog und keinen Grund. {stand} und {preis} füllt der Trichter
+   * zur Laufzeit (eur), das sind Kontostände, keine Preisschilder aus der Tabelle.
+   */
+  guthabenZuWenig: string;
+  /**
+   * DIE 0,00-€-ZAHLUNG (Übergabe 07.08. §6a: „mit deinem Gutschein waren es 0,00 €, deshalb
+   * kein Guthaben"). Ein 100-%-Code zahlt die Aufladung — gutgeschrieben wird aber nur, was
+   * bezahlt wurde (checkout-status). Ohne dieses Wort sieht es wie verschwundenes Geld aus.
+   */
+  aufladungNull: string;
+  /**
    * DIE ZWEI ZAHLEN, BEVOR ER TIPPT (Owner 03.08.2026: „hier muss doch stehen dass das Video
    * 1,49 kostet aber er muss das Konto mit mindestens 9,99 Euro aufladen. Sonst fühlt er
    * sich ausgeraubt").
@@ -294,6 +307,8 @@ const EN: KissText = {
   aufladeWahlTitel: "How much would you like to top up?",
   guthabenVorabHinweis: "One video costs {once}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
+  guthabenZuWenig: "Your balance is {stand} — this video costs {preis}.",
+  aufladungNull: "Your last payment came to €0.00 (promo code) — so nothing was added to your balance.",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …", nochEins: "Another one, another look", replaceModel: "Replace model", replaceGewaehlt: "Chosen", erstatten: "Not happy? Get your money back", erstattenSicher: "Tap again — money back", erstattet: "Refunded to your balance", nochEinsPreis: "Tap an outfit - {tanz} from your balance, straight away.",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
@@ -421,6 +436,8 @@ const DE: KissText = {
   aufladeWahlTitel: "Wie viel möchtest du aufladen?",
   guthabenVorabHinweis: "Ein Video kostet {once}. Bezahlt wird aus deinem Guthaben — die kleinste Aufladung ist {topup}, der Rest bleibt dir für weitere Videos.",
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
+  guthabenZuWenig: "Dein Guthaben ist {stand} — dieses Video kostet {preis}.",
+  aufladungNull: "Deine letzte Zahlung betrug 0,00 € (Aktionscode) — deshalb wurde kein Guthaben gutgeschrieben.",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …", nochEins: "Noch eins, anderer Look", replaceModel: "Model ersetzen", replaceGewaehlt: "Gewählt", erstatten: "Nicht zufrieden? Geld zurück", erstattenSicher: "Nochmal tippen — Geld zurück", erstattet: "Auf dein Guthaben erstattet", nochEinsPreis: "Tipp ein Outfit an - {tanz} vom Guthaben, sofort.",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
@@ -548,6 +565,8 @@ const RO: KissText = {
   aufladeWahlTitel: "Cât vrei să încarci?",
   guthabenVorabHinweis: "Un videoclip costă {once}. Se plătește din creditul tău — cea mai mică încărcare este {topup}, iar restul îți rămâne pentru alte videoclipuri.",
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
+  guthabenZuWenig: "Creditul tău este {stand} — acest video costă {preis}.",
+  aufladungNull: "Ultima ta plată a fost de 0,00 € (cod promoțional) — de aceea nu s-a adăugat niciun credit.",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …", nochEins: "Inca unul, alt look", replaceModel: "Schimbă modelul", replaceGewaehlt: "Ales", erstatten: "Nu ești mulțumit? Îți dăm banii înapoi", erstattenSicher: "Atinge din nou — banii înapoi", erstattet: "Returnat în soldul tău", nochEinsPreis: "Atinge o tinuta - {tanz} din sold, imediat.",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
@@ -675,6 +694,8 @@ const ES: KissText = {
   aufladeWahlTitel: "¿Cuánto quieres recargar?",
   guthabenVorabHinweis: "Un vídeo cuesta {once}. Se paga con tu saldo — la recarga mínima es {topup}, y lo que sobra se queda para más vídeos.",
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
+  guthabenZuWenig: "Tu saldo es {stand} — este vídeo cuesta {preis}.",
+  aufladungNull: "Tu último pago fue de 0,00 € (código promocional) — por eso no se añadió saldo.",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …", nochEins: "Otro mas, otro look", replaceModel: "Cambiar modelo", replaceGewaehlt: "Elegido", erstatten: "¿No te convence? Te devolvemos el dinero", erstattenSicher: "Toca otra vez — dinero de vuelta", erstattet: "Devuelto a tu saldo", nochEinsPreis: "Toca un look - {tanz} de tu saldo, al momento.",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
@@ -802,6 +823,8 @@ const FR: KissText = {
   aufladeWahlTitel: "Combien veux-tu recharger ?",
   guthabenVorabHinweis: "Une vidéo coûte {once}. Le paiement se fait sur ton crédit — la recharge minimale est {topup}, et le reste te reste pour d'autres vidéos.",
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
+  guthabenZuWenig: "Ton crédit est de {stand} — cette vidéo coûte {preis}.",
+  aufladungNull: "Ton dernier paiement était de 0,00 € (code promo) — aucun crédit n'a donc été ajouté.",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …", nochEins: "Encore une, autre look", replaceModel: "Remplacer le modèle", replaceGewaehlt: "Choisi", erstatten: "Pas satisfait ? On te rembourse", erstattenSicher: "Touche encore — remboursé", erstattet: "Remboursé sur ton solde", nochEinsPreis: "Touche une tenue - {tanz} depuis ton solde, tout de suite.",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
@@ -929,6 +952,8 @@ const PT: KissText = {
   aufladeWahlTitel: "Quanto queres carregar?",
   guthabenVorabHinweis: "Um vídeo custa {once}. Paga-se com o teu saldo — o carregamento mínimo é {topup}, e o que sobra fica para mais vídeos.",
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
+  guthabenZuWenig: "O teu saldo é {stand} — este vídeo custa {preis}.",
+  aufladungNull: "O teu último pagamento foi de 0,00 € (código promocional) — por isso não foi adicionado saldo.",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …", nochEins: "Mais um, outro look", replaceModel: "Trocar modelo", replaceGewaehlt: "Escolhido", erstatten: "Não gostaste? Devolvemos o dinheiro", erstattenSicher: "Toca outra vez — dinheiro de volta", erstattet: "Devolvido ao teu saldo", nochEinsPreis: "Toca num look - {tanz} do teu saldo, ja.",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
@@ -1057,6 +1082,8 @@ const IT: KissText = {
   aufladeWahlTitel: "Quanto vuoi ricaricare?",
   guthabenVorabHinweis: "Un video costa {once}. Si paga con il tuo credito — la ricarica minima è {topup}, e quel che avanza resta per altri video.",
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
+  guthabenZuWenig: "Il tuo credito è {stand} — questo video costa {preis}.",
+  aufladungNull: "Il tuo ultimo pagamento è stato di 0,00 € (codice promozionale) — quindi non è stato aggiunto credito.",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …", nochEins: "Ancora uno, altro look", replaceModel: "Sostituisci modella", replaceGewaehlt: "Scelto", erstatten: "Non ti convince? Ti rimborsiamo", erstattenSicher: "Tocca di nuovo — rimborso", erstattet: "Rimborsato sul tuo saldo", nochEinsPreis: "Tocca un outfit - {tanz} dal saldo, subito.",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",

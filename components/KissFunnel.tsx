@@ -720,6 +720,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
   const nachAufladungKaufen = useRef(false);
   /**
+   * DIE LETZTE AUFLADUNG WAR 0,00 € WERT (Owner 07.08.2026: „wieso bekomme ich keine
+   * Meldung, nicht genügend Credit?"). Ein 100-%-Aktionscode zahlt die Kasse, gutgeschrieben
+   * wird aber nur der GEZAHLTE Betrag (checkout-status) — der Wähler ging danach wortlos
+   * wieder auf. Dieses Flag trägt das Wort in den Dialog; es fällt, sobald er eine neue
+   * Aufladung anstößt.
+   */
+  const [aufladeNull, setAufladeNull] = useState(false);
+  /**
    * DIE BEREITS ANGEZOGENEN FOTOS des laufenden Versuchs (Uebergabe 2d). Ein zweiter Anlauf
    * mit denselben Zutaten nimmt sie, statt zwei FASHN-Laeufe noch einmal zu bezahlen.
    * Ein Ref und kein State: Es soll nichts neu zeichnen, nur nichts vergessen.
@@ -1339,6 +1347,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const rest = q.toString();
         window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
         if (typeof st.walletCents === "number") setGuthabenCents(st.walletCents);
+        if (st.gutgeschrieben === 0) setAufladeNull(true);   // 100-%-Code: bezahlt, aber 0 € wert
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
         if (st.email) { setMail(String(st.email)); setAdresseDa(true); setFrei(true); try { localStorage.setItem(MAIL_KEY, String(st.email)); } catch { /**/ } }
         setStatus("");
@@ -2544,6 +2553,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            */
           if (einmal === "auflade") {
             if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
+            if (s.gutgeschrieben === 0) setAufladeNull(true);   // 100-%-Code: bezahlt, aber 0 € wert
             trackMetaPixel("Purchase", { currency: "EUR", content_name: "Account credit" });
             nachAufladungWeiter();
             return;
@@ -4278,6 +4288,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * höchste Stufe), steht die ganze Leiter da — lieber eine Teilzahlung als eine
               * Wand ohne Knopf.
               */}
+            {/**
+              * WARUM DER DIALOG OFFEN IST (Owner 07.08.2026: „wieso bekomme ich keine Meldung,
+              * nicht genügend Credit?"). Er öffnet nur, wenn das Guthaben nicht reicht — aber
+              * das stand nirgends. Nach einer Zahlung mit 100-%-Code (bezahlt, 0 € wert) sah
+              * es wie verschwundenes Geld aus. Rot und beziffert, wie jede Absage im Haus
+              * (Memory sichtbare-fehler-keine-formularfelder); dieselbe feste Farbe wie
+              * `mailFehler` direkt darüber.
+              */}
+            <p role="alert" style={{ color: "#ef4444" }} className="mt-3 text-[12.5px] font-black leading-snug">
+              {aufladeNull ? T.aufladungNull : T.guthabenZuWenig
+                .replace("{stand}", eur(guthabenCents ?? 0, lang))
+                .replace("{preis}", eur(videoPreisCents, lang))}
+            </p>
             {(() => {
               const deckend = AUFLADE_STUFEN.filter(s => (guthabenCents ?? 0) + s >= videoPreisCents);
               return (deckend.length ? deckend : [...AUFLADE_STUFEN]);
@@ -4288,7 +4311,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               // die Kasse nicht aufgehen: Sie wuerde die ALTE Adresse mitnehmen, und genau
               // diese stille Abweichung soll der Kasten hier verhindern.
               <button key={stufe} type="button" disabled={payBusy || adresseAendern}
-                onClick={() => { setAufladeWahl(false); void unlock("auflade", undefined, stufe); }}
+                onClick={() => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}
                 className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                 {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
               </button>

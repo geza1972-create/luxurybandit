@@ -196,6 +196,14 @@ export async function GET(request: Request) {
         paid, topup: true, kind: "aufladung",
         email: (String(s.metadata.email ?? "") || s.customerEmail || "").trim().toLowerCase() || undefined,
         ...(walletCents !== undefined ? { walletCents } : {}),
+        /**
+         * WAS DIESE ZAHLUNG WERT WAR (Owner 07.08.2026: „wieso bekomme ich keine Meldung,
+         * nicht genügend Credit?"). Bei einem 100-%-Code ist `paid` wahr und trotzdem 0
+         * gutgeschrieben — ohne diese Zahl kann der Trichter das dem Kunden nicht sagen,
+         * und er sieht nur denselben Wähler wieder. Der Kontostand allein reicht nicht:
+         * `walletCents` sagt WO er steht, nicht WARUM sich nichts bewegt hat.
+         */
+        gutgeschrieben: cents,
       });
     }
 
