@@ -97,6 +97,24 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
   ]);
   // Ohne die beiden Vorlagen kann niemand rendern — das ist ein Fall für den Admin, keiner
   // für einen weiteren Versuch.
+  /**
+   * GEBURTSTAG → NEUE KETTE (07.08.2026): Der Wachhund nimmt denselben Weg wie der
+   * Trichter — sonst lieferte er nach Browser-Schluss ein Pixverse-Video einer Strecke
+   * nach, die es für den Geburtstag nicht mehr gibt. Er braucht dafür nur IHR Foto
+   * (nurSie-Geschenk, `sein` bleibt leer) und den Empfängernamen aus dem Auftrag.
+   */
+  if (e.theme === "birthday") {
+    if (!ihr) return { error: "Ihr Foto fehlt im Speicher." };
+    const pinG = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
+    const g = await fetch(`${origin(request)}/api/geburtstag-video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(pinG ? { "x-try-look-admin-pin": pinG } : {}) },
+      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "" }),
+    }).then(x => x.json()).catch(() => null);
+    if (!g?.videoId) return { error: String(g?.error ?? "Geburtstags-Start fehlgeschlagen.") };
+    return { videoId: String(g.videoId) };
+  }
+
   if (!sein || !ihr) return { error: !sein ? "Sein Foto fehlt im Speicher." : "Ihr Foto fehlt im Speicher." };
 
   // Szene: fest aus der Kennung abgeleitet, damit derselbe Auftrag bei einem zweiten Anlauf

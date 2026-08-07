@@ -32,7 +32,10 @@ import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as
 import { kissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
-import { GEBURTSTAG_PROMPT, geburtstagTitel } from "@/lib/geburtstag";
+/* GEBURTSTAG_PROMPT wohnt weiter in lib/geburtstag, wird aber seit dem 07.08.2026 nur noch
+   dokumentarisch gebraucht: Der Geburtstag erzeugt über /api/geburtstag-video (OpenAI→HeyGen),
+   nicht mehr über den Pixverse-Zweig dieses Trichters. */
+import { geburtstagTitel } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
@@ -1865,7 +1868,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       const promptFuerLauf = poledancePromptFuerSet();
       if (runRef.current !== token) return;
-      const start = await fetch("/api/generate-tryon-video", {
+      /**
+       * DER GEBURTSTAG LÄUFT SEIT DEM 07.08.2026 ÜBER DIE NEUE KETTE — OpenAI-Avatar
+       * (Schokotorte, festliche Kleidung) → HeyGen spricht den Namen WÖRTLICH
+       * (`/api/geburtstag-video`). Pixverse hatte gesprochene Namen vermurkst (Owner:
+       * „Happy Birthday you dear Anna. Das ist falsch"). Die Route gibt eine
+       * `hg:`-Kennung zurück; die Poll-Schleife unten fragt unverändert dieselbe
+       * Status-Route, die den Prefix kennt — auch der Nachliefer-Wachhund kann so mit.
+       */
+      const start = variant === "birthday" ? await fetch("/api/geburtstag-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+        // Kundenfoto + Empfängername — mehr braucht die Kette nicht; `genId` weist wie
+        // bei Pixverse den bezahlten Auftrag aus.
+        body: JSON.stringify({ genId, person: refPerson, name: empfaenger }),
+      }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // AUFLOESUNG NOCH NICHT UMGESTELLT (Owner 30.07.2026: „ok, aber jetzt noch nicht
@@ -1901,12 +1918,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * {tanz}. Ein sichtbar schlechteres Video als das beworbene ist kein Sparen.
            * Es kostet mehr je Lauf — eine Zeile zum Zurueckdrehen, wenn die Rechnung es sagt.
            */
-          ...(variant === "poledance" || variant === "birthday" ? { hd: true } : {}),
+          ...(variant === "poledance" ? { hd: true } : {}),
           prompt: variant === "wedding" ? weddingPrompt(kleid)
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */
             : variant === "poledance" ? promptFuerLauf
-            : variant === "birthday" ? GEBURTSTAG_PROMPT
             /* DIE UEBERRASCHUNG: eine der vier Kuss-Szenen, gezogen aus der Auftragsnummer
                (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als Ueberraschung").
                MIT RAHMEN, nicht roh (Owner 03.08.2026: „falsche Personen im video"): Der nackte
@@ -1951,7 +1967,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
             const log = await fetch("/api/kiss-log", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(),
+              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger,
                 personImage: photo, ...(useCustom && customModel ? { modelImage: customModel } : {}) }),
             }).then(r => r.json()).catch(() => null);
             setVideoBusy(false);
@@ -1981,7 +1997,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       if (genId) {
         void fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ update: genId, videoId: start.videoId }),
+          /* `empfaenger` wandert mit in den Auftrag: Der Nachliefer-Wachhund braucht den
+             Namen, wenn er den Geburtstag nach Browser-Schluss neu anstossen muss — die
+             neue Kette SPRICHT ihn ja. */
+          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger }),
         }).catch(() => {});
       }
       for (let i = 0; i < 90; i++) {

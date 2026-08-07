@@ -718,6 +718,32 @@ export async function GET(request: Request) {
     }
   }
 
+  /**
+   * HEYGEN-GEBURTSTAG POLLEN (`hg:` aus `/api/geburtstag-video`, seit 07.08.2026): EINE
+   * Status-Tür für alle Anbieter, damit die Trichter-Schleife und der Nachliefer-Wachhund
+   * (`kiss-deliver`) den neuen Weg mitkönnen, ohne eine Zeile zu lernen. Fertige Videos
+   * wandern wie bei Pixverse in UNSEREN Speicher — der HeyGen-Link läuft ab, der
+   * signierte aus `persistVideo` nicht.
+   */
+  if (raw.toLowerCase().startsWith("hg:")) {
+    const key = process.env.HEYGEN_API_KEY?.trim();
+    if (!key) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
+    try {
+      const s = await fetch(`https://api.heygen.com/v1/video_status.get?video_id=${encodeURIComponent(id)}`, {
+        headers: { "X-Api-Key": key },
+      }).then(r => r.json()) as { data?: { status?: string; video_url?: string; error?: { message?: string } | null } };
+      const st = s?.data?.status;
+      if (st === "completed" && s?.data?.video_url) {
+        const videoUrl = await persistVideo(s.data.video_url);
+        return NextResponse.json({ status: "done", videoUrl });
+      }
+      if (st === "failed") return NextResponse.json({ status: "failed", error: s?.data?.error?.message || "HeyGen meldet: fehlgeschlagen." });
+      return NextResponse.json({ status: "processing" });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "HeyGen poll failed." }, { status: 500 });
+    }
+  }
+
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
