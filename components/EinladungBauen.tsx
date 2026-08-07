@@ -190,6 +190,29 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
    */
   const gutschein = variant === "gutschein";
   const botschaftFrei = urlaub || gutschein;
+  /**
+   * DAS VIDEO IST IM PREIS DRIN (Owner 07.08.2026: „und hier wurde kein Video generiert").
+   *
+   * ER HAT RECHT, UND ES WAR EIN VERSEHEN. Am 06.08. flog der zweite Knopf „Lieber gleich ein
+   * Video — {videoauf}" raus, mit der richtigen Begründung: „das muss raus. niemand weiss was
+   * das ist" — seit Bild und Video BEIDE {once} kosten, war er ein Rätsel zum selben Preis.
+   * Stehen geblieben ist aber der Bild-Knopf, also der SCHLECHTERE der beiden zum gleichen
+   * Geld. Seither zahlt jeder Käufer den vollen Geschenkpreis und bekommt ein Standbild.
+   *
+   * Beworben ist das Gegenteil, wörtlich auf beiden Themenseiten: „they get a short video in
+   * which the two of you are already there … Every video costs {once}" (Urlaub) und
+   * „Video-Einladung {once}" auf der Karte (Hochzeit). Der Trichter hält jetzt, was die Seite
+   * verspricht.
+   *
+   * BEZAHLT WIRD WEITER DER GESCHENKPREIS, nicht der Aufpreis: `bezahlen(false)` bleibt
+   * `bezahlen(false)`. Beide Zahlen stehen heute auf 15 €, aber sie sind mit Absicht zwei
+   * Konstanten (siehe VIDEO_UPGRADE_CENTS in lib/pricing) — wer eine davon senkt, soll nicht
+   * still den Preis dieses Trichters mitverschieben.
+   *
+   * DER GUTSCHEIN BLEIBT AUSSEN VOR: Seine Karte erzeugt gar nichts (Owner 06.08.: „Die
+   * Gutscheingenerierung kostet nichts"), es läuft unser fertiges Bella-Video.
+   */
+  const videoImPreis = !gutschein;
   /* Ein Beispiel oder viele — der Rest des Bausteins fragt nur noch diese eine Liste. */
   const beispiele = (beispielVideos?.length ? beispielVideos : (beispielVideo ? [beispielVideo] : [])).filter(Boolean);
   /* Die Szenen beider Anlässe auf eine Form gebracht: Kennung, Name, Kachel (die beim Urlaub
@@ -1011,8 +1034,14 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
          * NUR WER VIDEO GEWAEHLT HAT, bekommt jetzt eins — und hat dafuer 3,99 bezahlt. Das
          * Standbild ist dabei kein Zwischenschritt zum Wegwerfen: Es steht sofort in der
          * Karte, waehrend das Video laeuft, und bleibt die Vorlage, falls der Lauf scheitert.
+         *
+         * SEIT 07.08.2026 GEHOERT DAS VIDEO ZUM GESCHENKPREIS (`videoImPreis`, Begruendung
+         * oben bei der Konstante). Der Absatz darueber bleibt trotzdem gueltig und wichtig:
+         * Was der Kunde WAEHLT, entscheidet weiter ueber den PREIS (`alsVideo` → Aufpreis),
+         * und nur was bezahlt ist, wird erzeugt. Geaendert hat sich allein, was im
+         * Geschenkpreis schon drin ist.
          */
-        if (alsVideo) await videoErzeugen();
+        if (alsVideo || videoImPreis) await videoErzeugen();
         else setStatus("");
       }
       else setStatus(d?.error || F.statusNotWork);
@@ -1397,8 +1426,19 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         * Knopf (Umriss statt gefüllt): Die Hauptsache ist das Verschicken darüber — die
         * Einladung mit Bild ist vollständig, das Video ist eine Aufwertung. Ein zweiter
         * goldener Knopf daneben liesse den Kunden raten, welcher der Weg nach vorn ist.
+        *
+        * SEIT `videoImPreis` (07.08.2026) IST ER HIER WEG — und das ist keine Kosmetik,
+        * sondern die Sperre gegen einen zweiten Verkauf für dieselbe Ware: Ist das Video im
+        * Geschenkpreis drin, bleibt genau ein Fall übrig, in dem es ein Bild ohne Video gibt
+        * — der Video-Lauf ist gescheitert. Dann noch einmal {videoauf} zu verlangen, wäre
+        * die Rechnung für unseren eigenen Fehler. Der bezahlte Auftrag trägt bereits
+        * `videoDueAt`; der Nachliefer-Wachhund (`/api/kiss-deliver`) versucht es von sich
+        * aus noch einmal, kostenlos (Memory `paid-jobs-must-survive-the-browser`).
+        *
+        * Auf der fertigen Einladungsseite bleibt der Knopf: Dort stehen auch ALTE
+        * Einladungen, die vor dieser Änderung nur mit Bild gekauft wurden.
         */}
-      {bild && !videoUrl && (
+      {bild && !videoUrl && !videoImPreis && (
         <button type="button" onClick={() => void videoNachtraeglich()} disabled={videoBusy || busy}
           className="lb-karte-absage mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black transition active:scale-95 disabled:opacity-45">
           {videoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -1757,7 +1797,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         {aufladeWahl ? (
           <div className="mt-1">
             <p className="text-center font-serif text-[14px] leading-snug">
-              {fillPrices(gutschein ? T.ctaGutschein : T.ctaBild, lang)}
+              {fillPrices(gutschein ? T.ctaGutschein : T.ctaEinladung, lang)}
             </p>
             {AUFLADE_STUFEN.filter(c => c >= preisCents).map(stufe => (
               <button key={stufe} type="button" disabled={busy}
@@ -1819,7 +1859,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
               ? (lbWahl && !lbGekauft
                 ? (F.lbCta ?? "").replace("{preis}", eur(lbWahl.cents, lang))
                 : (F.ctaVideo ?? ""))
-              : fillPrices(T.ctaBild, lang)}
+              : fillPrices(T.ctaEinladung, lang)}
         </button>
         )}
         {/* HIER STAND „LIEBER GLEICH EIN VIDEO — {videoauf}" (Owner 06.08.2026: „das muss

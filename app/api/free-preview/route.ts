@@ -624,7 +624,29 @@ export async function POST(request: Request) {
         form.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
         form.append("prompt", p);
         form.append("size", "1024x1536");   // 2:3 — passt zu den Kacheln im Trichter
-        form.append("quality", process.env.OPENAI_PREVIEW_QUALITY ?? "low");
+        /**
+         * DIE BEZAHLTE EINLADUNG LÄUFT IN „medium", DIE GRATIS-VORSCHAU IN „low"
+         * (Owner 07.08.2026: „Urlaub generierung sieht schlecht aus, nicht wie die neuesten
+         * bei Geburtstag").
+         *
+         * DAS WAR DER GANZE UNTERSCHIED. Der Geburtstag baut sein Avatar über dieselbe
+         * OpenAI-Strecke (`app/api/geburtstag-video/route.ts`), nur fest in „medium" — und
+         * genau dieses Ergebnis hat er mit „alles passt perfekt" abgenommen. Hier stand für
+         * ALLES „low", weil diese Route als GRATIS-Vorschau entstand (siehe der Kopf der
+         * Datei: „nur so ist Verschenken tragbar"). Die Einladung ist aber längst keine
+         * Vorschau mehr: `EinladungBauen` ruft sie erst NACH der Kasse auf, für den vollen
+         * Geschenkpreis. Ein bezahltes Bild in der Gratis-Stufe zu rendern ist der Rest
+         * dieser Herkunft, kein Entwurf.
+         *
+         * DIE RECHNUNG (1024×1536): „low" ≈ 1,5 ct, „medium" ≈ 6 ct. Rund viereinhalb Cent
+         * mehr an einem Verkauf, der {once} kostet — und die Gratis-Vorschau bleibt
+         * unverändert billig, weil nur die beiden Einladungs-Zweige umschalten.
+         *
+         * `OPENAI_PREVIEW_QUALITY` überstimmt weiterhin beides — der Notschalter, falls die
+         * Rechnung doch einmal wehtut.
+         */
+        form.append("quality", process.env.OPENAI_PREVIEW_QUALITY
+          ?? ((hochzeit || urlaubsEinladung) ? "medium" : "low"));
         form.append("n", "1");
         const pb = dataUrlToBlob(vPerson), mb = dataUrlToBlob(vModel);
         // Beim gemeinsamen Foto gibt es nur EINE Vorlage — beide Gesichter stehen darauf.
