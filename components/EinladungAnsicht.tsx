@@ -179,6 +179,58 @@ export default function EinladungAnsicht({
     };
   }, [musik, tonAutomatisch, videoUrl]);
 
+  /**
+   * DER SPIELER SAGT, OB ER LAEUFT — NICHT DIE KARTE (Owner 07.08.2026: „dann noch mal
+   * angeklickt und hat sich geöffnet dann das fenster geschlossen und dann war das standbild
+   * des videos da, ohne playbutton").
+   *
+   * GEMESSEN: `laeuft` war ein Schalter, den NUR der Tipp umlegte — einmal an, nie wieder
+   * aus. Ein Video ohne Schleife ist nach fuenf Sekunden aber zu Ende und steht auf seinem
+   * letzten Bild. Fuer die Karte lief es weiter: Ihre eigene Scheibe blieb ausgeblendet
+   * (`!laeuft`), die eingebaute des Tors ebenfalls (`start` ist gesetzt, siehe
+   * `SchleifenVideo`) — und damit gab es keinen einzigen Weg mehr, es noch einmal zu
+   * starten. Ein Standbild ohne Knopf sieht aus wie ein kaputtes Foto.
+   *
+   * Jetzt fragen wir den Spieler, statt es uns zu merken: Endet oder pausiert er, kommt die
+   * Scheibe zurueck; ein Tipp darauf spielt ihn wieder an. Ein BEENDETES Video setzt der
+   * Browser dabei von selbst auf den Anfang, ein pausiertes laeuft weiter, wo es stand —
+   * genau das Verhalten, das wir ueberall haben wollen.
+   *
+   * NUR OHNE SCHLEIFE: Eine Schleifen-Karte haelt nie an, und ihr vorderer Spieler meldet
+   * bei JEDER Ueberblendung „ended" (die weiche Schleife startet den zweiten Spieler, statt
+   * den ersten zu wiederholen). Dort waere das Zuhoeren also nicht nur unnoetig, sondern
+   * falsch: Die Scheibe erschiene alle acht Sekunden ueber einem laufenden Video.
+   *
+   * WIR HOEREN AM RAHMEN ZU, NICHT AM SPIELER — und zwar auf dem Weg NACH UNTEN
+   * (`capture`). Zwei Gruende, beide gemessen:
+   *
+   * 1. DEN SPIELER GIBT ES BEIM ANHAENGEN NOCH NICHT. Ohne Autostart entsteht er erst beim
+   *    Tipp, und zwar einen Durchlauf SPAETER als der Tipp: Erst oeffnet `start` das Tor,
+   *    dann setzt das Tor sein eigenes `gestartet`, und erst dann steht das `<video>`. Ein
+   *    Effekt, der auf `laeuft` hoert, laeuft im ersten dieser Durchlaeufe — und findet
+   *    nichts. Er lief kein zweites Mal, also hing nie ein Zuhoerer daran. Der Rahmen
+   *    dagegen steht vom ersten Augenblick an.
+   * 2. `play`/`pause`/`ended` STEIGEN NICHT AUF. Ein gewoehnlicher Zuhoerer am Rahmen
+   *    bekaeme sie nie zu sehen; in der Fangphase kommen sie auf dem Weg zum Video an jedem
+   *    Vorfahren vorbei. Deshalb das `true` als dritter Wert — es ist hier kein Beiwerk,
+   *    ohne das Wort passiert gar nichts.
+   */
+  useEffect(() => {
+    if (!originalton || schleife) return;
+    const rahmen = rahmenRef.current;
+    if (!rahmen) return;
+    const an = () => setLaeuft(true);
+    const aus = () => setLaeuft(false);
+    rahmen.addEventListener("play", an, true);
+    rahmen.addEventListener("pause", aus, true);
+    rahmen.addEventListener("ended", aus, true);
+    return () => {
+      rahmen.removeEventListener("play", an, true);
+      rahmen.removeEventListener("pause", aus, true);
+      rahmen.removeEventListener("ended", aus, true);
+    };
+  }, [originalton, schleife]);
+
   const umschalten = () => {
     /* ORIGINALTON: nicht die Tonspur daneben, sondern das Video selbst stummschalten. */
     if (originalton) {
@@ -291,7 +343,7 @@ export default function EinladungAnsicht({
             behält das Tor seine eigene Scheibe (Musik kommt ohnehin von nebenan). */}
         <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
           start={originalton ? laeuft : undefined}
-          schleife={schleife} stumm={originalton ? !laeuft : true}
+          schleife={schleife} stumm={originalton ? !ton : true}
           spielerRef={originalton ? videoRef : undefined} />
       </div>
       {/* DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht. Er liegt ueber der
@@ -306,7 +358,18 @@ export default function EinladungAnsicht({
                das Tor; steht der Spieler schon, wird er direkt laut. */
             setLaeuft(true); setTon(true);
             const v = videoRef.current;
-            if (v) { v.muted = false; v.volume = 1; void v.play().catch(() => { v.muted = true; void v.play(); }); }
+            /* UND WENN ER TROTZDEM NICHT WILL, KOMMT DIE SCHEIBE ZURUECK: `laeuft` wird beim
+               Tipp gesetzt, BEVOR feststeht, ob der Browser das Abspielen erlaubt. Lehnt er
+               beide Male ab (laut, dann stumm), stuende die Karte wieder ohne Knopf vor einem
+               stehenden Video — genau die Sackgasse, die wir hier zumachen. GEMESSEN: ein
+               Klick ohne echte Geste laesst `play()` scheitern, die Scheibe verschwand, und
+               nichts holte sie zurueck. */
+            if (v) {
+              v.muted = false; v.volume = 1;
+              void v.play()
+                .catch(() => { v.muted = true; return v.play(); })
+                .catch(() => setLaeuft(false));
+            }
           }}
           /**
            * EIN KREIS IN DER MITTE, NICHT DIE GANZE FLAECHE (Owner 03.08.2026: „wenn ich auf

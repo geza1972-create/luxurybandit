@@ -122,8 +122,17 @@ export default function SchleifenVideo({
   const [gestartet, setGestartet] = useState(autostart);
   useEffect(() => { if (start) setGestartet(true); }, [start]);
 
-  /* Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann. */
-  useEffect(() => { if (spielerRef) spielerRef.current = a.current; }, [spielerRef]);
+  /**
+   * Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann.
+   *
+   * `gestartet` GEHOERT IN DIE LISTE (07.08.2026, Owner: „dann war das standbild des videos
+   * da, ohne playbutton"): Ohne Autostart gibt es beim ersten Aufbau noch gar kein `<video>`
+   * — `a.current` ist null, und genau dieses Nichts wurde nach aussen gereicht. Da die Liste
+   * sich nie wieder aenderte, blieb der Griff LEER, auch nachdem der Spieler laengst stand.
+   * Jeder Aufrufer, der ihn benutzt (Ton-Knopf, Ende-Erkennung), griff ins Nichts und brach
+   * wortlos ab. Jetzt wird er in dem Moment nachgereicht, in dem der Spieler entsteht.
+   */
+  useEffect(() => { if (spielerRef) spielerRef.current = a.current; }, [spielerRef, gestartet]);
 
   useEffect(() => {
     const va = a.current, vb = b.current;
