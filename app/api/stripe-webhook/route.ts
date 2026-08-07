@@ -113,7 +113,34 @@ export async function POST(request: Request) {
      * `/api/kiss-deliver`, damit Stripe nicht auf ein Video wartet. Kommt der Kunde doch
      * zurück, macht `/api/checkout-status` denselben Vermerk — doppelt schadet nicht.
      */
-    const kissGenId = String(meta?.genId ?? "").trim();
+    /**
+     * EINE AUFLADUNG IST KEIN KAUF (07.08.2026).
+     *
+     * Genau diese Weiche steht seit dem 03.08. in `/api/checkout-status` und war hier nie
+     * nachgezogen — mit ihrer eigenen Begründung, wörtlich: „Die Aufladung traegt eine genId
+     * (damit der Trichter danach weiss, welches Video er vom Guthaben kaufen soll), aber sie
+     * IST kein Videokauf. Ohne diese Weiche wuerde die 9,99-Aufladung den Eintrag als bezahlt
+     * stempeln und ein Gratis-Video anstossen."
+     *
+     * DER WEBHOOK IST DER SCHLIMMERE ORT DAFÜR, denn er feuert IMMER — auch wenn der Kunde
+     * nie zurückkommt, und genau dafür gibt es ihn. Zwei Schäden nebeneinander:
+     *
+     *   1. Wer auflädt, bekommt das Geschenk umsonst: Der Auftrag steht auf bezahlt, und
+     *      `lieferungAnstossen` rendert und verschickt es. Bezahlt ist damit gar nichts —
+     *      das Geld liegt auf dem KONTO, abgebucht wurde nie.
+     *   2. `paidKind` bleibt leer (der Stempel setzt es nur bei „kiss-video"). Ein solcher
+     *      Auftrag gilt in `/api/generate-tryon-video` als ABO-Auftrag und wird mit „Your 5
+     *      videos for this month are used up." abgewiesen — einem Satz ohne jeden Sinn für
+     *      jemanden, der gerade aufgeladen hat.
+     *
+     * SICHTBAR AM 07.08.2026 im Auftragsprotokoll: zwei Urlaubs-Aufträge um 14:01, 23
+     * Sekunden auseinander — der erste ohne `paidKind` (dieser Weg, die Aufladung), der
+     * zweite mit „once" (der echte Kauf vom Guthaben danach).
+     *
+     * Die Gutschrift der Aufladung selbst passiert unverändert in `/api/checkout-status`,
+     * idempotent über die Sitzungskennung.
+     */
+    const kissGenId = kind === "aufladung" ? "" : String(meta?.genId ?? "").trim();
     if (kissGenId) {
       const mail = String((session.customer_details as { email?: string } | undefined)?.email ?? session.customer_email ?? "");
       try {
