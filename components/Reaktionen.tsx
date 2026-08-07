@@ -207,22 +207,30 @@ export default function Reaktionen({ variant = "kiss", lang = "en", name = "" }:
     })();
   return (
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+      {/* DEZENT UND NUR RECHTS (Owner 07.08.2026: „die herzchen … viel kleiner und ohne
+          schatten … Am besten nur rechts laufend. Also bei allen"): Die Herzen steigen in
+          einem schmalen Band am rechten Rand (68–95 %) auf, statt über das ganze Bild —
+          vorher liefen sie mitten übers Gesicht. Kleiner (9–15 px statt 14–29 px) und mit
+          weniger Seitendrift, damit sie im Band bleiben. */}
       {[...Array(14)].map((_, i) => (
         <span key={`h${i}`} className="lb-heart"
           style={{
-            left: `${6 + (i * 6.7) % 88}%`,
+            left: `${68 + (i * 6.7) % 27}%`,
             animationDelay: `${(i * 0.31) % 4.2}s`,
             animationDuration: `${3.6 + (i % 5) * 0.35}s`,
-            fontSize: `${14 + (i % 4) * 5}px`,
-            ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (8 + (i % 3) * 10)}px`,
+            fontSize: `${9 + (i % 4) * 2}px`,
+            ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (4 + (i % 3) * 4)}px`,
           }}>
           {variant === "plan"
             ? SYSTEM_ZEICHEN[i % SYSTEM_ZEICHEN.length]
             : i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
         </span>
       ))}
-      {/* Zurufe als Sprechblasen — ohne Namen, siehe .lb-bubble in globals.css */}
-      {zurufe.map((t, i) => (
+      {/* DIE SCHRIFT IST RAUS (Owner 07.08.2026: „die schrift am besten raus") — auf allen
+          GESCHENK-Karten steigen nur noch Herzchen auf. Einzige Ausnahme: das System
+          (variant "plan"), dessen Zurufe („MACH ES") am 04.08. ausdrücklich als Inhalt
+          bestellt wurden — dort gibt es dafür keine Herzen. */}
+      {variant === "plan" && zurufe.map((t, i) => (
         /* KEIN eigenes `left` mehr — die Blase haengt mittig (globals.css) und weicht nur
            noch seitlich aus (`--lb-drift`). Der Zeitversatz ist GLEICHMAESSIG ueber die
            Laufzeit verteilt statt per Modulo gewuerfelt: Vorher lagen zwei Zeilen manchmal

@@ -483,8 +483,9 @@ svg {
   font-size: 20px;
   line-height: 1;
   pointer-events: none;
+  /* Kein Schatten mehr (Owner 07.08.2026: „nicht bold, viel kleiner und ohne schatten") —
+     die Herzchen sind Stimmung im Hintergrund, keine Ebene, die das Gesicht übertönt. */
   animation: lb-heart-up 4.2s ease-out infinite;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
 }
 @media (prefers-reduced-motion: reduce) { .lb-heart { animation: none; opacity: 0; } }
 
