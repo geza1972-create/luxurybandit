@@ -258,14 +258,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, or upload a photo instead.", erst: "Record yourself first" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser — oder lade ein Foto hoch.", erst: "Erst aufnehmen" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser — sau încarcă o poză.", erst: "Întâi înregistrează-te" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador — o sube una foto.", erst: "Primero grábate" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur — ou envoie une photo.", erst: "Enregistre-toi d'abord" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador — ou envia uma foto.", erst: "Primeiro grava-te" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser — o carica una foto.", erst: "Prima registrati" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, or upload a photo instead.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud." },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser — oder lade ein Foto hoch.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor." },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Înregistrează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser — sau încarcă o poză.", erst: "Întâi înregistrează-te", leer: "Nu s-a înregistrat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare." },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Graba la tuya", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador — o sube una foto.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta." },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Enregistre la tienne", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur — ou envoie une photo.", erst: "Enregistre-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute." },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Grava a tua", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador — ou envia uma foto.", erst: "Primeiro grava-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta." },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Registra la tua", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser — o carica una foto.", erst: "Prima registrati", leer: "Non è stato registrato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce." },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -498,6 +498,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [nimmtAuf, setNimmtAuf] = useState(false);
   /** Kamera oder Mikrofon verweigert — dann erscheint der Foto-Upload als Ausweichweg. */
   const [kameraAus, setKameraAus] = useState(false);
+  /** Die Absage an der Aufnahme — leer, schwarz oder zu kurz. */
+  const [aufnahmeFehler, setAufnahmeFehler] = useState("");
+  /** Sekunden bis zum Deckel — sonst weiss niemand, dass gerade aufgenommen wird. */
+  const [restSek, setRestSek] = useState(0);
   const aufnehmerRef = useRef<MediaRecorder | null>(null);
   const stueckeRef = useRef<Blob[]>([]);
   /** Das Bild, in dem man sich beim Sprechen sieht. */
@@ -510,25 +514,52 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * muss. NICHT das allererste Bild: In der ersten halben Sekunde regelt die Kamera noch
    * Helligkeit und Schärfe, und ein verwaschenes Bild wäre die Vorlage für alles Weitere.
    */
-  const standbildZiehen = (blobUrl: string): Promise<string> => new Promise(fertig => {
-    const v = document.createElement("video");
-    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = blobUrl;
-    const abbruch = setTimeout(() => fertig(""), 6000);
-    const malen = () => {
-      try {
-        const c = document.createElement("canvas");
-        c.width = v.videoWidth; c.height = v.videoHeight;
-        const ctx = c.getContext("2d");
-        if (!ctx || !c.width) { clearTimeout(abbruch); return fertig(""); }
-        ctx.drawImage(v, 0, 0, c.width, c.height);
-        clearTimeout(abbruch);
-        fertig(c.toDataURL("image/jpeg", 0.9));
-      } catch { clearTimeout(abbruch); fertig(""); }
-    };
-    v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 2); };
-    v.onseeked = malen;
-    v.onerror = () => { clearTimeout(abbruch); fertig(""); };
-  });
+  const standbildZiehen = (blobUrl: string): Promise<{ bild: string; brauchbar: boolean; dauer: number }> =>
+    new Promise(fertig => {
+      const leer = { bild: "", brauchbar: false, dauer: 0 };
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = blobUrl;
+      const abbruch = setTimeout(() => fertig(leer), 6000);
+      const malen = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth; c.height = v.videoHeight;
+          const ctx = c.getContext("2d");
+          if (!ctx || !c.width) { clearTimeout(abbruch); return fertig(leer); }
+          ctx.drawImage(v, 0, 0, c.width, c.height);
+          /**
+           * IST DA UEBERHAUPT EIN BILD? (Owner 07.08.2026: „ich habe nichts aufgenommen" —
+           * und der Trichter liess trotzdem „Weiter" zu.)
+           *
+           * Eine abgedeckte oder abgeschaltete Kamera liefert kein Nichts, sondern eine
+           * gleichmaessig schwarze Flaeche. Die ist technisch ein gueltiges Bild, und ohne
+           * diese Pruefung wanderte sie als Avatar in einen Auftrag fuer 4,99 €.
+           *
+           * Der Test ist Mittelwert UND Streuung: Ein dunkles Zimmer ist dunkel, hat aber
+           * Struktur; ein schwarzes Bild hat keine. Nur beides zusammen trennt „zu dunkel
+           * fotografiert" von „gar kein Bild". Stichprobe statt jedem Pixel — es geht um
+           * eine Groessenordnung, nicht um Genauigkeit.
+           */
+          const daten = ctx.getImageData(0, 0, c.width, c.height).data;
+          let summe = 0, quadrate = 0, n = 0;
+          for (let i = 0; i < daten.length; i += 4 * 97) {
+            const h = (daten[i] + daten[i + 1] + daten[i + 2]) / 3;
+            summe += h; quadrate += h * h; n++;
+          }
+          const mittel = n ? summe / n : 0;
+          const streuung = Math.sqrt(Math.max(0, (n ? quadrate / n : 0) - mittel * mittel));
+          clearTimeout(abbruch);
+          fertig({
+            bild: c.toDataURL("image/jpeg", 0.9),
+            brauchbar: mittel > 12 && streuung > 8,
+            dauer: v.duration || 0,
+          });
+        } catch { clearTimeout(abbruch); fertig(leer); }
+      };
+      v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 2); };
+      v.onseeked = malen;
+      v.onerror = () => { clearTimeout(abbruch); fertig(leer); };
+    });
 
   /**
    * EINE AUFNAHME, ZWEI ZWECKE (Owner 07.08.2026: „wenn ich mich selbst aufnehme brauche
@@ -566,20 +597,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         if (vorschauRef.current) vorschauRef.current.srcObject = null;
         const blob = new Blob(stueckeRef.current, { type: rec.mimeType || "video/webm" });
         const url = URL.createObjectURL(blob);
-        /* Erst das Standbild, dann die Daten-URL: Wer den Kaufknopf sofort sieht, aber ohne
-           Bild dasteht, hat einen Knopf, der nichts erzeugen kann. */
-        void standbildZiehen(url).then(bild => {
-          if (bild) { setCustomModel(bild); setUseCustom(true); }
+        /**
+         * ERST PRUEFEN, DANN ANNEHMEN (Owner 07.08.2026: „ich habe nichts aufgenommen").
+         *
+         * Vorher wurde jedes Ergebnis gesetzt, und damit war „Weiter" frei — auch nach
+         * zwoelf Sekunden schwarzem Bild, denn der Deckel stoppt von selbst. Wer nichts
+         * aufgenommen hat, muss das SEHEN, nicht erst im bezahlten Video.
+         *
+         * Drei Gruende zur Absage: kein Bild herausziehbar, ein Bild ohne Inhalt (schwarz),
+         * oder zu kurz fuer den Satz. Bei jeder bleibt das Foto leer — und damit bleibt der
+         * Kaufknopf zu.
+         */
+        void standbildZiehen(url).then(({ bild, brauchbar, dauer }) => {
           URL.revokeObjectURL(url);
+          setNimmtAuf(false);
+          if (!bild || !brauchbar) { setAufnahmeFehler(SW.leer); return; }
+          if (dauer && dauer < 1.5) { setAufnahmeFehler(SW.kurz); return; }
+          setAufnahmeFehler("");
+          setCustomModel(bild); setUseCustom(true);
           const leser = new FileReader();
           leser.onloadend = () => setAufnahme(String(leser.result || ""));
           leser.readAsDataURL(blob);
-          setNimmtAuf(false);
         });
       };
       rec.start();
       aufnehmerRef.current = rec;
-      setAufnahme(""); setKameraAus(false); setNimmtAuf(true);
+      /* Der vorige Versuch wird ungueltig, sobald ein neuer laeuft — sonst stuende ein
+         gutes altes Foto neben einer misslungenen neuen Aufnahme, und der Kaufknopf
+         waere frei, obwohl gerade nichts entstanden ist. */
+      setAufnahme(""); setCustomModel(""); setAufnahmeFehler(""); setKameraAus(false);
+      setNimmtAuf(true); setRestSek(12);
+      const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
+      setTimeout(() => clearInterval(takt), 12500);
       /* Die LIVE-Vorschau, damit man sich beim Sprechen sieht — ohne sie filmt man blind
          die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
          nächsten Durchlauf. */
@@ -3376,17 +3425,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : SW.selbst}
                       </button>
                     ) : (
+                      /* DIE SEKUNDEN STEHEN AUF DEM KNOPF (Owner 07.08.2026: „ich habe
+                         nichts aufgenommen"). Ohne sie sieht eine laufende Aufnahme genau
+                         so aus wie gar keine — und nach dem Deckel steht man vor einem
+                         Ergebnis, von dem man nicht wusste, dass es entsteht. */
                       <button type="button" onClick={aufnahmeStopp}
-                        className="flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-5 text-[14px] font-black text-white active:scale-95 transition">
-                        <Square className="h-4 w-4" /> {SW.stopp}
+                        className="flex h-11 items-center justify-center gap-2 rounded-full border-2 px-5 text-[14px] font-black text-white active:scale-95 transition"
+                        style={{ borderColor: ABSAGE_ROT }}>
+                        <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
+                        {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
                       </button>
                     )}
                   </div>
+                  {aufnahmeFehler && (
+                    <p className="mt-2 text-[12px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
+                      {aufnahmeFehler}
+                    </p>
+                  )}
                   {/* Die eigene Aufnahme zum Anschauen — mit Ton, denn beides wird benutzt:
                       das Standbild als Avatar, die Tonspur als Stimme. */}
+                  {/* MIT STANDBILD ALS POSTER — sonst zeigt der Spieler eine schwarze
+                      Flaeche, bis jemand darauf tippt, und die sieht aus wie eine leere
+                      Aufnahme (genau die Verwechslung vom 07.08.). Das Standbild ist
+                      ohnehin da: Es ist das Avatar, das aus dieser Aufnahme entstand. */}
                   {aufnahme && !nimmtAuf && (
                     // eslint-disable-next-line jsx-a11y/media-has-caption
-                    <video controls playsInline src={aufnahme}
+                    <video controls playsInline src={aufnahme} poster={customModel || undefined}
                       className="mx-auto mt-3 aspect-[3/4] w-[150px] rounded-xl object-cover" />
                   )}
                   {kameraAus && (

@@ -34,6 +34,16 @@ export type GeburtstagLook = {
   bild: string;
   /** Die Torte in seinen Händen. */
   torte: string;
+  /**
+   * WIE ER DASTEHT — nur wo die Vorgabe nicht passt.
+   *
+   * Vorgabe ist das Bildnis: Torte in BEIDEN Händen, gerade in die Kamera. Ein Selfie
+   * kann das nicht — eine Hand hält die Kamera. Ohne diese Zeile hätte der Skyline-Look
+   * zwei Hände an der Torte UND einen ausgestreckten Arm gebraucht, also drei.
+   *
+   * Der Text bekommt `${torte}` eingesetzt, damit die Torte auch hier an EINER Stelle steht.
+   */
+  haltung?: string;
   /** Wie die Person angezogen ist — NIE mit Geschlecht, siehe oben. */
   kleidung: string;
   /** Wo sie steht und in welchem Licht. */
@@ -87,6 +97,33 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
       "and the confetti drifts down behind them. Bright joyful celebratory energy.",
   },
+  {
+    /**
+     * NACH DER VORLAGE DES OWNERS (07.08.2026, mit Bild: „das kannst du auch als referenz
+     * nehmen") — ein Mann auf einem Dach hoch über der Stadt, Selfie mit ausgestrecktem
+     * Arm, Gegenlicht der tiefen Sonne, Torte voller Kerzen.
+     *
+     * Er passt genau zum neuen Trichter: Der Käufer FILMT sich selbst mit ausgestrecktem
+     * Arm — ein Selfie-Look ist also das, was er ohnehin in der Hand hält. Die anderen
+     * beiden sind Studio-Bildnisse; dieser ist das Gegenstück dazu.
+     */
+    id: "skyline",
+    name: "Skyline",
+    bild: "/Birthday/look-skyline.jpg",
+    torte: "a birthday cake with many lit candles: cream frosting with dark chocolate curls",
+    haltung:
+      "taking a selfie at arm's length: one arm reaches towards the camera and is visible in " +
+      "the frame, slightly wide-angle lens, seen from slightly above, holding ${torte} in the " +
+      "other hand",
+    kleidung: "Dress them in relaxed stylish clothes that suit this person.",
+    umgebung:
+      "High on a rooftop far above a huge city at golden hour, the skyline and the river far " +
+      "below them, the low sun flaring warm orange light across the whole scene.",
+    bewegung:
+      "They smile warmly and lift the cake a little towards the camera while holding the phone " +
+      "at arm's length. Subtle natural movement of head, hair and shoulders, the candle flames " +
+      "flicker softly in the evening air. Happy, sunlit, high-above-the-city energy.",
+  },
 ];
 
 /** Der Look zur Kennung — unbekannt oder leer ergibt IMMER den ersten (den abgenommenen),
@@ -98,11 +135,16 @@ export function geburtstagLook(id: unknown): GeburtstagLook {
 
 /** Das Bild-Gerüst mit den beiden Wachen — siehe die Erklärung oben. */
 export function geburtstagAvatarPrompt(look: GeburtstagLook): string {
+  /* Vorgabe-Haltung ist das Bildnis; ein Look darf sie ersetzen (`haltung`). Die Torte wird
+     dort als `${torte}` eingesetzt, damit sie auch im Selfie an EINER Stelle steht. */
+  const haltung = look.haltung
+    ? look.haltung.replace(/\$\{torte\}/g, look.torte)
+    : `holding ${look.torte} in both hands`;
   return (
     "Use the exact same person from the reference photo: same face, same hair, same skin. " +
     "A single portrait of that one person only - one single image, not a collage, not a split " +
     "image, no second person. Photorealistic, 3:4 framing, they look straight into the camera " +
-    `with a warm gentle smile, mouth closed, holding ${look.torte} in both hands. ` +
+    `with a warm gentle smile, mouth closed, ${haltung}. ` +
     `${look.kleidung} Fully and modestly covered, full coverage guaranteed. ` +
     `${look.umgebung} No text, no letters, no logos anywhere in the image.`
   );
