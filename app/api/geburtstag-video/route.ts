@@ -168,9 +168,12 @@ export async function POST(request: Request) {
     const mime = body.audio.slice(5, body.audio.indexOf(";"));
     const bytes = Buffer.from(body.audio.slice(body.audio.indexOf(",") + 1), "base64");
     if (bytes.length > 2_000 && bytes.length < 6_000_000) {
-      /* Video behält seine eigene Endung: mp4 bleibt mp4 (nur reines Audio wird m4a). */
+      /* Video behält seine eigene Endung: mp4 bleibt mp4 (nur reines Audio wird m4a).
+         WAV ist seit dem 07.08. abends der REGELFALL: Der Trichter löst die Tonspur
+         selbst aus der Aufnahme (HeyGen starb an der rohen Browser-Videodatei). */
       const ext = mime.startsWith("video/")
         ? (mime.includes("mp4") ? "mp4" : "webm")
+        : mime.includes("wav") ? "wav"
         : mime.includes("mp4") ? "m4a" : mime.includes("mpeg") ? "mp3" : "webm";
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       const pfad = await uploadTryThisLookBytes("uploads", ab, mime, ext).catch(() => "");

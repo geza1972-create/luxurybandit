@@ -498,6 +498,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * synchronisiert die Lippen darauf.
    */
   const [aufnahme, setAufnahme] = useState("");       // die Aufnahme als Daten-URL
+  /**
+   * DIE TONSPUR, GETRENNT VOM VIDEO (07.08.2026 abends). Zwei bezahlte Läufe starben bei
+   * HeyGen mit VOICE_PROVIDER_ERROR — GEMESSEN: Skript+Stimme lief, eine saubere m4a über
+   * `audio_url` lief, nur unsere Browser-VIDEODATEI nicht. Der „Videodatei als audio_url"-
+   * Trick aus der Übergabe galt für saubere Dateien, nicht für MediaRecorder-Ausstoß.
+   * Deshalb dekodiert der Browser seine EIGENE Aufnahme (das kann er immer) und schickt
+   * die Tonspur als WAV mit; das Video bleibt der Rückfall, falls das Dekodieren scheitert.
+   */
+  const [tonspur, setTonspur] = useState("");
   const [nimmtAuf, setNimmtAuf] = useState(false);
   /** Kamera oder Mikrofon verweigert — dann erscheint der Foto-Upload als Ausweichweg. */
   const [kameraAus, setKameraAus] = useState(false);
@@ -591,6 +600,49 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     });
 
   /**
+   * DIE TONSPUR AUS DER EIGENEN AUFNAHME (07.08.2026 abends).
+   *
+   * GEMESSEN: HeyGen stirbt an unserer Browser-Videodatei als `audio_url`
+   * (VOICE_PROVIDER_ERROR, zweimal bezahlt und nichts geliefert) — eine saubere
+   * Audiodatei über denselben Weg läuft. Der Browser kann seine EIGENE Aufnahme immer
+   * dekodieren (WebAudio, gleicher Codec wie beim Aufnehmen); also wird die Tonspur hier
+   * herausgelöst und als WAV verschickt — das Format aus dem bestandenen Test.
+   *
+   * Mono, 22.050 Hz, 16 Bit: für Sprache verlustfrei genug, und 12 Sekunden sind ~530 KB
+   * — passt zusammen mit dem Video-Rückfall unter Vercels ~4,5-MB-Deckel. Scheitert das
+   * Dekodieren, kommt "" zurück und der Start schickt das Video wie bisher.
+   */
+  const alsTonspur = async (blob: Blob): Promise<string> => {
+    try {
+      const roh = await blob.arrayBuffer();
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const ac = new AC();
+      const abuf = await ac.decodeAudioData(roh.slice(0));
+      try { void ac.close(); } catch { /**/ }
+      const rate = 22050;
+      const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(abuf.duration * rate)), rate);
+      const quelle = off.createBufferSource();
+      quelle.buffer = abuf; quelle.connect(off.destination); quelle.start();
+      const aus = await off.startRendering();
+      const pcm = aus.getChannelData(0);
+      const puffer = new ArrayBuffer(44 + pcm.length * 2);
+      const dv = new DataView(puffer);
+      const schreib = (o: number, s: string) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+      schreib(0, "RIFF"); dv.setUint32(4, 36 + pcm.length * 2, true); schreib(8, "WAVE");
+      schreib(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+      dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+      schreib(36, "data"); dv.setUint32(40, pcm.length * 2, true);
+      for (let i = 0; i < pcm.length; i++) dv.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
+      const wav = new Blob([puffer], { type: "audio/wav" });
+      return await new Promise<string>(fertig => {
+        const leser = new FileReader();
+        leser.onloadend = () => fertig(String(leser.result || ""));
+        leser.readAsDataURL(wav);
+      });
+    } catch { return ""; }
+  };
+
+  /**
    * EINE AUFNAHME, ZWEI ZWECKE (Owner 07.08.2026: „wenn ich mich selbst aufnehme brauche
    * ich doch kein bild upload" · „Wir brauchen nur das. Dein Name, szene auswählen dan
    * button Selbstaufnehmen mit dem script was er sagen soll").
@@ -652,6 +704,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           const leser = new FileReader();
           leser.onloadend = () => setAufnahme(String(leser.result || ""));
           leser.readAsDataURL(blob);
+          /* Die Tonspur gleich mit herausziehen — scheitert das (alter Browser), bleibt
+             `tonspur` leer und der Start schickt das Video als Rückfall. */
+          void alsTonspur(blob).then(w => setTonspur(w));
         });
       };
       aufnehmerRef.current = rec;
@@ -659,7 +714,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          gutes altes Foto neben einer misslungenen neuen Aufnahme, und der Kaufknopf
          waere frei, obwohl gerade nichts entstanden ist. */
       setAufnahmeUrl(a => { if (a) URL.revokeObjectURL(a); return ""; });
-      setAufnahme(""); setCustomModel(""); setAufnahmeFehler(""); setKameraAus(false);
+      setAufnahme(""); setTonspur(""); setCustomModel(""); setAufnahmeFehler(""); setKameraAus(false);
       /* Die LIVE-Vorschau, damit man sich beim Sprechen sieht — ohne sie filmt man blind
          die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
          nächsten Durchlauf. */
@@ -2239,7 +2294,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
              UND wirklich etwas aufgenommen ist. */
           /* Die Aufnahme schlägt die Chip-Stimme. Beim Geburtstag ist sie der einzige
              Weg, also braucht es kein `eigene` mehr davor. */
-          ...(aufnahme ? { audio: aufnahme } : {}) }),
+          /* Zuerst die saubere Tonspur (WAV) — das Video nur als Rückfall, denn genau
+             daran ist HeyGens Stimm-Pipeline zweimal gestorben (VOICE_PROVIDER_ERROR). */
+          ...((tonspur || aufnahme) ? { audio: tonspur || aufnahme } : {}) }),
       }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
@@ -3787,7 +3844,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </>)}
       </div>
       </div>
-      <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
+      <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
+      {/* ZUSCHNITT AUCH HIER (Owner 08.08.2026: „kein Cropwerkzeug bei Upload"). Schritt 1 hatte
+          den Dialog aus 3362, Schritt 2 rief `onFile` bisher direkt auf — ohne Zuschnitt schnitt
+          `object-cover` blind, hier ausgerechnet sein Gesicht. Derselbe Dialog, dasselbe Format. */}
+      {cropDatei && cropZiel === "er" && (
+        <ImageCropper
+          file={cropDatei}
+          aspect={3 / 4}
+          title={T.you}
+          onCancel={() => { setCropDatei(null); setCropZiel(null); }}
+          onSave={async (zugeschnitten) => {
+            setCropDatei(null); setCropZiel(null);
+            await onFile(zugeschnitten);
+          }}
+        />
+      )}
 
       {/* Dieselbe Absage wie in Schritt 1 — sein Foto wird genauso geprüft wie ihres. */}
       {uploadFehler && (
