@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
+import TonKnopf from "@/components/TonKnopf";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
@@ -320,7 +321,7 @@ export type ThemenKachelDaten = {
   /** Wasserzeichen, wenn es weder Bild noch Video gibt — die Server-Seite reicht es fertig herein. */
   platzhalter?: ReactNode;
 };
-export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", className = "" }: {
+export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", ton, onTon, className = "" }: {
   thema: ThemenKachelDaten;
   /**
    * `reihe` schmale Zeile · `voll` eigene Karte über die ganze Breite ·
@@ -332,6 +333,16 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
   live?: string;
   bald?: string;
   baldZeile?: string;
+  /**
+   * DER TON-KNOPF (Owner 07.08.2026: „in der Bibliothek haben wir den sound nicht zum
+   * an/abschalten. Also einfügen") — nötig, seit das Geburtstags-Beispielvideo SPRICHT.
+   * Er erscheint nur in der vollen Gestalt: Die 104-px-Briefmarken der Reihe sind
+   * Navigations-Vorschauen, ein 40-px-Knopf darauf wäre größer als das halbe Bild.
+   * Zustand und Umschalten liegen beim Aufrufer (ThemenListe), damit ALLE Folien einen
+   * gemeinsamen Schalter teilen — wie im Feed (Memory `feed-spec`).
+   */
+  ton?: boolean;
+  onTon?: () => void;
   className?: string;
 }) {
   const aktiv = !!thema.href;
@@ -370,8 +381,19 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
           im Bild bleibt in der Mitte, wo er hingehört. In der schmalen Reihe bleibt es
           oben angeschlagen: Dort sind 104 Pixel Breite, da zählt das Gesicht. */}
       {thema.video ? (
-        <SchleifenVideo src={thema.video} poster={thema.poster || undefined}
-          className={voll ? "object-center" : "object-top"} />
+        <>
+          {/* Poster-Rückfall aufs Kachelbild — nie eine schwarze Fläche (Memory
+              `video-playback-behavior`); Autostart nur in der schmalen Reihe (stumm,
+              104 px) — die grosse Karte wartet auf den Tipp (Owner 07.08.2026: „videos
+              sollen nicht automatisch starten. Weil auf dem handy ewig dauert"). */}
+          <SchleifenVideo src={thema.video} poster={thema.poster || thema.bild || undefined}
+            stumm={!ton} autostart={!voll}
+            className={voll ? "object-center" : "object-top"} />
+          {voll && onTon && (
+            <TonKnopf an={!!ton} label="Sound" labelAus="Sound" onClick={onTon}
+              platz="absolute right-2 top-10 z-30" />
+          )}
+        </>
       ) : thema.bild ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -654,7 +676,7 @@ export function ThemenGestaltWahl({ art, waehle, className = "" }: {
  * DIE THEMEN-LISTE — die Kacheln in der gewählten Gestalt. KEIN Umschalter darin: gewählt
  * wird auf `/ci` (siehe `useThemenGestalt`), hier wird nur noch gezeigt.
  */
-export function ThemenListe({ themen, live, bald, baldZeile, gestalt, className = "" }: {
+export function ThemenListe({ themen, live, bald, baldZeile, gestalt, ctaZeile, className = "" }: {
   themen: ThemenKachelDaten[];
   live?: string;
   bald?: string;
@@ -666,12 +688,18 @@ export function ThemenListe({ themen, live, bald, baldZeile, gestalt, className 
    * wo jemand auf `/ci` verglichen hat.
    */
   gestalt?: "reihe" | "voll";
+  /** Der Kaufknopf unter der vorderen Folie — „CTA auf jeder Karte" (Landingpage.md;
+      Owner 07.08.2026: „und hier muss CTA rein"). Der Aufrufer liefert den Wortlaut in
+      seiner Sprache; ohne ihn erscheint kein Knopf. */
+  ctaZeile?: string;
   className?: string;
 }) {
   const { art: gewaehlt, gesetzt } = useThemenGestalt();
   const art = gesetzt ? gewaehlt : (gestalt ?? gewaehlt);
   /** Welche Folie steht vorn — der Text darunter gehört ihr (siehe unten bei `onAktiv`). */
   const [vorn, setVorn] = useState(0);
+  /** EIN Ton-Schalter für alle Folien (wie im Feed) — hörbar ist immer nur die vordere. */
+  const [ton, setTon] = useState(false);
   /**
    * DIE VOLLE GESTALT IST EINE KARTE MIT KARUSSELL, KEIN STAPEL (Owner 06.08.2026: „laut
    * unser templates. Die Videos müssen in die oberste Karte erscheinen und nicht
@@ -692,27 +720,39 @@ export function ThemenListe({ themen, live, bald, baldZeile, gestalt, className 
         <CornerOrnaments />
         <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
         <div className="relative">
-          <KartenKarussell onAktiv={setVorn} folien={themen.map(t => (
-            <ThemenKachel key={t.titel} thema={t} art="folie" live={live} bald={bald} baldZeile={baldZeile} />
+          <KartenKarussell onAktiv={setVorn} folien={themen.map((t, i) => (
+            <ThemenKachel key={t.titel} thema={t} art="folie" live={live} bald={bald} baldZeile={baldZeile}
+              ton={ton && i === vorn} onTon={() => setTon(v => !v)} />
           ))} />
           {/* DER TEXT DER VORDEREN FOLIE — UNTER DEN PUNKTEN (Owner 06.08.2026: „jetzt die
               sliderpunkte unter dem video"). Die Punkte zeichnet das Karussell direkt hinter
               die Wischbahn; damit sie unmittelbar unter dem Video sitzen, endet die Folie
               dort, und Zeile wie Preis stehen hier — sie wechseln mit der Folie. */}
           {themen[vorn] && (
-            <a href={themen[vorn].href || undefined} className="block">
-              <p className="mt-2 px-6 text-center font-serif text-[14px] font-semibold leading-snug opacity-75">
-                {themen[vorn].zeile}
-              </p>
-              <div className="flex flex-col items-center gap-0.5 px-10 pb-2 pt-2">
-                {themen[vorn].abPreis && (
-                  <span className="lb-karte-gold shrink-0 font-serif text-[17px] font-black">{themen[vorn].abPreis}</span>
-                )}
-                <span className="line-clamp-2 text-center text-[10px] font-black uppercase tracking-wide opacity-70">
-                  {themen[vorn].href ? themen[vorn].merkmale : baldZeile}
-                </span>
-              </div>
-            </a>
+            <>
+              <a href={themen[vorn].href || undefined} className="block">
+                <p className="mt-2 px-6 text-center font-serif text-[14px] font-semibold leading-snug opacity-75">
+                  {themen[vorn].zeile}
+                </p>
+                <div className="flex flex-col items-center gap-0.5 px-10 pb-2 pt-2">
+                  {themen[vorn].abPreis && (
+                    <span className="lb-karte-gold shrink-0 font-serif text-[17px] font-black">{themen[vorn].abPreis}</span>
+                  )}
+                  <span className="line-clamp-2 text-center text-[10px] font-black uppercase tracking-wide opacity-70">
+                    {themen[vorn].href ? themen[vorn].merkmale : baldZeile}
+                  </span>
+                </div>
+              </a>
+              {/* DER KAUFKNOPF — eigener Link NEBEN dem Text-Link, nie darin (ein <a> im
+                  <a> ist ungültig und tippt unvorhersagbar). Gestalt wie jeder Knopf in
+                  der Karte: `lb-karte-cta`, volle Breite, rund (Landingpage.md §3). */}
+              {ctaZeile && themen[vorn].href && (
+                <a href={themen[vorn].href}
+                  className="lb-karte-cta mx-6 mb-1 flex h-11 items-center justify-center rounded-full text-[13px] font-black transition active:scale-95">
+                  {ctaZeile}
+                </a>
+              )}
+            </>
           )}
         </div>
       </div>

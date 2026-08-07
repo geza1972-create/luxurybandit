@@ -316,6 +316,12 @@ export default async function ThemesCatalog({ searchParams }: {
   /* Der Geburtstag hat seit 07.08.2026 seinen eigenen Startpreis (GEBURTSTAG_CENTS) — die
      Kachel muss dieselbe Zahl tragen wie Landingpage-Schild und Kasse. */
   const AB_GEBURTSTAG = themenPreisZeile("birthday", L);
+  /* Der Kaufknopf der grossen Themen-Karte (Owner 07.08.2026: „und hier muss CTA rein");
+     Wortlaut je Sprache, Imperativ an den SCHENKENDEN (Memory `titel-spricht-den-kaeufer-an`). */
+  const CTA_ZEILE: Record<string, string> = {
+    de: "Jetzt verschenken", en: "Gift it now", ro: "Dăruiește acum", es: "Regálalo ahora",
+    fr: "Offre-le maintenant", pt: "Presenteie agora", it: "Regalalo ora",
+  };
   /**
    * HIER STAND „ab 24 €" — UND DAS WAR FALSCH (04.08.2026 nachgeprüft).
    *
@@ -557,6 +563,7 @@ export default async function ThemesCatalog({ searchParams }: {
         <ThemenListe
           className="mt-6"
           gestalt={gestalt}
+          ctaZeile={CTA_ZEILE[L] ?? CTA_ZEILE.en}
           baldZeile="Coming soon"
           themen={THEMES_L.map(t => ({
             titel: t.title,
