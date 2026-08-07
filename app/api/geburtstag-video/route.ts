@@ -42,16 +42,28 @@ const VOICE_MANN = "0c23804af39a4946ac6fda42bfff2738";  // „Daniel"
  * Coverage-Regel, ohne die OpenAI Aufträge als sexual abweist (Memory
  * `openai-tryon-safety-rule`). Schokotorte statt rosa: „Ich brauche eine schöne
  * Schokoladentorte." Kein Text im Bild — Schrift überlebt die Video-Stufe nicht sauber.
+ *
+ * EINE PERSON, EIN BILD — die Wache gegen das Doppelbild (07.08.2026 gemessen, beim
+ * Erzeugen der Look-Kandidaten). Hier stand „an elegant evening dress for a woman, an
+ * elegant dark suit for a man": zwei Geschlechter in einem Satz, und das Modell liest das
+ * als AUFTRAG, beide zu zeigen. Herausgekommen ist ein zweigeteiltes Bild — links die Frau
+ * im Kleid, rechts ein Mann im Smoking. Bei einem Kunden wäre das ein Fremder im Geschenk.
+ *
+ * Die Absicht des Owners bleibt („falls ein Mann sich hochlädt, dann er muss natürlich kein
+ * Kleid haben"), sie wird nur anders gesagt: Die Kleidung soll zu DIESER Person passen —
+ * welche das ist, sieht das Modell auf dem Foto. Kein Geschlecht wird mehr genannt, also
+ * kann auch keines danebengestellt werden. Dazu die ausdrückliche Ansage „ein einziges
+ * Bild, keine Collage": Der zweite Anlauf mit diesen Worten sass auf Anhieb.
  */
 const AVATAR_PROMPT =
   "Use the exact same person from the reference photo: same face, same hair, same skin. " +
-  "Photorealistic portrait, 3:4 framing, they look straight into the camera with a warm gentle " +
-  "smile, mouth closed, holding a beautiful elegant chocolate birthday cake in both hands: dark " +
-  "glossy chocolate ganache, delicate chocolate curls, gold sprinkle accents and one lit golden " +
-  "candle. Dress the person in beautiful festive celebration attire that suits them - an elegant " +
-  "evening dress for a woman, an elegant dark suit for a man. Fully and modestly covered, full " +
-  "coverage guaranteed. Neutral warm grey studio background, soft light. No text, no letters, " +
-  "no logos anywhere in the image.";
+  "A single portrait of that one person only - one single image, not a collage, not a split " +
+  "image, no second person. Photorealistic, 3:4 framing, they look straight into the camera " +
+  "with a warm gentle smile, mouth closed, holding a beautiful elegant chocolate birthday cake " +
+  "in both hands: dark glossy chocolate ganache, delicate chocolate curls, gold sprinkle " +
+  "accents and one lit golden candle. Dress them in beautiful festive celebration attire that " +
+  "suits this person. Fully and modestly covered, full coverage guaranteed. Neutral warm grey " +
+  "studio background, soft light. No text, no letters, no logos anywhere in the image.";
 
 /**
  * DER GESPROCHENE SATZ — einmal „Happy birthday" (Owner: „sie soll nich zwei mal Happy
