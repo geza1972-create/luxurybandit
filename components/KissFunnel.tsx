@@ -259,6 +259,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      Seite bisher als `beispielVideo` geschickt hat — die Karte startet also mit demselben
      Video wie vorher. */
   const beispiele = Array.from(new Set([...(beispielVideos ?? []), beispielVideo].filter(Boolean)));
+  /**
+   * WAS VORN STEHT, WIRD NACHGETANZT (Owner 07.08.2026: „es ist eine kard zu viel auf der
+   * Pool seite") — die eigene Auswahl-Karte (`TanzAuswahl`) ist von der Tanz-Seite
+   * verschwunden; die Referenzen liegen jetzt als Folien IN dieser einen Karte, und als
+   * Bewegungsvorlage gilt beim Erzeugen die Folie, die gerade vorn steht. Das ist zugleich
+   * die ehrlichste Wahl: Er erzeugt, während er genau dieses Video ansieht.
+   */
+  const [beispielVorn, setBeispielVorn] = useState(0);
   // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
   const T = kissText(lang, variant);
   // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
@@ -1877,8 +1885,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * Nur beim Tanz und nur, wenn ein Beispielvideo da ist. Die Route faellt von selbst
            * auf den Referenz-Modus zurueck, wenn sie es nicht erreichen kann (lokal).
            */
-          ...(variant === "poledance" && (refVideo || beispielVideo)
-            ? { mimicVideoUrl: new URL(refVideo || beispielVideo, window.location.origin).href }
+          /* Vorrang: die vordere Folie (das, was er gerade ansieht) — die alte gespeicherte
+             Wahl (`lb_tanz_ref`) nur noch als Rückfall, seit die Auswahl-Karte weg ist:
+             Ein gespeicherter Griff von gestern darf nicht überstimmen, was er sieht. */
+          ...(variant === "poledance" && (beispiele[beispielVorn] || refVideo || beispielVideo)
+            ? { mimicVideoUrl: new URL(beispiele[beispielVorn] || refVideo || beispielVideo, window.location.origin).href }
             : {}),
           /**
            * 540p BEIM TANZ (`hd`), nicht 360p.
@@ -2678,7 +2689,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   stört."): Als Karten-Ebene flogen sie ueber Punkte, Kaufknopf und
                   made-by-Zeile — genau ueber die Bedienung. In der Folie decken sie exakt
                   das Video und nichts darunter. */}
-              <KartenKarussell folien={beispiele.map((url, i) => (
+              <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
               <EinladungAnsicht id="" videoUrl={url} zaehlen={false}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
@@ -3277,9 +3288,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
               Ein Standbild aus dem Video selbst (`#t=0.1`, `preload="metadata"` laedt nur den
               Dateikopf) — dieselbe Datei, kein zweites Bild zu pflegen. */}
-          {V.nurSie && variant === "poledance" && (refVideo || beispielVideo) && (
+          {V.nurSie && variant === "poledance" && (beispiele[beispielVorn] || refVideo || beispielVideo) && (
             // eslint-disable-next-line jsx-a11y/media-has-caption
-            <video src={`${refVideo || beispielVideo}#t=0.1`} muted playsInline preload="metadata"
+            <video src={`${beispiele[beispielVorn] || refVideo || beispielVideo}#t=0.1`} muted playsInline preload="metadata"
               className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}
           {V.nurSie && variant !== "poledance" && !!V.garmentBild && (

@@ -5,8 +5,7 @@ import KissFunnel from "@/components/KissFunnel";
 import ThemenVorspann from "@/components/ThemenVorspann";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE } from "@/lib/poledance";
-import TanzAuswahl from "@/components/TanzAuswahl";
+import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE, POLEDANCE_REFERENZEN } from "@/lib/poledance";
 import EinladungKarte from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import ThemenPreis from "@/components/ThemenPreis";
@@ -80,18 +79,17 @@ export default async function SurpriseThemePage({ searchParams }: {
             ist, tritt es an dieselbe Stelle. Genau wie beim Kuss.
 
             Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
+        {/* EINE KARTE FÜR ALLES (Owner 07.08.2026: „es ist eine kard zu viel auf der Pool
+            seite"): Die eigene Auswahl-Karte (`TanzAuswahl`) ist weg — die acht Referenzen
+            liegen als Folien IM Karussell dieser einen Trichter-Karte, und als
+            Bewegungsvorlage gilt beim Erzeugen die Folie, die vorn steht („was du siehst,
+            wird nachgetanzt", siehe KissFunnel). Damit bleibt auch die Regel vom 03.08.
+            erfüllt — „die Auswahl findet auf der Landingpage statt" — nur ohne zweite
+            Karte. `TanzAuswahl` liegt ungenutzt daneben, für den Fall eines Rückbaus. */}
         <div data-trichter>
-          <KissFunnel variant="poledance" code={code} lang={L} beispielVideo={POLEDANCE_VIDEO} />
+          <KissFunnel variant="poledance" code={code} lang={L} beispielVideo={POLEDANCE_VIDEO}
+            beispielVideos={[POLEDANCE_VIDEO, ...POLEDANCE_REFERENZEN.map(r => r.video)]} />
         </div>
-
-        {/**
-          * DIE AUSWAHL (Owner 03.08.2026: „die Auswahl findet auf der Landingpage statt").
-          *
-          * HIER STANDEN DREI BEISPIELKARTEN — zum Ansehen, ohne Knopf. Jetzt sind es alle acht,
-          * und jede traegt „Replace model": Ein Beispiel, das man nur betrachten kann, ist eine
-          * Vitrine; eines mit Knopf ist der Trichter selbst.
-          */}
-        <TanzAuswahl lang={L} titel={T.nochEins} knopf={T.replaceModel} gewaehlt={T.replaceGewaehlt} />
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.
