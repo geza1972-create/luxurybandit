@@ -150,11 +150,28 @@ export async function POST(request: Request) {
    * Auftrag (bewusst, ein eigener Ausbauschritt).
    */
   let audioUrl = "";
-  if (body.audio?.startsWith("data:audio")) {
+  /**
+   * AUCH `data:video` — die Aufnahme des Trichters IST ein Video (07.08.2026 abends, Owner:
+   * „der typ hat eine frauen stimme. Meine stimme wurde nicht durchgegeben").
+   *
+   * GEMESSEN: Der Trichter nimmt mit MediaRecorder ein VIDEO auf (`video/mp4` bzw.
+   * `video/webm`) und schickt es als `audio` mit. Hier stand nur `data:audio` — die Wache
+   * liess die Aufnahme WORTLOS fallen (kein Fehler, der Zweig wurde einfach übersprungen)
+   * und fiel auf die Chip-Stimme zurück, Vorgabe „Joy". Im Auftrag 24eb8a77 steht deshalb
+   * `stimme: frau`, obwohl der Owner selbst gesprochen hatte.
+   *
+   * Dass HeyGen eine VIDEODATEI als `audio_url` nimmt und den Ton selbst herauszieht, ist
+   * am 07.08. bewiesen (siehe Übergabe §2) — genau deshalb reicht EINE Aufnahme für Bild
+   * und Stimme, und genau deshalb darf diese Wache das Video nicht aussortieren.
+   */
+  if (body.audio?.startsWith("data:audio") || body.audio?.startsWith("data:video")) {
     const mime = body.audio.slice(5, body.audio.indexOf(";"));
     const bytes = Buffer.from(body.audio.slice(body.audio.indexOf(",") + 1), "base64");
     if (bytes.length > 2_000 && bytes.length < 6_000_000) {
-      const ext = mime.includes("mp4") ? "m4a" : mime.includes("mpeg") ? "mp3" : "webm";
+      /* Video behält seine eigene Endung: mp4 bleibt mp4 (nur reines Audio wird m4a). */
+      const ext = mime.startsWith("video/")
+        ? (mime.includes("mp4") ? "mp4" : "webm")
+        : mime.includes("mp4") ? "m4a" : mime.includes("mpeg") ? "mp3" : "webm";
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       const pfad = await uploadTryThisLookBytes("uploads", ab, mime, ext).catch(() => "");
       if (pfad) audioUrl = (await getSignedUrl(pfad).catch(() => "")) || "";
