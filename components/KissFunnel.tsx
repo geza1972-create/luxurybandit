@@ -2726,6 +2726,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         nachZahlungLiefern.current = true;
         return;
       }
+      /**
+       * DIE ALTE NUMMER IST ABGEGOLTEN (Owner 08.08.2026: „es wurde auch nichts abgebucht").
+       * Der Server antwortet `extraNeeded`, wenn dieser Auftrag sein Video schon hat — die
+       * Trichter-Regel „geliefert = abgegolten" lebte bisher nur im Browser und war nach
+       * einem Neuladen weg. Also hier dasselbe wie im Video-Zweig: frischer Auftrag,
+       * frische Abbuchung, ein Klick aussen.
+       */
+      if (start?.extraNeeded) {
+        try { popup?.close(); } catch { /**/ }
+        let device = "";
+        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+        const log = await fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
+            email: mail.trim(), empfaenger, stimme, look,
+            ...(customModel ? { modelImage: customModel } : {}) }),
+        }).then(r => r.json()).catch(() => null);
+        setPayBusy(false);
+        if (log?.id) {
+          genMerken(log.id);
+          setBezahlt(false); setVideoUrl(""); setVideoPoster("");
+          void unlock("once", log.id);
+          return;
+        }
+        setStatus(T.statusCouldNotStart); return;
+      }
       if (!start?.url || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return;

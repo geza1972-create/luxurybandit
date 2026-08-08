@@ -127,9 +127,27 @@ export async function POST(request: Request) {
      * Findet sich der Auftrag nicht, gilt {once}. Das ist der billigere Weg und damit der
      * hoefliche Irrtum: Lieber einmal zu wenig verlangt als einem Kunden zu viel abgebucht.
      */
-    const thema = genId
-      ? await readKissLog().then(l => String(l.find(x => x.id === genId)?.theme ?? "")).catch(() => "")
-      : "";
+    const auftrag = genId
+      ? await readKissLog().then(l => l.find(x => x.id === genId) ?? null).catch(() => null)
+      : null;
+    const thema = String(auftrag?.theme ?? "");
+    /**
+     * EIN AUFTRAG, EIN VIDEO — AUCH WENN DER BROWSER ES ANDERS SIEHT (Owner 08.08.2026:
+     * „es wurde auch nichts abgebucht", dreimal in Folge).
+     *
+     * Die Abbuchung ist idempotent je Auftragsnummer (`wallet-<genId>`) — genau richtig
+     * gegen Doppelklicks, aber toedlich beim ZWEITEN Video derselben Nummer: Der Server
+     * fand den Schluessel eingeloest, meldete „bezahlt" und lieferte gratis. Der Trichter
+     * hat dafuer laengst eine Regel (geliefert = abgegolten), aber sie lebte nur im
+     * Browser — ein alter Tab, ein wiederhergestellter Zustand, und das Geld war weg.
+     *
+     * `extraNeeded` ist der eingebaute Weg zurueck: Der Trichter legt daraufhin einen
+     * frischen Auftrag an und kauft normal. Dieselbe Antwort kennt er schon von
+     * /api/generate-tryon-video.
+     */
+    if (auftrag?.videoUrl) {
+      return NextResponse.json({ extraNeeded: true, priceCents: geschenkPreisCents(thema) });
+    }
     const tanz = thema === "poledance";
     /**
      * DER VIDEO-AUFPREIS (Owner 04.08.2026: „er bekommt ein Bild für 1,49; wenn er das Video
