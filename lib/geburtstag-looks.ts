@@ -70,9 +70,9 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
     kleidung: "Dress them in beautiful festive celebration attire that suits this person.",
     umgebung: "Neutral warm grey studio background, soft light.",
     bewegung:
-      "They smile warmly and gently present the chocolate cake slightly towards the camera. " +
-      "Subtle natural movement of head, hair and shoulders, the candle flame flickers softly. " +
-      "Calm elegant celebratory energy.",
+      "They keep a gentle closed-lip smile, no teeth showing, and gently present the chocolate " +
+      "cake slightly towards the camera. Subtle natural movement of head, hair and shoulders, " +
+      "the candle flame flickers softly. Calm elegant celebratory energy.",
   },
   {
     /**
@@ -101,9 +101,9 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "On an elegant rooftop terrace at sunset, a softly blurred warm city skyline glowing " +
       "far behind them, golden evening light.",
     bewegung:
-      "They smile warmly and gently present the chocolate cake slightly towards the camera. " +
-      "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
-      "in the evening air. Elegant, festive rooftop energy.",
+      "They keep a gentle closed-lip smile, no teeth showing, and gently present the chocolate " +
+      "cake slightly towards the camera. Subtle natural movement of head, hair and shoulders, " +
+      "the candle flames flicker softly in the evening air. Elegant, festive rooftop energy.",
   },
   {
     /**
@@ -124,9 +124,10 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "Golden balloons floating behind them, fine gold confetti falling through the air, " +
       "bright warm party light, soft cream background.",
     bewegung:
-      "They smile warmly and gently present the golden cake slightly towards the camera. " +
-      "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
-      "and the confetti drifts down behind them. Bright joyful celebratory energy.",
+      "They keep a gentle closed-lip smile, no teeth showing, and gently present the golden " +
+      "cake slightly towards the camera. Subtle natural movement of head, hair and shoulders, " +
+      "the candle flames flicker softly and the confetti drifts down behind them. Bright " +
+      "joyful celebratory energy.",
   },
 ];
 
@@ -148,7 +149,10 @@ export function geburtstagAvatarPrompt(look: GeburtstagLook): string {
     "Use the exact same person from the reference photo: same face, same hair, same skin. " +
     "A single portrait of that one person only - one single image, not a collage, not a split " +
     "image, no second person. Photorealistic, 3:4 framing, they look straight into the camera " +
-    `with a warm gentle smile, mouth closed, ${haltung}. ` +
+    /* KEINE ZAEHNE (Owner 08.08.2026: „Heygen macht mir fremde zähne … Furchtbares
+       Ergebnis. Besser keine Zähne zeigen") — erfundene Zaehne sind der schnellste Weg,
+       ein Gesicht fremd zu machen. Lippen geschlossen, ausdruecklich ohne Zaehne. */
+    `with a warm gentle closed-lip smile, lips together, no teeth visible, ${haltung}. ` +
     `${look.kleidung} Fully and modestly covered, full coverage guaranteed. ` +
     `${look.umgebung} No text, no letters, no logos anywhere in the image.`
   );
