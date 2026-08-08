@@ -19,7 +19,7 @@ import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
-import { TEILEN_TEXT } from "@/components/BeispielGalerie";
+import { TEILEN_TEXT, TEILEN_TEXT_GEBURTSTAG } from "@/components/BeispielGalerie";
 import { Dialog, MadeBy, Knopf, BildWahl, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 /**
@@ -941,7 +941,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       body: JSON.stringify({ share: genId, device }),
     }).catch(() => {});
     const url = `${window.location.origin}/w/${encodeURIComponent(genId)}?l=${encodeURIComponent(String(lang).slice(0, 2))}&utm_source=share`;
-    const text = TEILEN_TEXT[lang] ?? TEILEN_TEXT.en;
+    const text = (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en;
     try {
       if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
     } catch { return; }   // abgebrochen ist kein Nein zur Freigabe, nur keins zum Senden
@@ -1945,7 +1945,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * Fuer Personal heisst das: direkt das Video, nicht das alte Gratis-Bild.
      */
     if (V.keinGratis && isStaff && !bezahlt) { setBezahlt(true); void kussVideo(); return; }
-    if (V.keinGratis && !bezahlt && !isStaff) {
+    /**
+     * GELIEFERT IST ABGEGOLTEN — die Kuss-Regel gilt auch hier (Owner 08.08.2026, dreimal
+     * hintereinander: „wird nicht abgebucht … kein auftrag … ich habe immer noch 10,02
+     * euro drauf"). Ein Einzelkauf kauft EIN Video; wer nach der Lieferung noch einmal
+     * auf Generieren tippt, beginnt einen NEUEN Auftrag mit neuer Abbuchung — vorher war
+     * jeder weitere Lauf gratis und kostete UNS den vollen Anbieterpreis.
+     */
+    const abgegolten = V.keinGratis && !isStaff && bezahlt && !!videoUrl;
+    if (abgegolten) { setBezahlt(false); setVideoUrl(""); setVideoPoster(""); setErstattet(false); setErstattScharf(false); }
+    if (V.keinGratis && (!bezahlt || abgegolten) && !isStaff) {
       if (!adresseDa) { const e = mail.trim(); if (!(await adresseVormerken(e))) return; }
       /**
        * KUSS: NUR GUTHABEN (Owner 02.08.2026). Reicht das Aufgeladene, bucht der Server
@@ -1988,7 +1997,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * Look, Stimme, Empfänger und dem Standbild. `genIdFrisch` reicht die Nummer direkt
        * an `unlock` durch; der React-Zustand trüge sie erst einen Render später.
        */
-      let gid = genId;
+      let gid = abgegolten ? "" : genId;   // die abgegoltene Nummer ist verbraucht
       if (!gid) {
         let device = "";
         try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -3174,7 +3183,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   </button>
                 ) : (
                   <TeilenKnopf rund datei={videoUrl} dateiName={variant}
-                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
                 )} />
@@ -3244,7 +3253,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   </button>
                 ) : (
                   <TeilenKnopf rund datei={bild} dateiName={variant}
-                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
                     className={`absolute right-3 z-30 ${V.musik ? "top-16" : "top-3"}`} />
@@ -3309,7 +3318,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                    gewinnt die Auskunft. Den Platz bestimmt jetzt die Karte (Skill `card`). */
                 teilen={karteRendert ? undefined : (
                   <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : "kiss"}?utm_source=share`}
-                    text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
+                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
                 )} />
