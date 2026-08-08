@@ -5,6 +5,7 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import { musikFuer } from "@/lib/musik";
+import { geburtstagTitel } from "@/lib/geburtstag";
 
 /**
  * DIE GETEILTE KARTE (Owner 01.08.2026: „nicht als Bild sondern als eigene Karte, weil er
@@ -39,6 +40,10 @@ const TEXTE: Record<string, { cta: string; zurueck: string; hinweis: string; pri
  */
 const TITEL: Record<string, string> = {
   kiss: "Unforgettable kiss gift", wedding: "The Wedding", idol: "Your Idol",
+  /* Jedes Thema traegt seinen eigenen Titel (Owner 08.08.2026, der auf seiner geteilten
+     Geburtstagskarte „Unforgettable kiss gift" las). Der Geburtstag bekommt seinen mit dem
+     NAMEN unten dazu — `geburtstagTitel`, dieselbe Zeile wie im Trichter und in der Galerie. */
+  holiday: "Your holiday", poledance: "Your dance", surprise: "Your dance",
 };
 
 export default function WerkAnsicht({ id }: { id: string }) {
@@ -82,7 +87,7 @@ export default function WerkAnsicht({ id }: { id: string }) {
     <div className="mx-auto w-full max-w-[440px] px-3 pb-16 pt-6">
       <EinladungKarte
         sprache={lang} sie="" er="" demo
-        titel={TITEL[theme] ?? TITEL.kiss}
+        titel={theme === "birthday" ? geburtstagTitel(empfaenger) : (TITEL[theme] ?? TITEL.kiss)}
         /* DIE SIGNATUR UNTEN (Owner: „drunter erstellt durch luxurybandit.com" — „oder unten").
            Unten statt direkt unter dem Titel: Dort steht bei einer gedruckten Karte der
            Hersteller, und oben soll der Gruss stehen, nicht die Herkunft. Sie ist zugleich
