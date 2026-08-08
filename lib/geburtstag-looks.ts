@@ -148,12 +148,21 @@ export function geburtstagAvatarPrompt(look: GeburtstagLook): string {
     ? look.haltung.replace(/\$\{torte\}/g, look.torte)
     : `holding ${look.torte} in both hands`;
   return (
-    /* DIE LEITREGEL (Owner 08.08.2026: „es muss sehr am original bleiben. Was zählt sind
-       die klamotten und die umgebung") — die Person ist unantastbar, gewechselt wird nur
-       ihre Ausstattung. */
-    "Use the exact same person from the reference photo, completely unchanged: same face, " +
-    "same features, same hair, same skin, same expression. Only the clothing, the cake and " +
-    "the surroundings change — nothing about the person. " +
+    /**
+     * DIE IDENTITAETSSPERRE STEHT GANZ OBEN (Owner 08.08.2026, nach acht Vergleichslaeufen
+     * an einem Abend — der Wortlaut stammt aus seinem eigenen Vergleich mit ChatGPT).
+     *
+     * Warum genau DIESE Saetze: Jede Aufforderung, das Bild „schoen" oder „editorial" zu
+     * machen, hat das Modell dazu gebracht, auch das GESICHT zu verbessern — und
+     * verbessert heisst fremd. „Do not redesign or beautify her face" ist deshalb keine
+     * Hoeflichkeit, sondern die Wache. Kein Look kann sie umgehen, sie steht hier einmal.
+     */
+    "IDENTITY LOCK: The uploaded person's face is the source of truth. Do not alter, " +
+    "reinterpret, beautify, age, or replace the face. Only modify the requested clothing, " +
+    "environment and objects. " +
+    "Edit the provided image. Keep the person's face, identity, facial features, hairstyle, " +
+    "skin tone, expression and overall likeness unchanged. Do not redesign or beautify the " +
+    "face. They must remain clearly the same person from the reference photo. " +
     "A single portrait of that one person only - one single image, not a collage, not a split " +
     "image, no second person. Photorealistic, 3:4 framing, they look straight into the camera " +
     /* NICHTS AM MUND ERFINDEN (Owner 08.08.2026, in zwei Schritten: „Heygen macht mir

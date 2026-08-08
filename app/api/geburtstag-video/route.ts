@@ -79,17 +79,36 @@ async function fotoBytes(person: string): Promise<Buffer | null> {
   return null;
 }
 
-/** Das Avatar bei OpenAI — Qualität medium („medum reicht"), mit Rückfall aufs Basismodell. */
+/**
+ * DAS BILD BEI OPENAI — `gpt-image-2`, Qualitaet hoch (Owner 08.08.2026 nach acht
+ * Vergleichslaeufen an einem Abend: „das letzte war perfekt").
+ *
+ * WAS SICH GEAENDERT HAT UND WARUM ES GEMESSEN IST:
+ *
+ * 1. MODELL: `gpt-image-1` malte aus dem Kundenfoto einen FREMDEN („die Person stimmt
+ *    ueberhaupt nicht"). `gpt-image-2` traf dasselbe Gesicht auf Anhieb — und brauchte
+ *    dafuer 6.422 statt 12.908 Tokens, also etwa die Haelfte.
+ * 2. KEIN `input_fidelity`: Das neue Modell WEIST den Parameter ab („does not support")
+ *    — die Gesichtstreue steckt darin schon. Der Schalter war die Kruecke der alten
+ *    Generation.
+ * 3. QUALITAET `high` statt `medium`: Bei `medium` blieb die Haut waechsern.
+ *
+ * Rueckfall auf `gpt-image-1` bleibt stehen — dann ohne `input_fidelity`, weil die alte
+ * Fassung ihn kennt, aber der Aufruf sonst identisch bleibt. Lieber ein schwaecheres Bild
+ * als ein toter bezahlter Auftrag.
+ */
 async function avatarBauen(foto: Buffer, prompt: string): Promise<{ bild?: Buffer; error?: string }> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return { error: "OPENAI_API_KEY fehlt." };
-  const modell = process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-1";
+  const modell = process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2";
   const lauf = async (model: string) => {
     const fd = new FormData();
     fd.append("model", model);
     fd.append("prompt", prompt);
     fd.append("size", "1024x1536");
-    fd.append("quality", "medium");
+    fd.append("quality", "high");
+    /* Nur die ALTE Fassung kennt den Treue-Schalter; `gpt-image-2` lehnt ihn ab. */
+    if (model !== "gpt-image-2") fd.append("input_fidelity", "high");
     fd.append("image[]", new Blob([new Uint8Array(foto)], { type: "image/jpeg" }), "person.jpg");
     const r = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
@@ -216,6 +235,8 @@ export async function POST(request: Request) {
   const fotoHash = crypto.createHash("sha1").update(foto).digest("hex").slice(0, 16);
   let lookId = "";
   let lookNeuGebaut = false;
+  /** Das Bild der GEWAEHLTEN Strecke — OpenAI zuerst, sonst die HeyGen-Look-Vorschau. */
+  let posterQuelleVorab: Buffer | undefined;
   if (genIdStr) {
     try {
       const alte = await readKissLog();
@@ -228,6 +249,29 @@ export async function POST(request: Request) {
   /* Zweite Stufe: derselbe Mensch im selben Look, aber ein NEUER Auftrag (Wiederkaeufer,
      Test-Laeufe) — der globale Look-Speicher zahlt den Bild-Schritt genau einmal. */
   const lookSchluessel = `${look.id}|${fotoHash}`;
+  /**
+   * OPENAI MALT, HEYGEN SPRICHT (Owner 08.08.2026 abends, nach acht Vergleichen: „das
+   * letzte war perfekt" — das Bild von `gpt-image-2`).
+   *
+   * Der HeyGen-Look-Schritt ist damit NICHT mehr der Weg, sondern der Notnagel: Er kostete
+   * ~1,80 $ und malte die Person jedes Mal neu — mal traf er, mal stand ein Fremder da,
+   * mal erfand er Zaehne. `gpt-image-2` kostet ~15 ct, haelt das Gesicht und braucht die
+   * Haelfte der Tokens des alten Modells.
+   *
+   * Der Look-Speicher (heygen-looks.json) bleibt fuer die Rueckfall-Strecke stehen — er
+   * greift nur, wenn OpenAI ausfaellt.
+   */
+  const oa = await avatarBauen(foto, geburtstagAvatarPrompt(look));
+  if (oa.bild) {
+    const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
+      method: "POST", headers: { ...H, "Content-Type": "image/png" }, body: new Uint8Array(oa.bild),
+    }).then(r => r.json()).catch(() => null) as { data?: { talking_photo_id?: string } } | null;
+    lookId = up?.data?.talking_photo_id ?? "";
+    posterQuelleVorab = oa.bild;
+    if (!lookId) console.warn("[geburtstag-video] OpenAI-Bild da, HeyGen-Anmeldung scheiterte");
+  } else {
+    console.warn("[geburtstag-video] OpenAI scheiterte, HeyGen-Look als Rueckfall:", oa.error);
+  }
   if (!lookId) lookId = await heygenLookNachschlagen(lookSchluessel);
   /**
    * PERSONAL-SPARMODUS (Owner 08.08.2026: „jetzt hat das Video 2,20 dollar gekostet" —
@@ -238,8 +282,8 @@ export async function POST(request: Request) {
    * beruehrt das nie.
    */
   if (!lookId && staff) lookId = await heygenLookNachschlagen(`personal|${look.id}`);
-  /** Das Poster-Bild der gewählten Strecke — HeyGen-Look-Vorschau oder OpenAI-Avatar. */
-  let posterQuelle: Buffer | undefined;
+  /** Das Poster-Bild der gewählten Strecke — OpenAI-Bild oder HeyGen-Look-Vorschau. */
+  let posterQuelle: Buffer | undefined = posterQuelleVorab;
   if (!lookId) {
     const hey = await heygenLookBauen(H, foto, look);
     lookId = hey.lookId ?? "";
@@ -260,16 +304,7 @@ export async function POST(request: Request) {
       if (pu) { const pr = await fetch(pu); if (pr.ok) posterQuelle = Buffer.from(await pr.arrayBuffer()); }
     } catch { /* dann bleibt das Poster des Auftrags oder keins — nie der Grund zu scheitern */ }
   }
-  if (!lookId) {
-    const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));
-    if (!avatar.bild) return NextResponse.json({ error: avatar.error }, { status: 502 });
-    const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
-      method: "POST", headers: { ...H, "Content-Type": "image/png" }, body: new Uint8Array(avatar.bild),
-    }).then(r => r.json()).catch(() => null) as { data?: { talking_photo_id?: string } } | null;
-    lookId = up?.data?.talking_photo_id ?? "";
-    posterQuelle = avatar.bild;
-  }
-  if (!lookId) return NextResponse.json({ error: "HeyGen-Look-Anmeldung fehlgeschlagen." }, { status: 502 });
+  if (!lookId) return NextResponse.json({ error: oa.error ?? "Bild-Erzeugung fehlgeschlagen." }, { status: 502 });
 
   /**
    * DIE EIGENE STIMME (Owner 07.08.2026: „es ist möglich, dass der user seine stimme
