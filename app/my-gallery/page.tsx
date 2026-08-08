@@ -70,7 +70,6 @@ export default function MyGalleryPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Item | null>(null);
-  const [downloading, setDownloading] = useState(false);
   const [query, setQuery] = useState("");   // Model-/Look-Suche (z. B. „Bella")
 
   // Admin: Video öffentlich (gratis Teaser im Chat) ↔ privat (🔒 Abo) schalten.
@@ -428,27 +427,32 @@ export default function MyGalleryPage() {
     setTeilenBusy(false);
   };
 
-  const download = async (it: Item) => {
+  /**
+   * DIE ADRESSE ZUM SICHERN — ein gewöhnlicher Link, kein JavaScript.
+   *
+   * Owner 09.08.2026 mit einem Bild seines iPhones: „Ich habe auf Download geklickt auf dem
+   * Handy und dann öffnet sich das. Ich kann da nichts machen. Weder Fenster schliessen noch
+   * Download." Der alte Weg holte die Datei erst per `fetch` und klickte danach einen
+   * unsichtbaren Link — auf iOS ist die Fingerberührung nach dem `await` verbraucht, der
+   * Klick verpufft, und der Notausgang landete auf der nackten Speicher-Adresse: ein
+   * Videospieler ohne Ausgang.
+   *
+   * Jetzt zeigt der Knopf direkt auf `/api/download`, und die Route setzt
+   * `Content-Disposition: attachment` — damit BIETET das Handy die Datei zum Sichern an,
+   * statt sie zu öffnen. Kein Warten, keine verbrauchte Berührung, kein Notausgang.
+   *
+   * Der Speicherpfad steckt in der signierten Adresse (`/object/sign/<eimer>/<pfad>?token`);
+   * ihn hier herauszuschneiden ist billiger, als ihn durch die halbe Galerie zu reichen.
+   */
+  const downloadHref = (it: Item): string => {
     const url = it.videoUrl || it.imageUrl;
-    if (!url) return;
-    setDownloading(true);
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const obj = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = obj;
-      const base = (it.lookName || "luxurybandit").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-      a.download = `${base}-${it.id}.${it.videoUrl ? "mp4" : "jpg"}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(obj), 4000);
-    } catch {
-      window.open(url, "_blank");
-    } finally {
-      setDownloading(false);
-    }
+    if (!url) return "";
+    const m = url.match(/\/object\/(?:sign|public|authenticated)\/[^/]+\/(.+?)(?:\?|$)/);
+    if (!m) return url;                        // fremde Adresse (Altbestand) — dann wie bisher
+    const pfad = decodeURIComponent(m[1]);
+    const basis = (it.lookName || "luxurybandit").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const name = `${basis}-${it.id}.${it.videoUrl ? "mp4" : "jpg"}`;
+    return `/api/download?path=${encodeURIComponent(pfad)}&name=${encodeURIComponent(name)}`;
   };
 
   return (
@@ -744,10 +748,10 @@ export default function MyGalleryPage() {
                   wird; der Knopf gehoert dorthin. Bei einem BILD (kein Video, keine Karte)
                   bleibt der Download-Knopf hier der einzige Weg — geteilt werden nur Werke.
                   Die Funktion `teilen` ist unveraendert; nur ihr Knopf ist umgezogen. */}
-              <button type="button" onClick={(e) => { e.stopPropagation(); void download(open); }} disabled={downloading}
-                className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
-                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
-              </button>
+              <a href={downloadHref(open)} download onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95">
+                <Download className="h-4 w-4" /> {T.download}
+              </a>
             </div>
           </div>
           <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-3" onClick={(e) => e.stopPropagation()}>

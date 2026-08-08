@@ -38,6 +38,7 @@ export type KontoText = {
   keineVerbindung: string;
   linkKopiert: string;
   teilen: string;
+  download: string;
   // ── Konto ──
   kontoTitel: string;
   aktuell: string;
@@ -71,6 +72,7 @@ const en: KontoText = {
   keineVerbindung: "No connection. Please try again.",
   linkKopiert: "Link copied",
   teilen: "Share",
+  download: "Download",
   kontoTitel: "Top up your account",
   aktuell: "Currently:",
   adressePflicht: "Please enter your email address — your credit is booked to it.",
@@ -102,6 +104,7 @@ const de: KontoText = {
   keineVerbindung: "Keine Verbindung. Bitte noch einmal versuchen.",
   linkKopiert: "Link kopiert",
   teilen: "Teilen",
+  download: "Speichern",
   kontoTitel: "Konto aufladen",
   aktuell: "Aktuell:",
   adressePflicht: "Bitte gib deine E-Mail-Adresse an — auf sie wird das Guthaben gebucht.",
@@ -133,6 +136,7 @@ const ro: KontoText = {
   keineVerbindung: "Fără conexiune. Încearcă din nou.",
   linkKopiert: "Link copiat",
   teilen: "Distribuie",
+  download: "Descarcă",
   kontoTitel: "Încarcă-ți contul",
   aktuell: "Acum:",
   adressePflicht: "Introdu adresa ta de e-mail — pe ea se înregistrează creditul.",
@@ -164,6 +168,7 @@ const es: KontoText = {
   keineVerbindung: "Sin conexión. Inténtalo otra vez.",
   linkKopiert: "Enlace copiado",
   teilen: "Compartir",
+  download: "Descargar",
   kontoTitel: "Recarga tu cuenta",
   aktuell: "Ahora:",
   adressePflicht: "Introduce tu correo electrónico — el saldo se abona en él.",
@@ -195,6 +200,7 @@ const fr: KontoText = {
   keineVerbindung: "Pas de connexion. Réessaie.",
   linkKopiert: "Lien copié",
   teilen: "Partager",
+  download: "Télécharger",
   kontoTitel: "Recharge ton compte",
   aktuell: "Actuellement :",
   adressePflicht: "Indique ton adresse e-mail — ton crédit y est enregistré.",
@@ -226,6 +232,7 @@ const pt: KontoText = {
   keineVerbindung: "Sem ligação. Tenta outra vez.",
   linkKopiert: "Link copiado",
   teilen: "Partilhar",
+  download: "Transferir",
   kontoTitel: "Carrega a tua conta",
   aktuell: "Agora:",
   adressePflicht: "Indica o teu e-mail — o saldo é registado nele.",
@@ -257,6 +264,7 @@ const it: KontoText = {
   keineVerbindung: "Nessuna connessione. Riprova.",
   linkKopiert: "Link copiato",
   teilen: "Condividi",
+  download: "Scarica",
   kontoTitel: "Ricarica il tuo conto",
   aktuell: "Ora:",
   adressePflicht: "Inserisci la tua e-mail — il credito viene registrato su di essa.",
