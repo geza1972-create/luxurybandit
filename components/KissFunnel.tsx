@@ -559,6 +559,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * muss. NICHT das allererste Bild: In der ersten halben Sekunde regelt die Kamera noch
    * Helligkeit und Schärfe, und ein verwaschenes Bild wäre die Vorlage für alles Weitere.
    */
+  /**
+   * ABSPIELEN STATT SPULEN (Owner 08.08.2026, iPhone: „Es wurde nichts aufgenommen — die
+   * Kamera hat kein Bild geliefert", obwohl die Aufnahme lief; die neue Absage-Telemetrie
+   * und sein Screenshot zeigen auf `aufnahme_leer`).
+   *
+   * iOS-Safari dekodiert ein frisch aufgenommenes Video beim blossen SPULEN oft nicht —
+   * `onseeked` feuert, aber `drawImage` malt eine schwarze Fläche. Genau die hält die
+   * Schwarz-Wache für „kein Bild" und sagt zu Unrecht ab. Erst das ABSPIELEN zwingt iOS
+   * zum Dekodieren. Deshalb: Wo `requestVideoFrameCallback` existiert (Safari 15.4+,
+   * Chrome), läuft das Video stumm an und das Bild wird aus einem ECHTEN gelieferten
+   * Frame nach ~0,5 s Medienzeit gemalt — der Rueckruf feuert nur fuer wirklich
+   * dekodierte Bilder, schwarz-durch-Spulen ist damit ausgeschlossen. Ohne rVFC bleibt
+   * der alte Spul-Weg (alte Browser, dort lief er ja).
+   */
   const standbildZiehen = (blobUrl: string): Promise<{ bild: string; brauchbar: boolean; dauer: number }> =>
     new Promise(fertig => {
       const leer = { bild: "", brauchbar: false, dauer: 0 };
@@ -597,13 +611,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           fertig({
             bild: c.toDataURL("image/jpeg", 0.9),
             brauchbar: mittel > 12 && streuung > 8,
-            dauer: v.duration || 0,
+            /* iOS meldet fuer frische MediaRecorder-Dateien gern Infinity — das ist keine
+               Dauer, sondern „weiss nicht": dann lieber 0 (die Kurz-Wache laesst 0 durch). */
+            dauer: Number.isFinite(v.duration) ? v.duration : 0,
           });
         } catch { clearTimeout(abbruch); fertig(leer); }
       };
-      v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 2); };
-      v.onseeked = malen;
       v.onerror = () => { clearTimeout(abbruch); fertig(leer); };
+      type RVFC = (cb: (now: number, meta: { mediaTime: number }) => void) => void;
+      const rvfc = (v as unknown as { requestVideoFrameCallback?: RVFC }).requestVideoFrameCallback?.bind(v) as RVFC | undefined;
+      if (rvfc) {
+        /* iOS-Weg: stumm anspielen und ein WIRKLICH dekodiertes Frame nehmen — nicht das
+           allererste (Kamera regelt noch), sondern eines nach ~0,5 s Medienzeit. Jede
+           Aufnahme ist mindestens 1,5 s lang, sonst sagt die Kurz-Wache ohnehin ab. */
+        const tick = (_: number, meta: { mediaTime: number }) => {
+          if (meta.mediaTime >= 0.5) { try { v.pause(); } catch { /**/ } malen(); }
+          else rvfc(tick);
+        };
+        rvfc(tick);
+        v.onloadedmetadata = () => {
+          void v.play().catch(() => {
+            /* Abspielen verweigert → der alte Spul-Weg als letzter Versuch. */
+            v.onseeked = malen;
+            v.currentTime = Math.min(1.2, (v.duration || 2) / 2);
+          });
+        };
+      } else {
+        v.onloadedmetadata = () => { v.currentTime = Math.min(1.2, (v.duration || 2) / 2); };
+        v.onseeked = malen;
+      }
     });
 
   /**
