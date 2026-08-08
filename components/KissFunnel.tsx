@@ -259,13 +259,13 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
 const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, or upload a photo instead.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser — oder lade ein Foto hoch.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser — sau încarcă o poză.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador — o sube una foto.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur — ou envoie une photo.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador — ou envia uma foto.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser — o carica una foto.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora" },
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora" },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -3384,11 +3384,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         *
         * Die Aufnahme weiter unten liefert das Bild selbst — Ueberschrift, Anleitung und
         * Upload-Karussell waeren drei Abschnitte fuer einen Schritt, den es nicht mehr
-        * gibt. Sie kommen zurueck, sobald jemand Kamera oder Mikrofon verweigert
-        * (`kameraAus`): Dann ist der Upload wieder der einzige Weg, und ohne die Anleitung
-        * lieferte er schlechte Fotos.
+        * gibt.
+        *
+        * AUCH NICHT MEHR ALS KAMERA-RUECKFALL (Owner 08.08.2026, mit Bild: „wieso kommt
+        * das immer noch? Beim Abbrechen?"). Hier stand `|| kameraAus` — gedacht fuer den,
+        * der die Kamera verweigert. In Wirklichkeit sprang der Schalter auch nach einem
+        * ABBRUCH mit schnellem Neuversuch (iOS haelt die Kamera einen Moment fest →
+        * NotReadableError), und der ganze Foto-Block stand wieder da. Beim Geburtstag
+        * gibt es nur EINEN Weg: die Aufnahme. Wer die Kamera nicht freigibt, liest die
+        * rote Zeile („erlaub den Zugriff und versuch es nochmal") — kein zweiter Pfad.
         */}
-      {(!selbstVideo || kameraAus) && (<>
+      {!selbstVideo && (<>
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.nurEigenes ? T.upTitle : T.step1}</p>
       {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
           es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
@@ -3506,7 +3512,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
       </>)}
 
-      {(!selbstVideo || kameraAus) && !V.paarUpload && (() => {
+      {/* Auch HIER kein `|| kameraAus` mehr (Owner 08.08.2026: „wieso kommt das immer
+          noch?") — das war die zweite Stelle: die Upload-Kachel im Karussell kam nach
+          jeder Kamera-Absage zurück, obwohl der Foto-Weg beim Geburtstag abgeschafft ist. */}
+      {!selbstVideo && !V.paarUpload && (() => {
         // Ohne Katalog gibt es nichts zu laden — sonst dreht sich hier ewig ein Rad.
         if (!V.nurEigenes && models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
@@ -3690,7 +3699,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 {GEBURTSTAG_LOOKS.length > 1 && (
                   <div className="mb-3">
                     <p className="mb-1.5 text-center text-[11px] font-bold text-white/55">{SW.look}</p>
-                    <BildWahl wert={look} waehle={setLook} bilder={GEBURTSTAG_LOOKS} className="justify-center" />
+                    {/* Als SLIDES (Owner 08.08.2026: „als Slide die Bilder presentieren") —
+                        man sieht, WAS man wählt, nicht eine Briefmarke davon. Kein
+                        `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
+                        links an, sobald die Slides breiter sind als der Schirm. */}
+                    <BildWahl gross wert={look} waehle={setLook} bilder={GEBURTSTAG_LOOKS} />
                   </div>
                 )}
                 {/**
@@ -3728,8 +3741,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       <video ref={vorschauRef} muted playsInline
                         className="absolute inset-0 h-full w-full object-cover"
                         style={{ transform: "scaleX(-1)" }} />
+                      {/* GROSS UND MITTIG (Owner 08.08.2026, mit Bild: „Jetzt passt der
+                          Kreis nicht"): Auf Armlänge füllt ein Gesicht den halben
+                          Bildschirm — das erste Oval (42 % hoch, oben angesetzt) war
+                          kleiner als jedes echte Selfie und sagte damit „geh weiter weg",
+                          statt nur zu zentrieren. */}
                       <div aria-hidden
-                        className="pointer-events-none absolute left-1/2 top-[11%] h-[42%] w-[64%] max-w-[340px] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
+                        className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
                       <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-5 pb-10 pt-4 text-center">
                         <p className="text-[11px] font-bold text-white/75">{SW.lies}</p>
                         <p className="mt-1 text-[16px] font-black leading-snug text-white">{satz}</p>
@@ -3776,7 +3794,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                     <video controls playsInline src={aufnahmeUrl || undefined} poster={customModel || undefined}
                       className="mx-auto mt-3 aspect-[3/4] w-[240px] max-w-full rounded-xl object-cover" />
                   )}
-                  {kameraAus && (
+                  {/* Nur wenn die Fehlerzeile es nicht LÄNGST sagt — sonst stand dieselbe
+                      Absage zweimal untereinander (einmal mit Fehlername, einmal ohne). */}
+                  {kameraAus && !aufnahmeFehler && (
                     <p className="mt-2 text-[11px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
                       {SW.kameraAus}
                     </p>

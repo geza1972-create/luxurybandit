@@ -163,6 +163,13 @@ export default function CIMuster() {
         <BildWahl wert={bildWahl} waehle={setBildWahl} bilder={GEBURTSTAG_LOOKS} />
       </Kasten>
 
+      {abschnitt("BildWahl gross — Slides zum Wischen, eine gewählt")}
+      {/* Owner 08.08.2026: „als Slide die Bilder presentieren" — grosse 3:4-Bilder mit
+          Einrasten. Dieselben Ring-Regeln wie die kleine Reihe: nur die Farbe wechselt. */}
+      <Kasten>
+        <BildWahl gross wert={bildWahl} waehle={setBildWahl} bilder={GEBURTSTAG_LOOKS} />
+      </Kasten>
+
       {abschnitt("Kasten — still · gold (Teaser)")}
       {/* Der letzte grosse Eigenbau: 82 Flächen in 21 Rezepturen (Owner 06.08.2026:
           „… teaser, cards, header"). Der Rand ist /20, damit er im Tageslicht steht. */}

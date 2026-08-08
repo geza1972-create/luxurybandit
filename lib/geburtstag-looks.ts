@@ -99,39 +99,34 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
   },
   {
     /**
-     * NACH DER VORLAGE DES OWNERS (07.08.2026, mit Bild: „das kannst du auch als referenz
-     * nehmen") — ein Mann auf einem Dach hoch über der Stadt, Selfie mit ausgestrecktem
-     * Arm, Gegenlicht der tiefen Sonne, Torte voller Kerzen.
+     * MANN MIT FLIEGE STATT MANN AUF DEM DACH (Owner 08.08.2026: „ich brauche auch eine
+     * Vorlage Mann mit fliege. Statt Mann auf dem Dach"). Der Skyline-Selfie-Look ist
+     * damit raus; alte Auftraege mit `skyline` fallen ueber `geburtstagLook` auf den
+     * abgenommenen Black-Tie zurueck.
      *
-     * Er passt genau zum neuen Trichter: Der Käufer FILMT sich selbst mit ausgestrecktem
-     * Arm — ein Selfie-Look ist also das, was er ohnehin in der Hand hält. Die anderen
-     * beiden sind Studio-Bildnisse; dieser ist das Gegenstück dazu.
+     * AUF DIESER KACHEL STEHT WEITER EIN MANN (Owner 07.08.2026: „mach den typ auch
+     * rein") — zeigen alle Kacheln eine Frau, sieht ein Mann sich nirgends. Das Bild ist
+     * der HeyGen-Testlauf vom 08.08. (synthetische Person, KEIN Kundengesicht), aus
+     * GENAU dieser Torte-Kleidung-Umgebung-Beschreibung entstanden: Smoking, Fliege,
+     * Schokotorte, Dachterrasse im Abendlicht. Es ist zugleich der Beweis, dass der
+     * Look traegt. Der Prompt nennt wie immer KEIN Geschlecht — auch eine Kaeuferin
+     * bekommt dieses Set, dann sitzt der Smoking eben an ihr.
      */
-    id: "skyline",
-    name: "Skyline",
-    /**
-     * AUF DIESER KACHEL STEHT EIN MANN (Owner 07.08.2026: „mach den typ auch rein").
-     *
-     * Nicht Kosmetik: Zeigen alle Kacheln eine Frau, sieht ein Mann sich nirgends —
-     * und die Kette KANN Maenner, der Prompt nennt seit demselben Tag gar kein
-     * Geschlecht mehr. Eine gemischte Reihe sagt das ohne ein Wort. Das Bild ist mit
-     * genau diesem Prompt entstanden, aus dieser Datei geladen — es ist zugleich der
-     * Beweis, dass der Look mit einem Mann traegt.
-     */
-    bild: "/Birthday/look-skyline.jpg",
-    torte: "a birthday cake with many lit candles: cream frosting with dark chocolate curls",
-    haltung:
-      "taking a selfie at arm's length: one arm reaches towards the camera and is visible in " +
-      "the frame, slightly wide-angle lens, seen from slightly above, holding ${torte} in the " +
-      "other hand",
-    kleidung: "Dress them in relaxed stylish clothes that suit this person.",
+    id: "fliege",
+    name: "Bow Tie",
+    bild: "/Birthday/look-fliege.jpg",
+    torte:
+      "a rich chocolate birthday cake with dark glossy ganache swirls and many lit slim candles",
+    kleidung:
+      "Dress them in an elegant black tuxedo with a crisp white shirt and a black bow tie " +
+      "that suits this person.",
     umgebung:
-      "High on a rooftop far above a huge city at golden hour, the skyline and the river far " +
-      "below them, the low sun flaring warm orange light across the whole scene.",
+      "On an elegant rooftop terrace at sunset, a softly blurred warm city skyline glowing " +
+      "far behind them, golden evening light.",
     bewegung:
-      "They smile warmly and lift the cake a little towards the camera while holding the phone " +
-      "at arm's length. Subtle natural movement of head, hair and shoulders, the candle flames " +
-      "flicker softly in the evening air. Happy, sunlit, high-above-the-city energy.",
+      "They smile warmly and gently present the chocolate cake slightly towards the camera. " +
+      "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
+      "in the evening air. Elegant, festive rooftop energy.",
   },
 ];
 

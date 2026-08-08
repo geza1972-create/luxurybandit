@@ -951,11 +951,18 @@ export function Dialog({ art = "hell", zu, z = 96, className = "", children }: {
  * Kein `karte`-Schalter: Diese Reihe steht im Trichter auf der dunklen Welt, nie in der
  * !important-Welt der Einladungskarte.
  */
-export function BildWahl({ bilder, wert, waehle, className = "" }: {
+export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }: {
   bilder: { id: string; name: string; bild: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
   waehle: (id: string) => void;
+  /**
+   * SLIDES STATT KACHEL-REIHE (Owner 08.08.2026: „als Slide die Bilder presentieren").
+   * Grosse 3:4-Bilder zum Wischen mit Einrasten (`snap`) — man sieht, WAS man wählt,
+   * nicht eine Briefmarke davon. Ring-Regeln identisch zur kleinen Reihe: beide
+   * Zustände tragen denselben Ring, es wechselt nur die Farbe.
+   */
+  gross?: boolean;
   className?: string;
 }) {
   return (
@@ -970,13 +977,13 @@ export function BildWahl({ bilder, wert, waehle, className = "" }: {
        Zeilen („Gold & Confetti") und das daneben nur eine, wird der hohe Knopf mittig
        ausgerichtet — und sein Bild sass sieben Pixel hoeher als das Nachbarbild. Oben
        ausgerichtet stehen alle Kacheln auf derselben Linie, egal wie lang ihr Name ist. */
-    <div className={`lb-wisch flex items-start gap-2 overflow-x-auto px-1.5 py-1.5 ${className}`}>
+    <div className={`lb-wisch flex items-start overflow-x-auto px-1.5 py-1.5 ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         return (
           <button key={b.id} type="button" onClick={() => waehle(b.id)}
             aria-pressed={an}
-            className="shrink-0 text-center transition active:scale-95">
+            className={`shrink-0 text-center transition active:scale-95 ${gross ? "snap-center" : ""}`}>
             {/**
               * DAS MASS STEHT AM RAHMEN, NICHT AM BILD (Owner 07.08.2026: „bei 2 das Bild
               * füllt nicht das format"). Trug das `img` die Grösse, bestimmte der Ring die
@@ -998,13 +1005,13 @@ export function BildWahl({ bilder, wert, waehle, className = "" }: {
               * wechselt ausschliesslich die Farbe. Der dunkle Abstandsring bleibt in beiden
               * Faellen: Ohne ihn verschwindet Gold auf einem goldenen Motiv.
               */}
-            <span className={`block h-[104px] w-[78px] overflow-hidden rounded-xl ring-2 ring-offset-2 ring-offset-[#0b0a09] ${an
+            <span className={`block overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b0a09] ${gross ? "h-[293px] w-[220px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
               ? "ring-[#f6cf51]"
               : "ring-white/15"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={b.bild} alt={b.name} className="block h-full w-full object-cover" />
             </span>
-            <span className={`mt-1.5 block max-w-[78px] text-[11px] font-black leading-tight ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+            <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[220px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
               {b.name}
             </span>
           </button>
