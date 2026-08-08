@@ -815,11 +815,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       return;
     }
     setLaeuft(true);
-    setRestSek(12);
+    /**
+     * FUENF SEKUNDEN (Owner 08.08.2026, nach der Kostenmessung: „5 sekunden jetzt das
+     * reicht"). Ein PREIS-Deckel, kein technischer: HeyGen nimmt ~3 Credits je
+     * Videosekunde. Der Knopf sagt die Dauer vorher, damit niemand mitten im Satz
+     * ueberrascht wird. Abrechnung je Sekunde ist eine spaetere Owner-Idee — heute
+     * ausdruecklich NICHT gebaut („keine preisänderung, keine dynamischen preise").
+     */
+    setRestSek(5);
     const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-    setTimeout(() => clearInterval(takt), 12500);
-    /* Ein vergessener Stopp soll keine Datei erzeugen, die das Tor abweist. */
-    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+    setTimeout(() => clearInterval(takt), 5500);
+    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 5000);
   };
 
   const aufnahmeStopp = () => {
