@@ -19,6 +19,13 @@ export const TEILEN_TEXT: Record<string, string> = {
   es: "Mira esto 💋", fr: "Regarde ça 💋", pt: "Olha isto 💋", it: "Guarda qui 💋",
 };
 
+/* Der Geburtstag verschickt keinen Kussmund (Owner 08.08.2026, mit Bild der Teilen-Zeile:
+   „und was wird da bitte geshart?") — gleiche Zeile, richtiges Zeichen. */
+export const TEILEN_TEXT_GEBURTSTAG: Record<string, string> = {
+  de: "Schau dir das an 🎂", en: "Check this out 🎂", ro: "Uită-te la asta 🎂",
+  es: "Mira esto 🎂", fr: "Regarde ça 🎂", pt: "Olha isto 🎂", it: "Guarda qui 🎂",
+};
+
 /**
  * DIE BEISPIELE — dieselbe Karte, mehrmals untereinander.
  *

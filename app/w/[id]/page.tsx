@@ -33,6 +33,17 @@ const GRUSS: Record<string, Record<string, { titel: string; text: string }>> = {
     pt: { titel: "Um beijo para ti 💋", text: "Uma mensagem de alguém que te ama." },
     it: { titel: "Un bacio per te 💋", text: "Un saluto da qualcuno che ti ama." },
   },
+  birthday: {
+    /* Owner 08.08.2026, mit Bild der Kuss-Vorschau unter einem GEBURTSTAGS-Video: „und was
+       wird da bitte geshart?" — die Vorschau muss dasselbe versprechen wie die Karte. */
+    de: { titel: "Happy Birthday für dich 🎂", text: "Ein Geburtstagsgruß, nur für dich." },
+    en: { titel: "Happy Birthday to you 🎂", text: "A birthday greeting made just for you." },
+    ro: { titel: "La mulți ani pentru tine 🎂", text: "O urare de ziua ta, doar pentru tine." },
+    es: { titel: "Feliz cumpleaños para ti 🎂", text: "Una felicitación hecha solo para ti." },
+    fr: { titel: "Joyeux anniversaire pour toi 🎂", text: "Un vœu d'anniversaire rien que pour toi." },
+    pt: { titel: "Parabéns para ti 🎂", text: "Uma mensagem de aniversário só para ti." },
+    it: { titel: "Buon compleanno a te 🎂", text: "Un augurio di compleanno solo per te." },
+  },
   wedding: {
     de: { titel: "Ihr seid eingeladen 💍", text: "Eine Einladung, die ihr euch ansehen solltet." },
     en: { titel: "You are invited 💍", text: "An invitation worth opening." },
@@ -53,6 +64,12 @@ const GRUSS: Record<string, Record<string, { titel: string; text: string }>> = {
  * worum es geht, und verrät niemanden.
  */
 const VORSCHAUBILD = "/szenen/kiss-closeup.jpg";
+/* Je Thema das eigene Vorschaubild — ein Kuss-Paar unter einem Geburtstagsgruss erklaert
+   die falsche Sache (siehe den Kommentar ueber GRUSS). Weiterhin NIE das Kundenfoto. */
+const VORSCHAUBILDER: Record<string, string> = {
+  kiss: VORSCHAUBILD,
+  birthday: "/Birthday/birthday-set-schoko.jpg",
+};
 
 export async function generateMetadata(
   { params, searchParams }: {
@@ -89,9 +106,9 @@ export async function generateMetadata(
       title: g.titel,
       description: g.text,
       type: "website",
-      images: [{ url: VORSCHAUBILD, width: 1024, height: 1536 }],
+      images: [{ url: VORSCHAUBILDER[theme] ?? VORSCHAUBILD, width: 1024, height: 1536 }],
     },
-    twitter: { card: "summary_large_image", title: g.titel, description: g.text, images: [VORSCHAUBILD] },
+    twitter: { card: "summary_large_image", title: g.titel, description: g.text, images: [VORSCHAUBILDER[theme] ?? VORSCHAUBILD] },
   };
 }
 
