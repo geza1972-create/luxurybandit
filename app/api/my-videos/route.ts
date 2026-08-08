@@ -129,8 +129,14 @@ export async function GET(request: Request) {
          * und nie beim Gutschein.
          */
         const alterMs = Date.now() - new Date(e.createdAt || 0).getTime();
-        const laufend = !!e.paid && !e.videoUrl && e.theme !== "gutschein"
-          && Number.isFinite(alterMs) && alterMs < 60 * 60 * 1000;
+        /* Owner 08.08., nachgeschärft: „es soll pulsieren NUR wenn was gerändert wird."
+           Zwei ehrliche Zustände: die Kette läuft nachweislich beim Anbieter (videoId da,
+           bis zu 1 h — länger rendert keine), ODER der Start ist gerade unterwegs (bezahlt,
+           unter 15 min — der HeyGen-Look braucht 1–2 min, bevor es eine Kennung gibt).
+           Bezahlt-ohne-Kennung und älter ist ein Support-Fall, kein Fortschritt. */
+        const laufend = !e.videoUrl && e.theme !== "gutschein" && Number.isFinite(alterMs)
+          && ((!!e.videoId && alterMs < 60 * 60 * 1000)
+            || (!!e.paid && !e.videoId && alterMs < 15 * 60 * 1000));
         return ([
         {
           id: e.id,

@@ -128,7 +128,13 @@ export default function GuthabenChip() {
         if (!device && !mail) { if (!weg) setRendert(false); return; }
         const d = await fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" }).then(r => r.json());
         if (weg) return;
-        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean }) => x.rendert === true);
+        /* „bis der user die galerie öffnet" (Owner 08.08.2026): Der Punkt ist eine
+           Benachrichtigung. Gezaehlt wird nur, was NACH dem letzten Galerie-Besuch
+           gestartet ist — ISO-Zeiten vergleichen sich als Text. */
+        let gesehen = "";
+        try { gesehen = localStorage.getItem("lb_galerie_gesehen") ?? ""; } catch { /**/ }
+        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean; createdAt?: string }) =>
+          x.rendert === true && String(x.createdAt ?? "") > gesehen);
         setRendert(laeuft);
         if (laeuft) takt = setTimeout(() => { void pruefen(); }, 30_000);
       } catch { /* Anzeige-Schmuck — ein Netzfehler darf nichts kaputtmachen */ }
@@ -136,7 +142,8 @@ export default function GuthabenChip() {
     void pruefen();
     const anlass = () => { void pruefen(); };
     window.addEventListener("lb-guthaben-neu", anlass);
-    return () => { weg = true; if (takt) clearTimeout(takt); window.removeEventListener("lb-guthaben-neu", anlass); };
+    window.addEventListener("lb-galerie-gesehen", anlass);
+    return () => { weg = true; if (takt) clearTimeout(takt); window.removeEventListener("lb-guthaben-neu", anlass); window.removeEventListener("lb-galerie-gesehen", anlass); };
   }, []);
 
   useEffect(() => {

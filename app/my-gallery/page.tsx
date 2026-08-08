@@ -249,6 +249,16 @@ export default function MyGalleryPage() {
   }, []);
 
   // Admin (PIN) → ALLE generierten Videos. Eingeloggter User → NUR seine eigenen Try-ons.
+  /**
+   * DER PULS AM CHIP ERLISCHT MIT DEM BESUCH (Owner 08.08.2026: „bis der user die galerie
+   * öffnet"). Der Punkt ist eine Benachrichtigung, kein Dauerzustand: Wer die Galerie
+   * gesehen hat, weiss Bescheid — erst ein NEUER Lauf (jüngeres createdAt) weckt ihn wieder.
+   */
+  useEffect(() => {
+    try { localStorage.setItem("lb_galerie_gesehen", new Date().toISOString()); } catch { /**/ }
+    try { window.dispatchEvent(new Event("lb-galerie-gesehen")); } catch { /**/ }
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     // EIGENE VIDEOS (Chat/Try-on ohne Konto): haengen am Geraet — und zusaetzlich an der
