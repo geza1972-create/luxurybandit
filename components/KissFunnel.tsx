@@ -258,14 +258,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string; abbrechen: string }> = {
+  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now", abbrechen: "Cancel" },
+  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten", abbrechen: "Abbrechen" },
+  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum", abbrechen: "Anulează" },
+  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora", abbrechen: "Cancelar" },
+  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant", abbrechen: "Annuler" },
+  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora", abbrechen: "Cancelar" },
+  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
 };
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
@@ -543,8 +543,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Kette ihr Standbild (→ Avatar). Jetzt: Kamera an, man sieht sich im Fenster mit dem
    * Kopf-Umriss, 3-2-1, DANN erst nimmt der Recorder auf. 0 = kein Vorlauf.
    */
-  const [vorlauf, setVorlauf] = useState(0);
-  const vorlaufTakt = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * DER MENSCH DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit button
+   * starten. Ich muss erst mal meinen Kopf platieren und mich vorbereiten dann starte ich
+   * selbst"). `nimmtAuf` heisst ab jetzt nur „Kamera an, Fenster offen"; `laeuft` heisst
+   * „der Recorder schneidet mit". Der 3-2-1-Vorlauf ist damit hinfaellig — er war der
+   * Ersatz fuer genau diese Wahl.
+   */
+  const [laeuft, setLaeuft] = useState(false);
   const aufnehmerRef = useRef<MediaRecorder | null>(null);
   const stueckeRef = useRef<Blob[]>([]);
   /** Das Bild, in dem man sich beim Sprechen sieht. */
@@ -765,40 +771,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          die Zimmerdecke. Der Strom hängt erst nach dem Umschalten am Element, deshalb im
          nächsten Durchlauf. */
       stromRef.current = strom;
+      /* Fenster auf, Kamera laeuft — aufgenommen wird NICHTS, bis er auf Start drueckt. */
+      setLaeuft(false);
       setNimmtAuf(true);
-      /**
-       * ERST POSITIONIEREN, DANN AUFNEHMEN (Owner 07.08.2026: „das Video startet sofort …
-       * ich habe keine zeit mich zu positionieren"). Drei Sekunden Vorlauf: Die Vorschau
-       * steht schon (Effekt auf `nimmtAuf`), der Umriss zeigt, wohin das Gesicht gehört —
-       * der Recorder startet erst, wenn die Zahl auf null ist. Wichtig fuers STANDBILD:
-       * Es wird aus den ersten Sekunden der AUFNAHME gezogen; ohne Vorlauf zeigte es das
-       * Hinhalten der Kamera, und daraus wurde das Avatar.
-       */
-      setVorlauf(3);
-      let vor = 3;
-      vorlaufTakt.current = setInterval(() => {
-        vor -= 1;
-        if (vor > 0) { setVorlauf(vor); return; }
-        if (vorlaufTakt.current) { clearInterval(vorlaufTakt.current); vorlaufTakt.current = null; }
-        setVorlauf(0);
-        try { rec.start(); } catch {
-          /* Der Strom ist zwischen Klick und Start gestorben (Tab-Wechsel, Kamera entzogen). */
-          strom.getTracks().forEach(t => t.stop());
-          setNimmtAuf(false); setKameraAus(true); setAufnahmeFehler(SW.kameraAus);
-          return;
-        }
-        /* KEIN KURZ-DECKEL (Owner 08.08.2026, Korrektur: „Ich sage was ich will. Du musst
-           nie Aufnahmedauer begrenzen") — niemandem wird das Wort abgeschnitten. Die 12
-           Sekunden sind die TECHNISCHE Grenze (Daten-URL im JSON-Koerper, Vercel ~4,5 MB),
-           kein Produktwunsch. Preisfolge bewusst getragen: ~3 HeyGen-Credits je
-           gesprochener Sekunde. */
-        setRestSek(12);
-        const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-        setTimeout(() => clearInterval(takt), 12500);
-        /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
-           Datei erzeugen, die das Tor abweist. */
-        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
-      }, 1000);
     } catch (e) {
       /**
        * WARUM ES NICHT GING, GEHOERT AUF DEN BILDSCHIRM (Owner 07.08.2026: „Dann der Button
@@ -823,18 +798,42 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       track(`aufnahme_kamera_${grund.replace(/[^A-Za-z]/g, "").slice(0, 24) || "unbekannt"}`);
     }
   };
-  const aufnahmeStopp = () => {
-    /* Im VORLAUF gibt es noch nichts zu stoppen — nur aufzuräumen: Zähler aus, Kamera
-       freigeben, zurück zum Knopf. Ein `rec.stop()` auf einem nie gestarteten Recorder
-       würde werfen und die Kamera brennen lassen. */
-    if (vorlaufTakt.current) {
-      clearInterval(vorlaufTakt.current); vorlaufTakt.current = null;
-      setVorlauf(0); setNimmtAuf(false);
+  /**
+   * JETZT LOS — der Knopf im Aufnahme-Fenster (Owner 08.08.2026). Erst hier schneidet der
+   * Recorder mit; davor ist es nur eine Vorschau zum Zurechtruecken. Der Deckel von 12
+   * Sekunden bleibt die TECHNISCHE Grenze (Daten-URL im JSON-Koerper, Vercel ~4,5 MB) —
+   * keine Produktvorgabe: „Du musst nie Aufnahmedauer begrenzen."
+   */
+  const aufnahmeLos = () => {
+    const rec = aufnehmerRef.current;
+    if (!rec || rec.state === "recording") return;
+    try { rec.start(); } catch {
+      /* Der Strom ist zwischen Klick und Start gestorben (Tab-Wechsel, Kamera entzogen). */
       try { stromRef.current?.getTracks().forEach(t => t.stop()); } catch { /**/ }
+      stromRef.current = null;
+      setNimmtAuf(false); setLaeuft(false); setKameraAus(true); setAufnahmeFehler(SW.kameraAus);
+      return;
+    }
+    setLaeuft(true);
+    setRestSek(12);
+    const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
+    setTimeout(() => clearInterval(takt), 12500);
+    /* Ein vergessener Stopp soll keine Datei erzeugen, die das Tor abweist. */
+    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+  };
+
+  const aufnahmeStopp = () => {
+    /* Noch nicht gestartet? Dann ist der Knopf ein ABBRECHEN — aufräumen statt stoppen:
+       Ein `rec.stop()` auf einem nie gestarteten Recorder würde werfen und die Kamera
+       brennen lassen. */
+    if (!laeuft) {
+      setNimmtAuf(false);
+      try { stromRef.current?.getTracks().forEach(t => t.stop()); } catch { /**/ } 
       stromRef.current = null;
       if (vorschauRef.current) vorschauRef.current.srcObject = null;
       return;
     }
+    setLaeuft(false);
     try { aufnehmerRef.current?.stop(); } catch { /**/ }
   };
 
@@ -3818,32 +3817,51 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       <video ref={vorschauRef} muted playsInline
                         className="absolute inset-0 h-full w-full object-cover"
                         style={{ transform: "scaleX(-1)" }} />
-                      {/* GROSS UND MITTIG (Owner 08.08.2026, mit Bild: „Jetzt passt der
-                          Kreis nicht"): Auf Armlänge füllt ein Gesicht den halben
-                          Bildschirm — das erste Oval (42 % hoch, oben angesetzt) war
-                          kleiner als jedes echte Selfie und sagte damit „geh weiter weg",
-                          statt nur zu zentrieren. */}
+                      {/**
+                        * DAS LOCH IM MATT-WEISSEN (Owner 08.08.2026: „Es wäre auch gut wenn
+                        * mein kopf nicht im kreis steht … dann matte weisse farbe, damit
+                        * ich mein kopf wirklich im loch positioniere").
+                        *
+                        * Ein gestrichelter Umriss ist eine Bitte; eine Maske ist eine
+                        * Ansage — ausserhalb des Ovals liegt mattes Weiss, drinnen ist das
+                        * Bild klar. Gemacht mit EINEM Schlagschatten von 9999 px: Der
+                        * faerbt alles ausserhalb der Ellipse, ohne zweites Element und ohne
+                        * `mask-image` (das ältere iOS-Safaris nicht sauber koennen).
+                        */}
                       <div aria-hidden
-                        className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-dashed border-white/75" />
-                      <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-5 pb-10 pt-4 text-center">
-                        <p className="text-[11px] font-bold text-white/75">{SW.lies}</p>
-                        <p className="mt-1 text-[16px] font-black leading-snug text-white">{satz}</p>
+                        className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-white/80"
+                        style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.92)" }} />
+                      <div className="absolute inset-x-0 top-0 px-5 pb-4 pt-4 text-center">
+                        <p className="text-[11px] font-bold" style={{ color: "#6b6257" }}>{SW.lies}</p>
+                        <p className="mt-1 text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{satz}</p>
                       </div>
-                      {vorlauf > 0 && (
-                        <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                          <span className="text-[96px] font-black leading-none text-white"
-                            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.85)" }}>
-                            {vorlauf}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/85 to-transparent px-5 pb-8 pt-10">
-                        <button type="button" onClick={aufnahmeStopp}
-                          className="flex h-12 items-center justify-center gap-2 rounded-full border-2 bg-black/40 px-6 text-[15px] font-black text-white active:scale-95 transition"
-                          style={{ borderColor: ABSAGE_ROT }}>
-                          <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
-                          {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
-                        </button>
+                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-5 pb-8 pt-6">
+                        {/**
+                          * ER DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit
+                          * button starten. Ich muss erst mal meinen Kopf platieren und mich
+                          * vorbereiten dann starte ich selbst"). Vorher lief ein 3-2-1 los,
+                          * sobald die Kamera an war — eine Vorgabe, die genau die
+                          * Vorbereitung wegnahm, fuer die sie gedacht war.
+                          */}
+                        {!laeuft ? (
+                          <>
+                            <button type="button" onClick={aufnahmeLos}
+                              className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black active:scale-95 transition">
+                              <Mic className="h-4 w-4" /> {SW.los}
+                            </button>
+                            <button type="button" onClick={aufnahmeStopp}
+                              className="text-[13px] font-black underline" style={{ color: "#6b6257" }}>
+                              {SW.abbrechen}
+                            </button>
+                          </>
+                        ) : (
+                          <button type="button" onClick={aufnahmeStopp}
+                            className="flex h-12 items-center justify-center gap-2 rounded-full border-2 bg-white px-6 text-[15px] font-black active:scale-95 transition"
+                            style={{ borderColor: ABSAGE_ROT, color: "#1a160f" }}>
+                            <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
+                            {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
