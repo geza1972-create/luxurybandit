@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
@@ -224,6 +224,10 @@ export async function POST(request: Request) {
       }
     } catch { /* dann eben neu bauen */ }
   }
+  /* Zweite Stufe: derselbe Mensch im selben Look, aber ein NEUER Auftrag (Wiederkaeufer,
+     Test-Laeufe) — der globale Look-Speicher zahlt den Bild-Schritt genau einmal. */
+  const lookSchluessel = `${look.id}|${fotoHash}`;
+  if (!lookId) lookId = await heygenLookNachschlagen(lookSchluessel);
   /** Das Poster-Bild der gewählten Strecke — HeyGen-Look-Vorschau oder OpenAI-Avatar. */
   let posterQuelle: Buffer | undefined;
   if (!lookId) {
@@ -231,7 +235,17 @@ export async function POST(request: Request) {
     lookId = hey.lookId ?? "";
     posterQuelle = hey.poster;
     lookNeuGebaut = !!lookId;
+    if (lookId) void heygenLookMerken(lookSchluessel, lookId);
     if (!lookId) console.warn("[geburtstag-video] HeyGen-Look scheiterte, OpenAI-Rueckfall:", hey.error);
+  } else if (!posterQuelle) {
+    /* Wiederverwendeter Look auf einem NEUEN Auftrag: das Poster ist die Look-Vorschau —
+       ein kostenloser Lese-Aufruf, kein neues Bild. */
+    try {
+      const st = await fetch(`https://api.heygen.com/v3/avatars/looks/${lookId}`, { headers: H })
+        .then(r => r.json()) as { data?: { preview_image_url?: string; image_url?: string } };
+      const pu = st?.data?.preview_image_url || st?.data?.image_url || "";
+      if (pu) { const pr = await fetch(pu); if (pr.ok) posterQuelle = Buffer.from(await pr.arrayBuffer()); }
+    } catch { /* dann bleibt das Poster des Auftrags oder keins — nie der Grund zu scheitern */ }
   }
   if (!lookId) {
     const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));

@@ -1596,6 +1596,39 @@ export async function claimFreePreview(device: string): Promise<{ ok: boolean; r
 }
 
 const KISS_LOG_PATH = "try-this-look/kiss-log.json";
+
+/**
+ * DER HEYGEN-LOOK-SPEICHER (Owner 08.08.2026: „wir koennen so nicht weiter testen sonst
+ * werde ich arm"). Der Look-Schritt kostet ~1,80 USD; dasselbe Gesicht im selben Look
+ * zahlt ihn ab jetzt EINMAL — ueber Auftraege hinweg (Tests wie Wiederkaeufer).
+ * Eigene kleine Datei, bewusst NICHT im state.json-Blob (Merge-Dieb).
+ */
+const HEYGEN_LOOK_CACHE_PATH = "try-this-look/heygen-looks.json";
+
+export async function heygenLookMerken(schluessel: string, lookId: string): Promise<void> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(HEYGEN_LOOK_CACHE_PATH)}`);
+    const map = res.ok ? ((await res.json().catch(() => ({}))) as Record<string, string>) : {};
+    map[schluessel] = lookId;
+    /* Deckel: die 500 juengsten Schluessel reichen — es ist ein Kosten-Cache, kein Archiv. */
+    const schluesselListe = Object.keys(map);
+    if (schluesselListe.length > 500) for (const k of schluesselListe.slice(0, schluesselListe.length - 500)) delete map[k];
+    await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(HEYGEN_LOOK_CACHE_PATH)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body: JSON.stringify(map),
+    });
+  } catch { /* Cache ist Ersparnis, nie Pflicht */ }
+}
+
+export async function heygenLookNachschlagen(schluessel: string): Promise<string> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(HEYGEN_LOOK_CACHE_PATH)}`);
+    if (!res.ok) return "";
+    const map = (await res.json().catch(() => ({}))) as Record<string, string>;
+    return String(map[schluessel] ?? "");
+  } catch { return ""; }
+}
 export type KissLogEntry = {
   id: string;
   createdAt: string;
