@@ -120,7 +120,17 @@ export async function GET(request: Request) {
          * Rueckfall — vorher wurde sie ohne `imagePath` GANZ herausgefiltert, und der
          * Kaeufer sah nach dem Wegklicken nur Leere.
          */
-        const laufend = !!e.paid && !e.videoUrl;
+        /**
+         * NUR WAS WIRKLICH GERADE ENTSTEHT (Owner 08.08.2026: „wieso pulsiert andauernd
+         * galerie? wird was gerändert?"). GEMESSEN: Der Puls kam von Tanz-Testauftraegen,
+         * die seit fuenf TAGEN bezahlt-ohne-Video dastehen, und von Gutscheinen — die nie
+         * ein Video bekommen (die Karte ist das Produkt). Also: juenger als eine Stunde
+         * (laenger rendert keine Kette; danach ist es ein Support-Fall, kein Fortschritt)
+         * und nie beim Gutschein.
+         */
+        const alterMs = Date.now() - new Date(e.createdAt || 0).getTime();
+        const laufend = !!e.paid && !e.videoUrl && e.theme !== "gutschein"
+          && Number.isFinite(alterMs) && alterMs < 60 * 60 * 1000;
         return ([
         {
           id: e.id,
