@@ -22,9 +22,10 @@ import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
  */
 
 export const runtime = "nodejs";
-/* Der Start wartet auf das OpenAI-Bild (typisch 10–30 s bei medium) plus zwei kurze
-   HeyGen-Aufrufe — dieselbe Obergrenze wie die Pixverse-Route. */
-export const maxDuration = 120;
+/* Seit dem HeyGen-Look (08.08.): Avatar-Anlauf + Look-Erzeugung (gemessen 60–75 s, Deckel
+   120 s) + Video-Start — und im schlechtesten Fall noch der OpenAI-Rückfall dahinter.
+   300 s ist die Obergrenze der teuersten Admin-Routen im Haus (generate-avatar-face). */
+export const maxDuration = 300;
 
 /**
  * ZWEI STIMMEN, PASSEND ZUR PERSON (Owner 07.08.2026, nach dem Peter-Test: „Peter hat
@@ -100,6 +101,66 @@ async function avatarBauen(foto: Buffer, prompt: string): Promise<{ bild?: Buffe
   return { bild: Buffer.from(b64, "base64") };
 }
 
+/**
+ * DER HEYGEN-LOOK (08.08.2026): Foto-Avatar aus dem Kundenbild, dann DERSELBE Mensch per
+ * Prompt in Kleidung/Torte/Umgebung des gewählten Looks. Alle Wartezeiten und Fallen hier
+ * sind GEMESSEN, nicht vermutet:
+ *
+ *   - Asset-Upload verlangt den ECHTEN Bildtyp („Content type not match") und kennt kein
+ *     webp — deshalb die Magie-Byte-Weiche. Das Trichter-Standbild ist immer JPEG.
+ *   - Der frische Foto-Avatar braucht ein paar Sekunden, ehe er als Referenz gilt: Der
+ *     sofortige Look-Aufruf kam leer zurück, der nach ~30 s lief. Daher die Wiederholung.
+ *   - Der Look selbst brauchte 60–75 s (zweimal gemessen). Deckel 120 s, damit der
+ *     OpenAI-Rückfall im selben Aufruf noch Luft hat (maxDuration 300).
+ *
+ * Das Prompt-Gerüst bleibt die EINE Quelle in lib/geburtstag-looks — samt der Wache gegen
+ * das Doppelbild und der Coverage-Regel; kein Look kann sie hier umgehen.
+ */
+async function heygenLookBauen(H: Record<string, string>, foto: Buffer, look: ReturnType<typeof geburtstagLook>): Promise<{ lookId?: string; poster?: Buffer; error?: string }> {
+  const mime = foto[0] === 0xff ? "image/jpeg" : foto[0] === 0x89 ? "image/png" : "";
+  if (!mime) return { error: "Fotoformat unbekannt (HeyGen nimmt jpeg/png)." };
+  const up = await fetch("https://upload.heygen.com/v1/asset", {
+    method: "POST", headers: { ...H, "Content-Type": mime }, body: new Uint8Array(foto),
+  }).then(r => r.json()).catch(() => null) as { data?: { url?: string } } | null;
+  const fotoUrl = up?.data?.url;
+  if (!fotoUrl) return { error: "Asset-Upload fehlgeschlagen." };
+
+  const av = await fetch("https://api.heygen.com/v3/avatars", {
+    method: "POST", headers: { ...H, "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "photo", name: "lb-geburtstag", file: { type: "url", url: fotoUrl } }),
+  }).then(r => r.json()).catch(() => null) as { data?: { avatar_item?: { id?: string } } } | null;
+  const avatarId = av?.data?.avatar_item?.id;
+  if (!avatarId) return { error: "Foto-Avatar fehlgeschlagen." };
+
+  const prompt = geburtstagAvatarPrompt(look);
+  let lookId = "";
+  for (let i = 0; i < 8 && !lookId; i++) {
+    const lk = await fetch("https://api.heygen.com/v3/avatars", {
+      method: "POST", headers: { ...H, "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "prompt", name: "lb-geburtstag-look", avatar_id: avatarId, prompt }),
+    }).then(r => r.json()).catch(() => null) as { data?: { avatar_item?: { id?: string } } } | null;
+    lookId = lk?.data?.avatar_item?.id ?? "";
+    if (!lookId) await new Promise(r => setTimeout(r, 5000));
+  }
+  if (!lookId) return { error: "Look-Erzeugung nicht angenommen." };
+
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 4000));
+    const st = await fetch(`https://api.heygen.com/v3/avatars/looks/${lookId}`, { headers: H })
+      .then(r => r.json()).catch(() => null) as { data?: { status?: string; preview_image_url?: string; image_url?: string } } | null;
+    const s = st?.data?.status ?? "";
+    if (s === "completed") {
+      /* Die Look-Vorschau ist zugleich das Poster — erstes Vollbild des Videos. */
+      let poster: Buffer | undefined;
+      const pu = st?.data?.preview_image_url || st?.data?.image_url || "";
+      if (pu) { try { const pr = await fetch(pu); if (pr.ok) poster = Buffer.from(await pr.arrayBuffer()); } catch { /**/ } }
+      return { lookId, poster };
+    }
+    if (s === "failed") return { error: "Look-Erzeugung fehlgeschlagen." };
+  }
+  return { error: "Look-Erzeugung Zeitüberschreitung." };
+}
+
 export async function POST(request: Request) {
   const heygen = process.env.HEYGEN_API_KEY?.trim();
   if (!heygen) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
@@ -126,16 +187,35 @@ export async function POST(request: Request) {
   const foto = person ? await fotoBytes(person) : null;
   if (!foto) return NextResponse.json({ error: "Kundenfoto fehlt oder ist zu gross." }, { status: 400 });
 
-  // 1) Avatar bauen
-  const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));
-  if (!avatar.bild) return NextResponse.json({ error: avatar.error }, { status: 502 });
-
-  // 2) Avatar als Look anmelden
+  /**
+   * 1) DER LOOK ENTSTEHT SEIT DEM 08.08.2026 BEI HEYGEN, NICHT MEHR BEI OPENAI.
+   *
+   * GEMESSEN am Owner selbst: OpenAI `images/edits` bekam sein echtes Gesicht und malte
+   * trotzdem einen Fremden — zweimal, „das bin ich nicht". Der HeyGen-Weg (Foto-Avatar
+   * aus dem Standbild → Look per Prompt, 64 s im Test) bekam dasselbe Standbild, und das
+   * Urteil war: „Das Bild ist jetzt perfekt." Der erzeugte Look ist zugleich die
+   * `avatar_id` fürs Sprechen — der `talking_photo`-Upload entfällt, EIN Anbieter für
+   * Bild und Video.
+   *
+   * OpenAI bleibt als STILLER RÜCKFALL stehen (avatarBauen + talking_photo unten in
+   * `openaiRueckfall`): Ein HeyGen-Schluckauf darf keinen bezahlten Auftrag töten —
+   * lieber ein unähnlicheres Video als gar keins.
+   */
   const H = { "X-Api-Key": heygen };
-  const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
-    method: "POST", headers: { ...H, "Content-Type": "image/png" }, body: new Uint8Array(avatar.bild),
-  }).then(r => r.json()).catch(() => null) as { data?: { talking_photo_id?: string } } | null;
-  const lookId = up?.data?.talking_photo_id;
+  const hey = await heygenLookBauen(H, foto, look);
+  let lookId = hey.lookId ?? "";
+  /** Das Poster-Bild der gewählten Strecke — HeyGen-Look-Vorschau oder OpenAI-Avatar. */
+  let posterQuelle: Buffer | undefined = hey.poster;
+  if (!lookId) {
+    console.warn("[geburtstag-video] HeyGen-Look scheiterte, OpenAI-Rueckfall:", hey.error);
+    const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));
+    if (!avatar.bild) return NextResponse.json({ error: avatar.error }, { status: 502 });
+    const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
+      method: "POST", headers: { ...H, "Content-Type": "image/png" }, body: new Uint8Array(avatar.bild),
+    }).then(r => r.json()).catch(() => null) as { data?: { talking_photo_id?: string } } | null;
+    lookId = up?.data?.talking_photo_id ?? "";
+    posterQuelle = avatar.bild;
+  }
   if (!lookId) return NextResponse.json({ error: "HeyGen-Look-Anmeldung fehlgeschlagen." }, { status: 502 });
 
   /**
@@ -227,8 +307,13 @@ export async function POST(request: Request) {
    */
   let posterUrl = "";
   try {
-    const pb = avatar.bild.buffer.slice(avatar.bild.byteOffset, avatar.bild.byteOffset + avatar.bild.byteLength) as ArrayBuffer;
-    const posterPfad = await uploadTryThisLookBytes("uploads", pb, "image/png", "png");
+    if (!posterQuelle) throw new Error("kein Posterbild");
+    /* Der Typ nach Magie-Bytes: Die HeyGen-Look-Vorschau kommt als webp, der
+       OpenAI-Rückfall als png — ein falsch beschrifteter Upload zeigt im <img> nichts. */
+    const pMime = posterQuelle[0] === 0x52 ? "image/webp" : posterQuelle[0] === 0xff ? "image/jpeg" : "image/png";
+    const pExt = pMime === "image/webp" ? "webp" : pMime === "image/jpeg" ? "jpg" : "png";
+    const pb = posterQuelle.buffer.slice(posterQuelle.byteOffset, posterQuelle.byteOffset + posterQuelle.byteLength) as ArrayBuffer;
+    const posterPfad = await uploadTryThisLookBytes("uploads", pb, pMime, pExt);
     posterUrl = (await getSignedUrl(posterPfad).catch(() => "")) || "";
     let personPfad = "";
     try {
