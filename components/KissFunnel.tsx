@@ -1955,7 +1955,34 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       // `videoPreisCents` statt fest {once}: Lingerie kostet mehr (Owner 03.08.2026).
       if (V.nurGuthaben && (guthabenCents ?? 0) < videoPreisCents) { setAufladeWahl(true); return; }
-      void unlock("once");
+      /**
+       * DER AUFTRAG ENTSTEHT VOR DEM GELD (08.08.2026, Owner am Handy: „Ich habe bezahlt
+       * und kam wieder der Dialog mit dem kredit").
+       *
+       * GEMESSEN: Zwei 15-€-Geisterkassen um 13:01, beide `genId: None`. Früher legte der
+       * Foto-UPLOAD den Auftrag an — der ist beim Geburtstag abgeschafft, und seitdem kam
+       * auf einem frischen Gerät NIE eine Auftragsnummer zustande. Ohne sie kennt die
+       * Kasse weder das Thema (rechnete 15 € statt {geburtstag}) noch den Guthaben-Weg
+       * (der braucht `email && genId`): Abbuchung übersprungen, Stripe-Leiche, Wähler
+       * wieder auf — mit 10,01 € auf dem Konto.
+       *
+       * Also: Fehlt die Nummer, wird der Auftrag HIER angelegt — mit Thema (der Preis!),
+       * Look, Stimme, Empfänger und dem Standbild. `genIdFrisch` reicht die Nummer direkt
+       * an `unlock` durch; der React-Zustand trüge sie erst einen Render später.
+       */
+      let gid = genId;
+      if (!gid) {
+        let device = "";
+        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+        const log = await fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
+            email: mail.trim(), empfaenger, stimme, look,
+            ...(customModel ? { modelImage: customModel } : {}) }),
+        }).then(r => r.json()).catch(() => null);
+        if (log?.id) { gid = log.id; genMerken(log.id); }
+      }
+      void unlock("once", gid || undefined);
       return;
     }
     if (!isStaff && !adresseDa) {
@@ -4428,67 +4455,64 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Zahl daneben nur seine Bedeutung. Abbrechen ist erlaubt: Anders als beim
           Upload-Tor geht hier nichts verloren, die Wahl steht ja noch. */}
       {aufladeWahl && (
-        <div className="fixed inset-0 z-[96] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
-          onClick={() => setAufladeWahl(false)}>
-          <div className="w-full max-w-[340px] rounded-3xl bg-white p-6 text-center" onClick={e => e.stopPropagation()}>
-            <p className="text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{T.aufladeWahlTitel}</p>
+        /**
+         * DER AUFLADEWÄHLER IM CI-DIALOG (Owner 08.08.2026: „das hat kein close button.
+         * Mache die buttons zwei reihig und dialg schwrz und chips design").
+         *
+         * Vorher eine handgebaute weisse Karte OHNE AUSGANG — genau das, was der CI-Dialog
+         * verhindert: Rand-Tipp und Scheiben-Kreuz sind eingebaut (Skill ci-design). Die
+         * Beträge sind keine Kaufknöpfe, sondern eine WAHL — also Chips nach der Vorlage
+         * der Kopfzeile, zwei je Reihe, statt fünf Gold-Knöpfe übereinander, die alle mit
+         * dem einen echten Kaufknopf der Seite konkurrierten.
+         */
+        <Dialog art="dunkel" zu={() => setAufladeWahl(false)}>
+            <p className="px-7 text-[16px] font-black leading-snug text-white">{T.aufladeWahlTitel}</p>
             {/**
               * DIE ADRESSE, BEVOR GELD FLIESST (Owner 03.08.2026: „sonst zahlt er mit der
-              * falschen Email und ist nie wieder drin falls er sich vertippt").
-              *
-              * Das ist die letzte Stelle, an der ein Tippfehler noch einzufangen ist: Die
-              * Stripe-Kasse wird seit heute mit `customer_email` vorbelegt und GESPERRT — dort
-              * kann er nichts mehr richtigstellen. Danach haengen Guthaben, bezahltes Video und
-              * Galerie an dieser Zeichenkette, und eine falsche ist unwiederbringlich.
-              *
-              * Zeigen statt zweimal tippen: Das Gesetz verlangt die Moeglichkeit, Eingabefehler
-              * VOR der zahlungspflichtigen Bestellung zu erkennen und zu berichtigen (Art. 8
-              * Verbraucherrechte-RL, Art. 11 E-Commerce-RL) — nicht die doppelte Eingabe. Eine
-              * gut lesbare Zeile mit „Ändern" erfuellt das und kostet keinen Schritt im
-              * Trichter; wer zweimal tippt, tippt zweimal denselben Fehler.
+              * falschen Email und ist nie wieder drin falls er sich vertippt"). Die
+              * Stripe-Kasse wird mit `customer_email` vorbelegt und GESPERRT — dies ist
+              * die letzte Stelle, an der ein Tippfehler noch einzufangen ist. Zeigen statt
+              * zweimal tippen (Art. 8 Verbraucherrechte-RL): eine lesbare Zeile mit
+              * „Ändern" erfüllt das, ohne einen Schritt zu kosten.
               */}
-            <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2.5">
-              <p className="text-[10.5px] font-bold leading-snug text-black/50">{T.zahlungAdresse}</p>
+            <div className="mt-3 rounded-xl border border-white/20 bg-white/[0.05] px-3 py-2.5">
+              <p className="text-[10.5px] font-bold leading-snug text-white/60">{T.zahlungAdresse}</p>
               {adresseAendern ? (
                 <>
                   <input value={mail} autoFocus
                     onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}
                     type="email" inputMode="email" autoComplete="email"
                     onKeyDown={e => { if (e.key === "Enter") void adresseSpeichern(); }}
-                    style={{ color: "#1a160f", caretColor: "#1a160f" }}
-                    className="lb-eingabe mt-1.5 h-10 w-full rounded-lg border border-black/15 bg-white px-2 text-center text-[13px] font-bold outline-none focus:border-[#f6cf51]" />
+                    className="lb-eingabe mt-1.5 h-10 w-full rounded-lg border border-white/30 bg-white/[0.08] px-2 text-center text-[13px] font-bold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]" />
                   {mailFehler && (
-                    <p role="alert" style={{ color: "#ef4444" }} className="mt-1 text-[11.5px] font-black leading-snug">{mailFehler}</p>
+                    <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-1 text-[11.5px] font-black leading-snug">{mailFehler}</p>
                   )}
                   <span className="mt-1 flex flex-col items-center gap-1.5">
                     {vorschlag && (
                       <button type="button" onClick={() => { setMail(vorschlag); setMailFehler(""); }}
-                        className="text-[11.5px] font-black underline" style={{ color: "#a97d1e" }}>
+                        className="text-[11.5px] font-black text-[#f6cf51] underline">
                         {T.mailVorschlag(vorschlag)}
                       </button>
                     )}
                     <button type="button" onClick={() => void adresseSpeichern()} disabled={mailBusy}
-                      className="rounded-full border border-black/20 px-3 py-1 text-[11.5px] font-black text-black/70 transition active:scale-95 disabled:opacity-60">
+                      className="rounded-full border border-white/25 px-3 py-1 text-[11.5px] font-black text-white/85 transition active:scale-95 disabled:opacity-60">
                       {mailBusy ? "…" : T.zahlungAdresseSpeichern}
                     </button>
                   </span>
                 </>
               ) : (
                 <>
-                  {/* `break-all`: Lange Adressen duerfen den Dialog nicht aufreissen — auf dem
-                      Handy ist der Kasten 340 px breit, manche Adressen sind laenger. */}
-                  <p className="mt-0.5 break-all text-[13px] font-black leading-snug" style={{ color: "#1a160f" }}>{mail}</p>
-                  {/* Untereinander, nicht nebeneinander: Knoepfe sind von Haus aus `inline`
-                      und klebten sonst in EINER Zeile zusammen („…gmail.com?Ändern"). */}
+                  {/* `break-all`: Lange Adressen dürfen den Dialog nicht aufreissen. */}
+                  <p className="mt-0.5 break-all text-[13px] font-black leading-snug text-white">{mail}</p>
                   <span className="mt-1 flex flex-col items-center gap-1">
                     {vorschlag && (
                       <button type="button" onClick={() => { setMail(vorschlag); setAdresseAendern(true); }}
-                        className="text-[11.5px] font-black underline" style={{ color: "#a97d1e" }}>
+                        className="text-[11.5px] font-black text-[#f6cf51] underline">
                         {T.mailVorschlag(vorschlag)}
                       </button>
                     )}
                     <button type="button" onClick={() => setAdresseAendern(true)}
-                      className="text-[11.5px] font-black underline text-black/55">
+                      className="text-[11.5px] font-black text-white/60 underline">
                       {T.zahlungAdresseAendern}
                     </button>
                   </span>
@@ -4496,70 +4520,41 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               )}
             </div>
             {/**
-              * DIE GANZE LEITER, NICHT ZWEI FESTE KNOEPFE (Owner 05.08.2026: „wer für Hochzeit
-              * kaufen will, dem muss man 29,00 anbieten … man muss also 14,99, 29,00 und 59,00
-              * anbieten. 4,99 € kann man auch anbieten und auch 9,99 €, wer weiss welche
-              * Produkte wir noch umstellen werden oder neue Produkte kommen").
-              *
-              * Hier standen `TOPUP_CENTS` und `TOPUP_GROSS_CENTS` — zwei Zahlen im Trichter, die
-              * bei jedem neuen Preis nachgezogen werden mussten. Jetzt liest der Dialog die
-              * Leiter aus `lib/pricing`: Kommt ein Produkt dazu, kommt seine Stufe von selbst
-              * mit, und niemand kann eine Aufladung anbieten, die die Kasse nicht kennt.
-              *
-              * DAS ERSTE, WAS SEIN VIDEO DECKT, steht als „reicht" da — bei fuenf Betraegen
-              * waere sonst reine Rechenarbeit, welcher der richtige ist. Zaehlen wird nur, wo
-              * die Stufe ueberhaupt fuer eines reicht: „4,99 € · 0 🎬" ist keine Auskunft,
-              * sondern ein Angebot, das nichts kauft.
+              * WARUM DER DIALOG OFFEN IST (Owner 07.08.2026: „wieso bekomme ich keine
+              * Meldung, nicht genügend Credit?") — rot und beziffert; nach einer
+              * 0,00-€-Code-Zahlung der aufladungNull-Satz. Feste Farbe wie jede Absage
+              * (Memory sichtbare-fehler-keine-formularfelder).
               */}
-            {/**
-              * NUR STUFEN, DIE DEN KAUF WIRKLICH DECKEN (Owner 07.08.2026: „ich habe bezahlt
-              * und nach der bezahlung verschfindet strpefenster und bleibt credit auswahl").
-              *
-              * GEMESSEN: Der Geburtstag kostet 4,99 €, die Leiter begann bei 3 €. Wer die
-              * kleinste Stufe tippte, zahlte echtes Geld — und hatte danach IMMER NOCH zu
-              * wenig. Der Anschlusskauf scheiterte, und derselbe Wähler ging wortlos wieder
-              * auf. Aus Kundensicht: bezahlt, nichts passiert. Das ist der schlimmste
-              * Zustand, den ein Kaufweg haben kann.
-              *
-              * Der Kommentar darüber sagt es seit dem 05.08. schon („ein Angebot, das nichts
-              * kauft") — gezählt wurde danach, angeboten aber trotzdem. Jetzt zählt das
-              * VORHANDENE Guthaben mit: Angeboten wird, was zusammen mit dem, was schon da
-              * ist, für dieses Video reicht. Bleibt nichts übrig (ein Produkt teurer als die
-              * höchste Stufe), steht die ganze Leiter da — lieber eine Teilzahlung als eine
-              * Wand ohne Knopf.
-              */}
-            {/**
-              * WARUM DER DIALOG OFFEN IST (Owner 07.08.2026: „wieso bekomme ich keine Meldung,
-              * nicht genügend Credit?"). Er öffnet nur, wenn das Guthaben nicht reicht — aber
-              * das stand nirgends. Nach einer Zahlung mit 100-%-Code (bezahlt, 0 € wert) sah
-              * es wie verschwundenes Geld aus. Rot und beziffert, wie jede Absage im Haus
-              * (Memory sichtbare-fehler-keine-formularfelder); dieselbe feste Farbe wie
-              * `mailFehler` direkt darüber.
-              */}
-            <p role="alert" style={{ color: "#ef4444" }} className="mt-3 text-[12.5px] font-black leading-snug">
+            <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-3 text-[12.5px] font-black leading-snug">
               {aufladeNull ? T.aufladungNull : T.guthabenZuWenig
                 .replace("{stand}", eur(guthabenCents ?? 0, lang))
                 .replace("{preis}", eur(videoPreisCents, lang))}
             </p>
-            {(() => {
-              const deckend = AUFLADE_STUFEN.filter(s => (guthabenCents ?? 0) + s >= videoPreisCents);
-              return (deckend.length ? deckend : [...AUFLADE_STUFEN]);
-            })().map(stufe => {
-              const stueck = Math.floor(stufe / videoPreisCents);
-              return (
-              // Solange die Adresse offen im Feld steht, ist sie nicht bestaetigt — dann darf
-              // die Kasse nicht aufgehen: Sie wuerde die ALTE Adresse mitnehmen, und genau
-              // diese stille Abweichung soll der Kasten hier verhindern.
-              <button key={stufe} type="button" disabled={payBusy || adresseAendern}
-                onClick={() => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}
-                className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
-                {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
-              </button>
-              );
-            })}
-            <p className="mt-3 text-center text-[10px] font-medium leading-snug text-black/50">{T.aufladenHinweis}</p>
-          </div>
-        </div>
+            {/**
+              * NUR STUFEN, DIE DEN KAUF WIRKLICH DECKEN (Owner 07.08.2026: „ich habe
+              * bezahlt und … bleibt credit auswahl") — Logik unverändert seit dem 07.08.:
+              * Angeboten wird, was zusammen mit dem vorhandenen Guthaben für dieses Video
+              * reicht; deckt keine Stufe (Produkt teurer als die höchste), steht die ganze
+              * Leiter da. Das ERSTE, was sein Video deckt, zählt die Stück mit („5 € · 1 🎬").
+              */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(() => {
+                const deckend = AUFLADE_STUFEN.filter(s => (guthabenCents ?? 0) + s >= videoPreisCents);
+                return (deckend.length ? deckend : [...AUFLADE_STUFEN]);
+              })().map(stufe => {
+                const stueck = Math.floor(stufe / videoPreisCents);
+                return (
+                  /* Solange die Adresse offen im Feld steht, ist sie nicht bestätigt —
+                     dann darf die Kasse nicht aufgehen (sie nähme die ALTE Adresse mit). */
+                  <Knopf key={stufe} art="chip" disabled={payBusy || adresseAendern}
+                    onClick={() => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}>
+                    {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
+                  </Knopf>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-center text-[10px] font-medium leading-snug text-white/50">{T.aufladenHinweis}</p>
+        </Dialog>
       )}
 
       {gateOffen && (
