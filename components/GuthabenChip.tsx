@@ -23,6 +23,29 @@ import { AUFLADE_STUFEN, eur } from "@/lib/pricing";
  * Aktualisiert sich beim Fensterwechsel (`focus`): Wer im Kassen-Popup aufgeladen hat und
  * zurueckkommt, sieht den neuen Stand, ohne neu zu laden.
  */
+/**
+ * WAS EINE BUCHUNG WAR — in Worten des Kunden, nicht in Schluesseln.
+ *
+ * Das THEMA schlaegt die Art: „Geburtstagsvideo" sagt ihm mehr als „Kauf". Steht ein Thema
+ * nicht in der Tabelle (neues Topic), faellt die Zeile auf die Art zurueck — nie auf einen
+ * technischen Schluessel.
+ */
+const BUCHUNG: Record<string, string> = {
+  birthday: "Geburtstagsvideo",
+  kiss: "Kuss-Video",
+  poledance: "Poledance-Video",
+  holiday: "Urlaubs-Einladung",
+  wedding: "Hochzeits-Einladung",
+  gutschein: "Gutschein",
+  plan: "Ideen-Analyse",
+  aufladung: "Aufladung",
+  kauf: "Kauf",
+  erstattung: "Erstattung",
+  geschenk: "Geschenkt",
+  uebertrag: "Übertrag",
+  korrektur: "Korrektur",
+};
+
 export default function GuthabenChip() {
   const [cents, setCents] = useState<number | null>(null);
   /**
@@ -67,9 +90,35 @@ export default function GuthabenChip() {
    * damit nicht geben.
    */
   const [offen, setOffen] = useState(false);
+  /**
+   * DER KONTOAUSZUG IM KONTO-DIALOG (Owner 08.08.2026: „Das Konto wird eine Historie für die
+   * Kunden auch anzeigen müssen. Wieviel er wann und für was aufgegeben hat und wann er sein
+   * Konto aufgeladen hat.").
+   *
+   * Er wohnt HIER und nicht auf einer eigenen Seite: Der Chip ist das Konto — wer auf sein
+   * Geld tippt, will beides sehen, was drauf ist und wo es herkam. Geladen wird erst beim
+   * Öffnen (ein Abruf, kein Takt), und ein Fehler bleibt stumm: Der Auszug ist Auskunft,
+   * das Aufladen daneben ist die Aufgabe des Dialogs.
+   */
+  const [posten, setPosten] = useState<{ at: string; cents: number; art: string; thema: string }[]>([]);
   const [mail, setMail] = useState("");
   const [busy, setBusy] = useState(0);
   const [fehler, setFehler] = useState("");
+
+  const oeffnen = () => {
+    setFehler("");
+    const adresse = geraetAdresse();
+    setMail(adresse);
+    setOffen(true);
+    setPosten([]);
+    if (!adresse) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /* privater Modus */ }
+    void fetch(`/api/konto?email=${encodeURIComponent(adresse)}&device=${encodeURIComponent(device)}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.posten)) setPosten(d.posten); })
+      .catch(() => { /* stumm: der Auszug ist Beiwerk, das Aufladen ist die Aufgabe */ });
+  };
 
   const aufladen = async (stufe: number) => {
     const adresse = (mail || geraetAdresse()).trim().toLowerCase();
@@ -128,13 +177,18 @@ export default function GuthabenChip() {
         if (!device && !mail) { if (!weg) setRendert(false); return; }
         const d = await fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" }).then(r => r.json());
         if (weg) return;
-        /* „bis der user die galerie öffnet" (Owner 08.08.2026): Der Punkt ist eine
-           Benachrichtigung. Gezaehlt wird nur, was NACH dem letzten Galerie-Besuch
-           gestartet ist — ISO-Zeiten vergleichen sich als Text. */
-        let gesehen = "";
-        try { gesehen = localStorage.getItem("lb_galerie_gesehen") ?? ""; } catch { /**/ }
-        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean; rendertSeit?: string; createdAt?: string }) =>
-          x.rendert === true && String(x.rendertSeit || x.createdAt || "") > gesehen);
+        /**
+         * DER PUNKT FOLGT DER ARBEIT, NICHT DEM BESUCH (Owner 08.08.2026, korrigiert am
+         * selben Abend: „der pulsierende Punkt ist auch weg weil ich auf Galerie geklickt
+         * habe. Es muss doch einen hinweis hin das im hintergrund etwas noch rendert").
+         *
+         * Vorher galt „bis der user die galerie oeffnet" — ein Blick in die Galerie loeschte
+         * den Punkt. Das war richtig gedacht (eine Benachrichtigung, die man gesehen hat, ist
+         * erledigt) und im Ergebnis falsch: Waehrend noch gerendert wird, ist die Nachricht
+         * nicht erledigt, sondern GERADE erst wahr. Also pulsiert der Punkt, solange wirklich
+         * etwas laeuft — und hoert von selbst auf, wenn das Video da ist.
+         */
+        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean }) => x.rendert === true);
         setRendert(laeuft);
         if (laeuft) takt = setTimeout(() => { void pruefen(); }, 30_000);
       } catch { /* Anzeige-Schmuck — ein Netzfehler darf nichts kaputtmachen */ }
@@ -211,8 +265,8 @@ export default function GuthabenChip() {
         * nicht unter die Regel — und der Chip sieht wieder aus wie vorher.
         */}
       <span role="button" tabIndex={0} aria-label="Guthaben"
-        onClick={() => { setFehler(""); setMail(geraetAdresse()); setOffen(true); }}
-        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFehler(""); setMail(geraetAdresse()); setOffen(true); } }}
+        onClick={oeffnen}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); oeffnen(); } }}
         className={`cursor-pointer ${chip} ${gestrandet
           ? "border-[#e0794a]/50 bg-[#e0794a]/10 text-[#e0794a]"
           : "border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[#f6cf51]"}`}>
@@ -291,6 +345,29 @@ export default function GuthabenChip() {
                 </span>
               ))}
             </div>
+
+            {posten.length > 0 && (
+              /* Der Auszug: eine Zeile je Buchung, Datum links, Betrag rechts. Zugänge in
+                 Gold (dieselbe Akzentfarbe wie der Chip), Abgänge in gedecktem Weiss —
+                 kein Rot, denn ein Kauf ist kein Fehler. Gescrollt wird innerhalb der
+                 Liste, damit der Dialog auf jedem Handy stehen bleibt. */
+              <div className="mt-5 border-t border-white/10 pt-3 text-left">
+                <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Kontoauszug</p>
+                <div className="mt-2 max-h-[168px] space-y-1.5 overflow-y-auto pr-1">
+                  {posten.map((p, i) => (
+                    <div key={`${p.at}-${i}`} className="flex items-baseline justify-between gap-3">
+                      <span className="text-[12px] font-bold text-white/70">
+                        {new Date(p.at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                        <span className="ml-1.5 font-medium text-white/45">{BUCHUNG[p.thema] ?? BUCHUNG[p.art] ?? "Buchung"}</span>
+                      </span>
+                      <span className={`shrink-0 text-[12.5px] font-black ${p.cents >= 0 ? "text-[#f6cf51]" : "text-white/80"}`}>
+                        {p.cents >= 0 ? "+" : "−"}{(Math.abs(p.cents) / 100).toFixed(2).replace(".", ",")} €
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p className="mt-4 text-center text-[10.5px] font-medium leading-snug text-white/45">
               Guthaben verfällt nie · keine Barauszahlung

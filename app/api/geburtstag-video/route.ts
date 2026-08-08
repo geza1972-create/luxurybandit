@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen } from "@/lib/try-this-look-store";
@@ -443,6 +444,25 @@ export async function POST(request: Request) {
          */
         eintrag.videoId = `hg:${videoId}`;
         eintrag.videoStartAt = new Date().toISOString();
+        /**
+         * UND DAS NETZ SPANNEN (Owner 08.08.2026 spaetabends, zum Wachhund: „kaputt ist es
+         * nicht, es wurde nie richtig gebaut" — er hatte recht).
+         *
+         * Der Wachhund nimmt AUSSCHLIESSLICH Auftraege mit `videoDueAt` an (die Marke
+         * trennt echte Auftraege von Altfaellen, sonst rendert der Server rueckwirkend fuer
+         * laengst vergessene Kaeufe nach). Gesetzt wurde sie bisher nur dort, wo der
+         * BROWSER die Kennung meldet — den Geburtstag stempelt aber diese Route selbst,
+         * also blieb sie leer. Ergebnis, gemessen am Auftrag db856197: bezahlt, gestartet,
+         * bei HeyGen fertig — und der Wachhund meldete „offen: 0" und lieferte nie.
+         *
+         * Die Schonfrist gehoert dem Browser: Solange er lebt, holt er das Video selbst;
+         * erst danach uebernimmt der Server.
+         */
+        if (eintrag.paid && `hg:${videoId}` !== eintrag.videoDoneId) {
+          eintrag.videoDueAt = new Date(Date.now() + GNADENFRIST_MS).toISOString();
+          eintrag.videoTries = 0;
+          eintrag.videoError = undefined;
+        }
         await writeKissLog(entries);
       }
     }

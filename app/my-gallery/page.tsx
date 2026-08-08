@@ -275,7 +275,18 @@ export default function MyGalleryPage() {
      * `aktiveAdresse()` ist dieselbe Regel wie im Header-Chip und im Trichter.
      */
     const mail = aktiveAdresse();
-    if (device || mail) {
+    /**
+     * SOLANGE ETWAS LAEUFT, SCHAUT DIE SEITE VON SELBST NACH (Owner 08.08.2026: „es muss
+     * doch in der Galerie auch zeigen dass das noch was zu ende rendert" · „bald in der
+     * galerie erscheint").
+     *
+     * Ohne das ist der Hinweis ein Versprechen ohne Einloesung: Der Kaeufer sieht „Video
+     * entsteht" und muss RATEN, wann er neu laden soll — genau das hat der Owner erlebt
+     * (Video bei HeyGen laengst fertig, Galerie zeigte weiter den Balken). Alle 15 s eine
+     * Anfrage, aber NUR solange wirklich etwas offen ist; ist nichts offen, hoert sie auf.
+     */
+    let takt: ReturnType<typeof setTimeout> | null = null;
+    const nachladen = () => {
       fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" })
         .then(r => r.json())
         .then(d => {
@@ -299,13 +310,26 @@ export default function MyGalleryPage() {
               warnung: b.warnung || "",
               alter: b.alter || 0,
             }))
-            .filter((b: Item) => b.imageUrl || b.videoUrl);
+            /**
+             * EIN LAUFENDER AUFTRAG BLEIBT DRIN, AUCH OHNE BILD (Owner 08.08.2026: „Zuerst
+             * war nichts in der Galerie zu sehen. Dann mache ich reload, dann ist das Bild
+             * da, statisch. Dann einige Minuten später … dass das Video lädt").
+             *
+             * Das war der Grund fuer die erste Leere: Direkt nach der Zahlung gibt es noch
+             * KEIN Bild — das entsteht erst in der Minute darauf. Dieser Filter warf die
+             * Kachel deshalb weg, und der Kaeufer stand vor einer Galerie, die so tat, als
+             * haette er nichts gekauft. Wer bezahlt hat, sieht seinen Platz sofort.
+             */
+            .filter((b: Item) => b.imageUrl || b.videoUrl || b.rendert);
           own.push(...bilder);
           if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
+          /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. */
+          if (own.some(x => x.rendert)) takt = setTimeout(nachladen, 15_000);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
-    }
+    };
+    if (device || mail) nachladen();
     if (!pin && !token) { setLoading(false); return; }
     const url = pin ? "/api/try-this-look?adminPosts=1" : "/api/try-this-look?mine=1";
     const headers: Record<string, string> = pin
@@ -350,6 +374,8 @@ export default function MyGalleryPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    /* Der Nachlade-Takt darf die Seite nicht ueberleben. */
+    return () => { if (takt) clearTimeout(takt); };
   }, [ready, pin, token]);
 
   // Cross-origin (Supabase) → per Blob laden, damit der Browser wirklich SPEICHERT
@@ -433,6 +459,28 @@ export default function MyGalleryPage() {
           )}
         </div>
         <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
+
+        {/**
+          * „ES LÄUFT NOCH" — GANZ OBEN, NICHT NUR AUF DER KACHEL (Owner 08.08.2026: „mich
+          * nervt weil die galerie das rendering nicht zeigt … Es muss doch einen hinweis hin
+          * das im hintergrund etwas noch rendert und bald in der galerie erscheint").
+          *
+          * Den Streifen auf der Kachel gab es schon — zwischen 28 Kacheln findet ihn keiner.
+          * Diese Zeile steht ueber allem, sagt WIE VIELE laufen und dass er nichts tun muss.
+          * Sie verschwindet von selbst: Die Seite laedt alle 15 s nach, solange etwas offen
+          * ist (siehe `nachladen` oben) — der Kaeufer muss nie neu laden.
+          */}
+        {items.some(x => x.rendert) && (
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#f6cf51]" />
+            <p className="text-[12.5px] font-black leading-snug text-[#f6cf51]">
+              {items.filter(x => x.rendert).length > 1
+                ? `${items.filter(x => x.rendert).length} Videos entstehen gerade`
+                : "Dein Video entsteht gerade"}
+              <span className="ml-1 font-semibold text-[#f6cf51]/75">— es erscheint hier von selbst, du kannst die Seite schliessen.</span>
+            </p>
+          </div>
+        )}
 
         {/* DER „TURN IT INTO A HOT VIDEO"-STREIFEN IST RAUS (Owner 03.08.2026: „das raus", mit
             einem Bild des Streifens).
@@ -578,6 +626,11 @@ export default function MyGalleryPage() {
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
                     <Loader2 className="h-3 w-3 animate-spin" /> Video entsteht …
                   </span>
+                )}
+                {/* NOCH KEIN BILD, ABER SCHON BEZAHLT: die Kachel bleibt trotzdem stehen
+                    (siehe Filter oben) — hier bekommt sie einen Grund, angesehen zu werden. */}
+                {it.rendert && !it.imageUrl && !it.videoUrl && (
+                  <span className="pointer-events-none absolute inset-0 grid place-items-center bg-white/[0.06] text-[26px]">🎬</span>
                 )}
                 {it.videoUrl && (
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">

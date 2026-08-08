@@ -3077,6 +3077,22 @@ async function walletBuchen(e: string, schluessel: string, delta: number): Promi
   throw new Error("Geldboerse: Buchung nicht bestaetigt.");
 }
 
+/**
+ * DER KONTOAUSZUG (Owner 08.08.2026: „Das Konto wird eine Historie fuer die Kunden auch
+ * anzeigen muessen. Wieviel er wann und fuer was aufgegeben hat und wann er sein Konto
+ * aufgeladen hat.").
+ *
+ * Die Daten entstehen seit dem Umzug von selbst — jede Buchung legt ihre Quittung ab. Diese
+ * Funktion gibt sie NUR heraus (neueste zuerst); gedeutet wird im API-Endpunkt, weil erst
+ * dort der Auftrag danebenliegt, aus dem das Thema kommt.
+ */
+export async function walletHistorie(email: string): Promise<{ id: string; delta: number; at: string }[]> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return [];
+  const w = await walletLesen(e).catch(() => null);
+  return (w?.ops ?? []).slice().reverse();
+}
+
 /** Euro-Guthaben eines Kunden in Cent (0, wenn keins). */
 export async function readGuthabenCents(email: string): Promise<number> {
   const e = String(email ?? "").trim().toLowerCase();
