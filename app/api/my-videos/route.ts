@@ -138,11 +138,14 @@ export async function GET(request: Request) {
          * ohne Stempel (Altfälle) zählt das Auftragsalter. Bezahlt ganz ohne Kennung
          * zählt nur frisch (der HeyGen-Look braucht 1–2 min bis zur Kennung).
          */
-        const startMs = e.videoStartAt ? Date.now() - Date.parse(e.videoStartAt) : alterMs;
-        const offenBeimAnbieter = !!e.videoId && e.videoId !== e.videoDoneId && !(!e.videoStartAt && e.videoUrl);
-        const laufend = e.theme !== "gutschein" && Number.isFinite(startMs)
-          && ((offenBeimAnbieter && startMs < 60 * 60 * 1000)
-            || (!e.videoUrl && !!e.paid && !e.videoId && alterMs < 15 * 60 * 1000));
+        const startMs = e.videoStartAt ? Date.now() - Date.parse(e.videoStartAt) : Number.NaN;
+        const fertigNachStart = !!e.videoFertigAt && !!e.videoStartAt
+          && Date.parse(e.videoFertigAt) >= Date.parse(e.videoStartAt);
+        /* Start-Stempel juenger als 1 h und kein Fertig-Stempel danach → es rendert.
+           Altfaelle ohne Stempel: bezahlt ohne Video und juenger als 15 min. */
+        const laufend = e.theme !== "gutschein"
+          && ((Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
+            || (!e.videoStartAt && !e.videoUrl && !!e.paid && alterMs < 15 * 60 * 1000));
         return ([
         {
           id: e.id,

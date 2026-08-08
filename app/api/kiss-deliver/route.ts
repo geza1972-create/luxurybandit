@@ -277,6 +277,7 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
     const p = await pollen(request, e.videoId);
     if (p.status === "done" && p.videoUrl) {
       e.videoUrl = p.videoUrl;
+      e.videoFertigAt = new Date().toISOString();
       e.videoDoneId = e.videoId;   // dieser Auftrag ist abgehakt — kein zweites Mal
       e.videoError = undefined;
       geaendert = true;

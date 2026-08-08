@@ -2377,6 +2377,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * `hg:`-Kennung zurück; die Poll-Schleife unten fragt unverändert dieselbe
        * Status-Route, die den Prefix kennt — auch der Nachliefer-Wachhund kann so mit.
        */
+      /* Start SOFORT in den Auftrag stempeln — Galerie-Streifen und Puls-Punkt leben
+         davon, und die Kennung kommt erst nach dem 1-2-minuetigen HeyGen-Look. */
+      if (variant === "birthday" && genId) {
+        void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ update: genId, renderStart: true }) }).catch(() => {});
+        try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /* weckt den Punkt */ }
+      }
       const start = variant === "birthday" ? await fetch("/api/geburtstag-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },

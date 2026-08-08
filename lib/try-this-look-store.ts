@@ -1701,6 +1701,9 @@ export type KissLogEntry = {
    *  Daraus liest die Galerie ihr „Video entsteht"; ohne Stempel weiss beim Neu-Rendern
    *  niemand, dass gerade gearbeitet wird (das alte Video steht ja noch im Auftrag). */
   videoStartAt?: string;
+  /** Wann zuletzt ein fertiges Video geschrieben wurde — Gegenstueck zum Startstempel:
+   *  rendert = Start juenger als Fertig. */
+  videoFertigAt?: string;
   /**
    * WIE VIELE VIDEOS DIESER BEZAHLTE AUFTRAG SCHON GEZOGEN HAT (Owner 30.07.2026).
    *
