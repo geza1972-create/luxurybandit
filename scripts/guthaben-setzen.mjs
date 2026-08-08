@@ -11,11 +11,13 @@
  *   node scripts/guthaben-setzen.mjs tigl10722@gmail.com 0 --echt     → wirklich setzen
  * Der Betrag ist in EURO (Dezimalpunkt oder -komma), gespeichert wird in Cent.
  *
- * ZUM SPEICHERWEG: Der Live-Server liest und schreibt denselben Blob
- * (try-this-look/state.json). Dieses Skript ersetzt NUR den einen Schluessel in
- * `guthabenCents` und laedt den Blob im Ganzen wieder hoch — im selben Moment laufende
- * Server-Schreibvorgaenge koennen dabei verlieren (Memory delete-resurrection-merge-bug).
- * Deshalb: nur benutzen, wenn gerade niemand kauft, und danach den Stand am Chip pruefen.
+ * SEIT 08.08.2026 ABENDS SCHREIBT ES DIE GELDBOERSEN-DATEI (wallet/<base64url>.json),
+ * nicht mehr state.json: Das Guthaben ist dorthin umgezogen, nachdem der Merge-Dieb an
+ * EINEM Tag dreimal echtes Geld gefressen hatte. Die Datei fassen nur die Geld-Funktionen
+ * an — dieses Skript ist damit auch waehrend laufender Kaeufe gefahrlos; hoechstens eine
+ * exakt zeitgleiche Buchung gewinnt, und die traegt sich per Selbstbestaetigung neu ein.
+ * Gibt es noch keine Geldboerse, zeigt der Probelauf den alten Stand aus state.json (der
+ * beim ersten ECHTEN Setzen mit umzieht).
  */
 
 import { readFileSync } from "node:fs";
@@ -39,27 +41,37 @@ if (!adresse.includes("@") || !Number.isFinite(cents) || cents < 0) {
   process.exit(1);
 }
 
-const kopf = { Authorization: `Bearer ${KEY}`, apikey: KEY };
-const PFAD = `/storage/v1/object/${BUCKET}/try-this-look/state.json`;
+const KOPF = { Authorization: `Bearer ${KEY}`, apikey: KEY };
+const pfad = `try-this-look/wallet/${Buffer.from(adresse).toString("base64url")}.json`;
+const objekt = (p) => `${URL_}/storage/v1/object/${BUCKET}/${p.split("/").map(encodeURIComponent).join("/")}`;
 
-const runter = await fetch(`${URL_}${PFAD}`, { headers: kopf });
-if (!runter.ok) { console.error("state.json nicht lesbar:", runter.status); process.exit(1); }
-const state = await runter.json();
+/* Geldboerse lesen; gibt es keine, den ALTEN Stand aus state.json zeigen (Migrationsquelle). */
+async function lesen() {
+  const r = await fetch(objekt(pfad), { headers: KOPF });
+  if (r.ok) {
+    const w = await r.json();
+    return { cents: Math.max(0, Math.round(Number(w.cents ?? 0))), ops: Array.isArray(w.ops) ? w.ops : [], quelle: "wallet" };
+  }
+  const st = await fetch(objekt("try-this-look/state.json"), { headers: KOPF });
+  const state = st.ok ? await st.json() : {};
+  return { cents: Math.max(0, Math.round(Number(state?.guthabenCents?.[adresse] ?? 0))), ops: [], quelle: "state (alt, noch nicht umgezogen)" };
+}
 
-const g = (state.guthabenCents = state.guthabenCents ?? {});
-const vorher = Math.max(0, Math.round(Number(g[adresse] ?? 0)));
-console.log(`${adresse}: ${(vorher / 100).toFixed(2)} €  →  ${(cents / 100).toFixed(2)} €`);
+const vorher = await lesen();
+console.log(`${adresse}: ${(vorher.cents / 100).toFixed(2)} €  →  ${(cents / 100).toFixed(2)} €   [Quelle: ${vorher.quelle}]`);
+if (!ECHT) { console.log("Probelauf — nichts geschrieben. Zum Setzen --echt anhaengen."); process.exit(0); }
 
-if (!ECHT) { console.log("Probelauf — nichts geschrieben. Mit --echt wirklich setzen."); process.exit(0); }
-
-g[adresse] = cents;
-const hoch = await fetch(`${URL_}${PFAD}`, {
-  method: "PUT",
-  headers: { ...kopf, "Content-Type": "application/json", "x-upsert": "true" },
-  body: JSON.stringify(state),
+const blob = {
+  email: adresse,
+  cents,
+  ops: [...vorher.ops, { id: `admin-${new Date().toISOString()}`, delta: cents - vorher.cents, at: new Date().toISOString() }].slice(-300),
+};
+const w = await fetch(objekt(pfad), {
+  method: "POST",
+  headers: { ...KOPF, "Content-Type": "application/json", "x-upsert": "true" },
+  body: JSON.stringify(blob),
 });
-if (!hoch.ok) { console.error("Schreiben fehlgeschlagen:", hoch.status, await hoch.text()); process.exit(1); }
+if (!w.ok) { console.error("Schreiben fehlgeschlagen:", w.status, await w.text()); process.exit(1); }
 
-// Nicht dem eigenen Schreiben glauben — zurücklesen und den echten Stand zeigen.
-const kontrolle = await fetch(`${URL_}${PFAD}`, { headers: kopf }).then(r => r.json());
-console.log(`Gesetzt. Kontrolle (zurückgelesen): ${((kontrolle.guthabenCents?.[adresse] ?? 0) / 100).toFixed(2)} €`);
+const kontrolle = await lesen();
+console.log(`Gesetzt. Kontrolle (zurückgelesen): ${(kontrolle.cents / 100).toFixed(2)} €  [${kontrolle.quelle}]`);

@@ -2969,10 +2969,122 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
   return { credits: vc.balances[e], granted: true };
 }
 
+// ── EURO-GELDBOERSE: EIGENE DATEI JE KONTO ─────────────────────────────────────────────
+/**
+ * WARUM EINE EIGENE DATEI (08.08.2026, nach DREI Geldverlusten an EINEM Tag): Das Guthaben
+ * lag in state.json — einer Datei, die dutzende Stellen komplett ueberschreiben (jedes
+ * Insights-Ereignis!). Ein langsamer Schreiber mit altem Schnappschuss loeschte dem Owner
+ * zweimal ~10 € und einmal eine frische 5-€-Aufladung MITTEN IM KAUF (gutgeschrieben
+ * 22:48:21, weg um 22:48:52 — die Kasse ging auf, statt abzubuchen). Owner: „Ich kann das
+ * niemandem zumuten. Dieser Fehler darf nie passieren."
+ *
+ * Dasselbe Muster wie bei den Outfits (eigener Blob, ein Besitzer): Jede Adresse hat ihre
+ * Datei `wallet/<base64url(adresse)>.json`, und NUR die drei Geld-Funktionen fassen sie an.
+ * Kein Ereignis-Schreiber, kein Auftrags-Update kann sie mehr ueberschreiben.
+ *
+ * JEDE BUCHUNG TRAEGT EINE QUITTUNG (`ops`, Schluessel = die bekannten Idempotenz-Kennungen
+ * wie `wallet-<genId>`): doppelte Klicks und Abfrage-Schleifen buchen nie zweimal, und der
+ * Kontostand ist als Summe der Quittungen nachvollziehbar. Und weil der Storage nur
+ * „letzter Schreiber gewinnt" kann, BESTAETIGT sich jede Buchung nach dem Schreiben selbst:
+ * Sie liest zurueck, und fehlt ihre Quittung (jemand hat dazwischengeschrieben), bucht sie
+ * auf dem neuen Stand erneut — bis die Quittung nachweislich in der Datei steht.
+ */
+const WALLET_DIR = "try-this-look/wallet";
+type WalletOp = { id: string; delta: number; at: string };
+type WalletBlob = { email: string; cents: number; ops: WalletOp[] };
+
+function walletPfad(e: string): string {
+  /* base64url statt der Adresse selbst: eindeutig umkehrbar, keine Sonderzeichen im Pfad. */
+  return `${WALLET_DIR}/${Buffer.from(e).toString("base64url")}.json`;
+}
+
+/** Liest die Geldboerse. `null` heisst NUR „Datei existiert nicht" (404) — Netzfehler
+ *  werfen, damit eine Buchung nie auf einem Fehl-Lesen aufsetzt und Geld verrechnet. */
+async function walletLesen(e: string): Promise<WalletBlob | null> {
+  await ensureBucket();
+  let letzterFehler: unknown = new Error("Geldboerse nicht lesbar.");
+  for (let versuch = 0; versuch < 3; versuch++) {
+    try {
+      const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(walletPfad(e))}`);
+      if (res.status === 404 || res.status === 400) return null;   // Supabase meldet fehlende Objekte je nach Weg als 400 oder 404
+      if (res.ok) {
+        const t = await res.text();
+        if (!t.trim()) return null;
+        const w = JSON.parse(t) as WalletBlob;
+        return { email: e, cents: Math.max(0, Math.round(Number(w.cents ?? 0))), ops: Array.isArray(w.ops) ? w.ops : [] };
+      }
+      letzterFehler = new Error(`Geldboerse lesen: HTTP ${res.status}`);
+    } catch (err) { letzterFehler = err; }
+    if (versuch < 2) await new Promise(r => setTimeout(r, 150));
+  }
+  throw letzterFehler;
+}
+
+async function walletSchreiben(w: WalletBlob): Promise<void> {
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(walletPfad(w.email))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify(w),
+  });
+  if (!res.ok) throw new Error("Geldboerse konnte nicht gespeichert werden.");
+}
+
+/** Geldboerse holen — gibt es noch keine Datei, zieht der ALTE Stand aus state.json einmalig
+ *  um (als eigene Quittung `migration`, damit die Herkunft des Betrags in der Datei steht). */
+async function walletOderMigration(e: string): Promise<WalletBlob> {
+  const w = await walletLesen(e);
+  if (w) return w;
+  const state = await readTryThisLookState();
+  const alt = Math.max(0, Math.round(Number(state.guthabenCents?.[e] ?? 0)));
+  return { email: e, cents: alt, ops: alt > 0 ? [{ id: "migration", delta: alt, at: new Date().toISOString() }] : [] };
+}
+
+/** Sind ALTE Idempotenz-Schluessel (vor dem Umzug) schon eingeloest? Die standen in
+ *  state.videoCredits.redeemed — Kampagnen- und Erstattungs-Schluessel leben lange; ohne
+ *  diesen Blick wuerde eine alte Werbe-Gutschrift nach dem Umzug ein zweites Mal buchen. */
+async function altSchonEingeloest(schluessel: string): Promise<boolean> {
+  if (!schluessel) return false;
+  try {
+    const state = await readTryThisLookState();
+    return (state.videoCredits?.redeemed ?? []).includes(schluessel);
+  } catch { return false; }
+}
+
+/**
+ * DIE EINE BUCHUNGSFUNKTION — Gutschrift (delta > 0) und Abbuchung (delta < 0).
+ * Rueckgabe: `gebucht` sagt, ob DIESE Buchung neu ausgefuehrt wurde; `gedeckt` ist nur bei
+ * Abbuchungen relevant (false = Stand reichte nicht, nichts passiert).
+ */
+async function walletBuchen(e: string, schluessel: string, delta: number): Promise<{ cents: number; gebucht: boolean; gedeckt: boolean }> {
+  for (let versuch = 0; versuch < 4; versuch++) {
+    const w = await walletOderMigration(e);
+    if (schluessel && w.ops.some(o => o.id === schluessel)) return { cents: w.cents, gebucht: false, gedeckt: true };
+    if (schluessel && (await altSchonEingeloest(schluessel))) return { cents: w.cents, gebucht: false, gedeckt: true };
+    if (delta < 0 && w.cents < -delta) return { cents: w.cents, gebucht: false, gedeckt: false };
+    const neu: WalletBlob = {
+      email: e,
+      cents: Math.max(0, w.cents + Math.round(delta)),
+      ops: [...w.ops, { id: schluessel || `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, delta: Math.round(delta), at: new Date().toISOString() }].slice(-300),
+    };
+    await walletSchreiben(neu);
+    /* SELBSTBESTAETIGUNG: erst wenn die eigene Quittung im Zurueckgelesenen steht, ist
+       gebucht. Fehlt sie, hat ein zweiter Geld-Schreiber gewonnen — naechste Runde bucht
+       auf DESSEN Stand erneut. Das konvergiert, weil jede Runde frisch liest. */
+    const check = await walletLesen(e).catch(() => null);
+    const meinId = neu.ops[neu.ops.length - 1].id;
+    if (check?.ops.some(o => o.id === meinId)) return { cents: check.cents, gebucht: true, gedeckt: true };
+  }
+  throw new Error("Geldboerse: Buchung nicht bestaetigt.");
+}
+
 /** Euro-Guthaben eines Kunden in Cent (0, wenn keins). */
 export async function readGuthabenCents(email: string): Promise<number> {
   const e = String(email ?? "").trim().toLowerCase();
   if (!e) return 0;
+  /* Lesen ist absichtlich ohne Umzugs-Schreiben: erst die erste BUCHUNG legt die Datei an.
+     Bis dahin gilt der alte Stand aus state.json weiter. */
+  const w = await walletLesen(e).catch(() => null);
+  if (w) return w.cents;
   const state = await readTryThisLookState();
   return Math.max(0, Math.round(Number(state.guthabenCents?.[e] ?? 0)));
 }
@@ -2980,17 +3092,9 @@ export async function readGuthabenCents(email: string): Promise<number> {
 /** Aufladung gutschreiben — idempotent je Kassensitzung (dieselbe redeemed-Liste wie überall). */
 export async function guthabenAufladen(email: string, sessionId: string, cents: number): Promise<{ cents: number; granted: boolean }> {
   const e = String(email ?? "").trim().toLowerCase();
-  const state = await readTryThisLookState();
-  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
-  vc.redeemed = vc.redeemed ?? [];
-  const g = (state.guthabenCents = state.guthabenCents ?? {});
-  if (!e || cents <= 0) return { cents: Math.max(0, Number(g[e] ?? 0)), granted: false };
-  if (sessionId && vc.redeemed.includes(sessionId)) return { cents: Math.max(0, Number(g[e] ?? 0)), granted: false };
-  g[e] = Math.max(0, Math.round(Number(g[e] ?? 0))) + Math.round(cents);
-  if (sessionId) vc.redeemed.push(sessionId);
-  state.videoCredits = vc;
-  await saveTryThisLookState(state);
-  return { cents: g[e], granted: true };
+  if (!e || cents <= 0) return { cents: await readGuthabenCents(e), granted: false };
+  const r = await walletBuchen(e, sessionId, Math.round(cents));
+  return { cents: r.cents, granted: r.gebucht };
 }
 
 /**
@@ -3075,19 +3179,10 @@ export async function chatZugangBis(email: string): Promise<string> {
 
 export async function guthabenAbbuchen(email: string, schluessel: string, cents: number): Promise<{ ok: boolean; rest: number }> {
   const e = String(email ?? "").trim().toLowerCase();
-  const state = await readTryThisLookState();
-  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
-  vc.redeemed = vc.redeemed ?? [];
-  const g = (state.guthabenCents = state.guthabenCents ?? {});
-  const stand = Math.max(0, Math.round(Number(g[e] ?? 0)));
-  if (!e || cents <= 0) return { ok: false, rest: stand };
-  if (schluessel && vc.redeemed.includes(schluessel)) return { ok: true, rest: stand };   // schon bezahlt
-  if (stand < cents) return { ok: false, rest: stand };
-  g[e] = stand - Math.round(cents);
-  if (schluessel) vc.redeemed.push(schluessel);
-  state.videoCredits = vc;
-  await saveTryThisLookState(state);
-  return { ok: true, rest: g[e] };
+  if (!e || cents <= 0) return { ok: false, rest: await readGuthabenCents(e) };
+  const r = await walletBuchen(e, schluessel, -Math.round(cents));
+  /* `gedeckt` false = Stand reichte nicht; eine bereits gebuchte Quittung meldet ok (idempotent). */
+  return { ok: r.gedeckt, rest: r.cents };
 }
 
 // Admin: set a user's video-credit balance to an absolute value (0 = reset). Unlike
