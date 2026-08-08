@@ -56,8 +56,9 @@ const VOICE_MANN = "0c23804af39a4946ac6fda42bfff2738";  // „Daniel"
 function spruch(nameRoh: string): string {
   const name = String(nameRoh ?? "").replace(/[^\p{L}\p{N} .''-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 24);
   return name
-    ? `Happy birthday to you, dear ${name}! Enjoy your special day. This little video is just for you.`
-    : "Happy birthday to you! Enjoy your special day. This little video is just for you.";
+    /* Kurz ist der Preis (Owner 08.08.2026): 3 Credits je gesprochener Sekunde. */
+    ? `Happy birthday to you, dear ${name}! This little video is just for you.`
+    : "Happy birthday to you! This little video is just for you.";
 }
 
 /** Kundenfoto (Daten-URL oder https-Adresse) als Bytes — mit Deckel gegen Riesendateien. */

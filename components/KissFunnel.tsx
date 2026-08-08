@@ -787,12 +787,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           setNimmtAuf(false); setKameraAus(true); setAufnahmeFehler(SW.kameraAus);
           return;
         }
-        setRestSek(12);
+        /* 5 Sekunden (Owner 08.08.2026: „5 sekunden reichen") — HeyGen nimmt 3 Credits
+           je Sekunde; der Deckel haelt jedes Video bei maximal ~15 Credits (~1,20 $).
+           Der kurze Satz braucht gesprochen ~4 s. */
+        setRestSek(5);
         const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-        setTimeout(() => clearInterval(takt), 12500);
+        setTimeout(() => clearInterval(takt), 5500);
         /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
            Datei erzeugen, die das Tor abweist. */
-        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
+        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 5000);
       }, 1000);
     } catch (e) {
       /**
@@ -3753,7 +3756,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {variant === "birthday" && (() => {
             /* Der Satz, den die Kette spricht — WÖRTLICH derselbe wie in der Route, damit
                das Vorgelesene und das Erzeugte nie auseinanderlaufen. */
-            const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! Enjoy your special day. This little video is just for you.`;
+            /* KURZ IST DER PREIS (Owner 08.08.2026, HeyGen-Tabelle: 3 Credits je SEKUNDE — „der
+               für 12 credits war perfekt … Du bist zu viele sekunden durch"). Der Mittelteil
+               „Enjoy your special day." kostete gesprochen 2-3 Sekunden ≈ 50-70 ct pro Video. */
+            const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! This little video is just for you.`;
             return (
               <div className="mt-2">
                 {/**
