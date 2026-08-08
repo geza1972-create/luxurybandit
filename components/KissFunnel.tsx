@@ -1953,8 +1953,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * vorher schon abgebucht hat). Reicht es nicht, geht es direkt zur 9,99-€-Aufladung —
        * nie zur Einzel-Kasse.
        */
+      /**
+       * ADRESSE = KONTO, UND ZWAR JETZT (Owner 08.08.2026: „unter tigl10722@gmail.com habe
+       * ich geld drauf, trotzdem musste ich bezahlen weil ich nicht angemeldet war").
+       *
+       * GEMESSEN: Er tippte die Adresse mit 10,01 € Guthaben ins Tor — und der Wähler ging
+       * trotzdem bei 0,00 € auf. Der Effekt, der den Stand für eine frische Adresse lädt,
+       * feuert erst einen Render NACH dem Tor; die Wache hier las die eingefrorene
+       * Momentaufnahme (null = 0). Dieselbe Falle wie im Popup-Rückweg (Skill `bezahlung`
+       * §1), dritter Fundort. Deshalb liest der Kaufklick den Stand SELBST, frisch vom
+       * Server — eine Anmeldung braucht es nicht, das Guthaben hängt an der Adresse.
+       */
+      let stand = guthabenCents ?? 0;
+      if (V.nurGuthaben && stand < videoPreisCents) {
+        try {
+          const frisch = await guthabenLesen(mail.trim());
+          if (frisch) { stand = frisch.cents; setGuthabenCents(frisch.cents); }
+        } catch { /* Server nicht erreichbar → die alte Zahl entscheidet, wie bisher */ }
+      }
       // `videoPreisCents` statt fest {once}: Lingerie kostet mehr (Owner 03.08.2026).
-      if (V.nurGuthaben && (guthabenCents ?? 0) < videoPreisCents) { setAufladeWahl(true); return; }
+      if (V.nurGuthaben && stand < videoPreisCents) { setAufladeWahl(true); return; }
       /**
        * DER AUFTRAG ENTSTEHT VOR DEM GELD (08.08.2026, Owner am Handy: „Ich habe bezahlt
        * und kam wieder der Dialog mit dem kredit").
