@@ -70,8 +70,8 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
     kleidung: "Dress them in beautiful festive celebration attire that suits this person.",
     umgebung: "Neutral warm grey studio background, soft light.",
     bewegung:
-      "They keep their natural expression from the photo — no exaggerated grin, no invented " +
-      "teeth — and gently present the chocolate cake slightly towards the camera. Subtle " +
+      "They keep the calm neutral expression from the photo — no smile added, no grin, no " +
+      "invented teeth — and gently present the chocolate cake slightly towards the camera. Subtle " +
       "natural movement of head, hair and shoulders, the candle flame flickers softly. " +
       "Calm elegant celebratory energy.",
   },
@@ -102,8 +102,8 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "On an elegant rooftop terrace at sunset, a softly blurred warm city skyline glowing " +
       "far behind them, golden evening light.",
     bewegung:
-      "They keep their natural expression from the photo — no exaggerated grin, no invented " +
-      "teeth — and gently present the chocolate cake slightly towards the camera. Subtle " +
+      "They keep the calm neutral expression from the photo — no smile added, no grin, no " +
+      "invented teeth — and gently present the chocolate cake slightly towards the camera. Subtle " +
       "natural movement of head, hair and shoulders, the candle flames flicker softly in " +
       "the evening air. Elegant, festive rooftop energy.",
   },
@@ -126,8 +126,8 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "Golden balloons floating behind them, fine gold confetti falling through the air, " +
       "bright warm party light, soft cream background.",
     bewegung:
-      "They keep their natural expression from the photo — no exaggerated grin, no invented " +
-      "teeth — and gently present the golden cake slightly towards the camera. Subtle " +
+      "They keep the calm neutral expression from the photo — no smile added, no grin, no " +
+      "invented teeth — and gently present the golden cake slightly towards the camera. Subtle " +
       "natural movement of head, hair and shoulders, the candle flames flicker softly and " +
       "the confetti drifts down behind them. Bright joyful celebratory energy.",
   },
@@ -162,8 +162,11 @@ export function geburtstagAvatarPrompt(look: GeburtstagLook): string {
        Mund bleibt exakt wie auf dem Kundenfoto — zeigt es Zaehne, bleiben SEINE Zaehne;
        ist es geschlossen, wird keins dazuerfunden. Erfundene Zaehne sind der schnellste
        Weg, ein Gesicht fremd zu machen. */
-    "keeping the exact same natural facial expression and mouth as in the reference " +
-    "photo — do not change the smile, never invent or alter teeth" +
+    /* NEUTRAL, NICHT LAECHELND (Owner 08.08.2026: „es ist ein übertriebenes lächeln" →
+       „neutraler Ausdruck ja"). Jede Aufforderung zum Laecheln laedt das Modell ein, den
+       Mund neu zu bauen — und mit ihm Zaehne, die es nie gesehen hat. */
+    "with a calm neutral expression, exactly the same face and mouth as in the reference " +
+    "photo — do not add or widen a smile, never invent or alter teeth" +
     `, ${haltung}. ` +
     `${look.kleidung} Fully and modestly covered, full coverage guaranteed. ` +
     `${look.umgebung} No text, no letters, no logos anywhere in the image.`
