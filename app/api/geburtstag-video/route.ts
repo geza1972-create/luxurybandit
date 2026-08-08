@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
@@ -202,12 +203,37 @@ export async function POST(request: Request) {
    * lieber ein unähnlicheres Video als gar keins.
    */
   const H = { "X-Api-Key": heygen };
-  const hey = await heygenLookBauen(H, foto, look);
-  let lookId = hey.lookId ?? "";
+  /**
+   * DER LOOK WIRD WIEDERVERWENDET (Owner 08.08.2026: „heygen konto ist leer. Wieso …
+   * Ein Video kostet doch nur ein paar cent"). Der Look-Schritt (Foto-Avatar +
+   * Prompt-Bild) ist der teure Teil der Kette — und er lief bei JEDEM Neu-Rendern
+   * desselben Auftrags erneut, auch beim Wachhund. Jetzt merkt sich der Auftrag seinen
+   * fertigen Look; wiederverwendet wird NUR, wenn Look-Wahl UND Gesichtsbild identisch
+   * sind (Kurzhash) — ein neues Gesicht oder ein anderer Look baut sauber neu.
+   */
+  const genIdStr = String(body.genId ?? "").trim();
+  const fotoHash = crypto.createHash("sha1").update(foto).digest("hex").slice(0, 16);
+  let lookId = "";
+  let lookNeuGebaut = false;
+  if (genIdStr) {
+    try {
+      const alte = await readKissLog();
+      const e = alte.find(x => x.id === genIdStr);
+      if (e?.heygenLookId && e.heygenLookFuer === look.id && e.heygenLookFoto === fotoHash) {
+        lookId = e.heygenLookId;
+      }
+    } catch { /* dann eben neu bauen */ }
+  }
   /** Das Poster-Bild der gewählten Strecke — HeyGen-Look-Vorschau oder OpenAI-Avatar. */
-  let posterQuelle: Buffer | undefined = hey.poster;
+  let posterQuelle: Buffer | undefined;
   if (!lookId) {
-    console.warn("[geburtstag-video] HeyGen-Look scheiterte, OpenAI-Rueckfall:", hey.error);
+    const hey = await heygenLookBauen(H, foto, look);
+    lookId = hey.lookId ?? "";
+    posterQuelle = hey.poster;
+    lookNeuGebaut = !!lookId;
+    if (!lookId) console.warn("[geburtstag-video] HeyGen-Look scheiterte, OpenAI-Rueckfall:", hey.error);
+  }
+  if (!lookId) {
     const avatar = await avatarBauen(foto, geburtstagAvatarPrompt(look));
     if (!avatar.bild) return NextResponse.json({ error: avatar.error }, { status: 502 });
     const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
@@ -307,26 +333,41 @@ export async function POST(request: Request) {
    */
   let posterUrl = "";
   try {
-    if (!posterQuelle) throw new Error("kein Posterbild");
-    /* Der Typ nach Magie-Bytes: Die HeyGen-Look-Vorschau kommt als webp, der
-       OpenAI-Rückfall als png — ein falsch beschrifteter Upload zeigt im <img> nichts. */
-    const pMime = posterQuelle[0] === 0x52 ? "image/webp" : posterQuelle[0] === 0xff ? "image/jpeg" : "image/png";
-    const pExt = pMime === "image/webp" ? "webp" : pMime === "image/jpeg" ? "jpg" : "png";
-    const pb = posterQuelle.buffer.slice(posterQuelle.byteOffset, posterQuelle.byteOffset + posterQuelle.byteLength) as ArrayBuffer;
-    const posterPfad = await uploadTryThisLookBytes("uploads", pb, pMime, pExt);
-    posterUrl = (await getSignedUrl(posterPfad).catch(() => "")) || "";
+    /* WIEDERVERWENDETER LOOK: kein neues Posterbild — das alte imagePath gilt weiter,
+       nur Startquittung und Stempel muessen trotzdem in den Auftrag. */
+    let posterPfad = "";
+    if (posterQuelle) {
+      /* Der Typ nach Magie-Bytes: Die HeyGen-Look-Vorschau kommt als webp, der
+         OpenAI-Rückfall als png — ein falsch beschrifteter Upload zeigt im <img> nichts. */
+      const pMime = posterQuelle[0] === 0x52 ? "image/webp" : posterQuelle[0] === 0xff ? "image/jpeg" : "image/png";
+      const pExt = pMime === "image/webp" ? "webp" : pMime === "image/jpeg" ? "jpg" : "png";
+      const pb = posterQuelle.buffer.slice(posterQuelle.byteOffset, posterQuelle.byteOffset + posterQuelle.byteLength) as ArrayBuffer;
+      posterPfad = await uploadTryThisLookBytes("uploads", pb, pMime, pExt);
+      posterUrl = (await getSignedUrl(posterPfad).catch(() => "")) || "";
+    }
     let personPfad = "";
-    try {
-      const fb = foto.buffer.slice(foto.byteOffset, foto.byteOffset + foto.byteLength) as ArrayBuffer;
-      personPfad = await uploadTryThisLookBytes("uploads", fb, "image/jpeg", "jpg");
-    } catch { /* das Gesicht ist Beigabe zum Poster — nie der Grund zu scheitern */ }
-    const genIdStr = String(body.genId ?? "").trim();
+    if (posterQuelle) {
+      try {
+        const fb = foto.buffer.slice(foto.byteOffset, foto.byteOffset + foto.byteLength) as ArrayBuffer;
+        personPfad = await uploadTryThisLookBytes("uploads", fb, "image/jpeg", "jpg");
+      } catch { /* das Gesicht ist Beigabe zum Poster — nie der Grund zu scheitern */ }
+    }
     if (genIdStr) {
       const entries = await readKissLog();
       const eintrag = entries.find(x => x.id === genIdStr);
       if (eintrag) {
-        eintrag.imagePath = posterPfad;
+        if (posterPfad) eintrag.imagePath = posterPfad;
         if (personPfad) eintrag.personPath = personPfad;
+        if (!posterUrl && eintrag.imagePath) {
+          posterUrl = (await getSignedUrl(eintrag.imagePath).catch(() => "")) || "";
+        }
+        /* Der frisch gebaute Look wird zum Besitz des Auftrags — das naechste Rendern
+           desselben Gesichts im selben Look ueberspringt den teuren Bild-Schritt. */
+        if (lookNeuGebaut && lookId) {
+          eintrag.heygenLookId = lookId;
+          eintrag.heygenLookFuer = look.id;
+          eintrag.heygenLookFoto = fotoHash;
+        }
         /**
          * DIE STARTQUITTUNG GEHOERT DEM SERVER (Owner 08.08.2026: „der hat gar nichts
          * gerendert, weil ich weg geklickt habe" — zum ZWEITEN Mal an einem Tag).

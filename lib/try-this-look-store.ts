@@ -1704,6 +1704,12 @@ export type KissLogEntry = {
   /** Wann zuletzt ein fertiges Video geschrieben wurde — Gegenstueck zum Startstempel:
    *  rendert = Start juenger als Fertig. */
   videoFertigAt?: string;
+  /** Der fertig gebaute HeyGen-Look dieses Auftrags — Neu-Rendern ueberspringt damit
+   *  Avatar+Look (der teure Teil, Owner 08.08.: "heygen konto ist leer"). Gilt nur,
+   *  solange Look-Wahl und Gesichtsbild unveraendert sind. */
+  heygenLookId?: string;
+  heygenLookFuer?: string;   // Look-Kennung (blacktie/fliege/...)
+  heygenLookFoto?: string;   // sha1-Kurzhash des Kundenfotos
   /**
    * WIE VIELE VIDEOS DIESER BEZAHLTE AUFTRAG SCHON GEZOGEN HAT (Owner 30.07.2026).
    *
