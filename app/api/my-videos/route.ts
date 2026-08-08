@@ -112,11 +112,23 @@ export async function GET(request: Request) {
       // BEIDES gehört ihm (Owner 30.07.2026: „nein, das macht man nicht so. Du speicherst
       // das auch für ihn") — sein hochgeladenes Foto UND das Ergebnis. Eigene Kennung je
       // Eintrag, sonst kollidieren die beiden in der Liste.
-      const paare = await Promise.all(meine.slice(0, 60).map(async (e: KissLogEntry) => ([
+      const paare = await Promise.all(meine.slice(0, 60).map(async (e: KissLogEntry) => {
+        /**
+         * IN ARBEIT (Owner 08.08.2026: „es muss in der galerie gezeigt werden dass ein
+         * video raendert. Damit der user es weiss"). Bezahlt ohne Video heisst: die Kette
+         * laeuft (oder der Wachhund holt sie nach). Die Kachel bekommt das Standbild als
+         * Rueckfall — vorher wurde sie ohne `imagePath` GANZ herausgefiltert, und der
+         * Kaeufer sah nach dem Wegklicken nur Leere.
+         */
+        const laufend = !!e.paid && !e.videoUrl;
+        return ([
         {
           id: e.id,
-          imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
+          imageUrl: (e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "")
+            || (laufend && (e.modelPath || e.personPath)
+              ? await getSignedUrl(String(e.modelPath || e.personPath)).catch(() => "") : ""),
           videoUrl: e.videoUrl || "",
+          ...(laufend ? { rendert: true } : {}),
           name: e.modelName || "",
           createdAt: e.createdAt || "",
           source: "kiss",
@@ -155,7 +167,8 @@ export async function GET(request: Request) {
           warnung: e.altersWarnung || "",
           alter: e.altersGeschaetzt || 0,
         },
-      ])));
+      ]);
+      }));
       return paare.flat();
     } catch { return []; }
   })();

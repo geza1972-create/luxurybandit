@@ -109,7 +109,9 @@ export default function WerkAnsicht({ id }: { id: string }) {
           <div className="relative">
             {video ? (
               <EinladungAnsicht id="" videoUrl={video} zaehlen={false}
-                musik={musikFuer(theme)} tonAutomatisch
+                {...(musikFuer(theme)
+                  ? { musik: musikFuer(theme), tonAutomatisch: true }
+                  : { originalton: true, schleife: false, musik: "" })}
                 tonText={K.ton} tonAusText={K.tonAus} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Wallet, Images, AlertTriangle } from "lucide-react";
-import { guthabenLesen, geraetAdresse, type Gestrandet } from "@/lib/guthaben-konto";
+import { guthabenLesen, geraetAdresse, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
 import { AUFLADE_STUFEN, eur } from "@/lib/pricing";
 
 /**
@@ -108,6 +108,37 @@ export default function GuthabenChip() {
     setBusy(0);
   };
 
+  /**
+   * DER PULS AM GALERIE-CHIP (Owner 08.08.2026: „und muss auch auf das Galerie Chip ein
+   * punkt pulsieren"). Solange ein bezahlter Auftrag ohne fertiges Video laeuft
+   * (`rendert` aus /api/my-videos), traegt der Chip einen pulsierenden Goldpunkt — der
+   * Kaeufer sieht ohne die Galerie zu oeffnen, dass gearbeitet wird. Nachgefragt wird
+   * nur, solange wirklich etwas laeuft (alle 30 s), sonst einmal je Anlass: Seitenstart
+   * und jede Guthaben-Meldung des Trichters (die Zahlung ist der Startschuss).
+   */
+  const [rendert, setRendert] = useState(false);
+  useEffect(() => {
+    let weg = false;
+    let takt: ReturnType<typeof setTimeout> | null = null;
+    const pruefen = async () => {
+      try {
+        let device = "";
+        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+        const mail = aktiveAdresse();
+        if (!device && !mail) { if (!weg) setRendert(false); return; }
+        const d = await fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" }).then(r => r.json());
+        if (weg) return;
+        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean }) => x.rendert === true);
+        setRendert(laeuft);
+        if (laeuft) takt = setTimeout(() => { void pruefen(); }, 30_000);
+      } catch { /* Anzeige-Schmuck — ein Netzfehler darf nichts kaputtmachen */ }
+    };
+    void pruefen();
+    const anlass = () => { void pruefen(); };
+    window.addEventListener("lb-guthaben-neu", anlass);
+    return () => { weg = true; if (takt) clearTimeout(takt); window.removeEventListener("lb-guthaben-neu", anlass); };
+  }, []);
+
   useEffect(() => {
     let weg = false;
     const holen = () => {
@@ -188,9 +219,11 @@ export default function GuthabenChip() {
             : `${links} 🎬`}
       </span>
       <Link href="/my-gallery" aria-label="My Gallery"
-        className={`${chip} border-white/20 bg-white/5 text-white/85`}>
+        className={`relative ${chip} border-white/20 bg-white/5 text-white/85`}>
         <Images className="h-3.5 w-3.5" />
         Galerie
+        {/* Der Puls: dort entsteht gerade etwas. Gold wie der Akzent, nie ein zweiter Farbton. */}
+        {rendert && <span aria-hidden className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-[#f6cf51]" />}
       </Link>
 
       {offen && (

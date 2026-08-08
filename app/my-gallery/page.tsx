@@ -41,6 +41,8 @@ type Item = {
   type?: "video" | "slide";   // Try-on-Video vs. Card-Studio-Slide (Urlaub/Peter-Fotos)
   imageUrl: string;
   videoUrl?: string;
+  /** Bezahlt, Video noch in Arbeit — die Kachel sagt es (Owner 08.08.2026). */
+  rendert?: boolean;
   lookName?: string;
   curatorId?: string;
   curatorName?: string;
@@ -274,9 +276,10 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
+              rendert: b.rendert === true,
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
@@ -559,6 +562,13 @@ export default function MyGalleryPage() {
                 {selectMode && (
                   <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
                 )}
+                {/* IN ARBEIT (Owner 08.08.2026: „damit der user es weiss"): der Streifen
+                    sagt, dass hier gerade gerendert wird — Kreisel nie ohne Wort (CI). */}
+                {it.rendert && !it.videoUrl && (
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Video entsteht …
+                  </span>
+                )}
                 {it.videoUrl && (
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">
                     <Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" />
@@ -716,8 +726,14 @@ export default function MyGalleryPage() {
                   }
                   video={
                     <div className="relative">
+                      {/* KEINE MUSIK UEBER DER STIMME (Owner 08.08.2026: „startet die musik
+                          statt die original stimme"). Beim Geburtstag IST die Stimme das
+                          Produkt — liefert die Themen-Tabelle kein Stueck (""), spielt der
+                          Originalton, ohne Schleife (lib/musik: birthday = ""). */}
                       <EinladungAnsicht id="" videoUrl={open.videoUrl} zaehlen={false}
-                        musik={musikFuer(open.theme || "kiss")} tonAutomatisch
+                        {...(musikFuer(open.theme || "kiss")
+                          ? { musik: musikFuer(open.theme || "kiss"), tonAutomatisch: true }
+                          : { originalton: true, schleife: false, musik: "" })}
                         tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus} />
                       <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
                       {/**

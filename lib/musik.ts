@@ -50,7 +50,14 @@ const NACH_THEMA: Record<string, string> = {
   holiday: STUECKE.sommer,
   bella: STUECKE.sommer,
   idol: STUECKE.weite,
-  birthday: STUECKE.sommer,
+  /**
+   * DER GEBURTSTAG HAT KEINE MUSIK (Owner 08.08.2026: „wenn ich das video öffne, startet
+   * die musik statt die original stimme" — und schon am 03.08.: „es muss die originale
+   * Stimme des Videos sein"). Die STIMME ist das Produkt; ein Sommer-Pop darüber begräbt
+   * genau das, wofür bezahlt wurde. Leer heisst: Originalton, keine Schleife — die
+   * Verbraucher (Galerie, WerkAnsicht) schalten bei "" auf `originalton` um.
+   */
+  birthday: "",
   // Der Tanz bekommt die Spur, die der Owner selbst dazugelegt hat — nicht das Pop-Stueck aus
   // der Sammlung. „Surprise him" hiess frueher ein ruhiges Video mit Ansprache; seit dem
   // 03.08.2026 ist es ein Poledance im Neonlicht, und eine Akustikgitarre darunter waere so
