@@ -108,7 +108,7 @@ export default function WerkAnsicht({ id }: { id: string }) {
         video={
           <div className="relative">
             {video ? (
-              <EinladungAnsicht id="" videoUrl={video} zaehlen={false}
+              <EinladungAnsicht id="" videoUrl={video} poster={bild || undefined} zaehlen={false}
                 {...(musikFuer(theme)
                   ? { musik: musikFuer(theme), tonAutomatisch: true }
                   : { originalton: true, schleife: false, musik: "" })}

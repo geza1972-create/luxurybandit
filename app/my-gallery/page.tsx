@@ -730,7 +730,10 @@ export default function MyGalleryPage() {
                           statt die original stimme"). Beim Geburtstag IST die Stimme das
                           Produkt — liefert die Themen-Tabelle kein Stueck (""), spielt der
                           Originalton, ohne Schleife (lib/musik: birthday = ""). */}
-                      <EinladungAnsicht id="" videoUrl={open.videoUrl} zaehlen={false}
+                      {/* DAS POSTER REIST MIT (Owner 08.08.2026, mit Bild: „und das poster fehlt"):
+                          es LAG im Auftrag — die Ansicht hat es nur nicht an den Spieler
+                          gereicht, und bis zum ersten Tipp stand eine braune Flaeche. */}
+                      <EinladungAnsicht id="" videoUrl={open.videoUrl} poster={open.imageUrl || undefined} zaehlen={false}
                         {...(musikFuer(open.theme || "kiss")
                           ? { musik: musikFuer(open.theme || "kiss"), tonAutomatisch: true }
                           : { originalton: true, schleife: false, musik: "" })}
