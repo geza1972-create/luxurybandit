@@ -787,15 +787,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           setNimmtAuf(false); setKameraAus(true); setAufnahmeFehler(SW.kameraAus);
           return;
         }
-        /* 5 Sekunden (Owner 08.08.2026: „5 sekunden reichen") — HeyGen nimmt 3 Credits
-           je Sekunde; der Deckel haelt jedes Video bei maximal ~15 Credits (~1,20 $).
-           Der kurze Satz braucht gesprochen ~4 s. */
-        setRestSek(5);
+        /* KEIN KURZ-DECKEL (Owner 08.08.2026, Korrektur: „Ich sage was ich will. Du musst
+           nie Aufnahmedauer begrenzen") — niemandem wird das Wort abgeschnitten. Die 12
+           Sekunden sind die TECHNISCHE Grenze (Daten-URL im JSON-Koerper, Vercel ~4,5 MB),
+           kein Produktwunsch. Preisfolge bewusst getragen: ~3 HeyGen-Credits je
+           gesprochener Sekunde. */
+        setRestSek(12);
         const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-        setTimeout(() => clearInterval(takt), 5500);
+        setTimeout(() => clearInterval(takt), 12500);
         /* Zwölf Sekunden reichen für den Satz zweimal — ein vergessener Stopp soll keine
            Datei erzeugen, die das Tor abweist. */
-        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 5000);
+        setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 12000);
       }, 1000);
     } catch (e) {
       /**
