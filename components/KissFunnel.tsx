@@ -2598,6 +2598,44 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selPhoto, photo, videoUrl, videoBusy, bezahlt]);
 
+  /**
+   * DER BEHARRLICHE STARTER — der bezahlte Auftrag laeuft los, sobald er KANN.
+   *
+   * Owner 08.08.2026, zum dritten Mal an einem Tag: „Rendering wurde unterbrochen … dann
+   * aber habe ich wieder auf weiter gedrueckt aber es wurde angenommen die generierung."
+   * GEMESSEN am Auftrag 82e42de5: Aufladung 20:42:46, Abbuchung 20:43:04, Start erst
+   * 20:44:08 — die 64 Sekunden dazwischen waren sein zweiter Klick.
+   *
+   * WARUM DER EINZELNE ANSTOSS NICHT REICHT: Nach der Rueckkehr von der Kasse laufen drei
+   * Dinge nebeneinander los — das Standbild kommt aus dem Geraetespeicher zurueck, der
+   * Kontostand wird frisch gelesen, und der vorige Lauf raeumt sein `videoBusy` ab. Wer in
+   * DIESEM Moment einmal anklopft, trifft mit hoher Wahrscheinlichkeit einen Zustand, in
+   * dem `kussVideo` still zurueckkommt. Der Effekt oben ist das Netz dafuer, haengt aber an
+   * einer Zustands-AENDERUNG: War das Standbild schon da, aendert sich nichts mehr, und
+   * niemand ruft je wieder.
+   *
+   * Also klopft der Starter nach — eine halbe Minute lang, alle 400 ms, und hoert sofort
+   * auf, sobald es gelaufen ist. Das ist gefahrlos: `kussVideo` hat seine eigenen Waechter
+   * (`videoBusy`, `fotosDa`), und der Auftrag ist serverseitig idempotent.
+   */
+  const fotosDaRef = useRef(false);
+  const videoBusyRef = useRef(false);
+  const videoUrlRef = useRef("");
+  useEffect(() => { fotosDaRef.current = fotosDa; }, [fotosDa]);
+  useEffect(() => { videoBusyRef.current = videoBusy; }, [videoBusy]);
+  useEffect(() => { videoUrlRef.current = videoUrl; }, [videoUrl]);
+
+  const bezahltenAuftragStarten = () => {
+    let versuche = 0;
+    const klopfen = () => {
+      if (videoUrlRef.current || videoBusyRef.current) return;   // laeuft schon oder ist fertig
+      if (fotosDaRef.current) { nachZahlungLiefern.current = false; void kussVideo(); return; }
+      if (++versuche > 75) return;                                // ~30 s, dann uebernimmt der Server
+      setTimeout(klopfen, 400);
+    };
+    klopfen();
+  };
+
   const einladungAnlegen = async () => {
     if ((!videoUrl && !bild) || !einlSie.trim() || !einlEr.trim() || einlBusy) return;
     setEinlBusy(true);
@@ -2742,7 +2780,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * (`videoBusy`, `fotosDa`) und darf gefahrlos direkt gerufen werden. Der Wachhund
          * bleibt als Netz stehen — er greift, wenn die Fotos erst spaeter zurueckkommen.
          */
-        void kussVideo();
+        bezahltenAuftragStarten();
         return;
       }
       /**
@@ -2859,6 +2897,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // also nach der Zahlung immer sofort liefern, Dialog offen oder nicht.
           if (einmal === "once") nachZahlungLiefern.current = true;
           else if (!stufenOffen) nachZahlungLiefern.current = true;
+          /* Nicht nur die Marke setzen und hoffen, dass sich noch ein Zustand aendert —
+             nachklopfen, bis es laeuft (siehe `bezahltenAuftragStarten`). */
+          if (nachZahlungLiefern.current) bezahltenAuftragStarten();
           return;
         }
         /**
