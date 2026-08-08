@@ -20,13 +20,13 @@ import { musikFuer } from "@/lib/musik";
  */
 
 const TEXTE: Record<string, { cta: string; zurueck: string; hinweis: string; privat: string; laden: string }> = {
-  de: { cta: "Mach auch du eins — gratis", zurueck: "Kuss zurückschicken 💋", hinweis: "Erstellt mit LuxuryBandit", privat: "Diese Karte ist privat.", laden: "Einen Moment …" },
-  en: { cta: "Make yours too — free", zurueck: "Send a kiss back 💋", hinweis: "Made with LuxuryBandit", privat: "This card is private.", laden: "One moment …" },
-  ro: { cta: "Fă și tu unul — gratuit", zurueck: "Trimite un sărut înapoi 💋", hinweis: "Creat cu LuxuryBandit", privat: "Acest card este privat.", laden: "Un moment …" },
-  es: { cta: "Haz el tuyo — gratis", zurueck: "Devolver el beso 💋", hinweis: "Creado con LuxuryBandit", privat: "Esta tarjeta es privada.", laden: "Un momento …" },
-  fr: { cta: "Fais le tien — gratuit", zurueck: "Renvoyer un baiser 💋", hinweis: "Créé avec LuxuryBandit", privat: "Cette carte est privée.", laden: "Un instant …" },
-  pt: { cta: "Faz o teu — grátis", zurueck: "Devolver o beijo 💋", hinweis: "Criado com LuxuryBandit", privat: "Este cartão é privado.", laden: "Um momento …" },
-  it: { cta: "Crea il tuo — gratis", zurueck: "Rimanda un bacio 💋", hinweis: "Creato con LuxuryBandit", privat: "Questa card è privata.", laden: "Un attimo …" },
+  de: { cta: "Mach auch du eins", zurueck: "Kuss zurückschicken 💋", hinweis: "Erstellt mit LuxuryBandit", privat: "Diese Karte ist privat.", laden: "Einen Moment …" },
+  en: { cta: "Make yours too", zurueck: "Send a kiss back 💋", hinweis: "Made with LuxuryBandit", privat: "This card is private.", laden: "One moment …" },
+  ro: { cta: "Fă și tu unul", zurueck: "Trimite un sărut înapoi 💋", hinweis: "Creat cu LuxuryBandit", privat: "Acest card este privat.", laden: "Un moment …" },
+  es: { cta: "Haz el tuyo", zurueck: "Devolver el beso 💋", hinweis: "Creado con LuxuryBandit", privat: "Esta tarjeta es privada.", laden: "Un momento …" },
+  fr: { cta: "Fais le tien", zurueck: "Renvoyer un baiser 💋", hinweis: "Créé avec LuxuryBandit", privat: "Cette carte est privée.", laden: "Un instant …" },
+  pt: { cta: "Faz o teu", zurueck: "Devolver o beijo 💋", hinweis: "Criado com LuxuryBandit", privat: "Este cartão é privado.", laden: "Um momento …" },
+  it: { cta: "Crea il tuo", zurueck: "Rimanda un bacio 💋", hinweis: "Creato con LuxuryBandit", privat: "Questa card è privata.", laden: "Un attimo …" },
 };
 
 /**
@@ -132,10 +132,33 @@ export default function WerkAnsicht({ id }: { id: string }) {
           Gratis-Bild mehr, er laeuft ueber das Guthaben. Der alte Text haette jeden
           Empfaenger mit einem Versprechen hergelockt, das der Trichter nicht mehr einloest —
           dieselbe Luege, die auf der Themenseite schon gestrichen wurde. */}
-      <a href={`/themes/${theme === "wedding" ? "wedding" : theme === "idol" ? "idol" : "kiss"}?utm_source=share&utm_campaign=${theme === "kiss" ? "kuss-zurueck" : "werk"}`}
-        className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">
-        {theme === "kiss" ? T.zurueck : `${T.cta} 💋`}
-      </a>
+      {/**
+        * KEIN „GRATIS" UND KEIN KUSSMUND UNTER EINEM GEBURTSTAG (Owner 08.08.2026: „Da steht
+        * mach du auch eins gratis, das stimmt nicht").
+        *
+        * Zwei Fehler in einem Knopf: Das Wort „gratis" war beim Kuss schon gestrichen, stand
+        * aber weiter auf JEDEM anderen Thema — und keins davon hat einen Gratis-Weg. Und der
+        * Verweis fuehrte alles ausser Hochzeit und Idol auf die KUSS-Seite: Wer ein
+        * Geburtstagsvideo bekam und „auch eins machen" wollte, landete beim Kuss.
+        *
+        * Der Empfaenger geht jetzt dorthin, wo er das gerade Gesehene bekommt — mit dem
+        * Zeichen dieses Themas statt eines Kussmunds.
+        */}
+      {(() => {
+        const SEITE: Record<string, string> = {
+          kiss: "kiss", wedding: "wedding", idol: "idol",
+          birthday: "birthday", holiday: "holiday",
+          poledance: "surprise", surprise: "surprise",
+        };
+        const ZEICHEN: Record<string, string> = { birthday: "🎂", wedding: "💍", holiday: "🌴" };
+        const ziel = SEITE[theme] ?? "kiss";
+        return (
+          <a href={`/themes/${ziel}?utm_source=share&utm_campaign=${theme === "kiss" ? "kuss-zurueck" : "werk"}`}
+            className="lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">
+            {theme === "kiss" ? T.zurueck : `${T.cta} ${ZEICHEN[theme] ?? "💋"}`}
+          </a>
+        );
+      })()}
       <p className="mt-2 text-center text-[11px] font-bold text-white/50">{T.hinweis}</p>
     </div>
   );
