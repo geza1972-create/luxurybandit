@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Wallet, Images, AlertTriangle } from "lucide-react";
 import { guthabenLesen, geraetAdresse, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
 import { AUFLADE_STUFEN, eur } from "@/lib/pricing";
+import { kontoText, spracheAusCookie, buchungWort } from "@/lib/konto-i18n";
+import type { Lang } from "@/lib/lang";
 
 /**
  * DAS GUTHABEN IM KOPF DER SEITE (Owner 03.08.2026: „könnte das Guthaben im Header stehen?
@@ -23,29 +25,6 @@ import { AUFLADE_STUFEN, eur } from "@/lib/pricing";
  * Aktualisiert sich beim Fensterwechsel (`focus`): Wer im Kassen-Popup aufgeladen hat und
  * zurueckkommt, sieht den neuen Stand, ohne neu zu laden.
  */
-/**
- * WAS EINE BUCHUNG WAR — in Worten des Kunden, nicht in Schluesseln.
- *
- * Das THEMA schlaegt die Art: „Geburtstagsvideo" sagt ihm mehr als „Kauf". Steht ein Thema
- * nicht in der Tabelle (neues Topic), faellt die Zeile auf die Art zurueck — nie auf einen
- * technischen Schluessel.
- */
-const BUCHUNG: Record<string, string> = {
-  birthday: "Geburtstagsvideo",
-  kiss: "Kuss-Video",
-  poledance: "Poledance-Video",
-  holiday: "Urlaubs-Einladung",
-  wedding: "Hochzeits-Einladung",
-  gutschein: "Gutschein",
-  plan: "Ideen-Analyse",
-  aufladung: "Aufladung",
-  kauf: "Kauf",
-  erstattung: "Erstattung",
-  geschenk: "Geschenkt",
-  uebertrag: "Übertrag",
-  korrektur: "Korrektur",
-};
-
 export default function GuthabenChip() {
   const [cents, setCents] = useState<number | null>(null);
   /**
@@ -101,6 +80,15 @@ export default function GuthabenChip() {
    * das Aufladen daneben ist die Aufgabe des Dialogs.
    */
   const [posten, setPosten] = useState<{ at: string; cents: number; art: string; thema: string }[]>([]);
+  /**
+   * DIE SPRACHE DES KUNDEN (Owner 08.08.2026: „so jetzt muss alles auf englisch übersetzt
+   * werden und alle sprachen"). Erst nach dem ersten Rendern gelesen — der Cookie existiert
+   * auf dem Server nicht, und ein Unterschied zwischen beiden Durchgängen wäre ein
+   * Hydrations-Fehler. Bis dahin gilt Englisch, die Hausvorgabe.
+   */
+  const [lang, setLang] = useState<Lang>("en");
+  useEffect(() => { setLang(spracheAusCookie()); }, []);
+  const T = kontoText(lang);
   const [mail, setMail] = useState("");
   const [busy, setBusy] = useState(0);
   const [fehler, setFehler] = useState("");
@@ -123,7 +111,7 @@ export default function GuthabenChip() {
   const aufladen = async (stufe: number) => {
     const adresse = (mail || geraetAdresse()).trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) {
-      setFehler("Bitte gib deine E-Mail-Adresse an — auf sie wird das Guthaben gebucht.");
+      setFehler(T.adressePflicht);
       return;
     }
     setBusy(stufe); setFehler("");
@@ -150,9 +138,9 @@ export default function GuthabenChip() {
       /* Kein Popup, sondern derselbe Tab: Der Chip steht in der Kopfzeile jeder Seite, und
          ein Fenster, das der Browser blockiert, sähe hier aus wie ein toter Knopf. */
       if (r?.url) { window.location.href = String(r.url); return; }
-      setFehler(String(r?.error || "Die Kasse ging nicht auf. Bitte noch einmal."));
+      setFehler(String(r?.error || T.kasseFehler));
     } catch {
-      setFehler("Keine Verbindung. Bitte noch einmal.");
+      setFehler(T.keineVerbindung);
     }
     setBusy(0);
   };
@@ -264,7 +252,7 @@ export default function GuthabenChip() {
         * `role="button"` verhaelt sich fuer Maus, Tastatur und Vorleser gleich, faellt aber
         * nicht unter die Regel — und der Chip sieht wieder aus wie vorher.
         */}
-      <span role="button" tabIndex={0} aria-label="Guthaben"
+      <span role="button" tabIndex={0} aria-label={T.guthaben}
         onClick={oeffnen}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); oeffnen(); } }}
         className={`cursor-pointer ${chip} ${gestrandet
@@ -314,9 +302,9 @@ export default function GuthabenChip() {
               ohne dass hier eine zweite Farbtabelle steht. */}
           <div className="w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#111] p-6 text-center shadow-[0_24px_60px_rgba(0,0,0,0.6)]"
             onClick={e => e.stopPropagation()}>
-            <p className="text-[17px] font-black leading-snug text-white">Konto aufladen</p>
+            <p className="text-[17px] font-black leading-snug text-white">{T.kontoTitel}</p>
             <p className="mt-1 text-[12.5px] font-bold text-white/60">
-              Aktuell: {(stand / 100).toFixed(2).replace(".", ",")} €
+              {T.aktuell} {(stand / 100).toFixed(2).replace(".", ",")} €
             </p>
 
             {/* DIE ADRESSE ENTSCHEIDET, WO DAS GELD LANDET (Memory `guthaben-haengt-an-einer-adresse`).
@@ -352,13 +340,13 @@ export default function GuthabenChip() {
                  kein Rot, denn ein Kauf ist kein Fehler. Gescrollt wird innerhalb der
                  Liste, damit der Dialog auf jedem Handy stehen bleibt. */
               <div className="mt-5 border-t border-white/10 pt-3 text-left">
-                <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Kontoauszug</p>
+                <p className="text-[11px] font-black uppercase tracking-wide text-white/45">{T.auszug}</p>
                 <div className="mt-2 max-h-[168px] space-y-1.5 overflow-y-auto pr-1">
                   {posten.map((p, i) => (
                     <div key={`${p.at}-${i}`} className="flex items-baseline justify-between gap-3">
                       <span className="text-[12px] font-bold text-white/70">
-                        {new Date(p.at).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-                        <span className="ml-1.5 font-medium text-white/45">{BUCHUNG[p.thema] ?? BUCHUNG[p.art] ?? "Buchung"}</span>
+                        {new Date(p.at).toLocaleDateString(lang, { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                        <span className="ml-1.5 font-medium text-white/45">{buchungWort(lang, p.art, p.thema)}</span>
                       </span>
                       <span className={`shrink-0 text-[12.5px] font-black ${p.cents >= 0 ? "text-[#f6cf51]" : "text-white/80"}`}>
                         {p.cents >= 0 ? "+" : "−"}{(Math.abs(p.cents) / 100).toFixed(2).replace(".", ",")} €
@@ -370,11 +358,11 @@ export default function GuthabenChip() {
             )}
 
             <p className="mt-4 text-center text-[10.5px] font-medium leading-snug text-white/45">
-              Guthaben verfällt nie · keine Barauszahlung
+              {T.verfaelltNie}
             </p>
             <button type="button" onClick={() => setOffen(false)}
               className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-white/20 text-[13px] font-black text-white/85 active:scale-95 transition">
-              Zurück
+              {T.zurueck}
             </button>
           </div>
         </div>

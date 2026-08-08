@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
+import { kontoText, spracheAusCookie } from "@/lib/konto-i18n";
+import type { Lang } from "@/lib/lang";
 import { ThemenKreise } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -181,9 +183,7 @@ export default function MyGalleryPage() {
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        alert(d?.error === "Not yours."
-          ? "Dieses Stück gehört zu einer anderen Adresse oder einem anderen Gerät. Melde dich mit der Adresse an, mit der du es erzeugt hast."
-          : (d?.error || "Löschen hat nicht geklappt. Bitte noch einmal versuchen."));
+        alert(d?.error === "Not yours." ? T.loeschFehlerFremd : (d?.error || T.loeschFehler));
         return;
       }
       /**
@@ -202,7 +202,7 @@ export default function MyGalleryPage() {
        */
       window.location.reload();
     } catch {
-      alert("Keine Verbindung. Bitte noch einmal versuchen.");
+      alert(T.keineVerbindung);
     }
   };
 
@@ -254,6 +254,15 @@ export default function MyGalleryPage() {
    * öffnet"). Der Punkt ist eine Benachrichtigung, kein Dauerzustand: Wer die Galerie
    * gesehen hat, weiss Bescheid — erst ein NEUER Lauf (jüngeres createdAt) weckt ihn wieder.
    */
+  /**
+   * SIEBEN SPRACHEN AUCH NACH DEM KAUF (Owner 08.08.2026: „so jetzt muss alles auf englisch
+   * übersetzt werden und alle sprachen"). Erst nach dem ersten Rendern gelesen — sonst
+   * unterscheiden sich Server- und Browser-Durchgang (Hydration). Bis dahin Englisch.
+   */
+  const [lang, setLang] = useState<Lang>("en");
+  useEffect(() => { setLang(spracheAusCookie()); }, []);
+  const T = kontoText(lang);
+
   useEffect(() => {
     try { localStorage.setItem("lb_galerie_gesehen", new Date().toISOString()); } catch { /**/ }
     try { window.dispatchEvent(new Event("lb-galerie-gesehen")); } catch { /**/ }
@@ -412,7 +421,7 @@ export default function MyGalleryPage() {
         setTeilenText("");
       } else {
         await navigator.clipboard.writeText(url);
-        setTeilenText("Link kopiert");
+        setTeilenText(T.linkKopiert);
         setTimeout(() => setTeilenText(""), 2500);
       }
     } catch { /* abgebrochen — keine Meldung, er hat sich bewusst dagegen entschieden */ }
@@ -449,7 +458,7 @@ export default function MyGalleryPage() {
       <div className="px-4 pt-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-[22px] font-black">
-            My Gallery {items.length > 0 && <span className="text-white/70">{items.length}</span>}
+            {T.galerieTitel} {items.length > 0 && <span className="text-white/70">{items.length}</span>}
           </h1>
           {pin && items.length > 0 && (
             <button type="button" onClick={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
@@ -458,7 +467,7 @@ export default function MyGalleryPage() {
             </button>
           )}
         </div>
-        <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
+        <p className="mt-0.5 text-[13px] font-semibold text-white/60">{T.galerieHinweis}{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
 
         {/**
           * „ES LÄUFT NOCH" — GANZ OBEN, NICHT NUR AUF DER KACHEL (Owner 08.08.2026: „mich
@@ -475,9 +484,9 @@ export default function MyGalleryPage() {
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#f6cf51]" />
             <p className="text-[12.5px] font-black leading-snug text-[#f6cf51]">
               {items.filter(x => x.rendert).length > 1
-                ? `${items.filter(x => x.rendert).length} Videos entstehen gerade`
-                : "Dein Video entsteht gerade"}
-              <span className="ml-1 font-semibold text-[#f6cf51]/75">— es erscheint hier von selbst, du kannst die Seite schliessen.</span>
+                ? T.laeuftViele.replace("{n}", String(items.filter(x => x.rendert).length))
+                : T.laeuftEins}
+              <span className="ml-1 font-semibold text-[#f6cf51]/75">{T.laeuftDazu}</span>
             </p>
           </div>
         )}
@@ -562,7 +571,7 @@ export default function MyGalleryPage() {
            */
           <p className="py-16 text-center text-[13px] font-bold text-white/50">Melde dich an, um deine Try-ons zu sehen.</p>
         ) : items.length === 0 ? (
-          <p className="py-16 text-center text-[13px] font-bold text-white/40">Noch nichts hier — mach dein erstes Bild.</p>
+          <p className="py-16 text-center text-[13px] font-bold text-white/40">{T.leer}</p>
         ) : shown.length === 0 ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Keine Treffer für „{query}".</p>
         ) : (
@@ -624,7 +633,7 @@ export default function MyGalleryPage() {
                     sagt, dass hier gerade gerendert wird — Kreisel nie ohne Wort (CI). */}
                 {it.rendert && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Video entsteht …
+                    <Loader2 className="h-3 w-3 animate-spin" /> {T.entsteht}
                   </span>
                 )}
                 {/* NOCH KEIN BILD, ABER SCHON BEZAHLT: die Kachel bleibt trotzdem stehen
@@ -643,7 +652,7 @@ export default function MyGalleryPage() {
                 {!pin && !selectMode && String(it.source ?? "").startsWith("kiss") && (
                   <button type="button"
                     onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
-                    aria-label={loeschScharf === it.id ? "Wirklich löschen — nochmal tippen" : "Löschen"}
+                    aria-label={loeschScharf === it.id ? T.loeschenSicher : T.loeschen}
                     /* Rot IST die Rückfrage. Etwas größer, damit der zweite Tipp nicht danebengeht. */
                     className={`absolute bottom-1 right-1 z-10 grid place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${
                       loeschScharf === it.id ? "h-9 w-9 bg-red-600 ring-2 ring-white/70" : "h-7 w-7 bg-black/65"}`}>
@@ -818,7 +827,7 @@ export default function MyGalleryPage() {
                         */}
                       <button type="button" disabled={teilenBusy}
                         onClick={e => { e.stopPropagation(); void teilen(open); }}
-                        aria-label="Teilen"
+                        aria-label={T.teilen}
                         /**
                          * WEISSE SCHEIBE, GOLDENER PFEIL — GENAU WIE BEIM TANZ (Owner
                          * 03.08.2026: „nein, der Kreis war weiss und das Icon gold" · „etwas wie
