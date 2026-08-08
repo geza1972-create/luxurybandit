@@ -2959,6 +2959,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             <p className="lb-onmedia mt-2 text-[12px] font-bold opacity-85">
               {status || (bezahlt || videoBusy ? T.payMaking : T.payComplete)}
             </p>
+            {/* DAS GEGENTEIL EINER WARNUNG (Owner 08.08.2026: „dann muss stehen bitte nicht
+                wegklicken … aber ich hoffe das geht"). Es geht: Der Server trägt die
+                Startquittung selbst in den Auftrag (geburtstag-video), der Wachhund liefert
+                fertig, die Galerie zeigt den Lauf. Nur beim Geburtstag — dort ist dieser
+                Weg gebaut und bewiesen; anderswo wäre der Satz ein leeres Versprechen. */}
+            {selbstVideo && videoBusy && (
+              <p className="lb-onmedia mt-1.5 text-[11px] font-bold opacity-70">{T.schliessenOk}</p>
+            )}
             {/* EIN WEG ZURUECK, WENN DAS KASSENFENSTER ZU IST (Owner 31.07.2026: „es sieht so
                 aus als würde nichts mehr kommen").
                 Ohne ihn stand diese Meldung bis zu fuenf Minuten da — solange laeuft die

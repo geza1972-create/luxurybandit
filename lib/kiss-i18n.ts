@@ -144,6 +144,13 @@ export type KissText = {
   statusQuality: string; statusCouldNotStart: string; statusFailed: string; statusPayCancelled: string;
   statusTimeout: string; statusNetwork: string; statusNotWork: string;
   dressingHer: string; gettingReady: string; renderingVideo: string; makingVideo: (s: number) => string;
+  /**
+   * DER BERUHIGENDE SATZ UNTER DEM BALKEN (Owner 08.08.2026: „dann muss stehen bitte nicht
+   * wegklicken … aber ich hoffe das geht"). Es geht: Der Server stempelt die Startquittung
+   * selbst in den Auftrag, der Wachhund liefert fertig — hier steht darum das GEGENTEIL
+   * einer Warnung. Angezeigt nur, wo dieser Weg gebaut ist (Geburtstag).
+   */
+  schliessenOk: string;
   videoFailed: string; payPrep: string;
   // Gescheitert
   failTitle: string; failWithMail: (mail: string) => string; failNoMail: string; tryAgain: string;
@@ -326,7 +333,7 @@ const EN: KissText = {
   statusTimeout: "Timeout — please try again later.", statusNetwork: "Network error.",
   statusNotWork: "That did not work.",
   dressingHer: "Dressing her …", gettingReady: "Getting you ready …",
-  renderingVideo: "Rendering your video … (~1–3 min)", makingVideo: s => `Making your video … (${s} s)`,
+  renderingVideo: "Rendering your video … (~1–3 min)", schliessenOk: "You can close this page — your video will be waiting in your gallery.", makingVideo: s => `Making your video … (${s} s)`,
   videoFailed: "The video failed.", payPrep: "Payment received — preparing your video …",
   failTitle: "That did not come through",
   failWithMail: m => `We send it to ${m} as soon as it is ready.`,
@@ -455,7 +462,7 @@ const DE: KissText = {
   statusTimeout: "Zeitüberschreitung — bitte später noch einmal versuchen.", statusNetwork: "Netzwerkfehler.",
   statusNotWork: "Das hat nicht geklappt.",
   dressingHer: "Sie wird angezogen …", gettingReady: "Du wirst fertig gemacht …",
-  renderingVideo: "Dein Video wird erzeugt … (~1–3 Min.)", makingVideo: s => `Dein Video entsteht … (${s} s)`,
+  renderingVideo: "Dein Video wird erzeugt … (~1–3 Min.)", schliessenOk: "Du kannst die Seite schliessen — dein Video wartet danach in deiner Galerie.", makingVideo: s => `Dein Video entsteht … (${s} s)`,
   videoFailed: "Das Video ist fehlgeschlagen.", payPrep: "Zahlung erhalten — dein Video wird vorbereitet …",
   failTitle: "Das ist nicht durchgekommen",
   failWithMail: m => `Wir schicken es an ${m}, sobald es fertig ist.`,
@@ -584,7 +591,7 @@ const RO: KissText = {
   statusTimeout: "A durat prea mult — încearcă mai târziu.", statusNetwork: "Eroare de rețea.",
   statusNotWork: "Nu a mers.",
   dressingHer: "O îmbrăcăm …", gettingReady: "Te pregătim …",
-  renderingVideo: "Videoclipul tău se generează … (~1–3 min)", makingVideo: s => `Se face videoclipul … (${s} s)`,
+  renderingVideo: "Videoclipul tău se generează … (~1–3 min)", schliessenOk: "Poți închide pagina — videoclipul te va aștepta în galeria ta.", makingVideo: s => `Se face videoclipul … (${s} s)`,
   videoFailed: "Videoclipul a eșuat.", payPrep: "Plată primită — îți pregătim videoclipul …",
   failTitle: "Nu a ieșit de data asta",
   failWithMail: m => `Ți-l trimitem la ${m} imediat ce e gata.`,
@@ -713,7 +720,7 @@ const ES: KissText = {
   statusTimeout: "Ha tardado demasiado — inténtalo más tarde.", statusNetwork: "Error de red.",
   statusNotWork: "Eso no ha funcionado.",
   dressingHer: "Vistiéndola …", gettingReady: "Preparándote a ti …",
-  renderingVideo: "Creando tu vídeo … (~1–3 min)", makingVideo: s => `Creando tu vídeo … (${s} s)`,
+  renderingVideo: "Creando tu vídeo … (~1–3 min)", schliessenOk: "Puedes cerrar esta página — tu vídeo te esperará en tu galería.", makingVideo: s => `Creando tu vídeo … (${s} s)`,
   videoFailed: "El vídeo ha fallado.", payPrep: "Pago recibido — preparando tu vídeo …",
   failTitle: "Esta vez no ha salido",
   failWithMail: m => `Te lo enviamos a ${m} en cuanto esté listo.`,
@@ -842,7 +849,7 @@ const FR: KissText = {
   statusTimeout: "Cela a pris trop de temps — réessaie plus tard.", statusNetwork: "Erreur réseau.",
   statusNotWork: "Ça n'a pas marché.",
   dressingHer: "On l'habille …", gettingReady: "On te prépare …",
-  renderingVideo: "Ta vidéo est créée … (~1–3 min)", makingVideo: s => `Ta vidéo se fait … (${s} s)`,
+  renderingVideo: "Ta vidéo est créée … (~1–3 min)", schliessenOk: "Tu peux fermer cette page — ta vidéo t'attendra dans ta galerie.", makingVideo: s => `Ta vidéo se fait … (${s} s)`,
   videoFailed: "La vidéo a échoué.", payPrep: "Paiement reçu — ta vidéo se prépare …",
   failTitle: "Ça n'est pas passé cette fois",
   failWithMail: m => `Nous l'envoyons à ${m} dès que c'est prêt.`,
@@ -971,7 +978,7 @@ const PT: KissText = {
   statusTimeout: "Demorou demasiado — tenta mais tarde.", statusNetwork: "Erro de rede.",
   statusNotWork: "Isso não resultou.",
   dressingHer: "A vesti-la …", gettingReady: "A preparar-te …",
-  renderingVideo: "O teu vídeo está a ser criado … (~1–3 min)", makingVideo: s => `A fazer o teu vídeo … (${s} s)`,
+  renderingVideo: "O teu vídeo está a ser criado … (~1–3 min)", schliessenOk: "Podes fechar esta página — o teu vídeo ficará à tua espera na galeria.", makingVideo: s => `A fazer o teu vídeo … (${s} s)`,
   videoFailed: "O vídeo falhou.", payPrep: "Pagamento recebido — a preparar o teu vídeo …",
   failTitle: "Desta vez não saiu",
   failWithMail: m => `Enviamos-to para ${m} assim que estiver pronto.`,
@@ -1101,7 +1108,7 @@ const IT: KissText = {
   statusTimeout: "Ci è voluto troppo — riprova più tardi.", statusNetwork: "Errore di rete.",
   statusNotWork: "Non ha funzionato.",
   dressingHer: "La vestiamo …", gettingReady: "Ti prepariamo …",
-  renderingVideo: "Il tuo video nasce … (~1–3 min)", makingVideo: s => `Stiamo facendo il tuo video … (${s} s)`,
+  renderingVideo: "Il tuo video nasce … (~1–3 min)", schliessenOk: "Puoi chiudere questa pagina — il tuo video ti aspetterà nella tua galleria.", makingVideo: s => `Stiamo facendo il tuo video … (${s} s)`,
   videoFailed: "Il video è fallito.", payPrep: "Pagamento ricevuto — prepariamo il tuo video …",
   failTitle: "Stavolta non è passata",
   failWithMail: m => `Te lo mandiamo a ${m} appena è pronto.`,

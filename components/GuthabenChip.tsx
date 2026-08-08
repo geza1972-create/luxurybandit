@@ -133,8 +133,8 @@ export default function GuthabenChip() {
            gestartet ist — ISO-Zeiten vergleichen sich als Text. */
         let gesehen = "";
         try { gesehen = localStorage.getItem("lb_galerie_gesehen") ?? ""; } catch { /**/ }
-        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean; createdAt?: string }) =>
-          x.rendert === true && String(x.createdAt ?? "") > gesehen);
+        const laeuft = Array.isArray(d?.pictures) && d.pictures.some((x: { rendert?: boolean; rendertSeit?: string; createdAt?: string }) =>
+          x.rendert === true && String(x.rendertSeit || x.createdAt || "") > gesehen);
         setRendert(laeuft);
         if (laeuft) takt = setTimeout(() => { void pruefen(); }, 30_000);
       } catch { /* Anzeige-Schmuck — ein Netzfehler darf nichts kaputtmachen */ }

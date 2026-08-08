@@ -129,14 +129,20 @@ export async function GET(request: Request) {
          * und nie beim Gutschein.
          */
         const alterMs = Date.now() - new Date(e.createdAt || 0).getTime();
-        /* Owner 08.08., nachgeschärft: „es soll pulsieren NUR wenn was gerändert wird."
-           Zwei ehrliche Zustände: die Kette läuft nachweislich beim Anbieter (videoId da,
-           bis zu 1 h — länger rendert keine), ODER der Start ist gerade unterwegs (bezahlt,
-           unter 15 min — der HeyGen-Look braucht 1–2 min, bevor es eine Kennung gibt).
-           Bezahlt-ohne-Kennung und älter ist ein Support-Fall, kein Fortschritt. */
-        const laufend = !e.videoUrl && e.theme !== "gutschein" && Number.isFinite(alterMs)
-          && ((!!e.videoId && alterMs < 60 * 60 * 1000)
-            || (!!e.paid && !e.videoId && alterMs < 15 * 60 * 1000));
+        /**
+         * „NUR wenn was gerändert wird" (Owner 08.08., dreifach nachgeschärft — zuletzt:
+         * beim NEU-Rendern eines gelieferten Auftrags fehlte jedes Zeichen, weil das alte
+         * Video noch im Auftrag steht). Der ehrliche Zustand kommt aus der Buchhaltung des
+         * Wachhunds: `videoId ≠ videoDoneId` heisst OFFEN beim Anbieter — auch beim
+         * zweiten Lauf. Das Zeitfenster kommt vom Server-Startstempel (`videoStartAt`);
+         * ohne Stempel (Altfälle) zählt das Auftragsalter. Bezahlt ganz ohne Kennung
+         * zählt nur frisch (der HeyGen-Look braucht 1–2 min bis zur Kennung).
+         */
+        const startMs = e.videoStartAt ? Date.now() - Date.parse(e.videoStartAt) : alterMs;
+        const offenBeimAnbieter = !!e.videoId && e.videoId !== e.videoDoneId && !(!e.videoStartAt && e.videoUrl);
+        const laufend = e.theme !== "gutschein" && Number.isFinite(startMs)
+          && ((offenBeimAnbieter && startMs < 60 * 60 * 1000)
+            || (!e.videoUrl && !!e.paid && !e.videoId && alterMs < 15 * 60 * 1000));
         return ([
         {
           id: e.id,
@@ -144,7 +150,7 @@ export async function GET(request: Request) {
             || (laufend && (e.modelPath || e.personPath)
               ? await getSignedUrl(String(e.modelPath || e.personPath)).catch(() => "") : ""),
           videoUrl: e.videoUrl || "",
-          ...(laufend ? { rendert: true } : {}),
+          ...(laufend ? { rendert: true, rendertSeit: e.videoStartAt || e.createdAt || "" } : {}),
           name: e.modelName || "",
           createdAt: e.createdAt || "",
           source: "kiss",

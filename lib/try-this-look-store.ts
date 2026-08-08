@@ -1697,6 +1697,10 @@ export type KissLogEntry = {
    * dann, wenn `videoId` nicht `videoDoneId` ist.
    */
   videoDoneId?: string;
+  /** Wann der LETZTE Video-Start angestossen wurde — vom SERVER gestempelt (08.08.2026).
+   *  Daraus liest die Galerie ihr „Video entsteht"; ohne Stempel weiss beim Neu-Rendern
+   *  niemand, dass gerade gearbeitet wird (das alte Video steht ja noch im Auftrag). */
+  videoStartAt?: string;
   /**
    * WIE VIELE VIDEOS DIESER BEZAHLTE AUFTRAG SCHON GEZOGEN HAT (Owner 30.07.2026).
    *

@@ -327,6 +327,19 @@ export async function POST(request: Request) {
       if (eintrag) {
         eintrag.imagePath = posterPfad;
         if (personPfad) eintrag.personPath = personPfad;
+        /**
+         * DIE STARTQUITTUNG GEHOERT DEM SERVER (Owner 08.08.2026: „der hat gar nichts
+         * gerendert, weil ich weg geklickt habe" — zum ZWEITEN Mal an einem Tag).
+         *
+         * Bisher meldete der BROWSER die Kennung nach dem Startaufruf zurueck — der dauert
+         * mit dem HeyGen-Look 1–2 Minuten, und wer in der Zeit wegklickt, nimmt die
+         * Kennung mit ins Grab: Der Wachhund haelt den Auftrag fuer erledigt (das alte
+         * Video steht ja drin) und liefert nie. Jetzt stempelt die Route selbst:
+         * `videoId` macht den Auftrag fuer den Wachhund OFFEN (videoId ≠ videoDoneId),
+         * `videoStartAt` gibt der Galerie ihr „Video entsteht".
+         */
+        eintrag.videoId = `hg:${videoId}`;
+        eintrag.videoStartAt = new Date().toISOString();
         await writeKissLog(entries);
       }
     }

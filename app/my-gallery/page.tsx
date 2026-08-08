@@ -574,7 +574,7 @@ export default function MyGalleryPage() {
                 )}
                 {/* IN ARBEIT (Owner 08.08.2026: „damit der user es weiss"): der Streifen
                     sagt, dass hier gerade gerendert wird — Kreisel nie ohne Wort (CI). */}
-                {it.rendert && !it.videoUrl && (
+                {it.rendert && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
                     <Loader2 className="h-3 w-3 animate-spin" /> Video entsteht …
                   </span>

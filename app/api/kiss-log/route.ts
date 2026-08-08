@@ -274,6 +274,9 @@ export async function POST(request: Request) {
       }
       if (videoId) {
         e.videoId = videoId;
+        /* Startstempel fuer die Galerie („Video entsteht") — beim Geburtstag setzt ihn die
+           Route selbst; hier fuer alle anderen Wege (08.08.2026). */
+        e.videoStartAt = new Date().toISOString();
         /**
          * EIN NEUER AUFTRAG BRAUCHT WIEDER EIN NETZ (Owner 30.07.2026: „funktioniert das ganze
          * mit abo genauso?"). Ein Abonnent macht mehrere Videos hintereinander im selben
