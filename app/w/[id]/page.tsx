@@ -89,15 +89,27 @@ export async function generateMetadata(
    * erführe daran, dass es sie gibt.
    */
   let theme = "";
+  let eigenesPoster = false;
   try {
     const eintrag = (await readKissLog()).find(e => e.id === String(id ?? ""));
-    if (eintrag?.sharedAt) theme = String(eintrag.theme || "kiss");
+    if (eintrag?.sharedAt) {
+      theme = String(eintrag.theme || "kiss");
+      /* SEIN ERGEBNIS IN DIE VORSCHAU (Owner 08.08.2026: „es wird statt mein Poster das
+         allgemeine Poster versendet"). Nur bei einem GETEILTEN Werk und nur das ERZEUGTE
+         Bild — ausgeliefert über /api/w-poster, weil signierte Links ablaufen und eine
+         Chat-Vorschau Wochen später noch laden muss. */
+      eigenesPoster = !!eintrag.imagePath;
+    }
   } catch { /* Protokoll nicht lesbar → wie „nicht freigegeben" behandeln */ }
 
   if (!theme) return { robots: { index: false, follow: false }, title: "LuxuryBandit" };
 
   const tabelle = GRUSS[theme] ?? GRUSS.kiss;
   const g = tabelle[lang] ?? tabelle.en;
+  const basis = (process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com").replace(/\/$/, "");
+  const bild = eigenesPoster
+    ? `${basis}/api/w-poster?id=${encodeURIComponent(String(id))}`
+    : (VORSCHAUBILDER[theme] ?? VORSCHAUBILD);
   return {
     robots: { index: false, follow: false },
     title: g.titel,
@@ -106,9 +118,9 @@ export async function generateMetadata(
       title: g.titel,
       description: g.text,
       type: "website",
-      images: [{ url: VORSCHAUBILDER[theme] ?? VORSCHAUBILD, width: 1024, height: 1536 }],
+      images: [{ url: bild, width: 1024, height: 1536 }],
     },
-    twitter: { card: "summary_large_image", title: g.titel, description: g.text, images: [VORSCHAUBILDER[theme] ?? VORSCHAUBILD] },
+    twitter: { card: "summary_large_image", title: g.titel, description: g.text, images: [bild] },
   };
 }
 
