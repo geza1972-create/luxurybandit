@@ -228,6 +228,15 @@ export async function POST(request: Request) {
      Test-Laeufe) — der globale Look-Speicher zahlt den Bild-Schritt genau einmal. */
   const lookSchluessel = `${look.id}|${fotoHash}`;
   if (!lookId) lookId = await heygenLookNachschlagen(lookSchluessel);
+  /**
+   * PERSONAL-SPARMODUS (Owner 08.08.2026: „jetzt hat das Video 2,20 dollar gekostet" —
+   * jede NEUE Aufnahme ist ein neues Standbild, also ein neuer Hash, also ein neuer
+   * 1,80-$-Look; fuer Kunden ist das richtig, fuers Testen ruinoes). Personal-Laeufe
+   * (Admin-Schluessel reist auch im Vorschau-Modus mit) verwenden den zuletzt gebauten
+   * Look derselben Look-Wahl wieder — es ist ohnehin dasselbe Gesicht. Kundenlaeufe
+   * beruehrt das nie.
+   */
+  if (!lookId && staff) lookId = await heygenLookNachschlagen(`personal|${look.id}`);
   /** Das Poster-Bild der gewählten Strecke — HeyGen-Look-Vorschau oder OpenAI-Avatar. */
   let posterQuelle: Buffer | undefined;
   if (!lookId) {
@@ -235,7 +244,10 @@ export async function POST(request: Request) {
     lookId = hey.lookId ?? "";
     posterQuelle = hey.poster;
     lookNeuGebaut = !!lookId;
-    if (lookId) void heygenLookMerken(lookSchluessel, lookId);
+    if (lookId) {
+      void heygenLookMerken(lookSchluessel, lookId);
+      if (staff) void heygenLookMerken(`personal|${look.id}`, lookId);
+    }
     if (!lookId) console.warn("[geburtstag-video] HeyGen-Look scheiterte, OpenAI-Rueckfall:", hey.error);
   } else if (!posterQuelle) {
     /* Wiederverwendeter Look auf einem NEUEN Auftrag: das Poster ist die Look-Vorschau —
