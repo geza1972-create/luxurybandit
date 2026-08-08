@@ -76,29 +76,6 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
   },
   {
     /**
-     * DER GEWÄHLTE (Owner 07.08.2026, aus sechs Kandidaten: „Bild 3"). Goldballons,
-     * Pailletten, Blattgold-Torte — der lauteste der sechs und der einzige, der ohne
-     * Nachtlicht auskommt: Neon und Kerzen waren dunkel, und ein dunkles Gesicht ist
-     * genau das, woran die Video-Stufe schwächelt.
-     */
-    id: "konfetti",
-    name: "Gold & Confetti",
-    bild: "/Birthday/look-konfetti.jpg",
-    torte:
-      "a tall white birthday cake with gold leaf, a gold drip and three lit slim golden candles",
-    kleidung:
-      "Dress them in shimmering champagne-gold party attire that suits this person, " +
-      "with fine sequins catching the light.",
-    umgebung:
-      "Golden balloons floating behind them, fine gold confetti falling through the air, " +
-      "bright warm party light, soft cream background.",
-    bewegung:
-      "They smile warmly and gently present the golden cake slightly towards the camera. " +
-      "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
-      "and the confetti drifts down behind them. Bright joyful celebratory energy.",
-  },
-  {
-    /**
      * MANN MIT FLIEGE STATT MANN AUF DEM DACH (Owner 08.08.2026: „ich brauche auch eine
      * Vorlage Mann mit fliege. Statt Mann auf dem Dach"). Der Skyline-Selfie-Look ist
      * damit raus; alte Auftraege mit `skyline` fallen ueber `geburtstagLook` auf den
@@ -127,6 +104,29 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
       "They smile warmly and gently present the chocolate cake slightly towards the camera. " +
       "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
       "in the evening air. Elegant, festive rooftop energy.",
+  },
+  {
+    /**
+     * DER GEWÄHLTE (Owner 07.08.2026, aus sechs Kandidaten: „Bild 3"). Goldballons,
+     * Pailletten, Blattgold-Torte — der lauteste der sechs und der einzige, der ohne
+     * Nachtlicht auskommt: Neon und Kerzen waren dunkel, und ein dunkles Gesicht ist
+     * genau das, woran die Video-Stufe schwächelt.
+     */
+    id: "konfetti",
+    name: "Gold & Confetti",
+    bild: "/Birthday/look-konfetti.jpg",
+    torte:
+      "a tall white birthday cake with gold leaf, a gold drip and three lit slim golden candles",
+    kleidung:
+      "Dress them in shimmering champagne-gold party attire that suits this person, " +
+      "with fine sequins catching the light.",
+    umgebung:
+      "Golden balloons floating behind them, fine gold confetti falling through the air, " +
+      "bright warm party light, soft cream background.",
+    bewegung:
+      "They smile warmly and gently present the golden cake slightly towards the camera. " +
+      "Subtle natural movement of head, hair and shoulders, the candle flames flicker softly " +
+      "and the confetti drifts down behind them. Bright joyful celebratory energy.",
   },
 ];
 
