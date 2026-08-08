@@ -2730,6 +2730,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * Huerde zu viel, an der Leute aussteigen.
          */
         nachZahlungLiefern.current = true;
+        /**
+         * UND SOFORT SELBST ANSTOSSEN (Owner 08.08.2026, dreimal in Folge: „die generierung
+         * bricht nach zahlung ab dann muss ich noch mal neu generieren, aber dann gehts").
+         *
+         * GEMESSEN am Auftrag 52f1b4a1: angelegt und bezahlt um 14:04:43, Video-Start erst
+         * um 14:06:30 — die 107 Sekunden dazwischen waren sein zweiter Klick. Der Anstoss
+         * hing allein am Effekt-Wachhund unten, und der feuert nur, wenn sich eine seiner
+         * Abhaengigkeiten aendert UND die Marke im richtigen Augenblick gesetzt ist. Ein
+         * Rennen, das man nicht gewinnen muss: `kussVideo` hat seine eigenen Waechter
+         * (`videoBusy`, `fotosDa`) und darf gefahrlos direkt gerufen werden. Der Wachhund
+         * bleibt als Netz stehen — er greift, wenn die Fotos erst spaeter zurueckkommen.
+         */
+        void kussVideo();
         return;
       }
       /**
