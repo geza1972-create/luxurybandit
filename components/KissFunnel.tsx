@@ -816,16 +816,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     }
     setLaeuft(true);
     /**
-     * FUENF SEKUNDEN (Owner 08.08.2026, nach der Kostenmessung: „5 sekunden jetzt das
-     * reicht"). Ein PREIS-Deckel, kein technischer: HeyGen nimmt ~3 Credits je
-     * Videosekunde. Der Knopf sagt die Dauer vorher, damit niemand mitten im Satz
-     * ueberrascht wird. Abrechnung je Sekunde ist eine spaetere Owner-Idee — heute
-     * ausdruecklich NICHT gebaut („keine preisänderung, keine dynamischen preise").
+     * ACHT SEKUNDEN (Owner 09.08.2026: „mach die Videos 8 sek lang" — vorher fünf).
+     *
+     * Ein PREIS-Deckel, kein technischer. Die Rechnung dahinter, gemessen an der
+     * HeyGen-Abrechnung vom 08.08.: 0,05 Credits je Videosekunde ≈ 0,05 $. Fünf Sekunden
+     * waren 0,25 $, acht sind 0,40 $ — mit dem Bild (~15 ct) also rund 0,55 $ Warenkosten
+     * bei 4,99 € Verkaufspreis. Der Knopf sagt die Dauer vorher (`ctaVideo`, sieben
+     * Sprachen), damit niemand mitten im Satz überrascht wird.
+     *
+     * DIE ZAHL STEHT AN EINER STELLE — wer sie ändert, ändert den Zähler, den Auto-Stopp
+     * UND den Knopftext in `lib/kiss-i18n` (dort „8 s video — {geburtstag}").
      */
-    setRestSek(5);
+    const AUFNAHME_SEK = 8;
+    setRestSek(AUFNAHME_SEK);
     const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-    setTimeout(() => clearInterval(takt), 5500);
-    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, 5000);
+    setTimeout(() => clearInterval(takt), AUFNAHME_SEK * 1000 + 500);
+    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, AUFNAHME_SEK * 1000);
   };
 
   const aufnahmeStopp = () => {
