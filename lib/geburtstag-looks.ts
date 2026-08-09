@@ -50,9 +50,53 @@ export type GeburtstagLook = {
   umgebung: string;
   /** Was sich im Video bewegt (HeyGen `motion_prompt`). */
   bewegung: string;
+  /**
+   * DIE KACHEL IST DIE STIL-ANWEISUNG (Owner 09.08.2026, nach dem Vergleich mit ChatGPT).
+   *
+   * Steht hier ein Pfad, schickt die Route ZWEI Bilder an OpenAI: das Kundenfoto als
+   * Identität und dieses Bild als Bildwelt — und dazu einen KURZEN Text. Der Grund ist
+   * gemessen: Mit einem Bild plus 500 Wörtern Stilbeschreibung muss das Modell den Stil
+   * aus Worten erraten und landet bei „Fantasy-Palast mit fotorealistischem Gesicht".
+   * Sieht es den Stil, trifft es ihn.
+   *
+   * Für so einen Look sind `kleidung`/`umgebung`/`torte` NICHT die Anweisung — die Kachel
+   * ist es. Sie beschreiben dann nur noch, was zusätzlich im Bild sein soll.
+   */
+  stilBild?: string;
 };
 
 export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
+  {
+    /**
+     * DIE TRAUMWELT (Owner 09.08.2026, nach einem Vormittag Prompt-Vergleich: „ja, das ist
+     * besser" · „mach die Vorlage mit der rothaarigen Frau").
+     *
+     * Der Look, der das Urteil „es wirkt trocken" beantwortet. Die Kachel ist zugleich die
+     * STIL-VORLAGE (`stilBild`): Sie zeigt dieselbe Frau wie „Black Tie", aber vollständig
+     * gemalt — und genau diese Handschrift bekommt der Käufer auf sein eigenes Gesicht.
+     *
+     * Entstanden aus zwei Bild-Eingaben (Black-Tie-Kachel als Identität, eine erzeugte
+     * Stil-Platte als Bildwelt) plus acht Zeilen Text. Der entscheidende Satz darin:
+     * „Do not preserve photographic skin rendering. Preserve identity, transfer rendering
+     * style." Er löst den Widerspruch, an dem alle früheren Versuche scheiterten —
+     * Identität bewahren heisst für das Modell sonst „fotografisch bewahren", und dann
+     * steht ein Fotogesicht in einer Illustration.
+     */
+    id: "traum",
+    name: "Dream World",
+    bild: "/Birthday/look-traum.jpg",
+    stilBild: "/Birthday/look-traum.jpg",
+    torte:
+      "an extravagant surreal birthday cake with lit candles that belongs to the same " +
+      "fantasy world — a defined round tiered silhouette on a plate, clearly separated " +
+      "from the dress and the background",
+    kleidung: "",
+    umgebung: "",
+    bewegung:
+      "They keep the calm neutral expression from the photo — no smile added, no grin, no " +
+      "invented teeth — and gently present the cake slightly towards the camera. Bubbles " +
+      "drift, the water shimmers, the candle flames flicker. Joyful dreamlike energy.",
+  },
   {
     /**
      * DER ABGENOMMENE (Owner 07.08.2026: „alles passt perfekt" · „der Look und die Torte
@@ -138,6 +182,34 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
 export function geburtstagLook(id: unknown): GeburtstagLook {
   const gesucht = String(id ?? "").trim();
   return GEBURTSTAG_LOOKS.find(l => l.id === gesucht) ?? GEBURTSTAG_LOOKS[0];
+}
+
+/**
+ * DER KURZE PROMPT FÜR STIL-VORLAGEN-LOOKS (`stilBild`).
+ *
+ * Er sagt bewusst NICHT „preserve skin tone / facial structure": Das Bildmodell liest
+ * solche Sätze als „Gesicht fotografisch konservieren" und liefert dann ein Fotogesicht in
+ * einer gemalten Welt — der Fehler, an dem am 09.08. vier Versuche hintereinander
+ * gescheitert sind. Stattdessen wird Identität von Rendering getrennt: die Person kommt
+ * aus Bild 1, die Handschrift aus Bild 2.
+ */
+export function geburtstagStilPrompt(look: GeburtstagLook): string {
+  return (
+    "Use image 1 for the person's identity and image 2 for the visual art direction. " +
+    "Recreate the person from image 1 inside the artistic universe of image 2. " +
+    "They must remain recognizably the same person — same face, same hair, same overall " +
+    "likeness — but render their face, skin, hair, clothing, the cake and the surroundings " +
+    "in the SAME painterly-surreal visual language as image 2. " +
+    "Do not preserve photographic skin rendering. Do not place a photorealistic face into " +
+    "an illustrated background. The identity comes from image 1; the rendering style, " +
+    "colour language, texture, atmosphere and surrealism come from image 2. " +
+    `They are holding ${look.torte}. ` +
+    "The cake, the person and the environment must look as if they were painted by the " +
+    "same artist in one single artwork. Fully and modestly covered, full coverage " +
+    "guaranteed. One single image, not a collage, no second person. " +
+    "Avoid princess fantasy and royal palace portraiture. " +
+    "Preserve identity, transfer rendering style. No text, no letters, no watermark."
+  );
 }
 
 /** Das Bild-Gerüst mit den beiden Wachen — siehe die Erklärung oben. */

@@ -3,7 +3,7 @@ import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen } from "@/lib/try-this-look-store";
-import { geburtstagAvatarPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
+import { geburtstagAvatarPrompt, geburtstagStilPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
  * DIE GEBURTSTAGS-KETTE — der Kundenweg der am 07.08.2026 abgenommenen Vorlage
@@ -98,7 +98,7 @@ async function fotoBytes(person: string): Promise<Buffer | null> {
  * Fassung ihn kennt, aber der Aufruf sonst identisch bleibt. Lieber ein schwaecheres Bild
  * als ein toter bezahlter Auftrag.
  */
-async function avatarBauen(foto: Buffer, prompt: string): Promise<{ bild?: Buffer; error?: string }> {
+async function avatarBauen(foto: Buffer, prompt: string, stil?: Buffer): Promise<{ bild?: Buffer; error?: string }> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return { error: "OPENAI_API_KEY fehlt." };
   const modell = process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-2";
@@ -111,6 +111,16 @@ async function avatarBauen(foto: Buffer, prompt: string): Promise<{ bild?: Buffe
     /* Nur die ALTE Fassung kennt den Treue-Schalter; `gpt-image-2` lehnt ihn ab. */
     if (model !== "gpt-image-2") fd.append("input_fidelity", "high");
     fd.append("image[]", new Blob([new Uint8Array(foto)], { type: "image/jpeg" }), "person.jpg");
+    /**
+     * DAS ZWEITE BILD IST DIE BILDWELT (Owner 09.08.2026 — der Grund, warum sein
+     * ChatGPT-Ergebnis besser war als unseres).
+     *
+     * `images/edits` nimmt MEHRERE Bilder; wir haben immer nur eines geschickt und den
+     * Stil in Worte zu fassen versucht. Worte gegen ein Bild verliert man: Das Modell
+     * landete zuverlässig bei „Fantasy-Palast, fotorealistisches Gesicht". Sieht es die
+     * Handschrift, trifft es sie.
+     */
+    if (stil) fd.append("image[]", new Blob([new Uint8Array(stil)], { type: "image/jpeg" }), "stil.jpg");
     const r = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
     });
@@ -262,7 +272,20 @@ export async function POST(request: Request) {
    * Der Look-Speicher (heygen-looks.json) bleibt fuer die Rueckfall-Strecke stehen — er
    * greift nur, wenn OpenAI ausfaellt.
    */
-  const oa = await avatarBauen(foto, geburtstagAvatarPrompt(look));
+  /* Trägt der Look eine Stil-Vorlage, holen wir sie von unserer eigenen Adresse — sie
+     liegt als statische Datei im Repo, und ein Fehlschlag darf den Auftrag nicht töten. */
+  let stilBytes: Buffer | undefined;
+  if (look.stilBild) {
+    try {
+      const r = await fetch(new URL(look.stilBild, request.url).toString());
+      if (r.ok) stilBytes = Buffer.from(await r.arrayBuffer());
+    } catch { /* dann eben ohne — der lange Prompt unten trägt auch allein */ }
+  }
+  const oa = await avatarBauen(
+    foto,
+    stilBytes ? geburtstagStilPrompt(look) : geburtstagAvatarPrompt(look),
+    stilBytes,
+  );
   if (oa.bild) {
     const up = await fetch("https://upload.heygen.com/v1/talking_photo", {
       method: "POST", headers: { ...H, "Content-Type": "image/png" }, body: new Uint8Array(oa.bild),

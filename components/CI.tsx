@@ -993,6 +993,13 @@ export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }
               * Verhältnis die Datei hat.
               */}
             {/**
+              * DIE GROSSE KACHEL IST 160x213 (Owner 09.08.2026, mit Bild der Look-Wahl:
+              * „die sind hier zu gross"). Vorher 220x293 — davon passte auf einem iPhone
+              * genau EINE Kachel plus ein Streifen der naechsten auf den Schirm, und die
+              * Wahl sah aus wie ein einzelnes Bild statt wie eine Auswahl. Jetzt stehen
+              * zwei nebeneinander und die dritte lugt herein: Man SIEHT, dass es etwas zu
+              * waehlen gibt. Das Verhaeltnis 3:4 bleibt, damit kein Bild beschnitten wird.
+              *
               * NUR DIE FARBE WECHSELT, NIE DIE GEOMETRIE (Owner 07.08.2026, mit Bild: „oh
               * Mann, man versetzt niemals Bilder").
               *
@@ -1005,13 +1012,13 @@ export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }
               * wechselt ausschliesslich die Farbe. Der dunkle Abstandsring bleibt in beiden
               * Faellen: Ohne ihn verschwindet Gold auf einem goldenen Motiv.
               */}
-            <span className={`block overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b0a09] ${gross ? "h-[293px] w-[220px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
+            <span className={`block overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b0a09] ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
               ? "ring-[#f6cf51]"
               : "ring-white/15"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={b.bild} alt={b.name} className="block h-full w-full object-cover" />
             </span>
-            <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[220px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+            <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[160px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
               {b.name}
             </span>
           </button>

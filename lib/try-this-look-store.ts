@@ -2969,6 +2969,67 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
   return { credits: vc.balances[e], granted: true };
 }
 
+// ── DER AVATAR: EINE AUFNAHME, IMMER WIEDER VERWENDBAR ─────────────────────────────────
+/**
+ * DER AVATAR DES KUNDEN (Owner 09.08.2026: „ich will dass du das Video das die Leute
+ * hochladen Avatar nennst. Auch in der Galerie. Das kann später der User immer wieder
+ * benutzen auch für andere Tools, oder wenn er ein neues Video aufnimmt, dann wird es
+ * ersetzt.").
+ *
+ * WAS DER AVATAR IST: das Standbild aus seiner Aufnahme (sein Gesicht) und die Tonspur
+ * daraus (seine Stimme). Beides zusammen ist der Rohstoff JEDES Videos, das wir für ihn
+ * bauen — heute der Geburtstag, morgen jedes andere Thema. Ohne diesen Ort müsste er sich
+ * für jedes Video neu aufnehmen, obwohl sich sein Gesicht nicht geändert hat.
+ *
+ * EIGENE DATEI JE KONTO, wie die Geldbörse und die Outfits: Nur diese beiden Funktionen
+ * fassen sie an, also kann kein fremder Schreiber sie überbügeln (die Lehre vom 08.08.,
+ * [[delete-resurrection-merge-bug]]).
+ *
+ * ES GIBT IMMER NUR EINEN. „Eine neue Aufnahme ersetzt ihn" ist Absicht und keine
+ * Sparmassnahme: Zwei Gesichter zur Auswahl wären eine Frage, die niemand stellen wollte.
+ * Die Felder werden EINZELN überschrieben — wer nur eine neue Tonspur schickt, behält sein
+ * Bild.
+ */
+const AVATAR_DIR = "try-this-look/avatar";
+export type Avatar = { email: string; bildPfad?: string; tonPfad?: string; at?: string };
+
+function avatarPfad(e: string): string {
+  return `${AVATAR_DIR}/${Buffer.from(e).toString("base64url")}.json`;
+}
+
+export async function avatarLesen(email: string): Promise<Avatar | null> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e) return null;
+  try {
+    await ensureBucket();
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(avatarPfad(e))}`);
+    if (!res.ok) return null;
+    const t = await res.text();
+    if (!t.trim()) return null;
+    return JSON.parse(t) as Avatar;
+  } catch { return null; }
+}
+
+/** Bild und/oder Ton am Avatar ablegen. Fehlende Felder bleiben, wie sie waren. */
+export async function avatarMerken(email: string, teile: { bildPfad?: string; tonPfad?: string }): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  if (!e || (!teile.bildPfad && !teile.tonPfad)) return;
+  try {
+    const alt = (await avatarLesen(e)) ?? { email: e };
+    const neu: Avatar = {
+      email: e,
+      bildPfad: teile.bildPfad || alt.bildPfad,
+      tonPfad: teile.tonPfad || alt.tonPfad,
+      at: new Date().toISOString(),
+    };
+    await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(avatarPfad(e))}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body: JSON.stringify(neu),
+    });
+  } catch { /* der Avatar ist Komfort — ein Fehler hier darf keinen Kauf aufhalten */ }
+}
+
 // ── EURO-GELDBOERSE: EIGENE DATEI JE KONTO ─────────────────────────────────────────────
 /**
  * WARUM EINE EIGENE DATEI (08.08.2026, nach DREI Geldverlusten an EINEM Tag): Das Guthaben
