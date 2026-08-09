@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Wallet, Images, AlertTriangle } from "lucide-react";
 import { guthabenLesen, geraetAdresse, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { AUFLADE_STUFEN, eur } from "@/lib/pricing";
 import { kontoText, spracheAusCookie, buchungWort } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
@@ -135,7 +136,11 @@ export default function GuthabenChip() {
         method: "POST", headers: { "Content-Type": "application/json" },
         /* Die Gerätekennung reist mit: Wird die Aufladung gutgeschrieben, darf GENAU dieser
            Browser danach von diesem Konto zahlen (Riegel vom 09.08.2026). */
-        body: JSON.stringify({ aufladen: true, topupCents: stufe, email: adresse, device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(), returnTo: window.location.pathname }),
+        body: JSON.stringify({ aufladen: true, topupCents: stufe, email: adresse,
+          device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(),
+          /* Siehe KissFunnel: nur ein angemeldetes Konto sperrt das Feld bei Stripe. */
+          konto: !!getStoredAuthSession()?.access_token,
+          returnTo: window.location.pathname }),
       }).then(x => x.json());
       /* Kein Popup, sondern derselbe Tab: Der Chip steht in der Kopfzeile jeder Seite, und
          ein Fenster, das der Browser blockiert, sähe hier aus wie ein toter Knopf. */

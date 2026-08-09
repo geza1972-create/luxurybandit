@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen, avatarMerken } from "@/lib/try-this-look-store";
+import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen, avatarMerken, type KissLogEntry } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagStilPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
@@ -211,8 +211,36 @@ export async function POST(request: Request) {
    * härtere serverseitige Auftragsprüfung ist ein eigener, notierter Schritt).
    */
   const staff = await isAdminRequest(request);
-  if (!staff && !String(body.genId ?? "").trim()) {
-    return NextResponse.json({ error: "Erst bezahlen — dieser Weg kennt kein Gratis-Video." }, { status: 403 });
+  /**
+   * DER AUFTRAG MUSS BEZAHLT SEIN — NICHT NUR VORHANDEN (09.08.2026, an einem echten
+   * Kundenfall gefunden: Owner „geld wurde vom konto nicht abgezogen", und trotzdem lag das
+   * Video da).
+   *
+   * Hier stand nur: „ist überhaupt eine Auftragsnummer dabei?". Das ist kein Schutz, das ist
+   * eine Formalität — wer irgendeine Nummer mitschickt, bekam ein Video auf unsere Kosten
+   * (bei ihr: die Abbuchung scheiterte am falschen Preis, der Auftrag blieb unbezahlt, das
+   * Video entstand trotzdem). Ab jetzt wird der Auftrag GELESEN und `paid` verlangt.
+   *
+   * MIT GEDULD: Der Speicher liefert eine gerade geschriebene Datei für ein, zwei Sekunden
+   * noch veraltet aus — genau daran ist ihr erster Klick gescheitert. Drei Anläufe mit
+   * kurzer Pause kosten nichts und ersparen dem Käufer, der eben bezahlt hat, ein „erst
+   * bezahlen".
+   */
+  const genId = String(body.genId ?? "").trim();
+  if (!staff) {
+    if (!genId) {
+      return NextResponse.json({ error: "Erst bezahlen — dieser Weg kennt kein Gratis-Video." }, { status: 403 });
+    }
+    let auftrag: KissLogEntry | undefined;
+    for (let versuch = 0; versuch < 3; versuch++) {
+      auftrag = (await readKissLog().catch(() => [])).find(x => x.id === genId);
+      if (auftrag?.paid) break;
+      if (versuch < 2) await new Promise(r => setTimeout(r, 900));
+    }
+    if (!auftrag?.paid) {
+      console.warn("[geburtstag-video] unbezahlter Auftrag abgewiesen:", genId.slice(0, 8));
+      return NextResponse.json({ error: "Erst bezahlen — dieser Weg kennt kein Gratis-Video." }, { status: 403 });
+    }
   }
 
   const person = String(body.person ?? "");

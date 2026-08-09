@@ -272,6 +272,24 @@ export async function POST(request: Request) {
     if (e) {
       if (videoUrl) {
         e.videoUrl = videoUrl;
+        /**
+         * AUCH DER GEDULDIGE KUNDE BEKOMMT SEINE MAIL (09.08.2026, Owner zum Kundenfall
+         * bandiszidonia: „mail ist nicht verschickt worden bei der generierung").
+         *
+         * Die Liefermail hing bis heute AM WACHHUND — sie ging also nur an den, dessen
+         * Browser gestorben war. Wer brav auf der Seite blieb und zusah, wie sein Video
+         * fertig wurde, bekam nie eine: Sein Browser meldet das Ergebnis hierher, und hier
+         * stand kein Versand. Genau falsch herum — der geduldige Kunde ist der Regelfall.
+         *
+         * `videoMailedAt` verhindert die zweite Mail, falls der Wachhund später doch noch
+         * über denselben Auftrag läuft.
+         */
+        if (!e.videoMailedAt && (e.email || e.paidEmail)) {
+          const o = new URL(request.url).origin;
+          const schluessel = (process.env.TRY_THIS_LOOK_ADMIN_PIN ?? process.env.CRON_SECRET ?? "").trim();
+          void fetch(`${o}/api/kiss-deliver?genId=${encodeURIComponent(e.id)}&nurMail=1${schluessel ? `&key=${encodeURIComponent(schluessel)}` : ""}`,
+            { headers: { "cache-control": "no-store" } }).catch(() => {});
+        }
         // Der Browser hat DIESEN Auftrag zu Ende gebracht — der Server muss ihn nicht noch
         // einmal abholen und keine Mail schicken. Ohne die Marke bekäme der Kunde sein Video
         // zweimal: einmal auf dem Schirm, einmal per Post.

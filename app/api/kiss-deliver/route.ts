@@ -349,6 +349,21 @@ async function lauf(request: Request): Promise<NextResponse> {
   if (!(await darf(request))) return NextResponse.json({ error: "Not allowed." }, { status: 403 });
   const url = new URL(request.url);
   const nurId = String(url.searchParams.get("genId") ?? "").trim();
+  /**
+   * NUR DIE MAIL, KEIN RENDERN (09.08.2026): Der Browser hat das Video selbst zu Ende
+   * gebracht und meldet es über /api/kiss-log. Dann fehlt nur noch die Post — der Auftrag
+   * ist erledigt und darf hier NICHT als offen behandelt werden.
+   */
+  if (url.searchParams.get("nurMail") === "1" && nurId) {
+    const alle = await readKissLog();
+    const e = alle.find(x => x.id === nurId);
+    if (!e?.videoUrl || e.videoMailedAt) return NextResponse.json({ ok: true, mail: "nichts zu tun" });
+    const geschickt = await verschicken(request, { ...e });
+    if (geschickt) {
+      await writeKissLog(alle.map(x => (x.id === nurId ? { ...x, videoMailedAt: new Date().toISOString() } : x)));
+    }
+    return NextResponse.json({ ok: true, mail: geschickt ? "verschickt" : "keine Adresse" });
+  }
   const hop = Math.max(0, Number(url.searchParams.get("hop") ?? 0) || 0);
 
   const bis = Date.now() + RUNDE_MS;

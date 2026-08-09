@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -97,10 +97,23 @@ export async function POST(request: Request) {
         productName: "Account credit",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
-        // HIER WIEGT ES AM SCHWERSTEN: Die Aufladung schreibt echtes Geld auf eine Adresse.
-        // Eine an der Kasse vertippte Adresse hiesse Guthaben auf einem Konto, das dem Kunden
-        // nicht gehoert und das er nie wiedersieht.
-        email,
+        /**
+         * DER GAST TIPPT SEINE ADRESSE BEI STRIPE (Owner 09.08.2026: „ich finde es gut wenn
+         * Leute bei der Bezahlung in Stripe die E-Mail noch mal angeben dürfen oder
+         * korrigieren können … und das ist die E-Mail, die dann bei der Anmeldung zählt").
+         *
+         * WARUM DAS EIN TIPPSCHRITT MEHR SEIN MUSS: Stripe kann nicht beides. Geben wir
+         * `customer_email` mit, füllt Stripe das Feld — und SPERRT es. Damit ist der
+         * Tippfehler aus unserem Trichter endgültig; genau das war die Absicht (03.08.) und
+         * genau das ist die Falle: Vertippt er sich bei uns, liegt sein Geld für immer auf
+         * einer Adresse, die es nicht gibt.
+         *
+         * Deshalb jetzt zweigeteilt: Wer ANGEMELDET ist, hat eine geprüfte Adresse — sie
+         * kommt gesperrt mit, er tippt nichts. Ein GAST bekommt das Feld offen und schreibt
+         * dort seine echte Adresse. Was bei Stripe steht, gewinnt danach überall
+         * (Gutschrift, Auftrag, Konto) — siehe checkout-status.
+         */
+        ...(body.konto ? { email } : {}),
         /* DIE GERAETEKENNUNG REIST MIT (09.08.2026): Wird die Aufladung gutgeschrieben,
            gilt genau dieser Browser als bezahlt-und-vertraut. Das ist der einzige Weg auf
            die Vertrauensliste — und er kostet den Faelscher echtes Geld. */
@@ -132,9 +145,26 @@ export async function POST(request: Request) {
      * Findet sich der Auftrag nicht, gilt {once}. Das ist der billigere Weg und damit der
      * hoefliche Irrtum: Lieber einmal zu wenig verlangt als einem Kunden zu viel abgebucht.
      */
-    const auftrag = genId
-      ? await readKissLog().then(l => l.find(x => x.id === genId) ?? null).catch(() => null)
-      : null;
+    /**
+     * LIEBER WARTEN ALS RATEN (09.08.2026, Kundenfall bandiszidonia): Der Auftrag war zwei
+     * Sekunden alt und noch nicht lesbar. Ohne ihn kennt die Kasse das Thema nicht und
+     * nimmt den Standardpreis — bei ihr 15 € statt 4,99 €. Drei Anläufe mit kurzer Pause;
+     * findet sie ihn dann immer noch nicht, wird NICHT geraten (siehe unten).
+     */
+    let auftrag = null as Awaited<ReturnType<typeof readKissLog>>[number] | null;
+    if (genId) {
+      for (let versuch = 0; versuch < 3; versuch++) {
+        auftrag = await readKissLog().then(l => l.find(x => x.id === genId) ?? null).catch(() => null);
+        if (auftrag) break;
+        if (versuch < 2) await new Promise(r => setTimeout(r, 700));
+      }
+      if (!auftrag) {
+        /* Ein Preis aus dem Nichts ist schlimmer als eine ehrliche Absage: Sie kostet einen
+           zweiten Klick, ein falscher Preis kostet den Kauf. */
+        console.warn("[checkout] Auftrag nicht lesbar, kein Preis geraten:", genId.slice(0, 8));
+        return NextResponse.json({ error: "Einen Moment — dein Auftrag wird noch angelegt. Bitte gleich noch einmal tippen." }, { status: 409 });
+      }
+    }
     const thema = String(auftrag?.theme ?? "");
     /**
      * EIN AUFTRAG, EIN VIDEO — AUCH WENN DER BROWSER ES ANDERS SIEHT (Owner 08.08.2026:

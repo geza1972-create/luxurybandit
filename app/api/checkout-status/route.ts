@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email-send";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
 import { walletGeraetMerken, einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState, chatZugangGewaehren } from "@/lib/try-this-look-store";
-import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
+import { bezahltVermerken, lieferungAnstossen, adresseKorrigieren } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,34 @@ const testKlappeOffen = (sessionId: string) =>
 
 // Called when the customer returns from Stripe Checkout. Confirms the session was
 // actually paid before the client unlocks the paid try-on tier.
+/**
+ * „DEIN GUTHABEN IST DA" — die Bestätigung nach der Aufladung (Owner 09.08.2026).
+ *
+ * Sie hat zwei Aufgaben, und die zweite ist die wichtigere: Sie sagt ihm, dass sein Geld
+ * angekommen ist — UND sie prüft die Adresse. Kommt sie als unzustellbar zurück, fängt der
+ * Rückläufer-Leser das ab, und wir wissen, dass dort Geld auf einer toten Adresse liegt.
+ *
+ * Die Beträge kommen als Cent herein und werden hier EINMAL formatiert; Preise stehen nie
+ * fest im Text (Hausregel).
+ */
+async function guthabenMailSchicken(o: string, an: string, cents: number, stand: number): Promise<void> {
+  if (!an) return;
+  const eur = (c: number) => (c / 100).toFixed(2).replace(".", ",") + " €";
+  const html =
+    `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
+    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+    + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
+    + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">Your credit is ready</td></tr>`
+    + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
+    + `We added ${eur(cents)} to your account. Your balance is now <b>${eur(stand)}</b>.<br>`
+    + `This is the address your credit and your videos belong to — keep it, and you will find them on any device.`
+    + `</td></tr>`
+    + `<tr><td style="padding:0 22px 10px"><a href="${o}/my-gallery" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Open my gallery</a></td></tr>`
+    + `</table></td></tr></table></div>`;
+  try { await sendEmail({ to: an, subject: "Your credit is ready", html }); } catch { /* Geld ist gebucht — die Post ist Beigabe */ }
+}
+
 export async function GET(request: Request) {
   const sessionId = new URL(request.url).searchParams.get("session_id")?.trim();
   if (!sessionId) return NextResponse.json({ error: "session_id required." }, { status: 400 });
@@ -147,7 +176,17 @@ export async function GET(request: Request) {
      */
     let walletCents: number | undefined;
     if (paid && s.metadata.kind === "aufladung") {
-      const email = (String(s.metadata.email ?? "") || s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
+      /**
+       * DIE STRIPE-ADRESSE GEWINNT (Owner 09.08.2026: „das ist die E-Mail, die dann bei der
+       * Anmeldung zählt").
+       *
+       * Vorher zählte die im Trichter getippte Adresse, und die von Stripe war nur der
+       * Rückfall. Damit war ein Tippfehler unheilbar: Das Geld lag auf einer Adresse, die es
+       * nicht gibt. Jetzt ist es umgekehrt — an der Kasse hat er die Adresse zuletzt in der
+       * Hand, dorthin geht die Quittung, und dorthin buchen wir.
+       */
+      const email = (s.customerEmail || String(s.metadata.email ?? "") || s.clientReferenceId || "").trim().toLowerCase();
+      const getippt = String(s.metadata.email ?? "").trim().toLowerCase();
       /**
        * GUTGESCHRIEBEN WIRD, WAS BEZAHLT WURDE (03.08.2026). Vorher zaehlte der BESTELL-
        * Wert aus den Metadaten — mit einem 100%-Gutschein im Kassenfeld hiess das: 0 €
@@ -193,12 +232,40 @@ export async function GET(request: Request) {
            zahlen. Der einzige Weg auf die Liste — siehe walletGeraetMerken. */
         const geraetAusKasse = String(s.metadata?.device ?? "").trim();
         if (geraetAusKasse) void walletGeraetMerken(email, geraetAusKasse);
-        try { walletCents = (await guthabenAufladen(email, sessionId, cents)).cents; }
+        /**
+         * LÄUFT DIE ADRESSE AUSEINANDER, ZIEHT DER AUFTRAG NACH: Sonst liegt das Geld auf
+         * der korrigierten Adresse und das Video auf der vertippten — der Kauf zerfiele in
+         * zwei Hälften, und die Galerie fände nichts.
+         */
+        if (getippt && getippt !== email) {
+          const gid = String(s.metadata.genId ?? "").trim();
+          if (gid) void adresseKorrigieren(gid, email);
+          console.info("[checkout-status] Adresse an der Kasse korrigiert:", getippt, "→", email);
+        }
+        /**
+         * DIE BESTÄTIGUNG GEHT AN DIE ADRESSE, AUF DIE GEBUCHT WURDE (Owner 09.08.2026:
+         * „dann wird nach der Zahlung eine E-Mail an die Adresse geschickt zumindest und die
+         * Adresse ist dann 100 % sicher").
+         *
+         * Ganz sicher ist sie damit nicht — Stripe prüft die Adresse nicht, es schickt nur
+         * die Quittung dorthin. Aber es sind zwei Chancen statt einer: Er sieht sie an der
+         * Kasse noch einmal, und kommt diese Mail als unzustellbar zurück, weiss es der
+         * Rückläufer-Leser (Memory `ruecklaeufer-leser`) — dann liegt kein Geld stumm auf
+         * einer Adresse, die es nicht gibt.
+         *
+         * NUR BEIM ERSTEN MAL: Der Browser fragt den Status in einer Schleife ab; ohne
+         * `granted` bekäme er bei jedem Durchlauf eine Mail.
+         */
+        try {
+          const auf = await guthabenAufladen(email, sessionId, cents);
+          walletCents = auf.cents;
+          if (auf.granted) void guthabenMailSchicken(new URL(request.url).origin, email, cents, auf.cents);
+        }
         catch (e) { console.warn("[checkout-status] Aufladung fehlgeschlagen", e); }
       }
       return NextResponse.json({
         paid, topup: true, kind: "aufladung",
-        email: (String(s.metadata.email ?? "") || s.customerEmail || "").trim().toLowerCase() || undefined,
+        email: (s.customerEmail || String(s.metadata.email ?? "") || "").trim().toLowerCase() || undefined,
         ...(walletCents !== undefined ? { walletCents } : {}),
         /**
          * WAS DIESE ZAHLUNG WERT WAR (Owner 07.08.2026: „wieso bekomme ich keine Meldung,
@@ -259,7 +326,8 @@ export async function GET(request: Request) {
          * sie auseinandergehen, ist die Trichter-Adresse die richtige — sie ist die, unter
          * der sein Guthaben liegt und unter der die Galerie sucht.
          */
-        const kaeufer = (String(s.metadata.email ?? "").trim() || String(s.customerEmail ?? "").trim()).toLowerCase();
+        /* Auch hier gewinnt die Adresse von der Kasse — siehe oben. */
+        const kaeufer = (String(s.customerEmail ?? "").trim() || String(s.metadata.email ?? "").trim()).toLowerCase();
         await bezahltVermerken(kissGenId, kaeufer, String(s.metadata.kind ?? ""));
         lieferungAnstossen(new URL(request.url).origin, kissGenId);
       } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }

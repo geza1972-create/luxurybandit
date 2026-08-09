@@ -78,7 +78,37 @@ export default async function BirthdayThemePage({ searchParams }: {
             ist, tritt es an dieselbe Stelle. Genau wie beim Kuss.
 
             Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
+        {/**
+          * WAS ER BEKOMMT — VOR DEM TRICHTER (Owner 09.08.2026, mit einem fertigen
+          * Verkaufstext: „Aus ein paar gesprochenen Worten wird ein Moment").
+          *
+          * Der Absatz steht zwischen den drei Schritten und dem Beispiel, weil er genau die
+          * Lücke füllt, die vorher offen war: Er hat gelesen, WIE es geht, und sieht gleich,
+          * WAS herauskommt — dazwischen fehlte der Satz, der beides verbindet. Er verspricht
+          * nichts Technisches, sondern beschreibt das Ergebnis.
+          */}
+        {T.filmTitel && (
+          <div className="mt-12">
+            <SectionTitle>{T.filmTitel}</SectionTitle>
+            <Lead>{T.filmText}</Lead>
+          </div>
+        )}
+
         <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN]} />
+
+        {/**
+          * DIE ZEILE UNTER DEM BEISPIEL (Owner 09.08.2026: „direkt unter dem Beispielvideo
+          * würde ich nur schreiben: Stell dir vor, diese Person wärst du … Das ist
+          * wesentlich verkäuferischer, weil es den Kunden sofort in das Ergebnis hineinzieht").
+          *
+          * Sie steht bewusst NICHT im Trichter, sondern direkt darunter: Der Trichter gehört
+          * allen Themen, dieser Satz nur dem Geburtstag.
+          */}
+        {T.unterVideo && (
+          <p className="mt-5 border-l-2 border-[#f6cf51]/50 pl-3 text-[15px] font-semibold leading-snug text-white/85">
+            {T.unterVideo}
+          </p>
+        )}
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.
@@ -111,21 +141,21 @@ export default async function BirthdayThemePage({ searchParams }: {
           <div>
             {/* Diese Ueberschrift bleibt aus der alten Seite — sie ist der Satz, der hier am
                 meisten zaehlt, und er stand schon vor diesem Umbau richtig da. */}
-            <SectionTitle>Only for photos of yourself</SectionTitle>
+            <SectionTitle>Only your own face</SectionTitle>
             <Lead>
-              Before anything renders you confirm that the photo shows you — or someone who has
-              allowed you to use it — and that everyone shown is 18 or older. Please keep it that
-              way: making an intimate video of someone else, or passing one on without their
-              consent, is a criminal offence in most countries.
+              You record yourself, so the face and the voice in the video are yours. If you use a
+              photo of someone else, you need their permission — and everyone shown must be 18 or
+              older. Putting a person into a video without their consent is a criminal offence in
+              most countries, birthday or not.
             </Lead>
           </div>
           <div>
-            <SectionTitle>Why your face still looks like your face</SectionTitle>
+            <SectionTitle>Your face, your voice — nothing invented</SectionTitle>
             <Lead>
-              Your photo and the outfit go to the video model together, in one pass — so what
-              moves on screen is built from your own picture rather than from a copy of it. That is
-              the whole point of putting yourself in the video, and it is what the price pays for.
-              AI-generated, private, yours.
+              We keep your face exactly as it is and use the sound of your own recording, so the
+              person on screen is you and the words are yours. Only the outfit, the cake and the
+              room around you are created. That is what the price pays for: not a card that talks
+              about you, but a few seconds of you, saying it.
             </Lead>
           </div>
         </section>

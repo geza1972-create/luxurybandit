@@ -33,8 +33,18 @@ export default function LangSwitch() {
     try {
       const m = document.cookie.match(new RegExp(`(?:^|; )${LANG_COOKIE}=([^;]*)`));
       const fromCookie = m ? decodeURIComponent(m[1]) : "";
-      if (isLang(fromCookie)) setLang(fromCookie);
-      // Ohne Cookie bleibt es "en" — Englisch ist der Standard, nicht die Browsersprache.
+      if (isLang(fromCookie)) { setLang(fromCookie); return; }
+      /**
+       * OHNE COOKIE ZEIGT ER, WAS DIE SEITE WIRKLICH SPRICHT (Owner 09.08.2026, mit Bild
+       * einer deutschen Seite mit der Aufschrift „English": „ist das englisch, ja?").
+       *
+       * Hier stand „ohne Cookie bleibt es en" — das stimmte einmal, bis der Owner am
+       * 30.07. entschied, dass ohne eigene Wahl die BROWSERSPRACHE gilt. Seitdem log der
+       * Knopf: Der Server lieferte Deutsch, der Umschalter behauptete Englisch. Die
+       * Wahrheit steht im `lang` der Seite — dieselbe Quelle, die der Server gesetzt hat.
+       */
+      const vonDerSeite = document.documentElement.lang?.slice(0, 2).toLowerCase() ?? "";
+      if (isLang(vonDerSeite)) setLang(vonDerSeite);
     } catch { /**/ }
   }, []);
 

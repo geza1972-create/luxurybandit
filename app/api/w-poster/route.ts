@@ -27,7 +27,22 @@ export async function GET(request: Request) {
   if (!id) return new Response("Not found", { status: 404 });
   try {
     const eintrag = (await readKissLog()).find(e => e.id === id);
-    if (!eintrag?.sharedAt || !eintrag.imagePath) return new Response("Not found", { status: 404 });
+    /**
+     * DER FREIGABE-STEMPEL DARF HIER NICHT MEHR ENTSCHEIDEN (Owner 09.08.2026, zum ZWEITEN
+     * Mal: „dann bekommt der Empfänger schon wieder das falsche Poster in der
+     * WhatsApp-Nachricht").
+     *
+     * Der Stempel wird gesetzt, WÄHREND das Teilen-Fenster aufgeht — er darf nicht
+     * abgewartet werden, sonst verwirft Safari die Geste. WhatsApp holt die Vorschau aber
+     * sofort und trifft dann auf einen Eintrag ohne Stempel: allgemeines Katalogbild. Und
+     * WhatsApp MERKT sich diese Vorschau — auch das zweite Teilen zeigt sie wieder.
+     *
+     * Was den Schutz trägt, ist ohnehin nicht der Stempel, sondern zweierlei: Die Kennung
+     * ist eine Zufallsnummer, die niemand rät, und ausgeliefert wird AUSSCHLIESSLICH
+     * `imagePath` — das ERZEUGTE Bild. Das hochgeladene Kundenfoto (`personPath`) verlässt
+     * diese Route nach wie vor nie.
+     */
+    if (!eintrag?.imagePath) return new Response("Not found", { status: 404 });
     const url = await getSignedUrl(eintrag.imagePath).catch(() => "");
     if (!url) return new Response("Not found", { status: 404 });
     const bild = await fetch(url);

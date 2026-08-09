@@ -36,6 +36,28 @@ export const GNADENFRIST_MS = 4 * 60 * 1000;
  * kann die Server-Nachlieferung nichts ausrichten; der Browser steht in diesem Moment aber
  * ohnehin davor, und das ist der Weg, der zaehlt.
  */
+/**
+ * DIE ADRESSE EINES AUFTRAGS BERICHTIGEN — wenn der Kunde sie an der Kasse korrigiert hat
+ * (Owner 09.08.2026: „das ist die E-Mail, die dann bei der Anmeldung zählt").
+ *
+ * Ohne diesen Schritt zerfällt sein Kauf in zwei Hälften: Das Guthaben liegt auf der
+ * korrigierten Adresse, das Video am Auftrag mit der vertippten — und seine Galerie, die
+ * über die Adresse sucht, findet nichts.
+ */
+export async function adresseKorrigieren(genId: string, neueAdresse: string): Promise<void> {
+  const id = String(genId ?? "").trim();
+  const mail = String(neueAdresse ?? "").trim().toLowerCase();
+  if (!id || !mail) return;
+  try {
+    const entries = await readKissLog();
+    const e = entries.find(x => x.id === id);
+    if (!e || (e.email === mail && e.paidEmail === mail)) return;
+    e.email = mail;
+    e.paidEmail = mail;
+    await writeKissLog(entries);
+  } catch { /* die Gutschrift darf daran nicht scheitern */ }
+}
+
 export async function bezahltVermerken(genId: string, email = "", kind = ""): Promise<boolean> {
   const id = String(genId ?? "").trim();
   if (!id) return false;

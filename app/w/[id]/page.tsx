@@ -92,12 +92,19 @@ export async function generateMetadata(
   let eigenesPoster = false;
   try {
     const eintrag = (await readKissLog()).find(e => e.id === String(id ?? ""));
-    if (eintrag?.sharedAt) {
+    if (eintrag) {
       theme = String(eintrag.theme || "kiss");
-      /* SEIN ERGEBNIS IN DIE VORSCHAU (Owner 08.08.2026: „es wird statt mein Poster das
-         allgemeine Poster versendet"). Nur bei einem GETEILTEN Werk und nur das ERZEUGTE
-         Bild — ausgeliefert über /api/w-poster, weil signierte Links ablaufen und eine
-         Chat-Vorschau Wochen später noch laden muss. */
+      /**
+       * SEIN ERGEBNIS IN DIE VORSCHAU (Owner 08.08.2026: „es wird statt mein Poster das
+       * allgemeine Poster versendet") — OHNE die Bedingung `sharedAt` (09.08.2026, weil es
+       * wieder das falsche Bild war).
+       *
+       * Der Stempel entsteht erst, WÄHREND das Teilen-Fenster aufgeht; WhatsApp holt die
+       * Vorschau in derselben Sekunde und traf hier auf „noch nicht geteilt" → allgemeines
+       * Katalogbild. Und diese Vorschau bleibt dann im Chat stehen, weil WhatsApp sie
+       * zwischenspeichert. Die Zufallskennung ist der Schutz, nicht der Stempel — und
+       * ausgeliefert wird nur das ERZEUGTE Bild (siehe /api/w-poster).
+       */
       eigenesPoster = !!eintrag.imagePath;
     }
   } catch { /* Protokoll nicht lesbar → wie „nicht freigegeben" behandeln */ }

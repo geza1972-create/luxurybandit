@@ -1948,7 +1948,19 @@ export async function einladungAboVermerken(id: string): Promise<void> {
 
 export async function readKissLog(): Promise<KissLogEntry[]> {
   try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}`);
+    /**
+     * FRISCH LESEN, IMMER (09.08.2026, an einem echten Kundenfall gemessen).
+     *
+     * Ihr Auftrag war 2 Sekunden alt, als die Kasse ihn suchte — und sie fand ihn nicht.
+     * Der Speicher liefert eine gerade geschriebene Datei kurz noch aus seinem Zwischenspeicher
+     * aus. Folge: Die Kasse kannte das Thema nicht, rechnete den Standardpreis (15 € statt
+     * 4,99 €), die Abbuchung scheiterte, und die Kundin musste zweimal klicken. Derselbe
+     * Verdacht stand beim Wachhund-Miss vom 08.08.
+     *
+     * Ein Zeitstempel an der Adresse macht jede Anfrage einmalig — der Zwischenspeicher hat
+     * dafür keine Antwort und muss zur Quelle.
+     */
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}?frisch=${Date.now()}`);
     if (!res.ok) return [];
     const data = await res.json().catch(() => null);
     return Array.isArray(data?.entries) ? (data.entries as KissLogEntry[]) : [];
@@ -3092,7 +3104,24 @@ async function walletLesen(e: string): Promise<WalletBlob | null> {
         const t = await res.text();
         if (!t.trim()) return null;
         const w = JSON.parse(t) as WalletBlob;
-        return { email: e, cents: Math.max(0, Math.round(Number(w.cents ?? 0))), ops: Array.isArray(w.ops) ? w.ops : [] };
+        /**
+         * `geraete` MUSS MIT (09.08.2026, gefunden an einem echten Kundenfall).
+         *
+         * Hier stand eine Projektion ohne dieses Feld — und damit war der Geräte-Riegel vom
+         * selben Tag WIRKUNGSLOS: `walletGeraetVertraut` sah nie eine Liste, hielt jedes
+         * Konto für Altbestand und liess jeden durch. Schlimmer noch: `walletBuchen` schreibt
+         * `geraete: w.geraete` zurück — jede Abbuchung hätte die Liste GELÖSCHT.
+         *
+         * Lehre für dieses Muster: Wer einen Blob Feld für Feld neu aufbaut, verliert jedes
+         * Feld, das später dazukommt. Dieselbe Falle wie beim state.json-Merge
+         * ([[delete-resurrection-merge-bug]]) — nur eine Ebene tiefer.
+         */
+        return {
+          email: e,
+          cents: Math.max(0, Math.round(Number(w.cents ?? 0))),
+          ops: Array.isArray(w.ops) ? w.ops : [],
+          geraete: Array.isArray(w.geraete) ? w.geraete : undefined,
+        };
       }
       letzterFehler = new Error(`Geldboerse lesen: HTTP ${res.status}`);
     } catch (err) { letzterFehler = err; }

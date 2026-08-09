@@ -269,6 +269,20 @@ const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; s
   it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
 };
 
+/**
+ * WIE LANG DIE AUFNAHME DAUERT — DIE EINE ZAHL (Owner 09.08.2026: „mach das Video 5 Sekunden
+ * wieder weil wir testen"; am selben Tag vorher: „mach die Videos 8 sek lang").
+ *
+ * Sie steht bewusst hier oben und NICHT in den sieben Sprachtabellen: Der Knopftext holt sie
+ * über den Platzhalter `{sek}`. Beim Wechsel von 5 auf 8 musste ich sie vorher an sieben
+ * Stellen ändern — genau die Art Zahl, die irgendwann auseinanderläuft (dieselbe Lehre wie
+ * bei den Preisen, Memory `prices-only-from-pricing-table`).
+ *
+ * Es ist ein PREIS-Deckel, kein technischer: HeyGen nimmt 0,05 Credits je Videosekunde.
+ * 5 s = 0,25 $, 8 s = 0,40 $ — beim Testen zählt jeder Lauf.
+ */
+const AUFNAHME_SEK = 5;
+
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
   const V = VARIANTS[variant];
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
@@ -856,7 +870,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * DIE ZAHL STEHT AN EINER STELLE — wer sie ändert, ändert den Zähler, den Auto-Stopp
      * UND den Knopftext in `lib/kiss-i18n` (dort „8 s video — {geburtstag}").
      */
-    const AUFNAHME_SEK = 8;
     setRestSek(AUFNAHME_SEK);
     const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
     setTimeout(() => clearInterval(takt), AUFNAHME_SEK * 1000 + 500);
@@ -985,7 +998,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ share: genId, device }),
     }).catch(() => {});
-    const url = `${window.location.origin}/w/${encodeURIComponent(genId)}?l=${encodeURIComponent(String(lang).slice(0, 2))}&utm_source=share`;
+    /**
+     * EIN FRISCHER LINK JE TEILEN (09.08.2026): WhatsApp & Co. speichern die Vorschau JE
+     * ADRESSE. War sie beim ersten Mal falsch, bleibt sie es — auch nachdem der Fehler weg
+     * ist. Der angehängte Zeitstempel macht jede Weitergabe zu einer neuen Adresse, also zu
+     * einer neuen Vorschau. Für den Empfänger ändert sich nichts; die Seite ignoriert ihn.
+     */
+    const url = `${window.location.origin}/w/${encodeURIComponent(genId)}?l=${encodeURIComponent(String(lang).slice(0, 2))}&utm_source=share&v=${Date.now().toString(36)}`;
     const text = (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en;
     try {
       if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
@@ -2786,7 +2805,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(),
+              /* Angemeldet = geprüfte Adresse → Stripe bekommt sie gesperrt mit. Als Gast
+                 bleibt das Feld dort offen, damit er sich korrigieren kann (09.08.2026). */
+              konto: !!getStoredAuthSession()?.access_token, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
            cancelled=1 in der Adresse; als Ruecksprungziel weitergereicht, stand nach der
@@ -3424,7 +3446,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   Rechnung; dasselbe galt schon fuer die Kaufknoepfe nach der Stripe-Rueckkehr. */}
               {!payBusy && !videoBusy && !(bezahlt && !wahl) &&
                 kartenGriff(
-                  bezahlt || isStaff ? T.ctaVideo : T.blockedOnce,
+                  bezahlt || isStaff ? T.ctaVideo.replace("{sek}", String(AUFNAHME_SEK)) : T.blockedOnce,
                   bezahlt || isStaff ? () => void kussVideo() : () => void unlock("once"),
                   { text: kartenAufruf, tun: schritteOeffnen },
                 )}
@@ -3936,7 +3958,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       spricht man in eine schwarze Flaeche und weiss nicht, ob man drauf ist.
                       Gespiegelt wie ein Spiegel (`scaleX(-1)`), weil jede Selfie-Kamera das
                       so zeigt; die AUFNAHME selbst bleibt unspiegelt. */}
-                  {nimmtAuf && (
+                  {/**
+                    * DER KOPFBALKEN LAG ÜBER DEM VOLLBILD (Owner 09.08.2026, mit Bild).
+                    *
+                    * `fixed` ist nur dann wirklich am Fenster verankert, wenn KEIN Vorfahr
+                    * eine `transform`/`filter`-Eigenschaft trägt — sonst wird er an diesem
+                    * Vorfahren ausgerichtet, und sein z-Wert zählt nur INNERHALB dessen
+                    * Stapel. Genau das passierte hier, tief im Trichter: Die Aufnahme lag
+                    * unter der Kopfzeile, obwohl ihre Zahl höher war. Ein Portal an
+                    * `document.body` hängt das Fenster aus jedem fremden Stapel aus — die
+                    * einzige Lösung, die nicht beim nächsten Layout-Umbau wieder kippt.
+                    */}
+                  {nimmtAuf && typeof document !== "undefined" && createPortal((
                     /**
                      * VOLLBILD (Owner 07.08.2026 abends: „Die Video aufname muss sich
                      * fullsize öffnen"). Das 240-px-Fenster in der Karte war zum
@@ -3947,11 +3980,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                      * (der in der Karte darunter liegt jetzt verdeckt und entfällt).
                      * z-[98]: über den Dialogen (z-[96]), unter nichts.
                      */
-                    <div className="fixed inset-0 z-[98] bg-black">
-                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                      <video ref={vorschauRef} muted playsInline
-                        className="absolute inset-0 h-full w-full object-cover"
-                        style={{ transform: "scaleX(-1)" }} />
+                    <div className="fixed inset-0 z-[200] bg-black">
+                      {/**
+                        * DIE BÜHNE IST HOCHKANT — AUCH AUF DEM RECHNER (Owner 09.08.2026,
+                        * mit Bild eines Breitbild-Schirms: ein einzelnes Auge füllte das
+                        * halbe Fenster).
+                        *
+                        * Vorher lag das Kamerabild als `object-cover` über die volle
+                        * Breite. Auf einem Handy ist das richtig; auf 2000 Pixel Breite
+                        * skaliert `cover` das Hochkant-Bild der Kamera so weit, bis es die
+                        * Breite füllt — und schneidet dabei alles ausser einem Stück
+                        * Gesicht weg. Jetzt steht die Aufnahme in einer Spalte im
+                        * Handy-Mass; der Rest der Fläche ist ohnehin mattes Weiss.
+                        */}
+                      <div className="relative mx-auto h-full w-full max-w-[430px]">
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video ref={vorschauRef} muted playsInline
+                          className="absolute inset-0 h-full w-full object-cover"
+                          style={{ transform: "scaleX(-1)" }} />
+                      </div>
                       {/**
                         * DAS LOCH IM MATT-WEISSEN (Owner 08.08.2026: „Es wäre auch gut wenn
                         * mein kopf nicht im kreis steht … dann matte weisse farbe, damit
@@ -3999,7 +4046,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         )}
                       </div>
                     </div>
-                  )}
+                  ), document.body)}
                   <div className="mt-3 flex items-center justify-center gap-2">
                     {!nimmtAuf ? (
                       <button type="button" onClick={() => void aufnahmeStart()}

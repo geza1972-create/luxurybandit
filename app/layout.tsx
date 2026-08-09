@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { resolveLang } from "@/lib/lang-server";
 import { Suspense } from "react";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
@@ -56,7 +57,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
@@ -64,7 +65,17 @@ export default function RootLayout({
   return (
     // prefix: announces the OG vocabulary — Facebook's debugger otherwise
     // sporadically claims og:url/og:type are "missing" despite valid tags.
-    <html lang="en" prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
+    /**
+      * DIE SEITE SAGT, WELCHE SPRACHE SIE WIRKLICH SPRICHT (Owner 09.08.2026, mit Bild einer
+      * deutschen Seite, auf der „English" stand: „ist das englisch, ja?").
+      *
+      * Hier stand fest `lang="en"`, obwohl der Server ohne Cookie die BROWSERSPRACHE nimmt
+      * (seine Entscheidung vom 30.07.). Der Umschalter kannte nur den Cookie und behauptete
+      * deshalb „English", während deutscher Text danebenstand. Jetzt steht die geltende
+      * Sprache an EINER Stelle — der Umschalter liest sie von hier ab, statt zu raten.
+      * Nebenbei ist es das, was Vorleser und Suchmaschinen erwarten.
+      */
+    <html lang={await resolveLang()} prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
       <body>
         {/* Meta Pixel — loads fbevents.js + fires PageView on load and every SPA nav. */}
         <Suspense fallback={null}>
