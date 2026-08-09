@@ -7,7 +7,7 @@ import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
+import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 
 /**
  * THEMA "SHE SAYS HAPPY BIRTHDAY" (Owner 03.08.2026: "genau wie Surprise him machen. Ein
@@ -78,7 +78,7 @@ export default async function BirthdayThemePage({ searchParams }: {
             ist, tritt es an dieselbe Stelle. Genau wie beim Kuss.
 
             Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
-        <KissFunnel variant="birthday" code={code} lang={L} beispielVideo={GEBURTSTAG_VIDEO} />
+        <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN]} />
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.

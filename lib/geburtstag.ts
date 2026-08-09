@@ -75,6 +75,33 @@ export const GEBURTSTAG_SET = "/Birthday/birthday-set-schoko.jpg";
 export const GEBURTSTAG_VIDEO = "/Birthday/hbd-schoko.mp4";
 
 /**
+ * DIE ZWEITE FOLIE DER KARTE: DIE TRAUMWELT (Owner 09.08.2026: „generiere das Video mit der
+ * Dream World und füge das als zweiter Slide in die Card rein").
+ *
+ * Entstanden aus der Kachel `/Birthday/look-traum.jpg` über dieselbe Strecke wie das erste
+ * Beispiel (talking_photo → v3/videos, engine avatar_iv, Stimme „Joy", 8 Sekunden). Sie
+ * zeigt dem Käufer die zweite Handschrift, die es jetzt gibt — fotorealistisch ODER gemalt
+ * —, und zwar dort, wo er ohnehin hinschaut: in der Karte, bevor er etwas eintippt.
+ *
+ * ES BLEIBT BEI EINER KONSTANTE JE VIDEO (Dauerregel „Landingpage-Video = Kachel-Video"):
+ * Die Karte bekommt beide über `beispielVideos`, die Katalog-Kachel weiterhin das erste.
+ */
+export const GEBURTSTAG_VIDEO_TRAUM = "/Birthday/hbd-traum.mp4";
+
+/**
+ * DIE DRITTE FOLIE: DER MANN (Owner 09.08.2026: „mach auch den Mann als Video da rein").
+ *
+ * Aus der Bow-Tie-Kachel über dieselbe Strecke, aber mit MÄNNLICHER Stimme („Chill Brian").
+ * Der Grund steht im Protokoll vom 08.08.: Ein Mann mit Frauenstimme war zweimal das erste,
+ * was der Owner an einem Testvideo bemängelt hat („der Typ hat eine Frauenstimme").
+ *
+ * WARUM ER IN DIE KARTE GEHÖRT: Zeigen alle Beispiele eine Frau, sieht ein männlicher
+ * Käufer sich nirgends — derselbe Gedanke, aus dem die Bow-Tie-KACHEL entstanden ist
+ * (07.08.: „mach den Typ auch rein"). Die Karte ist das erste, was er sieht.
+ */
+export const GEBURTSTAG_VIDEO_MANN = "/Birthday/hbd-fliege.mp4";
+
+/**
  * DIE ZEILE ÜBER DER KARTE (Owner wörtlich: „Oben steht in der Karte nur ‚Happy birthday to
  * you {Name}‘").
  *
