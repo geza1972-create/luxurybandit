@@ -5,7 +5,7 @@ import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
-  type ThemenKachelDaten } from "@/components/CI";
+  type ThemenKachelDaten, AnmeldeEinladung } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -63,6 +63,7 @@ export default function CIMuster() {
   const [dialogOffen, setDialogOffen] = useState<"hell" | "dunkel" | null>(null);
   const [chipWahl, setChipWahl] = useState("a");
   const [bildWahl, setBildWahl] = useState(GEBURTSTAG_LOOKS[0].id);
+  const [anmeldeMuster, setAnmeldeMuster] = useState(false);
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
   const gestalt = useThemenGestalt();
 
@@ -280,6 +281,25 @@ export default function CIMuster() {
         <Sparkles className="h-4 w-4" />
         So steht der Kaufaufruf unter der Karte
       </Knopf>
+
+      {abschnitt("Einladung zur Anmeldung — mit seiner Vorlage")}
+      {/* Owner 09.08.2026, nach dem Geräte-Riegel: „Der Kunde muss trotzdem einen sehr
+          schönen Dialog bekommen, dass er sich anmelden soll … Es ist zu seinem Schutz.
+          Button jetzt anmelden. Auch die Vorlage die er ausgewählt hat muss da stehen."
+          Die Vorlage oben ist der Unterschied zwischen Hürde und Zwischenschritt: Sein
+          Werk ist sichtbar nicht weg, es wartet. */}
+      <Knopf art="umriss" onClick={() => setAnmeldeMuster(true)}>Einladung öffnen</Knopf>
+      <AnmeldeEinladung
+        offen={anmeldeMuster}
+        zu={() => setAnmeldeMuster(false)}
+        titel="Melde dich an — dann gehört es wirklich dir"
+        grund="Dein Guthaben und deine Videos bleiben bei dir, auf jedem Gerät. Ohne Konto leben sie nur in diesem Browser."
+        knopf="Jetzt anmelden"
+        spaeter="Später"
+        vorlageBild={GEBURTSTAG_LOOKS[0].bild}
+        vorlageName={GEBURTSTAG_LOOKS[0].name}
+        aufAnmelden={() => setAnmeldeMuster(false)}
+      />
 
       {abschnitt("Dialog — hell · dunkel, Ausgang eingebaut")}
       {/* Zwei Gestalten: die weisse Karte für Tor und Entscheidung, das dunkle Fenster für

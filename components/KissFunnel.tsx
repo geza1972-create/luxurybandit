@@ -20,8 +20,9 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT, TEILEN_TEXT_GEBURTSTAG } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, ABSAGE_ROT } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
+import { kontoText } from "@/lib/konto-i18n";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
  * Geschenke-Marktplatz). Sie stand hier mitten im Trichter — damit war „ein neues
@@ -490,6 +491,34 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * gesehen hat.
    */
   const [look, setLook] = useState(GEBURTSTAG_LOOKS[0].id);
+  /**
+   * DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026, direkt nach dem Geräte-Riegel).
+   *
+   * Sie erscheint EINMAL vor dem Bauen — nicht bei jedem Klick, und nie bei jemandem, der
+   * schon angemeldet ist. `lb_anmelde_gesehen` merkt sich, dass er sie kannte: Wer „Später"
+   * gewählt hat, soll nicht bei jedem Video neu gefragt werden. Das ist kein Verzicht auf
+   * den Schutz — der Geräte-Riegel greift ohnehin —, sondern die Grenze zwischen einladen
+   * und nerven.
+   */
+  const [anmeldeOffen, setAnmeldeOffen] = useState(false);
+  const nachAnmeldeWeiter = useRef(false);
+  /* Die Anmelde-Texte leben in derselben Tabelle wie Konto und Galerie (sieben Sprachen). */
+  const KT = kontoText(lang);
+  const [angemeldet, setAngemeldet] = useState(true);   // bis zum ersten Blick: nicht fragen
+  useEffect(() => { setAngemeldet(!!getStoredAuthSession()?.access_token); }, []);
+  const anmeldeSchonGesehen = () => {
+    try { return !!localStorage.getItem("lb_anmelde_gesehen"); } catch { return true; }
+  };
+  const anmeldeMerken = () => {
+    try { localStorage.setItem("lb_anmelde_gesehen", "1"); } catch { /* privater Modus */ }
+  };
+  /** Zur Anmeldung — und danach zurück auf genau diese Seite, damit sein Werk wartet. */
+  const zurAnmeldung = () => {
+    anmeldeMerken();
+    try { localStorage.setItem("lb_kiss_mail", mail.trim().toLowerCase()); } catch { /**/ }
+    const zurueck = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `/login?returnTo=${encodeURIComponent(zurueck)}`;
+  };
   /**
    * DIE EIGENE STIMME (Owner 07.08.2026: „ok, dann machen wir das"): Ein Mikro-Knopf
    * nimmt den vorgelesenen Satz auf (max. 15 s), man hört ihn vor, und beim Erzeugen
@@ -1961,6 +1990,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * Fuer Personal heisst das: direkt das Video, nicht das alte Gratis-Bild.
      */
     if (V.keinGratis && isStaff && !bezahlt) { setBezahlt(true); void kussVideo(); return; }
+    /**
+     * ERST DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026: „Der Kunde muss trotzdem einen
+     * sehr schönen Dialog bekommen … Es ist zu seinem Schutz").
+     *
+     * Sie steht VOR dem Bezahlen und nach der Look-Wahl: Er hat sein Motiv gewählt, sieht
+     * es im Fenster wieder und versteht, was ein Konto ihm bringt — sein Guthaben und seine
+     * Videos folgen ihm aufs nächste Gerät. Genau einmal: Wer angemeldet ist oder schon
+     * „Später" gesagt hat, sieht sie nie wieder.
+     */
+    if (!isStaff && !angemeldet && !anmeldeSchonGesehen()) {
+      nachAnmeldeWeiter.current = true;
+      setAnmeldeOffen(true);
+      return;
+    }
     /**
      * GELIEFERT IST ABGEGOLTEN — die Kuss-Regel gilt auch hier (Owner 08.08.2026, dreimal
      * hintereinander: „wird nicht abgebucht … kein auftrag … ich habe immer noch 10,02
@@ -4189,6 +4232,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
               Ein Standbild aus dem Video selbst (`#t=0.1`, `preload="metadata"` laedt nur den
               Dateikopf) — dieselbe Datei, kein zweites Bild zu pflegen. */}
+          {/* DIE EINLADUNG ZUR ANMELDUNG — Baustein aus der Bibliothek, mit seiner Vorlage. */}
+          <AnmeldeEinladung
+            offen={anmeldeOffen}
+            zu={() => { anmeldeMerken(); setAnmeldeOffen(false); }}
+            titel={KT.anmeldeTitel}
+            grund={KT.anmeldeGrund}
+            knopf={KT.anmeldeKnopf}
+            spaeter={KT.anmeldeSpaeter}
+            vorlageBild={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).bild : undefined}
+            vorlageName={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).name : undefined}
+            aufAnmelden={zurAnmeldung}
+            aufSpaeter={() => {
+              /* „Später" heisst weitermachen, nicht abbrechen — sein Auftrag läuft sofort
+                 weiter, sonst hätte das Fenster ihm nur einen Klick gestohlen. */
+              anmeldeMerken();
+              setAnmeldeOffen(false);
+              if (nachAnmeldeWeiter.current) { nachAnmeldeWeiter.current = false; void generate(); }
+            }}
+          />
+
           {V.nurSie && variant === "poledance" && (beispiele[beispielVorn] || refVideo || beispielVideo) && (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video src={`${beispiele[beispielVorn] || refVideo || beispielVideo}#t=0.1`} muted playsInline preload="metadata"

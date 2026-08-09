@@ -42,6 +42,11 @@ export type KontoText = {
   avatar: string;
   avatarHinweis: string;
   avatarStimme: string;
+  // ── Einladung zur Anmeldung ──
+  anmeldeTitel: string;
+  anmeldeGrund: string;
+  anmeldeKnopf: string;
+  anmeldeSpaeter: string;
   // ── Konto ──
   kontoTitel: string;
   aktuell: string;
@@ -79,6 +84,10 @@ const en: KontoText = {
   avatar: "Your avatar",
   avatarHinweis: "Your face and voice for every video. A new recording replaces it.",
   avatarStimme: "with your voice",
+  anmeldeTitel: "Sign in — then it's truly yours",
+  anmeldeGrund: "Your credit and your videos stay with you, on every device. Without an account they live only in this browser.",
+  anmeldeKnopf: "Sign in now",
+  anmeldeSpaeter: "Later",
   kontoTitel: "Top up your account",
   aktuell: "Currently:",
   adressePflicht: "Please enter your email address — your credit is booked to it.",
@@ -114,6 +123,10 @@ const de: KontoText = {
   avatar: "Dein Avatar",
   avatarHinweis: "Dein Gesicht und deine Stimme für jedes Video. Eine neue Aufnahme ersetzt ihn.",
   avatarStimme: "mit deiner Stimme",
+  anmeldeTitel: "Melde dich an — dann gehört es wirklich dir",
+  anmeldeGrund: "Dein Guthaben und deine Videos bleiben bei dir, auf jedem Gerät. Ohne Konto leben sie nur in diesem Browser.",
+  anmeldeKnopf: "Jetzt anmelden",
+  anmeldeSpaeter: "Später",
   kontoTitel: "Konto aufladen",
   aktuell: "Aktuell:",
   adressePflicht: "Bitte gib deine E-Mail-Adresse an — auf sie wird das Guthaben gebucht.",
@@ -149,6 +162,10 @@ const ro: KontoText = {
   avatar: "Avatarul tău",
   avatarHinweis: "Chipul și vocea ta pentru fiecare videoclip. O înregistrare nouă îl înlocuiește.",
   avatarStimme: "cu vocea ta",
+  anmeldeTitel: "Conectează-te — atunci e cu adevărat al tău",
+  anmeldeGrund: "Creditul și videoclipurile tale rămân la tine, pe orice dispozitiv. Fără cont trăiesc doar în acest browser.",
+  anmeldeKnopf: "Conectează-te acum",
+  anmeldeSpaeter: "Mai târziu",
   kontoTitel: "Încarcă-ți contul",
   aktuell: "Acum:",
   adressePflicht: "Introdu adresa ta de e-mail — pe ea se înregistrează creditul.",
@@ -184,6 +201,10 @@ const es: KontoText = {
   avatar: "Tu avatar",
   avatarHinweis: "Tu cara y tu voz para cada vídeo. Una grabación nueva lo sustituye.",
   avatarStimme: "con tu voz",
+  anmeldeTitel: "Inicia sesión — así es de verdad tuyo",
+  anmeldeGrund: "Tu saldo y tus vídeos se quedan contigo, en cualquier dispositivo. Sin cuenta viven solo en este navegador.",
+  anmeldeKnopf: "Iniciar sesión ahora",
+  anmeldeSpaeter: "Más tarde",
   kontoTitel: "Recarga tu cuenta",
   aktuell: "Ahora:",
   adressePflicht: "Introduce tu correo electrónico — el saldo se abona en él.",
@@ -219,6 +240,10 @@ const fr: KontoText = {
   avatar: "Ton avatar",
   avatarHinweis: "Ton visage et ta voix pour chaque vidéo. Un nouvel enregistrement le remplace.",
   avatarStimme: "avec ta voix",
+  anmeldeTitel: "Connecte-toi — c'est alors vraiment à toi",
+  anmeldeGrund: "Ton crédit et tes vidéos restent avec toi, sur chaque appareil. Sans compte, ils ne vivent que dans ce navigateur.",
+  anmeldeKnopf: "Se connecter maintenant",
+  anmeldeSpaeter: "Plus tard",
   kontoTitel: "Recharge ton compte",
   aktuell: "Actuellement :",
   adressePflicht: "Indique ton adresse e-mail — ton crédit y est enregistré.",
@@ -254,6 +279,10 @@ const pt: KontoText = {
   avatar: "O teu avatar",
   avatarHinweis: "O teu rosto e a tua voz para cada vídeo. Uma nova gravação substitui-o.",
   avatarStimme: "com a tua voz",
+  anmeldeTitel: "Inicia sessão — assim é mesmo teu",
+  anmeldeGrund: "O teu saldo e os teus vídeos ficam contigo, em qualquer dispositivo. Sem conta vivem só neste navegador.",
+  anmeldeKnopf: "Iniciar sessão agora",
+  anmeldeSpaeter: "Mais tarde",
   kontoTitel: "Carrega a tua conta",
   aktuell: "Agora:",
   adressePflicht: "Indica o teu e-mail — o saldo é registado nele.",
@@ -289,6 +318,10 @@ const it: KontoText = {
   avatar: "Il tuo avatar",
   avatarHinweis: "Il tuo viso e la tua voce per ogni video. Una nuova registrazione lo sostituisce.",
   avatarStimme: "con la tua voce",
+  anmeldeTitel: "Accedi — così è davvero tuo",
+  anmeldeGrund: "Il tuo credito e i tuoi video restano con te, su ogni dispositivo. Senza account vivono solo in questo browser.",
+  anmeldeKnopf: "Accedi ora",
+  anmeldeSpaeter: "Più tardi",
   kontoTitel: "Ricarica il tuo conto",
   aktuell: "Ora:",
   adressePflicht: "Inserisci la tua e-mail — il credito viene registrato su di essa.",

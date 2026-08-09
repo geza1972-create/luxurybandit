@@ -951,6 +951,68 @@ export function Dialog({ art = "hell", zu, z = 96, className = "", children }: {
  * Kein `karte`-Schalter: Diese Reihe steht im Trichter auf der dunklen Welt, nie in der
  * !important-Welt der Einladungskarte.
  */
+/**
+ * DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026, direkt nach dem Geräte-Riegel: „Der Kunde
+ * muss trotzdem einen sehr schönen Dialog bekommen, dass er sich anmelden soll, wenn er
+ * eine schöne Karte generieren will. Es ist zu seinem Schutz. Button jetzt anmelden. Auch
+ * die Vorlage die er ausgewählt hat muss da stehen.").
+ *
+ * WARUM SIE SO AUSSIEHT, WIE SIE AUSSIEHT:
+ *
+ * 1. DIE VORLAGE STEHT OBEN. Ein Anmelde-Fenster mitten im Bauen ist eine Unterbrechung —
+ *    und Unterbrechungen kosten Käufer. Sein Bild daneben sagt ohne ein Wort: „dein Werk
+ *    ist nicht weg, es wartet." Das ist der Unterschied zwischen einer Hürde und einem
+ *    Zwischenschritt.
+ * 2. DER GRUND STEHT VOR DER BITTE. „Zu deinem Schutz" ist keine Floskel: Seit dem
+ *    Geräte-Riegel hängt sein Guthaben am Browser. Meldet er sich an, gehört es IHM — auf
+ *    jedem Gerät, auch nach dem Handywechsel. Wer den Nutzen nicht nennt, bettelt nur.
+ * 3. EIN einziger goldener Knopf (Hausregel). Der stille Ausweg darunter ist Text, kein
+ *    zweiter Knopf — er soll erreichbar sein, aber nicht locken.
+ */
+export function AnmeldeEinladung({
+  offen, zu, titel, grund, knopf, spaeter, vorlageBild, vorlageName, aufAnmelden, aufSpaeter,
+}: {
+  offen: boolean;
+  zu: () => void;
+  titel: string;
+  grund: string;
+  knopf: string;
+  /** Fehlt dieser Text, gibt es keinen Ausweg — dann ist die Anmeldung Pflicht. */
+  spaeter?: string;
+  vorlageBild?: string;
+  vorlageName?: string;
+  aufAnmelden: () => void;
+  aufSpaeter?: () => void;
+}) {
+  if (!offen) return null;
+  return (
+    <Dialog art="dunkel" zu={zu}>
+      {/* DIE VORLAGE — sein Bild, in derselben Geometrie wie in der Auswahl (3:4). */}
+      {vorlageBild && (
+        <div className="mb-4 flex flex-col items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={vorlageBild} alt={vorlageName ?? ""}
+            className="h-[152px] w-[114px] rounded-2xl object-cover ring-2 ring-offset-2 ring-offset-[#141210] ring-[#f6cf51]" />
+          {vorlageName && (
+            <p className="mt-2 text-[13px] font-black text-[#f6cf51]">{vorlageName}</p>
+          )}
+        </div>
+      )}
+      <p className="text-[19px] font-black leading-tight text-white">{titel}</p>
+      <p className="mx-auto mt-2 max-w-[280px] text-[13.5px] font-semibold leading-snug text-white/75">{grund}</p>
+      <div className="mt-5">
+        <Knopf art="gold" onClick={aufAnmelden}>{knopf}</Knopf>
+      </div>
+      {spaeter && (
+        <button type="button" onClick={aufSpaeter ?? zu}
+          className="mt-3 w-full text-[12.5px] font-bold text-white/55 underline underline-offset-2 active:scale-95 transition">
+          {spaeter}
+        </button>
+      )}
+    </Dialog>
+  );
+}
+
 export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }: {
   bilder: { id: string; name: string; bild: string }[];
   /** Die Kennung der gewählten Kachel. */
