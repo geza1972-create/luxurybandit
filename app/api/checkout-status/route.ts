@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState, chatZugangGewaehren } from "@/lib/try-this-look-store";
+import { walletGeraetMerken, einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState, chatZugangGewaehren } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 
 export const runtime = "nodejs";
@@ -189,6 +189,10 @@ export async function GET(request: Request) {
       const bestellt = typeof s.amountSubtotal === "number" ? s.amountSubtotal : gezahlt;
       const cents = freigegeben ? Math.max(gezahlt, bestellt) : gezahlt;
       if (email) {
+        /* Bezahlt = vertraut (09.08.2026): Dieser Browser darf ab jetzt von diesem Konto
+           zahlen. Der einzige Weg auf die Liste — siehe walletGeraetMerken. */
+        const geraetAusKasse = String(s.metadata?.device ?? "").trim();
+        if (geraetAusKasse) void walletGeraetMerken(email, geraetAusKasse);
         try { walletCents = (await guthabenAufladen(email, sessionId, cents)).cents; }
         catch (e) { console.warn("[checkout-status] Aufladung fehlgeschlagen", e); }
       }

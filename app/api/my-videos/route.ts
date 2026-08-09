@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen } from "@/lib/try-this-look-store";
+import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,10 +72,22 @@ export async function GET(request: Request) {
   const email = clean(url.searchParams.get("email"), 160).toLowerCase();
   if (!device && !email) return NextResponse.json({ videos: [] });
 
+  /**
+   * FREMDE ADRESSE, FREMDES GERÄT — NICHTS (09.08.2026, Owner: „Kann das ein Fremder nicht
+   * machen zurzeit? Wenn er nur E-Mail angibt?").
+   *
+   * Diese Route gab bis heute die privaten Geschenkvideos JEDER Adresse heraus, die jemand
+   * eintippte — und seit gestern auch das Gesicht des Avatars. Ab jetzt zählt die Adresse
+   * nur, wenn dieser Browser für sie schon einmal bezahlt hat; sonst bleibt die
+   * Gerätekennung die einzige Zuordnung (die kennt nur er selbst).
+   */
+  const darfEmail = email ? await walletGeraetVertraut(email, device).catch(() => false) : false;
+  const emailGilt = darfEmail ? email : "";
+
   const state = await readTryThisLookState();
   const mine = (state.generations ?? []).filter(g => {
     const gg = g as { ownerEmail?: string; visitorId?: string };
-    return (email && gg.ownerEmail === email) || (device && gg.visitorId === device);
+    return (emailGilt && gg.ownerEmail === emailGilt) || (device && gg.visitorId === device);
   });
 
   const videos = await Promise.all(mine.slice(0, 60).map(async g => {
@@ -107,7 +119,7 @@ export async function GET(request: Request) {
        * `paidEmail` — sein bezahltes Bild war fuer ihn unauffindbar, obwohl die Mail kam.
        */
       const meine = log.filter((e: KissLogEntry) =>
-        (email && (String(e.email ?? "").toLowerCase() === email || String(e.paidEmail ?? "").toLowerCase() === email)) ||
+        (emailGilt && (String(e.email ?? "").toLowerCase() === emailGilt || String(e.paidEmail ?? "").toLowerCase() === emailGilt)) ||
         (device && String(e.device ?? "") === device));
       // BEIDES gehört ihm (Owner 30.07.2026: „nein, das macht man nicht so. Du speicherst
       // das auch für ihn") — sein hochgeladenes Foto UND das Ergebnis. Eigene Kennung je
@@ -211,8 +223,8 @@ export async function GET(request: Request) {
    * an einer Gerätekennung, die sich jeder Browser selbst ausdenkt.
    */
   const avatar = await (async () => {
-    if (!email) return null;
-    const a = await avatarLesen(email).catch(() => null);
+    if (!emailGilt) return null;
+    const a = await avatarLesen(emailGilt).catch(() => null);
     if (!a?.bildPfad) return null;
     const bild = await getSignedUrl(a.bildPfad).catch(() => "");
     if (!bild) return null;

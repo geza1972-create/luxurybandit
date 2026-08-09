@@ -91,6 +91,10 @@ export async function guthabenLesen(adresse?: string): Promise<GuthabenStand | n
   const zweite = geraetAdresse();
   const q = new URLSearchParams({ email: mail });
   if (zweite && zweite !== mail) q.set("auch", zweite);
+  /* DER BROWSER WEIST SICH AUS (09.08.2026): Der Server zeigt den Kontostand nur einem
+     Gerät, das für dieses Konto schon einmal bezahlt hat — sonst könnte jeder mit einer
+     fremden Adresse nachsehen, wo Geld liegt. */
+  try { const g = localStorage.getItem("lb_visitor"); if (g) q.set("device", g); } catch { /* privater Modus */ }
   try {
     const d = await fetch(`/api/kiss-status?${q.toString()}`, { cache: "no-store" }).then(r => r.json());
     return {

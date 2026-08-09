@@ -133,7 +133,9 @@ export default function GuthabenChip() {
     try {
       const r = await fetch("/api/kiss-video-checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aufladen: true, topupCents: stufe, email: adresse, returnTo: window.location.pathname }),
+        /* Die Gerätekennung reist mit: Wird die Aufladung gutgeschrieben, darf GENAU dieser
+           Browser danach von diesem Konto zahlen (Riegel vom 09.08.2026). */
+        body: JSON.stringify({ aufladen: true, topupCents: stufe, email: adresse, device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(), returnTo: window.location.pathname }),
       }).then(x => x.json());
       /* Kein Popup, sondern derselbe Tab: Der Chip steht in der Kopfzeile jeder Seite, und
          ein Fenster, das der Browser blockiert, sähe hier aus wie ein toter Knopf. */

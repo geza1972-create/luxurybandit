@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
    * Das erledigt der Trichter danach selbst, indem er den Einzelkauf wiederholt, der nun
    * aus dem Guthaben bezahlt wird.
    */
+  const geraet = String(body.device ?? "").trim().slice(0, 80);
   if (body.aufladen) {
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -100,7 +101,11 @@ export async function POST(request: Request) {
         // Eine an der Kasse vertippte Adresse hiesse Guthaben auf einem Konto, das dem Kunden
         // nicht gehoert und das er nie wiedersieht.
         email,
-        metadata: { kind: "aufladung", email, cents: String(stufe), ...(genId ? { genId } : {}) },
+        /* DIE GERAETEKENNUNG REIST MIT (09.08.2026): Wird die Aufladung gutgeschrieben,
+           gilt genau dieser Browser als bezahlt-und-vertraut. Das ist der einzige Weg auf
+           die Vertrauensliste — und er kostet den Faelscher echtes Geld. */
+        metadata: { kind: "aufladung", email, cents: String(stufe), ...(genId ? { genId } : {}),
+                    ...(geraet ? { device: geraet } : {}) },
       });
       return NextResponse.json({ url, sessionId: id });
     } catch (e) {
@@ -185,7 +190,12 @@ export async function POST(request: Request) {
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
-        const ab = await guthabenAbbuchen(email, `wallet-${genId}`, preis);
+        const ab = await guthabenAbbuchen(email, `wallet-${genId}`, preis, geraet);
+        /* Fremder Browser auf fremdem Konto: kein Guthaben-Weg. Er landet auf der Kasse und
+           zahlt selbst — genau wie jeder, der zum ersten Mal hier ist. */
+        if (ab.fremd) {
+          console.warn("[checkout] Guthaben-Zugriff von unbekanntem Geraet abgewiesen");
+        }
         if (ab.ok) {
           /**
            * NUR „BEZAHLT" MELDEN, WENN DER STEMPEL AUCH SITZT (03.08.2026).

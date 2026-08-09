@@ -2743,7 +2743,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(), subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
            cancelled=1 in der Adresse; als Ruecksprungziel weitergereicht, stand nach der

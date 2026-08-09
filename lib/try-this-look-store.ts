@@ -3060,7 +3060,19 @@ export async function avatarMerken(email: string, teile: { bildPfad?: string; to
  */
 const WALLET_DIR = "try-this-look/wallet";
 type WalletOp = { id: string; delta: number; at: string };
-type WalletBlob = { email: string; cents: number; ops: WalletOp[] };
+/**
+ * `geraete` — DIE BROWSER, DIE VON DIESEM KONTO ZAHLEN DÜRFEN (09.08.2026).
+ *
+ * Owner: „Kann das ein Fremder nicht machen zurzeit? Wenn er nur E-Mail angibt?" — er
+ * konnte. Guthaben hängt an der Adresse und sonst an nichts; wer eine fremde Adresse
+ * eintippt, legte einen eigenen Auftrag an, die Kasse buchte vom FREMDEN Konto ab, und das
+ * Video bekam der Dieb. Es gab keine Prüfung, dass ihm die Adresse gehört.
+ *
+ * Ein Gerät kommt NUR durch eine echte Zahlung auf diese Liste (Stripe-Aufladung, deren
+ * Sitzung die Gerätekennung trägt). Das kann ein Fremder nicht fälschen, ohne selbst zu
+ * bezahlen — und wer das Konto eines anderen auflädt, schadet ihm nicht.
+ */
+type WalletBlob = { email: string; cents: number; ops: WalletOp[]; geraete?: string[] };
 
 function walletPfad(e: string): string {
   /* base64url statt der Adresse selbst: eindeutig umkehrbar, keine Sonderzeichen im Pfad. */
@@ -3132,6 +3144,7 @@ async function walletBuchen(e: string, schluessel: string, delta: number): Promi
     if (delta < 0 && w.cents < -delta) return { cents: w.cents, gebucht: false, gedeckt: false };
     const neu: WalletBlob = {
       email: e,
+      geraete: w.geraete,
       cents: Math.max(0, w.cents + Math.round(delta)),
       ops: [...w.ops, { id: schluessel || `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, delta: Math.round(delta), at: new Date().toISOString() }].slice(-300),
     };
@@ -3160,6 +3173,40 @@ export async function walletHistorie(email: string): Promise<{ id: string; delta
   if (!e) return [];
   const w = await walletLesen(e).catch(() => null);
   return (w?.ops ?? []).slice().reverse();
+}
+
+/**
+ * EIN GERÄT ALS VERTRAUT VERMERKEN — nur nach echter Zahlung aufrufen.
+ *
+ * Aufrufort ist die Gutschrift der Stripe-Aufladung: Dort steht fest, dass jemand mit
+ * diesem Browser für DIESE Adresse Geld bezahlt hat. Alles andere (ein angelegter Auftrag,
+ * eine eingetippte Adresse) kann jeder erfinden und taugt deshalb nicht als Nachweis.
+ */
+export async function walletGeraetMerken(email: string, geraet: string): Promise<void> {
+  const e = String(email ?? "").trim().toLowerCase();
+  const g = String(geraet ?? "").trim().slice(0, 80);
+  if (!e || !g) return;
+  try {
+    const w = await walletOderMigration(e);
+    const liste = Array.from(new Set([...(w.geraete ?? []), g])).slice(-20);
+    await walletSchreiben({ ...w, geraete: liste });
+  } catch { /* der Riegel darf keine Zahlung aufhalten — er greift beim nächsten Mal */ }
+}
+
+/**
+ * DARF DIESER BROWSER VON DIESEM KONTO ZAHLEN (bzw. seine Sachen sehen)?
+ *
+ * ALTBESTAND GILT: Ist noch keine Liste da, sagen wir JA und schreiben das Gerät auf. Sonst
+ * sperrten wir die Konten aus, die es vor dem Riegel schon gab — auch das eigene des
+ * Owners. Ab der ersten Aufladung danach ist der Riegel scharf.
+ */
+export async function walletGeraetVertraut(email: string, geraet: string): Promise<boolean> {
+  const e = String(email ?? "").trim().toLowerCase();
+  const g = String(geraet ?? "").trim().slice(0, 80);
+  if (!e) return false;
+  const w = await walletLesen(e).catch(() => null);
+  if (!w || !(w.geraete?.length)) return true;    // Altbestand oder Konto ohne Geschichte
+  return !!g && w.geraete.includes(g);
 }
 
 /** Euro-Guthaben eines Kunden in Cent (0, wenn keins). */
@@ -3262,9 +3309,21 @@ export async function chatZugangBis(email: string): Promise<string> {
   return bis && Date.parse(bis) > Date.now() ? bis : "";
 }
 
-export async function guthabenAbbuchen(email: string, schluessel: string, cents: number): Promise<{ ok: boolean; rest: number }> {
+export async function guthabenAbbuchen(email: string, schluessel: string, cents: number, geraet = ""): Promise<{ ok: boolean; rest: number; fremd?: boolean }> {
   const e = String(email ?? "").trim().toLowerCase();
   if (!e || cents <= 0) return { ok: false, rest: await readGuthabenCents(e) };
+  /**
+   * DER RIEGEL (09.08.2026): Von einem Konto zahlt nur ein Browser, der dafür schon einmal
+   * bezahlt hat. Vorher genügte die Kenntnis der Adresse, um fremdes Guthaben auszugeben.
+   * Eine bereits gebuchte Quittung geht durch — sonst bliebe eine Wiederholung nach
+   * Netzfehler hängen, obwohl das Geld längst weg ist.
+   */
+  const schonGebucht = schluessel
+    ? !!(await walletLesen(e).catch(() => null))?.ops.some(o => o.id === schluessel)
+    : false;
+  if (!schonGebucht && !(await walletGeraetVertraut(e, geraet))) {
+    return { ok: false, rest: await readGuthabenCents(e), fremd: true };
+  }
   const r = await walletBuchen(e, schluessel, -Math.round(cents));
   /* `gedeckt` false = Stand reichte nicht; eine bereits gebuchte Quittung meldet ok (idempotent). */
   return { ok: r.gedeckt, rest: r.cents };

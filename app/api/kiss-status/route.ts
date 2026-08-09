@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits, videoCreditBalance, readGuthabenCents } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, videoCreditBalance, readGuthabenCents, walletGeraetVertraut } from "@/lib/try-this-look-store";
 import { INCLUDED_VIDEOS_PER_MONTH } from "@/lib/pricing";
 
 export const runtime = "nodejs";
@@ -27,6 +27,8 @@ const GUELTIG = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const email = String(params.get("email") ?? "").trim().toLowerCase();
+  /** Der Browser, der fragt — der Riegel von 09.08.2026 (siehe unten beim Kontostand). */
+  const geraet = String(params.get("device") ?? "").trim().slice(0, 80);
   /**
    * DIE ZWEITE ADRESSE DIESES GERAETS (Owner 03.08.2026: „mein Kontostand zeigt 0 Euro an,
    * aber ich habe Geld drauf").
@@ -57,10 +59,21 @@ export async function GET(request: Request) {
     // eines offen, ohne Abonnent zu sein.
     const left = await videoCreditBalance(email).catch(() => 0);
     // Das Euro-Guthaben der Aufladung (Owner 01.08.2026) — fuer die Zeile im Trichter.
-    const walletCents = await readGuthabenCents(email).catch(() => 0);
+    /**
+     * DER KONTOSTAND IST EINE AUSKUNFT ÜBER GELD (09.08.2026) — und die bekommt nur, wer
+     * von diesem Konto auch zahlen darf.
+     *
+     * Vorher gab diese Route den Stand JEDER Adresse heraus, die jemand eintippte. Das war
+     * für sich schon zu viel (wer sucht, findet die Konten mit Geld) und zusammen mit der
+     * offenen Abbuchung die halbe Anleitung zum Diebstahl. Ein unbekannter Browser sieht
+     * jetzt 0,00 € — genau das, was er auch ausgeben darf.
+     */
+    const darf = await walletGeraetVertraut(email, geraet).catch(() => false);
+    const walletCents = darf ? await readGuthabenCents(email).catch(() => 0) : 0;
     let gestrandet: { adresse: string; cents: number; links: number } | null = null;
     if (auch && auch !== email && GUELTIG.test(auch) && left <= 0 && walletCents <= 0) {
-      const cents = await readGuthabenCents(auch).catch(() => 0);
+      const cents = (await walletGeraetVertraut(auch, geraet).catch(() => false))
+        ? await readGuthabenCents(auch).catch(() => 0) : 0;
       const links = await videoCreditBalance(auch).catch(() => 0);
       if (cents > 0 || links > 0) gestrandet = { adresse: auch, cents, links };
     }
