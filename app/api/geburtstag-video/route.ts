@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen } from "@/lib/try-this-look-store";
+import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen, avatarMerken } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagStilPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
 
 /**
@@ -197,7 +197,7 @@ export async function POST(request: Request) {
   const heygen = process.env.HEYGEN_API_KEY?.trim();
   if (!heygen) return NextResponse.json({ error: "HEYGEN_API_KEY fehlt." }, { status: 500 });
 
-  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string; audio?: string; look?: string };
+  const body = (await request.json().catch(() => ({}))) as { person?: string; name?: string; genId?: string; stimme?: string; audio?: string; audioUrl?: string; look?: string };
   /**
    * DER GEWÄHLTE LOOK (Owner 07.08.2026: „Die Leute werden sich den look aussehen wollen").
    * Unbekannt oder gar nicht mitgeschickt ergibt den abgenommenen — ein Auftrag, der vor
@@ -342,6 +342,8 @@ export async function POST(request: Request) {
    * Auftrag (bewusst, ein eigener Ausbauschritt).
    */
   let audioUrl = "";
+  /** Wohin die hochgeladene Tonspur gelandet ist — für den Avatar und den Wachhund. */
+  let tonPfad = "";
   /**
    * AUCH `data:video` — die Aufnahme des Trichters IST ein Video (07.08.2026 abends, Owner:
    * „der typ hat eine frauen stimme. Meine stimme wurde nicht durchgegeben").
@@ -356,7 +358,14 @@ export async function POST(request: Request) {
    * am 07.08. bewiesen (siehe Übergabe §2) — genau deshalb reicht EINE Aufnahme für Bild
    * und Stimme, und genau deshalb darf diese Wache das Video nicht aussortieren.
    */
-  if (body.audio?.startsWith("data:audio") || body.audio?.startsWith("data:video")) {
+  /**
+   * DER WACHHUND SCHICKT EINE FERTIGE ADRESSE (09.08.2026): Er hat die Tonspur nicht als
+   * Daten-URL im Browser, sondern als Datei im Speicher — ein signierter Link ist der
+   * kürzeste Weg und spart das Hin- und Herwandeln von Megabytes.
+   */
+  if (typeof body.audioUrl === "string" && body.audioUrl.startsWith("http")) {
+    audioUrl = body.audioUrl;
+  } else if (body.audio?.startsWith("data:audio") || body.audio?.startsWith("data:video")) {
     const mime = body.audio.slice(5, body.audio.indexOf(";"));
     const bytes = Buffer.from(body.audio.slice(body.audio.indexOf(",") + 1), "base64");
     if (bytes.length > 2_000 && bytes.length < 6_000_000) {
@@ -369,7 +378,19 @@ export async function POST(request: Request) {
         : mime.includes("mp4") ? "m4a" : mime.includes("mpeg") ? "mp3" : "webm";
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       const pfad = await uploadTryThisLookBytes("uploads", ab, mime, ext).catch(() => "");
-      if (pfad) audioUrl = (await getSignedUrl(pfad).catch(() => "")) || "";
+      if (pfad) {
+        audioUrl = (await getSignedUrl(pfad).catch(() => "")) || "";
+        /**
+         * DIE TONSPUR GEHÖRT ZUM AVATAR — UND SCHLIESST DAS LETZTE LOCH IM KAUFWEG.
+         *
+         * Zwei Dinge auf einmal (Owner 09.08.2026: „das kann später der User immer wieder
+         * benutzen"): Seine Stimme steht beim nächsten Video sofort bereit, UND der
+         * Wachhund findet sie, wenn der Browser vor dem Start stirbt. Bis heute lag die
+         * Tonspur nur im Startaufruf; ging der verloren, lieferte der Server dasselbe
+         * Gesicht mit einer FREMDEN Stimme nach ([[tunnel-kaufweg]], „REST-LOCH").
+         */
+        tonPfad = pfad;
+      }
     }
     if (!audioUrl) return NextResponse.json({ error: "Die Aufnahme kam nicht an — bitte neu aufnehmen oder eine Stimme wählen." }, { status: 400 });
   }
@@ -465,6 +486,12 @@ export async function POST(request: Request) {
          * `videoId` macht den Auftrag fuer den Wachhund OFFEN (videoId ≠ videoDoneId),
          * `videoStartAt` gibt der Galerie ihr „Video entsteht".
          */
+        /* Die Tonspur an den AUFTRAG (der Wachhund braucht sie) und an den AVATAR (das
+           nächste Video braucht sie) — beides hier, wo der Eintrag ohnehin geschrieben wird. */
+        if (tonPfad) {
+          eintrag.audioPath = tonPfad;
+          if (eintrag.email) void avatarMerken(eintrag.email, { tonPfad });
+        }
         eintrag.videoId = `hg:${videoId}`;
         eintrag.videoStartAt = new Date().toISOString();
         /**

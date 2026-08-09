@@ -258,6 +258,8 @@ export default function MyGalleryPage() {
    * übersetzt werden und alle sprachen"). Erst nach dem ersten Rendern gelesen — sonst
    * unterscheiden sich Server- und Browser-Durchgang (Hydration). Bis dahin Englisch.
    */
+  /** Sein Avatar — Gesicht und Stimme, mit denen jedes Video gebaut wird. */
+  const [avatar, setAvatar] = useState<{ imageUrl: string; stimme: boolean } | null>(null);
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => { setLang(spracheAusCookie()); }, []);
   const T = kontoText(lang);
@@ -331,6 +333,7 @@ export default function MyGalleryPage() {
             .filter((b: Item) => b.imageUrl || b.videoUrl || b.rendert);
           own.push(...bilder);
           if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
+          if (d?.avatar?.imageUrl) setAvatar({ imageUrl: String(d.avatar.imageUrl), stimme: !!d.avatar.stimme });
           /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. */
           if (own.some(x => x.rendert)) takt = setTimeout(nachladen, 15_000);
         })
@@ -483,6 +486,31 @@ export default function MyGalleryPage() {
           * Sie verschwindet von selbst: Die Seite laedt alle 15 s nach, solange etwas offen
           * ist (siehe `nachladen` oben) — der Kaeufer muss nie neu laden.
           */}
+        {/**
+          * DER AVATAR STEHT ÜBER ALLEM (Owner 09.08.2026: „Auch in der Galerie. Das kann
+          * später der User immer wieder benutzen … wenn er ein neues Video aufnimmt, dann
+          * wird es ersetzt.").
+          *
+          * Er ist KEINE Kachel zwischen den Werken: Die Werke sind Ergebnisse, der Avatar
+          * ist das Werkzeug. Deshalb steht er in einer eigenen Zeile ganz oben — klein,
+          * mit dem Satz daneben, der beides sagt: wofür er da ist und dass eine neue
+          * Aufnahme ihn ersetzt. Ohne diesen Satz wäre „Avatar" ein Wort, das der Kunde
+          * zwar liest, aber nicht versteht.
+          */}
+        {avatar && (
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] p-2.5">
+            <img src={avatar.imageUrl} alt={T.avatar}
+              className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-black text-white">
+                {T.avatar}
+                {avatar.stimme && <span className="ml-1.5 text-[11px] font-bold text-[#f6cf51]">{T.avatarStimme}</span>}
+              </p>
+              <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-white/55">{T.avatarHinweis}</p>
+            </div>
+          </div>
+        )}
+
         {items.some(x => x.rendert) && (
           <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#f6cf51]" />

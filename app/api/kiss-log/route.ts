@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
-import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry, avatarMerken } from "@/lib/try-this-look-store";
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -362,6 +362,23 @@ export async function POST(request: Request) {
   // der Frau nicht, die ich hochgeladen habe").
   let modelPath = String(body.modelPath ?? "").trim();
   if (!modelPath && String(body.modelImage ?? "").startsWith("data:")) modelPath = await ablegen(String(body.modelImage));
+
+  /**
+   * DAS STANDBILD WIRD ZUM AVATAR (Owner 09.08.2026: „ich will dass du das Video das die
+   * Leute hochladen Avatar nennst … Das kann später der User immer wieder benutzen auch
+   * für andere Tools, oder wenn er ein neues Video aufnimmt, dann wird es ersetzt.").
+   *
+   * Hier ist die Stelle, an der es entsteht: Der Trichter legt den Auftrag an und schickt
+   * das Standbild seiner Aufnahme mit. Es gehört ab jetzt nicht nur DIESEM Auftrag,
+   * sondern IHM — beim nächsten Video muss er sich nicht neu aufnehmen.
+   *
+   * Ohne Adresse kein Avatar: Er hängt am Konto, nicht am Gerät (dieselbe Regel wie beim
+   * Guthaben, [[guthaben-haengt-an-einer-adresse]]). Und er wird ERSETZT, nicht gesammelt.
+   */
+  const adresse = String(body.email ?? "").trim().toLowerCase();
+  if (adresse && modelPath.startsWith("try-this-look/")) {
+    void avatarMerken(adresse, { bildPfad: modelPath });
+  }
 
   // Neu: eine Generierung (beim Hochladen angelegt, Ergebnis wird nachgetragen).
   const entry: KissLogEntry = {

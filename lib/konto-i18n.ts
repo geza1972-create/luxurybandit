@@ -39,6 +39,9 @@ export type KontoText = {
   linkKopiert: string;
   teilen: string;
   download: string;
+  avatar: string;
+  avatarHinweis: string;
+  avatarStimme: string;
   // ── Konto ──
   kontoTitel: string;
   aktuell: string;
@@ -73,6 +76,9 @@ const en: KontoText = {
   linkKopiert: "Link copied",
   teilen: "Share",
   download: "Download",
+  avatar: "Your avatar",
+  avatarHinweis: "Your face and voice for every video. A new recording replaces it.",
+  avatarStimme: "with your voice",
   kontoTitel: "Top up your account",
   aktuell: "Currently:",
   adressePflicht: "Please enter your email address — your credit is booked to it.",
@@ -105,6 +111,9 @@ const de: KontoText = {
   linkKopiert: "Link kopiert",
   teilen: "Teilen",
   download: "Speichern",
+  avatar: "Dein Avatar",
+  avatarHinweis: "Dein Gesicht und deine Stimme für jedes Video. Eine neue Aufnahme ersetzt ihn.",
+  avatarStimme: "mit deiner Stimme",
   kontoTitel: "Konto aufladen",
   aktuell: "Aktuell:",
   adressePflicht: "Bitte gib deine E-Mail-Adresse an — auf sie wird das Guthaben gebucht.",
@@ -137,6 +146,9 @@ const ro: KontoText = {
   linkKopiert: "Link copiat",
   teilen: "Distribuie",
   download: "Descarcă",
+  avatar: "Avatarul tău",
+  avatarHinweis: "Chipul și vocea ta pentru fiecare videoclip. O înregistrare nouă îl înlocuiește.",
+  avatarStimme: "cu vocea ta",
   kontoTitel: "Încarcă-ți contul",
   aktuell: "Acum:",
   adressePflicht: "Introdu adresa ta de e-mail — pe ea se înregistrează creditul.",
@@ -169,6 +181,9 @@ const es: KontoText = {
   linkKopiert: "Enlace copiado",
   teilen: "Compartir",
   download: "Descargar",
+  avatar: "Tu avatar",
+  avatarHinweis: "Tu cara y tu voz para cada vídeo. Una grabación nueva lo sustituye.",
+  avatarStimme: "con tu voz",
   kontoTitel: "Recarga tu cuenta",
   aktuell: "Ahora:",
   adressePflicht: "Introduce tu correo electrónico — el saldo se abona en él.",
@@ -201,6 +216,9 @@ const fr: KontoText = {
   linkKopiert: "Lien copié",
   teilen: "Partager",
   download: "Télécharger",
+  avatar: "Ton avatar",
+  avatarHinweis: "Ton visage et ta voix pour chaque vidéo. Un nouvel enregistrement le remplace.",
+  avatarStimme: "avec ta voix",
   kontoTitel: "Recharge ton compte",
   aktuell: "Actuellement :",
   adressePflicht: "Indique ton adresse e-mail — ton crédit y est enregistré.",
@@ -233,6 +251,9 @@ const pt: KontoText = {
   linkKopiert: "Link copiado",
   teilen: "Partilhar",
   download: "Transferir",
+  avatar: "O teu avatar",
+  avatarHinweis: "O teu rosto e a tua voz para cada vídeo. Uma nova gravação substitui-o.",
+  avatarStimme: "com a tua voz",
   kontoTitel: "Carrega a tua conta",
   aktuell: "Agora:",
   adressePflicht: "Indica o teu e-mail — o saldo é registado nele.",
@@ -265,6 +286,9 @@ const it: KontoText = {
   linkKopiert: "Link copiato",
   teilen: "Condividi",
   download: "Scarica",
+  avatar: "Il tuo avatar",
+  avatarHinweis: "Il tuo viso e la tua voce per ogni video. Una nuova registrazione lo sostituisce.",
+  avatarStimme: "con la tua voce",
   kontoTitel: "Ricarica il tuo conto",
   aktuell: "Ora:",
   adressePflicht: "Inserisci la tua e-mail — il credito viene registrato su di essa.",

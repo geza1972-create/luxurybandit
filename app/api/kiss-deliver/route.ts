@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, deleteTryThisLookImage, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, deleteTryThisLookImage, type KissLogEntry, avatarLesen } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
 
@@ -106,10 +106,21 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
   if (e.theme === "birthday") {
     if (!ihr) return { error: "Ihr Foto fehlt im Speicher." };
     const pinG = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
+    /**
+     * MIT SEINER EIGENEN STIMME NACHLIEFERN (09.08.2026 — das letzte Loch im Kaufweg).
+     *
+     * Der Auftrag trägt seit heute die Tonspur (`audioPath`); fehlt sie (Altfall), greift
+     * der Avatar seines Kontos. Erst wenn beides leer ist, rendert der Wachhund mit der
+     * Chip-Stimme — dann hat der Käufer wenigstens sein Video, statt gar keins.
+     */
+    let tonspur = "";
+    const tonQuelle = e.audioPath || (e.email ? (await avatarLesen(e.email))?.tonPfad : "") || "";
+    if (tonQuelle) tonspur = await getSignedUrl(tonQuelle).catch(() => "");
     const g = await fetch(`${origin(request)}/api/geburtstag-video`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(pinG ? { "x-try-look-admin-pin": pinG } : {}) },
-      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau", look: e.look }),
+      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau", look: e.look,
+                             ...(tonspur ? { audioUrl: tonspur } : {}) }),
     }).then(x => x.json()).catch(() => null);
     if (!g?.videoId) return { error: String(g?.error ?? "Geburtstags-Start fehlgeschlagen.") };
     return { videoId: String(g.videoId) };

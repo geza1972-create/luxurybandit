@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry } from "@/lib/try-this-look-store";
+import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -198,8 +198,30 @@ export async function GET(request: Request) {
     } catch { return []; }
   })();
 
+  /**
+   * SEIN AVATAR (Owner 09.08.2026: „ich will dass du das Video das die Leute hochladen
+   * Avatar nennst. Auch in der Galerie.").
+   *
+   * Er steht neben den Werken, nicht darunter: Der Avatar ist kein Ergebnis, sondern das
+   * WERKZEUG, mit dem alle Ergebnisse entstehen — sein Gesicht und seine Stimme. Deshalb
+   * liefert die Route ihn getrennt aus; die Galerie zeigt ihn oben und sagt dazu, dass
+   * eine neue Aufnahme ihn ersetzt.
+   *
+   * Er hängt am KONTO. Ohne Adresse gibt es keinen — sonst läge das Gesicht eines Kunden
+   * an einer Gerätekennung, die sich jeder Browser selbst ausdenkt.
+   */
+  const avatar = await (async () => {
+    if (!email) return null;
+    const a = await avatarLesen(email).catch(() => null);
+    if (!a?.bildPfad) return null;
+    const bild = await getSignedUrl(a.bildPfad).catch(() => "");
+    if (!bild) return null;
+    return { imageUrl: bild, stimme: !!a.tonPfad, at: a.at ?? "" };
+  })();
+
   return NextResponse.json({
     videos: videos.filter(v => v.videoUrl),
     pictures: bilder.filter(b => b.imageUrl || b.videoUrl),
+    ...(avatar ? { avatar } : {}),
   }, { headers: { "Cache-Control": "no-store" } });
 }

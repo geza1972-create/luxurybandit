@@ -1650,6 +1650,14 @@ export type KissLogEntry = {
   paidEmail?: string;     // von Stripe beim Kauf
   device?: string;        // anonyme Gerätekennung (lb_visitor)
   /**
+   * SEINE TONSPUR AM AUFTRAG (09.08.2026) — damit der Wachhund mit SEINER Stimme liefert.
+   *
+   * Bis hierher lag sie nur im Startaufruf des Browsers. Starb der, rendete der Server
+   * dasselbe Gesicht mit einer fremden Chip-Stimme nach — das letzte bekannte Loch im
+   * Kaufweg ([[tunnel-kaufweg]]).
+   */
+  audioPath?: string;
+  /**
    * DAS URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in
    * der Galerie ein Warnzeichen drauf").
    *
