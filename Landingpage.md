@@ -166,6 +166,9 @@ deshalb überlebt so etwas jeden Umbau.
 - [ ] Video steht **einmal** auf der Seite — mit fertigem Video geprüft
 - [ ] Knopfbeschriftung in **allen sieben Sprachen** (`lib/lang.ts`), nicht nur Deutsch
 - [ ] Preise nur aus `lib/pricing.ts`, nie eingetippt
+- [ ] **Kein Eingabefeld auf der Seite** — Felder leben im Fenster hinter dem ersten Tipp (§8)
+- [ ] **CTA im Viewport** — auf 375×812 gemessen, nicht geschätzt (§9)
+- [ ] Preis IM Knopf, kein zweiter Preis-Chip darüber (§9)
 
 ---
 
@@ -185,6 +188,93 @@ deshalb überlebt so etwas jeden Umbau.
 
 ---
 
+## 8. Keine Formulare auf der Themenseite
+
+Owner 07.08.2026, mit Bildschirmfoto des Adressfeldes im System-Trichter:
+
+> „das raus, ich hatte doch geschrieben, dass Formulare nicht auf die Topicseite gehören.
+> Schreib das auf als Regel irgendwo."
+
+**Die Regel:** Auf einer Themenseite steht **kein Trichter**. Kein Eingabefeld, keine Frage,
+keine Auswahl, keine Upload-Kachel. Was die Seite zeigt, ist: Überschrift, Preis, Vorspann,
+**die Karte**, **ein Knopf** und die Absätze darunter. Alles, was der Kunde TUT, passiert im
+Fenster, das dieser Knopf öffnet.
+
+**Der Bauplan dafür steht im Kuss und wird nicht neu erfunden:** `KissFunnel` hält seine
+Schritte in `stufenOffen` und legt sie als `fixed inset-0 z-40` über die Seite; geöffnet wird
+über das Ereignis `SCHRITTE_OEFFNEN`. Die Kopfzeile bleibt darüber sichtbar (z-50), getippt
+wird neben das Fenster zum Schliessen.
+
+**Warum das kein Geschmack ist.** Ein Formular ist eine Rechnung, bevor es eine Ware gibt: Es
+verlangt Arbeit von jemandem, der noch nicht weiss, ob er das Ding will. Vor dem Gratis-Bild
+ist jedes Feld ein Abbruchgrund, und das ist im Kuss-Log gemessen (Erinnerung
+`sichtbare-fehler-keine-formularfelder`). Dazu kommt das Aussehen: Ein leeres Feld mitten in
+einer Verkaufsseite lässt sie wie ein Behördenvordruck wirken — und nach einer Anzeige ist
+das die zweite Sekunde, nicht die dreissigste.
+
+**Wohin die Frage stattdessen gehört.** Hinter den ersten echten Tipp — dorthin, wo er schon
+etwas gewählt hat und die Frage einen sichtbaren Zweck erfüllt:
+
+| Frage | wo sie gestellt wird |
+|---|---|
+| E-Mail | Tor-Fenster, nachdem ein Foto gewählt ist (`gateDatei` in `KissFunnel`, `wartendeDatei` in `PlanFunnel`) |
+| Namen, Datum, Ort | im Bau-Schritt, an der Stelle der Karte, die sie tragen soll (`aufNamen`, `aufDatum`, `aufOrt` in `EinladungKarte`) |
+| Botschaft | Fenster über der Karte, nicht als Feld darunter |
+
+Die **Pflicht bleibt** — kein Upload ohne Adresse (Erinnerung
+`eingangstore-email-und-alter`). Sie wird nur später erhoben, nicht schwächer.
+
+**KEINE AUSNAHME FÜR „SPÄTERE" SCHRITTE.** Hier stand einmal, Fragen nach dem Foto seien
+keine Formulare auf der Seite, weil der Kunde da schon zugegriffen habe. Das war erfunden und
+hat genau das gebaut, was der Owner am 07.08.2026 zurückwies: eine Landingpage mit
+Upload-Kachel, Ja/Nein-Frage, Textfeld und vier Auswahlknöpfen untereinander. **Die Grenze ist
+der Knopf, nicht der Zeitpunkt.** Was nach dem Knopf kommt, gehört ins Fenster — auch der
+zweite und der dritte Schritt.
+
+---
+
 Verwandt: `PLAN-GESCHENKE-FLOW.md` §2 (die Regeln, die Geld gekostet haben) ·
 Erinnerungen `karte-ist-die-huelle-fuer-videos`, `videos-nahtlos-schleifen`,
 `video-playback-behavior`, `feed-spec`.
+---
+
+## 9. Der Kopf der Seite — das Template für ALLE Seiten
+
+Owner 10.08.2026: „**ich will den CTA im Viewport shen.** Das hisst du machst den H1 kleiner
+(Bibliothek) und sparrst am abstand zwischen titel und header. Bei allen topics." — und
+unmittelbar danach: „**dieser Aufbau der Landing pge gilt für alle seiten.**"
+
+**Der Kaufknopf muss ohne Wischen sichtbar sein.** Wer oben entscheidet, ob er bleibt, sieht
+den Knopf sonst nie. GEMESSEN auf 375×812 (Geburtstagsseite): vorher lag seine Oberkante bei
+810 px — zwei Pixel im Bild, also unsichtbar. Nach den drei Massnahmen unten: 712 px, ganz
+sichtbar, 52 px Luft.
+
+Die Reihenfolge, mit den Massen:
+
+| # | Was | Mass |
+|---|-----|------|
+| 1 | `TopNav` | ~90 px, nicht anfassen |
+| 2 | Seiten-Hülle | `mx-auto w-full max-w-[440px] px-4 pb-24 **pt-3**` — nie mehr `pt-8` |
+| 3 | `<Kicker>` | nur wenn wirklich nötig, er kostet eine Zeile |
+| 4 | `<H1>` aus `components/Landing` | **28 px**, `mt-1`, `leading-[1.06]` — nie eine eigene Grösse |
+| 5 | Karte mit dem Beispielvideo | `mt-4`, nicht `mt-8` |
+| 6 | Goldener Knopf **auf** der Karte | **mit Preis darin**: `ab 4,99 € · Jetzt starten` |
+| 7 | Erklärtexte, Abschnitte, Fuss | erst darunter |
+
+**Der Preis steht IM Knopf** (Owner 10.08.2026: „ab 4,99 - Jetzt starten. Schreibst du in dem
+Button") — aus `themenPreisZeile` in `lib/pricing`, nie getippt. Ein eigener Preis-Chip über
+der Karte entfällt damit: derselbe Preis zweimal kostet vierzig Pixel und schiebt den Knopf
+aus dem Bild.
+
+**Messen, nicht schätzen.** Nach jeder Änderung am Seitenkopf, im Handy-Fenster (375×812):
+
+```js
+const b = [...document.querySelectorAll('button,a')].find(e => /starten|start/i.test(e.textContent));
+b.getBoundingClientRect().bottom <= innerHeight   // muss true sein
+```
+
+Umgesetzt am 10.08.2026 auf: alle `app/themes/*`, `/about`, `/offer`, `/your-idol` und die
+Startseite. Der Preis im Knopf gilt bisher für die vier Geschenk-Themen, die über
+`KissFunnel` laufen (Kuss, Geburtstag, Hochzeit, Tanz); die übrigen Themen tragen ihren Preis
+weiterhin als Chip, weil ihr Knopf woanders lebt.
+

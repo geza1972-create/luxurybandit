@@ -1,5 +1,7 @@
 "use client";
 
+import { ABGEMELDET_KEY, spurenLoeschen } from "@/lib/abmelden-spuren";
+
 export type SupabaseAuthUser = {
   id: string;
   email?: string;
@@ -115,6 +117,9 @@ export function saveAuthSession(session: SupabaseAuthSession | null) {
     session.expires_at = Math.floor(Date.now() / 1000) + session.expires_in;
   }
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  /* Wieder angemeldet → die Abmelde-Marke fällt. Ab jetzt darf dieses Gerät wieder als
+     Ausweis gelten (siehe `lib/abmelden-spuren`). */
+  try { window.localStorage.removeItem(ABGEMELDET_KEY); } catch { /**/ }
   // Bridge the two identity systems: if this email belongs to a curator, mirror it
   // into lb_curator so the studio & curator UI recognise them — ONE login, role
   // auto-detected (no separate "curator sign in").
@@ -211,8 +216,19 @@ export function signInWithOAuth(provider: "google" | "facebook", redirectTo: str
   window.location.href = u.toString();
 }
 
+/**
+ * ABMELDEN RÄUMT DAS GERÄT AUF (Owner 10.08.2026: „wenn er sich abmeldet dann ist es weg. Das
+ * ist datenschutz auch. Kann sein dass jemand anders sein gerät in die Hand nimmt und dann
+ * sieht er seine gallerie").
+ *
+ * Hier stand nur `saveAuthSession(null)` — der Ausweis weg, alles andere liegengeblieben:
+ * Adresse, Auftragsnummern, zwischengespeicherte Fotos, die eigene Aufnahme. Wer danach das
+ * Handy in die Hand bekam, sah in der Galerie fremde Bilder. Der Grund, WARUM das hier steht
+ * und nicht an den sechs Abmelde-Knöpfen: Es gibt sechs davon, und der siebte wird vergessen.
+ */
 export function signOut() {
   saveAuthSession(null);
+  spurenLoeschen();
 }
 
 // Exchange the refresh_token for a fresh access_token so the user stays logged in past

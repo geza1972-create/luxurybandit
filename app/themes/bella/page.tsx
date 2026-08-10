@@ -85,7 +85,7 @@ export default async function BellaThemePage({ searchParams }: {
           `utm_source` und die Geräte-Kennung reisen über logFunnelEvent mit. */}
       <TrackView event="bella_hub" lookId="themes-bella" lookName="Bella-Thema" />
 
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
 
         {showCustomer ? (

@@ -372,7 +372,8 @@ export async function POST(request: Request) {
        * einer Eigenschaft einen Fehler. Der Satz sagt jetzt nur die Zahl und den Weg.
        */
       return NextResponse.json({
-        error: "Das waren deine drei Bilder. Wenn keines davon passt, schreib uns an support@luxurybandit.com.",
+        /* Kontakt als ADRESSE der Seite, nie als E-Mail (Owner 10.08.2026, Skill `ci-design`). */
+        error: "Das waren deine drei Bilder. Wenn keines davon passt, schreib uns über luxurybandit.com/contact.",
         limit: claim.reason,
         guthaben: true,
       }, { status: 429 });

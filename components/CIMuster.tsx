@@ -5,7 +5,7 @@ import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
-  type ThemenKachelDaten, AnmeldeEinladung } from "@/components/CI";
+  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -153,6 +153,28 @@ export default function CIMuster() {
           <Knopf art="chip" aktiv={chipWahl === "a"} onClick={() => setChipWahl("a")}>Chip aktiv</Knopf>
           <Knopf art="chip" aktiv={chipWahl === "b"} onClick={() => setChipWahl("b")}>Chip inaktiv</Knopf>
         </div>
+      </Kasten>
+
+      {abschnitt("Chip hell — für den weissen Zahlungs-Dialog")}
+      {/* Owner 10.08.2026: „wenn es um zahlung geht, vertrauen menschen mehr den hellen
+          farben". Auf Weiss ist ein weisser Rand auf 20 % nicht da — hier steht dieselbe
+          Form in Tinte. Der Kasten ist absichtlich WEISS, sonst prüft man den hellen Chip
+          auf dunklem Grund und sieht nie, was der Kunde sieht. */}
+      <div className="rounded-2xl bg-white p-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Knopf art="chip" hell aktiv={chipWahl === "a"} onClick={() => setChipWahl("a")}>5 € · 1 🎬</Knopf>
+          <Knopf art="chip" hell aktiv={chipWahl === "b"} onClick={() => setChipWahl("b")}>10 € · 2 🎬</Knopf>
+        </div>
+        <Zahlungssiegel hell text="Sichere Zahlung über Stripe" garantie="Geld-zurück-Garantie"
+          garantieHref="/terms#geld-zurueck-garantie" className="mt-3" />
+      </div>
+
+      {abschnitt("Zahlungssiegel — nur wo wirklich Geld fliesst")}
+      {/* Owner 10.08.2026: „man muss igerndwie sichere Zahlung mit stripe (logo) Masterkard
+          logo…einblenden". Es behauptet nur, was stimmt: Stripe kassiert, die zwei
+          Kartennetze gehen. Der Satz kommt fertig übersetzt herein (`T.secure`). */}
+      <Kasten>
+        <Zahlungssiegel text="Sichere Zahlung über Stripe" />
       </Kasten>
 
       {abschnitt("BildWahl — eine Reihe Bildkacheln, eine gewählt")}

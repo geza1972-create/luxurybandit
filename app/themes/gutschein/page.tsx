@@ -141,7 +141,7 @@ export default async function GutscheinThemePage() {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <TrackView event="gutschein_view" lookId="themes-gutschein" lookName="Gutschein-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <Kicker>{t.kicker}</Kicker>
         <H1>{W.h1a}<Y>{W.h1b}</Y>{W.h1c}</H1>
         <Lead className="mt-2">{t.claim}</Lead>

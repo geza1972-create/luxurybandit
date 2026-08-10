@@ -70,6 +70,12 @@ export type KissText = {
    *  „Foto ersetzen" nur die halbe Wahrheit — der Knopf lädt zum Ausfüllen der GANZEN Karte
    *  ein, nicht nur des Bildes. Nur in der Hochzeit benutzt (EinladungBauen.tsx).*/
   datenErsetzen: string;
+  /**
+   * „JETZT STARTEN" — der Kaufaufruf auf JEDER Karte (Owner 10.08.2026: „Button wie CI
+   * Preis-Jettzt starten"). Davor steht der Preis aus `themenPreisZeile`, nie eine getippte
+   * Zahl: `ab 29 € · Jetzt starten`.
+   */
+  jetztStarten: string;
   next: string; nextPaid: string; pickFirst: string; uploadFirst: string;
   aboWas: string;
   you: string; uploadYou: string; youHint: string; changePhoto: string;
@@ -86,6 +92,19 @@ export type KissText = {
   /* Erstattung unter dem fertigen Video (Owner 03.08.2026: "hier gehoert eigentlich ein
      Refund"). Zwei Tipps wie beim Loeschen: erst rot, dann wirklich. */
   erstatten: string; erstattenSicher: string; erstattet: string;
+  /**
+   * DIE GELD-ZURÜCK-GARANTIE AM ZAHLUNGSFENSTER (Owner 10.08.2026: „Geld Zurückgarantie
+   * habe ich gesagt" — nachdem ich zuerst „Nicht zufrieden? Geld zurück" gesetzt hatte:
+   * „Nein, nicht Nicht zufrieden").
+   *
+   * DER UNTERSCHIED IST DER GANZE PUNKT (Owner, im selben Atemzug: „Leute sind immer nicht
+   * zufrieden"). „Nicht zufrieden? Geld zurück" verspricht Geschmack — und Geschmack gibt
+   * das Haus nicht zurück: Ein Ergebnis, das jemandem nicht gefällt, ist kein
+   * Erstattungsgrund, sonst zahlt jeder Lauf sich selbst zurück. Die Garantie deckt, was
+   * WIR schulden: keine Lieferung oder eine grosse Abweichung. Was sie deckt und was nicht,
+   * steht in den AGB — deshalb ist dieses Wort ein LINK und keine blosse Zeile.
+   */
+  geldZurueckGarantie: string;
   /** Das Tor VOR dem ersten Upload (Owner 03.08.2026): Titel und Weiter-Knopf. */
   gateTitel: string; gateWeiter: string;
   /** Beschriftung des Land-Feldes neben der Adresse (Owner 31.07.2026). */
@@ -296,6 +315,7 @@ const EN: KissText = {
   step1: "1 · Pick her", step2: "2 · Your photo — you, the man", step3: "3 · The kiss", step4: "4 · Your picture",
   pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
   datenErsetzen: "Change photo",
+  jetztStarten: "Start now",
   namenVorSenden: "Tap your names above to send it",
   upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.",
   tapChange: "Tap to change photo",
@@ -323,7 +343,7 @@ const EN: KissText = {
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
   guthabenZuWenig: "Your balance is {stand} — this video costs {preis}.",
   aufladungNull: "Your last payment came to €0.00 (promo code) — so nothing was added to your balance.",
-  mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …", nochEins: "Another one, another look", replaceModel: "Replace model", replaceGewaehlt: "Chosen", erstatten: "Not happy? Get your money back", erstattenSicher: "Tap again — money back", erstattet: "Refunded to your balance", nochEinsPreis: "Tap an outfit - {tanz} from your balance, straight away.",
+  mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …", nochEins: "Another one, another look", replaceModel: "Replace model", replaceGewaehlt: "Chosen", erstatten: "Not happy? Get your money back", geldZurueckGarantie: "Money-back guarantee", erstattenSicher: "Tap again — money back", erstattet: "Refunded to your balance", nochEinsPreis: "Tap an outfit - {tanz} from your balance, straight away.",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
   consent: "By generating you confirm you may use these photos, everyone shown is an adult, you keep it private — and you take full responsibility for it. Nudity photos are not accepted. Uploading someone else's photo without their consent is not legal — that responsibility is yours.",
@@ -425,6 +445,7 @@ const DE: KissText = {
   step1: "1 · Wähle sie", step2: "2 · Dein Foto — du, der Mann", step3: "3 · Der Kuss", step4: "4 · Dein Bild",
   pickHint: "Lade die Frau hoch, die du küssen willst — oder wische zu einer von uns.",
   datenErsetzen: "Foto wechseln",
+  jetztStarten: "Jetzt starten",
   namenVorSenden: "Tippt oben auf eure Namen, um zu verschicken",
   upTitle: "Deine Frau", upHint: "Küsse jeden Star — lade einfach ein Bildschirmfoto hoch.",
   tapChange: "Tippen, um das Foto zu wechseln",
@@ -452,7 +473,7 @@ const DE: KissText = {
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
   guthabenZuWenig: "Dein Guthaben ist {stand} — dieses Video kostet {preis}.",
   aufladungNull: "Deine letzte Zahlung betrug 0,00 € (Aktionscode) — deshalb wurde kein Guthaben gutgeschrieben.",
-  mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …", nochEins: "Noch eins, anderer Look", replaceModel: "Model ersetzen", replaceGewaehlt: "Gewählt", erstatten: "Nicht zufrieden? Geld zurück", erstattenSicher: "Nochmal tippen — Geld zurück", erstattet: "Auf dein Guthaben erstattet", nochEinsPreis: "Tipp ein Outfit an - {tanz} vom Guthaben, sofort.",
+  mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …", nochEins: "Noch eins, anderer Look", replaceModel: "Model ersetzen", replaceGewaehlt: "Gewählt", erstatten: "Nicht zufrieden? Geld zurück", geldZurueckGarantie: "Geld-zurück-Garantie", erstattenSicher: "Nochmal tippen — Geld zurück", erstattet: "Auf dein Guthaben erstattet", nochEinsPreis: "Tipp ein Outfit an - {tanz} vom Guthaben, sofort.",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
   consent: "Mit dem Erzeugen bestätigst du: Du darfst diese Fotos verwenden, alle Abgebildeten sind erwachsen, du behältst es privat — und du trägst die Verantwortung dafür. Nacktbilder werden nicht akzeptiert. Ein Foto einer anderen Person ohne deren Zustimmung hochzuladen ist nicht legal — dafür trägst du selbst die Verantwortung.",
@@ -554,6 +575,7 @@ const RO: KissText = {
   step1: "1 · Alege-o", step2: "2 · Poza ta — tu, bărbatul", step3: "3 · Sărutul", step4: "4 · Poza ta",
   pickHint: "Încarcă femeia pe care vrei s-o săruți — sau glisează la una dintre ale noastre.",
   datenErsetzen: "Schimbă poza",
+  jetztStarten: "Începe acum",
   namenVorSenden: "Atingeți numele voastre mai sus ca să trimiteți",
   upTitle: "Femeia ta", upHint: "Sărută orice vedetă — încarcă o simplă captură de ecran.",
   tapChange: "Atinge ca să schimbi poza",
@@ -581,7 +603,7 @@ const RO: KissText = {
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
   guthabenZuWenig: "Creditul tău este {stand} — acest video costă {preis}.",
   aufladungNull: "Ultima ta plată a fost de 0,00 € (cod promoțional) — de aceea nu s-a adăugat niciun credit.",
-  mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …", nochEins: "Inca unul, alt look", replaceModel: "Schimbă modelul", replaceGewaehlt: "Ales", erstatten: "Nu ești mulțumit? Îți dăm banii înapoi", erstattenSicher: "Atinge din nou — banii înapoi", erstattet: "Returnat în soldul tău", nochEinsPreis: "Atinge o tinuta - {tanz} din sold, imediat.",
+  mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …", nochEins: "Inca unul, alt look", replaceModel: "Schimbă modelul", replaceGewaehlt: "Ales", erstatten: "Nu ești mulțumit? Îți dăm banii înapoi", geldZurueckGarantie: "Garanție de returnare a banilor", erstattenSicher: "Atinge din nou — banii înapoi", erstattet: "Returnat în soldul tău", nochEinsPreis: "Atinge o tinuta - {tanz} din sold, imediat.",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
   consent: "Prin generare confirmi că ai dreptul să folosești aceste poze, că toate persoanele sunt adulte, că păstrezi rezultatul privat — și că îți asumi răspunderea. Pozele cu nuditate nu sunt acceptate. Încărcarea pozei altei persoane fără acordul ei nu este legală — răspunderea îți aparține.",
@@ -683,6 +705,7 @@ const ES: KissText = {
   step1: "1 · Elígela", step2: "2 · Tu foto — tú, el hombre", step3: "3 · El beso", step4: "4 · Tu imagen",
   pickHint: "Sube la mujer a la que quieres besar — o desliza hasta una de las nuestras.",
   datenErsetzen: "Cambiar foto",
+  jetztStarten: "Empieza ahora",
   namenVorSenden: "Tocad vuestros nombres arriba para enviarlo",
   upTitle: "Tu modelo", upHint: "Besa a cualquier estrella — sube solo una captura de pantalla.",
   tapChange: "Toca para cambiar la foto",
@@ -710,7 +733,7 @@ const ES: KissText = {
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
   guthabenZuWenig: "Tu saldo es {stand} — este vídeo cuesta {preis}.",
   aufladungNull: "Tu último pago fue de 0,00 € (código promocional) — por eso no se añadió saldo.",
-  mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …", nochEins: "Otro mas, otro look", replaceModel: "Cambiar modelo", replaceGewaehlt: "Elegido", erstatten: "¿No te convence? Te devolvemos el dinero", erstattenSicher: "Toca otra vez — dinero de vuelta", erstattet: "Devuelto a tu saldo", nochEinsPreis: "Toca un look - {tanz} de tu saldo, al momento.",
+  mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …", nochEins: "Otro mas, otro look", replaceModel: "Cambiar modelo", replaceGewaehlt: "Elegido", erstatten: "¿No te convence? Te devolvemos el dinero", geldZurueckGarantie: "Garantía de devolución", erstattenSicher: "Toca otra vez — dinero de vuelta", erstattet: "Devuelto a tu saldo", nochEinsPreis: "Toca un look - {tanz} de tu saldo, al momento.",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
   consent: "Al generar confirmas que puedes usar estas fotos, que todas las personas son adultas, que lo mantendrás privado — y que asumes la responsabilidad. No se aceptan fotos con desnudez. Subir la foto de otra persona sin su consentimiento no es legal — esa responsabilidad es tuya.",
@@ -812,6 +835,7 @@ const FR: KissText = {
   step1: "1 · Choisis-la", step2: "2 · Ta photo — toi, l'homme", step3: "3 · Le baiser", step4: "4 · Ton image",
   pickHint: "Téléverse la femme que tu veux embrasser — ou glisse vers l'une des nôtres.",
   datenErsetzen: "Changer la photo",
+  jetztStarten: "Commencer",
   namenVorSenden: "Touchez vos prénoms ci-dessus pour l'envoyer",
   upTitle: "Ton modèle", upHint: "Embrasse n'importe quelle star — une capture d'écran suffit.",
   tapChange: "Touche pour changer la photo",
@@ -839,7 +863,7 @@ const FR: KissText = {
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
   guthabenZuWenig: "Ton crédit est de {stand} — cette vidéo coûte {preis}.",
   aufladungNull: "Ton dernier paiement était de 0,00 € (code promo) — aucun crédit n'a donc été ajouté.",
-  mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …", nochEins: "Encore une, autre look", replaceModel: "Remplacer le modèle", replaceGewaehlt: "Choisi", erstatten: "Pas satisfait ? On te rembourse", erstattenSicher: "Touche encore — remboursé", erstattet: "Remboursé sur ton solde", nochEinsPreis: "Touche une tenue - {tanz} depuis ton solde, tout de suite.",
+  mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …", nochEins: "Encore une, autre look", replaceModel: "Remplacer le modèle", replaceGewaehlt: "Choisi", erstatten: "Pas satisfait ? On te rembourse", geldZurueckGarantie: "Garantie de remboursement", erstattenSicher: "Touche encore — remboursé", erstattet: "Remboursé sur ton solde", nochEinsPreis: "Touche une tenue - {tanz} depuis ton solde, tout de suite.",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
   consent: "En générant, tu confirmes que tu peux utiliser ces photos, que toutes les personnes sont majeures, que tu gardes le résultat privé — et que tu en assumes la responsabilité. Les photos dénudées ne sont pas acceptées. Téléverser la photo d'une autre personne sans son consentement n'est pas légal — cette responsabilité t'incombe.",
@@ -941,6 +965,7 @@ const PT: KissText = {
   step1: "1 · Escolhe-a", step2: "2 · A tua foto — tu, o homem", step3: "3 · O beijo", step4: "4 · A tua imagem",
   pickHint: "Carrega a mulher que queres beijar — ou desliza para uma das nossas.",
   datenErsetzen: "Trocar foto",
+  jetztStarten: "Começa agora",
   namenVorSenden: "Toquem nos vossos nomes acima para enviar",
   upTitle: "A tua modelo", upHint: "Beija qualquer estrela — basta uma captura de ecrã.",
   tapChange: "Toca para trocar a foto",
@@ -968,7 +993,7 @@ const PT: KissText = {
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
   guthabenZuWenig: "O teu saldo é {stand} — este vídeo custa {preis}.",
   aufladungNull: "O teu último pagamento foi de 0,00 € (código promocional) — por isso não foi adicionado saldo.",
-  mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …", nochEins: "Mais um, outro look", replaceModel: "Trocar modelo", replaceGewaehlt: "Escolhido", erstatten: "Não gostaste? Devolvemos o dinheiro", erstattenSicher: "Toca outra vez — dinheiro de volta", erstattet: "Devolvido ao teu saldo", nochEinsPreis: "Toca num look - {tanz} do teu saldo, ja.",
+  mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …", nochEins: "Mais um, outro look", replaceModel: "Trocar modelo", replaceGewaehlt: "Escolhido", erstatten: "Não gostaste? Devolvemos o dinheiro", geldZurueckGarantie: "Garantia de devolução", erstattenSicher: "Toca outra vez — dinheiro de volta", erstattet: "Devolvido ao teu saldo", nochEinsPreis: "Toca num look - {tanz} do teu saldo, ja.",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
   consent: "Ao gerar confirmas que podes usar estas fotos, que todas as pessoas são adultas, que manténs o resultado privado — e que assumes a responsabilidade. Não são aceites fotos com nudez. Carregar a foto de outra pessoa sem o seu consentimento não é legal — essa responsabilidade é tua.",
@@ -1071,6 +1096,7 @@ const IT: KissText = {
   step1: "1 · Scegli lei", step2: "2 · La tua foto — tu, l'uomo", step3: "3 · Il bacio", step4: "4 · La tua immagine",
   pickHint: "Carica la donna che vuoi baciare — o scorri fino a una delle nostre.",
   datenErsetzen: "Cambia foto",
+  jetztStarten: "Inizia ora",
   namenVorSenden: "Toccate i vostri nomi qui sopra per inviarlo",
   upTitle: "La tua modella", upHint: "Bacia qualsiasi star — basta uno screenshot.",
   tapChange: "Tocca per cambiare la foto",
@@ -1098,7 +1124,7 @@ const IT: KissText = {
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
   guthabenZuWenig: "Il tuo credito è {stand} — questo video costa {preis}.",
   aufladungNull: "Il tuo ultimo pagamento è stato di 0,00 € (codice promozionale) — quindi non è stato aggiunto credito.",
-  mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …", nochEins: "Ancora uno, altro look", replaceModel: "Sostituisci modella", replaceGewaehlt: "Scelto", erstatten: "Non ti convince? Ti rimborsiamo", erstattenSicher: "Tocca di nuovo — rimborso", erstattet: "Rimborsato sul tuo saldo", nochEinsPreis: "Tocca un outfit - {tanz} dal saldo, subito.",
+  mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …", nochEins: "Ancora uno, altro look", replaceModel: "Sostituisci modella", replaceGewaehlt: "Scelto", erstatten: "Non ti convince? Ti rimborsiamo", geldZurueckGarantie: "Garanzia di rimborso", erstattenSicher: "Tocca di nuovo — rimborso", erstattet: "Rimborsato sul tuo saldo", nochEinsPreis: "Tocca un outfit - {tanz} dal saldo, subito.",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",
   consent: "Generando confermi di poter usare queste foto, che tutte le persone sono maggiorenni, che lo terrai privato — e che te ne assumi la responsabilità. Le foto con nudità non sono accettate. Caricare la foto di un'altra persona senza il suo consenso non è legale — quella responsabilità è tua.",
@@ -2214,7 +2240,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     wieGehtPrivat: "Private until you send it. Your film is published nowhere — you decide who ever sees it.",
     filmTitel: "A few spoken words become a moment",
     filmText: "You appear in an extraordinary, surreal birthday world — with a spectacular cake, a striking outfit and a scene that exists only for this moment. Your message stays your message. Your voice stays your voice. Only the world around you changes.",
-    unterVideo: "Imagine that person is you. Upload your photo, speak your message — and we turn it into your own birthday film.",
+    unterVideo: "Pick a template — dream world or real. And send an unforgettable digital video postcard.",
     anlaesseTitel: "For birthdays that deserve more than “Happy birthday 🎂”",
     anlaesse: ["For your mother.", "For your partner.", "For your best friend.", "For someone far away.", "Or for the person an ordinary message would never be enough for."],
     anlaesseSchluss: "Not just any birthday video. Yours.",
@@ -2241,7 +2267,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     wieGehtPrivat: "Privat, bis du ihn verschickst. Dein Film wird nirgends veröffentlicht — du entscheidest, wer ihn sieht.",
     filmTitel: "Aus ein paar gesprochenen Worten wird ein Moment",
     filmText: "Du erscheinst in einer außergewöhnlichen, surrealen Geburtstagswelt — mit spektakulärer Torte, besonderem Outfit und einer Szenerie, die es so nur für diesen Moment gibt. Deine Botschaft bleibt deine Botschaft. Deine Stimme bleibt deine Stimme. Nur die Welt um dich herum verändert sich.",
-    unterVideo: "Stell dir vor, diese Person wärst du. Lade dein Foto hoch, sprich deine Botschaft ein — und wir machen daraus deinen eigenen Geburtstagsfilm.",
+    unterVideo: "Wähl eine Vorlage aus — Traumwelt oder real. Und verschick eine unvergessliche digitale Video-Postkarte.",
     anlaesseTitel: "Für Geburtstage, die mehr verdienen als „Alles Gute 🎂“",
     anlaesse: ["Für deine Mutter.", "Für deinen Partner.", "Für deine beste Freundin.", "Für jemanden, der weit weg ist.", "Oder für den Menschen, bei dem eine normale Nachricht einfach zu wenig wäre."],
     anlaesseSchluss: "Nicht irgendein Geburtstagsvideo. Deins.",
@@ -2268,7 +2294,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     wieGehtPrivat: "Privat până îl trimiți tu. Filmul nu se publică nicăieri — tu decizi cine îl vede.",
     filmTitel: "Din câteva cuvinte rostite se naște un moment",
     filmText: "Apari într-o lume de aniversare surrealistă și neobișnuită — cu un tort spectaculos, o ținută aparte și un decor care există doar pentru acest moment. Mesajul tău rămâne mesajul tău. Vocea ta rămâne vocea ta. Doar lumea din jur se schimbă.",
-    unterVideo: "Imaginează-ți că persoana aceea ești tu. Încarcă-ți poza, spune-ți mesajul — iar noi facem din asta filmul tău de ziua cuiva.",
+    unterVideo: "Alege un șablon — lume de vis sau real. Și trimite o carte poștală video digitală de neuitat.",
     anlaesseTitel: "Pentru zile de naștere care merită mai mult decât „La mulți ani 🎂”",
     anlaesse: ["Pentru mama ta.", "Pentru partenerul tău.", "Pentru cea mai bună prietenă.", "Pentru cineva departe.", "Sau pentru omul căruia un mesaj obișnuit nu i-ar ajunge niciodată."],
     anlaesseSchluss: "Nu un videoclip aniversar oarecare. Al tău.",
@@ -2294,7 +2320,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     ],
     filmTitel: "De unas pocas palabras nace un momento",
     filmText: "Apareces en un mundo de cumpleaños surrealista y extraordinario — con una tarta espectacular, un look especial y un escenario que existe solo para este momento. Tu mensaje sigue siendo tuyo. Tu voz sigue siendo tuya. Solo cambia el mundo a tu alrededor.",
-    unterVideo: "Imagina que esa persona eres tú. Sube tu foto, di tu mensaje — y nosotros lo convertimos en tu propia película de cumpleaños.",
+    unterVideo: "Elige una plantilla — mundo de ensueño o real. Y envía una postal de vídeo digital inolvidable.",
     anlaesseTitel: "Para cumpleaños que merecen más que un «Felicidades 🎂»",
     anlaesse: ["Para tu madre.", "Para tu pareja.", "Para tu mejor amiga.", "Para alguien que está lejos.", "O para esa persona a la que un mensaje normal nunca le bastaría."],
     anlaesseSchluss: "No un vídeo de cumpleaños cualquiera. El tuyo.",
@@ -2321,7 +2347,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     ],
     filmTitel: "De quelques mots prononcés naît un moment",
     filmText: "Tu apparais dans un monde d'anniversaire surréaliste et hors du commun — avec un gâteau spectaculaire, une tenue singulière et un décor qui n'existe que pour ce moment. Ton message reste ton message. Ta voix reste ta voix. Seul le monde autour de toi change.",
-    unterVideo: "Imagine que cette personne, c'est toi. Envoie ta photo, dis ton message — et nous en faisons ton propre film d'anniversaire.",
+    unterVideo: "Choisis un modèle — monde de rêve ou réel. Et envoie une carte postale vidéo numérique inoubliable.",
     anlaesseTitel: "Pour les anniversaires qui méritent mieux qu'un « Joyeux anniversaire 🎂 »",
     anlaesse: ["Pour ta mère.", "Pour ton conjoint.", "Pour ta meilleure amie.", "Pour quelqu'un qui est loin.", "Ou pour la personne à qui un message ordinaire ne suffirait jamais."],
     anlaesseSchluss: "Pas une vidéo d'anniversaire parmi d'autres. La tienne.",
@@ -2348,7 +2374,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     ],
     filmTitel: "De umas poucas palavras nasce um momento",
     filmText: "Apareces num mundo de aniversário surreal e fora do comum — com um bolo espetacular, um visual especial e um cenário que existe só para este momento. A tua mensagem continua a ser tua. A tua voz continua a ser tua. Só muda o mundo à tua volta.",
-    unterVideo: "Imagina que essa pessoa és tu. Carrega a tua foto, diz a tua mensagem — e nós fazemos disso o teu próprio filme de aniversário.",
+    unterVideo: "Escolhe um modelo — mundo de sonho ou real. E envia um postal de vídeo digital inesquecível.",
     anlaesseTitel: "Para aniversários que merecem mais do que «Parabéns 🎂»",
     anlaesse: ["Para a tua mãe.", "Para o teu companheiro.", "Para a tua melhor amiga.", "Para alguém que está longe.", "Ou para a pessoa a quem uma mensagem normal nunca chegaria."],
     anlaesseSchluss: "Não um vídeo de aniversário qualquer. O teu.",
@@ -2375,7 +2401,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
     ],
     filmTitel: "Da poche parole dette nasce un momento",
     filmText: "Compari in un mondo di compleanno surreale e fuori dal comune — con una torta spettacolare, un look speciale e una scena che esiste solo per questo momento. Il tuo messaggio resta il tuo messaggio. La tua voce resta la tua voce. Cambia solo il mondo intorno a te.",
-    unterVideo: "Immagina che quella persona sia tu. Carica la tua foto, di' il tuo messaggio — e noi ne facciamo il tuo film di compleanno.",
+    unterVideo: "Scegli un modello — mondo da sogno o reale. E manda una cartolina video digitale indimenticabile.",
     anlaesseTitel: "Per compleanni che meritano più di un «Tanti auguri 🎂»",
     anlaesse: ["Per tua madre.", "Per il tuo compagno.", "Per la tua migliore amica.", "Per qualcuno che è lontano.", "O per la persona a cui un messaggio normale non basterebbe mai."],
     anlaesseSchluss: "Non un video di compleanno qualsiasi. Il tuo.",
@@ -2597,7 +2623,172 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
   },
 };
 
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "holiday" | "gutschein" = "kiss"): KissText {
+/**
+ * DAS VERSPRECHEN (Owner 10.08.2026: „Sende ein Verprechen an dich und an deine Freunde. Du
+ * lädst ein Video von dir hoch und sagst ich werde es in den nächsten Jaren schaffen. …
+ * Am Ende muss ein Video raus kommen wo du mit Pirsche und Villa dargestellt bist und sagst.
+ * Ich werde es schaffen und werde hard dafür arbeiten.").
+ *
+ * NUR DIE ZEILEN, DIE WIRKLICH ANDERS SIND — alles Übrige erbt es vom Geburtstag (siehe
+ * `kissText`). Was hier steht, ist der Anlass, der Grund, die drei Schritte und der Satz
+ * unter dem Beispielvideo; die ganze Trichter-Mechanik spricht bereits sieben Sprachen.
+ *
+ * DIE ÜBERSCHRIFT SAGT, WAS ER VERSPRICHT (Owner 10.08.2026: „Titel sag noch gar nichts. Was
+ * soll er verpreche? Das er erfolgreich sein wird.").
+ *
+ * Vorher stand dort „Versprich es dir — laut, und vor allen". Das beschrieb die HANDLUNG und
+ * verschwieg den INHALT: Man las, dass man etwas verspricht, aber nicht was. Jetzt steht es
+ * da — „Du wirst erfolgreich sein" —, und das ist zugleich der Satz, den er im Video selbst
+ * spricht („I am going to make it"). Überschrift und Video sagen dasselbe; das ist der
+ * Unterschied zwischen einer Behauptung und einem Beweis.
+ *
+ * ES BLEIBT SEIN SATZ, NICHT UNSERE ZUSAGE: „Versprich es dir" steht davor. Wir sagen nicht
+ * „du wirst erfolgreich" — ER sagt es. Kein Einkommen, keine Zahl, keine Vorhersage; das
+ * bleibt die Hausregel aus dem gelöschten System-Thema.
+ *
+ * DAS BEISPIELVIDEO IST ENGLISCH — IN JEDER SPRACHE (Owner 10.08.2026: „Wir können das Video
+ * nicht in 7 sprachen machen. Es wird zu teuer. Wir machen das auf englisch. Wir haben die
+ * Übersetzung unten.").
+ *
+ * Deshalb trägt `unterVideo` ab jetzt ZWEI Dinge: erst, WAS er im Video sagt — in der Sprache
+ * des Lesers —, dann die Aufforderung. Ohne das erste Stück hört ein rumänischer oder
+ * spanischer Besucher einen fremden Satz und liest daneben etwas völlig anderes; der stärkste
+ * Teil des Videos (der Schwur) käme bei ihm gar nicht an. Der englische Wortlaut steht mit in
+ * Anführungszeichen: Er soll ihn HÖREN und gleichzeitig lesen können.
+ *
+ * Für den KUNDEN gilt das nicht — er spricht selbst, in seiner Sprache. Kostenlos, weil seine
+ * Stimme aus seiner eigenen Aufnahme kommt.
+ */
+const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
+  de: {
+    heroA: "Wie willst du ", heroY: "in fünf Jahren leben", heroB: "?",
+    anlass: "Zum Jahreswechsel · zum Geburtstag · nach der Kündigung · am ersten Tag im eigenen Laden · wenn du es dir selbst beweisen willst",
+    grund: "Wir machen aus deinem Video deine Zukunft: deine Villa, dein Traumwagen, dein Erfolg — deine Vision.",
+    namenFrage: "An wen schickst du es? Der Name kommt auf die Karte", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Nimm jetzt ein kurzes Video von dir auf — genau so, wie du heute bist. Erzähl, was du erreichen willst und wo du dich in fünf Jahren siehst.",
+      "Wir machen aus deinem Video deine Zukunft: deine Villa, dein Traumwagen, dein Erfolg.",
+      "Lad dein Video jetzt hoch. Den Rest machen wir.",
+    ],
+    wieGehtPrivat: "Privat, bis du es verschickst. Dein Video wird nirgends veröffentlicht — du entscheidest, wer es sieht.",
+    unterVideo: "Und dort sagst du zu dir selbst, wie du heute bist: „I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.“ — Ich weiss noch nicht genau, wie ich dahin komme. Aber ich werde dafür arbeiten. Ich hole mir dieses Leben.",
+    filmTitel: "Aus einem Satz wird ein Beweis",
+    filmText: "Du erscheinst vor der Villa, der Wagen steht hinter dir — und du sagst deinen eigenen Satz, mit deiner eigenen Stimme. Was du versprichst, bestimmst du. Nur die Welt um dich herum ändert sich.",
+    anlaesseTitel: "Für Vorsätze, die mehr verdienen als einen Gedanken",
+    anlaesse: ["Zum Jahreswechsel.", "Zum Geburtstag.", "Nach der Kündigung.", "Am ersten Tag im eigenen Laden.", "Oder einfach, weil du es dir selbst beweisen willst."],
+    anlaesseSchluss: "Nicht irgendein Vorsatz. Deiner.",
+  },
+  en: {
+    heroA: "How do you want to live ", heroY: "in five years", heroB: "?",
+    anlass: "For New Year · for your birthday · after you quit · on day one of your own shop · when you want to prove it to yourself",
+    grund: "We turn your video into your future: your villa, your dream car, your success — your vision.",
+    namenFrage: "Who are you sending it to? The name goes on the card", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Record a short video of yourself now — just as you are today. Tell us what you want to achieve and where you see yourself in five years.",
+      "We turn your video into your future: your villa, your dream car, your success.",
+      "Upload your video now. We’ll do the rest.",
+    ],
+    wieGehtPrivat: "Private until you send it. Your video is never published — you decide who sees it.",
+    unterVideo: "And there, you say to your present self: “I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.”",
+    filmTitel: "One sentence becomes proof",
+    filmText: "You appear in front of the villa, the car behind you — saying your own line, in your own voice. What you promise is up to you. Only the world around you changes.",
+    anlaesseTitel: "For resolutions that deserve more than a thought",
+    anlaesse: ["For New Year.", "For your birthday.", "After you quit.", "On day one of your own shop.", "Or simply because you want to prove it to yourself."],
+    anlaesseSchluss: "Not just any resolution. Yours.",
+  },
+  ro: {
+    heroA: "Cum vrei să trăiești ", heroY: "peste cinci ani", heroB: "?",
+    anlass: "De Anul Nou · de ziua ta · după demisie · în prima zi în propriul magazin · când vrei să-ți dovedești ție",
+    grund: "Facem din videoclipul tău viitorul tău: vila ta, mașina ta de vis, succesul tău — viziunea ta.",
+    namenFrage: "Cui i-o trimiți? Numele apare pe felicitare", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Înregistrează acum un video scurt cu tine — exact așa cum ești azi. Spune ce vrei să realizezi și unde te vezi peste cinci ani.",
+      "Facem din videoclipul tău viitorul tău: vila ta, mașina ta de vis, succesul tău.",
+      "Încarcă-ți videoclipul acum. De restul ne ocupăm noi.",
+    ],
+    wieGehtPrivat: "Privat până îl trimiți. Videoclipul tău nu se publică nicăieri — tu decizi cine îl vede.",
+    unterVideo: "Și acolo îi spui celui care ești azi: „I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.“ — Încă nu știu exact cum voi ajunge acolo. Dar o să muncesc pentru asta. Îmi iau viața asta.",
+    filmTitel: "O frază devine o dovadă",
+    filmText: "Apari în fața vilei, mașina în spatele tău — și spui propria frază, cu vocea ta. Ce promiți decizi tu. Doar lumea din jur se schimbă.",
+    anlaesseTitel: "Pentru promisiuni care merită mai mult decât un gând",
+    anlaesse: ["De Anul Nou.", "De ziua ta.", "După demisie.", "În prima zi în propriul magazin.", "Sau pur și simplu ca să-ți dovedești ție."],
+    anlaesseSchluss: "Nu orice promisiune. A ta.",
+  },
+  es: {
+    heroA: "¿Cómo quieres vivir ", heroY: "dentro de cinco años", heroB: "?",
+    anlass: "Para Año Nuevo · para tu cumpleaños · después de renunciar · el primer día en tu propio local · cuando quieres demostrártelo",
+    grund: "Convertimos tu vídeo en tu futuro: tu villa, tu coche soñado, tu éxito — tu visión.",
+    namenFrage: "¿A quién se lo mandas? El nombre va en la tarjeta", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Graba ahora un vídeo corto tuyo — tal y como eres hoy. Cuenta qué quieres lograr y dónde te ves dentro de cinco años.",
+      "Convertimos tu vídeo en tu futuro: tu villa, tu coche soñado, tu éxito.",
+      "Sube tu vídeo ahora. Del resto nos ocupamos nosotros.",
+    ],
+    wieGehtPrivat: "Privado hasta que lo mandes. Tu vídeo no se publica en ningún sitio — tú decides quién lo ve.",
+    unterVideo: "Y allí le dices al que eres hoy: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Todavía no sé exactamente cómo llegaré. Pero voy a trabajar por ello. Me llevo esta vida.",
+    filmTitel: "Una frase se convierte en prueba",
+    filmText: "Apareces delante de la villa, el coche detrás de ti — y dices tu propia frase, con tu voz. Lo que prometes lo decides tú. Solo cambia el mundo a tu alrededor.",
+    anlaesseTitel: "Para propósitos que merecen más que un pensamiento",
+    anlaesse: ["Para Año Nuevo.", "Para tu cumpleaños.", "Después de renunciar.", "El primer día en tu propio local.", "O simplemente porque quieres demostrártelo."],
+    anlaesseSchluss: "No un propósito cualquiera. El tuyo.",
+  },
+  fr: {
+    heroA: "Comment veux-tu vivre ", heroY: "dans cinq ans", heroB: " ?",
+    anlass: "Pour le Nouvel An · pour ton anniversaire · après ta démission · le premier jour dans ton propre local · quand tu veux te le prouver",
+    grund: "On transforme ta vidéo en ton avenir : ta villa, ta voiture de rêve, ta réussite — ta vision.",
+    namenFrage: "À qui l'envoies-tu ? Le nom va sur la carte", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Filme-toi maintenant, une courte vidéo — exactement comme tu es aujourd'hui. Dis ce que tu veux accomplir et où tu te vois dans cinq ans.",
+      "On transforme ta vidéo en ton avenir : ta villa, ta voiture de rêve, ta réussite.",
+      "Envoie ta vidéo maintenant. On s'occupe du reste.",
+    ],
+    wieGehtPrivat: "Privé jusqu'à ce que tu l'envoies. Ta vidéo n'est publiée nulle part — tu décides qui la voit.",
+    unterVideo: "Et là, tu dis à celui que tu es aujourd'hui : « I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life. » — Je ne sais pas encore comment j'y arriverai. Mais je vais travailler pour ça. Je prends cette vie.",
+    filmTitel: "Une phrase devient une preuve",
+    filmText: "Tu apparais devant la villa, la voiture derrière toi — et tu dis ta propre phrase, avec ta voix. Ce que tu promets, c'est toi qui le décides. Seul le monde autour de toi change.",
+    anlaesseTitel: "Pour des résolutions qui méritent mieux qu'une pensée",
+    anlaesse: ["Pour le Nouvel An.", "Pour ton anniversaire.", "Après ta démission.", "Le premier jour dans ton propre local.", "Ou simplement pour te le prouver."],
+    anlaesseSchluss: "Pas n'importe quelle résolution. La tienne.",
+  },
+  pt: {
+    heroA: "Como queres viver ", heroY: "daqui a cinco anos", heroB: "?",
+    anlass: "No Ano Novo · nos teus anos · depois de te despedires · no primeiro dia na tua própria loja · quando queres provar a ti mesmo",
+    grund: "Transformamos o teu vídeo no teu futuro: a tua vivenda, o teu carro de sonho, o teu sucesso — a tua visão.",
+    namenFrage: "A quem a envias? O nome vai no postal", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Grava agora um vídeo curto teu — tal como és hoje. Diz o que queres alcançar e onde te vês daqui a cinco anos.",
+      "Transformamos o teu vídeo no teu futuro: a tua vivenda, o teu carro de sonho, o teu sucesso.",
+      "Carrega o teu vídeo agora. Do resto tratamos nós.",
+    ],
+    wieGehtPrivat: "Privado até o enviares. O teu vídeo não é publicado em lado nenhum — decides tu quem o vê.",
+    unterVideo: "E aí dizes a quem és hoje: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Ainda não sei exatamente como lá vou chegar. Mas vou trabalhar para isso. Vou buscar esta vida.",
+    filmTitel: "Uma frase torna-se uma prova",
+    filmText: "Apareces à frente da vivenda, o carro atrás de ti — e dizes a tua própria frase, com a tua voz. O que prometes decides tu. Só o mundo à tua volta muda.",
+    anlaesseTitel: "Para promessas que merecem mais do que um pensamento",
+    anlaesse: ["No Ano Novo.", "Nos teus anos.", "Depois de te despedires.", "No primeiro dia na tua própria loja.", "Ou simplesmente para provares a ti mesmo."],
+    anlaesseSchluss: "Não uma promessa qualquer. A tua.",
+  },
+  it: {
+    heroA: "Come vuoi vivere ", heroY: "fra cinque anni", heroB: "?",
+    anlass: "A Capodanno · per il tuo compleanno · dopo le dimissioni · il primo giorno nel tuo negozio · quando vuoi dimostrarlo a te stesso",
+    grund: "Trasformiamo il tuo video nel tuo futuro: la tua villa, l'auto dei tuoi sogni, il tuo successo — la tua visione.",
+    namenFrage: "A chi lo mandi? Il nome va sulla cartolina", namenPlatzhalter: "Max",
+    wieGeht: [
+      "Registra adesso un breve video di te — esattamente come sei oggi. Racconta cosa vuoi ottenere e dove ti vedi fra cinque anni.",
+      "Trasformiamo il tuo video nel tuo futuro: la tua villa, l'auto dei tuoi sogni, il tuo successo.",
+      "Carica il tuo video adesso. Al resto pensiamo noi.",
+    ],
+    wieGehtPrivat: "Privato finché non lo mandi. Il tuo video non viene pubblicato da nessuna parte — decidi tu chi lo vede.",
+    unterVideo: "E lì dici a quello che sei oggi: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Non so ancora esattamente come ci arriverò. Ma lavorerò per questo. Mi prendo questa vita.",
+    filmTitel: "Una frase diventa una prova",
+    filmText: "Appari davanti alla villa, l'auto dietro di te — e dici la tua frase, con la tua voce. Cosa prometti lo decidi tu. Cambia solo il mondo intorno a te.",
+    anlaesseTitel: "Per propositi che meritano più di un pensiero",
+    anlaesse: ["A Capodanno.", "Per il tuo compleanno.", "Dopo le dimissioni.", "Il primo giorno nel tuo negozio.", "O semplicemente per dimostrarlo a te stesso."],
+    anlaesseSchluss: "Non un proposito qualsiasi. Il tuo.",
+  },
+};
+
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "versprechen" | "holiday" | "gutschein" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
   /* Der Urlaub legt sich auf die HOCHZEIT, nicht auf die Grundtabelle: Er ist dieselbe
      Einladungs-Maschine und braucht deren Schlüssel (Datum, Ort, Zusage, Probewoche).
@@ -2611,6 +2802,11 @@ export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "w
     : variant === "gutschein" ? { ...TABELLE[l], ...HOCHZEIT[l], ...GUTSCHEIN[l] }
     : variant === "poledance" ? { ...TABELLE[l], ...POLEDANCE[l] }
     : variant === "birthday" ? { ...TABELLE[l], ...GEBURTSTAG[l] }
+    /* DAS VERSPRECHEN LEGT SICH AUF DEN GEBURTSTAG (Owner 10.08.2026: „Es hat den sleben
+       Tunel und aufbau"): Es erbt jeden Trichter-Satz — Aufnahme, Look, Kasse, Lieferung —
+       und tauscht nur aus, was WIRKLICH anders ist. Ein eigener Satz von siebzig Zeilen in
+       sieben Sprachen wäre nach der ersten Korrektur am Geburtstag veraltet. */
+    : variant === "versprechen" ? { ...TABELLE[l], ...GEBURTSTAG[l], ...VERSPRECHEN[l] }
     : TABELLE[l];
   const out = {} as Record<string, unknown>;
   for (const [k, v] of Object.entries(roh)) {

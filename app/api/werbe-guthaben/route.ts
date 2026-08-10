@@ -66,7 +66,10 @@ export async function GET(request: Request) {
      falsch" wäre eine Auskunft darüber, welche Adressen bei uns liegen. */
   if (!email || !kampagne || !token || token !== werbeToken(email, kampagne)) {
     return seite("Link ungültig", `<p style="font-size:17px;font-weight:700;line-height:1.5;">Dieser Link gilt nicht (mehr).</p>`
-      + `<p style="font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;margin-top:12px;">Schreib uns an support@luxurybandit.com, dann sehen wir nach.</p>`);
+      /* Der Weg zu uns ist der KONTAKT-LINK, nie die Adresse (Owner 10.08.2026, Skill
+         `ci-design`): Eine Adresse auf einer offenen Seite wird abgelesen, und danach
+         erstickt genau die Mailbox, über die jede Lieferung läuft. */
+      + `<p style="font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;margin-top:12px;"><a href="/contact?reason=support" style="color:#f6cf51;font-weight:800;">Schreib uns</a>, dann sehen wir nach.</p>`);
   }
 
   const cents = WERBE_GUTSCHRIFT_CENTS;

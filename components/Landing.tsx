@@ -96,8 +96,25 @@ export function Kicker({ children }: { children: ReactNode }) {
 }
 
 /** Die EINE H1 einer Landing. Ein Wort darin mit <Y> gelb setzen. */
+/**
+ * DIE ÜBERSCHRIFT — 28 PX, NICHT 34 (Owner 10.08.2026: „ich will den CTA im Viewport shen.
+ * Das hisst du machst den H1 kleiner (Bibliothek) und sparrst am abstand zwischen titel und
+ * header. Bei allen topics.").
+ *
+ * GEMESSEN auf der Geburtstagsseite (375×812): Die Überschrift lief über drei Zeilen und war
+ * mit ihrem Abstand 115 px hoch; der Kaufknopf stand danach bei 810 px — zwei Pixel im Bild,
+ * also unsichtbar. Ein Kaufknopf, den man erst erwischt, wenn man wischt, wird von einem
+ * Teil der Besucher nie gesehen: Sie entscheiden oben, ob sie bleiben.
+ *
+ * 34 px waren eine Plakat-Grösse aus der Zeit, als über der Falz nur die Schlagzeile stand.
+ * Heute steht dort die Karte mit dem Beispielvideo UND der Knopf. 28 px bleiben eine
+ * Schlagzeile — sie kosten nur keinen halben Bildschirm mehr.
+ *
+ * `mt-1` statt `mt-2`: Der Abstand zur Kopfzeile kommt aus der Polsterung der Seite
+ * (`pt-3`, siehe Landingpage.md); ein zweiter Abstand hier addierte sich dazu.
+ */
 export function H1({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <h1 className={`mt-2 text-[34px] font-black leading-[1.05] ${className}`}>{children}</h1>;
+  return <h1 className={`mt-1 text-[28px] font-black leading-[1.06] ${className}`}>{children}</h1>;
 }
 
 /**

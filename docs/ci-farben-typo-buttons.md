@@ -134,7 +134,7 @@ Alle Landings sehen dadurch gleich aus, egal wer sie baut.
 | Element | Komponente | Ergibt |
 |---|---|---|
 | Kicker über der H1 | `<Kicker>` | `text-[11px] font-black uppercase tracking-[0.2em]` in CI-Gelb |
-| Seiten-H1 (genau eine) | `<H1>` | `text-[34px] font-black leading-[1.05]`, weiß |
+| Seiten-H1 (genau eine) | `<H1>` | `text-[28px] font-black leading-[1.06] mt-1`, weiß — **seit 10.08.2026 kleiner** (34 px schoben den Kaufknopf aus dem Bild) |
 | Hervorgehobenes Wort | `<Y>` | CI-Gelb `#f6cf51` |
 | Abschnittsüberschrift | `<SectionTitle>` | gelber Balken (`h-1 w-10`) + `text-[30px] font-black` **gelb-weiß**: Anfang weiß, Schluss der Zeile in CI-Gelb (macht die Komponente selbst) |
 | Fließtext / Lead | `<Lead>` | `text-[16px] font-medium leading-relaxed text-white/75` |
@@ -154,3 +154,49 @@ Regeln:
 - Kein `text-[22px]`/`text-[20px]` mehr für Abschnitte — das war der alte, zu kleine Stand.
 - Über einer `<SectionTitle>` kein zusätzliches Mini-Label („See it in action") — der gelbe Balken ist die Gliederung.
 - Umgesetzt auf: Startseite `/themes`, `/your-idol`, `/themes/kiss`, `/themes/birthday`, Try-On-Funnel `/try/[lookId]`.
+
+---
+
+## Nie eine E-Mail-Adresse auf der Seite (Owner 10.08.2026, zum zweiten Mal)
+
+> „ich habe dir schon mal gesagt, dass wir nie eine email adresse abillden auf der webseite
+> wegen spamm. nur link zum kontakt."
+
+Eine Adresse im Klartext wird von Erntemaschinen abgelesen. Danach ist die Mailbox voll Müll,
+über die **jede Lieferung und jeder Anmelde-Link** läuft — es trifft nicht die Werbung,
+sondern den Betrieb.
+
+- **Richtig:** `<a href="/contact">contact us</a>`, mit Grund wenn bekannt:
+  `/contact?reason=support` · `?reason=complaint` · `?reason=own`. Das Formular schickt an
+  dieselbe Mailbox, ohne sie zu zeigen.
+- **Falsch:** die Adresse als Text, als `mailto:`, in `title`/`alt`/Bild, oder verschleiert
+  („support ät …") — verschleierte Adressen werden ebenfalls geerntet.
+- Gilt auf jeder öffentlichen Fläche: Landingpages, Trichter, AGB, Datenschutz,
+  Fehlermeldungen, versendete Mails.
+- **Ausnahmen:** das Impressum (gesetzlich verlangt) und Admin-Werkzeuge (nicht öffentlich).
+  Die Adresse des KUNDEN zu zeigen (seine eigene, im Zahlungsfenster) ist kein Verstoss —
+  verboten ist die Adresse des Hauses.
+- Prüfung vor dem Commit: `grep -rn "mailto:\|@luxurybandit.com" <geänderte Dateien>` muss
+  für öffentliche Seiten leer bleiben.
+
+---
+
+## Der Kopf einer Seite — Template für ALLE Seiten (Owner 10.08.2026)
+
+> „ich will den CTA im Viewport shen. Das hisst du machst den H1 kleiner (Bibliothek) und
+> sparrst am abstand zwischen titel und header. Bei allen topics." · „dieser Aufbau der
+> Landing pge gilt für alle seiten."
+
+Der Kaufknopf muss **ohne Wischen** sichtbar sein. Gemessen auf 375×812: vorher 810 px
+(zwei Pixel im Bild), danach 712 px mit 52 px Luft.
+
+1. `TopNav` (~90 px)
+2. Hülle `mx-auto w-full max-w-[440px] px-4 pb-24 **pt-3**` — nie mehr `pt-8`
+3. `<Kicker>` nur wenn nötig
+4. `<H1>` **28 px**, `mt-1` — aus der Bibliothek, nie eigene Grösse
+5. Karte mit Beispielvideo, `mt-4`
+6. Goldener Knopf auf der Karte, **Preis im Knopf**: `ab 4,99 € · Jetzt starten`
+   (`themenPreisZeile`, nie getippt) — dann KEIN Preis-Chip mehr darüber
+7. Erklärtexte darunter
+
+Die ausführliche Fassung mit Prüfschritt steht in `Landingpage.md` §9.

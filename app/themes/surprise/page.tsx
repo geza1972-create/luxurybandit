@@ -46,9 +46,12 @@ export default async function SurpriseThemePage({ searchParams }: {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-        <ThemenPreis thema="surprise" lang={L} className="mt-3" />
+        {/* DER PREIS-CHIP IST RAUS — er steht jetzt IM Kaufknopf (Owner 10.08.2026: „ab 4,99 -
+            Jetzt starten. Schreibst du in dem Button"). Zweimal derselbe Preis, vierzig Pixel
+            auseinander, ist keine Auskunft, sondern ein Grund, warum der Knopf nicht mehr ins
+            Bild passte. Der Baustein `ThemenPreis` bleibt und trägt die anderen Themen. */}
 
         {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner 05.08.2026:
             „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite" · „was ich
@@ -56,8 +59,6 @@ export default async function SurpriseThemePage({ searchParams }: {
             Hier standen nur die drei Schritte; Anlass und Grund fehlten — also genau die zwei
             Zeilen, an denen er erkennt, ob das Ding für ihn ist. Der Aufbau steht jetzt in
             `components/ThemenVorspann`, die Texte in `lib/kiss-i18n`. */}
-        <ThemenVorspann anlass={T.anlass} grund={T.grund}
-          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
         {/* DAS ERGEBNIS ZUERST (Owner, seit dem Kuss die Hausordnung): erst sehen, was
             herauskommt, dann lesen, wie es geht. Es ist genau das Video, mit dem der Owner
@@ -89,6 +90,15 @@ export default async function SurpriseThemePage({ searchParams }: {
         <div data-trichter>
           <KissFunnel variant="poledance" code={code} lang={L} beispielVideo={POLEDANCE_VIDEO}
             beispielVideos={[POLEDANCE_VIDEO, ...POLEDANCE_REFERENZEN.map(r => r.video)]} />
+
+            {/* DER VORSPANN STEHT UNTER DER KARTE (Owner 10.08.2026: „ich will den CTA im
+                Viewport shen" · „dieser Aufbau der Landing pge gilt für alle seiten").
+                Anlass, Grund und die drei Schritte standen ZWISCHEN Titel und Karte und
+                schoben den Kaufknopf um eine halbe Handyhöhe nach unten — erklärt wurde,
+                bevor irgendetwas zu sehen war. Die Hausordnung seit dem Kuss lautet
+                andersherum: erst sehen, was herauskommt, dann lesen, wie es geht. */}
+        <ThemenVorspann anlass={T.anlass} grund={T.grund}
+          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
         </div>
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem

@@ -2,6 +2,7 @@ import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
+import { trObject } from "@/lib/tr-object";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import ThemenVorspann from "@/components/ThemenVorspann";
@@ -45,6 +46,22 @@ export default async function KissThemePage({ searchParams }: {
   const sp = (await searchParams) ?? {};
   const L = await resolveLang();   // Sprache der Seite (Cookie) — für den Kaufknopf
   const T = kissText(L, "kiss");   // Überschrift in seiner Sprache (Trichtertexte: siehe KissFunnel)
+  /**
+   * DER SEO-ABSCHNITT SPRACH ENGLISCH (Owner 10.08.2026, mit Bildschirmfoto der deutschen
+   * Seite: „das ist halb englisch, hab dueutsch").
+   *
+   * Er war der letzte handgetippte Text auf dieser Seite — zwei Überschriften und zwei
+   * Absätze, direkt im JSX. Eine Seite, die auf Deutsch anfängt und auf Englisch aufhört,
+   * liest sich wie eine unfertige Übersetzung; genau dort steht aber das Kaufargument.
+   * Jetzt derselbe Weg wie überall: englische Quelle im Code, Übersetzung zur Laufzeit mit
+   * Dauer-Cache (`trObject`).
+   */
+  const s = await trObject({
+    seo1h: "Kiss video AI generator — online, no app",
+    seo1p: "You are in the video, not just watching one. Add a photo of yourself, pick one of our AI models or upload a screenshot of any star, and the kiss video AI generator renders the two of you sharing one tender kiss. Straight in the browser — nothing to install.",
+    seo2h: "Why the face still looks like your face",
+    seo2p: "A kiss is the hardest thing to render: it is exactly where the two faces meet, half-turned and in motion. We run the video models that hold the face and the movement — cheaper ones lose both, and then it is not your face any more. That is the whole point of putting yourself in the picture. AI-generated, private, yours: your photo is never published and never shown to another user.",
+  }, L);
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
   const view = sp.view === "kunde" ? "kunde" : "admin";
@@ -91,7 +108,7 @@ export default async function KissThemePage({ searchParams }: {
     <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
       <TrackView event="kiss_view" lookId="themes-kiss" lookName="Kiss-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
 
         {showCustomer ? (
@@ -99,7 +116,10 @@ export default async function KissThemePage({ searchParams }: {
             {/* Hero — in der Sprache des Besuchers (Owner 30.07.2026, Punkt 4). Das erste,
                 was ein Anzeigenklick sieht; Englisch kostete hier Klicks. */}
             <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-            <ThemenPreis thema="kiss" lang={L} className="mt-3" />
+        {/* DER PREIS-CHIP IST RAUS — er steht jetzt IM Kaufknopf (Owner 10.08.2026: „ab 4,99 -
+            Jetzt starten. Schreibst du in dem Button"). Zweimal derselbe Preis, vierzig Pixel
+            auseinander, ist keine Auskunft, sondern ein Grund, warum der Knopf nicht mehr ins
+            Bild passte. Der Baustein `ThemenPreis` bleibt und trägt die anderen Themen. */}
 
             {/**
               * ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE (Owner 05.08.2026: „was noch fehlt
@@ -110,8 +130,6 @@ export default async function KissThemePage({ searchParams }: {
               * Baustein (`components/ThemenVorspann`), den Geburtstag, Tanz, Hochzeit und
               * Urlaub genauso setzen. Die Begründung für die Reihenfolge steht dort.
               */}
-            <ThemenVorspann anlass={T.anlass} grund={T.grund}
-              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
             {/* Kein Vorspann und keine Ueberzeile mehr (Owner 30.07.2026: „das kann raus" — auf die Frage, ob der
                 Absatz „Pick her, upload your photo …" gemeint ist: „ja, Pick her, …").
                 Er kostete auf dem Handy eine halbe Bildschirmhoehe vor dem ersten Schritt.
@@ -124,6 +142,15 @@ export default async function KissThemePage({ searchParams }: {
             {/* Dasselbe Beispielvideo, das weiter unten im Katalog laeuft — es fuellt jetzt
                 die Karte oben, bis das eigene Bild da ist. Kein zweiter Ort zum Pflegen. */}
             <KissFunnel code={code} lang={L} beispielVideos={examples} />
+
+            {/* DER VORSPANN STEHT UNTER DER KARTE (Owner 10.08.2026: „ich will den CTA im
+                Viewport shen" · „dieser Aufbau der Landing pge gilt für alle seiten").
+                Anlass, Grund und die drei Schritte standen ZWISCHEN Titel und Karte und
+                schoben den Kaufknopf um eine halbe Handyhöhe nach unten — erklärt wurde,
+                bevor irgendetwas zu sehen war. Die Hausordnung seit dem Kuss lautet
+                andersherum: erst sehen, was herauskommt, dann lesen, wie es geht. */}
+            <ThemenVorspann anlass={T.anlass} grund={T.grund}
+              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {/* MEHR VON DEMSELBEN, ALS KARTEN (Owner 31.07.2026: „du machst diese Karte
@@ -191,13 +218,8 @@ export default async function KissThemePage({ searchParams }: {
                 An dieser Stelle stehen jetzt unsere eigenen Kuss-Videos als Karten. */}
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
-                <SectionTitle>Kiss video AI generator — online, no app</SectionTitle>
-                <Lead>
-                  You are in the video, not just watching one. Add a photo of yourself, pick one of
-                  our AI models or upload a screenshot of any star, and the kiss video AI generator
-                  renders the two of you sharing one tender kiss. Straight in the browser — nothing
-                  to install.
-                </Lead>
+                <SectionTitle>{s.seo1h}</SectionTitle>
+                <Lead>{s.seo1p}</Lead>
               </div>
               <div>
                 {/* Hier standen zwei Superlative, die niemand belegen kann („one of a kind",
@@ -205,14 +227,8 @@ export default async function KissThemePage({ searchParams }: {
                     sind. Eine Werbeaussage, die man nicht beweisen kann, ist angreifbar und
                     klingt beim Leser ohnehin nach Marktschreier. Das echte Kaufargument ist
                     konkret, ueberpruefbar und erklaert nebenbei den Preis. */}
-                <SectionTitle>Why the face still looks like your face</SectionTitle>
-                <Lead>
-                  A kiss is the hardest thing to render: it is exactly where the two faces meet,
-                  half-turned and in motion. We run the video models that hold the face and the
-                  movement — cheaper ones lose both, and then it is not your face any more. That
-                  is the whole point of putting yourself in the picture. AI-generated, private,
-                  yours: your photo is never published and never shown to another user.
-                </Lead>
+                <SectionTitle>{s.seo2h}</SectionTitle>
+                <Lead>{s.seo2p}</Lead>
               </div>
             </section>
           </div>

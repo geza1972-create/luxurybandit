@@ -147,13 +147,16 @@ export default async function HolidayThemePage({ searchParams }: {
   }, L);
 
   return (
-    /* HELL IST DIE VORGABE — genau wie bei der Hochzeit. Eine Einladung ist hell, und der
-       Sprung von einer weissen Anzeige auf eine schwarze Seite kostet Klicks. `?light=0`
-       schaltet dunkel, der Schalter im Balken überstimmt beides. */
-    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "0" ? "" : " lb-theme lb-fb"}`}>
+    /**
+     * DUNKEL IST DIE VORGABE (Owner 10.08.2026: „Hochzeitsplaner default dark." · „Urlaub
+     * auch nach CI anpassen") — die Umkehr der Festlegung vom 04.08. Zwei helle Seiten mitten
+     * in einem dunklen Haus lesen sich wie ein fremdes Produkt. `?light=1` schaltet weiterhin
+     * die helle Anzeigen-Fassung, der Schalter im Balken überstimmt beides.
+     */
+    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
       <TrackView event="holiday_view" lookId="themes-holiday" lookName="Urlaubs-Einladung" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {/* Oben genau drei Zeilen (Kicker, H1, ein Satz) — alle Absätze stehen unter der
             Karte. Dieselbe Reihenfolge wie bei der Hochzeit: Die Karte sagt in einer halben
             Sekunde, was hier entsteht; ein Absatz braucht dafür zehn Sekunden Lesen. */}
@@ -163,10 +166,8 @@ export default async function HolidayThemePage({ searchParams }: {
             sind. Was ist das?"). Er kam aus `trObject` — „a video of the two of you already
             there" wird im Deutschen zu einem holprigen Nebensatz. Jetzt der Werbetext des
             Owners, von Hand in sieben Sprachen. */}
-        <Lead className="mt-2">{W.frage}</Lead>
-        <Lead className="mt-2">{W.sichtbar}</Lead>
-        <Lead className="mt-2">{W.vorfreude}</Lead>
-        <ThemenPreis thema="holiday" lang={L} className="mt-3" />
+        {/* DER PREIS-CHIP IST RAUS — er steht jetzt IM Kaufknopf der Karte (Owner
+            10.08.2026: „Button wie CI Preis-Jettzt starten"). */}
 
         {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner 05.08.2026:
             „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite").
@@ -175,12 +176,22 @@ export default async function HolidayThemePage({ searchParams }: {
             was auf einer Urlaubs-Einladung schlicht falsch ist; jetzt stehen eigene in
             `lib/kiss-i18n` (URLAUB). Der Anlass ist der des Owners: Überraschung, Antrag,
             Familienurlaub. */}
-        <ThemenVorspann anlass={T.anlass} grund={T.grund}
-          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
         <div className="mt-5">
           <EinladungBauen lang={L} variant="holiday" beispielVideos={examples} />
         </div>
+
+        {/* ERST DIE KARTE, DANN DIE WORTE — Seitenkopf-Template (Owner 10.08.2026: „Urlaub
+            auch nach CI anpassen" · „Video postkarten fehlen", mit Bildschirmfoto: oben drei
+            Absätze, ein Preis-Chip und der Vorspann, und von der Karte war nichts zu sehen).
+            Die Karte sagt in einer halben Sekunde, was hier entsteht; für die Absätze braucht
+            es zehn Sekunden Lesen, die kaum jemand gibt. Landingpage.md §9. */}
+        <Lead className="mt-2">{W.frage}</Lead>
+        <Lead className="mt-2">{W.sichtbar}</Lead>
+        <Lead className="mt-2">{W.vorfreude}</Lead>
+
+        <ThemenVorspann anlass={T.anlass} grund={T.grund}
+          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
         {/* Sofort sehen, was der Eingeladene tun kann — in der schlanken Fassung. */}
         <div className="mt-6 space-y-4">

@@ -26,6 +26,16 @@ import { musikFuer } from "@/lib/musik";
 import { WEDDING_PROMPT } from "@/lib/wedding-prompt";
 import { POLEDANCE_PROMPT, POLEDANCE_SET } from "@/lib/poledance";
 import { GEBURTSTAG_PROMPT, GEBURTSTAG_SET } from "@/lib/geburtstag";
+import { VERSPRECHEN_SET } from "@/lib/versprechen";
+
+/**
+ * Der Rückfall-Prompt des Versprechens — er greift nur, wo die alte Pixverse-Kette noch
+ * liest. Die HeyGen-Kette baut ihren Prompt aus dem Look (`lib/versprechen-looks`).
+ */
+const VERSPRECHEN_PROMPT =
+  "The person from @image1 stands in front of a bright modern villa with a dark elegant " +
+  "sports car behind them, looking straight into the camera and speaking calmly. " +
+  "No brand logos, no text, no letters, no writing anywhere in the frame.";
 
 
 // Platzhalter im Upload-Feld: ein MÄNNERGESICHT (Peter), abgedunkelt hinterlegt. Ohne das
@@ -50,7 +60,7 @@ export const IDOL_PROMPT =
 
 /** Welche Geschenke es gibt. Frueher `FunnelVariant` — der Name sagte, wie es gebaut ist,
  *  nicht was es ist. */
-export type GeschenkId = "kiss" | "idol" | "wedding" | "poledance" | "birthday";
+export type GeschenkId = "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "versprechen";
 
 export const GESCHENKE: Record<GeschenkId, {
   prompt: string; done: string; upFirst: boolean; upPlaceholder?: string;
@@ -277,6 +287,38 @@ export const GESCHENKE: Record<GeschenkId, {
     upPlaceholder: "/apply-example-body.jpg",
     /* KEINE TONSPUR: Sie singt. Der Ton kommt aus dem Video selbst (Owner: „es muss die
        originale Stimme des Videos sein") — siehe `eigenerTon` in KissFunnel. */
+    musik: "",
+  },
+
+  /**
+   * DAS VERSPRECHEN (Owner 10.08.2026: „Sende ein Verprechen an dich und an deine Freunde …
+   * Es hat den sleben Tunel und aufbau" — als Ersatz für das gelöschte „LuxuryBandit System").
+   *
+   * ZEILE FÜR ZEILE DER GEBURTSTAG, mit Absicht: Aufnahme statt Foto (`nurEigenes`,
+   * `nurSie` — es gibt nur IHN im Bild), Guthaben statt Kasse, kein Gratis-Bild. Was anders
+   * ist, steht nicht hier, sondern im Look (`lib/versprechen-looks`) und im Satz, den er
+   * selbst spricht.
+   *
+   * MIT EMPFÄNGERNAME — und zwar aus zwei Gründen (10.08.2026 beim Bau gemessen):
+   *
+   * 1. Fachlich: Ein Versprechen gibt man sich SELBST, aber man schickt es an die, die einen
+   *    daran erinnern sollen („Sende ein Verprechen an dich und an deine Freunde"). Der Name
+   *    steht auf der Karte, genau wie beim Geburtstag.
+   * 2. Baulich: Am Namensfeld hängt im Trichter der ganze Aufnahme-Kasten (Look-Reihe,
+   *    Aufnahme-Knopf, Vorschau). Ohne `empfaengerName` öffnete sich ein Schritt 1, in dem
+   *    „Erst aufnehmen" stand und es nichts zum Aufnehmen gab — genau das war beim ersten
+   *    Durchlauf zu sehen.
+   */
+  versprechen: {
+    prompt: VERSPRECHEN_PROMPT, done: "my-promise-video.mp4", abo: false, einzelkauf: true,
+    keinGratis: true, nurGuthaben: true,
+    nurEigenes: true, nurSie: true,
+    ...(VERSPRECHEN_SET ? { garmentBild: VERSPRECHEN_SET } : {}),
+    empfaengerName: true,
+    upFirst: true,
+    upPlaceholder: "/apply-example-body.jpg",
+    /* Kein Lied darunter: Es spricht seine eigene Stimme, und zwei Tonspuren übereinander
+       sind schlimmer als keine (dieselbe Regel wie beim Geburtstag). */
     musik: "",
   },
 

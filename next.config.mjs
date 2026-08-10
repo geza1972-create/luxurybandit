@@ -40,6 +40,15 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        /* DAS „LUXURYBANDIT SYSTEM" IST WEG (Owner 10.08.2026: „Wir verkaufen keine Systeme.
+           … Wir löschen das jetzoge jetzt"). An seiner Stelle steht das VERSPRECHEN. Die alte
+           Adresse liegt in Anzeigen, in geteilten Links und in der Sitemap von gestern — ohne
+           diese Zeile landet jeder davon auf einer 404 statt auf dem neuen Thema. */
+        source: "/themes/luxurybandit-plan",
+        destination: "/themes/versprechen",
+        permanent: false
+      },
+      {
         // Repositioned "become a model" → "own an AI influencer". Old ad links / shares
         // / OG all still resolve to the new landing.
         source: "/become-a-model",

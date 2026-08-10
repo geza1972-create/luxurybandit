@@ -31,7 +31,7 @@ export default async function OfferPage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <Kicker>LuxuryBandit · Your code</Kicker>
         <H1>Redeem your <Y>code</Y></H1>
         <Lead>

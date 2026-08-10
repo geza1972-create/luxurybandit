@@ -47,11 +47,17 @@ export default async function AboutPage() {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-10 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-10 pt-3">
         <Kicker>{T.kicker}</Kicker>
         <H1>{T.h1a}<Y>{T.h1y}</Y></H1>
-        <Lead>{T.lead1}</Lead>
-        <Lead>{T.lead2}</Lead>
+        {/* HIER STAND DER ABSATZ ZUM „LUXURYBANDIT SYSTEM" — raus am 10.08.2026 (Owner, mit
+            Bildschirmfoto des Absatzes: „das machst du raus"). Er beschrieb die
+            Geschäftsideen-Analyse als zweites Standbein, direkt unter der Beschreibung des
+            Portals; wer hierher kommt, will wissen, was das hier ist und wer dahintersteckt,
+            nicht ein zweites Produkt erklärt bekommen. Der Text ist auch aus allen sieben
+            Sprachblöcken entfernt (`lead2` in lib/about-i18n) — ein Feld, das niemand mehr
+            anzeigt, kommt beim nächsten Umbau versehentlich zurück. */}
+        <Lead>{T.portalLang}</Lead>
 
         <div className="mt-10">
           <SectionTitle>{T.werTitel}</SectionTitle>

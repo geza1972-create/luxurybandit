@@ -208,7 +208,28 @@ export const TOPUP_GROSS_CENTS = 3000;
 // der Geburtstag sind Geschenke wie der Kuss, und Geschenke kosten ab jetzt alle dasselbe. Die
 // eigene Konstante bleibt trotzdem stehen: Wer dem Tanz je einen anderen Preis geben will,
 // ändert dann EINE Zahl — und nicht aus Versehen den Preis jedes anderen Geschenks mit.
-export const POLEDANCE_CENTS = 1500;                // 15 € — das Tanz-Video
+/**
+ * DER PREIS EINES GESCHENK-VIDEOS — 4,99 € (Owner 10.08.2026: „wir haben ab jetzt für 4,99:
+ * Geburtstag, Kuss, Tanz, Urlaub. Hochzeit auch aber nur Video.").
+ *
+ * EINE Zahl für alle vier Geschenke, nicht vier gleiche Zahlen nebeneinander: Genau daran ist
+ * es hier schon zweimal auseinandergelaufen (Geburtstag 4,99 auf dem Schild, 15 € an der
+ * Kasse — die Stripe-Leiche vom 07.08.; Hochzeit „ab 24 €" auf der Kachel, 1,49 € abgebucht).
+ * Wer den Geschenkpreis ändert, ändert ihn ab jetzt HIER, und Schild, Knopf, Abbuchung und
+ * Erstattung ziehen zusammen mit.
+ *
+ * `ONCE_CENTS` (15 €) bleibt daneben stehen und ist NICHT mehr der Preis eines Geschenks: Es
+ * hält die Aufladeleiter und die Gutschein-Stufen zusammen, siehe dort.
+ *
+ * 9,99 € SEIT DEM ABEND DES 10.08.2026 (Owner: „ich sehe wir sind zu günstig, wir machen 9,99
+ * statt 4,99 bei allen") — am selben Tag von 15 € auf 4,99 € gesenkt und dann auf 9,99 €
+ * korrigiert. Beide Male EINE Zeile, weil alles daran hängt: Preisschild, Kaufknopf,
+ * Guthaben-Prüfung, Abbuchung, Erstattung und die unterste Gutschein-Stufe. Genau dafür gibt
+ * es diese Konstante; vorher lagen dieselben Zahlen an sechs Stellen.
+ */
+export const GESCHENK_VIDEO_CENTS = 999;            // 9,99 € — Geburtstag · Kuss · Tanz · Urlaub · Versprechen
+
+export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie jedes Geschenk
 
 /**
  * DER GEBURTSTAG STARTET BEI 4,99 (Owner 07.08.2026: „wir nehemen für dieses Video 4,99 als
@@ -221,7 +242,7 @@ export const POLEDANCE_CENTS = 1500;                // 15 € — das Tanz-Video
  * Wer den Startpreis später anhebt, ändert EINE Zahl — und nicht aus Versehen den Preis
  * jedes anderen Geschenks mit.
  */
-export const GEBURTSTAG_CENTS = 499;                // 4,99 € — das Geburtstagsvideo, Startpreis
+export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.08.2026, jetzt der Hauspreis
 
 /**
  * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
@@ -246,9 +267,11 @@ export const GEBURTSTAG_CENTS = 499;                // 4,99 € — das Geburtst
  */
 export function geschenkPreisCents(geschenk: string): number {
   switch (String(geschenk ?? "")) {
-    case "poledance": return POLEDANCE_CENTS;
-    case "birthday": return GEBURTSTAG_CENTS;
-    default: return ONCE_CENTS;   // kiss, idol, wedding — ein Geschenk, einmal bezahlt
+    /* Die Hochzeit ist KEIN reines Video: Die 29 € kaufen den Planer mit Einladungsseite,
+       Zusagenliste und Gruppenchat (Verlängerung 14,99 €/Monat). Sie bleibt deshalb hier
+       stehen, während Kuss, Tanz, Geburtstag und Urlaub auf den Geschenkpreis fallen. */
+    case "wedding": return HOCHZEIT_START_CENTS;
+    default: return GESCHENK_VIDEO_CENTS;   // Kuss, Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }
 
@@ -293,7 +316,15 @@ export const VIDEO_UPGRADE_CENTS = 1500;            // 15 € — aus der Einlad
  * PRO ANALYSE, KEIN ABO (siehe Skill `business-analyse`): Jeder Lauf ist geschlossen und
  * bezahlt. Wer morgen die nächste Idee prüfen will, zahlt morgen wieder.
  */
-export const PLAN_CENTS = 6000;                     // 60 € — eine Analyse, das LuxuryBandit System
+/**
+ * DIE OBERSTE SPROSSE DER AUFLADELEITER — 60 €.
+ *
+ * Das war der Preis des „LuxuryBandit System" (eine Analyse). Das Thema ist am 10.08.2026
+ * gelöscht (Owner: „Wir verkaufen keine Systeme"), die Zahl bleibt: Sie ist die grösste
+ * Aufladung, und `{plan}` steckt noch in alten, übersetzten Sätzen im Zwischenspeicher.
+ * Wer sie entfernt, verkürzt die Leiter — dafür gibt es keinen Grund.
+ */
+export const PLAN_CENTS = 6000;                     // 60 € — grösste Aufladung
 
 /**
  * DIE 59-€-KENNUNG DES SYSTEMS IST AUS DEMSELBEN GRUND WEG (05.08.2026): Sie steht auf 5900,
@@ -675,7 +706,9 @@ export function standardCoupon(): string | undefined {
  * zusätzlich im Stripe-Konto). Diese Tabelle entscheidet nur, was der Kunde LIEST.
  */
 export type ThemenSchluessel =
-  | "kiss" | "wedding" | "holiday" | "birthday" | "surprise" | "chat" | "bella" | "tryon" | "plan"
+  | "kiss" | "wedding" | "holiday" | "birthday" | "surprise" | "chat" | "bella" | "tryon"
+  /* Das Versprechen (Owner 10.08.2026) — ein Geschenk-Video wie die anderen, 4,99 €. */
+  | "versprechen"
   /* Gutschein verpacken (Owner 05.08.2026) — ein Geschenk wie die anderen, also ONCE_CENTS
      ueber den `default`-Zweig unten. Verkauft wird die VERPACKUNG, nie der Gutschein selbst:
      in der EU ist der ein Zahlungsinstrument, siehe KONZEPT-GESCHENKE-UND-IDEEN.md §3b. */
@@ -691,8 +724,7 @@ const AB_WORT: Record<string, { ab: string; pm: string }> = {
 /** Der Betrag in Cent, den die Kasse dieses Themas wirklich nimmt. */
 export function themenPreisCents(thema: ThemenSchluessel): number {
   switch (thema) {
-    case "plan": return PLAN_CENTS;      // 59 EUR - das System, ein Einmalkauf
-    case "surprise": return POLEDANCE_CENTS;
+    case "surprise": return POLEDANCE_CENTS;   // 4,99 € wie jedes Geschenk-Video
     case "wedding": return HOCHZEIT_START_CENTS;   // 29 EUR Kauf; Verlaengerung siehe unten
     case "chat": return CHAT_STUFEN[0].cents;
     /**
@@ -705,7 +737,7 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
     case "gutschein": return ONCE_CENTS;   // „ab 15 €" — das billigste Geschenk darin
     case "bella": case "tryon": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
     case "birthday": return GEBURTSTAG_CENTS;   // 4,99 € Startpreis (Owner 07.08.2026)
-    default: return ONCE_CENTS;   // kiss, holiday — ein Geschenk, einmal bezahlt
+    default: return GESCHENK_VIDEO_CENTS;   // kiss, holiday — 4,99 € (Owner 10.08.2026)
   }
 }
 
@@ -820,7 +852,24 @@ export function themenPreisZeile(thema: ThemenSchluessel, lang?: string): string
    hier als kleinste Stufe — sie kaufen aber kein einziges Video, das billigste kostet mehr.
    Ein Betrag, der nichts kauft, gehoert nicht in eine Kaufleiter; als WERBEGESCHENK bleibt
    er bestehen (unten), denn dort ist er ein Zuschuss und kein Angebot. */
-export const AUFLADE_STUFEN = [500, 1000, ONCE_CENTS, 3000, PLAN_CENTS] as const;
+/**
+ * DIE AUFLADELEITER — 10 · 15 · 30 · 60 €.
+ *
+ * DIE 5-€-SPROSSE IST RAUS (Owner 10.08.2026, direkt nach der Preiserhöhung: „dann kommt die
+ * 5 euro aufladung raus"). Sie kaufte nach dem Schritt auf 9,99 € **kein einziges Produkt**
+ * mehr: Wer sie wählte, hatte bezahlt und stand danach wieder vor demselben Kaufknopf, nur
+ * fünf Euro ärmer. Eine Stufe, die nichts freischaltet, ist keine Auswahl, sondern eine Falle
+ * — und sie erzeugt genau die Support-Mail, die ein 5-€-Kunde nicht wert ist.
+ *
+ * DIE ZAHLEN STEHEN AUSGESCHRIEBEN, nicht als Produktkonstanten: Die Leiter muss aufsteigend
+ * bleiben und darf sich nicht verschieben, wenn ein Preis fällt oder steigt (an einem Tag
+ * zweimal passiert: 15 → 4,99 → 9,99).
+ *
+ * 10 € IST JETZT DIE KLEINSTE und deckt ein Geschenk fast punktgenau — 9,99 € gehen weg,
+ * ein Cent bleibt liegen. Der Rest auf dem Konto ist der Grund wiederzukommen; genau deshalb
+ * verfällt Guthaben bei uns nie.
+ */
+export const AUFLADE_STUFEN = [1000, 1500, 3000, PLAN_CENTS] as const;
 
 /**
  * DAS WERBEGESCHENK AN BESTANDSKUNDEN (Owner 05.08.2026: „auch meine Kunden können das
@@ -879,7 +928,9 @@ export function aufladeStufe(cents: unknown): number {
  * ganze technische Unterschied zur normalen Aufladung (`guthabenAufladen`, Memory
  * `guthaben-haengt-an-einer-adresse`). Die Kasse muss die Empfängeradresse also mitführen.
  */
-export const GUTSCHEIN_STUFEN: number[] = AUFLADE_STUFEN.filter(c => c >= ONCE_CENTS);
+/* Ein Gutschein muss mindestens EIN Geschenk kaufen können — seit dem 10.08.2026 sind das
+   4,99 €, also fällt auch die 5-€-Stufe wieder hinein. */
+export const GUTSCHEIN_STUFEN: number[] = AUFLADE_STUFEN.filter(c => c >= GESCHENK_VIDEO_CENTS);
 
 /** Ist dieser Betrag eine angebotene Gutschein-Stufe? Sonst gilt die kleinste (= ein Geschenk). */
 export function gutscheinStufe(cents: unknown): number {

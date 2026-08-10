@@ -17,7 +17,7 @@ import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID } from "@/lib/wedding-promp
 import { holidayInvitePrompt, HOLIDAY_SZENEN } from "@/lib/holiday-invite";
 import { gutscheinPrompt } from "@/lib/gutschein-prompt";
 import { guthabenLesen } from "@/lib/guthaben-konto";
-import { AUFLADE_STUFEN, ONCE_CENTS, GUTSCHEIN_CENTS, GUTSCHEIN_STUFEN, eur, themenPreisCents, type ThemenSchluessel } from "@/lib/pricing";
+import { AUFLADE_STUFEN, ONCE_CENTS, GUTSCHEIN_CENTS, GUTSCHEIN_STUFEN, eur, themenPreisCents, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
 import { fillPrices } from "@/lib/pricing";
 
 /**
@@ -273,7 +273,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
   const [aufladeZiel, setAufladeZiel] = useState<"bild" | "video" | "aufwerten">("bild");
 
   /** Was diese Karte kostet — aus der Tabelle, nie hier getippt. */
-  const preisCents = gutschein ? GUTSCHEIN_CENTS : ONCE_CENTS;
+  /* Jede Variante zahlt ihren eigenen Preis aus der Tabelle: Urlaub 4,99 € (Owner
+     10.08.2026), Hochzeit 29 € (Planer mit Einladungsseite), Gutschein seine eigene Stufe.
+     Vorher stand hier für BEIDE der alte Regelpreis von 15 €. */
+  const preisCents = gutschein ? GUTSCHEIN_CENTS : themenPreisCents(variant);
   const [feld, setFeld] = useState<Feld>(null);
   const [sie, setSie] = useState("");
   const [er, setEr] = useState("");
@@ -1188,8 +1191,18 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
          * ein Ort. Beim Gutschein gibt es nichts davon — er verschenkt etwas, er lädt
          * nirgendwohin ein. Leere Felder blendet `EinladungKarte` von selbst aus.
          */
-        sie={gutschein ? "" : (sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE))}
-        er={gutschein ? "" : (er.trim() || (eigenes ? T.fEr : BEISPIEL_ER))}
+        /**
+         * UND KEIN BEISPIEL-PAAR BEIM URLAUB (Owner 10.08.2026, mit Bildschirmfoto der
+         * Urlaubs-Karte: „Ana und Mihai stimmt nicht. Einfauch raus aus Urlaub").
+         *
+         * Bei der HOCHZEIT sind die zwei Namen das Herz der Karte — sie heiraten, ihre Namen
+         * stehen oben, und das Beispiel zeigt genau das. Eine Urlaubs-Einladung geht an EINEN
+         * Menschen: „Ana & Mihai" behauptet dort ein Paar, das es nicht gibt, und der
+         * Eingeladene sucht sich in zwei fremden Namen. Getippte Namen bleiben natürlich
+         * stehen — nur das erfundene Beispielpaar fällt weg.
+         */
+        sie={gutschein || urlaub ? sie.trim() : (sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE))}
+        er={gutschein || urlaub ? er.trim() : (er.trim() || (eigenes ? T.fEr : BEISPIEL_ER))}
         datum={gutschein ? "" : (datum || (eigenes ? "" : beispielDatum))}
         bisDatum={urlaub ? bisDatum : undefined}
         botschaft={botschaftFrei ? botschaftText : undefined}
@@ -1383,11 +1396,26 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
               * gehört. Der Kaufaufruf gehört nicht dazu: Er ist der eine Knopf, der auffallen
               * MUSS.
               */}
+            {/**
+              * PREIS UND AUFRUF IN EINEM KNOPF (Owner 10.08.2026: „Button wie CI
+              * Preis-Jettzt starten" · „ab 4,99 - Jetzt starten. Schreibst du in dem Button").
+              *
+              * Hier stand „Daten ersetzen" — das sagt, was der Knopf technisch tut, nicht
+              * wofür man ihn drückt, und der Preis stand vierzig Pixel darüber als eigener
+              * Chip. Jetzt trägt der Knopf beides: `ab 29 € · Jetzt starten`. Die Zahl kommt
+              * aus `themenPreisZeile`, nie aus dem Text (Skill `bezahlung` §2), und `variant`
+              * ist zugleich der Schlüssel der Preistabelle — Hochzeit, Urlaub und Gutschein
+              * bekommen damit in einer Zeile jeder seinen eigenen, richtigen Preis.
+              */}
             {!!beispiele.length && (
               <button type="button" onClick={() => setFeld("fotos")}
                 className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.2)] active:scale-95 transition">
-                <ImageUp className="h-4 w-4 shrink-0" />
-                {F.datenErsetzen}
+                {/* OHNE ZEICHEN (Owner 10.08.2026: „Icon raus"). Das Bild-Symbol stammte aus
+                    der Zeit, als der Knopf „Foto ersetzen" hiess — es beschrieb die Handlung.
+                    Jetzt steht der Preis darin, und ein Symbol daneben nimmt der Zahl den
+                    Platz und die Ruhe. Die Karten-Knöpfe des Kuss-Trichters tragen an
+                    derselben Stelle auch keins. */}
+                {themenPreisZeile(variant, lang)} · {F.jetztStarten}
               </button>
             )}
             </>

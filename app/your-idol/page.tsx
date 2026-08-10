@@ -43,7 +43,7 @@ export default async function YourIdolPage({ searchParams }: {
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav subtitle="Your Idol" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
 
         {showCustomer ? (

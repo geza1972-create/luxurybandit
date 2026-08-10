@@ -4,6 +4,8 @@ import crypto from "crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { uploadTryThisLookBytes, getSignedUrl, readKissLog, writeKissLog, heygenLookMerken, heygenLookNachschlagen, avatarMerken, type KissLogEntry } from "@/lib/try-this-look-store";
 import { geburtstagAvatarPrompt, geburtstagStilPrompt, geburtstagLook } from "@/lib/geburtstag-looks";
+import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
+import { VERSPRECHEN_SATZ_EN } from "@/lib/versprechen";
 
 /**
  * DIE GEBURTSTAGS-KETTE — der Kundenweg der am 07.08.2026 abgenommenen Vorlage
@@ -432,7 +434,23 @@ export async function POST(request: Request) {
       ...(audioUrl
         ? { audio_url: audioUrl }
         : {
-            script: spruch(body.name ?? ""),
+            /**
+             * OHNE EIGENE AUFNAHME SPRICHT DIE COMPUTERSTIMME — und beim VERSPRECHEN muss
+             * sie etwas anderes sagen als „Happy birthday" (10.08.2026, als das Thema
+             * entstand). Der Regelfall ist die eigene Aufnahme; dieser Zweig greift nur,
+             * wenn sie fehlt oder nicht herausgerechnet werden konnte. Genau dann darf er
+             * nicht das falsche Produkt sprechen.
+             *
+             * Woran es hängt: am gewählten LOOK. Der Auftrag trägt ihn ohnehin mit, und
+             * `VERSPRECHEN_LOOKS` ist die eine Liste, die sagt, welcher zum Versprechen
+             * gehört — kein zweites Kennzeichen, das man vergessen kann zu setzen.
+             *
+             * ENGLISCH (Owner 10.08.2026: „es muss auf englisch sein") — wie der
+             * Geburtstags-Satz auch.
+             */
+            script: VERSPRECHEN_LOOKS.some(l => l.id === look.id)
+              ? VERSPRECHEN_SATZ_EN
+              : spruch(body.name ?? ""),
             voice_id: body.stimme === "mann" ? VOICE_MANN : VOICE_FRAU,
             voice_settings: { speed: 1.0 },
           }),

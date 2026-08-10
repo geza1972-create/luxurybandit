@@ -33,7 +33,14 @@
  * Zuneigung) — über einem Mann vor seiner künftigen Werkstatt wären Herzen eine andere
  * Geschichte. Die WÖRTER dazu sind seit dem 07.08. weg wie überall.
  */
-const SYSTEM_ZEICHEN = ["⚡", "🔥", "👊", "💪", "👑"];
+/**
+ * DIE ZEICHEN DES VERSPRECHENS — Kraft statt Herzen (10.08.2026, beim Umbau des Themas).
+ *
+ * Sie hiessen bis heute `SYSTEM_ZEICHEN` und gehörten dem gelöschten „LuxuryBandit System";
+ * die Auswahl passt unverändert: Wer sich etwas verspricht, bekommt keine Herzchen über sein
+ * Video. Ein Kuss-Herz über „ich werde es schaffen" macht aus einem Vorsatz eine Grusskarte.
+ */
+const VERSPRECHEN_ZEICHEN = ["⚡", "🔥", "👊", "💪", "👑"];
 
 export default function Reaktionen({ variant = "kiss" }: { variant?: string; lang?: string; name?: string }) {
   return (
@@ -49,8 +56,8 @@ export default function Reaktionen({ variant = "kiss" }: { variant?: string; lan
             fontSize: `${9 + (i % 4) * 2}px`,
             ["--lb-drift" as string]: `${(i % 2 ? 1 : -1) * (4 + (i % 3) * 4)}px`,
           }}>
-          {variant === "plan"
-            ? SYSTEM_ZEICHEN[i % SYSTEM_ZEICHEN.length]
+          {variant === "versprechen"
+            ? VERSPRECHEN_ZEICHEN[i % VERSPRECHEN_ZEICHEN.length]
             : i % 3 === 0 ? "💖" : i % 3 === 1 ? "❤️" : "💗"}
         </span>
       ))}

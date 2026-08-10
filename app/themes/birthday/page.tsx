@@ -45,20 +45,28 @@ export default async function BirthdayThemePage({ searchParams }: {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <TrackView event="birthday_view" lookId="themes-birthday" lookName="Geburtstags-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-        <ThemenPreis thema="birthday" lang={L} className="mt-3" />
+        {/* DER PREIS-CHIP IST RAUS — er steht jetzt IM Kaufknopf (Owner 10.08.2026: „ab 4,99 -
+            Jetzt starten. Schreibst du in dem Button"). Zweimal derselbe Preis, vierzig Pixel
+            auseinander, ist keine Auskunft, sondern ein Grund, warum der Knopf nicht mehr ins
+            Bild passte. Der Baustein `ThemenPreis` bleibt und trägt die anderen Themen. */}
 
         {/**
           * DIE KARTE STEHT DIREKT UNTER DEM TITEL (Owner 09.08.2026: „Die Karte auf der
           * Landingpage muss unter dem Titel stehen").
+          *
+          * DIE TRAUMWELT IST DIE ERSTE FOLIE (Owner 09.08.2026: „im Slide mach die Dream
+          * World als erstes"). Sie ist das Ungewöhnliche, das die Überschrift verspricht
+          * („auf eine Art, die niemand erwartet") — die fotorealistischen Beispiele zeigen,
+          * was er sonst noch bekommen kann, aber sie verkaufen nicht den Unterschied.
           *
           * Das ist zugleich die Hausordnung seit dem Kuss — erst sehen, was herauskommt,
           * dann lesen, wie es geht. Vorher lagen Anlass, Grund und die drei Schritte
           * dazwischen: eine halbe Bildschirmhöhe Erklärung, bevor er den Beweis sah. Wer
           * das Ergebnis nicht kennt, liest die Erklärung nicht.
           */}
-        <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN]} />
+        <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
 
         {/**
           * DIE ZEILE UNTER DEM BEISPIEL (Owner 09.08.2026: „direkt unter dem Beispielvideo

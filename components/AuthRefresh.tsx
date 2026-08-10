@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getStoredAuthSession, refreshSession, isSessionExpiring, saveAuthSession, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
+import { spurenLoeschen } from "@/lib/abmelden-spuren";
 
 // Keeps the login alive. Supabase access tokens expire after ~1h; without a refresh the
 // user got silently 401'd and "flew out". This mounts app-wide (root layout) and:
@@ -17,11 +18,28 @@ export default function AuthRefresh() {
     if (typeof window === "undefined") return;
     if (window.location.pathname.startsWith("/auth/")) return; // dedicated pages handle their own flow
     try {
-      if (getStoredAuthSession()?.access_token) return; // already signed in
+      /**
+       * EIN FRISCHER ANMELDE-LINK STICHT DIE ALTE SITZUNG (Owner 10.08.2026, mit drei
+       * Bildschirmfotos: Anmelde-Link an geza1972@gmail.com angefordert, danach im Menü
+       * „Signed in · tigl10722@gmail.com", und die Galerie sagt „Dieses Stück gehört zu
+       * einer anderen Adresse" — „das verstehe ich nicht").
+       *
+       * HIER STAND `if (…access_token) return`. Wer schon angemeldet war, konnte sich also
+       * mit einem Anmelde-Link NICHT als jemand anderes anmelden: Der Klick tat sichtbar
+       * nichts, das alte Konto blieb stehen, und seine eigenen Werke lagen für ihn hinter
+       * einer fremden Anmeldung. Genau dieser Fall ist der Regelfall auf einem Testgerät —
+       * und der Kunde, der sich mit einer zweiten Adresse anmeldet, erlebt dasselbe.
+       *
+       * SICHER BLEIBT ES DURCH DIE FRISCHE, NICHT DURCH DIESE SPERRE: Angenommen wird nur
+       * ein Token aus den letzten zwei Minuten (unten). Ein alter Link aus einem Lesezeichen
+       * oder eine herumliegende Adresse kann damit weiterhin niemanden umschalten — das war
+       * der Anlass für die Strenge (die Anmeldung des Admins als Testmodel).
+       */
       // ONLY the hash (#access_token=…&token_type=bearer) — the real Supabase implicit-flow
       // landing. We ignore ?token= query params: those collide with storage signed-URL tokens
       // and with stale/bookmarked URLs, which is exactly what caused the wrong auto-login.
       const hashP = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (!hashP.get("access_token") && getStoredAuthSession()?.access_token) return; // schon drin, kein Link dabei
       const at = hashP.get("access_token");
       const tokenType = hashP.get("token_type");
       if (!at || !(tokenType === "bearer" || tokenType === "signup")) return;
@@ -34,6 +52,18 @@ export default function AuthRefresh() {
       const rt = hashP.get("refresh_token") || undefined;
       const expiresAt = Number(hashP.get("expires_at") || 0) || undefined;
       const session: SupabaseAuthSession = { access_token: at, refresh_token: rt, expires_at: expiresAt ?? claims.exp, user: { id: claims.sub, email: claims.email } };
+      /**
+       * KOMMT EIN ANDERER MENSCH, GEHT DER VORIGE GANZ (Owner 10.08.2026: „wenn er sich
+       * abmeldet dann ist es weg. Das ist datenschutz").
+       *
+       * Dasselbe gilt beim Wechsel: Adresse, Auftragsnummern und zwischengespeicherte Fotos
+       * des Vorigen dürfen nicht unter dem neuen Konto weiterleben — sonst sieht der Neue
+       * dessen Sachen, und der Alte verliert seine an ein fremdes Konto. Nur beim WECHSEL:
+       * Dieselbe Person, die ihren Link zweimal klickt, soll nichts verlieren.
+       */
+      const vorher = getStoredAuthSession();
+      const anderer = !!vorher?.user?.id && vorher.user.id !== claims.sub;
+      if (anderer) spurenLoeschen();
       saveAuthSession(session);
       // Strip the token from the URL so it isn't left in history or re-processed.
       const url = new URL(window.location.href);

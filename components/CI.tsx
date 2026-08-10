@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { X, Loader2, Lock, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
@@ -82,11 +82,21 @@ export function Scheibe({ onClick, label, rot = false, klein = false, durchsicht
  * ging darin unter. Jetzt zeigt der aktive Chip nur einen gelben Rand und einen fast
  * schwarzen Hauch Gold darunter: sichtbar gewählt, aber kein Knopf.
  */
-export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, disabled = false, className = "", children }: {
+export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false, onClick, disabled = false, className = "", children }: {
   art?: "gold" | "umriss" | "chip";
   /** Nur für `chip`: ist diese Wahl gerade gewählt? */
   aktiv?: boolean;
   karte?: boolean;
+  /**
+   * AUF WEISSEM GRUND (Owner 10.08.2026: „mach das Dialog in light. Ich denke wenn es um
+   * zahlung geht, vertrauen menschen mehr den hellen farben").
+   *
+   * Die dunkle Fassung eines Chips lebt von weissen Rändern auf 20 % — auf Weiss ist das
+   * unsichtbar, und ein Betrag, den man nicht sieht, wird nicht angetippt. Dieselbe Form,
+   * dieselben Masse, nur in Tinte statt Weiss: Der gewählte trägt den vollen Rand, der
+   * ungewählte den leisen — verschoben wird nichts (Hausregel „Auswahl verschiebt NIE").
+   */
+  hell?: boolean;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
@@ -98,7 +108,14 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, onClick, dis
       ? (karte
         ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
         : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
-      : /* chip */ (karte
+      : /* chip */ (hell
+        // Die helle Fassung steht bewusst NICHT in `lb-wahl`: Jene Klasse gehört der
+        // Anzeigen-Landung (`.lb-fb`), die alles Gelbe blau überschreibt. Hier geht es um
+        // einen weissen Dialog INNERHALB der dunklen Welt — Tinte statt Weiss, sonst nichts.
+        ? `flex min-h-11 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-[12px] font-black leading-tight ${aktiv
+          ? "border-[#1a160f]/45 bg-[#1a160f]/[0.07] text-[#1a160f]"
+          : "border-[#1a160f]/20 bg-[#1a160f]/[0.03] text-[#1a160f]/85"}`
+        : karte
         // In der Karte gibt es kein Gold für Flächen — dort macht der Kartenrahmen die
         // Wahl sichtbar, gefüllt wird auch hier nichts. BEIDE tragen den Rahmen (Owner
         // 06.08.2026: „wir brauchen einen rand bei inaktiv"); den ungewählten nimmt die
@@ -926,6 +943,86 @@ export function Dialog({ art = "hell", zu, z = 96, className = "", children }: {
         </Scheibe>
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * DAS ZAHLUNGSSIEGEL (Owner 10.08.2026: „man muss igerndwie sichere Zahlung mit stripe
+ * (logo) Masterkard logo…einblenden", zusammen mit: „wenn es um zahlung geht, vertrauen
+ * menschen mehr den hellen farben").
+ *
+ * WAS ES SAGT, IST WAHR: Kassiert wird über Stripe, und Stripe nimmt die Karten der beiden
+ * Netze. Ein Siegel, das mehr behauptet als stimmt (Käuferschutz, Garantien, fremde
+ * Prüfzeichen), ist kein Vertrauen, sondern eine Falle — deshalb steht hier genau das:
+ * Schloss, der Satz aus `T.secure`, und die zwei Kartenzeichen.
+ *
+ * WARUM DIE ZEICHEN GEZEICHNET UND NICHT GELADEN SIND: Zwei Kreise und ein Wort brauchen
+ * keine Datei — kein Netzaufruf, kein Nachladen unter dem Kaufknopf, keine fremde Adresse
+ * im Fenster. Es sind die Marken der Kartennetze; benutzt werden sie hier ausschliesslich
+ * als Hinweis, WOMIT man bezahlen kann.
+ *
+ * ES STEHT UNTER DEN BETRÄGEN, NICHT ÜBER IHNEN: Zuerst die Wahl, dann die Beruhigung.
+ */
+export function Zahlungssiegel({ text, garantie, garantieHref, hell = false, className = "" }: {
+  /** Der fertige Satz in seiner Sprache (`T.secure`) — hier wird nichts übersetzt. */
+  text: string;
+  /**
+   * DIE GELD-ZURÜCK-GARANTIE (Owner 10.08.2026: „Geldzrück Garantie müssen wir auch
+   * einblenden im Zahlungsdialog Creditauswahl" · „Geld Zurückgarantie habe ich gesagt")
+   * — fertig übersetzt hereingereicht (`T.geldZurueckGarantie`).
+   *
+   * NUR DORT, WO SIE HINGEHÖRT: am Kaufmoment, nicht unter jedem Preis.
+   */
+  garantie?: string;
+  /**
+   * WOHIN DAS WORT FÜHRT (Owner 10.08.2026: „du machst jetzt einen ling zu ageb drauf und
+   * beschreisbt in AGB was das ist").
+   *
+   * Eine Garantie ohne nachlesbare Bedingung ist eine Behauptung — und dieselbe Zeile, die
+   * Vertrauen schaffen soll, wäre die, an der man sich später streitet. Deshalb ist das Wort
+   * ein Link auf den Abschnitt in den AGB, der sagt, was sie deckt (Lieferung, grosse
+   * Abweichung) und was nicht (schlechte Vorlage, Geschmack). Neues Fenster: Der Kunde steht
+   * im Kaufmoment — sein Trichter darf dabei nicht verloren gehen.
+   */
+  garantieHref?: string;
+  /** Auf weissem Grund (heller Dialog). Ohne das: die dunkle Welt. */
+  hell?: boolean;
+  className?: string;
+}) {
+  const tinte = hell ? "rgba(26,22,15,0.62)" : "rgba(255,255,255,0.7)";
+  return (
+    <div className={className}>
+    {garantie && (() => {
+      const inhalt = (<>
+        <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: hell ? "#1a160f" : "#f6cf51" }} />
+        <span className={garantieHref ? "underline" : ""}>{garantie}</span>
+      </>);
+      const kl = "mb-2 flex items-center justify-center gap-1.5 text-center text-[12px] font-black leading-snug";
+      const farbe = { color: hell ? "#1a160f" : "#fff" };
+      return garantieHref
+        ? <a href={garantieHref} target="_blank" rel="noreferrer" className={kl} style={farbe}>{inhalt}</a>
+        : <p className={kl} style={farbe}>{inhalt}</p>;
+    })()}
+    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5">
+      <span className="flex items-center gap-1.5 text-[11px] font-bold leading-none" style={{ color: tinte }}>
+        <Lock className="h-3.5 w-3.5" /> {text}
+      </span>
+      <span className="flex items-center gap-2">
+        {/* Mastercard: die zwei ineinanderliegenden Kreise. */}
+        <svg viewBox="0 0 36 22" role="img" aria-label="Mastercard" className="h-[18px] w-auto">
+          <circle cx="14" cy="11" r="9" fill="#EB001B" />
+          <circle cx="22" cy="11" r="9" fill="#F79E1B" />
+          <path d="M18 4.2a9 9 0 0 0 0 13.6 9 9 0 0 0 0-13.6Z" fill="#FF5F00" />
+        </svg>
+        {/* Visa: das Wort. Auf Weiss in seinem Blau, auf Dunkel in Weiss — dasselbe, was die
+            Marke selbst für dunkle Flächen vorsieht; Blau auf Schwarz ist nicht lesbar. */}
+        <span className="text-[13px] font-black italic leading-none tracking-tight"
+          style={{ color: hell ? "#1434CB" : "#fff" }}>
+          VISA
+        </span>
+      </span>
+    </div>
     </div>
   );
 }

@@ -143,14 +143,20 @@ export default async function WeddingThemePage({ searchParams }: {
   }, L);
 
   return (
-    /* HELL IST DIE VORGABE (Owner 31.07.2026: „default ist light modus"). Umgekehrt zu
-       vorher: Die Seite kommt hell, `?light=0` schaltet dunkel. Eine Hochzeit ist hell, und
-       der Sprung von der weissen Anzeige auf eine schwarze Seite kostete Klicks. Der
-       Schalter im Balken ueberstimmt beides und merkt sich die Wahl. */
-    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "0" ? "" : " lb-theme lb-fb"}`}>
+    /**
+     * DUNKEL IST DIE VORGABE (Owner 10.08.2026: „Hochzeitsplaner default dark.").
+     *
+     * Das dreht die Entscheidung vom 31.07.2026 um („default ist light modus", begründet mit
+     * dem Sprung von der weissen Anzeige auf eine schwarze Seite). Der Grund für die Umkehr
+     * ist das Haus: Jede andere Themenseite kommt dunkel, und eine einzige helle Seite mitten
+     * darin liest sich wie ein fremdes Produkt — dieselbe Marke muss überall dieselbe Farbe
+     * haben. `?light=1` schaltet weiterhin auf die helle Anzeigen-Fassung, und der Schalter
+     * im Balken überstimmt beides und merkt sich die Wahl.
+     */
+    <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
       <TrackView event="wedding_view" lookId="themes-wedding" lookName="Hochzeits-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
 
         {showCustomer ? (
@@ -173,8 +179,10 @@ export default async function WeddingThemePage({ searchParams }: {
                 (Kicker, H1, ein Satz); alle ABSÄTZE bleiben weiter unter der Karte. */}
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/60">{t.kicker}</p>
             <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-            <Lead className="mt-2">{t.claim}</Lead>
-            <ThemenPreis thema="wedding" lang={L} className="mt-3" />
+        {/* DER PREIS-CHIP IST RAUS — er steht jetzt IM Kaufknopf (Owner 10.08.2026: „ab 4,99 -
+            Jetzt starten. Schreibst du in dem Button"). Zweimal derselbe Preis, vierzig Pixel
+            auseinander, ist keine Auskunft, sondern ein Grund, warum der Knopf nicht mehr ins
+            Bild passte. Der Baustein `ThemenPreis` bleibt und trägt die anderen Themen. */}
 
             {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner
                 05.08.2026: „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite").
@@ -185,12 +193,24 @@ export default async function WeddingThemePage({ searchParams }: {
                 Die Privatzeile ist hier besonders wichtig: Wer die Adresse seines Saals und
                 die Namen seiner Gäste einträgt, will wissen, dass die Seite nicht auffindbar
                 ist. */}
-            <ThemenVorspann anlass={T.anlass} grund={T.grund}
-              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
             <div className="mt-5">
               <EinladungBauen lang={L} beispielVideo={examples[0] ?? ""} />
             </div>
+
+            {/* AUCH DER EINE SATZ STEHT UNTER DER KARTE — gemessen (Owner 10.08.2026: „ich
+                will den CTA im Viewport shen"). Mit ihm darüber lag der Kaufknopf bei 868 px,
+                also 56 px ausserhalb; die Hochzeitskarte ist die höchste im Haus, weil über
+                dem Video noch die Namen stehen. Oben bleiben Kicker und Überschrift. */}
+            <Lead className="mt-2">{t.claim}</Lead>
+
+            {/* DER VORSPANN STEHT UNTER DER KARTE — Seitenkopf-Template (Owner 10.08.2026:
+                „ich will den CTA im Viewport shen" · „Selbe template wie CI", Landingpage.md
+                §9). Anlass, Grund und die drei Schritte standen zwischen Überschrift und
+                Karte und schoben den Kaufknopf aus dem Bild: erklärt wurde, bevor etwas zu
+                sehen war. */}
+            <ThemenVorspann anlass={T.anlass} grund={T.grund}
+              wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
 
             {/* SOFORT SEHEN, WAS MAN BEKOMMT: Zusagenliste und Gruppenchat als Demo. */}
             <div className="mt-6 space-y-4">

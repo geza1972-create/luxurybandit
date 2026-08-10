@@ -41,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/themes/birthday`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/surprise`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/chat`, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${BASE}/themes/luxurybandit-plan`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE}/themes/versprechen`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/bella`, changeFrequency: "weekly", priority: 0.6 },
     /* `/models-wanted` ist raus (Owner 05.08.2026: „die gibt es nicht mehr, nur fuer den
        Admin"). Eine Seite, die Besucher wegschickt, gehoert nicht in die Sitemap — sonst

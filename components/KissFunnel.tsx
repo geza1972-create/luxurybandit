@@ -8,7 +8,7 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, AUFLADE_STUFEN, eur, fillPrices } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, AUFLADE_STUFEN, eur, fillPrices, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -20,8 +20,9 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT, TEILEN_TEXT_GEBURTSTAG } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, ABSAGE_ROT } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
+import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 import { kontoText } from "@/lib/konto-i18n";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
@@ -466,7 +467,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * darin unter. Ueberall sonst ist es umgekehrt: Acht-Sekunden-Videos ohne eigenen Ton
    * bekommen Musik, weil ihre Tonspur bei jeder Schleife von vorn ansetzt.
    */
-  const eigenerTon = variant === "birthday";
+  /* Die eigene Stimme aus der Aufnahme — bei beiden Aufnahme-Themen (Geburtstag,
+     Versprechen). Der Satz gehört ihm, also spricht ihn auch er. Ausgeschrieben statt über
+     `selbstVideo`: Das steht erst zwanzig Zeilen weiter unten. */
+  const eigenerTon = variant === "birthday" || variant === "versprechen";
   /**
    * DER GEBURTSTAG NIMMT SICH SELBST AUF, STATT EIN FOTO HOCHZULADEN (Owner 07.08.2026:
    * „Das ganze ist zu kompliziert. Wir brauchen nur das. Dein Name, szene auswählen dan
@@ -480,7 +484,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Mikrofon (`kameraAus`), erscheint er wieder. Ein Trichter mit genau EINEM Weg ist
    * eine Sackgasse, sobald dieser Weg versperrt ist.
    */
-  const selbstVideo = variant === "birthday";
+  /**
+   * WER SICH SELBST AUFNIMMT (Owner 10.08.2026: „Es hat den sleben Tunel und aufbau").
+   *
+   * Das Versprechen läuft durch dieselbe Kette wie der Geburtstag: Die Aufnahme liefert
+   * Standbild UND Stimme, ein Foto-Upload entfällt. Stand hier weiter nur der Geburtstag,
+   * bekäme das Versprechen den Kuss-Trichter — Model wählen, Foto hochladen, kein Mikrofon.
+   */
+  const selbstVideo = variant === "birthday" || variant === "versprechen";
   /** Die Worte der Aufnahme-Zeile — auch der Kaufknopf braucht sie, nicht nur der Kasten. */
   const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
@@ -519,7 +530,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Landingpage stammt. Wer nichts antippt, bekommt genau das, was er auf der Karte
    * gesehen hat.
    */
-  const [look, setLook] = useState(GEBURTSTAG_LOOKS[0].id);
+  /* Jedes Aufnahme-Thema hat seine eigenen Looks — Torte und Kerzen beim Geburtstag, Villa
+     und Wagen beim Versprechen. Eine Liste je Thema, eine Zeile hier. */
+  const LOOKS = variant === "versprechen" ? VERSPRECHEN_LOOKS : GEBURTSTAG_LOOKS;
+  const [look, setLook] = useState(LOOKS[0].id);
   /**
    * DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026, direkt nach dem Geräte-Riegel).
    *
@@ -774,6 +788,34 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   };
 
   /**
+   * DER AVATAR WANDERT INS PROFIL (Owner 10.08.2026: „Das Avatar muss im Profile gespeichert
+   * werden. Der User meldet sich doch an. Basta").
+   *
+   * Und zwar HIER, im Augenblick der Aufnahme — nicht als Nebenwirkung eines Auftrags. Bisher
+   * entstand er nur beim ANLEGEN eines Auftrags in `/api/kiss-log`; wer sich in einen
+   * bestehenden Auftrag neu aufnahm, bekam keinen neuen. Genau deshalb stand in der Galerie
+   * ein Avatar von gestern oder gar keiner.
+   *
+   * Die Anmeldung ist der Ausweis: Liegt ein Zugangs-Token vor, geht es damit — dann zählt
+   * weder Gerät noch getippte Adresse. Ohne Anmeldung reist die Adresse mit, und die Route
+   * entscheidet (siehe `app/api/avatar`).
+   */
+  const avatarSpeichern = async (teile: { bild?: string; ton?: string }) => {
+    if (!teile.bild && !teile.ton) return;
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    const token = (() => { try { return getStoredAuthSession()?.access_token ?? ""; } catch { return ""; } })();
+    if (!token && !mail.trim()) return;   // ohne jede Kennung gibt es kein Profil
+    try {
+      await fetch("/api/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...teile, email: mail.trim(), device }),
+      });
+    } catch { /* der Avatar ist Komfort — ein Fehler hier hält keine Aufnahme auf */ }
+  };
+
+  /**
    * EINE AUFNAHME, ZWEI ZWECKE (Owner 07.08.2026: „wenn ich mich selbst aufnehme brauche
    * ich doch kein bild upload" · „Wir brauchen nur das. Dein Name, szene auswählen dan
    * button Selbstaufnehmen mit dem script was er sagen soll").
@@ -834,28 +876,44 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); track("aufnahme_kurz"); return; }
           setAufnahmeFehler("");
           setAufnahmeUrl(url);   // bleibt bestehen — daraus spielt der Spieler
+          setCustomModel(bild); setUseCustom(true);
+          /* Sein Gesicht gehört ab jetzt IHM, nicht diesem einen Auftrag — die Tonspur folgt
+             unten, sobald sie herausgerechnet ist. */
+          void avatarSpeichern({ bild });
           /**
-           * NACH DER AUFNAHME ZUM VIDEO SPRINGEN (Owner 09.08.2026: „Nachdem das
-           * Dialogfenster mit der Aufnahme geschlossen wird, muss zum Video nach unten
-           * springen").
+           * NACH DER AUFNAHME STEHT ER IM ZWEITEN SCHRITT (Owner 09.08.2026: „nach der
+           * aufnahme soll lieber zu schritt zwei springen").
            *
-           * Das Vollbild verschwindet, und er steht wieder irgendwo auf der Landingpage —
-           * meistens ganz oben, weit über dem, was er gerade gemacht hat. Sein Standbild und
-           * der Kaufknopf liegen unten. Ohne diesen Sprung sucht er beides.
+           * Vorher wurde nur GESCROLLT — und zwar zur Karte, denn der Anker `schrittZweiRef`
+           * lebt erst im zweiten Schritt, und dort war er noch gar nicht. Er landete also bei
+           * seinem Standbild und musste trotzdem wieder hinauf zu „Weiter". Die Aufnahme IST
+           * der erste Schritt; ist sie im Kasten, gibt es auf dieser Seite nichts mehr zu tun.
            *
-           * Kurz verzögert, weil die Karte im selben Atemzug erst entsteht (das Standbild
-           * setzt sie); ohne die Pause zielte der Sprung auf ein Element, das es noch nicht
-           * gibt. Dieselben 150 ms wie beim Start der Erzeugung.
+           * GENAU DAS, WAS „WEITER" TUT (der Knopf unten): zugestimmt wird durch die Handlung
+           * — der Satz dazu steht im ersten Schritt, über dem Aufnahme-Knopf —, die Wahl
+           * wandert an den Eintrag, und Geburtstag/Tanz überspringen Schritt 2 (dort stand
+           * SEIN Foto, und es gibt keines mehr). Die Prüfung des Knopfes („erst aufnehmen")
+           * fehlt hier mit Absicht: Sie liest `selPhoto`, und das steht in diesem Durchlauf
+           * noch auf dem alten Wert — geprüft ist ohnehin schon, denn ohne brauchbares
+           * Standbild kommt der Ablauf hier gar nicht an.
+           *
+           * `setStufenOffen(true)`, weil das Vollbild der Aufnahme sich schliesst: Der
+           * Trichter muss dahinter offen stehen, sonst springt er in ein Fenster, das zu ist.
+           *
+           * Kurz verzögert, weil der zweite Schritt im selben Atemzug erst entsteht; ohne die
+           * Pause zielte der Sprung auf ein Element, das es noch nicht gibt.
            */
+          zustimmen(); wahlMerken();
+          setSchritt(V.paarUpload || V.nurSie ? 3 : 2);
+          setStufenOffen(true);
           setTimeout(() => (schrittZweiRef.current ?? karteRef.current ?? resultRef.current)
             ?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
-          setCustomModel(bild); setUseCustom(true);
           const leser = new FileReader();
           leser.onloadend = () => setAufnahme(String(leser.result || ""));
           leser.readAsDataURL(blob);
           /* Die Tonspur gleich mit herausziehen — scheitert das (alter Browser), bleibt
              `tonspur` leer und der Start schickt das Video als Rückfall. */
-          void alsTonspur(blob).then(w => setTonspur(w));
+          void alsTonspur(blob).then(w => { setTonspur(w); if (w) void avatarSpeichern({ ton: w }); });
         });
       };
       aufnehmerRef.current = rec;
@@ -1981,8 +2039,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Kurz, eindeutig in sieben Sprachen, und es legt sich nicht mit dem Aufnahme-Knopf im
    * Trichter an, der weiterhin sagt, was er tut.
    */
-  const kartenAufruf = selbstVideo ? SW.los
-    : V.nurSie ? T.uploadYou : (KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).menschenErsetzen;
+  /**
+   * DER PREIS STEHT IM KNOPF (Owner 10.08.2026: „ab 4,99 - Jetzt starten. Schreibst du in
+   * dem Button").
+   *
+   * Er stand als eigener Chip über der Karte — eine Zeile, die vierzig Pixel kostete und den
+   * Kaufknopf aus dem Bild schob (siehe `mt-4` an der Karte). Und getrennt war er eine
+   * Auskunft; im Knopf ist er ein Angebot: Man liest den Preis in dem Augenblick, in dem man
+   * sich entscheidet, nicht eine halbe Handhöhe darüber.
+   *
+   * DIE ZAHL KOMMT AUS DER TABELLE, nie aus dem Text (Hausregel `prices-only-from-pricing-table`).
+   * `themenPreisZeile` liefert sie fertig mit „ab" in seiner Sprache. Der Tanz heisst in der
+   * Preistabelle „surprise", das Idol zahlt wie der Kuss — deshalb die kleine Zuordnung.
+   */
+  const preisSchluessel: ThemenSchluessel =
+    variant === "poledance" ? "surprise" : variant === "idol" ? "kiss" : variant;
+  /**
+   * UND ÜBERALL DASSELBE WORT (Owner 10.08.2026: „Button wie CI Preis-Jettzt starten").
+   *
+   * Hier standen drei verschiedene Aufrufe je Thema — „Personen ersetzen" (Kuss), „Lade dein
+   * Foto hoch" (Tanz), „Jetzt starten" (Geburtstag). Jeder beschrieb, was der nächste Schritt
+   * technisch tut; keiner sagte, dass es hier LOSGEHT. Ein Haus, ein Knopf: `Preis · Jetzt
+   * starten`, in sieben Sprachen aus `T.jetztStarten`.
+   */
+  const basisAufruf = T.jetztStarten;
+  const kartenAufruf = `${themenPreisZeile(preisSchluessel, lang)} · ${basisAufruf}`;
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
@@ -2400,6 +2481,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const kussVideo = async () => {
     if (videoBusy || !fotosDa) return;
+    /* Lief der Startaufruf wirklich durch? Nur solange er es NICHT tat, darf der
+       Startstempel zurückgenommen werden — nach einer echten Kennung rendert der Anbieter,
+       auch wenn hier unten die Warteschleife stirbt (siehe `renderAbbruch`). */
+    let gestartet = false;
+    const startStempelZurueck = (grund: string) => {
+      if (gestartet || !selbstVideo || !genId) return;
+      void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ update: genId, renderAbbruch: true, fehler: grund }) }).catch(() => {});
+    };
     setWahl(false); setVideoBusy(true); setStatus("");
     setVideoStart(Date.now()); setFortschritt(0);
     /**
@@ -2549,12 +2639,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       /* Start SOFORT in den Auftrag stempeln — Galerie-Streifen und Puls-Punkt leben
          davon, und die Kennung kommt erst nach dem 1-2-minuetigen HeyGen-Look. */
-      if (variant === "birthday" && genId) {
+      if (selbstVideo && genId) {
         void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ update: genId, renderStart: true }) }).catch(() => {});
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /* weckt den Punkt */ }
       }
-      const start = variant === "birthday" ? await fetch("/api/geburtstag-video", {
+      const start = selbstVideo ? await fetch("/api/geburtstag-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
@@ -2618,6 +2708,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 : holidayPrompt(szene, { kuss: false })) }),
       }).then(r => r.json());
       if (!start?.videoId) {
+        /**
+         * ES RENDERT NICHTS — ALSO DARF DIE GALERIE DAS AUCH NICHT BEHAUPTEN (Owner
+         * 10.08.2026: „jetzt habe eine generierung ausgelöst das gar keine generierung ist.
+         * Er rändert fake").
+         *
+         * Oben stempelt der Browser `renderStart` VOR dem Startaufruf — richtig so, denn die
+         * HeyGen-Kennung kommt erst ein bis zwei Minuten später, und bis dahin wäre der
+         * Galerie-Streifen blind. Nur wurde der Stempel nie zurückgenommen, wenn der Aufruf
+         * dann OHNE Kennung zurückkam (kein Guthaben, Absage des Anbieters, Netzfehler): Der
+         * Auftrag stand eine volle Stunde als „Dein Video entsteht gerade" in der Galerie,
+         * während in Wahrheit nichts lief. Ein Fortschrittszeichen, das lügt, ist schlimmer
+         * als keines — der Kunde wartet auf etwas, das nie kommt.
+         *
+         * Der ECHTE Start stempelt ohnehin selbst (`videoStartAt` in `/api/geburtstag-video`,
+         * Zeile 524) — hier geht also nur der Vorschuss zurück, den es nicht gab. Der Grund
+         * reist mit, damit im Auftrag steht, WARUM es nicht losging.
+         */
+        startStempelZurueck(String(start?.error ?? ""));
         // Kontingent aufgebraucht: eigener Satz in seiner Sprache — und ein Weg weiter,
         // statt einer Sackgasse.
         if (start?.extraNeeded) {
@@ -2679,6 +2787,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * schliesst er das Fenster, bringt `/api/kiss-deliver` DENSELBEN Auftrag zu Ende und
        * schickt das Video per Mail — statt einen zweiten zu bezahlen.
        */
+      /* AB HIER LÄUFT ES WIRKLICH — der Anbieter hat eine Kennung vergeben. Der Startstempel
+         bleibt jetzt stehen, komme was wolle: Auch wenn dieser Browser gleich stirbt, rendert
+         der Auftrag weiter und der Wachhund liefert ihn. */
+      gestartet = true;
       /* Das Poster aus der Antwort — die Route hat das Avatar-Bild hochgeladen; es ist das
          erste Vollbild des Videos und gehört auf die Karte, bevor jemand tippt. */
       if (start.posterUrl) setVideoPoster(String(start.posterUrl));
@@ -2705,7 +2817,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         if (q?.status === "failed") { setStatus(q.error || T.videoFailed); setVideoBusy(false); setWahl(true); return; }
       }
       setStatus(T.statusTimeout); setVideoBusy(false); setWahl(true);
-    } catch { setStatus(T.statusNetwork); setVideoBusy(false); setWahl(true); }
+    } catch {
+      /* Gestorben, BEVOR eine Kennung da war → es rendert nichts, also weg mit dem Stempel.
+         Nach dem Start tut die Funktion hier nichts (`gestartet`). */
+      startStempelZurueck(T.statusNetwork);
+      setStatus(T.statusNetwork); setVideoBusy(false); setWahl(true);
+    }
   };
 
   /**
@@ -3257,7 +3374,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   ) : null;
 
   return (
-    <div className="mt-8">
+    /**
+     * `mt-4` STATT `mt-8` (Owner 10.08.2026: „ich will den CTA im Viewport shen").
+     *
+     * GEMESSEN auf 375×812: Kleinere Überschrift und knappere Kopf-Polsterung brachten den
+     * Kaufknopf von 810 auf 768 px — die Unterkante lag mit 816 px trotzdem noch vier Pixel
+     * ausserhalb, also weiter angeschnitten. Der Abstand zwischen Preis-Chip und Karte war
+     * das letzte Stück: 32 px, für das kein Grund sprach ausser Gewohnheit. Ein halb
+     * abgeschnittener Knopf sieht aus wie ein Fehler, nicht wie ein Angebot.
+     *
+     * Diese Karte trägt alle Themen (Kuss, Geburtstag, Hochzeit, Tanz) — eine Zeile, vier
+     * Landingpages.
+     */
+    <div className="mt-4">
       {/* ZURUECK IN DER SPRACHZEILE, EINE REIHE (Owner 30.07.2026: „Back Button in dem Balken
           mit den Sprachen stehen" / „in einer Reihe"). `mr-auto` schiebt ihn in der
           rechtsbuendigen Zeile nach links — Zurueck links, Sprache rechts, kein zweiter
@@ -3362,7 +3491,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         /* KEIN SCHRITTNAME MEHR ALS KARTENTITEL (Owner 05.08.2026: „ganz trocken ‚The
            Kiss'"). `karteTitel` adressiert die Karte an den Menschen, für den sie ist —
            genau wie es der Geburtstag seit dem 03.08. macht. */
-        titel={variant === "birthday"
+        titel={variant === "versprechen"
+          ? T.filmTitel
+          : variant === "birthday"
           ? geburtstagTitel(empfaenger)
           : T.karteTitel(empfaenger.trim())}
         /**
@@ -3561,7 +3692,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                    Auskunft ueber sein Geld und ein Teilen-Knopf um dieselbe Flaeche streiten,
                    gewinnt die Auskunft. Den Platz bestimmt jetzt die Karte (Skill `card`). */
                 teilen={karteRendert ? undefined : (
-                  <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : "kiss"}?utm_source=share`}
+                  <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : variant === "versprechen" ? "versprechen" : "kiss"}?utm_source=share`}
                     text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
@@ -3601,8 +3732,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {renderSchicht}
             </div>
           ) : (
-            <div className="grid h-[260px] w-full place-items-center px-6 text-center">
-              <span className="font-serif text-[15px] font-bold">{T.pickHint}</span>
+            /* OHNE BEISPIELVIDEO BRAUCHT DIE KARTE TROTZDEM EINEN WEG HINEIN (10.08.2026,
+               beim Bau des Versprechens): Der goldene Knopf hängt sonst an `beispiele.length`
+               — eine Landingpage ohne Beispiel hätte gar keinen Einstieg, und der Besucher
+               steht vor einer Karte, die nichts tut. */
+            <div className="px-6 pb-4">
+            <div className="grid h-[220px] w-full place-items-center text-center">
+              {/* OHNE BEISPIELVIDEO SAGT DIE LEERE KARTE, WAS HIER PASSIERT — und beim
+                  Aufnahme-Thema ist das NICHT „lade die Frau hoch, die du küssen willst"
+                  (10.08.2026, beim Bau des Versprechens sichtbar geworden: Der Satz kommt
+                  aus der Grundtabelle des Kusses und erbt sich stillschweigend weiter, wenn
+                  ein Thema noch kein Beispiel hat). Wer sich selbst aufnimmt, liest hier den
+                  Aufnahme-Hinweis. */}
+              <span className="font-serif text-[15px] font-bold">
+                {selbstVideo ? SW.aufTitel : T.pickHint}
+              </span>
+            </div>
+            <button type="button" onClick={schritteOeffnen}
+              className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.2)] active:scale-95 transition">
+              {gesperrt ? T.blockedOnce : kartenAufruf}
+            </button>
             </div>
           )
         }
@@ -3654,7 +3803,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               <p className="mt-1.5 text-center text-[11px] font-bold leading-snug text-white/70">
                 {T.privat}
               </p>
-              <p className="mt-1 text-center text-[11px] font-bold text-white/80">{T.secure}</p>
+              {/* Derselbe Satz wie bisher — jetzt mit den Kartenzeichen daneben (Owner
+                  10.08.2026). Zwei Stellen, EIN Baustein: Was am Kaufknopf steht, steht auch
+                  im Aufladefenster, sonst sind es zwei Versprechen statt eines. */}
+              <Zahlungssiegel text={T.secure} className="mt-1.5" />
             </>
           )}
         </div>
@@ -3994,7 +4146,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             className="lb-eingabe mt-1 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/35 focus:border-[#f6cf51]" />
           {/* Die Stimmen-Wahl direkt unterm Namen: Der Name ist das, was GESPROCHEN wird —
               die Stimme gehört daneben, nicht in einen eigenen Schritt. */}
-          {variant === "birthday" && (() => {
+          {/* DER AUFNAHME-KASTEN GEHÖRT JEDEM AUFNAHME-THEMA (10.08.2026): Stand hier
+              weiter „birthday", öffnete das Versprechen einen Trichter ohne Kamera — der
+              Knopf sagte „Erst aufnehmen", und aufnehmen konnte man nirgends. */}
+          {selbstVideo && (() => {
             /* Der Satz, den die Kette spricht — WÖRTLICH derselbe wie in der Route, damit
                das Vorgelesene und das Erzeugte nie auseinanderlaufen. */
             /* DER VORLESE-SATZ IST WEG (Owner 09.08.2026): Er widersprach dem Versprechen
@@ -4011,14 +4166,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   * wäre eine Reihe mit einer Kachel keine Wahl, sondern ein Hinweis, dass
                   * man keine hat.
                   */}
-                {GEBURTSTAG_LOOKS.length > 1 && (
+                {LOOKS.length > 1 && (
                   <div className="mb-3">
                     <p className="mb-1.5 text-center text-[11px] font-bold text-white/55">{SW.look}</p>
                     {/* Als SLIDES (Owner 08.08.2026: „als Slide die Bilder presentieren") —
                         man sieht, WAS man wählt, nicht eine Briefmarke davon. Kein
                         `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
                         links an, sobald die Slides breiter sind als der Schirm. */}
-                    <BildWahl gross wert={look} waehle={setLook} bilder={GEBURTSTAG_LOOKS} />
+                    <BildWahl gross wert={look} waehle={setLook} bilder={LOOKS} />
                   </div>
                 )}
                 {/**
@@ -4070,7 +4225,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                      * (der in der Karte darunter liegt jetzt verdeckt und entfällt).
                      * z-[98]: über den Dialogen (z-[96]), unter nichts.
                      */
-                    <div className="fixed inset-0 z-[200] bg-black">
+                    /**
+                     * „ICH WILL DEN BUTTON START NOW IM SCREEN SEHEN" (Owner 10.08.2026).
+                     *
+                     * Er stand da — nur unterhalb dessen, was das Handy zeigt. `inset-0` misst
+                     * gegen den LAYOUT-Bildschirm; die Adress- und Werkzeugleiste des Browsers
+                     * liegt darüber und verdeckt die unteren 60 bis 100 Pixel. Genau dort sass
+                     * der goldene Knopf. Auf dem Rechner sieht man den Fehler nie, auf jedem
+                     * iPhone sofort.
+                     *
+                     * `100dvh` ist das Mass, das die Leisten MITZÄHLT und beim Ein- und
+                     * Ausfahren mitwandert (`100vh` tut das nicht — das ist der alte Fehler,
+                     * den jede Handy-Seite einmal macht). Dazu die Sicherheitszone unten für
+                     * die Wischleiste des iPhones. Beides zusammen: Der Knopf steht immer im
+                     * Bild, auf jedem Gerät.
+                     */
+                    <div className="fixed inset-0 z-[200] bg-black" style={{ height: "100dvh" }}>
                       {/**
                         * DIE BÜHNE IST HOCHKANT — AUCH AUF DEM RECHNER (Owner 09.08.2026,
                         * mit Bild eines Breitbild-Schirms: ein einzelnes Auge füllte das
@@ -4125,7 +4295,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         * zusammengehören, standen am weitesten auseinander. Jetzt bilden sie
                         * einen Block: erst der Knopf, direkt darunter, was zu tun ist.
                         */}
-                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-7">
+                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6"
+                        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.75rem)" }}>
                         {/**
                           * ER DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit
                           * button starten. Ich muss erst mal meinen Kopf platieren und mich
@@ -4428,8 +4599,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             /* Liegt sein Geld dort, gibt es kein „Später" — es wäre die Aufforderung,
                zweimal zu zahlen. */
             spaeter={guthabenGesperrt ? undefined : KT.anmeldeSpaeter}
-            vorlageBild={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).bild : undefined}
-            vorlageName={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).name : undefined}
+            vorlageBild={selbstVideo ? (LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild : undefined}
+            vorlageName={selbstVideo ? (LOOKS.find(l => l.id === look) ?? LOOKS[0]).name : undefined}
             aufAnmelden={zurAnmeldung}
             aufSpaeter={() => {
               /* „Später" heisst weitermachen, nicht abbrechen — sein Auftrag läuft sofort
@@ -4458,7 +4629,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               */
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={selbstVideo
-              ? ((GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).bild)
+              ? ((LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild)
               : (neuerLook || V.garmentBild)}
               alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
           )}
@@ -4876,8 +5047,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * der Kopfzeile, zwei je Reihe, statt fünf Gold-Knöpfe übereinander, die alle mit
          * dem einen echten Kaufknopf der Seite konkurrierten.
          */
-        <Dialog art="dunkel" zu={() => setAufladeWahl(false)}>
-            <p className="px-7 text-[16px] font-black leading-snug text-white">{T.aufladeWahlTitel}</p>
+        /**
+         * UND ZWAR HELL (Owner 10.08.2026: „mach das Dialog in light. Ich denke wenn es um
+         * zahlung geht, vertrauen menschen mehr den hellen farben").
+         *
+         * Er hat recht, und es ist die Stelle, an der es am meisten zählt: Dies ist das
+         * einzige Fenster, hinter dem Geld fliesst. Die weisse Karte ist die Sprache, die
+         * jeder von seiner Bank und von jeder Kasse kennt — die dunkle Fassung war die des
+         * Trichters, nicht die einer Zahlung. `art="hell"` ist die Bibliotheks-Fassung
+         * (weisse Karte, Kreuz eingebaut); alle Kinder tragen deshalb Tinte statt Weiss.
+         */
+        <Dialog art="hell" zu={() => setAufladeWahl(false)}>
+            <p className="px-7 text-[16px] font-black leading-snug text-[#1a160f]">{T.aufladeWahlTitel}</p>
             {/**
               * DIE ADRESSE, BEVOR GELD FLIESST (Owner 03.08.2026: „sonst zahlt er mit der
               * falschen Email und ist nie wieder drin falls er sich vertippt"). Die
@@ -4886,27 +5067,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * zweimal tippen (Art. 8 Verbraucherrechte-RL): eine lesbare Zeile mit
               * „Ändern" erfüllt das, ohne einen Schritt zu kosten.
               */}
-            <div className="mt-3 rounded-xl border border-white/20 bg-white/[0.05] px-3 py-2.5">
-              <p className="text-[10.5px] font-bold leading-snug text-white/60">{T.zahlungAdresse}</p>
+            <div className="mt-3 rounded-xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] px-3 py-2.5">
+              <p className="text-[10.5px] font-bold leading-snug text-[#1a160f]/60">{T.zahlungAdresse}</p>
               {adresseAendern ? (
                 <>
+                  {/* KEIN `lb-eingabe` HIER: Diese Klasse ist die Umschaltung für die HELLE
+                      Fassung der ganzen Seite (`.lb-fb`) — in einem Feld, das ohnehin schon
+                      auf Weiss steht, würde sie ein zweites Mal umfärben. Die Farben stehen
+                      direkt, weil dieser Dialog IMMER hell ist, egal wie die Seite steht. */}
                   <input value={mail} autoFocus
                     onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}
                     type="email" inputMode="email" autoComplete="email"
                     onKeyDown={e => { if (e.key === "Enter") void adresseSpeichern(); }}
-                    className="lb-eingabe mt-1.5 h-10 w-full rounded-lg border border-white/30 bg-white/[0.08] px-2 text-center text-[13px] font-bold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]" />
+                    style={{ color: "#1a160f", WebkitTextFillColor: "#1a160f", caretColor: "#1a160f" }}
+                    className="mt-1.5 h-10 w-full rounded-lg border border-[#1a160f]/25 bg-white px-2 text-center text-[13px] font-bold outline-none placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/60" />
                   {mailFehler && (
                     <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-1 text-[11.5px] font-black leading-snug">{mailFehler}</p>
                   )}
                   <span className="mt-1 flex flex-col items-center gap-1.5">
                     {vorschlag && (
                       <button type="button" onClick={() => { setMail(vorschlag); setMailFehler(""); }}
-                        className="text-[11.5px] font-black text-[#f6cf51] underline">
+                        className="text-[11.5px] font-black text-[#1a160f] underline">
                         {T.mailVorschlag(vorschlag)}
                       </button>
                     )}
                     <button type="button" onClick={() => void adresseSpeichern()} disabled={mailBusy}
-                      className="rounded-full border border-white/25 px-3 py-1 text-[11.5px] font-black text-white/85 transition active:scale-95 disabled:opacity-60">
+                      className="rounded-full border border-[#1a160f]/25 px-3 py-1 text-[11.5px] font-black text-[#1a160f]/85 transition active:scale-95 disabled:opacity-60">
                       {mailBusy ? "…" : T.zahlungAdresseSpeichern}
                     </button>
                   </span>
@@ -4914,16 +5100,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               ) : (
                 <>
                   {/* `break-all`: Lange Adressen dürfen den Dialog nicht aufreissen. */}
-                  <p className="mt-0.5 break-all text-[13px] font-black leading-snug text-white">{mail}</p>
+                  <p className="mt-0.5 break-all text-[13px] font-black leading-snug text-[#1a160f]">{mail}</p>
                   <span className="mt-1 flex flex-col items-center gap-1">
                     {vorschlag && (
                       <button type="button" onClick={() => { setMail(vorschlag); setAdresseAendern(true); }}
-                        className="text-[11.5px] font-black text-[#f6cf51] underline">
+                        className="text-[11.5px] font-black text-[#1a160f] underline">
                         {T.mailVorschlag(vorschlag)}
                       </button>
                     )}
                     <button type="button" onClick={() => setAdresseAendern(true)}
-                      className="text-[11.5px] font-black text-white/60 underline">
+                      className="text-[11.5px] font-black text-[#1a160f]/60 underline">
                       {T.zahlungAdresseAendern}
                     </button>
                   </span>
@@ -4952,9 +5138,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * danach merkt, dass sein Geld woanders lag, hat zweimal bezahlt.
               */}
             {!angemeldet && (
-              <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.07] p-3 text-center">
-                <p className="text-[13px] font-black leading-snug text-white">{KT.schonKonto}</p>
-                <p className="mt-1 text-[11.5px] font-semibold leading-snug text-white/65">{KT.schonKontoGrund}</p>
+              /* Auf Weiss trägt der Kasten keinen Gold-Hauch mehr — die Hausregel für helle
+                 Flächen ist schwarz·weiss·grau. Der EINE goldene Knopf darin bleibt: Er ist
+                 die Handlung, nicht die Fläche. */
+              <div className="mt-4 rounded-2xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] p-3 text-center">
+                <p className="text-[13px] font-black leading-snug text-[#1a160f]">{KT.schonKonto}</p>
+                <p className="mt-1 text-[11.5px] font-semibold leading-snug text-[#1a160f]/65">{KT.schonKontoGrund}</p>
                 <div className="mt-2.5">
                   <Knopf art="gold" onClick={zurAnmeldung}>{KT.anmeldeKnopf}</Knopf>
                 </div>
@@ -4982,7 +5171,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 return (
                   /* Solange die Adresse offen im Feld steht, ist sie nicht bestätigt —
                      dann darf die Kasse nicht aufgehen (sie nähme die ALTE Adresse mit). */
-                  <Knopf key={stufe} art="chip" disabled={payBusy || adresseAendern}
+                  <Knopf key={stufe} art="chip" hell disabled={payBusy || adresseAendern}
                     onClick={() => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}>
                     {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
                   </Knopf>
@@ -5005,7 +5194,33 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * zweiter Hauptknopf: Wer neu ist, soll aufladen; wer wiederkommt, findet
               * seinen Weg zurück.
               */}
-            <p className="mt-3 text-center text-[10px] font-medium leading-snug text-white/50">{T.aufladenHinweis}</p>
+            {/**
+              * DAS SIEGEL UNTER DIE BETRÄGE (Owner 10.08.2026: „man muss igerndwie sichere
+              * Zahlung mit stripe (logo) Masterkard logo…einblenden").
+              *
+              * Zuerst die Wahl, dann die Beruhigung — über den Beträgen wäre es eine
+              * Erklärung, bevor jemand gefragt hat. Der Satz ist der, der schon seit jeher
+              * am Kaufknopf steht (`T.secure`, sieben Sprachen); der Baustein kommt aus der
+              * Bibliothek (`Zahlungssiegel`), damit dasselbe Siegel überall gleich aussieht.
+              */}
+            {/**
+              * DIE GELD-ZURÜCK-GARANTIE (Owner 10.08.2026: „Geldzrück Garantie müssen wir
+              * auch einblenden im Zahlungsdialog Creditauswahl" · „Geld Zurückgarantie habe
+              * ich gesagt").
+              *
+              * HIER STAND ZUERST `T.erstatten` — „Nicht zufrieden? Geld zurück". Der Owner
+              * hat es zweimal zurückgewiesen, und er hat recht: „Leute sind immer nicht
+              * zufrieden." Ein Versprechen auf Geschmack zahlt jeden Lauf zurück, den
+              * jemand bereut. Die Garantie deckt, was WIR schulden — keine Lieferung, oder
+              * eine grosse Abweichung, die unsere Prüfung bestätigt.
+              *
+              * DAS WORT FÜHRT IN DIE AGB (Owner: „du machst jetzt einen ling zu ageb drauf
+              * und beschreisbt in AGB was das ist"). Dort steht der Abschnitt
+              * `#geld-zurueck-garantie` mit beiden Seiten: was sie deckt und was nicht.
+              */}
+            <Zahlungssiegel hell text={T.secure} garantie={T.geldZurueckGarantie}
+              garantieHref="/terms#geld-zurueck-garantie" className="mt-4" />
+            <p className="mt-2.5 text-center text-[10px] font-medium leading-snug text-[#1a160f]/50">{T.aufladenHinweis}</p>
         </Dialog>
       )}
 

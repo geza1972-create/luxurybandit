@@ -1,4 +1,5 @@
 import { GEBURTSTAG_SET } from "@/lib/geburtstag";
+import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 
 /**
  * DIE LOOKS DES GEBURTSTAGS — was der Käufer aussucht.
@@ -177,11 +178,22 @@ export const GEBURTSTAG_LOOKS: GeburtstagLook[] = [
   },
 ];
 
-/** Der Look zur Kennung — unbekannt oder leer ergibt IMMER den ersten (den abgenommenen),
- *  damit ein alter Auftrag oder ein Tippfehler nie ohne Prompt dasteht. */
+/**
+ * Der Look zur Kennung — unbekannt oder leer ergibt IMMER den ersten (den abgenommenen),
+ * damit ein alter Auftrag oder ein Tippfehler nie ohne Prompt dasteht.
+ *
+ * SIE SUCHT AUCH IM VERSPRECHEN (10.08.2026, als daraus ein eigenes Thema wurde): Die
+ * Video-Route kennt nur DIESE eine Nachschlage-Funktion. Suchte sie weiter allein in der
+ * Geburtstagsliste, bekäme ein Versprechen-Auftrag stillschweigend den ersten
+ * Geburtstags-Look — Torte und Kerzen statt Villa und Wagen, und niemand sähe im Code, wo
+ * es passiert. Ein zweiter Weg durch die Route wäre die andere Möglichkeit gewesen; eine
+ * Kette, zwei Listen ist die kleinere.
+ */
 export function geburtstagLook(id: unknown): GeburtstagLook {
   const gesucht = String(id ?? "").trim();
-  return GEBURTSTAG_LOOKS.find(l => l.id === gesucht) ?? GEBURTSTAG_LOOKS[0];
+  return GEBURTSTAG_LOOKS.find(l => l.id === gesucht)
+    ?? VERSPRECHEN_LOOKS.find(l => l.id === gesucht)
+    ?? GEBURTSTAG_LOOKS[0];
 }
 
 /**

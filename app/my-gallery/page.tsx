@@ -13,6 +13,7 @@ import { musikFuer } from "@/lib/musik";
 import { geburtstagTitel } from "@/lib/geburtstag";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { geraetGiltAlsAusweis } from "@/lib/abmelden-spuren";
 
 // „My Gallery" als eigene Seite: ALLE generierten Try-on-Videos (dieselbe Quelle wie
 // im Funnel, /api/try-this-look?adminPosts=1) — von überall über das Menü erreichbar.
@@ -269,11 +270,37 @@ export default function MyGalleryPage() {
     try { window.dispatchEvent(new Event("lb-galerie-gesehen")); } catch { /**/ }
   }, []);
 
+  /**
+   * MELDET ER SICH AB, WÄHREND ER HIER STEHT, IST DIE SEITE SOFORT LEER (Owner 10.08.2026:
+   * „wenn er sich abmeldet dann ist es weg").
+   *
+   * Das Löschen im Gerät allein reicht nicht: Was schon geladen ist, steht im Arbeitsspeicher
+   * dieser Seite und bliebe sichtbar, bis jemand neu lädt — und genau in dieser Minute reicht
+   * er das Handy weiter. Sein Gesicht (der Avatar) geht als Erstes.
+   */
+  useEffect(() => {
+    const leeren = () => { setItems([]); setAvatar(null); };
+    window.addEventListener("lb-abgemeldet", leeren);
+    return () => window.removeEventListener("lb-abgemeldet", leeren);
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     // EIGENE VIDEOS (Chat/Try-on ohne Konto): haengen am Geraet — und zusaetzlich an der
     // E-Mail, sobald er angemeldet ist (Owner 28.07.2026). Laeuft unabhaengig vom Admin-Weg.
-    const device = (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })();
+    /**
+     * NACH DEM ABMELDEN IST DIE GERÄTEKENNUNG KEIN AUSWEIS MEHR (Owner 10.08.2026: „Kann sein
+     * dass jemand anders sein gerät in die Hand nimmt und dann sieht er seine gallerie").
+     *
+     * Genau hier lag das Leck: Die Galerie fragte IMMER mit `lb_visitor`, und die Kennung
+     * bleibt im Gerät (sie ist der Riegel vor der Geldbörse, deshalb wird sie beim Abmelden
+     * nicht gelöscht). Wer sich abmeldete, verlor seinen Ausweis — seine Werke lagen trotzdem
+     * weiter offen, für jeden, der das Handy danach in der Hand hatte. Ab jetzt gilt sie nur,
+     * solange niemand sich abgemeldet hat; danach zählt allein die Anmeldung.
+     */
+    const device = geraetGiltAlsAusweis()
+      ? (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })()
+      : "";
     /**
      * DIESELBE ADRESSE WIE ALLE ANDEREN (Owner 03.08.2026: „und in meiner Galerie ist nichts
      * gespeichert" — angemeldet, Video erzeugt, Galerie leer).
@@ -297,7 +324,13 @@ export default function MyGalleryPage() {
      */
     let takt: ReturnType<typeof setTimeout> | null = null;
     const nachladen = () => {
-      fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" })
+      /* DIE ANMELDUNG REIST MIT (Owner 10.08.2026: „Der User meldet sich doch an. Basta").
+         Damit findet die Route sein Konto — auch auf einem Gerät, das für diese Adresse noch
+         nie bezahlt hat. Genau daran hing der Avatar: Ohne Ausweis gab die Route ihn nicht
+         heraus (Geräte-Riegel), und die Zeile in der Galerie blieb leer. */
+      const sitzung = (() => { try { return getStoredAuthSession()?.access_token ?? ""; } catch { return ""; } })();
+      fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`,
+        { cache: "no-store", ...(sitzung ? { headers: { Authorization: `Bearer ${sitzung}` } } : {}) })
         .then(r => r.json())
         .then(d => {
           const own: Item[] = (Array.isArray(d?.videos) ? d.videos : []).map((v: { id: string; videoUrl: string; posterUrl?: string; name?: string }) => ({

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readKissLog, writeKissLog, guthabenAufladen } from "@/lib/try-this-look-store";
-import { POLEDANCE_CENTS, ONCE_CENTS } from "@/lib/pricing";
+import { geschenkPreisCents } from "@/lib/pricing";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { notifyAdminWhatsApp } from "@/lib/notify-admin";
 
@@ -78,7 +78,14 @@ export async function POST(request: Request) {
   }
 
   const thema = String(eintrag.theme || "kiss");
-  const cents = (thema === "poledance" || thema === "birthday") ? POLEDANCE_CENTS : ONCE_CENTS;
+  /**
+   * DER BETRAG KOMMT AUS DERSELBEN QUELLE WIE DIE KASSE (10.08.2026, als die Geschenke auf
+   * 4,99 € fielen). Hier stand eine eigene Liste: Tanz und Geburtstag bekamen POLEDANCE_CENTS,
+   * alles andere ONCE_CENTS. Nach dem Preisschnitt hätte ein Kuss-Käufer damit 15 € zurück
+   * bekommen für ein Video, das 4,99 € gekostet hat — dreimal so viel, wie er bezahlt hat.
+   * Zwei Stellen mit demselben Wissen über denselben Preis; `geschenkPreisCents` ist die eine.
+   */
+  const cents = geschenkPreisCents(thema);
 
   type Antrag = { erstattungAngefragt?: string; erstattungGrund?: string; erstattetAm?: string };
   const e = eintrag as Antrag;

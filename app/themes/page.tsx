@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 import { POLEDANCE_VIDEO, POLEDANCE_POSTER } from "@/lib/poledance";
-import { GEBURTSTAG_SET, GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
+import { GEBURTSTAG_VIDEO_TRAUM } from "@/lib/geburtstag";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
 import TopNav from "@/components/TopNav";
@@ -13,8 +13,10 @@ import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 /* Aus `lib`, nicht aus dem Baustein: PlanSlide ist ein Client-Modul, und von dort käme
    hier nur eine Client-Referenz an — die Kachel blieb dadurch ohne Bild. */
-import { PLAN_BILDER } from "@/lib/plan-bilder";
 import { resolveLang } from "@/lib/lang-server";
+/* DAS ORIGINAL DER PORTAL-BESCHREIBUNG liegt in „Über uns" (Owner 10.08.2026) — von dort
+   holen es Startseite und AGB, damit es nur EINE Fassung gibt. */
+import { aboutText } from "@/lib/about-i18n";
 import { trObject } from "@/lib/tr-object";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig, readThemeConfig } from "@/lib/try-this-look-store";
 import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
@@ -64,64 +66,64 @@ type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; 
 // Startseite = mehrsprachig nach BROWSERSPRACHE (kein Umschalter nötig, kein Deutsch für
 // alle). Gleiche Sprachliste wie das Wetter-Thema, damit beides zusammenpasst.
 type PageCopy = {
-  kicker: string; h1a: string; h1b: string; intro: string;
+  kicker: string; h1a: string; h1b: string;
   models: string; wardrobe: string;
-  whatH: string; whatP: string; uniqueH: string; uniqueP: string; canH: string; costH: string; costP: string; noteH: string; noteP: string;
+  whatH: string; uniqueH: string; uniqueP: string; canH: string; costH: string; costP: string; noteH: string; noteP: string;
   items: [string, string][];
 };
 const C: Record<string, PageCopy> = {
-  ro: { kicker: "LuxuryBandit", h1a: "Alege un cadou.", h1b: "Trimite-l azi.", intro: "Poza ta și a lui — un sărut, o urare de ziua lui, o surpriză, o invitație de nuntă. Gata în câteva minute, trimis unei singure persoane. Nimeni altcineva nu îl vede.",
+  ro: { kicker: "LuxuryBandit", h1a: "Alege un cadou.", h1b: "Trimite-l azi.",
     models: "Vezi modelele noastre și vorbește cu ele →", wardrobe: "Garderobă",
-    whatH: "Ce este LuxuryBandit?", whatP: "LuxuryBandit este o piață AI pentru videoclipuri în care apari tu însuți. Încarci o poză, alegi o temă — sărut, invitație de nuntă, vacanță, zi de naștere — și primești un videoclip cu tine în el. Direct în browser, fără aplicație. Modelele AI sunt distribuția: le alegi așa cum alegi pe cineva pentru un rol. Fiecare chat este purtat de o persona AI, iar noi o spunem pe fiecare ecran.",
+    whatH: "Ce este LuxuryBandit?",
     uniqueH: "De ce arată mai bine aici", uniqueP: "Folosim modelele video care păstrează chipul și mișcarea. Cele ieftine le pierd pe amândouă — și atunci nu mai e chipul tău. Exact asta contează când ești tu în imagine: dacă fața nu e bună, videoclipul nu valorează nimic.",
     canH: "Ce poți face?", costH: "Cât costă?", costP: "La sărut și la invitația de nuntă nu există imagine gratuită: se plătește din creditul tău — un videoclip {once}, cea mai mică încărcare {topup}, iar restul îți rămâne. La celelalte teme prima imagine e gratuită. Pentru cine face des, există abonamentul: {price} pe lună cu {videos} videoclipuri în toate temele, fiecare în plus {extra}. Anulezi oricând.",
     noteH: "Bine de știut", noteP: "LuxuryBandit este doar pentru adulți — confirmi că ai peste 18 ani înainte de chat. Persona AI flirtează și te întreabă cum a fost ziua ta, dar nu pretinde niciodată sentimente și nu se dă drept persoană reală. Pentru videoclipuri cu fotografii proprii ești întrebat explicit înainte și confirmi că ai dreptul să folosești fotografia — răspunderea este a ta, iar rezultatul rămâne privat.",
     items: [["Trimite un sărut persoanei pe care o iubești","poza ta și a ei — un videoclip cu voi doi, doar pentru ea."],["Invitația voastră de nuntă","voi doi în videoclip, plus o pagină de invitație cu confirmări, noutăți și grup."],["Chat cu Bella","vorbești cu ea când vrei — și o îmbraci în ținute noi."],["Vacanță cu fata visurilor tale","tu alegi momentul: plajă, cafea, dans."],["Videoclip de zi de naștere","scrii un nume — ea îl spune cu voce tare."],["Surprinde-l","o poză cu tine — și dansezi la bară într-un videoclip doar pentru el."]] },
-  de: { kicker: "LuxuryBandit", h1a: "Wähl ein Geschenk.", h1b: "Verschick es heute.", intro: "Dein Foto und ihres — ein Kuss, ein Geburtstagsgruß, eine Überraschung, eine Hochzeitseinladung. In Minuten gemacht, an einen Menschen geschickt. Niemand sonst sieht es.",
+  de: { kicker: "LuxuryBandit", h1a: "Wähl ein Geschenk.", h1b: "Verschick es heute.",
     models: "Unsere Models ansehen & mit ihnen chatten →", wardrobe: "Garderobe",
-    whatH: "Was ist LuxuryBandit?", whatP: "LuxuryBandit ist ein KI-Marktplatz für Videos, in denen du selbst vorkommst. Du lädst ein Foto hoch, wählst ein Thema — Kuss, Hochzeitseinladung, Urlaub, Geburtstag — und bekommst ein Video mit dir darin. Direkt im Browser, ohne App. Die KI-Models sind die Besetzung: Du wählst sie aus, wie man jemanden für eine Rolle wählt. Jeden Chat führt eine KI-Persona, und wir schreiben das auf jeden Bildschirm.",
+    whatH: "Was ist LuxuryBandit?",
     uniqueH: "Warum es hier besser aussieht", uniqueP: "Wir setzen die Video-Modelle ein, die Gesicht und Bewegung halten. Billigere verlieren beides — und dann ist es nicht mehr dein Gesicht. Genau darauf kommt es an, wenn du selbst im Bild bist: Stimmt das Gesicht nicht, ist das ganze Video wertlos.",
     canH: "Was kannst du damit machen?", costH: "Was kostet es?", costP: "Beim Kuss und bei der Hochzeitseinladung gibt es kein Gratis-Bild: Bezahlt wird aus deinem Guthaben — ein Video {once}, die kleinste Aufladung {topup}, der Rest bleibt dir. In den anderen Themen ist das erste Bild gratis. Wer regelmäßig etwas macht, nimmt das Abo: {price} im Monat mit {videos} Videos über alle Themen zusammen, jedes weitere {extra}. Monatlich kündbar.",
     noteH: "Gut zu wissen", noteP: "LuxuryBandit ist nur für Erwachsene — du bestätigst vor dem Chat, dass du 18 oder älter bist. Die KI-Persona flirtet und fragt nach deinem Tag, behauptet aber nie Gefühle und gibt sich nie als echte Person aus. Für Videos mit eigenen Fotos wirst du vorher ausdrücklich gefragt und bestätigst, dass du das Foto verwenden darfst — die Verantwortung dafür trägst du, und das Ergebnis bleibt privat.",
     items: [["Schick einen Kuss an den Menschen, den du liebst","dein Foto und ihres — ein Video mit euch beiden, nur für sie."],["Eure Hochzeitseinladung","ihr beide im Video, dazu eine eigene Einladungsseite mit Zusagen, Neuigkeiten und Gästegruppe."],["Chat mit Bella","rede mit ihr, wann du willst — und zieh ihr neue Looks an."],["Urlaubs-Einladung","lad jemanden ein mitzukommen — ein Video von euch beiden, schon dort."],["Geburtstagsvideo","Namen eintippen — sie gratuliert laut, mit Namen."],["Überrasch ihn","ein Foto von dir — und du tanzt an der Stange, in einem Video nur für ihn."]] },
-  en: { kicker: "LuxuryBandit", h1a: "Pick a gift.", h1b: "Send it today.", intro: "Your photo and theirs — a kiss, a birthday, a surprise, a wedding invitation. Made in minutes, sent to one person. Nobody else sees it.",
+  en: { kicker: "LuxuryBandit", h1a: "Pick a gift.", h1b: "Send it today.",
     models: "See our models & chat with them →", wardrobe: "Wardrobe",
-    whatH: "What is LuxuryBandit?", whatP: "LuxuryBandit is an AI marketplace for videos with you in them. You upload a photo, pick a topic — kiss, wedding invitation, holiday, birthday — and get a video with yourself in it. In your browser, no app. The AI models are the cast: you choose them the way you choose someone for a role. Every chat is answered by an AI persona, and we say so on every screen.",
+    whatH: "What is LuxuryBandit?",
     uniqueH: "Why it looks better here", uniqueP: "We run the video models that hold the face and the motion. Cheaper ones lose both — and then it is not your face any more. That is the whole point when you are in the picture: if the face is wrong, the video is worthless.",
     canH: "What can you do with it?", costH: "How much does it cost?", costP: "The kiss and the wedding invitation have no free picture: you pay from your account balance — one video is {once}, the smallest top-up is {topup}, and whatever is left stays yours. In the other topics the first picture is free. If you make things regularly, take the subscription: {price} a month with {videos} videos across all topics, every further one {extra}. Cancel any time.",
     noteH: "Good to know", noteP: "LuxuryBandit is for adults only — you confirm you are 18 or older before you can chat. The AI persona flirts and asks about your day, but never claims feelings and never pretends to be a real person. For videos made from your own photos you are asked up front and confirm that you may use that photo — the responsibility is yours, and the result stays private.",
     items: [["Send a kiss to the one you love","your photo and theirs — one video with the two of you, for them alone."],["Your wedding invitation","the two of you in the video, plus your own invitation page with RSVPs, news and a guest group."],["Chat with Bella","talk to her whenever you want — and dress her in new looks."],["Holiday invitation","ask someone to come away with you — a video of you both, already there."],["Birthday video","type a name — she says it out loud."],["Surprise him","one photo of you — and you dance on the pole, in a video for him alone."]] },
-  es: { kicker: "LuxuryBandit", h1a: "Elige un regalo.", h1b: "Envíalo hoy.", intro: "Tu foto y la suya — un beso, una felicitación de cumpleaños, una sorpresa, una invitación de boda. Listo en minutos, enviado a una sola persona. Nadie más lo ve.",
+  es: { kicker: "LuxuryBandit", h1a: "Elige un regalo.", h1b: "Envíalo hoy.",
     models: "Ver nuestras modelos y chatear con ellas →", wardrobe: "Armario",
-    whatH: "¿Qué es LuxuryBandit?", whatP: "LuxuryBandit es un marketplace de IA para vídeos en los que sales tú. Subes una foto, eliges un tema — beso, invitación de boda, vacaciones, cumpleaños — y recibes un vídeo contigo dentro. En el navegador, sin app. Los modelos de IA son el reparto: los eliges como se elige a alguien para un papel. Cada chat lo lleva una persona IA, y lo decimos en cada pantalla.",
+    whatH: "¿Qué es LuxuryBandit?",
     uniqueH: "Por qué aquí se ve mejor", uniqueP: "Usamos los modelos de vídeo que mantienen la cara y el movimiento. Los baratos pierden ambos — y entonces ya no es tu cara. Eso es lo que importa cuando sales tú: si la cara falla, el vídeo no vale nada.",
     canH: "¿Qué puedes hacer?", costH: "¿Cuánto cuesta?", costP: "En el beso y en la invitación de boda no hay imagen gratis: se paga con tu saldo — un vídeo {once}, la recarga mínima {topup}, y lo que sobra se queda para ti. En los demás temas la primera imagen es gratis. Si haces cosas a menudo, coge la suscripción: {price} al mes con {videos} vídeos en todos los temas, cada uno más {extra}. Cancela cuando quieras.",
     noteH: "Bueno saberlo", noteP: "LuxuryBandit es solo para adultos — confirmas que tienes 18 años o más antes de chatear. La persona de IA coquetea y pregunta por tu día, pero nunca dice tener sentimientos ni finge ser una persona real. Para los vídeos con fotos propias se te pregunta expresamente antes y confirmas que puedes usar esa foto — la responsabilidad es tuya y el resultado es privado.",
     items: [["Envía un beso a quien tú quieres","tu foto y la suya — un vídeo con los dos, solo para esa persona."],["Vuestra invitación de boda","los dos en el vídeo, más vuestra página de invitación con confirmaciones, novedades y grupo."],["Chatea con Bella","habla con ella cuando quieras — y vístela con looks nuevos."],["Vacaciones con la chica de tus sueños","tú eliges el momento: playa, café, baile."],["Vídeo de cumpleaños","escribe un nombre — ella lo dice en voz alta."],["Sorpréndelo","una foto tuya — y bailas en la barra, en un vídeo solo para él."]] },
-  fr: { kicker: "LuxuryBandit", h1a: "Choisis un cadeau.", h1b: "Envoie-le aujourd'hui.", intro: "Ta photo et la sienne — un baiser, un vœu d'anniversaire, une surprise, une invitation de mariage. Prêt en quelques minutes, envoyé à une seule personne. Personne d'autre ne le voit.",
+  fr: { kicker: "LuxuryBandit", h1a: "Choisis un cadeau.", h1b: "Envoie-le aujourd'hui.",
     models: "Voir nos modèles et discuter avec elles →", wardrobe: "Dressing",
-    whatH: "Qu'est-ce que LuxuryBandit ?", whatP: "LuxuryBandit est une place de marché IA pour des vidéos où vous apparaissez. Vous envoyez une photo, choisissez un thème — baiser, invitation de mariage, vacances, anniversaire — et recevez une vidéo avec vous dedans. Dans le navigateur, sans appli. Les modèles IA sont la distribution : vous les choisissez comme on choisit quelqu’un pour un rôle. Chaque chat est mené par une persona IA, et nous l’écrivons sur chaque écran.",
+    whatH: "Qu'est-ce que LuxuryBandit ?",
     uniqueH: "Pourquoi c’est plus beau ici", uniqueP: "Nous utilisons les modèles vidéo qui gardent le visage et le mouvement. Les moins chers perdent les deux — et alors ce n’est plus votre visage. C’est tout l’enjeu quand c’est vous à l’image : si le visage est raté, la vidéo ne vaut rien.",
     canH: "Que peux-tu faire ?", costH: "Combien ça coûte ?", costP: "Pour le baiser et l’invitation de mariage, il n’y a pas d’image gratuite : le paiement se fait sur ton crédit — une vidéo {once}, la recharge minimale {topup}, et le reste te reste. Dans les autres thèmes, la première image est gratuite. Si tu en fais régulièrement, prends l’abonnement : {price} par mois avec {videos} vidéos sur tous les thèmes, chaque vidéo en plus {extra}. Résiliable à tout moment.",
     noteH: "Bon à savoir", noteP: "LuxuryBandit est réservé aux adultes — tu confirmes avoir 18 ans ou plus avant de discuter. Le personnage IA flirte et demande comment s'est passée ta journée, mais ne prétend jamais avoir des sentiments ni être une vraie personne. Pour les vidéos réalisées avec tes propres photos, on te le demande explicitement avant et tu confirmes avoir le droit d'utiliser cette photo — la responsabilité est la tienne et le résultat reste privé.",
     items: [["Envoie un baiser à la personne que tu aimes","ta photo et la sienne — une vidéo avec vous deux, rien que pour elle."],["Votre invitation de mariage","vous deux dans la vidéo, plus votre page d'invitation avec réponses, nouvelles et groupe."],["Chatte avec Bella","parle-lui quand tu veux — et habille-la de nouveaux looks."],["Vacances avec la fille de tes rêves","tu choisis le moment : plage, café, danse."],["Vidéo d'anniversaire","tape un prénom — elle le dit à voix haute."],["Surprends-le","une photo de toi — et tu danses à la barre, dans une vidéo rien que pour lui."]] },
-  pt: { kicker: "LuxuryBandit", h1a: "Escolhe um presente.", h1b: "Envia-o hoje.", intro: "A tua foto e a dela — um beijo, uma mensagem de aniversário, uma surpresa, um convite de casamento. Pronto em minutos, enviado a uma só pessoa. Mais ninguém o vê.",
+  pt: { kicker: "LuxuryBandit", h1a: "Escolhe um presente.", h1b: "Envia-o hoje.",
     models: "Ver as nossas modelos e conversar com elas →", wardrobe: "Guarda-roupa",
-    whatH: "O que é o LuxuryBandit?", whatP: "LuxuryBandit é um marketplace de IA para vídeos em que apareces tu. Envias uma foto, escolhes um tema — beijo, convite de casamento, férias, aniversário — e recebes um vídeo contigo dentro. No browser, sem app. Os modelos de IA são o elenco: escolhe-los como se escolhe alguém para um papel. Cada chat é conduzido por uma persona de IA, e dizemo-lo em cada ecrã.",
+    whatH: "O que é o LuxuryBandit?",
     uniqueH: "Porque fica melhor aqui", uniqueP: "Usamos os modelos de vídeo que mantêm o rosto e o movimento. Os baratos perdem os dois — e então já não é a tua cara. É disso que se trata quando és tu na imagem: se o rosto falha, o vídeo não vale nada.",
     canH: "O que podes fazer?", costH: "Quanto custa?", costP: "No beijo e no convite de casamento não há imagem grátis: paga-se com o teu saldo — um vídeo {once}, o carregamento mínimo {topup}, e o que sobra fica para ti. Nos outros temas a primeira imagem é grátis. Se fizeres coisas com frequência, leva a subscrição: {price} por mês com {videos} vídeos em todos os temas, cada um a mais {extra}. Cancelas quando quiseres.",
     noteH: "Bom saber", noteP: "O LuxuryBandit é apenas para adultos — confirmas que tens 18 anos ou mais antes de conversar. A persona de IA flirta e pergunta pelo teu dia, mas nunca afirma ter sentimentos nem finge ser uma pessoa real. Para vídeos com fotos tuas és perguntado antes e confirmas que podes usar essa foto — a responsabilidade é tua e o resultado fica privado.",
     items: [["Envia um beijo a quem tu amas","a tua foto e a dela — um vídeo com os dois, só para essa pessoa."],["O vosso convite de casamento","os dois no vídeo, mais a vossa página de convite com confirmações, novidades e grupo."],["Conversa com a Bella","fala com ela quando quiseres — e veste-a com novos looks."],["Férias com a rapariga dos teus sonhos","escolhes o momento: praia, café, dança."],["Vídeo de aniversário","escreves um nome — ela di-lo em voz alta."],["Surpreende-o","uma foto tua — e danças no varão, num vídeo só para ele."]] },
-  pl: { kicker: "LuxuryBandit", h1a: "Wybierz prezent.", h1b: "Wyślij go dziś.", intro: "Twoje zdjęcie i jej — pocałunek, życzenia urodzinowe, niespodzianka, zaproszenie na ślub. Gotowe w kilka minut, wysłane do jednej osoby. Nikt inny tego nie widzi.",
+  pl: { kicker: "LuxuryBandit", h1a: "Wybierz prezent.", h1b: "Wyślij go dziś.",
     models: "Zobacz nasze modelki i porozmawiaj z nimi →", wardrobe: "Garderoba",
-    whatH: "Czym jest LuxuryBandit?", whatP: "LuxuryBandit to platforma influencerek z influencerkami AI. Wybierasz modelkę, rozmawiasz z nią i tworzysz filmy z nią w dowolnej stylizacji — w przeglądarce, bez aplikacji. Każdy czat prowadzi persona AI i mówimy o tym na każdym ekranie.",
+    whatH: "Czym jest LuxuryBandit?",
     uniqueH: "Jedyne takie na świecie", uniqueP: "Nie ma nic podobnego: w LuxuryBandit ta sama influencerka AI pisze do Ciebie z rana, nosi wybrane przez Ciebie stroje, rozmawia z Tobą i występuje w Twoich filmach. Świadomie korzystamy z najdroższych modeli wideo AI na rynku — tanie tracą twarz i ruch. Marketplace influencerek AI, a nie aplikacja z filtrami.",
     canH: "Co możesz robić?", costH: "Ile to kosztuje?", costP: "Czat jest darmowy. Abonament dotyczy zdjęć i filmów: {price} miesięcznie, w tym {videos} filmów we wszystkich tematach. Każdy kolejny film kosztuje {extra}. Bez abonamentu jeden film kosztuje {once}. Możesz zrezygnować w każdej chwili.",
     noteH: "Warto wiedzieć", noteP: "LuxuryBandit jest tylko dla dorosłych — przed czatem potwierdzasz, że masz 18 lat lub więcej. Persona AI flirtuje i pyta o Twój dzień, ale nigdy nie twierdzi, że ma uczucia, ani nie udaje prawdziwej osoby. W przypadku filmów z własnych zdjęć pytamy Cię wprost i potwierdzasz, że masz prawo użyć tego zdjęcia — odpowiedzialność jest Twoja, a wynik pozostaje prywatny.",
     items: [["Pogoda o poranku","każdego ranka pisze do Ciebie: Twoja pogoda, nowy look i czat."],["Przymierzanie stylizacji","wybierz look i modelkę — zobaczysz ją w nim na wideo, z każdej strony."],["Bielizna i luksusowe stylizacje","to samo, w jej najbardziej eleganckich i intymnych stylizacjach."],["Pocałuj modelkę","wyślij swoje zdjęcie i zobaczcie się oboje w pocałunku."],["Twój idol z Tobą","wybierz swojego idola i zobaczcie się razem na imprezie."],["Filmy urodzinowe","wpisz imię, a ona złoży życzenia na głos, po imieniu."],["Wakacje z Bellą","podróżuje dla Ciebie i codziennie przywozi filmy i historie."]] },
-  it: { kicker: "LuxuryBandit", h1a: "Scegli un regalo.", h1b: "Mandalo oggi.", intro: "La tua foto e la sua — un bacio, un augurio di compleanno, una sorpresa, un invito di nozze. Pronto in pochi minuti, mandato a una sola persona. Nessun altro lo vede.",
+  it: { kicker: "LuxuryBandit", h1a: "Scegli un regalo.", h1b: "Mandalo oggi.",
     models: "Guarda le nostre modelle e chatta con loro →", wardrobe: "Guardaroba",
-    whatH: "Che cos'è LuxuryBandit?", whatP: "LuxuryBandit è un marketplace AI per video in cui ci sei tu. Carichi una foto, scegli un tema — bacio, invito di nozze, vacanza, compleanno — e ricevi un video con te dentro. Nel browser, senza app. I modelli AI sono il cast: li scegli come si sceglie qualcuno per un ruolo. Ogni chat è tenuta da una persona AI, e lo scriviamo su ogni schermata.",
+    whatH: "Che cos'è LuxuryBandit?",
     uniqueH: "Perché qui viene meglio", uniqueP: "Usiamo i modelli video che tengono il volto e il movimento. Quelli economici perdono entrambi — e allora non è più il tuo volto. È tutto qui, quando in scena ci sei tu: se il volto non regge, il video non vale niente.",
     canH: "Cosa puoi fare?", costH: "Quanto costa?", costP: "Per il bacio e per l’invito di nozze non c’è un’immagine gratis: si paga con il tuo credito — un video {once}, la ricarica minima {topup}, e quel che avanza resta a te. Negli altri temi la prima immagine è gratis. Se fai cose spesso, prendi l’abbonamento: {price} al mese con {videos} video su tutti i temi, ogni altro {extra}. Disdici quando vuoi.",
     noteH: "Da sapere", noteP: "LuxuryBandit è solo per adulti — confermi di avere 18 anni o più prima di chattare. La persona IA flirta e ti chiede della tua giornata, ma non dichiara mai sentimenti e non finge di essere una persona reale. Per i video con foto tue ti chiediamo prima esplicitamente e confermi di poter usare quella foto — la responsabilità è tua e il risultato resta privato.",
@@ -148,6 +150,7 @@ export default async function ThemesCatalog({ searchParams }: {
   };
 
   const L = await resolveLang();   // gewählte Sprache (Cookie) > Browsersprache
+  const A = aboutText(L);          // die Beschreibung des Portals — Original in „Über uns"
   const c = C[L] ?? C.en;
   /**
    * ALLES AUF EINMAL HOLEN, NICHT NACHEINANDER (07.08.2026, gemessen: 4,0 s bis zum ersten
@@ -297,9 +300,10 @@ export default async function ThemesCatalog({ searchParams }: {
     return { cover, video };
   })();
 
-  // PLAN-THEMA: dasselbe Muster wie Kiss — Cover und Beispielvideo kommen aus dem
-  // Medien-Werkzeug unter /themes/luxurybandit-plan?admin=1.
-  const planP = (async () => {
+  // VERSPRECHEN: dasselbe Muster wie Kiss — Cover und Beispielvideo kommen aus dem
+  // Medien-Werkzeug unter /themes/versprechen?admin=1 (Thema-Schlüssel bleibt "plan",
+  // damit die bereits hochgeladenen Dateien nicht verwaisen).
+  const versprechenP = (async () => {
     let cover = "", video = "";
     try {
       const pc = await readThemeConfig("plan");
@@ -330,8 +334,8 @@ export default async function ThemesCatalog({ searchParams }: {
   })();
 
   // DIE EINE Wartestelle für alle neun Blöcke — ab hier ist alles da.
-  const [wetter, st, tryon, urlaubVideo, ownVideos, weddingVideo, kiss, plan, bellaThema] = await Promise.all([
-    wetterP, stateP, tryonP, urlaubP, ownVideosP, weddingP, kissP, planP, bellaP,
+  const [wetter, st, tryon, urlaubVideo, ownVideos, weddingVideo, kiss, versprechen, bellaThema] = await Promise.all([
+    wetterP, stateP, tryonP, urlaubP, ownVideosP, weddingP, kissP, versprechenP, bellaP,
   ]);
 
   const { cover: wetterCover, video: wetterVideo, poster: wetterPoster } = wetter;
@@ -340,7 +344,7 @@ export default async function ThemesCatalog({ searchParams }: {
   const { dressed: tryonDressed, lingerie: tryonLingerie } = tryon;
   const [surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = ownVideos;
   const { cover: kissCover, video: kissVideo } = kiss;
-  const { cover: planCover, video: planVideo } = plan;
+  const { cover: versprechenCover, video: versprechenVideo } = versprechen;
   const { cover: bellaCover, video: bellaVideo } = bellaThema;
 
   /**
@@ -412,7 +416,7 @@ export default async function ThemesCatalog({ searchParams }: {
      59 € gilt das doppelt: Wer den Preis erst nach drei Bildschirmen erfährt, fühlt sich
      hereingelegt — und genau dieses Gefühl kann sich ein Produkt nicht leisten, das mit
      „keine Lügen" wirbt. */
-  const AB_SYSTEM = themenPreisZeile("plan", L);
+  const AB_VERSPRECHEN = themenPreisZeile("versprechen", L);
 
   const THEMES: Theme[] = [
     /**
@@ -425,7 +429,13 @@ export default async function ThemesCatalog({ searchParams }: {
      * Stimme, Traumwelt-Look, geschlossener Kaufweg). Er ist das EINE Produkt, das zuerst
      * echte Käufe überstehen soll ([[ein-produkt-zuerst]]).
      */
-    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: GEBURTSTAG_SET, video: GEBURTSTAG_VIDEO, chips: "♥ Name · Video · Send", abPreis: AB_GEBURTSTAG },
+    /* DIE KACHEL ZEIGT DIE TRAUMWELT (Owner 09.08.2026: „im Slide mach die Dream World als
+       erstes" · „auch in der Topic Kachel") — dasselbe Video wie die ERSTE Folie der Karte
+       auf der Landingpage. Damit bleibt die Dauerregel gewahrt: ein Video, eine Quelle,
+       Kachel und Karte versprechen dasselbe (Memory `landingpage-video-ist-kachel-video`).
+       Die Zeile darunter nennt nicht mehr „sie sagt den Namen" — er sagt seine eigene
+       Botschaft, mit seinem Gesicht (Textumstellung vom selben Tag). */
+    { icon: Cake, title: "Birthdays", tagline: "Your face, your voice — in a world nobody expects.", href: "/themes/birthday", cover: "/Birthday/hbd-traum.jpg", poster: "/Birthday/hbd-traum.jpg", video: GEBURTSTAG_VIDEO_TRAUM, chips: "♥ Your message · Your face · Send", abPreis: AB_GEBURTSTAG },
     // KISS DANACH (Owner 30.07.2026: „kiss musst du als erstes nehmen" — bis 09.08. galt das
     // für Platz eins). Auf dieses Thema liefen die ersten Anzeigen, und der Trichter dort ist
     // vollständig; er bleibt deshalb direkt hinter dem Geburtstag.
@@ -526,7 +536,17 @@ export default async function ThemesCatalog({ searchParams }: {
      * Die Zeile hier behält das Wort und dreht es um: Sie weckt dasselbe Verlangen und ist
      * dabei wahr — und sie verkauft genau das, was das Produkt kann.
      */
-    { icon: Target, title: "The LuxuryBandit System", tagline: "Nobody gets rich on an idea nobody buys. Find out before it costs you.", href: "/themes/luxurybandit-plan", cover: planCover || PLAN_BILDER.fuenf, video: planVideo || undefined, chips: "♥ Your photo · Your idea · Your system", abPreis: AB_SYSTEM },
+    /**
+      * AUS DEM „LUXURYBANDIT SYSTEM" WURDE DAS VERSPRECHEN (Owner 10.08.2026: „Da ändern wir
+      * das konzept brutal. Wir verkaufen keine Systeme. Wir generieren genauso wie die
+      * anderen. Sende ein Verprechen an dich und an deine Freunde.").
+      *
+      * Die Kachel bleibt an derselben Stelle, zeigt aber ein anderes Produkt: kein Bericht
+      * über eine Geschäftsidee mehr, sondern ein Video mit seinem Gesicht und seiner Stimme —
+      * wie jedes andere Thema im Haus. Cover und Beispielvideo kommen wie überall aus dem
+      * Medien-Werkzeug (`/themes/versprechen?admin=1`), sobald der erste Lauf abgenommen ist.
+      */
+    { icon: Target, title: "Send a promise", tagline: "Say it out loud — and let them see you where you are heading.", href: "/themes/versprechen", cover: versprechenCover || undefined, video: versprechenVideo || undefined, chips: "♥ Your video · Your words · Villa & car", abPreis: AB_VERSPRECHEN },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.
@@ -603,10 +623,16 @@ export default async function ThemesCatalog({ searchParams }: {
       <TopNav back={false} />
       <TrackView event="themes_view" lookId="themes-themes" lookName="Themen-Uebersicht" />
 
-      <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
+      <div className="mx-auto max-w-3xl px-4 pb-24 pt-3">
         <Kicker>{c.kicker}</Kicker>
         <H1>{c.h1a} <Y>{c.h1b}</Y></H1>
-        <Lead className="max-w-xl">{c.intro}</Lead>
+        {/* DIE BESCHREIBUNG KOMMT AUS „ÜBER UNS" (Owner 10.08.2026: „Wir legen das origial
+            in Abou an. Was dort geändert wird, gilt für das ganze portal. Also auch für die
+            Startseite(Topics)"). Hier stand eine eigene Fassung — die dritte im Haus, neben
+            der in „Über uns" und der in den AGB. Drei Beschreibungen altern einzeln, und
+            zwei davon werden vergessen: In den AGB stand deshalb monatelang „marketplace of
+            influencers", was das Portal nie war. */}
+        <Lead className="max-w-xl">{A.portalKurz}</Lead>
 
         {/* DER CODE-HINWEIS IST RAUS (Owner 03.08.2026: „mach bitte das raus").
 
@@ -672,7 +698,7 @@ export default async function ThemesCatalog({ searchParams }: {
           <div>
             <SectionTitle>{c.whatH}</SectionTitle>
             <Lead>
-              {c.whatP} <Link href="/ai-notice" className="font-black text-[#f6cf51] underline underline-offset-2">AI Notice</Link>.
+              {A.portalLang} <Link href="/ai-notice" className="font-black text-[#f6cf51] underline underline-offset-2">AI Notice</Link>.
             </Lead>
           </div>
 

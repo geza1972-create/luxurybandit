@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,16 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const device = clean(url.searchParams.get("device"), 80);
-  const email = clean(url.searchParams.get("email"), 160).toLowerCase();
+  /**
+   * DIE ANMELDUNG IST DER AUSWEIS (Owner 10.08.2026: „Der User meldet sich doch an. Basta").
+   *
+   * Sie sticht die getippte Adresse und den Geräte-Riegel: Wer angemeldet ist, IST das Konto —
+   * dafür braucht dieser Browser nichts bezahlt zu haben. Ohne Anmeldung bleibt alles beim
+   * Alten (Riegel unten).
+   */
+  const konto = await getSellerFromRequest(request).catch(() => null);
+  const kontoMail = clean(konto?.email ?? "", 160).toLowerCase();
+  const email = kontoMail || clean(url.searchParams.get("email"), 160).toLowerCase();
   if (!device && !email) return NextResponse.json({ videos: [] });
 
   /**
@@ -81,7 +91,7 @@ export async function GET(request: Request) {
    * nur, wenn dieser Browser für sie schon einmal bezahlt hat; sonst bleibt die
    * Gerätekennung die einzige Zuordnung (die kennt nur er selbst).
    */
-  const darfEmail = email ? await walletGeraetVertraut(email, device).catch(() => false) : false;
+  const darfEmail = kontoMail ? true : email ? await walletGeraetVertraut(email, device).catch(() => false) : false;
   const emailGilt = darfEmail ? email : "";
 
   const state = await readTryThisLookState();
@@ -155,9 +165,14 @@ export async function GET(request: Request) {
           && Date.parse(e.videoFertigAt) >= Date.parse(e.videoStartAt);
         /* Start-Stempel juenger als 1 h und kein Fertig-Stempel danach → es rendert.
            Altfaelle ohne Stempel: bezahlt ohne Video und juenger als 15 min. */
+        /* UND EIN GESCHEITERTER START IST KEIN LAUF (Owner 10.08.2026: „er rändert fake").
+           Der Altfall-Zweig unten kennt keinen Stempel und würde einen bezahlten Auftrag
+           auch dann 15 Minuten als „entsteht" zeigen, wenn der Startaufruf gerade abgesagt
+           hat. `videoError` ist genau die Absage — der Trichter setzt sie beim Abbruch, der
+           Wachhund löscht sie beim nächsten echten Anlauf. */
         const laufend = e.theme !== "gutschein"
           && ((Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
-            || (!e.videoStartAt && !e.videoUrl && !!e.paid && alterMs < 15 * 60 * 1000));
+            || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));
         return ([
         {
           id: e.id,

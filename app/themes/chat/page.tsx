@@ -192,7 +192,7 @@ export default async function ChatThemePage({ searchParams }: {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <TrackView event="chat_view" lookId="themes-chat" lookName="Chat-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <Kicker>{t.kicker}</Kicker>
         <H1>{W.h1a}<Y>{W.h1b}</Y>{W.h1c}</H1>
         {/*

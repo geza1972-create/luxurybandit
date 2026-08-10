@@ -25,8 +25,25 @@ import type { Lang } from "@/lib/lang";
 export type AboutText = {
   kicker: string;
   h1a: string; h1y: string;
-  lead1: string;
-  lead2: string;
+  /**
+   * DIE BESCHREIBUNG DES PORTALS — DAS ORIGINAL FÜR DIE GANZE SEITE (Owner 10.08.2026:
+   * „du machst ab jetzt die Beschreibung des Portals dynamisch. Wir legen das origial in
+   * Abou an. Was dort geändert wird, gilt für das ganze portal. Also auch für die
+   * Startseite(Topics)").
+   *
+   * Anlass war ein Satz in den AGB, der seit dem alten Marktplatz dort stand: „LuxuryBandit
+   * is a marketplace of influencers." Der Owner: „Luxury bandit nu este un Marketplace de
+   * influenceri." Er hatte recht, und der Fehler war nicht der Satz, sondern dass es DREI
+   * Beschreibungen gab — eine hier, eine auf der Startseite, eine in den AGB. Drei
+   * Beschreibungen altern einzeln; zwei davon werden vergessen.
+   *
+   * `portalKurz` — ein bis zwei Sätze, für die Startseite und überall, wo Platz knapp ist.
+   * `portalLang` — der Absatz, der erklärt, was das hier ist (AGB §1, Über-uns-Seite).
+   *
+   * WER SIE ÄNDERT, ÄNDERT SIE HIER — und sie ändert sich damit überall.
+   */
+  portalKurz: string;
+  portalLang: string;
 
   werTitel: string;
   werBild: string;
@@ -55,8 +72,8 @@ export type AboutText = {
 const de: AboutText = {
   kicker: "Über LuxuryBandit",
   h1a: "Einzigartige Geschenke, aus der ", h1y: "neuen KI-Ära",
-  lead1: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Einladung zu zweit wegzufahren — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt ein Geschenk heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
-  lead2: "Und eines, das keine Karte ist: das LuxuryBandit System. Zwanzig erzeugte Kunden, Fachleute und Nachbarn streiten über eine Geschäftsidee, bis klar ist, woran sie scheitert — heraus kommt ein Bericht zum Weitergeben. Das Geschenk für den, der seit zwei Jahren von seiner Idee redet.",
+  portalKurz: "Dein Foto und ihres — ein Kuss, ein Geburtstagsgruß, eine Überraschung, eine Hochzeitseinladung. In Minuten gemacht, an einen Menschen geschickt. Niemand sonst sieht es.",
+  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Einladung zu zweit wegzufahren — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt ein Geschenk heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
 
   werTitel: "Wer dahintersteckt",
   werBild: "Geza — dreissig Jahre dasselbe Handwerk, und der Mensch, der antwortet, wenn du uns schreibst.",
@@ -90,8 +107,8 @@ const de: AboutText = {
 const en: AboutText = {
   kicker: "About LuxuryBandit",
   h1a: "One-of-a-kind gifts, from the ", h1y: "new AI era",
-  lead1: "A kiss, a birthday greeting, a wedding invitation, an invitation to come away together — made for one person and nobody else. You upload one photo; a finished gift comes out. Nothing to learn, nothing to install, ready in five minutes.",
-  lead2: "And one that is not a card at all: the LuxuryBandit System. Twenty generated customers, experts and neighbours argue about a business idea until it is clear where it breaks — and out comes a report you can hand over. The gift for the person who has been talking about their idea for two years.",
+  portalKurz: "Your photo and theirs — a kiss, a birthday, a surprise, a wedding invitation. Made in minutes, sent to one person. Nobody else sees it.",
+  portalLang: "A kiss, a birthday greeting, a wedding invitation, an invitation to come away together — made for one person and nobody else. You upload one photo; a finished gift comes out. Nothing to learn, nothing to install, ready in five minutes.",
 
   werTitel: "Who is behind it",
   werBild: "Geza — thirty years in the same craft, and the person who answers when you write to us.",
@@ -125,8 +142,8 @@ const en: AboutText = {
 const ro: AboutText = {
   kicker: "Despre LuxuryBandit",
   h1a: "Cadouri unicat, din ", h1y: "noua eră AI",
-  lead1: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o invitație de a pleca împreună — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese un cadou gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
-  lead2: "Și unul care nu e deloc o felicitare: sistemul LuxuryBandit. Douăzeci de clienți generați, specialiști și vecini se ceartă pe o idee de afacere până se vede unde cedează — iar la final iese un raport pe care îl poți da mai departe. Cadoul pentru cel care vorbește de doi ani despre ideea lui.",
+  portalKurz: "Poza ta și a lui — un sărut, o urare de ziua lui, o surpriză, o invitație de nuntă. Gata în câteva minute, trimis unei singure persoane. Nimeni altcineva nu îl vede.",
+  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o invitație de a pleca împreună — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese un cadou gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
 
   werTitel: "Cine este în spate",
   werBild: "Geza — treizeci de ani în aceeași meserie, și omul care îți răspunde când ne scrii.",
@@ -160,8 +177,8 @@ const ro: AboutText = {
 const es: AboutText = {
   kicker: "Sobre LuxuryBandit",
   h1a: "Regalos únicos, de la ", h1y: "nueva era de la IA",
-  lead1: "Un beso, una felicitación de cumpleaños, una invitación de boda, una invitación a irse juntos — hechos para una sola persona y para nadie más. Subes una foto y sale un regalo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
-  lead2: "Y uno que no es una tarjeta: el sistema LuxuryBandit. Veinte clientes generados, expertos y vecinos discuten sobre una idea de negocio hasta que queda claro dónde falla — y sale un informe que puedes entregar. El regalo para quien lleva dos años hablando de su idea.",
+  portalKurz: "Tu foto y la suya — un beso, una felicitación de cumpleaños, una sorpresa, una invitación de boda. Listo en minutos, enviado a una sola persona. Nadie más lo ve.",
+  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una invitación a irse juntos — hechos para una sola persona y para nadie más. Subes una foto y sale un regalo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
 
   werTitel: "Quién está detrás",
   werBild: "Geza — treinta años en el mismo oficio, y la persona que responde cuando nos escribes.",
@@ -195,8 +212,8 @@ const es: AboutText = {
 const fr: AboutText = {
   kicker: "À propos de LuxuryBandit",
   h1a: "Des cadeaux uniques, issus de la ", h1y: "nouvelle ère de l’IA",
-  lead1: "Un baiser, un message d’anniversaire, une invitation de mariage, une invitation à partir à deux — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et un cadeau fini en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
-  lead2: "Et un qui n’est pas une carte : le système LuxuryBandit. Vingt clients générés, des experts et des voisins débattent d’une idée d’entreprise jusqu’à ce qu’on voie où elle casse — et il en sort un rapport que tu peux transmettre. Le cadeau pour celui qui parle de son idée depuis deux ans.",
+  portalKurz: "Ta photo et la sienne — un baiser, un vœu d'anniversaire, une surprise, une invitation de mariage. Prêt en quelques minutes, envoyé à une seule personne. Personne d'autre ne le voit.",
+  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une invitation à partir à deux — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et un cadeau fini en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
 
   werTitel: "Qui est derrière",
   werBild: "Geza — trente ans dans le même métier, et la personne qui répond quand tu nous écris.",
@@ -230,8 +247,8 @@ const fr: AboutText = {
 const pt: AboutText = {
   kicker: "Sobre a LuxuryBandit",
   h1a: "Presentes únicos, da ", h1y: "nova era da IA",
-  lead1: "Um beijo, uma mensagem de aniversário, um convite de casamento, um convite para fugirem os dois — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai um presente pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
-  lead2: "E um que não é um cartão: o sistema LuxuryBandit. Vinte clientes gerados, especialistas e vizinhos discutem uma ideia de negócio até ficar claro onde ela falha — e sai um relatório que podes entregar. O presente para quem fala da sua ideia há dois anos.",
+  portalKurz: "A tua foto e a dela — um beijo, uma mensagem de aniversário, uma surpresa, um convite de casamento. Pronto em minutos, enviado a uma só pessoa. Mais ninguém o vê.",
+  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, um convite para fugirem os dois — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai um presente pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
 
   werTitel: "Quem está por trás",
   werBild: "Geza — trinta anos no mesmo ofício, e a pessoa que responde quando nos escreves.",
@@ -265,8 +282,8 @@ const pt: AboutText = {
 const it: AboutText = {
   kicker: "Chi siamo",
   h1a: "Regali unici, dalla ", h1y: "nuova era dell’IA",
-  lead1: "Un bacio, un augurio di compleanno, un invito di nozze, un invito a partire in due — fatti per una persona sola e per nessun altro. Carichi una foto ed esce un regalo finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
-  lead2: "E uno che non è affatto un biglietto: il sistema LuxuryBandit. Venti clienti generati, esperti e vicini discutono di un’idea di impresa finché non si vede dove si rompe — e ne esce una relazione che puoi consegnare. Il regalo per chi parla della sua idea da due anni.",
+  portalKurz: "La tua foto e la sua — un bacio, un augurio di compleanno, una sorpresa, un invito di nozze. Pronto in pochi minuti, mandato a una sola persona. Nessun altro lo vede.",
+  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, un invito a partire in due — fatti per una persona sola e per nessun altro. Carichi una foto ed esce un regalo finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
 
   werTitel: "Chi c’è dietro",
   werBild: "Geza — trent’anni nello stesso mestiere, e la persona che risponde quando ci scrivi.",

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ONCE_CENTS } from "@/lib/pricing";
+import { GESCHENK_VIDEO_CENTS } from "@/lib/pricing";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -17,7 +17,9 @@ export const dynamic = "force-dynamic";
  * 399 war ausserdem der Abo-AUFPREIS (jedes Video ueber die fuenf hinaus). Fuer einen Kauf
  * ohne Abo gilt der Einzelpreis.
  */
-const PRICE_CENTS = ONCE_CENTS;
+/* Der Tanz kostet, was jedes Geschenk-Video kostet — 4,99 € seit 10.08.2026 (Owner: „wir
+   haben ab jetzt für 4,99: Geburtstag, Kuss, Tanz, Urlaub"). Eine Zahl, eine Quelle. */
+const PRICE_CENTS = GESCHENK_VIDEO_CENTS;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

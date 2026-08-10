@@ -251,11 +251,20 @@ export async function POST(request: Request) {
        HeyGen-Look — bis dahin waeren Galerie-Streifen und Puls blind. Der Trichter meldet
        den Start deshalb sofort, die Kennung folgt. */
     const renderStart = (body as { renderStart?: boolean }).renderStart === true;
+    /**
+     * DIE RÜCKNAHME DES STARTSTEMPELS (Owner 10.08.2026: „er rändert fake").
+     *
+     * `renderStart` ist ein Vorschuss: Der Browser stempelt ihn, BEVOR der Startaufruf
+     * durch ist, damit der Galerie-Streifen nicht ein bis zwei Minuten blind bleibt. Kommt
+     * der Aufruf ohne Kennung zurück, läuft nichts — und dann muss der Vorschuss zurück,
+     * sonst behauptet die Galerie eine Stunde lang eine Erzeugung, die es nie gab.
+     */
+    const renderAbbruch = (body as { renderAbbruch?: boolean }).renderAbbruch === true;
     const modelName = String(body.modelName ?? "").trim().slice(0, 60);
     const modelId = String(body.modelId ?? "").trim().slice(0, 80);
     // Die Alterspruefung stand hier vom 31.07. bis 01.08.2026 — entfernt auf Anweisung
     // (Owner: „mach die Alterskontrolle raus. OpenAI blockiert eh schon zu viel").
-    if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName && !renderStart) {
+    if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName && !renderStart && !renderAbbruch) {
       return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     }
     /**
@@ -296,7 +305,14 @@ export async function POST(request: Request) {
         if (e.videoId) e.videoDoneId = e.videoId;
         e.videoFertigAt = new Date().toISOString();
       }
-      if (renderStart) e.videoStartAt = new Date().toISOString();
+      if (renderStart) { e.videoStartAt = new Date().toISOString(); e.videoError = undefined; }
+      /* Nichts läuft: Stempel weg, Grund hin. `videoId` bleibt unangetastet — ein FRÜHERER
+         Auftrag desselben Eintrags darf davon nicht verlieren. */
+      if (renderAbbruch) {
+        e.videoStartAt = undefined;
+        const grund = String((body as { fehler?: string }).fehler ?? "").trim().slice(0, 200);
+        e.videoError = grund || "Erzeugung ist gar nicht erst gestartet.";
+      }
       if (videoId) {
         e.videoId = videoId;
         /* Startstempel fuer die Galerie („Video entsteht") — beim Geburtstag setzt ihn die
