@@ -9,7 +9,37 @@ nicht das Gespräch.
 
 ---
 
-## 1. Der nächste Auftrag: EIN Kassen-Funnel
+## 1. EIN Kassen-Funnel — erledigt
+
+> Owner: „Der Tunel ab Bezahlung kannst du bei allen gleich machen. Das ist den Kassen Funel."
+
+**Es gibt jetzt eine Kasse.** Die Regeln stehen in `lib/kasse.ts` (welche Aufladestufen einen
+Kauf decken, wie das Guthaben gelesen wird, was `aufladeZiel` und `kontoFrisch` leisten
+müssen), das Fenster in `components/CI.tsx` als `AufladeWaehler` — mit Adresse zum Ändern,
+„Ich habe schon ein Konto", roter Begründung, Siegel und Geld-zurück-Garantie. Beide Trichter
+benutzen es: `KissFunnel` (Kuss · Geburtstag · Tanz · Versprechen) und `EinladungBauen`
+(Hochzeit · Urlaub). Der Gutschein hat keine eigene Kasse — seine Karte ist gratis, bezahlt
+wird nur das beigelegte Geschenk.
+
+**Drei Dinge, die die Einladung dabei dazubekommen hat** (sie fehlten dort ganz):
+
+- Die Aufladestufen **verrechnen das vorhandene Guthaben**. Wer 20 € liegen hat und eine
+  29,99-€-Einladung will, braucht 10 € — bisher verlangte sie 30 €.
+- Der Weg zum eigenen Konto im Kaufmoment. Wer sein Guthaben auf einer anderen Adresse hat,
+  hatte hier keine Chance, es zu benutzen.
+- **Der Preis des Aufwertens stimmt.** „Daraus ein Video machen" bucht 15 €
+  (`VIDEO_UPGRADE_CENTS`) ab, die Guthaben-Prüfung las aber die 9,99 € der Karte: mit 10 € auf
+  dem Konto ging der Kauf zur Kasse, die Abbuchung scheiterte, und dahinter stand eine
+  Stripe-Sitzung über einen Betrag, den niemand angeboten hatte. Jetzt gibt es
+  `kaufPreisCents(videoAufpreis)` — eine Zahl für Schild, Prüfung und Abbuchung.
+
+Geprüft: sieben Seiten geladen, Wähler live geöffnet auf Tanz (KissFunnel), Urlaub und
+Hochzeit (EinladungBauen); der Baustein steht auch auf der Muster-Seite `/ci`. `next build`
+läuft durch. **Deployt ist nichts.**
+
+---
+
+## 1a. Der alte Auftrag (Stand vor dem 11.08., zum Nachlesen)
 
 > Owner: „Der Tunel ab Bezahlung kannst du bei allen gleich machen. Das ist den Kassen Funel."
 > · „Wir haben doch 3 Tage Geburstags funel optimiert. Der gilt."
@@ -38,6 +68,11 @@ zweite Stelle, die dasselbe wusste.
    `Zahlungssiegel` und Geld-zurück-Garantie, das am 10.08. entstanden ist.
 3. **Hochzeit, Urlaub, Gutschein umstellen.** Der Geburtstag bleibt bis zuletzt unverändert.
 4. **Sieben Seiten bis zum Aufladewähler durchklicken** — kein echter Kauf nötig, kostet nichts.
+
+Alle vier sind erledigt (siehe oben). Der Geburtstag kam am Schluss dran und behielt dabei
+jede Zeile seines Verhaltens — es wurde nur dieselbe Fassung eingesetzt, die vorher in ihm
+stand. **Was noch offen ist: der erste echte Kauf über den vereinheitlichten Weg.** Die
+Klickprobe reicht bis zum Wähler; Stripe, Gutschrift und Abbuchung hat sie nicht angefasst.
 
 ---
 

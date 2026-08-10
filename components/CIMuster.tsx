@@ -5,7 +5,7 @@ import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
-  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel } from "@/components/CI";
+  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -65,6 +65,8 @@ export default function CIMuster() {
   const [bildWahl, setBildWahl] = useState(GEBURTSTAG_LOOKS[0].id);
   const [anmeldeMuster, setAnmeldeMuster] = useState(false);
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
+  const [waehlerOffen, setWaehlerOffen] = useState(false);
+  const [musterMail, setMusterMail] = useState("du@beispiel.de");
   const gestalt = useThemenGestalt();
 
   const abschnitt = (titel: string) => (
@@ -341,6 +343,23 @@ export default function CIMuster() {
           </p>
           <Knopf art="gold" className="mt-4" onClick={() => setDialogOffen(null)}>Verstanden</Knopf>
         </Dialog>
+      )}
+
+      {abschnitt("Aufladewähler — das eine Fenster, hinter dem Geld fliesst")}
+      {/* Owner 10.08.2026: „Der Tunel ab Bezahlung kannst du bei allen gleich machen. Das ist
+          den Kassen Funel." Es gab ihn zweimal — im Geburtstags-Trichter dreimal nachgebessert,
+          in der Einladung als vier nackte Gold-Knöpfe ohne Adresse, ohne Anmelde-Weg, ohne
+          Siegel. Jetzt einmal, und die Rechnung dahinter steht in lib/kasse.ts.
+          DIE STUFEN VERRECHNEN DAS VORHANDENE GUTHABEN: 6 € liegen da, 9,99 € kostet es —
+          also reicht die 10er-Sprosse, und niemand muss 30 € nachlegen. */}
+      <Knopf art="umriss" onClick={() => setWaehlerOffen(true)}>Wähler öffnen</Knopf>
+      {waehlerOffen && (
+        <AufladeWaehler
+          lang="de" stand={600} preis={999}
+          mail={musterMail} setMail={setMusterMail}
+          vorschlag="" angemeldet={false} aufAnmelden={() => setWaehlerOffen(false)}
+          aufStufe={() => setWaehlerOffen(false)}
+          zu={() => setWaehlerOffen(false)} />
       )}
 
       {abschnitt("Die grossen Bausteine (Verweise)")}

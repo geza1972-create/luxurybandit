@@ -8,7 +8,9 @@ import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-ko
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, AUFLADE_STUFEN, eur, fillPrices, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
+/* `AUFLADE_STUFEN` und `eur` sind mit dem Aufladewähler in die Bibliothek gezogen — die
+   Leiter rechnet jetzt `lib/kasse` (`deckendeStufen`), die Beträge schreibt `AufladeWaehler`. */
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -21,7 +23,7 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, ABSAGE_ROT } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 import { kontoText } from "@/lib/konto-i18n";
@@ -497,8 +499,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
   const [aufladeWahl, setAufladeWahl] = useState(false);
-  /** Im Auflade-Waehler: Adresse steht offen im Feld und ist noch nicht bestaetigt. */
-  const [adresseAendern, setAdresseAendern] = useState(false);
   /**
    * AN WEN GEHT DER KUSS (Owner 03.08.2026: „schreib auch den Namen an wem du es senden
    * willst … dann erscheint in den Texten Anna, I love you").
@@ -1080,11 +1080,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const vorschlag = mailTippfehler(mail);
 
-  const adresseSpeichern = async () => {
+  /**
+   * `true` heisst „angenommen" — der Aufladewähler schliesst sein Feld dann selbst
+   * (`components/CI.tsx`, `AufladeWaehler`). Die Absage steht am Feld, nicht im Rückgabewert.
+   */
+  const adresseSpeichern = async (): Promise<boolean> => {
     const e = mail.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setMailFehler(T.mailInvalid); return; }
-    if (!(await adresseVormerken(e))) return;   // Absage steht am Feld
-    setAdresseAendern(false);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setMailFehler(T.mailInvalid); return false; }
+    return await adresseVormerken(e);
   };
 
   const abmelden = async () => {
@@ -5033,196 +5036,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           hochzuladen, sobald `adresseDa` fehlt, und legen das Foto in `gateDatei` beiseite.
           Kein Abbrechen-Kreuz: ohne Adresse gibt es kein Foto, das man stattdessen zeigen
           koennte — schliessen hiesse nur, das Foto stillschweigend zu verwerfen. */}
-      {/* DER AUFLADE-WAEHLER (Owner 03.08.2026: „biete beide an"): zwei Stufen aus der
-          Preistabelle, jede mit ihrer Videozahl uebersetzt — das Guthaben ist Geld, die
-          Zahl daneben nur seine Bedeutung. Abbrechen ist erlaubt: Anders als beim
-          Upload-Tor geht hier nichts verloren, die Wahl steht ja noch. */}
+      {/* DER AUFLADE-WAEHLER (Owner 03.08.2026: „biete beide an") — seit dem 10.08.2026 aus
+          der Bibliothek (`AufladeWaehler` in components/CI.tsx). Hier stand er in voller
+          Länge: Adresse, Anmelde-Einladung, rote Begründung, Beträge, Siegel, Garantie —
+          rund 190 Zeilen, die es in der Einladung (`EinladungBauen`) ein zweites Mal gab,
+          nur ohne all das. Ein Fenster, hinter dem Geld fliesst, darf es nicht zweimal
+          geben (Owner: „Der Tunel ab Bezahlung kannst du bei allen gleich machen").
+          Abbrechen ist erlaubt: Anders als beim Upload-Tor geht hier nichts verloren,
+          die Wahl steht ja noch. */}
       {aufladeWahl && (
-        /**
-         * DER AUFLADEWÄHLER IM CI-DIALOG (Owner 08.08.2026: „das hat kein close button.
-         * Mache die buttons zwei reihig und dialg schwrz und chips design").
-         *
-         * Vorher eine handgebaute weisse Karte OHNE AUSGANG — genau das, was der CI-Dialog
-         * verhindert: Rand-Tipp und Scheiben-Kreuz sind eingebaut (Skill ci-design). Die
-         * Beträge sind keine Kaufknöpfe, sondern eine WAHL — also Chips nach der Vorlage
-         * der Kopfzeile, zwei je Reihe, statt fünf Gold-Knöpfe übereinander, die alle mit
-         * dem einen echten Kaufknopf der Seite konkurrierten.
-         */
-        /**
-         * UND ZWAR HELL (Owner 10.08.2026: „mach das Dialog in light. Ich denke wenn es um
-         * zahlung geht, vertrauen menschen mehr den hellen farben").
-         *
-         * Er hat recht, und es ist die Stelle, an der es am meisten zählt: Dies ist das
-         * einzige Fenster, hinter dem Geld fliesst. Die weisse Karte ist die Sprache, die
-         * jeder von seiner Bank und von jeder Kasse kennt — die dunkle Fassung war die des
-         * Trichters, nicht die einer Zahlung. `art="hell"` ist die Bibliotheks-Fassung
-         * (weisse Karte, Kreuz eingebaut); alle Kinder tragen deshalb Tinte statt Weiss.
-         */
-        <Dialog art="hell" zu={() => setAufladeWahl(false)}>
-            <p className="px-7 text-[16px] font-black leading-snug text-[#1a160f]">{T.aufladeWahlTitel}</p>
-            {/**
-              * DIE ADRESSE, BEVOR GELD FLIESST (Owner 03.08.2026: „sonst zahlt er mit der
-              * falschen Email und ist nie wieder drin falls er sich vertippt"). Die
-              * Stripe-Kasse wird mit `customer_email` vorbelegt und GESPERRT — dies ist
-              * die letzte Stelle, an der ein Tippfehler noch einzufangen ist. Zeigen statt
-              * zweimal tippen (Art. 8 Verbraucherrechte-RL): eine lesbare Zeile mit
-              * „Ändern" erfüllt das, ohne einen Schritt zu kosten.
-              */}
-            <div className="mt-3 rounded-xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] px-3 py-2.5">
-              <p className="text-[10.5px] font-bold leading-snug text-[#1a160f]/60">{T.zahlungAdresse}</p>
-              {adresseAendern ? (
-                <>
-                  {/* KEIN `lb-eingabe` HIER: Diese Klasse ist die Umschaltung für die HELLE
-                      Fassung der ganzen Seite (`.lb-fb`) — in einem Feld, das ohnehin schon
-                      auf Weiss steht, würde sie ein zweites Mal umfärben. Die Farben stehen
-                      direkt, weil dieser Dialog IMMER hell ist, egal wie die Seite steht. */}
-                  <input value={mail} autoFocus
-                    onChange={e => { setMail(e.target.value); if (mailFehler) setMailFehler(""); }}
-                    type="email" inputMode="email" autoComplete="email"
-                    onKeyDown={e => { if (e.key === "Enter") void adresseSpeichern(); }}
-                    style={{ color: "#1a160f", WebkitTextFillColor: "#1a160f", caretColor: "#1a160f" }}
-                    className="mt-1.5 h-10 w-full rounded-lg border border-[#1a160f]/25 bg-white px-2 text-center text-[13px] font-bold outline-none placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/60" />
-                  {mailFehler && (
-                    <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-1 text-[11.5px] font-black leading-snug">{mailFehler}</p>
-                  )}
-                  <span className="mt-1 flex flex-col items-center gap-1.5">
-                    {vorschlag && (
-                      <button type="button" onClick={() => { setMail(vorschlag); setMailFehler(""); }}
-                        className="text-[11.5px] font-black text-[#1a160f] underline">
-                        {T.mailVorschlag(vorschlag)}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => void adresseSpeichern()} disabled={mailBusy}
-                      className="rounded-full border border-[#1a160f]/25 px-3 py-1 text-[11.5px] font-black text-[#1a160f]/85 transition active:scale-95 disabled:opacity-60">
-                      {mailBusy ? "…" : T.zahlungAdresseSpeichern}
-                    </button>
-                  </span>
-                </>
-              ) : (
-                <>
-                  {/* `break-all`: Lange Adressen dürfen den Dialog nicht aufreissen. */}
-                  <p className="mt-0.5 break-all text-[13px] font-black leading-snug text-[#1a160f]">{mail}</p>
-                  <span className="mt-1 flex flex-col items-center gap-1">
-                    {vorschlag && (
-                      <button type="button" onClick={() => { setMail(vorschlag); setAdresseAendern(true); }}
-                        className="text-[11.5px] font-black text-[#1a160f] underline">
-                        {T.mailVorschlag(vorschlag)}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => setAdresseAendern(true)}
-                      className="text-[11.5px] font-black text-[#1a160f]/60 underline">
-                      {T.zahlungAdresseAendern}
-                    </button>
-                  </span>
-                </>
-              )}
-            </div>
-            {/**
-              * WARUM DER DIALOG OFFEN IST (Owner 07.08.2026: „wieso bekomme ich keine
-              * Meldung, nicht genügend Credit?") — rot und beziffert; nach einer
-              * 0,00-€-Code-Zahlung der aufladungNull-Satz. Feste Farbe wie jede Absage
-              * (Memory sichtbare-fehler-keine-formularfelder).
-              */}
-            {/**
-              * ERST DIE FRAGE „WER BIST DU?", DANN DIE BETRÄGE (Owner 09.08.2026: „egal wie
-              * viel es liegt. Er wird zur Zahlung aufgefordert. Und vielleicht hat er schon
-              * ein Konto und Geld drauf. Er hat gar nicht die Chance es zu nutzen." · „hat er
-              * geld drauf muss ein dialog kommen melde dich an").
-              *
-              * WARUM SIE NICHT SAGT, OB DORT GELD LIEGT: Wir suchen das Guthaben unter der
-              * gerade eingetippten Adresse. Zu antworten „auf diese Adresse liegen 20 €"
-              * wäre genau die Auskunft, die der Geräte-Riegel verhindert — jeder könnte
-              * fremde Adressen abklopfen. Also fragen wir neutral und ohne Wissen: Wer ein
-              * Konto hat, meldet sich an; wer keins hat, verliert nichts.
-              *
-              * SIE STEHT ÜBER DEN BETRÄGEN, weil sie sonst zu spät kommt: Wer erst zahlt und
-              * danach merkt, dass sein Geld woanders lag, hat zweimal bezahlt.
-              */}
-            {!angemeldet && (
-              /* Auf Weiss trägt der Kasten keinen Gold-Hauch mehr — die Hausregel für helle
-                 Flächen ist schwarz·weiss·grau. Der EINE goldene Knopf darin bleibt: Er ist
-                 die Handlung, nicht die Fläche. */
-              <div className="mt-4 rounded-2xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] p-3 text-center">
-                <p className="text-[13px] font-black leading-snug text-[#1a160f]">{KT.schonKonto}</p>
-                <p className="mt-1 text-[11.5px] font-semibold leading-snug text-[#1a160f]/65">{KT.schonKontoGrund}</p>
-                <div className="mt-2.5">
-                  <Knopf art="gold" onClick={zurAnmeldung}>{KT.anmeldeKnopf}</Knopf>
-                </div>
-              </div>
-            )}
-
-            <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-3 text-[12.5px] font-black leading-snug">
-              {aufladeNull ? T.aufladungNull : T.guthabenZuWenig
-                .replace("{stand}", eur(guthabenCents ?? 0, lang))
-                .replace("{preis}", eur(videoPreisCents, lang))}
-            </p>
-            {/**
-              * NUR STUFEN, DIE DEN KAUF WIRKLICH DECKEN (Owner 07.08.2026: „ich habe
-              * bezahlt und … bleibt credit auswahl") — Logik unverändert seit dem 07.08.:
-              * Angeboten wird, was zusammen mit dem vorhandenen Guthaben für dieses Video
-              * reicht; deckt keine Stufe (Produkt teurer als die höchste), steht die ganze
-              * Leiter da. Das ERSTE, was sein Video deckt, zählt die Stück mit („5 € · 1 🎬").
-              */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {(() => {
-                const deckend = AUFLADE_STUFEN.filter(s => (guthabenCents ?? 0) + s >= videoPreisCents);
-                return (deckend.length ? deckend : [...AUFLADE_STUFEN]);
-              })().map(stufe => {
-                const stueck = Math.floor(stufe / videoPreisCents);
-                return (
-                  /* Solange die Adresse offen im Feld steht, ist sie nicht bestätigt —
-                     dann darf die Kasse nicht aufgehen (sie nähme die ALTE Adresse mit). */
-                  <Knopf key={stufe} art="chip" hell disabled={payBusy || adresseAendern}
-                    onClick={() => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}>
-                    {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
-                  </Knopf>
-                );
-              })}
-            </div>
-            {/**
-              * „ICH HABE SCHON EIN KONTO" (Owner 09.08.2026: „egal wie viel es liegt. Er
-              * wird zur Zahlung aufgefordert. Und vielleicht hat er schon ein Konto und Geld
-              * drauf. Er hat gar nicht die Chance es zu nutzen.").
-              *
-              * Er hat recht, und es ist teuer: Wir suchen das Guthaben unter der Adresse, die
-              * er GERADE eingetippt hat. Ist es eine andere — oder tippt er gar keine —,
-              * finden wir sein Geld nicht und schicken ihn zur Kasse, obwohl er längst
-              * bezahlt hat. Das ist kein Fehler im Code, sondern eine fehlende Frage: „Wer
-              * bist du?"
-              *
-              * Deshalb steht sie hier, an der einzigen Stelle, an der sie wirklich zählt —
-              * im Moment vor dem Bezahlen. Als stiller Weg unter den Beträgen, nicht als
-              * zweiter Hauptknopf: Wer neu ist, soll aufladen; wer wiederkommt, findet
-              * seinen Weg zurück.
-              */}
-            {/**
-              * DAS SIEGEL UNTER DIE BETRÄGE (Owner 10.08.2026: „man muss igerndwie sichere
-              * Zahlung mit stripe (logo) Masterkard logo…einblenden").
-              *
-              * Zuerst die Wahl, dann die Beruhigung — über den Beträgen wäre es eine
-              * Erklärung, bevor jemand gefragt hat. Der Satz ist der, der schon seit jeher
-              * am Kaufknopf steht (`T.secure`, sieben Sprachen); der Baustein kommt aus der
-              * Bibliothek (`Zahlungssiegel`), damit dasselbe Siegel überall gleich aussieht.
-              */}
-            {/**
-              * DIE GELD-ZURÜCK-GARANTIE (Owner 10.08.2026: „Geldzrück Garantie müssen wir
-              * auch einblenden im Zahlungsdialog Creditauswahl" · „Geld Zurückgarantie habe
-              * ich gesagt").
-              *
-              * HIER STAND ZUERST `T.erstatten` — „Nicht zufrieden? Geld zurück". Der Owner
-              * hat es zweimal zurückgewiesen, und er hat recht: „Leute sind immer nicht
-              * zufrieden." Ein Versprechen auf Geschmack zahlt jeden Lauf zurück, den
-              * jemand bereut. Die Garantie deckt, was WIR schulden — keine Lieferung, oder
-              * eine grosse Abweichung, die unsere Prüfung bestätigt.
-              *
-              * DAS WORT FÜHRT IN DIE AGB (Owner: „du machst jetzt einen ling zu ageb drauf
-              * und beschreisbt in AGB was das ist"). Dort steht der Abschnitt
-              * `#geld-zurueck-garantie` mit beiden Seiten: was sie deckt und was nicht.
-              */}
-            <Zahlungssiegel hell text={T.secure} garantie={T.geldZurueckGarantie}
-              garantieHref="/terms#geld-zurueck-garantie" className="mt-4" />
-            <p className="mt-2.5 text-center text-[10px] font-medium leading-snug text-[#1a160f]/50">{T.aufladenHinweis}</p>
-        </Dialog>
+        <AufladeWaehler
+          lang={lang} stand={guthabenCents} preis={videoPreisCents}
+          mail={mail}
+          setMail={m => { setMail(m); if (mailFehler) setMailFehler(""); }}
+          adresseSpeichern={adresseSpeichern}
+          mailFehler={mailFehler} mailBusy={mailBusy} vorschlag={vorschlag}
+          angemeldet={angemeldet} aufAnmelden={zurAnmeldung}
+          aufladungNull={aufladeNull} busy={payBusy}
+          aufStufe={stufe => { setAufladeWahl(false); setAufladeNull(false); void unlock("auflade", undefined, stufe); }}
+          zu={() => setAufladeWahl(false)} />
       )}
 
       {gateOffen && (

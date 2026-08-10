@@ -9,7 +9,7 @@ import { VORLAGE_TEXT } from "@/components/BeispielGalerie";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import KartenKarussell from "@/components/KartenKarussell";
 import UploadKachel from "@/components/UploadKachel";
-import { Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
+import { AufladeWaehler, Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import { kissText } from "@/lib/kiss-i18n";
@@ -17,7 +17,12 @@ import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } fro
 import { holidayInvitePrompt, HOLIDAY_SZENEN } from "@/lib/holiday-invite";
 import { gutscheinPrompt } from "@/lib/gutschein-prompt";
 import { guthabenLesen } from "@/lib/guthaben-konto";
-import { AUFLADE_STUFEN, ONCE_CENTS, GUTSCHEIN_CENTS, GUTSCHEIN_STUFEN, eur, themenPreisCents, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+// Aliasiert wie im Kuss-Trichter: `F.mailVorschlag` ist der TEXT, `mailTippfehler` die
+// Pruefung — zwei Dinge, die sonst denselben Namen traegen.
+import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
+import { reichtGuthaben } from "@/lib/kasse";
+import { ONCE_CENTS, GUTSCHEIN_CENTS, GUTSCHEIN_STUFEN, VIDEO_UPGRADE_CENTS, eur, themenPreisCents, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
 import { fillPrices } from "@/lib/pricing";
 
 /**
@@ -271,12 +276,41 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
    * Aufladen wieder GENAU DORT ein.
    */
   const [aufladeZiel, setAufladeZiel] = useState<"bild" | "video" | "aufwerten">("bild");
+  /**
+   * DIE LETZTE ZAHLUNG WAR 0,00 € (100-%-Aktionscode). Dann ist bezahlt, aber nichts
+   * gutgeschrieben — und der Wähler steht wieder da. Ohne diese Zeile sähe der Kunde
+   * denselben Dialog ein zweites Mal ohne ein Wort, warum (Owner 07.08.2026: „ich habe
+   * bezahlt und … bleibt credit auswahl").
+   */
+  const [aufladeNull, setAufladeNull] = useState(false);
+  /** Die Absage am Adressfeld DES WÄHLERS — getrennt von `hinweis` unter dem Kaufknopf. */
+  const [mailFehler, setMailFehler] = useState("");
+  /* Bis zum ersten Blick: nicht fragen. Sonst blitzt die Anmelde-Einladung bei jedem
+     Angemeldeten kurz auf, bevor der Speicher gelesen ist. */
+  const [angemeldet, setAngemeldet] = useState(true);
+  useEffect(() => { setAngemeldet(!!getStoredAuthSession()?.access_token); }, []);
 
   /** Was diese Karte kostet — aus der Tabelle, nie hier getippt. */
   /* Jede Variante zahlt ihren eigenen Preis aus der Tabelle: Urlaub 4,99 € (Owner
      10.08.2026), Hochzeit 29 € (Planer mit Einladungsseite), Gutschein seine eigene Stufe.
      Vorher stand hier für BEIDE der alte Regelpreis von 15 €. */
   const preisCents = gutschein ? GUTSCHEIN_CENTS : themenPreisCents(variant);
+  /**
+   * WAS *DIESER* KAUF KOSTET — und das ist nicht immer der Kartenpreis.
+   *
+   * „Daraus ein Video machen" bucht `VIDEO_UPGRADE_CENTS` (15 €) ab, nicht die 9,99 € der
+   * Karte: So rechnet die Kasse (`app/api/kiss-video-checkout`, `videoAufpreis`), und so
+   * steht es auch auf dem Knopf („{videoauf}"). Die Guthaben-Prüfung hier las dagegen immer
+   * `preisCents` — mit 10 € auf dem Konto hielt sie das Aufwerten für gedeckt, schickte den
+   * Kauf zur Kasse, die Abbuchung scheiterte an den 15 €, und dahinter stand eine
+   * Stripe-Sitzung über einen Betrag, den niemand angeboten hatte. Und der Aufladewähler
+   * hätte danach „dieses Video kostet 9,99 €" behauptet, während 15 € fehlten.
+   *
+   * Es ist derselbe Fehler wie die drei Geldfehler vom 10.08.2026: zwei Stellen, die
+   * denselben Preis kennen. Ab jetzt gibt es eine (Skill `bezahlung` §2).
+   */
+  const kaufPreisCents = (videoAufpreis: boolean) =>
+    gutschein ? GUTSCHEIN_CENTS : videoAufpreis ? VIDEO_UPGRADE_CENTS : preisCents;
   const [feld, setFeld] = useState<Feld>(null);
   const [sie, setSie] = useState("");
   const [er, setEr] = useState("");
@@ -470,6 +504,66 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
+  /**
+   * „Meintest du …?" — leer, solange die Adresse unauffällig ist. Der beste Ort für den
+   * Tippfehler ist der Moment vor dem Bezahlen: Danach liegt das Geld auf einem Konto, an
+   * das niemand mehr herankommt.
+   */
+  const vorschlag = mailTippfehler(mail);
+
+  /**
+   * DIE ADRESSE IM WÄHLER BESTÄTIGEN. Nur die Form wird geprüft — die Eingangstore
+   * (Wegwerf-Adressen, KI-Prüfung) hängen im Kuss an `adresseVormerken`; hier steht die
+   * Adresse längst im Feld der Karte und ist derselbe Wert, mit dem gleich erzeugt wird.
+   */
+  const adresseSpeichern = async (): Promise<boolean> => {
+    const e = mail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setMailFehler(F.mailInvalid); return false; }
+    setMailFehler("");
+    try { localStorage.setItem("lb_kiss_mail", e.toLowerCase()); } catch { /**/ }
+    return true;
+  };
+
+  /**
+   * DIE FOTOS ÜBERLEBEN DIE ANMELDUNG (dieselbe Falle wie im Kuss, Owner 09.08.2026: „nach
+   * der Anmeldung mit Google springe ich leider zurück auf die Topic-Seite").
+   *
+   * Der Anmeldeweg führt über Google und LÄDT DIE SEITE NEU. Namen, Datum und Ort überleben
+   * das im Entwurf (`SPEICHER`) — die Fotos nicht, denn sie sind Daten-URLs und standen
+   * bisher nur im Arbeitsspeicher. Wer sein eigenes Guthaben benutzen wollte, hätte also
+   * beide Bilder neu suchen und neu zuschneiden müssen: der sicherste Weg, ihn zu verlieren.
+   *
+   * Zwei Stunden reichen dafür; wer später wiederkommt, fängt bewusst neu an, statt ein
+   * vergessenes Gesicht vorgesetzt zu bekommen. Schlägt das Wegpacken fehl (voller Speicher —
+   * zwei Fotos als Daten-URL sind Megabytes), geht die Anmeldung trotzdem weiter: Dann fehlt
+   * der Komfort, nicht der Weg.
+   */
+  const FOTO_KEY = `lb_einl_fotos_${variant}`;
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(FOTO_KEY) || "{}");
+      if (d.at && Date.now() - Number(d.at) < 2 * 60 * 60 * 1000) {
+        if (d.ihr) setIhrFoto(String(d.ihr));
+        if (d.sein) setSeinFoto(String(d.sein));
+        if (d.paar) setPaarFoto(String(d.paar));
+        if (d.weg === "gemeinsam" || d.weg === "zwei") setWeg(d.weg);
+      }
+      localStorage.removeItem(FOTO_KEY);
+    } catch { /**/ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /** Zur Anmeldung — und danach zurück auf genau diese Seite, damit sein Werk wartet. */
+  const zurAnmeldung = () => {
+    try { localStorage.setItem("lb_kiss_mail", mail.trim().toLowerCase()); } catch { /**/ }
+    try {
+      if (ihrFoto || seinFoto || paarFoto) {
+        localStorage.setItem(FOTO_KEY, JSON.stringify({ ihr: ihrFoto, sein: seinFoto, paar: paarFoto, weg, at: Date.now() }));
+      }
+    } catch { /* Speicher voll — dann eben ohne */ }
+    const zurueck = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `/login?returnTo=${encodeURIComponent(zurueck)}`;
+  };
+
   /** Rund hundert Tage voraus: So weit im Voraus verschickt man Einladungen, und das
    *  Beispieldatum liegt damit immer in der Zukunft — anders als ein fest getipptes Datum. */
   const beispielDatum = useMemo(
@@ -585,7 +679,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
      * jetzt SCHON BEIM TIPPEN der Adresse (siehe der Effekt weiter oben); beim Klick steht die
      * Zahl also längst da und wird nur noch gelesen — ohne `await`, ohne Blockade.
      */
-    if (!topupCents && !kontoFrisch && (guthabenCents ?? 0) < preisCents) {
+    /* Die Frage steht EINMAL im Haus (`lib/kasse`) — dieselbe, die auch der Wähler benutzt,
+       um seine Stufen zu rechnen. Zwei Stellen mit derselben Schwelle laufen auseinander.
+       Und gegen den Preis DIESES Kaufs, nicht gegen den der Karte (siehe `kaufPreisCents`). */
+    if (!topupCents && !kontoFrisch && !reichtGuthaben(guthabenCents, kaufPreisCents(videoAufpreis))) {
       setAufladeWahl(true);
       return false;
     }
@@ -654,6 +751,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
            */
           if (topupCents) {
             if (typeof s.walletCents === "number") setGuthabenCents(s.walletCents);
+            /* Bezahlt, aber 0 € wert (100-%-Aktionscode): Dann öffnet der Wiederholungskauf
+               den Wähler gleich wieder — und ohne diese Marke stünde dort die falsche
+               Begründung („dein Guthaben ist zu klein") statt der wahren. */
+            if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await bezahlen(videoAufpreis, undefined, true);
           }
           setBezahlt(true); return true;
@@ -1841,43 +1942,46 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           * meldet der Klick es, statt zu verpuffen.
           */}
         {/**
-          * DIE AUFLADESTUFEN STEHEN HIER, NICHT IN EINEM ZWEITEN FENSTER (Owner 05.08.2026:
-          * „weil das schon ein Dialogfenster ist").
+          * DER AUFLADEWÄHLER — SEIT DEM 10.08.2026 DERSELBE WIE ÜBERALL
+          * (`AufladeWaehler` in components/CI.tsx, Rechnung in lib/kasse.ts).
           *
-          * Sie ersetzen den Kaufknopf, sobald das Guthaben nicht reicht — an derselben Stelle,
-          * auf die er gerade getippt hat. Ein Fenster über einem Fenster ist eine Sackgasse:
-          * Man weiss nicht mehr, welches „Zurück" welches schliesst.
+          * HIER STANDEN VIER NACKTE GOLD-KNÖPFE mitten in der Karte: kein Wort, warum sie da
+          * sind, keine Adresse, kein Weg zum eigenen Konto, kein Siegel — und eine Leiter,
+          * die das VORHANDENE Guthaben nicht mitzählte. Wer 20 € liegen hatte und eine
+          * 29,99-€-Einladung wollte, musste 30 € nachlegen statt 10 €.
           *
-          * Sie erscheinen NUR, wenn das Geld fehlt (Owner: „und das kommt, falls er nicht
-          * genügend Geld hat") — wer aufgeladen hat, tippt auf kaufen und es passiert.
+          * DAMIT FÄLLT AUCH DER GRUND WEG, WARUM SIE HIER STANDEN (Owner 05.08.2026: „weil
+          * das schon ein Dialogfenster ist"): Der Wähler ist kein Fenster ÜBER der Karte
+          * mehr, sondern derselbe, den der Geburtstag seit drei Tagen benutzt — mit Kreuz,
+          * Rand-Tipp und einem einzigen Zurück. Und die Karte darunter bleibt stehen, statt
+          * dass ihr Kaufknopf verschwindet.
+          *
+          * ER KOMMT NUR, WENN DAS GELD FEHLT (Owner: „und das kommt, falls er nicht genügend
+          * Geld hat") — wer aufgeladen hat, tippt auf kaufen und es passiert.
           */}
-        {aufladeWahl ? (
-          <div className="mt-1">
-            <p className="text-center font-serif text-[14px] leading-snug">
-              {/* DER PREIS AUF DEM KNOPF IST DER PREIS DER KASSE (Owner 10.08.2026, mit
-                  Bild: der Knopf sagte „15 €", abgebucht werden 29,99 €). `{once}` ist der
-                  alte Regelpreis eines Geschenks — die Einladung kostet aber, was in
-                  `themenPreisCents(variant)` steht, und genau die Zahl bucht `preisCents`
-                  weiter oben ab. Zwei Zahlen für denselben Kauf sind der Fehler, den die
-                  Preistabelle verhindern soll (Skill `bezahlung` §2). */}
-              {fillPrices(gutschein ? T.ctaGutschein : T.ctaEinladung, lang).replace(eur(ONCE_CENTS, lang), eur(preisCents, lang))}
-            </p>
-            {AUFLADE_STUFEN.filter(c => c >= preisCents).map(stufe => (
-              <button key={stufe} type="button" disabled={busy}
-                /* Die Stufe setzt den UNTERBROCHENEN Kauf fort — durch `erzeugen` bzw. das
-                   Aufwerten, nicht durch ein nacktes `bezahlen`: Nur so läuft nach dem
-                   Aufladen auch die Erzeugung weiter, statt dass Geld auf dem Konto liegt
-                   und nichts passiert (Owner 05.08.2026: „die Zahlung geht nicht"). */
-                onClick={() => {
-                  setAufladeWahl(false);
-                  void (aufladeZiel === "aufwerten" ? videoNachtraeglich(stufe) : erzeugen(aufladeZiel === "video", stufe));
-                }}
-                className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95 disabled:opacity-60">
-                {eur(stufe, lang)}
-              </button>
-            ))}
-          </div>
-        ) : (
+        {aufladeWahl && (
+          <AufladeWaehler
+            lang={lang} stand={guthabenCents}
+            /* Der Preis des UNTERBROCHENEN Kaufs — beim Aufwerten sind das 15 €, nicht die
+               9,99 € der Karte. Sonst nennt die rote Zeile eine Zahl, die niemand abbucht,
+               und die Leiter böte eine Stufe an, die den Kauf gar nicht deckt. */
+            preis={kaufPreisCents(aufladeZiel !== "bild")}
+            mail={mail}
+            setMail={m => { setMail(m); if (mailFehler) setMailFehler(""); }}
+            adresseSpeichern={adresseSpeichern}
+            mailFehler={mailFehler} vorschlag={vorschlag}
+            angemeldet={angemeldet} aufAnmelden={zurAnmeldung}
+            aufladungNull={aufladeNull} busy={busy || videoBusy}
+            /* Die Stufe setzt den UNTERBROCHENEN Kauf fort — durch `erzeugen` bzw. das
+               Aufwerten, nicht durch ein nacktes `bezahlen`: Nur so läuft nach dem Aufladen
+               auch die Erzeugung weiter, statt dass Geld auf dem Konto liegt und nichts
+               passiert (Owner 05.08.2026: „die Zahlung geht nicht" · Skill `bezahlung` §1). */
+            aufStufe={stufe => {
+              setAufladeWahl(false); setAufladeNull(false);
+              void (aufladeZiel === "aufwerten" ? videoNachtraeglich(stufe) : erzeugen(aufladeZiel === "video", stufe));
+            }}
+            zu={() => setAufladeWahl(false)} />
+        )}
         <button type="button"
           onClick={() => {
             if (busy) return;
@@ -1924,7 +2028,6 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
                 : (F.ctaVideo ?? ""))
               : fillPrices(T.ctaEinladung, lang).replace(eur(ONCE_CENTS, lang), eur(preisCents, lang))}
         </button>
-        )}
         {/* HIER STAND „LIEBER GLEICH EIN VIDEO — {videoauf}" (Owner 06.08.2026: „das muss
             raus. niemand weiss was das ist."). Seit Bild und Video beide {once} kosten, war
             der Zweitknopf ein Rätsel zum selben Preis. Der Weg zum Video bleibt: „Daraus ein

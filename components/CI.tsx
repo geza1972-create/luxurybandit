@@ -7,6 +7,10 @@ import TonKnopf from "@/components/TonKnopf";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
+import { kissText } from "@/lib/kiss-i18n";
+import { kontoText } from "@/lib/konto-i18n";
+import { eur } from "@/lib/pricing";
+import { deckendeStufen, stueckJeStufe } from "@/lib/kasse";
 
 /**
  * DIE CI-BIBLIOTHEK — die EINE Umsetzung der Hausregeln (Owner 06.08.2026: „am liebsten
@@ -1024,6 +1028,183 @@ export function Zahlungssiegel({ text, garantie, garantieHref, hell = false, cla
       </span>
     </div>
     </div>
+  );
+}
+
+/**
+ * DER AUFLADEWÄHLER — DAS EINE FENSTER, HINTER DEM GELD FLIESST.
+ *
+ * Owner 10.08.2026: „Der Tunel ab Bezahlung kannst du bei allen gleich machen. Das ist den
+ * Kassen Funel." · „Wir haben doch 3 Tage Geburstags funel optimiert. Der gilt."
+ *
+ * Es gab ihn zweimal: einmal im Geburtstags-Trichter (`KissFunnel`) — dreimal nachgebessert,
+ * mit Adresse, Anmelde-Einladung, Siegel und Garantie — und einmal als vier nackte
+ * Gold-Knöpfe in der Einladung (`EinladungBauen`), ohne all das. Beide zogen echtes Geld ein.
+ * Die Regeln der Rechnung stehen in `lib/kasse.ts`, das Fenster steht ab jetzt hier; wer eine
+ * Kasse baut, holt sich beides, statt es zum dritten Mal zu bauen.
+ *
+ * WAS DER BAUSTEIN VON SELBST RICHTIG MACHT (jede Zeile ist einmal Geld gewesen):
+ *
+ * 1. NUR STUFEN, DIE DEN KAUF WIRKLICH DECKEN — mit dem vorhandenen Guthaben verrechnet
+ *    (`deckendeStufen`). Sonst zahlt jemand und steht danach vor demselben Wähler.
+ * 2. DIE ADRESSE STEHT DA, BEVOR GELD FLIESST (Owner 03.08.2026: „sonst zahlt er mit der
+ *    falschen Email und ist nie wieder drin falls er sich vertippt"). Zeigen statt zweimal
+ *    tippen — eine lesbare Zeile mit „Ändern".
+ * 3. „ICH HABE SCHON EIN KONTO" ÜBER den Beträgen (Owner 09.08.2026: „hat er geld drauf muss
+ *    ein dialog kommen melde dich an"). Unter ihnen käme sie zu spät: Wer erst zahlt und dann
+ *    merkt, dass sein Geld woanders lag, hat zweimal bezahlt. Sie sagt NICHT, ob dort Geld
+ *    liegt — das wäre genau die Auskunft, die der Geräte-Riegel verhindert.
+ * 4. WARUM DAS FENSTER OFFEN IST, ROT UND BEZIFFERT (Owner 07.08.2026: „wieso bekomme ich
+ *    keine Meldung, nicht genügend Credit?").
+ * 5. SIEGEL UND GELD-ZURÜCK-GARANTIE UNTER den Beträgen: erst die Wahl, dann die Beruhigung.
+ *
+ * UND ZWAR HELL (Owner 10.08.2026: „mach das Dialog in light. Ich denke wenn es um zahlung
+ * geht, vertrauen menschen mehr den hellen farben"). Die weisse Karte ist die Sprache, die
+ * jeder von seiner Bank kennt; alle Kinder tragen deshalb Tinte statt Weiss.
+ *
+ * DIE TEXTE HOLT ER SICH SELBST (`kissText`/`kontoText`, sieben Sprachen) — ein Trichter, der
+ * sie hereinreichen müsste, könnte einen davon vergessen, und dann stünde im Kaufmoment
+ * Englisch auf einer rumänischen Seite.
+ */
+export function AufladeWaehler({
+  lang, stand, preis, mail, setMail, adresseSpeichern, mailFehler = "", mailBusy = false,
+  vorschlag = "", angemeldet = true, aufAnmelden, aufladungNull = false, busy = false,
+  aufStufe, zu,
+}: {
+  lang: string;
+  /** Der Kontostand in Cent. `null` = unbekannt und zählt wie leer. */
+  stand: number | null;
+  /** Was der unterbrochene Kauf kostet — aus `lib/pricing`, nie getippt (Skill `bezahlung` §2). */
+  preis: number;
+  mail: string;
+  setMail: (m: string) => void;
+  /**
+   * DIE ADRESSE PRÜFEN UND VORMERKEN — `true` schliesst das Feld wieder. Der Trichter
+   * entscheidet, WIE streng geprüft wird (im Kuss hängen an `adresseVormerken` die
+   * Eingangstore: Format, Wegwerf-Adressen, die KI-Prüfung). Fehlt die Funktion, gilt die
+   * blosse Formprüfung — mehr kann dieser Baustein nicht wissen.
+   */
+  adresseSpeichern?: () => Promise<boolean>;
+  /** Die Absage am Feld — rot, feste Farbe (Memory `sichtbare-fehler-keine-formularfelder`). */
+  mailFehler?: string;
+  mailBusy?: boolean;
+  /** „Meintest du …?" — leer, solange die Adresse unauffällig ist. */
+  vorschlag?: string;
+  /** Ist er angemeldet? Nur wenn NICHT, kommt die Einladung dazu. */
+  angemeldet?: boolean;
+  /** Ohne diesen Weg entfällt die Einladung — ein Knopf, der nirgends hinführt, ist schlimmer. */
+  aufAnmelden?: () => void;
+  /** Die letzte Zahlung war 0,00 € (100-%-Code) — dann ist der Grund ein anderer. */
+  aufladungNull?: boolean;
+  /** Läuft gerade eine Zahlung? Sperrt die Beträge gegen den zweiten Tipp. */
+  busy?: boolean;
+  /** Eine Stufe wurde gewählt — der Trichter setzt DEN UNTERBROCHENEN Kauf fort (`aufladeZiel`). */
+  aufStufe: (stufeCents: number) => void;
+  zu: () => void;
+}) {
+  const T = kissText(lang);
+  const KT = kontoText(lang);
+  /**
+   * Solange die Adresse offen im Feld steht, ist sie nicht bestätigt — dann darf die Kasse
+   * nicht aufgehen (sie nähme die ALTE Adresse mit). Rein örtlicher Zustand: Er lebt und
+   * stirbt mit diesem Fenster, kein Trichter muss ihn führen.
+   */
+  const [aendern, setAendern] = useState(false);
+  const speichern = async () => {
+    if (adresseSpeichern) { if (await adresseSpeichern()) setAendern(false); return; }
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim())) setAendern(false);
+  };
+  return (
+    <Dialog art="hell" zu={zu}>
+      {/* `px-7`, damit die Zeile nie unter das Kreuz läuft — symmetrisch, weil zentriert. */}
+      <p className="px-7 text-[16px] font-black leading-snug text-[#1a160f]">{T.aufladeWahlTitel}</p>
+      {/* DIE ADRESSE, BEVOR GELD FLIESST: Die Stripe-Kasse wird mit `customer_email`
+          vorbelegt und GESPERRT — dies ist die letzte Stelle, an der ein Tippfehler noch
+          einzufangen ist (Art. 8 Verbraucherrechte-RL: zeigen, nicht zweimal tippen lassen). */}
+      <div className="mt-3 rounded-xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] px-3 py-2.5">
+        <p className="text-[10.5px] font-bold leading-snug text-[#1a160f]/60">{T.zahlungAdresse}</p>
+        {aendern ? (
+          <>
+            {/* KEIN `lb-eingabe` HIER: Diese Klasse ist die Umschaltung für die HELLE Fassung
+                der ganzen Seite (`.lb-fb`) — in einem Feld, das ohnehin auf Weiss steht, würde
+                sie ein zweites Mal umfärben. Die Farben stehen direkt, weil dieser Dialog
+                IMMER hell ist, egal wie die Seite steht. */}
+            <input value={mail} autoFocus
+              onChange={e => setMail(e.target.value)}
+              type="email" inputMode="email" autoComplete="email"
+              onKeyDown={e => { if (e.key === "Enter") void speichern(); }}
+              style={{ color: "#1a160f", WebkitTextFillColor: "#1a160f", caretColor: "#1a160f" }}
+              className="mt-1.5 h-10 w-full rounded-lg border border-[#1a160f]/25 bg-white px-2 text-center text-[13px] font-bold outline-none placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/60" />
+            {mailFehler && (
+              <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-1 text-[11.5px] font-black leading-snug">{mailFehler}</p>
+            )}
+            <span className="mt-1 flex flex-col items-center gap-1.5">
+              {vorschlag && (
+                <button type="button" onClick={() => setMail(vorschlag)}
+                  className="text-[11.5px] font-black text-[#1a160f] underline">
+                  {T.mailVorschlag(vorschlag)}
+                </button>
+              )}
+              <button type="button" onClick={() => void speichern()} disabled={mailBusy}
+                className="rounded-full border border-[#1a160f]/25 px-3 py-1 text-[11.5px] font-black text-[#1a160f]/85 transition active:scale-95 disabled:opacity-60">
+                {mailBusy ? "…" : T.zahlungAdresseSpeichern}
+              </button>
+            </span>
+          </>
+        ) : (
+          <>
+            {/* `break-all`: Lange Adressen dürfen den Dialog nicht aufreissen. */}
+            <p className="mt-0.5 break-all text-[13px] font-black leading-snug text-[#1a160f]">{mail}</p>
+            <span className="mt-1 flex flex-col items-center gap-1">
+              {vorschlag && (
+                <button type="button" onClick={() => { setMail(vorschlag); setAendern(true); }}
+                  className="text-[11.5px] font-black text-[#1a160f] underline">
+                  {T.mailVorschlag(vorschlag)}
+                </button>
+              )}
+              <button type="button" onClick={() => setAendern(true)}
+                className="text-[11.5px] font-black text-[#1a160f]/60 underline">
+                {T.zahlungAdresseAendern}
+              </button>
+            </span>
+          </>
+        )}
+      </div>
+      {/* ERST DIE FRAGE „WER BIST DU?", DANN DIE BETRÄGE — siehe Punkt 3 oben. Auf Weiss trägt
+          der Kasten keinen Gold-Hauch mehr (Hausregel für helle Flächen: schwarz·weiss·grau);
+          der EINE goldene Knopf darin bleibt, er ist die Handlung, nicht die Fläche. */}
+      {!angemeldet && aufAnmelden && (
+        <div className="mt-4 rounded-2xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] p-3 text-center">
+          <p className="text-[13px] font-black leading-snug text-[#1a160f]">{KT.schonKonto}</p>
+          <p className="mt-1 text-[11.5px] font-semibold leading-snug text-[#1a160f]/65">{KT.schonKontoGrund}</p>
+          <div className="mt-2.5">
+            <Knopf art="gold" onClick={aufAnmelden}>{KT.anmeldeKnopf}</Knopf>
+          </div>
+        </div>
+      )}
+      <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-3 text-[12.5px] font-black leading-snug">
+        {aufladungNull ? T.aufladungNull : T.guthabenZuWenig
+          .replace("{stand}", eur(stand ?? 0, lang))
+          .replace("{preis}", eur(preis, lang))}
+      </p>
+      {/* DIE BETRÄGE SIND EINE WAHL, KEIN KAUF — also Chips, zwei je Reihe (Owner 08.08.2026:
+          „Mache die buttons zwei reihig und dialg schwrz und chips design"), statt vier
+          Gold-Knöpfe übereinander, die alle mit dem einen echten Kaufknopf konkurrierten. */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {deckendeStufen(stand, preis).map(stufe => {
+          const stueck = stueckJeStufe(stufe, preis);
+          return (
+            <Knopf key={stufe} art="chip" hell disabled={busy || aendern}
+              onClick={() => aufStufe(stufe)}>
+              {eur(stufe, lang)}{stueck >= 1 ? ` · ${stueck} 🎬` : ""}
+            </Knopf>
+          );
+        })}
+      </div>
+      <Zahlungssiegel hell text={T.secure} garantie={T.geldZurueckGarantie}
+        garantieHref="/terms#geld-zurueck-garantie" className="mt-4" />
+      <p className="mt-2.5 text-center text-[10px] font-medium leading-snug text-[#1a160f]/50">{T.aufladenHinweis}</p>
+    </Dialog>
   );
 }
 
