@@ -20,11 +20,47 @@ export const TEILEN_TEXT: Record<string, string> = {
 };
 
 /* Der Geburtstag verschickt keinen Kussmund (Owner 08.08.2026, mit Bild der Teilen-Zeile:
-   „und was wird da bitte geshart?") — gleiche Zeile, richtiges Zeichen. */
+   „und was wird da bitte geshart?") — gleiche Zeile, richtiges Zeichen.
+
+   AM 10.08.2026 KAM ES WIEDER HOCH, diesmal auf der Hochzeitsseite (Owner: „was teilst du?
+   Das? Schau dir das an 💋"): Hochzeit, Urlaub, Tanz und Versprechen trugen alle den
+   Kussmund, weil sie sich `TEILEN_TEXT` teilten. Ein Zeichen je Thema, unten. */
 export const TEILEN_TEXT_GEBURTSTAG: Record<string, string> = {
   de: "Schau dir das an 🎂", en: "Check this out 🎂", ro: "Uită-te la asta 🎂",
   es: "Mira esto 🎂", fr: "Regarde ça 🎂", pt: "Olha isto 🎂", it: "Guarda qui 🎂",
 };
+
+/** Das Zeichen zum Thema — ohne Eintrag bleibt es beim Kussmund (der Kuss ist die Vorlage). */
+const ZEICHEN: Record<string, string> = {
+  birthday: "🎂", wedding: "💍", holiday: "🌴", gutschein: "🎁",
+  poledance: "💃", surprise: "💃", versprechen: "🤝",
+};
+
+/**
+ * DER SATZ ZUR VORLAGE (Owner 10.08.2026, nachdem er sah, was der Knopf kopiert: „Schau dir
+ * das an 💍 …/einladung/beispiel").
+ *
+ * Der Link war endlich richtig, der Satz nicht: „Schau dir das an" sagt man über ein lustiges
+ * Video. Wer seine Muster-Einladung verschickt, sagt etwas ganz anderes — er zeigt, was
+ * ENTSTEHT. Der Empfänger ist die Braut, der Trauzeuge, die Mutter; die wollen nicht
+ * „draufschauen", die wollen wissen, was da kommt.
+ */
+export const VORLAGE_TEXT: Record<string, string> = {
+  de: "So wird unsere Hochzeitseinladung aussehen 💍",
+  en: "This is what our wedding invitation will look like 💍",
+  ro: "Așa va arăta invitația noastră de nuntă 💍",
+  es: "Así será nuestra invitación de boda 💍",
+  fr: "Voilà à quoi ressemblera notre invitation de mariage 💍",
+  pt: "É assim que vai ser o nosso convite de casamento 💍",
+  it: "Ecco come sarà il nostro invito di nozze 💍",
+};
+
+/** „Schau dir das an" plus das Zeichen des Themas — eine Zeile, sieben Sprachen. */
+export function teilenText(thema: string, lang: string): string {
+  const roh = TEILEN_TEXT[lang] ?? TEILEN_TEXT.en;
+  const z = ZEICHEN[thema];
+  return z ? roh.replace("💋", z) : roh;
+}
 
 /**
  * DIE BEISPIELE — dieselbe Karte, mehrmals untereinander.

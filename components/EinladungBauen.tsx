@@ -4,11 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import TeilenKnopf from "@/components/TeilenKnopf";
+import { VORLAGE_TEXT } from "@/components/BeispielGalerie";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import KartenKarussell from "@/components/KartenKarussell";
 import UploadKachel from "@/components/UploadKachel";
-import TeilenKnopf from "@/components/TeilenKnopf";
-import { TEILEN_TEXT } from "@/components/BeispielGalerie";
 import { Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import FotoAnleitung from "@/components/FotoAnleitung";
@@ -1293,11 +1293,12 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
               originalton musik=""
               tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein}
-              teilen={
-                <TeilenKnopf rund url={`/themes/gutschein?utm_source=share`}
-                  text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                  label={T.teilen} kopiertLabel={T.zusDanke} />
-              } />
+              /* KEIN TEILEN AUF DER BAU-KARTE (Owner 10.08.2026: „was teilst du? Das?
+                 Schau dir das an 💋 …/themes/wedding?utm_source=share"). Hier gibt es noch
+                 nichts von IHM: Der Knopf verschickte unsere Verkaufsseite — mit dem
+                 Kussmund des Kuss-Themas obendrauf. Geteilt wird die fertige Einladung,
+                 und deren Knopf sitzt auf ihrer eigenen Karte (`EinladungTeilen`). */
+              /> 
           ) : bild ? (
             /* Derselbe Knopf auf dem eigenen Bild — hier heisst „Foto ersetzen" endlich
                woertlich, was es tut. Vorher war das ganze Bild ein unsichtbarer Knopf; wer
@@ -1374,11 +1375,30 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
                       originalton={gutschein}
                       musik={gutschein ? "" : undefined}
                       tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein}
-                      teilen={
-                        <TeilenKnopf rund url={`/themes/${gutschein ? "gutschein" : urlaub ? "holiday" : "wedding"}?utm_source=share`}
-                          text={TEILEN_TEXT[lang] ?? TEILEN_TEXT.en}
-                          label={T.teilen} kopiertLabel={T.zusDanke} />
-                      } />
+                      /**
+                        * GETEILT WIRD DIE VORLAGE, NICHT DIE VERKAUFSSEITE (Owner 10.08.2026:
+                        * „wir hatten mal eine Vorlage, die hätten wir doch teilen können").
+                        *
+                        * Hier stand `/themes/wedding?utm_source=share` — unsere Werbung, mit
+                        * dem Kussmund des Kuss-Themas obendrauf. Dabei gibt es `/einladung/
+                        * beispiel`: eine vollständige Muster-Einladung mit Zusagen, Menü und
+                        * Gruppenchat, gebaut mit genau diesem Zweck („Sie ist da, um sie
+                        * jemandem zu zeigen") — und bis heute von NIRGENDWO verlinkt.
+                        *
+                        * Wer noch baut, hat nichts Eigenes zum Verschicken. Er hat aber sehr
+                        * wohl etwas zu zeigen: „so wird unsere Einladung aussehen". Das ist
+                        * der Grund, warum jemand in diesem Moment auf Teilen tippt.
+                        *
+                        * NUR BEI DER HOCHZEIT: Die Vorlage ist eine Hochzeitseinladung (Ana &
+                        * Mihai, Menüwahl, Gruppenchat). Beim Urlaub und beim Gutschein wäre
+                        * sie das falsche Muster — dort bleibt der Knopf weg, bis es eine
+                        * eigene Vorlage gibt.
+                        */
+                      teilen={!gutschein && !urlaub ? (
+                        <TeilenKnopf rund url="/einladung/beispiel"
+                          text={VORLAGE_TEXT[lang] ?? VORLAGE_TEXT.en}
+                          label={T.teilen} kopiertLabel={T.teilen} />
+                      ) : undefined} />
                   ))} />
             </div>
             {/**

@@ -14,6 +14,7 @@ import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 /* Aus `lib`, nicht aus dem Baustein: PlanSlide ist ein Client-Modul, und von dort käme
    hier nur eine Client-Referenz an — die Kachel blieb dadurch ohne Bild. */
 import { resolveLang } from "@/lib/lang-server";
+import { VERSPRECHEN_VIDEO, VERSPRECHEN_POSTER } from "@/lib/versprechen";
 /* DAS ORIGINAL DER PORTAL-BESCHREIBUNG liegt in „Über uns" (Owner 10.08.2026) — von dort
    holen es Startseite und AGB, damit es nur EINE Fassung gibt. */
 import { aboutText } from "@/lib/about-i18n";
@@ -463,7 +464,17 @@ export default async function ThemesCatalog({ searchParams }: {
     { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    { icon: Heart, title: "Wedding invitation video", tagline: "Your invitation as a video — the two of you at your wedding. Send it on WhatsApp.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Your photo · His photo · Invitation", abPreis: AB_HOCHZEIT },
+    /**
+      * DIE KACHEL VERKAUFT DEN PLANER, NICHT NUR DAS VIDEO (Owner 10.08.2026: „es steht immer
+      * noch Hochzeitseinladungs-Video" — nachdem der Preis auf 29,99 € gegangen war).
+      *
+      * Für 29,99 € bekommt er das Video UND die laufende Seite: Einladung, Zusagenliste,
+      * Menüwahl, Gruppenchat, einen Monat lang. Eine Kachel, die nur „Video" sagt, lässt den
+      * Preis zu hoch aussehen — sie verspricht ein Drittel des Produkts. Der Satz ist derselbe,
+      * den die Landingpage als Anspruch trägt (`claim` in app/themes/wedding): ein Produkt,
+      * eine Formulierung.
+      */
+    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
@@ -546,7 +557,11 @@ export default async function ThemesCatalog({ searchParams }: {
       * wie jedes andere Thema im Haus. Cover und Beispielvideo kommen wie überall aus dem
       * Medien-Werkzeug (`/themes/versprechen?admin=1`), sobald der erste Lauf abgenommen ist.
       */
-    { icon: Target, title: "Send a promise", tagline: "Say it out loud — and let them see you where you are heading.", href: "/themes/versprechen", cover: versprechenCover || undefined, video: versprechenVideo || undefined, chips: "♥ Your video · Your words · Villa & car", abPreis: AB_VERSPRECHEN },
+    /* EIN VIDEO AUS EINER KONSTANTE (Dauerregel 07.08., Owner 10.08.2026: „hier fehlt auch"
+       — die Kachel stand ohne Bild da, weil sie nur aufs Medien-Werkzeug zeigte). Kachel und
+       Karte auf der Landingpage zeigen jetzt dasselbe Video mit demselben Standbild; ein
+       eigener Upload im Werkzeug sticht es weiterhin. */
+    { icon: Target, title: "Send a promise", tagline: "Say it out loud — and let them see you where you are heading.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your video · Your words · Villa & car", abPreis: AB_VERSPRECHEN },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.

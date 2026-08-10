@@ -17,7 +17,7 @@ import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
 import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
-import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
+import { readThemeConfig } from "@/lib/try-this-look-store";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { fillPrices } from "@/lib/pricing";
@@ -105,7 +105,18 @@ export default async function WeddingThemePage({ searchParams }: {
   const showCustomer = !showAdmin || view === "kunde";
 
   const cfg = await readThemeConfig("wedding").catch(() => ({ modelIds: [] as string[], examplePaths: [] as string[] }));
-  const examples: string[] = (await Promise.all((cfg.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
+  /**
+   * DAS ABGENOMMENE VIDEO STEHT VORN — dieselbe Regel wie beim Urlaub (Owner 10.08.2026,
+   * Dauerregel seit 07.08.): Die Katalog-Kachel zeigt `/Wedding/hochzeit-beispiel.mp4`, also
+   * beginnt die Karte auf dieser Seite mit demselben Video. Sein Poster liegt daneben
+   * (`hochzeit-beispiel.jpg`) — deshalb hat die Folie ein echtes Standbild statt eines
+   * Rückfalls.
+   *
+   * NUR AUS DEM EIGENEN ORDNER (Owner 10.08.2026: „keine Videos aus einem anderen Ordner
+   * nehmen"): Die Beispiele aus der Ablage (`cfg.examplePaths`) hängen nicht mehr mit
+   * daran. Was auf der Karte läuft, liegt sichtbar im Repo und ist abgenommen.
+   */
+  const examples: string[] = ["/Wedding/hochzeit-beispiel.mp4"];
 
   /**
    * DER TEXT UNTER DER KARTE — IN DER SPRACHE DES BESUCHERS (Owner 31.07.2026: „stimmen die

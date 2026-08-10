@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { readEinladungen } from "@/lib/try-this-look-store";
 import { resolveLang } from "@/lib/lang-server";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
+import EinladungTeilen from "@/components/EinladungTeilen";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
@@ -222,8 +223,27 @@ export default async function EinladungPage({ params, searchParams }: {
               /* Beim Gutschein ist die Tonspur das Produkt — Bellas bzw. ihre Stimme. Ohne
                  diese zwei Angaben legte `EinladungAnsicht` den Hochzeitsmarsch darüber und
                  schaltete das Video stumm (dieselbe Regel wie im Bau-Karussell). */
+              /**
+                * DER TEILEN-KNOPF GEHOERT AUF DIE KARTE (Owner 10.08.2026: „ich habe hier
+                * schon zwei teilen. Du muss es auf die Karte machen.").
+                *
+                * Diese Seite hatte gar keinen — wer seinen Planer gebaut hatte, stand vor
+                * einer Seite, deren Adresse er aus der Adresszeile klauben musste. Und der
+                * Knopf im Trichter teilte die THEMENSEITE, also unsere Werbung: „irgendwas,
+                * was keiner braucht". Hier teilt er das Einzige, was zaehlt — DIESE
+                * Einladung, die Adresse, unter der Zusagen, Menuewahl und Gruppenchat
+                * liegen.
+                *
+                * Auf der Karte und nicht daneben: Die Karte IST die Einladung; der Knopf
+                * sitzt dort, wo auch Ton und Vergroessern sitzen (Skill `card`).
+                */
               <EinladungAnsicht id={e.id} videoUrl={e.videoUrl}
                 originalton={gutschein} musik={gutschein ? "" : undefined}
+                /* Nur fuers Brautpaar — die Pruefung steckt im Baustein (siehe dort). Neben
+                   dem Link stehen die Namen, damit der Gast beim Auftauchen in WhatsApp
+                   sofort weiss, von wem die Einladung kommt. */
+                teilen={<EinladungTeilen id={e.id}
+                  text={[e.sie, e.er].filter(Boolean).join(" & ")} label={T.teilen} />}
                 tonText={T.ton} tonAusText={T.tonAus} grossText={T.gross} kleinText={T.klein} />
             ) : (
               /* PROBEWOCHE: das Gratis-Bild statt des Videos. Fuer den Gast sieht die Karte

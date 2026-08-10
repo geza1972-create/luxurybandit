@@ -11,7 +11,6 @@ import SeitenFuss from "@/components/SeitenFuss";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { fillPrices } from "@/lib/pricing";
-import { getSignedUrl } from "@/lib/try-this-look-store";
 
 /**
  * THEMA „URLAUBS-EINLADUNG" (Owner 04.08.2026: „du machst eine Invitation für Urlaub an
@@ -122,12 +121,26 @@ export default async function HolidayThemePage({ searchParams }: {
   // Das Beispielvideo in der leeren Karte — dasselbe, das im Themenkatalog läuft.
   /* ALLE Beispiele, nicht nur das erste — sie liegen jetzt als Karussell in EINER Karte
      (Owner 04.08.2026). So viele, wie im Speicher liegen; fehlende fallen still weg. */
-  const examples = (await Promise.all([
-    getSignedUrl("try-this-look/videos/holiday-example.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-2.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-3.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/holiday-example-4.mp4").catch(() => ""),
-  ])).filter(Boolean) as string[];
+  /**
+   * DAS ABGENOMMENE VIDEO STEHT VORN (Owner 10.08.2026: „Die Videos und poster liegen doch
+   * in Hollyday" — nachdem auf der Karte plötzlich ein Dessous-Standbild stand).
+   *
+   * Es ist die Dauerregel vom 07.08.: EIN Video für die Katalog-Kachel UND die Karte auf der
+   * Landingpage. Die Kachel zeigte längst `/Holiday/urlaub-beispiel.mp4`, die Karte vier
+   * andere aus der Ablage — zwei Quellen, zwei Versprechen. Wer aus dem Katalog klickt,
+   * muss dasselbe wiedersehen, sonst bricht er ab.
+   *
+   * Und es löst das Poster gleich mit: Neben der Repo-Datei liegt `urlaub-beispiel.jpg`,
+   * also greift die Regel „aus .mp4 wird .jpg" wieder. Bei signierten Ablage-Adressen kann
+   * sie das nicht (der Anhang `?token=…` macht daraus keine Bildadresse).
+   *
+   * NUR AUS DEM EIGENEN ORDNER (Owner 10.08.2026: „keine Videos aus einem anderen Ordner
+   * nehmen"). Hier hingen vier weitere aus der Ablage (`holiday-example…mp4`) als Folien
+   * 2 bis 5 — darunter ein Dessous-Video. Sie waren nie abgenommen, sie waren nur
+   * unsichtbar, weil ohne Poster eine dunkle Fläche davor stand. Eine Urlaubs-Einladung,
+   * die mit Wäsche wirbt, verspricht etwas anderes als das Produkt.
+   */
+  const examples = ["/Holiday/urlaub-beispiel.mp4"];
 
   /* Englische Quelle im Code, Übersetzung zur Laufzeit mit Dauer-Cache — dieselbe Lösung wie
      auf der Hochzeitsseite. Sieben handgepflegte Tabellen je Seite altern beim ersten

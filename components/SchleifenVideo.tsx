@@ -189,7 +189,30 @@ export default function SchleifenVideo({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={poster} alt="" className={natuerlich ? `block h-auto w-full ${className}` : gemeinsam} />
         ) : (
-          <div className="absolute inset-0 lb-media-bg" />
+          /**
+           * OHNE POSTERDATEI: DAS ERSTE BILD DES VIDEOS (Owner 10.08.2026, mit Bild der
+           * Hochzeitskarte: „Video poster fehlen").
+           *
+           * Hier stand eine dunkle Fläche — und die stand überall dort, wo das Standbild
+           * nicht als Datei danebenliegt. Das trifft ALLE Beispiele aus der Ablage: Ihre
+           * Adressen sind signiert (`…mp4?token=…`), und die Regel „aus .mp4 wird .jpg"
+           * kann daraus keine gültige Bildadresse machen. Ergebnis: schwarzer Kasten mit
+           * Playknopf — genau das, was die Hausregel verbietet („nie ein schwarzer
+           * Bildschirm", [[video-playback-behavior]]).
+           *
+           * `preload="metadata"` lädt nur den Kopf der Datei (wenige Zehnerkilobyte), nicht
+           * das Video — der Grundsatz „keine Megabyte vor dem Tipp" bleibt gewahrt. Der
+           * Sprung auf 0,1 s ist die Wache für Safari: Ohne ihn zeigt iOS gelegentlich
+           * weiter Schwarz, obwohl der Kopf da ist.
+           *
+           * Eine echte Posterdatei bleibt das Bessere (sie lädt in einem Wimpernschlag und
+           * kostet null Bytes Video); dieser Zweig ist der Rückfall, damit nie wieder ein
+           * schwarzes Feld erscheint, weil jemand vergessen hat, eines abzulegen.
+           */
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video src={src} muted playsInline preload="metadata"
+            onLoadedMetadata={e => { try { e.currentTarget.currentTime = 0.1; } catch { /**/ } }}
+            className={natuerlich ? `block h-auto w-full ${className}` : gemeinsam} />
         )}
         {start === undefined && (
           <button type="button" aria-label="Play" onClick={() => setGestartet(true)}

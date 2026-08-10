@@ -465,7 +465,20 @@ export function chatPriceId(): string {
 // 29 UND NICHT 30 (Owner 05.08.2026: das Abo ist mit 29/Monat in Stripe angelegt). Die runden
 // Zahlen gelten fuer die Geschenke und die Aufladeleiter; die beiden Abos behalten die Preise,
 // die im Stripe-Konto stehen — massgeblich ist immer, was die Kasse wirklich nimmt.
-export const HOCHZEIT_START_CENTS = 2900;           // 29 € — der Kauf, erster Monat inklusive
+/**
+ * DER HOCHZEITS-PLANER — 29,99 € EINMAL, EIN MONAT DRIN (Owner 10.08.2026: „Es kostet eifach
+ * nur 29,99 dann wird ein Video gemacht und wird alles zur verfügung gestellt. Ein Monat lang
+ * gilt es, dann muss er das für 14,99 im monat verlängern. Abo.").
+ *
+ * Damit ist die Hochzeit das EINZIGE Abo im Haus (Memory `nur-ein-abo-hochzeitsseite`) — und
+ * das aus gutem Grund: Was er kauft, ist keine Datei, sondern eine LAUFENDE Seite (Einladung,
+ * Zusagenliste, Menüwahl, Gruppenchat). Die kostet uns jeden Monat Betrieb, also kostet sie
+ * jeden Monat Geld. Bei einem Geschenk wäre ein Abo falsch — dort verschickt man eine Datei
+ * und ist fertig.
+ *
+ * Vorher 29,00 €. Die Verlängerung steht unverändert in VERLAENGERUNG_MONAT_CENTS.
+ */
+export const HOCHZEIT_START_CENTS = 2999;           // 29,99 € — der Kauf, erster Monat inklusive
 
 /**
  * DIE VERLAENGERUNG KOSTET WENIGER ALS DER KAUF (Owner 05.08.2026, zum Hochzeitsplaner: „aber

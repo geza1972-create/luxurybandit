@@ -37,7 +37,7 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
  * isst nicht mit; `menu` bleibt dann leer.
  */
 export type Menu = "normal" | "vegetarisch" | "vegan";
-export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu; personen?: number };
+export type Zusage = { name: string; ja: boolean; at?: string; email?: string; menu?: Menu; menus?: Menu[]; personen?: number };
 
 /**
  * WANN DIE ANTWORT KAM — kurz, in der Sprache des Lesers.
@@ -83,12 +83,42 @@ export default function ZusagenKarte({
   // Anfangswert nur einmal — ändert sich die Liste danach (z. B. Demo-Namen), bliebe `liste`
   // stehen, ohne dass es hier bislang aufgefallen ist.
   useEffect(() => { setListe(zusagen); }, [zusagen]);
+  /**
+   * IM DEMO STEHT EINE FESTE ADRESSE UND IST GESPERRT (Owner 10.08.2026: „bei email soll
+   * gesperrt sein example@luxurybandit.com").
+   *
+   * Zwei Gründe, und beide sind gut: Der Besucher soll die Zusage bis zum Ende durchspielen
+   * können, ohne seine echte Adresse in ein Formular zu tippen, das nichts speichert — und
+   * WIR wollen sie an dieser Stelle gar nicht haben. Ein gesperrtes Feld sagt beides in einer
+   * Sekunde: „das gehört dazu, aber hier zählt es nicht".
+   */
+  const DEMO_MAIL = "example@luxurybandit.com";
   const [name, setName] = useState("");
-  const [mail, setMail] = useState("");
-  const [menu, setMenu] = useState<Menu>("normal");
+  const [mail, setMail] = useState(demo ? DEMO_MAIL : "");
+  /**
+   * EIN MENÜ JE PERSON (Owner 10.08.2026: „so jetzt haben wir ein problem, wenn wir 2
+   * schreiben und nur einer ist vegetarier?" · „also zahl muss über Menü stehen").
+   *
+   * Vorher gab es EINE Menüwahl und daneben eine Anzahl — „2 Personen · vegetarisch" hiess
+   * für die Küche zwangsläufig ZWEI vegetarische Essen. Wer zu zweit kommt und nur einer
+   * isst vegetarisch, konnte es gar nicht sagen; er musste eins von beiden falsch wählen.
+   * Und der Caterer bekommt die Zahl, nach der er kocht, falsch.
+   *
+   * Deshalb steht die ZAHL jetzt oben: Erst sagt er, wie viele kommen, dann erscheint für
+   * jeden eine eigene Menüzeile. Bei einer Person ist es genau wie vorher — eine Zeile, ein
+   * Tipp; die zweite Zeile taucht erst auf, wenn sie gebraucht wird.
+   */
+  const [menus, setMenus] = useState<Menu[]>(["normal"]);
+  const menu = menus[0];
   // Gästezahl hinter DIESER Zusage (Ä10, Owner 02.08.2026: „die Gästezahl muss noch klar
   // stehen"). Vorgabe 1 wie beim Menü — nie leer, klicken statt tippen.
-  const [personen, setPersonen] = useState(1);
+  const [personen, setPersonenRoh] = useState(1);
+  /* Die Zahl fuehrt: Wer sie aendert, bekommt genau so viele Menuezeilen — bestehende Wahlen
+     bleiben stehen, neue starten auf „Normal". */
+  const setPersonen = (n: number) => {
+    setPersonenRoh(n);
+    setMenus(alt => Array.from({ length: n }, (_, i) => alt[i] ?? "normal"));
+  };
   const [busy, setBusy] = useState(false);
   const [fertig, setFertig] = useState(false);
 
@@ -100,19 +130,52 @@ export default function ZusagenKarte({
 
   const antworten = async (kommt: boolean) => {
     const n = name.trim();
-    if (!n || !mailOk || !id || busy) return;
+    if (!n || !mailOk || busy) return;
+    if (!demo && !id) return;
+    /**
+     * IM DEMO WIRD GETIPPT, ABER NICHTS GESPEICHERT (Owner 10.08.2026: „wenn man etwas auch
+     * da rein schreiben könnte, aber ohne zu speichern. Wie es halt im echten halt ist.
+     * Damit die Leute das gleich testen").
+     *
+     * Vorher stand die Karte auf der Verkaufsseite nur zum ANSEHEN da — ein Bild von einem
+     * Formular. Wer wissen will, wie sich das Zusagen anfühlt, muss es TUN dürfen: Name
+     * eintippen, Menü wählen, auf „Ich komme" tippen, den eigenen Namen in der Liste
+     * auftauchen sehen. Genau das verkauft die Seite, und es kostet uns nichts.
+     *
+     * Der Aufruf an den Server entfällt komplett — keine fremde Zusage in einer echten
+     * Einladung, keine Adresse in unserer Ablage, kein Datensatz, den nachher jemand löschen
+     * muss. Es lebt nur im Bildschirm dieses Besuchers und ist beim Neuladen weg.
+     */
+    if (demo) {
+      /**
+       * IM MUSTER BLEIBT DAS FORMULAR STEHEN (Owner 10.08.2026: „nein nicht Danke — wir
+       * freuen uns! er soll weitere eintragen können").
+       *
+       * Auf der ECHTEN Einladung ist „Danke" richtig: Ein Gast antwortet einmal, und der
+       * Satz schliesst die Sache ab. Hier probiert jemand aus — der will eine zweite Zusage
+       * eintragen, mit zwei Personen und anderem Menü, um zu sehen, wie die Liste waechst.
+       * Ein Dank, der das Formular wegnimmt, beendet genau das Ausprobieren, das diese
+       * Karte verkaufen soll.
+       */
+      setListe(l => [...l, { name: n, ja: kommt, ...(kommt && !schlicht ? { menu, menus, personen } : {}) }]);
+      setName(""); setPersonen(1);
+      return;
+    }
     setBusy(true);
     // Das Menü zaehlt nur bei einer Zusage — wer absagt, isst nicht mit.
     const r = await fetch("/api/einladung", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt && !schlicht ? menu : undefined, personen: kommt && !schlicht ? personen : undefined }),
+      /* `menus` ist die neue, genaue Angabe (eine Wahl je Person); `menu` reist als ERSTE
+         Wahl weiter mit, damit alles, was die alte Form liest (Mails, Auswertungen, aeltere
+         Ansichten), nicht ins Leere greift. */
+      body: JSON.stringify({ rsvp: id, name: n, ja: kommt, email: mail.trim(), menu: kommt && !schlicht ? menu : undefined, menus: kommt && !schlicht ? menus : undefined, personen: kommt && !schlicht ? personen : undefined }),
     }).catch(() => null);
     setBusy(false);
     if (!r?.ok) return;
     // Sofort anzeigen, statt die Seite neu zu laden — die Antwort soll sich anfuehlen wie
     // ein Haendedruck, nicht wie ein Formular.
-    setListe(l => [...l, { name: n, ja: kommt, menu: kommt && !schlicht ? menu : undefined, personen: kommt && !schlicht ? personen : undefined }]);
-    setName(""); setMail(""); setMenu("normal"); setPersonen(1);
+    setListe(l => [...l, { name: n, ja: kommt, ...(kommt && !schlicht ? { menu, menus, personen } : {}) }]);
+    setName(""); setMail(""); setPersonen(1);
     setFertig(true);
   };
 
@@ -155,18 +218,37 @@ export default function ZusagenKarte({
                 {/* NUR WENN ES VOM NORMALEN ABWEICHT — „normal" ist der Regelfall, ein Etikett
                     dafür wäre Rauschen. Vegetarisch/vegan ist genau die Information, für die
                     das Paar beim Caterer nachfragen muss. */}
-                {z.ja && z.menu && z.menu !== "normal" && (
-                  <span className="lb-karte-gold shrink-0 text-[10px] font-black uppercase tracking-wide opacity-80">
-                    {z.menu === "vegan" ? T.zusMenuVegan : T.zusMenuVeg}
-                  </span>
-                )}
+                {z.ja && (() => {
+                  /**
+                   * WAS DIE KUECHE BRAUCHT, STEHT AM EINTRAG (Owner 10.08.2026).
+                   *
+                   * Frueher stand hier nur EINE Marke, und „normal" wurde weggelassen — bei
+                   * zwei Personen mit verschiedenem Essen war die Zeile schlicht falsch.
+                   * Jetzt wird gezaehlt: „1 vegetarisch" bzw. „1 normal · 1 vegan".
+                   *
+                   * ALTE ZUSAGEN LESEN SICH WEITER: Fehlt `menus`, wird aus `menu` und
+                   * `personen` dieselbe Liste gebildet (2 Personen, vegetarisch = zweimal
+                   * vegetarisch) — so wie es damals gemeint war.
+                   */
+                  const liste = z.menus?.length ? z.menus : Array.from({ length: z.personen ?? 1 }, () => z.menu ?? "normal");
+                  const zaehl = liste.reduce((m, w) => ({ ...m, [w]: (m[w] ?? 0) + 1 }), {} as Record<string, number>);
+                  const wort: Record<string, string> = { normal: T.zusMenuNormal, vegetarisch: T.zusMenuVeg, vegan: T.zusMenuVegan };
+                  /* Eine Person, die normal isst, braucht keine Zeile — das ist der Regelfall. */
+                  if (liste.length === 1 && liste[0] === "normal") return null;
+                  return (
+                    <span className="ml-2 font-serif text-[11px] uppercase tracking-wide opacity-60">
+                      {Object.entries(zaehl).map(([w, n]) => `${n} ${wort[w] ?? w}`).join(" · ")}
+                    </span>
+                  );
+                })()}
               </li>
             ))}
           </ul>
         )}
 
-        {/* Auf der Verkaufsseite steht die Karte nur zum Ansehen da. */}
-        {id && !demo && (
+        {/* Auf der Verkaufsseite darf man es AUSPROBIEREN — getippt wird, gespeichert nicht
+            (siehe `antworten`). */}
+        {(id || demo) && (
           fertig ? (
             <p className="mt-4 text-center font-serif text-[15px] font-bold">{T.zusDanke}</p>
           ) : (
@@ -178,9 +260,10 @@ export default function ZusagenKarte({
               {/* DIE ADRESSE DES GASTES (Owner 31.07.2026). Der Satz darunter ist Pflicht und
                   keine Zierde: Wer eine Adresse verlangt, muss an derselben Stelle sagen,
                   wofür — und hier ist die Antwort ehrlich, weil sie dem Gast selbst nützt. */}
-              <input value={mail} onChange={e => setMail(e.target.value)} placeholder={T.zusMail}
+              <input value={mail} onChange={e => { if (!demo) setMail(e.target.value); }} placeholder={T.zusMail}
                 type="email" inputMode="email" maxLength={160} autoComplete="email"
-                className="lb-karte-feld mt-2 h-11 w-full rounded-lg px-3 text-center font-serif text-[15px] outline-none" />
+                readOnly={demo} aria-readonly={demo || undefined} tabIndex={demo ? -1 : undefined}
+                className={`lb-karte-feld mt-2 h-11 w-full rounded-lg px-3 text-center font-serif text-[15px] outline-none${demo ? " cursor-not-allowed opacity-60" : ""}`} />
               {/* Der Grund steht am Feld, und der Weg zum Nachlesen daneben — ein Gast, der
                   seine Adresse hergibt, soll nicht erst eine Fusszeile suchen muessen. */}
               <p className="mt-1.5 text-center font-serif text-[11.5px] leading-snug opacity-70">
@@ -197,20 +280,10 @@ export default function ZusagenKarte({
                   beim Absenden nur nicht mitgeschickt. */}
               {/* Menü und Gästezahl nur bei der Hochzeit — siehe `schlicht` oben. */}
               {!schlicht && (<>
-                <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
-                  {T.zusMenuFrage}
-                </p>
-                <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(26,22,15,0.07)" }}>
-                  {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([m, label]) => (
-                    <button key={m} type="button" onClick={() => setMenu(m)}
-                      className={`${menu === m ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {/* GÄSTEZAHL HINTER DER ZUSAGE (Ä10c, Owner 02.08.2026: „die Gästezahl muss noch
-                    klar stehen"). EXAKT dasselbe Knopf-Muster wie die Menü-Chips darüber:
-                    klicken statt tippen, Chips nie leer, Vorgabe 1. */}
+                {/* ZUERST DIE ZAHL (Owner 10.08.2026: „also zahl muss über Menü stehen").
+                    Sie fuehrt: Wie viele kommen, entscheidet, wie viele Menuezeilen es gibt.
+                    Umgekehrt — Menue zuerst — kann man die zweite Person nicht mehr
+                    unterbringen, ohne die erste zu ueberschreiben. */}
                 <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
                   {T.zusWieViele}
                 </p>
@@ -222,6 +295,28 @@ export default function ZusagenKarte({
                     </button>
                   ))}
                 </div>
+
+                {/* DANN DAS MENUE — je Person eine Zeile. Bei einer Person steht keine
+                    Nummer davor: „Person 1" waere dort eine Frage ohne zweite Antwort. */}
+                <p className="mt-2.5 text-center font-serif text-[11px] font-bold uppercase tracking-wide opacity-70">
+                  {T.zusMenuFrage}
+                </p>
+                {menus.map((m, i) => (
+                  <div key={i} className="mt-1.5 flex items-center gap-2">
+                    {personen > 1 && (
+                      <span className="w-5 shrink-0 text-center font-serif text-[12px] font-bold opacity-60">{i + 1}</span>
+                    )}
+                    <div className="grid flex-1 grid-cols-3 gap-1 rounded-full p-1" style={{ background: "rgba(26,22,15,0.07)" }}>
+                      {([["normal", T.zusMenuNormal], ["vegetarisch", T.zusMenuVeg], ["vegan", T.zusMenuVegan]] as const).map(([w, label]) => (
+                        <button key={w} type="button"
+                          onClick={() => setMenus(a => a.map((x, k) => (k === i ? w : x)))}
+                          className={`${m === w ? "lb-karte-cta" : ""} h-9 rounded-full px-1 text-[11.5px] font-black leading-tight transition active:scale-95`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </>)}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => void antworten(true)} disabled={!name.trim() || !mailOk || busy}

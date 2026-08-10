@@ -150,6 +150,11 @@ async function gutscheinMailen(e: Einladung, origin: string): Promise<{ empfaeng
 // POST { news: id, text, device }                                          → { ok, empfaenger }
 // POST { pruefen: id, device }                                            → { darf }
 // POST { edit: id, device, sie, er, datum, ort, adresse, telefon }        → { ok }
+/** Kam gar keine Menue-Angabe (Urlaub, schlichte Karte), bleibt die Liste leer. */
+function schlichtOhneMenue(menu: unknown, menus: unknown[]): boolean {
+  return !menu && (!Array.isArray(menus) || menus.length === 0);
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
@@ -214,7 +219,28 @@ export async function POST(request: Request) {
     // Gästezahl hinter dieser EINEN Zusage (Owner 02.08.2026: „die Gästezahl muss noch klar
     // stehen") — geklemmt auf 1–10, nur bei einer Zusage gespeichert, wer absagt zählt nicht mit.
     const personen = Math.max(1, Math.min(10, Math.round(Number(body.personen) || 1)));
-    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail, menu, personen: ja ? personen : undefined };
+    /**
+     * EIN MENUE JE PERSON (Owner 10.08.2026: „wenn wir 2 schreiben und nur einer ist
+     * vegetarier?").
+     *
+     * `menu` allein war die Falle: „2 Personen · vegetarisch" heisst fuer die Kueche zwei
+     * vegetarische Essen — dabei isst vielleicht nur einer so. Der Caterer kocht nach dieser
+     * Zahl, also muss sie stimmen.
+     *
+     * Der Browser sagt WELCHE Wahl je Person; erlaubt sind nur die drei bekannten Woerter,
+     * und die Liste wird auf die Personenzahl zurechtgeschnitten — was daneben liegt, faellt
+     * weg statt eine erfundene Angabe zu speichern. `menu` bleibt als ERSTE Wahl erhalten,
+     * damit Mails und aeltere Ansichten weiterlesen koennen.
+     */
+    const erlaubt = ["normal", "vegetarisch", "vegan"] as const;
+    const menusRoh = Array.isArray(body.menus) ? body.menus : [];
+    const menus = ja && !schlichtOhneMenue(menu, menusRoh)
+      ? Array.from({ length: personen }, (_, i) => {
+          const w = sauber(menusRoh[i], 20);
+          return (erlaubt as readonly string[]).includes(w) ? w as typeof erlaubt[number] : (menu ?? "normal");
+        })
+      : undefined;
+    const eintrag = { name, ja, at: new Date().toISOString(), email: gastMail, menu, menus, personen: ja ? personen : undefined };
     for (let versuch = 0; versuch < 4; versuch++) {
       const alle = await readEinladungen();
       const e = alle.find(x => x.id === rsvp);

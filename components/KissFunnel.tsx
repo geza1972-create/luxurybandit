@@ -19,7 +19,8 @@ import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
-import { TEILEN_TEXT, TEILEN_TEXT_GEBURTSTAG } from "@/components/BeispielGalerie";
+/* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
+import { teilenText } from "@/components/BeispielGalerie";
 import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
@@ -1117,7 +1118,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * einer neuen Vorschau. Für den Empfänger ändert sich nichts; die Seite ignoriert ihn.
      */
     const url = `${window.location.origin}/w/${encodeURIComponent(genId)}?l=${encodeURIComponent(String(lang).slice(0, 2))}&utm_source=share&v=${Date.now().toString(36)}`;
-    const text = (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en;
+    const text = teilenText(variant, lang);
     try {
       if (navigator.share) { await navigator.share({ title: text, text, url }); return; }
     } catch { return; }   // abgebrochen ist kein Nein zur Freigabe, nur keins zum Senden
@@ -3558,7 +3559,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   </button>
                 ) : (
                   <TeilenKnopf rund datei={videoUrl} dateiName={variant}
-                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
+                    text={teilenText(variant, lang)}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
                 )} />
@@ -3628,7 +3629,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   </button>
                 ) : (
                   <TeilenKnopf rund datei={bild} dateiName={variant}
-                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
+                    text={teilenText(variant, lang)}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke}
                     className={`absolute right-3 z-30 ${V.musik ? "top-16" : "top-3"}`} />
@@ -3693,7 +3694,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                    gewinnt die Auskunft. Den Platz bestimmt jetzt die Karte (Skill `card`). */
                 teilen={karteRendert ? undefined : (
                   <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : variant === "versprechen" ? "versprechen" : "kiss"}?utm_source=share`}
-                    text={(variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT)[lang] ?? (variant === "birthday" ? TEILEN_TEXT_GEBURTSTAG : TEILEN_TEXT).en}
+                    text={teilenText(variant, lang)}
                     label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
                     kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
                 )} />

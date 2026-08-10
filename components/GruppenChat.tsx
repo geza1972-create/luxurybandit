@@ -103,7 +103,17 @@ export default function GruppenChat({
 
   const senden = async () => {
     const n = name.trim(), t = text.trim();
-    if (!n || !t || !id || busy) return;
+    if (!n || !t || busy) return;
+    if (!demo && !id) return;
+    /* Im Demo schreibt er mit und sieht seine Nachricht sofort im Verlauf — gespeichert wird
+       nichts (Owner 10.08.2026: „ohne zu speichern. Wie es halt im echten halt ist"). Ein
+       Gruppenchat, den man nur ansehen kann, beweist nichts; einer, in den man schreibt, in
+       einer Sekunde alles. Nichts davon verlässt diesen Bildschirm. */
+    if (demo) {
+      setListe(l => [...l, { name: n, text: t }]);
+      setText("");
+      return;
+    }
     setBusy(true);
     const r = await fetch("/api/einladung", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -185,7 +195,7 @@ export default function GruppenChat({
           </ul>
         )}
 
-        {id && !demo && (
+        {(id || demo) && (
           <div className="mt-4">
             <DividerOrnament />
             <input value={name} onChange={e => setName(e.target.value)} placeholder={T.zusName}

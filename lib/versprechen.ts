@@ -81,3 +81,12 @@ export const VERSPRECHEN_SET = "/Versprechen/look-villa.png";
  * die Datei liegt im Repo, es wird nie wieder erzeugt.
  */
 export const VERSPRECHEN_VIDEO = "/Versprechen/promise-example.mp4";
+
+/**
+ * DAS STANDBILD ZUM BEISPIELVIDEO — dieselbe Datei für die Katalog-Kachel und für die Karte
+ * auf der Landingpage (Owner 10.08.2026: „hier fehlt auch", zur Kachel ohne Bild).
+ *
+ * Es liegt neben dem Video und heisst wie es: Damit greift auch die Hausregel „aus .mp4 wird
+ * .jpg", ohne die eine Karte ohne Poster eine dunkle Fläche zeigt.
+ */
+export const VERSPRECHEN_POSTER = "/Versprechen/promise-example.jpg";
