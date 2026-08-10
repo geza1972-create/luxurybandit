@@ -20,7 +20,7 @@ import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { TEILEN_TEXT, TEILEN_TEXT_GEBURTSTAG } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, ABSAGE_ROT } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, ABSAGE_ROT } from "@/components/CI";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { kontoText } from "@/lib/konto-i18n";
 /**
@@ -259,14 +259,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string; abbrechen: string }> = {
-  en: { frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now", abbrechen: "Cancel" },
-  de: { frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten", abbrechen: "Abbrechen" },
-  ro: { frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum", abbrechen: "Anulează" },
-  es: { frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora", abbrechen: "Cancelar" },
-  fr: { frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant", abbrechen: "Annuler" },
-  pt: { frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora", abbrechen: "Cancelar" },
-  it: { frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; aufTitel: string; aufHinweis: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string; abbrechen: string }> = {
+  en: { aufTitel: "Record yourself", aufHinweis: "Speak clearly, short and to the point. The better the recording, the more it looks like you — 100 % we cannot promise.", frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now", abbrechen: "Cancel" },
+  de: { aufTitel: "Nimm dich auf", aufHinweis: "Sprich klar und deutlich, kurz und knapp. Je besser die Aufnahme, desto ähnlicher das Video — 100 % garantieren wir nicht.", frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten", abbrechen: "Abbrechen" },
+  ro: { aufTitel: "Filmează-te", aufHinweis: "Vorbește clar, scurt și la obiect. Cu cât înregistrarea e mai bună, cu atât seamănă mai mult cu tine — 100 % nu garantăm.", frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum", abbrechen: "Anulează" },
+  es: { aufTitel: "Grábate", aufHinweis: "Habla claro, breve y directo. Cuanto mejor la grabación, más se parece a ti — el 100 % no lo garantizamos.", frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora", abbrechen: "Cancelar" },
+  fr: { aufTitel: "Filme-toi", aufHinweis: "Parle clairement, court et net. Meilleur est l'enregistrement, plus ça te ressemble — le 100 % n'est pas garanti.", frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant", abbrechen: "Annuler" },
+  pt: { aufTitel: "Filma-te", aufHinweis: "Fala com clareza, curto e direto. Quanto melhor a gravação, mais se parece contigo — 100 % não garantimos.", frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora", abbrechen: "Cancelar" },
+  it: { aufTitel: "Filmati", aufHinweis: "Parla chiaro, breve e diretto. Migliore è la registrazione, più ti somiglia — il 100 % non è garantito.", frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
 };
 
 /**
@@ -310,8 +310,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * die ehrlichste Wahl: Er erzeugt, während er genau dieses Video ansieht.
    */
   const [beispielVorn, setBeispielVorn] = useState(0);
-  // Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
-  const T = kissText(lang, variant);
+  /**
+   * Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
+   *
+   * DIE SEKUNDENZAHL WIRD HIER EINMAL GEFÜLLT (Owner 09.08.2026, mit Bild des Kaufknopfs:
+   * „ich sehe {sek} — das ist nicht gut").
+   *
+   * Der Platzhalter kam heute in die Sprachtabellen, damit die Zahl nicht siebenmal
+   * abgeschrieben werden muss. Gefüllt habe ich ihn zuerst nur an EINER Anzeigestelle —
+   * die zweite zeigte ihn roh. Genau dieselbe Falle wie bei den Preisen, und dieselbe
+   * Lösung: einmal an der Quelle ersetzen, nicht an jeder Stelle, die ihn anzeigt.
+   */
+  const T = (() => {
+    const roh = kissText(lang, variant);
+    return roh.ctaVideo?.includes("{sek}")
+      ? { ...roh, ctaVideo: roh.ctaVideo.replace("{sek}", String(AUFNAHME_SEK)) }
+      : roh;
+  })();
   // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
   // Kiss-Durchläufe standen nur im eigenen kiss-log, und wo die Leute abspringen, war
   // nicht zu sehen. Alle Trichter benutzen dieselben sechs Namen, damit man sie
@@ -515,6 +530,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * und nerven.
    */
   const [anmeldeOffen, setAnmeldeOffen] = useState(false);
+  /** Der Dialog spricht anders, wenn wir WISSEN, dass sein Geld dort liegt. */
+  const [guthabenGesperrt, setGuthabenGesperrt] = useState(false);
   const nachAnmeldeWeiter = useRef(false);
   /* Die Anmelde-Texte leben in derselben Tabelle wie Konto und Galerie (sieben Sprachen). */
   const KT = kontoText(lang);
@@ -527,9 +544,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     try { localStorage.setItem("lb_anmelde_gesehen", "1"); } catch { /* privater Modus */ }
   };
   /** Zur Anmeldung — und danach zurück auf genau diese Seite, damit sein Werk wartet. */
+  /**
+   * DIE AUFNAHME ÜBERLEBT DIE ANMELDUNG (Owner 09.08.2026: „nach der Anmeldung mit Google
+   * springe ich leider zurück auf die Topic-Seite" · „ich muss auf Schritt zwei bleiben").
+   *
+   * Der Rückweg selbst stimmte — er landete auf `/themes/birthday`. Nur nützt ihm das
+   * nichts: Der Anmeldeweg führt über Google und lädt die Seite neu, und dabei sind
+   * Standbild und Tonspur weg. Er müsste sich noch einmal filmen, nur weil er sein eigenes
+   * Guthaben benutzen wollte — der sicherste Weg, ihn zu verlieren.
+   *
+   * Also wird die Aufnahme vorher weggelegt und danach zurückgeholt. Zwei Stunden reichen
+   * dafür; wer später wiederkommt, fängt bewusst neu an, statt ein vergessenes Gesicht
+   * vorgesetzt zu bekommen. Schlägt das Wegpacken fehl (voller Speicher), geht die
+   * Anmeldung trotzdem weiter — dann fehlt nur der Komfort, nicht der Weg.
+   */
+  const AUFN_KEY = `lb_kiss_aufn_${variant}`;
   const zurAnmeldung = () => {
     anmeldeMerken();
     try { localStorage.setItem("lb_kiss_mail", mail.trim().toLowerCase()); } catch { /**/ }
+    try {
+      if (customModel) {
+        localStorage.setItem(AUFN_KEY, JSON.stringify({
+          bild: customModel, ton: tonspur || aufnahme || "", look, empfaenger, at: Date.now(),
+        }));
+      }
+    } catch { /* Speicher voll — dann eben ohne */ }
     const zurueck = `${window.location.pathname}${window.location.search}`;
     window.location.href = `/login?returnTo=${encodeURIComponent(zurueck)}`;
   };
@@ -795,6 +834,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); track("aufnahme_kurz"); return; }
           setAufnahmeFehler("");
           setAufnahmeUrl(url);   // bleibt bestehen — daraus spielt der Spieler
+          /**
+           * NACH DER AUFNAHME ZUM VIDEO SPRINGEN (Owner 09.08.2026: „Nachdem das
+           * Dialogfenster mit der Aufnahme geschlossen wird, muss zum Video nach unten
+           * springen").
+           *
+           * Das Vollbild verschwindet, und er steht wieder irgendwo auf der Landingpage —
+           * meistens ganz oben, weit über dem, was er gerade gemacht hat. Sein Standbild und
+           * der Kaufknopf liegen unten. Ohne diesen Sprung sucht er beides.
+           *
+           * Kurz verzögert, weil die Karte im selben Atemzug erst entsteht (das Standbild
+           * setzt sie); ohne die Pause zielte der Sprung auf ein Element, das es noch nicht
+           * gibt. Dieselben 150 ms wie beim Start der Erzeugung.
+           */
+          setTimeout(() => (schrittZweiRef.current ?? karteRef.current ?? resultRef.current)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
           setCustomModel(bild); setUseCustom(true);
           const leser = new FileReader();
           leser.onloadend = () => setAufnahme(String(leser.result || ""));
@@ -1241,6 +1295,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
   const resultRef = useRef<HTMLDivElement>(null); // Radar/Ergebnis — der Screen springt dorthin
   const karteRef = useRef<HTMLDivElement>(null);  // die Karte oben — dort steht das fertige Bild
+  /** „2 · Dein Geburtstagsvideo" — dorthin springt es, sobald die Aufnahme steht. */
+  const schrittZweiRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     // Model-Grid: Admin-Auswahl des eigenen Themas (leer = alle Models).
@@ -1309,6 +1365,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       else if (roh) localStorage.removeItem(GEN_KEY);
     } catch { /**/ }
     try { const n = localStorage.getItem(nameKey(variant)); if (n) setEmpfaenger(n); } catch { /**/ }
+    /* Die weggelegte Aufnahme zurückholen (siehe `zurAnmeldung`) — samt Schritt und Sprung. */
+    try {
+      const roh = localStorage.getItem(`lb_kiss_aufn_${variant}`);
+      const a = roh ? JSON.parse(roh) as { bild?: string; ton?: string; look?: string; empfaenger?: string; at?: number } : null;
+      if (a?.bild && a.at && Date.now() - a.at < 7_200_000) {
+        setCustomModel(a.bild); setUseCustom(true);
+        if (a.ton) { setTonspur(a.ton); setAufnahme(a.ton); }
+        if (a.look) setLook(a.look);
+        if (a.empfaenger) setEmpfaenger(a.empfaenger);
+        setSchritt(3); setStufenOffen(true);
+        setTimeout(() => schrittZweiRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+      }
+      if (roh) localStorage.removeItem(`lb_kiss_aufn_${variant}`);
+    } catch { /**/ }
     try {
       const konto = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
       const e = String(konto || localStorage.getItem(MAIL_KEY) || "").trim();
@@ -2052,12 +2122,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * Server — eine Anmeldung braucht es nicht, das Guthaben hängt an der Adresse.
        */
       let stand = guthabenCents ?? 0;
+      /**
+       * ERST FRAGEN, OB DORT GELD LIEGT — DANN ERST ZUR KASSE (Owner 09.08.2026: „er muss
+       * seine E-Mail zwei mal angeben, ein mal im Trichter, dann wird geprüft ob er Geld
+       * drauf hat. Hat er, dann muss er sich anmelden. Hat er nicht, dann geht er zum
+       * Stripe").
+       *
+       * `gesperrt` heisst: Auf DIESER Adresse liegt Guthaben, aber dieser Browser darf es
+       * nicht ausgeben (Geräte-Riegel). Ihn jetzt zur Kasse zu schicken hiesse, ihn ein
+       * zweites Mal für etwas zahlen zu lassen, das er schon bezahlt hat. Also führt der
+       * Weg hier zur Anmeldung — und nur, wenn wirklich nichts da ist, zu Stripe.
+       */
+      let gesperrt = false;
       if (V.nurGuthaben && stand < videoPreisCents) {
         try {
           const frisch = await guthabenLesen(mail.trim());
-          if (frisch) { stand = frisch.cents; setGuthabenCents(frisch.cents); }
+          if (frisch) { stand = frisch.cents; setGuthabenCents(frisch.cents); gesperrt = frisch.gesperrt; }
         } catch { /* Server nicht erreichbar → die alte Zahl entscheidet, wie bisher */ }
       }
+      if (gesperrt && !angemeldet) { nachAnmeldeWeiter.current = false; setGuthabenGesperrt(true); setAnmeldeOffen(true); return; }
       // `videoPreisCents` statt fest {once}: Lingerie kostet mehr (Owner 03.08.2026).
       if (V.nurGuthaben && stand < videoPreisCents) { setAufladeWahl(true); return; }
       /**
@@ -3446,7 +3529,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   Rechnung; dasselbe galt schon fuer die Kaufknoepfe nach der Stripe-Rueckkehr. */}
               {!payBusy && !videoBusy && !(bezahlt && !wahl) &&
                 kartenGriff(
-                  bezahlt || isStaff ? T.ctaVideo.replace("{sek}", String(AUFNAHME_SEK)) : T.blockedOnce,
+                  bezahlt || isStaff ? T.ctaVideo : T.blockedOnce,
                   bezahlt || isStaff ? () => void kussVideo() : () => void unlock("once"),
                   { text: kartenAufruf, tun: schritteOeffnen },
                 )}
@@ -3914,10 +3997,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {variant === "birthday" && (() => {
             /* Der Satz, den die Kette spricht — WÖRTLICH derselbe wie in der Route, damit
                das Vorgelesene und das Erzeugte nie auseinanderlaufen. */
-            /* KURZ IST DER PREIS (Owner 08.08.2026, HeyGen-Tabelle: 3 Credits je SEKUNDE — „der
-               für 12 credits war perfekt … Du bist zu viele sekunden durch"). Der Mittelteil
-               „Enjoy your special day." kostete gesprochen 2-3 Sekunden ≈ 50-70 ct pro Video. */
-            const satz = `Happy birthday to you, dear ${empfaenger.trim() || "…"}! This little video is just for you.`;
+            /* DER VORLESE-SATZ IST WEG (Owner 09.08.2026): Er widersprach dem Versprechen
+               „kein Skript nötig" auf derselben Seite. Was der Kunde spricht, bestimmt er
+               selbst; die Aufnahme-Anweisung steht in `SW.aufTitel`/`SW.aufHinweis`. */
             return (
               <div className="mt-2">
                 {/**
@@ -3952,8 +4034,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   * weil das ausser screen war").
                   */}
                 <div className="rounded-xl border border-white/20 bg-white/[0.05] p-3 text-center">
-                  <p className="text-[11px] font-bold text-white/75">{SW.lies}</p>
-                  <p className="mt-1 text-[14px] font-black leading-snug text-white">{satz}</p>
+                  {/**
+                    * HIER STEHT KEIN TEXT MEHR (Owner 09.08.2026, mit Bild des Kastens: „hier
+                    * den Text raus").
+                    *
+                    * Zuerst stand hier „Lies diesen Satz laut vor" mit einem fertigen Spruch
+                    * — das widersprach dem „kein Skript nötig" der Seite. Dann stand hier die
+                    * Aufnahme-Anweisung — und die kam zu früh: Wer noch gar nicht aufnimmt,
+                    * liest keine Anleitung, er sucht den Knopf. Die Ansage steht jetzt dort,
+                    * wo sie gebraucht wird: im Aufnahme-Vollbild, während die Kamera läuft.
+                    */}
                   {/* DAS BILD, IN DEM MAN SICH SIEHT — nur waehrend der Aufnahme. Ohne es
                       spricht man in eine schwarze Flaeche und weiss nicht, ob man drauf ist.
                       Gespiegelt wie ein Spiegel (`scaleX(-1)`), weil jede Selfie-Kamera das
@@ -3998,7 +4088,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         <video ref={vorschauRef} muted playsInline
                           className="absolute inset-0 h-full w-full object-cover"
                           style={{ transform: "scaleX(-1)" }} />
-                      </div>
                       {/**
                         * DAS LOCH IM MATT-WEISSEN (Owner 08.08.2026: „Es wäre auch gut wenn
                         * mein kopf nicht im kreis steht … dann matte weisse farbe, damit
@@ -4012,12 +4101,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         */}
                       <div aria-hidden
                         className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-white/80"
-                        style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.92)" }} />
-                      <div className="absolute inset-x-0 top-0 px-5 pb-4 pt-4 text-center">
-                        <p className="text-[11px] font-bold" style={{ color: "#6b6257" }}>{SW.lies}</p>
-                        <p className="mt-1 text-[16px] font-black leading-snug" style={{ color: "#1a160f" }}>{satz}</p>
+                        /* HALB DURCHSICHTIG STATT DECKEND (Owner 09.08.2026: „die weisse
+                           Fläche nicht ganz weiss. 50 % transparent"). Bei 0.92 war ausserhalb
+                           des Ovals nichts mehr zu sehen — man stellte sich blind hinein und
+                           wusste nicht, wo der eigene Körper aufhört. Bei 0.5 bleibt das Loch
+                           deutlich der scharfe Teil, aber man sieht sich noch. */
+                        style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.5)" }} />
+                      {/* DER AUSGANG (Bibliotheks-Baustein `Scheibe`, Hausregel: runder
+                          Symbol-Knopf kommt aus components/CI.tsx). Oben rechts, wo jeder
+                          ihn sucht — und weit weg vom Start-Knopf, damit niemand danebentippt. */}
+                      <div className="absolute right-3 top-3 z-10">
+                        <Scheibe label={SW.abbrechen} onClick={aufnahmeStopp}>
+                          <X className="h-5 w-5" />
+                        </Scheibe>
                       </div>
-                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-5 pb-8 pt-6">
+
+                      {/**
+                        * KNOPF UND ANSAGE STEHEN ZUSAMMEN UNTEN (Owner 09.08.2026: „Button
+                        * direkt über Nimm dich auf").
+                        *
+                        * Vorher lag der Knopf im Oval (56 %) und die Ansage am unteren Rand
+                        * — dazwischen klaffte eine leere Fläche, und die beiden Dinge, die
+                        * zusammengehören, standen am weitesten auseinander. Jetzt bilden sie
+                        * einen Block: erst der Knopf, direkt darunter, was zu tun ist.
+                        */}
+                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-7">
                         {/**
                           * ER DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit
                           * button starten. Ich muss erst mal meinen Kopf platieren und mich
@@ -4031,10 +4139,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                               className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black active:scale-95 transition">
                               <Mic className="h-4 w-4" /> {SW.los}
                             </button>
-                            <button type="button" onClick={aufnahmeStopp}
-                              className="text-[13px] font-black underline" style={{ color: "#6b6257" }}>
-                              {SW.abbrechen}
-                            </button>
+                            {/* ABBRECHEN IST DAS KREUZ OBEN RECHTS (Owner 09.08.2026:
+                                „Abbrechen als Close-Button oben rechts, rund X"). Ein
+                                zweiter Knopf unter dem goldenen zog das Auge vom Start weg —
+                                und ein Ausgang gehört dorthin, wo ihn jeder sucht. */}
                           </>
                         ) : (
                           <button type="button" onClick={aufnahmeStopp}
@@ -4044,17 +4152,35 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                             {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
                           </button>
                         )}
+                        {/* In Tinte, ohne Kasten — ein Hinweis am Rand, kein zweiter Block. */}
+                        <div className="text-center">
+                          <p className="text-[13px] font-black" style={{ color: "#1a160f" }}>{SW.aufTitel}</p>
+                          <p className="mx-auto mt-1 max-w-[330px] text-[11.5px] font-bold leading-snug" style={{ color: "#3a352d" }}>
+                            {SW.aufHinweis}
+                          </p>
+                        </div>
+                        </div>
+
                       </div>
                     </div>
                   ), document.body)}
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    {!nimmtAuf ? (
+                  {/**
+                    * SOLANGE NICHTS AUFGENOMMEN IST, STEHT DER KNOPF HIER — er ist dann die
+                    * einzige Aufgabe der Seite und darf golden und allein sein.
+                    *
+                    * IST ETWAS AUFGENOMMEN, WANDERT ER NACH UNTEN neben "Weiter" (Owner
+                    * 09.08.2026: "Button noch mal soll links neben weiter stehen"). Zwei
+                    * goldene Knoepfe untereinander waeren zwei Hauptaktionen — die Hausregel
+                    * laesst genau eine zu, und die heisst hier "Weiter".
+                    */}
+                  {!nimmtAuf && !aufnahme && (
+                    <div className="mt-3 flex items-center justify-center gap-2">
                       <button type="button" onClick={() => void aufnahmeStart()}
                         className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
-                        <Mic className="h-4 w-4" /> {aufnahme ? SW.neu : SW.selbst}
+                        <Mic className="h-4 w-4" /> {SW.selbst}
                       </button>
-                    ) : null /* Der Stopp-Knopf lebt im Vollbild-Overlay — hier wäre er verdeckt. */}
-                  </div>
+                    </div>
+                  )}
                   {aufnahmeFehler && (
                     <p className="mt-2 text-[12px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>
                       {aufnahmeFehler}
@@ -4084,6 +4210,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           })()}
         </div>
       )}
+      <div className="mt-4 flex items-center gap-2">
+      {/* "NOCHMAL" LINKS NEBEN "WEITER" (Owner 09.08.2026). Als Umriss-Knopf, nicht golden:
+          Er ist der Rueckweg, nicht das Ziel — und schmal, damit "Weiter" die Zeile behaelt. */}
+      {selbstVideo && aufnahme && !nimmtAuf && (
+        <button type="button" onClick={() => void aufnahmeStart()}
+          className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/25 px-4 text-[13.5px] font-black text-white/85 active:scale-95 transition">
+          <Mic className="h-4 w-4" /> {SW.neu}
+        </button>
+      )}
       <button type="button"
         onClick={() => {
           if (V.paarUpload ? (!selPhoto || !photo) : !selPhoto) {
@@ -4094,7 +4229,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // Der Tanz ueberspringt Schritt 2 — dort stand SEIN Foto, und es gibt keines mehr.
           zustimmen(); wahlMerken(); setSchritt(V.paarUpload || V.nurSie ? 3 : 2);
         }}
-        className={`lb-gold mt-4 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition${(V.paarUpload ? (!selPhoto || !photo) : !selPhoto) ? " opacity-40" : ""}`}>
+        className={`lb-gold flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition${(V.paarUpload ? (!selPhoto || !photo) : !selPhoto) ? " opacity-40" : ""}`}>
         {/* OHNE AUFNAHME HEISST DER KNOPF NICHT „Lade dein Foto hoch" (Owner 07.08.2026:
             „das brauchen wir nicht") — beim Geburtstag gibt es kein Foto mehr, das man
             hochladen koennte. Er sagt dann, was wirklich fehlt: die Aufnahme. */}
@@ -4102,6 +4237,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           ? (selPhoto && photo ? (V.keinGratis ? T.nextPaid : T.next) : !selPhoto ? T.pickFirst : T.uploadFirst)
           : (selPhoto ? (V.keinGratis ? T.nextPaid : T.next) : selbstVideo ? SW.erst : T.pickFirst)}
       </button>
+      </div>
       {weiterHinweis && (
         <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
           {weiterHinweis}
@@ -4234,7 +4370,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
 
       {schritt === 3 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step3}</p>
+      {/* DER ANKER FÜR DEN SPRUNG NACH DER AUFNAHME (Owner 09.08.2026: „oder direkt zum
+          Schritt zwei") — genau die Zeile, unter der sein Standbild, die Adresse und der
+          Kaufknopf stehen. */}
+      <p ref={schrittZweiRef} className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step3}</p>
       {/* BEIDE NEBENEINANDER (Owner 30.07.2026: „ich sehe uns nicht nebeneinander"). In den
           Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
           im Bild landet — sonst generiert er blind. */}
@@ -4283,10 +4422,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <AnmeldeEinladung
             offen={anmeldeOffen}
             zu={() => { anmeldeMerken(); setAnmeldeOffen(false); }}
-            titel={KT.anmeldeTitel}
-            grund={KT.anmeldeGrund}
+            titel={guthabenGesperrt ? KT.gesperrtTitel : KT.anmeldeTitel}
+            grund={guthabenGesperrt ? KT.gesperrtGrund : KT.anmeldeGrund}
             knopf={KT.anmeldeKnopf}
-            spaeter={KT.anmeldeSpaeter}
+            /* Liegt sein Geld dort, gibt es kein „Später" — es wäre die Aufforderung,
+               zweimal zu zahlen. */
+            spaeter={guthabenGesperrt ? undefined : KT.anmeldeSpaeter}
             vorlageBild={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).bild : undefined}
             vorlageName={variant === "birthday" ? (GEBURTSTAG_LOOKS.find(l => l.id === look) ?? GEBURTSTAG_LOOKS[0]).name : undefined}
             aufAnmelden={zurAnmeldung}
@@ -4795,6 +4936,31 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * 0,00-€-Code-Zahlung der aufladungNull-Satz. Feste Farbe wie jede Absage
               * (Memory sichtbare-fehler-keine-formularfelder).
               */}
+            {/**
+              * ERST DIE FRAGE „WER BIST DU?", DANN DIE BETRÄGE (Owner 09.08.2026: „egal wie
+              * viel es liegt. Er wird zur Zahlung aufgefordert. Und vielleicht hat er schon
+              * ein Konto und Geld drauf. Er hat gar nicht die Chance es zu nutzen." · „hat er
+              * geld drauf muss ein dialog kommen melde dich an").
+              *
+              * WARUM SIE NICHT SAGT, OB DORT GELD LIEGT: Wir suchen das Guthaben unter der
+              * gerade eingetippten Adresse. Zu antworten „auf diese Adresse liegen 20 €"
+              * wäre genau die Auskunft, die der Geräte-Riegel verhindert — jeder könnte
+              * fremde Adressen abklopfen. Also fragen wir neutral und ohne Wissen: Wer ein
+              * Konto hat, meldet sich an; wer keins hat, verliert nichts.
+              *
+              * SIE STEHT ÜBER DEN BETRÄGEN, weil sie sonst zu spät kommt: Wer erst zahlt und
+              * danach merkt, dass sein Geld woanders lag, hat zweimal bezahlt.
+              */}
+            {!angemeldet && (
+              <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.07] p-3 text-center">
+                <p className="text-[13px] font-black leading-snug text-white">{KT.schonKonto}</p>
+                <p className="mt-1 text-[11.5px] font-semibold leading-snug text-white/65">{KT.schonKontoGrund}</p>
+                <div className="mt-2.5">
+                  <Knopf art="gold" onClick={zurAnmeldung}>{KT.anmeldeKnopf}</Knopf>
+                </div>
+              </div>
+            )}
+
             <p role="alert" style={{ color: ABSAGE_ROT }} className="mt-3 text-[12.5px] font-black leading-snug">
               {aufladeNull ? T.aufladungNull : T.guthabenZuWenig
                 .replace("{stand}", eur(guthabenCents ?? 0, lang))
@@ -4823,6 +4989,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 );
               })}
             </div>
+            {/**
+              * „ICH HABE SCHON EIN KONTO" (Owner 09.08.2026: „egal wie viel es liegt. Er
+              * wird zur Zahlung aufgefordert. Und vielleicht hat er schon ein Konto und Geld
+              * drauf. Er hat gar nicht die Chance es zu nutzen.").
+              *
+              * Er hat recht, und es ist teuer: Wir suchen das Guthaben unter der Adresse, die
+              * er GERADE eingetippt hat. Ist es eine andere — oder tippt er gar keine —,
+              * finden wir sein Geld nicht und schicken ihn zur Kasse, obwohl er längst
+              * bezahlt hat. Das ist kein Fehler im Code, sondern eine fehlende Frage: „Wer
+              * bist du?"
+              *
+              * Deshalb steht sie hier, an der einzigen Stelle, an der sie wirklich zählt —
+              * im Moment vor dem Bezahlen. Als stiller Weg unter den Beträgen, nicht als
+              * zweiter Hauptknopf: Wer neu ist, soll aufladen; wer wiederkommt, findet
+              * seinen Weg zurück.
+              */}
             <p className="mt-3 text-center text-[10px] font-medium leading-snug text-white/50">{T.aufladenHinweis}</p>
         </Dialog>
       )}

@@ -415,9 +415,20 @@ export default async function ThemesCatalog({ searchParams }: {
   const AB_SYSTEM = themenPreisZeile("plan", L);
 
   const THEMES: Theme[] = [
-    // KISS GANZ VORN (Owner 30.07.2026: „kiss musst du als erstes nehmen"). Auf dieses Thema
-    // laufen die Anzeigen, dort steckt der fertige Trichter mit Kasse — was oben steht,
-    // entscheidet, was die Leute anfassen. Bella rueckt auf Platz zwei.
+    /**
+     * GEBURTSTAG GANZ VORN (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf der
+     * Homepage").
+     *
+     * Er löst den Kuss ab, der seit dem 30.07. auf Platz eins stand. Der Grund ist derselbe
+     * wie damals: Was oben steht, entscheidet, was die Leute anfassen — und der Geburtstag
+     * ist das Thema, an dem seit zwei Tagen alles gebaut wird (eigene Aufnahme, eigene
+     * Stimme, Traumwelt-Look, geschlossener Kaufweg). Er ist das EINE Produkt, das zuerst
+     * echte Käufe überstehen soll ([[ein-produkt-zuerst]]).
+     */
+    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: GEBURTSTAG_SET, video: GEBURTSTAG_VIDEO, chips: "♥ Name · Video · Send", abPreis: AB_GEBURTSTAG },
+    // KISS DANACH (Owner 30.07.2026: „kiss musst du als erstes nehmen" — bis 09.08. galt das
+    // für Platz eins). Auf dieses Thema liefen die ersten Anzeigen, und der Trichter dort ist
+    // vollständig; er bleibt deshalb direkt hinter dem Geburtstag.
     /* POSTER-SWEEP 07.08.2026 (Owner, Kachel für Kachel: „bei Kuss [falsch] · Bei gutschein
        fehlt · Bei Chat fehlt · Bei uralub falsch · Hochzeit auch falsch"): Jede Video-Kachel
        trägt als Poster das ERSTE BILD ihres eigenen Videos (per ffmpeg gezogen) — und Video
@@ -469,7 +480,6 @@ export default async function ThemesCatalog({ searchParams }: {
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
-    { icon: Cake, title: "Birthdays", tagline: "She says happy birthday by name — send it to them.", href: "/themes/birthday", cover: GEBURTSTAG_SET, video: GEBURTSTAG_VIDEO, chips: "♥ Name · Video · Send", abPreis: AB_GEBURTSTAG },
     // DER LUXURYBANDIT PLAN (Owner 04.08.2026). Kein Geschenk, sondern eine Analyse: zwanzig
     // erzeugte Kunden, Fachleute und Nachbarn streiten über seine Idee, am Ende steht sein
     // Plan. Der Trichter dahinter wird noch gebaut — bis dahin steht die Seite als Vorschau

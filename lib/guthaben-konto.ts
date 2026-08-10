@@ -34,6 +34,12 @@ export type GuthabenStand = {
    * alles am selben Konto haengt (der Normalfall).
    */
   gestrandet: Gestrandet | null;
+  /**
+   * AUF DIESER ADRESSE LIEGT GELD, DIESER BROWSER DARF ES ABER NICHT AUSGEBEN
+   * (Geräte-Riegel, 09.08.2026). Dann ist `cents` 0 — und trotzdem wäre es falsch, ihn zur
+   * Kasse zu schicken: Er soll sich anmelden und sein eigenes Geld benutzen.
+   */
+  gesperrt: boolean;
 };
 
 const MAIL_KEY = "lb_kiss_mail";
@@ -103,6 +109,7 @@ export async function guthabenLesen(adresse?: string): Promise<GuthabenStand | n
       links: typeof d?.left === "number" ? d.left : 0,
       abo: !!d?.abo,
       gestrandet: d?.gestrandet?.adresse ? d.gestrandet as Gestrandet : null,
+      gesperrt: !!d?.gesperrt,
     };
   } catch { return null; }
 }

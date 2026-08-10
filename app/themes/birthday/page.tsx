@@ -49,51 +49,15 @@ export default async function BirthdayThemePage({ searchParams }: {
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <ThemenPreis thema="birthday" lang={L} className="mt-3" />
 
-        {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner 05.08.2026:
-            „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite" · „was ich
-            vermisse jetzt bei topics … die Schritte, die Begründung, der Anlass").
-            Hier standen nur die drei Schritte; Anlass und Grund fehlten — also genau die zwei
-            Zeilen, an denen er erkennt, ob das Ding für ihn ist. Der Aufbau steht jetzt in
-            `components/ThemenVorspann`, die Texte in `lib/kiss-i18n`. */}
-        <ThemenVorspann anlass={T.anlass} grund={T.grund}
-          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
-
-        {/* DAS ERGEBNIS ZUERST (Owner, seit dem Kuss die Hausordnung): erst sehen, was
-            herauskommt, dann lesen, wie es geht. Es ist genau das Video, mit dem der Owner
-            den Auftrag gegeben hat — und genau das, was die Kette hinten ausspuckt.
-
-            IN DER KARTE, NICHT IN EINEM KASTEN (Owner 03.08.2026: „ich bitte dich, benutze
-            IMMER die Cards für die Videos mit Titel oben und Made by Luxurybandit.com. Genau
-            wie Kiss"). Hier stand ein nacktes gerundetes Rechteck — dieselbe Datei, aber ohne
-            Rahmen, ohne Ranken, ohne Herkunft. Das ist der Unterschied zwischen einer Vorschau
-            und einem Geschenk: Die Karte ist das Produkt, das Video ist nur ihr Inhalt.
-
-            `EinladungAnsicht` bringt Ton-Knopf und die weiche Schleife mit (zwei Spieler
-            blenden ineinander, kein `loop` — Hausregel: kein Schnitt alle sieben Sekunden). */}
-        {/* NUR EINE KARTE, UND ES IST DIE DES TRICHTERS.
-            Hier stand kurzzeitig eine zweite, eigene Karte ueber dem Trichter — und darunter
-            stand die des Trichters leer da. Zweimal dasselbe Video untereinander ist kein
-            „mehr zeigen", sondern ein Fehler, den jeder sieht. Der Trichter nimmt das
-            Beispiel entgegen und fuellt seine eigene Karte damit; sobald ihr Video fertig
-            ist, tritt es an dieselbe Stelle. Genau wie beim Kuss.
-
-            Der Trichter — derselbe wie beim Kuss, nur mit einem Foto statt zweien. */}
         {/**
-          * WAS ER BEKOMMT — VOR DEM TRICHTER (Owner 09.08.2026, mit einem fertigen
-          * Verkaufstext: „Aus ein paar gesprochenen Worten wird ein Moment").
+          * DIE KARTE STEHT DIREKT UNTER DEM TITEL (Owner 09.08.2026: „Die Karte auf der
+          * Landingpage muss unter dem Titel stehen").
           *
-          * Der Absatz steht zwischen den drei Schritten und dem Beispiel, weil er genau die
-          * Lücke füllt, die vorher offen war: Er hat gelesen, WIE es geht, und sieht gleich,
-          * WAS herauskommt — dazwischen fehlte der Satz, der beides verbindet. Er verspricht
-          * nichts Technisches, sondern beschreibt das Ergebnis.
+          * Das ist zugleich die Hausordnung seit dem Kuss — erst sehen, was herauskommt,
+          * dann lesen, wie es geht. Vorher lagen Anlass, Grund und die drei Schritte
+          * dazwischen: eine halbe Bildschirmhöhe Erklärung, bevor er den Beweis sah. Wer
+          * das Ergebnis nicht kennt, liest die Erklärung nicht.
           */}
-        {T.filmTitel && (
-          <div className="mt-12">
-            <SectionTitle>{T.filmTitel}</SectionTitle>
-            <Lead>{T.filmText}</Lead>
-          </div>
-        )}
-
         <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN]} />
 
         {/**
@@ -109,6 +73,30 @@ export default async function BirthdayThemePage({ searchParams }: {
             {T.unterVideo}
           </p>
         )}
+
+        {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner 05.08.2026:
+            „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite" · „was ich
+            vermisse jetzt bei topics … die Schritte, die Begründung, der Anlass").
+            Steht seit 09.08. UNTER der Karte: erst der Beweis, dann die Erklärung. */}
+        <ThemenVorspann anlass={T.anlass} grund={T.grund}
+          wieGeht={T.wieGeht} wieGehtPrivat={T.wieGehtPrivat} />
+
+        {/**
+          * WAS ER BEKOMMT (Owner 09.08.2026, mit einem fertigen Verkaufstext: „Aus ein paar
+          * gesprochenen Worten wird ein Moment").
+          *
+          * Der Absatz steht zwischen den drei Schritten und dem Beispiel, weil er genau die
+          * Lücke füllt, die vorher offen war: Er hat gelesen, WIE es geht, und sieht gleich,
+          * WAS herauskommt — dazwischen fehlte der Satz, der beides verbindet. Er verspricht
+          * nichts Technisches, sondern beschreibt das Ergebnis.
+          */}
+        {T.filmTitel && (
+          <div className="mt-12">
+            <SectionTitle>{T.filmTitel}</SectionTitle>
+            <Lead>{T.filmText}</Lead>
+          </div>
+        )}
+
 
         {/* WARUM SIE EINS SCHICKT — die Anlaesse stehen NACH dem Beispiel und nach dem
             Trichter: Erst sieht sie, was herauskommt, dann liest sie, warum es sie angeht.

@@ -47,6 +47,10 @@ export type KontoText = {
   anmeldeGrund: string;
   anmeldeKnopf: string;
   anmeldeSpaeter: string;
+  schonKonto: string;
+  schonKontoGrund: string;
+  gesperrtTitel: string;
+  gesperrtGrund: string;
   // ── Konto ──
   kontoTitel: string;
   aktuell: string;
@@ -88,6 +92,10 @@ const en: KontoText = {
   anmeldeGrund: "Your credit and your videos stay with you, on every device. Without an account they live only in this browser.",
   anmeldeKnopf: "Sign in now",
   anmeldeSpaeter: "Later",
+  schonKonto: "I already have an account — sign in and use my credit",
+  schonKontoGrund: "If you have topped up before, sign in — your credit will be used automatically.",
+  gesperrtTitel: "You already have credit here",
+  gesperrtGrund: "There is credit on this address. Sign in and it pays for your video — no need to pay again.",
   kontoTitel: "Top up your account",
   aktuell: "Currently:",
   adressePflicht: "Please enter your email address — your credit is booked to it.",
@@ -127,6 +135,10 @@ const de: KontoText = {
   anmeldeGrund: "Dein Guthaben und deine Videos bleiben bei dir, auf jedem Gerät. Ohne Konto leben sie nur in diesem Browser.",
   anmeldeKnopf: "Jetzt anmelden",
   anmeldeSpaeter: "Später",
+  schonKonto: "Ich habe schon ein Konto — anmelden und Guthaben nutzen",
+  schonKontoGrund: "Hast du schon einmal aufgeladen? Melde dich an — dein Guthaben wird dann automatisch genutzt.",
+  gesperrtTitel: "Auf dieser Adresse liegt Guthaben",
+  gesperrtGrund: "Für diese Adresse ist schon Guthaben da. Melde dich an, dann zahlt es dein Video — du musst nicht noch einmal bezahlen.",
   kontoTitel: "Konto aufladen",
   aktuell: "Aktuell:",
   adressePflicht: "Bitte gib deine E-Mail-Adresse an — auf sie wird das Guthaben gebucht.",
@@ -166,6 +178,10 @@ const ro: KontoText = {
   anmeldeGrund: "Creditul și videoclipurile tale rămân la tine, pe orice dispozitiv. Fără cont trăiesc doar în acest browser.",
   anmeldeKnopf: "Conectează-te acum",
   anmeldeSpaeter: "Mai târziu",
+  schonKonto: "Am deja cont — mă conectez și îmi folosesc creditul",
+  schonKontoGrund: "Ai încărcat deja cont? Conectează-te — creditul tău se folosește automat.",
+  gesperrtTitel: "Ai deja credit pe această adresă",
+  gesperrtGrund: "Pe această adresă există deja credit. Conectează-te și îți plătește videoclipul — nu trebuie să plătești din nou.",
   kontoTitel: "Încarcă-ți contul",
   aktuell: "Acum:",
   adressePflicht: "Introdu adresa ta de e-mail — pe ea se înregistrează creditul.",
@@ -205,6 +221,10 @@ const es: KontoText = {
   anmeldeGrund: "Tu saldo y tus vídeos se quedan contigo, en cualquier dispositivo. Sin cuenta viven solo en este navegador.",
   anmeldeKnopf: "Iniciar sesión ahora",
   anmeldeSpaeter: "Más tarde",
+  schonKonto: "Ya tengo cuenta — iniciar sesión y usar mi saldo",
+  schonKontoGrund: "¿Ya has recargado antes? Inicia sesión — tu saldo se usará automáticamente.",
+  gesperrtTitel: "Ya tienes saldo en esta dirección",
+  gesperrtGrund: "En esta dirección ya hay saldo. Inicia sesión y pagará tu vídeo — no hace falta pagar otra vez.",
   kontoTitel: "Recarga tu cuenta",
   aktuell: "Ahora:",
   adressePflicht: "Introduce tu correo electrónico — el saldo se abona en él.",
@@ -244,6 +264,10 @@ const fr: KontoText = {
   anmeldeGrund: "Ton crédit et tes vidéos restent avec toi, sur chaque appareil. Sans compte, ils ne vivent que dans ce navigateur.",
   anmeldeKnopf: "Se connecter maintenant",
   anmeldeSpaeter: "Plus tard",
+  schonKonto: "J'ai déjà un compte — me connecter et utiliser mon crédit",
+  schonKontoGrund: "Tu as déjà rechargé ? Connecte-toi — ton crédit sera utilisé automatiquement.",
+  gesperrtTitel: "Tu as déjà du crédit sur cette adresse",
+  gesperrtGrund: "Il y a déjà du crédit sur cette adresse. Connecte-toi et il paiera ta vidéo — inutile de payer une seconde fois.",
   kontoTitel: "Recharge ton compte",
   aktuell: "Actuellement :",
   adressePflicht: "Indique ton adresse e-mail — ton crédit y est enregistré.",
@@ -283,6 +307,10 @@ const pt: KontoText = {
   anmeldeGrund: "O teu saldo e os teus vídeos ficam contigo, em qualquer dispositivo. Sem conta vivem só neste navegador.",
   anmeldeKnopf: "Iniciar sessão agora",
   anmeldeSpaeter: "Mais tarde",
+  schonKonto: "Já tenho conta — iniciar sessão e usar o meu saldo",
+  schonKontoGrund: "Já carregaste antes? Inicia sessão — o teu saldo é usado automaticamente.",
+  gesperrtTitel: "Já tens saldo neste endereço",
+  gesperrtGrund: "Neste endereço já existe saldo. Inicia sessão e ele paga o teu vídeo — não precisas de pagar outra vez.",
   kontoTitel: "Carrega a tua conta",
   aktuell: "Agora:",
   adressePflicht: "Indica o teu e-mail — o saldo é registado nele.",
@@ -322,6 +350,10 @@ const it: KontoText = {
   anmeldeGrund: "Il tuo credito e i tuoi video restano con te, su ogni dispositivo. Senza account vivono solo in questo browser.",
   anmeldeKnopf: "Accedi ora",
   anmeldeSpaeter: "Più tardi",
+  schonKonto: "Ho già un account — accedo e uso il mio credito",
+  schonKontoGrund: "Hai già ricaricato? Accedi — il tuo credito viene usato automaticamente.",
+  gesperrtTitel: "Hai già credito su questo indirizzo",
+  gesperrtGrund: "Su questo indirizzo c'è già credito. Accedi e pagherà il tuo video — non devi pagare di nuovo.",
   kontoTitel: "Ricarica il tuo conto",
   aktuell: "Ora:",
   adressePflicht: "Inserisci la tua e-mail — il credito viene registrato su di essa.",

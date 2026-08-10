@@ -860,9 +860,11 @@ export function MadeBy({ karte = false, className = "" }: {
  * (z. B. ohne das eigene Thema), reicht `themen` herein.
  */
 export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] = [
+  /* GEBURTSTAG ZUERST (Owner 09.08.2026) — dieselbe Reihenfolge wie die Kacheln der
+     Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
+  { icon: Cake, name: "Birthday", href: "/themes/birthday" },
   { icon: Heart, name: "Kiss", href: "/themes/kiss" },
   { icon: Gift, name: "Surprise", href: "/themes/surprise" },
-  { icon: Cake, name: "Birthday", href: "/themes/birthday" },
   { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
   { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },

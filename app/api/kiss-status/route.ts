@@ -69,7 +69,21 @@ export async function GET(request: Request) {
      * jetzt 0,00 € — genau das, was er auch ausgeben darf.
      */
     const darf = await walletGeraetVertraut(email, geraet).catch(() => false);
-    const walletCents = darf ? await readGuthabenCents(email).catch(() => 0) : 0;
+    const echterStand = await readGuthabenCents(email).catch(() => 0);
+    const walletCents = darf ? echterStand : 0;
+    /**
+     * „AUF DIESER ADRESSE LIEGT GELD — MELDE DICH AN" (Owner 09.08.2026: „hat er Geld drauf
+     * muss ein Dialog kommen melde dich an. Hat er nicht, dann geht er zum Stripe").
+     *
+     * Ohne dieses Feld sähe ein Rückkehrer auf einem neuen Handy 0,00 € und würde ein
+     * zweites Mal bezahlen, obwohl sein Guthaben unberührt daliegt. Der Riegel schützt es
+     * — er darf es aber nicht VERSTECKEN, sonst schützt er es vor seinem Besitzer.
+     *
+     * BEWUSSTE ABWÄGUNG, vom Owner entschieden: Wer eine fremde Adresse eintippt, erfährt
+     * damit, DASS dort Guthaben liegt. Nicht wie viel, und ausgeben kann er es nicht. Der
+     * Preis dafür, dass kein Kunde zweimal zahlt.
+     */
+    const gesperrt = !darf && echterStand > 0;
     let gestrandet: { adresse: string; cents: number; links: number } | null = null;
     if (auch && auch !== email && GUELTIG.test(auch) && left <= 0 && walletCents <= 0) {
       const cents = (await walletGeraetVertraut(auch, geraet).catch(() => false))
@@ -77,7 +91,7 @@ export async function GET(request: Request) {
       const links = await videoCreditBalance(auch).catch(() => 0);
       if (cents > 0 || links > 0) gestrandet = { adresse: auch, cents, links };
     }
-    return NextResponse.json({ abo, left, includes: INCLUDED_VIDEOS_PER_MONTH, walletCents, gestrandet });
+    return NextResponse.json({ abo, left, includes: INCLUDED_VIDEOS_PER_MONTH, walletCents, gestrandet, gesperrt });
   } catch {
     return NextResponse.json({ abo: false, left: 0, includes: INCLUDED_VIDEOS_PER_MONTH });
   }
