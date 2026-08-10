@@ -437,6 +437,21 @@ export default async function ThemesCatalog({ searchParams }: {
        Die Zeile darunter nennt nicht mehr „sie sagt den Namen" — er sagt seine eigene
        Botschaft, mit seinem Gesicht (Textumstellung vom selben Tag). */
     { icon: Cake, title: "Birthdays", tagline: "Your face, your voice — in a world nobody expects.", href: "/themes/birthday", cover: "/Birthday/hbd-traum.jpg", poster: "/Birthday/hbd-traum.jpg", video: GEBURTSTAG_VIDEO_TRAUM, chips: "♥ Your message · Your face · Send", abPreis: AB_GEBURTSTAG },
+    /* DIE HOCHZEIT STEHT AUF PLATZ ZWEI (Owner 10.08.2026: „Wedding machst du auf der
+       homepage auf die zweite zeile"). Sie ist das teuerste Stueck im Haus — 29,99 EUR gegen
+       9,99 EUR — und das einzige mit einer laufenden Seite dahinter. Wer die Liste von oben
+       liest, soll das Grosse sehen, bevor die Geschenke kommen. */
+    /**
+      * DIE KACHEL VERKAUFT DEN PLANER, NICHT NUR DAS VIDEO (Owner 10.08.2026: „es steht immer
+      * noch Hochzeitseinladungs-Video" — nachdem der Preis auf 29,99 € gegangen war).
+      *
+      * Für 29,99 € bekommt er das Video UND die laufende Seite: Einladung, Zusagenliste,
+      * Menüwahl, Gruppenchat, einen Monat lang. Eine Kachel, die nur „Video" sagt, lässt den
+      * Preis zu hoch aussehen — sie verspricht ein Drittel des Produkts. Der Satz ist derselbe,
+      * den die Landingpage als Anspruch trägt (`claim` in app/themes/wedding): ein Produkt,
+      * eine Formulierung.
+      */
+    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
     // KISS DANACH (Owner 30.07.2026: „kiss musst du als erstes nehmen" — bis 09.08. galt das
     // für Platz eins). Auf dieses Thema liefen die ersten Anzeigen, und der Trichter dort ist
     // vollständig; er bleibt deshalb direkt hinter dem Geburtstag.
@@ -464,17 +479,6 @@ export default async function ThemesCatalog({ searchParams }: {
     { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
-    /**
-      * DIE KACHEL VERKAUFT DEN PLANER, NICHT NUR DAS VIDEO (Owner 10.08.2026: „es steht immer
-      * noch Hochzeitseinladungs-Video" — nachdem der Preis auf 29,99 € gegangen war).
-      *
-      * Für 29,99 € bekommt er das Video UND die laufende Seite: Einladung, Zusagenliste,
-      * Menüwahl, Gruppenchat, einen Monat lang. Eine Kachel, die nur „Video" sagt, lässt den
-      * Preis zu hoch aussehen — sie verspricht ein Drittel des Produkts. Der Satz ist derselbe,
-      * den die Landingpage als Anspruch trägt (`claim` in app/themes/wedding): ein Produkt,
-      * eine Formulierung.
-      */
-    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem

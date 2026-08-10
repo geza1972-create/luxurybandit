@@ -13,7 +13,7 @@ import { Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/components/CI";
 import ImageCropper from "@/components/ImageCropper";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import { kissText } from "@/lib/kiss-i18n";
-import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID } from "@/lib/wedding-prompt";
+import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { holidayInvitePrompt, HOLIDAY_SZENEN } from "@/lib/holiday-invite";
 import { gutscheinPrompt } from "@/lib/gutschein-prompt";
 import { guthabenLesen } from "@/lib/guthaben-konto";
@@ -891,9 +891,13 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           lookId: KISS_LOOK_ID, genId, person, garment,
           /* Der Gutschein hat keine Szene — sein Auftrag steht fest: Umschlag hoch, ein Satz.
              Deshalb ohne `szeneId`, siehe lib/gutschein-prompt. */
+          /* DIE HOCHZEIT ANIMIERT EIN GEMÄLDE (Owner 10.08.2026, Wortlaut in
+             `lib/wedding-prompt`): Das Bild aus der Traum-Kette ist gemalt — ein Auftrag, der
+             „realistic wedding video" verlangt, würde genau die Handschrift wegbügeln, für die
+             der Bild-Schritt bezahlt wurde. Weiche Bewegung, sanfte Kamerafahrt, Blasen. */
           prompt: gutschein ? gutscheinPrompt()
             : urlaub ? holidayInvitePrompt(szeneId, ort.trim())
-            : weddingPrompt("", szeneId),
+            : HOCHZEIT_TRAUM_VIDEO,
           /* FUENF SEKUNDEN BEIM GUTSCHEIN (Owner 05.08.2026: „5 sek. das reicht vollkommend").
              Es ist eine Geste und ein Satz — „I have something for you!" ist nach drei Sekunden
              gesagt. Hochzeit und Urlaub bleiben bei sieben: dort faehrt die Kamera durch eine
@@ -1463,7 +1467,12 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           `bezahlung` §8: „hier müssen wir sparen"). */}
       {!gutschein && (
       <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/60">
-        {fillPrices(botschaftFrei ? T.preiseUrlaub : T.preise, lang)}
+        {/* DIESELBE ZAHL WIE AUF DEM KNOPF (Owner 10.08.2026). Hier stand „Video-Einladung
+            15 € · Zusagen, Menü & Chat: im Abo 14,99 €/Monat" — zwei Aussagen, die beide
+            nicht mehr stimmen: Der Planer kostet 29,99 € MIT allem, ein Monat inklusive;
+            Zusagen, Menü und Chat sind nicht mehr das Abo, sondern im Preis. Das Abo ist
+            erst die VERLÄNGERUNG danach. */}
+        {fillPrices(botschaftFrei ? T.preiseUrlaub : T.preise, lang).replace(eur(ONCE_CENTS, lang), eur(preisCents, lang))}
       </p>
       )}
 
@@ -1845,7 +1854,13 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         {aufladeWahl ? (
           <div className="mt-1">
             <p className="text-center font-serif text-[14px] leading-snug">
-              {fillPrices(gutschein ? T.ctaGutschein : T.ctaEinladung, lang)}
+              {/* DER PREIS AUF DEM KNOPF IST DER PREIS DER KASSE (Owner 10.08.2026, mit
+                  Bild: der Knopf sagte „15 €", abgebucht werden 29,99 €). `{once}` ist der
+                  alte Regelpreis eines Geschenks — die Einladung kostet aber, was in
+                  `themenPreisCents(variant)` steht, und genau die Zahl bucht `preisCents`
+                  weiter oben ab. Zwei Zahlen für denselben Kauf sind der Fehler, den die
+                  Preistabelle verhindern soll (Skill `bezahlung` §2). */}
+              {fillPrices(gutschein ? T.ctaGutschein : T.ctaEinladung, lang).replace(eur(ONCE_CENTS, lang), eur(preisCents, lang))}
             </p>
             {AUFLADE_STUFEN.filter(c => c >= preisCents).map(stufe => (
               <button key={stufe} type="button" disabled={busy}
@@ -1907,7 +1922,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
               ? (lbWahl && !lbGekauft
                 ? (F.lbCta ?? "").replace("{preis}", eur(lbWahl.cents, lang))
                 : (F.ctaVideo ?? ""))
-              : fillPrices(T.ctaEinladung, lang)}
+              : fillPrices(T.ctaEinladung, lang).replace(eur(ONCE_CENTS, lang), eur(preisCents, lang))}
         </button>
         )}
         {/* HIER STAND „LIEBER GLEICH EIN VIDEO — {videoauf}" (Owner 06.08.2026: „das muss

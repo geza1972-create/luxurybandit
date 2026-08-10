@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { kussSzene } from "@/lib/kuss-szenen";
-import { weddingBildPrompt } from "@/lib/wedding-prompt";
+import { weddingBildPrompt, hochzeitTraumPrompt, HOCHZEIT_STIL } from "@/lib/wedding-prompt";
 import { musterAufDataUrl } from "@/lib/wasserzeichen";
 import { holidayBildPrompt } from "@/lib/holiday-invite";
 
@@ -522,7 +522,21 @@ export async function POST(request: Request) {
    * ersetzt „schaut in die Kamera" durch einen Kuss. Ohne (oder mit unbekannter) Kennung
    * ändert sich nichts: derselbe Auftrag wie vor dieser Änderung.
    */
-  const prompt = eigener
+  /**
+   * DIE HOCHZEIT MALT (Owner 10.08.2026: „Das wird in einem surrealistischen Bild umgewandelt,
+   * dann an Pixverse gegeben") — eigener Auftrag, eigene Reihenfolge der Bilder, und BEWUSST
+   * ohne die Sätze der alten Kette: `IDENTITAET_RULE` und „Natural, realistic result" ziehen
+   * genau in die Gegenrichtung. Wer ein gemaltes Gesicht bestellt und im selben Atemzug
+   * „fotorealistisch, natürlich" dazuschreibt, bekommt das Zwitterding, an dem der Geburtstag
+   * schon einmal hing: Fotogesicht in einer Illustration.
+   *
+   * Die Coverage-Regel bleibt (Memory `openai-tryon-safety-rule`): Ohne sie weist OpenAI
+   * Aufträge mit zwei Menschen zuverlässig ab, egal wie brav der Rest klingt.
+   */
+  const traumHochzeit = hochzeit && !eigener;
+  const prompt = traumHochzeit
+    ? `${hochzeitTraumPrompt(gemeinsam)}\n\n${COVERAGE_RULE}`
+    : eigener
     ? `${eigener}\n\n${COVERAGE_RULE}`
     : (hochzeit || urlaubsEinladung) ? [
     vorlagenSatz,
@@ -652,6 +666,23 @@ export async function POST(request: Request) {
         const pb = dataUrlToBlob(vPerson), mb = dataUrlToBlob(vModel);
         // Beim gemeinsamen Foto gibt es nur EINE Vorlage — beide Gesichter stehen darauf.
         if (!pb || (!gemeinsam && !mb)) return { fehler: "Fotos konnten nicht gelesen werden." };
+        /**
+         * DAS STILBILD STEHT VORN (Owner 10.08.2026: „Use the first image as the visual style
+         * reference"). Die Reihenfolge IST die Bedeutung — der Auftrag spricht die Bilder
+         * über ihren Platz an. Wer sie dreht, tauscht Stil und Gesicht.
+         *
+         * Es liegt als Datei im Repo (dieselbe wie beim Geburtstag: „Ich habe als Referenz das
+         * selbe Bild benutzt"), wird also von unserer eigenen Adresse geholt. Scheitert das,
+         * läuft der Auftrag OHNE Stilbild weiter — dann malt das Modell nach den Worten
+         * allein; das ist schlechter, aber besser als ein Kauf, der an einer fehlenden Datei
+         * stirbt.
+         */
+        if (traumHochzeit) {
+          try {
+            const r = await fetch(new URL(HOCHZEIT_STIL, request.url).toString());
+            if (r.ok) form.append("image[]", new Blob([new Uint8Array(await r.arrayBuffer())], { type: "image/jpeg" }), "stil.jpg");
+          } catch { /* dann eben ohne — die Worte tragen auch allein */ }
+        }
         form.append("image[]", pb, "person.png");
         if (mb) form.append("image[]", mb, "model.png");
         const r = await fetch("https://api.openai.com/v1/images/edits", {

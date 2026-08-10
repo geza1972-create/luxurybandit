@@ -123,3 +123,46 @@ export function weddingBildPrompt(kleid: string, szeneId?: string): string {
     + kleid + ", the man in an elegant WHITE suit with a white shirt. "
     + verhaltenSatz + " " + ortSatz;
 }
+
+/**
+ * DIE TRAUMWELT-KETTE DER HOCHZEIT (Owner 10.08.2026, mit beiden Aufträgen im Wortlaut):
+ *
+ * > „Leute laden ein Bild von sich hoch, entweder einzeln oder als Paar. Das wird in einem
+ * > surrealistischen Bild umgewandelt, dann an Pixverse gegeben, der ein Video macht."
+ *
+ * DER SPRUNG WEG VOM FOTOREALISMUS. Bisher entstand ein fotorealistisches Hochzeitsbild —
+ * und daran scheitert jede KI zuverlässig dort, wo es am meisten auffällt: an zwei Gesichtern
+ * in einer Szene. Ein GEMALTES Bild trägt dieselbe Ähnlichkeit, ohne dass jede Unschärfe als
+ * Fehler gelesen wird; die Handschrift ist der Stil, nicht ein Mangel. Genau dieser Weg hat
+ * den Geburtstag gerettet („Dream World"), und der Owner nimmt hier dieselbe Stil-Vorlage:
+ * „Ich habe als Referenz das selbe Bild benutzt wie beim Geburtstag."
+ *
+ * DREI BILDER, EINE REIHENFOLGE — sie ist nicht beliebig, der Auftrag spricht sie an:
+ *   1. die STIL-VORLAGE (`HOCHZEIT_STIL`)
+ *   2. sein Gesicht
+ *   3. ihr Gesicht
+ * Lädt jemand EIN Paarfoto hoch, gibt es nur zwei Bilder — dann verweist der Auftrag auf das
+ * zweite als gemeinsame Vorlage. Wer die Reihenfolge dreht, dreht die Bedeutung.
+ */
+export const HOCHZEIT_STIL = "/Birthday/look-traum.jpg";
+
+/** Der Bild-Auftrag, wörtlich vom Owner — nur die Namen sind durch die Plätze ersetzt. */
+export const hochzeitTraumPrompt = (gemeinsam: boolean) => [
+  "Use the first image as the visual style reference.",
+  gemeinsam
+    ? "Use the second image as the identity reference for BOTH people in it."
+    : "Use the second image as the groom's identity reference.\nUse the third image as the bride's identity reference.",
+  "Create them together as a wedding couple in the same dreamy painterly-surreal fantasy world as the first image.",
+  "Keep both clearly recognizable, but transform their faces and bodies into the same painted artistic language as the environment.",
+  "IMPORTANT:\nDo not keep the faces photorealistic.\nTheir faces should look visibly painted and softly illustrated while preserving their identity and key facial features.",
+  "The groom wears an elegant ivory wedding suit.\nThe bride wears a dreamy artistic bridal gown with a veil and flowers.",
+  "Use pastel peach, pink, turquoise, lavender and warm gold.\nPainterly brush textures, glowing fantasy architecture, flowers, bubbles, shimmering light and a magical romantic atmosphere.",
+  "The couple, clothing and background must look like one single painting by the same artist.",
+  "No text.\nNo logo.",
+].join("\n\n");
+
+/** Der Video-Auftrag für Pixverse, wörtlich vom Owner. */
+export const HOCHZEIT_TRAUM_VIDEO =
+  "Animate this wedding couple in a dreamy painterly fantasy world. Soft romantic motion, " +
+  "gentle camera push-in, floating bubbles, subtle sparkle particles, slight movement in hair, " +
+  "veil and flowers. Keep the couple beautiful and stable. Magical, romantic, elegant atmosphere.";
