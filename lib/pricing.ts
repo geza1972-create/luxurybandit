@@ -245,6 +245,26 @@ export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie je
 export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.08.2026, jetzt der Hauspreis
 
 /**
+ * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses
+ * Video muss 14,99 kosten", eine halbe Stunde später „mach 9,99€").
+ *
+ * Die eigene Konstante bleibt trotzdem stehen, und zwar genau deswegen: Der Preis dieses
+ * Themas ist offensichtlich in Bewegung. Solange er hier steht, ist ein Wechsel EINE Zeile —
+ * schriebe man ihn wieder auf `GESCHENK_VIDEO_CENTS` zurück, wäre der nächste Versuch mit
+ * 14,99 € eine Änderung, die Kuss, Tanz und Geburtstag stillschweigend mitnimmt.
+ *
+ * Gelesen wird sie an zwei Stellen — `geschenkPreisCents` (Abbuchung und Kasse) und
+ * `themenPreisCents` (Kachel und Landingpage); eine dritte Zahl darf es nicht geben
+ * (Memory `prices-only-from-pricing-table`).
+ *
+ * SEIT 11.08.2026 KEIN VIDEO MEHR, EIN PROGRAMM (Owner: „Future Self Program"). Verkauft wird
+ * nicht mehr nur das Video, sondern der Film plus das 30-Tage-Programm mit Checkliste,
+ * Fortschritt und 90-Tage-Anschlussziel — deshalb löst sich der Preis vom Geschenk-Hauspreis
+ * und bekommt eine eigene Zahl (49 €), keinen Anteil an `GESCHENK_VIDEO_CENTS` mehr.
+ */
+export const VERSPRECHEN_CENTS = 1999;   // 19,99 € — Future Self Program (Owner 11.08.2026, dritte Fassung des Tages: 49 → 59 → „wir machen das programm für 19,99")
+
+/**
  * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
  *
  * GEMESSEN am 07.08.2026, nicht vermutet: Der Trichter verlangte für den Geburtstag 4,99 €
@@ -271,6 +291,9 @@ export function geschenkPreisCents(geschenk: string): number {
        Zusagenliste und Gruppenchat (Verlängerung 14,99 €/Monat). Sie bleibt deshalb hier
        stehen, während Kuss, Tanz, Geburtstag und Urlaub auf den Geschenkpreis fallen. */
     case "wedding": return HOCHZEIT_START_CENTS;
+    /* Das Future Self Program — der Schlüssel ist das gespeicherte Thema des Auftrags, also
+       derselbe Wert wie in `themenPreisCents`. Der Betrag steht NUR in VERSPRECHEN_CENTS. */
+    case "versprechen": return VERSPRECHEN_CENTS;
     default: return GESCHENK_VIDEO_CENTS;   // Kuss, Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }
@@ -609,6 +632,10 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{once\}/g, eur(ONCE_CENTS, lang))
     .replace(/\{tanz\}/g, eur(POLEDANCE_CENTS, lang))
     .replace(/\{geburtstag\}/g, eur(GEBURTSTAG_CENTS, lang))
+    /* Das Future Self Program (11.08.2026): Der Versprechen-Trichter erbte die Geburtstags-
+       Kauftexte samt {geburtstag} — der Knopf sagte 9,99 €, die Kasse nahm 59 €. Eigener
+       Platzhalter, damit die VERSPRECHEN-Tabelle den richtigen Preis nennen kann. */
+    .replace(/\{programm\}/g, eur(VERSPRECHEN_CENTS, lang))
     .replace(/\{videoauf\}/g, eur(VIDEO_UPGRADE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
@@ -750,6 +777,10 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
     case "gutschein": return ONCE_CENTS;   // „ab 15 €" — das billigste Geschenk darin
     case "bella": case "tryon": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
     case "birthday": return GEBURTSTAG_CENTS;   // 4,99 € Startpreis (Owner 07.08.2026)
+    /* KEINE ZAHL MEHR IM KOMMENTAR (11.08.2026): Der Preis dieses Themas wechselte an EINEM Tag
+       dreimal (49 → 59 → 19,99), und der Kommentar hinkte jedes Mal hinterher. Wer einen Preis
+       im Kommentar nachschlägt statt in VERSPRECHEN_CENTS, tippt irgendwo eine tote Zahl ab. */
+    case "versprechen": return VERSPRECHEN_CENTS;   // Future Self Program
     default: return GESCHENK_VIDEO_CENTS;   // kiss, holiday — 4,99 € (Owner 10.08.2026)
   }
 }
@@ -882,7 +913,20 @@ export function themenPreisZeile(thema: ThemenSchluessel, lang?: string): string
  * ein Cent bleibt liegen. Der Rest auf dem Konto ist der Grund wiederzukommen; genau deshalb
  * verfällt Guthaben bei uns nie.
  */
-export const AUFLADE_STUFEN = [1000, 1500, 3000, PLAN_CENTS] as const;
+/**
+ * 20 € STATT 59 € ALS DRITTE SPROSSE (11.08.2026, nachdem das Future Self Program von 59 € auf
+ * 19,99 € gefallen ist — Owner: „wir machen das programm für 19,99").
+ *
+ * DIE LEITER FOLGT DEN PREISEN, nicht der Gewohnheit: Eine 59er-Sprosse kauft jetzt kein
+ * einziges Produkt mehr punktgenau, und wer sie wählte, hätte 39 € totes Geld auf dem Konto.
+ * 20 € deckt das Programm so, wie 10 € ein Geschenk deckt — ein Cent bleibt liegen, und genau
+ * dieser Rest ist der Grund wiederzukommen (Guthaben verfällt nie).
+ *
+ * Ohne passende Sprosse bricht „Aufladen setzt den Kauf fort" (Memory
+ * `aufladen-setzt-den-kauf-fort`): Der Kunde lädt auf und steht trotzdem wieder vor
+ * demselben Kaufknopf — der teuerste Weg, einen bezahlten Kunden zu verlieren.
+ */
+export const AUFLADE_STUFEN = [1000, 1500, 2000, 3000, PLAN_CENTS] as const;
 
 /**
  * DAS WERBEGESCHENK AN BESTANDSKUNDEN (Owner 05.08.2026: „auch meine Kunden können das

@@ -1,4 +1,5 @@
 import { readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { futureProgramAnlegen } from "@/lib/future-program-store";
 
 /**
  * DER VERMERK „HIER WARTET EIN BEZAHLTER AUFTRAG".
@@ -83,6 +84,28 @@ export async function bezahltVermerken(genId: string, email = "", kind = ""): Pr
     // Nie zurücksetzen: ein zweiter Aufruf (Webhook UND Rückkehr) darf die Frist nicht
     // verlängern — sonst schiebt sich die Lieferung mit jedem Aufruf nach hinten.
     if (!e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + GNADENFRIST_MS).toISOString();
+    /**
+     * DAS FUTURE-PROGRAMM ANLEGEN — GENAU HIER, BEVOR KAPPUNG/AUFRÄUMER DIE ZIELE ERWISCHEN
+     * KÖNNEN (11.08.2026). Der Bezahl-Stempel ist der früheste sichere Moment: Der Auftrag
+     * trägt seine Ziele (`e.ziele`/`e.zieleFrei`) noch frisch aus dem Trichter, und die
+     * eigene Programm-Datei (siehe future-program-store.ts) lebt ausserhalb des 500er-Logs
+     * und des 90-Tage-Aufräumers. `futureProgramAnlegen` ist idempotent (überschreibt eine
+     * bestehende Datei nie) — ein zweiter Aufruf dieser Funktion (Webhook UND Rückkehr des
+     * Kunden) legt also nichts doppelt an und löscht keine bereits gesetzten Häkchen.
+     *
+     * NIE die Bezahlung kippen: ein Fehler hier (z. B. Supabase kurz nicht erreichbar) darf
+     * dem Kunden seine Zahlung nicht wegnehmen — nur ins Log schreiben und weiterlaufen.
+     */
+    if (String(e.theme ?? "") === "versprechen") {
+      try {
+        // Seit 11.08.2026 traegt `KissLogEntry` ein eigenes `lang`-Feld (siehe
+        // lib/try-this-look-store.ts): Der Trichter schickt es beim Anlegen UND bei jeder
+        // Aktualisierung mit, `/api/kiss-log` legt es ab. Rueckfall auf Englisch bleibt nur
+        // fuer sehr alte Eintraege von vor diesem Datum.
+        const lang = String(e.lang ?? "en").trim() || "en";
+        await futureProgramAnlegen(id, e.paidEmail || e.email || mail, lang, e.ziele ?? [], e.zieleFrei);
+      } catch (err) { console.warn("future-program anlegen fehlgeschlagen:", err); }
+    }
     if (JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind]) === vorher) return true;
     await writeKissLog(entries);
     return true;
