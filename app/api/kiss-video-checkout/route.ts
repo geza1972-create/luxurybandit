@@ -260,6 +260,29 @@ export async function POST(request: Request) {
         amount: preis,
         currency: "eur",
         /**
+         * DER AKTIONSCODE AUS DEM LINK WIRKT AUCH BEIM EINMALKAUF (Owner 11.08.2026: „der
+         * code ist nicht eingebaut", zum Kassenbild mit vollem Betrag).
+         *
+         * Er hatte recht, und der Weg war nur zur Hälfte gebaut: Der Trichter schickt `code`
+         * seit jeher mit (`?code=` bzw. `?promo=` an der Themenseite), aber ausgewertet wurde
+         * er NUR im Abo-Zweig ganz unten. Im Einmalkauf fiel er lautlos weg — die Kasse zeigte
+         * den vollen Preis, und der Kunde musste denselben Code von Hand in das
+         * Promo-Feld tippen, das Stripe daneben einblendet.
+         *
+         * `couponFor` kennt nur unsere eigenen Codes und gibt sonst `undefined` zurück; ein
+         * erfundener Code im Link ändert also nichts und bricht den Kauf NICHT ab. Und
+         * `standardCoupon()` bleibt hier bewusst DRAUSSEN: Das ist der Dauerrabatt des
+         * Themen-Abos — auf einem Einmalkauf wäre er ein Preisnachlass, den niemand
+         * beschlossen hat.
+         *
+         * Ohne Code bleibt alles wie bisher: `createTryonCheckout` blendet dann das
+         * Promo-Feld ein (`allow_promotion_codes`). Beides zusammen lässt Stripe nicht zu —
+         * ein automatisch gesetzter Gutschein schliesst das Eingabefeld aus.
+         */
+        ...(couponFor(String((body as { code?: string })?.code ?? ""))
+          ? { coupon: couponFor(String((body as { code?: string })?.code ?? "")) }
+          : {}),
+        /**
          * KEINE PREIS-KENNUNG MEHR, NUR DER BETRAG (05.08.2026, Owner: „5,10,15,30,60").
          *
          * Hier stand kurz die gemeinsame 14,99-Kennung des Owners. Mit den runden Preisen
