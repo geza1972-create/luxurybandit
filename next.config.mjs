@@ -18,6 +18,19 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   outputFileTracingRoot: projectRoot,
+  /**
+   * DER VERSPRECHEN-ORDNER MUSS IN DIE SERVER-FUNKTION (11.08.2026).
+   *
+   * Die Themenseite liest ihre Beispielvideos aus `public/Versprechen` (siehe
+   * lib/versprechen-videos.ts) — so wird aus „Datei hineinlegen" eine neue Folie, ohne dass
+   * jemand Code anfasst. Was in `public/` liegt, liefert auf Vercel aber das CDN aus; in der
+   * Server-Funktion ist es nur, wenn die Bau-Spurensuche es mitnimmt. Ohne diese Zeile
+   * findet `readdirSync` dort nichts und die Seite fiele auf das eine Kachel-Video zurück:
+   * lokal vier Folien, live eine — der schlimmste Fehler, weil er beim Testen unsichtbar ist.
+   */
+  outputFileTracingIncludes: {
+    "/themes/versprechen": ["./public/Versprechen/**"],
+  },
   async rewrites() {
     // Mirror every public page under /admin/… for signed-in admins. `afterFiles` runs
     // AFTER real pages/files, so genuine admin dashboards (/admin/looks, /admin/trends,
