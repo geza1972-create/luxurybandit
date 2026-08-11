@@ -107,6 +107,27 @@ export default function KartenKarussell({ folien, onAktiv }: {
     return () => clearInterval(t);
   }, [selbstLaeuft, folien.length]);
 
+  /**
+   * DER TON ENDET MIT DER FOLIE (Owner 11.08.2026: „Wenn er zum nächsten slide geht dann
+   * muss der ton aufhören vom letzten slide").
+   *
+   * Jede Folie bringt ihren eigenen Spieler mit — wer bei laufendem Ton weiterwischte, hörte
+   * die alte Folie unsichtbar weiter. Das Karussell ist die EINE Stelle, die weiss, welche
+   * Folie vorn steht, also pausiert es beim Wechsel jeden Spieler der anderen Folien.
+   * PAUSIEREN, nicht stummschalten und nicht zurückspulen: Wer zurückwischt, setzt mit einem
+   * Tipp an derselben Stelle fort (Hausregel „Weiterlauf statt Neustart", Memory
+   * video-playback-behavior) — und `pause()` feuert `onPause`, womit auch der Playknopf der
+   * Karte wieder auftaucht (Memory playknopf-folgt-dem-spieler).
+   */
+  useEffect(() => {
+    const el = bahn.current;
+    if (!el) return;
+    Array.from(el.children).forEach((kind, i) => {
+      if (i === aktiv) return;
+      kind.querySelectorAll("video").forEach(v => { if (!v.paused) v.pause(); });
+    });
+  }, [aktiv]);
+
   if (folien.length === 0) return null;
   if (folien.length === 1) return <>{folien[0]}</>;
 

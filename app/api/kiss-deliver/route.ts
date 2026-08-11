@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, deleteTryThisLookImage, type KissLogEntry, avatarLesen } from "@/lib/try-this-look-store";
+import { futureProgramToken } from "@/lib/future-program-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
 
@@ -103,7 +104,22 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
    * nach, die es für den Geburtstag nicht mehr gibt. Er braucht dafür nur IHR Foto
    * (nurSie-Geschenk, `sein` bleibt leer) und den Empfängernamen aus dem Auftrag.
    */
-  if (e.theme === "birthday") {
+  /**
+   * UND DAS VERSPRECHEN GEHT DENSELBEN WEG (11.08.2026, an zwei toten Auftraegen vom
+   * Vortag gefunden — Owner: „gestern haben wir den funel probiert, es wird nichts
+   * generiert").
+   *
+   * Hier stand allein „birthday". Ein Versprechen-Auftrag fiel damit in den Kuss-Zweig
+   * darunter: Der verlangt ZWEI Fotos (`sein` und `ihr`), und beim Versprechen gibt es nur
+   * eines — der Wachhund brach mit „Sein Foto fehlt im Speicher." ab und lieferte nie.
+   * Haette er sie gehabt, waere es schlimmer gewesen: Der Kuss-Zweig rendert eine
+   * Urlaubsszene mit zwei Menschen, also ein voellig anderes Produkt als das gekaufte.
+   *
+   * Es ist dieselbe Kette (Aufnahme → Bild → HeyGen spricht) und derselbe Weg wie im
+   * Trichter — nur der Look und der gesprochene Satz unterscheiden sich, und beide haengen
+   * am `look` des Auftrags, den die Route selbst aufloest.
+   */
+  if (e.theme === "birthday" || e.theme === "versprechen") {
     if (!ihr) return { error: "Ihr Foto fehlt im Speicher." };
     const pinG = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
     /**
@@ -164,20 +180,54 @@ async function abmeldeLink(o: string, email: string): Promise<string> {
   return `${o}/unsubscribe`;
 }
 
+/**
+ * BETREFF UND TITELZEILE KENNEN IHR THEMA (11.08.2026, Future Self Program).
+ *
+ * „Your video is ready" passt zum Kuss, aber nicht zum 49-€-Future-Film — der Käufer hat kein
+ * „Video" gekauft, sondern ein Versprechen an sich selbst.
+ */
+function liefermailTitel(e: KissLogEntry): string {
+  return e.theme === "versprechen" ? "Your Future Film is ready 🎬" : "Your video is ready 🎬";
+}
+
 /** Das fertige Video an den Käufer — die Mail ist der Ersatz für den Browser, der zu ist. */
 async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> {
   const to = String(e.paidEmail || e.email || "").trim();
   if (!to || !e.videoUrl) return false;
   const o = origin(request);
   const abmelden = await abmeldeLink(o, to);
+  const titel = liefermailTitel(e);
+  /**
+   * DER PROGRAMM-LINK — GOLD-KNOPF FÜR DAS VERSPRECHEN (11.08.2026).
+   *
+   * Owner-Vorgabe: „das Programm ist das Versprechen der Seite, also Programm = Gold-Knopf,
+   * Galerie = Textzeile darunter" — umgekehrt zu jedem anderen Thema, wo die Galerie der
+   * Gold-Knopf ist. Beim Versprechen hat der Käufer kein „Video" gekauft, sondern ein
+   * 30-Tage-Programm; genau dorthin soll der eine Klick führen, den eine Mail bekommt.
+   *
+   * `futureProgramToken` liefert nur dann etwas, wenn ein Server-Geheimnis gesetzt ist
+   * (CRON_SECRET/TRY_THIS_LOOK_ADMIN_PIN) — ohne Geheimnis kein Token, dann fällt die Mail
+   * auf den alten Weg zurück (Gold-Knopf = Galerie), statt einen kaputten Link zu verschicken.
+   */
+  const programToken = e.theme === "versprechen" ? futureProgramToken(e.id) : "";
+  const programLink = programToken ? `${o}/future-program?g=${encodeURIComponent(e.id)}&t=${programToken}` : "";
+  const galerieLink = `${o}/my-gallery?utm_source=liefermail`;
+  const goldKnopf = programLink
+    ? `<a href="${programLink}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Start your 30 days →</a>`
+    : `<a href="${galerieLink}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch your video</a>`;
+  const galerieZeile = programLink
+    ? `<tr><td style="padding:0 22px 4px"><a href="${galerieLink}" style="color:#a89f8e;font-size:12px">Or watch your video in your gallery</a></td></tr>`
+    : "";
   const html =
     `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
     + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
-    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">Your video is ready 🎬</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">${titel}</td></tr>`
     + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
-    + `Thank you — here it is. It is also saved in your gallery, so you can watch it again any time.`
+    + (e.theme === "versprechen"
+        ? `Your Future Film is here — it is saved in your gallery, so you can watch it again any time. Your 30-day program starts now.`
+        : `Thank you — here it is. It is also saved in your gallery, so you can watch it again any time.`)
     + `</td></tr>`
     /**
      * DER KNOPF FÜHRT AUFS PORTAL, NICHT ZUR DATEI (OFFEN.md Punkt 3, Owner: „sie sollen das
@@ -189,12 +239,13 @@ async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> 
      * dagegen lebt, zeigt das Video für immer (sie signiert bei jedem Aufruf frisch) und
      * steht neben dem Kaufknopf fürs nächste. Genau dorthin soll jeder Klick aus einer Mail.
      */
-    + `<tr><td style="padding:0 22px 10px"><a href="${o}/my-gallery?utm_source=liefermail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Watch your video</a></td></tr>`
+    + `<tr><td style="padding:0 22px 10px">${goldKnopf}</td></tr>`
+    + galerieZeile
     + `<tr><td style="padding:0 22px 20px"><a href="${abmelden}" style="color:#6b655c;font-size:11px">Unsubscribe</a></td></tr>`
     + `</table></td></tr></table></div>`;
   const r = await sendEmail({
     to,
-    subject: "Your video is ready 🎬",
+    subject: titel,
     html,
     listUnsubscribe: abmelden,
   }).catch(() => ({ ok: false }));
@@ -213,20 +264,25 @@ async function aufgeben(request: Request, e: KissLogEntry): Promise<boolean> {
   const support = String(process.env.SUPPORT_EMAIL || process.env.SMTP_USER || "").trim();
   if (!to) return false;
   const o = origin(request);
+  // 11.08.2026, Future Self Program: „We owe you a video" nennt beim Versprechen das falsche
+  // Ding — der Kunde hat keinen Videoauftrag gekauft, sondern seinen Future Film.
+  const titel = e.theme === "versprechen" ? "We owe you your Future Film" : "We owe you a video";
+  const text = e.theme === "versprechen"
+    ? `Your payment went through, but your Future Film did not come out right. We are on it and send it to you by hand — just answer this email if anything is unclear.`
+    : `Your payment went through, but the video did not come out right. We are on it and send it to you by hand — just answer this email if anything is unclear.`;
   const html =
     `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
     + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
-    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">We owe you a video</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">${titel}</td></tr>`
     + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
-    + `Your payment went through, but the video did not come out right. We are on it and send it to you by hand — `
-    + `just answer this email if anything is unclear.`
+    + text
     + `</td></tr>`
     + `<tr><td style="padding:0 22px 20px"><a href="${o}/my-gallery" style="color:#8d8579;font-size:12px">Open my gallery</a></td></tr>`
     + `</table></td></tr></table></div>`;
   const r = await sendEmail({
-    to, subject: "We owe you a video", html,
+    to, subject: titel, html,
     listUnsubscribe: await abmeldeLink(o, to),
     ...(support ? { bcc: support, replyTo: support } : {}),
   }).catch(() => ({ ok: false }));

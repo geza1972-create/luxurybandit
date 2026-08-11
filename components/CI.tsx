@@ -140,9 +140,14 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
           // blau umrandet — mit genau dem Rand, der dem GEWÄHLTEN gehört.
           : "bg-white/5"}`);
   return (
+    /* `select-none` — EIN KNOPF IST KEIN TEXT (Owner 11.08.2026, mit Bild eines Chips, dessen
+       Wort blau markiert war: „das ist ein fehler"). Auf dem Handy markiert ein etwas längerer
+       Tipp die Beschriftung, statt zu schalten; die blaue Auswahl bleibt danach stehen und
+       sieht aus wie ein kaputtes Element. Gehört an den Baustein, nicht an die einzelne
+       Stelle: Es gilt für jeden Knopf und Chip im Haus. */
     <button type="button" onClick={onClick} disabled={disabled}
       {...(art === "chip" ? { "aria-pressed": aktiv } : {})}
-      className={`${kl} transition active:scale-95 disabled:opacity-60 ${className}`}>
+      className={`${kl} select-none transition active:scale-95 disabled:opacity-60 ${className}`}>
       {children}
     </button>
   );

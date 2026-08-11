@@ -5,9 +5,26 @@ import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, create
 import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
 import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
+import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
+import { zieleSaeubern } from "@/lib/future-ziele";
 
-/** Die Kennungen, die es wirklich gibt — der Wertevorrat fuer `look`. */
-const LOOK_IDS: string[] = GEBURTSTAG_LOOKS.map(l => l.id);
+/**
+ * Die Kennungen, die es wirklich gibt — der Wertevorrat fuer `look`.
+ *
+ * MIT DEN VERSPRECHEN-LOOKS (11.08.2026, an einem echten Auftrag gefunden: 878ce862 wurde
+ * bezahlt und trug KEINEN Look). Hier stand nur die Geburtstagsliste, und was nicht darin
+ * steht, wird stillschweigend weggeworfen — „villa" fiel also bei jedem Versprechen-Auftrag
+ * heraus. Folgen, beide unsichtbar bis zur Auslieferung:
+ *
+ *   1. `geburtstagLook(undefined)` faellt auf den ERSTEN Geburtstags-Look zurueck: Wer eine
+ *      Videobotschaft an sich selbst kauft, bekommt Torte und Kerzen.
+ *   2. Der gesprochene Satz haengt am Look (`VERSPRECHEN_LOOKS.some(...)` in
+ *      /api/geburtstag-video) — ohne Look sagt die Stimme „Happy birthday".
+ *
+ * Ein Wertevorrat, der ein Thema nicht kennt, verwirft dessen Wahl lautlos. Deshalb kommt
+ * hier jede Look-Liste des Hauses hinein, nicht eine.
+ */
+const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS].map(l => l.id);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -164,8 +181,31 @@ async function ablegen(dataUrl: string): Promise<string> {
   } catch { return ""; }   // Ablage ist Zugabe — der Trichter läuft weiter
 }
 
+/**
+ * BESITZ EINES EINTRAGS PRUEFEN (11.08.2026, ausfaktoriert aus dem `remove`-Zweig fuer die
+ * neue Wache am `update`-Zweig — siehe dort). Besitzer heisst wie beim Löschen (Owner
+ * 30.07.2026): dasselbe Gerät wie beim Hochladen, oder ein angemeldetes Konto (bzw. eine
+ * mitgeschickte Adresse) mit derselben E-Mail. Admin darf immer.
+ *
+ * Die Adresse darf auch aus dem Aufruf kommen, nicht nur aus der Anmeldung (Owner
+ * 03.08.2026: „ich kann keine Bilder löschen"). Wer sein Guthaben unter einer Adresse führt,
+ * aber nicht angemeldet ist, scheiterte sonst am Gerät — obwohl der Eintrag auf ihn läuft.
+ */
+async function istBesitzer(ziel: KissLogEntry, body: { device?: string; email?: string }, request: Request): Promise<boolean> {
+  if (await isAdminRequest(request).catch(() => false)) return true;
+  const geraet = String(body.device ?? "").trim();
+  const konto = await getSellerFromRequest(request).catch(() => null);
+  const mail = String(konto?.email ?? "").trim().toLowerCase();
+  const mitgeschickt = String(body.email ?? "").trim().toLowerCase();
+  return (
+    (!!geraet && ziel.device === geraet) ||
+    (!!mail && String(ziel.email ?? "").toLowerCase() === mail) ||
+    (!!mitgeschickt && String(ziel.email ?? "").toLowerCase() === mitgeschickt)
+  );
+}
+
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string; ziele?: unknown; zieleFrei?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -175,27 +215,12 @@ export async function POST(request: Request) {
    * Kennung rät.
    */
   if (body.remove) {
-    const admin = await isAdminRequest(request).catch(() => false);
-    if (!admin) {
-      const alleJetzt = await readKissLog();
-      const ziel = alleJetzt.find(e => e.id === body.remove);
-      const geraet = String(body.device ?? "").trim();
-      const konto = await getSellerFromRequest(request).catch(() => null);
-      const mail = String(konto?.email ?? "").trim().toLowerCase();
-      /* Die Adresse darf auch aus dem Aufruf kommen, nicht nur aus der Anmeldung (Owner
-         03.08.2026: „ich kann keine Bilder löschen"). Wer sein Guthaben unter einer Adresse
-         fuehrt, aber nicht angemeldet ist, scheiterte sonst am Geraet — obwohl der Eintrag
-         auf ihn laeuft. Sie ist kein Beweis, aber sie ist auch kein Risiko: Zu loeschen gibt
-         es nur, was ohnehin schon jemandem gehoert, und wer eine fremde Adresse raet, raet
-         auch deren Auftragsnummer. */
-      const mitgeschickt = String(body.email ?? "").trim().toLowerCase();
-      const darf = !!ziel && (
-        (!!geraet && ziel.device === geraet) ||
-        (!!mail && String(ziel.email ?? "").toLowerCase() === mail) ||
-        (!!mitgeschickt && String(ziel.email ?? "").toLowerCase() === mitgeschickt)
-      );
-      if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
-    }
+    // Besitzpruefung ausfaktoriert nach `istBesitzer` (11.08.2026) — dieselbe Logik gilt
+    // jetzt auch am `update`-Zweig weiter unten, statt sie ein zweites Mal abzuschreiben.
+    const alleJetzt = await readKissLog();
+    const ziel = alleJetzt.find(e => e.id === body.remove);
+    const darf = !!ziel && (await istBesitzer(ziel, body, request));
+    if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
     const alle = await readKissLog();
     const weg = alle.find(e => e.id === body.remove);
     const entries = alle.filter(e => e.id !== body.remove);
@@ -264,7 +289,17 @@ export async function POST(request: Request) {
     const modelId = String(body.modelId ?? "").trim().slice(0, 80);
     // Die Alterspruefung stand hier vom 31.07. bis 01.08.2026 — entfernt auf Anweisung
     // (Owner: „mach die Alterskontrolle raus. OpenAI blockiert eh schon zu viel").
-    if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName && !renderStart && !renderAbbruch) {
+    /**
+     * WAS ZAEHLT ALS „ETWAS ZU TUN"? — SEIT 11.08.2026 AUCH DIE ZIELE.
+     *
+     * Diese Wache steht hier, damit ein leerer Aufruf nicht die ganze Auftragsliste neu
+     * schreibt. Sie kannte aber nur Bilder, Videos und Stempel: Ein Aufruf, der NUR die
+     * Ziele nachtraegt, kam mit „nothing to update" zurueck — beim Pruefen gemessen. Im
+     * Trichter faellt das heute nicht auf (dort reist immer eine Kennung mit), aber es ist
+     * genau die Art stiller Absage, an der spaeter eine Stunde Suche haengt.
+     */
+    if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName
+        && !renderStart && !renderAbbruch && body.ziele === undefined && typeof body.zieleFrei !== "string") {
       return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     }
     /**
@@ -279,6 +314,22 @@ export async function POST(request: Request) {
     const entries = await readKissLog();
     const e = entries.find(x => x.id === body.update);
     if (e) {
+      /**
+       * BESITZPRUEFUNG AM ÖFFENTLICHEN `update` (11.08.2026, Owner-Fund: geteilte
+       * /w/<id>-Links legen die genId offen). Der `remove`- und der `share`-Zweig prüfen
+       * Besitz, dieser hier prüfte bis heute NICHTS — wer eine genId kannte, konnte einen
+       * fremden Auftrag umschreiben, sogar `videoUrl` setzen und damit die Liefermail
+       * auslösen.
+       *
+       * KONSERVATIV, damit kein zahlender Kunde ausgesperrt wird: Ein Eintrag ohne `device`
+       * UND ohne `email` (anonym, z. B. der allererste Aufruf, der ihn gerade erst anlegt
+       * oder gleich danach ergänzt) bleibt offen wie bisher. Erst sobald der Eintrag ein
+       * Gerät oder eine Adresse trägt, muss der Aufruf dazu passen — dieselbe Prüfung wie
+       * beim Löschen (`istBesitzer`), inklusive des zweiten Foto-Uploads vom SELBEN Gerät.
+       */
+      if ((e.device || e.email) && !(await istBesitzer(e, body, request))) {
+        return NextResponse.json({ error: "Not yours." }, { status: 403 });
+      }
       if (videoUrl) {
         e.videoUrl = videoUrl;
         /**
@@ -342,6 +393,27 @@ export async function POST(request: Request) {
       /* Die Stimmwahl des Geburtstags — der Nachliefer-Wachhund braucht sie beim Neustart
          (Owner 07.08.2026: „Peter hat eine Frauenstimme"). Nur die zwei bekannten Werte. */
       if (body.stimme === "mann" || body.stimme === "frau") e.stimme = body.stimme;
+      /**
+       * SEINE ZIELE — ÄNDERBAR BIS ZUM KAUF (Owner 11.08.2026, Ziele-Schritt).
+       *
+       * Wie der Empfaengername: Solange nichts geliefert ist, darf er umwaehlen, und der
+       * Auftrag traegt die LETZTE Wahl. `zieleSaeubern` laesst nur bekannte Kennungen durch
+       * und deckelt bei drei — der Browser bestimmt die Zahl nicht.
+       *
+       * NUR SETZEN, WENN ETWAS KOMMT: Ein Aufruf ohne `ziele` (der Wachhund, ein
+       * Fortschritts-Stempel) darf eine getroffene Wahl nicht loeschen.
+       */
+      if (body.ziele !== undefined) {
+        const gew = zieleSaeubern(body.ziele);
+        if (gew.length) e.ziele = gew;
+      }
+      if (typeof body.zieleFrei === "string" && body.zieleFrei.trim()) {
+        e.zieleFrei = body.zieleFrei.replace(/\s+/g, " ").trim().slice(0, 60);
+      }
+      /* SEINE SPRACHE — LETZTE WAHL GEWINNT (11.08.2026): er kann sie im Trichter noch
+         wechseln, bevor bezahlt wird; der Auftrag traegt dann die neueste. */
+      const langU = String(body.lang ?? "").trim().slice(0, 5);
+      if (langU) e.lang = langU;
       /* Und der gewaehlte Look — genauso streng: nur eine Kennung, die es wirklich
          gibt. Ein Fremdwort hier hiesse spaeter ein Video ohne Prompt. */
       if (LOOK_IDS.includes(String(body.look ?? ""))) e.look = String(body.look);
@@ -431,6 +503,13 @@ export async function POST(request: Request) {
     empfaenger: String(body.empfaenger ?? "").replace(/\s+/g, " ").trim().slice(0, 18) || undefined,
     stimme: body.stimme === "mann" || body.stimme === "frau" ? body.stimme : undefined,
     look: LOOK_IDS.includes(String(body.look ?? "")) ? String(body.look) : undefined,
+    /* Die Richtung, die er sich gegeben hat — Kennungen, nie Woerter (siehe lib/future-ziele). */
+    ziele: zieleSaeubern(body.ziele).length ? zieleSaeubern(body.ziele) : undefined,
+    zieleFrei: typeof body.zieleFrei === "string" && body.zieleFrei.trim()
+      ? body.zieleFrei.replace(/\s+/g, " ").trim().slice(0, 60) : undefined,
+    /* SEINE SPRACHE (11.08.2026) — damit `kiss-delivery.ts` die private Programmseite in
+       SEINER Sprache anlegen kann, statt auf Englisch zurueckzufallen. */
+    lang: String(body.lang ?? "").trim().slice(0, 5) || undefined,
     // Das Warnzeichen für die Galerie — nur gesetzt, wenn etwas auffiel.
     altersWarnung: tor.warnung,
     altersGeschaetzt: tor.alter || undefined,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { getSignedUrl, readThemeConfig } from "@/lib/try-this-look-store";
+import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { resolveLang } from "@/lib/lang-server";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -75,14 +75,17 @@ export default async function BeispielEinladung() {
   const sprache = KARTE_TEXTE[gast] ? gast : "en";
   const T = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
 
-  // Das ERSTE Beispielvideo des Themas — dasselbe, das auf der Themenseite läuft. Wechselt es
-  // dort, wechselt es hier mit; kein zweiter Ort, an dem jemand ein Video nachtragen müsste.
-  let video = "";
-  try {
-    const cfg = await readThemeConfig("wedding");
-    const erstes = (cfg.examplePaths ?? [])[0];
-    if (erstes) video = (await getSignedUrl(erstes).catch(() => "")) || "";
-  } catch { /**/ }
+  /**
+   * DASSELBE VIDEO WIE AUF DER LANDINGPAGE — aus der einen Konstante (`lib/hochzeit-video.ts`).
+   *
+   * Hier stand ein Griff in die Ablage (`readThemeConfig("wedding").examplePaths[0]`), und
+   * genau das ging schief: Die Themenseite zeigt seit dem 10.08. das Gemälde der
+   * Traumwelt-Kette aus `public/Wedding/`, in der Ablage lag aber noch das alte,
+   * fotorealistische Beispiel. Zwei verschiedene Videos für dasselbe Produkt — auf zwei
+   * Seiten, die aufeinander verlinken und von denen DIESE das Ziel des Teilen-Knopfes ist.
+   * Wer sie weiterschickt, verschickt die Werbung für ein Produkt, das er nicht bekommt.
+   */
+  const video = HOCHZEIT_VIDEO;
 
   // Datum immer gut drei Monate voraus, damit im Beispiel nie ein vergangener Termin steht.
   const datum = new Date(Date.now() + 100 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -106,7 +109,8 @@ export default async function BeispielEinladung() {
         <EinladungKarte sprache={sprache} sie="Ana" er="Mihai" datum={datum}
           ort={saal} adresse={adresse} telefon="+00 000 000 000" demo
           video={video
-            ? <EinladungAnsicht id="" videoUrl={video} zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
+            ? <EinladungAnsicht id="" videoUrl={video} poster={HOCHZEIT_VIDEO_POSTER}
+                zaehlen={false} tonText={T.ton} tonAusText={T.tonAus} />
             : <div className="aspect-[3/4] w-full" />} />
 
         <ZusagenKarte sprache={sprache} demo zusagen={ZUSAGEN} />

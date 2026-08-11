@@ -261,8 +261,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       const kussMail = geraetAdresse();
       const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "") || kussMail.split("@")[0]).trim();
       const displayEmail = curator?.email || session?.user?.email || kussMail || "";
-      // Staff = admin or a creator/model. Plain members get a trimmed menu (Home · Models ·
-      // My subscriptions · Account), no Looks/Wardrobe/Luxury/Saved.
+      // Staff = admin or a creator/model. Plain members get a trimmed menu (Home ·
+      // My subscriptions · Account), no Looks/Wardrobe/Luxury/Saved. „Models" raus seit
+      // 11.08.2026 (Owner: „die Modelseite fliegt aus dem Menü raus") — die Modelgalerie
+      // selbst bleibt erreichbar (Startseite/Karten), sie ist nur kein Menüpunkt mehr.
       // Admin tools/content show ONLY for an admin who is NOT currently acting as a model.
       // A model (real, or an admin previewing via "View as model" → isCurator) gets a MINIMAL
       // menu: Home, My Studio, My Influencer profile, (My subscriptions), Sign out.
@@ -329,8 +331,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             <div className="grid divide-y divide-white/10">
               {/* Home = STARTSEITE, und die sind seit 2026-07-27 die Themen. Seit dem
                   03.08.2026 liegen sie auf "/" selbst — der Menuepunkt fuehrt deshalb auf die
-                  blanke Adresse, nicht mehr auf /themes.
-                  Zu den Models führt der Button oben auf der Startseite + „Models" unten. */}
+                  blanke Adresse, nicht mehr auf /themes. Zu den Models führt seit
+                  11.08.2026 kein eigener Menüpunkt mehr (Owner: „die Modelseite fliegt aus
+                  dem Menü raus") — nur noch die Karten auf der Startseite selbst. */}
               <button type="button" onClick={() => navigate("/")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
@@ -452,7 +455,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 </button>
               )}
               {/* Explore group — STAFF only (admin/creator). Members get a clean menu:
-                  just Home, Models, My subscriptions, Account. */}
+                  just Home, My subscriptions, Account. */}
               {isStaff && (<>
               <button type="button" onClick={() => navigate("/stores")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
@@ -465,14 +468,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <span className="text-sm font-black text-white">Looks - Gallery</span>
               </button>
               </>)}
-              {/* Members browse models; a model doesn't need it — her Home already opens the models page. */}
-              {!isCurator && (
-                <button type="button" onClick={() => navigate("/stores?view=models")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <User className="h-5 w-5 shrink-0 text-white/85" />
-                  <span className="text-sm font-black text-white">Models</span>
-                </button>
-              )}
+              {/* „Models" als Menüpunkt raus (Owner 11.08.2026: „die Modelseite fliegt aus
+                  dem Menü raus") — Besucher UND Members sehen ihn nicht mehr. Die
+                  Modelgalerie selbst lebt weiter (Karten auf der Startseite verlinken
+                  dorthin), nur der Menüeintrag fällt weg. */}
               {/* Try on — DER Funnel: ein Kleidungsstück auf ein Model + Video. Führt direkt
                   in die Try-on-Seite (die das Garment des Looks selbst lädt, kein Token nötig). */}
               {!isCurator && (

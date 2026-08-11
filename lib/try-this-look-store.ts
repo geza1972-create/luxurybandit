@@ -653,7 +653,7 @@ export type ProgramFeedPost = {
   createdAt: string;
 };
 
-const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
+export const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
 const STATE_PATH = "try-this-look/state.json";
 const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const DEFAULT_LOOK: TryThisLookLook = {
@@ -681,11 +681,17 @@ function getSupabaseConfig() {
   return { url, serviceRoleKey };
 }
 
-function encodeStoragePath(path: string) {
+/**
+ * EXPORTIERT (11.08.2026) FÜR DAS FUTURE-PROGRAMM: `lib/future-program-store.ts` braucht
+ * genau diese vier Bausteine, um seine eigene Datei je Kauf im selben Bucket zu lesen und
+ * zu schreiben — statt Supabase-Zugriff ein zweites Mal zu erfinden. Verhalten unveraendert,
+ * nur das Schlüsselwort `export` kam dazu.
+ */
+export function encodeStoragePath(path: string) {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
-async function supabaseFetch(path: string, init: RequestInit = {}) {
+export async function supabaseFetch(path: string, init: RequestInit = {}) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   return fetch(`${url}${path}`, {
     ...init,
@@ -700,7 +706,7 @@ async function supabaseFetch(path: string, init: RequestInit = {}) {
   });
 }
 
-async function ensureBucket() {
+export async function ensureBucket() {
   const existingBucket = await supabaseFetch(`/storage/v1/bucket/${BUCKET}`);
   if (existingBucket.ok) return;
 
@@ -1683,6 +1689,25 @@ export type KissLogEntry = {
    * dort kamen sie her.
    */
   theme?: string;
+  /**
+   * SEINE DREI ZIELE (Owner 11.08.2026, Ziele-Schritt des Versprechens) — als KENNUNGEN
+   * ("business", "freedom", …, siehe lib/future-ziele), nie als Wörter: Die persönliche
+   * Programmseite zeigt sie später in SEINER Sprache, und ein deutsches Wort im Auftrag
+   * eines rumänischen Kunden liesse sich dort nie mehr richtig anzeigen.
+   *
+   * `zieleFrei` ist der eine freie Satz hinter „etwas anderes" — den kann niemand
+   * nachschlagen, er bleibt so stehen, wie er ihn geschrieben hat.
+   */
+  ziele?: string[];
+  zieleFrei?: string;
+  /**
+   * SEINE SPRACHE AM AUFTRAG (11.08.2026, Nachtrag zum Future-Self-Programm) — bis hierher
+   * kannte der Eintrag keine Sprache; `kiss-delivery.ts` griff deshalb per Rueckfall auf
+   * Englisch zurueck, und ein rumaenischer Kaeufer haette seine private Programmseite
+   * englisch bekommen. Der Trichter schickt sie beim Anlegen UND bei jeder Aktualisierung
+   * mit (letzte Wahl gewinnt, falls er die Sprache wechselt).
+   */
+  lang?: string;
   /**
    * AN WEN GEHT DER GRUSS (Owner 03.08.2026: „schreib auch den Namen an wem du es senden
    * willst … dann erscheint in den Texten Anna, I love you").

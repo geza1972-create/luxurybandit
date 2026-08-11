@@ -1,3 +1,4 @@
+import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import { resolveLang } from "@/lib/lang-server";
@@ -18,6 +19,7 @@ import GruppenChat from "@/components/GruppenChat";
 import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
 import { readThemeConfig } from "@/lib/try-this-look-store";
+import { HOCHZEIT_VIDEO } from "@/lib/hochzeit-video";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { fillPrices } from "@/lib/pricing";
@@ -116,7 +118,7 @@ export default async function WeddingThemePage({ searchParams }: {
    * nehmen"): Die Beispiele aus der Ablage (`cfg.examplePaths`) hängen nicht mehr mit
    * daran. Was auf der Karte läuft, liegt sichtbar im Repo und ist abgenommen.
    */
-  const examples: string[] = ["/Wedding/hochzeit-beispiel.mp4"];
+  const examples: string[] = [HOCHZEIT_VIDEO];
 
   /**
    * DER TEXT UNTER DER KARTE — IN DER SPRACHE DES BESUCHERS (Owner 31.07.2026: „stimmen die
@@ -149,6 +151,12 @@ export default async function WeddingThemePage({ searchParams }: {
     s4p: "The two photos you upload are used to make your video and nothing else. They are never published and never shown to other users, they are stored on servers in the EU, and everything from a visit without a purchase is deleted after 90 days. The invitation page itself is not listed anywhere and cannot be found on Google — only the people you send the link to can open it.",
     zusCap: "With the subscription: your guests reply with one tap and say how many are coming — you always see the exact guest count and every menu choice.",
     chatCap: "Also in the subscription: the group chat for all your guests — no app, no login needed.",
+    /* DER WEG ZUR MUSTER-EINLADUNG (11.08.2026). Sie ist die vollständigste Seite im Haus —
+       Video, Gästeliste, Menüwahl, Gruppenchat, alles anfassbar — und war von der
+       Verkaufsseite aus NICHT erreichbar: Nur wer den Teilen-Knopf drückte, kam je hin.
+       „Genau so, wie eure Gäste sie bekommen" sagt in einem Satz, was vier Absätze
+       behaupten. */
+    beispiel: "See a real invitation — exactly as your guests get it",
     kicker: "Digital wedding planner",
     claim: "Your wedding invitation as a video — plus the guest list, menu choices and a group chat. All in one link.",
   }, L);
@@ -214,6 +222,17 @@ export default async function WeddingThemePage({ searchParams }: {
                 also 56 px ausserhalb; die Hochzeitskarte ist die höchste im Haus, weil über
                 dem Video noch die Namen stehen. Oben bleiben Kicker und Überschrift. */}
             <Lead className="mt-2">{t.claim}</Lead>
+
+            {/* EIN TIPP AUF DIE FERTIGE EINLADUNG — direkt unter der Karte, weil hier die
+                Frage steht, die den Kauf aufhält: „Was bekomme ich eigentlich?" Kein zweiter
+                Knopf, sondern eine Zeile: Der Kaufknopf in der Karte darüber soll der einzige
+                Knopf im ersten Bild bleiben (Landingpage.md §9). */}
+            <div className="mt-2 text-center">
+              <Link href="/einladung/beispiel"
+                className="font-serif text-[13px] font-bold text-[#f6cf51] underline underline-offset-4">
+                {t.beispiel} →
+              </Link>
+            </div>
 
             {/* DER VORSPANN STEHT UNTER DER KARTE — Seitenkopf-Template (Owner 10.08.2026:
                 „ich will den CTA im Viewport shen" · „Selbe template wie CI", Landingpage.md

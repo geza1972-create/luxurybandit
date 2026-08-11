@@ -88,16 +88,24 @@ Klickprobe reicht bis zum Wähler; Stripe, Gutschrift und Abbuchung hat sie nich
 
 ## 3. Kleine Reste
 
-- **Die vier Szenen-Kacheln der Hochzeit wirken nicht mehr.** Seit der Traumwelt-Kette bauen
-  Bild und Video immer dieselbe Welt; die Wahl ändert nichts. Empfehlung: raus — eine Wahl,
-  die nichts tut, ist schlimmer als keine. (Alternative: den Ort der Szene in
-  `hochzeitTraumPrompt` hängen.)
-- **`/einladung/beispiel` zeigt noch das alte Video.** Die Muster-Einladung ist die stärkste
-  Verkaufsseite im Haus (vollständige Einladung mit Zusagen, Menü, Gruppenchat) und seit heute
-  das Ziel des Teilen-Knopfes — sie sollte dasselbe Gemälde zeigen wie die Landingpage.
-- **Nirgends verlinkt:** dieselbe Muster-Einladung. Ein Satz unter der Karte der
-  Hochzeitsseite („So sieht eure fertige Einladung aus →") wäre der stärkste Beweis vor dem
-  Kauf.
+**Erledigt am 11.08.2026** (die drei Hochzeits-Reste, in einem Zug):
+
+- **Die Szenen-Kacheln der Hochzeit sind raus.** Sie wirkten seit der Traumwelt-Kette nicht
+  mehr — und ihre Bilder waren Fotos aus der alten Kette, zeigten also auch noch den falschen
+  Stil. Der Urlaub behält seine Szenen (er läuft weiter über den alten Weg). Weg zurück steht
+  im Kommentar bei `SZENEN` in `components/EinladungBauen.tsx`: Er braucht ZWEI Dinge —
+  Ort/Kuss an `hochzeitTraumPrompt` gehängt UND zwei neue Kacheln im gemalten Stil (zwei
+  bezahlte Bild-Läufe, ~30 ct, nur auf Ansage).
+- **`/einladung/beispiel` zeigt jetzt dasselbe Gemälde** wie die Landingpage — mit Poster.
+- **Die Muster-Einladung ist verlinkt**, eine Zeile unter der Karte der Hochzeitsseite
+  („Sieh dir eine echte Einladung an — genau so, wie deine Gäste sie bekommen →"). Kein
+  zweiter Knopf: Der Kaufknopf bleibt der einzige im ersten Bild.
+- Dabei entstanden: `lib/hochzeit-video.ts`. Das Hochzeitsvideo stand an drei Stellen als
+  Zeichenkette im Code und an einer vierten gar nicht (die Muster-Einladung holte es aus der
+  Supabase-Ablage — daher das alte Video). Jetzt eine Zeile für alle.
+
+**Noch offen:**
+
 - **HeyGen-Geldbörse ist leer** (15 API-Credits). Kundenvideos laufen über die API und
   scheitern ohne Guthaben — **vor jeder Werbung aufladen**. Preise: API 0,05 $/s (Kundenvideo
   ~0,25 $), Weboberfläche 20 Credits/Minute. Beispielvideos macht der Owner selbst in der

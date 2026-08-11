@@ -13,7 +13,11 @@ import { AufladeWaehler, Eingabe, Fehlerzeile, Knopf, MadeBy } from "@/component
 import ImageCropper from "@/components/ImageCropper";
 import FotoAnleitung from "@/components/FotoAnleitung";
 import { kissText } from "@/lib/kiss-i18n";
-import { weddingPrompt, WEDDING_SZENEN, KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
+/* `weddingPrompt` und `WEDDING_SZENEN` stehen hier nicht mehr: Seit dem 10.08. malt die
+   Hochzeit (`hochzeitTraumPrompt` in der Route), und seit dem 11.08. gibt es dafür keine
+   Szenen-Wahl mehr — siehe die Begründung bei `SZENEN` weiter unten. Beide leben unverändert
+   in `lib/wedding-prompt.ts` weiter; die alte Kette benutzt sie. */
+import { KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { holidayInvitePrompt, HOLIDAY_SZENEN } from "@/lib/holiday-invite";
 import { gutscheinPrompt } from "@/lib/gutschein-prompt";
 import { guthabenLesen } from "@/lib/guthaben-konto";
@@ -226,8 +230,30 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
   /* Beim Gutschein bleibt die Liste LEER: Es wird nichts erzeugt, also gibt es nichts zu
      waehlen. Eine leere Liste blendet den ganzen Szenen-Schritt aus, ohne dass an zehn
      Stellen ein `gutschein &&` stehen muss. */
+  /**
+   * DIE HOCHZEIT HAT KEINE SZENEN-WAHL MEHR (11.08.2026).
+   *
+   * Sie wirkte seit dem 10.08. nicht mehr: Seit der Traumwelt-Kette baut die Route für die
+   * Hochzeit `hochzeitTraumPrompt` — den Auftrag, den der Owner wörtlich diktiert hat — und
+   * der kennt weder „Kirche" noch „erster Kuss". `WEDDING_SZENEN` ging zwar noch mit an den
+   * Server, änderte aber an Bild und Video keine Zeile. Zwei Kacheln, die man antippen kann
+   * und die nichts tun, sind schlimmer als keine Wahl: Wer „Der erste Kuss" wählt und ein
+   * Video ohne Kuss bekommt, hält uns nicht für schlicht, sondern für unehrlich.
+   *
+   * Dazu kam die Stilfrage: Die beiden Kacheln (`public/szenen-hochzeit/`) sind FOTOS aus der
+   * alten, fotorealistischen Kette. Sie zeigten damit auch noch etwas anderes, als die Kette
+   * heute liefert — ein Gemälde.
+   *
+   * Der Urlaub behält seine Szenen: Er läuft weiter über den alten Weg (`weddingBildPrompt`
+   * bzw. `holidayBildPrompt` in `app/api/free-preview`), dort wirkt die Wahl.
+   *
+   * WEG ZURÜCK, falls die Wahl wiederkommen soll: `WEDDING_SZENEN` steht unangetastet in
+   * `lib/wedding-prompt.ts`. Es braucht dann zweierlei — den Ort/Kuss-Satz der Szene an
+   * `hochzeitTraumPrompt` gehängt UND zwei neue Kacheln im gemalten Stil. Ohne das zweite
+   * lügt die Kachel wieder.
+   */
   const SZENEN: { id: string; name: string; kachel?: string }[] =
-    gutschein ? [] : urlaub ? HOLIDAY_SZENEN : WEDDING_SZENEN;
+    gutschein || !urlaub ? [] : HOLIDAY_SZENEN;
 
   /* FREMDE GUTSCHEINE SIND ABGESCHAFFT (Owner 06.08.2026: „wir machen keine fremde
      gutscheine mehr. Da wir ehe keiner machen. Also raus."). Hier stand das Link-Feld für
