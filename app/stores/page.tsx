@@ -33,14 +33,17 @@ import { PhotoCropper } from "../curators/taste-form";
 import PasswordInput from "@/components/PasswordInput";
 
 // Landing hero copy — Romanian by default, English via the switcher.
-const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; wetterCta: string; wetterSub: string }> = {
+// Wetter-am-Morgen-Werbung (wetterCta/wetterSub) hier ENTFERNT am 11.08.2026 —
+// Owner: „Wake up with Bella bieten wir nicht mehr an und kann raus." Bestandskunden
+// bleiben unberührt: die Wetter-Maschine (/themes/wetter/bella, Abos, Abmeldung)
+// läuft unverändert weiter, nur diese Bewerbung fällt.
+const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string }> = {
   ro: {
     eyebrow: "LuxuryBandit Marketplace",
     h1a: "Descoperă influenceri.", h1b: "Urmărește, vorbește, probează-le ținutele.",
     sub: "Explorează un marketplace de influenceri AI & reali — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
     b1t: "Urmărește & vorbește", b1x: "Trimite mesaj oricărui influencer, lasă-te stilizat de el și probează-i ținutele pe poza ta.",
     b2t: "Ținute noi zilnic", b2x: "Videouri de modă de lux de la fiecare influencer, în fiecare zi.",
-    wetterCta: "Trezește-te cu Bella", wetterSub: "Un mesaj în fiecare dimineață — vremea ta, un look nou, și chat cu ea.",
     cta: "Devino influencer",
   },
   en: {
@@ -49,7 +52,6 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Browse a marketplace of AI & real influencers — watch their daily luxury looks, chat with them, and sponsor the one you love. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and make her yours.",
     b2t: "New looks/stories", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
-    wetterCta: "Wake up with Bella", wetterSub: "A message every morning — your weather, a new look, and a chat with her.",
     cta: "Become an influencer",
   },
 };
@@ -2871,13 +2873,11 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex flex-col items-start gap-1.5">
-                  {/* PRIMÄR: Wetter am Morgen (Bella) — das Aushängeschild. */}
-                  <button type="button" onClick={() => router.push("/themes/wetter/bella")}
-                    className="lb-gold flex h-11 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> {HERO[heroLang].wetterCta}
-                  </button>
-                  <p className="text-[12px] font-semibold leading-snug text-white/60">{HERO[heroLang].wetterSub}</p>
-                  {/* SEKUNDÄR klein: become an influencer → Bewerbungsformular. */}
+                  {/* Wetter-am-Morgen-Werbeblock (CTA „Wake up with Bella" + Untertext)
+                      hier ENTFERNT am 11.08.2026 — Owner: „Wake up with Bella bieten wir
+                      nicht mehr an und kann raus." Nur die Bewerbung fällt weg; die
+                      Wetter-Maschine selbst (API, Verwaltung, bestehende Abos, Abmeldung
+                      unter /themes/wetter/bella) bleibt für Bestandskunden vollständig stehen. */}
                   <button type="button" onClick={() => router.push("/curators/apply")}
                     className="mt-1 text-[12px] font-black text-white/70 underline underline-offset-2 active:scale-95 transition">
                     {HERO[heroLang].cta} →

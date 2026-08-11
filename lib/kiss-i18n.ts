@@ -105,6 +105,13 @@ export type KissText = {
    * steht in den AGB — deshalb ist dieses Wort ein LINK und keine blosse Zeile.
    */
   geldZurueckGarantie: string;
+  /**
+   * DER KNOPF ZUM 30-TAGE-PROGRAMM (11.08.2026, Owner: „wo ist der link zum plan?" — bisher
+   * nur in der Liefermail). Nur beim Versprechen befuellt; optional, weil kein anderes Thema
+   * einen Programm-Link hat. Erscheint im Trichter NUR, wenn der Server eine `programUrl`
+   * mitgibt (siehe futureProgramUrl in lib/future-program-store.ts).
+   */
+  programmKnopf?: string;
   /** Das Tor VOR dem ersten Upload (Owner 03.08.2026): Titel und Weiter-Knopf. */
   gateTitel: string; gateWeiter: string;
   /** Beschriftung des Land-Feldes neben der Adresse (Owner 31.07.2026). */
@@ -309,6 +316,63 @@ export type KissText = {
    */
   heroLead: string;
   leadA: string; leadB: string; fine: string;
+  /**
+   * DAS FUTURE SELF PROGRAM (Owner 11.08.2026): aus dem einen Video wird ein 30-Tage-Programm.
+   * Alle folgenden Felder sind optional und nur beim Versprechen befüllt — kein anderes Thema
+   * verkauft ein Programm, nur ein Video.
+   */
+  heroSub?: string[];
+  unterVideoZeilen?: string[];
+  mehrTitel?: string;
+  mehrText?: string[];
+  wasBekommstTitel?: string;
+  wasBekommstTitelListe?: string[];
+  wasBekommstTextListe?: string[];
+  emoTitel?: string;
+  emoText?: string[];
+  emoMarkensatz?: string[];
+  howTitel?: string;
+  howTitelListe?: string[];
+  howTextListe?: string[];
+  finalTitel?: string[];
+  finalIncludes?: string[];
+  finalSub?: string;
+  /**
+   * DIE PREISZEILE IM FINALEN KAUFBLOCK (11.08.2026, nach der Preissenkung). Solange das
+   * Programm teuer war, war der Preis eine Hürde, die man wegliess; seit der Senkung ist er
+   * ein Grund zuzugreifen und darf als SATZ dastehen statt als nackte Zahl.
+   *
+   * Sie ersetzt die grosse Zahl im finalen Block — der Betrag steht damit weiterhin genau
+   * zweimal auf der Seite (Kaufknopf der Videokarte + hier), wie die Owner-Regel vom
+   * 11.08.2026 es verlangt: „Einmal im Hero bzw. CTA und einmal beim finalen Kaufblock."
+   *
+   * Der Betrag kommt IMMER aus {programm} (fillPrices → VERSPRECHEN_CENTS), nie als getippte
+   * Zahl — Memory `prices-only-from-pricing-table`. Nur beim Versprechen befüllt.
+   */
+  finalPreisZeile?: string;
+  /**
+   * ERINNERUNGSZEILE VOR DER AUFNAHME (11.08.2026, Folgeänderung zum Ziele-Schritt): Er
+   * wählt seine Ziele VOR der Kamera, sieht sie im Aufnahme-Kasten aber nicht mehr — diese
+   * Zeile steht über den kleinen Gold-Chips, die seine Wahl wiederholen. Nur beim
+   * Versprechen befüllt.
+   */
+  sprichDarueber?: string;
+  /**
+   * DIE 30-DAY PROMISE GUARANTEE DES FUTURE SELF PROGRAM (Owner 11.08.2026, wörtlich: „30-DAY
+   * PROMISE GUARANTEE. Complete the first 7 days. If you still feel the Future Self Program
+   * isn't for you, tell us within 30 days and we'll refund your purchase.").
+   *
+   * EIGENSTÄNDIG NEBEN `geldZurueckGarantie`: Die Haus-Garantie deckt nur Nicht-Lieferung aus
+   * unserer Schuld + grosse Abweichung — NIE „nicht zufrieden" (Owner: „Leute sind immer nicht
+   * zufrieden"). Diese hier ist eine ZUSÄTZLICHE, produktspezifische Zusage, die „nicht
+   * zufrieden" ausdrücklich erlaubt — aber erst NACHDEM er die ersten 7 Programmtage wirklich
+   * abgehakt hat. Die Hürde ist PRÜFBAR: die Häkchen der Tage 1–7 liegen serverseitig in
+   * `try-this-look/future-program/<genId>.json` (`checks["1"]…checks["7"]`); ohne sie hat er
+   * das Programm nie benutzt, und die Zusage würde jeden Kauf sich selbst zurückzahlen lassen.
+   * Nur beim Versprechen befüllt — kein anderes Thema verkauft ein Programm.
+   */
+  garantieTitel?: string;
+  garantieText?: string;
 };
 
 const EN: KissText = {
@@ -341,7 +405,7 @@ const EN: KissText = {
   aufladeWahlTitel: "How much would you like to top up?",
   guthabenVorabHinweis: "One video costs {once}. You pay from your account balance — the smallest top-up is {topup}, and whatever is left stays yours for more videos.",
   aufladen: "Top up account — {topup}", aufladenHinweis: "Credit never expires · no cash payout", guthaben: "Balance",
-  guthabenZuWenig: "Your balance is {stand} — this video costs {preis}.",
+  guthabenZuWenig: "Your balance is {stand} — this product costs {preis}.",
   aufladungNull: "Your last payment came to €0.00 (promo code) — so nothing was added to your balance.",
   mailInvalid: "Please enter a valid email address.", oneMoment: "One moment …", nochEins: "Another one, another look", replaceModel: "Replace model", replaceGewaehlt: "Chosen", erstatten: "Not happy? Get your money back", geldZurueckGarantie: "Money-back guarantee", erstattenSicher: "Tap again — money back", erstattet: "Refunded to your balance", nochEinsPreis: "Tap an outfit - {tanz} from your balance, straight away.",
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
@@ -471,7 +535,7 @@ const DE: KissText = {
   aufladeWahlTitel: "Wie viel möchtest du aufladen?",
   guthabenVorabHinweis: "Ein Video kostet {once}. Bezahlt wird aus deinem Guthaben — die kleinste Aufladung ist {topup}, der Rest bleibt dir für weitere Videos.",
   aufladen: "Konto aufladen — {topup}", aufladenHinweis: "Guthaben verfällt nie · keine Barauszahlung", guthaben: "Guthaben",
-  guthabenZuWenig: "Dein Guthaben ist {stand} — dieses Video kostet {preis}.",
+  guthabenZuWenig: "Dein Guthaben ist {stand} — dieses Produkt kostet {preis}.",
   aufladungNull: "Deine letzte Zahlung betrug 0,00 € (Aktionscode) — deshalb wurde kein Guthaben gutgeschrieben.",
   mailInvalid: "Bitte gib eine gültige E-Mail-Adresse an.", oneMoment: "Einen Moment …", nochEins: "Noch eins, anderer Look", replaceModel: "Model ersetzen", replaceGewaehlt: "Gewählt", erstatten: "Nicht zufrieden? Geld zurück", geldZurueckGarantie: "Geld-zurück-Garantie", erstattenSicher: "Nochmal tippen — Geld zurück", erstattet: "Auf dein Guthaben erstattet", nochEinsPreis: "Tipp ein Outfit an - {tanz} vom Guthaben, sofort.",
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
@@ -601,7 +665,7 @@ const RO: KissText = {
   aufladeWahlTitel: "Cât vrei să încarci?",
   guthabenVorabHinweis: "Un videoclip costă {once}. Se plătește din creditul tău — cea mai mică încărcare este {topup}, iar restul îți rămâne pentru alte videoclipuri.",
   aufladen: "Încarcă contul — {topup}", aufladenHinweis: "Creditul nu expiră niciodată · fără plată în numerar", guthaben: "Credit",
-  guthabenZuWenig: "Creditul tău este {stand} — acest video costă {preis}.",
+  guthabenZuWenig: "Creditul tău este {stand} — acest produs costă {preis}.",
   aufladungNull: "Ultima ta plată a fost de 0,00 € (cod promoțional) — de aceea nu s-a adăugat niciun credit.",
   mailInvalid: "Te rog introdu o adresă de email validă.", oneMoment: "O clipă …", nochEins: "Inca unul, alt look", replaceModel: "Schimbă modelul", replaceGewaehlt: "Ales", erstatten: "Nu ești mulțumit? Îți dăm banii înapoi", geldZurueckGarantie: "Garanție de returnare a banilor", erstattenSicher: "Atinge din nou — banii înapoi", erstattet: "Returnat în soldul tău", nochEinsPreis: "Atinge o tinuta - {tanz} din sold, imediat.",
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
@@ -731,7 +795,7 @@ const ES: KissText = {
   aufladeWahlTitel: "¿Cuánto quieres recargar?",
   guthabenVorabHinweis: "Un vídeo cuesta {once}. Se paga con tu saldo — la recarga mínima es {topup}, y lo que sobra se queda para más vídeos.",
   aufladen: "Recargar cuenta — {topup}", aufladenHinweis: "El saldo nunca caduca · sin pago en efectivo", guthaben: "Saldo",
-  guthabenZuWenig: "Tu saldo es {stand} — este vídeo cuesta {preis}.",
+  guthabenZuWenig: "Tu saldo es {stand} — este producto cuesta {preis}.",
   aufladungNull: "Tu último pago fue de 0,00 € (código promocional) — por eso no se añadió saldo.",
   mailInvalid: "Introduce un correo electrónico válido.", oneMoment: "Un momento …", nochEins: "Otro mas, otro look", replaceModel: "Cambiar modelo", replaceGewaehlt: "Elegido", erstatten: "¿No te convence? Te devolvemos el dinero", geldZurueckGarantie: "Garantía de devolución", erstattenSicher: "Toca otra vez — dinero de vuelta", erstattet: "Devuelto a tu saldo", nochEinsPreis: "Toca un look - {tanz} de tu saldo, al momento.",
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
@@ -861,7 +925,7 @@ const FR: KissText = {
   aufladeWahlTitel: "Combien veux-tu recharger ?",
   guthabenVorabHinweis: "Une vidéo coûte {once}. Le paiement se fait sur ton crédit — la recharge minimale est {topup}, et le reste te reste pour d'autres vidéos.",
   aufladen: "Recharger le compte — {topup}", aufladenHinweis: "Le crédit n'expire jamais · pas de remboursement en espèces", guthaben: "Crédit",
-  guthabenZuWenig: "Ton crédit est de {stand} — cette vidéo coûte {preis}.",
+  guthabenZuWenig: "Ton crédit est de {stand} — ce produit coûte {preis}.",
   aufladungNull: "Ton dernier paiement était de 0,00 € (code promo) — aucun crédit n'a donc été ajouté.",
   mailInvalid: "Merci d'indiquer une adresse e-mail valide.", oneMoment: "Un instant …", nochEins: "Encore une, autre look", replaceModel: "Remplacer le modèle", replaceGewaehlt: "Choisi", erstatten: "Pas satisfait ? On te rembourse", geldZurueckGarantie: "Garantie de remboursement", erstattenSicher: "Touche encore — remboursé", erstattet: "Remboursé sur ton solde", nochEinsPreis: "Touche une tenue - {tanz} depuis ton solde, tout de suite.",
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
@@ -991,7 +1055,7 @@ const PT: KissText = {
   aufladeWahlTitel: "Quanto queres carregar?",
   guthabenVorabHinweis: "Um vídeo custa {once}. Paga-se com o teu saldo — o carregamento mínimo é {topup}, e o que sobra fica para mais vídeos.",
   aufladen: "Carregar conta — {topup}", aufladenHinweis: "O saldo nunca expira · sem pagamento em dinheiro", guthaben: "Saldo",
-  guthabenZuWenig: "O teu saldo é {stand} — este vídeo custa {preis}.",
+  guthabenZuWenig: "O teu saldo é {stand} — este produto custa {preis}.",
   aufladungNull: "O teu último pagamento foi de 0,00 € (código promocional) — por isso não foi adicionado saldo.",
   mailInvalid: "Indica um endereço de email válido.", oneMoment: "Um momento …", nochEins: "Mais um, outro look", replaceModel: "Trocar modelo", replaceGewaehlt: "Escolhido", erstatten: "Não gostaste? Devolvemos o dinheiro", geldZurueckGarantie: "Garantia de devolução", erstattenSicher: "Toca outra vez — dinheiro de volta", erstattet: "Devolvido ao teu saldo", nochEinsPreis: "Toca num look - {tanz} do teu saldo, ja.",
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
@@ -1122,7 +1186,7 @@ const IT: KissText = {
   aufladeWahlTitel: "Quanto vuoi ricaricare?",
   guthabenVorabHinweis: "Un video costa {once}. Si paga con il tuo credito — la ricarica minima è {topup}, e quel che avanza resta per altri video.",
   aufladen: "Ricarica il conto — {topup}", aufladenHinweis: "Il credito non scade mai · nessun rimborso in contanti", guthaben: "Credito",
-  guthabenZuWenig: "Il tuo credito è {stand} — questo video costa {preis}.",
+  guthabenZuWenig: "Il tuo credito è {stand} — questo prodotto costa {preis}.",
   aufladungNull: "Il tuo ultimo pagamento è stato di 0,00 € (codice promozionale) — quindi non è stato aggiunto credito.",
   mailInvalid: "Inserisci un indirizzo email valido.", oneMoment: "Un attimo …", nochEins: "Ancora uno, altro look", replaceModel: "Sostituisci modella", replaceGewaehlt: "Scelto", erstatten: "Non ti convince? Ti rimborsiamo", geldZurueckGarantie: "Garanzia di rimborso", erstattenSicher: "Tocca di nuovo — rimborso", erstattet: "Rimborsato sul tuo saldo", nochEinsPreis: "Tocca un outfit - {tanz} dal saldo, subito.",
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
@@ -2633,158 +2697,509 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
  * `kissText`). Was hier steht, ist der Anlass, der Grund, die drei Schritte und der Satz
  * unter dem Beispielvideo; die ganze Trichter-Mechanik spricht bereits sieben Sprachen.
  *
- * DIE ÜBERSCHRIFT SAGT, WAS ER VERSPRICHT (Owner 10.08.2026: „Titel sag noch gar nichts. Was
- * soll er verpreche? Das er erfolgreich sein wird.").
+ * DIE ÜBERSCHRIFT IST DER SCHRIFTZUG, MIT DEM DIE SEITE ANFÄNGT (Owner 11.08.2026: „ich will
+ * dass es mit einem fetten schift zug anfängt. Eine Videobotschaft an dich selbs, die dein
+ * Leben radikal verändern wird.").
  *
- * Vorher stand dort „Versprich es dir — laut, und vor allen". Das beschrieb die HANDLUNG und
- * verschwieg den INHALT: Man las, dass man etwas verspricht, aber nicht was. Jetzt steht es
- * da — „Du wirst erfolgreich sein" —, und das ist zugleich der Satz, den er im Video selbst
- * spricht („I am going to make it"). Überschrift und Video sagen dasselbe; das ist der
- * Unterschied zwischen einer Behauptung und einem Beweis.
+ * Sein Wortlaut, unverändert übernommen und in die sieben Sprachen gesetzt. Sie nennt in
+ * einer Zeile das PRODUKT („eine Videobotschaft an dich selbst" — derselbe Name wie auf der
+ * Kachel) und den GRUND, sie anzusehen. Vorher stand hier die Frage „Wie willst du in fünf
+ * Jahren leben?": ein guter Haken, aber sie liess offen, was man kauft — und der Name des
+ * Themas kam auf der Seite selbst überhaupt nicht mehr vor.
  *
- * ES BLEIBT SEIN SATZ, NICHT UNSERE ZUSAGE: „Versprich es dir" steht davor. Wir sagen nicht
- * „du wirst erfolgreich" — ER sagt es. Kein Einkommen, keine Zahl, keine Vorhersage; das
- * bleibt die Hausregel aus dem gelöschten System-Thema.
+ * ZWEIFARBIG, WIE JEDE H1 IM HAUS: der Gegenstand weiss (`heroA`), das Versprechen in Gold
+ * (`heroY`). Der Punkt am Ende steht in `heroB` — es ist eine Aussage, keine Frage mehr.
  *
- * DAS BEISPIELVIDEO IST ENGLISCH — IN JEDER SPRACHE (Owner 10.08.2026: „Wir können das Video
- * nicht in 7 sprachen machen. Es wird zu teuer. Wir machen das auf englisch. Wir haben die
- * Übersetzung unten.").
+ * ES BLEIBT EINE AUSSAGE ÜBER DAS LEBEN, KEINE ÜBER GELD: „radikal verändern" darf da stehen,
+ * „werde reich" nicht — kein Einkommen, keine Zahl, keine Vorhersage über Geld. Das ist die
+ * Hausregel aus dem gelöschten System-Thema, und daran hängt das Stripe-Konto.
  *
- * Deshalb trägt `unterVideo` ab jetzt ZWEI Dinge: erst, WAS er im Video sagt — in der Sprache
- * des Lesers —, dann die Aufforderung. Ohne das erste Stück hört ein rumänischer oder
- * spanischer Besucher einen fremden Satz und liest daneben etwas völlig anderes; der stärkste
- * Teil des Videos (der Schwur) käme bei ihm gar nicht an. Der englische Wortlaut steht mit in
- * Anführungszeichen: Er soll ihn HÖREN und gleichzeitig lesen können.
+ * Was er im Video sagt, bleibt SEIN Satz: Wir sagen nicht „du wirst erfolgreich" — ER sagt es
+ * („I am going to make it"), mit seiner eigenen Stimme.
  *
- * Für den KUNDEN gilt das nicht — er spricht selbst, in seiner Sprache. Kostenlos, weil seine
- * Stimme aus seiner eigenen Aufnahme kommt.
+ * SEIT 11.08.2026 KEIN VIDEO MEHR, EIN PROGRAMM (Owner: „Future Self Program"). Die
+ * Landingpage verkauft nicht mehr nur das Video, sondern den Future Film PLUS ein 30-Tage-
+ * Programm mit Checkliste, Fortschritt und 90-Tage-Anschlussziel — deshalb die zusätzlichen
+ * Felder (`heroSub`, `mehrTitel`/`mehrText`, `wasBekommst…`, `emoTitel`/`emoText`,
+ * `howTitel`/`howTitelListe`/`howTextListe`, `finalTitel`/`finalIncludes`/`finalSub`).
+ *
+ * DER PREIS WECHSELTE AM 11.08.2026 MEHRFACH AN EINEM EINZIGEN TAG und fiel zuletzt deutlich.
+ * DESHALB STEHT DER BETRAG AUSSCHLIESSLICH IN `VERSPRECHEN_CENTS` (lib/pricing.ts) — hier
+ * keine Zahl, auch nicht im Kommentar: Wer eine abtippt, hat morgen eine tote Zahl im Text.
+ *
+ * Die Texte hier standen auf dem HOHEN Preis: sie argumentierten wie eine
+ * Investitionsentscheidung — Schwere, Feierlichkeit, lange Begründungen, warum es das wert
+ * ist. Für den niedrigen Preis ist das die falsche Tonlage. Wer so wenig zahlt, muss nicht
+ * überzeugt werden, dass es das WERT ist, sondern eingeladen werden, HEUTE anzufangen.
+ *
+ * Deshalb sind `mehrText`, `wasBekommstTextListe`, `emoTitel`/`emoText` und der erste Schritt
+ * in `howTextListe` auf den letzten Stand getrimmt: Was er BEKOMMT, ist unverändert — wie
+ * SCHWER es klingt, nicht mehr. Die drei Hürdensenker schwingen jetzt überall mit: zwei
+ * Minuten Aufnahme, Start am selben Tag, Garantie nach 7 Tagen.
+ *
+ * UNANGETASTET BLEIBT SEIN WORTLAUT: heroA/heroY/heroB, `jetztStarten` („Investiere in deine
+ * Zukunft"), `unterVideoZeilen`, `emoMarkensatz`/`finalSub`, `garantieTitel`/`garantieText`,
+ * `finalIncludes`.
+ *
+ * DER BETRAG ERREICHT DIE TEXTE NUR ÜBER DEN PLATZHALTER {programm}. Kein Vergleich mit
+ * Konsumgütern („weniger als zwei Kaffee") und keine Streichpreis-Masche (Owner 11.08.2026,
+ * wörtlich: „wir zeigen nie" den alten Preis): Die höheren Beträge waren nie live, ein
+ * durchgestrichener alter Preis wäre eine erfundene Ersparnis — und rechtlich angreifbar.
+ *
+ * `filmTitel`/`filmText` bleiben unverändert stehen: Sie sind NICHT nur Landingpage-Text,
+ * sondern der Kartentitel des fertigen Videos in `KissFunnel.tsx` (`titel={T.filmTitel}`) —
+ * wer sie ändert, ändert auch, was auf der ausgelieferten Karte steht. Die Landingpage zeigt
+ * sie seit dem Umbau nicht mehr an; der Abschnitt „Mehr als ein Video" ersetzt sie dort.
  */
 const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
   de: {
-    heroA: "Wie willst du ", heroY: "in fünf Jahren leben", heroB: "?",
-    anlass: "Zum Jahreswechsel · zum Geburtstag · nach der Kündigung · am ersten Tag im eigenen Laden · wenn du es dir selbst beweisen willst",
-    grund: "Wir machen aus deinem Video deine Zukunft: deine Villa, dein Traumwagen, dein Erfolg — deine Vision.",
+    heroA: "Eine Botschaft an dein ", heroY: "zukünftiges Ich", heroB: ".",
+    heroSub: ["Sieh, wer du in 5 Jahren sein willst.", "Mach dir selbst ein Versprechen.", "Und arbeite 30 Tage daran, es zu halten."],
+    jetztStarten: "Investiere in deine Zukunft",
     namenFrage: "An wen schickst du es? Der Name kommt auf die Karte", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Nimm jetzt ein kurzes Video von dir auf — genau so, wie du heute bist. Erzähl, was du erreichen willst und wo du dich in fünf Jahren siehst.",
-      "Wir machen aus deinem Video deine Zukunft: deine Villa, dein Traumwagen, dein Erfolg.",
-      "Lad dein Video jetzt hoch. Den Rest machen wir.",
-    ],
-    wieGehtPrivat: "Privat, bis du es verschickst. Dein Video wird nirgends veröffentlicht — du entscheidest, wer es sieht.",
-    unterVideo: "Und dort sagst du zu dir selbst, wie du heute bist: „I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.“ — Ich weiss noch nicht genau, wie ich dahin komme. Aber ich werde dafür arbeiten. Ich hole mir dieses Leben.",
+    unterVideoZeilen: ["Sieh deine Zukunft.", "Mach das Versprechen.", "Halte das Versprechen."],
     filmTitel: "Aus einem Satz wird ein Beweis",
     filmText: "Du erscheinst vor der Villa, der Wagen steht hinter dir — und du sagst deinen eigenen Satz, mit deiner eigenen Stimme. Was du versprichst, bestimmst du. Nur die Welt um dich herum ändert sich.",
-    anlaesseTitel: "Für Vorsätze, die mehr verdienen als einen Gedanken",
-    anlaesse: ["Zum Jahreswechsel.", "Zum Geburtstag.", "Nach der Kündigung.", "Am ersten Tag im eigenen Laden.", "Oder einfach, weil du es dir selbst beweisen willst."],
-    anlaesseSchluss: "Nicht irgendein Vorsatz. Deiner.",
+    mehrTitel: "Mehr als ein Video.",
+    /* LEICHTER STATT FEIERLICHER (11.08.2026, Preissenkung): Der Abschnitt begann mit
+       „Du siehst dich in dem Leben, das du dir aufbauen willst" — eine schöne, aber schwere
+       Zeile, die den hohen Preis rechtfertigen sollte. Jetzt nennt er zuerst die HÜRDE, und
+       die ist klein: zwei Minuten Aufnahme, Start am selben Tag. Was er bekommt, bleibt. */
+    mehrText: [
+      "Dein Future Film ist der Anfang — und der ist schnell gemacht.",
+      "Zwei Minuten Aufnahme: dein Gesicht, deine Stimme, dein Versprechen an dein zukünftiges Ich.",
+      "Noch am selben Tag beginnt dein 30-Tage-Programm.",
+      "Jeden Tag ein konkreter Schritt.",
+      "Jeden Tag deine Checkliste.",
+      "Jeden Tag die Frage: Habe ich heute etwas für meine Zukunft getan?",
+    ],
+    wasBekommstTitel: "Dein Future Self Program",
+    wasBekommstTitelListe: ["Dein Future Film", "Dein Versprechen", "30 Tage", "Deine Checkliste", "Dein Fortschritt", "Die nächsten 90 Tage"],
+    /* KONKRET STATT FEIERLICH (11.08.2026, Preissenkung): „Ein strukturiertes Programm,
+       das deine Vision in konkrete tägliche Schritte übersetzt" klang nach Seminar-Prospekt —
+       nach etwas, das man sich überlegt. Dieselbe Leistung, nur in Aufwand und Zeit gesagt:
+       zwei Minuten, ein Schritt pro Tag, heute. */
+    wasBekommstTextListe: [
+      "Dein Gesicht. Deine Stimme. Dein Leben in 5 Jahren — aus zwei Minuten Aufnahme.",
+      "Die Botschaft, die du heute an dein zukünftiges Ich aufnimmst.",
+      "30 Tage, ein Schritt pro Tag. Tag 1 ist heute.",
+      "Hak jeden Abend ab, was du wirklich getan hast. Eine Minute.",
+      "Sieh, wie viele Tage du dein Versprechen bereits gehalten hast.",
+      "Nach Tag 30 setzt du dein nächstes Ziel.",
+    ],
+    /* EINLADUNG STATT MAHNUNG (11.08.2026, Preissenkung): „nur dann etwas wert, wenn du
+       danach handelst" war die Predigt vor einer ernsthaften Entscheidung. Jetzt zeigt der
+       Satz nach vorn, auf den Tag, an dem er anfängt. Aussage über Handeln, nie über Geld. */
+    emoTitel: "Ein Versprechen zählt ab dem Tag, an dem du anfängst.",
+    emoText: ["Du musst heute noch nicht wissen, wie du alles erreichen wirst.", "Du musst heute nur anfangen.", "Schritt für Schritt.", "Tag für Tag."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "So funktioniert es",
+    howTitelListe: ["Nimm dich heute auf", "Zeig uns, wo du in 5 Jahren sein willst", "Wir erstellen deinen Future Film", "Starte deine 30 Tage"],
+    /* DIE HÜRDE STEHT IN SCHRITT 1 (11.08.2026): „So wie du heute bist" liess offen, wie viel
+       Arbeit die Aufnahme ist. Zwei Minuten mit dem Handy — mehr braucht der Einstieg nicht. */
+    howTextListe: [
+      "Zwei Minuten mit dem Handy, so wie du heute bist.",
+      "Wähle deine wichtigsten Ziele.",
+      "Mit deinem Gesicht, deiner Stimme und deiner Vision.",
+      "Ab heute: Öffne deinen privaten Link jeden Tag und halte dein Versprechen.",
+    ],
+    finalTitel: ["Deine Zukunft beginnt nicht in 5 Jahren.", "Sie beginnt mit dem, was du heute tust."],
+    finalIncludes: ["Future Film", "30-Tage-Programm", "Tägliche Checkliste", "Fortschritts-Tracking", "90-Tage-Plan", "Private persönliche Seite"],
+    /* Der Preis als SATZ statt als grosse nackte Zahl — siehe `finalPreisZeile` am Typ
+       (11.08.2026, 19,99). {programm} kommt aus VERSPRECHEN_CENTS. */
+    finalPreisZeile: "Alles zusammen für {programm} — einmalig, kein Abo.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Sprich darüber:",
+    garantieTitel: "30-Tage-Versprechen-Garantie",
+    garantieText: "Mach die ersten 7 Tage. Wenn du danach findest, dass das Future Self Program nichts für dich ist, sag uns innerhalb von 30 Tagen Bescheid — und du bekommst dein Geld zurück.",
+    geldZurueckGarantie: "30-Tage-Versprechen-Garantie",
+    /* DIE KAUFTEXTE DES PROGRAMMS (11.08.2026, Owner-Screenshot: „was ist das mit 9,99? er
+       kauft doch das programm") — ohne diese Zeilen erbte der Trichter die Geburtstags-
+       Kauftexte samt {geburtstag}: Knopf und Kasse nannten verschiedene Beträge. Der
+       Platzhalter {programm} kommt aus fillPrices (VERSPRECHEN_CENTS). */
+    step2: "2 · Dein Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Starte dein Future Self Program — {programm}",
+    blockedOnce: "Starte dein Future Self Program — {programm}",
+    watchOnce: "Mein Future Film — {programm}",
+    makingKiss: "Dein Future Film entsteht …",
+    mailNote: "Hierhin schicken wir deinen Future Film und deinen privaten Programm-Link.",
+    programmKnopf: "Dein 30-Tage-Programm →",
   },
   en: {
-    heroA: "How do you want to live ", heroY: "in five years", heroB: "?",
-    anlass: "For New Year · for your birthday · after you quit · on day one of your own shop · when you want to prove it to yourself",
-    grund: "We turn your video into your future: your villa, your dream car, your success — your vision.",
+    heroA: "A message to your ", heroY: "future self", heroB: ".",
+    heroSub: ["See who you want to be in 5 years.", "Make yourself a promise.", "And work 30 days to keep it."],
+    jetztStarten: "Invest in your future",
     namenFrage: "Who are you sending it to? The name goes on the card", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Record a short video of yourself now — just as you are today. Tell us what you want to achieve and where you see yourself in five years.",
-      "We turn your video into your future: your villa, your dream car, your success.",
-      "Upload your video now. We’ll do the rest.",
-    ],
-    wieGehtPrivat: "Private until you send it. Your video is never published — you decide who sees it.",
-    unterVideo: "And there, you say to your present self: “I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.”",
+    unterVideoZeilen: ["See your future.", "Make the promise.", "Keep the promise."],
     filmTitel: "One sentence becomes proof",
     filmText: "You appear in front of the villa, the car behind you — saying your own line, in your own voice. What you promise is up to you. Only the world around you changes.",
-    anlaesseTitel: "For resolutions that deserve more than a thought",
-    anlaesse: ["For New Year.", "For your birthday.", "After you quit.", "On day one of your own shop.", "Or simply because you want to prove it to yourself."],
-    anlaesseSchluss: "Not just any resolution. Yours.",
+    mehrTitel: "More than a video.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "Your Future Film is the beginning — and it's quick to make.",
+      "Two minutes of recording: your face, your voice, your promise to your future self.",
+      "Your 30-day program starts the same day.",
+      "Every day a concrete step.",
+      "Every day your checklist.",
+      "Every day the same question: Did I do something for my future today?",
+    ],
+    wasBekommstTitel: "Your Future Self Program",
+    wasBekommstTitelListe: ["Your Future Film", "Your Promise", "30 Days", "Your Checklist", "Your Progress", "The Next 90 Days"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "Your face. Your voice. Your life in 5 years — from two minutes of recording.",
+      "The message you record today to your future self.",
+      "30 days, one step a day. Day 1 is today.",
+      "Tick off every evening what you really did. Takes a minute.",
+      "See how many days you've already kept your promise.",
+      "After day 30, you set your next goal.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "A promise counts from the day you start.",
+    emoText: ["You don't need to know today exactly how you'll achieve everything.", "You only need to start today.", "Step by step.", "Day by day."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "How it works",
+    howTitelListe: ["Record yourself today", "Show us where you want to be in 5 years", "We create your Future Film", "Start your 30 days"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Two minutes on your phone, just as you are today.",
+      "Choose your most important goals.",
+      "With your face, your voice and your vision.",
+      "From today: open your private link every day and keep your promise.",
+    ],
+    finalTitel: ["Your future doesn't begin in 5 years.", "It begins with what you do today."],
+    finalIncludes: ["Future Film", "30-Day Program", "Daily Checklist", "Progress Tracking", "90-Day Plan", "Private Personal Page"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "All of it for {programm} — one payment, no subscription.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Talk about:",
+    garantieTitel: "30-Day Promise Guarantee",
+    garantieText: "Complete the first 7 days. If you still feel the Future Self Program isn't for you, tell us within 30 days and we'll refund your purchase.",
+    geldZurueckGarantie: "30-Day Promise Guarantee",
+    /* Kauftexte des Programms — siehe de-Block (11.08.2026: Knopf und Kasse nannten verschiedene Beträge). */
+    step2: "2 · Your Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Start your Future Self Program — {programm}",
+    blockedOnce: "Start your Future Self Program — {programm}",
+    watchOnce: "My Future Film — {programm}",
+    makingKiss: "Your Future Film is being made …",
+    mailNote: "This is where we send your Future Film and your private program link.",
+    programmKnopf: "Your 30-day program →",
   },
   ro: {
-    heroA: "Cum vrei să trăiești ", heroY: "peste cinci ani", heroB: "?",
-    anlass: "De Anul Nou · de ziua ta · după demisie · în prima zi în propriul magazin · când vrei să-ți dovedești ție",
-    grund: "Facem din videoclipul tău viitorul tău: vila ta, mașina ta de vis, succesul tău — viziunea ta.",
+    heroA: "Un mesaj pentru ", heroY: "sinele tău viitor", heroB: ".",
+    heroSub: ["Vezi cine vrei să fii peste 5 ani.", "Fă-ți o promisiune.", "Și lucrează 30 de zile ca să o ții."],
+    jetztStarten: "Investește în viitorul tău",
     namenFrage: "Cui i-o trimiți? Numele apare pe felicitare", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Înregistrează acum un video scurt cu tine — exact așa cum ești azi. Spune ce vrei să realizezi și unde te vezi peste cinci ani.",
-      "Facem din videoclipul tău viitorul tău: vila ta, mașina ta de vis, succesul tău.",
-      "Încarcă-ți videoclipul acum. De restul ne ocupăm noi.",
-    ],
-    wieGehtPrivat: "Privat până îl trimiți. Videoclipul tău nu se publică nicăieri — tu decizi cine îl vede.",
-    unterVideo: "Și acolo îi spui celui care ești azi: „I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.“ — Încă nu știu exact cum voi ajunge acolo. Dar o să muncesc pentru asta. Îmi iau viața asta.",
+    unterVideoZeilen: ["Vezi-ți viitorul.", "Fă promisiunea.", "Ține promisiunea."],
     filmTitel: "O frază devine o dovadă",
     filmText: "Apari în fața vilei, mașina în spatele tău — și spui propria frază, cu vocea ta. Ce promiți decizi tu. Doar lumea din jur se schimbă.",
-    anlaesseTitel: "Pentru promisiuni care merită mai mult decât un gând",
-    anlaesse: ["De Anul Nou.", "De ziua ta.", "După demisie.", "În prima zi în propriul magazin.", "Sau pur și simplu ca să-ți dovedești ție."],
-    anlaesseSchluss: "Nu orice promisiune. A ta.",
+    mehrTitel: "Mai mult decât un video.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "Future Film-ul tău este începutul — și se face repede.",
+      "Două minute de înregistrare: fața ta, vocea ta, promisiunea ta către sinele tău viitor.",
+      "Programul tău de 30 de zile începe chiar în aceeași zi.",
+      "În fiecare zi un pas concret.",
+      "În fiecare zi lista ta de verificare.",
+      "În fiecare zi aceeași întrebare: Am făcut azi ceva pentru viitorul meu?",
+    ],
+    wasBekommstTitel: "Future Self Program-ul tău",
+    wasBekommstTitelListe: ["Future Film-ul tău", "Promisiunea ta", "30 de zile", "Lista ta de verificare", "Progresul tău", "Următoarele 90 de zile"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "Fața ta. Vocea ta. Viața ta peste 5 ani — din două minute de înregistrare.",
+      "Mesajul pe care i-l înregistrezi azi sinelui tău viitor.",
+      "30 de zile, un pas pe zi. Ziua 1 este azi.",
+      "Bifează în fiecare seară ce ai făcut cu adevărat. Durează un minut.",
+      "Vezi câte zile ți-ai ținut deja promisiunea.",
+      "După ziua 30, îți stabilești următorul obiectiv.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "O promisiune contează din ziua în care începi.",
+    emoText: ["Nu trebuie să știi azi exact cum vei realiza totul.", "Trebuie doar să începi azi.", "Pas cu pas.", "Zi de zi."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "Cum funcționează",
+    howTitelListe: ["Filmează-te azi", "Arată-ne unde vrei să fii peste 5 ani", "Îți creăm Future Film-ul", "Începe-ți cele 30 de zile"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Două minute cu telefonul, exact așa cum ești azi.",
+      "Alege-ți cele mai importante obiective.",
+      "Cu fața ta, vocea ta și viziunea ta.",
+      "De azi: deschide-ți linkul privat în fiecare zi și ține-ți promisiunea.",
+    ],
+    finalTitel: ["Viitorul tău nu începe peste 5 ani.", "Începe cu ceea ce faci azi."],
+    finalIncludes: ["Future Film", "Program de 30 de zile", "Listă zilnică de verificare", "Urmărirea progresului", "Plan de 90 de zile", "Pagină personală privată"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "Totul împreună pentru {programm} — o singură plată, fără abonament.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Vorbește despre:",
+    garantieTitel: "Garanția Promisiunii de 30 de Zile",
+    garantieText: "Fă primele 7 zile. Dacă după aceea simți că Future Self Program nu e pentru tine, spune-ne în 30 de zile — și îți dăm banii înapoi.",
+    geldZurueckGarantie: "Garanția Promisiunii de 30 de Zile",
+    step2: "2 · Future Film-ul tău",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Începe Future Self Program — {programm}",
+    blockedOnce: "Începe Future Self Program — {programm}",
+    watchOnce: "Future Film-ul meu — {programm}",
+    makingKiss: "Future Film-ul tău se creează …",
+    mailNote: "Aici îți trimitem Future Film-ul și linkul tău privat de program.",
+    programmKnopf: "Programul tău de 30 de zile →",
   },
   es: {
-    heroA: "¿Cómo quieres vivir ", heroY: "dentro de cinco años", heroB: "?",
-    anlass: "Para Año Nuevo · para tu cumpleaños · después de renunciar · el primer día en tu propio local · cuando quieres demostrártelo",
-    grund: "Convertimos tu vídeo en tu futuro: tu villa, tu coche soñado, tu éxito — tu visión.",
+    heroA: "Un mensaje para tu ", heroY: "yo futuro", heroB: ".",
+    heroSub: ["Ve quién quieres ser dentro de 5 años.", "Hazte una promesa.", "Y trabaja 30 días para cumplirla."],
+    jetztStarten: "Invierte en tu futuro",
     namenFrage: "¿A quién se lo mandas? El nombre va en la tarjeta", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Graba ahora un vídeo corto tuyo — tal y como eres hoy. Cuenta qué quieres lograr y dónde te ves dentro de cinco años.",
-      "Convertimos tu vídeo en tu futuro: tu villa, tu coche soñado, tu éxito.",
-      "Sube tu vídeo ahora. Del resto nos ocupamos nosotros.",
-    ],
-    wieGehtPrivat: "Privado hasta que lo mandes. Tu vídeo no se publica en ningún sitio — tú decides quién lo ve.",
-    unterVideo: "Y allí le dices al que eres hoy: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Todavía no sé exactamente cómo llegaré. Pero voy a trabajar por ello. Me llevo esta vida.",
+    unterVideoZeilen: ["Ve tu futuro.", "Haz la promesa.", "Cumple la promesa."],
     filmTitel: "Una frase se convierte en prueba",
     filmText: "Apareces delante de la villa, el coche detrás de ti — y dices tu propia frase, con tu voz. Lo que prometes lo decides tú. Solo cambia el mundo a tu alrededor.",
-    anlaesseTitel: "Para propósitos que merecen más que un pensamiento",
-    anlaesse: ["Para Año Nuevo.", "Para tu cumpleaños.", "Después de renunciar.", "El primer día en tu propio local.", "O simplemente porque quieres demostrártelo."],
-    anlaesseSchluss: "No un propósito cualquiera. El tuyo.",
+    mehrTitel: "Más que un vídeo.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "Tu Future Film es el comienzo — y se hace rápido.",
+      "Dos minutos de grabación: tu cara, tu voz, tu promesa a tu yo futuro.",
+      "Tu programa de 30 días empieza el mismo día.",
+      "Cada día un paso concreto.",
+      "Cada día tu checklist.",
+      "Cada día la misma pregunta: ¿Hice hoy algo por mi futuro?",
+    ],
+    wasBekommstTitel: "Tu Future Self Program",
+    wasBekommstTitelListe: ["Tu Future Film", "Tu Promesa", "30 Días", "Tu Checklist", "Tu Progreso", "Los Próximos 90 Días"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "Tu cara. Tu voz. Tu vida dentro de 5 años — con dos minutos de grabación.",
+      "El mensaje que grabas hoy para tu yo futuro.",
+      "30 días, un paso al día. El día 1 es hoy.",
+      "Marca cada noche lo que hiciste de verdad. Un minuto.",
+      "Ve cuántos días ya has cumplido tu promesa.",
+      "Después del día 30, fijas tu próximo objetivo.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "Una promesa cuenta desde el día en que empiezas.",
+    emoText: ["Hoy no necesitas saber exactamente cómo lo lograrás todo.", "Hoy solo tienes que empezar.", "Paso a paso.", "Día a día."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "Cómo funciona",
+    howTitelListe: ["Grábate hoy", "Muéstranos dónde quieres estar dentro de 5 años", "Creamos tu Future Film", "Empieza tus 30 días"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Dos minutos con el móvil, tal y como eres hoy.",
+      "Elige tus objetivos más importantes.",
+      "Con tu cara, tu voz y tu visión.",
+      "Desde hoy: abre tu enlace privado cada día y cumple tu promesa.",
+    ],
+    finalTitel: ["Tu futuro no empieza dentro de 5 años.", "Empieza con lo que haces hoy."],
+    finalIncludes: ["Future Film", "Programa de 30 días", "Checklist diaria", "Seguimiento del progreso", "Plan de 90 días", "Página personal privada"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "Todo junto por {programm} — un solo pago, sin suscripción.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Habla de esto:",
+    garantieTitel: "Garantía de la Promesa de 30 Días",
+    garantieText: "Haz los primeros 7 días. Si después sientes que el Future Self Program no es para ti, dínoslo antes de que pasen 30 días — y te devolvemos tu dinero.",
+    geldZurueckGarantie: "Garantía de la Promesa de 30 Días",
+    step2: "2 · Tu Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Empieza tu Future Self Program — {programm}",
+    blockedOnce: "Empieza tu Future Self Program — {programm}",
+    watchOnce: "Mi Future Film — {programm}",
+    makingKiss: "Tu Future Film se está creando …",
+    mailNote: "Aquí te enviamos tu Future Film y tu enlace privado al programa.",
+    programmKnopf: "Tu programa de 30 días →",
   },
   fr: {
-    heroA: "Comment veux-tu vivre ", heroY: "dans cinq ans", heroB: " ?",
-    anlass: "Pour le Nouvel An · pour ton anniversaire · après ta démission · le premier jour dans ton propre local · quand tu veux te le prouver",
-    grund: "On transforme ta vidéo en ton avenir : ta villa, ta voiture de rêve, ta réussite — ta vision.",
+    heroA: "Un message à ton ", heroY: "futur toi", heroB: ".",
+    heroSub: ["Vois qui tu veux être dans 5 ans.", "Fais-toi une promesse.", "Et travaille 30 jours pour la tenir."],
+    jetztStarten: "Investis dans ton avenir",
     namenFrage: "À qui l'envoies-tu ? Le nom va sur la carte", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Filme-toi maintenant, une courte vidéo — exactement comme tu es aujourd'hui. Dis ce que tu veux accomplir et où tu te vois dans cinq ans.",
-      "On transforme ta vidéo en ton avenir : ta villa, ta voiture de rêve, ta réussite.",
-      "Envoie ta vidéo maintenant. On s'occupe du reste.",
-    ],
-    wieGehtPrivat: "Privé jusqu'à ce que tu l'envoies. Ta vidéo n'est publiée nulle part — tu décides qui la voit.",
-    unterVideo: "Et là, tu dis à celui que tu es aujourd'hui : « I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life. » — Je ne sais pas encore comment j'y arriverai. Mais je vais travailler pour ça. Je prends cette vie.",
+    unterVideoZeilen: ["Vois ton avenir.", "Fais la promesse.", "Tiens la promesse."],
     filmTitel: "Une phrase devient une preuve",
     filmText: "Tu apparais devant la villa, la voiture derrière toi — et tu dis ta propre phrase, avec ta voix. Ce que tu promets, c'est toi qui le décides. Seul le monde autour de toi change.",
-    anlaesseTitel: "Pour des résolutions qui méritent mieux qu'une pensée",
-    anlaesse: ["Pour le Nouvel An.", "Pour ton anniversaire.", "Après ta démission.", "Le premier jour dans ton propre local.", "Ou simplement pour te le prouver."],
-    anlaesseSchluss: "Pas n'importe quelle résolution. La tienne.",
+    mehrTitel: "Plus qu'une vidéo.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "Ton Future Film est le début — et il se fait vite.",
+      "Deux minutes d'enregistrement : ton visage, ta voix, ta promesse à ton futur toi.",
+      "Ton programme de 30 jours commence le jour même.",
+      "Chaque jour une étape concrète.",
+      "Chaque jour ta checklist.",
+      "Chaque jour la même question : Ai-je fait aujourd'hui quelque chose pour mon avenir ?",
+    ],
+    wasBekommstTitel: "Ton Future Self Program",
+    wasBekommstTitelListe: ["Ton Future Film", "Ta Promesse", "30 Jours", "Ta Checklist", "Ta Progression", "Les 90 Prochains Jours"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "Ton visage. Ta voix. Ta vie dans 5 ans — à partir de deux minutes d'enregistrement.",
+      "Le message que tu enregistres aujourd'hui pour ton futur toi.",
+      "30 jours, une étape par jour. Le jour 1, c'est aujourd'hui.",
+      "Coche chaque soir ce que tu as vraiment fait. Une minute.",
+      "Vois combien de jours tu as déjà tenu ta promesse.",
+      "Après le jour 30, tu fixes ton prochain objectif.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "Une promesse compte à partir du jour où tu commences.",
+    emoText: ["Tu n'as pas besoin de savoir aujourd'hui exactement comment tu vas tout accomplir.", "Tu dois seulement commencer aujourd'hui.", "Étape par étape.", "Jour après jour."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "Comment ça marche",
+    howTitelListe: ["Filme-toi aujourd'hui", "Montre-nous où tu veux être dans 5 ans", "On crée ton Future Film", "Commence tes 30 jours"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Deux minutes avec ton téléphone, exactement comme tu es aujourd'hui.",
+      "Choisis tes objectifs les plus importants.",
+      "Avec ton visage, ta voix et ta vision.",
+      "Dès aujourd'hui : ouvre ton lien privé chaque jour et tiens ta promesse.",
+    ],
+    finalTitel: ["Ton avenir ne commence pas dans 5 ans.", "Il commence avec ce que tu fais aujourd'hui."],
+    finalIncludes: ["Future Film", "Programme de 30 jours", "Checklist quotidienne", "Suivi de progression", "Plan de 90 jours", "Page personnelle privée"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "Le tout pour {programm} — un seul paiement, sans abonnement.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Parle de ça :",
+    garantieTitel: "Garantie Promesse de 30 Jours",
+    garantieText: "Fais les 7 premiers jours. Si après ça tu sens que le Future Self Program n'est pas pour toi, dis-le-nous dans les 30 jours — et on te rembourse.",
+    geldZurueckGarantie: "Garantie Promesse de 30 Jours",
+    step2: "2 · Ton Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Lance ton Future Self Program — {programm}",
+    blockedOnce: "Lance ton Future Self Program — {programm}",
+    watchOnce: "Mon Future Film — {programm}",
+    makingKiss: "Ton Future Film est en cours de création …",
+    mailNote: "C'est ici qu'on t'envoie ton Future Film et ton lien privé vers le programme.",
+    programmKnopf: "Ton programme de 30 jours →",
   },
   pt: {
-    heroA: "Como queres viver ", heroY: "daqui a cinco anos", heroB: "?",
-    anlass: "No Ano Novo · nos teus anos · depois de te despedires · no primeiro dia na tua própria loja · quando queres provar a ti mesmo",
-    grund: "Transformamos o teu vídeo no teu futuro: a tua vivenda, o teu carro de sonho, o teu sucesso — a tua visão.",
+    heroA: "Uma mensagem para o teu ", heroY: "eu futuro", heroB: ".",
+    heroSub: ["Vê quem queres ser daqui a 5 anos.", "Faz uma promessa a ti mesmo.", "E trabalha 30 dias para a cumprir."],
+    jetztStarten: "Investe no teu futuro",
     namenFrage: "A quem a envias? O nome vai no postal", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Grava agora um vídeo curto teu — tal como és hoje. Diz o que queres alcançar e onde te vês daqui a cinco anos.",
-      "Transformamos o teu vídeo no teu futuro: a tua vivenda, o teu carro de sonho, o teu sucesso.",
-      "Carrega o teu vídeo agora. Do resto tratamos nós.",
-    ],
-    wieGehtPrivat: "Privado até o enviares. O teu vídeo não é publicado em lado nenhum — decides tu quem o vê.",
-    unterVideo: "E aí dizes a quem és hoje: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Ainda não sei exatamente como lá vou chegar. Mas vou trabalhar para isso. Vou buscar esta vida.",
+    unterVideoZeilen: ["Vê o teu futuro.", "Faz a promessa.", "Cumpre a promessa."],
     filmTitel: "Uma frase torna-se uma prova",
     filmText: "Apareces à frente da vivenda, o carro atrás de ti — e dizes a tua própria frase, com a tua voz. O que prometes decides tu. Só o mundo à tua volta muda.",
-    anlaesseTitel: "Para promessas que merecem mais do que um pensamento",
-    anlaesse: ["No Ano Novo.", "Nos teus anos.", "Depois de te despedires.", "No primeiro dia na tua própria loja.", "Ou simplesmente para provares a ti mesmo."],
-    anlaesseSchluss: "Não uma promessa qualquer. A tua.",
+    mehrTitel: "Mais do que um vídeo.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "O teu Future Film é o início — e faz-se depressa.",
+      "Dois minutos de gravação: o teu rosto, a tua voz, a tua promessa ao teu eu futuro.",
+      "O teu programa de 30 dias começa no mesmo dia.",
+      "Todos os dias um passo concreto.",
+      "Todos os dias a tua checklist.",
+      "Todos os dias a mesma pergunta: Fiz hoje algo pelo meu futuro?",
+    ],
+    wasBekommstTitel: "O teu Future Self Program",
+    wasBekommstTitelListe: ["O teu Future Film", "A tua Promessa", "30 Dias", "A tua Checklist", "O teu Progresso", "Os Próximos 90 Dias"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "O teu rosto. A tua voz. A tua vida daqui a 5 anos — a partir de dois minutos de gravação.",
+      "A mensagem que gravas hoje para o teu eu futuro.",
+      "30 dias, um passo por dia. O dia 1 é hoje.",
+      "Marca todas as noites o que fizeste mesmo. Um minuto.",
+      "Vê quantos dias já cumpriste a tua promessa.",
+      "Depois do dia 30, defines o teu próximo objetivo.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "Uma promessa conta a partir do dia em que começas.",
+    emoText: ["Hoje não precisas de saber exatamente como vais alcançar tudo.", "Hoje só tens de começar.", "Passo a passo.", "Dia após dia."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "Como funciona",
+    howTitelListe: ["Grava-te hoje", "Mostra-nos onde queres estar daqui a 5 anos", "Criamos o teu Future Film", "Começa os teus 30 dias"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Dois minutos com o telemóvel, tal como és hoje.",
+      "Escolhe os teus objetivos mais importantes.",
+      "Com o teu rosto, a tua voz e a tua visão.",
+      "A partir de hoje: abre o teu link privado todos os dias e cumpre a tua promessa.",
+    ],
+    finalTitel: ["O teu futuro não começa daqui a 5 anos.", "Começa com o que fazes hoje."],
+    finalIncludes: ["Future Film", "Programa de 30 dias", "Checklist diária", "Acompanhamento de progresso", "Plano de 90 dias", "Página pessoal privada"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "Tudo junto por {programm} — pagamento único, sem subscrição.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Fala sobre:",
+    garantieTitel: "Garantia da Promessa de 30 Dias",
+    garantieText: "Faz os primeiros 7 dias. Se depois disso sentires que o Future Self Program não é para ti, avisa-nos dentro de 30 dias — e devolvemos o teu dinheiro.",
+    geldZurueckGarantie: "Garantia da Promessa de 30 Dias",
+    step2: "2 · O teu Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Começa o teu Future Self Program — {programm}",
+    blockedOnce: "Começa o teu Future Self Program — {programm}",
+    watchOnce: "O meu Future Film — {programm}",
+    makingKiss: "O teu Future Film está a ser criado …",
+    mailNote: "É para aqui que enviamos o teu Future Film e o teu link privado do programa.",
+    programmKnopf: "O teu programa de 30 dias →",
   },
   it: {
-    heroA: "Come vuoi vivere ", heroY: "fra cinque anni", heroB: "?",
-    anlass: "A Capodanno · per il tuo compleanno · dopo le dimissioni · il primo giorno nel tuo negozio · quando vuoi dimostrarlo a te stesso",
-    grund: "Trasformiamo il tuo video nel tuo futuro: la tua villa, l'auto dei tuoi sogni, il tuo successo — la tua visione.",
+    heroA: "Un messaggio al tuo ", heroY: "te futuro", heroB: ".",
+    heroSub: ["Guarda chi vuoi essere tra 5 anni.", "Fai una promessa a te stesso.", "E lavora 30 giorni per mantenerla."],
+    jetztStarten: "Investi nel tuo futuro",
     namenFrage: "A chi lo mandi? Il nome va sulla cartolina", namenPlatzhalter: "Max",
-    wieGeht: [
-      "Registra adesso un breve video di te — esattamente come sei oggi. Racconta cosa vuoi ottenere e dove ti vedi fra cinque anni.",
-      "Trasformiamo il tuo video nel tuo futuro: la tua villa, l'auto dei tuoi sogni, il tuo successo.",
-      "Carica il tuo video adesso. Al resto pensiamo noi.",
-    ],
-    wieGehtPrivat: "Privato finché non lo mandi. Il tuo video non viene pubblicato da nessuna parte — decidi tu chi lo vede.",
-    unterVideo: "E lì dici a quello che sei oggi: «I don’t know exactly how I’ll get there yet. But I’m going to work for it. I’m going to bandit this life.» — Non so ancora esattamente come ci arriverò. Ma lavorerò per questo. Mi prendo questa vita.",
+    unterVideoZeilen: ["Guarda il tuo futuro.", "Fai la promessa.", "Mantieni la promessa."],
     filmTitel: "Una frase diventa una prova",
     filmText: "Appari davanti alla villa, l'auto dietro di te — e dici la tua frase, con la tua voce. Cosa prometti lo decidi tu. Cambia solo il mondo intorno a te.",
-    anlaesseTitel: "Per propositi che meritano più di un pensiero",
-    anlaesse: ["A Capodanno.", "Per il tuo compleanno.", "Dopo le dimissioni.", "Il primo giorno nel tuo negozio.", "O semplicemente per dimostrarlo a te stesso."],
-    anlaesseSchluss: "Non un proposito qualsiasi. Il tuo.",
+    mehrTitel: "Più di un video.",
+    /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
+    mehrText: [
+      "Il tuo Future Film è l'inizio — e si fa in fretta.",
+      "Due minuti di registrazione: il tuo volto, la tua voce, la tua promessa al tuo te futuro.",
+      "Il tuo programma di 30 giorni inizia lo stesso giorno.",
+      "Ogni giorno un passo concreto.",
+      "Ogni giorno la tua checklist.",
+      "Ogni giorno la stessa domanda: Ho fatto oggi qualcosa per il mio futuro?",
+    ],
+    wasBekommstTitel: "Il tuo Future Self Program",
+    wasBekommstTitelListe: ["Il tuo Future Film", "La tua Promessa", "30 Giorni", "La tua Checklist", "I tuoi Progressi", "I Prossimi 90 Giorni"],
+    /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
+    wasBekommstTextListe: [
+      "Il tuo volto. La tua voce. La tua vita tra 5 anni — da due minuti di registrazione.",
+      "Il messaggio che registri oggi per il tuo te futuro.",
+      "30 giorni, un passo al giorno. Il giorno 1 è oggi.",
+      "Ogni sera spunti quello che hai davvero fatto. Un minuto.",
+      "Guarda quanti giorni hai già mantenuto la tua promessa.",
+      "Dopo il giorno 30, fissi il tuo prossimo obiettivo.",
+    ],
+    /* Einladung statt Mahnung — siehe de-Block (11.08.2026). */
+    emoTitel: "Una promessa conta dal giorno in cui inizi.",
+    emoText: ["Oggi non devi sapere esattamente come raggiungerai tutto.", "Oggi devi solo iniziare.", "Passo dopo passo.", "Giorno dopo giorno."],
+    emoMarkensatz: ["I'm going to bandit this life.", "I promise."],
+    howTitel: "Come funziona",
+    howTitelListe: ["Registrati oggi", "Mostraci dove vuoi essere tra 5 anni", "Creiamo il tuo Future Film", "Inizia i tuoi 30 giorni"],
+    /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
+    howTextListe: [
+      "Due minuti con il telefono, esattamente come sei oggi.",
+      "Scegli i tuoi obiettivi più importanti.",
+      "Con il tuo volto, la tua voce e la tua visione.",
+      "Da oggi: apri il tuo link privato ogni giorno e mantieni la tua promessa.",
+    ],
+    finalTitel: ["Il tuo futuro non inizia tra 5 anni.", "Inizia con quello che fai oggi."],
+    finalIncludes: ["Future Film", "Programma di 30 giorni", "Checklist giornaliera", "Monitoraggio dei progressi", "Piano di 90 giorni", "Pagina personale privata"],
+    /* Preis als Satz — siehe de-Block (11.08.2026, {programm} = VERSPRECHEN_CENTS). */
+    finalPreisZeile: "Tutto insieme per {programm} — pagamento unico, nessun abbonamento.",
+    finalSub: "Bandit this life.",
+    sprichDarueber: "Parla di questo:",
+    garantieTitel: "Garanzia della Promessa di 30 Giorni",
+    garantieText: "Fai i primi 7 giorni. Se dopo senti che il Future Self Program non fa per te, dillo entro 30 giorni — e ti rimborsiamo.",
+    geldZurueckGarantie: "Garanzia della Promessa di 30 Giorni",
+    step2: "2 · Il tuo Future Film",
+    ctaVideo: "Future Self Program — {programm}",
+    buyOnce: "Future Self Program — {programm}",
+    priceLine: "Future Self Program — {programm}",
+    makeVideo: "Inizia il tuo Future Self Program — {programm}",
+    blockedOnce: "Inizia il tuo Future Self Program — {programm}",
+    watchOnce: "Il mio Future Film — {programm}",
+    makingKiss: "Il tuo Future Film è in creazione …",
+    mailNote: "Qui ti inviamo il tuo Future Film e il tuo link privato al programma.",
+    programmKnopf: "Il tuo programma di 30 giorni →",
   },
 };
 

@@ -1,315 +1,781 @@
 import type { Lang } from "@/lib/lang";
 
 /**
- * DIE ÜBER-UNS-SEITE IN SIEBEN SPRACHEN (Owner 05.08.2026: „so jetzt die Seite auch
- * übersetzen" — und, nachdem ich es vertagt hatte: „hallo, es ist nicht übersetzt").
+ * DIE ÜBER-UNS-SEITE IN SIEBEN SPRACHEN — Owner-Neufassung 11.08.2026 ("update ONLY the
+ * About page copy. Do not redesign the page. Do not change layout, components, navigation,
+ * footer, colors or spacing. Do not change any other page."). Ersetzt die Fassung vom
+ * 05.08.2026 komplett — nur die About-Seite liest diese neuen Felder, sonst niemand.
  *
- * KÜRZER ALS DIE ENGLISCHE FASSUNG, MIT ABSICHT. Die Seite hatte lange, gebaute Sätze; in
- * sieben Sprachen wären das vierhundert Zeilen, die niemand pflegt und die beim ersten
- * Textwechsel auseinanderlaufen. Kurze Sätze übersetzen sich sauber, lesen sich auf dem Handy
- * besser und sagen dasselbe. Was gestrichen wurde, war Schmuck, kein Inhalt.
+ * DEUTSCH IST DER URTEXT UND WÖRTLICH VOM OWNER — ich habe hier nichts zusammengezogen oder
+ * gekürzt, jeder Satz aus seiner Vorlage steht als eigener Eintrag, damit „wörtlich" auch
+ * wörtlich bleibt. Die anderen sechs Sprachen sind idiomatische Übersetzungen, geduzt.
  *
- * WAS DRIN IST — alles vom Owner selbst gesagt (05.08.2026): Geza · seit 1996
- * Software-Usability · für Grosskonzerne weltweit · Firmen an die Spitze gebracht · Pitch
- * Winner „Die Höhle der Löwen" in Deutschland · Timișoara als Wohnort, weltweit unterwegs als
- * unabhängiger Digital Nomad · KI als Ära für alle · „in dieser Form bietet das keiner".
- *
- * WAS NICHT DRIN IST, bis er es liefert: Firmennamen, Jahreszahlen zur Sendung, Summen,
- * Kundenlisten. Eine erfundene Referenz hält genau so lange, bis einer nachfragt.
- *
- * DEUTSCH IST DER URTEXT (Hausregel seit 04.08.2026), ENGLISCH die Vorgabe beim Anzeigen.
- * Geschrieben wird oben, gelesen wird `en` — wer eine Zeile ändert, ändert sie zuerst im
- * deutschen Block und trägt sie danach nach.
+ * `portalKurz` / `portalLang` — DAS GETEILTE ORIGINAL DER PORTALBESCHREIBUNG (Owner
+ * 10.08.2026, siehe Kommentar am Typ unten). Startseite und AGB lesen diese zwei Felder
+ * direkt aus dieser Datei. Die About-Seite zeigt sie seit dieser Neufassung NICHT mehr an
+ * (der neue Eingangstext ist eigenständig, Felder `intro*`) — die zwei Schlüssel bleiben
+ * hier trotzdem unverändert stehen, weil andere Seiten sie brauchen.
  */
 
 export type AboutText = {
   kicker: string;
   h1a: string; h1y: string;
+
   /**
-   * DIE BESCHREIBUNG DES PORTALS — DAS ORIGINAL FÜR DIE GANZE SEITE (Owner 10.08.2026:
+   * DIE BESCHREIBUNG DES PORTALS — DAS ORIGINAL FÜR DAS GANZE PORTAL (Owner 10.08.2026:
    * „du machst ab jetzt die Beschreibung des Portals dynamisch. Wir legen das origial in
    * Abou an. Was dort geändert wird, gilt für das ganze portal. Also auch für die
-   * Startseite(Topics)").
-   *
-   * Anlass war ein Satz in den AGB, der seit dem alten Marktplatz dort stand: „LuxuryBandit
-   * is a marketplace of influencers." Der Owner: „Luxury bandit nu este un Marketplace de
-   * influenceri." Er hatte recht, und der Fehler war nicht der Satz, sondern dass es DREI
-   * Beschreibungen gab — eine hier, eine auf der Startseite, eine in den AGB. Drei
-   * Beschreibungen altern einzeln; zwei davon werden vergessen.
-   *
-   * `portalKurz` — ein bis zwei Sätze, für die Startseite und überall, wo Platz knapp ist.
-   * `portalLang` — der Absatz, der erklärt, was das hier ist (AGB §1, Über-uns-Seite).
-   *
-   * WER SIE ÄNDERT, ÄNDERT SIE HIER — und sie ändert sich damit überall.
+   * Startseite(Topics)"). NICHT ANFASSEN bei einer reinen Textänderung der About-Seite —
+   * Startseite (app/themes/page.tsx) und AGB (app/terms/page.tsx) lesen exakt diese zwei
+   * Felder.
    */
   portalKurz: string;
   portalLang: string;
 
+  /* Eingangstext der About-Seite, direkt unter Kicker/H1 — eigene Felder seit 11.08.2026,
+     ersetzen die frühere Anzeige von portalLang auf dieser einen Seite. */
+  introLead: string;
+  introListe: string[];
+  introKeineKi: string;
+  introBringst: string[];
+
   werTitel: string;
   werBild: string;
-  wer1: string;
-  wer2: string;
-  wer3: string;
+  wer: string[];
+
+  warumLbTitel: string;
+  warumLb: string[];
 
   warumTitel: string;
-  warum1: string;
-  warum2: string;
+  warum: string[];
 
   aiTitel: string;
-  ai1: string;
-  ai2: string;
+  ai: string[];
 
   verspTitel: string;
   versp: [string, string][];
 
+  nichtTitel: string;
+  nicht: string[];
+
   startTitel: string;
-  startLead: string;
+  startLead: string[];
   startCta: string;
   fein: string;
   feinLink: string;
 };
 
+/**
+ * DIE ZWEI MARKENSÄTZE — vom Owner ausdrücklich UNÜBERSETZT geliefert, in allen sieben
+ * Sprachen identisch (auch im deutschen Block). Darum kein Eintrag je Sprache, sondern ein
+ * einziger Text hier, den die Seite direkt einbindet.
+ */
+export const MARKENSATZ_1 = "We don't take from people. We take life into our own hands.";
+export const MARKENSATZ_2 = "BANDIT THIS LIFE.";
+
 const de: AboutText = {
   kicker: "Über LuxuryBandit",
-  h1a: "Einzigartige Geschenke, aus der ", h1y: "neuen KI-Ära",
-  portalKurz: "Dein Foto und ihres — ein Kuss, ein Geburtstagsgruß, eine Überraschung, eine Hochzeitseinladung. In Minuten gemacht, an einen Menschen geschickt. Niemand sonst sieht es.",
-  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Einladung zu zweit wegzufahren — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt ein Geschenk heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
+  h1a: "Einzigartige Geschenke und Momente aus der ", h1y: "neuen KI-Ära.",
+  portalKurz: "Dein Foto und ihres — ein Kuss, ein Geburtstagsgruß, eine Überraschung, eine Hochzeitseinladung, oder eine Botschaft an dein zukünftiges Ich. In Minuten gemacht, an einen Menschen geschickt. Niemand sonst sieht es.",
+  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Einladung zu zweit wegzufahren, oder eine Botschaft an dein zukünftiges Ich — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt ein Geschenk heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
+
+  introLead: "LuxuryBandit verbindet persönliche Fotos, Stimme und moderne KI zu etwas, das man nicht einfach kauft und vergisst.",
+  introListe: [
+    "Ein Geburtstagsfilm.",
+    "Eine Hochzeitsbotschaft.",
+    "Eine Nachricht an dein zukünftiges Ich.",
+    "Ein persönlicher Moment, den es so vorher nicht gab.",
+  ],
+  introKeineKi: "Du musst dafür keine KI verstehen, keine Software lernen und nichts selbst gestalten.",
+  introBringst: [
+    "Du bringst die Person, die Stimme oder die Idee.",
+    "Wir machen daraus das Erlebnis.",
+  ],
 
   werTitel: "Wer dahintersteckt",
-  werBild: "Geza — dreissig Jahre dasselbe Handwerk, und der Mensch, der antwortet, wenn du uns schreibst.",
-  wer1: "Ein Mensch, dreissig Jahre im selben Fach: Geza. Seit 1996 in der Software-Usability — für Grosskonzerne weltweit, und er hat Firmen an die Spitze ihres Marktes gebracht.",
-  wer2: "Pitch Winner bei „Die Höhle der Löwen“ in Deutschland.",
-  wer3: "Zuhause in Timișoara, Rumänien — und meistens woanders: unabhängiger Digital Nomad, der dort arbeitet, wo das nächste Projekt ist. Usability ist kein Schmuck, sondern eine einzige Frage, dreissig Jahre lang gestellt: Kann ein Mensch das wirklich benutzen?",
+  werBild: "Geza — 30 Jahre an der Schnittstelle von Design und Technik, und der Mensch, der antwortet, wenn du uns schreibst.",
+  wer: [
+    "Geza — seit rund 30 Jahren an der Schnittstelle zwischen Design, Technologie und Menschen.",
+    "Seit 1996 arbeitet er als Designer und UX-Berater für große Unternehmen und digitale Produkte.",
+    "Unter anderem für Unternehmen wie Deutsche Bahn und Bundesdruckerei.",
+    "Außerdem entwickelte er eigene Produkte und stellte eine seiner Erfindungen bei „Die Höhle der Löwen“ in Deutschland vor.",
+    "Heute arbeitet er von Timișoara aus an einer einfachen Frage:",
+    "Wie kann moderne Technologie etwas schaffen, das sich nicht nach Technologie anfühlt — sondern nach einem persönlichen Erlebnis?",
+    "LuxuryBandit ist die Antwort darauf.",
+  ],
 
-  warumTitel: "Warum du das Ergebnis bekommst, nicht das Werkzeug",
-  warum1: "Canva und CapCut verkaufen dir Können: Wer dort ankommt, muss gestalten können oder schneiden. Die meisten können das nicht und wollen es auch nicht lernen — sie wollen die Sache selbst.",
-  warum2: "Wir verkaufen dir Fertigsein. Ein Foto hochladen, mehr Können braucht es nicht. Alles andere passiert hier, und heraus kommt ein Geschenk, das du verschicken kannst.",
+  warumLbTitel: "Warum LuxuryBandit?",
+  warumLb: [
+    "LuxuryBandit ist kein Name über Luxus.",
+    "Und auch nicht über Banditen.",
+    "Es geht um eine Haltung.",
+    "Darum, sich das eigene Leben nicht einfach vorsetzen zu lassen.",
+    "Nicht darauf zu warten, dass irgendwann der perfekte Zeitpunkt kommt.",
+    "Nicht nur davon zu träumen, wie das Leben aussehen könnte.",
+    "Sondern eine Richtung zu wählen.",
+    "Eine Entscheidung zu treffen.",
+    "Und sich Stück für Stück das Leben aufzubauen, das man wirklich will.",
+  ],
 
-  aiTitel: "KI soll jeden mitnehmen",
-  ai1: "Jede Technik gehört am Anfang denen, die sie bedienen können, und wird an dem Tag etwas wert, an dem sie allen anderen gehört. Genau dort steht die KI jetzt — und darum geht es hier: dieselbe Kraft, die die Fachleute haben, in der Hand von jemandem, der einfach einen Menschen glücklich machen will.",
-  ai2: "In dieser Form bietet das niemand. Es gibt KI-Bildwerkzeuge, es gibt Videoschnitt, es gibt Kartenläden. Es gibt keinen Ort, der aus deinen eigenen Fotos ein Geschenk mit euren Gesichtern macht, das noch am selben Abend bei jemandem ankommt.",
+  warumTitel: "Warum du das Ergebnis bekommst — nicht das Werkzeug",
+  warum: [
+    "Es gibt heute unzählige KI-Tools.",
+    "Bildgeneratoren.",
+    "Video-Tools.",
+    "Schnittprogramme.",
+    "Avatar-Systeme.",
+    "Aber die meisten Menschen wollen keine neuen Tools lernen.",
+    "Sie wollen ein Ergebnis.",
+    "Deshalb verkauft LuxuryBandit keine Software, mit der du anschließend selbst arbeiten musst.",
+    "Du lädst dein Foto hoch, gibst uns deine Botschaft oder deine Idee — und wir machen daraus das fertige Erlebnis.",
+    "Technologie bleibt im Hintergrund.",
+    "Das Ergebnis steht im Vordergrund.",
+  ],
+
+  aiTitel: "KI soll mehr Menschen möglich machen",
+  ai: [
+    "Neue Technologie gehört am Anfang oft denen, die wissen, wie man sie bedient.",
+    "Später wird sie erst dann wirklich interessant, wenn jeder sie nutzen kann.",
+    "Genau dort steht KI heute.",
+    "LuxuryBandit versucht, diese Technik so einfach zu machen, dass du nicht wissen musst, welches Modell, welcher Prompt oder welches Video-Tool dahintersteht.",
+    "Du sollst nur wissen, was du sagen, zeigen oder verschenken willst.",
+    "Den Rest übernehmen wir.",
+  ],
 
   verspTitel: "Was wir dir versprechen",
   versp: [
-    ["Deine Fotos bleiben deine.", "Sie werden nie veröffentlicht, nie anderen gezeigt, nie verkauft. Geteilt wird nur dein fertiges Ergebnis — und nur, wenn du es selbst teilst."],
-    ["Kein Abo auf ein Geschenk.", "Ein Geschenk kauft man einmal. Nichts verlängert sich hinter deinem Rücken, und du musst keinen Kündigen-Knopf suchen, weil es nichts zu kündigen gibt."],
-    ["Der Preis steht vor der Arbeit.", "Was es kostet, steht am Eingang — bevor du irgendetwas hochlädst, nicht hinterher an der Kasse."],
-    ["Fünf Minuten, nicht fünf Stunden.", "Nichts zu installieren, nichts zu lernen, kein Konto, das du erst anlegen musst."],
+    ["Deine Fotos bleiben deine.", "Wir veröffentlichen deine Fotos und Videos nicht automatisch und verkaufen sie nicht weiter. Du entscheidest, was du mit deinem Ergebnis machst und wem du es zeigst."],
+    ["Kein verstecktes Abo.", "Du kaufst ein konkretes Produkt. Das Einzige, das monatlich weiterläuft, ist der Hochzeitsplaner — und den kündigst du jederzeit mit einem Tipp. Keine überraschende Abbuchung."],
+    ["Der Preis steht vorher fest.", "Du siehst vor dem Kauf, was dein Produkt kostet."],
+    ["Fünf Minuten statt fünf Stunden.", "Kein kompliziertes Setup. Keine Software lernen. Keine Prompts schreiben. Du entscheidest, was du willst. Wir kümmern uns um den technischen Teil."],
+  ],
+
+  nichtTitel: "Was LuxuryBandit nicht sein will",
+  nicht: [
+    "Kein weiteres KI-Spielzeug.",
+    "Kein Tool, das dir noch mehr Arbeit macht.",
+    "Kein Versprechen, dass Technologie dein Leben von alleine verändert.",
+    "KI kann dir Möglichkeiten geben.",
+    "Was du daraus machst, bleibt deine Entscheidung.",
   ],
 
   startTitel: "Wo du anfängst",
-  startLead: "Such dir den Anlass aus — der Rest ist ein Foto.",
-  startCta: "Alle Geschenke ansehen",
+  startLead: [
+    "Such dir den Moment aus, den du erschaffen willst.",
+    "Ein Geschenk.",
+    "Eine Botschaft.",
+    "Eine Erinnerung.",
+    "Oder eine Vision für dein zukünftiges Ich.",
+    "Du bringst die Idee.",
+    "Wir machen sie sichtbar.",
+  ],
+  startCta: "Alle Erlebnisse ansehen",
   fein: "Fragen, oder haben wir etwas falsch gemacht? ",
   feinLink: "Schreib uns",
 };
 
 const en: AboutText = {
   kicker: "About LuxuryBandit",
-  h1a: "One-of-a-kind gifts, from the ", h1y: "new AI era",
-  portalKurz: "Your photo and theirs — a kiss, a birthday, a surprise, a wedding invitation. Made in minutes, sent to one person. Nobody else sees it.",
-  portalLang: "A kiss, a birthday greeting, a wedding invitation, an invitation to come away together — made for one person and nobody else. You upload one photo; a finished gift comes out. Nothing to learn, nothing to install, ready in five minutes.",
+  h1a: "One-of-a-kind gifts and moments from the ", h1y: "new AI era.",
+  portalKurz: "Your photo and theirs — a kiss, a birthday, a surprise, a wedding invitation, or a message to your future self. Made in minutes, sent to one person. Nobody else sees it.",
+  portalLang: "A kiss, a birthday greeting, a wedding invitation, an invitation to come away together, or a message to your future self — made for one person and nobody else. You upload one photo; a finished gift comes out. Nothing to learn, nothing to install, ready in five minutes.",
 
-  werTitel: "Who is behind it",
-  werBild: "Geza — thirty years in the same craft, and the person who answers when you write to us.",
-  wer1: "One person, thirty years in the same craft: Geza. Working in software usability since 1996 — for large corporations around the world, helping companies get to the top of their market.",
-  wer2: "Pitch winner on Die Höhle der Löwen in Germany — the show the rest of the world knows as Shark Tank or Dragons’ Den.",
-  wer3: "Based in Timișoara, Romania — and usually somewhere else: an independent digital nomad who works wherever the next project is. Usability is not decoration; it is one question, asked for thirty years: can a real person actually use this?",
+  introLead: "LuxuryBandit turns personal photos, voice, and modern AI into something you don't just buy and forget.",
+  introListe: [
+    "A birthday film.",
+    "A wedding message.",
+    "A message to your future self.",
+    "A personal moment that never existed before.",
+  ],
+  introKeineKi: "You don't need to understand AI, learn any software, or design anything yourself.",
+  introBringst: [
+    "You bring the person, the voice, or the idea.",
+    "We turn it into the experience.",
+  ],
 
-  warumTitel: "Why you get the result, not the tool",
-  warum1: "Canva and CapCut sell you ability: whoever lands there has to be able to design, or to edit. Most people can’t, and don’t want to learn — they want the thing itself.",
-  warum2: "We sell you being finished. Upload one photo; that is the entire skill required. Everything else happens here, and what comes out is a gift you can send.",
+  werTitel: "Who's behind it",
+  werBild: "Geza — 30 years at the intersection of design and technology, and the person who answers when you write to us.",
+  wer: [
+    "Geza — for around 30 years at the intersection of design, technology, and people.",
+    "Since 1996 he has worked as a designer and UX consultant for large companies and digital products.",
+    "Among others, for companies like Deutsche Bahn and Bundesdruckerei.",
+    "He has also developed his own products and presented one of his inventions on Die Höhle der Löwen in Germany — the show the rest of the world knows as Shark Tank.",
+    "Today he works from Timișoara on one simple question:",
+    "How can modern technology create something that doesn't feel like technology — but like a personal experience?",
+    "LuxuryBandit is the answer.",
+  ],
 
-  aiTitel: "AI should carry everyone along",
-  ai1: "Every technology begins by belonging to the people who can operate it, and becomes worth something the day it belongs to everybody else. That is where AI stands now — and that is the point here: the same power the professionals have, in the hands of someone who simply wants to make one person happy.",
-  ai2: "Nobody offers this in this form. There are AI image tools, there are video editors, there are card shops. There is no place that turns your own photos into a gift with your faces in it, ready to arrive in someone’s hand the same evening.",
+  warumLbTitel: "Why LuxuryBandit?",
+  warumLb: [
+    "LuxuryBandit isn't a name about luxury.",
+    "And it isn't about bandits either.",
+    "It's about an attitude.",
+    "About not simply letting your own life be handed to you.",
+    "Not waiting for the perfect moment to eventually come.",
+    "Not just dreaming about what life could look like.",
+    "But choosing a direction.",
+    "Making a decision.",
+    "And building, piece by piece, the life you actually want.",
+  ],
+
+  warumTitel: "Why you get the result — not the tool",
+  warum: [
+    "Today there are countless AI tools.",
+    "Image generators.",
+    "Video tools.",
+    "Editing software.",
+    "Avatar systems.",
+    "But most people don't want to learn new tools.",
+    "They want a result.",
+    "That's why LuxuryBandit doesn't sell software you then have to work with yourself.",
+    "You upload your photo, give us your message or your idea — and we turn it into the finished experience.",
+    "Technology stays in the background.",
+    "The result stays in the foreground.",
+  ],
+
+  aiTitel: "AI should be possible for more people",
+  ai: [
+    "New technology often belongs, at first, to those who know how to use it.",
+    "Later, it only becomes truly interesting once everyone can use it.",
+    "That's exactly where AI stands today.",
+    "LuxuryBandit tries to make this technology so simple that you never need to know which model, which prompt, or which video tool is behind it.",
+    "All you need to know is what you want to say, show, or give.",
+    "We take care of the rest.",
+  ],
 
   verspTitel: "What we promise you",
   versp: [
-    ["Your photos stay yours.", "Never published, never shown to another user, never sold. Only your finished result can be shared — and only if you share it yourself."],
-    ["No subscription on a gift.", "A gift is bought once. Nothing renews behind your back, and there is no cancel button to hunt for, because there is nothing to cancel."],
-    ["The price stands before the work.", "What it costs is written at the entrance, before you upload anything — not afterwards, on a checkout page."],
-    ["Five minutes, not five hours.", "Nothing to install, nothing to learn, no account to build first."],
+    ["Your photos stay yours.", "We don't automatically publish your photos and videos, and we never resell them. You decide what you do with your result and who you show it to."],
+    ["No hidden subscription.", "You buy one specific product. The only thing that keeps running monthly is the wedding planner — and you can cancel that any time with one tap. No surprise charge."],
+    ["The price is fixed upfront.", "You see what your product costs before you buy."],
+    ["Five minutes instead of five hours.", "No complicated setup. No software to learn. No prompts to write. You decide what you want. We take care of the technical part."],
   ],
 
-  startTitel: "Where to start",
-  startLead: "Pick the occasion — the rest is one photo.",
-  startCta: "See all gifts",
+  nichtTitel: "What LuxuryBandit doesn't want to be",
+  nicht: [
+    "Not another AI toy.",
+    "Not a tool that gives you even more work.",
+    "Not a promise that technology will change your life on its own.",
+    "AI can give you possibilities.",
+    "What you make of them stays your decision.",
+  ],
+
+  startTitel: "Where you start",
+  startLead: [
+    "Pick the moment you want to create.",
+    "A gift.",
+    "A message.",
+    "A memory.",
+    "Or a vision for your future self.",
+    "You bring the idea.",
+    "We make it visible.",
+  ],
+  startCta: "See all experiences",
   fein: "Questions, or did we get something wrong? ",
   feinLink: "Write to us",
 };
 
 const ro: AboutText = {
   kicker: "Despre LuxuryBandit",
-  h1a: "Cadouri unicat, din ", h1y: "noua eră AI",
-  portalKurz: "Poza ta și a lui — un sărut, o urare de ziua lui, o surpriză, o invitație de nuntă. Gata în câteva minute, trimis unei singure persoane. Nimeni altcineva nu îl vede.",
-  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o invitație de a pleca împreună — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese un cadou gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
+  h1a: "Cadouri și momente unicat din ", h1y: "noua eră AI.",
+  portalKurz: "Poza ta și a lui — un sărut, o urare de ziua lui, o surpriză, o invitație de nuntă, sau un mesaj către eul tău din viitor. Gata în câteva minute, trimis unei singure persoane. Nimeni altcineva nu îl vede.",
+  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o invitație de a pleca împreună, sau un mesaj către eul tău din viitor — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese un cadou gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
 
-  werTitel: "Cine este în spate",
-  werBild: "Geza — treizeci de ani în aceeași meserie, și omul care îți răspunde când ne scrii.",
-  wer1: "Un om, treizeci de ani în aceeași meserie: Geza. Din 1996 în usability software — pentru corporații mari din toată lumea, ducând companii în vârful pieței lor.",
-  wer2: "Câștigător de pitch la „Die Höhle der Löwen” în Germania — emisiunea cunoscută în lume ca Shark Tank.",
-  wer3: "Locuiește în Timișoara, România — și de obicei în altă parte: nomad digital independent, care lucrează acolo unde e următorul proiect. Usability nu e decor, ci o singură întrebare, pusă timp de treizeci de ani: poate un om normal să folosească asta?",
+  introLead: "LuxuryBandit combină fotografii personale, voce și AI modern într-un lucru pe care nu îl cumperi ca să-l uiți.",
+  introListe: [
+    "Un film de ziua de naștere.",
+    "Un mesaj de nuntă.",
+    "Un mesaj către eul tău din viitor.",
+    "Un moment personal care nu a existat înainte.",
+  ],
+  introKeineKi: "Nu trebuie să înțelegi AI, să înveți niciun program și nici să creezi nimic singur.",
+  introBringst: [
+    "Tu aduci persoana, vocea sau ideea.",
+    "Noi transformăm asta în experiență.",
+  ],
 
-  warumTitel: "De ce primești rezultatul, nu unealta",
-  warum1: "Canva și CapCut îți vând pricepere: cine ajunge acolo trebuie să știe să facă design sau montaj. Cei mai mulți nu știu și nici nu vor să învețe — vor lucrul în sine.",
-  warum2: "Noi îți vindem faptul că e gata. Încarci o poză, atât. Restul se întâmplă aici, iar ce iese e un cadou pe care îl poți trimite.",
+  werTitel: "Cine e în spate",
+  werBild: "Geza — 30 de ani la intersecția dintre design și tehnologie, și omul care îți răspunde când ne scrii.",
+  wer: [
+    "Geza — de aproximativ 30 de ani la intersecția dintre design, tehnologie și oameni.",
+    "Din 1996 lucrează ca designer și consultant UX pentru companii mari și produse digitale.",
+    "Printre altele, pentru companii precum Deutsche Bahn și Bundesdruckerei.",
+    "A dezvoltat și produse proprii și și-a prezentat una dintre invenții la „Die Höhle der Löwen” în Germania.",
+    "Astăzi lucrează din Timișoara la o întrebare simplă:",
+    "Cum poate tehnologia modernă să creeze ceva care nu se simte ca tehnologie — ci ca o experiență personală?",
+    "LuxuryBandit este răspunsul.",
+  ],
 
-  aiTitel: "AI trebuie să îi ia pe toți cu ea",
-  ai1: "Orice tehnologie aparține la început celor care știu să o folosească și devine valoroasă în ziua în care ajunge la toți ceilalți. Acolo e AI acum — și despre asta e vorba aici: aceeași putere pe care o au profesioniștii, în mâna cuiva care vrea doar să bucure un om.",
-  ai2: "În forma asta nu o oferă nimeni. Există unelte AI pentru imagini, există montaj video, există magazine de felicitări. Nu există un loc care să transforme pozele tale într-un cadou cu chipurile voastre, gata să ajungă la cineva chiar în seara aceea.",
+  warumLbTitel: "De ce LuxuryBandit?",
+  warumLb: [
+    "LuxuryBandit nu e un nume despre lux.",
+    "Și nici despre bandiți.",
+    "E vorba despre o atitudine.",
+    "Despre a nu lăsa pur și simplu propria viață să îți fie servită.",
+    "A nu aștepta să vină cândva momentul perfect.",
+    "A nu doar visa la cum ar putea arăta viața.",
+    "Ci a alege o direcție.",
+    "A lua o decizie.",
+    "Și a-ți construi, bucată cu bucată, viața pe care ți-o dorești cu adevărat.",
+  ],
+
+  warumTitel: "De ce primești rezultatul — nu unealta",
+  warum: [
+    "Astăzi există nenumărate unelte AI.",
+    "Generatoare de imagini.",
+    "Unelte video.",
+    "Programe de montaj.",
+    "Sisteme de avatare.",
+    "Dar majoritatea oamenilor nu vor să învețe unelte noi.",
+    "Vor un rezultat.",
+    "De aceea LuxuryBandit nu vinde software cu care să lucrezi apoi singur.",
+    "Încarci poza, ne dai mesajul sau ideea ta — și noi transformăm asta în experiența finită.",
+    "Tehnologia rămâne în fundal.",
+    "Rezultatul rămâne în prim-plan.",
+  ],
+
+  aiTitel: "AI ar trebui să fie posibilă pentru mai mulți oameni",
+  ai: [
+    "Tehnologia nouă aparține la început adesea celor care știu cum să o folosească.",
+    "Mai târziu devine cu adevărat interesantă abia când oricine o poate folosi.",
+    "Exact acolo se află AI astăzi.",
+    "LuxuryBandit încearcă să facă această tehnologie atât de simplă, încât nu trebuie să știi ce model, ce prompt sau ce unealtă video stă în spate.",
+    "Trebuie doar să știi ce vrei să spui, să arăți sau să dăruiești.",
+    "Restul îl facem noi.",
+  ],
 
   verspTitel: "Ce îți promitem",
   versp: [
-    ["Pozele tale rămân ale tale.", "Nu sunt publicate niciodată, nu sunt arătate altor utilizatori, nu sunt vândute. Se distribuie doar rezultatul tău final — și doar dacă îl distribui tu."],
-    ["Niciun abonament pentru un cadou.", "Un cadou se cumpără o dată. Nimic nu se reînnoiește pe la spatele tău și nu trebuie să cauți un buton de anulare, pentru că nu e nimic de anulat."],
-    ["Prețul stă înainte de muncă.", "Cât costă scrie la intrare, înainte să încarci ceva — nu după, pe pagina de plată."],
-    ["Cinci minute, nu cinci ore.", "Nimic de instalat, nimic de învățat, niciun cont de făcut mai întâi."],
+    ["Pozele tale rămân ale tale.", "Nu publicăm automat pozele și videoclipurile tale și nu le revindem. Tu decizi ce faci cu rezultatul tău și cui i-l arăți."],
+    ["Niciun abonament ascuns.", "Cumperi un produs concret. Singurul lucru care continuă lunar este planificatorul de nuntă — și îl anulezi oricând cu o atingere. Fără o taxă surpriză."],
+    ["Prețul e clar dinainte.", "Vezi înainte de cumpărare cât costă produsul tău."],
+    ["Cinci minute în loc de cinci ore.", "Fără configurare complicată. Fără software de învățat. Fără prompturi de scris. Tu decizi ce vrei. Noi ne ocupăm de partea tehnică."],
+  ],
+
+  nichtTitel: "Ce nu vrea să fie LuxuryBandit",
+  nicht: [
+    "Nu încă o jucărie AI.",
+    "Nu o unealtă care îți dă și mai multă muncă.",
+    "Nu o promisiune că tehnologia îți schimbă viața de la sine.",
+    "AI îți poate oferi posibilități.",
+    "Ce faci din ele rămâne decizia ta.",
   ],
 
   startTitel: "De unde începi",
-  startLead: "Alege ocazia — restul e o poză.",
-  startCta: "Vezi toate cadourile",
+  startLead: [
+    "Alege momentul pe care vrei să-l creezi.",
+    "Un cadou.",
+    "Un mesaj.",
+    "O amintire.",
+    "Sau o viziune pentru eul tău din viitor.",
+    "Tu aduci ideea.",
+    "Noi o facem vizibilă.",
+  ],
+  startCta: "Vezi toate experiențele",
   fein: "Întrebări, sau am greșit ceva? ",
   feinLink: "Scrie-ne",
 };
 
 const es: AboutText = {
   kicker: "Sobre LuxuryBandit",
-  h1a: "Regalos únicos, de la ", h1y: "nueva era de la IA",
-  portalKurz: "Tu foto y la suya — un beso, una felicitación de cumpleaños, una sorpresa, una invitación de boda. Listo en minutos, enviado a una sola persona. Nadie más lo ve.",
-  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una invitación a irse juntos — hechos para una sola persona y para nadie más. Subes una foto y sale un regalo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
+  h1a: "Regalos y momentos únicos de la ", h1y: "nueva era de la IA.",
+  portalKurz: "Tu foto y la suya — un beso, una felicitación de cumpleaños, una sorpresa, una invitación de boda, o un mensaje para tu yo futuro. Listo en minutos, enviado a una sola persona. Nadie más lo ve.",
+  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una invitación a irse juntos, o un mensaje para tu yo futuro — hechos para una sola persona y para nadie más. Subes una foto y sale un regalo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
+
+  introLead: "LuxuryBandit convierte fotos personales, voz e IA moderna en algo que no simplemente compras y olvidas.",
+  introListe: [
+    "Una película de cumpleaños.",
+    "Un mensaje de boda.",
+    "Un mensaje para tu yo futuro.",
+    "Un momento personal que antes no existía.",
+  ],
+  introKeineKi: "No necesitas entender de IA, aprender ningún software ni diseñar nada tú mismo.",
+  introBringst: [
+    "Tú aportas la persona, la voz o la idea.",
+    "Nosotros la convertimos en la experiencia.",
+  ],
 
   werTitel: "Quién está detrás",
-  werBild: "Geza — treinta años en el mismo oficio, y la persona que responde cuando nos escribes.",
-  wer1: "Una persona, treinta años en el mismo oficio: Geza. Desde 1996 en usabilidad de software — para grandes corporaciones de todo el mundo, llevando empresas a lo más alto de su mercado.",
-  wer2: "Ganador de pitch en «Die Höhle der Löwen» en Alemania — el programa que el resto del mundo conoce como Shark Tank.",
-  wer3: "Vive en Timișoara, Rumanía — y casi siempre en otro sitio: nómada digital independiente que trabaja donde esté el siguiente proyecto. La usabilidad no es decoración, es una sola pregunta hecha durante treinta años: ¿puede una persona real usar esto?",
+  werBild: "Geza — 30 años en la intersección entre diseño y tecnología, y la persona que responde cuando nos escribes.",
+  wer: [
+    "Geza — desde hace unos 30 años en la intersección entre diseño, tecnología y personas.",
+    "Desde 1996 trabaja como diseñador y consultor de UX para grandes empresas y productos digitales.",
+    "Entre otros, para empresas como Deutsche Bahn y Bundesdruckerei.",
+    "Además desarrolló productos propios y presentó uno de sus inventos en «Die Höhle der Löwen» en Alemania.",
+    "Hoy trabaja desde Timișoara en una pregunta sencilla:",
+    "¿Cómo puede la tecnología moderna crear algo que no se sienta como tecnología, sino como una experiencia personal?",
+    "LuxuryBandit es la respuesta.",
+  ],
 
-  warumTitel: "Por qué recibes el resultado, no la herramienta",
-  warum1: "Canva y CapCut te venden habilidad: quien llega allí tiene que saber diseñar o editar. La mayoría no sabe, ni quiere aprender — quiere la cosa en sí.",
-  warum2: "Nosotros te vendemos el estar terminado. Sube una foto, esa es toda la habilidad necesaria. Lo demás pasa aquí, y lo que sale es un regalo que puedes enviar.",
+  warumLbTitel: "¿Por qué LuxuryBandit?",
+  warumLb: [
+    "LuxuryBandit no es un nombre sobre el lujo.",
+    "Ni tampoco sobre bandidos.",
+    "Se trata de una actitud.",
+    "De no dejar simplemente que te sirvan tu propia vida.",
+    "De no esperar a que llegue algún día el momento perfecto.",
+    "De no solo soñar con cómo podría ser la vida.",
+    "Sino elegir una dirección.",
+    "Tomar una decisión.",
+    "Y construir, paso a paso, la vida que realmente quieres.",
+  ],
 
-  aiTitel: "La IA debería llevarse a todos consigo",
-  ai1: "Toda tecnología empieza perteneciendo a quienes saben manejarla, y vale algo el día en que pertenece a todos los demás. Ahí está la IA hoy — y de eso va esto: el mismo poder que tienen los profesionales, en manos de alguien que solo quiere alegrar a una persona.",
-  ai2: "Nadie ofrece esto de esta forma. Hay herramientas de imagen con IA, hay editores de vídeo, hay tiendas de tarjetas. No hay un sitio que convierta tus propias fotos en un regalo con vuestras caras, listo para llegar a alguien esa misma noche.",
+  warumTitel: "Por qué recibes el resultado — no la herramienta",
+  warum: [
+    "Hoy existen innumerables herramientas de IA.",
+    "Generadores de imágenes.",
+    "Herramientas de vídeo.",
+    "Programas de edición.",
+    "Sistemas de avatares.",
+    "Pero la mayoría de las personas no quiere aprender herramientas nuevas.",
+    "Quieren un resultado.",
+    "Por eso LuxuryBandit no vende software con el que luego tengas que trabajar tú mismo.",
+    "Subes tu foto, nos das tu mensaje o tu idea — y nosotros la convertimos en la experiencia terminada.",
+    "La tecnología queda en segundo plano.",
+    "El resultado queda en primer plano.",
+  ],
+
+  aiTitel: "La IA debería ser posible para más personas",
+  ai: [
+    "La tecnología nueva suele pertenecer, al principio, a quienes saben usarla.",
+    "Más tarde solo se vuelve realmente interesante cuando todos pueden usarla.",
+    "Ahí es exactamente donde está la IA hoy.",
+    "LuxuryBandit intenta hacer esta tecnología tan sencilla que nunca necesites saber qué modelo, qué prompt o qué herramienta de vídeo hay detrás.",
+    "Solo necesitas saber qué quieres decir, mostrar o regalar.",
+    "Del resto nos ocupamos nosotros.",
+  ],
 
   verspTitel: "Lo que te prometemos",
   versp: [
-    ["Tus fotos siguen siendo tuyas.", "Nunca se publican, nunca se muestran a otros usuarios, nunca se venden. Solo se comparte tu resultado final — y solo si lo compartes tú."],
-    ["Ninguna suscripción en un regalo.", "Un regalo se compra una vez. Nada se renueva a tus espaldas, y no tienes que buscar un botón de cancelar, porque no hay nada que cancelar."],
-    ["El precio está antes del trabajo.", "Lo que cuesta está escrito en la entrada, antes de que subas nada — no después, en la página de pago."],
-    ["Cinco minutos, no cinco horas.", "Nada que instalar, nada que aprender, ninguna cuenta que crear primero."],
+    ["Tus fotos siguen siendo tuyas.", "No publicamos automáticamente tus fotos y vídeos, ni los revendemos. Tú decides qué haces con tu resultado y a quién se lo muestras."],
+    ["Ninguna suscripción oculta.", "Compras un producto concreto. Lo único que sigue funcionando cada mes es el planificador de boda — y puedes cancelarlo cuando quieras con un toque. Sin cargo sorpresa."],
+    ["El precio está fijado de antemano.", "Ves lo que cuesta tu producto antes de comprarlo."],
+    ["Cinco minutos en vez de cinco horas.", "Sin configuración complicada. Sin software que aprender. Sin prompts que escribir. Tú decides qué quieres. Nosotros nos ocupamos de la parte técnica."],
   ],
 
-  startTitel: "Por dónde empezar",
-  startLead: "Elige la ocasión — el resto es una foto.",
-  startCta: "Ver todos los regalos",
+  nichtTitel: "Lo que LuxuryBandit no quiere ser",
+  nicht: [
+    "No otro juguete de IA.",
+    "No una herramienta que te dé aún más trabajo.",
+    "No una promesa de que la tecnología cambiará tu vida por sí sola.",
+    "La IA puede darte posibilidades.",
+    "Lo que hagas con ellas sigue siendo decisión tuya.",
+  ],
+
+  startTitel: "Por dónde empiezas",
+  startLead: [
+    "Elige el momento que quieres crear.",
+    "Un regalo.",
+    "Un mensaje.",
+    "Un recuerdo.",
+    "O una visión para tu yo futuro.",
+    "Tú aportas la idea.",
+    "Nosotros la hacemos visible.",
+  ],
+  startCta: "Ver todas las experiencias",
   fein: "¿Dudas, o nos hemos equivocado en algo? ",
   feinLink: "Escríbenos",
 };
 
 const fr: AboutText = {
   kicker: "À propos de LuxuryBandit",
-  h1a: "Des cadeaux uniques, issus de la ", h1y: "nouvelle ère de l’IA",
-  portalKurz: "Ta photo et la sienne — un baiser, un vœu d'anniversaire, une surprise, une invitation de mariage. Prêt en quelques minutes, envoyé à une seule personne. Personne d'autre ne le voit.",
-  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une invitation à partir à deux — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et un cadeau fini en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
+  h1a: "Des cadeaux et des moments uniques de la ", h1y: "nouvelle ère de l’IA.",
+  portalKurz: "Ta photo et la sienne — un baiser, un vœu d'anniversaire, une surprise, une invitation de mariage, ou un message à ton futur toi. Prêt en quelques minutes, envoyé à une seule personne. Personne d'autre ne le voit.",
+  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une invitation à partir à deux, ou un message à ton futur toi — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et un cadeau fini en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
+
+  introLead: "LuxuryBandit transforme des photos personnelles, une voix et l’IA moderne en quelque chose qu’on n’achète pas simplement pour l’oublier.",
+  introListe: [
+    "Un film d’anniversaire.",
+    "Un message de mariage.",
+    "Un message à ton futur toi.",
+    "Un moment personnel qui n’existait pas avant.",
+  ],
+  introKeineKi: "Tu n’as pas besoin de comprendre l’IA, d’apprendre un logiciel ni de concevoir quoi que ce soit toi-même.",
+  introBringst: [
+    "Tu apportes la personne, la voix ou l’idée.",
+    "Nous en faisons l’expérience.",
+  ],
 
   werTitel: "Qui est derrière",
-  werBild: "Geza — trente ans dans le même métier, et la personne qui répond quand tu nous écris.",
-  wer1: "Une personne, trente ans dans le même métier : Geza. Depuis 1996 dans l’utilisabilité logicielle — pour de grands groupes partout dans le monde, en amenant des entreprises en tête de leur marché.",
-  wer2: "Vainqueur de pitch à « Die Höhle der Löwen » en Allemagne — l’émission que le reste du monde connaît sous le nom de Shark Tank.",
-  wer3: "Basé à Timișoara, en Roumanie — et le plus souvent ailleurs : nomade numérique indépendant qui travaille là où se trouve le prochain projet. L’utilisabilité n’est pas un décor, c’est une seule question, posée pendant trente ans : une vraie personne peut-elle s’en servir ?",
+  werBild: "Geza — 30 ans à la croisée du design et de la technologie, et la personne qui répond quand tu nous écris.",
+  wer: [
+    "Geza — depuis environ 30 ans à la croisée du design, de la technologie et des gens.",
+    "Depuis 1996, il travaille comme designer et consultant UX pour de grandes entreprises et des produits numériques.",
+    "Entre autres pour des entreprises comme Deutsche Bahn et Bundesdruckerei.",
+    "Il a aussi développé ses propres produits et présenté l’une de ses inventions à « Die Höhle der Löwen » en Allemagne.",
+    "Aujourd’hui, il travaille depuis Timișoara sur une question simple :",
+    "Comment la technologie moderne peut-elle créer quelque chose qui ne ressemble pas à de la technologie — mais à une expérience personnelle ?",
+    "LuxuryBandit est la réponse.",
+  ],
 
-  warumTitel: "Pourquoi tu reçois le résultat, pas l’outil",
-  warum1: "Canva et CapCut te vendent une compétence : celui qui arrive là doit savoir composer ou monter. La plupart ne savent pas et ne veulent pas apprendre — ils veulent la chose elle-même.",
-  warum2: "Nous te vendons le fait que ce soit fini. Ajoute une photo, c’est toute la compétence requise. Le reste se passe ici, et il en sort un cadeau que tu peux envoyer.",
+  warumLbTitel: "Pourquoi LuxuryBandit ?",
+  warumLb: [
+    "LuxuryBandit n’est pas un nom qui parle de luxe.",
+    "Ni de bandits, d’ailleurs.",
+    "Il s’agit d’un état d’esprit.",
+    "Celui de ne pas simplement laisser sa propre vie lui être imposée.",
+    "De ne pas attendre que le moment parfait finisse par arriver.",
+    "De ne pas se contenter de rêver à quoi la vie pourrait ressembler.",
+    "Mais de choisir une direction.",
+    "De prendre une décision.",
+    "Et de construire, morceau par morceau, la vie que l’on veut vraiment.",
+  ],
 
-  aiTitel: "L’IA doit emmener tout le monde",
-  ai1: "Toute technologie appartient d’abord à ceux qui savent s’en servir, et vaut quelque chose le jour où elle appartient à tous les autres. C’est là qu’en est l’IA — et c’est tout le propos : la même puissance que les professionnels, entre les mains de quelqu’un qui veut simplement faire plaisir à une personne.",
-  ai2: "Personne ne propose cela sous cette forme. Il existe des outils d’image par IA, des logiciels de montage, des boutiques de cartes. Il n’existe aucun endroit qui transforme tes propres photos en un cadeau avec vos visages, prêt à arriver chez quelqu’un le soir même.",
+  warumTitel: "Pourquoi tu reçois le résultat — pas l’outil",
+  warum: [
+    "Il existe aujourd’hui d’innombrables outils d’IA.",
+    "Des générateurs d’images.",
+    "Des outils vidéo.",
+    "Des logiciels de montage.",
+    "Des systèmes d’avatars.",
+    "Mais la plupart des gens ne veulent pas apprendre de nouveaux outils.",
+    "Ils veulent un résultat.",
+    "C’est pourquoi LuxuryBandit ne vend pas un logiciel avec lequel tu devrais ensuite travailler toi-même.",
+    "Tu ajoutes ta photo, tu nous donnes ton message ou ton idée — et nous en faisons l’expérience finie.",
+    "La technologie reste à l’arrière-plan.",
+    "Le résultat reste au premier plan.",
+  ],
+
+  aiTitel: "L’IA doit devenir accessible à plus de monde",
+  ai: [
+    "Une technologie nouvelle appartient d’abord souvent à ceux qui savent s’en servir.",
+    "Elle ne devient vraiment intéressante que le jour où tout le monde peut l’utiliser.",
+    "C’est exactement là qu’en est l’IA aujourd’hui.",
+    "LuxuryBandit essaie de rendre cette technologie si simple que tu n’as jamais besoin de savoir quel modèle, quel prompt ou quel outil vidéo se cache derrière.",
+    "Tu dois seulement savoir ce que tu veux dire, montrer ou offrir.",
+    "Nous nous occupons du reste.",
+  ],
 
   verspTitel: "Ce que nous te promettons",
   versp: [
-    ["Tes photos restent les tiennes.", "Jamais publiées, jamais montrées à d’autres, jamais vendues. Seul ton résultat fini peut être partagé — et seulement si tu le partages toi-même."],
-    ["Aucun abonnement sur un cadeau.", "Un cadeau s’achète une fois. Rien ne se renouvelle dans ton dos, et tu n’as pas à chercher un bouton de résiliation, puisqu’il n’y a rien à résilier."],
-    ["Le prix est annoncé avant le travail.", "Ce que ça coûte est écrit à l’entrée, avant que tu n’ajoutes quoi que ce soit — pas après, sur la page de paiement."],
-    ["Cinq minutes, pas cinq heures.", "Rien à installer, rien à apprendre, aucun compte à créer d’abord."],
+    ["Tes photos restent les tiennes.", "Nous ne publions pas automatiquement tes photos et vidéos, et nous ne les revendons jamais. Tu décides ce que tu fais de ton résultat et à qui tu le montres."],
+    ["Aucun abonnement caché.", "Tu achètes un produit précis. La seule chose qui continue chaque mois, c’est le wedding planner — et tu peux le résilier à tout moment d’un geste. Pas de prélèvement surprise."],
+    ["Le prix est fixé à l’avance.", "Tu vois ce que coûte ton produit avant d’acheter."],
+    ["Cinq minutes au lieu de cinq heures.", "Pas de configuration compliquée. Pas de logiciel à apprendre. Pas de prompts à écrire. Tu décides ce que tu veux. Nous nous occupons de la partie technique."],
   ],
 
-  startTitel: "Par où commencer",
-  startLead: "Choisis l’occasion — le reste, c’est une photo.",
-  startCta: "Voir tous les cadeaux",
+  nichtTitel: "Ce que LuxuryBandit ne veut pas être",
+  nicht: [
+    "Pas un gadget IA de plus.",
+    "Pas un outil qui te donne encore plus de travail.",
+    "Pas une promesse que la technologie va changer ta vie toute seule.",
+    "L’IA peut t’offrir des possibilités.",
+    "Ce que tu en fais reste ta décision.",
+  ],
+
+  startTitel: "Par où tu commences",
+  startLead: [
+    "Choisis le moment que tu veux créer.",
+    "Un cadeau.",
+    "Un message.",
+    "Un souvenir.",
+    "Ou une vision pour ton futur toi.",
+    "Tu apportes l’idée.",
+    "Nous la rendons visible.",
+  ],
+  startCta: "Voir toutes les expériences",
   fein: "Une question, ou quelque chose ne va pas ? ",
   feinLink: "Écris-nous",
 };
 
 const pt: AboutText = {
   kicker: "Sobre a LuxuryBandit",
-  h1a: "Presentes únicos, da ", h1y: "nova era da IA",
-  portalKurz: "A tua foto e a dela — um beijo, uma mensagem de aniversário, uma surpresa, um convite de casamento. Pronto em minutos, enviado a uma só pessoa. Mais ninguém o vê.",
-  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, um convite para fugirem os dois — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai um presente pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
+  h1a: "Presentes e momentos únicos da ", h1y: "nova era da IA.",
+  portalKurz: "A tua foto e a dela — um beijo, uma mensagem de aniversário, uma surpresa, um convite de casamento, ou uma mensagem para o teu eu futuro. Pronto em minutos, enviado a uma só pessoa. Mais ninguém o vê.",
+  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, um convite para fugirem os dois, ou uma mensagem para o teu eu futuro — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai um presente pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
+
+  introLead: "A LuxuryBandit transforma fotos pessoais, voz e IA moderna em algo que não se compra simplesmente para esquecer.",
+  introListe: [
+    "Um filme de aniversário.",
+    "Uma mensagem de casamento.",
+    "Uma mensagem para o teu eu futuro.",
+    "Um momento pessoal que antes não existia.",
+  ],
+  introKeineKi: "Não precisas de perceber de IA, aprender nenhum software nem criar nada sozinho.",
+  introBringst: [
+    "Tu trazes a pessoa, a voz ou a ideia.",
+    "Nós transformamos isso na experiência.",
+  ],
 
   werTitel: "Quem está por trás",
-  werBild: "Geza — trinta anos no mesmo ofício, e a pessoa que responde quando nos escreves.",
-  wer1: "Uma pessoa, trinta anos no mesmo ofício: Geza. Desde 1996 em usabilidade de software — para grandes empresas em todo o mundo, levando companhias ao topo do seu mercado.",
-  wer2: "Vencedor de pitch no «Die Höhle der Löwen» na Alemanha — o programa que o resto do mundo conhece como Shark Tank.",
-  wer3: "Vive em Timișoara, Roménia — e quase sempre noutro sítio: nómada digital independente que trabalha onde está o próximo projeto. Usabilidade não é decoração, é uma só pergunta, feita durante trinta anos: uma pessoa real consegue usar isto?",
+  werBild: "Geza — 30 anos na interseção entre design e tecnologia, e a pessoa que responde quando nos escreves.",
+  wer: [
+    "Geza — há cerca de 30 anos na interseção entre design, tecnologia e pessoas.",
+    "Desde 1996 trabalha como designer e consultor de UX para grandes empresas e produtos digitais.",
+    "Entre outras, para empresas como a Deutsche Bahn e a Bundesdruckerei.",
+    "Também desenvolveu produtos próprios e apresentou uma das suas invenções no «Die Höhle der Löwen», na Alemanha.",
+    "Hoje trabalha a partir de Timișoara numa pergunta simples:",
+    "Como pode a tecnologia moderna criar algo que não pareça tecnologia — mas sim uma experiência pessoal?",
+    "A LuxuryBandit é a resposta.",
+  ],
 
-  warumTitel: "Porque recebes o resultado, não a ferramenta",
-  warum1: "A Canva e o CapCut vendem-te capacidade: quem lá chega tem de saber desenhar ou editar. A maioria não sabe nem quer aprender — quer a coisa em si.",
-  warum2: "Nós vendemos-te o estar pronto. Carregas uma foto, é essa toda a capacidade necessária. O resto acontece aqui, e o que sai é um presente que podes enviar.",
+  warumLbTitel: "Porquê a LuxuryBandit?",
+  warumLb: [
+    "A LuxuryBandit não é um nome sobre luxo.",
+    "Nem sobre bandidos.",
+    "É sobre uma atitude.",
+    "Sobre não deixar simplesmente que te sirvam a tua própria vida.",
+    "Não esperar que um dia chegue o momento perfeito.",
+    "Não apenas sonhar com o que a vida poderia ser.",
+    "Mas sim escolher uma direção.",
+    "Tomar uma decisão.",
+    "E construir, passo a passo, a vida que realmente queres.",
+  ],
 
-  aiTitel: "A IA deve levar toda a gente consigo",
-  ai1: "Toda a tecnologia começa por pertencer a quem a sabe usar e passa a valer alguma coisa no dia em que pertence a todos os outros. É aí que a IA está agora — e é disso que se trata aqui: o mesmo poder dos profissionais, nas mãos de alguém que só quer fazer uma pessoa feliz.",
-  ai2: "Ninguém oferece isto desta forma. Há ferramentas de imagem com IA, há editores de vídeo, há lojas de cartões. Não há um sítio que transforme as tuas fotos num presente com as vossas caras, pronto a chegar às mãos de alguém nessa mesma noite.",
+  warumTitel: "Porque recebes o resultado — não a ferramenta",
+  warum: [
+    "Hoje existem inúmeras ferramentas de IA.",
+    "Geradores de imagem.",
+    "Ferramentas de vídeo.",
+    "Programas de edição.",
+    "Sistemas de avatares.",
+    "Mas a maioria das pessoas não quer aprender ferramentas novas.",
+    "Querem um resultado.",
+    "Por isso a LuxuryBandit não vende software com o qual depois tens de trabalhar sozinho.",
+    "Carregas a tua foto, dás-nos a tua mensagem ou a tua ideia — e nós transformamos isso na experiência pronta.",
+    "A tecnologia fica em segundo plano.",
+    "O resultado fica em primeiro plano.",
+  ],
+
+  aiTitel: "A IA deve ser possível para mais pessoas",
+  ai: [
+    "Tecnologia nova pertence muitas vezes, no início, a quem sabe usá-la.",
+    "Só se torna verdadeiramente interessante no dia em que todos a podem usar.",
+    "É exatamente aí que a IA está hoje.",
+    "A LuxuryBandit tenta tornar esta tecnologia tão simples que nunca precisas de saber que modelo, que prompt ou que ferramenta de vídeo está por trás.",
+    "Só precisas de saber o que queres dizer, mostrar ou oferecer.",
+    "O resto tratamos nós.",
+  ],
 
   verspTitel: "O que te prometemos",
   versp: [
-    ["As tuas fotos continuam tuas.", "Nunca são publicadas, nunca são mostradas a outros utilizadores, nunca são vendidas. Só o teu resultado final pode ser partilhado — e só se fores tu a partilhá-lo."],
-    ["Nenhuma subscrição num presente.", "Um presente compra-se uma vez. Nada se renova nas tuas costas e não tens de procurar um botão de cancelar, porque não há nada para cancelar."],
-    ["O preço está antes do trabalho.", "Quanto custa está escrito à entrada, antes de carregares o que quer que seja — não depois, na página de pagamento."],
-    ["Cinco minutos, não cinco horas.", "Nada para instalar, nada para aprender, nenhuma conta para criar primeiro."],
+    ["As tuas fotos continuam tuas.", "Não publicamos automaticamente as tuas fotos e vídeos, nem os revendemos. Tu decides o que fazes com o teu resultado e a quem o mostras."],
+    ["Nenhuma subscrição escondida.", "Compras um produto concreto. A única coisa que continua todos os meses é o wedding planner — e cancelas isso a qualquer momento com um toque. Sem cobrança surpresa."],
+    ["O preço fica fixado antes.", "Vês quanto custa o teu produto antes de comprares."],
+    ["Cinco minutos em vez de cinco horas.", "Sem configuração complicada. Sem software para aprender. Sem prompts para escrever. Tu decides o que queres. Nós tratamos da parte técnica."],
   ],
 
-  startTitel: "Por onde começar",
-  startLead: "Escolhe a ocasião — o resto é uma foto.",
-  startCta: "Ver todos os presentes",
+  nichtTitel: "O que a LuxuryBandit não quer ser",
+  nicht: [
+    "Mais um brinquedo de IA.",
+    "Uma ferramenta que te dá ainda mais trabalho.",
+    "Uma promessa de que a tecnologia muda a tua vida sozinha.",
+    "A IA pode dar-te possibilidades.",
+    "O que fazes com elas continua a ser decisão tua.",
+  ],
+
+  startTitel: "Por onde começas",
+  startLead: [
+    "Escolhe o momento que queres criar.",
+    "Um presente.",
+    "Uma mensagem.",
+    "Uma memória.",
+    "Ou uma visão para o teu eu futuro.",
+    "Tu trazes a ideia.",
+    "Nós tornamo-la visível.",
+  ],
+  startCta: "Ver todas as experiências",
   fein: "Dúvidas, ou fizemos algo mal? ",
   feinLink: "Escreve-nos",
 };
 
 const it: AboutText = {
   kicker: "Chi siamo",
-  h1a: "Regali unici, dalla ", h1y: "nuova era dell’IA",
-  portalKurz: "La tua foto e la sua — un bacio, un augurio di compleanno, una sorpresa, un invito di nozze. Pronto in pochi minuti, mandato a una sola persona. Nessun altro lo vede.",
-  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, un invito a partire in due — fatti per una persona sola e per nessun altro. Carichi una foto ed esce un regalo finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
+  h1a: "Regali e momenti unici dalla ", h1y: "nuova era dell’IA.",
+  portalKurz: "La tua foto e la sua — un bacio, un augurio di compleanno, una sorpresa, un invito di nozze, o un messaggio al tuo io futuro. Pronto in pochi minuti, mandato a una sola persona. Nessun altro lo vede.",
+  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, un invito a partire in due, o un messaggio al tuo io futuro — fatti per una persona sola e per nessun altro. Carichi una foto ed esce un regalo finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
+
+  introLead: "LuxuryBandit trasforma foto personali, voce e IA moderna in qualcosa che non si compra semplicemente per dimenticarlo.",
+  introListe: [
+    "Un film di compleanno.",
+    "Un messaggio di matrimonio.",
+    "Un messaggio al tuo io futuro.",
+    "Un momento personale che prima non esisteva.",
+  ],
+  introKeineKi: "Non devi capire di IA, imparare alcun software né progettare nulla da solo.",
+  introBringst: [
+    "Tu porti la persona, la voce o l’idea.",
+    "Noi la trasformiamo nell’esperienza.",
+  ],
 
   werTitel: "Chi c’è dietro",
-  werBild: "Geza — trent’anni nello stesso mestiere, e la persona che risponde quando ci scrivi.",
-  wer1: "Una persona, trent’anni nello stesso mestiere: Geza. Dal 1996 nell’usabilità del software — per grandi aziende in tutto il mondo, portando imprese in cima al loro mercato.",
-  wer2: "Vincitore di pitch a «Die Höhle der Löwen» in Germania — il programma che nel resto del mondo si chiama Shark Tank.",
-  wer3: "Vive a Timișoara, in Romania — e quasi sempre altrove: nomade digitale indipendente che lavora dove c’è il prossimo progetto. L’usabilità non è decorazione, è una sola domanda, posta per trent’anni: una persona vera riesce davvero a usarlo?",
+  werBild: "Geza — 30 anni all’intersezione tra design e tecnologia, e la persona che risponde quando ci scrivi.",
+  wer: [
+    "Geza — da circa 30 anni all’intersezione tra design, tecnologia e persone.",
+    "Dal 1996 lavora come designer e consulente UX per grandi aziende e prodotti digitali.",
+    "Tra le altre, per aziende come Deutsche Bahn e Bundesdruckerei.",
+    "Ha anche sviluppato prodotti propri e presentato una delle sue invenzioni a «Die Höhle der Löwen» in Germania.",
+    "Oggi lavora da Timișoara su una domanda semplice:",
+    "Come può la tecnologia moderna creare qualcosa che non sembri tecnologia — ma un’esperienza personale?",
+    "LuxuryBandit è la risposta.",
+  ],
 
-  warumTitel: "Perché ricevi il risultato, non lo strumento",
-  warum1: "Canva e CapCut ti vendono capacità: chi arriva lì deve saper impaginare o montare. I più non ne sono capaci e non vogliono impararlo — vogliono la cosa in sé.",
-  warum2: "Noi ti vendiamo l’essere finito. Carichi una foto, è tutta la capacità richiesta. Il resto succede qui, e quello che esce è un regalo che puoi inviare.",
+  warumLbTitel: "Perché LuxuryBandit?",
+  warumLb: [
+    "LuxuryBandit non è un nome sul lusso.",
+    "E nemmeno sui banditi.",
+    "Si tratta di un atteggiamento.",
+    "Di non lasciarsi semplicemente servire la propria vita.",
+    "Di non aspettare che prima o poi arrivi il momento perfetto.",
+    "Di non limitarsi a sognare come potrebbe essere la vita.",
+    "Ma scegliere una direzione.",
+    "Prendere una decisione.",
+    "E costruire, passo dopo passo, la vita che si vuole davvero.",
+  ],
 
-  aiTitel: "L’IA deve portare avanti tutti",
-  ai1: "Ogni tecnologia all’inizio appartiene a chi la sa usare e vale qualcosa il giorno in cui appartiene a tutti gli altri. È lì che si trova l’IA adesso — ed è di questo che si tratta: la stessa potenza dei professionisti, nelle mani di chi vuole solo far felice una persona.",
-  ai2: "Nessuno offre questo in questa forma. Ci sono strumenti IA per le immagini, ci sono montaggi video, ci sono negozi di biglietti. Non c’è un posto che trasformi le tue foto in un regalo con i vostri volti, pronto ad arrivare a qualcuno la sera stessa.",
+  warumTitel: "Perché ricevi il risultato — non lo strumento",
+  warum: [
+    "Oggi esistono innumerevoli strumenti IA.",
+    "Generatori di immagini.",
+    "Strumenti video.",
+    "Programmi di montaggio.",
+    "Sistemi di avatar.",
+    "Ma la maggior parte delle persone non vuole imparare nuovi strumenti.",
+    "Vogliono un risultato.",
+    "Per questo LuxuryBandit non vende software con cui poi devi lavorare da solo.",
+    "Carichi la tua foto, ci dai il tuo messaggio o la tua idea — e noi la trasformiamo nell’esperienza finita.",
+    "La tecnologia resta sullo sfondo.",
+    "Il risultato resta in primo piano.",
+  ],
+
+  aiTitel: "L’IA deve diventare possibile per più persone",
+  ai: [
+    "Una nuova tecnologia all’inizio appartiene spesso a chi sa usarla.",
+    "Diventa davvero interessante solo il giorno in cui tutti possono usarla.",
+    "È esattamente lì che si trova l’IA oggi.",
+    "LuxuryBandit cerca di rendere questa tecnologia così semplice che tu non debba mai sapere quale modello, quale prompt o quale strumento video ci sia dietro.",
+    "Devi solo sapere cosa vuoi dire, mostrare o regalare.",
+    "Al resto pensiamo noi.",
+  ],
 
   verspTitel: "Cosa ti promettiamo",
   versp: [
-    ["Le tue foto restano tue.", "Mai pubblicate, mai mostrate ad altri utenti, mai vendute. Si condivide solo il tuo risultato finito — e solo se lo condividi tu."],
-    ["Nessun abbonamento su un regalo.", "Un regalo si compra una volta. Niente si rinnova alle tue spalle e non devi cercare un tasto per disdire, perché non c’è nulla da disdire."],
-    ["Il prezzo sta prima del lavoro.", "Quanto costa è scritto all’ingresso, prima che tu carichi qualsiasi cosa — non dopo, alla cassa."],
-    ["Cinque minuti, non cinque ore.", "Niente da installare, niente da imparare, nessun account da creare prima."],
+    ["Le tue foto restano tue.", "Non pubblichiamo automaticamente le tue foto e i tuoi video, e non li rivendiamo. Decidi tu cosa fare del tuo risultato e a chi mostrarlo."],
+    ["Nessun abbonamento nascosto.", "Acquisti un prodotto concreto. L’unica cosa che continua ogni mese è il wedding planner — e lo disdici quando vuoi con un tocco. Nessun addebito a sorpresa."],
+    ["Il prezzo è fissato in anticipo.", "Vedi quanto costa il tuo prodotto prima di acquistarlo."],
+    ["Cinque minuti invece di cinque ore.", "Nessuna configurazione complicata. Nessun software da imparare. Nessun prompt da scrivere. Decidi tu cosa vuoi. Alla parte tecnica pensiamo noi."],
   ],
 
-  startTitel: "Da dove iniziare",
-  startLead: "Scegli l’occasione — il resto è una foto.",
-  startCta: "Vedi tutti i regali",
+  nichtTitel: "Cosa LuxuryBandit non vuole essere",
+  nicht: [
+    "Non un altro giocattolo IA.",
+    "Non uno strumento che ti dà ancora più lavoro.",
+    "Non una promessa che la tecnologia cambi la tua vita da sola.",
+    "L’IA può darti delle possibilità.",
+    "Cosa ne fai resta una tua decisione.",
+  ],
+
+  startTitel: "Da dove inizi",
+  startLead: [
+    "Scegli il momento che vuoi creare.",
+    "Un regalo.",
+    "Un messaggio.",
+    "Un ricordo.",
+    "O una visione per il tuo io futuro.",
+    "Tu porti l’idea.",
+    "Noi la rendiamo visibile.",
+  ],
+  startCta: "Vedi tutte le esperienze",
   fein: "Domande, o abbiamo sbagliato qualcosa? ",
   feinLink: "Scrivici",
 };

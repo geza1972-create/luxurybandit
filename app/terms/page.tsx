@@ -56,11 +56,23 @@ export default async function TermsPage() {
     h2: "2. Accounts",
     p2: "You are responsible for your account and for keeping your login secure. Provide accurate information and don't impersonate anyone. We may suspend or remove accounts that break these Terms.",
 
+    /**
+     * ÜBERHOLT: Der alte Abschnitt beschrieb das THEMEN-ABO (24,50 €/Monat, {videos}
+     * Videos, jedes weitere {extra}) — das gibt es nicht mehr (Owner 11.08.2026: „sehr viel
+     * stimmt nicht mehr, vor allem Abonnements und Zahlungen"). Der Ist-Stand: Jedes Geschenk
+     * ist ein Einmalkauf aus dem Guthaben; das EINZIGE laufende Abo ist der Digitale
+     * Hochzeitsplaner (Memory `nur-ein-abo-hochzeitsseite`). Der Betrag der Verlängerung
+     * kommt aus `{monat}` (VERLAENGERUNG_MONAT_CENTS) — der Startpreis selbst hat keinen
+     * Platzhalter und steht deshalb als Mechanik da („the price shown … at checkout"), nicht
+     * als Zahl, damit hier nie eine zweite, abweichende Ziffer altert.
+     */
     h3: "3. Subscriptions & payments",
-    p3a: fillPrices("Browsing, **following** and **chatting** are free. The paid product is a monthly **topic subscription**: {price} per month (list price {list}, reduced by 50% for as long as you stay). It includes {videos} generated videos or looks per month across ALL topics together; every further one costs {extra}. Payments are handled by **Stripe**. The subscription **renews automatically** each month until you cancel; you can **cancel anytime** from your account, and cancellation takes effect at the end of the current billing period.", "en"),
+    p3a: fillPrices("Browsing and following are free. Every gift — a kiss, a birthday video, a dance, a holiday invitation, the video message to yourself, the Future Self Program — is a **one-time purchase**: you pay once, from your account balance, at the price shown on the product page and at checkout. Payments are handled by **Stripe**. The only recurring subscription is the **Digital Wedding Planner**: it is bought once (the invitation video plus a running page — guest list, menu choices, group chat — for 30 days) and then **renews automatically** each month at {monat} until you cancel; you can **cancel anytime** from your account, and cancellation takes effect at the end of the current billing period.", "en"),
     /* Die Guthaben-Zusage (Owner 01.08.2026: Aufladung verfaellt NIE — die rechtlich
-       sicherste Form; genau dieser Satz macht sie verbindlich). */
-    p3b: fillPrices("You can also buy single videos, or **top up an account balance** ({topup}) and pay per video from it ({once} each). Account balance **never expires**, is tied to your e-mail address, and is **not redeemable for cash**.", "en"),
+       sicherste Form; genau dieser Satz macht sie verbindlich). Dazu NEU: der Gutschein
+       (Owner 05.08.2026: Karte gratis, Guthaben an die Adresse des Beschenkten, laeuft
+       nicht ab) — stand bisher gar nicht in den AGB. */
+    p3b: fillPrices("You can **top up your account balance** in fixed amounts shown at checkout, and pay for gifts from it. Account balance **never expires**, is tied to your e-mail address, and is **not redeemable for cash**. You can also buy a **gift voucher** for someone else: the voucher card itself is free, and the credit it carries never expires and is added to the **recipient's** e-mail address, not yours.", "en"),
 
     h4: "4. AI-generated content & AI chat",
     p4a: "Some influencers are AI-generated characters and some content and images are created by artificial intelligence, provided for your personal, non-commercial entertainment. Chat may be with an **AI persona** — an automated assistant styled after an influencer — rather than a live conversation with a real person. AI results may contain inaccuracies and should not be relied on as real photos or advice.",
@@ -101,8 +113,29 @@ export default async function TermsPage() {
     p4i: "**How you get it back.** The amount is returned as **account balance**, so your next attempt costs you nothing extra. Balance never expires and is tied to your e-mail address; it is not paid out in cash. Ask for it from the finished result in the app, or through our [contact form](/contact?reason=support).",
     p4j: "**What it does not cover.** The guarantee is not a satisfaction guarantee. It does **not** apply where the result follows from the material **you** supplied — a blurry, dark or tiny face, a covered face, several people in one photo, a screenshot instead of a photo, or a recording in poor quality. It also does not apply when you have **generated several videos** with the same source material and ask for the money back afterwards, nor to a result that is technically correct but simply not to your taste. Which case applies is decided by us after looking at the result and the material you uploaded.",
 
-    h5: "5. Models & earnings",
-    p5: "Influencers on LuxuryBandit may be real people or AI-generated characters. Real models **apply for free**, are reviewed before they go live, must be **18+**, must use their **own genuine photos**, upload their own content, and follow our model rules. Real models **earn a 50% share** of the subscription revenue from their subscribers. We may reject or remove any model at our discretion.",
+    /**
+     * NEU 11.08.2026 — die Zusatz-Garantie NUR fuer das Future Self Program (Owner-Vorgabe;
+     * die Landingpage verlinkt bereits auf `/terms#promise-garantie`, dieser Anker MUSS also
+     * existieren). Anders als die allgemeine Geld-zurueck-Garantie DARF hier „nicht
+     * zufrieden" stehen — das ist die ausdrueckliche Bedingung des Owners fuer genau dieses
+     * eine Produkt, keine Aufweichung der Regel oben. Die 7-Tage-Bedingung ist serverseitig
+     * pruefbar (abgehakte Programmtage auf der persoenlichen Programmseite), die Frist laeuft
+     * ab dem Kaufdatum.
+     */
+    h4e: "30-Day Promise Guarantee (Future Self Program)",
+    p4k: "**In addition** to the money-back guarantee above, the Future Self Program carries its own guarantee. If you follow your program for at least its **first 7 days** — checked off on your personal program page — and are not satisfied with it, you can ask for your money back.",
+    p4l: "Report it within **30 days of your purchase** through our [contact form](/contact?reason=support). We refund the **purchase price** of the Future Self Program as account balance, the same way as the guarantee above.",
+    p4m: "This guarantee applies **only** to the Future Self Program. It does not replace or limit the money-back guarantee above, which continues to apply to the Future Self Program as well.",
+
+    /**
+     * ÜBERHOLT: Der alte Abschnitt warb mit Anwerbung und einer 50-%-Erloesbeteiligung aus
+     * dem Themen-Abo. Beides gibt es nicht mehr (Owner 11.08.2026: „wir nehmen keine Modelle
+     * mehr auf"; das Themen-Abo, dessen Umsatz geteilt wurde, ist ebenfalls weg). Bewerbungen
+     * sind fuer Besucher ohnehin seit dem 05.08.2026 geschlossen (Memory
+     * `curator-onboarding-flow`); die AGB duerfen keine Anwerbung mehr versprechen.
+     */
+    h5: "5. Models",
+    p5: "Influencers on LuxuryBandit may be real people or AI-generated characters. We are **not currently recruiting new real models**. Any real-person content already on the platform was reviewed before publishing and remains subject to these Terms — genuine own photos, consent from everyone shown, and compliance with our model rules. We may reject or remove any content at our discretion.",
 
     h6: "6. Your content",
     p6: "If you upload photos or videos — for example as a model building your profile — you are responsible for them and confirm you have the right to use them, that everyone shown is **18 or older** and consents, and that they don't infringe anyone's rights. You grant us the limited permission needed to host and display your content on your profile. Don't upload other people's content without consent or anything illegal.",
@@ -135,7 +168,7 @@ export default async function TermsPage() {
     h12: "12. Language & contact",
     p12: "These Terms are written in English; the other languages are translations for your convenience. **In case of any difference, the English version applies.** Questions? Reach us through our [contact form](/contact).",
 
-    datum: "Last updated: 10 August 2026",
+    datum: "Last updated: 11 August 2026",
   }, L);
 
   return (
@@ -187,6 +220,14 @@ export default async function TermsPage() {
       <InfoAbsatz>{t.p4h}</InfoAbsatz>
       <InfoAbsatz>{t.p4i}</InfoAbsatz>
       <InfoAbsatz>{t.p4j}</InfoAbsatz>
+
+      {/* Sprungziel der Future-Self-Landingpage (`/terms#promise-garantie`, Owner 11.08.2026).
+          Eigener Anker, weil er NEU ist — „geld-zurueck-garantie" bleibt unveraendert stehen,
+          Links darauf duerfen nicht ins Leere zeigen. */}
+      <h3 id="promise-garantie">{t.h4e}</h3>
+      <InfoAbsatz>{t.p4k}</InfoAbsatz>
+      <InfoAbsatz>{t.p4l}</InfoAbsatz>
+      <InfoAbsatz>{t.p4m}</InfoAbsatz>
 
       <h2>{t.h5}</h2>
       <InfoAbsatz>{t.p5}</InfoAbsatz>
