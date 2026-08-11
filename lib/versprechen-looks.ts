@@ -26,23 +26,78 @@ export const VERSPRECHEN_LOOKS: GeburtstagLook[] = [
   {
     id: "villa",
     name: "Villa & Sportwagen",
-    /* Die Kachel ist zugleich die Vorlage, sobald es eine gibt (`VERSPRECHEN_SET`). Solange
-       sie leer ist, zeigt der Trichter gar keine Auswahl (er blendet eine Reihe mit einer
-       einzigen Kachel aus) und die Kette baut den Look aus dem Text darunter. */
+    /* Die Kachel, die der Kunde vor der Aufnahme sieht — reine ANZEIGE. */
     bild: VERSPRECHEN_SET,
-    ...(VERSPRECHEN_SET ? { stilBild: VERSPRECHEN_SET } : {}),
+    /**
+     * KEIN `stilBild` — UND DAS IST DER GANZE UNTERSCHIED ZUM GEBURTSTAG (11.08.2026, an
+     * genau dieser Zeile fast ein falsches Video erzeugt; Owner: „was wird generiert will
+     * ich jetzt wissen bevor ich ein falsches video generiere").
+     *
+     * WAS EIN `stilBild` AUSLÖST: In `/api/geburtstag-video` schaltet allein seine Existenz
+     * den Prompt um — statt `geburtstagAvatarPrompt` (fotorealistisch, Identitätssperre)
+     * läuft dann `geburtstagStilPrompt`. Und der ist der TRAUMWELT-Prompt des Geburtstags:
+     * „painterly-surreal visual language", „Do not preserve photographic skin rendering",
+     * „the cake … painted by the same artist". Für eine Torten-Traumwelt genau richtig —
+     * für ein Versprechen vor Villa und Wagen falsch: Es käme ein GEMÄLDE heraus, kein
+     * Mensch, der seinem zukünftigen Ich etwas verspricht.
+     *
+     * Bis heute stand hier `stilBild: VERSPRECHEN_SET`, und es fiel nur deshalb nicht auf,
+     * weil die Datei (`look-villa.png`) gelöscht war: Der Abruf scheiterte, `stilBytes`
+     * blieb leer, und die Kette nahm zufällig den richtigen Prompt. Mit einem wieder
+     * vorhandenen Bild wäre aus dem Zufall ein falsches Produkt geworden.
+     *
+     * Die Bildwelt trägt hier der TEXT (kleidung/umgebung/torte unten) — sie ist
+     * fotografisch beschreibbar, anders als eine Handschrift, die man zeigen muss.
+     */
     /* `torte` heisst im Prompt „was zusätzlich im Bild ist" — beim Geburtstag die Torte,
        hier der Wagen. Der Name des Feldes bleibt, damit die Kette unverändert läuft; ihn
        umzubenennen hiesse, die Route und beide Look-Listen anzufassen. */
     torte:
-      "a dark, elegant sports car standing behind them on the driveway — no brand logos, " +
-      "no visible badges, no lettering anywhere",
+      "a low, dark, glossy sports car parked beside them, catching the warm light on its " +
+      "flanks — no brand logos, no visible badges, no lettering anywhere",
+    /**
+     * DIE HALTUNG MUSS HIER STEHEN — SONST HÄLT ER DAS AUTO IN DEN HÄNDEN (11.08.2026, an
+     * seinem ersten echten Lauf gefunden; Owner: „das bild ist unspektakulär", und im Bild
+     * hielt er einen Autoschlüssel).
+     *
+     * `geburtstagAvatarPrompt` setzt ohne dieses Feld die Vorgabe des GEBURTSTAGS ein:
+     * `holding ${torte} in both hands` — beim Geburtstag die Torte, hier also „ein dunkler
+     * Sportwagen in beiden Händen". Das Bildmodell rettet sich aus dem Unsinn mit dem
+     * Nächstbesten, das in zwei Hände passt: dem Autoschlüssel. Deshalb steht hier ab jetzt
+     * eine eigene Haltung — beiläufig an den Wagen gelehnt, Hände frei.
+     */
+    haltung:
+      "leaning back casually against the front wing of ${torte}, one hand relaxed in a " +
+      "trouser pocket, weight on one leg, shoulders open, nothing in their hands",
+    /**
+     * DIE KLEIDUNG MACHT DEN UNTERSCHIED (Owner 11.08.2026, im Vergleich mit dem
+     * Beispielvideo: „schau dir mal den anderen typ an, sein anzug, haus, licht").
+     *
+     * Hier stand „confident, well-cut everyday clothing … nothing flashy". „Everyday" und
+     * „nothing flashy" sind zwei Bremsen auf einmal — das Modell liefert daraufhin genau
+     * das: Alltag. Wer sich ein Leben verspricht, steht nicht in der Jacke da, in der er
+     * einkaufen geht. Also die Bildwelt des Beispielvideos ausgeschrieben: heller Leinen-
+     * und Baumwollton, Riviera statt Büro, gut sitzend. „Suits this person" bleibt (Memory
+     * `bildprompt-nie-zwei-geschlechter`), damit dieselbe Beschreibung Frau wie Mann trägt.
+     */
     kleidung:
-      "Dress them in confident, well-cut everyday clothing that suits this person — no " +
-      "costume, no uniform, nothing flashy.",
+      "Dress them in refined warm-toned resort wear that suits this person — soft cream, " +
+      "ivory or sand, fine knit or linen, impeccably cut and lightly relaxed, quietly " +
+      "expensive. Elegant sunglasses and a slim classic watch if they suit the person. No " +
+      "costume, no uniform, no printed slogans, no visible brand names.",
+    /**
+     * DAS LICHT UND DER ORT (derselbe Owner-Hinweis). „Warm late-afternoon light, calm blue
+     * sky" ergab flaches Mittagslicht über einer Auffahrt — beschrieben war ja auch eine
+     * Auffahrt. Das Beispielvideo lebt von der GOLDENEN STUNDE tief am Horizont, vom Wasser
+     * und von der offenen Terrasse; genau das steht jetzt hier. Kein Ort der Welt wird
+     * benannt (keine erfundene Adresse), nur das Licht und die Architektur.
+     */
     umgebung:
-      "They stand in front of a bright modern villa with large windows and a clean stone " +
-      "driveway, warm late-afternoon light, calm blue sky.",
+      "They are on the pool terrace of a bright modern villa at golden hour: low sun just " +
+      "above the horizon, warm amber light raking across them from behind, long soft " +
+      "shadows, glowing sky. Behind them the villa's large glass fronts and clean stone, a " +
+      "still infinity pool reflecting the light, a few mediterranean pines. Cinematic, " +
+      "photorealistic, shallow depth of field, rich contrast — editorial quality.",
     bewegung:
       "They keep the calm, determined expression from the photo — no smile added, no grin, " +
       "no invented teeth — and look straight into the camera while speaking. Subtle natural " +

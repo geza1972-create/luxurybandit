@@ -14,6 +14,7 @@ import { geburtstagTitel } from "@/lib/geburtstag";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { geraetGiltAlsAusweis } from "@/lib/abmelden-spuren";
+import { kissText } from "@/lib/kiss-i18n";
 
 // „My Gallery" als eigene Seite: ALLE generierten Try-on-Videos (dieselbe Quelle wie
 // im Funnel, /api/try-this-look?adminPosts=1) — von überall über das Menü erreichbar.
@@ -53,6 +54,13 @@ type Item = {
   source?: string;    // "kiss" | "kiss-upload" — nur die darf der Besitzer selbst löschen
   theme?: string;     // fuer die Karten-Vorschau: kiss | wedding | idol
   empfaenger?: string; // der Name, der in den aufsteigenden Zeilen steht
+  /**
+   * DER LINK ZUM 30-TAGE-PROGRAMM (11.08.2026, Owner: „wo ist der link zum plan?").
+   * Kommt fertig aus /api/my-videos (`futureProgramUrl`) — nur bei theme==="versprechen"
+   * UND nur, wenn die Programm-Datei serverseitig wirklich existiert. Leer/undefined = kein
+   * Knopf, nie selbst berechnen (der Token braucht das Server-Geheimnis).
+   */
+  programUrl?: string;
   /**
    * URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in der
    * Galerie ein Warnzeichen drauf"). Nur gesetzt, wenn etwas auffiel — im Beobachten-Modus
@@ -340,7 +348,7 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; programUrl?: string }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
@@ -352,6 +360,7 @@ export default function MyGalleryPage() {
               empfaenger: b.empfaenger || "",
               warnung: b.warnung || "",
               alter: b.alter || 0,
+              programUrl: b.programUrl || "",
             }))
             /**
              * EIN LAUFENDER AUFTRAG BLEIBT DRIN, AUCH OHNE BILD (Owner 08.08.2026: „Zuerst
@@ -925,6 +934,20 @@ export default function MyGalleryPage() {
                       )}
                     </div>
                   } />
+                {/**
+                  * DER PROGRAMM-KNOPF IN DER GALERIE (11.08.2026, Owner: „wo ist der link
+                  * zum plan?" — bisher nur in der Liefermail). Derselbe Knopf-Stil wie der
+                  * Download unter dem fertigen Video im Trichter (`lb-gold`), nicht neu
+                  * erfunden. `open.programUrl` kommt fertig aus /api/my-videos
+                  * (`futureProgramUrl`) — leer, wenn die Programm-Datei nicht existiert oder
+                  * das Server-Geheimnis fehlt; dann bleibt der Knopf einfach weg.
+                  */}
+                {open.theme === "versprechen" && !!open.programUrl && (
+                  <a href={open.programUrl} target="_self"
+                    className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
+                    {kissText(lang, "versprechen").programmKnopf}
+                  </a>
+                )}
               </div>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

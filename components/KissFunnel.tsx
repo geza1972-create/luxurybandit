@@ -10,7 +10,7 @@ import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
 /* `AUFLADE_STUFEN` und `eur` sind mit dem Aufladewähler in die Bibliothek gezogen — die
    Leiter rechnet jetzt `lib/kasse` (`deckendeStufen`), die Beträge schreibt `AufladeWaehler`. */
-import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, type ThemenSchluessel } from "@/lib/pricing";
+import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, eur, type ThemenSchluessel } from "@/lib/pricing";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
@@ -24,8 +24,11 @@ import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
 import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT } from "@/components/CI";
+import { Eingabe } from "@/components/CI";
+import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
+import { versprechenSkript, VERSPRECHEN_HEUTE, VERSPRECHEN_SPAETER } from "@/lib/versprechen";
 import { kontoText } from "@/lib/konto-i18n";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
@@ -168,6 +171,13 @@ const MAIL_KEY = "lb_kiss_mail";
  * (derselbe Mensch, ein Konto); der Empfaenger ist es nicht.
  */
 const nameKey = (thema: string) => `lb_kiss_name_${thema}`;
+/**
+ * DIE ZIELE ÜBERLEBEN EIN NEULADEN (Owner 11.08.2026, Ziele-Schritt).
+ *
+ * Dieselbe Vorsorge wie beim Namen: Wer von der Kasse zurückkommt oder das Fenster neu
+ * lädt, hat sonst wieder nichts gewählt — und das Programm später keine Richtung.
+ */
+const zieleKey = (thema: string) => `lb_ziele_${thema}`;
 
 
 // Beide Themen teilen sich DIESEN Funnel — nur Prompt und Bilder unterscheiden sich.
@@ -263,14 +273,14 @@ async function verkleinern(src: string, max = 520): Promise<string> {
  * schlicht der erste Eintrag der Liste.
  */
 /** Die Stimmen-Wahl beim Geburtstag — sieben Sprachen, drei Chips (siehe `stimme` unten). */
-const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; aufTitel: string; aufHinweis: string; stopp: string; neu: string; look: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string; abbrechen: string }> = {
-  en: { aufTitel: "Record yourself", aufHinweis: "Speak clearly, short and to the point. The better the recording, the more it looks like you — 100 % we cannot promise.", frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now", abbrechen: "Cancel" },
-  de: { aufTitel: "Nimm dich auf", aufHinweis: "Sprich klar und deutlich, kurz und knapp. Je besser die Aufnahme, desto ähnlicher das Video — 100 % garantieren wir nicht.", frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten", abbrechen: "Abbrechen" },
-  ro: { aufTitel: "Filmează-te", aufHinweis: "Vorbește clar, scurt și la obiect. Cu cât înregistrarea e mai bună, cu atât seamănă mai mult cu tine — 100 % nu garantăm.", frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum", abbrechen: "Anulează" },
-  es: { aufTitel: "Grábate", aufHinweis: "Habla claro, breve y directo. Cuanto mejor la grabación, más se parece a ti — el 100 % no lo garantizamos.", frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora", abbrechen: "Cancelar" },
-  fr: { aufTitel: "Filme-toi", aufHinweis: "Parle clairement, court et net. Meilleur est l'enregistrement, plus ça te ressemble — le 100 % n'est pas garanti.", frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant", abbrechen: "Annuler" },
-  pt: { aufTitel: "Filma-te", aufHinweis: "Fala com clareza, curto e direto. Quanto melhor a gravação, mais se parece contigo — 100 % não garantimos.", frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora", abbrechen: "Cancelar" },
-  it: { aufTitel: "Filmati", aufHinweis: "Parla chiaro, breve e diretto. Migliore è la registrazione, più ti somiglia — il 100 % non è garantito.", frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
+const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; selbst: string; lies: string; aufTitel: string; aufHinweis: string; stopp: string; neu: string; look: string; vorlage: string; kameraAus: string; erst: string; leer: string; kurz: string; los: string; abbrechen: string }> = {
+  en: { aufTitel: "Record yourself", aufHinweis: "Speak clearly, short and to the point. The better the recording, the more it looks like you — 100 % we cannot promise.", frage: "The voice:", frau: "Female", mann: "Male", selbst: "Record yours", lies: "Read this sentence aloud:", stopp: "Stop", neu: "Again", look: "Pick the look:", vorlage: "This is how your video will look:", kameraAus: "No camera or microphone. Allow access in your browser, then try again.", erst: "Record yourself first", leer: "Nothing was recorded — the camera showed no picture. Check that nothing covers it, then try again.", kurz: "That was too short. Read the whole sentence aloud.", los: "Start now", abbrechen: "Cancel" },
+  de: { aufTitel: "Nimm dich auf", aufHinweis: "Sprich klar und deutlich, kurz und knapp. Je besser die Aufnahme, desto ähnlicher das Video — 100 % garantieren wir nicht.", frage: "Die Stimme:", frau: "Frau", mann: "Mann", selbst: "Selbst aufnehmen", lies: "Lies diesen Satz laut vor:", stopp: "Stopp", neu: "Nochmal", look: "Wähl den Look:", vorlage: "So sieht dein Video aus:", kameraAus: "Keine Kamera oder kein Mikrofon. Erlaub den Zugriff im Browser und versuch es nochmal.", erst: "Erst aufnehmen", leer: "Es wurde nichts aufgenommen — die Kamera hat kein Bild geliefert. Prüf, ob etwas davor liegt, und versuch es nochmal.", kurz: "Das war zu kurz. Lies den ganzen Satz laut vor.", los: "Jetzt starten", abbrechen: "Abbrechen" },
+  ro: { aufTitel: "Filmează-te", aufHinweis: "Vorbește clar, scurt și la obiect. Cu cât înregistrarea e mai bună, cu atât seamănă mai mult cu tine — 100 % nu garantăm.", frage: "Vocea:", frau: "Femeie", mann: "Bărbat", selbst: "Filmează-te", lies: "Citește propoziția cu voce tare:", stopp: "Stop", neu: "Din nou", look: "Alege look-ul:", vorlage: "Așa va arăta videoclipul tău:", kameraAus: "Fără cameră sau microfon. Permite accesul în browser și încearcă din nou.", erst: "Întâi filmează-te", leer: "Nu s-a filmat nimic — camera nu a dat imagine. Verifică dacă e ceva în fața ei și încearcă din nou.", kurz: "A fost prea scurt. Citește toată propoziția cu voce tare.", los: "Începe acum", abbrechen: "Anulează" },
+  es: { aufTitel: "Grábate", aufHinweis: "Habla claro, breve y directo. Cuanto mejor la grabación, más se parece a ti — el 100 % no lo garantizamos.", frage: "La voz:", frau: "Mujer", mann: "Hombre", selbst: "Grábate", lies: "Lee esta frase en voz alta:", stopp: "Parar", neu: "Otra vez", look: "Elige el look:", vorlage: "Así se verá tu vídeo:", kameraAus: "Sin cámara ni micrófono. Permite el acceso en el navegador e inténtalo otra vez.", erst: "Primero grábate", leer: "No se grabó nada: la cámara no dio imagen. Comprueba que nada la tape e inténtalo otra vez.", kurz: "Fue demasiado corto. Lee la frase entera en voz alta.", los: "Empieza ahora", abbrechen: "Cancelar" },
+  fr: { aufTitel: "Filme-toi", aufHinweis: "Parle clairement, court et net. Meilleur est l'enregistrement, plus ça te ressemble — le 100 % n'est pas garanti.", frage: "La voix :", frau: "Femme", mann: "Homme", selbst: "Filme-toi", lies: "Lis cette phrase à voix haute :", stopp: "Stop", neu: "Encore", look: "Choisis le look :", vorlage: "Voilà à quoi ressemblera ta vidéo :", kameraAus: "Pas de caméra ni de micro. Autorise l'accès dans le navigateur et réessaie.", erst: "Filme-toi d'abord", leer: "Rien n'a été enregistré — la caméra n'a donné aucune image. Vérifie que rien ne la couvre et réessaie.", kurz: "C'était trop court. Lis la phrase en entier à voix haute.", los: "Commence maintenant", abbrechen: "Annuler" },
+  pt: { aufTitel: "Filma-te", aufHinweis: "Fala com clareza, curto e direto. Quanto melhor a gravação, mais se parece contigo — 100 % não garantimos.", frage: "A voz:", frau: "Mulher", mann: "Homem", selbst: "Filma-te", lies: "Lê esta frase em voz alta:", stopp: "Parar", neu: "De novo", look: "Escolhe o look:", vorlage: "É assim que o teu vídeo vai ficar:", kameraAus: "Sem câmara nem microfone. Permite o acesso no navegador e tenta outra vez.", erst: "Primeiro filma-te", leer: "Não foi gravado nada — a câmara não deu imagem. Verifica se algo a tapa e tenta outra vez.", kurz: "Foi demasiado curto. Lê a frase toda em voz alta.", los: "Começa agora", abbrechen: "Cancelar" },
+  it: { aufTitel: "Filmati", aufHinweis: "Parla chiaro, breve e diretto. Migliore è la registrazione, più ti somiglia — il 100 % non è garantito.", frage: "La voce:", frau: "Donna", mann: "Uomo", selbst: "Filmati", lies: "Leggi questa frase ad alta voce:", stopp: "Stop", neu: "Di nuovo", look: "Scegli il look:", vorlage: "Ecco come sarà il tuo video:", kameraAus: "Niente fotocamera o microfono. Consenti l'accesso nel browser e riprova.", erst: "Prima filmati", leer: "Non è stato filmato nulla — la fotocamera non ha dato immagine. Controlla che nulla la copra e riprova.", kurz: "Troppo breve. Leggi tutta la frase ad alta voce.", los: "Inizia ora", abbrechen: "Annulla" },
 };
 
 /**
@@ -283,9 +293,29 @@ const STIMME_WORT: Record<string, { frage: string; frau: string; mann: string; s
  * bei den Preisen, Memory `prices-only-from-pricing-table`).
  *
  * Es ist ein PREIS-Deckel, kein technischer: HeyGen nimmt 0,05 Credits je Videosekunde.
- * 5 s = 0,25 $, 8 s = 0,40 $ — beim Testen zählt jeder Lauf.
+ * 5 s = 0,25 $, 8 s = 0,40 $, 15 s = 0,75 $ — beim Testen zählt jeder Lauf.
+ *
+ * SEIT 11.08.2026 HÄNGT SIE AM THEMA (Owner: „Stelle die maximale Aufnahmezeit für
+ * 'Versprechen' auf 25 Sekunden. … Die 25 Sekunden gelten nur für theme === 'versprechen',
+ * falls andere Flows weiterhin 15 Sekunden benötigen").
+ *
+ * WARUM 25 UND NICHT 15: Die Vorlage, die er ablesen soll, sind 56 Wörter — ruhig
+ * gesprochen 22 bis 26 Sekunden. Bei 15 s bräche die Aufnahme mitten im Satz ab, und zwar
+ * genau vor dem Markensatz am Schluss. Die Aufnahme IST die Tonspur des verkauften Videos:
+ * Diese Zahl entscheidet, ob das Versprechen zu Ende gesprochen werden kann.
+ *
+ * DER GEBURTSTAG BLEIBT BEI 15 — dort gratuliert man mit eigenen Worten, und jede Sekunde
+ * kostet: HeyGen nimmt 0,05 $ je Videosekunde (15 s = 0,75 $, 25 s = 1,25 $).
+ *
+ * Die Datenmenge trägt auch 25 s: Die Tonspur geht als WAV mono/22.050 Hz raus (~44 KB/s),
+ * also ~1,1 MB — weit unter Vercels ~4,5-MB-Deckel für einen Aufruf. Nur der Video-Rückfall
+ * (wenn das Herauslösen der Tonspur scheitert) wird eng; er ist seit dem 07.08. der
+ * Ausnahmefall, nicht der Weg.
  */
-const AUFNAHME_SEK = 5;
+const AUFNAHME_SEK_STANDARD = 15;
+const AUFNAHME_SEK_VERSPRECHEN = 25;
+const aufnahmeSekFuer = (variant: string) =>
+  variant === "versprechen" ? AUFNAHME_SEK_VERSPRECHEN : AUFNAHME_SEK_STANDARD;
 
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
   const V = VARIANTS[variant];
@@ -328,7 +358,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const T = (() => {
     const roh = kissText(lang, variant);
     return roh.ctaVideo?.includes("{sek}")
-      ? { ...roh, ctaVideo: roh.ctaVideo.replace("{sek}", String(AUFNAHME_SEK)) }
+      ? { ...roh, ctaVideo: roh.ctaVideo.replace("{sek}", String(aufnahmeSekFuer(variant))) }
       : roh;
   })();
   // MESSPUNKTE (Owner 29.07.2026). Bis heute meldete KEIN Trichter irgendetwas: acht
@@ -495,6 +525,30 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * bekäme das Versprechen den Kuss-Trichter — Model wählen, Foto hochladen, kein Mikrofon.
    */
   const selbstVideo = variant === "birthday" || variant === "versprechen";
+  /**
+   * DAS FORMAT DER VIDEOKARTE — 3:4 IM HAUS, 9:16 BEIM VERSPRECHEN (Owner 11.08.2026: „so
+   * wir haben jetzt hier eine ausnahme. Die Videokarte ist hier 9:16 format").
+   *
+   * `EinladungAnsicht` rahmt jedes Video in `aspect-[3/4]`, und das war für alles richtig,
+   * was aus einem 2:3-Bild entsteht. Die Videos dieses Themas sind GEMESSEN 1080 × 1920 —
+   * echtes Hochformat. In einem 3:4-Rahmen schneidet der Rahmen ihnen oben und unten weg,
+   * was den Look ausmacht: Himmel, Villa, Wagen.
+   *
+   * Es ist bewusst eine AUSNAHME und keine neue Hausregel: Wer hier einen zweiten Wert
+   * einträgt, muss das Video daneben gemessen haben, nicht geschätzt (`ffprobe`).
+   */
+  const karteVerhaeltnis = variant === "versprechen" ? "aspect-[9/16]" : undefined;
+  /**
+   * DIE VORLESE-VORLAGE — NUR BEIM VERSPRECHEN (Owner 11.08.2026: „Diesen Text müssen als
+   * Vorlage geben damit er das nachrspricht").
+   *
+   * Sie steht IM Aufnahme-Vollbild, oben, direkt unter dem Rand: Wer abliest, darf dafür
+   * nicht aus dem Bild müssen — und je näher der Text an der Kameralinse steht, desto mehr
+   * schaut er beim Sprechen hinein statt daneben. Beim Geburtstag bleibt es beim freien Wort
+   * (Owner 09.08.2026: „kein Skript nötig"), deshalb hängt es am Thema und nicht an
+   * `selbstVideo`.
+   */
+  const skript = variant === "versprechen" ? versprechenSkript(lang) : null;
   /** Die Worte der Aufnahme-Zeile — auch der Kaufknopf braucht sie, nicht nur der Kasten. */
   const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
@@ -535,6 +589,48 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      und Wagen beim Versprechen. Eine Liste je Thema, eine Zeile hier. */
   const LOOKS = variant === "versprechen" ? VERSPRECHEN_LOOKS : GEBURTSTAG_LOOKS;
   const [look, setLook] = useState(LOOKS[0].id);
+  /**
+   * SEINE ZIELE (Owner 11.08.2026: „Baue den zusätzlichen Ziele-Schritt nur für
+   * versprechen") — höchstens drei Kennungen, dazu ein freier Satz, wenn er „etwas anderes"
+   * antippt. Sie reisen mit dem Auftrag und sind später der Abschnitt „YOUR DIRECTION" auf
+   * seiner persönlichen Programmseite. Nur dort dürfen sie herkommen: erfundene Ziele wären
+   * das Gegenteil eines persönlichen Programms.
+   */
+  const [ziele, setZiele] = useState<ZielId[]>([]);
+  const [zieleFrei, setZieleFrei] = useState("");
+  const ZT = zielTexte(lang);
+  /** Nur das Versprechen fragt danach — jedes andere Geschenk geht an einen ANDEREN Menschen. */
+  const zieleFragen = variant === "versprechen";
+  /** Wahl und freier Satz zusammen weglegen — eine Stelle, damit sie nie auseinanderlaufen. */
+  const zieleMerken = (ids: ZielId[], frei: string) => {
+    try { localStorage.setItem(zieleKey(variant), JSON.stringify({ ids, frei })); } catch { /**/ }
+  };
+  /**
+   * ANTIPPEN NIMMT WEG ODER LEGT DAZU — und bei drei ist Schluss.
+   *
+   * Der vierte Chip ist dann NICHT tot, sondern abgeblendet (`disabled`): Ein Tipp, der
+   * nichts tut und nichts sagt, liest sich als Fehler. Wer den vierten will, nimmt einen
+   * anderen heraus — die Reihe verschiebt sich dabei nicht, es wechselt nur die Farbe
+   * (Hausregel „Auswahl verschiebt NIE").
+   */
+  const zielTippen = (id: ZielId) => {
+    /* Aus dem ZULETZT gültigen Stand rechnen, nicht aus dem der letzten Zeichnung: Zwei
+       schnelle Tipps hintereinander lasen sonst beide denselben alten Stand, und der erste
+       ging verloren (beim Prüfen mit drei Tipps in einem Atemzug gemessen). */
+    setZiele(alt => alt.includes(id)
+      ? alt.filter(x => x !== id)
+      : alt.length >= MAX_ZIELE ? alt : [...alt, id]);
+  };
+  /* Weggelegt wird, was WIRKLICH steht — deshalb hier und nicht im Tipp. Der Riegel
+     verhindert, dass der erste Durchlauf die eben zurückgeholte Wahl mit einer leeren
+     überschreibt. */
+  const zieleBereit = useRef(false);
+  useEffect(() => {
+    if (!zieleFragen) return;
+    if (!zieleBereit.current) { zieleBereit.current = true; return; }
+    zieleMerken(ziele, zieleFrei);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ziele, zieleFrei, zieleFragen]);
   /**
    * DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026, direkt nach dem Geräte-Riegel).
    *
@@ -983,10 +1079,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * DIE ZAHL STEHT AN EINER STELLE — wer sie ändert, ändert den Zähler, den Auto-Stopp
      * UND den Knopftext in `lib/kiss-i18n` (dort „8 s video — {geburtstag}").
      */
-    setRestSek(AUFNAHME_SEK);
+    setRestSek(aufnahmeSekFuer(variant));
     const takt = setInterval(() => setRestSek(s => (s > 1 ? s - 1 : 0)), 1000);
-    setTimeout(() => clearInterval(takt), AUFNAHME_SEK * 1000 + 500);
-    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, AUFNAHME_SEK * 1000);
+    setTimeout(() => clearInterval(takt), aufnahmeSekFuer(variant) * 1000 + 500);
+    setTimeout(() => { try { if (rec.state === "recording") rec.stop(); } catch { /**/ } }, aufnahmeSekFuer(variant) * 1000);
   };
 
   const aufnahmeStopp = () => {
@@ -1236,6 +1332,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
+  /**
+   * DER LINK ZUM 30-TAGE-PROGRAMM (11.08.2026, Owner: „wo ist der link zum plan?" — bisher
+   * nur in der Liefermail). Nur beim Versprechen gesetzt, nur wenn der Server ihn mitgibt
+   * (`programUrl` aus /api/kiss-video-checkout oder /api/checkout-status — beide liefern ihn
+   * NUR, wenn die Programm-Datei serverseitig wirklich existiert). Leer = kein Knopf.
+   */
+  const [programUrl, setProgramUrl] = useState("");
   /* Erstattung unter dem fertigen Video: scharf (erster Tipp), laeuft, erledigt. */
   const [erstattScharf, setErstattScharf] = useState(false);
   const [erstattBusy, setErstattBusy] = useState(false);
@@ -1427,6 +1530,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       else if (roh) localStorage.removeItem(GEN_KEY);
     } catch { /**/ }
     try { const n = localStorage.getItem(nameKey(variant)); if (n) setEmpfaenger(n); } catch { /**/ }
+    try {
+      const roh = localStorage.getItem(zieleKey(variant));
+      const z = roh ? JSON.parse(roh) as { ids?: string[]; frei?: string } : null;
+      if (Array.isArray(z?.ids)) setZiele(z.ids.filter(x => (ZIEL_IDS as readonly string[]).includes(x)).slice(0, MAX_ZIELE) as ZielId[]);
+      if (typeof z?.frei === "string") setZieleFrei(z.frei);
+    } catch { /**/ }
     /* Die weggelegte Aufnahme zurückholen (siehe `zurAnmeldung`) — samt Schritt und Sprung. */
     try {
       const roh = localStorage.getItem(`lb_kiss_aufn_${variant}`);
@@ -1717,6 +1826,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       setBezahlt(true);
       setPayBusy(false);
       setSchritt(3);   // dort steht die Garderobe
+      if (st.programUrl) setProgramUrl(String(st.programUrl));
 
       /**
        * JETZT LIEFERN — ohne dass er noch etwas druecken muss (Owner 31.07.2026: „nach der
@@ -1807,7 +1917,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
          * selbst sie in den Eintrag; das Tor davor garantiert, dass sie da ist.
          */
         body: genId
-          ? JSON.stringify({ update: genId, theme: variant, personImage: dataUrl, modelId: selId, modelName: selName, lang, email: mail.trim() })
+          // `device` mit (11.08.2026, Besitzpruefung am `update`) — sonst weist die neue
+          // Wache im Server jeden zweiten Foto-Upload ab, sobald der Eintrag schon ein
+          // Geraet traegt.
+          ? JSON.stringify({ update: genId, theme: variant, personImage: dataUrl, modelId: selId, modelName: selName, lang, email: mail.trim(), device })
           : JSON.stringify({ modelId: selId, modelName: selName, device, personImage: dataUrl, lang, email: mail.trim() }),
       }).catch(() => null);
       const log = await antwort?.json().catch(() => null);
@@ -1967,9 +2080,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // zu einer anderen Frau wischt. Sonst steht in der Galerie eine Kennung von vorhin.
   const wahlMerken = () => {
     if (!genId || !selId) return;
+    // `device` mit (11.08.2026, Besitzpruefung am `update`): ohne sie weist der Server
+    // diesen Aufruf ab, sobald der Eintrag schon ein Geraet traegt (aus dem allerersten
+    // Anlegen). `localStorage` ist hier synchron erreichbar, kein eigener Zustand noetig.
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     void fetch("/api/kiss-log", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ update: genId, modelId: selId, modelName: selName }),
+      // `lang` mit (11.08.2026): sonst fehlt sie an Eintraegen, deren erster Aufruf hier
+      // ist, und die private Programmseite faellt auf Englisch zurueck.
+      body: JSON.stringify({ update: genId, modelId: selId, modelName: selName, lang, device }),
     }).catch(() => {});
   };
   // Auch IHR Foto wird beim Hochladen abgelegt (Owner 30.07.2026: „ich sehe das Bild von der
@@ -1993,7 +2113,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         body: genId
           // Auch der Name wandert mit: hat er vorher eine Katalog-Frau gewählt und lädt
           // jetzt eine eigene hoch, stünde sonst in der Galerie weiter ihr Name.
-          ? JSON.stringify({ update: genId, theme: variant, modelImage: dataUrl, modelId: "custom", modelName: T.upTitle, lang, email: mail.trim() })
+          // `device` mit (11.08.2026, Besitzpruefung am `update`).
+          ? JSON.stringify({ update: genId, theme: variant, modelImage: dataUrl, modelId: "custom", modelName: T.upTitle, lang, email: mail.trim(), device })
           : JSON.stringify({ theme: variant, modelId: "custom", modelName: T.upTitle, device, modelImage: dataUrl, lang, email: mail.trim() }),
       }).catch(() => null);
       const log = await antwort?.json().catch(() => null);
@@ -2067,7 +2188,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * starten`, in sieben Sprachen aus `T.jetztStarten`.
    */
   const basisAufruf = T.jetztStarten;
-  const kartenAufruf = `${themenPreisZeile(preisSchluessel, lang)} · ${basisAufruf}`;
+  /**
+   * BEIM VERSPRECHEN OHNE „AB" (Owner 11.08.2026, mit Bild des Knopfs: „14,99 € · Investiere
+   * in deine Zukunft" — die Zahl nackt, der Aufruf ein anderer).
+   *
+   * „ab" ist ein Versprechen auf eine Leiter: Es gehört dort hin, wo es mehrere Stufen gibt
+   * (Abo, Verlängerung, Aufpreis). Hier gibt es genau EINEN Preis, und dann liest sich „ab"
+   * wie ein Vorbehalt — als käme später noch etwas. Die Zahl selbst kommt weiter aus der
+   * Preistabelle, nur ohne das Wort davor (Hausregel `prices-only-from-pricing-table`).
+   *
+   * Der Aufruf daneben steht in `T.jetztStarten` und ist beim Versprechen überschrieben
+   * (`VERSPRECHEN` in lib/kiss-i18n) — sieben Sprachen, eine Stelle.
+   */
+  const kartenAufruf = variant === "versprechen"
+    ? `${eur(videoPreisCents, lang)} · ${basisAufruf}`
+    : `${themenPreisZeile(preisSchluessel, lang)} · ${basisAufruf}`;
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
@@ -2115,8 +2250,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
           // Video-URL im Log nachtragen (Staff: Eintrag jetzt erst anlegen).
           try {
-            if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) });
-            else await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: selId, modelName: selName, videoUrl: p.videoUrl }) });
+            // `lang` mit (11.08.2026), siehe Aenderung „Sprache am Auftrag persistieren".
+            // `device` mit (11.08.2026, Besitzpruefung am `update`).
+            let device = "";
+            try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+            if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl, lang, device }) });
+            else await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: selId, modelName: selName, videoUrl: p.videoUrl, lang, device }) });
           } catch { /**/ }
           return;
         }
@@ -2250,7 +2389,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look,
+            email: mail.trim(), empfaenger, stimme, look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         if (log?.id) { gid = log.id; genMerken(log.id); }
@@ -2350,7 +2489,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         if (genId) {
           await fetch("/api/kiss-log", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ update: genId, imagePath: d.imagePath, empfaenger }),
+            // `device` mit (11.08.2026, Besitzpruefung am `update`).
+            body: JSON.stringify({ update: genId, imagePath: d.imagePath, empfaenger, device }),
           });
         } else {
           const log = await fetch("/api/kiss-log", {
@@ -2489,10 +2629,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        Startstempel zurückgenommen werden — nach einer echten Kennung rendert der Anbieter,
        auch wenn hier unten die Warteschleife stirbt (siehe `renderAbbruch`). */
     let gestartet = false;
+    // `device` mit (11.08.2026, Besitzpruefung am `update`) — einmal am Anfang der Funktion
+    // gelesen, damit `startStempelZurueck` und der Startaufruf weiter unten dieselbe
+    // Kennung mitschicken.
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     const startStempelZurueck = (grund: string) => {
       if (gestartet || !selbstVideo || !genId) return;
+      // `lang` mit (11.08.2026), siehe Aenderung „Sprache am Auftrag persistieren".
       void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ update: genId, renderAbbruch: true, fehler: grund }) }).catch(() => {});
+        body: JSON.stringify({ update: genId, renderAbbruch: true, fehler: grund, lang, device }) }).catch(() => {});
     };
     setWahl(false); setVideoBusy(true); setStatus("");
     setVideoStart(Date.now()); setFortschritt(0);
@@ -2644,8 +2790,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Start SOFORT in den Auftrag stempeln — Galerie-Streifen und Puls-Punkt leben
          davon, und die Kennung kommt erst nach dem 1-2-minuetigen HeyGen-Look. */
       if (selbstVideo && genId) {
+        // `lang` mit (11.08.2026), siehe Aenderung „Sprache am Auftrag persistieren".
         void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ update: genId, renderStart: true }) }).catch(() => {});
+          body: JSON.stringify({ update: genId, renderStart: true, lang, device }) }).catch(() => {});
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /* weckt den Punkt */ }
       }
       const start = selbstVideo ? await fetch("/api/geburtstag-video", {
@@ -2764,7 +2911,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
             const log = await fetch("/api/kiss-log", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger, stimme, look,
+              body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang, email: mail.trim(), empfaenger, stimme, look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
                 personImage: photo, ...(useCustom && customModel ? { modelImage: customModel } : {}) }),
             }).then(r => r.json()).catch(() => null);
             setVideoBusy(false);
@@ -2804,7 +2951,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           /* `empfaenger` wandert mit in den Auftrag: Der Nachliefer-Wachhund braucht den
              Namen, wenn er den Geburtstag nach Browser-Schluss neu anstossen muss — die
              neue Kette SPRICHT ihn ja. */
-          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme, look }),
+          body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme, look, lang, device, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}), }),
         }).catch(() => {});
       }
       for (let i = 0; i < 90; i++) {
@@ -2815,7 +2962,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         if (q?.status === "done" && q.videoUrl) {
           setVideoUrl(q.videoUrl); setStatus(""); setVideoBusy(false);
           setVideosLinks(v => (typeof v === "number" ? Math.max(0, v - 1) : v));
-          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: q.videoUrl, empfaenger }) }); } catch { /**/ }
+          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: q.videoUrl, empfaenger, lang, device }) }); } catch { /**/ }
           return;
         }
         if (q?.status === "failed") { setStatus(q.error || T.videoFailed); setVideoBusy(false); setWahl(true); return; }
@@ -2933,6 +3080,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (!bild || videoBusy) return;
     setVideoBusy(true); setStatus("");
     const token = Date.now(); runRef.current = token;
+    // `device` mit (11.08.2026, Besitzpruefung am `update`).
+    let device = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -2946,7 +3096,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
           setVideoUrl(p.videoUrl); setStatus(""); setVideoBusy(false);
-          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) }); } catch { /**/ }
+          try { if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl, lang, device }) }); } catch { /**/ }
           return;
         }
         if (p?.status === "failed") { setStatus(p.error || "Das Video ist fehlgeschlagen."); setVideoBusy(false); return; }
@@ -3035,6 +3185,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
         setPayBusy(false);
         setBezahlt(true);
+        if (start.programUrl) setProgramUrl(String(start.programUrl));
         /**
          * SOFORT LIEFERN, AUCH BEI OFFENEM DIALOG (Owner 03.08.2026: „direkt generieren
          * wenn ich auf den Button klicke"). Das alte `!stufenOffen` stammt aus der Zeit, als
@@ -3072,7 +3223,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look,
+            email: mail.trim(), empfaenger, stimme, look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         setPayBusy(false);
@@ -3168,6 +3319,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
           // egal ob er ueber das Kassen-Fenster oder ueber die Rueckleitung kam.
           setBezahlt(true);
+          if (s.programUrl) setProgramUrl(String(s.programUrl));
           // Auswahl ist seit 03.08.2026 VOR der Kasse (Szene + Waesche am Schritt 3) —
           // also nach der Zahlung immer sofort liefern, Dialog offen oder nicht.
           if (einmal === "once") nachZahlungLiefern.current = true;
@@ -3373,6 +3525,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 {T.back}
               </button>
             )}
+            {/**
+              * DER PROGRAMM-KNOPF STARTET SOFORT, NICHT ERST MIT DEM VIDEO (11.08.2026,
+              * Owner: „wo ist der link zum plan?"). Genau HIER, waehrend die Karte noch
+              * „bezahlt, Video entsteht" zeigt — nicht erst wenn `videoUrl` da ist: Das
+              * 30-Tage-Programm braucht nicht auf den Future Film zu warten, der noch
+              * rendert. `target="_self"`, denn ein neuer Tab waere fuer ein Programm, das
+              * er jeden Tag oeffnen soll, die falsche Gewohnheit.
+              */}
+            {variant === "versprechen" && bezahlt && !!programUrl && T.programmKnopf && (
+              <a href={programUrl} target="_self"
+                style={{ color: "#111" }}
+                className="mt-4 inline-flex items-center justify-center rounded-full bg-[#f6cf51] px-5 py-2.5 text-[13px] font-black transition active:scale-95">
+                {T.programmKnopf}
+              </a>
+            )}
           </div>
         </div>
   ) : null;
@@ -3546,6 +3713,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   Ton rechts, Teilen darunter. Der Teilen-Knopf stand hier von Hand links
                   oben — eine von sechs solchen Stellen. */}
               <EinladungAnsicht id="" videoUrl={videoUrl} poster={videoPoster || undefined} zaehlen={false}
+                {...(karteVerhaeltnis ? { verhaeltnis: karteVerhaeltnis } : {})}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: V.musik, tonAutomatisch: true })}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
@@ -3686,6 +3854,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
               <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false}
+                {...(karteVerhaeltnis ? { verhaeltnis: karteVerhaeltnis } : {})}
                 {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
@@ -4148,6 +4317,43 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             type="text" autoComplete="given-name" maxLength={18} placeholder={T.namenPlatzhalter}
             style={{ color: "#fff", WebkitTextFillColor: "#fff", caretColor: "#fff" }}
             className="lb-eingabe mt-1 h-11 w-full rounded-xl border border-white/25 bg-black/50 px-3 text-center text-[15px] font-bold outline-none placeholder:text-white/35 focus:border-[#f6cf51]" />
+          {/**
+            * DER ZIELE-SCHRITT — NUR BEIM VERSPRECHEN (Owner 11.08.2026: „WHERE DO YOU WANT
+            * TO BE IN 5 YEARS?" · „Der User soll maximal 3 Hauptziele auswählen können").
+            *
+            * ER STEHT VOR DER AUFNAHME, nicht dahinter, und das ist der ganze Zweck: Wer
+            * gerade angetippt hat, wo er in fünf Jahren sein will, spricht danach etwas
+            * anderes in die Kamera als jemand, der ohne Gedanken auf „aufnehmen" drückt.
+            * Die drei Chips sind die Vorbereitung auf den Satz.
+            *
+            * CHIPS, KEIN FORMULAR (Hausregel `chat-no-personal-questions-buttons-only`:
+            * Leute klicken, sie tippen nicht). Nur „etwas anderes" macht ein Feld auf, und
+            * auch das bleibt eine Zeile.
+            */}
+          {zieleFragen && (
+            <div className="mt-4">
+              <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{ZT.frage}</p>
+              {/* Die Zeile sagt vor der Wahl, wie viele erlaubt sind — und danach, wie viele
+                  stehen. Zwei Auskünfte, eine Zeile, kein Sprung im Aufbau. */}
+              <p className="mt-1 text-[12px] font-bold text-white/75">
+                {ziele.length ? `${ziele.length} / ${MAX_ZIELE} ${ZT.zaehler}` : ZT.hinweis}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {ZIEL_IDS.map(id => (
+                  <Knopf key={id} art="chip" aktiv={ziele.includes(id)}
+                    disabled={!ziele.includes(id) && ziele.length >= MAX_ZIELE}
+                    onClick={() => zielTippen(id)}>
+                    {ZT.namen[id]}
+                  </Knopf>
+                ))}
+              </div>
+              {ziele.includes(ZIEL_FREI) && (
+                <Eingabe className="mt-2" value={zieleFrei} maxLength={60}
+                  placeholder={ZT.freiPlatzhalter}
+                  onChange={e => setZieleFrei(e.target.value)} />
+              )}
+            </div>
+          )}
           {/* Die Stimmen-Wahl direkt unterm Namen: Der Name ist das, was GESPROCHEN wird —
               die Stimme gehört daneben, nicht in einen eigenen Schritt. */}
           {/* DER AUFNAHME-KASTEN GEHÖRT JEDEM AUFNAHME-THEMA (10.08.2026): Stand hier
@@ -4166,18 +4372,83 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   * Geschenk aussucht: erst wie es AUSSIEHT, dann wie es klingt. Beides
                   * steht vor der Kasse (siehe `look` oben).
                   *
-                  * Nur wenn es überhaupt etwas zu wählen gibt: Bei einem einzigen Look
-                  * wäre eine Reihe mit einer Kachel keine Wahl, sondern ein Hinweis, dass
-                  * man keine hat.
+                  * BEI EINEM EINZIGEN LOOK IST ES KEINE WAHL — ABER DIE VORLAGE MUSS TROTZDEM
+                  * ZU SEHEN SEIN (Owner 11.08.2026: „und du muss die Vorlage auch zeigen bei
+                  * Selbst aufnehmen").
+                  *
+                  * Bis heute stand hier nur `LOOKS.length > 1`, und damit war die Aufnahme
+                  * beim Versprechen bildlos: Es gibt genau einen Look (Villa und Wagen), also
+                  * fiel die ganze Reihe weg. Der Kunde filmte sich, ohne je gesehen zu haben,
+                  * WOHINEIN er gefilmt wird — und das Bild ist genau das, wofür er zahlt.
+                  *
+                  * Zwei Gestalten, eine Stelle: mehrere Looks bleiben die Wisch-Wahl, ein
+                  * einzelner wird zur Ankündigung (dieselbe Kachelgrösse, derselbe goldene
+                  * Ring, nur nichts zu tippen).
                   */}
-                {LOOKS.length > 1 && (
-                  <div className="mb-3">
-                    <p className="mb-1.5 text-center text-[11px] font-bold text-white/55">{SW.look}</p>
-                    {/* Als SLIDES (Owner 08.08.2026: „als Slide die Bilder presentieren") —
-                        man sieht, WAS man wählt, nicht eine Briefmarke davon. Kein
-                        `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
-                        links an, sobald die Slides breiter sind als der Schirm. */}
+                <div className="mb-3">
+                  <p className="mb-1.5 text-center text-[11px] font-bold text-white/55">
+                    {LOOKS.length > 1 ? SW.look : SW.vorlage}
+                  </p>
+                  {/* Als SLIDES (Owner 08.08.2026: „als Slide die Bilder presentieren") —
+                      man sieht, WAS man wählt, nicht eine Briefmarke davon. Kein
+                      `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
+                      links an, sobald die Slides breiter sind als der Schirm. */}
+                  {LOOKS.length > 1 ? (
                     <BildWahl gross wert={look} waehle={setLook} bilder={LOOKS} />
+                  ) : (
+                    <div className="flex justify-center py-1.5">
+                      <span className="relative block h-[213px] w-[160px] overflow-hidden rounded-2xl ring-2 ring-[#f6cf51] ring-offset-2 ring-offset-[#0b0a09]">
+                        {/**
+                          * DIE VERWANDLUNG STATT DES ZIELS (Owner 11.08.2026: „kannst du hier
+                          * eine animation machen zwischen diese zwei bilder?").
+                          *
+                          * Unten liegt das Ziel (Villa und Wagen), darüber blendet das Heute
+                          * (er, wie er sich selbst filmt) alle fünf Sekunden weg und wieder
+                          * her — `lb-swap-top` ist dieselbe Blende, mit der die Try-On-Karte
+                          * seit dem 04.08. „angezogen ↔ Lingerie" zeigt. Ein Bild sagt, was
+                          * man bekommt; zwei sagen, was mit einem passiert.
+                          *
+                          * `prefers-reduced-motion` schaltet die Blende ab (steht in der
+                          * Klasse) — dann bleibt das Heute stehen, und das ist die richtige
+                          * Reihenfolge: Erst er, dann das Ziel.
+                          */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={VERSPRECHEN_SPAETER} alt=""
+                          className="absolute inset-0 block h-full w-full object-cover" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={VERSPRECHEN_HEUTE}
+                          alt={(LOOKS.find(l => l.id === look) ?? LOOKS[0]).name}
+                          className="lb-swap-top absolute inset-0 block h-full w-full object-cover" />
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/**
+                  * DIE GEWÄHLTEN ZIELE ALS SPRECHHILFE (Owner 11.08.2026, Folgeänderung zum
+                  * Ziele-Schritt: „die Chips sind die Vorbereitung auf den Satz").
+                  *
+                  * Er tippt die Ziele im Schritt DAVOR an (siehe `zieleFragen`-Block weiter
+                  * oben) — bis heute sah er sie im Aufnahme-Kasten nicht mehr, obwohl genau
+                  * sie den Satz tragen sollen, den er gleich spricht. Reine Erinnerung, keine
+                  * Interaktion: nur beim Versprechen, und nur, wenn er wirklich etwas gewählt
+                  * hat (sonst stuende eine leere Zeile über einem leeren Kasten).
+                  */}
+                {variant === "versprechen" && ziele.length > 0 && (
+                  <div className="mb-2 text-center">
+                    <p className="text-[11px] font-bold text-white/55">{T.sprichDarueber}</p>
+                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                      {ziele.filter(id => id !== ZIEL_FREI).map(id => (
+                        <span key={id}
+                          className="rounded-full border border-[#f6cf51]/50 bg-[#f6cf51]/10 px-2.5 py-1 text-[11px] font-bold text-[#f6cf51]">
+                          {ZT.namen[id]}
+                        </span>
+                      ))}
+                      {ziele.includes(ZIEL_FREI) && zieleFrei.trim() && (
+                        <span className="rounded-full border border-[#f6cf51]/50 bg-[#f6cf51]/10 px-2.5 py-1 text-[11px] font-bold text-[#f6cf51]">
+                          {zieleFrei.trim()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
                 {/**
@@ -4244,7 +4515,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                      * die Wischleiste des iPhones. Beides zusammen: Der Knopf steht immer im
                      * Bild, auf jedem Gerät.
                      */
-                    <div className="fixed inset-0 z-[200] bg-black" style={{ height: "100dvh" }}>
+                    <div className="fixed inset-0 z-[200] grid place-items-center bg-black" style={{ height: "100dvh" }}>
                       {/**
                         * DIE BÜHNE IST HOCHKANT — AUCH AUF DEM RECHNER (Owner 09.08.2026,
                         * mit Bild eines Breitbild-Schirms: ein einzelnes Auge füllte das
@@ -4257,7 +4528,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                         * Gesicht weg. Jetzt steht die Aufnahme in einer Spalte im
                         * Handy-Mass; der Rest der Fläche ist ohnehin mattes Weiss.
                         */}
-                      <div className="relative mx-auto h-full w-full max-w-[430px]">
+                      {/**
+                        * UND AUF DEM RECHNER IST DIE SPALTE EIN FENSTER, KEIN STREIFEN
+                        * (Owner 11.08.2026, mit Bild eines Chrome-Fensters: „kannst du eine
+                        * desktop version machen?").
+                        *
+                        * Die Spalte war 430 px breit und IMMER so hoch wie der Bildschirm.
+                        * Auf dem Handy ist das genau richtig; auf einem 1300 px hohen
+                        * Browserfenster ergibt es einen 430 × 1300 langen Schacht — und weil
+                        * das Kamerabild ihn per `object-cover` füllen muss, wird ein
+                        * Hochkant-Bild so weit hineingezoomt, bis nur noch ein halbes Gesicht
+                        * übrig ist. Genau das war auf seinem Bild zu sehen. Der Knopfblock
+                        * klebte dazu am unteren Rand des Schachts, also am unteren Rand des
+                        * Fensters, halb hinter der Wischleiste.
+                        *
+                        * Ab `sm` steht deshalb ein Handy-Fenster mitten auf der Fläche: 9:16,
+                        * höchstens 820 px oder 92 % der Fensterhöhe, mit Ecken. Die Breite
+                        * ergibt sich aus der Höhe (`w-auto`), damit das Verhältnis stimmt.
+                        * Unterhalb von `sm` bleibt alles, wie es ist — die Handy-Ansicht ist
+                        * abgenommen und wird hier nicht angefasst.
+                        */}
+                      <div className="relative mx-auto h-full w-full max-w-[430px] overflow-hidden sm:h-[min(92dvh,820px)] sm:w-auto sm:max-w-none sm:aspect-[9/16] sm:rounded-3xl">
                         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                         <video ref={vorschauRef} muted playsInline
                           className="absolute inset-0 h-full w-full object-cover"
@@ -4281,6 +4572,42 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                            wusste nicht, wo der eigene Körper aufhört. Bei 0.5 bleibt das Loch
                            deutlich der scharfe Teil, aber man sieht sich noch. */
                         style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.5)" }} />
+                      {/**
+                        * DIE VORLAGE ZUM ABLESEN (Owner 11.08.2026: „Diesen Text müssen als
+                        * Vorlage geben damit er das nachrspricht").
+                        *
+                        * OBEN, NICHT UNTEN: Sie liegt dicht an der Kameralinse — wer von hier
+                        * abliest, schaut fast in die Kamera. Am unteren Rand (wo Knopf und
+                        * Ansage stehen) würde er die ganze Aufnahme nach unten blicken.
+                        *
+                        * DURCHSICHTIG UND OHNE GRIFF (`pointer-events-none`): Sie liegt über
+                        * dem matten Weiss, das ohnehin ausserhalb des Ovals liegt, und darf
+                        * dem Start-Knopf und dem Kreuz keinen Tipp wegnehmen. Rechts bleibt
+                        * Platz für das Kreuz (`pr-14`).
+                        *
+                        * ZEILENWEISE, wie sie in lib/versprechen steht — jede Zeile ein
+                        * Atemzug. Wird es auf einem kleinen Schirm zu lang, scrollt der Kasten
+                        * in sich, statt über das Gesicht zu wachsen.
+                        */}
+                      {skript && (
+                        /* MIT EIGENER FLÄCHE: Die Vorlage ist höher als der matte Rand über
+                           dem Oval und läge mit den letzten Zeilen sonst auf dem klaren Bild
+                           — dunkle Schrift auf einem Gesicht ist nicht lesbar. Das helle
+                           Feld darunter macht sie in jeder Lage lesbar und sieht aus wie der
+                           matte Rand, den es fortsetzt. */
+                        <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] max-h-[26%] overflow-y-auto rounded-b-2xl bg-white/85 px-4 pr-14 pb-2.5 pt-2.5">
+                          <p className="text-[10px] font-black uppercase tracking-wide" style={{ color: "#6b6152" }}>
+                            {SW.lies}
+                          </p>
+                          <div className="mt-1 space-y-[2px]">
+                            {skript.map((zeile, i) => (
+                              <p key={i} className="text-[12.5px] font-black leading-[1.25]" style={{ color: "#1a160f" }}>
+                                {zeile}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* DER AUSGANG (Bibliotheks-Baustein `Scheibe`, Hausregel: runder
                           Symbol-Knopf kommt aus components/CI.tsx). Oben rechts, wo jeder
                           ihn sucht — und weit weg vom Start-Knopf, damit niemand danebentippt. */}
@@ -5319,6 +5646,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               {T.download}
             </a>
             {/**
+              * DERSELBE PROGRAMM-KNOPF, JETZT NEBEN DEM FERTIGEN FILM (11.08.2026, Owner:
+              * „wo ist der link zum plan?"). Wer bis hierher wartet, hat den Knopf oben in
+              * der Render-Schicht evtl. schon gesehen — hier steht er noch einmal, weil der
+              * Future Film der natuerliche Moment ist, das 30-Tage-Programm zu oeffnen.
+              */}
+            {variant === "versprechen" && !!programUrl && T.programmKnopf && (
+              <a href={programUrl} target="_self"
+                style={{ color: "#111" }}
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#f6cf51] text-[14px] font-black active:scale-95 transition">
+                {T.programmKnopf}
+              </a>
+            )}
+            {/**
               * ZURÜCK VOM ERGEBNIS (Owner 07.08.2026 abends: „und hier kann ich nicht
               * zurück"). Das fertige Video war eine Sackgasse: Herunterladen oder gar
               * nichts. Derselbe Weg wie beim Kuss-„Noch ein Video": frischer Auftrag
@@ -5471,6 +5811,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   video={
                     videoUrl
                       ? <EinladungAnsicht id="" videoUrl={videoUrl} zaehlen={false}
+                          {...(karteVerhaeltnis ? { verhaeltnis: karteVerhaeltnis } : {})}
                           {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : {})}
                           tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                           tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus} />

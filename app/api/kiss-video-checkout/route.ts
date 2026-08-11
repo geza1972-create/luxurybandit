@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS, geschenkPreisCents } from "@/lib/pricing";
 import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
+import { futureProgramUrl } from "@/lib/future-program-store";
 import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout, createTryonCheckout } from "@/lib/stripe";
 
@@ -242,7 +243,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Auftrag nicht auffindbar — bitte neu starten." }, { status: 409 });
           }
           lieferungAnstossen(origin, genId);
-          return NextResponse.json({ walletPaid: true, rest: ab.rest });
+          /**
+           * DER PROGRAMM-LINK STARTET SOFORT, NICHT ERST MIT DEM VIDEO (11.08.2026, Owner:
+           * „wo ist der link zum plan?"). Bezahlt ist bezahlt — das 30-Tage-Programm braucht
+           * nicht auf das Video zu warten, das noch rendert. `futureProgramUrl` liefert nur
+           * dann etwas, wenn `bezahltVermerken` gerade eben die Programm-Datei angelegt hat
+           * (Thema „versprechen") — bei jedem anderen Thema bleibt das Feld schlicht weg.
+           */
+          const programUrl = await futureProgramUrl(origin, genId).catch(() => undefined);
+          return NextResponse.json({ walletPaid: true, rest: ab.rest, ...(programUrl ? { programUrl } : {}) });
         }
       } catch { /* Guthaben-Weg kaputt → normale Kasse, der Kunde merkt nichts */ }
     }
@@ -265,8 +274,12 @@ export async function POST(request: Request) {
         /* Was auf der Kassenseite steht, muss dasselbe Ding meinen wie der Betrag daneben.
            „Kiss video" über einem Geburtstagsvideo ist für den Kunden ein fremder Posten auf
            der Abrechnung — und für uns eine Rückbuchung, die niemand zuordnen kann. */
+        /* 11.08.2026: „Versprechen" ist jetzt das Future Self Program (49 €, VERSPRECHEN_CENTS).
+           Ohne eigenen Zweig fiel der Kauf in „Kiss video — one-off" — eine 49-€-Abbuchung mit
+           fremdem Namen auf der Quittung ist ein Rückbuchungsrisiko. */
         productName: tanz ? "Pole dance video — one-off"
           : thema === "birthday" ? "Birthday video — one-off"
+          : thema === "versprechen" ? "Future Self Program"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

@@ -3,6 +3,7 @@ import { sendEmail } from "@/lib/email-send";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
 import { walletGeraetMerken, einladungAboVermerken, grantMonthlySubscriptionCredits, grantVideoCredits, guthabenAufladen, readTryThisLookState, saveTryThisLookState, chatZugangGewaehren } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen, adresseKorrigieren } from "@/lib/kiss-delivery";
+import { futureProgramUrl } from "@/lib/future-program-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -315,6 +316,13 @@ export async function GET(request: Request) {
     }
 
     const kissGenId = String(s.metadata.genId ?? "").trim();
+    /**
+     * DER PROGRAMM-LINK NACH DER RÜCKKEHR VON STRIPE (11.08.2026, Owner: „wo ist der link
+     * zum plan?"). `bezahltVermerken` legt die Programm-Datei GENAU beim Bezahl-Stempel an
+     * (nur Thema „versprechen") — `futureProgramUrl` danach liefert also nur dann etwas,
+     * wenn dieser Kauf wirklich einer war. Kein Fehler soll den Rückweg zum Kunden blockieren.
+     */
+    let programUrl: string | undefined;
     if (paid && kissGenId) {
       try {
         /**
@@ -330,6 +338,7 @@ export async function GET(request: Request) {
         const kaeufer = (String(s.customerEmail ?? "").trim() || String(s.metadata.email ?? "").trim()).toLowerCase();
         await bezahltVermerken(kissGenId, kaeufer, String(s.metadata.kind ?? ""));
         lieferungAnstossen(new URL(request.url).origin, kissGenId);
+        programUrl = await futureProgramUrl(new URL(request.url).origin, kissGenId).catch(() => undefined);
       } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
     }
 
@@ -426,6 +435,7 @@ export async function GET(request: Request) {
       ...(boughtCuratorId ? { boughtCuratorId, boughtOwnerEmail } : {}),
       ...(superFollowCuratorId ? { superFollowCuratorId } : {}),
       ...(credits !== undefined ? { credits } : {}),
+      ...(programUrl ? { programUrl } : {}),
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Could not verify payment." }, { status: 502 });

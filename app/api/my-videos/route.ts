@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
+import { futureProgramUrl } from "@/lib/future-program-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -196,6 +197,17 @@ export async function GET(request: Request) {
           // Warnzeichen (Owner 31.07.2026). Steht nur da, wenn etwas auffiel.
           warnung: e.altersWarnung || "",
           alter: e.altersGeschaetzt || 0,
+          /**
+           * DER PROGRAMM-LINK IN DER GALERIE (11.08.2026, Owner: „wo ist der link zum
+           * plan?" — bisher nur in der Liefermail). NUR wenn die Programm-Datei wirklich
+           * existiert (`futureProgramUrl` prüft das, nicht nur `e.theme`) — sonst führt der
+           * Knopf ins Leere. `e.paid` zuerst geprüft, damit ein unbezahlter Versprechen-
+           * Auftrag (den es ohnehin nicht geben sollte, die Datei entsteht erst beim
+           * Bezahl-Stempel) hier keinen unnötigen Blick in den Speicher auslöst.
+           */
+          ...(e.theme === "versprechen" && e.paid
+            ? { programUrl: await futureProgramUrl(url.origin, e.id).catch(() => undefined) }
+            : {}),
         },
         {
           id: `${e.id}-frau`,
