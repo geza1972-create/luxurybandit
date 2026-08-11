@@ -311,7 +311,25 @@ export const GESCHENKE: Record<GeschenkId, {
    */
   versprechen: {
     prompt: VERSPRECHEN_PROMPT, done: "my-promise-video.mp4", abo: false, einzelkauf: true,
-    keinGratis: true, nurGuthaben: true,
+    /**
+     * `nurGuthaben` IST RAUS (Owner 11.08.2026: „eins will ich jetzt doch mit dem code zahlen
+     * können. Ich habe bei Geburtstag auch zahlen können.").
+     *
+     * WAS ES ANRICHTETE: Es zwang JEDEN Kauf über die Aufladung. Wer einen Aktionscode hatte,
+     * lud damit für 0,00 € auf — und Guthaben entsteht nur in Höhe des WIRKLICH gezahlten
+     * Betrags (sonst schöpfte ein geleakter Code beliebig Geld). Der Kunde stand danach
+     * wieder vor demselben Auflade-Fenster; die Meldung „Deine letzte Zahlung betrug 0,00 €"
+     * war korrekt und trotzdem eine Sackgasse. An die Kasse, an der ein Code wirken KANN
+     * (`createTryonCheckout` setzt `allow_promotion_codes`), kam er nie.
+     *
+     * WARUM ES JETZT AUCH SACHLICH RICHTIG IST — dieselbe Begründung wie beim Kuss weiter
+     * oben: Solange der Preis weit unter der kleinsten Aufladung lag, sah der direkte Kauf
+     * wie eine Falle aus. Seit der Preissenkung liegen Preis und passende Sprosse praktisch
+     * aufeinander; der direkte Kauf ist damit der KÜRZERE Weg. Vorhandenes Guthaben wird
+     * ohnehin zuerst verrechnet (siehe `guthabenAbbuchen` in kiss-video-checkout) — wer
+     * aufgeladen hat, zahlt weiterhin daraus, ohne die Kasse zu sehen.
+     */
+    keinGratis: true,
     nurEigenes: true, nurSie: true,
     ...(VERSPRECHEN_SET ? { garmentBild: VERSPRECHEN_SET } : {}),
     empfaengerName: true,
