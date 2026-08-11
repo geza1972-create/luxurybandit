@@ -1,90 +1,31 @@
-import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
-type Look = {
-  id: string;
-  name: string;
-  imageUrl: string;
-  category?: string;
-  price?: string;
-  salePrice?: string;
-  curatorName?: string;
+/**
+ * DIE LOOK-SEITEN GEHÖREN NICHT MEHR IN DEN INDEX (Owner 11.08.2026, vor der Search Console:
+ * „aufräumen").
+ *
+ * WAS GOOGLE MELDETE: 205 bekannte Adressen, davon 6 indexiert und 199 abgelehnt — Grund
+ * „Gefunden, zurzeit nicht indexiert", also kein technischer Fehler, sondern ein Urteil über
+ * den Wert. Von diesen 205 stammten rund 140 aus dieser Route: Look-Seiten aus der
+ * Seeding-Pipeline des alten Trends-/Dupe-Konzepts. Sie tragen kaum eigenen Text und sehen
+ * einander gleich; eine Domain, die zu neun Zehnteln daraus besteht, zieht ihre eigenen
+ * Verkaufsseiten mit herunter.
+ *
+ * `index: false, follow: true` — NICHT aufnehmen, aber den Verweisen folgen: Was von hier auf
+ * eine Themenseite zeigt, soll weiter zählen.
+ *
+ * DIE SEITEN BLEIBEN ERREICHBAR. Geteilte Links funktionieren unverändert; nur als
+ * Index-Angebot fallen sie weg (siehe auch app/sitemap.ts, wo sie nicht mehr gemeldet werden).
+ * Wer sie je als Inhalts-Strategie will, braucht zuerst echten Text je Seite — dann kommt
+ * diese Datei weg, nicht vorher.
+ *
+ * EIGENES LAYOUT, weil die Seite selbst `"use client"` ist: Ein Client-Baustein kann kein
+ * `metadata` ausliefern. Ohne `title` erbt sie weiter den Haustitel aus dem Wurzel-Layout.
+ */
+export const metadata = {
+  robots: { index: false, follow: true },
 };
 
-async function getLookData(id: string): Promise<Look | null> {
-  try {
-    // Extract real ID from slug format "name--look-id" (support legacy: raw ID or plain name slug)
-    const ddIdx = id.lastIndexOf("--");
-    const resolvedId = ddIdx >= 0 ? id.slice(ddIdx + 2) : id;
-
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
-    const res = await fetch(`${baseUrl}/api/try-this-look?lookId=${encodeURIComponent(resolvedId)}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const look = data.looks?.[0];
-    return look || null;
-  } catch {
-    return null;
-  }
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const look = await getLookData(id);
-
-  if (!look) {
-    return {
-      title: "Look Not Found",
-      description: "This look doesn't exist or has been removed.",
-    };
-  }
-
-  // Generate clean title: "[Look name] — Get the Look | Luxurybandit"
-  // Example: "Black Plunge Maxi Dress — Get the Look | Luxurybandit"
-  const lookDescription = look.name?.trim() || "Luxury Look";
-  const title = `${lookDescription} — Get the Look | Luxurybandit`;
-
-  // Generate description: "Try [look] on your own photo and shop the whole
-  // look at any price, from the high-end original to the budget version..."
-  const description = `Try ${lookDescription} on your own photo and shop the whole look at any price, from the high-end original to the budget version. Get the look on Luxurybandit.`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `/look/${encodeURIComponent(id)}`,
-      images: look.imageUrl
-        ? [
-            {
-              url: look.imageUrl,
-              width: 1200,
-              height: 1200,
-              alt: lookDescription,
-            },
-          ]
-        : [],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: look.imageUrl ? [look.imageUrl] : [],
-    },
-  };
-}
-
-export default function LookLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return children;
+export default function LookLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }

@@ -1,6 +1,4 @@
 import type { MetadataRoute } from "next";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
-import { lookPath } from "@/lib/look-slug";
 
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "");
 
@@ -16,7 +14,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/`, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/stores`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/bella`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE}/themes/wetter/bella`, changeFrequency: "daily", priority: 0.9 },
+    /* `/themes/wetter/bella` IST RAUS (Owner 11.08.2026: „Wake up with Bella bieten wir nicht
+       mehr an"). Sie stand hier mit der höchsten Priorität nach der Startseite und bewarb ein
+       Abo, das es nicht mehr zu kaufen gibt — die teuerste Art, Crawl-Budget zu verbrennen.
+       Die Seite selbst und die ganze Wetter-Maschine bleiben für Bestandskunden stehen. */
 
     /**
      * DIE THEMENSEITEN — und sie standen bis zum 05.08.2026 in KEINER Zeile dieser Datei.
@@ -47,36 +48,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        Admin"). Eine Seite, die Besucher wegschickt, gehoert nicht in die Sitemap — sonst
        schickt Google weiter Verkehr auf eine Weiterleitung. */
     { url: `${BASE}/own-influencer`, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${BASE}/earnings`, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${BASE}/curators`, changeFrequency: "weekly", priority: 0.7 },
+    /* `/earnings` und `/curators` SIND RAUS (Owner 11.08.2026: „wir nehmen keine Modelle mehr
+       auf"). Beide werben um Kuratoren und versprechen ihnen Verdienst — eine Anwerbung, die
+       ins Leere läuft, gehört nicht in die Sitemap. Die Seiten bleiben im Code stehen; ob sie
+       ganz abgeschaltet werden, ist NICHT entschieden und wäre eine eigene Runde. */
     { url: `${BASE}/about`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE}/privacy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE}/imprint`, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  let dynamic: MetadataRoute.Sitemap = [];
-  try {
-    const state = await readTryThisLookState();
-    const looks = (state.looks ?? [])
-      .filter((l) => l.published !== false)
-      .map((l) => ({
-        url: `${BASE}${lookPath(l.name, l.id)}`,
-        lastModified: l.createdAt ? new Date(l.createdAt) : undefined,
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      }));
-    const curators = (state.curators ?? [])
-      .filter((c) => (c as any).status === "active")
-      .map((c) => ({
-        url: `${BASE}/curator/${c.id}`,
-        changeFrequency: "weekly" as const,
-        priority: 0.6,
-      }));
-    dynamic = [...looks, ...curators];
-  } catch {
-    /* ignore — still return the static pages */
-  }
-
-  return [...staticPages, ...dynamic];
+  /**
+   * DIE DYNAMISCHEN SEITEN SIND RAUS (Owner 11.08.2026 vor der Search Console: „aufräumen").
+   *
+   * WAS GEMESSEN WAR: 205 bekannte Adressen, 6 indexiert, 199 abgelehnt — Grund „Gefunden,
+   * zurzeit nicht indexiert". Das ist kein Fehler, den man repariert, sondern Googles Urteil
+   * über den Wert. Hier standen ~140 Look-Seiten und ~47 Curator-Profile aus der
+   * Seeding-Pipeline des alten Trends-Konzepts: dünn, einander gleich, ohne laufendes
+   * Geschäft dahinter (wir nehmen keine Modelle mehr auf). Eine Domain, die zu neun Zehnteln
+   * daraus besteht, zieht ihre eigenen Verkaufsseiten mit herunter — deshalb meldet die
+   * Sitemap ab jetzt NUR noch Seiten, auf denen etwas zu kaufen ist oder die etwas erklären.
+   *
+   * DIE SEITEN BLEIBEN ERREICHBAR und tragen zusätzlich `robots: noindex` in ihren eigenen
+   * Layouts (app/look/[id]/layout.tsx, app/curator/[id]/layout.tsx) — das ist das aktive
+   * Signal, sie fallen zu lassen; das Weglassen hier allein wäre nur ein Verschweigen.
+   *
+   * WEG ZURÜCK: Wer Look-Seiten je als Inhalts-Strategie will, braucht zuerst echten,
+   * eigenen Text je Seite. Dann kommen diese Zeilen zurück UND die beiden Layouts weg —
+   * in dieser Reihenfolge, sonst meldet man wieder an, was man gerade abmeldet.
+   *
+   * `readTryThisLookState` und `lookPath` sind damit hier nicht mehr nötig; die Datei liest
+   * keinen Zustand mehr und ist eine reine Liste. `revalidate` bleibt trotzdem stehen — die
+   * statischen Einträge sollen sich weiter regelmässig erneuern.
+   */
+  return staticPages;
 }
