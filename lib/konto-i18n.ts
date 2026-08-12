@@ -42,6 +42,20 @@ export type KontoText = {
   avatar: string;
   avatarHinweis: string;
   avatarStimme: string;
+  /**
+   * DIE KACHEL SAGT, WAS SIE IST (Owner 11.08.2026: „Und da kannst du im Label schreiben
+   * statt privat Programm"). Ersetzt „Private" auf der Programm-Kachel — alles andere in der
+   * Galerie ist ohnehin privat, das braucht kein Schild (siehe `programm` = Punkt 1+4).
+   */
+  programm: string;
+  /**
+   * DIE DATENZEILE JE WERK (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
+   * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, wie lang das video
+   * ist"). Drei Wörter, die vor Datum/Betrag/Länge stehen.
+   */
+  aufgenommen: string;
+  fertig: string;
+  bezahlt: string;
   // ── Einladung zur Anmeldung ──
   anmeldeTitel: string;
   anmeldeGrund: string;
@@ -88,6 +102,10 @@ const en: KontoText = {
   avatar: "Your avatar",
   avatarHinweis: "Your face and voice for every video. A new recording replaces it.",
   avatarStimme: "with your voice",
+  programm: "Program",
+  aufgenommen: "Recorded",
+  fertig: "Ready",
+  bezahlt: "Paid",
   anmeldeTitel: "Sign in — then it's truly yours",
   anmeldeGrund: "Your credit and your videos stay with you, on every device. Without an account they live only in this browser.",
   anmeldeKnopf: "Sign in now",
@@ -131,6 +149,10 @@ const de: KontoText = {
   avatar: "Dein Avatar",
   avatarHinweis: "Dein Gesicht und deine Stimme für jedes Video. Eine neue Aufnahme ersetzt ihn.",
   avatarStimme: "mit deiner Stimme",
+  programm: "Programm",
+  aufgenommen: "Aufgenommen",
+  fertig: "Fertig",
+  bezahlt: "Bezahlt",
   anmeldeTitel: "Melde dich an — dann gehört es wirklich dir",
   anmeldeGrund: "Dein Guthaben und deine Videos bleiben bei dir, auf jedem Gerät. Ohne Konto leben sie nur in diesem Browser.",
   anmeldeKnopf: "Jetzt anmelden",
@@ -174,6 +196,10 @@ const ro: KontoText = {
   avatar: "Avatarul tău",
   avatarHinweis: "Chipul și vocea ta pentru fiecare videoclip. O înregistrare nouă îl înlocuiește.",
   avatarStimme: "cu vocea ta",
+  programm: "Program",
+  aufgenommen: "Înregistrat",
+  fertig: "Gata",
+  bezahlt: "Plătit",
   anmeldeTitel: "Conectează-te — atunci e cu adevărat al tău",
   anmeldeGrund: "Creditul și videoclipurile tale rămân la tine, pe orice dispozitiv. Fără cont trăiesc doar în acest browser.",
   anmeldeKnopf: "Conectează-te acum",
@@ -217,6 +243,10 @@ const es: KontoText = {
   avatar: "Tu avatar",
   avatarHinweis: "Tu cara y tu voz para cada vídeo. Una grabación nueva lo sustituye.",
   avatarStimme: "con tu voz",
+  programm: "Programa",
+  aufgenommen: "Grabado",
+  fertig: "Listo",
+  bezahlt: "Pagado",
   anmeldeTitel: "Inicia sesión — así es de verdad tuyo",
   anmeldeGrund: "Tu saldo y tus vídeos se quedan contigo, en cualquier dispositivo. Sin cuenta viven solo en este navegador.",
   anmeldeKnopf: "Iniciar sesión ahora",
@@ -260,6 +290,10 @@ const fr: KontoText = {
   avatar: "Ton avatar",
   avatarHinweis: "Ton visage et ta voix pour chaque vidéo. Un nouvel enregistrement le remplace.",
   avatarStimme: "avec ta voix",
+  programm: "Programme",
+  aufgenommen: "Enregistré",
+  fertig: "Prêt",
+  bezahlt: "Payé",
   anmeldeTitel: "Connecte-toi — c'est alors vraiment à toi",
   anmeldeGrund: "Ton crédit et tes vidéos restent avec toi, sur chaque appareil. Sans compte, ils ne vivent que dans ce navigateur.",
   anmeldeKnopf: "Se connecter maintenant",
@@ -303,6 +337,10 @@ const pt: KontoText = {
   avatar: "O teu avatar",
   avatarHinweis: "O teu rosto e a tua voz para cada vídeo. Uma nova gravação substitui-o.",
   avatarStimme: "com a tua voz",
+  programm: "Programa",
+  aufgenommen: "Gravado",
+  fertig: "Pronto",
+  bezahlt: "Pago",
   anmeldeTitel: "Inicia sessão — assim é mesmo teu",
   anmeldeGrund: "O teu saldo e os teus vídeos ficam contigo, em qualquer dispositivo. Sem conta vivem só neste navegador.",
   anmeldeKnopf: "Iniciar sessão agora",
@@ -346,6 +384,10 @@ const it: KontoText = {
   avatar: "Il tuo avatar",
   avatarHinweis: "Il tuo viso e la tua voce per ogni video. Una nuova registrazione lo sostituisce.",
   avatarStimme: "con la tua voce",
+  programm: "Programma",
+  aufgenommen: "Registrato",
+  fertig: "Pronto",
+  bezahlt: "Pagato",
   anmeldeTitel: "Accedi — così è davvero tuo",
   anmeldeGrund: "Il tuo credito e i tuoi video restano con te, su ogni dispositivo. Senza account vivono solo in questo browser.",
   anmeldeKnopf: "Accedi ora",
@@ -399,14 +441,63 @@ export function spracheAusCookie(): Lang {
  * Schlüssel.
  */
 const THEMEN: Record<Lang, Record<string, string>> = {
-  en: { birthday: "Birthday video", kiss: "Kiss video", poledance: "Pole dance video", holiday: "Holiday invitation", wedding: "Wedding invitation", gutschein: "Gift card", plan: "Idea analysis" },
-  de: { birthday: "Geburtstagsvideo", kiss: "Kuss-Video", poledance: "Poledance-Video", holiday: "Urlaubs-Einladung", wedding: "Hochzeits-Einladung", gutschein: "Gutschein", plan: "Ideen-Analyse" },
-  ro: { birthday: "Video de ziua ta", kiss: "Video cu sărut", poledance: "Video pole dance", holiday: "Invitație de vacanță", wedding: "Invitație de nuntă", gutschein: "Card cadou", plan: "Analiza ideii" },
-  es: { birthday: "Vídeo de cumpleaños", kiss: "Vídeo de beso", poledance: "Vídeo de pole dance", holiday: "Invitación de vacaciones", wedding: "Invitación de boda", gutschein: "Tarjeta regalo", plan: "Análisis de idea" },
-  fr: { birthday: "Vidéo d'anniversaire", kiss: "Vidéo de baiser", poledance: "Vidéo pole dance", holiday: "Invitation vacances", wedding: "Invitation de mariage", gutschein: "Carte cadeau", plan: "Analyse d'idée" },
-  pt: { birthday: "Vídeo de aniversário", kiss: "Vídeo de beijo", poledance: "Vídeo de pole dance", holiday: "Convite de férias", wedding: "Convite de casamento", gutschein: "Cartão presente", plan: "Análise da ideia" },
-  it: { birthday: "Video di compleanno", kiss: "Video del bacio", poledance: "Video pole dance", holiday: "Invito vacanza", wedding: "Invito di nozze", gutschein: "Buono regalo", plan: "Analisi dell'idea" },
+  en: { birthday: "Birthday video", kiss: "Kiss video", poledance: "Pole dance video", holiday: "Holiday invitation", wedding: "Wedding invitation", gutschein: "Gift card", plan: "Idea analysis", idol: "Idol video", versprechen: "Future Self Program" },
+  de: { birthday: "Geburtstagsvideo", kiss: "Kuss-Video", poledance: "Poledance-Video", holiday: "Urlaubs-Einladung", wedding: "Hochzeits-Einladung", gutschein: "Gutschein", plan: "Ideen-Analyse", idol: "Idol-Video", versprechen: "Future Self Program" },
+  ro: { birthday: "Video de ziua ta", kiss: "Video cu sărut", poledance: "Video pole dance", holiday: "Invitație de vacanță", wedding: "Invitație de nuntă", gutschein: "Card cadou", plan: "Analiza ideii", idol: "Video cu idolul tău", versprechen: "Future Self Program" },
+  es: { birthday: "Vídeo de cumpleaños", kiss: "Vídeo de beso", poledance: "Vídeo de pole dance", holiday: "Invitación de vacaciones", wedding: "Invitación de boda", gutschein: "Tarjeta regalo", plan: "Análisis de idea", idol: "Vídeo con tu ídolo", versprechen: "Future Self Program" },
+  fr: { birthday: "Vidéo d'anniversaire", kiss: "Vidéo de baiser", poledance: "Vidéo pole dance", holiday: "Invitation vacances", wedding: "Invitation de mariage", gutschein: "Carte cadeau", plan: "Analyse d'idée", idol: "Vidéo avec ton idole", versprechen: "Future Self Program" },
+  pt: { birthday: "Vídeo de aniversário", kiss: "Vídeo de beijo", poledance: "Vídeo de pole dance", holiday: "Convite de férias", wedding: "Convite de casamento", gutschein: "Cartão presente", plan: "Análise da ideia", idol: "Vídeo com o teu ídolo", versprechen: "Future Self Program" },
+  it: { birthday: "Video di compleanno", kiss: "Video del bacio", poledance: "Video pole dance", holiday: "Invito vacanza", wedding: "Invito di nozze", gutschein: "Buono regalo", plan: "Analisi dell'idea", idol: "Video con il tuo idolo", versprechen: "Future Self Program" },
 };
+
+/**
+ * DAS THEMA OHNE „VIDEO"/„EINLADUNG" DARIN (11.08.2026, Owner am echten Befund: ein
+ * Bild-Eintrag zeigte „Kiss video" — „ist das ein Kiss video? Das ist ein Bild").
+ *
+ * `THEMEN` oben backt das Medium in den Text ein ("Kiss video", "Wedding invitation") — richtig
+ * für den Kontoauszug, wo jede Buchung tatsächlich ein Video oder eine Einladung ist. Die
+ * Galerie zeigt aber auch reine BILDER (ein Zwischenstand, ein Modell-Foto, ein Testlauf ohne
+ * fertiges Video) — und für die wäre "Kiss video" eine falsche Behauptung über das Medium.
+ * Diese Tabelle nennt nur das THEMA; `themaUndMedium` setzt das Medium separat davor/danach.
+ */
+const THEMA_KURZ: Record<Lang, Record<string, string>> = {
+  en: { birthday: "Birthday", kiss: "Kiss", poledance: "Pole dance", holiday: "Holiday", wedding: "Wedding", gutschein: "Gift card", idol: "Idol", versprechen: "Future Self Program" },
+  de: { birthday: "Geburtstag", kiss: "Kuss", poledance: "Poledance", holiday: "Urlaub", wedding: "Hochzeit", gutschein: "Gutschein", idol: "Idol", versprechen: "Future Self Program" },
+  ro: { birthday: "Ziua ta", kiss: "Sărut", poledance: "Pole dance", holiday: "Vacanță", wedding: "Nuntă", gutschein: "Card cadou", idol: "Idol", versprechen: "Future Self Program" },
+  es: { birthday: "Cumpleaños", kiss: "Beso", poledance: "Pole dance", holiday: "Vacaciones", wedding: "Boda", gutschein: "Tarjeta regalo", idol: "Ídolo", versprechen: "Future Self Program" },
+  fr: { birthday: "Anniversaire", kiss: "Baiser", poledance: "Pole dance", holiday: "Vacances", wedding: "Mariage", gutschein: "Carte cadeau", idol: "Idole", versprechen: "Future Self Program" },
+  pt: { birthday: "Aniversário", kiss: "Beijo", poledance: "Pole dance", holiday: "Férias", wedding: "Casamento", gutschein: "Cartão presente", idol: "Ídolo", versprechen: "Future Self Program" },
+  it: { birthday: "Compleanno", kiss: "Bacio", poledance: "Pole dance", holiday: "Vacanza", wedding: "Nozze", gutschein: "Buono regalo", idol: "Idolo", versprechen: "Future Self Program" },
+};
+
+/**
+ * DAS WORT „BILD" ODER „VIDEO" — getrennt vom Thema, weil ein Kiss-Auftrag mal als Bild und
+ * mal als Video vorliegt (je nachdem, ob die Kette schon fertig ist), und die Galerie das
+ * Medium zeigen soll, das WIRKLICH da ist — nicht das, was das Thema normalerweise liefert.
+ */
+const MEDIUM_WORT: Record<Lang, { bild: string; video: string }> = {
+  en: { bild: "Image", video: "Video" },
+  de: { bild: "Bild", video: "Video" },
+  ro: { bild: "Imagine", video: "Video" },
+  es: { bild: "Imagen", video: "Vídeo" },
+  fr: { bild: "Image", video: "Vidéo" },
+  pt: { bild: "Imagem", video: "Vídeo" },
+  it: { bild: "Immagine", video: "Video" },
+};
+
+/**
+ * WAS EIN WERK IN DER GALERIE IST — nie geraten (Owner 11.08.2026, siehe `THEMA_KURZ`).
+ *
+ * `thema` leer/unbekannt → nur das Medium ("Image"/"Video"). `thema` bekannt → Thema + Medium
+ * ("Kiss · Video"). So behauptet die Zeile nie ein Thema, das der Eintrag nicht trägt, sagt
+ * aber IMMER ehrlich, ob ein Bild oder ein Video vor ihm liegt.
+ */
+export function themaUndMedium(lang: Lang, thema: string, hatVideo: boolean): string {
+  const m = MEDIUM_WORT[lang] ?? MEDIUM_WORT.en;
+  const medium = hatVideo ? m.video : m.bild;
+  const kurz = (THEMA_KURZ[lang] ?? THEMA_KURZ.en)[thema];
+  return kurz ? `${kurz} · ${medium}` : medium;
+}
 
 /** Die Buchungsart in Worten des Kunden — Thema schlägt Art (siehe API `/api/konto`). */
 export function buchungWort(lang: Lang, art: string, thema: string): string {

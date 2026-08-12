@@ -379,19 +379,37 @@ export default function EinladungAnsicht({
                nichts und brach mit `if (!v) return` wortlos ab. Jetzt öffnet `start`
                das Tor; steht der Spieler schon, wird er direkt laut. */
             setLaeuft(true); setTon(true);
-            const v = videoRef.current;
             /* UND WENN ER TROTZDEM NICHT WILL, KOMMT DIE SCHEIBE ZURUECK: `laeuft` wird beim
                Tipp gesetzt, BEVOR feststeht, ob der Browser das Abspielen erlaubt. Lehnt er
                beide Male ab (laut, dann stumm), stuende die Karte wieder ohne Knopf vor einem
                stehenden Video — genau die Sackgasse, die wir hier zumachen. GEMESSEN: ein
                Klick ohne echte Geste laesst `play()` scheitern, die Scheibe verschwand, und
                nichts holte sie zurueck. */
-            if (v) {
+            const anspielen = (v: HTMLVideoElement) => {
               v.muted = false; v.volume = 1;
               void v.play()
                 .catch(() => { v.muted = true; return v.play(); })
                 .catch(() => setLaeuft(false));
-            }
+            };
+            const v = videoRef.current;
+            if (v) { anspielen(v); return; }
+            /**
+             * DER SPIELER STEHT BEIM TIPP NOCH GAR NICHT (in der Galerie gemessen, 11.08.2026:
+             * „ich kann das video nicht abspielen in der vergrösserten Ansicht").
+             *
+             * `videoRef.current` ist beim ERSTEN Tipp IMMER `null` — `SchleifenVideo` haengt
+             * das `<video>` erst ein, nachdem `start` (oben gesetzt via `laeuft`) durch einen
+             * eigenen Durchlauf gelaufen ist. Der `if (v)`-Zweig darueber ist damit beim ersten
+             * Tipp ein garantiertes Nichts, und das Abspielen haengt allein an `autoPlay` — ein
+             * Aufruf, der NICHT mehr direkt im Tipp steht und den strenge Browser (iOS Safari)
+             * deshalb manchmal verweigern. `requestAnimationFrame` wartet auf genau den einen
+             * Durchlauf, in dem der Spieler entsteht, und ruft `play()` dann selbst — noch nah
+             * genug am Tipp, um als seine Geste zu gelten.
+             */
+            requestAnimationFrame(() => {
+              const v2 = videoRef.current;
+              if (v2) anspielen(v2);
+            });
           }}
           /**
            * EIN KREIS IN DER MITTE, NICHT DIE GANZE FLAECHE (Owner 03.08.2026: „wenn ich auf

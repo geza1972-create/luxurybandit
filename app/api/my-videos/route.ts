@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { futureProgramUrl } from "@/lib/future-program-store";
+import { geschenkPreisCents } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -206,8 +207,32 @@ export async function GET(request: Request) {
            * Ohne den Namen stiege in der Vorschau „ich liebe dich" auf statt „Anna, ich liebe
            * dich" — und die Karte sieht anders aus als die, die der Empfaenger bekommt.
            */
-          theme: e.theme || "kiss",
+          /**
+           * NIE EIN GERATENES THEMA (Owner 11.08.2026, am echten Befund: ein Eintrag ohne
+           * Thema zeigte „Kiss video" in der Galerie — „ist das ein Kiss video? Das ist ein
+           * Bild und wurde bestimmt für einen anderen Zweck gemacht").
+           *
+           * Hier stand `e.theme || "kiss"` — der alte Rückfall aus einer Zeit, in der nur der
+           * Kuss-Trichter schrieb (siehe `KissLogEntry.theme`-Kommentar). Für die ANZEIGE ist
+           * das eine Behauptung: „das hier ist ein Kuss-Video", obwohl wir es schlicht nicht
+           * wissen. Leer bleibt leer; die Galerie zeigt bei leerem Thema einen neutralen Text
+           * statt eines geratenen. Musik/Reaktions-Auswahl (die einen Wert BRAUCHEN, aber
+           * niemandem etwas behaupten) fallen weiterhin an ihrer eigenen Stelle auf "kiss"
+           * zurück.
+           */
+          theme: e.theme || "",
           empfaenger: e.empfaenger || "",
+          /**
+           * DIE DATENZEILE JE WERK (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
+           * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, wie lang das
+           * video ist"). `createdAt` steht schon oben; hier kommen die restlichen drei dazu.
+           * Der Betrag ist NIE getippt — er kommt aus `geschenkPreisCents(theme)`, derselben
+           * Tabelle wie die Kasse (Memory `prices-only-from-pricing-table`), und nur, wenn
+           * wirklich bezahlt wurde.
+           */
+          videoFertigAt: e.videoFertigAt || "",
+          paid: !!e.paid,
+          ...(e.paid ? { preisCents: geschenkPreisCents(e.theme || "kiss") } : {}),
           // Das Urteil der Alters- und Nacktheitspruefung — daraus wird in der Galerie das
           // Warnzeichen (Owner 31.07.2026). Steht nur da, wenn etwas auffiel.
           warnung: e.altersWarnung || "",
@@ -282,9 +307,22 @@ export async function GET(request: Request) {
         const film = e.videoUrl ? "fertig"
           : (e.videoAlertAt || (e.videoTries ?? 0) >= 3) ? "fehler"
           : "kommt";
-        return { id: e.id, programUrl, film, createdAt: e.createdAt || "" };
+        /**
+         * DAS KACHELBILD DES PROGRAMMS (Owner 11.08.2026: „Das habe ich komplett
+         * übersehen … Muss in der Galerie stehen … Als Bild das Standbild seiner
+         * Aufnahme"). Dasselbe Standbild, das die Kette zum Erzeugen benutzt hat — es
+         * existiert immer schon, bevor irgendein Film fertig ist.
+         */
+        const posterUrl = (e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "")
+          || (e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "");
+        return {
+          id: e.id, programUrl, film, createdAt: e.createdAt || "",
+          videoFertigAt: e.videoFertigAt || "",
+          posterUrl,
+          preisCents: geschenkPreisCents("versprechen"),
+        };
       }));
-      return liste.filter(Boolean) as { id: string; programUrl: string; film: string; createdAt: string }[];
+      return liste.filter(Boolean) as { id: string; programUrl: string; film: string; createdAt: string; videoFertigAt: string; posterUrl: string; preisCents: number }[];
     } catch { return []; }
   })();
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Eye, EyeOff, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
@@ -1035,7 +1036,8 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] =
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday" },
   { icon: Heart, name: "Kiss", href: "/themes/kiss" },
-  { icon: Gift, name: "Surprise", href: "/themes/surprise" },
+  /* Surprise (Pole Dance) IST RAUS (Owner 11.08.2026, siehe app/sitemap.ts) — nicht in der
+     Topic-Reihe, nur noch intern (Admin-Vorschau in BottomNav.tsx) erreichbar. */
   { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
   { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
@@ -1045,16 +1047,32 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
   themen?: { icon: LucideIcon; name: string; href: string }[];
   className?: string;
 }) {
+  /**
+   * GOLD IST NUR, WAS GERADE AKTIV IST (Owner 11.08.2026, mit Bild der Reihe: „die sind
+   * gelb und das verwirrt. Gelb ist nur das was gerade aktiv ist. Wie Galerie eben.").
+   *
+   * Vorher trug jeder Kreis dieselbe Gold-Auszeichnung — sechs gleich helle Punkte sagen
+   * dann nichts mehr, weil nichts sich vom Rest abhebt (dieselbe Lehre wie am Galerie-Chip:
+   * Aktiv ist ein Zustand, keine Dauerfarbe). Jetzt gilt: gedämpft ist der Normalfall, Gold
+   * bekommt nur der Kreis, dessen Adresse die SEITE ist, auf der man gerade steht — genau
+   * dieselbe Regel wie beim Galerie-Chip in TopNav.
+   */
+  const pfad = usePathname();
   return (
     <div className={`lb-wisch -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
-      {themen.map(t => (
-        <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
-          <span className="grid h-[58px] w-[58px] place-items-center rounded-full border border-[#f6cf51]/30 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51] transition group-active:scale-90">
-            <t.icon className="h-[22px] w-[22px]" />
-          </span>
-          <span className="text-center text-[10.5px] font-black leading-none text-white/70">{t.name}</span>
-        </a>
-      ))}
+      {themen.map(t => {
+        const aktiv = pfad === t.href;
+        return (
+          <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
+            <span className={`grid h-[58px] w-[58px] place-items-center rounded-full border transition group-active:scale-90 ${aktiv
+              ? "border-[#f6cf51]/40 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51]"
+              : "border-white/15 bg-white/[0.04] text-white/60"}`}>
+              <t.icon className="h-[22px] w-[22px]" />
+            </span>
+            <span className={`text-center text-[10.5px] font-black leading-none ${aktiv ? "text-[#f6cf51]" : "text-white/60"}`}>{t.name}</span>
+          </a>
+        );
+      })}
     </div>
   );
 }

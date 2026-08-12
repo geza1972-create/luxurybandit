@@ -237,6 +237,16 @@ svg {
 @media all {
   .lb-theme.bg-black,
   .lb-theme .bg-black { background-color: #faf8f4 !important; }
+  /* DIE VOLLBILD-FLÄCHE BLEIBT DUNKEL, WEIL SIE `bg-black/95` HEISST, NICHT `bg-black`
+     (Owner 11.08.2026, am Vollbild-Betrachter in heller Fassung: „dialog auch light wenn
+     schon light"). Tailwinds Opazitäts-Schreibweise backt die Deckkraft in eine EIGENE
+     Klasse — die Regel oben trifft `bg-black`, nicht `bg-black/95`, `bg-black/90` usw.
+     Jede solche Stufe braucht ihre eigene Zeile, sonst bleibt genau sie schwarz, während
+     der Rest der Seite längst hell ist. */
+  .lb-theme .bg-black\/95 { background-color: rgba(250, 248, 244, 0.97) !important; }
+  .lb-theme .bg-black\/90 { background-color: rgba(250, 248, 244, 0.95) !important; }
+  .lb-theme .bg-black\/80 { background-color: rgba(250, 248, 244, 0.9) !important; }
+  .lb-theme .bg-black\/70 { background-color: rgba(250, 248, 244, 0.85) !important; }
   .lb-theme { color: #1a160f; color-scheme: light; }
 
   /* white text → near-black (Tailwind bakes the /opacity into the color, so we use fixed alphas) */
@@ -814,4 +824,18 @@ svg {
 .lb-fb .lb-teaser,
 .lb-fb .lb-teaser * {
   color: #1a160f !important;
+}
+/**
+ * EIN ECHTER KNOPF IM TEASER BLEIBT EIN KNOPF (Owner 11.08.2026: „was ist das für ein
+ * button mit blach font?" — der "Heute erledigt"-Knopf sitzt IM Teaser-Kasten, der
+ * generell auf Tinte-Schrift zwingt; genau richtig für den Werbetext daneben, falsch für
+ * einen Knopf, der eigentlich weiss auf Blau gehört, wie jeder Gold-Knopf in dieser
+ * Fassung. Die Regel oben und `.lb-fb .lb-gold` haben GLEICHE Spezifität, und die Teaser-
+ * Regel steht später — sie gewinnt sonst automatisch. Diese Zeile ist eine Stufe
+ * spezifischer (drei statt zwei Klassen) und gilt NUR für Knöpfe innerhalb eines Teasers,
+ * ohne die Teaser-Regel selbst aufzuweichen.
+ */
+.lb-fb .lb-teaser .lb-gold,
+.lb-fb .lb-teaser .lb-gold * {
+  color: #fff !important;
 }

@@ -40,7 +40,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/themes/wedding`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/themes/holiday`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/birthday`, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${BASE}/themes/surprise`, changeFrequency: "weekly", priority: 0.8 },
+    /* `/themes/surprise` (Pole Dance) IST RAUS (Owner 11.08.2026: „ich denke, wir müssen
+       pool dancing raus machen weil das unseriös wirkt für das portal" — und weiter: „intern
+       nach anmeldung kann man das anbieten aber nicht in der topic"). Die Seite und ihr
+       Kaufweg bleiben im Code, nur beworben wird sie nicht mehr — siehe app/themes/page.tsx
+       und components/CI.tsx (THEMEN_KREISE). */
     { url: `${BASE}/themes/chat`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/versprechen`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/bella`, changeFrequency: "weekly", priority: 0.6 },

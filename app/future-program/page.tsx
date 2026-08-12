@@ -47,11 +47,22 @@ function FutureProgramInner() {
   useEffect(() => {
     if (!g || !t) { setLaden(false); setFehler(true); return; }
     let lebt = true;
-    fetch(`/api/future-program?g=${encodeURIComponent(g)}&t=${encodeURIComponent(t)}`, { cache: "no-store" })
+    /**
+     * DIE LADEFLÄCHE DARF NIE OHNE AUSWEG BLEIBEN (Owner 11.08.2026: „immer close
+     * einbauen" — gesehen an einer Ladefläche, die stehen blieb, weil die Anfrage nie
+     * antwortete). Ein `fetch` ohne eigene Frist wartet sonst UNBEGRENZT: kein Fehler,
+     * kein Ergebnis, nur das Drehrad — und die Fehlerfläche mit ihrem "Meine Galerie
+     * öffnen"-Knopf kommt nie zum Zug. Der Abbruch nach 12 s garantiert, dass spätestens
+     * dann der Ausweg erscheint, egal was mit der Verbindung ist.
+     */
+    const abbruch = new AbortController();
+    const frist = setTimeout(() => abbruch.abort(), 12_000);
+    fetch(`/api/future-program?g=${encodeURIComponent(g)}&t=${encodeURIComponent(t)}`, { cache: "no-store", signal: abbruch.signal })
       .then(r => (r.ok ? r.json() : Promise.reject(r)))
       .then((d: Antwort) => { if (lebt) { setDaten(d); setLaden(false); } })
-      .catch(() => { if (lebt) { setFehler(true); setLaden(false); } });
-    return () => { lebt = false; };
+      .catch(() => { if (lebt) { setFehler(true); setLaden(false); } })
+      .finally(() => clearTimeout(frist));
+    return () => { lebt = false; clearTimeout(frist); };
   }, [g, t]);
 
   /**
@@ -209,9 +220,28 @@ function ProgrammAnsicht({ daten, T, lang, wirdAbgehakt, abhaken, ziel90Entwurf,
             <p className="mt-3 text-[13px] font-bold text-[#f6cf51]">{heutigerEintrag.frage}</p>
             <div className="mt-3">
               {heuteErledigt ? (
-                <p className="flex h-12 items-center justify-center rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[14px] font-black text-[#f6cf51]">
+                /**
+                 * DER "ERLEDIGT"-ZUSTAND WAR EIN HANDGEBAUTES `<p>` MIT ABGESCHRIEBENEN
+                 * KLASSEN — genau der Fehler, den die Bibliotheksregel verbietet (Owner
+                 * 11.08.2026, in der hellen Anzeigen-Fassung: „was ist das für ein button
+                 * mit blach font?" — schwarze Schrift auf sattem Blau statt weiss).
+                 *
+                 * URSACHE: Der Text steckte im Teaser-Kasten (`Kasten art="gold"`, Klasse
+                 * `.lb-teaser`), und dessen HELLE FASSUNG zwingt JEDEN Text darin auf die
+                 * dunkle Tinte (`.lb-fb .lb-teaser *`) — richtig für ruhigen Werbetext,
+                 * falsch für einen Knopf. Die Fläche selbst wurde durch die eigenen
+                 * `bg-[#f6cf51]/10`-Klassen zusätzlich blau eingefärbt (Owner-Regel: Gold
+                 * wird in der Anzeigen-Fassung zu Facebook-Blau) — daraus das
+                 * Farb-Durcheinander.
+                 *
+                 * DER ECHTE `Knopf`-BAUSTEIN TRÄGT `.lb-gold`, und GENAU dafür gibt es
+                 * bereits die richtige Regel (`.lb-fb .lb-gold { background:#1877F2;
+                 * color:#fff }`) — weisse Schrift auf Blau, lesbar. `disabled` macht ihn
+                 * unklickbar und etwas gedämpft, ohne eine zweite Gestalt zu erfinden.
+                 */
+                <Knopf art="gold" disabled>
                   {T.doneToday}
-                </p>
+                </Knopf>
               ) : (
                 <Knopf art="gold" onClick={() => abhaken(heute)} disabled={wirdAbgehakt === heute}>
                   {wirdAbgehakt === heute ? <Laden /> : T.markDone}

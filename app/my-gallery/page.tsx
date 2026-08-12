@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
-import { kontoText, spracheAusCookie } from "@/lib/konto-i18n";
+import { kontoText, spracheAusCookie, themaUndMedium } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
-import { ThemenKreise, Kasten } from "@/components/CI";
+import { ThemenKreise } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -15,6 +15,7 @@ import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { geraetGiltAlsAusweis } from "@/lib/abmelden-spuren";
 import { kissText } from "@/lib/kiss-i18n";
+import { eur } from "@/lib/pricing";
 
 // „My Gallery" als eigene Seite: ALLE generierten Try-on-Videos (dieselbe Quelle wie
 // im Funnel, /api/try-this-look?adminPosts=1) — von überall über das Menü erreichbar.
@@ -42,7 +43,12 @@ const WARN_TEXT: Record<string, string> = {
 
 type Item = {
   id: string;
-  type?: "video" | "slide";   // Try-on-Video vs. Card-Studio-Slide (Urlaub/Peter-Fotos)
+  /**
+   * "program" IST DIE PROGRAMM-KACHEL (11.08.2026, Owner: „Das habe ich komplett
+   * übersehen … Muss in der Galerie stehen"). Sie ist ein ganz normales Raster-Element,
+   * kein Video/Slide — nur ihr Klick-Ziel ist anders (siehe `onClick` unten).
+   */
+  type?: "video" | "slide" | "program";   // Try-on-Video vs. Card-Studio-Slide (Urlaub/Peter-Fotos) vs. Programm
   imageUrl: string;
   videoUrl?: string;
   /** Bezahlt, Video noch in Arbeit — die Kachel sagt es (Owner 08.08.2026). */
@@ -70,6 +76,16 @@ type Item = {
   alter?: number;
   feed?: boolean;
   public?: boolean;
+  /**
+   * DIE DATENZEILE JE WERK (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
+   * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, wie lang das video
+   * ist"). Kommt fertig aus /api/my-videos — nie selbst berechnet (der Preis braucht die
+   * Tabelle aus lib/pricing, Memory `prices-only-from-pricing-table`).
+   */
+  createdAt?: string;
+  videoFertigAt?: string;
+  paid?: boolean;
+  preisCents?: number;
 };
 
 export default function MyGalleryPage() {
@@ -269,13 +285,6 @@ export default function MyGalleryPage() {
    */
   /** Sein Avatar — Gesicht und Stimme, mit denen jedes Video gebaut wird. */
   const [avatar, setAvatar] = useState<{ imageUrl: string; stimme: boolean } | null>(null);
-  /**
-   * SEINE BEZAHLTEN PROGRAMME (11.08.2026). Sie leben NEBEN den Kacheln, nicht in ihnen:
-   * Ein Programm hat kein Bild, und die Kachelliste wirft alles weg, was weder Bild noch
-   * Video hat — genau daran war der Kauf vom Auftrag da11fe51 unsichtbar. Kommt fertig aus
-   * /api/my-videos (`programme`), inklusive gültiger `programUrl`.
-   */
-  const [programme, setProgramme] = useState<{ id: string; programUrl: string; film: string }[]>([]);
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => { setLang(spracheAusCookie()); }, []);
   const T = kontoText(lang);
@@ -294,7 +303,7 @@ export default function MyGalleryPage() {
    * er das Handy weiter. Sein Gesicht (der Avatar) geht als Erstes.
    */
   useEffect(() => {
-    const leeren = () => { setItems([]); setAvatar(null); setProgramme([]); };
+    const leeren = () => { setItems([]); setAvatar(null); };
     window.addEventListener("lb-abgemeldet", leeren);
     return () => window.removeEventListener("lb-abgemeldet", leeren);
   }, []);
@@ -355,7 +364,7 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; programUrl?: string }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; programUrl?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
@@ -363,11 +372,17 @@ export default function MyGalleryPage() {
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
               source: b.source || "kiss",
-              theme: b.theme || "kiss",
+              /* NIE GERATEN — leer bleibt leer, siehe /api/my-videos. Ein falsches Thema auf
+                 einem privaten Werk ist kein Kosmetik-Fehler (Owner 11.08.2026). */
+              theme: b.theme || "",
               empfaenger: b.empfaenger || "",
               warnung: b.warnung || "",
               alter: b.alter || 0,
               programUrl: b.programUrl || "",
+              createdAt: b.createdAt || "",
+              videoFertigAt: b.videoFertigAt || "",
+              paid: b.paid === true,
+              preisCents: b.preisCents,
             }))
             /**
              * EIN LAUFENDER AUFTRAG BLEIBT DRIN, AUCH OHNE BILD (Owner 08.08.2026: „Zuerst
@@ -380,20 +395,35 @@ export default function MyGalleryPage() {
              * haette er nichts gekauft. Wer bezahlt hat, sieht seinen Platz sofort.
              */
             .filter((b: Item) => b.imageUrl || b.videoUrl || b.rendert);
-          own.push(...bilder);
-          if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
-          if (d?.avatar?.imageUrl) setAvatar({ imageUrl: String(d.avatar.imageUrl), stimme: !!d.avatar.stimme });
           /**
-           * DIE PROGRAMM-KARTEN — ERSETZEN, NICHT ERGÄNZEN (anders als die Kacheln oben).
-           * Es gibt nur eine Quelle dafür, und der Zustand des Films ändert sich mit jedem
-           * Durchgang: „kommt" wird zu „fertig". Ein Anhängen würde denselben Kauf doppelt
-           * zeigen, ein alter Stand bliebe stehen.
+           * DAS PROGRAMM IST EINE GANZ NORMALE KACHEL (Owner 11.08.2026: „Das habe ich
+           * komplett übersehen … Muss in der Galerie stehen … statt privat Programm").
+           *
+           * Es stand bis hierher in einer eigenen Sonderkarte über allem — der Käufer sah es
+           * trotzdem nicht, weil er die Galerie wie ein Album liest, nicht wie ein Formular
+           * mit Kästchen darüber. Jetzt ist es EIN Item wie jedes Video, an seinem
+           * chronologischen Platz (`createdAt`), mit demselben Format 9:16.
            */
           const progs = (Array.isArray(d?.programme) ? d.programme : [])
-            .map((p: { id: string; programUrl?: string; film?: string }) =>
-              ({ id: String(p.id), programUrl: String(p.programUrl || ""), film: String(p.film || "kommt") }))
+            .map((p: { id: string; programUrl?: string; film?: string; createdAt?: string; videoFertigAt?: string; posterUrl?: string; preisCents?: number }) => ({
+              id: String(p.id), programUrl: String(p.programUrl || ""), film: String(p.film || "kommt"),
+              createdAt: String(p.createdAt || ""), videoFertigAt: String(p.videoFertigAt || ""),
+              posterUrl: String(p.posterUrl || ""), preisCents: p.preisCents,
+            }))
             .filter((p: { programUrl: string }) => !!p.programUrl);
-          setProgramme(progs);
+          const progItems: Item[] = progs.map((p: { id: string; programUrl: string; createdAt: string; videoFertigAt: string; posterUrl: string; preisCents?: number }) => ({
+            id: `programm:${p.id}`, type: "program" as const, imageUrl: p.posterUrl,
+            lookName: "Future Self Program", theme: "versprechen",
+            createdAt: p.createdAt, videoFertigAt: p.videoFertigAt,
+            paid: true, preisCents: p.preisCents, programUrl: p.programUrl,
+          }));
+          /* AN IHREM CHRONOLOGISCHEN PLATZ, NICHT ANGEHÄNGT: `bilder` kommt aus dem Kiss-Log
+             bereits neuestes-zuerst sortiert; die Programm-Kachel teilt dieselben Zeitstempel
+             und wird hier einsortiert statt hintenangestellt — sonst landete sie immer ganz
+             unten, egal wie frisch der Kauf war. */
+          own.push(...[...bilder, ...progItems].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")));
+          if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
+          if (d?.avatar?.imageUrl) setAvatar({ imageUrl: String(d.avatar.imageUrl), stimme: !!d.avatar.stimme });
           /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. Ein Programm,
              dessen Film noch entsteht, zählt genauso: seine Karte soll von selbst auf
              „fertig" umspringen, ohne dass der Käufer neu lädt. */
@@ -458,6 +488,16 @@ export default function MyGalleryPage() {
   const [teilenText, setTeilenText] = useState("");
 
   /**
+   * WIE LANG DAS VIDEO IST — nirgends gespeichert, kommt aus dem Spieler selbst (Owner
+   * 11.08.2026: „Wie lang das video ist"). Ein eigenes, unsichtbares `<video>` mit
+   * `preload="metadata"` lädt nur den Kopf der Datei (ein paar Zehnerkilobyte), nicht den
+   * Film — dieselbe Sparsamkeit wie das Kachel-Standbild weiter oben. Wird bei jedem neuen
+   * `open` zurückgesetzt, sonst stünde kurz die Länge des vorigen Videos da.
+   */
+  const [offenDauer, setOffenDauer] = useState("");
+  useEffect(() => { setOffenDauer(""); }, [open?.id]);
+
+  /**
    * TEILEN: erst freischalten, dann verschicken.
    *
    * Die Werk-Seite /w/<id> ist privat, bis der Besitzer teilt — das ist die Zusage, die im
@@ -520,6 +560,15 @@ export default function MyGalleryPage() {
     return `/api/download?path=${encodeURIComponent(pfad)}&name=${encodeURIComponent(name)}`;
   };
 
+  /** Das Datum in seiner Sprache — dieselben sieben Kürzel wie überall im Haus. */
+  const DATUMS_LOCALE: Record<Lang, string> = { en: "en-US", de: "de-DE", ro: "ro-RO", es: "es-ES", fr: "fr-FR", pt: "pt-PT", it: "it-IT" };
+  const datumWort = (iso: string): string => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString(DATUMS_LOCALE[lang] ?? "en-US", { dateStyle: "medium", timeStyle: "short" });
+  };
+
   return (
     <main className="min-h-[100dvh] lb-bg pb-24 text-white">
       <TopNav />
@@ -549,33 +598,18 @@ export default function MyGalleryPage() {
           * ist (siehe `nachladen` oben) — der Kaeufer muss nie neu laden.
           */}
         {/**
-          * DIE PROGRAMM-KARTE STEHT VOR ALLEM ANDEREN (11.08.2026, Auftrag da11fe51:
-          * bezahlt 14:07, Programm-Datei 14:08, Video gescheitert — und der Käufer sah
-          * NICHTS).
+          * DIE PROGRAMM-KARTE STAND HIER FRÜHER ALS EIGENE SONDERKARTE (11.08.2026, Auftrag
+          * da11fe51: bezahlt 14:07, Programm-Datei 14:08, Video gescheitert — der Käufer sah
+          * NICHTS, deshalb zuerst diese Extra-Karte über allem).
           *
-          * Warum ganz oben und nicht als Kachel: Das 30-Tage-Programm ist das GEKAUFTE,
-          * der Film ist die Zugabe. Eine Kachel bräuchte ein Bild, hat keins, und die
-          * Kachelliste filtert Bildloses weg — genau daran verschwand der Kauf. Und sie
-          * steht auch dann, wenn darunter gar keine Kachel ist: DANN ist sie am wichtigsten,
-          * weil die Seite sonst behauptet, er hätte nichts gekauft.
-          *
-          * Der Zustand des Films steht dabei — nicht um ihn zu vertrösten, sondern damit die
-          * Karte die Frage beantwortet, mit der er herkommt („wo ist mein Film?").
+          * OWNER 11.08.2026, NACHDEM ER SIE TROTZDEM ÜBERSAH: „Das habe ich komplett
+          * übersehen … Muss in der Galerie stehen … da kannst du im Label schreiben statt
+          * privat Programm. Und wenn ich drauf klicke auf das Bild dann öffnet sich das
+          * programm." Eine Sonderkarte liest man wie ein Formularfeld, nicht wie ein Werk in
+          * einem Album — die Galerie IST das Album. Das Programm steht jetzt als GANZ
+          * NORMALE Kachel im Raster weiter unten (Item `type: "program"`), an seinem
+          * chronologischen Platz, mit dem Standbild seiner Aufnahme statt eines Bildes.
           */}
-        {programme.map(p => {
-          const V = kissText(lang, "versprechen");
-          const satz = p.film === "fertig" ? V.filmFertig : p.film === "fehler" ? V.filmFehler : V.filmKommt;
-          return (
-            <Kasten key={p.id} art="gold" polster="p-4" className="mt-3">
-              <p className="text-[15px] font-black text-white">Future Self Program</p>
-              {!!satz && <p className="mt-1 text-[12.5px] font-semibold leading-snug text-white/65">{satz}</p>}
-              <a href={p.programUrl} target="_self"
-                className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95">
-                {V.programmKnopf}
-              </a>
-            </Kasten>
-          );
-        })}
 
         {/**
           * DER AVATAR STEHT ÜBER ALLEM (Owner 09.08.2026: „Auch in der Galerie. Das kann
@@ -702,7 +736,17 @@ export default function MyGalleryPage() {
             {shown.map(it => {
               const isSel = selected.has(it.id);
               return (
-              <div key={it.id} onClick={() => selectMode ? toggleSel(it.id) : setOpen(it)}
+              <div key={it.id}
+                onClick={() => {
+                  if (selectMode) { toggleSel(it.id); return; }
+                  /**
+                   * DAS PROGRAMM ÖFFNET SICH DIREKT (Owner 11.08.2026: „Und wenn ich drauf
+                   * klicke auf das Bild dann öffnet sich das programm"). Kein Vollbild-
+                   * Zwischenschritt wie bei einem Video — ein Tipp, ein Ziel.
+                   */
+                  if (it.type === "program") { if (it.programUrl) window.location.href = it.programUrl; return; }
+                  setOpen(it);
+                }}
                 className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
                 {/**
                   * VIDEO OHNE VORSCHAUBILD → DAS VIDEO IST DIE KACHEL (Owner 03.08.2026:
@@ -715,7 +759,21 @@ export default function MyGalleryPage() {
                   * erste Standbild, nicht den Film — nie schwarz, nichts laedt unnoetig
                   * (Hausregel aus der Feed-Spezifikation: nie ein schwarzer Kasten).
                   */}
-                {!it.imageUrl && it.videoUrl ? (
+                {it.type === "program" ? (
+                  /**
+                   * DAS KACHELBILD DES PROGRAMMS — sein eigenes Standbild, sonst eine ruhige
+                   * Fläche in Hausfarbe mit dem Wort (Owner 11.08.2026: „Als Bild das
+                   * Standbild seiner Aufnahme"; fehlt es, kein kaputtes Bildsymbol).
+                   */
+                  it.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={it.imageUrl} alt={T.programm} loading="lazy" className="h-full w-full object-cover object-top" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-[#1a160f] px-2 text-center text-[12px] font-black text-[#f6cf51]">
+                      {T.programm}
+                    </div>
+                  )
+                ) : !it.imageUrl && it.videoUrl ? (
                   /**
                    * `#t=0.1` IST DAS POSTER (Owner 03.08.2026: „das Video ist ohne Poster in
                    * der Galerie").
@@ -782,9 +840,28 @@ export default function MyGalleryPage() {
                     <Trash2 className={loeschScharf === it.id ? "h-4 w-4" : "h-3.5 w-3.5"} />
                   </button>
                 )}
-                <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
-                  {it.public ? "Public" : it.feed ? "Show" : "Private"}
-                </span>
+                {/**
+                  * DAS „PRIVATE"-SCHILD (Owner 11.08.2026: „ok überall steht private, das
+                  * brauche ich nicht" — an genau dieser Marke, in seiner eigenen Galerie).
+                  *
+                  * Für ihn als Kunden ist „privat" der Normalzustand jedes Stücks hier — ein
+                  * Schild, das das immer wiederholt, sagt nichts Neues. Der Admin dagegen hat
+                  * DIREKT DARUNTER den Umschalter (`→ Privat 🔒` / `→ Public ✓`); für ihn bleibt
+                  * das Schild, weil es zu einer echten Funktion gehört (Punkt 1: „wenn ja,
+                  * Funktion behalten, nur die Dauer-Beschriftung entfernen" — hier ist beides
+                  * dasselbe Wort, deshalb bleibt es stehen, aber NUR beim Admin).
+                  * Die Programm-Kachel hat kein Public/Private — sie zeigt stattdessen, WAS sie
+                  * ist (Owner: „da kannst du im Label schreiben statt privat Programm").
+                  */}
+                {it.type === "program" ? (
+                  <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[8px] font-black text-white backdrop-blur">
+                    {T.programm}
+                  </span>
+                ) : pin && (
+                  <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
+                    {it.public ? "Public" : it.feed ? "Show" : "Private"}
+                  </span>
+                )}
                 {/* Typ-Tag: Card-Slide (Urlaub/Peter) unterscheiden. Im Auswahl-Modus weg (Häkchen). */}
                 {it.type === "slide" && !selectMode && (
                   <span className="absolute right-1 top-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[8px] font-black text-black backdrop-blur">Slide</span>
@@ -794,7 +871,7 @@ export default function MyGalleryPage() {
                   <span className="absolute left-1 bottom-1 rounded-full bg-violet-500/90 px-1.5 py-0.5 text-[8px] font-black text-white backdrop-blur">Lingerie</span>
                 )}
                 {/* Admin: 1-Klick Public ↔ Private — nur bei VIDEOS, außerhalb des Auswahl-Modus. */}
-                {pin && !selectMode && it.type !== "slide" && (
+                {pin && !selectMode && it.type !== "slide" && it.type !== "program" && (
                   <button type="button" onClick={(e) => { e.stopPropagation(); void setPublic(it, !it.public); }}
                     className={`absolute inset-x-1 bottom-6 rounded-full py-1 text-[9px] font-black backdrop-blur active:scale-95 transition ${it.public ? "bg-black/70 text-white" : "bg-amber-500 text-white"}`}>
                     {it.public ? "→ Privat 🔒" : "→ Public ✓"}
@@ -873,6 +950,39 @@ export default function MyGalleryPage() {
               </a>
             </div>
           </div>
+          {/**
+            * DIE DATENZEILE (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
+            * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, Wie lang das
+            * video ist. Ist das eine Programm, eine geburtstagskarte..."). WAS es ist (Thema +
+            * Medium in Worten), WANN aufgenommen, WANN fertig (nur wenn bekannt), WAS bezahlt
+            * (nur wenn wirklich bezahlt — nie ein getippter Betrag, siehe `geschenkPreisCents`
+            * in /api/my-videos), WIE LANG (nur bei Video, aus dem Spieler selbst).
+            *
+            * NIE EIN GERATENES THEMA (Owner 11.08.2026, am echten Befund: ein Eintrag ohne
+            * Thema zeigte „Kiss video" — „das ist ein Bild und wurde bestimmt für einen
+            * anderen Zweck gemacht"). Hier stand `themaLabel(lang, open.theme || "kiss")` —
+            * ein Rückfall auf "kiss", der bei leerem Thema eine Behauptung erfand, UND ein
+            * Text, der "video" fest eingebacken hatte, selbst wenn der Eintrag nur ein Bild
+            * ist. `themaUndMedium` rät nichts: fehlt das Thema, steht nur "Image"/"Video" da
+            * — nie ein falsches Thema, nie das falsche Medium.
+            */}
+          <div className="px-3 pb-2 text-center text-[11.5px] font-semibold leading-snug text-white/60" onClick={(e) => e.stopPropagation()}>
+            {themaUndMedium(lang, open.theme || "", !!open.videoUrl)}
+            {!!open.createdAt && <> · {T.aufgenommen} {datumWort(open.createdAt)}</>}
+            {!!open.videoFertigAt && <> · {T.fertig} {datumWort(open.videoFertigAt)}</>}
+            {open.paid && !!open.preisCents && <> · {T.bezahlt} {eur(open.preisCents, lang)}</>}
+            {!!open.videoUrl && !!offenDauer && <> · {offenDauer}</>}
+          </div>
+          {/* Miss die Länge, ohne das eigentliche Video zu laden — unsichtbar, nur der Kopf
+              der Datei (siehe Kommentar bei `offenDauer`). */}
+          {!!open.videoUrl && (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video src={open.videoUrl} preload="metadata" muted className="hidden"
+              onLoadedMetadata={e => {
+                const s = e.currentTarget.duration;
+                if (Number.isFinite(s)) setOffenDauer(`${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`);
+              }} />
+          )}
           <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-3" onClick={(e) => e.stopPropagation()}>
             {/**
               * DIE KARTE, NICHT DIE VIDEODATEI (Owner 03.08.2026: „ich will nicht das Video
@@ -932,55 +1042,40 @@ export default function MyGalleryPage() {
                         {...(musikFuer(open.theme || "kiss")
                           ? { musik: musikFuer(open.theme || "kiss"), tonAutomatisch: true }
                           : { originalton: true, schleife: false, musik: "" })}
-                        tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus} />
-                      <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
-                      {/**
-                        * TEILEN GEHÖRT AUF DIE KARTE (Owner 03.08.2026: „und die haben kein
-                        * Share-Button auf der Karte").
-                        *
-                        * Es gab einen — im schwarzen Kopfbalken darüber, zwischen „X" und
-                        * „Download", wo er über der Seitenkopfzeile klebt. Die Karte IST aber
-                        * das, was verschickt wird; der Knopf dafür gehört darauf, nicht in die
-                        * Werkzeugleiste eines Betrachters. Genau so steht es in
-                        * `Landingpage.md` und so macht es die Beispiel-Galerie: links oben,
-                        * gegenüber dem Ton-Knopf, auf z-30.
-                        *
-                        * Derselbe Aufruf wie oben (`teilen`) — erst freischalten, dann den
-                        * /w/<id>-Link verschicken, nie umgekehrt.
-                        */}
-                      <button type="button" disabled={teilenBusy}
-                        onClick={e => { e.stopPropagation(); void teilen(open); }}
-                        aria-label={T.teilen}
+                        tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus}
                         /**
-                         * WEISSE SCHEIBE, GOLDENER PFEIL — GENAU WIE BEIM TANZ (Owner
-                         * 03.08.2026: „nein, der Kreis war weiss und das Icon gold" · „etwas wie
-                         * der Sound" · „wie bei Poledance").
+                         * TEILEN GEHÖRT AUF DIE KARTE, AN IHREN FESTEN PLATZ (Owner 03.08.2026:
+                         * „und die haben kein Share-Button auf der Karte"; Owner 11.08.2026:
+                         * „wieso hat ein anderes design als sound?" — der Knopf sass hier
+                         * bislang FEST auf `left-2 top-2`, von Hand nachgebaut, statt über
+                         * dieses Prop zu gehen. Damit sass er LINKS (die Regel verlangt rechts,
+                         * Platz 2 nach Vergrössern) und sah anders aus als der Ton-Knopf
+                         * darunter — zwei Handarbeiten für dasselbe Symbol laufen garantiert
+                         * auseinander (Skill `card`: „Wer einen der drei Knöpfe selbst
+                         * irgendwo hinsetzt, baut den alten Fehler von neuem ein").
                          *
-                         * Zwei Fehlversuche davor, und beide aus demselben Grund: Ich habe die
-                         * Farbe selbst bestimmt, statt die Rezeptur zu nehmen, die auf den
-                         * Tanz-Karten schon steht. Erst eine dunkle Scheibe mit goldenem Pfeil
-                         * (weil `.lb-karte svg` jedes Symbol auf Gold zieht), dann eine dunkle
-                         * Scheibe mit weissem Pfeil — und daneben sass unveraendert der
-                         * Elfenbein-Ton-Knopf. Zwei Gestaltungen fuer dieselbe Sorte Bedienung,
-                         * auf derselben Karte, nebeneinander.
-                         *
-                         * DIE VORLAGE IST `TeilenKnopf` mit `rund` (BeispielGalerie, Tanz):
-                         * weisser Grund per `style`, und `.lb-karte svg` macht den Pfeil von
-                         * selbst golden. Kein `data-aufmedien` — das waere Weiss auf Weiss.
-                         * Der Hintergrund darf hier per `style` kommen: Die !important-Regeln
-                         * der Karte treffen `color`/`stroke`, nicht `background`.
+                         * Jetzt reicht dieser Aufrufer nur noch, WAS geteilt wird — Platz
+                         * (`right-3`, zweite Stelle nach Vergrössern), Grösse und die 30 %
+                         * Durchsicht setzt `EinladungAnsicht` selbst, genau wie beim Ton-Knopf
+                         * daneben. Die Freischalt-Logik (`teilen(open)`) ist unverändert.
                          */
-                        style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
-                        className="absolute left-2 top-2 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90 disabled:opacity-50">
-                        {/* h-5 wie in `TeilenKnopf`, nicht h-4 — sonst sitzt ein kleinerer
-                            Pfeil in derselben Scheibe wie der Ton-Knopf gegenueber. */}
-                        {teilenBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                      </button>
-                      {!!teilenText && (
-                        <span className="absolute left-2 top-14 z-30 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
-                          {teilenText}
-                        </span>
-                      )}
+                        teilen={
+                          <>
+                            <button type="button" disabled={teilenBusy}
+                              onClick={e => { e.stopPropagation(); void teilen(open); }}
+                              aria-label={T.teilen}
+                              style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+                              className="grid h-10 w-10 place-items-center rounded-full transition active:scale-90 disabled:opacity-50">
+                              {teilenBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                            </button>
+                            {!!teilenText && (
+                              <span className="mt-1 block whitespace-nowrap rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
+                                {teilenText}
+                              </span>
+                            )}
+                          </>
+                        } />
+                      <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
                     </div>
                   } />
                 {/**
