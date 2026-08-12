@@ -492,6 +492,17 @@ const MEDIUM_WORT: Record<Lang, { bild: string; video: string }> = {
  * ("Kiss · Video"). So behauptet die Zeile nie ein Thema, das der Eintrag nicht trägt, sagt
  * aber IMMER ehrlich, ob ein Bild oder ein Video vor ihm liegt.
  */
+/**
+ * NUR DAS THEMA-WORT — für das Kachel-Schild in der Galerie (Owner 12.08.2026: „und
+ * Geburtagsvideo hat kein Label"). Beim Umbau vom „Private"-Schild bekam allein die
+ * Programm-Kachel ein Schild; jede andere Kachel stand nackt da. Leer bei unbekanntem
+ * Thema — die Kachel zeigt dann lieber KEIN Schild als ein geratenes (dieselbe Regel
+ * wie `themaUndMedium`).
+ */
+export function themaWort(lang: Lang, thema: string): string {
+  return (THEMA_KURZ[lang] ?? THEMA_KURZ.en)[thema] ?? "";
+}
+
 export function themaUndMedium(lang: Lang, thema: string, hatVideo: boolean): string {
   const m = MEDIUM_WORT[lang] ?? MEDIUM_WORT.en;
   const medium = hatVideo ? m.video : m.bild;

@@ -197,10 +197,16 @@ async function istBesitzer(ziel: KissLogEntry, body: { device?: string; email?: 
   const konto = await getSellerFromRequest(request).catch(() => null);
   const mail = String(konto?.email ?? "").trim().toLowerCase();
   const mitgeschickt = String(body.email ?? "").trim().toLowerCase();
+  /* AUCH DIE STRIPE-ADRESSE ZAEHLT (12.08.2026, dieselbe Lücke wie beim ANZEIGEN am
+     01.08.2026: „ich habe auf Watch my gallery geklickt, aber das Bild ist nicht drin").
+     Die Galerie ordnet Einträge über `email` ODER `paidEmail` zu — die Besitzprüfung hier
+     kannte nur `email`. Wer seine Adresse erst an der Kasse hinterlassen hat, SAH seine
+     Kachel also, durfte sie aber nicht löschen („Not yours." auf dem eigenen Kauf). */
+  const zielMails = [String(ziel.email ?? "").toLowerCase(), String(ziel.paidEmail ?? "").toLowerCase()].filter(Boolean);
   return (
     (!!geraet && ziel.device === geraet) ||
-    (!!mail && String(ziel.email ?? "").toLowerCase() === mail) ||
-    (!!mitgeschickt && String(ziel.email ?? "").toLowerCase() === mitgeschickt)
+    (!!mail && zielMails.includes(mail)) ||
+    (!!mitgeschickt && zielMails.includes(mitgeschickt))
   );
 }
 

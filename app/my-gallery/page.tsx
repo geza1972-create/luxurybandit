@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
-import { kontoText, spracheAusCookie, themaUndMedium } from "@/lib/konto-i18n";
+import { kontoText, spracheAusCookie, themaUndMedium, themaWort } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
 import { ThemenKreise } from "@/components/CI";
 import TopNav from "@/components/TopNav";
@@ -188,7 +188,13 @@ export default function MyGalleryPage() {
    */
   const [loeschScharf, setLoeschScharf] = useState("");
   const eigenesLoeschen = async (it: Item) => {
-    const id = it.id.replace(/-foto$/, "");
+    /* AUCH `-frau` ABSTREIFEN (12.08.2026): Die Kiss-Route liefert je Eintrag DREI Kacheln
+       (X, X-frau, X-foto) — hier wurde nur `-foto` auf die echte Kennung zurückgeführt. Ein
+       Löschversuch an der „Deine Frau"-Kachel schickte `X-frau`, die Route fand keinen
+       Eintrag und antwortete mit dem irreführenden „Not yours."
+       Und `programm:` VORNE (12.08.2026, „ein Kauf, eine Kachel"): die Programm-Kachel trägt
+       den Präfix, gelöscht wird derselbe Auftrag. */
+    const id = it.id.replace(/-(foto|frau)$/, "").replace(/^programm:/, "");
     if (loeschScharf !== it.id) {
       setLoeschScharf(it.id);
       setTimeout(() => setLoeschScharf(s => (s === it.id ? "" : s)), 3000);
@@ -405,23 +411,32 @@ export default function MyGalleryPage() {
            * chronologischen Platz (`createdAt`), mit demselben Format 9:16.
            */
           const progs = (Array.isArray(d?.programme) ? d.programme : [])
-            .map((p: { id: string; programUrl?: string; film?: string; createdAt?: string; videoFertigAt?: string; posterUrl?: string; preisCents?: number }) => ({
+            .map((p: { id: string; programUrl?: string; film?: string; createdAt?: string; videoFertigAt?: string; posterUrl?: string; videoUrl?: string; preisCents?: number }) => ({
               id: String(p.id), programUrl: String(p.programUrl || ""), film: String(p.film || "kommt"),
               createdAt: String(p.createdAt || ""), videoFertigAt: String(p.videoFertigAt || ""),
-              posterUrl: String(p.posterUrl || ""), preisCents: p.preisCents,
+              posterUrl: String(p.posterUrl || ""), videoUrl: String(p.videoUrl || ""), preisCents: p.preisCents,
             }))
             .filter((p: { programUrl: string }) => !!p.programUrl);
-          const progItems: Item[] = progs.map((p: { id: string; programUrl: string; createdAt: string; videoFertigAt: string; posterUrl: string; preisCents?: number }) => ({
-            id: `programm:${p.id}`, type: "program" as const, imageUrl: p.posterUrl,
+          const progItems: Item[] = progs.map((p: { id: string; programUrl: string; createdAt: string; videoFertigAt: string; posterUrl: string; videoUrl: string; preisCents?: number }) => ({
+            id: `programm:${p.id}`, type: "program" as const, imageUrl: p.posterUrl, videoUrl: p.videoUrl,
             lookName: "Future Self Program", theme: "versprechen",
             createdAt: p.createdAt, videoFertigAt: p.videoFertigAt,
             paid: true, preisCents: p.preisCents, programUrl: p.programUrl,
           }));
+          /**
+           * EIN KAUF, EINE KACHEL (Owner 12.08.2026, an zwei identischen Kacheln nebeneinander:
+           * „was sind die zwei jetzt?"). Sobald die Programm-Kachel eines Auftrags existiert,
+           * entfällt seine normale Video-Kachel — sonst steht derselbe Kauf zweimal da
+           * (die Programm-Kachel zeigt das Video ohnehin, und der Film spielt zusätzlich
+           * ganz oben auf der Programmseite).
+           */
+          const progIds = new Set(progs.map((p: { id: string }) => p.id));
+          const ohneDoppel = bilder.filter(b => !(b.theme === "versprechen" && progIds.has(b.id)));
           /* AN IHREM CHRONOLOGISCHEN PLATZ, NICHT ANGEHÄNGT: `bilder` kommt aus dem Kiss-Log
              bereits neuestes-zuerst sortiert; die Programm-Kachel teilt dieselben Zeitstempel
              und wird hier einsortiert statt hintenangestellt — sonst landete sie immer ganz
              unten, egal wie frisch der Kauf war. */
-          own.push(...[...bilder, ...progItems].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")));
+          own.push(...[...ohneDoppel, ...progItems].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")));
           if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
           if (d?.avatar?.imageUrl) setAvatar({ imageUrl: String(d.avatar.imageUrl), stimme: !!d.avatar.stimme });
           /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. Ein Programm,
@@ -761,11 +776,19 @@ export default function MyGalleryPage() {
                   */}
                 {it.type === "program" ? (
                   /**
-                   * DAS KACHELBILD DES PROGRAMMS — sein eigenes Standbild, sonst eine ruhige
-                   * Fläche in Hausfarbe mit dem Wort (Owner 11.08.2026: „Als Bild das
-                   * Standbild seiner Aufnahme"; fehlt es, kein kaputtes Bildsymbol).
+                   * DAS KACHELBILD DES PROGRAMMS (Owner 12.08.2026: „im Programm soll das
+                   * generierte video stehen" — bis hierher zeigte die Kachel selbst bei
+                   * fertigem Future Film nur das Standbild der Aufnahme). Ist der Film fertig
+                   * (`videoUrl` gesetzt), zeigt die Kachel IHN — genau wie jede andere
+                   * Video-Kachel, `#t=0.1` als Poster (siehe Kommentar im Video-Zweig unten).
+                   * Sonst bleibt es beim Standbild, sonst eine ruhige Fläche in Hausfarbe mit
+                   * dem Wort (Owner 11.08.2026: fehlt beides, kein kaputtes Bildsymbol).
                    */
-                  it.imageUrl ? (
+                  it.videoUrl ? (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video src={`${it.videoUrl}#t=0.1`} preload="metadata" muted playsInline
+                      className="pointer-events-none h-full w-full object-cover object-top" />
+                  ) : it.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={it.imageUrl} alt={T.programm} loading="lazy" className="h-full w-full object-cover object-top" />
                   ) : (
@@ -830,7 +853,22 @@ export default function MyGalleryPage() {
                 {/* LÖSCHEN FÜR DEN BESITZER (Owner 30.07.2026: „muss es auch löschen können
                     hier"). Nur an eigenen Kiss-Stücken; der Sammel-Löscher oben bleibt Admin.
                     Klick geht NICHT an die Kachel weiter, sonst öffnet sich das Vollbild. */}
-                {!pin && !selectMode && String(it.source ?? "").startsWith("kiss") && (
+                {/* AUCH MIT ADMIN-AUSWEIS (Owner 12.08.2026: „was mich nervt, dass ich nichts
+                    löschen kann in der galerie"). Hier stand zusätzlich `!pin` — auf einem
+                    Gerät mit Admin-Ausweis verschwand damit JEDER Löschknopf, und der
+                    Sammel-Löscher des Admins kennt nur Try-on-Generierungen und Slides, keine
+                    Kiss-Einträge: Auf so einem Gerät war in der Galerie NICHTS löschbar. Die
+                    Route prüft den Besitz ohnehin selbst (Admin darf immer). */}
+                {/* NUR AN DER HAUPT-KACHEL (Owner 12.08.2026: „ich habe ein anderes bild
+                    geloscht und waren 3 jetzt weg — inklusive das video"). Die drei Kacheln
+                    eines Auftrags (Werk + ihr Bild + sein Foto) hängen an EINEM Eintrag; der
+                    Knopf an einer Beiwerk-Kachel löschte den ganzen Auftrag samt bezahltem
+                    Video. Beiwerk (`kiss-model`/`kiss-upload`) hat keinen Löschknopf mehr —
+                    gelöscht wird am WERK, und dann verschwinden alle drei erwartbar. */}
+                {/* Und an der PROGRAMM-Kachel (12.08.2026, „ein Kauf, eine Kachel"): seit die
+                    doppelte Video-Kachel des Versprechens entfällt, ist sie die einzige
+                    Kachel des Kaufs — ohne Knopf hier wäre der Auftrag unlöschbar. */}
+                {!selectMode && (it.source === "kiss" || it.type === "program") && (
                   <button type="button"
                     onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
                     aria-label={loeschScharf === it.id ? T.loeschenSicher : T.loeschen}
@@ -857,11 +895,19 @@ export default function MyGalleryPage() {
                   <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[8px] font-black text-white backdrop-blur">
                     {T.programm}
                   </span>
-                ) : pin && (
+                ) : pin ? (
                   <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
                     {it.public ? "Public" : it.feed ? "Show" : "Private"}
                   </span>
-                )}
+                ) : themaWort(lang, it.theme || "") ? (
+                  /* JEDE KACHEL SAGT, WAS SIE IST (Owner 12.08.2026: „und Geburtagsvideo hat
+                     kein Label"). Beim „Private"-Umbau bekam nur das Programm ein Schild —
+                     Geburtstag/Kuss/Hochzeit standen nackt da. Dasselbe Schild, dasselbe
+                     Design; bei unbekanntem Thema KEIN Schild statt eines geratenen. */
+                  <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[8px] font-black text-white backdrop-blur">
+                    {themaWort(lang, it.theme || "")}
+                  </span>
+                ) : null}
                 {/* Typ-Tag: Card-Slide (Urlaub/Peter) unterscheiden. Im Auswahl-Modus weg (Häkchen). */}
                 {it.type === "slide" && !selectMode && (
                   <span className="absolute right-1 top-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[8px] font-black text-black backdrop-blur">Slide</span>

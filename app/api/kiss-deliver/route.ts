@@ -4,6 +4,7 @@ import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWett
 import { futureProgramToken } from "@/lib/future-program-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
+import { weddingPrompt } from "@/lib/wedding-prompt";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -61,8 +62,17 @@ function schluessel(): string {
 }
 
 async function darf(request: Request): Promise<boolean> {
-  if (request.headers.get("x-vercel-cron")) return true;          // Vercel-Cron
+  /**
+   * DER NACKTE CRON-KOPF IST KEIN AUSWEIS MEHR (12.08.2026, am eigenen Leib bewiesen: als
+   * das lokale Geheimnis nicht stimmte, kam der Owner mit einem selbstgesetzten
+   * `x-vercel-cron: 1` trotzdem herein — und genauso käme jeder Fremde herein). Vercel
+   * schickt seinen Cron-Aufrufen `Authorization: Bearer <CRON_SECRET>` mit, sobald die
+   * Variable gesetzt ist — DAS prüft der Bearer-Zweig unten schon. Der nackte Kopf zählt
+   * nur noch, wenn GAR KEIN Geheimnis konfiguriert ist (sonst bräche der Cron beim
+   * allerersten Einrichten, bevor das Geheimnis existiert).
+   */
   const k = schluessel();
+  if (!k && request.headers.get("x-vercel-cron")) return true;
   if (k) {
     const url = new URL(request.url);
     if (url.searchParams.get("key")?.trim() === k) return true;
@@ -135,7 +145,16 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
     const g = await fetch(`${origin(request)}/api/geburtstag-video`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(pinG ? { "x-try-look-admin-pin": pinG } : {}) },
-      body: JSON.stringify({ person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau", look: e.look,
+      /**
+       * MIT AUFTRAGSNUMMER (12.08.2026, am Auftrag da11fe51 gemessen): Die Route stempelt
+       * `videoId` seit dem 08.08. SELBST an den Auftrag — aber nur, wenn sie `genId`
+       * mitbekommt. Der Wachhund schickte sie nie mit; sein eigener Vermerk nach der
+       * Rückkehr ist verwundbar (Funktions-Frist, paralleler Schreiber) — und genau so
+       * rendert HeyGen ein bezahltes Video, von dem der Auftrag nichts weiss: doppelte
+       * Anbieter-Kosten, keine Lieferung. Mit `genId` sichert die Route die Quittung an
+       * der Quelle, für BEIDE Wege (Trichter und Wachhund).
+       */
+      body: JSON.stringify({ genId: e.id, person: ihr, name: e.empfaenger ?? "", stimme: e.stimme ?? "frau", look: e.look,
                              ...(tonspur ? { audioUrl: tonspur } : {}) }),
     }).then(x => x.json()).catch(() => null);
     if (!g?.videoId) return { error: String(g?.error ?? "Geburtstags-Start fehlgeschlagen.") };
@@ -150,11 +169,24 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
   const szene = HOLIDAY_SCENES[n % HOLIDAY_SCENES.length];
 
   const pin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
+  /**
+   * DIE HOCHZEIT BEKOMMT IHR EIGENES VIDEO NACHGELIEFERT (12.08.2026, am Werbetag für
+   * Programm/Geburtstag/Hochzeit gefunden): Dieser generische Zweig renderte für JEDES
+   * Nicht-Geburtstags-Thema eine Urlaubsszene — ein Hochzeits-Käufer, der den Browser vor
+   * dem Render schloss, bekam ein Video von einem Strandausflug statt seiner Hochzeit.
+   * `weddingPrompt("")` ist die bis 10.08. produktive Hochzeits-Kette (Standard-Kleid,
+   * Blick in die Kamera) mit denselben @1/@2-Plätzen wie hier gebunden (@1 = SEIN Foto,
+   * @2 = ihres). Nicht die Traumwelt-Kette des Trichters (die braucht einen eigenen
+   * Bild-Schritt und gehört in den Plattform-Umbau, ARCHITEKTUR-PLATTFORM.md Schritt 3) —
+   * aber das RICHTIGE Produkt statt des falschen. Kuss/Idol behalten vorerst den
+   * Urlaubs-Rückfall (nicht beworben; derselbe Umbau-Schritt).
+   */
+  const rettungsPrompt = e.theme === "wedding" ? weddingPrompt("") : holidayPrompt(szene);
   const r = await fetch(`${origin(request)}/api/generate-tryon-video`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
     // Reihenfolge wie im Trichter: SEIN Foto ist @image1, ihres @image2 (siehe holidayPrompt).
-    body: JSON.stringify({ lookId: "look-1784191032626-70e3608b", person: sein, garment: ihr, prompt: holidayPrompt(szene) }),
+    body: JSON.stringify({ lookId: "look-1784191032626-70e3608b", person: sein, garment: ihr, prompt: rettungsPrompt }),
   }).then(x => x.json()).catch(() => null);
   if (!r?.videoId) return { error: String(r?.error ?? "Video-Start fehlgeschlagen.") };
   return { videoId: String(r.videoId) };

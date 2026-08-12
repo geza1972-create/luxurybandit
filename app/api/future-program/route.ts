@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { futureProgramLesen, futureProgramSchreiben, futureProgramTokenOk } from "@/lib/future-program-store";
+import { readKissLog, getSignedUrl } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +54,31 @@ export async function GET(request: Request) {
     }
   }
   const tag = heutigerTag(p.startedAt);
-  return NextResponse.json({ program: p, tag });
+  /**
+   * DER FUTURE FILM GEHÖRT AUF DIE PROGRAMMSEITE (Owner 12.08.2026: „der user hat sein
+   * Video generiert fürs programm. Wo ist das?" — Antwort bis hierher: nirgends. Die Seite
+   * zeigte nur die Wochen-Videos des Hauses; sein eigener Film lebte allein in Galerie und
+   * Liefermail — auf der Seite, die er 30 Tage täglich öffnet, fehlte das Gekaufte).
+   *
+   * Derselbe ehrliche Drei-Zustand wie in /api/my-videos: `fertig` (Film + frisch signierte
+   * Adresse), `fehler` (drei Anläufe verbraucht oder Support-Mail schon raus), sonst
+   * `kommt`. Das Poster ist das Standbild seiner Aufnahme — es existiert immer schon,
+   * bevor irgendein Film fertig ist (Karten-Regel: nie ein Video ohne Poster).
+   * Scheitert der Blick ins Log, fehlt nur der Film-Block — nie die Programmseite.
+   */
+  const film = await (async () => {
+    try {
+      const e = (await readKissLog()).find(x => x.id === g);
+      if (!e) return null;
+      const status = e.videoUrl ? "fertig"
+        : (e.videoAlertAt || (e.videoTries ?? 0) >= 3) ? "fehler"
+        : "kommt";
+      const posterUrl = (e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "")
+        || (e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "");
+      return { status, videoUrl: e.videoUrl || "", posterUrl };
+    } catch { return null; }
+  })();
+  return NextResponse.json({ program: p, tag, ...(film ? { film } : {}) });
 }
 
 export async function POST(request: Request) {

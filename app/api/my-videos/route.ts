@@ -249,28 +249,16 @@ export async function GET(request: Request) {
             ? { programUrl: await futureProgramUrl(url.origin, e.id).catch(() => undefined) }
             : {}),
         },
-        {
-          id: `${e.id}-frau`,
-          imageUrl: e.modelPath ? await getSignedUrl(e.modelPath).catch(() => "") : "",
-          videoUrl: "",
-          name: "Deine Frau",
-          createdAt: e.createdAt || "",
-          source: "kiss-model",
-          // Die Warnung gilt dem ganzen Vorgang: Das Ergebnis entsteht aus BEIDEN Vorlagen,
-          // also traegt jede das Zeichen. Sonst sucht man das auffaellige Bild einzeln.
-          warnung: e.altersWarnung || "",
-          alter: e.altersGeschaetzt || 0,
-        },
-        {
-          id: `${e.id}-foto`,
-          imageUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
-          videoUrl: "",
-          name: "Dein Foto",
-          createdAt: e.createdAt || "",
-          source: "kiss-upload",
-          warnung: e.altersWarnung || "",
-          alter: e.altersGeschaetzt || 0,
-        },
+        /**
+         * KEIN BEIWERK MEHR (Owner 12.08.2026: „die beiwerkfotos brauchst du gar nicht zu
+         * zeigen in der galerie"). Hier standen zwei weitere Kacheln je Auftrag — „Deine
+         * Frau" (`-frau`, modelPath) und „Dein Foto" (`-foto`, personPath). Drei Kacheln
+         * für EINEN Kauf lasen sich wie drei Werke, und der Löschknopf an einer
+         * Beiwerk-Kachel hat heute einen bezahlten Auftrag samt Video mitgerissen. Die
+         * Vorlagen bleiben gespeichert (Owner 30.07.: „Du speicherst das auch für ihn") und
+         * hängen am Auftrag — gezeigt und gelöscht wird nur noch das WERK; der Admin sieht
+         * die Vorlagen weiterhin in UploadsAdmin samt Warnzeichen.
+         */
       ]);
       }));
       return paare.flat();
@@ -319,10 +307,18 @@ export async function GET(request: Request) {
           id: e.id, programUrl, film, createdAt: e.createdAt || "",
           videoFertigAt: e.videoFertigAt || "",
           posterUrl,
+          /**
+           * DAS GENERIERTE VIDEO GEHOERT IN DIE KACHEL (Owner 12.08.2026, am eigenen
+           * Programm-Eintrag mit fertigem Film: „im Programm soll das generierte video
+           * stehen"). Bis hierher zeigte die Kachel IMMER nur das Standbild der Aufnahme —
+           * auch wenn der Future Film längst fertig war. Nur bei `film === "fertig"` gesetzt,
+           * sonst zeigt die Kachel weiter das Standbild (kein Video = nichts zum Abspielen).
+           */
+          videoUrl: film === "fertig" ? (e.videoUrl || "") : "",
           preisCents: geschenkPreisCents("versprechen"),
         };
       }));
-      return liste.filter(Boolean) as { id: string; programUrl: string; film: string; createdAt: string; videoFertigAt: string; posterUrl: string; preisCents: number }[];
+      return liste.filter(Boolean) as { id: string; programUrl: string; film: string; createdAt: string; videoFertigAt: string; posterUrl: string; videoUrl: string; preisCents: number }[];
     } catch { return []; }
   })();
 

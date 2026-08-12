@@ -13,6 +13,7 @@ import { zielTexte, type ZielId } from "@/lib/future-ziele";
 import { futureProgramTage } from "@/lib/future-program-tage";
 import { futureProgramText } from "@/lib/future-program-i18n";
 import { programWoche, PROGRAM_WOCHEN } from "@/lib/future-program-wochen";
+import { kissText } from "@/lib/kiss-i18n";
 import type { FutureProgram } from "@/lib/future-program-store";
 
 /**
@@ -28,7 +29,12 @@ import type { FutureProgram } from "@/lib/future-program-store";
  * kommt aus der CI-Bibliothek — kein eigens gezeichneter Kasten, kein eigener Knopf.
  */
 
-type Antwort = { program: FutureProgram; tag: number };
+type Antwort = {
+  program: FutureProgram; tag: number;
+  /** Sein eigener Future Film — siehe /api/future-program (12.08.2026). Fehlt der Block,
+   *  war das Auftrags-Log nicht lesbar; die Seite steht dann trotzdem. */
+  film?: { status: string; videoUrl: string; posterUrl: string };
+};
 
 function FutureProgramInner() {
   const sp = useSearchParams();
@@ -208,6 +214,11 @@ function ProgrammAnsicht({ daten, T, lang, wirdAbgehakt, abhaken, ziel90Entwurf,
           statt dessen: Das Programm bekommt einmal je Woche ein Video mit dem Owner selbst.
           Der übersetzte Text unter dem Video zeigt in JEDER Sprache, auch Englisch (Mitlese-
           Text) — das Video selbst bleibt sein Original. */}
+      {/* SEIN FUTURE FILM — DAS GEKAUFTE, ganz oben vor dem Wochen-Video (Owner 12.08.2026:
+          „der user hat sein Video generiert fürs programm. Wo ist das?" — bis hierher stand
+          er NUR in Galerie und Liefermail, nicht auf der Seite, die er täglich öffnet). */}
+      <FilmKarte film={daten.film} lang={lang ?? p.lang} />
+
       <WochenBotschaft heute={heute} lang={lang ?? p.lang} />
 
       {/* HEUTE */}
@@ -417,6 +428,70 @@ function WochenBotschaft({ heute, lang }: { heute: number; lang: string }) {
             {z}
           </p>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SEIN FUTURE FILM ALS VIDEO-KARTE (Owner 12.08.2026: „der user hat sein Video generiert
+ * fürs programm. Wo ist das?" · Systemregel vom selben Tag: Video Card + Feature Card).
+ *
+ * Dieselbe Bauart wie `WochenBotschaft` darunter: EinladungKarte als Hülle (nie ein nacktes
+ * `<video>`), Poster = das Standbild seiner Aufnahme (existiert immer, Karten-Regel), Tipp
+ * startet/pausiert, Fortsetzen an der Stelle, Originalton (ER spricht), keine Schleife.
+ * Alle Texte kommen aus den bestehenden `filmKommt/filmFertig`-Zeilen (7 Sprachen, seit dem
+ * 11.08. im Haus) — kein neuer Übersetzungsblock.
+ *
+ * DREI ZUSTÄNDE, EHRLICH: `fertig` → die Karte mit dem Film. `kommt`/`fehler` → nur die
+ * passende Zeile, KEINE leere Karte (eine Video-Karte ohne Video ist ein schwarzes Loch).
+ */
+function FilmKarte({ film, lang }: { film?: { status: string; videoUrl: string; posterUrl: string }; lang: string }) {
+  const V = kissText(lang, "versprechen");
+  const titel = V.wasBekommstTitelListe?.[0] ?? "Your Future Film";
+  const [laeuft, setLaeuft] = useState(false);
+  const spieler = useRef<HTMLVideoElement>(null);
+  if (!film) return null;
+
+  function tippen() {
+    const v = spieler.current;
+    if (!v) return;
+    if (v.paused) void v.play().catch(() => {}); else v.pause();
+  }
+
+  if (film.status !== "fertig" || !film.videoUrl) {
+    const zeile = film.status === "fehler" ? V.filmFehler : V.filmKommt;
+    return zeile ? (
+      <div className="mt-6">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">{titel}</p>
+        <p className="mt-2 text-[13.5px] font-semibold leading-snug text-white/70">{zeile}</p>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div className="mt-6">
+      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">{titel}</p>
+      <div className="mt-2">
+        <EinladungKarte sprache={lang} sie="" er="" demo titel={titel}
+          fuss={<MadeBy karte />}
+          video={
+            <button type="button" onClick={tippen}
+              aria-label={laeuft ? "Video pausieren" : "Video abspielen"}
+              className="relative block aspect-[3/4] w-full overflow-hidden">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video ref={spieler} src={film.videoUrl} poster={film.posterUrl || undefined}
+                playsInline preload="metadata" className="h-full w-full object-contain"
+                onPlay={() => setLaeuft(true)} onPause={() => setLaeuft(false)} />
+              {!laeuft && (
+                <span className="absolute inset-0 grid place-items-center bg-black/20">
+                  <span className="grid h-14 w-14 place-items-center rounded-full bg-black/55 backdrop-blur">
+                    <Play className="ml-0.5 h-6 w-6 fill-white text-white" />
+                  </span>
+                </span>
+              )}
+            </button>
+          } />
       </div>
     </div>
   );

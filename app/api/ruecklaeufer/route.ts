@@ -31,8 +31,12 @@ function schluessel(): string {
 }
 
 async function darf(request: Request): Promise<boolean> {
-  if (request.headers.get("x-vercel-cron")) return true;
+  /* DER NACKTE CRON-KOPF IST KEIN AUSWEIS MEHR (12.08.2026) — jeder Fremde kann ihn setzen,
+     und diese Route SPERRT Empfängeradressen. Echte Vercel-Crons weisen sich mit
+     `Bearer CRON_SECRET` aus (Bearer-Zweig unten); der nackte Kopf zählt nur ohne
+     konfiguriertes Geheimnis. Begründung im Wortlaut: app/api/kiss-deliver/route.ts, darf(). */
   const k = schluessel();
+  if (!k && request.headers.get("x-vercel-cron")) return true;
   if (k) {
     const url = new URL(request.url);
     if (url.searchParams.get("key")?.trim() === k) return true;
