@@ -571,7 +571,23 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 // (E-Mail → Link schicken oder Passwort zurücksetzen). Vorher landete man auf
                 // /user/myaccount, das nur nach /login weitergeleitet hat — für jemanden, der
                 // nie ein Passwort gesetzt hat, eine Sackgasse.
-                <button type="button" onClick={() => navigate(signedIn ? (slug ? `/${slug}/myaccount` : "/user/myaccount") : "/account")}
+                /**
+                 * NICHT ANGEMELDET → DER KONTO-DIALOG, NICHT MEHR `/account` (Owner
+                 * 11.08.2026: „Im Menü ist jetzt ein anderer Art von Sign in").
+                 *
+                 * Auf `/account` steht noch die alte Anmeldung (Adresse eintippen, Link
+                 * schicken lassen) — genau die Bauart, die der Owner am selben Tag verworfen
+                 * hat. Zwei verschiedene Anmeldungen im selben Haus sind schlimmer als eine
+                 * unschöne: Der Kunde weiss nicht, welche gilt. Das Menü ruft deshalb den
+                 * EINEN Dialog aus der Kopfzeile (`components/KontoChip`) über ein Ereignis
+                 * auf — Google, E-Mail und Passwort, Konto anlegen, alles an einer Stelle.
+                 * Das Menü schliesst sich dabei, sonst läge es über dem Fenster.
+                 */
+                <button type="button" onClick={() => {
+                  if (signedIn) { navigate(slug ? `/${slug}/myaccount` : "/user/myaccount"); return; }
+                  setShowProfileMenu(false);
+                  try { window.dispatchEvent(new Event("luxurybandit-konto-oeffnen")); } catch { /**/ }
+                }}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Settings className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">{signedIn ? "Account" : "Sign in / My account"}</span>

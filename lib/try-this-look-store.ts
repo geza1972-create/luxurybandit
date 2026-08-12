@@ -1756,6 +1756,18 @@ export type KissLogEntry = {
   videoMailedAt?: string; // wann das fertige Video verschickt wurde (nie zweimal)
   videoAlertAt?: string;  // wann wir aufgegeben und den Käufer benachrichtigt haben
   /**
+   * WANN DIE WILLKOMMENS-MAIL ZUM 30-TAGE-PROGRAMM RAUS IST (11.08.2026, Future Self
+   * Program). Sie geht SOFORT nach der Zahlung raus, nicht erst mit dem Film — das Programm
+   * ist das Gekaufte und ab der Sekunde des Kaufs fertig (Auftrag da11fe51: bezahlt, Datei
+   * da, Video gescheitert, Kunde bekam nie Post).
+   *
+   * Der Stempel ist der ganze Sinn des Feldes: `bezahltVermerken()` läuft für denselben
+   * Auftrag mehrfach (Stripe-Webhook UND Rückkehr des Kunden). Ohne ihn bekäme der Käufer
+   * dieselbe Mail zweimal. Nicht zu verwechseln mit `videoMailedAt` — das ist die spätere
+   * Liefermail mit dem Film.
+   */
+  programmMailAt?: string;
+  /**
    * WELCHER AUFTRAG SCHON GELIEFERT IST. Wichtig fürs Abo (Owner 30.07.2026: „funktioniert das
    * ganze mit abo genauso?"): Ein Abonnent macht mehrere Videos hintereinander, im selben
    * Eintrag. Ohne diese Marke wäre „hat schon ein Video" gleichbedeutend mit „fertig" — das

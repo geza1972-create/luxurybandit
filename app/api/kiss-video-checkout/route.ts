@@ -238,7 +238,7 @@ export async function POST(request: Request) {
            * Auftraege inzwischen selbst wieder an; scheitert es trotzdem, ist die ehrliche
            * Antwort ein Fehler und nicht ein falsches Ja.
            */
-          const gestempelt = await bezahltVermerken(genId, email, "kiss-video");
+          const gestempelt = await bezahltVermerken(genId, email, "kiss-video", origin);
           if (!gestempelt) {
             return NextResponse.json({ error: "Auftrag nicht auffindbar — bitte neu starten." }, { status: 409 });
           }

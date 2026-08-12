@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Eye, EyeOff, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
@@ -73,6 +73,75 @@ export function Scheibe({ onClick, label, rot = false, klein = false, durchsicht
 }
 
 /**
+ * DER SYMBOL-KNOPF — das runde Zeichen in der KOPFZEILE (Owner 11.08.2026: „Das Icon für
+ * Login soll nach CI sein, aus der Bibliothek und neben dem Share Button.").
+ *
+ * ER IST NICHT DIE `Scheibe`. Die ist weiss und liegt AUF einem Bild oder einer Karte, wo sie
+ * sich vom Motiv abheben muss. Hier geht es um die dunkle Leiste am Kopf jeder Seite: dünner
+ * Rand, ein Hauch Weiss, Symbol in Weiss/80 — die Gestalt, die der Teilen-Knopf dort seit je
+ * trägt. Sie stand bisher nur als abgetippte Klassenzeile (`iconBtn`) in `TopNav`; wer ein
+ * zweites Zeichen daneben brauchte, musste sie abschreiben. Genau davor steht diese
+ * Bibliothek (Skill `ci-design`: ein fehlender Baustein kommt HIER hinein, statt an Ort und
+ * Stelle nachgebaut zu werden).
+ *
+ * WOFÜR DIE NÄCHSTE STELLE IHN NEHMEN SOLL: für jedes runde Symbol in einer dunklen Leiste —
+ * Kopfzeile, Werkzeugreihen, Dialog-Kopfzeilen. Nicht für Symbole auf Bildern (das ist die
+ * `Scheibe`) und nicht als Ersatz für einen beschrifteten `Knopf`.
+ *
+ * DER ANZEIGER-PUNKT gehört dazu, weil ein Zeichen allein nur sagt, WAS es tut, nie, wie es
+ * gerade STEHT: angemeldet (grün), es rendert etwas (Gold, pulsierend, wie am Galerie-Chip),
+ * ungelesen. Er sitzt oben rechts und trägt einen Ring in der Farbe der Leiste, damit er ein
+ * Punkt bleibt und nicht mit dem Rand des Zeichens verschmilzt.
+ */
+export const ANZEIGER_GRUEN = "#22c55e";
+/**
+ * DER ZWEITE ANZEIGER — GOLD FÜR DEN ADMIN (Owner 11.08.2026: „das will ich aber auch noch
+ * mit einem zusatz punkt sehen ob ich als admin angemeldet bin").
+ *
+ * ZWEI PUNKTE, WEIL ES ZWEI AUSWEISE SIND, und der Owner hat sich an genau dieser Verwechslung
+ * gestossen („wieso admin? ich bin doch als tigl angemeldet"): Die Anmeldung ist das
+ * Kundenkonto und sagt, WEM Guthaben und Werke gehören. Der Admin-PIN liegt daneben im Gerät
+ * und entscheidet, ob er ALLES sieht statt nur seins. Beides ist unabhängig — man kann
+ * angemeldet ohne Admin sein und Admin ohne Anmeldung. Ein einziger Punkt könnte das nie
+ * zeigen; deshalb rechts das Konto (grün), links der Admin (Gold, die Hausfarbe der
+ * Auszeichnung).
+ */
+export const ANZEIGER_GOLD = "#f6cf51";
+export function SymbolKnopf({ onClick, label, punkt, punktLinks, punktRing = "#0d0b0a", pulsiert = false, className = "", children }: {
+  onClick?: () => void;
+  /** Vorlesetext — Pflicht, der Knopf zeigt nur ein Symbol. */
+  label: string;
+  /** Die Farbe des Anzeigers oben RECHTS, z. B. `ANZEIGER_GRUEN`. Ohne ihn kein Punkt. */
+  punkt?: string;
+  /** Ein ZWEITER Anzeiger oben LINKS für einen unabhängigen Zustand (z. B. `ANZEIGER_GOLD`
+   *  für den Admin-Ausweis neben der Anmeldung). Nur benutzen, wenn die beiden Zustände
+   *  wirklich unabhängig sind — sonst genügt eine andere Farbe im rechten Punkt. */
+  punktLinks?: string;
+  /** Die Farbe der Fläche, auf der er sitzt — der Ring trennt ihn davon ab. */
+  punktRing?: string;
+  pulsiert?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} title={label}
+      className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white active:scale-90 ${className}`}>
+      {children}
+      {punkt && (
+        <span aria-hidden
+          className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${pulsiert ? "animate-pulse" : ""}`}
+          style={{ background: punkt, boxShadow: `0 0 0 2px ${punktRing}` }} />
+      )}
+      {punktLinks && (
+        <span aria-hidden
+          className="absolute -left-0.5 -top-0.5 h-2.5 w-2.5 rounded-full"
+          style={{ background: punktLinks, boxShadow: `0 0 0 2px ${punktRing}` }} />
+      )}
+    </button>
+  );
+}
+
+/**
  * DER KNOPF — drei Gestalten, eine Herkunft (Skill `ci-design`):
  *   gold    der EINE Primärknopf des Bildschirms (`.lb-gold`, h-12, nie zwei davon)
  *   umriss  der Zweitweg — dunkle Welt: Rand + weiss/85; Karte: `lb-karte-absage`
@@ -111,7 +180,15 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
     : art === "umriss"
       ? (karte
         ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
-        : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
+        /* IM WEISSEN DIALOG WAR DER ZWEITWEG UNSICHTBAR (Owner 11.08.2026, beim Bau des
+           Fensters für den toten Anmelde-Link): Der Umriss-Knopf kannte nur `text-white/85`
+           — auf Weiss ein leerer Streifen, und der Ausweg „Später" war damit gar nicht da.
+           Eine Farbklasse von aussen half nicht: Bei zwei Tailwind-Farben derselben Stärke
+           entscheidet die Reihenfolge im Stylesheet, nicht die im String. Deshalb gehört die
+           helle Fassung an den Baustein — dieselbe Form, nur in Tinte statt Weiss. */
+        : hell
+          ? "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1a160f]/25 text-[13px] font-black text-[#1a160f]/85"
+          : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
       : /* chip */ (hell
         // Die helle Fassung steht bewusst NICHT in `lb-wahl`: Jene Klasse gehört der
         // Anzeigen-Landung (`.lb-fb`), die alles Gelbe blau überschreibt. Hier geht es um
@@ -168,15 +245,83 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
  * `lb-eingabe` ist die Kennung, an der die helle Fassung Felder erkennt (weisser Grund,
  * dunkle Schrift statt Weiss-auf-Weiss) — der Baustein trug sie bisher nicht.
  */
-export function Eingabe({ karte = false, className = "", ...rest }: {
+export function Eingabe({ karte = false, hell = false, className = "", ...rest }: {
   karte?: boolean;
+  /**
+   * IM WEISSEN DIALOG (Owner 11.08.2026, zum toten Anmelde-Link: „sollte aber nicht kommen,
+   * Sitzung abgelaufen? Neuen Link schicken?").
+   *
+   * Der Baustein kannte bisher nur die dunkle Welt — weisse Schrift auf einem Hauch Weiss.
+   * In einem hellen Dialog (`Dialog art="hell"`) ist das Weiss auf Weiss: ein Feld, in dem
+   * man seine eigene Adresse nicht lesen kann. Die Aufladewahl hatte sich deshalb ein
+   * eigenes Feld gebaut; damit gab es wieder zwei Umsetzungen derselben Sache. Jetzt trägt
+   * der Baustein beide Welten. `WebkitTextFillColor` ist kein Zierrat: Safari färbt eine
+   * automatisch ausgefüllte Adresse sonst nach seinem eigenen Gutdünken.
+   *
+   * KEIN `lb-eingabe` in der hellen Fassung — jene Kennung gehört der Anzeigen-Landung
+   * (`.lb-fb`), die das Feld ein zweites Mal umfärben würde.
+   */
+  hell?: boolean;
   className?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
+  /**
+   * DAS AUGE AM PASSWORTFELD (Owner 11.08.2026, mit Bild des Anmelde-Dialogs: „auge bei
+   * Passwort").
+   *
+   * ES SITZT IM BAUSTEIN, NICHT AN DER STELLE: Jedes Passwortfeld im Haus braucht es, und ein
+   * Feld, das man nicht prüfen kann, ist der häufigste Grund für „falsches Passwort" —
+   * besonders auf dem Handy, wo die Tastatur gross schreibt, was klein gemeint war. Die
+   * aufrufende Datei setzt nur `type="password"` wie immer und bekommt das Auge dazu.
+   *
+   * DIE HÜLLE ENTSTEHT NUR FÜR PASSWÖRTER: Jedes andere Feld bleibt ein nacktes `input`, damit
+   * sich nichts an Ausrichtung und Abständen der bestehenden Formulare verschiebt.
+   *
+   * `pr-11` macht rechts Platz, damit der eingegebene Text nicht unter das Auge läuft.
+   */
+  const [sichtbar, setSichtbar] = useState(false);
+  const istPasswort = rest.type === "password";
+  const tinte = karte || hell ? "#1a160f" : "#fff";
+  const feld = (
     <input {...rest}
-      className={`h-11 w-full rounded-lg px-3 font-serif text-[15px] outline-none ${karte
+      type={istPasswort && sichtbar ? "text" : rest.type}
+      style={hell ? { color: "#1a160f", WebkitTextFillColor: "#1a160f", caretColor: "#1a160f", ...(rest.style ?? {}) } : rest.style}
+      /**
+       * DREI FASSUNGEN, EINE GESTALT (Owner 11.08.2026, nach zwei Anläufen im Anmelde-Dialog:
+       * „ich fasse es nicht. Mach extra in die Bibliothek CI für eingabefelder").
+       *
+       * Er hat recht, und der Fehler lag hier, nicht an der Stelle, die den Baustein benutzt.
+       * Die helle Fassung trug `font-bold` — das gilt in CSS auch für den PLATZHALTER. Zwei
+       * fette dunkle Zeilen im weissen Dialog lasen sich deshalb wie schon eingetippter Text
+       * oder wie Überschriften, nicht wie leere Felder. (Die zentrierte Ausrichtung kam
+       * obendrauf, aber die stand in der aufrufenden Datei.)
+       *
+       * MASSGEBLICH IST DIE KARTEN-FASSUNG (`lb-karte-feld` in globals.css): Grund als Hauch
+       * der Tinte, Rand 30 %, Schrift in Tinte, Platzhalter auf 45 % — und NICHTS ist dort
+       * fett. Genau das bildet die helle Fassung jetzt nach, nur auf Weiss statt auf Creme.
+       * Wer eine vierte Welt braucht, gibt ihr hier eine Zeile; niemand baut sich draussen
+       * wieder ein eigenes Feld.
+       *
+       * GEMEINSAM FÜR ALLE DREI: Höhe 11, Serifenschrift, 15 px, LINKSBÜNDIG. Ein Feld ist
+       * kein Titel — zentrierter Text wandert beim Tippen unter dem Finger weg.
+       */
+      className={`h-11 w-full rounded-lg px-3 font-serif text-[15px] font-normal outline-none ${karte
         ? "lb-karte-feld"
-        : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${className}`} />
+        : hell
+          ? "border border-[#1a160f]/30 bg-[#1a160f]/[0.04] placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/75"
+          : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${istPasswort ? "pr-11" : ""} ${className}`} />
+  );
+  if (!istPasswort) return feld;
+  return (
+    <div className="relative">
+      {feld}
+      <button type="button" tabIndex={-1}
+        onClick={() => setSichtbar(s => !s)}
+        aria-label={sichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
+        style={{ color: tinte }}
+        className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md opacity-55 transition active:scale-95 hover:opacity-90">
+        {sichtbar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
   );
 }
 

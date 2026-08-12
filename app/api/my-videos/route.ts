@@ -117,7 +117,15 @@ export async function GET(request: Request) {
    * nichts. Zugeordnet wird über die E-Mail (sobald er sie eingetragen hat) oder über die
    * Gerätekennung, damit es auch ohne Anmeldung sofort da ist.
    */
-  const bilder = await (async () => {
+  /**
+   * SEINE KISS-EINTRÄGE — EINMAL GESUCHT, ZWEIMAL GEBRAUCHT (11.08.2026).
+   *
+   * Bis heute steckte diese Auswahl in der `bilder`-Schleife. Seit die Programm-Karte
+   * (unten) aus denselben Einträgen entsteht, wäre das ein zweiter Blick ins Protokoll für
+   * dieselbe Frage gewesen — `readKissLog` ist ein Netzaufruf, und zwei Leser desselben
+   * Stands sind eine Gelegenheit, dass die Antworten auseinanderlaufen.
+   */
+  const meineKiss: KissLogEntry[] = await (async () => {
     try {
       const log = await readKissLog();
       /**
@@ -132,6 +140,13 @@ export async function GET(request: Request) {
       const meine = log.filter((e: KissLogEntry) =>
         (emailGilt && (String(e.email ?? "").toLowerCase() === emailGilt || String(e.paidEmail ?? "").toLowerCase() === emailGilt)) ||
         (device && String(e.device ?? "") === device));
+      return meine;
+    } catch { return []; }
+  })();
+
+  const bilder = await (async () => {
+    try {
+      const meine = meineKiss;
       // BEIDES gehört ihm (Owner 30.07.2026: „nein, das macht man nicht so. Du speicherst
       // das auch für ihn") — sein hochgeladenes Foto UND das Ergebnis. Eigene Kennung je
       // Eintrag, sonst kollidieren die beiden in der Liste.
@@ -238,6 +253,42 @@ export async function GET(request: Request) {
   })();
 
   /**
+   * DAS PROGRAMM HÄNGT NICHT AM VIDEO (11.08.2026, am echten Auftrag da11fe51 gemessen —
+   * Owner auf die Frage, ob beide Wege repariert werden: „jaaaaaaaaaaa").
+   *
+   * WAS PASSIERT WAR: Der Käufer zahlte um 14:07, die Programm-Datei entstand um 14:08 —
+   * und sein Video scheiterte beim Anbieter. Damit sah er sein Programm NIRGENDS: Die
+   * Galerie zeigt nur Kacheln MIT Bild oder Video (der Programm-Knopf sitzt im Vollbild AM
+   * Video), und die Liefermail geht erst raus, wenn `videoUrl` da ist. Der Film ist aber
+   * die Zugabe; das PROGRAMM ist das Gekaufte, und es ist ab der Sekunde des Kaufs fertig.
+   *
+   * Deshalb eine EIGENE Liste neben `videos`/`pictures`: ein Programm ist keine Kachel (es
+   * hat kein Bild und soll auch keins bekommen) — es ist die Karte ganz oben. Ein Eintrag
+   * hier bedeutet: bezahlt, Datei existiert, Link gültig. `futureProgramUrl` prüft die
+   * Datei wirklich; fehlt sie, gibt es keinen Eintrag statt eines Knopfs ins Leere.
+   */
+  const programme = await (async () => {
+    try {
+      const versprechen = meineKiss.filter(e => String(e.theme ?? "") === "versprechen" && !!e.paid);
+      const liste = await Promise.all(versprechen.slice(0, 20).map(async (e: KissLogEntry) => {
+        const programUrl = await futureProgramUrl(url.origin, e.id).catch(() => undefined);
+        if (!programUrl) return null;
+        /**
+         * DER ZUSTAND DES FILMS — ehrlich, nicht hoffnungsvoll. `MAX_VERSUCHE` in
+         * /api/kiss-deliver ist 3; danach rendert niemand mehr nach, und `videoAlertAt`
+         * ist der Vermerk, dass der Käufer die „wir liefern von Hand"-Mail schon hat.
+         * Beides heisst: nicht mehr warten, sondern sagen, dass es schiefging.
+         */
+        const film = e.videoUrl ? "fertig"
+          : (e.videoAlertAt || (e.videoTries ?? 0) >= 3) ? "fehler"
+          : "kommt";
+        return { id: e.id, programUrl, film, createdAt: e.createdAt || "" };
+      }));
+      return liste.filter(Boolean) as { id: string; programUrl: string; film: string; createdAt: string }[];
+    } catch { return []; }
+  })();
+
+  /**
    * SEIN AVATAR (Owner 09.08.2026: „ich will dass du das Video das die Leute hochladen
    * Avatar nennst. Auch in der Galerie.").
    *
@@ -261,6 +312,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     videos: videos.filter(v => v.videoUrl),
     pictures: bilder.filter(b => b.imageUrl || b.videoUrl),
+    // Bezahlte 30-Tage-Programme — auch (und gerade) ohne Video, siehe oben.
+    programme,
     ...(avatar ? { avatar } : {}),
   }, { headers: { "Cache-Control": "no-store" } });
 }

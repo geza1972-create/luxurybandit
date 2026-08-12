@@ -1,5 +1,6 @@
-import { readKissLog, writeKissLog } from "@/lib/try-this-look-store";
-import { futureProgramAnlegen } from "@/lib/future-program-store";
+import { readKissLog, writeKissLog, readWetterSubscribers } from "@/lib/try-this-look-store";
+import { futureProgramAnlegen, futureProgramUrl } from "@/lib/future-program-store";
+import { sendEmail } from "@/lib/email-send";
 
 /**
  * DER VERMERK „HIER WARTET EIN BEZAHLTER AUFTRAG".
@@ -59,7 +60,82 @@ export async function adresseKorrigieren(genId: string, neueAdresse: string): Pr
   } catch { /* die Gutschrift darf daran nicht scheitern */ }
 }
 
-export async function bezahltVermerken(genId: string, email = "", kind = ""): Promise<boolean> {
+/**
+ * DIE ADRESSE DES HAUSES, WENN NIEMAND EINE ANFRAGE ZUR HAND HAT.
+ *
+ * `bezahltVermerken()` bekommt von seinen drei Aufrufern (Stripe-Webhook, Rückkehr des
+ * Kunden, Guthaben-Kasse) eine Anfrage mit — sie reichen sie als `origin` durch. Fehlt sie,
+ * gilt dieselbe Reihenfolge wie in `/api/kiss-deliver`: die eingestellte Seitenadresse, sonst
+ * die Live-Domain. Ein Programm-Link auf `localhost` wäre in einer echten Mail wertlos.
+ */
+function seitenAdresse(origin = ""): string {
+  const o = String(origin ?? "").trim().replace(/\/$/, "");
+  if (o && !/localhost|127\.0\.0\.1/.test(o)) return o;
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  return env || o || "https://luxurybandit.com";
+}
+
+/** Abmelden mit Kennung — dieselbe Regel wie in /api/kiss-deliver: ein leeres `s=` meldet
+ *  niemanden ab und treibt die Leute auf den Spam-Knopf. */
+async function abmeldeLink(o: string, email: string): Promise<string> {
+  try {
+    const liste = await readWetterSubscribers("kiss");
+    const da = liste.find(x => String(x.email ?? "").trim().toLowerCase() === email.trim().toLowerCase());
+    if (da?.id) return `${o}/api/wetter-unsubscribe?model=kiss&s=${encodeURIComponent(String(da.id))}`;
+  } catch { /* ohne Kennung bleibt der Weg ueber /unsubscribe */ }
+  return `${o}/unsubscribe`;
+}
+
+/**
+ * „DEIN PROGRAMM IST OFFEN" — DIE MAIL, DIE SOFORT NACH DEM KAUF KOMMT (11.08.2026).
+ *
+ * WARUM ES SIE GIBT (am echten Auftrag da11fe51 gemessen): Der Kunde zahlte um 14:07, seine
+ * Programm-Datei entstand um 14:08 — und sein Video scheiterte beim Anbieter. Post bekam er
+ * trotzdem keine: Die einzige Mail dieses Kaufwegs (`verschicken()` in /api/kiss-deliver)
+ * geht erst raus, wenn ein `videoUrl` am Auftrag steht, und der Programm-Link steckt genau
+ * dort drin. Ein 49-€-Kauf, der still bleibt, weil eine ZUGABE nicht fertig wurde.
+ *
+ * Das Programm ist ab der Sekunde des Kaufs fertig und ist das eigentliche Produkt — also
+ * bekommt es seine eigene Mail, unabhängig vom Film. Die Liefermail bleibt daneben bestehen;
+ * sie kommt später mit dem Film und sagt dann etwas anderes.
+ *
+ * Gestalt, Farben und Abmelde-Zeile sind aus `verschicken()` KOPIERT, nicht neu erfunden —
+ * zwei Mails desselben Hauses am selben Tag dürfen nicht wie zwei Absender aussehen.
+ *
+ * Gibt `true` zurück, wenn die Post raus ist — nur dann darf der Aufrufer stempeln.
+ */
+export async function programmWillkommen(genId: string, to: string, origin = ""): Promise<boolean> {
+  const id = String(genId ?? "").trim();
+  const adresse = String(to ?? "").trim();
+  if (!id || !adresse) return false;
+  const o = seitenAdresse(origin);
+  // KEIN LINK, KEINE MAIL: `futureProgramUrl` liefert nur etwas, wenn die Programm-Datei
+  // wirklich existiert UND ein Server-Geheimnis für den Token gesetzt ist. Eine Willkommens-
+  // Mail ohne funktionierenden Knopf wäre schlimmer als gar keine.
+  const programLink = await futureProgramUrl(o, id).catch(() => undefined);
+  if (!programLink) return false;
+  const galerieLink = `${o}/my-gallery?utm_source=programmmail`;
+  const abmelden = await abmeldeLink(o, adresse);
+  const titel = "Your Future Self Program is open";
+  const html =
+    `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
+    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+    + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
+    + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">${titel}</td></tr>`
+    + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
+    + `Your 30 days start whenever you open it — your Future Film is being made and arrives by email.`
+    + `</td></tr>`
+    + `<tr><td style="padding:0 22px 10px"><a href="${programLink}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Start your 30 days →</a></td></tr>`
+    + `<tr><td style="padding:0 22px 4px"><a href="${galerieLink}" style="color:#a89f8e;font-size:12px">Your program is also in your gallery</a></td></tr>`
+    + `<tr><td style="padding:0 22px 20px"><a href="${abmelden}" style="color:#6b655c;font-size:11px">Unsubscribe</a></td></tr>`
+    + `</table></td></tr></table></div>`;
+  const r = await sendEmail({ to: adresse, subject: titel, html, listUnsubscribe: abmelden })
+    .catch(() => ({ ok: false }));
+  return !!(r as { ok?: boolean }).ok;
+}
+
+export async function bezahltVermerken(genId: string, email = "", kind = "", origin = ""): Promise<boolean> {
   const id = String(genId ?? "").trim();
   if (!id) return false;
   try {
@@ -76,7 +152,7 @@ export async function bezahltVermerken(genId: string, email = "", kind = ""): Pr
       entries.unshift(e);
     }
     const mail = String(email ?? "").trim().toLowerCase();
-    const vorher = JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind]);
+    const vorher = JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt]);
     e.paid = true;
     if (mail && !e.paidEmail) e.paidEmail = mail;
     // Einzelkauf oder Abo — davon hängt ab, wie viele Videos ihm zustehen.
@@ -105,8 +181,28 @@ export async function bezahltVermerken(genId: string, email = "", kind = ""): Pr
         const lang = String(e.lang ?? "en").trim() || "en";
         await futureProgramAnlegen(id, e.paidEmail || e.email || mail, lang, e.ziele ?? [], e.zieleFrei);
       } catch (err) { console.warn("future-program anlegen fehlgeschlagen:", err); }
+      /**
+       * UND SOFORT DIE POST DAZU (11.08.2026, Auftrag da11fe51) — im selben Geist wie das
+       * Anlegen darüber: Ein Fehler beim Versand darf die Zahlung NIE kippen, deshalb sein
+       * eigenes try/catch und kein `throw` nach aussen.
+       *
+       * GENAU EINMAL: `programmMailAt` ist der Stempel. Diese Funktion läuft für denselben
+       * Auftrag mehrfach (Stripe-Webhook UND Rückkehr des Kunden, siehe Kopf) — ohne den
+       * Vermerk bekäme der Käufer dieselbe Willkommens-Mail zweimal. Gestempelt wird ERST
+       * nach erfolgreichem Versand (wie bei `videoMailedAt` in /api/kiss-deliver): Ein
+       * Stempel vor dem Versand würde eine gescheiterte Mail für immer verschlucken, und
+       * eine Mail, die nie ankommt, ist der Fehler, den wir hier gerade reparieren. Das
+       * Feld steht im Vergleich oben (`vorher`), damit der Stempel auch geschrieben wird,
+       * wenn sich sonst nichts geändert hat.
+       */
+      if (!e.programmMailAt) {
+        try {
+          const post = await programmWillkommen(id, e.paidEmail || e.email || mail, origin);
+          if (post) e.programmMailAt = new Date().toISOString();
+        } catch (err) { console.warn("future-program willkommensmail fehlgeschlagen:", err); }
+      }
     }
-    if (JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind]) === vorher) return true;
+    if (JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt]) === vorher) return true;
     await writeKissLog(entries);
     return true;
   } catch { return false; }

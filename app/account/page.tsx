@@ -1,6 +1,5 @@
 import TopNav from "@/components/TopNav";
-import { fillPrices } from "@/lib/pricing";
-import { Kicker, H1, Y, Lead, Fine } from "@/components/Landing";
+import { Kicker, H1, Y, Lead } from "@/components/Landing";
 import MyTopics from "@/components/MyTopics";
 
 // „Mein Konto" — die EINE Stelle, an der ein Kunde sieht, welche Themen er abonniert hat,
@@ -25,8 +24,21 @@ export default function AccountPage() {
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         <Kicker>LuxuryBandit · Account</Kicker>
         <H1>My <Y>topics</Y></H1>
-        <Lead>Everything you subscribe to, in one place — with the cancel button right next to it.</Lead>
-        <Fine>{fillPrices("{price} a month: {videos} videos across all topics, chatting free (50% off, forever — instead of {list}).", "en")}</Fine>
+        <Lead>Everything you bought, in one place — and anything that renews with the cancel button right next to it.</Lead>
+        {/**
+         * DIE ABO-ZEILE IST WEG (Owner 11.08.2026: „ja" auf den Fund, dass diese Seite noch
+         * das Themen-Abo bewirbt).
+         *
+         * Hier stand „{price} a month: {videos} videos across all topics … instead of {list}" —
+         * das Themen-Abo, das es nicht mehr gibt (Owner am selben Tag: „Themenabo haben wir
+         * nicht wie Wetter. Wir haben nur Hochzeitplanner"). Dieselbe Leiche wurde heute schon
+         * aus den AGB und dem „Was kostet es?"-Abschnitt der Startseite geräumt; diese Seite
+         * lag ausserhalb jener Runde.
+         *
+         * KEINE ERSATZ-PREISZEILE: Was etwas kostet, steht am Produkt — hier steht, was er
+         * BESITZT. Eine Preisangabe auf einer Kontoseite ist Werbung am falschen Ort und die
+         * nächste Zahl, die eines Tages nicht mehr stimmt.
+         */}
 
         <MyTopics />
       </div>

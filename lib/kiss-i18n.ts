@@ -112,6 +112,16 @@ export type KissText = {
    * mitgibt (siehe futureProgramUrl in lib/future-program-store.ts).
    */
   programmKnopf?: string;
+  /**
+   * DER ZUSTAND DES FILMS IN EINEM SATZ (11.08.2026, am toten Auftrag da11fe51 gefunden:
+   * bezahlt, Programm-Datei da, Video gescheitert — und der Käufer sah NICHTS).
+   *
+   * Die Programm-Karte in der Galerie steht ab der Sekunde des Kaufs, unabhängig vom Video.
+   * Damit sie nicht schweigt, wo der Kunde eine Antwort erwartet („wo ist mein Film?"),
+   * sagt sie in einem Satz, woran der Film gerade ist. Optional, weil kein anderes Thema
+   * eine solche Karte hat.
+   */
+  filmKommt?: string; filmFertig?: string; filmFehler?: string;
   /** Das Tor VOR dem ersten Upload (Owner 03.08.2026): Titel und Weiter-Knopf. */
   gateTitel: string; gateWeiter: string;
   /** Beschriftung des Land-Feldes neben der Adresse (Owner 31.07.2026). */
@@ -2827,6 +2837,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Dein Future Film entsteht …",
     mailNote: "Hierhin schicken wir deinen Future Film und deinen privaten Programm-Link.",
     programmKnopf: "Dein 30-Tage-Programm →",
+    filmKommt: "Dein Future Film entsteht gerade — er kommt per E-Mail.",
+    filmFertig: "Dein Future Film ist fertig — er liegt in deiner Galerie.",
+    filmFehler: "Dein Future Film hat noch nicht geklappt — wir kümmern uns und schicken ihn dir.",
   },
   en: {
     heroA: "A message to your ", heroY: "future self", heroB: ".",
@@ -2890,6 +2903,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Your Future Film is being made …",
     mailNote: "This is where we send your Future Film and your private program link.",
     programmKnopf: "Your 30-day program →",
+    filmKommt: "Your Future Film is being made — it arrives by email.",
+    filmFertig: "Your Future Film is ready — it is in your gallery.",
+    filmFehler: "Your Future Film did not come out right — we are on it and send it to you.",
   },
   ro: {
     heroA: "Un mesaj pentru ", heroY: "sinele tău viitor", heroB: ".",
@@ -2952,6 +2968,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Future Film-ul tău se creează …",
     mailNote: "Aici îți trimitem Future Film-ul și linkul tău privat de program.",
     programmKnopf: "Programul tău de 30 de zile →",
+    filmKommt: "Filmul tău Future se creează — îți ajunge pe e-mail.",
+    filmFertig: "Filmul tău Future este gata — îl găsești în galeria ta.",
+    filmFehler: "Filmul tău Future nu a ieșit bine — ne ocupăm și ți-l trimitem.",
   },
   es: {
     heroA: "Un mensaje para tu ", heroY: "yo futuro", heroB: ".",
@@ -3014,6 +3033,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Tu Future Film se está creando …",
     mailNote: "Aquí te enviamos tu Future Film y tu enlace privado al programa.",
     programmKnopf: "Tu programa de 30 días →",
+    filmKommt: "Tu Future Film se está creando — te llega por correo.",
+    filmFertig: "Tu Future Film está listo — lo tienes en tu galería.",
+    filmFehler: "Tu Future Film no salió bien — nos encargamos y te lo enviamos.",
   },
   fr: {
     heroA: "Un message à ton ", heroY: "futur toi", heroB: ".",
@@ -3076,6 +3098,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Ton Future Film est en cours de création …",
     mailNote: "C'est ici qu'on t'envoie ton Future Film et ton lien privé vers le programme.",
     programmKnopf: "Ton programme de 30 jours →",
+    filmKommt: "Ton Future Film est en cours — il arrive par e-mail.",
+    filmFertig: "Ton Future Film est prêt — il est dans ta galerie.",
+    filmFehler: "Ton Future Film n'a pas abouti — on s'en occupe et on te l'envoie.",
   },
   pt: {
     heroA: "Uma mensagem para o teu ", heroY: "eu futuro", heroB: ".",
@@ -3138,6 +3163,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "O teu Future Film está a ser criado …",
     mailNote: "É para aqui que enviamos o teu Future Film e o teu link privado do programa.",
     programmKnopf: "O teu programa de 30 dias →",
+    filmKommt: "O teu Future Film está a ser criado — chega por e-mail.",
+    filmFertig: "O teu Future Film está pronto — está na tua galeria.",
+    filmFehler: "O teu Future Film não correu bem — estamos a tratar disso e enviamos-to.",
   },
   it: {
     heroA: "Un messaggio al tuo ", heroY: "te futuro", heroB: ".",
@@ -3200,6 +3228,9 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Il tuo Future Film è in creazione …",
     mailNote: "Qui ti inviamo il tuo Future Film e il tuo link privato al programma.",
     programmKnopf: "Il tuo programma di 30 giorni →",
+    filmKommt: "Il tuo Future Film si sta creando — arriva via e-mail.",
+    filmFertig: "Il tuo Future Film è pronto — è nella tua galleria.",
+    filmFehler: "Il tuo Future Film non è riuscito — ce ne occupiamo e te lo inviamo.",
   },
 };
 

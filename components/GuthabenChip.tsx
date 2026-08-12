@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Wallet, Images, AlertTriangle } from "lucide-react";
 import { guthabenLesen, geraetAdresse, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -161,6 +162,9 @@ export default function GuthabenChip() {
    * und jede Guthaben-Meldung des Trichters (die Zahlung ist der Startschuss).
    */
   const [rendert, setRendert] = useState(false);
+  /* Auf welcher Seite stehen wir? Nur dafür, den Galerie-Chip als aktiv zu zeigen. */
+  const pfad = usePathname();
+  const inGalerie = pfad === "/my-gallery";
   useEffect(() => {
     let weg = false;
     let takt: ReturnType<typeof setTimeout> | null = null;
@@ -274,8 +278,20 @@ export default function GuthabenChip() {
             ? `${(stand / 100).toFixed(2).replace(".", ",")} €`
             : `${links} 🎬`}
       </span>
+      {/**
+        * DER GALERIE-CHIP ZEIGT, WENN MAN DRIN IST (Owner 11.08.2026, auf /my-gallery: „ich
+        * habe galerie angeklickt und ist nicht aktiv der Chip").
+        *
+        * Er hatte den Chip angetippt, war auf der Seite — und der Chip sah aus wie vorher.
+        * Ein Knopf, der nach dem Tippen nichts anzeigt, lässt einen zweimal tippen. Gold wie
+        * der Guthaben-Chip daneben, der die aktive Auszeichnung des Hauses trägt; kein
+        * zweiter Farbton.
+        */}
       <Link href="/my-gallery" aria-label="My Gallery"
-        className={`relative ${chip} border-white/20 bg-white/5 text-white/85`}>
+        aria-current={inGalerie ? "page" : undefined}
+        className={`relative ${chip} ${inGalerie
+          ? "border-[#f6cf51]/60 bg-[#f6cf51]/10 text-[#f6cf51]"
+          : "border-white/20 bg-white/5 text-white/85"}`}>
         <Images className="h-3.5 w-3.5" />
         Galerie
         {/* Der Puls: dort entsteht gerade etwas. Gold wie der Akzent, nie ein zweiter Farbton. */}

@@ -8,6 +8,7 @@ import AdminUrlMirror from "@/components/AdminUrlMirror";
 import CookieConsent from "@/components/CookieConsent";
 import PremiumSync from "@/components/PremiumSync";
 import AuthRefresh from "@/components/AuthRefresh";
+import AnmeldeLinkFehler from "@/components/AnmeldeLinkFehler";
 import VisitTracker from "@/components/VisitTracker";
 import ScrollTop from "@/components/ScrollTop";
 
@@ -95,6 +96,9 @@ export default async function RootLayout({
         </Suspense>
         {/* Keeps the login alive by refreshing the access token before it expires. */}
         <AuthRefresh />
+        {/* Sagt es, wenn ein Anmelde-Link tot war — sonst landet der Kunde wortlos auf der
+            Startseite und haelt sich fuer angemeldet (Owner 11.08.2026). */}
+        <AnmeldeLinkFehler />
         {/* Counts one site visit per session (ad-traffic reconciliation). */}
         <VisitTracker />
         {/* Syncs the premium flag with the user's video-pack credits. */}

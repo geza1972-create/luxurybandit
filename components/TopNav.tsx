@@ -6,6 +6,7 @@ import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
 import LightSwitch from "@/components/LightSwitch";
 import GuthabenChip from "@/components/GuthabenChip";
+import KontoChip from "@/components/KontoChip";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
@@ -158,6 +159,17 @@ export default function TopNav({
             überlagert und das Motto abgeschnitten (Owner 28.07.2026) — sie sitzt jetzt in
             einer eigenen Zeile unter dem Header. */}
         <div className="flex shrink-0 items-center gap-2">
+          {/* DAS KONTO-ZEICHEN NEBEN DEM TEILEN-KNOPF (Owner 11.08.2026: „Ich will dass du mir
+              ein Icon im Header machst zu sehen ob ich eingeloggt bin, mit grüner punkt. Dann
+              wenn ich dort klicke dann kann ich mich abmelden oden anmelden." · „neben dem
+              Share Button").
+              ES STEHT AUSSERHALB VON `actions` und damit auf JEDER Seite — auch auf denen,
+              die sich die Symbole hier selbst setzen (etwa /stores mit seiner Suche). Ein
+              Anzeiger, den es nur auf manchen Seiten gibt, beantwortet die Frage „bin ich
+              angemeldet?" nicht; genau daran hing der Fehler, den er gesehen hat.
+              Die Gestalt kommt aus der Bibliothek (`SymbolKnopf`) — der `iconBtn`-Stil daneben
+              bleibt unangetastet. */}
+          <KontoChip />
           {actions ?? (
             <>
               {/* DIE SUCHE IST INS MENUE GEZOGEN (Owner 31.07.2026: „man kann den Namen
@@ -190,6 +202,12 @@ export default function TopNav({
       <div data-langrow="1" className="mx-auto flex max-w-6xl items-center justify-between px-4 pb-2">
         {/* Der Span steht IMMER — rendert der Chip nichts, bleibt er leer, und
             `justify-between` schiebt die Sprache weiter nach rechts wie bisher. */}
+        {/* DAS KONTO-ZEICHEN STEHT NICHT HIER, sondern oben neben dem Teilen-Knopf (Owner
+            11.08.2026: „neben dem Share Button"). Gemessen am selben Tag: Diese Zeile ist auf
+            375 px voll — Guthaben (84) + Galerie (86) + Hell/Dunkel (35) + Sprache (88) plus
+            Abstände füllen die 343 verfügbaren Pixel restlos aus. Ein 26 Pixel breites
+            Zeichen dazwischen brach dem Guthaben „0,00 €" in zwei Zeilen. Wer hier je etwas
+            hinzufügen will, muss also zuerst etwas anderes wegnehmen. */}
         <span><GuthabenChip /></span>
         {/* HELL/DUNKEL STEHT IMMER HIER (Owner 06.08.2026: „der light und dark shalter muss
             immer da sein im header").

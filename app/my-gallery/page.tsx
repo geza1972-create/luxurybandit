@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
 import { kontoText, spracheAusCookie } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
-import { ThemenKreise } from "@/components/CI";
+import { ThemenKreise, Kasten } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -269,6 +269,13 @@ export default function MyGalleryPage() {
    */
   /** Sein Avatar — Gesicht und Stimme, mit denen jedes Video gebaut wird. */
   const [avatar, setAvatar] = useState<{ imageUrl: string; stimme: boolean } | null>(null);
+  /**
+   * SEINE BEZAHLTEN PROGRAMME (11.08.2026). Sie leben NEBEN den Kacheln, nicht in ihnen:
+   * Ein Programm hat kein Bild, und die Kachelliste wirft alles weg, was weder Bild noch
+   * Video hat — genau daran war der Kauf vom Auftrag da11fe51 unsichtbar. Kommt fertig aus
+   * /api/my-videos (`programme`), inklusive gültiger `programUrl`.
+   */
+  const [programme, setProgramme] = useState<{ id: string; programUrl: string; film: string }[]>([]);
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => { setLang(spracheAusCookie()); }, []);
   const T = kontoText(lang);
@@ -287,7 +294,7 @@ export default function MyGalleryPage() {
    * er das Handy weiter. Sein Gesicht (der Avatar) geht als Erstes.
    */
   useEffect(() => {
-    const leeren = () => { setItems([]); setAvatar(null); };
+    const leeren = () => { setItems([]); setAvatar(null); setProgramme([]); };
     window.addEventListener("lb-abgemeldet", leeren);
     return () => window.removeEventListener("lb-abgemeldet", leeren);
   }, []);
@@ -376,8 +383,21 @@ export default function MyGalleryPage() {
           own.push(...bilder);
           if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
           if (d?.avatar?.imageUrl) setAvatar({ imageUrl: String(d.avatar.imageUrl), stimme: !!d.avatar.stimme });
-          /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. */
-          if (own.some(x => x.rendert)) takt = setTimeout(nachladen, 15_000);
+          /**
+           * DIE PROGRAMM-KARTEN — ERSETZEN, NICHT ERGÄNZEN (anders als die Kacheln oben).
+           * Es gibt nur eine Quelle dafür, und der Zustand des Films ändert sich mit jedem
+           * Durchgang: „kommt" wird zu „fertig". Ein Anhängen würde denselben Kauf doppelt
+           * zeigen, ein alter Stand bliebe stehen.
+           */
+          const progs = (Array.isArray(d?.programme) ? d.programme : [])
+            .map((p: { id: string; programUrl?: string; film?: string }) =>
+              ({ id: String(p.id), programUrl: String(p.programUrl || ""), film: String(p.film || "kommt") }))
+            .filter((p: { programUrl: string }) => !!p.programUrl);
+          setProgramme(progs);
+          /* Weiter nachschauen, solange ein Auftrag offen ist — sonst Ruhe. Ein Programm,
+             dessen Film noch entsteht, zählt genauso: seine Karte soll von selbst auf
+             „fertig" umspringen, ohne dass der Käufer neu lädt. */
+          if (own.some(x => x.rendert) || progs.some((p: { film: string }) => p.film === "kommt")) takt = setTimeout(nachladen, 15_000);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
@@ -528,6 +548,35 @@ export default function MyGalleryPage() {
           * Sie verschwindet von selbst: Die Seite laedt alle 15 s nach, solange etwas offen
           * ist (siehe `nachladen` oben) — der Kaeufer muss nie neu laden.
           */}
+        {/**
+          * DIE PROGRAMM-KARTE STEHT VOR ALLEM ANDEREN (11.08.2026, Auftrag da11fe51:
+          * bezahlt 14:07, Programm-Datei 14:08, Video gescheitert — und der Käufer sah
+          * NICHTS).
+          *
+          * Warum ganz oben und nicht als Kachel: Das 30-Tage-Programm ist das GEKAUFTE,
+          * der Film ist die Zugabe. Eine Kachel bräuchte ein Bild, hat keins, und die
+          * Kachelliste filtert Bildloses weg — genau daran verschwand der Kauf. Und sie
+          * steht auch dann, wenn darunter gar keine Kachel ist: DANN ist sie am wichtigsten,
+          * weil die Seite sonst behauptet, er hätte nichts gekauft.
+          *
+          * Der Zustand des Films steht dabei — nicht um ihn zu vertrösten, sondern damit die
+          * Karte die Frage beantwortet, mit der er herkommt („wo ist mein Film?").
+          */}
+        {programme.map(p => {
+          const V = kissText(lang, "versprechen");
+          const satz = p.film === "fertig" ? V.filmFertig : p.film === "fehler" ? V.filmFehler : V.filmKommt;
+          return (
+            <Kasten key={p.id} art="gold" polster="p-4" className="mt-3">
+              <p className="text-[15px] font-black text-white">Future Self Program</p>
+              {!!satz && <p className="mt-1 text-[12.5px] font-semibold leading-snug text-white/65">{satz}</p>}
+              <a href={p.programUrl} target="_self"
+                className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black transition active:scale-95">
+                {V.programmKnopf}
+              </a>
+            </Kasten>
+          );
+        })}
+
         {/**
           * DER AVATAR STEHT ÜBER ALLEM (Owner 09.08.2026: „Auch in der Galerie. Das kann
           * später der User immer wieder benutzen … wenn er ein neues Video aufnimmt, dann
