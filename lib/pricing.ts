@@ -262,11 +262,9 @@ export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.0
  * Fortschritt und 90-Tage-Anschlussziel — deshalb löst sich der Preis vom Geschenk-Hauspreis
  * und bekommt eine eigene Zahl (49 €), keinen Anteil an `GESCHENK_VIDEO_CENTS` mehr.
  */
-/* TESTPREIS 1 € — NUR FÜR DEN ECHTGELD-TEST (Owner 12.08.2026: „ja dann mach doch 1 euro
-   damit ich das mit echtem geld testen kann", als tigl10722@gmail.com). ACHTUNG: gilt
-   öffentlich für JEDEN Besucher, solange er live ist — nach dem Test SOFORT zurück auf
-   1999 (19,99 €, Owner 11.08.2026: „wir machen das programm für 19,99"). */
-export const VERSPRECHEN_CENTS = 100;
+/* 9,99 € — Future Self Program (Owner 12.08.2026: „Das Programm wird auch 9,99 kosten",
+   nach dem geglückten Echtgeld-Test zum 1-€-Testpreis; davor 19,99 vom 11.08.). */
+export const VERSPRECHEN_CENTS = 999;
 
 /**
  * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
