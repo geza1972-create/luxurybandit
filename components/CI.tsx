@@ -156,7 +156,7 @@ export function SymbolKnopf({ onClick, label, punkt, punktLinks, punktRing = "#0
  * ging darin unter. Jetzt zeigt der aktive Chip nur einen gelben Rand und einen fast
  * schwarzen Hauch Gold darunter: sichtbar gewählt, aber kein Knopf.
  */
-export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false, onClick, disabled = false, className = "", children }: {
+export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false, onClick, disabled = false, className = "", href, children }: {
   art?: "gold" | "umriss" | "chip";
   /** Nur für `chip`: ist diese Wahl gerade gewählt? */
   aktiv?: boolean;
@@ -174,10 +174,22 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
+  /**
+   * ALS LINK STATT KNOPF (Owner 12.08.2026: „seit wann haben wir weisse schrift in Buttons?
+   * … Du bist nicht in der Lage nach CI zu arbeiten" — an einem von DREI handgebauten
+   * `<a class="lb-gold">`-Nachbauten des Programm-Knopfs). Wer ein Kauf-/Weiter-Ziel als
+   * Link braucht, reicht `href` — derselbe Baustein, dieselben Klassen, dieselbe Tinte.
+   * Nie wieder ein nachgebautes `<a>`, das die Schriftfarbe seines Umfelds erbt.
+   */
+  href?: string;
   children: ReactNode;
 }) {
   const kl = art === "gold"
-    ? "lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full font-black"
+    /* `text-[#1a1204]` steht AUSDRÜCKLICH hier, obwohl `.lb-gold` dieselbe Tinte setzt:
+       Die Klassen-Regel ist ohne !important und verliert gegen jede spätere Kontext-Regel —
+       genau so wurde der Programm-Knopf irgendwo weiss. Die helle Anzeigen-Fassung
+       (`.lb-fb .lb-gold` mit !important, weiss auf Blau) gewinnt weiterhin, wie gewollt. */
+    ? "lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full font-black text-[#1a1204]"
     : art === "umriss"
       ? (karte
         ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
@@ -223,11 +235,20 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
        Tipp die Beschriftung, statt zu schalten; die blaue Auswahl bleibt danach stehen und
        sieht aus wie ein kaputtes Element. Gehört an den Baustein, nicht an die einzelne
        Stelle: Es gilt für jeden Knopf und Chip im Haus. */
+    href ? (
+      /* Dieselben Klassen, dasselbe Verhalten — nur als Link (`target="_self"`: Kauf- und
+         Programm-Ziele gehören in DENSELBEN Tab, ein neuer wäre die falsche Gewohnheit). */
+      <a href={href} target="_self" onClick={onClick}
+        className={`${kl} select-none transition active:scale-95 ${className}`}>
+        {children}
+      </a>
+    ) : (
     <button type="button" onClick={onClick} disabled={disabled}
       {...(art === "chip" ? { "aria-pressed": aktiv } : {})}
       className={`${kl} select-none transition active:scale-95 disabled:opacity-60 ${className}`}>
       {children}
     </button>
+    )
   );
 }
 

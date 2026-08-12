@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
 import { kontoText, spracheAusCookie, themaUndMedium, themaWort } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
-import { ThemenKreise } from "@/components/CI";
+import { ThemenKreise, Knopf } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -1132,11 +1132,13 @@ export default function MyGalleryPage() {
                   * (`futureProgramUrl`) — leer, wenn die Programm-Datei nicht existiert oder
                   * das Server-Geheimnis fehlt; dann bleibt der Knopf einfach weg.
                   */}
+                {/* AUS DER BIBLIOTHEK (Owner 12.08.2026: „seit wann haben wir weisse schrift
+                    in Buttons?") — hier stand ein nachgebautes `<a class="lb-gold">`, dessen
+                    Tinte der Kontext überschreiben konnte. `Knopf href` trägt sie fest. */}
                 {open.theme === "versprechen" && !!open.programUrl && (
-                  <a href={open.programUrl} target="_self"
-                    className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
+                  <Knopf href={open.programUrl} className="mt-3">
                     {kissText(lang, "versprechen").programmKnopf}
-                  </a>
+                  </Knopf>
                 )}
               </div>
             ) : (

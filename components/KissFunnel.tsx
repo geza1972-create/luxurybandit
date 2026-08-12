@@ -3533,12 +3533,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * rendert. `target="_self"`, denn ein neuer Tab waere fuer ein Programm, das
               * er jeden Tag oeffnen soll, die falsche Gewohnheit.
               */}
+            {/* AUS DER BIBLIOTHEK (Owner 12.08.2026, siehe `Knopf href` in CI.tsx). */}
             {variant === "versprechen" && bezahlt && !!programUrl && T.programmKnopf && (
-              <a href={programUrl} target="_self"
-                style={{ color: "#111" }}
-                className="mt-4 inline-flex items-center justify-center rounded-full bg-[#f6cf51] px-5 py-2.5 text-[13px] font-black transition active:scale-95">
+              <Knopf href={programUrl} className="mt-4">
                 {T.programmKnopf}
-              </a>
+              </Knopf>
             )}
           </div>
         </div>
@@ -5651,12 +5650,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * der Render-Schicht evtl. schon gesehen — hier steht er noch einmal, weil der
               * Future Film der natuerliche Moment ist, das 30-Tage-Programm zu oeffnen.
               */}
+            {/* AUS DER BIBLIOTHEK (Owner 12.08.2026, siehe `Knopf href` in CI.tsx). */}
             {variant === "versprechen" && !!programUrl && T.programmKnopf && (
-              <a href={programUrl} target="_self"
-                style={{ color: "#111" }}
-                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#f6cf51] text-[14px] font-black active:scale-95 transition">
+              <Knopf href={programUrl} className="mt-3">
                 {T.programmKnopf}
-              </a>
+              </Knopf>
             )}
             {/**
               * ZURÜCK VOM ERGEBNIS (Owner 07.08.2026 abends: „und hier kann ich nicht
