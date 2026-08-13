@@ -132,6 +132,7 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
               try { signInWithOAuth("google", `${window.location.origin}/auth/confirm`); } catch { /**/ }
             },
           }}
+          zurueckHref={(() => { const q = new URLSearchParams(); try { const j = new URLSearchParams(window.location.search); if (j.get("light") === "1") q.set("light", "1"); const c = j.get("code") ?? ""; if (c) q.set("code", c); } catch { /**/ } const s = q.toString(); return `/themes/gutschein${s ? `?${s}` : ""}`; })()}
           lang={lang} anfangsName={name} anfangsEmail={mail} busy={leadBusy} fehlerAussen={leadFehler}
           onWeiter={async (n, e) => {
             setName(n); setMail(e); setLeadBusy(true); setLeadFehler("");

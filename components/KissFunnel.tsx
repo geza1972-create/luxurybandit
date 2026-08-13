@@ -4493,6 +4493,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           nameLabel={T.tunnelName ?? T.namenFrage} namePlatzhalter={T.namenPlatzhalter}
           emailLabel={T.tunnelEmail ?? T.mailQuestion} emailPlatzhalter="you@email.com"
           weiterLabel={T.tunnelWeiter ?? T.next}
+          zurueckHref={tunnelSeite ? (() => { const q = new URLSearchParams(); try { const j = new URLSearchParams(window.location.search); if (j.get("light") === "1") q.set("light", "1"); if (code) q.set("code", code); } catch { /**/ } const s = q.toString(); return `/themes/${variant === "poledance" ? "surprise" : variant}${s ? `?${s}` : ""}`; })() : undefined}
           lang={lang} anfangsName={empfaenger} anfangsEmail={mail} busy={mailBusy} fehlerAussen={mailFehler}
           /**
            * GOOGLE ALS ABKUERZUNG (Owner 12.08.2026: „auch googgle anmeldung kannst du

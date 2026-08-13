@@ -762,7 +762,7 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, k
   );
 }
 
-export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, emailPlatzhalter, weiterLabel, lang, anfangsName = "", anfangsEmail = "", busy = false, fehlerAussen = "", google, onWeiter, className = "" }: {
+export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, emailPlatzhalter, weiterLabel, lang, anfangsName = "", anfangsEmail = "", busy = false, fehlerAussen = "", google, onWeiter, zurueckHref, zurueckLabel = "Back", className = "" }: {
   titel: string;
   nameLabel: string;
   namePlatzhalter?: string;
@@ -801,6 +801,12 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
    */
   google?: { label: string; oderLabel: string; onClick: () => void };
   onWeiter: (name: string, email: string) => void | Promise<void>;
+  /** ZURÜCK ZUR LANDINGPAGE (Owner 12.08.2026: „ich verstehe nicht warum ich von hier
+   *  nicht zurück zur kandingpage kann") — Schritt 1 ist oft der DIREKTE Einstieg aus der
+   *  Anzeige, ohne Browser-Verlauf; ohne diesen Pfeil ist die Landingpage unerreichbar.
+   *  Die Aufrufer reichen ihre Themenseite (mit light/code) herein. */
+  zurueckHref?: string;
+  zurueckLabel?: string;
   className?: string;
 }) {
   const [name, setName] = useState(anfangsName);
@@ -868,9 +874,17 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
           onKeyDown={e => { if (e.key === "Enter") void weiter(); }} />
         <Fehlerzeile>{fehler || fehlerAussen}</Fehlerzeile>
       </div>
-      <Knopf art="gold" className="mt-3.5" onClick={() => void weiter()} disabled={busy}>
-        {busy ? <Laden art="knopf" /> : weiterLabel}
-      </Knopf>
+      <div className="mt-3.5 flex items-center gap-2">
+        {zurueckHref && (
+          <a href={zurueckHref} aria-label={zurueckLabel}
+            className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
+            <ChevronLeft className="h-5 w-5" />
+          </a>
+        )}
+        <Knopf art="gold" onClick={() => void weiter()} disabled={busy}>
+          {busy ? <Laden art="knopf" /> : weiterLabel}
+        </Knopf>
+      </div>
     </Kasten>
   );
 }
