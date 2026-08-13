@@ -84,14 +84,16 @@ async function nacktheitsTor(bilder: string[]): Promise<NacktUrteil> {
 }
 
 /** Die Absage, die der Besucher liest — in seiner Sprache, kurz und ohne Vorwurf. */
+/* DER SPRUCH IST VOM OWNER (13.08.2026, wörtlich samt Smiley: „No naked, go to
+   pornhub! :)") — frech vorneweg, der zweite Satz sagt klar, was zu tun ist. */
 const ABGELEHNT: Record<string, string> = {
-  en: "This image cannot be accepted. Please upload a photo with clothes on.",
-  de: "Dieses Bild kann nicht akzeptiert werden. Bitte lade ein Foto mit Kleidung hoch.",
-  ro: "Această imagine nu poate fi acceptată. Te rugăm să încarci o poză în care ești îmbrăcat.",
-  es: "Esta imagen no se puede aceptar. Sube una foto con ropa, por favor.",
-  fr: "Cette image ne peut pas être acceptée. Merci d'envoyer une photo habillé.",
-  pt: "Esta imagem não pode ser aceite. Por favor carrega uma foto com roupa.",
-  it: "Questa immagine non può essere accettata. Carica una foto vestito, per favore.",
+  en: "No naked — go to Pornhub! 🙂 Please upload a photo with clothes on.",
+  de: "No naked — go to Pornhub! 🙂 Hier bitte ein Foto mit Kleidung hochladen.",
+  ro: "No naked — go to Pornhub! 🙂 Aici încarcă o poză în care ești îmbrăcat.",
+  es: "No naked — go to Pornhub! 🙂 Aquí sube una foto con ropa.",
+  fr: "No naked — go to Pornhub! 🙂 Ici, envoie une photo habillé.",
+  pt: "No naked — go to Pornhub! 🙂 Aqui carrega uma foto com roupa.",
+  it: "No naked — go to Pornhub! 🙂 Qui carica una foto vestito.",
 };
 const abgelehntText = (lang?: string) => ABGELEHNT[String(lang ?? "en").slice(0, 2)] ?? ABGELEHNT.en;
 

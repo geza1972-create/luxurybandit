@@ -257,15 +257,18 @@ const TEXTE: Record<string, { minderjaehrig: string; unklar: string }> = {
   },
 };
 
-/** Für Nacktheit gibt es einen eigenen Satz — „minderjährig" wäre dort eine falsche Anschuldigung. */
+/** Für Nacktheit gibt es einen eigenen Satz — „minderjährig" wäre dort eine falsche
+ *  Anschuldigung. DER SPRUCH IST VOM OWNER (13.08.2026, wörtlich samt Smiley: „No naked,
+ *  go to pornhub! :)") — die Marke darf hier frech sein; der zweite Satz sagt trotzdem
+ *  klar, was zu tun ist. */
 const NACKT: Record<string, string> = {
-  de: "Auf diesem Foto ist Nacktheit zu sehen. Bitte nimm ein Foto, auf dem du bekleidet bist.",
-  en: "This photo contains nudity. Please use a photo where you are dressed.",
-  ro: "Această poză conține nuditate. Folosește te rog o poză în care ești îmbrăcat.",
-  es: "Esta foto contiene desnudez. Usa una foto en la que estés vestido.",
-  fr: "Cette photo contient de la nudité. Utilise une photo où tu es habillé.",
-  pt: "Esta foto contém nudez. Usa uma foto em que estejas vestido.",
-  it: "Questa foto contiene nudità. Usa una foto in cui sei vestito.",
+  de: "No naked — go to Pornhub! 🙂 Hier bitte ein Foto, auf dem du bekleidet bist.",
+  en: "No naked — go to Pornhub! 🙂 Please use a photo where you are dressed.",
+  ro: "No naked — go to Pornhub! 🙂 Aici folosește o poză în care ești îmbrăcat.",
+  es: "No naked — go to Pornhub! 🙂 Aquí usa una foto en la que estés vestido.",
+  fr: "No naked — go to Pornhub! 🙂 Ici, utilise une photo où tu es habillé.",
+  pt: "No naked — go to Pornhub! 🙂 Aqui usa uma foto em que estejas vestido.",
+  it: "No naked — go to Pornhub! 🙂 Qui usa una foto in cui sei vestito.",
 };
 
 export function altersFehlerText(grund: AltersGrund, lang?: string): string {

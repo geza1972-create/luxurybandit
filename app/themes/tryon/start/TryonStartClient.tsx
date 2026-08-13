@@ -99,10 +99,19 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
     let gid = genId;
     if (!gid) {
       try {
+        /* BEIDE FOTOS REISEN MIT (Owner 13.08.2026: „wenn leute nackte bilder hoch
+           laden muss man die fehler meldung bringen") — das Nacktheits-Tor der Route
+           prüft sie VOR Ablage und Kasse; die Absage trägt seinen Spruch. Nebenbei
+           liegen die Bilder damit am Auftrag (Galerie, Admin, Nachlieferung). */
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ theme: "tryon", device, email: mail.trim() }),
+          body: JSON.stringify({ theme: "tryon", device, email: mail.trim(), lang, personImage: foto, modelImage: teil }),
         }).then(r => r.json());
+        if (log?.bildAbgelehnt || log?.error) {
+          try { popup?.close(); } catch { /**/ }
+          setFehler(String(log?.error ?? F.statusNotWork));
+          return false;
+        }
         if (log?.id) { gid = String(log.id); setGenId(gid); }
       } catch { /**/ }
     }
