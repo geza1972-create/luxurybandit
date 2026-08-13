@@ -187,7 +187,11 @@ export default function SchleifenVideo({
       <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
         {poster ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={poster} alt="" className={natuerlich ? `block h-auto w-full ${className}` : gemeinsam} />
+          /* `loading="lazy"` (GEMESSEN 13.08.2026, Owner: „die hängen immer noch"): das
+             Karussell hängt ALLE Folien ein — 14 Poster auf einmal sättigten die Mobil-
+             Leitung, bevor irgendein Video überhaupt angetippt war. Lazy lädt nur, was
+             im Bild steht. */
+          <img src={poster} alt="" loading="lazy" className={natuerlich ? `block h-auto w-full ${className}` : gemeinsam} />
         ) : (
           /**
            * OHNE POSTERDATEI: DAS ERSTE BILD DES VIDEOS (Owner 10.08.2026, mit Bild der
