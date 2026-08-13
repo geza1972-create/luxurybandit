@@ -30,6 +30,23 @@ const nextConfig = {
    */
   outputFileTracingIncludes: {
     "/themes/versprechen": ["./public/Versprechen/**"],
+    /* Dieselbe Regel für die Ordner-Karten (13.08.2026): Landingpage UND Tunnel lesen
+       public/Tryon bzw. public/Chat per readdir (lib/tryon-videos.ts) — ohne diese Zeilen
+       fände die Server-Funktion auf Vercel nichts und die Karte stünde live leer. */
+    "/themes/tryon": ["./public/Tryon/**"],
+    "/themes/tryon/start": ["./public/Tryon/**"],
+    "/themes/chat": ["./public/Chat/**"],
+    "/themes/chat/start": ["./public/Chat/**"],
+  },
+  /**
+   * DIE MUSIK-ROUTE DARF NICHT DEN GANZEN public-ORDNER TRAGEN (GEMESSEN beim Deploy
+   * 13.08.2026: „api/feed-music is 318.32mb … exceeds 250mb"). Sie liest per readdir nur
+   * die MP3s im public-WURZELordner; die Bau-Spurensuche nahm aber ALLES mit — und seit
+   * den Try-on-Videos platzt damit das Funktions-Limit. Die schweren Medientypen fliegen
+   * aus IHREM Bündel; die MP3s bleiben drin, die Seiten-Funktionen oben sind unberührt.
+   */
+  outputFileTracingExcludes: {
+    "/api/feed-music": ["./public/**/*.mp4", "./public/**/*.mov", "./public/**/*.jpg", "./public/**/*.jpeg", "./public/**/*.png", "./public/**/*.svg"],
   },
   async rewrites() {
     // Mirror every public page under /admin/… for signed-in admins. `afterFiles` runs
