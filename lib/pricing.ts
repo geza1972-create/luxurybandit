@@ -155,7 +155,9 @@ export const GUTSCHEIN_CENTS = 999;                 // 9,99 € — die Verpacku
 // Owner 02.08.2026: „ich dachte ich lasse es nach 7 tagen mit abo laufen nicht nächsten
 // monat" — dreht die 30-Tage-Entscheidung vom 01.08. zurück auf 7 Tage. Eine Zahl hier,
 // damit Seite, Preiszeile (Ä5) und die tatsächliche Probefrist (Ä8) nie auseinanderlaufen.
-export const TRIAL_DAYS = 7;                        // Tage, die die Seite ohne Abo online bleibt
+/* 30 statt 7 (Owner 12.08.2026: „Hochzeit auch [9,99] und er bekommt abo für 14,99 nch
+   30 tagen") — der 9,99-Einstieg trägt die Seite 30 Tage, erst danach greift das Abo. */
+export const TRIAL_DAYS = 30;
 // Die Aufladung (Owner 01.08.2026, Variante B: Zusatzangebot neben dem Einzelkauf; Guthaben
 // verfällt nie, keine Barauszahlung). Eine Stufe reicht zum Start.
 /**
@@ -503,7 +505,9 @@ export function chatPriceId(): string {
  *
  * Vorher 29,00 €. Die Verlängerung steht unverändert in VERLAENGERUNG_MONAT_CENTS.
  */
-export const HOCHZEIT_START_CENTS = 2999;           // 29,99 € — der Kauf, erster Monat inklusive
+/* 9,99 € — EIN Preis für alle Produkte (Owner 12.08.2026: „alle kosten 9,99 auch Hochzeit").
+   Vorher 29,99; die Verlängerung des Planers (14,99 €/Monat) bleibt unberührt. */
+export const HOCHZEIT_START_CENTS = 999;
 
 /**
  * DIE VERLAENGERUNG KOSTET WENIGER ALS DER KAUF (Owner 05.08.2026, zum Hochzeitsplaner: „aber
@@ -832,7 +836,10 @@ export function verlaengerungCents(thema: ThemenSchluessel): number {
 export function themenPreisZeile(thema: ThemenSchluessel, lang?: string): string {
   const W = AB_WORT[String(lang ?? "en")] ?? AB_WORT.en;
   const zahl = eur(themenPreisCents(thema), lang);
-  return `${W.ab} ${zahl}${istMonatspreis(thema) ? W.pm : ""}`;
+  /* OHNE „AB" (Owner 12.08.2026, an den Katalog-Kacheln „ab 9,99 €": „Dei Preise sind
+     nicht ab sonder genau der Preis.") — seit alle Produkte EINEN festen Preis tragen,
+     ist das Wörtchen eine Lüge nach oben. Nur ein echter Monatspreis behält sein „/Monat". */
+  return `${zahl}${istMonatspreis(thema) ? W.pm : ""}`;
 }
 
 /**

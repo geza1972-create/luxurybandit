@@ -7,8 +7,10 @@ import EinladungBauen from "@/components/EinladungBauen";
 import ThemenPreis from "@/components/ThemenPreis";
 import ThemenVorspann from "@/components/ThemenVorspann";
 import SeitenFuss from "@/components/SeitenFuss";
+import { Knopf } from "@/components/CI";
 import { resolveLang } from "@/lib/lang-server";
 import { trObject } from "@/lib/tr-object";
+import { themenPreisZeile } from "@/lib/pricing";
 
 /**
  * THEMA „GUTSCHEIN" — UNSER Gutschein als Videokarte (umgebaut am 06.08.2026).
@@ -68,7 +70,7 @@ export const metadata = {
  * dich: einen Kuss" bzw. „… einen Tanz". Der Titel nennt das GESCHENK, nicht die Reaktion
  * darauf; „Surprise" könnte auf jeder Karte stehen und sagt dem Empfänger nichts.
  */
-const WERBUNG: Record<string, { h1a: string; h1b: string; h1c: string; grund: string; kartenTitel: string; botschaft: string }> = {
+export const WERBUNG: Record<string, { h1a: string; h1b: string; h1c: string; grund: string; kartenTitel: string; botschaft: string }> = {
   /* NEU AM 06.08.2026: verkauft wird UNSER Gutschein (Owner: „wir machen keine fremde
      gutscheine mehr. … Die texte müssen auf der landing page auch angepasst werden."). Die
      Überschrift spricht den KÄUFER an, das goldene Wort ist das Produkt. */
@@ -102,7 +104,11 @@ const WERBUNG: Record<string, { h1a: string; h1b: string; h1c: string; grund: st
         botschaft: "Buon compleanno! Il tuo regalo ti aspetta dietro il pulsante." },
 };
 
-export default async function GutscheinThemePage() {
+export default async function GutscheinThemePage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const L = await resolveLang();
   const W = WERBUNG[L] ?? WERBUNG.en;
 
@@ -149,6 +155,11 @@ export default async function GutscheinThemePage() {
 
         <ThemenVorspann anlass={t.anlass} grund={W.grund}
           wieGeht={[t.schritt1, t.schritt2, t.schritt3]} wieGehtPrivat={t.privat} />
+
+        {/* DIE AD-ADRESSE (KONZEPT-TUNNEL.md) — ein zweiter, schmalerer Weg direkt zum
+            Drei-Schritt-Tunnel (`/themes/gutschein/start`); `code` reist mit. Der Bau-Kasten
+            unten bleibt unveraendert. */}
+        {/* Der Outline-Zweitknopf mit Preis („de la 9,99 €") ist RAUS (Owner 12.08.2026, mit Bild: „das raus, das haben wir sonst niergendwo") — die eine Tür in den Tunnel ist der goldene Karten-Knopf. */}
 
         {/**
           * DER TRICHTER — DERSELBE WIE BEI HOCHZEIT UND URLAUB (Owner 05.08.2026: „Man, wir

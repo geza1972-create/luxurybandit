@@ -347,6 +347,9 @@ export async function POST(request: Request) {
     e.ort = sauber(body.ort, 120) || undefined;
     e.adresse = sauber(body.adresse, 160) || undefined;
     e.telefon = sauber(body.telefon, 32).replace(/[^0-9+ ]/g, "") || undefined;
+    /* DER EINE EINLADUNGSSATZ (Owner 12.08.2026, Urlaub) — 200 Zeichen wie ein langer Satz
+       mit Datum, nicht wie die 300 der freien Botschaft, die er hier ersetzt. */
+    if (body.satz !== undefined) e.satz = sauber(body.satz, 200) || undefined;
     await writeEinladungen(alle);
     return NextResponse.json({ ok: true });
   }
@@ -638,6 +641,10 @@ export async function POST(request: Request) {
     bisDatum: sauber(body.bisDatum, 10) || undefined,
     /* 300 Zeichen wie im Formular — der Deckel gilt auch hier, weil der Browser luegen kann. */
     botschaft: sauber(body.botschaft, 300) || undefined,
+    /* DER EINE EINLADUNGSSATZ DES URLAUBS (Owner 12.08.2026) — siehe Feldkommentar in
+       lib/try-this-look-store.ts. Nur beim Urlaub gesetzt; bei Hochzeit/Gutschein bleibt
+       `body.satz` leer und das Feld undefined. */
+    satz: sauber(body.satz, 200) || undefined,
     email: sauber(body.email, 160).toLowerCase() || undefined,
     device: sauber(body.device, 80) || undefined,
     opens: 0,

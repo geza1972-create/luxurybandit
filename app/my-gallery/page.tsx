@@ -311,7 +311,12 @@ export default function MyGalleryPage() {
   useEffect(() => {
     const leeren = () => { setItems([]); setAvatar(null); };
     window.addEventListener("lb-abgemeldet", leeren);
-    return () => window.removeEventListener("lb-abgemeldet", leeren);
+    /* UND DAS GEGENSTÜCK (Owner 12.08.2026: „ich habe mich angemeldet und sehe nichts in
+       der galerie" — die Seite las die Sitzung nur beim Laden; wer sich im Kopf-Dialog
+       anmeldete, blieb für sie ein Fremder, bis er von Hand neu lud). */
+    const anmelden = () => { try { setToken(getStoredAuthSession()?.access_token ?? ""); } catch { /**/ } };
+    window.addEventListener("lb-angemeldet", anmelden);
+    return () => { window.removeEventListener("lb-abgemeldet", leeren); window.removeEventListener("lb-angemeldet", anmelden); };
   }, []);
 
   useEffect(() => {
@@ -741,7 +746,9 @@ export default function MyGalleryPage() {
            * Konto) — was ihm gehoert, sieht er. Anmelden lohnt weiterhin: nur damit folgt
            * die Galerie auf andere Geraete.
            */
-          <p className="py-16 text-center text-[13px] font-bold text-white/50">Melde dich an, um deine Try-ons zu sehen.</p>
+          /* KEIN „Try-ons" MEHR (Owner 12.08.2026: „was steht hier?" — das Wort stammt aus
+             der alten Trends-Welt und war hart deutsch einkodiert, jetzt 7 Sprachen). */
+          <p className="py-16 text-center text-[13px] font-bold text-white/50">{T.galerieAnmelden}</p>
         ) : items.length === 0 ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">{T.leer}</p>
         ) : shown.length === 0 ? (

@@ -1701,6 +1701,14 @@ export type KissLogEntry = {
   ziele?: string[];
   zieleFrei?: string;
   /**
+   * DER EINE EINLADUNGSSATZ DES URLAUBS-TUNNELS (Owner 12.08.2026, Zusatzauftrag: „Dieses
+   * Eingabefeld habe später auch im Tunel"). Reist mit dem Auftrag, genau wie `zieleFrei` es
+   * fürs Versprechen tut — dasselbe Muster, ein freier Satz, den niemand nachschlagen kann.
+   * Fliesst NICHT mehr in den Video-/Bild-Auftrag (siehe `holidayInvitePrompt`-Aufruf in
+   * `HolidayStartClient.tsx`); er ist für die spätere Einladung gedacht, nicht fürs Bild.
+   */
+  satz?: string;
+  /**
    * SEINE SPRACHE AM AUFTRAG (11.08.2026, Nachtrag zum Future-Self-Programm) — bis hierher
    * kannte der Eintrag keine Sprache; `kiss-delivery.ts` griff deshalb per Rueckfall auf
    * Englisch zurueck, und ein rumaenischer Kaeufer haette seine private Programmseite
@@ -1889,6 +1897,15 @@ export type Einladung = {
    */
   bisDatum?: string;
   botschaft?: string;
+  /**
+   * DER EINE EINLADUNGSSATZ DES URLAUBS (Owner 12.08.2026, mit Bild der Urlaubs-Karte:
+   * „diese einladung ist zu kompliziert. Muss nur ein Textfeld sein Wo der User eingeben
+   * kann Komm bitte mit nach Teneriffa am 21. Nov. 2026 …"). Ersetzt `botschaft` UND
+   * `datum`/`bisDatum`/`ort` auf der Karte — der Kunde schreibt Anlass, Ziel und Datum
+   * selbst in einen Satz. Fehlt es, ist es eine Einladung von VOR diesem Tag: Die Karte
+   * zeigt dann weiter die alten, getrennten Felder (`EinladungKarte`, `satz`-Prop).
+   */
+  satz?: string;
   email?: string;         // wem sie gehört — für Widerruf und Zuordnung
   device?: string;
   /**

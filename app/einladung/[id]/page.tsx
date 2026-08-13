@@ -203,6 +203,13 @@ export default async function EinladungPage({ params, searchParams }: {
              Ja/Nein-Karte folgt unmittelbar darunter, der Weg ist also kurz. */
           bisDatum={urlaub && !abgelaufen ? e.bisDatum : undefined}
           botschaft={(urlaub || gutschein) && !abgelaufen ? e.botschaft : undefined}
+          /**
+           * DER EINE EINLADUNGSSATZ (Owner 12.08.2026) — nur wenn er in der Datenbank steht.
+           * Fehlt er (Einladung von VOR diesem Tag), bleibt `satz` undefined, und
+           * `EinladungKarte` faellt von selbst auf `botschaft`/`datum`/`ort` zurueck
+           * (rueckwaertskompatibel, siehe die Begruendung an ihrer `satz`-Prop).
+           */
+          satz={urlaub && !abgelaufen ? e.satz : undefined}
           bestaetigen={urlaub && !abgelaufen && !!e.bezahlt ? T.bestaetigen : undefined}
           datum={abgelaufen ? undefined : e.datum} ort={abgelaufen ? undefined : e.ort}
           adresse={abgelaufen ? undefined : e.adresse} telefon={abgelaufen ? undefined : e.telefon}

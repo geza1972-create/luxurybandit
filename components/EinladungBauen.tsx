@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Check, Loader2, ImageUp, Sparkles, Trash2 } from "lucide-react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import TeilenKnopf from "@/components/TeilenKnopf";
-import { VORLAGE_TEXT } from "@/components/BeispielGalerie";
+import { VORLAGE_TEXT, teilenText } from "@/components/BeispielGalerie";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import KartenKarussell from "@/components/KartenKarussell";
 import UploadKachel from "@/components/UploadKachel";
@@ -89,9 +89,23 @@ const BEISPIEL_ADRESSE: Record<string, string> = {
  * Ein Ziel, das es wirklich gibt, und keine Musterstraße: Wer „Teneriffa" liest, sieht sofort
  * seinen eigenen Urlaub darin — bei „Musterort 12" sieht er ein Formular.
  */
-const BEISPIEL_ORT_URLAUB: Record<string, string> = {
-  de: "Teneriffa", en: "Tenerife", ro: "Tenerife", es: "Tenerife",
-  fr: "Tenerife", pt: "Tenerife", it: "Tenerife",
+/**
+ * DER BEISPIEL-EINLADUNGSSATZ (Owner 12.08.2026, mit Bild der Urlaubs-Karte: „diese
+ * einladung ist zu kompliziert. Muss nur ein Textfeld sein Wo der User eingeben kann Komm
+ * bitte mit nach Teneriffa am 21. Nov. 2026 …").
+ *
+ * ERSETZT `BEISPIEL_ORT_URLAUB` — die Karte zeigte bisher „Teneriffa" als Ort-Chip und den
+ * Vorgabesatz „Lass uns in den Urlaub fahren" getrennt als Botschaft. Jetzt ist es EIN Satz
+ * mit Ziel UND Datum, wörtlich das Owner-Beispiel je Sprache natürlich formuliert.
+ */
+const BEISPIEL_SATZ_URLAUB: Record<string, string> = {
+  de: "Komm bitte mit nach Teneriffa am 21. Nov. 2026 — nur wir beide!",
+  en: "Come with me to Tenerife on 21 Nov 2026 — just the two of us!",
+  ro: "Vino cu mine în Tenerife pe 21 nov. 2026 — doar noi doi!",
+  es: "Ven conmigo a Tenerife el 21 nov. 2026 — ¡solo nosotros dos!",
+  fr: "Viens avec moi à Tenerife le 21 nov. 2026 — juste nous deux !",
+  pt: "Vem comigo a Tenerife a 21 nov. 2026 — só nós os dois!",
+  it: "Vieni con me a Tenerife il 21 nov. 2026 — solo noi due!",
 };
 
 /**
@@ -111,7 +125,7 @@ const BEISPIEL_ORT_URLAUB: Record<string, string> = {
  * Maße. Was hier steht, steht dort.
  */
 
-type Feld = "namen" | "wann" | "wo" | "fotos" | "botschaft" | null;
+type Feld = "namen" | "wann" | "wo" | "fotos" | "botschaft" | "satz" | null;
 
 /**
  * WIE LANG DIE BOTSCHAFT WERDEN DARF (Owner 04.08.2026: „vielleicht will derjenige mehr
@@ -199,6 +213,29 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
    */
   const gutschein = variant === "gutschein";
   const botschaftFrei = urlaub || gutschein;
+  /**
+   * DER HAUPT-CTA FÜHRT IN DEN TUNNEL, NICHT MEHR IN DEN ALTEN DIALOG (Owner-Befund
+   * 12.08.2026: „und wo ist der Tunel bei Hollyday?" — der goldene Karten-Knopf öffnete
+   * weiterhin `setFeld("fotos")`, den Bau-Dialog dieser Komponente, waehrend die eigentlich
+   * beworbene Adresse `/themes/<produkt>/start` nur ueber einen zweiten, kleineren Link
+   * erreichbar war — zwei Tueren zur selben Sache, und die falsche war die grosse).
+   *
+   * DASSELBE MUSTER WIE `KissFunnel.schritteOeffnen`: `light`/`code` reisen aus der
+   * aktuellen Adresse mit, damit eine Anzeige, die auf die helle Fassung oder einen
+   * Aktionscode verweist, das auch auf der Tunnel-Seite noch tut. Der alte Dialog bleibt in
+   * dieser Datei bestehen (Alt-Links, die `?admin=1`/Vorschau brauchen ihn weiterhin) — er
+   * ist nur nicht mehr der beworbene Weg.
+   */
+  const zumTunnel = () => {
+    try {
+      const jetzt = new URLSearchParams(window.location.search);
+      const ziel = new URLSearchParams();
+      if (jetzt.get("light") === "1") ziel.set("light", "1");
+      const code = jetzt.get("code") || jetzt.get("promo");
+      if (code) ziel.set("code", code);
+      window.location.href = `/themes/${variant}/start${ziel.toString() ? `?${ziel}` : ""}`;
+    } catch { setFeld("fotos"); }
+  };
   /**
    * DAS VIDEO IST IM PREIS DRIN (Owner 07.08.2026: „und hier wurde kein Video generiert").
    *
@@ -352,6 +389,14 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
   /** Die Botschaft unter dem Bild. Leer heisst: der Vorgabesatz gilt (siehe `botschaftText`). */
   const [botschaft, setBotschaft] = useState("");
   const [ort, setOrt] = useState("");
+  /**
+   * DER EINE EINLADUNGSSATZ (Owner 12.08.2026) — NUR BEIM URLAUB. Ersetzt dort `botschaft`
+   * UND `datum`/`bisDatum`/`ort`: Der Kunde schreibt Anlass, Ziel und Datum selbst in einen
+   * Satz statt drei getrennte Felder auszufüllen. `datum`/`bisDatum`/`ort` bleiben als
+   * Zustand bestehen (Hochzeit braucht sie weiter) — beim Urlaub werden sie nur nicht mehr
+   * an die Karte gereicht, siehe die Kartenprops weiter unten.
+   */
+  const [satz, setSatz] = useState("");
   const [adresse, setAdresse] = useState("");
   const [telefon, setTelefon] = useState("");
   const [mail, setMail] = useState("");
@@ -509,6 +554,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
       if (d.sie) setSie(d.sie); if (d.er) setEr(d.er);
       if (d.datum) setDatum(d.datum); if (d.ort) setOrt(d.ort);
       if (d.bisDatum) setBisDatum(d.bisDatum); if (d.botschaft) setBotschaft(d.botschaft);
+      if (d.satz) setSatz(d.satz);
       if (d.adresse) setAdresse(d.adresse); if (d.telefon) setTelefon(d.telefon);
       if (d.mail) setMail(d.mail);
       /**
@@ -525,8 +571,8 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     try { setMail(m => m || localStorage.getItem("lb_kiss_mail") || ""); } catch { /**/ }
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(SPEICHER, JSON.stringify({ sie, er, datum, bisDatum, botschaft, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft })); } catch { /**/ }
-  }, [sie, er, datum, bisDatum, botschaft, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft]);
+    try { localStorage.setItem(SPEICHER, JSON.stringify({ sie, er, datum, bisDatum, botschaft, satz, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft })); } catch { /**/ }
+  }, [sie, er, datum, bisDatum, botschaft, satz, ort, adresse, telefon, mail, lbMail, lbWahl, lbGekauft]);
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
@@ -1011,9 +1057,13 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        /* Beim Urlaub geht der ORT mit in den Auftrag: „Komm mit mir nach Teneriffa" steht auf
-           der Karte, also muss Teneriffa auch im Video zu sehen sein. Bei der Hochzeit ist der
-           Ort nur die Adresse für die Gäste — die Kulisse bestimmt allein die Szene. */
+        /* DER FREIE EINLADUNGSSATZ GEHT NICHT MEHR IN DEN VIDEO-AUFTRAG (Owner 12.08.2026,
+           Zusatzauftrag zur Urlaubs-Vereinfachung): Bisher floss der getippte ORT roh in
+           `holidayInvitePrompt`, weil er ein reiner Ortsname war („Teneriffa"). Jetzt tippt
+           der Kunde einen ganzen SATZ mit Datum („Komm bitte mit nach Teneriffa am 21. Nov.
+           2026 …") — der gehört auf die Karte, nicht als Bildanweisung an ein Videomodell,
+           das mit „am 21. Nov. 2026" nichts anfangen kann. Die Kulisse bestimmt jetzt allein
+           die SZENE (`szeneId`), wie bei der Hochzeit. */
         body: JSON.stringify({
           lookId: KISS_LOOK_ID, genId, person, garment,
           /* Der Gutschein hat keine Szene — sein Auftrag steht fest: Umschlag hoch, ein Satz.
@@ -1023,7 +1073,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
              „realistic wedding video" verlangt, würde genau die Handschrift wegbügeln, für die
              der Bild-Schritt bezahlt wurde. Weiche Bewegung, sanfte Kamerafahrt, Blasen. */
           prompt: gutschein ? gutscheinPrompt()
-            : urlaub ? holidayInvitePrompt(szeneId, ort.trim())
+            : urlaub ? holidayInvitePrompt(szeneId)
             : HOCHZEIT_TRAUM_VIDEO,
           /* FUENF SEKUNDEN BEIM GUTSCHEIN (Owner 05.08.2026: „5 sek. das reicht vollkommend").
              Es ist eine Geste und ein Satz — „I have something for you!" ist nach drei Sekunden
@@ -1146,7 +1196,9 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
            app/api/free-preview/route.ts. */
         body: JSON.stringify({
           theme: variant, device, email: mail.trim(), szene: szeneId,
-          ...(urlaub ? { einladung: true, ort: ort.trim() } : {}),
+          /* Kein `ort` mehr im Bild-Auftrag — derselbe Grund wie beim Video oben: Der freie
+             Einladungssatz mit Datum gehört auf die Karte, nicht in die Bildwelt. */
+          ...(urlaub ? { einladung: true } : {}),
           ...(weg === "gemeinsam" ? { paar: paarFoto } : { person: seinFoto, model: ihrFoto }),
         }),
       }).then(r => r.json());
@@ -1208,10 +1260,15 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
           videoUrl: (gutschein ? gutscheinVideo : videoUrl) || undefined,
           bildPfad: (videoUrl || gutschein) ? undefined : bildPfad,
           genId, sie: sie.trim(), er: er.trim(), datum,
-          /* Nur beim Urlaub: Enddatum und Botschaft. Ohne diese zwei Zeilen sieht der
-             Absender sie auf seiner Bau-Karte — und der Empfaenger bekommt sie nie. */
-          /* Der Gutschein hat eine Botschaft, aber KEIN Datum — er lädt zu nichts ein. */
-          ...(botschaftFrei ? { ...(urlaub ? { bisDatum } : {}), botschaft: botschaftText } : {}),
+          /**
+           * DER URLAUB SCHICKT `satz` STATT `botschaft`/`bisDatum` (Owner 12.08.2026,
+           * Zusatzauftrag: „diese einladung ist zu kompliziert. Muss nur ein Textfeld
+           * sein"). Der eine Satz traegt Anlass, Ziel UND Datum selbst — die getrennten
+           * Felder von vorher (Enddatum, Vorgabe-Botschaft) braucht er nicht mehr.
+           *
+           * Der Gutschein bleibt bei `botschaft` (kein Datum — er lädt zu nichts ein).
+           */
+          ...(urlaub ? { satz: satz.trim() } : gutschein ? { botschaft: botschaftText } : {}),
           /* Nur die SITZUNGSNUMMER des beigelegten Topic-Gutscheins — Betrag und Thema liest
              die Route bei Stripe nach, eine Behauptung des Browsers zählt dort nicht. */
           ...(gutschein && lbGekauft ? { lbGutscheinSession: lbGekauft.session } : {}),
@@ -1334,9 +1391,21 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
          */
         sie={gutschein || urlaub ? sie.trim() : (sie.trim() || (eigenes ? T.fSie : BEISPIEL_SIE))}
         er={gutschein || urlaub ? er.trim() : (er.trim() || (eigenes ? T.fEr : BEISPIEL_ER))}
-        datum={gutschein ? "" : (datum || (eigenes ? "" : beispielDatum))}
-        bisDatum={urlaub ? bisDatum : undefined}
-        botschaft={botschaftFrei ? botschaftText : undefined}
+        datum={gutschein || urlaub ? "" : (datum || (eigenes ? "" : beispielDatum))}
+        /* `bisDatum` gibt es beim Urlaub nicht mehr strukturiert — das Datum steht jetzt IM
+           Einladungssatz (`satz` unten), wie das ganze Owner-Beispiel „… am 21. Nov. 2026". */
+        /* NUR NOCH DER GUTSCHEIN ZEIGT `botschaft` (Owner 12.08.2026, Zusatzauftrag): Beim
+           Urlaub steht an dieser Stelle jetzt der eine Einladungssatz (`satz` unten) — Gruß,
+           Ziel und Datum in einem Feld statt Botschaft + Wann/Wo getrennt. */
+        botschaft={gutschein ? botschaftText : undefined}
+        /**
+         * DER EINE EINLADUNGSSATZ DES URLAUBS (Owner 12.08.2026, mit Bild der Karte: „diese
+         * einladung ist zu kompliziert. Muss nur ein Textfeld sein"). Steht an der Stelle, wo
+         * bisher Botschaft UND Wann/Wo standen — `EinladungKarte` blendet beide automatisch
+         * aus, sobald `satz`/`aufSatz` da sind (siehe die Begründung an ihrer `satz`-Prop).
+         */
+        satz={urlaub ? (satz.trim() || (eigenes ? "" : (BEISPIEL_SATZ_URLAUB[lang] || BEISPIEL_SATZ_URLAUB.en))) : undefined}
+        aufSatz={urlaub ? () => setFeld("satz") : undefined}
         /**
          * „VON …" UNTER DER BOTSCHAFT (Owner 05.08.2026: „kannst du es machen von: …").
          *
@@ -1348,12 +1417,13 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
          */
         von={gutschein ? sie.trim() : undefined}
         aufVon={gutschein ? () => setFeld("namen") : undefined}
-        aufBotschaft={botschaftFrei ? () => setFeld("botschaft") : undefined}
+        aufBotschaft={gutschein ? () => setFeld("botschaft") : undefined}
         /* Die Bestätigungszeile steht schon beim Bauen auf der Karte — der Absender soll
            sehen, was der Empfänger sieht. Ohne Griff: hier gibt es nichts anzutippen. */
         bestaetigen={urlaub ? T.bestaetigen : undefined}
-        /* Kein Ort beim Gutschein: Er verschenkt etwas, er lädt nirgendwohin ein. */
-        ort={gutschein ? "" : (ort.trim() || (eigenes ? "" : (urlaub ? (BEISPIEL_ORT_URLAUB[lang] || BEISPIEL_ORT_URLAUB.en) : (BEISPIEL_ORT[lang] || BEISPIEL_ORT.en))))}
+        /* Kein Ort beim Gutschein UND nicht mehr strukturiert beim Urlaub — dort steckt das
+           Ziel jetzt im Einladungssatz (`satz`). Nur die Hochzeit zeigt den Saalnamen hier. */
+        ort={gutschein || urlaub ? "" : (ort.trim() || (eigenes ? "" : (BEISPIEL_ORT[lang] || BEISPIEL_ORT.en)))}
         /* KEINE ADRESSE BEIM URLAUB. Sie ist ein Hochzeitsfeld: „Straße, Nr., PLZ" sagt
            fünfzig Gästen, wo der Saal steht. Ein Urlaub hat ein Ziel und einen Zeitraum —
            beides steht schon auf der Karte, und eine dritte Zeile darunter wiederholt nur. */
@@ -1373,8 +1443,10 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
          * Mögliche sein.
          */
         aufNamen={gutschein ? undefined : () => setFeld("namen")}
-        aufDatum={gutschein ? undefined : () => setFeld("wann")}
-        aufOrt={gutschein ? undefined : () => setFeld("wo")}
+        /* Beim Urlaub fuehren beide Griffe jetzt zum EINEN Einladungssatz — `feld === "wann"`
+           und `feld === "wo"` bleiben nur noch fuer die Hochzeit erreichbar, siehe unten. */
+        aufDatum={gutschein || urlaub ? undefined : () => setFeld("wann")}
+        aufOrt={gutschein || urlaub ? undefined : () => setFeld("wo")}
         /* DIE HERKUNFTSZEILE GEHÖRT AUF JEDE KARTE (Owner 03.08. „benutze IMMER die Cards …
            mit Titel oben und Made by Luxurybandit.com" · 06.08. „und auch link drauf") —
            dieselbe Zeile wie auf der Kuss-Karte und auf der Seite des Empfängers: Der
@@ -1510,26 +1582,25 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
                         * GETEILT WIRD DIE VORLAGE, NICHT DIE VERKAUFSSEITE (Owner 10.08.2026:
                         * „wir hatten mal eine Vorlage, die hätten wir doch teilen können").
                         *
-                        * Hier stand `/themes/wedding?utm_source=share` — unsere Werbung, mit
-                        * dem Kussmund des Kuss-Themas obendrauf. Dabei gibt es `/einladung/
-                        * beispiel`: eine vollständige Muster-Einladung mit Zusagen, Menü und
-                        * Gruppenchat, gebaut mit genau diesem Zweck („Sie ist da, um sie
-                        * jemandem zu zeigen") — und bis heute von NIRGENDWO verlinkt.
-                        *
-                        * Wer noch baut, hat nichts Eigenes zum Verschicken. Er hat aber sehr
-                        * wohl etwas zu zeigen: „so wird unsere Einladung aussehen". Das ist
-                        * der Grund, warum jemand in diesem Moment auf Teilen tippt.
-                        *
-                        * NUR BEI DER HOCHZEIT: Die Vorlage ist eine Hochzeitseinladung (Ana &
-                        * Mihai, Menüwahl, Gruppenchat). Beim Urlaub und beim Gutschein wäre
-                        * sie das falsche Muster — dort bleibt der Knopf weg, bis es eine
-                        * eigene Vorlage gibt.
+                        * BEI DER HOCHZEIT eine vollstaendige Muster-Einladung (Ana & Mihai,
+                        * Menüwahl, Gruppenchat), gebaut mit genau diesem Zweck. URLAUB UND
+                        * GUTSCHEIN HABEN NOCH KEINE EIGENE VORLAGE dieser Art — bis es eine
+                        * gibt, teilen sie wie jede andere Themenseite des Hauses die eigene
+                        * Landingpage (Owner-Befund 12.08.2026: „schon wieder einen fehler.
+                        * Das hat kein shar button" — Karten-Regel, Skill `card`: „IMMER alle
+                        * drei Scheiben"; dasselbe Muster wie `BeispielGalerie.tsx`).
                         */
-                      teilen={!gutschein && !urlaub ? (
-                        <TeilenKnopf rund url="/einladung/beispiel"
-                          text={VORLAGE_TEXT[lang] ?? VORLAGE_TEXT.en}
-                          label={T.teilen} kopiertLabel={T.teilen} />
-                      ) : undefined} />
+                      teilen={
+                        !gutschein && !urlaub ? (
+                          <TeilenKnopf rund url="/einladung/beispiel"
+                            text={VORLAGE_TEXT[lang] ?? VORLAGE_TEXT.en}
+                            label={T.teilen} kopiertLabel={T.teilen} />
+                        ) : (
+                          <TeilenKnopf rund url={`/themes/${variant}?utm_source=share`}
+                            text={teilenText(variant, lang)}
+                            label={T.teilen} kopiertLabel={T.teilen} />
+                        )
+                      } />
                   ))} />
             </div>
             {/**
@@ -1559,14 +1630,16 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
               * bekommen damit in einer Zeile jeder seinen eigenen, richtigen Preis.
               */}
             {!!beispiele.length && (
-              <button type="button" onClick={() => setFeld("fotos")}
+              <button type="button" onClick={zumTunnel}
                 className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-center text-[14px] font-black leading-tight shadow-[0_6px_20px_rgba(0,0,0,0.2)] active:scale-95 transition">
                 {/* OHNE ZEICHEN (Owner 10.08.2026: „Icon raus"). Das Bild-Symbol stammte aus
                     der Zeit, als der Knopf „Foto ersetzen" hiess — es beschrieb die Handlung.
                     Jetzt steht der Preis darin, und ein Symbol daneben nimmt der Zahl den
                     Platz und die Ruhe. Die Karten-Knöpfe des Kuss-Trichters tragen an
                     derselben Stelle auch keins. */}
-                {themenPreisZeile(variant, lang)} · {F.jetztStarten}
+                {/* NUR „Start now", ohne Preis (Owner 12.08.2026: „hier auch bei alle nur
+                    Start now ohne Preis") — den Preis nennt der Tunnel-Kaufknopf. */}
+                {F.jetztStarten}
               </button>
             )}
             </>
@@ -1574,7 +1647,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
             /* OHNE BEISPIELVIDEO: leeres Feld, aber flacher als das echte Bildformat. Ein 3:4
                grosses Nichts ist auf einem Handy fast fuenfhundert Punkte hoch — dann stehen
                „Wann", „Wo" und der Verschicken-Knopf unter dem Bildschirmrand. */
-            <button type="button" onClick={() => setFeld("fotos")}
+            <button type="button" onClick={zumTunnel}
               className="relative grid h-[260px] w-full place-items-center overflow-hidden">
               <span className="lb-tippbar grid h-full w-full place-items-center rounded-xl px-6 text-center">
                 <span>
@@ -1707,12 +1780,32 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         {eingabe(er, setEr, T.fEr)}
       </>))}
 
-      {/* BEIM URLAUB ZWEI DATEN, VON–BIS. Das zweite steht ohne Sternchen da: Wer noch nicht
-          gebucht hat, lässt es leer, und die Karte zeigt dann den einen Tag. */}
-      {feld === "wann" && dialog(T.wann, urlaub ? (<>
-        {eingabe(datum, setDatum, T.fVon, "date")}
-        {eingabe(bisDatum, setBisDatum, T.fBis, "date")}
-      </>) : eingabe(datum, setDatum, T.fDatum, "date"))}
+      {/* NUR NOCH DIE HOCHZEIT ERREICHT DIESEN DIALOG (Owner 12.08.2026, Zusatzauftrag): Der
+          Urlaub hatte hier bisher zwei Daten von–bis — jetzt steckt das Datum im EINEN
+          Einladungssatz (`feld === "satz"` unten), `aufDatum` ist beim Urlaub undefined. */}
+      {feld === "wann" && dialog(T.wann, eingabe(datum, setDatum, T.fDatum, "date"))}
+
+      {/**
+        * DER EINE EINLADUNGSSATZ DES URLAUBS (Owner 12.08.2026, mit Bild der Urlaubs-Karte:
+        * „diese einladung ist zu kompliziert. Muss nur ein Textfeld sein Wo der User eingeben
+        * kann Komm bitte mit nach Teneriffa am 21. Nov. 2026 …").
+        *
+        * MEHRZEILIG WIE DIE BOTSCHAFT, DIE ER ERSETZT (Owner: „ist die Botschaft") — derselbe
+        * Grund wie dort: Der Vorgabesatz steht als Startwert IM Feld, nicht als Platzhalter,
+        * damit niemand ihn versehentlich fuer leer haelt.
+        */}
+      {feld === "satz" && dialog(T.satzTitel, (
+        <>
+          <textarea
+            value={satz || (BEISPIEL_SATZ_URLAUB[lang] || BEISPIEL_SATZ_URLAUB.en)}
+            onChange={e => setSatz(e.target.value.slice(0, 200))}
+            rows={3} maxLength={200}
+            className="lb-karte-feld w-full resize-none rounded-lg px-3 py-2 font-serif text-[15px] leading-snug outline-none" />
+          <p className="text-right font-serif text-[11px] opacity-60">
+            {(satz || (BEISPIEL_SATZ_URLAUB[lang] || BEISPIEL_SATZ_URLAUB.en)).length}/200
+          </p>
+        </>
+      ))}
 
       {/**
         * DIE BOTSCHAFT — ein mehrzeiliges Feld, kein einzeiliges (Owner 04.08.2026:

@@ -22,6 +22,8 @@ import type { Lang } from "@/lib/lang";
 export type KissText = {
   // Schritte
   step1: string; step2: string; step3: string; step4: string;
+  /** EIN Knopf-Wort für ALLE Tunnel (Owner 12.08.2026: „Generate now - Preis"). */
+  generateNow: string;
   pickHint: string; upTitle: string; upHint: string; tapChange: string;
   /** Sichtbarer Hinweis, wenn Bild/Video fertig sind, aber die Namen noch das Beispiel zeigen
    *  (03.08.2026: „ich kann es nicht sharen" — der Verschicken-Knopf blieb sonst stumm weg). */
@@ -139,6 +141,16 @@ export type KissText = {
    * einzige Angabe, mit der das Modell weiss, WO die beiden stehen sollen.
    */
   ortFrage: string; ortPlatzhalter: string; ortHinweis: string;
+  /**
+   * DER EINE EINLADUNGSSATZ (Owner 12.08.2026, Zusatzauftrag: „diese einladung ist zu
+   * kompliziert. Muss nur ein Textfeld sein Wo der User eingeben kann Komm bitte mit nach
+   * Teneriffa am 21. Nov. 2026 … Dieses Eingabefeld habe später auch im Tunel").
+   *
+   * ERSETZT `ortFrage`/`ortPlatzhalter` IM TUNNEL — ein ganzer Satz mit Anlass, Ziel UND
+   * Datum statt eines blossen Ortsnamens. Geht NICHT mehr in den Bild-/Video-Auftrag
+   * (siehe `HolidayStartClient.tsx`), sondern reist mit zur späteren Einladung.
+   */
+  satzFrage?: string; satzPlatzhalter?: string;
   /** Wäsche-Zeile bei Lingerie-Vorlagen (Owner 03.08.2026: „dann ist ein Schritt mehr“). */
   waescheTitel: string;
   /** Nach dem gelieferten Einzelkauf: neuer Anlauf statt 2,99-Nachkauf (Owner 03.08.2026). */
@@ -316,6 +328,27 @@ export type KissText = {
    */
   namenFrage: string; namenPlatzhalter: string;
   /**
+   * DER TUNNEL-START, SCHRITT 1 VON ZWEI (KONZEPT-TUNNEL.md, Owner 12.08.2026 — „Stepp 1.
+   * Name, Email … Genauso müssen alle tunels aussehen"). Optional, weil bisher nur das
+   * Versprechen den zweistufigen Tunnel benutzt (`components/CI.tsx`, `TunnelStart`); die
+   * anderen Geschenke behalten ihre gewachsenen Schritte, bis sie an der Reihe sind
+   * (KONZEPT-TUNNEL.md §„Feste Regeln", Punkt 5).
+   */
+  tunnelStartTitel?: string; tunnelName?: string; tunnelEmail?: string; tunnelWeiter?: string;
+  /**
+   * DIE GOOGLE-ABKÜRZUNG IM TUNNEL-START (Owner 12.08.2026: „auch googgle anmeldung kannst
+   * du einbauen"). Im BASISTEXT, nicht nur im Versprechen-Overlay — der Tunnel rollt auf
+   * alle Produkte aus (KONZEPT-TUNNEL.md), dieselbe Beschriftung soll ueberall stehen.
+   */
+  tunnelOder?: string; tunnelGoogle?: string;
+  /**
+   * DIE VORLAGEN-KACHEL OEFFNET DAS ECHTE VIDEO (Owner 12.08.2026, wörtlich: „wenn user ein
+   * Video generiert dann muss er die Vorlage genau als Video sehen. Also es soll sich mit
+   * klick die Vorlage öffnen. Vestanden? Das gilt für den ganzen Tunel."). Vorlesetext fürs
+   * Antippen der Ziel-Kachel — `components/CI.tsx`, `VorlagenKachel`.
+   */
+  vorlageAnsehen?: string;
+  /**
    * EIN SATZ UNTER DER UEBERSCHRIFT (Owner 31.07.2026: „unter dem titel muss doch ein kurzer
    * satz zu der Einladungs seite").
    *
@@ -387,6 +420,13 @@ export type KissText = {
 
 const EN: KissText = {
   step1: "1 · Pick her", step2: "2 · Your photo — you, the man", step3: "3 · The kiss", step4: "4 · Your picture",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Generate now",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Let’s get started",
+  tunnelName: "Your name",
+  tunnelEmail: "Your email",
+  tunnelWeiter: "Next",
   pickHint: "Upload the woman you want to kiss — or swipe to one of ours.",
   datenErsetzen: "Change photo",
   jetztStarten: "Start now",
@@ -404,12 +444,18 @@ const EN: KissText = {
   moreOpen: "+ Your clothes & the moment", moreClose: "− Less",
   yourClothes: "Your clothes", myOwnClothes: "My own clothes", theMoment: "The moment", surpriseMe: "✨ Surprise me",
   mailQuestion: "Where should we send your picture?",
+  /* SCHRITT 1 DES EINEN TUNNELS, IM BASISTEXT (Owner 12.08.2026: „auch googgle anmeldung
+     kannst du einbauen" — im Tunnel, der auf alle Produkte ausgerollt wird, daher hier statt
+     nur im Versprechen-Overlay). Dieselbe Wortwahl wie im Konto-Fenster (lib/konto-chip-i18n). */
+  tunnelOder: "or", tunnelGoogle: "Continue with Google",
+  vorlageAnsehen: "Watch the example video",
   gateTitel: "First, your email — so we can send you the result.", gateWeiter: "Continue",
   mailNote: "Free. We send you the picture and keep it in your gallery.",
   landFrage: "Your country",
   shareTitel: "Sharing makes it public", shareText: "Anyone with the link can see your card. Only the finished result is shown — never the photos you uploaded.", shareOk: "Got it — share", shareCancel: "Cancel",
   szeneTitel: "Pick a scene — or let us surprise you",
   ortFrage: "Where are you going?", ortPlatzhalter: "Tenerife", ortHinweis: "The place goes into the video — write it the way you would tell them.",
+  satzFrage: "Write your invitation", satzPlatzhalter: "Come with me to Tenerife on 21 Nov 2026 …",
   waescheTitel: "Pick her lingerie — or keep the one from the video",
   nochmalVideo: "Generate another video",
   aufladeWahlTitel: "How much would you like to top up?",
@@ -517,6 +563,13 @@ const EN: KissText = {
 
 const DE: KissText = {
   step1: "1 · Wähle sie", step2: "2 · Dein Foto — du, der Mann", step3: "3 · Der Kuss", step4: "4 · Dein Bild",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Jetzt generieren",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Legen wir los",
+  tunnelName: "Dein Name",
+  tunnelEmail: "Deine E-Mail",
+  tunnelWeiter: "Weiter",
   pickHint: "Lade die Frau hoch, die du küssen willst — oder wische zu einer von uns.",
   datenErsetzen: "Foto wechseln",
   jetztStarten: "Jetzt starten",
@@ -534,12 +587,15 @@ const DE: KissText = {
   moreOpen: "+ Deine Sachen & der Moment", moreClose: "− Weniger",
   yourClothes: "Deine Sachen", myOwnClothes: "Meine eigenen Sachen", theMoment: "Der Moment", surpriseMe: "✨ Überrasch mich",
   mailQuestion: "Wohin sollen wir dein Bild schicken?",
+  tunnelOder: "oder", tunnelGoogle: "Weiter mit Google",
+  vorlageAnsehen: "Beispielvideo ansehen",
   gateTitel: "Erst deine E-Mail — damit wir dir das Ergebnis schicken können.", gateWeiter: "Weiter",
   mailNote: "Kostenlos. Wir schicken dir das Bild und heben es in deiner Galerie auf.",
   landFrage: "Dein Land",
   shareTitel: "Teilen macht es öffentlich", shareText: "Jeder mit dem Link kann deine Karte sehen. Gezeigt wird nur das fertige Ergebnis — niemals deine hochgeladenen Fotos.", shareOk: "Verstanden — teilen", shareCancel: "Abbrechen",
   szeneTitel: "Such dir eine Szene aus — oder lass dich überraschen",
   ortFrage: "Wohin geht es?", ortPlatzhalter: "Teneriffa", ortHinweis: "Der Ort kommt ins Video — schreib ihn so, wie du es ihr oder ihm sagen würdest.",
+  satzFrage: "Schreib deine Einladung", satzPlatzhalter: "Komm bitte mit nach Teneriffa am 21. Nov. 2026 …",
   waescheTitel: "Such ihre Wäsche aus — oder lass die aus dem Video",
   nochmalVideo: "Noch ein Video generieren",
   aufladeWahlTitel: "Wie viel möchtest du aufladen?",
@@ -647,6 +703,13 @@ const DE: KissText = {
 
 const RO: KissText = {
   step1: "1 · Alege-o", step2: "2 · Poza ta — tu, bărbatul", step3: "3 · Sărutul", step4: "4 · Poza ta",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Generează acum",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Să începem",
+  tunnelName: "Numele tău",
+  tunnelEmail: "Emailul tău",
+  tunnelWeiter: "Continuă",
   pickHint: "Încarcă femeia pe care vrei s-o săruți — sau glisează la una dintre ale noastre.",
   datenErsetzen: "Schimbă poza",
   jetztStarten: "Începe acum",
@@ -664,12 +727,15 @@ const RO: KissText = {
   moreOpen: "+ Hainele tale & momentul", moreClose: "− Mai puțin",
   yourClothes: "Hainele tale", myOwnClothes: "Hainele mele", theMoment: "Momentul", surpriseMe: "✨ Surprinde-mă",
   mailQuestion: "Unde să-ți trimitem poza?",
+  tunnelOder: "sau", tunnelGoogle: "Continuă cu Google",
+  vorlageAnsehen: "Vezi videoclipul exemplu",
   gateTitel: "Mai întâi emailul tău — ca să-ți putem trimite rezultatul.", gateWeiter: "Continuă",
   mailNote: "Gratuit. Îți trimitem poza și o păstrăm în galeria ta.",
   landFrage: "Țara ta",
   shareTitel: "Dacă distribui, devine public", shareText: "Oricine are linkul îți poate vedea cardul. Se arată doar rezultatul final — niciodată pozele încărcate de tine.", shareOk: "Am înțeles — distribuie", shareCancel: "Anulează",
   szeneTitel: "Alege o scenă — sau lasă-te surprins",
   ortFrage: "Unde mergeți?", ortPlatzhalter: "Tenerife", ortHinweis: "Locul intră în videoclip — scrie-l așa cum i-ai spune.",
+  satzFrage: "Scrie-ți invitația", satzPlatzhalter: "Vino cu mine în Tenerife pe 21 nov. 2026 …",
   waescheTitel: "Alege lenjeria ei — sau păstreaz-o pe cea din videoclip",
   nochmalVideo: "Generează încă un videoclip",
   aufladeWahlTitel: "Cât vrei să încarci?",
@@ -777,6 +843,13 @@ const RO: KissText = {
 
 const ES: KissText = {
   step1: "1 · Elígela", step2: "2 · Tu foto — tú, el hombre", step3: "3 · El beso", step4: "4 · Tu imagen",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Generar ahora",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Empecemos",
+  tunnelName: "Tu nombre",
+  tunnelEmail: "Tu email",
+  tunnelWeiter: "Siguiente",
   pickHint: "Sube la mujer a la que quieres besar — o desliza hasta una de las nuestras.",
   datenErsetzen: "Cambiar foto",
   jetztStarten: "Empieza ahora",
@@ -794,12 +867,15 @@ const ES: KissText = {
   moreOpen: "+ Tu ropa y el momento", moreClose: "− Menos",
   yourClothes: "Tu ropa", myOwnClothes: "Mi propia ropa", theMoment: "El momento", surpriseMe: "✨ Sorpréndeme",
   mailQuestion: "¿A dónde te enviamos tu imagen?",
+  tunnelOder: "o", tunnelGoogle: "Continuar con Google",
+  vorlageAnsehen: "Ver el vídeo de ejemplo",
   gateTitel: "Primero tu email — para poder enviarte el resultado.", gateWeiter: "Continuar",
   mailNote: "Gratis. Te enviamos la imagen y la guardamos en tu galería.",
   landFrage: "Tu país",
   shareTitel: "Compartir lo hace público", shareText: "Cualquiera con el enlace puede ver tu tarjeta. Solo se muestra el resultado final — nunca las fotos que subiste.", shareOk: "Entendido — compartir", shareCancel: "Cancelar",
   szeneTitel: "Elige una escena — o déjate sorprender",
   ortFrage: "¿A dónde vais?", ortPlatzhalter: "Tenerife", ortHinweis: "El lugar entra en el vídeo — escríbelo como se lo dirías.",
+  satzFrage: "Escribe tu invitación", satzPlatzhalter: "Ven conmigo a Tenerife el 21 nov. 2026 …",
   waescheTitel: "Elige su lencería — o deja la del vídeo",
   nochmalVideo: "Generar otro vídeo",
   aufladeWahlTitel: "¿Cuánto quieres recargar?",
@@ -907,6 +983,13 @@ const ES: KissText = {
 
 const FR: KissText = {
   step1: "1 · Choisis-la", step2: "2 · Ta photo — toi, l'homme", step3: "3 · Le baiser", step4: "4 · Ton image",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Générer maintenant",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "C’est parti",
+  tunnelName: "Ton prénom",
+  tunnelEmail: "Ton e-mail",
+  tunnelWeiter: "Suivant",
   pickHint: "Téléverse la femme que tu veux embrasser — ou glisse vers l'une des nôtres.",
   datenErsetzen: "Changer la photo",
   jetztStarten: "Commencer",
@@ -924,12 +1007,15 @@ const FR: KissText = {
   moreOpen: "+ Tes vêtements & le moment", moreClose: "− Moins",
   yourClothes: "Tes vêtements", myOwnClothes: "Mes propres vêtements", theMoment: "Le moment", surpriseMe: "✨ Surprends-moi",
   mailQuestion: "Où devons-nous envoyer ton image ?",
+  tunnelOder: "ou", tunnelGoogle: "Continuer avec Google",
+  vorlageAnsehen: "Voir la vidéo d'exemple",
   gateTitel: "D'abord ton e-mail — pour pouvoir t'envoyer le résultat.", gateWeiter: "Continuer",
   mailNote: "Gratuit. Nous t'envoyons l'image et la gardons dans ta galerie.",
   landFrage: "Ton pays",
   shareTitel: "Partager le rend public", shareText: "Toute personne avec le lien peut voir ta carte. Seul le résultat final est montré — jamais tes photos envoyées.", shareOk: "Compris — partager", shareCancel: "Annuler",
   szeneTitel: "Choisis une scène — ou laisse-toi surprendre",
   ortFrage: "Où partez-vous ?", ortPlatzhalter: "Tenerife", ortHinweis: "Le lieu entre dans la vidéo — écris-le comme tu le lui dirais.",
+  satzFrage: "Écris ton invitation", satzPlatzhalter: "Viens avec moi à Tenerife le 21 nov. 2026 …",
   waescheTitel: "Choisis sa lingerie — ou garde celle de la vidéo",
   nochmalVideo: "Générer une autre vidéo",
   aufladeWahlTitel: "Combien veux-tu recharger ?",
@@ -1037,6 +1123,13 @@ const FR: KissText = {
 
 const PT: KissText = {
   step1: "1 · Escolhe-a", step2: "2 · A tua foto — tu, o homem", step3: "3 · O beijo", step4: "4 · A tua imagem",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Gerar agora",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Vamos começar",
+  tunnelName: "O teu nome",
+  tunnelEmail: "O teu email",
+  tunnelWeiter: "Seguinte",
   pickHint: "Carrega a mulher que queres beijar — ou desliza para uma das nossas.",
   datenErsetzen: "Trocar foto",
   jetztStarten: "Começa agora",
@@ -1054,12 +1147,15 @@ const PT: KissText = {
   moreOpen: "+ A tua roupa e o momento", moreClose: "− Menos",
   yourClothes: "A tua roupa", myOwnClothes: "A minha própria roupa", theMoment: "O momento", surpriseMe: "✨ Surpreende-me",
   mailQuestion: "Para onde enviamos a tua imagem?",
+  tunnelOder: "ou", tunnelGoogle: "Continuar com Google",
+  vorlageAnsehen: "Ver o vídeo de exemplo",
   gateTitel: "Primeiro o teu email — para podermos enviar-te o resultado.", gateWeiter: "Continuar",
   mailNote: "Grátis. Enviamos-te a imagem e guardamo-la na tua galeria.",
   landFrage: "O teu país",
   shareTitel: "Partilhar torna-o público", shareText: "Qualquer pessoa com o link pode ver o teu cartão. Só se mostra o resultado final — nunca as fotos que enviaste.", shareOk: "Entendi — partilhar", shareCancel: "Cancelar",
   szeneTitel: "Escolhe uma cena — ou deixa-te surpreender",
   ortFrage: "Para onde vão?", ortPlatzhalter: "Tenerife", ortHinweis: "O lugar entra no vídeo — escreve-o como lho dirias.",
+  satzFrage: "Escreve o teu convite", satzPlatzhalter: "Vem comigo a Tenerife a 21 nov. 2026 …",
   waescheTitel: "Escolhe a lingerie dela — ou deixa a do vídeo",
   nochmalVideo: "Gerar mais um vídeo",
   aufladeWahlTitel: "Quanto queres carregar?",
@@ -1168,6 +1264,13 @@ const PT: KissText = {
 
 const IT: KissText = {
   step1: "1 · Scegli lei", step2: "2 · La tua foto — tu, l'uomo", step3: "3 · Il bacio", step4: "4 · La tua immagine",
+  /* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei allen heissen Generate now - Preis."). */
+  generateNow: "Genera ora",
+  /* SCHRITT 1 DES TUNNELS — BASIS fuer ALLE Produkte (Owner 12.08.2026: „keine Ausnahme"; vorher nur im VERSPRECHEN-Overlay, alle anderen fielen auf Alt-Texte wie „Continuă — gratuit" zurueck). */
+  tunnelStartTitel: "Cominciamo",
+  tunnelName: "Il tuo nome",
+  tunnelEmail: "La tua email",
+  tunnelWeiter: "Avanti",
   pickHint: "Carica la donna che vuoi baciare — o scorri fino a una delle nostre.",
   datenErsetzen: "Cambia foto",
   jetztStarten: "Inizia ora",
@@ -1185,12 +1288,15 @@ const IT: KissText = {
   moreOpen: "+ I tuoi vestiti e il momento", moreClose: "− Meno",
   yourClothes: "I tuoi vestiti", myOwnClothes: "I miei vestiti", theMoment: "Il momento", surpriseMe: "✨ Sorprendimi",
   mailQuestion: "Dove ti mandiamo la tua immagine?",
+  tunnelOder: "oppure", tunnelGoogle: "Continua con Google",
+  vorlageAnsehen: "Guarda il video di esempio",
   gateTitel: "Prima la tua email — così possiamo inviarti il risultato.", gateWeiter: "Continua",
   mailNote: "Gratis. Ti mandiamo l'immagine e la teniamo nella tua galleria.",
   landFrage: "Il tuo paese",
   shareTitel: "Condividere lo rende pubblico", shareText: "Chiunque abbia il link può vedere la tua card. Si mostra solo il risultato finale — mai le foto che hai caricato.", shareOk: "Ho capito — condividi", shareCancel: "Annulla",
   szeneTitel: "Scegli una scena — o lasciati sorprendere",
   ortFrage: "Dove andate?", ortPlatzhalter: "Tenerife", ortHinweis: "Il luogo entra nel video — scrivilo come glielo diresti.",
+  satzFrage: "Scrivi il tuo invito", satzPlatzhalter: "Vieni con me a Tenerife il 21 nov. 2026 …",
   waescheTitel: "Scegli la sua lingerie — o lascia quella del video",
   nochmalVideo: "Genera un altro video",
   aufladeWahlTitel: "Quanto vuoi ricaricare?",
@@ -2767,6 +2873,10 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Sieh, wer du in 5 Jahren sein willst.", "Mach dir selbst ein Versprechen.", "Und arbeite 30 Tage daran, es zu halten."],
     jetztStarten: "Investiere in deine Zukunft",
     namenFrage: "An wen schickst du es? Der Name kommt auf die Karte", namenPlatzhalter: "Max",
+    /* SCHRITT 1 DES EINEN TUNNELS (KONZEPT-TUNNEL.md, Owner 12.08.2026: „Stepp 1. Name,
+       Email"). Nur diese vier Zeilen sind neu — der Rest des Trichters bleibt derselbe. */
+    tunnelStartTitel: "Dein Versprechen an dich selbst", tunnelName: "Dein Name",
+    tunnelEmail: "Deine E-Mail", tunnelWeiter: "Weiter",
     unterVideoZeilen: ["Sieh deine Zukunft.", "Mach das Versprechen.", "Halte das Versprechen."],
     filmTitel: "Aus einem Satz wird ein Beweis",
     filmText: "Du erscheinst vor der Villa, der Wagen steht hinter dir — und du sagst deinen eigenen Satz, mit deiner eigenen Stimme. Was du versprichst, bestimmst du. Nur die Welt um dich herum ändert sich.",
@@ -2777,7 +2887,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
        die ist klein: zwei Minuten Aufnahme, Start am selben Tag. Was er bekommt, bleibt. */
     mehrText: [
       "Dein Future Film ist der Anfang — und der ist schnell gemacht.",
-      "Zwei Minuten Aufnahme: dein Gesicht, deine Stimme, dein Versprechen an dein zukünftiges Ich.",
+      "Eine halbe Minute Aufnahme: dein Gesicht, deine Stimme, dein Versprechen an dein zukünftiges Ich.",
       "Noch am selben Tag beginnt dein 30-Tage-Programm.",
       "Jeden Tag ein konkreter Schritt.",
       "Jeden Tag deine Checkliste.",
@@ -2790,7 +2900,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
        nach etwas, das man sich überlegt. Dieselbe Leistung, nur in Aufwand und Zeit gesagt:
        zwei Minuten, ein Schritt pro Tag, heute. */
     wasBekommstTextListe: [
-      "Dein Gesicht. Deine Stimme. Dein Leben in 5 Jahren — aus zwei Minuten Aufnahme.",
+      "Dein Gesicht. Deine Stimme. Dein Leben in 5 Jahren — aus einer halben Minute Aufnahme.",
       "Die Botschaft, die du heute an dein zukünftiges Ich aufnimmst.",
       "30 Tage, ein Schritt pro Tag. Tag 1 ist heute.",
       "Hak jeden Abend ab, was du wirklich getan hast. Eine Minute.",
@@ -2808,7 +2918,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* DIE HÜRDE STEHT IN SCHRITT 1 (11.08.2026): „So wie du heute bist" liess offen, wie viel
        Arbeit die Aufnahme ist. Zwei Minuten mit dem Handy — mehr braucht der Einstieg nicht. */
     howTextListe: [
-      "Zwei Minuten mit dem Handy, so wie du heute bist.",
+      "Eine halbe Minute mit dem Handy, so wie du heute bist.",
       "Wähle deine wichtigsten Ziele.",
       "Mit deinem Gesicht, deiner Stimme und deiner Vision.",
       "Ab heute: Öffne deinen privaten Link jeden Tag und halte dein Versprechen.",
@@ -2835,6 +2945,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Starte dein Future Self Program — {programm}",
     watchOnce: "Mein Future Film — {programm}",
     makingKiss: "Dein Future Film entsteht …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Dein Future Film",
     mailNote: "Hierhin schicken wir deinen Future Film und deinen privaten Programm-Link.",
     programmKnopf: "Dein 30-Tage-Programm →",
     filmKommt: "Dein Future Film entsteht gerade — er kommt per E-Mail.",
@@ -2846,6 +2958,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["See who you want to be in 5 years.", "Make yourself a promise.", "And work 30 days to keep it."],
     jetztStarten: "Invest in your future",
     namenFrage: "Who are you sending it to? The name goes on the card", namenPlatzhalter: "Max",
+    tunnelStartTitel: "Your promise to your future self", tunnelName: "Your name",
+    tunnelEmail: "Your email", tunnelWeiter: "Next",
     unterVideoZeilen: ["See your future.", "Make the promise.", "Keep the promise."],
     filmTitel: "One sentence becomes proof",
     filmText: "You appear in front of the villa, the car behind you — saying your own line, in your own voice. What you promise is up to you. Only the world around you changes.",
@@ -2853,7 +2967,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "Your Future Film is the beginning — and it's quick to make.",
-      "Two minutes of recording: your face, your voice, your promise to your future self.",
+      "Half a minute of recording: your face, your voice, your promise to your future self.",
       "Your 30-day program starts the same day.",
       "Every day a concrete step.",
       "Every day your checklist.",
@@ -2863,7 +2977,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["Your Future Film", "Your Promise", "30 Days", "Your Checklist", "Your Progress", "The Next 90 Days"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "Your face. Your voice. Your life in 5 years — from two minutes of recording.",
+      "Your face. Your voice. Your life in 5 years — from half a minute of recording.",
       "The message you record today to your future self.",
       "30 days, one step a day. Day 1 is today.",
       "Tick off every evening what you really did. Takes a minute.",
@@ -2878,7 +2992,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Record yourself today", "Show us where you want to be in 5 years", "We create your Future Film", "Start your 30 days"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Two minutes on your phone, just as you are today.",
+      "Half a minute on your phone, just as you are today.",
       "Choose your most important goals.",
       "With your face, your voice and your vision.",
       "From today: open your private link every day and keep your promise.",
@@ -2901,6 +3015,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Start your Future Self Program — {programm}",
     watchOnce: "My Future Film — {programm}",
     makingKiss: "Your Future Film is being made …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Your Future Film",
     mailNote: "This is where we send your Future Film and your private program link.",
     programmKnopf: "Your 30-day program →",
     filmKommt: "Your Future Film is being made — it arrives by email.",
@@ -2912,6 +3028,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vezi cine vrei să fii peste 5 ani.", "Fă-ți o promisiune.", "Și lucrează 30 de zile ca să o ții."],
     jetztStarten: "Investește în viitorul tău",
     namenFrage: "Cui i-o trimiți? Numele apare pe felicitare", namenPlatzhalter: "Max",
+    tunnelStartTitel: "Promisiunea ta către tine însuți", tunnelName: "Numele tău",
+    tunnelEmail: "E-mailul tău", tunnelWeiter: "Continuă",
     unterVideoZeilen: ["Vezi-ți viitorul.", "Fă promisiunea.", "Ține promisiunea."],
     filmTitel: "O frază devine o dovadă",
     filmText: "Apari în fața vilei, mașina în spatele tău — și spui propria frază, cu vocea ta. Ce promiți decizi tu. Doar lumea din jur se schimbă.",
@@ -2919,7 +3037,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "Future Film-ul tău este începutul — și se face repede.",
-      "Două minute de înregistrare: fața ta, vocea ta, promisiunea ta către sinele tău viitor.",
+      "O jumătate de minut de înregistrare: fața ta, vocea ta, promisiunea ta către sinele tău viitor.",
       "Programul tău de 30 de zile începe chiar în aceeași zi.",
       "În fiecare zi un pas concret.",
       "În fiecare zi lista ta de verificare.",
@@ -2929,7 +3047,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["Future Film-ul tău", "Promisiunea ta", "30 de zile", "Lista ta de verificare", "Progresul tău", "Următoarele 90 de zile"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "Fața ta. Vocea ta. Viața ta peste 5 ani — din două minute de înregistrare.",
+      "Fața ta. Vocea ta. Viața ta peste 5 ani — dintr-o jumătate de minut de înregistrare.",
       "Mesajul pe care i-l înregistrezi azi sinelui tău viitor.",
       "30 de zile, un pas pe zi. Ziua 1 este azi.",
       "Bifează în fiecare seară ce ai făcut cu adevărat. Durează un minut.",
@@ -2944,7 +3062,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Filmează-te azi", "Arată-ne unde vrei să fii peste 5 ani", "Îți creăm Future Film-ul", "Începe-ți cele 30 de zile"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Două minute cu telefonul, exact așa cum ești azi.",
+      "O jumătate de minut cu telefonul, exact așa cum ești azi.",
       "Alege-ți cele mai importante obiective.",
       "Cu fața ta, vocea ta și viziunea ta.",
       "De azi: deschide-ți linkul privat în fiecare zi și ține-ți promisiunea.",
@@ -2966,6 +3084,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Începe Future Self Program — {programm}",
     watchOnce: "Future Film-ul meu — {programm}",
     makingKiss: "Future Film-ul tău se creează …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Future Film-ul tău",
     mailNote: "Aici îți trimitem Future Film-ul și linkul tău privat de program.",
     programmKnopf: "Programul tău de 30 de zile →",
     filmKommt: "Filmul tău Future se creează — îți ajunge pe e-mail.",
@@ -2977,6 +3097,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Ve quién quieres ser dentro de 5 años.", "Hazte una promesa.", "Y trabaja 30 días para cumplirla."],
     jetztStarten: "Invierte en tu futuro",
     namenFrage: "¿A quién se lo mandas? El nombre va en la tarjeta", namenPlatzhalter: "Max",
+    tunnelStartTitel: "Tu promesa a ti mismo", tunnelName: "Tu nombre",
+    tunnelEmail: "Tu correo", tunnelWeiter: "Siguiente",
     unterVideoZeilen: ["Ve tu futuro.", "Haz la promesa.", "Cumple la promesa."],
     filmTitel: "Una frase se convierte en prueba",
     filmText: "Apareces delante de la villa, el coche detrás de ti — y dices tu propia frase, con tu voz. Lo que prometes lo decides tú. Solo cambia el mundo a tu alrededor.",
@@ -2984,7 +3106,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "Tu Future Film es el comienzo — y se hace rápido.",
-      "Dos minutos de grabación: tu cara, tu voz, tu promesa a tu yo futuro.",
+      "Medio minuto de grabación: tu cara, tu voz, tu promesa a tu yo futuro.",
       "Tu programa de 30 días empieza el mismo día.",
       "Cada día un paso concreto.",
       "Cada día tu checklist.",
@@ -2994,7 +3116,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["Tu Future Film", "Tu Promesa", "30 Días", "Tu Checklist", "Tu Progreso", "Los Próximos 90 Días"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "Tu cara. Tu voz. Tu vida dentro de 5 años — con dos minutos de grabación.",
+      "Tu cara. Tu voz. Tu vida dentro de 5 años — con medio minuto de grabación.",
       "El mensaje que grabas hoy para tu yo futuro.",
       "30 días, un paso al día. El día 1 es hoy.",
       "Marca cada noche lo que hiciste de verdad. Un minuto.",
@@ -3009,7 +3131,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Grábate hoy", "Muéstranos dónde quieres estar dentro de 5 años", "Creamos tu Future Film", "Empieza tus 30 días"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Dos minutos con el móvil, tal y como eres hoy.",
+      "Medio minuto con el móvil, tal y como eres hoy.",
       "Elige tus objetivos más importantes.",
       "Con tu cara, tu voz y tu visión.",
       "Desde hoy: abre tu enlace privado cada día y cumple tu promesa.",
@@ -3031,6 +3153,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Empieza tu Future Self Program — {programm}",
     watchOnce: "Mi Future Film — {programm}",
     makingKiss: "Tu Future Film se está creando …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Tu Future Film",
     mailNote: "Aquí te enviamos tu Future Film y tu enlace privado al programa.",
     programmKnopf: "Tu programa de 30 días →",
     filmKommt: "Tu Future Film se está creando — te llega por correo.",
@@ -3042,6 +3166,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vois qui tu veux être dans 5 ans.", "Fais-toi une promesse.", "Et travaille 30 jours pour la tenir."],
     jetztStarten: "Investis dans ton avenir",
     namenFrage: "À qui l'envoies-tu ? Le nom va sur la carte", namenPlatzhalter: "Max",
+    tunnelStartTitel: "Ta promesse à toi-même", tunnelName: "Ton prénom",
+    tunnelEmail: "Ton e-mail", tunnelWeiter: "Suivant",
     unterVideoZeilen: ["Vois ton avenir.", "Fais la promesse.", "Tiens la promesse."],
     filmTitel: "Une phrase devient une preuve",
     filmText: "Tu apparais devant la villa, la voiture derrière toi — et tu dis ta propre phrase, avec ta voix. Ce que tu promets, c'est toi qui le décides. Seul le monde autour de toi change.",
@@ -3049,7 +3175,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "Ton Future Film est le début — et il se fait vite.",
-      "Deux minutes d'enregistrement : ton visage, ta voix, ta promesse à ton futur toi.",
+      "Une demi-minute d'enregistrement : ton visage, ta voix, ta promesse à ton futur toi.",
       "Ton programme de 30 jours commence le jour même.",
       "Chaque jour une étape concrète.",
       "Chaque jour ta checklist.",
@@ -3059,7 +3185,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["Ton Future Film", "Ta Promesse", "30 Jours", "Ta Checklist", "Ta Progression", "Les 90 Prochains Jours"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "Ton visage. Ta voix. Ta vie dans 5 ans — à partir de deux minutes d'enregistrement.",
+      "Ton visage. Ta voix. Ta vie dans 5 ans — à partir d'une demi-minute d'enregistrement.",
       "Le message que tu enregistres aujourd'hui pour ton futur toi.",
       "30 jours, une étape par jour. Le jour 1, c'est aujourd'hui.",
       "Coche chaque soir ce que tu as vraiment fait. Une minute.",
@@ -3074,7 +3200,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Filme-toi aujourd'hui", "Montre-nous où tu veux être dans 5 ans", "On crée ton Future Film", "Commence tes 30 jours"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Deux minutes avec ton téléphone, exactement comme tu es aujourd'hui.",
+      "Une demi-minute avec ton téléphone, exactement comme tu es aujourd'hui.",
       "Choisis tes objectifs les plus importants.",
       "Avec ton visage, ta voix et ta vision.",
       "Dès aujourd'hui : ouvre ton lien privé chaque jour et tiens ta promesse.",
@@ -3096,6 +3222,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Lance ton Future Self Program — {programm}",
     watchOnce: "Mon Future Film — {programm}",
     makingKiss: "Ton Future Film est en cours de création …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Ton Future Film",
     mailNote: "C'est ici qu'on t'envoie ton Future Film et ton lien privé vers le programme.",
     programmKnopf: "Ton programme de 30 jours →",
     filmKommt: "Ton Future Film est en cours — il arrive par e-mail.",
@@ -3107,6 +3235,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vê quem queres ser daqui a 5 anos.", "Faz uma promessa a ti mesmo.", "E trabalha 30 dias para a cumprir."],
     jetztStarten: "Investe no teu futuro",
     namenFrage: "A quem a envias? O nome vai no postal", namenPlatzhalter: "Max",
+    tunnelStartTitel: "A tua promessa a ti mesmo", tunnelName: "O teu nome",
+    tunnelEmail: "O teu e-mail", tunnelWeiter: "Seguinte",
     unterVideoZeilen: ["Vê o teu futuro.", "Faz a promessa.", "Cumpre a promessa."],
     filmTitel: "Uma frase torna-se uma prova",
     filmText: "Apareces à frente da vivenda, o carro atrás de ti — e dizes a tua própria frase, com a tua voz. O que prometes decides tu. Só o mundo à tua volta muda.",
@@ -3114,7 +3244,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "O teu Future Film é o início — e faz-se depressa.",
-      "Dois minutos de gravação: o teu rosto, a tua voz, a tua promessa ao teu eu futuro.",
+      "Meio minuto de gravação: o teu rosto, a tua voz, a tua promessa ao teu eu futuro.",
       "O teu programa de 30 dias começa no mesmo dia.",
       "Todos os dias um passo concreto.",
       "Todos os dias a tua checklist.",
@@ -3124,7 +3254,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["O teu Future Film", "A tua Promessa", "30 Dias", "A tua Checklist", "O teu Progresso", "Os Próximos 90 Dias"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "O teu rosto. A tua voz. A tua vida daqui a 5 anos — a partir de dois minutos de gravação.",
+      "O teu rosto. A tua voz. A tua vida daqui a 5 anos — a partir de meio minuto de gravação.",
       "A mensagem que gravas hoje para o teu eu futuro.",
       "30 dias, um passo por dia. O dia 1 é hoje.",
       "Marca todas as noites o que fizeste mesmo. Um minuto.",
@@ -3139,7 +3269,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Grava-te hoje", "Mostra-nos onde queres estar daqui a 5 anos", "Criamos o teu Future Film", "Começa os teus 30 dias"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Dois minutos com o telemóvel, tal como és hoje.",
+      "Meio minuto com o telemóvel, tal como és hoje.",
       "Escolhe os teus objetivos mais importantes.",
       "Com o teu rosto, a tua voz e a tua visão.",
       "A partir de hoje: abre o teu link privado todos os dias e cumpre a tua promessa.",
@@ -3161,6 +3291,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Começa o teu Future Self Program — {programm}",
     watchOnce: "O meu Future Film — {programm}",
     makingKiss: "O teu Future Film está a ser criado …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · O teu Future Film",
     mailNote: "É para aqui que enviamos o teu Future Film e o teu link privado do programa.",
     programmKnopf: "O teu programa de 30 dias →",
     filmKommt: "O teu Future Film está a ser criado — chega por e-mail.",
@@ -3172,6 +3304,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Guarda chi vuoi essere tra 5 anni.", "Fai una promessa a te stesso.", "E lavora 30 giorni per mantenerla."],
     jetztStarten: "Investi nel tuo futuro",
     namenFrage: "A chi lo mandi? Il nome va sulla cartolina", namenPlatzhalter: "Max",
+    tunnelStartTitel: "La tua promessa a te stesso", tunnelName: "Il tuo nome",
+    tunnelEmail: "La tua email", tunnelWeiter: "Avanti",
     unterVideoZeilen: ["Guarda il tuo futuro.", "Fai la promessa.", "Mantieni la promessa."],
     filmTitel: "Una frase diventa una prova",
     filmText: "Appari davanti alla villa, l'auto dietro di te — e dici la tua frase, con la tua voce. Cosa prometti lo decidi tu. Cambia solo il mondo intorno a te.",
@@ -3179,7 +3313,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     /* Leichter statt feierlicher — siehe de-Block (11.08.2026, Preissenkung). */
     mehrText: [
       "Il tuo Future Film è l'inizio — e si fa in fretta.",
-      "Due minuti di registrazione: il tuo volto, la tua voce, la tua promessa al tuo te futuro.",
+      "Mezzo minuto di registrazione: il tuo volto, la tua voce, la tua promessa al tuo te futuro.",
       "Il tuo programma di 30 giorni inizia lo stesso giorno.",
       "Ogni giorno un passo concreto.",
       "Ogni giorno la tua checklist.",
@@ -3189,7 +3323,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     wasBekommstTitelListe: ["Il tuo Future Film", "La tua Promessa", "30 Giorni", "La tua Checklist", "I tuoi Progressi", "I Prossimi 90 Giorni"],
     /* Konkret statt feierlich — siehe de-Block (11.08.2026, Preissenkung). */
     wasBekommstTextListe: [
-      "Il tuo volto. La tua voce. La tua vita tra 5 anni — da due minuti di registrazione.",
+      "Il tuo volto. La tua voce. La tua vita tra 5 anni — da mezzo minuto di registrazione.",
       "Il messaggio che registri oggi per il tuo te futuro.",
       "30 giorni, un passo al giorno. Il giorno 1 è oggi.",
       "Ogni sera spunti quello che hai davvero fatto. Un minuto.",
@@ -3204,7 +3338,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     howTitelListe: ["Registrati oggi", "Mostraci dove vuoi essere tra 5 anni", "Creiamo il tuo Future Film", "Inizia i tuoi 30 giorni"],
     /* Die Hürde steht in Schritt 1 — siehe de-Block (11.08.2026). */
     howTextListe: [
-      "Due minuti con il telefono, esattamente come sei oggi.",
+      "Mezzo minuto con il telefono, esattamente come sei oggi.",
       "Scegli i tuoi obiettivi più importanti.",
       "Con il tuo volto, la tua voce e la tua visione.",
       "Da oggi: apri il tuo link privato ogni giorno e mantieni la tua promessa.",
@@ -3226,6 +3360,8 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     blockedOnce: "Inizia il tuo Future Self Program — {programm}",
     watchOnce: "Il mio Future Film — {programm}",
     makingKiss: "Il tuo Future Film è in creazione …",
+    /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
+    step3: "2 · Il tuo Future Film",
     mailNote: "Qui ti inviamo il tuo Future Film e il tuo link privato al programma.",
     programmKnopf: "Il tuo programma di 30 giorni →",
     filmKommt: "Il tuo Future Film si sta creando — arriva via e-mail.",

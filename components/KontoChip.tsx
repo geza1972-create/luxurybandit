@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { User, LogOut, LogIn } from "lucide-react";
-import { Dialog, Knopf, Eingabe, Fehlerzeile, Laden, SymbolKnopf, ANZEIGER_GRUEN, ANZEIGER_GOLD } from "@/components/CI";
+import { Dialog, Knopf, Eingabe, Fehlerzeile, Laden, SymbolKnopf, ANZEIGER_GRUEN, ANZEIGER_GOLD, GoogleKnopf } from "@/components/CI";
 import {
   getStoredAuthSession,
   signInWithPassword,
@@ -46,20 +46,11 @@ import { kontoChipText } from "@/lib/konto-chip-i18n";
  */
 
 /**
- * DAS GOOGLE-G — das echte Zeichen, in seinen vier Farben, gezeichnet statt geladen (kein
- * Netzaufruf im Anmeldefenster, keine fremde Adresse). Es ist das einzige Stück fremder Marke
- * hier: Der Knopf darum ist unserer.
+ * DAS GOOGLE-G UND DER GOOGLE-KNOPF LEBEN JETZT IN `components/CI.tsx` (Owner 12.08.2026:
+ * „auch googgle anmeldung kannst du einbauen" — jetzt auch im Tunnel-Baustein `TunnelStart`,
+ * der dasselbe Zeichen braucht). Zwei Zeichnungen desselben G waeren irgendwann leicht
+ * auseinandergelaufen; jetzt holen sich dieses Fenster UND der Tunnel denselben Baustein.
  */
-function GoogleG() {
-  return (
-    <svg viewBox="0 0 48 48" aria-hidden className="h-4 w-4 shrink-0">
-      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.7l7.8 6.1C12.3 14 17.7 9.5 24 9.5Z" />
-      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.5Z" />
-      <path fill="#FBBC05" d="M10.4 28.2a14.5 14.5 0 0 1 0-9.3l-7.8-6.1a23.5 23.5 0 0 0 0 21.5l7.8-6.1Z" />
-      <path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.4-5.6l-7.6-5.9c-2.1 1.4-4.8 2.3-7.8 2.3-6.3 0-11.7-4.5-13.6-10.4l-7.8 6.1C6.5 42.1 14.6 47.5 24 47.5Z" />
-    </svg>
-  );
-}
 
 export default function KontoChip() {
   const [session, setSession] = useState<SupabaseAuthSession | null>(null);
@@ -165,10 +156,17 @@ export default function KontoChip() {
     try {
       if (modus === "anmelden") {
         setSession(await signInWithPassword(a, passwort));
+        /* DIE OFFENE SEITE ERFÄHRT VON DER ANMELDUNG (Owner 12.08.2026: angemeldet, grüner
+           Punkt da — aber die Galerie sagte weiter „Melde dich an": Sie liest die Sitzung
+           nur beim Laden. Das Gegenstück zu `lb-abgemeldet`. */
+        try { window.dispatchEvent(new Event("lb-angemeldet")); } catch { /**/ }
         setOffen(false);
       } else {
         const { session: s, confirmationRequired } = await signUpWithPassword(a, passwort);
-        if (s && !confirmationRequired) { setSession(s); setOffen(false); }
+        if (s && !confirmationRequired) {
+          setSession(s); setOffen(false);
+          try { window.dispatchEvent(new Event("lb-angemeldet")); } catch { /**/ }
+        }
         else { setHinweis(`${T.bestaetigenTitel} — ${T.bestaetigenText}`); setModus("anmelden"); setPasswort(""); }
       }
     } catch (e) {
@@ -298,10 +296,7 @@ export default function KontoChip() {
               nachgebauter Google-Knopf. Nur das Zeichen ist das echte, vierfarbige G; die
               Fläche bleibt unsere. */}
           <div className="mt-4">
-            <Knopf art="umriss" hell onClick={mitGoogle}>
-              <GoogleG />
-              {T.googleKnopf}
-            </Knopf>
+            <GoogleKnopf label={T.googleKnopf} hell onClick={mitGoogle} />
           </div>
           {/* Die Trennlinie sagt, dass es ZWEI Wege gibt und nicht zwei Schritte. */}
           <div className="mt-3 flex items-center gap-3">

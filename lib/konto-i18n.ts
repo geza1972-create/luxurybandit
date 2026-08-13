@@ -48,6 +48,8 @@ export type KontoText = {
    * Galerie ist ohnehin privat, das braucht kein Schild (siehe `programm` = Punkt 1+4).
    */
   programm: string;
+  /** Leere Galerie ohne Anmeldung — ohne das Wort „Try-ons" (Owner 12.08.2026). */
+  galerieAnmelden: string;
   /**
    * DIE DATENZEILE JE WERK (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
    * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, wie lang das video
@@ -103,6 +105,7 @@ const en: KontoText = {
   avatarHinweis: "Your face and voice for every video. A new recording replaces it.",
   avatarStimme: "with your voice",
   programm: "Program",
+  galerieAnmelden: "Sign in to see your gallery.",
   aufgenommen: "Recorded",
   fertig: "Ready",
   bezahlt: "Paid",
@@ -150,6 +153,7 @@ const de: KontoText = {
   avatarHinweis: "Dein Gesicht und deine Stimme für jedes Video. Eine neue Aufnahme ersetzt ihn.",
   avatarStimme: "mit deiner Stimme",
   programm: "Programm",
+  galerieAnmelden: "Melde dich an, um deine Galerie zu sehen.",
   aufgenommen: "Aufgenommen",
   fertig: "Fertig",
   bezahlt: "Bezahlt",
@@ -197,6 +201,7 @@ const ro: KontoText = {
   avatarHinweis: "Chipul și vocea ta pentru fiecare videoclip. O înregistrare nouă îl înlocuiește.",
   avatarStimme: "cu vocea ta",
   programm: "Program",
+  galerieAnmelden: "Conectează-te ca să îți vezi galeria.",
   aufgenommen: "Înregistrat",
   fertig: "Gata",
   bezahlt: "Plătit",
@@ -244,6 +249,7 @@ const es: KontoText = {
   avatarHinweis: "Tu cara y tu voz para cada vídeo. Una grabación nueva lo sustituye.",
   avatarStimme: "con tu voz",
   programm: "Programa",
+  galerieAnmelden: "Inicia sesión para ver tu galería.",
   aufgenommen: "Grabado",
   fertig: "Listo",
   bezahlt: "Pagado",
@@ -291,6 +297,7 @@ const fr: KontoText = {
   avatarHinweis: "Ton visage et ta voix pour chaque vidéo. Un nouvel enregistrement le remplace.",
   avatarStimme: "avec ta voix",
   programm: "Programme",
+  galerieAnmelden: "Connecte-toi pour voir ta galerie.",
   aufgenommen: "Enregistré",
   fertig: "Prêt",
   bezahlt: "Payé",
@@ -338,6 +345,7 @@ const pt: KontoText = {
   avatarHinweis: "O teu rosto e a tua voz para cada vídeo. Uma nova gravação substitui-o.",
   avatarStimme: "com a tua voz",
   programm: "Programa",
+  galerieAnmelden: "Inicia sessão para veres a tua galeria.",
   aufgenommen: "Gravado",
   fertig: "Pronto",
   bezahlt: "Pago",
@@ -385,6 +393,7 @@ const it: KontoText = {
   avatarHinweis: "Il tuo viso e la tua voce per ogni video. Una nuova registrazione lo sostituisce.",
   avatarStimme: "con la tua voce",
   programm: "Programma",
+  galerieAnmelden: "Accedi per vedere la tua galleria.",
   aufgenommen: "Registrato",
   fertig: "Pronto",
   bezahlt: "Pagato",

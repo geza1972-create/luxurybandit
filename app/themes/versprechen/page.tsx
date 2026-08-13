@@ -5,6 +5,8 @@ import { Kasten } from "@/components/CI";
 import { ShieldCheck } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import KissFunnel from "@/components/KissFunnel";
+import UploadsAdmin from "@/components/UploadsAdmin";
+import ManageViewToggle from "@/components/ManageViewToggle";
 import SeitenFuss from "@/components/SeitenFuss";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
@@ -64,6 +66,12 @@ export default async function VersprechenThemePage({ searchParams }: {
   const L = await resolveLang();
   const T = kissText(L, "versprechen");
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+  /* ADMIN-WERKZEUGE NUR MIT ?admin=1 (Owner 12.08.2026: „Versprechen keine eigene Liste
+     hat. Es läuft alles über Kiss" — jetzt hat es seinen eigenen manage-Punkt, dieselbe
+     Mechanik wie /themes/kiss). */
+  const showAdmin = String(sp.admin ?? "") === "1";
+  const view = sp.view === "kunde" ? "kunde" : "admin";
+  const showCustomer = !showAdmin || view === "kunde";
 
   /* Die Datenschutz-Zeile am Fuss: englische Quelle im Code, Übersetzung zur Laufzeit mit
      Dauer-Cache — dieselbe Lösung wie auf allen anderen Themenseiten. Kürzer als vorher und
@@ -92,8 +100,18 @@ export default async function VersprechenThemePage({ searchParams }: {
 
         {/* DIE FOLIEN KOMMEN AUS DEM ORDNER: `versprechenVideos()` liest jede .mp4 in
             public/Versprechen — Kachel-Video zuerst, der Rest nach Namen. */}
+        {showAdmin && <ManageViewToggle view={view} />}
+        {showAdmin && view === "admin" && (
+          /* DIE EIGENE VERSPRECHEN-LISTE (Owner 12.08.2026) — dieselbe Galerie wie bei
+             Kiss, nur auf theme=versprechen gefiltert (/api/kiss-log?theme=…). */
+          <div className="lb-theme mt-4">
+            <UploadsAdmin title="Hochgeladen & erzeugt" theme="versprechen" />
+          </div>
+        )}
+        {showCustomer && (
         <KissFunnel variant="versprechen" code={code} lang={L}
           beispielVideos={versprechenVideos()} />
+        )}
 
         {/* DER GROSSE PRODUKTKASTEN — direkt unter der Video-Karte, damit der erste Blick nach
             dem Film auf das PROGRAMM fällt, nicht auf eine schmale Preiszeile (Owner

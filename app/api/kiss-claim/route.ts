@@ -137,6 +137,22 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       };
       await writeWetterSubscribers([eintrag, ...liste], KISS_LIST);
+    } else {
+      /**
+       * DEN NAMEN NACHTRAGEN (Owner 12.08.2026: „greifen wir die emails und namen ab
+       * sofort in einer liste ja?"). Bestandseinträge trugen ewig den E-Mail-Vorspann als
+       * Namen — der ECHTE Name kam erst mit dem Tunnel-Schritt-1 und wurde hier bislang
+       * weggeworfen, weil nur NEUE Einträge geschrieben wurden. Ein mitgeschickter Name
+       * gewinnt gegen den Vorspann-Platzhalter; einen schon echten Namen überschreibt nur
+       * ein anderer echter (der Kunde hat ihn selbst getippt — er weiss es am besten).
+       */
+      const echterName = String(body.name ?? "").trim().slice(0, 120);
+      if (echterName && da && da.name !== echterName) {
+        try {
+          const neuListe = liste.map(s => (s.id === da.id ? { ...s, name: echterName } : s));
+          await writeWetterSubscribers(neuListe, KISS_LIST);
+        } catch { /* die Liste darf den Ablauf nie blockieren */ }
+      }
     }
   } catch { /* die Liste darf den Ablauf nie blockieren — er hat sein Bild schon */ }
 

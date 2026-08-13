@@ -5,7 +5,7 @@ import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
-  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler } from "@/components/CI";
+  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler, TunnelStart, VorlagenKachel } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -248,6 +248,31 @@ export default function CIMuster() {
         <button type="button" onClick={() => setFehlerZeigen(f => !f)}
           className="mt-2 text-[11px] font-bold text-white/50 underline">Fehler an/aus</button>
       </Kasten>
+
+      {abschnitt("Tunnel-Start — Schritt 1 von 2, für jedes Produkt gleich")}
+      {/* KONZEPT-TUNNEL.md: eine Karte, zwei Felder, ein Knopf — der EINE Anfang jedes
+          Kaufwegs im Haus. Nur hier auf der Musterseite ohne echten `onWeiter`; im Trichter
+          speichert der Aufrufer den Lead sofort ueber die bestehende kiss-claim-Logik. */}
+      <TunnelStart
+        titel="Dein Versprechen an dich selbst"
+        nameLabel="Dein Name" namePlatzhalter="Ion"
+        emailLabel="Deine E-Mail" emailPlatzhalter="you@email.com"
+        weiterLabel="Weiter"
+        onWeiter={() => {}} />
+
+      {abschnitt("Vorlagen-Kachel — Tipp öffnet das echte Video")}
+      {/* Owner 12.08.2026: „wenn user ein Video generiert dann muss er die Vorlage genau als
+          Video sehen … Das gilt für den ganzen Tunel." Links die volle Kachel (Schritt 3),
+          rechts die schmale Knopf-Gestalt für Stellen, die schon eine eigene Bild-Auswahl
+          haben (z. B. `BildWahl` beim Geburtstag). */}
+      <div className="grid grid-cols-2 gap-3">
+        <VorlagenKachel bildUrl="/Versprechen/Verprechen2.jpg" videoUrl="/Versprechen/promise-example.mp4"
+          ansehenLabel="Vorlage ansehen" sprache="de" titel="Dein Versprechen an dich selbst" />
+        <div className="flex items-center">
+          <VorlagenKachel darstellung="knopf" bildUrl="/Versprechen/Verprechen2.jpg" videoUrl="/Versprechen/promise-example.mp4"
+            ansehenLabel="Vorlage ansehen" sprache="de" titel="Dein Versprechen an dich selbst" />
+        </div>
+      </div>
 
       {abschnitt("Dieselben Bausteine IN der Karte")}
       {/* Die Karten-Welt hat eigene !important-Farben — der `karte`-Schalter stellt jeden

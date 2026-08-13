@@ -18,11 +18,12 @@ import ZusagenKarte from "@/components/ZusagenKarte";
 import GruppenChat from "@/components/GruppenChat";
 import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
+import { Knopf } from "@/components/CI";
 import { readThemeConfig } from "@/lib/try-this-look-store";
 import { HOCHZEIT_VIDEO } from "@/lib/hochzeit-video";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
-import { fillPrices } from "@/lib/pricing";
+import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 
 /**
  * THEMA „HOCHZEITSKUSS" (Owner 30.07.2026: „ich will eher wie sie sich einen Hochzeitskuss
@@ -202,6 +203,13 @@ export default async function WeddingThemePage({ searchParams }: {
             Jetzt starten. Schreibst du in dem Button"). Zweimal derselbe Preis, vierzig Pixel
             auseinander, ist keine Auskunft, sondern ein Grund, warum der Knopf nicht mehr ins
             Bild passte. Der Baustein `ThemenPreis` bleibt und trägt die anderen Themen. */}
+
+            {/* DIE AD-ADRESSE (KONZEPT-TUNNEL.md, Owner 12.08.2026: „die muss ich in den ads
+                einbauen"): ein zweiter, schmalerer Weg direkt zum Drei-Schritt-Tunnel
+                (`/themes/wedding/start`) — `light`/`code` reisen mit, genau das Muster aus
+                `KissFunnel.schritteOeffnen`. Der Bau-Kasten unten bleibt unveraendert: wer
+                lieber gleich hier ausfuellt, tut das weiter genauso wie vorher. */}
+        {/* Der Outline-Zweitknopf mit Preis („de la 9,99 €") ist RAUS (Owner 12.08.2026, mit Bild: „das raus, das haben wir sonst niergendwo") — die eine Tür in den Tunnel ist der goldene Karten-Knopf. */}
 
             {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — das Kuss-Muster (Owner
                 05.08.2026: „alle Topic-Seiten sollen so aufgebaut werden, ist die Kiss-Seite").

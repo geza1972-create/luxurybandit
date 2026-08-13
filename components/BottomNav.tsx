@@ -420,6 +420,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Birthdays — manage</span>
                 </button>
               )}
+              {/* Future Self Program — Film + 30 Tage (9,99 €); eigene Liste seit 12.08.2026
+                  (Owner: „Versprechen keine eigene Liste hat. Es läuft alles über Kiss"). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/versprechen?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Film className="h-4 w-4 shrink-0 text-amber-400" />
+                  <span className="text-[13px] font-bold">Future Self Program — manage</span>
+                </button>
+              )}
               {/* Chat with an AI girl — Chat + Anziehen (24 €/Monat, 5 Looks). */}
               {isStaff && (
                 <button type="button" onClick={() => navigate("/themes/chat")}

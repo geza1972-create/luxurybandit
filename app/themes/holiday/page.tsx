@@ -8,9 +8,10 @@ import ThemenVorspann from "@/components/ThemenVorspann";
 import ZusagenKarte from "@/components/ZusagenKarte";
 import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
+import { Knopf } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
-import { fillPrices } from "@/lib/pricing";
+import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 
 /**
  * THEMA „URLAUBS-EINLADUNG" (Owner 04.08.2026: „du machst eine Invitation für Urlaub an
@@ -114,6 +115,7 @@ export default async function HolidayThemePage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const L = await resolveLang();
   const T = kissText(L, "holiday");
   const W = WERBUNG[L] ?? WERBUNG.en;
@@ -189,6 +191,11 @@ export default async function HolidayThemePage({ searchParams }: {
             was auf einer Urlaubs-Einladung schlicht falsch ist; jetzt stehen eigene in
             `lib/kiss-i18n` (URLAUB). Der Anlass ist der des Owners: Überraschung, Antrag,
             Familienurlaub. */}
+
+        {/* DIE AD-ADRESSE (KONZEPT-TUNNEL.md) — ein zweiter, schmalerer Weg direkt zum
+            Drei-Schritt-Tunnel (`/themes/holiday/start`); `light`/`code` reisen mit. Der
+            Bau-Kasten unten bleibt unveraendert. */}
+        {/* Der Outline-Zweitknopf mit Preis („de la 9,99 €") ist RAUS (Owner 12.08.2026, mit Bild: „das raus, das haben wir sonst niergendwo") — die eine Tür in den Tunnel ist der goldene Karten-Knopf. */}
 
         <div className="mt-5">
           <EinladungBauen lang={L} variant="holiday" beispielVideos={examples} />

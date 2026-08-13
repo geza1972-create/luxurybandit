@@ -450,6 +450,27 @@ svg {
   color: #1877F2 !important;
   stroke: #1877F2 !important;
 }
+/* DIE SYMBOLE DER BLAUEN KOPFZEILE BLEIBEN WEISS (Owner 12.08.2026: „Die light seite hat
+   die icons für Konto und share nicht" — sie WAREN da, aber die Pauschalregel darüber
+   färbte sie #1877F2, und die erste Kopfzeile der hellen Fassung ist selbst blau:
+   blau auf blau = unsichtbar. Die Zeile 361 will die ganze erste Reihe weiss, verliert
+   aber den Spezifitäts-Vergleich gegen die :not()-Kette darüber — deshalb hier, NACH der
+   Pauschalregel und enger gefasst, das Weiss nur für die blaue erste Reihe zurückgeholt.
+   Die zweite Reihe (Guthaben/Galerie auf hellem Grund) bleibt bewusst bei Blau.) */
+/* Die :not()-Klauseln stehen hier NUR fürs Spezifitäts-Gewicht: Die Blau-Regel oben wiegt
+   durch ihre :not()-Kette (0,5,2) — ohne denselben Ballast verlöre diese Regel trotz
+   späterer Stelle. Gleichstand + spätere Quelle = die Kopfzeile gewinnt. */
+.lb-fb [data-topnav="1"] > div:first-of-type button[class*="border-white/"]:not(.lb-gold):not(.lb-buy),
+.lb-fb [data-topnav="1"] > div:first-of-type a[class*="border-white/"]:not(.lb-gold):not(.lb-buy) {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  background-color: rgba(255, 255, 255, 0.10) !important;
+}
+.lb-fb [data-topnav="1"] > div:first-of-type button[class*="border-white/"]:not(.lb-gold):not(.lb-buy) svg,
+.lb-fb [data-topnav="1"] > div:first-of-type a[class*="border-white/"]:not(.lb-gold):not(.lb-buy) svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
 
 /* WEISSE SCHRIFT, DIE DIREKT AM ELEMENT STEHT (Owner 30.07.2026: „und die weisse schrift auch
    blau machen"). Mehrere Knoepfe tragen color:#fff als inline-style — auf dunklem Grund
@@ -839,3 +860,18 @@ svg {
 .lb-fb .lb-teaser .lb-gold * {
   color: #fff !important;
 }
+
+/* DER TRENN-RING DES ANZEIGE-PUNKTS FOLGT DER FLÄCHE (Owner 12.08.2026: „der grüne punkt
+   hat einen böden schwarzen kreis" — der feste dunkle Ring stammt aus der dunklen Welt;
+   auf der blauen Kopfzeile der hellen Fassung muss er Kopfzeilen-Blau sein, sonst wirkt
+   er wie ein schwarzer Kringel). !important, weil die Farbe inline gesetzt wird. */
+.lb-fb [data-topnav="1"] > div:first-of-type [data-punkt="1"] { box-shadow: 0 0 0 2px #1877F2 !important; }
+.lb-theme [data-topnav="1"] > div:first-of-type [data-punkt="1"] { box-shadow: 0 0 0 2px #f6f2e9 !important; }
+
+/* BLAUE RAHMEN UM ALLE BILDER IN DER HELLEN FASSUNG (Owner 12.08.2026, an der Look-Wahl:
+   „bei Light machen wir blaue rahmen bei allen Bildern.") — der GOLD-Ring/-Rand der Auswahl
+   (BildWahl, VorlagenKachel, Szenen-Kacheln) wird in Hell zu Haus-Blau; die neutralen
+   weissen Ränder flippen ohnehin schon. Muster-Selektor, damit JEDE Gold-Rahmen-Klasse
+   getroffen wird — einmal hier, nie je Kachel. */
+.lb-fb [class*="ring-[#f6cf51]"] { --tw-ring-color: #1877F2 !important; }
+.lb-fb [class*="border-[#f6cf51]"] { border-color: #1877F2 !important; }

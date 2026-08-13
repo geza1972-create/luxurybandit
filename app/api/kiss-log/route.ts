@@ -211,7 +211,7 @@ async function istBesitzer(ziel: KissLogEntry, body: { device?: string; email?: 
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string; ziele?: unknown; zieleFrei?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string; ziele?: unknown; zieleFrei?: string; satz?: string };
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").
@@ -303,9 +303,14 @@ export async function POST(request: Request) {
      * Ziele nachtraegt, kam mit „nothing to update" zurueck — beim Pruefen gemessen. Im
      * Trichter faellt das heute nicht auf (dort reist immer eine Kennung mit), aber es ist
      * genau die Art stiller Absage, an der spaeter eine Stunde Suche haengt.
+     *
+     * SEIT 12.08.2026 AUCH `satz` (Zusatzauftrag Urlaub): Derselbe Fehler waere sonst hier
+     * wieder eingebaut worden — ein Aufruf, der NUR den Einladungssatz nachtraegt, kaeme mit
+     * „nothing to update." zurueck.
      */
     if (!videoUrl && !imagePath && !modelBild && !personBild && !videoId && !modelName
-        && !renderStart && !renderAbbruch && body.ziele === undefined && typeof body.zieleFrei !== "string") {
+        && !renderStart && !renderAbbruch && body.ziele === undefined && typeof body.zieleFrei !== "string"
+        && typeof body.satz !== "string") {
       return NextResponse.json({ error: "nothing to update." }, { status: 400 });
     }
     /**
@@ -416,6 +421,12 @@ export async function POST(request: Request) {
       if (typeof body.zieleFrei === "string" && body.zieleFrei.trim()) {
         e.zieleFrei = body.zieleFrei.replace(/\s+/g, " ").trim().slice(0, 60);
       }
+      /* DER EINE EINLADUNGSSATZ DES URLAUBS-TUNNELS (Owner 12.08.2026, Zusatzauftrag) —
+         dasselbe Muster wie `zieleFrei` zwei Zeilen darueber, nur mit 200 statt 60 Zeichen:
+         ein ganzer Satz mit Datum ist laenger als ein Stichwort hinter „etwas anderes". */
+      if (typeof body.satz === "string" && body.satz.trim()) {
+        e.satz = body.satz.replace(/\s+/g, " ").trim().slice(0, 200);
+      }
       /* SEINE SPRACHE — LETZTE WAHL GEWINNT (11.08.2026): er kann sie im Trichter noch
          wechseln, bevor bezahlt wird; der Auftrag traegt dann die neueste. */
       const langU = String(body.lang ?? "").trim().slice(0, 5);
@@ -513,6 +524,9 @@ export async function POST(request: Request) {
     ziele: zieleSaeubern(body.ziele).length ? zieleSaeubern(body.ziele) : undefined,
     zieleFrei: typeof body.zieleFrei === "string" && body.zieleFrei.trim()
       ? body.zieleFrei.replace(/\s+/g, " ").trim().slice(0, 60) : undefined,
+    /* DER EINE EINLADUNGSSATZ DES URLAUBS-TUNNELS (Owner 12.08.2026, Zusatzauftrag). */
+    satz: typeof body.satz === "string" && body.satz.trim()
+      ? body.satz.replace(/\s+/g, " ").trim().slice(0, 200) : undefined,
     /* SEINE SPRACHE (11.08.2026) — damit `kiss-delivery.ts` die private Programmseite in
        SEINER Sprache anlegen kann, statt auf Englisch zurueckzufallen. */
     lang: String(body.lang ?? "").trim().slice(0, 5) || undefined,

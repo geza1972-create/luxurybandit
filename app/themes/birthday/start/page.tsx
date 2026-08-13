@@ -1,0 +1,56 @@
+import type { Metadata } from "next";
+import TopNav from "@/components/TopNav";
+import SeitenFuss from "@/components/SeitenFuss";
+import { Kicker, H1, Y } from "@/components/Landing";
+import { resolveLang } from "@/lib/lang-server";
+import { kissText } from "@/lib/kiss-i18n";
+import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
+import BirthdayStartClient from "./BirthdayStartClient";
+
+/**
+ * DIE TUNNEL-SEITE DES GEBURTSTAGS — GENAU DAS MUSTER AUS
+ * `app/themes/versprechen/start/page.tsx` (Owner 12.08.2026, „oberstes Gesetz": „allle
+ * funnels und wenn eine änderung bitbs dann ist es bei allen gleich"). Nur die
+ * URL-Steuerung liegt gemeinsam in `components/TunnelSeite.tsx` — diese Datei konfiguriert,
+ * sie kopiert keine Logik.
+ *
+ * `robots: { index: false, follow: true }` — dieselbe Regel wie bei den anderen
+ * Tunnel-Seiten: eine Werbe-Zielseite ohne eigenen redaktionellen Inhalt.
+ *
+ * DIE AD-ADRESSEN:
+ *   dunkel  /themes/birthday/start
+ *   hell    /themes/birthday/start?light=1
+ */
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Start her birthday video | LuxuryBandit",
+  description: "Name and email, then pick a look and record — her birthday video in your voice.",
+  robots: { index: false, follow: true },
+};
+
+export default async function BirthdayStartPage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const L = await resolveLang();
+  const T = kissText(L, "birthday");
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+  const hell = String(sp.light ?? "") === "1";
+
+  return (
+    <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
+      <TopNav />
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
+        <Kicker>{T.heroY || "Happy birthday video"}</Kicker>
+        <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+        <div className="mt-4">
+          <BirthdayStartClient lang={L} code={code}
+            beispielVideos={[GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
+        </div>
+      </div>
+      <SeitenFuss />
+    </main>
+  );
+}

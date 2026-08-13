@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
+import { getStoredAuthSession, signOut, signInWithOAuth } from "@/lib/supabase-auth-client";
 import { guthabenLesen, aktiveAdresse, type Gestrandet } from "@/lib/guthaben-konto";
 // Aliasiert: `T.mailVorschlag` ist der TEXT, `mailTippfehler` die Pruefung — zwei Dinge,
 // zwei Namen, sonst verdeckt der eine den anderen.
 import { mailVorschlag as mailTippfehler } from "@/lib/mail-tippfehler";
-import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, Send, Maximize2, Mic, Square } from "lucide-react";
+import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronLeft, ChevronRight, Send, Maximize2, Mic, Square } from "lucide-react";
 /* `AUFLADE_STUFEN` und `eur` sind mit dem Aufladewähler in die Bibliothek gezogen — die
    Leiter rechnet jetzt `lib/kasse` (`deckendeStufen`), die Beträge schreibt `AufladeWaehler`. */
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, eur, type ThemenSchluessel } from "@/lib/pricing";
@@ -23,7 +23,7 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel } from "@/components/CI";
 import { Eingabe } from "@/components/CI";
 import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -39,12 +39,12 @@ import { kontoText } from "@/lib/konto-i18n";
  */
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
 import { kissText } from "@/lib/kiss-i18n";
-import { kussSzeneVideoPrompt, zufallsSzene } from "@/lib/kuss-szenen";
+import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
 /* GEBURTSTAG_PROMPT wohnt weiter in lib/geburtstag, wird aber seit dem 07.08.2026 nur noch
    dokumentarisch gebraucht: Der Geburtstag erzeugt über /api/geburtstag-video (OpenAI→HeyGen),
    nicht mehr über den Pixverse-Zweig dieses Trichters. */
-import { geburtstagTitel } from "@/lib/geburtstag";
+import { geburtstagTitel, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 
@@ -162,6 +162,38 @@ const RENDER_AT = [0, 4000, 9000, 15000, 21000, 28000, 36000, 46000];
 // Seine Adresse, einmal eingetragen. Bewusst OHNE Thema im Schlüssel: es ist derselbe Mensch,
 // egal ob er beim Kuss oder beim Idol anfängt — zweimal fragen wäre eine Hürde ohne Gegenwert.
 const MAIL_KEY = "lb_kiss_mail";
+/**
+ * WELCHE PRODUKTE SCHON DEN EINEN TUNNEL HABEN (Owner 12.08.2026, „oberstes Gesetz": „allle
+ * funnels und wenn eine änderung bitbs dann ist es bei allen gleich"). Die Reihenfolge der
+ * Umstellung steht in KONZEPT-TUNNEL.md §„Feste Regeln": Versprechen zuerst, dann Kuss und
+ * Geburtstag — Hochzeit/Urlaub/Gutschein laufen auf `EinladungBauen`, nicht hier.
+ *
+ * DER ORDNERNAME IST DIE ADRESSE: Jeder Eintrag hier hat eine eigene Seite unter
+ * `/themes/<eintrag>/start` — `schritteOeffnen` baut die Adresse direkt aus diesem Wert,
+ * ohne eine zweite Zuordnungstabelle zu pflegen.
+ */
+const TUNNEL_VARIANTEN: readonly string[] = ["versprechen", "kiss", "birthday", "poledance"];
+/**
+ * KENNEN WIR IHN SCHON, BEVOR DIE SEITE UEBERHAUPT GEZEICHNET IST? (Owner 12.08.2026,
+ * Nachschaerfung zum Tunnel-Konzept: „wenn jemand angemeldet ist braucht man name email
+ * nicht mehr" · „aber das muss der funel sein. Super einfach").
+ *
+ * `aktiveAdresse()` (lib/guthaben-konto) traegt bereits alle drei Faelle in EINER Zeile:
+ * die angemeldete Sitzung, das Tor/frueheren Besuch (`lb_kiss_mail` und Geschwister-
+ * Schluessel) und eine gespeicherte Kassen-Adresse. Ist einer davon da, ist Schritt 1 des
+ * Tunnels (Name + E-Mail) ueberfluessig — der Trichter startet fuer Bekannte direkt bei
+ * Schritt 2 (die zwei Kacheln + Generieren), OHNE das Namensfeld je zu zeigen.
+ *
+ * SYNCHRON, nicht erst im Effekt: Ein Effekt liefe eine Zeichnung zu spaet, und Bekannte
+ * saehen den Tunnel-Start fuer einen Wimpernschlag aufblitzen, bevor er wieder verschwindet.
+ * `typeof window === "undefined"` haelt das bei einer Server-Zeichnung fest — dort gibt es
+ * weder `localStorage` noch eine Sitzung, und ohne die Wache wuerde genau dort ein Fehler
+ * fliegen, nicht nur ein falscher Start-Schritt.
+ */
+const versprechenSchonBekannt = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try { return !!aktiveAdresse(); } catch { return false; }
+};
 /**
  * Der Name, an den der Gruss geht — ueberlebt Neuladen und Kassen-Rueckkehr wie die Fotos.
  *
@@ -317,7 +349,35 @@ const AUFNAHME_SEK_VERSPRECHEN = 25;
 const aufnahmeSekFuer = (variant: string) =>
   variant === "versprechen" ? AUFNAHME_SEK_VERSPRECHEN : AUFNAHME_SEK_STANDARD;
 
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos }: { variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[] }) {
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange }: {
+  variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[];
+  /**
+   * DER TUNNEL ALS EIGENE SEITE (Owner 12.08.2026, wörtlich: „die muss ich in den ads
+   * einbauen" — er braucht eine eigene Adresse für die Anzeigen, kein Fenster mitten auf der
+   * Landingpage). `app/themes/versprechen/start/page.tsx` reicht dieses Flag herein: Die
+   * Schritte liegen dann als normaler SEITENINHALT da (kein abgedunkelter Hintergrund, kein
+   * Schliessen durch Antippen daneben — die Seite verlassen ist das Schliessen), und sind
+   * IMMER offen, nicht erst nach einem Kartenklick. Ohne das Flag bleibt jede andere Seite,
+   * wie sie war: der Trichter im Dialog über der Beispiel-Karte.
+   */
+  tunnelSeite?: boolean;
+  /**
+   * DER SCHRITT KOMMT VON DER URL (Owner 12.08.2026: „der user soll auch vor und zurück in
+   * den steps" — gelöst über die Adresszeile, damit die Handy-Zurück-Geste einen Schritt
+   * zurückgeht statt die Seite zu verlassen). Nur die Tunnel-Seite reicht das herein; überall
+   * sonst bleibt `schritt` reiner interner Zustand wie bisher.
+   */
+  /**
+   * `number` STATT `1 | 2 | 3` (Owner 12.08.2026, „oberstes Gesetz": dieselbe Mechanik für
+   * alle Produkte) — `components/TunnelSeite.tsx` kennt kein Produkt und liefert deshalb eine
+   * blosse Zahl. Welche Werte WIRKLICH erreichbar sind, entscheidet die aufrufende
+   * `*StartClient.tsx` ueber die `schritte`-Liste, die sie `TunnelSeite` mitgibt — nicht
+   * dieser Typ.
+   */
+  urlSchritt?: number;
+  /** Meldet jede Änderung an `schritt` nach aussen — die Tunnel-Seite schreibt sie in die URL. */
+  onSchrittChange?: (schritt: number) => void;
+}) {
   const V = VARIANTS[variant];
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
      Seite bisher als `beispielVideo` geschickt hat — die Karte startet also mit demselben
@@ -526,6 +586,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const selbstVideo = variant === "birthday" || variant === "versprechen";
   /**
+   * HAT DIESES PRODUKT EINEN ECHTEN AUSWAHL-SCHRITT? (KONZEPT-TUNNEL.md, Owner 12.08.2026:
+   * „Hier haben wir die auswahl des Goals; in Geburtstag hätten wir die template auswahl in
+   * stept zwei. Dann step 3 wäre genau das was wir jetzt haben: Bild hochladen." —
+   * Geburtstag: Vorlagen-Wahl. Kuss und Versprechen haben nichts zu waehlen, bevor die
+   * Kacheln kommen (beim Kuss ist die Szene laengst zufaellig, Owner 03.08.2026: „wir machen
+   * die ganze Videoauswahl raus"), und ueberspringen Schritt 2 komplett.
+   *
+   * NUR AUF DER TUNNEL-SEITE: Der alte Dialog kennt diese Unterscheidung nicht, dort bleibt
+   * die Schritt-Zaehlung, wie sie war.
+   *
+   * KUSS UND VERSPRECHEN SEIT 12.08.2026 DAZU (Owner, wörtlich: „warum ist der Kuss funel
+   * anders? … Template auswahl dann bilder hochladen" · „mach auch Verprehcne genauso. Aus
+   * 3 schritten") — damit haben ALLE SIEBEN Tunnel dieselben drei Schritte, keine Ausnahme
+   * mehr. Der alte Zufalls-Charakter des Kusses bleibt: Wer nichts tippt, bekommt weiterhin
+   * `zufallsSzene()` (siehe `kissSzeneId`, unten und beim Video-Auftrag).
+   */
+  const hatAuswahl = tunnelSeite && (variant === "birthday" || variant === "poledance" || variant === "kiss" || variant === "versprechen");
+  /**
+   * DIE GEWAEHLTE KUSS-SZENE (Owner 12.08.2026) — leer heisst „nichts gewaehlt", dann bleibt
+   * es beim Zufall (`kussSzeneVideoPrompt(zufallsSzene(...))`, wie vor diesem Auftrag). Kein
+   * Vorgabewert wie bei den Looks: Die Kacheln zeigen ohnehin `wert=""` als „keine gewaehlt",
+   * konsistent mit der bisherigen „Überraschung"-Erzaehlung dieses einen Themas.
+   */
+  const [kissSzeneId, setKissSzeneId] = useState("");
+  const tunnelPunkte = hatAuswahl ? [1, 2, 3] : [1, 3];
+  /** Wohin Schritt 1 (`TunnelStart`) weiterschickt — 2 nur, wenn es dort etwas zu waehlen
+   *  gibt, sonst direkt zu den Kacheln (Schritt 3). */
+  const nachTunnelStart = hatAuswahl ? 2 : 3;
+  /** Wohin der Zurueck-Pfeil VON DEN KACHELN (Schritt 3) fuehrt — auf der Tunnel-Seite immer
+   *  der Schritt direkt davor (1, oder 2 beim Geburtstag); im alten Dialog unveraendert. */
+  const schrittVorKacheln = tunnelSeite ? (hatAuswahl ? 2 : 1) : (V.paarUpload || V.nurSie ? 1 : 2);
+  /**
    * DAS FORMAT DER VIDEOKARTE — 3:4 IM HAUS, 9:16 BEIM VERSPRECHEN (Owner 11.08.2026: „so
    * wir haben jetzt hier eine ausnahme. Die Videokarte ist hier 9:16 format").
    *
@@ -589,6 +681,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      und Wagen beim Versprechen. Eine Liste je Thema, eine Zeile hier. */
   const LOOKS = variant === "versprechen" ? VERSPRECHEN_LOOKS : GEBURTSTAG_LOOKS;
   const [look, setLook] = useState(LOOKS[0].id);
+  /**
+   * WELCHES VIDEO ZEIGT DIE ZIEL-KACHEL? (Owner 12.08.2026, wörtlich: „wenn user ein Video
+   * generiert dann muss er die Vorlage genau als Video sehen … Das gilt für den ganzen
+   * Tunel.") Versprechen hat genau EIN Video (`beispiele[0]`, dasselbe Beispiel wie auf der
+   * Landingpage); der Geburtstag eins JE LOOK — nur drei der vier Looks haben eins, die
+   * vierte („Gold & Confetti") bleibt bis dahin ein Bild (siehe Bericht an den Owner).
+   */
+  const GEBURTSTAG_LOOK_VIDEO: Record<string, string> = {
+    traum: GEBURTSTAG_VIDEO_TRAUM,
+    blacktie: GEBURTSTAG_VIDEO,
+    fliege: GEBURTSTAG_VIDEO_MANN,
+  };
+  const zielVideo = variant === "versprechen" ? (beispiele[0] || "")
+    : variant === "birthday" ? (GEBURTSTAG_LOOK_VIDEO[look] || "")
+    : "";
+  /**
+   * DIE LOOK-WAHL SELBST ZEIGT JETZT DAS VIDEO (Owner 12.08.2026: „Man muss die Videos sehen
+   * im ganzen Tunel. Sonst sind es bilder" → „ok, bauen"). `BildWahl` kennt seit diesem
+   * Auftrag ein optionales `video`/`poster` je Kachel (components/CI.tsx) — hier wird es NUR
+   * an dieser einen Stelle in die bestehenden Listen gemischt, die Listen selbst
+   * (`GEBURTSTAG_LOOKS`/`POLEDANCE_SETS`) bleiben unveraendert, weil sie auch anderswo ohne
+   * Video gebraucht werden (z. B. `garderobe` oben). „Gold & Confetti" bekommt bewusst kein
+   * `video`, dafuer gibt es keins — die Kachel bleibt dort ein Bild.
+   */
+  const GEBURTSTAG_LOOKS_MIT_VIDEO = GEBURTSTAG_LOOKS.map(l => ({ ...l, video: GEBURTSTAG_LOOK_VIDEO[l.id] }));
+  /**
+   * ALLE DREI POLEDANCE-SETS TEILEN SICH EIN BEISPIELVIDEO (`beispiele[0]`, von der
+   * aufrufenden Seite als `POLEDANCE_VIDEO` hereingereicht) — es gibt (noch) kein Video je
+   * Set, siehe Bericht an den Owner. Lieber dasselbe Video an allen drei Kacheln zeigen als
+   * gar keins: Bewegung verkauft, auch wenn sie nicht exakt zum gewaehlten Set passt.
+   */
+  const POLEDANCE_SETS_MIT_VIDEO = POLEDANCE_SETS.map(s => ({ ...s, video: beispiele[0] || undefined }));
   /**
    * SEINE ZIELE (Owner 11.08.2026: „Baue den zusätzlichen Ziele-Schritt nur für
    * versprechen") — höchstens drei Kennungen, dazu ein freier Satz, wenn er „etwas anderes"
@@ -1290,7 +1414,29 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // Seite springt wenn er Generate macht und das Rendering zu sehen ist. Dann weiss ich
   // besser was passiert"). Vorher lief das Rendern unter den Schritten weiter — man sah
   // nicht, dass überhaupt etwas passiert.
-  const [schritt, setSchritt] = useState<1 | 2 | 3 | 4>(1);
+  /**
+   * FUER BEKANNTE STARTET DER TUNNEL BEI SCHRITT 3 (Owner 12.08.2026, s. o. bei
+   * `versprechenSchonBekannt`) — nur beim Versprechen: Sein Zweischritt-Tunnel benutzt
+   * Schritt 1 fuer `TunnelStart` (Name + E-Mail) und Schritt 3 fuer die zwei Kacheln plus
+   * Generieren (dieselbe Zahl, mit der `V.nurSie`-Themen seit je ihren zweiten sichtbaren
+   * Schritt zaehlen — siehe die Fortschritts-Punkte weiter unten, `[1, 3]`). Ist die Adresse
+   * schon da, gibt es fuer ihn nichts in Schritt 1 zu tun.
+   *
+   * AUF DER TUNNEL-SEITE ENTSCHEIDET DIE URL (`urlSchritt`), NICHT DIESE PRUEFUNG NOCH EINMAL
+   * (Owner 12.08.2026: „der user soll auch vor und zurück in den steps"). `app/themes/
+   * versprechen/start/page.tsx` hat den Bekannten-Fall schon VOR dem ersten Zeichnen
+   * entschieden (dieselbe Pruefung, nur dort) und reicht das Ergebnis als `?s=`-Parameter
+   * herein — sonst wuerde ein bewusstes Zuruecktippen auf Schritt 1 von dieser Pruefung
+   * sofort wieder ueberschrieben (das war der Fehler im vorigen Anlauf, siehe den jetzt
+   * GELOESCHTEN Korrektur-Effekt weiter unten).
+   */
+  /** Zaehmt die blosse Zahl aus `TunnelSeite` auf einen der vier echten Schritte — ausserhalb
+   *  dieser vier passiert im Trichter ohnehin nichts, ein unerwarteter Wert faellt auf 1. */
+  const alsSchritt = (n: number): 1 | 2 | 3 | 4 => (n === 1 || n === 2 || n === 3 || n === 4) ? n : 1;
+  const [schritt, setSchritt] = useState<1 | 2 | 3 | 4>(() => {
+    if (tunnelSeite && urlSchritt) return alsSchritt(urlSchritt);
+    return (variant === "versprechen" && versprechenSchonBekannt()) ? 3 : 1;
+  });
 
   /**
    * SCHRITT 4 GEHOERT NICHT MEHR IN DEN DIALOG (Owner 31.07.2026: „hier kommt nichts" — ein
@@ -1308,6 +1454,41 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   useEffect(() => {
     if (schritt >= 4) setStufenOffen(false);
   }, [schritt]);
+
+  /**
+   * DER KORREKTUR-EFFEKT VON VORHIN IST WIEDER RAUS (Owner 12.08.2026: „der user soll auch
+   * vor und zurück in den steps").
+   *
+   * Er drueckte GENAU DAS weg, was jetzt ausdruecklich gewollt ist: Ging ein bekannter
+   * Besucher bewusst von Schritt 3 zurueck auf Schritt 1 (z. B. um seine Adresse zu aendern),
+   * schnappte dieser Effekt sofort wieder auf Schritt 3 — ein Zurueck, das nicht zurueckging.
+   * Das „Bekannte ueberspringen Schritt 1"-Verhalten gehoert deshalb NUR an den EINSTIEG (den
+   * `useState`-Anfangswert oben, bzw. auf der Tunnel-Seite an `urlSchritt`) — ein spaeteres
+   * `schritt`-Aendern ist immer eine bewusste Handlung (Knopf, Chevron, URL) und wird nicht
+   * mehr automatisch ueberschrieben.
+   */
+
+  /**
+   * DIE URL UND DER SCHRITT — ZWEI RICHTUNGEN, EINE QUELLE JE RICHTUNG (nur `tunnelSeite`).
+   *
+   * VORWAERTS: Jede Aenderung an `schritt` meldet sich nach aussen; die Tunnel-Seite schreibt
+   * sie in die Adresszeile (`router.push` beim Vorwaertsgehen legt einen Verlaufseintrag an,
+   * damit die Handy-Zurück-Geste ihn wieder abraeumt — Owner: „der user soll auch vor und
+   * zurück in den steps").
+   *
+   * RUECKWAERTS: Aendert sich `urlSchritt` von aussen (Browser-Zurück, ein geteilter Link mit
+   * `?s=1`), zieht dieser Effekt den internen Zustand nach. Ohne ihn wuerde die Adresszeile
+   * zwar zurueckspringen, aber der Bildschirm bliebe auf dem alten Schritt stehen — zwei
+   * Wahrheiten gleichzeitig.
+   */
+  useEffect(() => {
+    if (onSchrittChange) onSchrittChange(schritt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schritt]);
+  useEffect(() => {
+    if (tunnelSeite && urlSchritt && alsSchritt(urlSchritt) !== schritt) setSchritt(alsSchritt(urlSchritt));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSchritt]);
 
   // `videoShow`/`videoReif` (die gespielte Render-Show vor der Kasse) sind am 31.07.2026
   // ersatzlos entfallen — Owner: „ohne diesen Fake". Begruendung bei `unlock` weiter unten.
@@ -2001,7 +2182,28 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * der Galerie. Drei Aufrufer, die dasselbe tun muessen, sind sonst drei Gelegenheiten, es
    * einmal zu vergessen.
    */
+  /**
+   * DAS VERSPRECHEN OEFFNET KEINEN DIALOG MEHR — ES FUEHRT AUF SEINE EIGENE SEITE (Owner
+   * 12.08.2026: „die muss ich in den ads einbauen"). Auf der Landingpage (`/themes/
+   * versprechen`) ist dieser Kartenklick der einzige Weg in den Trichter; er springt jetzt
+   * auf `/themes/versprechen/start` statt den Dialog hier zu oeffnen — `light`/`code`
+   * wandern mit, damit eine Anzeige, die auf die helle Fassung oder einen Aktionscode
+   * verweist, das auch auf der Tunnel-Seite noch tut.
+   *
+   * NUR WENN NICHT `tunnelSeite`: Auf der Tunnel-Seite SELBST ist `KissFunnel` schon die
+   * Zielseite — ein Klick dort muss den Trichter oeffnen, nicht auf sich selbst verlinken.
+   */
   const schritteOeffnen = () => {
+    if (TUNNEL_VARIANTEN.includes(variant) && !tunnelSeite) {
+      try {
+        const jetzt = new URLSearchParams(window.location.search);
+        const ziel = new URLSearchParams();
+        if (jetzt.get("light") === "1") ziel.set("light", "1");
+        if (code) ziel.set("code", code);
+        window.location.href = `/themes/${variant}/start${ziel.toString() ? `?${ziel}` : ""}`;
+      } catch { /* die Seite bleibt erreichbar, auch ohne die zwei Zusatzparameter */ }
+      return;
+    }
     setSchritt(1);
     setStufenOffen(true);
     track("photo");
@@ -2200,9 +2402,24 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Der Aufruf daneben steht in `T.jetztStarten` und ist beim Versprechen überschrieben
    * (`VERSPRECHEN` in lib/kiss-i18n) — sieben Sprachen, eine Stelle.
    */
-  const kartenAufruf = variant === "versprechen"
-    ? `${eur(videoPreisCents, lang)} · ${basisAufruf}`
-    : `${themenPreisZeile(preisSchluessel, lang)} · ${basisAufruf}`;
+  /**
+   * NUR NOCH DER AUFRUF, OHNE PREIS (Owner 12.08.2026, mit Bild des Knopfs „from €9.99 ·
+   * Start now": „hier auch bei alle nur Start now ohne Preis") — der Landing-Knopf ist die
+   * Tür in den Tunnel; den Preis nennt der Generieren-Knopf IM Tunnel („Generate now —
+   * Preis"). Überschreibt die Preis-im-Knopf-Fassung vom 10./11.08.
+   */
+  const kartenAufruf = basisAufruf;
+  /**
+   * DER TITEL DER VORLAGEN-KARTE — DIESELBE WEICHE WIE DIE GROSSE KARTE (12.08.2026, am
+   * Geburtstags-Tunnel gefunden: das Vollbild der Vorlage trug „Mein Geschenk für dich:
+   * einen Kuss", weil die Aufrufer naiv `T.karteTitel("")` reichten und der Geburtstag
+   * diesen Schlüssel nie überschreibt — sein Gruss kommt aus `geburtstagTitel`).
+   */
+  const vorlagenTitel = variant === "versprechen"
+    ? T.filmTitel
+    : variant === "birthday"
+    ? geburtstagTitel("")
+    : T.karteTitel("");
   // Sobald das Foto da ist, hat der rote Hinweis seinen Zweck erfüllt.
   useEffect(() => { if (selPhoto) setWeiterHinweis(""); }, [selPhoto]);
   // Dasselbe für den Generate-Hinweis: sobald alle drei Bedingungen wieder stimmen, verschwindet er von selbst.
@@ -2522,7 +2739,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Die Mail folgt, wenn es etwas zu schicken gibt: das fertige Bild — oder, wenn die
    * Erzeugung scheitert, ein ehrliches „wir melden uns".
    */
-  const adresseVormerken = async (e: string): Promise<boolean> => {
+  /* MIT NAMEN (Owner 12.08.2026: „greifen wir die emails und namen ab sofort in einer
+     liste ja? Selbst wenn er nicht weiter macht?" — die Liste nahm den Namen laengst an,
+     aber niemand schickte ihn; sie zeigte nur den E-Mail-Vorspann). */
+  const adresseVormerken = async (e: string, name = ""): Promise<boolean> => {
     setMailBusy(true); setStatus("");
     try {
       let device = "";
@@ -2531,7 +2751,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         method: "POST", headers: { "Content-Type": "application/json" },
         // `land` und `lang` reisen mit — ohne sie steht der naechste Rundbrief wieder vor
         // 49 Empfaengern, deren Sprache niemand kennt (gemessen 31.07.2026).
-        body: JSON.stringify({ email: e, device, genId, theme: variant, vorab: true, land, lang, consentAt: new Date().toISOString() }),
+        body: JSON.stringify({ email: e, ...(name.trim() ? { name: name.trim() } : {}), device, genId, theme: variant, vorab: true, land, lang, consentAt: new Date().toISOString() }),
       });
       const d = await r.json().catch(() => ({}));
       // Die Absage gehoert ANS FELD, nicht in die Status-Zeile weiter unten — siehe mailFehler.
@@ -2849,13 +3069,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */
             : variant === "poledance" ? promptFuerLauf
-            /* DIE UEBERRASCHUNG: eine der vier Kuss-Szenen, gezogen aus der Auftragsnummer
-               (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als Ueberraschung").
-               MIT RAHMEN, nicht roh (Owner 03.08.2026: „falsche Personen im video"): Der nackte
-               Szenen-Satz enthaelt kein @-Token, also band Pixverse die zwei Fotos an Namen, die
-               im Auftrag nie vorkamen — und erfand ein fremdes Paar. */
+            /* DIE GEWAEHLTE SZENE — ODER DIE UEBERRASCHUNG (Owner 12.08.2026, Schritt-2-Auftrag:
+               die Kuss-Szene ist jetzt eine BEWUSSTE Wahl in Schritt 2, `kissSzeneId`). Hat er
+               getippt, gewinnt `kussSzene(kissSzeneId)`; hat er nichts getippt (oder kam ueber
+               den alten Dialog ohne Schritt 2), bleibt es bei `zufallsSzene()`, gezogen aus der
+               Auftragsnummer (Owner 03.08.2026: „die Leute bekommen ein Zufalls-Video als
+               Ueberraschung"). MIT RAHMEN, nicht roh (Owner 03.08.2026: „falsche Personen im
+               video"): Der nackte Szenen-Satz enthaelt kein @-Token, also band Pixverse die zwei
+               Fotos an Namen, die im Auftrag nie vorkamen — und erfand ein fremdes Paar. */
             : (variant === "kiss"
-                ? kussSzeneVideoPrompt(zufallsSzene(genId || mail))
+                ? kussSzeneVideoPrompt(kussSzene(kissSzeneId) ?? zufallsSzene(genId || mail))
                 : holidayPrompt(szene, { kuss: false })) }),
       }).then(r => r.json());
       if (!start?.videoId) {
@@ -3543,6 +3766,204 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         </div>
   ) : null;
 
+  /**
+   * DAS AUFNAHME-VOLLBILD — EIN BAUSTEIN FUER BEIDE AUFNAHME-THEMEN (Geburtstag UND
+   * Versprechen, `selbstVideo`). Bis 12.08.2026 stand diese JSX fest in Schritt 1
+   * eingebaut — als der Owner den Tunnel auf zwei Schritte umbaute (KONZEPT-TUNNEL.md),
+   * musste sie auch aus einer NEUEN Stelle (der Kachel in Schritt 3 des Versprechens)
+   * ausloesbar sein. `nimmtAuf` ist ohnehin gemeinsamer Zustand — hier steht die Anzeige
+   * dazu nur EINMAL, damit React nicht zwei Portale gleichzeitig an `document.body` haengt.
+   * Referenziert wird sie an der einen Stelle im Aufnahme-Kasten weiter unten
+   * (`{aufnahmeUeberlagerung}`), unabhaengig davon, welches Thema sie ausgeloest hat.
+   */
+  /**
+   * OHNE NUMMER IM TUNNEL (Owner 12.08.2026: „wenn eine änderung [kommt] dann ist es bei
+   * allen gleich"): Die Schritt-Titel tragen hartkodierte Nummern aus der Dialog-Welt
+   * („3 · The kiss" ist dort Schritt 3, im Tunnel aber Position 2). Statt je Produkt
+   * umzunummerieren, zeigt der Tunnel die Titel OHNE Nummer — die Fortschritts-Punkte
+   * tragen die Position, und zwar bei allen gleich. Die Dialog-Trichter behalten ihre
+   * Nummern unverändert.
+   */
+  const schrittTitel = (t: string) => (tunnelSeite ? t.replace(/^\d+\s*·\s*/, "") : t);
+
+  const aufnahmeUeberlagerung = nimmtAuf && typeof document !== "undefined" && createPortal((
+    /**
+     * VOLLBILD (Owner 07.08.2026 abends: „Die Video aufname muss sich
+     * fullsize öffnen"). Das 240-px-Fenster in der Karte war zum
+     * Positionieren immer noch zu klein. Jetzt liegt die Aufnahme über dem
+     * ganzen Bildschirm — und der SATZ steht mit im Overlay, oben: Wer
+     * abliest, darf dafür nicht aus dem Vollbild müssen. Umriss und
+     * 3-2-1-Vorlauf wie gehabt; der Stopp-Knopf wandert mit nach unten
+     * (der in der Karte darunter liegt jetzt verdeckt und entfällt).
+     * z-[98]: über den Dialogen (z-[96]), unter nichts.
+     */
+    /**
+     * „ICH WILL DEN BUTTON START NOW IM SCREEN SEHEN" (Owner 10.08.2026).
+     *
+     * Er stand da — nur unterhalb dessen, was das Handy zeigt. `inset-0` misst
+     * gegen den LAYOUT-Bildschirm; die Adress- und Werkzeugleiste des Browsers
+     * liegt darüber und verdeckt die unteren 60 bis 100 Pixel. Genau dort sass
+     * der goldene Knopf. Auf dem Rechner sieht man den Fehler nie, auf jedem
+     * iPhone sofort.
+     *
+     * `100dvh` ist das Mass, das die Leisten MITZÄHLT und beim Ein- und
+     * Ausfahren mitwandert (`100vh` tut das nicht — das ist der alte Fehler,
+     * den jede Handy-Seite einmal macht). Dazu die Sicherheitszone unten für
+     * die Wischleiste des iPhones. Beides zusammen: Der Knopf steht immer im
+     * Bild, auf jedem Gerät.
+     */
+    <div className="fixed inset-0 z-[200] grid place-items-center bg-black" style={{ height: "100dvh" }}>
+      {/**
+        * DIE BÜHNE IST HOCHKANT — AUCH AUF DEM RECHNER (Owner 09.08.2026,
+        * mit Bild eines Breitbild-Schirms: ein einzelnes Auge füllte das
+        * halbe Fenster).
+        *
+        * Vorher lag das Kamerabild als `object-cover` über die volle
+        * Breite. Auf einem Handy ist das richtig; auf 2000 Pixel Breite
+        * skaliert `cover` das Hochkant-Bild der Kamera so weit, bis es die
+        * Breite füllt — und schneidet dabei alles ausser einem Stück
+        * Gesicht weg. Jetzt steht die Aufnahme in einer Spalte im
+        * Handy-Mass; der Rest der Fläche ist ohnehin mattes Weiss.
+        */}
+      {/**
+        * UND AUF DEM RECHNER IST DIE SPALTE EIN FENSTER, KEIN STREIFEN
+        * (Owner 11.08.2026, mit Bild eines Chrome-Fensters: „kannst du eine
+        * desktop version machen?").
+        *
+        * Die Spalte war 430 px breit und IMMER so hoch wie der Bildschirm.
+        * Auf dem Handy ist das genau richtig; auf einem 1300 px hohen
+        * Browserfenster ergibt es einen 430 × 1300 langen Schacht — und weil
+        * das Kamerabild ihn per `object-cover` füllen muss, wird ein
+        * Hochkant-Bild so weit hineingezoomt, bis nur noch ein halbes Gesicht
+        * übrig ist. Genau das war auf seinem Bild zu sehen. Der Knopfblock
+        * klebte dazu am unteren Rand des Schachts, also am unteren Rand des
+        * Fensters, halb hinter der Wischleiste.
+        *
+        * Ab `sm` steht deshalb ein Handy-Fenster mitten auf der Fläche: 9:16,
+        * höchstens 820 px oder 92 % der Fensterhöhe, mit Ecken. Die Breite
+        * ergibt sich aus der Höhe (`w-auto`), damit das Verhältnis stimmt.
+        * Unterhalb von `sm` bleibt alles, wie es ist — die Handy-Ansicht ist
+        * abgenommen und wird hier nicht angefasst.
+        */}
+      <div className="relative mx-auto h-full w-full max-w-[430px] overflow-hidden sm:h-[min(92dvh,820px)] sm:w-auto sm:max-w-none sm:aspect-[9/16] sm:rounded-3xl">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video ref={vorschauRef} muted playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ transform: "scaleX(-1)" }} />
+      {/**
+        * DAS LOCH IM MATT-WEISSEN (Owner 08.08.2026: „Es wäre auch gut wenn
+        * mein kopf nicht im kreis steht … dann matte weisse farbe, damit
+        * ich mein kopf wirklich im loch positioniere").
+        *
+        * Ein gestrichelter Umriss ist eine Bitte; eine Maske ist eine
+        * Ansage — ausserhalb des Ovals liegt mattes Weiss, drinnen ist das
+        * Bild klar. Gemacht mit EINEM Schlagschatten von 9999 px: Der
+        * faerbt alles ausserhalb der Ellipse, ohne zweites Element und ohne
+        * `mask-image` (das ältere iOS-Safaris nicht sauber koennen).
+        */}
+      <div aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-white/80"
+        /* HALB DURCHSICHTIG STATT DECKEND (Owner 09.08.2026: „die weisse
+           Fläche nicht ganz weiss. 50 % transparent"). Bei 0.92 war ausserhalb
+           des Ovals nichts mehr zu sehen — man stellte sich blind hinein und
+           wusste nicht, wo der eigene Körper aufhört. Bei 0.5 bleibt das Loch
+           deutlich der scharfe Teil, aber man sieht sich noch. */
+        style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.5)" }} />
+      {/**
+        * DIE VORLAGE ZUM ABLESEN (Owner 11.08.2026: „Diesen Text müssen als
+        * Vorlage geben damit er das nachrspricht").
+        *
+        * OBEN, NICHT UNTEN: Sie liegt dicht an der Kameralinse — wer von hier
+        * abliest, schaut fast in die Kamera. Am unteren Rand (wo Knopf und
+        * Ansage stehen) würde er die ganze Aufnahme nach unten blicken.
+        *
+        * DURCHSICHTIG UND OHNE GRIFF (`pointer-events-none`): Sie liegt über
+        * dem matten Weiss, das ohnehin ausserhalb des Ovals liegt, und darf
+        * dem Start-Knopf und dem Kreuz keinen Tipp wegnehmen. Rechts bleibt
+        * Platz für das Kreuz (`pr-14`).
+        *
+        * ZEILENWEISE, wie sie in lib/versprechen steht — jede Zeile ein
+        * Atemzug. Wird es auf einem kleinen Schirm zu lang, scrollt der Kasten
+        * in sich, statt über das Gesicht zu wachsen.
+        */}
+      {skript && (
+        /* MIT EIGENER FLÄCHE: Die Vorlage ist höher als der matte Rand über
+           dem Oval und läge mit den letzten Zeilen sonst auf dem klaren Bild
+           — dunkle Schrift auf einem Gesicht ist nicht lesbar. Das helle
+           Feld darunter macht sie in jeder Lage lesbar und sieht aus wie der
+           matte Rand, den es fortsetzt. */
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] max-h-[26%] overflow-y-auto rounded-b-2xl bg-white/85 px-4 pr-14 pb-2.5 pt-2.5">
+          <p className="text-[10px] font-black uppercase tracking-wide" style={{ color: "#6b6152" }}>
+            {SW.lies}
+          </p>
+          <div className="mt-1 space-y-[2px]">
+            {skript.map((zeile, i) => (
+              <p key={i} className="text-[12.5px] font-black leading-[1.25]" style={{ color: "#1a160f" }}>
+                {zeile}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* DER AUSGANG (Bibliotheks-Baustein `Scheibe`, Hausregel: runder
+          Symbol-Knopf kommt aus components/CI.tsx). Oben rechts, wo jeder
+          ihn sucht — und weit weg vom Start-Knopf, damit niemand danebentippt. */}
+      <div className="absolute right-3 top-3 z-10">
+        <Scheibe label={SW.abbrechen} onClick={aufnahmeStopp}>
+          <X className="h-5 w-5" />
+        </Scheibe>
+      </div>
+
+      {/**
+        * KNOPF UND ANSAGE STEHEN ZUSAMMEN UNTEN (Owner 09.08.2026: „Button
+        * direkt über Nimm dich auf").
+        *
+        * Vorher lag der Knopf im Oval (56 %) und die Ansage am unteren Rand
+        * — dazwischen klaffte eine leere Fläche, und die beiden Dinge, die
+        * zusammengehören, standen am weitesten auseinander. Jetzt bilden sie
+        * einen Block: erst der Knopf, direkt darunter, was zu tun ist.
+        */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.75rem)" }}>
+        {/**
+          * ER DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit
+          * button starten. Ich muss erst mal meinen Kopf platieren und mich
+          * vorbereiten dann starte ich selbst"). Vorher lief ein 3-2-1 los,
+          * sobald die Kamera an war — eine Vorgabe, die genau die
+          * Vorbereitung wegnahm, fuer die sie gedacht war.
+          */}
+        {!laeuft ? (
+          <>
+            <button type="button" onClick={aufnahmeLos}
+              className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black active:scale-95 transition">
+              <Mic className="h-4 w-4" /> {SW.los}
+            </button>
+            {/* ABBRECHEN IST DAS KREUZ OBEN RECHTS (Owner 09.08.2026:
+                „Abbrechen als Close-Button oben rechts, rund X"). Ein
+                zweiter Knopf unter dem goldenen zog das Auge vom Start weg —
+                und ein Ausgang gehört dorthin, wo ihn jeder sucht. */}
+          </>
+        ) : (
+          <button type="button" onClick={aufnahmeStopp}
+            className="flex h-12 items-center justify-center gap-2 rounded-full border-2 bg-white px-6 text-[15px] font-black active:scale-95 transition"
+            style={{ borderColor: ABSAGE_ROT, color: "#1a160f" }}>
+            <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
+            {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
+          </button>
+        )}
+        {/* In Tinte, ohne Kasten — ein Hinweis am Rand, kein zweiter Block. */}
+        <div className="text-center">
+          <p className="text-[13px] font-black" style={{ color: "#1a160f" }}>{SW.aufTitel}</p>
+          <p className="mx-auto mt-1 max-w-[330px] text-[11.5px] font-bold leading-snug" style={{ color: "#3a352d" }}>
+            {SW.aufHinweis}
+          </p>
+        </div>
+        </div>
+
+      </div>
+    </div>
+  ), document.body);
+
   return (
     /**
      * `mt-4` STATT `mt-8` (Owner 10.08.2026: „ich will den CTA im Viewport shen").
@@ -3648,7 +4069,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             : T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
-      <div ref={karteRef}>
+      {/* KEINE KARTE IM TUNNEL, SOLANGE SIE LEER IST (Owner 12.08.2026, zur Tunnel-Seite:
+          „nur dass du die kard noch in step eins eingefügt hast. Nein das brauchen wir
+          nicht" · kurz darauf: „auch in step2 raus"). Die Tunnel-Seite zeigt NUR die
+          Schritte — das Formular, dann die Kacheln. Die Karte erscheint erst, wenn ein
+          ERGEBNIS in ihr steht (Teaser/Bild/Video) — sonst wäre das bezahlte Werk nirgends
+          zu sehen. `hidden` statt Ausbau, damit `karteRef` für die Scroll-Anker eingehängt
+          bleibt. */}
+      <div ref={karteRef} className={tunnelSeite && !bild && !videoUrl && !teaser ? "hidden" : ""}>
       <EinladungKarte
         sprache={lang} sie="" er="" demo
         /**
@@ -3995,10 +4423,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           klickbar — wer im Trichter seine Adresse bestaetigt, sieht sofort oben seinen
           Stand. Die eigenen Fenster des Trichters (Tor 96, Waehler 96, Teilen 95) liegen
           weiterhin darueber. */}
-      {stufenOffen && (
-      <div className="fixed inset-0 z-40 overflow-y-auto pt-36" style={{ background: "rgba(0,0,0,0.72)" }}
-        onClick={() => setStufenOffen(false)}>
-        <div className="lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4" onClick={e => e.stopPropagation()}>
+      {/**
+        * ALS SEITENINHALT STATT ALS DIALOG (Owner 12.08.2026: „die muss ich in den ads
+        * einbauen"). `tunnelSeite` traegt genau dieselben Schritte hier unten weiter — kein
+        * Zeichen der eigentlichen Schritte aendert sich —, nur die HUELLE ist eine andere:
+        * kein abgedunkelter Vollbild-Hintergrund, kein Schliessen durch Tippen daneben (die
+        * Seite verlassen ist das Schliessen), und immer offen statt erst nach einem Klick.
+        */}
+      {(stufenOffen || tunnelSeite) && (
+      <div className={tunnelSeite ? "" : "fixed inset-0 z-40 overflow-y-auto pt-36"}
+        style={tunnelSeite ? undefined : { background: "rgba(0,0,0,0.72)" }}
+        onClick={tunnelSeite ? undefined : () => setStufenOffen(false)}>
+        <div className={tunnelSeite ? "" : "lb-bg mx-auto min-h-full w-full max-w-[440px] px-4 pb-10 pt-4"}
+          onClick={tunnelSeite ? undefined : (e => e.stopPropagation())}>
           {/* HIER STAND EIN ZWEITER ZURÜCK-PFEIL (Owner 06.08.2026: „Zwei mal back button")
               — direkt unter dem Pfeil der Kopfzeile sah er aus wie ein Versehen. Der Dialog
               schliesst weiter durch Tippen NEBEN ihn (auf den abgedunkelten Rand), und der
@@ -4007,12 +4444,200 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       <div className="mb-3 flex items-center justify-center gap-1.5">
         {/* Beim Tanz sind es ZWEI Punkte: ihr Foto, dann der Tanz. Ein dritter, grauer Punkt
             fuer einen Schritt, den es nicht gibt, sieht aus wie ein haengender Trichter. */}
-        {(V.nurSie ? [1, 3] : V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
+        {(tunnelSeite ? tunnelPunkte : V.nurSie ? [1, 3] : V.paarUpload ? [1, 3, 4] : [1, 2, 3, 4]).map(n => (
           <span key={n} className={`h-1.5 rounded-full transition-all ${n === schritt ? "w-6 bg-[#f6cf51]" : n < schritt ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
         ))}
       </div>
 
-      {schritt === 1 && (<>
+      {/* DER ZUSCHNITT — AN EINER STELLE, UNABHAENGIG VOM SCHRITT (live geprueft, 12.08.2026):
+          Stand er nur im alten Schritt 1 (`!tunnelSeite`), blieb er in der Tunnel-Seite tot —
+          `setCropDatei`/`setCropZiel` liefen ins Leere, kein Dialog erschien, kein Foto kam
+          je an. Zuschnitt braucht keinen Schritt zu kennen, nur die beiden Zustände hier. */}
+      {cropDatei && cropZiel && (
+        <ImageCropper
+          file={cropDatei}
+          aspect={3 / 4}
+          title={paarQuelle
+            ? (cropZiel === "sie" ? T.paarSchritt1 : T.paarSchritt2)
+            : (cropZiel === "sie" ? T.upTitle : T.you)}
+          onCancel={() => { setCropDatei(null); setCropZiel(null); setPaarQuelle(null); }}
+          onSave={async (zugeschnitten) => {
+            const ziel = cropZiel;
+            const quelle = paarQuelle;
+            setCropDatei(null); setCropZiel(null);
+            if (ziel === "sie") await onModelFile(zugeschnitten);
+            else await onFile(zugeschnitten);
+            // Beim Paarfoto direkt weiter zum zweiten Gesicht — dieselbe Datei, anderes Ziel.
+            if (quelle && ziel === "sie") { setCropZiel("er"); setCropDatei(quelle); }
+            else setPaarQuelle(null);
+          }}
+        />
+      )}
+
+      {/**
+       * SCHRITT 1 IST DER EINE TUNNEL-START, FUER JEDES TUNNEL-PRODUKT GLEICH
+       * (KONZEPT-TUNNEL.md, Owner 12.08.2026: „also Stepp 1. Name, Email" · „Genauso müssen
+       * alle tunels aussehen. nicht komplizierter."). Beim Versprechen wanderten Ziele, Look
+       * und Aufnahme aus diesem Schritt in die Kachel-Reihe; bei Kuss/Geburtstag stand hier
+       * ohnehin schon nur die Wahl von ihr/dem Look + sein Foto — der Bibliotheks-Baustein
+       * `TunnelStart` fragt hier NUR Name und E-Mail, unabhaengig vom Produkt.
+       *
+       * NUR AUF DER TUNNEL-SEITE (`tunnelSeite`): Die alten Dialog-Einstiege der drei
+       * Produkte (falls sie je wieder erreichbar werden) behalten ihren gewachsenen
+       * Schritt 1 — dieser Baustein ersetzt ihn nur dort, wo `schritteOeffnen` auch
+       * tatsaechlich auf die neue Seite verweist.
+       */}
+      {schritt === 1 && tunnelSeite && (
+        <TunnelStart
+          titel={T.tunnelStartTitel ?? T.namenFrage}
+          nameLabel={T.tunnelName ?? T.namenFrage} namePlatzhalter={T.namenPlatzhalter}
+          emailLabel={T.tunnelEmail ?? T.mailQuestion} emailPlatzhalter="you@email.com"
+          weiterLabel={T.tunnelWeiter ?? T.next}
+          lang={lang} anfangsName={empfaenger} anfangsEmail={mail} busy={mailBusy} fehlerAussen={mailFehler}
+          /**
+           * GOOGLE ALS ABKUERZUNG (Owner 12.08.2026: „auch googgle anmeldung kannst du
+           * einbauen"). Derselbe Weg wie in `KontoChip.tsx` (`signInWithOAuth`,
+           * `lb_oauth_return`), kein eigener OAuth-Aufruf: Google verlaesst die Seite
+           * komplett, `redirect_to` bleibt IMMER `/auth/confirm` (die einzige Adresse, die
+           * im Supabase-Dashboard freigegeben sein muss — dieselbe, die jede Anmeldung im
+           * Haus schon benutzt). Wohin es danach geht, steht in `lb_oauth_return`, nicht im
+           * `redirect_to`: `/auth/confirm` liest es aus `sessionStorage` (nicht aus der
+           * Supabase-Weiterleitung, die eine Allowlist braucht) und springt dorthin.
+           *
+           * DAS ZIEL IST HARTKODIERT, NICHT NEU GEPRUEFT: Nach einer erfolgreichen Google-
+           * Anmeldung IST die Adresse bekannt — dieselbe Logik, die `versprechenSchonBekannt`
+           * sonst erst nach dem Laden ausrechnet, muss hier nicht abgewartet werden. Er
+           * ueberspringt aber NUR Schritt 1 — hat sein Produkt einen Auswahl-Schritt
+           * (`hatAuswahl`, bisher nur Geburtstag), landet er dort, nicht direkt auf den
+           * Kacheln: Identitaet ersetzt keine Wahl.
+           */
+          google={{
+            label: T.tunnelGoogle ?? "Continue with Google",
+            oderLabel: T.tunnelOder ?? "or",
+            onClick: () => {
+              try {
+                const jetzt = new URLSearchParams(window.location.search);
+                const ziel = new URLSearchParams();
+                ziel.set("s", String(nachTunnelStart));
+                if (jetzt.get("light") === "1") ziel.set("light", "1");
+                if (code) ziel.set("code", code);
+                sessionStorage.setItem("lb_oauth_return", `/themes/${variant}/start?${ziel.toString()}`);
+              } catch { /* privater Modus — dann landet er auf dem Konto-Dashboard, kein Absturz */ }
+              try { signInWithOAuth("google", `${window.location.origin}/auth/confirm`); }
+              catch { setMailFehler(T.statusNotWork); }
+            },
+          }}
+          onWeiter={async (name, email) => {
+            setEmpfaenger(name);
+            try { localStorage.setItem(nameKey(variant), name); } catch { /**/ }
+            /**
+             * `mail` MUSS HIER GESETZT WERDEN — `TunnelStart` fuehrt sein EIGENES Feld, das
+             * dem Trichter-Zustand `mail` bis zu diesem Punkt nie begegnet ist (LIVE GEPRUEFT:
+             * ohne diese Zeile blieb `mail` leer, obwohl `adresseVormerken` erfolgreich lief —
+             * die Adresse fehlte danach im Auftrag UND beim erneuten Zurueckgehen im Feld, das
+             * `anfangsEmail={mail}` vorbelegen soll). Der Vergleich zwei Zeilen weiter unten
+             * (geaenderte Adresse) liest trotzdem noch den ALTEN Stand aus dieser Zeile,
+             * React setzt state nicht synchron — genau das ist hier richtig: er soll ja ALT
+             * gegen NEU vergleichen, nicht NEU gegen NEU.
+             */
+            setMail(email);
+            // ZUGESTIMMT WIRD DURCH DIE HANDLUNG (Owner 30.07.2026) — derselbe Klick, der
+            // frueher unter dem alten „Weiter"-Knopf in Schritt 1 stand.
+            zustimmen();
+            /**
+             * DER LEAD IST GESPEICHERT, SOBALD „WEITER" GEDRUECKT IST (KONZEPT-TUNNEL.md,
+             * „das ist der ganze Zweck des Schritts") — ueber die BESTEHENDE Lead-Logik
+             * (`adresseVormerken` ruft `/api/kiss-claim`), kein neuer Endpunkt.
+             *
+             * AUCH BEIM ZURUECKGEHEN NEU GEPRUEFT (Owner 12.08.2026: „vor und zurück in den
+             * steps" — „falls sie ihre Adresse ändern wollen"): Nicht nur `!adresseDa`, auch
+             * eine GEAENDERTE Adresse loest die Anmeldung erneut aus. Ohne den zweiten
+             * Vergleich haette ein bekannter Besucher, der hier zurueckkommt und eine andere
+             * E-Mail eintippt, weiterhin auf der alten gestanden — die neue waere nie
+             * angekommen.
+             */
+            const eGeaendert = mail.trim().toLowerCase() !== email.trim().toLowerCase();
+            {/* Der NAME reist mit in die Liste (Owner 12.08.2026: „greifen wir die emails
+                und namen ab sofort in einer liste ja?") — `name` ist der frisch getippte
+                Wert aus TunnelStart. */}
+            if (!adresseDa || eGeaendert) { const ok = await adresseVormerken(email, name); if (!ok) return; }
+            setSchritt(alsSchritt(nachTunnelStart));
+            setStufenOffen(true);
+          }} />
+      )}
+
+      {/**
+        * SCHRITT 2 — DIE AUSWAHL (`hatAuswahl`, seit 12.08.2026 fuer ALLE Tunnel mit einer
+        * Vorlage: Geburtstag, Tanz, Kuss, Versprechen). KONZEPT-TUNNEL.md: „in Geburtstag
+        * hätten wir die template auswahl in stept zwei" — dieselbe Vorlagen-Reihe, die
+        * bisher in Schritt 1 stand (`LOOKS`/`BildWahl`), nur jetzt ihr eigener Schritt mit
+        * eigenem Weiter-Knopf.
+        *
+        * DER KUSS UND DAS VERSPRECHEN SCHLIESSEN AUF (Owner 12.08.2026: „warum ist der Kuss
+        * funel anders? Warum ist das nicht aus 3 schritten?" · „und um das ganze zu
+        * vereinheitlichen mach auch Verprehcne genauso. Aus 3 schritten") — beide hatten bis
+        * heute keinen Auswahl-Schritt (Kuss: Szene war laengst zufaellig; Versprechen: nur
+        * ein Look). Jetzt zeigen ALLE SIEBEN Tunnel dieselben drei Schritte ohne Ausnahme.
+        */}
+      {schritt === 2 && hatAuswahl && (
+        <div className="mt-1">
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{variant === "kiss" ? T.szeneTitel : SW.look}</p>
+          <div className="mt-2">
+            {/**
+              * DIE SET-WAHL DES TANZES — DASSELBE `BildWahl` WIE BEIM GEBURTSTAG (Owner
+              * 12.08.2026: „pool dancing kannst du hier einbauen und da machst du auch dort
+              * den tunel einbauen"). `POLEDANCE_SETS_MIT_VIDEO`/`GEBURTSTAG_LOOKS_MIT_VIDEO`
+              * tragen jetzt das optionale `video` je Kachel — der Zustand bleibt wie zuvor:
+              * `neuerLook` speichert (wie im Rest der Datei) das BILD, nicht die Kennung,
+              * `garmentBild` ist der Ruckfall auf das erste Set.
+              */}
+            {variant === "poledance" ? (
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+                wert={POLEDANCE_SETS.find(s => s.bild === (neuerLook || V.garmentBild))?.id ?? POLEDANCE_SETS[0].id}
+                waehle={id => setNeuerLook(POLEDANCE_SETS.find(s => s.id === id)?.bild || "")}
+                bilder={POLEDANCE_SETS_MIT_VIDEO} />
+            ) : variant === "kiss" ? (
+              /**
+                * DER KUSS VERLIERT SEINE SONDERROLLE (Owner 12.08.2026: „warum ist der Kuss
+                * funel anders? Warum ist das nicht aus 3 schritten? Template auswahl dann
+                * bilder hochladen"). Dieselbe `BildWahl`, dieselben vier Szenen-Standbilder
+                * (`KUSS_SZENEN`, `public/szenen/…jpg`) — nur MIT Bild, kein Video, weil keine
+                * der vier Szenen ein eigenes Beispielvideo hat (Owner, wörtlich vom selben
+                * Tag: „du sollst nur die videos zeigen die wir gerade haben"). Die Wahl
+                * schreibt `kissSzeneId`; ohne Tipp bleibt es beim ZUFALL wie bisher — siehe
+                * `kussSzeneVideoPrompt`-Aufruf beim Erzeugen weiter unten.
+                */
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+                wert={kissSzeneId} waehle={setKissSzeneId}
+                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.name, bild: s.kachel }))} />
+            ) : (
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
+                bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS} />
+            )}
+          </div>
+          {/**
+            * DIE SEPARATE VORSCHAU-KNOPF-KACHEL IST RAUS (Owner 12.08.2026: „Man muss die
+            * Videos sehen im ganzen Tunel. Sonst sind es bilder" → „ok, bauen"). Vorher stand
+            * hier ein zusaetzlicher schmaler „Vorlage ansehen"-Knopf, WEIL `BildWahl` noch
+            * keine eigene Video-Andockstelle hatte. Jetzt spielt das Video direkt IN der
+            * gewaehlten Kachel oben — ein zweiter Knopf fuer dasselbe Video waere doppelt.
+            */}
+          <div className="mt-4 flex items-center gap-2">
+            <button type="button" onClick={() => setSchritt(1)} aria-label={T.back}
+              className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button type="button" onClick={() => setSchritt(3)}
+              className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">
+              {/* EIN Weiter-Wort für alle Tunnel-Schritte (Owner 12.08.2026: „keine
+                  Ausnahme") — `T.next` trug Alt-Zusätze wie „— gratis". */}
+              {T.tunnelWeiter ?? T.next}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {schritt === 1 && !tunnelSeite && (<>
       {/* Ohne Katalog heisst der Schritt nicht mehr „Waehle sie" — es gibt nichts zu waehlen.
           Und der Hinweis „oder wische zu einer von uns" waere schlicht falsch. */}
       {/**
@@ -4032,7 +4657,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         * rote Zeile („erlaub den Zugriff und versuch es nochmal") — kein zweiter Pfad.
         */}
       {!selbstVideo && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.nurEigenes ? T.upTitle : T.step1}</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{schrittTitel(V.nurEigenes ? T.upTitle : T.step1)}</p>
       {/* Der Hinweis nennt beide Wege („… oder wische zu einer von uns"). Ohne Katalog gibt
           es nur noch einen — dann sagt die Karte selbst, was zu tun ist. */}
       {!V.nurEigenes && <p className="mt-1 text-[13px] font-bold text-white/85">{T.pickHint}</p>}
@@ -4104,31 +4729,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
         </div>
-      )}
-
-      {/* DER KÜRZERE WEG: ein Foto statt zwei. Steht UNTER den beiden Kacheln und nicht
-          darüber — wer schon eines hochgeladen hat, soll nicht umdenken müssen; wer noch
-          gar nichts hat, findet hier den bequemeren Weg. */}
-      {/* ZUSCHNITT MIT SPEICHERN UND ABBRECHEN — nichts rutscht von allein hinein. */}
-      {cropDatei && cropZiel && (
-        <ImageCropper
-          file={cropDatei}
-          aspect={3 / 4}
-          title={paarQuelle
-            ? (cropZiel === "sie" ? T.paarSchritt1 : T.paarSchritt2)
-            : (cropZiel === "sie" ? T.upTitle : T.you)}
-          onCancel={() => { setCropDatei(null); setCropZiel(null); setPaarQuelle(null); }}
-          onSave={async (zugeschnitten) => {
-            const ziel = cropZiel;
-            const quelle = paarQuelle;
-            setCropDatei(null); setCropZiel(null);
-            if (ziel === "sie") await onModelFile(zugeschnitten);
-            else await onFile(zugeschnitten);
-            // Beim Paarfoto direkt weiter zum zweiten Gesicht — dieselbe Datei, anderes Ziel.
-            if (quelle && ziel === "sie") { setCropZiel("er"); setCropDatei(quelle); }
-            else setPaarQuelle(null);
-          }}
-        />
       )}
 
       {V.paarUpload && (
@@ -4393,10 +4993,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
                       links an, sobald die Slides breiter sind als der Schirm. */}
                   {LOOKS.length > 1 ? (
-                    <BildWahl gross wert={look} waehle={setLook} bilder={LOOKS} />
+                    <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
+                      bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS} />
                   ) : (
                     <div className="flex justify-center py-1.5">
-                      <span className="relative block h-[213px] w-[160px] overflow-hidden rounded-2xl ring-2 ring-[#f6cf51] ring-offset-2 ring-offset-[#0b0a09]">
+                      {/* Ohne festen dunklen Abstandsring (Owner 12.08.2026: „keine
+                          schwarzen rahmen" — Dauerregel, siehe BildWahl in CI.tsx). */}
+                      <span className="relative block h-[213px] w-[160px] overflow-hidden rounded-2xl ring-2 ring-[#f6cf51]">
                         {/**
                           * DIE VERWANDLUNG STATT DES ZIELS (Owner 11.08.2026: „kannst du hier
                           * eine animation machen zwischen diese zwei bilder?").
@@ -4423,33 +5026,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   )}
                 </div>
                 {/**
-                  * DIE GEWÄHLTEN ZIELE ALS SPRECHHILFE (Owner 11.08.2026, Folgeänderung zum
-                  * Ziele-Schritt: „die Chips sind die Vorbereitung auf den Satz").
-                  *
-                  * Er tippt die Ziele im Schritt DAVOR an (siehe `zieleFragen`-Block weiter
-                  * oben) — bis heute sah er sie im Aufnahme-Kasten nicht mehr, obwohl genau
-                  * sie den Satz tragen sollen, den er gleich spricht. Reine Erinnerung, keine
-                  * Interaktion: nur beim Versprechen, und nur, wenn er wirklich etwas gewählt
-                  * hat (sonst stuende eine leere Zeile über einem leeren Kasten).
+                  * DIE ZIELE-ERINNERUNG STAND HIER FRUEHER (Owner 11.08.2026: „die Chips
+                  * sind die Vorbereitung auf den Satz") — sie galt NUR dem Versprechen
+                  * (`variant === "versprechen"`), und dieser ganze Zweig hier ist seit dem
+                  * Tunnel-Umbau (KONZEPT-TUNNEL.md, Owner 12.08.2026) nur noch fuer den
+                  * Geburtstag da: Das Versprechen hat seinen Aufnahme-Schritt jetzt in der
+                  * Kachel-Reihe von Schritt 3, mit einer eigenen, kompakteren Ziele-Erinnerung
+                  * dort (siehe unten). Ein Zweig, der nie mehr eintreten kann, ist toter Code —
+                  * TypeScript hat das zu Recht angemahnt.
                   */}
-                {variant === "versprechen" && ziele.length > 0 && (
-                  <div className="mb-2 text-center">
-                    <p className="text-[11px] font-bold text-white/55">{T.sprichDarueber}</p>
-                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-                      {ziele.filter(id => id !== ZIEL_FREI).map(id => (
-                        <span key={id}
-                          className="rounded-full border border-[#f6cf51]/50 bg-[#f6cf51]/10 px-2.5 py-1 text-[11px] font-bold text-[#f6cf51]">
-                          {ZT.namen[id]}
-                        </span>
-                      ))}
-                      {ziele.includes(ZIEL_FREI) && zieleFrei.trim() && (
-                        <span className="rounded-full border border-[#f6cf51]/50 bg-[#f6cf51]/10 px-2.5 py-1 text-[11px] font-bold text-[#f6cf51]">
-                          {zieleFrei.trim()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
                 {/**
                   * DIE AUFNAHME STEHT OFFEN DA — kein Chip davor (Owner 07.08.2026: „Das
                   * ganze ist zu kompliziert. Wir brauchen nur das … button Selbstaufnehmen
@@ -4488,183 +5073,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                     * `document.body` hängt das Fenster aus jedem fremden Stapel aus — die
                     * einzige Lösung, die nicht beim nächsten Layout-Umbau wieder kippt.
                     */}
-                  {nimmtAuf && typeof document !== "undefined" && createPortal((
-                    /**
-                     * VOLLBILD (Owner 07.08.2026 abends: „Die Video aufname muss sich
-                     * fullsize öffnen"). Das 240-px-Fenster in der Karte war zum
-                     * Positionieren immer noch zu klein. Jetzt liegt die Aufnahme über dem
-                     * ganzen Bildschirm — und der SATZ steht mit im Overlay, oben: Wer
-                     * abliest, darf dafür nicht aus dem Vollbild müssen. Umriss und
-                     * 3-2-1-Vorlauf wie gehabt; der Stopp-Knopf wandert mit nach unten
-                     * (der in der Karte darunter liegt jetzt verdeckt und entfällt).
-                     * z-[98]: über den Dialogen (z-[96]), unter nichts.
-                     */
-                    /**
-                     * „ICH WILL DEN BUTTON START NOW IM SCREEN SEHEN" (Owner 10.08.2026).
-                     *
-                     * Er stand da — nur unterhalb dessen, was das Handy zeigt. `inset-0` misst
-                     * gegen den LAYOUT-Bildschirm; die Adress- und Werkzeugleiste des Browsers
-                     * liegt darüber und verdeckt die unteren 60 bis 100 Pixel. Genau dort sass
-                     * der goldene Knopf. Auf dem Rechner sieht man den Fehler nie, auf jedem
-                     * iPhone sofort.
-                     *
-                     * `100dvh` ist das Mass, das die Leisten MITZÄHLT und beim Ein- und
-                     * Ausfahren mitwandert (`100vh` tut das nicht — das ist der alte Fehler,
-                     * den jede Handy-Seite einmal macht). Dazu die Sicherheitszone unten für
-                     * die Wischleiste des iPhones. Beides zusammen: Der Knopf steht immer im
-                     * Bild, auf jedem Gerät.
-                     */
-                    <div className="fixed inset-0 z-[200] grid place-items-center bg-black" style={{ height: "100dvh" }}>
-                      {/**
-                        * DIE BÜHNE IST HOCHKANT — AUCH AUF DEM RECHNER (Owner 09.08.2026,
-                        * mit Bild eines Breitbild-Schirms: ein einzelnes Auge füllte das
-                        * halbe Fenster).
-                        *
-                        * Vorher lag das Kamerabild als `object-cover` über die volle
-                        * Breite. Auf einem Handy ist das richtig; auf 2000 Pixel Breite
-                        * skaliert `cover` das Hochkant-Bild der Kamera so weit, bis es die
-                        * Breite füllt — und schneidet dabei alles ausser einem Stück
-                        * Gesicht weg. Jetzt steht die Aufnahme in einer Spalte im
-                        * Handy-Mass; der Rest der Fläche ist ohnehin mattes Weiss.
-                        */}
-                      {/**
-                        * UND AUF DEM RECHNER IST DIE SPALTE EIN FENSTER, KEIN STREIFEN
-                        * (Owner 11.08.2026, mit Bild eines Chrome-Fensters: „kannst du eine
-                        * desktop version machen?").
-                        *
-                        * Die Spalte war 430 px breit und IMMER so hoch wie der Bildschirm.
-                        * Auf dem Handy ist das genau richtig; auf einem 1300 px hohen
-                        * Browserfenster ergibt es einen 430 × 1300 langen Schacht — und weil
-                        * das Kamerabild ihn per `object-cover` füllen muss, wird ein
-                        * Hochkant-Bild so weit hineingezoomt, bis nur noch ein halbes Gesicht
-                        * übrig ist. Genau das war auf seinem Bild zu sehen. Der Knopfblock
-                        * klebte dazu am unteren Rand des Schachts, also am unteren Rand des
-                        * Fensters, halb hinter der Wischleiste.
-                        *
-                        * Ab `sm` steht deshalb ein Handy-Fenster mitten auf der Fläche: 9:16,
-                        * höchstens 820 px oder 92 % der Fensterhöhe, mit Ecken. Die Breite
-                        * ergibt sich aus der Höhe (`w-auto`), damit das Verhältnis stimmt.
-                        * Unterhalb von `sm` bleibt alles, wie es ist — die Handy-Ansicht ist
-                        * abgenommen und wird hier nicht angefasst.
-                        */}
-                      <div className="relative mx-auto h-full w-full max-w-[430px] overflow-hidden sm:h-[min(92dvh,820px)] sm:w-auto sm:max-w-none sm:aspect-[9/16] sm:rounded-3xl">
-                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                        <video ref={vorschauRef} muted playsInline
-                          className="absolute inset-0 h-full w-full object-cover"
-                          style={{ transform: "scaleX(-1)" }} />
-                      {/**
-                        * DAS LOCH IM MATT-WEISSEN (Owner 08.08.2026: „Es wäre auch gut wenn
-                        * mein kopf nicht im kreis steht … dann matte weisse farbe, damit
-                        * ich mein kopf wirklich im loch positioniere").
-                        *
-                        * Ein gestrichelter Umriss ist eine Bitte; eine Maske ist eine
-                        * Ansage — ausserhalb des Ovals liegt mattes Weiss, drinnen ist das
-                        * Bild klar. Gemacht mit EINEM Schlagschatten von 9999 px: Der
-                        * faerbt alles ausserhalb der Ellipse, ohne zweites Element und ohne
-                        * `mask-image` (das ältere iOS-Safaris nicht sauber koennen).
-                        */}
-                      <div aria-hidden
-                        className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[80%] max-w-[420px] -translate-x-1/2 rounded-[50%] border-2 border-white/80"
-                        /* HALB DURCHSICHTIG STATT DECKEND (Owner 09.08.2026: „die weisse
-                           Fläche nicht ganz weiss. 50 % transparent"). Bei 0.92 war ausserhalb
-                           des Ovals nichts mehr zu sehen — man stellte sich blind hinein und
-                           wusste nicht, wo der eigene Körper aufhört. Bei 0.5 bleibt das Loch
-                           deutlich der scharfe Teil, aber man sieht sich noch. */
-                        style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.5)" }} />
-                      {/**
-                        * DIE VORLAGE ZUM ABLESEN (Owner 11.08.2026: „Diesen Text müssen als
-                        * Vorlage geben damit er das nachrspricht").
-                        *
-                        * OBEN, NICHT UNTEN: Sie liegt dicht an der Kameralinse — wer von hier
-                        * abliest, schaut fast in die Kamera. Am unteren Rand (wo Knopf und
-                        * Ansage stehen) würde er die ganze Aufnahme nach unten blicken.
-                        *
-                        * DURCHSICHTIG UND OHNE GRIFF (`pointer-events-none`): Sie liegt über
-                        * dem matten Weiss, das ohnehin ausserhalb des Ovals liegt, und darf
-                        * dem Start-Knopf und dem Kreuz keinen Tipp wegnehmen. Rechts bleibt
-                        * Platz für das Kreuz (`pr-14`).
-                        *
-                        * ZEILENWEISE, wie sie in lib/versprechen steht — jede Zeile ein
-                        * Atemzug. Wird es auf einem kleinen Schirm zu lang, scrollt der Kasten
-                        * in sich, statt über das Gesicht zu wachsen.
-                        */}
-                      {skript && (
-                        /* MIT EIGENER FLÄCHE: Die Vorlage ist höher als der matte Rand über
-                           dem Oval und läge mit den letzten Zeilen sonst auf dem klaren Bild
-                           — dunkle Schrift auf einem Gesicht ist nicht lesbar. Das helle
-                           Feld darunter macht sie in jeder Lage lesbar und sieht aus wie der
-                           matte Rand, den es fortsetzt. */
-                        <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] max-h-[26%] overflow-y-auto rounded-b-2xl bg-white/85 px-4 pr-14 pb-2.5 pt-2.5">
-                          <p className="text-[10px] font-black uppercase tracking-wide" style={{ color: "#6b6152" }}>
-                            {SW.lies}
-                          </p>
-                          <div className="mt-1 space-y-[2px]">
-                            {skript.map((zeile, i) => (
-                              <p key={i} className="text-[12.5px] font-black leading-[1.25]" style={{ color: "#1a160f" }}>
-                                {zeile}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {/* DER AUSGANG (Bibliotheks-Baustein `Scheibe`, Hausregel: runder
-                          Symbol-Knopf kommt aus components/CI.tsx). Oben rechts, wo jeder
-                          ihn sucht — und weit weg vom Start-Knopf, damit niemand danebentippt. */}
-                      <div className="absolute right-3 top-3 z-10">
-                        <Scheibe label={SW.abbrechen} onClick={aufnahmeStopp}>
-                          <X className="h-5 w-5" />
-                        </Scheibe>
-                      </div>
-
-                      {/**
-                        * KNOPF UND ANSAGE STEHEN ZUSAMMEN UNTEN (Owner 09.08.2026: „Button
-                        * direkt über Nimm dich auf").
-                        *
-                        * Vorher lag der Knopf im Oval (56 %) und die Ansage am unteren Rand
-                        * — dazwischen klaffte eine leere Fläche, und die beiden Dinge, die
-                        * zusammengehören, standen am weitesten auseinander. Jetzt bilden sie
-                        * einen Block: erst der Knopf, direkt darunter, was zu tun ist.
-                        */}
-                      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6"
-                        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.75rem)" }}>
-                        {/**
-                          * ER DRUECKT AB (Owner 08.08.2026: „dann darf die aufnahme nur mit
-                          * button starten. Ich muss erst mal meinen Kopf platieren und mich
-                          * vorbereiten dann starte ich selbst"). Vorher lief ein 3-2-1 los,
-                          * sobald die Kamera an war — eine Vorgabe, die genau die
-                          * Vorbereitung wegnahm, fuer die sie gedacht war.
-                          */}
-                        {!laeuft ? (
-                          <>
-                            <button type="button" onClick={aufnahmeLos}
-                              className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black active:scale-95 transition">
-                              <Mic className="h-4 w-4" /> {SW.los}
-                            </button>
-                            {/* ABBRECHEN IST DAS KREUZ OBEN RECHTS (Owner 09.08.2026:
-                                „Abbrechen als Close-Button oben rechts, rund X"). Ein
-                                zweiter Knopf unter dem goldenen zog das Auge vom Start weg —
-                                und ein Ausgang gehört dorthin, wo ihn jeder sucht. */}
-                          </>
-                        ) : (
-                          <button type="button" onClick={aufnahmeStopp}
-                            className="flex h-12 items-center justify-center gap-2 rounded-full border-2 bg-white px-6 text-[15px] font-black active:scale-95 transition"
-                            style={{ borderColor: ABSAGE_ROT, color: "#1a160f" }}>
-                            <Square className="h-4 w-4" style={{ color: ABSAGE_ROT }} fill={ABSAGE_ROT} />
-                            {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
-                          </button>
-                        )}
-                        {/* In Tinte, ohne Kasten — ein Hinweis am Rand, kein zweiter Block. */}
-                        <div className="text-center">
-                          <p className="text-[13px] font-black" style={{ color: "#1a160f" }}>{SW.aufTitel}</p>
-                          <p className="mx-auto mt-1 max-w-[330px] text-[11.5px] font-bold leading-snug" style={{ color: "#3a352d" }}>
-                            {SW.aufHinweis}
-                          </p>
-                        </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  ), document.body)}
+                  {/* Das Aufnahme-Vollbild stand HIER — im Geburtstags-Zweig von Schritt 1.
+                      Auf der Versprechen-Kachel (Schritt 3, Tunnel-Seite) war dieser Zweig
+                      nie gerendert, der Tipp öffnete NICHTS (Owner 12.08.2026: „selbst
+                      aufnehmen öffent nichts"). Es wohnt jetzt auf der OBERSTEN Ebene bei
+                      den anderen Fenstern — einmal im Baum, für jeden Auslöser erreichbar. */}
                   {/**
                     * SOLANGE NICHTS AUFGENOMMEN IST, STEHT DER KNOPF HIER — er ist dann die
                     * einzige Aufgabe der Seite und darf golden und allein sein.
@@ -4760,8 +5173,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </p>
       </>)}
 
-      {schritt === 2 && (<>
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step2}</p>
+      {/* NUR IM ALTEN DIALOG (live geprueft, 12.08.2026): Auf der Tunnel-Seite hat Schritt 2
+          eine andere Bedeutung (die Auswahl, `hatAuswahl` oben) oder existiert gar nicht
+          (Kuss/Versprechen) — ohne `!tunnelSeite` rendeten hier BEIDE Schritt-2-Inhalte
+          gleichzeitig uebereinander. */}
+      {schritt === 2 && !tunnelSeite && (<>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{schrittTitel(T.step2)}</p>
       <div className="mt-2 flex items-center justify-center gap-2">
         {/* NUR DER PFEIL (Owner 31.07.2026). Mit Wort war der Knopf breiter als das halbe
             Bild und schob die Kachel aus der Mitte — auf einem 375er Bildschirm ist Platz das
@@ -4866,7 +5283,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
       {schritt === 4 && (
         <div className="mb-3 text-center">
-          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step4}</p>
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{schrittTitel(T.step4)}</p>
         </div>
       )}
 
@@ -4874,26 +5291,183 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* DER ANKER FÜR DEN SPRUNG NACH DER AUFNAHME (Owner 09.08.2026: „oder direkt zum
           Schritt zwei") — genau die Zeile, unter der sein Standbild, die Adresse und der
           Kaufknopf stehen. */}
-      <p ref={schrittZweiRef} className="text-[12px] font-black uppercase tracking-wide text-white/50">{T.step3}</p>
+      <p ref={schrittZweiRef} className="text-[12px] font-black uppercase tracking-wide text-white/50">{schrittTitel(T.step3)}</p>
+      {/**
+        * DIE KACHEL-REIHE DES VERSPRECHENS — SCHRITT 2 DES EINEN TUNNELS (KONZEPT-TUNNEL.md,
+        * Owner 12.08.2026: „Stepp zwei das was stepp drei ist wo links ein platzahlter ist
+        * für Foto oder Video upload dann generieren"). Vorbild ist wortwoertlich dieser
+        * Kuss-Schritt „3 · DER KUSS": LINKS, was der Kunde GIBT — hier seine Aufnahme, mit
+        * derselben weissen Loesch-Scheibe wie beim Kuss, sobald sie da ist (siehe die
+        * bestehende Vorschau direkt darunter) —, RECHTS das ZIEL (Villa & Sportwagen,
+        * `VERSPRECHEN_SET`; nicht austauschbar, es gibt genau einen Look).
+        *
+        * NUR SOLANGE NOCH NICHTS AUFGENOMMEN IST: Ist die Aufnahme da, zeigt die
+        * bestehende Vorschau (`selPhoto`, gleich darunter) dieselbe linke Kachel bereits
+        * inklusive Loesch-Scheibe — zwei Kacheln fuer denselben Platz waeren doppelt.
+        * Antippen loest DIESELBE Aufnahme aus wie beim Geburtstag (`aufnahmeStart`,
+        * `nimmtAuf`) — das Vollbild dafuer ist ein gemeinsamer Baustein
+        * (`aufnahmeUeberlagerung`, vor `return` definiert) und steht nur einmal im Baum.
+        */}
+      {/**
+        * DIE KACHEL-REIHE VOR DER ERSTEN GABE (Owner 12.08.2026, „oberstes Gesetz"): dasselbe
+        * Muster fuer JEDES Aufnahme-Thema (`selbstVideo` — Versprechen UND Geburtstag), nicht
+        * nur fuer das Versprechen. Der ZURUECK-Pfeil fuehrt zum Schritt VOR den Kacheln —
+        * beim Geburtstag ist das die Vorlagen-Wahl (Schritt 2, `hatAuswahl`), sonst Schritt 1.
+        */}
+      {tunnelSeite && selbstVideo && !selPhoto && (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          {/* ZURUECK (Owner 12.08.2026: „der user soll auch vor und zurück in den steps") —
+              dieselbe Scheibe wie in der Vorschau-Zeile unten, nur schon hier: wer noch
+              nichts aufgenommen hat, soll trotzdem seine Adresse oder seinen Look ansehen
+              oder aendern koennen, nicht erst nach der Aufnahme. */}
+          <button type="button" onClick={() => setSchritt(alsSchritt(hatAuswahl ? 2 : 1))} aria-label={T.back}
+            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          {/* ZUGESTIMMT WIRD DURCH DIE HANDLUNG (Owner 30.07.2026: „mit klick auf weiter
+              akzeptiert er das schon") — genau wie beim Foto-Upload der anderen Themen
+              (`onFile`/`onModelFile` rufen `zustimmen()` im selben Moment). Fuer Bekannte,
+              die Schritt 1 nie sehen, ist dieser Tipp die ERSTE Handlung im ganzen Tunnel. */}
+          <button type="button" onClick={() => { zustimmen(); void aufnahmeStart(); }}
+            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+            <Mic className="h-6 w-6 text-[#f6cf51]" />
+            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{SW.selbst}</span>
+          </button>
+          {/* PFEIL STATT ZEICHEN (Owner 12.08.2026, mit Bild des Tanz-Emojis zwischen den
+              Kacheln: „was hast du da für ein komischen tanz icon dazwischen. Mach eijne
+              Pfeil bei allen") — zwischen den Kacheln steht bei JEDEM Produkt derselbe
+              Pfeil: links dein Beitrag → rechts das Ziel. */}
+          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          {/**
+            * DAS ZIEL IST JETZT UEBERALL DER GEWAEHLTE LOOK (Owner 12.08.2026, Ergaenzung:
+            * „und um das ganze zu vereinheitlichen mach auch Verprehcne genauso. Aus 3
+            * schritten"). Vorher stand hier fest `VERSPRECHEN_SET`, weil das Versprechen
+            * keinen eigenen Auswahl-Schritt hatte. Jetzt zaehlt `hatAuswahl` auch „versprechen"
+            * dazu (Schritt 2 unten), und dieselbe Suche wie beim Geburtstag reicht: Ohne Wahl
+            * bleibt `look` auf `LOOKS[0].id` stehen — „villa", also wieder `VERSPRECHEN_SET`.
+            * ANTIPPEN OEFFNET DAS ECHTE VIDEO (Owner 12.08.2026: „das gilt für den ganzen
+            * Tunel") — `zielVideo` ist leer, sobald es keins gibt, dann bleibt die Kachel ein
+            * Bild.
+            */}
+          <div className="w-[118px] max-w-[32vw]">
+            <VorlagenKachel
+              bildUrl={(LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild}
+              videoUrl={zielVideo} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+          </div>
+        </div>
+      )}
+      {tunnelSeite && selbstVideo && aufnahmeFehler && (
+        <p className="mt-2 text-center text-[12px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>{aufnahmeFehler}</p>
+      )}
+      {tunnelSeite && selbstVideo && kameraAus && !aufnahmeFehler && (
+        <p className="mt-2 text-center text-[11px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>{SW.kameraAus}</p>
+      )}
+      {/**
+        * DIE KACHEL-REIHE DES KUSSES — BEIDE FOTOS ERSETZBAR (KONZEPT-TUNNEL.md-Tabelle;
+        * Owner 12.08.2026: „im Kuss wäre links und rechts bilder ersetzen dann
+        * generieren"). Solange KEINS von beiden da ist, zeigt die bestehende Vorschau
+        * weiter unten (`selPhoto || photo`) noch nichts — genau wie beim Versprechen ohne
+        * Aufnahme braucht es hier den Platzhalter-Zwilling: zwei einfache Tipp-Kacheln
+        * statt der grossen Model-Karussell-Auswahl aus dem alten Dialog (die bleibt dort,
+        * wo sie ist — dieser Tunnel ist der kurze Weg).
+        *
+        * REIHENFOLGE WIE DIE BESTEHENDE VORSCHAU DARUNTER, NICHT WIE DIE KONZEPT-TABELLE:
+        * Die Vorschau-Zeile (gleich nach dieser hier) zeigt seit jeher `selPhoto` (ihr
+        * Foto/Model) LINKS und `photo` (sein Foto) RECHTS — ungeaendert, um nicht
+        * anzufassen. Zwei verschiedene Reihenfolgen vor und nach dem ersten Upload waeren
+        * ein Sprung, den der Kunde als Fehler liest; diese Kachel-Reihe folgt deshalb der
+        * VORSCHAU, nicht dem Wortlaut der Tabelle (siehe Bericht an den Owner).
+        */}
+      {tunnelSeite && !selbstVideo && !V.nurSie && !selPhoto && !photo && (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          <button type="button" onClick={() => setSchritt(1)} aria-label={T.back}
+            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={() => { zustimmen(); modelFileRef.current?.click(); }}
+            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
+            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.upTitle}</span>
+          </button>
+          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          <button type="button" onClick={() => { zustimmen(); fileRef.current?.click(); }}
+            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
+            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.you}</span>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
+          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
+        </div>
+      )}
+      {/**
+        * DIE KACHEL-REIHE DES TANZES — EIN FOTO VON IHR, RECHTS DAS GEWAEHLTE SET (Owner
+        * 12.08.2026: „pool dancing kannst du hier einbauen und da machst du auch dort den
+        * tunel einbauen"). `V.nurSie` OHNE `selbstVideo`: nur der Tanz braucht genau EIN
+        * Foto ohne Aufnahme — der Kuss braucht zwei, Versprechen/Geburtstag nehmen sich auf.
+        */}
+      {tunnelSeite && !selbstVideo && V.nurSie && !selPhoto && (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
+            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={() => { zustimmen(); modelFileRef.current?.click(); }}
+            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
+            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.upTitle}</span>
+          </button>
+          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          {/* DAS GEWAEHLTE SET, MIT DEM ALLGEMEINEN BEISPIELVIDEO (`beispiele[0]` —
+              `POLEDANCE_VIDEO`): es gibt nur EIN Beispielvideo, keins je Set (siehe Bericht
+              an den Owner). */}
+          <div className="w-[118px] max-w-[32vw]">
+            <VorlagenKachel bildUrl={neuerLook || V.garmentBild || ""} videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+          </div>
+          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
+        </div>
+      )}
       {/* BEIDE NEBENEINANDER (Owner 30.07.2026: „ich sehe uns nicht nebeneinander"). In den
           Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
           im Bild landet — sonst generiert er blind. */}
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
           {/* Zurueck am Bild, wie in Schritt 2 — nicht oben zwischen den Einstellungen. */}
-          <button type="button" onClick={() => setSchritt(V.paarUpload || V.nurSie ? 1 : 2)} aria-label={T.back}
+          <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
             className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
             <ChevronLeft className="h-5 w-5" />
           </button>
           {selPhoto && (
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
+              {/**
+                * NUR EIN KATALOG-MODEL IST EINE „VORLAGE" (Owner 12.08.2026: „wenn user ein
+                * Video generiert dann muss er die Vorlage genau als Video sehen … Das gilt
+                * für den ganzen Tunel"). Hat sie ihr EIGENES Foto hochgeladen (`useCustom`),
+                * gibt es kein Beispielvideo dazu zu zeigen — das ist ihr Bild, kein
+                * Verkaufsversprechen. Nur bei einem gewaehlten Katalog-Model oeffnet der
+                * Tipp das allgemeine Beispielvideo der Seite (`beispiele[0]`); ein
+                * modellgenaues Video gibt es (noch) nicht (siehe Bericht an den Owner).
+                */}
+              {!useCustom && variant === "kiss" && beispiele[0] ? (
+                <div className="w-[118px] max-w-[32vw]">
+                  <VorlagenKachel bildUrl={selPhoto} videoUrl={beispiele[0]} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+                </div>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
+              )}
               {/* Auch in der Vorschau muss das Foto weggehen koennen (Owner 31.07.2026:
                   „hier soll man das Bild noch löschen können"). Nur bei EIGENEN Fotos —
                   ein Katalog-Model laesst sich nicht loeschen, nur wechseln. */}
               {useCustom && !!customModel && (
-                <button type="button" onClick={() => { fotoLoeschen("sie"); setSchritt(1); }}
+                /* BEIM VERSPRECHEN BLEIBT ER AUF SCHRITT 3 (KONZEPT-TUNNEL.md: „nicht
+                   komplizierter" — genau zwei sichtbare Schritte). `setSchritt(1)` fuehrte
+                   hier zurueck zum Tunnel-Start (Name + E-Mail), den er meist schon hinter
+                   sich hat; die leere linke Kachel weiter oben nimmt die neue Aufnahme
+                   sofort wieder auf. */
+                <button type="button" onClick={() => { fotoLoeschen("sie"); if (variant !== "versprechen") setSchritt(1); }}
                   aria-label="Foto löschen"
                   style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                   className="absolute -left-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
@@ -4905,7 +5479,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {/* Das Sinnbild zwischen den beiden Fotos folgt dem Thema: Kuss-Lippen auf einer
               Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
               ungeprueft mitkommt. */}
-          <span className="text-[20px]">{variant === "wedding" ? "💍" : V.nurSie ? "💃" : "💋"}</span>
+          {/* Pfeil bei ALLEN (Owner 12.08.2026, siehe oben) — kein Themen-Emoji mehr. */}
+          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
           {/* RECHTS STEHT, WAS WIRKLICH LOSGESCHICKT WIRD.
               Owner 03.08.2026: „was soll das jetzt wieder? Ich habe ein ganz anderes Video
               ausgesucht" — er hatte auf der Landingpage einen Tanz gewaehlt, und hier stand
@@ -4957,17 +5532,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * Frau im schwarzen Kleid — also eine Ankuendigung, die nicht zu seinem Auftrag
               * passt. Das ist der schlimmste Zeitpunkt dafuer: direkt ueber dem Kaufknopf.
               */
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={selbstVideo
-              ? ((LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild)
-              : (neuerLook || V.garmentBild)}
-              alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
+            /* ANTIPPEN OEFFNET DAS ECHTE VIDEO, WENN ES EINS GIBT (Owner 12.08.2026: „das
+               gilt für den ganzen Tunel") — `selbstVideo`-Themen bekommen `zielVideo`
+               (oben berechnet), alles andere zeigt weiter nur das Bild. */
+            <div className="w-[118px] max-w-[32vw]">
+              <VorlagenKachel
+                bildUrl={selbstVideo ? ((LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild) : (neuerLook || V.garmentBild || "")}
+                videoUrl={selbstVideo ? zielVideo : ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+            </div>
           )}
           {!V.nurSie && photo && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
-              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(V.paarUpload || V.nurSie ? 1 : 2); }}
+              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(alsSchritt(schrittVorKacheln)); }}
                 aria-label="Foto löschen"
                 style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                 className="absolute -right-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
@@ -4977,6 +5555,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           )}
         </div>
       )}
+      {/**
+        * DIE ZIELE-CHIPS SIND RAUS (Owner 12.08.2026, wörtlich: „Gols auswahl ist gut aber
+        * in diesem Fall brauchen wir nicht. Es hat keine Auswirkung auf unser Programm.").
+        * Sie standen hier kurz als „Zusatzwahl … kompakt unter den Kacheln" — jetzt fragt der
+        * Versprechen-Trichter gar nicht mehr danach. `ziele`/`zieleFrei` bleiben als Zustand
+        * und im Auftrag bestehen (die Programmseite liest sie noch, `directionEmpty` deckt
+        * den leeren Fall ab) — es wird nur nichts mehr ABGEFRAGT. `zieleFragen` faellt damit
+        * ausserhalb der Auftrags-Nutzlast (`generate()`/`kussVideo()`) weg; dort steht die
+        * Zeile absichtlich noch, falls der Owner die Frage je zurückholt.
+        */}
       {/* DIE TANZ-AUSWAHL STEHT AUF DER LANDINGPAGE, NICHT HIER (Owner 03.08.2026: „hier
           nicht — die Auswahl findet auf der Landingpage statt").
           Sie lag kurz in diesem Trichter, weil das Foto hier liegt. Der Owner will sie davor:
@@ -5238,13 +5826,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             gegen eine Wand. */}
         {/* Das Sinnbild folgt dem Thema — Kuss-Lippen auf dem Knopf eines Tanzvideos sind
             derselbe Fehler wie der Kuss-Werbespruch auf der Hochzeitsseite. */}
-        {busy || videoBusy || mailBusy || payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : bezahlt ? "🎬" : (variant === "wedding" ? "💍" : variant === "poledance" ? "💃" : "💋")}
+        {/* KEINE ZEICHEN IM KAUFKNOPF (Owner 12.08.2026: „auch in dem Button machst du da
+            komische zeichen. Die raus und zwar im CI Bibliothek") — der Knopf trägt nur
+            Text und Preis; die Regel steht am `Knopf`-Baustein in components/CI.tsx. */}
+        {busy || videoBusy || mailBusy || payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {/* KEIN GRATIS-VERSPRECHEN AUF EINEM KNOPF, DER KEINS EINHAELT (plan.md Punkt 1a).
             `ctaFree` sagt „gratis" — bei der Hochzeit stimmt das seit `keinGratis` nicht
             mehr. `ctaVideo` ist ohnehin schon eigens uebersetzt („Einladung erstellen" u. a.)
             und passt vor wie nach der Zahlung: der Klick loest in beiden Faellen dieselbe
             Handlung aus (unlock zahlt zuerst, dann laeuft generate von selbst weiter). */}
-        {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : payBusy ? T.oneMoment : (bezahlt || V.keinGratis) ? T.ctaVideo : T.ctaFree}
+        {/* EIN KNOPF-WORT FUER ALLE TUNNEL (Owner 12.08.2026: „der button muss immer gelch
+            bei allen heissen Generate now - Preis.") — auf der Tunnel-Seite heisst der Knopf
+            bei JEDEM Produkt gleich: „Generate now — <Preis aus der Tabelle>". Die
+            Dialog-Trichter behalten ihre eigenen Worte (ctaVideo/ctaFree). */}
+        {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : payBusy ? T.oneMoment
+          : tunnelSeite ? `${T.generateNow} — ${eur(geschenkPreisCents(variant), lang)}`
+          : (bezahlt || V.keinGratis) ? T.ctaVideo : T.ctaFree}
       </button>
       {generateHinweis && (
         <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
@@ -5351,9 +5948,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           gerendert — beim Hochladen ihres Fotos, beim eigenen Gesicht, vor dem Erzeugen und
           neben dem Ergebnis. Wer sein Gesicht hergibt, will das lesen, bevor er tippt, nicht
           hinterher. */}
+      {/* NICHT AUF DER TUNNEL-SEITE (Owner 12.08.2026, mit Bild der Zeile: „das raus").
+          Der Tunnel ist „super einfach" — der Einwilligungssatz am Generieren-Knopf deckt
+          das Private ab. In den Dialog-Trichtern der anderen Produkte bleibt die Zeile
+          (Owner 30.07.2026: „du musst sagen dass die Bilder überall privat bleiben"). */}
+      {!tunnelSeite && (
       <p className="mx-auto mt-2 max-w-[320px] text-center text-[11px] font-bold leading-snug text-white/60">
         {T.privat}
       </p>
+      )}
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
       {/* DER TEILEN-DIALOG: erst wissen, dann öffentlich (Owner 01.08.2026). */}
@@ -5422,6 +6025,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         </Dialog>
       )}
 
+      {/* DAS AUFNAHME-VOLLBILD — auf der obersten Ebene, damit JEDER Auslöser es erreicht
+          (Geburtstags-Schritt 1 UND Versprechen-Kachel in Schritt 3; Owner 12.08.2026:
+          „selbst aufnehmen öffent nichts" — vorher hing es im Geburtstags-Zweig fest).
+          Es gate sich selbst über `nimmtAuf` und ist ein Portal an document.body. */}
+      {aufnahmeUeberlagerung}
       {shareFrage && (
         <div className="fixed inset-0 z-[95] grid place-items-center p-5" style={{ background: "rgba(0,0,0,0.72)" }}
           onClick={() => setShareFrage(false)}>

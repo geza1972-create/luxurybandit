@@ -62,11 +62,13 @@ export const HOLIDAY_SZENEN: HolidaySzene[] = [
     ort: "strolling through a sunlit old-town street with pastel houses, small balconies and flowers, warm midday light",
   },
   {
-    id: "boot", name: "Auf dem Boot",
+    /* Kachel am 12.08.2026 erzeugt (Owner: „generire zwei mit peter und bella") — dieselbe
+       Referenz wie Strand/Altstadt, gpt-image, auf 600×800 verkleinert. */
+    id: "boot", name: "Auf dem Boot", kachel: "/szenen-urlaub/urlaub-boot.jpg",
     ort: "standing at the railing of a boat on open turquoise water, bright sunshine and a light breeze",
   },
   {
-    id: "terrasse", name: "Terrasse am Meer",
+    id: "terrasse", name: "Terrasse am Meer", kachel: "/szenen-urlaub/urlaub-terrasse.jpg",
     ort: "sitting together at a small table on a terrace above the sea, cold drinks in front of them, warm evening light",
   },
 ];

@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Eye, EyeOff, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
+import EinladungKarte from "@/components/EinladungKarte";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
 import { kissText } from "@/lib/kiss-i18n";
 import { kontoText } from "@/lib/konto-i18n";
+import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
 import { eur } from "@/lib/pricing";
 import { deckendeStufen, stueckJeStufe } from "@/lib/kasse";
 
@@ -128,13 +130,17 @@ export function SymbolKnopf({ onClick, label, punkt, punktLinks, punktRing = "#0
     <button type="button" onClick={onClick} aria-label={label} title={label}
       className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white active:scale-90 ${className}`}>
       {children}
+      {/* `data-punkt`: In der hellen Anzeigen-Fassung sitzt der Knopf auf BLAU — der feste
+          dunkle Trenn-Ring (#0d0b0a) wurde dort zum „blöden schwarzen Kreis" (Owner
+          12.08.2026). Eine globals-Regel färbt den Ring dort auf das Kopfzeilen-Blau um;
+          Inline-Farben verlieren gegen !important, deshalb der Daten-Anker. */}
       {punkt && (
-        <span aria-hidden
+        <span aria-hidden data-punkt="1"
           className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${pulsiert ? "animate-pulse" : ""}`}
           style={{ background: punkt, boxShadow: `0 0 0 2px ${punktRing}` }} />
       )}
       {punktLinks && (
-        <span aria-hidden
+        <span aria-hidden data-punkt="1"
           className="absolute -left-0.5 -top-0.5 h-2.5 w-2.5 rounded-full"
           style={{ background: punktLinks, boxShadow: `0 0 0 2px ${punktRing}` }} />
       )}
@@ -174,6 +180,13 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
+  /**
+   * KEINE EMOJIS/ZEICHEN IN KNÖPFEN (Owner 12.08.2026, am Kaufknopf „🎬Future Self
+   * Program — 9,99 €": „auch in dem Button machst du da komische zeichen. Die raus und
+   * zwar im CI Bibliothek"). Ein Knopf trägt TEXT (und Preis) — kein Emoji, kein
+   * Themen-Zeichen davor. Erlaubt bleibt allein der Lade-Kreisel während einer Aktion.
+   * Die Regel gilt für JEDEN Knopf im Haus, auch die noch nicht migrierten Handbauten.
+   */
   /**
    * ALS LINK STATT KNOPF (Owner 12.08.2026: „seit wann haben wir weisse schrift in Buttons?
    * … Du bist nicht in der Lage nach CI zu arbeiten" — an einem von DREI handgebauten
@@ -363,6 +376,502 @@ export function Fehlerzeile({ karte = false, className = "", children }: {
       className={`${karte ? "lb-karte-fehler " : ""}mt-1.5 text-center text-[12.5px] font-black leading-snug ${className}`}>
       {children}
     </p>
+  );
+}
+
+/**
+ * DAS GOOGLE-G — das echte Zeichen, in seinen vier Farben, gezeichnet statt geladen (kein
+ * Netzaufruf im Anmeldefenster, keine fremde Adresse). Es ist das einzige Stück fremder Marke
+ * hier: Der Knopf darum ist unserer.
+ *
+ * AUS `components/KontoChip.tsx` HIERHER GEZOGEN (Owner 12.08.2026: „auch googgle anmeldung
+ * kannst du einbauen" — im Tunnel-Baustein). Es stand nur dort, ausserhalb der Bibliothek —
+ * ein zweiter Ort hätte hier zu einer zweiten, leicht abweichenden Zeichnung des G geführt.
+ * Jetzt holen sich KontoChip UND `TunnelStart` dasselbe Zeichen von hier.
+ */
+export function GoogleG({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden className={`shrink-0 ${className}`}>
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.7l7.8 6.1C12.3 14 17.7 9.5 24 9.5Z" />
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.5Z" />
+      <path fill="#FBBC05" d="M10.4 28.2a14.5 14.5 0 0 1 0-9.3l-7.8-6.1a23.5 23.5 0 0 0 0 21.5l7.8-6.1Z" />
+      <path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.4-5.6l-7.6-5.9c-2.1 1.4-4.8 2.3-7.8 2.3-6.3 0-11.7-4.5-13.6-10.4l-7.8 6.1C6.5 42.1 14.6 47.5 24 47.5Z" />
+    </svg>
+  );
+}
+
+/**
+ * DER GOOGLE-KNOPF — EIN BAUSTEIN, ZWEI STELLEN (KontoChip und `TunnelStart`). Owner
+ * 11.08.2026, beim Konto-Fenster: „dann kannst du auch google button einbauen" — Gestalt:
+ * der Umriss-Knopf der Bibliothek (`Knopf art="umriss"`) in seiner jeweiligen Fassung, KEIN
+ * nachgebauter Google-Knopf. Nur das Zeichen ist die echte, vierfarbige Marke; die Fläche
+ * bleibt unsere.
+ *
+ * `hell` reicht einfach an `Knopf` durch — im Anmelde-Fenster (weisser Dialog) true, im
+ * dunklen Tunnel false. `karte` gibt es hier bewusst nicht: Ein Google-Knopf gehört nie auf
+ * die elfenbeinfarbene Einladungskarte.
+ */
+export function GoogleKnopf({ label, hell = false, onClick, className = "" }: {
+  label: string;
+  hell?: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <Knopf art="umriss" hell={hell} onClick={onClick} className={className}>
+      <GoogleG /> {label}
+    </Knopf>
+  );
+}
+
+/**
+ * DER TUNNEL-START — SCHRITT 1 VON ZWEI, FÜR JEDES PRODUKT GLEICH (Owner 12.08.2026:
+ * „also Stepp 1. Name, Email, Stepp zwei das was stepp drei ist wo links ein platzahlter
+ * ist für Foto oder Video upload dann generieren." · „Genauso müssen alle tunels
+ * aussehen. nicht komplizierter." · „bitte mach erst mal ein kleines konzept damit du
+ * das überall einheitlich durchziehst." — siehe KONZEPT-TUNNEL.md, der verbindliche
+ * Bauplan).
+ *
+ * EINE KARTE, ZWEI FELDER, EIN KNOPF „WEITER". Der Lead ist GESPEICHERT, sobald „Weiter"
+ * gedrückt ist — dafür ruft der Aufrufer in `onWeiter` die BESTEHENDE Lead-/Tor-Logik auf
+ * (z. B. `/api/kiss-claim`). Dieser Baustein kennt das Produkt nicht und erfindet keinen
+ * eigenen Endpunkt; er sammelt nur die zwei Felder ein und prüft sie.
+ *
+ * DIE FELDER SEHEN NACH FELDERN AUS (Owner: „Max sieht nicht aus wie ein Eingabefeld") —
+ * sichtbarer Rand, Label darüber, aus `Eingabe` (derselbe Baustein wie überall im Haus).
+ *
+ * DIE E-MAIL-PRÜFUNG IST DIESELBE WIE AN DER KASSE (`lib/email-pruefen`, dieselbe Sperre
+ * gegen Wegwerf-/Phantasieadressen) — der Fehler steht ROT DIREKT AM FELD (`Fehlerzeile`,
+ * Memory „sichtbare-fehler-keine-formularfelder"), nicht als allgemeine Statuszeile.
+ *
+ * OHNE ANMELDE-/NAMENSFRAGE, WENN WIR IHN SCHON KENNEN: Dieser Baustein selbst weiss davon
+ * nichts — das Überspringen des ganzen Schritts entscheidet der Aufrufer (er rendert
+ * `TunnelStart` dann schlicht nicht), damit die Regel an einer Stelle bleibt: der Seite,
+ * die weiss, ob eine Adresse schon vorliegt.
+ */
+/**
+ * DIE VORLAGEN-KACHEL — TIPPEN ZEIGT DAS ECHTE VIDEO (Owner 12.08.2026, wörtlich: „wenn user
+ * ein Video generiert dann muss er die Vorlage genau als Video sehen. Also es soll sich mit
+ * klick die Vorlage öffnen. Vestanden? Das gilt für den ganzen Tunel.").
+ *
+ * WARUM ES DAS BRAUCHT: Die rechte Kachel im Tunnel (Schritt 3) zeigt bisher nur ein
+ * Standbild der Vorlage — Villa & Sportwagen, ein Look, ihr Model. Wer dafür bezahlt, soll
+ * vorher SEHEN, was er kauft: das fertige Beispiel als Video, nicht als Ahnung. Ohne
+ * `videoUrl` bleibt die Kachel, was sie war — ein Bild, kein toter Klick (Owner: „Ein Knopf,
+ * der nichts tut, ist schlimmer als keiner", Skill `card`).
+ *
+ * EIGENE ÜBERLAGERUNG STATT BROWSER-VOLLBILD (Skill `card`, `EinladungAnsicht`s Lehre vom
+ * 04.08.2026): `requestFullscreen()` wird in eingebetteten Ansichten und auf etlichen Handys
+ * stillschweigend abgelehnt. `position: fixed` über die ganze Seite braucht keine
+ * Browser-Erlaubnis.
+ *
+ * IMMER EIN AUSGANG (Memory „immer-close-einbauen"): sichtbare weisse Scheibe mit Kreuz,
+ * Escape schliesst, die Seite dahinter scrollt nicht mit — dieselben drei Wege wie überall im
+ * Haus, keine vierte Erfindung.
+ *
+ * POSTER PFLICHT (Skill `card`: „nie wieder ohne Poster"): `posterUrl` faellt auf `bildUrl`
+ * zurück — die Vorlagen-Kachel HAT ohnehin schon ihr Bild, ein Video ohne dessen Standbild
+ * als Rueckfall waere eine neue Luecke, die es nicht braucht.
+ */
+/**
+ * OB EINE KACHEL IM BILD STEHT — EIN BEOBACHTER FÜR ALLE STUMMEN VORSCHAU-VIDEOS (Owner
+ * 12.08.2026, wörtlich: „Man muss die Videos sehen im ganzen Tunel. Sonst sind es
+ * bilder" → „ok, bauen").
+ *
+ * WARUM NICHT EINFACH ALLE AUTOSTARTEN: Eine Wisch-Reihe zeigt bis zu vier Kacheln auf
+ * einmal, ein Trichter-Schritt oft zwei nebeneinander — liefe jede sofort, laedt das
+ * Handy vier bis sechs Videos gleichzeitig, nur damit zwei davon je sichtbar sind. Der
+ * `IntersectionObserver` haelt fest, WELCHE Kachel wirklich im Bild steht, und nur die
+ * bekommt ihr `<video>`-Element; scrollt sie hinaus, wird es wieder abgehaengt (kein
+ * `src`, kein laufender Player im Hintergrund).
+ */
+function useKachelSichtbar<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [sichtbar, setSichtbar] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setSichtbar(true); return; }
+    const beobachter = new IntersectionObserver(([eintrag]) => setSichtbar(!!eintrag?.isIntersecting), { threshold: 0.35 });
+    beobachter.observe(el);
+    return () => beobachter.disconnect();
+  }, []);
+  return [ref, sichtbar] as const;
+}
+
+/**
+ * DIE KARTE ZEIGEN, NICHT DAS BLANKE VIDEO (Owner 12.08.2026, wörtlich: „und wir sollen die
+ * karten zeigen, die erzeugt werden beim vrgrössern. Deswegen haben wir die karten gemacht
+ * und nicht das blanke video").
+ *
+ * BIS HEUTE FUELLTE DAS VIDEO DIE GANZE SCHWARZE FLAECHE — genau die Hausregel gebrochen, die
+ * die Karte erst ins Haus gebracht hat (Memory `karten-fuer-videos`, Skill `card`: nie ein
+ * nacktes `<video>`). Jetzt liegt hier dieselbe `EinladungKarte`, die auch die
+ * Landingpage-Beispiele zeigt (`ExampleVideos`, `BeispielGalerie`, `WochenBotschaft` in
+ * app/future-program/page.tsx) — Titel oben, Ornamente, „made by luxurybandit.com" unten,
+ * `demo`-Fassung (kein antippbarer Name/Ort, es ist eine Vorschau, keine echte Einladung).
+ *
+ * `sprache`/`titel` ALS PROPS, WEIL DIE UEBERLAGERUNG DAS THEMA NICHT KENNT: Sie wird von
+ * `BildWahl` und `VorlagenKachel` aus jedem Tunnel heraus geoeffnet — nur der Aufrufer weiss,
+ * in welcher Sprache die Seite laeuft und wie seine Karte ueberschrieben ist (er reicht dafuer
+ * denselben Kartengruss, den er ohnehin aus `kissText` hat). Ohne `sprache` faellt die Karte
+ * auf Englisch zurueck, ohne `titel` auf ihre eigene Standardueberschrift — nie leer.
+ */
+export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", titel, zu }: {
+  videoUrl: string;
+  posterUrl?: string;
+  sprache?: string;
+  titel?: string;
+  zu: () => void;
+}) {
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => { if (e.key === "Escape") zu(); };
+    window.addEventListener("keydown", taste);
+    const vorher = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", taste); document.body.style.overflow = vorher; };
+  }, [zu]);
+  const [ton, setTon] = useState(true);
+  return (
+    <div className="fixed inset-0 z-[97] overflow-y-auto bg-black px-4 py-8" style={{ minHeight: "100dvh" }} onClick={zu}>
+      <div className="relative mx-auto w-full max-w-[400px]" onClick={e => e.stopPropagation()}>
+        <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
+          fuss={<MadeBy karte />}
+          video={
+            <div className="relative aspect-[3/4] w-full overflow-hidden">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video src={videoUrl} poster={posterUrl} autoPlay playsInline muted={!ton} loop
+                className="h-full w-full object-cover" />
+              {/* SCHLIESSEN STATT VERGROESSERN, TON WIE UEBERALL — dieselben zwei Plaetze
+                  (Skill `card`), am MEDIUM selbst statt an der ganzen Karte, wie jede andere
+                  Vergroessern-Scheibe im Haus. */}
+              <div className="absolute right-3 top-3 z-10">
+                <Scheibe label="Close" onClick={zu}><X className="h-5 w-5" /></Scheibe>
+              </div>
+              <TonKnopf an={ton} onClick={() => setTon(t => !t)} platz="absolute right-3 top-[60px] z-10" />
+            </div>
+          } />
+      </div>
+    </div>
+  );
+}
+
+export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ansehenLabel, sprache, titel, aktiv = true, darstellung = "kachel", className = "" }: {
+  /** Das Vorlagen-BILD — wie bisher, immer gezeigt (in der `kachel`-Gestalt). */
+  bildUrl: string;
+  /** Ohne diese Prop verhält sich die Kachel wie ein blosses Bild, kein Klick, kein Overlay. */
+  videoUrl?: string;
+  /** Poster für die Vollbild-Überlagerung — Standard ist `bildUrl`. */
+  posterUrl?: string;
+  /** Nur für den Vorlesetext, falls kein eigenes `ansehenLabel` mitkommt. */
+  beschriftung?: string;
+  /** Vorlesetext für den Tipp, der das Video öffnet — „Vorlage ansehen" in der Sprache der Seite. */
+  ansehenLabel?: string;
+  /**
+   * SPRACHE UND TITEL DER KARTE IM VOLLBILD (Owner 12.08.2026: „wir sollen die karten zeigen,
+   * die erzeugt werden beim vrgrössern … Deswegen haben wir die karten gemacht und nicht das
+   * blanke video") — gereicht an `VorlagenUeberlagerung`. Der Aufrufer kennt Sprache und
+   * Themen-Titel (aus seinem eigenen `kissText`), diese Kachel nicht.
+   */
+  sprache?: string;
+  titel?: string;
+  /** Der Ring, der eine GEWÄHLTE Kachel zeigt (Hausregel „Auswahl verschiebt NIE") — reicht der
+   *  Aufrufer über `className` mit, bleibt aber ausserhalb des Video-Tipps unberührt. */
+  aktiv?: boolean;
+  /**
+   * `kachel` das volle Bild (Ziel-Kachel in Schritt 3) · `knopf` ein schmaler Umriss-Knopf
+   * MIT Text (Owner 12.08.2026: „das gilt für den ganzen Tunel" — auch dort, wo schon eine
+   * eigene Auswahl-Kachel steht, z. B. `BildWahl` beim Geburtstag: eine zweite Bild-Kachel
+   * daneben würde die bestehende Wahl verdoppeln, ein schmaler Zusatz-Knopf darunter nicht).
+   * Ohne `videoUrl` gibt es in dieser Gestalt nichts zu zeigen — sie rendert dann nichts.
+   */
+  darstellung?: "kachel" | "knopf";
+  className?: string;
+}) {
+  const [offen, setOffen] = useState(false);
+  const [ref, sichtbar] = useKachelSichtbar<HTMLDivElement>();
+  const label = ansehenLabel || beschriftung || "Vorlage ansehen";
+  const poster = posterUrl || bildUrl;
+
+  if (darstellung === "knopf") {
+    if (!videoUrl) return null;
+    return (
+      <>
+        <button type="button" onClick={() => setOffen(true)}
+          className={`flex h-9 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/40 px-3 text-[12px] font-black text-[#f6cf51] transition active:scale-95 ${className}`}>
+          {label}
+        </button>
+        {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+      </>
+    );
+  }
+
+  const rahmen = `aspect-[3/4] w-full rounded-2xl border object-cover ${aktiv ? "border-[#f6cf51]/40" : "border-white/15"} ${className}`;
+  // eslint-disable-next-line @next/next/no-img-element
+  const bild = <img src={bildUrl} alt={beschriftung || ""} className={rahmen} />;
+
+  if (!videoUrl) return bild;
+
+  /**
+   * TIPPEN WAEHLT, NICHT MEHR ÖFFNET (Owner 12.08.2026: „man muss die Videos sehen im
+   * ganzen Tunel" → „ok, bauen"). Vorher war die ganze Kachel ein `<button>`, der das
+   * Vollbild oeffnete — kein Aufrufer konnte je einen eigenen Tipp (Auswahl) darum legen,
+   * ohne den Video-Tipp zu verdecken. Jetzt ist der Rahmen ein reiner, nicht-interaktiver
+   * `div`: Wer die Kachel als Auswahl braucht, legt seinen eigenen `onClick` aussen herum
+   * (siehe `TunnelKacheln`s `ziel`-Slot); das Video spielt von selbst, sobald die Kachel im
+   * Bild steht, und die kleine Scheibe holt es mit Ton ins Vollbild.
+   */
+  return (
+    <div ref={ref} className="relative">
+      {bild}
+      {sichtbar && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video src={videoUrl} poster={poster} muted playsInline autoPlay loop
+          /* KLEINE STUMME KACHEL-VORSCHAU, EINFACHES `loop` STATT DER ZWEI-SPIELER-
+             UEBERBLENDUNG (Memory „videos-nahtlos-schleifen"): Die Regel gegen `loop` gilt
+             fuer das grosse TON-Video der Karte, wo der Schnitt am Loop-Ende auffaellt.
+             Diese Kachel ist stumm, klein und rein dekorativ — der Bruch beim Neustart geht
+             auf 118-160px Breite unter, und ein zweiter Player fuer jede Kachel in einer
+             Wisch-Reihe waere teurer (Speicher, Akku) als der Effekt wert ist. */
+          className={`absolute inset-0 ${rahmen}`} />
+      )}
+      <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
+        {/* VERGROESSERN MIT TON — `stopPropagation` verhindert, dass der Tipp auf die
+            Scheibe zugleich den Auswahl-Tipp des Aufrufers (falls vorhanden) ausloest. */}
+        <Scheibe klein durchsichtig label={label} onClick={() => setOffen(true)}>
+          <Maximize2 className="h-4 w-4" />
+        </Scheibe>
+      </div>
+      {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+    </div>
+  );
+}
+
+/**
+ * DIE FORTSCHRITTS-PUNKTE — EIN BAUSTEIN FÜR JEDEN TUNNEL (Owner-Befund 12.08.2026, am
+ * Hochzeits-Tunnel: „warum siht der Wedding tunel anders aus? Du hast gesagt, du baust es
+ * für alle gelcih" — konkret bemängelt: „KEINE Fortschritts-Punkte, KEIN Zurück-Chevron
+ * links"). Dieselbe Zeile, die `KissFunnel` (Kuss/Geburtstag/Versprechen) längst zeigt, jetzt
+ * auch für die `EinladungBauen`-Tunnel (Hochzeit/Urlaub/Gutschein) — EIN Baustein statt
+ * sechsmal dieselben drei Zeilen Tailwind.
+ */
+export function TunnelFortschritt({ schritte, aktuell, className = "" }: {
+  /** Die erreichbaren Schritte, aufsteigend — z. B. `[1, 3]` oder `[1, 2, 3]`. */
+  schritte: number[];
+  aktuell: number;
+  className?: string;
+}) {
+  return (
+    <div className={`mb-3 flex items-center justify-center gap-1.5 ${className}`}>
+      {schritte.map(n => (
+        <span key={n} className={`h-1.5 rounded-full transition-all ${n === aktuell ? "w-6 bg-[#f6cf51]" : n < aktuell ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * DIE KACHEL-REIHE — DER EINE KACHEL-BILDSCHIRM FÜR JEDEN TUNNEL (Owner-Befund 12.08.2026,
+ * wörtlich am Hochzeits-Tunnel: „zwei gedrängte kleine Links-Kacheln mit Text IM Bild statt
+ * der System-Kacheln (gestrichelt, Icon + Label darunter, gleich groß) … Kachel-Proportionen
+ * ungleich" — „Du hast gesagt, du baust es für alle gelcih").
+ *
+ * DIE VORLAGE IST WÖRTLICH `KissFunnel`s SCHRITT 3 (Kuss/Geburtstag/Versprechen) — dieselbe
+ * Optik, hierher gezogen, damit `EinladungBauen`s drei Tunnel-Seiten (Hochzeit/Urlaub/
+ * Gutschein) sie BENUTZEN statt sie ein zweites Mal nachzubauen. `KissFunnel` selbst zieht in
+ * einer Folgerunde um (siehe Bericht) — das interne Umbauen der sehr grossen, gut
+ * eingespielten Kuss/Geburtstag/Versprechen-Trichter waere in dieser Runde das groessere
+ * Risiko gewesen als eine kurze Doppelung der Optik an EINER weiteren Stelle.
+ *
+ * LINKS 1–2 GESTRICHELTE UPLOAD-KACHELN (leer: Icon + Label DARUNTER, wie beim Kuss; voll:
+ * Bild + weisse Lösch-Scheibe), ein Pfeil, RECHTS die `VorlagenKachel` — exakt die Geometrie
+ * (`aspect-[3/4]`, `w-[118px]`/`max-w-[32vw]`, `rounded-2xl`, `border-2 border-dashed
+ * border-[#f6cf51]/40`) aus `KissFunnel.tsx`, keine eigene Erfindung.
+ */
+export function TunnelKachelUpload({ foto, titel, hinweis, onWaehlen, onLoeschen }: {
+  /** Daten-URL oder leer — leer zeigt die gestrichelte Einladung, voll das Bild. */
+  foto?: string;
+  titel: string;
+  hinweis?: string;
+  onWaehlen: () => void;
+  /** Ohne diese Prop bleibt eine gefüllte Kachel ohne Lösch-Scheibe (z. B. Katalog-Auswahl). */
+  onLoeschen?: () => void;
+}) {
+  if (foto) {
+    return (
+      <div className="relative aspect-[3/4] w-[118px] max-w-[32vw]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={foto} alt="" className="h-full w-full rounded-2xl border border-[#f6cf51]/40 object-cover" />
+        {onLoeschen && (
+          <button type="button" onClick={onLoeschen} aria-label="Foto löschen"
+            style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
+            className="absolute -left-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <button type="button" onClick={onWaehlen}
+      className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] px-2 text-center transition active:scale-[0.98]">
+      <ImageUp className="h-6 w-6 text-[#f6cf51]" />
+      <span className="text-[11px] font-black leading-snug text-white/85">{titel}</span>
+      {hinweis && <span className="text-[9.5px] font-bold leading-snug text-white/55">{hinweis}</span>}
+    </button>
+  );
+}
+
+export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, knopf, einwilligung }: {
+  /** Vorlesetext des Zurück-Pfeils — „Back"/„Zurück" in der Sprache der Seite. */
+  zurueckLabel: string;
+  aufZurueck: () => void;
+  /** Ein oder zwei linke Kacheln — der Kuss/die Hochzeit haben zwei (sein Foto/ihr Foto), das
+   *  Versprechen/der Geburtstag genau eine (Aufnahme). */
+  links: ReactNode;
+  /** Rechts: die `VorlagenKachel` fertig zusammengesetzt vom Aufrufer (er kennt Bild/Video). */
+  ziel: ReactNode;
+  /** Produktspezifische Zusatzwahl UNTER den Kacheln (Ort beim Urlaub, Ziele-Chips …) — nie
+   *  ein eigener Schritt (KONZEPT-TUNNEL.md). */
+  zusatz?: ReactNode;
+  knopf: { text: string; disabled?: boolean; busy?: boolean; onClick: () => void };
+  einwilligung?: string;
+}) {
+  return (
+    <div className="mt-1">
+      <div className="flex items-center justify-center gap-2">
+        <button type="button" onClick={aufZurueck} aria-label={zurueckLabel}
+          className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        {links}
+        <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+        <div className="w-[118px] max-w-[32vw]">{ziel}</div>
+      </div>
+      {zusatz}
+      <Knopf art="gold" className="mt-4" disabled={knopf.disabled} onClick={knopf.onClick}>
+        {/* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei
+            allen heissen Generate now - Preis.") — und KEINE Zeichen im Knopf ausser dem
+            Lade-Kreisel. */}
+        {knopf.busy ? <Laden art="knopf" /> : null}
+        {knopf.text}
+      </Knopf>
+      {einwilligung && (
+        <p className="mt-2 text-center font-serif text-[11px] leading-snug text-white/70">{einwilligung}</p>
+      )}
+    </div>
+  );
+}
+
+export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, emailPlatzhalter, weiterLabel, lang, anfangsName = "", anfangsEmail = "", busy = false, fehlerAussen = "", google, onWeiter, className = "" }: {
+  titel: string;
+  nameLabel: string;
+  namePlatzhalter?: string;
+  emailLabel: string;
+  emailPlatzhalter?: string;
+  weiterLabel: string;
+  /** Für die Fehlertexte aus `lib/email-pruefen` — ohne sie fällt es auf Englisch zurück. */
+  lang?: string;
+  /** Vorbelegter Name, z. B. aus einem frueheren Besuch desselben Geraets. */
+  anfangsName?: string;
+  /**
+   * VORBELEGTE E-MAIL (Owner 12.08.2026: „der user soll auch vor und zurück in den steps" —
+   * geht er von Schritt 2 zurueck zu Schritt 1, MUSS die schon bekannte Adresse dastehen,
+   * nicht ein leeres Feld, das ihn zu einer zweiten Eingabe zwingt. Er darf sie hier auch
+   * AENDERN — der Aufrufer erkennt das in `onWeiter` daran, dass die E-Mail nicht mehr der
+   * zuvor bestaetigten entspricht, und meldet sie dann neu an.
+   */
+  anfangsEmail?: string;
+  /** Waehrend der Aufrufer die Adresse vormerkt (Netzwerk) — Knopf zeigt den Kreisel, kein zweiter Tipp. */
+  busy?: boolean;
+  /**
+   * EIN FEHLER, DER ERST BEIM AUFRUFER ENTSTEHT (z. B. das Netzwerk, oder eine vom Server
+   * gesperrte Adresse) — dieser Baustein prüft nur das FORMAT selbst; alles, was erst die
+   * bestehende Lead-Logik (`onWeiter`) herausfindet, reicht der Aufrufer hier herein, statt
+   * einen zweiten Fehlerkanal zu erfinden.
+   */
+  fehlerAussen?: string;
+  /**
+   * DIE GOOGLE-ANMELDUNG ALS ABKÜRZUNG (Owner 12.08.2026: „auch googgle anmeldung kannst
+   * du einbauen"). Ohne diese Prop bleibt der Baustein, was er war — zwei Felder, ein
+   * Knopf. Mit ihr steht GENAU die Anordnung des Konto-Fensters davor (`KontoChip.tsx`):
+   * Google-Knopf zuerst, dann ein „oder"-Trenner, dann Name + E-Mail. Der Aufrufer liefert
+   * die Handlung (`onClick`) UND die Beschriftungen — dieser Baustein loest keinen eigenen
+   * OAuth-Aufruf aus, das bleibt bei `lib/supabase-auth-client` (`signInWithOAuth`), wie
+   * ueberall im Haus.
+   */
+  google?: { label: string; oderLabel: string; onClick: () => void };
+  onWeiter: (name: string, email: string) => void | Promise<void>;
+  className?: string;
+}) {
+  const [name, setName] = useState(anfangsName);
+  const [email, setEmail] = useState(anfangsEmail);
+  const [fehler, setFehler] = useState("");
+
+  /**
+   * NACHZIEHEN, WENN DIE VORBELEGUNG ERST NACH DEM ERSTEN ZEICHNEN ANKOMMT (live geprueft,
+   * Owner 12.08.2026: „der user soll auch vor und zurück in den steps" — die bekannte
+   * Adresse muss beim Zurückgehen wirklich im Feld STEHEN, nicht nur als ungenutzte Prop
+   * daliegen).
+   *
+   * `useState(anfangsName)` liest den Anfangswert NUR beim allerersten Rendern. Laedt die
+   * Tunnel-Seite frisch (z. B. ein harter Reload auf `?s=1`), steht `anfangsEmail` in diesem
+   * allerersten Augenblick noch auf "" — der Aufrufer liest seine bekannte Adresse selbst
+   * erst in einem Effekt aus dem Geraet (Session/`localStorage`), und der laeuft eine
+   * Zeichnung SPAETER. Ohne diesen Effekt hier bliebe das Feld leer, obwohl die Adresse
+   * inzwischen laengst bekannt ist — genau der Fall, den der Owner ausdruecklich wollte.
+   *
+   * KEIN Widerspruch zum Tippen: Nachdem diese Werte einmal angekommen sind, aendern sie
+   * sich nicht mehr von aussen, solange der Baustein steht — der Aufrufer setzt sie nur beim
+   * Hydrieren aus dem Geraet, nie waehrend jemand mitten im Feld tippt.
+   */
+  useEffect(() => { if (anfangsName) setName(anfangsName); }, [anfangsName]);
+  useEffect(() => { if (anfangsEmail) setEmail(anfangsEmail); }, [anfangsEmail]);
+
+  const weiter = async () => {
+    if (busy) return;
+    const e = email.trim();
+    const p = pruefeEmail(e);
+    if (!p.ok) { setFehler(emailFehlerText(p.grund, lang)); return; }
+    setFehler("");
+    await onWeiter(name.trim(), e);
+  };
+
+  return (
+    <Kasten polster="p-4" className={className}>
+      <p className="text-center text-[15px] font-black text-white/90">{titel}</p>
+      {google && (
+        <>
+          <div className="mt-3">
+            <GoogleKnopf label={google.label} onClick={google.onClick} />
+          </div>
+          {/* DIE TRENNLINIE SAGT, DASS ES ZWEI WEGE GIBT, KEINE ZWEI SCHRITTE — dieselbe
+              Zeile wie im Konto-Fenster (`KontoChip.tsx`), nur in Weiss statt Tinte: der
+              Tunnel ist die dunkle Welt, das Anmelde-Fenster die helle. */}
+          <div className="mt-3 flex items-center gap-3">
+            <span className="h-px flex-1 bg-white/15" />
+            <span className="text-[11px] font-black uppercase tracking-wide text-white/45">{google.oderLabel}</span>
+            <span className="h-px flex-1 bg-white/15" />
+          </div>
+        </>
+      )}
+      <div className={google ? "mt-3" : "mt-3"}>
+        <label className="block text-[11px] font-bold text-white/55" htmlFor="lb-tunnel-name">{nameLabel}</label>
+        <Eingabe id="lb-tunnel-name" className="mt-1 text-center" value={name}
+          onChange={e => setName(e.target.value)} maxLength={18} autoComplete="given-name"
+          placeholder={namePlatzhalter} />
+      </div>
+      <div className="mt-2.5">
+        <label className="block text-[11px] font-bold text-white/55" htmlFor="lb-tunnel-email">{emailLabel}</label>
+        <Eingabe id="lb-tunnel-email" className="mt-1 text-center" type="email" inputMode="email" autoComplete="email"
+          value={email} onChange={e => { setEmail(e.target.value); if (fehler) setFehler(""); }}
+          placeholder={emailPlatzhalter || "you@email.com"}
+          onKeyDown={e => { if (e.key === "Enter") void weiter(); }} />
+        <Fehlerzeile>{fehler || fehlerAussen}</Fehlerzeile>
+      </div>
+      <Knopf art="gold" className="mt-3.5" onClick={() => void weiter()} disabled={busy}>
+        {busy ? <Laden art="knopf" /> : weiterLabel}
+      </Knopf>
+    </Kasten>
   );
 }
 
@@ -1057,8 +1566,14 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] =
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday" },
   { icon: Heart, name: "Kiss", href: "/themes/kiss" },
-  /* Surprise (Pole Dance) IST RAUS (Owner 11.08.2026, siehe app/sitemap.ts) — nicht in der
-     Topic-Reihe, nur noch intern (Admin-Vorschau in BottomNav.tsx) erreichbar. */
+  /* SURPRISE (POLE DANCE) IST WIEDER DA (Owner 12.08.2026, mit Bild der Themen-Kreise:
+     „pool dancing kannst du hier einbauen und da machst du auch dort den tunel einbauen" —
+     Rücknahme der Rausnahme vom selben Vormittag, siehe die Begründung darunter). Platz wie
+     vor dem 11.08.2026: direkt nach Kiss. */
+  { icon: Gift, name: "Surprise", href: "/themes/surprise" },
+  /* Bis heute Vormittag (11.08.2026) stand hier: „Surprise (Pole Dance) IST RAUS, siehe
+     app/sitemap.ts — nicht in der Topic-Reihe, nur noch intern (Admin-Vorschau in
+     BottomNav.tsx) erreichbar." Diese Zeile bleibt als Protokoll stehen, sie gilt nicht mehr. */
   { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
   { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
@@ -1482,8 +1997,72 @@ export function AnmeldeEinladung({
   );
 }
 
-export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }: {
-  bilder: { id: string; name: string; bild: string }[];
+/**
+ * EINE KACHEL MIT VIDEO — EIGENE KOMPONENTE, WEIL SIE EINEN EIGENEN BEOBACHTER BRAUCHT
+ * (Owner 12.08.2026: „man muss die Videos sehen im ganzen Tunel" → „ok, bauen"). Ein Hook
+ * (`useKachelSichtbar`) darf nicht in einer `.map()`-Schleife der Elternkomponente stehen —
+ * React ruft Hooks je Komponenteninstanz auf, nicht je Schleifendurchlauf. Kacheln OHNE
+ * Video bleiben deshalb im normalen `.map()` unten, unveraendert; nur Kacheln MIT Video
+ * kommen hierher.
+ *
+ * TIPPEN AUF DIE KACHEL BLEIBT DIE AUSWAHL (Vorgabe 1 des Auftrags) — dafuer ist der
+ * Rahmen ein `div[role=button]` statt eines echten `<button>`: Ein `<button>` darf laut
+ * HTML kein zweites `<button>` (die Vergroessern-Scheibe) enthalten, der Browser wuerde es
+ * stillschweigend herausbrechen und der Tipp landete an der falschen Stelle.
+ */
+function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, waehle }: {
+  b: { id: string; name: string; bild: string; video?: string; poster?: string };
+  an: boolean;
+  gross: boolean;
+  ansehenLabel?: string;
+  /** Sprache/Titel der Karte im Vollbild (Owner 12.08.2026, siehe `VorlagenUeberlagerung`). */
+  sprache?: string;
+  titel?: string;
+  waehle: () => void;
+}) {
+  const [ref, sichtbar] = useKachelSichtbar<HTMLDivElement>();
+  const [offen, setOffen] = useState(false);
+  const poster = b.poster || b.bild;
+  const label = ansehenLabel || "Vorlage ansehen";
+  return (
+    <>
+      <div ref={ref} role="button" tabIndex={0} aria-pressed={an}
+        onClick={waehle}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); waehle(); } }}
+        className={`shrink-0 cursor-pointer text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
+        <span className={`relative block overflow-hidden ring-2 ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={poster} alt={b.name} className="block h-full w-full object-cover" />
+          {sichtbar && (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video src={b.video} poster={poster} muted playsInline autoPlay loop
+              /* KLEINE STUMME KACHEL-VORSCHAU, EINFACHES `loop` (Memory
+                 „videos-nahtlos-schleifen" verlangt die Zwei-Spieler-Ueberblendung fuer
+                 GROSSE Videos MIT Ton — hier ist die Kachel stumm und 78-160px breit; der
+                 Schnitt am Loop-Ende ist auf dieser Flaeche nicht zu sehen, zwei Player je
+                 Kachel in einer Wisch-Reihe waeren unnoetiger Aufwand). */
+              className="absolute inset-0 h-full w-full object-cover" />
+          )}
+          <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
+            {/* VERGROESSERN MIT TON — `stopPropagation`, damit der Tipp auf die Scheibe
+                nicht zugleich die Auswahl umschaltet (Vorgabe: Tippen waehlt, Vergroessern
+                ist ein eigener Knopf). */}
+            <Scheibe klein durchsichtig label={label} onClick={() => setOffen(true)}>
+              <Maximize2 className="h-4 w-4" />
+            </Scheibe>
+          </div>
+        </span>
+        <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[160px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+          {b.name}
+        </span>
+      </div>
+      {offen && b.video && <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+    </>
+  );
+}
+
+export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sprache, titel, className = "" }: {
+  bilder: { id: string; name: string; bild: string; video?: string; poster?: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
   waehle: (id: string) => void;
@@ -1494,6 +2073,17 @@ export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }
    * Zustände tragen denselben Ring, es wechselt nur die Farbe.
    */
   gross?: boolean;
+  /** Vorlesetext der Vergroessern-Scheibe, fuer Kacheln MIT `video` — „Vorlage ansehen" in
+   *  der Sprache der Seite. Ohne eigenes Label faellt sie auf den deutschen Text zurueck. */
+  ansehenLabel?: string;
+  /**
+   * SPRACHE UND TITEL DER KARTE IM VOLLBILD (Owner 12.08.2026: „wir sollen die karten
+   * zeigen, die erzeugt werden beim vrgrössern … Deswegen haben wir die karten gemacht und
+   * nicht das blanke video") — nur fuer Kacheln MIT `video` gebraucht, gereicht an
+   * `VorlagenUeberlagerung`.
+   */
+  sprache?: string;
+  titel?: string;
   className?: string;
 }) {
   return (
@@ -1508,13 +2098,30 @@ export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }
        Zeilen („Gold & Confetti") und das daneben nur eine, wird der hohe Knopf mittig
        ausgerichtet — und sein Bild sass sieben Pixel hoeher als das Nachbarbild. Oben
        ausgerichtet stehen alle Kacheln auf derselben Linie, egal wie lang ihr Name ist. */
-    <div className={`lb-wisch flex items-start overflow-x-auto px-1.5 py-1.5 ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
+    /* UEBER DIE GANZE BREITE (Owner 12.08.2026, am Urlaubs-Slider: „was ist hier los mit
+       dem SLider? geht nicht über die ganze breite") — dasselbe `-mx-4 px-4`-Muster wie
+       die Themen-Kreise: Die Reihe läuft randbündig durch die Spalte, statt als schmaler
+       Block mit toter Fläche daneben zu stehen. `snap-start` statt `snap-center`: Die
+       Slides reihen sich vom Rand auf, nichts hängt als angeschnittener Streifen links. */
+    <div className={`lb-wisch -mx-4 flex items-start overflow-x-auto px-4 py-1.5 ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
+        {/* KACHELN MIT VIDEO GEHEN AN DIE EIGENE KOMPONENTE (Owner 12.08.2026: „man muss die
+            Videos sehen im ganzen Tunel" → „ok, bauen") — sie braucht ihren eigenen
+            Sichtbarkeits-Beobachter (`useKachelSichtbar`), den ein Hook nicht innerhalb
+            dieser Schleife bekommen darf. KACHELN OHNE VIDEO LAUFEN UNVERAENDERT WEITER,
+            genau der Code, der hier schon vor diesem Auftrag stand — keine Verhaltens-
+            aenderung fuer bestehende Aufrufer ohne `video`. */}
+        if (b.video) {
+          return (
+            <BildWahlKachel key={b.id} b={b} an={an} gross={gross} ansehenLabel={ansehenLabel}
+              sprache={sprache} titel={titel} waehle={() => waehle(b.id)} />
+          );
+        }
         return (
           <button key={b.id} type="button" onClick={() => waehle(b.id)}
             aria-pressed={an}
-            className={`shrink-0 text-center transition active:scale-95 ${gross ? "snap-center" : ""}`}>
+            className={`shrink-0 text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
             {/**
               * DAS MASS STEHT AM RAHMEN, NICHT AM BILD (Owner 07.08.2026: „bei 2 das Bild
               * füllt nicht das format"). Trug das `img` die Grösse, bestimmte der Ring die
@@ -1543,7 +2150,11 @@ export function BildWahl({ bilder, wert, waehle, gross = false, className = "" }
               * wechselt ausschliesslich die Farbe. Der dunkle Abstandsring bleibt in beiden
               * Faellen: Ohne ihn verschwindet Gold auf einem goldenen Motiv.
               */}
-            <span className={`block overflow-hidden ring-2 ring-offset-2 ring-offset-[#0b0a09] ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
+            {/* KEIN FESTER DUNKLER ABSTANDSRING (Owner 12.08.2026, helle Fassung: „bitte
+                nicht schon wieder schwarze rahmen") — `ring-offset-[#0b0a09]` malte in Hell
+                um JEDE Kachel einen schwarzen Rahmen. Ohne Versatz zeigt die Wahl der Ring
+                allein; er liegt direkt am Bild, in beiden Fassungen sauber. */}
+            <span className={`block overflow-hidden ring-2 ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
               ? "ring-[#f6cf51]"
               : "ring-white/15"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
