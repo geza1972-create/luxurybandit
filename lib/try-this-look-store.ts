@@ -119,6 +119,14 @@ export type TryThisLookEvent = {
   // hinweg verfolgen. Vorher hatten 385 von 386 Ereignissen keinerlei Zuordnung.
   device?: string;
   internal?: boolean; // fired by an admin/test or localhost session → excluded from the counts
+  // PRODUKT-KÜRZEL (13.08.2026, Owner-Master-Auftrag §32 — Trichter je Produkt in Insights).
+  // Ereignisse der normierten Familie aus lib/track-funnel.ts (funnel_started/lead_created/…)
+  // schicken `theme` (den Slug aus lib/produkte.ts, z. B. „kiss"/„wedding"/„versprechen") schon
+  // seit deren Einführung mit — bis heute wurde es beim Schreiben in app/api/try-this-look/
+  // route.ts (action:"event") verworfen, weil dieses Objekt Felder EXPLIZIT auflistet statt
+  // `...payload` durchzureichen. Additiv ergänzt, ändert nichts an bereits gespeicherten
+  // Ereignissen ohne dieses Feld (die bleiben `undefined`).
+  theme?: string;
 };
 
 export type TryThisLookLead = {

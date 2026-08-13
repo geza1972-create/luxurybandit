@@ -1219,6 +1219,18 @@ export async function POST(request: Request) {
         // 385 von 386 Ereignissen hatten keine Zuordnung.
         device: String(payload.device ?? "").trim().slice(0, 80) || undefined,
         internal: (payload as any).internal === true || undefined,
+        // NACHTRAG 13.08.2026 (Owner-Master-Auftrag §32, Trichter-Ansicht je Produkt in
+        // Insights): `lib/track-funnel.ts` (`logTunnelEvent`) schickt bei JEDEM Ereignis der
+        // normierten Familie (funnel_started/lead_created/…) ein `theme`-Feld mit — das
+        // Produkt-Kürzel aus `lib/produkte.ts` (`kiss`/`wedding`/`versprechen`/…). Bis heute
+        // wurde es hier NICHT gespeichert (das Objekt oben listet Felder explizit, kein
+        // `...payload`-Durchreichen) — jedes Browser-Ereignis der Familie verlor sein Produkt
+        // beim Schreiben, nur `lookId`/`campaignId` blieben (die bei diesen Ereignissen aber
+        // auf den zufällig „aktiven" Katalog-Look zeigen, NICHT auf das Produkt). Ohne dieses
+        // Feld liess sich aus den Browser-Ereignissen gar kein Trichter je Produkt bauen — nur
+        // additiv ergänzt, ändert nichts an bereits gespeicherten Ereignissen oder an
+        // bestehenden Auswertungen, die dieses Feld nicht kennen.
+        theme: String((payload as any).theme ?? "").trim() || undefined,
       });
 
       const updatedState = await saveTryThisLookState(state);

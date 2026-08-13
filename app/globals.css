@@ -875,3 +875,31 @@ svg {
    getroffen wird — einmal hier, nie je Kachel. */
 .lb-fb [class*="ring-[#f6cf51]"] { --tw-ring-color: #1877F2 !important; }
 .lb-fb [class*="border-[#f6cf51]"] { border-color: #1877F2 !important; }
+
+/* DER GOLD-HAUCH ALS HAUS-KLASSE (Owner 12.08.2026, Screenshot: die Kuss-Upload-Kacheln
+   standen in Light als VOLLE blaue Platten mit weisser Schrift da). Ursache: die
+   Pauschalregel oben färbt ALLES blau und solide, was `bg-[#f6cf51]` im Klassennamen
+   trägt — sie traf auch den 6-%-Hauch der gestrichelten Upload-Kacheln und Info-Kästen
+   (TunnelKachelUpload, UploadKachel, KissFunnel u. a.). Der Hauch trägt jetzt eine
+   eigene Klasse, die der Pauschalregel aus dem Weg geht: Gold-Hauch im Dunkeln,
+   Blau-Hauch in der hellen Fassung — passend zu den blauen Rahmen. Die Schrift darin
+   bleibt so bei den normalen Hell-Regeln (Tinte), statt weiss auf weiss zu verschwinden. */
+.lb-goldhauch { background-color: rgba(246, 207, 81, 0.06); }
+.lb-theme .lb-goldhauch { background-color: rgba(24, 119, 242, 0.06); }
+
+/* DIE THEMEN-KACHEL DER REIHE IST KEIN CHIP (Owner 13.08.2026, Screenshot der Future-Self-
+   Kachel in Hell: „das ganze blau in blau und babyblu ist nicht toll"). Sie trägt
+   `border-white/15` wie ein Umriss-Knopf, und die Chip-Pauschalregel oben machte daraus
+   eine blaue Fläche mit durchweg blauer Schrift — Titel, Zeile, Preis, Merkmale, alles
+   dieselbe Farbe. Hier die Ausnahme: weisses Karten-Papier, Tinte als Schrift; Blau bleibt
+   der AKZENT (Preis und Titel-Hälfte über die Gold→Blau-Regel, das LIVE-Schild über
+   lb-gold). Die :not()-Klauseln stehen NUR fürs Spezifitäts-Gewicht gegen die Chip-Regel
+   (gleiches Muster wie die Kopfzeilen-Ausnahme dort): Gleichstand + spätere Stelle = diese
+   Regel gewinnt. */
+.lb-fb a[data-themenkachel="1"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button),
+.lb-fb div[data-themenkachel="1"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button) {
+  color: #1a160f !important;
+  background-color: #ffffff !important;
+  border-color: rgba(24, 119, 242, 0.30) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.08);
+}

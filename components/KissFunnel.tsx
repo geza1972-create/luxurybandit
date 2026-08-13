@@ -11,11 +11,12 @@ import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronL
 /* `AUFLADE_STUFEN` und `eur` sind mit dem Aufladewähler in die Bibliothek gezogen — die
    Leiter rechnet jetzt `lib/kasse` (`deckendeStufen`), die Beträge schreibt `AufladeWaehler`. */
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, eur, type ThemenSchluessel } from "@/lib/pricing";
-import { logFunnelEvent } from "@/lib/track-funnel";
+import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
+import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import TonKnopf from "@/components/TonKnopf";
 import ImageCropper from "@/components/ImageCropper";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -23,12 +24,12 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, TunnelKachelUpload, KurzeEinwilligung } from "@/components/CI";
 import { Eingabe } from "@/components/CI";
 import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
-import { versprechenSkript, VERSPRECHEN_HEUTE, VERSPRECHEN_SPAETER } from "@/lib/versprechen";
+import { VERSPRECHEN_HEUTE, VERSPRECHEN_SPAETER } from "@/lib/versprechen";
 import { kontoText } from "@/lib/konto-i18n";
 /**
  * DIE GESCHENK-TABELLE WOHNT JETZT IN `lib/geschenke.ts` (Owner 03.08.2026,
@@ -38,7 +39,7 @@ import { kontoText } from "@/lib/konto-i18n";
  * Umbenennen waere Laerm ohne Gewinn in genau der Datei, die ohnehin zu gross ist.
  */
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
-import { kissText } from "@/lib/kiss-i18n";
+import { kissText, type KissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
 /* GEBURTSTAG_PROMPT wohnt weiter in lib/geburtstag, wird aber seit dem 07.08.2026 nur noch
@@ -349,6 +350,48 @@ const AUFNAHME_SEK_VERSPRECHEN = 25;
 const aufnahmeSekFuer = (variant: string) =>
   variant === "versprechen" ? AUFNAHME_SEK_VERSPRECHEN : AUFNAHME_SEK_STANDARD;
 
+/**
+ * DIE PROGRAMM-FEATURE-KARTE DES VERSPRECHENS (Owner-Zusatzauftrag 12.08.2026, wörtlich:
+ * „eigentlich zeigen wir da auch das programm wenn wir eins haben neben der card, oder chat
+ * oder die Features wie bei Hochzeit mit"). Video Card + Feature Card ist die Hausregel
+ * (Memory `produktaufbau-video-card-feature-card`) — im Vollbild der Vorlage (`VorlagenUeber-
+ * lagerung`) fehlte die Feature-Karte bis heute komplett.
+ *
+ * KEIN NEUER TEXT: Dieselbe 01–06-Liste, die schon auf der Landingpage steht
+ * (`T.wasBekommstTitel`/`wasBekommstTitelListe`/`wasBekommstTextListe`, alle sieben Sprachen
+ * schon da) — nur im Karten-Design statt im Kachel-Raster, und KOMPAKT: kein Kaufknopf, denn
+ * der steht schon unter der Vorlage selbst.
+ *
+ * DASSELBE MUSTER WIE DER HOCHZEITS-GRUPPENCHAT (`components/GruppenChat.tsx`): `lb-karte` +
+ * `CornerOrnaments` + `lb-karte-rahmen` sind die drei Bausteine jeder Creme-Karte im Haus —
+ * hell/dunkel stimmen automatisch, weil die Farben aus den `lb-karte-*`-Klassen kommen, nie
+ * aus einer hier getippten Farbe (Memory `lb-karte-important-frisst-inline-farben`).
+ */
+function VersprechenProgrammKarte({ T }: { T: KissText }) {
+  if (!T.wasBekommstTitel || !T.wasBekommstTitelListe?.length) return null;
+  return (
+    <div className="lb-karte relative overflow-hidden rounded-[20px] px-4 pb-4 pt-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+      <CornerOrnaments />
+      <div className="lb-karte-rahmen pointer-events-none absolute inset-[8px] rounded-[14px]" />
+      <div className="relative">
+        <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.24em]">
+          {T.wasBekommstTitel}
+        </p>
+        <DividerOrnament className="mt-2" />
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {T.wasBekommstTitelListe.map((titel, i) => (
+            <div key={i} className="lb-karte-news rounded-[12px] px-2.5 py-2">
+              <span className="lb-karte-gold text-[10.5px] font-black">{String(i + 1).padStart(2, "0")}</span>
+              <p className="mt-0.5 text-[12px] font-black leading-snug">{titel}</p>
+              <p className="mt-0.5 text-[10.5px] font-medium leading-snug opacity-70">{T.wasBekommstTextListe?.[i]}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange }: {
   variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[];
   /**
@@ -630,17 +673,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * einträgt, muss das Video daneben gemessen haben, nicht geschätzt (`ffprobe`).
    */
   const karteVerhaeltnis = variant === "versprechen" ? "aspect-[9/16]" : undefined;
-  /**
-   * DIE VORLESE-VORLAGE — NUR BEIM VERSPRECHEN (Owner 11.08.2026: „Diesen Text müssen als
-   * Vorlage geben damit er das nachrspricht").
-   *
-   * Sie steht IM Aufnahme-Vollbild, oben, direkt unter dem Rand: Wer abliest, darf dafür
-   * nicht aus dem Bild müssen — und je näher der Text an der Kameralinse steht, desto mehr
-   * schaut er beim Sprechen hinein statt daneben. Beim Geburtstag bleibt es beim freien Wort
-   * (Owner 09.08.2026: „kein Skript nötig"), deshalb hängt es am Thema und nicht an
-   * `selbstVideo`.
-   */
-  const skript = variant === "versprechen" ? versprechenSkript(lang) : null;
   /** Die Worte der Aufnahme-Zeile — auch der Kaufknopf braucht sie, nicht nur der Kasten. */
   const SW = STIMME_WORT[String(lang ?? "en").slice(0, 2)] ?? STIMME_WORT.en;
   /** Der Zwei-Stufen-Waehler der Aufladung (Owner 03.08.2026: „biete beide an"). */
@@ -705,7 +737,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Video gebraucht werden (z. B. `garderobe` oben). „Gold & Confetti" bekommt bewusst kein
    * `video`, dafuer gibt es keins — die Kachel bleibt dort ein Bild.
    */
-  const GEBURTSTAG_LOOKS_MIT_VIDEO = GEBURTSTAG_LOOKS.map(l => ({ ...l, video: GEBURTSTAG_LOOK_VIDEO[l.id] }));
+  /* RÜCKFALL AUFS PRODUKT-BEISPIEL (Owner 12.08.2026: „Ich habe dir gesagt dass wir die
+     Videos anglicken und vergrössern also die Cards zeigen. Hast du das nicht umgestzt in
+     dem ganzen Funel?") — JEDE Vorlagen-Kachel öffnet die Karte; hat ein Look kein eigenes
+     Video, zeigt sie das Beispiel-Video des Produkts (existiert immer, nichts wird erzeugt). */
+  const GEBURTSTAG_LOOKS_MIT_VIDEO = GEBURTSTAG_LOOKS.map(l => ({ ...l, video: GEBURTSTAG_LOOK_VIDEO[l.id] ?? (beispiele[0] || undefined) }));
   /**
    * ALLE DREI POLEDANCE-SETS TEILEN SICH EIN BEISPIELVIDEO (`beispiele[0]`, von der
    * aufrufenden Seite als `POLEDANCE_VIDEO` hereingereicht) — es gibt (noch) kein Video je
@@ -1096,6 +1132,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           if (!bild || !brauchbar) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.leer); track("aufnahme_leer"); return; }
           if (dauer && dauer < 1.5) { URL.revokeObjectURL(url); setAufnahmeFehler(SW.kurz); track("aufnahme_kurz"); return; }
           setAufnahmeFehler("");
+          /* NORMIERTE FAMILIE, `video_recorded` (Owner-Master-Auftrag §32, 13.08.2026): erst
+             HIER, nach den beiden roten Absagen oben (leer/zu kurz), gilt die Aufnahme als
+             ANGENOMMEN — ein Abbruch darf hier nicht mitzählen, sonst sähe Insights mehr
+             Aufnahmen, als je einer benutzen konnte. */
+          void logTunnelEvent("video_recorded", variant);
           setAufnahmeUrl(url);   // bleibt bestehen — daraus spielt der Spieler
           setCustomModel(bild); setUseCustom(true);
           /* Sein Gesicht gehört ab jetzt IHM, nicht diesem einen Auftrag — die Tonspur folgt
@@ -2482,6 +2523,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     } catch { setStatus(T.statusNetwork); setBusy(false); }
   };
 
+  /**
+   * DIE ANMELDE-EINLADUNG STEHT JETZT NACH DEM ERGEBNIS (Owner 12.08.2026, Architektur-
+   * Abgleich §16: „Konto-Fenster raus aus dem Kaufweg"). Bis heute sprang sie VOR der
+   * Bezahlung auf — genau in dem Moment, in dem er kaufen wollte: „dein eigenes Guthaben
+   * und deine Videos folgen dir aufs nächste Gerät" als Begründung, bevor es überhaupt
+   * etwas zum Folgen gab. Das ChatGPT-Papier nennt das Ziel „Projekt sichern": Er hat sein
+   * Werk gerade gesehen — Video oder Bild ist da —, jetzt lohnt sich ein Konto wirklich.
+   *
+   * Dieselben Texte (KT.anmeldeTitel/anmeldeGrund, 7 Sprachen), nur der Zeitpunkt ist neu.
+   * Feuert genau einmal (anmeldeSchonGesehen/anmeldeMerken bleiben die Bremse), nie bei
+   * Staff oder wer schon angemeldet ist.
+   */
+  useEffect(() => {
+    if (isStaff || angemeldet || anmeldeSchonGesehen()) return;
+    if (!videoUrl && !bild) return;
+    nachAnmeldeWeiter.current = false;   // es gibt nichts mehr fortzusetzen — das Ergebnis steht schon
+    setAnmeldeOffen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl, bild, isStaff, angemeldet]);
+
+  /**
+   * `result_viewed` (Owner-Architektur-Abgleich 12.08.2026, §32) — eigener Effekt statt im
+   * obigen mitgezaehlt, damit er auch fuer Staff/Angemeldete feuert (die Anmelde-Einladung
+   * bleibt ihnen erspart, das Ergebnis sehen sie trotzdem).
+   */
+  const ergebnisGemeldet = useRef(false);
+  useEffect(() => {
+    if (ergebnisGemeldet.current || (!videoUrl && !bild)) return;
+    ergebnisGemeldet.current = true;
+    void logTunnelEvent("result_viewed", variant);
+  }, [videoUrl, bild, variant]);
+
   // Klick auf „Generate": ein ECHTES Bild, kostenlos.
   //
   // Vorher lief hier eine gespielte Render-Show ohne einen einzigen Aufruf, danach ein
@@ -2521,19 +2594,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      */
     if (V.keinGratis && isStaff && !bezahlt) { setBezahlt(true); void kussVideo(); return; }
     /**
-     * ERST DIE EINLADUNG ZUR ANMELDUNG (Owner 09.08.2026: „Der Kunde muss trotzdem einen
-     * sehr schönen Dialog bekommen … Es ist zu seinem Schutz").
-     *
-     * Sie steht VOR dem Bezahlen und nach der Look-Wahl: Er hat sein Motiv gewählt, sieht
-     * es im Fenster wieder und versteht, was ein Konto ihm bringt — sein Guthaben und seine
-     * Videos folgen ihm aufs nächste Gerät. Genau einmal: Wer angemeldet ist oder schon
-     * „Später" gesagt hat, sieht sie nie wieder.
+     * DIE ANMELDE-EINLADUNG STAND HIER BIS 12.08.2026 — VOR der Bezahlung, nach der
+     * Look-Wahl. Sie ist umgezogen (Architektur-Abgleich §16, „Konto-Fenster raus aus dem
+     * Kaufweg"): siehe den `useEffect` oberhalb von `generate`, der jetzt NACH dem Ergebnis
+     * feuert. Der Kaufweg selbst läuft ab hier ungestört durch.
      */
-    if (!isStaff && !angemeldet && !anmeldeSchonGesehen()) {
-      nachAnmeldeWeiter.current = true;
-      setAnmeldeOffen(true);
-      return;
-    }
     /**
      * GELIEFERT IST ABGEGOLTEN — die Kuss-Regel gilt auch hier (Owner 08.08.2026, dreimal
      * hintereinander: „wird nicht abgebucht … kein auftrag … ich habe immer noch 10,02
@@ -2845,6 +2910,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const kussVideo = async () => {
     if (videoBusy || !fotosDa) return;
+    // `generation_started` (Owner-Architektur-Abgleich 12.08.2026, §32) — hier beginnt der
+    // wirkliche Lauf beim Anbieter, nicht nur der Klick darauf.
+    void logTunnelEvent("generation_started", variant);
     /* Lief der Startaufruf wirklich durch? Nur solange er es NICHT tat, darf der
        Startstempel zurückgenommen werden — nach einer echten Kennung rendert der Anbieter,
        auch wenn hier unten die Warteschleife stirbt (siehe `renderAbbruch`). */
@@ -3364,6 +3432,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     // den Tipp, nicht die Kasse. `checkout_tap` = er wollte, `checkout` = Stripe ist offen.
     track("checkout_tap");
     if (payBusy) return;
+    // `checkout_started` (Owner-Architektur-Abgleich 12.08.2026, §32) — derselbe Moment wie
+    // `checkout_tap`, nur unter dem normierten Namen fuers produktuebergreifende Insights.
+    void logTunnelEvent("checkout_started", variant);
     if (isStaff) {
       // Auch der Admin-Weg fuehrt in die Auswahl — sonst testet er einen Ablauf, den der
       // Kunde nie sieht.
@@ -3404,6 +3475,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         try { popup?.close(); } catch { /**/ }   // das leere Fenster wurde nie gebraucht
         trackMetaPixel("Purchase", { currency: "EUR", content_name: "Kiss video (wallet)" });
         track("checkout");
+        void logTunnelEvent("payment_completed", variant, { via: "wallet" });
         setGuthabenCents(typeof start.rest === "number" ? start.rest : null);
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
         setPayBusy(false);
@@ -3541,6 +3613,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
           // egal ob er ueber das Kassen-Fenster oder ueber die Rueckleitung kam.
+          void logTunnelEvent("payment_completed", variant, { via: "stripe" });
           setBezahlt(true);
           if (s.programUrl) setProgramUrl(String(s.programUrl));
           // Auswahl ist seit 03.08.2026 VOR der Kasse (Szene + Waesche am Schritt 3) —
@@ -3869,42 +3942,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            wusste nicht, wo der eigene Körper aufhört. Bei 0.5 bleibt das Loch
            deutlich der scharfe Teil, aber man sieht sich noch. */
         style={{ boxShadow: "0 0 0 9999px rgba(255,255,255,0.5)" }} />
-      {/**
-        * DIE VORLAGE ZUM ABLESEN (Owner 11.08.2026: „Diesen Text müssen als
-        * Vorlage geben damit er das nachrspricht").
-        *
-        * OBEN, NICHT UNTEN: Sie liegt dicht an der Kameralinse — wer von hier
-        * abliest, schaut fast in die Kamera. Am unteren Rand (wo Knopf und
-        * Ansage stehen) würde er die ganze Aufnahme nach unten blicken.
-        *
-        * DURCHSICHTIG UND OHNE GRIFF (`pointer-events-none`): Sie liegt über
-        * dem matten Weiss, das ohnehin ausserhalb des Ovals liegt, und darf
-        * dem Start-Knopf und dem Kreuz keinen Tipp wegnehmen. Rechts bleibt
-        * Platz für das Kreuz (`pr-14`).
-        *
-        * ZEILENWEISE, wie sie in lib/versprechen steht — jede Zeile ein
-        * Atemzug. Wird es auf einem kleinen Schirm zu lang, scrollt der Kasten
-        * in sich, statt über das Gesicht zu wachsen.
-        */}
-      {skript && (
-        /* MIT EIGENER FLÄCHE: Die Vorlage ist höher als der matte Rand über
-           dem Oval und läge mit den letzten Zeilen sonst auf dem klaren Bild
-           — dunkle Schrift auf einem Gesicht ist nicht lesbar. Das helle
-           Feld darunter macht sie in jeder Lage lesbar und sieht aus wie der
-           matte Rand, den es fortsetzt. */
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] max-h-[26%] overflow-y-auto rounded-b-2xl bg-white/85 px-4 pr-14 pb-2.5 pt-2.5">
-          <p className="text-[10px] font-black uppercase tracking-wide" style={{ color: "#6b6152" }}>
-            {SW.lies}
-          </p>
-          <div className="mt-1 space-y-[2px]">
-            {skript.map((zeile, i) => (
-              <p key={i} className="text-[12.5px] font-black leading-[1.25]" style={{ color: "#1a160f" }}>
-                {zeile}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* DIE ABLESE-VORLAGE IST RAUS (Owner 12.08.2026: „oder besser den text oben
+          raus") — seit dem ChatGPT-Papier §22 sagt er FREI, was er in 30 Tagen
+          verändern will (`aufHinweis3`/`aufBeispiel` unter dem Knopf); der vorgegebene
+          Satz oben widersprach genau dieser Ansage und verdeckte das Bild. */}
       {/* DER AUSGANG (Bibliotheks-Baustein `Scheibe`, Hausregel: runder
           Symbol-Knopf kommt aus components/CI.tsx). Oben rechts, wo jeder
           ihn sucht — und weit weg vom Start-Knopf, damit niemand danebentippt. */}
@@ -3936,7 +3977,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <>
             <button type="button" onClick={aufnahmeLos}
               className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black active:scale-95 transition">
-              <Mic className="h-4 w-4" /> {SW.los}
+              {/* NUR DAS VERSPRECHEN AENDERT DIE BESCHRIFTUNG (Owner-Folgeauftrag 12.08.2026,
+                  ChatGPT-Papier §22: „Video aufnehmen") — `SW.los` bleibt fuer den
+                  Geburtstag (das andere `selbstVideo`-Thema) unveraendert „Jetzt starten". */}
+              <Mic className="h-4 w-4" /> {variant === "versprechen" && T.aufCta ? T.aufCta : SW.los}
             </button>
             {/* ABBRECHEN IST DAS KREUZ OBEN RECHTS (Owner 09.08.2026:
                 „Abbrechen als Close-Button oben rechts, rund X"). Ein
@@ -3951,12 +3995,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             {SW.stopp}{restSek ? ` · ${restSek}s` : ""}
           </button>
         )}
-        {/* In Tinte, ohne Kasten — ein Hinweis am Rand, kein zweiter Block. */}
+        {/* In Tinte, ohne Kasten — ein Hinweis am Rand, kein zweiter Block.
+            NUR DAS VERSPRECHEN AENDERT TITEL/TEXT + eine zusaetzliche Beispielzeile (Owner-
+            Folgeauftrag 12.08.2026, ChatGPT-Papier §22) — der Geburtstag sieht weiter
+            `SW.aufTitel`/`SW.aufHinweis`, unveraendert. */}
         <div className="text-center">
-          <p className="text-[13px] font-black" style={{ color: "#1a160f" }}>{SW.aufTitel}</p>
-          <p className="mx-auto mt-1 max-w-[330px] text-[11.5px] font-bold leading-snug" style={{ color: "#3a352d" }}>
-            {SW.aufHinweis}
+          <p className="text-[13px] font-black" style={{ color: "#1a160f" }}>
+            {variant === "versprechen" && T.aufTitel3 ? T.aufTitel3 : SW.aufTitel}
           </p>
+          <p className="mx-auto mt-1 max-w-[330px] text-[11.5px] font-bold leading-snug" style={{ color: "#3a352d" }}>
+            {variant === "versprechen" && T.aufHinweis3 ? T.aufHinweis3 : SW.aufHinweis}
+          </p>
+          {variant === "versprechen" && T.aufBeispiel && (
+            <p className="mx-auto mt-1.5 max-w-[330px] text-[11.5px] font-black italic leading-snug" style={{ color: "#1a160f" }}>
+              {T.aufBeispiel}
+            </p>
+          )}
         </div>
         </div>
 
@@ -4489,7 +4543,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */}
       {schritt === 1 && tunnelSeite && (
         <TunnelStart
+          produkt={variant}
           titel={T.tunnelStartTitel ?? T.namenFrage}
+          /* NUR DAS VERSPRECHEN FÜLLT DIESE ZWEI (Owner-Folgeauftrag 12.08.2026, ChatGPT-
+             Papier §22) — `T.tunnelIntro`/`T.tunnelKleinText` stehen nur im VERSPRECHEN-
+             Overlay von lib/kiss-i18n.ts; jedes andere Produkt reicht `undefined` und sieht
+             denselben Baustein wie vorher. */
+          intro={T.tunnelIntro} kleinText={T.tunnelKleinText}
           nameLabel={T.tunnelName ?? T.namenFrage} namePlatzhalter={T.namenPlatzhalter}
           emailLabel={T.tunnelEmail ?? T.mailQuestion} emailPlatzhalter="you@email.com"
           weiterLabel={T.tunnelWeiter ?? T.next}
@@ -4582,7 +4642,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         */}
       {schritt === 2 && hatAuswahl && (
         <div className="mt-1">
-          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{variant === "kiss" ? T.szeneTitel : SW.look}</p>
+          {/* DER TEXT-FOLGEAUFTRAG (Owner 12.08.2026, ChatGPT-Papier §22–26): nur das
+              Versprechen hat hier einen eigenen Titel/eine eigene Unterzeile
+              (`T.zukunftTitel`/`T.zukunftUnterzeile`) — jedes andere Produkt sieht weiter
+              `SW.look` bzw. `T.szeneTitel`, unveraendert. */}
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/50">
+            {variant === "versprechen" && T.zukunftTitel ? T.zukunftTitel : variant === "kiss" ? T.szeneTitel : SW.look}
+          </p>
+          {variant === "versprechen" && T.zukunftUnterzeile && (
+            <p className="mt-1 text-[12.5px] font-semibold leading-snug text-white/60">{T.zukunftUnterzeile}</p>
+          )}
           <div className="mt-2">
             {/**
               * DIE SET-WAHL DES TANZES — DASSELBE `BildWahl` WIE BEIM GEBURTSTAG (Owner
@@ -4610,10 +4679,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 */
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
                 wert={kissSzeneId} waehle={setKissSzeneId}
-                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.name, bild: s.kachel }))} />
+                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.name, bild: s.kachel, video: beispiele[0] || undefined }))} />
             ) : (
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
-                bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS} />
+                /* DIE PROGRAMM-KARTE NUR BEIM VERSPRECHEN (Owner-Zusatzauftrag 12.08.2026:
+                   „wenn wir eins haben") — der Geburtstag hat keine, bekommt also nichts. */
+                features={variant === "versprechen" ? <VersprechenProgrammKarte T={T} /> : undefined}
+                bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, video: beispiele[0] || undefined }))} />
             )}
           </div>
           {/**
@@ -4628,11 +4700,30 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <button type="button" onClick={() => setSchritt(3)}
+            <button type="button" onClick={() => {
+                /* NORMIERTE FAMILIE, `look_selected` (Owner-Master-Auftrag §32, 13.08.2026):
+                   gemeldet wird beim „Weiter"-Klick, nicht bei jedem Antippen einer Kachel in
+                   `BildWahl` — sonst würde jedes Durchblättern der Vorlagen als eigene Wahl
+                   zählen. `lookId` steckt je nach Zweig woanders: Tanz merkt sich nur das
+                   BILD (`neuerLook`), also über `POLEDANCE_SETS` zurück auf die Kennung
+                   suchen wie schon oben bei `wert=`; der Kuss trägt seine Szene direkt in
+                   `kissSzeneId`; alle anderen tragen die Kennung schon in `look`. */
+                const lookId = variant === "poledance"
+                  ? (POLEDANCE_SETS.find(s => s.bild === (neuerLook || V.garmentBild))?.id ?? POLEDANCE_SETS[0].id)
+                  : variant === "kiss" ? kissSzeneId
+                  : look;
+                void logTunnelEvent("look_selected", variant, { lookId });
+                setSchritt(3);
+              }}
               className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">
               {/* EIN Weiter-Wort für alle Tunnel-Schritte (Owner 12.08.2026: „keine
-                  Ausnahme") — `T.next` trug Alt-Zusätze wie „— gratis". */}
-              {T.tunnelWeiter ?? T.next}
+                  Ausnahme") — `T.next` trug Alt-Zusätze wie „— gratis".
+                  AUSNAHME NUR BEIM VERSPRECHEN (Owner-Folgeauftrag 12.08.2026, ChatGPT-
+                  Papier §22: „Diese Zukunft wählen"). Bewusst ein EIGENER Schlüssel
+                  (`tunnelWeiterAuswahl`), nicht `tunnelWeiter` selbst: Der sitzt auch am
+                  „Weiter"-Knopf von Schritt 1 (TunnelStart, siehe oben) — dort passt „Diese
+                  Zukunft wählen" nicht, denn dort ist noch gar keine Zukunft gewählt. */}
+              {variant === "versprechen" && T.tunnelWeiterAuswahl ? T.tunnelWeiterAuswahl : (T.tunnelWeiter ?? T.next)}
             </button>
           </div>
         </div>
@@ -4684,7 +4775,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           ] as const).map(k => (
             <div key={k.wer} className="relative">
             <button type="button" onClick={() => k.ref.current?.click()} data-oncard="1"
-              className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+              className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
               {k.foto ? (<>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={k.foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
@@ -4995,7 +5086,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       links an, sobald die Slides breiter sind als der Schirm. */}
                   {LOOKS.length > 1 ? (
                     <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
-                      bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS} />
+                      bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, video: beispiele[0] || undefined }))} />
                   ) : (
                     <div className="flex justify-center py-1.5">
                       {/* Ohne festen dunklen Abstandsring (Owner 12.08.2026: „keine
@@ -5195,7 +5286,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            Zwei Formate nebeneinander sehen nicht nur unruhig aus: Der Zuschnitt-Dialog schneidet
            in 3:4, also hat das Quadrat oben und unten etwas abgeschnitten, was sie gerade
            bewusst eingestellt hat. */
-        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
         {photo
           ? (<>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -5317,20 +5408,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         */}
       {tunnelSeite && selbstVideo && !selPhoto && (
         <div className="mt-2 flex items-center justify-center gap-2">
-          {/* ZURUECK (Owner 12.08.2026: „der user soll auch vor und zurück in den steps") —
-              dieselbe Scheibe wie in der Vorschau-Zeile unten, nur schon hier: wer noch
-              nichts aufgenommen hat, soll trotzdem seine Adresse oder seinen Look ansehen
-              oder aendern koennen, nicht erst nach der Aufnahme. */}
-          <button type="button" onClick={() => setSchritt(alsSchritt(hatAuswahl ? 2 : 1))} aria-label={T.back}
-            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+          {/* KEIN ZURUECK-CHIP MEHR AM BILD (Owner 13.08.2026: „ein mal machst du den back
+              button links vom cta und ein mal neben dem bild. Wie jetzt?") — die EINE Regel:
+              der Chip steht IMMER links vom Haupt-CTA des Schritts, siehe den Kaufknopf. */}
           {/* ZUGESTIMMT WIRD DURCH DIE HANDLUNG (Owner 30.07.2026: „mit klick auf weiter
               akzeptiert er das schon") — genau wie beim Foto-Upload der anderen Themen
               (`onFile`/`onModelFile` rufen `zustimmen()` im selben Moment). Fuer Bekannte,
               die Schritt 1 nie sehen, ist dieser Tipp die ERSTE Handlung im ganzen Tunnel. */}
           <button type="button" onClick={() => { zustimmen(); void aufnahmeStart(); }}
-            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
             <Mic className="h-6 w-6 text-[#f6cf51]" />
             <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{SW.selbst}</span>
           </button>
@@ -5353,7 +5439,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <div className="w-[118px] max-w-[32vw]">
             <VorlagenKachel
               bildUrl={(LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild}
-              videoUrl={zielVideo} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+              videoUrl={zielVideo} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+              features={variant === "versprechen" ? <VersprechenProgrammKarte T={T} /> : undefined} />
           </div>
         </div>
       )}
@@ -5381,21 +5468,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         */}
       {tunnelSeite && !selbstVideo && !V.nurSie && !selPhoto && !photo && (
         <div className="mt-2 flex items-center justify-center gap-2">
-          <button type="button" onClick={() => setSchritt(1)} aria-label={T.back}
-            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={() => { zustimmen(); modelFileRef.current?.click(); }}
-            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
-            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
-            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.upTitle}</span>
-          </button>
+          {/* Zurueck-Chip: an der CTA-Zeile, nicht am Bild (Owner 13.08.2026, EINE Regel). */}
+          {/* AUS DER BIBLIOTHEK, NICHT VON HAND (Owner 12.08.2026, Screenshot der blauen
+              Platten: „das stimmt schon wieder nicht. Du benutzt nicht den tunel. Wieso?")
+              — dieselbe Kachel wie bei Hochzeit/Urlaub. */}
+          <TunnelKachelUpload titel={T.upTitle} onWaehlen={() => { zustimmen(); modelFileRef.current?.click(); }} />
+          <TunnelKachelUpload titel={T.you} onWaehlen={() => { zustimmen(); fileRef.current?.click(); }} />
+          {/* RECHTS DIE GEWAEHLTE SZENE (Owner 13.08.2026, mit Bild neben der Hochzeit:
+              „und was ist mit Kuss? Wieso bekommst du das nicht in dem gleichen Tunel rein?")
+              — dasselbe Muster wie `TunnelKacheln`: die zwei eigenen Kacheln NEBENEINANDER,
+              der Pfeil, dann das ZIEL. Ohne Wahl in Schritt 2 zeigt die Kachel die erste
+              Szene — geliefert wird dann wie bisher die Überraschung (`zufallsSzene`). */}
           <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-          <button type="button" onClick={() => { zustimmen(); fileRef.current?.click(); }}
-            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
-            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
-            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.you}</span>
-          </button>
+          <div className="w-[118px] max-w-[32vw]">
+            <VorlagenKachel
+              bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
+              videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+          </div>
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
           <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
@@ -5410,15 +5499,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         */}
       {tunnelSeite && !selbstVideo && V.nurSie && !selPhoto && (
         <div className="mt-2 flex items-center justify-center gap-2">
-          <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
-            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={() => { zustimmen(); modelFileRef.current?.click(); }}
-            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
-            <ImageUp className="h-6 w-6 text-[#f6cf51]" />
-            <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{T.upTitle}</span>
-          </button>
+          {/* Zurueck-Chip: an der CTA-Zeile, nicht am Bild (Owner 13.08.2026, EINE Regel). */}
+          {/* AUS DER BIBLIOTHEK, NICHT VON HAND — dieselbe Kachel wie im Kuss-Zweig. */}
+          <TunnelKachelUpload titel={T.upTitle} onWaehlen={() => { zustimmen(); modelFileRef.current?.click(); }} />
           <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
           {/* DAS GEWAEHLTE SET, MIT DEM ALLGEMEINEN BEISPIELVIDEO (`beispiele[0]` —
               `POLEDANCE_VIDEO`): es gibt nur EIN Beispielvideo, keins je Set (siehe Bericht
@@ -5435,11 +5518,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           im Bild landet — sonst generiert er blind. */}
       {(selPhoto || photo) && (
         <div className="mt-2 flex items-center justify-center gap-2">
-          {/* Zurueck am Bild, wie in Schritt 2 — nicht oben zwischen den Einstellungen. */}
-          <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
-            className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+          {/* IM TUNNEL steht der Zurueck-Chip an der CTA-Zeile (Owner 13.08.2026, EINE
+              Regel); nur der alte DIALOG behaelt ihn hier am Bild — er hat keinen
+              Tunnel-Kaufknopf mit Chip-Zeile darunter. */}
+          {!tunnelSeite && (
+            <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
+              className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
+          {/* FEHLT IHR FOTO NOCH, STEHT HIER DIE GESTRICHELTE KACHEL (Owner 13.08.2026,
+              Kuss = dasselbe Muster wie die Hochzeit: beide Plätze IMMER sichtbar — vorher
+              verschwand der leere Platz nach dem ersten Upload, und das zweite Foto hatte
+              keinen sichtbaren Weg mehr hinein). */}
+          {tunnelSeite && variant === "kiss" && !selPhoto && (
+            <TunnelKachelUpload titel={T.upTitle} onWaehlen={() => { zustimmen(); modelFileRef.current?.click(); }} />
+          )}
           {selPhoto && (
             <div className="relative">
               {/**
@@ -5456,8 +5550,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   <VorlagenKachel bildUrl={selPhoto} videoUrl={beispiele[0]} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
                 </div>
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
+                /* §22 Screen 4: „DU HEUTE" AUFS BILD statt darüber (Owner 13.08.2026:
+                   „bilder nie versetzt") — dasselbe „YOU"-Muster wie überall. */
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
+                  {tunnelSeite && variant === "versprechen" && T.heuteLabel && (
+                    <span className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-center text-[10px] font-black uppercase tracking-wide"
+                      style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
+                      {T.heuteLabel}
+                    </span>
+                  )}
+                </div>
               )}
               {/* Auch in der Vorschau muss das Foto weggehen koennen (Owner 31.07.2026:
                   „hier soll man das Bild noch löschen können"). Nur bei EIGENEN Fotos —
@@ -5475,13 +5579,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   <Trash2 className="h-4 w-4" />
                 </button>
               )}
+              {/* „DAS IST MEIN VERSPRECHEN" STAND HIER ALS UNTERSCHRIFT UNTER DER KACHEL —
+                  raus am 13.08.2026 (Owner, mit Bild: „und das ist immer noch versetzt"):
+                  eine Zeile unter NUR EINER Kachel macht ihre Spalte höher, und
+                  `items-center` schiebt dann das Bild aus der Reihe. Das Label „DU HEUTE"
+                  AUF dem Bild übernimmt die Aussage, ohne Höhe zu kosten. */}
             </div>
           )}
           {/* Das Sinnbild zwischen den beiden Fotos folgt dem Thema: Kuss-Lippen auf einer
               Hochzeitsseite sind derselbe Fehler wie „Heisses Video" — der Kuss-Trichter, der
               ungeprueft mitkommt. */}
-          {/* Pfeil bei ALLEN (Owner 12.08.2026, siehe oben) — kein Themen-Emoji mehr. */}
-          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          {/* Pfeil bei ALLEN (Owner 12.08.2026, siehe oben) — kein Themen-Emoji mehr.
+              AUSNAHME Kuss-Tunnel (Owner 13.08.2026): dort stehen die zwei eigenen Fotos
+              NEBENEINANDER wie bei der Hochzeit, der Pfeil kommt erst VOR der Szene unten. */}
+          {!(tunnelSeite && variant === "kiss") && <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />}
           {/* RECHTS STEHT, WAS WIRKLICH LOSGESCHICKT WIRD.
               Owner 03.08.2026: „was soll das jetzt wieder? Ich habe ein ganz anderes Video
               ausgesucht" — er hatte auf der Landingpage einen Tanz gewaehlt, und hier stand
@@ -5499,9 +5610,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <AnmeldeEinladung
             offen={anmeldeOffen}
             zu={() => { anmeldeMerken(); setAnmeldeOffen(false); }}
-            titel={guthabenGesperrt ? KT.gesperrtTitel : KT.anmeldeTitel}
-            grund={guthabenGesperrt ? KT.gesperrtGrund : KT.anmeldeGrund}
-            knopf={KT.anmeldeKnopf}
+            /* ZWEI GESICHTER, EIN BAUSTEIN: `gesperrt` = dein Geld liegt hier, melde dich an
+               (Geräte-Riegel, muss im Kaufweg bleiben); sonst = „Projekt sichern" NACH dem
+               Ergebnis (Owner-Master-Auftrag 13.08.2026, §16: „Kostenloses Konto erstellen"
+               statt Konto-Zwang). */
+            titel={guthabenGesperrt ? KT.gesperrtTitel : KT.sichernTitel}
+            grund={guthabenGesperrt ? KT.gesperrtGrund : KT.sichernGrund}
+            knopf={guthabenGesperrt ? KT.anmeldeKnopf : KT.sichernKnopf}
             /* Liegt sein Geld dort, gibt es kein „Später" — es wäre die Aufforderung,
                zweimal zu zahlen. */
             spaeter={guthabenGesperrt ? undefined : KT.anmeldeSpaeter}
@@ -5537,9 +5652,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                gilt für den ganzen Tunel") — `selbstVideo`-Themen bekommen `zielVideo`
                (oben berechnet), alles andere zeigt weiter nur das Bild. */
             <div className="w-[118px] max-w-[32vw]">
+              {/* §22 Screen 4: „DEIN ZUKÜNFTIGES ICH" AUFS BILD (Owner 13.08.2026: „bilder
+                  nie versetzt" — ein Label über der Kachel schob die Reihe auseinander). */}
               <VorlagenKachel
                 bildUrl={selbstVideo ? ((LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild) : (neuerLook || V.garmentBild || "")}
-                videoUrl={selbstVideo ? zielVideo : ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+                videoUrl={selbstVideo ? zielVideo : ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+                aufBild={tunnelSeite && variant === "versprechen" ? T.zukunftLabel : undefined}
+                features={variant === "versprechen" ? <VersprechenProgrammKarte T={T} /> : undefined} />
             </div>
           )}
           {!V.nurSie && photo && (
@@ -5554,7 +5673,37 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               </button>
             </div>
           )}
+          {/* DIE GEWAEHLTE SZENE AUCH IN DER VORSCHAU (Owner 13.08.2026: „Wieso bekommst du
+              das nicht in dem gleichen Tunel rein?") — dasselbe Ziel wie in der leeren
+              Kachel-Reihe oben; wer schon hochgeladen hat, soll weiter sehen, WOHIN es geht.
+              Sein Platz bleibt ebenfalls IMMER sichtbar (gestrichelt, solange leer) — und die
+              zwei unsichtbaren Datei-Felder wohnen auch hier, denn die leere Kachel-Reihe
+              oben (mit den Original-Feldern) ist in diesem Zustand gar nicht mehr im Bild. */}
+          {tunnelSeite && variant === "kiss" && (<>
+            {!photo && (
+              <TunnelKachelUpload titel={T.you} onWaehlen={() => { zustimmen(); fileRef.current?.click(); }} />
+            )}
+            <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+            <div className="w-[118px] max-w-[32vw]">
+              <VorlagenKachel
+                bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
+                videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+            </div>
+            <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
+            <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
+          </>)}
         </div>
+      )}
+      {/* §22 SCREEN 4, DER SATZ UNTER DER GEGENÜBERSTELLUNG (Owner-Master-Auftrag
+          13.08.2026): „Wir verbinden deine Nachricht mit deiner Zukunftsvision." — nur beim
+          Versprechen und nur, wenn beide Kacheln stehen (die Aufnahme links, der Look
+          rechts); vorher gäbe es nichts zu verbinden. */}
+      {tunnelSeite && variant === "versprechen" && (selPhoto || photo) && T.verbindenText && (
+        <p className="mx-auto mt-2 max-w-[320px] text-center text-[11.5px] font-bold leading-snug text-white/60">
+          {T.verbindenText}
+        </p>
       )}
       {/**
         * DIE ZIELE-CHIPS SIND RAUS (Owner 12.08.2026, wörtlich: „Gols auswahl ist gut aber
@@ -5630,7 +5779,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           auch nicht"). Szene UND Wäsche stehen seit heute VOR der Kasse am Schritt 3 —
           diese weisse Box danach ist keine Auswahl mehr, sondern eine Wiederholung, die
           zwischen Klick und Video steht. Hochzeit (Brautkleider) und Idol behalten sie. */}
-      {(bezahlt || isStaff) && variant !== "kiss" && (kleidung.length > 0 || variant === "wedding") && (
+      {/* DIE GARDEROBE-BOX IST STILLGELEGT (Owner 13.08.2026, in drei Sätzen: „ich weiss
+          zwar nicht warum hier die lingerie immer kommt … aber es ist nicht ok" · „Beim Kuss
+          wird es auch nicht angewendet. Der einzige Ort wo es kommen muss ist bei try on" ·
+          „und es [soll] wie bei Pooldancing sein — er sucht ein Look aus im Tunel").
+          Die Regel dahinter: Garderobe/Look ist eine WAHL IN SCHRITT 2 des Tunnels (wie
+          Poledance-Sets, Kuss-Szene+Wäsche, Geburtstags-Looks) — nie eine zweite Frage nach
+          der Zahlung. Das Try-on-Produkt bringt seinen Look sowieso mit (der Kunde kommt vom
+          Look im Katalog). Ein Aufrufer, für den diese Box je richtig wäre, existiert nicht
+          mehr: Kuss war schon raus, Aufnahme-Themen haben keine „sie", die Hochzeit läuft
+          über EinladungBauen (kein `variant="wedding"`-Aufrufer im Haus). Der Block bleibt
+          vorerst stehen (kleid/moment-Zustände hängen daran), rendert aber NIE — beim
+          nächsten Aufräumen darf er ganz weg. */}
+      {false && (bezahlt || isStaff) && (kleidung.length > 0 || variant === "wedding") && (
         <div className="relative mt-2 rounded-2xl p-3" style={{ background: "#fff", color: "#1a160f" }}>
           <div className="flex items-center justify-between">
             <p className="text-[12px] font-black">{T.wardrobe}</p>
@@ -5810,15 +5971,38 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           in keinem Browser ein `click`, auch nicht an einer umschliessenden Huelle (live
           geprüft, nicht nur vermutet). Nur sein Aussehen dimmt sich; die Bedingung und der
           Hinweis stehen im eigenen onClick. */}
+      {/* DIE EINE CTA-ZEILE DES TUNNELS (Owner 13.08.2026: „ein mal machst du den back
+          button links vom cta und ein mal neben dem bild. Wie jetzt?") — die Regel aus
+          Schritt 1 (TunnelStart) und Schritt 2 (Look-Wahl) gilt jetzt auch hier: der
+          Zurueck-Chip steht LINKS VOM HAUPT-CTA, nie am Bild. Nur im Tunnel — der alte
+          Dialog behaelt seinen Chip an der Vorschau-Zeile (siehe oben). */}
+      <div className={tunnelSeite ? "mt-2 flex items-center gap-2" : ""}>
+      {tunnelSeite && (
+        <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
+          className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
       <button type="button"
         onClick={() => {
           if (busy || videoBusy || mailBusy || payBusy) return;
+          /* SOLANGE DIE AUFNAHME FEHLT, IST DER KNOPF DIE AUFNAHME (Owner 13.08.2026, mit
+             Bild des Versprechen-Tunnels: „und hier wurde der preis auch erwähnt, wann der
+             angezeigt werden soll" — §22: auf dem Aufnahme-Schritt heisst die Handlung
+             „Video aufnehmen", der Preis-CTA kommt erst zur Vorschau, §23). Statt eines
+             roten Hinweises „erst aufnehmen" TUT der Knopf das Fehlende gleich selbst. */
+          if (tunnelSeite && selbstVideo && !fotosDa) { zustimmen(); void aufnahmeStart(); return; }
           if (!fotosDa) { setGenerateHinweis(V.paarUpload && selPhoto ? T.uploadFirst : T.pickFirst); return; }
           if (!consent) { setGenerateHinweis(T.zustimmungFehlt); return; }
           setGenerateHinweis("");
           void (bezahlt ? kussVideo() : generate());
         }}
-        className={`lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition${(!fotosDa || !consent || busy || videoBusy || mailBusy || payBusy) ? " opacity-50" : ""}`}>
+        /* NICHT DIMMEN, WENN DER KNOPF DIE AUFNAHME IST (siehe onClick): ein halb
+           durchsichtiger Knopf sagt „geht noch nicht" — die Aufnahme geht aber sofort. */
+        /* `mt-2` nur im Dialog — im Tunnel traegt die CTA-ZEILE (der Wrapper mit dem
+           Zurueck-Chip) den Abstand; ein eigener Rand am Knopf saesse sonst 8px tiefer
+           als der Chip daneben. */
+        className={`lb-gold ${tunnelSeite ? "" : "mt-2 "}flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition${((!fotosDa && !(tunnelSeite && selbstVideo)) || !consent || busy || videoBusy || mailBusy || payBusy) ? " opacity-50" : ""}`}>
         {/* PAYBUSY FEHLTE HIER (Owner 03.08.2026: „wieso gehts hier nicht weiter?"). Bei
             `keinGratis`-Themen loest dieser Knopf zuerst `unlock()` aus (Guthaben-Abbuchung
             oder Stripe-Aufladung) — das laeuft ueber `payBusy`, nicht `busy`. Ohne `payBusy`
@@ -5840,10 +6024,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             bei allen heissen Generate now - Preis.") — auf der Tunnel-Seite heisst der Knopf
             bei JEDEM Produkt gleich: „Generate now — <Preis aus der Tabelle>". Die
             Dialog-Trichter behalten ihre eigenen Worte (ctaVideo/ctaFree). */}
+        {/* DER PREIS ERST, WENN ES ETWAS ZU KAUFEN GIBT (Owner 13.08.2026, siehe onClick):
+            fehlt der eigene Beitrag noch, traegt der Knopf die HANDLUNG — bei den Aufnahme-
+            Themen „Video aufnehmen" (§22 Screen 3), bei den Foto-Themen das nackte
+            Knopf-Wort ohne Preis. Erst mit vollstaendigem Beitrag steht „… — 9,99 €". */}
         {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : payBusy ? T.oneMoment
-          : tunnelSeite ? `${T.generateNow} — ${eur(geschenkPreisCents(variant), lang)}`
+          : tunnelSeite ? (
+            fotosDa ? `${T.generateNow} — ${eur(geschenkPreisCents(variant), lang)}`
+            : selbstVideo ? (variant === "versprechen" && T.aufCta ? T.aufCta : SW.selbst)
+            : T.generateNow)
           : (bezahlt || V.keinGratis) ? T.ctaVideo : T.ctaFree}
       </button>
+      </div>
       {generateHinweis && (
         <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
           {generateHinweis}
@@ -5889,9 +6081,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       )}
       {/* Der Nutzungshinweis: Rechte an den Fotos, Alter, Verantwortung. Die Zustimmung zu
           AGB, Datenschutz und Post steht schon bei Schritt 1 (Owner 30.07.2026: „bei ersten
-          bild muss schon stehen und mit klick auf weiter akzeptiert er das schon"). */}
+          bild muss schon stehen und mit klick auf weiter akzeptiert er das schon").
+          NUR IM ALTEN DIALOG der lange Absatz (Owner-Architektur-Abgleich 12.08.2026, §24):
+          der Tunnel bekommt die KURZE Zeile `consentKurz` — dieselbe Zustimmung-durch-
+          Handlung (`zustimmen()` beim Klick auf „Erzeugen") bleibt in beiden Fassungen
+          unveraendert, nur der TEXT ist hier kürzer. */}
       <p className="mx-auto mt-1.5 max-w-[300px] text-center text-[10px] font-medium leading-snug text-white/45">
-        {T.consent}
+        {tunnelSeite ? <KurzeEinwilligung tpl={T.consentKurz} linkLabel={T.agbLink} /> : T.consent}
       </p>
 
       </>)}
@@ -6139,7 +6335,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           * das fertige erste Video bleibt unangetastet in seiner Galerie.
           */}
         {extraNoetig && variant === "kiss" && !videoUrl && !isStaff && (
-          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-5 text-center">
             <button type="button" disabled={payBusy || videoBusy}
               onClick={() => void (async () => {
                 setExtraNoetig(false); setBezahlt(false); setVideoUrl(""); setBild(""); setBildPfad("");
@@ -6164,7 +6360,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           </div>
         )}
         {extraNoetig && variant !== "kiss" && V.abo && !videoUrl && !isStaff && (
-          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-5 text-center">
             <p className="text-[16px] font-black text-white">{T.extraTitel}</p>
             <button type="button" onClick={() => void unlock("extra")} disabled={payBusy}
               className="lb-gold lb-buy mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
@@ -6182,7 +6378,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             nach der Zahlung stehen, las er sich als zweite Rechnung — und daneben lief das
             bezahlte Rendern, das er dadurch gar nicht bemerkte. */}
         {gesperrt && !isStaff && !bild && !videoUrl && !bezahlt && !payBusy && !videoBusy && (
-          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+          <div className="mx-auto mt-4 w-full max-w-[340px] rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-5 text-center">
             <p className="text-[16px] font-black text-white">{T.blockedTitle}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
               {T.blockedBody}
@@ -6249,6 +6445,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
 
                 Der Herunterladen-Knopf bleibt — er ist der Grund, warum dieser Block
                 ueberhaupt da ist. */}
+            {/* DAS ERGEBNIS BEKOMMT EINEN SATZ (Owner-Folgeauftrag 12.08.2026, ChatGPT-
+                Papier §26) — nur beim Versprechen, direkt unter der Karte mit dem fertigen
+                Film, bevor der Herunterladen-Knopf kommt. */}
+            {variant === "versprechen" && T.ergebnisTitel && (
+              <div className="text-center">
+                <p className="text-[14px] font-black text-white/90">{T.ergebnisTitel}</p>
+                {T.ergebnisText && (
+                  <p className="mx-auto mt-1 max-w-[340px] text-[12px] font-semibold leading-snug text-white/65">
+                    {T.ergebnisText}
+                  </p>
+                )}
+              </div>
+            )}
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
@@ -6479,7 +6688,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               )
             )}
             {einlUrl && (
-              <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4 text-center">
+              <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-4 text-center">
                 <p className="text-[14px] font-black text-white">{T.einlFertig}</p>
                 <p className="mt-1 break-all text-[11px] font-bold text-white/60">{einlUrl}</p>
                 {/* Die Frist steht DA, wo der Link steht — nicht im Kleingedruckten. Wer sie

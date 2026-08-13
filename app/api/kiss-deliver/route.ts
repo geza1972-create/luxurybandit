@@ -5,6 +5,7 @@ import { futureProgramToken } from "@/lib/future-program-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
 import { weddingPrompt } from "@/lib/wedding-prompt";
+import { logTunnelEventServer } from "@/lib/track-funnel-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -380,6 +381,11 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
       e.videoDoneId = e.videoId;   // dieser Auftrag ist abgehakt — kein zweites Mal
       e.videoError = undefined;
       geaendert = true;
+      // NORMIERTE FAMILIE, GEGENSTUECK ZU `generation_started` (Owner-Master-Auftrag §32,
+      // 13.08.2026): erst hier steht das Video WIRKLICH am Auftrag — vorher gab es keine
+      // Möglichkeit, in Insights die Zeit zwischen Start und fertigem Ergebnis zu messen
+      // oder zu sehen, wie viele Aufträge hier je Produkt tatsächlich fertig werden.
+      void logTunnelEventServer("generation_completed", e.theme || "kiss");
       if (await verschicken(request, { ...e })) e.videoMailedAt = new Date().toISOString();
       erledigt.push(e.id);
       log.push(`${e.id}: fertig${e.videoMailedAt ? " + verschickt" : " (keine Adresse)"}`);

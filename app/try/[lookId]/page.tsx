@@ -456,7 +456,7 @@ export default function TryFunnelPage() {
   // Superlative, die wir nicht halten können — die Aussagen stammen vom Owner (28.07.2026).
   const sellBlock = (
     <div className="mx-auto mt-6 w-full max-w-sm space-y-4">
-      <div className="rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4">
+      <div className="rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-4">
         <p className="text-[15px] font-black text-white">{L("Ce primești în abonament", "What you get")}</p>
         <div className="mt-2.5 grid gap-2">
           {[
@@ -1553,7 +1553,7 @@ export default function TryFunnelPage() {
           ) : (
             /* Kein Guthaben → EINZELKAUF 3,99 €. Das alte Premium-Abo ($49, erster Monat $8)
                ist seit 26.07.2026 abgeschafft — hier standen bis jetzt noch die alten Preise. */
-            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-6 text-center">
+            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-6 text-center">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">This video</p>
               <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">{fillPrices("{extra}")}</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
               <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>

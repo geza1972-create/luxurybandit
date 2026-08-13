@@ -211,7 +211,39 @@ async function istBesitzer(ziel: KissLogEntry, body: { device?: string; email?: 
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string; ziele?: unknown; zieleFrei?: string; satz?: string };
+  const body = (await request.json().catch(() => ({}))) as { theme?: string; modelId?: string; modelName?: string; videoUrl?: string; videoId?: string; remove?: string; update?: string; email?: string; device?: string; imagePath?: string; personPath?: string; personImage?: string; modelImage?: string; modelPath?: string; lang?: string; empfaenger?: string; stimme?: string; look?: string; ziele?: unknown; zieleFrei?: string; satz?: string; uebernehmen?: boolean };
+
+  /**
+   * GUEST→KONTO-ÜBERNAHME (Owner 12.08.2026, Architektur-Abgleich §15–17: „Keine zweite
+   * Kopie. Kein Verlust."). Wer als Gast auf diesem Gerät schon Aufträge angelegt hat und
+   * meldet sich jetzt an — sie sollen unter seiner Adresse auftauchen, ohne dass irgendwo
+   * ein zweiter Eintrag entsteht: derselbe Eintrag wird nur nachträglich beschriftet.
+   *
+   * NUR MIT GÜLTIGER SITZUNG: `getSellerFromRequest` liest den Bearer-Token aus dem
+   * Aufruf — die Adresse kommt NIE aus dem Aufrufkörper, sondern ausschliesslich aus der
+   * geprüften Sitzung. Sonst könnte jeder, der eine fremde Geräte-Kennung kennt (sie steht
+   * offen in `lb_visitor`), sie auf die eigene Adresse umschreiben.
+   *
+   * NUR LEERE FELDER (Memory `guthaben-haengt-an-einer-adresse`): Trägt ein Eintrag schon
+   * eine E-Mail — egal welche —, bleibt er unangetastet. Nur Gast-Einträge (Gerät passt,
+   * `email` leer) bekommen die Sitzungs-Adresse. So kann diese Übernahme nie ein fremdes
+   * Guthaben umbuchen, selbst wenn zwei Menschen je einmal an diesem Gerät waren.
+   */
+  if (body.uebernehmen) {
+    const geraet = String(body.device ?? "").trim();
+    const konto = await getSellerFromRequest(request).catch(() => null);
+    const mail = String(konto?.email ?? "").trim().toLowerCase();
+    if (!geraet || !mail) return NextResponse.json({ error: "Keine gültige Sitzung." }, { status: 401 });
+    const entries = await readKissLog();
+    let n = 0;
+    for (const e of entries) {
+      if (e.device === geraet && !String(e.email ?? "").trim()) { e.email = mail; n++; }
+    }
+    // Merge-sicher (writeKissLog liest vor dem Schreiben frisch nach) — nur schreiben,
+    // wenn wirklich etwas beschriftet wurde.
+    if (n) await writeKissLog(entries);
+    return NextResponse.json({ ok: true, uebernommen: n });
+  }
 
   /**
    * LÖSCHEN — Admin ODER der Besitzer (Owner 30.07.2026: „kann er sie auch löschen?").

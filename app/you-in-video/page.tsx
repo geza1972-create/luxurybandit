@@ -222,7 +222,7 @@ function YouInVideoInner() {
             {!rawPhoto ? (
               <div className="mx-auto mt-6 max-w-xs">
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/50 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/50 lb-goldhauch active:scale-[0.98] transition">
                   <span className="flex flex-col items-center gap-2 text-[#e7c877]">
                     <Upload className="h-8 w-8" />
                     <span className="text-[13px] font-black">{L("Alege o poză", "Choose a photo")}</span>

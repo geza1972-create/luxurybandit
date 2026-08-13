@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import EinladungKarte from "@/components/EinladungKarte";
@@ -10,6 +10,7 @@ import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
 import { kissText } from "@/lib/kiss-i18n";
+import { logTunnelEvent } from "@/lib/track-funnel";
 import { kontoText } from "@/lib/konto-i18n";
 import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
 import { eur } from "@/lib/pricing";
@@ -516,11 +517,23 @@ function useKachelSichtbar<T extends HTMLElement>() {
  * denselben Kartengruss, den er ohnehin aus `kissText` hat). Ohne `sprache` faellt die Karte
  * auf Englisch zurueck, ohne `titel` auf ihre eigene Standardueberschrift — nie leer.
  */
-export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", titel, zu }: {
+export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", titel, features, zu }: {
   videoUrl: string;
   posterUrl?: string;
   sprache?: string;
   titel?: string;
+  /**
+   * DIE FEATURE-KARTE UNTER DER VIDEO-KARTE (Owner-Zusatzauftrag 12.08.2026, wörtlich:
+   * „eigentlich zeigen wir da auch das programm wenn wir eins haben neben der card, oder
+   * chat oder die Features wie bei Hochzeit mit"). Video Card + Feature Card ist die
+   * Hausregel (Memory `produktaufbau-video-card-feature-card`) — bisher fehlte sie genau
+   * hier, im Vollbild, wo der Kunde am längsten hinschaut. Der Aufrufer liefert die fertige
+   * Karte (z. B. die Programm-Karte des Versprechens oder `GruppenChat` im Demo-Modus für
+   * die Hochzeit); diese Überlagerung weiss nichts von ihrem Inhalt.
+   *
+   * OHNE `features`: exakt das Verhalten von vorher, kein Scrollen, keine zweite Karte.
+   */
+  features?: ReactNode;
   zu: () => void;
 }) {
   useEffect(() => {
@@ -533,6 +546,18 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
   const [ton, setTon] = useState(true);
   return (
     <div className="fixed inset-0 z-[97] overflow-y-auto bg-black px-4 py-8" style={{ minHeight: "100dvh" }} onClick={zu}>
+      {/**
+        * DIE SCHLIESSEN-SCHEIBE BLEIBT OBEN FIXIERT (Owner-Zusatzauftrag: „immer close
+        * einbauen") — sobald eine Feature-Karte die Überlagerung höher als den Bildschirm
+        * macht und sie scrollt, würde die Scheibe AM VIDEO (unten in der Video-Karte
+        * mitscrollend) irgendwann aus dem sichtbaren Bereich wandern. Diese zweite Scheibe
+        * haengt am VIEWPORT, nicht am Inhalt — nur gebraucht, wenn es ueberhaupt etwas zu
+        * scrollen gibt. */}
+      {features && (
+        <div className="fixed right-7 top-8 z-[98]" onClick={e => e.stopPropagation()}>
+          <Scheibe label="Close" onClick={zu}><X className="h-5 w-5" /></Scheibe>
+        </div>
+      )}
       <div className="relative mx-auto w-full max-w-[400px]" onClick={e => e.stopPropagation()}>
         <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
           fuss={<MadeBy karte />}
@@ -543,19 +568,21 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
                 className="h-full w-full object-cover" />
               {/* SCHLIESSEN STATT VERGROESSERN, TON WIE UEBERALL — dieselben zwei Plaetze
                   (Skill `card`), am MEDIUM selbst statt an der ganzen Karte, wie jede andere
-                  Vergroessern-Scheibe im Haus. */}
+                  Vergroessern-Scheibe im Haus. Bleibt AUCH mit Feature-Karte stehen (kein
+                  Wechsel im Standardfall), nur die zweite, fixierte Scheibe kommt dazu. */}
               <div className="absolute right-3 top-3 z-10">
                 <Scheibe label="Close" onClick={zu}><X className="h-5 w-5" /></Scheibe>
               </div>
               <TonKnopf an={ton} onClick={() => setTon(t => !t)} platz="absolute right-3 top-[60px] z-10" />
             </div>
           } />
+        {features && <div className="mt-4 pb-8">{features}</div>}
       </div>
     </div>
   );
 }
 
-export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ansehenLabel, sprache, titel, aktiv = true, darstellung = "kachel", className = "" }: {
+export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ansehenLabel, sprache, titel, aktiv = true, darstellung = "kachel", features, aufBild, className = "" }: {
   /** Das Vorlagen-BILD — wie bisher, immer gezeigt (in der `kachel`-Gestalt). */
   bildUrl: string;
   /** Ohne diese Prop verhält sich die Kachel wie ein blosses Bild, kein Klick, kein Overlay. */
@@ -585,6 +612,17 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
    * Ohne `videoUrl` gibt es in dieser Gestalt nichts zu zeigen — sie rendert dann nichts.
    */
   darstellung?: "kachel" | "knopf";
+  /** Durchgereicht an `VorlagenUeberlagerung` — siehe dort. Optional, nur die Produkte mit
+   *  einer Feature-Karte (Owner-Zusatzauftrag 12.08.2026) liefern sie. */
+  features?: ReactNode;
+  /**
+   * BESCHRIFTUNG AUFS BILD, NIE DARÜBER (Owner 13.08.2026, mit Bild der versetzten
+   * Versprechen-Kacheln: „ich habe dir schon mal im memory gesagt, dass bilder nie versetzt
+   * angezeigt werden") — ein Label ÜBER der Kachel schiebt sie je nach Textlänge nach
+   * unten; auf dem Bild (das „YOU"-Muster: weisse Schrift auf dunklem Verlauf) kostet es
+   * keine Höhe, und alle Kacheln einer Reihe bleiben auf einer Linie.
+   */
+  aufBild?: string;
   className?: string;
 }) {
   const [offen, setOffen] = useState(false);
@@ -600,7 +638,7 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
           className={`flex h-9 items-center justify-center gap-1.5 rounded-full border border-[#f6cf51]/40 px-3 text-[12px] font-black text-[#f6cf51] transition active:scale-95 ${className}`}>
           {label}
         </button>
-        {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+        {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />}
       </>
     );
   }
@@ -608,8 +646,16 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
   const rahmen = `aspect-[3/4] w-full rounded-2xl border object-cover ${aktiv ? "border-[#f6cf51]/40" : "border-white/15"} ${className}`;
   // eslint-disable-next-line @next/next/no-img-element
   const bild = <img src={bildUrl} alt={beschriftung || ""} className={rahmen} />;
+  /* Das „YOU"-Muster (siehe `aufBild`-Prop oben): weiss auf dunklem Verlauf, unten AUF dem
+     Bild — `lb-onmedia`, damit die helle Fassung die Schrift nicht dunkel färbt. */
+  const aufBildLabel = aufBild ? (
+    <span className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-center text-[10px] font-black uppercase tracking-wide"
+      style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
+      {aufBild}
+    </span>
+  ) : null;
 
-  if (!videoUrl) return bild;
+  if (!videoUrl) return aufBildLabel ? <div className="relative">{bild}{aufBildLabel}</div> : bild;
 
   /**
    * TIPPEN WAEHLT, NICHT MEHR ÖFFNET (Owner 12.08.2026: „man muss die Videos sehen im
@@ -634,6 +680,7 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
              Wisch-Reihe waere teurer (Speicher, Akku) als der Effekt wert ist. */
           className={`absolute inset-0 ${rahmen}`} />
       )}
+      {aufBildLabel}
       <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
         {/* VERGROESSERN MIT TON — `stopPropagation` verhindert, dass der Tipp auf die
             Scheibe zugleich den Auswahl-Tipp des Aufrufers (falls vorhanden) ausloest. */}
@@ -641,7 +688,7 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
           <Maximize2 className="h-4 w-4" />
         </Scheibe>
       </div>
-      {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+      {offen && <VorlagenUeberlagerung videoUrl={videoUrl} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />}
     </div>
   );
 }
@@ -713,11 +760,31 @@ export function TunnelKachelUpload({ foto, titel, hinweis, onWaehlen, onLoeschen
   }
   return (
     <button type="button" onClick={onWaehlen}
-      className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] px-2 text-center transition active:scale-[0.98]">
+      className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch px-2 text-center transition active:scale-[0.98]">
       <ImageUp className="h-6 w-6 text-[#f6cf51]" />
       <span className="text-[11px] font-black leading-snug text-white/85">{titel}</span>
       {hinweis && <span className="text-[9.5px] font-bold leading-snug text-white/55">{hinweis}</span>}
     </button>
+  );
+}
+
+/**
+ * DIE KURZE EINWILLIGUNGSZEILE, EINMAL GEBAUT (Owner-Architektur-Abgleich 12.08.2026, §24
+ * „Kurze Privacy-Zeile"). `tpl` ist `T.consentKurz` — trägt genau EIN `{agb}`-Platzhalter,
+ * der hier durch einen Link auf /terms ersetzt wird (`linkLabel` = `T.agbLink`, dieselbe
+ * Übersetzung wie im alten langen Text — keine neue Link-Übersetzung nötig). Wird von
+ * `TunnelKacheln`s `einwilligung`-Prop UND direkt von `KissFunnel` benutzt, damit die
+ * Link-Bau-Logik nicht viermal im Haus steht.
+ */
+export function KurzeEinwilligung({ tpl, linkLabel }: { tpl: string; linkLabel: string }) {
+  const teile = tpl.split(/(\{agb\})/);
+  return (
+    <>
+      {teile.map((t, i) =>
+        t === "{agb}"
+          ? <a key={i} href="/terms" target="_blank" rel="noreferrer" className="underline">{linkLabel}</a>
+          : <span key={i}>{t}</span>)}
+    </>
   );
 }
 
@@ -734,27 +801,39 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, k
    *  ein eigener Schritt (KONZEPT-TUNNEL.md). */
   zusatz?: ReactNode;
   knopf: { text: string; disabled?: boolean; busy?: boolean; onClick: () => void };
-  einwilligung?: string;
+  /**
+   * Meist die kurze Zeile aus `T.consentKurz` — als FERTIGES ReactNode uebergeben (nicht
+   * mehr nur ein String), weil sie einen Link auf /terms traegt (Owner-Architektur-Abgleich
+   * 12.08.2026, §24 „Kurze Privacy-Zeile"). Ein einfacher String bleibt weiterhin gueltig.
+   */
+  einwilligung?: ReactNode;
 }) {
   return (
     <div className="mt-1">
+      {/* KEIN ZURUECK-CHIP AM BILD (Owner 13.08.2026: „ein mal machst du den back button
+          links vom cta und ein mal neben dem bild. Wie jetzt?") — die EINE Regel des
+          Hauses: der Chip steht IMMER links vom Haupt-CTA des Schritts, wie in
+          TunnelStart (Schritt 1) und der Look-Wahl (Schritt 2). Die Kachel-Reihe bleibt
+          dadurch mittig und beide Bilder auf einer Linie. */}
       <div className="flex items-center justify-center gap-2">
-        <button type="button" onClick={aufZurueck} aria-label={zurueckLabel}
-          className="lb-chip grid h-9 w-9 shrink-0 place-items-center rounded-full active:scale-95 transition">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
         {links}
         <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
         <div className="w-[118px] max-w-[32vw]">{ziel}</div>
       </div>
       {zusatz}
-      <Knopf art="gold" className="mt-4" disabled={knopf.disabled} onClick={knopf.onClick}>
-        {/* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch bei
-            allen heissen Generate now - Preis.") — und KEINE Zeichen im Knopf ausser dem
-            Lade-Kreisel. */}
-        {knopf.busy ? <Laden art="knopf" /> : null}
-        {knopf.text}
-      </Knopf>
+      <div className="mt-4 flex items-center gap-2">
+        <button type="button" onClick={aufZurueck} aria-label={zurueckLabel}
+          className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <Knopf art="gold" disabled={knopf.disabled} onClick={knopf.onClick}>
+          {/* EIN Knopf-Wort fuer ALLE Tunnel (Owner 12.08.2026: „der button muss immer gelch
+              bei allen heissen Generate now - Preis.") — und KEINE Zeichen im Knopf ausser
+              dem Lade-Kreisel. */}
+          {knopf.busy ? <Laden art="knopf" /> : null}
+          {knopf.text}
+        </Knopf>
+      </div>
       {einwilligung && (
         <p className="mt-2 text-center font-serif text-[11px] leading-snug text-white/70">{einwilligung}</p>
       )}
@@ -762,7 +841,7 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, k
   );
 }
 
-export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, emailPlatzhalter, weiterLabel, lang, anfangsName = "", anfangsEmail = "", busy = false, fehlerAussen = "", google, onWeiter, zurueckHref, zurueckLabel = "Back", className = "" }: {
+export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, emailPlatzhalter, weiterLabel, lang, anfangsName = "", anfangsEmail = "", busy = false, fehlerAussen = "", google, intro, kleinText, onWeiter, produkt = "", zurueckHref, zurueckLabel = "Back", className = "" }: {
   titel: string;
   nameLabel: string;
   namePlatzhalter?: string;
@@ -800,7 +879,24 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
    * ueberall im Haus.
    */
   google?: { label: string; oderLabel: string; onClick: () => void };
+  /**
+   * DIE ERKLÄRZEILE UNTER DEM TITEL (Owner-Folgeauftrag 12.08.2026, ChatGPT-Papier §22) —
+   * NUR das Versprechen füllt sie heute (`T.tunnelIntro`); jeder andere Aufrufer lässt die
+   * Prop weg und sieht denselben Baustein wie vorher. Optional, damit „Component bleibt
+   * gleich, Inhalt ändert sich" auch hier gilt: kein zweiter TunnelStart, nur ein Slot mehr.
+   */
+  intro?: ReactNode;
+  /**
+   * DER KLEINTEXT UNTER DEM WEITER-KNOPF (dieselbe Quelle) — z. B. der Datenschutz-Hinweis
+   * „Deine E-Mail speichert dein Projekt …" beim Versprechen. Ebenfalls optional und von
+   * allen anderen Aufrufern unbenutzt.
+   */
+  kleinText?: ReactNode;
   onWeiter: (name: string, email: string) => void | Promise<void>;
+  /** NUR FÜRS MESSEN (Owner-Architektur-Abgleich 12.08.2026, §32) — feuert `lead_created`,
+   *  sobald „Weiter" mit einer gültigen Adresse gedrückt wurde. Ohne Angabe bleibt
+   *  `TunnelStart` stumm, wie vorher. */
+  produkt?: string;
   /** ZURÜCK ZUR LANDINGPAGE (Owner 12.08.2026: „ich verstehe nicht warum ich von hier
    *  nicht zurück zur kandingpage kann") — Schritt 1 ist oft der DIREKTE Einstieg aus der
    *  Anzeige, ohne Browser-Verlauf; ohne diesen Pfeil ist die Landingpage unerreichbar.
@@ -839,28 +935,22 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
     const p = pruefeEmail(e);
     if (!p.ok) { setFehler(emailFehlerText(p.grund, lang)); return; }
     setFehler("");
+    // `lead_created` (Owner-Architektur-Abgleich 12.08.2026, §32) — der Lead selbst ist
+    // schon gespeichert, sobald „Weiter" mit gültiger Adresse gedrückt wurde (siehe
+    // KONZEPT-TUNNEL.md); das Ereignis meldet genau diesen Moment, nicht erst den
+    // Netzwerk-Erfolg von `onWeiter`.
+    void logTunnelEvent("lead_created", produkt);
     await onWeiter(name.trim(), e);
   };
 
   return (
     <Kasten polster="p-4" className={className}>
       <p className="text-center text-[15px] font-black text-white/90">{titel}</p>
-      {google && (
-        <>
-          <div className="mt-3">
-            <GoogleKnopf label={google.label} onClick={google.onClick} />
-          </div>
-          {/* DIE TRENNLINIE SAGT, DASS ES ZWEI WEGE GIBT, KEINE ZWEI SCHRITTE — dieselbe
-              Zeile wie im Konto-Fenster (`KontoChip.tsx`), nur in Weiss statt Tinte: der
-              Tunnel ist die dunkle Welt, das Anmelde-Fenster die helle. */}
-          <div className="mt-3 flex items-center gap-3">
-            <span className="h-px flex-1 bg-white/15" />
-            <span className="text-[11px] font-black uppercase tracking-wide text-white/45">{google.oderLabel}</span>
-            <span className="h-px flex-1 bg-white/15" />
-          </div>
-        </>
+      {/* DIE ERKLÄRZEILE (siehe `intro`-Prop oben) — nur wenn geliefert. */}
+      {intro && (
+        <p className="mt-1.5 text-center text-[12.5px] font-semibold leading-snug text-white/70">{intro}</p>
       )}
-      <div className={google ? "mt-3" : "mt-3"}>
+      <div className="mt-3">
         <label className="block text-[11px] font-bold text-white/55" htmlFor="lb-tunnel-name">{nameLabel}</label>
         <Eingabe id="lb-tunnel-name" className="mt-1 text-center" value={name}
           onChange={e => setName(e.target.value)} maxLength={18} autoComplete="given-name"
@@ -885,6 +975,28 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
           {busy ? <Laden art="knopf" /> : weiterLabel}
         </Knopf>
       </div>
+      {/* DER KLEINTEXT (siehe `kleinText`-Prop oben) — nur wenn geliefert. */}
+      {kleinText && (
+        <p className="mt-2 text-center text-[10.5px] font-medium leading-snug text-white/45">{kleinText}</p>
+      )}
+      {/* GOOGLE NACH UNTEN (Owner 13.08.2026: „wieso steht dann google so prominent?" —
+          Master-Auftrag §14: Google darf existieren, aber nicht als dominante Voraussetzung).
+          Vorher stand der Knopf ÜBER den Feldern und war damit die ERSTE Handlung des ganzen
+          Tunnels; jetzt ist Name + E-Mail + Weiter der eine Hauptweg (§20: ein Screen, EINE
+          Entscheidung) und Google die stille Abkürzung darunter — dieselbe Trennzeile wie im
+          Konto-Fenster (`KontoChip.tsx`), nur in Weiss statt Tinte. */}
+      {google && (
+        <>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="h-px flex-1 bg-white/15" />
+            <span className="text-[11px] font-black uppercase tracking-wide text-white/45">{google.oderLabel}</span>
+            <span className="h-px flex-1 bg-white/15" />
+          </div>
+          <div className="mt-3">
+            <GoogleKnopf label={google.label} onClick={google.onClick} />
+          </div>
+        </>
+      )}
     </Kasten>
   );
 }
@@ -1337,9 +1449,15 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    * die ganze Zeile ein Link: Dort gibt es keinen Abspiel-Knopf, das Video läuft von selbst.
    */
   if (voll) return <div className={kl}>{inhalt}</div>;
+  /* `data-themenkachel`: NUR fürs CSS der hellen Fassung (Owner 13.08.2026, Screenshot der
+     Programm-Kachel: „das ganze blau in blau und babyblu ist nicht toll") — die Pauschal-
+     regel für Umriss-Chips (`border-white/`-Knöpfe → blauer Chip) traf auch diese grosse
+     Produkt-Kachel und färbte Fläche UND jede Zeile blau. Die Ausnahme-Regel steht in
+     globals.css und macht daraus weisses Karten-Papier mit Tinte; Blau bleibt Akzent
+     (Preis, Titel-Hälfte, LIVE). */
   return aktiv
-    ? <a href={thema.href} className={kl}>{inhalt}</a>
-    : <div className={kl}>{inhalt}</div>;
+    ? <a href={thema.href} data-themenkachel="1" className={kl}>{inhalt}</a>
+    : <div data-themenkachel="1" className={kl}>{inhalt}</div>;
 }
 
 /**
@@ -1591,6 +1709,11 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] =
   { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
   { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
+  /* TRY-ON IN DER REIHE (Owner 13.08.2026, mit Bild der Kreise: „hier kannst du noch tryon
+     einbinden falls du es noch machst") — der Kreis kam ZUSAMMEN mit dem Tunnel
+     (/themes/tryon/start), nie davor: ein Kreis, der in einen halbfertigen Weg zeigt,
+     wäre schlimmer als keiner. */
+  { icon: Shirt, name: "Try-on", href: "/themes/tryon" },
   { icon: LayoutGrid, name: "Alle", href: "/themes" },
 ];
 export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
@@ -2024,7 +2147,7 @@ export function AnmeldeEinladung({
  * HTML kein zweites `<button>` (die Vergroessern-Scheibe) enthalten, der Browser wuerde es
  * stillschweigend herausbrechen und der Tipp landete an der falschen Stelle.
  */
-function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, waehle }: {
+function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, waehle }: {
   b: { id: string; name: string; bild: string; video?: string; poster?: string };
   an: boolean;
   gross: boolean;
@@ -2032,6 +2155,8 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, waehle }: 
   /** Sprache/Titel der Karte im Vollbild (Owner 12.08.2026, siehe `VorlagenUeberlagerung`). */
   sprache?: string;
   titel?: string;
+  /** Durchgereicht an `VorlagenUeberlagerung` (Owner-Zusatzauftrag 12.08.2026). */
+  features?: ReactNode;
   waehle: () => void;
 }) {
   const [ref, sichtbar] = useKachelSichtbar<HTMLDivElement>();
@@ -2046,7 +2171,9 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, waehle }: 
         className={`shrink-0 cursor-pointer text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
         <span className={`relative block overflow-hidden ring-2 ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={poster} alt={b.name} className="block h-full w-full object-cover" />
+          {/* `loading="lazy"`: der Try-on-Slider trägt die GANZE Wardrobe (97 Kacheln,
+              Owner 13.08.2026) — ohne lazy lüde die Seite alle Bilder auf einmal. */}
+          <img src={poster} alt={b.name} loading="lazy" className="block h-full w-full object-cover" />
           {sichtbar && (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video src={b.video} poster={poster} muted playsInline autoPlay loop
@@ -2070,12 +2197,12 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, waehle }: 
           {b.name}
         </span>
       </div>
-      {offen && b.video && <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} zu={() => setOffen(false)} />}
+      {offen && b.video && <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />}
     </>
   );
 }
 
-export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sprache, titel, className = "" }: {
+export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sprache, titel, features, className = "" }: {
   bilder: { id: string; name: string; bild: string; video?: string; poster?: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
@@ -2098,6 +2225,9 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
    */
   sprache?: string;
   titel?: string;
+  /** Durchgereicht an jede Kachel MIT Video (Owner-Zusatzauftrag 12.08.2026, siehe
+   *  `VorlagenUeberlagerung`). Kacheln ohne `video` haben ohnehin kein Vollbild. */
+  features?: ReactNode;
   className?: string;
 }) {
   return (
@@ -2129,7 +2259,7 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
         if (b.video) {
           return (
             <BildWahlKachel key={b.id} b={b} an={an} gross={gross} ansehenLabel={ansehenLabel}
-              sprache={sprache} titel={titel} waehle={() => waehle(b.id)} />
+              sprache={sprache} titel={titel} features={features} waehle={() => waehle(b.id)} />
           );
         }
         return (

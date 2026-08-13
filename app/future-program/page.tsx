@@ -9,6 +9,7 @@ import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Kasten, Knopf, Eingabe, Laden, MadeBy } from "@/components/CI";
 import EinladungKarte from "@/components/EinladungKarte";
+import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import { zielTexte, type ZielId } from "@/lib/future-ziele";
 import { futureProgramTage } from "@/lib/future-program-tage";
 import { futureProgramText } from "@/lib/future-program-i18n";
@@ -221,14 +222,29 @@ function ProgrammAnsicht({ daten, T, lang, wirdAbgehakt, abhaken, ziel90Entwurf,
 
       <WochenBotschaft heute={heute} lang={lang ?? p.lang} />
 
-      {/* HEUTE */}
+      {/* HEUTE — IN DER CREME-KARTE (Owner 13.08.2026, mit Bild der Programm-Feature-Karte
+          aus dem Tunnel: „und ich will die gleiche darstellung wie hier haben im Programm").
+          Dieselben drei Bausteine wie jede Karte des Hauses (`lb-karte` + `CornerOrnaments` +
+          `lb-karte-rahmen`, siehe VersprechenProgrammKarte/GruppenChat) — Farben NUR über
+          die `lb-karte-*`-Klassen, nie getippt (Memory `lb-karte-important-frisst-inline-
+          farben`); der Tages-Inhalt liegt als nummerierte weisse Kachel darin, exakt das
+          01–06-Muster der Feature-Karte. */}
       {heutigerEintrag && (
         <div className="mt-6">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">{T.todayTitle}</p>
-          <Kasten art="gold" className="mt-2">
-            <p className="text-[15px] font-black leading-snug text-white">{heutigerEintrag.titel}</p>
-            <p className="mt-1.5 text-[13.5px] font-medium leading-snug text-white/85">{heutigerEintrag.aufgabe}</p>
-            <p className="mt-3 text-[13px] font-bold text-[#f6cf51]">{heutigerEintrag.frage}</p>
+          <div className="lb-karte relative overflow-hidden rounded-[20px] px-4 pb-4 pt-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+            <CornerOrnaments />
+            <div className="lb-karte-rahmen pointer-events-none absolute inset-[8px] rounded-[14px]" />
+            <div className="relative">
+              <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.24em]">
+                {T.todayTitle} · {heute} / 30
+              </p>
+              <DividerOrnament className="mt-2" />
+              <div className="lb-karte-news mt-3 rounded-[12px] px-3 py-2.5">
+                <span className="lb-karte-gold text-[10.5px] font-black">{String(heute).padStart(2, "0")}</span>
+                <p className="mt-0.5 text-[13px] font-black leading-snug">{heutigerEintrag.titel}</p>
+                <p className="mt-0.5 text-[11.5px] font-medium leading-snug opacity-70">{heutigerEintrag.aufgabe}</p>
+                <p className="lb-karte-gold mt-2 text-[12px] font-bold leading-snug">{heutigerEintrag.frage}</p>
+              </div>
             <div className="mt-3">
               {heuteErledigt ? (
                 /**
@@ -250,16 +266,28 @@ function ProgrammAnsicht({ daten, T, lang, wirdAbgehakt, abhaken, ziel90Entwurf,
                  * color:#fff }`) — weisse Schrift auf Blau, lesbar. `disabled` macht ihn
                  * unklickbar und etwas gedämpft, ohne eine zweite Gestalt zu erfinden.
                  */
-                <Knopf art="gold" disabled>
-                  {T.doneToday}
-                </Knopf>
+                <>
+                  <Knopf art="gold" karte disabled>
+                    {T.doneToday}
+                  </Knopf>
+                  {/* WHATS NEXT (Owner 13.08.2026: „Haben wir nicht gesagt, dass hier
+                      gezeigt wird Whats next?") — nach dem Haken sagt die Karte, womit es
+                      MORGEN weitergeht, statt einfach fertig dazustehen. An Tag 30 gibt es
+                      kein Morgen im Programm — dort übernimmt der 90-Tage-Schritt unten. */}
+                  {heute < 30 && T.nextUp && tage[heute]?.titel && (
+                    <p className="mt-2 text-center text-[11.5px] font-bold leading-snug opacity-70">
+                      {T.nextUp.replace("{titel}", tage[heute].titel)}
+                    </p>
+                  )}
+                </>
               ) : (
-                <Knopf art="gold" onClick={() => abhaken(heute)} disabled={wirdAbgehakt === heute}>
-                  {wirdAbgehakt === heute ? <Laden /> : T.markDone}
+                <Knopf art="gold" karte onClick={() => abhaken(heute)} disabled={wirdAbgehakt === heute}>
+                  {wirdAbgehakt === heute ? <Laden karte /> : T.markDone}
                 </Knopf>
               )}
             </div>
-          </Kasten>
+            </div>
+          </div>
         </div>
       )}
 

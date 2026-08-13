@@ -56,11 +56,11 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createPackCheckout({
       /**
-       * DIE PREIS-KENNUNG SCHLAEGT DEN SELBSTGEBAUTEN BETRAG (Owner 03.08.2026). Damit steht der
-       * Preis in Stripes eigenem Katalog: richtige Belege, richtige Auswertung, richtige Steuer.
-       * `amount` und `currency` bleiben als Rueckfall, falls die Kennung je fehlt.
+       * KEINE PREIS-KENNUNG MEHR (Owner 13.08.2026: „das kostet wie Hochzeit. 9,99 dann
+       * 14,99 im monat") — die alte Kennung trug fest 14,99 € und hätte den neuen
+       * Tabellenpreis überstimmt. Einmalkäufe rechnen über `price_data` aus der Tabelle
+       * (Skill `bezahlung`, Regel 2); `CHAT_STUFEN` ist die eine Zahl.
        */
-      priceId: chatPriceId(),
       amount: stufe.cents,
       currency: "eur",
       /* Die Adresse des Beschenkten reist als KASSEN-Vermerk mit, nicht als Behauptung des

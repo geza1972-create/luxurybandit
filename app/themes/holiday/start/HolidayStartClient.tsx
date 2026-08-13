@@ -4,16 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
+import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
-import { BildWahl, TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, VorlagenKachel, Knopf, Eingabe, AufladeWaehler } from "@/components/CI";
+import { BildWahl, TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, VorlagenKachel, Knopf, Eingabe, AufladeWaehler, KurzeEinwilligung } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
-import { guthabenLesen } from "@/lib/guthaben-konto";
+import { guthabenLesen, aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession, signInWithOAuth } from "@/lib/supabase-auth-client";
 import { reichtGuthaben } from "@/lib/kasse";
 import { themenPreisCents, themenPreisZeile } from "@/lib/pricing";
 import { KISS_LOOK_ID } from "@/lib/wedding-prompt";
 import { holidayInvitePrompt, HOLIDAY_SZENEN, type HolidaySzene } from "@/lib/holiday-invite";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
  * DER URLAUB ALS TUNNEL-SEITE (KONZEPT-TUNNEL.md). Schritt 2 ist die Szenen-Wahl
@@ -37,8 +39,12 @@ export default function HolidayStartClient({ lang, code }: { lang: string; code:
   const light = searchParams.get("light") === "1";
   const F = kissText(lang, "holiday");
 
+  /* AUS DER PRODUKT-KONFIG (Owner-Master-Auftrag 13.08.2026, §29): Schritte, Sprungziel
+     und Kennung wohnen in lib/produkte.ts — EINE Stelle für alle sieben Tunnel. */
+  const P = produkt("holiday");
+
   return (
-    <TunnelSeite schritte={[1, 2, 3]} schrittBekannt={2} light={light} code={code}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <HolidayTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} />
       )}
@@ -83,7 +89,15 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const [status, setStatus] = useState("");
   const [mailFehler, setMailFehler] = useState("");
 
-  useEffect(() => { setAngemeldet(!!getStoredAuthSession()?.access_token); }, []);
+  useEffect(() => {
+    setAngemeldet(!!getStoredAuthSession()?.access_token);
+    /* BEKANNTE SPRINGEN AN SCHRITT 1 VORBEI (GEMESSEN 13.08.2026, Owner-Screenshot am
+       Hochzeits-Tunnel: beide Fotos da, Knopf stumm gesperrt — `mail` war leer, weil nur
+       Schritt 1 sie setzt). Die Adresse kommt deshalb hier aus der Haus-Quelle
+       `aktiveAdresse()` (Konto-Sitzung, Tor, Kasse — dieselbe Zeile, mit der TunnelSeite
+       den Sprung entscheidet), Rückfall lb_kiss_mail. */
+    try { const a = aktiveAdresse() || localStorage.getItem("lb_kiss_mail") || ""; if (a) setMail(m => m || a); } catch { /**/ }
+  }, []);
 
   useEffect(() => {
     const e = mail.trim().toLowerCase();
@@ -129,6 +143,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
       if (start?.walletPaid) {
         if (typeof start.rest === "number") setGuthabenCents(start.rest);
         try { popup?.close(); } catch { /**/ }
+        void logTunnelEvent("payment_completed", "holiday", { via: "wallet" });
         return true;
       }
       if (!start?.url || !start?.sessionId) {
@@ -149,6 +164,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
             if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await kaufen(undefined, true);
           }
+          void logTunnelEvent("payment_completed", "holiday", { via: "stripe" });
           return true;
         }
         if (popup.closed && i > 2) break;
@@ -165,8 +181,12 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const generieren = async (topupCents?: number) => {
     if (!fotosDa || !mailOk || busy) return;
     setBusy(true); setStatus(F.oneMoment);
+    // `checkout_started` (Owner-Architektur-Abgleich 12.08.2026, §32).
+    void logTunnelEvent("checkout_started", "holiday");
     const ok = await kaufen(topupCents);
     if (!ok) { setBusy(false); return; }
+    // `generation_started` — die Zahlung steht, jetzt beginnt der Auftrag beim Anbieter.
+    void logTunnelEvent("generation_started", "holiday");
     try {
       /* KEIN `satz` MEHR IM BILD-/VIDEO-AUFTRAG (Owner 12.08.2026, Zusatzauftrag): Der freie
          Einladungssatz mit Datum ist eine Kartenzeile, keine Bildanweisung — siehe
@@ -201,6 +221,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
       <TunnelFortschritt schritte={[1, 2, 3]} aktuell={schritt} />
       {schritt === 1 && (
         <TunnelStart
+          produkt="holiday"
           titel={F.tunnelStartTitel ?? F.namenFrage}
           nameLabel={F.tunnelName ?? F.namenFrage} namePlatzhalter={F.namenPlatzhalter}
           emailLabel={F.tunnelEmail ?? F.mailQuestion} emailPlatzhalter="you@email.com"
@@ -255,7 +276,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           <div className="mt-2">
             <BildWahl gross wert={szeneId} sprache={lang}
               waehle={setSzeneId}
-              bilder={HOLIDAY_SZENEN.filter(s => !!s.kachel).map(s => ({ id: s.id, name: s.name, bild: String(s.kachel) }))} />
+              bilder={HOLIDAY_SZENEN.filter(s => !!s.kachel).map(s => ({ id: s.id, name: s.name, bild: String(s.kachel), video: "/Holiday/urlaub-beispiel.mp4" }))} />
           </div>
           {/* ZURÜCK-CHEVRON LINKS, WIE ÜBERALL (Owner-Befund 12.08.2026). */}
           <div className="mt-4 flex items-center gap-2">
@@ -263,7 +284,14 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
               className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <Knopf art="gold" onClick={() => onSchrittChange(3)}>
+            <Knopf art="gold" onClick={() => {
+                /* NORMIERTE FAMILIE, `look_selected` (Owner-Master-Auftrag §32, 13.08.2026) —
+                   gemeldet beim „Weiter"-Klick, nicht bei jedem Antippen einer Szene, sonst
+                   zählte jedes Durchblättern als eigene Wahl. Genau derselbe Zeitpunkt wie
+                   im Kuss-Trichter (KissFunnel.tsx, Schritt 2 → 3). */
+                void logTunnelEvent("look_selected", "holiday", { lookId: szeneId });
+                onSchrittChange(3);
+              }}>
               {F.tunnelWeiter ?? F.next}
             </Knopf>
           </div>
@@ -309,11 +337,15 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
               </div>
             }
             knopf={{
-              text: busy ? F.oneMoment : `${F.generateNow} — ${themenPreisZeile("holiday", lang)}`,
+              /* Preis erst mit vollstaendigem Beitrag (Owner 13.08.2026, generelle Tunnel-
+                 Regel) — derselbe Kommentar in WeddingStartClient.tsx. */
+              text: busy ? F.oneMoment : fotosDa ? `${F.generateNow} — ${themenPreisZeile("holiday", lang)}` : F.generateNow,
               disabled: !fotosDa || !mailOk || busy, busy,
               onClick: () => void generieren(),
             }}
-            einwilligung={F.consent}
+            /* Kurze Zeile statt langer Absatz im Tunnel (Owner-Architektur-Abgleich
+               12.08.2026, §24) — siehe derselbe Kommentar in WeddingStartClient.tsx. */
+            einwilligung={<KurzeEinwilligung tpl={F.consentKurz} linkLabel={F.agbLink} />}
           />
 
           <input ref={ihrRef} type="file" accept="image/*,.heic,.heif" className="hidden"

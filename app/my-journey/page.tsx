@@ -31,7 +31,7 @@ export default function MyJourneyPage() {
         {state === "loading" && <p className="mt-8 text-center text-white/80">Loading…</p>}
 
         {state === "guest" && (
-          <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] p-6 text-center">
+          <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-6 text-center">
             <p className="text-[15px] font-bold text-white">Please log in to see your feed.</p>
             <Link href="/login" className="mt-4 inline-flex rounded-xl bg-[#f6cf51] px-6 py-3 text-[15px] font-black text-black active:scale-95 transition">Log in →</Link>
           </div>

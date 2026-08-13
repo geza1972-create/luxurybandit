@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { futureProgramLesen, futureProgramSchreiben, futureProgramTokenOk } from "@/lib/future-program-store";
 import { readKissLog, getSignedUrl } from "@/lib/try-this-look-store";
+import { logTunnelEventServer } from "@/lib/track-funnel-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,12 @@ export async function GET(request: Request) {
     } catch (err) {
       console.warn("future-program startedAt schreiben fehlgeschlagen:", err);
     }
+    // NORMIERTE FAMILIE (Owner-Master-Auftrag §32, 13.08.2026): genau dieser Moment — der
+    // allererste Aufruf, `startedAt` entsteht — ist das „Programm wurde angelegt/aktiviert".
+    // Das Future Self Program ist bisher das einzige Produkt hinter `/api/future-program`,
+    // deshalb fest `theme:"versprechen"` (dieselbe Kennung wie überall sonst im Code für
+    // dieses Produkt, siehe lib/pricing.ts).
+    void logTunnelEventServer("program_started", "versprechen");
   }
   const tag = heutigerTag(p.startedAt);
   /**
@@ -100,7 +107,19 @@ export async function POST(request: Request) {
   // leeren, auch nicht der eigene Klick. Nur Tage BIS HEUTE sind abhakbar (kein Vorgriff);
   // ein vergessener frueherer Tag bleibt aber nachtraeglich abhakbar (vergebende Regel).
   if (Number.isFinite(check) && check >= 1 && check <= 30 && check <= heute) {
-    if (!p.checks[String(check)]) p.checks[String(check)] = new Date().toISOString();
+    if (!p.checks[String(check)]) {
+      p.checks[String(check)] = new Date().toISOString();
+      // NORMIERTE FAMILIE (Owner-Master-Auftrag §32, 13.08.2026): jeder NEU gesetzte Haken
+      // zählt einmal — das `if` oben verhindert, dass ein erneuter Klick auf einen schon
+      // abgehakten Tag doppelt meldet. `day` fährt mit, damit Insights zeigen kann, an
+      // welchem Tag die Leute aussteigen.
+      void logTunnelEventServer("daily_action_completed", "versprechen", { day: String(check) });
+      // ABSCHLUSS: es gibt keinen eigenen „Tag 30 fertig"-Schalter im Programm — der
+      // Abschluss IST der Moment, in dem mit diesem Haken alle 30 Tage voll sind.
+      if (Object.keys(p.checks).length >= 30) {
+        void logTunnelEventServer("program_completed", "versprechen");
+      }
+    }
   }
 
   const ziel90raw = (body as { ziel90?: string })?.ziel90;

@@ -131,7 +131,7 @@ export default function DailySignupForm({ lang = "de", dark = false }: { lang?: 
 
   return (
     <div className={dark
-      ? "rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] p-5"
+      ? "rounded-2xl border border-[#f6cf51]/25 lb-goldhauch p-5"
       : "rounded-2xl border border-black/10 bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]"}>
       <div className="grid gap-2.5">
         <input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder={t.name} autoComplete="given-name" />

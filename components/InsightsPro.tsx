@@ -1,14 +1,65 @@
 "use client";
 
 import { useMemo } from "react";
-import { Eye, MousePointerClick, Sparkles, Heart, Users, Trash2, Loader2, TrendingDown, Globe, Flame, Crown } from "lucide-react";
+import { Eye, MousePointerClick, Sparkles, Heart, Users, Trash2, Loader2, TrendingDown, Globe, Flame, Crown, Filter } from "lucide-react";
+import { PRODUKTE } from "@/lib/produkte";
 
 export type InsightsEvent = {
   id: string; name: string; createdAt: string; internal?: boolean;
   lookId?: string; lookName?: string; source?: string; country?: string;
   device?: string;   // Geräte-Kennung (lb_visitor) — zählt MENSCHEN statt Klicks
+  // ADDITIV (13.08.2026, Owner-Master-Auftrag §32 — Trichter je Produkt): `campaignId` gibt es
+  // auf jedem Ereignis schon lange (route.ts setzt es immer, notfalls = lookId); `theme` ist
+  // NEU (siehe app/api/try-this-look/route.ts, action:"event") und trägt bei Browser-Ereignissen
+  // der normierten Familie (funnel_started/lead_created/…) das Produkt-Kürzel aus
+  // `lib/produkte.ts`. Server-Ereignisse (lib/track-funnel-server.ts) haben KEIN `theme`-Feld,
+  // sondern kodieren das Produkt in `lookId`/`campaignId` als `funnel-<theme>` — `themeOf()`
+  // unten liest beide Formen.
+  campaignId?: string;
+  theme?: string;
 };
 type Range = "today" | "7d" | "30d" | "all";
+
+/**
+ * DIE NORMIERTE EVENT-FAMILIE, in Anzeige-Reihenfolge (Owner-Master-Auftrag §32: „Wir müssen
+ * später pro Product sehen: Views → Funnel Starts → Leads → Checkout → Sales → Program Starts
+ * → Completion"). Quelle der Stufennamen: lib/track-funnel.ts (`TunnelEvent`) — nichts hier
+ * umbenennen, das sind exakt die Strings, die die Trichter-Seiten (TunnelSeite, KissFunnel,
+ * die Start-Clients) tatsächlich senden.
+ *
+ * `step_completed` fehlt hier ABSICHTLICH (Auftrag: „darfst du weglassen oder klein daneben
+ * zeigen") — es feuert mehrfach je Besuch (ein Ereignis pro Schrittwechsel) und würde die
+ * Stufen-Optik verzerren; die Gesamtzahl zeigt die Trichter-Karte trotzdem klein als Fußnote,
+ * damit sie nicht spurlos verschwindet.
+ */
+const FUNNEL_FAMILIE: { key: string; label: string }[] = [
+  { key: "funnel_started", label: "Tunnel geöffnet" },
+  { key: "lead_created", label: "Lead (Name+E-Mail)" },
+  { key: "look_selected", label: "Vorlage gewählt" },
+  { key: "video_recorded", label: "Aufnahme fertig" },
+  { key: "checkout_started", label: "Kasse gedrückt" },
+  { key: "payment_completed", label: "Bezahlt" },
+  { key: "generation_started", label: "Erzeugung läuft" },
+  { key: "generation_completed", label: "Film fertig" },
+  { key: "result_viewed", label: "Ergebnis gesehen" },
+  { key: "program_started", label: "Programm gestartet" },
+  { key: "daily_action_completed", label: "Tages-Haken" },
+  { key: "program_completed", label: "Programm abgeschlossen" },
+];
+const FUNNEL_FAMILIE_NAMEN = new Set([...FUNNEL_FAMILIE.map(s => s.key), "step_completed"]);
+
+/**
+ * Welchem Produkt (Slug aus `lib/produkte.ts`) gehört ein Ereignis? Zwei Speicherformen im
+ * Umlauf (siehe Feld-Kommentar oben): Browser-Ereignisse tragen `theme` direkt; Server-
+ * Ereignisse (lib/track-funnel-server.ts) haben keins und stecken das Produkt stattdessen in
+ * `campaignId`/`lookId` als `funnel-<theme>` — beide Formen werden hier zusammengeführt.
+ */
+const themeOf = (e: InsightsEvent): string => {
+  if (e.theme) return e.theme;
+  const raw = e.campaignId || e.lookId || "";
+  const m = /^funnel-(.+)$/.exec(raw);
+  return m ? m[1] : "";
+};
 
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n)));
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
@@ -134,9 +185,30 @@ export default function InsightsPro({
       { label: "Subscribed", n: countOf("subscribe_success") },
     ];
 
+    // TRICHTER JE PRODUKT (13.08.2026, Owner-Master-Auftrag §32). Nur Ereignisse der normierten
+    // Familie zählen mit (FUNNEL_FAMILIE_NAMEN) — bestehende, produktfremde Events (tryon_*,
+    // miai_*, paywall_* …) fließen hier nicht ein, das bleiben eigene Auswertungen oben.
+    const familyEvs = evs.filter(e => FUNNEL_FAMILIE_NAMEN.has(e.name));
+    const produktTrichter = Object.values(PRODUKTE).map((p) => {
+      const own = familyEvs.filter(e => themeOf(e) === p.slug);
+      const stufen = FUNNEL_FAMILIE.map(({ key, label }) => {
+        const treffer = own.filter(e => e.name === key);
+        const roh = treffer.length;
+        const mitDevice = treffer.filter(e => e.device);
+        // Hauptzahl = verschiedene Geräte, wenn welche vorliegen (siehe „Different people"
+        // oben) — sonst fällt sie auf die rohe Ereigniszahl zurück (ältere Ereignisse ohne
+        // Geräte-Kennung, oder Server-Ereignisse, die nie eine tragen).
+        const uniq = new Set(mitDevice.map(e => e.device)).size;
+        const haupt = uniq > 0 ? uniq : roh;
+        return { key, label, haupt, roh, zeigtRoh: uniq > 0 && uniq !== roh };
+      });
+      const stepCompleted = own.filter(e => e.name === "step_completed").length;
+      return { slug: p.slug, stufen, stepCompleted, hatDaten: own.length > 0 };
+    }).filter(t => t.hatDaten);
+
     return { visits, views, funnel, sources, countries, topLooks, topModels, trend, recruit, chatFunnel, payment,
       tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click"),
-      subscribed: countOf("subscribe_success"), menschen, abdeckung };
+      subscribed: countOf("subscribe_success"), menschen, abdeckung, produktTrichter };
   }, [feedEvents, viewsByDay, visitsByDay, looks, range]);
 
   const trendMax = Math.max(1, ...data.trend.map(t => Math.max(t.visits, t.views)));
@@ -364,6 +436,57 @@ export default function InsightsPro({
           ))}
         </div>
         <p className="mt-2 text-[11px] font-bold text-ink/45">Paywall → checkout: <span className="text-ink">{pct(data.payment[2].n, data.payment[0].n)}%</span> · checkout → subscribed: <span className="text-ink">{pct(data.payment[3].n, data.payment[2].n)}%</span></p>
+      </div>
+
+      {/* TRICHTER JE PRODUKT (13.08.2026, Owner-Master-Auftrag §32: „Wir müssen später pro
+          Product sehen: Views → Funnel Starts → Leads → Checkout → Sales → Program Starts →
+          Completion"). NUR ADDITIV — eigener Abschnitt, eigene Datenquelle (die normierte
+          Event-Familie aus lib/track-funnel.ts), rührt an keiner der Auswertungen oben.
+          Bewusst als eigene Karte JE Produkt statt einer gemeinsamen Tabelle: die Produkte
+          haben unterschiedliche Schrittfolgen (nur „versprechen" kennt die Programm-Stufen),
+          eine Tabelle mit vielen leeren Zellen wäre unehrlich unübersichtlich. */}
+      <div className={card}>
+        <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Filter className="h-4 w-4 text-ink/40" /> Trichter je Produkt</p>
+        <p className="mt-0.5 text-[11px] font-bold text-ink/40">
+          Die normierte Stufenfolge (Tunnel geöffnet → … → Programm abgeschlossen), gemeinsam für alle Produkte — vergleichbar statt jeder Trichter für sich. Hauptzahl = verschiedene Geräte, Klammer = rohe Ereigniszahl, wenn abweichend.
+        </p>
+        {data.produktTrichter.length === 0 ? (
+          <p className="mt-3 rounded-lg bg-black/[0.04] px-2.5 py-2 text-[11px] font-bold leading-snug text-ink/50">
+            Noch keine Tunnel-Daten im Zeitraum. Die Messung existiert (lib/track-funnel.ts) — sobald ein Besuch die neue Ereignis-Familie auslöst, erscheint hier eine Karte je Produkt.
+          </p>
+        ) : (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {data.produktTrichter.map(t => (
+              <div key={t.slug} className="rounded-xl border border-black/8 p-3">
+                <p className="text-[12px] font-black uppercase tracking-wide text-ink/70">{t.slug}</p>
+                <div className="mt-2 space-y-1.5">
+                  {t.stufen.map((s, i) => {
+                    const vorherige = i > 0 ? t.stufen[i - 1].haupt : 0;
+                    const quote = i === 0 ? null : pct(s.haupt, vorherige);
+                    const leer = s.haupt === 0;
+                    return (
+                      <div key={s.key} className={leer ? "opacity-35" : ""}>
+                        <div className="flex items-baseline justify-between text-[11px]">
+                          <span className="font-black text-ink">{s.label}</span>
+                          <span className="font-black text-ink">
+                            {fmt(s.haupt)}{s.zeigtRoh && <span className="text-ink/40"> ({fmt(s.roh)})</span>}
+                            {quote !== null && <span className="text-ink/40"> · {quote}%</span>}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 h-2 overflow-hidden rounded-full bg-black/[0.06]">
+                          <div className="h-full rounded-full bg-gradient-to-r from-cobalt to-cobalt/70" style={{ width: `${Math.max(pct(s.haupt, t.stufen[0].haupt), s.haupt > 0 ? 3 : 0)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {t.stepCompleted > 0 && (
+                  <p className="mt-2 text-[10px] font-bold text-ink/35">+ {fmt(t.stepCompleted)} Schrittwechsel im Tunnel gemessen (step_completed, hier nicht als Stufe gezählt).</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <p className="px-1 text-[10px] font-bold leading-relaxed text-ink/35">

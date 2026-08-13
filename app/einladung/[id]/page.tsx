@@ -278,7 +278,7 @@ export default async function EinladungPage({ params, searchParams }: {
             Fehlt das Thema (nackter Guthaben-Gutschein), steht der Betrag, und der Knopf
             führt in den Katalog. */}
         {gutschein && !abgelaufen && !!e.lbGutscheinCents && (
-          <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4 text-center">
+          <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-4 text-center">
             <p className="text-[13px] font-bold leading-snug text-white/85">
               {T.gutscheinGuthaben(
                 (lbTopicOk ? T.gutscheinTopics[e.lbGutscheinTopic as keyof typeof T.gutscheinTopics] : "")
@@ -358,7 +358,7 @@ export default async function EinladungPage({ params, searchParams }: {
         {/* Der Abo-Kasten ist die HOCHZEITS-Verlängerung (14,99 €/Monat) — auf einer
             abgelaufenen Gutschein-Karte hätte er nichts freizuschalten. */}
         {abgelaufen && !gutschein && (
-          <div className="mt-8 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+          <div className="mt-8 rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-5 text-center">
             <p className="text-[14px] font-black text-white">{T.wiederTitel}</p>
             <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
               {fillPrices(T.wiederText, sprache)}

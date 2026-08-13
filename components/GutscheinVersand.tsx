@@ -85,7 +85,7 @@ export default function GutscheinVersand({ id, sprache, ok, bestaetigung }: {
 
   if (zustand === "ok") {
     return (
-      <p className="mb-3 rounded-xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] px-3 py-2 text-center text-[12.5px] font-bold leading-snug text-white/85">
+      <p className="mb-3 rounded-xl border border-[#f6cf51]/30 lb-goldhauch px-3 py-2 text-center text-[12.5px] font-bold leading-snug text-white/85">
         {bestaetigung}
       </p>
     );

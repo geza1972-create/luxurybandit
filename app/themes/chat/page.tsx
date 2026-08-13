@@ -1,19 +1,15 @@
 import TopNav from "@/components/TopNav";
-import { MadeBy } from "@/components/CI";
-import EinladungAnsicht from "@/components/EinladungAnsicht";
-import EinladungKarte from "@/components/EinladungKarte";
+import LandingKarte from "@/components/LandingKarte";
 import { BELLA_ID } from "@/lib/bella-card";
-import { fillPrices } from "@/lib/pricing";
+import { fillPrices, CHAT_STUFEN, eur } from "@/lib/pricing";
 import TrackView from "@/components/TrackView";
 import PaidReturn from "@/components/PaidReturn";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
-import ThemenPreis from "@/components/ThemenPreis";
 import ThemenVorspann from "@/components/ThemenVorspann";
 import SeitenFuss from "@/components/SeitenFuss";
-import KartenKarussell from "@/components/KartenKarussell";
-import { getSignedUrl, readCardStudioSlides } from "@/lib/try-this-look-store";
 import { resolveLang } from "@/lib/lang-server";
+import { ordnerVideos } from "@/lib/tryon-videos";
 import { trObject } from "@/lib/tr-object";
 
 /**
@@ -33,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Chat with Bella — write with her every day | LuxuryBandit",
-  description: "Bella writes back in your language, every day. The first messages are free, then one payment for a month — no subscription.",
+  description: "Bella writes back in your language, every day. The first messages are free, then the first month for a small one-off — extend monthly, cancel anytime.",
   keywords: ["chat with ai girl", "ai girlfriend chat", "ai chat girl", "virtual girlfriend app", "ai companion chat", "ai model chat", "dress up ai model", "ai influencer chat"],
   alternates: { canonical: "/themes/chat" },
 };
@@ -114,22 +110,21 @@ export default async function ChatThemePage({ searchParams }: {
    * ist die Liste leer und die Karte zeigt einfach nur das Einladungsvideo — kein leerer
    * Rahmen und keine kaputte Seite.
    */
-  const bellaVideos = (await (async () => {
-    const folien = await readCardStudioSlides(BELLA_ID).catch(() => []);
-    const dessous = folien
-      .filter(s => s.kind === "video" && s.hidden !== true && s.private !== true && s.garmentCat === "lingerie")
-      .slice(0, 2);
-    const urls = await Promise.all(dessous.map(s => (s.path ? getSignedUrl(s.path).catch(() => "") : Promise.resolve(""))));
-    return urls.filter(Boolean);
-  })());
+  /* Die Studio-Folien-Ladung stand hier — raus am 13.08.2026 (Owner: nur eins):
+     die Karte spielt ausschliesslich public/Chat. */
 
   const t = await trObject({
     kicker: "LuxuryBandit · Chat",
+    jetztStarten: "Start now — {chatstart}",
+    teilen: "Share",
     lead: "Bella answers in German, English, Romanian, Spanish, French, Italian — whatever language you write in, and she switches the moment you do. No settings, no language picker.",
     // NEU 03.08.2026 (Owner: „er kauft ein Model, ein Chat"): Hier stand das Abo fuer
     // Bilder und Videos — beides ist heute aus dem Chat entfernt. Ein Werbesatz, der ein
     // Produkt beschreibt, das man nicht mehr kaufen kann, kostet mehr als er bringt.
-    fine: "The first messages are free. Then you pick how long you want to keep writing with her — one payment, no subscription, nothing to cancel.",
+    /* NEUE PREIS-WAHRHEIT (Owner 13.08.2026: „das kostet wie Hochzeit. 9,99 dann 14,99 im
+       monat") — der alte Satz versprach „kein Abonnement" und wäre seit heute eine Lüge.
+       {chatstart}/{monat} füllt die Seite unten aus der Preistabelle. */
+    fine: "The first messages are free. The first month costs {chatstart} — after that it renews at {monat}/month, cancel anytime.",
     // Auch der Gutschein-Satz sprach von Videos und einem Dauerpreis „solange du bleibst".
     // Ohne Abo gibt es kein Bleiben — es gibt eine Laufzeit, die er selbst waehlt.
     codeNote: `Your code ${code.toUpperCase()} is active — your discount is applied at checkout.`,
@@ -149,7 +144,7 @@ export default async function ChatThemePage({ searchParams }: {
     anlass: "For his birthday · for Christmas · for the best friend · for the man who already has everything · for a joke that lasts a whole month",
     /* Genau drei Schritte, wie überall — mehr liest niemand vor dem ersten Tipp. */
     schritt1: "Say hi — the first messages are free.",
-    schritt2: "One payment buys a month. No subscription, nothing to cancel.",
+    schritt2: "{chatstart} buys the first month. It renews at {monat}/month — cancel anytime.",
     schritt3: "Write whenever you want — she remembers where you stopped.",
     /* Die Privatzeile beantwortet die Frage, die jeden zögern lässt: wer liest das mit? */
     privat: "Your conversation is private — nobody else reads it. And she tells you in the chat, again and again, that she is an AI.",
@@ -210,13 +205,12 @@ export default async function ChatThemePage({ searchParams }: {
           * Einladung noch nicht gesehen.
           */}
         <Lead className="mt-2">Bella {t.claim}</Lead>
-        <ThemenPreis thema="chat" lang={L} className="mt-3" />
 
         {/* ANLASS · GRUND · DREI SCHRITTE · PRIVATZEILE — derselbe Baustein wie auf den vier
             anderen Themenseiten (`components/ThemenVorspann`). Hier fehlte er ganz: Zwischen
             Preis und Trichter stand nichts, was sagt, WOFÜR man das kauft. */}
         <ThemenVorspann anlass={t.anlass} grund={W.grund}
-          wieGeht={[t.schritt1, t.schritt2, t.schritt3]} wieGehtPrivat={t.privat} />
+          wieGeht={[t.schritt1, fillPrices(t.schritt2, L).replace("{chatstart}", eur(CHAT_STUFEN[0].cents, L)), t.schritt3]} wieGehtPrivat={t.privat} />
 
         <PaidReturn lang={L} />
 
@@ -239,53 +233,18 @@ export default async function ChatThemePage({ searchParams }: {
             Er hatte recht: `EinladungAnsicht` ist nur das Videofeld — Rahmen, Titel, Ranken und
             die Herkunftszeile macht `EinladungKarte`. Genau die Karte, von der Bildschirmfotos
             gemacht werden, und genau die, die er ueberall sehen will. */}
-        <div className="mt-5">
-          <EinladungKarte
-            sprache={L} sie="" er="" demo
-            titel={W.kartenTitel}
-            fuss={<MadeBy karte />}
-            /**
-             * EINE KARTE, MEHRERE VIDEOS (Owner 05.08.2026: „Am besten in der karte oben im
-             * karusell" · „Mach noch zwei da rein").
-             *
-             * Zuerst die Einladung, danach die beiden Dessous-Videos von Bella — in dieser
-             * Reihenfolge, weil das erste sagt, WAS das hier ist, und die beiden anderen, was
-             * er bekommt. Das Karussell läuft nach sieben Sekunden von selbst weiter und hält
-             * an, sobald jemand mit dem Finger wischt (siehe `KartenKarussell`).
-             *
-             * Liegt keines der beiden Videos vor, steht hier eine Folie — dann zeigt das
-             * Karussell keine Punkte und sieht aus wie die Karte von vorher.
-             */
-            video={
-              <KartenKarussell folien={[
-                <EinladungAnsicht key="einladung"
-                  id="chat-einladung"
-                  videoUrl="/Chat/Private%20Chat%20Invitation_1080p.mp4"
-                  zaehlen={false}
-                  schleife={false}
-                  verhaeltnis="aspect-[9/16]"
-                  originalton
-                  musik=""
-                  tonText={t.tonAn}
-                  tonAusText={t.tonAus}
-                />,
-                ...bellaVideos.map((url, i) => (
-                  <EinladungAnsicht key={`bella-${i}`}
-                    id={`chat-bella-${i}`}
-                    videoUrl={url}
-                    zaehlen={false}
-                    schleife={false}
-                    verhaeltnis="aspect-[9/16]"
-                    originalton
-                    musik=""
-                    tonText={t.tonAn}
-                    tonAusText={t.tonAus}
-                  />
-                )),
-              ]} />
-            }
-          />
-        </div>
+        <LandingKarte sprache={L} titel={W.kartenTitel}
+          href={`/themes/chat/start${code ? `?code=${encodeURIComponent(code)}` : ""}`}
+          teilenUrl="/themes/chat?utm_source=share" teilenText={t.kicker}
+          verhaeltnis="aspect-[9/16]"
+          /* Die Konditionszeile unter der Karte — Beträge aus der Tabelle (chatstart/monat). */
+          preisZeile={fillPrices(t.schritt2, L).replace("{chatstart}", eur(CHAT_STUFEN[0].cents, L))}
+          /* DIE FOLIEN KOMMEN AUS public/Chat (Owner 13.08.2026: „ich habe doch einen
+             Ordner in Public angelegt") — der Ordner ist die Pflege-Oberfläche wie bei
+             Try-on; Bellas Studio-Folien hängen sich hinten an, solange sie da sind. */
+          /* NUR der Ordner (Owner 13.08.2026: „also nur eins") — keine Studio-Folien mehr
+             dahinter; was auf der Karte laufen soll, liegt in public/Chat. */
+          folien={ordnerVideos("Chat")} />
 
         {/* HIER STAND DER BEISPIEL-STREIFEN (Owner 03.08.2026, mit Bildschirmfoto: „das ist
             ueberfluessig"). Zwei Fotos aus dem Speicher und bis zu sechs Kacheln aus
@@ -302,7 +261,7 @@ export default async function ChatThemePage({ searchParams }: {
           <div><SectionTitle>{t.s3h}</SectionTitle><Lead>{t.s3p}</Lead></div>
           <div><SectionTitle>{t.s4h}</SectionTitle><Lead>{t.s4p}</Lead></div>
           <div><Lead>{t.lead}</Lead></div>
-          <div><Fine>{fillPrices(t.fine, L)}</Fine></div>
+          <div><Fine>{fillPrices(t.fine, L).replace("{chatstart}", eur(CHAT_STUFEN[0].cents, L))}</Fine></div>
         </section>
 
         {code && (

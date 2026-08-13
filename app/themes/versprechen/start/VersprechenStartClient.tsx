@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import KissFunnel from "@/components/KissFunnel";
 import TunnelSeite from "@/components/TunnelSeite";
+import { produkt, kissfunnelVariant } from "@/lib/produkte";
 
 /**
  * NUR NOCH VERDRAHTUNG — DIE LOGIK WOHNT IN `components/TunnelSeite.tsx` (Owner 12.08.2026,
@@ -25,10 +26,14 @@ export default function VersprechenStartClient({ lang, code, beispielVideos }: {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
 
+  /* AUS DER PRODUKT-KONFIG (Owner-Master-Auftrag 13.08.2026, §29): Schritte, Sprungziel
+     und Kennung wohnen in lib/produkte.ts — EINE Stelle für alle sieben Tunnel. */
+  const P = produkt("versprechen");
+
   return (
-    <TunnelSeite schritte={[1, 2, 3]} schrittBekannt={2} light={light} code={code}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
-        <KissFunnel variant="versprechen" lang={lang} code={code} beispielVideos={beispielVideos}
+        <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
           tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />
       )}
     </TunnelSeite>

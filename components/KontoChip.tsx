@@ -143,6 +143,31 @@ export default function KontoChip() {
     return T.fehlerAllgemein;
   };
 
+  /**
+   * GAST-AUFTRÄGE DIESES GERÄTS AN DIE FRISCHE ANMELDUNG HÄNGEN (Owner 12.08.2026,
+   * Architektur-Abgleich §15–17: „Keine zweite Kopie. Kein Verlust."). Wer vor der
+   * Anmeldung schon als Gast erzeugt hat, soll seine Werke danach in der Galerie sehen,
+   * statt sie an ein leeres `email`-Feld zu verlieren. Feuert einmal, still, nach JEDER
+   * erfolgreichen Anmeldung — Fehler dürfen die Anmeldung selbst nie stören (deshalb
+   * fire-and-forget, kein await im Aufrufer).
+   *
+   * Der Server (app/api/kiss-log/route.ts, Zweig `uebernehmen`) prüft die Sitzung selbst
+   * und schreibt NUR Einträge mit leerem `email`-Feld um — eine bestehende fremde Adresse
+   * wird nie überschrieben (Memory `guthaben-haengt-an-einer-adresse`).
+   */
+  const gastAuftraegeUebernehmen = (accessToken: string) => {
+    try {
+      const device = localStorage.getItem("lb_visitor") ?? "";
+      if (!device || !accessToken) return;
+      void fetch("/api/kiss-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ uebernehmen: true, device }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* privater Modus o.ä. — dann eben ohne Übernahme */ }
+  };
+
   const absenden = async () => {
     if (busy) return;
     const a = mail.trim().toLowerCase();
@@ -155,17 +180,20 @@ export default function KontoChip() {
     setBusy(true); setFehler("");
     try {
       if (modus === "anmelden") {
-        setSession(await signInWithPassword(a, passwort));
+        const s0 = await signInWithPassword(a, passwort);
+        setSession(s0);
         /* DIE OFFENE SEITE ERFÄHRT VON DER ANMELDUNG (Owner 12.08.2026: angemeldet, grüner
            Punkt da — aber die Galerie sagte weiter „Melde dich an": Sie liest die Sitzung
            nur beim Laden. Das Gegenstück zu `lb-abgemeldet`. */
         try { window.dispatchEvent(new Event("lb-angemeldet")); } catch { /**/ }
+        if (s0?.access_token) gastAuftraegeUebernehmen(s0.access_token);
         setOffen(false);
       } else {
         const { session: s, confirmationRequired } = await signUpWithPassword(a, passwort);
         if (s && !confirmationRequired) {
           setSession(s); setOffen(false);
           try { window.dispatchEvent(new Event("lb-angemeldet")); } catch { /**/ }
+          if (s.access_token) gastAuftraegeUebernehmen(s.access_token);
         }
         else { setHinweis(`${T.bestaetigenTitel} — ${T.bestaetigenText}`); setModus("anmelden"); setPasswort(""); }
       }

@@ -21,6 +21,9 @@ export type FutureProgramText = {
   progress: (done: number) => string; // "12 / 30 days kept"
   todayTitle: string;             // "TODAY"
   doneToday: string;              // Knopf-Ersatz nach dem Abhaken
+  /** „Was kommt als Nächstes" unter dem Erledigt-Knopf (Owner 13.08.2026: „Haben wir nicht
+      gesagt, dass hier gezeigt wird Whats next?") — {titel} = Titel des nächsten Tages. */
+  nextUp: string;
   markDone: string;               // Abhak-Knopf
   missedTitle: string;            // Überschrift "Earlier days"
   missedMark: string;             // Nachträglich abhaken (kompakter Knopftext)
@@ -46,6 +49,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 days kept`,
     todayTitle: "Today",
     doneToday: "Done today ✓",
+    nextUp: "Tomorrow: {titel}",
     markDone: "Mark today done",
     missedTitle: "Earlier days",
     missedMark: "Mark done",
@@ -69,6 +73,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 Tage geschafft`,
     todayTitle: "Heute",
     doneToday: "Heute erledigt ✓",
+    nextUp: "Morgen: {titel}",
     markDone: "Heute abhaken",
     missedTitle: "Frühere Tage",
     missedMark: "Abhaken",
@@ -92,6 +97,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 zile bifate`,
     todayTitle: "Astăzi",
     doneToday: "Făcut azi ✓",
+    nextUp: "Mâine: {titel}",
     markDone: "Bifează azi",
     missedTitle: "Zile anterioare",
     missedMark: "Bifează",
@@ -115,6 +121,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 días cumplidos`,
     todayTitle: "Hoy",
     doneToday: "Hecho hoy ✓",
+    nextUp: "Mañana: {titel}",
     markDone: "Marcar hoy como hecho",
     missedTitle: "Días anteriores",
     missedMark: "Marcar hecho",
@@ -138,6 +145,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 jours tenus`,
     todayTitle: "Aujourd'hui",
     doneToday: "Fait aujourd'hui ✓",
+    nextUp: "Demain : {titel}",
     markDone: "Marquer comme fait",
     missedTitle: "Jours précédents",
     missedMark: "Marquer fait",
@@ -161,6 +169,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 dias cumpridos`,
     todayTitle: "Hoje",
     doneToday: "Feito hoje ✓",
+    nextUp: "Amanhã: {titel}",
     markDone: "Marcar hoje como feito",
     missedTitle: "Dias anteriores",
     missedMark: "Marcar feito",
@@ -184,6 +193,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     progress: (d) => `${d} / 30 giorni rispettati`,
     todayTitle: "Oggi",
     doneToday: "Fatto oggi ✓",
+    nextUp: "Domani: {titel}",
     markDone: "Segna come fatto",
     missedTitle: "Giorni precedenti",
     missedMark: "Segna fatto",

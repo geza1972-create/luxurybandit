@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Laden } from "@/components/CI";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
+import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
  * DAS EINE GERÜST FÜR JEDE TUNNEL-SEITE (Owner 12.08.2026, „oberstes Gesetz": „allle funnels
@@ -40,6 +41,10 @@ import { aktiveAdresse } from "@/lib/guthaben-konto";
  *                    überspringen Schritt 1 komplett").
  *   light, code     Reisen unveraendert in jede erzeugte Adresse mit — dieselben zwei
  *                    Parameter, die schon jede Anzeige des Hauses kennt.
+ *   produkt         NUR fürs Messen (Owner-Architektur-Abgleich 12.08.2026, §32 „normierte
+ *                    Funnel-Events") — die Produkt-Kennung (`kiss`/`wedding`/`versprechen`/…).
+ *                    `TunnelSeite` selbst bleibt produktblind (siehe unten); dieser eine
+ *                    String geht nur ins Analytics-Ereignis, nirgendwo sonst hinein.
  *   children        `(args: { schritt; onSchrittChange }) => ReactNode` — die Funnel-
  *                    Komponente des Aufrufers. `schritt` ist die aktuell gültige Zahl aus der
  *                    Adresszeile (oder aus der Bekannten-Weiche); `onSchrittChange` meldet
@@ -53,13 +58,15 @@ import { aktiveAdresse } from "@/lib/guthaben-konto";
  * *dünnen* Client-Baustein (`"use client"`, wenige Zeilen), der `TunnelSeite` mit seiner
  * Funnel-Komponente verdrahtet — aber DORT steht nur noch Verdrahtung, keine Logik mehr.
  */
-export default function TunnelSeite({ schritte, schrittBekannt, light, code, children }: {
+export default function TunnelSeite({ schritte, schrittBekannt, light, code, produkt = "", children }: {
   /** Die erreichbaren Schritte, aufsteigend — z. B. `[1, 3]` oder `[1, 2, 3]`. */
   schritte: number[];
   /** Sprung-Ziel für bekannte Besucher beim allerersten Aufruf. */
   schrittBekannt: number;
   light: boolean;
   code: string;
+  /** Nur fürs Messen — siehe Kommentar oben (`funnel_started`/`step_completed`). */
+  produkt?: string;
   children: (args: { schritt: number; onSchrittChange: (schritt: number) => void }) => ReactNode;
 }) {
   const router = useRouter();
@@ -105,6 +112,20 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, chi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sParam]);
 
+  /**
+   * `funnel_started` — EINMAL je Besuch, sobald der Trichter WIRKLICH steht (Owner-
+   * Architektur-Abgleich 12.08.2026, §32). Nicht schon beim allerersten Rendern (`schritt`
+   * ist dann noch `null`, siehe die Weiche oben), sonst zählte auch die Bekannte-Weiche
+   * selbst als zweiter Besuch.
+   */
+  const gestartetGemeldet = useRef(false);
+  useEffect(() => {
+    if (schritt === null || gestartetGemeldet.current) return;
+    gestartetGemeldet.current = true;
+    void logTunnelEvent("funnel_started", produkt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schritt]);
+
   if (schritt === null) {
     return <div className="mt-8"><Laden art="flaeche" /></div>;
   }
@@ -116,6 +137,7 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, chi
         onSchrittChange: s => {
           if (!gueltig(s)) return;
           if (String(s) === sParam) return;
+          void logTunnelEvent("step_completed", produkt, { step: String(s) });
           const url = baueUrl(s);
           // VORWAERTS LEGT EINEN VERLAUFSEINTRAG AN — die Handy-Zurück-Geste geht damit
           // einen Schritt zurueck statt die Seite zu verlassen (Owner: „der user soll auch

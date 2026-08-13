@@ -836,7 +836,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                           body: JSON.stringify({ modelId, kind: "test", subId, what: ["Look testen", "Kissing", "Idol", "Lingerie"][i] }), keepalive: true }).catch(() => {});
                       } catch { /**/ }
                     }}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+                    className="flex flex-col overflow-hidden rounded-2xl border border-[#f6cf51]/25 lb-goldhauch active:scale-[0.98] transition">
                     <span className="relative block aspect-[3/4] w-full overflow-hidden bg-white/[0.04]">
                       {media
                         ? (isVideo

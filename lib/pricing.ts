@@ -401,7 +401,12 @@ export const PLAN_CENTS = 6000;                     // 60 € — grösste Aufla
  * `chatPriceId()` unten ist deshalb `one_time` — nachgeschlagen, nicht geglaubt.
  */
 export const CHAT_STUFEN = [
-  { monate: 1, cents: 1499 },   // = die Stripe-Preis-Kennung unten. Beide zusammen aendern!
+  /* CHAT WIE HOCHZEIT (Owner 13.08.2026: „und das kostet wie Hochzeit. 9,99 dann 14,99 im
+     monat"): der EINSTIEG kostet den Hauspreis 9,99 €, die Verlängerung läuft wie bei der
+     Hochzeit über das eine Abo (chatAboPriceId, 14,99 €/Monat — der EMPFÄNGER verlängert).
+     Die alte 14,99-Einmal-Kennung (`chatPriceId`) ist damit ÜBERHOLT; die Kasse rechnet
+     seit heute über `price_data` mit DIESER Zahl (chat-zugang-checkout). */
+  { monate: 1, cents: 999 },
 ] as const;
 
 /**

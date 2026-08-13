@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
 import { fillPrices, CHAT_STUFEN, CHAT_KONTINGENT, eur } from "@/lib/pricing";
+import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
@@ -546,9 +547,18 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
       )}
       </>}
 
-      {/* 2 — der Chat: die Hauptsache */}
-      <p className={`mt-6 ${label}`}>{u.s2}</p>
-      <div className="mt-2 overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-sm">
+      {/* 2 — der Chat: die Hauptsache. IN DER CREME-KARTE (Owner 13.08.2026, Vergleich mit
+          dem Hochzeits-Gruppenchat: „schau dir das Design … an") — dieselben drei Bausteine
+          wie components/GruppenChat.tsx: lb-karte, CornerOrnaments, Innenrahmen, die goldene
+          Kicker-Zeile. Der weisse Chat-Kasten liegt als Fläche IN der Karte, wie die
+          Nachrichten-Kacheln des Gruppenchats. */}
+      <div className="lb-karte relative mt-6 overflow-hidden rounded-[20px] px-4 pb-5 pt-6 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+      <CornerOrnaments />
+      <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
+      <div className="relative">
+      <p className="lb-karte-gold text-center text-[10px] font-black uppercase tracking-[0.28em]">{u.s2}</p>
+      <DividerOrnament className="mt-2" />
+      <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-sm">
         {/* Kopf — wie im bestehenden Chat: Foto, Name, „online now". */}
         <div className="flex items-center gap-3 border-b border-black/10 px-3 py-2.5">
           <div className="relative aspect-[3/4] w-9 shrink-0 overflow-hidden rounded-lg bg-black/5">
@@ -719,6 +729,8 @@ export default function ChatFunnel({ code = "", lang = "en", nurEine = "" }: {
             </>
           )}
         </div>
+      </div>
+      </div>
       </div>
 
       {/*

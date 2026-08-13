@@ -37,7 +37,7 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
   };
 
   return (
-    <div id="buchung" className="mt-6 rounded-3xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] p-5">
+    <div id="buchung" className="mt-6 rounded-3xl border border-[#f6cf51]/40 lb-goldhauch p-5">
       <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">The Package</p>
       <div className="mt-2 space-y-1.5 text-[15px] font-bold">
         <p>🎬 <span className="text-white">3 videos</span> — every day</p>

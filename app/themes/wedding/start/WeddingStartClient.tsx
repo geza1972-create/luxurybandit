@@ -4,17 +4,37 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
+import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
-import { TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, VorlagenKachel } from "@/components/CI";
+import { TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, VorlagenKachel, KurzeEinwilligung } from "@/components/CI";
 import { AufladeWaehler } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
-import { guthabenLesen } from "@/lib/guthaben-konto";
+import { guthabenLesen, aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession, signInWithOAuth } from "@/lib/supabase-auth-client";
 import { reichtGuthaben } from "@/lib/kasse";
 import { eur, themenPreisCents, geschenkPreisCents } from "@/lib/pricing";
 import { KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { logTunnelEvent } from "@/lib/track-funnel";
+import GruppenChat from "@/components/GruppenChat";
+
+/**
+ * DIESELBE DEMO WIE AUF DER LANDINGPAGE (Owner-Zusatzauftrag 12.08.2026: „oder chat … wie bei
+ * Hochzeit mit"). Wörtlich dieselben vier Sätze und Namen wie `app/themes/wedding/page.tsx`
+ * (`DEMO_CHAT`/`DEMO_NAMEN`) — dort nicht exportiert, deshalb hier dupliziert statt aus einer
+ * Server-Seite importiert. Ändert sich die Demo dort, gehört diese Kopie mitgeändert.
+ */
+const DEMO_NAMEN = ["Maria", "Andrei", "Maria", "Sofia"];
+const DEMO_CHAT: Record<string, string[]> = {
+  de: ["Jochen und Gina sitzen am Tisch 6.", "Können wir eine Volksmusik-Band bekommen?", "Wie wird das Wetter?", "Hilfe, ich habe mein Kleid zu Hause vergessen — wo finde ich eins in der Stadt?"],
+  en: ["Jochen and Gina are at table 6.", "Could we get a folk band?", "What's the weather going to be like?", "Help, I left my dress at home — where can I find one in town?"],
+  ro: ["Jochen și Gina stau la masa 6.", "Putem avea o formație de muzică populară?", "Cum va fi vremea?", "Ajutor, mi-am uitat rochia acasă — de unde pot lua una în oraș?"],
+  es: ["Jochen y Gina están en la mesa 6.", "¿Podemos tener un grupo de música popular?", "¿Qué tiempo va a hacer?", "¡Socorro! Me he dejado el vestido en casa — ¿dónde encuentro uno en la ciudad?"],
+  fr: ["Jochen et Gina sont à la table 6.", "Peut-on avoir un groupe folklorique ?", "Quel temps fera-t-il ?", "Au secours, j'ai oublié ma robe — où en trouver une en ville ?"],
+  pt: ["O Jochen e a Gina estão na mesa 6.", "Podemos ter uma banda de música popular?", "Como vai estar o tempo?", "Socorro, deixei o vestido em casa — onde arranjo um na cidade?"],
+  it: ["Jochen e Gina sono al tavolo 6.", "Possiamo avere una band di musica popolare?", "Che tempo farà?", "Aiuto, ho dimenticato il vestito a casa — dove ne trovo uno in città?"],
+};
 
 /**
  * DIE HOCHZEIT ALS TUNNEL-SEITE (KONZEPT-TUNNEL.md, Owner 12.08.2026: „Genauso müssen alle
@@ -39,8 +59,12 @@ export default function WeddingStartClient({ lang, code }: { lang: string; code:
   const light = searchParams.get("light") === "1";
   const F = kissText(lang, "wedding");
 
+  /* AUS DER PRODUKT-KONFIG (Owner-Master-Auftrag 13.08.2026, §29): Schritte, Sprungziel
+     und Kennung wohnen in lib/produkte.ts — EINE Stelle für alle sieben Tunnel. */
+  const P = produkt("wedding");
+
   return (
-    <TunnelSeite schritte={[1, 3]} schrittBekannt={3} light={light} code={code}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <WeddingTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} />
       )}
@@ -79,7 +103,15 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const [status, setStatus] = useState("");
   const [mailFehler, setMailFehler] = useState("");
 
-  useEffect(() => { setAngemeldet(!!getStoredAuthSession()?.access_token); }, []);
+  useEffect(() => {
+    setAngemeldet(!!getStoredAuthSession()?.access_token);
+    /* BEKANNTE SPRINGEN AN SCHRITT 1 VORBEI (GEMESSEN 13.08.2026, Owner-Screenshot am
+       Hochzeits-Tunnel: beide Fotos da, Knopf stumm gesperrt — `mail` war leer, weil nur
+       Schritt 1 sie setzt). Die Adresse kommt deshalb hier aus der Haus-Quelle
+       `aktiveAdresse()` (Konto-Sitzung, Tor, Kasse — dieselbe Zeile, mit der TunnelSeite
+       den Sprung entscheidet), Rückfall lb_kiss_mail. */
+    try { const a = aktiveAdresse() || localStorage.getItem("lb_kiss_mail") || ""; if (a) setMail(m => m || a); } catch { /**/ }
+  }, []);
 
   useEffect(() => {
     const e = mail.trim().toLowerCase();
@@ -124,6 +156,7 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
       if (start?.walletPaid) {
         if (typeof start.rest === "number") setGuthabenCents(start.rest);
         try { popup?.close(); } catch { /**/ }
+        void logTunnelEvent("payment_completed", "wedding", { via: "wallet" });
         return true;
       }
       if (!start?.url || !start?.sessionId) {
@@ -144,6 +177,7 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
             if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await kaufen(undefined, true);
           }
+          void logTunnelEvent("payment_completed", "wedding", { via: "stripe" });
           return true;
         }
         if (popup.closed && i > 2) break;
@@ -161,8 +195,12 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const generieren = async (topupCents?: number) => {
     if (!fotosDa || !mailOk || busy) return;
     setBusy(true); setStatus(F.oneMoment);
+    // `checkout_started` (Owner-Architektur-Abgleich 12.08.2026, §32).
+    void logTunnelEvent("checkout_started", "wedding");
     const ok = await kaufen(topupCents);
     if (!ok) { setBusy(false); return; }
+    // `generation_started` — die Zahlung steht, jetzt beginnt der Auftrag beim Anbieter.
+    void logTunnelEvent("generation_started", "wedding");
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -190,6 +228,7 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
       <TunnelFortschritt schritte={[1, 3]} aktuell={schritt} />
       {schritt === 1 && (
         <TunnelStart
+          produkt="wedding"
           titel={F.tunnelStartTitel ?? F.namenFrage}
           nameLabel={F.tunnelName ?? F.namenFrage} namePlatzhalter={F.namenPlatzhalter}
           emailLabel={F.tunnelEmail ?? F.mailQuestion} emailPlatzhalter="you@email.com"
@@ -259,7 +298,14 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
                  erzeugt werden beim vrgrössern"): ohne ihn faellt die Karte im Vollbild auf
                  ihre eigene Standardueberschrift zurueck ("Wedding invitation" usw.) —
                  genau dieselbe, die `EinladungBauen` fuer die Hochzeit schon zeigt. */
-              <VorlagenKachel bildUrl={HOCHZEIT_VIDEO_POSTER} videoUrl={HOCHZEIT_VIDEO} posterUrl={HOCHZEIT_VIDEO_POSTER} ansehenLabel={F.vorlageAnsehen} sprache={lang} />
+              <VorlagenKachel bildUrl={HOCHZEIT_VIDEO_POSTER} videoUrl={HOCHZEIT_VIDEO} posterUrl={HOCHZEIT_VIDEO_POSTER} ansehenLabel={F.vorlageAnsehen} sprache={lang}
+                /* DIE GRUPPENCHAT-DEMO ALS FEATURE-KARTE (Owner-Zusatzauftrag 12.08.2026) —
+                   derselbe Baustein und dieselben Demo-Nachrichten wie auf der Landingpage,
+                   im Vollbild unter der Video-Karte, kein Kaufknopf darin. */
+                features={
+                  <GruppenChat sprache={lang} demo sie="Ana" er="Mihai"
+                    nachrichten={(DEMO_CHAT[lang] ?? DEMO_CHAT.en).map((t, i) => ({ name: DEMO_NAMEN[i] ?? "Gast", text: t }))} />
+                } />
             }
             knopf={{
               /* DER FESTE KAUF-BETRAG, NICHT DIE „AB"-ZEILE (Owner-Auftrag 12.08.2026): Die
@@ -267,11 +313,17 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
                  — `themenPreisZeile` haengt aber immer ein „ab"/„from" davor, weil sie für
                  Produkte MIT Preis-Leiter gebaut ist. `eur(geschenkPreisCents("wedding"))`
                  ist derselbe Betrag ohne das falsche Versprechen einer Staffelung. */
-              text: busy ? F.oneMoment : `${F.generateNow} — ${eur(geschenkPreisCents("wedding"), lang)}`,
+              /* DER PREIS ERST, WENN ES ETWAS ZU KAUFEN GIBT (Owner 13.08.2026, GENERELLE
+                 Tunnel-Regel — „wieso nicht generel?"): solange die Fotos fehlen, traegt der
+                 Knopf nur das Knopf-Wort; der Betrag kommt mit dem vollstaendigen Beitrag. */
+              text: busy ? F.oneMoment : fotosDa ? `${F.generateNow} — ${eur(geschenkPreisCents("wedding"), lang)}` : F.generateNow,
               disabled: !fotosDa || !mailOk || busy, busy,
               onClick: () => void generieren(),
             }}
-            einwilligung={F.consent}
+            /* DIE KURZE ZEILE STATT DES LANGEN ABSATZES (Owner-Architektur-Abgleich
+               12.08.2026, §24 „Kurze Privacy-Zeile") — der Tunnel bekommt `consentKurz`
+               statt `consent`; die Zustimmung-durch-Klick selbst ist unveraendert. */
+            einwilligung={<KurzeEinwilligung tpl={F.consentKurz} linkLabel={F.agbLink} />}
           />
 
           <input ref={ihrRef} type="file" accept="image/*,.heic,.heif" className="hidden"

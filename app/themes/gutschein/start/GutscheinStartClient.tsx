@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
+import { produkt } from "@/lib/produkte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
-import { TunnelStart, Knopf, Eingabe } from "@/components/CI";
+import { TunnelStart, Knopf, Eingabe, KurzeEinwilligung } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
 import { signInWithOAuth } from "@/lib/supabase-auth-client";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import { eur, themenPreisCents, GUTSCHEIN_STUFEN, type ThemenSchluessel } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { logTunnelEvent } from "@/lib/track-funnel";
+import { aktiveAdresse } from "@/lib/guthaben-konto";
 
 const LB_TOPICS: ThemenSchluessel[] = ["kiss", "birthday", "surprise", "holiday", "wedding"];
 
@@ -32,8 +35,12 @@ export default function GutscheinStartClient({ lang, code }: { lang: string; cod
   const F = kissText(lang, "gutschein");
   const T = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
 
+  /* AUS DER PRODUKT-KONFIG (Owner-Master-Auftrag 13.08.2026, §29): Schritte, Sprungziel
+     und Kennung wohnen in lib/produkte.ts — EINE Stelle für alle sieben Tunnel. */
+  const P = produkt("gutschein");
+
   return (
-    <TunnelSeite schritte={[1, 2, 3]} schrittBekannt={2} light={light} code={code}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <GutscheinTunnel lang={lang} F={F} T={T} schritt={schritt} onSchrittChange={onSchrittChange} />
       )}
@@ -45,6 +52,11 @@ export default function GutscheinStartClient({ lang, code }: { lang: string; cod
 function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: string; F: any; T: any; schritt: number; onSchrittChange: (s: number) => void }) {
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
+  /* Bekannte springen an Schritt 1 vorbei (GEMESSEN 13.08.2026 am Hochzeits-Tunnel) —
+     die Kassen-Adresse kommt dann aus der Haus-Quelle, sonst zahlt der Kauf ins Leere. */
+  useEffect(() => {
+    try { const a = aktiveAdresse() || localStorage.getItem("lb_kiss_mail") || ""; if (a) setMail(m => m || a); } catch { /**/ }
+  }, []);
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadFehler, setLeadFehler] = useState("");
 
@@ -65,6 +77,9 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
     if (lbBusy || lbGekauft) return !!lbGekauft;
     const emp = lbMail.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emp)) { setLbFehler(F.lbFehlerMail ?? ""); return false; }
+    // `checkout_started` (Owner-Architektur-Abgleich 12.08.2026, §32) — kein Guthaben-Weg
+    // beim Gutschein (Skill `bezahlung`: immer Stripe), also kein separates `payment via`.
+    void logTunnelEvent("checkout_started", "gutschein");
     setLbFehler(""); setLbBusy(true); setLbLaeuft(wahl.topic || String(wahl.cents));
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     let gekauft = false;
@@ -89,6 +104,7 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
           const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
           if (s?.paid) {
             gekauft = true;
+            void logTunnelEvent("payment_completed", "gutschein", { via: "stripe" });
             setLbGekauft({ topic: String(s.topic ?? wahl.topic), cents: Number(s.cents ?? 0) || wahl.cents });
             break;
           }
@@ -109,6 +125,7 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
     <>
       {schritt === 1 && (
         <TunnelStart
+          produkt="gutschein"
           titel={F.tunnelStartTitel ?? F.namenFrage}
           nameLabel={F.tunnelName ?? F.namenFrage} namePlatzhalter={F.namenPlatzhalter}
           emailLabel={F.tunnelEmail ?? F.mailQuestion} emailPlatzhalter="you@email.com"
@@ -176,7 +193,14 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
               );
             })}
           </div>
-          <Knopf art="gold" className="mt-4" disabled={!lbWahl} onClick={() => lbWahl && onSchrittChange(3)}>
+          {/* `look_selected` AUCH HIER (Owner 13.08.2026, auf die Frage ob die Themen-/
+              Betrags-Wahl zählt: „ja") — der `lookId` sagt, WAS gewählt wurde: das Thema
+              des Geschenks oder `guthaben-<cents>` beim nackten Betrag. */}
+          <Knopf art="gold" className="mt-4" disabled={!lbWahl} onClick={() => {
+            if (!lbWahl) return;
+            void logTunnelEvent("look_selected", "gutschein", { lookId: lbWahl.topic || `guthaben-${lbWahl.cents}` });
+            onSchrittChange(3);
+          }}>
             {F.tunnelWeiter ?? F.next}
           </Knopf>
         </div>
@@ -215,7 +239,11 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
                   zweiter Preis auf dem Knopf waere hier nur eine Wiederholung. */}
               {lbBusy ? F.oneMoment : F.generateNow}
             </Knopf>
-            <p className="mt-2 text-center font-serif text-[11px] leading-snug text-white/70">{F.consent}</p>
+            {/* Kurze Zeile statt langer Absatz im Tunnel (Owner-Architektur-Abgleich
+                12.08.2026, §24) — siehe derselbe Kommentar in WeddingStartClient.tsx. */}
+            <p className="mt-2 text-center font-serif text-[11px] leading-snug text-white/70">
+              <KurzeEinwilligung tpl={F.consentKurz} linkLabel={F.agbLink} />
+            </p>
           </>)}
         </div>
       )}

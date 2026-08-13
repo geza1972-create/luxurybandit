@@ -59,7 +59,7 @@ export default function UploadKachel({
         * Karte. Deshalb muss der Haken IN diesem Baustein sitzen und nicht beim Aufrufer.
         */}
       <button type="button" onClick={onWaehlen} data-oncard="1" data-aufmedien="1"
-        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
+        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
         {foto ? (<>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />

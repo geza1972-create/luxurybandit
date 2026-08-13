@@ -185,6 +185,14 @@ export type KissText = {
   guthabenVorabHinweis: string;
   // Knopf und Kleingedrucktes
   ctaFree: string; ctaVideo: string; rendering: string; priceLine: string; paidLine: string; consent: string;
+  /**
+   * DIE KURZE ZEILE FUER DEN TUNNEL (Owner-Architektur-Abgleich 12.08.2026, §24 „Kurze
+   * Privacy-Zeile"): ersetzt `consent` NUR auf den Tunnel-Seiten — der lange Absatz bleibt
+   * in den alten Dialog-Trichtern unveraendert stehen. `{agb}` wird wie bei `zustimmung`
+   * (siehe dort) durch einen Link auf /terms ersetzt, mit `agbLink` als Beschriftung —
+   * keine neue Link-Uebersetzung noetig, dieselbe wie im alten Text.
+   */
+  consentKurz: string;
   buyOnce: string; buyAbo: string;
   // Fortschritt
   renderSteps: string[]; teaseSteps: string[];
@@ -336,6 +344,28 @@ export type KissText = {
    */
   tunnelStartTitel?: string; tunnelName?: string; tunnelEmail?: string; tunnelWeiter?: string;
   /**
+   * DER TEXT-FOLGEAUFTRAG DES VERSPRECHENS (Owner 12.08.2026: „die texte für verprechen
+   * hast du aber nicht wie vom chat gpt verändert" — ChatGPT-Papier §22–26). Alle optional
+   * und BASISWEISE ungesetzt: NUR das VERSPRECHEN-Overlay in dieser Datei füllt sie, jedes
+   * andere Produkt reicht `undefined` an dieselben Bausteine (`TunnelStart`, den Tunnel-
+   * Schritt 2, das Aufnahme-Vollbild) und sieht exakt wie vorher aus — „Component bleibt
+   * gleich, Inhalt ändert sich".
+   */
+  /** Schritt 1: Erklärzeile unter dem Titel / Kleintext unter „Weiter" (neue `TunnelStart`-Props). */
+  tunnelIntro?: string; tunnelKleinText?: string;
+  /** Schritt 2 (Look-Wahl): eigener Titel/Unterzeile + eigener Weiter-Knopf, getrennt von
+   *  `tunnelWeiter` (der bleibt Schritt 1 vorbehalten — siehe Kommentar an der Einsatzstelle
+   *  in KissFunnel.tsx, warum ein gemeinsamer Schlüssel hier falsch läge). */
+  zukunftTitel?: string; zukunftUnterzeile?: string; tunnelWeiterAuswahl?: string;
+  /** Schritt 3 (Aufnahme-Vollbild): Titel/Text/Beispielzeile über dem Aufnahme-Knopf, der
+   *  Knopf selbst, und die Bildunterschrift der fertigen Aufnahme. */
+  aufTitel3?: string; aufHinweis3?: string; aufBeispiel?: string; aufCta?: string; aufFertig?: string;
+  /** §22 Screen 4 (Owner-Master-Auftrag 13.08.2026): die Gegenüberstellung vor dem Kauf —
+      nur das Versprechen füllt sie. */
+  heuteLabel?: string; zukunftLabel?: string; verbindenText?: string;
+  /** Ergebnis: Titel + Text über dem Herunterladen-Knopf, sobald das Video fertig ist. */
+  ergebnisTitel?: string; ergebnisText?: string;
+  /**
    * DIE GOOGLE-ABKÜRZUNG IM TUNNEL-START (Owner 12.08.2026: „auch googgle anmeldung kannst
    * du einbauen"). Im BASISTEXT, nicht nur im Versprechen-Overlay — der Tunnel rollt auf
    * alle Produkte aus (KONZEPT-TUNNEL.md), dieselbe Beschriftung soll ueberall stehen.
@@ -467,6 +497,7 @@ const EN: KissText = {
   ctaFree: "Generate picture — free", ctaVideo: "Generate video", rendering: "Rendering …",
   priceLine: "Picture free · Video {once}", paidLine: "✓ Paid — everything below is included",
   consent: "By generating you confirm you may use these photos, everyone shown is an adult, you keep it private — and you take full responsibility for it. Nudity photos are not accepted. Uploading someone else's photo without their consent is not legal — that responsibility is yours.",
+  consentKurz: "🔒 Private · just for you · generating confirms the {agb}",
   buyOnce: "Hot video {once}", buyAbo: "All in — {price}/mo",
   renderSteps: [
     "Analyzing your photo …", "Matching the two of you …", "Rendering the kiss …",
@@ -607,6 +638,7 @@ const DE: KissText = {
   ctaFree: "Bild erzeugen — gratis", ctaVideo: "Video erzeugen", rendering: "Wird erzeugt …",
   priceLine: "Bild gratis · Video {once}", paidLine: "✓ Bezahlt — alles hier drunter ist dabei",
   consent: "Mit dem Erzeugen bestätigst du: Du darfst diese Fotos verwenden, alle Abgebildeten sind erwachsen, du behältst es privat — und du trägst die Verantwortung dafür. Nacktbilder werden nicht akzeptiert. Ein Foto einer anderen Person ohne deren Zustimmung hochzuladen ist nicht legal — dafür trägst du selbst die Verantwortung.",
+  consentKurz: "🔒 Privat · nur für dich · mit dem Erzeugen bestätigst du die {agb}",
   buyOnce: "Heißes Video {once}", buyAbo: "Alles drin — {price}/Monat",
   renderSteps: [
     "Dein Foto wird gelesen …", "Ihr beide werdet zusammengeführt …", "Der Kuss entsteht …",
@@ -747,6 +779,7 @@ const RO: KissText = {
   ctaFree: "Generează poza — gratis", ctaVideo: "Generează videoclipul", rendering: "Se generează …",
   priceLine: "Poza gratis · Video {once}", paidLine: "✓ Plătit — tot ce urmează este inclus",
   consent: "Prin generare confirmi că ai dreptul să folosești aceste poze, că toate persoanele sunt adulte, că păstrezi rezultatul privat — și că îți asumi răspunderea. Pozele cu nuditate nu sunt acceptate. Încărcarea pozei altei persoane fără acordul ei nu este legală — răspunderea îți aparține.",
+  consentKurz: "🔒 Privat · doar pentru tine · prin generare confirmi {agb}",
   buyOnce: "Video fierbinte {once}", buyAbo: "Totul inclus — {price}/lună",
   renderSteps: [
     "Îți analizăm poza …", "Vă potrivim pe amândoi …", "Se construiește sărutul …",
@@ -887,6 +920,7 @@ const ES: KissText = {
   ctaFree: "Generar imagen — gratis", ctaVideo: "Generar vídeo", rendering: "Generando …",
   priceLine: "Imagen gratis · Vídeo {once}", paidLine: "✓ Pagado — todo lo de abajo está incluido",
   consent: "Al generar confirmas que puedes usar estas fotos, que todas las personas son adultas, que lo mantendrás privado — y que asumes la responsabilidad. No se aceptan fotos con desnudez. Subir la foto de otra persona sin su consentimiento no es legal — esa responsabilidad es tuya.",
+  consentKurz: "🔒 Privado · solo para ti · al generar confirmas los {agb}",
   buyOnce: "Vídeo caliente {once}", buyAbo: "Todo incluido — {price}/mes",
   renderSteps: [
     "Analizando tu foto …", "Uniéndoos a los dos …", "Creando el beso …",
@@ -1027,6 +1061,7 @@ const FR: KissText = {
   ctaFree: "Générer l'image — gratuit", ctaVideo: "Générer la vidéo", rendering: "Génération …",
   priceLine: "Image gratuite · Vidéo {once}", paidLine: "✓ Payé — tout ce qui suit est inclus",
   consent: "En générant, tu confirmes que tu peux utiliser ces photos, que toutes les personnes sont majeures, que tu gardes le résultat privé — et que tu en assumes la responsabilité. Les photos dénudées ne sont pas acceptées. Téléverser la photo d'une autre personne sans son consentement n'est pas légal — cette responsabilité t'incombe.",
+  consentKurz: "🔒 Privé · juste pour toi · en générant tu confirmes les {agb}",
   buyOnce: "Vidéo chaude {once}", buyAbo: "Tout compris — {price}/mois",
   renderSteps: [
     "Analyse de ta photo …", "On vous réunit tous les deux …", "Le baiser se construit …",
@@ -1167,6 +1202,7 @@ const PT: KissText = {
   ctaFree: "Gerar imagem — grátis", ctaVideo: "Gerar vídeo", rendering: "A gerar …",
   priceLine: "Imagem grátis · Vídeo {once}", paidLine: "✓ Pago — tudo abaixo está incluído",
   consent: "Ao gerar confirmas que podes usar estas fotos, que todas as pessoas são adultas, que manténs o resultado privado — e que assumes a responsabilidade. Não são aceites fotos com nudez. Carregar a foto de outra pessoa sem o seu consentimento não é legal — essa responsabilidade é tua.",
+  consentKurz: "🔒 Privado · só para ti · ao gerar confirmas os {agb}",
   buyOnce: "Vídeo quente {once}", buyAbo: "Tudo incluído — {price}/mês",
   renderSteps: [
     "A analisar a tua foto …", "A juntar-vos aos dois …", "A criar o beijo …",
@@ -1308,6 +1344,7 @@ const IT: KissText = {
   ctaFree: "Genera l'immagine — gratis", ctaVideo: "Genera il video", rendering: "Generazione …",
   priceLine: "Immagine gratis · Video {once}", paidLine: "✓ Pagato — tutto qui sotto è incluso",
   consent: "Generando confermi di poter usare queste foto, che tutte le persone sono maggiorenni, che lo terrai privato — e che te ne assumi la responsabilità. Le foto con nudità non sono accettate. Caricare la foto di un'altra persona senza il suo consenso non è legale — quella responsabilità è tua.",
+  consentKurz: "🔒 Privato · solo per te · generando confermi i {agb}",
   buyOnce: "Video bollente {once}", buyAbo: "Tutto incluso — {price}/mese",
   renderSteps: [
     "Analizziamo la tua foto …", "Vi mettiamo insieme …", "Nasce il bacio …",
@@ -2875,8 +2912,26 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     namenFrage: "An wen schickst du es? Der Name kommt auf die Karte", namenPlatzhalter: "Max",
     /* SCHRITT 1 DES EINEN TUNNELS (KONZEPT-TUNNEL.md, Owner 12.08.2026: „Stepp 1. Name,
        Email"). Nur diese vier Zeilen sind neu — der Rest des Trichters bleibt derselbe. */
-    tunnelStartTitel: "Dein Versprechen an dich selbst", tunnelName: "Dein Name",
+    /* TEXT-FOLGEAUFTRAG (Owner 12.08.2026, ChatGPT-Papier §22–26): wörtlich übernommen —
+       siehe Kommentar am Typ (`tunnelIntro` etc.) für die Bausteine, die sie zeigen. */
+    tunnelStartTitel: "Mach deinem zukünftigen Ich ein Versprechen.", tunnelName: "Dein Name",
     tunnelEmail: "Deine E-Mail", tunnelWeiter: "Weiter",
+    tunnelIntro: "Du nimmst heute eine kurze Nachricht an dich selbst auf. Wir machen daraus deinen persönlichen Future Film — und daraus beginnt dein 30-Tage-Programm.",
+    tunnelKleinText: "Deine E-Mail speichert dein Projekt und dein fertiges Ergebnis. Kein Spam.",
+    zukunftTitel: "Wie sieht deine Zukunft aus?",
+    zukunftUnterzeile: "Wähle die Welt, in der du dein zukünftiges Ich sehen möchtest.",
+    tunnelWeiterAuswahl: "Diese Zukunft wählen",
+    aufTitel3: "Jetzt kommt der wichtigste Teil.",
+    aufHinweis3: "Schau in die Kamera und sag dir selbst, was du in den nächsten 30 Tagen verändern willst. Du musst nicht perfekt aussehen. Sprich einfach ehrlich.",
+    aufBeispiel: "»In 30 Tagen will ich …«",
+    heuteLabel: "DU HEUTE",
+    zukunftLabel: "DEIN ZUKÜNFTIGES ICH",
+    verbindenText: "Wir verbinden deine Nachricht mit deiner Zukunftsvision. Danach beginnt dein persönliches 30-Tage-Programm.",
+    aufCta: "Video aufnehmen",
+    aufFertig: "Das ist mein Versprechen",
+    generateNow: "Future Self Program starten",
+    ergebnisTitel: "Das ist dein Versprechen an dich selbst.",
+    ergebnisText: "Jetzt beginnt der wichtige Teil. Du hast dir ein Versprechen gegeben. Halte es 30 Tage lang.",
     unterVideoZeilen: ["Sieh deine Zukunft.", "Mach das Versprechen.", "Halte das Versprechen."],
     filmTitel: "Aus einem Satz wird ein Beweis",
     filmText: "Du erscheinst vor der Villa, der Wagen steht hinter dir — und du sagst deinen eigenen Satz, mit deiner eigenen Stimme. Was du versprichst, bestimmst du. Nur die Welt um dich herum ändert sich.",
@@ -2944,11 +2999,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Starte dein Future Self Program — {programm}",
     blockedOnce: "Starte dein Future Self Program — {programm}",
     watchOnce: "Mein Future Film — {programm}",
-    makingKiss: "Dein Future Film entsteht …",
+    makingKiss: "Dein Future Film entsteht. Wir verwandeln dein Versprechen jetzt in deine persönliche Zukunftsvision.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Dein Future Film",
     mailNote: "Hierhin schicken wir deinen Future Film und deinen privaten Programm-Link.",
-    programmKnopf: "Dein 30-Tage-Programm →",
+    programmKnopf: "Mein 30-Tage-Programm starten →",
     filmKommt: "Dein Future Film entsteht gerade — er kommt per E-Mail.",
     filmFertig: "Dein Future Film ist fertig — er liegt in deiner Galerie.",
     filmFehler: "Dein Future Film hat noch nicht geklappt — wir kümmern uns und schicken ihn dir.",
@@ -2958,8 +3013,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["See who you want to be in 5 years.", "Make yourself a promise.", "And work 30 days to keep it."],
     jetztStarten: "Invest in your future",
     namenFrage: "Who are you sending it to? The name goes on the card", namenPlatzhalter: "Max",
-    tunnelStartTitel: "Your promise to your future self", tunnelName: "Your name",
+    tunnelStartTitel: "Make a promise to your future self.", tunnelName: "Your name",
     tunnelEmail: "Your email", tunnelWeiter: "Next",
+    tunnelIntro: "Today you'll record a short message to yourself. We'll turn it into your personal Future Film — and that's where your 30-day program begins.",
+    tunnelKleinText: "Your email saves your project and your finished result. No spam.",
+    zukunftTitel: "What does your future look like?",
+    zukunftUnterzeile: "Choose the world where you want to see your future self.",
+    tunnelWeiterAuswahl: "Choose this future",
+    aufTitel3: "Now comes the most important part.",
+    aufHinweis3: "Look into the camera and tell yourself what you want to change in the next 30 days. You don't have to look perfect. Just speak honestly.",
+    aufBeispiel: "“In 30 days I will …”",
+    heuteLabel: "YOU TODAY",
+    zukunftLabel: "YOUR FUTURE SELF",
+    verbindenText: "We connect your message with your future vision. Then your personal 30-day program begins.",
+    aufCta: "Record video",
+    aufFertig: "This is my promise",
+    generateNow: "Start Future Self Program",
+    ergebnisTitel: "This is your promise to your future self.",
+    ergebnisText: "Now the important part begins. You made yourself a promise. Keep it for 30 days.",
     unterVideoZeilen: ["See your future.", "Make the promise.", "Keep the promise."],
     filmTitel: "One sentence becomes proof",
     filmText: "You appear in front of the villa, the car behind you — saying your own line, in your own voice. What you promise is up to you. Only the world around you changes.",
@@ -3014,11 +3085,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Start your Future Self Program — {programm}",
     blockedOnce: "Start your Future Self Program — {programm}",
     watchOnce: "My Future Film — {programm}",
-    makingKiss: "Your Future Film is being made …",
+    makingKiss: "Your Future Film is being made. We're turning your promise into your personal vision of the future.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Your Future Film",
     mailNote: "This is where we send your Future Film and your private program link.",
-    programmKnopf: "Your 30-day program →",
+    programmKnopf: "Start my 30-day program →",
     filmKommt: "Your Future Film is being made — it arrives by email.",
     filmFertig: "Your Future Film is ready — it is in your gallery.",
     filmFehler: "Your Future Film did not come out right — we are on it and send it to you.",
@@ -3028,8 +3099,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vezi cine vrei să fii peste 5 ani.", "Fă-ți o promisiune.", "Și lucrează 30 de zile ca să o ții."],
     jetztStarten: "Investește în viitorul tău",
     namenFrage: "Cui i-o trimiți? Numele apare pe felicitare", namenPlatzhalter: "Max",
-    tunnelStartTitel: "Promisiunea ta către tine însuți", tunnelName: "Numele tău",
+    tunnelStartTitel: "Fă-i o promisiune sinelui tău viitor.", tunnelName: "Numele tău",
     tunnelEmail: "E-mailul tău", tunnelWeiter: "Continuă",
+    tunnelIntro: "Astăzi înregistrezi un mesaj scurt pentru tine însuți. Îl transformăm în Future Film-ul tău personal — și de acolo începe programul tău de 30 de zile.",
+    tunnelKleinText: "E-mailul tău salvează proiectul tău și rezultatul final. Fără spam.",
+    zukunftTitel: "Cum arată viitorul tău?",
+    zukunftUnterzeile: "Alege lumea în care vrei să-ți vezi sinele viitor.",
+    tunnelWeiterAuswahl: "Alege acest viitor",
+    aufTitel3: "Acum vine cea mai importantă parte.",
+    aufHinweis3: "Uită-te în cameră și spune-ți ce vrei să schimbi în următoarele 30 de zile. Nu trebuie să arăți perfect. Vorbește pur și simplu sincer.",
+    aufBeispiel: "„În 30 de zile o să …”",
+    heuteLabel: "TU ASTĂZI",
+    zukunftLabel: "EUL TĂU VIITOR",
+    verbindenText: "Îți conectăm mesajul cu viziunea ta despre viitor. Apoi începe programul tău personal de 30 de zile.",
+    aufCta: "Filmează un videoclip",
+    aufFertig: "Aceasta este promisiunea mea",
+    generateNow: "Începe Future Self Program",
+    ergebnisTitel: "Aceasta este promisiunea ta către tine însuți.",
+    ergebnisText: "Acum începe partea importantă. Ți-ai făcut o promisiune. Ține-o timp de 30 de zile.",
     unterVideoZeilen: ["Vezi-ți viitorul.", "Fă promisiunea.", "Ține promisiunea."],
     filmTitel: "O frază devine o dovadă",
     filmText: "Apari în fața vilei, mașina în spatele tău — și spui propria frază, cu vocea ta. Ce promiți decizi tu. Doar lumea din jur se schimbă.",
@@ -3083,11 +3170,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Începe Future Self Program — {programm}",
     blockedOnce: "Începe Future Self Program — {programm}",
     watchOnce: "Future Film-ul meu — {programm}",
-    makingKiss: "Future Film-ul tău se creează …",
+    makingKiss: "Future Film-ul tău se creează. Îți transformăm promisiunea în viziunea ta personală asupra viitorului.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Future Film-ul tău",
     mailNote: "Aici îți trimitem Future Film-ul și linkul tău privat de program.",
-    programmKnopf: "Programul tău de 30 de zile →",
+    programmKnopf: "Începe programul meu de 30 de zile →",
     filmKommt: "Filmul tău Future se creează — îți ajunge pe e-mail.",
     filmFertig: "Filmul tău Future este gata — îl găsești în galeria ta.",
     filmFehler: "Filmul tău Future nu a ieșit bine — ne ocupăm și ți-l trimitem.",
@@ -3097,8 +3184,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Ve quién quieres ser dentro de 5 años.", "Hazte una promesa.", "Y trabaja 30 días para cumplirla."],
     jetztStarten: "Invierte en tu futuro",
     namenFrage: "¿A quién se lo mandas? El nombre va en la tarjeta", namenPlatzhalter: "Max",
-    tunnelStartTitel: "Tu promesa a ti mismo", tunnelName: "Tu nombre",
+    tunnelStartTitel: "Hazle una promesa a tu yo futuro.", tunnelName: "Tu nombre",
     tunnelEmail: "Tu correo", tunnelWeiter: "Siguiente",
+    tunnelIntro: "Hoy grabas un mensaje breve para ti mismo. Lo convertimos en tu Future Film personal — y ahí empieza tu programa de 30 días.",
+    tunnelKleinText: "Tu correo guarda tu proyecto y tu resultado final. Sin spam.",
+    zukunftTitel: "¿Cómo es tu futuro?",
+    zukunftUnterzeile: "Elige el mundo en el que quieres ver a tu yo futuro.",
+    tunnelWeiterAuswahl: "Elegir este futuro",
+    aufTitel3: "Ahora viene la parte más importante.",
+    aufHinweis3: "Mira a la cámara y dite a ti mismo qué quieres cambiar en los próximos 30 días. No tienes que verte perfecto. Solo habla con sinceridad.",
+    aufBeispiel: "“En 30 días voy a …”",
+    heuteLabel: "TÚ HOY",
+    zukunftLabel: "TU YO FUTURO",
+    verbindenText: "Conectamos tu mensaje con tu visión de futuro. Después empieza tu programa personal de 30 días.",
+    aufCta: "Grabar vídeo",
+    aufFertig: "Esta es mi promesa",
+    generateNow: "Empezar Future Self Program",
+    ergebnisTitel: "Esta es tu promesa a ti mismo.",
+    ergebnisText: "Ahora empieza la parte importante. Te hiciste una promesa. Cúmplela durante 30 días.",
     unterVideoZeilen: ["Ve tu futuro.", "Haz la promesa.", "Cumple la promesa."],
     filmTitel: "Una frase se convierte en prueba",
     filmText: "Apareces delante de la villa, el coche detrás de ti — y dices tu propia frase, con tu voz. Lo que prometes lo decides tú. Solo cambia el mundo a tu alrededor.",
@@ -3152,11 +3255,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Empieza tu Future Self Program — {programm}",
     blockedOnce: "Empieza tu Future Self Program — {programm}",
     watchOnce: "Mi Future Film — {programm}",
-    makingKiss: "Tu Future Film se está creando …",
+    makingKiss: "Tu Future Film se está creando. Estamos convirtiendo tu promesa en tu visión personal del futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Tu Future Film",
     mailNote: "Aquí te enviamos tu Future Film y tu enlace privado al programa.",
-    programmKnopf: "Tu programa de 30 días →",
+    programmKnopf: "Empezar mi programa de 30 días →",
     filmKommt: "Tu Future Film se está creando — te llega por correo.",
     filmFertig: "Tu Future Film está listo — lo tienes en tu galería.",
     filmFehler: "Tu Future Film no salió bien — nos encargamos y te lo enviamos.",
@@ -3166,8 +3269,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vois qui tu veux être dans 5 ans.", "Fais-toi une promesse.", "Et travaille 30 jours pour la tenir."],
     jetztStarten: "Investis dans ton avenir",
     namenFrage: "À qui l'envoies-tu ? Le nom va sur la carte", namenPlatzhalter: "Max",
-    tunnelStartTitel: "Ta promesse à toi-même", tunnelName: "Ton prénom",
+    tunnelStartTitel: "Fais une promesse à ton futur toi.", tunnelName: "Ton prénom",
     tunnelEmail: "Ton e-mail", tunnelWeiter: "Suivant",
+    tunnelIntro: "Aujourd'hui, tu enregistres un court message pour toi-même. On en fait ton Future Film personnel — et c'est là que commence ton programme de 30 jours.",
+    tunnelKleinText: "Ton e-mail enregistre ton projet et ton résultat final. Pas de spam.",
+    zukunftTitel: "À quoi ressemble ton avenir ?",
+    zukunftUnterzeile: "Choisis le monde dans lequel tu veux voir ton futur toi.",
+    tunnelWeiterAuswahl: "Choisir cet avenir",
+    aufTitel3: "Voici la partie la plus importante.",
+    aufHinweis3: "Regarde la caméra et dis-toi ce que tu veux changer dans les 30 prochains jours. Tu n'as pas besoin d'être parfait. Parle simplement avec sincérité.",
+    aufBeispiel: "« Dans 30 jours, je vais … »",
+    heuteLabel: "TOI AUJOURD’HUI",
+    zukunftLabel: "TON MOI FUTUR",
+    verbindenText: "Nous relions ton message à ta vision du futur. Ensuite commence ton programme personnel de 30 jours.",
+    aufCta: "Enregistrer une vidéo",
+    aufFertig: "C'est ma promesse",
+    generateNow: "Démarrer le Future Self Program",
+    ergebnisTitel: "C'est ta promesse à toi-même.",
+    ergebnisText: "Maintenant commence la partie importante. Tu t'es fait une promesse. Tiens-la pendant 30 jours.",
     unterVideoZeilen: ["Vois ton avenir.", "Fais la promesse.", "Tiens la promesse."],
     filmTitel: "Une phrase devient une preuve",
     filmText: "Tu apparais devant la villa, la voiture derrière toi — et tu dis ta propre phrase, avec ta voix. Ce que tu promets, c'est toi qui le décides. Seul le monde autour de toi change.",
@@ -3221,11 +3340,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Lance ton Future Self Program — {programm}",
     blockedOnce: "Lance ton Future Self Program — {programm}",
     watchOnce: "Mon Future Film — {programm}",
-    makingKiss: "Ton Future Film est en cours de création …",
+    makingKiss: "Ton Future Film est en cours de création. On transforme ta promesse en ta vision personnelle de l'avenir.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Ton Future Film",
     mailNote: "C'est ici qu'on t'envoie ton Future Film et ton lien privé vers le programme.",
-    programmKnopf: "Ton programme de 30 jours →",
+    programmKnopf: "Démarrer mon programme de 30 jours →",
     filmKommt: "Ton Future Film est en cours — il arrive par e-mail.",
     filmFertig: "Ton Future Film est prêt — il est dans ta galerie.",
     filmFehler: "Ton Future Film n'a pas abouti — on s'en occupe et on te l'envoie.",
@@ -3235,8 +3354,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Vê quem queres ser daqui a 5 anos.", "Faz uma promessa a ti mesmo.", "E trabalha 30 dias para a cumprir."],
     jetztStarten: "Investe no teu futuro",
     namenFrage: "A quem a envias? O nome vai no postal", namenPlatzhalter: "Max",
-    tunnelStartTitel: "A tua promessa a ti mesmo", tunnelName: "O teu nome",
+    tunnelStartTitel: "Faz uma promessa ao teu eu futuro.", tunnelName: "O teu nome",
     tunnelEmail: "O teu e-mail", tunnelWeiter: "Seguinte",
+    tunnelIntro: "Hoje gravas uma mensagem curta para ti mesmo. Transformamo-la no teu Future Film pessoal — e é aí que começa o teu programa de 30 dias.",
+    tunnelKleinText: "O teu e-mail guarda o teu projeto e o teu resultado final. Sem spam.",
+    zukunftTitel: "Como é o teu futuro?",
+    zukunftUnterzeile: "Escolhe o mundo onde queres ver o teu eu futuro.",
+    tunnelWeiterAuswahl: "Escolher este futuro",
+    aufTitel3: "Agora vem a parte mais importante.",
+    aufHinweis3: "Olha para a câmara e diz a ti mesmo o que queres mudar nos próximos 30 dias. Não precisas de parecer perfeito. Fala apenas com sinceridade.",
+    aufBeispiel: "“Daqui a 30 dias vou …”",
+    heuteLabel: "TU HOJE",
+    zukunftLabel: "O TEU EU FUTURO",
+    verbindenText: "Ligamos a tua mensagem à tua visão do futuro. Depois começa o teu programa pessoal de 30 dias.",
+    aufCta: "Gravar vídeo",
+    aufFertig: "Esta é a minha promessa",
+    generateNow: "Começar o Future Self Program",
+    ergebnisTitel: "Esta é a tua promessa a ti mesmo.",
+    ergebnisText: "Agora começa a parte importante. Fizeste uma promessa a ti mesmo. Cumpre-a durante 30 dias.",
     unterVideoZeilen: ["Vê o teu futuro.", "Faz a promessa.", "Cumpre a promessa."],
     filmTitel: "Uma frase torna-se uma prova",
     filmText: "Apareces à frente da vivenda, o carro atrás de ti — e dizes a tua própria frase, com a tua voz. O que prometes decides tu. Só o mundo à tua volta muda.",
@@ -3290,11 +3425,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Começa o teu Future Self Program — {programm}",
     blockedOnce: "Começa o teu Future Self Program — {programm}",
     watchOnce: "O meu Future Film — {programm}",
-    makingKiss: "O teu Future Film está a ser criado …",
+    makingKiss: "O teu Future Film está a ser criado. Estamos a transformar a tua promessa na tua visão pessoal do futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · O teu Future Film",
     mailNote: "É para aqui que enviamos o teu Future Film e o teu link privado do programa.",
-    programmKnopf: "O teu programa de 30 dias →",
+    programmKnopf: "Começar o meu programa de 30 dias →",
     filmKommt: "O teu Future Film está a ser criado — chega por e-mail.",
     filmFertig: "O teu Future Film está pronto — está na tua galeria.",
     filmFehler: "O teu Future Film não correu bem — estamos a tratar disso e enviamos-to.",
@@ -3304,8 +3439,24 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     heroSub: ["Guarda chi vuoi essere tra 5 anni.", "Fai una promessa a te stesso.", "E lavora 30 giorni per mantenerla."],
     jetztStarten: "Investi nel tuo futuro",
     namenFrage: "A chi lo mandi? Il nome va sulla cartolina", namenPlatzhalter: "Max",
-    tunnelStartTitel: "La tua promessa a te stesso", tunnelName: "Il tuo nome",
+    tunnelStartTitel: "Fai una promessa al tuo te futuro.", tunnelName: "Il tuo nome",
     tunnelEmail: "La tua email", tunnelWeiter: "Avanti",
+    tunnelIntro: "Oggi registri un breve messaggio per te stesso. Lo trasformiamo nel tuo Future Film personale — ed è lì che inizia il tuo programma di 30 giorni.",
+    tunnelKleinText: "La tua email salva il tuo progetto e il tuo risultato finale. Niente spam.",
+    zukunftTitel: "Com'è il tuo futuro?",
+    zukunftUnterzeile: "Scegli il mondo in cui vuoi vedere il tuo te futuro.",
+    tunnelWeiterAuswahl: "Scegli questo futuro",
+    aufTitel3: "Ora arriva la parte più importante.",
+    aufHinweis3: "Guarda nella fotocamera e dì a te stesso cosa vuoi cambiare nei prossimi 30 giorni. Non devi sembrare perfetto. Parla semplicemente con sincerità.",
+    aufBeispiel: "“Tra 30 giorni voglio …”",
+    heuteLabel: "TU OGGI",
+    zukunftLabel: "IL TUO IO FUTURO",
+    verbindenText: "Colleghiamo il tuo messaggio alla tua visione del futuro. Poi inizia il tuo programma personale di 30 giorni.",
+    aufCta: "Registra un video",
+    aufFertig: "Questa è la mia promessa",
+    generateNow: "Avvia Future Self Program",
+    ergebnisTitel: "Questa è la tua promessa a te stesso.",
+    ergebnisText: "Ora inizia la parte importante. Ti sei fatto una promessa. Mantienila per 30 giorni.",
     unterVideoZeilen: ["Guarda il tuo futuro.", "Fai la promessa.", "Mantieni la promessa."],
     filmTitel: "Una frase diventa una prova",
     filmText: "Appari davanti alla villa, l'auto dietro di te — e dici la tua frase, con la tua voce. Cosa prometti lo decidi tu. Cambia solo il mondo intorno a te.",
@@ -3359,11 +3510,11 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makeVideo: "Inizia il tuo Future Self Program — {programm}",
     blockedOnce: "Inizia il tuo Future Self Program — {programm}",
     watchOnce: "Il mio Future Film — {programm}",
-    makingKiss: "Il tuo Future Film è in creazione …",
+    makingKiss: "Il tuo Future Film è in creazione. Stiamo trasformando la tua promessa nella tua visione personale del futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Il tuo Future Film",
     mailNote: "Qui ti inviamo il tuo Future Film e il tuo link privato al programma.",
-    programmKnopf: "Il tuo programma di 30 giorni →",
+    programmKnopf: "Avvia il mio programma di 30 giorni →",
     filmKommt: "Il tuo Future Film si sta creando — arriva via e-mail.",
     filmFertig: "Il tuo Future Film è pronto — è nella tua galleria.",
     filmFehler: "Il tuo Future Film non è riuscito — ce ne occupiamo e te lo inviamo.",

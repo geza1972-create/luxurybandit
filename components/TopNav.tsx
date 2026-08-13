@@ -179,9 +179,17 @@ export default function TopNav({
                   nichts: Das Menue fuehrt mit „Models" auf dieselbe Seite, und zwar fuer
                   jeden, nicht nur fuer Personal. */
               }
-              <button type="button" onClick={share} className={iconBtn} aria-label="Share">
-                <Send className="h-4 w-4" />
-              </button>
+              {/* KEIN TEILEN IM TUNNEL (Owner 13.08.2026: „ja, teilen raus" — Master-Auftrag
+                  §21: keine Ablenkung im Funnel; es gibt dort auch noch nichts zu teilen).
+                  EINMAL hier am Pfad erkannt statt je Tunnel-Seite ein Prop — die sieben
+                  /themes/<produkt>/start-Adressen sind das eine Muster. Header, Konto und
+                  Guthaben bleiben: sie sind Ausgang und Status, kein Schaufenster (§18:
+                  „LuxuryBandit muss sichtbar bleiben"). */}
+              {!/^\/themes\/[^/]+\/start\/?$/.test(pathname ?? "") && (
+                <button type="button" onClick={share} className={iconBtn} aria-label="Share">
+                  <Send className="h-4 w-4" />
+                </button>
+              )}
               {/* YOUTUBE UND INSTAGRAM SIND IN DEN FUSS GEZOGEN (Owner 06.08.2026:
                   „instagram und you tube icon in dem footer" · „oben raus"). Oben bleibt
                   nur der Teilen-Pfeil — mehr Luft für den Namen; die Kanäle stehen jetzt

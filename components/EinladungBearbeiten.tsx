@@ -127,7 +127,7 @@ export default function EinladungBearbeiten({
         Der Knopf startet jetzt echt die Kasse (Ä11) — vorher fuehrte er auf `/themes/wedding
         ?abo=1&e=…`, ein Link, den nichts im Code auswertete. */}
     {!bezahlt && (
-      <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5 text-center">
+      <div className="mt-4 rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-5 text-center">
         <p className="text-[14px] font-black text-white">{T.aboTitel}</p>
         <p className="mt-1 text-[12px] font-bold leading-snug text-white/75">
           {fillPrices(T.aboText, sprache)}

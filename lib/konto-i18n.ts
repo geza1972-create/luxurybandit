@@ -63,6 +63,11 @@ export type KontoText = {
   anmeldeGrund: string;
   anmeldeKnopf: string;
   anmeldeSpaeter: string;
+  /** „Projekt sichern" — die Einladung NACH dem Ergebnis (Owner-Master-Auftrag 13.08.2026,
+      §16: kein Konto-Zwang im Kaufweg; danach das Angebot, das Projekt zu behalten). */
+  sichernTitel: string;
+  sichernGrund: string;
+  sichernKnopf: string;
   schonKonto: string;
   schonKontoGrund: string;
   gesperrtTitel: string;
@@ -113,6 +118,9 @@ const en: KontoText = {
   anmeldeGrund: "Your credit and your videos stay with you, on every device. Without an account they live only in this browser.",
   anmeldeKnopf: "Sign in now",
   anmeldeSpaeter: "Later",
+  sichernTitel: "Save your project",
+  sichernGrund: "Want to keep your project on all your devices? A free account saves your video and your credit.",
+  sichernKnopf: "Create a free account",
   schonKonto: "I already have an account — sign in and use my credit",
   schonKontoGrund: "If you have topped up before, sign in — your credit will be used automatically.",
   gesperrtTitel: "You already have credit here",
@@ -161,6 +169,9 @@ const de: KontoText = {
   anmeldeGrund: "Dein Guthaben und deine Videos bleiben bei dir, auf jedem Gerät. Ohne Konto leben sie nur in diesem Browser.",
   anmeldeKnopf: "Jetzt anmelden",
   anmeldeSpaeter: "Später",
+  sichernTitel: "Projekt sichern",
+  sichernGrund: "Möchtest du dein Projekt auf allen Geräten behalten? Ein kostenloses Konto sichert dein Video und dein Guthaben.",
+  sichernKnopf: "Kostenloses Konto erstellen",
   schonKonto: "Ich habe schon ein Konto — anmelden und Guthaben nutzen",
   schonKontoGrund: "Hast du schon einmal aufgeladen? Melde dich an — dein Guthaben wird dann automatisch genutzt.",
   gesperrtTitel: "Auf dieser Adresse liegt Guthaben",
@@ -209,6 +220,9 @@ const ro: KontoText = {
   anmeldeGrund: "Creditul și videoclipurile tale rămân la tine, pe orice dispozitiv. Fără cont trăiesc doar în acest browser.",
   anmeldeKnopf: "Conectează-te acum",
   anmeldeSpaeter: "Mai târziu",
+  sichernTitel: "Salvează-ți proiectul",
+  sichernGrund: "Vrei să-ți păstrezi proiectul pe toate dispozitivele? Un cont gratuit îți salvează videoclipul și creditul.",
+  sichernKnopf: "Creează un cont gratuit",
   schonKonto: "Am deja cont — mă conectez și îmi folosesc creditul",
   schonKontoGrund: "Ai încărcat deja cont? Conectează-te — creditul tău se folosește automat.",
   gesperrtTitel: "Ai deja credit pe această adresă",
@@ -257,6 +271,9 @@ const es: KontoText = {
   anmeldeGrund: "Tu saldo y tus vídeos se quedan contigo, en cualquier dispositivo. Sin cuenta viven solo en este navegador.",
   anmeldeKnopf: "Iniciar sesión ahora",
   anmeldeSpaeter: "Más tarde",
+  sichernTitel: "Guarda tu proyecto",
+  sichernGrund: "¿Quieres conservar tu proyecto en todos tus dispositivos? Una cuenta gratuita guarda tu vídeo y tu saldo.",
+  sichernKnopf: "Crear una cuenta gratis",
   schonKonto: "Ya tengo cuenta — iniciar sesión y usar mi saldo",
   schonKontoGrund: "¿Ya has recargado antes? Inicia sesión — tu saldo se usará automáticamente.",
   gesperrtTitel: "Ya tienes saldo en esta dirección",
@@ -305,6 +322,9 @@ const fr: KontoText = {
   anmeldeGrund: "Ton crédit et tes vidéos restent avec toi, sur chaque appareil. Sans compte, ils ne vivent que dans ce navigateur.",
   anmeldeKnopf: "Se connecter maintenant",
   anmeldeSpaeter: "Plus tard",
+  sichernTitel: "Sauvegarde ton projet",
+  sichernGrund: "Tu veux garder ton projet sur tous tes appareils ? Un compte gratuit sauvegarde ta vidéo et ton crédit.",
+  sichernKnopf: "Créer un compte gratuit",
   schonKonto: "J'ai déjà un compte — me connecter et utiliser mon crédit",
   schonKontoGrund: "Tu as déjà rechargé ? Connecte-toi — ton crédit sera utilisé automatiquement.",
   gesperrtTitel: "Tu as déjà du crédit sur cette adresse",
@@ -353,6 +373,9 @@ const pt: KontoText = {
   anmeldeGrund: "O teu saldo e os teus vídeos ficam contigo, em qualquer dispositivo. Sem conta vivem só neste navegador.",
   anmeldeKnopf: "Iniciar sessão agora",
   anmeldeSpaeter: "Mais tarde",
+  sichernTitel: "Guarda o teu projeto",
+  sichernGrund: "Queres manter o teu projeto em todos os teus dispositivos? Uma conta gratuita guarda o teu vídeo e o teu saldo.",
+  sichernKnopf: "Criar uma conta gratuita",
   schonKonto: "Já tenho conta — iniciar sessão e usar o meu saldo",
   schonKontoGrund: "Já carregaste antes? Inicia sessão — o teu saldo é usado automaticamente.",
   gesperrtTitel: "Já tens saldo neste endereço",
@@ -401,6 +424,9 @@ const it: KontoText = {
   anmeldeGrund: "Il tuo credito e i tuoi video restano con te, su ogni dispositivo. Senza account vivono solo in questo browser.",
   anmeldeKnopf: "Accedi ora",
   anmeldeSpaeter: "Più tardi",
+  sichernTitel: "Salva il tuo progetto",
+  sichernGrund: "Vuoi conservare il tuo progetto su tutti i tuoi dispositivi? Un account gratuito salva il tuo video e il tuo credito.",
+  sichernKnopf: "Crea un account gratuito",
   schonKonto: "Ho già un account — accedo e uso il mio credito",
   schonKontoGrund: "Hai già ricaricato? Accedi — il tuo credito viene usato automaticamente.",
   gesperrtTitel: "Hai già credito su questo indirizzo",

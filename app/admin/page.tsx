@@ -12,6 +12,7 @@ import { publicLookLabel } from "@/lib/look-title";
 import { fingerprintDistance } from "@/lib/fingerprint-distance";
 import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
+import AdsPlaybook from "@/components/AdsPlaybook";
 import AdminConnections from "@/components/AdminConnections";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -128,17 +129,17 @@ export default function AdminPage() {
   }, []);
   const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails" | "ads">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
-      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails") return t;
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads") return t;
     }
     return "looks";
   });
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -242,7 +243,11 @@ export default function AdminPage() {
   // Wait for credentials (pin from localStorage or Supabase token) before fetching —
   // otherwise the first fire on tab-mount sends no auth and 401s without retrying.
   useEffect(() => { if (tab === "chats" && (pin || token) && !chatsLoaded) void loadChats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, pin, token]);
-  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string; device?: string; internal?: boolean };
+  // `campaignId`/`theme` additiv ergänzt (13.08.2026, Owner-Master-Auftrag §32): die Trichter-
+  // Ansicht je Produkt in InsightsPro braucht beide, um Server-Ereignisse (nur `campaignId`,
+  // Form `funnel-<theme>`) und Browser-Ereignisse (jetzt mit echtem `theme`-Feld, siehe
+  // app/api/try-this-look/route.ts) demselben Produkt zuzuordnen. Nichts Bestehendes entfernt.
+  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string; device?: string; internal?: boolean; campaignId?: string; theme?: string };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
   const [visitsByDay, setVisitsByDay] = useState<Record<string, number>>({}); // per-date SITE visits
@@ -1835,6 +1840,11 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
             ✉️ Emails
           </button>
+          {/* DAS ADS-PLAYBOOK (Owner 13.08.2026: „klar hätte ich das gerne im ADMIN"). */}
+          <button type="button" onClick={() => setTab("ads")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "ads" ? "bg-black text-white" : "text-ink/50"}`}>
+            📣 Ads
+          </button>
           {/* LuxbanditCut liegt auf einer EIGENEN Seite (voller Arbeitsplatz mit Zuschneiden,
               Galerie und Konto) — deshalb ein Link statt eines Reiters: als Reiter würde der
               ganze Bild-Editor in dieses ohnehin riesige Admin-Bündel wandern. Zurück kommt
@@ -3304,6 +3314,8 @@ export default function AdminPage() {
       )}
 
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
+      {tab === "ads" && <AdsPlaybook />}
+
       {tab === "meta" && (
         <div className="mt-3 pb-16">
               {/* Bella-Szenen — Bild hochladen, Text kopieren, Karte als Instagram-Beitrag laden. */}

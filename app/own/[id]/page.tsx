@@ -78,7 +78,7 @@ export default function OwnModelPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5">
+        <div className="mt-6 rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-5">
           <p className="text-[14px] font-bold uppercase tracking-wide text-[#f6cf51]">What sponsoring means</p>
           <ul className="mt-3 space-y-2 text-[14px] font-semibold leading-relaxed text-white/75">
             <li>👑 She&apos;s exclusively yours — no one else can sponsor her</li>

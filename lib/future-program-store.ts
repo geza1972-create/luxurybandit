@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { supabaseFetch, BUCKET, encodeStoragePath, ensureBucket } from "@/lib/try-this-look-store";
+import { PRODUKTE } from "@/lib/produkte";
 
 /**
  * DAS FUTURE-PROGRAMM — EIGENE DATEI JE KAUF (11.08.2026, Future Self Program, 49 €).
@@ -49,6 +50,15 @@ export type FutureProgram = {
   /** Das 90-Tage-Ziel, das er an Tag 30 einträgt. */
   ziel90?: string;
   ziel90At?: string;
+  /**
+   * WELCHES Programm (Owner-Master-Auftrag 13.08.2026, §9: nichts hart für Future Self) —
+   * beide Felder OPTIONAL, damit jede vor dem 13.08. angelegte Datei gültig bleibt: Fehlen
+   * sie, gilt das Future-Self-Programm mit 30 Tagen (die Werte aus `PRODUKTE.versprechen`).
+   * Ein späteres zweites Programm (Fitness, Karriere …) trägt hier seinen eigenen Slug und
+   * seine eigene Länge — und braucht dafür keinen zweiten Speicher.
+   */
+  programmSlug?: string;
+  dauerTage?: number;
 };
 
 function programPfad(genId: string): string {
@@ -120,6 +130,11 @@ export async function futureProgramAnlegen(
     ...(zieleFrei ? { zieleFrei: String(zieleFrei).trim().slice(0, 200) } : {}),
     createdAt: new Date().toISOString(),
     checks: {},
+    /* Aus der Produkt-Konfig, nicht getippt — EINE Quelle für Slug und Länge (§9/§44). */
+    ...(PRODUKTE.versprechen.programm ? {
+      programmSlug: PRODUKTE.versprechen.programm.slug,
+      dauerTage: PRODUKTE.versprechen.programm.dauerTage,
+    } : {}),
   };
   await futureProgramSchreiben(p);
 }
