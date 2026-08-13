@@ -3,8 +3,7 @@ import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
-import { tryonAuslage } from "@/lib/tryon-auslage";
+import { tryonVideos } from "@/lib/tryon-videos";
 import TryonStartClient from "./TryonStartClient";
 import { tryonText } from "@/lib/tryon-i18n";
 
@@ -50,15 +49,10 @@ export default async function TryonStartPage({ searchParams }: {
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const hell = String(sp.light ?? "") === "1";
 
-  /* Höchstens 12 Kacheln: der Slider soll eine Auslage sein, kein Katalog — wer mehr will,
-     findet ihn auf der Startseite. Die Reihenfolge ist die gepflegte Katalog-Reihenfolge. */
-  let looks: { id: string; name: string; bild: string }[] = [];
-  try {
-    const state = await readTryThisLookState();
-    /* DIE GANZE WARDROBE (Owner 13.08.2026, A-List-Screenshot: 97 Sets) — kein kuenstlicher
-       Deckel mehr; die Kacheln laden lazy (BildWahlKachel). */
-    looks = tryonAuslage(state.looks, 500);
-  } catch { /* Speicher nicht erreichbar → der Client zeigt die Leermeldung */ }
+  /* DIE VORLAGEN SIND UNSERE VIDEOS (Pivot 13.08.2026 abends: „user selber klamotten
+     hochladen … wir zeigen unsere videos als templates") — public/Tryon, dieselbe Quelle
+     wie die Landingpage-Karte. Die A-List-Wardrobe ist aus dem Tunnel raus. */
+  const vorlagen = tryonVideos();
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
@@ -67,7 +61,7 @@ export default async function TryonStartPage({ searchParams }: {
         <Kicker>{S.kicker}</Kicker>
         <H1 className="mt-1">{S.h1a}<Y>{S.h1y}</Y>.</H1>
         <div className="mt-4">
-          <TryonStartClient lang={L} code={code} looks={looks} schritt2Titel={S.schritt2} />
+          <TryonStartClient lang={L} code={code} vorlagen={vorlagen} />
         </div>
       </div>
       <SeitenFuss />

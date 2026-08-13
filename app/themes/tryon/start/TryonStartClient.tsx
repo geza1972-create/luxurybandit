@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import ImageCropper from "@/components/ImageCropper";
 import { produkt } from "@/lib/produkte";
@@ -17,28 +17,25 @@ import { landAusZeitzone } from "@/lib/land-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
- * DER TRY-ON-TUNNEL — JETZT MIT ECHTEM SCHRITT 3 (Owner 13.08.2026: „Du hast keinen
- * richtigen Tunel gebaut. Deswegen machst du diesen Fehler."). Die erste Fassung sprang
- * nach der Look-Wahl auf die alte Try-on-Seite ab — kein Tunnel, sondern eine Weiche.
- * Jetzt gilt das Muster aller sieben Geschwister:
+ * DER TRY-ON-TUNNEL — DER KUNDE BRINGT SEIN KLEIDUNGSSTÜCK MIT, UNSERE VIDEOS SIND DIE
+ * VORLAGEN (Owner 13.08.2026 abends, in zwei Sätzen: „ich will dass user selber klamotten
+ * hochladen … also nicht mher unsere" + Klarstellung „wir zeigen unsere videos als
+ * templates. das ist doch unser tunel"). Also stur die drei Haus-Schritte:
  *
- *   Schritt 1  Name + E-Mail (Lead, /api/kiss-claim theme "tryon"; Google als Abkürzung)
- *   Schritt 2  Look-Wahl als BildWahl-Slider (die GANZE öffentliche Garderobe, siehe
- *              lib/tryon-auslage — keine Kuratier-Sortierung, Owner: „Da haben alle mögliche")
- *   Schritt 3  Foto-Kachel → Pfeil → gewählter Look, darunter „Jetzt generieren — 9,99 €"
- *              (KEIN Gratis — Owner 13.08.2026: „bitte keine Gratis sachen. Ziehe den
- *              Tunel stur druch von Kiss, Versprechen, Hochzeit"), Zurück-Chip links vom CTA.
- *
- * DIE KASSE ist wörtlich das Hochzeits-Muster (Skill `bezahlung`): Guthaben zuerst,
- * Aufladewähler nur wenn es nicht reicht, Stripe als Popup+Poll; nach der Zahlung startet
- * der Pixverse-Referenz-Lauf (generate-tryon-video, person=ihr Foto + garment=der Look,
- * ein Lauf wie beim Tanz) und die Galerie zeigt das Video in der Karte.
+ *   Schritt 1  Name + E-Mail (Haus-Lead, theme "tryon")
+ *   Schritt 2  VORLAGEN-Wahl: unsere Videos aus public/Tryon als BildWahl-Slider —
+ *              sie zeigen, WAS für ein Video am Ende herauskommt
+ *   Schritt 3  SEIN Teil (Shop-Foto genügt) + SEIN Foto als Upload-Kacheln, rechts die
+ *              gewählte Vorlage, darunter „Jetzt generieren — 9,99 €" über die EINE
+ *              Kasse (Hochzeits-Muster); der Pixverse-Referenz-Lauf (person + garment,
+ *              beides SEINE Uploads) zieht an und animiert in einem Lauf, die Galerie
+ *              zeigt das Video in der Karte.
  */
-export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
+export default function TryonStartClient({ lang, code, vorlagen }: {
   lang: string;
   code: string;
-  looks: { id: string; name: string; bild: string; lingerie?: boolean }[];
-  schritt2Titel: string;
+  /** Unsere Vorlagen-Videos aus public/Tryon (lib/tryon-videos.ts) — Poster + Clip. */
+  vorlagen: { video: string; poster: string }[];
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -50,11 +47,14 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
   const [mail, setMail] = useState("");
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadFehler, setLeadFehler] = useState("");
-  const [lookId, setLookId] = useState(looks[0]?.id ?? "");
 
+  const [vorlage, setVorlage] = useState("0");
   const [foto, setFoto] = useState("");
+  const [teil, setTeil] = useState("");
   const fotoRef = useRef<HTMLInputElement>(null);
+  const teilRef = useRef<HTMLInputElement>(null);
   const [cropDatei, setCropDatei] = useState<File | null>(null);
+  const [cropZiel, setCropZiel] = useState<"foto" | "teil">("foto");
   const [fehler, setFehler] = useState("");
 
   /* DIE KASSE (Skill `bezahlung`, wörtlich das Hochzeits-Muster aus WeddingStartClient):
@@ -69,8 +69,8 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
   const [videoBusy, setVideoBusy] = useState(false);
   const preisCents = geschenkPreisCents("tryon");
 
-  /* Bekannte überspringen Schritt 1 — die Adresse kommt dann aus dem Tor-Speicher, sonst
-     stünde die Kasse ohne E-Mail da (dieselbe Zeile, die Schritt 1 selbst schreibt). */
+  /* Bekannte überspringen Schritt 1 — die Adresse kommt dann aus der Haus-Quelle, sonst
+     stünde die Kasse ohne E-Mail da (GEMESSEN am Hochzeits-Tunnel, 13.08.2026). */
   useEffect(() => {
     try { const a = aktiveAdresse() || localStorage.getItem("lb_kiss_mail") || ""; if (a) setMail(m => m || a); } catch { /**/ }
     setAngemeldet(!!getStoredAuthSession()?.access_token);
@@ -85,7 +85,7 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
   }, [mail]);
 
   const P = produkt("tryon");
-  const look = looks.find(l => l.id === lookId) ?? looks[0];
+  const gewaehlt = vorlagen[Number(vorlage)] ?? vorlagen[0];
 
   /** Genau die Kasse aus `WeddingStartClient.kaufen()` — Guthaben zuerst, sonst Stripe. */
   const kaufen = async (topupCents?: number, kontoFrisch = false): Promise<boolean> => {
@@ -154,24 +154,22 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
   };
 
   /**
-   * BEZAHLEN, DANN DAS VIDEO (Owner 13.08.2026: „ich wollte doch ein Video … eine Card
-   * mit Video wie wir es überall haben") — nach der Zahlung startet der Pixverse-
-   * Referenz-Lauf (generate-tryon-video: person = ihr Foto, garment = der Look; der
-   * Route-eigene neutrale Katalog-Prompt zieht sie an UND animiert in EINEM Lauf, wie
-   * beim Tanz). videoId wird am Auftrag gestempelt, dann übernimmt die Galerie —
+   * BEZAHLEN, DANN DAS VIDEO — person + garment sind SEINE beiden Uploads (der Pivot);
+   * der Route-eigene neutrale Katalog-Prompt zieht an und animiert in EINEM Lauf, wie
+   * beim Tanz. videoId wird am Auftrag gestempelt, dann übernimmt die Galerie —
    * der Server liefert nach (Memory `paid-jobs-must-survive-the-browser`).
    */
   const videoKaufen = async (topupCents?: number) => {
-    if (!foto || !look || videoBusy) return;
+    if (!foto || !teil || videoBusy) return;
     setVideoBusy(true); setFehler("");
-    void logTunnelEvent("checkout_started", P.slug, { lookId: look.id });
+    void logTunnelEvent("checkout_started", P.slug);
     const ok = await kaufen(topupCents);
     if (!ok) { setVideoBusy(false); return; }
-    void logTunnelEvent("generation_started", P.slug, { lookId: look.id });
+    void logTunnelEvent("generation_started", P.slug);
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookId: look.id, genId, person: foto, garment: look.bild }),
+        body: JSON.stringify({ genId, person: foto, garment: teil }),
       }).then(r => r.json());
       if (start?.videoId && genId) {
         void fetch("/api/kiss-log", {
@@ -232,25 +230,25 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
         )}
 
         {schritt === 2 && (
+          /* DIE VORLAGEN-WAHL — UNSERE VIDEOS (Owner: „wir zeigen unsere videos als
+             templates"): der BildWahl-Slider spielt die Clips stumm in den Kacheln,
+             die Scheibe öffnet die Karte. Die Wahl ist das Versprechen, WIE sein
+             Video aussehen wird. */
           <div className="mt-1">
-            <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{schritt2Titel}</p>
-            {looks.length === 0 ? (
-              <p className="mt-3 text-[13px] font-bold leading-snug text-white/70">{F.statusNetwork}</p>
-            ) : (
-              <div className="mt-2">
-                <BildWahl gross wert={lookId} waehle={setLookId} sprache={lang}
-                  bilder={looks.map(l => ({ id: l.id, name: l.name, bild: l.bild }))} />
-              </div>
-            )}
-            {/* Zurueck-Chip LINKS VOM CTA — die EINE Regel (Owner 13.08.2026). */}
+            <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{S.schritt2}</p>
+            <div className="mt-2">
+              <BildWahl gross wert={vorlage} waehle={setVorlage} sprache={lang}
+                ansehenLabel={S.cta} titel={S.kicker}
+                bilder={vorlagen.map((v, i) => ({ id: String(i), name: "", bild: v.poster || v.video, video: v.video, poster: v.poster || undefined }))} />
+            </div>
+            {/* Zurueck-Chip LINKS VOM CTA — die EINE Regel. */}
             <div className="mt-4 flex items-center gap-2">
               <button type="button" onClick={() => onSchrittChange(1)} aria-label={F.back}
                 className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <Knopf art="gold" disabled={!lookId} onClick={() => {
-                if (!lookId) return;
-                void logTunnelEvent("look_selected", P.slug, { lookId });
+              <Knopf art="gold" onClick={() => {
+                void logTunnelEvent("look_selected", P.slug, { lookId: `vorlage-${vorlage}` });
                 onSchrittChange(3);
               }}>
                 {F.tunnelWeiter ?? F.next}
@@ -259,21 +257,27 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
           </div>
         )}
 
-        {schritt === 3 && look && (<>
+        {schritt === 3 && (<>
           <TunnelKacheln
             zurueckLabel={F.back}
             aufZurueck={() => onSchrittChange(2)}
-            links={
+            links={<>
+              {/* SEIN Teil zuerst (der Pivot: er bringt die Klamotte mit), daneben SEIN
+                  Foto — beides gestrichelte Haus-Kacheln, beide Plätze immer sichtbar. */}
+              <TunnelKachelUpload foto={teil} titel={S.teilKachel} hinweis={S.teilHinweis}
+                onWaehlen={() => { setCropZiel("teil"); teilRef.current?.click(); }}
+                onLoeschen={teil ? () => setTeil("") : undefined} />
               <TunnelKachelUpload foto={foto} titel={S.fotoKachel} hinweis={S.merkmale[1]?.text}
-                onWaehlen={() => fotoRef.current?.click()}
+                onWaehlen={() => { setCropZiel("foto"); fotoRef.current?.click(); }}
                 onLoeschen={foto ? () => setFoto("") : undefined} />
-            }
-            ziel={<VorlagenKachel bildUrl={look.bild} ansehenLabel={S.cta} sprache={lang} titel={S.kicker} aufBild={look.name} />}
+            </>}
+            ziel={<VorlagenKachel bildUrl={gewaehlt?.poster || ""} videoUrl={gewaehlt?.video || ""}
+              ansehenLabel={S.cta} sprache={lang} titel={S.kicker} />}
             knopf={{
               /* Preis erst mit vollstaendigem Beitrag (die generelle Tunnel-Regel vom
                  13.08.) — dann „Jetzt generieren — 9,99 €" aus der Tabelle. */
-              text: videoBusy ? F.oneMoment : foto ? `${F.generateNow} — ${eur(preisCents, lang)}` : F.generateNow,
-              disabled: !foto || videoBusy, busy: videoBusy,
+              text: videoBusy ? F.oneMoment : (foto && teil) ? `${F.generateNow} — ${eur(preisCents, lang)}` : F.generateNow,
+              disabled: !foto || !teil || videoBusy, busy: videoBusy,
               onClick: () => void videoKaufen(),
             }}
             einwilligung={<>
@@ -283,15 +287,18 @@ export default function TryonStartClient({ lang, code, looks, schritt2Titel }: {
               {" "}<span className="block">{S.nurEigene}</span>
             </>}
           />
+          <input ref={teilRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("teil"); setCropDatei(f); } e.target.value = ""; }} />
           <input ref={fotoRef} type="file" accept="image/*,.heic,.heif" className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) setCropDatei(f); e.target.value = ""; }} />
+            onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("foto"); setCropDatei(f); } e.target.value = ""; }} />
           {cropDatei && (
-            <ImageCropper file={cropDatei} aspect={3 / 4} title={S.fotoKachel}
+            <ImageCropper file={cropDatei} aspect={3 / 4} title={cropZiel === "teil" ? S.teilKachel : S.fotoKachel}
               onCancel={() => setCropDatei(null)}
               onSave={(zugeschnitten: File) => {
+                const ziel = cropZiel;
                 setCropDatei(null);
                 const r = new FileReader();
-                r.onload = () => setFoto(String(r.result ?? ""));
+                r.onload = () => { const d = String(r.result ?? ""); if (ziel === "teil") setTeil(d); else setFoto(d); };
                 r.readAsDataURL(zugeschnitten);
               }} />
           )}

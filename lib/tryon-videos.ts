@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import manifest from "./ordner-manifest.json";
 
 /**
  * DIE TRY-ON-KARTEN-VIDEOS (Owner 13.08.2026, mit Bild des Ordners: „ich habe dir einige
@@ -18,6 +19,15 @@ import path from "path";
 export function ordnerVideos(ordnerName: string): { video: string; poster: string }[] {
   try {
     const ordner = path.join(process.cwd(), "public", ordnerName);
+    /* AUF VERCEL FEHLT DER ORDNER ZUR LAUFZEIT (GEMESSEN 13.08.2026: die Try-on-Karte
+       fiel live auf Galerie-Videos zurück — „aber du hast andere"): die Spurensuche nimmt
+       den dynamischen readdir-Pfad nicht mit. Das Manifest wird deshalb beim BAUEN
+       geschrieben (scripts/ordner-manifest.mjs, package.json „prebuild") und hier gelesen,
+       sobald das Dateisystem nichts hergibt. Lokal gewinnt weiter das Dateisystem —
+       eine neue Datei wirkt sofort, ohne Build. */
+    if (!fs.existsSync(ordner)) {
+      return (manifest as Record<string, { video: string; poster: string }[]>)[ordnerName] ?? [];
+    }
     return fs.readdirSync(ordner)
       .filter(f => /\.mp4$/i.test(f))
       .sort()
