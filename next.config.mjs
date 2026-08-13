@@ -47,6 +47,16 @@ const nextConfig = {
    */
   outputFileTracingExcludes: {
     "/api/feed-music": ["./public/**/*.mp4", "./public/**/*.mov", "./public/**/*.jpg", "./public/**/*.jpeg", "./public/**/*.png", "./public/**/*.svg"],
+    /* Der GENERISCHE Ordner-Leser (lib/tryon-videos.ts, `ordnerVideos(name)`) hat einen
+       dynamischen Pfad — die Spurensuche kann ihn nicht auflösen und nimmt vorsichtshalber
+       GANZ public mit (GEMESSEN: „themes/chat/start is 318.27mb"). Deshalb je Seite:
+       public/** raus, der eigene Ordner kommt über die Includes oben wieder rein
+       (Includes schlagen Excludes). Wer ordnerVideos in einer NEUEN Seite benutzt,
+       braucht hier dasselbe Paar. */
+    "/themes/tryon": ["./public/**"],
+    "/themes/tryon/start": ["./public/**"],
+    "/themes/chat": ["./public/**"],
+    "/themes/chat/start": ["./public/**"],
   },
   async rewrites() {
     // Mirror every public page under /admin/… for signed-in admins. `afterFiles` runs
