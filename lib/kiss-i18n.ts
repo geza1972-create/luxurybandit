@@ -3002,6 +3002,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Dein Future Film entsteht. Wir verwandeln dein Versprechen jetzt in deine persönliche Zukunftsvision.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Dein Future Film",
+    mailQuestion: "Wohin sollen wir dein Programm schicken?",
     mailNote: "Hierhin schicken wir deinen Future Film und deinen privaten Programm-Link.",
     programmKnopf: "Mein 30-Tage-Programm starten →",
     filmKommt: "Dein Future Film entsteht gerade — er kommt per E-Mail.",
@@ -3088,6 +3089,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Your Future Film is being made. We're turning your promise into your personal vision of the future.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Your Future Film",
+    mailQuestion: "Where should we send your program?",
     mailNote: "This is where we send your Future Film and your private program link.",
     programmKnopf: "Start my 30-day program →",
     filmKommt: "Your Future Film is being made — it arrives by email.",
@@ -3173,6 +3175,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Future Film-ul tău se creează. Îți transformăm promisiunea în viziunea ta personală asupra viitorului.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Future Film-ul tău",
+    mailQuestion: "Unde să-ți trimitem programul?",
     mailNote: "Aici îți trimitem Future Film-ul și linkul tău privat de program.",
     programmKnopf: "Începe programul meu de 30 de zile →",
     filmKommt: "Filmul tău Future se creează — îți ajunge pe e-mail.",
@@ -3258,6 +3261,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Tu Future Film se está creando. Estamos convirtiendo tu promesa en tu visión personal del futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Tu Future Film",
+    mailQuestion: "¿A dónde te enviamos tu programa?",
     mailNote: "Aquí te enviamos tu Future Film y tu enlace privado al programa.",
     programmKnopf: "Empezar mi programa de 30 días →",
     filmKommt: "Tu Future Film se está creando — te llega por correo.",
@@ -3343,6 +3347,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Ton Future Film est en cours de création. On transforme ta promesse en ta vision personnelle de l'avenir.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Ton Future Film",
+    mailQuestion: "Où devons-nous envoyer ton programme ?",
     mailNote: "C'est ici qu'on t'envoie ton Future Film et ton lien privé vers le programme.",
     programmKnopf: "Démarrer mon programme de 30 jours →",
     filmKommt: "Ton Future Film est en cours — il arrive par e-mail.",
@@ -3428,6 +3433,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "O teu Future Film está a ser criado. Estamos a transformar a tua promessa na tua visão pessoal do futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · O teu Future Film",
+    mailQuestion: "Para onde enviamos o teu programa?",
     mailNote: "É para aqui que enviamos o teu Future Film e o teu link privado do programa.",
     programmKnopf: "Começar o meu programa de 30 dias →",
     filmKommt: "O teu Future Film está a ser criado — chega por e-mail.",
@@ -3513,6 +3519,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
     makingKiss: "Il tuo Future Film è in creazione. Stiamo trasformando la tua promessa nella tua visione personale del futuro.",
     /* SCHRITT-TITEL des Zweischritt-Tunnels (Owner 12.08.2026): ohne eigenen Eintrag erbte die Kaskade „Your birthday video" aus GEBURTSTAG. */
     step3: "2 · Il tuo Future Film",
+    mailQuestion: "Dove ti mandiamo il tuo programma?",
     mailNote: "Qui ti inviamo il tuo Future Film e il tuo link privato al programma.",
     programmKnopf: "Avvia il mio programma di 30 giorni →",
     filmKommt: "Il tuo Future Film si sta creando — arriva via e-mail.",
