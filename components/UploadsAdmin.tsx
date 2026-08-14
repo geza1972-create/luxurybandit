@@ -229,6 +229,18 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                         {e.theme || "kiss"}
                       </span>
                     )}
+                    {/* WIE LANGE HAT ES GEDAUERT (Owner 14.08.2026: „ich muss sehen wie
+                        lange die Generierung gedauert hat") — vom Server-Start bis zur
+                        Liefermail, aus den zwei Stempeln, die es schon gibt. Bei Auftraegen
+                        ohne beide Stempel steht nichts, statt einer erfundenen Zahl. */}
+                    {e.videoStartAt && e.videoMailedAt && (() => {
+                      const min = Math.max(1, Math.round((Date.parse(String(e.videoMailedAt)) - Date.parse(String(e.videoStartAt))) / 60000));
+                      return (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${min > 10 ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-600"}`}>
+                          ⏱ {min} min
+                        </span>
+                      );
+                    })()}
                     {/* WAS ER BEKOMMEN HAT — ein Tipp, und darunter steht, was wirklich in
                         seiner Galerie liegt (Owner 14.08.2026). */}
                     {e.email && (
@@ -303,10 +315,20 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   {e.videoUrl ? (
                     <div className="min-w-0 flex-1">
                       <p className="mb-1 truncate text-[9px] font-black uppercase tracking-wide text-black/40">Video</p>
+                      {/* MIT POSTER (Owner 14.08.2026: „ich begnüge mich nicht mit einem
+                          schwarzen Bild") — das Look-Bild ist das erste Vollbild des
+                          Avatar-Videos, also das ehrliche Standbild davor. */}
                       <button type="button" onClick={() => setGross({ url: String(e.videoUrl), video: true })}
-                        className="grid aspect-[2/3] w-full place-items-center rounded-lg border border-black/10 text-[22px]"
-                        style={{ background: "#111", color: "#fff" }}>
-                        ▶
+                        className="relative block aspect-[2/3] w-full overflow-hidden rounded-lg border border-black/10"
+                        style={{ background: "#111" }}>
+                        {e.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : null}
+                        <span className="absolute inset-0 grid place-items-center">
+                          <span className="grid h-9 w-9 place-items-center rounded-full text-[16px]"
+                            style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>▶</span>
+                        </span>
                       </button>
                     </div>
                   ) : (
