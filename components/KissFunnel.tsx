@@ -5517,7 +5517,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Schritten davor hat er sie einzeln gewählt; hier muss er sehen, wer gleich mit wem
           im Bild landet — sonst generiert er blind. */}
       {(selPhoto || photo) && (
-        <div className="mt-2 flex items-center justify-center gap-2">
+        <div className="relative mt-2 flex items-center justify-center gap-2">
+          {/* DER LAUF GEHOERT IN DIE KARTE (Owner 31.07.2026: „kannst du nicht in der Karte
+              oben rendern lassen und Prozente hinschreiben?", erneut 14.08.2026: „komisch
+              dass loading im button ist und nicht in der card"). Die Schicht mit Radar,
+              Prozentzahl und Balken war laengst gebaut, hing aber nur an den beiden Karten
+              des Dialog-Trichters (Zeilen 4262/4386) — auf der Tunnel-Seite bekam sie
+              niemand zu sehen, dort stand der Fortschritt nur als Wort im Knopf. Sie liegt
+              jetzt ueber der Vorher/Nachher-Reihe; das `relative` an der Reihe ist ihr
+              Anker. Sie raeumt sich selbst ab, sobald der Film da ist — `karteRendert`
+              traegt das `!videoUrl` schon in sich. */}
+          {tunnelSeite && renderSchicht}
           {/* IM TUNNEL steht der Zurueck-Chip an der CTA-Zeile (Owner 13.08.2026, EINE
               Regel); nur der alte DIALOG behaelt ihn hier am Bild — er hat keinen
               Tunnel-Kaufknopf mit Chip-Zeile darunter. */}
@@ -5976,6 +5986,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Schritt 1 (TunnelStart) und Schritt 2 (Look-Wahl) gilt jetzt auch hier: der
           Zurueck-Chip steht LINKS VOM HAUPT-CTA, nie am Bild. Nur im Tunnel — der alte
           Dialog behaelt seinen Chip an der Vorschau-Zeile (siehe oben). */}
+      {/* IST DER FILM DA, IST DIESE ZEILE FERTIG (Owner 14.08.2026: „das braucht man hier
+          nicht mehr"). Nach dem fertigen Video stand der Erzeugen-Knopf weiter über der
+          Zeile „Bezahlt" — obwohl darunter längst „Dein Video herunterladen" und „Mein
+          30-Tage-Programm starten" die einzigen sinnvollen Schritte sind. Bewusst NUR im
+          Tunnel und NUR mit vorhandenem `videoUrl`: Wer bezahlt hat, aber noch kein Ergebnis
+          sieht (Ausfall beim Anbieter), behält seinen Knopf zum Nachstarten. */}
+      {!(tunnelSeite && videoUrl) && (
       <div className={tunnelSeite ? "mt-2 flex items-center gap-2" : ""}>
       {tunnelSeite && (
         <button type="button" onClick={() => setSchritt(alsSchritt(schrittVorKacheln))} aria-label={T.back}
@@ -6030,12 +6047,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             Knopf-Wort ohne Preis. Erst mit vollstaendigem Beitrag steht „… — 9,99 €". */}
         {busy || videoBusy ? (status || T.rendering) : mailBusy ? T.oneMoment : payBusy ? T.oneMoment
           : tunnelSeite ? (
-            fotosDa ? `${T.generateNow} — ${eur(geschenkPreisCents(variant), lang)}`
+            /* WER BEZAHLT HAT, SIEHT KEINEN PREIS (Owner 31.07.2026, erneut 14.08.2026:
+               „hier steht schon wieder der Preis im Button … als hätt er nicht bezahlt").
+               Dieser Zweig fragte als einziger NICHT nach `bezahlt` — der Dialog-Zweig unten
+               tut es seit jeher. Nach der Zahlung stand deshalb „… — 9,99 €" direkt über der
+               Zeile „Bezahlt — alles hier drunter ist dabei", also zwei Sätze, die einander
+               widersprechen. Das Knopf-Wort bleibt für alle Tunnel gleich (Owner 12.08.2026),
+               nur die Zahl fällt weg. */
+            bezahlt ? T.generateNow
+            : fotosDa ? `${T.generateNow} — ${eur(geschenkPreisCents(variant), lang)}`
             : selbstVideo ? (variant === "versprechen" && T.aufCta ? T.aufCta : SW.selbst)
             : T.generateNow)
           : (bezahlt || V.keinGratis) ? T.ctaVideo : T.ctaFree}
       </button>
       </div>
+      )}
       {generateHinweis && (
         <p role="alert" style={{ color: "#ef4444" }} className="mt-1.5 text-center text-[12.5px] font-black leading-snug">
           {generateHinweis}
@@ -6154,7 +6180,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         {T.privat}
       </p>
       )}
-      {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
+      {/* NICHT ZWEIMAL DASSELBE (Owner 14.08.2026: „komisch dass loading im button ist").
+          Solange gearbeitet wird, TRÄGT der Knopf oben bereits `status` als sein Wort — diese
+          Zeile schrieb denselben Satz ein zweites Mal darunter. Sie bleibt für alles andere
+          stehen, was `status` sonst meldet (Absagen, Hinweise nach einem Fehlschlag); nur
+          während der Arbeit schweigt sie. */}
+      {status && !busy && !videoBusy && (
+        <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>
+      )}
 
       {/* DER TEILEN-DIALOG: erst wissen, dann öffentlich (Owner 01.08.2026). */}
       {/* DAS UPLOAD-TOR (Owner 03.08.2026: „sie dürfen nicht ein Mal hochladen ohne Email
@@ -6458,8 +6491,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 )}
               </div>
             )}
+            {/* ZWEITRANGIG, NICHT GLEICHRANGIG (Owner 14.08.2026: „das ist ein secondary
+                button"). Herunterladen und „30-Tage-Programm starten" standen beide als
+                Haupt-CTA da — zwei gleich laute Knöpfe sind keine Führung. Der Hauptweg nach
+                dem Film ist das Programm; das Herunterladen bekommt die Zweitrolle. Dafür
+                gibt es die Hausklasse `.lb-black3d`, in globals.css ausdrücklich als
+                Gegenstück zu `.lb-gold` beschrieben — sie bringt ihren eigenen Grund mit und
+                sieht deshalb in beiden Fassungen richtig aus. */}
             <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
-              className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
+              className="lb-black3d mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               {T.download}
             </a>
             {/**
