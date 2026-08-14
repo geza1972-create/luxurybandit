@@ -2241,7 +2241,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const ziel = new URLSearchParams();
         if (jetzt.get("light") === "1") ziel.set("light", "1");
         if (code) ziel.set("code", code);
-        window.location.href = `/themes/${variant}/start${ziel.toString() ? `?${ziel}` : ""}`;
+        /* DER TANZ WOHNT UNTER /themes/surprise (Owner 14.08.2026, live gefunden: „Începe
+           acum" fuehrte zur STARTSEITE) — die Variante heisst `poledance`, die Adresse
+           nicht. Dieselbe Zuordnung wie am Teilen-Knopf und am Zurueck-Chip. */
+        window.location.href = `/themes/${variant === "poledance" ? "surprise" : variant}/start${ziel.toString() ? `?${ziel}` : ""}`;
       } catch { /* die Seite bleibt erreichbar, auch ohne die zwei Zusatzparameter */ }
       return;
     }
@@ -4586,7 +4589,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 ziel.set("s", String(nachTunnelStart));
                 if (jetzt.get("light") === "1") ziel.set("light", "1");
                 if (code) ziel.set("code", code);
-                sessionStorage.setItem("lb_oauth_return", `/themes/${variant}/start?${ziel.toString()}`);
+                sessionStorage.setItem("lb_oauth_return", `/themes/${variant === "poledance" ? "surprise" : variant}/start?${ziel.toString()}`);
               } catch { /* privater Modus — dann landet er auf dem Konto-Dashboard, kein Absturz */ }
               try { signInWithOAuth("google", `${window.location.origin}/auth/confirm`); }
               catch { setMailFehler(T.statusNotWork); }
