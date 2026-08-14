@@ -12,6 +12,9 @@
 //      Facebook-Anzeigen (`&src=fb`) — die Herkunft dieser Besucher ging also verloren.
 //   3. Die eigene Entwicklungsmaschine lief als echter Besucher mit. Localhost gilt jetzt
 //      als intern, wie eine Admin-Sitzung.
+import { trackMetaPixel } from "@/lib/meta-pixel";
+import { geschenkPreisCents } from "@/lib/pricing";
+
 /**
  * DIE NORMIERTE EVENT-FAMILIE (Owner-Architektur-Abgleich 12.08.2026, §32): ALLE Tunnel-
  * Produkte sollen dieselben sieben Stufen melden, damit sich Insights je Produkt VERGLEICHEN
@@ -52,7 +55,45 @@ export type TunnelEvent =
   | "look_selected" | "video_recorded" | "generation_completed"
   | "program_started" | "daily_action_completed" | "program_completed";
 
+// Intern = Admin-Sitzung ODER die eigene Entwicklungsmaschine. Beides darf weder die
+// Besucherzahlen aufblähen noch beim Meta-Pixel als Kauf ankommen. Die Modell-Vorschau
+// (`lb_preview_model`) ist bewusst ausgenommen: damit sieht der Admin die Seite wie ein
+// echter Besucher.
+function isInternalSession(): boolean {
+  try {
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local");
+    const isAdmin =
+      !!localStorage.getItem("luxurybandit-try-look-admin-pin") &&
+      localStorage.getItem("lb_preview_model") !== "1";
+    return isAdmin || isLocal;
+  } catch { return false; }
+}
+
+/**
+ * Dieselben Stufen NOCHMAL an das Meta-Pixel, unter Metas Standardnamen (14.08.2026).
+ * Vorher meldete die Seite Meta nur `PageView` — die Anzeigenauslieferung konnte also auf
+ * nichts optimieren, was Geld bringt, und im Werbeanzeigenmanager stand bei „Ergebnisse"
+ * nichts als Klicks. Hier steht die Zuordnung EINMAL für alle Produkte; wer einen neuen
+ * Tunnel baut, bekommt sie geschenkt, sobald er `logTunnelEvent` benutzt.
+ */
+const PIXEL_EVENT: Partial<Record<TunnelEvent, string>> = {
+  lead_created: "Lead",
+  checkout_started: "InitiateCheckout",
+  payment_completed: "Purchase",
+};
+
 export function logTunnelEvent(event: TunnelEvent, theme: string, extra: Record<string, string> = {}): Promise<void> {
+  const pixelEvent = PIXEL_EVENT[event];
+  if (pixelEvent && typeof window !== "undefined" && !isInternalSession()) {
+    // Betrag NUR aus der Preistabelle (Memory `prices-only-from-pricing-table`) — ohne
+    // `value`/`currency` kann Meta keinen ROAS rechnen und warnt im Events Manager.
+    const cents = geschenkPreisCents(theme);
+    trackMetaPixel(pixelEvent, {
+      content_name: theme,
+      ...(cents > 0 ? { value: cents / 100, currency: "EUR" } : {}),
+    });
+  }
   return logFunnelEvent(event, { theme, produkt: theme, ...extra });
 }
 
@@ -74,15 +115,7 @@ export function logFunnelEvent(event: string, extra: Record<string, string> = {}
       }
     } catch { /* privater Modus: dann eben ohne Kennung, das darf nichts kaputtmachen */ }
 
-    // Intern = Admin-Sitzung ODER die eigene Entwicklungsmaschine. Beides darf die
-    // Besucherzahlen nicht aufblähen. Die Modell-Vorschau (`lb_preview_model`) ist bewusst
-    // ausgenommen: damit sieht der Admin die Seite wie ein echter Besucher.
-    const host = window.location.hostname;
-    const isLocal = host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local");
-    const isAdmin =
-      !!localStorage.getItem("luxurybandit-try-look-admin-pin") &&
-      localStorage.getItem("lb_preview_model") !== "1";
-    const internal = isAdmin || isLocal;
+    const internal = isInternalSession();
 
     return fetch("/api/try-this-look", {
       method: "POST",
