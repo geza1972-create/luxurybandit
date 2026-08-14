@@ -748,7 +748,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * Set, siehe Bericht an den Owner. Lieber dasselbe Video an allen drei Kacheln zeigen als
    * gar keins: Bewegung verkauft, auch wenn sie nicht exakt zum gewaehlten Set passt.
    */
-  const POLEDANCE_SETS_MIT_VIDEO = POLEDANCE_SETS.map(s => ({ ...s, video: beispiele[0] || undefined }));
+  /**
+   * DAS EINE BEISPIELVIDEO ZEIGT ROTES SATIN — dann darf es auch nur an DER Kachel haengen
+   * (Owner 14.08.2026, mit Bild: „immer das gleiche Video" — Pink Neon und Black Leather
+   * spielten denselben roten Clip; die Regel vom 03.08. nennt das „das Falsche
+   * ankuendigen"). Die anderen Sets zeigen ihr eigenes Standbild, bis es je Set ein Video
+   * gibt; das grosse Beispiel oben in der Karte bleibt unveraendert.
+   */
+  const POLEDANCE_SETS_MIT_VIDEO = POLEDANCE_SETS.map(s => ({ ...s, video: s.id === "rot" ? (beispiele[0] || undefined) : undefined }));
   /**
    * SEINE ZIELE (Owner 11.08.2026: „Baue den zusätzlichen Ziele-Schritt nur für
    * versprechen") — höchstens drei Kennungen, dazu ein freier Satz, wenn er „etwas anderes"
