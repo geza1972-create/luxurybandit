@@ -2923,7 +2923,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     const startStempelZurueck = (grund: string) => {
-      if (gestartet || !selbstVideo || !genId) return;
+      /* SEIT 14.08.2026 FUER ALLE THEMEN: Bei Kuss/Tanz gab es zwar keinen Vorschuss-Stempel
+         zurueckzunehmen, aber der Fehlergrund gehoert trotzdem an den Auftrag — und bei einem
+         BEZAHLTEN Auftrag weckt genau diese Meldung jetzt die server-seitige Lieferkette
+         (siehe renderAbbruch in /api/kiss-log). Ohne sie schlief der Wachhund bis 05:00. */
+      if (gestartet || !genId) return;
       // `lang` mit (11.08.2026), siehe Aenderung „Sprache am Auftrag persistieren".
       void fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ update: genId, renderAbbruch: true, fehler: grund, lang, device }) }).catch(() => {});
@@ -3088,7 +3092,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
         // weist wie bei Pixverse den bezahlten Auftrag aus.
-        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look,
+        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look, lang,
           /* Die eigene Aufnahme schlägt die Chip-Stimme — aber nur, wenn der Chip gewählt
              UND wirklich etwas aufgenommen ist. */
           /* Die Aufnahme schlägt die Chip-Stimme. Beim Geburtstag ist sie der einzige
@@ -5518,16 +5522,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           im Bild landet — sonst generiert er blind. */}
       {(selPhoto || photo) && (
         <div className="relative mt-2 flex items-center justify-center gap-2">
-          {/* DER LAUF GEHOERT IN DIE KARTE (Owner 31.07.2026: „kannst du nicht in der Karte
-              oben rendern lassen und Prozente hinschreiben?", erneut 14.08.2026: „komisch
-              dass loading im button ist und nicht in der card"). Die Schicht mit Radar,
-              Prozentzahl und Balken war laengst gebaut, hing aber nur an den beiden Karten
-              des Dialog-Trichters (Zeilen 4262/4386) — auf der Tunnel-Seite bekam sie
-              niemand zu sehen, dort stand der Fortschritt nur als Wort im Knopf. Sie liegt
-              jetzt ueber der Vorher/Nachher-Reihe; das `relative` an der Reihe ist ihr
-              Anker. Sie raeumt sich selbst ab, sobald der Film da ist — `karteRendert`
-              traegt das `!videoUrl` schon in sich. */}
-          {tunnelSeite && renderSchicht}
+          {/* DER LAUF ALS EIGENE ZEILE, NICHT ALS SCHICHT DARUEBER (Owner 14.08.2026, mit
+              Bild vom laufenden Kauf: „es sieht nicht so toll aus" — der Text lag doppelt
+              uebereinander und der Programm-Knopf klebte darin).
+              VORHER stand hier `renderSchicht`, die Schicht des Dialog-Trichters. Sie ist
+              `absolute inset-0` und fuer eine hohe Medienkarte gebaut; ueber der niedrigen
+              Vorher/Nachher-Reihe lief ihr Inhalt unten heraus und legte sich auf alles,
+              was darunter stand. Statt sie zu dehnen, steht der Fortschritt jetzt UNTER der
+              Reihe — dieselbe Zahl, derselbe Balken, aber im Fluss statt darueber. */}
           {/* IM TUNNEL steht der Zurueck-Chip an der CTA-Zeile (Owner 13.08.2026, EINE
               Regel); nur der alte DIALOG behaelt ihn hier am Bild — er hat keinen
               Tunnel-Kaufknopf mit Chip-Zeile darunter. */}
@@ -5704,6 +5706,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
           </>)}
+        </div>
+      )}
+      {/* DER FORTSCHRITT UNTER DER REIHE (Owner 14.08.2026). Prozentzahl und Balken
+          stehen im Textfluss, nicht als Schicht ueber den Kacheln — dadurch kann nichts
+          mehr uebereinanderliegen. Nur im Tunnel und nur, solange wirklich gerechnet wird;
+          sobald der Film da ist, verschwindet die Zeile von selbst. */}
+      {tunnelSeite && videoBusy && !videoUrl && (
+        <div className="mt-3 text-center">
+          <p className="text-[26px] font-black leading-none tabular-nums">{fortschritt} %</p>
+          <div className="mx-auto mt-2 h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-white/15">
+            <div className="h-full rounded-full bg-[#f6cf51] transition-[width] duration-1000 ease-linear"
+              style={{ width: `${fortschritt}%` }} />
+          </div>
         </div>
       )}
       {/* §22 SCREEN 4, DER SATZ UNTER DER GEGENÜBERSTELLUNG (Owner-Master-Auftrag

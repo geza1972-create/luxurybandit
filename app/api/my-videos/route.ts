@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
+import { isAdminRequest } from "@/lib/admin-auth";
 import { futureProgramUrl } from "@/lib/future-program-store";
 import { geschenkPreisCents } from "@/lib/pricing";
 
@@ -81,7 +82,20 @@ export async function GET(request: Request) {
    */
   const konto = await getSellerFromRequest(request).catch(() => null);
   const kontoMail = clean(konto?.email ?? "", 160).toLowerCase();
-  const email = kontoMail || clean(url.searchParams.get("email"), 160).toLowerCase();
+  /**
+   * DER BETREIBER DARF IN DIE GALERIE SEINES KUNDEN SEHEN (Owner 14.08.2026: „ich will mich
+   * in seiner Galerie einloggen können und sehen ob er das generierte Video in der Galerie
+   * hat").
+   *
+   * Ohne das steht er vor derselben Wand wie heute: Bei Stripe eine Zahlung, im Auftrag
+   * „unbezahlt", und ob der Kunde je etwas bekommen hat, konnte nur ein Skript beantworten.
+   * Der Admin-PIN hebt deshalb ZWEI Regeln auf, die fuer Besucher bleiben — die eigene
+   * Anmeldung sticht die Anfrage nicht mehr, und der Geraete-Riegel gilt nicht. Fuer jeden
+   * ohne PIN aendert sich nichts.
+   */
+  const admin = await isAdminRequest(request).catch(() => false);
+  const gefragt = clean(url.searchParams.get("email"), 160).toLowerCase();
+  const email = admin ? (gefragt || kontoMail) : (kontoMail || gefragt);
   if (!device && !email) return NextResponse.json({ videos: [] });
 
   /**
@@ -93,7 +107,7 @@ export async function GET(request: Request) {
    * nur, wenn dieser Browser für sie schon einmal bezahlt hat; sonst bleibt die
    * Gerätekennung die einzige Zuordnung (die kennt nur er selbst).
    */
-  const darfEmail = kontoMail ? true : email ? await walletGeraetVertraut(email, device).catch(() => false) : false;
+  const darfEmail = admin || kontoMail ? true : email ? await walletGeraetVertraut(email, device).catch(() => false) : false;
   const emailGilt = darfEmail ? email : "";
 
   const state = await readTryThisLookState();

@@ -13,6 +13,7 @@ import { fingerprintDistance } from "@/lib/fingerprint-distance";
 import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
 import AdsPlaybook from "@/components/AdsPlaybook";
+import UploadsAdmin from "@/components/UploadsAdmin";
 import AdminConnections from "@/components/AdminConnections";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -129,17 +130,17 @@ export default function AdminPage() {
   }, []);
   const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails" | "ads">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails" | "ads" | "kaeufe">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
-      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads") return t;
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads" || t === "kaeufe") return t;
     }
     return "looks";
   });
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads" || t === "kaeufe") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -1840,6 +1841,15 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
             ✉️ Emails
           </button>
+          {/* EINE LISTE FUER ALLES (Owner 14.08.2026: „du machst mir jetzt eine einzige Liste
+              fuer alles nicht mehr getrennt fuer alle user" — nach dem Fall Adrian Codila:
+              bei Stripe bezahlt, im Auftrag „unbezahlt", und niemand hat es gesehen).
+              Dieselbe Liste wie auf den Themenseiten, nur OHNE Themenfilter: alle Kunden,
+              alle Produkte, neueste zuerst. */}
+          <button type="button" onClick={() => setTab("kaeufe")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "kaeufe" ? "bg-black text-white" : "text-ink/50"}`}>
+            🧾 Käufe
+          </button>
           {/* DAS ADS-PLAYBOOK (Owner 13.08.2026: „klar hätte ich das gerne im ADMIN"). */}
           <button type="button" onClick={() => setTab("ads")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "ads" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -3315,6 +3325,9 @@ export default function AdminPage() {
 
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
       {tab === "ads" && <AdsPlaybook />}
+      {/* Themenfilter bewusst LEER — das ist der ganze Unterschied zur Ansicht auf den
+          Themenseiten (siehe `theme`-Prop in components/UploadsAdmin.tsx). */}
+      {tab === "kaeufe" && <div className="lb-theme mt-4"><UploadsAdmin title="Alle Käufe — jeder Kunde, jedes Produkt" theme="" suche={query} /></div>}
 
       {tab === "meta" && (
         <div className="mt-3 pb-16">
