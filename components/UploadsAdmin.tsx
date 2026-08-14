@@ -234,10 +234,17 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                     {e.email && (
                       <button type="button" onClick={() => void galerieHolen(String(e.email))}
                         className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-black text-sky-700 active:scale-95 transition">
+                        {/* ZWEI TOEPFE, EIN ZAEHLER (Owner 14.08.2026: „bei tigl sind 4 Videos
+                            in der Galerie … du zeigst 0"). Die Galerie speist sich aus den
+                            AUFTRAEGEN (Kuss/Versprechen-Videos, liegen schon in `rows`) UND
+                            der Try-on-Ablage (/api/my-videos). Der Knopf fragte nur die
+                            zweite — bei Kunden, deren Videos an Auftraegen haengen, stand
+                            eine falsche 0. */}
                         {galerie[String(e.email)] === "laden"
                           ? "Galerie …"
                           : Array.isArray(galerie[String(e.email)])
-                            ? `Videos bei ihm: ${(galerie[String(e.email)] as unknown[]).length}`
+                            ? `Videos bei ihm: ${(galerie[String(e.email)] as unknown[]).length
+                                + rows.filter(r => String(r.email ?? "").toLowerCase() === String(e.email ?? "").toLowerCase() && r.videoUrl).length}`
                             : "Videos bei ihm"}
                       </button>
                     )}
@@ -335,10 +342,16 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   bezahlt und nichts bekommen — genau der Fall, den du sonst erst aus einer
                   Beschwerde erfaehrst. */}
               {e.email && Array.isArray(galerie[String(e.email)]) && (
-                (galerie[String(e.email)] as { url: string; poster?: string }[]).length === 0 ? (
+                ((galerie[String(e.email)] as { url: string; poster?: string }[]).length
+                  + rows.filter(r => String(r.email ?? "").toLowerCase() === String(e.email ?? "").toLowerCase() && r.videoUrl).length) === 0 ? (
                   <p className="mt-2 rounded-lg bg-red-500/10 px-2 py-1.5 text-[11px] font-black text-red-600">
-                    Keine Videos in seiner Galerie. (Bilder zaehlt diese Abfrage nicht —
-                    die Kundengalerie speist sich zusaetzlich aus dem Auftragsprotokoll.)
+                    Kein einziges Video bei diesem Kunden — weder an seinen Auftraegen noch
+                    in der Try-on-Ablage. (Bilder zaehlt diese Abfrage nicht.)
+                  </p>
+                ) : (galerie[String(e.email)] as { url: string; poster?: string }[]).length === 0 ? (
+                  <p className="mt-2 rounded-lg bg-emerald-500/10 px-2 py-1.5 text-[11px] font-bold text-emerald-700">
+                    Seine Videos haengen an den Auftraegen — die ▶-Kacheln in seinen Zeilen
+                    sind genau das, was seine Galerie zeigt.
                   </p>
                 ) : (
                   <div className="mt-2">
