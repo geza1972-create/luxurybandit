@@ -279,6 +279,14 @@ function ProgrammAnsicht({ daten, T, lang, wirdAbgehakt, abhaken, ziel90Entwurf,
                       {T.nextUp.replace("{titel}", tage[heute].titel)}
                     </p>
                   )}
+                  {/* DIE VERABREDUNG (Owner 14.08.2026): nextUp nennt die Aufgabe, dieser
+                      Satz holt ihn morgen zurueck. Nur bis Tag 29 — an Tag 30 uebernimmt
+                      der 90-Tage-Schritt. */}
+                  {heute < 30 && T.kommMorgen && (
+                    <p className="mt-1.5 text-center text-[11.5px] font-semibold leading-snug opacity-55">
+                      {T.kommMorgen}
+                    </p>
+                  )}
                 </>
               ) : (
                 <Knopf art="gold" karte onClick={() => abhaken(heute)} disabled={wirdAbgehakt === heute}>
