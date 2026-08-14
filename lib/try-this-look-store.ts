@@ -1769,6 +1769,16 @@ export type KissLogEntry = {
   videoId?: string;       // laufender Auftrag beim Anbieter ("pv:123")
   videoTries?: number;    // wie oft der Server es schon versucht hat (Deckel gegen Dauerlauf)
   videoError?: string;    // letzter Fehler, damit der Admin es sieht
+  /**
+   * WAS ER WIRKLICH BEZAHLT HAT, in Cent (Owner 14.08.2026: „ich will auch sehen wieviel er
+   * bezahlt hat").
+   *
+   * Vorher stand der Betrag nirgends — die Kaufliste konnte ihn nicht zeigen, und aus dem
+   * Thema abgeleitet waere er falsch: Adrian Codila zahlte 1,49 EUR fuer ein Extra-Bild,
+   * der Themenpreis liegt bei 9,99 EUR. Gefuellt wird er aus Stripes `amount_total`, also
+   * dem Betrag NACH Rabatt — nicht aus dem Bestellwert.
+   */
+  paidCents?: number;
   videoMailedAt?: string; // wann das fertige Video verschickt wurde (nie zweimal)
   videoAlertAt?: string;  // wann wir aufgegeben und den Käufer benachrichtigt haben
   /**

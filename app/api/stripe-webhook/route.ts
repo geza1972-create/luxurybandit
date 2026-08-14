@@ -144,7 +144,9 @@ export async function POST(request: Request) {
     if (kissGenId) {
       const mail = String((session.customer_details as { email?: string } | undefined)?.email ?? session.customer_email ?? "");
       try {
-        await bezahltVermerken(kissGenId, mail, kind, new URL(request.url).origin);
+        /* Stripes `amount_total` ist der Betrag NACH Rabatt — genau das, was er bezahlt hat. */
+        const gezahltCents = Number((session as { amount_total?: number }).amount_total ?? 0) || 0;
+        await bezahltVermerken(kissGenId, mail, kind, new URL(request.url).origin, gezahltCents);
         lieferungAnstossen(new URL(request.url).origin, kissGenId);
         console.info(`[stripe-webhook] kiss-Auftrag vorgemerkt (${kind}) — ${kissGenId}`);
       } catch (e) { console.warn("[stripe-webhook] kiss-Auftrag konnte nicht vorgemerkt werden", e); }

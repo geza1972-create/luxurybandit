@@ -476,8 +476,20 @@ export async function POST(request: Request) {
   const genId = String((body as { genId?: string }).genId ?? "").trim();
   if (!staff && genId) {
     try {
-      const log = await readKissLog();
-      const eintrag = log.find(x => x.id === genId);
+      /**
+       * MIT GEDULD LESEN (14.08.2026) — dieselbe Falle wie in /api/geburtstag-video: Der
+       * Speicher liefert den frisch gestempelten Auftrag ein paar Sekunden veraltet aus,
+       * und ein zahlender Kunde fiel hier in den Gratis-/Guthaben-Zweig. Sechs Anlaeufe
+       * mit 1,1 s Pause; die Erzeugung selbst dauert ohnehin Minuten.
+       */
+      let log: import("@/lib/try-this-look-store").KissLogEntry[] = [];
+      let eintrag: import("@/lib/try-this-look-store").KissLogEntry | undefined;
+      for (let versuch = 0; versuch < 6; versuch++) {
+        log = await readKissLog().catch(() => []);
+        eintrag = log.find(x => x.id === genId);
+        if (eintrag?.paid) break;
+        if (versuch < 5) await new Promise(r => setTimeout(r, 1100));
+      }
       if (eintrag?.paid === true) {
         const mail = String(eintrag.paidEmail || eintrag.email || "").trim().toLowerCase();
 

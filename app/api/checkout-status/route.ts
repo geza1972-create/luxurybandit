@@ -336,7 +336,9 @@ export async function GET(request: Request) {
          */
         /* Auch hier gewinnt die Adresse von der Kasse — siehe oben. */
         const kaeufer = (String(s.customerEmail ?? "").trim() || String(s.metadata.email ?? "").trim()).toLowerCase();
-        await bezahltVermerken(kissGenId, kaeufer, String(s.metadata.kind ?? ""), new URL(request.url).origin);
+        /* Derselbe Betrag wie im Webhook — welcher Weg zuerst stempelt, entscheidet der Zufall. */
+        const gezahltCents = typeof s.amountTotal === "number" ? s.amountTotal : Number(s.metadata.cents ?? 0) || 0;
+        await bezahltVermerken(kissGenId, kaeufer, String(s.metadata.kind ?? ""), new URL(request.url).origin, gezahltCents);
         lieferungAnstossen(new URL(request.url).origin, kissGenId);
         programUrl = await futureProgramUrl(new URL(request.url).origin, kissGenId).catch(() => undefined);
       } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }

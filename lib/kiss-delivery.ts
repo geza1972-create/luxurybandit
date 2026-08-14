@@ -135,7 +135,7 @@ export async function programmWillkommen(genId: string, to: string, origin = "")
   return !!(r as { ok?: boolean }).ok;
 }
 
-export async function bezahltVermerken(genId: string, email = "", kind = "", origin = ""): Promise<boolean> {
+export async function bezahltVermerken(genId: string, email = "", kind = "", origin = "", cents = 0): Promise<boolean> {
   const id = String(genId ?? "").trim();
   if (!id) return false;
   try {
@@ -152,7 +152,10 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
       entries.unshift(e);
     }
     const mail = String(email ?? "").trim().toLowerCase();
-    const vorher = JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt]);
+    const vorher = JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt, e.paidCents]);
+    /* Der Betrag kommt von Stripe und wird nie ueberschrieben: Der erste Stempel gewinnt,
+       sonst macht ein zweiter Aufruf ohne Betrag aus 1,49 EUR eine 0. */
+    if (cents > 0 && !e.paidCents) e.paidCents = cents;
     e.paid = true;
     if (mail && !e.paidEmail) e.paidEmail = mail;
     // Einzelkauf oder Abo — davon hängt ab, wie viele Videos ihm zustehen.
@@ -202,7 +205,7 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
         } catch (err) { console.warn("future-program willkommensmail fehlgeschlagen:", err); }
       }
     }
-    if (JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt]) === vorher) return true;
+    if (JSON.stringify([e.paid, e.paidEmail, e.videoDueAt, e.paidKind, e.programmMailAt, e.paidCents]) === vorher) return true;
     await writeKissLog(entries);
     return true;
   } catch { return false; }

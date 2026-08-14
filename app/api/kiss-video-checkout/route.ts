@@ -238,7 +238,9 @@ export async function POST(request: Request) {
            * Auftraege inzwischen selbst wieder an; scheitert es trotzdem, ist die ehrliche
            * Antwort ein Fehler und nicht ein falsches Ja.
            */
-          const gestempelt = await bezahltVermerken(genId, email, "kiss-video", origin);
+          /* `preis` ist der eben abgebuchte Betrag — derselbe Stempel wie bei Stripe,
+             damit die Kaufliste auch Guthaben-Kaeufe beziffern kann (14.08.2026). */
+          const gestempelt = await bezahltVermerken(genId, email, "kiss-video", origin, preis);
           if (!gestempelt) {
             return NextResponse.json({ error: "Auftrag nicht auffindbar — bitte neu starten." }, { status: 409 });
           }

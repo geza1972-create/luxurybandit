@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog, writeKissLog, getSignedUrl, deleteTryThisLookImage, createSignedUploadUrl, readTryThisLookState, readWetterSubscribers, type KissLogEntry, avatarMerken } from "@/lib/try-this-look-store";
-import { GNADENFRIST_MS } from "@/lib/kiss-delivery";
+import { GNADENFRIST_MS, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
@@ -404,10 +404,27 @@ export async function POST(request: Request) {
       if (renderStart) { e.videoStartAt = new Date().toISOString(); e.videoError = undefined; }
       /* Nichts läuft: Stempel weg, Grund hin. `videoId` bleibt unangetastet — ein FRÜHERER
          Auftrag desselben Eintrags darf davon nicht verlieren. */
+      let abbruchNachliefern = false;
       if (renderAbbruch) {
         e.videoStartAt = undefined;
         const grund = String((body as { fehler?: string }).fehler ?? "").trim().slice(0, 200);
         e.videoError = grund || "Erzeugung ist gar nicht erst gestartet.";
+        /**
+         * DER ABBRUCH IST DER WECKRUF (14.08.2026, am eigenen 9,99-Kauf gefunden: „Eroare de
+         * rețea." mit 0 Anlaeufen — der naechste Wachhund-Lauf waere der 05:00-Cron gewesen,
+         * also erst am NAECHSTEN MORGEN; die Anstoss-Kette von der Zahlung lebt nur ~7 min).
+         *
+         * Genau hier sagt uns der Browser des Kunden, dass sein Start gescheitert ist. Die
+         * Schonfrist (videoDueAt = Zahlung + Frist) existiert nur, damit Server und Browser
+         * nicht doppelt rendern — meldet der Browser „bei mir laeuft nichts", ist sie
+         * gegenstandslos: Frist auf JETZT ziehen und die Lieferkette wecken. kiss-deliver
+         * startet nie doppelt (Laufendes wird nur beobachtet) und gibt nach MAX_VERSUCHE
+         * auf; dieselbe Grenze auch hier, statt einen toten Auftrag endlos zu wecken.
+         */
+        if (e.paid && !e.videoUrl && (e.videoTries ?? 0) < 3) {
+          e.videoDueAt = new Date().toISOString();
+          abbruchNachliefern = true;
+        }
       }
       if (videoId) {
         e.videoId = videoId;
@@ -490,6 +507,9 @@ export async function POST(request: Request) {
       const mailU = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
       if (mailU && !e.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailU)) e.email = mailU;
       await writeKissLog(entries);
+      /* Erst NACH dem Schreiben wecken — die Kette liest frisch und muss die vorgezogene
+         Frist schon sehen. */
+      if (abbruchNachliefern) lieferungAnstossen(new URL(request.url).origin, e.id);
     }
     // Abgelegt (der Owner sieht den Verlauf), aber der Besucher bekommt die Absage.
     if (torU.abweisen) {

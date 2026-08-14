@@ -25,6 +25,24 @@ import { VERSPRECHEN_SATZ_EN } from "@/lib/versprechen";
  * (≈20 ct bei ~5 s) ≈ 26 ct Warenkosten — bei 4,99 € Startpreis (GEBURTSTAG_CENTS).
  */
 
+
+/**
+ * DIE ABSAGE IN SEINER SPRACHE (14.08.2026, mit Bild vom Live-Kauf: „Erst bezahlen — dieser
+ * Weg kennt kein Gratis-Video." stand auf Deutsch mitten auf der rumaenischen Seite; der
+ * Trichter zeigt Server-Fehler woertlich an). Die Sprache kommt aus dem AUFTRAG (seit
+ * 11.08. persistiert), zur Not aus dem Body; Rueckfall Englisch — nie mehr Deutsch fuer alle.
+ */
+const ERST_BEZAHLEN: Record<string, string> = {
+  de: "Erst bezahlen — dieser Weg kennt kein Gratis-Video.",
+  en: "Payment first — there is no free video on this path.",
+  ro: "Întâi plata — pe acest drum nu există video gratuit.",
+  es: "Primero el pago — aquí no hay vídeo gratis.",
+  fr: "D'abord le paiement — pas de vidéo gratuite ici.",
+  pt: "Primeiro o pagamento — aqui não há vídeo grátis.",
+  it: "Prima il pagamento — qui non esiste un video gratuito.",
+};
+const erstBezahlen = (lang?: string) => ERST_BEZAHLEN[String(lang ?? "").slice(0, 2)] ?? ERST_BEZAHLEN.en;
+
 export const runtime = "nodejs";
 /* Seit dem HeyGen-Look (08.08.): Avatar-Anlauf + Look-Erzeugung (gemessen 60–75 s, Deckel
    120 s) + Video-Start — und im schlechtesten Fall noch der OpenAI-Rückfall dahinter.
@@ -229,19 +247,27 @@ export async function POST(request: Request) {
    * bezahlen".
    */
   const genId = String(body.genId ?? "").trim();
+  const bodyLang = String((body as { lang?: string }).lang ?? "").trim().slice(0, 5);
   if (!staff) {
     if (!genId) {
-      return NextResponse.json({ error: "Erst bezahlen — dieser Weg kennt kein Gratis-Video." }, { status: 403 });
+      return NextResponse.json({ error: erstBezahlen(bodyLang) }, { status: 403 });
     }
     let auftrag: KissLogEntry | undefined;
-    for (let versuch = 0; versuch < 3; versuch++) {
+    /**
+     * SECHS ANLAEUFE STATT DREI (14.08.2026, live passiert: Kauf um 20:47, Stempel sass —
+     * und dieser Weg wies den zahlenden Kunden trotzdem mit „Erst bezahlen" ab, auf
+     * Rumaenisch-Seite auch noch auf Deutsch). Der Speicher lieferte die frisch
+     * geschriebene Datei laenger als die alten ~1,8 s veraltet aus. Sechs Anlaeufe mit
+     * 1,1 s Pause (~5,5 s) tun niemandem weh — die Erzeugung selbst dauert Minuten.
+     */
+    for (let versuch = 0; versuch < 6; versuch++) {
       auftrag = (await readKissLog().catch(() => [])).find(x => x.id === genId);
       if (auftrag?.paid) break;
-      if (versuch < 2) await new Promise(r => setTimeout(r, 900));
+      if (versuch < 5) await new Promise(r => setTimeout(r, 1100));
     }
     if (!auftrag?.paid) {
       console.warn("[geburtstag-video] unbezahlter Auftrag abgewiesen:", genId.slice(0, 8));
-      return NextResponse.json({ error: "Erst bezahlen — dieser Weg kennt kein Gratis-Video." }, { status: 403 });
+      return NextResponse.json({ error: erstBezahlen(auftrag?.lang || bodyLang) }, { status: 403 });
     }
   }
 
