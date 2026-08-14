@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, readKissLog, type KissLogEntry, avatarLesen, walletGeraetVertraut } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { lieferungAnstossen } from "@/lib/kiss-delivery";
 import { futureProgramUrl } from "@/lib/future-program-store";
 import { geschenkPreisCents } from "@/lib/pricing";
 
@@ -158,6 +159,27 @@ export async function GET(request: Request) {
       return meine;
     } catch { return []; }
   })();
+
+  /**
+   * DER SELBSTHEILER (Owner 14.08.2026, 23 Uhr, live: „es dauert viel zu lange und landet
+   * nicht in der Galerie … Was machen wir jetzt?").
+   *
+   * Der Wachhund STARTET haengende Auftraege, aber seine Kette lebt nur Minuten — wer das
+   * fertige Video ABHOLT, war danach dem Tages-Cron (05:00) ueberlassen. Genau die Galerie
+   * ist der Ort, an dem der Kunde nachschaut: Ab jetzt weckt jeder Galerie-Besuch die
+   * Lieferkette fuer die EIGENEN ueberfaelligen, bezahlten Auftraege. Gezielt je Auftrag,
+   * hoechstens zwei je Aufruf (kein Sturm), Feuer-und-vergessen (die Antwortzeit der
+   * Galerie bleibt unberuehrt). kiss-deliver selbst startet nie doppelt und respektiert
+   * MAX_VERSUCHE — mehr Schutz braucht es hier nicht.
+   */
+  try {
+    const jetzt = Date.now();
+    meineKiss
+      .filter(e => e.paid && !e.videoUrl && e.videoDueAt && Date.parse(e.videoDueAt) <= jetzt
+        && (e.videoTries ?? 0) < 3 && !e.videoAlertAt)
+      .slice(0, 2)
+      .forEach(e => lieferungAnstossen(url.origin, e.id));
+  } catch { /* Heilung ist Zugabe — die Galerie antwortet auch ohne sie */ }
 
   const bilder = await (async () => {
     try {
