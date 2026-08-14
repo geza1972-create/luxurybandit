@@ -31,6 +31,13 @@ export type GeburtstagLook = {
   /** Was unter der Kachel steht. Kurz und in allen Sprachen lesbar — die Kachel zeigt das
    *  Bild, das Wort ordnet es nur ein. */
   name: string;
+  /**
+   * DERSELBE NAME IN DEN ANDEREN SPRACHEN (Owner 14.08.2026, am englischen Versprechen-
+   * Trichter: „hier steht auf deutsch"). `name` ist der deutsche Fallback; steht die
+   * Sprache hier drin, gewinnt sie. Fehlt der Eintrag, bleibt es beim `name` — kein Produkt
+   * muss nachziehen, das keine Übersetzung braucht.
+   */
+  namen?: Record<string, string>;
   /** Das Kachelbild, fest im Repo (3:4, das Kartenmass). Ein signierter Link liefe ab. */
   bild: string;
   /** Die Torte in seinen Händen. */

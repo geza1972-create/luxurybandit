@@ -2255,7 +2255,13 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
        die Themen-Kreise: Die Reihe läuft randbündig durch die Spalte, statt als schmaler
        Block mit toter Fläche daneben zu stehen. `snap-start` statt `snap-center`: Die
        Slides reihen sich vom Rand auf, nichts hängt als angeschnittener Streifen links. */
-    <div className={`lb-wisch -mx-4 flex items-start overflow-x-auto px-4 py-1.5 ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
+    /* EINE EINZIGE KACHEL STEHT MITTIG (Owner 14.08.2026, am Versprechen-Schritt 2: „hier
+       steht links. Mache es in die Mitte damit der user nicht denkt es fehlt was").
+       `VERSPRECHEN_LOOKS` hat genau einen Look; die Reihe ist aber für mehrere gebaut und
+       legte ihn linksbündig an — daneben eine halbe Bildschirmbreite Leere, die aussieht,
+       als wäre der Rest nicht geladen. Ab zwei Kacheln bleibt alles wie bisher: dann ist
+       die Reihe ein Slider, und linksbündig ist dort richtig. */
+    <div className={`lb-wisch -mx-4 flex items-start overflow-x-auto px-4 py-1.5 ${bilder.length === 1 ? "justify-center" : ""} ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         {/* KACHELN MIT VIDEO GEHEN AN DIE EIGENE KOMPONENTE (Owner 12.08.2026: „man muss die

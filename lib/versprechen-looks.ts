@@ -26,6 +26,14 @@ export const VERSPRECHEN_LOOKS: GeburtstagLook[] = [
   {
     id: "villa",
     name: "Villa & Sportwagen",
+    namen: {
+      en: "Villa & sports car",
+      ro: "Vilă & mașină sport",
+      es: "Villa y deportivo",
+      fr: "Villa & voiture de sport",
+      pt: "Villa e carro desportivo",
+      it: "Villa e auto sportiva",
+    },
     /* Die Kachel, die der Kunde vor der Aufnahme sieht — reine ANZEIGE. */
     bild: VERSPRECHEN_SET,
     /**

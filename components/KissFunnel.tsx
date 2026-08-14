@@ -4685,7 +4685,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 /* DIE PROGRAMM-KARTE NUR BEIM VERSPRECHEN (Owner-Zusatzauftrag 12.08.2026:
                    „wenn wir eins haben") — der Geburtstag hat keine, bekommt also nichts. */
                 features={variant === "versprechen" ? <VersprechenProgrammKarte T={T} /> : undefined}
-                bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, video: beispiele[0] || undefined }))} />
+                bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, name: l.namen?.[lang] ?? l.name, video: beispiele[0] || undefined }))} />
             )}
           </div>
           {/**
@@ -5086,7 +5086,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       links an, sobald die Slides breiter sind als der Schirm. */}
                   {LOOKS.length > 1 ? (
                     <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
-                      bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, video: beispiele[0] || undefined }))} />
+                      bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, name: l.namen?.[lang] ?? l.name, video: beispiele[0] || undefined }))} />
                   ) : (
                     <div className="flex justify-center py-1.5">
                       {/* Ohne festen dunklen Abstandsring (Owner 12.08.2026: „keine
@@ -5111,7 +5111,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                           className="absolute inset-0 block h-full w-full object-cover" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={VERSPRECHEN_HEUTE}
-                          alt={(LOOKS.find(l => l.id === look) ?? LOOKS[0]).name}
+                          alt={(() => { const l = LOOKS.find(x => x.id === look) ?? LOOKS[0]; return l.namen?.[lang] ?? l.name; })()}
                           className="lb-swap-top absolute inset-0 block h-full w-full object-cover" />
                       </span>
                     </div>
@@ -5631,7 +5631,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                zweimal zu zahlen. */
             spaeter={guthabenGesperrt ? undefined : KT.anmeldeSpaeter}
             vorlageBild={selbstVideo ? (LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild : undefined}
-            vorlageName={selbstVideo ? (LOOKS.find(l => l.id === look) ?? LOOKS[0]).name : undefined}
+            vorlageName={selbstVideo ? (() => { const l = LOOKS.find(x => x.id === look) ?? LOOKS[0]; return l.namen?.[lang] ?? l.name; })() : undefined}
             aufAnmelden={zurAnmeldung}
             aufSpaeter={() => {
               /* „Später" heisst weitermachen, nicht abbrechen — sein Auftrag läuft sofort
