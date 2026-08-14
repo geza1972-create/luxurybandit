@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { readWetterSubscribers, writeWetterSubscribers, getSignedUrl, readKissLog, writeKissLog, type WetterSubscriber, type KissLogEntry } from "@/lib/try-this-look-store";
 import { sendEmail } from "@/lib/email-send";
 import { dialInfo } from "@/lib/dial-code";
 // `wirktErfunden` wird nicht mehr gerufen (siehe unten) — die Funktion bleibt in
@@ -163,12 +163,35 @@ export async function POST(request: Request) {
    * meldet sich an, findet seine Galerie nichts — obwohl das Bild da ist. Mit der Adresse am
    * Eintrag kann sie es zuordnen.
    */
+  let leadId = "";
   try {
     const genId = String(body.genId ?? "").trim();
     if (genId) {
       const eintraege = await readKissLog();
       const e = eintraege.find(x => x.id === genId);
       if (e && e.email !== email) { e.email = email; await writeKissLog(eintraege); }
+    } else if (body.vorab === true) {
+      /**
+       * JEDE SCHRITT-1-ADRESSE WIRD EIN EINTRAG (Owner 15.08.2026, zum Anzeigen-Start:
+       * „Wir sammeln auch die emails also in dieser liste").
+       *
+       * Bisher landete ein Anzeigen-Lead nur in der Abonnenten-Liste — in der Kaufliste
+       * war er unsichtbar, bis er etwas hochlud. Jetzt entsteht der Auftrag schon mit der
+       * Adresse; der Browser merkt sich die Nummer (genMerken), und alle spaeteren
+       * Schritte fuellen DENSELBEN Eintrag, statt einen zweiten anzulegen. So liest sich
+       * die Liste als Trichter: E-Mail da → Upload da → bezahlt → geliefert.
+       */
+      const eintraege = await readKissLog();
+      const neuEintrag: KissLogEntry = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        theme: String(body.theme ?? "").trim().slice(0, 20) || undefined,
+        email,
+        device: String(body.device ?? "").trim().slice(0, 80) || undefined,
+        lang: String(body.lang ?? "").trim().slice(0, 5) || undefined,
+      } as KissLogEntry;
+      await writeKissLog([neuEintrag, ...eintraege]);
+      leadId = neuEintrag.id;
     }
   } catch { /* der Besucher hat sein Bild schon — das darf nie blockieren */ }
 
@@ -177,7 +200,7 @@ export async function POST(request: Request) {
    * eine Mail „wir sind dran" wäre in dieser Sekunde nur Lärm, und sie käme ein zweites Mal,
    * sobald das Bild fertig ist. Geschickt wird, wenn es etwas zu schicken gibt.
    */
-  if (body.vorab === true) return NextResponse.json({ ok: true, neu, mail: false });
+  if (body.vorab === true) return NextResponse.json({ ok: true, neu, mail: false, ...(leadId ? { genId: leadId } : {}) });
 
   // 2 · Das Bild per Mail schicken, mit dem Hinweis aufs Passwort.
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";

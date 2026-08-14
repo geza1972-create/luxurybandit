@@ -2832,6 +2832,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       // Die Absage gehoert ANS FELD, nicht in die Status-Zeile weiter unten — siehe mailFehler.
       if (!r.ok) { setMailFehler(d?.error ?? T.statusNotWork); setMailBusy(false); return false; }
       try { localStorage.setItem(MAIL_KEY, e); } catch { /**/ }
+      /* Der Server hat fuer diese Adresse einen Lead-Eintrag angelegt (15.08.2026) — die
+         Nummer merken, damit Upload und Kauf DENSELBEN Eintrag fuellen. */
+      if (!genId && d?.genId) genMerken(String(d.genId));
       setAdresseDa(true); setFrei(true); setMailBusy(false);
       // Der Konto-Chip im Header lauscht darauf — er soll SOFORT zeigen, dass wir ihn
       // kennen, nicht erst beim naechsten Fensterwechsel (Owner 03.08.2026).
