@@ -50,6 +50,9 @@ export type KontoText = {
   programm: string;
   /** Leere Galerie ohne Anmeldung — ohne das Wort „Try-ons" (Owner 12.08.2026). */
   galerieAnmelden: string;
+  /** Fuer NICHT-Angemeldete mit Inhalten: dieses Geraet ist nur ein Ausschnitt; erst die
+   *  Anmeldung zeigt alles am Konto (Owner 14.08.2026, nach der 4-vs-9-Verwirrung). */
+  galerieMehrMitKonto: string;
   /**
    * DIE DATENZEILE JE WERK (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
    * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, wie lang das video
@@ -111,6 +114,7 @@ const en: KontoText = {
   avatarStimme: "with your voice",
   programm: "Program",
   galerieAnmelden: "Sign in to see your gallery.",
+  galerieMehrMitKonto: "You are seeing only what this device created — sign in to see everything on your account.",
   aufgenommen: "Recorded",
   fertig: "Ready",
   bezahlt: "Paid",
@@ -162,6 +166,7 @@ const de: KontoText = {
   avatarStimme: "mit deiner Stimme",
   programm: "Programm",
   galerieAnmelden: "Melde dich an, um deine Galerie zu sehen.",
+  galerieMehrMitKonto: "Du siehst nur, was dieses Gerät erzeugt hat — melde dich an, um alles auf deinem Konto zu sehen.",
   aufgenommen: "Aufgenommen",
   fertig: "Fertig",
   bezahlt: "Bezahlt",
@@ -213,6 +218,7 @@ const ro: KontoText = {
   avatarStimme: "cu vocea ta",
   programm: "Program",
   galerieAnmelden: "Conectează-te ca să îți vezi galeria.",
+  galerieMehrMitKonto: "Vezi doar ce a creat acest dispozitiv — autentifică-te ca să vezi tot ce e pe contul tău.",
   aufgenommen: "Înregistrat",
   fertig: "Gata",
   bezahlt: "Plătit",
@@ -264,6 +270,7 @@ const es: KontoText = {
   avatarStimme: "con tu voz",
   programm: "Programa",
   galerieAnmelden: "Inicia sesión para ver tu galería.",
+  galerieMehrMitKonto: "Solo ves lo que creó este dispositivo — inicia sesión para ver todo lo de tu cuenta.",
   aufgenommen: "Grabado",
   fertig: "Listo",
   bezahlt: "Pagado",
@@ -315,6 +322,7 @@ const fr: KontoText = {
   avatarStimme: "avec ta voix",
   programm: "Programme",
   galerieAnmelden: "Connecte-toi pour voir ta galerie.",
+  galerieMehrMitKonto: "Tu ne vois que ce que cet appareil a créé — connecte-toi pour voir tout ton compte.",
   aufgenommen: "Enregistré",
   fertig: "Prêt",
   bezahlt: "Payé",
@@ -366,6 +374,7 @@ const pt: KontoText = {
   avatarStimme: "com a tua voz",
   programm: "Programa",
   galerieAnmelden: "Inicia sessão para veres a tua galeria.",
+  galerieMehrMitKonto: "Só vês o que este dispositivo criou — inicia sessão para veres tudo na tua conta.",
   aufgenommen: "Gravado",
   fertig: "Pronto",
   bezahlt: "Pago",
@@ -417,6 +426,7 @@ const it: KontoText = {
   avatarStimme: "con la tua voce",
   programm: "Programma",
   galerieAnmelden: "Accedi per vedere la tua galleria.",
+  galerieMehrMitKonto: "Vedi solo ciò che ha creato questo dispositivo — accedi per vedere tutto sul tuo account.",
   aufgenommen: "Registrato",
   fertig: "Pronto",
   bezahlt: "Pagato",

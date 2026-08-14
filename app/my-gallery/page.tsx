@@ -731,6 +731,16 @@ export default function MyGalleryPage() {
           </div>
         )}
 
+        {/* DIE UNSICHTBARE REGEL AUSSPRECHEN (Owner 14.08.2026, nach der 4-vs-9-Verwirrung:
+            „es müsste doch ein Hinweis stehen dass er sich anmelden soll um alles zu sehen").
+            Ohne Anmeldung liest die Galerie nur die Geraete-Schiene — dieser Streifen sagt
+            das offen, statt den Kunden raten zu lassen. Angemeldet (token) verschwindet er. */}
+        {!loading && !token && items.length > 0 && (
+          <a href="/account" className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#f6cf51]/30 lb-goldhauch px-3 py-2.5 active:scale-[0.99] transition">
+            <span className="text-[12px] font-bold leading-snug text-white/80">{T.galerieMehrMitKonto}</span>
+            <span className="shrink-0 rounded-full bg-[#f6cf51] px-3 py-1.5 text-[11px] font-black text-[#1a1204]">{T.anmeldeKnopf}</span>
+          </a>
+        )}
         {loading ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Lädt…</p>
         ) : (!pin && !token && items.length === 0) ? (
