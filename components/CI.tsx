@@ -2107,26 +2107,34 @@ export function AnmeldeEinladung({
 }) {
   if (!offen) return null;
   return (
-    <Dialog art="dunkel" zu={zu}>
+    /* HELL, NICHT DUNKEL (Owner 14.08.2026: „achtung, hier ist black bg" — der Kasten stand
+       als schwarze Platte mitten in der hellen Trichterseite). Dieser Baustein war der
+       einzige, der `art="dunkel"` fest verdrahtet hatte, samt weisser Schrift darin. Damit
+       verstiess er gegen die Dauerregel „nie feste Dunkelfarben, beide Fassungen prüfen" —
+       und gegen die Begründung am `Knopf`-Baustein: Wo es um Geld und Konto geht, vertrauen
+       Menschen den hellen Farben. Tinte statt Weiss, sonst bleibt alles wie es war. */
+    <Dialog zu={zu}>
       {/* DIE VORLAGE — sein Bild, in derselben Geometrie wie in der Auswahl (3:4). */}
       {vorlageBild && (
         <div className="mb-4 flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={vorlageBild} alt={vorlageName ?? ""}
-            className="h-[152px] w-[114px] rounded-2xl object-cover ring-2 ring-offset-2 ring-offset-[#141210] ring-[#f6cf51]" />
+            className="h-[152px] w-[114px] rounded-2xl object-cover ring-2 ring-offset-2 ring-offset-white ring-[#f6cf51]" />
           {vorlageName && (
-            <p className="mt-2 text-[13px] font-black text-[#f6cf51]">{vorlageName}</p>
+            <p className="mt-2 text-[13px] font-black text-[#1a160f]">{vorlageName}</p>
           )}
         </div>
       )}
-      <p className="text-[19px] font-black leading-tight text-white">{titel}</p>
-      <p className="mx-auto mt-2 max-w-[280px] text-[13.5px] font-semibold leading-snug text-white/75">{grund}</p>
+      <p className="text-[19px] font-black leading-tight text-[#1a160f]">{titel}</p>
+      <p className="mx-auto mt-2 max-w-[280px] text-[13.5px] font-semibold leading-snug text-[#1a160f]/70">{grund}</p>
       <div className="mt-5">
         <Knopf art="gold" onClick={aufAnmelden}>{knopf}</Knopf>
       </div>
       {spaeter && (
+        /* Der Ausweg muss im hellen Kasten sichtbar bleiben — `text-white/55` war hier
+           dasselbe unsichtbare Nichts wie einst beim Umriss-Knopf (siehe dort). */
         <button type="button" onClick={aufSpaeter ?? zu}
-          className="mt-3 w-full text-[12.5px] font-bold text-white/55 underline underline-offset-2 active:scale-95 transition">
+          className="mt-3 w-full text-[12.5px] font-bold text-[#1a160f]/55 underline underline-offset-2 active:scale-95 transition">
           {spaeter}
         </button>
       )}
