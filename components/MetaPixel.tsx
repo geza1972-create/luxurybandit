@@ -4,6 +4,8 @@ import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { brauchtEinwilligung } from "@/lib/land-erkennen";
+
 // Meta (Facebook) Pixel. ID is overridable via NEXT_PUBLIC_META_PIXEL_ID; falls back
 // to the account pixel so it works out of the box.
 const PIXEL_ID = (process.env.NEXT_PUBLIC_META_PIXEL_ID || "2587056621709307").trim();
@@ -18,8 +20,16 @@ export default function MetaPixel() {
   const firstLoad = useRef(true);
   const [consented, setConsented] = useState(false);
 
+  // Ausserhalb Europas gibt es keine Einwilligungspflicht und deshalb auch kein Banner —
+  // dort lädt das Pixel sofort (14.08.2026). In Europa bleibt es wie bisher: erst nach
+  // „Accept". Die Grenze zieht `brauchtEinwilligung`, dieselbe Funktion wie im Banner,
+  // damit beide nie auseinanderlaufen können.
   useEffect(() => {
-    const check = () => { try { setConsented(localStorage.getItem("lb_cookie_consent") === "accepted"); } catch { /**/ } };
+    const check = () => {
+      try {
+        setConsented(localStorage.getItem("lb_cookie_consent") === "accepted" || !brauchtEinwilligung());
+      } catch { /**/ }
+    };
     check();
     window.addEventListener("lb-cookie-consent", check);
     return () => window.removeEventListener("lb-cookie-consent", check);

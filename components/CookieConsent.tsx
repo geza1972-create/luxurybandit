@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { brauchtEinwilligung } from "@/lib/land-erkennen";
+
 // GDPR/ePrivacy cookie banner. Essential cookies (login/session) always run; the marketing
 // pixel (Meta) loads ONLY after "Accept". Choice is stored per device (lb_cookie_consent) and
 // broadcast via the "lb-cookie-consent" event so MetaPixel can react without a reload.
@@ -15,8 +17,12 @@ export default function CookieConsent() {
 
   // Erscheint sofort beim ersten Besuch. (Wartete frueher auf die 18+-Abfrage — die ist
   // am 19.07.2026 entfernt worden, dadurch waere der Banner nie mehr aufgetaucht.)
+  //
+  // NUR NOCH IN EUROPA (14.08.2026): Die Einwilligungspflicht ist europäisches Recht;
+  // ausserhalb kostete der Streifen bei weltweiter Werbung nur Anmeldungen und Messdaten.
+  // Wer keine Einwilligung braucht, sieht ihn nicht — siehe `brauchtEinwilligung`.
   useEffect(() => {
-    try { setShow(!localStorage.getItem("lb_cookie_consent")); } catch { /**/ }
+    try { setShow(brauchtEinwilligung() && !localStorage.getItem("lb_cookie_consent")); } catch { /**/ }
   }, []);
 
   const choose = (v: "accepted" | "rejected") => {

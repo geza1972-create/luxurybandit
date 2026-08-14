@@ -45,6 +45,27 @@ export function landAusZeitzone(): string {
 }
 
 /**
+ * BRAUCHT DIESER BESUCHER EINE COOKIE-EINWILLIGUNG? (14.08.2026)
+ *
+ * Die Einwilligungspflicht für Werbe-Pixel ist europäisches Recht (DSGVO/ePrivacy). Ausserhalb
+ * Europas verlangt sie niemand — dort kostete das Banner nur Anmeldungen, ohne irgendetwas zu
+ * schützen. Deshalb entscheidet die Zeitzone: `Europe/*` bekommt den Streifen, alle anderen
+ * nicht.
+ *
+ * BEWUSST GROSSZÜGIG: Jede `Europe/`-Zone zählt, auch Moskau, Istanbul und Kiew, die nicht
+ * zur EU gehören. Ein Banner zu viel ist ein Schulterzucken, ein Banner zu wenig ist ein
+ * Rechtsverstoss — im Zweifel also fragen. Fehlt die Zeitzone (sehr alter Browser, harter
+ * Datenschutzmodus), gilt derselbe Zweifel und der Streifen erscheint.
+ */
+export function brauchtEinwilligung(): boolean {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+    if (!zone) return true;
+    return zone.startsWith("Europe/") || zone === "Atlantic/Canary" || zone === "Atlantic/Azores";
+  } catch { return true; }
+}
+
+/**
  * Serverseitig: das Land aus den Kopfzeilen. `x-vercel-ip-country` liefert Vercel als
  * Zwei-Buchstaben-Kürzel („RO"); Cloudflare hiesse `cf-ipcountry`, deshalb steht es daneben.
  * „XX" bedeutet bei Vercel „unbekannt" und zählt wie nichts.
