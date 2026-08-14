@@ -162,7 +162,16 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
     if (!e.paidKind) e.paidKind = /-abo$/.test(String(kind)) ? "abo" : String(kind) === "kiss-video" ? "once" : undefined;
     // Nie zurücksetzen: ein zweiter Aufruf (Webhook UND Rückkehr) darf die Frist nicht
     // verlängern — sonst schiebt sich die Lieferung mit jedem Aufruf nach hinten.
-    if (!e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + GNADENFRIST_MS).toISOString();
+    /**
+     * AUFNAHME-THEMEN STARTEN SOFORT AUF DEM SERVER (Owner 14.08.2026: „du machst es
+     * jetzt" — der Browser-Start starb live zweimal, 15 Minuten Spinner, nichts gestempelt).
+     * Die Schonfrist existiert, damit Browser und Server nicht doppelt rendern; seit die
+     * Video-Route einen laufenden Auftrag ERKENNT und sich anhaengt statt neu zu starten,
+     * braucht es sie bei Versprechen/Geburtstag nicht mehr: Frist = JETZT, die Kette vom
+     * Zahlungs-Anstoss uebernimmt in ihrer ersten Runde. Alle anderen Themen wie bisher.
+     */
+    const sofort = e.theme === "versprechen" || e.theme === "birthday";
+    if (!e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + (sofort ? 0 : GNADENFRIST_MS)).toISOString();
     /**
      * DAS FUTURE-PROGRAMM ANLEGEN — GENAU HIER, BEVOR KAPPUNG/AUFRÄUMER DIE ZIELE ERWISCHEN
      * KÖNNEN (11.08.2026). Der Bezahl-Stempel ist der früheste sichere Moment: Der Auftrag

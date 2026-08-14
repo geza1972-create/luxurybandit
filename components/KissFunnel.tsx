@@ -3097,20 +3097,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           body: JSON.stringify({ update: genId, renderStart: true, lang, device }) }).catch(() => {});
         try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /* weckt den Punkt */ }
       }
-      const start = selbstVideo ? await fetch("/api/geburtstag-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        // Kundenfoto + Empfängername + Stimmwahl — mehr braucht die Kette nicht; `genId`
-        // weist wie bei Pixverse den bezahlten Auftrag aus.
-        body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look, lang,
-          /* Die eigene Aufnahme schlägt die Chip-Stimme — aber nur, wenn der Chip gewählt
-             UND wirklich etwas aufgenommen ist. */
-          /* Die Aufnahme schlägt die Chip-Stimme. Beim Geburtstag ist sie der einzige
-             Weg, also braucht es kein `eigene` mehr davor. */
-          /* Zuerst die saubere Tonspur (WAV) — das Video nur als Rückfall, denn genau
-             daran ist HeyGens Stimm-Pipeline zweimal gestorben (VOICE_PROVIDER_ERROR). */
-          ...((tonspur || aufnahme) ? { audio: tonspur || aufnahme } : {}) }),
-      }).then(r => r.json()) : await fetch("/api/generate-tryon-video", {
+      /**
+       * MIT ZEITWACHE UND FANGNETZ (Owner 14.08.2026, live: 15 Minuten Spinner, weil der
+       * lange Start-Aufruf still starb und NIEMAND es merkte — kein Stempel, kein Fehler,
+       * kein Video). 90 Sekunden sind grosszuegig fuer die Antwort der Route (sie stempelt
+       * die Kennung frueh); danach gilt der Browser-Weg als tot, `timeout` laesst unten
+       * die Server-Schiene uebernehmen. Ein geworfener Netzfehler faellt ins selbe Netz.
+       */
+      const start = selbstVideo ? await (async () => {
+        const wache = new AbortController();
+        const uhr = setTimeout(() => wache.abort(), 90_000);
+        try {
+          return await fetch("/api/geburtstag-video", {
+            method: "POST", signal: wache.signal,
+            headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+            body: JSON.stringify({ genId, person: refPerson, name: empfaenger, stimme, look, lang,
+              ...((tonspur || aufnahme) ? { audio: tonspur || aufnahme } : {}) }),
+          }).then(r => r.json());
+        } catch { return { timeout: true }; }
+        finally { clearTimeout(uhr); }
+      })() : await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
         // AUFLOESUNG NOCH NICHT UMGESTELLT (Owner 30.07.2026: „ok, aber jetzt noch nicht
@@ -3163,6 +3169,32 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 ? kussSzeneVideoPrompt(kussSzene(kissSzeneId) ?? zufallsSzene(genId || mail))
                 : holidayPrompt(szene, { kuss: false })) }),
       }).then(r => r.json());
+      /**
+       * DER BROWSER-WEG IST TOT — DER SERVER LIEFERT (Owner 14.08.2026: „dann muss man
+       * schreiben, dass die Videogenerierung laenger dauert als gewoehnlich, wir schicken
+       * das per E-Mail"). Zeitwache oder Netzfehler heisst nicht Fehlschlag: Die Zahlung
+       * hat die Lieferkette laengst geweckt (Frist = JETZT bei Aufnahme-Themen), und die
+       * Abbruch-Meldung hier weckt sie zusaetzlich. Der Trichter sagt den ehrlichen Satz
+       * und wartet auf den AUFTRAG statt auf die tote Antwort — kommt das Video, springt
+       * die Seite doch noch um; kommt es nicht binnen ~12 Minuten, bleibt der Satz stehen
+       * und die Mail bringt es.
+       */
+      if (selbstVideo && (start as { timeout?: boolean } | null)?.timeout && genId) {
+        startStempelZurueck(T.statusTimeout);
+        setStatus(T.dauertLaenger);
+        for (let i = 0; i < 90; i++) {
+          await new Promise(r => setTimeout(r, 8000));
+          const st = await fetch(`/api/kiss-video-status?genId=${encodeURIComponent(genId)}`)
+            .then(r => r.json()).catch(() => null);
+          if (st?.videoUrl) {
+            setVideoUrl(String(st.videoUrl)); setStatus(""); setVideoBusy(false);
+            try { window.dispatchEvent(new Event("lb-guthaben-neu")); } catch { /**/ }
+            return;
+          }
+        }
+        setVideoBusy(false);
+        return;
+      }
       if (!start?.videoId) {
         /**
          * ES RENDERT NICHTS — ALSO DARF DIE GALERIE DAS AUCH NICHT BEHAUPTEN (Owner

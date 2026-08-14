@@ -269,6 +269,17 @@ export async function POST(request: Request) {
       console.warn("[geburtstag-video] unbezahlter Auftrag abgewiesen:", genId.slice(0, 8));
       return NextResponse.json({ error: erstBezahlen(auftrag?.lang || bodyLang) }, { status: 403 });
     }
+    /**
+     * LAEUFT SCHON EINER, WIRD KEIN ZWEITER GESTARTET (14.08.2026). Seit die Zahlung den
+     * Server sofort starten laesst, koennen Browser und Wachhund denselben Auftrag
+     * anfassen — ohne diese Wache hiesse das zwei HeyGen-Rechnungen fuer ein Video. Ein
+     * frischer, unfertiger Lauf (juenger als 30 min) wird zurueckgegeben und der Aufrufer
+     * pollt ihn einfach weiter; ein aelterer gilt als steckengeblieben und darf neu.
+     */
+    if (auftrag.videoId && auftrag.videoId !== auftrag.videoDoneId && !auftrag.videoUrl
+        && auftrag.videoStartAt && Date.now() - Date.parse(auftrag.videoStartAt) < 30 * 60 * 1000) {
+      return NextResponse.json({ ok: true, videoId: auftrag.videoId, status: "processing", angehaengt: true });
+    }
   }
 
   const person = String(body.person ?? "");

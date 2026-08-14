@@ -199,6 +199,9 @@ export type KissText = {
   // Meldungen
   statusQuality: string; statusCouldNotStart: string; statusFailed: string; statusPayCancelled: string;
   statusTimeout: string; statusNetwork: string; statusNotWork: string;
+  /** Wenn die Erzeugung ungewoehnlich lang laeuft (Owner 14.08.2026): Seite darf zu,
+   *  das fertige Video kommt per E-Mail — der Server liefert es selbst nach. */
+  dauertLaenger: string;
   dressingHer: string; gettingReady: string; renderingVideo: string; makingVideo: (s: number) => string;
   /**
    * DER BERUHIGENDE SATZ UNTER DEM BALKEN (Owner 08.08.2026: „dann muss stehen bitte nicht
@@ -508,7 +511,8 @@ const EN: KissText = {
   statusQuality: "Rendering your kiss in full quality … (~1–3 min)",
   statusCouldNotStart: "Could not start.", statusFailed: "Generation failed.",
   statusPayCancelled: "Payment window closed without paying — tap the button to try again.",
-  statusTimeout: "Timeout — please try again later.", statusNetwork: "Network error.",
+  statusTimeout: "Timeout — please try again later.",
+  dauertLaenger: "This is taking longer than usual. You can close this page — we'll email you the finished video.", statusNetwork: "Network error.",
   statusNotWork: "That did not work.",
   dressingHer: "Dressing her …", gettingReady: "Getting you ready …",
   renderingVideo: "Rendering your video … (~1–3 min)", schliessenOk: "You can close this page — your video will be waiting in your gallery.", makingVideo: s => `Making your video … (${s} s)`,
@@ -649,7 +653,8 @@ const DE: KissText = {
   statusQuality: "Dein Kuss wird in voller Qualität erzeugt … (~1–3 Min.)",
   statusCouldNotStart: "Start nicht möglich.", statusFailed: "Erzeugung fehlgeschlagen.",
   statusPayCancelled: "Zahlungsfenster wurde ohne Zahlung geschlossen — tippe den Knopf erneut an.",
-  statusTimeout: "Zeitüberschreitung — bitte später noch einmal versuchen.", statusNetwork: "Netzwerkfehler.",
+  statusTimeout: "Zeitüberschreitung — bitte später noch einmal versuchen.",
+  dauertLaenger: "Das dauert gerade länger als gewöhnlich. Du kannst die Seite schließen — wir schicken dir das fertige Video per E-Mail.", statusNetwork: "Netzwerkfehler.",
   statusNotWork: "Das hat nicht geklappt.",
   dressingHer: "Sie wird angezogen …", gettingReady: "Du wirst fertig gemacht …",
   renderingVideo: "Dein Video wird erzeugt … (~1–3 Min.)", schliessenOk: "Du kannst die Seite schliessen — dein Video wartet danach in deiner Galerie.", makingVideo: s => `Dein Video entsteht … (${s} s)`,
@@ -790,7 +795,8 @@ const RO: KissText = {
   statusQuality: "Sărutul tău se generează la calitate maximă … (~1–3 min)",
   statusCouldNotStart: "Nu am putut porni.", statusFailed: "Generarea a eșuat.",
   statusPayCancelled: "Fereastra de plată s-a închis fără plată — atinge butonul pentru a încerca din nou.",
-  statusTimeout: "A durat prea mult — încearcă mai târziu.", statusNetwork: "Eroare de rețea.",
+  statusTimeout: "A durat prea mult — încearcă mai târziu.",
+  dauertLaenger: "Durează mai mult decât de obicei. Poți închide pagina — îți trimitem videoclipul gata pe email.", statusNetwork: "Eroare de rețea.",
   statusNotWork: "Nu a mers.",
   dressingHer: "O îmbrăcăm …", gettingReady: "Te pregătim …",
   renderingVideo: "Videoclipul tău se generează … (~1–3 min)", schliessenOk: "Poți închide pagina — videoclipul te va aștepta în galeria ta.", makingVideo: s => `Se face videoclipul … (${s} s)`,
@@ -931,7 +937,8 @@ const ES: KissText = {
   statusQuality: "Creando tu beso con la máxima calidad … (~1–3 min)",
   statusCouldNotStart: "No se pudo iniciar.", statusFailed: "La generación ha fallado.",
   statusPayCancelled: "La ventana de pago se cerró sin pagar — toca el botón para volver a intentarlo.",
-  statusTimeout: "Ha tardado demasiado — inténtalo más tarde.", statusNetwork: "Error de red.",
+  statusTimeout: "Ha tardado demasiado — inténtalo más tarde.",
+  dauertLaenger: "Está tardando más de lo habitual. Puedes cerrar la página — te enviamos el vídeo terminado por email.", statusNetwork: "Error de red.",
   statusNotWork: "Eso no ha funcionado.",
   dressingHer: "Vistiéndola …", gettingReady: "Preparándote a ti …",
   renderingVideo: "Creando tu vídeo … (~1–3 min)", schliessenOk: "Puedes cerrar esta página — tu vídeo te esperará en tu galería.", makingVideo: s => `Creando tu vídeo … (${s} s)`,
@@ -1072,7 +1079,8 @@ const FR: KissText = {
   statusQuality: "Ton baiser est créé en pleine qualité … (~1–3 min)",
   statusCouldNotStart: "Impossible de démarrer.", statusFailed: "La génération a échoué.",
   statusPayCancelled: "La fenêtre de paiement s'est fermée sans paiement — retape sur le bouton pour réessayer.",
-  statusTimeout: "Cela a pris trop de temps — réessaie plus tard.", statusNetwork: "Erreur réseau.",
+  statusTimeout: "Cela a pris trop de temps — réessaie plus tard.",
+  dauertLaenger: "C'est plus long que d'habitude. Tu peux fermer la page — on t'envoie la vidéo terminée par email.", statusNetwork: "Erreur réseau.",
   statusNotWork: "Ça n'a pas marché.",
   dressingHer: "On l'habille …", gettingReady: "On te prépare …",
   renderingVideo: "Ta vidéo est créée … (~1–3 min)", schliessenOk: "Tu peux fermer cette page — ta vidéo t'attendra dans ta galerie.", makingVideo: s => `Ta vidéo se fait … (${s} s)`,
@@ -1213,7 +1221,8 @@ const PT: KissText = {
   statusQuality: "O teu beijo está a ser criado em qualidade máxima … (~1–3 min)",
   statusCouldNotStart: "Não foi possível iniciar.", statusFailed: "A geração falhou.",
   statusPayCancelled: "A janela de pagamento fechou sem pagar — toca no botão para tentar novamente.",
-  statusTimeout: "Demorou demasiado — tenta mais tarde.", statusNetwork: "Erro de rede.",
+  statusTimeout: "Demorou demasiado — tenta mais tarde.",
+  dauertLaenger: "Está a demorar mais do que o habitual. Podes fechar a página — enviamos-te o vídeo pronto por email.", statusNetwork: "Erro de rede.",
   statusNotWork: "Isso não resultou.",
   dressingHer: "A vesti-la …", gettingReady: "A preparar-te …",
   renderingVideo: "O teu vídeo está a ser criado … (~1–3 min)", schliessenOk: "Podes fechar esta página — o teu vídeo ficará à tua espera na galeria.", makingVideo: s => `A fazer o teu vídeo … (${s} s)`,
@@ -1355,7 +1364,8 @@ const IT: KissText = {
   statusQuality: "Il tuo bacio nasce in piena qualità … (~1–3 min)",
   statusCouldNotStart: "Non è stato possibile avviare.", statusFailed: "La generazione è fallita.",
   statusPayCancelled: "La finestra di pagamento si è chiusa senza pagare — tocca di nuovo il pulsante per riprovare.",
-  statusTimeout: "Ci è voluto troppo — riprova più tardi.", statusNetwork: "Errore di rete.",
+  statusTimeout: "Ci è voluto troppo — riprova più tardi.",
+  dauertLaenger: "Sta durando più del solito. Puoi chiudere la pagina — ti mandiamo il video finito via email.", statusNetwork: "Errore di rete.",
   statusNotWork: "Non ha funzionato.",
   dressingHer: "La vestiamo …", gettingReady: "Ti prepariamo …",
   renderingVideo: "Il tuo video nasce … (~1–3 min)", schliessenOk: "Puoi chiudere questa pagina — il tuo video ti aspetterà nella tua galleria.", makingVideo: s => `Stiamo facendo il tuo video … (${s} s)`,
