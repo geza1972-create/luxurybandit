@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import KissFunnel from "@/components/KissFunnel";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt, kissfunnelVariant } from "@/lib/produkte";
@@ -19,10 +20,13 @@ import { produkt, kissfunnelVariant } from "@/lib/produkte";
  * bekommt weiterhin die Überraschung — siehe `kissSzeneId`/`kussSzeneVideoPrompt` in
  * `components/KissFunnel.tsx`.
  */
-export default function KissStartClient({ lang, code, beispielVideos }: {
+export default function KissStartClient({ lang, code, beispielVideos, inhalt }: {
   lang: string;
   code: string;
   beispielVideos: string[];
+  /* Der Landingpage-Inhalt, vom Server fertig gerendert durchgereicht (Owner 14.08.2026,
+     Dauerregel fuer den Tunnel) — `TunnelSeite` haengt ihn unter das Anmeldeformular. */
+  inhalt?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -32,7 +36,8 @@ export default function KissStartClient({ lang, code, beispielVideos }: {
   const P = produkt("kiss");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}
+      inhalt={inhalt}>
       {({ schritt, onSchrittChange }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
           tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />

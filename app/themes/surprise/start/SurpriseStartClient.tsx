@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import KissFunnel from "@/components/KissFunnel";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt, kissfunnelVariant } from "@/lib/produkte";
@@ -18,10 +19,13 @@ import { produkt, kissfunnelVariant } from "@/lib/produkte";
  * `schrittBekannt={2}` — Bekannte ueberspringen nur die Adressfrage, die Set-Wahl bleibt eine
  * bewusste Wahl.
  */
-export default function SurpriseStartClient({ lang, code, beispielVideos }: {
+export default function SurpriseStartClient({ lang, code, beispielVideos, inhalt }: {
   lang: string;
   code: string;
   beispielVideos: string[];
+  /* Landingpage-Inhalt, vom Server durchgereicht — TunnelSeite haengt ihn unter das
+     Anmeldeformular (Owner 14.08.2026). */
+  inhalt?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -31,7 +35,7 @@ export default function SurpriseStartClient({ lang, code, beispielVideos }: {
   const P = produkt("poledance");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
           tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />

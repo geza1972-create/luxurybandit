@@ -5,6 +5,7 @@ import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
 import { ordnerVideos } from "@/lib/tryon-videos";
 import ChatStartClient from "./ChatStartClient";
+import ChatInhalt, { chatTexte } from "@/components/ChatInhalt";
 
 /**
  * DER CHAT ALS TUNNEL-SEITE (Owner 13.08.2026: „und für chat das selbe tunel. Als Video
@@ -47,6 +48,9 @@ export default async function ChatStartPage({ searchParams }: {
   const L = await resolveLang();
   const W = WERBUNG[String(L ?? "en").slice(0, 2)] ?? WERBUNG.en;
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+  /* Dieselben Abschnittstexte wie die Landingpage — eine Quelle, damit auf beiden
+     Seiten wortgleich dasselbe steht (Owner 14.08.2026). */
+  const t = await chatTexte(L, code);
   const hell = String(sp.light ?? "") === "1";
 
   /* DIE BELLA-VIDEOS — dieselbe Auswahl wie die Chat-Landingpage (app/themes/chat/page.tsx
@@ -64,7 +68,9 @@ export default async function ChatStartPage({ searchParams }: {
         <Kicker>LuxuryBandit · Chat</Kicker>
         <H1 className="mt-1">{W.h1a}<Y>{W.h1b}</Y>{W.h1c}</H1>
         <div className="mt-4">
-          <ChatStartClient lang={L} code={code} folien={folien} />
+          {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
+              (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
+          <ChatStartClient lang={L} code={code} folien={folien} inhalt={<ChatInhalt t={t} />} />
         </div>
       </div>
       <SeitenFuss />

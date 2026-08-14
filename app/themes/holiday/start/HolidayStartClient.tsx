@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
@@ -34,7 +35,10 @@ import { logTunnelEvent } from "@/lib/track-funnel";
  * SZENE. Er reist stattdessen mit dem Kiss-Log-Auftrag (`satz`, `lib/try-this-look-store.ts`),
  * genau wie `zieleFrei` es fürs Versprechen tut.
  */
-export default function HolidayStartClient({ lang, code }: { lang: string; code: string }) {
+export default function HolidayStartClient({ lang, code, inhalt }: { lang: string; code: string   /* Landingpage-Inhalt, vom Server durchgereicht — TunnelSeite haengt ihn unter das
+     Anmeldeformular (Owner 14.08.2026). */
+  inhalt?: ReactNode;
+}) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
   const F = kissText(lang, "holiday");
@@ -44,7 +48,7 @@ export default function HolidayStartClient({ lang, code }: { lang: string; code:
   const P = produkt("holiday");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <HolidayTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} />
       )}

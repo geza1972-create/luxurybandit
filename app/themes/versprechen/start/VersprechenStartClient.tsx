@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import KissFunnel from "@/components/KissFunnel";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt, kissfunnelVariant } from "@/lib/produkte";
@@ -18,10 +19,15 @@ import { produkt, kissfunnelVariant } from "@/lib/produkte";
  * `VERSPRECHEN_LOOKS`, aktuell ein einzelner Eintrag): `schritte={[1, 2, 3]}`,
  * `schrittBekannt={2}`.
  */
-export default function VersprechenStartClient({ lang, code, beispielVideos }: {
+export default function VersprechenStartClient({ lang, code, beispielVideos, inhalt }: {
   lang: string;
   code: string;
   beispielVideos: string[];
+  /* DER LANDINGPAGE-INHALT, VOM SERVER FERTIG GERENDERT DURCHGEREICHT (Owner 14.08.2026).
+     Er kommt als ReactNode aus `page.tsx` — dadurch bleibt er eine Server-Komponente und
+     kostet den Tunnel kein zusaetzliches JavaScript, obwohl er durch diesen Client-Baustein
+     hindurchgeht. `TunnelSeite` setzt ihn UNTER das Anmeldeformular. */
+  inhalt?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -31,7 +37,8 @@ export default function VersprechenStartClient({ lang, code, beispielVideos }: {
   const P = produkt("versprechen");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}
+      inhalt={inhalt}>
       {({ schritt, onSchrittChange }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
           tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />

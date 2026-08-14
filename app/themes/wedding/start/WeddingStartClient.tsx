@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
@@ -54,7 +55,13 @@ const DEMO_CHAT: Record<string, string[]> = {
  * nichts mehr — zwei Kacheln, die man antippen kann und die nichts tun, wären schlimmer als
  * keine Wahl. `schritte={[1, 3]}`.
  */
-export default function WeddingStartClient({ lang, code }: { lang: string; code: string }) {
+export default function WeddingStartClient({ lang, code, inhalt }: {
+  lang: string;
+  code: string;
+  /* Landingpage-Inhalt, vom Server durchgereicht — TunnelSeite haengt ihn unter das
+     Anmeldeformular (Owner 14.08.2026). */
+  inhalt?: ReactNode;
+}) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
   const F = kissText(lang, "wedding");
@@ -64,7 +71,7 @@ export default function WeddingStartClient({ lang, code }: { lang: string; code:
   const P = produkt("wedding");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <WeddingTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} />
       )}

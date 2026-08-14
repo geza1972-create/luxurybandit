@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import KissFunnel from "@/components/KissFunnel";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt, kissfunnelVariant } from "@/lib/produkte";
@@ -16,10 +17,13 @@ import { produkt, kissfunnelVariant } from "@/lib/produkte";
  * links, gewählter Look rechts, + Generieren). `schritte={[1, 2, 3]}`, `schrittBekannt={2}` —
  * ein bekannter Besucher braucht Schritt 1 nicht, den Look muss er trotzdem wählen.
  */
-export default function BirthdayStartClient({ lang, code, beispielVideos }: {
+export default function BirthdayStartClient({ lang, code, beispielVideos, inhalt }: {
   lang: string;
   code: string;
   beispielVideos: string[];
+  /* Der Landingpage-Inhalt, vom Server fertig gerendert durchgereicht — siehe
+     `inhalt` an components/TunnelSeite.tsx (Owner 14.08.2026). */
+  inhalt?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -29,7 +33,7 @@ export default function BirthdayStartClient({ lang, code, beispielVideos }: {
   const P = produkt("birthday");
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
           tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />

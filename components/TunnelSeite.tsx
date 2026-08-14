@@ -58,7 +58,22 @@ import { logTunnelEvent } from "@/lib/track-funnel";
  * *dünnen* Client-Baustein (`"use client"`, wenige Zeilen), der `TunnelSeite` mit seiner
  * Funnel-Komponente verdrahtet — aber DORT steht nur noch Verdrahtung, keine Logik mehr.
  */
-export default function TunnelSeite({ schritte, schrittBekannt, light, code, produkt = "", children }: {
+export default function TunnelSeite({ schritte, schrittBekannt, light, code, produkt = "", inhalt, children }: {
+  /**
+   * DER INHALT DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR (Owner 14.08.2026: „ich glaube dass
+   * alles was wir auf der Landingpage haben auch im Tunel zeigen müssen aber unter dem
+   * Anmeldeformular" — „das gilt generell für den Tunel").
+   *
+   * DER STECKPLATZ GEHOERT HIERHER, nicht in jede Produktseite: Anzeigen-Traffic landet direkt
+   * im Tunnel und sieht die Landingpage nie — ihm fehlten damit Produktkasten, Garantie und
+   * alle erklaerenden Abschnitte. Weil ALLE Trichter dieses Geruest benutzen (Memory
+   * `ein-tunnel-geruest-fuer-alle`), erbt jedes Produkt den Platz und muss ihn nur noch
+   * fuellen; ohne `inhalt` bleibt der Tunnel exakt wie bisher.
+   *
+   * Der Aufrufer reicht hier DIESELBE Komponente herein, die auch seine Landingpage rendert —
+   * nie eine zweite Fassung des Textes, sonst laufen die beiden auseinander.
+   */
+  inhalt?: ReactNode;
   /** Die erreichbaren Schritte, aufsteigend — z. B. `[1, 3]` oder `[1, 2, 3]`. */
   schritte: number[];
   /** Sprung-Ziel für bekannte Besucher beim allerersten Aufruf. */
@@ -148,6 +163,9 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
           else router.replace(url);
         },
       })}
+      {/* Erst der Trichter, dann die Erklaerung — wer schon ueberzeugt ist, faengt oben an;
+          wer noch zweifelt, findet darunter alles, was auch die Landingpage zeigt. */}
+      {inhalt}
     </>
   );
 }

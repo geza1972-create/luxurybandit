@@ -5,6 +5,7 @@ import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import HolidayStartClient from "./HolidayStartClient";
+import HolidayInhalt from "@/components/HolidayInhalt";
 
 /**
  * DIE TUNNEL-SEITE DES URLAUBS — EINE EIGENE ADRESSE FÜR DIE ANZEIGEN (KONZEPT-TUNNEL.md,
@@ -40,7 +41,9 @@ export default async function HolidayStartPage({ searchParams }: {
         <Kicker>{T.heroY}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="mt-4">
-          <HolidayStartClient lang={L} code={code} />
+          {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
+              (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
+          <HolidayStartClient lang={L} code={code} inhalt={<HolidayInhalt T={T} L={L} />} />
         </div>
       </div>
       <SeitenFuss />

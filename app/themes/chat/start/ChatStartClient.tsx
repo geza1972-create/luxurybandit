@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import TunnelSeite from "@/components/TunnelSeite";
 import LandingKarte from "@/components/LandingKarte";
 import { produkt } from "@/lib/produkte";
@@ -24,10 +25,13 @@ import { logTunnelEvent } from "@/lib/track-funnel";
  * Hochzeit). Der GRATIS-Probier-Chat wohnt weiter auf der Landingpage /themes/chat —
  * der Tunnel ist die Anzeigen-Kasse, nicht die Spielwiese.
  */
-export default function ChatStartClient({ lang, code, folien }: {
+export default function ChatStartClient({ lang, code, folien, inhalt }: {
   lang: string;
   code: string;
   folien: { video: string; poster: string }[];
+  /* Landingpage-Inhalt, vom Server durchgereicht — TunnelSeite haengt ihn unter das
+     Anmeldeformular (Owner 14.08.2026). */
+  inhalt?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -83,7 +87,7 @@ export default function ChatStartClient({ lang, code, folien }: {
   };
 
   return (
-    <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
+    <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (<>
         <TunnelFortschritt schritte={P.schritte} aktuell={schritt} />
 

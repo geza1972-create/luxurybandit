@@ -5,6 +5,8 @@ import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import KissStartClient from "./KissStartClient";
+import KissInhalt from "@/components/KissInhalt";
+import { trObject } from "@/lib/tr-object";
 
 /**
  * DIE TUNNEL-SEITE DES KUSSES — GENAU DAS MUSTER AUS `app/themes/versprechen/start/page.tsx`
@@ -40,6 +42,15 @@ export default async function KissStartPage({ searchParams }: {
   const sp = (await searchParams) ?? {};
   const L = await resolveLang();
   const T = kissText(L, "kiss");
+  /* WORTGLEICH MIT DER LANDINGPAGE (14.08.2026): `KissInhalt` braucht diese Texte, und sie
+     muessen auf beiden Seiten desselben Produkts identisch sein. Quelle Englisch im Code,
+     Uebersetzung zur Laufzeit mit Dauer-Cache — kopiert aus app/themes/kiss/page.tsx. */
+  const s = await trObject({
+    seo1h: "Kiss video AI generator — online, no app",
+    seo1p: "You are in the video, not just watching one. Add a photo of yourself, pick one of our AI models or upload a screenshot of any star, and the kiss video AI generator renders the two of you sharing one tender kiss. Straight in the browser — nothing to install.",
+    seo2h: "Why the face still looks like your face",
+    seo2p: "A kiss is the hardest thing to render: it is exactly where the two faces meet, half-turned and in motion. We run the video models that hold the face and the movement — cheaper ones lose both, and then it is not your face any more. That is the whole point of putting yourself in the picture. AI-generated, private, yours: your photo is never published and never shown to another user.",
+  }, L);
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const hell = String(sp.light ?? "") === "1";
 
@@ -50,7 +61,10 @@ export default async function KissStartPage({ searchParams }: {
         <Kicker>{T.heroY || "Kiss any model"}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="mt-4">
-          <KissStartClient lang={L} code={code} beispielVideos={BEISPIEL_VIDEOS} />
+          {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
+              (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
+          <KissStartClient lang={L} code={code} beispielVideos={BEISPIEL_VIDEOS}
+            inhalt={<KissInhalt T={T} s={s} />} />
         </div>
       </div>
       <SeitenFuss />

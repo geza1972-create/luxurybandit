@@ -6,6 +6,7 @@ import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 import BirthdayStartClient from "./BirthdayStartClient";
+import BirthdayInhalt from "@/components/BirthdayInhalt";
 
 /**
  * DIE TUNNEL-SEITE DES GEBURTSTAGS — GENAU DAS MUSTER AUS
@@ -46,7 +47,10 @@ export default async function BirthdayStartPage({ searchParams }: {
         <Kicker>{T.heroY || "Happy birthday video"}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="mt-4">
-          <BirthdayStartClient lang={L} code={code}
+          {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
+              (Owner 14.08.2026, Dauerregel fuer den Tunnel). Auf dem Server gebaut und
+              als fertiger Knoten durchgereicht; `TunnelSeite` haengt ihn unten an. */}
+          <BirthdayStartClient inhalt={<BirthdayInhalt T={T} />} lang={L} code={code}
             beispielVideos={[GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
         </div>
       </div>

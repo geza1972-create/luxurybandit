@@ -6,6 +6,7 @@ import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import { POLEDANCE_VIDEO, POLEDANCE_REFERENZEN } from "@/lib/poledance";
 import SurpriseStartClient from "./SurpriseStartClient";
+import SurpriseInhalt from "@/components/SurpriseInhalt";
 
 /**
  * DIE TUNNEL-SEITE DES TANZES — GENAU DAS MUSTER AUS
@@ -47,7 +48,9 @@ export default async function SurpriseStartPage({ searchParams }: {
         <Kicker>{T.heroY || "Surprise him"}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="mt-4">
-          <SurpriseStartClient lang={L} code={code}
+          {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
+              (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
+          <SurpriseStartClient lang={L} code={code} inhalt={<SurpriseInhalt T={T} />}
             beispielVideos={[POLEDANCE_VIDEO, ...POLEDANCE_REFERENZEN.map(r => r.video)]} />
         </div>
       </div>
