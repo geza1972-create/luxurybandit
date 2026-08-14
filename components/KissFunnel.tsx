@@ -3291,7 +3291,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           body: JSON.stringify({ update: genId, videoId: start.videoId, empfaenger, stimme, look, lang, device, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}), }),
         }).catch(() => {});
       }
-      for (let i = 0; i < 90; i++) {
+      /* 150 × 4 s = 10 Minuten — solange versprechen wir es dem Kunden jetzt auch
+         (Owner 14.08.2026: „der user dreht durch, er muss wissen dass es bis 10 Minuten
+         dauern kann"). Die alten 6 Minuten gaben auf, waehrend HeyGen noch rechnete. */
+      for (let i = 0; i < 150; i++) {
         await new Promise(res => setTimeout(res, 4000));
         if (runRef.current !== token) return;
         setStatus(T.makingVideo(Math.round((i + 1) * 4)));
@@ -3438,7 +3441,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         }
         if (p?.status === "failed") { setStatus(p.error || "Das Video ist fehlgeschlagen."); setVideoBusy(false); return; }
       }
-      setStatus(T.statusTimeout); setVideoBusy(false);
+      /* Nach 10 Minuten KEIN Fehlerton bei bezahlten Aufnahme-Auftraegen: Der Server
+         liefert weiter (Selbstheiler, Cron) und die Mail bringt das Video — der Satz sagt
+         genau das, statt „Zeitueberschreitung" zu rufen und Panik zu machen. */
+      if (selbstVideo && genId) { setStatus(T.dauertLaenger); setVideoBusy(false); }
+      else { setStatus(T.statusTimeout); setVideoBusy(false); }
     } catch { setStatus(T.statusNetwork); setVideoBusy(false); }
   };
 
