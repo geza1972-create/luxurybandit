@@ -24,6 +24,9 @@ export type FutureProgramText = {
   /** „Was kommt als Nächstes" unter dem Erledigt-Knopf (Owner 13.08.2026: „Haben wir nicht
       gesagt, dass hier gezeigt wird Whats next?") — {titel} = Titel des nächsten Tages. */
   nextUp: string;
+  /** Die Einladung, MORGEN wiederzukommen (Owner 14.08.2026). nextUp nennt nur die
+   *  Aufgabe; dieser Satz macht daraus die Verabredung. */
+  kommMorgen: string;
   markDone: string;               // Abhak-Knopf
   missedTitle: string;            // Überschrift "Earlier days"
   missedMark: string;             // Nachträglich abhaken (kompakter Knopftext)
@@ -50,6 +53,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Today",
     doneToday: "Done today ✓",
     nextUp: "Tomorrow: {titel}",
+    kommMorgen: "Come back tomorrow and tick off your next task — that is how the 30 days become real.",
     markDone: "Mark today done",
     missedTitle: "Earlier days",
     missedMark: "Mark done",
@@ -74,6 +78,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Heute",
     doneToday: "Heute erledigt ✓",
     nextUp: "Morgen: {titel}",
+    kommMorgen: "Schau morgen wieder rein und hak deine nächste Aufgabe ab — genau so werden aus den 30 Tagen echte.",
     markDone: "Heute abhaken",
     missedTitle: "Frühere Tage",
     missedMark: "Abhaken",
@@ -98,6 +103,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Astăzi",
     doneToday: "Făcut azi ✓",
     nextUp: "Mâine: {titel}",
+    kommMorgen: "Revino mâine și bifează următoarea sarcină — așa devin cele 30 de zile reale.",
     markDone: "Bifează azi",
     missedTitle: "Zile anterioare",
     missedMark: "Bifează",
@@ -122,6 +128,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Hoy",
     doneToday: "Hecho hoy ✓",
     nextUp: "Mañana: {titel}",
+    kommMorgen: "Vuelve mañana y marca tu siguiente tarea — así los 30 días se hacen reales.",
     markDone: "Marcar hoy como hecho",
     missedTitle: "Días anteriores",
     missedMark: "Marcar hecho",
@@ -146,6 +153,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Aujourd'hui",
     doneToday: "Fait aujourd'hui ✓",
     nextUp: "Demain : {titel}",
+    kommMorgen: "Reviens demain et coche ta prochaine tâche — c'est ainsi que les 30 jours deviennent réels.",
     markDone: "Marquer comme fait",
     missedTitle: "Jours précédents",
     missedMark: "Marquer fait",
@@ -170,6 +178,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Hoje",
     doneToday: "Feito hoje ✓",
     nextUp: "Amanhã: {titel}",
+    kommMorgen: "Volta amanhã e marca a tua próxima tarefa — é assim que os 30 dias se tornam reais.",
     markDone: "Marcar hoje como feito",
     missedTitle: "Dias anteriores",
     missedMark: "Marcar feito",
@@ -194,6 +203,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     todayTitle: "Oggi",
     doneToday: "Fatto oggi ✓",
     nextUp: "Domani: {titel}",
+    kommMorgen: "Torna domani e spunta il prossimo compito — è così che i 30 giorni diventano reali.",
     markDone: "Segna come fatto",
     missedTitle: "Giorni precedenti",
     missedMark: "Segna fatto",
