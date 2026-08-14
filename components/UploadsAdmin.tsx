@@ -33,6 +33,8 @@ type Eintrag = {
   listen?: string[];   // in welchen Abonnentenlisten er schon steht
   // Bezahlt, aber noch kein Video: was der Server damit gerade macht.
   videoDueAt?: string; videoId?: string; videoTries?: number; videoError?: string; videoMailedAt?: string;
+  /** Wann der Server den Lauf gestartet hat — Basis der Dauer-Marke. */
+  videoStartAt?: string;
   /** Wann die Programm-/Ergebnis-Mail rausging (kiss-delivery setzt ihn NACH dem Versand). */
   programmMailAt?: string;
   videoDoneId?: string;   // welcher Auftrag schon geliefert ist (Abo: mehrere je Eintrag)
