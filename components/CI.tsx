@@ -12,6 +12,7 @@ import KartenKarussell from "@/components/KartenKarussell";
 import { kissText } from "@/lib/kiss-i18n";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { kontoText } from "@/lib/konto-i18n";
+import { istInAppBrowser, istAndroid, chromeIntentUrl } from "@/lib/browser-erkennen";
 import { pruefeEmail, emailFehlerText } from "@/lib/email-pruefen";
 import { eur } from "@/lib/pricing";
 import { deckendeStufen, stueckJeStufe } from "@/lib/kasse";
@@ -2324,6 +2325,62 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * DER IN-APP-BROWSER-HINWEIS (15.08.2026) — die Antwort auf den teuersten gemessenen Fehler
+ * dieses Projekts.
+ *
+ * BEFUND (Ereignisprotokoll, seit 14.08., interne Sitzungen ausgeschlossen): 41 von 107
+ * Tunnel-Oeffnungen kamen aus einem In-App-Browser, und ALLE 23 Kamera-Fehler trugen `; wv)`
+ * im User-Agent — Android WebView, der Browser der Facebook-App. Erfolgreiche Aufnahmen gab
+ * es nur in echten Browsern. Anders gesagt: Wer ueber eine Facebook-Anzeige kommt und ein
+ * Produkt mit Aufnahme kauft, scheitert an einer Browser-Einstellung, nicht am Angebot.
+ *
+ * Der Hinweis erscheint deshalb NICHT erst nach dem Fehlschlag, sondern davor — wer erst auf
+ * „Kamera aus" laeuft, hat den Trichter meist schon verlassen.
+ *
+ * Android bekommt einen Knopf, der Chrome wirklich oeffnet (`intent://`). iOS laesst das
+ * nicht zu; dort bleibt „Link kopieren" plus ein Satz, was damit zu tun ist.
+ */
+export function InAppBrowserHinweis({ sprache = "de", className = "" }: { sprache?: string; className?: string }) {
+  const [inApp, setInApp] = useState(false);
+  const [android, setAndroid] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
+
+  useEffect(() => { setInApp(istInAppBrowser()); setAndroid(istAndroid()); }, []);
+
+  const T = ({
+    de: { titel: "Für die Aufnahme im Browser öffnen", text: "Die Facebook-App lässt die Kamera nicht zu. Öffne diese Seite in deinem Browser — dort funktioniert sie.", chrome: "In Chrome öffnen", kopieren: "Link kopieren", ok: "Kopiert — jetzt im Browser einfügen" },
+    en: { titel: "Open in your browser to record", text: "The Facebook app blocks the camera. Open this page in your browser — it works there.", chrome: "Open in Chrome", kopieren: "Copy link", ok: "Copied — now paste it in your browser" },
+    ro: { titel: "Deschide în browser pentru filmare", text: "Aplicația Facebook nu permite camera. Deschide pagina în browser — acolo funcționează.", chrome: "Deschide în Chrome", kopieren: "Copiază linkul", ok: "Copiat — lipește-l în browser" },
+    es: { titel: "Ábrelo en el navegador para grabar", text: "La app de Facebook bloquea la cámara. Abre esta página en tu navegador — allí funciona.", chrome: "Abrir en Chrome", kopieren: "Copiar enlace", ok: "Copiado — pégalo en el navegador" },
+    fr: { titel: "Ouvre dans le navigateur pour filmer", text: "L'application Facebook bloque la caméra. Ouvre cette page dans ton navigateur — elle y fonctionne.", chrome: "Ouvrir dans Chrome", kopieren: "Copier le lien", ok: "Copié — colle-le dans le navigateur" },
+    pt: { titel: "Abre no navegador para gravar", text: "A app do Facebook bloqueia a câmara. Abre esta página no teu navegador — aí funciona.", chrome: "Abrir no Chrome", kopieren: "Copiar link", ok: "Copiado — cola no navegador" },
+    it: { titel: "Apri nel browser per filmare", text: "L'app di Facebook blocca la fotocamera. Apri questa pagina nel tuo browser — lì funziona.", chrome: "Apri in Chrome", kopieren: "Copia il link", ok: "Copiato — incollalo nel browser" },
+  } as Record<string, { titel: string; text: string; chrome: string; kopieren: string; ok: string }>)[sprache] ?? {
+    titel: "Open in your browser to record", text: "The Facebook app blocks the camera. Open this page in your browser — it works there.",
+    chrome: "Open in Chrome", kopieren: "Copy link", ok: "Copied — now paste it in your browser",
+  };
+
+  if (!inApp) return null;
+
+  const raus = () => {
+    const url = window.location.href;
+    if (android) { window.location.href = chromeIntentUrl(url); return; }
+    navigator.clipboard?.writeText(url).then(() => setKopiert(true)).catch(() => setKopiert(false));
+  };
+
+  return (
+    <div className={`rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-3 ${className}`}>
+      <p className="text-[13px] font-black text-[#f6cf51]">{T.titel}</p>
+      <p className="mt-1 text-[12px] font-bold leading-snug opacity-85">{T.text}</p>
+      <button type="button" onClick={raus}
+        className="mt-2.5 w-full rounded-xl border border-[#f6cf51]/50 bg-[#f6cf51]/15 px-3 py-2 text-[13px] font-black text-[#f6cf51] active:scale-[0.98]">
+        {kopiert ? T.ok : android ? T.chrome : T.kopieren}
+      </button>
     </div>
   );
 }

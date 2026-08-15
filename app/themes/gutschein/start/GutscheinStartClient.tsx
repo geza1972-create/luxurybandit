@@ -12,6 +12,7 @@ import { signInWithOAuth } from "@/lib/supabase-auth-client";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import { eur, themenPreisCents, GUTSCHEIN_STUFEN, type ThemenSchluessel } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { kasseOeffnen } from "@/lib/browser-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 
@@ -96,9 +97,9 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
         try { popup?.close(); } catch { /**/ }
         setLbFehler(start?.error || F.statusNotWork);
       } else {
-        if (!popup) { window.location.href = start.url; return false; }
-        try { popup.location.href = start.url; }
-        catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
+        /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
+           den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
+        if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
         for (let i = 0; i < 100; i++) {
           await new Promise(r => setTimeout(r, 3000));
           const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);

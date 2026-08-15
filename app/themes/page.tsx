@@ -528,7 +528,21 @@ export default async function ThemesCatalog({ searchParams }: {
     /* NEUES PRODUKT SEIT 06.08.2026 (Owner: „der text stimmt nicht"): verkauft wird UNSER
        Gutschein — Geschenk oder Guthaben wählen, Bella bringt die Botschaft, die Karte geht
        per E-Mail raus. „dein Gesicht" und „dein Gutschein" gibt es nicht mehr. */
-    { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
+    /**
+     * GUTSCHEIN ERST MAL AUS (Owner 15.08.2026: „Gutschein kannst du ausschalten erst mal").
+     *
+     * DER ANLASS steht im Auftragsprotokoll: DREI bezahlte Gutschein-Auftraege (05.08. und
+     * zweimal 06.08.) haben nie ein Video bekommen — der aelteste haengt seit fuenf Anlaeufen
+     * an „Sein Foto fehlt im Speicher.". Von allen Themen ist das die schlechteste Quote:
+     * drei Kaeufe, null Lieferungen. Ein Produkt, das bezahlt und nicht liefert, gehoert aus
+     * dem Angebot, bis die Kette steht.
+     *
+     * NUR DIE KACHEL, SONST NICHTS: Route, Trichter und Einloese-Weg bleiben unveraendert —
+     * bereits verschickte Gutschein-Karten muessen weiter einloesbar sein. Die Seite ist ueber
+     * ihre Adresse und ueber die sitemap erreichbar, sie wird nur nicht mehr beworben.
+     * Wieder anschalten = diese Zeilen entfernen.
+     */
+    // { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste

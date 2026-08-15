@@ -25,7 +25,7 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, TunnelKachelUpload, KurzeEinwilligung } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, TunnelKachelUpload, KurzeEinwilligung, InAppBrowserHinweis } from "@/components/CI";
 import { Eingabe } from "@/components/CI";
 import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -49,6 +49,7 @@ import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePrompt
 import { geburtstagTitel, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
+import { kasseOeffnen } from "@/lib/browser-erkennen";
 
 import FotoAnleitung from "@/components/FotoAnleitung";
 import KartenKarussell from "@/components/KartenKarussell";
@@ -3644,9 +3645,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
       track("checkout");
       // Popup blockiert → gleiche Seite. Lieber ein Seitenwechsel als eine tote Warteschleife.
-      if (!popup) { window.location.href = start.url; return; }
-      try { popup.location.href = start.url; }
-      catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return; }
+      /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
+         den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
+      if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return;
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
@@ -5542,6 +5543,16 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           </div>
         </div>
       )}
+      {/**
+        * DER IN-APP-HINWEIS STEHT VOR DEM FEHLER, NICHT DANACH (15.08.2026).
+        *
+        * GEMESSEN: 23 von 23 Kamera-Fehlern kamen aus einem Android-WebView (`; wv)`) — dem
+        * Browser der Facebook-App. Keine einzige Aufnahme ist dort je gelungen. Wer erst auf
+        * „Kamera aus" laeuft, hat den Trichter meist schon verlassen; deshalb erscheint der
+        * Hinweis, sobald wir den In-App-Browser erkennen, und nicht erst nach dem Scheitern.
+        * Ausserhalb solcher Browser rendert die Komponente nichts.
+        */}
+      {tunnelSeite && selbstVideo && <InAppBrowserHinweis sprache={lang} className="mt-3" />}
       {tunnelSeite && selbstVideo && aufnahmeFehler && (
         <p className="mt-2 text-center text-[12px] font-bold leading-snug" style={{ color: ABSAGE_ROT }}>{aufnahmeFehler}</p>
       )}

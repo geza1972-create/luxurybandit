@@ -17,6 +17,7 @@ import { eur, themenPreisCents, geschenkPreisCents } from "@/lib/pricing";
 import { KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { landAusZeitzone } from "@/lib/land-erkennen";
+import { kasseOeffnen } from "@/lib/browser-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { darfMessen } from "@/lib/land-erkennen";
 import GruppenChat from "@/components/GruppenChat";
@@ -174,9 +175,9 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
         setStatus(start?.error || F.statusNotWork);
         return false;
       }
-      if (!popup) { window.location.href = start.url; return false; }
-      try { popup.location.href = start.url; }
-      catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return false; }
+      /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
+         den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
+      if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);

@@ -12,6 +12,7 @@ import { landAusZeitzone } from "@/lib/land-erkennen";
 import { useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { eur, CHAT_STUFEN } from "@/lib/pricing";
+import { kasseOeffnen } from "@/lib/browser-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
@@ -68,9 +69,9 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
         try { popup?.close(); } catch { /**/ }
         setKaufFehler(start?.error || F.statusNotWork); setKaufBusy(false); return;
       }
-      if (!popup) { window.location.href = start.url; return; }
-      try { popup.location.href = start.url; }
-      catch { try { popup.close(); } catch { /**/ } window.location.href = start.url; return; }
+      /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
+         den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
+      if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return;
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
