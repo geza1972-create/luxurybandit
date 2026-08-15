@@ -3507,7 +3507,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * Anfrage; die Adresse traegt es erst nach, wenn sie da ist.
      */
     const popup = window.open("", "_blank", "popup,width=480,height=780");
-    trackMetaPixel("InitiateCheckout", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
     try {
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(),
               /* Angemeldet = geprüfte Adresse → Stripe bekommt sie gesperrt mit. Als Gast
@@ -3529,7 +3528,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        */
       if (start?.walletPaid) {
         try { popup?.close(); } catch { /**/ }   // das leere Fenster wurde nie gebraucht
-        trackMetaPixel("Purchase", { currency: "EUR", content_name: "Kiss video (wallet)" });
         track("checkout");
         void logTunnelEvent("payment_completed", variant, { via: "wallet" });
         setGuthabenCents(typeof start.rest === "number" ? start.rest : null);
@@ -3632,7 +3630,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            */
           if (einmal === "auflade") {
             if (s.gutgeschrieben === 0) setAufladeNull(true);   // 100-%-Code: bezahlt, aber 0 € wert
-            trackMetaPixel("Purchase", { currency: "EUR", content_name: "Account credit" });
+            /**
+             * HIER FEUERT KEIN `Purchase` (15.08.2026). Die Aufladung ist kein Kauf — sie
+             * legt nur Geld in die Geldboerse. Gekauft wird erst das Video, das gleich
+             * danach vom frischen Guthaben bezahlt wird; DORT meldet `logTunnelEvent
+             * ("payment_completed")` den Kauf. Vorher zaehlte Meta beides: die Aufladung
+             * UND das Video — ein Kunde, zwei Kaeufe. Die Anzeigenauslieferung lernte
+             * damit auf einer doppelt gezaehlten Zahl.
+             */
             /**
              * NICHT DIREKT WEITERKAUFEN (Owner 07.08.2026: „wieso ist die generierung
              * unterbrochen?" — Chip 5,00 €, und trotzdem stand der Wähler wieder da).
@@ -3664,7 +3669,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             }
             return;
           }
-          trackMetaPixel("Purchase", { currency: "EUR", content_name: einmal === "abo" ? "Topic subscription" : einmal === "extra" ? "Extra video" : "Kiss video" });
           // BEZAHLT → AUSSUCHEN, nicht sofort rendern (Owner 30.07.2026: „Na gut und jetzt?
           // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
@@ -4727,15 +4731,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * DER KUSS VERLIERT SEINE SONDERROLLE (Owner 12.08.2026: „warum ist der Kuss
                 * funel anders? Warum ist das nicht aus 3 schritten? Template auswahl dann
                 * bilder hochladen"). Dieselbe `BildWahl`, dieselben vier Szenen-Standbilder
-                * (`KUSS_SZENEN`, `public/szenen/…jpg`) — nur MIT Bild, kein Video, weil keine
-                * der vier Szenen ein eigenes Beispielvideo hat (Owner, wörtlich vom selben
-                * Tag: „du sollst nur die videos zeigen die wir gerade haben"). Die Wahl
-                * schreibt `kissSzeneId`; ohne Tipp bleibt es beim ZUFALL wie bisher — siehe
-                * `kussSzeneVideoPrompt`-Aufruf beim Erzeugen weiter unten.
+                * (`KUSS_SZENEN`, `public/szenen/…jpg`). Die Wahl schreibt `kissSzeneId`; ohne
+                * Tipp bleibt es beim ZUFALL wie bisher — siehe `kussSzeneVideoPrompt`-Aufruf
+                * beim Erzeugen weiter unten.
+                *
+                * JE SZENE IHR EIGENER CLIP (Owner 15.08.2026: „ich habe mehrmals das gleiche
+                * video in template"). Hier stand `video: beispiele[0]` — vier Kacheln zeigten
+                * viermal denselben Film, was keine Auswahl ist, sondern ein Suchbild. Der
+                * danebenstehende Kommentar behauptete, keine Szene habe ein eigenes Video;
+                * das stimmte nie: `public/szenen/kiss-<id>.mp4` liegt seit dem 03.08. neben
+                * jedem Standbild. Jetzt kommt er aus `s.clip`.
+                *
+                * UND DER NAME IN SEINER SPRACHE (derselbe Auftrag: „und es ist auf deutsch") —
+                * `s.name` ist der deutsche Admin-Name, gezeigt wird `s.namen[lang]`.
                 */
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
                 wert={kissSzeneId} waehle={setKissSzeneId}
-                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.name, bild: s.kachel, video: beispiele[0] || undefined }))} />
+                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: s.kachel, video: s.clip }))} />
             ) : (
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
                 /* DIE PROGRAMM-KARTE NUR BEIM VERSPRECHEN (Owner-Zusatzauftrag 12.08.2026:

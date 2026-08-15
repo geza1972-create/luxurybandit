@@ -26,6 +26,20 @@ export type KussSzene = {
   id: string;
   /** Kurzname fürs Werkzeug/Admin — die Kunden sehen das Beispielvideo, keinen Text. */
   name: string;
+  /**
+   * DER NAME IN DEN SIEBEN SPRACHEN (Owner 15.08.2026: „und es ist auf deutsch" — auf der
+   * englischen Kuss-Seite standen „Altstadt-Platz am Abend" und „Frühstücks-Terrasse").
+   * `name` oben ist der Admin-Name und bleibt deutsch; gezeigt wird `namen[lang]`. Dasselbe
+   * Muster wie `GEBURTSTAG_LOOKS.namen` — eine Sprache fehlt, es faellt auf `name` zurueck.
+   */
+  namen?: Record<string, string>;
+  /**
+   * DAS BEISPIELVIDEO DIESER SZENE (Owner 15.08.2026: „ich habe mehrmals das gleiche video
+   * in template"). Die Kacheln bekamen alle `beispiele[0]` — vier Kacheln, viermal derselbe
+   * Clip, also keine Auswahl, sondern ein Suchbild. Je Szene liegt der echte Clip neben
+   * seinem Standbild in public/szenen/ und gehoert genau hierher.
+   */
+  clip: string;
   /** Ort + Licht fürs Gratis-Bild. WIRD ANGEHÄNGT als „Setting: …" — kein eigener Satzbau. */
   bild: string;
   /** Komplette Szene mit Kuss fürs bezahlte Video (Pixverse, neutrale Wörter). */
@@ -80,7 +94,17 @@ export const KUSS_SZENEN: KussSzene[] = [
   {
     id: "altstadt",
     kachel: "/szenen/kiss-altstadt.jpg",
+    clip: "/szenen/kiss-altstadt.mp4",
     name: "Altstadt-Platz am Abend",
+    namen: {
+      de: "Altstadt-Platz am Abend",
+      en: "Old-town square at dusk",
+      ro: "Piața din centrul vechi, seara",
+      es: "Plaza del casco antiguo al atardecer",
+      fr: "Place de la vieille ville au crépuscule",
+      pt: "Praça da cidade velha ao anoitecer",
+      it: "Piazza del centro storico al tramonto",
+    },
     bild: "a picturesque old-town square at golden hour, pastel-coloured historic facades and cobblestones softly blurred behind them, warm evening light; both in light elegant summer clothing",
     video: "On a picturesque old-town square at golden hour, pastel facades behind them, both in light elegant summer clothing, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
     ort: "on a picturesque old-town square at golden hour, pastel facades glowing behind them, both in light elegant summer clothing",
@@ -89,7 +113,17 @@ export const KUSS_SZENEN: KussSzene[] = [
   {
     id: "terrasse",
     kachel: "/szenen/kiss-terrasse.jpg",
+    clip: "/szenen/kiss-terrasse.mp4",
     name: "Frühstücks-Terrasse",
+    namen: {
+      de: "Frühstücks-Terrasse",
+      en: "Breakfast terrace",
+      ro: "Terasa la micul dejun",
+      es: "Terraza del desayuno",
+      fr: "Terrasse du petit-déjeuner",
+      pt: "Terraço do pequeno-almoço",
+      it: "Terrazza della colazione",
+    },
     bild: "a bright breakfast terrace in the morning, a set table with coffee and orange juice in the foreground, soft daylight, relaxed holiday mood; both in light elegant summer clothing",
     video: "On a bright breakfast terrace in the morning with coffee on the table, both in light elegant summer clothing, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
     ort: "on a bright breakfast terrace in the morning, coffee and orange juice on the table, both in light elegant summer clothing",
@@ -112,7 +146,17 @@ export const KUSS_SZENEN: KussSzene[] = [
      */
     id: "surprise",
     kachel: "/szenen/kiss-surprise.jpg",
+    clip: "/szenen/kiss-surprise.mp4",
     name: "Surprise — Sommerregen",
+    namen: {
+      de: "Surprise — Sommerregen",
+      en: "Surprise — summer rain",
+      ro: "Surpriză — ploaie de vară",
+      es: "Sorpresa — lluvia de verano",
+      fr: "Surprise — pluie d'été",
+      pt: "Surpresa — chuva de verão",
+      it: "Sorpresa — pioggia d'estate",
+    },
     bild: "a summer street in light warm rain, everything glistening, soft daylight; both in light elegant summer clothing",
     video: "",   // ungenutzt — promptFest gewinnt
     ort: "on a summer street in light warm rain, everything glistening",
@@ -136,7 +180,17 @@ export const KUSS_SZENEN: KussSzene[] = [
   {
     id: "closeup",
     kachel: "/szenen/kiss-closeup.jpg",
+    clip: "/szenen/kiss-closeup.mp4",
     name: "Closeup — ganz nah",
+    namen: {
+      de: "Closeup — ganz nah",
+      en: "Close-up — very close",
+      ro: "Prim-plan — foarte aproape",
+      es: "Primer plano — muy cerca",
+      fr: "Gros plan — tout près",
+      pt: "Grande plano — bem perto",
+      it: "Primo piano — vicinissimi",
+    },
     bild: "an intimate close-up of the two of them, faces filling the frame, soft window light, shallow depth of field, tender mood; both in light elegant summer clothing",
     video: "An intimate close-up, their faces filling the frame in soft light, the two people look at each other, smile, lean in slowly and share a brief tender kiss, then smile at each other happily. Fixed camera, no zoom, fluid natural motion, photorealistic.",
     ort: "in soft golden evening light, a calm softly blurred background behind them, both in light elegant summer clothing",
