@@ -144,3 +144,91 @@ export async function tryOnGarment(
   if (openai) return openai;
   return await tryOnFashn(garmentSrc, personSrc);
 }
+
+/**
+ * DAS KLEIDUNGSSTUECK FREISTELLEN — FASHN, VOR DEM PIXVERSE-LAUF (15.08.2026).
+ *
+ * DIE HAUSREGEL, die das erzwingt (Owner, woertlich): „wir haben nie Frauen in Unterwaesche
+ * an Pixverse gegeben." Pixverse nimmt ein freigestelltes Waeschestueck an — eine Person, die
+ * es traegt, weist es ab. Unsere eigenen Tanz-Sets sind deshalb von Hand freigestellt
+ * (`PixVerse Image Effect: extrahiere die Kleidung`), und der Fusion-Lauf sieht nur Stoff.
+ *
+ * Im Try-on-Trichter laedt der Kunde das Teil aber SELBST hoch — „ein Shop-Foto genuegt", und
+ * Shop-Fotos zeigen fast immer ein Model darin. Genau dieses Bild ging bisher ungefiltert als
+ * `garment` an Pixverse. Bei Lingerie ist das der Fall, den der Anbieter zurueckweist.
+ *
+ * Deshalb hier derselbe Weg, den `components/GarmentExtractorModal.tsx` als Admin-Werkzeug
+ * schon nimmt, nur serverseitig: FASHN `product-to-model` mit einem Prompt, der die Person
+ * entfernt und nur das Teil stehen laesst.
+ *
+ * WARUM DAS NICHT DER FASHN-LAUF IST, DER BEIM TANZ AUSGEBAUT WURDE: Dort lief FASHN ueber
+ * das Foto DER KUNDIN und lieferte ein Gesicht, das schon durch ein Modell gelaufen war —
+ * Pixverse bekam eine Kopie statt des Originals. Hier fasst FASHN ausschliesslich das
+ * KLEIDUNGSSTUECK an. Das Gesicht des Kunden geht unveraendert und direkt an Pixverse.
+ *
+ * NEUTRALE WORTE im Prompt (kein „lingerie", kein „skin") — dieselbe Hausregel wie bei jedem
+ * Auftrag, der spaeter an Pixverse weitergereicht wird.
+ *
+ * Gibt `null` zurueck, wenn es nicht klappt; der Aufrufer nimmt dann das Original. Ein
+ * fehlgeschlagenes Freistellen darf einen bezahlten Auftrag nicht anhalten.
+ */
+export async function fashnCutout(garmentSrc: string): Promise<string | null> {
+  const key = process.env.FASHN_API_KEY;
+  if (!key) return null;
+  try {
+    const g = await fetchBuf(garmentSrc);
+    if (!g) return null;
+    const product_image = `data:${g.type};base64,${g.buf.toString("base64")}`;
+    const create = await fetch(FASHN_RUN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model_name: "product-to-model",
+        inputs: {
+          product_image,
+          prompt: "Isolate ONLY the garment from this photo. Remove the person and the whole "
+            + "background. Output a clean e-commerce product photograph of just the garment on a "
+            + "pure seamless white background, ghost-mannequin style, the complete garment "
+            + "centered and clearly visible, no person, no face, no body. Keep the garment's "
+            + "exact colour, material, print, shape and details. No text, no logos.",
+          aspect_ratio: "9:16",
+          resolution: "1k",
+          generation_mode: "fast",
+          num_images: 1,
+          output_format: "png",
+          return_base64: true,
+        },
+      }),
+    });
+    const cp = await create.json().catch(() => null);
+    const id = cp?.id;
+    if (!create.ok || !id) {
+      console.error("[tryon] fashn cutout create failed:", cp?.error ?? create.status);
+      return null;
+    }
+    for (let i = 0; i < 70; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const st = await fetch(`${FASHN_STATUS}/${id}`, { headers: { Authorization: `Bearer ${key}` } })
+        .then(r => r.json()).catch(() => null);
+      const status = String(st?.status ?? "").toLowerCase();
+      if (status === "completed") {
+        const out = st?.output?.[0];
+        if (typeof out === "string" && out.startsWith("data:image/")) return out;
+        if (typeof out === "string") {
+          const ir = await fetch(out);
+          if (!ir.ok) return null;
+          return `data:image/png;base64,${Buffer.from(await ir.arrayBuffer()).toString("base64")}`;
+        }
+        return null;
+      }
+      if (status === "failed") {
+        console.error("[tryon] fashn cutout failed:", st?.error ?? "unknown");
+        return null;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error("[tryon] fashn cutout error:", e);
+    return null;
+  }
+}

@@ -181,7 +181,12 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
     try {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genId, person: foto, garment: teil }),
+        body: JSON.stringify({ genId, person: foto, garment: teil,
+          /* SEIN Foto des Teils erst freistellen lassen (15.08.2026). Ein Shop-Foto zeigt
+             fast immer ein Model darin — und an Pixverse geht nie eine Person in Waesche,
+             nur der Stoff. Unsere eigenen Sets (Tanz) sind schon freigestellt und schicken
+             diesen Schalter deshalb nicht. */
+          garmentCutout: true }),
       }).then(r => r.json());
       if (start?.videoId && genId) {
         void fetch("/api/kiss-log", {

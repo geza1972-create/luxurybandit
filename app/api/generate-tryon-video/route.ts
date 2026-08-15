@@ -5,6 +5,7 @@ import { INCLUDED_VIDEOS_PER_MONTH, EXTRA_VIDEO_CENTS, eur } from "@/lib/pricing
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { fashnCutout } from "@/lib/tryon";
 import { categorizeLook } from "@/lib/look-category";
 
 // Auto-match the video's SCENE to the look's category. NEUTRAL wording (works for lingerie
@@ -324,7 +325,7 @@ export async function POST(request: Request) {
   const customPrompt = String(body.prompt ?? ""); // try-on window can override to tune it
   // Reference mode (lingerie): garment + person photo → Pixverse dresses + animates
   // in one step, keeping the face. Falls back to single-image when not provided.
-  const garment = String(body.garment ?? "");
+  let garment = String(body.garment ?? "");
   const person = String(body.person ?? "");
   const reference = !!garment && !!person;
 
@@ -690,6 +691,25 @@ export async function POST(request: Request) {
       : { videoId: undefined as string | undefined, error: undefined as string | undefined };
     if (!r.videoId) {
       if (mimicUrl && r.error) protokoll(undefined, `mimic: ${r.error} — falle auf Referenz zurueck`);
+      /**
+       * DAS KUNDEN-UPLOAD ERST FREISTELLEN (15.08.2026). Hausregel, Owner woertlich: „wir
+       * haben nie Frauen in Unterwaesche an Pixverse gegeben." Unsere eigenen Tanz-Sets sind
+       * bereits freigestellt und gehen unveraendert durch — deshalb haengt das an einem
+       * ausdruecklichen Schalter des Trichters und nicht an einer Vermutung.
+       *
+       * Im Try-on-Trichter laedt der Kunde ein Shop-Foto hoch, auf dem meist ein Model das
+       * Teil traegt. FASHN entfernt die Person (dasselbe Cut-Werkzeug wie im Admin), Pixverse
+       * sieht danach nur noch Stoff. Das Gesicht des Kunden fasst FASHN NICHT an — es geht
+       * unveraendert als `person` weiter.
+       *
+       * Scheitert das Freistellen, laeuft der Auftrag mit dem Original weiter: ein bezahlter
+       * Kauf darf an einem Hilfsschritt nicht sterben.
+       */
+      if (reference && (body as { garmentCutout?: boolean }).garmentCutout === true) {
+        const frei = await fashnCutout(garment).catch(() => null);
+        if (frei) { garment = frei; protokoll(undefined, "garment freigestellt (FASHN)"); }
+        else protokoll(undefined, "garment NICHT freigestellt — weiter mit dem Original");
+      }
       r = reference
         ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo, body.hd === true, sekunden)
         : await pixverseStart(key, image, turnaround, promptWithScene);
