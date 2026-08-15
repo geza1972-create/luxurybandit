@@ -194,7 +194,26 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
    * SCHEITERT FASHN, laeuft es mit dem Ausgangsfoto weiter: ein bezahlter Auftrag bekommt
    * lieber ein schwaecheres Video als gar keins.
    */
-  if (e.theme === "poledance" || e.theme === "tryon") {
+  /**
+   * NOTBREMSE (15.08.2026, eine Stunde nach dem Einbau): DIESER ZWEIG IST ABGESCHALTET.
+   *
+   * WAS PASSIERT IST: Der Zweig darunter hat die Nachlieferung fuer Tanz und Try-on
+   * geoeffnet — richtig gedacht, aber er trifft auf einen Wachhund OHNE Deckel („drei
+   * Anlaeufe muss raus", 15.08.). Ein bezahlter Auftrag, dessen Erzeugung nicht durchgeht,
+   * wird von Galerie-Weckruf (15 s), Kette (45 s) und Cron immer wieder angestossen — und
+   * seit diesem Zweig startet jeder Anstoss einen ECHTEN, KOSTENPFLICHTIGEN Pixverse-Lauf
+   * statt wie vorher an „Sein Foto fehlt im Speicher" zu scheitern.
+   *
+   * GEMESSEN: Top-up-Guthaben 649 → 19 in gut einer Stunde. 630 Credits, ~12 Laeufe, davon
+   * 2 erklaerbar (Testlaeufe). Der Owner sah es zuerst: „irgendwas hat 8 Videos vom
+   * Poledancing generiert."
+   *
+   * WAS FEHLT, BEVOR ER ZURUECKDARF: ein Deckel auf BEZAHLTE Startversuche je Auftrag. Der
+   * Mindestabstand von 90 s begrenzt die Frequenz, nicht die Summe — bei 0,22 $ je Lauf ist
+   * das kein Schutz, sondern eine Rate. „Nie aufgeben" darf fuer Anlaeufe gelten, die nichts
+   * kosten; sobald ein Anlauf Geld kostet, braucht er eine Zahl.
+   */
+  if (false && (e.theme === "poledance" || e.theme === "tryon")) {
     if (!ihr) return { error: "Das Foto fehlt im Speicher." };
     const tanz = e.theme === "poledance";
     /* Beim Tanz steht die SET-KENNUNG im Auftrag (seit 15.08.); ohne sie das Haus-Set. */
