@@ -23,7 +23,20 @@ function sceneForCategory(cat: string): string {
 }
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+/**
+ * 300 STATT 120 SEKUNDEN (15.08.2026, Owner: „FASHN braucht 1-2 minuten und pixverse 2-3").
+ *
+ * Seit dem Freistellen wartet dieser Aufruf ZWEIMAL: erst auf FASHN (bis zu 105 s, siehe
+ * `fashnCutout`), dann auf den Pixverse-Start (Bilder hochladen + Auftrag anlegen). Mit 120 s
+ * waere die Route bei einem normal langsamen FASHN-Lauf abgelaufen, BEVOR Pixverse
+ * angestossen ist — der Kunde haette bezahlt, und am Auftrag stuende keine Auftragsnummer.
+ * Genau dieser Zustand hat am 15.08. ein bezahltes Tanz-Video unerreichbar gemacht.
+ *
+ * 300 s ist dieselbe Grenze, die /api/kiss-deliver schon nutzt. Der Pixverse-LAUF selbst
+ * wartet hier nicht mit — die Route gibt die Auftragsnummer zurueck, und geliefert wird
+ * ueber die Lieferkette.
+ */
+export const maxDuration = 300;
 
 // Video: Pixverse for all try-on videos (best quality + handles lingerie/swim).
 const PV_BASE = "https://app-api.pixverse.ai/openapi/v2";
