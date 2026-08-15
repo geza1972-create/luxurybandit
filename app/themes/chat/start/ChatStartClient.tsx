@@ -76,7 +76,7 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
         const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
         if (st?.paid) {
           try { popup.close(); } catch { /**/ }
-          void logTunnelEvent("payment_completed", P.slug, { via: "stripe" });
+          void logTunnelEvent("payment_completed", P.slug, { via: "stripe", eventId: String(start.sessionId) });
           setGekauft(true); setKaufBusy(false); return;
         }
         if (popup.closed && i > 2) break;

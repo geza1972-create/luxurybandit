@@ -104,7 +104,7 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
           const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
           if (s?.paid) {
             gekauft = true;
-            void logTunnelEvent("payment_completed", "gutschein", { via: "stripe" });
+            void logTunnelEvent("payment_completed", "gutschein", { via: "stripe", eventId: String(start.sessionId) });
             setLbGekauft({ topic: String(s.topic ?? wahl.topic), cents: Number(s.cents ?? 0) || wahl.cents });
             break;
           }

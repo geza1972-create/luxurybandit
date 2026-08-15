@@ -18,6 +18,7 @@ import { KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
+import { darfMessen } from "@/lib/land-erkennen";
 import GruppenChat from "@/components/GruppenChat";
 
 /**
@@ -158,6 +159,8 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           genId: gid, once: !topupCents, videoAufpreis: false, thema: "wedding",
           ...(topupCents ? { aufladen: true, topupCents } : {}),
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
+          /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
+          einwilligung: darfMessen(),
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -184,7 +187,7 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
             if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await kaufen(undefined, true);
           }
-          void logTunnelEvent("payment_completed", "wedding", { via: "stripe" });
+          void logTunnelEvent("payment_completed", "wedding", { via: "stripe", eventId: String(start.sessionId) });
           return true;
         }
         if (popup.closed && i > 2) break;

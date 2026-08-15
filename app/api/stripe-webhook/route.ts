@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { enrollWetter } from "@/lib/wetter-enroll";
 import { setWetterPaid, grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
+import { capiKaufMelden } from "@/lib/meta-capi";
 
 export const runtime = "nodejs";
 
@@ -156,6 +157,42 @@ export async function POST(request: Request) {
     // bekommt die Tagespost (Owner). Abgemeldete werden dabei nicht reaktiviert.
     const buyerEmail = String((session.customer_details as { email?: string } | undefined)?.email ?? session.customer_email ?? "").trim();
     const buyerName = String((session.customer_details as { name?: string } | undefined)?.name ?? "").trim();
+
+    /**
+     * DER KAUF AN META — VOM SERVER AUS (15.08.2026, Owner: „ok").
+     *
+     * Bisher meldete nur der Browser; wer den Tab schloss oder einen Werbeblocker fährt, kam
+     * in Metas Zahlen nie vor. Hier ist der Kauf bewiesen — Stripe hat abgerechnet.
+     *
+     * DIE AUFLADUNG IST AUCH HIER KEIN KAUF. Dieselbe Weiche wie zwei Bildschirme weiter oben
+     * und dieselbe wie seit heute im Pixel: Wer Guthaben lädt, kauft noch nichts. Gekauft
+     * wird das Geschenk, das er gleich danach vom Guthaben nimmt — und das laeuft NICHT ueber
+     * Stripe, meldet sich also allein ueber das Browser-Pixel. Ohne diese Zeile zaehlte Meta
+     * die Aufladung UND das Geschenk, also wieder zwei Kaeufe fuer einen Kunden.
+     *
+     * `session.id` als `event_id`: Der Trichter sendet dieselbe Kennung als `eventID` ans
+     * Pixel (siehe `logTunnelEvent`), damit Meta beide Meldungen zu EINEM Kauf zusammenlegt.
+     */
+    /**
+     * OHNE ZUSTIMMUNG KEINE MELDUNG. Die Conversions API umgeht das Cookie-Banner technisch —
+     * rechtlich umgeht sie gar nichts (DSGVO/ePrivacy). Der Trichter legt deshalb bei jeder
+     * Kasse `einwilligung` in die Stripe-Sitzung; fehlt das Feld (aeltere Sitzung, ein noch
+     * nicht angeschlossener Weg wie Chat oder Gutschein), gilt NEIN. Lieber zu wenig melden
+     * als ungefragt — zu wenig kostet Optimierung, ungefragt kostet mehr.
+     */
+    if (kind !== "aufladung" && String(meta?.einwilligung ?? "") === "1") {
+      try {
+        const ergebnis = await capiKaufMelden({
+          eventId: String(session.id ?? ""),
+          email: buyerEmail,
+          cents: Number((session as { amount_total?: number }).amount_total ?? 0) || 0,
+          produkt: String(meta?.theme ?? meta?.produkt ?? "") || kind,
+          quelle: new URL(request.url).origin,
+        });
+        console.info(`[stripe-webhook] Meta-CAPI Kauf (${kind}) — ${session.id} → ${ergebnis}`);
+      } catch (e) { console.warn("[stripe-webhook] Meta-CAPI fehlgeschlagen", e); }
+    }
+
     if (buyerEmail) {
       try {
         const r = await enrollWetter({ email: buyerEmail, name: buyerName, note: kind });

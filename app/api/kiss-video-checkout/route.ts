@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean; einwilligung?: boolean };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -315,7 +315,10 @@ export async function POST(request: Request) {
          * bezahltes Video unter einer Adresse, unter der die Galerie nie sucht.
          */
         ...(GUELTIGE_MAIL.test(email) ? { email } : {}),
-        metadata: { kind: "kiss-video", ...(email ? { email } : {}), ...(genId ? { genId } : {}), ...(subId ? { subId } : {}) },
+        metadata: { kind: "kiss-video", ...(email ? { email } : {}), ...(genId ? { genId } : {}), ...(subId ? { subId } : {}),
+                    /* Reist bis in den Stripe-Webhook: nur MIT Zustimmung meldet der Server den
+                       Kauf an Metas Conversions API (15.08.2026, siehe lib/meta-capi.ts). */
+                    einwilligung: body?.einwilligung ? "1" : "0" },
       });
       return NextResponse.json({ url, sessionId: id });
     } catch (e) {

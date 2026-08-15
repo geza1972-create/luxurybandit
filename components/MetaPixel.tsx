@@ -4,7 +4,7 @@ import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { brauchtEinwilligung } from "@/lib/land-erkennen";
+import { darfMessen } from "@/lib/land-erkennen";
 
 // Meta (Facebook) Pixel. ID is overridable via NEXT_PUBLIC_META_PIXEL_ID; falls back
 // to the account pixel so it works out of the box.
@@ -27,7 +27,7 @@ export default function MetaPixel() {
   useEffect(() => {
     const check = () => {
       try {
-        setConsented(localStorage.getItem("lb_cookie_consent") === "accepted" || !brauchtEinwilligung());
+        setConsented(darfMessen());
       } catch { /**/ }
     };
     check();

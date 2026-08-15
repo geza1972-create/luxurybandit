@@ -17,6 +17,7 @@ import { KISS_LOOK_ID } from "@/lib/wedding-prompt";
 import { holidayInvitePrompt, HOLIDAY_SZENEN, type HolidaySzene } from "@/lib/holiday-invite";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
+import { darfMessen } from "@/lib/land-erkennen";
 
 /**
  * DER URLAUB ALS TUNNEL-SEITE (KONZEPT-TUNNEL.md). Schritt 2 ist die Szenen-Wahl
@@ -142,6 +143,8 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           genId: gid, once: !topupCents, videoAufpreis: false, thema: "holiday",
           ...(topupCents ? { aufladen: true, topupCents } : {}),
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
+          /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
+          einwilligung: darfMessen(),
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -168,7 +171,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
             if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await kaufen(undefined, true);
           }
-          void logTunnelEvent("payment_completed", "holiday", { via: "stripe" });
+          void logTunnelEvent("payment_completed", "holiday", { via: "stripe", eventId: String(start.sessionId) });
           return true;
         }
         if (popup.closed && i > 2) break;

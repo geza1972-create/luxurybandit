@@ -89,10 +89,17 @@ export function logTunnelEvent(event: TunnelEvent, theme: string, extra: Record<
     // Betrag NUR aus der Preistabelle (Memory `prices-only-from-pricing-table`) — ohne
     // `value`/`currency` kann Meta keinen ROAS rechnen und warnt im Events Manager.
     const cents = geschenkPreisCents(theme);
+    /**
+     * `extra.eventId` ist die STRIPE-SITZUNGSKENNUNG (15.08.2026). Der Webhook meldet
+     * denselben Kauf ueber die Conversions API mit genau dieser Kennung als `event_id`;
+     * Meta legt beide zu EINEM Kauf zusammen. Wer vom Guthaben zahlt, hat keine Stripe-
+     * Sitzung — dort bleibt das Feld leer, und das ist richtig so: Diesen Kauf meldet nur
+     * der Browser, es gibt also nichts zu entdoppeln.
+     */
     trackMetaPixel(pixelEvent, {
       content_name: theme,
       ...(cents > 0 ? { value: cents / 100, currency: "EUR" } : {}),
-    });
+    }, extra.eventId || undefined);
   }
   return logFunnelEvent(event, { theme, produkt: theme, ...extra });
 }

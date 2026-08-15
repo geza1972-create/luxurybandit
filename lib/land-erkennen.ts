@@ -66,6 +66,22 @@ export function brauchtEinwilligung(): boolean {
 }
 
 /**
+ * DARF FÜR DIESEN BESUCHER GEMESSEN WERDEN? (15.08.2026)
+ *
+ * Die EINE Antwort für alle Messwege — das Browser-Pixel (`components/MetaPixel.tsx`) und
+ * die Conversions API auf dem Server (`lib/meta-capi.ts`, über ein Feld in der Stripe-
+ * Sitzung). Vorher stand die Formel nur im Pixel; als die Server-Meldung dazukam, hätte sie
+ * ein zweites Mal getippt werden müssen — und zwei Fassungen derselben Rechtsfrage laufen
+ * irgendwann auseinander. Eine Zustimmung außerhalb Europas ist nicht nötig, drinnen zählt
+ * nur ein ausdrückliches „Accept".
+ */
+export function darfMessen(): boolean {
+  try {
+    return localStorage.getItem("lb_cookie_consent") === "accepted" || !brauchtEinwilligung();
+  } catch { return !brauchtEinwilligung(); }
+}
+
+/**
  * Serverseitig: das Land aus den Kopfzeilen. `x-vercel-ip-country` liefert Vercel als
  * Zwei-Buchstaben-Kürzel („RO"); Cloudflare hiesse `cf-ipcountry`, deshalb steht es daneben.
  * „XX" bedeutet bei Vercel „unbekannt" und zählt wie nichts.

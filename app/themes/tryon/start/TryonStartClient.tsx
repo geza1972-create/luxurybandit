@@ -15,6 +15,7 @@ import { reichtGuthaben } from "@/lib/kasse";
 import { eur, geschenkPreisCents } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
+import { darfMessen } from "@/lib/land-erkennen";
 
 /**
  * DER TRY-ON-TUNNEL — DER KUNDE BRINGT SEIN KLEIDUNGSSTÜCK MIT, UNSERE VIDEOS SIND DIE
@@ -122,6 +123,8 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
           genId: gid, once: !topupCents, videoAufpreis: false, thema: "tryon",
           ...(topupCents ? { aufladen: true, topupCents } : {}),
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
+          /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
+          einwilligung: darfMessen(),
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -148,7 +151,7 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
             if (s.gutgeschrieben === 0) setAufladeNull(true);
             return await kaufen(undefined, true);
           }
-          void logTunnelEvent("payment_completed", P.slug, { via: "stripe" });
+          void logTunnelEvent("payment_completed", P.slug, { via: "stripe", eventId: String(start.sessionId) });
           return true;
         }
         if (popup.closed && i > 2) break;

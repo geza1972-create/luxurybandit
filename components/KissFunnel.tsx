@@ -12,6 +12,7 @@ import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles, X, Trash2, ChevronL
    Leiter rechnet jetzt `lib/kasse` (`deckendeStufen`), die Beträge schreibt `AufladeWaehler`. */
 import { renewNote, INCLUDED_VIDEOS_PER_MONTH, geschenkPreisCents, fillPrices, themenPreisZeile, eur, type ThemenSchluessel } from "@/lib/pricing";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
+import { darfMessen } from "@/lib/land-erkennen";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { HOLIDAY_SCENES, holidayPrompt, type HolidayScene } from "@/lib/holiday-scenes";
 import { tryonPrompt } from "@/lib/tryon-prompt";
@@ -3511,6 +3512,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(),
               /* Angemeldet = geprüfte Adresse → Stripe bekommt sie gesperrt mit. Als Gast
                  bleibt das Feld dort offen, damit er sich korrigieren kann (09.08.2026). */
+              /* Nur MIT Zustimmung meldet der Server den Kauf an Metas Conversions API. */
+              einwilligung: darfMessen(),
               konto: !!getStoredAuthSession()?.access_token, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
@@ -3673,7 +3676,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           // Wann kann er sich die Klamotten und die Szene auswaehlen?"). Vorher lief hier
           // direkt das alte Rendern des Standbildes los — die Auswahl bekam er nie zu sehen,
           // egal ob er ueber das Kassen-Fenster oder ueber die Rueckleitung kam.
-          void logTunnelEvent("payment_completed", variant, { via: "stripe" });
+          void logTunnelEvent("payment_completed", variant, { via: "stripe", eventId: String(start.sessionId) });
           setBezahlt(true);
           if (s.programUrl) setProgramUrl(String(s.programUrl));
           // Auswahl ist seit 03.08.2026 VOR der Kasse (Szene + Waesche am Schritt 3) —

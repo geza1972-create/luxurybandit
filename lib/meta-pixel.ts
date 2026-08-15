@@ -4,9 +4,18 @@
 // optimize ad delivery against them.
 type PixelParams = Record<string, unknown>;
 
-export function trackMetaPixel(event: string, params?: PixelParams): void {
+/**
+ * `eventId` (15.08.2026): dieselbe Kennung, die der Server ueber die Conversions API als
+ * `event_id` schickt — die Stripe-Sitzungskennung. Meta legt zwei Meldungen mit gleicher
+ * Kennung zu EINEM Kauf zusammen. Fehlt sie, zaehlt Meta Browser- und Servermeldung getrennt
+ * und der Kauf steht doppelt in den Zahlen (siehe lib/meta-capi.ts).
+ */
+export function trackMetaPixel(event: string, params?: PixelParams, eventId?: string): void {
   if (typeof window === "undefined") return;
   const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
   if (!fbq) return;
-  try { fbq("track", event, params ?? {}); } catch { /* ignore */ }
+  try {
+    if (eventId) fbq("track", event, params ?? {}, { eventID: eventId });
+    else fbq("track", event, params ?? {});
+  } catch { /* ignore */ }
 }
