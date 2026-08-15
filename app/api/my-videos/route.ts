@@ -237,8 +237,26 @@ export async function GET(request: Request) {
            auch dann 15 Minuten als „entsteht" zeigen, wenn der Startaufruf gerade abgesagt
            hat. `videoError` ist genau die Absage — der Trichter setzt sie beim Abbruch, der
            Wachhund löscht sie beim nächsten echten Anlauf. */
+        /**
+         * EIN BEZAHLTER AUFTRAG OHNE VIDEO LÄUFT IMMER (15.08.2026, Owner: „das video ist
+         * nicht in der galerie wieso auch immer" — die Kachel war von 12 auf 11 verschwunden).
+         *
+         * WAS PASSIERT WAR: Beide Fristen unten (Start-Stempel < 1 h, ohne Stempel < 15 min)
+         * liefen ab. Damit war `laufend` falsch, damit fiel das Ersatzbild weg (es haengt
+         * unten an `laufend`), damit hatte die Kachel weder `imageUrl` noch `videoUrl` — und
+         * `pictures.filter(b => b.imageUrl || b.videoUrl)` warf sie ganz aus der Liste. Der
+         * Kunde sah nicht etwa „dauert noch", sondern GAR NICHTS. Sein bezahlter Auftrag war
+         * spurlos weg, obwohl er im Protokoll stand und das Video beim Anbieter fertig lag.
+         *
+         * Die Fristen stammen aus der Zeit, als nach drei Anlaeufen aufgegeben wurde — dann
+         * war „seit 2 Stunden am Rendern" tatsaechlich gelogen. Seit heute gibt der Server
+         * nie mehr auf (MAX_VERSUCHE ist gestrichen): Solange bezahlt ist und kein Video da
+         * ist, ist es unterwegs. Genau das sagt die Kachel jetzt — ohne Ablaufdatum.
+         */
+        const offenerKauf = !!e.paid && !e.videoUrl;
         const laufend = e.theme !== "gutschein"
-          && ((Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
+          && (offenerKauf
+            || (Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
             || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));
         return ([
         {
