@@ -43,10 +43,16 @@ export default async function WeddingStartPage({ searchParams }: {
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
+      <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <Kicker>{T.heroY}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-        <div className="mt-4">
+        {/* `contents` STATT EINES EIGENEN KASTENS (15.08.2026): Diese Huelle hat die
+            Tab-Leiste im Tunnel gefangen — `order-first` ordnet nur INNERHALB des eigenen
+            Flex-Containers, und der war diese Huelle statt der Seitenspalte. Mit `contents`
+            verschwindet sie aus dem Layout, ihre Kinder werden Geschwister von Kicker und
+            Titel — und die Leiste kann darueber (Owner: „ueber den Titel bitte"). Den
+            Abstand bringt der Trichter selbst mit (`mt-4` an seiner Wurzel). */}
+        <div className="contents">
           {/* DERSELBE KUNDEN-INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR
               (Owner 14.08.2026, Dauerregel fuer den Tunnel). Die Verwaltung der
               Landingpage bleibt dort — sie hat im Kundentrichter nichts zu suchen. */}

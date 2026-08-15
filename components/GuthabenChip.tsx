@@ -247,6 +247,24 @@ export default function GuthabenChip() {
      und nicht „unsichtbar" (siehe oben). */
   if (istModel) return null;
   const stand = typeof cents === "number" ? cents : 0;
+  /**
+   * KEIN KONTO-CHIP MEHR OHNE GUTHABEN (Owner 15.08.2026, mit Bild des Chips: „Konto haben
+   * wir auch nicht mehr" · vorher „Keine Credits").
+   *
+   * WARUM ER UEBERHAUPT DA WAR: Solange Guthaben der EINZIGE Weg zum Video war, musste der
+   * Kunde seinen Stand jederzeit sehen — auch die 0,00 €, denn sie erklaerte, warum der
+   * Kaufknopf ihn zum Aufladen schickte. Seit heute zahlt jeder direkt den Preis auf dem
+   * Knopf; damit ist „0,00 €" im Kopf jeder Seite nur noch eine Zahl ohne Anlass.
+   *
+   * WARUM ER NICHT GANZ VERSCHWINDET: Wer aufgeladen HAT, hat echtes Geld im Haus — seines,
+   * nicht unseres. Die Kasse bucht es weiterhin zuerst ab. Es unsichtbar zu machen und still
+   * zu verrechnen waere das Gegenteil einer Vereinfachung (Memory
+   * `guthaben-haengt-an-einer-adresse`: nie umbuchen, immer zeigen, wo es liegt). Also: bei
+   * 0,00 € nicht mehr da, mit Guthaben unveraendert sichtbar.
+   *
+   * Der GESTRANDET-Fall bleibt ebenfalls stehen — er ist eine Warnung, keine Kontostandsanzeige.
+   */
+  const chipZeigen = stand > 0 || !!gestrandet;
   const chip = "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-black transition active:scale-95";
   /**
    * DER WARN-ZUSTAND: leeres Konto, aber auf einer anderen Adresse dieses Geraets liegt Geld.
@@ -263,6 +281,7 @@ export default function GuthabenChip() {
         * `role="button"` verhaelt sich fuer Maus, Tastatur und Vorleser gleich, faellt aber
         * nicht unter die Regel — und der Chip sieht wieder aus wie vorher.
         */}
+      {chipZeigen && (
       <span role="button" tabIndex={0} aria-label={T.guthaben}
         onClick={oeffnen}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); oeffnen(); } }}
@@ -278,6 +297,7 @@ export default function GuthabenChip() {
             ? `${(stand / 100).toFixed(2).replace(".", ",")} €`
             : `${links} 🎬`}
       </span>
+      )}
       {/**
         * DER GALERIE-CHIP ZEIGT, WENN MAN DRIN IST (Owner 11.08.2026, auf /my-gallery: „ich
         * habe galerie angeklickt und ist nicht aktiv der Chip").

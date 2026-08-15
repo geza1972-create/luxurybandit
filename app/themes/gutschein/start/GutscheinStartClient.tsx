@@ -13,6 +13,7 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import { eur, themenPreisCents, GUTSCHEIN_STUFEN, type ThemenSchluessel } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { useKasseImFenster } from "@/components/KasseImFenster";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 
@@ -51,6 +52,8 @@ export default function GutscheinStartClient({ lang, code }: { lang: string; cod
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: string; F: any; T: any; schritt: number; onSchrittChange: (s: number) => void }) {
+  /* EIN Kassen-Weg fuer alle Trichter (15.08.2026) — siehe components/KasseImFenster. */
+  const kasse = useKasseImFenster(schritt);
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
   /* Bekannte springen an Schritt 1 vorbei (GEMESSEN 13.08.2026 am Hochzeits-Tunnel) —
@@ -103,6 +106,8 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
           ...(wahl.topic ? { topic: wahl.topic } : { cents: wahl.cents }),
           empfaenger: emp, email: mail.trim(),
           returnTo: window.location.pathname + window.location.search,
+          /* Kasse IN der Seite, und sie spricht die Sprache der Seite (15.08.2026). */
+          eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
       /* DIE EINGEBETTETE KASSE HAT KEINE `url` (15.08.2026, an „Start nicht möglich."
@@ -113,6 +118,8 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
         try { popup?.close(); } catch { /**/ }
         setLbFehler(start?.error || F.statusNotWork);
       } else {
+        /* Steht die Kasse in der Seite, ist hier Schluss — kein Seitenwechsel mehr. */
+        if (kasse.uebernehmen(start.clientSecret)) return false;
         /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
            den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
         if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
@@ -264,6 +271,8 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
           </>)}
         </div>
       )}
+      {/* DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026). */}
+      {kasse.block}
     </>
   );
 }

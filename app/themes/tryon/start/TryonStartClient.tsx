@@ -15,6 +15,8 @@ import { reichtGuthaben } from "@/lib/kasse";
 import { eur, geschenkPreisCents } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { useKasseImFenster, KasseZuBeiSchritt } from "@/components/KasseImFenster";
+import { tryonPromptZiehen } from "@/lib/tryon-szenen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { darfMessen } from "@/lib/land-erkennen";
 
@@ -138,6 +140,8 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
           /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
           einwilligung: darfMessen(),
+          /* Kasse IN der Seite, und sie spricht die Sprache der Seite (15.08.2026). */
+          eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -155,6 +159,8 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
         setFehler(start?.error || F.statusNotWork);
         return false;
       }
+      /* Steht die Kasse in der Seite, ist hier Schluss — kein Seitenwechsel mehr. */
+      if (kasse.uebernehmen(start.clientSecret)) return false;
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
       if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
@@ -196,14 +202,51 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
     if (!ok) { setVideoBusy(false); return; }
     void logTunnelEvent("generation_started", P.slug);
     try {
+      /**
+       * DIESELBE KETTE WIE DER TANZ (Owner 15.08.2026: „genau das ist die Kette fuer Try-on
+       * auch. Genau dieselbe").
+       *
+       * ERST ANZIEHEN, DANN FILMEN — weil Pixverse nichts AUSZIEHT, es legt nur an. Wer sein
+       * Foto in Pullover schickt, bekam das Teil darueber gelegt. FASHN ersetzt die Kleidung
+       * wirklich, und die Anweisung auf einen PORTRAET-Zuschnitt haelt das Ergebnis klein
+       * genug, dass Pixverse es als Referenz annimmt (am 15.08. an einem Ganzkoerperfoto
+       * gemessen: zurueck kam ein Brustbild).
+       *
+       * SCHEITERT FASHN, laeuft es mit dem Ausgangsfoto weiter — genau wie bisher.
+       */
+      let person = foto;
+      try {
+        const alsDatei = async (src: string, name: string) =>
+          new File([await (await fetch(src)).blob()], name, { type: "image/jpeg" });
+        const fd = new FormData();
+        fd.append("modelImage", await alsDatei(foto, "person.jpg"));
+        fd.append("image", await alsDatei(teil, "garment.jpg"));
+        fd.append("mode", "fashion-model");
+        fd.append("aspectRatio", "9:16");
+        fd.append("prompt", "Portrait crop: show only the head, shoulders and upper chest of the person, "
+          + "closely framed like a headshot. She wears the outfit from the product image. "
+          + "Keep her face, hair and appearance exactly the same.");
+        const d = await fetch("/api/generate-fashn", { method: "POST", body: fd }).then(r => r.json());
+        person = (d?.image || d?.imageUrl || foto) as string;
+      } catch { /* angezogen wird sie dann von Pixverse — wie vor dem 15.08. */ }
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ genId, person: foto, garment: teil,
+        body: JSON.stringify({ genId, person, garment: teil,
           /* SEIN Foto des Teils erst freistellen lassen (15.08.2026). Ein Shop-Foto zeigt
              fast immer ein Model darin — und an Pixverse geht nie eine Person in Waesche,
              nur der Stoff. Unsere eigenen Sets (Tanz) sind schon freigestellt und schicken
              diesen Schalter deshalb nicht. */
-          garmentCutout: true }),
+          garmentCutout: true,
+          /**
+           * EINER VON 50 URLAUBSORTEN (Owner 15.08.2026: „da wird ein schoener Urlaubsort
+           * gemacht, wir haben 50 Prompts, oder nicht").
+           *
+           * Hier stand gar kein Prompt — also griff der Rueckfall der Route, das nuechterne
+           * Studio. Die 50 Orte gab es laengst, aber nur in der alten Seite `/try`; seit
+           * heute liegen sie in `lib/tryon-szenen.ts` und beide Trichter ziehen daraus,
+           * nie zweimal hintereinander denselben.
+           */
+          prompt: tryonPromptZiehen() }),
       }).then(r => r.json());
       if (start?.videoId && genId) {
         void fetch("/api/kiss-log", {
@@ -215,9 +258,14 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
     window.location.href = "/my-gallery";
   };
 
+  /* EIN Kassen-Weg fuer alle Trichter (15.08.2026) — siehe components/KasseImFenster. */
+  const kasse = useKasseImFenster();
+
   return (
     <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (<>
+        {/* Der Schritt-Pfeil raeumt die Kasse weg — kein zweiter Zurueck-Knopf. */}
+        <KasseZuBeiSchritt schritt={schritt} aufZu={kasse.schliessen} />
         <TunnelFortschritt schritte={P.schritte} aktuell={schritt} />
 
         {schritt === 1 && (
@@ -349,6 +397,8 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
               zu={() => setAufladeWahl(false)} />
           )}
         </>)}
+        {/* DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026). */}
+        {kasse.block}
       </>)}
     </TunnelSeite>
   );

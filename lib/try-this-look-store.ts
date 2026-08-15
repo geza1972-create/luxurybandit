@@ -1789,6 +1789,16 @@ export type KissLogEntry = {
   videoMailedAt?: string; // wann das fertige Video verschickt wurde (nie zweimal)
   videoAlertAt?: string;  // wann wir aufgegeben und den Käufer benachrichtigt haben
   /**
+   * WANN DER OWNER PER WHATSAPP GEWARNT WURDE, dass dieser Auftrag zu lange braucht
+   * (Owner 15.08.2026: „ich muss aber eine Meldung bekommen wenn der Auftrag zu lange
+   * dauert. Weil dann stimmt was nicht" · „per WA an meine Nummer").
+   *
+   * EINMAL JE AUFTRAG. Ohne diesen Stempel schickte jeder Cron-Lauf und jeder
+   * Galerie-Weckruf dieselbe Warnung erneut — bei 90 Sekunden Abstand waeren das Dutzende
+   * Nachrichten fuer EIN Problem, und die naechste echte Warnung ginge darin unter.
+   */
+  adminAlarmAt?: string;
+  /**
    * WANN DIE WILLKOMMENS-MAIL ZUM 30-TAGE-PROGRAMM RAUS IST (11.08.2026, Future Self
    * Program). Sie geht SOFORT nach der Zahlung raus, nicht erst mit dem Film — das Programm
    * ist das Gekaufte und ab der Sekunde des Kaufs fertig (Auftrag da11fe51: bezahlt, Datei

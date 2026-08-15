@@ -71,7 +71,7 @@ export default async function VersprechenStartPage({ searchParams }: {
       {/* DAS SEITENKOPF-TEMPLATE (Skill `ci-design`, „Der Kopf einer Seite"): Huelle `pt-3`,
           Kicker nur eine Zeile, H1 28px `mt-1`, direkt danach die Karte (hier: `KissFunnel`s
           eigene Video-Karte plus, gleich darunter, der immer offene Tunnel). */}
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
+      <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         {/* DER KICKER TRÄGT DEN PRODUKTNAMEN, NICHT DAS AKZENTWORT (14.08.2026). Hier stand
             `T.heroY` — seit die Überschrift die Leistung nennt, waere das „30-TAGE-PROGRAMM"
             ueber „Dein Future Film und dein 30-Tage-Programm.", also derselbe Satzteil
@@ -91,7 +91,13 @@ export default async function VersprechenStartPage({ searchParams }: {
             Seitenkopf-Template verlangt sie — nur der Platz auf dem Handy ist zu kostbar, um
             dieselbe Aussage zweimal zu zeigen. */}
         <H1 className="sr-only">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
-        <div className="mt-4">
+        {/* `contents` STATT EINES EIGENEN KASTENS (15.08.2026): Diese Huelle hat die
+            Tab-Leiste im Tunnel gefangen — `order-first` ordnet nur INNERHALB des eigenen
+            Flex-Containers, und der war diese Huelle statt der Seitenspalte. Mit `contents`
+            verschwindet sie aus dem Layout, ihre Kinder werden Geschwister von Kicker und
+            Titel — und die Leiste kann darueber (Owner: „ueber den Titel bitte"). Den
+            Abstand bringt der Trichter selbst mit (`mt-4` an seiner Wurzel). */}
+        <div className="contents">
           {/* DERSELBE INHALT WIE AUF DER LANDINGPAGE, UNTER DEM ANMELDEFORMULAR (Owner
               14.08.2026, Dauerregel fuer den Tunnel). Er wird HIER auf dem Server gebaut
               und als fertiger Knoten durchgereicht — `TunnelSeite` haengt ihn unten an. */}

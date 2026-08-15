@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
+import { POLEDANCE_SETS, POLEDANCE_PROMPT } from "@/lib/poledance";
+import { fashnAnziehen } from "@/lib/tryon";
+import { tryonPromptZiehen } from "@/lib/tryon-szenen";
 import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWetterSubscribers, deleteTryThisLookImage, type KissLogEntry, avatarLesen } from "@/lib/try-this-look-store";
 import { futureProgramToken } from "@/lib/future-program-store";
 import { sendEmail } from "@/lib/email-send";
@@ -64,6 +68,19 @@ const ABSTAND_MS = 90 * 1000;
 // der Anbieter nicht kennt, meldet ewig „in Arbeit". Ohne diese Grenze wartet der Kunde für
 // immer auf ein Video, das niemand mehr rendert.
 const STECKEN_MS = 30 * 60 * 1000;
+/**
+ * AB WANN „ZU LANGE" (15.08.2026). Eine normale Erzeugung ist in ein bis drei Minuten
+ * durch; die Aufnahme-Themen brauchen laenger. 20 Minuten liegen weit jenseits jedes
+ * gesunden Laufs und weit diesseits von „faellt erst morgen auf".
+ */
+const ALARM_MS = 20 * 60 * 1000;
+/**
+ * UND AB WANN ES ZU SPAET IST (15.08.2026). Aufträge, die laenger als einen Tag liegen,
+ * loesen keine Meldung mehr aus — sie bekommen nur den Stempel, damit sie kuenftig ruhig
+ * bleiben. Wer aus zwei Tagen Rueckstand geweckt wird, wischt weg; wer aus zwanzig Minuten
+ * geweckt wird, kann noch etwas retten.
+ */
+const ALARM_MAX_MS = 24 * 60 * 60 * 1000;
 const MAX_PRO_LAUF = 3;          // wie viele Aufträge ein Aufruf gleichzeitig bearbeitet
 /**
  * SO LANG WIE DAS VERSPRECHEN (15.08.2026). Vorher 10 — also ~7,5 Minuten, während die Seite
@@ -156,6 +173,54 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
    * Trichter — nur der Look und der gesprochene Satz unterscheiden sich, und beide haengen
    * am `look` des Auftrags, den die Route selbst aufloest.
    */
+  /**
+   * DIE EIN-FOTO-THEMEN LIEFERT DER SERVER JETZT AUCH (15.08.2026, an einem echten Auftrag
+   * gefunden: 21 Versuche, jedes Mal „Sein Foto fehlt im Speicher.", fuenf Tage lang ein
+   * Drehrad in der Galerie).
+   *
+   * WAS DER FEHLER WAR: Dieser Wachhund kannte nur Themen mit ZWEI Fotos. Tanz und Try-on
+   * haben aber kein Paar — sie haben eine Person und ein Kleidungsstueck. Der Auftrag fiel
+   * deshalb in die Zwei-Foto-Pruefung und starb dort, endlos wiederholt.
+   *
+   * VIER TEILE, WIE IM TRICHTER (Owner 15.08.2026: „das Bild vom User, das Bild von FASHN
+   * und Video" · „es werden sogar 4 sein" · „das Klamotten vom User, FASHN, Model vom User
+   * und Video"):
+   *   1. das Foto des Kunden          (Tanz und Try-on: `ihr`)
+   *   2. das Kleidungsstueck          (Tanz: das gewaehlte Set aus dem Auftrag; Try-on: sein
+   *                                    eigener Upload)
+   *   3. das ANGEZOGENE Bild          (FASHN — Pixverse zieht nichts aus, es legt nur an)
+   *   4. das Video                    (Pixverse, mit dem Prompt des jeweiligen Produkts)
+   *
+   * SCHEITERT FASHN, laeuft es mit dem Ausgangsfoto weiter: ein bezahlter Auftrag bekommt
+   * lieber ein schwaecheres Video als gar keins.
+   */
+  if (e.theme === "poledance" || e.theme === "tryon") {
+    if (!ihr) return { error: "Das Foto fehlt im Speicher." };
+    const tanz = e.theme === "poledance";
+    /* Beim Tanz steht die SET-KENNUNG im Auftrag (seit 15.08.); ohne sie das Haus-Set. */
+    const set = tanz
+      ? (POLEDANCE_SETS.find(x => x.id === String(e.look ?? ""))?.bild ?? POLEDANCE_SETS[0].bild)
+      : sein;   /* Try-on: sein eigenes Kleidungsstueck liegt auf dem Personen-Platz */
+    if (!set) return { error: "Das Kleidungsstück fehlt im Speicher." };
+    const setUrl = set.startsWith("/") ? `${origin(request)}${set}` : set;
+    const portraet = "Portrait crop: show only the head, shoulders and upper chest of the person, "
+      + "closely framed like a headshot. She wears the outfit from the product image. "
+      + "Keep her face, hair and appearance exactly the same.";
+    const angezogen = await fashnAnziehen(ihr, setUrl, portraet).catch(() => null);
+    const pinT = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
+    const r = await fetch(`${origin(request)}/api/generate-tryon-video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(pinT ? { "x-try-look-admin-pin": pinT } : {}) },
+      body: JSON.stringify({
+        person: angezogen || ihr, garment: setUrl,
+        ...(tanz ? { hd: true } : { garmentCutout: true }),
+        prompt: tanz ? POLEDANCE_PROMPT : tryonPromptZiehen(),
+      }),
+    }).then(x => x.json()).catch(() => null);
+    if (!r?.videoId) return { error: String(r?.error ?? "Video-Start fehlgeschlagen.") };
+    return { videoId: String(r.videoId) };
+  }
+
   if (e.theme === "birthday" || e.theme === "versprechen") {
     if (!ihr) return { error: "Ihr Foto fehlt im Speicher." };
     const pinG = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim() ?? "";
@@ -315,6 +380,7 @@ async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> 
 async function durchgang(request: Request, nurId: string): Promise<{ offen: number; erledigt: string[]; log: string[] }> {
   const alle = await readKissLog();
   const jetzt = Date.now();
+  const alarmiert: string[] = [];
   /**
    * AUFGEGEBENE AUFTRÄGE MELDEN. Drei Anläufe sind durch, ein Video gibt es nicht — der
    * Käufer erfährt es einmal, nicht bei jedem Cron-Lauf (`videoAlertAt`).
@@ -342,6 +408,44 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
    * und verbrennte Geld, ohne je zu liefern. Mit dem Abstand bleibt es beim Willen des
    * Owners — es hört nie auf — und kostet trotzdem höchstens einen Lauf je Fenster.
    */
+  /**
+   * WENN EIN BEZAHLTER AUFTRAG ZU LANGE BRAUCHT, ERFAEHRT ES DER OWNER — PER WHATSAPP
+   * (Owner 15.08.2026: „ich muss aber eine Meldung bekommen wenn der Auftrag zu lange
+   * dauert. Weil dann stimmt was nicht" · „eigentlich muesste ich eine Meldung per WA
+   * bekommen an meine Nummer").
+   *
+   * DER ANLASS, GEMESSEN: Ein Tanz-Auftrag drehte FUENF TAGE lang seine Runden — 21
+   * Versuche, jedes Mal derselbe Fehler — und niemand wusste davon. Sichtbar war nur ein
+   * Punkt an der Galerie. Genau das meint „dann stimmt was nicht": Ein Auftrag, der laenger
+   * braucht als jede normale Erzeugung, hat kein Geduldsproblem, sondern ein echtes.
+   *
+   * EINMAL JE AUFTRAG (`adminAlarmAt`) — sonst wiederholt jeder Cron-Lauf dieselbe Meldung.
+   * Die Nachricht traegt alles, was zur Entscheidung noetig ist: Thema, Nummer, Adresse des
+   * Kaeufers, Zahl der Anlaeufe und den letzten Fehler im Klartext.
+   */
+  for (const e of alle) {
+    if (!e.paid || !offenerAuftrag(e) || e.adminAlarmAt) continue;
+    const seit = Date.parse(e.videoDueAt ?? e.createdAt ?? "") || 0;
+    if (!seit || jetzt - seit < ALARM_MS) continue;
+    /**
+     * KEINE ARCHAEOLOGIE (15.08.2026). Ohne diese Grenze haette der erste Lauf nach dem
+     * Einbau SIEBEN Nachrichten auf einmal geschickt — fuer Aufträge vom 6. August, die
+     * laengst niemanden mehr wecken. Eine Warnung, die man wegwischt, weil sie zu spaet
+     * kommt, macht die naechste echte unsichtbar. Gemeldet wird, was HEUTE haengt.
+     */
+    if (jetzt - seit > ALARM_MAX_MS) { e.adminAlarmAt = new Date(jetzt).toISOString(); alarmiert.push(e.id); continue; }
+    e.adminAlarmAt = new Date(jetzt).toISOString();
+    alarmiert.push(e.id);
+    notifyAdminWhatsApp(
+      `LuxuryBandit: Auftrag haengt seit ${Math.round((jetzt - seit) / 60000)} Min.\n`
+      + `Thema: ${e.theme || "?"} · Nr. ${e.id.slice(0, 8)}\n`
+      + `Kaeufer: ${e.email || "?"}\n`
+      + `Anlaeufe: ${e.videoTries ?? 0}\n`
+      + `Fehler: ${String(e.videoError || "keiner gemeldet").slice(0, 160)}\n`
+      + `${ADMIN_URL}`,
+    );
+  }
+
   const faellig = alle.filter(e =>
     (!nurId || e.id === nurId) &&
     e.paid === true &&
@@ -466,12 +570,14 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
     offen++;
   }
 
-  if (geaendert) {
+  /* Auch ein reiner Alarm-Lauf muss schreiben: Ohne den Stempel im Speicher meldet der
+     naechste Durchgang denselben haengenden Auftrag erneut — und der uebernaechste wieder. */
+  if (geaendert || alarmiert.length) {
     // FRISCH LESEN UND ZUSAMMENFÜHREN: zwischen dem Lesen oben und jetzt kann der Trichter
     // denselben Eintrag angefasst haben (er schreibt ja auch). Sonst überschreibt der letzte
     // Schreiber den anderen — im Projekt schon einmal passiert (Löschen-Auferstehung).
     const neu = await readKissLog();
-    for (const e of [...faellig, ...abholen]) {
+    for (const e of [...faellig, ...abholen, ...alle.filter(x => alarmiert.includes(x.id))]) {
       const z = neu.find(x => x.id === e.id);
       if (!z) continue;
       z.videoId = e.videoId; z.videoTries = e.videoTries; z.videoError = e.videoError;
@@ -481,6 +587,7 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
       if (e.videoUrl) z.videoUrl = e.videoUrl;
       if (e.videoMailedAt) z.videoMailedAt = e.videoMailedAt;
       if (e.videoAlertAt) z.videoAlertAt = e.videoAlertAt;
+      if (e.adminAlarmAt) z.adminAlarmAt = e.adminAlarmAt;
     }
     await writeKissLog(neu);
   }

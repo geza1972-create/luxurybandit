@@ -18,6 +18,7 @@ import { KISS_LOOK_ID, HOCHZEIT_TRAUM_VIDEO } from "@/lib/wedding-prompt";
 import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { useKasseImFenster } from "@/components/KasseImFenster";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { darfMessen } from "@/lib/land-erkennen";
 import GruppenChat from "@/components/GruppenChat";
@@ -91,6 +92,8 @@ const dateiZuDataUrl = (f: File) =>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F: any; schritt: number; onSchrittChange: (s: number) => void }) {
+  /* EIN Kassen-Weg fuer alle Trichter (15.08.2026) — siehe components/KasseImFenster. */
+  const kasse = useKasseImFenster(schritt);
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
   const [leadBusy, setLeadBusy] = useState(false);
@@ -174,6 +177,8 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
           /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
           einwilligung: darfMessen(),
+          /* Kasse IN der Seite, und sie spricht die Sprache der Seite (15.08.2026). */
+          eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -191,6 +196,8 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
         setStatus(start?.error || F.statusNotWork);
         return false;
       }
+      /* Steht die Kasse in der Seite, ist hier Schluss — kein Seitenwechsel mehr. */
+      if (kasse.uebernehmen(start.clientSecret)) return false;
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
       if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
@@ -383,6 +390,8 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           )}
         </div>
       )}
+      {/* DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026). */}
+      {kasse.block}
     </>
   );
 }

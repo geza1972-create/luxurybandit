@@ -235,12 +235,25 @@ export const GESCHENKE: Record<GeschenkId, {
    * Pixverse-Lauf wie beim Kuss. Die alte Lingerie-Kette brauchte zwei (FASHN + Pixverse)
    * und kostete deshalb mehr. Die Zahl selbst steht in lib/pricing.ts, nie hier.
    *
-   * KEIN GRATIS-BILD, NUR GUTHABEN — dieselbe Entscheidung wie beim Kuss. Ein OpenAI-Bild
-   * gäbe es hier ohnehin nicht: OpenAI weist Wäsche am Eingang ab, Pixverse nicht.
+   * KEIN GRATIS-BILD — dieselbe Entscheidung wie beim Kuss. Ein OpenAI-Bild gäbe es hier
+   * ohnehin nicht: OpenAI weist Wäsche am Eingang ab, Pixverse nicht.
+   *
+   * `nurGuthaben` IST RAUS (Owner 15.08.2026: „kein credit" · „er zahlt den genauen Preis,
+   * sonst sagt er: oha, wieso 1 Cent mehr").
+   *
+   * WARUM DER ZWANG SCHADETE: Der Knopf verspricht 9,99 €, die Aufladeleiter kennt aber nur
+   * ihre eigenen Stufen. Wer ohne Guthaben ankam, sah also zuerst einen Credit-Dialog und
+   * zahlte danach einen ANDEREN Betrag als den, auf den er getippt hatte — an der einzigen
+   * Stelle, an der Vertrauen über den Kauf entscheidet. Beim Tanz war das kein Randfall: Es
+   * war der Normalfall, denn ein frischer Besucher hat nie Guthaben.
+   *
+   * GUTHABEN BLEIBT ZAHLMITTEL: Die Kasse bucht weiter zuerst vom Konto ab
+   * (`guthabenAbbuchen` in kiss-video-checkout) — es ist nur nicht mehr der EINZIGE Weg.
+   * Wer nichts drauf hat, zahlt auf den Cent genau den Preis aus der Tabelle.
    */
   poledance: {
     prompt: POLEDANCE_PROMPT, done: "pole-dance-video.mp4", abo: false, einzelkauf: true,
-    keinGratis: true, nurGuthaben: true,
+    keinGratis: true,
     nurEigenes: true, nurSie: true, garmentBild: POLEDANCE_SET,
     // Der Name geht an IHN — dieselbe Mechanik wie beim Kuss („Anna, ich liebe dich").
     empfaengerName: true,
@@ -275,9 +288,17 @@ export const GESCHENKE: Record<GeschenkId, {
    * wie beim Tanz. Ein Zwischenschritt ueber FASHN wuerde die Torte und den Raum verlieren —
    * FASHN zieht um, es baut keine Szene.
    */
+  /**
+   * `nurGuthaben` IST RAUS (Owner 15.08.2026: „Keine Credits") — dieselbe Begruendung wie
+   * beim Tanz eine Stunde vorher: Der Knopf verspricht einen Preis, die Aufladeleiter kennt
+   * nur ihre eigenen Stufen, und der Kunde zahlte am Ende einen anderen Betrag als den, auf
+   * den er getippt hat („er zahlt den genauen Preis, sonst sagt er: oha, wieso 1 Cent mehr").
+   * Der Geburtstag war das letzte Produkt mit dem Zwang. Guthaben bleibt Zahlmittel — die
+   * Kasse bucht weiter zuerst vom Konto ab —, es ist nur nicht mehr der einzige Weg.
+   */
   birthday: {
     prompt: GEBURTSTAG_PROMPT, done: "happy-birthday-video.mp4", abo: false, einzelkauf: true,
-    keinGratis: true, nurGuthaben: true,
+    keinGratis: true,
     nurEigenes: true, nurSie: true, garmentBild: GEBURTSTAG_SET,
     // Der Name geht an das GEBURTSTAGSKIND — er steht oben auf der Karte, nicht im Video.
     empfaengerName: true,

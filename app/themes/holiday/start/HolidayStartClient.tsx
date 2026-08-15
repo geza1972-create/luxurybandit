@@ -17,6 +17,7 @@ import { KISS_LOOK_ID } from "@/lib/wedding-prompt";
 import { holidayInvitePrompt, HOLIDAY_SZENEN, type HolidaySzene } from "@/lib/holiday-invite";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { useKasseImFenster } from "@/components/KasseImFenster";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { darfMessen } from "@/lib/land-erkennen";
 
@@ -93,6 +94,8 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const [angemeldet, setAngemeldet] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  /* EIN Kassen-Weg fuer alle Trichter (15.08.2026) — siehe components/KasseImFenster. */
+  const kasse = useKasseImFenster(schritt);
   const [mailFehler, setMailFehler] = useState("");
 
   useEffect(() => {
@@ -158,6 +161,8 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           email: mail.trim(), returnTo: window.location.pathname + window.location.search,
           /* Nur MIT Zustimmung meldet der Server den Kauf spaeter an Metas Conversions API. */
           einwilligung: darfMessen(),
+          /* Kasse IN der Seite, und sie spricht die Sprache der Seite (15.08.2026). */
+          eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
       if (start?.walletPaid) {
@@ -175,6 +180,8 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
         setStatus(start?.error || F.statusNotWork);
         return false;
       }
+      /* Steht die Kasse in der Seite, ist hier Schluss — kein Seitenwechsel mehr. */
+      if (kasse.uebernehmen(start.clientSecret)) return false;
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
       if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return false;
@@ -414,6 +421,9 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           )}
         </div>
       )}
+      {/* DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026) — ein Schritt wie jeder andere.
+          Zurueck geht es ueber den Pfeil des Schritts, der raeumt es weg. */}
+      {kasse.block}
     </>
   );
 }

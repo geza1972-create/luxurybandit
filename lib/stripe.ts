@@ -56,6 +56,16 @@ async function stripeRequest(method: "GET" | "POST", path: string, body?: Record
 
 // Create a one-off Checkout Session for a single try-on tier. Returns the hosted
 // checkout URL to redirect the customer to.
+/**
+ * DIE SIEBEN HAUSSPRACHEN, WIE STRIPE SIE SCHREIBT (15.08.2026). Alles Unbekannte gibt "" —
+ * dann bleibt Stripe bei `auto` und folgt wie bisher dem Browser. EINE Liste fuer beide
+ * Kassen, damit die achte Sprache nicht an einer davon vorbeigeht.
+ */
+function stripeSprache(sprache?: string): string {
+  const l = String(sprache ?? "").trim().toLowerCase();
+  return ["en", "de", "ro", "es", "fr", "pt", "it"].includes(l) ? l : "";
+}
+
 export async function createTryonCheckout(opts: {
   amount: number;          // minor units (cents)
   currency: string;
@@ -112,9 +122,24 @@ export async function createTryonCheckout(opts: {
    * in den Trichtern unveraendert weiter; daran musste nichts angefasst werden.
    */
   eingebettet?: boolean;
+  /**
+   * DIE KASSE SPRICHT DIE SPRACHE DER SEITE (Owner 15.08.2026: „ich hoffe dass es nicht bei
+   * allen auf deutsch ist" — zum Bild einer deutschen Kasse unter einer englischen Seite).
+   *
+   * Ohne diesen Wert steht Stripe auf `locale: auto` und folgt dem BROWSER. Das ist genau
+   * daneben: Unsere Seite hat einen eigenen Sprachschalter (sieben Sprachen), und wer auf
+   * Rumaenisch liest, aber einen englischen Browser hat, bekaeme an der Kasse Englisch —
+   * ausgerechnet an der Stelle, an der Vertrauen ueber den Kauf entscheidet.
+   *
+   * Alle sieben Haussprachen kennt Stripe unter genau diesen Kuerzeln; alles Unbekannte
+   * faellt still auf `auto` zurueck, also auf das bisherige Verhalten.
+   */
+  sprache?: string;
 }): Promise<{ id: string; url: string; clientSecret?: string }> {
+  const locale = stripeSprache(opts.sprache);
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
+    ...(locale ? { locale } : {}),
     ...(opts.eingebettet
       ? { ui_mode: "embedded_page", return_url: opts.successUrl }
       : { success_url: opts.successUrl, cancel_url: opts.cancelUrl }),
@@ -162,21 +187,32 @@ export async function createPackCheckout(opts: {
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;
-}): Promise<{ id: string; url: string }> {
+  /** Kasse IN der Seite statt Seitenwechsel — siehe `createTryonCheckout` (15.08.2026). */
+  eingebettet?: boolean;
+  /** Sprache der SEITE, nicht des Browsers — siehe `createTryonCheckout` (15.08.2026). */
+  sprache?: string;
+}): Promise<{ id: string; url: string; clientSecret?: string }> {
   const line_items = opts.priceId
     ? [{ price: opts.priceId, quantity: 1 }]
     : [{ quantity: 1, price_data: { currency: opts.currency ?? "usd", unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
+  const locale = stripeSprache(opts.sprache);
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
-    success_url: opts.successUrl,
-    cancel_url: opts.cancelUrl,
+    ...(locale ? { locale } : {}),
+    ...(opts.eingebettet
+      ? { ui_mode: "embedded_page", return_url: opts.successUrl }
+      : { success_url: opts.successUrl, cancel_url: opts.cancelUrl }),
     ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : (opts.clientReferenceId ? { client_reference_id: opts.clientReferenceId } : {})),
     line_items,
     allow_promotion_codes: true,
     metadata: opts.metadata,
     payment_intent_data: { metadata: opts.metadata },
   });
-  return { id: String(session.id), url: String(session.url) };
+  return {
+    id: String(session.id),
+    url: String(session.url ?? ""),
+    ...(session.client_secret ? { clientSecret: String(session.client_secret) } : {}),
+  };
 }
 
 // Create a recurring-subscription Checkout Session (Premium membership). Ties the

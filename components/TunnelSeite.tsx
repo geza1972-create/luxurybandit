@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Laden } from "@/components/CI";
+import { Laden, ThemenKreise } from "@/components/CI";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { logTunnelEvent } from "@/lib/track-funnel";
 
@@ -147,6 +147,10 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
 
   return (
     <>
+      {/* DIE THEMEN-LEISTE IST IN DEN KOPF UMGEZOGEN (15.08.2026, Owner: „Slider ueberall
+          einbauen") — sie stand hier, seit sie als Querverkauf begann, und waere jetzt
+          doppelt. Siehe components/TopNav.tsx. */}
+
       {children({
         schritt,
         onSchrittChange: s => {
@@ -163,6 +167,8 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
           else router.replace(url);
         },
       })}
+
+
       {/* Erst der Trichter, dann die Erklaerung — wer schon ueberzeugt ist, faengt oben an;
           wer noch zweifelt, findet darunter alles, was auch die Landingpage zeigt. */}
       {inhalt}

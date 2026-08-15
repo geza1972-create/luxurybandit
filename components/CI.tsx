@@ -1694,32 +1694,41 @@ export function MadeBy({ karte = false, className = "" }: {
  * Die Vorgabe-Liste sind alle Themen samt „Alle" — wer eine engere Reihe braucht
  * (z. B. ohne das eigene Thema), reicht `themen` herein.
  */
-export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string }[] = [
+export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild?: string }[] = [
+  /* `bild` ist das Motiv des Themas (15.08.2026, Fotos statt Icons). Optional, damit ein
+     neues Thema erst in die Reihe darf und sein Motiv nachreichen kann. */
   /* GEBURTSTAG ZUERST (Owner 09.08.2026) — dieselbe Reihenfolge wie die Kacheln der
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
-  { icon: Cake, name: "Birthday", href: "/themes/birthday" },
-  { icon: Heart, name: "Kiss", href: "/themes/kiss" },
+  { icon: Cake, name: "Birthday", href: "/themes/birthday", bild: "/Birthday/hbd-fliege.jpg" },
+  { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/kiss-beispiel.jpg" },
   /* SURPRISE (POLE DANCE) IST WIEDER DA (Owner 12.08.2026, mit Bild der Themen-Kreise:
      „pool dancing kannst du hier einbauen und da machst du auch dort den tunel einbauen" —
      Rücknahme der Rausnahme vom selben Vormittag, siehe die Begründung darunter). Platz wie
      vor dem 11.08.2026: direkt nach Kiss. */
-  { icon: Gift, name: "Surprise", href: "/themes/surprise" },
+  { icon: Gift, name: "Surprise", href: "/themes/surprise", bild: "/Pooldance/beispiel-2.jpg" },
   /* Bis heute Vormittag (11.08.2026) stand hier: „Surprise (Pole Dance) IST RAUS, siehe
      app/sitemap.ts — nicht in der Topic-Reihe, nur noch intern (Admin-Vorschau in
      BottomNav.tsx) erreichbar." Diese Zeile bleibt als Protokoll stehen, sie gilt nicht mehr. */
-  { icon: Palmtree, name: "Holiday", href: "/themes/holiday" },
-  { icon: MessageCircle, name: "Chat", href: "/themes/chat" },
-  { icon: Sparkles, name: "Wedding", href: "/themes/wedding" },
+  { icon: Palmtree, name: "Holiday", href: "/themes/holiday", bild: "/Holiday/urlaub-poster.jpg" },
+  { icon: MessageCircle, name: "Chat", href: "/themes/chat", bild: "/Chat/chat-poster.jpg" },
+  { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-poster.jpg" },
   /* TRY-ON IN DER REIHE (Owner 13.08.2026, mit Bild der Kreise: „hier kannst du noch tryon
      einbinden falls du es noch machst") — der Kreis kam ZUSAMMEN mit dem Tunnel
      (/themes/tryon/start), nie davor: ein Kreis, der in einen halbfertigen Weg zeigt,
      wäre schlimmer als keiner. */
-  { icon: Shirt, name: "Try-on", href: "/themes/tryon" },
-  { icon: LayoutGrid, name: "Alle", href: "/themes" },
+  { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
+  /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
+     Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
+     einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */
 ];
-export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
-  themen?: { icon: LucideIcon; name: string; href: string }[];
+export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = "" }: {
+  themen?: { icon: LucideIcon; name: string; href: string; bild?: string }[];
   className?: string;
+  /**
+   * Ein Thema auslassen — im Tunnel das, in dem der Besucher gerade steckt (Owner
+   * 15.08.2026: „alle brauchen wir nicht"). Leer = alle zeigen, wie in der Galerie.
+   */
+  ohne?: string;
 }) {
   /**
    * GOLD IST NUR, WAS GERADE AKTIV IST (Owner 11.08.2026, mit Bild der Reihe: „die sind
@@ -1734,14 +1743,48 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "" }: {
   const pfad = usePathname();
   return (
     <div className={`lb-wisch -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
-      {themen.map(t => {
-        const aktiv = pfad === t.href;
+      {/**
+        * SIE FUNKTIONIERT WIE EINE TAB-LEISTE (Owner 15.08.2026: „und muss wie ein Tab
+        * funktionieren").
+        *
+        * Damit faellt die Ausblendung des eigenen Themas weg, die hier kurz stand: Ein Tab
+        * zeigt IMMER alle Reiter, auch den, auf dem man steht — sonst springt die Reihe bei
+        * jedem Wechsel und niemand findet zurueck. Der laufende ist statt dessen GOLD.
+        *
+        * AKTIV IST DER PFAD-ANFANG, nicht die genaue Adresse: Der Trichter steht auf
+        * `/themes/surprise/start`, der Reiter zeigt auf `/themes/surprise`. Mit `===` waere
+        * im Tunnel NIE einer aktiv gewesen — die Leiste saehe aus, als gehoere man nirgends
+        * hin. `Alle` bleibt davon ausgenommen, sonst leuchtete es auf jeder Themenseite mit.
+        */}
+      {themen.filter(t => !ohne || !t.href.includes(ohne)).map(t => {
+        const aktiv = t.href === "/themes" ? pfad === t.href : pfad.startsWith(t.href);
         return (
           <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
-            <span className={`grid h-[58px] w-[58px] place-items-center rounded-full border transition group-active:scale-90 ${aktiv
-              ? "border-[#f6cf51]/40 bg-gradient-to-b from-[#f6cf51]/[0.14] to-transparent text-[#f6cf51]"
-              : "border-white/15 bg-white/[0.04] text-white/60"}`}>
-              <t.icon className="h-[22px] w-[22px]" />
+            {/**
+              * FOTOS STATT ICONS (Owner 15.08.2026, mit Bild der Reihe: „kannst du hier Fotos
+              * nehmen statt Icons? und denselben Slider machen wir im Tunnel").
+              *
+              * Ein Torten-Symbol und ein Herz-Symbol sehen gleich aus — grau, gleich gross,
+              * gleich leer. Das Foto IST das Produkt: Wer die Reihe sieht, sieht acht
+              * Ergebnisse statt acht Umrisse. Das Icon bleibt als Rueckfall stehen, falls ein
+              * Thema (noch) kein Motiv hat.
+              *
+              * EINE Komponente fuer beide Stellen (Owner: „ich mache eine Komponente fuer
+              * beide — ja"): Galerie und Tunnel holen dieselbe Reihe; im Tunnel laesst `ohne`
+              * das laufende Thema weg.
+              */}
+            {/* DER RING WIRD GOLD, NICHT NUR DIE SCHRIFT (Owner 15.08.2026: „auch der Kreis
+                wird gelb"). Mit einem Foto im Kreis war der duenne 40-%-Rand praktisch
+                unsichtbar — der aktive Reiter hing allein an der Beschriftung darunter.
+                Genau zwei Pixel volles Gold — kein zweiter, weicher Ring darum: Der Owner
+                hat die Breite bestaetigt, nicht eine Aura bestellt. */}
+            <span className={`grid h-[58px] w-[58px] place-items-center overflow-hidden rounded-full transition group-active:scale-90 ${aktiv
+              ? "border-2 border-[#f6cf51] text-[#f6cf51]"   /* genau 2 px Gold, sonst nichts (Owner 15.08.2026: „2 Pixel") */
+              : "border border-white/15 bg-white/[0.04] text-white/60"}`}>
+              {t.bild
+                /* eslint-disable-next-line @next/next/no-img-element */
+                ? <img src={t.bild} alt="" loading="lazy" className={`h-full w-full object-cover object-top ${aktiv ? "" : "opacity-85"}`} />
+                : <t.icon className="h-[22px] w-[22px]" />}
             </span>
             <span className={`text-center text-[10.5px] font-black leading-none ${aktiv ? "text-[#f6cf51]" : "text-white/60"}`}>{t.name}</span>
           </a>

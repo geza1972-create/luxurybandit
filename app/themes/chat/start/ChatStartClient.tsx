@@ -13,6 +13,7 @@ import { useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { eur, CHAT_STUFEN } from "@/lib/pricing";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { useKasseImFenster, KasseZuBeiSchritt } from "@/components/KasseImFenster";
 import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
@@ -75,7 +76,8 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
     try {
       const start = await fetch("/api/chat-zugang-checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, monate: 1, ...(e ? { empfaenger: e } : {}), email: mail.trim() || undefined, returnTo: window.location.pathname + window.location.search }),
+        /* Kasse IN der Seite, und sie spricht die Sprache der Seite (15.08.2026). */
+        body: JSON.stringify({ code, monate: 1, ...(e ? { empfaenger: e } : {}), email: mail.trim() || undefined, returnTo: window.location.pathname + window.location.search, eingebettet: kasse.anfordern, lang }),
       }).then(r => r.json());
       /* DIE EINGEBETTETE KASSE HAT KEINE `url` (15.08.2026, an „Start nicht möglich."
          im laufenden Trichter abgelesen). Stripe liefert dort statt einer Adresse ein
@@ -85,6 +87,8 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
         try { popup?.close(); } catch { /**/ }
         setKaufFehler(start?.error || F.statusNotWork); setKaufBusy(false); return;
       }
+      /* Steht die Kasse in der Seite, ist hier Schluss — kein Seitenwechsel mehr. */
+      if (kasse.uebernehmen(start.clientSecret)) { setKaufBusy(false); return; }
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
       if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return;
@@ -103,9 +107,14 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
     setKaufBusy(false);
   };
 
+  /* EIN Kassen-Weg fuer alle Trichter (15.08.2026) — siehe components/KasseImFenster. */
+  const kasse = useKasseImFenster();
+
   return (
     <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (<>
+        {/* Der Schritt-Pfeil raeumt die Kasse weg — kein zweiter Zurueck-Knopf. */}
+        <KasseZuBeiSchritt schritt={schritt} aufZu={kasse.schliessen} />
         <TunnelFortschritt schritte={P.schritte} aktuell={schritt} />
 
         {schritt === 1 && (
@@ -196,6 +205,8 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
             </p>
           </>)}
         </>)}
+        {/* DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026). */}
+        {kasse.block}
       </>)}
     </TunnelSeite>
   );

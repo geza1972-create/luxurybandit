@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
 import LightSwitch from "@/components/LightSwitch";
+import { ThemenKreise } from "@/components/CI";
 import GuthabenChip from "@/components/GuthabenChip";
 import KontoChip from "@/components/KontoChip";
 
@@ -41,14 +42,26 @@ import KontoChip from "@/components/KontoChip";
  * und steht auf jeder Seite, auch auf statischen. Beim allerersten Bild steht deshalb kurz
  * Englisch da — genauso wie beim Sprachumschalter daneben, der es seit jeher so macht.
  */
+/**
+ * „AI MARKETING PORTAL" STATT „GESCHENKIDEEN-PORTAL" (Owner 15.08.2026: „jetzt wird
+ * LuxuryBandit Motto zu AI Marketing Portal").
+ *
+ * ES BLEIBT IN ALLEN SIEBEN SPRACHEN GLEICH — und das ist kein Versehen: „AI Marketing"
+ * ist in jeder dieser Sprachen der gebraeuchliche Begriff, uebersetzt wuerde er nur
+ * unbeholfen („Portal de marketing cu inteligenta artificiala"). Dieselbe Regel wie beim
+ * Markennamen selbst.
+ *
+ * Der Vorrat bleibt trotzdem sprachweise stehen: Wer je eine Sprache anders fassen will,
+ * aendert eine Zeile statt die Struktur.
+ */
 const MOTTO: Record<string, string> = {
-  en: "Gift ideas portal",
-  de: "Geschenkideen-Portal",
-  ro: "Portal de idei de cadouri",
-  es: "Portal de ideas para regalos",
-  fr: "Portail d'idées cadeaux",
-  pt: "Portal de ideias de presentes",
-  it: "Portale di idee regalo",
+  en: "AI Marketing Portal",
+  de: "AI Marketing Portal",
+  ro: "AI Marketing Portal",
+  es: "AI Marketing Portal",
+  fr: "AI Marketing Portal",
+  pt: "AI Marketing Portal",
+  it: "AI Marketing Portal",
 };
 
 export default function TopNav({
@@ -230,6 +243,25 @@ export default function TopNav({
           <LightSwitch />
           <LangSwitch />
         </span>
+      </div>
+      {/**
+        * DIE THEMEN-LEISTE STEHT IM KOPF, ALSO UEBERALL (Owner 15.08.2026: „Slider ueberall
+        * einbauen").
+        *
+        * WARUM HIER und nicht in jeder Seite: `TopNav` liegt auf 43 Seiten. Neunmal
+        * einbauen hiesse, sie neunmal zu pflegen — dieselbe Falle, aus der wir den
+        * Kassen-Weg heute schon herausgeholt haben. Hier ist sie einmal da, und die Regel
+        * „aendern heisst ueberall aendern" gilt von selbst.
+        *
+        * UND SIE SCHLIESST DIE TAB-LUECKE: Die Reiter fuehren auf Themenseiten. Standen sie
+        * nur im Tunnel, landete ein Tipp auf einer Seite OHNE Leiste — man kam nicht zurueck,
+        * genau wie der Owner es erlebt hat. Im Kopf ist die Leiste immer da.
+        *
+        * SIE SCROLLT MIT DEM KOPF (`sticky`), weil sie ein Teil von ihm ist: Wer unten auf
+        * einer langen Seite steht, wechselt das Thema ohne hochzuscrollen.
+        */}
+      <div className="mx-auto max-w-6xl px-4 pb-2">
+        <ThemenKreise />
       </div>
     </header>
   );

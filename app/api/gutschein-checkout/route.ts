@@ -56,6 +56,7 @@ export async function POST(request: Request) {
   }
   const body = (await request.json().catch(() => ({}))) as {
     cents?: number; topic?: string; empfaenger?: string; email?: string; returnTo?: string;
+    eingebettet?: boolean; lang?: string;
   };
 
   /**
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
   const back = `${origin}${returnTo}`;
 
   try {
-    const { id, url } = await createPackCheckout({
+    const { id, url, clientSecret } = await createPackCheckout({
       /* Kein Preis-Kennung, sondern `price_data` mit dem Betrag von oben: Preisschild und
          Kasse sind damit dieselbe Zahl und koennen nicht auseinanderlaufen (Regel aus
          UEBERGABE-05-08.md §1). Eine Stripe-Kennung je Stufe waeren drei Gelegenheiten mehr,
@@ -107,8 +108,12 @@ export async function POST(request: Request) {
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}abgebrochen=1`,
       /* Die Adresse des KAEUFERS — fuer den Beleg. Sie bekommt kein Guthaben. */
       email: String(body.email ?? "").trim().toLowerCase() || undefined,
+      /* KASSE IN DER SEITE + SPRACHE DER SEITE (15.08.2026, Owner: „die muss du alle
+         umbauen"). Ohne oeffentlichen Stripe-Schluessel bleibt es beim Seitenwechsel. */
+      eingebettet: body?.eingebettet === true,
+      sprache: String(body?.lang ?? "").trim().toLowerCase(),
     });
-    return NextResponse.json({ url, sessionId: id, cents, stufen: GUTSCHEIN_STUFEN });
+    return NextResponse.json({ url, sessionId: id, cents, stufen: GUTSCHEIN_STUFEN, ...(clientSecret ? { clientSecret } : {}) });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Checkout failed." }, { status: 500 });
   }

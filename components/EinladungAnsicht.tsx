@@ -311,8 +311,19 @@ export default function EinladungAnsicht({
          `EinladungKarte`, damit Video und Karte dieselbe Rundung haben.
          IM VOLLBILD NICHT: Dort fuellt das Video den ganzen Bildschirm, und runde Ecken auf
          schwarzem Grund saehen nach einem Fehler aus. */
+      /**
+       * DAS VOLLBILD IST DAS DER GALERIE (Owner 15.08.2026: „Vergrössern des Videos ist hier
+       * nicht ok. Wir haben in der Galerie vergrössern richtig. Das sollen wir übernehmen").
+       *
+       * Hier stand ein nacktes `fixed inset-0`. Das kennt unsere Handy-Spalte nicht: Es haengt
+       * am FENSTER und spannte sich am Rechner ueber die ganze Breite — Video quer durch den
+       * Bildschirm, die Knoepfe an den aeusseren Ecken, unten abgeschnitten. `lb-phone-col`
+       * (globals.css) ist die vorhandene Antwort darauf und genau das, was `app/my-gallery`
+       * seit dem 03.08. benutzt; auf dem Handy aendert sie nichts, die Regel greift erst ab
+       * 480 px.
+       */
       className={gross
-        ? "fixed inset-0 z-[90] grid place-items-center overflow-hidden bg-black"
+        ? "lb-phone-col fixed inset-0 z-[90] grid place-items-center overflow-hidden bg-black/95"
         : "relative overflow-hidden rounded-[14px]"}>
       {/* IMMER stumm — die Tonspur des Videos wird nie gebraucht (siehe lib/musik.ts): Sie ist
           acht Sekunden lang und saesse bei jeder Schleife wieder auf dem ersten Takt.
@@ -345,7 +356,11 @@ export default function EinladungAnsicht({
         aria-label={(gross ? kleinText : grossText) || (gross ? "Exit fullscreen" : "Fullscreen")}
         onClick={() => setGross(g => !g)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setGross(g => !g); } }}
-        className={`cursor-pointer ${gross ? "h-full max-h-full w-auto" : `${verhaeltnis} w-full`}`}>
+        /* GANZ HINEIN, NICHTS ABGESCHNITTEN (15.08.2026): `h-full w-auto` zwang die volle
+           Fensterhoehe auf und schnitt bei jedem Verhaeltnis ab, das nicht passte — beim
+           Tanz standen ihre Beine ausserhalb des Bildes. `max-h-full max-w-full` laesst das
+           Video die kleinere der beiden Grenzen nehmen, wie in der Galerie. */
+        className={`cursor-pointer ${gross ? "max-h-full max-w-full" : `${verhaeltnis} w-full`}`}>
         {/**
           * ZWEI TIPPS, ZWEI DINGE (Owner 07.08.2026: „klick auf video play startet das video.
           * Klick wieder auf video, öffnet das video groß").

@@ -50,7 +50,7 @@ import { geburtstagTitel, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_V
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
-import KasseImFenster, { kasseImFensterMoeglich } from "@/components/KasseImFenster";
+import { useKasseImFenster } from "@/components/KasseImFenster";
 
 import FotoAnleitung from "@/components/FotoAnleitung";
 import KartenKarussell from "@/components/KartenKarussell";
@@ -1330,8 +1330,6 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const [gestrandet, setGestrandet] = useState<Gestrandet | null>(null);
   /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
-  /** Das `client_secret` der eingebetteten Kasse — gesetzt heisst: Formular offen (15.08.2026). */
-  const [kasseSecret, setKasseSecret] = useState("");
   const nachAufladungKaufen = useRef(false);
   /**
    * DIE LETZTE AUFLADUNG WAR 0,00 € WERT (Owner 07.08.2026: „wieso bekomme ich keine
@@ -1563,6 +1561,33 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     if (tunnelSeite && urlSchritt && alsSchritt(urlSchritt) !== schritt) setSchritt(alsSchritt(urlSchritt));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlSchritt]);
+  /**
+   * DER SCHRITT-PFEIL SCHLIESST DIE KASSE (15.08.2026, Hausregel `immer-close-einbauen`).
+   *
+   * `KasseImFenster` hat bewusst KEINEN eigenen Zurueck-Knopf — der Schritt darueber hat
+   * schon einen, und zwei untereinander sind ein Raetsel statt einer Navigation. Nur: der
+   * Pfeil raeumte das Formular nicht weg. Das Geheimnis wurde gesetzt und nie geleert, also
+   * blieb Stripes Kasse unter JEDEM folgenden Schritt haengen — ein Ausweg, den es nur
+   * scheinbar gab.
+   *
+   * Jetzt gilt: Wer den Schritt wechselt, hat die Kasse verlassen. Der Auftrag bleibt
+   * unberuehrt (er entsteht vor dem Geld), ein neues Tippen auf Kaufen oeffnet eine frische
+   * Sitzung. Damit ist der vorhandene Pfeil der garantierte Weg hinaus, ohne einen zweiten.
+   *
+   * DAS ALLES STECKT SEIT DEM UMBAU IM HAKEN (`useKasseImFenster`), damit die anderen vier
+   * Trichter dieselbe Regel bekommen, ohne sie abzuschreiben.
+   */
+  /**
+   * DIE KENNUNG DES GEWAEHLTEN TANZ-SETS — fuer den AUFTRAG (15.08.2026).
+   *
+   * `neuerLook` haelt das BILD; der Auftrag speichert Kennungen (`look`). Ohne diese
+   * Uebersetzung stand im Auftrag nichts, und die Nachlieferung vom Server konnte gar nicht
+   * wissen, welches Set gemeint war.
+   */
+  const tanzSetId = () => (variant === "poledance"
+    ? (POLEDANCE_SETS.find(x => x.bild === (neuerLook || V.garmentBild))?.id ?? "")
+    : "");
+  const kasse = useKasseImFenster(schritt);
 
   // `videoShow`/`videoReif` (die gespielte Render-Show vor der Kasse) sind am 31.07.2026
   // ersatzlos entfallen — Owner: „ohne diesen Fake". Begruendung bei `unlock` weiter unten.
@@ -1785,6 +1810,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       else if (roh) localStorage.removeItem(GEN_KEY);
     } catch { /**/ }
     try { const n = localStorage.getItem(nameKey(variant)); if (n) setEmpfaenger(n); } catch { /**/ }
+    /* Das gewaehlte Set zurueckholen (siehe `waehle` bei der Set-Wahl). Nur, wenn es die
+       Liste wirklich kennt — ein alter Pfad aus einer frueheren Fassung waere sonst ein
+       Bild, das es nicht mehr gibt. */
+    try {
+      const gemerkt = localStorage.getItem(`lb_set_${variant}`) || "";
+      if (gemerkt && POLEDANCE_SETS.some(x => x.bild === gemerkt)) setNeuerLook(gemerkt);
+    } catch { /**/ }
     try {
       const roh = localStorage.getItem(zieleKey(variant));
       const z = roh ? JSON.parse(roh) as { ids?: string[]; frei?: string } : null;
@@ -2707,7 +2739,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
+            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         if (log?.id) { gid = log.id; genMerken(log.id); }
@@ -2921,7 +2953,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * wird; FASHN nimmt dasselbe Foto an. Scheitert es trotzdem, laeuft es mit dem
    * Ausgangsfoto weiter — der Kunde hat bezahlt und bekommt auf keinen Fall nichts.
    */
-  const anziehen = async (wen: string, look: { id: string; name?: string; imageUrl?: string } | undefined, text: string) => {
+  const anziehen = async (wen: string, look: { id: string; name?: string; imageUrl?: string } | undefined, text: string, eigenerPrompt?: string) => {
     if (!look?.imageUrl || !wen) return wen;
     setStatus(text);
     try {
@@ -2932,7 +2964,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       fd.append("lookId", look.id);
       fd.append("mode", "fashion-model");
       fd.append("aspectRatio", "9:16");
-      fd.append("prompt", tryonPrompt({ garment: look.name || "" }));
+      fd.append("prompt", eigenerPrompt || tryonPrompt({ garment: look.name || "" }));
       const d = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());
@@ -3031,8 +3063,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * data-URLs von einigen hundert Kilobyte, und ein Schluessel muss kurz sein.
        */
       const seinVorlage = looks.find(l => l.id === seinLook);
+      /* Das gewaehlte Tanz-Set gehoert IN den Schluessel (15.08.2026): Sonst hielte der
+         Speicher ein in Gruen angezogenes Foto fuer gueltig, nachdem sie auf Rot gewechselt
+         hat — und der zweite Lauf truege wieder das erste Set. */
+      const tanzSet = variant === "poledance" ? (neuerLook || V.garmentBild || "") : "";
       const anziehSchluessel = [
-        selPhoto.slice(-64), photo.slice(-64), ihrVorlage?.id ?? "", seinVorlage?.id ?? "",
+        selPhoto.slice(-64), photo.slice(-64), ihrVorlage?.id ?? "", seinVorlage?.id ?? "", tanzSet,
       ].join("|");
       let ihr: string, sein: string;
       /**
@@ -3051,8 +3087,60 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * unten die Stelle `garment` fuellt — und `garment` ist genau das, was es ist.
        */
       if (V.nurSie) {
-        ihr = selPhoto;
         sein = "";   // es gibt keinen Mann — was hier stuende, waere eine Erfindung
+        /**
+         * FASHN ZIEHT AN, PIXVERSE FILMT (Owner 15.08.2026: „die Frau gibst du an Pixverse
+         * weiter und die Wardrobe mit dem Hintergrund, dasselbe was du an FASHN gegeben hast"
+         * · „dann klappt es 100 %").
+         *
+         * WARUM ES NICHT ANDERS GEHT: Pixverse zieht nichts aus, es legt nur an („Pixverse
+         * entfernt keine Klamotten"). Das Set landete deshalb UEBER ihrem Rollkragen, und der
+         * Versuch, das Umziehen in den Prompt zu schreiben, wurde vom Textfilter abgewiesen.
+         * Das Anziehen muss vor Pixverse passieren — und FASHN kann genau das, im Standbild
+         * am gruenen Set nachgewiesen.
+         *
+         * WAS AN PIXVERSE GEHT: das ANGEZOGENE Foto als `person` und dasselbe Set-Bild als
+         * `garment` — es bringt ausserdem die Szene mit (Neon, Stange), weshalb der Prompt
+         * ueber Kleidung nichts mehr sagen muss.
+         *
+         * KEIN RISIKO FUER DEN BEZAHLTEN AUFTRAG: Scheitert FASHN, gibt `anziehen` das
+         * Ausgangsfoto zurueck, und es laeuft wie bisher weiter — schlechter als der alte
+         * Zustand kann es nie werden.
+         *
+         * KOSTEN: ein FASHN-Bildaufruf zusaetzlich; der Pixverse-Lauf bleibt derselbe
+         * (V6, 540p, 7 s ≈ 49 Credits).
+         */
+        if (variant === "poledance" && tanzSet) {
+          if (angezogen.current?.schluessel === anziehSchluessel) {
+            ihr = angezogen.current.ihr;
+          } else {
+            const s = POLEDANCE_SETS.find(x => x.bild === tanzSet);
+            /**
+             * FASHN SCHNEIDET SELBST AUF BRUSTBILD ZU (Owner 15.08.2026: „der Kunde schneidet
+             * nicht ab, das kann man ihm nicht zumuten" — gemessen statt vermutet).
+             *
+             * DAS PROBLEM: Laedt jemand ein GANZKOERPERFOTO hoch, zoege FASHN den ganzen
+             * Koerper in Waesche an — und so ein Bild nimmt Pixverse als Referenz nicht an.
+             * Ein Zuschnitt-Schritt fuer den Kunden kam nicht in Frage, Gesichtserkennung
+             * haette laufende Kosten bei jedem Upload bedeutet.
+             *
+             * DER TEST (15.08.2026): dasselbe Set, als Eingang ein Bild von Kopf bis
+             * Oberschenkel, dazu diese Anweisung — zurueck kam ein Brustbild. FASHN haelt
+             * sich also an den Bildausschnitt, den man ihm vorgibt. Damit loest sich das
+             * Problem in dem Schritt, den wir ohnehin machen: kein zweiter Aufruf, keine
+             * Erkennung, kein Klick fuer den Kunden, keine zusaetzlichen Kosten.
+             */
+            const portraet =
+              "Portrait crop: show only the head, shoulders and upper chest of the person, "
+              + "closely framed like a headshot. She wears the outfit from the product image. "
+              + "Keep her face, hair and appearance exactly the same.";
+            ihr = await anziehen(selPhoto, { id: s?.id ?? "tanz", name: s?.name, imageUrl: tanzSet }, T.dressingHer, portraet);
+            if (runRef.current !== token) return;
+            angezogen.current = { schluessel: anziehSchluessel, ihr, sein: "" };
+          }
+        } else {
+          ihr = selPhoto;
+        }
       } else if (angezogen.current?.schluessel === anziehSchluessel) {
         ({ ihr, sein } = angezogen.current);
       } else {
@@ -3559,7 +3647,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               einwilligung: darfMessen(),
               /* Kasse IN der Seite anfordern, wenn der oeffentliche Stripe-Schluessel da ist.
                  Fehlt er, liefert die Route wie bisher eine Adresse (15.08.2026). */
-              eingebettet: kasseImFensterMoeglich(),
+              eingebettet: kasse.anfordern,
+              /* Die Kasse spricht die Sprache der Seite, nicht die des Browsers. */
+              lang,
               konto: !!getStoredAuthSession()?.access_token, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
@@ -3621,7 +3711,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
+            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         setPayBusy(false);
@@ -3671,7 +3761,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * Liefert Stripe ein `client_secret`, rendert `KasseImFenster` das Formular hier —
        * kein Fenster, kein Seitenwechsel. Die Rueckkehr laeuft unveraendert ueber `cs`.
        */
-      if (start.clientSecret) { setPayBusy(false); setKasseSecret(String(start.clientSecret)); return; }
+      if (kasse.uebernehmen(start.clientSecret)) { setPayBusy(false); return; }
       // Popup blockiert → gleiche Seite. Lieber ein Seitenwechsel als eine tote Warteschleife.
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
@@ -4149,8 +4239,13 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      *
      * Diese Karte trägt alle Themen (Kuss, Geburtstag, Hochzeit, Tanz) — eine Zeile, vier
      * Landingpages.
+     *
+     * `flex flex-col` NUR IM TUNNEL (15.08.2026) — damit die Video-Karte UNTER die Schritte
+     * rutschen kann, ohne dass 280 Zeilen JSX umziehen muessen. Die Karte traegt dafuer
+     * `order-last`; alles andere behaelt seine Reihenfolge. Ausserhalb des Tunnels bleibt es
+     * ein gewoehnlicher Block, damit an den Landingpages nichts kippt.
      */
-    <div className="mt-4">
+    <div className={`mt-4${tunnelSeite ? " flex flex-col" : ""}`}>
       {/* ZURUECK IN DER SPRACHZEILE, EINE REIHE (Owner 30.07.2026: „Back Button in dem Balken
           mit den Sprachen stehen" / „in einer Reihe"). `mr-auto` schiebt ihn in der
           rechtsbuendigen Zeile nach links — Zurueck links, Sprache rechts, kein zweiter
@@ -4194,17 +4289,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         * „Guthaben: 0,00 €" entgegenzuhalten, ist keine Auskunft, sondern eine Abweisung —
         * dieselbe Ueberlegung wie bei der Kontingent-Zeile darunter.
         */}
-      {/* Nur bei echtem Guthaben (Owner 03.08.2026: „es steht falsch") — den Nullstand
-          zeigt seit heute der Header-Chip; dieselbe Zahl zweimal, einmal davon als 0,
-          liest sich als Fehler. */}
-      {typeof guthabenCents === "number" && guthabenCents > 0 && !isStaff && (
-        <p className="mb-2 text-center text-[11px] font-bold text-[#f6cf51]">
-          {/* „wie viele Videos ist das?" — gerechnet mit dem Preis DIESES Themas, nicht mit
-              dem des Kusses. Beim Tanz haette 3,50 € sonst „2 Videos" versprochen und beim
-              Klick nicht einmal fuer eines gereicht. */}
-          {T.guthaben}: {(guthabenCents / 100).toFixed(2).replace(".", ",")} € · {Math.floor(guthabenCents / videoPreisCents)} 🎬
-        </p>
-      )}
+      {/**
+        * DIE GUTHABEN-ZEILE IST RAUS (Owner 15.08.2026, mit Bild der Zeile: „das haben wir
+        * nicht mehr").
+        *
+        * Sie stammt aus der Zeit, in der Guthaben der EINZIGE Weg zum Video war: Dann musste
+        * der Kunde vor dem Kauf wissen, ob sein Stand reicht. Seit heute zahlt jeder direkt
+        * den Preis, der auf dem Knopf steht („Keine Credits") — damit beantwortet die Zeile
+        * eine Frage, die sich niemand mehr stellt, und stellt eine Huerde vor einen Kauf,
+        * der keine hat.
+        *
+        * WER SEIN GUTHABEN SEHEN WILL, sieht es weiter: Der Chip oben im Kopf steht auf
+        * jeder Seite (`GuthabenChip` in TopNav) und ist dafuer die eine Stelle.
+        */}
       {/**
         * SEIN GELD LIEGT WOANDERS (Owner 03.08.2026: „mein Kontostand zeigt 0 Euro an, aber
         * ich habe Geld drauf" — angemeldet mit der einen Adresse, 8,50 € auf der anderen).
@@ -4242,14 +4339,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             : T.aboAktiv(videosLinks, INCLUDED_VIDEOS_PER_MONTH)}
         </p>
       )}
-      {/* KEINE KARTE IM TUNNEL, SOLANGE SIE LEER IST (Owner 12.08.2026, zur Tunnel-Seite:
-          „nur dass du die kard noch in step eins eingefügt hast. Nein das brauchen wir
-          nicht" · kurz darauf: „auch in step2 raus"). Die Tunnel-Seite zeigt NUR die
-          Schritte — das Formular, dann die Kacheln. Die Karte erscheint erst, wenn ein
-          ERGEBNIS in ihr steht (Teaser/Bild/Video) — sonst wäre das bezahlte Werk nirgends
-          zu sehen. `hidden` statt Ausbau, damit `karteRef` für die Scroll-Anker eingehängt
-          bleibt. */}
-      <div ref={karteRef} className={tunnelSeite && !bild && !videoUrl && !teaser ? "hidden" : ""}>
+      {/**
+        * DIE VIDEO-KARTE GEHOERT IMMER IN DEN TUNNEL (Owner 15.08.2026: „auf dieser seite muss
+        * der user die Video card sehen unter Weiter" · „immer in den tunel die video card").
+        *
+        * DAS DREHT DIE REGEL VOM 12.08. („auch in step2 raus"), unter der die Karte auf
+        * Tunnel-Seiten `hidden` war, solange kein Ergebnis in ihr stand. Der Kunde sah damit
+        * auf der wichtigsten Seite nie, WAS herauskommt — nur Kacheln und einen Preis.
+        *
+        * ES BLEIBT BEI EINER EINZIGEN KARTE (Hausregeln `karten-fuer-videos` und
+        * `landingpage-video-ist-kachel-video`): dieselbe `EinladungKarte` wie auf der
+        * Landingpage, gefuellt mit demselben Beispielvideo — Titel oben, „made by
+        * luxurybandit.com" unten, Ton-Schalter. Keine zweite Karte, kein zweiter Spieler.
+        *
+        * IHR PLATZ HAENGT DARAN, OB SCHON ETWAS DRIN STEHT:
+        *   leer      → `order-last`, also UNTER die Schritte (Owner: „unter Weiter"). Der
+        *               Kaufknopf bleibt damit im Viewport (Regel `cta-im-viewport-template`).
+        *   Ergebnis  → an ihren alten Platz ganz oben; das bezahlte Werk steht nicht unter
+        *               einem Formular, das der Kunde schon hinter sich hat.
+        */}
+      <div ref={karteRef}
+        className={tunnelSeite && !bild && !videoUrl && !teaser ? "order-last mt-6" : ""}>
       <EinladungKarte
         sprache={lang} sie="" er="" demo
         /**
@@ -4783,7 +4893,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             {variant === "poledance" ? (
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
                 wert={POLEDANCE_SETS.find(s => s.bild === (neuerLook || V.garmentBild))?.id ?? POLEDANCE_SETS[0].id}
-                waehle={id => setNeuerLook(POLEDANCE_SETS.find(s => s.id === id)?.bild || "")}
+                waehle={id => {
+                  const bild = POLEDANCE_SETS.find(s => s.id === id)?.bild || "";
+                  setNeuerLook(bild);
+                  /* DIE WAHL UEBERLEBT DEN NEULADEN (15.08.2026, Owner: „ich habe die grüne
+                     ausgewählt gehabt" — geliefert wurde rosa). `neuerLook` war reiner
+                     Browser-Zustand; die Rueckkehr von der Kasse laedt die Seite neu und
+                     setzte ihn auf "" zurueck, also auf das erste Set. */
+                  try { localStorage.setItem(`lb_set_${variant}`, bild); } catch { /**/ }
+                }}
                 bilder={POLEDANCE_SETS_MIT_VIDEO} />
             ) : variant === "kiss" ? (
               /**
@@ -4890,6 +5008,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           es sucht. Abgewiesen wird nichts; wer die Anweisung gesehen hat, traegt die Folgen
           seines Fotos selbst (so auch im AGB). */}
       <FotoAnleitung lang={lang} className="mt-3" />
+
 
       {/* ZWEI FELDER NEBENEINANDER (Owner 31.07.2026). Kein Karussell, keine fremden Frauen —
           bei der Hochzeit sind es IHRE beiden Gesichter, und beide gehoeren auf einen
@@ -5512,6 +5631,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           Kaufknopf stehen. */}
       <p ref={schrittZweiRef} className="text-[12px] font-black uppercase tracking-wide text-white/50">{schrittTitel(T.step3)}</p>
       {/**
+        * DIE REGEL, BEVOR ER HOCHLAEDT (Owner 15.08.2026: „einen Hinweis musst du schreiben,
+        * was der User hochladen kann. Und er soll nicht erwarten, dass nackte Models
+        * rauskommen. Wenn er das trotzdem macht und was anderes rauskommt, dann bekommt er
+        * das Geld nicht zurueck").
+        *
+        * SIE STEHT VOR DEM UPLOAD, NICHT DANACH — eine Erwartung, die man erst nach der
+        * Zahlung korrigiert, ist keine Aufklaerung, sondern eine Ausrede, und sie kommt als
+        * Erstattungsforderung zurueck. Deshalb direkt unter der Schritt-Ueberschrift, ueber
+        * der Upload-Kachel.
+        *
+        * Nur dort, wo der Schluessel gefuellt ist (heute: der Tanz) — kein anderes Thema
+        * bekommt dadurch eine Zeile, die es nicht braucht.
+        */}
+      {T.upRegel && (
+        <p className="mt-1 text-[11.5px] font-bold leading-snug text-white/50">{T.upRegel}</p>
+      )}
+      {/**
         * DIE KACHEL-REIHE DES VERSPRECHENS — SCHRITT 2 DES EINEN TUNNELS (KONZEPT-TUNNEL.md,
         * Owner 12.08.2026: „Stepp zwei das was stepp drei ist wo links ein platzahlter ist
         * für Foto oder Video upload dann generieren"). Vorbild ist wortwoertlich dieser
@@ -5785,12 +5921,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             }}
           />
 
-          {V.nurSie && variant === "poledance" && (beispiele[beispielVorn] || refVideo || beispielVideo) && (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
-            <video src={`${beispiele[beispielVorn] || refVideo || beispielVideo}#t=0.1`} muted playsInline preload="metadata"
-              className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover" />
-          )}
-          {V.nurSie && variant !== "poledance" && !!V.garmentBild && (
+          {/**
+            * NEBEN SEINEM FOTO STEHT SEINE WAHL — NICHT IRGENDEIN BEISPIEL (Owner 15.08.2026,
+            * mit Bild: „falsches bild wieder").
+            *
+            * Hier stand beim Tanz ein `<video>` mit `beispiele[beispielVorn]` — der Folie, die
+            * im Karussell der Landingpage GERADE VORN war. Wer „Black Leather" gewaehlt hatte,
+            * sah zwei Schritte spaeter eine fremde Frau in rot: eine Ankuendigung, die zu
+            * seinem Auftrag nicht passt, und das direkt ueber dem Kaufknopf.
+            *
+            * Der Tanz laeuft jetzt durch dieselbe Kachel wie Geburtstag und Versprechen — die
+            * zeigt `neuerLook || V.garmentBild`, also GENAU das Set, das beim Erzeugen als
+            * `@image2` an Pixverse geht (siehe `refOutfit` in `generate()`). Damit koennen
+            * Anzeige und Auftrag nicht mehr auseinanderlaufen; es gibt nur noch eine Quelle.
+            */}
+          {V.nurSie && !!(neuerLook || V.garmentBild) && (
             /**
               * DIE KARTE ZEIGT DEN GEWAEHLTEN LOOK (Owner 07.08.2026, mit Bild: „und ich
               * waehle den Mann aus und am ende kommt die Frau").
@@ -6370,9 +6515,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* OHNE eigene Ueberschrift: Stripe nennt das Produkt in seinem Formular schon selbst
           („Future Self Program"). Eine zweite Zeile darueber — noch dazu die Werbezeile
           `vorlagenTitel` („Aus einem Satz wird ein Beweis") — sagt an der Kasse nichts. */}
-      {kasseSecret && (
-        <KasseImFenster clientSecret={kasseSecret} onSchliessen={() => setKasseSecret("")} />
-      )}
+      {/**
+        * `key={kasseSecret}` IST HIER PFLICHT, KEIN SCHMUCK (15.08.2026).
+        *
+        * Stripes Provider nimmt ein neues `client_secret` NICHT an — die Bibliothek sagt es
+        * woertlich: „You cannot change the client secret after setting it. Unmount and create
+        * a new instance". Ohne den Schluessel blieb beim ZWEITEN Tippen auf Kaufen die ERSTE
+        * Kassensitzung stehen: Der Server legte brav eine neue an, der Kunde sah unveraendert
+        * die alte — und weil das Formular schon im Bild stand, sah es aus, als passiere beim
+        * Tippen ueberhaupt nichts.
+        *
+        * Der Schluessel wechselt mit jeder Sitzung, React haengt die alte aus und die neue
+        * ein. Damit stimmt auch der Betrag wieder, wenn sich zwischen zwei Anlaeufen etwas
+        * am Auftrag geaendert hat.
+        */}
+      {kasse.block}
       {aufladeWahl && (
         <AufladeWaehler
           lang={lang} stand={guthabenCents} preis={videoPreisCents}

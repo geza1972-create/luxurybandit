@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { monate?: number; returnTo?: string; email?: string; empfaenger?: string };
+  const body = (await request.json().catch(() => ({}))) as { monate?: number; returnTo?: string; email?: string; empfaenger?: string; eingebettet?: boolean; lang?: string };
 
   /**
    * ZWEI ADRESSEN: DEINE UND DIE DES BESCHENKTEN (Owner 05.08.2026: „man muss bei denen zwei
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
   const returnTo = String(body.returnTo ?? "/themes/chat");
   try {
-    const { id, url } = await createPackCheckout({
+    const { id, url, clientSecret } = await createPackCheckout({
       /**
        * KEINE PREIS-KENNUNG MEHR (Owner 13.08.2026: „das kostet wie Hochzeit. 9,99 dann
        * 14,99 im monat") — die alte Kennung trug fest 14,99 € und hätte den neuen
@@ -72,8 +72,12 @@ export async function POST(request: Request) {
       successUrl: `${origin}${returnTo}${returnTo.includes("?") ? "&" : "?"}chat_paid=1`,
       cancelUrl: `${origin}${returnTo}`,
       email: String(body.email ?? "").trim() || undefined,
+      /* KASSE IN DER SEITE + SPRACHE DER SEITE (15.08.2026, Owner: „die muss du alle
+         umbauen"). Ohne oeffentlichen Stripe-Schluessel bleibt es beim Seitenwechsel. */
+      eingebettet: body?.eingebettet === true,
+      sprache: String(body?.lang ?? "").trim().toLowerCase(),
     });
-    return NextResponse.json({ url, sessionId: id, monate: stufe.monate, cents: stufe.cents });
+    return NextResponse.json({ url, sessionId: id, monate: stufe.monate, cents: stufe.cents, ...(clientSecret ? { clientSecret } : {}) });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Checkout failed." }, { status: 500 });
   }

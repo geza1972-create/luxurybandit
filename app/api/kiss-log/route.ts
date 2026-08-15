@@ -6,6 +6,7 @@ import { GNADENFRIST_MS, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
+import { POLEDANCE_SETS } from "@/lib/poledance";
 import { zieleSaeubern } from "@/lib/future-ziele";
 
 /**
@@ -24,7 +25,12 @@ import { zieleSaeubern } from "@/lib/future-ziele";
  * Ein Wertevorrat, der ein Thema nicht kennt, verwirft dessen Wahl lautlos. Deshalb kommt
  * hier jede Look-Liste des Hauses hinein, nicht eine.
  */
-const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS].map(l => l.id);
+/* MIT DEN TANZ-SETS (15.08.2026, Owner: „der generiert nur mit der ersten wardrobe, also mit
+   dem rosa" · „ich habe die grüne ausgewählt gehabt"). Genau der Fall, vor dem der Absatz
+   darueber warnt — nur diesmal fiel die Wahl nicht beim Versprechen heraus, sondern beim
+   Tanz: `haus/rot/schwarz/blau/gruen/lack/rotstudio` standen in keiner Liste, also verwarf
+   die Route sie stillschweigend, und die Erzeugung nahm den Rueckfall — das erste Set. */
+const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS, ...POLEDANCE_SETS].map(l => l.id);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

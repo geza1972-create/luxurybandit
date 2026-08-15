@@ -23,7 +23,10 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean; einwilligung?: boolean; eingebettet?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean; einwilligung?: boolean; eingebettet?: boolean; lang?: string };
+  /* DIE SPRACHE DER SEITE REIST BIS ZU STRIPE (15.08.2026) — sonst uebernimmt die Kasse
+     die Browsersprache und widerspricht dem Schalter oben rechts. Siehe lib/stripe.ts. */
+  const lang = String(body?.lang ?? "").trim().toLowerCase().slice(0, 5);
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email required." }, { status: 400 });
     }
     try {
-      const { id, url } = await createTryonCheckout({
+      const { id, url, clientSecret } = await createTryonCheckout({
         amount: EXTRA_VIDEO_CENTS,
         currency: "eur",
         productName: "One more video",
@@ -66,8 +69,13 @@ export async function POST(request: Request) {
         // sperrt es. Ein zweites Eintippen kann nur falsch sein, nie richtiger.
         email,
         metadata: { kind: "model-video", email, ...(genId ? { genId } : {}) },
+        /* Auch „ein Video mehr" bleibt in der Seite — dieselbe Begruendung wie beim
+           Aufladen unten (15.08.2026). Ein Kaufweg, der aus der Seite springt, ist genau
+           der, an dem in der Facebook-App 11-mal niemand ankam. */
+        eingebettet: body?.eingebettet === true,
+        sprache: lang,
       });
-      return NextResponse.json({ url, sessionId: id });
+      return NextResponse.json({ url, sessionId: id, ...(clientSecret ? { clientSecret } : {}) });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
     }
@@ -120,6 +128,21 @@ export async function POST(request: Request) {
            die Vertrauensliste — und er kostet den Faelscher echtes Geld. */
         metadata: { kind: "aufladung", email, cents: String(stufe), ...(genId ? { genId } : {}),
                     ...(geraet ? { device: geraet } : {}) },
+        /**
+         * DIE AUFLADUNG BLEIBT AUSSERHALB DER SEITE — SO GEWOLLT (Owner 15.08.2026, auf die
+         * Rueckfrage: „Aufladung raus aus der Seite").
+         *
+         * Sie lief hier am selben Tag kurz eingebettet, nachdem der Tanz-Knopf (`nurGuthaben`,
+         * Kontostand 0,00 €) den Kunden zwangslaeufig ueber die Aufladung schickte und die
+         * Kasse dort noch aufsprang. Der Owner hat sich das angesehen und dagegen entschieden.
+         *
+         * ALSO KEIN `eingebettet` IN DIESEM ZWEIG. Wer es zurueckholt, dreht eine
+         * Owner-Entscheidung um, nicht ein Versehen. Der EINMALKAUF bleibt eingebettet.
+         *
+         * `sprache` gilt weiter: Auch die Kasse auf Stripes eigener Seite soll die Sprache
+         * unserer Seite sprechen, nicht die des Browsers.
+         */
+        sprache: lang,
       });
       return NextResponse.json({ url, sessionId: id });
     } catch (e) {
@@ -322,6 +345,7 @@ export async function POST(request: Request) {
         /* DIE KASSE IN DER SEITE (15.08.2026). Der Trichter fragt danach; sagt er nichts,
            bleibt alles beim Seitenwechsel — so kann kein alter Aufrufer kaputtgehen. */
         eingebettet: body?.eingebettet === true,
+        sprache: lang,
       });
       return NextResponse.json({ url, sessionId: id, ...(clientSecret ? { clientSecret } : {}) });
     } catch (e) {

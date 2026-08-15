@@ -232,3 +232,77 @@ export async function fashnCutout(garmentSrc: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * ANZIEHEN AUF DEM SERVER (15.08.2026, Owner: „das Bild vom User, das Bild von FASHN und
+ * Video" · „und es werden sogar 4 sein").
+ *
+ * WARUM ES DAS BRAUCHT: Im Browser zieht der Trichter ueber `/api/generate-fashn` an. Die
+ * NACHLIEFERUNG hat diesen Weg nicht — sie lief bisher direkt zu Pixverse und konnte
+ * Ein-Foto-Themen deshalb ueberhaupt nicht bedienen („Sein Foto fehlt im Speicher.", 21
+ * Versuche an einem einzigen Tanz-Auftrag). Mit dieser Funktion kann der Server dieselbe
+ * Kette fahren wie der Browser: Kundenfoto + Set → angezogenes Bild → Pixverse.
+ *
+ * DER PORTRAET-ZUSCHNITT STECKT IM PROMPT DES AUFRUFERS, nicht hier: Er ist der Grund,
+ * warum Pixverse das Ergebnis annimmt (ein Ganzkoerperbild in Waesche weist es ab), aber er
+ * gehoert zum jeweiligen Produkt, nicht zur Technik.
+ *
+ * Gibt `null` zurueck, wenn irgendetwas klemmt — der Aufrufer laeuft dann mit dem
+ * Ausgangsfoto weiter, statt den bezahlten Auftrag sterben zu lassen.
+ */
+export async function fashnAnziehen(personSrc: string, garmentSrc: string, prompt: string): Promise<string | null> {
+  const key = process.env.FASHN_API_KEY;
+  if (!key) return null;
+  try {
+    const [p, g] = await Promise.all([fetchBuf(personSrc), fetchBuf(garmentSrc)]);
+    if (!p || !g) return null;
+    const create = await fetch(FASHN_RUN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model_name: "tryon-max",
+        inputs: {
+          model_image: `data:${p.type};base64,${p.buf.toString("base64")}`,
+          product_image: `data:${g.type};base64,${g.buf.toString("base64")}`,
+          prompt,
+          aspect_ratio: "9:16",
+          resolution: "1k",
+          generation_mode: "balanced",
+          num_images: 1,
+          output_format: "png",
+          return_base64: true,
+        },
+      }),
+    });
+    const cp = await create.json().catch(() => null);
+    const id = cp?.id;
+    if (!create.ok || !id) {
+      console.error("[tryon] fashn anziehen create failed:", cp?.error ?? create.status);
+      return null;
+    }
+    for (let i = 0; i < 70; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const st = await fetch(`${FASHN_STATUS}/${id}`, { headers: { Authorization: `Bearer ${key}` } })
+        .then(r => r.json()).catch(() => null);
+      const status = String(st?.status ?? "").toLowerCase();
+      if (status === "completed") {
+        const out = st?.output?.[0];
+        if (typeof out === "string" && out.startsWith("data:image/")) return out;
+        if (typeof out === "string") {
+          const ir = await fetch(out);
+          if (!ir.ok) return null;
+          return `data:image/png;base64,${Buffer.from(await ir.arrayBuffer()).toString("base64")}`;
+        }
+        return null;
+      }
+      if (status === "failed") {
+        console.error("[tryon] fashn anziehen failed:", st?.error ?? "unknown");
+        return null;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error("[tryon] fashn anziehen error:", e);
+    return null;
+  }
+}

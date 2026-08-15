@@ -34,9 +34,64 @@
  * kein „skin". Deshalb hat Pixverse den Auftrag angenommen — der Beweis liegt als
  * `public/Pooldance/poledance.mp4` im Repo.
  */
+/**
+ * NEU AUF DEM TRY-ON-GERUEST (Owner 15.08.2026: „es ist der selbe, nur der prompt ist anders.
+ * Statt rumlaufen dann tanzen an der Stange. Wir haben den prompt schon").
+ *
+ * Das hebt die Regel „NICHTS DARAN AENDERN" darueber auf — und zwar auf Ansage des Owners,
+ * nicht als Verbesserungsidee. Der Anlass: ein Lauf, in dem das Set UEBER ihrem schwarzen
+ * Rollkragen lag (15.08.2026). Sein erstes Video war „perfekt in rosa", die Kette ist also in
+ * Ordnung; der Text hat nur bei einem hochgeschlossenen Foto nicht getragen.
+ *
+ * ZWEI DINGE KOMMEN VOM TRY-ON, der genau dasselbe tut (anziehen und filmen in EINEM Lauf) —
+ * `REF_PRESENT_PROMPT` in app/api/generate-tryon-video:
+ *
+ *   1. DIE BENANNTEN PLATZHALTER `@person` / `@outfit`. Die Route sucht ausdruecklich nach
+ *      diesen Namen; `@image1`/`@image2` trafen nur ueber den Rueckfall „erstes Token ist die
+ *      Person". Das war bisher richtig geraten — geraten bleibt es trotzdem.
+ *   2. DER SATZ, DER DAS AUSSEHEN FESTHAELT („Keep @person face and appearance … exactly the
+ *      same"). Er fehlte hier ganz.
+ *
+ * Geblieben ist die Handlung des Owners (Zeitlupe, Stange, Neon) und die Umzieh-Klausel, die
+ * am 03.08. aus einem echten Fehllauf entstand. Neutrale Woerter wie immer — kein „lingerie",
+ * kein „lace", kein „skin".
+ *
+ * KEINE UMZIEH-KLAUSEL MEHR — PIXVERSE ZIEHT NICHTS AUS (Owner 15.08.2026: „Pixverse entfernt
+ * keine Klamotten"). Das ist die Einsicht, an der die ganze Kette haengt:
+ *
+ * Pixverse LEGT AN, es ENTFERNT NICHT. Jeder Versuch, das Umziehen in den Text zu schreiben,
+ * ist deshalb entweder wirkungslos (das Set lag ueber ihrem Rollkragen) oder faellt dem
+ * Textfilter zum Opfer. Beides an einem Tag gesehen: erst der Pulli unter dem Set, dann
+ * „The text you entered contains sensitive information. Please re-enter." fuer den Versuch,
+ * es deutlicher zu sagen („no top, no shirt, no dress, no sleeves" — eine Liste verneinter
+ * Kleidungsstuecke liest ein Filter als Ausziehen).
+ *
+ * ALSO ZIEHT FASHN VORHER AN (siehe `KissFunnel`, Zweig `V.nurSie`): An Pixverse geht ein Foto,
+ * auf dem sie das Set BEREITS TRAEGT — plus dasselbe Set-Bild als `@outfit`, das ausserdem die
+ * Szene mitbringt (Neon, Stange). Der Prompt muss ueber Kleidung nun gar nichts mehr sagen; er
+ * beschreibt nur noch Bewegung und Licht und haelt Gesicht und Outfit fest.
+ *
+ * WER HIER JE WIEDER „replace/remove/without clothing" HINEINSCHREIBT, baut beide Fehler auf
+ * einmal zurueck.
+ */
 export const POLEDANCE_PROMPT =
-  "The woman from @image1 dances in slow motion on a pole in a club, wearing the outfit " +
-  "from @image2. Neon colors and lighting.";
+  "@person dances in slow motion on a pole in a neon-lit club, wearing the @outfit. " +
+  "Keep @person face, hair and appearance and the @outfit exactly the same. " +
+  /**
+   * DER BILDAUSSCHNITT GEHOERT IN DEN PROMPT (Owner 15.08.2026: „hier musst du sagen, er soll
+   * die Frau bis zum Knie zeigen").
+   *
+   * WARUM: An Pixverse geht das FASHN-Bild, und das ist ein Portraet — Kopf, Schultern, oberer
+   * Oberkoerper. Alles darunter erfindet Pixverse ohnehin; ohne Ansage entscheidet es auch den
+   * Schnitt selbst und bleibt gern zu eng am Gesicht. Fuer einen Tanz an der Stange ist das
+   * der falsche Ausschnitt.
+   *
+   * Bewusst als KAMERA-Anweisung formuliert („medium-wide shot", „in frame") statt als
+   * Aufzaehlung von Koerperteilen — dieselbe Vorsicht wie beim Umziehen: Was nach Anatomie
+   * klingt, faellt schneller in den Textfilter als was nach Regie klingt.
+   */
+  "Medium-wide shot: @person is in frame from head to knees, the pole fully visible. " +
+  "Fluid calm motion, photorealistic, neon colors and lighting. No text, no letters, no logos.";
 
 /**
  * DAS FREIGESTELLTE SET — das zweite Referenzbild.
@@ -133,13 +188,18 @@ export const POLEDANCE_SETS: { id: string; bild: string; name: string }[] = [
  * Beides steht im Prompt und nicht im Bild, weil wir die Bilder des Owners nicht anfassen —
  * sie sind in Pixverse getestet, so wie sie sind.
  */
-export const poledancePromptFuerSet = (): string =>
-  POLEDANCE_PROMPT +
-  // SIE ZIEHT SICH UM, SIE ZIEHT NICHT AN (Owner 03.08.2026: „der hat was Grausames gemacht,
-  // ich habe sowas noch nie gesehen" — das Set lag UEBER ihrem roten Oberteil, sie trug beides).
-  " She wears ONLY the outfit from @image2 and nothing else; it completely replaces her own" +
-  " clothes. She is not wearing any top, shirt, dress or sleeves underneath or over it." +
-  " No text, no letters, no writing anywhere in the frame.";
+/**
+ * DER ANHANG IST IN DEN GRUNDTEXT GEWANDERT (15.08.2026) — und das musste er, nicht aus
+ * Ordnungsliebe: Er sprach noch von `@image2`, waehrend der neue Grundtext `@person`/`@outfit`
+ * benutzt. Zusammen waeren das DREI Platzhalter fuer ZWEI Bilder gewesen. Die Route bindet das
+ * erste und ein zweites Token an die beiden Bildplaetze — was uebrig bleibt, haengt in der
+ * Luft, und Pixverse fuellt es mit einer Erfindung. Genau so entstanden am 03.08. „falsche
+ * Personen im Video".
+ *
+ * Die Funktion bleibt als EINE Stelle stehen, an der der Lauf-Prompt entsteht — der Aufrufer
+ * im Trichter muss davon nichts wissen.
+ */
+export const poledancePromptFuerSet = (): string => POLEDANCE_PROMPT;
 
 /**
  * DER AUSTAUSCH-PROMPT — „REPLACE MODEL", DER ECHTE.

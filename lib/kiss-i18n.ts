@@ -25,6 +25,15 @@ export type KissText = {
   /** EIN Knopf-Wort für ALLE Tunnel (Owner 12.08.2026: „Generate now - Preis"). */
   generateNow: string;
   pickHint: string; upTitle: string; upHint: string; tapChange: string;
+  /**
+   * DIE REGEL UEBER DEM UPLOAD (Owner 15.08.2026: „einen Hinweis musst du schreiben, was der
+   * User hochladen kann. Und er soll nicht erwarten, dass nackte Models rauskommen. Wenn er
+   * das trotzdem macht und was anderes rauskommt, dann bekommt er das Geld nicht zurueck").
+   *
+   * OPTIONAL, weil es heute nur den Tanz betrifft — dort entsteht die falsche Erwartung.
+   * Wer sie fuer ein weiteres Thema braucht, fuellt den Schluessel dort und sonst nichts.
+   */
+  upRegel?: string;
   /** Sichtbarer Hinweis, wenn Bild/Video fertig sind, aber die Namen noch das Beispiel zeigen
    *  (03.08.2026: „ich kann es nicht sharen" — der Verschicken-Knopf blieb sonst stumm weg). */
   namenVorSenden: string;
@@ -1546,7 +1555,7 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "For your anniversary · for his birthday · when you are in different cities · after a long week apart · when you want to say it without words",
     grund: "A photo gets a heart back. A video of you on the pole he watches again.",
     step1: "1 · Your photo", step3: "2 · Your dance", pickFirst: "Upload your photo",
-    upTitle: "Your photo", upHint: "One photo of you — full body works best, so there is something to move.",
+    upTitle: "Your photo", upHint: "One photo of you — head and shoulders is enough. The set does the rest.", upRegel: "Upload a normal photo of yourself, dressed, face clearly visible. You get yourself in the set you picked, dancing. It is not a nude video — upload something else and you get something else, and that is not covered by the money-back promise.",
     mailQuestion: "Where should we send your video?",
     namenFrage: "His name — it appears on the card (optional)", namenPlatzhalter: "Chris",
     heroA: "Surprise him with ", heroY: "a hot pole dance", heroB: " 💃",
@@ -1576,7 +1585,7 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "Zum Jahrestag · zu seinem Geburtstag · wenn ihr in verschiedenen Städten seid · nach einer langen Woche getrennt · wenn du es ohne Worte sagen willst",
     grund: "Auf ein Foto kommt ein Herz zurück. Ein Video, in dem du an der Stange tanzt, sieht er wieder und wieder.",
     step1: "1 · Dein Foto", step3: "2 · Dein Tanz", pickFirst: "Lade dein Foto hoch",
-    upTitle: "Dein Foto", upHint: "Ein Foto von dir — am besten ganzer Körper, damit sich etwas bewegen kann.",
+    upTitle: "Dein Foto", upHint: "Ein Foto von dir — Kopf und Schultern reichen. Den Rest macht das Set.", upRegel: "Lade ein normales Foto von dir hoch, angezogen, Gesicht gut sichtbar. Du bekommst dich im gewählten Set, tanzend. Es ist kein Nacktvideo — wer etwas anderes hochlädt, bekommt etwas anderes, und dafür gilt die Geld-zurück-Zusage nicht.",
     mailQuestion: "Wohin sollen wir dein Video schicken?",
     namenFrage: "Sein Name — er erscheint auf der Karte (freiwillig)", namenPlatzhalter: "Chris",
     heroA: "Überrasch ihn mit ", heroY: "einem heißen Poledance", heroB: " 💃",
@@ -1606,12 +1615,13 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "De aniversarea voastră · de ziua lui · când sunteți în orașe diferite · după o săptămână lungă departe · când vrei să o spui fără cuvinte",
     grund: "La o poză primești o inimioară. Un videoclip în care dansezi la bară îl privește din nou.",
     step1: "1 · Poza ta", step3: "2 · Dansul tău", pickFirst: "Încarcă poza ta",
-    upTitle: "Poza ta", upHint: "O poză cu tine — cel mai bine tot corpul, ca să aibă ce mișca.",
+    upTitle: "Poza ta", upHint: "O poză cu tine — ajung capul și umerii. Restul îl face ținuta.", upRegel: "Încarcă o poză normală cu tine, îmbrăcată, cu fața bine vizibilă. Primești chiar pe tine în ținuta aleasă, dansând. Nu este un video nud — dacă încarci altceva, primești altceva, iar garanția de returnare nu se aplică.",
     mailQuestion: "Unde să-ți trimitem videoclipul?",
     namenFrage: "Numele lui — apare pe felicitare (opțional)", namenPlatzhalter: "Chris",
     heroA: "Surprinde-l cu ", heroY: "un dans la bară", heroB: " 💃",
     wieGeht: ["Încarcă o singură poză cu tine.", "Te punem în ținută și la bară.", "Trimite-i-l — doar lui."],
     wieGehtPrivat: "Nimeni altcineva nu îl vede. Videoclipul rămâne privat dacă nu îl trimiți tu.",
+    karteTitel: (n: string) => (n ? `Cadoul meu pentru ${n}: un dans` : "Cadoul meu pentru tine: un dans"),
     priceLine: "Video {tanz}", buyOnce: "Video fierbinte {tanz}",
     guthabenVorabHinweis: "Un videoclip costă {tanz}. Plătești din soldul contului — cea mai mică reîncărcare e {topup}, iar restul rămâne al tău pentru alte videoclipuri.",
     makeVideo: "Fă-mi videoclipul cu dans — {tanz} 🔥", makingKiss: "Se face videoclipul tău …",
@@ -1635,12 +1645,13 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "Por vuestro aniversario · por su cumpleaños · cuando estáis en ciudades distintas · después de una semana larga separados · cuando quieres decírselo sin palabras",
     grund: "A una foto te devuelven un corazón. Un vídeo en el que bailas en la barra lo vuelve a ver.",
     step1: "1 · Tu foto", step3: "2 · Tu baile", pickFirst: "Sube tu foto",
-    upTitle: "Tu foto", upHint: "Una foto tuya — mejor de cuerpo entero, para que haya algo que mover.",
+    upTitle: "Tu foto", upHint: "Una foto tuya — basta cabeza y hombros. El resto lo hace el conjunto.", upRegel: "Sube una foto normal tuya, vestida y con la cara bien visible. Recibes a ti misma con el conjunto elegido, bailando. No es un vídeo de desnudos: si subes otra cosa, recibes otra cosa, y la garantía de devolución no se aplica.",
     mailQuestion: "¿Adónde te enviamos tu vídeo?",
     namenFrage: "Su nombre — aparece en la tarjeta (opcional)", namenPlatzhalter: "Chris",
     heroA: "Sorpréndelo con ", heroY: "un baile en barra", heroB: " 💃",
     wieGeht: ["Sube una sola foto tuya.", "Te ponemos el conjunto y te subimos a la barra.", "Envíaselo — solo a él."],
     wieGehtPrivat: "Nadie más lo ve. Tu vídeo sigue siendo privado mientras no lo envíes tú.",
+    karteTitel: (n: string) => (n ? `Mi regalo para ${n}: un baile` : "Mi regalo para ti: un baile"),
     priceLine: "Vídeo {tanz}", buyOnce: "Vídeo caliente {tanz}",
     guthabenVorabHinweis: "Un vídeo cuesta {tanz}. Pagas con el saldo de tu cuenta — la recarga más pequeña es {topup}, y lo que sobre sigue siendo tuyo para más vídeos.",
     makeVideo: "Hacer mi vídeo de baile — {tanz} 🔥", makingKiss: "Creando tu vídeo de baile …",
@@ -1664,12 +1675,13 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "Pour votre anniversaire · pour son anniversaire à lui · quand vous êtes dans deux villes · après une longue semaine loin l'un de l'autre · quand tu veux le dire sans mots",
     grund: "À une photo, il répond par un cœur. Une vidéo où tu danses à la barre, il la regarde encore.",
     step1: "1 · Ta photo", step3: "2 · Ta danse", pickFirst: "Envoie ta photo",
-    upTitle: "Ta photo", upHint: "Une photo de toi — de préférence en entier, pour qu'il y ait de quoi bouger.",
+    upTitle: "Ta photo", upHint: "Une photo de toi — la tête et les épaules suffisent. La tenue fait le reste.", upRegel: "Envoie une photo normale de toi, habillée, le visage bien visible. Tu te retrouves dans la tenue choisie, en train de danser. Ce n\u2019est pas une vidéo de nu — si tu envoies autre chose, tu obtiens autre chose, et la garantie de remboursement ne s\u2019applique pas.",
     mailQuestion: "Où devons-nous envoyer ta vidéo ?",
     namenFrage: "Son prénom — il apparaît sur la carte (facultatif)", namenPlatzhalter: "Chris",
     heroA: "Surprends-le avec ", heroY: "une danse à la barre", heroB: " 💃",
     wieGeht: ["Envoie une seule photo de toi.", "On te met la tenue et on te place à la barre.", "Envoie-la-lui — à lui seul."],
     wieGehtPrivat: "Personne d'autre ne la voit. Ta vidéo reste privée tant que tu ne l'envoies pas toi-même.",
+    karteTitel: (n: string) => (n ? `Mon cadeau pour ${n} : une danse` : "Mon cadeau pour toi : une danse"),
     priceLine: "Vidéo {tanz}", buyOnce: "Vidéo chaude {tanz}",
     guthabenVorabHinweis: "Une vidéo coûte {tanz}. Tu paies avec le solde de ton compte — la plus petite recharge est {topup}, et ce qui reste t'appartient pour d'autres vidéos.",
     makeVideo: "Faire ma vidéo de danse — {tanz} 🔥", makingKiss: "Ta vidéo de danse se fait …",
@@ -1693,12 +1705,13 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "Pelo vosso aniversário · pelo aniversário dele · quando estão em cidades diferentes · depois de uma semana longa longe · quando queres dizê-lo sem palavras",
     grund: "A uma foto respondem com um coração. Um vídeo em que danças no varão ele vê outra vez.",
     step1: "1 · A tua foto", step3: "2 · A tua dança", pickFirst: "Carrega a tua foto",
-    upTitle: "A tua foto", upHint: "Uma foto tua — de preferência de corpo inteiro, para haver o que mexer.",
+    upTitle: "A tua foto", upHint: "Uma foto tua — chega a cabeça e os ombros. O resto fá-lo o conjunto.", upRegel: "Carrega uma foto normal tua, vestida e com o rosto bem visível. Recebes-te a ti no conjunto escolhido, a dançar. Não é um vídeo de nu — se carregares outra coisa, recebes outra coisa, e a garantia de devolução não se aplica.",
     mailQuestion: "Para onde enviamos o teu vídeo?",
     namenFrage: "O nome dele — aparece no cartão (opcional)", namenPlatzhalter: "Chris",
     heroA: "Surpreende-o com ", heroY: "uma dança no varão", heroB: " 💃",
     wieGeht: ["Carrega uma única foto tua.", "Vestimos-te o conjunto e pomos-te no varão.", "Envia-lho — só a ele."],
     wieGehtPrivat: "Mais ninguém o vê. O teu vídeo fica privado enquanto não o enviares tu.",
+    karteTitel: (n: string) => (n ? `O meu presente para ${n}: uma dança` : "O meu presente para ti: uma dança"),
     priceLine: "Vídeo {tanz}", buyOnce: "Vídeo quente {tanz}",
     guthabenVorabHinweis: "Um vídeo custa {tanz}. Pagas com o saldo da tua conta — o carregamento mais pequeno é {topup}, e o que sobrar continua a ser teu para mais vídeos.",
     makeVideo: "Fazer o meu vídeo de dança — {tanz} 🔥", makingKiss: "A fazer o teu vídeo de dança …",
@@ -1722,12 +1735,13 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
     anlass: "Per il vostro anniversario · per il suo compleanno · quando siete in due città · dopo una settimana lunga lontani · quando vuoi dirlo senza parole",
     grund: "A una foto risponde con un cuore. Un video in cui balli alla pole se lo riguarda.",
     step1: "1 · La tua foto", step3: "2 · Il tuo ballo", pickFirst: "Carica la tua foto",
-    upTitle: "La tua foto", upHint: "Una foto di te — meglio a figura intera, così c'è qualcosa da muovere.",
+    upTitle: "La tua foto", upHint: "Una foto di te — bastano testa e spalle. Al resto pensa il completo.", upRegel: "Carica una foto normale di te, vestita e con il viso ben visibile. Ricevi te stessa nel completo scelto, mentre balli. Non è un video di nudo: se carichi altro, ottieni altro, e la garanzia di rimborso non vale.",
     mailQuestion: "Dove ti mandiamo il video?",
     namenFrage: "Il suo nome — compare sulla card (facoltativo)", namenPlatzhalter: "Chris",
     heroA: "Sorprendilo con ", heroY: "un ballo alla pole", heroB: " 💃",
     wieGeht: ["Carica una sola foto di te.", "Ti mettiamo il completo e ti portiamo alla pole.", "Mandaglielo — solo a lui."],
     wieGehtPrivat: "Non lo vede nessun altro. Il tuo video resta privato finché non lo mandi tu.",
+    karteTitel: (n: string) => (n ? `Il mio regalo per ${n}: un ballo` : "Il mio regalo per te: un ballo"),
     priceLine: "Video {tanz}", buyOnce: "Video bollente {tanz}",
     guthabenVorabHinweis: "Un video costa {tanz}. Paghi dal saldo del tuo conto — la ricarica più piccola è {topup}, e quello che avanza resta tuo per altri video.",
     makeVideo: "Fai il mio video di ballo — {tanz} 🔥", makingKiss: "Stiamo facendo il tuo video di ballo …",
