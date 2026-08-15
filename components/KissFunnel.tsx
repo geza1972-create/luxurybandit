@@ -3133,19 +3133,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
         body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: refPerson, garment: refOutfit,
           /**
-           * DAS REFERENZVIDEO FUER DIE BEWEGUNGSSTEUERUNG (Owner 03.08.2026: „wir geben die
-           * Videos als Referenz"). Als VOLLSTAENDIGE Adresse, weil Pixverse es selbst holt —
-           * ein Pfad wie „/Pooldance/…" ist nur im Browser eine Adresse.
+           * KEIN `mimicVideoUrl` MEHR BEIM TANZ (Owner 15.08.2026: „die Frau wird nicht in den
+           * ausgewählten Klamotten generiert und die Bewegung ist zu schnell, nicht
+           * slowmotion" — und zur Herkunft: „das war doch nur für Versprechen gedacht, weil
+           * man nur dort ein Video als Referenz hochlädt, für die anderen bleibt es wie es
+           * war").
            *
-           * Nur beim Tanz und nur, wenn ein Beispielvideo da ist. Die Route faellt von selbst
-           * auf den Referenz-Modus zurueck, wenn sie es nicht erreichen kann (lokal).
+           * WAS HIER STAND (seit e6420f5, 03.08.2026) und was es anrichtete: Der Tanz schickte
+           * IMMER ein Beispielvideo als Bewegungsvorlage mit. Die Route nimmt dann
+           * `pixverseStartMimic` — und die Funktion kennt nur drei Dinge: Referenzvideo, ihr
+           * Foto, Aufloesung. Sie bekommt WEDER `garment` (das gewaehlte Set — deshalb trug
+           * sie es nie; die ganze Set-Auswahl war fuer die Erzeugung wirkungslos) NOCH den
+           * Prompt aus lib/poledance.ts NOCH `slowmo`. Die Bewegung kam 1:1 aus dem
+           * Referenzclip, also zu schnell. Der gute Weg (`pixverseStartReference`, mit
+           * Kleidung, Prompt und Zeitlupe) lief nur, wenn Mimic SCHEITERTE.
+           *
+           * Ohne dieses Feld faellt der Tanz zurueck auf Fusion: ihr Foto als `person`, das
+           * gewaehlte Set als `garment`, der woertliche Owner-Prompt — das Rezept, mit dem die
+           * Beispielvideos entstanden sind.
            */
-          /* Vorrang: die vordere Folie (das, was er gerade ansieht) — die alte gespeicherte
-             Wahl (`lb_tanz_ref`) nur noch als Rückfall, seit die Auswahl-Karte weg ist:
-             Ein gespeicherter Griff von gestern darf nicht überstimmen, was er sieht. */
-          ...(variant === "poledance" && (beispiele[beispielVorn] || refVideo || beispielVideo)
-            ? { mimicVideoUrl: new URL(beispiele[beispielVorn] || refVideo || beispielVideo, window.location.origin).href }
-            : {}),
           /**
            * 540p BEIM TANZ (`hd`), nicht 360p.
            *
