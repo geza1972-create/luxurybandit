@@ -34,6 +34,14 @@ export type HolidaySzene = {
   id: string;
   /** Kurzname für die Kachel-Beschriftung im Admin — Kunden sehen nur das Bild. */
   name: string;
+  /**
+   * DER NAME IN DEN SIEBEN SPRACHEN (15.08.2026). Der Kommentar über `name` stimmte nicht
+   * mehr: Seit die Szenenwahl grosse Kacheln zeigt, steht der Name DARUNTER und der Kunde
+   * liest ihn — auf einer englischen Seite stand „Strand bei Sonnenuntergang". Dasselbe
+   * Muster wie `KUSS_SZENEN.namen` und `GEBURTSTAG_LOOKS.namen`: fehlt eine Sprache, faellt
+   * es auf `name` zurueck.
+   */
+  namen?: Record<string, string>;
   /** Ort + Licht, an beide Aufträge (Bild und Video) angehängt. */
   ort: string;
   /**
@@ -55,20 +63,31 @@ export type HolidaySzene = {
 export const HOLIDAY_SZENEN: HolidaySzene[] = [
   {
     id: "strand", name: "Strand bei Sonnenuntergang", kachel: "/szenen-urlaub/urlaub-strand.jpg",
+    namen: { de: "Strand bei Sonnenuntergang", en: "Beach at sunset", ro: "Plajă la apus",
+             es: "Playa al atardecer", fr: "Plage au coucher du soleil",
+             pt: "Praia ao pôr do sol", it: "Spiaggia al tramonto" },
     ort: "walking barefoot along a wide sandy beach at golden hour, calm sea and a warm low sun behind them",
   },
   {
     id: "altstadt", name: "Altstadt-Gasse", kachel: "/szenen-urlaub/urlaub-altstadt.jpg",
+    namen: { de: "Altstadt-Gasse", en: "Old-town lane", ro: "Străduță din centrul vechi",
+             es: "Calleja del casco antiguo", fr: "Ruelle de la vieille ville",
+             pt: "Ruela da cidade velha", it: "Vicolo del centro storico" },
     ort: "strolling through a sunlit old-town street with pastel houses, small balconies and flowers, warm midday light",
   },
   {
     /* Kachel am 12.08.2026 erzeugt (Owner: „generire zwei mit peter und bella") — dieselbe
        Referenz wie Strand/Altstadt, gpt-image, auf 600×800 verkleinert. */
     id: "boot", name: "Auf dem Boot", kachel: "/szenen-urlaub/urlaub-boot.jpg",
+    namen: { de: "Auf dem Boot", en: "On the boat", ro: "Pe barcă", es: "En el barco",
+             fr: "Sur le bateau", pt: "No barco", it: "Sulla barca" },
     ort: "standing at the railing of a boat on open turquoise water, bright sunshine and a light breeze",
   },
   {
     id: "terrasse", name: "Terrasse am Meer", kachel: "/szenen-urlaub/urlaub-terrasse.jpg",
+    namen: { de: "Terrasse am Meer", en: "Terrace by the sea", ro: "Terasă la mare",
+             es: "Terraza junto al mar", fr: "Terrasse au bord de mer",
+             pt: "Terraço à beira-mar", it: "Terrazza sul mare" },
     ort: "sitting together at a small table on a terrace above the sea, cold drinks in front of them, warm evening light",
   },
 ];

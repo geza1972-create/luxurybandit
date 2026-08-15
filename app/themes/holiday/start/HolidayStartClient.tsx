@@ -283,7 +283,19 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           <div className="mt-2">
             <BildWahl gross wert={szeneId} sprache={lang}
               waehle={setSzeneId}
-              bilder={HOLIDAY_SZENEN.filter(s => !!s.kachel).map(s => ({ id: s.id, name: s.name, bild: String(s.kachel), video: "/Holiday/urlaub-beispiel.mp4" }))} />
+              /**
+               * KEIN GEMEINSAMES VIDEO AUF DEN SZENEN-KACHELN (Owner 15.08.2026, mit Bild:
+               * „hollyday auch kaputt" — „Strand bei Sonnenuntergang", „Altstadt-Gasse" und
+               * „Auf dem Boot" zeigten alle DENSELBEN Strand).
+               *
+               * Hier stand `video: "/Holiday/urlaub-beispiel.mp4"` — fest verdrahtet, auf
+               * JEDER Kachel dasselbe. Die Kachel spielt das Video und nicht ihr eigenes
+               * `kachel`-Bild; drei Namen ueber drei gleichen Bildern sind keine Auswahl,
+               * sondern ein Suchbild. Dieselbe Falle wie bei den Kuss-Szenen (7886600) und
+               * bei den Tanz-Sets. Solange es kein Beispielvideo JE SZENE gibt, zeigt die
+               * Kachel ihr Standbild — das unterscheidet sich, und nur darauf kommt es an.
+               */
+              bilder={HOLIDAY_SZENEN.filter(s => !!s.kachel).map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: String(s.kachel) }))} />
           </div>
           {/* ZURÜCK-CHEVRON LINKS, WIE ÜBERALL (Owner-Befund 12.08.2026). */}
           <div className="mt-4 flex items-center gap-2">
@@ -323,7 +335,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
             </>}
             ziel={
               szene?.kachel
-                ? <VorlagenKachel bildUrl={szene.kachel} beschriftung={szene.name} sprache={lang} />
+                ? <VorlagenKachel bildUrl={szene.kachel} beschriftung={szene.namen?.[lang] ?? szene.name} sprache={lang} />
                 : (
                   <div className="grid aspect-[3/4] w-full place-items-center rounded-2xl border border-white/15 bg-white/5 px-2 text-center">
                     <span className="text-[12px] font-bold text-white/70">{szene?.name ?? (F.szeneTitel ?? "Pick your scene")}</span>

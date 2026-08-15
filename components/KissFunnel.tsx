@@ -742,6 +742,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      Videos anglicken und vergrössern also die Cards zeigen. Hast du das nicht umgestzt in
      dem ganzen Funel?") — JEDE Vorlagen-Kachel öffnet die Karte; hat ein Look kein eigenes
      Video, zeigt sie das Beispiel-Video des Produkts (existiert immer, nichts wird erzeugt). */
+  /**
+   * `konfetti` BEHAELT DEN RUECKFALL AUF `beispiele[0]` — SO GEWOLLT (Owner 15.08.2026, auf
+   * die Frage „Look entfernen oder Rueckfall behalten?": „b").
+   *
+   * Der Hinweis stand: Von den vier Looks kennt `GEBURTSTAG_LOOK_VIDEO` nur drei; `konfetti`
+   * zeigt damit ein Video, das aus einem anderen Prompt stammt. Am selben Tag wurde genau
+   * dieses Muster an vier anderen Stellen ausgebaut (Kuss-Szenen, Tanz-Sets, Urlaubs-Szenen,
+   * Tanz-Referenz). HIER bleibt es auf Owner-Entscheid: lieber Bewegung auf der Kachel als
+   * ein Standbild („Man muss die Videos sehen im ganzen Tunel. Sonst sind es bilder",
+   * 12.08.2026). Wer das spaeter aufloesen will, legt ein Video FUER konfetti an und traegt
+   * es in `GEBURTSTAG_LOOK_VIDEO` ein — dann greift der Rueckfall von selbst nicht mehr.
+   */
   const GEBURTSTAG_LOOKS_MIT_VIDEO = GEBURTSTAG_LOOKS.map(l => ({ ...l, video: GEBURTSTAG_LOOK_VIDEO[l.id] ?? (beispiele[0] || undefined) }));
   /**
    * ALLE DREI POLEDANCE-SETS TEILEN SICH EIN BEISPIELVIDEO (`beispiele[0]`, von der
@@ -750,13 +762,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * gar keins: Bewegung verkauft, auch wenn sie nicht exakt zum gewaehlten Set passt.
    */
   /**
-   * DAS EINE BEISPIELVIDEO ZEIGT ROTES SATIN — dann darf es auch nur an DER Kachel haengen
-   * (Owner 14.08.2026, mit Bild: „immer das gleiche Video" — Pink Neon und Black Leather
-   * spielten denselben roten Clip; die Regel vom 03.08. nennt das „das Falsche
-   * ankuendigen"). Die anderen Sets zeigen ihr eigenes Standbild, bis es je Set ein Video
-   * gibt; das grosse Beispiel oben in der Karte bleibt unveraendert.
+   * EINE SET-KACHEL ZEIGT DAS SET — SONST NICHTS (Owner 15.08.2026, mit zwei Bildern: „es
+   * wird ein video angezeigt in der Referenz. Der Funel ist kaputt").
+   *
+   * Hier hing das Beispielvideo an der Kachel „rot". In der Reihe stand damit neben zwei
+   * freigestellten Waeschesets eine FRAU AN DER STANGE. Der Kunde waehlt aber ein
+   * Kleidungsstueck, kein Vorbild: Was er antippt, geht als `@image2` an Pixverse — und das
+   * ist das freigestellte Set, nicht die Person. Die Kachel versprach also etwas anderes,
+   * als die Auswahl bewirkt.
+   *
+   * (Am 14.08. war das schon einmal enger gefasst worden — von „an allen drei Kacheln" auf
+   * „nur an der roten". Der Schritt war richtig, ging aber nicht weit genug: Auch EINE
+   * Person zwischen zwei Kleidungsstuecken ist das Falsche angekuendigt.)
+   *
+   * Das grosse Beispielvideo oben in der Karte bleibt — dort gehoert es hin.
    */
-  const POLEDANCE_SETS_MIT_VIDEO = POLEDANCE_SETS.map(s => ({ ...s, video: s.id === "rot" ? (beispiele[0] || undefined) : undefined }));
+  const POLEDANCE_SETS_MIT_VIDEO = POLEDANCE_SETS;
   /**
    * SEINE ZIELE (Owner 11.08.2026: „Baue den zusätzlichen Ziele-Schritt nur für
    * versprechen") — höchstens drei Kennungen, dazu ein freier Satz, wenn er „etwas anderes"
@@ -5560,7 +5581,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <div className="w-[118px] max-w-[32vw]">
             <VorlagenKachel
               bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
-              videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+              /* DER CLIP DER GEWAEHLTEN SZENE (15.08.2026, Owner: „Kiss ist auch kaputt" — er
+                 waehlte „Altstadt-Platz am Abend" und Schritt 3 zeigte die Fruehstuecks-
+                 Terrasse). Hier stand `beispiele[0]`, also EIN festes Beispiel: Das Bild kam
+                 schon aus der Wahl, das Video widersprach ihm. */
+              videoUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).clip}
+              ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
           </div>
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
@@ -5580,11 +5606,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {/* AUS DER BIBLIOTHEK, NICHT VON HAND — dieselbe Kachel wie im Kuss-Zweig. */}
           <TunnelKachelUpload titel={T.upTitle} onWaehlen={() => { zustimmen(); modelFileRef.current?.click(); }} />
           <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-          {/* DAS GEWAEHLTE SET, MIT DEM ALLGEMEINEN BEISPIELVIDEO (`beispiele[0]` —
-              `POLEDANCE_VIDEO`): es gibt nur EIN Beispielvideo, keins je Set (siehe Bericht
-              an den Owner). */}
+          {/* DAS GEWAEHLTE SET — UND NUR DAS (Owner 15.08.2026, mit Bild: „es wird ein video
+              angezeigt in der Referenz. Der Funel ist kaputt"). Hier hing `beispiele[0]`
+              daran, das Beispielvideo einer FRAU an der Stange. Die Kachel spielt das Video
+              statt das Set zu zeigen — der Kunde waehlte ein Waescheset und sah eine fremde
+              Person. Was hier steht, geht als `@image2` an Pixverse, und das ist das
+              freigestellte Set. Also zeigt die Kachel genau das. */}
           <div className="w-[118px] max-w-[32vw]">
-            <VorlagenKachel bildUrl={neuerLook || V.garmentBild || ""} videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+            <VorlagenKachel bildUrl={neuerLook || V.garmentBild || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
           </div>
           <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
@@ -5772,7 +5801,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             <div className="w-[118px] max-w-[32vw]">
               <VorlagenKachel
                 bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
-                videoUrl={beispiele[0] || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
+                /* Der Clip der GEWAEHLTEN Szene, nicht ein festes Beispiel (15.08.2026) —
+                   sonst widerspricht das Video dem Bild direkt darueber. */
+                videoUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).clip}
+                ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
             </div>
             <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
