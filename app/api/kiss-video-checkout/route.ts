@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean; einwilligung?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string; once?: boolean; extra?: boolean; videoAufpreis?: boolean; email?: string; aufladen?: boolean; topupCents?: number; thema?: string; device?: string; konto?: boolean; einwilligung?: boolean; eingebettet?: boolean };
   const genId = String(body?.genId ?? "").trim();
   const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
@@ -258,7 +258,7 @@ export async function POST(request: Request) {
       } catch { /* Guthaben-Weg kaputt → normale Kasse, der Kunde merkt nichts */ }
     }
     try {
-      const { id, url } = await createTryonCheckout({
+      const { id, url, clientSecret } = await createTryonCheckout({
         amount: preis,
         currency: "eur",
         /**
@@ -319,8 +319,11 @@ export async function POST(request: Request) {
                     /* Reist bis in den Stripe-Webhook: nur MIT Zustimmung meldet der Server den
                        Kauf an Metas Conversions API (15.08.2026, siehe lib/meta-capi.ts). */
                     einwilligung: body?.einwilligung ? "1" : "0" },
+        /* DIE KASSE IN DER SEITE (15.08.2026). Der Trichter fragt danach; sagt er nichts,
+           bleibt alles beim Seitenwechsel — so kann kein alter Aufrufer kaputtgehen. */
+        eingebettet: body?.eingebettet === true,
       });
-      return NextResponse.json({ url, sessionId: id });
+      return NextResponse.json({ url, sessionId: id, ...(clientSecret ? { clientSecret } : {}) });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
     }

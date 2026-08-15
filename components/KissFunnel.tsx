@@ -49,7 +49,8 @@ import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePrompt
 import { geburtstagTitel, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { KISS_LOOK_ID, WEDDING_KLEIDER, weddingPrompt, WEDDING_PROMPT } from "@/lib/wedding-prompt";
-import { kasseOeffnen } from "@/lib/browser-erkennen";
+import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import KasseImFenster, { kasseImFensterMoeglich } from "@/components/KasseImFenster";
 
 import FotoAnleitung from "@/components/FotoAnleitung";
 import KartenKarussell from "@/components/KartenKarussell";
@@ -1329,6 +1330,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    */
   const [gestrandet, setGestrandet] = useState<Gestrandet | null>(null);
   /** Nach der Aufladungs-Rueckkehr: das gewuenschte Video jetzt vom Guthaben kaufen. */
+  /** Das `client_secret` der eingebetteten Kasse — gesetzt heisst: Formular offen (15.08.2026). */
+  const [kasseSecret, setKasseSecret] = useState("");
   const nachAufladungKaufen = useRef(false);
   /**
    * DIE LETZTE AUFLADUNG WAR 0,00 € WERT (Owner 07.08.2026: „wieso bekomme ich keine
@@ -3535,13 +3538,28 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
      * Fehler, keine Meldung, einfach nichts. Deshalb steht das leere Fenster jetzt VOR der
      * Anfrage; die Adresse traegt es erst nach, wenn sie da ist.
      */
-    const popup = window.open("", "_blank", "popup,width=480,height=780");
+    /**
+     * KEIN KASSEN-POPUP MEHR (Owner 15.08.2026: „mir stinkt es mit stripe pop up fenster").
+     *
+     * Das leere Fenster war eine Notloesung gegen Popup-Blocker — und hat sich zum Problem
+     * ausgewachsen: In der Facebook-WebView stapelt es eine zweite Ebene ueber die Seite,
+     * aus der der Kunde oft nicht zurueckfindet; gemessen wurde dort 11-mal eine Kasse
+     * geoeffnet und NIE bezahlt. Ab jetzt geht die Kasse in DERSELBEN Registerkarte auf
+     * (`kasseOeffnen`), und die Rueckkehr faengt der bestehende `cs`-Weg auf.
+     *
+     * `popup` bleibt als Variable stehen, damit die `popup?.close()`-Aufrufe weiter
+     * harmlos durchlaufen — sie schliessen jetzt nichts mehr, weil nichts mehr aufgeht.
+     */
+    const popup = kassenFenster();
     try {
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId: genIdFrisch ?? genId, once: einmal === "once", extra: einmal === "extra", aufladen: einmal === "auflade", topupCents, email: mail.trim(), device: (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })(),
               /* Angemeldet = geprüfte Adresse → Stripe bekommt sie gesperrt mit. Als Gast
                  bleibt das Feld dort offen, damit er sich korrigieren kann (09.08.2026). */
               /* Nur MIT Zustimmung meldet der Server den Kauf an Metas Conversions API. */
               einwilligung: darfMessen(),
+              /* Kasse IN der Seite anfordern, wenn der oeffentliche Stripe-Schluessel da ist.
+                 Fehlt er, liefert die Route wie bisher eine Adresse (15.08.2026). */
+              eingebettet: kasseImFensterMoeglich(),
               konto: !!getStoredAuthSession()?.access_token, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: (() => {
         /* OHNE ALTE KASSEN-KRUEMEL (Owner 03.08.2026: „nach der Bezahlung kam ich auf
            ?cancelled=1 statt weiter zu machen"). Ein frueherer Abbruch hinterliess
@@ -3615,7 +3633,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         }
         setStatus(T.statusCouldNotStart); return;
       }
-      if (!start?.url || !start?.sessionId) {
+      /* DIE EINGEBETTETE KASSE HAT KEINE `url` (15.08.2026, an „Start nicht möglich."
+         im laufenden Trichter abgelesen). Stripe liefert dort statt einer Adresse ein
+         `clientSecret` — die alte Pruefung hielt eine voellig gesunde Sitzung fuer einen
+         Fehlschlag und brach ab. Gut ist die Sitzung, wenn EINES von beiden da ist. */
+      if ((!start?.url && !start?.clientSecret) || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setStatus(start?.error || T.statusCouldNotStart); setPayBusy(false); return;
       }
@@ -3644,6 +3666,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       }
       // Die Kasse ist wirklich da — vorher war jeder Fehlschlag als „zur Kasse" gezaehlt.
       track("checkout");
+      /**
+       * DIE KASSE IN DER SEITE (Owner 15.08.2026: „wir müssen das in die seite einbauen").
+       * Liefert Stripe ein `client_secret`, rendert `KasseImFenster` das Formular hier —
+       * kein Fenster, kein Seitenwechsel. Die Rueckkehr laeuft unveraendert ueber `cs`.
+       */
+      if (start.clientSecret) { setPayBusy(false); setKasseSecret(String(start.clientSecret)); return; }
       // Popup blockiert → gleiche Seite. Lieber ein Seitenwechsel als eine tote Warteschleife.
       /* NIE IN DER FB-APP BEZAHLEN (15.08.2026) — auf Android schickt `kasseOeffnen`
          den Kunden mit der Stripe-Adresse nach Chrome. Siehe lib/browser-erkennen.ts. */
@@ -6334,6 +6362,17 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           geben (Owner: „Der Tunel ab Bezahlung kannst du bei allen gleich machen").
           Abbrechen ist erlaubt: Anders als beim Upload-Tor geht hier nichts verloren,
           die Wahl steht ja noch. */}
+      {/**
+        * DAS KASSEN-FORMULAR IN DER SEITE (15.08.2026). Steht ein `client_secret`, rendert
+        * Stripe hier — sonst nichts. Schliessen laesst den Auftrag unberuehrt: Der Kunde kann
+        * jederzeit erneut auf Kaufen tippen (Hausregel `immer-close-einbauen`).
+        */}
+      {/* OHNE eigene Ueberschrift: Stripe nennt das Produkt in seinem Formular schon selbst
+          („Future Self Program"). Eine zweite Zeile darueber — noch dazu die Werbezeile
+          `vorlagenTitel` („Aus einem Satz wird ein Beweis") — sagt an der Kasse nichts. */}
+      {kasseSecret && (
+        <KasseImFenster clientSecret={kasseSecret} onSchliessen={() => setKasseSecret("")} />
+      )}
       {aufladeWahl && (
         <AufladeWaehler
           lang={lang} stand={guthabenCents} preis={videoPreisCents}

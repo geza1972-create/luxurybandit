@@ -12,7 +12,7 @@ import { landAusZeitzone } from "@/lib/land-erkennen";
 import { useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { eur, CHAT_STUFEN } from "@/lib/pricing";
-import { kasseOeffnen } from "@/lib/browser-erkennen";
+import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 import { logTunnelEvent } from "@/lib/track-funnel";
 
 /**
@@ -59,13 +59,29 @@ export default function ChatStartClient({ lang, code, folien, inhalt }: {
     if (e && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setKaufFehler(G.lbFehlerMail ?? ""); return; }
     setKaufFehler(""); setKaufBusy(true);
     void logTunnelEvent("checkout_started", P.slug);
-    const popup = window.open("", "_blank", "popup,width=480,height=780");
+    /**
+     * KEIN KASSEN-POPUP MEHR (Owner 15.08.2026: „mir stinkt es mit stripe pop up fenster").
+     *
+     * Das leere Fenster war eine Notloesung gegen Popup-Blocker — und hat sich zum Problem
+     * ausgewachsen: In der Facebook-WebView stapelt es eine zweite Ebene ueber die Seite,
+     * aus der der Kunde oft nicht zurueckfindet; gemessen wurde dort 11-mal eine Kasse
+     * geoeffnet und NIE bezahlt. Ab jetzt geht die Kasse in DERSELBEN Registerkarte auf
+     * (`kasseOeffnen`), und die Rueckkehr faengt der bestehende `cs`-Weg auf.
+     *
+     * `popup` bleibt als Variable stehen, damit die `popup?.close()`-Aufrufe weiter
+     * harmlos durchlaufen — sie schliessen jetzt nichts mehr, weil nichts mehr aufgeht.
+     */
+    const popup = kassenFenster();
     try {
       const start = await fetch("/api/chat-zugang-checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, monate: 1, ...(e ? { empfaenger: e } : {}), email: mail.trim() || undefined, returnTo: window.location.pathname + window.location.search }),
       }).then(r => r.json());
-      if (!start?.url || !start?.sessionId) {
+      /* DIE EINGEBETTETE KASSE HAT KEINE `url` (15.08.2026, an „Start nicht möglich."
+         im laufenden Trichter abgelesen). Stripe liefert dort statt einer Adresse ein
+         `clientSecret` — die alte Pruefung hielt eine voellig gesunde Sitzung fuer einen
+         Fehlschlag und brach ab. Gut ist die Sitzung, wenn EINES von beiden da ist. */
+      if ((!start?.url && !start?.clientSecret) || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setKaufFehler(start?.error || F.statusNotWork); setKaufBusy(false); return;
       }

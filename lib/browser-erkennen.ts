@@ -72,3 +72,17 @@ export function kasseOeffnen(popup: Window | null, url: string): "chrome" | "pop
     return "seite";
   }
 }
+
+/**
+ * ES GIBT KEIN KASSEN-FENSTER MEHR (Owner 15.08.2026: „mir stinkt es mit stripe pop up
+ * fenster"). Gibt immer `null` zurueck — die Kasse oeffnet in DERSELBEN Registerkarte.
+ *
+ * Warum eine Funktion statt schlicht `null`: Die Trichter rufen an mehreren Stellen
+ * `popup?.close()` auf. Stuende dort ein hartes `null`, verengte TypeScript den Typ auf
+ * `never` und jeder dieser Aufrufe waere ein Fehler. Ueber den Rueckgabewert bleibt
+ * `Window | null` erhalten, die Aufrufe laufen harmlos ins Leere, und der Tag, an dem
+ * jemand das Fenster zurueckholen will, ist eine Zeile Arbeit.
+ */
+export function kassenFenster(): Window | null {
+  return null;
+}

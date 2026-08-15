@@ -93,11 +93,31 @@ export async function createTryonCheckout(opts: {
    * 399 Cent, one_time, aktiv, Steuer inklusive — passt zu POLEDANCE_CENTS.
    */
   priceId?: string;
-}): Promise<{ id: string; url: string }> {
+  /**
+   * DIE KASSE IN UNSERER SEITE (Owner 15.08.2026: „mir stinkt es mit stripe pop up fenster" ·
+   * „wir müssen das in die seite einbauen").
+   *
+   * Mit `eingebettet` liefert Stripe statt einer Adresse ein `client_secret`; das Formular
+   * rendert dann `components/KasseImFenster.tsx` MITTEN IN der Seite. Der Kunde verlaesst sie
+   * nie — kein Popup, kein Seitenwechsel, kein Zurueckfinden aus einer WebView.
+   *
+   * DER WERT HEISST `embedded_page`, NICHT `embedded` (15.08.2026, an Stripes eigener
+   * Fehlermeldung im laufenden Trichter abgelesen: „The ui_mode value `embedded` is no longer
+   * supported. Use `embedded_page` instead."). Stripe hat ihn umbenannt; jede aeltere Anleitung
+   * im Netz nennt noch den alten.
+   *
+   * `success_url`/`cancel_url` sind dabei VERBOTEN, Stripe weist die Sitzung sonst ab. An
+   * ihre Stelle tritt `return_url`, auf die Stripe NACH der Zahlung die oberste Seite
+   * schickt — mit `{CHECKOUT_SESSION_ID}` darin. Damit greift der bestehende `cs`-Rueckweg
+   * in den Trichtern unveraendert weiter; daran musste nichts angefasst werden.
+   */
+  eingebettet?: boolean;
+}): Promise<{ id: string; url: string; clientSecret?: string }> {
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
-    success_url: opts.successUrl,
-    cancel_url: opts.cancelUrl,
+    ...(opts.eingebettet
+      ? { ui_mode: "embedded_page", return_url: opts.successUrl }
+      : { success_url: opts.successUrl, cancel_url: opts.cancelUrl }),
     ...(opts.email ? { customer_email: opts.email } : {}),
     client_reference_id: opts.clientReferenceId ?? opts.email,
     // GUTSCHEINFELD AUCH BEIM EINMALKAUF (Owner 30.07.2026: „warum kann ich hier meinen
@@ -121,7 +141,13 @@ export async function createTryonCheckout(opts: {
     // Make the tier/look available on the PaymentIntent too (useful for reconciliation).
     payment_intent_data: { metadata: { kind: "tryon", ...opts.metadata } },
   });
-  return { id: String(session.id), url: String(session.url) };
+  return {
+    id: String(session.id),
+    /* Bei der eingebetteten Kasse gibt es keine Adresse — dann bleibt das Feld leer und der
+       Aufrufer nimmt `clientSecret`. */
+    url: String(session.url ?? ""),
+    ...(session.client_secret ? { clientSecret: String(session.client_secret) } : {}),
+  };
 }
 
 // One-time credit-pack checkout (the $8 → 4 videos pack). Ties the buyer's email so
