@@ -41,13 +41,39 @@ export const dynamic = "force-dynamic";
  * Hobby-Tarif das Maximum; auf Pro darf dort `0 * * * *` (stündlich) stehen.
  */
 
-const MAX_VERSUCHE = 3;          // danach bleibt es beim Admin liegen, statt Geld zu verbrennen
+/**
+ * MINDESTABSTAND ZWISCHEN ZWEI STARTVERSUCHEN (15.08.2026, ersetzt MAX_VERSUCHE = 3).
+ *
+ * Aufgegeben wird nie mehr (Owner: „drei Anläufe muss raus"). Der Abstand ist KEIN Deckel —
+ * er begrenzt nicht, WIE OFT, sondern nur, wie schnell hintereinander.
+ *
+ * WOGEGEN ER SCHÜTZT — und wogegen NICHT: Es gibt keine Lücke, durch die jemand ohne Zahlung
+ * ein Video auslösen könnte; `e.paid === true` steht in jedem Zweig, und dieser Endpunkt ist
+ * hinter `darf()` verschlossen. Gemeint ist unsere EIGENE Automatik: Ein ordentlich bezahlter
+ * Auftrag, dessen Erzeugung dauerhaft scheitert (Moderation, unbrauchbares Foto), wird von
+ * Galerie-Weckruf (alle 15 s), Kette (alle 45 s) und Cron immer wieder neu gestartet. Ohne
+ * Abstand wären das ~240 Starts je Stunde à ~0,40 $ für EINEN Auftrag, für den der Kunde
+ * einmal 9,99 € gezahlt hat.
+ *
+ * 90 Sekunden (Owner 15.08.2026): für den Kunden praktisch unsichtbar — er merkt sie nur,
+ * wenn seine Erzeugung wirklich fehlgeschlagen ist — und deckelt den Dauerfehler-Fall auf
+ * ein Sechzehntel.
+ */
+const ABSTAND_MS = 90 * 1000;
 // Ein Auftrag, der nach dieser Zeit immer noch „läuft", läuft nicht mehr: eine Nummer, die
 // der Anbieter nicht kennt, meldet ewig „in Arbeit". Ohne diese Grenze wartet der Kunde für
 // immer auf ein Video, das niemand mehr rendert.
 const STECKEN_MS = 30 * 60 * 1000;
 const MAX_PRO_LAUF = 3;          // wie viele Aufträge ein Aufruf gleichzeitig bearbeitet
-const HOPS_MAX = 10;             // Selbstaufrufe je Kette (~10 × 45 s ≈ 7 min)
+/**
+ * SO LANG WIE DAS VERSPRECHEN (15.08.2026). Vorher 10 — also ~7,5 Minuten, während die Seite
+ * dem Kunden seit dem 14.08. „bis zu 10 Minuten" zusagt (`d13444e` verlängerte die Geduld des
+ * BROWSERS auf 150 × 4 s, die Kette hier blieb unberührt). Wer länger brauchte, fiel auf den
+ * Tages-Cron um 05:00 zurück — genau der Fall, den der Owner am 15.08. erlebt hat. 40 × 45 s
+ * ≈ 30 Minuten decken auch einen langsamen Pixverse-Lauf ab. Die Glieder sind kurz und
+ * kosten wenig; der Cron bleibt das letzte Netz.
+ */
+const HOPS_MAX = 40;             // Selbstaufrufe je Kette (~40 × 45 s ≈ 30 min)
 const RUNDE_MS = 45_000;         // wie lange ein Aufruf pollt, bevor er weiterreicht
 
 function origin(request: Request): string {
@@ -285,43 +311,6 @@ async function verschicken(request: Request, e: KissLogEntry): Promise<boolean> 
   return !!(r as { ok?: boolean }).ok;
 }
 
-/**
- * AUFGEGEBEN — aber nicht stillschweigend (Owner: „der Kunde wurde ausgeraubt").
- *
- * Nach drei Anläufen rendern wir nicht weiter; das kostet nur Geld und ändert nichts. Aber
- * der Käufer erfährt es, mit einer Adresse, an die er schreiben kann, und der Betreiber
- * bekommt eine Kopie — damit ein Mensch das Video von Hand nachreicht.
- */
-async function aufgeben(request: Request, e: KissLogEntry): Promise<boolean> {
-  const to = String(e.paidEmail || e.email || "").trim();
-  const support = String(process.env.SUPPORT_EMAIL || process.env.SMTP_USER || "").trim();
-  if (!to) return false;
-  const o = origin(request);
-  // 11.08.2026, Future Self Program: „We owe you a video" nennt beim Versprechen das falsche
-  // Ding — der Kunde hat keinen Videoauftrag gekauft, sondern seinen Future Film.
-  const titel = e.theme === "versprechen" ? "We owe you your Future Film" : "We owe you a video";
-  const text = e.theme === "versprechen"
-    ? `Your payment went through, but your Future Film did not come out right. We are on it and send it to you by hand — just answer this email if anything is unclear.`
-    : `Your payment went through, but the video did not come out right. We are on it and send it to you by hand — just answer this email if anything is unclear.`;
-  const html =
-    `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
-    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
-    + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
-    + `<tr><td style="padding:20px 22px 6px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
-    + `<tr><td style="padding:0 22px 12px;color:#fff;font-size:20px;font-weight:bold">${titel}</td></tr>`
-    + `<tr><td style="padding:0 22px 14px;color:#e8e2d6;font-size:14px;line-height:1.55">`
-    + text
-    + `</td></tr>`
-    + `<tr><td style="padding:0 22px 20px"><a href="${o}/my-gallery" style="color:#8d8579;font-size:12px">Open my gallery</a></td></tr>`
-    + `</table></td></tr></table></div>`;
-  const r = await sendEmail({
-    to, subject: titel, html,
-    listUnsubscribe: await abmeldeLink(o, to),
-    ...(support ? { bcc: support, replyTo: support } : {}),
-  }).catch(() => ({ ok: false }));
-  return !!(r as { ok?: boolean }).ok;
-}
-
 /** Ein Durchgang über alle offenen Aufträge. Gibt zurück, wie viele noch laufen. */
 async function durchgang(request: Request, nurId: string): Promise<{ offen: number; erledigt: string[]; log: string[] }> {
   const alle = await readKissLog();
@@ -339,20 +328,59 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
   const offenerAuftrag = (e: KissLogEntry) =>
     e.videoId ? e.videoId !== e.videoDoneId : !e.videoUrl;
 
-  const verloren = alle.filter(e =>
-    e.paid === true && offenerAuftrag(e) && !e.videoAlertAt &&
-    (e.videoTries ?? 0) >= MAX_VERSUCHE && !!e.videoDueAt,
-  ).slice(0, MAX_PRO_LAUF);
-
+  /**
+   * DREI ANLÄUFE SIND RAUS (Owner 15.08.2026: „drei Anläufe muss raus").
+   *
+   * Ein bezahlter Auftrag wird nicht mehr aufgegeben. Vorher stand nach dem dritten
+   * Fehlversuch eine Absage-Mail und der Auftrag blieb liegen — der Kunde hatte bezahlt und
+   * bekam nichts. Der Server versucht es ab jetzt weiter, so lange, bis ein Video da ist.
+   *
+   * WAS AN DIE STELLE DER ZAHL TRITT: ein MINDESTABSTAND zwischen zwei Startversuchen.
+   * „Unbegrenzt oft" darf nicht „unbegrenzt schnell" heißen — jeder Start kostet bei
+   * Pixverse/HeyGen echtes Geld, und die Galerie weckt die Kette alle 15 Sekunden. Lehnt ein
+   * Anbieter einen Auftrag dauerhaft ab (Moderation), liefe er sonst im Sekundentakt neu an
+   * und verbrennte Geld, ohne je zu liefern. Mit dem Abstand bleibt es beim Willen des
+   * Owners — es hört nie auf — und kostet trotzdem höchstens einen Lauf je Fenster.
+   */
   const faellig = alle.filter(e =>
     (!nurId || e.id === nurId) &&
     e.paid === true &&
     offenerAuftrag(e) &&
-    (e.videoTries ?? 0) < MAX_VERSUCHE &&
     // Ohne Vermerk ist es ein Altfall von vor dieser Änderung — den fassen wir nicht an,
     // sonst rendert der Server rückwirkend Videos für längst vergessene Käufe.
     !!e.videoDueAt &&
-    Date.parse(e.videoDueAt) <= jetzt,
+    Date.parse(e.videoDueAt) <= jetzt &&
+    // Erster Anlauf sofort; jeder weitere frühestens nach ABSTAND_MS.
+    ((e.videoTries ?? 0) === 0 || jetzt - Date.parse(e.videoLetzterStartAt ?? e.videoDueAt) >= ABSTAND_MS),
+  ).slice(0, MAX_PRO_LAUF);
+
+  /**
+   * ABHOLEN IST NICHT STARTEN (Owner 15.08.2026, live und wütend: „ich habe ein Video gekauft
+   * und generiert und es wird nicht zurückgegeben. Und es ist schon längst auf Pixverse
+   * erstellt").
+   *
+   * DER FEHLER, DEN DAS BEHEBT: Bisher gab es nur EINE Liste — `faellig` — und die entschied
+   * über beides zugleich, über das Starten UND das Abholen. Ihre Schutzgatter sind aber für
+   * das STARTEN gedacht: `videoTries < MAX_VERSUCHE` und `videoDueAt` verhindern, dass wir
+   * Geld verbrennen. Auf das Abholen angewandt sperren dieselben Gatter den Kunden von einem
+   * Video aus, das beim Anbieter längst FERTIG liegt und keinen Cent mehr kostet. Wer drei
+   * Anläufe verbraucht hatte oder dessen Eintrag kein `videoDueAt` trug (Admin-Weg, Altfall),
+   * bekam sein bezahltes Video nie — obwohl es da war.
+   *
+   * Deshalb ab hier zwei getrennte Fragen:
+   *   ABHOLEN  — kostenlos, startet nichts: JEDER bezahlte Auftrag mit Auftragsnummer, ohne
+   *              Rücksicht auf Anläufe, Frist oder Absage-Vermerk.
+   *   STARTEN  — kostet Geld: unverändert nur `faellig`, mit allen Gattern.
+   *
+   * Damit bekommt der Kunde sein Video in dem Moment, in dem der Anbieter fertig ist — bei
+   * jedem Galerie-Besuch (der weckt alle 15 s), bei jedem Kettenglied, beim Cron.
+   */
+  const faelligIds = new Set(faellig.map(e => e.id));
+  const abholen = alle.filter(e =>
+    (!nurId || e.id === nurId) &&
+    e.paid === true &&
+    !!e.videoId && e.videoId !== e.videoDoneId &&
+    !faelligIds.has(e.id),
   ).slice(0, MAX_PRO_LAUF);
 
   const log: string[] = [];
@@ -360,15 +388,28 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
   let offen = 0;
   let geaendert = false;
 
-  for (const e of verloren) {
-    if (await aufgeben(request, e)) { e.videoAlertAt = new Date().toISOString(); geaendert = true; }
-    log.push(`${e.id}: aufgegeben nach ${e.videoTries ?? 0} Anläufen — Käufer benachrichtigt`);
+  for (const e of abholen) {
+    const p = await pollen(request, e.videoId!);
+    if (p.status !== "done" || !p.videoUrl) { if (p.status === "processing") offen++; continue; }
+    e.videoUrl = p.videoUrl;
+    e.videoFertigAt = new Date().toISOString();
+    e.videoDoneId = e.videoId;
+    e.videoError = undefined;
+    /* Ein abgeholtes Video macht die Absage hinfällig — sonst bliebe der Auftrag für immer
+       als „aufgegeben" markiert, obwohl der Kunde sein Video gerade bekommen hat. */
+    e.videoAlertAt = undefined;
+    geaendert = true;
+    void logTunnelEventServer("generation_completed", e.theme || "kiss");
+    if (await verschicken(request, { ...e })) e.videoMailedAt = new Date().toISOString();
+    erledigt.push(e.id);
+    log.push(`${e.id}: abgeholt (fertig beim Anbieter)${e.videoMailedAt ? " + verschickt" : ""}`);
   }
 
   for (const e of faellig) {
     if (!e.videoId) {
       const s = await starten(request, e);
       e.videoTries = (e.videoTries ?? 0) + 1;
+      e.videoLetzterStartAt = new Date().toISOString();   // Grundlage fuer ABSTAND_MS
       if (s.videoId) { e.videoId = s.videoId; offen++; log.push(`${e.id}: gestartet ${s.videoId}`); }
       else { e.videoError = s.error; log.push(`${e.id}: Start fehlgeschlagen — ${s.error}`); }
       geaendert = true;
@@ -391,9 +432,29 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
       log.push(`${e.id}: fertig${e.videoMailedAt ? " + verschickt" : " (keine Adresse)"}`);
       continue;
     }
-    const steckt = jetzt - Date.parse(e.videoDueAt ?? "") > STECKEN_MS;
+    /**
+     * „HÄNGT" WIRD AB DEM START GEMESSEN, NICHT AB DER ZAHLUNG (Owner 15.08.2026: „warum
+     * sollte es keine Auftragsnummer haben?" — weil diese Zeile sie gelöscht hat).
+     *
+     * Hier stand `jetzt - Date.parse(e.videoDueAt)`. `videoDueAt` ist der Zeitpunkt der
+     * ZAHLUNG. Damit galt JEDER Auftrag, der älter als 30 Minuten war, beim nächsten
+     * Nachschauen automatisch als hängend — unabhängig davon, ob der Anbieter gerade
+     * fleissig rechnete. Die Folge stand zwei Zeilen weiter: `e.videoId = undefined`.
+     *
+     * WAS DAS ANRICHTETE: Ein Auftrag, der wegen der zu kurzen Kette liegenblieb, verlor
+     * beim nächsten Galerie-Besuch oder Cron-Lauf seine Auftragsnummer — und mit ihr den
+     * Zugriff auf das VIDEO, das bei Pixverse längst fertig lag. Danach lief eine zweite,
+     * kostenpflichtige Erzeugung für ein Video, das es schon gab. Genau der Fall vom
+     * 15.08.2026.
+     *
+     * Richtig ist die Uhr des laufenden Anlaufs: `videoLetzterStartAt` (Server-Start),
+     * ersatzweise `videoStartAt` (Browser-Start). Nur wenn beide fehlen, bleibt die Zahlung
+     * als grobe Näherung — dann ist es wirklich ein Altfall ohne jede Start-Marke.
+     */
+    const startMarke = e.videoLetzterStartAt || e.videoStartAt || e.videoDueAt || "";
+    const steckt = jetzt - Date.parse(startMarke) > STECKEN_MS;
     if (p.status === "failed" || steckt) {
-      // Auftragsnummer weg → der nächste Durchgang darf neu starten (bis MAX_VERSUCHE).
+      // Auftragsnummer weg → der nächste Durchgang darf neu starten (nach ABSTAND_MS).
       e.videoId = undefined;
       e.videoError = p.error ?? (steckt ? "Auftrag hängt beim Anbieter — neuer Anlauf." : "Erzeugung fehlgeschlagen.");
       // Der neue Anlauf braucht wieder eine Frist, sonst gilt er sofort erneut als hängend.
@@ -410,10 +471,11 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
     // denselben Eintrag angefasst haben (er schreibt ja auch). Sonst überschreibt der letzte
     // Schreiber den anderen — im Projekt schon einmal passiert (Löschen-Auferstehung).
     const neu = await readKissLog();
-    for (const e of [...faellig, ...verloren]) {
+    for (const e of [...faellig, ...abholen]) {
       const z = neu.find(x => x.id === e.id);
       if (!z) continue;
       z.videoId = e.videoId; z.videoTries = e.videoTries; z.videoError = e.videoError;
+      z.videoLetzterStartAt = e.videoLetzterStartAt;
       z.videoDueAt = e.videoDueAt;
       if (e.videoDoneId) z.videoDoneId = e.videoDoneId;
       if (e.videoUrl) z.videoUrl = e.videoUrl;

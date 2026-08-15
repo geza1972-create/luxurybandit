@@ -174,9 +174,23 @@ export async function GET(request: Request) {
    */
   try {
     const jetzt = Date.now();
-    meineKiss
-      .filter(e => e.paid && !e.videoUrl && e.videoDueAt && Date.parse(e.videoDueAt) <= jetzt
-        && (e.videoTries ?? 0) < 3 && !e.videoAlertAt)
+    /**
+     * ZWEI GRÜNDE ZU WECKEN (15.08.2026, nach dem Fall „Video liegt fertig bei Pixverse und
+     * kommt nie an"):
+     *
+     *   1. ABHOLEN — der Auftrag trägt eine Auftragsnummer, das Video ist also unterwegs oder
+     *      längst fertig. Das kostet nichts und startet nichts, also gilt hier KEIN Gatter:
+     *      weder Anläufe noch Frist noch Absage-Vermerk dürfen den Kunden von einem Video
+     *      fernhalten, das schon bezahlt und schon gerendert ist. Genau diese Gatter haben
+     *      es vorher getan.
+     *   2. STARTEN — noch keine Auftragsnummer. Auch hier zählt kein Anlauf-Deckel mehr
+     *      (Owner 15.08.2026: „drei Anläufe muss raus"); den Dauerlauf bremst allein der
+     *      Mindestabstand in /api/kiss-deliver, der weiß, wann zuletzt gestartet wurde.
+     */
+    const abzuholen = meineKiss.filter(e => e.paid && !e.videoUrl && !!e.videoId && e.videoId !== e.videoDoneId);
+    const zuStarten = meineKiss.filter(e => e.paid && !e.videoUrl && !e.videoId
+      && e.videoDueAt && Date.parse(e.videoDueAt) <= jetzt);
+    [...abzuholen, ...zuStarten]
       .slice(0, 2)
       .forEach(e => lieferungAnstossen(url.origin, e.id));
   } catch { /* Heilung ist Zugabe — die Galerie antwortet auch ohne sie */ }

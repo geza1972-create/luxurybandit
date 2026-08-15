@@ -1767,7 +1767,14 @@ export type KissLogEntry = {
    */
   videoDueAt?: string;    // ab wann der Server selbst übernimmt (Schonfrist für den Browser)
   videoId?: string;       // laufender Auftrag beim Anbieter ("pv:123")
-  videoTries?: number;    // wie oft der Server es schon versucht hat (Deckel gegen Dauerlauf)
+  videoTries?: number;    // wie oft der Server es schon versucht hat (nur noch Buchhaltung)
+  /**
+   * WANN ZULETZT GESTARTET (15.08.2026). Seit „drei Anläufe muss raus" gibt der Server nie
+   * mehr auf; an die Stelle des Deckels tritt ein Mindestabstand zwischen zwei Startversuchen
+   * (`ABSTAND_MS` in /api/kiss-deliver). Diese Marke ist seine Grundlage — ohne sie liefe ein
+   * dauerhaft abgelehnter Auftrag im Takt des Galerie-Weckrufs neu an und kostete jedes Mal.
+   */
+  videoLetzterStartAt?: string;
   videoError?: string;    // letzter Fehler, damit der Admin es sieht
   /**
    * WAS ER WIRKLICH BEZAHLT HAT, in Cent (Owner 14.08.2026: „ich will auch sehen wieviel er
