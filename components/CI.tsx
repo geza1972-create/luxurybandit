@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import EinladungKarte from "@/components/EinladungKarte";
@@ -1717,6 +1717,12 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      (/themes/tryon/start), nie davor: ein Kreis, der in einen halbfertigen Weg zeigt,
      wäre schlimmer als keiner. */
   { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
+  /* VERSPRECHEN GEHOERT IN DIE REIHE (Owner 15.08.2026: „wo ist Versprechen im Slider?").
+     Es fehlte seit dem ersten Tag der Leiste — als sie entstand, war das Future Self Program
+     noch nicht live; seit dem 12.08. verkauft es, stand aber in keiner Tab-Leiste. Genau die
+     Luecke, die eine Liste bekommt, wenn sie von Hand gepflegt wird und ein Produkt spaeter
+     dazukommt. */
+  { icon: Rocket, name: "Promise", href: "/themes/versprechen", bild: "/Versprechen/Promise-Full-Video.jpg" },
   /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
      Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
      einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */
@@ -1741,8 +1747,22 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = ""
    * dieselbe Regel wie beim Galerie-Chip in TopNav.
    */
   const pfad = usePathname();
+  /**
+   * DER AKTIVE REITER HOLT SICH INS BILD (15.08.2026, auf der Versprechen-Seite gesehen:
+   * „Promise" steht als letzter in der Reihe und war ausserhalb des Bildschirms — auf
+   * SEINER eigenen Seite).
+   *
+   * Eine Tab-Leiste, in der man den eigenen Reiter suchen muss, sagt einem nicht, wo man
+   * ist. `nearest` statt `center`: Wer ohnehin sichtbar ist, wird nicht verschoben — sonst
+   * ruckelte die Reihe bei jedem Seitenaufruf.
+   */
+  const reihe = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = reihe.current?.querySelector<HTMLElement>("[data-aktiv='1']");
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [pfad]);
   return (
-    <div className={`lb-wisch -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
+    <div ref={reihe} className={`lb-wisch -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 ${className}`}>
       {/**
         * SIE FUNKTIONIERT WIE EINE TAB-LEISTE (Owner 15.08.2026: „und muss wie ein Tab
         * funktionieren").
@@ -1759,7 +1779,8 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = ""
       {themen.filter(t => !ohne || !t.href.includes(ohne)).map(t => {
         const aktiv = t.href === "/themes" ? pfad === t.href : pfad.startsWith(t.href);
         return (
-          <a key={t.href} href={t.href} className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
+          <a key={t.href} href={t.href} data-aktiv={aktiv ? "1" : undefined}
+            className="group flex w-[58px] shrink-0 flex-col items-center gap-1.5">
             {/**
               * FOTOS STATT ICONS (Owner 15.08.2026, mit Bild der Reihe: „kannst du hier Fotos
               * nehmen statt Icons? und denselben Slider machen wir im Tunnel").
@@ -1783,7 +1804,13 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = ""
               : "border border-white/15 bg-white/[0.04] text-white/60"}`}>
               {t.bild
                 /* eslint-disable-next-line @next/next/no-img-element */
-                ? <img src={t.bild} alt="" loading="lazy" className={`h-full w-full object-cover object-top ${aktiv ? "" : "opacity-85"}`} />
+                /* NICHT BUENDIG AN DIE OBERKANTE (Owner 15.08.2026: „auf dem Handy sind die
+                   Bilder im Kreis abgeschnitten oben"). `object-top` legt die Bildoberkante
+                   genau auf den Rand — im QUADRAT geht das gut, im KREIS schneidet die
+                   Rundung dort am meisten weg, und getroffen wird der Kopf. Ein Sechstel
+                   tiefer angesetzt laesst die Rundung Luft und haelt das Gesicht in der
+                   Mitte des Kreises. */
+                ? <img src={t.bild} alt="" loading="lazy" className={`h-full w-full object-cover object-[50%_16%] ${aktiv ? "" : "opacity-85"}`} />
                 : <t.icon className="h-[22px] w-[22px]" />}
             </span>
             <span className={`text-center text-[10.5px] font-black leading-none ${aktiv ? "text-[#f6cf51]" : "text-white/60"}`}>{t.name}</span>

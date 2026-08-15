@@ -695,15 +695,10 @@ export default function MyGalleryPage() {
             Thema steht als eigener Kreis da und springt direkt in seinen Trichter — ein Tipp
             statt zwei. „Choose a topic" ist nur noch die Überschrift darüber, und „Alle"
             am Ende führt für den Rest auf die Themenseite. */}
-        {!pin && (
-          <div className="mt-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f6cf51]/80">Choose a topic</p>
-            {/* Die Reihe selbst ist seit 06.08.2026 der Bibliotheks-Baustein `ThemenKreise`
-                (Owner: „die kommen auch in die Bibliothek. Und scrollbalken wird dann
-                transparent") — hier entstanden, jetzt aus components/CI.tsx geholt. */}
-            <ThemenKreise className="mt-2.5" />
-          </div>
-        )}
+        {/* DIE THEMEN-REIHE STEHT JETZT IM KOPF (15.08.2026, Owner: „Slider ueberall
+            einbauen") — und stand hier deshalb ZWEIMAL auf derselben Seite, einmal unter
+            dem Kopf und einmal mittendrin. Gefunden beim Nachzaehlen im Quelltext der
+            Live-Seite: zwei Vorkommen des Motivs. Siehe components/TopNav.tsx. */}
         {/* NUR FUER DEN ADMIN (Owner 01.08.2026: „wozu die Suche wenn er nichts findet?").
             Der Kunde hat zwei Dutzend eigene Bilder — eine Model-Suche findet darin fast nie
             etwas und wirkt kaputt („Keine Treffer fuer Bella"). Der Admin hat Hunderte, fuer
