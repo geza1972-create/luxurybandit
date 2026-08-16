@@ -11,8 +11,9 @@ du sagst mir Bescheid.
    (das `src=fb` füttert die Quellen-Auswertung in Insights; `&code=…` für Aktionen).
 2. **Das Anzeigen-Video kommt aus dem Produkt-Ordner** (`public/<Ordner>` — dieselben
    Clips wie auf der Karte; was auf der Landingpage läuft, hält auch das Ad-Versprechen).
-3. **Preis in der Anzeige = der Knopf-Preis** (heute 9,99 € bei allen Geschenken; ändert
-   sich die Tabelle, diese Datei mitziehen — sie ist Hand-Werkzeug, kein Code).
+3. **Preis in der Anzeige = der Knopf-Preis** (heute 9,99 € bei den Geschenken — **ausser
+   Kuss: 4,99 €**, siehe dort; ändert sich die Tabelle, diese Datei mitziehen — sie ist
+   Hand-Werkzeug, kein Code).
 
 ---
 
@@ -40,16 +41,22 @@ deinem Gesicht und deiner Stimme, in einer Welt, die niemand erwartet. 9,99 €.
 30 seconds — we turn it into a birthday video with your face and your voice. €9.99."
 **Headline:** „Geburtstagsvideo — 9,99 €" / "Birthday video — €9.99"
 
-## Kuss — `/themes/kiss/start?light=1&src=fb`
+## Kuss — `/themes/kiss/start?s=3&light=1&src=fb`
 **Video:** `public/Kiss`
+**Achtung, eigener Preis:** Der Kuss kostet seit dem 16.08.2026 **4,99 €**, nicht 9,99 € wie
+die übrigen Geschenke (`KUSS_CENTS` in lib/pricing.ts).
+**Achtung, eigene Ziel-Adresse:** `?s=3` springt direkt auf den Generieren-Schritt (Owner
+16.08.2026: „meta bekommt die url direkt vom generiere") — der Anzeigen-Besucher sieht die
+zwei Upload-Kacheln sofort, ohne Anmeldeformular davor. Die E-Mail verlangt erst der
+Generieren-Knopf.
 **Hooks:**
 - DE: „Schick einen Kuss an den Menschen, den du liebst."
 - DE: „Ein Foto von dir, eins von ihr — ein Video von euch beiden."
 - EN: "Send a kiss to the one you love."
 **Primary:** DE: „Zwei Fotos, eine Szene deiner Wahl — ein privates Kussvideo von euch
-beiden, nur für sie. 9,99 €." · EN: "Two photos, one scene — a private kiss video of you
-both, made for her alone. €9.99."
-**Headline:** „Kussvideo — 9,99 €" / "Kiss video — €9.99"
+beiden, nur für sie. 4,99 €." · EN: "Two photos, one scene — a private kiss video of you
+both, made for her alone. €4.99."
+**Headline:** „Kussvideo — 4,99 €" / "Kiss video — €4.99"
 
 ## Hochzeit — `/themes/wedding/start?light=1&src=fb`
 **Video:** `public/Wedding`

@@ -82,7 +82,18 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
   code: string;
   /** Nur fürs Messen — siehe Kommentar oben (`funnel_started`/`step_completed`). */
   produkt?: string;
-  children: (args: { schritt: number; onSchrittChange: (schritt: number) => void }) => ReactNode;
+  /**
+   * `onVorlage` MELDET DIE GEWAEHLTE VORLAGE IN DIE ADRESSZEILE (Owner 16.08.2026: „ziel ist
+   * es zu sehen ebenso welchen template sie auswählen, also auch das muss eine eigene url
+   * haben").
+   *
+   * Warum ueber die Adresse und nicht nur als Ereignis: Ein Ereignis sieht nur, wer die
+   * Auswertung liest — die Adresse sieht JEDER, der dem Besucher zuschaut, sie laesst sich
+   * teilen, in eine Anzeige legen und aus dem Verlauf zurueckholen. Und weil jedes
+   * Trichter-Ereignis die Adresszeile mitliest (lib/track-funnel.ts), steht die Vorlage damit
+   * automatisch an ALLEN folgenden Stufen, nicht nur an der Wahl selbst.
+   */
+  children: (args: { schritt: number; onSchrittChange: (schritt: number) => void; onVorlage: (vorlage: string) => void }) => ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -96,11 +107,37 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
     return sParam && gueltig(n) ? n : null;
   });
 
-  const baueUrl = (s: number) => {
+  /**
+   * DIE HERKUNFT REIST MIT (16.08.2026, beim Nachmessen der Kuss-Anzeige gefunden).
+   *
+   * GEMESSEN, NICHT VERMUTET: Die Anzeige zeigt auf `…/start?s=3&light=1&src=fb`. Sobald der
+   * Besucher EINEN Schritt weiterging, stand in der Adresszeile `?s=2&light=1` — `src` war
+   * weg. Und `logFunnelEvent` liest die Quelle bei JEDEM Ereignis frisch aus
+   * `window.location.search` (lib/track-funnel.ts). Folge: Der erste Aufruf zählte als
+   * „fb", jede spätere Stufe — Adresse, Kauf, Lieferung — als Quelle „unbekannt". Die
+   * Anzeige sah damit aus, als brächte sie nur Aufrufe und keine Käufe, was in der
+   * Auswertung schlimmer ist als gar keine Zahl: Man dreht ein Budget ab, das trägt.
+   *
+   * Deshalb wandern hier ALLE bekannten Herkunfts-Parameter unverändert in jede erzeugte
+   * Adresse — dieselbe Reihenfolge, die `logFunnelEvent` liest, plus `utm_campaign`/
+   * `utm_medium` für die Auswertung ausserhalb des Hauses.
+   */
+  const HERKUNFT = ["utm_source", "source", "src", "ref", "utm_campaign", "utm_medium", "fbclid"];
+
+  const baueUrl = (s: number, vorlage?: string) => {
     const p = new URLSearchParams();
     p.set("s", String(s));
     if (light) p.set("light", "1");
     if (code) p.set("code", code);
+    /* Die Vorlage bleibt an der Adresse haengen, sobald sie einmal gewaehlt wurde — auch
+       ueber die naechsten Schritte hinweg (`v` aus der aktuellen Adresse, wenn der Aufrufer
+       keine neue nennt). */
+    const v = vorlage ?? searchParams.get("v") ?? "";
+    if (v) p.set("v", v);
+    for (const k of HERKUNFT) {
+      const v = searchParams.get(k);
+      if (v) p.set(k, v);
+    }
     return `${pathname}?${p.toString()}`;
   };
 
@@ -165,6 +202,18 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
           // die Geste ins Leere.
           if (s > (Number(sParam) || 0)) router.push(url);
           else router.replace(url);
+        },
+        /**
+         * DIE VORLAGE IN DIE ADRESSE — OHNE VERLAUFSEINTRAG (`replace`).
+         *
+         * Bewusst kein `push`: Wer sich durch vier Kacheln tippt, soll mit der Zurück-Geste
+         * einen SCHRITT zurueckgehen und nicht viermal durch seine eigenen Antipper. Die
+         * Adresse zeigt trotzdem immer die zuletzt gewaehlte Vorlage.
+         */
+        onVorlage: v => {
+          const sauber = String(v ?? "").trim().slice(0, 60);
+          if (!sauber || sauber === searchParams.get("v")) return;
+          router.replace(baueUrl(Number(sParam) || schritt || erster, sauber));
         },
       })}
 

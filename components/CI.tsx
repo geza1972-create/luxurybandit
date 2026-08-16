@@ -933,14 +933,30 @@ export function TunnelStart({ titel, nameLabel, namePlatzhalter, emailLabel, ema
   const weiter = async () => {
     if (busy) return;
     const e = email.trim();
-    const p = pruefeEmail(e);
-    if (!p.ok) { setFehler(emailFehlerText(p.grund, lang)); return; }
+    /**
+     * LEER HEISST WEITER (Owner 16.08.2026: „der user soll trotzdem weiter können auch ohne
+     * email aber später beim generieren braucht er eine").
+     *
+     * HIER STAND EINE SPERRE: Ohne gültige Adresse ging es keinen Schritt weiter — Schritt 1
+     * war damit eine Mauer vor einem Trichter, den der Besucher noch gar nicht gesehen hat.
+     * Wer aus einer Anzeige kommt, kennt uns nicht; eine Adresse zu verlangen, bevor er
+     * überhaupt weiss, was er bekommt, kostet genau die Leute, die man gerade bezahlt hat.
+     *
+     * Die Pflicht ist nicht weg, sie ist UMGEZOGEN — an den Generieren-Knopf, wo der
+     * Besucher im Tausch etwas bekommt (`KissFunnel`, Feld über „Generate"). Hier bleibt
+     * nur noch eine Formatprüfung für den, der WIRKLICH etwas eingetippt hat: Ein Tippfehler
+     * soll auffallen, ein leeres Feld nicht aufhalten.
+     */
+    if (e) {
+      const p = pruefeEmail(e);
+      if (!p.ok) { setFehler(emailFehlerText(p.grund, lang)); return; }
+    }
     setFehler("");
     // `lead_created` (Owner-Architektur-Abgleich 12.08.2026, §32) — der Lead selbst ist
     // schon gespeichert, sobald „Weiter" mit gültiger Adresse gedrückt wurde (siehe
     // KONZEPT-TUNNEL.md); das Ereignis meldet genau diesen Moment, nicht erst den
-    // Netzwerk-Erfolg von `onWeiter`.
-    void logTunnelEvent("lead_created", produkt);
+    // Netzwerk-Erfolg von `onWeiter`. OHNE Adresse gibt es keinen Lead zu melden.
+    if (e) void logTunnelEvent("lead_created", produkt);
     await onWeiter(name.trim(), e);
   };
 
@@ -2238,13 +2254,14 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, 
   features?: ReactNode;
   waehle: () => void;
 }) {
-  const [ref, sichtbar] = useKachelSichtbar<HTMLDivElement>();
+  /* `useKachelSichtbar` ist hier raus (16.08.2026): Es sagte dem Video, wann es anfangen
+     soll — das entscheidet jetzt die Auswahl selbst (`an`), nicht die Sichtbarkeit. */
   const [offen, setOffen] = useState(false);
   const poster = b.poster || b.bild;
   const label = ansehenLabel || "Vorlage ansehen";
   return (
     <>
-      <div ref={ref} role="button" tabIndex={0} aria-pressed={an}
+      <div role="button" tabIndex={0} aria-pressed={an}
         onClick={waehle}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); waehle(); } }}
         className={`shrink-0 cursor-pointer text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
@@ -2253,14 +2270,34 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, 
           {/* `loading="lazy"`: der Try-on-Slider trägt die GANZE Wardrobe (97 Kacheln,
               Owner 13.08.2026) — ohne lazy lüde die Seite alle Bilder auf einmal. */}
           <img src={poster} alt={b.name} loading="lazy" className="block h-full w-full object-cover" />
-          {sichtbar && (
+          {/**
+           * POSTER UEBERALL — ES SPIELT NUR DIE GEWAEHLTE KACHEL (Owner 16.08.2026: „die
+           * ladezeit ist zu lang, weil die Videos direkt geladen werden" → „wir machen nur
+           * poster und wenn jemand das auswählt dann fängt es an zu laufen").
+           *
+           * HIER STAND EIN `<video autoPlay loop>` JE SICHTBARER KACHEL. Auf dem Schirm
+           * stehen zwei bis drei gleichzeitig, in der Try-on-Garderobe wandern beim Wischen
+           * Dutzende durch — jede lud ihre Datei sofort und vollstaendig. Das Poster ist ein
+           * Bild von ~30 KB, der Clip ein Vielfaches davon; auf dem Handy im Mobilnetz
+           * entscheidet genau das darueber, ob die Auswahl sofort dasteht oder ruckelt.
+           *
+           * UND ES LOEST DEN TIPP-KONFLIKT, DEN DER OWNER SELBST BENANNT HAT („aber das
+           * problem ist hier natürlich der klick zur auswahl dann"): Es braucht keinen
+           * zweiten Knopf auf der Kachel. Der Tipp waehlt aus — und Auswaehlen IST das
+           * Abspielen. Ein Play-Knopf in der Mitte waere ein zweites Ziel auf derselben
+           * Flaeche gewesen; genau das wollte der Owner nicht.
+           *
+           * `preload="none"` schuetzt den zweiten Fall: Wer sich durch die Kacheln tippt,
+           * laedt nacheinander mehrere Clips an. Ohne diese Zeile bliebe jeder einmal
+           * angetippte Clip im Hintergrund weiter am Netz.
+           */}
+          {an && b.video && (
             // eslint-disable-next-line jsx-a11y/media-has-caption
-            <video src={b.video} poster={poster} muted playsInline autoPlay loop
+            <video src={b.video} poster={poster} muted playsInline autoPlay loop preload="none"
               /* KLEINE STUMME KACHEL-VORSCHAU, EINFACHES `loop` (Memory
                  „videos-nahtlos-schleifen" verlangt die Zwei-Spieler-Ueberblendung fuer
                  GROSSE Videos MIT Ton — hier ist die Kachel stumm und 78-160px breit; der
-                 Schnitt am Loop-Ende ist auf dieser Flaeche nicht zu sehen, zwei Player je
-                 Kachel in einer Wisch-Reihe waeren unnoetiger Aufwand). */
+                 Schnitt am Loop-Ende ist auf dieser Flaeche nicht zu sehen). */
               className="absolute inset-0 h-full w-full object-cover" />
           )}
           <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>

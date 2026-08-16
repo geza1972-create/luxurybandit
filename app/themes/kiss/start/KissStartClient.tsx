@@ -38,9 +38,9 @@ export default function KissStartClient({ lang, code, beispielVideos, inhalt }: 
   return (
     <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}
       inhalt={inhalt}>
-      {({ schritt, onSchrittChange }) => (
+      {({ schritt, onSchrittChange, onVorlage }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
-          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />
+          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} onVorlage={onVorlage} />
       )}
     </TunnelSeite>
   );

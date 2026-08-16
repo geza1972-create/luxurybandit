@@ -120,12 +120,50 @@ export async function GET(request: Request) {
    * deshalb beim Anzeigen über die Model-Kennung auf; dann ist die Spalte immer gefüllt.
    */
   const katalog = new Map<string, string>();
+  /**
+   * DER WEG DES BESUCHERS (Owner 16.08.2026: „ich muss bei jedem user sehen den pfad den er
+   * geht. Auch wenn er auf einer anderen topic wechselt, bis er aussteigt." — mit Bild der
+   * Auftragskarte: „also hier").
+   *
+   * DIE DATEN GAB ES SCHON, NUR NIE AN DIESER STELLE: Jeder Trichter-Schritt schreibt seit
+   * Wochen ein Ereignis (`lib/track-funnel.ts`) mit Geraetekennung, Produkt und — seit heute —
+   * Schritt und Vorlage. Sie lagen im Ereignis-Protokoll neben der Auftragsliste, ohne dass
+   * die beiden je zusammengefuehrt wurden. Die Karte zeigte damit das ERGEBNIS eines Besuchs
+   * (Fotos, bezahlt/unbezahlt) und verschwieg den Verlauf: Wo kam er her, was hat er
+   * angesehen, an welcher Station ist er stehengeblieben.
+   *
+   * VERBUNDEN WIRD UEBER DIE GERAETEKENNUNG, nicht ueber die Adresse: Der Weg beginnt lange
+   * bevor jemand seine E-Mail eintippt (seit dem 16.08. sogar noch spaeter, weil Schritt 1
+   * uebersprungen werden darf). Nur so ist auch der Themenwechsel sichtbar — dasselbe Geraet
+   * in Kuss UND Tanz ist EIN Mensch, seine Adresse steht vielleicht nur an einem der beiden.
+   */
+  const wegJeGeraet = new Map<string, { t: string; thema: string; name: string; step?: string; vorlage?: string; quelle?: string }[]>();
   try {
     const st = await readTryThisLookState();
     for (const c of (st.curators ?? []) as { id?: string; photoPath?: string; photoUrl?: string }[]) {
       if (c?.id && (c.photoPath || c.photoUrl)) katalog.set(String(c.id), String(c.photoPath || c.photoUrl));
     }
-  } catch { /* ohne Katalog bleibt die Spalte eben leer */ }
+    /* Aelteste zuerst — ein Weg liest sich von oben nach unten, das Protokoll steht
+       andersherum (neueste zuerst). */
+    const ereignisse = [...(st.events ?? [])].reverse();
+    for (const ev of ereignisse) {
+      const ger = String(ev.device ?? "").trim();
+      if (!ger) continue;   // ohne Kennung gehoert das Ereignis zu niemandem
+      const liste = wegJeGeraet.get(ger) ?? [];
+      /* Ein Deckel je Geraet: Wer sich durch fuenf Themen tippt, erzeugt schnell hundert
+         Ereignisse — die Karte soll den Weg zeigen, nicht das Rohprotokoll. */
+      if (liste.length >= 60) continue;
+      liste.push({
+        t: String(ev.createdAt ?? ""),
+        thema: String(ev.theme ?? ""),
+        name: String(ev.name ?? ""),
+        ...(ev.step ? { step: String(ev.step) } : {}),
+        ...(ev.vorlage ? { vorlage: String(ev.vorlage) } : {}),
+        ...(ev.source ? { quelle: String(ev.source) } : {}),
+      });
+      wegJeGeraet.set(ger, liste);
+    }
+  } catch { /* ohne Katalog bleibt die Spalte eben leer, ohne Ereignisse fehlt nur der Weg */ }
 
   /**
    * STEHT ER SCHON IN EINER LISTE? (Owner 30.07.2026: „du sollst noch vergleichen ob das ein
@@ -157,6 +195,8 @@ export async function GET(request: Request) {
     imageUrl: e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "",
     personUrl: e.personPath ? await getSignedUrl(e.personPath).catch(() => "") : "",
     listen: bekanntAus(e),
+    /* Sein Weg — leer, wenn das Geraet nichts gemeldet hat (alte Auftraege ohne Kennung). */
+    weg: wegJeGeraet.get(String(e.device ?? "").trim()) ?? [],
     modelUrl: e.modelPath
       ? await getSignedUrl(e.modelPath).catch(() => "")
       : await (async () => {

@@ -36,9 +36,9 @@ export default function SurpriseStartClient({ lang, code, beispielVideos, inhalt
 
   return (
     <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
-      {({ schritt, onSchrittChange }) => (
+      {({ schritt, onSchrittChange, onVorlage }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
-          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />
+          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} onVorlage={onVorlage} />
       )}
     </TunnelSeite>
   );

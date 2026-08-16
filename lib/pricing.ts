@@ -229,9 +229,29 @@ export const TOPUP_GROSS_CENTS = 3000;
  * Guthaben-Prüfung, Abbuchung, Erstattung und die unterste Gutschein-Stufe. Genau dafür gibt
  * es diese Konstante; vorher lagen dieselben Zahlen an sechs Stellen.
  */
-export const GESCHENK_VIDEO_CENTS = 999;            // 9,99 € — Geburtstag · Kuss · Tanz · Urlaub · Versprechen
+/* 4,99 € SEIT DEM 16.08.2026 (Owner: „wir machen alle preise für 4,99") — zurück auf den
+   Preis vom 10.08. mittags, nachdem 9,99 € seit dem 30.07. genau EINEN bezahlten Auftrag
+   gebracht hat, und der war der Owner selbst (86 Kuss-Aufträge, 1 bezahlt). */
+export const GESCHENK_VIDEO_CENTS = 499;            // 4,99 € — Geburtstag · Kuss · Tanz · Urlaub · Versprechen
 
 export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie jedes Geschenk
+
+/**
+ * DER KUSS KOSTET 4,99 € (Owner 16.08.2026: „und wir machen dann doch 4,99 beim kuss").
+ *
+ * ER LÖST SICH DAMIT VOM HAUSPREIS, und zwar nur er: Geburtstag, Tanz und Urlaub bleiben bei
+ * `GESCHENK_VIDEO_CENTS`. Eigene Konstante nach dem Hausmuster — schriebe man hier `499`
+ * direkt in `geschenkPreisCents`, stünde dieselbe Zahl gleich zweimal im Code (Abbuchung UND
+ * Kachel), und genau daran ist der Geburtstag am 07.08. auseinandergelaufen: 4,99 € auf dem
+ * Schild, 15 € an der Kasse.
+ *
+ * DER KUSS IST DAS EINE PRODUKT, DAS ECHTE KÄUFE BRINGEN MUSS (Memory `ein-produkt-zuerst`),
+ * und er ist der einzige, der schon Anzeigen-Verkehr gesehen hat: 86 Aufträge zwischen dem
+ * 30.07. und dem 15.08., davon ein einziger bezahlter — und der war der Owner selbst. Ein
+ * niedrigerer Einstiegspreis ist die eine Stellschraube, die vor der nächsten Anzeige noch
+ * bewegt werden kann.
+ */
+export const KUSS_CENTS = 499;                      // 4,99 € — nur der Kuss
 
 /**
  * DER GEBURTSTAG STARTET BEI 4,99 (Owner 07.08.2026: „wir nehemen für dieses Video 4,99 als
@@ -266,7 +286,8 @@ export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.0
  */
 /* 9,99 € — Future Self Program (Owner 12.08.2026: „Das Programm wird auch 9,99 kosten",
    nach dem geglückten Echtgeld-Test zum 1-€-Testpreis; davor 19,99 vom 11.08.). */
-export const VERSPRECHEN_CENTS = 999;
+/* 4,99 € seit 16.08.2026 — „wir machen alle preise für 4,99" (Owner). */
+export const VERSPRECHEN_CENTS = 499;
 
 /**
  * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
@@ -298,7 +319,9 @@ export function geschenkPreisCents(geschenk: string): number {
     /* Das Future Self Program — der Schlüssel ist das gespeicherte Thema des Auftrags, also
        derselbe Wert wie in `themenPreisCents`. Der Betrag steht NUR in VERSPRECHEN_CENTS. */
     case "versprechen": return VERSPRECHEN_CENTS;
-    default: return GESCHENK_VIDEO_CENTS;   // Kuss, Idol, Tanz, Geburtstag — ein Geschenk-Video
+    /* Der Kuss hat seit dem 16.08.2026 seinen eigenen Preis — siehe KUSS_CENTS. */
+    case "kiss": return KUSS_CENTS;
+    default: return GESCHENK_VIDEO_CENTS;   // Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }
 
@@ -792,7 +815,8 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
        dreimal (49 → 59 → 19,99), und der Kommentar hinkte jedes Mal hinterher. Wer einen Preis
        im Kommentar nachschlägt statt in VERSPRECHEN_CENTS, tippt irgendwo eine tote Zahl ab. */
     case "versprechen": return VERSPRECHEN_CENTS;   // Future Self Program
-    default: return GESCHENK_VIDEO_CENTS;   // kiss, holiday — 4,99 € (Owner 10.08.2026)
+    case "kiss": return KUSS_CENTS;   // eigener Preis seit 16.08.2026 — siehe KUSS_CENTS
+    default: return GESCHENK_VIDEO_CENTS;   // holiday — der Geschenk-Hauspreis
   }
 }
 

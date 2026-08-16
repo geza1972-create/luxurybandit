@@ -127,6 +127,18 @@ export type TryThisLookEvent = {
   // `...payload` durchzureichen. Additiv ergänzt, ändert nichts an bereits gespeicherten
   // Ereignissen ohne dieses Feld (die bleiben `undefined`).
   theme?: string;
+  /**
+   * DER WEG EINES BESUCHERS (Owner 16.08.2026: „ich muss bei jedem user sehen den pfad den er
+   * geht. Auch wenn er auf einer anderen topic wechselt, bis er aussteigt." · „ebenso welchen
+   * template sie auswählen").
+   *
+   * `step` ist die Stationsnummer im Trichter (1 Adresse · 2 Vorlage · 3 Erzeugen), `vorlage`
+   * die gewählte Kachel (`?v=` aus der Adresszeile, z. B. „dream-world"). Zusammen mit
+   * `theme` und `device` ergibt die Ereignisliste damit einen lesbaren Weg — vorher endete
+   * jede Spur bei „irgendetwas im Kuss".
+   */
+  step?: string;
+  vorlage?: string;
 };
 
 export type TryThisLookLead = {

@@ -176,6 +176,10 @@ function GutscheinTunnel({ lang, F, T, schritt, onSchrittChange }: { lang: strin
           zurueckHref={(() => { const q = new URLSearchParams(); try { const j = new URLSearchParams(window.location.search); if (j.get("light") === "1") q.set("light", "1"); const c = j.get("code") ?? ""; if (c) q.set("code", c); } catch { /**/ } const s = q.toString(); return `/themes/gutschein${s ? `?${s}` : ""}`; })()}
           lang={lang} anfangsName={name} anfangsEmail={mail} busy={leadBusy} fehlerAussen={leadFehler}
           onWeiter={async (n, e) => {
+            /* OHNE ADRESSE EINFACH WEITER (Owner 16.08.2026) — es gibt keinen Lead zu
+               speichern, und `/api/kiss-claim` wiese eine leere Adresse zu Recht ab. Die
+               Pflicht steht jetzt am Erzeugen/Bezahlen, nicht an Schritt 1. */
+            if (!e.trim()) { setName(n); setMail(""); setLeadFehler(""); onSchrittChange(2); return; }
             setName(n); setMail(e); setLeadBusy(true); setLeadFehler("");
             try {
               let device = "";

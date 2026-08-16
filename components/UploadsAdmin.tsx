@@ -45,6 +45,32 @@ type Eintrag = {
    */
   altersWarnung?: string;
   altersGeschaetzt?: number;
+  /**
+   * SEIN WEG (Owner 16.08.2026: „ich muss bei jedem user sehen den pfad den er geht. Auch
+   * wenn er auf einer anderen topic wechselt, bis er aussteigt" — mit Bild DIESER Karte:
+   * „also hier"). Kommt fertig sortiert vom Server (/api/kiss-log), aelteste Station zuerst.
+   */
+  weg?: { t: string; thema: string; name: string; step?: string; vorlage?: string; quelle?: string }[];
+};
+
+/**
+ * DIE STATIONEN IN KLARTEXT — ein Weg soll sich LESEN lassen.
+ *
+ * `funnel_started` und `step_completed` sind Namen aus dem Protokoll; wer die Karte
+ * anschaut, will „Trichter offen" und „Schritt 2" sehen. Unbekannte Namen bleiben stehen wie
+ * sie sind (neue Ereignisse sollen nicht unsichtbar werden, nur weil hier eine Zeile fehlt).
+ */
+const STATION: Record<string, string> = {
+  funnel_started: "Trichter offen",
+  step_completed: "Schritt",
+  look_selected: "Vorlage",
+  lead_created: "E-Mail",
+  email: "E-Mail",
+  generate_tap: "Knopf",
+  generate: "erzeugt",
+  checkout_started: "Kasse",
+  payment_completed: "BEZAHLT",
+  tryon: "Try-on",
 };
 
 /** Klartext fuers Warnzeichen — „nacktheit" allein liest sich wie ein Datenbankfeld. */
@@ -210,8 +236,13 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
         <div className="mt-3 space-y-3">
           {sichtbar.map(e => (
             <div key={e.id} className="rounded-xl border border-black/10 p-2.5">
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
+              {/* MOBIL ZUERST (Owner 16.08.2026: „und mach das in mobile design") — auf dem
+                  Handy standen Adresse, Bezahlt-Marke und Loeschknopf in EINER starren Zeile:
+                  die Adresse wurde zu „tigl1072…" gekuerzt, die Marken rutschten aneinander.
+                  `flex-wrap` laesst die Marken in die zweite Zeile fallen, `basis-full`
+                  gibt der Adresse auf schmalen Schirmen die ganze Breite. */}
+              <div className="flex flex-wrap items-start gap-2">
+                <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
                   <p className="truncate text-[13px] font-black text-black">
                     {e.email || <span className="text-black/40">ohne E-Mail</span>}
                   </p>
@@ -342,6 +373,61 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   <Kachel url={e.imageUrl} label="Ergebnis" />
                 </>)}
               </div>
+
+              {/**
+                * SEIN WEG — VON OBEN NACH UNTEN, BIS ER AUSSTEIGT (Owner 16.08.2026).
+                *
+                * MOBIL ZUERST (derselbe Auftrag: „und mach das in mobile design"): Der Weg ist
+                * die einzige Angabe der Karte, deren Laenge niemand kennt — mal drei
+                * Stationen, mal dreissig. Deshalb umbrechende Marken statt einer Tabelle und
+                * statt einer Zeile, die seitwaerts aus dem Handy laeuft.
+                *
+                * DER THEMENWECHSEL IST DIE POINTE, nicht ein Detail: Deshalb steht der
+                * Produktname NUR dann vor der Station, wenn er sich gegenueber der vorigen
+                * geaendert hat — sonst verschwindet der Wechsel zwischen dreissig gleichen
+                * Woertern. Die letzte Marke ist rot umrandet: Da ist er stehengeblieben.
+                */}
+              {(e.weg ?? []).length > 0 && (
+                <div className="mt-2 rounded-lg bg-black/[0.03] p-2">
+                  <p className="mb-1 text-[9px] font-black uppercase tracking-wide text-black/40">
+                    Sein Weg · {(e.weg ?? []).length} Stationen
+                    {e.weg?.[0]?.quelle ? ` · von ${e.weg[0].quelle}` : ""}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                    {(e.weg ?? []).map((w, i, alle) => {
+                      const neuesThema = w.thema && w.thema !== alle[i - 1]?.thema;
+                      const letzte = i === alle.length - 1;
+                      const text = [
+                        STATION[w.name] ?? w.name,
+                        w.step || "",
+                        w.vorlage ? `▸ ${w.vorlage}` : "",
+                      ].filter(Boolean).join(" ");
+                      return (
+                        <span key={`${w.t}-${i}`} className="flex items-center gap-1">
+                          {i > 0 && <span className="text-[10px] text-black/25">→</span>}
+                          {neuesThema && (
+                            <span className="rounded-l-full bg-black/[0.07] py-0.5 pl-2 pr-1 text-[10px] font-black text-black/70">
+                              {w.thema}
+                            </span>
+                          )}
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                            letzte
+                              ? "bg-red-500/10 text-red-600 ring-1 ring-red-400/40"
+                              : w.name === "payment_completed"
+                                ? "bg-emerald-500/15 text-emerald-700"
+                                : "bg-white text-black/60"
+                          } ${neuesThema ? "rounded-l-none" : ""}`}>
+                            {text}
+                          </span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1 text-[9px] font-bold text-black/35">
+                    zuletzt {zeit(String(e.weg?.[(e.weg?.length ?? 1) - 1]?.t ?? ""))} — dort ausgestiegen
+                  </p>
+                </div>
+              )}
 
               {/* HAT ER POST BEKOMMEN? (Owner 14.08.2026: „ich will dass da auch steht ob er
                   eine email bekommen hat mit dem bild").

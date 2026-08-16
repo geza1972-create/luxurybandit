@@ -395,7 +395,7 @@ function VersprechenProgrammKarte({ T }: { T: KissText }) {
   );
 }
 
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange }: {
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange, onVorlage }: {
   variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[];
   /**
    * DER TUNNEL ALS EIGENE SEITE (Owner 12.08.2026, wörtlich: „die muss ich in den ads
@@ -423,6 +423,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   urlSchritt?: number;
   /** Meldet jede Änderung an `schritt` nach aussen — die Tunnel-Seite schreibt sie in die URL. */
   onSchrittChange?: (schritt: number) => void;
+  /** Dasselbe für die gewählte Vorlage (`?v=…`) — Owner 16.08.2026, siehe `TunnelSeite`. */
+  onVorlage?: (vorlage: string) => void;
 }) {
   const V = VARIANTS[variant];
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
@@ -2170,9 +2172,22 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // Leute wollten. Das Ergebnis wird später an denselben Eintrag nachgetragen.
   const onFile = async (f?: File | null) => {
     if (!f) return;
-    // KEIN UPLOAD OHNE ADRESSE (Owner 03.08.2026). Admin/Staff bleibt ausgenommen, sonst
-    // testet niemand mehr ohne Adresse einzutippen.
-    if (!isStaff && !adresseDa) { gateDatei.current = { art: "person", file: f }; setGateOffen(true); return; }
+    /**
+     * HIER STAND DAS EINGANGSTOR — „KEIN UPLOAD OHNE ADRESSE" (Owner 03.08.2026). Es ist am
+     * 16.08.2026 gefallen, auf Ansage: „der user soll trotzdem weiter können auch ohne email
+     * aber später beim generieren braucht er eine."
+     *
+     * WARUM ES WEG MUSSTE: Die Anzeige zeigt ab heute direkt auf den Generieren-Schritt
+     * (`?s=3`). Wer dort ankommt, hat Schritt 1 nie gesehen — das Tor hätte also JEDEN
+     * Anzeigen-Besucher beim ersten Foto angehalten und wäre damit genau die Mauer geworden,
+     * die aus Schritt 1 gerade verschwunden ist.
+     *
+     * DIE PFLICHT IST NICHT WEG, SIE STEHT EINEN SCHRITT SPÄTER: ohne gültige Adresse
+     * erzeugt `generate()` nichts (Feld direkt über dem Knopf). Was bleibt, ist der Preis
+     * dieser Entscheidung — hochgeladene Gesichter ohne Adresse. Genau die musste
+     * `scripts/kiss-anonyme-loeschen.mjs` am 03.08. wegräumen (195 Stück); dieses Skript ist
+     * damit kein Aufräumer mehr, sondern Pflichtprogramm.
+     */
     await onFileEcht(f);
   };
   const onFileEcht = async (f: File) => {
@@ -2408,7 +2423,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   // sonst entsteht er hier — je nachdem, was er zuerst hochlädt.
   const onModelFile = async (f?: File | null) => {
     if (!f) return;
-    if (!isStaff && !adresseDa) { gateDatei.current = { art: "model", file: f }; setGateOffen(true); return; }
+    // Kein Tor mehr, aus demselben Grund wie bei seinem eigenen Foto (siehe `onFile`).
     await onModelFileEcht(f);
   };
   const onModelFileEcht = async (f: File) => {
@@ -2677,7 +2692,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     const abgegolten = V.keinGratis && !isStaff && bezahlt && !!videoUrl;
     if (abgegolten) { setBezahlt(false); setVideoUrl(""); setVideoPoster(""); setErstattet(false); setErstattScharf(false); }
     if (V.keinGratis && (!bezahlt || abgegolten) && !isStaff) {
-      if (!adresseDa) { const e = mail.trim(); if (!(await adresseVormerken(e))) return; }
+      /**
+       * HIER IST DIE ADRESSE PFLICHT (Owner 16.08.2026) — der einzige Ort, an dem sie es
+       * noch ist, seit Schritt 1 und das Upload-Tor sie durchlassen.
+       *
+       * ZUERST DAS FORMAT IM BROWSER, DANN ERST DER SERVER: Ein leeres Feld darf keine
+       * Anfrage kosten und keine Wartezeit erzeugen — der Besucher soll sofort sehen, WO es
+       * hakt. Deshalb springt der Blick auch ans Feld (`focus` + `scrollIntoView`): Der
+       * Generieren-Knopf steht auf dem Handy oft unter dem Feld, und eine rote Zeile, die
+       * ausserhalb des Bildschirms erscheint, ist dasselbe wie keine Zeile.
+       */
+      if (!adresseDa) {
+        const e = mail.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) {
+          setMailFehler(T.mailInvalid);
+          mailRef.current?.focus();
+          mailRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+        if (!(await adresseVormerken(e))) { mailRef.current?.focus(); return; }
+      }
       /**
        * KUSS: NUR GUTHABEN (Owner 02.08.2026). Reicht das Aufgeladene, bucht der Server
        * lautlos ab (`unlock("once")` faellt dann nie auf die 1,49-€-Kasse zurueck, weil sie
@@ -4850,7 +4884,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             {/* Der NAME reist mit in die Liste (Owner 12.08.2026: „greifen wir die emails
                 und namen ab sofort in einer liste ja?") — `name` ist der frisch getippte
                 Wert aus TunnelStart. */}
-            if (!adresseDa || eGeaendert) { const ok = await adresseVormerken(email, name); if (!ok) return; }
+            /* LEER = ÜBERSPRUNGEN (Owner 16.08.2026: „der user soll trotzdem weiter können
+               auch ohne email aber später beim generieren braucht er eine"). Ohne Adresse
+               gibt es nichts vorzumerken — `adresseDa` bleibt falsch, und genau daran
+               erkennt der Generieren-Knopf weiter unten, dass er sie noch holen muss. */
+            if (email.trim() && (!adresseDa || eGeaendert)) { const ok = await adresseVormerken(email, name); if (!ok) return; }
             setSchritt(alsSchritt(nachTunnelStart));
             setStufenOffen(true);
           }} />
@@ -4896,6 +4934,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 waehle={id => {
                   const bild = POLEDANCE_SETS.find(s => s.id === id)?.bild || "";
                   setNeuerLook(bild);
+                  onVorlage?.(id);   // in die Adresse (Owner 16.08.2026)
                   /* DIE WAHL UEBERLEBT DEN NEULADEN (15.08.2026, Owner: „ich habe die grüne
                      ausgewählt gehabt" — geliefert wurde rosa). `neuerLook` war reiner
                      Browser-Zustand; die Rueckkehr von der Kasse laedt die Seite neu und
@@ -4923,10 +4962,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * `s.name` ist der deutsche Admin-Name, gezeigt wird `s.namen[lang]`.
                 */
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
-                wert={kissSzeneId} waehle={setKissSzeneId}
+                wert={kissSzeneId} waehle={id => { setKissSzeneId(id); onVorlage?.(id); }}
                 bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: s.kachel, video: s.clip }))} />
             ) : (
-              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look}
+                waehle={id => { setLook(id); onVorlage?.(id); }}
                 /* DIE PROGRAMM-KARTE NUR BEIM VERSPRECHEN (Owner-Zusatzauftrag 12.08.2026:
                    „wenn wir eins haben") — der Geburtstag hat keine, bekommt also nichts. */
                 features={variant === "versprechen" ? <VersprechenProgrammKarte T={T} /> : undefined}

@@ -129,7 +129,11 @@ export function logFunnelEvent(event: string, extra: Record<string, string> = {}
       headers: { "Content-Type": "application/json" },
       // Returns the in-flight request so callers that fire two events back-to-back can AWAIT
       // the first — the event log is a last-write-wins blob, so concurrent writes clobber.
-      body: JSON.stringify({ action: "event", event, utmSource, device, referrer: document.referrer || "", internal, ...extra }),
+      /* `vorlage` aus der Adresszeile (Owner 16.08.2026): Sie steht dort ab der Wahl an JEDER
+         folgenden Stufe — damit trägt jedes Ereignis die gewählte Vorlage, ohne dass ein
+         Aufrufer sie durchreichen muss. Ein ausdrücklich übergebener Wert in `extra` sticht
+         (deshalb steht `...extra` dahinter). */
+      body: JSON.stringify({ action: "event", event, utmSource, vorlage: sp.get("v") || "", device, referrer: document.referrer || "", internal, ...extra }),
       keepalive: true, // events fired right before navigating away (to Stripe / login) still send
     }).then(() => {}).catch(() => {});
   } catch {

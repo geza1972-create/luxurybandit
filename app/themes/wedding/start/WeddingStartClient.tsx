@@ -289,6 +289,9 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
           zurueckHref={(() => { const q = new URLSearchParams(); try { const j = new URLSearchParams(window.location.search); if (j.get("light") === "1") q.set("light", "1"); const c = j.get("code") ?? ""; if (c) q.set("code", c); } catch { /**/ } const s = q.toString(); return `/themes/wedding${s ? `?${s}` : ""}`; })()}
           lang={lang} anfangsName={name} anfangsEmail={mail} busy={leadBusy} fehlerAussen={leadFehler}
           onWeiter={async (n, e) => {
+            /* OHNE ADRESSE EINFACH WEITER (Owner 16.08.2026) — siehe TunnelStart in
+               components/CI.tsx: die Pflicht steht jetzt am Erzeugen/Bezahlen. */
+            if (!e.trim()) { setName(n); setMail(""); setLeadFehler(""); onSchrittChange(3); return; }
             setName(n); setMail(e); setLeadBusy(true); setLeadFehler("");
             try {
               let device = "";

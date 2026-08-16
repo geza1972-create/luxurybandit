@@ -39,9 +39,9 @@ export default function VersprechenStartClient({ lang, code, beispielVideos, inh
   return (
     <TunnelSeite schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}
       inhalt={inhalt}>
-      {({ schritt, onSchrittChange }) => (
+      {({ schritt, onSchrittChange, onVorlage }) => (
         <KissFunnel variant={kissfunnelVariant(P)} lang={lang} code={code} beispielVideos={beispielVideos}
-          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} />
+          tunnelSeite urlSchritt={schritt} onSchrittChange={onSchrittChange} onVorlage={onVorlage} />
       )}
     </TunnelSeite>
   );

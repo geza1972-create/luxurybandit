@@ -294,6 +294,9 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
             zurueckHref={(() => { const q = new URLSearchParams(); try { const j = new URLSearchParams(window.location.search); if (j.get("light") === "1") q.set("light", "1"); const c = j.get("code") ?? ""; if (c) q.set("code", c); } catch { /**/ } const s = q.toString(); return `/themes/tryon${s ? `?${s}` : ""}`; })()}
             lang={lang} anfangsName={name} anfangsEmail={mail} busy={leadBusy} fehlerAussen={leadFehler}
             onWeiter={async (n, e) => {
+              /* OHNE ADRESSE EINFACH WEITER (Owner 16.08.2026) — siehe TunnelStart in
+                 components/CI.tsx: die Pflicht steht jetzt am Erzeugen, nicht an Schritt 1. */
+              if (!e.trim()) { setName(n); setMail(""); setLeadFehler(""); onSchrittChange(2); return; }
               setName(n); setMail(e); setLeadBusy(true); setLeadFehler("");
               try {
                 let device = "";

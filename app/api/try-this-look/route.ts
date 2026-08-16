@@ -1231,6 +1231,18 @@ export async function POST(request: Request) {
         // additiv ergänzt, ändert nichts an bereits gespeicherten Ereignissen oder an
         // bestehenden Auswertungen, die dieses Feld nicht kennen.
         theme: String((payload as any).theme ?? "").trim() || undefined,
+        /**
+         * SCHRITT UND VORLAGE (Owner 16.08.2026: „ich muss bei jedem user sehen den pfad den
+         * er geht" · „ebenso welchen template sie auswählen").
+         *
+         * Beide wurden bisher MITGESCHICKT und hier weggeworfen — dieselbe Falle wie bei
+         * `theme` einen Absatz höher: Das Objekt listet seine Felder einzeln auf, ein
+         * `...payload` gibt es nicht. `step` kommt aus `logTunnelEvent("step_completed", …,
+         * { step })`, `vorlage` aus der Adresszeile (`?v=`). Ohne sie ist der Weg eines
+         * Besuchers nur eine Kette von Produktnamen ohne Stationen.
+         */
+        step: String((payload as any).step ?? "").trim() || undefined,
+        vorlage: String((payload as any).vorlage ?? "").trim() || undefined,
       });
 
       const updatedState = await saveTryThisLookState(state);
