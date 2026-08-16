@@ -1799,6 +1799,16 @@ export type KissLogEntry = {
    */
   adminAlarmAt?: string;
   /**
+   * WIE OFT DIESER AUFTRAG EINEN BEZAHLTEN LAUF BEIM ANBIETER GESTARTET HAT (15.08.2026).
+   *
+   * NICHT dasselbe wie `videoTries`: Das zaehlt jeden Anlauf, auch die, die VOR dem Anbieter
+   * scheitern („Sein Foto fehlt im Speicher.") und nichts kosten. Hier zaehlt nur, was eine
+   * Auftragsnummer zurueckbekommen hat — also Geld. Der Deckel haengt an dieser Zahl, damit
+   * kostenlose Fehlversuche weiter unbegrenzt wiederholt werden duerfen (Owner: „drei
+   * Anlaeufe muss raus") und teure eben nicht.
+   */
+  bezahlteStarts?: number;
+  /**
    * WANN DIE WILLKOMMENS-MAIL ZUM 30-TAGE-PROGRAMM RAUS IST (11.08.2026, Future Self
    * Program). Sie geht SOFORT nach der Zahlung raus, nicht erst mit dem Film — das Programm
    * ist das Gekaufte und ab der Sekunde des Kaufs fertig (Auftrag da11fe51: bezahlt, Datei

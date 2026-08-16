@@ -30,12 +30,12 @@ export const metadata: Metadata = {
    * dem eigenen Foto. Preise stehen bewusst nicht drin — Zahlen kommen aus lib/pricing, und
    * ein statisches Metafeld kann sie nicht mitpflegen (Hausregel seit 29.07.2026).
    */
-  title: "LuxuryBandit — Pick a gift. Send it today.",
-  description: "Your photo and theirs — a kiss, a wedding invitation, a birthday video, a surprise. Choose an AI model, upload one photo, and get a video with you in it: made in minutes, in your browser, sent to one person. Nobody else sees it.",
+  title: "LuxuryBandit — AI Marketing Portal",
+  description: "Products built by artificial intelligence, and the marketing that sells them. Every product here is our own, finished in minutes. The same machine is ready for your business: a service or an event becomes a product — and the path that sells it.",
   keywords: ["ai video gift", "ai video generator", "kiss video ai", "wedding invitation video", "birthday video maker", "ai model", "ai influencer", "face swap video ai", "personalised video", "LuxuryBandit"],
   openGraph: {
-    title: "LuxuryBandit — Pick a gift. Send it today.",
-    description: "Your photo and theirs — a kiss, a wedding invitation, a birthday. One video, made in minutes, for one person.",
+    title: "LuxuryBandit — AI Marketing Portal",
+    description: "Products built by AI, and the marketing that sells them. The same machine turns your service or event into a product — and the path that sells it.",
     type: "website",
   },
   // fb:app_id on EVERY page — the "luxurybandit" Meta app (also powers FB login).

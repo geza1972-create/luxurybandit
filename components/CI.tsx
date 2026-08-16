@@ -1722,7 +1722,7 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      noch nicht live; seit dem 12.08. verkauft es, stand aber in keiner Tab-Leiste. Genau die
      Luecke, die eine Liste bekommt, wenn sie von Hand gepflegt wird und ein Produkt spaeter
      dazukommt. */
-  { icon: Rocket, name: "Promise", href: "/themes/versprechen", bild: "/Versprechen/Promise-Full-Video.jpg" },
+  { icon: Rocket, name: "Future me", href: "/themes/versprechen", bild: "/Versprechen/Promise-Full-Video.jpg" },   /* NICHT „Promise" (Owner 15.08.2026) — das Produkt heisst Future Self Program, und der Reiter nennt, was der Kunde bekommt: sich selbst, spaeter. */
   /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
      Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
      einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */

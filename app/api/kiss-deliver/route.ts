@@ -81,6 +81,25 @@ const ALARM_MS = 20 * 60 * 1000;
  * geweckt wird, kann noch etwas retten.
  */
 const ALARM_MAX_MS = 24 * 60 * 60 * 1000;
+/**
+ * DIE BREMSE (Owner 15.08.2026: „ja, Bremse einbauen" — nachdem eine Schleife 630
+ * Pixverse-Credits verbrannt hatte).
+ *
+ * DREI BEZAHLTE STARTS JE AUFTRAG. Und zwar BEZAHLTE: Anlaeufe, die vor dem Anbieter
+ * scheitern, kosten nichts und duerfen weiter unbegrenzt wiederholt werden — genau das war
+ * die Absicht hinter „drei Anlaeufe muss raus". Was der Owner damals abgeschafft hat, war
+ * das Aufgeben gegenueber dem KUNDEN, nicht der Schutz seines Kontos.
+ *
+ * WARUM DER MINDESTABSTAND NICHT REICHTE: 90 Sekunden begrenzen die Frequenz, nicht die
+ * Summe. Bei ~0,22 $ je Lauf sind das rund 9 $ die Stunde fuer EINEN Auftrag, fuer den der
+ * Kunde einmal 9,99 € gezahlt hat. Eine Rate ist kein Deckel.
+ *
+ * DREI, weil ein echter Ausfall beim Anbieter meist beim zweiten Mal durchgeht und ein
+ * dauerhaft kaputter Auftrag es nie tut. Danach ist es kein Geduldsfall mehr, sondern ein
+ * Fall fuer einen Menschen — der Owner bekommt die WhatsApp, der Kunde einen ehrlichen
+ * Zustand und den Erstattungs-Knopf.
+ */
+const MAX_BEZAHLTE_STARTS = 3;
 const MAX_PRO_LAUF = 3;          // wie viele Aufträge ein Aufruf gleichzeitig bearbeitet
 /**
  * SO LANG WIE DAS VERSPRECHEN (15.08.2026). Vorher 10 — also ~7,5 Minuten, während die Seite
@@ -530,9 +549,25 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
 
   for (const e of faellig) {
     if (!e.videoId) {
+      /* DIE BREMSE: drei bezahlte Starts, dann nie wieder von allein. Siehe oben. */
+      if ((e.bezahlteStarts ?? 0) >= MAX_BEZAHLTE_STARTS) {
+        if (!e.videoAlertAt) {
+          e.videoAlertAt = new Date().toISOString();
+          geaendert = true;
+          notifyAdminWhatsApp(
+            `LuxuryBandit: Auftrag gestoppt nach ${e.bezahlteStarts} bezahlten Laeufen.\n`
+            + `Thema: ${e.theme || "?"} · Nr. ${e.id.slice(0, 8)} · ${e.email || "?"}\n`
+            + `Fehler: ${String(e.videoError || "unbekannt").slice(0, 140)}\n${ADMIN_URL}`,
+          );
+        }
+        log.push(`${e.id}: GESTOPPT — Deckel von ${MAX_BEZAHLTE_STARTS} bezahlten Starts erreicht`);
+        continue;
+      }
       const s = await starten(request, e);
       e.videoTries = (e.videoTries ?? 0) + 1;
       e.videoLetzterStartAt = new Date().toISOString();   // Grundlage fuer ABSTAND_MS
+      /* NUR WAS EINE AUFTRAGSNUMMER BEKAM, HAT GEKOSTET — daran haengt der Deckel. */
+      if (s.videoId) { e.bezahlteStarts = (e.bezahlteStarts ?? 0) + 1; }
       if (s.videoId) { e.videoId = s.videoId; offen++; log.push(`${e.id}: gestartet ${s.videoId}`); }
       else { e.videoError = s.error; log.push(`${e.id}: Start fehlgeschlagen — ${s.error}`); }
       geaendert = true;
@@ -607,6 +642,7 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
       if (e.videoMailedAt) z.videoMailedAt = e.videoMailedAt;
       if (e.videoAlertAt) z.videoAlertAt = e.videoAlertAt;
       if (e.adminAlarmAt) z.adminAlarmAt = e.adminAlarmAt;
+      if (typeof e.bezahlteStarts === "number") z.bezahlteStarts = e.bezahlteStarts;
     }
     await writeKissLog(neu);
   }

@@ -254,7 +254,25 @@ export async function GET(request: Request) {
          * ist, ist es unterwegs. Genau das sagt die Kachel jetzt — ohne Ablaufdatum.
          */
         const offenerKauf = !!e.paid && !e.videoUrl;
-        const laufend = e.theme !== "gutschein"
+        /**
+         * KAPUTT IST NICHT LANGSAM (Owner 15.08.2026: „es war vor 5 Tagen" — zu einem
+         * Auftrag, der immer noch „wird erstellt" drehte).
+         *
+         * `laufend` hiess bisher nur: bezahlt und kein Video. Ohne Ablaufdatum, seit die
+         * drei Anlaeufe gestrichen sind. Fuer einen Auftrag, der wirklich rendert, ist das
+         * richtig; fuer einen, den der Server aufgegeben hat, ist es ein Drehrad, das luegt
+         * — und es versteckt den Erstattungs-Knopf, denn der erscheint erst, wenn nichts
+         * mehr „laeuft".
+         *
+         * ZWEI WEGE HIERHER: Entweder hat die Bremse in /api/kiss-deliver gestoppt (dann
+         * steht `videoAlertAt`), oder der Auftrag scheitert seit ueber einer halben Stunde
+         * an einem gemeldeten Fehler. Ein langsamer Pixverse-Lauf erfuellt beides nicht.
+         */
+        const gescheitert = offenerKauf && (
+          !!e.videoAlertAt
+          || (!!e.videoError && (e.videoTries ?? 0) >= 5 && alterMs > 30 * 60 * 1000)
+        );
+        const laufend = !gescheitert && e.theme !== "gutschein"
           && (offenerKauf
             || (Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
             || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));
@@ -262,10 +280,16 @@ export async function GET(request: Request) {
         {
           id: e.id,
           imageUrl: (e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "")
-            || (laufend && (e.modelPath || e.personPath)
+            || ((laufend || gescheitert) && (e.modelPath || e.personPath)
+              /* AUCH IM FEHLERFALL (15.08.2026): Die Galerie wirft Kacheln ohne Bild und
+                 ohne `rendert` aus der Liste — ein gescheiterter Auftrag waere spurlos
+                 verschwunden, statt seinen Zustand zu zeigen. Sein Standbild existiert
+                 immer, es ist sein eigenes Foto. */
               ? await getSignedUrl(String(e.modelPath || e.personPath)).catch(() => "") : ""),
           videoUrl: e.videoUrl || "",
           ...(laufend ? { rendert: true, rendertSeit: e.videoStartAt || e.createdAt || "" } : {}),
+          /* Ehrlich statt hoffnungsvoll — die Galerie zeigt darauf den Fehlerzustand. */
+          ...(gescheitert ? { gescheitert: true } : {}),
           name: e.modelName || "",
           createdAt: e.createdAt || "",
           source: "kiss",

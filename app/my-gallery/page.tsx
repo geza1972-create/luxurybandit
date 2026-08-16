@@ -53,6 +53,8 @@ type Item = {
   videoUrl?: string;
   /** Bezahlt, Video noch in Arbeit — die Kachel sagt es (Owner 08.08.2026). */
   rendert?: boolean;
+  /** Der Server hat aufgegeben — ehrlicher Zustand statt ewigem Drehrad (15.08.2026). */
+  gescheitert?: boolean;
   lookName?: string;
   curatorId?: string;
   curatorName?: string;
@@ -375,10 +377,11 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; programUrl?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; gescheitert?: boolean; programUrl?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
+              gescheitert: b.gescheitert === true,
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
               lookName: b.name || "",
@@ -405,7 +408,7 @@ export default function MyGalleryPage() {
              * Kachel deshalb weg, und der Kaeufer stand vor einer Galerie, die so tat, als
              * haette er nichts gekauft. Wer bezahlt hat, sieht seinen Platz sofort.
              */
-            .filter((b: Item) => b.imageUrl || b.videoUrl || b.rendert);
+            .filter((b: Item) => b.imageUrl || b.videoUrl || b.rendert || b.gescheitert);
           /**
            * DAS PROGRAMM IST EINE GANZ NORMALE KACHEL (Owner 11.08.2026: „Das habe ich
            * komplett übersehen … Muss in der Galerie stehen … statt privat Programm").
@@ -852,9 +855,28 @@ export default function MyGalleryPage() {
                     <Loader2 className="h-3 w-3 animate-spin" /> {T.entsteht}
                   </span>
                 )}
+                {/**
+                  * HAT NICHT GEKLAPPT — EHRLICH STATT DREHRAD (Owner 15.08.2026: „es war vor
+                  * 5 Tagen", zu einem Auftrag, der immer noch „wird erstellt" anzeigte).
+                  *
+                  * Der Server gibt bezahlte Auftraege nie auf — richtig. Aber er STARTET seit
+                  * der Bremse nichts Neues mehr, wenn drei bezahlte Laeufe gescheitert sind.
+                  * Ab da ist „wird erstellt" keine Geduld mehr, sondern eine Falschaussage:
+                  * Der Kunde wartet auf etwas, das niemand mehr rendert, und findet den
+                  * Erstattungs-Knopf nicht, weil der hinter dem laufenden Zustand liegt.
+                  *
+                  * Rot, nicht gold: Der Streifen sagt dasselbe wie „in Arbeit" darueber, nur
+                  * das Gegenteil — und er muss sich davon unterscheiden lassen.
+                  */}
+                {it.gescheitert && (
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/75 px-1 py-1.5 text-center text-[10px] font-black leading-tight"
+                    style={{ color: "#ef4444" }}>
+                    {T.nichtGeklappt ?? "Hat nicht geklappt"}
+                  </span>
+                )}
                 {/* NOCH KEIN BILD, ABER SCHON BEZAHLT: die Kachel bleibt trotzdem stehen
                     (siehe Filter oben) — hier bekommt sie einen Grund, angesehen zu werden. */}
-                {it.rendert && !it.imageUrl && !it.videoUrl && (
+                {(it.rendert || it.gescheitert) && !it.imageUrl && !it.videoUrl && (
                   <span className="pointer-events-none absolute inset-0 grid place-items-center bg-white/[0.06] text-[26px]">🎬</span>
                 )}
                 {it.videoUrl && (
