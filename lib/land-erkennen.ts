@@ -56,8 +56,21 @@ export function landAusZeitzone(): string {
  * zur EU gehören. Ein Banner zu viel ist ein Schulterzucken, ein Banner zu wenig ist ein
  * Rechtsverstoss — im Zweifel also fragen. Fehlt die Zeitzone (sehr alter Browser, harter
  * Datenschutzmodus), gilt derselbe Zweifel und der Streifen erscheint.
+ *
+ * AUS — OWNER-ENTSCHEIDUNG 16.08.2026 („schalte das verdammte Cookie aus"). Der Streifen kostete
+ * die Messung: 36 Link-Klicks aus der Meta-Werbung ergaben EINEN gezählten Landingpage-Aufruf,
+ * weil das Pixel erst nach „Accept" lud. Ohne Ergebnis drosselt Meta die Auslieferung, und
+ * genau das war der Befund vom 15.08. Ab jetzt braucht niemand mehr eine Einwilligung: der
+ * Streifen erscheint nirgends, das Pixel lädt überall sofort.
+ *
+ * ZURÜCKDREHEN: die eine Zeile `return false` löschen, dann greift der Rumpf darunter wieder
+ * unverändert. Es gibt keine zweite Stelle — Banner (`components/CookieConsent.tsx`), Pixel
+ * (`components/MetaPixel.tsx`) und Conversions API hängen alle an dieser Funktion.
  */
+const EINWILLIGUNG_ABGESCHALTET = true;   // auf `false` setzen und der Streifen ist zurück
+
 export function brauchtEinwilligung(): boolean {
+  if (EINWILLIGUNG_ABGESCHALTET) return false;
   try {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
     if (!zone) return true;
