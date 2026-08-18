@@ -3309,10 +3309,18 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             aufKopfSchneiden(sein, kopfBox.current.er),
             aufKopfSchneiden(ihr, kopfBox.current.sie),
           ]);
+          /**
+           * MIT ZEITWACHE (Owner 18.08.2026, live: „das bild hängt und geht nicht an pixverse
+           * weiter"). Ein Bildlauf braucht 30-90 Sekunden; nach zwei Minuten ist er nicht mehr
+           * langsam, sondern tot. Ohne diese Wache dreht sich der Kreisel weiter, waehrend
+           * niemand mehr auf etwas wartet — der Kunde hat bezahlt und sieht nichts.
+           */
+          const wache = new AbortController();
+          const uhr = setTimeout(() => wache.abort(), 120_000);
           const p = await fetch("/api/kiss-paar-bild", {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST", signal: wache.signal, headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ er: kopfEr, sie: kopfSie, szene: kissSzeneId, genId }),
-          }).then(r => r.json()).catch(() => null);
+          }).then(r => r.json()).catch(() => null).finally(() => clearTimeout(uhr));
           if (runRef.current !== token) return;
           if (p?.bild) paarBild = String(p.bild);
           else fehlerBild = String(p?.error ?? "");

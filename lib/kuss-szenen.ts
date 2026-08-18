@@ -502,6 +502,29 @@ export function kussPaarBildPrompt(szene: KussSzene): string {
     "this description, not from the uploads: ignore the clothing, the body and the background " +
     "of the uploaded photos completely. Both people are fully and modestly covered, full " +
     "coverage guaranteed — elegant formal clothing only, nothing revealing.\n" +
+    /**
+     * NICHT ÄLTER MACHEN (Owner 18.08.2026, an seinem ersten echten Lauf: „entweder Pixverse
+     * oder chatgpt hat sie viel älter gemacht").
+     *
+     * ES WAR CHATGPT, und der Grund ist eine Lücke: Die Szenen-Prompts des Owners sagen
+     * „preserve both faces clearly and realistically" — das hält die ÄHNLICHKEIT, nicht das
+     * ALTER. Jede Aufforderung zu „cinematic", „dramatic light", „elegant" schiebt ein
+     * Gesicht Richtung reifer und ernster; genau deshalb steht in der Geburtstags-Kette seit
+     * dem 08.08. „do not alter, reinterpret, beautify, AGE, or replace the face". Dieselbe
+     * Wache gehört hierher — als Hauszeile, damit sie kein Szenen-Prompt vergessen kann.
+     *
+     * UND JE PERSON EINZELN (Owner, unmittelbar danach: „wenn einer älter ist, heisst nicht
+     * dass beide auch alt ist. Sie ist 27 jahre jünger und das muss so bleiben"). Ein Modell,
+     * das zwei Gesichter in EIN Bild setzt, zieht sie in dieselbe Generation — es gleicht an,
+     * weil ein Paar „stimmig" aussehen soll. Genau das darf hier nicht passieren: Der
+     * Altersunterschied ist keine Unstimmigkeit, er ist das echte Paar.
+     */
+    "Keep the apparent age of EACH person exactly as in their own uploaded photo, independently " +
+    "of the other person. If one of them is clearly older and the other clearly younger, that " +
+    "age difference must stay exactly as it is — never even out their ages, never make them " +
+    "look like the same generation, never make the younger one older to match the other. Do not " +
+    "add wrinkles, do not mature or age either face, do not make anyone look older, more " +
+    "serious or more weathered than their reference photo.\n" +
     /* ZEILE 2 — die eine Bildregel des Hauses, an der schon ein Produkt gescheitert ist
        (Memory `bildprompt-nie-zwei-geschlechter`): Nennt ein Prompt einen Mann UND eine Frau,
        liefert das Modell gern ein geteiltes Bild mit zwei Porträts nebeneinander. */

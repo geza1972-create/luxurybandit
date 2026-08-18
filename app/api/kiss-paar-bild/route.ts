@@ -27,6 +27,7 @@ import { kussPaarBildPrompt, kussSzene, zufallsSzene } from "@/lib/kuss-szenen";
  * danach ist derselbe wie bisher, nur mit EINEM Bild statt zwei.
  */
 
+export const runtime = "nodejs";   // wie jede lange Route im Haus; `Buffer` gibt es auf Edge nicht
 export const maxDuration = 300;
 
 const ausDatenUrl = (s: string): Buffer | null => {
@@ -66,6 +67,21 @@ export async function POST(request: Request) {
     /* 3:4 hochkant — dasselbe Format, in dem die Kachel und später das Video stehen. */
     fd.append("size", "1024x1536");
     fd.append("quality", "high");
+    /**
+     * JPEG STATT PNG (Owner 18.08.2026, live: „das bild hängt und geht nicht an pixverse
+     * weiter").
+     *
+     * DAS BILD WAR NIE DAS PROBLEM — der Transport war es. `images/edits` liefert ohne diese
+     * zwei Zeilen ein PNG; als Daten-URL sind das 2-3 MB, und die schickt der Browser gleich
+     * danach WEITER an /api/generate-tryon-video. Vercel deckelt den Rumpf einer Anfrage bei
+     * ~4,5 MB (Hausregel `large-uploads-direct-to-supabase`): Der zweite Aufruf lief damit
+     * hart an die Grenze und starb still — das Bild war fertig, der Film startete nie.
+     *
+     * Ein JPEG derselben Szene wiegt ein Zehntel. Fuer ein Standbild, das anschliessend zu
+     * 360p-Video wird, ist verlustfreies PNG ohnehin Verschwendung.
+     */
+    fd.append("output_format", "jpeg");
+    fd.append("output_compression", "85");
     if (model !== "gpt-image-2") fd.append("input_fidelity", "high");
     fd.append("image[]", new Blob([new Uint8Array(er)], { type: "image/jpeg" }), "mann.jpg");
     fd.append("image[]", new Blob([new Uint8Array(sie)], { type: "image/jpeg" }), "frau.jpg");
@@ -89,5 +105,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: out?.error?.message ?? "Paar-Bild fehlgeschlagen." }, { status: 502 });
   }
 
-  return NextResponse.json({ bild: `data:image/png;base64,${b64}`, szene: szene.id });
+  return NextResponse.json({ bild: `data:image/jpeg;base64,${b64}`, szene: szene.id });
 }
