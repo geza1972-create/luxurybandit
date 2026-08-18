@@ -93,7 +93,7 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
    * Trichter-Ereignis die Adresszeile mitliest (lib/track-funnel.ts), steht die Vorlage damit
    * automatisch an ALLEN folgenden Stufen, nicht nur an der Wahl selbst.
    */
-  children: (args: { schritt: number; onSchrittChange: (schritt: number) => void; onVorlage: (vorlage: string) => void }) => ReactNode;
+  children: (args: { schritt: number; onSchrittChange: (schritt: number) => void; onVorlage: (vorlage: string) => void; urlVorlage: string }) => ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -190,6 +190,17 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
 
       {children({
         schritt,
+        /**
+         * DIE GEWAEHLTE VORLAGE AUS DER ADRESSE (Owner 18.08.2026: „ich habe beim ersten mal
+         * bandit kiss ausgesucht dann bin ich zurück um ein anderes zu wählen" — geliefert
+         * wurde trotzdem das erste).
+         *
+         * Die Wahl lag nur im Arbeitsspeicher des Trichters. Ein Schrittwechsel baut ihn neu
+         * auf, der Zustand faellt auf leer zurueck, und leer heisst „nimm die erste Vorlage".
+         * Deshalb reicht die Adresse sie jetzt herunter: Sie ueberlebt Zurueck, Vorwaerts,
+         * Neuladen und einen geteilten Link — genau dafuer steht sie seit dem 16.08. dort.
+         */
+        urlVorlage: searchParams.get("v") ?? "",
         onSchrittChange: s => {
           if (!gueltig(s)) return;
           if (String(s) === sParam) return;

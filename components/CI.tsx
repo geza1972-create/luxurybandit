@@ -1845,8 +1845,27 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = ""
                   * `0%` beginnt der Ausschnitt genau oben, wo bei einem Portraet der Kopf ist.
                   */
                 ? <img src={t.bild} alt="" loading="lazy"
+                    /**
+                      * FESTE 58×58, NICHT `h-full` (Owner 18.08.2026, dritter Anlauf: „die
+                      * kreise sind unverändert kaputt. Alle").
+                      *
+                      * LIVE GEMESSEN, und es war nie der Zuschnitt: Die Bilder standen mit
+                      * 56×75, 54×96, 56×100 im Kreis — also 67 bis 100 Pixel hoch in einem
+                      * 58-Pixel-Rahmen, jedes anders, je nach Seitenverhaeltnis der Datei. Sie
+                      * hingen unten heraus und wurden von `overflow-hidden` abgeschnitten.
+                      *
+                      * `h-full` half nicht, weil der Rahmen `grid place-items-center` ist: Dort
+                      * wird ein Kind NICHT gestreckt, die Prozenthoehe faellt auf „automatisch"
+                      * zurueck, und das Bild behaelt sein eigenes Verhaeltnis. Damit hatte
+                      * `object-cover` nie eine Flaeche zum Zuschneiden — und `object-position`
+                      * (erst 16 %, dann 0 %) konnte gar nichts bewirken. Zwei Anlaeufe lang habe
+                      * ich an einer Schraube gedreht, die nicht verbunden war.
+                      *
+                      * Mit festen 58×58 ist der Rahmen quadratisch, `object-cover` skaliert auf
+                      * die BREITE und `50% 0%` beginnt oben — genau die Regel des Owners.
+                      */
                     style={{ objectPosition: "50% 0%" }}
-                    className={`h-full w-full object-cover ${aktiv ? "" : "opacity-85"}`} />
+                    className={`h-[58px] w-[58px] object-cover ${aktiv ? "" : "opacity-85"}`} />
                 : <t.icon className="h-[22px] w-[22px]" />}
             </span>
             <span className={`text-center text-[10.5px] font-black leading-none ${aktiv ? "text-[#f6cf51]" : "text-white/60"}`}>{t.name}</span>

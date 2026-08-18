@@ -1,3 +1,4 @@
+import { JUENGER_REGEL } from "@/lib/alters-regel";
 /**
  * DER HOCHZEITS-AUFTRAG — AN EINER STELLE, fuer Bild UND Video (02.08.2026).
  *
@@ -97,6 +98,8 @@ export const weddingPrompt = (kleid: string, szeneId?: string) => {
     + "Keep the face and appearance of @1 and of @2 exactly the same "
     + "throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, "
     + "photorealistic, high-end look. No text or logos. "
+    /* Alters-Regel des Hauses (Owner 18.08.2026), siehe lib/alters-regel.ts. */
+    + JUENGER_REGEL + " "
     + "Audio: soft, elegant instrumental wedding music only — ONLY music: absolutely no voices, "
     + "no talking, no singing, no footsteps, no ambient or foley sound effects.";
 };

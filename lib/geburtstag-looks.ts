@@ -1,3 +1,4 @@
+import { JUENGER_REGEL } from "@/lib/alters-regel";
 import { GEBURTSTAG_SET } from "@/lib/geburtstag";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 
@@ -269,6 +270,8 @@ export function geburtstagAvatarPrompt(look: GeburtstagLook): string {
     "photo — do not add or widen a smile, never invent or alter teeth" +
     `, ${haltung}. ` +
     `${look.kleidung} Fully and modestly covered, full coverage guaranteed. ` +
-    `${look.umgebung} No text, no letters, no logos anywhere in the image.`
+    `${look.umgebung} No text, no letters, no logos anywhere in the image. ` +
+    /* Die Alters-Regel des Hauses, ganz am Ende — siehe lib/alters-regel.ts (Owner 18.08.2026). */
+    JUENGER_REGEL
   );
 }

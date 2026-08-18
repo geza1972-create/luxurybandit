@@ -156,7 +156,11 @@ async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<st
     const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file);
   });
   const img = await new Promise<HTMLImageElement>((res, rej) => {
-    const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Dieses Bildformat können wir nicht lesen.")); i.src = dataUrl;
+    const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(
+      /* Klartext statt Format-Kauderwelsch: Der Kunde soll wissen, was er TUN kann. iPhone-
+         Fotos sind HEIC; am Handy wandelt der Bildwaehler sie von selbst in JPEG um, sobald
+         wir HEIC nicht mehr im `accept` anbieten — am Schreibtisch muss er es selbst tun. */
+      "Dieses Foto können wir nicht lesen (iPhone-Format HEIC). Bitte lade es als JPG hoch.")); i.src = dataUrl;
   });
   const sc = Math.min(1, max / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
@@ -401,7 +405,7 @@ function VersprechenProgrammKarte({ T }: { T: KissText }) {
   );
 }
 
-export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange, onVorlage }: {
+export default function KissFunnel({ variant = "kiss", code = "", lang = "en", beispielVideo = "", beispielVideos, tunnelSeite = false, urlSchritt, onSchrittChange, onVorlage, urlVorlage = "" }: {
   variant?: FunnelVariant; code?: string; lang?: string; beispielVideo?: string; beispielVideos?: string[];
   /**
    * DER TUNNEL ALS EIGENE SEITE (Owner 12.08.2026, wörtlich: „die muss ich in den ads
@@ -431,6 +435,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   onSchrittChange?: (schritt: number) => void;
   /** Dasselbe für die gewählte Vorlage (`?v=…`) — Owner 16.08.2026, siehe `TunnelSeite`. */
   onVorlage?: (vorlage: string) => void;
+  /** Die Vorlage AUS der Adresse — sie gewinnt über den eigenen Zustand, siehe unten. */
+  urlVorlage?: string;
 }) {
   const V = VARIANTS[variant];
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
@@ -664,6 +670,21 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * konsistent mit der bisherigen „Überraschung"-Erzaehlung dieses einen Themas.
    */
   const [kissSzeneId, setKissSzeneId] = useState("");
+  /**
+   * DIE ADRESSE STICHT DEN ZUSTAND (Owner 18.08.2026, an einem echten Lauf: erst Bandit Kiss
+   * gewaehlt, dann zurueck und eine andere — geliefert wurde die erste).
+   *
+   * `useState("")` ueberlebt keinen Schrittwechsel; danach steht die Wahl wieder auf leer, und
+   * leer bedeutet an drei Stellen „nimm KUSS_SZENEN[0]" (Vorschau-Kachel, Bild-Prompt,
+   * Bewegungs-Prompt). Der Kunde sieht also die erste Vorlage, obwohl er die dritte gewaehlt
+   * hat — und bezahlt dafuer. Die Adresse (`?v=`) traegt die Wahl ohnehin; hier wird sie
+   * zurueckgelesen, sobald sie sich aendert.
+   */
+  useEffect(() => {
+    const v = String(urlVorlage ?? "").trim();
+    if (v && v !== kissSzeneId && KUSS_SZENEN.some(x => x.id === v)) setKissSzeneId(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlVorlage]);
   const tunnelPunkte = hatAuswahl ? [1, 2, 3] : [1, 3];
   /** Wohin Schritt 1 (`TunnelStart`) weiterschickt — 2 nur, wenn es dort etwas zu waehlen
    *  gibt, sonst direkt zu den Kacheln (Schritt 3). */
@@ -2256,7 +2277,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Sein Kopf-Rechteck merken — siehe `kopfBox`/`aufKopfSchneiden`. */
       if (log?.kopfEr) kopfBox.current.er = log.kopfEr as KopfBox;
       void fotosMerken(dataUrl, selPhoto, useCustom);
-    } catch { /**/ }
+    } catch (e) {
+      /**
+       * DIE ABSAGE MUSS MAN SEHEN (Owner 18.08.2026, an einem BEZAHLTEN Auftrag: „Sein Foto
+       * fehlt im Speicher" — und: „aber die fehlermeldung hätte kommen müssen").
+       *
+       * HIER STAND `catch { }` — ein leerer Fang. `fileToDataUrl` wirft bei einem Format, das
+       * der Browser nicht lesen kann (iPhone-HEIC am Schreibtisch, Chrome kann es nicht), und
+       * genau dieser Wurf verschwand hier lautlos: kein Bild, keine Meldung, kein Hinweis. Der
+       * Kunde sah eine leere Kachel, hielt sie fuer hochgeladen, ging weiter, ZAHLTE — und der
+       * Auftrag stand ohne sein Foto da. Ein stiller Fang ist an einer Stelle, hinter der eine
+       * Kasse steht, kein Schoenheitsfehler.
+       */
+      setUploadFehler(e instanceof Error && e.message ? e.message : T.statusNotWork);
+    }
   };
 
   /**
@@ -2533,7 +2567,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       /* Ihr Kopf-Rechteck merken — die Antwort desselben Aufrufs, der das Foto geprueft hat. */
       if (log?.kopfSie) kopfBox.current.sie = log.kopfSie as KopfBox;
       void fotosMerken(photo, dataUrl, true);
-    } catch { /**/ }
+    } catch (e) {
+      /* Derselbe stille Fang wie bei seinem Foto — siehe die Begruendung in `onFileEcht`. */
+      setUploadFehler(e instanceof Error && e.message ? e.message : T.statusNotWork);
+    }
   };
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
@@ -5257,9 +5294,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             )}
             </div>
           ))}
-          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={modelFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
         </div>
       )}
@@ -5275,7 +5312,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {paarFehler && (
             <p className="mt-1 text-center text-[11px] font-bold leading-snug text-white/80">{paarFehler}</p>
           )}
-          <input ref={paarRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={paarRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { onPaarFile(e.target.files?.[0]); e.target.value = ""; }} />
         </div>
       )}
@@ -5404,7 +5441,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         * bei Pixverse. Ein schiefer Ausschnitt ist ein schiefes Ergebnis.
         */}
       {!V.paarUpload && (
-        <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+        <input ref={modelFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
       )}
 
@@ -5779,7 +5816,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       </>)}
       </div>
       </div>
-      <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
       {/* ZUSCHNITT AUCH HIER (Owner 08.08.2026: „kein Cropwerkzeug bei Upload"). Schritt 1 hatte
           den Dialog aus 3362, Schritt 2 rief `onFile` bisher direkt auf — ohne Zuschnitt schnitt
@@ -5958,9 +5995,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               videoUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).clip}
               ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
           </div>
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
-          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={modelFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
         </div>
       )}
@@ -5985,7 +6022,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
             <VorlagenKachel bildUrl={neuerLook || V.garmentBild || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
           </div>
-          <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+          <input ref={modelFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
         </div>
       )}
@@ -6218,9 +6255,9 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 videoUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).clip}
                 ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
             </div>
-            <input ref={fileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("er"); setCropDatei(f); } e.target.value = ""; }} />
-            <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
+            <input ref={modelFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("sie"); setCropDatei(f); } e.target.value = ""; }} />
           </>)}
         </div>
