@@ -247,7 +247,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: pvHeaders(key, true),
       body: JSON.stringify({
-        duration: 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: FASHION_PROMPT,
+        duration: 10, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "360p", prompt: FASHION_PROMPT,
         sound_effect_switch: true, sound_effect_content: MUSIC,
       }),
     });

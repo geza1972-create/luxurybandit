@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
     method: "POST",
     headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration: 5, img_id: up.Resp.img_id, model, motion_mode: "normal", quality: "720p", prompt }),
+    body: JSON.stringify({ duration: 10, img_id: up.Resp.img_id, model, motion_mode: "normal", quality: "360p", prompt }),
   });
   const gen = await genRes.json().catch(() => null);
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return NextResponse.json({ error: `Pixverse Generate fehlgeschlagen: ${gen?.ErrMsg ?? genRes.status}` }, { status: 502 });

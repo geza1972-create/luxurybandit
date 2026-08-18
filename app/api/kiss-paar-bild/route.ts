@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { kussPaarBildPrompt, kussSzene, zufallsSzene } from "@/lib/kuss-szenen";
+import { readKissLog, writeKissLog, createSignedUploadUrl } from "@/lib/try-this-look-store";
 
 /**
  * DAS PAAR-BILD — SCHRITT 1 DER NEUEN KUSS-KETTE (Owner 16.08.2026).
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     fd.append("prompt", prompt);
     /* 3:4 hochkant — dasselbe Format, in dem die Kachel und später das Video stehen. */
     fd.append("size", "1024x1536");
-    fd.append("quality", "high");
+    fd.append("quality", "medium");
     /**
      * JPEG STATT PNG (Owner 18.08.2026, live: „das bild hängt und geht nicht an pixverse
      * weiter").
@@ -103,6 +104,35 @@ export async function POST(request: Request) {
      * reist die Meldung des Anbieters mit durch.
      */
     return NextResponse.json({ error: out?.error?.message ?? "Paar-Bild fehlgeschlagen." }, { status: 502 });
+  }
+
+  /**
+   * DAS ERGEBNIS GEHÖRT AN DEN AUFTRAG (Owner 18.08.2026: „warum sehe ich das nicht unter
+   * käufe" — zur Erzeugung von 15:45, die durchgelaufen war).
+   *
+   * SIE WAR NICHT VERSCHWUNDEN, sie sah nur leer aus: Der Auftrag trug das Video, aber KEIN
+   * Bild — und die Auftragskarte im Admin zeigt drei Spalten, deren dritte „Ergebnis" heisst.
+   * In der alten Kette fuellte `/api/free-preview` sie; die neue Kette hat das Paar-Bild nie
+   * zurueckgeschrieben, weil es nur ein Zwischenschritt zum Video ist. Fuer den Owner ist es
+   * aber genau das, was er sehen will — und fuer den Kunden das, was in seiner Galerie liegt.
+   *
+   * `catch`-frei gedacht: Schlaegt die Ablage fehl, ist das kein Grund, den bezahlten Lauf zu
+   * stoppen — das Bild geht trotzdem an den Aufrufer zurueck und wird zum Video.
+   */
+  const genId = String(body.genId ?? "").trim();
+  if (genId) {
+    try {
+      const up = await createSignedUploadUrl("uploads", "jpeg");
+      const put = await fetch(up.uploadUrl, {
+        method: "PUT", headers: { "Content-Type": "image/jpeg", "x-upsert": "true" },
+        body: new Uint8Array(Buffer.from(b64, "base64")),
+      });
+      if (put.ok) {
+        const alle = await readKissLog();
+        const e = alle.find(x => x.id === genId);
+        if (e && !e.imagePath) { e.imagePath = up.path; await writeKissLog(alle); }
+      }
+    } catch { /* Ablage ist Zugabe, der Lauf geht weiter */ }
   }
 
   return NextResponse.json({ bild: `data:image/jpeg;base64,${b64}`, szene: szene.id });

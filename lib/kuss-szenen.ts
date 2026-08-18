@@ -457,82 +457,51 @@ export function zufallsSzene(saat?: string): KussSzene {
 
 
 /**
- * DIE NEUE KUSS-KETTE (Owner 16.08.2026): ERST DAS PAAR MALEN, DANN BEWEGEN.
+ * SEIN TEXT, WORT FÜR WORT — SONST NICHTS (Owner 18.08.2026: „nein um gottes willen. Wir
+ * arbeiten an dem ChatGPT-Prompt jetzt. Ich will das Ergebnis sehen. Nimm wieder das Original
+ * von ChatGPT, was ich dir gegeben habe").
  *
- * „wir müssen erst mal das paar über chatgpt schön angekleidet an einem schönen ort
- * zusammenbringen. Dann wird das an pixverse gegeben und sagen die zwei lachen, schauen sich
- * an und küssen sich. Jetzt die szene wird lieber an chatgpt gegeben, wo, ob regen,
- * terrasse … dann das motion an pixverse."
+ * HIER HINGEN DREI ZUSÄTZE VON MIR: eine Identitätssperre, eine Alters-Regel und zwei Sätze
+ * über Kopf-Zuschnitt und Bedeckung. Jeder einzeln begründet — zusammen haben sie genau das
+ * gekippt, worum es geht: die Ähnlichkeit („aber wir sehen uns jetzt gar nicht mehr ähnlich.
+ * Du hast mächtig an den Prompt was geändert").
  *
- * DER GRUND IST DAS GESICHT („die gesichter müssen immer stimmen, deswegen machen wir das").
- * Bisher bekam Pixverse ZWEI fremde Fotos und musste daraus in einem Zug ein Paar, eine
- * Szene, Kleidung und eine Bewegung erfinden — jeder dieser Schritte ist eine Gelegenheit,
- * ein Gesicht zu verlieren. Gemessen ist der Gegenbeweis in der Geburtstags-Kette:
- * `gpt-image-2` traf das Kundengesicht auf Anhieb (08.08.2026, acht Vergleichsläufe). Ein
- * Standbild, das schon stimmt, muss Pixverse nur noch bewegen — und ein Bild zu bewegen ist
- * die eine Sache, die es zuverlässig kann.
+ * Der Owner schreibt und prüft diese Prompts selbst in ChatGPT. Solange daran gearbeitet wird,
+ * muss hier GENAU das rausgehen, was er dort gesehen hat — sonst vergleicht er zwei
+ * verschiedene Aufträge und sucht den Fehler an der falschen Stelle.
  *
- * ARBEITSTEILUNG, DIE SICH DARAUS ERGIBT:
- *   OpenAI  = WER und WO  — die zwei Gesichter, die Kleidung, der Ort, das Licht.
- *   Pixverse = WAS PASSIERT — ein Satz Bewegung, sonst nichts (KUSS_MOTION_PROMPT).
+ * WAS DAMIT ENTFÄLLT, damit es niemanden überrascht: Der Kopf-Zuschnitt im Browser läuft
+ * weiter (er sitzt in `KissFunnel`, nicht hier) — aber der Satz, der dem Modell sagt, dass die
+ * Kleidung NUR aus dem Text kommt, ist weg. Eine sehr freizügige Vorlage kann damit wieder
+ * abgewiesen werden. Zurückholen ist eine Zeile, sobald die Ähnlichkeit sitzt.
  *
- * NUR DIE GESICHTER KOMMEN AUS DEN FOTOS (Owner 16.08.2026: „viele schweine laden nakte
- * bilder hoch … die müssen wir auch machen, in dem wir die gesichter an chatgpt geben").
- * Der Prompt sagt deshalb ausdrücklich, dass alles unterhalb des Halses aus dem TEXT kommt,
- * nicht aus der Vorlage. Das ist zugleich die Hausregel gegen OpenAIs Sicherheitsfilter
- * (Memory `openai-tryon-safety-rule`): Ohne ausdrückliche Bedeckungs-Zusage weist er den
- * Auftrag als `sexual` ab — mit ihr laufen auch Vorlagen durch, die selbst nichts anhaben.
+ * EINE ZEILE BLEIBT TROTZDEM (Owner 18.08.2026, zweiter Platform-Testlauf: „viel besser aber
+ * du hättest die Brille lassen müssen. Wenn der User Bild mit Brille hochlädt dann lassen" —
+ * und direkt danach: „ja, klar auch Bart Schnurrbart lassen. 1 zu 1").
+ *
+ * Der erste Testlauf der Platform-Szene wirkte „total fremd" — vermutlich weil das Modell,
+ * ohne die Augenpartie hinter der Sonnenbrille je gesehen zu haben, sie bei einer so starken
+ * Verwandlung (Soldat, andere Epoche) frei erfindet. Dieselbe Lücke gilt für Bart und
+ * Schnurrbart: Trägt die Person sie auf dem Original, sind sie Teil der Ähnlichkeit — sie
+ * bleiben 1:1, statt einem Gesicht zu weichen, das niemand kennt.
+ *
+ * UND DIE HAARE (Owner 18.08.2026, am Vampire-Testlauf: „ihr Friseur stimmt nicht" — „muss
+ * die Originalfarbe sein" — „und original Frisur"). Der Vampire-Text selbst verlangt „vivid
+ * red curly hair" für sie — das ist gewollter Fantasy-Look, keine Falschmeldung dieser Zeile.
+ * Aber Haare sind ein staerkeres Erkennungsmerkmal als die Szene, und diese Zeile steht NACH
+ * dem Szenen-Text: Was zuletzt kommt, gewinnt bei Bildmodellen. Deshalb schlaegt die eigene
+ * Haarfarbe und -form den Szenen-Wunsch, auch wenn eine Szene wie Vampire das Gegenteil sagt.
  */
 export function kussPaarBildPrompt(szene: KussSzene): string {
   return (
-    /* SEIN TEXT, UNVERAENDERT — je Szene, siehe `bildPrompt` oben. */
     szene.bildPrompt + "\n\n" +
-    /**
-     * ZEILE 1 DER ERGÄNZUNG — NUR DER KOPF ZÄHLT (Owner 16.08.2026: „viele schweine laden
-     * nakte bilder hoch … die müssen wir auch machen, in dem wir die gesichter an chatgpt
-     * geben" · „er bekommt das video am ende, aber zu seiner überraschung, die frau wird
-     * angezogen sein :)").
-     *
-     * Ohne diesen Satz übernimmt das Modell den Körper der Vorlage — eine nackte Vorlage
-     * ergäbe ein nacktes Ergebnis oder eine Ablehnung. Der Satz macht die Kleidung aus SEINEM
-     * Prompt zur einzigen Quelle für alles unterhalb des Halses. Er ist zugleich die
-     * Bedeckungs-Zusage, ohne die OpenAI den Auftrag als `sexual` abweist (Hausregel
-     * `openai-tryon-safety-rule`, am 30.07.2026 gemessen).
-     */
-    "Use ONLY the head and face from each uploaded photo. Everything below the neck comes from " +
-    "this description, not from the uploads: ignore the clothing, the body and the background " +
-    "of the uploaded photos completely. Both people are fully and modestly covered, full " +
-    "coverage guaranteed — elegant formal clothing only, nothing revealing.\n" +
-    /**
-     * NICHT ÄLTER MACHEN (Owner 18.08.2026, an seinem ersten echten Lauf: „entweder Pixverse
-     * oder chatgpt hat sie viel älter gemacht").
-     *
-     * ES WAR CHATGPT, und der Grund ist eine Lücke: Die Szenen-Prompts des Owners sagen
-     * „preserve both faces clearly and realistically" — das hält die ÄHNLICHKEIT, nicht das
-     * ALTER. Jede Aufforderung zu „cinematic", „dramatic light", „elegant" schiebt ein
-     * Gesicht Richtung reifer und ernster; genau deshalb steht in der Geburtstags-Kette seit
-     * dem 08.08. „do not alter, reinterpret, beautify, AGE, or replace the face". Dieselbe
-     * Wache gehört hierher — als Hauszeile, damit sie kein Szenen-Prompt vergessen kann.
-     *
-     * UND JE PERSON EINZELN (Owner, unmittelbar danach: „wenn einer älter ist, heisst nicht
-     * dass beide auch alt ist. Sie ist 27 jahre jünger und das muss so bleiben"). Ein Modell,
-     * das zwei Gesichter in EIN Bild setzt, zieht sie in dieselbe Generation — es gleicht an,
-     * weil ein Paar „stimmig" aussehen soll. Genau das darf hier nicht passieren: Der
-     * Altersunterschied ist keine Unstimmigkeit, er ist das echte Paar.
-     *
-     * UND DIE RICHTUNG IST NICHT NEUTRAL (Owner 18.08.2026: „er muss sie beide jünger machen
-     * nicht älter. Niemand will sich älter sehen."). „Halte das Alter" war die halbe Antwort —
-     * ein Geschenk, auf dem man müder aussieht als im Spiegel, verschickt niemand. Ein paar
-     * Jahre jünger ist die Richtung, in die ein Kunde sich gern sieht; die Grenze bleibt das
-     * Gesicht selbst („unmistakably the same person"), sonst kippt die Verjüngung in einen
-     * Fremden — und genau dagegen ist diese ganze Kette gebaut.
-     */
-    JUENGER_REGEL + "\n" +
-    /* ZEILE 2 — die eine Bildregel des Hauses, an der schon ein Produkt gescheitert ist
-       (Memory `bildprompt-nie-zwei-geschlechter`): Nennt ein Prompt einen Mann UND eine Frau,
-       liefert das Modell gern ein geteiltes Bild mit zwei Porträts nebeneinander. */
-    "One single photograph of exactly these two people together in one frame — not a collage, " +
-    "not a split image, no extra people, no duplicated faces."
+    "If a person is wearing glasses or sunglasses in their uploaded reference photo, keep the " +
+    "same glasses on that person in the generated image. If a person has a beard or moustache " +
+    "in their uploaded reference photo, keep it exactly as it is — same style, same length, " +
+    "same shape. Keep each person's real hair colour and hairstyle exactly as in their " +
+    "uploaded reference photo — do not change hair colour or hairstyle, even if the scene " +
+    "description above suggests a different hair colour or style.\n\n" +
+    JUENGER_REGEL
   );
 }
 

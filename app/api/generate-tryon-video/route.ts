@@ -214,7 +214,7 @@ async function pixverseStart(key: string, image: string, turnaround = false, cus
   if (up?.ErrCode !== 0 || !up?.Resp?.img_id) return { error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` };
   const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
     method: "POST", headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration: turnaround ? 8 : 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: customPrompt.trim() || (turnaround ? TURNAROUND_PROMPT : FASHION_PROMPT), sound_effect_switch: true, sound_effect_content: MUSIC }),
+    body: JSON.stringify({ duration: 10, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "360p", prompt: customPrompt.trim() || (turnaround ? TURNAROUND_PROMPT : FASHION_PROMPT), sound_effect_switch: true, sound_effect_content: MUSIC }),
   });
   const gen = await genRes.json().catch(() => null);
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` };
@@ -292,7 +292,7 @@ async function fashnStartVideo(image: string): Promise<{ videoId?: string; error
   const res = await fetch("https://api.fashn.ai/v1/run", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model_name: "image-to-video", inputs: { image, duration: 5, resolution: "720p" } }),
+    body: JSON.stringify({ model_name: "image-to-video", inputs: { image, duration: 10, resolution: "360p" } }),
   });
   const d = await res.json().catch(() => null);
   if (!res.ok || !d?.id) return { error: d?.error?.message ?? d?.error ?? d?.detail ?? `FASHN ${res.status}` };
