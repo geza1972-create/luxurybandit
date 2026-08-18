@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Play } from "lucide-react";
+import { Play, Loader2 } from "lucide-react";
 
 /**
  * EIN VIDEO, DAS OHNE SCHNITT VON VORN BEGINNT.
@@ -123,6 +123,61 @@ export default function SchleifenVideo({
   useEffect(() => { if (start) setGestartet(true); }, [start]);
 
   /**
+   * WER VORNE STEHT, GEHOERT IN EINEN GRIFF — NICHT IN DIE ABHAENGIGKEITEN.
+   *
+   * Owner 18.08.2026: „Die Videos hängen grundsätzlich. Egal ob lokal oder online."
+   *
+   * Hier lag die zweite Hälfte des Fehlers (die erste steckte in den Dateien selbst, siehe
+   * unten). `vorne` stand in der Liste des Takt-Effekts. Jede Überblendung ändert `vorne`,
+   * also baute der Effekt sich alle acht Sekunden neu auf — und lief dabei wieder bis zur
+   * letzten Zeile, `va.play()`.
+   *
+   * Das ist nicht bloss Verschwendung, es kehrt die Bauweise um: Spieler A hat zu diesem
+   * Zeitpunkt sein Ende erreicht. Ein `play()` auf einem BEENDETEN Video springt laut Norm
+   * zurück auf null und läuft von vorn los. A spielte also unsichtbar eine ganze zweite
+   * Runde, während B sichtbar lief. Ergebnis: dauerhaft ZWEI dekodierende Videos pro Kachel,
+   * für immer, statt einem plus 0,7 s Überlappung.
+   *
+   * In der schmalen Reihe (`ThemenKachel art="reihe"`, autostart) sind das bei sechs Themen
+   * zwölf gleichzeitig laufende Dekoder. Handys haben dafür eine harte Obergrenze — darüber
+   * bekommt keiner mehr genug, und alle stocken gleichzeitig. Genau das sah der Owner.
+   *
+   * Mit dem Griff bleibt der Takt EIN Mal stehen: A läuft aus und bleibt beendet liegen, bis
+   * die Überblendung es wieder auf null setzt.
+   */
+  const vorneRef = useRef<"a" | "b">("a");
+  useEffect(() => { vorneRef.current = vorne; }, [vorne]);
+
+  /**
+   * WAS NIEMAND SIEHT, DARF NICHT DEKODIEREN.
+   *
+   * Auch mit nur einem Spieler je Kachel laufen auf der Themen-Seite alle Videos weiter,
+   * wenn man längst darunter gescrollt ist — und teilen sich die Leitung und die Dekoder mit
+   * dem, was gerade wirklich im Bild steht. Der Beobachter hält an, was aus dem Blick gerät,
+   * und fährt wieder an, was hereinkommt.
+   *
+   * Der Rand von 200 px ist Absicht: So läuft die Kachel schon, wenn sie erscheint, statt
+   * erst in dem Moment anzufahren, in dem man sie ansieht.
+   */
+  const huelle = useRef<HTMLDivElement>(null);
+  const sichtbarRef = useRef(true);
+
+  /**
+   * DER KREISEL WÄHREND ES STOCKT (Owner 18.08.2026: „die videos bleiben alle hängen während
+   * man sie ablaufen lässt" — und, zur ersten Lösung mit verzögertem Start: „sofort play ja
+   * aber loading muss erscheinen. Vor allem unser loading").
+   *
+   * Der Start bleibt sofort (`autoPlay`/`play()` wie bisher) — verzögert lief die erste
+   * Fassung dieser Zeile noch, das wollte der Owner ausdrücklich nicht. Stattdessen zeigt das
+   * Video selbst an, wenn ihm mitten in der Wiedergabe die Daten ausgehen: der Browser feuert
+   * `waiting`, sobald er pausieren muss, und `playing`, sobald es weitergeht. Dazwischen liegt
+   * der Kreisel — dieselbe Optik wie `Laden` aus CI.tsx, hier von Hand gezeichnet (SchleifenVideo
+   * kann CI.tsx nicht importieren, siehe Play-Scheibe unten: CI.tsx importiert bereits diesen
+   * Baustein zurück).
+   */
+  const [laedt, setLaedt] = useState(false);
+
+  /**
    * Nach aussen durchreichen, damit ein Ton-Knopf daneben `muted` umschalten kann.
    *
    * `gestartet` GEHOERT IN DIE LISTE (07.08.2026, Owner: „dann war das standbild des videos
@@ -137,6 +192,13 @@ export default function SchleifenVideo({
   useEffect(() => {
     const va = a.current, vb = b.current;
     if (!va) return;
+    let laeuft = true;
+    /* Beide Spieler melden Puffer-Pausen — waehrend der Ueberblendung koennte theoretisch
+       jeder von beiden gerade der sichtbare sein. */
+    const wartet = () => { if (laeuft) setLaedt(true); };
+    const laeuftWieder = () => { if (laeuft) setLaedt(false); };
+    const spieler = vb ? [va, vb] : [va];
+    spieler.forEach(v => { v.addEventListener("waiting", wartet); v.addEventListener("playing", laeuftWieder); });
     /**
      * OHNE SCHLEIFE: einmal anspielen, danach nichts weiter — kein Takt, kein zweiter Spieler.
      *
@@ -145,13 +207,20 @@ export default function SchleifenVideo({
      * stieg aus, bevor sie zum Abspielen kam. Ein Video, das stumm und still dasteht, sieht
      * aus wie ein kaputtes Standbild.
      */
-    if (!schleife) { void va.play().catch(() => nachhelfen(va)); return; }
-    if (!vb) return;
-    let laeuft = true;
+    const abbauen = () => {
+      laeuft = false;
+      spieler.forEach(v => { v.removeEventListener("waiting", wartet); v.removeEventListener("playing", laeuftWieder); });
+    };
+    if (!schleife) { void va.play().catch(() => nachhelfen(va)); return abbauen; }
+    if (!vb) return abbauen;
     const takt = setInterval(() => {
       if (!laeuft) return;
-      const aktiv = vorne === "a" ? va : vb;
-      const andere = vorne === "a" ? vb : va;
+      /* Aus dem Blick geraten: nicht überblenden. Sonst setzt der Takt weiter Spieler auf
+         null und fährt sie an, während der Beobachter sie gerade angehalten hat — die zwei
+         würden sich gegenseitig überstimmen. */
+      if (!sichtbarRef.current) return;
+      const aktiv = vorneRef.current === "a" ? va : vb;
+      const andere = vorneRef.current === "a" ? vb : va;
       const rest = (aktiv.duration || 0) - aktiv.currentTime;
       /**
        * ERSTE FALLE: Erst umschalten, wenn die Dauer WIRKLICH bekannt ist. Solange die
@@ -160,13 +229,56 @@ export default function SchleifenVideo({
        * kurzzeitig 0 meldet. Ohne diese Prüfung feuert die Überblendung sofort und endlos.
        */
       if (Number.isFinite(rest) && aktiv.duration > 0 && rest <= UEBERBLENDUNG) {
-        try { andere.currentTime = 0; void andere.play(); } catch { /**/ }
+        /* `try/catch` fängt NUR das synchrone `currentTime` — `play()` gibt ein Versprechen
+           zurück, und dessen Ablehnung lief hier ungefangen in die Konsole („Uncaught (in
+           promise) AbortError … paused to save power", gesehen 18.08.2026). Das passiert im
+           Alltag dauernd: Der Browser hält Videos an, sobald der Tab in den Hintergrund
+           geht, und bricht ein laufendes `play()` dabei ab. Kein Fehler, nur Lärm — aber
+           Lärm, der echte Fehler im Log begräbt. */
+        try { andere.currentTime = 0; } catch { /**/ }
+        void andere.play().catch(() => { /* angehalten oder verweigert — der Takt versucht es wieder */ });
         setVorne(v => (v === "a" ? "b" : "a"));
       }
     }, 120);
     void va.play().catch(() => nachhelfen(va));
-    return () => { laeuft = false; clearInterval(takt); };
-  }, [vorne, src, schleife, gestartet]);
+    return () => { abbauen(); clearInterval(takt); };
+    /* `vorne` steht hier ABSICHTLICH NICHT (siehe `vorneRef` oben) — mit ihm baute sich der
+       Takt bei jeder Überblendung neu auf und startete den beendeten Spieler wieder. */
+  }, [src, schleife, gestartet]);
+
+  /** Anhalten, was aus dem Blick gerät — und wieder anfahren, was hereinkommt. */
+  useEffect(() => {
+    if (!gestartet) return;
+    const el = huelle.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const beob = new IntersectionObserver(([eintrag]) => {
+      sichtbarRef.current = eintrag.isIntersecting;
+      const va = a.current, vb = b.current;
+      if (eintrag.isIntersecting) {
+        /* Nur den VORDEREN anfahren. Beide anzufahren wäre genau der doppelte Dekoder,
+           den dieser Baustein gerade losgeworden ist. */
+        const aktiv = vorneRef.current === "a" ? va : vb;
+        /**
+         * WAS DURCHGELAUFEN IST, BLEIBT STEHEN.
+         *
+         * Ohne diese Zeile holt der Beobachter ein Video, das schon zu Ende ist, beim
+         * Zurückscrollen von vorn wieder hoch: `play()` auf einem beendeten Video springt
+         * laut Norm auf null. Bei einem Video, in dem jemand SPRICHT (`schleife={false}`,
+         * Geburtstags-Beispiel), heisst das: Wer den Satz gehört hat, scrollt weg, scrollt
+         * zurück — und hört ihn wieder von vorn. Die Hausregel sagt „Fortsetzen, nicht von
+         * vorn" ([[video-playback-behavior]]). Die weiche Schleife braucht das nicht: Dort
+         * setzt der Takt die Spieler selbst auf null.
+         */
+        if (aktiv && !aktiv.ended) {
+          void aktiv.play().catch(() => { /* Autoplay verweigert — Standbild bleibt */ });
+        }
+      } else {
+        va?.pause(); vb?.pause();
+      }
+    }, { rootMargin: "200px" });
+    beob.observe(el);
+    return () => beob.disconnect();
+  }, [gestartet]);
 
   /**
    * ZWEITE FALLE: BEIDE Spieler bleiben stumm. Waeren sie es nicht, hoerte man den Ton
@@ -231,7 +343,7 @@ export default function SchleifenVideo({
     );
   }
   return (
-    <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
+    <div ref={huelle} className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={a} src={src} poster={poster || undefined} muted={stumm} playsInline autoPlay preload="auto"
         style={{ opacity: !schleife || vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
@@ -239,10 +351,24 @@ export default function SchleifenVideo({
       {/* Der zweite Spieler existiert NUR fuer die Ueberblendung. Ohne Schleife waere er ein
           zweites Mal dieselben Megabyte, die niemand sieht. */}
       {schleife && (
+        /* `preload="metadata"`, NICHT `auto` (18.08.2026, zum Hänger): Der zweite Spieler
+           wird erst 0,7 s vor Schluss gebraucht — mit `auto` zog er dieselbe Datei ein
+           zweites Mal parallel zum ersten und halbierte damit die Leitung für das Bild, das
+           man gerade ansieht. Den Kopf braucht er (`duration` für den Takt), die Megabyte
+           holt er sich beim `play()`, und da liegt die Datei längst im Zwischenspeicher. */
         // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video ref={b} src={src} muted={stumm} playsInline preload="auto"
+        <video ref={b} src={src} muted={stumm} playsInline preload="metadata"
           style={{ opacity: vorne === "b" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
           className={`absolute inset-0 ${gemeinsam}`} />
+      )}
+      {/* Der Kreisel — dieselbe Optik wie `Laden` aus CI.tsx (art="knopf"), hier von Hand
+          gezeichnet, weil der Import zurueck ein Kreis waere (siehe Play-Scheibe oben). Er
+          liegt UEBER beiden Spielern, damit er unabhaengig davon sichtbar ist, welcher gerade
+          vorne ist. */}
+      {laedt && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-black/25" role="status" aria-label="Lädt">
+          <Loader2 aria-hidden className="h-8 w-8 animate-spin text-white/85" />
+        </div>
       )}
     </div>
   );
