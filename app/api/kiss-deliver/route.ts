@@ -8,6 +8,7 @@ import { readKissLog, writeKissLog, getSignedUrl, readTryThisLookState, readWett
 import { futureProgramToken } from "@/lib/future-program-store";
 import { sendEmail } from "@/lib/email-send";
 import { HOLIDAY_SCENES, holidayPrompt } from "@/lib/holiday-scenes";
+import { kussBewegung, kussSzene, zufallsSzene } from "@/lib/kuss-szenen";
 import { weddingPrompt } from "@/lib/wedding-prompt";
 import { logTunnelEventServer } from "@/lib/track-funnel-server";
 
@@ -99,7 +100,21 @@ const ALARM_MAX_MS = 24 * 60 * 60 * 1000;
  * Fall fuer einen Menschen — der Owner bekommt die WhatsApp, der Kunde einen ehrlichen
  * Zustand und den Erstattungs-Knopf.
  */
-const MAX_BEZAHLTE_STARTS = 3;
+/* EINER. NICHT DREI (Owner 18.08.2026: „was, wieso neue läufe, das war der grund warum er so
+   viele videos umsonst produziert. Wenn es beim ersten lauf nicht klappt, dann fehlermeldung
+   bringen.").
+
+   WAS DAMIT FAELLT: die Annahme, ein zweiter Anlauf sei billig. Er ist es nicht — jeder
+   bezahlte Start ist ein Lauf beim Anbieter, und drei davon je Auftrag sind bei einem
+   dauerhaft kaputten Foto dreimal derselbe Fehlschlag zum vollen Preis. Der Absatz darueber
+   argumentierte, ein echter Ausfall gehe „meist beim zweiten Mal durch". Gemessen ist das
+   nie worden; die Credit-Rechnung dagegen schon.
+
+   WAS BLEIBT: Anlaeufe, die VOR dem Anbieter scheitern (Netz, fehlendes Foto, ein abgelehntes
+   Paar-Bild), kosten nichts und duerfen sich weiter wiederholen — der Zaehler unten zaehlt nur
+   bezahlte Starts. Und der Kunde bleibt nicht im Regen: Nach dem einen Fehlschlag bekommt der
+   Owner die WhatsApp und der Kunde den Erstattungs-Knopf, sofort statt nach drei Runden. */
+const MAX_BEZAHLTE_STARTS = 1;
 const MAX_PRO_LAUF = 3;          // wie viele Aufträge ein Aufruf gleichzeitig bearbeitet
 /**
  * SO LANG WIE DAS VERSPRECHEN (15.08.2026). Vorher 10 — also ~7,5 Minuten, während die Seite
@@ -312,11 +327,51 @@ async function starten(request: Request, e: KissLogEntry): Promise<{ videoId?: s
    * Urlaubs-Rückfall (nicht beworben; derselbe Umbau-Schritt).
    */
   const rettungsPrompt = e.theme === "wedding" ? weddingPrompt("") : holidayPrompt(szene);
+  /**
+   * DER KUSS FÄHRT AUCH HIER DIE NEUE KETTE (Owner 16.08.2026) — erst das Paar-Bild bei
+   * OpenAI, dann Pixverse als reiner Bewegungs-Lauf.
+   *
+   * WARUM DAS HIER STEHEN MUSS UND NICHT NUR IM TRICHTER: Das ist der Weg für alle, deren
+   * Browser gestorben ist (Hausregel `paid-jobs-must-survive-the-browser`). Liefe er weiter
+   * die alte Kette, bekämen ausgerechnet sie ein anderes Video als bestellt — dieselbe Sorte
+   * Fehler wie der Strand-Ausflug für einen Hochzeits-Käufer, den der Absatz darüber
+   * beschreibt.
+   *
+   * OHNE ZUSCHNITT: Das Kopf-Rechteck entsteht im Browser beim Upload; hier gibt es keinen.
+   * Der Bildprompt sagt ohnehin ausdrücklich, dass nur der Kopf gilt und alles darunter aus
+   * dem Text kommt — der Zuschnitt ist Sparsamkeit, keine Bedingung.
+   *
+   * Scheitert das Paar-Bild, läuft unverändert der alte Weg. Ein bezahlter Auftrag stirbt
+   * nicht an einem neuen Schritt.
+   */
+  let paarBild = "";
+  if ((e.theme || "kiss") === "kiss" && sein && ihr) {
+    const p = await fetch(`${origin(request)}/api/kiss-paar-bild`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ er: sein, sie: ihr, genId: e.id }),
+    }).then(x => x.json()).catch(() => null);
+    if (p?.bild) paarBild = String(p.bild);
+    /**
+     * KEIN RUECKFALL AUF DEN ALTEN WEG (Owner 18.08.2026: „warum sollte er zurückfallen auf
+     * den alten Weg? Den braucht niemand").
+     *
+     * Scheitert das Paar-Bild, ist das ein FEHLER und kein Grund, zwei Fotos direkt an
+     * Pixverse zu geben: Das liefert fremde Gesichter im bezahlten Video und kostet uns
+     * obendrein einen Lauf. Der Auftrag bleibt stattdessen offen — diese Kette versucht es
+     * spaeter erneut (bis zu drei bezahlte Anlaeufe), danach geht die WhatsApp an den Owner
+     * und der Kunde sieht den Erstattungs-Knopf.
+     */
+    else return { error: `Paar-Bild fehlgeschlagen: ${String(p?.error ?? "unbekannt")}` };
+  }
   const r = await fetch(`${origin(request)}/api/generate-tryon-video`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
     // Reihenfolge wie im Trichter: SEIN Foto ist @image1, ihres @image2 (siehe holidayPrompt).
-    body: JSON.stringify({ lookId: "look-1784191032626-70e3608b", person: sein, garment: ihr, prompt: rettungsPrompt }),
+    /* Kuss = Bild-zu-Video mit dem Paar-Bild; alle anderen Themen wie bisher mit zwei
+       Referenzen. Ein Kuss OHNE Paar-Bild kommt hier nicht mehr an (siehe oben). */
+    body: paarBild
+      ? JSON.stringify({ lookId: "look-1784191032626-70e3608b", image: paarBild, prompt: kussBewegung(kussSzene(e.look) ?? zufallsSzene(e.id)) })
+      : JSON.stringify({ lookId: "look-1784191032626-70e3608b", person: sein, garment: ihr, prompt: rettungsPrompt }),
   }).then(x => x.json()).catch(() => null);
   if (!r?.videoId) return { error: String(r?.error ?? "Video-Start fehlgeschlagen.") };
   return { videoId: String(r.videoId) };
@@ -549,7 +604,7 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
 
   for (const e of faellig) {
     if (!e.videoId) {
-      /* DIE BREMSE: drei bezahlte Starts, dann nie wieder von allein. Siehe oben. */
+      /* DIE BREMSE: EIN bezahlter Start, dann nie wieder von allein (18.08.2026). Siehe oben. */
       if ((e.bezahlteStarts ?? 0) >= MAX_BEZAHLTE_STARTS) {
         if (!e.videoAlertAt) {
           e.videoAlertAt = new Date().toISOString();

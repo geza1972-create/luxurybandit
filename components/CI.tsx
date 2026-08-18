@@ -1716,7 +1716,7 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
   /* GEBURTSTAG ZUERST (Owner 09.08.2026) — dieselbe Reihenfolge wie die Kacheln der
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday", bild: "/Birthday/hbd-fliege.jpg" },
-  { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/kiss-beispiel.jpg" },
+  { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/Rain/rain-kiss.jpg" },
   /* SURPRISE (POLE DANCE) IST WIEDER DA (Owner 12.08.2026, mit Bild der Themen-Kreise:
      „pool dancing kannst du hier einbauen und da machst du auch dort den tunel einbauen" —
      Rücknahme der Rausnahme vom selben Vormittag, siehe die Begründung darunter). Platz wie

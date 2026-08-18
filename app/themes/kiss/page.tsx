@@ -1,6 +1,7 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
+import { KUSS_SZENEN } from "@/lib/kuss-szenen";
 import { resolveLang } from "@/lib/lang-server";
 import { trObject } from "@/lib/tr-object";
 import { Kicker, H1, Y } from "@/components/Landing";
@@ -87,11 +88,10 @@ export default async function KissThemePage({ searchParams }: {
    * Dafuer lag `kiss-beispiel.mp4` ungenutzt daneben. Wer diese Liste anfasst, prueft die
    * Namen gegen `ls public/Kiss` — ein Tippfehler ist hier unsichtbar, bis die Karte leer ist.
    */
-  const examples: string[] = [
-    "/Kiss/kiss-beispiel.mp4",
-    "/Kiss/Video4-kiss-normal.mp4",
-    "/Kiss/kiss-stand-close.mp4",
-  ];
+  /* AUS DEN VORLAGEN, NICHT VON HAND (18.08.2026) — siehe die Begruendung in
+     app/themes/kiss/start/page.tsx. Der Warnsatz oben („wer diese Liste anfasst, prueft die
+     Namen gegen ls public/Kiss") ist damit erledigt: Es gibt nichts mehr zu tippen. */
+  const examples: string[] = KUSS_SZENEN.map(s => s.clip);
 
   /* Die Cover der anderen Themen wurden nur fuer „You might also love" geladen — acht
      Supabase-Abfragen je Seitenaufruf. Der Block ist raus (siehe unten), also auch das. */

@@ -42,12 +42,12 @@ const MUSTER_THEMEN: ThemenKachelDaten[] = [
     titel: "Sende einen Kuss an die Person, die du liebst",
     zeile: "Dein Foto und ihres — ein Video mit euch beiden, nur für sie.",
     href: "/themes/kiss",
-    video: "/Kiss/kiss-beispiel.mp4",
+    video: "/Kiss/Rain/rain-kiss.mp4",
     /* MIT POSTER — sonst zeigt die Vorlage genau das, was auf der echten Seite ein Fehler
        wäre: eine schwarze Fläche mit einer Abspiel-Scheibe darauf (Owner 07.08.2026: „den
        CTA bei Cards Und Poster fehlt"). Das Standbild ist das erste Bild des eigenen
        Videos und liegt fest im Repo. */
-    poster: "/Kiss/kiss-poster.jpg",
+    poster: "/Kiss/Rain/rain-kiss.jpg",
     merkmale: "♥ Wähle sie · Dein Foto · Kuss",
     abPreis: "ab 15 €",
   },

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Kicker, H1, Y } from "@/components/Landing";
+import { KUSS_SZENEN } from "@/lib/kuss-szenen";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import KissStartClient from "./KissStartClient";
@@ -30,11 +31,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-const BEISPIEL_VIDEOS = [
-  "/Kiss/kiss-beispiel.mp4",
-  "/Kiss/Video4-kiss-normal.mp4",
-  "/Kiss/kiss-stand-close.mp4",
-];
+/**
+ * DIE BEISPIELE SIND DIE VORLAGEN (Owner 18.08.2026: „warum sind jetzt in der card nur zwei
+ * videos?").
+ *
+ * HIER STAND EINE HANDLISTE, und sie ist genau daran gescheitert, wovor der Kommentar in
+ * app/themes/kiss/page.tsx schon warnte: Wer Vorlagen hinzufuegt oder entfernt, denkt an die
+ * Kacheln und vergisst diese Liste. Nach dem Aufraeumen der geloeschten Alt-Dateien standen
+ * hier zwei Clips, waehrend die Auswahl vier zeigte — die Karte versprach also weniger, als
+ * es gibt.
+ *
+ * `KUSS_SZENEN` ist ohnehin die Quelle fuer Kachel UND Clip. Eine zweite Liste daneben kann
+ * nur falsch werden.
+ */
+const BEISPIEL_VIDEOS = KUSS_SZENEN.map(s => s.clip);
 
 export default async function KissStartPage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;

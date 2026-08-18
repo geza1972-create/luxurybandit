@@ -41,7 +41,7 @@ import { kontoText } from "@/lib/konto-i18n";
  */
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
 import { kissText, type KissText } from "@/lib/kiss-i18n";
-import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN } from "@/lib/kuss-szenen";
+import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN, kussBewegung } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
 /* GEBURTSTAG_PROMPT wohnt weiter in lib/geburtstag, wird aber seit dem 07.08.2026 nur noch
    dokumentarisch gebraucht: Der Geburtstag erzeugt über /api/geburtstag-video (OpenAI→HeyGen),
@@ -66,6 +66,12 @@ import KartenKarussell from "@/components/KartenKarussell";
 // (/api/theme-media?theme=kiss|idol|wedding) — die Hochzeit hat andere Frauen als der Kuss.
 
 type Model = { id: string; name: string; photoUrl: string };
+/**
+ * DAS KOPF-RECHTECK EINER VORLAGE, in PROZENT des Bildes (Owner 16.08.2026). Es faellt bei
+ * der Sicherheitspruefung ab, die jeder Upload ohnehin durchlaeuft (`/api/kiss-log` →
+ * `kopfEr`/`kopfSie`, siehe lib/minderjaehrig-pruefen.ts) — deshalb kostet es nichts.
+ */
+type KopfBox = { x: number; y: number; w: number; h: number };
 
 
 // „Your Idol with you": die beiden zusammen auf einer schönen Party — kein Kuss, sondern
@@ -2247,6 +2253,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         return;
       }
       if (!genId && log?.id) genMerken(log.id);
+      /* Sein Kopf-Rechteck merken — siehe `kopfBox`/`aufKopfSchneiden`. */
+      if (log?.kopfEr) kopfBox.current.er = log.kopfEr as KopfBox;
       void fotosMerken(dataUrl, selPhoto, useCustom);
     } catch { /**/ }
   };
@@ -2366,8 +2374,74 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
     try { localStorage.removeItem(MERK_KEY); } catch { /* privater Modus */ }
   };
 
+  /**
+   * DIE KOPF-RECHTECKE DER ZWEI VORLAGEN (Owner 16.08.2026: „aber kannst du die erkennen und
+   * schneiden?" · „gratis").
+   *
+   * Sie kommen von der Upload-Antwort (`/api/kiss-log` → `kopfEr`/`kopfSie`) und fallen dort
+   * bei der Sicherheitspruefung ab, die ohnehin laeuft — kein eigener Dienst, kein zweiter
+   * Aufruf. In einem `useRef`, nicht im Zustand: Sie zeichnen nichts, sie werden genau einmal
+   * gelesen, kurz bevor die Fotos zu OpenAI gehen.
+   */
+  const kopfBox = useRef<{ er?: KopfBox | null; sie?: KopfBox | null }>({});
+  /* Prozentwerte, nicht Pixel — das Rechteck gilt fuer jede Skalierung des Fotos. */
+
+  /**
+   * AUF DEN KOPF ZUSCHNEIDEN — im Browser, mit Leinwand, ohne Bibliothek und ohne Kosten.
+   *
+   * WOFUER: Nur der Kopf geht an OpenAI (Owner: „die müssen wir auch machen, in dem wir die
+   * gesichter an chatgpt geben"). Alles unterhalb des Halses liefert der Bildprompt — das
+   * Kleid, der Anzug, der Ort. Ein nacktes Foto verlaesst damit das Geraet gar nicht erst
+   * vollstaendig.
+   *
+   * GROSSZUEGIG, WEIL DIE SCHAETZUNG UNGENAU IST: Das Rechteck kommt von einem Sprachmodell.
+   * Der Rand ringsum (60 % der Kopfbreite) faengt ab, dass ein zu eng geschaetztes Rechteck
+   * jemanden koepft. Ohne brauchbares Rechteck bleibt das Foto UNVERAENDERT — lieber das
+   * ganze Bild schicken als ein falsch beschnittenes.
+   */
+  const aufKopfSchneiden = (dataUrl: string, box?: KopfBox | null): Promise<string> =>
+    new Promise(fertig => {
+      if (!dataUrl || !box) { fertig(dataUrl); return; }
+      const bild = new Image();
+      bild.onload = () => {
+        try {
+          const B = bild.naturalWidth, H = bild.naturalHeight;
+          const rand = (box.w / 100) * B * 0.6;
+          const x = Math.max(0, (box.x / 100) * B - rand);
+          const y = Math.max(0, (box.y / 100) * H - rand);
+          const b = Math.min(B - x, (box.w / 100) * B + rand * 2);
+          const h = Math.min(H - y, (box.h / 100) * H + rand * 2);
+          if (b < 40 || h < 40) { fertig(dataUrl); return; }
+          const c = document.createElement("canvas");
+          c.width = Math.round(b); c.height = Math.round(h);
+          const ctx = c.getContext("2d");
+          if (!ctx) { fertig(dataUrl); return; }
+          ctx.drawImage(bild, x, y, b, h, 0, 0, c.width, c.height);
+          fertig(c.toDataURL("image/jpeg", 0.92));
+        } catch { fertig(dataUrl); }
+      };
+      bild.onerror = () => fertig(dataUrl);
+      bild.src = dataUrl;
+    });
+
   const fotoLoeschen = (wer: "sie" | "er") => {
-    if (wer === "sie") { setCustomModel(""); setUseCustom(false); }
+    if (wer === "sie") {
+      setCustomModel(""); setUseCustom(false);
+      /**
+       * DER LEERE PLATZ MUSS LEER SEIN (Owner 16.08.2026, live: „jetzt steht da Video als
+       * Bild 1").
+       *
+       * `selPhoto` faellt ohne eigenes Foto auf `picked` zurueck — ein KATALOG-Model. Im
+       * Kuss-Trichter gibt es aber gar keine Katalog-Wahl (die wohnt auf der Landingpage):
+       * Sein geloeschtes Foto wurde damit stillschweigend durch eine fremde Frau ersetzt,
+       * und weil ein Katalog-Model als „Vorlage" gilt, kam ihr Beispielvideo gleich mit —
+       * genau das Video, das der Owner an Platz 1 gefunden hat.
+       *
+       * NUR IM TRICHTER: Auf der Landingpage und bei „Your Idol" IST der Katalog der
+       * Rueckfall, dort bleibt es wie es war.
+       */
+      if (tunnelSeite && variant === "kiss") setPicked(null);
+    }
     else setPhoto("");
     const seins = wer === "er" ? "" : photo;
     const ihres = wer === "sie" ? "" : customModel;
@@ -2456,6 +2530,8 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         return;
       }
       if (!genId && log?.id) genMerken(log.id);
+      /* Ihr Kopf-Rechteck merken — die Antwort desselben Aufrufs, der das Foto geprueft hat. */
+      if (log?.kopfSie) kopfBox.current.sie = log.kopfSie as KopfBox;
       void fotosMerken(photo, dataUrl, true);
     } catch { /**/ }
   };
@@ -2773,7 +2849,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
+            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || (variant === "kiss" ? kissSzeneId : look), ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         if (log?.id) { gid = log.id; genMerken(log.id); }
@@ -3201,6 +3277,70 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
        * Hauptrolle spielt und eine erfundene Frau das Outfit traegt. Genau dieser Fehler hat
        * beim Kuss schon einmal ein bezahltes Video mit fremden Gesichtern erzeugt.
        */
+      /**
+       * ══ DIE NEUE KUSS-KETTE (Owner 16.08.2026) ══
+       *
+       * „wir müssen erst mal das paar über chatgpt schön angekleidet an einem schönen ort
+       * zusammenbringen. Dann wird das an pixverse gegeben und sagen die zwei lachen, schauen
+       * sich an und küssen sich. Jetzt die szene wird lieber an chatgpt gegeben, wo, ob regen,
+       * terrasse … dann das motion an pixverse."
+       *
+       * DER GRUND IST DAS GESICHT („die gesichter müssen immer stimmen, deswegen machen wir
+       * das"). Vorher bekam Pixverse ZWEI fremde Fotos und musste in einem Zug Paar, Kleidung,
+       * Ort und Bewegung erfinden — vier Gelegenheiten, ein Gesicht zu verlieren, und genau
+       * das ist passiert (03.08.2026: „falsche Personen im video"). Jetzt malt `gpt-image-2`
+       * das Paar (es haelt Gesichter, gemessen in acht Vergleichslaeufen am 08.08.), und
+       * Pixverse muss nur noch EIN fertiges Bild bewegen.
+       *
+       * NUR DIE KOEPFE GEHEN RAUS: `aufKopfSchneiden` schneidet mit dem Rechteck aus der
+       * Sicherheitspruefung zu. Deshalb ist ein nacktes Foto kein Problem mehr, sondern eine
+       * Ueberraschung (Owner: „er bekommt das video am ende, aber zu seiner überraschung, die
+       * frau wird angezogen sein :)") — das Kleid kommt aus dem Prompt, nicht aus der Vorlage.
+       *
+       * SCHEITERT DER BILDSCHRITT, laeuft der alte Weg weiter (zwei Referenzen an Pixverse).
+       * Ein bezahlter Auftrag darf nie an einem neuen Schritt sterben.
+       */
+      let paarBild = "";
+      let fehlerBild = "";
+      if (variant === "kiss") {
+        setStatus(T.renderingVideo);
+        try {
+          const [kopfEr, kopfSie] = await Promise.all([
+            aufKopfSchneiden(sein, kopfBox.current.er),
+            aufKopfSchneiden(ihr, kopfBox.current.sie),
+          ]);
+          const p = await fetch("/api/kiss-paar-bild", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ er: kopfEr, sie: kopfSie, szene: kissSzeneId, genId }),
+          }).then(r => r.json()).catch(() => null);
+          if (runRef.current !== token) return;
+          if (p?.bild) paarBild = String(p.bild);
+          else fehlerBild = String(p?.error ?? "");
+        } catch (e) { fehlerBild = e instanceof Error ? e.message : "Netzwerk"; }
+        /**
+         * KEIN RUECKFALL AUF DEN ALTEN WEG (Owner 18.08.2026: „warum sollte er zurückfallen
+         * auf den alten Weg? Den braucht niemand").
+         *
+         * HIER STAND EINER, und er war gut gemeint und falsch: Scheitert der Bild-Schritt,
+         * gingen die zwei Fotos wie frueher direkt an Pixverse. Das liefert nicht „etwas
+         * Schlechteres", sondern GENAU den Fehler, wegen dem diese Kette existiert — fremde
+         * Gesichter im bezahlten Video (03.08.2026: „falsche Personen im video"). Wir haetten
+         * also einen Pixverse-Lauf BEZAHLT, um dem Kunden das zu liefern, wofuer er sich
+         * beschwert, und der Fehler waere in einer Konsolenzeile verschwunden.
+         *
+         * Stattdessen bricht der Lauf hier ehrlich ab. Was danach passiert, gibt es laengst:
+         * Der Auftrag bleibt bezahlt und unerledigt, die Lieferkette am Server versucht es
+         * erneut (bis zu drei bezahlte Anlaeufe), danach bekommt der Owner seine WhatsApp und
+         * der Kunde den Erstattungs-Knopf. Ein Fehler, den man sieht, ist besser als ein
+         * Ergebnis, das niemand wollte.
+         */
+        if (!paarBild) {
+          setVideoBusy(false); setFortschritt(0); setWahl(true);
+          setStatus(T.statusNotWork);
+          startStempelZurueck(`Paar-Bild fehlgeschlagen: ${fehlerBild || "unbekannt"}`);
+          return;
+        }
+      }
       const refPerson = V.nurSie ? ihr : sein;
       /**
        * Das Set reist als Daten-URL, nicht als Pfad — siehe `alsDatenUrl` oben. Ein
@@ -3278,7 +3418,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         // er bezahlt hat. Bei „Your Idol" bleibt es beim gemeinsamen Moment.
         // `genId` weist ihn als bezahlten Auftrag aus — sonst laeuft er in den Tagesdeckel
         // fuer Gaeste (1 Video pro Tag) und liest als Zahler "Free limit reached".
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: refPerson, garment: refOutfit,
+        /**
+         * DER KUSS IST EIN BILD-ZU-VIDEO-LAUF (16.08.2026): `image` statt `person`/`garment`,
+         * und der Prompt ist nur noch die BEWEGUNG. Ohne Paar-Bild kommt der Aufruf hier gar
+         * nicht mehr an — der Lauf bricht vorher ab (siehe oben, „KEIN RUECKFALL"). Die zweite
+         * Zeile bedient die anderen Themen: Hochzeit, Tanz, Idol.
+         */
+        body: paarBild ? JSON.stringify({ lookId: KISS_LOOK_ID, genId, image: paarBild, prompt: kussBewegung(kussSzene(kissSzeneId) ?? zufallsSzene(genId || mail)) })
+          : JSON.stringify({ lookId: KISS_LOOK_ID, genId, person: refPerson, garment: refOutfit,
           /**
            * KEIN `mimicVideoUrl` MEHR BEIM TANZ (Owner 15.08.2026: „die Frau wird nicht in den
            * ausgewählten Klamotten generiert und die Bewegung ist zu schnell, nicht
@@ -3745,7 +3892,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         const log = await fetch("/api/kiss-log", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: variant, modelId: selId, modelName: selName, device, lang,
-            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || look, ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
+            email: mail.trim(), empfaenger, stimme, look: tanzSetId() || (variant === "kiss" ? kissSzeneId : look), ...(zieleFragen ? { ziele, zieleFrei: zieleFrei.trim() } : {}),
             ...(customModel ? { modelImage: customModel } : {}) }),
         }).then(r => r.json()).catch(() => null);
         setPayBusy(false);
@@ -4963,7 +5110,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 */
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
                 wert={kissSzeneId} waehle={id => { setKissSzeneId(id); onVorlage?.(id); }}
-                bilder={KUSS_SZENEN.map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: s.kachel, video: s.clip }))} />
+                bilder={KUSS_SZENEN.filter(s => !s.versteckt).map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: s.kachel, video: s.clip }))} />
             ) : (
               <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look}
                 waehle={id => { setLook(id); onVorlage?.(id); }}
@@ -5901,7 +6048,20 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                    hier zurueck zum Tunnel-Start (Name + E-Mail), den er meist schon hinter
                    sich hat; die leere linke Kachel weiter oben nimmt die neue Aufnahme
                    sofort wieder auf. */
-                <button type="button" onClick={() => { fotoLoeschen("sie"); if (variant !== "versprechen") setSchritt(1); }}
+                /**
+                 * LOESCHEN IST LOESCHEN — KEIN SPRUNG (Owner 16.08.2026, live auf dem Handy:
+                 * „ich habe das erste referenz bild gelöscht und ist zurück zur Tunel Seite 1
+                 * Formular gesprungen").
+                 *
+                 * Hier stand `setSchritt(1)` fuer alle ausser dem Versprechen — ein Rest aus
+                 * der Zeit, als die leere Kachel nach dem Upload verschwand und man nur ueber
+                 * Schritt 1 ein neues Foto hineinbekam. Seit die Plaetze IMMER sichtbar sind
+                 * (`TunnelKachelUpload`, ein paar Zeilen weiter oben), wirft der Sprung den
+                 * Kunden nur aus dem Kaufweg — und beim Zurueckkommen stand ploetzlich ein
+                 * Katalog-Model samt Beispielvideo an seinem Platz (siehe `setPicked(null)`
+                 * in `fotoLoeschen`): „jetzt steht da Video als Bild 1".
+                 */
+                <button type="button" onClick={() => { fotoLoeschen("sie"); if (!tunnelSeite && variant !== "versprechen") setSchritt(1); }}
                   aria-label="Foto löschen"
                   style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                   className="absolute -left-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">
@@ -6003,7 +6163,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
-              <button type="button" onClick={() => { fotoLoeschen("er"); setSchritt(alsSchritt(schrittVorKacheln)); }}
+              {/* AUCH HIER KEIN SPRUNG MEHR (Owner 16.08.2026, siehe die Zwillingsstelle
+                  beim ersten Foto): Der leere Platz steht direkt daneben, ein Schrittwechsel
+                  waere nur ein Verlust der Stelle, an der er gerade war. */}
+              <button type="button" onClick={() => { fotoLoeschen("er"); if (!tunnelSeite) setSchritt(alsSchritt(schrittVorKacheln)); }}
                 aria-label="Foto löschen"
                 style={{ background: "#fff", color: "#dc2626", boxShadow: "0 2px 10px rgba(0,0,0,0.35)" }}
                 className="absolute -right-1.5 -top-1.5 grid h-8 w-8 place-items-center rounded-full transition active:scale-90">

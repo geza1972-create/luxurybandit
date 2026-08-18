@@ -512,7 +512,7 @@ export default async function ThemesCatalog({ searchParams }: {
        trägt als Poster das ERSTE BILD ihres eigenen Videos (per ffmpeg gezogen) — und Video
        wie Poster liegen als feste Dateien im Repo statt an ablaufenden signierten Links
        (Dauerregel Memory `landingpage-video-ist-kachel-video`: eine Quelle, nie zwei). */
-    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: "/Kiss/kiss-poster.jpg", poster: "/Kiss/kiss-poster.jpg", video: "/Kiss/kiss-beispiel.mp4", chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
+    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: "/Kiss/Rain/rain-kiss.jpg", poster: "/Kiss/Rain/rain-kiss.jpg", video: "/Kiss/Rain/rain-kiss.mp4", chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
     /**
      * GUTSCHEIN VERPACKEN AUF PLATZ ZWEI (Konzept §3b: „Es ist das einzige Geschenkprodukt mit
      * gemessener Suchnachfrage — und es gehört deshalb an Platz zwei").

@@ -7,6 +7,7 @@ import { pruefeAlter } from "@/lib/minderjaehrig-pruefen";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 import { POLEDANCE_SETS } from "@/lib/poledance";
+import { KUSS_SZENEN } from "@/lib/kuss-szenen";
 import { zieleSaeubern } from "@/lib/future-ziele";
 
 /**
@@ -30,7 +31,11 @@ import { zieleSaeubern } from "@/lib/future-ziele";
    darueber warnt — nur diesmal fiel die Wahl nicht beim Versprechen heraus, sondern beim
    Tanz: `haus/rot/schwarz/blau/gruen/lack/rotstudio` standen in keiner Liste, also verwarf
    die Route sie stillschweigend, und die Erzeugung nahm den Rueckfall — das erste Set. */
-const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS, ...POLEDANCE_SETS].map(l => l.id);
+/* MIT DEN KUSS-SZENEN (16.08.2026): Seit die neue Kette je Szene einen eigenen Bild- und
+   Bewegungs-Prompt hat, MUSS die gewaehlte Szene am Auftrag stehen — sonst rendert der
+   Server-Rettungsweg eine andere als die bestellte. Genau die Falle, vor der der Absatz
+   darueber warnt, nur mit einer dritten Liste. */
+const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS, ...POLEDANCE_SETS, ...KUSS_SZENEN].map(l => l.id);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,14 +65,25 @@ export const dynamic = "force-dynamic";
  * am 01.08.2026 ausdruecklich entfernt („mach die Alterskontrolle raus"). Hier wirkt allein
  * die Nacktheit — ein `minderjaehrig`-Urteil ohne Nacktheit laesst dieses Tor durch.
  */
-type NacktUrteil = { abweisen: boolean; ablegen: boolean; warnung?: string; alter?: number };
+type Kopf = { x: number; y: number; w: number; h: number };
+type NacktUrteil = { abweisen: boolean; ablegen: boolean; warnung?: string; alter?: number;
+  /**
+   * DIE KOPF-RECHTECKE, IN DER REIHENFOLGE DER ÜBERGEBENEN BILDER (Owner 16.08.2026,
+   * „kannst du die erkennen und schneiden?" · „gratis"). `null` heisst: kein brauchbares
+   * Rechteck — dann wird nicht geschnitten. Sie fallen bei der Prüfung ab, die ohnehin läuft;
+   * siehe `kopfAus` in lib/minderjaehrig-pruefen.ts.
+   */
+  koepfe?: (Kopf | null)[] };
 
 async function nacktheitsTor(bilder: string[]): Promise<NacktUrteil> {
   const key = process.env.OPENAI_API_KEY?.trim();
-  const echte = bilder.filter(b => String(b ?? "").startsWith("data:"));
-  // Ohne Schluessel oder ohne Bild gibt es nichts zu pruefen — dann wie bisher durchlassen.
-  if (!key || !echte.length) return { abweisen: false, ablegen: true };
-  const urteile = await Promise.all(echte.map(b => pruefeAlter(b, key).catch(() => null)));
+  /* MIT PLATZHALTERN: Der Aufrufer uebergibt [er, sie] und muss die Antwort derselben Stelle
+     zuordnen koennen. Ein `filter` wuerde die Plaetze verschieben — dann truege das Foto der
+     Frau das Rechteck des Mannes. */
+  const echte = bilder.map(b => (String(b ?? "").startsWith("data:") ? String(b) : ""));
+  if (!key || !echte.some(Boolean)) return { abweisen: false, ablegen: true };
+  const urteile = await Promise.all(echte.map(b => (b ? pruefeAlter(b, key).catch(() => null) : Promise.resolve(null))));
+  const koepfe: (Kopf | null)[] = urteile.map(u => (u && u.ok && u.kopf ? u.kopf : null));
 
   // Kind + nackt zuerst: dieser Fall darf nicht in den Speicher, egal was sonst noch gilt.
   if (urteile.some(u => u && !u.ok && u.grund === "kind-nackt")) {
@@ -83,10 +99,29 @@ async function nacktheitsTor(bilder: string[]): Promise<NacktUrteil> {
   const nackt = urteile.some(u => !!u && ((u.ok && u.warnung === "nacktheit") || (!u.ok && u.grund === "nacktheit")));
   if (nackt) {
     const alter = urteile.map(u => (u && u.ok ? u.alter : u && !u.ok ? u.alter ?? 0 : 0)).find(n => !!n) ?? 0;
-    console.warn(`[upload-tor] Nacktheit erkannt — abgewiesen, aber abgelegt (alter≈${alter})`);
-    return { abweisen: true, ablegen: true, warnung: "nacktheit", alter };
+    /**
+     * NACKTHEIT WEIST NICHT MEHR AB (Owner 16.08.2026, wörtlich: „er bekommt das video am
+     * ende, aber zu seiner überraschung, die frau wird angezogen sein :)").
+     *
+     * WAS HIER STAND: `abweisen: true` samt der Absage „No naked — go to Pornhub!". Sie war
+     * richtig, solange die Vorlage 1:1 ins Video wanderte. Seit der neuen Kette (16.08.2026)
+     * geht nur noch der KOPF an OpenAI, und der Bildprompt zieht die Frau in ein
+     * bodenlanges Abendkleid — eine nackte Vorlage kann gar kein nacktes Ergebnis mehr
+     * erzeugen. Damit ist die Absage nur noch ein verlorener Kunde.
+     *
+     * WAS BLEIBT: die Warnung am Eintrag. Der Owner will jeden Upload sehen („ich will
+     * trotzdem alles sehen was leute hochladen und abgelehnt wird") — und gemessen am
+     * 16.08.2026 hat das Tor in 113 Einträgen dreimal angeschlagen, zweimal bei ihm selbst.
+     * Ein Zeichen in der Liste ist die ehrliche Antwort auf eine Prüfung dieser Güte; eine
+     * Sperre war es nicht.
+     *
+     * NICHT BETROFFEN: Kind + Nacktheit, ein paar Zeilen darüber. Das bleibt abgewiesen und
+     * ungespeichert, ohne Ausnahme und unabhängig von jeder Kette.
+     */
+    console.warn(`[upload-tor] Nacktheit erkannt — durchgelassen, markiert, nur Kopf geht weiter (alter≈${alter})`);
+    return { abweisen: false, ablegen: true, warnung: "nacktheit", alter, koepfe };
   }
-  return { abweisen: false, ablegen: true };
+  return { abweisen: false, ablegen: true, koepfe };
 }
 
 /** Die Absage, die der Besucher liest — in seiner Sprache, kurz und ohne Vorwurf. */
@@ -561,7 +596,10 @@ export async function POST(request: Request) {
     if (torU.abweisen) {
       return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true }, { status: 400 });
     }
-    return NextResponse.json({ ok: true });
+    /* Auch der ZWEITE Upload bringt sein Kopf-Rechteck zurueck — er laeuft ueber `update`,
+       und ohne diese Zeile haette genau das zweite Foto keines (dieselbe Luecke, die der
+       Kommentar oben fuer die Nacktheitspruefung beschreibt). */
+    return NextResponse.json({ ok: true, kopfEr: torU.koepfe?.[0] ?? null, kopfSie: torU.koepfe?.[1] ?? null });
   }
 
   /**
@@ -645,5 +683,7 @@ export async function POST(request: Request) {
   if (tor.abweisen) {
     return NextResponse.json({ error: abgelehntText(body.lang), bildAbgelehnt: true, altersSperre: true, id: entry.id }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, id: entry.id });
+  /* Die Kopf-Rechtecke reisen zum Trichter zurueck — [er, sie], dieselbe Reihenfolge, in der
+     die Bilder oben ins Tor gegeben wurden. Er schneidet damit vor dem OpenAI-Schritt zu. */
+  return NextResponse.json({ ok: true, id: entry.id, kopfEr: tor.koepfe?.[0] ?? null, kopfSie: tor.koepfe?.[1] ?? null });
 }

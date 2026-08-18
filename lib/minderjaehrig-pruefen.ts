@@ -32,7 +32,12 @@ export type AltersPruefung =
    * machst mir aber in der Galerie ein Warnzeichen drauf"). Ohne dieses Feld wäre das
    * Beobachten wertlos: Man liesse alles durch und wüsste hinterher nicht, was auffiel.
    */
-  | { ok: true; alter: number; warnung?: AltersGrund }
+  /**
+   * `kopf` ist das Kopf-Rechteck in Prozent (siehe `box` im Frageprompt) — dasselbe Modell,
+   * derselbe Aufruf, keine zusätzlichen Kosten. Der Trichter schneidet damit vor dem
+   * OpenAI-Schritt auf den Kopf zu (Owner 16.08.2026). Fehlt es, wird nicht geschnitten.
+   */
+  | { ok: true; alter: number; warnung?: AltersGrund; kopf?: { x: number; y: number; w: number; h: number } }
   | { ok: false; grund: AltersGrund; alter?: number };
 
 /**
@@ -84,7 +89,9 @@ const MODUS = (process.env.MINOR_CHECK_MODE ?? "beobachten").trim().toLowerCase(
 const NUR_BEOBACHTEN = MODUS === "beobachten" || MODUS === "alles-durch";
 const AUCH_EINDEUTIGE_DURCH = MODUS === "alles-durch";
 
-type Antwort = { minor?: boolean; age?: number; face?: boolean; nude?: boolean };
+type Antwort = { minor?: boolean; age?: number; face?: boolean; nude?: boolean;
+  /** Kopf-Rechteck in PROZENT des Bildes — siehe `box` im Frageprompt unten. */
+  box?: { x?: number; y?: number; w?: number; h?: number } };
 
 /**
  * Fragt das Seh-Modell direkt — nicht „wie alt", sondern „ist hier jemand unter 18".
@@ -108,7 +115,8 @@ async function fragen(dataUrl: string, key: string): Promise<Antwort | null> {
               type: "text",
               text:
                 "You are a safety check for an adult-content pipeline. Look at every person in this image.\n"
-                + "Return ONLY compact JSON: {\"minor\":true|false,\"age\":NN,\"face\":true|false,\"nude\":true|false}\n"
+                + "Return ONLY compact JSON: {\"minor\":true|false,\"age\":NN,\"face\":true|false,\"nude\":true|false,"
+                + "\"box\":{\"x\":NN,\"y\":NN,\"w\":NN,\"h\":NN}}\n"
                 // Die Grenze muss BEIDE Richtungen benennen. Stand hier nur „im Zweifel ja",
                 // schlug das Modell auch bei jung aussehenden Erwachsenen an — der Einwand des
                 // Owners vom 31.07.2026 („eine 18-Jährige kann auch jünger aussehen").
@@ -123,6 +131,31 @@ async function fragen(dataUrl: string, key: string): Promise<Antwort | null> {
                 // stünde still.
                 + "- nude: true ONLY if genitals, buttocks or female nipples are visible.\n"
                 + "  Lingerie, underwear, swimwear and bikinis are NOT nude — answer false for them.\n"
+                /**
+                 * DAS KOPF-RECHTECK — GRATIS, WEIL DIESER AUFRUF OHNEHIN STATTFINDET
+                 * (Owner 16.08.2026: „aber kannst du die erkennen und schneiden?" · „gratis").
+                 *
+                 * Es gibt keinen zweiten Dienst und keinen zweiten Aufruf: Dieses Modell sieht
+                 * jedes hochgeladene Foto bereits an, um Alter und Nacktheit zu beurteilen. Es
+                 * nach dem Kopf zu fragen, kostet ein paar Ausgabe-Token — im Rauschen der
+                 * Rechnung nicht messbar.
+                 *
+                 * WOFÜR: Die neue Kuss-Kette gibt nur den KOPF an OpenAI weiter (Owner: „viele
+                 * schweine laden nakte bilder hoch … die müssen wir auch machen, in dem wir die
+                 * gesichter an chatgpt geben"). Mit diesem Rechteck kann der Trichter genau das
+                 * ausschneiden, bevor er es losschickt — der Rest des Fotos verlässt das Gerät
+                 * gar nicht erst.
+                 *
+                 * PROZENT, NICHT PIXEL: Das Modell kennt die Ausgabegrösse nicht zuverlässig;
+                 * Prozent gelten für jede Skalierung. Und GROSSZÜGIG: Sprachmodelle schätzen
+                 * Rechtecke ungenau — ein zu enger Schnitt köpft den Menschen, ein zu weiter
+                 * schadet nichts, weil der Bildprompt ohnehin sagt, dass alles unterhalb des
+                 * Halses aus dem Text kommt.
+                 */
+                + "- box: the head of the most prominent person (the one whose face is largest),\n"
+                + "  as PERCENT of the image: x/y = top-left corner, w/h = width/height, each 0-100.\n"
+                + "  Be GENEROUS: include the whole head, the hair and the shoulders, with margin.\n"
+                + "  If no face is visible, return {\"x\":0,\"y\":0,\"w\":100,\"h\":100}.\n"
                 + "No prose, no explanation.",
             },
             { type: "image_url", image_url: { url: dataUrl } },
@@ -202,7 +235,27 @@ export async function pruefeAlter(dataUrl: string, key: string): Promise<AltersP
     return { ok: false, grund: "minderjaehrig", alter };
   }
 
-  return { ok: true, alter };
+  return { ok: true, alter, ...(kopfAus(a) ? { kopf: kopfAus(a)! } : {}) };
+}
+
+/**
+ * DAS KOPF-RECHTECK PRÜFEN, BEVOR JEMAND DANACH SCHNEIDET.
+ *
+ * Ein Sprachmodell darf hier alles antworten — auch Unsinn. Ein fehlerhaftes Rechteck würde
+ * beim Zuschneiden einen Menschen köpfen, und das fiele erst im bezahlten Ergebnis auf.
+ * Deshalb gilt nur, was vollständig, im Bild und gross genug ist; alles andere wird zu
+ * „kein Rechteck" — dann schneidet der Trichter nicht, statt falsch zu schneiden.
+ */
+function kopfAus(a: Antwort): { x: number; y: number; w: number; h: number } | null {
+  const b = a?.box;
+  if (!b) return null;
+  const z = (n: unknown) => (Number.isFinite(Number(n)) ? Number(n) : NaN);
+  const x = z(b.x), y = z(b.y), w = z(b.w), h = z(b.h);
+  if ([x, y, w, h].some(Number.isNaN)) return null;
+  if (w < 5 || h < 5) return null;                       // ein Kopf von 4 % ist ein Irrtum
+  if (x < 0 || y < 0 || x + w > 100.5 || y + h > 100.5) return null;
+  if (w > 99 && h > 99) return null;                     // „ganzes Bild" heisst: nichts gefunden
+  return { x, y, w, h };
 }
 
 /** Prüft mehrere Bilder gleichzeitig; das erste Nein gewinnt. */
