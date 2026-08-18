@@ -61,17 +61,59 @@ type Eintrag = {
  * sie sind (neue Ereignisse sollen nicht unsichtbar werden, nur weil hier eine Zeile fehlt).
  */
 const STATION: Record<string, string> = {
-  funnel_started: "Trichter offen",
+  funnel_started: "Trichter auf",
   step_completed: "Schritt",
   look_selected: "Vorlage",
   lead_created: "E-Mail",
   email: "E-Mail",
+  funnel_email: "E-Mail",
+  funnel_photo: "Foto hoch",
+  funnel_aufnahme_leer: "Aufnahme leer",
   generate_tap: "Knopf",
-  generate: "erzeugt",
+  funnel_generate_tap: "Knopf",
+  generate: "ERZEUGT",
+  generation_started: "ERZEUGT",
   checkout_started: "Kasse",
+  funnel_checkout_tap: "Kasse getippt",
+  funnel_checkout: "Kasse",
   payment_completed: "BEZAHLT",
   tryon: "Try-on",
 };
+
+/**
+ * WAS EINE STATION IST — UND WAS NUR RAUSCHEN (Owner 18.08.2026: „der Pfad stimmt überhaupt
+ * nicht. Was träckst du hier für ein Misst?" · „das war alles andere als deutlich").
+ *
+ * ER HATTE RECHT, und das Bild zeigte warum: 60 Marken hintereinander, davon 40 mal
+ * `themes_view`, `birthday_view`, `holiday_view` — also „hat eine Seite angesehen", zwanzigmal
+ * dasselbe. Dazwischen ging unter, was zählt: Foto hoch, E-Mail, Knopf, Kasse.
+ *
+ * Ein Weg soll die HANDLUNGEN zeigen. Seitenaufrufe sind keine Handlung, sie sind der Weg
+ * dorthin — sie werden zu einer einzigen Marke zusammengefasst („3 Seiten") statt einzeln
+ * aufgereiht. Und gleiche Stationen direkt hintereinander werden gezählt, nicht wiederholt:
+ * „Kasse ×3" sagt mehr als dreimal „Kasse" und braucht ein Drittel des Platzes.
+ */
+const IST_ANSICHT = (name: string) => /_view$|^view$|^visit/.test(name);
+
+type Marke = { text: string; thema: string; n: number; roh: string; t: string };
+
+function wegVerdichten(weg: { t: string; thema: string; name: string; step?: string; vorlage?: string }[]): Marke[] {
+  const raus: Marke[] = [];
+  for (const w of weg) {
+    /* Seitenaufrufe: zu EINER Marke zusammenziehen, solange sie am Stueck kommen. */
+    if (IST_ANSICHT(w.name)) {
+      const letzte = raus[raus.length - 1];
+      if (letzte?.roh === "ansicht") { letzte.n++; letzte.text = `${letzte.n} Seiten`; letzte.t = w.t; continue; }
+      raus.push({ text: "1 Seite", thema: w.thema, n: 1, roh: "ansicht", t: w.t });
+      continue;
+    }
+    const text = [STATION[w.name] ?? w.name, w.step || "", w.vorlage ? `▸ ${w.vorlage}` : ""].filter(Boolean).join(" ");
+    const letzte = raus[raus.length - 1];
+    if (letzte && letzte.text === text && letzte.thema === w.thema) { letzte.n++; letzte.t = w.t; continue; }
+    raus.push({ text, thema: w.thema, n: 1, roh: w.name, t: w.t });
+  }
+  return raus;
+}
 
 /** Klartext fuers Warnzeichen — „nacktheit" allein liest sich wie ein Datenbankfeld. */
 const WARN_TEXT: Record<string, string> = {
@@ -387,47 +429,51 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                 * geaendert hat — sonst verschwindet der Wechsel zwischen dreissig gleichen
                 * Woertern. Die letzte Marke ist rot umrandet: Da ist er stehengeblieben.
                 */}
-              {(e.weg ?? []).length > 0 && (
-                <div className="mt-2 rounded-lg bg-black/[0.03] p-2">
-                  <p className="mb-1 text-[9px] font-black uppercase tracking-wide text-black/40">
-                    Sein Weg · {(e.weg ?? []).length} Stationen
-                    {e.weg?.[0]?.quelle ? ` · von ${e.weg[0].quelle}` : ""}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-                    {(e.weg ?? []).map((w, i, alle) => {
-                      const neuesThema = w.thema && w.thema !== alle[i - 1]?.thema;
-                      const letzte = i === alle.length - 1;
-                      const text = [
-                        STATION[w.name] ?? w.name,
-                        w.step || "",
-                        w.vorlage ? `▸ ${w.vorlage}` : "",
-                      ].filter(Boolean).join(" ");
-                      return (
-                        <span key={`${w.t}-${i}`} className="flex items-center gap-1">
-                          {i > 0 && <span className="text-[10px] text-black/25">→</span>}
-                          {neuesThema && (
-                            <span className="rounded-l-full bg-black/[0.07] py-0.5 pl-2 pr-1 text-[10px] font-black text-black/70">
-                              {w.thema}
+              {(e.weg ?? []).length > 0 && (() => {
+                const marken = wegVerdichten(e.weg ?? []);
+                /* Die letzten 30 reichen — davor steht nur, wie er hergefunden hat. */
+                const zeigen = marken.slice(-30);
+                const weg = e.weg ?? [];
+                return (
+                  <div className="mt-2 rounded-lg bg-black/[0.03] p-2">
+                    <p className="mb-1 text-[9px] font-black uppercase tracking-wide text-black/40">
+                      Sein Weg · {marken.length} Stationen{marken.length > zeigen.length ? ` (letzte ${zeigen.length})` : ""}
+                      {weg[0]?.quelle ? ` · von ${weg[0].quelle}` : ""}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                      {zeigen.map((m, i, alle) => {
+                        const neuesThema = m.thema && m.thema !== alle[i - 1]?.thema;
+                        const letzte = i === alle.length - 1;
+                        const wichtig = /ERZEUGT|BEZAHLT|E-Mail|Vorlage|Foto/.test(m.text);
+                        return (
+                          <span key={`${m.t}-${i}`} className="flex items-center gap-1">
+                            {i > 0 && <span className="text-[10px] text-black/25">→</span>}
+                            {neuesThema && (
+                              <span className="rounded-l-full bg-black/[0.07] py-0.5 pl-2 pr-1 text-[10px] font-black text-black/70">
+                                {m.thema}
+                              </span>
+                            )}
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                              letzte
+                                ? "bg-red-500/10 text-red-600 ring-1 ring-red-400/40"
+                                : m.text === "BEZAHLT"
+                                  ? "bg-emerald-500/15 text-emerald-700"
+                                  : m.roh === "ansicht"
+                                    ? "bg-black/[0.04] text-black/35"
+                                    : wichtig ? "bg-white text-black/70 ring-1 ring-black/10" : "bg-white text-black/50"
+                            } ${neuesThema ? "rounded-l-none" : ""}`}>
+                              {m.text}{m.n > 1 && m.roh !== "ansicht" ? ` ×${m.n}` : ""}
                             </span>
-                          )}
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                            letzte
-                              ? "bg-red-500/10 text-red-600 ring-1 ring-red-400/40"
-                              : w.name === "payment_completed"
-                                ? "bg-emerald-500/15 text-emerald-700"
-                                : "bg-white text-black/60"
-                          } ${neuesThema ? "rounded-l-none" : ""}`}>
-                            {text}
                           </span>
-                        </span>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-[9px] font-bold text-black/35">
+                      zuletzt {zeit(String(weg[weg.length - 1]?.t ?? ""))} — dort ausgestiegen
+                    </p>
                   </div>
-                  <p className="mt-1 text-[9px] font-bold text-black/35">
-                    zuletzt {zeit(String(e.weg?.[(e.weg?.length ?? 1) - 1]?.t ?? ""))} — dort ausgestiegen
-                  </p>
-                </div>
-              )}
+                );
+              })()}
 
               {/* HAT ER POST BEKOMMEN? (Owner 14.08.2026: „ich will dass da auch steht ob er
                   eine email bekommen hat mit dem bild").

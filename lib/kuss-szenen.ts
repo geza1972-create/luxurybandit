@@ -518,13 +518,21 @@ export function kussPaarBildPrompt(szene: KussSzene): string {
      * das zwei Gesichter in EIN Bild setzt, zieht sie in dieselbe Generation — es gleicht an,
      * weil ein Paar „stimmig" aussehen soll. Genau das darf hier nicht passieren: Der
      * Altersunterschied ist keine Unstimmigkeit, er ist das echte Paar.
+     *
+     * UND DIE RICHTUNG IST NICHT NEUTRAL (Owner 18.08.2026: „er muss sie beide jünger machen
+     * nicht älter. Niemand will sich älter sehen."). „Halte das Alter" war die halbe Antwort —
+     * ein Geschenk, auf dem man müder aussieht als im Spiegel, verschickt niemand. Ein paar
+     * Jahre jünger ist die Richtung, in die ein Kunde sich gern sieht; die Grenze bleibt das
+     * Gesicht selbst („unmistakably the same person"), sonst kippt die Verjüngung in einen
+     * Fremden — und genau dagegen ist diese ganze Kette gebaut.
      */
-    "Keep the apparent age of EACH person exactly as in their own uploaded photo, independently " +
-    "of the other person. If one of them is clearly older and the other clearly younger, that " +
-    "age difference must stay exactly as it is — never even out their ages, never make them " +
-    "look like the same generation, never make the younger one older to match the other. Do not " +
-    "add wrinkles, do not mature or age either face, do not make anyone look older, more " +
-    "serious or more weathered than their reference photo.\n" +
+    "NEVER make anyone look older than in their uploaded photo. Both people should look a few " +
+    "years YOUNGER than their reference photo: rested, healthy, smooth skin, no wrinkles, no " +
+    "grey shadows, no tired or weathered look — but unmistakably the same person, with the same " +
+    "facial features, the same face shape and the same hair. " +
+    "Treat each person separately: if one of them is clearly older and the other clearly " +
+    "younger, that age difference must stay — never even out their ages, never make them look " +
+    "like the same generation, never age the younger one up to match the other.\n" +
     /* ZEILE 2 — die eine Bildregel des Hauses, an der schon ein Produkt gescheitert ist
        (Memory `bildprompt-nie-zwei-geschlechter`): Nennt ein Prompt einen Mann UND eine Frau,
        liefert das Modell gern ein geteiltes Bild mit zwei Porträts nebeneinander. */

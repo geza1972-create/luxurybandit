@@ -1826,7 +1826,27 @@ export function ThemenKreise({ themen = THEMEN_KREISE, className = "", ohne = ""
                    Rundung dort am meisten weg, und getroffen wird der Kopf. Ein Sechstel
                    tiefer angesetzt laesst die Rundung Luft und haelt das Gesicht in der
                    Mitte des Kreises. */
-                ? <img src={t.bild} alt="" loading="lazy" className={`h-full w-full object-cover object-[50%_16%] ${aktiv ? "" : "opacity-85"}`} />
+                /**
+                  * DIE BREITE FUELLEN, OBEN ANFANGEN (Owner 18.08.2026, nach drei Anlaeufen:
+                  * „du sollst die breite nehmen und oben anfangen" — und: „auf desktop ist kein
+                  * problem", der Fehler war also nur auf dem Handy zu sehen).
+                  *
+                  * HIER STAND `object-[50%_16%]`, ein einziger Wert fuer alle Motive. Er kam am
+                  * 15.08. gegen dasselbe Problem („auf dem Handy sind die Bilder im Kreis
+                  * abgeschnitten oben") und war ein Kompromiss: 16 % tiefer angesetzt, damit die
+                  * Rundung nicht den Scheitel wegnimmt. Ein Kompromiss trifft nichts richtig —
+                  * bei einem Motiv sass danach die Stirn im Kreis, beim naechsten die Schlagzeile
+                  * eines Anzeigenbildes.
+                  *
+                  * Kurz davor stand hier ein je Motiv GEMESSENER Wert. Auch der ist raus: Der
+                  * Owner hat eine Regel genannt, und eine Regel, die jeder versteht, ist mehr
+                  * wert als sieben Zahlen, die beim naechsten neuen Bild wieder jemand nachmessen
+                  * muesste. `object-cover` skaliert ein Hochformat ohnehin auf die BREITE — mit
+                  * `0%` beginnt der Ausschnitt genau oben, wo bei einem Portraet der Kopf ist.
+                  */
+                ? <img src={t.bild} alt="" loading="lazy"
+                    style={{ objectPosition: "50% 0%" }}
+                    className={`h-full w-full object-cover ${aktiv ? "" : "opacity-85"}`} />
                 : <t.icon className="h-[22px] w-[22px]" />}
             </span>
             <span className={`text-center text-[10.5px] font-black leading-none ${aktiv ? "text-[#f6cf51]" : "text-white/60"}`}>{t.name}</span>

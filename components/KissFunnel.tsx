@@ -5874,7 +5874,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               (`onFile`/`onModelFile` rufen `zustimmen()` im selben Moment). Fuer Bekannte,
               die Schritt 1 nie sehen, ist dieser Tipp die ERSTE Handlung im ganzen Tunnel. */}
           <button type="button" onClick={() => { zustimmen(); void aufnahmeStart(); }}
-            className="relative flex aspect-[3/4] w-[118px] max-w-[32vw] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
+            className="relative flex aspect-[3/4] w-[26vw] min-w-[72px] max-w-[118px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
             <Mic className="h-6 w-6 text-[#f6cf51]" />
             <span className="px-2 text-center text-[11px] font-black leading-snug text-white/85">{SW.selbst}</span>
           </button>
@@ -5894,7 +5894,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             * Tunel") — `zielVideo` ist leer, sobald es keins gibt, dann bleibt die Kachel ein
             * Bild.
             */}
-          <div className="w-[118px] max-w-[32vw]">
+          <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
             <VorlagenKachel
               bildUrl={(LOOKS.find(l => l.id === look) ?? LOOKS[0]).bild}
               videoUrl={zielVideo} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
@@ -5948,7 +5948,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               der Pfeil, dann das ZIEL. Ohne Wahl in Schritt 2 zeigt die Kachel die erste
               Szene — geliefert wird dann wie bisher die Überraschung (`zufallsSzene`). */}
           <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-          <div className="w-[118px] max-w-[32vw]">
+          <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
             <VorlagenKachel
               bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
               /* DER CLIP DER GEWAEHLTEN SZENE (15.08.2026, Owner: „Kiss ist auch kaputt" — er
@@ -5982,7 +5982,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               statt das Set zu zeigen — der Kunde waehlte ein Waescheset und sah eine fremde
               Person. Was hier steht, geht als `@image2` an Pixverse, und das ist das
               freigestellte Set. Also zeigt die Kachel genau das. */}
-          <div className="w-[118px] max-w-[32vw]">
+          <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
             <VorlagenKachel bildUrl={neuerLook || V.garmentBild || ""} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
           </div>
           <input ref={modelFileRef} type="file" accept="image/*,.heic,.heif" className="hidden"
@@ -6030,7 +6030,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * modellgenaues Video gibt es (noch) nicht (siehe Bericht an den Owner).
                 */}
               {!useCustom && variant === "kiss" && beispiele[0] ? (
-                <div className="w-[118px] max-w-[32vw]">
+                <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
                   <VorlagenKachel bildUrl={selPhoto} videoUrl={beispiele[0]} ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} />
                 </div>
               ) : (
@@ -6038,7 +6038,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                    „bilder nie versetzt") — dasselbe „YOU"-Muster wie überall. */
                 <div className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={selPhoto} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-white/15 object-cover object-top" />
+                  <img src={selPhoto} alt="" className="aspect-[3/4] w-[26vw] min-w-[72px] max-w-[118px] rounded-2xl border border-white/15 object-cover object-top" />
                   {tunnelSeite && variant === "versprechen" && T.heuteLabel && (
                     <span className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-black/80 to-transparent pb-1.5 pt-6 text-center text-[10px] font-black uppercase tracking-wide"
                       style={{ color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.85)" }}>
@@ -6143,6 +6143,23 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             * `@image2` an Pixverse geht (siehe `refOutfit` in `generate()`). Damit koennen
             * Anzeige und Auftrag nicht mehr auseinanderlaufen; es gibt nur noch eine Quelle.
             */}
+          {/**
+            * `shrink-0` AN DEN VORLAGEN-KACHELN (Owner 18.08.2026, mit Bild: „im Bild siehst du
+            * gerade einen Fehler wie klein die Vorlage ist im Vergleich zu ihren Bildern").
+            *
+            * Alle drei Kacheln der Reihe tragen dieselbe Breite (`w-[26vw] min-w-[72px] max-w-[118px]`) —
+            * trotzdem war die rechte auf dem Handy halb so gross. Der Grund ist Flexbox: Läuft
+            * die Reihe über den Schirm hinaus, verkleinert sie ihre Kinder. Die zwei Fotos
+            * wehren sich, weil ein `<img>` eine Eigenbreite mitbringt; das leere `<div>` um die
+            * Vorlage hatte nichts, womit es sich wehren konnte, und gab als Einziges nach.
+            *
+            * UND DESHALB DIE BREITE MITWACHSEND (Owner unmittelbar danach: „ich werde das linke
+            * bild nicht löschen können da es ausser sichtbereich ist"): Mit drei gleich grossen,
+            * nicht mehr schrumpfenden Kacheln lief die Reihe seitlich aus dem Schirm — und mit
+            * ihr der Löschknopf des ersten Fotos. `w-[26vw]` legt drei Kacheln plus Pfeil auch
+            * auf einem schmalen Handy nebeneinander, `max-w-[118px]` haelt sie auf dem Schreib-
+            * tisch bei der alten Groesse. Nichts rutscht mehr hinaus, nichts schrumpft ungleich.
+            */}
           {V.nurSie && !!(neuerLook || V.garmentBild) && (
             /**
               * DIE KARTE ZEIGT DEN GEWAEHLTEN LOOK (Owner 07.08.2026, mit Bild: „und ich
@@ -6157,7 +6174,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             /* ANTIPPEN OEFFNET DAS ECHTE VIDEO, WENN ES EINS GIBT (Owner 12.08.2026: „das
                gilt für den ganzen Tunel") — `selbstVideo`-Themen bekommen `zielVideo`
                (oben berechnet), alles andere zeigt weiter nur das Bild. */
-            <div className="w-[118px] max-w-[32vw]">
+            <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
               {/* §22 Screen 4: „DEIN ZUKÜNFTIGES ICH" AUFS BILD (Owner 13.08.2026: „bilder
                   nie versetzt" — ein Label über der Kachel schob die Reihe auseinander). */}
               <VorlagenKachel
@@ -6170,7 +6187,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
           {!V.nurSie && photo && (
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo} alt="" className="aspect-[3/4] w-[118px] max-w-[32vw] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
+              <img src={photo} alt="" className="aspect-[3/4] w-[26vw] min-w-[72px] max-w-[118px] rounded-2xl border border-[#f6cf51]/40 object-cover object-top" />
               {/* AUCH HIER KEIN SPRUNG MEHR (Owner 16.08.2026, siehe die Zwillingsstelle
                   beim ersten Foto): Der leere Platz steht direkt daneben, ein Schrittwechsel
                   waere nur ein Verlust der Stelle, an der er gerade war. */}
@@ -6193,7 +6210,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               <TunnelKachelUpload titel={T.you} onWaehlen={() => { zustimmen(); fileRef.current?.click(); }} />
             )}
             <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-            <div className="w-[118px] max-w-[32vw]">
+            <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0">
               <VorlagenKachel
                 bildUrl={(KUSS_SZENEN.find(s => s.id === kissSzeneId) ?? KUSS_SZENEN[0]).kachel}
                 /* Der Clip der GEWAEHLTEN Szene, nicht ein festes Beispiel (15.08.2026) —
