@@ -40,6 +40,7 @@ import { kontoText } from "@/lib/konto-i18n";
  * Umbenennen waere Laerm ohne Gewinn in genau der Datei, die ohnehin zu gross ist.
  */
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
+import { useMusikFuer } from "@/lib/musik";
 import { kissText, type KissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN, kussBewegung } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
@@ -1661,6 +1662,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   const [fortschritt, setFortschritt] = useState(0);
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
+  /* ROTIERENDE MUSIK AUCH AUF DER ERGEBNISKARTE (Owner 19.08.2026, mit Screenshot der
+     Kuss-Karte: „bitte unsere musik" — hier lief bei jedem Video dasselbe Stück, weil
+     `V.musik` aus `lib/geschenke.ts` nur einmal beim Laden gewürfelt wird. `genId`/`videoUrl`
+     als Schlüssel: dasselbe Werk klingt bei erneutem Ansehen gleich, ein neues anders. */
+  const musikErgebnis = useMusikFuer(variant, genId || videoUrl);
   const [payBusy, setPayBusy] = useState(false);
   /**
    * DER LINK ZUM 30-TAGE-PROGRAMM (11.08.2026, Owner: „wo ist der link zum plan?" — bisher
@@ -4684,7 +4690,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   oben — eine von sechs solchen Stellen. */}
               <EinladungAnsicht id="" videoUrl={videoUrl} poster={videoPoster || undefined} zaehlen={false}
                 {...(karteVerhaeltnis ? { verhaeltnis: karteVerhaeltnis } : {})}
-                {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: V.musik, tonAutomatisch: true })}
+                {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : { musik: musikErgebnis, tonAutomatisch: true })}
                 tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
                 tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
                 grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross}
