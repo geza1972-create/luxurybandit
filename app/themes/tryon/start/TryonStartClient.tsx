@@ -377,7 +377,7 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
           <input ref={fotoRef} type="file" accept="image/*,.heic,.heif" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) { setCropZiel("foto"); setCropDatei(f); } e.target.value = ""; }} />
           {cropDatei && (
-            <ImageCropper file={cropDatei} aspect={3 / 4} title={cropZiel === "teil" ? S.teilKachel : S.fotoKachel}
+            <ImageCropper file={cropDatei} aspect={3 / 4} title={cropZiel === "teil" ? S.teilKachel : S.fotoKachel} sprache={lang}
               onCancel={() => setCropDatei(null)}
               onSave={(zugeschnitten: File) => {
                 const ziel = cropZiel;

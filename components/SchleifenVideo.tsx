@@ -32,6 +32,19 @@ import { Play, Loader2 } from "lucide-react";
 export const UEBERBLENDUNG = 0.7;
 
 /**
+ * WANN DER KREISEL AUFGIBT (Millisekunden).
+ *
+ * Owner 18.08.2026: „das lädt seit 2 minuten und hängt mit dem blöden schwarzen balken."
+ *
+ * Ein Kreisel, der nur durch ein Ereignis ausgeht, das ausbleiben KANN, ist eine Falle: Kommt
+ * `playing` nie (weil der Browser das Abspielen verweigert oder etwas ausserhalb pausiert
+ * hat), dreht er bis in die Ewigkeit ueber einem eingefrorenen Bild. Hausregel „immer close
+ * einbauen": Nach dieser Zeit geht er weg und gibt das Bild frei — lieber ein Standbild ohne
+ * Auskunft als ein Drehrad, das luegt.
+ */
+const LADE_NOTBREMSE = 12000;
+
+/**
  * WENN DER BROWSER DAS ABSPIELEN VERWEIGERT (Owner 06.08.2026: „Der Play button darf doch
  * nicht so grob sein").
  *
@@ -148,19 +161,6 @@ export default function SchleifenVideo({
   const vorneRef = useRef<"a" | "b">("a");
   useEffect(() => { vorneRef.current = vorne; }, [vorne]);
 
-  /**
-   * WAS NIEMAND SIEHT, DARF NICHT DEKODIEREN.
-   *
-   * Auch mit nur einem Spieler je Kachel laufen auf der Themen-Seite alle Videos weiter,
-   * wenn man längst darunter gescrollt ist — und teilen sich die Leitung und die Dekoder mit
-   * dem, was gerade wirklich im Bild steht. Der Beobachter hält an, was aus dem Blick gerät,
-   * und fährt wieder an, was hereinkommt.
-   *
-   * Der Rand von 200 px ist Absicht: So läuft die Kachel schon, wenn sie erscheint, statt
-   * erst in dem Moment anzufahren, in dem man sie ansieht.
-   */
-  const huelle = useRef<HTMLDivElement>(null);
-  const sichtbarRef = useRef(true);
 
   /**
    * DER KREISEL WÄHREND ES STOCKT (Owner 18.08.2026: „die videos bleiben alle hängen während
@@ -195,8 +195,18 @@ export default function SchleifenVideo({
     let laeuft = true;
     /* Beide Spieler melden Puffer-Pausen — waehrend der Ueberblendung koennte theoretisch
        jeder von beiden gerade der sichtbare sein. */
-    const wartet = () => { if (laeuft) setLaedt(true); };
-    const laeuftWieder = () => { if (laeuft) setLaedt(false); };
+    let notbremse: ReturnType<typeof setTimeout> | undefined;
+    const wartet = () => {
+      if (!laeuft) return;
+      setLaedt(true);
+      /* Der Ausweg, falls `playing` nie kommt (siehe LADE_NOTBREMSE). */
+      clearTimeout(notbremse);
+      notbremse = setTimeout(() => setLaedt(false), LADE_NOTBREMSE);
+    };
+    const laeuftWieder = () => {
+      clearTimeout(notbremse); notbremse = undefined;
+      if (laeuft) setLaedt(false);
+    };
     const spieler = vb ? [va, vb] : [va];
     spieler.forEach(v => { v.addEventListener("waiting", wartet); v.addEventListener("playing", laeuftWieder); });
     /**
@@ -209,16 +219,39 @@ export default function SchleifenVideo({
      */
     const abbauen = () => {
       laeuft = false;
+      clearTimeout(notbremse);
       spieler.forEach(v => { v.removeEventListener("waiting", wartet); v.removeEventListener("playing", laeuftWieder); });
     };
-    if (!schleife) { void va.play().catch(() => nachhelfen(va)); return abbauen; }
+    /**
+     * ANFAHREN — UND WENN DER BROWSER NEIN SAGT, STUMM NOCHMAL.
+     *
+     * Owner 18.08.2026: „hier bitte meistens das erste video hängt" · „erster und zweiter".
+     *
+     * DAS WAR DER GRUND, und er stand nicht in der Datei, sondern in einer Browser-Regel: Ein
+     * Video mit TON darf nicht von selbst starten. Im vergrösserten Dialog ist der Ton aber
+     * standardmässig an (`VorlagenUeberlagerung`, CI.tsx: `useState(true)` → `stumm={false}`).
+     * Also lehnte der Browser `play()` ab, das Bild fror bei Sekunde 0 ein, `waiting` war
+     * gefeuert — und der Kreisel drehte endlos über einem Video, das alle Daten längst hatte
+     * (gemessen: `readyState: 4`, `paused: true`, `t: 0`).
+     *
+     * STUMM darf JEDER Browser starten. Lieber läuft es ohne Ton und der Lautsprecher-Knopf
+     * daneben holt ihn dazu, als dass es eingefroren dasteht. Genau so macht es
+     * `EinladungAnsicht` seit dem 03.08. schon (dort Zeile 405) — dieser Baustein hatte es nur
+     * nie bekommen.
+     *
+     * Erst wenn auch der stumme Versuch scheitert, wartet `nachhelfen` auf die erste Geste —
+     * und der Kreisel geht weg, damit er nicht über einem Standbild lügt.
+     */
+    const anfahren = (v: HTMLVideoElement) => {
+      void v.play().catch(() => {
+        v.muted = true;
+        void v.play().catch(() => { laeuftWieder(); nachhelfen(v); });
+      });
+    };
+    if (!schleife) { anfahren(va); return abbauen; }
     if (!vb) return abbauen;
     const takt = setInterval(() => {
       if (!laeuft) return;
-      /* Aus dem Blick geraten: nicht überblenden. Sonst setzt der Takt weiter Spieler auf
-         null und fährt sie an, während der Beobachter sie gerade angehalten hat — die zwei
-         würden sich gegenseitig überstimmen. */
-      if (!sichtbarRef.current) return;
       const aktiv = vorneRef.current === "a" ? va : vb;
       const andere = vorneRef.current === "a" ? vb : va;
       const rest = (aktiv.duration || 0) - aktiv.currentTime;
@@ -236,49 +269,44 @@ export default function SchleifenVideo({
            geht, und bricht ein laufendes `play()` dabei ab. Kein Fehler, nur Lärm — aber
            Lärm, der echte Fehler im Log begräbt. */
         try { andere.currentTime = 0; } catch { /**/ }
-        void andere.play().catch(() => { /* angehalten oder verweigert — der Takt versucht es wieder */ });
+        /* Auch der zweite Spieler faehrt ueber `anfahren` an: Er hat dasselbe `muted` wie der
+           erste, also trifft ihn dieselbe Browser-Regel — sonst blendet der Takt auf ein
+           Video, das gar nicht laeuft, und das Bild steht ab der ersten Schleife. */
+        anfahren(andere);
         setVorne(v => (v === "a" ? "b" : "a"));
       }
     }, 120);
-    void va.play().catch(() => nachhelfen(va));
+    anfahren(va);
     return () => { abbauen(); clearInterval(takt); };
     /* `vorne` steht hier ABSICHTLICH NICHT (siehe `vorneRef` oben) — mit ihm baute sich der
        Takt bei jeder Überblendung neu auf und startete den beendeten Spieler wieder. */
   }, [src, schleife, gestartet]);
 
-  /** Anhalten, was aus dem Blick gerät — und wieder anfahren, was hereinkommt. */
-  useEffect(() => {
-    if (!gestartet) return;
-    const el = huelle.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const beob = new IntersectionObserver(([eintrag]) => {
-      sichtbarRef.current = eintrag.isIntersecting;
-      const va = a.current, vb = b.current;
-      if (eintrag.isIntersecting) {
-        /* Nur den VORDEREN anfahren. Beide anzufahren wäre genau der doppelte Dekoder,
-           den dieser Baustein gerade losgeworden ist. */
-        const aktiv = vorneRef.current === "a" ? va : vb;
-        /**
-         * WAS DURCHGELAUFEN IST, BLEIBT STEHEN.
-         *
-         * Ohne diese Zeile holt der Beobachter ein Video, das schon zu Ende ist, beim
-         * Zurückscrollen von vorn wieder hoch: `play()` auf einem beendeten Video springt
-         * laut Norm auf null. Bei einem Video, in dem jemand SPRICHT (`schleife={false}`,
-         * Geburtstags-Beispiel), heisst das: Wer den Satz gehört hat, scrollt weg, scrollt
-         * zurück — und hört ihn wieder von vorn. Die Hausregel sagt „Fortsetzen, nicht von
-         * vorn" ([[video-playback-behavior]]). Die weiche Schleife braucht das nicht: Dort
-         * setzt der Takt die Spieler selbst auf null.
-         */
-        if (aktiv && !aktiv.ended) {
-          void aktiv.play().catch(() => { /* Autoplay verweigert — Standbild bleibt */ });
-        }
-      } else {
-        va?.pause(); vb?.pause();
-      }
-    }, { rootMargin: "200px" });
-    beob.observe(el);
-    return () => beob.disconnect();
-  }, [gestartet]);
+  /**
+   * HIER STAND EIN BEOBACHTER, DER PAUSIERT HAT, WAS NICHT IM BILD IST — UND ER IST RAUS.
+   *
+   * Owner 18.08.2026: „es hängt schon wieder und sogar ohne ladebalken" · „das lädt seit 2
+   * Minuten und hängt mit dem blöden schwarzen balken" · „das ist ein dialog und ich glaube
+   * im hintergrund lädst du die videos in der karte".
+   *
+   * Die Idee war richtig (weniger gleichzeitige Dekoder), die Wirkung war ein Totalausfall.
+   * GEMESSEN am hängenden Video: `paused: true`, `t: 0`, `readyState: 4` — alle Daten da, und
+   * es lief trotzdem nicht.
+   *
+   * DIE KETTE: Im DIALOG (der vergrösserten Karte) liegt das Video in einem eigenen
+   * Scroll-Container. Der Beobachter hielt es für „nicht im Bild" und pausierte es. Vorher war
+   * `waiting` gefeuert, der Kreisel also an — und ein pausiertes Video feuert nie wieder
+   * `playing`. Damit ging der Kreisel NIE aus: schwarze Fläche mit Drehrad über einem
+   * eingefrorenen Bild, minutenlang, ohne dass irgendetwas lud.
+   *
+   * LEHRE: Etwas von aussen anzuhalten, dessen Weiterlaufen an einem Ereignis hängt, das nur
+   * das Laufen selbst auslöst, ist eine Falle. Wer das je wieder einbauen will, braucht
+   * beides: einen Ausweg für den Kreisel (Notbremse) UND einen Beobachter, der den richtigen
+   * `root` kennt — die Vorgabe ist das Fenster, und im Dialog ist das die falsche Bezugsgrösse.
+   *
+   * Die doppelten Dekoder sind trotzdem weg: Das erledigt `vorneRef` oben, und das ohne
+   * Nebenwirkung.
+   */
 
   /**
    * ZWEITE FALLE: BEIDE Spieler bleiben stumm. Waeren sie es nicht, hoerte man den Ton
@@ -343,7 +371,7 @@ export default function SchleifenVideo({
     );
   }
   return (
-    <div ref={huelle} className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
+    <div className={`lb-schleife relative overflow-hidden ${natuerlich ? "w-full" : "h-full w-full"}`}>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video ref={a} src={src} poster={poster || undefined} muted={stumm} playsInline autoPlay preload="auto"
         style={{ opacity: !schleife || vorne === "a" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
@@ -361,13 +389,32 @@ export default function SchleifenVideo({
           style={{ opacity: vorne === "b" ? 1 : 0, transition: `opacity ${UEBERBLENDUNG}s linear` }}
           className={`absolute inset-0 ${gemeinsam}`} />
       )}
-      {/* Der Kreisel — dieselbe Optik wie `Laden` aus CI.tsx (art="knopf"), hier von Hand
-          gezeichnet, weil der Import zurueck ein Kreis waere (siehe Play-Scheibe oben). Er
-          liegt UEBER beiden Spielern, damit er unabhaengig davon sichtbar ist, welcher gerade
-          vorne ist. */}
+      {/**
+        * DER KREISEL — GOLD, UND KEINE SCHWARZE FLAECHE DAHINTER.
+        *
+        * Owner 18.08.2026: „habe dir gesagt du sollst die balken nicht schwarz machen sondern
+        * weiss oder gelb." Hier lag ein `bg-black/25` ueber dem ganzen Bild — eine dunkle
+        * Scheibe mitten im Video, dazu ein duenner weisser Ring, der auf unseren warmen,
+        * goldenen Aufnahmen praktisch unsichtbar war (er sah ihn erst gar nicht, dann als
+        * „bloeden schwarzen balken").
+        *
+        * Jetzt: kein Vorhang mehr, sondern das Hausgold auf dem laufenden Bild. Der weiche
+        * Schatten darunter haelt ihn auch auf einer hellen Stelle lesbar, ohne dass eine
+        * Flaeche das Video zudeckt.
+        *
+        * Er liegt UEBER beiden Spielern, damit er unabhaengig davon sichtbar ist, welcher
+        * gerade vorne ist.
+        */}
       {laedt && (
-        <div className="absolute inset-0 z-10 grid place-items-center bg-black/25" role="status" aria-label="Lädt">
-          <Loader2 aria-hidden className="h-8 w-8 animate-spin text-white/85" />
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center" role="status" aria-label="Lädt">
+          {/* `lb-kreisel-gold` GEHOERT DAZU (globals.css): Ohne die Klasse siegt die
+              `.lb-karte svg`-Regel mit `!important` ueber diese Inline-Farbe, sobald der
+              Kreisel innerhalb einer Karte liegt — gemessen als schwarzer statt goldener
+              Kreisel (Owner 18.08.2026). Die Inline-Farbe bleibt trotzdem stehen: Sie greift
+              ausserhalb jeder `.lb-karte` (Themen-Kacheln, Startseite), wo es die Regel gar
+              nicht gibt. */}
+          <Loader2 aria-hidden className="lb-kreisel-gold h-10 w-10 animate-spin"
+            style={{ color: "#f6cf51", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.55))" }} />
         </div>
       )}
     </div>

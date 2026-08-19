@@ -413,7 +413,7 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
 
           {cropDatei && cropZiel && (
             <ImageCropper file={cropDatei} aspect={3 / 4}
-              title={cropZiel === "sie" ? F.upTitle : (F.uploadYou ?? F.you)}
+              title={cropZiel === "sie" ? F.upTitle : (F.uploadYou ?? F.you)} sprache={lang}
               onCancel={() => { setCropDatei(null); setCropZiel(null); }}
               onSave={async (zugeschnitten) => {
                 const ziel = cropZiel;

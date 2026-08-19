@@ -2171,7 +2171,7 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
         /* Das Paarfoto wird im Querformat zugeschnitten — bei 3:4 faellt regelmaessig einer
            der beiden aus dem Bild, und dann fehlt genau das Gesicht, um das es geht. */
         <ImageCropper file={cropDatei} aspect={cropZiel === "paar" ? 4 / 3 : 3 / 4}
-          title={cropZiel === "paar" ? T.fPaar : cropZiel === "sie" ? F.upTitle : (botschaftFrei ? T.fotoEingeladen : T.fotoEr)}
+          title={cropZiel === "paar" ? T.fPaar : cropZiel === "sie" ? F.upTitle : (botschaftFrei ? T.fotoEingeladen : T.fotoEr)} sprache={lang}
           onCancel={() => { setCropDatei(null); setCropZiel(null); }}
           onSave={async (zugeschnitten) => {
             const ziel = cropZiel;

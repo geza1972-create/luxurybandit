@@ -537,47 +537,106 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
   features?: ReactNode;
   zu: () => void;
 }) {
+  /**
+   * KEIN DIALOG MEHR — EINE SEITE, DIE VON RECHTS HEREINGLEITET (Owner 18.08.2026: „Pass auf
+   * der über ist wieder dieser Dialog. Wir eliminieren den auch noch. Es gibt eine seite die
+   * nach rechts sleidet wie bei instagram. So einfach ist das" — und dazu die Dauerregel:
+   * „Du beherschd die Dialogs nicht. […] Merk dir das", Memory [[keine-overlay-dialoge]]).
+   *
+   * Was sich damit ändert, ist das VERHALTEN, nicht der Inhalt: Die Karte bleibt (Owner
+   * 12.08.: „wir sollen die karten zeigen … nicht das blanke video"). Aber:
+   *  - Sie gleitet als ganze Seite von rechts herein und beim Schliessen dorthin zurück.
+   *  - Ein WISCH NACH RECHTS schliesst — die Instagram-Geste.
+   *  - KEIN Schliessen durch Tipp auf den Hintergrund mehr: Eine Seite hat keinen
+   *    „Hintergrund", und genau dieses Klick-Durchreichen (`stopPropagation`-Ketten) ist die
+   *    Dialog-Mechanik, die hier immer wieder schiefging.
+   *
+   * Bewusst CLIENTSEITIG geblieben (kein Routenwechsel): Die Seite liegt mitten im Trichter,
+   * und eine echte Navigation würde dessen Zustand (Schritt, Eingaben, Fotos) wegwerfen.
+   */
+  const [drin, setDrin] = useState(false);
   useEffect(() => {
-    const taste = (e: KeyboardEvent) => { if (e.key === "Escape") zu(); };
+    /* Erst ausserhalb rechts aufbauen, im nächsten Bild auf 0 gleiten — die CSS-Transition
+       unten macht daraus die Bewegung. Ohne den Frame Abstand gäbe es keinen Startwert und
+       die Seite stünde einfach da. */
+    const id = requestAnimationFrame(() => setDrin(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const zuRef = useRef(zu);
+  useEffect(() => { zuRef.current = zu; });
+  const geschlossen = useRef(false);
+  const schliessen = () => {
+    if (geschlossen.current) return;
+    geschlossen.current = true;
+    setDrin(false);
+    /* Erst hinausgleiten lassen, dann abbauen — sonst verschwindet die Seite hart und die
+       Geste sieht aus wie ein Absturz. */
+    window.setTimeout(() => zuRef.current(), 280);
+  };
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => { if (e.key === "Escape") schliessen(); };
     window.addEventListener("keydown", taste);
     const vorher = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", taste); document.body.style.overflow = vorher; };
-  }, [zu]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [ton, setTon] = useState(true);
   return (
-    <div className="fixed inset-0 z-[97] overflow-y-auto bg-black px-4 py-8" style={{ minHeight: "100dvh" }} onClick={zu}>
-      {/**
-        * DIE SCHLIESSEN-SCHEIBE BLEIBT OBEN FIXIERT (Owner-Zusatzauftrag: „immer close
-        * einbauen") — sobald eine Feature-Karte die Überlagerung höher als den Bildschirm
-        * macht und sie scrollt, würde die Scheibe AM VIDEO (unten in der Video-Karte
-        * mitscrollend) irgendwann aus dem sichtbaren Bereich wandern. Diese zweite Scheibe
-        * haengt am VIEWPORT, nicht am Inhalt — nur gebraucht, wenn es ueberhaupt etwas zu
-        * scrollen gibt. */}
-      {features && (
-        <div className="fixed right-7 top-8 z-[98]" onClick={e => e.stopPropagation()}>
-          <Scheibe label="Close" onClick={zu}><X className="h-5 w-5" /></Scheibe>
-        </div>
-      )}
-      <div className="relative mx-auto w-full max-w-[400px]" onClick={e => e.stopPropagation()}>
-        <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
-          fuss={<MadeBy karte />}
-          video={
-            <div className="relative aspect-[3/4] w-full overflow-hidden">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={videoUrl} poster={posterUrl} autoPlay playsInline muted={!ton} loop
-                className="h-full w-full object-cover" />
-              {/* SCHLIESSEN STATT VERGROESSERN, TON WIE UEBERALL — dieselben zwei Plaetze
-                  (Skill `card`), am MEDIUM selbst statt an der ganzen Karte, wie jede andere
-                  Vergroessern-Scheibe im Haus. Bleibt AUCH mit Feature-Karte stehen (kein
-                  Wechsel im Standardfall), nur die zweite, fixierte Scheibe kommt dazu. */}
-              <div className="absolute right-3 top-3 z-10">
-                <Scheibe label="Close" onClick={zu}><X className="h-5 w-5" /></Scheibe>
+    /* Aussen: nur der Rahmen am Fenster und der Wisch-Horcher — OHNE transform, damit die
+       fixe Schliessen-Scheibe wirklich am Fenster klebt (`fixed` innerhalb eines
+       transformierten Elements hängt sonst am Element statt am Fenster). */
+    /**
+     * KEIN EIGENER WISCH MEHR (Owner 18.08.2026: „und weil du ein trotel bist und wisch nach
+     * rechts ist ein back").
+     *
+     * Ein Wisch von links nach rechts ist auf dem Handy die SYSTEM-Geste „zurück" (iOS-Rand-
+     * Wisch, Android-Gesten-Navigation). Ein eigener Zuhörer auf derselben Geste konkurriert
+     * mit dem Betriebssystem um denselben Fingerzug — mal gewinnt die Seite, mal das System,
+     * nie beide gleich. Schliessen bleibt bei der einen Scheibe (X, fest am Fenster) und der
+     * echten System-Geste, die diese Seite ohnehin schon bedient: Ein Wisch vom linken Rand
+     * schliesst SIE zuerst (der Browser navigiert „zurück", bevor unser Code etwas täte),
+     * nicht diese Überlagerung — genau das Verhalten, das der Owner erwartet.
+     */
+    <div className="fixed inset-0 z-[97] overflow-y-auto">
+      {/* Innen: die eigentliche SEITE — schwarz, volle Höhe, gleitet von rechts herein und
+          beim Schliessen dorthin zurück. Der Grund dahinter (die Themenseite) bleibt während
+          der Bewegung sichtbar, genau wie bei Instagram. */}
+      <div className="min-h-full bg-black px-4 py-8"
+        style={{ minHeight: "100dvh", transform: drin ? "translateX(0)" : "translateX(100%)", transition: "transform 280ms ease-out" }}>
+        <div className="relative mx-auto w-full max-w-[400px]">
+          <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
+            fuss={<MadeBy karte />}
+            video={
+              /**
+               * KEIN NACKTES `<video>` MEHR (Owner 18.08.2026: „vergrössern hier öffnet eine
+               * karte wo ein Video hängt oder loading. Findest du das normal?").
+               *
+               * Hier stand ein eigener, von Hand gebauter Spieler mit `loop` — zwei Verstösse
+               * gegen Dauerregeln auf einmal: kein nacktes `<video>` (Skill `card`, Memory
+               * [[karte-ist-die-huelle-fuer-videos]]) und `loop` schneidet am Ende hart um
+               * (Memory [[videos-nahtlos-schleifen]], „gilt für ALLE Videos"). Dazu fehlte
+               * genau das, was `SchleifenVideo` seit heute mitbringt: ein Kreisel während es
+               * stockt, eine Notbremse nach 12 s, falls `playing` nie kommt, und der stumme
+               * Rückfall, wenn der Browser den lauten Start ablehnt. Ohne das stand das Bild
+               * bei Sekunde 0 — alle Daten da, nichts lief, kein Hinweis warum.
+               *
+               * Jetzt derselbe gehärtete Baustein wie überall sonst im Haus.
+               */
+              <div className="relative aspect-[3/4] w-full overflow-hidden">
+                <SchleifenVideo src={videoUrl} poster={posterUrl} stumm={!ton} passform="cover" />
+                {/* TON WIE UEBERALL — derselbe Platz wie auf jeder Karte (Skill `card`). */}
+                <TonKnopf an={ton} onClick={() => setTon(t => !t)} platz="absolute right-3 top-3 z-10" />
               </div>
-              <TonKnopf an={ton} onClick={() => setTon(t => !t)} platz="absolute right-3 top-[60px] z-10" />
-            </div>
-          } />
-        {features && <div className="mt-4 pb-8">{features}</div>}
+            } />
+          {features && <div className="mt-4 pb-8">{features}</div>}
+        </div>
+      </div>
+      {/* DIE SCHLIESSEN-SCHEIBE — IMMER, und am FENSTER verankert („immer close einbauen"):
+          Sie scrollt nicht mit dem Inhalt weg und ist von der ersten Millisekunde an da,
+          auch während die Seite noch hereingleitet. */}
+      <div className="fixed right-7 top-8 z-[98]">
+        <Scheibe label="Close" onClick={schliessen}><X className="h-5 w-5" /></Scheibe>
       </div>
     </div>
   );
@@ -670,16 +729,29 @@ export function VorlagenKachel({ bildUrl, videoUrl, posterUrl, beschriftung, ans
   return (
     <div ref={ref} className="relative">
       {bild}
+      {/**
+        * KEIN VIDEO VOR DEM TIPP (Owner 18.08.2026: „auf der topic seite sollst du nicht
+        * sofort laden die videos. Die verursachen auch ladezeit. Das hatten wir doch schon.").
+        *
+        * Hier stand ein `<video autoPlay>`, das sich einhaengte, sobald die Kachel ins Bild
+        * kam — auf der Kuss-Seite luden damit VIER volle MP4s beim blossen Seitenaufruf, und
+        * auf dem Handy stand die Leitung. Der Owner hatte die Regel laengst aufgestellt
+        * (07.08.2026: „poster müssen geladen werden, und videos sollen nicht automatisch
+        * starten. Weil auf dem handy ewig dauert") — diese Kachel war an ihr vorbeigebaut.
+        *
+        * Jetzt uebernimmt `SchleifenVideo` ohne Autostart: Bis zum Tipp steht NUR das Poster
+        * (null Video-Bytes), auf dem Tipp laeuft die weiche Schleife an — mit Haus-Scheibe,
+        * Gold-Kreisel und dem stummen zweiten Startversuch, alles aus einem Baustein statt
+        * eines nackten `<video>` (Hausregel „Karte ist die Huelle").
+        *
+        * Der Tipp auf die Scheibe blubbert zum Auswahl-`onClick` des Aufrufers durch
+        * (kein stopPropagation): Wer die Vorschau startet, waehlt die Kachel zugleich — das
+        * ist bei einer Auswahl-Kachel die richtige Reihenfolge, nicht zwei Ziele.
+        */}
       {sichtbar && (
-        // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video src={videoUrl} poster={poster} muted playsInline autoPlay loop
-          /* KLEINE STUMME KACHEL-VORSCHAU, EINFACHES `loop` STATT DER ZWEI-SPIELER-
-             UEBERBLENDUNG (Memory „videos-nahtlos-schleifen"): Die Regel gegen `loop` gilt
-             fuer das grosse TON-Video der Karte, wo der Schnitt am Loop-Ende auffaellt.
-             Diese Kachel ist stumm, klein und rein dekorativ — der Bruch beim Neustart geht
-             auf 118-160px Breite unter, und ein zweiter Player fuer jede Kachel in einer
-             Wisch-Reihe waere teurer (Speicher, Akku) als der Effekt wert ist. */
-          className={`absolute inset-0 ${rahmen}`} />
+        <div className="absolute inset-0">
+          <SchleifenVideo src={videoUrl} poster={poster} autostart={false} className={rahmen} />
+        </div>
       )}
       {aufBildLabel}
       <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
@@ -1235,11 +1307,16 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
       {thema.video ? (
         <>
           {/* Poster-Rückfall aufs Kachelbild — nie eine schwarze Fläche (Memory
-              `video-playback-behavior`); Autostart nur in der schmalen Reihe (stumm,
-              104 px) — die grosse Karte wartet auf den Tipp (Owner 07.08.2026: „videos
-              sollen nicht automatisch starten. Weil auf dem handy ewig dauert"). */}
+              `video-playback-behavior`). NIRGENDS mehr Autostart (Owner 18.08.2026: „sollst
+              du nicht sofort laden die videos. Die verursachen auch ladezeit. Das hatten
+              wir doch schon" — die Reihe war die letzte Stelle, die es noch tat: fünf
+              Themen luden fünf volle MP4s bei jedem Seitenaufruf). Die grosse Karte zeigt
+              die Play-Scheibe; die schmale Reihe bekommt `start={false}` und damit KEINE
+              Scheibe — die ganze 104-px-Kachel ist ein Link in ihren Trichter, eine
+              Scheibe darauf hätte zwei Ziele auf derselben Fläche. Dort steht jetzt das
+              Poster, still. */}
           <SchleifenVideo src={thema.video} poster={thema.poster || thema.bild || undefined}
-            stumm={!ton} autostart={!voll}
+            stumm={!ton} autostart={false} {...(voll ? {} : { start: false })}
             className={voll ? "object-center" : "object-top"} />
           {voll && onTon && (
             <TonKnopf an={!!ton} label="Sound" labelAus="Sound" onClick={onTon}

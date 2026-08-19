@@ -28,6 +28,22 @@ import { Scheibe } from "@/components/CI";
  * damit sprach der Dialog auf jeder englischen Seite plötzlich Deutsch — auf der
  * Urlaubsseite mitten im Trichter. Die Vorgaben bleiben deutsch, damit sich für die
  * bestehenden Aufrufer (Hochzeit, Kuss, Admin-Werkzeuge) nichts ändert.
+ *
+ * DIE UEBERSCHREIBBARKEIT ALLEIN HAT NICHTS GENUETZT (Owner 19.08.2026, mit Bild: „steht
+ * das etwa auf deutsch?" — der Titel „Your model" auf Englisch, darunter „Bild verschieben
+ * … Abbrechen … Speichern" auf Deutsch, obwohl oben „English" gewaehlt war).
+ *
+ * GEMESSEN: acht Aufrufer im ganzen Haus (Kuss, Urlaub, Hochzeit, Try-on, Admin …) setzen
+ * `title` in der richtigen Sprache, aber KEINER reichte je `texte` mit — die drei Zeilen
+ * unten blieben also ueberall Deutsch, in jeder der sieben Sprachen des Hauses, genau in dem
+ * Moment, in dem jemand sein Foto hochlaedt. Das ist derselbe Trichter, an dem laut den
+ * eigenen Zahlen kaum noch jemand ankommt (Memory `funnel-analytics-insights`) — ein Dialog,
+ * der mitten im Ausfuellen plötzlich die Sprache wechselt, ist ein sehr plausibler Grund.
+ *
+ * DESHALB HIER, AN EINER STELLE, EINE UEBERSETZUNG JE SPRACHE — nicht acht Aufrufer, die
+ * sich selbst je eine bauen muessten (das waere derselbe Fehler nur verteilt). Aufrufer
+ * reichen `sprache` statt `texte`; wer nichts reicht, bekommt weiterhin Deutsch (Vorgabe
+ * unveraendert für Admin-Werkzeuge, die nie uebersetzt waren).
  */
 type CropTexte = { hinweis: string; abbrechen: string; speichern: string; speichert: string };
 
@@ -38,10 +54,21 @@ const CROP_TEXTE: CropTexte = {
   speichert: "Speichert …",
 };
 
+export const CROP_TEXTE_JE_SPRACHE: Record<string, CropTexte> = {
+  de: CROP_TEXTE,
+  en: { hinweis: "Move the image — use the slider to get closer.", abbrechen: "Cancel", speichern: "Save", speichert: "Saving …" },
+  ro: { hinweis: "Mută imaginea — folosește glisorul pentru a apropia.", abbrechen: "Anulează", speichern: "Salvează", speichert: "Se salvează …" },
+  es: { hinweis: "Mueve la imagen — usa el control para acercarte.", abbrechen: "Cancelar", speichern: "Guardar", speichert: "Guardando …" },
+  fr: { hinweis: "Déplace l'image — utilise le curseur pour te rapprocher.", abbrechen: "Annuler", speichern: "Enregistrer", speichert: "Enregistrement …" },
+  pt: { hinweis: "Move a imagem — usa o cursor para te aproximares.", abbrechen: "Cancelar", speichern: "Guardar", speichert: "A guardar …" },
+  it: { hinweis: "Sposta l'immagine — usa il cursore per avvicinarti.", abbrechen: "Annulla", speichern: "Salva", speichert: "Salvataggio …" },
+};
+
 export default function ImageCropper({
   file,
   aspect = 2 / 3,
   title = "Ausschnitt wählen",
+  sprache,
   texte,
   onCancel,
   onSave,
@@ -49,12 +76,16 @@ export default function ImageCropper({
   file: File;
   aspect?: number;                       // Breite / Höhe der Zielkachel
   title?: string;
-  /** Nur setzen, wo die Seite nicht deutsch ist — sonst bleibt es bei CROP_TEXTE. */
+  /** Die Sprache der Seite — waehlt die passende Zeile aus `CROP_TEXTE_JE_SPRACHE`. Einfacher
+   *  Weg fuer jeden Aufrufer, der ohnehin schon eine Sprachkennung fuehrt (fast alle). */
+  sprache?: string;
+  /** Nur setzen, wenn eine EINZELNE Zeile von der Sprach-Vorgabe abweichen soll — sonst
+   *  reicht `sprache`. Ohne beides bleibt es bei CROP_TEXTE (Deutsch, Admin-Werkzeuge). */
   texte?: Partial<CropTexte>;
   onCancel: () => void;
   onSave: (cropped: File, previewUrl: string) => void | Promise<void>;
 }) {
-  const TX = { ...CROP_TEXTE, ...texte };
+  const TX = { ...CROP_TEXTE, ...(sprache ? CROP_TEXTE_JE_SPRACHE[sprache] : undefined), ...texte };
   const [src, setSrc] = useState("");
   const [nat, setNat] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);

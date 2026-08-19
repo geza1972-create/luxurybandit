@@ -25,7 +25,7 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, TunnelKachelUpload, KurzeEinwilligung, InAppBrowserHinweis } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, VorlagenUeberlagerung, TunnelKachelUpload, KurzeEinwilligung, InAppBrowserHinweis } from "@/components/CI";
 import { Eingabe } from "@/components/CI";
 import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -464,6 +464,27 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
    * die ehrlichste Wahl: Er erzeugt, während er genau dieses Video ansieht.
    */
   const [beispielVorn, setBeispielVorn] = useState(0);
+  /**
+   * KEIN VIDEO MEHR INLINE IM KARUSSELL — EIN TIPP OEFFNET DIE SEITE (Owner 18.08.2026: „Ein
+   * Klick Karte öffnet Seite" · „und klick auf vergrössern öffnet auch seite. klick auf
+   * play." · dazu der Verdacht: „das hat mit der autoanimation zu tun des sliders").
+   *
+   * DER FUND: `KartenKarussell` schaltet alle sieben Sekunden von selbst weiter
+   * (`selbstLaeuft`) — und hört damit erst auf, wenn ein WISCH oder ein Punkt-Tipp erkannt
+   * wird. Ein Tipp auf DEN PLAY-KNOPF EINER FOLIE zählt nicht als „er hat übernommen": Die
+   * Uhr lief weiter, bis sie die Folie unter dem laufenden Video wegschaltete — ihr eigener
+   * Effekt pausiert dann jeden Spieler, der nicht mehr vorn steht (Zeile ~122). Der Kunde sah
+   * sein gerade gestartetes Video plötzlich stehen, ohne etwas getan zu haben.
+   *
+   * Die Wurzel war also gar nicht der Ladebalken oder das `moov`-Feld — es war eine Uhr, die
+   * gegen den Zuschauer weiterlief. Die sauberste Antwort ist keine zweite Bedingung in
+   * `KartenKarussell`, sondern gar kein Video mehr IN der Wischbahn: Jede Folie zeigt nur ihr
+   * Poster (keine Dekoder, keine Autoplay-Regel, keine Pausier-Falle), und ein Tipp — egal
+   * ob auf die Scheibe, das Bild oder wo auch immer auf der Karte — öffnet dieselbe Seite,
+   * die seit heute auch die Vorlagen im Tunnel zeigt (`VorlagenUeberlagerung`, Memory
+   * [[keine-overlay-dialoge]]). Dort läuft GENAU EIN Video, ungestört von jeder Karussell-Uhr.
+   */
+  const [beispielOffen, setBeispielOffen] = useState<number | null>(null);
   /**
    * Die Sprache kommt von der Seite (Cookie bzw. Browsersprache, siehe lib/lang-server).
    *
@@ -2463,18 +2484,26 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       setCustomModel(""); setUseCustom(false);
       /**
        * DER LEERE PLATZ MUSS LEER SEIN (Owner 16.08.2026, live: „jetzt steht da Video als
-       * Bild 1").
+       * Bild 1" — und wieder am 19.08.2026, diesmal beim Tanz: „Kommt Bella links statt
+       * upload").
        *
        * `selPhoto` faellt ohne eigenes Foto auf `picked` zurueck — ein KATALOG-Model. Im
-       * Kuss-Trichter gibt es aber gar keine Katalog-Wahl (die wohnt auf der Landingpage):
-       * Sein geloeschtes Foto wurde damit stillschweigend durch eine fremde Frau ersetzt,
-       * und weil ein Katalog-Model als „Vorlage" gilt, kam ihr Beispielvideo gleich mit —
-       * genau das Video, das der Owner an Platz 1 gefunden hat.
+       * Trichter gibt es aber gar keine Katalog-Wahl (die wohnt auf der Landingpage):
+       * Sein geloeschtes Foto wurde damit stillschweigend durch eine fremde Frau ersetzt
+       * (Bella, sie steht immer an erster Stelle) — und weil ein Katalog-Model als
+       * „Vorlage" gilt, kam ihr Beispielvideo gleich mit.
        *
-       * NUR IM TRICHTER: Auf der Landingpage und bei „Your Idol" IST der Katalog der
-       * Rueckfall, dort bleibt es wie es war.
+       * DIE ERSTE REPARATUR GALT NUR `variant === "kiss"` — zu eng. Derselbe Trichter-Bau
+       * (EIN Bauwerk fuer alle Produkte, Memory [[ein-tunnel-geruest-fuer-alle]]) gilt fuer
+       * Tanz, Urlaub, Hochzeit … genauso: keines von ihnen hat eine eigene Katalog-Wahl IM
+       * Trichter. Die Bedingung gehoert also nicht an EIN Thema, sondern an die einzige
+       * Ausnahme: „Your Idol" braucht den Katalog als Rueckfall wirklich (dort WAEHLT man
+       * ein Model, es gibt keinen leeren Zustand, der geleert werden koennte).
+       *
+       * NUR IM TRICHTER, UND NICHT BEI „YOUR IDOL": Auf der Landingpage und bei „Your Idol"
+       * IST der Katalog der Rueckfall, dort bleibt es wie es war.
        */
-      if (tunnelSeite && variant === "kiss") setPicked(null);
+      if (tunnelSeite && variant !== "idol") setPicked(null);
     }
     else setPhoto("");
     const seins = wer === "er" ? "" : photo;
@@ -4786,29 +4815,40 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   06.08.2026, mit Bild: „hier sammeln sich die Icons und Schrift. Das
                   stört."): Als Karten-Ebene flogen sie ueber Punkte, Kaufknopf und
                   made-by-Zeile — genau ueber die Bedienung. In der Folie decken sie exakt
-                  das Video und nichts darunter. */}
+                  das Video und nichts darunter.
+                  KEIN VIDEO MEHR HIER (siehe `beispielOffen` oben): Nur noch das Poster, eine
+                  Play-Scheibe und die Herzchen — alles rein dekorativ, kein Dekoder. Ein Tipp
+                  irgendwo auf der Folie oeffnet dieselbe Folie als eigene Seite. */}
               <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
-              <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false}
-                {...(karteVerhaeltnis ? { verhaeltnis: karteVerhaeltnis } : {})}
-                {...(eigenerTon ? { originalton: true, schleife: false, musik: "" } : (V.musik ? { musik: V.musik } : {}))}
-                tonText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).ton}
-                tonAusText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).tonAus}
-                grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross}
-                kleinText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).klein}
-                /* Beispiele darf jeder verschicken (Owner: „damit die Leute Werbung machen
-                   koennen") — Ziel ist die Themenseite. WAEHREND DES LAUFS NICHT: Wo eine
-                   Auskunft ueber sein Geld und ein Teilen-Knopf um dieselbe Flaeche streiten,
-                   gewinnt die Auskunft. Den Platz bestimmt jetzt die Karte (Skill `card`). */
-                teilen={karteRendert ? undefined : (
-                  <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : variant === "versprechen" ? "versprechen" : "kiss"}?utm_source=share`}
-                    text={teilenText(variant, lang)}
-                    label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                    kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
-                )} />
+                <button type="button" onClick={() => setBeispielOffen(i)}
+                  aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross || "Vorlage ansehen"}
+                  className={`relative block w-full overflow-hidden rounded-[14px] ${karteVerhaeltnis || "aspect-[3/4]"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={posterZu(url)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  <span className="absolute inset-0 grid place-items-center bg-black/10">
+                    <span className="grid h-14 w-14 place-items-center rounded-full opacity-85 shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
+                      style={{ background: "#fff" }}>
+                      <svg viewBox="0 0 24 24" fill="#1a160f" aria-hidden className="ml-[3px] h-6 w-6"><path d="M8 5v14l11-7z" /></svg>
+                    </span>
+                  </span>
+                </button>
+                {karteRendert ? null : (
+                  <div className="absolute right-3 top-3 z-10" onClick={e => e.stopPropagation()}>
+                    <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : variant === "versprechen" ? "versprechen" : "kiss"}?utm_source=share`}
+                      text={teilenText(variant, lang)}
+                      label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
+                      kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
+                  </div>
+                )}
               {!karteRendert && <Reaktionen variant={variant} lang={lang} name={empfaenger} />}
               </div>
               ))} />
+              {beispielOffen !== null && (
+                <VorlagenUeberlagerung videoUrl={beispiele[beispielOffen]} posterUrl={posterZu(beispiele[beispielOffen])}
+                  sprache={lang} titel={variant === "versprechen" ? T.filmTitel : variant === "birthday" ? geburtstagTitel(empfaenger) : T.karteTitel(empfaenger.trim())}
+                  zu={() => setBeispielOffen(null)} />
+              )}
               {/* Der sichtbare Kaufaufruf — auf dem Papier, nicht auf dem Bild. */}
               {!karteRendert && (
                 <button type="button" onClick={schritteOeffnen}
@@ -4966,6 +5006,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <ImageCropper
           file={cropDatei}
           aspect={3 / 4}
+          sprache={lang}
           title={paarQuelle
             ? (cropZiel === "sie" ? T.paarSchritt1 : T.paarSchritt2)
             : (cropZiel === "sie" ? T.upTitle : T.you)}
@@ -5825,6 +5866,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
         <ImageCropper
           file={cropDatei}
           aspect={3 / 4}
+          sprache={lang}
           title={T.you}
           onCancel={() => { setCropDatei(null); setCropZiel(null); }}
           onSave={async (zugeschnitten) => {
@@ -6490,8 +6532,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
       {/* DIE ADRESSE STEHT VOR DEM KNOPF (Owner 30.07.2026: „deswegen habe ich die
           emailadresse nicht"). Ein Feld, direkt über „Generate" — kein Konto, kein Passwort,
           keine zweite Seite. Wer angemeldet ist oder schon einmal eingetragen hat, sieht hier
-          gar nichts: `adresseDa` steht dann bereits. */}
-      {!isStaff && !adresseDa && !bezahlt && (
+          gar nichts: `adresseDa` steht dann bereits.
+          UND ERST NACH DEN FOTOS (Owner 19.08.2026: „verstecke email und zeigen nur wenn er
+          bei de uploads gemacht hat"). Vorher stand das Feld hier, sobald die Seite stand —
+          fuer jemanden, der ueber die Anzeige direkt auf `?s=3` landet (Commit „Adresse erst
+          am Generieren" vom 16.08.), ist das die allererste Frage der ganzen Seite, noch vor
+          dem eigenen Bild. `fotosDa` ist wahr, sobald beide Uploads (bzw. der eine bei
+          `V.nurSie`) da sind — der Kunde hat dann schon etwas von uns gesehen, bevor wir
+          nach seiner Adresse fragen. */}
+      {!isStaff && !adresseDa && !bezahlt && fotosDa && (
         <div className="mt-3">
           <p className="text-[12px] font-bold text-white/85">
             {T.mailQuestion}

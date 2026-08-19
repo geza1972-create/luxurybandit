@@ -615,6 +615,20 @@ svg {
 .lb-karte svg circle { fill: #1a160f !important; }
 .lb-theme .lb-karte svg { color: #1877F2 !important; stroke: #1877F2 !important; }
 .lb-theme .lb-karte svg circle { fill: #1877F2 !important; }
+/* DER LADE-KREISEL BLEIBT GOLD, AUCH IN DER KARTE (Owner 18.08.2026: „loading machst du ab
+   jetzt gelb" — und, am Foto, wo er statt gold schwarz erschien: „du hast gesagt ladekreis
+   ist gold" · „du glaubst ich bin blind oder was?").
+   GEMESSEN: SchleifenVideo setzt `color: #f6cf51` inline auf den Kreisel — aber sobald er
+   innerhalb einer `.lb-karte` liegt (seit `VorlagenUeberlagerung` ihn dort einbettet),
+   überschreibt die Regel zwei Zeilen darüber JEDE Inline-Farbe auf SVGs mit `!important`
+   (Memory `lb-karte-important-frisst-inline-farben` — das war schon einmal die gleiche
+   Falle, nur bei Prozentzahlen statt beim Kreisel). `.lb-kreisel-gold` ist die zwei Klassen
+   höhere Spezifität, die dagegen gewinnt — dieselbe Technik wie `.lb-karte-gold` oben, nur
+   für ein SVG statt für Text. Absichtlich auch im HELLEN gold: Der Kreisel liegt immer auf
+   einem laufenden Video (dunkler Grund durch den Schleier `bg-black/25`), nie auf Papier —
+   die Ornamente-Regel „schwarz im Dunklen, Blau im Hellen" gilt für Zeichen AUF DEM PAPIER,
+   nicht für diesen Fall. */
+.lb-karte svg.lb-kreisel-gold, .lb-theme .lb-karte svg.lb-kreisel-gold { color: #f6cf51 !important; stroke: #f6cf51 !important; opacity: 1; }
 /* DER RAND DER KARTE folgt der Ornament-Regel (Owner 06.08.2026: „hier ist noch gold statt
    blau. Der Rand bei der Kard" · „auch bei dark ist gold statt schwarz"): die feine
    Innenlinie ist Tinte im Dunkeln und Blau in der hellen Fassung — dieselben zwei Farben
