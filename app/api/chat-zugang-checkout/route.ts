@@ -62,7 +62,7 @@ export async function POST(request: Request) {
        * (Skill `bezahlung`, Regel 2); `CHAT_STUFEN` ist die eine Zahl.
        */
       amount: stufe.cents,
-      currency: "eur",
+      currency: "usd",
       /* Die Adresse des Beschenkten reist als KASSEN-Vermerk mit, nicht als Behauptung des
          Browsers: `/api/checkout-status` liest sie nach der Zahlung von Stripe zurueck. Waere
          es umgekehrt, koennte sich jeder Zugang auf eine beliebige Adresse buchen. */

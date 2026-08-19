@@ -78,7 +78,7 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
   versprechen: {
     slug: "versprechen",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
-    marketing: { headline: "Future Self Program — 9,99 €", versprechen: "Sieh deine Zukunft. Mach das Versprechen. Halte es 30 Tage.", demoAsset: "/Versprechen" },
+    marketing: { headline: "Future Self Program — $9.99", versprechen: "Sieh deine Zukunft. Mach das Versprechen. Halte es 30 Tage.", demoAsset: "/Versprechen" },
     startPfad: "/themes/versprechen/start",
     motor: { art: "kissfunnel", variant: "versprechen" },
     schritte: [1, 2, 3],
@@ -90,7 +90,7 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
   kiss: {
     slug: "kiss",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
-    marketing: { headline: "Kussvideo — 9,99 €", versprechen: "Zwei Fotos — ein privates Kussvideo von euch beiden.", demoAsset: "/Kiss" },
+    marketing: { headline: "Kiss video — $9.99", versprechen: "Zwei Fotos — ein privates Kussvideo von euch beiden.", demoAsset: "/Kiss" },
     startPfad: "/themes/kiss/start",
     motor: { art: "kissfunnel", variant: "kiss" },
     schritte: [1, 2, 3],
@@ -101,7 +101,7 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
   birthday: {
     slug: "birthday",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
-    marketing: { headline: "Geburtstagsvideo — 9,99 €", versprechen: "Dein Gesicht, deine Stimme — in einer Welt, die niemand erwartet.", demoAsset: "/Birthday" },
+    marketing: { headline: "Birthday video — $9.99", versprechen: "Dein Gesicht, deine Stimme — in einer Welt, die niemand erwartet.", demoAsset: "/Birthday" },
     startPfad: "/themes/birthday/start",
     motor: { art: "kissfunnel", variant: "birthday" },
     schritte: [1, 2, 3],
@@ -113,7 +113,7 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
   poledance: {
     slug: "poledance",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
-    marketing: { headline: "Private Überraschung — 9,99 €", versprechen: "Ein Foto — ein privates Tanzvideo, nur für ihn.", demoAsset: "/Pooldance" },
+    marketing: { headline: "Private surprise — $9.99", versprechen: "Ein Foto — ein privates Tanzvideo, nur für ihn.", demoAsset: "/Pooldance" },
     startPfad: "/themes/surprise/start",
     motor: { art: "kissfunnel", variant: "poledance" },
     schritte: [1, 2, 3],
@@ -124,7 +124,7 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
   wedding: {
     slug: "wedding",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
-    marketing: { headline: "Digitaler Hochzeitsplaner — 9,99 €", versprechen: "Die Video-Einladung plus Gästeliste, Menü und Gruppenchat.", demoAsset: "/Wedding" },
+    marketing: { headline: "Digital wedding planner — $9.99", versprechen: "Die Video-Einladung plus Gästeliste, Menü und Gruppenchat.", demoAsset: "/Wedding" },
     startPfad: "/themes/wedding/start",
     motor: { art: "eigen" },
     schritte: [1, 3],

@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     try {
       const { id, url, clientSecret } = await createTryonCheckout({
         amount: EXTRA_VIDEO_CENTS,
-        currency: "eur",
+        currency: "usd",
         productName: "One more video",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&extra=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     try {
       const { id, url } = await createTryonCheckout({
         amount: stufe,
-        currency: "eur",
+        currency: "usd",
         productName: "Account credit",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
     try {
       const { id, url, clientSecret } = await createTryonCheckout({
         amount: preis,
-        currency: "eur",
+        currency: "usd",
         /**
          * DER AKTIONSCODE AUS DEM LINK WIRKT AUCH BEIM EINMALKAUF (Owner 11.08.2026: „der
          * code ist nicht eingebaut", zum Kassenbild mit vollem Betrag).

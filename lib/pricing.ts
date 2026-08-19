@@ -648,11 +648,25 @@ export const LAUFZEIT_TAGE = 30;
  *
  * Ändert sich etwas, wird OBEN eine Zahl geändert — und alle Sprachen stimmen sofort.
  */
+/**
+ * DOLLAR STATT EURO (Owner 19.08.2026: „es muss auf dollar umgestellt werden. Jetzt ist auf
+ * euro" — Grund: „Der Markt ist in USA und Kanada").
+ *
+ * Der Funktionsname `eur` ist jetzt irrefuehrend — er blieb bewusst so, statt ihn an jeder
+ * der hunderten Aufrufstellen (jede Preistabelle, jede Sprache, `fillPrices` unten) mit
+ * umzubenennen. Ein Umbenennen waere reine Textersetzung ohne fachlichen Nutzen gewesen,
+ * mitten in einer Aenderung, bei der es auf Richtigkeit ankommt — genau der falsche Moment
+ * fuer ein Risiko ohne Gegenwert.
+ *
+ * Der Zahlenwert bleibt unveraendert (dieselben Cent-Betraege wie vorher, nur jetzt als
+ * Dollar gelesen) — die Kasse zieht seit derselben Aenderung `currency: "usd"`, siehe die
+ * sieben Geschenk-Kassenwege (Kuss, Geburtstag, Urlaub, Tanz, Gutschein, Chat).
+ */
 export function eur(cents: number, lang?: string): string {
   const l = String(lang ?? "en").slice(0, 2);
   const v = cents / 100;
   const txt = v.toFixed(2).replace(/\.00$/, v % 1 === 0 ? "" : ".00");
-  return l === "en" ? `€${txt}` : `${txt.replace(".", ",")} €`;
+  return l === "en" ? `$${txt}` : `${txt.replace(".", ",")} $`;
 }
 
 export function fillPrices(text: string, lang?: string): string {

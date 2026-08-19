@@ -90,7 +90,7 @@ export async function POST(request: Request) {
          UEBERGABE-05-08.md §1). Eine Stripe-Kennung je Stufe waeren drei Gelegenheiten mehr,
          eine davon zu vergessen. */
       amount: cents,
-      currency: "eur",
+      currency: "usd",
       /* Auf dem Stripe-Beleg steht das THEMA, wenn eines gewählt wurde — der Käufer soll
          wiedererkennen, was er verschenkt hat, nicht nur einen Betrag. */
       productName: topic

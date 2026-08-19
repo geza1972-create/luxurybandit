@@ -3530,7 +3530,12 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * {tanz}. Ein sichtbar schlechteres Video als das beworbene ist kein Sparen.
            * Es kostet mehr je Lauf — eine Zeile zum Zurueckdrehen, wenn die Rechnung es sagt.
            */
-          ...(variant === "poledance" ? { hd: true } : {}),
+          /* 10 SEKUNDEN BEIM TANZ (Owner 19.08.2026: „das pool dancing video ist zu kurz,
+             das wir generieren. Es muss 10sek sein."). Ohne `sekunden` faellt die Route auf
+             ihre Vorgabe von 7 zurueck (siehe generate-tryon-video/route.ts) — dieselbe
+             Laenge, die Kuss/Hochzeit aus einem anderen Grund fahren (Pixverse lehnte dort
+             bei 8s ab). Der Tanz hat dieses Problem nicht, seine Anfrage bat nur nie um mehr. */
+          ...(variant === "poledance" ? { hd: true, sekunden: 10 } : {}),
           prompt: variant === "wedding" ? weddingPrompt(kleid)
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */

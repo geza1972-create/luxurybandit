@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createTryonCheckout({
       amount: PRICE_CENTS,
-      currency: "eur",
+      currency: "usd",
       productName: "LuxuryBandit — birthday video",
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

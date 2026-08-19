@@ -176,7 +176,7 @@ async function pixverseStartReference(key: string, garment: string, person: stri
        reicht vollkommend"). Ohne Angabe bleibt es bei 7 — die Laenge, die Kuss, Hochzeit und
        Urlaub seit Wochen fahren. Erlaubt sind nur Werte, die Pixverse kennt; alles andere
        faellt auf die Vorgabe zurueck, statt einen Lauf mit einer erfundenen Zahl zu starten. */
-    duration: turnaround ? 10 : (slowmo ? 10 : ([5, 7, 8].includes(sekunden) ? sekunden : 7)),
+    duration: turnaround ? 10 : (slowmo ? 10 : ([5, 7, 8, 10].includes(sekunden) ? sekunden : 7)),
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     // 360p ist die SPARSTUFE fuer Admin-Vorschauen, die spaeter hochgerechnet werden.
@@ -406,8 +406,16 @@ export async function POST(request: Request) {
   // Slow motion (admin, per-video): add a slow-mo cue so Pixverse renders the movement
   // slower AND generates matching-tempo music (no playback-rate audio distortion).
   const slowmo = body.slowmo === true;
-  /* Weisse Liste, keine Zahl aus dem Browser: siehe `duration` in pixverseStartReference. */
-  const sekunden = [5, 7, 8].includes(Number(body.sekunden)) ? Number(body.sekunden) : 0;
+  /**
+   * Weisse Liste, keine Zahl aus dem Browser: siehe `duration` in pixverseStartReference.
+   *
+   * `10` GEHOERT DAZU (Owner 19.08.2026: „das pool dancing video ist zu kurz, das wir
+   * generieren. Es muss 10sek sein."). Ohne eigene Angabe fiel der Tanz-Lauf auf die
+   * Vorgabe von sieben Sekunden zurueck (Zeile 179) — dieselbe Laenge, die Kuss/Hochzeit/
+   * Urlaub aus einem ANDEREN Grund fahren (03.08.2026: Pixverse lehnte bei acht Sekunden
+   * ab). Der Tanz hat dieses Problem nicht, seine Anfrage bat nur nie um mehr.
+   */
+  const sekunden = [5, 7, 8, 10].includes(Number(body.sekunden)) ? Number(body.sekunden) : 0;
   // NB: avoid the word "cinematic" — Pixverse reads it as a camera move (zoom/dolly).
   // Ask for slow MOVEMENT + a fixed camera so it never zooms.
   if (slowmo && promptWithScene) promptWithScene = `${promptWithScene} Alles in sanfter Zeitlupe, langsame ruhige Bewegungen. Feststehende Kamera, kein Zoom, keine Kamerafahrt.`;
