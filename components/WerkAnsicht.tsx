@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
-import { musikFuer } from "@/lib/musik";
+import { useMusikFuer } from "@/lib/musik";
 import { geburtstagTitel } from "@/lib/geburtstag";
 
 /**
@@ -54,6 +54,15 @@ export default function WerkAnsicht({ id }: { id: string }) {
   const [theme, setTheme] = useState("kiss");
   /** An wen der Gruss geht — macht aus „I love you" ein „Anna, I love you". */
   const [empfaenger, setEmpfaenger] = useState("");
+  /**
+   * Die Musik — je Thema aus einer Liste, bei jedem Ansehen neu gewürfelt (Owner: „bitte
+   * rotieren" · „das kann wechseln"). Leer bleibt leer: Der Geburtstag behält seinen
+   * Originalton, dafür sorgt die Liste in lib/musik.ts, nicht diese Zeile.
+   *
+   * MUSS HIER OBEN STEHEN, nicht unten an der Verwendungsstelle: Ein Haken darf nicht hinter
+   * einem `return` liegen, und weiter unten steigt die Ansicht je nach `stand` vorzeitig aus.
+   */
+  const musik = useMusikFuer(theme, id);
 
   useEffect(() => {
     // Sprache aus dem Link (?l=…, vom Teilenden), sonst vom Gerät des Empfängers.
@@ -114,8 +123,8 @@ export default function WerkAnsicht({ id }: { id: string }) {
           <div className="relative">
             {video ? (
               <EinladungAnsicht id="" videoUrl={video} poster={bild || undefined} zaehlen={false}
-                {...(musikFuer(theme)
-                  ? { musik: musikFuer(theme), tonAutomatisch: true }
+                {...(musik
+                  ? { musik, tonAutomatisch: true }
                   : { originalton: true, schleife: false, musik: "" })}
                 tonText={K.ton} tonAusText={K.tonAus} />
             ) : (

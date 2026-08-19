@@ -9,7 +9,7 @@ import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import Reaktionen from "@/components/Reaktionen";
-import { musikFuer } from "@/lib/musik";
+import { useMusikFuer } from "@/lib/musik";
 import { geburtstagTitel } from "@/lib/geburtstag";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -98,6 +98,16 @@ export default function MyGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Item | null>(null);
   const [query, setQuery] = useState("");   // Model-/Look-Suche (z. B. „Bella")
+  /**
+   * Die Musik des geöffneten Werks — je Thema aus einer Liste, bei jedem Öffnen neu gewürfelt
+   * (Owner 18.08.2026: „bitte rotieren" · „das kann wechseln"). Leer bleibt leer, dann spielt
+   * der Originalton (Geburtstag).
+   *
+   * MUSS HIER OBEN STEHEN: Ein Haken darf nicht in einem `{open && …}`-Zweig sitzen, sonst
+   * wechselt die Zahl der Haken je Aufbau. Die Kennung des Werks reist mit, damit das zweite
+   * geöffnete Kussvideo nicht dasselbe Stück behält wie das erste.
+   */
+  const musikOffen = useMusikFuer(open?.theme || "kiss", open?.videoUrl || "");
 
   // Admin: Video öffentlich (gratis Teaser im Chat) ↔ privat (🔒 Abo) schalten.
   const setPublic = async (it: Item, pub: boolean) => {
@@ -1119,8 +1129,8 @@ export default function MyGalleryPage() {
                           es LAG im Auftrag — die Ansicht hat es nur nicht an den Spieler
                           gereicht, und bis zum ersten Tipp stand eine braune Flaeche. */}
                       <EinladungAnsicht id="" videoUrl={open.videoUrl} poster={open.imageUrl || undefined} zaehlen={false}
-                        {...(musikFuer(open.theme || "kiss")
-                          ? { musik: musikFuer(open.theme || "kiss"), tonAutomatisch: true }
+                        {...(musikOffen
+                          ? { musik: musikOffen, tonAutomatisch: true }
                           : { originalton: true, schleife: false, musik: "" })}
                         tonText={KARTE_TEXTE.en.ton} tonAusText={KARTE_TEXTE.en.tonAus}
                         /**
