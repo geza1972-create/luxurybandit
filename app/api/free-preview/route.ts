@@ -718,6 +718,25 @@ export async function POST(request: Request) {
               else letzterFehler = String(c.j?.error?.message ?? letzterFehler);
             }
           }
+          /**
+           * DER GESICHTSAUSSCHNITT FEHLTE HIER — beim Kuss lief nur die Kuss/Fast-Kuss/
+           * Umarmung-Leiter, nie die Rettung ueber den Ausschnitt, die es im generischen Zweig
+           * unten schon lange gibt (Owner 20.08.2026: „wir haben doch eine regel, wir nehmen
+           * die und schneiden das gesicht raus" — ein Nacktbild wurde abgewiesen, das damit
+           * haette gerettet werden muessen). Gleiche Regel wie unten: nur wenn NICHT
+           * `gemeinsam` (ein Ausschnitt liefert nur EIN Gesicht) und noch Zeit fuer einen
+           * weiteren Anlauf uebrig ist.
+           */
+          if (!sieger && !gemeinsam && (sicherheitsAblehnung(a) || sicherheitsAblehnung(b)) && zeitLinks() > 20_000) {
+            const [gm, gp] = await Promise.all([gesichtAusschnitt(model, key), gesichtAusschnitt(person, key)]);
+            if (gm || gp) {
+              const d = await openaiBild(prompt, gp || versuchPerson, gm || versuchModel);
+              if (!("fehler" in d)) {
+                if (d.res.ok) sieger = d;
+                else letzterFehler = String(d.j?.error?.message ?? letzterFehler);
+              }
+            }
+          }
         }
         res = (sieger ?? a).res; j = (sieger ?? a).j;
       } else

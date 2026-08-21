@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { faststartMp4 } from "@/lib/mp4-faststart";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // PixVerse image→video can take a couple of minutes
@@ -13,7 +14,9 @@ const pvHeaders = (key: string, json = false): Record<string, string> =>
 async function persistVideo(remoteUrl: string): Promise<string> {
   const vid = await fetch(remoteUrl);
   if (!vid.ok) throw new Error(`fetch video ${vid.status}`);
-  const bytes = await vid.arrayBuffer();
+  /* FASTSTART, SONST HAENGT DER PLAYER — siehe lib/mp4-faststart.ts. */
+  const fixed = faststartMp4(Buffer.from(await vid.arrayBuffer()));
+  const bytes = fixed.buffer.slice(fixed.byteOffset, fixed.byteOffset + fixed.byteLength) as ArrayBuffer;
   return uploadTryThisLookBytes("videos", bytes, vid.headers.get("content-type") || "video/mp4", "mp4");
 }
 

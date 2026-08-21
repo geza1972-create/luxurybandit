@@ -121,10 +121,14 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
   const fotosDa = !!ihrFoto && !!seinFoto;
 
   const kaufen = async (topupCents?: number, kontoFrisch = false): Promise<boolean> => {
-    if (!topupCents && !kontoFrisch && !reichtGuthaben(guthabenCents, preisCents)) {
-      setAufladeWahl(true);
-      return false;
-    }
+    /**
+     * KEINE AUFLADUNG — DIREKTKAUF (Owner 20.08.2026: „ja" auf die Frage, ob Holiday/Try-on
+     * auch auf Direktkauf umgestellt werden sollen). Hier stand eine Zwangs-Vorpruefung, die
+     * bei zu wenig Guthaben den Aufladen-Dialog oeffnete, statt zur Kasse zu gehen. Der Server
+     * entscheidet jetzt allein: reicht das Guthaben, bucht die Kasse lautlos davon ab; reicht
+     * es nicht, geht es direkt zur Stripe-Kasse — nie mehr ueber diesen Dialog. Dieselbe Regel
+     * wie in Kiss und der Hochzeit.
+     */
     /**
      * KEIN KASSEN-POPUP MEHR (Owner 15.08.2026: „mir stinkt es mit stripe pop up fenster").
      *

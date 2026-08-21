@@ -232,7 +232,7 @@ export const TOPUP_GROSS_CENTS = 3000;
 /* 4,99 € SEIT DEM 16.08.2026 (Owner: „wir machen alle preise für 4,99") — zurück auf den
    Preis vom 10.08. mittags, nachdem 9,99 € seit dem 30.07. genau EINEN bezahlten Auftrag
    gebracht hat, und der war der Owner selbst (86 Kuss-Aufträge, 1 bezahlt). */
-export const GESCHENK_VIDEO_CENTS = 499;            // 4,99 € — Geburtstag · Kuss · Tanz · Urlaub · Versprechen
+export const GESCHENK_VIDEO_CENTS = 2400;           // 24 $ — Geburtstag · Kuss · Tanz · Urlaub · Versprechen (Owner 20.08.2026: „individuelle Videos, die bekommt niemand günstiger hin")
 
 export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie jedes Geschenk
 
@@ -251,7 +251,7 @@ export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie je
  * niedrigerer Einstiegspreis ist die eine Stellschraube, die vor der nächsten Anzeige noch
  * bewegt werden kann.
  */
-export const KUSS_CENTS = 499;                      // 4,99 € — nur der Kuss
+export const KUSS_CENTS = 2400;                     // 24 $ — nur der Kuss (Owner 20.08.2026, siehe GESCHENK_VIDEO_CENTS)
 
 /**
  * DER GEBURTSTAG STARTET BEI 4,99 (Owner 07.08.2026: „wir nehemen für dieses Video 4,99 als
@@ -265,6 +265,17 @@ export const KUSS_CENTS = 499;                      // 4,99 € — nur der Kuss
  * jedes anderen Geschenks mit.
  */
 export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.08.2026, jetzt der Hauspreis
+
+/**
+ * DER LEBENSLAUF KOSTET 9,99 € — EINE EIGENE ZAHL, KEIN GESCHENK-PREIS.
+ *
+ * Erste Version des Quereinsteiger-Portals (Owner 19.08.2026): Foto + Lebenslauf hochladen,
+ * KI wertet aus und generiert eine Profilseite. Anders als bei den Geschenken zahlt hier
+ * nicht ein Schenker für einen anderen — der Käufer ist der Nutzer selbst, und das Ergebnis
+ * ist keine Video-Erzeugung, sondern ein Text+Bild-Auswertungslauf. Eigene Konstante nach
+ * dem Hausmuster, damit dieser Preis sich unabhängig vom Geschenk-Hauspreis ändern lässt.
+ */
+export const LEBENSLAUF_CENTS = 999;                    // 9,99 € — Profilseite aus Foto+Lebenslauf
 
 /**
  * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses
@@ -286,8 +297,8 @@ export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.0
  */
 /* 9,99 € — Future Self Program (Owner 12.08.2026: „Das Programm wird auch 9,99 kosten",
    nach dem geglückten Echtgeld-Test zum 1-€-Testpreis; davor 19,99 vom 11.08.). */
-/* 4,99 € seit 16.08.2026 — „wir machen alle preise für 4,99" (Owner). */
-export const VERSPRECHEN_CENTS = 499;
+/* 24 $ seit 20.08.2026 — „verprechen kostet auch 24 dollar" (Owner). */
+export const VERSPRECHEN_CENTS = 2400;
 
 /**
  * WAS EIN GESCHENK-TRICHTER KOSTET — EINE ZEILE FÜR TRICHTER UND KASSE.
@@ -321,6 +332,8 @@ export function geschenkPreisCents(geschenk: string): number {
     case "versprechen": return VERSPRECHEN_CENTS;
     /* Der Kuss hat seit dem 16.08.2026 seinen eigenen Preis — siehe KUSS_CENTS. */
     case "kiss": return KUSS_CENTS;
+    /* Der Lebenslauf ist kein Geschenk-Video — siehe LEBENSLAUF_CENTS. */
+    case "lebenslauf": return LEBENSLAUF_CENTS;
     default: return GESCHENK_VIDEO_CENTS;   // Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }
@@ -533,9 +546,9 @@ export function chatPriceId(): string {
  *
  * Vorher 29,00 €. Die Verlängerung steht unverändert in VERLAENGERUNG_MONAT_CENTS.
  */
-/* 9,99 € — EIN Preis für alle Produkte (Owner 12.08.2026: „alle kosten 9,99 auch Hochzeit").
-   Vorher 29,99; die Verlängerung des Planers (14,99 €/Monat) bleibt unberührt. */
-export const HOCHZEIT_START_CENTS = 999;
+/* 49 $ seit 20.08.2026 — „Hochzeit kostet 49 dollar" (Owner). Vorher 9,99 €;
+   die Verlängerung des Planers (14,99 €/Monat) bleibt unberührt. */
+export const HOCHZEIT_START_CENTS = 4900;
 
 /**
  * DIE VERLAENGERUNG KOSTET WENIGER ALS DER KAUF (Owner 05.08.2026, zum Hochzeitsplaner: „aber
@@ -754,6 +767,12 @@ export function topicPriceId(): string {
   return process.env.STRIPE_TOPIC_ABO_PRICE_ID?.trim() || "price_1TxvSi1jPNCWoiztEHBpgDhj";
 }
 
+/* GESCHENK-ABO WIEDER VERWORFEN (Owner 20.08.2026: „alles rückgängig … wir machen es nicht").
+   War hier kurz als eigenes 24-$/Monat-Abo neben dem Einmalkauf geplant und schon fertig
+   verdrahtet (Checkout, Webhook, AGB, Kündigen-Ansicht) — auf Zuruf wieder komplett zurückgebaut.
+   Falls das Thema zurückkommt: die Stripe-Preis-ID price_1U6PoA1jPNCWoiztVuUD0idD
+   ("LuxuryBandit Kiss Abo", 24 $/Monat) existiert im Konto noch. */
+
 /**
  * Standard-Gutschein — gilt FÜR ALLE, ohne dass jemand einen Code eintippt (Owner
  * 28.07.2026: „du sollst den Rabatt immer einbauen, auch für nicht members";
@@ -800,7 +819,9 @@ export type ThemenSchluessel =
   /* Gutschein verpacken (Owner 05.08.2026) — ein Geschenk wie die anderen, also ONCE_CENTS
      ueber den `default`-Zweig unten. Verkauft wird die VERPACKUNG, nie der Gutschein selbst:
      in der EU ist der ein Zahlungsinstrument, siehe KONZEPT-GESCHENKE-UND-IDEEN.md §3b. */
-  | "gutschein";
+  | "gutschein"
+  /* Der Lebenslauf (Owner 19.08.2026) — eigener Preis, siehe LEBENSLAUF_CENTS. */
+  | "lebenslauf";
 
 const AB_WORT: Record<string, { ab: string; pm: string }> = {
   de: { ab: "ab", pm: "/Monat" }, en: { ab: "from", pm: "/month" },
@@ -830,6 +851,7 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
        im Kommentar nachschlägt statt in VERSPRECHEN_CENTS, tippt irgendwo eine tote Zahl ab. */
     case "versprechen": return VERSPRECHEN_CENTS;   // Future Self Program
     case "kiss": return KUSS_CENTS;   // eigener Preis seit 16.08.2026 — siehe KUSS_CENTS
+    case "lebenslauf": return LEBENSLAUF_CENTS;
     default: return GESCHENK_VIDEO_CENTS;   // holiday — der Geschenk-Hauspreis
   }
 }

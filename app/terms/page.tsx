@@ -65,6 +65,10 @@ export default async function TermsPage() {
      * kommt aus `{monat}` (VERLAENGERUNG_MONAT_CENTS) — der Startpreis selbst hat keinen
      * Platzhalter und steht deshalb als Mechanik da („the price shown … at checkout"), nicht
      * als Zahl, damit hier nie eine zweite, abweichende Ziffer altert.
+     *
+     * (20.08.2026: ein Geschenk-Abo à 24 $/Monat war hier kurz geplant und wieder verworfen
+     * — Owner: „alles rückgängig … wir machen es nicht". Dieser Absatz beschreibt wieder den
+     * echten Stand.)
      */
     h3: "3. Subscriptions & payments",
     p3a: fillPrices("Browsing and following are free. Every gift — a kiss, a birthday video, a dance, a holiday invitation, the video message to yourself, the Future Self Program — is a **one-time purchase**: you pay once, from your account balance, at the price shown on the product page and at checkout. Payments are handled by **Stripe**. The only recurring subscription is the **Digital Wedding Planner**: it is bought once (the invitation video plus a running page — guest list, menu choices, group chat — for 30 days) and then **renews automatically** each month at {monat} until you cancel; you can **cancel anytime** from your account, and cancellation takes effect at the end of the current billing period.", "en"),

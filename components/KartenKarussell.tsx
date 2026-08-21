@@ -160,6 +160,13 @@ export default function KartenKarussell({ folien, onAktiv }: {
           folgt ihr, also entsteht darunter auch kein Rest. Der Übergang macht den Wechsel
           weich, sonst ruckt die halbe Seite, wenn eine höhere Folie hereinwischt. */}
       <div ref={bahn} onScroll={gescrollt}
+        /* EIN TIPP IST AUCH „ER HAT ÜBERNOMMEN" (Owner 20.08.2026, seit ein Video wieder
+           INLINE in der Folie spielt statt auf einer eigenen Seite): Vorher zählte nur ein
+           WISCH als Übernahme — ein Tipp auf den Play-Knopf einer Folie lief weiter unter der
+           7-Sekunden-Uhr mit und wurde beim naechsten Weiterschalten stumm pausiert (siehe
+           `useEffect` oben, Zeile ~122). Jeder Tipp irgendwo in der Bahn stoppt die
+           automatische Weiterschaltung jetzt genauso wie ein Wisch. */
+        onPointerDown={() => setSelbstLaeuft(false)}
         /* `overflow-y-hidden` (Owner 06.08.2026: „achtung video kann ich vertical scrollen,
            das soll natürlich nicht"): Steht eine Achse auf `auto`, macht der Browser die
            andere gleich mit — dann liess sich das Video im Rahmen hoch- und runterschieben

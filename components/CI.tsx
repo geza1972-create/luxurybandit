@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, type LucideIcon } from "lucide-react";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import EinladungKarte from "@/components/EinladungKarte";
@@ -781,7 +781,7 @@ export function TunnelFortschritt({ schritte, aktuell, className = "" }: {
   className?: string;
 }) {
   return (
-    <div className={`mb-3 flex items-center justify-center gap-1.5 ${className}`}>
+    <div className={`mb-3 mt-3 flex items-center justify-center gap-1.5 ${className}`}>
       {schritte.map(n => (
         <span key={n} className={`h-1.5 rounded-full transition-all ${n === aktuell ? "w-6 bg-[#f6cf51]" : n < aktuell ? "w-3 bg-[#f6cf51]/50" : "w-3 bg-white/20"}`} />
       ))}
@@ -1816,6 +1816,10 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      Luecke, die eine Liste bekommt, wenn sie von Hand gepflegt wird und ein Produkt spaeter
      dazukommt. */
   { icon: Rocket, name: "Future me", href: "/themes/versprechen", bild: "/Versprechen/Promise-Full-Video.jpg" },   /* NICHT „Promise" (Owner 15.08.2026) — das Produkt heisst Future Self Program, und der Reiter nennt, was der Kunde bekommt: sich selbst, spaeter. */
+  /* DER LEBENSLAUF (Owner 19.08.2026, erste Version des Quereinsteiger-Portals) — Bild ist
+     bewusst der Geburtstags-Platzhalter (`GEBURTSTAG_VIDEO_MANN`s Poster), solange kein
+     echter HeyGen-Lauf steht; siehe die Begründung in app/themes/lebenslauf/page.tsx. */
+  { icon: FileText, name: "Resume", href: "/themes/lebenslauf", bild: "/Birthday/hbd-fliege.jpg" },
   /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
      Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
      einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */

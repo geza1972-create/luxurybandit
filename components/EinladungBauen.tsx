@@ -754,11 +754,13 @@ export default function EinladungBauen({ lang, beispielVideo = "", beispielVideo
     /* Die Frage steht EINMAL im Haus (`lib/kasse`) — dieselbe, die auch der Wähler benutzt,
        um seine Stufen zu rechnen. Zwei Stellen mit derselben Schwelle laufen auseinander.
        Und gegen den Preis DIESES Kaufs, nicht gegen den der Karte (siehe `kaufPreisCents`). */
-    if (!topupCents && !kontoFrisch && !reichtGuthaben(guthabenCents, kaufPreisCents(videoAufpreis))) {
-      setAufladeWahl(true);
-      return false;
-    }
-
+    /**
+     * KEINE AUFLADUNG — DIREKTKAUF (Owner 20.08.2026: „auch da kein kredit aufladen"). Hier
+     * stand eine Zwangs-Vorpruefung, die bei zu wenig Guthaben den Aufladen-Dialog oeffnete,
+     * statt zur Kasse zu gehen. Der Server entscheidet jetzt allein: reicht das Guthaben,
+     * bucht `/api/kiss-video-checkout` lautlos davon ab; reicht es nicht, geht es direkt zur
+     * Stripe-Kasse — nie mehr ueber diesen Dialog. Dieselbe Regel wie im Kiss-Trichter.
+     */
     const popup = window.open("", "_blank", "popup,width=480,height=780");
     let device = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }

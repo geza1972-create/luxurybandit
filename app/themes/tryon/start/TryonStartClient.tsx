@@ -91,12 +91,13 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
   const P = produkt("tryon");
   const gewaehlt = vorlagen[Number(vorlage)] ?? vorlagen[0];
 
-  /** Genau die Kasse aus `WeddingStartClient.kaufen()` — Guthaben zuerst, sonst Stripe. */
+  /**
+   * Genau die Kasse aus `WeddingStartClient.kaufen()` — Guthaben zuerst, sonst Stripe.
+   * KEINE AUFLADUNG — DIREKTKAUF (Owner 20.08.2026): keine Zwangs-Vorpruefung mehr, die bei
+   * zu wenig Guthaben den Aufladen-Dialog oeffnete. Reicht das Guthaben, bucht die Kasse
+   * lautlos davon ab; reicht es nicht, geht es direkt zur Stripe-Kasse.
+   */
   const kaufen = async (topupCents?: number, kontoFrisch = false): Promise<boolean> => {
-    if (!topupCents && !kontoFrisch && !reichtGuthaben(guthabenCents, preisCents)) {
-      setAufladeWahl(true);
-      return false;
-    }
     /**
      * KEIN KASSEN-POPUP MEHR (Owner 15.08.2026: „mir stinkt es mit stripe pop up fenster").
      *

@@ -96,6 +96,10 @@ export type KissText = {
   yourClothes: string; myOwnClothes: string; theMoment: string; surpriseMe: string;
   // Adresse vor der Erzeugung
   mailQuestion: string; mailNote: string; mailInvalid: string; oneMoment: string;
+  /** Die gut sichtbare Preiszeile unter dem Kaufknopf (Owner 20.08.2026: "$24/month … must
+      be clearly visible and not hidden in low-contrast text"). Optional, weil nur die
+      Abo-Themen (Kuss/Tanz/Geburtstag/Versprechen/Lebenslauf) sie setzen. */
+  aboZeile?: string;
   /* Noch eins, anderer Look - unter dem fertigen Video (Owner 03.08.2026). */
   nochEins: string; nochEinsPreis: string;
   /* Knopf auf jeder Referenzkarte (Owner 03.08.2026). */
@@ -3552,7 +3556,36 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
   },
 };
 
-export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "versprechen" | "holiday" | "gutschein" = "kiss"): KissText {
+/**
+ * DER LEBENSLAUF (Owner 19.08.2026: „AI gibt dir neue Chancen" — Foto + Lebenslauf hochladen,
+ * KI wertet aus, generiert eine bildlastige Profilseite). Legt sich auf die Grundtabelle
+ * (TABELLE), nicht auf HOCHZEIT — die Kuss-Upload-Texte sind neutraler als „Braut/Bräutigam".
+ * NUR DE/EN gefüllt (Dauerregel: erst Deutsch, andere Sprachen folgen); andere Sprachen fallen
+ * bis dahin auf die Kuss-Grundtexte der jeweiligen Sprache zurück — kein leerer Text, aber ein
+ * Platzhalter, der nachgezogen werden muss, sobald das Portal mehr als Deutsch bedient.
+ */
+const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
+  de: {
+    /* „Luxury Video Bewerbung — für Top Jobs" (Owner 20.08.2026: „AI gibt dir neue Chancen
+       als Titel ist blöd"). */
+    heroA: "Luxury Video ", heroY: "Bewerbung", heroB: "",
+    upTitle: "Dein Foto", upHint: "Ein aktuelles Foto von dir.",
+    you: "LEBENSLAUF", uploadYou: "Lebenslauf hochladen", youHint: "Als PDF — die KI liest ihn aus.",
+    tunnelStartTitel: "Leg los",
+    generateNow: "Profil erstellen",
+    consentKurz: "🔒 Privat · nur für dich sichtbar, bis du es teilst · mit dem Erzeugen bestätigst du die {agb}",
+  },
+  en: {
+    heroA: "Luxury Video ", heroY: "Application", heroB: "",
+    upTitle: "Your photo", upHint: "A recent photo of you.",
+    you: "RESUME", uploadYou: "Upload your resume", youHint: "As PDF — the AI reads it.",
+    tunnelStartTitel: "Let's get started",
+    generateNow: "Create profile",
+    consentKurz: "🔒 Private · visible only to you until you share it · generating confirms the {agb}",
+  },
+};
+
+export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "wedding" | "poledance" | "birthday" | "versprechen" | "holiday" | "gutschein" | "lebenslauf" = "kiss"): KissText {
   const l = (lang && lang in TABELLE ? lang : "en") as Lang;
   /* Der Urlaub legt sich auf die HOCHZEIT, nicht auf die Grundtabelle: Er ist dieselbe
      Einladungs-Maschine und braucht deren Schlüssel (Datum, Ort, Zusage, Probewoche).
@@ -3571,6 +3604,7 @@ export function kissText(lang: string | undefined, variant: "kiss" | "idol" | "w
        und tauscht nur aus, was WIRKLICH anders ist. Ein eigener Satz von siebzig Zeilen in
        sieben Sprachen wäre nach der ersten Korrektur am Geburtstag veraltet. */
     : variant === "versprechen" ? { ...TABELLE[l], ...GEBURTSTAG[l], ...VERSPRECHEN[l] }
+    : variant === "lebenslauf" ? { ...TABELLE[l], ...LEBENSLAUF[l] }
     : TABELLE[l];
   const out = {} as Record<string, unknown>;
   for (const [k, v] of Object.entries(roh)) {

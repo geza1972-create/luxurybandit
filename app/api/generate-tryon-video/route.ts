@@ -7,6 +7,7 @@ import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { fashnCutout } from "@/lib/tryon";
 import { categorizeLook } from "@/lib/look-category";
+import { faststartMp4 } from "@/lib/mp4-faststart";
 
 // Auto-match the video's SCENE to the look's category. NEUTRAL wording (works for lingerie
 // too — no skin/body/lace words that Pixverse flags). Injected where the prompt has {ort}.
@@ -70,7 +71,11 @@ function pvHeaders(key: string, json = false): Record<string, string> {
 async function persistVideo(remoteUrl: string): Promise<string> {
   const vid = await fetch(remoteUrl);
   if (!vid.ok) throw new Error(`fetch video ${vid.status}`);
-  const bytes = await vid.arrayBuffer();
+  /* FASTSTART, SONST HAENGT DER PLAYER (Owner 20.08.2026, siehe lib/mp4-faststart.ts). Roh
+     von Pixverse & Co ausgelieferte Videos haben `moov` (das Inhaltsverzeichnis) meist HINTEN
+     — der Browser muss fast die ganze Datei laden, bevor er ueberhaupt weiss, was er hat. */
+  const fixed = faststartMp4(Buffer.from(await vid.arrayBuffer()));
+  const bytes = fixed.buffer.slice(fixed.byteOffset, fixed.byteOffset + fixed.byteLength) as ArrayBuffer;
   const path = await uploadTryThisLookBytes("videos", bytes, vid.headers.get("content-type") || "video/mp4", "mp4");
   const signed = (await getSignedUrl(path, 60 * 60 * 24 * 365 * 10)) || (await getSignedUrl(path));
   if (!signed) throw new Error("getSignedUrl returned empty");

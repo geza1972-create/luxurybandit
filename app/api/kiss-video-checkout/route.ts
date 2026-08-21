@@ -328,6 +328,7 @@ export async function POST(request: Request) {
         productName: tanz ? "Pole dance video — one-off"
           : thema === "birthday" ? "Birthday video — one-off"
           : thema === "versprechen" ? "Future Self Program"
+          : thema === "lebenslauf" ? "AI career profile — one-off"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

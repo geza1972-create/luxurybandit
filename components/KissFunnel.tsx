@@ -25,7 +25,7 @@ import Reaktionen from "@/components/Reaktionen";
 import TeilenKnopf from "@/components/TeilenKnopf";
 /* Ein Zeichen je Thema statt des Kussmunds für alle (Owner 10.08.2026). */
 import { teilenText } from "@/components/BeispielGalerie";
-import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, VorlagenUeberlagerung, TunnelKachelUpload, KurzeEinwilligung, InAppBrowserHinweis } from "@/components/CI";
+import { Dialog, MadeBy, Knopf, BildWahl, AnmeldeEinladung, Scheibe, Zahlungssiegel, AufladeWaehler, ABSAGE_ROT, TunnelStart, VorlagenKachel, TunnelKachelUpload, KurzeEinwilligung, InAppBrowserHinweis } from "@/components/CI";
 import { Eingabe } from "@/components/CI";
 import { zielTexte, MAX_ZIELE, ZIEL_IDS, ZIEL_FREI, type ZielId } from "@/lib/future-ziele";
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -443,7 +443,10 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
   /* Alle Beispiele in einer Liste, ohne Leere und ohne Doppelte. Der erste ist der, den die
      Seite bisher als `beispielVideo` geschickt hat — die Karte startet also mit demselben
      Video wie vorher. */
-  const beispiele = Array.from(new Set([...(beispielVideos ?? []), beispielVideo].filter(Boolean)));
+  /* HOECHSTENS 3 STATT 8 (Owner 20.08.2026: „wenn die zu viele sind einfach nur 3 videos
+     nehmen statt 8"). Jede Folie spielt jetzt inline (siehe EinladungAnsicht weiter unten) —
+     acht gleichzeitig ladbare Videos in einer Karte sind mehr, als eine Auswahl braucht. */
+  const beispiele = Array.from(new Set([...(beispielVideos ?? []), beispielVideo].filter(Boolean))).slice(0, 3);
   /**
    * DAS POSTER HEISST WIE SEIN VIDEO (Owner 07.08.2026: „jetzt muss ich wissen warum beim
    * ersten video ein poster fehlt").
@@ -3536,12 +3539,15 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
            * {tanz}. Ein sichtbar schlechteres Video als das beworbene ist kein Sparen.
            * Es kostet mehr je Lauf — eine Zeile zum Zurueckdrehen, wenn die Rechnung es sagt.
            */
-          /* 10 SEKUNDEN BEIM TANZ (Owner 19.08.2026: „das pool dancing video ist zu kurz,
-             das wir generieren. Es muss 10sek sein."). Ohne `sekunden` faellt die Route auf
-             ihre Vorgabe von 7 zurueck (siehe generate-tryon-video/route.ts) — dieselbe
-             Laenge, die Kuss/Hochzeit aus einem anderen Grund fahren (Pixverse lehnte dort
-             bei 8s ab). Der Tanz hat dieses Problem nicht, seine Anfrage bat nur nie um mehr. */
+          /* 10 SEKUNDEN BEI TANZ UND KUSS (Owner 19.08.2026: „das pool dancing video ist zu
+             kurz, das wir generieren. Es muss 10sek sein."; 20.08.2026: „Pool dancing und
+             kiss 10sek lang"). Ohne `sekunden` faellt die Route auf ihre Vorgabe von 7 zurueck
+             (siehe generate-tryon-video/route.ts) — die Laenge, die Kuss vorher aus einem
+             anderen Grund fuhr (Pixverse lehnte dort bei 8s ab; 10s ist ein separat erlaubter
+             Wert und nicht betroffen). `hd` bleibt beim Tanz, weil das Beispielvideo dort
+             540p zeigt — beim Kuss ist das (noch) nicht der Stand. */
           ...(variant === "poledance" ? { hd: true, sekunden: 10 } : {}),
+          ...(variant === "kiss" ? { sekunden: 10 } : {}),
           prompt: variant === "wedding" ? weddingPrompt(kleid)
             /* DER TANZ: der woertliche Owner-Prompt aus lib/poledance.ts — unveraendert, weil
                das Beispielvideo mit genau diesem Text entstanden ist. */
@@ -4827,39 +4833,25 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   stört."): Als Karten-Ebene flogen sie ueber Punkte, Kaufknopf und
                   made-by-Zeile — genau ueber die Bedienung. In der Folie decken sie exakt
                   das Video und nichts darunter.
-                  KEIN VIDEO MEHR HIER (siehe `beispielOffen` oben): Nur noch das Poster, eine
-                  Play-Scheibe und die Herzchen — alles rein dekorativ, kein Dekoder. Ein Tipp
-                  irgendwo auf der Folie oeffnet dieselbe Folie als eigene Seite. */}
+                  SPIELT WIEDER IN DER FOLIE (Owner 20.08.2026: „es soll einfach in der karte
+                  das video starten" — statt eine eigene Seite/Ueberlagerung zu oeffnen. Siehe
+                  auch Memory `keine-overlay-dialoge`). `EinladungAnsicht` ist dieselbe Karte,
+                  die auch das fertige Ergebnis traegt (Tipp startet/pausiert, Poster vorher,
+                  nie schwarzes Bild) — kein zweiter Bauplan fuer dasselbe Verhalten. */}
               <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
-                <button type="button" onClick={() => setBeispielOffen(i)}
-                  aria-label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross || "Vorlage ansehen"}
-                  className={`relative block w-full overflow-hidden rounded-[14px] ${karteVerhaeltnis || "aspect-[3/4]"}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={posterZu(url)} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  <span className="absolute inset-0 grid place-items-center bg-black/10">
-                    <span className="grid h-14 w-14 place-items-center rounded-full opacity-85 shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-                      style={{ background: "#fff" }}>
-                      <svg viewBox="0 0 24 24" fill="#1a160f" aria-hidden className="ml-[3px] h-6 w-6"><path d="M8 5v14l11-7z" /></svg>
-                    </span>
-                  </span>
-                </button>
-                {karteRendert ? null : (
-                  <div className="absolute right-3 top-3 z-10" onClick={e => e.stopPropagation()}>
+                <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false} musik=""
+                  verhaeltnis={karteVerhaeltnis || "aspect-[3/4]"}
+                  grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross || "Vergrössern"}
+                  kleinText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).klein || "Verkleinern"}
+                  teilen={karteRendert ? undefined :
                     <TeilenKnopf rund url={`/themes/${variant === "wedding" ? "wedding" : variant === "poledance" ? "surprise" : variant === "birthday" ? "birthday" : variant === "versprechen" ? "versprechen" : "kiss"}?utm_source=share`}
                       text={teilenText(variant, lang)}
                       label={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).teilen}
-                      kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />
-                  </div>
-                )}
+                      kopiertLabel={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).zusDanke} />} />
               {!karteRendert && <Reaktionen variant={variant} lang={lang} name={empfaenger} />}
               </div>
               ))} />
-              {beispielOffen !== null && (
-                <VorlagenUeberlagerung videoUrl={beispiele[beispielOffen]} posterUrl={posterZu(beispiele[beispielOffen])}
-                  sprache={lang} titel={variant === "versprechen" ? T.filmTitel : variant === "birthday" ? geburtstagTitel(empfaenger) : T.karteTitel(empfaenger.trim())}
-                  zu={() => setBeispielOffen(null)} />
-              )}
               {/* Der sichtbare Kaufaufruf — auf dem Papier, nicht auf dem Bild. */}
               {!karteRendert && (
                 <button type="button" onClick={schritteOeffnen}
@@ -4942,21 +4934,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   {T.orAll}
                 </button>
               )}
-              {/* KONTO AUFLADEN — 9,99 (Owner 01.08.2026, Variante B: Zusatzangebot, der
-                  Einzelkauf bleibt). Nach der Kasse zahlt jedes weitere Video ohne Fenster
-                  aus dem Guthaben; der Hinweis darunter ist die AGB-Zusage in Kurzform. */}
-              {V.einzelkauf && (
-                <>
-                  <button type="button" onClick={() => setAufladeWahl(true)} disabled={payBusy}
-                    style={{ color: "#fff" }}
-                    className="mt-2 flex w-full items-center justify-center rounded-full border border-white/40 px-3 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-60">
-                    {fillPrices(T.aufladen, lang)}
-                  </button>
-                  <p className="mt-1 text-center text-[10px] font-medium leading-snug text-white/60">
-                    {T.aufladenHinweis}
-                  </p>
-                </>
-              )}
+              {/* KONTO-AUFLADEN-KNOPF IST RAUS (Owner 20.08.2026: „das steht im weg beim
+                  ersten Kauf"). Der erste Kauf schliesst jetzt ohnehin ein Abo ab (siehe
+                  kiss-video-checkout/route.ts) — ein zweiter Zahlungsweg direkt daneben
+                  verwirrt nur noch. Der Aufladeweg selbst bleibt als Rückfall bestehen, wenn
+                  das Monatsguthaben eines Abonnenten nicht reicht. */}
               <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/70">
                 {T.freeNote}{V.abo ? renewNote(lang) : ""}
               </p>
@@ -6793,6 +6775,14 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
             </button>
           )}
         </div>
+      )}
+      {/* DIREKT UNTER DEM KAUFKNOPF STEHT, DASS ES EIN ABO IST (Owner 20.08.2026: „beim Button
+          unten steht keine dass er ein Abo abschliesst"). Derselbe Satz wie in `freeNote`
+          weiter unten — hier zusaetzlich direkt am Knopf, wo er den Kauf tatsaechlich trifft. */}
+      {V.einzelkauf && schritt >= 4 && !!bild && !isStaff && !bezahlt && !videoUrl && (
+        <p className="mt-1.5 text-center text-[10px] font-medium leading-snug text-white/60">
+          {T.freeNote}
+        </p>
       )}
       {/* DAS VERSPRECHEN STEHT IN JEDEM SCHRITT (Owner 30.07.2026: „du musst sagen dass die
           Bilder überall privat bleiben und nicht veröffentlicht werden. Nur er sieht die").

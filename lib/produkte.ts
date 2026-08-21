@@ -184,6 +184,22 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
     preisCents: () => CHAT_STUFEN[0].cents,
     resultArt: "zugang",
   },
+  /**
+   * DER LEBENSLAUF (Owner 19.08.2026: „AI gibt dir neue Chancen" — Quereinsteiger-Portal,
+   * Start mit deutschsprachigen Remote-Jobsuchenden). Foto + Lebenslauf hochladen, KI liest
+   * aus und schlägt Berufskategorien vor, generiert eine bildlastige Profilseite. Kein
+   * Kacheln-Auswahlschritt — wie Hochzeit/Chat nur [1, 3].
+   */
+  lebenslauf: {
+    slug: "lebenslauf",
+    marketing: { headline: "AI gibt dir neue Chancen — 9,99 €", versprechen: "Foto + Lebenslauf hochladen — die KI zeigt, was du werden kannst.", demoAsset: "/Lebenslauf" },
+    startPfad: "/themes/lebenslauf/start",
+    motor: { art: "eigen" },
+    schritte: [1, 3],
+    schrittBekannt: 3,
+    preisCents: () => geschenkPreisCents("lebenslauf"),
+    resultArt: "einladung",
+  },
   gutschein: {
     slug: "gutschein",
     /* §31 — die Ads-Kurzform; die Langform (Hooks, Primary, CTA) steht in ANZEIGEN.md. */
