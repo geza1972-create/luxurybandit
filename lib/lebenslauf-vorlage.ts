@@ -101,10 +101,18 @@ export type ExecutiveTexte = {
   bildung: string; sprachen: string; passung: string;
   stark: string; gut: string; warum: string; rolleAnsehen: string;
   ganzeCv: string;
+  /** „+7 weitere anzeigen" — nach der vierten Station eingeklappt (Owner 24.08.2026, am
+      eigenen 11-Stationen-Profil: „nach der vierten Stelle zum Ausklappen"). */
+  alleAnzeigen: (rest: number) => string;
+  wenigerAnzeigen: string;
   interessiert: (name: string) => string;
   interessiertText: string;
   interview: string; nachricht: string; cvLaden: string;
   kontakt: string; kontaktSpaeter: string;
+  /** Nur der BESITZER sieht diese Zeile — sie erklärt, warum er seine eigenen Kontaktdaten
+      sieht, obwohl Firmen sie erst nach Freigabe bekommen (Owner 24.08.2026: „ein Bewerber
+      muss seine Kontaktdaten sehen"). */
+  kontaktNurDu: string;
   chatEinstieg: (name: string) => string;
   chatHinweis: string; chatBeispiele: string; chatZu: string;
 };
@@ -116,10 +124,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Education", sprachen: "Languages", passung: "Roles that fit this profile",
     stark: "Strong Match", gut: "Good Match", warum: "Why", rolleAnsehen: "View role",
     ganzeCv: "The complete career history is in the CV.",
+    alleAnzeigen: (n) => `+${n} more`, wenigerAnzeigen: "Show less",
     interessiert: (n) => `Interested in ${n}?`,
     interessiertText: "Send a request and we pass it to the candidate the same day.",
     interview: "Request an interview", nachricht: "Send a message", cvLaden: "Download CV",
     kontakt: "Contact", kontaktSpaeter: "Contact details are released once an employer confirms interest.",
+    kontaktNurDu: "Only you see this contact information here — companies see it once you or we confirm a request.",
     chatEinstieg: (n) => `Ask about ${n}'s experience`,
     chatHinweis: "Answers come only from the verified CV and this profile. Nothing is added.",
     chatBeispiele: "For example", chatZu: "Close",
@@ -130,10 +140,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Ausbildung", sprachen: "Sprachen", passung: "Rollen, die zu diesem Profil passen",
     stark: "Starke Passung", gut: "Gute Passung", warum: "Warum", rolleAnsehen: "Rolle ansehen",
     ganzeCv: "Der vollständige Werdegang steht im Lebenslauf.",
+    alleAnzeigen: (n) => `+${n} weitere anzeigen`, wenigerAnzeigen: "Weniger anzeigen",
     interessiert: (n) => `Interesse an ${n}?`,
     interessiertText: "Schick eine Anfrage — wir geben sie noch am selben Tag weiter.",
     interview: "Gespräch anfragen", nachricht: "Nachricht senden", cvLaden: "Lebenslauf laden",
     kontakt: "Kontakt", kontaktSpaeter: "Die Kontaktdaten werden frei, sobald eine Firma Interesse bestätigt.",
+    kontaktNurDu: "Nur du siehst diese Kontaktdaten hier — Firmen sehen sie erst, wenn du oder wir eine Anfrage bestätigen.",
     chatEinstieg: (n) => `Frag nach ${n}s Erfahrung`,
     chatHinweis: "Antworten kommen nur aus dem geprüften Lebenslauf und diesem Profil. Nichts wird ergänzt.",
     chatBeispiele: "Zum Beispiel", chatZu: "Schliessen",
@@ -144,10 +156,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Studii", sprachen: "Limbi", passung: "Roluri potrivite pentru acest profil",
     stark: "Potrivire puternică", gut: "Potrivire bună", warum: "De ce", rolleAnsehen: "Vezi rolul",
     ganzeCv: "Parcursul complet se află în CV.",
+    alleAnzeigen: (n) => `+${n} altele`, wenigerAnzeigen: "Arată mai puțin",
     interessiert: (n) => `Interesat de ${n}?`,
     interessiertText: "Trimite o cerere — o transmitem candidatului în aceeași zi.",
     interview: "Cere un interviu", nachricht: "Trimite un mesaj", cvLaden: "Descarcă CV-ul",
     kontakt: "Contact", kontaktSpaeter: "Datele de contact se deblochează după ce o firmă confirmă interesul.",
+    kontaktNurDu: "Doar tu vezi aceste date de contact aici — firmele le văd abia după ce tu sau noi confirmăm o cerere.",
     chatEinstieg: (n) => `Întreabă despre experiența lui ${n}`,
     chatHinweis: "Răspunsurile vin doar din CV-ul verificat și din acest profil. Nimic nu este inventat.",
     chatBeispiele: "De exemplu", chatZu: "Închide",
@@ -158,10 +172,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Formación", sprachen: "Idiomas", passung: "Puestos que encajan con este perfil",
     stark: "Encaje alto", gut: "Buen encaje", warum: "Por qué", rolleAnsehen: "Ver puesto",
     ganzeCv: "La trayectoria completa está en el CV.",
+    alleAnzeigen: (n) => `+${n} más`, wenigerAnzeigen: "Mostrar menos",
     interessiert: (n) => `¿Interesa ${n}?`,
     interessiertText: "Envía una solicitud y la trasladamos el mismo día.",
     interview: "Solicitar entrevista", nachricht: "Enviar mensaje", cvLaden: "Descargar CV",
     kontakt: "Contacto", kontaktSpaeter: "Los datos de contacto se liberan cuando una empresa confirma su interés.",
+    kontaktNurDu: "Solo tú ves aquí estos datos de contacto — las empresas los ven cuando tú o nosotros confirmamos una solicitud.",
     chatEinstieg: (n) => `Pregunta por la experiencia de ${n}`,
     chatHinweis: "Las respuestas salen solo del CV verificado y de este perfil. No se añade nada.",
     chatBeispiele: "Por ejemplo", chatZu: "Cerrar",
@@ -172,10 +188,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Formation", sprachen: "Langues", passung: "Postes qui correspondent à ce profil",
     stark: "Forte adéquation", gut: "Bonne adéquation", warum: "Pourquoi", rolleAnsehen: "Voir le poste",
     ganzeCv: "Le parcours complet figure dans le CV.",
+    alleAnzeigen: (n) => `+${n} de plus`, wenigerAnzeigen: "Afficher moins",
     interessiert: (n) => `${n} vous intéresse ?`,
     interessiertText: "Envoyez une demande — nous la transmettons le jour même.",
     interview: "Demander un entretien", nachricht: "Envoyer un message", cvLaden: "Télécharger le CV",
     kontakt: "Contact", kontaktSpaeter: "Les coordonnées sont libérées dès qu'une entreprise confirme son intérêt.",
+    kontaktNurDu: "Toi seul vois ces coordonnées ici — les entreprises les voient une fois qu'une demande est confirmée.",
     chatEinstieg: (n) => `Interroger le parcours de ${n}`,
     chatHinweis: "Les réponses viennent uniquement du CV vérifié et de ce profil. Rien n'est ajouté.",
     chatBeispiele: "Par exemple", chatZu: "Fermer",
@@ -186,10 +204,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Formação", sprachen: "Línguas", passung: "Funções que combinam com este perfil",
     stark: "Correspondência forte", gut: "Boa correspondência", warum: "Porquê", rolleAnsehen: "Ver função",
     ganzeCv: "O percurso completo está no CV.",
+    alleAnzeigen: (n) => `+${n} mais`, wenigerAnzeigen: "Mostrar menos",
     interessiert: (n) => `Interesse em ${n}?`,
     interessiertText: "Envia um pedido — encaminhamos no próprio dia.",
     interview: "Pedir entrevista", nachricht: "Enviar mensagem", cvLaden: "Descarregar CV",
     kontakt: "Contacto", kontaktSpaeter: "Os contactos são libertados assim que uma empresa confirma interesse.",
+    kontaktNurDu: "Só tu vês estes contactos aqui — as empresas só os veem quando tu ou nós confirmarmos um pedido.",
     chatEinstieg: (n) => `Pergunta sobre a experiência de ${n}`,
     chatHinweis: "As respostas vêm apenas do CV verificado e deste perfil. Nada é acrescentado.",
     chatBeispiele: "Por exemplo", chatZu: "Fechar",
@@ -200,10 +220,12 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     bildung: "Formazione", sprachen: "Lingue", passung: "Ruoli adatti a questo profilo",
     stark: "Forte corrispondenza", gut: "Buona corrispondenza", warum: "Perché", rolleAnsehen: "Vedi il ruolo",
     ganzeCv: "Il percorso completo è nel CV.",
+    alleAnzeigen: (n) => `+${n} altri`, wenigerAnzeigen: "Mostra meno",
     interessiert: (n) => `Interessa ${n}?`,
     interessiertText: "Invia una richiesta — la giriamo in giornata.",
     interview: "Richiedi un colloquio", nachricht: "Invia un messaggio", cvLaden: "Scarica il CV",
     kontakt: "Contatti", kontaktSpaeter: "I contatti si sbloccano quando un'azienda conferma l'interesse.",
+    kontaktNurDu: "Solo tu vedi questi contatti qui — le aziende li vedono solo dopo che tu o noi confermiamo una richiesta.",
     chatEinstieg: (n) => `Chiedi dell'esperienza di ${n}`,
     chatHinweis: "Le risposte vengono solo dal CV verificato e da questo profilo. Nulla viene aggiunto.",
     chatBeispiele: "Per esempio", chatZu: "Chiudi",

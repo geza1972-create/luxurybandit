@@ -1,4 +1,7 @@
-import { MapPin, Languages, ArrowUpRight, Check, FileText, Mail, Phone, Link2 } from "lucide-react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import { MapPin, Languages, ArrowUpRight, Check, FileText, Mail, Phone, Link2, ChevronDown } from "lucide-react";
 import { Knopf, TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -6,8 +9,8 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ProfilChatEinstieg from "@/components/ProfilChatEinstieg";
 import SeitenFuss from "@/components/SeitenFuss";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import type { Lang } from "@/lib/lang";
-import type { ReactNode } from "react";
 
 /**
  * DIE VORLAGE „EXECUTIVE" — DAS FERTIGE BEWERBER-DOSSIER (Owner 22.08.2026: „one template
@@ -75,6 +78,37 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
   const T = EXECUTIVE_TEXTE[lang] ?? EXECUTIVE_TEXTE.en;
   const K = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
   const vorname = profil.name.split(" ")[0] || profil.name;
+
+  /* ERFAHRUNG EINGEKLAPPT NACH VIER (Owner 24.08.2026, am eigenen 11-Stationen-Profil:
+     „nach der vierten Stelle zum Ausklappen mit alles anzeigen") — seit „es muss alles rein"
+     (24.08., derselbe Tag) liegen ALLE Stationen im Profil, aber elf Haarlinien-Blöcke
+     hintereinander sind kein Zehn-Sekunden-Dossier mehr. Eingeklappt bleibt trotzdem ALLES
+     da: ein Tipp zeigt den Rest, nichts geht verloren, nur die erste Ansicht bleibt kurz. */
+  const [erfahrungOffen, setErfahrungOffen] = useState(false);
+
+  /**
+   * „EIN BEWERBER MUSS SEINE KONTAKTDATEN SEHEN" (Owner 24.08.2026) — `kontaktSichtbar`
+   * regelt, was eine FIRMA sieht (das Vermittlungsmodell, siehe lib/lebenslauf-store.ts).
+   * Der BESITZER ist keine Firma: Er soll seine eigenen Daten immer sehen, um zu prüfen,
+   * dass sie stimmen. Dieselbe Besitz-Prüfung wie die anderen Werkzeuge
+   * (`/api/lebenslauf-korrektur` GET, geteilte Logik `darfAmProfilArbeiten`) — SICHER
+   * VOREINGESTELLT AUF „NEIN": Bis die Prüfung zurück ist, gilt exakt das, was ein Fremder
+   * sähe (kontaktSichtbar); erst eine BESTÄTIGTE Besitzerschaft schaltet mehr frei, nie
+   * umgekehrt — ein Fremder darf nie kurz zu viel sehen, ein Besitzer darf ruhig eine
+   * halbe Sekunde auf seine eigenen Daten warten.
+   */
+  const [istBesitzer, setIstBesitzer] = useState(false);
+  useEffect(() => {
+    let device = "", pin = "", tok = "";
+    try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+    try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
+    try { tok = getStoredAuthSession()?.access_token ?? ""; } catch { /**/ }
+    fetch(`/api/lebenslauf-korrektur?id=${encodeURIComponent(profil.id)}&device=${encodeURIComponent(device)}`, {
+      headers: { ...(tok ? { Authorization: `Bearer ${tok}` } : {}), ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+      cache: "no-store",
+    }).then(r => r.json()).then(d => { if (d?.darf === true) setIstBesitzer(true); }).catch(() => { /* bleibt „nein" */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profil.id]);
 
   const menu = [
     { label: T.profil, href: "#profil" },
@@ -230,13 +264,19 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           )}
 
           {/* ERFAHRUNG — Rolle gross, Firma und Zeitraum in einer Zeile darunter, ein Satz
-              Ergebnis. Kein Lebenslauf-Nachbau (Auftrag: „Do not recreate the entire CV"),
-              sondern die drei Stationen, an denen man das Niveau erkennt. */}
-          {profil.erfahrung.length > 0 && (
+              Ergebnis. „Es muss alles rein" (24.08.2026) heisst: alle Stationen sind DA —
+              aber nur die ersten vier stehen offen, der Rest hinter „+N weitere anzeigen"
+              (Owner, am eigenen 11-Stationen-Profil: „nach der vierten Stelle zum
+              Ausklappen"). Vier oder weniger Stationen zeigen den Knopf gar nicht erst. */}
+          {profil.erfahrung.length > 0 && (() => {
+            const GRENZE = 4;
+            const sichtbar = erfahrungOffen ? profil.erfahrung : profil.erfahrung.slice(0, GRENZE);
+            const rest = profil.erfahrung.length - GRENZE;
+            return (
             <section id="erfahrung" className={`px-5 py-6 md:px-8 md:py-7 ${LINIE}`}>
               <Abschnitt>{T.erfahrung}</Abschnitt>
               <div className="mt-1">
-                {profil.erfahrung.map((e, i) => (
+                {sichtbar.map((e, i) => (
                   <div key={`${e.rolle}-${e.zeitraum}`} className={`pb-4 pt-4 ${i === 0 ? "" : LINIE}`}>
                     <div className="flex items-baseline justify-between gap-4">
                       <p className="text-[15px] font-black leading-tight md:text-[16px]">{e.rolle}</p>
@@ -249,11 +289,19 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                   </div>
                 ))}
               </div>
+              {rest > 0 && (
+                <button type="button" onClick={() => setErfahrungOffen(o => !o)}
+                  className={`mt-3 flex items-center gap-1.5 pt-3 text-[11.5px] font-black uppercase tracking-[0.1em] opacity-60 transition hover:opacity-100 ${LINIE}`}>
+                  {erfahrungOffen ? T.wenigerAnzeigen : T.alleAnzeigen(rest)}
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${erfahrungOffen ? "rotate-180" : ""}`} />
+                </button>
+              )}
               {profil.cvUrl && (
                 <p className={`pt-3 text-[11.5px] font-bold italic opacity-50 ${LINIE}`}>{T.ganzeCv}</p>
               )}
             </section>
-          )}
+            );
+          })()}
 
           {/* AUSGEWÄHLTE ERGEBNISSE — drei Zahlen, jede mit ihrer Zeile. Die Zahl in der
               Serife und gross: Sie ist der Beleg, auf den ein Personaler zeigt. */}
@@ -375,8 +423,11 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
 
           {/* DIE KONTAKTDATEN SIND DAS VERMITTLUNGSMODELL (Owner 20.08.2026, siehe
               `kontaktSichtbar` in lib/lebenslauf-store.ts): Ohne Freigabe steht hier ein Satz
-              statt einer Nummer — die Firma bekommt die Person, nicht die Adresse. */}
-          {profil.kontaktSichtbar && profil.kontakt ? (
+              statt einer Nummer — die Firma bekommt die Person, nicht die Adresse.
+              AUSSER FÜR DEN BESITZER (Owner 24.08.2026: „ein Bewerber muss seine
+              Kontaktdaten sehen") — `istBesitzer` schaltet unabhängig von `kontaktSichtbar`
+              frei, mit einer eigenen Zeile, die den Unterschied zur Firmen-Ansicht erklärt. */}
+          {(istBesitzer || profil.kontaktSichtbar) && profil.kontakt ? (
             <div className={`mt-5 pt-4 ${LINIE}`}>
               <Abschnitt>{T.kontakt}</Abschnitt>
               <div className="mt-3 flex flex-col gap-2">
@@ -393,6 +444,9 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                   <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Link2 className="h-4 w-4 shrink-0" />{profil.kontakt.profilLink}</p>
                 )}
               </div>
+              {istBesitzer && !profil.kontaktSichtbar && (
+                <p className="mt-3 text-[11px] font-bold leading-snug opacity-45">{T.kontaktNurDu}</p>
+              )}
             </div>
           ) : (
             <p className={`mt-5 pt-4 text-[11.5px] font-bold leading-snug opacity-50 ${LINIE}`}>{T.kontaktSpaeter}</p>

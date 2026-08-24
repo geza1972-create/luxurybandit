@@ -66,12 +66,16 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
      er aktiv arbeiten will, nicht nur verwalten), dann Abo („bleibt die Seite online?"),
      dann die Korrektur. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
      jeden anderen unsichtbar. */
+  /* JEDES ELEMENT MIT EXPLIZITEM KEY (24.08.2026, gemessen): Ohne sie meldet React „Each
+     child in a list should have a unique key prop, check the render method of TalentKopf" —
+     eine RSC-Eigenart, wenn ein Server Component fertige Elemente über eine Prop (hier
+     `werkzeug`/`konto`) an ein Client Component reicht. Kostet nichts, behebt die Meldung. */
   const werkzeug = (
     <>
-      <ProfilAnzeigenMatch id={id} lang={L} />
-      <ProfilAbo id={id} aboAktiv={profil.aboAktiv === true}
+      <ProfilAnzeigenMatch key="match" id={id} lang={L} />
+      <ProfilAbo key="abo" id={id} aboAktiv={profil.aboAktiv === true}
         monatPreis={eur(LEBENSLAUF_MONAT_CENTS, L)} restTage={restTage} lang={L} />
-      <ProfilKorrektur id={id} lang={L} />
+      <ProfilKorrektur key="korrektur" id={id} lang={L} />
     </>
   );
 
@@ -102,5 +106,5 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   /* DER INHALT FOLGT DEM SPRACHSCHALTER (Owner 24.08.2026: „diese Seite soll man übersetzen
      können") — einmal je Sprache über die Haus-Übersetzung, danach aus dem Dauer-Cache. */
   const exec = await executiveInSprache(executiveAusProfil(profil, L), L);
-  return <LebenslaufExecutive profil={exec} lang={L} werkzeug={werkzeug} konto={<KontoChip />} />;
+  return <LebenslaufExecutive profil={exec} lang={L} werkzeug={werkzeug} konto={<KontoChip key="konto" />} />;
 }
