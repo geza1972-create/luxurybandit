@@ -275,7 +275,13 @@ export const GEBURTSTAG_CENTS = GESCHENK_VIDEO_CENTS;  // 4,99 € — seit 07.0
  * ist keine Video-Erzeugung, sondern ein Text+Bild-Auswertungslauf. Eigene Konstante nach
  * dem Hausmuster, damit dieser Preis sich unabhängig vom Geschenk-Hauspreis ändern lässt.
  */
-export const LEBENSLAUF_CENTS = 999;                    // 9,99 € — Profilseite aus Foto+Lebenslauf
+/* NEUES PREISMODELL (Owner 24.08.2026, Seitentext „Ein Link, der mit dir mitwächst"):
+   19 einmalig — Skript, Video und fertige Seite; dazu 4,99 im Monat, damit die Seite online
+   bleibt und sich unbegrenzt aktualisieren lässt (monatlich kündbar; ohne Abo bleibt die
+   Seite 30 Tage erreichbar). Die ABO-KASSE und die 30-Tage-Frist sind noch NICHT gebaut —
+   der Einmalkauf läuft über den bestehenden Trichter. */
+export const LEBENSLAUF_CENTS = 1900;                   // 19 — Skript, Video und fertige Seite
+export const LEBENSLAUF_MONAT_CENTS = 499;              // 4,99/Monat — Seite online + Updates (Kasse offen)
 
 /**
  * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses

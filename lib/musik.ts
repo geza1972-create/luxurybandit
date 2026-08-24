@@ -83,6 +83,12 @@ const NACH_THEMA: Record<string, readonly string[]> = {
    */
   surprise: [STUECKE.tanz],
   poledance: [STUECKE.tanz],
+  /**
+   * DIE BEWERBUNG HAT KEINE MUSIK (24.08.2026, dieselbe Begründung wie beim Geburtstag):
+   * Der Bewerber SPRICHT — seine Stimme ist das Produkt, und das Video geht an
+   * Personalabteilungen. Leer heisst: Originalton, keine Schleife.
+   */
+  lebenslauf: [""],
 };
 
 /**

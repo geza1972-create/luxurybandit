@@ -1,26 +1,29 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import TopNav from "@/components/TopNav";
+import LebenslaufExecutive from "@/components/LebenslaufExecutive";
+import ProfilKorrektur from "@/components/ProfilKorrektur";
+import ProfilAbo from "@/components/ProfilAbo";
 import SeitenFuss from "@/components/SeitenFuss";
-import EinladungAnsicht from "@/components/EinladungAnsicht";
-import { KARTE_TEXTE } from "@/components/EinladungKarte";
+import { eur, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 import { leseLebenslauf } from "@/lib/lebenslauf-store";
+import { executiveAusProfil } from "@/lib/lebenslauf-vorlage";
+import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
 import { resolveLang } from "@/lib/lang-server";
 
 /**
- * DIE GENERIERTE PROFILSEITE (Owner 19.08.2026: „Bilderlastig. Wenig Text.", 20.08.2026: kein
- * KI-Avatar mehr — eine echte Eigenaufnahme, siehe Memory `lebenslauf-video-eigenaufnahme`).
- * Grosses Video oben (der Nutzer spricht den von der KI erstellten Text selbst), darunter
- * Lebenslauf-Karte, Empfehlungen mit Match, Kontakt nur nach Freigabe. Muster wie
- * `app/einladung/[id]/page.tsx` (eigene lebende Seite je Auftrag), aber auf dem eigenen,
- * kleinen Speicher `lib/lebenslauf-store.ts` — Begründung dort.
+ * DIE GENERIERTE PROFILSEITE RENDERT DIE EXECUTIVE-VORLAGE (Owner 24.08.2026: „unter der
+ * Landingpage die Seite, die der User bekommt … Die Leute kaufen was sie sehen").
  *
- * DAS VIDEO-FELD IST `EinladungAnsicht` OHNE DIE `EinladungKarte`-HÜLLE (Memory
- * `lebenslauf-kontaktkarte-ausblendbar`: kein „made by luxurybandit.com" auf DIESER Seite,
- * das ist genau die Zeile, die `EinladungKarte` fest einbaut) — `EinladungAnsicht` allein
- * bringt Tipp-zum-Abspielen, Ton-Knopf und Vollbild mit, ohne die Herkunftszeile.
- * `schleife={false}` (jemand spricht), `originalton` (die Stimme ist der Inhalt) — beides aus
- * den drei Schaltern in `Landingpage.md` §3.
+ * Bis heute stand hier ein eigener Aufbau (weisse Karten untereinander) NEBEN der fertigen
+ * Vorlage `/lebenslauf/executive` — das Beispiel zeigte also eine andere Seite, als der
+ * Käufer bekam. Genau das ist jetzt geschlossen: Beispielseite und echte Seite sind EIN
+ * Baustein (`components/LebenslaufExecutive.tsx`); die Rohdaten aus dem Speicher übersetzt
+ * `executiveAusProfil` (lib/lebenslauf-vorlage.ts) — Abschnitte ohne Daten blendet die
+ * Vorlage selbst aus. Der alte Aufbau liegt in der Git-Historie (Stand 23.08.2026).
+ *
+ * KEIN „made by luxurybandit.com", keine Geschenk-Navigation (Memory
+ * `lebenslauf-executive-vorlage`): Der Bewerber-Bereich ist ein eigenes Produkt; die
+ * Vorlage bringt ihren eigenen Kopf (`TalentKopf`) und Fuss mit.
  */
 
 export const dynamic = "force-dynamic";
@@ -29,93 +32,71 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const profil = await leseLebenslauf(id);
   return {
-    title: profil ? `${profil.name || "Profil"} — AI gibt dir neue Chancen` : "Profil nicht gefunden",
+    title: profil ? `${profil.name || "Profil"} — Candidate profile` : "Profil nicht gefunden",
     robots: { index: false, follow: false },
   };
 }
+
+/** „Ohne Abo bleibt deine Seite 30 Tage erreichbar." (Owner-Seitentext 24.08.2026). */
+const FRIST_MS = 30 * 24 * 60 * 60 * 1000;
+
+const ABGELAUFEN: Record<string, { titel: string; zeile: string }> = {
+  de: { titel: "Diese Seite ist nicht mehr online.", zeile: "Die 30 Tage sind vorbei. Der Bewerber kann sie mit dem Abo sofort wieder online nehmen." },
+  en: { titel: "This page is no longer online.", zeile: "The 30 days are over. The candidate can bring it back online instantly with the subscription." },
+  ro: { titel: "Această pagină nu mai este online.", zeile: "Cele 30 de zile au trecut. Candidatul o poate readuce online imediat cu abonamentul." },
+  es: { titel: "Esta página ya no está online.", zeile: "Los 30 días han pasado. El candidato puede reactivarla al instante con la suscripción." },
+  fr: { titel: "Cette page n'est plus en ligne.", zeile: "Les 30 jours sont écoulés. Le candidat peut la remettre en ligne immédiatement avec l'abonnement." },
+  pt: { titel: "Esta página já não está online.", zeile: "Os 30 dias passaram. O candidato pode reativá-la de imediato com a subscrição." },
+  it: { titel: "Questa pagina non è più online.", zeile: "I 30 giorni sono passati. Il candidato può riportarla online subito con l'abbonamento." },
+};
 
 export default async function LebenslaufProfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profil = await leseLebenslauf(id);
   if (!profil || !profil.bezahlt) notFound();
+  const L = await resolveLang();
 
-  return (
-    <main className="lb-bg min-h-screen text-white">
-      <TopNav />
-      <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
-        <div className="relative mt-2 aspect-[3/4] w-full overflow-hidden rounded-3xl border border-[#f6cf51]/40">
-          {profil.fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profil.fotoUrl} alt={profil.name ?? "Profil"} className="h-full w-full object-cover" />
-          ) : (
-            <div className="grid h-full w-full place-items-center bg-white/5 text-white/40">Kein Bild</div>
-          )}
-          {/* KEIN „made by luxurybandit.com" HIER (Owner 20.08.2026) — diese Seite ist das,
-              was der Bewerber einer Firma zeigt; die Marke des Werkzeugs gehört nicht auf
-              das Werk. Anders als bei den Geschenk-Karten (Skill `card`, Memory
-              `karten-fuer-videos`), die man verschickt, um FÜR LuxuryBandit zu werben. */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-4 pt-10">
-            <p className="text-[19px] font-black">{profil.name || "Profil"}</p>
-          </div>
-        </div>
+  const erstellt = Date.parse(profil.erstelltAm ?? "") || Date.now();
+  const restTage = Math.max(0, Math.ceil((erstellt + FRIST_MS - Date.now()) / (24 * 60 * 60 * 1000)));
+  const abgelaufen = !profil.aboAktiv && Date.now() - erstellt > FRIST_MS;
 
-        {/* DER LEBENSLAUF ALS EIGENE KARTE (Owner 20.08.2026: „sein Lebenslauf als Card
-            drunter") — dieselbe Karten-Hülle wie das Foto oben, damit die Stichpunkte nicht
-            wie eine lose Liste wirken, sondern wie ein zweites, gleichwertiges Stück Papier. */}
-        {profil.stichpunkte.length > 0 && (
-          <div className="mt-5 rounded-3xl border border-[#f6cf51]/40 lb-goldhauch p-4">
-            <p className="text-[13px] font-black text-[#f6cf51]">Dein Lebenslauf</p>
-            <ul className="mt-2 flex flex-col gap-1.5">
-              {profil.stichpunkte.map((s) => (
-                <li key={s} className="text-[13px] font-bold text-white/85">• {s}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* EMPFEHLUNGEN MIT MATCH UND DIREKTLINK (Owner 20.08.2026: „eine Card mit den
-            Empfehlungen wo er sich bewerben kann, als Beispiel mit 68% Match, Link direkt
-            und bewerben"). Die Prozentzahl ist ein BEISPIEL-Platzhalter (kein echtes
-            Matching gebaut) — fällt in fester Reihenfolge, damit die erste Kategorie am
-            überzeugendsten wirkt, ohne eine falsche Genauigkeit vorzutäuschen. Der Link
-            führt auf eine echte Jobsuche zur Kategorie statt auf eine erfundene Stelle. */}
-        {profil.kategorien.length > 0 && (
-          <div className="mt-5">
-            <p className="text-[13px] font-black text-[#f6cf51]">Das kannst du werden</p>
-            <div className="mt-2 flex flex-col gap-3">
-              {profil.kategorien.map((k, i) => {
-                const match = Math.max(48, 68 - i * 7);
-                const suchLink = `https://www.google.com/search?q=${encodeURIComponent(`${k} jobs remote`)}`;
-                return (
-                  <div key={k} className="rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[14px] font-black text-white">{k}</p>
-                      <span className="shrink-0 rounded-full bg-[#f6cf51]/15 px-2.5 py-1 text-[11px] font-black text-[#f6cf51]">
-                        {match}% Match
-                      </span>
-                    </div>
-                    <a href={suchLink} target="_blank" rel="noreferrer"
-                      className="lb-gold mt-3 flex h-11 w-full items-center justify-center rounded-full text-[13px] font-black">
-                      Jetzt bewerben →
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {/* KONTAKTDATEN — NUR NACH FREIGABE (Owner 20.08.2026: siehe Begründung bei
-            `kontaktSichtbar` in lib/lebenslauf-store.ts). Diese Seite geht an Firmen OHNE
-            diese Karte; sie erscheint erst, wenn eine Firma an genau diesem Kandidaten
-            Interesse bestätigt hat. */}
-        {profil.kontaktSichtbar && profil.email && (
-          <div className="mt-5 rounded-3xl border border-[#f6cf51]/40 lb-goldhauch p-4">
-            <p className="text-[13px] font-black text-[#f6cf51]">Kontakt</p>
-            <p className="mt-2 text-[13px] font-bold text-white/85">{profil.email}</p>
-          </div>
-        )}
-      </div>
-      <SeitenFuss />
-    </main>
+  /* Beide Besitzer-Werkzeuge — Abo zuerst (es beantwortet „bleibt die Seite online?"),
+     dann die Korrektur. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
+     jeden anderen unsichtbar. */
+  const werkzeug = (
+    <>
+      <ProfilAbo id={id} aboAktiv={profil.aboAktiv === true}
+        monatPreis={eur(LEBENSLAUF_MONAT_CENTS, L)} restTage={restTage} lang={L} />
+      <ProfilKorrektur id={id} lang={L} />
+    </>
   );
+
+  /**
+   * DAS 30-TAGE-TOR (Owner-Seitentext): Ohne Abo ist die Seite nach 30 Tagen ZU — für
+   * Firmen steht nur noch der Ablauf-Hinweis da. Gelöscht wird nichts; der BESITZER sieht
+   * auf derselben Adresse seine Werkzeuge (Besitz-Prüfung im Browser) und reaktiviert mit
+   * einem Tipp — danach rendert wieder das volle Dossier.
+   */
+  if (abgelaufen) {
+    const t = ABGELAUFEN[L] ?? ABGELAUFEN.en;
+    return (
+      <main className="lb-bg lb-dossier min-h-screen text-white">
+        <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-10 md:max-w-[760px]">
+          <article className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+            <div className="px-5 py-8 md:px-8">
+              <h1 className="font-serif text-[24px] font-black leading-tight">{t.titel}</h1>
+              <p className="mt-2 text-[13px] font-bold leading-snug opacity-70">{t.zeile}</p>
+            </div>
+            {werkzeug}
+          </article>
+        </div>
+        <SeitenFuss art="schlicht" className="md:max-w-[760px]" />
+      </main>
+    );
+  }
+
+  /* DER INHALT FOLGT DEM SPRACHSCHALTER (Owner 24.08.2026: „diese Seite soll man übersetzen
+     können") — einmal je Sprache über die Haus-Übersetzung, danach aus dem Dauer-Cache. */
+  const exec = await executiveInSprache(executiveAusProfil(profil, L), L);
+  return <LebenslaufExecutive profil={exec} lang={L} werkzeug={werkzeug} />;
 }

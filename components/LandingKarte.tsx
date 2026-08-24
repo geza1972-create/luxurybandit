@@ -26,7 +26,7 @@ import { kissText } from "@/lib/kiss-i18n";
  *     Hochzeit — `preisZeile`, gefüllt aus der Preistabelle)
  *   · „made by luxurybandit.com" als Fuss
  */
-export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, teilenText, preisZeile, verhaeltnis, fuss }: {
+export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, fuss }: {
   sprache: string;
   titel: string;
   folien: { video: string; poster?: string }[];
@@ -40,6 +40,9 @@ export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, 
   preisZeile?: string;
   /** Nur wenn das Material es verlangt (9:16-Clips) — sonst das Karten-Standardmass. */
   verhaeltnis?: string;
+  /** Sprech-/Porträtvideos: `oben` ankert den Zuschnitt an der Oberkante, nie den Kopf
+      abschneiden (Owner 24.08.2026, Skill `card`) — durchgereicht an `EinladungAnsicht`. */
+  ausrichtung?: "mitte" | "oben";
   /** Zusätzlicher Karten-Fuss VOR dem made-by (selten — z. B. WANN/WO der Hochzeit). */
   fuss?: ReactNode;
 }) {
@@ -57,6 +60,7 @@ export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, 
             <EinladungAnsicht key={i} id={`landing-${i}`} videoUrl={f.video} poster={f.poster || undefined}
               zaehlen={false} schleife={false} originalton musik=""
               {...(verhaeltnis ? { verhaeltnis } : {})}
+              {...(ausrichtung ? { ausrichtung } : {})}
               tonText={K.ton} tonAusText={K.tonAus}
               teilen={<TeilenKnopf rund url={teilenUrl} text={teilenText} label={K.teilen} kopiertLabel={K.teilen} />} />
           ))} />

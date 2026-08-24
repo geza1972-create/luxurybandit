@@ -46,6 +46,9 @@ export default function ThemenVorspann({ anlass, grund, wieGeht, wieGehtPrivat, 
       <p className="mt-3 text-[14px] font-bold leading-snug text-white/75">{anlass}</p>
       <p className="mt-2 text-[16px] font-black leading-snug text-white/90">{grund}</p>
 
+      {/* Ohne Schritte keine leere Liste (24.08.2026, Lebenslauf-Hero: die Schritte stehen
+          dort als eigene Sektion MIT Titeln unter der Karte, nicht im Vorspann). */}
+      {wieGeht.length > 0 && (
       <ol className="mt-3 space-y-1.5">
         {wieGeht.map((zeile, i) => (
           <li key={i} className="flex gap-2.5 text-[13.5px] font-semibold leading-snug text-white/75">
@@ -56,6 +59,7 @@ export default function ThemenVorspann({ anlass, grund, wieGeht, wieGehtPrivat, 
           </li>
         ))}
       </ol>
+      )}
 
       <p className="mt-2.5 flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-[#f6cf51]">
         <Lock className="mt-[2px] h-3.5 w-3.5 shrink-0" />

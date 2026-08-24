@@ -276,11 +276,28 @@ export async function GET(request: Request) {
           && (offenerKauf
             || (Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
             || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));
+        /**
+         * DIE EIGENAUFNAHME DES BEWERBERS ALS EIGENE KACHEL (Owner 24.08.2026: „DU musst
+         * das Original-Video speichern unter Käufe und das Ergebnis. Ich muss sie
+         * herunterladen können, damit ich daraus ein Werbevideo machen kann").
+         *
+         * `/api/lebenslauf-fertigstellen` legt die Aufnahme als `audioPath` an den Auftrag.
+         * Sie ist hier ausdrücklich KEIN Beiwerk im Sinne der Regel vom 12.08. (dort:
+         * hochgeladene VORLAGEN-Fotos) — sie ist sein Rohmaterial und gehört ihm wie das
+         * Ergebnis. `source: "kiss-aufnahme"` sorgt dafür, dass die Kachel KEINEN
+         * Löschknopf trägt (die Galerie zeigt ihn nur an `source === "kiss"`): Genau an
+         * so einer Zweitkachel hat ein Löschtipp am 12.08. einen bezahlten Auftrag samt
+         * Video mitgerissen. Gelöscht wird am WERK — dann verschwinden beide.
+         */
+        const aufnahmeUrl = e.theme === "lebenslauf" && e.audioPath
+          ? await getSignedUrl(String(e.audioPath)).catch(() => "") : "";
         return ([
         {
           id: e.id,
           imageUrl: (e.imagePath ? await getSignedUrl(e.imagePath).catch(() => "") : "")
-            || ((laufend || gescheitert) && (e.modelPath || e.personPath)
+            /* Beim Lebenslauf IMMER sein Foto als Poster, auch am fertigen Video (Skill
+               `card`: nie ein Video ohne Poster) — das HeyGen-Ergebnis bringt keins mit. */
+            || ((laufend || gescheitert || e.theme === "lebenslauf") && (e.modelPath || e.personPath)
               /* AUCH IM FEHLERFALL (15.08.2026): Die Galerie wirft Kacheln ohne Bild und
                  ohne `rendert` aus der Liste — ein gescheiterter Auftrag waere spurlos
                  verschwunden, statt seinen Zustand zu zeigen. Sein Standbild existiert
@@ -351,6 +368,21 @@ export async function GET(request: Request) {
          * hängen am Auftrag — gezeigt und gelöscht wird nur noch das WERK; der Admin sieht
          * die Vorlagen weiterhin in UploadsAdmin samt Warnzeichen.
          */
+        /* Die Original-Aufnahme des Bewerbers — Begründung oben bei `aufnahmeUrl`. */
+        ...(aufnahmeUrl ? [{
+          id: `${e.id}-aufnahme`,
+          imageUrl: "",
+          videoUrl: aufnahmeUrl,
+          name: e.modelName ? `Original — ${e.modelName}` : "Original",
+          createdAt: e.createdAt || "",
+          source: "kiss-aufnahme",
+          theme: "lebenslauf",
+          empfaenger: "",
+          videoFertigAt: "",
+          paid: false,
+          warnung: "",
+          alter: 0,
+        }] : []),
       ]);
       }));
       return paare.flat();

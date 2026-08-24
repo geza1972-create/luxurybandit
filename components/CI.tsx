@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, Send, Check, type LucideIcon } from "lucide-react";
+import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import EinladungKarte from "@/components/EinladungKarte";
@@ -10,6 +11,7 @@ import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
 import { kissText } from "@/lib/kiss-i18n";
+import { LEBENSLAUF_BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 import { logTunnelEvent } from "@/lib/track-funnel";
 import { kontoText } from "@/lib/konto-i18n";
 import { istInAppBrowser, istAndroid, chromeIntentUrl } from "@/lib/browser-erkennen";
@@ -204,7 +206,15 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
        Die Klassen-Regel ist ohne !important und verliert gegen jede spätere Kontext-Regel —
        genau so wurde der Programm-Knopf irgendwo weiss. Die helle Anzeigen-Fassung
        (`.lb-fb .lb-gold` mit !important, weiss auf Blau) gewinnt weiterhin, wie gewollt. */
-    ? "lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full font-black text-[#1a1204]"
+    /* IN DER KARTE HEISST GOLD `lb-karte-cta` (22.08.2026, gemessen an `LandingKarte`, die
+       `art="gold" karte href=…` schon benutzt): Beide tragen DENSELBEN gelben Verlauf — der
+       Unterschied ist die Tinte. `.lb-karte a` färbt jeden Link im Papier per !important auf
+       Karten-Braun; ein goldener Kauf-LINK in einer Karte verlor damit seine schwarze
+       Schrift, während derselbe Knopf ohne `href` sie behielt. `lb-karte-cta` setzt sie
+       selbst mit !important und gewinnt (Memory `lb-karte-important-frisst-inline-farben` —
+       dieselbe Falle, hier zum wiederholten Mal). `karte` war für Gold bisher wirkungslos;
+       jetzt tut das Wort, was es überall sonst im Baustein tut. */
+    ? `${karte ? "lb-karte-cta" : "lb-gold"} flex h-12 w-full items-center justify-center gap-2 rounded-full font-black text-[#1a1204]`
     : art === "umriss"
       ? (karte
         ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
@@ -359,6 +369,34 @@ export function Eingabe({ karte = false, hell = false, className = "", ...rest }
         {sichtbar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>
     </div>
+  );
+}
+
+/**
+ * DIE MEHRZEILIGE EINGABE — dasselbe Feld wie `Eingabe`, nur als Fläche (Owner 24.08.2026,
+ * Korrektur-Feld am Bewerber-Profil: „Der User braucht hier einen Promptfeld und die Daten
+ * zu korrigieren"). Eine Anweisung in ganzen Sätzen passt nicht in eine 11er-Zeile.
+ *
+ * ERST IN DIE BIBLIOTHEK, DANN BENUTZEN (Skill `ci-design`): identische drei Welten
+ * (dunkel · Karte · hell), identische Schrift und Ränder wie `Eingabe` — nur Höhe über
+ * `zeilen` statt fester `h-11`, und `resize-none` (ein frei ziehbares Feld zerreisst am
+ * Handy das Layout).
+ */
+export function EingabeMehrzeilig({ karte = false, hell = false, zeilen = 3, className = "", ...rest }: {
+  karte?: boolean;
+  hell?: boolean;
+  /** Sichtbare Zeilen — bestimmt die Ruhehöhe, gescrollt wird im Feld. */
+  zeilen?: number;
+  className?: string;
+} & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea rows={zeilen} {...rest}
+      style={hell ? { color: "#1a160f", WebkitTextFillColor: "#1a160f", caretColor: "#1a160f", ...(rest.style ?? {}) } : rest.style}
+      className={`w-full resize-none rounded-lg px-3 py-2.5 font-serif text-[15px] font-normal leading-snug outline-none ${karte
+        ? "lb-karte-feld"
+        : hell
+          ? "border border-[#1a160f]/30 bg-[#1a160f]/[0.04] placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/75"
+          : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${className}`} />
   );
 }
 
@@ -1235,6 +1273,10 @@ export type ThemenKachelDaten = {
   merkmale?: string;
   /** „ab 15 €" — kommt IMMER aus lib/pricing.ts, nie von Hand getippt. */
   abPreis?: string;
+  /** Sprech-/Porträtvideos in der VOLLEN Kachel: `oben` ankert den Zuschnitt an der
+      Oberkante — nie den Kopf abschneiden (Owner 24.08.2026, Skill `card`). Vorgabe bleibt
+      mittig (Owner 06.08.2026: Mensch in der Mitte des Bildes). */
+  ausrichtung?: "mitte" | "oben";
   /** Wasserzeichen, wenn es weder Bild noch Video gibt — die Server-Seite reicht es fertig herein. */
   platzhalter?: ReactNode;
 };
@@ -1317,7 +1359,7 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
               Poster, still. */}
           <SchleifenVideo src={thema.video} poster={thema.poster || thema.bild || undefined}
             stumm={!ton} autostart={false} {...(voll ? {} : { start: false })}
-            className={voll ? "object-center" : "object-top"} />
+            className={voll ? (thema.ausrichtung === "oben" ? "object-top" : "object-center") : "object-top"} />
           {voll && onTon && (
             <TonKnopf an={!!ton} label="Sound" labelAus="Sound" onClick={onTon}
               platz="absolute right-2 top-10 z-30" />
@@ -1794,21 +1836,20 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday", bild: "/Birthday/hbd-fliege.jpg" },
   { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/Rain/rain-kiss.jpg" },
-  /* SURPRISE (POLE DANCE) IST WIEDER DA (Owner 12.08.2026, mit Bild der Themen-Kreise:
-     „pool dancing kannst du hier einbauen und da machst du auch dort den tunel einbauen" —
-     Rücknahme der Rausnahme vom selben Vormittag, siehe die Begründung darunter). Platz wie
-     vor dem 11.08.2026: direkt nach Kiss. */
-  { icon: Gift, name: "Surprise", href: "/themes/surprise", bild: "/Pooldance/beispiel-2.jpg" },
-  /* Bis heute Vormittag (11.08.2026) stand hier: „Surprise (Pole Dance) IST RAUS, siehe
-     app/sitemap.ts — nicht in der Topic-Reihe, nur noch intern (Admin-Vorschau in
-     BottomNav.tsx) erreichbar." Diese Zeile bleibt als Protokoll stehen, sie gilt nicht mehr. */
-  { icon: Palmtree, name: "Holiday", href: "/themes/holiday", bild: "/Holiday/urlaub-poster.jpg" },
-  { icon: MessageCircle, name: "Chat", href: "/themes/chat", bild: "/Chat/chat-poster.jpg" },
+  /**
+   * SURPRISE (POLE DANCE), CHAT UND HOLIDAY SIND RAUS (Owner 24.08.2026: „entferne
+   * Pooldancing und Chat aus der Topic" · „auch hollyday weg" · „Wir sind jetzt ein
+   * seriöses Portal"). Surprise war schon einmal draussen (11.08., „wirkt unseriös"),
+   * kam am 12.08. zurück — jetzt endgültig, zusammen mit Chat und Holiday. Die Seiten
+   * und Kaufwege bleiben technisch bestehen (alte Links, Admin-Vorschau in BottomNav);
+   * beworben wird nichts davon mehr. Dieselbe Rausnahme: Katalog-Kacheln
+   * (app/themes/page.tsx, AUSGEBLENDET) und app/sitemap.ts.
+   */
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-poster.jpg" },
-  /* TRY-ON IN DER REIHE (Owner 13.08.2026, mit Bild der Kreise: „hier kannst du noch tryon
-     einbinden falls du es noch machst") — der Kreis kam ZUSAMMEN mit dem Tunnel
-     (/themes/tryon/start), nie davor: ein Kreis, der in einen halbfertigen Weg zeigt,
-     wäre schlimmer als keiner. */
+  /* TRY-ON BLEIBT — ALS E-COMMERCE-WERKZEUG (Owner 24.08.2026, Klarstellung: „try on habe
+     ich gesagt du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen
+     anpassen"). Der Kreis bleibt stehen; umgetextet ist die Katalog-Kachel
+     (app/themes/page.tsx): Shops testen das Werkzeug hier und kaufen es bei uns. */
   { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
   /* VERSPRECHEN GEHOERT IN DIE REIHE (Owner 15.08.2026: „wo ist Versprechen im Slider?").
      Es fehlte seit dem ersten Tag der Leiste — als sie entstand, war das Future Self Program
@@ -1816,10 +1857,11 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      Luecke, die eine Liste bekommt, wenn sie von Hand gepflegt wird und ein Produkt spaeter
      dazukommt. */
   { icon: Rocket, name: "Future me", href: "/themes/versprechen", bild: "/Versprechen/Promise-Full-Video.jpg" },   /* NICHT „Promise" (Owner 15.08.2026) — das Produkt heisst Future Self Program, und der Reiter nennt, was der Kunde bekommt: sich selbst, spaeter. */
-  /* DER LEBENSLAUF (Owner 19.08.2026, erste Version des Quereinsteiger-Portals) — Bild ist
-     bewusst der Geburtstags-Platzhalter (`GEBURTSTAG_VIDEO_MANN`s Poster), solange kein
-     echter HeyGen-Lauf steht; siehe die Begründung in app/themes/lebenslauf/page.tsx. */
-  { icon: FileText, name: "Resume", href: "/themes/lebenslauf", bild: "/Birthday/hbd-fliege.jpg" },
+  /* DER LEBENSLAUF (Owner 19.08.2026; seit 24.08. auch als Katalog-Kachel, „nimmst du auch
+     Bewerbung auf die Topicseite") — Bild ist das Poster des echten Beispiel-Laufs, dieselbe
+     Konstante wie Landingpage-Karte und Katalog-Kachel (Memory
+     `landingpage-video-ist-kachel-video`). */
+  { icon: FileText, name: "Resume", href: "/themes/lebenslauf", bild: LEBENSLAUF_BEISPIEL_POSTER },
   /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
      Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
      einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */
@@ -2609,5 +2651,107 @@ export function InAppBrowserHinweis({ sprache = "de", className = "" }: { sprach
         {kopiert ? T.ok : android ? T.chrome : T.kopieren}
       </button>
     </div>
+  );
+}
+
+/**
+ * DER KOPF DES BEWERBER-BEREICHS (Owner 22.08.2026, Auftrag „Executive": „Very small platform
+ * header. Left: LB TALENT. Right: Share · language · menu." · „Do not show the Birthday,
+ * Wedding, Kiss, Gallery or other LuxuryBandit entertainment navigation inside this recruiting
+ * experience. This must feel like a separate professional product area.").
+ *
+ * WARUM NICHT `TopNav`: Die trägt den Auftrag des Geschenke-Portals — Motto, Guthaben-Chip,
+ * Galerie, Konto-Zeichen, und darunter die Themen-Kreise (Kiss, Birthday, Wedding …). Auf
+ * einer Seite, die ein Bewerber an eine Personalabteilung schickt, ist jedes dieser Zeichen
+ * ein Argument dagegen: Sie soll nach Dossier aussehen, nicht nach Unterhaltungsportal. Das
+ * ist keine Geschmacksfrage, sondern der Grund, warum es diesen Bereich gibt.
+ *
+ * WAS BLEIBT, IST DIE HERKUNFT: Wortmarke links (Gold „LB", weiss „TALENT" — dieselben zwei
+ * Farben wie das ganze Haus), und rechts die drei Bedienungen, die eine geteilte Seite
+ * braucht. Die Wortmarke ist bewusst KEIN Link: Ein Personaler, der auf sie tippt, stünde
+ * sonst mitten im Geschenke-Katalog.
+ *
+ * DIE BAUSTEINE SIND DIE DES HAUSES (Skill `ci-design`): `SymbolKnopf` für die runden Zeichen
+ * in der dunklen Leiste, `LangSwitch` für die Sprache — nicht nachgebaut, nur zusammengesetzt.
+ * `z-50` wie `TopNav`, aus demselben Grund (die Knöpfe auf den Karten stehen auf z-30).
+ */
+export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLabel, menuTitel, menu = [] }: {
+  /** Das Wort NACH „LB". Vorgabe „Talent" — die Marke des Bereichs, nicht des Hauses. */
+  marke?: string;
+  teilenLabel: string;
+  kopiertLabel: string;
+  menuLabel: string;
+  menuTitel: string;
+  /**
+   * DAS MENÜ IST EIN INHALTSVERZEICHNIS, KEIN ZWEITER KATALOG. Ein Dossier ist lang; wer
+   * „Erfahrung" sucht, soll nicht wischen müssen. Leer heisst: kein Menü-Knopf. Ein Eintrag
+   * mit `datei` lädt herunter statt zu springen (der Lebenslauf als PDF).
+   */
+  menu?: { label: string; href: string; datei?: boolean }[];
+}) {
+  const [offen, setOffen] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  /* Klick daneben schliesst — dasselbe Verhalten wie beim Sprachmenü. */
+  useEffect(() => {
+    if (!offen) return;
+    const zu = (e: MouseEvent) => { if (!boxRef.current?.contains(e.target as Node)) setOffen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOffen(false); };
+    document.addEventListener("mousedown", zu);
+    window.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", zu); window.removeEventListener("keydown", esc); };
+  }, [offen]);
+
+  /* Teilen über die System-Auswahl, mit der Zwischenablage als Rückfall — wie `TeilenKnopf`,
+     nur in der Gestalt der dunklen Leiste statt als weisse Scheibe auf einem Bild. */
+  const teilen = async () => {
+    try {
+      const url = window.location.href;
+      if (navigator.share) { await navigator.share({ title: document.title, url }); return; }
+      await navigator.clipboard?.writeText(url);
+      setKopiert(true);
+      setTimeout(() => setKopiert(false), 2500);
+    } catch { /* abgebrochen ist kein Fehler, nur ein Nein */ }
+  };
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-[440px] items-center justify-between gap-2 px-4 py-2.5 md:max-w-[760px]">
+        {/* Die Wortmarke — Gold und Weiss, gesperrt, klein. Sie sagt, bei wem der Betrachter
+            ist, und nimmt dem Namen des Bewerbers keine Aufmerksamkeit weg. */}
+        <p className="flex select-none items-center gap-2 whitespace-nowrap">
+          <span className="text-[13px] font-black uppercase leading-none tracking-[0.28em] text-[#f6cf51]">LB</span>
+          <span aria-hidden className="h-3.5 w-px bg-white/20" />
+          <span className="text-[13px] font-black uppercase leading-none tracking-[0.28em] text-white/90">{marke}</span>
+        </p>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <SymbolKnopf label={kopiert ? kopiertLabel : teilenLabel} onClick={() => void teilen()}>
+            {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          </SymbolKnopf>
+          <LangSwitch />
+          {menu.length > 0 && (
+            <div ref={boxRef} className="relative">
+              <SymbolKnopf label={menuLabel} onClick={() => setOffen(o => !o)}>
+                {offen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </SymbolKnopf>
+              {offen && (
+                <div className="absolute right-0 top-11 z-[60] w-56 overflow-hidden rounded-2xl border border-white/15 bg-[#111] shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
+                  <p className="px-4 pb-1 pt-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{menuTitel}</p>
+                  {menu.map(e => (
+                    <a key={e.href} href={e.href} {...(e.datei ? { download: "" } : {})}
+                      onClick={() => setOffen(false)}
+                      className="block border-t border-white/10 px-4 py-2.5 text-[13px] font-bold text-white/85 transition hover:bg-white/5 hover:text-white">
+                      {e.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }

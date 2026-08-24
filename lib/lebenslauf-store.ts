@@ -29,6 +29,47 @@ export type LebenslaufProfil = {
   fotoUrl?: string;
   stichpunkte: string[];
   kategorien: string[];
+  /** Bis zu 3 berufliche Stationen mit Zeitraum, für die Lebenslauf-Karte (Owner 21.08.2026:
+      „wo sind die Jahre in der Bewerbung"). Neueste zuerst. */
+  erfahrung?: { rolle: string; zeitraum: string }[];
+  /** Kurze Fähigkeiten-Begriffe für die Icon-Chips (Owner 21.08.2026: „wo sind die Skills mit
+      Icons"). Das passende Symbol sucht die Seite selbst per Stichwort, kein KI-Icon-Name. */
+  kompetenzen?: string[];
+  /**
+   * GEGEN DIE REDUNDANZ (Owner 24.08.2026: „auf dieser Seite habe ich lauter Redundanzen.
+   * Wieso?" — Kopf-Chips, Rollen-Titel und alle Rollen-Gründe waren dieselben zwei Listen,
+   * mehrfach verwendet). Deshalb liefert die Auswertung jetzt EIGENE Felder:
+   *   `schwerpunkte` — 3–4 Arbeitsfelder für die Kopf-Chips (keine Jobtitel, ≠ kompetenzen)
+   *   `passung`      — je vorgeschlagener Rolle 3–4 EIGENE, CV-belegte Gründe
+   */
+  schwerpunkte?: string[];
+  passung?: { rolle: string; gruende: string[] }[];
+  /** Stadt/Ort und Telefon aus dem Lebenslauf, für die eigene Kontakt-Karte. */
+  ort?: string;
+  telefon?: string;
+  /** Die Antwort auf „Wann kannst du anfangen?" aus dem Trichter — als Kennung
+      (`sofort` · `1monat` · `flexibel`), nie als Wort: Die Seite zeigt sie später in der
+      Sprache des Betrachters (Übersetzer `executiveAusProfil`). */
+  verfuegbarkeit?: string;
+  /**
+   * DIE EIGENAUFNAHME DES BEWERBERS (Owner 24.08.2026: „DU musst das Original-Video
+   * speichern unter Käufe und das Ergebnis. Ich muss sie herunterladen können") — der
+   * Supabase-Pfad der Aufnahme, die er im Trichter hochgeladen hat (Video oder Audio).
+   * Sie ist sein Rohmaterial (z. B. für ein Werbevideo Vorher/Nachher) und gehört ihm wie
+   * das Ergebnis; die Galerie zeigt beide als eigene Kacheln (`/api/my-videos`).
+   */
+  aufnahmePath?: string;
+  /**
+   * DAS ABO „SEITE BLEIBT ONLINE" (Owner-Seitentext 24.08.2026: „4,99 im Monat — Seite
+   * bleibt online, unbegrenzt aktualisieren, monatlich kündbar. Ohne Abo bleibt deine Seite
+   * 30 Tage erreichbar."). Gesetzt vom Webhook (kind `lebenslauf-abo`) und von der
+   * Rückkehr-Bestätigung in /api/lebenslauf-abo-checkout — beide idempotent. `aboSubId`
+   * ist die Stripe-Subscription; über ihre Metadata findet der Webhook beim Kündigen
+   * (customer.subscription.deleted) den Weg zurück zu diesem Profil.
+   */
+  aboAktiv?: boolean;
+  aboSubId?: string;
+  aboSeit?: string;
   bezahlt: boolean;
   /**
    * KONTAKTDATEN SIND VERSTECKT, BIS WIR SIE FREIGEBEN (Owner 20.08.2026: „wenn ich eine
@@ -55,6 +96,28 @@ export async function leseLebenslauf(id: string): Promise<LebenslaufProfil | nul
   } catch {
     return null;
   }
+}
+
+/** Abo am Profil freischalten — von der Kassen-Rückkehr UND vom Stripe-Webhook benutzt
+    (beide Wege, Memory `paid-jobs-must-survive-the-browser`); idempotent. */
+export async function lebenslaufAboFreischalten(id: string, subId: string): Promise<boolean> {
+  const profil = await leseLebenslauf(id);
+  if (!profil) return false;
+  if (profil.aboAktiv && (!subId || profil.aboSubId === subId)) return true;
+  return schreibeLebenslauf({
+    ...profil,
+    aboAktiv: true,
+    aboSubId: subId || profil.aboSubId,
+    aboSeit: profil.aboSeit ?? new Date().toISOString(),
+  });
+}
+
+/** Abo beenden (Webhook: customer.subscription.deleted) — nur wenn die Kennung passt. */
+export async function lebenslaufAboBeenden(id: string, subId: string): Promise<boolean> {
+  const profil = await leseLebenslauf(id);
+  if (!profil || !profil.aboAktiv) return true;
+  if (subId && profil.aboSubId && profil.aboSubId !== subId) return true;   // fremde/alte Sub
+  return schreibeLebenslauf({ ...profil, aboAktiv: false });
 }
 
 export async function schreibeLebenslauf(profil: LebenslaufProfil): Promise<boolean> {

@@ -218,7 +218,15 @@ export async function createPackCheckout(opts: {
 // Create a recurring-subscription Checkout Session (Premium membership). Ties the
 // subscription to the customer's email so we can look it up later.
 export async function createSubscriptionCheckout(opts: {
-  priceId: string;
+  priceId?: string;
+  /**
+   * OHNE DASHBOARD-PRICE (24.08.2026, Lebenslauf-Abo 4,99/Monat): `price_data` baut den
+   * Monatspreis inline — dieselbe Alternative, die der Einmalkauf oben schon kennt
+   * (Zeile mit `price_data` in createCheckout). Entweder `priceId` ODER `amount`+`productName`.
+   */
+  amount?: number;
+  productName?: string;
+  currency?: string;
   email?: string;
   successUrl: string;
   cancelUrl: string;
@@ -230,13 +238,21 @@ export async function createSubscriptionCheckout(opts: {
   const discountFields = opts.coupon
     ? { discounts: [{ coupon: opts.coupon }] }
     : { allow_promotion_codes: true };
+  const lineItems = opts.priceId
+    ? [{ price: opts.priceId, quantity: 1 }]
+    : [{ quantity: 1, price_data: {
+        currency: opts.currency ?? "usd",
+        unit_amount: opts.amount ?? 0,
+        recurring: { interval: "month" },
+        product_data: { name: opts.productName ?? "LuxuryBandit subscription" },
+      } }];
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "subscription",
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
     ...(opts.email ? { customer_email: opts.email } : {}),
     client_reference_id: opts.email,
-    line_items: [{ price: opts.priceId, quantity: 1 }],
+    line_items: lineItems,
     ...discountFields,
     metadata: { kind: "premium", ...(opts.metadata ?? {}) },
     subscription_data: { metadata: { kind: "premium", ...(opts.metadata ?? {}) } },

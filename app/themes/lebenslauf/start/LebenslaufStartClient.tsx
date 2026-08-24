@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { Trash2, FileText, Mic } from "lucide-react";
+import { Trash2, FileText, Video } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
-import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, KurzeEinwilligung, Knopf, Laden, Eingabe } from "@/components/CI";
+import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, KurzeEinwilligung, Knopf, Laden, Eingabe, EingabeMehrzeilig } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { signInWithOAuth } from "@/lib/supabase-auth-client";
@@ -98,10 +98,41 @@ const VERFUEGBARKEIT = [
     wird"). Deutsch/Englisch reichen — der Rest der Seite ist ohnehin nur zweisprachig. */
 const STUFEN_TEXT: Record<string, { de: string; en: string }> = {
   zahlung: { de: "Zahlung wird bestätigt …", en: "Confirming your payment …" },
-  lesen: { de: "Dein Lebenslauf wird gelesen …", en: "Reading your resume …" },
-  bild: { de: "Dein Foto wird im Berufs-Look gestylt …", en: "Styling your photo for the role …" },
-  video: { de: "Dein Video entsteht — das kann 1–2 Minuten dauern …", en: "Your video is being created — this can take 1–2 minutes …" },
-  fertig: { de: "Fast fertig …", en: "Almost done …" },
+  lesen: { de: "Dein Lebenslauf wird gelesen — dein Skript entsteht …", en: "Reading your resume — writing your script …" },
+  fertig: { de: "Deine Seite wird gebaut …", en: "Building your page …" },
+};
+
+/**
+ * DIE WORTE DER NEUEN SCHRITTE (Owner-Seitentext 24.08.2026: „Dein Skript entsteht … Du
+ * änderst ihn, bis er nach dir klingt." · „Du sprichst, wir bauen die Seite. Handykamera
+ * reicht." · FAQ: „kein Avatar, keine synthetische Stimme"). Deutsch/Englisch wie die
+ * Stufen-Texte — der Trichter ist zweisprachig, der Rest der Seite auch.
+ */
+const SKRIPT_TEXT: Record<string, Record<string, string>> = {
+  de: {
+    skriptTitel: "Dein Skript",
+    skriptZeile: "Aus deinem eigenen Werdegang. Ändere ihn, bis er nach dir klingt.",
+    skriptWeiter: "Skript passt — jetzt einsprechen",
+    aufnahmeTitel: "Sprich dein Skript ein",
+    aufnahmeZeile: "Handykamera reicht. Du liest ab, so oft du willst — niemand sieht die Versuche davor.",
+    aufnahmeKachel: "Aufnahme hochladen",
+    aufnahmeHinweis: "Ein Video von dir, in dem du dein Skript sprichst.",
+    aufnahmeLaedt: "Wird hochgeladen …",
+    seiteBauen: "Seite bauen",
+    zurueckSkript: "Zurück zum Skript",
+  },
+  en: {
+    skriptTitel: "Your script",
+    skriptZeile: "Built from your own career. Edit it until it sounds like you.",
+    skriptWeiter: "Script is right — record it now",
+    aufnahmeTitel: "Record your script",
+    aufnahmeZeile: "A phone camera is enough. Read it out as often as you like — nobody sees the attempts before.",
+    aufnahmeKachel: "Upload your recording",
+    aufnahmeHinweis: "A video of you speaking your script.",
+    aufnahmeLaedt: "Uploading …",
+    seiteBauen: "Build my page",
+    zurueckSkript: "Back to the script",
+  },
 };
 
 const ABLAGE = "lb_lebenslauf_entwurf";
@@ -109,7 +140,13 @@ const ABLAGE = "lb_lebenslauf_entwurf";
 type Entwurf = {
   genId: string; name: string; mail: string; foto: string;
   cvName: string; cvPath: string; verfuegbarkeit: string;
+  /* Stimm-Wahl/HeyGen sind aus dem Kaufweg raus (Owner-Seitentext 24.08.2026: „kein Avatar,
+     keine synthetische Stimme") — die Felder bleiben leer im Entwurf, damit ein alter
+     gespeicherter Entwurf weiter lesbar ist. */
   stimmWahl: "" | "ki" | "eigen"; audioName: string; audioPath: string;
+  /** Das (ggf. selbst geänderte) Skript — überlebt das Stripe-Neuladen; bei Rückkehr wird
+      damit KEINE zweite Auswertung bezahlt. */
+  skript?: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,11 +166,17 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
   const cvRef = useRef<HTMLInputElement>(null);
   const [verfuegbarkeit, setVerfuegbarkeit] = useState("");
 
-  /** „" = noch nichts gewählt · „ki" = Computerstimme · „eigen" = eigene Aufnahme. */
-  const [stimmWahl, setStimmWahl] = useState<"" | "ki" | "eigen">("");
-  const [audioDatei, setAudioDatei] = useState<File | null>(null);
-  const [audioPath, setAudioPath] = useState("");
-  const audioRef = useRef<HTMLInputElement>(null);
+  /**
+   * DIE NEUEN PHASEN NACH DER ZAHLUNG (Owner-Seitentext 24.08.2026): erst das SKRIPT lesen
+   * und ändern, dann die EIGENE AUFNAHME hochladen, dann baut der Server die Seite. Der
+   * HeyGen-Avatar-Weg ist aus dem Kaufweg raus (FAQ: „kein Avatar, keine synthetische
+   * Stimme"); die Route /api/lebenslauf-video bleibt als Altweg im Code.
+   */
+  const [phase, setPhase] = useState<"" | "skript" | "aufnahme">("");
+  const [skript, setSkript] = useState("");
+  const [aufnahmeDatei, setAufnahmeDatei] = useState<File | null>(null);
+  const [aufnahmePath, setAufnahmePath] = useState("");
+  const aufnahmeRef = useRef<HTMLInputElement>(null);
 
   const [genId, setGenId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,11 +212,12 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     try {
       const entwurf: Entwurf = {
         genId, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit,
-        stimmWahl, audioName: audioDatei?.name ?? "", audioPath,
+        stimmWahl: "", audioName: "", audioPath: "",
+        ...(skript ? { skript } : {}),
       };
       sessionStorage.setItem(ABLAGE, JSON.stringify(entwurf));
     } catch { /**/ }
-  }, [genId, name, mail, foto, cvDatei, cvPath, verfuegbarkeit, stimmWahl, audioDatei, audioPath]);
+  }, [genId, name, mail, foto, cvDatei, cvPath, verfuegbarkeit, skript]);
 
   const dateiZuDataUrl = (f: File) =>
     new Promise<string>((res, rej) => {
@@ -201,8 +245,9 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
 
   const preisCents = themenPreisCents("lebenslauf");
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
-  const bereitDa = !!foto && !!cvPath && !!verfuegbarkeit
-    && (stimmWahl === "ki" || (stimmWahl === "eigen" && !!audioPath));
+  /* Vor der Kasse braucht es nur Foto, Lebenslauf und Verfügbarkeit — Skript und Aufnahme
+     kommen NACH der Zahlung (Owner-Seitentext: Schritt 2 und 3). */
+  const bereitDa = !!foto && !!cvPath && !!verfuegbarkeit;
 
   /**
    * DIREKT ZUR KASSE, WIE BEI KUSS/TANZ (Owner 19.08.2026: „Der user zahlt doch direkt über
@@ -261,39 +306,66 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
    * ausdrückliche Werte statt React-State, weil sie nach einem Neuladen frisch aus dem
    * Entwurf kommen, bevor React sie in Zustand verwandelt hat.
    */
+  /**
+   * NACH DER ZAHLUNG: SKRIPT ZUERST (Owner-Seitentext 24.08.2026, Schritt 2). Die KI liest
+   * den Lebenslauf und schreibt den Sprechtext — der erscheint zum ÄNDERN, dann nimmt sich
+   * der Kunde selbst auf. Kein HeyGen-Lauf mehr in dieser Kette.
+   *
+   * Steht im Entwurf schon ein Skript (Stripe-Neuladen mitten im Skript-Schritt), wird es
+   * benutzt statt eine ZWEITE Auswertung zu bezahlen.
+   */
   const nachZahlungFortsetzen = async (e: Entwurf) => {
     setBusy(true); setStatus("");
     void logTunnelEvent("generation_started", "lebenslauf");
     try {
+      if (e.skript?.trim()) {
+        setSkript(e.skript);
+        setBusy(false); setStufe(""); setPhase("skript");
+        return;
+      }
       setStufe("lesen");
       const aus = await fetch("/api/lebenslauf-auswertung", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: e.genId, name: e.name, email: e.mail, pdfPath: e.cvPath }),
+        body: JSON.stringify({ id: e.genId, name: e.name, email: e.mail, pdfPath: e.cvPath, verfuegbarkeit: e.verfuegbarkeit }),
       }).then(r => r.json());
       if (!aus?.id) { setStatus(aus?.error || F.statusNotWork); setBusy(false); setStufe(""); return; }
-      const { sprechtext, kleidung, umgebung } = aus;
+      setSkript(String(aus.sprechtext ?? "").trim());
+      setBusy(false); setStufe(""); setPhase("skript");
+    } catch {
+      // BEZAHLT BLEIBT BEZAHLT (Memory `paid-jobs-must-survive-the-browser`) — der Entwurf
+      // bleibt in sessionStorage stehen, ein Neuladen kann es hier erneut versuchen.
+      setStatus(F.statusNetwork);
+      setBusy(false); setStufe("");
+    }
+  };
 
-      setStufe("bild");
-      const start = await fetch("/api/lebenslauf-video", {
+  /** Skript sichern (Server prüft auf „nichts geändert" selbst), dann zur Aufnahme. */
+  const skriptWeiter = async () => {
+    if (!skript.trim() || busy) return;
+    setBusy(true); setStatus("");
+    try {
+      const r = await fetch("/api/lebenslauf-skript", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ foto: e.foto, kleidung, umgebung, sprechtext, ...(e.audioPath ? { audioPath: e.audioPath } : {}) }),
-      }).then(r => r.json());
-      if (!start?.videoId) { setStatus(start?.error || F.statusNotWork); setBusy(false); setStufe(""); return; }
+        body: JSON.stringify({ id: genId, sprechtext: skript.trim() }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) { setStatus(String(d?.error ?? F.statusNotWork)); setBusy(false); return; }
+      setBusy(false); setPhase("aufnahme");
+    } catch { setStatus(F.statusNetwork); setBusy(false); }
+  };
 
-      setStufe("video");
-      let videoUrl = "";
-      for (let i = 0; i < 60; i++) {
-        await new Promise(res => setTimeout(res, 4000));
-        const s = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json()).catch(() => null);
-        if (s?.status === "done" && s?.videoUrl) { videoUrl = s.videoUrl; break; }
-        if (s?.status === "failed") { setStatus(s?.error || F.statusNotWork); setBusy(false); setStufe(""); return; }
-      }
-      if (!videoUrl) { setStatus(F.statusNotWork); setBusy(false); setStufe(""); return; }
-
-      setStufe("fertig");
+  /**
+   * AUFNAHME → SEITE (Owner-Seitentext, Schritt 3: „Du sprichst, wir bauen die Seite").
+   * Die Aufnahme ist zugleich das Ergebnis-Video UND das „Original" unter Käufe
+   * (fertigstellen legt beides ab); das Foto wird das Porträt der Seite.
+   */
+  const seiteBauen = async () => {
+    if (!aufnahmePath || busy) return;
+    setBusy(true); setStatus(""); setStufe("fertig");
+    try {
       const fertig = await fetch("/api/lebenslauf-fertigstellen", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: e.genId, videoUrl }),
+        body: JSON.stringify({ id: genId, videoPath: aufnahmePath, foto, originalPath: aufnahmePath }),
       }).then(r => r.json());
       if (fertig?.id) {
         try { sessionStorage.removeItem(ABLAGE); } catch { /**/ }
@@ -301,11 +373,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
         return;
       }
       setStatus(fertig?.error || F.statusNotWork);
-    } catch {
-      // BEZAHLT BLEIBT BEZAHLT (Memory `paid-jobs-must-survive-the-browser`) — der Entwurf
-      // bleibt in sessionStorage stehen, ein Neuladen kann es hier erneut versuchen.
-      setStatus(F.statusNetwork);
-    }
+    } catch { setStatus(F.statusNetwork); }
     setBusy(false); setStufe("");
   };
 
@@ -331,7 +399,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     }
     const bezahlt = await kaufen(gid);
     if (!bezahlt) { setBusy(false); setStufe(""); return; }
-    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit, stimmWahl, audioName: audioDatei?.name ?? "", audioPath });
+    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit, stimmWahl: "", audioName: "", audioPath: "" });
   };
 
   /**
@@ -418,6 +486,44 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
             /* DIE GROSSE STUFEN-ANZEIGE (Owner 20.08.2026: „es muss gross stehen was da
                gemacht wird") — ersetzt die ganze Eingabe-Fläche, solange die Kette läuft. */
             <Laden art="flaeche" text={(STUFEN_TEXT[stufe] ?? STUFEN_TEXT.lesen)[lang === "de" ? "de" : "en"]} />
+          ) : phase === "skript" ? (
+            /* ───── SCHRITT „DEIN SKRIPT" (Owner-Seitentext: „Du änderst ihn, bis er nach
+               dir klingt") — bezahlt ist schon; hier wird gelesen und umgeschrieben. ───── */
+            (() => { const S = SKRIPT_TEXT[lang === "de" ? "de" : "en"]; return (
+              <div className="flex flex-col gap-3">
+                <p className="text-[17px] font-black text-white/90">{S.skriptTitel}</p>
+                <p className="text-[13px] font-bold leading-snug text-white/70">{S.skriptZeile}</p>
+                <EingabeMehrzeilig zeilen={9} value={skript}
+                  onChange={e => setSkript(e.target.value)} />
+                <Knopf art="gold" disabled={!skript.trim()} onClick={() => void skriptWeiter()}>
+                  {S.skriptWeiter}
+                </Knopf>
+              </div>
+            ); })()
+          ) : phase === "aufnahme" ? (
+            /* ───── SCHRITT „EINSPRECHEN" (Owner-Seitentext: „Handykamera reicht … du liest
+               ab, so oft du willst"). Das Skript steht zum ABLESEN über der Kachel. ───── */
+            (() => { const S = SKRIPT_TEXT[lang === "de" ? "de" : "en"]; return (
+              <div className="flex flex-col gap-3">
+                <p className="text-[17px] font-black text-white/90">{S.aufnahmeTitel}</p>
+                <p className="text-[13px] font-bold leading-snug text-white/70">{S.aufnahmeZeile}</p>
+                <p className="max-h-44 overflow-y-auto rounded-lg border border-white/15 bg-white/[0.05] px-3 py-2.5 text-[13.5px] font-medium leading-relaxed text-white/85 lb-wisch">
+                  {skript}
+                </p>
+                <DateiKachel datei={aufnahmeDatei} icon={Video}
+                  titel={S.aufnahmeKachel}
+                  hinweis={aufnahmeDatei && !aufnahmePath ? S.aufnahmeLaedt : S.aufnahmeHinweis}
+                  onWaehlen={() => aufnahmeRef.current?.click()}
+                  onLoeschen={() => { setAufnahmeDatei(null); setAufnahmePath(""); }} />
+                <Knopf art="gold" disabled={!aufnahmePath} onClick={() => void seiteBauen()}>
+                  {S.seiteBauen}
+                </Knopf>
+                <button type="button" onClick={() => setPhase("skript")}
+                  className="text-center text-[11.5px] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-white/80">
+                  {S.zurueckSkript}
+                </button>
+              </div>
+            ); })()
           ) : (
             <>
               <div className="flex gap-3">
@@ -442,34 +548,9 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                 </div>
               </div>
 
-              {/* STIMM-WAHL VOR DER KASSE (Owner 20.08.2026: „Zahlung muss doch erst nach
-                  Stimmen-Upload kommen"). */}
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-[13px] font-bold text-white/80">
-                  {lang === "de" ? "Welche Stimme?" : "Which voice?"}
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Knopf art="chip" aktiv={stimmWahl === "ki"} onClick={() => setStimmWahl("ki")}>
-                    {lang === "de" ? "KI-Stimme" : "AI voice"}
-                  </Knopf>
-                  <Knopf art="chip" aktiv={stimmWahl === "eigen"} onClick={() => setStimmWahl("eigen")}>
-                    {lang === "de" ? "Meine Stimme aufnehmen" : "Record my voice"}
-                  </Knopf>
-                </div>
-                {stimmWahl === "eigen" && (
-                  <div className="mt-2 w-full">
-                    <DateiKachel datei={audioDatei} icon={Mic}
-                      titel={lang === "de" ? "Aufnahme hochladen" : "Upload recording"}
-                      hinweis={
-                        audioDatei && !audioPath
-                          ? (lang === "de" ? "Wird hochgeladen …" : "Uploading …")
-                          : (lang === "de" ? "Sprich ein paar Sätze — Video oder Audio." : "Say a few sentences — video or audio.")
-                      }
-                      onWaehlen={() => audioRef.current?.click()}
-                      onLoeschen={() => { setAudioDatei(null); setAudioPath(""); }} />
-                  </div>
-                )}
-              </div>
+              {/* DIE STIMM-WAHL IST RAUS (Owner-Seitentext 24.08.2026, FAQ: „kein Avatar,
+                  keine synthetische Stimme") — Skript und Eigenaufnahme kommen als eigene
+                  Schritte NACH der Zahlung (`phase` oben). */}
 
               {/* KEINE ADRESSE AUS SCHRITT 1 (Owner 16.08.2026 erlaubt „ohne Adresse einfach
                   weiter" — aber hier braucht es sie fürs Bezahlen). Ohne diese Stelle blieb
@@ -506,12 +587,14 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
               setCvDatei(f); setCvPath("");
               void ladeHoch(f).then(setCvPath).catch(() => setStatus(F.statusNotWork));
             }} />
-          <input ref={audioRef} type="file" accept="video/*,audio/*" capture="user" className="hidden"
+          {/* Die Eigenaufnahme — NUR Video (er spricht sein Skript in die Kamera), `capture`
+              öffnet am Handy direkt die Frontkamera. */}
+          <input ref={aufnahmeRef} type="file" accept="video/*" capture="user" className="hidden"
             onChange={e => {
               const f = e.target.files?.[0]; e.target.value = "";
               if (!f) return;
-              setAudioDatei(f); setAudioPath("");
-              void ladeHoch(f).then(setAudioPath).catch(() => setStatus(F.statusNotWork));
+              setAufnahmeDatei(f); setAufnahmePath("");
+              void ladeHoch(f).then(setAufnahmePath).catch(() => setStatus(F.statusNotWork));
             }} />
 
           {status && <p className="text-center text-[12.5px] font-bold text-white/70">{status}</p>}

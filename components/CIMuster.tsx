@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
-  ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE,
+import { Scheibe, Knopf, Eingabe, EingabeMehrzeilig, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
+  ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE, TalentKopf,
   type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler, TunnelStart, VorlagenKachel } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
@@ -236,6 +236,18 @@ export default function CIMuster() {
         ))}
       </div>
 
+      {abschnitt("Kopf des Bewerber-Bereichs — TalentKopf")}
+      {/* Owner 22.08.2026 (Vorlage „Executive"): „This must feel like a separate professional
+          product area." Deshalb ein EIGENER Kopf statt `TopNav` — ohne Motto, Guthaben,
+          Galerie und Themen-Kreise, die eine Bewerbung an eine Firma sofort entwerten. Hier
+          steht er im Seitenfluss; auf der Seite selbst klebt er oben. Ganz zu sehen ist er
+          unter /lebenslauf/executive. */}
+      <div className="overflow-hidden rounded-2xl border border-white/15">
+        <TalentKopf marke="Talent" teilenLabel="Profil teilen" kopiertLabel="Link kopiert"
+          menuLabel="Menü" menuTitel="Abschnitte"
+          menu={[{ label: "Profil", href: "#" }, { label: "Erfahrung", href: "#" }]} />
+      </div>
+
       {abschnitt("Themen-Kreise — die Tür zu jedem Thema")}
       {/* Aus der Galerie in die Bibliothek geholt (Owner 06.08.2026: „die kommen auch in
           die Bibliothek. Und scrollbalken wird dann transparent") — wischt ohne Balken. */}
@@ -247,6 +259,10 @@ export default function CIMuster() {
         {fehlerZeigen && <Fehlerzeile>So sieht eine Absage aus — rot, am Feld.</Fehlerzeile>}
         <button type="button" onClick={() => setFehlerZeigen(f => !f)}
           className="mt-2 text-[11px] font-bold text-white/50 underline">Fehler an/aus</button>
+        {/* Mehrzeilig — für Anweisungen in ganzen Sätzen (Korrektur-Feld am Bewerber-Profil,
+            Owner 24.08.2026). Dieselben drei Welten wie `Eingabe`, Höhe über `zeilen`. */}
+        <EingabeMehrzeilig className="mt-3" zeilen={3}
+          placeholder="z. B. Erwähne Projekt X nicht — schreib stattdessen …" />
       </Kasten>
 
       {abschnitt("Tunnel-Start — Schritt 1 von 2, für jedes Produkt gleich")}

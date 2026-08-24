@@ -18,7 +18,29 @@ import { YOUTUBE_CHANNEL } from "@/lib/social";
  * EIN SERVER-BAUSTEIN, KEIN CLIENT: nur Links, kein Zustand. Er kostet damit kein einziges
  * Kilobyte JavaScript auf Seiten, die ohnehin schon viel laden.
  */
-export default function SeitenFuss({ className = "" }: { className?: string }) {
+export default function SeitenFuss({ className = "", art = "voll" }: {
+  className?: string;
+  /**
+   * `schlicht` — DER FUSS DER BEWERBER-SEITEN (Owner 24.08.2026: „auf der Bewerbeseite
+   * müssen die Links unten raus, auch Instagram und Facebook"). Eine Seite, die an eine
+   * Personalabteilung geht, trägt keine Portal-Werbung: kein „Info & legal"-Block, kein
+   * Contact/About, keine Social-Kreise, kein ©. Was BLEIBT, ist das gesetzliche Minimum —
+   * Impressum, Datenschutz, AGB sind in der EU von jeder Seite aus erreichbar zu halten;
+   * eine leise Zeile in 35 % Weiss erfüllt das, ohne die Seite zu bewerben.
+   */
+  art?: "voll" | "schlicht";
+}) {
+  if (art === "schlicht") {
+    return (
+      <footer className={`mx-auto mt-10 w-full max-w-[440px] px-4 pb-14 pt-4 ${className}`}>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] font-semibold text-white/35">
+          <Link href="/imprint" className="transition hover:text-white/70">Imprint</Link>
+          <Link href="/privacy" className="transition hover:text-white/70">Privacy</Link>
+          <Link href="/terms" className="transition hover:text-white/70">Terms</Link>
+        </div>
+      </footer>
+    );
+  }
   /**
    * „ABOUT" IST ZURÜCK (05.08.2026, nachdem der Text neu geschrieben wurde).
    *

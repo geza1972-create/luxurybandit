@@ -47,7 +47,7 @@ const HOCHZEITS_MUSIK = "/mickeyscat-moment-of-peace-mickeyscat-554494.mp3";
 
 export default function EinladungAnsicht({
   id, videoUrl, poster, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
-  originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]",
+  originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]", ausrichtung = "mitte",
   teilen, grossText = "", kleinText = "",
 }: {
   id: string; videoUrl: string;
@@ -110,6 +110,16 @@ export default function EinladungAnsicht({
    */
   verhaeltnis?: string;
   /**
+   * WO DER ZUSCHNITT ANSETZT (Owner 24.08.2026, am eigenen Bewerbungsvideo: „du hast das
+   * Video hier nicht oben positioniert. Es ist oben abgeschnitten").
+   *
+   * `object-cover` schneidet MITTIG — bei einem 9:16-Sprechvideo in einer 4:5-Flaeche
+   * fällt damit genau der Kopf weg. `oben` ankert Zuschnitt von Video UND Poster an der
+   * Oberkante (object-top): der Kopf bleibt, geschnitten wird nur unten. Vorgabe bleibt
+   * `mitte` — Kuss/Hochzeit/Tanz zeigen Körper und Szene, dort ist mittig richtig.
+   */
+  ausrichtung?: "mitte" | "oben";
+  /**
    * DER TEILEN-KNOPF GEHÖRT AUF DIE KARTE, NICHT DANEBEN (Owner 04.08.2026: „bei allen Cards
    * auf allen Templates … wirklich bei allen").
    *
@@ -142,6 +152,12 @@ export default function EinladungAnsicht({
    */
   const [laeuft, setLaeuft] = useState(false);
   const gezaehlt = useRef(false);
+  /** DER ZEITBALKEN (Owner 21.08.2026: „das brauchen wir generell auf allen Videokarten") —
+      nur beim Originalton sinnvoll: eine Schleifen-Karte (Musik-Marketing-Beispiel) hat keine
+      Dauer, die einen Balken rechtfertigt, ein gesprochenes Video schon. Zeit kommt vom
+      Spieler selbst (`timeupdate`), kein eigener Zähler. */
+  const [zeit, setZeit] = useState(0);
+  const [dauer, setDauer] = useState(0);
 
   useEffect(() => {
     if (!zaehlen || gezaehlt.current) return;
@@ -228,6 +244,27 @@ export default function EinladungAnsicht({
       rahmen.removeEventListener("play", an, true);
       rahmen.removeEventListener("pause", aus, true);
       rahmen.removeEventListener("ended", aus, true);
+    };
+  }, [originalton, schleife]);
+
+  /** DER ZEITBALKEN HOERT AM SELBEN RAHMEN, in derselben Fangphase — dieselben zwei Gruende
+      wie beim Lauf-Zustand oben (der Spieler entsteht erst nach dem Tipp, die Ereignisse
+      steigen nicht auf). Nur beim Originalton: eine Schleifen-Karte hat keine Dauer, die
+      einen Balken rechtfertigt. */
+  useEffect(() => {
+    if (!originalton || schleife) return;
+    const rahmen = rahmenRef.current;
+    if (!rahmen) return;
+    const beiZeit = (e: Event) => setZeit((e.target as HTMLVideoElement).currentTime || 0);
+    const beiDauer = (e: Event) => setDauer((e.target as HTMLVideoElement).duration || 0);
+    const zurueck = () => setZeit(0);
+    rahmen.addEventListener("timeupdate", beiZeit, true);
+    rahmen.addEventListener("loadedmetadata", beiDauer, true);
+    rahmen.addEventListener("ended", zurueck, true);
+    return () => {
+      rahmen.removeEventListener("timeupdate", beiZeit, true);
+      rahmen.removeEventListener("loadedmetadata", beiDauer, true);
+      rahmen.removeEventListener("ended", zurueck, true);
     };
   }, [originalton, schleife]);
 
@@ -379,6 +416,7 @@ export default function EinladungAnsicht({
             startet gleich ungestummt — die Geste ist ja gerade passiert. Ohne Originalton
             behält das Tor seine eigene Scheibe (Musik kommt ohnehin von nebenan). */}
         <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
+          className={ausrichtung === "oben" ? "object-top" : ""}
           start={originalton ? laeuft : undefined}
           schleife={schleife} stumm={originalton ? !ton : true}
           spielerRef={originalton ? videoRef : undefined} />
@@ -499,6 +537,14 @@ export default function EinladungAnsicht({
           jeden Teilen-Knopf, den ein Aufrufer hereinreicht — den runden `TeilenKnopf` genauso
           wie den eigenen Send-Knopf des Kuss-Trichters. */}
       {teilen && <div className={`absolute right-3 z-30 opacity-70 ${gross ? "top-[60px]" : "top-3"}`}>{teilen}</div>}
+
+      {/* DER ZEITBALKEN — nur beim Originalton, nur solange eine Dauer bekannt ist. Reine
+          Anzeige (kein Scrubber/Ziehen) — das reicht für „wie weit ist es". */}
+      {originalton && dauer > 0 && (
+        <div className="absolute inset-x-0 bottom-0 z-30 h-[3px] bg-white/20">
+          <div className="h-full bg-white/80" style={{ width: `${Math.min(100, (zeit / dauer) * 100)}%` }} />
+        </div>
+      )}
 
       {/* DIE TON-SCHEIBE STEHT IMMER (Owner 07.08.2026, zur Muster-Karte: „hier fehlt auch
           sound icon") — vorher erschien sie beim Originalton erst, wenn das Video lief, und

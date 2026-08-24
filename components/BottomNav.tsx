@@ -183,6 +183,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     pathname.includes("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
     pathname.includes("/try/") ||  // new Try-On funnel (also /admin/try/*) — full-screen, no bottom nav
     pathname.includes("/chat/") || // dedicated chat page — full-screen, no bottom nav
+    // DAS BEWERBER-DOSSIER IST EIN EIGENER, BERUFLICHER BEREICH (Owner 22.08.2026: „Do not
+    // show the Birthday, Wedding, Kiss, Gallery or other LuxuryBandit entertainment
+    // navigation inside this recruiting experience."). Die Seite geht an Personalabteilungen;
+    // eine Leiste mit Kuss- und Geburtstags-Themen darunter erledigt jede Bewerbung. Der
+    // Kopf der Seite (`TalentKopf`) trägt stattdessen ihr eigenes Menü.
+    pathname.startsWith("/lebenslauf") ||
     pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
   );
 

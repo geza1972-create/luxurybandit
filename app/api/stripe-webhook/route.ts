@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { enrollWetter } from "@/lib/wetter-enroll";
 import { setWetterPaid, grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
+import { lebenslaufAboFreischalten, lebenslaufAboBeenden } from "@/lib/lebenslauf-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { capiKaufMelden } from "@/lib/meta-capi";
 
@@ -87,6 +88,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
+  /**
+   * DIE KÜNDIGUNG DES BEWERBUNGS-ABOS (24.08.2026): Stripe meldet das Ende der
+   * Subscription; ihre Metadata (gesetzt in createSubscriptionCheckout →
+   * subscription_data.metadata) führen zurück zum Profil. Danach greift wieder die
+   * 30-Tage-Regel der Profilseite. Andere Abos (Wetter/Premium) laufen über ihre eigenen
+   * Wege und bleiben unberührt.
+   */
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as { id?: string; metadata?: Record<string, string> };
+    if (String(sub?.metadata?.kind ?? "") === "lebenslauf-abo") {
+      const lebenslaufId = String(sub?.metadata?.lebenslaufId ?? "").trim();
+      if (lebenslaufId) {
+        try {
+          await lebenslaufAboBeenden(lebenslaufId, String(sub?.id ?? ""));
+          console.info(`[stripe-webhook] lebenslauf-abo beendet — ${lebenslaufId}`);
+        } catch (e) { console.warn("[stripe-webhook] lebenslauf-abo Beenden fehlgeschlagen", e); }
+      }
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const meta = (session.metadata as Record<string, unknown> | undefined) ?? {};
@@ -99,6 +121,18 @@ export async function POST(request: Request) {
       if (subId) {
         try { await setWetterPaid(subId, modelId); console.info(`[stripe-webhook] wetter-abo bezahlt → freigeschaltet: ${subId}`); }
         catch (e) { console.warn("[stripe-webhook] setWetterPaid fehlgeschlagen", e); }
+      }
+    } else if (kind === "lebenslauf-abo") {
+      /* DAS BEWERBUNGS-ABO (24.08.2026, „Seite bleibt online" 4,99/Monat) — der Weg, der
+         auch ohne Rückkehr des Browsers funktioniert. `session.subscription` ist die
+         Sub-Kennung; über sie findet das Kündigungs-Ereignis unten zurück zum Profil. */
+      const lebenslaufId = String(meta?.lebenslaufId ?? "").trim();
+      const subId = String((session as { subscription?: string }).subscription ?? "").trim();
+      if (lebenslaufId) {
+        try {
+          await lebenslaufAboFreischalten(lebenslaufId, subId);
+          console.info(`[stripe-webhook] lebenslauf-abo aktiv — ${lebenslaufId} (${subId || "ohne subId"})`);
+        } catch (e) { console.warn("[stripe-webhook] lebenslauf-abo Freischaltung fehlgeschlagen", e); }
       }
     } else {
       // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.

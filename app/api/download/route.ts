@@ -38,7 +38,14 @@ export async function GET(request: Request) {
     const datei = await fetch(signiert);
     if (!datei.ok || !datei.body) return new Response("Not found", { status: 404 });
 
-    const typ = pfad.endsWith(".mp4") ? "video/mp4" : pfad.endsWith(".png") ? "image/png" : "image/jpeg";
+    /* Auch die Original-Aufnahme eines Bewerbers (mov/webm vom Handy, notfalls reine
+       Tonspur) — vorher bekam alles ausser mp4/png ein „image/jpeg" übergestülpt. */
+    const typ = pfad.endsWith(".mp4") ? "video/mp4"
+      : pfad.endsWith(".mov") ? "video/quicktime"
+      : pfad.endsWith(".webm") ? "video/webm"
+      : pfad.endsWith(".m4a") ? "audio/mp4"
+      : pfad.endsWith(".mp3") ? "audio/mpeg"
+      : pfad.endsWith(".png") ? "image/png" : "image/jpeg";
     return new Response(datei.body, {
       headers: {
         "content-type": typ,

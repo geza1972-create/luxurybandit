@@ -47,12 +47,27 @@
   /* Same for the LuxbanditCut/LuxbanditFit workbench: brushes, a paint surface and a
      side-by-side before/after are unusable in a 440px column. On phones nothing changes —
      this rule only exists above the 480px breakpoint. */
+  /* Und für das Bewerber-Dossier (/lebenslauf/…): Es ist das EINZIGE, was ein Kunde an
+     FREMDE weitergibt — an eine Personalabteilung, die es am Schreibtisch öffnet. In der
+     440er-Handy-Spalte stünde ein Lebenslauf am Rechner in einem Telefonrahmen mit grauen
+     Flächen links und rechts; das sieht nach Spielzeug aus, und genau das darf eine
+     Bewerbung nicht. Die Seite setzt ihre eigene, ruhige Spalte (760 px, mittig) —
+     nicht über den ganzen Bildschirm gezogen. */
+  .lb-frame:has(.lb-dossier),
   .lb-frame:has(.lb-werkbank) {
     width: 100%;
     max-width: none;
     margin: 0;
     background: transparent;
     box-shadow: none;
+  }
+  /* Das Vollbild eines Videos (EinladungAnsicht) hängt sonst in derselben 440er-Spalte fest
+     und wäre im 760er-Dossier plötzlich schmaler als das Standbild, aus dem es kommt. */
+  .lb-dossier .lb-phone-col {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    transform: none !important;
   }
   /* Full-bleed FIXED overlays (reels feed, bottom nav) are viewport-fixed, so they'd
      span the whole desktop — center them into the same phone column instead. */

@@ -350,8 +350,9 @@ export async function POST(request: Request) {
     await writeKissLog(entries, [String(body.remove)]);
     // MIT den Dateien löschen (Owner 30.07.2026: „ich lösche die auch"). Bliebe nur die
     // Zeile weg, lägen die Fotos weiter im Speicher — er hätte gelöscht und es wäre nichts
-    // gelöscht.
-    for (const pfad of [weg?.imagePath, weg?.personPath, weg?.modelPath]) {
+    // gelöscht. Seit 24.08.2026 auch die Eigenaufnahme (`audioPath`, Lebenslauf-Original):
+    // sie ist sein Gesicht und seine Stimme — Löschen heisst löschen.
+    for (const pfad of [weg?.imagePath, weg?.personPath, weg?.modelPath, weg?.audioPath]) {
       if (pfad) await deleteTryThisLookImage(pfad).catch(() => {});
     }
     return NextResponse.json({ ok: true, entries });

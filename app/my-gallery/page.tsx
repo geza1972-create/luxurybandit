@@ -589,7 +589,11 @@ export default function MyGalleryPage() {
     if (!m) return url;                        // fremde Adresse (Altbestand) — dann wie bisher
     const pfad = decodeURIComponent(m[1]);
     const basis = (it.lookName || "luxurybandit").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const name = `${basis}-${it.id}.${it.videoUrl ? "mp4" : "jpg"}`;
+    /* Die ECHTE Endung aus dem Speicherpfad (24.08.2026): Die Original-Aufnahme eines
+       Bewerbers kann .mov/.webm sein — eine fest getippte .mp4 ergäbe eine Datei, die
+       das Schnittprogramm am Namen falsch einordnet. Ohne Endung im Pfad wie bisher. */
+    const ext = (pfad.match(/\.([a-z0-9]{2,5})$/i)?.[1] || (it.videoUrl ? "mp4" : "jpg")).toLowerCase();
+    const name = `${basis}-${it.id}.${ext}`;
     return `/api/download?path=${encodeURIComponent(pfad)}&name=${encodeURIComponent(name)}`;
   };
 
@@ -1113,6 +1117,9 @@ export default function MyGalleryPage() {
                       : open.theme === "birthday" ? geburtstagTitel(open.empfaenger || "")
                       : open.theme === "poledance" ? "Your dance"
                       : open.theme === "holiday" ? "Your holiday"
+                      /* Die Bewerbung ist kein Geschenk — auf der Karte steht der NAME
+                         (die Original-Kachel trägt „Original — Name"), nie „kiss gift". */
+                      : open.theme === "lebenslauf" ? (open.lookName || "Video CV")
                       : "Unforgettable kiss gift"}
                   fuss={
                     <p className="lb-karte-gold mt-3 text-center text-[9px] font-bold uppercase tracking-[0.22em] opacity-70">
@@ -1129,6 +1136,9 @@ export default function MyGalleryPage() {
                           es LAG im Auftrag — die Ansicht hat es nur nicht an den Spieler
                           gereicht, und bis zum ersten Tipp stand eine braune Flaeche. */}
                       <EinladungAnsicht id="" videoUrl={open.videoUrl} poster={open.imageUrl || undefined} zaehlen={false}
+                        /* Bewerbung = Sprechvideo: oben ankern, nie den Kopf abschneiden
+                           (Owner 24.08.2026; Skill `card`). */
+                        ausrichtung={open.theme === "lebenslauf" ? "oben" : "mitte"}
                         {...(musikOffen
                           ? { musik: musikOffen, tonAutomatisch: true }
                           : { originalton: true, schleife: false, musik: "" })}
@@ -1165,7 +1175,12 @@ export default function MyGalleryPage() {
                             )}
                           </>
                         } />
-                      <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
+                      {/* KEINE HERZCHEN AUF EINER BEWERBUNG (24.08.2026): Das Video geht an
+                          Personalabteilungen — aufsteigende Herzen machten daraus eine
+                          Grusskarte. Alle Geschenk-Themen behalten sie. */}
+                      {open.theme !== "lebenslauf" && (
+                        <Reaktionen variant={open.theme || "kiss"} lang="en" name={open.empfaenger || ""} />
+                      )}
                     </div>
                   } />
                 {/**

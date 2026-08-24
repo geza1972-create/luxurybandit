@@ -5,6 +5,7 @@ import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import LebenslaufStartClient from "./LebenslaufStartClient";
+import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
 
 /**
  * DIE TUNNEL-SEITE DES LEBENSLAUF-PORTALS — genau das Muster aus
@@ -39,7 +40,9 @@ export default async function LebenslaufStartPage({ searchParams }: {
         <Kicker>{T.heroY}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="contents">
-          <LebenslaufStartClient lang={L} code={code} />
+          {/* Der Tunnel zeigt den Landingpage-Inhalt (Memory `tunnel-zeigt-landingpage-inhalt`):
+              unter dem Formular steht die Beispiel-Sektion — dieselbe Komponente wie auf der LP. */}
+          <LebenslaufStartClient lang={L} code={code} inhalt={<LebenslaufBeispiel lang={L} />} />
         </div>
       </div>
       <SeitenFuss />

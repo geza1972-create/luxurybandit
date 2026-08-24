@@ -76,14 +76,15 @@ export const MARKENSATZ_2 = "BANDIT THIS LIFE.";
 const de: AboutText = {
   kicker: "Über LuxuryBandit",
   h1a: "Einzigartige Geschenke und Momente aus der ", h1y: "neuen KI-Ära.",
-  portalKurz: "Jedes Produkt hier haben wir selbst gebaut — mit künstlicher Intelligenz, fertig in Minuten. Dieselbe Maschine steht für dein Geschäft bereit: Aus einer Dienstleistung oder einem Event wird ein Produkt, und der Weg, auf dem es verkauft wird.",
-  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Einladung zu zweit wegzufahren, oder eine Botschaft an dein zukünftiges Ich — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt ein Geschenk heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
+  portalKurz: "Persönliche Videos aus deinen eigenen Fotos — ein Geburtstagsgruss, eure Hochzeitseinladung, ein Kuss, deine Video-Bewerbung. Von KI gebaut, in Minuten fertig, privat, bis du selbst teilst. Und für Online-Shops gibt es unsere Anprobe-Technologie als eigene Lösung: hier testen, bei uns einkaufen.",
+  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Video-Bewerbung für den nächsten Job, oder eine Botschaft an dein zukünftiges Ich — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt das Video heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
 
   introLead: "LuxuryBandit verbindet persönliche Fotos, Stimme und moderne KI zu etwas, das man nicht einfach kauft und vergisst.",
   introListe: [
     "Ein Geburtstagsfilm.",
     "Eine Hochzeitsbotschaft.",
     "Eine Nachricht an dein zukünftiges Ich.",
+    "Eine Video-Bewerbung, die auffällt.",
     "Ein persönlicher Moment, den es so vorher nicht gab.",
   ],
   introKeineKi: "Du musst dafür keine KI verstehen, keine Software lernen und nichts selbst gestalten.",
@@ -177,14 +178,15 @@ const de: AboutText = {
 const en: AboutText = {
   kicker: "About LuxuryBandit",
   h1a: "One-of-a-kind gifts and moments from the ", h1y: "new AI era.",
-  portalKurz: "Every product here is our own, built with artificial intelligence and finished in minutes. The same machine is ready for your business: a service or an event becomes a product — and the path that sells it.",
-  portalLang: "A kiss, a birthday greeting, a wedding invitation, an invitation to come away together, or a message to your future self — made for one person and nobody else. You upload one photo; a finished gift comes out. Nothing to learn, nothing to install, ready in five minutes.",
+  portalKurz: "Personal videos from your own photos — a birthday greeting, your wedding invitation, a kiss, your video application. Built by AI, ready in minutes, private until you share. And for online shops, our try-on technology is available as its own solution: test it here, buy it from us.",
+  portalLang: "A kiss, a birthday greeting, a wedding invitation, a video application for your next job, or a message to your future self — made for one person and nobody else. You upload one photo; a finished video comes out. Nothing to learn, nothing to install, ready in five minutes.",
 
   introLead: "LuxuryBandit turns personal photos, voice, and modern AI into something you don't just buy and forget.",
   introListe: [
     "A birthday film.",
     "A wedding message.",
     "A message to your future self.",
+    "A video application that stands out.",
     "A personal moment that never existed before.",
   ],
   introKeineKi: "You don't need to understand AI, learn any software, or design anything yourself.",
@@ -278,14 +280,15 @@ const en: AboutText = {
 const ro: AboutText = {
   kicker: "Despre LuxuryBandit",
   h1a: "Cadouri și momente unicat din ", h1y: "noua eră AI.",
-  portalKurz: "Fiecare produs de aici este al nostru, creat cu inteligență artificială și gata în câteva minute. Aceeași mașinărie e pregătită și pentru afacerea ta: un serviciu sau un eveniment devine un produs — și drumul pe care se vinde.",
-  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o invitație de a pleca împreună, sau un mesaj către eul tău din viitor — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese un cadou gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
+  portalKurz: "Videoclipuri personale din fotografiile tale — o urare de ziua cuiva, invitația voastră la nuntă, un sărut, aplicația ta video pentru un job. Create de AI, gata în câteva minute, private până le distribui tu. Iar pentru magazinele online, tehnologia noastră de probă virtuală există ca soluție separată: o testezi aici, o cumperi de la noi.",
+  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o aplicație video pentru următorul job, sau un mesaj către eul tău din viitor — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese videoclipul gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
 
   introLead: "LuxuryBandit combină fotografii personale, voce și AI modern într-un lucru pe care nu îl cumperi ca să-l uiți.",
   introListe: [
     "Un film de ziua de naștere.",
     "Un mesaj de nuntă.",
     "Un mesaj către eul tău din viitor.",
+    "O aplicație video care iese în evidență.",
     "Un moment personal care nu a existat înainte.",
   ],
   introKeineKi: "Nu trebuie să înțelegi AI, să înveți niciun program și nici să creezi nimic singur.",
@@ -379,14 +382,15 @@ const ro: AboutText = {
 const es: AboutText = {
   kicker: "Sobre LuxuryBandit",
   h1a: "Regalos y momentos únicos de la ", h1y: "nueva era de la IA.",
-  portalKurz: "Cada producto de aquí es nuestro, creado con inteligencia artificial y listo en minutos. La misma máquina está lista para tu negocio: un servicio o un evento se convierte en un producto — y en el camino que lo vende.",
-  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una invitación a irse juntos, o un mensaje para tu yo futuro — hechos para una sola persona y para nadie más. Subes una foto y sale un regalo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
+  portalKurz: "Vídeos personales hechos con tus propias fotos — una felicitación de cumpleaños, vuestra invitación de boda, un beso, tu candidatura en vídeo. Creados por IA, listos en minutos, privados hasta que tú los compartas. Y para tiendas online, nuestra tecnología de prueba virtual existe como solución propia: pruébala aquí, cómprala con nosotros.",
+  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una candidatura en vídeo para tu próximo trabajo, o un mensaje para tu yo futuro — hechos para una sola persona y para nadie más. Subes una foto y sale el vídeo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
 
   introLead: "LuxuryBandit convierte fotos personales, voz e IA moderna en algo que no simplemente compras y olvidas.",
   introListe: [
     "Una película de cumpleaños.",
     "Un mensaje de boda.",
     "Un mensaje para tu yo futuro.",
+    "Una candidatura en vídeo que destaca.",
     "Un momento personal que antes no existía.",
   ],
   introKeineKi: "No necesitas entender de IA, aprender ningún software ni diseñar nada tú mismo.",
@@ -480,14 +484,15 @@ const es: AboutText = {
 const fr: AboutText = {
   kicker: "À propos de LuxuryBandit",
   h1a: "Des cadeaux et des moments uniques de la ", h1y: "nouvelle ère de l’IA.",
-  portalKurz: "Chaque produit ici est le nôtre, créé par l'intelligence artificielle et prêt en quelques minutes. La même machine attend ton activité : un service ou un événement devient un produit — et le chemin qui le vend.",
-  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une invitation à partir à deux, ou un message à ton futur toi — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et un cadeau fini en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
+  portalKurz: "Des vidéos personnelles à partir de tes propres photos — un message d'anniversaire, votre invitation de mariage, un baiser, ta candidature vidéo. Créées par l'IA, prêtes en quelques minutes, privées jusqu'à ce que tu les partages. Et pour les boutiques en ligne, notre technologie d'essayage virtuel existe comme solution à part : teste-la ici, achète-la chez nous.",
+  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une candidature vidéo pour ton prochain emploi, ou un message à ton futur toi — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et la vidéo finie en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
 
   introLead: "LuxuryBandit transforme des photos personnelles, une voix et l’IA moderne en quelque chose qu’on n’achète pas simplement pour l’oublier.",
   introListe: [
     "Un film d’anniversaire.",
     "Un message de mariage.",
     "Un message à ton futur toi.",
+    "Une candidature vidéo qui se démarque.",
     "Un moment personnel qui n’existait pas avant.",
   ],
   introKeineKi: "Tu n’as pas besoin de comprendre l’IA, d’apprendre un logiciel ni de concevoir quoi que ce soit toi-même.",
@@ -581,14 +586,15 @@ const fr: AboutText = {
 const pt: AboutText = {
   kicker: "Sobre a LuxuryBandit",
   h1a: "Presentes e momentos únicos da ", h1y: "nova era da IA.",
-  portalKurz: "Cada produto aqui é nosso, criado com inteligência artificial e pronto em minutos. A mesma máquina está pronta para o teu negócio: um serviço ou um evento torna-se um produto — e o caminho que o vende.",
-  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, um convite para fugirem os dois, ou uma mensagem para o teu eu futuro — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai um presente pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
+  portalKurz: "Vídeos pessoais feitos com as tuas próprias fotos — uma mensagem de aniversário, o vosso convite de casamento, um beijo, a tua candidatura em vídeo. Criados por IA, prontos em minutos, privados até tu os partilhares. E para lojas online, a nossa tecnologia de prova virtual existe como solução própria: testa-a aqui, compra-a connosco.",
+  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, uma candidatura em vídeo para o próximo emprego, ou uma mensagem para o teu eu futuro — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai o vídeo pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
 
   introLead: "A LuxuryBandit transforma fotos pessoais, voz e IA moderna em algo que não se compra simplesmente para esquecer.",
   introListe: [
     "Um filme de aniversário.",
     "Uma mensagem de casamento.",
     "Uma mensagem para o teu eu futuro.",
+    "Uma candidatura em vídeo que se destaca.",
     "Um momento pessoal que antes não existia.",
   ],
   introKeineKi: "Não precisas de perceber de IA, aprender nenhum software nem criar nada sozinho.",
@@ -682,14 +688,15 @@ const pt: AboutText = {
 const it: AboutText = {
   kicker: "Chi siamo",
   h1a: "Regali e momenti unici dalla ", h1y: "nuova era dell’IA.",
-  portalKurz: "Ogni prodotto qui è nostro, creato con l'intelligenza artificiale e pronto in pochi minuti. La stessa macchina è pronta per la tua attività: un servizio o un evento diventa un prodotto — e la strada che lo vende.",
-  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, un invito a partire in due, o un messaggio al tuo io futuro — fatti per una persona sola e per nessun altro. Carichi una foto ed esce un regalo finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
+  portalKurz: "Video personali dalle tue foto — un augurio di compleanno, il vostro invito di nozze, un bacio, la tua candidatura video. Creati dall'IA, pronti in pochi minuti, privati finché non li condividi tu. E per i negozi online, la nostra tecnologia di prova virtuale esiste come soluzione a sé: la provi qui, la compri da noi.",
+  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, una candidatura video per il prossimo lavoro, o un messaggio al tuo io futuro — fatti per una persona sola e per nessun altro. Carichi una foto ed esce il video finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
 
   introLead: "LuxuryBandit trasforma foto personali, voce e IA moderna in qualcosa che non si compra semplicemente per dimenticarlo.",
   introListe: [
     "Un film di compleanno.",
     "Un messaggio di matrimonio.",
     "Un messaggio al tuo io futuro.",
+    "Una candidatura video che si fa notare.",
     "Un momento personale che prima non esisteva.",
   ],
   introKeineKi: "Non devi capire di IA, imparare alcun software né progettare nulla da solo.",

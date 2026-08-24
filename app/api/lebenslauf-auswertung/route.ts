@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { completeReservation, getAccountId, reserveCredits } from "@/lib/billing";
-import { schreibeLebenslauf } from "@/lib/lebenslauf-store";
+import { leseLebenslauf, schreibeLebenslauf } from "@/lib/lebenslauf-store";
 import { getSignedUrl } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
@@ -15,7 +15,13 @@ export const maxDuration = 30;
  * Muster wie `app/api/detect-products/route.ts` — PDF/Text an OpenAI, striktes JSON zurück.
  */
 
-type Auswertung = { stichpunkte?: string[]; kategorien?: string[]; sprechtext?: string; kleidung?: string; umgebung?: string };
+type Station = { rolle?: string; zeitraum?: string };
+type Passung = { rolle?: string; gruende?: string[] };
+type Auswertung = {
+  stichpunkte?: string[]; kategorien?: string[]; sprechtext?: string; kleidung?: string; umgebung?: string;
+  erfahrung?: Station[]; kompetenzen?: string[]; ort?: string; telefon?: string;
+  schwerpunkte?: string[]; passung?: Passung[];
+};
 
 function extractJson(text: string): Auswertung {
   try {
@@ -83,7 +89,14 @@ export async function POST(request: Request) {
     "Schlage 2–4 passende Berufskategorien vor, für die diese Person sich bewerben könnte — auch Quereinstiege, nicht nur der bisherige Titel.",
     "Schreibe außerdem einen SPRECHTEXT von 80–120 Wörtern, den diese Person vor einer Kamera über sich selbst sagen kann — erste Person, natürlich gesprochen (keine Aufzählung), beginnt mit Name/Rolle, nennt 2–3 Stationen und was sie jetzt sucht. Gleiche Sprache wie der Lebenslauf.",
     "Beschreibe außerdem in ZWEI kurzen englischen Sätzen (für eine Bildgenerierung): 'kleidung' — passende, korrekte Berufskleidung für den erkannten Beruf (z. B. Kochjacke für einen Koch, Uniform für eine Flugbegleiterin, Anzug für Büroberufe) — und 'umgebung' — ein passender Arbeitsort (z. B. eine Küche, eine Flugzeugkabine, ein Büro). Beides ohne Markennamen.",
-    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\"}.",
+    "Liste außerdem 'erfahrung' — bis zu 3 berufliche Stationen mit Zeitraum, chronologisch neueste zuerst: [{\"rolle\":\"Jobtitel bei Firma\",\"zeitraum\":\"2022–heute\"}]. Nimm die echten Jahreszahlen aus dem Lebenslauf, keine erfundenen.",
+    "Liste außerdem 'kompetenzen' — 4–6 EINZELWÖRTER oder kurze Begriffe für Fähigkeiten-Icons (z. B. \"Leadership\", \"E-Commerce\", \"Marketing\", \"Verhandlung\").",
+    // GEGEN DIE REDUNDANZ (Owner 24.08.2026): Kopf-Chips und Rollen-Gründe waren vorher nur
+    // Wiederholungen von 'kategorien'/'kompetenzen' — jede Liste muss ihren EIGENEN Inhalt haben.
+    "Liste außerdem 'schwerpunkte' — 3–4 kurze ARBEITSFELDER (je 1–3 Wörter, z. B. \"UX-Strategie & Research\", \"KI-Produktentwicklung\") — KEINE Jobtitel, und NICHT dieselben Wörter wie 'kompetenzen'.",
+    "Liste außerdem 'passung' — für JEDE Kategorie aus 'kategorien' 3–4 konkrete, im Lebenslauf belegte Gründe, warum diese Person zu genau dieser Rolle passt (je unter 7 Wörtern, z. B. \"UX-Strategie für Bundesbehörde geleitet\"). Die Gründe müssen sich JE ROLLE UNTERSCHEIDEN — nie dieselbe Liste wiederholen, nichts erfinden.",
+    "Wenn im Lebenslauf ein Ort/Stadt und eine Telefonnummer stehen, gib sie als 'ort' und 'telefon' zurück, sonst leere Strings.",
+    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\",\"erfahrung\":[{\"rolle\":\"...\",\"zeitraum\":\"...\"}],\"kompetenzen\":[\"...\"],\"schwerpunkte\":[\"...\"],\"passung\":[{\"rolle\":\"...\",\"gruende\":[\"...\"]}],\"ort\":\"...\",\"telefon\":\"...\"}.",
   ].join(" ");
 
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptText }];
@@ -131,18 +144,49 @@ export async function POST(request: Request) {
   const sprechtext = String(parsed.sprechtext ?? "").trim().slice(0, 1200);
   const kleidung = String(parsed.kleidung ?? "").trim().slice(0, 300);
   const umgebung = String(parsed.umgebung ?? "").trim().slice(0, 300);
+  const erfahrung = (parsed.erfahrung ?? [])
+    .map((e) => ({ rolle: String(e?.rolle ?? "").trim(), zeitraum: String(e?.zeitraum ?? "").trim() }))
+    .filter((e) => e.rolle).slice(0, 3);
+  /* „Wann kannst du anfangen?" aus dem Trichter — nur die drei bekannten Kennungen, die
+     Seite übersetzt sie später selbst (executiveAusProfil). */
+  const verfuegbarkeit = ["sofort", "1monat", "flexibel"].includes(String(body.verfuegbarkeit ?? ""))
+    ? String(body.verfuegbarkeit) : undefined;
+  const kompetenzen = (parsed.kompetenzen ?? []).map((s) => String(s).trim()).filter(Boolean).slice(0, 6);
+  const schwerpunkte = (parsed.schwerpunkte ?? []).map((s) => String(s).trim()).filter(Boolean).slice(0, 4);
+  const passung = (parsed.passung ?? [])
+    .map((p) => ({
+      rolle: String(p?.rolle ?? "").trim(),
+      gruende: (p?.gruende ?? []).map((g) => String(g).trim()).filter(Boolean).slice(0, 4),
+    }))
+    .filter((p) => p.rolle && p.gruende.length > 0)
+    .slice(0, 4);
+  const ort = String(parsed.ort ?? "").trim().slice(0, 80);
+  const telefon = String(parsed.telefon ?? "").trim().slice(0, 40);
 
   // NOCH KEIN VIDEO — das Profil ist ein Entwurf, bis der HeyGen-Lauf fertig ist
   // (`/api/lebenslauf-video` + `/api/lebenslauf-fertigstellen`). `bezahlt: true`, weil diese
   // Route erst nach der Kasse läuft; die Ergebnisseite prüft trotzdem auf ein Video.
+  /* MIT BESTAND MERGEN statt neu bauen (24.08.2026, beim zweiten Lauf auf dasselbe Profil
+     gefunden): Diese Route baute das Profil from scratch — ein erneuter Auswertungs-Lauf
+     (Retry nach Netzfehler, Nach-Auswertung) warf damit `videoUrl`/`fotoUrl`/`aufnahmePath`
+     eines FERTIGEN Profils weg. Der Spread hält alles, was diese Auswertung nicht liefert. */
+  const bestand = await leseLebenslauf(id);
   const ok = await schreibeLebenslauf({
+    ...(bestand ?? {}),
     id,
-    erstelltAm: new Date().toISOString(),
-    name: name || undefined,
-    email: email || undefined,
+    erstelltAm: bestand?.erstelltAm ?? new Date().toISOString(),
+    name: name || bestand?.name || undefined,
+    email: email || bestand?.email || undefined,
     stichpunkte,
     kategorien,
     sprechtext,
+    erfahrung,
+    kompetenzen,
+    schwerpunkte,
+    passung,
+    ort: ort || undefined,
+    telefon: telefon || undefined,
+    verfuegbarkeit: verfuegbarkeit ?? bestand?.verfuegbarkeit,
     bezahlt: true,
   });
 
@@ -150,5 +194,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profil konnte nicht gespeichert werden." }, { status: 500 });
   }
 
-  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, credits: completeReservation(accountId, reservation.reservationId) });
+  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, kompetenzen, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });
 }
