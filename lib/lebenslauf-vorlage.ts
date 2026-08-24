@@ -353,12 +353,18 @@ export function executiveAusProfil(p: LebenslaufProfil, lang: Lang = "en"): Exec
     videoUrl: p.videoUrl,
     profil: (p.sprechtext ?? "").trim() || (p.stichpunkte ?? []).join(" · "),
     expertise: kompetenzen,
+    /* SEIT 24.08.2026 MIT FIRMA UND ERGEBNIS (Owner: „es muss alles rein") — die Vorlage
+       hatte für beide schon eigene Zeilen (LebenslaufExecutive.tsx blendet sie einzeln aus,
+       wenn leer), nur die Auswertung lieferte sie nie. Altprofile ohne diese Felder zeigen
+       weiterhin nur Rolle + Zeitraum, keine leeren Zeilen. */
     erfahrung: (p.erfahrung ?? [])
       .filter(e => e.rolle)
-      .map(e => ({ rolle: e.rolle, firma: "", zeitraum: e.zeitraum, ergebnis: "" })),
+      .map(e => ({ rolle: e.rolle, firma: e.firma ?? "", zeitraum: e.zeitraum, ergebnis: e.ergebnis ?? "" })),
     impact: [],
-    ausbildung: [],
-    sprachen: [],
+    /* Ausbildung/Sprachen kommen jetzt echt aus der Auswertung (Owner 24.08.2026 — vorher
+       für JEDES reale Profil hart leer, obwohl die Vorlage eigene Abschnitte dafür hat). */
+    ausbildung: (p.ausbildung ?? []).filter(a => a.titel).map(a => ({ titel: a.titel, ort: a.ort ?? "", zeitraum: a.zeitraum ?? "" })),
+    sprachen: (p.sprachen ?? []).filter(s => s.sprache).map(s => ({ sprache: s.sprache, niveau: s.niveau ?? "" })),
     /* JE ROLLE EIGENE GRÜNDE aus der Auswertung (`passung`); nur Altprofile ohne sie
        wiederholen die Kompetenzen (Owner 24.08.2026: „lauter Redundanzen"). */
     passendeRollen: (p.passung?.length

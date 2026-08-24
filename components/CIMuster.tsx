@@ -243,7 +243,7 @@ export default function CIMuster() {
           steht er im Seitenfluss; auf der Seite selbst klebt er oben. Ganz zu sehen ist er
           unter /lebenslauf/executive. */}
       <div className="overflow-hidden rounded-2xl border border-white/15">
-        <TalentKopf marke="Talent" teilenLabel="Profil teilen" kopiertLabel="Link kopiert"
+        <TalentKopf marke="Talent"
           menuLabel="Menü" menuTitel="Abschnitte"
           menu={[{ label: "Profil", href: "#" }, { label: "Erfahrung", href: "#" }]} />
       </div>

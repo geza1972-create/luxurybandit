@@ -88,7 +88,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
     /* `lb-dossier`: die eine Kennung, an der globals.css die Handy-Spalte für diese Seite
        aufhebt — sonst stünde das Dossier am Rechner in einem 440-px-Telefonrahmen. */
     <main className="lb-bg lb-dossier min-h-screen text-white">
-      <TalentKopf marke={T.marke} teilenLabel={T.teilen} kopiertLabel={T.kopiert} konto={konto}
+      <TalentKopf marke={T.marke} konto={konto}
         menuLabel={T.menu} menuTitel={T.menuTitel} menu={menu} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">

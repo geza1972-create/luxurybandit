@@ -15,12 +15,26 @@ export const maxDuration = 30;
  * Muster wie `app/api/detect-products/route.ts` — PDF/Text an OpenAI, striktes JSON zurück.
  */
 
-type Station = { rolle?: string; zeitraum?: string };
+/**
+ * VOLLSTÄNDIGKEIT STATT KURATIERTER AUSWAHL (Owner 24.08.2026, am eigenen 5-seitigen
+ * Lebenslauf: „Mein CV ist nicht komplett … wo sind die Inhalte?" — dann ausdrücklich zur
+ * Erfahrung-Deckelung: „es muss alles rein"). Das hebt die ursprüngliche Vorgabe des
+ * Executive-Auftrags vom 22.08. („Do not recreate the entire CV", drei Stationen reichen)
+ * für ECHTE Bewerberprofile auf — die drei Stationen waren als Design für das kuratierte
+ * MUSTER gedacht, nicht als Grenze für das, was ein zahlender Bewerber bekommt.
+ *
+ * Firma und Ergebnis je Station fehlten davor komplett (die Vorlage hat dafür eigene
+ * Zeilen, siehe `ExecutiveErfahrung` — sie standen bei jedem echten Profil leer), ebenso
+ * Ausbildung und Sprachen (die Vorlage hat eigene Abschnitte dafür, aber nie Daten bekommen).
+ */
+type Station = { rolle?: string; firma?: string; zeitraum?: string; ergebnis?: string };
+type Bildung = { titel?: string; ort?: string; zeitraum?: string };
+type Sprache = { sprache?: string; niveau?: string };
 type Passung = { rolle?: string; gruende?: string[] };
 type Auswertung = {
   stichpunkte?: string[]; kategorien?: string[]; sprechtext?: string; kleidung?: string; umgebung?: string;
   erfahrung?: Station[]; kompetenzen?: string[]; ort?: string; telefon?: string;
-  schwerpunkte?: string[]; passung?: Passung[];
+  schwerpunkte?: string[]; passung?: Passung[]; ausbildung?: Bildung[]; sprachen?: Sprache[];
 };
 
 function extractJson(text: string): Auswertung {
@@ -89,14 +103,18 @@ export async function POST(request: Request) {
     "Schlage 2–4 passende Berufskategorien vor, für die diese Person sich bewerben könnte — auch Quereinstiege, nicht nur der bisherige Titel.",
     "Schreibe außerdem einen SPRECHTEXT von 80–120 Wörtern, den diese Person vor einer Kamera über sich selbst sagen kann — erste Person, natürlich gesprochen (keine Aufzählung), beginnt mit Name/Rolle, nennt 2–3 Stationen und was sie jetzt sucht. Gleiche Sprache wie der Lebenslauf.",
     "Beschreibe außerdem in ZWEI kurzen englischen Sätzen (für eine Bildgenerierung): 'kleidung' — passende, korrekte Berufskleidung für den erkannten Beruf (z. B. Kochjacke für einen Koch, Uniform für eine Flugbegleiterin, Anzug für Büroberufe) — und 'umgebung' — ein passender Arbeitsort (z. B. eine Küche, eine Flugzeugkabine, ein Büro). Beides ohne Markennamen.",
-    "Liste außerdem 'erfahrung' — bis zu 3 berufliche Stationen mit Zeitraum, chronologisch neueste zuerst: [{\"rolle\":\"Jobtitel bei Firma\",\"zeitraum\":\"2022–heute\"}]. Nimm die echten Jahreszahlen aus dem Lebenslauf, keine erfundenen.",
+    // VOLLSTÄNDIG, NICHT KURATIERT (Owner 24.08.2026: „es muss alles rein") — JEDE Station
+    // aus dem Lebenslauf, nicht nur die auffälligsten drei; die Seite selbst deckelt nicht.
+    "Liste außerdem 'erfahrung' — ALLE beruflichen Stationen aus dem Lebenslauf, chronologisch neueste zuerst, keine ausgelassen: [{\"rolle\":\"Jobtitel\",\"firma\":\"Firmenname, Ort\",\"zeitraum\":\"2022–heute\",\"ergebnis\":\"EIN Satz: Aufgabe oder Ergebnis dieser Station, aus dem Lebenslauf\"}]. Nimm die echten Jahreszahlen aus dem Lebenslauf, keine erfundenen. 'firma' leer lassen, wenn der Lebenslauf keine nennt.",
+    "Liste außerdem 'ausbildung' — ALLE Ausbildungsstationen: [{\"titel\":\"Abschluss/Studiengang\",\"ort\":\"Institution, Ort\",\"zeitraum\":\"...\"}]. 'zeitraum' leer lassen, wenn keiner angegeben ist.",
+    "Liste außerdem 'sprachen' — ALLE genannten Sprachen mit Niveau: [{\"sprache\":\"...\",\"niveau\":\"...\"}]. Nenne jede Sprache in der HAUPTSPRACHE DES LEBENSLAUFS (z. B. bei einem deutschen Lebenslauf \"Deutsch\", \"Englisch\", nicht \"German\", \"English\", selbst wenn der Kopf des Dokuments sie englisch nennt). Niveau wörtlich wie im Lebenslauf, z. B. \"C2\", \"Muttersprache\", \"verhandlungssicher\".",
     "Liste außerdem 'kompetenzen' — 4–6 EINZELWÖRTER oder kurze Begriffe für Fähigkeiten-Icons (z. B. \"Leadership\", \"E-Commerce\", \"Marketing\", \"Verhandlung\").",
     // GEGEN DIE REDUNDANZ (Owner 24.08.2026): Kopf-Chips und Rollen-Gründe waren vorher nur
     // Wiederholungen von 'kategorien'/'kompetenzen' — jede Liste muss ihren EIGENEN Inhalt haben.
     "Liste außerdem 'schwerpunkte' — 3–4 kurze ARBEITSFELDER (je 1–3 Wörter, z. B. \"UX-Strategie & Research\", \"KI-Produktentwicklung\") — KEINE Jobtitel, und NICHT dieselben Wörter wie 'kompetenzen'.",
     "Liste außerdem 'passung' — für JEDE Kategorie aus 'kategorien' 3–4 konkrete, im Lebenslauf belegte Gründe, warum diese Person zu genau dieser Rolle passt (je unter 7 Wörtern, z. B. \"UX-Strategie für Bundesbehörde geleitet\"). Die Gründe müssen sich JE ROLLE UNTERSCHEIDEN — nie dieselbe Liste wiederholen, nichts erfinden.",
     "Wenn im Lebenslauf ein Ort/Stadt und eine Telefonnummer stehen, gib sie als 'ort' und 'telefon' zurück, sonst leere Strings.",
-    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\",\"erfahrung\":[{\"rolle\":\"...\",\"zeitraum\":\"...\"}],\"kompetenzen\":[\"...\"],\"schwerpunkte\":[\"...\"],\"passung\":[{\"rolle\":\"...\",\"gruende\":[\"...\"]}],\"ort\":\"...\",\"telefon\":\"...\"}.",
+    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\",\"erfahrung\":[{\"rolle\":\"...\",\"firma\":\"...\",\"zeitraum\":\"...\",\"ergebnis\":\"...\"}],\"ausbildung\":[{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}],\"sprachen\":[{\"sprache\":\"...\",\"niveau\":\"...\"}],\"kompetenzen\":[\"...\"],\"schwerpunkte\":[\"...\"],\"passung\":[{\"rolle\":\"...\",\"gruende\":[\"...\"]}],\"ort\":\"...\",\"telefon\":\"...\"}.",
   ].join(" ");
 
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptText }];
@@ -144,9 +162,43 @@ export async function POST(request: Request) {
   const sprechtext = String(parsed.sprechtext ?? "").trim().slice(0, 1200);
   const kleidung = String(parsed.kleidung ?? "").trim().slice(0, 300);
   const umgebung = String(parsed.umgebung ?? "").trim().slice(0, 300);
+  /* KEINE KÜNSTLICHE DECKELUNG (Owner 24.08.2026: „es muss alles rein") — nur ein grosszügiger
+     Anti-Missbrauch-Deckel (20), kein Kürzen auf eine „Highlight"-Auswahl. Firma/Ergebnis
+     dürfen leer bleiben (nicht jede Station hat beides), Rolle ist die einzige Pflicht. */
   const erfahrung = (parsed.erfahrung ?? [])
-    .map((e) => ({ rolle: String(e?.rolle ?? "").trim(), zeitraum: String(e?.zeitraum ?? "").trim() }))
-    .filter((e) => e.rolle).slice(0, 3);
+    .map((e) => ({
+      rolle: String(e?.rolle ?? "").trim(),
+      firma: String(e?.firma ?? "").trim().slice(0, 120) || undefined,
+      zeitraum: String(e?.zeitraum ?? "").trim(),
+      ergebnis: String(e?.ergebnis ?? "").trim().slice(0, 220) || undefined,
+    }))
+    .filter((e) => e.rolle).slice(0, 20);
+  const ausbildung = (parsed.ausbildung ?? [])
+    .map((a) => ({
+      titel: String(a?.titel ?? "").trim(),
+      ort: String(a?.ort ?? "").trim().slice(0, 120) || undefined,
+      zeitraum: String(a?.zeitraum ?? "").trim().slice(0, 40) || undefined,
+    }))
+    .filter((a) => a.titel).slice(0, 10);
+  /* SPRACHNAMEN VERLÄSSLICH DEUTSCH (nicht der KI überlassen — gemessen 24.08.2026: bei
+     Deutsch/Englisch befolgte sie die Anweisung, bei Rumänisch/Ungarisch nicht). Deckt die
+     Sprachen ab, die im deutschen Sprachraum am häufigsten in Lebensläufen stehen; jede
+     andere bleibt, wie die KI sie genannt hat. */
+  const SPRACHNAME_DE: Record<string, string> = {
+    german: "Deutsch", english: "Englisch", romanian: "Rumänisch", hungarian: "Ungarisch",
+    french: "Französisch", spanish: "Spanisch", italian: "Italienisch", portuguese: "Portugiesisch",
+    dutch: "Niederländisch", polish: "Polnisch", russian: "Russisch", turkish: "Türkisch",
+    arabic: "Arabisch", chinese: "Chinesisch", mandarin: "Mandarin", japanese: "Japanisch",
+  };
+  const sprachen = (parsed.sprachen ?? [])
+    .map((s) => {
+      const roh = String(s?.sprache ?? "").trim().slice(0, 40);
+      return {
+        sprache: SPRACHNAME_DE[roh.toLowerCase()] ?? roh,
+        niveau: String(s?.niveau ?? "").trim().slice(0, 40) || undefined,
+      };
+    })
+    .filter((s) => s.sprache).slice(0, 10);
   /* „Wann kannst du anfangen?" aus dem Trichter — nur die drei bekannten Kennungen, die
      Seite übersetzt sie später selbst (executiveAusProfil). */
   const verfuegbarkeit = ["sofort", "1monat", "flexibel"].includes(String(body.verfuegbarkeit ?? ""))
@@ -181,6 +233,8 @@ export async function POST(request: Request) {
     kategorien,
     sprechtext,
     erfahrung,
+    ausbildung,
+    sprachen,
     kompetenzen,
     schwerpunkte,
     passung,
@@ -194,5 +248,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profil konnte nicht gespeichert werden." }, { status: 500 });
   }
 
-  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, kompetenzen, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });
+  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, passung, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });
 }

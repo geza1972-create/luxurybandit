@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, Send, Check, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
@@ -2667,19 +2667,21 @@ export function InAppBrowserHinweis({ sprache = "de", className = "" }: { sprach
  * ist keine Geschmacksfrage, sondern der Grund, warum es diesen Bereich gibt.
  *
  * WAS BLEIBT, IST DIE HERKUNFT: Wortmarke links (Gold „LB", weiss „TALENT" — dieselben zwei
- * Farben wie das ganze Haus), und rechts die drei Bedienungen, die eine geteilte Seite
- * braucht. Die Wortmarke ist bewusst KEIN Link: Ein Personaler, der auf sie tippt, stünde
- * sonst mitten im Geschenke-Katalog.
+ * Farben wie das ganze Haus). Die Wortmarke ist bewusst KEIN Link: Ein Personaler, der auf
+ * sie tippt, stünde sonst mitten im Geschenke-Katalog.
+ *
+ * KEIN TEILEN-KNOPF HIER (Owner 24.08.2026: „share kommt hier weg" — am Kopf des Dossiers,
+ * nicht am Video). Das Video in der Karte hat seinen eigenen Teilen-Knopf (Skill `card`);
+ * ein zweiter oben im Kopf war ein Doppel desselben Zwecks. Der ursprüngliche Auftrag vom
+ * 22.08. nannte „Share · language · menu" — diese eine Zeile ist damit überholt.
  *
  * DIE BAUSTEINE SIND DIE DES HAUSES (Skill `ci-design`): `SymbolKnopf` für die runden Zeichen
  * in der dunklen Leiste, `LangSwitch` für die Sprache — nicht nachgebaut, nur zusammengesetzt.
  * `z-50` wie `TopNav`, aus demselben Grund (die Knöpfe auf den Karten stehen auf z-30).
  */
-export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLabel, menuTitel, menu = [], konto }: {
+export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], konto }: {
   /** Das Wort NACH „LB". Vorgabe „Talent" — die Marke des Bereichs, nicht des Hauses. */
   marke?: string;
-  teilenLabel: string;
-  kopiertLabel: string;
   menuLabel: string;
   menuTitel: string;
   /**
@@ -2693,7 +2695,6 @@ export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLa
   konto?: ReactNode;
 }) {
   const [offen, setOffen] = useState(false);
-  const [kopiert, setKopiert] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
   /* Klick daneben schliesst — dasselbe Verhalten wie beim Sprachmenü. */
@@ -2705,18 +2706,6 @@ export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLa
     window.addEventListener("keydown", esc);
     return () => { document.removeEventListener("mousedown", zu); window.removeEventListener("keydown", esc); };
   }, [offen]);
-
-  /* Teilen über die System-Auswahl, mit der Zwischenablage als Rückfall — wie `TeilenKnopf`,
-     nur in der Gestalt der dunklen Leiste statt als weisse Scheibe auf einem Bild. */
-  const teilen = async () => {
-    try {
-      const url = window.location.href;
-      if (navigator.share) { await navigator.share({ title: document.title, url }); return; }
-      await navigator.clipboard?.writeText(url);
-      setKopiert(true);
-      setTimeout(() => setKopiert(false), 2500);
-    } catch { /* abgebrochen ist kein Fehler, nur ein Nein */ }
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
@@ -2738,9 +2727,6 @@ export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLa
               ein Kreis in der zentralen Bibliothek. Der Aufrufer reicht ihn herein, genau wie
               `TopNav` es mit `<KontoChip />` neben seinem Teilen-Knopf tut. */}
           {konto}
-          <SymbolKnopf label={kopiert ? kopiertLabel : teilenLabel} onClick={() => void teilen()}>
-            {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          </SymbolKnopf>
           <LangSwitch />
           {menu.length > 0 && (
             <div ref={boxRef} className="relative">

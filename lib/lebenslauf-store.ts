@@ -29,9 +29,19 @@ export type LebenslaufProfil = {
   fotoUrl?: string;
   stichpunkte: string[];
   kategorien: string[];
-  /** Bis zu 3 berufliche Stationen mit Zeitraum, für die Lebenslauf-Karte (Owner 21.08.2026:
-      „wo sind die Jahre in der Bewerbung"). Neueste zuerst. */
-  erfahrung?: { rolle: string; zeitraum: string }[];
+  /**
+   * ALLE beruflichen Stationen, neueste zuerst (Owner 21.08.2026: „wo sind die Jahre in der
+   * Bewerbung"; Owner 24.08.2026, am eigenen 5-seitigen CV: „es muss alles rein" — hebt die
+   * frühere Deckelung auf drei Stationen für ECHTE Profile auf, die galt nur fürs kuratierte
+   * Muster). `firma`/`ergebnis` seit 24.08.2026 — die Vorlage hatte für beide schon eigene
+   * Zeilen, sie standen nur nie befüllt.
+   */
+  erfahrung?: { rolle: string; firma?: string; zeitraum: string; ergebnis?: string }[];
+  /** Ausbildungsstationen — die Vorlage hat einen eigenen Abschnitt dafür (Owner 24.08.2026:
+      vorher nie befüllt, weil die Auswertung sie nie abgefragt hat). */
+  ausbildung?: { titel: string; ort?: string; zeitraum?: string }[];
+  /** Sprachen mit Niveau — derselbe Fall wie Ausbildung. */
+  sprachen?: { sprache: string; niveau?: string }[];
   /** Kurze Fähigkeiten-Begriffe für die Icon-Chips (Owner 21.08.2026: „wo sind die Skills mit
       Icons"). Das passende Symbol sucht die Seite selbst per Stichwort, kein KI-Icon-Name. */
   kompetenzen?: string[];
