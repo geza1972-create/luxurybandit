@@ -90,7 +90,7 @@ export default function ProfilAnzeigenMatch({ id, lang = "en" }: { id: string; l
       const { headers, device } = ausweis();
       const r = await fetch("/api/lebenslauf-match", {
         method: "POST", headers,
-        body: JSON.stringify({ id, eingabe: eingabe.trim(), device }),
+        body: JSON.stringify({ id, eingabe: eingabe.trim(), device, lang }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setFehler(String(d?.error ?? "Hat nicht geklappt — bitte noch einmal.")); setBusy(false); return; }

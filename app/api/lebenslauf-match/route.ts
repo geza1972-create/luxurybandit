@@ -62,6 +62,16 @@ async function anzeigenTextBeschaffen(eingabe: string): Promise<{ text: string; 
   }
 }
 
+/**
+ * DIE ANTWORT MUSS DIE SPRACHE DES BETRACHTERS TREFFEN (Owner 24.08.2026: „der Match-Text
+ * ist auf Deutsch anstatt Englisch"). Die Route bekam bisher NIE mitgeteilt, in welcher
+ * Sprache die Seite gerade läuft — der Prompt selbst ist auf Deutsch verfasst, und ohne
+ * Weisung schrieb die KI auch die Antwort auf Deutsch, unabhängig davon, ob der Betrachter
+ * die Seite auf Englisch, Rumänisch oder sonst einer der sieben Haussprachen liest.
+ * Dieselbe Namensliste wie `lib/translate.ts` (LANG_NAME).
+ */
+const SPRACHNAME: Record<string, string> = { de: "German", en: "English", ro: "Romanian", es: "Spanish", fr: "French", pt: "Portuguese", it: "Italian" };
+
 function extractJson(text: string): { prozent?: number; jobtitel?: string; gruende?: string[]; luecken?: string[] } | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -77,6 +87,7 @@ export async function POST(request: Request) {
   const id = String(body.id ?? "").trim();
   const device = String(body.device ?? "").trim().slice(0, 80);
   const eingabe = String(body.eingabe ?? "").trim().slice(0, 4000);
+  const zielSprache = SPRACHNAME[String(body.lang ?? "").trim().slice(0, 2)] ?? "English";
   if (!id || !eingabe) return NextResponse.json({ error: "Kennung oder Anzeige fehlt." }, { status: 400 });
 
   const profil = await leseLebenslauf(id);
@@ -106,6 +117,7 @@ export async function POST(request: Request) {
     "'jobtitel' — der Titel der Stelle, wörtlich aus der Anzeige, oder leer, wenn keiner erkennbar ist.",
     "'gruende' — 3–5 KONKRETE Übereinstimmungen, je ein kurzer Satz, der eine Zeile aus dem Profil an eine Anforderung der Anzeige bindet (z. B. \"5 Jahre React verlangt — 6 Jahre im Profil belegt\"). Nur echte Treffer, nichts Beschönigtes.",
     "'luecken' — 0–4 Anforderungen der Anzeige, die das Profil NICHT belegt. Leeres Array, wenn wirklich nichts fehlt.",
+    `Schreibe 'gruende' und 'luecken' auf ${zielSprache} — UNABHÄNGIG davon, in welcher Sprache das Profil oder die Anzeige verfasst sind. Nur 'jobtitel' bleibt wörtlich in der Sprache der Anzeige (ein Eigenname wird nicht übersetzt).`,
     "Antworte NUR als JSON: {\"prozent\":0,\"jobtitel\":\"...\",\"gruende\":[\"...\"],\"luecken\":[\"...\"]}",
   ].join("\n\n");
 
