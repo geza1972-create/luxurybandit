@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import ProfilKorrektur from "@/components/ProfilKorrektur";
+import ProfilAnzeigenMatch from "@/components/ProfilAnzeigenMatch";
 import ProfilAbo from "@/components/ProfilAbo";
 import KontoChip from "@/components/KontoChip";
 import SeitenFuss from "@/components/SeitenFuss";
@@ -61,11 +62,13 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   const restTage = Math.max(0, Math.ceil((erstellt + FRIST_MS - Date.now()) / (24 * 60 * 60 * 1000)));
   const abgelaufen = !profil.aboAktiv && Date.now() - erstellt > FRIST_MS;
 
-  /* Beide Besitzer-Werkzeuge — Abo zuerst (es beantwortet „bleibt die Seite online?"),
+  /* DREI BESITZER-WERKZEUGE — Anzeigen-Abgleich zuerst (Owner 24.08.2026: das ist, womit
+     er aktiv arbeiten will, nicht nur verwalten), dann Abo („bleibt die Seite online?"),
      dann die Korrektur. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
      jeden anderen unsichtbar. */
   const werkzeug = (
     <>
+      <ProfilAnzeigenMatch id={id} lang={L} />
       <ProfilAbo id={id} aboAktiv={profil.aboAktiv === true}
         monatPreis={eur(LEBENSLAUF_MONAT_CENTS, L)} restTage={restTage} lang={L} />
       <ProfilKorrektur id={id} lang={L} />

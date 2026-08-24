@@ -130,6 +130,45 @@ export async function lebenslaufAboBeenden(id: string, subId: string): Promise<b
   return schreibeLebenslauf({ ...profil, aboAktiv: false });
 }
 
+/**
+ * ALLE PROFILE, FÜR DEN VERMITTLUNGS-ÜBERBLICK (Owner 24.08.2026: „Kontakt-Umschalter
+ * bauen" — die Stelle, an der der Betreiber sieht, wem er nach einer Firmenzusage die
+ * Kontaktdaten freigibt). Nur die Felder, die die Liste braucht — nicht Video/Sprechtext/
+ * Erfahrung, das wäre für eine Übersicht unnötig viel Nutzlast bei vielen Profilen.
+ *
+ * Listet den Ordner wie `readWetterClicks` in try-this-look-store.ts (Supabase kennt kein
+ * „gib mir alle Dateien mit Inhalt X" — erst die Namen holen, dann jede Datei einzeln lesen).
+ */
+export type LebenslaufUebersicht = Pick<LebenslaufProfil, "id" | "erstelltAm" | "name" | "email" | "bezahlt" | "kontaktSichtbar" | "aboAktiv">;
+
+export async function listeLebenslaeufe(): Promise<LebenslaufUebersicht[]> {
+  const res = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: "lebenslauf", limit: 1000 }),
+  });
+  if (!res.ok) return [];
+  const dateien = (await res.json().catch(() => [])) as { name?: string }[];
+  const ids = (Array.isArray(dateien) ? dateien : [])
+    .map(d => String(d?.name ?? ""))
+    .filter(n => n.endsWith(".json"))
+    .map(n => n.replace(/\.json$/, ""));
+  const profile = await Promise.all(ids.map(id => leseLebenslauf(id)));
+  return profile
+    .filter((p): p is LebenslaufProfil => !!p)
+    .map(p => ({ id: p.id, erstelltAm: p.erstelltAm, name: p.name, email: p.email, bezahlt: p.bezahlt, kontaktSichtbar: p.kontaktSichtbar, aboAktiv: p.aboAktiv }))
+    .sort((a, b) => (b.erstelltAm || "").localeCompare(a.erstelltAm || ""));
+}
+
+/** Kontaktdaten freigeben/sperren (Owner 20.08.2026: erst nach Firmenzusage sichtbar) —
+    die eine Zahl, die der Betreiber je Profil von Hand umlegt. */
+export async function lebenslaufKontaktSetzen(id: string, sichtbar: boolean): Promise<boolean> {
+  const profil = await leseLebenslauf(id);
+  if (!profil) return false;
+  if (profil.kontaktSichtbar === sichtbar) return true;
+  return schreibeLebenslauf({ ...profil, kontaktSichtbar: sichtbar });
+}
+
 export async function schreibeLebenslauf(profil: LebenslaufProfil): Promise<boolean> {
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(profil.id))}`, {
     method: "POST",

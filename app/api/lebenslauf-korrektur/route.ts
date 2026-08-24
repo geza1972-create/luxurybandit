@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { leseLebenslauf, schreibeLebenslauf, type LebenslaufProfil } from "@/lib/lebenslauf-store";
-import { readKissLog } from "@/lib/try-this-look-store";
-import { getSellerFromRequest } from "@/lib/supabase-auth-server";
-import { isAdminRequest } from "@/lib/admin-auth";
+import { darfAmProfilArbeiten } from "@/lib/lebenslauf-besitz";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,20 +24,6 @@ export const maxDuration = 60;
  * POST { id, anweisung, device? } → { ok }    (korrigiert und speichert)
  */
 
-async function darfKorrigieren(profil: LebenslaufProfil, device: string, request: Request): Promise<boolean> {
-  if (await isAdminRequest(request).catch(() => false)) return true;
-  const konto = await getSellerFromRequest(request).catch(() => null);
-  const kontoMail = String(konto?.email ?? "").trim().toLowerCase();
-  if (kontoMail && kontoMail === String(profil.email ?? "").trim().toLowerCase()) return true;
-  if (device) {
-    try {
-      const eintrag = (await readKissLog()).find(e => e.id === profil.id);
-      if (eintrag?.device && eintrag.device === device) return true;
-    } catch { /* ohne Log entscheidet der Rest */ }
-  }
-  return false;
-}
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const id = String(url.searchParams.get("id") ?? "").trim();
@@ -47,7 +31,7 @@ export async function GET(request: Request) {
   if (!id) return NextResponse.json({ darf: false });
   const profil = await leseLebenslauf(id);
   if (!profil) return NextResponse.json({ darf: false });
-  return NextResponse.json({ darf: await darfKorrigieren(profil, device, request) },
+  return NextResponse.json({ darf: await darfAmProfilArbeiten(profil, device, request) },
     { headers: { "Cache-Control": "no-store" } });
 }
 
@@ -80,7 +64,7 @@ export async function POST(request: Request) {
 
   const profil = await leseLebenslauf(id);
   if (!profil) return NextResponse.json({ error: "Profil nicht gefunden." }, { status: 404 });
-  if (!(await darfKorrigieren(profil, device, request))) {
+  if (!(await darfAmProfilArbeiten(profil, device, request))) {
     return NextResponse.json({ error: "Not yours." }, { status: 403 });
   }
 
