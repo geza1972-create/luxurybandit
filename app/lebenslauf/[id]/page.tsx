@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import ProfilKorrektur from "@/components/ProfilKorrektur";
 import ProfilAbo from "@/components/ProfilAbo";
+import KontoChip from "@/components/KontoChip";
 import SeitenFuss from "@/components/SeitenFuss";
 import { eur, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 import { leseLebenslauf } from "@/lib/lebenslauf-store";
@@ -98,5 +99,5 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   /* DER INHALT FOLGT DEM SPRACHSCHALTER (Owner 24.08.2026: „diese Seite soll man übersetzen
      können") — einmal je Sprache über die Haus-Übersetzung, danach aus dem Dauer-Cache. */
   const exec = await executiveInSprache(executiveAusProfil(profil, L), L);
-  return <LebenslaufExecutive profil={exec} lang={L} werkzeug={werkzeug} />;
+  return <LebenslaufExecutive profil={exec} lang={L} werkzeug={werkzeug} konto={<KontoChip />} />;
 }

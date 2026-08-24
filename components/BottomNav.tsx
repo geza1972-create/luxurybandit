@@ -496,14 +496,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Try on</span>
                 </button>
               )}
-              {/* Wardrobe — die Kleider-Galerie, jetzt für alle sichtbar (nicht mehr nur Staff). */}
-              {!isCurator && (
-                <button type="button" onClick={() => navigate("/wardrobe")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                  <span className="text-sm font-black text-white">Wardrobe</span>
-                </button>
-              )}
+              {/* WARDROBE IST RAUS (Owner 24.08.2026, im Zug „seriöses Portal": „da bitte
+                  Wardrobe entfernen") — dieselbe Rausnahme wie Chat/Holiday/Poledance im
+                  Katalog (Memory `serioeses-portal-umbau`): die Seite `/wardrobe` bleibt
+                  erreichbar (alte Links), nur der Menüeintrag fällt weg. */}
               {/* My Gallery — SEINE eigenen Videos (Chat/Try-on). Haengt am Geraet und, sobald
                   angemeldet, am Konto; deshalb im Menue fuer JEDEN sichtbar (Owner 28.07.2026). */}
               <button type="button" onClick={() => navigate("/my-gallery")}

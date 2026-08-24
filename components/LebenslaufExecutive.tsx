@@ -60,13 +60,17 @@ function Abschnitt({ children }: { children: string }) {
   return <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{children}</p>;
 }
 
-export default function LebenslaufExecutive({ profil, lang = "en", werkzeug }: {
+export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, konto }: {
   profil: ExecutiveProfil;
   lang?: Lang;
   /** BESITZER-WERKZEUG (Owner 24.08.2026: das Korrektur-Feld) — die [id]-Seite reicht es
       herein, das Beispiel nicht. Es rendert als letzter Abschnitt IM Blatt; ob es für den
       Betrachter überhaupt erscheint, entscheidet der Baustein selbst (Besitz-Prüfung). */
   werkzeug?: ReactNode;
+  /** DAS KONTO-ZEICHEN (Owner 24.08.2026: „wo kann ich mich hier einloggen und mein Profil
+      editieren?") — nur die [id]-Seite reicht `<KontoChip />` herein; das öffentliche
+      Muster kennt kein Konto. Landet im Kopf, neben Teilen (siehe TalentKopf). */
+  konto?: ReactNode;
 }) {
   const T = EXECUTIVE_TEXTE[lang] ?? EXECUTIVE_TEXTE.en;
   const K = KARTE_TEXTE[lang] ?? KARTE_TEXTE.en;
@@ -84,7 +88,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug }: {
     /* `lb-dossier`: die eine Kennung, an der globals.css die Handy-Spalte für diese Seite
        aufhebt — sonst stünde das Dossier am Rechner in einem 440-px-Telefonrahmen. */
     <main className="lb-bg lb-dossier min-h-screen text-white">
-      <TalentKopf marke={T.marke} teilenLabel={T.teilen} kopiertLabel={T.kopiert}
+      <TalentKopf marke={T.marke} teilenLabel={T.teilen} kopiertLabel={T.kopiert} konto={konto}
         menuLabel={T.menu} menuTitel={T.menuTitel} menu={menu} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">

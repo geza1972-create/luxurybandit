@@ -2675,7 +2675,7 @@ export function InAppBrowserHinweis({ sprache = "de", className = "" }: { sprach
  * in der dunklen Leiste, `LangSwitch` für die Sprache — nicht nachgebaut, nur zusammengesetzt.
  * `z-50` wie `TopNav`, aus demselben Grund (die Knöpfe auf den Karten stehen auf z-30).
  */
-export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLabel, menuTitel, menu = [] }: {
+export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLabel, menuTitel, menu = [], konto }: {
   /** Das Wort NACH „LB". Vorgabe „Talent" — die Marke des Bereichs, nicht des Hauses. */
   marke?: string;
   teilenLabel: string;
@@ -2688,6 +2688,9 @@ export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLa
    * mit `datei` lädt herunter statt zu springen (der Lebenslauf als PDF).
    */
   menu?: { label: string; href: string; datei?: boolean }[];
+  /** Das Konto-Zeichen (`<KontoChip />`) — als Einschub vom Aufrufer, Begründung siehe unten
+      an seiner Einbaustelle. Leer heisst: kein Zeichen (z. B. das öffentliche Muster). */
+  konto?: ReactNode;
 }) {
   const [offen, setOffen] = useState(false);
   const [kopiert, setKopiert] = useState(false);
@@ -2727,6 +2730,14 @@ export function TalentKopf({ marke = "Talent", teilenLabel, kopiertLabel, menuLa
         </p>
 
         <div className="flex shrink-0 items-center gap-2">
+          {/* DAS KONTO-ZEICHEN (Owner 24.08.2026: „wo kann ich mich hier einloggen und mein
+              Profil editieren?"). Ohne einen Weg, sich anzumelden, sah nur, wer zufällig
+              dasselbe Gerät benutzte, die Besitzer-Werkzeuge (ProfilKorrektur/ProfilAbo).
+              ALS EINSCHUB VOM AUFRUFER, nicht hier importiert: `KontoChip` importiert selbst
+              aus dieser Datei (Dialog/Knopf/SymbolKnopf) — ein Import in Gegenrichtung wäre
+              ein Kreis in der zentralen Bibliothek. Der Aufrufer reicht ihn herein, genau wie
+              `TopNav` es mit `<KontoChip />` neben seinem Teilen-Knopf tut. */}
+          {konto}
           <SymbolKnopf label={kopiert ? kopiertLabel : teilenLabel} onClick={() => void teilen()}>
             {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </SymbolKnopf>
