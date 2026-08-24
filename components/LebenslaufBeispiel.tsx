@@ -96,7 +96,13 @@ export default function LebenslaufBeispiel({ lang = "en", className = "" }: {
                   oben ankern, nie den Kopf abschneiden (Skill `card`, 24.08.2026). */}
               <img src={p.portraitUrl} alt={p.name} className="h-full w-full object-cover object-top" />
             </div>
-            <span className="absolute bottom-1.5 left-1.5 rounded-full px-2 py-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-white"
+            {/* `data-aufmedien="1"` ist hier PFLICHT, kein Schmuck (dieselbe Falle wie in
+                LebenslaufExecutive.tsx): `.lb-karte span { color:#2a231c !important }`
+                schlägt ein blosses `text-white` — die Aufschrift stand schwarz auf
+                schwarzem Schleier. `[data-aufmedien="1"]` ist der Haken, den die Karte
+                selbst für Bedienung AUF dem Bild vorsieht (Memory
+                `lb-karte-important-frisst-inline-farben`). */}
+            <span data-aufmedien="1" className="absolute bottom-1.5 left-1.5 rounded-full px-2 py-0.5 text-[8.5px] font-black uppercase tracking-[0.14em]"
               style={{ background: "rgba(12,10,8,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
               {t.beispiel}
             </span>
