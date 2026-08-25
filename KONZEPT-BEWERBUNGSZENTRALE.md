@@ -238,7 +238,8 @@ online, es kauft KEINE weiteren Bewerbungen frei.
 |---|---|
 | **JEDE Bewerbung: Auswertung + Video + Seite** | **19** (LEBENSLAUF_CENTS) — jedes Mal, nicht einmalig. Das Video ist auf **1 Minute** begrenzt (Owner 25.08.: Hier ist ein Video von max 1 Minute drin) — die Grenze gehoert an die PREISZEILE, nicht ins Kleingedruckte: sie bestimmt die HeyGen-Kosten je Verkauf und ist der Punkt, ueber den man sonst nachtraeglich streitet |
 | Match prüfen | gratis (Schnell-Analyse, auch ohne Konto) |
-| Abo | 4,99/Monat (LEBENSLAUF_MONAT_CENTS) — deine Bewerbungen bleiben ONLINE, monatlich kündbar. KEINE „unbegrenzten Zuschnitte" mehr |
+| Abo | 4,99/Monat (LEBENSLAUF_MONAT_CENTS) — haelt die DATEN und Seiten online, monatlich kuendbar. KEINE unbegrenzten Zuschnitte, KEINE unbegrenzten Updates mehr |
+| **Abgebucht wird ab dem ERSTEN Kauf beides** | Owner 25.08. nacht: vom Anfang an wird Abo + Generierung abgebucht — der Kaufweg zieht 19 einmalig UND startet gleichzeitig das 4,99-Abo. Technisch: EINE Stripe-Sitzung im Abo-Modus mit zusaetzlicher Einmal-Position statt der heutigen reinen Einmalzahlung. NOCH NICHT GEBAUT — die Landingpage sagt es bereits, die Kasse nicht |
 | Bild-Wechsel je Version | Foto-Upload gratis; KI-Berufslook nur im Video-Paket |
 
 ÜBERHOLT und deshalb hier nur noch als Geschichte: „erste Version gratis als
