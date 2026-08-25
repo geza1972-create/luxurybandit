@@ -226,6 +226,42 @@ schalten (Vermittlungsfälle).
 
 ---
 
+## DIE GRATIS-LINIE (Owner 25.08. nacht — der Endstand)
+
+„Er kann alles anlegen gratis, nur er kann das nicht sharen und PDF nicht
+herunterladen. Er kann auch Video hochladen, aber kann keins generieren. Es
+wird sein Originalvideo gezeigt."
+
+DAMIT IST DIE GRENZE ENDLICH SAUBER: Nicht das BAUEN kostet, sondern das
+BENUTZEN.
+
+| GRATIS | KOSTET |
+|---|---|
+| Bewerbung anlegen: Lebenslauf, Texte, Foto | **Teilen** — der Link an die Firma |
+| Anzeige einfügen, Analyse, Prozentzahl | **PDF herunterladen** (Lebenslauf + Anschreiben) |
+| Eigenes Video HOCHLADEN — es wird als sein Originalvideo gezeigt | **Video ERZEUGEN** (aus seiner Aufnahme das Profi-Video) |
+
+WARUM DAS TRÄGT — drei Gründe, die zusammen greifen:
+- Der Kunde sieht sein fertiges Ergebnis, bevor er zahlt. Kein Vertrauen
+  nötig, keine Katze im Sack; die Kaufentscheidung fällt vor etwas Konkretem.
+- Bezahlt wird genau im Moment des Bedarfs: Er will die Bewerbung ABSCHICKEN.
+  Das ist der Punkt mit der höchsten Zahlungsbereitschaft des ganzen Weges.
+- Es kostet uns fast nichts: Anlegen und Analyse sind zwei Mini-KI-Aufrufe,
+  ein hochgeladenes Video ist Speicher. Teuer ist nur die HeyGen-Erzeugung —
+  und genau die liegt hinter der Kasse.
+
+DIE ZWEI STUFEN PASSEN DARAUF:
+- **19** — Teilen und PDF frei; gezeigt wird SEIN hochgeladenes Video.
+- **29** — dazu das ERZEUGTE Profi-Video aus seiner Aufnahme.
+- Wer erst 19 zahlt und später das Profi-Video will, zahlt die Differenz.
+
+NOCH NICHT GEBAUT — was daraus folgt:
+- `PdfKnopf` und `TeilenKnopf` brauchen ein Schloss (bezahlt? sonst Kasse).
+- Der Video-Schritt trennt HOCHLADEN (gratis) von ERZEUGEN (Kasse).
+- Zweite Preiskonstante in lib/pricing.ts.
+
+---
+
 ## Preise (Endstand nach mehreren Drehungen)
 
 GEDREHT AM 25.08. NACHT (Owner, beim Lesen der Preis-Zeile: „das stimmt hier
