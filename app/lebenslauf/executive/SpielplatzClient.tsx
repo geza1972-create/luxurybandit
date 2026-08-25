@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Eye, MessageCircle, Play, Mail, Check } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
+import MappenKopf from "@/components/MappenKopf";
 import ImageCropper from "@/components/ImageCropper";
 import { Knopf, EingabeMehrzeilig, Fehlerzeile, Laden } from "@/components/CI";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
@@ -70,7 +71,7 @@ const TEXTE = {
     fehler: "Das hat nicht geklappt — bitte noch einmal.",
     gold: "Gratis weitermachen",
     analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
-    anschreibenH: "Anschreiben", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
+    anschreibenH: "Anschreiben", anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
     betreff: (t: string) => `Bewerbung als ${t}`,
     demoBetreff: "Bewerbung als Senior UX Designer (m/w/d)",
     demoMeta: "Die Musterfirma GmbH · Match 72 %",
@@ -109,7 +110,7 @@ const TEXTE = {
     fehler: "That didn't work — please try again.",
     gold: "Continue for free",
     analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
-    anschreibenH: "Cover letter", kostprobe: "A taste — the full cover letter comes with your application.",
+    anschreibenH: "Cover letter", anschreibenTeaser: "Tailored to this exact job ad — page one of your folder.", kostprobe: "A taste — the full cover letter comes with your application.",
     betreff: (t: string) => `Application for ${t}`,
     demoBetreff: "Application for Senior UX Designer (m/f/d)",
     demoMeta: "Musterfirma GmbH · Match 72%",
@@ -349,9 +350,8 @@ export default function SpielplatzClient({ beispiel, lang }: {
   const anschreibenMeta = match ? `Match ${match.prozent} %` : (!spielDaten ? B.demoMeta : "");
   const vorKarte = anschreibenText ? (
     <section className="lb-karte mb-4 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-      <p className="flex items-center gap-1.5 px-5 pb-2.5 pt-4 text-[10px] font-black uppercase tracking-[0.24em] opacity-40 md:px-8">
-        <Mail className="h-3.5 w-3.5" />{B.anschreibenH}
-      </p>
+      {/* Dasselbe Kopfband wie der Lebenslauf darunter — zwei Blätter EINER Mappe. */}
+      <MappenKopf icon={Mail} titel={B.anschreibenH} teaser={B.anschreibenTeaser} />
       <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
         {anschreibenBetreff && (
           <p className="text-[15px] font-black leading-snug">{anschreibenBetreff}</p>

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye, MessageCircle, Trash2 } from "lucide-react";
+import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye, MessageCircle, Trash2, FileText } from "lucide-react";
 import { TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ProfilChatEinstieg from "@/components/ProfilChatEinstieg";
 import SeitenFuss from "@/components/SeitenFuss";
+import MappenKopf from "@/components/MappenKopf";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import type { Lang } from "@/lib/lang";
@@ -234,6 +235,11 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         {/* ─────────────────────────── DAS BLATT ─────────────────────────── */}
         <article className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
 
+          {/* DAS KOPFBAND (Owner 25.08.2026: „fetter Titel … layoutmässig bombe … wo sind
+              die Ornamente?") — dieses Blatt ist DER LEBENSLAUF der Mappe; das Anschreiben
+              liegt als eigenes Blatt darüber (vorKarte). */}
+          <MappenKopf icon={FileText} titel={T.mappeLebenslauf} teaser={T.mappeLebenslaufTeaser} />
+
           {/* HERO — Porträt, und das Porträt IST das Video (Auftrag: „Integrate it elegantly
               into the hero rather than making a separate ugly video block").
               Das Bild sitzt mit Rand im Papier statt randlos: So wirkt es wie eine montierte
@@ -247,7 +253,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               die Form, die eine Zeitschrift für ein Porträt wählt: Bild links, Name und Rolle
               rechts daneben. Am Handy bleibt es gestapelt — dort ist untereinander die einzige
               Möglichkeit, und das Bild darf gross sein. */}
-          <div className="p-4 md:flex md:items-center md:gap-7 md:p-7">
+          <div className={`${LINIE} p-4 md:flex md:items-center md:gap-7 md:p-7`}>
             {/* Ohne Video UND ohne Foto (Altprofile vor dem 24.08.2026) fällt das Porträt
                 weg, statt ein leeres <img> zu zeigen — der Name trägt die Seite dann allein. */}
             {(profil.videoUrl || profil.portraitUrl) && (

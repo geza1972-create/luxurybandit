@@ -134,6 +134,9 @@ export type ExecutiveTexte = {
       Erstelle jetzt ein Video...-). */
   nochKeinVideo: string;
   statsOeffnungen: (n: number) => string;
+  /* Das Kopfband der Mappe (Owner 25.08.2026: fetter Titel + Teaser + Icons + die
+     Haus-Ornamente) — siehe components/MappenKopf.tsx. */
+  mappeLebenslauf: string; mappeLebenslaufTeaser: string;
   statsVideoWunsch: (n: number) => string;
   /* "1 Person hat Interesse gezeigt." / "1 Person will dich kontaktieren." (Owner
      25.08.2026) — Besitzer-Zeilen wie statsOeffnungen, gleiche Ehrlichkeits-Regel. */
@@ -170,6 +173,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "No video yet.",
     statsOeffnungen: (n) => n === 1 ? "1 person viewed your application." : `${n} people viewed your application.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 person wanted" : `${n} people wanted`} to watch your video. Your video is in demand —`,
+    mappeLebenslauf: "Resume", mappeLebenslaufTeaser: "Career, expertise and results — at a glance.",
     statsInteresse: (n) => n === 1 ? "1 person showed interest." : `${n} people showed interest.`,
     statsAnfragen: (n) => n === 1 ? "1 person wants to contact you." : `${n} people want to contact you.`,
     videoCta: "create it now.",
@@ -198,6 +202,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Noch kein Video.",
     statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Personen haben sich deine Bewerbung angeschaut.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Personen wollten`} dein Video sehen. Video ist gefragt —`,
+    mappeLebenslauf: "Lebenslauf", mappeLebenslaufTeaser: "Werdegang, Kompetenzen und Ergebnisse — auf einen Blick.",
     statsInteresse: (n) => n === 1 ? "1 Person hat Interesse gezeigt." : `${n} Personen haben Interesse gezeigt.`,
     statsAnfragen: (n) => n === 1 ? "1 Person will dich kontaktieren." : `${n} Personen wollen dich kontaktieren.`,
     videoCta: "erstelle jetzt dein Video.",
@@ -226,6 +231,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Încă fără video.",
     statsOeffnungen: (n) => n === 1 ? "1 persoană ți-a văzut aplicația." : `${n} persoane ți-au văzut aplicația.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persoană a vrut" : `${n} persoane au vrut`} să-ți vadă videoul. Videoul tău e cerut —`,
+    mappeLebenslauf: "CV", mappeLebenslaufTeaser: "Parcurs, competențe și rezultate — dintr-o privire.",
     statsInteresse: (n) => n === 1 ? "1 persoană a arătat interes." : `${n} persoane au arătat interes.`,
     statsAnfragen: (n) => n === 1 ? "1 persoană vrea să te contacteze." : `${n} persoane vor să te contacteze.`,
     videoCta: "creează-l acum.",
@@ -254,6 +260,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Aún sin vídeo.",
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto tu candidatura." : `${n} personas han visto tu candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona quiso" : `${n} personas quisieron`} ver tu vídeo. Tu vídeo tiene demanda —`,
+    mappeLebenslauf: "Currículum", mappeLebenslaufTeaser: "Trayectoria, competencias y resultados — de un vistazo.",
     statsInteresse: (n) => n === 1 ? "1 persona mostró interés." : `${n} personas mostraron interés.`,
     statsAnfragen: (n) => n === 1 ? "1 persona quiere contactarte." : `${n} personas quieren contactarte.`,
     videoCta: "créalo ahora.",
@@ -282,6 +289,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Pas encore de vidéo.",
     statsOeffnungen: (n) => n === 1 ? "1 personne a consulté ta candidature." : `${n} personnes ont consulté ta candidature.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 personne a voulu" : `${n} personnes ont voulu`} voir ta vidéo. Ta vidéo est demandée —`,
+    mappeLebenslauf: "CV", mappeLebenslaufTeaser: "Parcours, compétences et résultats — en un coup d'œil.",
     statsInteresse: (n) => n === 1 ? "1 personne a montré de l'intérêt." : `${n} personnes ont montré de l'intérêt.`,
     statsAnfragen: (n) => n === 1 ? "1 personne veut te contacter." : `${n} personnes veulent te contacter.`,
     videoCta: "crée-la maintenant.",
@@ -310,6 +318,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Ainda sem vídeo.",
     statsOeffnungen: (n) => n === 1 ? "1 pessoa viu a tua candidatura." : `${n} pessoas viram a tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 pessoa quis" : `${n} pessoas quiseram`} ver o teu vídeo. O teu vídeo é procurado —`,
+    mappeLebenslauf: "Currículo", mappeLebenslaufTeaser: "Percurso, competências e resultados — num relance.",
     statsInteresse: (n) => n === 1 ? "1 pessoa mostrou interesse." : `${n} pessoas mostraram interesse.`,
     statsAnfragen: (n) => n === 1 ? "1 pessoa quer contactar-te." : `${n} pessoas querem contactar-te.`,
     videoCta: "cria-o agora.",
@@ -338,6 +347,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     nochKeinVideo: "Ancora nessun video.",
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto la tua candidatura." : `${n} persone hanno visto la tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona voleva" : `${n} persone volevano`} vedere il tuo video. Il tuo video è richiesto —`,
+    mappeLebenslauf: "Curriculum", mappeLebenslaufTeaser: "Percorso, competenze e risultati — a colpo d'occhio.",
     statsInteresse: (n) => n === 1 ? "1 persona ha mostrato interesse." : `${n} persone hanno mostrato interesse.`,
     statsAnfragen: (n) => n === 1 ? "1 persona vuole contattarti." : `${n} persone vogliono contattarti.`,
     videoCta: "crealo ora.",
