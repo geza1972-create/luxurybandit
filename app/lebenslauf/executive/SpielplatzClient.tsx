@@ -76,7 +76,7 @@ const TEXTE = {
     betreff: (t: string) => `Bewerbung als ${t}`,
     demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
     demoMeta: "Musterklinik München · Match 72 %",
-    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen und arbeite seit zwölf Jahren im Schichtdienst.\n\nMit freundlichen Grüssen\nPeter Mustermann",
+    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nPeter Mustermann",
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
   },
   en: {
@@ -116,7 +116,7 @@ const TEXTE = {
     betreff: (t: string) => `Application for ${t}`,
     demoBetreff: "Application: Intensive Care Nurse",
     demoMeta: "Sample Clinic Munich · Match 72%",
-    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care and have worked shifts for twelve years.\n\nKind regards\nPeter Mustermann",
+    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care, and my professional recognition for Germany has been filed. I can start at short notice and am ready to relocate.\n\nKind regards\nPeter Mustermann",
     demoHinweis: "Sample — every application here starts like this: cover letter on top, resume below.",
   },
 };

@@ -377,64 +377,69 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
  * Form und reicht es hinein — die Seite kennt keinen Sonderfall „Beispiel".
  */
 export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
-  /* DAS MUSTER IST PETER MUSTERMANN (Owner 25.08.2026: „Er muss Peter Mustermann heissen
-     und ist ein Krankenpfleger … ist Deutscher und ist in Berlin geboren", 35 Jahre).
-     VORHER war es der Gründer selbst mit echtem Namen und echtem Werdegang — das ging
-     nicht mehr, seit das Beispiel-Video das Gesicht eines Avatars zeigt: ein realer Name
-     auf einem fremden Gesicht ist genau die Sorte Halbwahrheit, die eine Bewerbungs-
-     plattform nicht haben darf. Jetzt ist ALLES erfunden und heisst auch so (Mustermann,
-     Musterklinik) — die Seite trägt zusätzlich `noindex`.
-     WARUM EIN KRANKENPFLEGER: Der Owner wählt den Beruf, in dem in Europa am meisten
-     gesucht wird — das Muster spricht damit die Zielgruppe an, die am ehesten kauft.
+  /* DAS MUSTER (Owner 25.08.2026, in drei Schritten diktiert): „Er muss Peter Mustermann
+     heissen und ist ein Krankenpfleger", 35 Jahre, „in Timișoara Rumänien geboren" — und
+     der Fall, den der Owner als den richtigen bezeichnet: „ein Rumäne, der sich in
+     Deutschland bewirbt".
+     WARUM DIESE KOMBINATION TRÄGT: Im Banat um Timișoara lebt die deutsche Minderheit;
+     ein Peter von dort mit deutscher Schulbildung ist kein Widerspruch, sondern die
+     realste Fassung dieser Geschichte — und genau der Bewerber, um den deutsche Kliniken
+     werben. Die drei Fragen, die eine deutsche Klinik bei einem Bewerber aus dem Ausland
+     ZUERST stellt, beantwortet das Profil deshalb sichtbar: Berufsanerkennung, Deutsch,
+     Verfügbarkeit.
+     ALLES ERFUNDEN und heisst auch so (Mustermann, Musterklinik): Vorher stand hier der
+     echte Name und Werdegang des Gründers — das ging nicht mehr, seit das Beispiel-Video
+     das Gesicht eines Avatars zeigt. Die Seite trägt zusätzlich `noindex`.
      KEINE Kontaktdaten hier: Diese Datei landet im Client-Bundle, und die Karte zeigt
      ohnehin den Freigabe-Satz (Vermittlungsmodell). Inhalt auf DEUTSCH; andere Betrachter
      bekommen die Laufzeit-Übersetzung (executiveInSprache). */
   id: "executive-vorlage",
   name: "Peter Mustermann",
   rolle: "Gesundheits- und Krankenpfleger · Fachpflege Intensivmedizin",
-  ort: "Berlin, Deutschland",
-  sprachenKurz: "Deutsch Muttersprache · Englisch C1 · Spanisch A2",
+  ort: "Timișoara, Rumänien · Umzug nach Deutschland geplant",
+  sprachenKurz: "Rumänisch Muttersprache · Deutsch C1 · Englisch B2",
   schwerpunkte: ["Intensivpflege", "Notaufnahme", "Beatmungspflege", "Praxisanleitung"],
   portraitUrl: LEBENSLAUF_BEISPIEL_POSTER,
   videoUrl: LEBENSLAUF_BEISPIEL_VIDEO,
   videoLabel: "Kurzvorstellung",
   profil:
-    "Ich bin Peter Mustermann, 35, geboren in Berlin, und seit zwölf Jahren am Patientenbett. " +
-    "Nach der Ausbildung habe ich fünf Jahre in der Zentralen Notaufnahme gearbeitet und mich " +
-    "danach auf Intensiv- und Anästhesiepflege spezialisiert. Heute betreue ich beatmete " +
-    "Patientinnen und Patienten auf einer interdisziplinären Intensivstation, leite " +
-    "Auszubildende als Praxisanleiter an und arbeite an unseren Hygiene- und " +
-    "Dokumentationsstandards mit. Ich suche eine Station, auf der gute Pflege nicht am " +
-    "Personalschlüssel scheitert — und ein Team, das Weiterbildung ernst meint.",
+    "Ich bin Peter Mustermann, 35, geboren in Timișoara, und seit zwölf Jahren am " +
+    "Patientenbett. Nach der Ausbildung habe ich fünf Jahre in der Notaufnahme gearbeitet " +
+    "und mich danach auf Intensiv- und Anästhesiepflege spezialisiert. Heute betreue ich " +
+    "beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation und " +
+    "leite Auszubildende als Praxisanleiter an. Ich bin in einer deutschsprachigen Schule " +
+    "aufgewachsen; meine Berufsanerkennung für Deutschland ist beantragt. Ich möchte in " +
+    "Deutschland arbeiten, kann kurzfristig anfangen und bin bereit umzuziehen.",
   expertise: ["Beatmungspflege", "Notfallmanagement", "Wundmanagement", "Medikamentengabe", "Hygienestandards", "Praxisanleitung"],
   erfahrung: [
-    { rolle: "Fachpfleger Intensivmedizin", firma: "Musterklinik Berlin-Mitte", zeitraum: "2021–heute", ergebnis: "Betreuung beatmeter Patienten auf der interdisziplinären Intensivstation, Praxisanleiter für vier Auszubildende pro Jahr." },
-    { rolle: "Krankenpfleger, Zentrale Notaufnahme", firma: "Klinikum Musterstadt", zeitraum: "2017–2021", ergebnis: "Ersteinschätzung nach Manchester-Triage, Schockraum-Versorgung im Schichtdienst." },
-    { rolle: "Krankenpfleger, Innere Medizin", firma: "Musterhaus Kliniken Berlin", zeitraum: "2014–2017", ergebnis: "Station mit 28 Betten, Schwerpunkt Kardiologie und Diabetologie." },
+    { rolle: "Fachpfleger Intensivmedizin", firma: "Musterklinik Timișoara", zeitraum: "2021–heute", ergebnis: "Betreuung beatmeter Patienten auf der interdisziplinären Intensivstation, Praxisanleiter für vier Auszubildende pro Jahr." },
+    { rolle: "Krankenpfleger, Notaufnahme", firma: "Kreiskrankenhaus Muster, Arad", zeitraum: "2017–2021", ergebnis: "Ersteinschätzung im Schichtdienst, Erstversorgung im Schockraum." },
+    { rolle: "Krankenpfleger, Innere Medizin", firma: "Klinikum Muster, Timișoara", zeitraum: "2014–2017", ergebnis: "Station mit 28 Betten, Schwerpunkt Kardiologie und Diabetologie." },
   ],
   impact: [
     { zahl: "12", text: "Jahre am Patientenbett, seit 2014" },
     { zahl: "40+", text: "Auszubildende als Praxisanleiter begleitet" },
-    { zahl: "1:2", text: "Betreuungsschlüssel auf der Intensivstation" },
+    { zahl: "C1", text: "Deutsch — deutschsprachige Schule in Timișoara" },
   ],
   ausbildung: [
-    { titel: "Fachweiterbildung Intensiv- und Anästhesiepflege", ort: "Musterklinik Berlin-Mitte", zeitraum: "2018–2020" },
-    { titel: "Gesundheits- und Krankenpfleger (staatlich anerkannt)", ort: "Pflegeschule Berlin-Mitte", zeitraum: "2011–2014" },
+    { titel: "Fachweiterbildung Intensiv- und Anästhesiepflege", ort: "Musterklinik Timișoara", zeitraum: "2018–2020" },
+    { titel: "Krankenpfleger (Abschluss anerkennungsfähig in der EU)", ort: "Pflegeschule Muster, Timișoara", zeitraum: "2011–2014" },
+    { titel: "Deutschsprachiges Lyzeum", ort: "Timișoara", zeitraum: "abgeschlossen" },
   ],
   sprachen: [
-    { sprache: "Deutsch", niveau: "Muttersprache" },
-    { sprache: "Englisch", niveau: "C1" },
-    { sprache: "Spanisch", niveau: "A2" },
+    { sprache: "Rumänisch", niveau: "Muttersprache" },
+    { sprache: "Deutsch", niveau: "C1" },
+    { sprache: "Englisch", niveau: "B2" },
+    { sprache: "Ungarisch", niveau: "B1" },
   ],
   chatFragen: [
+    "Ist seine Berufsanerkennung für Deutschland schon beantragt?",
     "Hat Peter Erfahrung mit beatmeten Patienten?",
-    "Welche Fachweiterbildung bringt er mit?",
-    "Wie lange arbeitet er schon im Schichtdienst?",
+    "Wie schnell kann er in Deutschland anfangen?",
   ],
   /* Bewusst ZU: So sieht die Seite aus, die an eine Firma geht (Vermittlungsmodell). */
   kontaktSichtbar: false,
-};
-/**
+};/**
  * DER EINE ÜBERSETZER — `LebenslaufProfil` (Speicher-Rohdaten) → `ExecutiveProfil` (Seite).
  * Genau der Baustein, den der Kopf dieser Datei ankündigt: Die echte Profilseite
  * (`app/lebenslauf/[id]`) rendert seit dem 24.08.2026 die Executive-Vorlage (Owner: „unter
