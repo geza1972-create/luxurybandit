@@ -65,3 +65,31 @@ export async function executiveInSprache(p: ExecutiveProfil, lang: Lang): Promis
     return p;   // Übersetzung ist Zugabe — die Seite erscheint notfalls im Original
   }
 }
+
+/**
+ * EIN TEXTBÜNDEL AUS DEUTSCHER QUELLE IN JEDE HAUSSPRACHE (Owner 25.08.2026:
+ * „Übersetzung muss funktionieren" — auf Rumänisch kam Englisch, weil die Spielplatz-Texte
+ * als de/en-Tabelle im Client lagen).
+ *
+ * WARUM NICHT `trObject`: Das setzt eine ENGLISCHE Quelle voraus und gibt bei `lang === "en"`
+ * unverändert zurück — bei deutscher Quelle stünde dann Deutsch vor einem englischen
+ * Betrachter. Hier ist Deutsch die Quelle (der Muster-Lebenslauf ist deutsch), also wird
+ * ALLES ausser Deutsch übersetzt.
+ *
+ * WARUM ÜBERHAUPT ZUR LAUFZEIT: Dieselbe Begründung wie in lib/tr-object.ts — sieben
+ * handgepflegte Tabellen altern bei der ersten Textänderung. Ein Aufruf je Sprache, danach
+ * Dauer-Cache. Fällt die Übersetzung aus, kommt das deutsche Original zurück, nie ein Loch.
+ */
+export async function textbausteineInSprache<T extends Record<string, string>>(obj: T, lang: Lang): Promise<T> {
+  if (lang === "de") return obj;
+  const keys = Object.keys(obj) as (keyof T)[];
+  const werte = keys.map(k => String(obj[k] ?? ""));
+  try {
+    const raus = await translateMany(werte, lang);
+    const res = {} as T;
+    keys.forEach((k, i) => { (res as Record<string, string>)[k as string] = raus[i] || werte[i]; });
+    return res;
+  } catch {
+    return obj;
+  }
+}

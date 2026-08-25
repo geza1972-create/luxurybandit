@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
+import { executiveInSprache, textbausteineInSprache } from "@/lib/lebenslauf-uebersetzen";
 import SpielplatzClient from "./SpielplatzClient";
-import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
 import { resolveLang } from "@/lib/lang-server";
 
 /**
@@ -31,6 +31,47 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * DIE TEXTE DER MUSTER-SEITE — DEUTSCHE QUELLE, ÜBERSETZT ZUR LAUFZEIT (Owner 25.08.2026:
+ * „Übersetzung muss funktionieren"). Sie lagen bis eben als de/en-Tabelle IM Client: Wer die
+ * Seite auf Rumänisch öffnete — also genau der Markt, den wir angehen —, bekam Englisch.
+ *
+ * FLACH, DAMIT ES ÜBERSETZBAR IST: Die Listen der Analyse (was passt / was fehlt / Befunde)
+ * stehen einzeln als g1…b3 statt als Arrays; `textbausteineInSprache` schickt alle Werte in
+ * EINEM Aufruf durch den Haus-Übersetzer samt Dauer-Cache. Der Client rendert nur noch.
+ */
+const MUSTER_TEXTE = {
+  videoEmpfehlung: "Unsere Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
+  anzeigePlatzhalter: "Stellenanzeige oder Link hier einfügen — du siehst sofort, wie gut sie zu dir passt.",
+  anpassenCta: "Bewerbung anpassen",
+  analyseH: "Schnell-Analyse",
+  analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.",
+  anzeigeH: "Die Anzeige",
+  passt: "Das passt",
+  fehlt: "Das fehlt",
+  befundeH: "Am Lebenslauf selbst",
+  anschreibenH: "Anschreiben",
+  anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.",
+  demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
+  demoMeta: "Musterklinik München · Match 72 %",
+  demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nAndrei Popescu",
+  demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
+  demoAnalyseHinweis: "Beispiel — mit deiner eigenen Anzeige steht hier deine Zahl.",
+  demoAnzeige: "Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.\n\nWir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.\n\nWir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche.",
+  jobtitel: "Fachpflegekraft Intensivmedizin (m/w/d)",
+  g1: "Fachweiterbildung Intensiv- und Anästhesiepflege verlangt — 2020 abgeschlossen.",
+  g2: "Beatmungspflege gefordert — seit 2021 täglich auf der Intensivstation.",
+  g3: "Deutsch mindestens B2 gefordert — C1 durch deutschsprachige Schule in Timișoara.",
+  g4: "Schichtdienst gefordert — zwölf Jahre Schichterfahrung, fünf davon in der Notaufnahme.",
+  l1: "Die Berufsanerkennung in Deutschland ist beantragt, aber noch nicht erteilt.",
+  l2: "Zum Dokumentationssystem der Klinik steht im Lebenslauf nichts.",
+  b1: "Deine Stationen stehen ohne Zahlen da — Bettenzahl und Betreuungsschlüssel belegen Erfahrung schneller als jede Beschreibung.",
+  b2: "Die Fachweiterbildung steht ganz unten bei der Ausbildung, nicht oben, wo sie über die Einladung entscheidet.",
+  b3: "Es fehlt ein Satz dazu, warum du nach Deutschland willst — das ist die erste Frage im Gespräch.",
+};
+
+export type MusterTexte = typeof MUSTER_TEXTE;
+
 export default async function ExecutiveVorlagePage() {
   const lang = await resolveLang();
   /* Auch das Beispiel folgt dem Sprachschalter — wer auf Rumänisch kauft, soll das Beispiel
@@ -39,5 +80,6 @@ export default async function ExecutiveVorlagePage() {
   /* SEIT 25.08.2026 IST DIESE SEITE DER SPIELPLATZ (Owner: „Hier darf der User ruhig
      sehen, was er bekommt, also er kann spielen") — Muster + Bewerberberater, siehe
      SpielplatzClient. Das blosse Beispiel gibt es nicht mehr einzeln. */
-  return <SpielplatzClient beispiel={profil} lang={lang} />;
+  const texte = await textbausteineInSprache(MUSTER_TEXTE, lang);
+  return <SpielplatzClient beispiel={profil} lang={lang} texte={texte} />;
 }

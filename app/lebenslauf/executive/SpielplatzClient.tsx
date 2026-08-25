@@ -7,6 +7,7 @@ import MappenKopf from "@/components/MappenKopf";
 import { Knopf, EingabeMehrzeilig } from "@/components/CI";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import type { Lang } from "@/lib/lang";
+import type { MusterTexte } from "./page";
 
 /**
  * DER SPIELPLATZ — /lebenslauf/executive (Owner 25.08.2026, KONZEPT „Der Spielplatz" +
@@ -28,80 +29,14 @@ import type { Lang } from "@/lib/lang";
 
 type Match = { prozent: number; jobtitel: string; gruende: string[]; luecken: string[]; befunde: string[]; anschreibenKurz: string };
 
-const TEXTE = {
-  de: {
-    videoEmpfehlung: "Unsere Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
-    anzeigePlatzhalter: "Stellenanzeige oder Link hier einfügen — du siehst sofort, wie gut sie zu dir passt.",
-    anpassenCta: "Bewerbung anpassen",
-    analyseH: "Schnell-Analyse", analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
-    anschreibenH: "Anschreiben", anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
-    demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
-    demoMeta: "Musterklinik München · Match 72 %",
-    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nAndrei Popescu",
-    demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
-    demoAnalyseHinweis: "Beispiel — mit deiner eigenen Anzeige steht hier deine Zahl.",
-    demoAnzeige: "Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.\n\nWir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.\n\nWir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche.",
-    demoMatch: {
-      prozent: 72,
-      jobtitel: "Fachpflegekraft Intensivmedizin (m/w/d)",
-      gruende: [
-        "Fachweiterbildung Intensiv- und Anästhesiepflege verlangt — 2020 abgeschlossen.",
-        "Beatmungspflege gefordert — seit 2021 täglich auf der Intensivstation.",
-        "Deutsch mindestens B2 gefordert — C1 durch deutschsprachige Schule in Timișoara.",
-        "Schichtdienst gefordert — zwölf Jahre Schichterfahrung, fünf davon in der Notaufnahme.",
-      ],
-      luecken: [
-        "Die Berufsanerkennung in Deutschland ist beantragt, aber noch nicht erteilt.",
-        "Zum Dokumentationssystem der Klinik steht im Lebenslauf nichts.",
-      ],
-      befunde: [
-        "Deine Stationen stehen ohne Zahlen da — Bettenzahl und Betreuungsschlüssel belegen Erfahrung schneller als jede Beschreibung.",
-        "Die Fachweiterbildung steht ganz unten bei der Ausbildung, nicht oben, wo sie über die Einladung entscheidet.",
-        "Es fehlt ein Satz dazu, warum du nach Deutschland willst — das ist die erste Frage im Gespräch.",
-      ],
-      anschreibenKurz: "",
-    },
-  },
-  en: {
-    videoEmpfehlung: "Our recommendation: a video application. Companies see you before they invite you — almost no candidate has that.",
-    anzeigePlatzhalter: "Paste the job ad or a link here — you will see right away how well it fits you.",
-    anpassenCta: "Tailor my application",
-    analyseH: "Quick analysis", analyseTeaser: "What fits, what is missing — and what is weak in the resume itself.", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
-    anschreibenH: "Cover letter", anschreibenTeaser: "Tailored to this exact job ad — page one of your folder.", kostprobe: "A taste — the full cover letter comes with your application.",
-    demoBetreff: "Application: Intensive Care Nurse",
-    demoMeta: "Sample Clinic Munich · Match 72%",
-    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care, and my professional recognition for Germany has been filed. I can start at short notice and am ready to relocate.\n\nKind regards\nAndrei Popescu",
-    demoHinweis: "Sample — every application here starts like this: cover letter on top, resume below.",
-    demoAnalyseHinweis: "Sample — with your own job ad, your number goes here.",
-    demoAnzeige: "Sample Clinic Munich is looking for an intensive care nurse (m/f/d) for its interdisciplinary ICU with 18 beds.\n\nWe expect: completed training in nursing, specialist qualification in intensive and anaesthetic care or the willingness to obtain it, experience in ventilation care, German at B2 or above, willingness to work shifts.\n\nWe offer: a structured onboarding programme, support with professional recognition and with finding accommodation.",
-    demoMatch: {
-      prozent: 72,
-      jobtitel: "Intensive Care Nurse (m/f/d)",
-      gruende: [
-        "Specialist qualification in intensive and anaesthetic care required — completed in 2020.",
-        "Ventilation care required — daily practice on the ICU since 2021.",
-        "German at B2 or above required — C1 from a German-language school in Timișoara.",
-        "Shift work required — twelve years of shifts, five of them in emergency care.",
-      ],
-      luecken: [
-        "Professional recognition in Germany has been filed but not yet granted.",
-        "The resume says nothing about the clinic's documentation system.",
-      ],
-      befunde: [
-        "Your positions carry no numbers — bed count and nurse-to-patient ratio prove experience faster than any description.",
-        "The specialist qualification sits at the very bottom under education, not at the top where it decides the invitation.",
-        "There is no sentence on why you want to move to Germany — that is the first question in the interview.",
-      ],
-      anschreibenKurz: "",
-    },
-  },
-};
-
-export default function SpielplatzClient({ beispiel, lang }: {
+export default function SpielplatzClient({ beispiel, lang, texte }: {
   beispiel: ExecutiveProfil;
   lang: Lang;
+  /** Die Texte kommen ÜBERSETZT vom Server (Owner 25.08.2026: „Übersetzung muss
+      funktionieren") — vorher lag hier eine de/en-Tabelle, und Rumänisch sah Englisch. */
+  texte: MusterTexte;
 }) {
-  const B = TEXTE[lang === "de" ? "de" : "en"];
+  const B = texte;
   const ET = EXECUTIVE_TEXTE[lang] ?? EXECUTIVE_TEXTE.en;
 
   /* BEARBEITEN|VORSCHAU (Owner 25.08.2026: „das kommt doch in der Vorschau und es fehlt
@@ -160,7 +95,16 @@ export default function SpielplatzClient({ beispiel, lang }: {
      die im Anschreiben oben steht, dieselben vier Blöcke wie beim echten Lauf. So sieht
      man VOR dem ersten Zug, was das Werkzeug liefert — inklusive der unbequemen
      Befunde am Lebenslauf, die den Kauf begründen. */
-  const zeigeMatch: Match = B.demoMatch;
+  /* Der Beispiel-Match aus den übersetzten Bausteinen — flach übersetzt, hier wieder
+     zusammengesetzt (siehe MUSTER_TEXTE in page.tsx). */
+  const zeigeMatch: Match = {
+    prozent: 72,
+    jobtitel: B.jobtitel,
+    gruende: [B.g1, B.g2, B.g3, B.g4],
+    luecken: [B.l1, B.l2],
+    befunde: [B.b1, B.b2, B.b3],
+    anschreibenKurz: "",
+  };
   const zeigeAnzeige = letzteAnzeige || B.demoAnzeige;
 
   /* ── UNTER DER KARTE: Beispiel-Zahlen (nur im Muster), Analyse, der Berater ── */
