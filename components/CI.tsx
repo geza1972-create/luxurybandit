@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
 import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -1842,7 +1842,6 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
   /* GEBURTSTAG ZUERST (Owner 09.08.2026) — dieselbe Reihenfolge wie die Kacheln der
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday", bild: "/Birthday/hbd-fliege.jpg" },
-  { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/Rain/rain-kiss.jpg" },
   /**
    * SURPRISE (POLE DANCE), CHAT UND HOLIDAY SIND RAUS (Owner 24.08.2026: „entferne
    * Pooldancing und Chat aus der Topic" · „auch hollyday weg" · „Wir sind jetzt ein
@@ -1857,7 +1856,14 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      ich gesagt du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen
      anpassen"). Der Kreis bleibt stehen; umgetextet ist die Katalog-Kachel
      (app/themes/page.tsx): Shops testen das Werkzeug hier und kaufen es bei uns. */
-  { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
+  /* KISS UND TRY-ON SIND AUS DER LEISTE RAUS (Owner 25.08.2026: „Try-on und Kiss muss raus
+     aus der Topic") — sie stand auf JEDER Seite, also auch neben der Bewerbungs-Mappe: ein
+     Kuss-Video und ein Wäsche-Anprobierer als Nachbarn einer Bewerbung, die an eine
+     Personalabteilung geht. Das ist dieselbe Linie wie der Umbau vom 24.08. (Memory
+     `serioeses-portal-umbau`), nur konsequent zu Ende gedacht — und sie trägt jetzt den
+     Markteintritt: Rumänien/Deutschland, deutsch- und englischsprachige Bewerber.
+     BEIDE PRODUKTE BLEIBEN BESTEHEN: eigene Seiten, eigene Adressen, eigener Katalog-
+     Eintrag — nur der Dauer-Reiter im Kopf jeder Seite ist weg. */
   /* VERSPRECHEN GEHOERT IN DIE REIHE (Owner 15.08.2026: „wo ist Versprechen im Slider?").
      Es fehlte seit dem ersten Tag der Leiste — als sie entstand, war das Future Self Program
      noch nicht live; seit dem 12.08. verkauft es, stand aber in keiner Tab-Leiste. Genau die
