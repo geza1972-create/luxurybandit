@@ -484,7 +484,39 @@ ZWEI TÜREN, EIN ZIEL:
   Aufnahme → Seite (alles Gebaute bleibt in Verwendung: Auswertung, Match,
   Karte, Kasse, Skript/Aufnahme-Schritte).
 
-ENTSCHIEDEN (Owner 25.08. nacht: „ich will Leads auf jeden Fall"):
+GEDREHT (Owner 25.08. spät nacht): „der User kann hier auch seine Daten
+gratis hochladen und Bild würde ich sagen ohne E-Mail. In der Bewerbung
+sind doch Kontaktdaten. … Lass uns das öffnen. Du kannst überall ein
+Profil gratis anlegen. Wir müssen das auch machen."
+DAS SPIEL IST GANZ OFFEN — Daten einpflegen, Bild, Anzeige, Match: alles
+gratis und OHNE E-Mail-Tor. Das Tor wandert ans Ende: „beim Sharen würde
+ich sagen. Er muss es speichern, dann muss er ein Konto anlegen." Also:
+SPIELEN frei (Deckel je Gerät) → TEILEN erfordert SPEICHERN → Speichern
+erfordert KONTO (Haus-Anmeldung: Google/Facebook/Passwort/Magic-Link).
+Und: „Sharen kann er im Bearbeitungsmodus nicht" (Owner) — der
+Teilen-Knopf existiert im Spiel nur in der VORSCHAU (dort, wo man sieht,
+was die Firma sähe); der Tipp darauf löst die Kette Speichern→Konto aus.
+ENTSCHIEDEN (Owner: „ok", 25.08. spät nacht):
+1. SPEICHERN MIT KONTO IST GRATIS — die unoptimierte Karte (eingepflegt
+   1:1, ohne Video) wird eine kostenlose, teilbare Seite (LinkedIn-Logik).
+   BEZAHLT wird das VERBESSERN: vollständige Analyse, Optimierung, volles
+   Anschreiben, Video — der bestehende Kaufpreis (LEBENSLAUF_CENTS) steht
+   jetzt für dieses Paket; an der Preistabelle ändert sich nichts, nur die
+   Grenze Gratis/Bezahlt verschiebt sich (Seite gratis, Veredelung Geld).
+2. LEAD AUS DEM LEBENSLAUF: Der Berater zieht beim Einpflegen die
+   Kontaktdaten aus dem eingefügten Text (E-Mail/Telefon) mit heraus und
+   legt sie in die Admin-Ablage — auch Spieler, die nie speichern, sind
+   für den Betreiber sichtbar.
+3. Der 5ER-DECKEL JE GERÄT BLEIBT als einzige Kosten-Bremse im offenen
+   Spiel. Vorschau bleibt FREI (Owner „ok" auf die Empfehlung); nur der
+   Teilen-Tipp in der Vorschau löst Speichern→Konto aus.
+NOCH NICHT GEBAUT — Umbau auf Owner-Kommando („Bau"): E-Mail-Tor aus dem
+Spiel nehmen, Kontakt-Extraktion in den Einpflege-Zug, Teilen-Knopf nur
+in der Vorschau mit Speichern→Konto-Kette (Haus-Anmeldung), gespeicherte
+Gratis-Seite anlegen.
+
+Die ÜBERHOLTE Entscheidung vom selben Abend (nur noch Geschichte):
+E-Mail-Tor vor dem ersten Spielzug („ich will Leads auf jeden Fall") —
 Das E-MAIL-TOR KOMMT VOR DEM ERSTEN EIGENEN SPIELZUG — der Berater nimmt
 Daten/Foto erst nach der E-Mail an (Haus-Eingangstor). Jeder Spieler ist
 ein Lead. Nur das blosse ANSCHAUEN des Musters bleibt ohne alles. Damit
