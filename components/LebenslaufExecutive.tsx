@@ -217,6 +217,11 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                   {/* object-top wie beim Video darüber — Porträt nie mittig schneiden
                       (Skill `card`, 24.08.2026). */}
                   <img src={profil.portraitUrl} alt={profil.name} className="h-full w-full object-cover object-top" />
+                  {/* DER HAUS-PLAYKNOPF, nicht nachgebaut (Owner 05.08.2026 an der ersten
+                      grossen Scheibe: „der Play-Button ist billig, muss kleiner sein und
+                      halbtransparent" — exakt das Markup aus EinladungAnsicht: 40-px-
+                      milchige Scheibe, dünner weisser Rand, weisses Dreieck, 48-px-
+                      Tippfläche; `data-aufmedien` hält das Weiss in der Karte). */}
                   <button type="button" aria-label="Play"
                     onClick={() => {
                       setVideoWunsch(true);
@@ -227,10 +232,20 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                         }).catch(() => { /**/ });
                       }
                     }}
-                    className="absolute inset-0 z-10 grid place-items-center">
-                    <span className="grid h-16 w-16 place-items-center rounded-full transition active:scale-95"
-                      style={{ background: "rgba(12,10,8,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
-                      <Play className="h-7 w-7 text-white" fill="currentColor" />
+                    className="absolute left-1/2 top-1/2 z-10 grid h-12 w-12 -translate-x-1/2 -translate-y-1/2 place-items-center transition active:scale-95">
+                    <span data-aufmedien="1" className="grid h-10 w-10 place-items-center rounded-full"
+                      style={{
+                        background: "rgba(255,255,255,0.22)",
+                        border: "1px solid rgba(255,255,255,0.65)",
+                        boxShadow: "0 2px 10px rgba(0,0,0,0.28)",
+                        backdropFilter: "blur(2px)",
+                        WebkitBackdropFilter: "blur(2px)",
+                        opacity: 0.85,
+                      }}>
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="ml-[2px] h-[18px] w-[18px]"
+                        style={{ color: "#fff", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" }}>
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
                     </span>
                   </button>
                   {videoWunsch && (

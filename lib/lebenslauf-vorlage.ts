@@ -160,7 +160,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Send now", neinAntwort: "No problem. If you have questions about the career, just type them here.",
     chatFrageP: "Your question about the career …", chatSenden: "Send", chatDenkt: "One moment …", vorschau: "Preview", bearbeiten: "Edit",
     nochKeinVideo: "No video yet.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruiter viewed your application." : `${n} recruiters viewed your application.`,
+    statsOeffnungen: (n) => n === 1 ? "1 person viewed your application." : `${n} people viewed your application.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 person wanted" : `${n} people wanted`} to watch your video. Your video is in demand — create it now.`,
   },
   de: {
@@ -185,7 +185,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Direkt absenden", neinAntwort: "Alles klar. Wenn du Fragen zum Werdegang hast, tipp sie einfach hier ein.",
     chatFrageP: "Deine Frage zum Werdegang …", chatSenden: "Senden", chatDenkt: "Einen Moment …", vorschau: "Vorschau", bearbeiten: "Bearbeiten",
     nochKeinVideo: "Noch kein Video.",
-    statsOeffnungen: (n) => n === 1 ? "1 Recruiter hat sich deine Bewerbung angeschaut." : `${n} Recruiter haben sich deine Bewerbung angeschaut.`,
+    statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Leute haben sich deine Bewerbung angeschaut.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Leute wollten`} dein Video sehen. Video ist gefragt — erstelle jetzt dein Video.`,
   },
   ro: {
@@ -210,7 +210,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Trimite acum", neinAntwort: "Nicio problemă. Dacă ai întrebări despre parcurs, scrie-le aici.",
     chatFrageP: "Întrebarea ta despre parcurs …", chatSenden: "Trimite", chatDenkt: "O clipă …", vorschau: "Previzualizare", bearbeiten: "Editare",
     nochKeinVideo: "Încă fără video.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruiter ți-a văzut aplicația." : `${n} recruiteri ți-au văzut aplicația.`,
+    statsOeffnungen: (n) => n === 1 ? "1 persoană ți-a văzut aplicația." : `${n} persoane ți-au văzut aplicația.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persoană a vrut" : `${n} persoane au vrut`} să-ți vadă videoul. Videoul tău e cerut — creează-l acum.`,
   },
   es: {
@@ -235,7 +235,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Enviar ahora", neinAntwort: "Sin problema. Si tienes preguntas sobre la trayectoria, escríbelas aquí.",
     chatFrageP: "Tu pregunta sobre la trayectoria …", chatSenden: "Enviar", chatDenkt: "Un momento …", vorschau: "Vista previa", bearbeiten: "Editar",
     nochKeinVideo: "Aún sin vídeo.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruiter ha visto tu candidatura." : `${n} recruiters han visto tu candidatura.`,
+    statsOeffnungen: (n) => n === 1 ? "1 persona ha visto tu candidatura." : `${n} personas han visto tu candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona quiso" : `${n} personas quisieron`} ver tu vídeo. Tu vídeo tiene demanda — créalo ahora.`,
   },
   fr: {
@@ -260,7 +260,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Envoyer maintenant", neinAntwort: "Pas de souci. Si tu as des questions sur le parcours, écris-les ici.",
     chatFrageP: "Ta question sur le parcours …", chatSenden: "Envoyer", chatDenkt: "Un instant …", vorschau: "Aperçu", bearbeiten: "Modifier",
     nochKeinVideo: "Pas encore de vidéo.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruteur a consulté ta candidature." : `${n} recruteurs ont consulté ta candidature.`,
+    statsOeffnungen: (n) => n === 1 ? "1 personne a consulté ta candidature." : `${n} personnes ont consulté ta candidature.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 personne a voulu" : `${n} personnes ont voulu`} voir ta vidéo. Ta vidéo est demandée — crée-la maintenant.`,
   },
   pt: {
@@ -285,7 +285,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Enviar já", neinAntwort: "Sem problema. Se tiveres perguntas sobre o percurso, escreve-as aqui.",
     chatFrageP: "A tua pergunta sobre o percurso …", chatSenden: "Enviar", chatDenkt: "Um momento …", vorschau: "Pré-visualizar", bearbeiten: "Editar",
     nochKeinVideo: "Ainda sem vídeo.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruiter viu a tua candidatura." : `${n} recruiters viram a tua candidatura.`,
+    statsOeffnungen: (n) => n === 1 ? "1 pessoa viu a tua candidatura." : `${n} pessoas viram a tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 pessoa quis" : `${n} pessoas quiseram`} ver o teu vídeo. O teu vídeo é procurado — cria-o agora.`,
   },
   it: {
@@ -310,7 +310,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Invia subito", neinAntwort: "Nessun problema. Se hai domande sul percorso, scrivile qui.",
     chatFrageP: "La tua domanda sul percorso …", chatSenden: "Invia", chatDenkt: "Un attimo …", vorschau: "Anteprima", bearbeiten: "Modifica",
     nochKeinVideo: "Ancora nessun video.",
-    statsOeffnungen: (n) => n === 1 ? "1 recruiter ha visto la tua candidatura." : `${n} recruiter hanno visto la tua candidatura.`,
+    statsOeffnungen: (n) => n === 1 ? "1 persona ha visto la tua candidatura." : `${n} persone hanno visto la tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona voleva" : `${n} persone volevano`} vedere il tuo video. Il tuo video è richiesto — crealo ora.`,
   },
 };
