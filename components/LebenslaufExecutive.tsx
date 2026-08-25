@@ -66,7 +66,7 @@ function Abschnitt({ children }: { children: string }) {
   return <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{children}</p>;
 }
 
-export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, konto, vorKarte, nachKarte, chatStill = false, ohneFirmenTeil = false, fussFrei = false }: {
+export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, konto, vorKarte, nachKarte, chatStill = false, ohneFirmenTeil = false, fussFrei = false, vorschauAktiv = false }: {
   profil: ExecutiveProfil;
   lang?: Lang;
   /** DER SPIELPLATZ HÄNGT SICH EIN (Owner 25.08.2026, „Ein Gespräch, zwei Türen"):
@@ -83,6 +83,10 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
       Firmen-Fläche aus, obwohl der Betrachter kein Besitzer ist — der Spielplatz schaltet
       sie über seine eigene Bearbeiten|Vorschau-Leiste wieder ein. */
   ohneFirmenTeil?: boolean;
+  /** Der Spielplatz führt seine eigene Bearbeiten|Vorschau-Leiste und sagt hierüber, dass
+      gerade die Firmen-Sicht läuft — dann trägt die Seite denselben Vorschau-Streifen wie
+      beim echten Besitzer. */
+  vorschauAktiv?: boolean;
   /** Der Spielplatz stellt unten Gold + Bearbeiten|Vorschau fest ins Bild (~120px) —
       dieser Puffer schiebt die Fusszeilen-Links darüber (Owner: „footer links sehe
       ich nicht"), ohne die ganze Seite höher zu machen. */
@@ -229,6 +233,18 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         menuLabel={T.menu} menuTitel={T.menuTitel} menu={menu} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">
+
+        {/* DIE VORSCHAU MUSS MAN SOFORT SEHEN (Owner 25.08.2026: „Wenn ich umschalte,
+            gibt's erst mal im Sichtbereich keinen Unterschied. Erst beim Runterscrollen")
+            — oben sind beide Ansichten zu Recht gleich (die Firma sieht dieselbe Mappe),
+            der Unterschied wohnt weiter unten. Dieser Streifen gibt dem Schalter sofort
+            eine Antwort und sagt zugleich, WAS die Vorschau ist. `lb-goldhauch` statt
+            eines getippten Gold-Hauchs (Memory `lb-goldhauch-klasse`). */}
+        {(vorschauAktiv || (istBesitzer && vorschau)) && (
+          <p className="lb-goldhauch mb-3 flex items-center gap-2 rounded-full border border-[#f6cf51]/40 px-4 py-2 text-[11.5px] font-black text-white/85">
+            <Eye className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.vorschauStreifen}
+          </p>
+        )}
 
         {vorKarte}
 
@@ -686,7 +702,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
               {T.bearbeiten}
             </button>
-            <button type="button" onClick={() => setVorschau(true)}
+            <button type="button"
+              onClick={() => { setVorschau(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
               {T.vorschau}
             </button>

@@ -545,7 +545,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
     <>
       <LebenslaufExecutive profil={profil} lang={lang} chatStill
         vorKarte={vorKarte} nachKarte={vorschau ? null : nachKarte}
-        ohneFirmenTeil={!vorschau} fussFrei />
+        ohneFirmenTeil={!vorschau} vorschauAktiv={vorschau} fussFrei />
 
       {/* NUR DIE MODUSWAHL STEHT FEST — der Gold-Knopf scrollt mit der Seite (Owner:
           "Gratis weitermachen soll man mit scrollen"), er sitzt am Ende des
@@ -556,7 +556,11 @@ export default function SpielplatzClient({ beispiel, lang }: {
               className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
               {ET.bearbeiten}
             </button>
-            <button type="button" onClick={() => setVorschau(true)}
+            {/* Vorschau schlägt das Dokument frisch auf: Sprung nach oben, damit der
+                Streifen und der Anfang der Mappe im Bild sind. Zurück zu Bearbeiten
+                bleibt die Stelle stehen, an der er gerade war. */}
+            <button type="button"
+              onClick={() => { setVorschau(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
               {ET.vorschau}
             </button>
