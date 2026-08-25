@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarCheck2 } from "lucide-react";
-import { Kasten, Knopf, Fehlerzeile, Laden } from "@/components/CI";
+import { Knopf, Fehlerzeile, Laden } from "@/components/CI";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 
@@ -119,28 +119,32 @@ export default function ProfilAbo({ id, aboAktiv, monatPreis, restTage, lang = "
   };
 
   return (
-    <section className="border-t border-[#1a160f]/[0.11] px-5 py-6 md:px-8 md:py-7">
-      <Kasten karte>
-        <p className="flex items-center gap-2 text-[13px] font-black leading-snug">
+    /* STILLE INFO AUF SCHWARZ, GANZ UNTEN (Owner 25.08.2026, zur Box-Fassung: „das hat in
+       einer Box nicht zu suchen. Muss unter alles als Info auf Schwarz.") — kein Kasten,
+       keine Karte: Das Abo ist Verwaltung, kein Verkaufsauftritt auf dieser Seite. */
+    <section className="mt-8 md:mt-10">
+        <p className="flex items-center gap-2 text-[13px] font-black leading-snug text-white/85">
           <CalendarCheck2 className="h-4 w-4 shrink-0" />{t.titel}
         </p>
         {aboAktiv ? (
-          <p className="mt-2 text-[12.5px] font-bold leading-snug opacity-70">{t.aktiv}</p>
+          <p className="mt-2 text-[12.5px] font-bold leading-snug text-white/60">{t.aktiv}</p>
         ) : busy ? (
-          <div className="mt-3"><Laden art="flaeche" karte text={t.laeuft} /></div>
+          <div className="mt-3"><Laden art="flaeche" text={t.laeuft} /></div>
         ) : (
           <>
-            <p className="mt-2 text-[12.5px] font-bold leading-snug opacity-70">
-              <span className="font-black opacity-100">{monatPreis}</span> {t.zeile}
+            <p className="mt-2 text-[12.5px] font-bold leading-snug text-white/60">
+              <span className="font-black text-white/90">{monatPreis}</span> {t.zeile}
             </p>
-            <p className="mt-1.5 text-[11.5px] font-bold leading-snug opacity-50">{t.frist(restTage)}</p>
-            <Fehlerzeile karte>{fehler}</Fehlerzeile>
+            <p className="mt-1.5 text-[11.5px] font-bold leading-snug text-white/45">{t.frist(restTage)}</p>
+            <Fehlerzeile>{fehler}</Fehlerzeile>
+            {/* GOLD (Owner 25.08.2026: „Gelber Button als CTA") — im Bearbeiten-Modus ist
+                die Firmen-Fläche samt ihrem Gold ausgeblendet; das Abo ist dort der eine
+                Kauf-Knopf des Bildschirms (Skill `ci-design`: genau einer). */}
             <div className="mt-3">
-              <Knopf art="umriss" karte onClick={() => void starten()}>{`${t.knopf} — ${monatPreis}`}</Knopf>
+              <Knopf art="gold" onClick={() => void starten()}>{`${t.knopf} — ${monatPreis}`}</Knopf>
             </div>
           </>
         )}
-      </Kasten>
     </section>
   );
 }

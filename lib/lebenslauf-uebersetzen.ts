@@ -38,7 +38,6 @@ export async function executiveInSprache(p: ExecutiveProfil, lang: Lang): Promis
     ...p.impact.map(z => z.text),
     ...p.ausbildung.map(a => a.titel),
     ...p.sprachen.flatMap(s => [s.sprache, s.niveau]),
-    ...p.passendeRollen.flatMap(r => [r.titel, ...r.gruende]),
     ...p.chatFragen,
   ];
 
@@ -60,7 +59,6 @@ export async function executiveInSprache(p: ExecutiveProfil, lang: Lang): Promis
       impact: p.impact.map(z => ({ ...z, text: naechster() })),
       ausbildung: p.ausbildung.map(a => ({ ...a, titel: naechster() })),
       sprachen: p.sprachen.map(s => ({ ...s, sprache: naechster(), niveau: naechster() })),
-      passendeRollen: p.passendeRollen.map(r => ({ ...r, titel: naechster(), gruende: r.gruende.map(() => naechster()) })),
       chatFragen: p.chatFragen.map(() => naechster()),
     };
   } catch {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { MapPin, Languages, ArrowUpRight, Check, FileText, Mail, Phone, Link2, ChevronDown } from "lucide-react";
-import { Knopf, TalentKopf } from "@/components/CI";
+import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check } from "lucide-react";
+import { TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -19,13 +19,15 @@ import type { Lang } from "@/lib/lang";
  * curated." · „I would send this profile to an employer.").
  *
  * DIE EINE ENTWURFS-ENTSCHEIDUNG, AUS DER ALLES ANDERE FOLGT: Der Bewerber ist PAPIER, die
- * Plattform ist der dunkle Raum darum. ALLES steht auf EINER durchgehenden elfenbeinfarbenen
- * Fläche (`.lb-karte`), getrennt nur durch Haarlinien, wie die Seiten einer Mappe — seit dem
- * 24.08.2026 ausdrücklich auch die passenden Rollen, der Arbeitgeber-Abschluss und der
- * Profil-Chat (Owner: „das was unter der Karte existiert, interessiert mich gar nicht. Es
- * muss alles in der Karte sein"; vorher stand die Maschinen-Hälfte auf dem Dunklen unter dem
- * Blatt). Deshalb liest sich die Seite als Dossier und nicht als SaaS-Oberfläche aus lauter
- * Kästen (Auftrag: „not generic SaaS cards everywhere", „The page must feel like a personal
+ * Plattform ist der dunkle Raum darum. Der INHALT des Dossiers steht auf EINER
+ * durchgehenden elfenbeinfarbenen Fläche (`.lb-karte`), getrennt nur durch Haarlinien, wie
+ * die Seiten einer Mappe. SEIT 25.08.2026 GILT DAS NUR FÜR DEN INHALT (Owner, dreimal:
+ * „das hat in der karte nichts zu suchen … muss extra drunter"): Alles, womit man HANDELT
+ * — Firmen-Chat mit Gesprächsanfrage, Bewerbungs-Assistent, Bewerbungs-Liste, Abo — steht
+ * als eigene Boxen UNTER dem Blatt auf dem Dunklen. (Die 24.08.-Ansage „es muss alles in
+ * der Karte sein" betraf die INHALTS-Hälfte, die damals unter dem Blatt hing.) Deshalb
+ * liest sich die Seite als Dossier und nicht als SaaS-Oberfläche aus lauter Kästen
+ * (Auftrag: „not generic SaaS cards everywhere", „The page must feel like a personal
  * professional dossier").
  *
  * WARUM NICHT JE ABSCHNITT EINE KARTE: Sechs Karten untereinander sind sechs Ränder, sechs
@@ -98,23 +100,55 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
    * halbe Sekunde auf seine eigenen Daten warten.
    */
   const [istBesitzer, setIstBesitzer] = useState(false);
-  useEffect(() => {
+  /* VORSCHAU/BEARBEITEN (Owner 25.08.2026: „zwei Buttons im Footer") — Vorschau zeigt dem
+     Besitzer die Seite EXAKT wie ein Fremder sie sieht: keine Werkzeug-Boxen, Kontaktdaten
+     nur nach Firmen-Freigabe. Die Leiste selbst bleibt in beiden Ansichten stehen — sie
+     ist der garantierte Weg zurück (Memory `immer-close-einbauen`). */
+  const [vorschau, setVorschau] = useState(false);
+  const besitzerAnsicht = istBesitzer && !vorschau;
+  /* DIE KONTAKT-FREIGABE LIEGT BEIM BESITZER (Owner 25.08.2026: „Die Kontaktdaten werden
+     im Chat abgefragt. Falls der User sie im Bearbeiten-Modus für alle freigibt.") — der
+     Schalter unten im Bearbeiten-Modus; der Firmen-Chat nennt die Daten nur bei Freigabe. */
+  const [kontaktFrei, setKontaktFrei] = useState(profil.kontaktSichtbar === true);
+  const [freigabeBusy, setFreigabeBusy] = useState(false);
+
+  const ausweis = () => {
     let device = "", pin = "", tok = "";
     try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
     try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
     try { tok = getStoredAuthSession()?.access_token ?? ""; } catch { /**/ }
+    return {
+      device,
+      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}), ...(pin ? { "x-try-look-admin-pin": pin } : {}) } as Record<string, string>,
+    };
+  };
+
+  useEffect(() => {
+    const { device, headers } = ausweis();
     fetch(`/api/lebenslauf-korrektur?id=${encodeURIComponent(profil.id)}&device=${encodeURIComponent(device)}`, {
-      headers: { ...(tok ? { Authorization: `Bearer ${tok}` } : {}), ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-      cache: "no-store",
+      headers, cache: "no-store",
     }).then(r => r.json()).then(d => { if (d?.darf === true) setIstBesitzer(true); }).catch(() => { /* bleibt „nein" */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profil.id]);
+
+  const freigabeUmschalten = async () => {
+    if (freigabeBusy) return;
+    setFreigabeBusy(true);
+    try {
+      const { device, headers } = ausweis();
+      const r = await fetch("/api/lebenslauf-kontakt", {
+        method: "POST", headers,
+        body: JSON.stringify({ id: profil.id, sichtbar: !kontaktFrei, device }),
+      });
+      if (r.ok) setKontaktFrei(f => !f);
+    } catch { /* Zustand bleibt, der Knopf kann erneut */ }
+    setFreigabeBusy(false);
+  };
 
   const menu = [
     { label: T.profil, href: "#profil" },
     { label: T.expertise, href: "#expertise" },
     { label: T.erfahrung, href: "#erfahrung" },
-    { label: T.passung, href: "#passung" },
     ...(profil.cvUrl ? [{ label: T.cvLaden, href: profil.cvUrl, datei: true }] : []),
   ];
 
@@ -361,117 +395,117 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             )}
           </section>
           )}
-          {/* ─────────── PASSENDE ROLLEN — IM PAPIER (Owner 24.08.2026: „das was unter der
-              Karte existiert, interessiert mich gar nicht. Es muss alles in der Karte sein").
-              Bis heute stand die Auswertung „auf dem Dunklen" unter dem Blatt — jetzt ist sie
-              ein Abschnitt des Dossiers, in Tinte statt Gold/Weiss. „Stark" gegen „gut"
-              unterscheidet sich über das Gewicht (voll gegen 40 %), nie über eine Prozentzahl
-              (Auftrag ausdrücklich). ─────────── */}
-          {profil.passendeRollen.length > 0 && (
-            <section id="passung" className={`px-5 py-6 md:px-8 md:py-7 ${LINIE}`}>
-              <Abschnitt>{T.passung}</Abschnitt>
-              <div className="mt-1">
-                {profil.passendeRollen.map((r, i) => (
-                  <div key={r.titel} className={`py-4 ${i === 0 ? "" : LINIE}`}>
-                    <div className="flex items-baseline justify-between gap-4">
-                      <p className="text-[14.5px] font-black leading-tight">{r.titel}</p>
-                      <p className={`shrink-0 text-[9.5px] font-black uppercase tracking-[0.16em] ${r.staerke === "stark" ? "" : "opacity-40"}`}>
-                        {r.staerke === "stark" ? T.stark : T.gut}
-                      </p>
-                    </div>
-                    <ul className="mt-2.5 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                      {r.gruende.map(g => (
-                        <li key={g} className="flex items-start gap-1.5 text-[11.5px] font-bold opacity-75">
-                          <Check className="mt-[2px] h-3.5 w-3.5 shrink-0" />{g}
-                        </li>
-                      ))}
-                    </ul>
-                    {r.href && (
-                      <a href={r.href} target="_blank" rel="noreferrer"
-                        className="mt-3 inline-flex items-center gap-1 text-[11.5px] font-black uppercase tracking-[0.12em] opacity-55 transition hover:opacity-100">
-                        {T.rolleAnsehen}<ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        </article>
 
-          {/* DER ARBEITGEBER-ABSCHLUSS — jetzt der letzte Abschnitt DESSELBEN Blattes. Hier
-              steht der einzige goldene Knopf der Seite (Skill `ci-design`: genau einer). */}
-          <section id="kontakt" className={`px-5 py-6 md:px-8 md:py-7 ${LINIE}`}>
+        {/* ─────────── UNTER DER KARTE: DIE FUNKTIONEN (Owner 25.08.2026, dreimal
+            hintereinander: „das hat in der karte nichts zu suchen. Das ist eine Funktion
+            für die Firmen und muss extra drunter" · „das ebenso" · „auch das muss in
+            einer extra box drunter"). Das Blatt oben ist NUR das Dokument des Bewerbers —
+            alles, womit man HANDELT, steht hier auf dem Dunklen: zuerst die Firmen-Fläche
+            (Chat mit Gespräch anfragen/Nachricht/Lebenslauf, dann die Kontaktdaten nach
+            Freigabe), darunter die Besitzer-Boxen (jede bringt ihre eigene Karten-Hülle
+            mit und bleibt für Fremde unsichtbar). ─────────── */}
+        {/* NUR IN DER FIRMEN-SICHT (Owner 25.08.2026: „beim Bearbeiten kommt interesse an
+            Geza raus") — Fremde sehen sie immer, der Besitzer nur in der Vorschau.
+            KEINE Kontaktdaten mehr auf der Seite (Owner: „werden hier nicht angezeigt") —
+            wer sie will, fragt den Chat, und der nennt sie nur nach Freigabe. */}
+        {!besitzerAnsicht && (
+        <section id="kontakt" className="mt-8 md:mt-10">
           <h2 className="font-serif text-[22px] font-black leading-tight md:text-[26px]">{T.interessiert(vorname)}</h2>
           <p className="mt-2 text-[12.5px] font-bold leading-snug opacity-70">{T.interessiertText}</p>
 
-          <div className="mt-5">
-            <Knopf art="gold" karte href={`/contact?reason=general&about=${encodeURIComponent(profil.name)}`}>
-              {T.interview}
-            </Knopf>
-          </div>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Knopf art="umriss" karte href={`/contact?reason=general&about=${encodeURIComponent(profil.name)}`}>
-              {T.nachricht}
-            </Knopf>
-            {profil.cvUrl && (
-              <a href={profil.cvUrl} download
-                className="lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black">
-                <FileText className="h-4 w-4" />{T.cvLaden}
-              </a>
-            )}
-          </div>
+          <ProfilChatEinstieg
+            einstieg={T.chatEinstieg(vorname)}
+            texte={{
+              frage: T.interessiert(vorname), ja: T.ja, nein: T.nein,
+              frageWer: T.frageWer, frageMail: T.frageMail, frageNachricht: T.frageNachricht,
+              frageLeiten: T.frageLeiten(vorname),
+              ohneNachricht: T.ohneNachricht, neinAntwort: T.neinAntwort,
+              danke: T.anfrageDanke, zu: T.anfrageZu,
+              platzhalter: T.chatFrageP, phName: T.anfrageName, phMail: T.anfrageEmail, phNachricht: T.anfrageNachricht,
+              senden: T.chatSenden, denkt: T.chatDenkt,
+            }}
+            kandidat={profil.name} />
+        </section>
+        )}
 
-          {/* DIE KONTAKTDATEN SIND DAS VERMITTLUNGSMODELL (Owner 20.08.2026, siehe
-              `kontaktSichtbar` in lib/lebenslauf-store.ts): Ohne Freigabe steht hier ein Satz
-              statt einer Nummer — die Firma bekommt die Person, nicht die Adresse.
-              AUSSER FÜR DEN BESITZER (Owner 24.08.2026: „ein Bewerber muss seine
-              Kontaktdaten sehen") — `istBesitzer` schaltet unabhängig von `kontaktSichtbar`
-              frei, mit einer eigenen Zeile, die den Unterschied zur Firmen-Ansicht erklärt. */}
-          {(istBesitzer || profil.kontaktSichtbar) && profil.kontakt ? (
-            <div className={`mt-5 pt-4 ${LINIE}`}>
-              <Abschnitt>{T.kontakt}</Abschnitt>
-              <div className="mt-3 flex flex-col gap-2">
-                {profil.kontakt.ort && (
-                  <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><MapPin className="h-4 w-4 shrink-0" />{profil.kontakt.ort}</p>
-                )}
-                {profil.kontakt.telefon && (
-                  <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Phone className="h-4 w-4 shrink-0" />{profil.kontakt.telefon}</p>
-                )}
-                {profil.kontakt.email && (
-                  <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Mail className="h-4 w-4 shrink-0" />{profil.kontakt.email}</p>
-                )}
-                {profil.kontakt.profilLink && (
-                  <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Link2 className="h-4 w-4 shrink-0" />{profil.kontakt.profilLink}</p>
-                )}
-              </div>
-              {istBesitzer && !profil.kontaktSichtbar && (
-                <p className="mt-3 text-[11px] font-bold leading-snug opacity-45">{T.kontaktNurDu}</p>
+        {/* DIE BESITZER-BOXEN — jede bringt ihre eigene `lb-karte`-Hülle mit; ob überhaupt
+            etwas erscheint, entscheidet der Baustein selbst nach der Besitz-Prüfung. In der
+            VORSCHAU verschwinden sie komplett — das ist ihr Zweck. */}
+        {besitzerAnsicht && werkzeug}
+
+        {/* KONTAKTDATEN NUR IM BEARBEITEN-MODUS (Owner 25.08.2026: „die Kontaktdaten werden
+            hier nicht angezeigt, nur im Bearbeiten-Modus") — mit dem FREIGABE-SCHALTER:
+            Erst wenn der Bewerber freigibt, nennt der Firmen-Chat sie auf Nachfrage. */}
+        {besitzerAnsicht && profil.kontakt && (
+          <section className="lb-karte mt-5 overflow-hidden rounded-[20px] px-5 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.38)] md:px-8 md:py-7">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{T.kontakt}</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {profil.kontakt.ort && (
+                <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><MapPin className="h-4 w-4 shrink-0" />{profil.kontakt.ort}</p>
+              )}
+              {profil.kontakt.telefon && (
+                <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Phone className="h-4 w-4 shrink-0" />{profil.kontakt.telefon}</p>
+              )}
+              {profil.kontakt.email && (
+                <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Mail className="h-4 w-4 shrink-0" />{profil.kontakt.email}</p>
+              )}
+              {profil.kontakt.profilLink && (
+                <p className="flex items-center gap-2.5 text-[12.5px] font-bold opacity-80"><Link2 className="h-4 w-4 shrink-0" />{profil.kontakt.profilLink}</p>
               )}
             </div>
-          ) : (
-            <p className={`mt-5 pt-4 text-[11.5px] font-bold leading-snug opacity-50 ${LINIE}`}>{T.kontaktSpaeter}</p>
-          )}
-        </section>
-
-          {/* DER PROFIL-CHAT — bewusst das Letzte und das Leiseste (Auftrag: „Do not make the
-              chat dominate the profile. It is a supporting feature."). Ohne Beispiel-Fragen
-              bleibt er ganz weg (Memory `chat-no-personal-questions-buttons-only`: nie leer).
-              Auch er wohnt IM Blatt (Owner 24.08.2026) — `karte` schaltet den Kasten um. */}
-          {profil.chatFragen.length > 0 && (
-            <section className={`px-5 py-6 md:px-8 md:py-7 ${LINIE}`}>
-              <ProfilChatEinstieg karte className="mt-0" fragen={profil.chatFragen}
-                einstieg={T.chatEinstieg(vorname)} hinweis={T.chatHinweis}
-                beispieleLabel={T.chatBeispiele} zuLabel={T.chatZu} />
-            </section>
-          )}
-
-          {/* DAS BESITZER-WERKZEUG — der Baustein bringt seine Abschnitts-Hülle SELBST mit:
-              Ob überhaupt etwas erscheint, entscheidet er erst nach der Besitz-Prüfung im
-              Browser — eine Hülle hier stünde für jeden Fremden als leerer Streifen im
-              Blatt (gemessen 24.08.: 49 px + Haarlinie). */}
-          {werkzeug}
-        </article>
+            {/* ZWEI WAHLEN MIT HÄKCHEN (Owner 25.08.2026: „mit Häkchen Öffentlich sichtbar
+                oder nur per Anfrage" — und zur ersten Fassung: „die Checkboxen sind beide
+                voll und Grün ist nicht gut"). Deshalb das Haus-Chip-Muster in TINTE: Die
+                GEWÄHLTE Zeile trägt vollen Rand + Häkchen, die andere nur den leisen Rand
+                und GAR KEIN Symbol — zwei ähnliche Kreise waren nicht unterscheidbar, weil
+                die Karte Symbol-Deckkraft per !important überschreibt (Memory
+                `lb-karte-important-frisst-inline-farben`). Fester Häkchen-Platz, damit
+                die Wahl nichts verschiebt (Hausregel „Auswahl verschiebt NIE"). */}
+            <div className="mt-4 flex flex-col gap-2">
+              {[
+                { wert: true, label: T.kontaktOeffentlich },
+                { wert: false, label: T.kontaktNurAnfrage },
+              ].map(w => {
+                const aktiv = kontaktFrei === w.wert;
+                return (
+                  <button key={String(w.wert)} type="button" disabled={freigabeBusy}
+                    onClick={() => { if (!aktiv) void freigabeUmschalten(); }}
+                    className={`flex h-11 items-center gap-2.5 rounded-full px-4 text-left text-[13px] font-black transition disabled:opacity-40 ${aktiv ? "border-2 border-[#1a160f] bg-[#1a160f]/[0.05]" : "border border-[#1a160f]/25 opacity-60 hover:opacity-90"}`}>
+                    <span className="w-4 shrink-0">{aktiv && <Check className="h-4 w-4" />}</span>
+                    {w.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[11px] font-bold leading-snug opacity-45">
+              {kontaktFrei ? T.kontaktFreigegeben : T.kontaktNurDu}
+            </p>
+          </section>
+        )}
       </div>
+
+      {/* DIE BESITZER-LEISTE — STICKY UNTEN (Owner 25.08.2026: „zwei Buttons im Footer
+          Vorschau und Bearbeiten" · „sticky unten"). Nur der Besitzer sieht sie; die
+          aktive Ansicht trägt Weiss, kein Gold (das eine Gold der Seite gehört der
+          Gesprächsanfrage, Skill `ci-design`). */}
+      {istBesitzer && (
+        <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2">
+          {/* Bearbeiten links, Vorschau RECHTS (Owner 25.08.2026: „vorschau rechts"). */}
+          <div className="flex items-center gap-1 rounded-full border border-white/25 bg-[#0c0a08]/90 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur">
+            <button type="button" onClick={() => setVorschau(false)}
+              className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
+              {T.bearbeiten}
+            </button>
+            <button type="button" onClick={() => setVorschau(true)}
+              className={`h-10 rounded-full px-5 text-[12px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
+              {T.vorschau}
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Platz, damit die Leiste die Fusszeilen-Links nie verdeckt. */}
+      {istBesitzer && <div aria-hidden className="h-16" />}
 
       {/* NUR DAS GESETZLICHE MINIMUM (Owner 24.08.2026: „auf der Bewerbeseite müssen die
           Links unten raus, auch Instagram und Facebook") — Impressum/Datenschutz/AGB müssen

@@ -1,4 +1,4 @@
-import type { LebenslaufProfil } from "@/lib/lebenslauf-store";
+import { leseLebenslauf, type LebenslaufProfil } from "@/lib/lebenslauf-store";
 import { readKissLog } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -22,6 +22,14 @@ export async function darfAmProfilArbeiten(profil: LebenslaufProfil, device: str
       const eintrag = (await readKissLog()).find(e => e.id === profil.id);
       if (eintrag?.device && eintrag.device === device) return true;
     } catch { /* ohne Log entscheidet der Rest */ }
+  }
+  /* EINE BEWERBUNG ERBT DEN BESITZ VOM HAUPTPROFIL (Multi-Bewerbung, 25.08.2026): Die
+     Version kopiert zwar die E-Mail (Konto-Weg greift oben direkt), aber der GERÄTE-Weg
+     hängt am Kiss-Log-Auftrag, den nur das Hauptprofil hat. Eine Ebene reicht — ein
+     Hauptprofil trägt nie selbst eine basisId (die Erzeugungs-Route löst Ketten auf). */
+  if (profil.basisId && profil.basisId !== profil.id) {
+    const basis = await leseLebenslauf(profil.basisId).catch(() => null);
+    if (basis && !basis.basisId) return darfAmProfilArbeiten(basis, device, request);
   }
   return false;
 }

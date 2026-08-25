@@ -39,17 +39,6 @@ export type ExecutiveErfahrung = {
   ergebnis: string;
 };
 
-export type ExecutivePassung = {
-  titel: string;
-  /** `stark` = „Strong Match", `gut` = „Good Match". KEINE Prozentzahl (Auftrag: „Do NOT
-      display arbitrary percentages such as 68% Match") — eine erfundene Zahl behauptet eine
-      Messung, die es nicht gibt, und beschädigt genau das Vertrauen, das die Seite braucht. */
-  staerke: "stark" | "gut";
-  /** Höchstens vier Gründe — sie sollen in zwei Spalten in eine Zeile passen. */
-  gruende: string[];
-  href?: string;
-};
-
 export type ExecutiveProfil = {
   id: string;
   name: string;
@@ -78,7 +67,6 @@ export type ExecutiveProfil = {
   impact: { zahl: string; text: string }[];
   ausbildung: { titel: string; ort: string; zeitraum: string }[];
   sprachen: { sprache: string; niveau: string }[];
-  passendeRollen: ExecutivePassung[];
   /** Der Lebenslauf als Datei — der Knopf fehlt ohne sie. */
   cvUrl?: string;
   /** Beispiel-Fragen für den Profil-Chat. Sie zeigen, was er kann, ohne dass man tippen muss. */
@@ -98,8 +86,7 @@ export type ExecutiveTexte = {
   marke: string;
   teilen: string; kopiert: string; menu: string; menuTitel: string;
   profil: string; expertise: string; erfahrung: string; impact: string;
-  bildung: string; sprachen: string; passung: string;
-  stark: string; gut: string; warum: string; rolleAnsehen: string;
+  bildung: string; sprachen: string;
   ganzeCv: string;
   /** „+7 weitere anzeigen" — nach der vierten Station eingeklappt (Owner 24.08.2026, am
       eigenen 11-Stationen-Profil: „nach der vierten Stelle zum Ausklappen"). */
@@ -107,128 +94,202 @@ export type ExecutiveTexte = {
   wenigerAnzeigen: string;
   interessiert: (name: string) => string;
   interessiertText: string;
-  interview: string; nachricht: string; cvLaden: string;
-  kontakt: string; kontaktSpaeter: string;
+  cvLaden: string;
+  kontakt: string;
+  /** Der FREIGABE-SCHALTER des Besitzers (Owner 25.08.2026: Kontaktdaten werden im Chat
+      abgefragt, falls der User sie im Bearbeiten-Modus freigibt) -- erst die Freigabe
+      laesst den Firmen-Chat sie auf Nachfrage nennen. */
+  kontaktOeffentlich: string; kontaktNurAnfrage: string; kontaktFreigegeben: string;
   /** Nur der BESITZER sieht diese Zeile — sie erklärt, warum er seine eigenen Kontaktdaten
       sieht, obwohl Firmen sie erst nach Freigabe bekommen (Owner 24.08.2026: „ein Bewerber
       muss seine Kontaktdaten sehen"). */
   kontaktNurDu: string;
   chatEinstieg: (name: string) => string;
-  chatHinweis: string; chatBeispiele: string; chatZu: string;
+  /** Getippte Fragen werden NICHT von einer KI beantwortet, sondern WEITERGELEITET
+      (Owner 25.08.2026: das braucht man nicht, man sieht doch alles in der Bewerbung --
+      eventuell Fragen an ihn, die weitergeleitet werden). Diese Zeile leitet danach
+      in die Kontakt-Abfrage ueber. */
+  frageLeiten: (name: string) => string;
+  /** DIE ANFRAGE BLEIBT IN DER SEITE (Owner 25.08.2026: „ich finde das hier nicht gut weil
+      auf einer anderen seite geleitet wird") — das Formular klappt im Firmen-Chat auf,
+      geschickt wird über /api/contact. Duzen auch gegenüber Firmen ([[immer-duzen]]). */
+  anfrageName: string; anfrageEmail: string; anfrageNachricht: string;
+  anfrageDanke: string; anfrageZu: string;
+  /** DER GEFUEHRTE FIRMEN-DIALOG (Owner 25.08.2026: "Es muss nur ein Feld sein wo der
+      Chat dich fragt Interesse an Geza? Ja Nein. Wer / Welche Firma bist du, deine
+      Kontaktdaten.") -- der Chat stellt die Fragen, keine Knopf-Bloecke mehr. */
+  ja: string; nein: string; frageWer: string; frageMail: string; frageNachricht: string;
+  ohneNachricht: string; neinAntwort: string;
+  /** Der ECHTE Firmen-Chat (Owner 25.08.2026: „Die Firmen müssen auch einen Chat
+      bekommen") — Eingabefeld, Senden, Denk-Zeile; Antworten kommen aus
+      /api/lebenslauf-frage, ausschliesslich aus den geprüften Profildaten. */
+  chatFrageP: string; chatSenden: string; chatDenkt: string;
+  /** Die Besitzer-Leiste unten (Owner 25.08.2026: „zwei Buttons im Footer Vorschau und
+      Bearbeiten") — Vorschau zeigt die Seite exakt wie ein Fremder/eine Firma sie sieht. */
+  vorschau: string; bearbeiten: string;
 };
 
 export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
   en: {
     marke: "Talent", teilen: "Share profile", kopiert: "Link copied", menu: "Menu", menuTitel: "Sections",
     profil: "Profile", expertise: "Core Expertise", erfahrung: "Experience", impact: "Selected Impact",
-    bildung: "Education", sprachen: "Languages", passung: "Roles that fit this profile",
-    stark: "Strong Match", gut: "Good Match", warum: "Why", rolleAnsehen: "View role",
+    bildung: "Education", sprachen: "Languages",
     ganzeCv: "The complete career history is in the CV.",
     alleAnzeigen: (n) => `+${n} more`, wenigerAnzeigen: "Show less",
     interessiert: (n) => `Interested in ${n}?`,
-    interessiertText: "Send a request and we pass it to the candidate the same day.",
-    interview: "Request an interview", nachricht: "Send a message", cvLaden: "Download CV",
-    kontakt: "Contact", kontaktSpaeter: "Contact details are released once an employer confirms interest.",
-    kontaktNurDu: "Only you see this contact information here — companies see it once you or we confirm a request.",
+    interessiertText: "Send a request and we pass it to the candidate the same day.", cvLaden: "Download CV",
+    kontakt: "Contact",
+    kontaktNurDu: "Only you see this data. Release it and the chat shares it with companies on request.",
+    kontaktOeffentlich: "Publicly visible", kontaktNurAnfrage: "Only on request", kontaktFreigegeben: "Released — the chat shares it with companies on request.",
     chatEinstieg: (n) => `Ask about ${n}'s experience`,
-    chatHinweis: "Answers come only from the verified CV and this profile. Nothing is added.",
-    chatBeispiele: "For example", chatZu: "Close",
+    frageLeiten: (n) => `Happy to pass that on to ${n}. Who are you — your name and your company?`,
+    anfrageName: "Your name / company", anfrageEmail: "Your email", anfrageNachricht: "Your message",
+    anfrageDanke: "Thank you — we have your request and will pass it on the same day.",
+    anfrageZu: "Cancel",
+    ja: "Yes", nein: "No",
+    frageWer: "Great! Who are you — your name and your company?",
+    frageMail: "And how do we reach you? Your email address.",
+    frageNachricht: "Anything you want to add? Write it here — or send the request right away.",
+    ohneNachricht: "Send now", neinAntwort: "No problem. If you have questions about the career, just type them here.",
+    chatFrageP: "Your question about the career …", chatSenden: "Send", chatDenkt: "One moment …", vorschau: "Preview", bearbeiten: "Edit",
   },
   de: {
     marke: "Talent", teilen: "Profil teilen", kopiert: "Link kopiert", menu: "Menü", menuTitel: "Abschnitte",
     profil: "Profil", expertise: "Kernkompetenzen", erfahrung: "Erfahrung", impact: "Ausgewählte Ergebnisse",
-    bildung: "Ausbildung", sprachen: "Sprachen", passung: "Rollen, die zu diesem Profil passen",
-    stark: "Starke Passung", gut: "Gute Passung", warum: "Warum", rolleAnsehen: "Rolle ansehen",
+    bildung: "Ausbildung", sprachen: "Sprachen",
     ganzeCv: "Der vollständige Werdegang steht im Lebenslauf.",
     alleAnzeigen: (n) => `+${n} weitere anzeigen`, wenigerAnzeigen: "Weniger anzeigen",
     interessiert: (n) => `Interesse an ${n}?`,
-    interessiertText: "Schick eine Anfrage — wir geben sie noch am selben Tag weiter.",
-    interview: "Gespräch anfragen", nachricht: "Nachricht senden", cvLaden: "Lebenslauf laden",
-    kontakt: "Kontakt", kontaktSpaeter: "Die Kontaktdaten werden frei, sobald eine Firma Interesse bestätigt.",
-    kontaktNurDu: "Nur du siehst diese Kontaktdaten hier — Firmen sehen sie erst, wenn du oder wir eine Anfrage bestätigen.",
+    interessiertText: "Schick eine Anfrage — wir geben sie noch am selben Tag weiter.", cvLaden: "Lebenslauf laden",
+    kontakt: "Kontakt",
+    kontaktNurDu: "Nur du siehst diese Daten. Erst deine Freigabe macht sie für Firmen im Chat abrufbar.",
+    kontaktOeffentlich: "Öffentlich sichtbar", kontaktNurAnfrage: "Nur per Anfrage", kontaktFreigegeben: "Freigegeben — der Chat nennt sie Firmen auf Nachfrage.",
     chatEinstieg: (n) => `Frag nach ${n}s Erfahrung`,
-    chatHinweis: "Antworten kommen nur aus dem geprüften Lebenslauf und diesem Profil. Nichts wird ergänzt.",
-    chatBeispiele: "Zum Beispiel", chatZu: "Schliessen",
+    frageLeiten: (n) => `Gern — ich gebe deine Frage an ${n} weiter. Wer bist du — dein Name und deine Firma?`,
+    anfrageName: "Dein Name / Firma", anfrageEmail: "Deine E-Mail", anfrageNachricht: "Deine Nachricht",
+    anfrageDanke: "Danke — deine Anfrage ist bei uns und wird noch am selben Tag weitergegeben.",
+    anfrageZu: "Abbrechen",
+    ja: "Ja", nein: "Nein",
+    frageWer: "Schön! Wer bist du — dein Name und deine Firma?",
+    frageMail: "Und wie erreichen wir dich? Deine E-Mail-Adresse.",
+    frageNachricht: "Magst du noch etwas mitgeben? Schreib es hier — oder schick die Anfrage direkt ab.",
+    ohneNachricht: "Direkt absenden", neinAntwort: "Alles klar. Wenn du Fragen zum Werdegang hast, tipp sie einfach hier ein.",
+    chatFrageP: "Deine Frage zum Werdegang …", chatSenden: "Senden", chatDenkt: "Einen Moment …", vorschau: "Vorschau", bearbeiten: "Bearbeiten",
   },
   ro: {
     marke: "Talent", teilen: "Distribuie profilul", kopiert: "Link copiat", menu: "Meniu", menuTitel: "Secțiuni",
     profil: "Profil", expertise: "Competențe cheie", erfahrung: "Experiență", impact: "Rezultate selectate",
-    bildung: "Studii", sprachen: "Limbi", passung: "Roluri potrivite pentru acest profil",
-    stark: "Potrivire puternică", gut: "Potrivire bună", warum: "De ce", rolleAnsehen: "Vezi rolul",
+    bildung: "Studii", sprachen: "Limbi",
     ganzeCv: "Parcursul complet se află în CV.",
     alleAnzeigen: (n) => `+${n} altele`, wenigerAnzeigen: "Arată mai puțin",
     interessiert: (n) => `Interesat de ${n}?`,
-    interessiertText: "Trimite o cerere — o transmitem candidatului în aceeași zi.",
-    interview: "Cere un interviu", nachricht: "Trimite un mesaj", cvLaden: "Descarcă CV-ul",
-    kontakt: "Contact", kontaktSpaeter: "Datele de contact se deblochează după ce o firmă confirmă interesul.",
-    kontaktNurDu: "Doar tu vezi aceste date de contact aici — firmele le văd abia după ce tu sau noi confirmăm o cerere.",
+    interessiertText: "Trimite o cerere — o transmitem candidatului în aceeași zi.", cvLaden: "Descarcă CV-ul",
+    kontakt: "Contact",
+    kontaktNurDu: "Doar tu vezi aceste date. Abia după ce le eliberezi, chatul le spune firmelor la cerere.",
+    kontaktOeffentlich: "Vizibile public", kontaktNurAnfrage: "Doar la cerere", kontaktFreigegeben: "Eliberate — chatul le spune firmelor la cerere.",
     chatEinstieg: (n) => `Întreabă despre experiența lui ${n}`,
-    chatHinweis: "Răspunsurile vin doar din CV-ul verificat și din acest profil. Nimic nu este inventat.",
-    chatBeispiele: "De exemplu", chatZu: "Închide",
+    frageLeiten: (n) => `Cu plăcere — transmit întrebarea ta lui ${n}. Cine ești — numele tău și firma ta?`,
+    anfrageName: "Numele tău / firma", anfrageEmail: "E-mailul tău", anfrageNachricht: "Mesajul tău",
+    anfrageDanke: "Mulțumim — cererea ta a ajuns la noi și o transmitem în aceeași zi.",
+    anfrageZu: "Renunță",
+    ja: "Da", nein: "Nu",
+    frageWer: "Super! Cine ești — numele tău și firma ta?",
+    frageMail: "Și cum te contactăm? Adresa ta de e-mail.",
+    frageNachricht: "Vrei să adaugi ceva? Scrie aici — sau trimite cererea direct.",
+    ohneNachricht: "Trimite acum", neinAntwort: "Nicio problemă. Dacă ai întrebări despre parcurs, scrie-le aici.",
+    chatFrageP: "Întrebarea ta despre parcurs …", chatSenden: "Trimite", chatDenkt: "O clipă …", vorschau: "Previzualizare", bearbeiten: "Editare",
   },
   es: {
     marke: "Talent", teilen: "Compartir perfil", kopiert: "Enlace copiado", menu: "Menú", menuTitel: "Secciones",
     profil: "Perfil", expertise: "Competencias clave", erfahrung: "Experiencia", impact: "Resultados destacados",
-    bildung: "Formación", sprachen: "Idiomas", passung: "Puestos que encajan con este perfil",
-    stark: "Encaje alto", gut: "Buen encaje", warum: "Por qué", rolleAnsehen: "Ver puesto",
+    bildung: "Formación", sprachen: "Idiomas",
     ganzeCv: "La trayectoria completa está en el CV.",
     alleAnzeigen: (n) => `+${n} más`, wenigerAnzeigen: "Mostrar menos",
     interessiert: (n) => `¿Interesa ${n}?`,
-    interessiertText: "Envía una solicitud y la trasladamos el mismo día.",
-    interview: "Solicitar entrevista", nachricht: "Enviar mensaje", cvLaden: "Descargar CV",
-    kontakt: "Contacto", kontaktSpaeter: "Los datos de contacto se liberan cuando una empresa confirma su interés.",
-    kontaktNurDu: "Solo tú ves aquí estos datos de contacto — las empresas los ven cuando tú o nosotros confirmamos una solicitud.",
+    interessiertText: "Envía una solicitud y la trasladamos el mismo día.", cvLaden: "Descargar CV",
+    kontakt: "Contacto",
+    kontaktNurDu: "Solo tú ves estos datos. Solo tras liberarlos el chat los comparte con las empresas.",
+    kontaktOeffentlich: "Visibles públicamente", kontaktNurAnfrage: "Solo bajo solicitud", kontaktFreigegeben: "Liberados — el chat los comparte con las empresas si preguntan.",
     chatEinstieg: (n) => `Pregunta por la experiencia de ${n}`,
-    chatHinweis: "Las respuestas salen solo del CV verificado y de este perfil. No se añade nada.",
-    chatBeispiele: "Por ejemplo", chatZu: "Cerrar",
+    frageLeiten: (n) => `Con gusto se la paso a ${n}. ¿Quién eres — tu nombre y tu empresa?`,
+    anfrageName: "Tu nombre / empresa", anfrageEmail: "Tu email", anfrageNachricht: "Tu mensaje",
+    anfrageDanke: "Gracias — tenemos tu solicitud y la trasladamos el mismo día.",
+    anfrageZu: "Cancelar",
+    ja: "Sí", nein: "No",
+    frageWer: "¡Genial! ¿Quién eres — tu nombre y tu empresa?",
+    frageMail: "¿Y cómo te contactamos? Tu dirección de email.",
+    frageNachricht: "¿Quieres añadir algo? Escríbelo aquí — o envía la solicitud directamente.",
+    ohneNachricht: "Enviar ahora", neinAntwort: "Sin problema. Si tienes preguntas sobre la trayectoria, escríbelas aquí.",
+    chatFrageP: "Tu pregunta sobre la trayectoria …", chatSenden: "Enviar", chatDenkt: "Un momento …", vorschau: "Vista previa", bearbeiten: "Editar",
   },
   fr: {
     marke: "Talent", teilen: "Partager le profil", kopiert: "Lien copié", menu: "Menu", menuTitel: "Sections",
     profil: "Profil", expertise: "Compétences clés", erfahrung: "Expérience", impact: "Résultats sélectionnés",
-    bildung: "Formation", sprachen: "Langues", passung: "Postes qui correspondent à ce profil",
-    stark: "Forte adéquation", gut: "Bonne adéquation", warum: "Pourquoi", rolleAnsehen: "Voir le poste",
+    bildung: "Formation", sprachen: "Langues",
     ganzeCv: "Le parcours complet figure dans le CV.",
     alleAnzeigen: (n) => `+${n} de plus`, wenigerAnzeigen: "Afficher moins",
     interessiert: (n) => `${n} vous intéresse ?`,
-    interessiertText: "Envoyez une demande — nous la transmettons le jour même.",
-    interview: "Demander un entretien", nachricht: "Envoyer un message", cvLaden: "Télécharger le CV",
-    kontakt: "Contact", kontaktSpaeter: "Les coordonnées sont libérées dès qu'une entreprise confirme son intérêt.",
-    kontaktNurDu: "Toi seul vois ces coordonnées ici — les entreprises les voient une fois qu'une demande est confirmée.",
+    interessiertText: "Envoyez une demande — nous la transmettons le jour même.", cvLaden: "Télécharger le CV",
+    kontakt: "Contact",
+    kontaktNurDu: "Toi seul vois ces données. Après ta libération, le chat les partage avec les entreprises sur demande.",
+    kontaktOeffentlich: "Visibles publiquement", kontaktNurAnfrage: "Seulement sur demande", kontaktFreigegeben: "Libérées — le chat les partage avec les entreprises sur demande.",
     chatEinstieg: (n) => `Interroger le parcours de ${n}`,
-    chatHinweis: "Les réponses viennent uniquement du CV vérifié et de ce profil. Rien n'est ajouté.",
-    chatBeispiele: "Par exemple", chatZu: "Fermer",
+    frageLeiten: (n) => `Avec plaisir — je transmets ta question à ${n}. Qui es-tu — ton nom et ton entreprise ?`,
+    anfrageName: "Ton nom / entreprise", anfrageEmail: "Ton e-mail", anfrageNachricht: "Ton message",
+    anfrageDanke: "Merci — ta demande est chez nous, nous la transmettons le jour même.",
+    anfrageZu: "Annuler",
+    ja: "Oui", nein: "Non",
+    frageWer: "Super ! Qui es-tu — ton nom et ton entreprise ?",
+    frageMail: "Et comment te joindre ? Ton adresse e-mail.",
+    frageNachricht: "Tu veux ajouter quelque chose ? Écris-le ici — ou envoie la demande directement.",
+    ohneNachricht: "Envoyer maintenant", neinAntwort: "Pas de souci. Si tu as des questions sur le parcours, écris-les ici.",
+    chatFrageP: "Ta question sur le parcours …", chatSenden: "Envoyer", chatDenkt: "Un instant …", vorschau: "Aperçu", bearbeiten: "Modifier",
   },
   pt: {
     marke: "Talent", teilen: "Partilhar perfil", kopiert: "Link copiado", menu: "Menu", menuTitel: "Secções",
     profil: "Perfil", expertise: "Competências principais", erfahrung: "Experiência", impact: "Resultados selecionados",
-    bildung: "Formação", sprachen: "Línguas", passung: "Funções que combinam com este perfil",
-    stark: "Correspondência forte", gut: "Boa correspondência", warum: "Porquê", rolleAnsehen: "Ver função",
+    bildung: "Formação", sprachen: "Línguas",
     ganzeCv: "O percurso completo está no CV.",
     alleAnzeigen: (n) => `+${n} mais`, wenigerAnzeigen: "Mostrar menos",
     interessiert: (n) => `Interesse em ${n}?`,
-    interessiertText: "Envia um pedido — encaminhamos no próprio dia.",
-    interview: "Pedir entrevista", nachricht: "Enviar mensagem", cvLaden: "Descarregar CV",
-    kontakt: "Contacto", kontaktSpaeter: "Os contactos são libertados assim que uma empresa confirma interesse.",
-    kontaktNurDu: "Só tu vês estes contactos aqui — as empresas só os veem quando tu ou nós confirmarmos um pedido.",
+    interessiertText: "Envia um pedido — encaminhamos no próprio dia.", cvLaden: "Descarregar CV",
+    kontakt: "Contacto",
+    kontaktNurDu: "Só tu vês estes dados. Só depois de os libertares o chat os partilha com as empresas.",
+    kontaktOeffentlich: "Visíveis publicamente", kontaktNurAnfrage: "Só a pedido", kontaktFreigegeben: "Libertados — o chat partilha-os com as empresas quando perguntam.",
     chatEinstieg: (n) => `Pergunta sobre a experiência de ${n}`,
-    chatHinweis: "As respostas vêm apenas do CV verificado e deste perfil. Nada é acrescentado.",
-    chatBeispiele: "Por exemplo", chatZu: "Fechar",
+    frageLeiten: (n) => `Com gosto passo a tua pergunta a ${n}. Quem és — o teu nome e a tua empresa?`,
+    anfrageName: "O teu nome / empresa", anfrageEmail: "O teu e-mail", anfrageNachricht: "A tua mensagem",
+    anfrageDanke: "Obrigado — recebemos o teu pedido e encaminhamo-lo no próprio dia.",
+    anfrageZu: "Cancelar",
+    ja: "Sim", nein: "Não",
+    frageWer: "Ótimo! Quem és — o teu nome e a tua empresa?",
+    frageMail: "E como te contactamos? O teu endereço de e-mail.",
+    frageNachricht: "Queres acrescentar algo? Escreve aqui — ou envia o pedido já.",
+    ohneNachricht: "Enviar já", neinAntwort: "Sem problema. Se tiveres perguntas sobre o percurso, escreve-as aqui.",
+    chatFrageP: "A tua pergunta sobre o percurso …", chatSenden: "Enviar", chatDenkt: "Um momento …", vorschau: "Pré-visualizar", bearbeiten: "Editar",
   },
   it: {
     marke: "Talent", teilen: "Condividi profilo", kopiert: "Link copiato", menu: "Menu", menuTitel: "Sezioni",
     profil: "Profilo", expertise: "Competenze chiave", erfahrung: "Esperienza", impact: "Risultati selezionati",
-    bildung: "Formazione", sprachen: "Lingue", passung: "Ruoli adatti a questo profilo",
-    stark: "Forte corrispondenza", gut: "Buona corrispondenza", warum: "Perché", rolleAnsehen: "Vedi il ruolo",
+    bildung: "Formazione", sprachen: "Lingue",
     ganzeCv: "Il percorso completo è nel CV.",
     alleAnzeigen: (n) => `+${n} altri`, wenigerAnzeigen: "Mostra meno",
     interessiert: (n) => `Interessa ${n}?`,
-    interessiertText: "Invia una richiesta — la giriamo in giornata.",
-    interview: "Richiedi un colloquio", nachricht: "Invia un messaggio", cvLaden: "Scarica il CV",
-    kontakt: "Contatti", kontaktSpaeter: "I contatti si sbloccano quando un'azienda conferma l'interesse.",
-    kontaktNurDu: "Solo tu vedi questi contatti qui — le aziende li vedono solo dopo che tu o noi confermiamo una richiesta.",
+    interessiertText: "Invia una richiesta — la giriamo in giornata.", cvLaden: "Scarica il CV",
+    kontakt: "Contatti",
+    kontaktNurDu: "Solo tu vedi questi dati. Solo dopo il tuo via libera la chat li condivide con le aziende.",
+    kontaktOeffentlich: "Visibili pubblicamente", kontaktNurAnfrage: "Solo su richiesta", kontaktFreigegeben: "Sbloccati — la chat li condivide con le aziende su richiesta.",
     chatEinstieg: (n) => `Chiedi dell'esperienza di ${n}`,
-    chatHinweis: "Le risposte vengono solo dal CV verificato e da questo profilo. Nulla viene aggiunto.",
-    chatBeispiele: "Per esempio", chatZu: "Chiudi",
+    frageLeiten: (n) => `Volentieri — giro la tua domanda a ${n}. Chi sei — il tuo nome e la tua azienda?`,
+    anfrageName: "Il tuo nome / azienda", anfrageEmail: "La tua e-mail", anfrageNachricht: "Il tuo messaggio",
+    anfrageDanke: "Grazie — la tua richiesta è da noi e la giriamo in giornata.",
+    anfrageZu: "Annulla",
+    ja: "Sì", nein: "No",
+    frageWer: "Ottimo! Chi sei — il tuo nome e la tua azienda?",
+    frageMail: "E come ti contattiamo? Il tuo indirizzo e-mail.",
+    frageNachricht: "Vuoi aggiungere qualcosa? Scrivilo qui — o invia subito la richiesta.",
+    ohneNachricht: "Invia subito", neinAntwort: "Nessun problema. Se hai domande sul percorso, scrivile qui.",
+    chatFrageP: "La tua domanda sul percorso …", chatSenden: "Invia", chatDenkt: "Un attimo …", vorschau: "Anteprima", bearbeiten: "Modifica",
   },
 };
 
@@ -287,23 +348,6 @@ export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
     { sprache: "Rumänisch", niveau: "C2" },
     { sprache: "Ungarisch", niveau: "B2" },
   ],
-  passendeRollen: [
-    {
-      titel: "Produkt- & UX-Strategie", staerke: "stark",
-      gruende: ["Leitung UX-Strategie Bundesdruckerei", "AI-assisted App Strategy entwickelt", "20+ Jahre Produktgestaltung"],
-      href: "https://www.google.com/search?q=" + encodeURIComponent("Produkt- & UX-Strategie jobs remote"),
-    },
-    {
-      titel: "No-Code & KI-Entwicklung", staerke: "gut",
-      gruende: ["Nutrycoach.ai UX und MVP gebaut", "LuxuryBandit KI-gestützte App umgesetzt", "Erfahrung mit Bolt.new und Claude Code"],
-      href: "https://www.google.com/search?q=" + encodeURIComponent("No-Code KI-Entwicklung jobs remote"),
-    },
-    {
-      titel: "UX-Training & Mentoring", staerke: "gut",
-      gruende: ["200+ Studierende am UX Design Institute", "Workshops und Mentoring durchgeführt", "Figma-Workflows gelehrt und implementiert"],
-      href: "https://www.google.com/search?q=" + encodeURIComponent("UX Training Mentoring jobs remote"),
-    },
-  ],
   chatFragen: [
     "Hat Geza Erfahrung mit KI-Produktentwicklung?",
     "Welche UX-Projekte belegt sein Lebenslauf?",
@@ -359,8 +403,10 @@ export function executiveAusProfil(p: LebenslaufProfil, lang: Lang = "en"): Exec
   return {
     id: p.id,
     name: name || (de ? "Profil" : "Profile"),
-    /* Die Positionierung: die jüngste Station; ersatzweise die erste Berufskategorie. */
-    rolle: p.erfahrung?.[0]?.rolle || kategorien[0] || "",
+    /* Die Positionierung: bei einer zugeschnittenen Bewerbung die Zeile aus dem Zuschnitt
+       (Multi-Bewerbung, nur wenn der Lebenslauf sie trägt); sonst die jüngste Station;
+       ersatzweise die erste Berufskategorie. */
+    rolle: p.positionierung || p.erfahrung?.[0]?.rolle || kategorien[0] || "",
     ort: (p.ort ?? "").trim(),
     sprachenKurz: "",
     verfuegbar: p.verfuegbarkeit
@@ -387,21 +433,6 @@ export function executiveAusProfil(p: LebenslaufProfil, lang: Lang = "en"): Exec
        für JEDES reale Profil hart leer, obwohl die Vorlage eigene Abschnitte dafür hat). */
     ausbildung: (p.ausbildung ?? []).filter(a => a.titel).map(a => ({ titel: a.titel, ort: a.ort ?? "", zeitraum: a.zeitraum ?? "" })),
     sprachen: (p.sprachen ?? []).filter(s => s.sprache).map(s => ({ sprache: s.sprache, niveau: s.niveau ?? "" })),
-    /* JE ROLLE EIGENE GRÜNDE aus der Auswertung (`passung`); nur Altprofile ohne sie
-       wiederholen die Kompetenzen (Owner 24.08.2026: „lauter Redundanzen"). */
-    passendeRollen: (p.passung?.length
-      ? p.passung.map((r, i) => ({
-          titel: r.rolle,
-          staerke: i === 0 ? ("stark" as const) : ("gut" as const),
-          gruende: r.gruende.slice(0, 4),
-          href: `https://www.google.com/search?q=${encodeURIComponent(`${r.rolle} jobs remote`)}`,
-        }))
-      : kategorien.slice(0, 3).map((k, i) => ({
-          titel: k,
-          staerke: i === 0 ? ("stark" as const) : ("gut" as const),
-          gruende: kompetenzen.slice(0, 4),
-          href: `https://www.google.com/search?q=${encodeURIComponent(`${k} jobs remote`)}`,
-        }))),
     chatFragen,
     kontaktSichtbar: p.kontaktSichtbar === true,
     kontakt: {

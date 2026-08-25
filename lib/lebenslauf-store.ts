@@ -47,13 +47,11 @@ export type LebenslaufProfil = {
   kompetenzen?: string[];
   /**
    * GEGEN DIE REDUNDANZ (Owner 24.08.2026: „auf dieser Seite habe ich lauter Redundanzen.
-   * Wieso?" — Kopf-Chips, Rollen-Titel und alle Rollen-Gründe waren dieselben zwei Listen,
-   * mehrfach verwendet). Deshalb liefert die Auswertung jetzt EIGENE Felder:
+   * Wieso?" — Kopf-Chips wiederholten dieselbe Liste wie `kompetenzen`). Deshalb liefert die
+   * Auswertung ein EIGENES Feld:
    *   `schwerpunkte` — 3–4 Arbeitsfelder für die Kopf-Chips (keine Jobtitel, ≠ kompetenzen)
-   *   `passung`      — je vorgeschlagener Rolle 3–4 EIGENE, CV-belegte Gründe
    */
   schwerpunkte?: string[];
-  passung?: { rolle: string; gruende: string[] }[];
   /** Stadt/Ort und Telefon aus dem Lebenslauf, für die eigene Kontakt-Karte. */
   ort?: string;
   telefon?: string;
@@ -93,6 +91,36 @@ export type LebenslaufProfil = {
    * `false` — kein Schreibvorgang setzt sie versehentlich sichtbar.
    */
   kontaktSichtbar?: boolean;
+  /**
+   * MULTI-BEWERBUNG (Owner 25.08.2026, Konzept festgenagelt): Eine „Bewerbung" ist eine
+   * VOLLSTÄNDIGE KOPIE des Profils als eigene Datei mit eigener Adresse, zugeschnitten auf
+   * EINE Stellenanzeige. `basisId` zeigt auf das Hauptprofil — nur Bewerbungen tragen sie.
+   * Abo, Frist und Besitz hängen IMMER am Hauptprofil (die Seite und die Besitz-Prüfung
+   * lösen `basisId` auf); eine Bewerbung lebt nie länger als ihr Hauptprofil.
+   *
+   * BILD STATT VIDEO (Owner: „jeder kann gratis eine Bewerbung anlegen mit Bild. Will er
+   * eine Videobewerbung anlegen kostet es Geld"): Die Kopie übernimmt `videoUrl` NICHT —
+   * das Dossier der Bewerbung zeigt das Foto. Das Video ist der spätere Zusatzkauf, und
+   * das alte Video spräche ohnehin den alten, nicht den zugeschnittenen Text.
+   */
+  basisId?: string;
+  /** Die Positionierungszeile unterm Namen, auf die Anzeige zugeschnitten — NUR wenn der
+      Lebenslauf sie trägt (nie erfinden). Leer = die Vorlage fällt auf erfahrung[0] zurück. */
+  positionierung?: string;
+  /** Das Anschreiben zur Anzeige — in der SPRACHE DER ANZEIGE, nur für den Besitzer
+      sichtbar (er verschickt es selbst; Stufe 2 macht ein PDF daraus). */
+  anschreiben?: string;
+  /** Titel/Firma wörtlich aus der Anzeige + der Match-Prozentwert vom Erzeugen — die
+      Beschriftung in der Liste „Deine Bewerbungen". */
+  anzeigeTitel?: string;
+  anzeigeFirma?: string;
+  matchProzent?: number;
+  /** NUR am Hauptprofil: der Index der erzeugten Bewerbungen (die Dateien selbst liegen
+      als eigene lebenslauf/<id>.json — ohne Index müsste die Liste alle Profile scannen). */
+  bewerbungen?: { id: string; titel: string; firma?: string; erstelltAm: string; prozent?: number }[];
+  /** Zählt ALLE je erzeugten Bewerbungen (auch gelöschte) — die EINE Gratis-Probe hängt an
+      diesem Zähler, nicht an der Listenlänge, sonst wäre Löschen = neue Probe. */
+  bewerbungenErzeugt?: number;
 };
 
 const pfad = (id: string) => `lebenslauf/${id}.json`;
@@ -176,4 +204,14 @@ export async function schreibeLebenslauf(profil: LebenslaufProfil): Promise<bool
     body: JSON.stringify(profil),
   });
   return res.ok;
+}
+
+/** Eine Bewerbungs-Version löschen (Owner-Werkzeug „Deine Bewerbungen") — Hauptprofile
+    löscht niemand über diesen Weg; das prüft die Route, nicht der Speicher. */
+export async function loescheLebenslauf(id: string): Promise<boolean> {
+  if (!id) return false;
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(id))}`, {
+    method: "DELETE",
+  });
+  return res.ok || res.status === 404;
 }

@@ -213,7 +213,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     (pathname === "/stores" || pathname.endsWith("/stores")) &&
     !spView &&
     !searchParams.get("panel");
-  const hideBar = reelShowing || pathname.startsWith("/look/");
+  /* KEIN HAUS-MENÜ AUF DEM BEWERBER-DOSSIER (Owner 25.08.2026: „das untere Menü raus" —
+     /lebenslauf/executive und /lebenslauf/<id> sind Seiten, die an Firmen gehen; die
+     Geschenk-Navigation des Hauses hat dort nichts verloren, Memory
+     `serioeses-portal-umbau`. Die Besitzer-Leiste Vorschau/Bearbeiten wohnt dort selbst.)
+     Die Lebenslauf-LANDINGPAGE (/lebenslauf, ohne Unterpfad) behält das Menü.
+     AUCH IM ADMIN-SPIEGEL (next.config.mjs spiegelt jede Seite unter /admin/… — der Owner
+     browst die Dossiers genau so, gemessen 25.08.). */
+  const hideBar = reelShowing || pathname.startsWith("/look/")
+    || pathname.startsWith("/lebenslauf/") || pathname.startsWith("/admin/lebenslauf/");
 
   return (
     <>

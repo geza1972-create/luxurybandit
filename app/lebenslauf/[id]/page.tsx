@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
-import ProfilKorrektur from "@/components/ProfilKorrektur";
-import ProfilAnzeigenMatch from "@/components/ProfilAnzeigenMatch";
+import ProfilAssistent from "@/components/ProfilAssistent";
+import ProfilBewerbungen from "@/components/ProfilBewerbungen";
 import ProfilAbo from "@/components/ProfilAbo";
 import KontoChip from "@/components/KontoChip";
 import SeitenFuss from "@/components/SeitenFuss";
@@ -58,24 +58,37 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   if (!profil || !profil.bezahlt) notFound();
   const L = await resolveLang();
 
-  const erstellt = Date.parse(profil.erstelltAm ?? "") || Date.now();
-  const restTage = Math.max(0, Math.ceil((erstellt + FRIST_MS - Date.now()) / (24 * 60 * 60 * 1000)));
-  const abgelaufen = !profil.aboAktiv && Date.now() - erstellt > FRIST_MS;
+  /* MULTI-BEWERBUNG (25.08.2026): Eine Bewerbungs-Version trägt `basisId` — Abo und
+     30-Tage-Frist hängen IMMER am Hauptprofil, eine Bewerbung lebt nie länger als es. */
+  const basis = profil.basisId ? await leseLebenslauf(profil.basisId) : null;
+  const traeger = basis ?? profil;
 
-  /* DREI BESITZER-WERKZEUGE — Anzeigen-Abgleich zuerst (Owner 24.08.2026: das ist, womit
-     er aktiv arbeiten will, nicht nur verwalten), dann Abo („bleibt die Seite online?"),
-     dann die Korrektur. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
+  const erstellt = Date.parse(traeger.erstelltAm ?? "") || Date.now();
+  const restTage = Math.max(0, Math.ceil((erstellt + FRIST_MS - Date.now()) / (24 * 60 * 60 * 1000)));
+  const abgelaufen = !traeger.aboAktiv && Date.now() - erstellt > FRIST_MS;
+
+  /* DIE BESITZER-WERKZEUGE — EIN CHAT STATT VIELER KÄSTEN (Owner 25.08.2026: „am
+     einfachsten ist es immer im Form von chat … statt tausend Funktionen auf der Seite
+     aufzulisten"): Der Assistent macht (Anzeige prüfen, Bewerbung erstellen, Änderungen),
+     die Liste findet wieder, das Abo bezahlt — mehr Kästen gibt es nicht. Auf einer
+     BEWERBUNG steht zuerst ihre Herkunft samt Anschreiben, das Abo wohnt nur am
+     Hauptprofil. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
      jeden anderen unsichtbar. */
   /* JEDES ELEMENT MIT EXPLIZITEM KEY (24.08.2026, gemessen): Ohne sie meldet React „Each
      child in a list should have a unique key prop, check the render method of TalentKopf" —
      eine RSC-Eigenart, wenn ein Server Component fertige Elemente über eine Prop (hier
      `werkzeug`/`konto`) an ein Client Component reicht. Kostet nichts, behebt die Meldung. */
-  const werkzeug = (
+  const werkzeug = profil.basisId ? (
     <>
-      <ProfilAnzeigenMatch key="match" id={id} lang={L} />
+      <ProfilBewerbungen key="bewerbungen" id={id} lang={L} />
+      <ProfilAssistent key="assistent" id={id} lang={L} />
+    </>
+  ) : (
+    <>
+      <ProfilAssistent key="assistent" id={id} lang={L} />
+      <ProfilBewerbungen key="bewerbungen" id={id} lang={L} />
       <ProfilAbo key="abo" id={id} aboAktiv={profil.aboAktiv === true}
         monatPreis={eur(LEBENSLAUF_MONAT_CENTS, L)} restTage={restTage} lang={L} />
-      <ProfilKorrektur key="korrektur" id={id} lang={L} />
     </>
   );
 

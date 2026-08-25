@@ -2721,7 +2721,7 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
         <div className="flex shrink-0 items-center gap-2">
           {/* DAS KONTO-ZEICHEN (Owner 24.08.2026: „wo kann ich mich hier einloggen und mein
               Profil editieren?"). Ohne einen Weg, sich anzumelden, sah nur, wer zufällig
-              dasselbe Gerät benutzte, die Besitzer-Werkzeuge (ProfilKorrektur/ProfilAbo).
+              dasselbe Gerät benutzte, die Besitzer-Werkzeuge (ProfilAssistent/ProfilAbo).
               ALS EINSCHUB VOM AUFRUFER, nicht hier importiert: `KontoChip` importiert selbst
               aus dieser Datei (Dialog/Knopf/SymbolKnopf) — ein Import in Gegenrichtung wäre
               ein Kreis in der zentralen Bibliothek. Der Aufrufer reicht ihn herein, genau wie

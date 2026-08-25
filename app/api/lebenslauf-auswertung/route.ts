@@ -30,11 +30,10 @@ export const maxDuration = 30;
 type Station = { rolle?: string; firma?: string; zeitraum?: string; ergebnis?: string };
 type Bildung = { titel?: string; ort?: string; zeitraum?: string };
 type Sprache = { sprache?: string; niveau?: string };
-type Passung = { rolle?: string; gruende?: string[] };
 type Auswertung = {
   stichpunkte?: string[]; kategorien?: string[]; sprechtext?: string; kleidung?: string; umgebung?: string;
   erfahrung?: Station[]; kompetenzen?: string[]; ort?: string; telefon?: string;
-  schwerpunkte?: string[]; passung?: Passung[]; ausbildung?: Bildung[]; sprachen?: Sprache[];
+  schwerpunkte?: string[]; ausbildung?: Bildung[]; sprachen?: Sprache[];
 };
 
 function extractJson(text: string): Auswertung {
@@ -109,12 +108,11 @@ export async function POST(request: Request) {
     "Liste außerdem 'ausbildung' — ALLE Ausbildungsstationen: [{\"titel\":\"Abschluss/Studiengang\",\"ort\":\"Institution, Ort\",\"zeitraum\":\"...\"}]. 'zeitraum' leer lassen, wenn keiner angegeben ist.",
     "Liste außerdem 'sprachen' — ALLE genannten Sprachen mit Niveau: [{\"sprache\":\"...\",\"niveau\":\"...\"}]. Nenne jede Sprache in der HAUPTSPRACHE DES LEBENSLAUFS (z. B. bei einem deutschen Lebenslauf \"Deutsch\", \"Englisch\", nicht \"German\", \"English\", selbst wenn der Kopf des Dokuments sie englisch nennt). Niveau wörtlich wie im Lebenslauf, z. B. \"C2\", \"Muttersprache\", \"verhandlungssicher\".",
     "Liste außerdem 'kompetenzen' — 4–6 EINZELWÖRTER oder kurze Begriffe für Fähigkeiten-Icons (z. B. \"Leadership\", \"E-Commerce\", \"Marketing\", \"Verhandlung\").",
-    // GEGEN DIE REDUNDANZ (Owner 24.08.2026): Kopf-Chips und Rollen-Gründe waren vorher nur
-    // Wiederholungen von 'kategorien'/'kompetenzen' — jede Liste muss ihren EIGENEN Inhalt haben.
+    // GEGEN DIE REDUNDANZ (Owner 24.08.2026): Die Kopf-Chips waren vorher nur eine
+    // Wiederholung von 'kategorien'/'kompetenzen' — diese Liste muss ihren EIGENEN Inhalt haben.
     "Liste außerdem 'schwerpunkte' — 3–4 kurze ARBEITSFELDER (je 1–3 Wörter, z. B. \"UX-Strategie & Research\", \"KI-Produktentwicklung\") — KEINE Jobtitel, und NICHT dieselben Wörter wie 'kompetenzen'.",
-    "Liste außerdem 'passung' — für JEDE Kategorie aus 'kategorien' 3–4 konkrete, im Lebenslauf belegte Gründe, warum diese Person zu genau dieser Rolle passt (je unter 7 Wörtern, z. B. \"UX-Strategie für Bundesbehörde geleitet\"). Die Gründe müssen sich JE ROLLE UNTERSCHEIDEN — nie dieselbe Liste wiederholen, nichts erfinden.",
     "Wenn im Lebenslauf ein Ort/Stadt und eine Telefonnummer stehen, gib sie als 'ort' und 'telefon' zurück, sonst leere Strings.",
-    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\",\"erfahrung\":[{\"rolle\":\"...\",\"firma\":\"...\",\"zeitraum\":\"...\",\"ergebnis\":\"...\"}],\"ausbildung\":[{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}],\"sprachen\":[{\"sprache\":\"...\",\"niveau\":\"...\"}],\"kompetenzen\":[\"...\"],\"schwerpunkte\":[\"...\"],\"passung\":[{\"rolle\":\"...\",\"gruende\":[\"...\"]}],\"ort\":\"...\",\"telefon\":\"...\"}.",
+    "Antworte NUR als JSON: {\"stichpunkte\":[\"...\"],\"kategorien\":[\"...\"],\"sprechtext\":\"...\",\"kleidung\":\"...\",\"umgebung\":\"...\",\"erfahrung\":[{\"rolle\":\"...\",\"firma\":\"...\",\"zeitraum\":\"...\",\"ergebnis\":\"...\"}],\"ausbildung\":[{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}],\"sprachen\":[{\"sprache\":\"...\",\"niveau\":\"...\"}],\"kompetenzen\":[\"...\"],\"schwerpunkte\":[\"...\"],\"ort\":\"...\",\"telefon\":\"...\"}.",
   ].join(" ");
 
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptText }];
@@ -205,13 +203,6 @@ export async function POST(request: Request) {
     ? String(body.verfuegbarkeit) : undefined;
   const kompetenzen = (parsed.kompetenzen ?? []).map((s) => String(s).trim()).filter(Boolean).slice(0, 6);
   const schwerpunkte = (parsed.schwerpunkte ?? []).map((s) => String(s).trim()).filter(Boolean).slice(0, 4);
-  const passung = (parsed.passung ?? [])
-    .map((p) => ({
-      rolle: String(p?.rolle ?? "").trim(),
-      gruende: (p?.gruende ?? []).map((g) => String(g).trim()).filter(Boolean).slice(0, 4),
-    }))
-    .filter((p) => p.rolle && p.gruende.length > 0)
-    .slice(0, 4);
   const ort = String(parsed.ort ?? "").trim().slice(0, 80);
   const telefon = String(parsed.telefon ?? "").trim().slice(0, 40);
 
@@ -237,7 +228,6 @@ export async function POST(request: Request) {
     sprachen,
     kompetenzen,
     schwerpunkte,
-    passung,
     ort: ort || undefined,
     telefon: telefon || undefined,
     verfuegbarkeit: verfuegbarkeit ?? bestand?.verfuegbarkeit,
@@ -248,5 +238,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profil konnte nicht gespeichert werden." }, { status: 500 });
   }
 
-  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, passung, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });
+  return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });
 }

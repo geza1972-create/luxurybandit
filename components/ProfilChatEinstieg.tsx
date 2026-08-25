@@ -1,79 +1,219 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, ChevronDown, ShieldCheck } from "lucide-react";
-import { Kasten } from "@/components/CI";
+import { useEffect, useRef, useState } from "react";
+import { Sparkles, Check } from "lucide-react";
+import { Kasten, EingabeMehrzeilig, Fehlerzeile, Laden } from "@/components/CI";
 
 /**
- * DER EINSTIEG IN DEN PROFIL-CHAT (Owner 22.08.2026, Auftrag „Executive": „Include a subtle
- * entry point: Ask about Anna's experience … The AI must never invent information. Do not make
- * the chat dominate the profile. It is a supporting feature.").
+ * DER FIRMEN-CHAT — EIN GEFÜHRTES GESPRÄCH, KEINE KNOPF-WAND (Owner 25.08.2026, in vier
+ * Schritten dorthin: „Die Firmen müssen auch einen Chat bekommen" → „Die zwei grossen
+ * Buttons stören. Es muss alles im Chat stattfinden … nur ein Feld, wo der Chat dich
+ * fragt: Interesse an Geza? Ja / Nein. Wer / welche Firma bist du, deine Kontaktdaten."
+ * → zuletzt: „das braucht man nicht, man sieht doch alles in der Bewerbung. Eventuell
+ * Fragen an ihn, die weitergeleitet werden").
  *
- * WAS ER TUT UND WAS NICHT: Er zeigt, WOMIT der Chat antworten würde — drei echte Fragen aus
- * dem Profil und den einen Satz, der die Regel nennt (nur geprüfter Lebenslauf, nichts
- * dazuerfunden). Er startet KEINE Unterhaltung: Die Antwort-Kette gehört nicht in diese
- * Aufgabe („Do not create … application chat"), und ein Feld, das nach dem Tippen nichts tut,
- * wäre schlimmer als keins (Hausregel: „Ein Knopf, der nichts tut, ist schlimmer als keiner").
+ * ES GIBT KEINE KI-ANTWORTEN MEHR: Das Dossier selbst IST die Antwort. Eine frei
+ * getippte Eingabe gilt als FRAGE AN DEN BEWERBER und wird WEITERGELEITET — der Chat
+ * sammelt dafür dasselbe ein wie beim Interesse-Weg (Name/Firma, E-Mail) und schickt
+ * alles über die bestehende /api/contact. Die frühere öffentliche Antwort-Route
+ * (/api/lebenslauf-frage) ist damit ersatzlos gelöscht — samt der Missbrauchs-Sorge
+ * eines offenen KI-Endpoints.
  *
- * DESHALB IST DER TIPP TROTZDEM EINE ECHTE HANDLUNG: Er klappt auf und beantwortet die einzige
- * Frage, die ein Personaler an dieser Stelle wirklich hat — „was kann das Ding, und woher
- * nimmt es seine Antworten?". Wer die Kette später anschliesst, ersetzt genau die aufgeklappte
- * Fläche; Kopfzeile, Platz und Gestalt bleiben, wie sie sind.
+ * DER ABLAUF: Eröffnungsfrage mit Ja/Nein als Antwort-Chips (die einzigen Knöpfe, und es
+ * sind Antworten, keine Funktionen). Ja → Name/Firma → E-Mail → optionale Nachricht →
+ * abschicken. Getippte Frage → Weiterleitungs-Zeile → Name/Firma → E-Mail → abschicken
+ * (die Frage IST die Nachricht). Nein → freundlicher Ausstieg, das Feld bleibt offen.
+ *
+ * Kein Seitenwechsel, kein Overlay, EIN Feld, keine Trennlinie unter der Kopfzeile
+ * (Owner: „die Linie stört, die weisse"). Abbrechen ist der garantierte Ausweg (Memory
+ * `immer-close-einbauen`); Absagen stehen ROT am Feld (Memory
+ * `sichtbare-fehler-keine-formularfelder`).
  */
-export default function ProfilChatEinstieg({ fragen, einstieg, hinweis, beispieleLabel, zuLabel, karte = false, className = "" }: {
-  fragen: string[];
+
+export type FirmenChatTexte = {
+  /** Die Eröffnungsfrage des Chats — „Interesse an Geza?" (T.interessiert(vorname)). */
+  frage: string;
+  ja: string; nein: string;
+  frageWer: string; frageMail: string; frageNachricht: string;
+  /** Die Weiterleitungs-Zeile nach einer getippten Frage (T.frageLeiten(vorname)). */
+  frageLeiten: string;
+  ohneNachricht: string; neinAntwort: string; danke: string; zu: string;
+  platzhalter: string; phName: string; phMail: string; phNachricht: string;
+  senden: string; denkt: string;
+};
+
+type Schritt = "frei" | "name" | "mail" | "nachricht" | "fertig";
+
+export default function ProfilChatEinstieg({ einstieg, texte, kandidat = "", karte = false, className = "" }: {
   einstieg: string;
-  hinweis: string;
-  beispieleLabel: string;
-  zuLabel: string;
-  /** IM KARTENPAPIER (Owner 24.08.2026: „es muss alles in der Karte sein") — schaltet den
-      Kasten auf `lb-karte-rahmen` und die Trenner auf Tinte; die Schriftfarben übernimmt
-      die Karte selbst per !important (Memory `lb-karte-important-frisst-inline-farben`). */
+  texte: FirmenChatTexte;
+  kandidat?: string;
   karte?: boolean;
   className?: string;
 }) {
-  const [offen, setOffen] = useState(false);
-  const linie = karte ? "border-[#1a160f]/15" : "border-white/12";
+  const [msgs, setMsgs] = useState<{ von: "ich" | "ki"; text: string }[]>([]);
+  const [eingabe, setEingabe] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [schritt, setSchritt] = useState<Schritt>("frei");
+  /** Ja/Nein bleibt stehen, bis eine Antwort fällt oder eine Frage getippt wird. */
+  const [jaNeinOffen, setJaNeinOffen] = useState(true);
+  const [fehler, setFehler] = useState("");
+  const anfrage = useRef({ name: "", mail: "" });
+  /** Eine frei getippte Frage — sie wird zur Nachricht der Weiterleitung. */
+  const frageVorab = useRef("");
+  const ende = useRef<HTMLDivElement | null>(null);
+  const tKopf = karte ? "" : "text-white/85";
+
+  useEffect(() => {
+    if (msgs.length > 0) ende.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [msgs, busy]);
+
+  const ki = (text: string) => setMsgs(m => [...m, { von: "ki", text }]);
+  const ich = (text: string) => setMsgs(m => [...m, { von: "ich", text }]);
+
+  const platzhalter = schritt === "name" ? texte.phName
+    : schritt === "mail" ? texte.phMail
+    : schritt === "nachricht" ? texte.phNachricht
+    : texte.platzhalter;
+
+  const abschicken = async (nachricht: string) => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/contact", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: anfrage.current.name, email: anfrage.current.mail, reason: "general",
+          message: `[${texte.frage}] ${kandidat} — ${typeof window !== "undefined" ? window.location.href : ""}\n\n${nachricht || "—"}`,
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) { ki(texte.danke); setSchritt("fertig"); }
+      else setFehler(String(d?.error ?? "Error"));
+    } catch { setFehler("—"); }
+    setBusy(false);
+  };
+
+  const senden = async () => {
+    const text = eingabe.trim();
+    if (busy) return;
+    setFehler("");
+
+    if (schritt === "name") {
+      if (text.length < 2) { setFehler(texte.phName); return; }
+      anfrage.current.name = text.slice(0, 120);
+      setEingabe(""); ich(text); ki(texte.frageMail); setSchritt("mail");
+      return;
+    }
+    if (schritt === "mail") {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) { setFehler(texte.phMail); return; }
+      anfrage.current.mail = text.toLowerCase().slice(0, 200);
+      setEingabe(""); ich(text);
+      /* Kam der Weg über eine getippte Frage, IST sie die Nachricht — direkt abschicken,
+         kein weiterer Schritt. Der Ja-Weg bekommt die optionale Nachricht. */
+      if (frageVorab.current) { await abschicken(frageVorab.current); return; }
+      ki(texte.frageNachricht); setSchritt("nachricht");
+      return;
+    }
+    if (schritt === "nachricht") {
+      setEingabe(""); if (text) ich(text);
+      await abschicken(text.slice(0, 4000));
+      return;
+    }
+
+    /* Freier Modus: eine getippte FRAGE AN DEN BEWERBER — sie wird weitergeleitet
+       (Owner: keine KI-Antworten, „man sieht doch alles in der Bewerbung"). */
+    if (!text) return;
+    frageVorab.current = text.slice(0, 4000);
+    setEingabe(""); setJaNeinOffen(false);
+    ich(text); ki(texte.frageLeiten); setSchritt("name");
+  };
+
+  const jaGeklickt = () => {
+    setJaNeinOffen(false); setFehler("");
+    ich(texte.ja); ki(texte.frageWer); setSchritt("name");
+  };
+  const neinGeklickt = () => {
+    setJaNeinOffen(false); setFehler("");
+    ich(texte.nein); ki(texte.neinAntwort);
+  };
+  const abbrechen = () => {
+    setSchritt("frei"); setFehler(""); setEingabe("");
+    anfrage.current = { name: "", mail: "" };
+    frageVorab.current = "";
+    ki(texte.neinAntwort);
+  };
 
   return (
-    <div className={`mt-6 ${className}`}>
-      {/* Der stille Kasten aus der Bibliothek — kein goldener Teaser: Der eine Gold-Knopf der
-          Seite gehört der Gesprächsanfrage darüber, und zwei goldene Flächen nebeneinander
-          machen beide gleich unwichtig (Skill `ci-design`). */}
+    <div className={`mt-4 ${className}`}>
       <Kasten karte={karte} polster="p-0">
-        <button type="button" onClick={() => setOffen(o => !o)} aria-expanded={offen}
-          className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
+        <div className="flex items-center gap-3 px-4 pt-3.5">
           <Sparkles className="h-4 w-4 shrink-0 text-[#f6cf51]" />
-          <span className="min-w-0 flex-1 text-[13px] font-black leading-snug text-white/85">{einstieg}</span>
-          <ChevronDown aria-hidden className={`h-4 w-4 shrink-0 text-white/40 transition-transform ${offen ? "rotate-180" : ""}`} />
-        </button>
+          <span className={`min-w-0 flex-1 text-[13px] font-black leading-snug ${tKopf}`}>{einstieg}</span>
+        </div>
 
-        {offen && (
-          <div className={`border-t px-4 pb-4 pt-3 ${linie}`}>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{beispieleLabel}</p>
-            <div className="mt-2 flex flex-col gap-2">
-              {fragen.map(f => (
-                /* Fragen sehen aus wie Fragen — eingerückt und kursiv, ohne Anführungszeichen:
-                   Die Seite spricht sieben Sprachen, und jede setzt sie anders („…" · " …" ·
-                   « … »). Ein fest getipptes deutsches Paar stünde in sechs davon falsch. Die
-                   Linie links und die Kursive sagen dasselbe, in jeder Sprache.
-                   Als Chips gesetzt wären sie eine Auswahl, und eine Auswahl, die nichts
-                   auslöst, ist ein kaputter Knopf. */
-                <p key={f} className="border-l border-white/20 pl-3 text-[12.5px] font-semibold italic leading-snug text-white/70">
-                  {f}
-                </p>
-              ))}
-            </div>
-            <p className="mt-4 flex items-start gap-2 text-[11.5px] font-bold leading-snug text-white/55">
-              <ShieldCheck className="mt-[1px] h-3.5 w-3.5 shrink-0 text-[#f6cf51]/70" />
-              {hinweis}
-            </p>
-            <button type="button" onClick={() => setOffen(false)}
-              className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/45 transition hover:text-white/80">
-              {zuLabel}
-            </button>
+        {/* KEINE TRENNLINIE unter der Kopfzeile (Owner: „die Linie stört, die weisse") —
+            Kopf und Gespräch sind EIN Fluss. */}
+        <div className="px-4 pb-4 pt-3">
+          <div className="flex flex-col gap-2.5">
+            <p className={`text-[13px] font-black leading-snug ${tKopf}`}>{texte.frage}</p>
+
+            {/* Ja/Nein — Antwort-Chips, keine Funktions-Knöpfe. Ja trägt das eine Gold
+                der Seite (Skill `ci-design`): Es IST die Entscheidung, für die die ganze
+                Seite arbeitet. */}
+            {jaNeinOffen && schritt === "frei" && (
+              <div className="flex gap-2">
+                <button type="button" onClick={jaGeklickt}
+                  className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-6 text-[13px] font-black text-[#1a1204]">
+                  {texte.ja}
+                </button>
+                <button type="button" onClick={neinGeklickt}
+                  className={`h-10 rounded-full border px-6 text-[13px] font-black ${karte ? "border-[#1a160f]" : "border-white/35 text-white/80"}`}>
+                  {texte.nein}
+                </button>
+              </div>
+            )}
+
+            {msgs.map((m, i) => m.von === "ich" ? (
+              <p key={i} className={`ml-auto max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[12.5px] font-bold leading-snug ${karte ? "bg-[#1a160f]/[0.07]" : "bg-white/10 text-white/90"}`}>
+                {m.text}
+              </p>
+            ) : (
+              <p key={i} className={`flex items-start gap-2 text-[12.5px] font-bold leading-snug ${karte ? "opacity-85" : "text-white/85"}`}>
+                {schritt === "fertig" && i === msgs.length - 1 && <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />}
+                {m.text}
+              </p>
+            ))}
+            {busy && (
+              <p className={`flex items-center gap-2 text-[12.5px] font-bold leading-snug ${karte ? "opacity-60" : "text-white/55"}`}>
+                <Laden art="knopf" karte={karte} />{texte.denkt}
+              </p>
+            )}
+            <div ref={ende} />
           </div>
-        )}
+
+          {/* DAS EINE FELD (Owner: „Es muss nur ein Feld sein") — sein Platzhalter folgt
+              dem Gesprächsschritt. Nach dem Absenden ist das Gespräch zu Ende. */}
+          {schritt !== "fertig" && (
+            <>
+              <Fehlerzeile karte={karte}>{fehler}</Fehlerzeile>
+              <div className="mt-3 flex items-end gap-2">
+                <EingabeMehrzeilig karte={karte} zeilen={1} className="flex-1" value={eingabe}
+                  placeholder={platzhalter} onChange={e => setEingabe(e.target.value)} />
+                <button type="button" disabled={busy || (schritt !== "nachricht" && !eingabe.trim())}
+                  onClick={() => void senden()}
+                  className={`h-10 shrink-0 rounded-full border px-4 text-[12.5px] font-black transition disabled:opacity-40 ${karte ? "border-[#1a160f]" : "border-white/40 text-white/85 hover:border-white/70"}`}>
+                  {schritt === "nachricht" && !eingabe.trim() ? texte.ohneNachricht : texte.senden}
+                </button>
+              </div>
+              {(schritt === "name" || schritt === "mail" || schritt === "nachricht") && (
+                <button type="button" onClick={abbrechen}
+                  className={`mt-2 text-[11px] font-black uppercase tracking-[0.12em] transition ${karte ? "opacity-50 hover:opacity-80" : "text-white/45 hover:text-white/80"}`}>
+                  {texte.zu}
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </Kasten>
     </div>
   );

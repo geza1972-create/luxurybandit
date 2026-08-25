@@ -1,66 +1,30 @@
 import { NextResponse } from "next/server";
 import { leseLebenslauf } from "@/lib/lebenslauf-store";
 import { darfAmProfilArbeiten } from "@/lib/lebenslauf-besitz";
+import { anzeigenTextBeschaffen } from "@/lib/lebenslauf-anzeige";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 /**
- * DER ANZEIGEN-ABGLEICH (Owner 24.08.2026, an der Stelle, wo die Vorlage die pauschalen
- * „Starke/Gute Passung"-Kategorien zeigte: „Ich brauche was visuelles. Einen Balken mit
- * Prozente. Noch besser wäre wenn ich den Link einer Anzeige einbaue und sehe direkt den
- * Match.").
+ * DER ANZEIGEN-ABGLEICH (Owner 24.08.2026, an der Stelle, wo die Vorlage bis dahin pauschale
+ * „Starke/Gute Passung"-Kategorien ohne echten Vergleich zeigte — seither entfernt: „Ich
+ * brauche was visuelles. Einen Balken mit Prozente. Noch besser wäre wenn ich den Link einer
+ * Anzeige einbaue und sehe direkt den Match.").
  *
- * WARUM DAS DIE URSPRÜNGLICHE „KEINE PROZENTZAHL"-REGEL NICHT BRICHT (siehe
- * `ExecutivePassung.staerke` in lib/lebenslauf-vorlage.ts, Auftrag 22.08.: „Do NOT display
- * arbitrary percentages"): Jene Regel galt für eine Zahl OHNE Grundlage — eine erfundene
- * Genauigkeit auf einer generischen Berufskategorie. Hier ist die Zahl das Ergebnis eines
- * ECHTEN Abgleichs gegen einen KONKRETEN Anzeigentext, den der Bewerber selbst mitbringt —
- * eine Messung mit Bezugspunkt, keine Behauptung ins Leere.
+ * WARUM HIER EINE PROZENTZAHL ERLAUBT IST (Auftrag 22.08.: „Do NOT display arbitrary
+ * percentages" galt für eine Zahl OHNE Grundlage — eine erfundene Genauigkeit auf einer
+ * generischen Berufskategorie). Hier ist die Zahl das Ergebnis eines ECHTEN Abgleichs gegen
+ * einen KONKRETEN Anzeigentext, den der Bewerber selbst mitbringt — eine Messung mit
+ * Bezugspunkt, keine Behauptung ins Leere.
  *
  * NICHT PERSISTIERT: Der Abgleich ist ein Werkzeug für DIESEN Moment (er testet Anzeige um
  * Anzeige), kein Profil-Feld — jeder Aufruf ist eigenständig, nichts überschreibt das Profil.
  *
- * `eingabe` ist ENTWEDER ein Link ODER der eingefügte Text der Anzeige — die Route erkennt
- * selbst, was sie bekommen hat: Ein Link wird zuerst serverseitig abgerufen (viele
- * Jobbörsen blocken Bots, brauchen JavaScript oder ein Login); klappt das nicht, oder war
- * es ohnehin kein Link, zählt die Eingabe selbst als Anzeigentext. So funktioniert das
- * Feld in JEDEM Fall — nie ein Rückweg, der den Bewerber zwingt, selbst zu entscheiden,
- * was er einfügen darf.
+ * `eingabe` ist ENTWEDER ein Link ODER der eingefügte Text der Anzeige — den Abruf samt
+ * Rückfall-Logik teilt sich diese Route seit dem 25.08.2026 mit der Bewerbungs-Erzeugung
+ * (lib/lebenslauf-anzeige.ts).
  */
-
-function siehtAusWieLink(s: string): boolean {
-  return /^https?:\/\//i.test(s.trim());
-}
-
-/** Grobe HTML→Text-Extraktion — reicht für eine Stellenanzeige, kein vollständiger Parser. */
-function textAusHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&[a-z]+;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function anzeigenTextBeschaffen(eingabe: string): Promise<{ text: string; quelle: "link" | "text"; fehler?: string }> {
-  const roh = eingabe.trim();
-  if (!siehtAusWieLink(roh)) return { text: roh, quelle: "text" };
-  try {
-    const r = await fetch(roh, {
-      signal: AbortSignal.timeout(8000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; LuxuryBanditBot/1.0; +https://luxurybandit.com)" },
-    });
-    if (!r.ok) return { text: "", quelle: "link", fehler: `Anzeige konnte nicht geladen werden (${r.status}). Füge stattdessen den Text der Anzeige ein.` };
-    const html = await r.text();
-    const text = textAusHtml(html).slice(0, 12000);
-    if (text.length < 80) return { text: "", quelle: "link", fehler: "Von dieser Seite kam kein lesbarer Text (oft, weil sie ein Login oder JavaScript braucht). Füge stattdessen den Text der Anzeige ein." };
-    return { text, quelle: "link" };
-  } catch {
-    return { text: "", quelle: "link", fehler: "Die Anzeige liess sich nicht abrufen. Füge stattdessen den Text der Anzeige ein." };
-  }
-}
 
 /**
  * DIE ANTWORT MUSS DIE SPRACHE DES BETRACHTERS TREFFEN (Owner 24.08.2026: „der Match-Text

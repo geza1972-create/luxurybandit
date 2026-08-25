@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { listeLebenslaeufe, lebenslaufKontaktSetzen } from "@/lib/lebenslauf-store";
+import { listeLebenslaeufe, lebenslaufKontaktSetzen, leseLebenslauf } from "@/lib/lebenslauf-store";
+import { darfAmProfilArbeiten } from "@/lib/lebenslauf-besitz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * DER KONTAKT-UMSCHALTER FÜRS VERMITTLUNGSMODELL (Owner 24.08.2026: „Kontakt-Umschalter
- * bauen" — die offene Baustelle aus Memory `lebenslauf-portal-stand-21-08`, Punkt 1: „es
- * gibt noch keine Admin-Oberfläche, es je Profil auf true zu setzen").
+ * DER KONTAKT-UMSCHALTER (Owner 24.08.2026: „Kontakt-Umschalter bauen").
  *
- * NUR DER BETREIBER (Admin), nie der Bewerber selbst: Die Freigabe folgt einer Zusage der
- * Firma AUSSERHALB des Systems (Anruf/Mail) — der Bewerber weiss nicht, wann das passiert
- * ist, also kann er es auch nicht selbst schalten (anders als das Korrektur-Feld, das dem
- * Besitzer gehört).
+ * GEDREHT 25.08.2026 (Owner: „Die Kontaktdaten werden im Chat abgefragt. Falls der User
+ * sie im Bearbeiten-Modus für alle freigibt."): Die Freigabe liegt jetzt beim BEWERBER
+ * selbst — der Schalter steht in seinem Bearbeiten-Modus, und der Firmen-Chat nennt die
+ * Daten nur nach dieser Freigabe. Der Admin darf weiterhin schalten (Vermittlungsfälle),
+ * die Profil-LISTE bleibt Admin-only.
  *
- * GET  → Liste aller Profile (id/name/email/bezahlt/kontaktSichtbar/aboAktiv), neueste zuerst.
- * POST { id, sichtbar } → setzt kontaktSichtbar für genau dieses Profil.
+ * GET  → Liste aller Profile (id/name/email/bezahlt/kontaktSichtbar/aboAktiv) — nur Admin.
+ * POST { id, sichtbar, device? } → setzt kontaktSichtbar; Besitzer ODER Admin.
  */
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
@@ -25,11 +25,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
-  const body = (await request.json().catch(() => ({}))) as { id?: string; sichtbar?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { id?: string; sichtbar?: boolean; device?: string };
   const id = String(body.id ?? "").trim();
+  const device = String(body.device ?? "").trim().slice(0, 80);
   if (!id) return NextResponse.json({ error: "Kennung fehlt." }, { status: 400 });
+  const profil = await leseLebenslauf(id);
+  if (!profil) return NextResponse.json({ error: "Profil nicht gefunden." }, { status: 404 });
+  if (!(await darfAmProfilArbeiten(profil, device, request))) {
+    return NextResponse.json({ error: "Not yours." }, { status: 403 });
+  }
   const ok = await lebenslaufKontaktSetzen(id, body.sichtbar === true);
-  if (!ok) return NextResponse.json({ error: "Profil nicht gefunden oder konnte nicht gespeichert werden." }, { status: 404 });
+  if (!ok) return NextResponse.json({ error: "Konnte nicht gespeichert werden." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

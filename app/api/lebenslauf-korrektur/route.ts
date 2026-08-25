@@ -41,8 +41,8 @@ type Korrektur = {
   ausbildung?: { titel?: string; ort?: string; zeitraum?: string }[];
   sprachen?: { sprache?: string; niveau?: string }[];
   kompetenzen?: string[]; schwerpunkte?: string[];
-  passung?: { rolle?: string; gruende?: string[] }[];
   ort?: string; telefon?: string;
+  anschreiben?: string; positionierung?: string;
 };
 
 function extractJson(text: string): Korrektur | null {
@@ -82,20 +82,24 @@ export async function POST(request: Request) {
     sprachen: profil.sprachen ?? [],
     kompetenzen: profil.kompetenzen ?? [],
     schwerpunkte: profil.schwerpunkte ?? [],
-    passung: profil.passung ?? [],
     ort: profil.ort ?? "",
     telefon: profil.telefon ?? "",
+    /* MULTI-BEWERBUNG (25.08.2026): Auf einer Bewerbungs-Version gehören Anschreiben und
+       zugeschnittene Positionierung zu den korrigierbaren Inhalten („schreib den zweiten
+       Absatz selbstbewusster"). Am Hauptprofil sind beide leer und bleiben es. */
+    anschreiben: profil.anschreiben ?? "",
+    positionierung: profil.positionierung ?? "",
   };
 
   const prompt = [
     "Du pflegst das Profil eines Bewerbers auf einem Karriereportal. Hier die aktuellen Profildaten als JSON:",
     JSON.stringify(daten),
     `Der Bewerber wünscht diese Korrektur: »${anweisung}«`,
-    "Wende NUR diese Korrektur an. Ändere ausschliesslich, was die Anweisung verlangt — aber überall, wo es vorkommt (sprechtext, stichpunkte, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, kategorien, passung). Soll etwas nicht mehr erwähnt werden, entferne es in JEDEM Feld, in dem es vorkommt.",
+    "Wende NUR diese Korrektur an. Ändere ausschliesslich, was die Anweisung verlangt — aber überall, wo es vorkommt (sprechtext, stichpunkte, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, kategorien, anschreiben, positionierung). Soll etwas nicht mehr erwähnt werden, entferne es in JEDEM Feld, in dem es vorkommt.",
     "Gib JEDES Feld aus der Eingabe vollständig zurück, auch wenn die Anweisung es nicht betrifft — unveränderte Felder unverändert kopieren, nie weglassen oder leeren.",
     "Erfinde nichts, was die Anweisung nicht nennt. Behalte Sprache, Ton und Ich-Form der bestehenden Texte.",
-    "Halte die Feldgrenzen: stichpunkte 3–5 kurz, kompetenzen 4–6 Begriffe, schwerpunkte 3–4 Arbeitsfelder, passung je Rolle 3–4 belegte Gründe (je Rolle unterschiedlich). Bei 'erfahrung' und 'ausbildung' KEINE Obergrenze — gib ALLE Stationen zurück, die die Eingabe enthielt (abzüglich dessen, was die Anweisung entfernen soll).",
-    "Antworte NUR als JSON mit exakt den Feldern der Eingabe: {\"sprechtext\":\"…\",\"stichpunkte\":[…],\"kategorien\":[…],\"erfahrung\":[{\"rolle\":\"…\",\"firma\":\"…\",\"zeitraum\":\"…\",\"ergebnis\":\"…\"}],\"ausbildung\":[{\"titel\":\"…\",\"ort\":\"…\",\"zeitraum\":\"…\"}],\"sprachen\":[{\"sprache\":\"…\",\"niveau\":\"…\"}],\"kompetenzen\":[…],\"schwerpunkte\":[…],\"passung\":[{\"rolle\":\"…\",\"gruende\":[…]}],\"ort\":\"…\",\"telefon\":\"…\"}",
+    "Halte die Feldgrenzen: stichpunkte 3–5 kurz, kompetenzen 4–6 Begriffe, schwerpunkte 3–4 Arbeitsfelder. Bei 'erfahrung' und 'ausbildung' KEINE Obergrenze — gib ALLE Stationen zurück, die die Eingabe enthielt (abzüglich dessen, was die Anweisung entfernen soll).",
+    "Antworte NUR als JSON mit exakt den Feldern der Eingabe: {\"sprechtext\":\"…\",\"stichpunkte\":[…],\"kategorien\":[…],\"erfahrung\":[{\"rolle\":\"…\",\"firma\":\"…\",\"zeitraum\":\"…\",\"ergebnis\":\"…\"}],\"ausbildung\":[{\"titel\":\"…\",\"ort\":\"…\",\"zeitraum\":\"…\"}],\"sprachen\":[{\"sprache\":\"…\",\"niveau\":\"…\"}],\"kompetenzen\":[…],\"schwerpunkte\":[…],\"ort\":\"…\",\"telefon\":\"…\",\"anschreiben\":\"…\",\"positionierung\":\"…\"}",
   ].join("\n\n");
 
   const r = await fetch("https://api.openai.com/v1/responses", {
@@ -135,9 +139,6 @@ export async function POST(request: Request) {
       .filter(sp => sp.sprache).slice(0, 10),
     kompetenzen: liste(parsed.kompetenzen, 6, 40),
     schwerpunkte: liste(parsed.schwerpunkte, 4, 60),
-    passung: (Array.isArray(parsed.passung) ? parsed.passung : [])
-      .map(p => ({ rolle: s(p?.rolle, 80), gruende: liste(p?.gruende, 4, 80) }))
-      .filter(p => p.rolle && p.gruende.length > 0).slice(0, 4),
     ort: s(parsed.ort, 80) || undefined,
     telefon: s(parsed.telefon, 40) || undefined,
   };
