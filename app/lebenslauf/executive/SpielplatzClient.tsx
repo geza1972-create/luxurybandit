@@ -40,14 +40,15 @@ type Schritt = "intro" | "mail" | "daten" | "anzeige" | "frei" | "frage" | "frag
 
 const TEXTE = {
   de: {
-    introB: "Ich bin dein Bewerbungsberater. Ich sage dir in Prozent, ob eine Stelle zu dir passt — und baue dir eine Bewerbung wie die oben: Anschreiben, Lebenslauf und Video, zugeschnitten auf genau eine Anzeige. Was möchtest du?",
-    introA: "Ich habe deine Stellenanzeige. Damit ich dir in Prozent sagen kann, ob sie zu dir passt, brauche ich zwei Dinge: deine E-Mail und deinen Lebenslauf.",
+    introB: "Oben siehst du eine fertige Bewerbung: Anschreiben, Lebenslauf und Video — zugeschnitten auf eine konkrete Stellenanzeige. Genau das erstellen wir jetzt für dich. Womit fangen wir an?",
+    introA: "Deine Stellenanzeige liegt vor. Für den Abgleich brauche ich noch zwei Dinge: deine E-Mail und deinen Lebenslauf.",
     chipMatch: "Passt eine Anzeige zu mir?", chipProfil: "So ein Profil möchte ich auch", chipFrage: "Ich habe eine andere Frage",
     profilMailFrage: "Dann bauen wir es. Zuerst deine E-Mail, dann dein Lebenslauf — du siehst dich sofort oben in der Mappe. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     frageFrage: "Schreib deine Frage — ich leite sie weiter, du bekommst noch heute eine Antwort an deine E-Mail.",
     frageMailFrage: "Und an welche E-Mail soll die Antwort gehen?",
     frageDanke: "Ist raus — Antwort kommt noch heute. Was möchtest du sonst?",
-    introKurz: "Gut — was möchtest du?",
+    introKurz: "Womit machen wir weiter?",
+    beraterH: "Bewerbungsberater", beraterTeaser: "Liest deine Anzeige und deinen Lebenslauf — und sagt dir ehrlich, wo du stehst.",
     mailFrage: "Deine E-Mail, dann legen wir los. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     mailFehler: "Das sieht nicht nach einer E-Mail aus.",
     datenFrage: "Jetzt du: Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen.",
@@ -79,14 +80,15 @@ const TEXTE = {
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
   },
   en: {
-    introB: "I'm your application advisor. I tell you in percent how well a job fits you — and build you an application like the one above: cover letter, resume and video, tailored to one specific ad. What would you like?",
-    introA: "I have your job ad. To tell you in percent how well it fits you, I need two things: your email and your resume.",
+    introB: "Above you see a finished application: cover letter, resume and video — tailored to one specific job ad. That is exactly what we will create for you. Where shall we start?",
+    introA: "Your job ad is in. For the comparison I need two more things: your email and your resume.",
     chipMatch: "Does an ad fit me?", chipProfil: "I want a profile like this", chipFrage: "I have another question",
     profilMailFrage: "Then let's build it. First your email, then your resume — you'll see yourself in the folder right away. (No page is created — nothing is saved until you buy.)",
     frageFrage: "Write your question — I'll pass it on, you'll get an answer to your email today.",
     frageMailFrage: "And which email should the answer go to?",
     frageDanke: "Sent — you'll hear back today. What else would you like?",
-    introKurz: "Alright — what would you like?",
+    introKurz: "Where shall we continue?",
+    beraterH: "Application advisor", beraterTeaser: "Reads your job ad and your resume — and tells you honestly where you stand.",
     mailFrage: "Your email, then we start. (No page is created — nothing is saved until you buy.)",
     mailFehler: "That doesn't look like an email.",
     datenFrage: "Your turn: copy the text from your resume and paste it here. I'll transfer it into the folder — as it is, without polishing anything.",
@@ -450,7 +452,11 @@ export default function SpielplatzClient({ beispiel, lang }: {
           dunklen Kastens: „das auch in der weissen Hülle"): dieselbe Creme-Karte wie die
           Mappe, alle Innenteile in der Karten-Fassung der CI-Bausteine. ── */}
       <div className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-        <div className="px-4 pb-4 pt-4">
+        {/* AUCH DIE BERATER-BOX TRÄGT EINEN KOPF (Owner 25.08.2026: „und die Box hat
+            keinen Titel. Auch unprofessionell") — dasselbe Band wie Anschreiben und
+            Lebenslauf: drei Blätter EINER Mappe, eine Handschrift. */}
+        <MappenKopf icon={MessageCircle} titel={B.beraterH} teaser={B.beraterTeaser} />
+        <div className="border-t border-[#1a160f]/[0.11] px-4 pb-4 pt-4">
           <div className="flex flex-col gap-2.5">
             {msgs.map((m, i) => m.von === "ich" ? (
               <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1a160f]/[0.07] px-3 py-2 text-[12.5px] font-bold leading-snug">
