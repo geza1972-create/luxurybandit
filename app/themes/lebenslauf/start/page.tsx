@@ -6,6 +6,7 @@ import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import LebenslaufStartClient from "./LebenslaufStartClient";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
+import BewerbungszentraleFeatures from "@/components/BewerbungszentraleFeatures";
 
 /**
  * DIE TUNNEL-SEITE DES LEBENSLAUF-PORTALS — genau das Muster aus
@@ -41,8 +42,10 @@ export default async function LebenslaufStartPage({ searchParams }: {
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="contents">
           {/* Der Tunnel zeigt den Landingpage-Inhalt (Memory `tunnel-zeigt-landingpage-inhalt`):
-              unter dem Formular steht die Beispiel-Sektion — dieselbe Komponente wie auf der LP. */}
-          <LebenslaufStartClient lang={L} code={code} inhalt={<LebenslaufBeispiel lang={L} />} />
+              unter dem Formular stehen die Feature-Karte „Deine Bewerbungszentrale" und die
+              Beispiel-Sektion — dieselben Bausteine wie auf der LP. */}
+          <LebenslaufStartClient lang={L} code={code}
+            inhalt={<><BewerbungszentraleFeatures lang={L} /><LebenslaufBeispiel lang={L} /></>} />
         </div>
       </div>
       <SeitenFuss />

@@ -6,6 +6,7 @@ import SeitenFuss from "@/components/SeitenFuss";
 import ThemenVorspann from "@/components/ThemenVorspann";
 import { Knopf } from "@/components/CI";
 import { Kicker, H1, Y, Lead, SectionTitle, Fine } from "@/components/Landing";
+import BewerbungszentraleFeatures from "@/components/BewerbungszentraleFeatures";
 import { resolveLang } from "@/lib/lang-server";
 import { eur, themenPreisCents, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 /* EIN Video aus EINER Konstante für Karte, Katalog-Kachel und Themen-Kreis (Dauerregel
@@ -41,12 +42,10 @@ export const metadata = {
   alternates: { canonical: "/themes/lebenslauf" },
 };
 
-type Feature = { t: string; d: string };
 type Frage = { q: string; a: string };
 type Copy = {
   kicker: string; h1A: string; h1Y: string; h1B: string; lead: string;
   anlass: string; grund: string; privat: string;
-  zentraleH: string; features: Feature[];
   kontrastH: string; kontrast: string;
   preisH: string; preisEinmal: string; preisMonat: string; preisOhne: string;
   faqH: string; faq: Frage[];
@@ -62,13 +61,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Für die Jobsuche · für den Quereinstieg · wenn der Lebenslauf allein nicht zeigt, was du kannst",
     grund: "Ein PDF wird überflogen und vergessen. Eine Seite, auf der du sprichst, bleibt offen.",
     privat: "Deine Seite bleibt privat, solange du sie nicht selbst teilst.",
-    zentraleH: "Deine Bewerbungszentrale",
-    features: [
-      { t: "Dein Bewerbungsvideo — ohne Vorbereitung.", d: "Kein Text, kein Auswendiglernen. Das Skript schreiben wir dir aus deinem Lebenslauf — du nimmst dich einmal kurz auf, den Rest macht die KI: Aus deiner Aufnahme wird dein professionelles Sprechvideo. So echt, dass es niemand merkt." },
-      { t: "Passt die Stelle zu dir?", d: "Anzeige einfügen — Link oder Text reicht. Du bekommst eine ehrliche Prozentzahl und siehst schwarz auf weiss, was passt und was fehlt. Bevor du auch nur eine Minute investierst." },
-      { t: "Deine Bewerbung passt sich an.", d: "Ein Klick, und Profiltext, Schwerpunkte und Positionierung werden auf die Anzeige zugeschnitten. Nichts wird erfunden — alles kommt aus deinem echten Lebenslauf, nur richtig betont." },
-      { t: "Die komplette Mappe, je Stelle.", d: "Anschreiben in der Sprache der Anzeige. Dein Dossier mit deinem Video. Jede Bewerbung unter eigener Adresse — fertig zum Verschicken." },
-    ],
     kontrastH: "Das hat kein Jobportal",
     kontrast: "Dort zeigt dein Profil jeder Firma dasselbe. Hier bekommt jede Firma eine Bewerbung, die auf ihre Anzeige zugeschnitten ist — mit Anschreiben und Video.",
     preisH: "Ein Link, der mit dir mitwächst",
@@ -93,13 +85,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "For the job search · for a career change · when your resume alone doesn't show what you can do",
     grund: "A PDF gets skimmed and forgotten. A page where you speak stays open.",
     privat: "Your page stays private unless you share it yourself.",
-    zentraleH: "Your application headquarters",
-    features: [
-      { t: "Your application video — no preparation.", d: "No text, nothing to memorise. We write your script from your resume — you record yourself once, briefly, and the AI does the rest: your recording becomes your professional speaking video. So real that nobody notices." },
-      { t: "Does the job fit you?", d: "Paste the ad — a link or its text is enough. You get an honest percentage and see in black and white what fits and what's missing. Before you invest a single minute." },
-      { t: "Your application adapts.", d: "One click, and profile text, focus areas and positioning are tailored to the ad. Nothing is invented — everything comes from your real resume, just emphasised right." },
-      { t: "The complete package, per job.", d: "A cover letter in the language of the ad. Your dossier with your video. Every application under its own address — ready to send." },
-    ],
     kontrastH: "No job portal has this",
     kontrast: "There, your profile shows every company the same thing. Here, every company gets an application tailored to its ad — with cover letter and video.",
     preisH: "One link that grows with you",
@@ -124,13 +109,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Pentru căutarea unui job · pentru reconversie · când CV-ul singur nu arată ce poți",
     grund: "Un PDF e răsfoit și uitat. O pagină pe care vorbești tu rămâne deschisă.",
     privat: "Pagina ta rămâne privată până o distribui chiar tu.",
-    zentraleH: "Centrala ta de aplicări",
-    features: [
-      { t: "Videoul tău de aplicare — fără pregătire.", d: "Fără text, fără memorat. Îți scriem scenariul din CV-ul tău — te filmezi o dată, scurt, iar restul îl face AI-ul: din înregistrarea ta iese videoul tău profesionist. Atât de real încât nimeni nu observă." },
-      { t: "Ți se potrivește jobul?", d: "Adaugă anunțul — un link sau textul lui e de ajuns. Primești un procent onest și vezi negru pe alb ce se potrivește și ce lipsește. Înainte să investești măcar un minut." },
-      { t: "Aplicația ta se adaptează.", d: "Un click, și textul de profil, punctele forte și poziționarea se croiesc pe anunț. Nimic inventat — totul vine din CV-ul tău real, doar accentuat corect." },
-      { t: "Dosarul complet, pentru fiecare job.", d: "Scrisoare de intenție în limba anunțului. Dosarul tău cu videoul tău. Fiecare aplicare sub propria adresă — gata de trimis." },
-    ],
     kontrastH: "Niciun portal de joburi nu are asta",
     kontrast: "Acolo, profilul tău arată tuturor firmelor același lucru. Aici, fiecare firmă primește o aplicație croită pe anunțul ei — cu scrisoare de intenție și video.",
     preisH: "Un link care crește odată cu tine",
@@ -155,13 +133,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Para buscar trabajo · para un cambio de carrera · cuando el currículum solo no muestra lo que sabes",
     grund: "Un PDF se hojea y se olvida. Una página en la que hablas tú queda abierta.",
     privat: "Tu página es privada hasta que tú la compartas.",
-    zentraleH: "Tu central de candidaturas",
-    features: [
-      { t: "Tu vídeo de candidatura — sin preparación.", d: "Sin texto, nada que memorizar. Te escribimos el guion desde tu currículum — te grabas una vez, brevemente, y la IA hace el resto: de tu grabación sale tu vídeo profesional. Tan real que nadie lo nota." },
-      { t: "¿Encaja el puesto contigo?", d: "Pega la oferta — basta un enlace o su texto. Recibes un porcentaje honesto y ves negro sobre blanco qué encaja y qué falta. Antes de invertir un solo minuto." },
-      { t: "Tu candidatura se adapta.", d: "Un clic, y el texto de perfil, los enfoques y el posicionamiento se ajustan a la oferta. Nada se inventa — todo sale de tu currículum real, solo bien acentuado." },
-      { t: "El dossier completo, por puesto.", d: "Carta de presentación en el idioma de la oferta. Tu dossier con tu vídeo. Cada candidatura bajo su propia dirección — lista para enviar." },
-    ],
     kontrastH: "Esto no lo tiene ningún portal de empleo",
     kontrast: "Allí tu perfil muestra a todas las empresas lo mismo. Aquí cada empresa recibe una candidatura hecha a medida de su oferta — con carta y vídeo.",
     preisH: "Un enlace que crece contigo",
@@ -186,13 +157,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Pour la recherche d'emploi · pour une reconversion · quand le CV seul ne montre pas ce que tu vaux",
     grund: "Un PDF est survolé puis oublié. Une page où tu parles reste ouverte.",
     privat: "Ta page reste privée tant que tu ne la partages pas.",
-    zentraleH: "Ta centrale de candidatures",
-    features: [
-      { t: "Ta vidéo de candidature — sans préparation.", d: "Pas de texte, rien à apprendre par cœur. Nous écrivons ton script à partir de ton CV — tu te filmes une fois, brièvement, et l'IA fait le reste : ton enregistrement devient ta vidéo professionnelle. Si vraie que personne ne le remarque." },
-      { t: "Le poste te correspond-il ?", d: "Colle l'annonce — un lien ou son texte suffit. Tu reçois un pourcentage honnête et tu vois noir sur blanc ce qui correspond et ce qui manque. Avant d'investir une seule minute." },
-      { t: "Ta candidature s'adapte.", d: "Un clic, et le texte de profil, les priorités et le positionnement sont taillés pour l'annonce. Rien n'est inventé — tout vient de ton vrai CV, juste bien mis en valeur." },
-      { t: "Le dossier complet, par poste.", d: "Lettre de motivation dans la langue de l'annonce. Ton dossier avec ta vidéo. Chaque candidature sous sa propre adresse — prête à envoyer." },
-    ],
     kontrastH: "Aucun portail d'emploi n'a ça",
     kontrast: "Là-bas, ton profil montre la même chose à toutes les entreprises. Ici, chaque entreprise reçoit une candidature taillée pour son annonce — avec lettre et vidéo.",
     preisH: "Un lien qui grandit avec toi",
@@ -217,13 +181,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Para procurar emprego · para mudar de carreira · quando o CV sozinho não mostra o que vales",
     grund: "Um PDF é folheado e esquecido. Uma página onde tu falas fica aberta.",
     privat: "A tua página fica privada até seres tu a partilhá-la.",
-    zentraleH: "A tua central de candidaturas",
-    features: [
-      { t: "O teu vídeo de candidatura — sem preparação.", d: "Sem texto, nada para decorar. Escrevemos-te o guião a partir do teu CV — gravas-te uma vez, brevemente, e a IA faz o resto: da tua gravação nasce o teu vídeo profissional. Tão real que ninguém repara." },
-      { t: "A vaga combina contigo?", d: "Cola o anúncio — basta um link ou o texto. Recebes uma percentagem honesta e vês preto no branco o que combina e o que falta. Antes de investires um único minuto." },
-      { t: "A tua candidatura adapta-se.", d: "Um clique, e o texto de perfil, os focos e o posicionamento ajustam-se ao anúncio. Nada é inventado — tudo vem do teu CV real, só bem acentuado." },
-      { t: "O dossier completo, por vaga.", d: "Carta de apresentação na língua do anúncio. O teu dossier com o teu vídeo. Cada candidatura sob o seu próprio endereço — pronta a enviar." },
-    ],
     kontrastH: "Nenhum portal de emprego tem isto",
     kontrast: "Lá, o teu perfil mostra o mesmo a todas as empresas. Aqui, cada empresa recebe uma candidatura feita à medida do seu anúncio — com carta e vídeo.",
     preisH: "Um link que cresce contigo",
@@ -248,13 +205,6 @@ const TEXTE: Record<string, Copy> = {
     anlass: "Per cercare lavoro · per cambiare carriera · quando il CV da solo non mostra quanto vali",
     grund: "Un PDF viene sfogliato e dimenticato. Una pagina in cui parli tu resta aperta.",
     privat: "La tua pagina resta privata finché non la condividi tu.",
-    zentraleH: "La tua centrale delle candidature",
-    features: [
-      { t: "Il tuo video di candidatura — senza preparazione.", d: "Niente testo, niente da imparare a memoria. Ti scriviamo il copione dal tuo CV — ti riprendi una volta, brevemente, e il resto lo fa l'IA: dalla tua ripresa nasce il tuo video professionale. Così vero che nessuno se ne accorge." },
-      { t: "Il posto ti corrisponde?", d: "Incolla l'annuncio — basta un link o il testo. Ricevi una percentuale onesta e vedi nero su bianco cosa corrisponde e cosa manca. Prima di investire un solo minuto." },
-      { t: "La tua candidatura si adatta.", d: "Un clic, e testo del profilo, priorità e posizionamento vengono cuciti sull'annuncio. Niente di inventato — tutto viene dal tuo vero CV, solo accentuato bene." },
-      { t: "Il dossier completo, per ogni posto.", d: "Lettera di presentazione nella lingua dell'annuncio. Il tuo dossier con il tuo video. Ogni candidatura sotto il suo indirizzo — pronta da inviare." },
-    ],
     kontrastH: "Questo nessun portale di lavoro ce l'ha",
     kontrast: "Lì il tuo profilo mostra a tutte le aziende la stessa cosa. Qui ogni azienda riceve una candidatura cucita sul suo annuncio — con lettera e video.",
     preisH: "Un link che cresce con te",
@@ -300,20 +250,9 @@ export default async function LebenslaufThemePage() {
           ausrichtung="oben"
           folien={[{ video: BEISPIEL_VIDEO, poster: BEISPIEL_POSTER }]} />
 
-        {/* ───── DIE FEATURE-KARTE — „Deine Bewerbungszentrale" auf der Creme-Fläche
-            (Haus-Muster Video Card + Feature Card; vier Blöcke in Nutzer-Reihenfolge:
-            erst das Sofort-Erlebnis Video, dann die Maschine je Stelle). ───── */}
-        <section className="mt-10">
-          <SectionTitle>{t.zentraleH}</SectionTitle>
-          <div className="lb-karte mt-4 overflow-hidden rounded-[20px] px-5 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-            {t.features.map((f, i) => (
-              <div key={f.t} className={`py-4 ${i === 0 ? "" : "border-t border-[#1a160f]/[0.11]"}`}>
-                <p className="text-[15px] font-black leading-snug">{f.t}</p>
-                <p className="mt-1.5 text-[13.5px] font-medium leading-snug opacity-75">{f.d}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* ───── DIE FEATURE-KARTE — EIN Baustein für Landingpage UND Tunnel (Memory
+            `tunnel-zeigt-landingpage-inhalt`), Texte siehe BewerbungszentraleFeatures. ───── */}
+        <BewerbungszentraleFeatures lang={L} />
 
         {/* ───── DER KONTRAST-BLOCK — erledigt die Konkurrenz, ohne sie gross zu machen. ───── */}
         <section className="mt-10">

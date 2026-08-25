@@ -209,6 +209,10 @@ export async function POST(request: Request) {
   // NOCH KEIN VIDEO — das Profil ist ein Entwurf, bis der HeyGen-Lauf fertig ist
   // (`/api/lebenslauf-video` + `/api/lebenslauf-fertigstellen`). `bezahlt: true`, weil diese
   // Route erst nach der Kasse läuft; die Ergebnisseite prüft trotzdem auf ein Video.
+  /* SEIT 25.08.2026 AUCH VOR DER KASSE (Stufe-0-Trichter: „Passt diese Jobanzeige zu mir?"
+     — Anzeige + Lebenslauf rein, Match sehen, DANN kaufen): `vorab: true` legt den Entwurf
+     UNBEZAHLT an; den bezahlt-Stempel setzt erst /api/lebenslauf-fertigstellen, wenn der
+     Kiss-Log-Auftrag wirklich bezahlt ist. Ohne `vorab` bleibt alles wie bisher. */
   /* MIT BESTAND MERGEN statt neu bauen (24.08.2026, beim zweiten Lauf auf dasselbe Profil
      gefunden): Diese Route baute das Profil from scratch — ein erneuter Auswertungs-Lauf
      (Retry nach Netzfehler, Nach-Auswertung) warf damit `videoUrl`/`fotoUrl`/`aufnahmePath`
@@ -231,7 +235,7 @@ export async function POST(request: Request) {
     ort: ort || undefined,
     telefon: telefon || undefined,
     verfuegbarkeit: verfuegbarkeit ?? bestand?.verfuegbarkeit,
-    bezahlt: true,
+    bezahlt: body.vorab === true ? bestand?.bezahlt === true : true,
   });
 
   if (!ok) {

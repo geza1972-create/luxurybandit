@@ -69,8 +69,22 @@ export async function POST(request: Request) {
   const fotoPath = foto.startsWith("data:") ? await fotoAblegen(foto) : "";
   const fotoUrl = fotoPath ? await getSignedUrl(fotoPath, 60 * 60 * 24 * 365 * 10).catch(() => "") : "";
 
+  /* DER BEZAHLT-STEMPEL SITZT JETZT HIER (Stufe-0-Trichter 25.08.2026): Die Auswertung
+     läuft neuerdings VOR der Kasse (`vorab`) und legt den Entwurf unbezahlt an. Fertig
+     gebaut wird eine Seite nur, wenn der Kiss-Log-Auftrag wirklich bezahlt ist — sonst
+     könnte jeder die Kette per Hand durchrufen und das Produkt gratis abholen. Altprofile
+     (bezahlt schon true aus der alten Kette) gehen unverändert durch. */
+  let bezahltJetzt = profil.bezahlt === true;
+  if (!bezahltJetzt) {
+    try { bezahltJetzt = (await readKissLog()).find(x => x.id === id)?.paid === true; } catch { /**/ }
+  }
+  if (!bezahltJetzt) {
+    return NextResponse.json({ error: "Bitte zuerst bezahlen." }, { status: 402 });
+  }
+
   const ok = await schreibeLebenslauf({
     ...profil,
+    bezahlt: true,
     videoUrl,
     ...(fotoUrl ? { fotoUrl } : {}),
     ...(originalPath.startsWith("try-this-look/") ? { aufnahmePath: originalPath } : {}),

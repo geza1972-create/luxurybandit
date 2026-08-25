@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { Trash2, FileText, Video } from "lucide-react";
+import { Trash2, FileText, Video, Check, X as XIcon } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
@@ -98,8 +98,54 @@ const VERFUEGBARKEIT = [
     wird"). Deutsch/Englisch reichen — der Rest der Seite ist ohnehin nur zweisprachig. */
 const STUFEN_TEXT: Record<string, { de: string; en: string }> = {
   zahlung: { de: "Zahlung wird bestätigt …", en: "Confirming your payment …" },
-  lesen: { de: "Dein Lebenslauf wird gelesen — dein Skript entsteht …", en: "Reading your resume — writing your script …" },
+  lesen: { de: "Dein Lebenslauf wird gelesen …", en: "Reading your resume …" },
+  match: { de: "Dein Match wird berechnet …", en: "Calculating your match …" },
   fertig: { de: "Deine Seite wird gebaut …", en: "Building your page …" },
+};
+
+/**
+ * DER NEUE EINSTIEG — DIE ANZEIGE ZUERST (Owner 25.08.2026: „Die Seite/Tunnel muss so
+ * anfangen: Passt diese Jobanzeige zu mir? Feld für Jobanzeige. Dann … Bewerbung
+ * hochladen … Dann wird generiert. 67 %. Jetzt Bewerbung anpassen und Chancen erhöhen.").
+ *
+ * Der Match ist der Köder und läuft VOR der Kasse (Auswertung mit `vorab: true` legt den
+ * Entwurf unbezahlt an; den bezahlt-Stempel setzt erst fertigstellen nach echter Zahlung).
+ * Die E-Mail bleibt PFLICHT davor (Haus-Eingangstor, Memory `eingangstore-email-und-alter`)
+ * — Reihenfolge: Anzeige → E-Mail → Lebenslauf+Bild → Ergebnis in Prozent → Kauf.
+ * Wer keine Anzeige hat, nimmt den kleinen Ausweg darunter und kauft wie bisher direkt.
+ */
+const ANZEIGE_TEXT: Record<string, {
+  titel: string; zeile: string; platzhalter: string; weiter: string; ohne: string;
+  weiterMatch: string; gruendeH: string; lueckenH: string;
+  stark: string; mittel: string; schwach: string;
+  cta: string; ctaZeile: string; andere: string;
+}> = {
+  de: {
+    titel: "Passt diese Jobanzeige zu dir?",
+    zeile: "Füg den Link oder den Text der Anzeige ein — du siehst gleich in Prozent, wie gut du passt. Kostenlos.",
+    platzhalter: "https://… oder den Text der Anzeige einfügen",
+    weiter: "Weiter — Match kostenlos prüfen",
+    ohne: "Ohne Anzeige starten",
+    weiterMatch: "Weiter — dein Match",
+    gruendeH: "Das passt", lueckenH: "Das fehlt noch",
+    stark: "Starke Übereinstimmung", mittel: "Teilweise Übereinstimmung", schwach: "Schwache Übereinstimmung",
+    cta: "Bewerbung anpassen & Chancen erhöhen",
+    ctaZeile: "Skript, Video und deine fertige Bewerbungsseite — zugeschnitten auf diese Stelle.",
+    andere: "Andere Anzeige testen",
+  },
+  en: {
+    titel: "Does this job ad fit you?",
+    zeile: "Paste the link or the text of the ad — you'll see in percent how well you fit. Free.",
+    platzhalter: "https://… or paste the ad's text",
+    weiter: "Continue — check your match for free",
+    ohne: "Start without an ad",
+    weiterMatch: "Continue — your match",
+    gruendeH: "What fits", lueckenH: "What's missing",
+    stark: "Strong match", mittel: "Partial match", schwach: "Weak match",
+    cta: "Tailor my application & raise my chances",
+    ctaZeile: "Script, video and your finished application page — tailored to this job.",
+    andere: "Try another ad",
+  },
 };
 
 /**
@@ -166,13 +212,18 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
   const cvRef = useRef<HTMLInputElement>(null);
   const [verfuegbarkeit, setVerfuegbarkeit] = useState("");
 
+  /* DIE ANZEIGE — der neue Einstieg (Owner 25.08.2026, siehe ANZEIGE_TEXT oben). */
+  const [anzeige, setAnzeige] = useState("");
+  const [anzeigeFertig, setAnzeigeFertig] = useState(false);
+  const [matchErgebnis, setMatchErgebnis] = useState<{ prozent: number; jobtitel: string; gruende: string[]; luecken: string[] } | null>(null);
+
   /**
    * DIE NEUEN PHASEN NACH DER ZAHLUNG (Owner-Seitentext 24.08.2026): erst das SKRIPT lesen
    * und ändern, dann die EIGENE AUFNAHME hochladen, dann baut der Server die Seite. Der
    * HeyGen-Avatar-Weg ist aus dem Kaufweg raus (FAQ: „kein Avatar, keine synthetische
    * Stimme"); die Route /api/lebenslauf-video bleibt als Altweg im Code.
    */
-  const [phase, setPhase] = useState<"" | "skript" | "aufnahme">("");
+  const [phase, setPhase] = useState<"" | "ergebnis" | "skript" | "aufnahme">("");
   const [skript, setSkript] = useState("");
   const [aufnahmeDatei, setAufnahmeDatei] = useState<File | null>(null);
   const [aufnahmePath, setAufnahmePath] = useState("");
@@ -377,6 +428,56 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     setBusy(false); setStufe("");
   };
 
+  /** Die Kennung sicherstellen — normalerweise steht sie längst (Effekt oben). */
+  const kennungSichern = async (): Promise<string> => {
+    if (genId) return genId;
+    try {
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const log = await fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: "lebenslauf", device, email: mail.trim() }),
+      }).then(r => r.json());
+      if (log?.id) { setGenId(String(log.id)); return String(log.id); }
+    } catch { /**/ }
+    return "";
+  };
+
+  /**
+   * GENERIEREN VOR DER KASSE (Owner 25.08.2026: „Dann wird generiert. 67 %."):
+   * Auswertung (`vorab` — Entwurf bleibt unbezahlt) + Anzeigen-Match in einer Kette.
+   * Das Skript aus der Auswertung wird gemerkt — nach der Zahlung läuft KEINE zweite
+   * Auswertung (nachZahlungFortsetzen nimmt `e.skript`).
+   */
+  const generieren = async () => {
+    if (!bereitDa || !mailOk || busy || !anzeige.trim()) return;
+    setBusy(true); setStatus(""); setStufe("lesen");
+    void logTunnelEvent("generation_started", "lebenslauf", { via: "match" });
+    const gid = await kennungSichern();
+    if (!gid) { setStatus(F.statusNotWork); setBusy(false); setStufe(""); return; }
+    try {
+      const aus = await fetch("/api/lebenslauf-auswertung", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: gid, name, email: mail.trim(), pdfPath: cvPath, verfuegbarkeit, vorab: true }),
+      }).then(r => r.json());
+      if (!aus?.id) { setStatus(aus?.error || F.statusNotWork); setBusy(false); setStufe(""); return; }
+      setSkript(String(aus.sprechtext ?? "").trim());
+      setStufe("match");
+      let device = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      const m = await fetch("/api/lebenslauf-match", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: gid, eingabe: anzeige.trim(), device, lang }),
+      });
+      const md = await m.json().catch(() => ({}));
+      if (!m.ok) { setStatus(String(md?.error ?? F.statusNotWork)); setBusy(false); setStufe(""); return; }
+      setMatchErgebnis({ prozent: md.prozent ?? 0, jobtitel: md.jobtitel ?? "", gruende: md.gruende ?? [], luecken: md.luecken ?? [] });
+      setBusy(false); setStufe(""); setPhase("ergebnis");
+    } catch {
+      setStatus(F.statusNetwork); setBusy(false); setStufe("");
+    }
+  };
+
   const starten = async () => {
     if (!bereitDa || !mailOk || busy) return;
     setBusy(true); setStatus(""); setStufe("zahlung");
@@ -384,22 +485,13 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     /* SICHERHEITSNETZ: die Kennung entsteht normalerweise Sekunden vor diesem Klick (siehe
        den Effekt oben) — falls sie ausnahmsweise noch fehlt, hier nachholen statt mit
        leerer Kennung zu bezahlen. */
-    let gid = genId;
-    if (!gid) {
-      try {
-        let device = "";
-        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
-        const log = await fetch("/api/kiss-log", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ theme: "lebenslauf", device, email: mail.trim() }),
-        }).then(r => r.json());
-        if (log?.id) { gid = String(log.id); setGenId(gid); }
-      } catch { /**/ }
-      if (!gid) { setStatus(F.statusNotWork); setBusy(false); setStufe(""); return; }
-    }
+    const gid = await kennungSichern();
+    if (!gid) { setStatus(F.statusNotWork); setBusy(false); setStufe(""); return; }
     const bezahlt = await kaufen(gid);
     if (!bezahlt) { setBusy(false); setStufe(""); return; }
-    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit, stimmWahl: "", audioName: "", audioPath: "" });
+    /* Das Skript aus dem Vorab-Generieren mitgeben — sonst zahlte die Kette hier eine
+       ZWEITE Auswertung (nachZahlungFortsetzen bevorzugt `e.skript`). */
+    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit, stimmWahl: "", audioName: "", audioPath: "", ...(skript.trim() ? { skript: skript.trim() } : {}) });
   };
 
   /**
@@ -433,10 +525,32 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const AT = ANZEIGE_TEXT[lang === "de" ? "de" : "en"];
+
   return (
     <>
       <TunnelFortschritt schritte={[1, 3]} aktuell={schritt} />
-      {schritt === 1 && (
+
+      {/* ───── DER NEUE EINSTIEG: DIE ANZEIGE (Owner 25.08.2026: „Die Seite muss so
+          anfangen: Passt diese Jobanzeige zu mir?") — vor der E-Mail, kostenlos, mit
+          kleinem Ausweg für Leute ohne Anzeige. ───── */}
+      {schritt === 1 && !anzeigeFertig && (
+        <div className="flex flex-col gap-3">
+          <p className="text-[17px] font-black text-white/90">{AT.titel}</p>
+          <p className="text-[13px] font-bold leading-snug text-white/70">{AT.zeile}</p>
+          <EingabeMehrzeilig zeilen={4} value={anzeige} placeholder={AT.platzhalter}
+            onChange={e => setAnzeige(e.target.value)} />
+          <Knopf art="gold" disabled={!anzeige.trim()} onClick={() => setAnzeigeFertig(true)}>
+            {AT.weiter}
+          </Knopf>
+          <button type="button" onClick={() => { setAnzeige(""); setAnzeigeFertig(true); }}
+            className="text-center text-[11.5px] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-white/80">
+            {AT.ohne}
+          </button>
+        </div>
+      )}
+
+      {schritt === 1 && anzeigeFertig && (
         <TunnelStart
           produkt="lebenslauf"
           titel={F.tunnelStartTitel}
@@ -486,6 +600,57 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
             /* DIE GROSSE STUFEN-ANZEIGE (Owner 20.08.2026: „es muss gross stehen was da
                gemacht wird") — ersetzt die ganze Eingabe-Fläche, solange die Kette läuft. */
             <Laden art="flaeche" text={(STUFEN_TEXT[stufe] ?? STUFEN_TEXT.lesen)[lang === "de" ? "de" : "en"]} />
+          ) : phase === "ergebnis" && matchErgebnis ? (
+            /* ───── DAS MATCH-ERGEBNIS (Owner 25.08.2026: „Dann wird generiert. 67 %.
+               Jetzt Bewerbung anpassen und Chancen erhöhen.") — der Moment der höchsten
+               Spannung trägt den EINEN Kaufknopf. ───── */
+            <div className="flex flex-col gap-3">
+              {matchErgebnis.jobtitel && (
+                <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white/50">{matchErgebnis.jobtitel}</p>
+              )}
+              <div className="flex items-baseline gap-3">
+                <p className="font-serif text-[44px] font-black leading-none text-white">{matchErgebnis.prozent}%</p>
+                <p className="text-[11.5px] font-black uppercase tracking-[0.1em] text-white/60">
+                  {matchErgebnis.prozent >= 70 ? AT.stark : matchErgebnis.prozent >= 40 ? AT.mittel : AT.schwach}
+                </p>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
+                <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${matchErgebnis.prozent}%` }} />
+              </div>
+              {matchErgebnis.gruende.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{AT.gruendeH}</p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {matchErgebnis.gruende.slice(0, 4).map(g => (
+                      <li key={g} className="flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-white/80">
+                        <Check className="mt-[2px] h-3.5 w-3.5 shrink-0 text-white/55" />{g}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {matchErgebnis.luecken.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{AT.lueckenH}</p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {matchErgebnis.luecken.slice(0, 3).map(g => (
+                      <li key={g} className="flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-white/70">
+                        <XIcon className="mt-[2px] h-3.5 w-3.5 shrink-0 text-white/40" />{g}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-[13px] font-bold leading-snug text-white/70">{AT.ctaZeile}</p>
+              <Knopf art="gold" disabled={busy} onClick={() => void starten()}>
+                {`${AT.cta} — ${eur(preisCents, lang)}`}
+              </Knopf>
+              <button type="button"
+                onClick={() => { setMatchErgebnis(null); setPhase(""); setAnzeigeFertig(false); onSchrittChange(1); }}
+                className="text-center text-[11.5px] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-white/80">
+                {AT.andere}
+              </button>
+            </div>
           ) : phase === "skript" ? (
             /* ───── SCHRITT „DEIN SKRIPT" (Owner-Seitentext: „Du änderst ihn, bis er nach
                dir klingt") — bezahlt ist schon; hier wird gelesen und umgeschrieben. ───── */
@@ -562,14 +727,22 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                   onChange={e => setMail(e.target.value)} />
               )}
 
+              {/* MIT ANZEIGE führt der Weg erst zum GRATIS-MATCH (kein Preis am Knopf!),
+                  ohne Anzeige wie bisher direkt zur Kasse. */}
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => onSchrittChange(1)} aria-label={F.back}
                   className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
                   ←
                 </button>
-                <Knopf art="gold" disabled={!bereitDa || !mailOk || busy} onClick={() => void starten()}>
-                  {bereitDa ? `${F.generateNow} — ${eur(preisCents, lang)}` : F.generateNow}
-                </Knopf>
+                {anzeige.trim() ? (
+                  <Knopf art="gold" disabled={!bereitDa || !mailOk || busy} onClick={() => void generieren()}>
+                    {AT.weiterMatch}
+                  </Knopf>
+                ) : (
+                  <Knopf art="gold" disabled={!bereitDa || !mailOk || busy} onClick={() => void starten()}>
+                    {bereitDa ? `${F.generateNow} — ${eur(preisCents, lang)}` : F.generateNow}
+                  </Knopf>
+                )}
               </div>
 
               <p className="text-center font-serif text-[11px] leading-snug text-white/70">
