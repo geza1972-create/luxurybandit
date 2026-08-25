@@ -2686,7 +2686,7 @@ export function InAppBrowserHinweis({ sprache = "de", className = "" }: { sprach
  * in der dunklen Leiste, `LangSwitch` für die Sprache — nicht nachgebaut, nur zusammengesetzt.
  * `z-50` wie `TopNav`, aus demselben Grund (die Knöpfe auf den Karten stehen auf z-30).
  */
-export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], konto }: {
+export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], konto, teilen }: {
   /** Das Wort NACH „LB". Vorgabe „Talent" — die Marke des Bereichs, nicht des Hauses. */
   marke?: string;
   menuLabel: string;
@@ -2700,6 +2700,11 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
   /** Das Konto-Zeichen (`<KontoChip />`) — als Einschub vom Aufrufer, Begründung siehe unten
       an seiner Einbaustelle. Leer heisst: kein Zeichen (z. B. das öffentliche Muster). */
   konto?: ReactNode;
+  /** DER TEILEN-KNOPF GEHÖRT IN DIE KOPFZEILE (Owner 25.08.2026: „jetzt muss Sharen oben
+      neben Deutsch und nicht mehr auf das Video") — auf dem Video war er eine Funktion
+      MITTEN IM DOKUMENT; oben ist er da, wo die Seiten-Werkzeuge wohnen, und er teilt die
+      ganze Mappe statt „das Video". Als Einschub vom Aufrufer, genau wie `konto`. */
+  teilen?: ReactNode;
 }) {
   const [offen, setOffen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -2743,6 +2748,9 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
               die bestehenden Flip-Regeln in globals.css machen den Rest. */}
           <LightSwitch />
           <LangSwitch />
+          {/* TEILEN GANZ RECHTS (Owner 25.08.2026: „nach Deutsch bitte als Letztes") —
+              die eine Handlung dieser Zeile steht am Ende, nach den zwei Schaltern. */}
+          {teilen}
           {menu.length > 0 && (
             <div ref={boxRef} className="relative">
               <SymbolKnopf label={menuLabel} onClick={() => setOffen(o => !o)}>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send, Check } from "lucide-react";
+import { SymbolKnopf } from "@/components/CI";
 
 /**
  * TEILEN ÜBER DAS HANDY — ein Knopf, überall derselbe.
@@ -17,7 +18,7 @@ import { Send, Check } from "lucide-react";
  * es. Ohne diesen Rückfall stünde auf jedem Schreibtisch-Browser ein toter Knopf.
  */
 export default function TeilenKnopf({
-  text, label, kopiertLabel, className = "", url: zielUrl, rund = false, datei, dateiName,
+  text, label, kopiertLabel, className = "", url: zielUrl, rund = false, kopf = false, datei, dateiName,
 }: {
   /** Was neben dem Link steht — z. B. „Ana & Mihai 💍". */
   text: string;
@@ -32,6 +33,14 @@ export default function TeilenKnopf({
   url?: string;
   /** Als kleiner runder Knopf AUF einem Bild (wie der Ton-Knopf) statt als volle Pille. */
   rund?: boolean;
+  /**
+   * IN DER KOPFZEILE (Owner 25.08.2026: „was hast du hier schon wieder für ein Design
+   * gemacht?") — die weisse Scheibe von `rund` ist für BILDER gemacht: dort muss sie sich
+   * gegen jedes Motiv behaupten. In der dunklen Kopfzeile ist genau das der Fremdkörper,
+   * ein weisser Teller zwischen zwei zurückhaltenden Chips. Diese Gestalt ist der
+   * Haus-Kopfknopf (`SymbolKnopf`), derselbe wie Hell/Dunkel und Sprache daneben.
+   */
+  kopf?: boolean;
   /**
    * DIE DATEI SELBST TEILEN (Owner 01.08.2026: „auch das Bild soll er sharen können").
    *
@@ -69,6 +78,14 @@ export default function TeilenKnopf({
       setTimeout(() => setKopiert(false), 2500);
     } catch { /* dann eben nicht */ }
   };
+
+  if (kopf) {
+    return (
+      <SymbolKnopf onClick={() => void teilen()} label={kopiert ? kopiertLabel : label} className={className}>
+        {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+      </SymbolKnopf>
+    );
+  }
 
   if (rund) {
     // Dieselbe weisse Scheibe wie Ton- und Loeschknopf, damit man ihn nicht suchen muss.

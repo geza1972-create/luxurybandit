@@ -218,19 +218,18 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
     setFreigabeBusy(false);
   };
 
-  const menu = [
-    { label: T.profil, href: "#profil" },
-    { label: T.expertise, href: "#expertise" },
-    { label: T.erfahrung, href: "#erfahrung" },
-    ...(profil.cvUrl ? [{ label: T.cvLaden, href: profil.cvUrl, datei: true }] : []),
-  ];
-
   return (
     /* `lb-dossier`: die eine Kennung, an der globals.css die Handy-Spalte für diese Seite
        aufhebt — sonst stünde das Dossier am Rechner in einem 440-px-Telefonrahmen. */
     <main className="lb-bg lb-dossier min-h-screen text-white">
+      {/* KEIN MENÜ MEHR (Owner 25.08.2026: „Das Menü brauche ich hier nicht") — das
+          Inhaltsverzeichnis war für ein Dokument gedacht, das man liest, indem man
+          springt; man liest es aber, indem man scrollt. Der Kopf trägt jetzt nur noch,
+          was man wirklich braucht: Marke, Konto, Teilen, Hell/Dunkel, Sprache. */}
       <TalentKopf marke={T.marke} konto={konto}
-        menuLabel={T.menu} menuTitel={T.menuTitel} menu={menu} />
+        teilen={<TeilenKnopf kopf text={`${profil.name} — ${profil.rolle}`}
+          label={T.teilen} kopiertLabel={T.kopiert} />}
+        menuLabel={T.menu} menuTitel={T.menuTitel} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">
 
@@ -280,9 +279,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                   /* Sprechvideo: oben ankern, sonst schneidet die 4:5-Flaeche den Kopf ab
                      (Owner 24.08.2026; Skill `card`). */
                   verhaeltnis="aspect-[4/5]" ausrichtung="oben"
-                  tonText={K.ton} tonAusText={K.tonAus} grossText={K.gross} kleinText={K.klein}
-                  teilen={<TeilenKnopf rund text={`${profil.name} — ${profil.rolle}`}
-                    label={T.teilen} kopiertLabel={T.kopiert} />} />
+                  tonText={K.ton} tonAusText={K.tonAus} grossText={K.gross} kleinText={K.klein} />
               ) : (
                 /* DIE BILD-BEWERBUNG TRÄGT TROTZDEM EINEN PLAY-KNOPF (Owner 25.08.2026:
                    „Das wäre doch toll, wenn auf dem Bild ein Play-Button steht und die
