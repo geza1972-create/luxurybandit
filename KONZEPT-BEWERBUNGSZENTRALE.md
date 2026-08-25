@@ -236,7 +236,7 @@ online, es kauft KEINE weiteren Bewerbungen frei.
 
 | | |
 |---|---|
-| **JEDE Bewerbung: Auswertung + Video + Seite** | **19** (LEBENSLAUF_CENTS) — jedes Mal, nicht einmalig |
+| **JEDE Bewerbung: Auswertung + Video + Seite** | **19** (LEBENSLAUF_CENTS) — jedes Mal, nicht einmalig. Das Video ist auf **1 Minute** begrenzt (Owner 25.08.: Hier ist ein Video von max 1 Minute drin) — die Grenze gehoert an die PREISZEILE, nicht ins Kleingedruckte: sie bestimmt die HeyGen-Kosten je Verkauf und ist der Punkt, ueber den man sonst nachtraeglich streitet |
 | Match prüfen | gratis (Schnell-Analyse, auch ohne Konto) |
 | Abo | 4,99/Monat (LEBENSLAUF_MONAT_CENTS) — deine Bewerbungen bleiben ONLINE, monatlich kündbar. KEINE „unbegrenzten Zuschnitte" mehr |
 | Bild-Wechsel je Version | Foto-Upload gratis; KI-Berufslook nur im Video-Paket |
