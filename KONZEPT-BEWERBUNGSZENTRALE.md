@@ -248,6 +248,34 @@ hat einen anderen Match."
 
 ---
 
+## Der Trichter: ASSESSMENT-EINSTIEG (Owner-Vorgabe 25.08., GEBAUT)
+
+„Die Seite/Tunnel muss so anfangen: Passt diese Jobanzeige zu mir? Feld für
+Jobanzeige. Dann … Bewerbung hochladen/Text eingeben. Bild. Dann wird
+generiert. 67 %. Jetzt Bewerbung anpassen und Chancen erhöhen. Was du
+bekommst: eine Bewerbungszentrale…"
+
+Reihenfolge (E-Mail bleibt PFLICHT vor dem Upload — Haus-Eingangstor):
+1. **Anzeige** („Passt diese Jobanzeige zu dir?", Link/Text, kostenlos;
+   kleiner Ausweg „Ohne Anzeige starten" → alter Direktkauf-Weg)
+2. **E-Mail-Tor** (TunnelStart wie bisher, Google inklusive)
+3. **Lebenslauf + Bild + Verfügbarkeit**
+4. **GRATIS-Generierung vor der Kasse**: Auswertung mit `vorab: true`
+   (Entwurf bleibt UNBEZAHLT) + Anzeigen-Match als Gast (Besitz über die
+   Geräte-Kennung des Kiss-Log-Auftrags) → Prozent-Balken + Das passt/fehlt
+5. **Kauf-CTA im Spannungsmoment**: „Bewerbung anpassen & Chancen erhöhen —
+   {price}" → bestehende Kasse; das Skript aus der Vorab-Auswertung wird
+   WEITERVERWENDET (keine zweite KI-Auswertung nach der Zahlung)
+6. Danach die bestehende Kette: Skript ändern → einsprechen → Seite.
+   Unterm Tunnel: Feature-Karte „Deine Bewerbungszentrale" + Beispiel
+   (geteilter Baustein components/BewerbungszentraleFeatures.tsx, auch LP).
+
+SICHERUNG: Der bezahlt-Stempel sitzt jetzt in /api/lebenslauf-fertigstellen
+(402 ohne bezahlten Kiss-Log-Auftrag) — sonst könnte man die Kette per Hand
+gratis durchrufen. KOSTEN: je Trichter-Durchlauf ~2 Mini-KI-Aufrufe VOR der
+Zahlung (Auswertung + Match, ~2 ct) — bewusst, das ist der Köder; Tor ist
+die Pflicht-E-Mail davor.
+
 ## Stufe 0: DER MARKT-TEST — vor jedem weiteren Baustein
 
 Owner 25.08. spät: „Ich baue hier wie blöd wieder eine Sache, die ich vielleicht
