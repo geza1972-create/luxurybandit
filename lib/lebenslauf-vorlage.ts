@@ -377,62 +377,63 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
  * Form und reicht es hinein — die Seite kennt keinen Sonderfall „Beispiel".
  */
 export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
-  /* DAS MUSTER IST JETZT DER GRÜNDER SELBST (Owner 24.08.2026: „mach mal in dem Template
-     mein Video und mein Lebenslauf") — echte Daten aus seiner eigenen Auswertung
-     (Profil cde90e16…, CV cv26-Geza-Lakatos_de) statt der erfundenen Anna Keller. Der
-     Seitentext verspricht „ein echtes Profil", also zeigt das Muster eines. KEINE erfundenen
-     Zahlen: 20+ Jahre (CV: seit 1996), 200+ Studierende und die zwei eigenen Apps stehen
-     wörtlich im Lebenslauf. Inhalt auf DEUTSCH (Sprache seines CVs) — andere Betrachter
-     bekommen die Laufzeit-Übersetzung (executiveInSprache). Kontaktdaten stehen BEWUSST
-     nicht hier: Diese Datei landet im Client-Bundle, und die Karte zeigt ohnehin den
-     Freigabe-Satz (Vermittlungsmodell). */
+  /* DAS MUSTER IST PETER MUSTERMANN (Owner 25.08.2026: „Er muss Peter Mustermann heissen
+     und ist ein Krankenpfleger … ist Deutscher und ist in Berlin geboren", 35 Jahre).
+     VORHER war es der Gründer selbst mit echtem Namen und echtem Werdegang — das ging
+     nicht mehr, seit das Beispiel-Video das Gesicht eines Avatars zeigt: ein realer Name
+     auf einem fremden Gesicht ist genau die Sorte Halbwahrheit, die eine Bewerbungs-
+     plattform nicht haben darf. Jetzt ist ALLES erfunden und heisst auch so (Mustermann,
+     Musterklinik) — die Seite trägt zusätzlich `noindex`.
+     WARUM EIN KRANKENPFLEGER: Der Owner wählt den Beruf, in dem in Europa am meisten
+     gesucht wird — das Muster spricht damit die Zielgruppe an, die am ehesten kauft.
+     KEINE Kontaktdaten hier: Diese Datei landet im Client-Bundle, und die Karte zeigt
+     ohnehin den Freigabe-Satz (Vermittlungsmodell). Inhalt auf DEUTSCH; andere Betrachter
+     bekommen die Laufzeit-Übersetzung (executiveInSprache). */
   id: "executive-vorlage",
-  name: "Geza Lakatos",
-  rolle: "UX-Berater & KI-App-Entwickler",
-  ort: "EU, Deutschland",
-  sprachenKurz: "Deutsch C2 · Englisch C1 · Rumänisch C2",
-  schwerpunkte: ["Produktstrategie", "No-Code-Prototyping", "KI-Integration", "UX-Training"],
+  name: "Peter Mustermann",
+  rolle: "Gesundheits- und Krankenpfleger · Fachpflege Intensivmedizin",
+  ort: "Berlin, Deutschland",
+  sprachenKurz: "Deutsch Muttersprache · Englisch C1 · Spanisch A2",
+  schwerpunkte: ["Intensivpflege", "Notaufnahme", "Beatmungspflege", "Praxisanleitung"],
   portraitUrl: LEBENSLAUF_BEISPIEL_POSTER,
   videoUrl: LEBENSLAUF_BEISPIEL_VIDEO,
   videoLabel: "Kurzvorstellung",
   profil:
-    "Geza Lakatos, UX-Berater und Designer. Ich habe für die Bundesdruckerei das UX-Design " +
-    "einer nationalen Datenplattform geleitet, bei Festo Industry-4.0-Wartungskonzepte " +
-    "mitentwickelt und zuletzt eigene KI-gestützte Apps wie Nutrycoach.ai und LuxuryBandit " +
-    "von der Idee bis zum MVP realisiert. Mein Schwerpunkt liegt auf AI-assisted App " +
-    "Strategy, No-Code-Prototyping und skalierbaren Designsystemen. Ich suche jetzt eine " +
-    "Rolle, in der ich Produktvisionen strategisch weiterführen kann — sei es als Senior " +
-    "UX/Product Lead, strategischer Berater oder in einem interdisziplinären Team, das KI " +
-    "ernsthaft in die Produktentwicklung integriert.",
-  expertise: ["UX-Strategie", "Prototyping", "KI-Workflows", "Designsysteme", "Barrierefreiheit", "Workshop-Moderation"],
+    "Ich bin Peter Mustermann, 35, geboren in Berlin, und seit zwölf Jahren am Patientenbett. " +
+    "Nach der Ausbildung habe ich fünf Jahre in der Zentralen Notaufnahme gearbeitet und mich " +
+    "danach auf Intensiv- und Anästhesiepflege spezialisiert. Heute betreue ich beatmete " +
+    "Patientinnen und Patienten auf einer interdisziplinären Intensivstation, leite " +
+    "Auszubildende als Praxisanleiter an und arbeite an unseren Hygiene- und " +
+    "Dokumentationsstandards mit. Ich suche eine Station, auf der gute Pflege nicht am " +
+    "Personalschlüssel scheitert — und ein Team, das Weiterbildung ernst meint.",
+  expertise: ["Beatmungspflege", "Notfallmanagement", "Wundmanagement", "Medikamentengabe", "Hygienestandards", "Praxisanleitung"],
   erfahrung: [
-    { rolle: "Founder / UX-Designer", firma: "LuxuryBandit (eigenes Projekt)", zeitraum: "2026–heute", ergebnis: "KI-gestützte Video-Plattform von der Idee bis zum laufenden Produkt gebaut." },
-    { rolle: "Founder / UX-Designer", firma: "Nutrycoach.ai (eigenes Projekt)", zeitraum: "2025–Mai 2026", ergebnis: "UX und MVP einer KI-Ernährungs-App komplett selbst umgesetzt." },
-    { rolle: "UX-Berater", firma: "Bundesdruckerei Gruppe GmbH", zeitraum: "2022–2024", ergebnis: "UX-Strategie der nationalen Datenplattform geleitet." },
+    { rolle: "Fachpfleger Intensivmedizin", firma: "Musterklinik Berlin-Mitte", zeitraum: "2021–heute", ergebnis: "Betreuung beatmeter Patienten auf der interdisziplinären Intensivstation, Praxisanleiter für vier Auszubildende pro Jahr." },
+    { rolle: "Krankenpfleger, Zentrale Notaufnahme", firma: "Klinikum Musterstadt", zeitraum: "2017–2021", ergebnis: "Ersteinschätzung nach Manchester-Triage, Schockraum-Versorgung im Schichtdienst." },
+    { rolle: "Krankenpfleger, Innere Medizin", firma: "Musterhaus Kliniken Berlin", zeitraum: "2014–2017", ergebnis: "Station mit 28 Betten, Schwerpunkt Kardiologie und Diabetologie." },
   ],
   impact: [
-    { zahl: "20+", text: "Jahre Produktgestaltung, seit 1996" },
-    { zahl: "200+", text: "Studierende betreut, UX Design Institute" },
-    { zahl: "2", text: "eigene KI-Apps bis zum MVP" },
+    { zahl: "12", text: "Jahre am Patientenbett, seit 2014" },
+    { zahl: "40+", text: "Auszubildende als Praxisanleiter begleitet" },
+    { zahl: "1:2", text: "Betreuungsschlüssel auf der Intensivstation" },
   ],
   ausbildung: [
-    { titel: "Dipl. Kommunikationsdesigner", ort: "FH Mannheim", zeitraum: "" },
+    { titel: "Fachweiterbildung Intensiv- und Anästhesiepflege", ort: "Musterklinik Berlin-Mitte", zeitraum: "2018–2020" },
+    { titel: "Gesundheits- und Krankenpfleger (staatlich anerkannt)", ort: "Pflegeschule Berlin-Mitte", zeitraum: "2011–2014" },
   ],
   sprachen: [
-    { sprache: "Deutsch", niveau: "C2" },
+    { sprache: "Deutsch", niveau: "Muttersprache" },
     { sprache: "Englisch", niveau: "C1" },
-    { sprache: "Rumänisch", niveau: "C2" },
-    { sprache: "Ungarisch", niveau: "B2" },
+    { sprache: "Spanisch", niveau: "A2" },
   ],
   chatFragen: [
-    "Hat Geza Erfahrung mit KI-Produktentwicklung?",
-    "Welche UX-Projekte belegt sein Lebenslauf?",
-    "Hat er mit Behörden und Konzernen gearbeitet?",
+    "Hat Peter Erfahrung mit beatmeten Patienten?",
+    "Welche Fachweiterbildung bringt er mit?",
+    "Wie lange arbeitet er schon im Schichtdienst?",
   ],
   /* Bewusst ZU: So sieht die Seite aus, die an eine Firma geht (Vermittlungsmodell). */
   kontaktSichtbar: false,
 };
-
 /**
  * DER EINE ÜBERSETZER — `LebenslaufProfil` (Speicher-Rohdaten) → `ExecutiveProfil` (Seite).
  * Genau der Baustein, den der Kopf dieser Datei ankündigt: Die echte Profilseite

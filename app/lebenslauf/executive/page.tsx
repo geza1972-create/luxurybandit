@@ -24,8 +24,9 @@ import { resolveLang } from "@/lib/lang-server";
 
 export const metadata: Metadata = {
   title: "Executive — candidate profile template",
-  /* NICHT INDEXIEREN: Anna Keller ist erfunden (der Muster-Lebenslauf im Repo trägt es selbst
-     als „FICTIONAL SAMPLE CV"). Ein erfundener Mensch, der bei Google als echter Kandidat
+  /* NICHT INDEXIEREN: Peter Mustermann ist erfunden (Owner 25.08.2026 — vorher stand hier
+     der echte Name und Werdegang des Gründers, was mit dem Avatar-Gesicht im Beispiel-Video
+     nicht mehr zusammenging). Ein erfundener Mensch, der bei Google als echter Kandidat
      auftaucht, ist genau die Sorte Schaden, die eine Bewerbungsplattform nicht haben darf. */
   robots: { index: false, follow: false },
 };

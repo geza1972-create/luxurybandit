@@ -74,9 +74,9 @@ const TEXTE = {
     analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
     anschreibenH: "Anschreiben", anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
     betreff: (t: string) => `Bewerbung als ${t}`,
-    demoBetreff: "Bewerbung als Senior UX Designer (m/w/d)",
-    demoMeta: "Die Musterfirma GmbH · Match 72 %",
-    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Konzeption, Designsysteme und Nutzerforschung verantworte ich seit Jahren in digitalen Produkten.\n\nGern zeige ich Ihnen in einem Gespräch, was davon Sie sofort nutzen können.\n\nMit freundlichen Grüssen\nGeza Lakatos",
+    demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
+    demoMeta: "Musterklinik München · Match 72 %",
+    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen und arbeite seit zwölf Jahren im Schichtdienst.\n\nMit freundlichen Grüssen\nPeter Mustermann",
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
   },
   en: {
@@ -114,9 +114,9 @@ const TEXTE = {
     analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
     anschreibenH: "Cover letter", anschreibenTeaser: "Tailored to this exact job ad — page one of your folder.", kostprobe: "A taste — the full cover letter comes with your application.",
     betreff: (t: string) => `Application for ${t}`,
-    demoBetreff: "Application for Senior UX Designer (m/f/d)",
-    demoMeta: "Musterfirma GmbH · Match 72%",
-    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: I have owned concept work, design systems and user research in digital products for years.\n\nI'd be glad to show you in a call what you can use right away.\n\nKind regards\nGeza Lakatos",
+    demoBetreff: "Application: Intensive Care Nurse",
+    demoMeta: "Sample Clinic Munich · Match 72%",
+    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care and have worked shifts for twelve years.\n\nKind regards\nPeter Mustermann",
     demoHinweis: "Sample — every application here starts like this: cover letter on top, resume below.",
   },
 };
@@ -385,7 +385,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
           <p className="flex items-center gap-2 text-[14px] font-black text-white/90">
             <Mail className="h-4 w-4 shrink-0 text-[#f6cf51]" />{ET.statsAnfragen(1)}
           </p>
-          <p className="ml-6 text-[14px] font-bold text-white/80">Anna Keller — anna.keller@firma.de</p>
+          <p className="ml-6 text-[14px] font-bold text-white/80">S. Weiss — s.weiss@musterklinik.de</p>
         </div>
       )}
 
