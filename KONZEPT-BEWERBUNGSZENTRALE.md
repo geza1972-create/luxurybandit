@@ -88,6 +88,14 @@ unten (auch nicht im Admin-Spiegel `/admin/lebenslauf/*`).
 
 ## Die Chats — die einzige Bediensprache
 
+**DER BEWERBERBERATER (Owner 25.08. nacht: „der bekommt also einen
+Bewerberberater"):** Das ist die eine Figur hinter allen Bewerber-Chats —
+im Trichter (Schnell-Analyse als Gespräch), auf dem Spielplatz (einpflegen,
+spielen, empfehlen) und am Dossier (ändern, bewerben). Der Berater liest
+Anzeige und Lebenslauf, sagt ehrlich was fehlt, empfiehlt IMMER das Video,
+pflegt gratis nur ein was da ist — und VERBESSERT gegen Geld. Eine Stimme,
+ein Ton, überall.
+
 Grundsatz (Owner): „Am einfachsten ist es immer in Form von Chat …
 statt tausend Funktionen auf der Seite aufzulisten." Rückfragen kommen mit
 Klick-Antworten (Leute wollen klicken statt tippen).
@@ -210,18 +218,21 @@ GEBAUT):** „Das sollte der User direkt einsteigen." Aufbau:
 
 1. Kicker: **„Für deine Bewerbung"**
 2. Titel: **„Für jede Stelle die perfekte Bewerbung."**
-3. Direkt drunter das EINGABEFELD, der Verkaufs-Satz steht als Platzhalter
-   IM Feld (kein Lead-Absatz mehr): „Füge eine Stellenanzeige ein und sieh
-   in Prozent, ob sie zu dir passt. Dann passt sich deine Bewerbung an —
-   Anschreiben, Video und Texte, zugeschnitten auf genau diese Stelle."
+3. Direkt drunter das EINGABEFELD. Feld-Text KURZ (Owner-Korrektur:
+   „Stellenanzeige oder Link einfügen soll es heissen") — der lange
+   Verkaufs-Satz ist damit aus dem Kopf raus (er lebt als Meta-Description
+   weiter). Links kann die Auswertung ohnehin lesen (anzeigenTextBeschaffen).
 4. Drunter GOLD-KNOPF **„Gratis weitermachen"** — reicht die eingefügte
    Anzeige per sessionStorage an den Tunnel; dort ist der Anzeige-Schritt
    damit erledigt und es geht direkt bei „Deine Daten" weiter (Owner
    bestätigt: „Anzeige → Deine Daten → Prozent + Karte, wie im Tunnel —
    Ja"). Ohne eingefügten Text geht es trotzdem weiter (Tunnel fragt
    selbst).
-5. Die GROSSE Beispiel-Karte war kurz angedacht und FLIEGT RAUS (Owner);
-   die kleine Video-Karte darunter BLEIBT.
+5. Die GROSSE KARTE IST RAUS — und gemeint war (Owner mit Screenshot:
+   „grosse kard raus") die VIDEO-Karte „Für deine Bewerbung" mit dem
+   Gründer-Video direkt unter dem Knopf. Was bleibt, ist WEITER UNTEN das
+   kleine Muster-Profil (LebenslaufBeispiel) — künftig der Eingang zum
+   Spielplatz (siehe eigener Abschnitt).
 6. Der Themen-Vorspann (Anlässe · „Ein PDF wird überflogen …" · „Deine
    Seite bleibt privat …") FLIEGT RAUS (Owner: „das fliegt raus").
 
@@ -229,15 +240,12 @@ Features verkaufen (Owner: „Das sind Features, die keiner hat. Nur damit
 können wir gegen die Konkurrenz gewinnen."). Preis als {price} aus der
 Tabelle. Knopf oben im Sichtfeld und unten am Schluss.
 
+> *Für deine Bewerbung*
 > # Für jede Stelle die perfekte Bewerbung.
 >
-> Füge eine Stellenanzeige ein und sieh in Prozent, ob sie zu dir passt.
-> Dann passt sich deine Bewerbung an — Anschreiben, Video und Lebenslauf,
-> zugeschnitten auf genau diese Stelle.
+> `[ Stellenanzeige oder Link einfügen          ]`
 >
-> **[ Jetzt starten — {price} ]**
->
-> *(Video-Karte: das Beispiel-Video)*
+> **[ Gratis weitermachen ]**
 >
 > ## Deine Bewerbungszentrale
 >
@@ -275,6 +283,55 @@ Merkregeln: „Voll automatisch" nie ohne den Zusatz „du liest es nur ein"
 (die eigene Stimme ist der eine Handgriff). Block-Reihenfolge =
 Nutzer-Reihenfolge (erst das Sofort-Erlebnis Video, dann die Maschine je
 Stelle). Der Tunnel zeigt später dieselben Inhalte unter dem E-Mail-Feld.
+
+---
+
+## Der Spielplatz — `/lebenslauf/executive` (KONZEPT 25.08. abend, NOCH NICHT GEBAUT)
+
+Owner: „Hier darf der User ruhig sehen, was er bekommt, also er kann
+spielen. Wird aber nichts geändert in der Database … Da er nichts bezahlt
+hat." Die Musterseite wird die Probefahrt: sehen → sich selbst einsetzen →
+das Video vermissen → Gold-Knopf.
+
+1. **Start = das Muster in voller Schönheit.** Executive-Karte mit
+   DEMO-VIDEO, dazu PFLICHT (Owner): eine BEISPIEL-MATCH-Box wie bei einer
+   echten Version („Senior UX Designer (m/w/d) · Die Musterfirma GmbH ·
+   72 %") samt Beispiel-Anschreiben — und die Besitzer-Zeilen mit
+   BEISPIEL-ZAHLEN („3 Personen haben sich deine Bewerbung angeschaut ·
+   1 Person wollte dein Video sehen · 1 Person will dich kontaktieren").
+2. **Sein Foto rein — mit Play-Knopf.** Er setzt sein eigenes Bild ein
+   (mit Zuschnitt): SEIN Gesicht in der Karte, Play-Knopf darauf → Tipp
+   zeigt „Noch kein Video." Das Foto geht NIE zum Server (nur
+   Browser-Objekt; Seite zu = weg). VIDEO ERSTELLEN GIBT ES IM SPIEL NICHT
+   (Owner: „Video darf er gratis nicht erstellen") — das ist der Kauf.
+3. **Seine Daten EINPFLEGEN, NICHT VERBESSERN (Owner-Präzisierung 25.08.
+   nacht: „Wir ändern seine Daten nicht, wir pflegen ein, was da ist"):**
+   Er setzt seine eigenen Daten ein (Lebenslauf-Text einfügen), die KI
+   überträgt sie 1:1 in die Executive-Form — KEINE Optimierung, keine
+   Umformulierung gratis. ECHTE KI, 5 ZÜGE (Owner: „Spielen kann er 5 mal
+   von mir aus"), serverseitig je Gerät gezählt; Foto einsetzen zählt
+   nicht als Zug. Ergebnis nur im Browser-Zustand.
+   DRUNTER dann: Prozentzahl + Schnell-Analyse, und DARUNTER der CHAT mit
+   dem Angebot (Owner-Wortlaut): „Willst du deine Daten verbessern? Du
+   kannst mehr erreichen …" → der Gold-Knopf. VERBESSERN IST IMMER
+   KOSTENPFLICHTIG — die Karte zeigt gratis nur, was da ist; die Analyse
+   benennt die Schwächen; der Kauf behebt sie.
+4. **EIN Ausgang, immer sichtbar:** unten (wo beim Besitzer
+   Bearbeiten|Vorschau liegt) der eine Gold-Knopf „Das mit deinem
+   Lebenslauf — Gratis weitermachen" → Tunnel.
+5. **Eingänge:** kleine Muster-Karte der Landingpage + Beispiel-Link unter
+   dem Tunnel-Formular.
+6. **Eiserne Regel:** kein Datenbank-Schreiben fürs Profil, keine
+   Zähler-Beacons, keine Mails (Firmen-Chat bis zur Danke-Zeile spielbar,
+   versendet nichts). Dauerhaft wird alles erst mit dem Kauf.
+7. **ABER: der Admin sieht die Züge** (Owner: „muss ich als Admin sehen,
+   wer alles was probiert hat"). Der 5er-Deckel und die Admin-Ablage sind
+   DERSELBE Speicher: je Gerät die Züge mit Zeit/Sprache/Wortlaut;
+   PIN-geschützte Admin-Liste, neueste zuerst. Datenschutz-Linie: Wünsche
+   im Wortlaut, von eingefügten Lebensläufen NUR DIE ERSTEN ZEILEN, Fotos
+   nie (bleiben im Browser). Nebeneffekt: Marktforschung.
+
+Bau erst auf Owner-Kommando („Bau").
 
 ---
 
@@ -317,6 +374,31 @@ Reihenfolge (E-Mail bleibt PFLICHT vor dem Upload — Haus-Eingangstor):
 4. **GRATIS-Generierung vor der Kasse**: Auswertung mit `vorab: true`
    (Entwurf bleibt UNBEZAHLT) + Anzeigen-Match als Gast (Besitz über die
    Geräte-Kennung des Kiss-Log-Auftrags) → Prozent-Balken + Das passt/fehlt
+4b. **DIE GRATIS-ANALYSE IST EIN TEASER — UND SAGT ES SELBST (Owner
+   25.08. nacht):** „Wir können keine kostenlose Bewerbungsanalyse machen.
+   Das macht niemand gratis. Nur ChatGPT. Wir können es aber sagen: es ist
+   nicht vollständig, auch nicht optimal." Drei Pflicht-Elemente im
+   Gratis-Ergebnis:
+   - Es heisst SCHNELL-ANALYSE und trägt die ehrliche Zeile „nicht
+     vollständig, nicht optimiert".
+   - Die VIDEO-EMPFEHLUNG steht IMMER in der Analyse (Owner: „bei der
+     Analyse auch Video immer empfehlen").
+   - Der Übergangs-Satz zum Kauf (Owner-Wortlaut): „Erstelle jetzt eine
+     richtige Bewerbung mit richtiger Analyse und Optimierung. Video…"
+   - Die Schnell-Analyse bezieht sich auf ALLES — auch den PDF-TEXT DES
+     LEBENSLAUFS selbst (Owner): neben Match/passt/fehlt auch 2–3 Befunde
+     „Am Lebenslauf selbst" (Schwächen, die die richtige Analyse dann
+     behebt). Kein zusätzlicher KI-Aufruf — dieselbe Vorab-Auswertung
+     liefert die Punkte mit.
+   - **ALLES IM CHAT (Owner: „das muss alles im Chat stattfinden"):** Die
+     Schnell-Analyse wird als CHAT-GESPRÄCH ausgespielt, nicht als
+     statischer Ergebnis-Bildschirm — Blase für Blase: Prozent+Balken →
+     Das passt → Das fehlt → Am Lebenslauf selbst → Video-Empfehlung →
+     ehrliche Teaser-Zeile → Übergangs-Satz; der Gold-Kauf-Knopf ist der
+     Abschluss der Chat-Spur (die einzige Funktion, alles andere sind
+     Antworten). Dieselbe Bediensprache wie Dossier-Werkzeuge und
+     Firmen-Dialog.
+   (Wortlaut-Feinschliff siehe Abnahme; noch NICHT gebaut.)
 5. **Kauf-CTA im Spannungsmoment**: „Bewerbung anpassen & Chancen erhöhen —
    {price}" → bestehende Kasse; das Skript aus der Vorab-Auswertung wird
    WEITERVERWENDET (keine zweite KI-Auswertung nach der Zahlung)
@@ -329,6 +411,40 @@ SICHERUNG: Der bezahlt-Stempel sitzt jetzt in /api/lebenslauf-fertigstellen
 gratis durchrufen. KOSTEN: je Trichter-Durchlauf ~2 Mini-KI-Aufrufe VOR der
 Zahlung (Auswertung + Match, ~2 ct) — bewusst, das ist der Köder; Tor ist
 die Pflicht-E-Mail davor.
+
+## Die neue Tunnel-Architektur: EIN GESPRÄCH, ZWEI TÜREN (VORSCHLAG 25.08. nacht — Owner-Entscheidung offen)
+
+Owner: „Ich glaube, wir müssen die ganze Architektur des Tunnels ändern.
+Wir haben zwei Einstiege: über den Anzeigentext oder über die Beispielkarte."
+
+DIE IDEE: Beide Einstiege sind DASSELBE Gespräch mit dem Bewerberberater,
+nur an verschiedenen Stellen betreten. Der Berater hält einen Zustand
+{Anzeige? Daten? Foto? E-Mail?} und fragt nach dem, was fehlt — in
+beliebiger Reihenfolge. Kein starres Schritt-Raster mehr vor der Kasse.
+
+EINE FLÄCHE (die Bediensprache des Hauses: Karte = Dokument, drunter Chat):
+- OBEN die Karte: erst das Muster („Executive"), und sobald Daten
+  eingepflegt sind, ER SELBST (Foto mit Play-Knopf, Daten 1:1).
+- DRUNTER (sobald eine Anzeige da ist): Prozent + Schnell-Analyse.
+- DRUNTER der Bewerberberater-Chat, der alles einsammelt und am Ende
+  verkauft: „Willst du deine Daten verbessern? Du kannst mehr erreichen …"
+
+ZWEI TÜREN, EIN ZIEL:
+- Tür A — ANZEIGENTEXT (Landing-Feld „Stellenanzeige oder Link einfügen"):
+  Gespräch beginnt bei der Anzeige; der Berater fragt danach nach
+  Lebenslauf/Foto → Analyse → Karte → Angebot.
+- Tür B — BEISPIELKARTE (Muster/Spielplatz): Gespräch beginnt beim
+  Sehen/Spielen; der Berater fragt danach nach der Anzeige („Sollen wir
+  prüfen, wie du auf eine echte Stelle passt?") → Analyse → Angebot.
+- Ab dem Angebot EIN gemeinsamer Kaufweg: bestehende Kasse → Skript →
+  Aufnahme → Seite (alles Gebaute bleibt in Verwendung: Auswertung, Match,
+  Karte, Kasse, Skript/Aufnahme-Schritte).
+
+ENTSCHIEDEN (Owner 25.08. nacht: „ich will Leads auf jeden Fall"):
+Das E-MAIL-TOR KOMMT VOR DEM ERSTEN EIGENEN SPIELZUG — der Berater nimmt
+Daten/Foto erst nach der E-Mail an (Haus-Eingangstor). Jeder Spieler ist
+ein Lead. Nur das blosse ANSCHAUEN des Musters bleibt ohne alles. Damit
+hat auch die Admin-Ablage der Züge künftig eine E-Mail am Eintrag.
 
 ## Stufe 0: DER MARKT-TEST — vor jedem weiteren Baustein
 
@@ -433,9 +549,29 @@ am Owner-Testprofil: /lebenslauf/f539748a-3b37-40e8-9107-40e7ec01df6e.
   (Promise)") — Beispielvideo als Vorlagen-Kachel daneben.
 - Cockpit erweitert (25.08. abend, GEBAUT): Interesse-Zähler (erster Griff
   zum Chat) + Anfragen mit E-Mail beim Besitzer sichtbar und löschbar.
-- Landingpage-Kopf = Direkteinstieg (25.08. abend, diktiert): Feld mit dem
-  Verkaufs-Satz drin + „Gratis weitermachen"; grosse Karte verworfen,
-  kleine bleibt; Themen-Vorspann raus.
+- Landingpage-Kopf = Direkteinstieg (25.08. abend, diktiert): Feld +
+  „Gratis weitermachen"; Themen-Vorspann raus. Zwei Nachkorrekturen
+  (GEBAUT): Feld-Text KURZ („Stellenanzeige oder Link einfügen") und die
+  VIDEO-Karte unter dem Knopf ist die „grosse kard" — RAUS; das kleine
+  Muster-Profil weiter unten bleibt.
+- Gratis-Analyse = Teaser (25.08. nacht, KONZEPT): sagt selbst „nicht
+  vollständig, nicht optimal"; Video wird IMMER mitempfohlen; Übergang:
+  „Erstelle jetzt eine richtige Bewerbung mit richtiger Analyse und
+  Optimierung." (niemand analysiert gratis — nur ChatGPT). Als Gespräch im
+  Chat, nicht als Bildschirm. Und die GRATIS-LINIE dazu (Owner): Daten
+  werden nur EINGEPFLEGT wie sie sind — Aufbau: Karte (Daten 1:1) →
+  Prozent + Analyse → Chat „Willst du deine Daten verbessern? Du kannst
+  mehr erreichen …" → Gold. Verbessern ist immer kostenpflichtig.
+- Tunnel-Architektur „Ein Gespräch, zwei Türen" (25.08. nacht, KONZEPT):
+  Bewerberberater als Faden, Türen Anzeigentext/Beispielkarte, ein
+  gemeinsamer Kaufweg. E-Mail-Tor VOR dem ersten Spielzug — Owner: „ich
+  will Leads auf jeden Fall."
+- Spielplatz `/lebenslauf/executive` beschlossen (25.08. spät, KONZEPT):
+  Muster mit Demo-Video + Beispiel-Match + Beispiel-Zahlen; eigenes Foto
+  nur im Browser (mit Play-Knopf-Erlebnis), Daten ersetzen mit echter KI,
+  5 Züge je Gerät, kein Gratis-Video, nichts gespeichert (unbezahlt) —
+  ausser der Admin-Ablage der Züge (= Deckel-Zähler); Gold-Ausgang
+  „Gratis weitermachen" → Tunnel. Bau auf Kommando.
 - Offen: eine dezente KI-Kennzeichnungszeile in den AGB (Claude-Vorschlag,
   Owner-Antwort steht aus). Offen: Status „Geöffnet" automatisch bei erster
   fremder Öffnung setzen (Claude-Vorschlag nach Kritik „Handpflege
