@@ -28,8 +28,13 @@ import type { LebenslaufProfil } from "@/lib/lebenslauf-store";
    verspricht ‚du selbst, echt' — mit dem KI-Model daneben glaubt ihn niemand" · „mach mal in
    dem Template mein Video und mein Lebenslauf"). Sein HeyGen-Video, komprimiert auf 720p mit
    Faststart; das Anna-Keller-Material (KI-Lauf) bleibt im Ordner als Reserve liegen. */
-export const LEBENSLAUF_BEISPIEL_VIDEO = "/Lebenslauf/geza-beispiel.mp4";
-export const LEBENSLAUF_BEISPIEL_POSTER = "/Lebenslauf/geza-beispiel.jpg";
+/* Das Beispiel-Video (Owner 25.08.2026: „jetzt will ich, dass du das Video ersetzt mit
+   diesem" — Avatar_Video.mp4 aus dem Design-Ordner). Aus 66 MB/1080×1920 auf Web-Gewicht
+   gerechnet: 720×1280, 6,6 MB, moov VORN (Memory `video-faststart-pflicht`), Standbild
+   aus Sekunde 1,2. EINE Konstante für Karte, Themen-Kreis und Tunnel-Vorlage (Memory
+   `landingpage-video-ist-kachel-video`). */
+export const LEBENSLAUF_BEISPIEL_VIDEO = "/Lebenslauf/avatar-beispiel.mp4";
+export const LEBENSLAUF_BEISPIEL_POSTER = "/Lebenslauf/avatar-beispiel.jpg";
 
 export type ExecutiveErfahrung = {
   rolle: string;

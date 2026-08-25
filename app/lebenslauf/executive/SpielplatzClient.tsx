@@ -359,9 +359,9 @@ export default function SpielplatzClient({ beispiel, lang }: {
           <p className="text-[16px] font-black leading-snug">{anschreibenBetreff}</p>
         )}
         {anschreibenMeta && (
-          <p className="mt-1 text-[16px] font-bold uppercase tracking-[0.1em] opacity-50">{anschreibenMeta}</p>
+          <p className="mt-1 text-[13px] font-bold uppercase tracking-[0.1em] opacity-50">{anschreibenMeta}</p>
         )}
-        <p className="mt-4 whitespace-pre-wrap text-[16px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
+        <p className="mt-4 whitespace-pre-wrap text-[14px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
       </div>
       <p className="border-t border-[#1a160f]/[0.11] px-5 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45 md:px-8">
         {match ? B.kostprobe : B.demoHinweis}
@@ -376,16 +376,16 @@ export default function SpielplatzClient({ beispiel, lang }: {
         /* DIE BESITZER-ZEILEN ALS SCHAUFENSTER (Owner: Beispiel-Zahlen zeigen — genau die
            Zeilen hat kein Jobportal). Reine Demo-Werte; die Beacons zählen hier nichts. */
         <div className="mt-6 flex flex-col gap-1.5">
-          <p className="flex items-center gap-2 text-[16px] font-bold text-white/75">
+          <p className="flex items-center gap-2 text-[14px] font-bold text-white/75">
             <Eye className="h-4 w-4 shrink-0 text-white/45" />{ET.statsOeffnungen(3)}
           </p>
-          <p className="flex items-center gap-2 text-[16px] font-bold text-white/75">
+          <p className="flex items-center gap-2 text-[14px] font-bold text-white/75">
             <MessageCircle className="h-4 w-4 shrink-0 text-white/45" />{ET.statsInteresse(1)}
           </p>
-          <p className="flex items-center gap-2 text-[16px] font-black text-white/90">
+          <p className="flex items-center gap-2 text-[14px] font-black text-white/90">
             <Mail className="h-4 w-4 shrink-0 text-[#f6cf51]" />{ET.statsAnfragen(1)}
           </p>
-          <p className="ml-6 text-[16px] font-bold text-white/80">Anna Keller — anna.keller@firma.de</p>
+          <p className="ml-6 text-[14px] font-bold text-white/80">Anna Keller — anna.keller@firma.de</p>
         </div>
       )}
 
@@ -399,7 +399,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
           {match && (<>
           <div className="mt-2 flex items-baseline gap-3">
             <p className="font-serif text-[44px] font-black leading-none text-white">{match.prozent}%</p>
-            {match.jobtitel && <p className="text-[16px] font-black uppercase tracking-[0.1em] text-white/60">{match.jobtitel}</p>}
+            {match.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/60">{match.jobtitel}</p>}
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/15">
             <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${match.prozent}%` }} />
@@ -408,7 +408,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
           {letzteAnzeige && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.anzeigeH}</p>
-              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[16px] font-medium leading-relaxed text-white/70">
+              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-relaxed text-white/70">
                 {letzteAnzeige}
               </p>
             </div>
@@ -417,7 +417,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.passt}</p>
               {match!.gruende.map((g, i) => (
-                <p key={i} className="mt-1.5 flex items-start gap-2 text-[16px] font-bold leading-snug text-white/85">
+                <p key={i} className="mt-1.5 flex items-start gap-2 text-[14px] font-bold leading-snug text-white/85">
                   <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
                 </p>
               ))}
@@ -427,7 +427,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.fehlt}</p>
               {match!.luecken.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[16px] font-bold leading-snug text-white/70">— {g}</p>
+                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
@@ -435,15 +435,15 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.befundeH}</p>
               {match!.befunde.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[16px] font-bold leading-snug text-white/70">— {g}</p>
+                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
           {match && (<>
-          <p className="mt-4 flex items-start gap-2 text-[16px] font-black text-white/90">
+          <p className="mt-4 flex items-start gap-2 text-[14px] font-black text-white/90">
             <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />{B.videoEmpfehlung}
           </p>
-          <p className="mt-2 text-[16px] font-bold leading-snug text-white/60">{B.teaser}</p>
+          <p className="mt-2 text-[14px] font-bold leading-snug text-white/60">{B.teaser}</p>
           </>)}
         </section>
       )}
@@ -459,14 +459,14 @@ export default function SpielplatzClient({ beispiel, lang }: {
         <div className="border-t border-[#1a160f]/[0.11] px-4 pb-4 pt-4">
           <div className="flex flex-col gap-2.5">
             {msgs.map((m, i) => m.von === "ich" ? (
-              <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1a160f]/[0.07] px-3 py-2 text-[16px] font-bold leading-snug">
+              <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1a160f]/[0.07] px-3 py-2 text-[14px] font-bold leading-snug">
                 {m.text}
               </p>
             ) : (
-              <p key={i} className="text-[16px] font-bold leading-snug opacity-85">{m.text}</p>
+              <p key={i} className="text-[14px] font-bold leading-snug opacity-85">{m.text}</p>
             ))}
             {busy && (
-              <p className="flex items-center gap-2 text-[16px] font-bold leading-snug opacity-60">
+              <p className="flex items-center gap-2 text-[14px] font-bold leading-snug opacity-60">
                 <Laden art="knopf" karte />{busyText || B.denkt}
               </p>
             )}
@@ -480,15 +480,15 @@ export default function SpielplatzClient({ beispiel, lang }: {
                fuehrt zu nix" ist raus). Der Match-Weg traegt das eine Gold. */
             <div className="mt-2 flex flex-col items-start gap-2">
               <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(mail ? B.datenFrage : B.mailFrage); setSchritt(mail ? "daten" : "mail"); }}
-                className="h-9 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-4 text-[16px] font-black text-[#1a1204]">
+                className="h-9 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-4 text-[14px] font-black text-[#1a1204]">
                 {B.chipMatch}
               </button>
               <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(mail ? B.datenFrage : B.profilMailFrage); setSchritt(mail ? "daten" : "mail"); }}
-                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[16px] font-black">
+                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[14px] font-black">
                 {B.chipProfil}
               </button>
               <button type="button" onClick={() => { ich(B.chipFrage); ki(B.frageFrage); setSchritt("frage"); }}
-                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[16px] font-black">
+                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[14px] font-black">
                 {B.chipFrage}
               </button>
             </div>
@@ -503,7 +503,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
                   placeholder={schritt === "mail" || schritt === "frageMail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : schritt === "frage" ? B.frageFrage : B.anzeigeFrage}
                   onChange={e => setEingabe(e.target.value)} />
                 <button type="button" disabled={busy || !eingabe.trim()} onClick={() => void senden()}
-                  className="h-10 shrink-0 rounded-full border border-[#1a160f] px-4 text-[16px] font-black transition disabled:opacity-40">
+                  className="h-10 shrink-0 rounded-full border border-[#1a160f] px-4 text-[14px] font-black transition disabled:opacity-40">
                   {B.senden}
                 </button>
               </div>
@@ -526,17 +526,17 @@ export default function SpielplatzClient({ beispiel, lang }: {
                     drei Wege wieder; Gesammeltes (E-Mail, eingepflegte Daten, Match)
                     bleibt — niemand tippt etwas doppelt. */}
                 <button type="button" onClick={() => { ki(B.introKurz); setSchritt("intro"); setEingabe(""); setFehler(""); }}
-                  className="text-[16px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
+                  className="text-[13px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
                   {B.zurueck}
                 </button>
                 {spielDaten && !fotoUrl && (
                   <button type="button" onClick={() => fotoRef.current?.click()}
-                    className="text-[16px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
+                    className="text-[13px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
                     {B.fotoChip}
                   </button>
                 )}
                 {typeof zuegeUebrig === "number" && zuegeUebrig >= 0 && (
-                  <span className="text-[16px] font-bold uppercase tracking-[0.12em] opacity-40">{B.zuegeZeile(zuegeUebrig)}</span>
+                  <span className="text-[13px] font-bold uppercase tracking-[0.12em] opacity-40">{B.zuegeZeile(zuegeUebrig)}</span>
                 )}
               </div>
             </>
@@ -559,7 +559,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
       <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2">
           <div className="flex items-center gap-1 rounded-full border border-white/25 bg-[#0c0a08]/90 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur">
             <button type="button" onClick={() => setVorschau(false)}
-              className={`h-10 rounded-full px-5 text-[16px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
+              className={`h-10 rounded-full px-5 text-[13px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
               {ET.bearbeiten}
             </button>
             {/* Vorschau schlägt das Dokument frisch auf: Sprung nach oben, damit der
@@ -567,7 +567,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
                 bleibt die Stelle stehen, an der er gerade war. */}
             <button type="button"
               onClick={() => { setVorschau(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              className={`h-10 rounded-full px-5 text-[16px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
+              className={`h-10 rounded-full px-5 text-[13px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
               {ET.vorschau}
             </button>
           </div>

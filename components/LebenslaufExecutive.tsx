@@ -56,16 +56,18 @@ import type { Lang } from "@/lib/lang";
  */
 
 /**
- * DIE SCHRIFT-LEITER DIESER SEITE (Owner 25.08.2026, in zwei Sätzen: „einige Texte sind so
+ * DIE SCHRIFT-LEITER DIESER SEITE (Owner 25.08.2026, in vier Zügen: „einige Texte sind so
  * klein, dass ein 60-Jähriger nicht lesen kann" · „du hast auch zu viele Schriftgrössen auf
- * dieser Seite"). Vorher standen VIERZEHN Grössen von 9,5 bis 40 auf einem Bildschirm —
- * jede für sich vertretbar, zusammen ein Flickenteppich, und die untere Hälfte unlesbar.
+ * dieser Seite" · „das ist zu klein" (Teaser) · „verkleinern bitte", als testweise ALLES
+ * auf 16 lag und die Seite aufblähte). Vorher standen VIERZEHN Grössen von 9,5 bis 40 auf
+ * einem Bildschirm — jede für sich vertretbar, zusammen ein Flickenteppich.
  *
- * ES SIND JETZT DREI TEXTSTUFEN UND ZWEI DISPLAY-AUSNAHMEN, mehr gibt es hier nicht:
+ * ES SIND DREI TEXTSTUFEN UND DREI DISPLAY-GRÖSSEN, mehr gibt es hier nicht:
  *   13  Mikro-Etikett — NUR gesperrte Versalien (Abschnitte, Meta, Fusszeile). Kleiner
  *       wird auf dieser Seite nichts, egal wie hübsch es aussähe.
- *   16  ALLER Text — Fliesstext UND Nebentext. Der Unterschied kommt über Gewicht und
- *       Deckkraft, nicht über eine vierte Grösse: Hierarchie kostet keine Lesbarkeit.
+ *   14  Nebentext — Teaser, Fussnoten, Hilfszeilen. Lesbar heisst auch: nicht blass;
+ *       unter 70 % Deckkraft wird 14 grau, und grau liest sich wie klein.
+ *   16  Fliesstext — Brief, Chat, Profil: alles, was man wirklich liest.
  *   22  Überschrift (md: 26) — Kartenköpfe wie Abschnitts-Überschriften.
  *   30  Der Name (md: 40) · 44 die Prozentzahl — die zwei Stellen, die schlagen sollen.
  * Wer hier etwas hinzufügt, nimmt eine dieser Stufen. Eine neue Zahl ist keine Antwort.
@@ -256,7 +258,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             eine Antwort und sagt zugleich, WAS die Vorschau ist. `lb-goldhauch` statt
             eines getippten Gold-Hauchs (Memory `lb-goldhauch-klasse`). */}
         {(vorschauAktiv || (istBesitzer && vorschau)) && (
-          <p className="lb-goldhauch mb-3 flex items-center gap-2 rounded-full border border-[#f6cf51]/40 px-4 py-2 text-[16px] font-black text-white/85">
+          <p className="lb-goldhauch mb-3 flex items-center gap-2 rounded-full border border-[#f6cf51]/40 px-4 py-2 text-[13px] font-black text-white/85">
             <Eye className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.vorschauStreifen}
           </p>
         )}
@@ -339,7 +341,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                     </span>
                   </button>
                   {videoWunsch && (
-                    <span data-aufmedien="1" className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[16px] font-black uppercase tracking-[0.12em]"
+                    <span data-aufmedien="1" className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-black uppercase tracking-[0.12em]"
                       style={{ background: "rgba(12,10,8,0.65)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
                       {T.nochKeinVideo}
                     </span>
@@ -375,7 +377,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             <h1 className="font-serif text-[30px] font-black uppercase leading-[1.02] tracking-[0.02em] md:text-[40px]">
               {profil.name}
             </h1>
-            <p className="mt-2 text-[16px] font-bold leading-snug opacity-80 md:text-[16px]">{profil.rolle}</p>
+            <p className="mt-2 text-[14px] font-bold leading-snug opacity-80 md:text-[16px]">{profil.rolle}</p>
 
             {/* NUR GEFÜLLTE ZEILEN (24.08.2026, seit echte Profile hier ankommen): Die
                 Auswertung liefert nicht immer Ort und Sprachen — ein Icon vor leerem Text
@@ -383,12 +385,12 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             {(profil.ort || profil.sprachenKurz) && (
               <div className={`mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3.5 ${LINIE}`}>
                 {profil.ort && (
-                  <span className="flex items-center gap-1.5 text-[16px] font-bold opacity-60">
+                  <span className="flex items-center gap-1.5 text-[13px] font-bold opacity-60">
                     <MapPin className="h-3.5 w-3.5" />{profil.ort}
                   </span>
                 )}
                 {profil.sprachenKurz && (
-                  <span className="flex items-center gap-1.5 text-[16px] font-bold opacity-60">
+                  <span className="flex items-center gap-1.5 text-[13px] font-bold opacity-60">
                     <Languages className="h-3.5 w-3.5" />{profil.sprachenKurz}
                   </span>
                 )}
@@ -398,7 +400,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             {/* DER STATUS — leise, aber vorhanden (Auftrag: „Include a subtle status"). Ein
                 Punkt und ein Wort; kein farbiges Abzeichen, keine Fläche. */}
             {profil.verfuegbar && (
-              <p className="mt-3.5 flex items-center gap-2 text-[16px] font-black uppercase tracking-[0.14em] opacity-75">
+              <p className="mt-3.5 flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.14em] opacity-75">
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#2f7d4f]" />
                 {profil.verfuegbar}
               </p>
@@ -438,7 +440,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               <Abschnitt>{T.expertise}</Abschnitt>
               <ul className="mt-3 grid grid-cols-2 gap-x-5 md:grid-cols-3">
                 {profil.expertise.map(e => (
-                  <li key={e} className={`py-2.5 text-[16px] font-bold leading-snug opacity-80 ${LINIE}`}>{e}</li>
+                  <li key={e} className={`py-2.5 text-[14px] font-bold leading-snug opacity-80 ${LINIE}`}>{e}</li>
                 ))}
               </ul>
             </section>
@@ -465,20 +467,20 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                     </div>
                     {/* Echte Profile kennen Firma/Ergebnis nicht immer — leere Absätze
                         wären unsichtbare Lücken im Papier (24.08.2026). */}
-                    {e.firma && <p className="mt-1 text-[16px] font-bold opacity-60">{e.firma}</p>}
-                    {e.ergebnis && <p className="mt-2 text-[16px] leading-snug opacity-75">{e.ergebnis}</p>}
+                    {e.firma && <p className="mt-1 text-[13px] font-bold opacity-60">{e.firma}</p>}
+                    {e.ergebnis && <p className="mt-2 text-[14px] leading-snug opacity-75">{e.ergebnis}</p>}
                   </div>
                 ))}
               </div>
               {rest > 0 && (
                 <button type="button" onClick={() => setErfahrungOffen(o => !o)}
-                  className={`mt-3 flex items-center gap-1.5 pt-3 text-[16px] font-black uppercase tracking-[0.1em] opacity-60 transition hover:opacity-100 ${LINIE}`}>
+                  className={`mt-3 flex items-center gap-1.5 pt-3 text-[13px] font-black uppercase tracking-[0.1em] opacity-60 transition hover:opacity-100 ${LINIE}`}>
                   {erfahrungOffen ? T.wenigerAnzeigen : T.alleAnzeigen(rest)}
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${erfahrungOffen ? "rotate-180" : ""}`} />
                 </button>
               )}
               {profil.cvUrl && (
-                <p className={`pt-3 text-[16px] font-bold italic opacity-50 ${LINIE}`}>{T.ganzeCv}</p>
+                <p className={`pt-3 text-[13px] font-bold italic opacity-50 ${LINIE}`}>{T.ganzeCv}</p>
               )}
             </section>
             );
@@ -500,7 +502,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                      ein Feld ein Satz ist, ist kein Kennwert-Block. */
                   <div key={z.zahl} className={`flex items-baseline gap-4 py-3.5 ${i === 0 ? "" : LINIE}`}>
                     <p className="w-[92px] shrink-0 whitespace-nowrap pr-3 font-serif text-[26px] font-black leading-none md:w-[120px] md:text-[30px]">{z.zahl}</p>
-                    <p className="text-[16px] font-bold uppercase leading-snug tracking-[0.08em] opacity-60">{z.text}</p>
+                    <p className="text-[13px] font-bold uppercase leading-snug tracking-[0.08em] opacity-60">{z.text}</p>
                   </div>
                 ))}
               </div>
@@ -519,8 +521,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                 <div className="mt-1">
                   {profil.ausbildung.map((a, i) => (
                     <div key={a.titel} className={`py-3 ${i === 0 ? "" : LINIE}`}>
-                      <p className="text-[16px] font-black leading-snug">{a.titel}</p>
-                      <p className="mt-0.5 text-[16px] font-bold opacity-55">{a.ort}</p>
+                      <p className="text-[14px] font-black leading-snug">{a.titel}</p>
+                      <p className="mt-0.5 text-[13px] font-bold opacity-55">{a.ort}</p>
                       <p className="mt-0.5 text-[13px] font-black uppercase tracking-[0.1em] opacity-40">{a.zeitraum}</p>
                     </div>
                   ))}
@@ -533,8 +535,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                 <div className="mt-1">
                   {profil.sprachen.map((s, i) => (
                     <div key={s.sprache} className={`flex items-baseline justify-between gap-4 py-3 ${i === 0 ? "" : LINIE}`}>
-                      <p className="text-[16px] font-black">{s.sprache}</p>
-                      <p className="text-[16px] font-bold opacity-55">{s.niveau}</p>
+                      <p className="text-[14px] font-black">{s.sprache}</p>
+                      <p className="text-[13px] font-bold opacity-55">{s.niveau}</p>
                     </div>
                   ))}
                 </div>
@@ -561,7 +563,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         {!besitzerAnsicht && !ohneFirmenTeil && (
         <section id="kontakt" className="mt-8 md:mt-10">
           <h2 className="font-serif text-[22px] font-black leading-tight md:text-[26px]">{T.interessiert(vorname)}</h2>
-          <p className="mt-2 text-[16px] font-bold leading-snug opacity-70">{T.interessiertText}</p>
+          <p className="mt-2 text-[14px] font-bold leading-snug opacity-70">{T.interessiertText}</p>
 
           <ProfilChatEinstieg
             texte={{
@@ -590,14 +592,14 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         {besitzerAnsicht && ((profil.viewCount ?? 0) > 0 || (profil.videoKlicks ?? 0) > 0 || interesseZahl > 0 || anfragen.length > 0) && (
           <div className="mt-6 flex flex-col gap-1.5">
             {(profil.viewCount ?? 0) > 0 && (
-              <p className="flex items-center gap-2 text-[16px] font-bold text-white/75">
+              <p className="flex items-center gap-2 text-[14px] font-bold text-white/75">
                 <Eye className="h-4 w-4 shrink-0 text-white/45" />{T.statsOeffnungen(profil.viewCount ?? 0)}
               </p>
             )}
             {/* "1 Person hat Interesse gezeigt." (Owner 25.08.2026) — erster Griff zum
                 Firmen-Chat (Ja-Chip oder erstes Tippen), gezaehlt nur bei Fremden. */}
             {interesseZahl > 0 && (
-              <p className="flex items-center gap-2 text-[16px] font-bold text-white/75">
+              <p className="flex items-center gap-2 text-[14px] font-bold text-white/75">
                 <MessageCircle className="h-4 w-4 shrink-0 text-white/45" />{T.statsInteresse(interesseZahl)}
               </p>
             )}
@@ -606,12 +608,12 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                 Name und E-Mail; Loeschen nach Hausregel zwei Tipps, rot. */}
             {anfragen.length > 0 && (
               <>
-                <p className="flex items-center gap-2 text-[16px] font-black text-white/90">
+                <p className="flex items-center gap-2 text-[14px] font-black text-white/90">
                   <Mail className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.statsAnfragen(anfragen.length)}
                 </p>
                 {anfragen.map(a => (
                   <div key={a.id} className="ml-6 flex items-center gap-2">
-                    <p className="min-w-0 flex-1 truncate text-[16px] font-bold text-white/80">
+                    <p className="min-w-0 flex-1 truncate text-[14px] font-bold text-white/80">
                       {a.name} — <span className="select-all text-white">{a.mail}</span>
                     </p>
                     <button type="button" onClick={() => anfrageLoeschen(a.id)} aria-label="Anfrage löschen"
@@ -632,7 +634,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                     dort direkt beim Video-Teil ein (Skript → Aufnahme → fertigstellen
                     hängt das Video an DIESE Bewerbung und führt hierher zurück). Keine
                     Concierge-Mail mehr — die Erstellung IST der Weg. */}
-                <p className="flex items-start gap-2 text-[16px] font-black text-white/90">
+                <p className="flex items-start gap-2 text-[14px] font-black text-white/90">
                   <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />
                   <span>
                     {T.statsVideoWunsch(profil.videoKlicks ?? 0)}{" "}
@@ -660,16 +662,16 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             <p className="text-[13px] font-black uppercase tracking-[0.24em] opacity-40">{T.kontakt}</p>
             <div className="mt-3 flex flex-col gap-2">
               {profil.kontakt.ort && (
-                <p className="flex items-center gap-2.5 text-[16px] font-bold opacity-80"><MapPin className="h-4 w-4 shrink-0" />{profil.kontakt.ort}</p>
+                <p className="flex items-center gap-2.5 text-[14px] font-bold opacity-80"><MapPin className="h-4 w-4 shrink-0" />{profil.kontakt.ort}</p>
               )}
               {profil.kontakt.telefon && (
-                <p className="flex items-center gap-2.5 text-[16px] font-bold opacity-80"><Phone className="h-4 w-4 shrink-0" />{profil.kontakt.telefon}</p>
+                <p className="flex items-center gap-2.5 text-[14px] font-bold opacity-80"><Phone className="h-4 w-4 shrink-0" />{profil.kontakt.telefon}</p>
               )}
               {profil.kontakt.email && (
-                <p className="flex items-center gap-2.5 text-[16px] font-bold opacity-80"><Mail className="h-4 w-4 shrink-0" />{profil.kontakt.email}</p>
+                <p className="flex items-center gap-2.5 text-[14px] font-bold opacity-80"><Mail className="h-4 w-4 shrink-0" />{profil.kontakt.email}</p>
               )}
               {profil.kontakt.profilLink && (
-                <p className="flex items-center gap-2.5 text-[16px] font-bold opacity-80"><Link2 className="h-4 w-4 shrink-0" />{profil.kontakt.profilLink}</p>
+                <p className="flex items-center gap-2.5 text-[14px] font-bold opacity-80"><Link2 className="h-4 w-4 shrink-0" />{profil.kontakt.profilLink}</p>
               )}
             </div>
             {/* ZWEI WAHLEN MIT HÄKCHEN (Owner 25.08.2026: „mit Häkchen Öffentlich sichtbar
@@ -689,14 +691,14 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                 return (
                   <button key={String(w.wert)} type="button" disabled={freigabeBusy}
                     onClick={() => { if (!aktiv) void freigabeUmschalten(); }}
-                    className={`flex h-11 items-center gap-2.5 rounded-full px-4 text-left text-[16px] font-black transition disabled:opacity-40 ${aktiv ? "border-2 border-[#1a160f] bg-[#1a160f]/[0.05]" : "border border-[#1a160f]/25 opacity-60 hover:opacity-90"}`}>
+                    className={`flex h-11 items-center gap-2.5 rounded-full px-4 text-left text-[14px] font-black transition disabled:opacity-40 ${aktiv ? "border-2 border-[#1a160f] bg-[#1a160f]/[0.05]" : "border border-[#1a160f]/25 opacity-60 hover:opacity-90"}`}>
                     <span className="w-4 shrink-0">{aktiv && <Check className="h-4 w-4" />}</span>
                     {w.label}
                   </button>
                 );
               })}
             </div>
-            <p className="mt-3 text-[16px] font-bold leading-snug opacity-45">
+            <p className="mt-3 text-[13px] font-bold leading-snug opacity-45">
               {kontaktFrei ? T.kontaktFreigegeben : T.kontaktNurDu}
             </p>
           </section>
@@ -712,12 +714,12 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           {/* Bearbeiten links, Vorschau RECHTS (Owner 25.08.2026: „vorschau rechts"). */}
           <div className="flex items-center gap-1 rounded-full border border-white/25 bg-[#0c0a08]/90 p-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur">
             <button type="button" onClick={() => setVorschau(false)}
-              className={`h-10 rounded-full px-5 text-[16px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
+              className={`h-10 rounded-full px-5 text-[13px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "text-white/70 hover:text-white" : "bg-white text-[#0c0a08]"}`}>
               {T.bearbeiten}
             </button>
             <button type="button"
               onClick={() => { setVorschau(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              className={`h-10 rounded-full px-5 text-[16px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
+              className={`h-10 rounded-full px-5 text-[13px] font-black uppercase tracking-[0.08em] transition ${vorschau ? "bg-white text-[#0c0a08]" : "text-white/70 hover:text-white"}`}>
               {T.vorschau}
             </button>
           </div>

@@ -45,7 +45,7 @@ export default function MappenKopf({ icon: Icon, titel, teaser }: {
         </p>
         <DividerOrnament className="ml-0 mt-2.5" />
         {teaser && (
-          <p className="mt-2 max-w-[38ch] text-[16px] font-bold leading-snug opacity-75">{teaser}</p>
+          <p className="mt-2 max-w-[38ch] text-[14px] font-bold leading-snug opacity-75">{teaser}</p>
         )}
       </div>
     </div>

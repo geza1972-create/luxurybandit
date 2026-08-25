@@ -191,28 +191,28 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
             {jaNeinOffen && schritt === "frei" && (
               <div className="flex gap-2">
                 <button type="button" onClick={jaGeklickt}
-                  className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-6 text-[16px] font-black text-[#1a1204]">
+                  className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-6 text-[14px] font-black text-[#1a1204]">
                   {texte.ja}
                 </button>
                 <button type="button" onClick={neinGeklickt}
-                  className={`h-10 rounded-full border px-6 text-[16px] font-black ${karte ? "border-[#1a160f]" : "border-white/35 text-white/80"}`}>
+                  className={`h-10 rounded-full border px-6 text-[14px] font-black ${karte ? "border-[#1a160f]" : "border-white/35 text-white/80"}`}>
                   {texte.nein}
                 </button>
               </div>
             )}
 
             {msgs.map((m, i) => m.von === "ich" ? (
-              <p key={i} className={`ml-auto max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[16px] font-bold leading-snug ${karte ? "bg-[#1a160f]/[0.07]" : "bg-white/10 text-white/90"}`}>
+              <p key={i} className={`ml-auto max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[14px] font-bold leading-snug ${karte ? "bg-[#1a160f]/[0.07]" : "bg-white/10 text-white/90"}`}>
                 {m.text}
               </p>
             ) : (
-              <p key={i} className={`flex items-start gap-2 text-[16px] font-bold leading-snug ${karte ? "opacity-85" : "text-white/85"}`}>
+              <p key={i} className={`flex items-start gap-2 text-[14px] font-bold leading-snug ${karte ? "opacity-85" : "text-white/85"}`}>
                 {schritt === "fertig" && i === msgs.length - 1 && <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />}
                 {m.text}
               </p>
             ))}
             {busy && (
-              <p className={`flex items-center gap-2 text-[16px] font-bold leading-snug ${karte ? "opacity-60" : "text-white/55"}`}>
+              <p className={`flex items-center gap-2 text-[14px] font-bold leading-snug ${karte ? "opacity-60" : "text-white/55"}`}>
                 <Laden art="knopf" karte={karte} />{texte.denkt}
               </p>
             )}
@@ -230,13 +230,13 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
                   onChange={e => { if (e.target.value.trim()) interesseMelden(); setEingabe(e.target.value); }} />
                 <button type="button" disabled={busy || (schritt !== "nachricht" && !eingabe.trim())}
                   onClick={() => void senden()}
-                  className={`h-10 shrink-0 rounded-full border px-4 text-[16px] font-black transition disabled:opacity-40 ${karte ? "border-[#1a160f]" : "border-white/40 text-white/85 hover:border-white/70"}`}>
+                  className={`h-10 shrink-0 rounded-full border px-4 text-[14px] font-black transition disabled:opacity-40 ${karte ? "border-[#1a160f]" : "border-white/40 text-white/85 hover:border-white/70"}`}>
                   {schritt === "nachricht" && !eingabe.trim() ? texte.ohneNachricht : texte.senden}
                 </button>
               </div>
               {(schritt === "name" || schritt === "mail" || schritt === "nachricht") && (
                 <button type="button" onClick={abbrechen}
-                  className={`mt-2 text-[16px] font-black uppercase tracking-[0.12em] transition ${karte ? "opacity-50 hover:opacity-80" : "text-white/45 hover:text-white/80"}`}>
+                  className={`mt-2 text-[13px] font-black uppercase tracking-[0.12em] transition ${karte ? "opacity-50 hover:opacity-80" : "text-white/45 hover:text-white/80"}`}>
                   {texte.zu}
                 </button>
               )}
