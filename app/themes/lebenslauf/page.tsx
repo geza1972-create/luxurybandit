@@ -7,6 +7,8 @@ import SeitenFuss from "@/components/SeitenFuss";
 import { Knopf } from "@/components/CI";
 import { Kicker, H1, Y, Lead, SectionTitle, Fine } from "@/components/Landing";
 import BewerbungszentraleFeatures from "@/components/BewerbungszentraleFeatures";
+import HilfeChat from "@/components/HilfeChat";
+import { textbausteineInSprache } from "@/lib/lebenslauf-uebersetzen";
 import { resolveLang } from "@/lib/lang-server";
 import { eur, themenPreisCents, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 
@@ -209,12 +211,37 @@ const TEXTE: Record<string, Copy> = {
   },
 };
 
+/**
+ * DER HILFE-CHAT (Owner 25.08.2026: „wir können eine Hilfchat machen auf der Seite. Zum
+ * Aus-/Einklappen") — deutsche Quelle, zur Laufzeit übersetzt wie die Muster-Seite. Die
+ * drei Fragen sind nicht beliebig: Es sind die drei, an denen genau diese Zielgruppe
+ * hängen bleibt — die Sprache, der Preis, die Dauer.
+ */
+const HILFE_QUELLE = {
+  auf: "Hast du eine Frage?",
+  zu: "Frage schliessen",
+  titel: "Häufige Fragen",
+  f1: "Muss ich die Sprache gut können?",
+  a1: "Nein. Du bekommst den Text in der Sprache, die du für dein Video wählst — du liest ihn nur ab. Oder du sprichst in deiner eigenen Sprache. Dein Lebenslauf wird ohnehin automatisch übersetzt.",
+  f2: "Was kostet es genau?",
+  a2: "19 € für jede Bewerbung: Skript, Video bis 1 Minute und die fertige Seite. Dazu 4,99 € im Monat ab dem ersten Kauf, damit deine Bewerbungen online bleiben — monatlich kündbar.",
+  f3: "Wie lange dauert das?",
+  a3: "Die Prozentzahl und die Analyse bekommst du sofort und gratis. Für die fertige Bewerbung brauchst du deinen Lebenslauf, ein Foto und eine kurze Aufnahme von dir — zusammen etwa zehn Minuten.",
+  frei: "Etwas anderes? Schreib es uns — wir antworten dir noch heute.",
+  platzhalter: "Deine Frage …",
+  mailPlatzhalter: "Deine E-Mail für die Antwort",
+  senden: "Senden",
+  danke: "Ist raus — wir antworten dir noch heute.",
+  mailFehler: "Bitte gib eine gültige E-Mail an.",
+};
+
 export default async function LebenslaufThemePage() {
   const L = await resolveLang("ro");
   const t = TEXTE[L] ?? TEXTE.en;
   const preisCents = themenPreisCents("lebenslauf");
   const einmal = eur(preisCents, L);
   const monat = eur(LEBENSLAUF_MONAT_CENTS, L);
+  const hilfe = await textbausteineInSprache(HILFE_QUELLE, L);
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -288,6 +315,12 @@ export default async function LebenslaufThemePage() {
             ))}
           </div>
         </section>
+
+        {/* ───── DER HILFE-CHAT — eingeklappt, direkt vor dem Abschluss (Owner
+            25.08.2026). Er steht NACH den Fragen und VOR dem letzten Knopf: Wer bis
+            hierher gelesen hat und noch zögert, hat genau eine offene Frage — und findet
+            hier den Weg, sie zu stellen, statt die Seite zu verlassen. ───── */}
+        <HilfeChat texte={hilfe} />
 
         {/* ───── ABSCHLUSS ───── */}
         <section className="mt-10">
