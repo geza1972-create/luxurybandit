@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
+import { CornerOrnament, DividerOrnament } from "@/components/BoxOrnaments";
 
 /**
  * DAS KOPFBAND DER MAPPE (Owner 25.08.2026, mit Bild: „Die zwei Karten müssen einen
@@ -28,14 +28,24 @@ export default function MappenKopf({ icon: Icon, titel, teaser }: {
   teaser?: string;
 }) {
   return (
-    <div className="relative overflow-hidden px-5 pb-4 pt-5 text-center md:px-8">
-      <CornerOrnaments />
+    /* LINKSBÜNDIG (Owner 25.08.2026: „titel Links") — dieselbe Kante wie der Betreff und
+       der Brieftext darunter; ein mittiger Titel über linksbündigem Fliesstext bricht die
+       Lesekante, die ein Dokument zusammenhält. Zeichen und Titel stehen in einer Zeile,
+       der Ranken-Trenner sitzt links an derselben Kante. */
+    <div className="relative overflow-hidden px-5 pb-4 pt-5 md:px-8">
+      {/* NUR DIE RECHTEN RANKEN, seit der Titel links steht: Links ist jetzt die
+          Lesekante (Zeichen, Titel, Trenner, Teaser) — eine Ranke dort liefe mitten in
+          den Text. Rechts rahmen zwei Ranken das Band wie den Kopf eines Briefbogens. */}
+      <CornerOrnament className="right-2 top-2 -scale-x-100" />
+      <CornerOrnament className="bottom-2 right-2 -scale-100" />
       <div className="relative">
-        <Icon aria-hidden className="lb-karte-gold mx-auto h-5 w-5" />
-        <p className="mt-2 font-serif text-[24px] font-black leading-none md:text-[27px]">{titel}</p>
-        <DividerOrnament className="mt-2.5" />
+        <p className="flex items-center gap-2.5 font-serif text-[24px] font-black leading-none md:text-[27px]">
+          <Icon aria-hidden className="lb-karte-gold h-5 w-5 shrink-0" />
+          {titel}
+        </p>
+        <DividerOrnament className="ml-0 mt-2.5" />
         {teaser && (
-          <p className="mx-auto mt-2 max-w-[34ch] text-[11.5px] font-bold leading-snug opacity-55">{teaser}</p>
+          <p className="mt-2 max-w-[38ch] text-[11.5px] font-bold leading-snug opacity-55">{teaser}</p>
         )}
       </div>
     </div>
