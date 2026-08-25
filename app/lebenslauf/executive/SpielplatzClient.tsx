@@ -65,7 +65,7 @@ const TEXTE = {
     profilVerkauf: "Gefällt es dir? Dann mach es echt — mit vollständiger Analyse, Optimierung und deinem Video. Oder füg eine Anzeige ein, dann sage ich dir vorher, wie gut sie zu dir passt.",
     zuEnde: "Das war dein fünfter Zug — mehr geht im Spiel nicht. Mach es echt: Deine Bewerbung, richtig analysiert und optimiert.",
     zuegeZeile: (n: number) => n === 1 ? "Noch 1 Spielzug übrig." : `Noch ${n} Spielzüge übrig.`,
-    senden: "Senden", denkt: "Einen Moment …", zurueck: "Zurück",
+    senden: "Senden", denkt: "Einen Moment …", zurueck: "Von vorn",
     fehler: "Das hat nicht geklappt — bitte noch einmal.",
     gold: "Gratis weitermachen",
     analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
@@ -101,7 +101,7 @@ const TEXTE = {
     profilVerkauf: "Like it? Then make it real — with full analysis, optimization and your video. Or paste a job ad and I'll tell you first how well it fits you.",
     zuEnde: "That was your fifth move — the game ends here. Make it real: your application, properly analyzed and optimized.",
     zuegeZeile: (n: number) => n === 1 ? "1 move left." : `${n} moves left.`,
-    senden: "Send", denkt: "One moment …", zurueck: "Back",
+    senden: "Send", denkt: "One moment …", zurueck: "Start over",
     fehler: "That didn't work — please try again.",
     gold: "Continue for free",
     analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
@@ -497,13 +497,15 @@ export default function SpielplatzClient({ beispiel, lang }: {
                 </div>
               )}
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                {/* Der garantierte Ausweg aus dem Frage-Weg (Memory immer-close-einbauen). */}
-                {(schritt === "frage" || schritt === "frageMail") && (
-                  <button type="button" onClick={() => { setSchritt("intro"); setEingabe(""); setFehler(""); }}
-                    className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
-                    {B.zurueck}
-                  </button>
-                )}
+                {/* DER GARANTIERTE WEG ZURÜCK AUF JEDEM SCHRITT (Owner: „Wenn ich auf
+                    eins klicke, komme ich nicht mehr zurück — es sei denn wir haben
+                    Reset-Button" · Memory immer-close-einbauen): „Von vorn" bringt die
+                    drei Wege wieder; Gesammeltes (E-Mail, eingepflegte Daten, Match)
+                    bleibt — niemand tippt etwas doppelt. */}
+                <button type="button" onClick={() => { setSchritt("intro"); setEingabe(""); setFehler(""); }}
+                  className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
+                  {B.zurueck}
+                </button>
                 {spielDaten && !fotoUrl && (
                   <button type="button" onClick={() => fotoRef.current?.click()}
                     className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
