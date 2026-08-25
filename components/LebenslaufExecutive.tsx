@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check } from "lucide-react";
+import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye } from "lucide-react";
 import { TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -123,11 +123,26 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
     };
   };
 
+  /* „Noch kein Video."-Zeile nach dem Play-Tipp auf einer Bild-Bewerbung. */
+  const [videoWunsch, setVideoWunsch] = useState(false);
+  /** Erst eine NEGATIVE Besitz-Prüfung macht diesen Betrachter zum Fremden — nur dann
+      zählen View-Beacon und Play-Tipp (Owner: der Besitzer zählt sich nie selbst). */
+  const [fremd, setFremd] = useState(false);
+
   useEffect(() => {
     const { device, headers } = ausweis();
     fetch(`/api/lebenslauf-korrektur?id=${encodeURIComponent(profil.id)}&device=${encodeURIComponent(device)}`, {
       headers, cache: "no-store",
-    }).then(r => r.json()).then(d => { if (d?.darf === true) setIstBesitzer(true); }).catch(() => { /* bleibt „nein" */ });
+    }).then(r => r.json()).then(d => {
+      if (d?.darf === true) { setIstBesitzer(true); return; }
+      setFremd(true);
+      /* DER EHRLICHE VIEW (Owner 25.08.2026: „Recruiter haben sich deine Bewerbung
+         angeschaut") — gezählt wird genau hier: Besitz-Prüfung fertig UND negativ. */
+      void fetch("/api/lebenslauf-view", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: profil.id, art: "view" }),
+      }).catch(() => { /* ein verlorener Zähler ist kein Fehler */ });
+    }).catch(() => { /* bleibt „nein" */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profil.id]);
 
@@ -192,11 +207,38 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
                   teilen={<TeilenKnopf rund text={`${profil.name} — ${profil.rolle}`}
                     label={T.teilen} kopiertLabel={T.kopiert} />} />
               ) : (
-                <div className="aspect-[4/5] w-full overflow-hidden rounded-[14px]">
+                /* DIE BILD-BEWERBUNG TRÄGT TROTZDEM EINEN PLAY-KNOPF (Owner 25.08.2026:
+                   „Das wäre doch toll, wenn auf dem Bild ein Play-Button steht und die
+                   Meldung kommt: Noch kein Video — aber der Bewerber sieht: 3 Leute
+                   wollten dein Video sehen"). Der Tipp zählt nur bei bestätigten Fremden
+                   und ist damit der ehrlichste Kauf-Trigger fürs Video. */
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[14px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {/* object-top wie beim Video darüber — Porträt nie mittig schneiden
                       (Skill `card`, 24.08.2026). */}
                   <img src={profil.portraitUrl} alt={profil.name} className="h-full w-full object-cover object-top" />
+                  <button type="button" aria-label="Play"
+                    onClick={() => {
+                      setVideoWunsch(true);
+                      if (fremd) {
+                        void fetch("/api/lebenslauf-view", {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: profil.id, art: "video" }),
+                        }).catch(() => { /**/ });
+                      }
+                    }}
+                    className="absolute inset-0 z-10 grid place-items-center">
+                    <span className="grid h-16 w-16 place-items-center rounded-full transition active:scale-95"
+                      style={{ background: "rgba(12,10,8,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
+                      <Play className="h-7 w-7 text-white" fill="currentColor" />
+                    </span>
+                  </button>
+                  {videoWunsch && (
+                    <span data-aufmedien="1" className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em]"
+                      style={{ background: "rgba(12,10,8,0.65)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
+                      {T.nochKeinVideo}
+                    </span>
+                  )}
                 </div>
               )}
               {/* Die Aufschrift auf dem Video — links unten, wo keiner der drei Karten-Knöpfe
@@ -426,6 +468,25 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             }}
             kandidat={profil.name} />
         </section>
+        )}
+
+        {/* DIE EHRLICHEN ZÄHLER FÜR DEN BESITZER (Owner 25.08.2026: „Es müssen irgendwo
+            die Views stehen … Recruiter haben sich deine Bewerbung angeschaut" · „Video
+            ist gefragt. Erstelle jetzt ein Video…") — still auf dem Dunklen, direkt
+            unter der Karte; der Video-Anstoss erscheint nur, solange KEIN Video da ist. */}
+        {besitzerAnsicht && ((profil.viewCount ?? 0) > 0 || (profil.videoKlicks ?? 0) > 0) && (
+          <div className="mt-6 flex flex-col gap-1.5">
+            {(profil.viewCount ?? 0) > 0 && (
+              <p className="flex items-center gap-2 text-[13px] font-bold text-white/75">
+                <Eye className="h-4 w-4 shrink-0 text-white/45" />{T.statsOeffnungen(profil.viewCount ?? 0)}
+              </p>
+            )}
+            {(profil.videoKlicks ?? 0) > 0 && !profil.videoUrl && (
+              <p className="flex items-center gap-2 text-[13px] font-black text-white/90">
+                <Play className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.statsVideoWunsch(profil.videoKlicks ?? 0)}
+              </p>
+            )}
+          </div>
         )}
 
         {/* DIE BESITZER-BOXEN — jede bringt ihre eigene `lb-karte`-Hülle mit; ob überhaupt

@@ -56,6 +56,8 @@ export async function GET(request: Request) {
       anzeigeFirma: profil.anzeigeFirma ?? "",
       matchProzent: typeof profil.matchProzent === "number" ? profil.matchProzent : null,
       anschreiben: profil.anschreiben ?? "",
+      viewCount: profil.viewCount ?? 0,
+      videoKlicks: profil.videoKlicks ?? 0,
     }, { headers: { "Cache-Control": "no-store" } });
   }
   return NextResponse.json({

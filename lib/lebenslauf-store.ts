@@ -121,6 +121,17 @@ export type LebenslaufProfil = {
   /** Zählt ALLE je erzeugten Bewerbungen (auch gelöschte) — die EINE Gratis-Probe hängt an
       diesem Zähler, nicht an der Listenlänge, sonst wäre Löschen = neue Probe. */
   bewerbungenErzeugt?: number;
+  /**
+   * DIE EHRLICHEN ZÄHLER (Owner 25.08.2026: „Es müssen irgendwo die Views stehen …
+   * Recruiter haben sich deine Bewerbung angeschaut"): `viewCount` zählt Seitenaufrufe
+   * von NICHT-Besitzern (der Beacon feuert erst, wenn die Besitz-Prüfung im Browser
+   * negativ ausfiel). `videoKlicks` zählt Tipps auf den Play-Knopf einer BILD-Bewerbung
+   * („Noch kein Video" für die Firma — für den Bewerber der Kauf-Trigger: „3 Leute
+   * wollten dein Video sehen"). Vanity-Zähler: Verluste durch parallele Schreiber sind
+   * hinnehmbar, hier hängt kein Geld dran.
+   */
+  viewCount?: number;
+  videoKlicks?: number;
 };
 
 const pfad = (id: string) => `lebenslauf/${id}.json`;
