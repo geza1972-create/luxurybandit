@@ -251,6 +251,22 @@ FOLGEN FÜRS PRODUKT:
   Die Kette Anzeige → Analyse → Skript → eigene Aufnahme → Profi-Video, in
   sieben Sprachen und in einer teilbaren Mappe, baut so schnell niemand nach.
 
+DER VERGLEICHSPREIS (Owner 25.08. nacht: „vielleicht fuer 150 Euro bekommt er
+das" · „die sieben Sprachen kann er vergessen, er braucht dafuer eine
+Webseite") — und das ist eher zu niedrig geschaetzt: Wer sich dasselbe bauen
+liesse, zahlt fuer eine Ein-Seiten-Webseite mit Video-Einbindung, Kontaktweg
+und Uebersetzung in sieben Sprachen realistisch einige Hundert Euro, plus
+Hosting, plus jemanden, der es pflegt. Und ein Profi-Video mit Sprecher-Look
+kostet allein mehr als unsere 29.
+DAS GEHOERT AUF DIE SEITE, aber NICHT als erfundene Streichpreis-Zahl (das
+wirkt wie ein Rabatt-Trick und ist rechtlich heikel, wenn niemand je 150
+verlangt hat). Der ehrliche Weg ist die AUFZAEHLUNG: eigene Webseite, eigene
+Adresse, sieben Sprachen, Video eingebettet, Firmen-Chat — und der Satz „Das
+bekommst du nirgendwo sonst." Der Leser rechnet selbst, und die Zahl, die er
+sich denkt, ist glaubwuerdiger als jede, die wir hinschreiben.
+GEBAUT: Der Kontrast-Block der Landingpage sagt jetzt genau das, in sieben
+Sprachen.
+
 ---
 
 ## DIE GRATIS-LINIE (Owner 25.08. nacht — der Endstand)
