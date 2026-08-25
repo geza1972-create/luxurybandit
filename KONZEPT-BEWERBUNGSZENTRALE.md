@@ -637,6 +637,10 @@ Tunnel man ihm zeigt"). Drei Fragen, dann steht der Weg fest:
 **W1 — Hast du eine Anzeige, auf die du dich bewerben willst? (Ja / Nein)**
 - JA → der ANZEIGEN-WEG: Anzeige einfügen, Analyse, zugeschnittene Bewerbung.
   Hier entsteht der Match und damit der Kaufgrund.
+  PREIS GLEICH (Owner 25.08. nacht auf die Frage: „ja, auch 19 Euro") — eine
+  Bewerbung kostet 19, ob mit Anzeige zugeschnitten oder allgemein. Richtig
+  so: Der Aufwand ist derselbe (Auswertung, Texte, Video, Seite), und zwei
+  Preise für dasselbe Ergebnis würden nur erklären müssen, warum.
 - NEIN → der ALLGEMEINE WEG (Owner: „bei Nein klar trotzdem bauen. Dann muss
   man ihm sagen: wir bauen eine generelle Bewerbung. Die kann er später
   anpassen. Das ist seine allgemeine Bewerbung dann."). Also: keine
