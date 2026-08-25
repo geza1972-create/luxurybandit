@@ -39,13 +39,13 @@ export default function MappenKopf({ icon: Icon, titel, teaser }: {
       <CornerOrnament className="right-2 top-2 -scale-x-100" />
       <CornerOrnament className="bottom-2 right-2 -scale-100" />
       <div className="relative">
-        <p className="flex items-center gap-2.5 font-serif text-[24px] font-black leading-none md:text-[27px]">
+        <p className="flex items-center gap-2.5 font-serif text-[22px] font-black leading-none md:text-[26px]">
           <Icon aria-hidden className="lb-karte-gold h-5 w-5 shrink-0" />
           {titel}
         </p>
         <DividerOrnament className="ml-0 mt-2.5" />
         {teaser && (
-          <p className="mt-2 max-w-[38ch] text-[11.5px] font-bold leading-snug opacity-55">{teaser}</p>
+          <p className="mt-2 max-w-[38ch] text-[16px] font-bold leading-snug opacity-75">{teaser}</p>
         )}
       </div>
     </div>

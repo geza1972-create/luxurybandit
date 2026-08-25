@@ -39,11 +39,11 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
             Es ist die Herkunft der SEITE, dort wo jede Seite im Netz sie trägt, und der
             eine Weg vom Dossier zurück ins Portal. */}
         <p className="text-center">
-          <Link href="/" className="text-[11.5px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
+          <Link href="/" className="text-[16px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
             luxurybandit
           </Link>
         </p>
-        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] font-semibold text-white/35">
+        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[16px] font-semibold text-white/35">
           <Link href="/imprint" className="transition hover:text-white/70">Imprint</Link>
           <Link href="/privacy" className="transition hover:text-white/70">Privacy</Link>
           <Link href="/terms" className="transition hover:text-white/70">Terms</Link>
@@ -86,8 +86,8 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
        `pb-16`: Unten schweben der Menue-Knopf und der Assistent. Ohne diesen Abstand liegen
        sie genau auf „Contact" und „Imprint" — den zwei Links, die erreichbar sein MUESSEN. */
     <footer className={`mx-auto mt-14 w-full max-w-[440px] border-t border-white/10 px-4 pb-16 pt-5 ${className}`}>
-      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/85">
+      <p className="mb-2 text-[13px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[16px] font-bold text-white/85">
         {links.map(([href, text]) => (
           <Link key={href} href={href} className="hover:text-white">{text}</Link>
         ))}
@@ -109,7 +109,7 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
       </div>
       {/* Die Marke zum Schluss — sie beantwortet die Frage „bei wem war ich hier eigentlich",
           wenn jemand die Seite geteilt bekommen hat und die Kopfzeile längst weggescrollt ist. */}
-      <p className="mt-3 text-[11px] font-semibold text-white/40">© LuxuryBandit</p>
+      <p className="mt-3 text-[16px] font-semibold text-white/40">© LuxuryBandit</p>
     </footer>
   );
 }
