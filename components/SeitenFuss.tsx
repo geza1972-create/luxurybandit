@@ -33,7 +33,17 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
   if (art === "schlicht") {
     return (
       <footer className={`mx-auto mt-10 w-full max-w-[440px] px-4 pb-14 pt-4 ${className}`}>
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] font-semibold text-white/35">
+        {/* DIE MARKE STEHT IM FUSS (Owner 25.08.2026: „unten im Footer muss noch
+            LuxuryBandit rein, als Link auf die Homepage") — das ist KEIN „made by" auf
+            der Mappe (das bleibt draussen, Memory `lebenslauf-kontaktkarte-ausblendbar`):
+            Es ist die Herkunft der SEITE, dort wo jede Seite im Netz sie trägt, und der
+            eine Weg vom Dossier zurück ins Portal. */}
+        <p className="text-center">
+          <Link href="/" className="text-[11.5px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
+            luxurybandit
+          </Link>
+        </p>
+        <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] font-semibold text-white/35">
           <Link href="/imprint" className="transition hover:text-white/70">Imprint</Link>
           <Link href="/privacy" className="transition hover:text-white/70">Privacy</Link>
           <Link href="/terms" className="transition hover:text-white/70">Terms</Link>
