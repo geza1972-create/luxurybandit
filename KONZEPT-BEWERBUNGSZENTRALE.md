@@ -228,17 +228,26 @@ schalten (Vermittlungsfälle).
 
 ## Preise (Endstand nach mehreren Drehungen)
 
+GEDREHT AM 25.08. NACHT (Owner, beim Lesen der Preis-Zeile: „das stimmt hier
+nicht ganz. Der kann nicht unendlich Bewerbungen machen. Er zahlt bei jeder
+Generierung Geld. Jedes Mal kostet es 19 Euro"):
+**JEDE ERZEUGUNG KOSTET 19** — nicht nur die erste. Das Abo hält die Seiten
+online, es kauft KEINE weiteren Bewerbungen frei.
+
 | | |
 |---|---|
-| **ERSTKAUF: Auswertung + Video + Seite** | **19** (LEBENSLAUF_CENTS) — der Einstieg, nicht gratis |
-| Match prüfen | gratis (für Kunden, auf ihrer Seite) |
-| ERSTE zugeschnittene Version (mit Bild) | gratis — die Probe; Löschen gibt sie nicht zurück |
-| Weitere Bild-Bewerbungen | nur mit dem 4,99-Abo, darin ohne Einzelpreis |
-| Videobewerbung | kostet IMMER extra je Video, übers GUTHABEN (Kiss-Kaufweg); Preis vor Stufe 3 festlegen (Kandidaten: 1,99 vorhandenes Video / 4,99 neu eingesprochen) |
+| **JEDE Bewerbung: Auswertung + Video + Seite** | **19** (LEBENSLAUF_CENTS) — jedes Mal, nicht einmalig |
+| Match prüfen | gratis (Schnell-Analyse, auch ohne Konto) |
+| Abo | 4,99/Monat (LEBENSLAUF_MONAT_CENTS) — deine Bewerbungen bleiben ONLINE, monatlich kündbar. KEINE „unbegrenzten Zuschnitte" mehr |
 | Bild-Wechsel je Version | Foto-Upload gratis; KI-Berufslook nur im Video-Paket |
 
-Keine neue Abrechnungstechnik: Abo-Häkchen + Probe-Zähler + bestehender
-Guthaben-Weg. Preise NUR aus lib/pricing.ts, nie als Zahl im Text.
+ÜBERHOLT und deshalb hier nur noch als Geschichte: „erste Version gratis als
+Probe", „weitere Versionen im Abo enthalten", „Videobewerbung extra übers
+Guthaben". Was davon im Code steht (Probe-Zähler `bewerbungenErzeugt`,
+`aboNoetig`-Text in ProfilBewerbungen), muss beim nächsten Bau-Schritt auf
+das neue Modell gezogen werden — die Landingpage sagt es bereits richtig.
+
+Preise NUR aus lib/pricing.ts, nie als Zahl im Text.
 
 ---
 
