@@ -44,14 +44,14 @@ export const metadata: Metadata = {
 const MUSTER_TEXTE = {
   videoEmpfehlung: "Unsere Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
   anzeigePlatzhalter: "Stellenanzeige oder Link hier einfügen — du siehst sofort, wie gut sie zu dir passt.",
-  anpassenCta: "Bewerbung anpassen",
+  anpassenCta: "Mach dir jetzt eine professionelle Bewerbung",
   /* Jedes Blatt wird EINZELN angepasst (Owner 25.08.2026: „Das wird auch per Klick
      angepasst, extra") — der Lebenslauf über den Knopf in der Analyse, das Anschreiben
      über den eigenen darunter. */
   anschreibenCta: "Anschreiben anpassen",
   analyseH: "Schnell-Analyse",
   analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.",
-  anzeigeH: "Die Anzeige",
+  anzeigeH: "Beispiel einer Anzeige, die du gefunden hast",
   passt: "Das passt",
   fehlt: "Das fehlt",
   befundeH: "Am Lebenslauf selbst",
@@ -66,7 +66,6 @@ const MUSTER_TEXTE = {
      nicht mehr, dass es ein Beispiel ist, sondern was man TUN soll. Deutsche Quelle,
      Rumänisch und die anderen fünf Sprachen kommen aus dem Übersetzer. */
   demoAnalyseHinweis: "Du hast eine Anzeige gefunden und willst wissen, ob sie zu dir passt? Füg den Text ein — wir geben dir die Analyse.",
-  demoAnzeige: "Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.\n\nWir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.\n\nWir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche.",
   jobtitel: "Fachpflegekraft Intensivmedizin (m/w/d)",
   g1: "Fachweiterbildung Intensiv- und Anästhesiepflege verlangt — 2020 abgeschlossen.",
   g2: "Beatmungspflege gefordert — seit 2021 täglich auf der Intensivstation.",

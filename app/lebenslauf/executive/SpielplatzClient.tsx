@@ -5,7 +5,7 @@ import { Eye, MessageCircle, Play, Mail, Check, Minus, Gauge } from "lucide-reac
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
-import { Knopf, EingabeMehrzeilig } from "@/components/CI";
+import { Knopf } from "@/components/CI";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import type { Lang } from "@/lib/lang";
 import type { MusterTexte } from "./page";
@@ -29,6 +29,21 @@ import type { MusterTexte } from "./page";
  */
 
 type Match = { prozent: number; jobtitel: string; gruende: string[]; luecken: string[]; befunde: string[]; anschreibenKurz: string };
+
+/**
+ * DIE MUSTER-ANZEIGE BLEIBT DEUTSCH (Owner 25.08.2026: „Baue nur die Originalanzeige als
+ * Beispiel auf Deutsch hier ein zum Scrollen") — sie steht bewusst NICHT im übersetzten
+ * Textbündel: Eine deutsche Stellenanzeige ist genau das, was der rumänische Bewerber
+ * findet. Dass die Analyse darüber in SEINER Sprache steht, ist das ganze Versprechen des
+ * Produkts; würde die Anzeige mitübersetzt, ginge der Beweis verloren.
+ */
+const DEMO_ANZEIGE_DE = `Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.
+
+Ihre Aufgaben: Überwachung und Pflege beatmeter Patientinnen und Patienten, Assistenz bei diagnostischen und therapeutischen Massnahmen, Dokumentation im Schichtdienst.
+
+Wir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.
+
+Wir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche, Zuschuss zum Deutschkurs, betriebliche Altersvorsorge.`;
 
 export default function SpielplatzClient({ beispiel, lang, texte }: {
   beispiel: ExecutiveProfil;
@@ -98,14 +113,17 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
      angepasst, extra") — aber der Knopf steht DRAUSSEN, nicht im Blatt (Owner: „muss
      ausserhalb stehen der Karte"): Das Papier trägt den Inhalt, das Dunkle die Handlung.
      Er nimmt die eingefügte Anzeige mit in den Trichter. */
+  /* NUR EIN BEISPIEL, KEIN WEG (Owner 25.08.2026: „das bleibt auch nur als Beispiel ohne
+     Funktion hier") — auf der Muster-Seite gibt es GENAU EINEN Knopf, der etwas tut: den
+     goldenen. Dieser hier zeigt, dass sich auch das Anschreiben einzeln anpassen lässt,
+     und bleibt bewusst stumm — dieselbe Entscheidung wie beim Anzeigen-Feld, das nichts
+     auslöste. `aria-disabled` sagt es auch Vorlese-Programmen. */
   const anschreibenAktion = (
     <div className="mt-3">
-      <Knopf art="umriss" onClick={() => {
-        try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
-        window.location.href = "/themes/lebenslauf/start";
-      }}>
+      <span aria-disabled="true"
+        className="flex h-11 w-full items-center justify-center rounded-full border border-white/25 px-5 text-center text-[16px] font-black leading-tight text-white/45">
         {B.anschreibenCta}
-      </Knopf>
+      </span>
     </div>
   );
 
@@ -125,7 +143,6 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
     befunde: [B.b1, B.b2, B.b3],
     anschreibenKurz: "",
   };
-  const zeigeAnzeige = letzteAnzeige || B.demoAnzeige;
 
   /* ── UNTER DER KARTE: Beispiel-Zahlen (nur im Muster), Analyse, der Berater ── */
   const nachKarte = (
@@ -157,18 +174,20 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
         <section className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
           <MappenKopf icon={Gauge} titel={B.analyseH} teaser={B.demoAnalyseHinweis} />
           <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
-          {/* HIER WIRD DIE ANZEIGE REINKOPIERT (Owner 25.08.2026, mit Bild: „Das muss
-              hervorgehoben werden. Unten steht dann Bewerbung anpassen") — die Anzeige
-              ist keine stumme Fläche mehr, sondern DAS Eingabefeld der Seite: goldener
-              Rahmen auf dem Papier, damit man sieht, wo man etwas tut. Der eingefügte
-              Text reist über denselben sessionStorage-Schlüssel in den Trichter. */}
+          {/* KEIN EINGABEFELD MEHR (Owner 25.08.2026, beim Ausprobieren: „zuerst sehe
+              ich, dass das gar nicht funktioniert … Baue nur die Originalanzeige als
+              Beispiel auf Deutsch hier ein zum Scrollen. Eintippen muss man hier nicht.")
+              — richtig: Auf einer MUSTER-Seite ist ein Feld, das nichts auslöst, schlimmer
+              als kein Feld. Getippt wird im Kaufweg; hierher gehört der Beleg.
+              DIE ANZEIGE BLEIBT DEUTSCH, die Analyse darüber steht in seiner Sprache —
+              genau das ist das Produkt: Er findet eine deutsche Anzeige und versteht in
+              seiner Sprache, ob sie zu ihm passt. */}
           <div>
-            <p className="lb-karte-gold text-[13px] font-black uppercase tracking-[0.18em]">{B.anzeigeH}</p>
-            <div className="mt-1.5 rounded-xl border-2 border-[#c8a13a]/60 p-1">
-              <EingabeMehrzeilig karte zeilen={4} value={letzteAnzeige}
-                placeholder={B.anzeigePlatzhalter}
-                onChange={e => setLetzteAnzeige(e.target.value)} />
-            </div>
+            <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-45">{B.anzeigeH}</p>
+            <p className="lb-wisch mt-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[#1a160f]/15 px-3.5 py-3 text-[14px] font-medium leading-relaxed opacity-80">
+              {DEMO_ANZEIGE_DE}
+            </p>
+          </div>
 
           {zeigeMatch && (<>
           <div className="mt-5 flex items-baseline gap-3">
@@ -179,7 +198,6 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
             <div className="h-full rounded-full bg-[#c8a13a] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
           </div>
           </>)}
-          </div>
           {/* DREI EIGENE BLÖCKE MIT ZEICHEN (Owner 25.08.2026: „lipsește muss mit
               Warnzeichen als extra Block, und gut auch mit Icon als extra Block") —
               vorher waren es drei Überschriften in derselben Fläche, und beim Überfliegen
