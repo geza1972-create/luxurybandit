@@ -616,6 +616,44 @@ Gekauften — DEINE Aufnahme, DEINE Stimme. Drei Dinge auf einmal:
 Gilt für JEDES Demo-Video auf der Bewerbungs-Seite; echte Bewerbungen von
 Kunden tragen diesen Schluss selbstverständlich NICHT.
 
+## Der geführte Kauf-Chat (Owner 25.08. nacht — NOCH NICHT GEBAUT)
+
+Owner: „Ajustează aplicația. Dann öffnet sich drunter ein Chat, wo alles
+abgefragt wird, was er für die Seite braucht: Texte, fehlende Unterlagen,
+Bewerbung als PDF oder Text, Bild, … Videoaufnahme empfohlen. Der User muss
+geführt werden. Spätestens wenn er das Video generieren will bzw. die ganze
+Bewerbung, dann muss er zahlen."
+
+WARUM DAS KEIN RÜCKFALL IST: Der Berater, der am selben Abend rausflog, stand
+UNGEFRAGT auf einer Muster-Seite und redete, bevor jemand etwas wollte. Dieser
+hier öffnet sich NUR nach dem Tipp auf den Gold-Knopf — also erst, wenn der
+Besucher Absicht gezeigt hat. Das ist der Unterschied zwischen Lärm und Führung.
+
+DIE STRECKE (jede Frage einzeln, nie ein Formular):
+1. Lebenslauf — als PDF hochladen ODER Text einfügen (beides erlaubt; wer vom
+   Handy kommt, hat selten eine Datei).
+2. Foto — mit Zuschnitt; optional, aber empfohlen (ohne Foto keine Mappe).
+3. Fehlende Unterlagen — der Berater fragt gezielt nach dem, was die ANZEIGE
+   verlangt und der Analyse fehlt (Anerkennung, Sprachnachweis, Zeugnisse).
+4. Texte — was soll anders klingen? (dasselbe Korrektur-Feld wie im Dossier)
+5. Videoaufnahme — EMPFOHLEN, nicht Pflicht: Handykamera reicht, Skript wird
+   gestellt. Hier fällt die Kauf-Entscheidung.
+6. **ZAHLUNG** — spätestens vor der Erzeugung (Video oder ganze Bewerbung):
+   19 je Bewerbung + 4,99/Monat, zusammen abgebucht.
+7. Erzeugung → fertige Seite.
+
+TECHNISCH KEINE ZWEITE MASCHINE: Die Strecke benutzt dieselben Routen wie der
+Trichter (kiss-log, lebenslauf-auswertung, lebenslauf-match, Kasse,
+lebenslauf-skript, lebenslauf-fertigstellen) und legt denselben `Entwurf` in
+sessionStorage ab, den `LebenslaufStartClient` schon kennt. Der Chat ist eine
+andere OBERFLÄCHE für den bestehenden Kaufweg, kein zweiter Kaufweg — sonst
+gibt es zwei Stellen, an denen Geld verloren gehen kann.
+
+OFFEN: Übernimmt der Chat die ganze Strecke bis zur fertigen Seite, oder gibt
+er beim Bezahlen an den bestehenden Trichter ab? (Claude-Empfehlung: erst
+abgeben — die Kasse dort ist getestet und trägt bereits Stripe-Rückkehr,
+Nachliefer-Wachhund und die 402-Sicherung.)
+
 ## Stufe 0: DER MARKT-TEST — vor jedem weiteren Baustein
 
 Owner 25.08. spät: „Ich baue hier wie blöd wieder eine Sache, die ich vielleicht
