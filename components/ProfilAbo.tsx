@@ -8,7 +8,7 @@ import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 
 /**
  * DIE ABO-KARTE DES BESITZERS (Owner-Seitentext 24.08.2026: „4,99 im Monat — Seite bleibt
- * online, unbegrenzt aktualisieren, monatlich kündbar. Ohne Abo bleibt deine Seite 30 Tage
+ * online, monatlich kündbar. Ohne Abo bleibt deine Seite 30 Tage
  * erreichbar.").
  *
  * NUR FÜR DEN BESITZER — dieselbe Server-Besitzprüfung wie das Korrektur-Feld
@@ -21,17 +21,17 @@ import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 const TEXTE: Record<string, { titel: string; zeile: string; knopf: string; aktiv: string; laeuft: string; frist: (tage: number) => string }> = {
   de: {
     titel: "Seite dauerhaft online",
-    zeile: "im Monat — Seite bleibt online, unbegrenzt aktualisieren, monatlich kündbar.",
+    zeile: "im Monat — deine Bewerbungen und Daten bleiben online, monatlich kündbar.",
     knopf: "Abo starten",
-    aktiv: "Dein Abo läuft — die Seite bleibt online und du kannst unbegrenzt aktualisieren.",
+    aktiv: "Dein Abo läuft — deine Bewerbungen bleiben online.",
     laeuft: "Kasse öffnet …",
     frist: t => t > 0 ? `Ohne Abo bleibt deine Seite noch ${t} Tag${t === 1 ? "" : "e"} erreichbar.` : "Die 30 Tage sind vorbei — mit dem Abo ist deine Seite sofort wieder online.",
   },
   en: {
     titel: "Keep your page online",
-    zeile: "per month — page stays online, unlimited updates, cancel monthly.",
+    zeile: "per month — your applications and data stay online, cancel monthly.",
     knopf: "Start subscription",
-    aktiv: "Your subscription is active — the page stays online and you can update it any time.",
+    aktiv: "Your subscription is active — your applications stay online.",
     laeuft: "Opening checkout …",
     frist: t => t > 0 ? `Without it your page stays reachable for ${t} more day${t === 1 ? "" : "s"}.` : "The 30 days are over — with the subscription your page is back online immediately.",
   },

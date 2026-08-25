@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * DAS ABO „SEITE BLEIBT ONLINE" — 4,99/MONAT (Owner-Seitentext 24.08.2026: „Seite bleibt
- * online, unbegrenzt aktualisieren, monatlich kündbar. Ohne Abo bleibt deine Seite 30 Tage
+ * online, monatlich kündbar. Ohne Abo bleibt deine Seite 30 Tage
  * erreichbar.").
  *
  * POST { id, email?, returnTo? }  → startet die Stripe-Subscription-Kasse (Monatspreis
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     const { id: sessionId, url } = await createSubscriptionCheckout({
       amount: LEBENSLAUF_MONAT_CENTS,
-      productName: "Application page — stays online + unlimited updates",
+      productName: "Application page — stays online",
       email: email || undefined,
       successUrl: `${back}${back.includes("?") ? "&" : "?"}abo=1&abocs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}abocancel=1`,
