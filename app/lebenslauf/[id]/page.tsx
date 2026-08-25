@@ -56,6 +56,11 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   const { id } = await params;
   const profil = await leseLebenslauf(id);
   if (!profil || !profil.bezahlt) notFound();
+  /* HIER BLEIBT ENGLISCH DER RÜCKFALL, anders als auf den Bewerber-Flächen (Owner
+     25.08.2026: „default Rumänisch bei der Bewerbung"): Diese Seite ist die, die der
+     Bewerber VERSCHICKT — sie wird von der Personalabteilung geöffnet, nicht von ihm.
+     Deren Browsersprache entscheidet weiterhin; wo wir sie nicht erkennen, ist Englisch
+     die sichere Annahme, nicht Rumänisch. */
   const L = await resolveLang();
 
   /* MULTI-BEWERBUNG (25.08.2026): Eine Bewerbungs-Version trägt `basisId` — Abo und

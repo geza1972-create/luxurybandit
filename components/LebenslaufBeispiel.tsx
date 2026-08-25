@@ -3,6 +3,8 @@ import { ArrowUpRight } from "lucide-react";
 import { SectionTitle, Fine } from "@/components/Landing";
 import { Knopf } from "@/components/CI";
 import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
+import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
+import { isLang } from "@/lib/lang";
 
 /**
  * „DIE SEITE, DIE DER USER BEKOMMT" — ALS SEKTION UNTER DER LANDINGPAGE (Owner 24.08.2026:
@@ -69,12 +71,19 @@ const TEXTE: Record<string, { titel: string; zeile: string; cta: string; beispie
   },
 };
 
-export default function LebenslaufBeispiel({ lang = "en", className = "" }: {
+/**
+ * SERVER-BAUSTEIN, DAMIT DAS MUSTER ÜBERSETZT IST (Owner 25.08.2026, im Bild gesehen: auf
+ * der rumänischen Seite stand die Rolle des Musters auf DEUTSCH — „Gesundheits- und
+ * Krankenpfleger", „INTENSIVPFLEGE"). Die Karte griff `EXECUTIVE_BEISPIEL` roh ab, während
+ * die Muster-Seite es längst durch `executiveInSprache` schickt. Jetzt tun beide dasselbe:
+ * EINE Quelle, EIN Übersetzer, keine halbdeutsche Karte im rumänischen Markt.
+ */
+export default async function LebenslaufBeispiel({ lang = "en", className = "" }: {
   lang?: string;
   className?: string;
 }) {
   const t = TEXTE[lang] ?? TEXTE.en;
-  const p = EXECUTIVE_BEISPIEL;
+  const p = await executiveInSprache(EXECUTIVE_BEISPIEL, (isLang(lang) ? lang : "en"));
 
   return (
     <section className={`mt-10 ${className}`}>

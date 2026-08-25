@@ -19,7 +19,18 @@ import { LANG_COOKIE, isLang, type Lang } from "@/lib/lang";
  * Der Umschalter sticht die Browsersprache immer: eine getroffene Wahl wiegt schwerer als
  * eine Vermutung.
  */
-export async function resolveLang(): Promise<Lang> {
+/**
+ * DIE RÜCKFALL-SPRACHE IST NICHT ÜBERALL ENGLISCH (Owner 25.08.2026: „ok, dann ist default
+ * Rumänisch ab jetzt bei der Bewerbung" — nach der Zielgruppen-Entscheidung „wir machen
+ * dieses Portal für die Rumänen, die sich im Ausland bewerben wollen").
+ *
+ * Die Rangfolge bleibt dieselbe — gewählte Sprache vor Browsersprache vor Rückfall. Nur der
+ * RÜCKFALL ist jetzt ein Argument: Die Bewerbungs-Seiten reichen `"ro"` herein, alles andere
+ * bleibt bei Englisch. Wer also mit rumänischem Browser kommt, sah ohnehin Rumänisch; neu
+ * ist der Fall, dass jemand OHNE erkennbare Sprache auf der Bewerbung landet — der ist im
+ * Zweifel unser Zielkunde, nicht ein englischer Zufallsbesucher.
+ */
+export async function resolveLang(rueckfall: Lang = "en"): Promise<Lang> {
   const picked = (await cookies()).get(LANG_COOKIE)?.value ?? "";
   if (isLang(picked)) return picked;
 
@@ -31,7 +42,7 @@ export async function resolveLang(): Promise<Lang> {
       const code = teil.split(";")[0].trim().slice(0, 2).toLowerCase();
       if (isLang(code)) return code;
     }
-  } catch { /* ohne Kopfzeile bleibt es bei Englisch */ }
+  } catch { /* ohne Kopfzeile bleibt es beim Rückfall */ }
 
-  return "en";
+  return rueckfall;
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SpracheAmDokument from "@/components/SpracheAmDokument";
 import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Kicker, H1, Y } from "@/components/Landing";
@@ -29,7 +30,7 @@ export default async function LebenslaufStartPage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
-  const L = await resolveLang();
+  const L = await resolveLang("ro");
   const T = kissText(L, "lebenslauf");
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const hell = String(sp.light ?? "") === "1";

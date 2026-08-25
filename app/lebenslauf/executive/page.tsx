@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SpracheAmDokument from "@/components/SpracheAmDokument";
 import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
 import { executiveInSprache, textbausteineInSprache } from "@/lib/lebenslauf-uebersetzen";
 import SpielplatzClient from "./SpielplatzClient";
@@ -81,7 +82,7 @@ const MUSTER_TEXTE = {
 export type MusterTexte = typeof MUSTER_TEXTE;
 
 export default async function ExecutiveVorlagePage() {
-  const lang = await resolveLang();
+  const lang = await resolveLang("ro");
   /* Auch das Beispiel folgt dem Sprachschalter — wer auf Rumänisch kauft, soll das Beispiel
      auf Rumänisch lesen (einmal übersetzt, dann Cache; Haus-Muster aus lib/tr-object.ts). */
   const profil = await executiveInSprache(EXECUTIVE_BEISPIEL, lang);
@@ -89,5 +90,8 @@ export default async function ExecutiveVorlagePage() {
      sehen, was er bekommt, also er kann spielen") — Muster + Bewerberberater, siehe
      SpielplatzClient. Das blosse Beispiel gibt es nicht mehr einzeln. */
   const texte = await textbausteineInSprache(MUSTER_TEXTE, lang);
-  return <SpielplatzClient beispiel={profil} lang={lang} texte={texte} />;
+  return <>
+    <SpracheAmDokument lang={lang} />
+    <SpielplatzClient beispiel={profil} lang={lang} texte={texte} />
+  </>;
 }

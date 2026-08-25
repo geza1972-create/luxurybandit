@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import SpracheAmDokument from "@/components/SpracheAmDokument";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
 import LebenslaufAnzeigeEinstieg from "@/components/LebenslaufAnzeigeEinstieg";
 import TrackView from "@/components/TrackView";
@@ -41,6 +42,8 @@ export const metadata = {
 type Frage = { q: string; a: string };
 type Copy = {
   kicker: string; h1A: string; h1Y: string; h1B: string;
+  /* Der Satz über dem Feld (Owner 25.08.2026, auf Rumänisch diktiert). */
+  heroLead: string;
   feldP: string;
   kontrastH: string; kontrast: string;
   preisH: string; preisEinmal: string; preisMonat: string; preisOhne: string;
@@ -52,7 +55,8 @@ type Copy = {
 const TEXTE: Record<string, Copy> = {
   de: {
     kicker: "Für deine Bewerbung",
-    h1A: "Für jede Stelle die ", h1Y: "perfekte Bewerbung", h1B: ".",
+    heroLead: "Füg die Anzeige ein, die du gefunden hast — wir machen deinen Lebenslauf. Passend für jede Anzeige.",
+    h1A: "Suchst du einen Job im Ausland? ", h1Y: "Fang jetzt an", h1B: ".",
     kontrastH: "Das hat kein Jobportal",
     kontrast: "Dort zeigt dein Profil jeder Firma dasselbe. Hier bekommt jede Firma eine Bewerbung, die auf ihre Anzeige zugeschnitten ist — mit Anschreiben und Video.",
     preisH: "Ein Link, der mit dir mitwächst",
@@ -73,7 +77,8 @@ const TEXTE: Record<string, Copy> = {
   },
   en: {
     kicker: "For your application",
-    h1A: "The ", h1Y: "perfect application", h1B: " for every job.",
+    heroLead: "Paste the ad you found and we build your CV — tailored to every ad.",
+    h1A: "Looking for a job abroad? ", h1Y: "Start now", h1B: ".",
     kontrastH: "No job portal has this",
     kontrast: "There, your profile shows every company the same thing. Here, every company gets an application tailored to its ad — with cover letter and video.",
     preisH: "One link that grows with you",
@@ -94,7 +99,8 @@ const TEXTE: Record<string, Copy> = {
   },
   ro: {
     kicker: "Pentru aplicația ta",
-    h1A: "Pentru fiecare job, ", h1Y: "aplicația perfectă", h1B: ".",
+    heroLead: "Bagă anunțul care l-ai găsit și îți facem CV-ul. Potrivit pentru fiecare anunț.",
+    h1A: "Cauți un job în străinătate? ", h1Y: "Începe acuma", h1B: ".",
     kontrastH: "Niciun portal de joburi nu are asta",
     kontrast: "Acolo, profilul tău arată tuturor firmelor același lucru. Aici, fiecare firmă primește o aplicație croită pe anunțul ei — cu scrisoare de intenție și video.",
     preisH: "Un link care crește odată cu tine",
@@ -115,7 +121,8 @@ const TEXTE: Record<string, Copy> = {
   },
   es: {
     kicker: "Para tu candidatura",
-    h1A: "Para cada puesto, la ", h1Y: "candidatura perfecta", h1B: ".",
+    heroLead: "Pega el anuncio que encontraste y te hacemos el currículum. Adaptado a cada anuncio.",
+    h1A: "¿Buscas trabajo en el extranjero? ", h1Y: "Empieza ahora", h1B: ".",
     kontrastH: "Esto no lo tiene ningún portal de empleo",
     kontrast: "Allí tu perfil muestra a todas las empresas lo mismo. Aquí cada empresa recibe una candidatura hecha a medida de su oferta — con carta y vídeo.",
     preisH: "Un enlace que crece contigo",
@@ -136,7 +143,8 @@ const TEXTE: Record<string, Copy> = {
   },
   fr: {
     kicker: "Pour ta candidature",
-    h1A: "Pour chaque poste, la ", h1Y: "candidature parfaite", h1B: ".",
+    heroLead: "Colle l'annonce que tu as trouvée et on fait ton CV. Adapté à chaque annonce.",
+    h1A: "Tu cherches un emploi à l'étranger ? ", h1Y: "Commence maintenant", h1B: ".",
     kontrastH: "Aucun portail d'emploi n'a ça",
     kontrast: "Là-bas, ton profil montre la même chose à toutes les entreprises. Ici, chaque entreprise reçoit une candidature taillée pour son annonce — avec lettre et vidéo.",
     preisH: "Un lien qui grandit avec toi",
@@ -157,7 +165,8 @@ const TEXTE: Record<string, Copy> = {
   },
   pt: {
     kicker: "Para a tua candidatura",
-    h1A: "Para cada vaga, a ", h1Y: "candidatura perfeita", h1B: ".",
+    heroLead: "Cola o anúncio que encontraste e fazemos o teu CV. Adaptado a cada anúncio.",
+    h1A: "Procuras trabalho no estrangeiro? ", h1Y: "Começa agora", h1B: ".",
     kontrastH: "Nenhum portal de emprego tem isto",
     kontrast: "Lá, o teu perfil mostra o mesmo a todas as empresas. Aqui, cada empresa recebe uma candidatura feita à medida do seu anúncio — com carta e vídeo.",
     preisH: "Um link que cresce contigo",
@@ -178,7 +187,8 @@ const TEXTE: Record<string, Copy> = {
   },
   it: {
     kicker: "Per la tua candidatura",
-    h1A: "Per ogni posto, la ", h1Y: "candidatura perfetta", h1B: ".",
+    heroLead: "Incolla l'annuncio che hai trovato e ti facciamo il CV. Su misura per ogni annuncio.",
+    h1A: "Cerchi un lavoro all'estero? ", h1Y: "Inizia ora", h1B: ".",
     kontrastH: "Questo nessun portale di lavoro ce l'ha",
     kontrast: "Lì il tuo profilo mostra a tutte le aziende la stessa cosa. Qui ogni azienda riceve una candidatura cucita sul suo annuncio — con lettera e video.",
     preisH: "Un link che cresce con te",
@@ -200,7 +210,7 @@ const TEXTE: Record<string, Copy> = {
 };
 
 export default async function LebenslaufThemePage() {
-  const L = await resolveLang();
+  const L = await resolveLang("ro");
   const t = TEXTE[L] ?? TEXTE.en;
   const preisCents = themenPreisCents("lebenslauf");
   const einmal = eur(preisCents, L);
@@ -208,18 +218,32 @@ export default async function LebenslaufThemePage() {
 
   return (
     <main className="lb-bg min-h-screen text-white">
+      <SpracheAmDokument lang={L} />
       <TopNav />
       <TrackView event="lebenslauf_view" lookId="themes-lebenslauf" lookName="Lebenslauf-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {/* ───── HERO ───── */}
         <Kicker>{t.kicker}</Kicker>
         <H1 className="mt-1">{t.h1A}<Y>{t.h1Y}</Y>{t.h1B}</H1>
+        {/* DER SATZ, DER DIE ZIELGRUPPE ANSPRICHT (Owner 25.08.2026, auf Rumänisch
+            diktiert: „Cauți un job în străinătate? Începe acuma. Bagă anunțul care l-ai
+            găsit și îți facem CV-ul.") — er nennt die Lage (Job im Ausland), die Handlung
+            (Anzeige einfügen) und das Ergebnis (dein Lebenslauf, passend zur Anzeige).
+            Die rumänische Fassung ist der ORIGINAL-Wortlaut des Owners, die anderen sechs
+            sind daraus übersetzt. */}
+        <Lead className="mt-2">{t.heroLead}</Lead>
         {/* DER EINSTIEG IST DIE HANDLUNG (Owner 25.08.2026, diktiert: „direkt drunter
             kommt ein Inputfeld … Drunter Button Gratis weitermachen", danach zweimal
             beschnitten: Feld-Text KURZ („Stellenanzeige oder Link einfügen soll es
             heissen") und die grosse Video-Karte RAUS („grosse kard raus") — was bleibt,
             ist weiter unten das kleine Muster-Profil (LebenslaufBeispiel). */}
         <LebenslaufAnzeigeEinstieg platzhalter={t.feldP} cta={t.ctaGratis} />
+
+        {/* ───── ZUERST DAS MUSTER, DANN DIE FEATURES (Owner 25.08.2026: „Das kommt
+            unter dem Block mit dem Inserat. Dann Centrala ta de aplicări") — wer die
+            Anzeige eingefügt hat, will als Nächstes SEHEN, was dabei herauskommt; die
+            Aufzählung, was das Werkzeug alles kann, überzeugt erst danach. ───── */}
+        <LebenslaufBeispiel lang={L} />
 
         {/* ───── DIE FEATURE-KARTE — EIN Baustein für Landingpage UND Tunnel (Memory
             `tunnel-zeigt-landingpage-inhalt`), Texte siehe BewerbungszentraleFeatures. ───── */}
@@ -233,8 +257,7 @@ export default async function LebenslaufThemePage() {
           </p>
         </section>
 
-        {/* ───── DIE SEITE, DIE DU BEKOMMST — das echte Muster-Profil ───── */}
-        <LebenslaufBeispiel lang={L} />
+
 
         {/* ───── PREIS ───── */}
         <section className="mt-10">
