@@ -1,17 +1,13 @@
 import TopNav from "@/components/TopNav";
-import LandingKarte from "@/components/LandingKarte";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
+import LebenslaufAnzeigeEinstieg from "@/components/LebenslaufAnzeigeEinstieg";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
-import ThemenVorspann from "@/components/ThemenVorspann";
 import { Knopf } from "@/components/CI";
 import { Kicker, H1, Y, Lead, SectionTitle, Fine } from "@/components/Landing";
 import BewerbungszentraleFeatures from "@/components/BewerbungszentraleFeatures";
 import { resolveLang } from "@/lib/lang-server";
 import { eur, themenPreisCents, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
-/* EIN Video aus EINER Konstante für Karte, Katalog-Kachel und Themen-Kreis (Dauerregel
-   Memory `landingpage-video-ist-kachel-video`) — Quelle: lib/lebenslauf-vorlage.ts. */
-import { LEBENSLAUF_BEISPIEL_VIDEO as BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER as BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 
 /**
  * DIE LANDINGPAGE DER BEWERBUNGSZENTRALE — Verkaufstext abgenommen am 25.08.2026
@@ -44,23 +40,19 @@ export const metadata = {
 
 type Frage = { q: string; a: string };
 type Copy = {
-  kicker: string; h1A: string; h1Y: string; h1B: string; lead: string;
-  anlass: string; grund: string; privat: string;
+  kicker: string; h1A: string; h1Y: string; h1B: string;
+  feldP: string;
   kontrastH: string; kontrast: string;
   preisH: string; preisEinmal: string; preisMonat: string; preisOhne: string;
   faqH: string; faq: Frage[];
   schlussH: string; schlussP: string;
-  ctaStart: string; ctaProfil: string;
+  ctaStart: string; ctaProfil: string; ctaGratis: string;
 };
 
 const TEXTE: Record<string, Copy> = {
   de: {
     kicker: "Für deine Bewerbung",
     h1A: "Für jede Stelle die ", h1Y: "perfekte Bewerbung", h1B: ".",
-    lead: "Füge eine Stellenanzeige ein und sieh in Prozent, ob sie zu dir passt. Dann passt sich deine Bewerbung an — Anschreiben, Video und Texte, zugeschnitten auf genau diese Stelle.",
-    anlass: "Für die Jobsuche · für den Quereinstieg · wenn der Lebenslauf allein nicht zeigt, was du kannst",
-    grund: "Ein PDF wird überflogen und vergessen. Eine Seite, auf der du sprichst, bleibt offen.",
-    privat: "Deine Seite bleibt privat, solange du sie nicht selbst teilst.",
     kontrastH: "Das hat kein Jobportal",
     kontrast: "Dort zeigt dein Profil jeder Firma dasselbe. Hier bekommt jede Firma eine Bewerbung, die auf ihre Anzeige zugeschnitten ist — mit Anschreiben und Video.",
     preisH: "Ein Link, der mit dir mitwächst",
@@ -76,15 +68,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "Deine nächste Bewerbung ist ein Link.",
     schlussP: "Lebenslauf hochladen, Skript einsprechen, fertig. In zehn Minuten.",
-    ctaStart: "Jetzt starten", ctaProfil: "Profil erstellen",
+    feldP: "Stellenanzeige oder Link einfügen",
+    ctaStart: "Jetzt starten", ctaProfil: "Profil erstellen", ctaGratis: "Gratis weitermachen",
   },
   en: {
     kicker: "For your application",
     h1A: "The ", h1Y: "perfect application", h1B: " for every job.",
-    lead: "Paste a job ad and see in percent how well it fits you. Then your application adapts — cover letter, video and texts, tailored to exactly that job.",
-    anlass: "For the job search · for a career change · when your resume alone doesn't show what you can do",
-    grund: "A PDF gets skimmed and forgotten. A page where you speak stays open.",
-    privat: "Your page stays private unless you share it yourself.",
     kontrastH: "No job portal has this",
     kontrast: "There, your profile shows every company the same thing. Here, every company gets an application tailored to its ad — with cover letter and video.",
     preisH: "One link that grows with you",
@@ -100,15 +89,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "Your next application is a link.",
     schlussP: "Upload your resume, record the script, done. In ten minutes.",
-    ctaStart: "Start now", ctaProfil: "Create profile",
+    feldP: "Paste the job ad or a link",
+    ctaStart: "Start now", ctaProfil: "Create profile", ctaGratis: "Continue for free",
   },
   ro: {
     kicker: "Pentru aplicația ta",
     h1A: "Pentru fiecare job, ", h1Y: "aplicația perfectă", h1B: ".",
-    lead: "Adaugă un anunț de angajare și vezi în procente cât de bine ți se potrivește. Apoi aplicația ta se adaptează — scrisoare de intenție, video și texte, croite exact pe acel job.",
-    anlass: "Pentru căutarea unui job · pentru reconversie · când CV-ul singur nu arată ce poți",
-    grund: "Un PDF e răsfoit și uitat. O pagină pe care vorbești tu rămâne deschisă.",
-    privat: "Pagina ta rămâne privată până o distribui chiar tu.",
     kontrastH: "Niciun portal de joburi nu are asta",
     kontrast: "Acolo, profilul tău arată tuturor firmelor același lucru. Aici, fiecare firmă primește o aplicație croită pe anunțul ei — cu scrisoare de intenție și video.",
     preisH: "Un link care crește odată cu tine",
@@ -124,15 +110,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "Următoarea ta aplicare este un link.",
     schlussP: "Încarci CV-ul, vorbești scenariul, gata. În zece minute.",
-    ctaStart: "Începe acum", ctaProfil: "Creează profilul",
+    feldP: "Inserează anunțul sau un link",
+    ctaStart: "Începe acum", ctaProfil: "Creează profilul", ctaGratis: "Continuă gratuit",
   },
   es: {
     kicker: "Para tu candidatura",
     h1A: "Para cada puesto, la ", h1Y: "candidatura perfecta", h1B: ".",
-    lead: "Pega una oferta de empleo y ve en porcentaje si encaja contigo. Después tu candidatura se adapta — carta de presentación, vídeo y textos, hechos a medida de ese puesto.",
-    anlass: "Para buscar trabajo · para un cambio de carrera · cuando el currículum solo no muestra lo que sabes",
-    grund: "Un PDF se hojea y se olvida. Una página en la que hablas tú queda abierta.",
-    privat: "Tu página es privada hasta que tú la compartas.",
     kontrastH: "Esto no lo tiene ningún portal de empleo",
     kontrast: "Allí tu perfil muestra a todas las empresas lo mismo. Aquí cada empresa recibe una candidatura hecha a medida de su oferta — con carta y vídeo.",
     preisH: "Un enlace que crece contigo",
@@ -148,15 +131,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "Tu próxima candidatura es un enlace.",
     schlussP: "Subes el currículum, grabas el guion, listo. En diez minutos.",
-    ctaStart: "Empieza ahora", ctaProfil: "Crear perfil",
+    feldP: "Pega el anuncio o un enlace",
+    ctaStart: "Empieza ahora", ctaProfil: "Crear perfil", ctaGratis: "Continúa gratis",
   },
   fr: {
     kicker: "Pour ta candidature",
     h1A: "Pour chaque poste, la ", h1Y: "candidature parfaite", h1B: ".",
-    lead: "Colle une offre d'emploi et vois en pourcentage si elle te correspond. Ensuite ta candidature s'adapte — lettre de motivation, vidéo et textes, taillés pour ce poste précis.",
-    anlass: "Pour la recherche d'emploi · pour une reconversion · quand le CV seul ne montre pas ce que tu vaux",
-    grund: "Un PDF est survolé puis oublié. Une page où tu parles reste ouverte.",
-    privat: "Ta page reste privée tant que tu ne la partages pas.",
     kontrastH: "Aucun portail d'emploi n'a ça",
     kontrast: "Là-bas, ton profil montre la même chose à toutes les entreprises. Ici, chaque entreprise reçoit une candidature taillée pour son annonce — avec lettre et vidéo.",
     preisH: "Un lien qui grandit avec toi",
@@ -172,15 +152,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "Ta prochaine candidature est un lien.",
     schlussP: "CV ajouté, script enregistré, terminé. En dix minutes.",
-    ctaStart: "Commencer", ctaProfil: "Créer le profil",
+    feldP: "Colle l'annonce ou un lien",
+    ctaStart: "Commencer", ctaProfil: "Créer le profil", ctaGratis: "Continue gratuitement",
   },
   pt: {
     kicker: "Para a tua candidatura",
     h1A: "Para cada vaga, a ", h1Y: "candidatura perfeita", h1B: ".",
-    lead: "Cola um anúncio de emprego e vê em percentagem se combina contigo. Depois a tua candidatura adapta-se — carta de apresentação, vídeo e textos, feitos à medida dessa vaga.",
-    anlass: "Para procurar emprego · para mudar de carreira · quando o CV sozinho não mostra o que vales",
-    grund: "Um PDF é folheado e esquecido. Uma página onde tu falas fica aberta.",
-    privat: "A tua página fica privada até seres tu a partilhá-la.",
     kontrastH: "Nenhum portal de emprego tem isto",
     kontrast: "Lá, o teu perfil mostra o mesmo a todas as empresas. Aqui, cada empresa recebe uma candidatura feita à medida do seu anúncio — com carta e vídeo.",
     preisH: "Um link que cresce contigo",
@@ -196,15 +173,12 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "A tua próxima candidatura é um link.",
     schlussP: "Carregas o CV, gravas o guião, pronto. Em dez minutos.",
-    ctaStart: "Começar agora", ctaProfil: "Criar perfil",
+    feldP: "Cola o anúncio ou um link",
+    ctaStart: "Começar agora", ctaProfil: "Criar perfil", ctaGratis: "Continua grátis",
   },
   it: {
     kicker: "Per la tua candidatura",
     h1A: "Per ogni posto, la ", h1Y: "candidatura perfetta", h1B: ".",
-    lead: "Incolla un annuncio di lavoro e vedi in percentuale quanto ti corrisponde. Poi la tua candidatura si adatta — lettera di presentazione, video e testi, cuciti su quel posto preciso.",
-    anlass: "Per cercare lavoro · per cambiare carriera · quando il CV da solo non mostra quanto vali",
-    grund: "Un PDF viene sfogliato e dimenticato. Una pagina in cui parli tu resta aperta.",
-    privat: "La tua pagina resta privata finché non la condividi tu.",
     kontrastH: "Questo nessun portale di lavoro ce l'ha",
     kontrast: "Lì il tuo profilo mostra a tutte le aziende la stessa cosa. Qui ogni azienda riceve una candidatura cucita sul suo annuncio — con lettera e video.",
     preisH: "Un link che cresce con te",
@@ -220,7 +194,8 @@ const TEXTE: Record<string, Copy> = {
     ],
     schlussH: "La tua prossima candidatura è un link.",
     schlussP: "Carichi il CV, registri il copione, fatto. In dieci minuti.",
-    ctaStart: "Inizia ora", ctaProfil: "Crea il profilo",
+    feldP: "Incolla l'annuncio o un link",
+    ctaStart: "Inizia ora", ctaProfil: "Crea il profilo", ctaGratis: "Continua gratis",
   },
 };
 
@@ -239,16 +214,12 @@ export default async function LebenslaufThemePage() {
         {/* ───── HERO ───── */}
         <Kicker>{t.kicker}</Kicker>
         <H1 className="mt-1">{t.h1A}<Y>{t.h1Y}</Y>{t.h1B}</H1>
-        <Lead className="mt-2">{t.lead}</Lead>
-        <ThemenVorspann anlass={t.anlass} grund={t.grund} wieGeht={[]} wieGehtPrivat={t.privat} />
-
-        <LandingKarte sprache={L} titel={t.kicker}
-          href="/themes/lebenslauf/start"
-          teilenUrl="/themes/lebenslauf?utm_source=share" teilenText={t.kicker}
-          preisZeile={`${t.ctaStart} — ${einmal}`}
-          /* Sprechvideo: oben ankern, nie den Kopf abschneiden (Skill `card`). */
-          ausrichtung="oben"
-          folien={[{ video: BEISPIEL_VIDEO, poster: BEISPIEL_POSTER }]} />
+        {/* DER EINSTIEG IST DIE HANDLUNG (Owner 25.08.2026, diktiert: „direkt drunter
+            kommt ein Inputfeld … Drunter Button Gratis weitermachen", danach zweimal
+            beschnitten: Feld-Text KURZ („Stellenanzeige oder Link einfügen soll es
+            heissen") und die grosse Video-Karte RAUS („grosse kard raus") — was bleibt,
+            ist weiter unten das kleine Muster-Profil (LebenslaufBeispiel). */}
+        <LebenslaufAnzeigeEinstieg platzhalter={t.feldP} cta={t.ctaGratis} />
 
         {/* ───── DIE FEATURE-KARTE — EIN Baustein für Landingpage UND Tunnel (Memory
             `tunnel-zeigt-landingpage-inhalt`), Texte siehe BewerbungszentraleFeatures. ───── */}

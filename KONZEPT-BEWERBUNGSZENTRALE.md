@@ -136,21 +136,43 @@ müssen bei jedem da stehen."
 - **Views**: automatisch, ehrlich — gezählt wird nur, wer NICHT der Besitzer
   ist (Beacon feuert erst, wenn die Besitz-Prüfung negativ ausfällt).
   **GEBAUT 25.08. spät** (/api/lebenslauf-view, `viewCount` am Profil);
-  Besitzer sieht im Bearbeiten-Modus: „N Recruiter haben sich deine
-  Bewerbung angeschaut."
+  Besitzer sieht im Bearbeiten-Modus: „N Personen haben sich deine
+  Bewerbung angeschaut." (Owner-Korrektur: Recruiter → Leute → PERSONEN)"
 - **PLAY-KNOPF-TEASER auf der Bild-Bewerbung (Owner, GEBAUT 25.08. spät):**
   „Das wäre doch toll, wenn auf dem Bild ein Play-Button steht und die
   Meldung kommt: Noch kein Video — aber der Bewerber sieht: 3 Leute wollten
   dein Video sehen." Firma tippt Play → Zeile „Noch kein Video." +
   `videoKlicks`-Zähler (nur bestätigte Fremde). Besitzer sieht den
-  KAUF-TRIGGER (Owner-Wortlaut): „N Leute wollten dein Video sehen. Video
-  ist gefragt — erstelle jetzt dein Video." Der Knopf dahinter kommt mit
-  Stufe 3 (Video-Kasse). Zugabe-Zeile dazu wieder in der
-  Landingpage-Beschreibung (Owner: „in der Beschreibung auch").
-- **Anfragen**: was Firmen im Chat eintragen ({Datum, Art
-  interesse/frage, Name, E-Mail, Nachricht}), wird AN DER BEWERBUNG
-  gespeichert; die Mail an support@ geht ZUSÄTZLICH raus (Benachrichtigung +
-  Vermittlungs-Einblick). Karte zeigt den Zähler, aufklappbar.
+  KAUF-TRIGGER (Owner-Wortlaut): „N Personen wollten dein Video sehen.
+  Video ist gefragt — erstelle jetzt dein Video." Der CTA daran wurde in
+  drei Owner-Zügen festgelegt (25.08.): erst Knopf → „nein, nicht als
+  Button, als Text link" → „link führt doch zur erstellung … Es führt zum
+  Tunel." ENDSTAND GEBAUT: Der SATZSCHLUSS „erstelle jetzt dein Video."
+  ist der unterstrichene Link und führt in den Tunnel:
+  `/themes/lebenslauf/start?video=<kennung>` steigt direkt beim Video-Teil
+  ein (Skript vorbefüllt aus der Bewerbung → eigene Aufnahme → fertigstellen
+  hängt das Video an GENAU DIESE Bewerbung und führt aufs Dossier zurück;
+  Foto bleibt unangetastet). Besitz prüft der Server; Fremde mit dem Link
+  landen am normalen Tunnel-Anfang. Der `?video`-Parameter reist in
+  TunnelSeite mit (HERKUNFT-Liste), sonst verlöre ihn der Adress-Sync.
+  Im Aufnahme-Schritt: UPLOAD LINKS, VORLAGE RECHTS (Owner: „wie bei
+  unserem tunel (Promise)") — Kachel → Pfeil → Vorlagen-Kachel mit dem
+  Beispielvideo. Zugabe-Zeile dazu wieder in der Landingpage-Beschreibung
+  (Owner: „in der Beschreibung auch").
+- **INTERESSE-ZÄHLER (Owner 25.08., GEBAUT):** „wenn jemand anfängt zu
+  tippen … 1 Person hat Interesse gezeigt." Erster Griff zum Firmen-Chat
+  (Ja-Chip ODER erstes Tippen) feuert einmal je Aufruf den Beacon
+  (art:"interesse", nur bestätigte Fremde). Besitzer-Zeile: „N Person(en)
+  hat/haben Interesse gezeigt."
+- **Anfragen (Owner 25.08., GEBAUT):** „wenn es jemand ausführt mit E-Mail:
+  1 Person will dich kontaktieren — E-Mail anzeigen. Auch löschen dann."
+  Jede ABGESCHLOSSENE Chat-Anfrage ({Name, E-Mail, Nachricht, Datum}) wird
+  AN DER BEWERBUNG abgelegt (/api/lebenslauf-anfrage, Deckel 50); die Mail
+  an den Betreiber geht ZUSÄTZLICH raus (Benachrichtigung +
+  Vermittlungs-Einblick). Besitzer sieht Zeile + Reihen „Name — E-Mail",
+  Löschen nach Hausregel (zwei Tipps, rot). Die Anfragen kommen NIE mit dem
+  Server-Render (fremde E-Mail-Adressen!), sondern erst nach bestätigter
+  Besitzerschaft über den darf-geprüften GET.
 
 ---
 
@@ -182,6 +204,26 @@ Guthaben-Weg. Preise NUR aus lib/pricing.ts, nie als Zahl im Text.
 ---
 
 ## Der Landingpage-Text (abgenommen 25.08.)
+
+**DER KOPF IST SEIT 25.08. ABEND DER DIREKTE EINSTIEG (Owner, diktiert &
+GEBAUT):** „Das sollte der User direkt einsteigen." Aufbau:
+
+1. Kicker: **„Für deine Bewerbung"**
+2. Titel: **„Für jede Stelle die perfekte Bewerbung."**
+3. Direkt drunter das EINGABEFELD, der Verkaufs-Satz steht als Platzhalter
+   IM Feld (kein Lead-Absatz mehr): „Füge eine Stellenanzeige ein und sieh
+   in Prozent, ob sie zu dir passt. Dann passt sich deine Bewerbung an —
+   Anschreiben, Video und Texte, zugeschnitten auf genau diese Stelle."
+4. Drunter GOLD-KNOPF **„Gratis weitermachen"** — reicht die eingefügte
+   Anzeige per sessionStorage an den Tunnel; dort ist der Anzeige-Schritt
+   damit erledigt und es geht direkt bei „Deine Daten" weiter (Owner
+   bestätigt: „Anzeige → Deine Daten → Prozent + Karte, wie im Tunnel —
+   Ja"). Ohne eingefügten Text geht es trotzdem weiter (Tunnel fragt
+   selbst).
+5. Die GROSSE Beispiel-Karte war kurz angedacht und FLIEGT RAUS (Owner);
+   die kleine Video-Karte darunter BLEIBT.
+6. Der Themen-Vorspann (Anlässe · „Ein PDF wird überflogen …" · „Deine
+   Seite bleibt privat …") FLIEGT RAUS (Owner: „das fliegt raus").
 
 Features verkaufen (Owner: „Das sind Features, die keiner hat. Nur damit
 können wir gegen die Konkurrenz gewinnen."). Preis als {price} aus der
@@ -381,6 +423,19 @@ am Owner-Testprofil: /lebenslauf/f539748a-3b37-40e8-9107-40e7ec01df6e.
 - Stufe 0 Markt-Test beschlossen (25.08. spät): erst Evidenz, dann
   weiterbauen; Firmen werden mit einer Warteliste-Seite getestet, nicht
   mit gebautem Produkt.
+- Video-CTA (25.08. abend, drei Züge): Knopf → Textlink → „Es führt zum
+  Tunel." Satzschluss ist der Link, `?video=<kennung>` steigt im Tunnel
+  direkt beim Video-Teil ein (Skript → eigene Aufnahme → an DIESE
+  Bewerbung). Die Concierge-MAIL als CTA ist gestrichen; der
+  Concierge-Erfüllungsweg (Stufe 0) bleibt für alles, was Handarbeit
+  braucht.
+- Aufnahme-Schritt: Upload LINKS, Vorlage RECHTS („wie bei unserem tunel
+  (Promise)") — Beispielvideo als Vorlagen-Kachel daneben.
+- Cockpit erweitert (25.08. abend, GEBAUT): Interesse-Zähler (erster Griff
+  zum Chat) + Anfragen mit E-Mail beim Besitzer sichtbar und löschbar.
+- Landingpage-Kopf = Direkteinstieg (25.08. abend, diktiert): Feld mit dem
+  Verkaufs-Satz drin + „Gratis weitermachen"; grosse Karte verworfen,
+  kleine bleibt; Themen-Vorspann raus.
 - Offen: eine dezente KI-Kennzeichnungszeile in den AGB (Claude-Vorschlag,
   Owner-Antwort steht aus). Offen: Status „Geöffnet" automatisch bei erster
   fremder Öffnung setzen (Claude-Vorschlag nach Kritik „Handpflege
