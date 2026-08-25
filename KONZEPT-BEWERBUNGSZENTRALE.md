@@ -629,7 +629,31 @@ UNGEFRAGT auf einer Muster-Seite und redete, bevor jemand etwas wollte. Dieser
 hier öffnet sich NUR nach dem Tipp auf den Gold-Knopf — also erst, wenn der
 Besucher Absicht gezeigt hat. Das ist der Unterschied zwischen Lärm und Führung.
 
-DIE STRECKE (jede Frage einzeln, nie ein Formular):
+ZUERST DIE WEICHE, DANN DAS EINSAMMELN (Owner 25.08. nacht: „zuerst muss er
+abgefragt werden, ob er eine Anzeige hat, wo er sich bewerben möchte — ja,
+nein … Er muss erst mal nach allem abgefragt werden, um zu wissen, welchen
+Tunnel man ihm zeigt"). Drei Fragen, dann steht der Weg fest:
+
+**W1 — Hast du eine Anzeige, auf die du dich bewerben willst? (Ja / Nein)**
+- JA → der ANZEIGEN-WEG: Anzeige einfügen, Analyse, zugeschnittene Bewerbung.
+  Hier entsteht der Match und damit der Kaufgrund.
+- NEIN → der ALLGEMEINE WEG (Owner: „bei Nein klar trotzdem bauen. Dann muss
+  man ihm sagen: wir bauen eine generelle Bewerbung. Die kann er später
+  anpassen. Das ist seine allgemeine Bewerbung dann."). Also: keine
+  Überredung, keine Sackgasse — er bekommt eine vollwertige Mappe OHNE
+  Prozentzahl, und der Chat sagt ihm beim Start und am Ende, dass genau diese
+  Bewerbung später auf jede Anzeige zugeschnitten werden kann. Das ist
+  zugleich der natürliche Wiederkauf: die allgemeine Mappe steht, jede
+  zugeschnittene Fassung kostet erneut.
+
+**W2 — Hast du einen Lebenslauf? (PDF / nur Text / gar keinen)**
+- „gar keinen" ist KEIN Sonderfall, sondern bei dieser Zielgruppe häufig: Der
+  Berater fragt den Werdegang in wenigen Schritten ab und schreibt ihn selbst.
+
+**W3 — Willst du auch ein Video? (Ja / später)**
+- Entscheidet, ob die Aufnahme-Station kommt — und damit, wann bezahlt wird.
+
+DIE STRECKE danach (jede Frage einzeln, nie ein Formular):
 1. Lebenslauf — als PDF hochladen ODER Text einfügen (beides erlaubt; wer vom
    Handy kommt, hat selten eine Datei).
 2. Foto — mit Zuschnitt; optional, aber empfohlen (ohne Foto keine Mappe).
