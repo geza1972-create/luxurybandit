@@ -357,6 +357,15 @@ GEBAUT (25.08. nacht, auf „bau" — mit Owner-Korrekturen im Minutentakt):
   Firmen-Sicht (Interesse-Chat spielbar, aber STILL: kein Versand, keine
   Ablage). Fusszeilen-Links bekommen Luft unter der Pille (Owner: „footer
   links sehe ich nicht").
+- DER EINSTIEG LIEFERT DEN GRUND (Owner-Korrektur nach dem ersten Blick:
+  „da hat er noch keinen Grund weiterzumachen … ‚Erst mal schauen' führt zu
+  nix … der stehende Gold-Knopf ist redundant"): Das Intro nennt das
+  Versprechen (Prozent-Match + Bewerbung wie oben) und stellt DREI WEGE als
+  Chips — „Passt eine Anzeige zu mir?" (Gold-Chip) · „So ein Profil möchte
+  ich auch" (Profil-Weg ohne Anzeigen-Zwang, verkauft nach dem Einpflegen) ·
+  „Ich habe eine andere Frage" (weitergeleitet per Concierge-Mail, Antwort
+  noch heute, mit Zurück-Ausweg). Der Gold-Knopf „Gratis weitermachen"
+  erscheint NUR NOCH IM GESPRÄCH, nachdem der Berater verkauft hat.
 - Tür A GEBAUT: Landing-Feld → Spielplatz (nicht mehr Schritt-Tunnel);
   die Anzeige reist im Tunnel-sessionStorage-Schlüssel; der Gold-Ausgang
   führt in den Kaufweg /themes/lebenslauf/start (E-Mail dort vorbelegt).

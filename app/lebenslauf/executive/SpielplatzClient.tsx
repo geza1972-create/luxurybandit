@@ -35,14 +35,17 @@ type SpielDaten = {
   sprachen: { sprache: string; niveau: string }[];
 };
 type Msg = { von: "ich" | "ki"; text: string };
-type Schritt = "intro" | "mail" | "daten" | "anzeige" | "frei";
+type Schritt = "intro" | "mail" | "daten" | "anzeige" | "frei" | "frage" | "frageMail";
 
 const TEXTE = {
   de: {
-    introB: "Ich bin dein Bewerbungsberater. Oben siehst du ein Muster — so sieht eine fertige Bewerbung bei uns aus. Willst du DICH da drin sehen?",
+    introB: "Ich bin dein Bewerbungsberater. Ich sage dir in Prozent, ob eine Stelle zu dir passt — und baue dir eine Bewerbung wie die oben: Anschreiben, Lebenslauf und Video, zugeschnitten auf genau eine Anzeige. Was möchtest du?",
     introA: "Ich habe deine Stellenanzeige. Damit ich dir in Prozent sagen kann, ob sie zu dir passt, brauche ich zwei Dinge: deine E-Mail und deinen Lebenslauf.",
-    jaDaten: "Ja, mit meinen Daten", nurSchauen: "Erst mal schauen",
-    schauAntwort: "Schau dich um — tipp auf das Video, klapp die Erfahrung auf. Wenn du dich selbst sehen willst, tipp auf den Knopf.",
+    chipMatch: "Passt eine Anzeige zu mir?", chipProfil: "So ein Profil möchte ich auch", chipFrage: "Ich habe eine andere Frage",
+    profilMailFrage: "Dann bauen wir es. Zuerst deine E-Mail, dann dein Lebenslauf — du siehst dich sofort oben in der Mappe. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
+    frageFrage: "Schreib deine Frage — ich leite sie weiter, du bekommst noch heute eine Antwort an deine E-Mail.",
+    frageMailFrage: "Und an welche E-Mail soll die Antwort gehen?",
+    frageDanke: "Ist raus — Antwort kommt noch heute. Was möchtest du sonst?",
     mailFrage: "Deine E-Mail, dann legen wir los. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     mailFehler: "Das sieht nicht nach einer E-Mail aus.",
     datenFrage: "Jetzt du: Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen.",
@@ -59,9 +62,10 @@ const TEXTE = {
     teaser: "Das war die Schnell-Analyse — nicht vollständig, nicht optimiert.",
     verkauf: "Willst du deine Daten verbessern? Du kannst mehr erreichen — mit vollständiger Analyse, Optimierung und deinem Video.",
     andereAnzeige: "Andere Anzeige testen", neuEinpflegen: "Lebenslauf neu einfügen",
+    profilVerkauf: "Gefällt es dir? Dann mach es echt — mit vollständiger Analyse, Optimierung und deinem Video. Oder füg eine Anzeige ein, dann sage ich dir vorher, wie gut sie zu dir passt.",
     zuEnde: "Das war dein fünfter Zug — mehr geht im Spiel nicht. Mach es echt: Deine Bewerbung, richtig analysiert und optimiert.",
     zuegeZeile: (n: number) => n === 1 ? "Noch 1 Spielzug übrig." : `Noch ${n} Spielzüge übrig.`,
-    senden: "Senden", denkt: "Einen Moment …",
+    senden: "Senden", denkt: "Einen Moment …", zurueck: "Zurück",
     fehler: "Das hat nicht geklappt — bitte noch einmal.",
     gold: "Gratis weitermachen",
     analyseH: "Schnell-Analyse", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
@@ -71,10 +75,13 @@ const TEXTE = {
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
   },
   en: {
-    introB: "I'm your application advisor. Above you see a sample — that's what a finished application looks like here. Want to see YOURSELF in it?",
+    introB: "I'm your application advisor. I tell you in percent how well a job fits you — and build you an application like the one above: cover letter, resume and video, tailored to one specific ad. What would you like?",
     introA: "I have your job ad. To tell you in percent how well it fits you, I need two things: your email and your resume.",
-    jaDaten: "Yes, with my data", nurSchauen: "Just looking",
-    schauAntwort: "Look around — tap the video, unfold the experience. When you want to see yourself in it, tap the button.",
+    chipMatch: "Does an ad fit me?", chipProfil: "I want a profile like this", chipFrage: "I have another question",
+    profilMailFrage: "Then let's build it. First your email, then your resume — you'll see yourself in the folder right away. (No page is created — nothing is saved until you buy.)",
+    frageFrage: "Write your question — I'll pass it on, you'll get an answer to your email today.",
+    frageMailFrage: "And which email should the answer go to?",
+    frageDanke: "Sent — you'll hear back today. What else would you like?",
     mailFrage: "Your email, then we start. (No page is created — nothing is saved until you buy.)",
     mailFehler: "That doesn't look like an email.",
     datenFrage: "Your turn: copy the text from your resume and paste it here. I'll transfer it into the folder — as it is, without polishing anything.",
@@ -91,9 +98,10 @@ const TEXTE = {
     teaser: "That was the quick analysis — not complete, not optimized.",
     verkauf: "Want to improve your data? You can achieve more — with full analysis, optimization and your video.",
     andereAnzeige: "Try another ad", neuEinpflegen: "Paste resume again",
+    profilVerkauf: "Like it? Then make it real — with full analysis, optimization and your video. Or paste a job ad and I'll tell you first how well it fits you.",
     zuEnde: "That was your fifth move — the game ends here. Make it real: your application, properly analyzed and optimized.",
     zuegeZeile: (n: number) => n === 1 ? "1 move left." : `${n} moves left.`,
-    senden: "Send", denkt: "One moment …",
+    senden: "Send", denkt: "One moment …", zurueck: "Back",
     fehler: "That didn't work — please try again.",
     gold: "Continue for free",
     analyseH: "Quick analysis", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
@@ -129,6 +137,14 @@ export default function SpielplatzClient({ beispiel, lang }: {
      echte Besitzer-Mechanik: Bearbeiten = Berater/Analyse/Zahlen, Vorschau = exakt die
      Firmen-Sicht (samt Interesse-Chat, still). */
   const [vorschau, setVorschau] = useState(false);
+  /* Wozu er gekommen ist (Owner: "Er muss hier gefragt werden ob er sehen will ob eine
+     Anzeige zu ihm passt ... Oder ob er auch so ein Profil anlegen moechte. Oder hat er
+     eine andere Frage.") — der Profil-Weg braucht keinen Anzeigen-Schritt. */
+  const [absicht, setAbsicht] = useState<"match" | "profil">("match");
+  /* Der Kauf-Anstoss lebt IM Gespraech (Owner: der stehende Gold-Knopf unten "ist
+     redundant. Brauchen wir nicht") — sichtbar erst, wenn der Berater verkauft hat. */
+  const [goldImChat, setGoldImChat] = useState(false);
+  const frageText = useRef("");
   const [letzteAnzeige, setLetzteAnzeige] = useState("");
   const fotoRef = useRef<HTMLInputElement>(null);
   const ende = useRef<HTMLDivElement | null>(null);
@@ -193,13 +209,50 @@ export default function SpielplatzClient({ beispiel, lang }: {
     ki(B.matchDa(m.prozent));
     ki(B.videoEmpfehlung);
     ki(`${B.teaser} ${B.verkauf}`);
+    setGoldImChat(true);
     setSchritt("frei");
+  };
+
+  const frageAbschicken = async (frage: string, adresse: string) => {
+    /* Weitergeleitet, nicht KI-beantwortet (Hausregel; derselbe Concierge-Weg wie der
+       Firmen-Chat): die Frage geht als Mail an den Betreiber, Antwort "noch heute". */
+    setBusy(true);
+    await fetch("/api/contact", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Bewerberberater-Frage", email: adresse, reason: "general",
+        message: `[Bewerberberater] Frage vom Spielplatz — ${typeof window !== "undefined" ? window.location.href : ""}\n\n${frage}`,
+      }),
+    }).catch(() => { /* die Danke-Zeile stimmt trotzdem nicht — Fehler zeigen */ });
+    setBusy(false);
+    ki(B.frageDanke);
+    setSchritt("intro");
   };
 
   const senden = async () => {
     const text = eingabe.trim();
     if (busy || !text) return;
     setFehler("");
+
+    if (schritt === "frage") {
+      frageText.current = text.slice(0, 2000);
+      setEingabe(""); ich(text);
+      if (mail) { await frageAbschicken(frageText.current, mail); return; }
+      ki(B.frageMailFrage); setSchritt("frageMail");
+      return;
+    }
+    if (schritt === "frageMail") {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) { setFehler(B.mailFehler); return; }
+      const adresse = text.toLowerCase().slice(0, 200);
+      setMail(adresse); setEingabe(""); ich(adresse);
+      try { localStorage.setItem("lb_kiss_mail", adresse); } catch { /**/ }
+      void fetch("/api/kiss-log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: "lebenslauf", device: ausweis(), email: adresse }),
+      }).catch(() => { /**/ });
+      await frageAbschicken(frageText.current, adresse);
+      return;
+    }
 
     if (schritt === "mail") {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) { setFehler(B.mailFehler); return; }
@@ -228,6 +281,13 @@ export default function SpielplatzClient({ beispiel, lang }: {
       ki(B.datenDrin);
       ki(B.fotoFrage);
       if (anzeigeVorab) { await matchLaufen(anzeigeVorab, daten); }
+      else if (absicht === "profil") {
+        /* Er wollte das PROFIL — der Grund ist geliefert (er sieht sich oben), jetzt
+           verkaufen; eine Anzeige darf er trotzdem noch testen (Feld bleibt offen). */
+        ki(B.profilVerkauf);
+        setGoldImChat(true);
+        setSchritt("frei");
+      }
       else { ki(B.anzeigeFrage); setSchritt("anzeige"); }
       return;
     }
@@ -375,14 +435,22 @@ export default function SpielplatzClient({ beispiel, lang }: {
           </div>
 
           {schritt === "intro" && !busy && (
+            /* DREI WEGE, JEDER MIT GRUND (Owner: "Er muss hier gefragt werden, ob er
+               sehen will, ob eine Anzeige zu ihm passt. Oder ob er auch so ein Profil
+               anlegen moechte. Oder hat er eine andere Frage." — "Erst mal schauen
+               fuehrt zu nix" ist raus). Der Match-Weg traegt das eine Gold. */
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => { ich(B.jaDaten); ki(B.mailFrage); setSchritt("mail"); }}
-                className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-6 text-[13px] font-black text-[#1a1204]">
-                {B.jaDaten}
+              <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(mail ? B.datenFrage : B.mailFrage); setSchritt(mail ? "daten" : "mail"); }}
+                className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-5 text-[13px] font-black text-[#1a1204]">
+                {B.chipMatch}
               </button>
-              <button type="button" onClick={() => { ich(B.nurSchauen); ki(B.schauAntwort); }}
-                className="h-10 rounded-full border border-[#1a160f] px-6 text-[13px] font-black">
-                {B.nurSchauen}
+              <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(mail ? B.datenFrage : B.profilMailFrage); setSchritt(mail ? "daten" : "mail"); }}
+                className="h-10 rounded-full border border-[#1a160f] px-5 text-[13px] font-black">
+                {B.chipProfil}
+              </button>
+              <button type="button" onClick={() => { ich(B.chipFrage); ki(B.frageFrage); setSchritt("frage"); }}
+                className="h-10 rounded-full border border-[#1a160f] px-5 text-[13px] font-black">
+                {B.chipFrage}
               </button>
             </div>
           )}
@@ -391,16 +459,35 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <>
               <Fehlerzeile karte>{fehler}</Fehlerzeile>
               <div className="mt-3 flex items-end gap-2">
-                <EingabeMehrzeilig karte zeilen={schritt === "daten" ? 5 : schritt === "anzeige" || schritt === "frei" ? 3 : 1}
+                <EingabeMehrzeilig karte zeilen={schritt === "daten" ? 5 : schritt === "anzeige" || schritt === "frei" || schritt === "frage" ? 3 : 1}
                   className="flex-1" value={eingabe}
-                  placeholder={schritt === "mail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : B.anzeigeFrage}
+                  placeholder={schritt === "mail" || schritt === "frageMail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : schritt === "frage" ? B.frageFrage : B.anzeigeFrage}
                   onChange={e => setEingabe(e.target.value)} />
                 <button type="button" disabled={busy || !eingabe.trim()} onClick={() => void senden()}
                   className="h-10 shrink-0 rounded-full border border-[#1a160f] px-4 text-[12.5px] font-black transition disabled:opacity-40">
                   {B.senden}
                 </button>
               </div>
+              {/* DER KAUF-ANSTOSS IM GESPRAECH (Owner: der stehende Knopf unten war
+                  redundant) — erscheint erst, wenn der Berater verkauft hat. */}
+              {goldImChat && (
+                <div className="mt-3">
+                  <Knopf art="gold" onClick={() => {
+                    try { if (letzteAnzeige) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige); } catch { /**/ }
+                    window.location.href = "/themes/lebenslauf/start";
+                  }}>
+                    {B.gold}
+                  </Knopf>
+                </div>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {/* Der garantierte Ausweg aus dem Frage-Weg (Memory immer-close-einbauen). */}
+                {(schritt === "frage" || schritt === "frageMail") && (
+                  <button type="button" onClick={() => { setSchritt("intro"); setEingabe(""); setFehler(""); }}
+                    className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
+                    {B.zurueck}
+                  </button>
+                )}
                 {spielDaten && !fotoUrl && (
                   <button type="button" onClick={() => fotoRef.current?.click()}
                     className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
@@ -416,18 +503,6 @@ export default function SpielplatzClient({ beispiel, lang }: {
         </div>
       </div>
 
-      {/* DER AUSGANG SCROLLT MIT (Owner: "Gratis weitermachen soll man mit scrollen")
-          — am Ende des Berater-Bereichs; dieser ganze Block haengt an nachKarte und
-          erscheint damit NUR im Bearbeiten-Modus (Owner: "das kommt nur in Bearbeiten
-          modus"). Anzeige + E-Mail reisen in den Kaufweg mit. */}
-      <div className="mt-4">
-        <Knopf art="gold" onClick={() => {
-          try { if (letzteAnzeige) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige); } catch { /**/ }
-          window.location.href = "/themes/lebenslauf/start";
-        }}>
-          {B.gold}
-        </Knopf>
-      </div>
     </>
   );
 
