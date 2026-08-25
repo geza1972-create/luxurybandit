@@ -185,8 +185,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     ohneNachricht: "Direkt absenden", neinAntwort: "Alles klar. Wenn du Fragen zum Werdegang hast, tipp sie einfach hier ein.",
     chatFrageP: "Deine Frage zum Werdegang …", chatSenden: "Senden", chatDenkt: "Einen Moment …", vorschau: "Vorschau", bearbeiten: "Bearbeiten",
     nochKeinVideo: "Noch kein Video.",
-    statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Leute haben sich deine Bewerbung angeschaut.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Leute wollten`} dein Video sehen. Video ist gefragt — erstelle jetzt dein Video.`,
+    statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Personen haben sich deine Bewerbung angeschaut.`,
+    statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Personen wollten`} dein Video sehen. Video ist gefragt — erstelle jetzt dein Video.`,
   },
   ro: {
     marke: "Talent", teilen: "Distribuie profilul", kopiert: "Link copiat", menu: "Meniu", menuTitel: "Secțiuni",
