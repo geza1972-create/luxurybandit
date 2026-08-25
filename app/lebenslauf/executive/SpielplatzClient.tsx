@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Eye, MessageCircle, Play, Mail, Check, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
-import ImageCropper from "@/components/ImageCropper";
-import { Knopf, EingabeMehrzeilig, Fehlerzeile, Laden } from "@/components/CI";
+import { Knopf, EingabeMehrzeilig } from "@/components/CI";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import type { Lang } from "@/lib/lang";
 
@@ -28,50 +27,14 @@ import type { Lang } from "@/lib/lang";
  */
 
 type Match = { prozent: number; jobtitel: string; gruende: string[]; luecken: string[]; befunde: string[]; anschreibenKurz: string };
-type SpielDaten = {
-  name: string; rolle: string; ort: string; sprachenKurz: string;
-  schwerpunkte: string[]; profil: string; expertise: string[];
-  erfahrung: { rolle: string; firma: string; zeitraum: string; ergebnis: string }[];
-  ausbildung: { titel: string; ort: string; zeitraum: string }[];
-  sprachen: { sprache: string; niveau: string }[];
-};
-type Msg = { von: "ich" | "ki"; text: string };
-type Schritt = "intro" | "daten" | "anzeige" | "frei" | "frage" | "frageMail";
 
 const TEXTE = {
   de: {
-    introB: "Oben siehst du eine fertige Bewerbung: Anschreiben, Lebenslauf und Video — zugeschnitten auf eine konkrete Stellenanzeige. Genau das erstellen wir jetzt für dich. Womit fangen wir an?",
-    introA: "Deine Stellenanzeige liegt vor. Für den Abgleich fehlt nur noch dein Lebenslauf — füg den Text hier ein.",
-    chipMatch: "Passt eine Anzeige zu mir?", chipProfil: "So ein Profil möchte ich auch", chipFrage: "Ich habe eine andere Frage",
-    frageFrage: "Schreib deine Frage — ich leite sie weiter, du bekommst noch heute eine Antwort an deine E-Mail.",
-    frageMailFrage: "Und an welche E-Mail soll die Antwort gehen?",
-    frageDanke: "Ist raus — Antwort kommt noch heute. Was möchtest du sonst?",
-    introKurz: "Womit machen wir weiter?",
-    beraterH: "Bewerbungsberater", beraterTeaser: "Liest deine Anzeige und deinen Lebenslauf — und sagt dir ehrlich, wo du stehst.",
-    mailFehler: "Das sieht nicht nach einer E-Mail aus.",
-    datenFrage: "Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen. Keine Anmeldung, nichts wird gespeichert.",
-    datenZuWenig: "Da ist zu wenig Text — füg ruhig den ganzen Lebenslauf ein.",
-    datenDrin: "Drin. Schau nach oben — das bist du. Ohne Beschönigung, genau was in deinem Lebenslauf steht.",
-    fotoFrage: "Magst du dein Foto einsetzen? Es bleibt in deinem Browser — wir speichern nichts.",
-    fotoChip: "Foto einsetzen", fotoTitel: "Dein Foto",
-    fotoDrin: "Sieht gut aus. Tipp mal auf den Play-Knopf auf deinem Bild — so erlebt eine Firma dein fehlendes Video.",
-    anzeigeFrage: "Und jetzt der spannende Teil: Füg eine Stellenanzeige ein (Text oder Link) — ich sage dir in Prozent, ob sie zu dir passt.",
-    matchLauf: "Ich lese die Anzeige und vergleiche sie mit deinen Daten …",
-    einpflegeLauf: "Ich übertrage deinen Lebenslauf in die Mappe …",
-    matchDa: (p: number) => `${p} % — die Analyse steht oben unter deiner Mappe. Oben drüber siehst du auch schon ein kurzes Anschreiben auf genau diese Anzeige.`,
-    videoEmpfehlung: "Meine Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
-    teaser: "Das war die Schnell-Analyse — nicht vollständig, nicht optimiert.",
-    verkauf: "Willst du deine Daten verbessern? Du kannst mehr erreichen — mit vollständiger Analyse, Optimierung und deinem Video.",
-    andereAnzeige: "Andere Anzeige testen", neuEinpflegen: "Lebenslauf neu einfügen",
-    profilVerkauf: "Gefällt es dir? Dann mach es echt — mit vollständiger Analyse, Optimierung und deinem Video. Oder füg eine Anzeige ein, dann sage ich dir vorher, wie gut sie zu dir passt.",
-    zuEnde: "Das war dein fünfter Zug — mehr geht im Spiel nicht. Mach es echt: Deine Bewerbung, richtig analysiert und optimiert.",
-    zuegeZeile: (n: number) => n === 1 ? "Noch 1 Spielzug übrig." : `Noch ${n} Spielzüge übrig.`,
-    senden: "Senden", denkt: "Einen Moment …", zurueck: "Von vorn",
-    fehler: "Das hat nicht geklappt — bitte noch einmal.",
-    gold: "Gratis weitermachen",
+    videoEmpfehlung: "Unsere Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
+    anzeigePlatzhalter: "Stellenanzeige oder Link hier einfügen — du siehst sofort, wie gut sie zu dir passt.",
+    anpassenCta: "Bewerbung anpassen",
     analyseH: "Schnell-Analyse", analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
     anschreibenH: "Anschreiben", anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
-    betreff: (t: string) => `Bewerbung als ${t}`,
     demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
     demoMeta: "Musterklinik München · Match 72 %",
     demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nPeter Mustermann",
@@ -100,38 +63,11 @@ const TEXTE = {
     },
   },
   en: {
-    introB: "Above you see a finished application: cover letter, resume and video — tailored to one specific job ad. That is exactly what we will create for you. Where shall we start?",
-    introA: "Your job ad is in. For the comparison I only need your resume — paste the text here.",
-    chipMatch: "Does an ad fit me?", chipProfil: "I want a profile like this", chipFrage: "I have another question",
-    frageFrage: "Write your question — I'll pass it on, you'll get an answer to your email today.",
-    frageMailFrage: "And which email should the answer go to?",
-    frageDanke: "Sent — you'll hear back today. What else would you like?",
-    introKurz: "Where shall we continue?",
-    beraterH: "Application advisor", beraterTeaser: "Reads your job ad and your resume — and tells you honestly where you stand.",
-    mailFehler: "That doesn't look like an email.",
-    datenFrage: "Copy the text from your resume and paste it here. I will transfer it into the folder — as it is, without polishing anything. No sign-up, nothing is stored.",
-    datenZuWenig: "That's too little text — paste the whole resume.",
-    datenDrin: "Done. Look up — that's you. No polish, exactly what your resume says.",
-    fotoFrage: "Want to add your photo? It stays in your browser — we store nothing.",
-    fotoChip: "Add photo", fotoTitel: "Your photo",
-    fotoDrin: "Looks good. Tap the play button on your picture — that's how a company experiences your missing video.",
-    anzeigeFrage: "Now the exciting part: paste a job ad (text or link) — I'll tell you in percent how well it fits you.",
-    matchLauf: "Reading the ad and comparing it with your data …",
-    einpflegeLauf: "Transferring your resume into the folder …",
-    matchDa: (p: number) => `${p}% — the analysis is right below your folder. Above it you'll already see a short cover letter for exactly this ad.`,
-    videoEmpfehlung: "My recommendation: a video application. Companies see you before they invite you — almost no candidate has that.",
-    teaser: "That was the quick analysis — not complete, not optimized.",
-    verkauf: "Want to improve your data? You can achieve more — with full analysis, optimization and your video.",
-    andereAnzeige: "Try another ad", neuEinpflegen: "Paste resume again",
-    profilVerkauf: "Like it? Then make it real — with full analysis, optimization and your video. Or paste a job ad and I'll tell you first how well it fits you.",
-    zuEnde: "That was your fifth move — the game ends here. Make it real: your application, properly analyzed and optimized.",
-    zuegeZeile: (n: number) => n === 1 ? "1 move left." : `${n} moves left.`,
-    senden: "Send", denkt: "One moment …", zurueck: "Start over",
-    fehler: "That didn't work — please try again.",
-    gold: "Continue for free",
+    videoEmpfehlung: "Our recommendation: a video application. Companies see you before they invite you — almost no candidate has that.",
+    anzeigePlatzhalter: "Paste the job ad or a link here — you will see right away how well it fits you.",
+    anpassenCta: "Tailor my application",
     analyseH: "Quick analysis", analyseTeaser: "What fits, what is missing — and what is weak in the resume itself.", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
     anschreibenH: "Cover letter", anschreibenTeaser: "Tailored to this exact job ad — page one of your folder.", kostprobe: "A taste — the full cover letter comes with your application.",
-    betreff: (t: string) => `Application for ${t}`,
     demoBetreff: "Application: Intensive Care Nurse",
     demoMeta: "Sample Clinic Munich · Match 72%",
     demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care, and my professional recognition for Germany has been filed. I can start at short notice and am ready to relocate.\n\nKind regards\nPeter Mustermann",
@@ -168,206 +104,27 @@ export default function SpielplatzClient({ beispiel, lang }: {
   const B = TEXTE[lang === "de" ? "de" : "en"];
   const ET = EXECUTIVE_TEXTE[lang] ?? EXECUTIVE_TEXTE.en;
 
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [schritt, setSchritt] = useState<Schritt>("intro");
-  const [eingabe, setEingabe] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [busyText, setBusyText] = useState("");
-  const [fehler, setFehler] = useState("");
-  const [mail, setMail] = useState("");
-  const [spielDaten, setSpielDaten] = useState<SpielDaten | null>(null);
-  const [fotoUrl, setFotoUrl] = useState("");
-  const [match, setMatch] = useState<Match | null>(null);
-  const [zuegeUebrig, setZuegeUebrig] = useState<number | null>(null);
-  const [cropDatei, setCropDatei] = useState<File | null>(null);
-  const [anzeigeVorab, setAnzeigeVorab] = useState("");
-  /* BEARBEITEN|VORSCHAU AUCH IM SPIEL (Owner 25.08.2026, mit Bild der Firmen-Flaeche:
-     "das kommt doch in der Vorschau und es fehlt bearbeiten") — der Spieler erlebt die
-     echte Besitzer-Mechanik: Bearbeiten = Berater/Analyse/Zahlen, Vorschau = exakt die
-     Firmen-Sicht (samt Interesse-Chat, still). */
+  /* BEARBEITEN|VORSCHAU (Owner 25.08.2026: „das kommt doch in der Vorschau und es fehlt
+     bearbeiten") — Bearbeiten zeigt Analyse und Besitzer-Zeilen, Vorschau exakt die
+     Firmen-Sicht. */
   const [vorschau, setVorschau] = useState(false);
-  /* Wozu er gekommen ist (Owner: "Er muss hier gefragt werden ob er sehen will ob eine
-     Anzeige zu ihm passt ... Oder ob er auch so ein Profil anlegen moechte. Oder hat er
-     eine andere Frage.") — der Profil-Weg braucht keinen Anzeigen-Schritt. */
-  const [absicht, setAbsicht] = useState<"match" | "profil">("match");
-  /* Der Kauf-Anstoss lebt IM Gespraech (Owner: der stehende Gold-Knopf unten "ist
-     redundant. Brauchen wir nicht") — sichtbar erst, wenn der Berater verkauft hat. */
-  const [goldImChat, setGoldImChat] = useState(false);
-  const frageText = useRef("");
+  /* TÜR A: Das Landing-Feld legt die eingefügte Anzeige in denselben sessionStorage-
+     Schlüssel, den auch der Trichter liest — hier NUR LESEN, damit die Analyse sie zeigt
+     und der Gold-Knopf sie weiterreicht. */
   const [letzteAnzeige, setLetzteAnzeige] = useState("");
-  const fotoRef = useRef<HTMLInputElement>(null);
-  const ende = useRef<HTMLDivElement | null>(null);
   const gestartet = useRef(false);
 
-  const ki = (text: string) => setMsgs(m => [...m, { von: "ki", text }]);
-  const ich = (text: string) => setMsgs(m => [...m, { von: "ich", text }]);
-
-  /* TÜR A ODER TÜR B: Das Landing-Feld legt die Anzeige in denselben sessionStorage-
-     Schlüssel, den auch der Tunnel liest — hier NUR LESEN, nicht löschen (der Tunnel
-     braucht ihn nach dem Gold-Knopf noch). */
   useEffect(() => {
     if (gestartet.current) return;
     gestartet.current = true;
-    let vorab = "";
-    try { vorab = (sessionStorage.getItem("lb_lebenslauf_anzeige") ?? "").trim(); } catch { /**/ }
-    if (vorab) { setAnzeigeVorab(vorab); setLetzteAnzeige(vorab); ki(B.introA); setSchritt("daten"); }
-    else ki(B.introB);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    try {
+      const vorab = (sessionStorage.getItem("lb_lebenslauf_anzeige") ?? "").trim();
+      if (vorab) setLetzteAnzeige(vorab);
+    } catch { /**/ }
   }, []);
 
-  useEffect(() => {
-    if (msgs.length > 1) ende.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [msgs, busy]);
-
-  const ausweis = () => {
-    let device = "";
-    try {
-      device = localStorage.getItem("lb_visitor") ?? "";
-      if (!device) { device = crypto.randomUUID(); localStorage.setItem("lb_visitor", device); }
-    } catch { /**/ }
-    return device;
-  };
-
-  const spielZug = async (body: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
-    const device = ausweis();
-    const r = await fetch("/api/lebenslauf-spiel", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device, email: mail, lang, ...body }),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (typeof d?.zuegeUebrig === "number") setZuegeUebrig(d.zuegeUebrig);
-    if (r.status === 402) { ki(B.zuEnde); return null; }
-    if (!r.ok) { setFehler(String(d?.error ?? B.fehler)); return null; }
-    return d as Record<string, unknown>;
-  };
-
-  const matchLaufen = async (anzeige: string, daten: SpielDaten) => {
-    setBusy(true); setBusyText(B.matchLauf); setFehler("");
-    const d = await spielZug({ art: "match", anzeige, daten });
-    setBusy(false); setBusyText("");
-    if (!d) return;
-    const m: Match = {
-      prozent: Number(d.prozent) || 0,
-      jobtitel: String(d.jobtitel ?? ""),
-      gruende: Array.isArray(d.gruende) ? d.gruende.map(String) : [],
-      luecken: Array.isArray(d.luecken) ? d.luecken.map(String) : [],
-      befunde: Array.isArray(d.befunde) ? d.befunde.map(String) : [],
-      anschreibenKurz: String(d.anschreibenKurz ?? ""),
-    };
-    setMatch(m); setLetzteAnzeige(anzeige);
-    ki(B.matchDa(m.prozent));
-    ki(B.videoEmpfehlung);
-    ki(`${B.teaser} ${B.verkauf}`);
-    setGoldImChat(true);
-    setSchritt("frei");
-  };
-
-  const frageAbschicken = async (frage: string, adresse: string) => {
-    /* Weitergeleitet, nicht KI-beantwortet (Hausregel; derselbe Concierge-Weg wie der
-       Firmen-Chat): die Frage geht als Mail an den Betreiber, Antwort "noch heute". */
-    setBusy(true);
-    await fetch("/api/contact", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Bewerberberater-Frage", email: adresse, reason: "general",
-        message: `[Bewerberberater] Frage vom Spielplatz — ${typeof window !== "undefined" ? window.location.href : ""}\n\n${frage}`,
-      }),
-    }).catch(() => { /* die Danke-Zeile stimmt trotzdem nicht — Fehler zeigen */ });
-    setBusy(false);
-    ki(B.frageDanke);
-    setSchritt("intro");
-  };
-
-  const senden = async () => {
-    const text = eingabe.trim();
-    if (busy || !text) return;
-    setFehler("");
-
-    if (schritt === "frage") {
-      frageText.current = text.slice(0, 2000);
-      setEingabe(""); ich(text);
-      if (mail) { await frageAbschicken(frageText.current, mail); return; }
-      ki(B.frageMailFrage); setSchritt("frageMail");
-      return;
-    }
-    if (schritt === "frageMail") {
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) { setFehler(B.mailFehler); return; }
-      const adresse = text.toLowerCase().slice(0, 200);
-      setMail(adresse); setEingabe(""); ich(adresse);
-      try { localStorage.setItem("lb_kiss_mail", adresse); } catch { /**/ }
-      void fetch("/api/kiss-log", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: "lebenslauf", device: ausweis(), email: adresse }),
-      }).catch(() => { /**/ });
-      await frageAbschicken(frageText.current, adresse);
-      return;
-    }
-
-    if (schritt === "daten") {
-      if (text.length < 60) { setFehler(B.datenZuWenig); return; }
-      setEingabe(""); ich(`${text.slice(0, 80)} …`);
-      setBusy(true); setBusyText(B.einpflegeLauf);
-      const d = await spielZug({ art: "einpflegen", text });
-      setBusy(false); setBusyText("");
-      if (!d?.daten) return;
-      const daten = d.daten as SpielDaten;
-      setSpielDaten(daten);
-      ki(B.datenDrin);
-      ki(B.fotoFrage);
-      if (anzeigeVorab) { await matchLaufen(anzeigeVorab, daten); }
-      else if (absicht === "profil") {
-        /* Er wollte das PROFIL — der Grund ist geliefert (er sieht sich oben), jetzt
-           verkaufen; eine Anzeige darf er trotzdem noch testen (Feld bleibt offen). */
-        ki(B.profilVerkauf);
-        setGoldImChat(true);
-        setSchritt("frei");
-      }
-      else { ki(B.anzeigeFrage); setSchritt("anzeige"); }
-      return;
-    }
-
-    if (schritt === "anzeige" || schritt === "frei") {
-      if (!spielDaten) { ki(B.datenFrage); setSchritt("daten"); return; }
-      /* KEIN ECHO DER ANZEIGE IM CHAT (Owner 25.08.2026, mit Bild: „Entweder hier oben
-         oder unten im Berater. Aber nicht beides") — die Anzeige steht in der
-         Analyse-Karte, dort wo sie zur Prozentzahl gehört. Ein zweiter Abdruck im
-         Gespräch ist dieselbe Information an schlechterer Stelle; die Lade-Zeile
-         „Ich lese die Anzeige …" ist die Rückmeldung, die es braucht. */
-      setEingabe("");
-      await matchLaufen(text, spielDaten);
-      return;
-    }
-  };
-
-  /* ── DIE KARTE: Muster, oder er selbst (1:1 aus dem Einpflegen; Foto nur im Browser) ── */
-  const profil: ExecutiveProfil = spielDaten ? {
-    ...beispiel,
-    id: "spiel",
-    name: spielDaten.name || "—",
-    rolle: spielDaten.rolle,
-    ort: spielDaten.ort,
-    sprachenKurz: spielDaten.sprachenKurz,
-    verfuegbar: "",
-    schwerpunkte: spielDaten.schwerpunkte,
-    portraitUrl: fotoUrl,
-    videoUrl: undefined,
-    videoLabel: undefined,
-    profil: spielDaten.profil,
-    expertise: spielDaten.expertise,
-    erfahrung: spielDaten.erfahrung,
-    impact: [],
-    ausbildung: spielDaten.ausbildung,
-    sprachen: spielDaten.sprachen,
-    cvUrl: undefined,
-    chatFragen: [],
-    kontaktSichtbar: false,
-    kontakt: undefined,
-    viewCount: 0,
-    videoKlicks: 0,
-  } : {
-    ...beispiel,
-    ...(fotoUrl ? { portraitUrl: fotoUrl, videoUrl: undefined, videoLabel: undefined } : {}),
-  };
+  /* Die Karte ist das Muster — eingepflegte Eigendaten gab es nur mit dem Berater. */
+  const profil: ExecutiveProfil = beispiel;
 
   /* ── OBEN: DAS ANSCHREIBEN (Owner: „Es müsste oben anfangen … dann drunter das Resume") ── */
   /* EIN BRIEF, KEIN TEXTKLUMPEN (Owner, mit Bild: „das ist eine Katastrophe. Das
@@ -375,12 +132,10 @@ export default function SpielplatzClient({ beispiel, lang }: {
      klein die Einordnung (Firma/Match), dann der Brief mit Anrede, Absätzen und Gruss
      auf eigenen Zeilen (die KI liefert die Umbrüche mit, \n bleibt per pre-wrap
      erhalten). Etikett und Fusszeile trennt je eine Haarlinie vom Papier. */
-  const anschreibenText = match?.anschreibenKurz || (!spielDaten ? B.demoAnschreiben : "");
-  const anschreibenBetreff = match
-    ? (match.jobtitel ? B.betreff(match.jobtitel) : "")
-    : (!spielDaten ? B.demoBetreff : "");
-  const anschreibenMeta = match ? `Match ${match.prozent} %` : (!spielDaten ? B.demoMeta : "");
-  const vorKarte = anschreibenText ? (
+  const anschreibenText = B.demoAnschreiben;
+  const anschreibenBetreff = B.demoBetreff;
+  const anschreibenMeta = B.demoMeta;
+  const vorKarte = (
     <section className="lb-karte mb-4 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
       {/* Dasselbe Kopfband wie der Lebenslauf darunter — zwei Blätter EINER Mappe. */}
       <MappenKopf icon={Mail} titel={B.anschreibenH} teaser={B.anschreibenTeaser} />
@@ -394,10 +149,10 @@ export default function SpielplatzClient({ beispiel, lang }: {
         <p className="mt-4 whitespace-pre-wrap text-[14px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
       </div>
       <p className="border-t border-[#1a160f]/[0.11] px-5 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45 md:px-8">
-        {match ? B.kostprobe : B.demoHinweis}
+        {B.demoHinweis}
       </p>
     </section>
-  ) : null;
+  );
 
   /* DER BEISPIEL-MATCH (Owner 25.08.2026: „hier muss schon ein Beispiel-Match gezeigt
      werden" · „jetzt den Rest noch bauen: Match") — solange der Spieler keine eigenen
@@ -405,14 +160,13 @@ export default function SpielplatzClient({ beispiel, lang }: {
      die im Anschreiben oben steht, dieselben vier Blöcke wie beim echten Lauf. So sieht
      man VOR dem ersten Zug, was das Werkzeug liefert — inklusive der unbequemen
      Befunde am Lebenslauf, die den Kauf begründen. */
-  const zeigeMatch: Match | null = match ?? (!spielDaten ? B.demoMatch : null);
-  const zeigeAnzeige = letzteAnzeige || (!spielDaten ? B.demoAnzeige : "");
-  const istBeispielMatch = !match && !!zeigeMatch;
+  const zeigeMatch: Match = B.demoMatch;
+  const zeigeAnzeige = letzteAnzeige || B.demoAnzeige;
 
   /* ── UNTER DER KARTE: Beispiel-Zahlen (nur im Muster), Analyse, der Berater ── */
   const nachKarte = (
     <>
-      {!spielDaten && (
+      {true && (
         /* DIE BESITZER-ZEILEN ALS SCHAUFENSTER (Owner: Beispiel-Zahlen zeigen — genau die
            Zeilen hat kein Jobportal). Reine Demo-Werte; die Beacons zählen hier nichts. */
         <div className="mt-6 flex flex-col gap-1.5">
@@ -429,7 +183,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
         </div>
       )}
 
-      {(zeigeMatch || zeigeAnzeige) && (
+      {(
         /* DIE ANALYSE IST DAS DRITTE BLATT DER MAPPE (Owner 25.08.2026: „in einer weissen
            Box bitte") — vorher stand sie nackt auf dem Dunklen zwischen zwei Creme-Karten
            und sah aus wie ein Systemausdruck. Jetzt dieselbe Hülle und dasselbe Kopfband
@@ -437,7 +191,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
            DER MATCH STEHT MIT DER ANZEIGE (Owner davor: „wo sieht er das sonst?") — die
            geprüfte Anzeige bleibt als eigene, scrollbare Fläche sichtbar. */
         <section className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-          <MappenKopf icon={Gauge} titel={B.analyseH} teaser={istBeispielMatch ? B.demoAnalyseHinweis : B.analyseTeaser} />
+          <MappenKopf icon={Gauge} titel={B.analyseH} teaser={B.demoAnalyseHinweis} />
           <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
           {zeigeMatch && (<>
           <div className="flex items-baseline gap-3">
@@ -448,14 +202,19 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <div className="h-full rounded-full bg-[#c8a13a] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
           </div>
           </>)}
-          {zeigeAnzeige && (
-            <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.anzeigeH}</p>
-              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[#1a160f]/15 px-3 py-2 text-[13px] font-medium leading-relaxed opacity-75">
-                {zeigeAnzeige}
-              </p>
+          {/* HIER WIRD DIE ANZEIGE REINKOPIERT (Owner 25.08.2026, mit Bild: „Das muss
+              hervorgehoben werden. Unten steht dann Bewerbung anpassen") — die Anzeige
+              ist keine stumme Fläche mehr, sondern DAS Eingabefeld der Seite: goldener
+              Rahmen auf dem Papier, damit man sieht, wo man etwas tut. Der eingefügte
+              Text reist über denselben sessionStorage-Schlüssel in den Trichter. */}
+          <div className="mt-5">
+            <p className="lb-karte-gold text-[13px] font-black uppercase tracking-[0.18em]">{B.anzeigeH}</p>
+            <div className="mt-1.5 rounded-xl border-2 border-[#c8a13a]/60 p-1">
+              <EingabeMehrzeilig karte zeilen={4} value={letzteAnzeige}
+                placeholder={B.anzeigePlatzhalter}
+                onChange={e => setLetzteAnzeige(e.target.value)} />
             </div>
-          )}
+          </div>
           {zeigeMatch && zeigeMatch.gruende.length > 0 && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.passt}</p>
@@ -486,109 +245,22 @@ export default function SpielplatzClient({ beispiel, lang }: {
           <p className="mt-4 flex items-start gap-2 text-[14px] font-black">
             <Play className="lb-karte-gold mt-0.5 h-4 w-4 shrink-0" />{B.videoEmpfehlung}
           </p>
-          {!istBeispielMatch && (
-            <p className="mt-2 text-[14px] font-bold leading-snug opacity-60">{B.teaser}</p>
-          )}
           </>)}
+
+          {/* „Unten steht dann Bewerbung anpassen" (Owner) — der eine Knopf der Seite,
+              im Papier statt darunter: er nimmt die eingefügte Anzeige mit in den
+              Trichter, wo Lebenslauf, Foto und Kasse zu Hause sind. */}
+          <div className="mt-5">
+            <Knopf art="gold" onClick={() => {
+              try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
+              window.location.href = "/themes/lebenslauf/start";
+            }}>
+              {B.anpassenCta}
+            </Knopf>
+          </div>
           </div>
         </section>
       )}
-
-      {/* ── DER BEWERBERBERATER — in der weissen Hülle (Owner 25.08.2026, mit Bild des
-          dunklen Kastens: „das auch in der weissen Hülle"): dieselbe Creme-Karte wie die
-          Mappe, alle Innenteile in der Karten-Fassung der CI-Bausteine. ── */}
-      <div className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-        {/* AUCH DIE BERATER-BOX TRÄGT EINEN KOPF (Owner 25.08.2026: „und die Box hat
-            keinen Titel. Auch unprofessionell") — dasselbe Band wie Anschreiben und
-            Lebenslauf: drei Blätter EINER Mappe, eine Handschrift. */}
-        <MappenKopf icon={MessageCircle} titel={B.beraterH} teaser={B.beraterTeaser} />
-        <div className="border-t border-[#1a160f]/[0.11] px-4 pb-4 pt-4">
-          <div className="flex flex-col gap-2.5">
-            {msgs.map((m, i) => m.von === "ich" ? (
-              <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1a160f]/[0.07] px-3 py-2 text-[14px] font-bold leading-snug">
-                {m.text}
-              </p>
-            ) : (
-              <p key={i} className="text-[14px] font-bold leading-snug opacity-85">{m.text}</p>
-            ))}
-            {busy && (
-              <p className="flex items-center gap-2 text-[14px] font-bold leading-snug opacity-60">
-                <Laden art="knopf" karte />{busyText || B.denkt}
-              </p>
-            )}
-            <div ref={ende} />
-          </div>
-
-          {schritt === "intro" && !busy && (
-            /* DREI WEGE, JEDER MIT GRUND (Owner: "Er muss hier gefragt werden, ob er
-               sehen will, ob eine Anzeige zu ihm passt. Oder ob er auch so ein Profil
-               anlegen moechte. Oder hat er eine andere Frage." — "Erst mal schauen
-               fuehrt zu nix" ist raus). Der Match-Weg traegt das eine Gold. */
-            <div className="mt-2 flex flex-col items-start gap-2">
-              <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(B.datenFrage); setSchritt("daten"); }}
-                className="h-9 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-4 text-[14px] font-black text-[#1a1204]">
-                {B.chipMatch}
-              </button>
-              <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(B.datenFrage); setSchritt("daten"); }}
-                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[14px] font-black">
-                {B.chipProfil}
-              </button>
-              <button type="button" onClick={() => { ich(B.chipFrage); ki(B.frageFrage); setSchritt("frage"); }}
-                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[14px] font-black">
-                {B.chipFrage}
-              </button>
-            </div>
-          )}
-
-          {schritt !== "intro" && (
-            <>
-              <Fehlerzeile karte>{fehler}</Fehlerzeile>
-              <div className="mt-3 flex items-end gap-2">
-                <EingabeMehrzeilig karte zeilen={schritt === "daten" ? 5 : schritt === "frageMail" ? 1 : 3}
-                  className="flex-1" value={eingabe}
-                  placeholder={schritt === "frageMail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : schritt === "frage" ? B.frageFrage : B.anzeigeFrage}
-                  onChange={e => setEingabe(e.target.value)} />
-                <button type="button" disabled={busy || !eingabe.trim()} onClick={() => void senden()}
-                  className="h-10 shrink-0 rounded-full border border-[#1a160f] px-4 text-[14px] font-black transition disabled:opacity-40">
-                  {B.senden}
-                </button>
-              </div>
-              {/* DER KAUF-ANSTOSS IM GESPRAECH (Owner: der stehende Knopf unten war
-                  redundant) — erscheint erst, wenn der Berater verkauft hat. */}
-              {goldImChat && (
-                <div className="mt-3">
-                  <Knopf art="gold" onClick={() => {
-                    try { if (letzteAnzeige) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige); } catch { /**/ }
-                    window.location.href = "/themes/lebenslauf/start";
-                  }}>
-                    {B.gold}
-                  </Knopf>
-                </div>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                {/* DER GARANTIERTE WEG ZURÜCK AUF JEDEM SCHRITT (Owner: „Wenn ich auf
-                    eins klicke, komme ich nicht mehr zurück — es sei denn wir haben
-                    Reset-Button" · Memory immer-close-einbauen): „Von vorn" bringt die
-                    drei Wege wieder; Gesammeltes (E-Mail, eingepflegte Daten, Match)
-                    bleibt — niemand tippt etwas doppelt. */}
-                <button type="button" onClick={() => { ki(B.introKurz); setSchritt("intro"); setEingabe(""); setFehler(""); }}
-                  className="text-[13px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
-                  {B.zurueck}
-                </button>
-                {spielDaten && !fotoUrl && (
-                  <button type="button" onClick={() => fotoRef.current?.click()}
-                    className="text-[13px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
-                    {B.fotoChip}
-                  </button>
-                )}
-                {typeof zuegeUebrig === "number" && zuegeUebrig >= 0 && (
-                  <span className="text-[13px] font-bold uppercase tracking-[0.12em] opacity-40">{B.zuegeZeile(zuegeUebrig)}</span>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
     </>
   );
@@ -619,26 +291,6 @@ export default function SpielplatzClient({ beispiel, lang }: {
           </div>
       </div>
 
-      <input ref={fotoRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) setCropDatei(f); e.target.value = ""; }} />
-      {cropDatei && (
-        <ImageCropper file={cropDatei} aspect={3 / 4} title={B.fotoTitel} sprache={lang}
-          onCancel={() => setCropDatei(null)}
-          onSave={async (zugeschnitten) => {
-            setCropDatei(null);
-            /* NUR IM BROWSER (Eiserne Regel): Data-URL im Zustand, kein Upload. */
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              const r = new FileReader();
-              r.onload = () => resolve(String(r.result ?? ""));
-              r.onerror = reject;
-              r.readAsDataURL(zugeschnitten);
-            }).catch(() => "");
-            if (dataUrl) {
-              setFotoUrl(dataUrl);
-              ki(B.fotoDrin);
-            }
-          }} />
-      )}
     </>
   );
 }
