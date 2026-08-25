@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageCircle, Play, Mail, Check } from "lucide-react";
+import { Eye, MessageCircle, Play, Mail, Check, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import ImageCropper from "@/components/ImageCropper";
@@ -71,7 +71,7 @@ const TEXTE = {
     senden: "Senden", denkt: "Einen Moment …", zurueck: "Von vorn",
     fehler: "Das hat nicht geklappt — bitte noch einmal.",
     gold: "Gratis weitermachen",
-    analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
+    analyseH: "Schnell-Analyse", analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
     anschreibenH: "Anschreiben", anschreibenTeaser: "Auf genau diese Anzeige zugeschnitten — Seite eins deiner Mappe.", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
     betreff: (t: string) => `Bewerbung als ${t}`,
     demoBetreff: "Bewerbung als Fachpflegekraft Intensivmedizin",
@@ -133,7 +133,7 @@ const TEXTE = {
     senden: "Send", denkt: "One moment …", zurueck: "Start over",
     fehler: "That didn't work — please try again.",
     gold: "Continue for free",
-    analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
+    analyseH: "Quick analysis", analyseTeaser: "What fits, what is missing — and what is weak in the resume itself.", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
     anschreibenH: "Cover letter", anschreibenTeaser: "Tailored to this exact job ad — page one of your folder.", kostprobe: "A taste — the full cover letter comes with your application.",
     betreff: (t: string) => `Application for ${t}`,
     demoBetreff: "Application: Intensive Care Nurse",
@@ -444,34 +444,37 @@ export default function SpielplatzClient({ beispiel, lang }: {
       )}
 
       {(zeigeMatch || zeigeAnzeige) && (
-        /* DER MATCH STEHT MIT DER ANZEIGE IM BEARBEITEN-MODUS (Owner: „in bearbeiten
-           modus muss doch der Match also mit der Anzeige stehen. Wo sieht er das
-           sonst?") — die geprüfte Anzeige bleibt als eigene, scrollbare Fläche unter
-           dem Prozent sichtbar; bei Tür A steht sie schon VOR dem ersten Match da. */
-        <section className="mt-6">
-          <p className="text-[13px] font-black uppercase tracking-[0.24em] text-white/40">{B.analyseH}</p>
+        /* DIE ANALYSE IST DAS DRITTE BLATT DER MAPPE (Owner 25.08.2026: „in einer weissen
+           Box bitte") — vorher stand sie nackt auf dem Dunklen zwischen zwei Creme-Karten
+           und sah aus wie ein Systemausdruck. Jetzt dieselbe Hülle und dasselbe Kopfband
+           wie Anschreiben, Lebenslauf und Berater: vier Blätter, eine Handschrift.
+           DER MATCH STEHT MIT DER ANZEIGE (Owner davor: „wo sieht er das sonst?") — die
+           geprüfte Anzeige bleibt als eigene, scrollbare Fläche sichtbar. */
+        <section className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+          <MappenKopf icon={Gauge} titel={B.analyseH} teaser={istBeispielMatch ? B.demoAnalyseHinweis : B.analyseTeaser} />
+          <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
           {zeigeMatch && (<>
-          <div className="mt-2 flex items-baseline gap-3">
-            <p className="font-serif text-[44px] font-black leading-none text-white">{zeigeMatch.prozent}%</p>
-            {zeigeMatch.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/60">{zeigeMatch.jobtitel}</p>}
+          <div className="flex items-baseline gap-3">
+            <p className="font-serif text-[44px] font-black leading-none">{zeigeMatch.prozent}%</p>
+            {zeigeMatch.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] opacity-60">{zeigeMatch.jobtitel}</p>}
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/15">
-            <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#1a160f]/[0.12]">
+            <div className="h-full rounded-full bg-[#c8a13a] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
           </div>
           </>)}
           {zeigeAnzeige && (
             <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.anzeigeH}</p>
-              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-relaxed text-white/70">
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.anzeigeH}</p>
+              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[#1a160f]/15 px-3 py-2 text-[13px] font-medium leading-relaxed opacity-75">
                 {zeigeAnzeige}
               </p>
             </div>
           )}
           {zeigeMatch && zeigeMatch.gruende.length > 0 && (
             <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.passt}</p>
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.passt}</p>
               {zeigeMatch!.gruende.map((g, i) => (
-                <p key={i} className="mt-1.5 flex items-start gap-2 text-[14px] font-bold leading-snug text-white/85">
+                <p key={i} className="mt-1.5 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-90">
                   <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
                 </p>
               ))}
@@ -479,28 +482,29 @@ export default function SpielplatzClient({ beispiel, lang }: {
           )}
           {zeigeMatch && zeigeMatch.luecken.length > 0 && (
             <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.fehlt}</p>
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.fehlt}</p>
               {zeigeMatch!.luecken.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
+                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug opacity-75">— {g}</p>
               ))}
             </div>
           )}
           {zeigeMatch && zeigeMatch.befunde.length > 0 && (
             <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.befundeH}</p>
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.befundeH}</p>
               {zeigeMatch!.befunde.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
+                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug opacity-75">— {g}</p>
               ))}
             </div>
           )}
           {zeigeMatch && (<>
-          <p className="mt-4 flex items-start gap-2 text-[14px] font-black text-white/90">
-            <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />{B.videoEmpfehlung}
+          <p className="mt-4 flex items-start gap-2 text-[14px] font-black">
+            <Play className="lb-karte-gold mt-0.5 h-4 w-4 shrink-0" />{B.videoEmpfehlung}
           </p>
-          <p className="mt-2 text-[14px] font-bold leading-snug text-white/60">
-            {istBeispielMatch ? B.demoAnalyseHinweis : B.teaser}
-          </p>
+          {!istBeispielMatch && (
+            <p className="mt-2 text-[14px] font-bold leading-snug opacity-60">{B.teaser}</p>
+          )}
           </>)}
+          </div>
         </section>
       )}
 
