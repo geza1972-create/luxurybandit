@@ -712,6 +712,8 @@ svg {
    `svg`-Regel getrennt, weil das Zeichen die Farbe der Fläche sonst erbt. */
 .lb-karte .lb-punkt-ja { background: #2f7d4f !important; }
 .lb-karte .lb-punkt-ja svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
+.lb-karte .lb-punkt-nein { background: #a33b3b !important; }
+.lb-karte .lb-punkt-nein svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
 .lb-karte .lb-punkt-minus { background: rgba(26, 22, 15, 0.5) !important; }
 .lb-karte .lb-punkt-minus svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
 /* Fehlerhinweis IN der Karte: ein Inline-`color` verliert gegen die !important-Braunregel

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageCircle, Play, Mail, AlertTriangle, Check, Minus, Gauge } from "lucide-react";
+import { Eye, MessageCircle, Play, Mail, Check, Minus, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
@@ -211,12 +211,22 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
           )}
           {zeigeMatch && zeigeMatch.luecken.length > 0 && (
             <div className="mt-3 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
+              {/* DIESELBE GESTALT WIE DIE ANDEREN BEIDEN (Owner 25.08.2026: „und die alle
+                  mit Minus und das gleiche Design") — das Warndreieck war eine zweite
+                  Formsprache in derselben Liste. Jetzt tragen alle drei Blöcke dieselbe
+                  Scheibe mit weissem Zeichen; den Unterschied macht allein die FARBE:
+                  grün was passt, rot was die Anzeige verlangt und fehlt, Tinte was am
+                  eigenen Papier schwach ist. Eine Form, drei Bedeutungen. */}
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
-                <AlertTriangle className="lb-karte-nein h-4 w-4 shrink-0" />{B.fehlt}
+                <span className="lb-punkt-nein grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                  <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>{B.fehlt}
               </p>
               {zeigeMatch!.luecken.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
-                  <AlertTriangle className="lb-karte-nein mt-[1px] h-4 w-4 shrink-0" />{g}
+                  <span className="lb-punkt-nein mt-[2px] grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                    <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>{g}
                 </p>
               ))}
             </div>
