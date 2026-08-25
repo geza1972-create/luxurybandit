@@ -21,8 +21,13 @@ export const maxDuration = 30;
  * Lebenslauf nur die ERSTEN ZEILEN als Kostprobe, nie das ganze Dokument; Fotos kommen
  * hier gar nicht erst an (bleiben im Browser).
  *
- * E-MAIL IST PFLICHT (Owner: „ich will Leads auf jeden Fall") — ohne gültige Adresse
- * nimmt der Motor keinen Zug an; das Tor sitzt im Server, nicht nur im Chat.
+ * KEIN E-MAIL-TOR MEHR (Owner 25.08.2026, gedreht: „Er kann hier gratis auch eine Anzeige
+ * rein machen und Match sieht er auch. Lass uns das öffnen. Du kannst überall ein Profil
+ * gratis anlegen." — festgestellt, als er es selbst probierte: „Ich kann das nicht
+ * eingeben"). Das Spiel ist offen; das Tor sitzt jetzt beim TEILEN (Speichern → Konto).
+ * DER LEAD KOMMT AUS DEM LEBENSLAUF: Beim Einpflegen zieht die KI die Kontaktdaten aus dem
+ * eingefügten Text (die stehen dort ohnehin) — so sieht der Betreiber auch die Spieler, die
+ * nie ein Formular ausfüllen. Der 5er-Deckel je Gerät bleibt die einzige Kosten-Bremse.
  *
  * POST { device, email, lang, art: "einpflegen" | "match", text, daten?, anzeige? }
  *   → einpflegen: text = eingefügter Lebenslauf → { daten } (Executive-Form, wortnah)
@@ -34,7 +39,7 @@ export const maxDuration = 30;
  */
 
 type Zug = { art: string; ts: string; probe: string };
-type Spielstand = { device: string; email: string; lang: string; zuege: Zug[] };
+type Spielstand = { device: string; email: string; lang: string; zuege: Zug[]; telefon?: string };
 
 const ZUEGE_MAX = 5;
 const pfad = (device: string) => `lebenslauf-spiel/${device}.json`;
@@ -87,12 +92,15 @@ export async function POST(request: Request) {
   const email = s(body.email, 200).toLowerCase();
   const lang = s(body.lang, 2) || "en";
   const art = s(body.art, 20);
-  if (!device || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !["einpflegen", "match"].includes(art)) {
+  if (!device || !["einpflegen", "match"].includes(art)) {
     return NextResponse.json({ error: "Angaben fehlen." }, { status: 400 });
   }
 
   const stand: Spielstand = (await leseSpielstand(device)) ?? { device, email, lang, zuege: [] };
-  stand.email = email; stand.lang = lang;
+  /* Eine einmal bekannte Adresse nie mit Leerem überschreiben (der Frage-Weg liefert sie
+     später nach, der Lebenslauf ebenfalls). */
+  if (email) stand.email = email;
+  stand.lang = lang;
   const uebrig = ZUEGE_MAX - stand.zuege.length;
   if (uebrig <= 0) {
     return NextResponse.json({ error: "zuege", zuegeUebrig: 0 }, { status: 402 });
@@ -106,6 +114,7 @@ export async function POST(request: Request) {
     const prompt = [
       "Du überträgst einen eingefügten Lebenslauf 1:1 in eine feste Form. WICHTIG: Du VERBESSERST NICHTS — keine Beschönigung, keine Umformulierung ins Werbliche, nichts erfinden. Was nicht dasteht, bleibt leer.",
       `Lebenslauf-Text:\n${text}`,
+      "'kontakt' — {email, telefon} WÖRTLICH aus dem Text, falls sie dort stehen; sonst leere Zeichenketten. Nichts erfinden.",
       "Felder: 'name' (wie angegeben, sonst leer) · 'rolle' (die aktuelle/letzte Berufsbezeichnung, wörtlich) · 'ort' · 'sprachenKurz' (z. B. \"Deutsch C2 · Englisch B2\", nur was dasteht) · 'schwerpunkte' (bis 4 Begriffe AUS dem Text) · 'profil' (3–5 Sätze, eng am Wortlaut des Textes, erste Person, KEINE Aufwertung) · 'expertise' (bis 8 Begriffe aus dem Text) · 'erfahrung' (bis 12: {rolle, firma, zeitraum, ergebnis} — ergebnis nur, wenn eines dasteht, sonst leer) · 'ausbildung' (bis 6: {titel, ort, zeitraum}) · 'sprachen' (bis 6: {sprache, niveau}).",
       `Alle Feld-INHALTE bleiben in der Sprache des eingefügten Textes. Antworte NUR als JSON mit genau diesen Feldern.`,
     ].join("\n\n");
@@ -132,6 +141,15 @@ export async function POST(request: Request) {
         sprache: s(l?.sprache, 60), niveau: s(l?.niveau, 40),
       })).filter(l => l.sprache).slice(0, 6),
     };
+
+    /* DER LEAD AUS DEM DOKUMENT (Owner): Adresse und Telefon stehen im eingefügten
+       Lebenslauf — wir übernehmen sie in den Spielstand, damit der Betreiber auch die
+       Spieler sieht, die nie ein Formular ausfüllen. Eine vorhandene Adresse gewinnt. */
+    const kontakt = (parsed.kontakt ?? {}) as Record<string, unknown>;
+    const cvMail = s(kontakt.email, 200).toLowerCase();
+    const cvTel = s(kontakt.telefon, 60);
+    if (!stand.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cvMail)) stand.email = cvMail;
+    if (!stand.telefon && cvTel) stand.telefon = cvTel;
 
     stand.zuege.push({ art, ts: new Date().toISOString(), probe: text.slice(0, 200) });
     await schreibeSpielstand(stand);

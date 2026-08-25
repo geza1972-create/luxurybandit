@@ -16,7 +16,7 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
  */
 
 type Zug = { art: string; ts: string; probe: string };
-type Stand = { device: string; email: string; lang: string; zuege: Zug[] };
+type Stand = { device: string; email: string; lang: string; zuege: Zug[]; telefon?: string };
 
 export default function LebenslaufSpieleAdminSeite() {
   const [pin, setPin] = useState("");
@@ -86,7 +86,7 @@ export default function LebenslaufSpieleAdminSeite() {
       <div className="mx-auto w-full max-w-2xl">
         <h1 className="text-[22px] font-black">Spielplatz — wer hat was probiert</h1>
         <p className="mt-1.5 text-[13px] font-bold leading-snug text-white/60">
-          Jeder Spieler ist ein Lead (E-Mail-Tor vor dem ersten Zug). Vom eingefügten Lebenslauf stehen hier nur die ersten Zeilen.
+          Gespielt wird ohne Anmeldung; die Kontaktdaten stammen aus dem eingefügten Lebenslauf. Vom Lebenslauf selbst stehen hier nur die ersten Zeilen.
         </p>
 
         {laedt && <div className="mt-6"><Laden art="flaeche" text="Lädt …" /></div>}
@@ -101,6 +101,7 @@ export default function LebenslaufSpieleAdminSeite() {
             <div key={stand.device} className="rounded-2xl border border-white/15 bg-white/[0.04] p-3.5">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="text-[13.5px] font-black text-white/90">{stand.email || "ohne E-Mail"}</p>
+                {stand.telefon && <p className="text-[12px] font-bold text-white/60">{stand.telefon}</p>}
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/40">
                   {stand.lang} · {stand.zuege.length}/5 · Gerät {stand.device.slice(0, 8)}
                 </p>

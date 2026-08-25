@@ -36,22 +36,20 @@ type SpielDaten = {
   sprachen: { sprache: string; niveau: string }[];
 };
 type Msg = { von: "ich" | "ki"; text: string };
-type Schritt = "intro" | "mail" | "daten" | "anzeige" | "frei" | "frage" | "frageMail";
+type Schritt = "intro" | "daten" | "anzeige" | "frei" | "frage" | "frageMail";
 
 const TEXTE = {
   de: {
     introB: "Oben siehst du eine fertige Bewerbung: Anschreiben, Lebenslauf und Video — zugeschnitten auf eine konkrete Stellenanzeige. Genau das erstellen wir jetzt für dich. Womit fangen wir an?",
-    introA: "Deine Stellenanzeige liegt vor. Für den Abgleich brauche ich noch zwei Dinge: deine E-Mail und deinen Lebenslauf.",
+    introA: "Deine Stellenanzeige liegt vor. Für den Abgleich fehlt nur noch dein Lebenslauf — füg den Text hier ein.",
     chipMatch: "Passt eine Anzeige zu mir?", chipProfil: "So ein Profil möchte ich auch", chipFrage: "Ich habe eine andere Frage",
-    profilMailFrage: "Dann bauen wir es. Zuerst deine E-Mail, dann dein Lebenslauf — du siehst dich sofort oben in der Mappe. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     frageFrage: "Schreib deine Frage — ich leite sie weiter, du bekommst noch heute eine Antwort an deine E-Mail.",
     frageMailFrage: "Und an welche E-Mail soll die Antwort gehen?",
     frageDanke: "Ist raus — Antwort kommt noch heute. Was möchtest du sonst?",
     introKurz: "Womit machen wir weiter?",
     beraterH: "Bewerbungsberater", beraterTeaser: "Liest deine Anzeige und deinen Lebenslauf — und sagt dir ehrlich, wo du stehst.",
-    mailFrage: "Deine E-Mail, dann legen wir los. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     mailFehler: "Das sieht nicht nach einer E-Mail aus.",
-    datenFrage: "Jetzt du: Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen.",
+    datenFrage: "Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen. Keine Anmeldung, nichts wird gespeichert.",
     datenZuWenig: "Da ist zu wenig Text — füg ruhig den ganzen Lebenslauf ein.",
     datenDrin: "Drin. Schau nach oben — das bist du. Ohne Beschönigung, genau was in deinem Lebenslauf steht.",
     fotoFrage: "Magst du dein Foto einsetzen? Es bleibt in deinem Browser — wir speichern nichts.",
@@ -103,17 +101,15 @@ const TEXTE = {
   },
   en: {
     introB: "Above you see a finished application: cover letter, resume and video — tailored to one specific job ad. That is exactly what we will create for you. Where shall we start?",
-    introA: "Your job ad is in. For the comparison I need two more things: your email and your resume.",
+    introA: "Your job ad is in. For the comparison I only need your resume — paste the text here.",
     chipMatch: "Does an ad fit me?", chipProfil: "I want a profile like this", chipFrage: "I have another question",
-    profilMailFrage: "Then let's build it. First your email, then your resume — you'll see yourself in the folder right away. (No page is created — nothing is saved until you buy.)",
     frageFrage: "Write your question — I'll pass it on, you'll get an answer to your email today.",
     frageMailFrage: "And which email should the answer go to?",
     frageDanke: "Sent — you'll hear back today. What else would you like?",
     introKurz: "Where shall we continue?",
     beraterH: "Application advisor", beraterTeaser: "Reads your job ad and your resume — and tells you honestly where you stand.",
-    mailFrage: "Your email, then we start. (No page is created — nothing is saved until you buy.)",
     mailFehler: "That doesn't look like an email.",
-    datenFrage: "Your turn: copy the text from your resume and paste it here. I'll transfer it into the folder — as it is, without polishing anything.",
+    datenFrage: "Copy the text from your resume and paste it here. I will transfer it into the folder — as it is, without polishing anything. No sign-up, nothing is stored.",
     datenZuWenig: "That's too little text — paste the whole resume.",
     datenDrin: "Done. Look up — that's you. No polish, exactly what your resume says.",
     fotoFrage: "Want to add your photo? It stays in your browser — we store nothing.",
@@ -214,7 +210,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
     gestartet.current = true;
     let vorab = "";
     try { vorab = (sessionStorage.getItem("lb_lebenslauf_anzeige") ?? "").trim(); } catch { /**/ }
-    if (vorab) { setAnzeigeVorab(vorab); setLetzteAnzeige(vorab); ki(B.introA); setSchritt("mail"); }
+    if (vorab) { setAnzeigeVorab(vorab); setLetzteAnzeige(vorab); ki(B.introA); setSchritt("daten"); }
     else ki(B.introB);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -307,21 +303,6 @@ export default function SpielplatzClient({ beispiel, lang }: {
       return;
     }
 
-    if (schritt === "mail") {
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(text)) { setFehler(B.mailFehler); return; }
-      const adresse = text.toLowerCase().slice(0, 200);
-      setMail(adresse); setEingabe(""); ich(adresse);
-      /* DER LEAD (Owner: „ich will Leads auf jeden Fall") — derselbe Kiss-Log-Weg wie im
-         Tunnel; die Adresse liegt danach auch als Vorbelegung für den Kaufweg bereit. */
-      try { localStorage.setItem("lb_kiss_mail", adresse); } catch { /**/ }
-      void fetch("/api/kiss-log", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: "lebenslauf", device: ausweis(), email: adresse }),
-      }).catch(() => { /**/ });
-      ki(B.datenFrage); setSchritt("daten");
-      return;
-    }
-
     if (schritt === "daten") {
       if (text.length < 60) { setFehler(B.datenZuWenig); return; }
       setEingabe(""); ich(`${text.slice(0, 80)} …`);
@@ -347,7 +328,12 @@ export default function SpielplatzClient({ beispiel, lang }: {
 
     if (schritt === "anzeige" || schritt === "frei") {
       if (!spielDaten) { ki(B.datenFrage); setSchritt("daten"); return; }
-      setEingabe(""); ich(`${text.slice(0, 80)}${text.length > 80 ? " …" : ""}`);
+      /* KEIN ECHO DER ANZEIGE IM CHAT (Owner 25.08.2026, mit Bild: „Entweder hier oben
+         oder unten im Berater. Aber nicht beides") — die Anzeige steht in der
+         Analyse-Karte, dort wo sie zur Prozentzahl gehört. Ein zweiter Abdruck im
+         Gespräch ist dieselbe Information an schlechterer Stelle; die Lade-Zeile
+         „Ich lese die Anzeige …" ist die Rückmeldung, die es braucht. */
+      setEingabe("");
       await matchLaufen(text, spielDaten);
       return;
     }
@@ -539,11 +525,11 @@ export default function SpielplatzClient({ beispiel, lang }: {
                anlegen moechte. Oder hat er eine andere Frage." — "Erst mal schauen
                fuehrt zu nix" ist raus). Der Match-Weg traegt das eine Gold. */
             <div className="mt-2 flex flex-col items-start gap-2">
-              <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(mail ? B.datenFrage : B.mailFrage); setSchritt(mail ? "daten" : "mail"); }}
+              <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(B.datenFrage); setSchritt("daten"); }}
                 className="h-9 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-4 text-[14px] font-black text-[#1a1204]">
                 {B.chipMatch}
               </button>
-              <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(mail ? B.datenFrage : B.profilMailFrage); setSchritt(mail ? "daten" : "mail"); }}
+              <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(B.datenFrage); setSchritt("daten"); }}
                 className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[14px] font-black">
                 {B.chipProfil}
               </button>
@@ -558,9 +544,9 @@ export default function SpielplatzClient({ beispiel, lang }: {
             <>
               <Fehlerzeile karte>{fehler}</Fehlerzeile>
               <div className="mt-3 flex items-end gap-2">
-                <EingabeMehrzeilig karte zeilen={schritt === "daten" ? 5 : schritt === "anzeige" || schritt === "frei" || schritt === "frage" ? 3 : 1}
+                <EingabeMehrzeilig karte zeilen={schritt === "daten" ? 5 : schritt === "frageMail" ? 1 : 3}
                   className="flex-1" value={eingabe}
-                  placeholder={schritt === "mail" || schritt === "frageMail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : schritt === "frage" ? B.frageFrage : B.anzeigeFrage}
+                  placeholder={schritt === "frageMail" ? "you@email.com" : schritt === "daten" ? B.datenFrage : schritt === "frage" ? B.frageFrage : B.anzeigeFrage}
                   onChange={e => setEingabe(e.target.value)} />
                 <button type="button" disabled={busy || !eingabe.trim()} onClick={() => void senden()}
                   className="h-10 shrink-0 rounded-full border border-[#1a160f] px-4 text-[14px] font-black transition disabled:opacity-40">
