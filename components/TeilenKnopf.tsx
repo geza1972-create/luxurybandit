@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Check } from "lucide-react";
+import { Send, Check, Lock } from "lucide-react";
 import { SymbolKnopf } from "@/components/CI";
 
 /**
@@ -18,7 +18,7 @@ import { SymbolKnopf } from "@/components/CI";
  * es. Ohne diesen Rückfall stünde auf jedem Schreibtisch-Browser ein toter Knopf.
  */
 export default function TeilenKnopf({
-  text, label, kopiertLabel, className = "", url: zielUrl, rund = false, kopf = false, datei, dateiName,
+  text, label, kopiertLabel, className = "", url: zielUrl, rund = false, kopf = false, gesperrt = false, onGesperrt, datei, dateiName,
 }: {
   /** Was neben dem Link steht — z. B. „Ana & Mihai 💍". */
   text: string;
@@ -41,6 +41,13 @@ export default function TeilenKnopf({
    * Haus-Kopfknopf (`SymbolKnopf`), derselbe wie Hell/Dunkel und Sprache daneben.
    */
   kopf?: boolean;
+  /**
+   * DIE GRATIS-LINIE (Owner 25.08.2026: „er kann das nicht sharen") — verschlossen öffnet
+   * der Tipp die Erklärung statt der System-Auswahl. Der Knopf bleibt an seinem Platz:
+   * Wer teilen WILL, ist genau der, der zahlt.
+   */
+  gesperrt?: boolean;
+  onGesperrt?: () => void;
   /**
    * DIE DATEI SELBST TEILEN (Owner 01.08.2026: „auch das Bild soll er sharen können").
    *
@@ -81,8 +88,9 @@ export default function TeilenKnopf({
 
   if (kopf) {
     return (
-      <SymbolKnopf onClick={() => void teilen()} label={kopiert ? kopiertLabel : label} className={className}>
-        {kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+      <SymbolKnopf onClick={() => { if (gesperrt) { onGesperrt?.(); return; } void teilen(); }}
+        label={kopiert ? kopiertLabel : label} className={className}>
+        {gesperrt ? <Lock className="h-4 w-4" /> : kopiert ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
       </SymbolKnopf>
     );
   }

@@ -61,7 +61,21 @@ const ABGELAUFEN: Record<string, { titel: string; zeile: string }> = {
 export default async function LebenslaufProfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profil = await leseLebenslauf(id);
-  if (!profil || !profil.bezahlt) notFound();
+  /**
+   * UNBEZAHLTE SEITEN GIBT ES JETZT (Owner 25.08.2026, die Gratis-Linie: „Er kann alles
+   * anlegen gratis, nur er kann das nicht sharen und PDF nicht herunterladen").
+   *
+   * VORHER WAR DAS EIN 404: Wer nicht bezahlt hatte, hatte keine Seite — und genau das
+   * macht das neue Modell unmöglich, denn der Kunde soll sein fertiges Ergebnis SEHEN,
+   * bevor er zahlt. Jetzt rendert die Seite, und verschlossen sind nur Teilen und PDF
+   * (siehe `bezahlt` in ExecutiveProfil und die Schlösser in LebenslaufExecutive).
+   *
+   * OFFEN und dem Owner gemeldet: Wer seine eigene Adresse von Hand kopiert, kann sie
+   * theoretisch selbst verschicken. Das ist bewusst in Kauf genommen — die Seite ist ohne
+   * Abo nach drei Tagen ohnehin zu, und ein Wasserzeichen oder eine Besitzer-Prüfung auf
+   * dem Server wäre der nächste Schritt, wenn es je jemand ausnutzt.
+   */
+  if (!profil) notFound();
   /* HIER BLEIBT ENGLISCH DER RÜCKFALL, anders als auf den Bewerber-Flächen (Owner
      25.08.2026: „default Rumänisch bei der Bewerbung"): Diese Seite ist die, die der
      Bewerber VERSCHICKT — sie wird von der Personalabteilung geöffnet, nicht von ihm.

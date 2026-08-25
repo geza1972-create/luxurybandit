@@ -10,6 +10,7 @@ import ProfilChatEinstieg from "@/components/ProfilChatEinstieg";
 import SeitenFuss from "@/components/SeitenFuss";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
+import SchlossHinweis from "@/components/SchlossHinweis";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import type { Lang } from "@/lib/lang";
@@ -180,6 +181,11 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
   /* Loeschen nach Hausregel (Memory `loeschen-zwei-tipps-rot`): erster Tipp stellt das
      Symbol rot, zweiter loescht, nach 3 s faellt es zurueck. */
   const [anfrageArm, setAnfrageArm] = useState("");
+  /* DIE GRATIS-LINIE (Owner 25.08.2026): Teilen und PDF sind verschlossen, solange nicht
+     bezahlt wurde. Das MUSTER (`id === "spiel"`/Beispielseite) hat kein Profil dahinter und
+     bleibt offen — dort gibt es nichts zu verkaufen, nur zu zeigen. */
+  const gesperrt = profil.bezahlt === false;
+  const [schloss, setSchloss] = useState<"" | "teilen" | "pdf">("");
 
   useEffect(() => {
     const { device, headers } = ausweis();
@@ -247,7 +253,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           was man wirklich braucht: Marke, Konto, Teilen, Hell/Dunkel, Sprache. */}
       <TalentKopf marke={T.marke} konto={konto}
         teilen={<TeilenKnopf kopf text={`${profil.name} — ${profil.rolle}`}
-          label={T.teilen} kopiertLabel={T.kopiert} />}
+          label={T.teilen} kopiertLabel={T.kopiert}
+          gesperrt={gesperrt} onGesperrt={() => setSchloss("teilen")} />}
         menuLabel={T.menu} menuTitel={T.menuTitel} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">
@@ -264,6 +271,16 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           </p>
         )}
 
+        {/* DIE ERKLÄRUNG ZUM SCHLOSS — sie erscheint hier oben, direkt unter dem Kopf, weil
+            beide verschlossenen Knöpfe dort oben sitzen. Kein Overlay (Memory
+            `keine-overlay-dialoge`), Weg zurück garantiert. */}
+        {schloss && (
+          <div className="mb-4">
+            <SchlossHinweis titel={T.gesperrtTitel} zeile={T.gesperrtZeile} cta={T.gesperrtCta}
+              ziel="/themes/lebenslauf/start" onZu={() => setSchloss("")} />
+          </div>
+        )}
+
         {vorKarte}
 
         {/* ─────────────────────────── DAS BLATT ─────────────────────────── */}
@@ -273,7 +290,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               die Ornamente?") — dieses Blatt ist DER LEBENSLAUF der Mappe; das Anschreiben
               liegt als eigenes Blatt darüber (vorKarte). */}
           <MappenKopf icon={FileText} titel={T.mappeLebenslauf} teaser={T.mappeLebenslaufTeaser}
-            aktion={<PdfKnopf dateiname={`${profil.name} — ${T.mappeLebenslauf}`} label={T.alsPdf} />} />
+            aktion={<PdfKnopf dateiname={`${profil.name} — ${T.mappeLebenslauf}`} label={T.alsPdf}
+              gesperrt={gesperrt} onGesperrt={() => setSchloss("pdf")} />} />
 
           {/* HERO — Porträt, und das Porträt IST das Video (Auftrag: „Integrate it elegantly
               into the hero rather than making a separate ugly video block").
