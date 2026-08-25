@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
-import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
+import { EXTRA_VIDEO_CENTS, WAEHRUNG } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createTryonCheckout({
       amount: PRICE_CENTS,
-      currency: "usd",
+      currency: WAEHRUNG,
       productName: "LuxuryBandit — one try-on video",
       successUrl: `${origin}/pay-done?paid=1`,
       cancelUrl: `${origin}/pay-done?cancelled=1`,

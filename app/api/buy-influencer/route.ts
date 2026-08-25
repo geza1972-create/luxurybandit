@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { WAEHRUNG } from "@/lib/pricing";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState, getPricingConfig } from "@/lib/try-this-look-store";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createPackCheckout({
       amount: priceCents,
-      currency: "usd",
+      currency: WAEHRUNG,
       productName: `Own ${name || "this influencer"} — LuxuryBandit`,
       ...(buyerEmail ? { email: buyerEmail } : {}),
       successUrl: `${origin}${returnPath}${sep}bought=${curatorId}&cs={CHECKOUT_SESSION_ID}`,

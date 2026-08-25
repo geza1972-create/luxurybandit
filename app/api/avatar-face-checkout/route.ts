@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { WAEHRUNG } from "@/lib/pricing";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createTryonCheckout({
       amount: PRICE_CENTS,
-      currency: "usd",
+      currency: WAEHRUNG,
       productName: "LuxuryBandit — your unique influencer face",
       successUrl: `${origin}/pay-done?paid=1`,
       cancelUrl: `${origin}/pay-done?cancelled=1`,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS, geschenkPreisCents } from "@/lib/pricing";
+import { topicPriceId, standardCoupon, ONCE_CENTS, POLEDANCE_CENTS, VIDEO_UPGRADE_CENTS, EXTRA_VIDEO_CENTS, aufladeStufe, GUTSCHEIN_CENTS, geschenkPreisCents, WAEHRUNG } from "@/lib/pricing";
 import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { futureProgramUrl } from "@/lib/future-program-store";
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     try {
       const { id, url, clientSecret } = await createTryonCheckout({
         amount: EXTRA_VIDEO_CENTS,
-        currency: "usd",
+        currency: WAEHRUNG,
         productName: "One more video",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&extra=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     try {
       const { id, url } = await createTryonCheckout({
         amount: stufe,
-        currency: "usd",
+        currency: WAEHRUNG,
         productName: "Account credit",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}topup=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
     try {
       const { id, url, clientSecret } = await createTryonCheckout({
         amount: preis,
-        currency: "usd",
+        currency: WAEHRUNG,
         /**
          * DER AKTIONSCODE AUS DEM LINK WIRKT AUCH BEIM EINMALKAUF (Owner 11.08.2026: „der
          * code ist nicht eingebaut", zum Kassenbild mit vollem Betrag).

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
-import { GUTSCHEIN_STUFEN, gutscheinStufe, themenPreisCents, eur, type ThemenSchluessel } from "@/lib/pricing";
+import { GUTSCHEIN_STUFEN, gutscheinStufe, themenPreisCents, eur, type ThemenSchluessel, WAEHRUNG } from "@/lib/pricing";
 
 /**
  * JEDES TOPIC ALS GUTSCHEIN (Owner 06.08.2026: „dann machen wir unsere Gutscheine. für
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
          UEBERGABE-05-08.md §1). Eine Stripe-Kennung je Stufe waeren drei Gelegenheiten mehr,
          eine davon zu vergessen. */
       amount: cents,
-      currency: "usd",
+      currency: WAEHRUNG,
       /* Auf dem Stripe-Beleg steht das THEMA, wenn eines gewählt wurde — der Käufer soll
          wiedererkennen, was er verschenkt hat, nicht nur einen Betrag. */
       productName: topic

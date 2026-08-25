@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
-import { CHAT_STUFEN, chatPriceId } from "@/lib/pricing";
+import { CHAT_STUFEN, chatPriceId, WAEHRUNG } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
        * (Skill `bezahlung`, Regel 2); `CHAT_STUFEN` ist die eine Zahl.
        */
       amount: stufe.cents,
-      currency: "usd",
+      currency: WAEHRUNG,
       /* Die Adresse des Beschenkten reist als KASSEN-Vermerk mit, nicht als Behauptung des
          Browsers: `/api/checkout-status` liest sie nach der Zahlung von Stripe zurueck. Waere
          es umgekehrt, koennte sich jeder Zugang auf eine beliebige Adresse buchen. */

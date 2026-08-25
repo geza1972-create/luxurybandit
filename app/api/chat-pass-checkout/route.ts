@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
-import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
+import { EXTRA_VIDEO_CENTS, WAEHRUNG } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const { id, url } = await createPackCheckout({
       ...(priceId
         ? { priceId }
-        : { amount: PRICE_CENTS, currency: "usd", productName: `LuxuryBandit — 30-min chat with ${model.firstName || "her"}` }),
+        : { amount: PRICE_CENTS, currency: WAEHRUNG, productName: `LuxuryBandit — 30-min chat with ${model.firstName || "her"}` }),
       // Back into the chat with a verify marker; the page confirms via /api/checkout-status,
       // activates the 30-min pass and re-opens the chat — so paying never leaves the funnel.
       successUrl: `${origin}${safeReturn}${rsep}chatpaid=${curatorId}&cs={CHECKOUT_SESSION_ID}`,

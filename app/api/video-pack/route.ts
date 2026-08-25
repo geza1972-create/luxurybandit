@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
 import { getVideoCredits, spendVideoCredit, grantVideoCredits, setVideoCreditsBalance } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { WAEHRUNG } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// The pack: $8 → 4 video generations. Override via env without a code change.
+// The pack: 8 € → 4 video generations. Override via env without a code change.
 export const PACK_CENTS = Number(process.env.VIDEO_PACK_PRICE_CENTS ?? 800);
 export const PACK_CREDITS = Number(process.env.VIDEO_PACK_CREDITS ?? 4);
-const CURRENCY = process.env.VIDEO_PACK_CURRENCY ?? "usd";
+const CURRENCY = process.env.VIDEO_PACK_CURRENCY ?? WAEHRUNG;
 
 // GET /api/video-pack?email=…  → { credits }
 // A free account starts with ZERO credits — generating a video costs money (Premium, or the

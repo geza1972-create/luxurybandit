@@ -1,3 +1,4 @@
+import { WAEHRUNG } from "@/lib/pricing";
 // Minimal Stripe client over raw HTTP (Stripe's REST API is form-encoded). We avoid
 // the `stripe` npm package on purpose — one less dependency to install, and it matches
 // the hand-rolled webhook-signature verification already in app/api/stripe-webhook.
@@ -194,7 +195,7 @@ export async function createPackCheckout(opts: {
 }): Promise<{ id: string; url: string; clientSecret?: string }> {
   const line_items = opts.priceId
     ? [{ price: opts.priceId, quantity: 1 }]
-    : [{ quantity: 1, price_data: { currency: opts.currency ?? "usd", unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
+    : [{ quantity: 1, price_data: { currency: opts.currency ?? WAEHRUNG, unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
   const locale = stripeSprache(opts.sprache);
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
@@ -241,7 +242,7 @@ export async function createSubscriptionCheckout(opts: {
   const lineItems = opts.priceId
     ? [{ price: opts.priceId, quantity: 1 }]
     : [{ quantity: 1, price_data: {
-        currency: opts.currency ?? "usd",
+        currency: opts.currency ?? WAEHRUNG,
         unit_amount: opts.amount ?? 0,
         recurring: { interval: "month" },
         product_data: { name: opts.productName ?? "LuxuryBandit subscription" },

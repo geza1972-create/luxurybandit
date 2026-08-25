@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
-import { EXTRA_VIDEO_CENTS } from "@/lib/pricing";
+import { EXTRA_VIDEO_CENTS, WAEHRUNG } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   try {
     const { id, url } = await createTryonCheckout({
       amount: PRICE_CENTS,
-      currency: "usd",
+      currency: WAEHRUNG,
       productName: "LuxuryBandit — holiday video",
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

@@ -678,14 +678,32 @@ export const LAUFZEIT_TAGE = 30;
  * fuer ein Risiko ohne Gegenwert.
  *
  * Der Zahlenwert bleibt unveraendert (dieselben Cent-Betraege wie vorher, nur jetzt als
- * Dollar gelesen) — die Kasse zieht seit derselben Aenderung `currency: "usd"`, siehe die
+ * Dollar gelesen) — die Kasse zog daraufhin `currency: "usd"`; seit dem 25.08.2026 ist beides
  * sieben Geschenk-Kassenwege (Kuss, Geburtstag, Urlaub, Tanz, Gutschein, Chat).
  */
+/**
+ * DIE WÄHRUNG DES HAUSES — EURO (Owner 25.08.2026: „wir machen die Preise in Euro und gehen
+ * den rumänischen Markt an. Wir suchen deutsch sprechende Leute oder englisch für den
+ * deutschen und rumänischen Markt").
+ *
+ * VORHER STAND HIER DOLLAR, und der Name der Funktion log: `eur()` schrieb `$`. Das war
+ * kein Schönheitsfehler — es stand auf jedem Knopf des Portals und in jeder Kasse.
+ *
+ * DIESE KONSTANTE GILT AN BEIDEN ENDEN: Sie schreibt das Zeichen auf den Knopf UND geht als
+ * `currency` an Stripe (lib/stripe.ts). Nur so können Anzeige und Abbuchung nicht
+ * auseinanderlaufen — ein Preis in Euro anzuzeigen und in Dollar abzubuchen wäre in der EU
+ * schlicht Irreführung.
+ *
+ * SCHREIBWEISE NACH LAND: Im Englischen steht das Zeichen vorn (€19), sonst hinten mit
+ * Komma (19 €) — so schreibt man es in Deutschland und Rumänien.
+ */
+export const WAEHRUNG = "eur";
+
 export function eur(cents: number, lang?: string): string {
   const l = String(lang ?? "en").slice(0, 2);
   const v = cents / 100;
   const txt = v.toFixed(2).replace(/\.00$/, v % 1 === 0 ? "" : ".00");
-  return l === "en" ? `$${txt}` : `${txt.replace(".", ",")} $`;
+  return l === "en" ? `€${txt}` : `${txt.replace(".", ",")} €`;
 }
 
 export function fillPrices(text: string, lang?: string): string {
