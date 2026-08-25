@@ -104,7 +104,6 @@ export type ExecutiveTexte = {
       sieht, obwohl Firmen sie erst nach Freigabe bekommen (Owner 24.08.2026: „ein Bewerber
       muss seine Kontaktdaten sehen"). */
   kontaktNurDu: string;
-  chatEinstieg: (name: string) => string;
   /** Getippte Fragen werden NICHT von einer KI beantwortet, sondern WEITERGELEITET
       (Owner 25.08.2026: das braucht man nicht, man sieht doch alles in der Bewerbung --
       eventuell Fragen an ihn, die weitergeleitet werden). Diese Zeile leitet danach
@@ -141,7 +140,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contact",
     kontaktNurDu: "Only you see this data. Release it and the chat shares it with companies on request.",
     kontaktOeffentlich: "Publicly visible", kontaktNurAnfrage: "Only on request", kontaktFreigegeben: "Released — the chat shares it with companies on request.",
-    chatEinstieg: (n) => `Ask about ${n}'s experience`,
     frageLeiten: (n) => `Happy to pass that on to ${n}. Who are you — your name and your company?`,
     anfrageName: "Your name / company", anfrageEmail: "Your email", anfrageNachricht: "Your message",
     anfrageDanke: "Thank you — we have your request and will pass it on the same day.",
@@ -164,7 +162,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Kontakt",
     kontaktNurDu: "Nur du siehst diese Daten. Erst deine Freigabe macht sie für Firmen im Chat abrufbar.",
     kontaktOeffentlich: "Öffentlich sichtbar", kontaktNurAnfrage: "Nur per Anfrage", kontaktFreigegeben: "Freigegeben — der Chat nennt sie Firmen auf Nachfrage.",
-    chatEinstieg: (n) => `Frag nach ${n}s Erfahrung`,
     frageLeiten: (n) => `Gern — ich gebe deine Frage an ${n} weiter. Wer bist du — dein Name und deine Firma?`,
     anfrageName: "Dein Name / Firma", anfrageEmail: "Deine E-Mail", anfrageNachricht: "Deine Nachricht",
     anfrageDanke: "Danke — deine Anfrage ist bei uns und wird noch am selben Tag weitergegeben.",
@@ -187,7 +184,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contact",
     kontaktNurDu: "Doar tu vezi aceste date. Abia după ce le eliberezi, chatul le spune firmelor la cerere.",
     kontaktOeffentlich: "Vizibile public", kontaktNurAnfrage: "Doar la cerere", kontaktFreigegeben: "Eliberate — chatul le spune firmelor la cerere.",
-    chatEinstieg: (n) => `Întreabă despre experiența lui ${n}`,
     frageLeiten: (n) => `Cu plăcere — transmit întrebarea ta lui ${n}. Cine ești — numele tău și firma ta?`,
     anfrageName: "Numele tău / firma", anfrageEmail: "E-mailul tău", anfrageNachricht: "Mesajul tău",
     anfrageDanke: "Mulțumim — cererea ta a ajuns la noi și o transmitem în aceeași zi.",
@@ -210,7 +206,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contacto",
     kontaktNurDu: "Solo tú ves estos datos. Solo tras liberarlos el chat los comparte con las empresas.",
     kontaktOeffentlich: "Visibles públicamente", kontaktNurAnfrage: "Solo bajo solicitud", kontaktFreigegeben: "Liberados — el chat los comparte con las empresas si preguntan.",
-    chatEinstieg: (n) => `Pregunta por la experiencia de ${n}`,
     frageLeiten: (n) => `Con gusto se la paso a ${n}. ¿Quién eres — tu nombre y tu empresa?`,
     anfrageName: "Tu nombre / empresa", anfrageEmail: "Tu email", anfrageNachricht: "Tu mensaje",
     anfrageDanke: "Gracias — tenemos tu solicitud y la trasladamos el mismo día.",
@@ -233,7 +228,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contact",
     kontaktNurDu: "Toi seul vois ces données. Après ta libération, le chat les partage avec les entreprises sur demande.",
     kontaktOeffentlich: "Visibles publiquement", kontaktNurAnfrage: "Seulement sur demande", kontaktFreigegeben: "Libérées — le chat les partage avec les entreprises sur demande.",
-    chatEinstieg: (n) => `Interroger le parcours de ${n}`,
     frageLeiten: (n) => `Avec plaisir — je transmets ta question à ${n}. Qui es-tu — ton nom et ton entreprise ?`,
     anfrageName: "Ton nom / entreprise", anfrageEmail: "Ton e-mail", anfrageNachricht: "Ton message",
     anfrageDanke: "Merci — ta demande est chez nous, nous la transmettons le jour même.",
@@ -256,7 +250,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contacto",
     kontaktNurDu: "Só tu vês estes dados. Só depois de os libertares o chat os partilha com as empresas.",
     kontaktOeffentlich: "Visíveis publicamente", kontaktNurAnfrage: "Só a pedido", kontaktFreigegeben: "Libertados — o chat partilha-os com as empresas quando perguntam.",
-    chatEinstieg: (n) => `Pergunta sobre a experiência de ${n}`,
     frageLeiten: (n) => `Com gosto passo a tua pergunta a ${n}. Quem és — o teu nome e a tua empresa?`,
     anfrageName: "O teu nome / empresa", anfrageEmail: "O teu e-mail", anfrageNachricht: "A tua mensagem",
     anfrageDanke: "Obrigado — recebemos o teu pedido e encaminhamo-lo no próprio dia.",
@@ -279,7 +272,6 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     kontakt: "Contatti",
     kontaktNurDu: "Solo tu vedi questi dati. Solo dopo il tuo via libera la chat li condivide con le aziende.",
     kontaktOeffentlich: "Visibili pubblicamente", kontaktNurAnfrage: "Solo su richiesta", kontaktFreigegeben: "Sbloccati — la chat li condivide con le aziende su richiesta.",
-    chatEinstieg: (n) => `Chiedi dell'esperienza di ${n}`,
     frageLeiten: (n) => `Volentieri — giro la tua domanda a ${n}. Chi sei — il tuo nome e la tua azienda?`,
     anfrageName: "Il tuo nome / azienda", anfrageEmail: "La tua e-mail", anfrageNachricht: "Il tuo messaggio",
     anfrageDanke: "Grazie — la tua richiesta è da noi e la giriamo in giornata.",

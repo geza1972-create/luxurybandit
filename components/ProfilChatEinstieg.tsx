@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Kasten, EingabeMehrzeilig, Fehlerzeile, Laden } from "@/components/CI";
 
 /**
@@ -44,8 +44,7 @@ export type FirmenChatTexte = {
 
 type Schritt = "frei" | "name" | "mail" | "nachricht" | "fertig";
 
-export default function ProfilChatEinstieg({ einstieg, texte, kandidat = "", karte = false, className = "" }: {
-  einstieg: string;
+export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false, className = "" }: {
   texte: FirmenChatTexte;
   kandidat?: string;
   karte?: boolean;
@@ -62,7 +61,6 @@ export default function ProfilChatEinstieg({ einstieg, texte, kandidat = "", kar
   /** Eine frei getippte Frage — sie wird zur Nachricht der Weiterleitung. */
   const frageVorab = useRef("");
   const ende = useRef<HTMLDivElement | null>(null);
-  const tKopf = karte ? "" : "text-white/85";
 
   useEffect(() => {
     if (msgs.length > 0) ende.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -145,18 +143,13 @@ export default function ProfilChatEinstieg({ einstieg, texte, kandidat = "", kar
 
   return (
     <div className={`mt-4 ${className}`}>
+      {/* KEINE KOPFZEILE, KEINE FRAGE-WIEDERHOLUNG (Owner 25.08.2026: „Frag nach Gezas
+          Erfahrung interessiert niemand, und Interesse an Geza? ist redundant" — die
+          Frage steht als Abschnitts-Überschrift direkt darüber). Der Kasten beginnt mit
+          der Antwort: Ja/Nein und das eine Feld. */}
       <Kasten karte={karte} polster="p-0">
-        <div className="flex items-center gap-3 px-4 pt-3.5">
-          <Sparkles className="h-4 w-4 shrink-0 text-[#f6cf51]" />
-          <span className={`min-w-0 flex-1 text-[13px] font-black leading-snug ${tKopf}`}>{einstieg}</span>
-        </div>
-
-        {/* KEINE TRENNLINIE unter der Kopfzeile (Owner: „die Linie stört, die weisse") —
-            Kopf und Gespräch sind EIN Fluss. */}
-        <div className="px-4 pb-4 pt-3">
+        <div className="px-4 pb-4 pt-4">
           <div className="flex flex-col gap-2.5">
-            <p className={`text-[13px] font-black leading-snug ${tKopf}`}>{texte.frage}</p>
-
             {/* Ja/Nein — Antwort-Chips, keine Funktions-Knöpfe. Ja trägt das eine Gold
                 der Seite (Skill `ci-design`): Es IST die Entscheidung, für die die ganze
                 Seite arbeitet. */}

@@ -415,7 +415,6 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           <p className="mt-2 text-[12.5px] font-bold leading-snug opacity-70">{T.interessiertText}</p>
 
           <ProfilChatEinstieg
-            einstieg={T.chatEinstieg(vorname)}
             texte={{
               frage: T.interessiert(vorname), ja: T.ja, nein: T.nein,
               frageWer: T.frageWer, frageMail: T.frageMail, frageNachricht: T.frageNachricht,
