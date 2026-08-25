@@ -556,6 +556,25 @@ Daten/Foto erst nach der E-Mail an (Haus-Eingangstor). Jeder Spieler ist
 ein Lead. Nur das blosse ANSCHAUEN des Musters bleibt ohne alles. Damit
 hat auch die Admin-Ablage der Züge künftig eine E-Mail am Eintrag.
 
+## Das Demo-Video deckt sich selbst auf (Owner 25.08.2026)
+
+Owner: „Am Ende soll er sagen, dass er ein KI-Avatar ist — aber du kannst
+dein Video noch mehr real machen mit deinem Video und deiner Stimme, dafür
+ist dieses Tool gemacht."
+
+Das Beispiel-Video bricht am Schluss die Rolle: Der Bewerber sagt, dass er
+ein KI-Avatar ist, und nennt im selben Atemzug den Unterschied zum
+Gekauften — DEINE Aufnahme, DEINE Stimme. Drei Dinge auf einmal:
+- **Ehrlich**: KI-Kennzeichnung dort, wo sie jeder sieht (die AGB, p4a,
+  sagen es ohnehin schon — hier sagt es das Produkt selbst).
+- **Verkauf**: Der Abstand zwischen Demo und eigenem Video ist genau das,
+  wofür bezahlt wird — der Zuschauer hört ihn statt ihn zu lesen.
+- **Einwand-Killer**: „Wirkt das nicht unseriös?" ist beantwortet, bevor
+  die Frage kommt.
+
+Gilt für JEDES Demo-Video auf der Bewerbungs-Seite; echte Bewerbungen von
+Kunden tragen diesen Schluss selbstverständlich NICHT.
+
 ## Stufe 0: DER MARKT-TEST — vor jedem weiteren Baustein
 
 Owner 25.08. spät: „Ich baue hier wie blöd wieder eine Sache, die ich vielleicht
