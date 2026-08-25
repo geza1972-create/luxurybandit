@@ -8,7 +8,7 @@ import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 
 /**
  * DIE ABO-KARTE DES BESITZERS (Owner-Seitentext 24.08.2026: „4,99 im Monat — Seite bleibt
- * online, monatlich kündbar. Ohne Abo bleibt deine Seite 30 Tage
+ * online, monatlich kündbar. Ohne Abo bleibt deine Seite 3 Tage
  * erreichbar.").
  *
  * NUR FÜR DEN BESITZER — dieselbe Server-Besitzprüfung wie das Korrektur-Feld
@@ -25,7 +25,7 @@ const TEXTE: Record<string, { titel: string; zeile: string; knopf: string; aktiv
     knopf: "Abo starten",
     aktiv: "Dein Abo läuft — deine Bewerbungen bleiben online.",
     laeuft: "Kasse öffnet …",
-    frist: t => t > 0 ? `Ohne Abo bleibt deine Seite noch ${t} Tag${t === 1 ? "" : "e"} erreichbar.` : "Die 30 Tage sind vorbei — mit dem Abo ist deine Seite sofort wieder online.",
+    frist: t => t > 0 ? `Ohne Abo bleibt deine Seite noch ${t} Tag${t === 1 ? "" : "e"} erreichbar.` : "Die drei Tage sind vorbei — mit dem Abo ist deine Seite sofort wieder online.",
   },
   en: {
     titel: "Keep your page online",
@@ -33,7 +33,7 @@ const TEXTE: Record<string, { titel: string; zeile: string; knopf: string; aktiv
     knopf: "Start subscription",
     aktiv: "Your subscription is active — your applications stay online.",
     laeuft: "Opening checkout …",
-    frist: t => t > 0 ? `Without it your page stays reachable for ${t} more day${t === 1 ? "" : "s"}.` : "The 30 days are over — with the subscription your page is back online immediately.",
+    frist: t => t > 0 ? `Without it your page stays reachable for ${t} more day${t === 1 ? "" : "s"}.` : "The three days are over — with the subscription your page is back online immediately.",
   },
 };
 

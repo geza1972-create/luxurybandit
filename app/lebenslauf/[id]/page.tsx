@@ -39,17 +39,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-/** „Ohne Abo bleibt deine Seite 30 Tage erreichbar." (Owner-Seitentext 24.08.2026). */
-const FRIST_MS = 30 * 24 * 60 * 60 * 1000;
+/**
+ * DREI TAGE OHNE ABO (Owner 25.08.2026: „er kann ohne Abo das nur 3 Tage behalten. Man
+ * muss ihm sagen") — vorher waren es 30. Die kurze Frist ist der Sinn der Sache: Was
+ * gratis entsteht, soll ihn zur Entscheidung bringen, nicht dauerhaft Speicher belegen.
+ * WICHTIG ist der zweite Halbsatz des Owners — es muss ihm GESAGT werden, und zwar bevor
+ * er baut, nicht erst wenn die Seite zu ist.
+ */
+const FRIST_MS = 3 * 24 * 60 * 60 * 1000;
 
 const ABGELAUFEN: Record<string, { titel: string; zeile: string }> = {
-  de: { titel: "Diese Seite ist nicht mehr online.", zeile: "Die 30 Tage sind vorbei. Der Bewerber kann sie mit dem Abo sofort wieder online nehmen." },
-  en: { titel: "This page is no longer online.", zeile: "The 30 days are over. The candidate can bring it back online instantly with the subscription." },
-  ro: { titel: "Această pagină nu mai este online.", zeile: "Cele 30 de zile au trecut. Candidatul o poate readuce online imediat cu abonamentul." },
-  es: { titel: "Esta página ya no está online.", zeile: "Los 30 días han pasado. El candidato puede reactivarla al instante con la suscripción." },
-  fr: { titel: "Cette page n'est plus en ligne.", zeile: "Les 30 jours sont écoulés. Le candidat peut la remettre en ligne immédiatement avec l'abonnement." },
-  pt: { titel: "Esta página já não está online.", zeile: "Os 30 dias passaram. O candidato pode reativá-la de imediato com a subscrição." },
-  it: { titel: "Questa pagina non è più online.", zeile: "I 30 giorni sono passati. Il candidato può riportarla online subito con l'abbonamento." },
+  de: { titel: "Diese Seite ist nicht mehr online.", zeile: "Die drei Tage sind vorbei. Der Bewerber kann sie mit dem Abo sofort wieder online nehmen." },
+  en: { titel: "This page is no longer online.", zeile: "The three days are over. The candidate can bring it back online instantly with the subscription." },
+  ro: { titel: "Această pagină nu mai este online.", zeile: "Cele trei zile au trecut. Candidatul o poate readuce online imediat cu abonamentul." },
+  es: { titel: "Esta página ya no está online.", zeile: "Los tres días han pasado. El candidato puede reactivarla al instante con la suscripción." },
+  fr: { titel: "Cette page n'est plus en ligne.", zeile: "Les trois jours sont écoulés. Le candidat peut la remettre en ligne immédiatement avec l'abonnement." },
+  pt: { titel: "Esta página já não está online.", zeile: "Os três dias passaram. O candidato pode reativá-la de imediato com a subscrição." },
+  it: { titel: "Questa pagina non è più online.", zeile: "I tre giorni sono passati. Il candidato può riportarla online subito con l'abbonamento." },
 };
 
 export default async function LebenslaufProfilPage({ params }: { params: Promise<{ id: string }> }) {
@@ -98,7 +104,7 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   );
 
   /**
-   * DAS 30-TAGE-TOR (Owner-Seitentext): Ohne Abo ist die Seite nach 30 Tagen ZU — für
+   * DAS DREI-TAGE-TOR (Owner 25.08.2026): Ohne Abo ist die Seite nach 3 Tagen ZU — für
    * Firmen steht nur noch der Ablauf-Hinweis da. Gelöscht wird nichts; der BESITZER sieht
    * auf derselben Adresse seine Werkzeuge (Besitz-Prüfung im Browser) und reaktiviert mit
    * einem Tipp — danach rendert wieder das volle Dossier.

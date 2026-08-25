@@ -64,7 +64,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Ein Link, der mit dir mitwächst",
     preisEinmal: "je Bewerbung — Skript, Video bis 1 Minute und fertige Seite",
     preisMonat: "im Monat — ab dem ersten Kauf, damit deine Bewerbungen online bleiben; monatlich kündbar",
-    preisOhne: "Beides wird zusammen abgebucht. Kündigst du, bleiben deine Seiten noch 30 Tage erreichbar.",
+    preisOhne: "Ohne Abo bleibt deine Bewerbung nur 3 Tage gespeichert. Kündigst du später, bleiben deine Seiten noch 30 Tage erreichbar.",
     faqH: "Häufige Fragen",
     faq: [
       { q: "Muss ich gut vor der Kamera sein?", a: "Nein. Du liest dein Skript ab, so oft du willst, bis eine Aufnahme sitzt. Niemand sieht die Versuche davor." },
@@ -86,7 +86,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "One link that grows with you",
     preisEinmal: "per application — script, video up to 1 minute and finished page",
     preisMonat: "per month — from the first purchase, so your applications stay online; cancel monthly",
-    preisOhne: "Both are charged together. If you cancel, your pages stay reachable for another 30 days.",
+    preisOhne: "Without the subscription your application is kept for 3 days only. If you cancel later, your pages stay reachable for another 30 days.",
     faqH: "Frequently asked questions",
     faq: [
       { q: "Do I need to be good on camera?", a: "No. You read your script as often as you like until one take works. Nobody sees the attempts before it." },
@@ -108,7 +108,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Un link care crește odată cu tine",
     preisEinmal: "pentru fiecare aplicare — scenariu, video de până la 1 minut și pagină gata",
     preisMonat: "pe lună — de la prima achiziție, ca aplicările tale să rămână online; anulezi lunar",
-    preisOhne: "Amândouă se încasează împreună. Dacă anulezi, paginile tale rămân accesibile încă 30 de zile.",
+    preisOhne: "Fără abonament, aplicația ta se păstrează doar 3 zile. Dacă anulezi mai târziu, paginile tale rămân accesibile încă 30 de zile.",
     faqH: "Întrebări frecvente",
     faq: [
       { q: "Trebuie să fiu bun în fața camerei?", a: "Nu. Îți citești scenariul de câte ori vrei, până iese o dublă bună. Nimeni nu vede încercările dinainte." },
@@ -130,7 +130,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Un enlace que crece contigo",
     preisEinmal: "por candidatura — guion, vídeo de hasta 1 minuto y página terminada",
     preisMonat: "al mes — desde la primera compra, para que tus candidaturas sigan online; cancelable cada mes",
-    preisOhne: "Ambos se cobran juntos. Si cancelas, tus páginas siguen accesibles 30 días más.",
+    preisOhne: "Sin suscripción tu candidatura se guarda solo 3 días. Si cancelas más tarde, tus páginas siguen accesibles 30 días más.",
     faqH: "Preguntas frecuentes",
     faq: [
       { q: "¿Tengo que ser bueno ante la cámara?", a: "No. Lees tu guion tantas veces como quieras hasta que una toma salga bien. Nadie ve los intentos anteriores." },
@@ -152,7 +152,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Un lien qui grandit avec toi",
     preisEinmal: "par candidature — script, vidéo jusqu'à 1 minute et page terminée",
     preisMonat: "par mois — dès le premier achat, pour que tes candidatures restent en ligne ; résiliable chaque mois",
-    preisOhne: "Les deux sont prélevés ensemble. Si tu résilies, tes pages restent accessibles 30 jours de plus.",
+    preisOhne: "Sans abonnement, ta candidature n'est conservée que 3 jours. Si tu résilies plus tard, tes pages restent accessibles 30 jours de plus.",
     faqH: "Questions fréquentes",
     faq: [
       { q: "Faut-il être bon devant la caméra ?", a: "Non. Tu lis ton script autant de fois que tu veux, jusqu'à la bonne prise. Personne ne voit les essais d'avant." },
@@ -174,7 +174,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Um link que cresce contigo",
     preisEinmal: "por candidatura — guião, vídeo até 1 minuto e página pronta",
     preisMonat: "por mês — desde a primeira compra, para as tuas candidaturas ficarem online; cancelável todos os meses",
-    preisOhne: "Ambos são cobrados em conjunto. Se cancelares, as tuas páginas ficam acessíveis mais 30 dias.",
+    preisOhne: "Sem subscrição, a tua candidatura só fica guardada 3 dias. Se cancelares mais tarde, as tuas páginas ficam acessíveis mais 30 dias.",
     faqH: "Perguntas frequentes",
     faq: [
       { q: "Tenho de ser bom diante da câmara?", a: "Não. Lês o teu guião as vezes que quiseres, até uma gravação sair bem. Ninguém vê as tentativas anteriores." },
@@ -196,7 +196,7 @@ const TEXTE: Record<string, Copy> = {
     preisH: "Un link che cresce con te",
     preisEinmal: "per candidatura — copione, video fino a 1 minuto e pagina finita",
     preisMonat: "al mese — dal primo acquisto, così le tue candidature restano online; disdici ogni mese",
-    preisOhne: "Entrambi vengono addebitati insieme. Se disdici, le tue pagine restano raggiungibili altri 30 giorni.",
+    preisOhne: "Senza abbonamento la tua candidatura resta salvata solo 3 giorni. Se disdici più tardi, le tue pagine restano raggiungibili altri 30 giorni.",
     faqH: "Domande frequenti",
     faq: [
       { q: "Devo essere bravo davanti alla camera?", a: "No. Leggi il tuo copione tutte le volte che vuoi, finché una ripresa non funziona. Nessuno vede i tentativi precedenti." },
