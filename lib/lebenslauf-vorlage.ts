@@ -377,8 +377,11 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
  * Form und reicht es hinein — die Seite kennt keinen Sonderfall „Beispiel".
  */
 export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
-  /* DAS MUSTER (Owner 25.08.2026, in drei Schritten diktiert): „Er muss Peter Mustermann
-     heissen und ist ein Krankenpfleger", 35 Jahre, „in Timișoara Rumänien geboren" — und
+  /* DAS MUSTER (Owner 25.08.2026, über mehrere Züge diktiert): Krankenpfleger, 35 Jahre,
+     „in Timișoara Rumänien geboren" — und der Name kam zuletzt („der heisst nicht Peter
+     Mustermann"): ANDREI POPESCU, wie im HeyGen-Skript, das im Beispiel-Video gesprochen
+     wird. Name auf der Seite und Name im Video müssen dasselbe sagen, sonst zerfällt das
+     Muster beim ersten Abspielen. Dazu
      der Fall, den der Owner als den richtigen bezeichnet: „ein Rumäne, der sich in
      Deutschland bewirbt".
      WARUM DIESE KOMBINATION TRÄGT: Im Banat um Timișoara lebt die deutsche Minderheit;
@@ -394,7 +397,7 @@ export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
      ohnehin den Freigabe-Satz (Vermittlungsmodell). Inhalt auf DEUTSCH; andere Betrachter
      bekommen die Laufzeit-Übersetzung (executiveInSprache). */
   id: "executive-vorlage",
-  name: "Peter Mustermann",
+  name: "Andrei Popescu",
   rolle: "Gesundheits- und Krankenpfleger · Fachpflege Intensivmedizin",
   ort: "Timișoara, Rumänien · Umzug nach Deutschland geplant",
   sprachenKurz: "Rumänisch Muttersprache · Deutsch C1 · Englisch B2",
@@ -403,7 +406,7 @@ export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
   videoUrl: LEBENSLAUF_BEISPIEL_VIDEO,
   videoLabel: "Kurzvorstellung",
   profil:
-    "Ich bin Peter Mustermann, 35, geboren in Timișoara, und seit zwölf Jahren am " +
+    "Ich bin Andrei Popescu, 35, geboren in Timișoara, und seit zwölf Jahren am " +
     "Patientenbett. Nach der Ausbildung habe ich fünf Jahre in der Notaufnahme gearbeitet " +
     "und mich danach auf Intensiv- und Anästhesiepflege spezialisiert. Heute betreue ich " +
     "beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation und " +
@@ -434,7 +437,7 @@ export const EXECUTIVE_BEISPIEL: ExecutiveProfil = {
   ],
   chatFragen: [
     "Ist seine Berufsanerkennung für Deutschland schon beantragt?",
-    "Hat Peter Erfahrung mit beatmeten Patienten?",
+    "Hat Andrei Erfahrung mit beatmeten Patienten?",
     "Wie schnell kann er in Deutschland anfangen?",
   ],
   /* Bewusst ZU: So sieht die Seite aus, die an eine Firma geht (Vermittlungsmodell). */
