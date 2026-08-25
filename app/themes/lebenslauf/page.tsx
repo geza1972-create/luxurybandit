@@ -7,47 +7,47 @@ import ThemenVorspann from "@/components/ThemenVorspann";
 import { Knopf } from "@/components/CI";
 import { Kicker, H1, Y, Lead, SectionTitle, Fine } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
-import { kissText } from "@/lib/kiss-i18n";
 import { eur, themenPreisCents, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 /* EIN Video aus EINER Konstante für Karte, Katalog-Kachel und Themen-Kreis (Dauerregel
    Memory `landingpage-video-ist-kachel-video`) — Quelle: lib/lebenslauf-vorlage.ts. */
 import { LEBENSLAUF_BEISPIEL_VIDEO as BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER as BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 
 /**
- * DIE LANDINGPAGE DER VIDEO-BEWERBUNG — SEITENTEXT WÖRTLICH VOM OWNER (24.08.2026: „Hier der
- * komplette Seitentext, von oben nach unten"). Aufbau: Hero (Kopf-Template) → Karte mit dem
- * ECHTEN Gesicht des Gründers (Owner: „Der Text verspricht ‚du selbst, echt' — mit dem
- * KI-Model daneben glaubt ihn niemand") → So funktioniert es (3 Schritte MIT Titeln, deshalb
- * eigene Sektion statt der Vorspann-Liste) → Problem → Update-Block → „Die Seite, die du
- * bekommst" (LebenslaufBeispiel, zeigt das echte Muster-Profil) → Preis → FAQ → Abschluss.
+ * DIE LANDINGPAGE DER BEWERBUNGSZENTRALE — Verkaufstext abgenommen am 25.08.2026
+ * (KONZEPT-BEWERBUNGSZENTRALE.md, Owner: „Wir haben hier Features, die verkaufen müssen …
+ * Das sind Features, die keiner hat"). Aufbau: Hero (Kopf-Template) → Karte mit dem ECHTEN
+ * Video des Gründers → Feature-Karte „Deine Bewerbungszentrale" (VIER Blöcke in
+ * Nutzer-Reihenfolge, auf der Creme-Fläche wie das Dossier) → Kontrast-Block →
+ * „Die Seite, die du bekommst" → Preis → FAQ → Abschluss.
  *
- * ZWEI EINSETZ-HINWEISE DES OWNERS, beide umgesetzt: Die Zeile „die KI zeigt dir, wofür du
- * dich bewerben kannst" steht NICHT in der Headline — sie steckt in Schritt 3 und im
- * Update-Block. Und der Hero trägt sein echtes Video (LEBENSLAUF_BEISPIEL_*).
+ * ZWEI ZEILEN DES ABGENOMMENEN TEXTES FEHLEN MIT ABSICHT (nur verkaufen, was die Maschine
+ * hält): „Lebenslauf als PDF" kommt mit Stufe 2 zurück, die Zugabe-Zeile „geöffnet,
+ * angefragt, eingeladen" mit der Zentrale. Die frühere FAQ-Antwort „kein Avatar, keine
+ * synthetische Stimme" ist ERSETZT — sie widersprach dem Produkt (HeyGen aus der eigenen
+ * Aufnahme, Video-Regel im Konzept) und war die Quelle echter Verwirrung.
  *
  * GOLD GENAU EINMAL (Skill `ci-design`): der Kaufknopf auf der Karte. Preis- und
  * Abschluss-CTA sind `umriss` und führen auf denselben Trichter.
  *
- * PREISE NUR AUS DER TABELLE (Memory `prices-only-from-pricing-table`): 19 einmalig
- * (LEBENSLAUF_CENTS) + 4,99/Monat (LEBENSLAUF_MONAT_CENTS). Die ABO-Kasse und die
- * 30-Tage-Frist sind noch nicht gebaut — siehe Kommentar in lib/pricing.ts.
+ * PREISE NUR AUS DER TABELLE (Memory `prices-only-from-pricing-table`): einmalig
+ * (LEBENSLAUF_CENTS) + monatlich (LEBENSLAUF_MONAT_CENTS).
  */
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Your resume, as a video you speak | LuxuryBandit",
-  description: "Upload your resume — AI writes your script, you record it yourself. A finished application page with its own link.",
+  title: "The perfect application for every job | LuxuryBandit",
+  description: "Paste a job ad and see your match in percent — then your application adapts: cover letter, video and your own link per application.",
   alternates: { canonical: "/themes/lebenslauf" },
 };
 
-type Schritt = { t: string; d: string };
+type Feature = { t: string; d: string };
 type Frage = { q: string; a: string };
 type Copy = {
-  kicker: string; lead: string; anlass: string; grund: string; privat: string;
-  soH: string; so: Schritt[];
-  problemH: string; problem1: string; problem2: string;
-  updateH: string; updateP1: string; updateQ: string[]; updateP2: string;
+  kicker: string; h1A: string; h1Y: string; h1B: string; lead: string;
+  anlass: string; grund: string; privat: string;
+  zentraleH: string; features: Feature[];
+  kontrastH: string; kontrast: string;
   preisH: string; preisEinmal: string; preisMonat: string; preisOhne: string;
   faqH: string; faq: Frage[];
   schlussH: string; schlussP: string;
@@ -57,31 +57,28 @@ type Copy = {
 const TEXTE: Record<string, Copy> = {
   de: {
     kicker: "Für deine Bewerbung",
-    lead: "Lade deinen Lebenslauf hoch — die KI schreibt dir das passende Skript, du sprichst es ein. Fertig ist eine Bewerbungsseite mit eigenem Link.",
+    h1A: "Für jede Stelle die ", h1Y: "perfekte Bewerbung", h1B: ".",
+    lead: "Füge eine Stellenanzeige ein und sieh in Prozent, ob sie zu dir passt. Dann passt sich deine Bewerbung an — Anschreiben, Video und Texte, zugeschnitten auf genau diese Stelle.",
     anlass: "Für die Jobsuche · für den Quereinstieg · wenn der Lebenslauf allein nicht zeigt, was du kannst",
     grund: "Ein PDF wird überflogen und vergessen. Eine Seite, auf der du sprichst, bleibt offen.",
     privat: "Deine Seite bleibt privat, solange du sie nicht selbst teilst.",
-    soH: "So funktioniert es",
-    so: [
-      { t: "Lebenslauf hochladen", d: "PDF genügt. Die KI liest deine Stationen, deine Fähigkeiten und deinen roten Faden heraus." },
-      { t: "Dein Skript entsteht", d: "Kein Textbaustein — ein Sprechtext aus deinem eigenen Werdegang. Du änderst ihn, bis er nach dir klingt." },
-      { t: "Du sprichst, wir bauen die Seite", d: "Handykamera reicht. Video, Werdegang und die Rollen, die zu dir passen — auf einem Link für jede Bewerbung." },
+    zentraleH: "Deine Bewerbungszentrale",
+    features: [
+      { t: "Dein Bewerbungsvideo — ohne Vorbereitung.", d: "Kein Text, kein Auswendiglernen. Das Skript schreiben wir dir aus deinem Lebenslauf — du nimmst dich einmal kurz auf, den Rest macht die KI: Aus deiner Aufnahme wird dein professionelles Sprechvideo. So echt, dass es niemand merkt." },
+      { t: "Passt die Stelle zu dir?", d: "Anzeige einfügen — Link oder Text reicht. Du bekommst eine ehrliche Prozentzahl und siehst schwarz auf weiss, was passt und was fehlt. Bevor du auch nur eine Minute investierst." },
+      { t: "Deine Bewerbung passt sich an.", d: "Ein Klick, und Profiltext, Schwerpunkte und Positionierung werden auf die Anzeige zugeschnitten. Nichts wird erfunden — alles kommt aus deinem echten Lebenslauf, nur richtig betont." },
+      { t: "Die komplette Mappe, je Stelle.", d: "Anschreiben in der Sprache der Anzeige. Dein Dossier mit deinem Video. Jede Bewerbung unter eigener Adresse — fertig zum Verschicken." },
     ],
-    problemH: "Das Problem, das wir lösen",
-    problem1: "Die meisten scheitern nicht am Aufnehmen. Sie scheitern an der Frage, was sie in 60 Sekunden über sich sagen sollen.",
-    problem2: "Genau dafür ist das Skript da. Du musst nichts erfinden und nichts auswendig lernen — du liest ab, so oft du willst.",
-    updateH: "Immer aktuell — ohne Formular",
-    updateP1: "Bei LinkedIn pflegst du Felder. Hier sagst du, was sich geändert hat.",
-    updateQ: ["„Ich habe bei Siemens angefangen.“", "„Ich bewerbe mich jetzt als Produktmanager.“"],
-    updateP2: "Ein Satz genügt — Text, Rollenvorschläge und Skript passen sich an. Kein Löschen, kein Neutippen, kein Feld für Feld.",
+    kontrastH: "Das hat kein Jobportal",
+    kontrast: "Dort zeigt dein Profil jeder Firma dasselbe. Hier bekommt jede Firma eine Bewerbung, die auf ihre Anzeige zugeschnitten ist — mit Anschreiben und Video.",
     preisH: "Ein Link, der mit dir mitwächst",
     preisEinmal: "einmalig — Skript, Video und fertige Seite",
-    preisMonat: "im Monat — Seite bleibt online, unbegrenzt aktualisieren, monatlich kündbar",
+    preisMonat: "im Monat — deine Bewerbungen bleiben online, unbegrenzt zuschneiden, monatlich kündbar",
     preisOhne: "Ohne Abo bleibt deine Seite 30 Tage erreichbar.",
     faqH: "Häufige Fragen",
     faq: [
       { q: "Muss ich gut vor der Kamera sein?", a: "Nein. Du liest dein Skript ab, so oft du willst, bis eine Aufnahme sitzt. Niemand sieht die Versuche davor." },
-      { q: "Wirkt das nicht unseriös?", a: "Du sprichst selbst — kein Avatar, keine synthetische Stimme. Genau darum funktioniert es: Der Personaler sieht dich, bevor er dich einlädt." },
+      { q: "Wirkt das nicht unseriös?", a: "Es ist dein Gesicht und deine Stimme — die KI macht aus deiner eigenen Aufnahme das professionelle Video. So echt, dass es niemand merkt." },
       { q: "Wer kann meine Seite sehen?", a: "Nur wer den Link von dir bekommt. Deine Kontaktdaten werden erst frei, wenn du zustimmst." },
       { q: "Was, wenn sich mein Ziel ändert?", a: "Du sagst es der Seite. Neue Branche, neue Rolle, neuer Schwerpunkt — in einer Minute erledigt." },
     ],
@@ -91,31 +88,28 @@ const TEXTE: Record<string, Copy> = {
   },
   en: {
     kicker: "For your application",
-    lead: "Upload your resume — the AI writes your script, you record it yourself. The result is an application page with its own link.",
+    h1A: "The ", h1Y: "perfect application", h1B: " for every job.",
+    lead: "Paste a job ad and see in percent how well it fits you. Then your application adapts — cover letter, video and texts, tailored to exactly that job.",
     anlass: "For the job search · for a career change · when your resume alone doesn't show what you can do",
     grund: "A PDF gets skimmed and forgotten. A page where you speak stays open.",
     privat: "Your page stays private unless you share it yourself.",
-    soH: "How it works",
-    so: [
-      { t: "Upload your resume", d: "A PDF is enough. The AI reads your positions, your skills and the thread that connects them." },
-      { t: "Your script takes shape", d: "No boilerplate — a spoken text built from your own career. You edit it until it sounds like you." },
-      { t: "You speak, we build the page", d: "A phone camera is enough. Video, career history and the roles that fit you — on one link for every application." },
+    zentraleH: "Your application headquarters",
+    features: [
+      { t: "Your application video — no preparation.", d: "No text, nothing to memorise. We write your script from your resume — you record yourself once, briefly, and the AI does the rest: your recording becomes your professional speaking video. So real that nobody notices." },
+      { t: "Does the job fit you?", d: "Paste the ad — a link or its text is enough. You get an honest percentage and see in black and white what fits and what's missing. Before you invest a single minute." },
+      { t: "Your application adapts.", d: "One click, and profile text, focus areas and positioning are tailored to the ad. Nothing is invented — everything comes from your real resume, just emphasised right." },
+      { t: "The complete package, per job.", d: "A cover letter in the language of the ad. Your dossier with your video. Every application under its own address — ready to send." },
     ],
-    problemH: "The problem we solve",
-    problem1: "Most people don't fail at recording. They fail at knowing what to say about themselves in 60 seconds.",
-    problem2: "That's exactly what the script is for. Nothing to invent, nothing to memorise — you read it out, as often as you like.",
-    updateH: "Always up to date — no forms",
-    updateP1: "On LinkedIn you maintain fields. Here you say what has changed.",
-    updateQ: ["“I've started at Siemens.”", "“I'm now applying as a product manager.”"],
-    updateP2: "One sentence is enough — text, role suggestions and script adapt. No deleting, no retyping, no field after field.",
+    kontrastH: "No job portal has this",
+    kontrast: "There, your profile shows every company the same thing. Here, every company gets an application tailored to its ad — with cover letter and video.",
     preisH: "One link that grows with you",
     preisEinmal: "one-time — script, video and finished page",
-    preisMonat: "per month — page stays online, unlimited updates, cancel monthly",
+    preisMonat: "per month — your applications stay online, unlimited tailoring, cancel monthly",
     preisOhne: "Without the subscription your page stays reachable for 30 days.",
     faqH: "Frequently asked questions",
     faq: [
       { q: "Do I need to be good on camera?", a: "No. You read your script as often as you like until one take works. Nobody sees the attempts before it." },
-      { q: "Doesn't this look unprofessional?", a: "You speak yourself — no avatar, no synthetic voice. That's exactly why it works: the recruiter sees you before inviting you." },
+      { q: "Doesn't this look unprofessional?", a: "It's your face and your voice — the AI turns your own recording into the professional video. So real that nobody notices." },
       { q: "Who can see my page?", a: "Only people who get the link from you. Your contact details are released only when you agree." },
       { q: "What if my goal changes?", a: "You tell the page. New industry, new role, new focus — done in a minute." },
     ],
@@ -125,31 +119,28 @@ const TEXTE: Record<string, Copy> = {
   },
   ro: {
     kicker: "Pentru aplicația ta",
-    lead: "Încarcă CV-ul — AI-ul îți scrie scenariul potrivit, tu îl vorbești. Rezultatul: o pagină de aplicare cu propriul ei link.",
+    h1A: "Pentru fiecare job, ", h1Y: "aplicația perfectă", h1B: ".",
+    lead: "Adaugă un anunț de angajare și vezi în procente cât de bine ți se potrivește. Apoi aplicația ta se adaptează — scrisoare de intenție, video și texte, croite exact pe acel job.",
     anlass: "Pentru căutarea unui job · pentru reconversie · când CV-ul singur nu arată ce poți",
     grund: "Un PDF e răsfoit și uitat. O pagină pe care vorbești tu rămâne deschisă.",
     privat: "Pagina ta rămâne privată până o distribui chiar tu.",
-    soH: "Cum funcționează",
-    so: [
-      { t: "Încarci CV-ul", d: "Un PDF e de ajuns. AI-ul îți citește etapele, abilitățile și firul roșu al carierei." },
-      { t: "Scenariul tău prinde formă", d: "Fără șabloane — un text de vorbit, construit din propriul tău parcurs. Îl modifici până sună ca tine." },
-      { t: "Tu vorbești, noi construim pagina", d: "Camera telefonului e de ajuns. Video, parcurs și rolurile care ți se potrivesc — pe un singur link pentru fiecare aplicare." },
+    zentraleH: "Centrala ta de aplicări",
+    features: [
+      { t: "Videoul tău de aplicare — fără pregătire.", d: "Fără text, fără memorat. Îți scriem scenariul din CV-ul tău — te filmezi o dată, scurt, iar restul îl face AI-ul: din înregistrarea ta iese videoul tău profesionist. Atât de real încât nimeni nu observă." },
+      { t: "Ți se potrivește jobul?", d: "Adaugă anunțul — un link sau textul lui e de ajuns. Primești un procent onest și vezi negru pe alb ce se potrivește și ce lipsește. Înainte să investești măcar un minut." },
+      { t: "Aplicația ta se adaptează.", d: "Un click, și textul de profil, punctele forte și poziționarea se croiesc pe anunț. Nimic inventat — totul vine din CV-ul tău real, doar accentuat corect." },
+      { t: "Dosarul complet, pentru fiecare job.", d: "Scrisoare de intenție în limba anunțului. Dosarul tău cu videoul tău. Fiecare aplicare sub propria adresă — gata de trimis." },
     ],
-    problemH: "Problema pe care o rezolvăm",
-    problem1: "Cei mai mulți nu eșuează la filmat. Eșuează la întrebarea: ce să spui despre tine în 60 de secunde?",
-    problem2: "Exact pentru asta există scenariul. Nu inventezi nimic și nu înveți nimic pe de rost — citești, de câte ori vrei.",
-    updateH: "Mereu actual — fără formulare",
-    updateP1: "Pe LinkedIn întreții câmpuri. Aici spui ce s-a schimbat.",
-    updateQ: ["„Am început la Siemens.”", "„Acum aplic ca product manager.”"],
-    updateP2: "O propoziție e de ajuns — textul, rolurile propuse și scenariul se adaptează. Fără șters, fără retastat, fără câmp după câmp.",
+    kontrastH: "Niciun portal de joburi nu are asta",
+    kontrast: "Acolo, profilul tău arată tuturor firmelor același lucru. Aici, fiecare firmă primește o aplicație croită pe anunțul ei — cu scrisoare de intenție și video.",
     preisH: "Un link care crește odată cu tine",
     preisEinmal: "o singură dată — scenariu, video și pagină gata",
-    preisMonat: "pe lună — pagina rămâne online, actualizări nelimitate, anulezi lunar",
+    preisMonat: "pe lună — aplicările tale rămân online, croieli nelimitate, anulezi lunar",
     preisOhne: "Fără abonament, pagina ta rămâne accesibilă 30 de zile.",
     faqH: "Întrebări frecvente",
     faq: [
       { q: "Trebuie să fiu bun în fața camerei?", a: "Nu. Îți citești scenariul de câte ori vrei, până iese o dublă bună. Nimeni nu vede încercările dinainte." },
-      { q: "Nu pare neserios?", a: "Vorbești chiar tu — fără avatar, fără voce sintetică. Exact de asta funcționează: recrutorul te vede înainte să te invite." },
+      { q: "Nu pare neserios?", a: "E fața ta și vocea ta — AI-ul transformă propria ta înregistrare în videoul profesionist. Atât de real încât nimeni nu observă." },
       { q: "Cine îmi poate vedea pagina?", a: "Doar cine primește linkul de la tine. Datele tale de contact devin vizibile doar cu acordul tău." },
       { q: "Și dacă mi se schimbă obiectivul?", a: "Îi spui paginii. Industrie nouă, rol nou, focus nou — gata într-un minut." },
     ],
@@ -159,31 +150,28 @@ const TEXTE: Record<string, Copy> = {
   },
   es: {
     kicker: "Para tu candidatura",
-    lead: "Sube tu currículum — la IA te escribe el guion adecuado y tú lo grabas. El resultado: una página de candidatura con su propio enlace.",
+    h1A: "Para cada puesto, la ", h1Y: "candidatura perfecta", h1B: ".",
+    lead: "Pega una oferta de empleo y ve en porcentaje si encaja contigo. Después tu candidatura se adapta — carta de presentación, vídeo y textos, hechos a medida de ese puesto.",
     anlass: "Para buscar trabajo · para un cambio de carrera · cuando el currículum solo no muestra lo que sabes",
     grund: "Un PDF se hojea y se olvida. Una página en la que hablas tú queda abierta.",
     privat: "Tu página es privada hasta que tú la compartas.",
-    soH: "Cómo funciona",
-    so: [
-      { t: "Sube tu currículum", d: "Con un PDF basta. La IA lee tus etapas, tus habilidades y tu hilo conductor." },
-      { t: "Tu guion toma forma", d: "Nada de plantillas — un texto hablado, hecho de tu propia trayectoria. Lo cambias hasta que suene a ti." },
-      { t: "Tú hablas, nosotros construimos la página", d: "La cámara del móvil basta. Vídeo, trayectoria y los roles que encajan contigo — en un enlace para cada candidatura." },
+    zentraleH: "Tu central de candidaturas",
+    features: [
+      { t: "Tu vídeo de candidatura — sin preparación.", d: "Sin texto, nada que memorizar. Te escribimos el guion desde tu currículum — te grabas una vez, brevemente, y la IA hace el resto: de tu grabación sale tu vídeo profesional. Tan real que nadie lo nota." },
+      { t: "¿Encaja el puesto contigo?", d: "Pega la oferta — basta un enlace o su texto. Recibes un porcentaje honesto y ves negro sobre blanco qué encaja y qué falta. Antes de invertir un solo minuto." },
+      { t: "Tu candidatura se adapta.", d: "Un clic, y el texto de perfil, los enfoques y el posicionamiento se ajustan a la oferta. Nada se inventa — todo sale de tu currículum real, solo bien acentuado." },
+      { t: "El dossier completo, por puesto.", d: "Carta de presentación en el idioma de la oferta. Tu dossier con tu vídeo. Cada candidatura bajo su propia dirección — lista para enviar." },
     ],
-    problemH: "El problema que resolvemos",
-    problem1: "La mayoría no fracasa al grabar. Fracasa en la pregunta: ¿qué decir sobre ti en 60 segundos?",
-    problem2: "Para eso existe el guion. No inventas nada ni memorizas nada — lo lees, tantas veces como quieras.",
-    updateH: "Siempre al día — sin formularios",
-    updateP1: "En LinkedIn mantienes campos. Aquí dices lo que ha cambiado.",
-    updateQ: ["«He empezado en Siemens.»", "«Ahora me presento como product manager.»"],
-    updateP2: "Con una frase basta — el texto, los roles propuestos y el guion se adaptan. Sin borrar, sin reescribir, sin campo tras campo.",
+    kontrastH: "Esto no lo tiene ningún portal de empleo",
+    kontrast: "Allí tu perfil muestra a todas las empresas lo mismo. Aquí cada empresa recibe una candidatura hecha a medida de su oferta — con carta y vídeo.",
     preisH: "Un enlace que crece contigo",
     preisEinmal: "pago único — guion, vídeo y página terminada",
-    preisMonat: "al mes — la página sigue online, actualizaciones ilimitadas, cancelable cada mes",
+    preisMonat: "al mes — tus candidaturas siguen online, ajustes ilimitados, cancelable cada mes",
     preisOhne: "Sin suscripción, tu página sigue accesible 30 días.",
     faqH: "Preguntas frecuentes",
     faq: [
       { q: "¿Tengo que ser bueno ante la cámara?", a: "No. Lees tu guion tantas veces como quieras hasta que una toma salga bien. Nadie ve los intentos anteriores." },
-      { q: "¿No parece poco serio?", a: "Hablas tú — sin avatar, sin voz sintética. Justo por eso funciona: el reclutador te ve antes de invitarte." },
+      { q: "¿No parece poco serio?", a: "Es tu cara y tu voz — la IA convierte tu propia grabación en el vídeo profesional. Tan real que nadie lo nota." },
       { q: "¿Quién puede ver mi página?", a: "Solo quien reciba el enlace de ti. Tus datos de contacto solo se liberan con tu consentimiento." },
       { q: "¿Y si cambia mi objetivo?", a: "Se lo dices a la página. Nuevo sector, nuevo rol, nuevo enfoque — listo en un minuto." },
     ],
@@ -193,31 +181,28 @@ const TEXTE: Record<string, Copy> = {
   },
   fr: {
     kicker: "Pour ta candidature",
-    lead: "Ajoute ton CV — l'IA écrit ton script, tu l'enregistres toi-même. Résultat : une page de candidature avec son propre lien.",
+    h1A: "Pour chaque poste, la ", h1Y: "candidature parfaite", h1B: ".",
+    lead: "Colle une offre d'emploi et vois en pourcentage si elle te correspond. Ensuite ta candidature s'adapte — lettre de motivation, vidéo et textes, taillés pour ce poste précis.",
     anlass: "Pour la recherche d'emploi · pour une reconversion · quand le CV seul ne montre pas ce que tu vaux",
     grund: "Un PDF est survolé puis oublié. Une page où tu parles reste ouverte.",
     privat: "Ta page reste privée tant que tu ne la partages pas.",
-    soH: "Comment ça marche",
-    so: [
-      { t: "Ajoute ton CV", d: "Un PDF suffit. L'IA lit tes étapes, tes compétences et ton fil conducteur." },
-      { t: "Ton script prend forme", d: "Pas de texte tout fait — un texte parlé, tiré de ton propre parcours. Tu le modifies jusqu'à ce qu'il te ressemble." },
-      { t: "Tu parles, nous construisons la page", d: "La caméra du téléphone suffit. Vidéo, parcours et les rôles qui te correspondent — sur un lien pour chaque candidature." },
+    zentraleH: "Ta centrale de candidatures",
+    features: [
+      { t: "Ta vidéo de candidature — sans préparation.", d: "Pas de texte, rien à apprendre par cœur. Nous écrivons ton script à partir de ton CV — tu te filmes une fois, brièvement, et l'IA fait le reste : ton enregistrement devient ta vidéo professionnelle. Si vraie que personne ne le remarque." },
+      { t: "Le poste te correspond-il ?", d: "Colle l'annonce — un lien ou son texte suffit. Tu reçois un pourcentage honnête et tu vois noir sur blanc ce qui correspond et ce qui manque. Avant d'investir une seule minute." },
+      { t: "Ta candidature s'adapte.", d: "Un clic, et le texte de profil, les priorités et le positionnement sont taillés pour l'annonce. Rien n'est inventé — tout vient de ton vrai CV, juste bien mis en valeur." },
+      { t: "Le dossier complet, par poste.", d: "Lettre de motivation dans la langue de l'annonce. Ton dossier avec ta vidéo. Chaque candidature sous sa propre adresse — prête à envoyer." },
     ],
-    problemH: "Le problème que nous résolvons",
-    problem1: "La plupart n'échouent pas à filmer. Ils échouent sur la question : que dire de soi en 60 secondes ?",
-    problem2: "C'est exactement à ça que sert le script. Rien à inventer, rien à apprendre par cœur — tu lis, autant de fois que tu veux.",
-    updateH: "Toujours à jour — sans formulaire",
-    updateP1: "Sur LinkedIn tu entretiens des champs. Ici tu dis ce qui a changé.",
-    updateQ: ["« J'ai commencé chez Siemens. »", "« Je postule maintenant comme product manager. »"],
-    updateP2: "Une phrase suffit — le texte, les rôles proposés et le script s'adaptent. Rien à effacer, rien à retaper, pas de champ après champ.",
+    kontrastH: "Aucun portail d'emploi n'a ça",
+    kontrast: "Là-bas, ton profil montre la même chose à toutes les entreprises. Ici, chaque entreprise reçoit une candidature taillée pour son annonce — avec lettre et vidéo.",
     preisH: "Un lien qui grandit avec toi",
     preisEinmal: "en une fois — script, vidéo et page terminée",
-    preisMonat: "par mois — la page reste en ligne, mises à jour illimitées, résiliable chaque mois",
+    preisMonat: "par mois — tes candidatures restent en ligne, ajustements illimités, résiliable chaque mois",
     preisOhne: "Sans abonnement, ta page reste accessible 30 jours.",
     faqH: "Questions fréquentes",
     faq: [
       { q: "Faut-il être bon devant la caméra ?", a: "Non. Tu lis ton script autant de fois que tu veux, jusqu'à la bonne prise. Personne ne voit les essais d'avant." },
-      { q: "Ça ne fait pas amateur ?", a: "Tu parles toi-même — pas d'avatar, pas de voix synthétique. C'est justement pour ça que ça marche : le recruteur te voit avant de t'inviter." },
+      { q: "Ça ne fait pas amateur ?", a: "C'est ton visage et ta voix — l'IA transforme ton propre enregistrement en vidéo professionnelle. Si vraie que personne ne le remarque." },
       { q: "Qui peut voir ma page ?", a: "Seulement ceux qui reçoivent le lien de toi. Tes coordonnées ne sont libérées qu'avec ton accord." },
       { q: "Et si mon objectif change ?", a: "Tu le dis à la page. Nouveau secteur, nouveau rôle, nouveau focus — réglé en une minute." },
     ],
@@ -227,31 +212,28 @@ const TEXTE: Record<string, Copy> = {
   },
   pt: {
     kicker: "Para a tua candidatura",
-    lead: "Carrega o teu CV — a IA escreve o guião certo, tu gravas com a tua voz. O resultado: uma página de candidatura com o seu próprio link.",
+    h1A: "Para cada vaga, a ", h1Y: "candidatura perfeita", h1B: ".",
+    lead: "Cola um anúncio de emprego e vê em percentagem se combina contigo. Depois a tua candidatura adapta-se — carta de apresentação, vídeo e textos, feitos à medida dessa vaga.",
     anlass: "Para procurar emprego · para mudar de carreira · quando o CV sozinho não mostra o que vales",
     grund: "Um PDF é folheado e esquecido. Uma página onde tu falas fica aberta.",
     privat: "A tua página fica privada até seres tu a partilhá-la.",
-    soH: "Como funciona",
-    so: [
-      { t: "Carrega o teu CV", d: "Um PDF chega. A IA lê as tuas etapas, as tuas competências e o teu fio condutor." },
-      { t: "O teu guião ganha forma", d: "Nada de textos feitos — um texto falado, construído a partir do teu próprio percurso. Alteras até soar a ti." },
-      { t: "Tu falas, nós construímos a página", d: "A câmara do telemóvel chega. Vídeo, percurso e as funções que combinam contigo — num link para cada candidatura." },
+    zentraleH: "A tua central de candidaturas",
+    features: [
+      { t: "O teu vídeo de candidatura — sem preparação.", d: "Sem texto, nada para decorar. Escrevemos-te o guião a partir do teu CV — gravas-te uma vez, brevemente, e a IA faz o resto: da tua gravação nasce o teu vídeo profissional. Tão real que ninguém repara." },
+      { t: "A vaga combina contigo?", d: "Cola o anúncio — basta um link ou o texto. Recebes uma percentagem honesta e vês preto no branco o que combina e o que falta. Antes de investires um único minuto." },
+      { t: "A tua candidatura adapta-se.", d: "Um clique, e o texto de perfil, os focos e o posicionamento ajustam-se ao anúncio. Nada é inventado — tudo vem do teu CV real, só bem acentuado." },
+      { t: "O dossier completo, por vaga.", d: "Carta de apresentação na língua do anúncio. O teu dossier com o teu vídeo. Cada candidatura sob o seu próprio endereço — pronta a enviar." },
     ],
-    problemH: "O problema que resolvemos",
-    problem1: "A maioria não falha a gravar. Falha na pergunta: o que dizer sobre ti em 60 segundos?",
-    problem2: "É exatamente para isso que existe o guião. Nada para inventar, nada para decorar — lês, as vezes que quiseres.",
-    updateH: "Sempre atual — sem formulários",
-    updateP1: "No LinkedIn manténs campos. Aqui dizes o que mudou.",
-    updateQ: ["«Comecei na Siemens.»", "«Agora candidato-me como product manager.»"],
-    updateP2: "Uma frase chega — o texto, as funções propostas e o guião adaptam-se. Sem apagar, sem reescrever, sem campo a campo.",
+    kontrastH: "Nenhum portal de emprego tem isto",
+    kontrast: "Lá, o teu perfil mostra o mesmo a todas as empresas. Aqui, cada empresa recebe uma candidatura feita à medida do seu anúncio — com carta e vídeo.",
     preisH: "Um link que cresce contigo",
     preisEinmal: "pagamento único — guião, vídeo e página pronta",
-    preisMonat: "por mês — a página fica online, atualizações ilimitadas, cancelável todos os meses",
+    preisMonat: "por mês — as tuas candidaturas ficam online, ajustes ilimitados, cancelável todos os meses",
     preisOhne: "Sem subscrição, a tua página fica acessível 30 dias.",
     faqH: "Perguntas frequentes",
     faq: [
       { q: "Tenho de ser bom diante da câmara?", a: "Não. Lês o teu guião as vezes que quiseres, até uma gravação sair bem. Ninguém vê as tentativas anteriores." },
-      { q: "Não parece pouco sério?", a: "Falas tu — sem avatar, sem voz sintética. É por isso que funciona: o recrutador vê-te antes de te convidar." },
+      { q: "Não parece pouco sério?", a: "É a tua cara e a tua voz — a IA transforma a tua própria gravação no vídeo profissional. Tão real que ninguém repara." },
       { q: "Quem pode ver a minha página?", a: "Só quem receber o link de ti. Os teus contactos só ficam visíveis com o teu acordo." },
       { q: "E se o meu objetivo mudar?", a: "Dizes à página. Novo setor, nova função, novo foco — resolvido num minuto." },
     ],
@@ -261,31 +243,28 @@ const TEXTE: Record<string, Copy> = {
   },
   it: {
     kicker: "Per la tua candidatura",
-    lead: "Carica il tuo CV — l'IA ti scrive il copione giusto, tu lo registri con la tua voce. Il risultato: una pagina di candidatura con il suo link.",
+    h1A: "Per ogni posto, la ", h1Y: "candidatura perfetta", h1B: ".",
+    lead: "Incolla un annuncio di lavoro e vedi in percentuale quanto ti corrisponde. Poi la tua candidatura si adatta — lettera di presentazione, video e testi, cuciti su quel posto preciso.",
     anlass: "Per cercare lavoro · per cambiare carriera · quando il CV da solo non mostra quanto vali",
     grund: "Un PDF viene sfogliato e dimenticato. Una pagina in cui parli tu resta aperta.",
     privat: "La tua pagina resta privata finché non la condividi tu.",
-    soH: "Come funziona",
-    so: [
-      { t: "Carica il tuo CV", d: "Basta un PDF. L'IA legge le tue tappe, le tue competenze e il tuo filo conduttore." },
-      { t: "Il tuo copione prende forma", d: "Niente frasi fatte — un testo parlato, costruito dal tuo percorso. Lo modifichi finché non suona come te." },
-      { t: "Tu parli, noi costruiamo la pagina", d: "Basta la fotocamera del telefono. Video, percorso e i ruoli adatti a te — su un link per ogni candidatura." },
+    zentraleH: "La tua centrale delle candidature",
+    features: [
+      { t: "Il tuo video di candidatura — senza preparazione.", d: "Niente testo, niente da imparare a memoria. Ti scriviamo il copione dal tuo CV — ti riprendi una volta, brevemente, e il resto lo fa l'IA: dalla tua ripresa nasce il tuo video professionale. Così vero che nessuno se ne accorge." },
+      { t: "Il posto ti corrisponde?", d: "Incolla l'annuncio — basta un link o il testo. Ricevi una percentuale onesta e vedi nero su bianco cosa corrisponde e cosa manca. Prima di investire un solo minuto." },
+      { t: "La tua candidatura si adatta.", d: "Un clic, e testo del profilo, priorità e posizionamento vengono cuciti sull'annuncio. Niente di inventato — tutto viene dal tuo vero CV, solo accentuato bene." },
+      { t: "Il dossier completo, per ogni posto.", d: "Lettera di presentazione nella lingua dell'annuncio. Il tuo dossier con il tuo video. Ogni candidatura sotto il suo indirizzo — pronta da inviare." },
     ],
-    problemH: "Il problema che risolviamo",
-    problem1: "I più non falliscono nel registrare. Falliscono sulla domanda: cosa dire di sé in 60 secondi?",
-    problem2: "Il copione serve esattamente a questo. Niente da inventare, niente da imparare a memoria — leggi, tutte le volte che vuoi.",
-    updateH: "Sempre aggiornato — senza moduli",
-    updateP1: "Su LinkedIn curi dei campi. Qui dici cosa è cambiato.",
-    updateQ: ["«Ho iniziato in Siemens.»", "«Ora mi candido come product manager.»"],
-    updateP2: "Basta una frase — testo, ruoli proposti e copione si adattano. Niente da cancellare, niente da riscrivere, nessun campo dopo campo.",
+    kontrastH: "Questo nessun portale di lavoro ce l'ha",
+    kontrast: "Lì il tuo profilo mostra a tutte le aziende la stessa cosa. Qui ogni azienda riceve una candidatura cucita sul suo annuncio — con lettera e video.",
     preisH: "Un link che cresce con te",
     preisEinmal: "una tantum — copione, video e pagina finita",
-    preisMonat: "al mese — la pagina resta online, aggiornamenti illimitati, disdici ogni mese",
+    preisMonat: "al mese — le tue candidature restano online, adattamenti illimitati, disdici ogni mese",
     preisOhne: "Senza abbonamento la tua pagina resta raggiungibile per 30 giorni.",
     faqH: "Domande frequenti",
     faq: [
       { q: "Devo essere bravo davanti alla camera?", a: "No. Leggi il tuo copione tutte le volte che vuoi, finché una ripresa non funziona. Nessuno vede i tentativi precedenti." },
-      { q: "Non sembra poco serio?", a: "Parli tu — niente avatar, niente voce sintetica. Proprio per questo funziona: il recruiter ti vede prima di invitarti." },
+      { q: "Non sembra poco serio?", a: "È il tuo viso e la tua voce — l'IA trasforma la tua stessa ripresa nel video professionale. Così vero che nessuno se ne accorge." },
       { q: "Chi può vedere la mia pagina?", a: "Solo chi riceve il link da te. I tuoi contatti si sbloccano solo con il tuo consenso." },
       { q: "E se il mio obiettivo cambia?", a: "Lo dici alla pagina. Nuovo settore, nuovo ruolo, nuovo focus — fatto in un minuto." },
     ],
@@ -297,7 +276,6 @@ const TEXTE: Record<string, Copy> = {
 
 export default async function LebenslaufThemePage() {
   const L = await resolveLang();
-  const T = kissText(L, "lebenslauf");
   const t = TEXTE[L] ?? TEXTE.en;
   const preisCents = themenPreisCents("lebenslauf");
   const einmal = eur(preisCents, L);
@@ -310,10 +288,8 @@ export default async function LebenslaufThemePage() {
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {/* ───── HERO ───── */}
         <Kicker>{t.kicker}</Kicker>
-        <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
+        <H1 className="mt-1">{t.h1A}<Y>{t.h1Y}</Y>{t.h1B}</H1>
         <Lead className="mt-2">{t.lead}</Lead>
-        {/* Anlass · Grund · Privatzeile — die Schritte stehen als eigene Sektion darunter,
-            MIT Titeln (Owner-Seitentext), deshalb hier eine leere Schrittliste. */}
         <ThemenVorspann anlass={t.anlass} grund={t.grund} wieGeht={[]} wieGehtPrivat={t.privat} />
 
         <LandingKarte sprache={L} titel={t.kicker}
@@ -324,42 +300,27 @@ export default async function LebenslaufThemePage() {
           ausrichtung="oben"
           folien={[{ video: BEISPIEL_VIDEO, poster: BEISPIEL_POSTER }]} />
 
-        {/* ───── SO FUNKTIONIERT ES — drei Schritte MIT Titeln ───── */}
+        {/* ───── DIE FEATURE-KARTE — „Deine Bewerbungszentrale" auf der Creme-Fläche
+            (Haus-Muster Video Card + Feature Card; vier Blöcke in Nutzer-Reihenfolge:
+            erst das Sofort-Erlebnis Video, dann die Maschine je Stelle). ───── */}
         <section className="mt-10">
-          <SectionTitle>{t.soH}</SectionTitle>
-          <ol className="mt-4 space-y-5">
-            {t.so.map((s, i) => (
-              <li key={s.t} className="flex gap-3">
-                <span className="mt-[2px] grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[12px] font-black text-[#f6cf51]">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-[15px] font-black leading-snug text-white/90">{s.t}</p>
-                  <p className="mt-1 text-[13.5px] font-medium leading-snug text-white/75">{s.d}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {/* ───── DAS PROBLEM ───── */}
-        <section className="mt-10">
-          <SectionTitle>{t.problemH}</SectionTitle>
-          <p className="mt-3 text-[15px] font-black leading-snug text-white/90">{t.problem1}</p>
-          <p className="mt-2 text-[14px] font-medium leading-snug text-white/75">{t.problem2}</p>
-        </section>
-
-        {/* ───── IMMER AKTUELL — der Update-Block. Hier steckt (mit Schritt 3) die Zeile
-            „die Rollen passen sich an" — bewusst NICHT in der Headline (Owner-Hinweis). ───── */}
-        <section className="mt-10">
-          <SectionTitle>{t.updateH}</SectionTitle>
-          <p className="mt-3 text-[15px] font-black leading-snug text-white/90">{t.updateP1}</p>
-          <div className="mt-3 space-y-2">
-            {t.updateQ.map(q => (
-              <p key={q} className="border-l border-white/25 pl-3 text-[13.5px] font-semibold italic leading-snug text-white/70">{q}</p>
+          <SectionTitle>{t.zentraleH}</SectionTitle>
+          <div className="lb-karte mt-4 overflow-hidden rounded-[20px] px-5 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+            {t.features.map((f, i) => (
+              <div key={f.t} className={`py-4 ${i === 0 ? "" : "border-t border-[#1a160f]/[0.11]"}`}>
+                <p className="text-[15px] font-black leading-snug">{f.t}</p>
+                <p className="mt-1.5 text-[13.5px] font-medium leading-snug opacity-75">{f.d}</p>
+              </div>
             ))}
           </div>
-          <p className="mt-3 text-[14px] font-medium leading-snug text-white/75">{t.updateP2}</p>
+        </section>
+
+        {/* ───── DER KONTRAST-BLOCK — erledigt die Konkurrenz, ohne sie gross zu machen. ───── */}
+        <section className="mt-10">
+          <SectionTitle>{t.kontrastH}</SectionTitle>
+          <p className="mt-3 border-l border-white/25 pl-3 text-[15px] font-black leading-snug text-white/90">
+            {t.kontrast}
+          </p>
         </section>
 
         {/* ───── DIE SEITE, DIE DU BEKOMMST — das echte Muster-Profil ───── */}

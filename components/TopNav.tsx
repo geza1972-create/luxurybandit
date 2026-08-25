@@ -68,10 +68,14 @@ export default function TopNav({
   subtitle,
   actions,
   back = true,
+  kreise = true,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
   back?: boolean;                     // Zurück-Pfeil (an, außer man setzt back={false})
+  /** Die Themen-Kreise (Geschenke) — AUS auf Flächen, die an Firmen/Personaler gehen
+      (Memory `serioeses-portal-umbau`): /firmen zeigt keine Kuss- und Try-on-Kreise. */
+  kreise?: boolean;
 }) {
   const router = useRouter();
   // ZURÜCK: Regel im Haus — jede Seite braucht einen sichtbaren Rückweg. Auf den Browser-
@@ -260,9 +264,11 @@ export default function TopNav({
         * SIE SCROLLT MIT DEM KOPF (`sticky`), weil sie ein Teil von ihm ist: Wer unten auf
         * einer langen Seite steht, wechselt das Thema ohne hochzuscrollen.
         */}
-      <div className="mx-auto max-w-6xl px-4 pb-2">
-        <ThemenKreise />
-      </div>
+      {kreise && (
+        <div className="mx-auto max-w-6xl px-4 pb-2">
+          <ThemenKreise />
+        </div>
+      )}
     </header>
   );
 }

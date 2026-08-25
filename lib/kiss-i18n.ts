@@ -3569,7 +3569,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     /* „Luxury Video Bewerbung — für Top Jobs" (Owner 20.08.2026: „AI gibt dir neue Chancen
        als Titel ist blöd"). */
     /* Owner-Seitentext 24.08.2026: „Dein Lebenslauf. Als Video, das du selbst sprichst." */
-    heroA: "Dein Lebenslauf. ", heroY: "Als Video", heroB: ", das du selbst sprichst.",
+    heroA: "Für jede Stelle die ", heroY: "perfekte Bewerbung", heroB: ".",
     upTitle: "Dein Foto", upHint: "Ein aktuelles Foto von dir.",
     you: "LEBENSLAUF", uploadYou: "Lebenslauf hochladen", youHint: "Als PDF — die KI liest ihn aus.",
     tunnelStartTitel: "Leg los",
@@ -3577,7 +3577,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     consentKurz: "🔒 Privat · nur für dich sichtbar, bis du es teilst · mit dem Erzeugen bestätigst du die {agb}",
   },
   en: {
-    heroA: "Your resume. ", heroY: "As a video", heroB: " you speak yourself.",
+    heroA: "The ", heroY: "perfect application", heroB: " for every job.",
     upTitle: "Your photo", upHint: "A recent photo of you.",
     you: "RESUME", uploadYou: "Upload your resume", youHint: "As PDF — the AI reads it.",
     tunnelStartTitel: "Let's get started",
@@ -3589,7 +3589,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
      fällt kissText aufs Kuss-Grundthema zurück. Owner: „was ist das für ein Text?").
      Memory `seven-languages-no-polish`: nie nur de/en anlegen. */
   ro: {
-    heroA: "CV-ul tău. ", heroY: "Ca video", heroB: ", vorbit chiar de tine.",
+    heroA: "Pentru fiecare job, ", heroY: "aplicația perfectă", heroB: ".",
     upTitle: "Poza ta", upHint: "O poză recentă cu tine.",
     you: "CV", uploadYou: "Încarcă CV-ul", youHint: "Ca PDF — AI-ul îl citește.",
     tunnelStartTitel: "Să începem",
@@ -3597,7 +3597,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     consentKurz: "🔒 Privat · vizibil doar pentru tine până îl distribui · prin generare confirmi {agb}",
   },
   es: {
-    heroA: "Tu currículum. ", heroY: "En vídeo", heroB: ", hablado por ti.",
+    heroA: "Para cada puesto, la ", heroY: "candidatura perfecta", heroB: ".",
     upTitle: "Tu foto", upHint: "Una foto reciente tuya.",
     you: "CURRÍCULUM", uploadYou: "Sube tu currículum", youHint: "En PDF — la IA lo lee.",
     tunnelStartTitel: "Empecemos",
@@ -3605,7 +3605,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     consentKurz: "🔒 Privado · visible solo para ti hasta que lo compartas · al generar confirmas los {agb}",
   },
   fr: {
-    heroA: "Ton CV. ", heroY: "En vidéo", heroB: ", raconté par toi.",
+    heroA: "Pour chaque poste, la ", heroY: "candidature parfaite", heroB: ".",
     upTitle: "Ta photo", upHint: "Une photo récente de toi.",
     you: "CV", uploadYou: "Ajoute ton CV", youHint: "En PDF — l'IA le lit.",
     tunnelStartTitel: "On commence",
@@ -3613,7 +3613,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     consentKurz: "🔒 Privé · visible par toi seul jusqu'au partage · en générant tu confirmes les {agb}",
   },
   pt: {
-    heroA: "O teu CV. ", heroY: "Em vídeo", heroB: ", falado por ti.",
+    heroA: "Para cada vaga, a ", heroY: "candidatura perfeita", heroB: ".",
     upTitle: "A tua foto", upHint: "Uma foto recente tua.",
     you: "CV", uploadYou: "Carrega o teu CV", youHint: "Em PDF — a IA lê-o.",
     tunnelStartTitel: "Vamos começar",
@@ -3621,7 +3621,7 @@ const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
     consentKurz: "🔒 Privado · visível só para ti até partilhares · ao gerar confirmas os {agb}",
   },
   it: {
-    heroA: "Il tuo CV. ", heroY: "In video", heroB: ", raccontato da te.",
+    heroA: "Per ogni posto, la ", heroY: "candidatura perfetta", heroB: ".",
     upTitle: "La tua foto", upHint: "Una foto recente di te.",
     you: "CV", uploadYou: "Carica il tuo CV", youHint: "In PDF — l'IA lo legge.",
     tunnelStartTitel: "Iniziamo",
