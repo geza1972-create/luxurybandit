@@ -4,6 +4,37 @@ Stand 25.08.2026, abends — Ergebnis eines ganzen Konzept-Tages mit dem Owner.
 **Multi-Bewerbung** ist die Funktion, **Bewerbungszentrale** ist das Produkt (Owner:
 „das ist dann eine Bewerbungszentrale dann doch").
 
+## DIE ZIELGRUPPE (Owner 25.08.2026 — die schärfste Aussage der ganzen Woche)
+
+„Wir machen dieses Portal für die Rumänen, die sich im Ausland oder in einer
+anderen Sprache bewerben wollen. Ich glaube, das ist meine einzige Chance."
+
+DAMIT IST DAS PRODUKT ENTSCHIEDEN, nicht nur die Werbung: Jede Frage, die
+sich künftig stellt, wird an diesem Satz gemessen.
+
+Was daraus FOLGT (und schon gebaut ist):
+- Preise in EURO (eine Konstante `WAEHRUNG`, Anzeige und Kasse).
+- Das Muster ist ANDREI POPESCU aus Timișoara: Pflegefachkraft, deutsche
+  Schule im Banat, Berufsanerkennung beantragt, umzugsbereit — genau die
+  drei Fragen, die eine deutsche Klinik zuerst stellt, stehen sichtbar im
+  Profil, im Anschreiben und in der Analyse.
+- Die Seite läuft in sieben Sprachen aus EINER deutschen Quelle
+  (`textbausteineInSprache`) — Rumänisch ist damit gleichwertig, nicht
+  nachgereicht.
+- Kiss und Try-on sind aus der Themen-Leiste raus: neben einer Bewerbung
+  an eine Personalabteilung hat beides nichts zu suchen.
+
+Was daraus NOCH FOLGT (offen, in dieser Reihenfolge sinnvoll):
+- Die Landingpage spricht diese Zielgruppe noch nicht an. Sie müsste die
+  drei Ängste dieser Bewerber beantworten: Wird mein Abschluss anerkannt?
+  Reicht mein Deutsch? Wie erkläre ich die Lücke/den Wechsel?
+- Sprachniveau als sichtbares Feld im Profil (A1–C2), weil es im Ausland
+  das erste Ausschlusskriterium ist.
+- Anzeigen-Test zuerst auf RUMÄNISCH ausspielen (Facebook/TikTok RO), Ziel
+  Deutschland-Jobs — nicht auf Deutsch an Deutsche.
+
+---
+
 ## Das Produkt in einem Satz
 
 Der Bewerber lädt seinen Lebenslauf einmal hoch — danach erzeugt ihm seine
