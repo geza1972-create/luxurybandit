@@ -637,10 +637,19 @@ Tunnel man ihm zeigt"). Drei Fragen, dann steht der Weg fest:
 **W1 — Hast du eine Anzeige, auf die du dich bewerben willst? (Ja / Nein)**
 - JA → der ANZEIGEN-WEG: Anzeige einfügen, Analyse, zugeschnittene Bewerbung.
   Hier entsteht der Match und damit der Kaufgrund.
-  PREIS GLEICH (Owner 25.08. nacht auf die Frage: „ja, auch 19 Euro") — eine
-  Bewerbung kostet 19, ob mit Anzeige zugeschnitten oder allgemein. Richtig
-  so: Der Aufwand ist derselbe (Auswertung, Texte, Video, Seite), und zwei
-  Preise für dasselbe Ergebnis würden nur erklären müssen, warum.
+  PREIS GLEICH, OB ZUGESCHNITTEN ODER ALLGEMEIN (Owner: „ja, auch 19 Euro") —
+  der Aufwand ist derselbe, zwei Preise für dasselbe Ergebnis müssten nur
+  erklärt werden.
+
+  ABER ZWEI STUFEN NACH VIDEO (Owner 25.08. nacht, auf die Frage, wann der
+  zahlt, der „Video später" wählt: „29 Euro — noch besser"):
+  **19 = Bewerbung OHNE Video · 29 = Bewerbung MIT Video.**
+  Damit hat die Weiche W3 einen Preis statt nur einer Reihenfolge, und der
+  Kunde entscheidet sichtbar zwischen gut und besser. Wer erst 19 zahlt und
+  das Video später will, zahlt die Differenz (10) — kein neuer Kauf, nur die
+  Aufstockung. NOCH NICHT IN lib/pricing.ts: Dort steht bisher nur
+  LEBENSLAUF_CENTS = 1900; die zweite Stufe braucht eine eigene Konstante
+  (Preise NIE als Zahl in Texte tippen).
 - NEIN → der ALLGEMEINE WEG (Owner: „bei Nein klar trotzdem bauen. Dann muss
   man ihm sagen: wir bauen eine generelle Bewerbung. Die kann er später
   anpassen. Das ist seine allgemeine Bewerbung dann."). Also: keine
