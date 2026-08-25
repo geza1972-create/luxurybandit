@@ -88,20 +88,25 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
         )}
         <p className="mt-4 whitespace-pre-wrap text-[14px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
       </div>
-      {/* JEDES BLATT WIRD EINZELN ANGEPASST (Owner 25.08.2026: „Das wird auch per Klick
-          angepasst, extra") — der Lebenslauf über den Knopf in der Analyse, das Anschreiben
-          hier. Beide führen in den Trichter und nehmen die eingefügte Anzeige mit; dort
-          wohnen Lebenslauf, Foto und Kasse. `data-nicht-drucken`: gehört nicht ins PDF. */}
-      <div data-nicht-drucken className="border-t border-[#1a160f]/[0.11] px-5 py-4 md:px-8">
-        <Knopf art="umriss" karte onClick={() => {
-          try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
-          window.location.href = "/themes/lebenslauf/start";
-        }}>
-          {B.anschreibenCta}
-        </Knopf>
-        <p className="mt-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45">{B.demoHinweis}</p>
-      </div>
+      <p className="border-t border-[#1a160f]/[0.11] px-5 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45 md:px-8">
+        {B.demoHinweis}
+      </p>
     </section>
+  );
+
+  /* JEDES BLATT WIRD EINZELN ANGEPASST (Owner 25.08.2026: „Das wird auch per Klick
+     angepasst, extra") — aber der Knopf steht DRAUSSEN, nicht im Blatt (Owner: „muss
+     ausserhalb stehen der Karte"): Das Papier trägt den Inhalt, das Dunkle die Handlung.
+     Er nimmt die eingefügte Anzeige mit in den Trichter. */
+  const anschreibenAktion = (
+    <div className="mt-3">
+      <Knopf art="umriss" onClick={() => {
+        try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
+        window.location.href = "/themes/lebenslauf/start";
+      }}>
+        {B.anschreibenCta}
+      </Knopf>
+    </div>
   );
 
   /* DER BEISPIEL-MATCH (Owner 25.08.2026: „hier muss schon ein Beispiel-Match gezeigt
@@ -201,28 +206,35 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
               ))}
             </div>
           )}
-          {zeigeMatch && (<>
-          <p className="mt-4 flex items-start gap-2 text-[14px] font-black">
-            <Play className="lb-karte-gold mt-0.5 h-4 w-4 shrink-0" />{B.videoEmpfehlung}
-          </p>
-          </>)}
-
-          {/* „Unten steht dann Bewerbung anpassen" (Owner) — der eine Knopf der Seite,
-              im Papier statt darunter: er nimmt die eingefügte Anzeige mit in den
-              Trichter, wo Lebenslauf, Foto und Kasse zu Hause sind. */}
-          <div className="mt-5">
-            <Knopf art="gold" onClick={() => {
-              try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
-              window.location.href = "/themes/lebenslauf/start";
-            }}>
-              {B.anpassenCta}
-            </Knopf>
-          </div>
           </div>
         </section>
       )}
 
+      {/* AUCH DIE EMPFEHLUNG STEHT DRAUSSEN (Owner 25.08.2026: „auch recomandarea noastră")
+          — sie ist kein Befund der Analyse, sondern ein Rat von uns. Auf dem Papier gehört,
+          was gemessen wurde; auf dem Dunklen, was wir dazu meinen. Und im PDF, das an eine
+          Firma geht, hat unsere Werbung ohnehin nichts verloren. */}
+      <p className="mt-5 flex items-start gap-2 text-[16px] font-black text-white/90">
+        <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />{B.videoEmpfehlung}
+      </p>
+
+      {/* DER KAUFKNOPF STEHT AUSSERHALB DER KARTE (Owner 25.08.2026: „Ajustează aplicația
+          muss ausserhalb stehen der Karte") — und das ist die Hausregel, nicht nur ein
+          Geschmack: Die Karte ist das DOKUMENT, und ein Dokument enthält keinen Knopf, der
+          etwas verkauft. Alles, womit man handelt, steht draussen auf dem Dunklen; im PDF
+          taucht er damit ohnehin nie auf. Er nimmt die eingefügte Anzeige mit in den
+          Trichter, wo Lebenslauf, Foto und Kasse zu Hause sind. */}
+      <div className="mt-5">
+        <Knopf art="gold" onClick={() => {
+          try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
+          window.location.href = "/themes/lebenslauf/start";
+        }}>
+          {B.anpassenCta}
+        </Knopf>
+      </div>
+
       {anschreibenKarte}
+      {anschreibenAktion}
     </>
   );
 
