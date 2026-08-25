@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     "'gruende' — 3–5 KONKRETE Übereinstimmungen, je ein kurzer Satz (Profil-Beleg an Anforderung gebunden).",
     "'luecken' — 0–4 Anforderungen, die das Profil NICHT belegt.",
     "'befunde' — 2–3 ehrliche Schwächen AM LEBENSLAUF SELBST (unabhängig von der Anzeige): fehlende Ergebnisse/Zahlen, unklare Rollen, Lücken, Länge. Kurz und konkret, nichts Erfundenes.",
-    "'anschreibenKurz' — ein KURZES Anschreiben (3–4 Sätze, erste Person, ohne Anrede-Floskeln am Ende), auf GENAU diese Anzeige zugeschnitten und NUR aus dem gestützt, was das Profil belegt. Es ist die Kostprobe (Owner: die Mappe beginnt oben mit einem kurzen Anschreiben) — das volle Anschreiben ist Teil des Kaufs.",
+    "'anschreibenKurz' — ein KURZES Anschreiben in echter BRIEFFORM (Owner: layoutmässig ein Brief, kein Textklumpen), auf GENAU diese Anzeige zugeschnitten und NUR aus dem gestützt, was das Profil belegt: Zeile 1 die Anrede (z. B. \"Sehr geehrte Damen und Herren,\"), dann LEERZEILE, dann 2 kurze Absätze (je 1–2 Sätze, erste Person, durch Leerzeile getrennt), dann LEERZEILE, dann Grussformel und in der nächsten Zeile der Name aus dem Profil. Zeilenumbrüche als \\n. Es ist die Kostprobe — das volle Anschreiben ist Teil des Kaufs.",
     `Schreibe 'gruende', 'luecken', 'befunde' und 'anschreibenKurz' auf ${zielSprache}. Antworte NUR als JSON: {"prozent":0,"jobtitel":"...","gruende":[],"luecken":[],"befunde":[],"anschreibenKurz":"..."}`,
   ].join("\n\n");
   const parsed = await ki(prompt);
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
     gruende: liste(parsed.gruende, 5, 200),
     luecken: liste(parsed.luecken, 4, 200),
     befunde: liste(parsed.befunde, 3, 200),
-    anschreibenKurz: s(parsed.anschreibenKurz, 700),
+    anschreibenKurz: s(parsed.anschreibenKurz, 900),
     zuegeUebrig: ZUEGE_MAX - stand.zuege.length,
   });
 }

@@ -510,10 +510,44 @@ ENTSCHIEDEN (Owner: „ok", 25.08. spät nacht):
 3. Der 5ER-DECKEL JE GERÄT BLEIBT als einzige Kosten-Bremse im offenen
    Spiel. Vorschau bleibt FREI (Owner „ok" auf die Empfehlung); nur der
    Teilen-Tipp in der Vorschau löst Speichern→Konto aus.
+4. EIGENE VIDEO-AUFNAHME OHNE KI IM GRATIS-TEIL (Owner-Frage „Wie wäre
+   das?", per „dann baue ich zumindest ein Bewerberportal auf" bestätigt):
+   Im Spiel nimmt er sich selbst auf bzw. lädt ein Video — NUR im Browser
+   (wie das Foto, kostenlos, keine Moderation nötig); erst mit Konto wird
+   es Teil der Gratis-Seite (dann durch die Haus-Tore: Upload-Pipeline,
+   Faststart, Nacktheits-Prüfung). Kein Skript, keine Veredelung — der
+   sichtbare Abstand zur bezahlten Fassung IST das Verkaufsargument
+   (Vorher/Nachher), und die Aufnahme ist zugleich der Rohstoff der
+   bezahlten HeyGen-Kette.
+
+DER STRATEGISCHE RAHMEN (Owner: „dann baue ich zumindest ein
+Bewerberportal auf umsonst. Was eigentlich ganz cool ist"): Das
+Gratis-Portal ist nicht umsonst — es ist der UNTERBAU. Jedes gespeicherte
+Gratis-Profil ist (a) ein Lead mit Konto, (b) eine Upsell-Basis
+(Verbessern + Video) und (c) INVENTAR für das spätere Firmen-Produkt
+(Anzeige rein → passende BEWERBUNGEN raus — ohne Pool keine Treffer).
+Die Gratis-Seite baut den Pool, der Pool macht die Firmen-Seite wertvoll.
+
+LOOKS STATT TEMPLATES (Owner 25.08. nacht: „Die Leute suchen immer tolle
+Templates. … Leute sind emotional." → „ja, das meinte ich. Looks"):
+EIN Bauwerk (Executive-Struktur, jede Funktion existiert genau einmal),
+aber wählbare FARBWELTEN/STIMMUNGEN auf demselben Blatt (z. B. Ivory /
+Modern Dark / Warm Sand / Serif Classic) — technisch Farb-/Schrift-Token
+auf der lb-karte, fürs Gefühl eine Template-Auswahl. Der Berater fragt:
+„Welcher Look bist du?" Keine echten Zweit-Templates (die multiplizieren
+jede Funktion für immer). SPÄTER, nach dem Markt-Test — nicht jetzt.
+
+VORSCHAU MUSS SOFORT SICHTBAR SEIN (Owner: „Wenn ich umschalte, gibt's
+erst mal im Sichtbereich keinen Unterschied" → „ok" zum Vorschlag):
+Nur im Vorschau-Modus steht direkt unter dem Kopf ein schmaler Streifen
+„VORSCHAU — So sieht eine Firma deine Bewerbung."; beim Umschalten auf
+Vorschau springt die Seite nach oben (Dokument frisch aufgeschlagen),
+zurück zu Bearbeiten bleibt die Scroll-Position stehen.
+
 NOCH NICHT GEBAUT — Umbau auf Owner-Kommando („Bau"): E-Mail-Tor aus dem
 Spiel nehmen, Kontakt-Extraktion in den Einpflege-Zug, Teilen-Knopf nur
 in der Vorschau mit Speichern→Konto-Kette (Haus-Anmeldung), gespeicherte
-Gratis-Seite anlegen.
+Gratis-Seite anlegen, Browser-Video-Aufnahme im Spiel.
 
 Die ÜBERHOLTE Entscheidung vom selben Abend (nur noch Geschichte):
 E-Mail-Tor vor dem ersten Spielzug („ich will Leads auf jeden Fall") —

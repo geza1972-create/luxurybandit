@@ -46,6 +46,7 @@ const TEXTE = {
     frageFrage: "Schreib deine Frage — ich leite sie weiter, du bekommst noch heute eine Antwort an deine E-Mail.",
     frageMailFrage: "Und an welche E-Mail soll die Antwort gehen?",
     frageDanke: "Ist raus — Antwort kommt noch heute. Was möchtest du sonst?",
+    introKurz: "Gut — was möchtest du?",
     mailFrage: "Deine E-Mail, dann legen wir los. (Es entsteht keine Seite — gespeichert wird erst, wenn du kaufst.)",
     mailFehler: "Das sieht nicht nach einer E-Mail aus.",
     datenFrage: "Jetzt du: Kopiere den Text aus deinem Lebenslauf und füg ihn hier ein. Ich übertrage ihn in die Mappe — so wie er ist, ohne etwas zu beschönigen.",
@@ -70,8 +71,10 @@ const TEXTE = {
     gold: "Gratis weitermachen",
     analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
     anschreibenH: "Anschreiben", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
-    demoTitel: "Senior UX Designer (m/w/d) · Die Musterfirma GmbH · 72 %",
-    demoAnschreiben: "Sehr geehrte Damen und Herren, Ihre Anzeige für die Position Senior UX Designer trifft genau meinen Werdegang: Konzeption, Designsysteme und Nutzerforschung verantworte ich seit Jahren in digitalen Produkten. Gern zeige ich Ihnen in einem Gespräch, was davon Sie sofort nutzen können.",
+    betreff: (t: string) => `Bewerbung als ${t}`,
+    demoBetreff: "Bewerbung als Senior UX Designer (m/w/d)",
+    demoMeta: "Die Musterfirma GmbH · Match 72 %",
+    demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Konzeption, Designsysteme und Nutzerforschung verantworte ich seit Jahren in digitalen Produkten.\n\nGern zeige ich Ihnen in einem Gespräch, was davon Sie sofort nutzen können.\n\nMit freundlichen Grüssen\nGeza Lakatos",
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
   },
   en: {
@@ -82,6 +85,7 @@ const TEXTE = {
     frageFrage: "Write your question — I'll pass it on, you'll get an answer to your email today.",
     frageMailFrage: "And which email should the answer go to?",
     frageDanke: "Sent — you'll hear back today. What else would you like?",
+    introKurz: "Alright — what would you like?",
     mailFrage: "Your email, then we start. (No page is created — nothing is saved until you buy.)",
     mailFehler: "That doesn't look like an email.",
     datenFrage: "Your turn: copy the text from your resume and paste it here. I'll transfer it into the folder — as it is, without polishing anything.",
@@ -106,8 +110,10 @@ const TEXTE = {
     gold: "Continue for free",
     analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
     anschreibenH: "Cover letter", kostprobe: "A taste — the full cover letter comes with your application.",
-    demoTitel: "Senior UX Designer (m/f/d) · Musterfirma GmbH · 72%",
-    demoAnschreiben: "Dear Sir or Madam, your ad for the Senior UX Designer position matches my path precisely: I have owned concept work, design systems and user research in digital products for years. I'd be glad to show you in a call what you can use right away.",
+    betreff: (t: string) => `Application for ${t}`,
+    demoBetreff: "Application for Senior UX Designer (m/f/d)",
+    demoMeta: "Musterfirma GmbH · Match 72%",
+    demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: I have owned concept work, design systems and user research in digital products for years.\n\nI'd be glad to show you in a call what you can use right away.\n\nKind regards\nGeza Lakatos",
     demoHinweis: "Sample — every application here starts like this: cover letter on top, resume below.",
   },
 };
@@ -331,20 +337,31 @@ export default function SpielplatzClient({ beispiel, lang }: {
   };
 
   /* ── OBEN: DAS ANSCHREIBEN (Owner: „Es müsste oben anfangen … dann drunter das Resume") ── */
+  /* EIN BRIEF, KEIN TEXTKLUMPEN (Owner, mit Bild: „das ist eine Katastrophe. Das
+     Anschreiben. Layoutmässig") — Betreff fett wie in einem echten Schreiben, darunter
+     klein die Einordnung (Firma/Match), dann der Brief mit Anrede, Absätzen und Gruss
+     auf eigenen Zeilen (die KI liefert die Umbrüche mit, \n bleibt per pre-wrap
+     erhalten). Etikett und Fusszeile trennt je eine Haarlinie vom Papier. */
   const anschreibenText = match?.anschreibenKurz || (!spielDaten ? B.demoAnschreiben : "");
-  const anschreibenTitel = match
-    ? [match.jobtitel, `${match.prozent} %`].filter(Boolean).join(" · ")
-    : (!spielDaten ? B.demoTitel : "");
+  const anschreibenBetreff = match
+    ? (match.jobtitel ? B.betreff(match.jobtitel) : "")
+    : (!spielDaten ? B.demoBetreff : "");
+  const anschreibenMeta = match ? `Match ${match.prozent} %` : (!spielDaten ? B.demoMeta : "");
   const vorKarte = anschreibenText ? (
-    <section className="lb-karte mb-4 overflow-hidden rounded-[20px] px-5 py-5 shadow-[0_18px_50px_rgba(0,0,0,0.38)] md:px-8 md:py-6">
-      <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] opacity-40">
+    <section className="lb-karte mb-4 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+      <p className="flex items-center gap-1.5 px-5 pb-2.5 pt-4 text-[10px] font-black uppercase tracking-[0.24em] opacity-40 md:px-8">
         <Mail className="h-3.5 w-3.5" />{B.anschreibenH}
       </p>
-      {anschreibenTitel && (
-        <p className="mt-1.5 text-[12.5px] font-black leading-snug opacity-80">{anschreibenTitel}</p>
-      )}
-      <p className="mt-2.5 whitespace-pre-wrap text-[12.5px] font-medium leading-[1.6] opacity-85">{anschreibenText}</p>
-      <p className="mt-2.5 text-[10.5px] font-bold uppercase tracking-[0.12em] opacity-45">
+      <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
+        {anschreibenBetreff && (
+          <p className="text-[15px] font-black leading-snug">{anschreibenBetreff}</p>
+        )}
+        {anschreibenMeta && (
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] opacity-50">{anschreibenMeta}</p>
+        )}
+        <p className="mt-4 whitespace-pre-wrap text-[13px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
+      </div>
+      <p className="border-t border-[#1a160f]/[0.11] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] opacity-45 md:px-8">
         {match ? B.kostprobe : B.demoHinweis}
       </p>
     </section>
@@ -455,17 +472,17 @@ export default function SpielplatzClient({ beispiel, lang }: {
                sehen will, ob eine Anzeige zu ihm passt. Oder ob er auch so ein Profil
                anlegen moechte. Oder hat er eine andere Frage." — "Erst mal schauen
                fuehrt zu nix" ist raus). Der Match-Weg traegt das eine Gold. */
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-col items-start gap-2">
               <button type="button" onClick={() => { setAbsicht("match"); ich(B.chipMatch); ki(mail ? B.datenFrage : B.mailFrage); setSchritt(mail ? "daten" : "mail"); }}
-                className="h-10 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-5 text-[13px] font-black text-[#1a1204]">
+                className="h-9 rounded-full bg-gradient-to-b from-[#f9de7a] to-[#e0a93e] px-4 text-[12.5px] font-black text-[#1a1204]">
                 {B.chipMatch}
               </button>
               <button type="button" onClick={() => { setAbsicht("profil"); ich(B.chipProfil); ki(mail ? B.datenFrage : B.profilMailFrage); setSchritt(mail ? "daten" : "mail"); }}
-                className="h-10 rounded-full border border-[#1a160f] px-5 text-[13px] font-black">
+                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[12.5px] font-black">
                 {B.chipProfil}
               </button>
               <button type="button" onClick={() => { ich(B.chipFrage); ki(B.frageFrage); setSchritt("frage"); }}
-                className="h-10 rounded-full border border-[#1a160f] px-5 text-[13px] font-black">
+                className="h-9 rounded-full border border-[#1a160f]/60 px-4 text-[12.5px] font-black">
                 {B.chipFrage}
               </button>
             </div>
@@ -502,7 +519,7 @@ export default function SpielplatzClient({ beispiel, lang }: {
                     Reset-Button" · Memory immer-close-einbauen): „Von vorn" bringt die
                     drei Wege wieder; Gesammeltes (E-Mail, eingepflegte Daten, Match)
                     bleibt — niemand tippt etwas doppelt. */}
-                <button type="button" onClick={() => { setSchritt("intro"); setEingabe(""); setFehler(""); }}
+                <button type="button" onClick={() => { ki(B.introKurz); setSchritt("intro"); setEingabe(""); setFehler(""); }}
                   className="text-[11px] font-black uppercase tracking-[0.12em] opacity-50 transition hover:opacity-80">
                   {B.zurueck}
                 </button>
