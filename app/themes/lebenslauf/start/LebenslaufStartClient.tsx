@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { Trash2, FileText, Video, Check, X as XIcon } from "lucide-react";
+import { Trash2, FileText, Video, Check, X as XIcon, ChevronRight } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
-import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, KurzeEinwilligung, Knopf, Laden, Eingabe, EingabeMehrzeilig } from "@/components/CI";
+import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, VorlagenKachel, KurzeEinwilligung, Knopf, Laden, Eingabe, EingabeMehrzeilig } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
+import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER, EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
-import { signInWithOAuth } from "@/lib/supabase-auth-client";
+import { signInWithOAuth, getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { eur, themenPreisCents } from "@/lib/pricing";
 import { landAusZeitzone } from "@/lib/land-erkennen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
@@ -243,6 +244,10 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
       — sie muss ein Neuladen überstehen, also so früh wie möglich existieren. */
   useEffect(() => {
     if (genId) return;
+    /* Beim Video-Einstieg (?video=<kennung>, Effekt unten) IST die Kennung die bestehende
+       Bewerbung — hier keine neue anlegen, sonst ueberschriebe die spaeter eintreffende
+       kiss-log-Antwort die gesetzte Kennung. */
+    try { if (new URLSearchParams(window.location.search).get("video")) return; } catch { /**/ }
     void (async () => {
       try {
         let device = "";
@@ -538,6 +543,62 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* DIE ANZEIGE VON DER LANDINGPAGE (Owner 25.08.2026: Feld auf /themes/lebenslauf,
+     "Drunter Button Gratis weitermachen", Ablauf "Anzeige -> Deine Daten -> Prozent +
+     Karte, wie im Tunnel - Ja") - der Einstieg reicht den eingefuegten Text ueber
+     sessionStorage herein; der Anzeige-Schritt gilt damit als erledigt und es geht
+     direkt bei "Deine Daten" weiter. Einmal gelesen, wird die Ablage geleert. */
+  useEffect(() => {
+    try {
+      const t = (sessionStorage.getItem("lb_lebenslauf_anzeige") ?? "").trim();
+      if (!t) return;
+      sessionStorage.removeItem("lb_lebenslauf_anzeige");
+      setAnzeige(t);
+      setAnzeigeFertig(true);
+    } catch { /**/ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * DER VIDEO-EINSTIEG VON DER FERTIGEN BEWERBUNG (Owner 25.08.2026: "link fuehrt doch
+   * zur erstellung ... Es fuehrt zum Tunel."): `?video=<kennung>` heisst, der BESITZER
+   * einer bezahlten Bewerbung kommt vom Satz-Link "erstelle jetzt dein Video." und will
+   * NUR den Video-Teil — Skript lesen/aendern, Aufnahme hochladen; fertigstellen haengt
+   * das Video an die BESTEHENDE Seite und fuehrt dorthin zurueck (Foto bleibt leer, die
+   * Route laesst das vorhandene Portraet dann stehen). Besitz prueft der SERVER
+   * (GET /api/lebenslauf-bewerbung -> darfAmProfilArbeiten); ein Fremder mit dem Link
+   * landet einfach am normalen Tunnel-Anfang.
+   */
+  const videoEinstiegRef = useRef(false);
+  useEffect(() => {
+    if (videoEinstiegRef.current) return;
+    let vid = "";
+    try { vid = (new URLSearchParams(window.location.search).get("video") ?? "").trim(); } catch { /**/ }
+    if (!vid) return;
+    videoEinstiegRef.current = true;
+    onSchrittChange(3);
+    setBusy(true);
+    void (async () => {
+      let device = "", pin = "", tok = "";
+      try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+      try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
+      try { tok = getStoredAuthSession()?.access_token ?? ""; } catch { /**/ }
+      const d = await fetch(`/api/lebenslauf-bewerbung?id=${encodeURIComponent(vid)}&device=${encodeURIComponent(device)}`, {
+        headers: { ...(tok ? { Authorization: `Bearer ${tok}` } : {}), ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+      }).then(r => r.json()).catch(() => null);
+      setBusy(false);
+      if (!d?.darf) { onSchrittChange(1); return; }
+      setGenId(vid);
+      /* Nie mit Leerem ueberschreiben: waehrend Dev-Remounts (AdminUrlMirror wechselt auf
+         den /admin-Zwilling, Fast Refresh) laufen mehrere Instanzen dieses Effekts — eine
+         leere oder alte Antwort darf ein schon gesetztes Skript nicht wieder ausradieren. */
+      const t = String(d.sprechtext ?? "").trim();
+      if (t) setSkript(v => v || t);
+      setPhase("skript");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const AT = ANZEIGE_TEXT[lang === "de" ? "de" : "en"];
 
   return (
@@ -744,11 +805,25 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                 <p className="max-h-44 overflow-y-auto rounded-lg border border-white/15 bg-white/[0.05] px-3 py-2.5 text-[13.5px] font-medium leading-relaxed text-white/85 lb-wisch">
                   {skript}
                 </p>
-                <DateiKachel datei={aufnahmeDatei} icon={Video}
-                  titel={S.aufnahmeKachel}
-                  hinweis={aufnahmeDatei && !aufnahmePath ? S.aufnahmeLaedt : S.aufnahmeHinweis}
-                  onWaehlen={() => aufnahmeRef.current?.click()}
-                  onLoeschen={() => { setAufnahmeDatei(null); setAufnahmePath(""); }} />
+                {/* UPLOAD LINKS, VORLAGE RECHTS (Owner 25.08.2026: "hier brauche ich die
+                    Upload links Vorlage rechts. Wie bei unserem tunel (Promise)") — dieselbe
+                    Reihe wie im Kuss-/Versprechen-Tunnel: Kachel -> Pfeil -> Vorlagen-Kachel;
+                    die Vorlage ist das Beispielvideo des Hauses und zeigt, WIE so eine
+                    Aufnahme aussieht, bevor man die eigene hochlaedt. */}
+                <div className="flex items-stretch gap-3">
+                  <div className="min-w-0 flex-1">
+                    <DateiKachel datei={aufnahmeDatei} icon={Video}
+                      titel={S.aufnahmeKachel}
+                      hinweis={aufnahmeDatei && !aufnahmePath ? S.aufnahmeLaedt : S.aufnahmeHinweis}
+                      onWaehlen={() => aufnahmeRef.current?.click()}
+                      onLoeschen={() => { setAufnahmeDatei(null); setAufnahmePath(""); }} />
+                  </div>
+                  <ChevronRight className="h-6 w-6 shrink-0 self-center opacity-60" />
+                  <div className="w-[26vw] min-w-[72px] max-w-[118px] shrink-0 self-center">
+                    <VorlagenKachel bildUrl={LEBENSLAUF_BEISPIEL_POSTER} videoUrl={LEBENSLAUF_BEISPIEL_VIDEO}
+                      ansehenLabel={F.vorlageAnsehen} sprache={lang} titel={EXECUTIVE_BEISPIEL.name} />
+                  </div>
+                </div>
                 <Knopf art="gold" disabled={!aufnahmePath} onClick={() => void seiteBauen()}>
                   {S.seiteBauen}
                 </Knopf>

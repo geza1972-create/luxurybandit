@@ -132,6 +132,16 @@ export type LebenslaufProfil = {
    */
   viewCount?: number;
   videoKlicks?: number;
+  /* "wenn jemand anfaengt zu tippen ... 1 Person hat Interesse gezeigt" (Owner
+     25.08.2026): erster Griff zum Firmen-Chat (Ja-Chip oder erstes Tippen), gleicher
+     Beacon-Weg und dieselbe Vanity-Toleranz wie oben. */
+  interesseKlicks?: number;
+  /* "1 Person will dich kontaktieren - email anzeigen. auch loeschen dann" (Owner
+     25.08.2026): die ABGESCHLOSSENEN Gespraechsanfragen des Firmen-Chats, damit der
+     Besitzer sie auf seiner Seite sieht (Name + E-Mail) und einzeln loeschen kann.
+     Die Mail an den Betreiber geht weiterhin parallel raus (/api/contact) - dieser
+     Eintrag ist die Ablage fuer den Bewerber, gedeckelt auf die letzten 50. */
+  anfragen?: { id: string; name: string; mail: string; nachricht?: string; datum: string }[];
 };
 
 const pfad = (id: string) => `lebenslauf/${id}.json`;

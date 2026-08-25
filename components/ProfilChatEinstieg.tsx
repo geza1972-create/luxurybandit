@@ -44,11 +44,18 @@ export type FirmenChatTexte = {
 
 type Schritt = "frei" | "name" | "mail" | "nachricht" | "fertig";
 
-export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false, className = "" }: {
+export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false, className = "", profilId = "", onInteresse }: {
   texte: FirmenChatTexte;
   kandidat?: string;
   karte?: boolean;
   className?: string;
+  /** Kennung der Bewerbung — fertige Anfragen werden daran abgelegt (/api/lebenslauf-anfrage),
+      damit der Besitzer sie auf seiner Seite sieht und loeschen kann (Owner 25.08.2026). */
+  profilId?: string;
+  /** "wenn jemand anfaengt zu tippen ... 1 Person hat Interesse gezeigt" (Owner 25.08.2026)
+      — feuert EINMAL beim ersten Griff zum Chat (Ja-Chip oder erstes Tippen). Der Aufrufer
+      reicht ihn nur fuer FREMDE herein (der Besitzer zaehlt sich nie selbst). */
+  onInteresse?: () => void;
 }) {
   const [msgs, setMsgs] = useState<{ von: "ich" | "ki"; text: string }[]>([]);
   const [eingabe, setEingabe] = useState("");
@@ -60,6 +67,13 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
   const anfrage = useRef({ name: "", mail: "" });
   /** Eine frei getippte Frage — sie wird zur Nachricht der Weiterleitung. */
   const frageVorab = useRef("");
+  /** Interesse wird je Seitenaufruf genau einmal gemeldet. */
+  const interesseGemeldet = useRef(false);
+  const interesseMelden = () => {
+    if (interesseGemeldet.current) return;
+    interesseGemeldet.current = true;
+    onInteresse?.();
+  };
   const ende = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -85,7 +99,17 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
         }),
       });
       const d = await r.json().catch(() => ({}));
-      if (r.ok) { ki(texte.danke); setSchritt("fertig"); }
+      if (r.ok) {
+        ki(texte.danke); setSchritt("fertig");
+        /* Die Ablage fuer den Besitzer — Feuer-und-vergessen: die Mail ist schon raus,
+           eine verlorene Ablage bricht dem Absender nichts ab. */
+        if (profilId) {
+          void fetch("/api/lebenslauf-anfrage", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: profilId, name: anfrage.current.name, mail: anfrage.current.mail, nachricht }),
+          }).catch(() => { /**/ });
+        }
+      }
       else setFehler(String(d?.error ?? "Error"));
     } catch { setFehler("—"); }
     setBusy(false);
@@ -127,6 +151,7 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
   };
 
   const jaGeklickt = () => {
+    interesseMelden();
     setJaNeinOffen(false); setFehler("");
     ich(texte.ja); ki(texte.frageWer); setSchritt("name");
   };
@@ -191,7 +216,8 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
               <Fehlerzeile karte={karte}>{fehler}</Fehlerzeile>
               <div className="mt-3 flex items-end gap-2">
                 <EingabeMehrzeilig karte={karte} zeilen={1} className="flex-1" value={eingabe}
-                  placeholder={platzhalter} onChange={e => setEingabe(e.target.value)} />
+                  placeholder={platzhalter}
+                  onChange={e => { if (e.target.value.trim()) interesseMelden(); setEingabe(e.target.value); }} />
                 <button type="button" disabled={busy || (schritt !== "nachricht" && !eingabe.trim())}
                   onClick={() => void senden()}
                   className={`h-10 shrink-0 rounded-full border px-4 text-[12.5px] font-black transition disabled:opacity-40 ${karte ? "border-[#1a160f]" : "border-white/40 text-white/85 hover:border-white/70"}`}>

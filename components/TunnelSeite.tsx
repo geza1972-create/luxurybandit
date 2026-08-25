@@ -122,7 +122,11 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
    * Adresse — dieselbe Reihenfolge, die `logFunnelEvent` liest, plus `utm_campaign`/
    * `utm_medium` für die Auswertung ausserhalb des Hauses.
    */
-  const HERKUNFT = ["utm_source", "source", "src", "ref", "utm_campaign", "utm_medium", "fbclid"];
+  /* `video` ist keine Herkunft, sondern der Video-Einstieg des Lebenslauf-Tunnels
+     (?video=<kennung> — LebenslaufStartClient): er muss jede Adress-Neuschreibung
+     (Schritt-Sync hier, AdminUrlMirror) ueberleben, sonst verliert ein Remount den
+     Einstieg. Andere Tunnel setzen ihn nie — dort traegt die Liste ihn einfach nicht. */
+  const HERKUNFT = ["utm_source", "source", "src", "ref", "utm_campaign", "utm_medium", "fbclid", "video"];
 
   const baueUrl = (s: number, vorlage?: string) => {
     const p = new URLSearchParams();

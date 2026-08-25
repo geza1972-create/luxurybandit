@@ -58,6 +58,12 @@ export async function GET(request: Request) {
       anschreiben: profil.anschreiben ?? "",
       viewCount: profil.viewCount ?? 0,
       videoKlicks: profil.videoKlicks ?? 0,
+      /* Fuer den Video-Einstieg des Tunnels (?video=<kennung>): das Skript der Bewerbung
+         als Startwert des Skript-Schritts. Nur hinter darfAmProfilArbeiten — ein Fremder
+         bekommt { darf: false } und nie den Text. */
+      sprechtext: profil.sprechtext ?? "",
+      interesseKlicks: profil.interesseKlicks ?? 0,
+      anfragen: profil.anfragen ?? [],
     }, { headers: { "Cache-Control": "no-store" } });
   }
   return NextResponse.json({
@@ -68,6 +74,10 @@ export async function GET(request: Request) {
     foto: profil.fotoUrl ?? "",
     probeFrei: (profil.bewerbungenErzeugt ?? 0) === 0,
     aboAktiv: profil.aboAktiv === true,
+    sprechtext: profil.sprechtext ?? "",   // Video-Einstieg, siehe Versionen-Zweig oben
+    interesseKlicks: profil.interesseKlicks ?? 0,
+    anfragen: profil.anfragen ?? [],
+
   }, { headers: { "Cache-Control": "no-store" } });
 }
 

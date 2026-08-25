@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye } from "lucide-react";
+import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye, MessageCircle, Trash2 } from "lucide-react";
 import { TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -126,17 +126,34 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
   /* „Noch kein Video."-Zeile nach dem Play-Tipp auf einer Bild-Bewerbung. */
   const [videoWunsch, setVideoWunsch] = useState(false);
   /* Der Video-CTA an der Nachfrage-Zeile: "" | "busy" | "ok". */
-  const [videoAnfrage, setVideoAnfrage] = useState<"" | "busy" | "ok">("");
   /** Erst eine NEGATIVE Besitz-Prüfung macht diesen Betrachter zum Fremden — nur dann
       zählen View-Beacon und Play-Tipp (Owner: der Besitzer zählt sich nie selbst). */
   const [fremd, setFremd] = useState(false);
+  /* DIE BESITZER-ZAHLEN VOM SERVER (Owner 25.08.2026: Interesse-Zaehler und die
+     Gespraechsanfragen mit E-Mail) — sie kommen NIE mit dem Server-Render (die Seite ist
+     oeffentlich, und in den Anfragen stehen fremde E-Mail-Adressen), sondern erst nach
+     BESTAETIGTER Besitzerschaft ueber den darf-gepruefte GET /api/lebenslauf-bewerbung. */
+  const [interesseZahl, setInteresseZahl] = useState(0);
+  const [anfragen, setAnfragen] = useState<{ id: string; name: string; mail: string; nachricht?: string; datum: string }[]>([]);
+  /* Loeschen nach Hausregel (Memory `loeschen-zwei-tipps-rot`): erster Tipp stellt das
+     Symbol rot, zweiter loescht, nach 3 s faellt es zurueck. */
+  const [anfrageArm, setAnfrageArm] = useState("");
 
   useEffect(() => {
     const { device, headers } = ausweis();
     fetch(`/api/lebenslauf-korrektur?id=${encodeURIComponent(profil.id)}&device=${encodeURIComponent(device)}`, {
       headers, cache: "no-store",
     }).then(r => r.json()).then(d => {
-      if (d?.darf === true) { setIstBesitzer(true); return; }
+      if (d?.darf === true) {
+        setIstBesitzer(true);
+        void fetch(`/api/lebenslauf-bewerbung?id=${encodeURIComponent(profil.id)}&device=${encodeURIComponent(device)}`, { headers, cache: "no-store" })
+          .then(r => r.json()).then(b => {
+            if (b?.darf !== true) return;
+            setInteresseZahl(Number(b.interesseKlicks) || 0);
+            if (Array.isArray(b.anfragen)) setAnfragen(b.anfragen);
+          }).catch(() => { /* Zeilen bleiben einfach weg */ });
+        return;
+      }
       setFremd(true);
       /* DER EHRLICHE VIEW (Owner 25.08.2026: „Recruiter haben sich deine Bewerbung
          angeschaut") — gezählt wird genau hier: Besitz-Prüfung fertig UND negativ. */
@@ -147,6 +164,22 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
     }).catch(() => { /* bleibt „nein" */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profil.id]);
+
+  const anfrageLoeschen = (aid: string) => {
+    if (anfrageArm !== aid) {
+      setAnfrageArm(aid);
+      setTimeout(() => setAnfrageArm(v => (v === aid ? "" : v)), 3000);
+      return;
+    }
+    setAnfrageArm("");
+    const { device, headers } = ausweis();
+    void fetch("/api/lebenslauf-anfrage", {
+      method: "DELETE", headers,
+      body: JSON.stringify({ id: profil.id, anfrageId: aid, device }),
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d?.anfragen)) setAnfragen(d.anfragen);
+    }).catch(() => { /* Reihe bleibt, der Tipp kann erneut */ });
+  };
 
   const freigabeUmschalten = async () => {
     if (freigabeBusy) return;
@@ -483,7 +516,13 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               platzhalter: T.chatFrageP, phName: T.anfrageName, phMail: T.anfrageEmail, phNachricht: T.anfrageNachricht,
               senden: T.chatSenden, denkt: T.chatDenkt,
             }}
-            kandidat={profil.name} />
+            kandidat={profil.name} profilId={profil.id}
+            onInteresse={fremd ? () => {
+              void fetch("/api/lebenslauf-view", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: profil.id, art: "interesse" }),
+              }).catch(() => { /* ein verlorener Zaehler ist kein Fehler */ });
+            } : undefined} />
         </section>
         )}
 
@@ -491,58 +530,61 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             die Views stehen … Recruiter haben sich deine Bewerbung angeschaut" · „Video
             ist gefragt. Erstelle jetzt ein Video…") — still auf dem Dunklen, direkt
             unter der Karte; der Video-Anstoss erscheint nur, solange KEIN Video da ist. */}
-        {besitzerAnsicht && ((profil.viewCount ?? 0) > 0 || (profil.videoKlicks ?? 0) > 0) && (
+        {besitzerAnsicht && ((profil.viewCount ?? 0) > 0 || (profil.videoKlicks ?? 0) > 0 || interesseZahl > 0 || anfragen.length > 0) && (
           <div className="mt-6 flex flex-col gap-1.5">
             {(profil.viewCount ?? 0) > 0 && (
               <p className="flex items-center gap-2 text-[13px] font-bold text-white/75">
                 <Eye className="h-4 w-4 shrink-0 text-white/45" />{T.statsOeffnungen(profil.viewCount ?? 0)}
               </p>
             )}
+            {/* "1 Person hat Interesse gezeigt." (Owner 25.08.2026) — erster Griff zum
+                Firmen-Chat (Ja-Chip oder erstes Tippen), gezaehlt nur bei Fremden. */}
+            {interesseZahl > 0 && (
+              <p className="flex items-center gap-2 text-[13px] font-bold text-white/75">
+                <MessageCircle className="h-4 w-4 shrink-0 text-white/45" />{T.statsInteresse(interesseZahl)}
+              </p>
+            )}
+            {/* "1 Person will dich kontaktieren — E-Mail anzeigen. Auch loeschen dann."
+                (Owner 25.08.2026): jede ABGESCHLOSSENE Gespraechsanfrage als Reihe mit
+                Name und E-Mail; Loeschen nach Hausregel zwei Tipps, rot. */}
+            {anfragen.length > 0 && (
+              <>
+                <p className="flex items-center gap-2 text-[13px] font-black text-white/90">
+                  <Mail className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.statsAnfragen(anfragen.length)}
+                </p>
+                {anfragen.map(a => (
+                  <div key={a.id} className="ml-6 flex items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-white/80">
+                      {a.name} — <span className="select-all text-white">{a.mail}</span>
+                    </p>
+                    <button type="button" onClick={() => anfrageLoeschen(a.id)} aria-label="Anfrage löschen"
+                      className={`shrink-0 p-1 transition ${anfrageArm === a.id ? "text-[#dc2626]" : "text-white/40 hover:text-white/75"}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
             {(profil.videoKlicks ?? 0) > 0 && !profil.videoUrl && (
               <>
-                {/* DER CTA AN DER NACHFRAGE (Owner 25.08.2026: „das mit Call to Action
-                    versehen" · „nein, nicht als Button, als Text link" · „warum hast du
-                    nicht ‚erstelle jetzt dein Video.' als Link gemacht?") — die
-                    Aufforderung ist der SCHLUSS DES SATZES SELBST, unterstrichen und
-                    tippbar, keine eigene Zeile. Bis die Video-Kasse steht (Stufe 3),
-                    läuft der Tipp als CONCIERGE-Anfrage an den Betreiber (beschlossene
-                    Stufe-0-Linie): Er bekommt sofort die Mail mit Bewerbungs-Link und
-                    Klick-Zahl und liefert von Hand; der Bewerber bekommt die Haus-Zusage
-                    „noch heute". Der Link nur mit echter Profil-Adresse — eine erfundene
-                    Absender-Adresse würde die Bestätigungs-Mail der Kontakt-Route ins
-                    Leere schicken (Rückläufer-Falle, Memory `ruecklaeufer-leser`); ohne
-                    Adresse und nach der Anfrage steht der Schwanz als blosser Text da. */}
+                {/* DER CTA AN DER NACHFRAGE (Owner 25.08.2026, in drei Zügen: „das mit
+                    Call to Action versehen" · „nein, nicht als Button, als Text link" ·
+                    „link führt doch zur erstellung … Es führt zum Tunel.") — die
+                    Aufforderung ist der SCHLUSS DES SATZES SELBST, unterstrichen, und
+                    führt als echte Verweisung in den Tunnel: `?video=<kennung>` steigt
+                    dort direkt beim Video-Teil ein (Skript → Aufnahme → fertigstellen
+                    hängt das Video an DIESE Bewerbung und führt hierher zurück). Keine
+                    Concierge-Mail mehr — die Erstellung IST der Weg. */}
                 <p className="flex items-start gap-2 text-[13px] font-black text-white/90">
                   <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />
                   <span>
                     {T.statsVideoWunsch(profil.videoKlicks ?? 0)}{" "}
-                    {videoAnfrage !== "ok" && profil.kontakt?.email ? (
-                      <button type="button" disabled={videoAnfrage === "busy"}
-                        onClick={() => {
-                          if (videoAnfrage) return;
-                          setVideoAnfrage("busy");
-                          void fetch("/api/contact", {
-                            method: "POST", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              name: profil.name || "Bewerber",
-                              email: profil.kontakt?.email ?? "",
-                              reason: "general",
-                              message: `[Video-Anfrage] ${profil.name} will das Video erstellen — ${typeof window !== "undefined" ? window.location.href : profil.id}\n${profil.videoKlicks ?? 0} Video-Klicks von Besuchern.`,
-                            }),
-                          }).then(r => setVideoAnfrage(r.ok ? "ok" : ""))
-                            .catch(() => setVideoAnfrage(""));
-                        }}
-                        className="text-left font-black text-white underline decoration-white/45 underline-offset-4 transition hover:decoration-white disabled:opacity-40">
-                        {T.videoCta}
-                      </button>
-                    ) : T.videoCta}
+                    <a href={`/themes/lebenslauf/start?video=${profil.id}`}
+                      className="font-black text-white underline decoration-white/45 underline-offset-4 transition hover:decoration-white">
+                      {T.videoCta}
+                    </a>
                   </span>
                 </p>
-                {videoAnfrage === "ok" && (
-                  <p className="flex items-center gap-2 text-[12.5px] font-bold text-white/70">
-                    <Check className="h-4 w-4 shrink-0 text-[#2f7d4f]" />{T.videoCtaOk}
-                  </p>
-                )}
               </>
             )}
           </div>
