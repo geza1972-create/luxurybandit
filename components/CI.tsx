@@ -214,10 +214,16 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
        selbst mit !important und gewinnt (Memory `lb-karte-important-frisst-inline-farben` —
        dieselbe Falle, hier zum wiederholten Mal). `karte` war für Gold bisher wirkungslos;
        jetzt tut das Wort, was es überall sonst im Baustein tut. */
-    ? `${karte ? "lb-karte-cta" : "lb-gold"} flex h-12 w-full items-center justify-center gap-2 rounded-full font-black text-[#1a1204]`
+    /* ABSTAND ZWISCHEN TEXT UND RAND — AM BAUSTEIN, NICHT AN DER STELLE (Owner 25.08.2026,
+       am Kaufknopf mit zweizeiliger Beschriftung: „Du hast keine Abstände Text/Rand.
+       Das muss ins CI"): `px-5` gibt jeder Beschriftung Luft zur Rundung, `min-h` statt
+       fester Höhe lässt zweizeilige Knöpfe wachsen statt überlaufen, `leading-tight` +
+       `text-center` setzen den Umbruch sauber. Gilt damit für JEDEN Gold- und
+       Umriss-Knopf im Haus auf einmal. */
+    ? `${karte ? "lb-karte-cta" : "lb-gold"} flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 py-2 text-center font-black leading-tight text-[#1a1204]`
     : art === "umriss"
       ? (karte
-        ? "lb-karte-absage flex h-11 w-full items-center justify-center gap-2 rounded-full text-[13px] font-black"
+        ? "lb-karte-absage flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-5 py-1.5 text-center text-[13px] font-black leading-tight"
         /* IM WEISSEN DIALOG WAR DER ZWEITWEG UNSICHTBAR (Owner 11.08.2026, beim Bau des
            Fensters für den toten Anmelde-Link): Der Umriss-Knopf kannte nur `text-white/85`
            — auf Weiss ein leerer Streifen, und der Ausweg „Später" war damit gar nicht da.
@@ -225,8 +231,8 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
            entscheidet die Reihenfolge im Stylesheet, nicht die im String. Deshalb gehört die
            helle Fassung an den Baustein — dieselbe Form, nur in Tinte statt Weiss. */
         : hell
-          ? "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1a160f]/25 text-[13px] font-black text-[#1a160f]/85"
-          : "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 text-[13px] font-black text-white/85")
+          ? "flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1a160f]/25 px-5 py-1.5 text-center text-[13px] font-black leading-tight text-[#1a160f]/85"
+          : "flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-1.5 text-center text-[13px] font-black leading-tight text-white/85")
       : /* chip */ (hell
         // Die helle Fassung steht bewusst NICHT in `lb-wahl`: Jene Klasse gehört der
         // Anzeigen-Landung (`.lb-fb`), die alles Gelbe blau überschreibt. Hier geht es um

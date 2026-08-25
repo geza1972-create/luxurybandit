@@ -88,12 +88,6 @@ function DateiKachel({ datei, titel, hinweis, icon: Icon, onWaehlen, onLoeschen 
   );
 }
 
-const VERFUEGBARKEIT = [
-  { id: "sofort", de: "Sofort", en: "Right away" },
-  { id: "1monat", de: "In 1 Monat", en: "In 1 month" },
-  { id: "flexibel", de: "Flexibel", en: "Flexible" },
-];
-
 /** Die grosse Statuszeile je Stufe (Owner 20.08.2026: „es muss gross stehen was da gemacht
     wird"). Deutsch/Englisch reichen — der Rest der Seite ist ohnehin nur zweisprachig. */
 const STUFEN_TEXT: Record<string, { de: string; en: string }> = {
@@ -119,6 +113,7 @@ const ANZEIGE_TEXT: Record<string, {
   weiterMatch: string; gruendeH: string; lueckenH: string;
   stark: string; mittel: string; schwach: string;
   cta: string; ctaZeile: string; andere: string;
+  karteH: string; profilH: string; kompetenzenH: string; bearbeiten: string; fertigB: string;
 }> = {
   de: {
     titel: "Passt diese Jobanzeige zu dir?",
@@ -132,6 +127,9 @@ const ANZEIGE_TEXT: Record<string, {
     cta: "Bewerbung anpassen & Chancen erhöhen",
     ctaZeile: "Skript, Video und deine fertige Bewerbungsseite — zugeschnitten auf diese Stelle.",
     andere: "Andere Anzeige testen",
+    karteH: "Deine Bewerbung — Vorschau",
+    profilH: "Profil", kompetenzenH: "Kernkompetenzen",
+    bearbeiten: "Bearbeiten", fertigB: "Fertig",
   },
   en: {
     titel: "Does this job ad fit you?",
@@ -145,6 +143,9 @@ const ANZEIGE_TEXT: Record<string, {
     cta: "Tailor my application & raise my chances",
     ctaZeile: "Script, video and your finished application page — tailored to this job.",
     andere: "Try another ad",
+    karteH: "Your application — preview",
+    profilH: "Profile", kompetenzenH: "Core expertise",
+    bearbeiten: "Edit", fertigB: "Done",
   },
 };
 
@@ -210,12 +211,15 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
   const [cvDatei, setCvDatei] = useState<File | null>(null);
   const [cvPath, setCvPath] = useState("");
   const cvRef = useRef<HTMLInputElement>(null);
-  const [verfuegbarkeit, setVerfuegbarkeit] = useState("");
 
   /* DIE ANZEIGE — der neue Einstieg (Owner 25.08.2026, siehe ANZEIGE_TEXT oben). */
   const [anzeige, setAnzeige] = useState("");
   const [anzeigeFertig, setAnzeigeFertig] = useState(false);
   const [matchErgebnis, setMatchErgebnis] = useState<{ prozent: number; jobtitel: string; gruende: string[]; luecken: string[] } | null>(null);
+  /* Die Daten für die KARTEN-VORSCHAU in Schritt 3 (Owner 25.08.2026: „Schritt 3: Karte
+     zeigen (Vorschau, Bearbeitung)") — kommen aus der Vorab-Auswertung. */
+  const [karte, setKarte] = useState<{ rolle: string; schwerpunkte: string[]; kompetenzen: string[] } | null>(null);
+  const [karteBearbeiten, setKarteBearbeiten] = useState(false);
 
   /**
    * DIE NEUEN PHASEN NACH DER ZAHLUNG (Owner-Seitentext 24.08.2026): erst das SKRIPT lesen
@@ -262,13 +266,13 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
   useEffect(() => {
     try {
       const entwurf: Entwurf = {
-        genId, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit,
+        genId, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit: "",
         stimmWahl: "", audioName: "", audioPath: "",
         ...(skript ? { skript } : {}),
       };
       sessionStorage.setItem(ABLAGE, JSON.stringify(entwurf));
     } catch { /**/ }
-  }, [genId, name, mail, foto, cvDatei, cvPath, verfuegbarkeit, skript]);
+  }, [genId, name, mail, foto, cvDatei, cvPath, skript]);
 
   const dateiZuDataUrl = (f: File) =>
     new Promise<string>((res, rej) => {
@@ -298,7 +302,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
   /* Vor der Kasse braucht es nur Foto, Lebenslauf und Verfügbarkeit — Skript und Aufnahme
      kommen NACH der Zahlung (Owner-Seitentext: Schritt 2 und 3). */
-  const bereitDa = !!foto && !!cvPath && !!verfuegbarkeit;
+  const bereitDa = !!foto && !!cvPath;
 
   /**
    * DIREKT ZUR KASSE, WIE BEI KUSS/TANZ (Owner 19.08.2026: „Der user zahlt doch direkt über
@@ -458,10 +462,19 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     try {
       const aus = await fetch("/api/lebenslauf-auswertung", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: gid, name, email: mail.trim(), pdfPath: cvPath, verfuegbarkeit, vorab: true }),
+        body: JSON.stringify({ id: gid, name, email: mail.trim(), pdfPath: cvPath, vorab: true }),
       }).then(r => r.json());
       if (!aus?.id) { setStatus(aus?.error || F.statusNotWork); setBusy(false); setStufe(""); return; }
       setSkript(String(aus.sprechtext ?? "").trim());
+      /* Die Karten-Vorschau speist sich aus derselben Auswertung — Rolle wie die
+         Vorlage sie wählt (jüngste Station, sonst erste Kategorie). */
+      const kategorien: string[] = Array.isArray(aus.kategorien) ? aus.kategorien : [];
+      const erfahrung: { rolle?: string }[] = Array.isArray(aus.erfahrung) ? aus.erfahrung : [];
+      setKarte({
+        rolle: String(erfahrung[0]?.rolle || kategorien[0] || ""),
+        schwerpunkte: (Array.isArray(aus.schwerpunkte) && aus.schwerpunkte.length ? aus.schwerpunkte : kategorien).slice(0, 4).map(String),
+        kompetenzen: (Array.isArray(aus.kompetenzen) ? aus.kompetenzen : []).slice(0, 6).map(String),
+      });
       setStufe("match");
       let device = "";
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
@@ -491,7 +504,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     if (!bezahlt) { setBusy(false); setStufe(""); return; }
     /* Das Skript aus dem Vorab-Generieren mitgeben — sonst zahlte die Kette hier eine
        ZWEITE Auswertung (nachZahlungFortsetzen bevorzugt `e.skript`). */
-    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit, stimmWahl: "", audioName: "", audioPath: "", ...(skript.trim() ? { skript: skript.trim() } : {}) });
+    await nachZahlungFortsetzen({ genId: gid, name, mail, foto, cvName: cvDatei?.name ?? "", cvPath, verfuegbarkeit: "", stimmWahl: "", audioName: "", audioPath: "", ...(skript.trim() ? { skript: skript.trim() } : {}) });
   };
 
   /**
@@ -601,9 +614,10 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                gemacht wird") — ersetzt die ganze Eingabe-Fläche, solange die Kette läuft. */
             <Laden art="flaeche" text={(STUFEN_TEXT[stufe] ?? STUFEN_TEXT.lesen)[lang === "de" ? "de" : "en"]} />
           ) : phase === "ergebnis" && matchErgebnis ? (
-            /* ───── DAS MATCH-ERGEBNIS (Owner 25.08.2026: „Dann wird generiert. 67 %.
-               Jetzt Bewerbung anpassen und Chancen erhöhen.") — der Moment der höchsten
-               Spannung trägt den EINEN Kaufknopf. ───── */
+            /* ───── SCHRITT 3: PROZENT + DIE KARTE (Owner 25.08.2026, präzisiert: „Schritt 3:
+               Karte zeigen (Vorschau, Bearbeitung)") — er sieht sein ECHTES Dossier als
+               Vorschau (Foto, Name, Rolle, Schwerpunkte, Profiltext), kann den Text
+               bearbeiten, und der EINE Kaufknopf macht es dauerhaft. ───── */
             <div className="flex flex-col gap-3">
               {matchErgebnis.jobtitel && (
                 <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white/50">{matchErgebnis.jobtitel}</p>
@@ -617,11 +631,66 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/15">
                 <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${matchErgebnis.prozent}%` }} />
               </div>
+
+              {/* DIE KARTE — dieselbe Papier-Sprache wie das fertige Dossier (Elfenbein,
+                  Serifen-Name, Haarlinien). Foto OBEN verankert (Skill `card`). */}
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{AT.karteH}</p>
+              <div className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+                <div className="p-4">
+                  {foto && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={foto} alt="" className="aspect-[3/4] w-full rounded-[14px] object-cover object-top" />
+                  )}
+                  <div className="px-1 pt-4">
+                    {name.trim() && (
+                      <p className="font-serif text-[24px] font-black uppercase leading-[1.05] tracking-[0.02em]">{name.trim()}</p>
+                    )}
+                    {karte?.rolle && (
+                      <p className="mt-1.5 text-[13px] font-bold leading-snug opacity-80">{karte.rolle}</p>
+                    )}
+                    {!!karte?.schwerpunkte.length && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {karte.schwerpunkte.map(s => (
+                          <span key={s} className="rounded-full border border-[#1a160f]/25 px-2 py-1 text-[9.5px] font-black uppercase tracking-[0.04em] opacity-75">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-4 border-t border-[#1a160f]/[0.11] pt-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{AT.profilH}</p>
+                        <button type="button" onClick={() => setKarteBearbeiten(b => !b)}
+                          className="text-[10.5px] font-black uppercase tracking-[0.12em] opacity-55 transition hover:opacity-100">
+                          {karteBearbeiten ? AT.fertigB : AT.bearbeiten}
+                        </button>
+                      </div>
+                      {karteBearbeiten ? (
+                        <EingabeMehrzeilig karte className="mt-2" zeilen={7} value={skript}
+                          onChange={e => setSkript(e.target.value)} />
+                      ) : (
+                        <p className="mt-2 text-[13px] font-medium leading-[1.6] opacity-85">{skript}</p>
+                      )}
+                    </div>
+                    {!!karte?.kompetenzen.length && (
+                      <div className="mt-3.5 border-t border-[#1a160f]/[0.11] pt-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{AT.kompetenzenH}</p>
+                        <ul className="mt-1 grid grid-cols-2 gap-x-4">
+                          {karte.kompetenzen.map(k => (
+                            <li key={k} className="border-t border-[#1a160f]/[0.11] py-2 text-[11.5px] font-bold leading-snug opacity-80 first:border-t-0 [&:nth-child(2)]:border-t-0">{k}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {matchErgebnis.gruende.length > 0 && (
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{AT.gruendeH}</p>
                   <ul className="mt-1.5 flex flex-col gap-1">
-                    {matchErgebnis.gruende.slice(0, 4).map(g => (
+                    {matchErgebnis.gruende.slice(0, 3).map(g => (
                       <li key={g} className="flex items-start gap-1.5 text-[12.5px] font-bold leading-snug text-white/80">
                         <Check className="mt-[2px] h-3.5 w-3.5 shrink-0 text-white/55" />{g}
                       </li>
@@ -646,7 +715,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                 {`${AT.cta} — ${eur(preisCents, lang)}`}
               </Knopf>
               <button type="button"
-                onClick={() => { setMatchErgebnis(null); setPhase(""); setAnzeigeFertig(false); onSchrittChange(1); }}
+                onClick={() => { setMatchErgebnis(null); setKarte(null); setKarteBearbeiten(false); setPhase(""); setAnzeigeFertig(false); onSchrittChange(1); }}
                 className="text-center text-[11.5px] font-black uppercase tracking-[0.12em] text-white/45 transition hover:text-white/80">
                 {AT.andere}
               </button>
@@ -699,19 +768,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
                   onLoeschen={() => { setCvDatei(null); setCvPath(""); }} />
               </div>
 
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-[13px] font-bold text-white/80">
-                  {lang === "de" ? "Wann kannst du anfangen?" : "When can you start?"}
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {VERFUEGBARKEIT.map(v => (
-                    <Knopf key={v.id} art="chip" aktiv={verfuegbarkeit === v.id}
-                      onClick={() => setVerfuegbarkeit(v.id)}>
-                      {lang === "de" ? v.de : v.en}
-                    </Knopf>
-                  ))}
-                </div>
-              </div>
+              {/* Die Verfügbarkeits-Frage ist RAUS (Owner 25.08.2026: „das raus"). */}
 
               {/* DIE STIMM-WAHL IST RAUS (Owner-Seitentext 24.08.2026, FAQ: „kein Avatar,
                   keine synthetische Stimme") — Skript und Eigenaufnahme kommen als eigene
