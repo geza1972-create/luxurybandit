@@ -705,6 +705,15 @@ svg {
    Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
 .lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }
 .lb-karte .lb-karte-nein { color: #a33b3b !important; stroke: #a33b3b !important; opacity: 1; }
+/* PUNKTE MIT FLÄCHE (Owner 25.08.2026, an der Analyse-Liste: „grösser und grün bitte die
+   Fläche und Icon weiss") — ein gefüllter Kreis mit weissem Zeichen darin. Als Klasse und
+   nicht als Tailwind-Farbe, aus demselben Grund wie `lb-karte-ja` darüber: In der Karte
+   zieht die !important-Tintenregel jede getippte Farbe auf Braun, Vorder- WIE Hintergrund.
+   `svg`-Regel getrennt, weil das Zeichen die Farbe der Fläche sonst erbt. */
+.lb-karte .lb-punkt-ja { background: #2f7d4f !important; }
+.lb-karte .lb-punkt-ja svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
+.lb-karte .lb-punkt-minus { background: rgba(26, 22, 15, 0.5) !important; }
+.lb-karte .lb-punkt-minus svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
 /* Fehlerhinweis IN der Karte: ein Inline-`color` verliert gegen die !important-Braunregel
    oben — der „rote" Hinweis am Erzeugen-Knopf stand deshalb unsichtbar in Karten-Braun da.
    Rot-600 statt des 500ers der dunklen Seiten, weil auf Creme erst das die Kontrastgrenze

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageCircle, Play, Mail, AlertTriangle, Circle, Gauge } from "lucide-react";
+import { Eye, MessageCircle, Play, Mail, AlertTriangle, Check, Minus, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
@@ -196,11 +196,15 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
                   gegen die !important-Tintenregel in globals.css; `lb-karte-ja` ist genau
                   dafür da (Memory `lb-karte-important-frisst-inline-farben`). */}
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
-                <Circle className="lb-karte-ja h-3 w-3 shrink-0" fill="currentColor" />{B.passt}
+                <span className="lb-punkt-ja grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>{B.passt}
               </p>
               {zeigeMatch!.gruende.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-90">
-                  <Circle className="lb-karte-ja mt-[5px] h-3 w-3 shrink-0" fill="currentColor" />{g}
+                  <span className="lb-punkt-ja mt-[2px] grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>{g}
                 </p>
               ))}
             </div>
@@ -220,7 +224,9 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
           {zeigeMatch && zeigeMatch.befunde.length > 0 && (
             <div className="mt-3 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
-                <Circle className="h-3 w-3 shrink-0 opacity-55" fill="currentColor" />{B.befundeH}
+                <span className="lb-punkt-minus grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                  <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>{B.befundeH}
               </p>
               {/* MINUSPUNKTE ALS VOLLE PUNKTE (Owner 25.08.2026: „die als Minuspunkt" →
                   „volle Kreise bitte für Minus und grüne für Plus") — der Stift sah aus wie
@@ -230,7 +236,9 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
                   und die sind behebbar. */}
               {zeigeMatch!.befunde.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
-                  <Circle className="mt-[5px] h-3 w-3 shrink-0 opacity-45" fill="currentColor" />{g}
+                  <span className="lb-punkt-minus mt-[2px] grid h-5 w-5 shrink-0 place-items-center rounded-full">
+                    <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>{g}
                 </p>
               ))}
             </div>
