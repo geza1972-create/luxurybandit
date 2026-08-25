@@ -712,9 +712,15 @@ svg {
    `svg`-Regel getrennt, weil das Zeichen die Farbe der Fläche sonst erbt. */
 .lb-karte .lb-punkt-ja { background: #2f7d4f !important; }
 .lb-karte .lb-punkt-ja svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
-.lb-karte .lb-punkt-nein { background: #a33b3b !important; }
+/* „Lipsește" ist ORANGE mit Ausrufezeichen (Owner 25.08.2026) — und das ist die richtige
+   Temperatur: Was die Anzeige verlangt und im Profil fehlt, ist kein Fehler und keine
+   Absage, sondern eine Warnung. Rot hiesse „verloren", Orange heisst „pass auf". */
+.lb-karte .lb-punkt-nein { background: #c8791f !important; }
 .lb-karte .lb-punkt-nein svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
-.lb-karte .lb-punkt-minus { background: rgba(26, 22, 15, 0.5) !important; }
+/* Die Befunde am eigenen Lebenslauf sind ROT (Owner 25.08.2026: „die rot") — grau las sich
+   wie eine Nebenbemerkung, dabei ist es die Liste, die den Kauf begründet: Was hier steht,
+   kostet Einladungen. Dieselbe Scheibe, dieselbe Grösse, nur die Farbe sagt das Gewicht. */
+.lb-karte .lb-punkt-minus { background: #a33b3b !important; }
 .lb-karte .lb-punkt-minus svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
 /* Fehlerhinweis IN der Karte: ein Inline-`color` verliert gegen die !important-Braunregel
    oben — der „rote" Hinweis am Erzeugen-Knopf stand deshalb unsichtbar in Karten-Braun da.

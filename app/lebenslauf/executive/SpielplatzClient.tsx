@@ -214,18 +214,21 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
               {/* DIESELBE GESTALT WIE DIE ANDEREN BEIDEN (Owner 25.08.2026: „und die alle
                   mit Minus und das gleiche Design") — das Warndreieck war eine zweite
                   Formsprache in derselben Liste. Jetzt tragen alle drei Blöcke dieselbe
-                  Scheibe mit weissem Zeichen; den Unterschied macht allein die FARBE:
-                  grün was passt, rot was die Anzeige verlangt und fehlt, Tinte was am
-                  eigenen Papier schwach ist. Eine Form, drei Bedeutungen. */}
+                  Scheibe mit weissem Zeichen; den Unterschied machen Farbe und Zeichen:
+                  grüner Haken für was passt, ORANGES Ausrufezeichen für was die Anzeige
+                  verlangt und fehlt (Owner: „die orange mit Ausrufezeichen" — eine
+                  Warnung, keine Absage), ROTES Minus für die Befunde am eigenen Papier
+                  (Owner: „die rot") — die Liste, die den Kauf begründet, darf nicht wie
+                  eine Nebenbemerkung aussehen. Eine Form, drei Temperaturen. */}
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
                 <span className="lb-punkt-nein grid h-5 w-5 shrink-0 place-items-center rounded-full">
-                  <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                  <span className="text-[13px] font-black leading-none text-white">!</span>
                 </span>{B.fehlt}
               </p>
               {zeigeMatch!.luecken.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
                   <span className="lb-punkt-nein mt-[2px] grid h-5 w-5 shrink-0 place-items-center rounded-full">
-                    <Minus className="h-3.5 w-3.5" strokeWidth={3} />
+                    <span className="text-[13px] font-black leading-none text-white">!</span>
                   </span>{g}
                 </p>
               ))}
