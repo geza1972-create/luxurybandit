@@ -226,6 +226,33 @@ schalten (Vermittlungsfälle).
 
 ---
 
+## WARUM DAS VIDEO DER KERN IST (Owner 25.08. nacht)
+
+Owner, nachdem klar war, dass gegen Abfotografieren keine Technik hilft:
+„Das Video kann er nicht abfotografieren, wenn er eins erstellt." — und
+nachgeschoben: „und eingebaut schon mal gar nicht."
+
+DAMIT IST DIE VERTEIDIGUNGSLINIE BENANNT, und sie ist stärker als jeder
+Kopierschutz:
+- Text kann man abtippen, ein Layout nachbauen, ein PDF nachstellen.
+- Das ERZEUGTE Video kann man nur besitzen, wenn man es erzeugen lässt — und
+  das läuft auf unserem Server, hinter der Kasse. Abfilmen setzt voraus, es
+  vorher zu haben.
+- Und selbst wer es hätte: EINGEBAUT bekommt er es nirgends. Die Mappe mit
+  eigener Adresse, Play-Knopf, Zählern und Firmen-Chat ist die Umgebung, die
+  das Video erst zur Bewerbung macht. Ein abgefilmtes Video in WhatsApp ist
+  kein Bewerbungsportal.
+
+FOLGEN FÜRS PRODUKT:
+- In der WERBUNG steht das Video vorn, nicht die Analyse. Die Analyse holt
+  ihn herein (gratis, beweist Kompetenz); gezahlt wird für das Video.
+- Die 29er-Stufe ist damit die eigentliche Stufe, 19 der Einstieg.
+- Gegen Nachahmer: Einen Lebenslauf-Generator baut jeder in zwei Wochen nach.
+  Die Kette Anzeige → Analyse → Skript → eigene Aufnahme → Profi-Video, in
+  sieben Sprachen und in einer teilbaren Mappe, baut so schnell niemand nach.
+
+---
+
 ## DIE GRATIS-LINIE (Owner 25.08. nacht — der Endstand)
 
 „Er kann alles anlegen gratis, nur er kann das nicht sharen und PDF nicht
