@@ -284,7 +284,12 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         {vorKarte}
 
         {/* ─────────────────────────── DAS BLATT ─────────────────────────── */}
-        <article data-blatt="lebenslauf" className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+        {/* SOLANGE UNBEZAHLT: nicht markierbar (Owner 25.08.2026: „für Textcopy") — sonst
+            wäre die Gratis-Ansicht ein Selbstbedienungsladen: markieren, kopieren, in Word
+            einfügen, fertig. Der Schutz hängt am Blatt, nicht an der Seite, damit die
+            Bedienung ringsum normal bleibt. Nach dem Kauf gehört der Text ihm. */}
+        <article data-blatt="lebenslauf"
+          className={`lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)] ${gesperrt ? "lb-kein-kopieren" : ""}`}>
 
           {/* DAS KOPFBAND (Owner 25.08.2026: „fetter Titel … layoutmässig bombe … wo sind
               die Ornamente?") — dieses Blatt ist DER LEBENSLAUF der Mappe; das Anschreiben

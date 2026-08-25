@@ -705,6 +705,25 @@ svg {
    Steht hier und nicht als Tailwind-Klasse, weil `.lb-karte *` sonst alles auf Braun zieht. */
 .lb-karte .lb-karte-ja { color: #2f7d4f !important; stroke: #2f7d4f !important; opacity: 1; }
 .lb-karte .lb-karte-nein { color: #a33b3b !important; stroke: #a33b3b !important; opacity: 1; }
+/* KEIN TEXT-KOPIEREN, SOLANGE NICHT BEZAHLT (Owner 25.08.2026: „für Textcopy" — nachdem
+   klar war, dass es gegen das Kopieren der ADRESSE keinen Schutz gibt).
+   HIER GIBT ES IHN: `user-select: none` nimmt dem Text die Markierbarkeit. Auf dem Handy —
+   wo diese Zielgruppe unterwegs ist — heisst das faktisch: kein Herauskopieren, denn ohne
+   Markierung gibt es kein „Kopieren"-Menü.
+   EHRLICH ZUR GRENZE: Wer den Quelltext öffnet oder einen Lesemodus benutzt, kommt trotzdem
+   an den Text. Das ist bei JEDER Web-Seite so und mit CSS nicht zu ändern; der Schutz hält
+   den bequemen Weg zu, nicht den entschlossenen. Zusammen mit der Server-Sperre für Fremde
+   und den drei Tagen reicht das.
+   NUR SOLANGE UNBEZAHLT: Nach dem Kauf gehört der Text ihm — dann darf er markieren,
+   kopieren und weiterverwenden, wie er will. Und die Zeichen der Bedienung
+   (Knöpfe, Chips) bleiben immer bedienbar. */
+.lb-kein-kopieren, .lb-kein-kopieren * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+.lb-kein-kopieren button, .lb-kein-kopieren a { -webkit-touch-callout: default !important; }
+
 /* PUNKTE MIT FLÄCHE (Owner 25.08.2026, an der Analyse-Liste: „grösser und grün bitte die
    Fläche und Icon weiss") — ein gefüllter Kreis mit weissem Zeichen darin. Als Klasse und
    nicht als Tailwind-Farbe, aus demselben Grund wie `lb-karte-ja` darüber: In der Karte

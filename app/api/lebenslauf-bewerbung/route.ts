@@ -64,6 +64,8 @@ export async function GET(request: Request) {
       sprechtext: profil.sprechtext ?? "",
       interesseKlicks: profil.interesseKlicks ?? 0,
       anfragen: profil.anfragen ?? [],
+      /* Fuer den Kopier-Schutz am Anschreiben (Gratis-Linie, Owner 25.08.2026). */
+      bezahlt: profil.bezahlt === true,
     }, { headers: { "Cache-Control": "no-store" } });
   }
   return NextResponse.json({

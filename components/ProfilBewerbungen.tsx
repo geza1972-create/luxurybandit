@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FolderOpen, ArrowUpRight, Trash2, Mail, Plus, Copy } from "lucide-react";
+import { FolderOpen, ArrowUpRight, Trash2, Mail, Plus, Copy, Lock } from "lucide-react";
 import { Fehlerzeile } from "@/components/CI";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -50,7 +50,7 @@ const TEXTE: Record<string, {
 type Eintrag = { id: string; titel: string; firma?: string; erstelltAm: string; prozent?: number };
 type Stand =
   | { art: "liste"; liste: Eintrag[]; foto: string }
-  | { art: "bewerbung"; basisId: string; anzeigeTitel: string; anzeigeFirma: string; matchProzent: number | null; anschreiben: string };
+  | { art: "bewerbung"; basisId: string; anzeigeTitel: string; anzeigeFirma: string; matchProzent: number | null; anschreiben: string; bezahlt: boolean };
 
 export default function ProfilBewerbungen({ id, lang = "en" }: { id: string; lang?: string }) {
   const t = TEXTE[lang] ?? TEXTE.en;
@@ -81,7 +81,7 @@ export default function ProfilBewerbungen({ id, lang = "en" }: { id: string; lan
       .then(d => {
         if (d?.darf !== true) return;
         if (d.basisId) {
-          setStand({ art: "bewerbung", basisId: String(d.basisId), anzeigeTitel: String(d.anzeigeTitel ?? ""), anzeigeFirma: String(d.anzeigeFirma ?? ""), matchProzent: typeof d.matchProzent === "number" ? d.matchProzent : null, anschreiben: String(d.anschreiben ?? "") });
+          setStand({ art: "bewerbung", basisId: String(d.basisId), anzeigeTitel: String(d.anzeigeTitel ?? ""), anzeigeFirma: String(d.anzeigeFirma ?? ""), matchProzent: typeof d.matchProzent === "number" ? d.matchProzent : null, anschreiben: String(d.anschreiben ?? ""), bezahlt: d.bezahlt === true });
         } else {
           setStand({ art: "liste", liste: Array.isArray(d.liste) ? d.liste : [], foto: String(d.foto ?? "") });
         }
@@ -96,7 +96,9 @@ export default function ProfilBewerbungen({ id, lang = "en" }: { id: string; lan
      Eigene Box unter der Karte (Owner 25.08.2026: die Funktionen wohnen draussen). */
   if (stand.art === "bewerbung") {
     return (
-      <section className="lb-karte mt-5 overflow-hidden rounded-[20px] px-5 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.38)] md:px-8 md:py-7">
+      /* Unbezahlt nicht markierbar (Owner 25.08.2026: „für Textcopy") — sonst kopiert er
+         sein Anschreiben in Word und braucht das PDF nie. */
+      <section className={`lb-karte mt-5 overflow-hidden rounded-[20px] px-5 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.38)] md:px-8 md:py-7 ${stand.bezahlt ? "" : "lb-kein-kopieren"}`}>
           <p className="flex items-center gap-2 text-[13px] font-black leading-snug">
             <FolderOpen className="h-4 w-4 shrink-0" />{t.mappeTitel}
           </p>
@@ -115,9 +117,14 @@ export default function ProfilBewerbungen({ id, lang = "en" }: { id: string; lan
               </p>
               <button type="button"
                 onClick={() => {
+                  /* SONST WÄRE DER SCHUTZ EIN WITZ (Owner 25.08.2026, Gratis-Linie): Dieser
+                     Knopf legt den ganzen Brief in die Zwischenablage — unbezahlt führt er
+                     deshalb zur Kasse statt zum Kopieren. */
+                  if (!stand.bezahlt) { window.location.href = "/themes/lebenslauf/start"; return; }
                   try { void navigator.clipboard.writeText(stand.anschreiben); setKopiert(true); setTimeout(() => setKopiert(false), 2000); } catch { /**/ }
                 }}
-                className="mt-2.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-55 transition hover:opacity-100">
+                className="mt-2.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] opacity-55 transition hover:opacity-100">
+                {!stand.bezahlt && <Lock className="h-3.5 w-3.5" />}
                 {kopiert ? t.kopiert : t.kopieren}
               </button>
             </div>
