@@ -78,6 +78,28 @@ const TEXTE = {
     demoMeta: "Musterklinik München · Match 72 %",
     demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nPeter Mustermann",
     demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
+    demoAnalyseHinweis: "Beispiel — mit deiner eigenen Anzeige steht hier deine Zahl.",
+    demoAnzeige: "Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.\n\nWir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.\n\nWir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche.",
+    demoMatch: {
+      prozent: 72,
+      jobtitel: "Fachpflegekraft Intensivmedizin (m/w/d)",
+      gruende: [
+        "Fachweiterbildung Intensiv- und Anästhesiepflege verlangt — 2020 abgeschlossen.",
+        "Beatmungspflege gefordert — seit 2021 täglich auf der Intensivstation.",
+        "Deutsch mindestens B2 gefordert — C1 durch deutschsprachige Schule in Timișoara.",
+        "Schichtdienst gefordert — zwölf Jahre Schichterfahrung, fünf davon in der Notaufnahme.",
+      ],
+      luecken: [
+        "Die Berufsanerkennung in Deutschland ist beantragt, aber noch nicht erteilt.",
+        "Zum Dokumentationssystem der Klinik steht im Lebenslauf nichts.",
+      ],
+      befunde: [
+        "Deine Stationen stehen ohne Zahlen da — Bettenzahl und Betreuungsschlüssel belegen Erfahrung schneller als jede Beschreibung.",
+        "Die Fachweiterbildung steht ganz unten bei der Ausbildung, nicht oben, wo sie über die Einladung entscheidet.",
+        "Es fehlt ein Satz dazu, warum du nach Deutschland willst — das ist die erste Frage im Gespräch.",
+      ],
+      anschreibenKurz: "",
+    },
   },
   en: {
     introB: "Above you see a finished application: cover letter, resume and video — tailored to one specific job ad. That is exactly what we will create for you. Where shall we start?",
@@ -118,6 +140,28 @@ const TEXTE = {
     demoMeta: "Sample Clinic Munich · Match 72%",
     demoAnschreiben: "Dear Sir or Madam,\n\nYour ad matches my path precisely: since 2021 I have cared for ventilated patients on an interdisciplinary intensive care unit, after five years in the emergency department.\n\nI have completed my specialist training in intensive and anaesthetic care, and my professional recognition for Germany has been filed. I can start at short notice and am ready to relocate.\n\nKind regards\nPeter Mustermann",
     demoHinweis: "Sample — every application here starts like this: cover letter on top, resume below.",
+    demoAnalyseHinweis: "Sample — with your own job ad, your number goes here.",
+    demoAnzeige: "Sample Clinic Munich is looking for an intensive care nurse (m/f/d) for its interdisciplinary ICU with 18 beds.\n\nWe expect: completed training in nursing, specialist qualification in intensive and anaesthetic care or the willingness to obtain it, experience in ventilation care, German at B2 or above, willingness to work shifts.\n\nWe offer: a structured onboarding programme, support with professional recognition and with finding accommodation.",
+    demoMatch: {
+      prozent: 72,
+      jobtitel: "Intensive Care Nurse (m/f/d)",
+      gruende: [
+        "Specialist qualification in intensive and anaesthetic care required — completed in 2020.",
+        "Ventilation care required — daily practice on the ICU since 2021.",
+        "German at B2 or above required — C1 from a German-language school in Timișoara.",
+        "Shift work required — twelve years of shifts, five of them in emergency care.",
+      ],
+      luecken: [
+        "Professional recognition in Germany has been filed but not yet granted.",
+        "The resume says nothing about the clinic's documentation system.",
+      ],
+      befunde: [
+        "Your positions carry no numbers — bed count and nurse-to-patient ratio prove experience faster than any description.",
+        "The specialist qualification sits at the very bottom under education, not at the top where it decides the invitation.",
+        "There is no sentence on why you want to move to Germany — that is the first question in the interview.",
+      ],
+      anschreibenKurz: "",
+    },
   },
 };
 
@@ -369,6 +413,16 @@ export default function SpielplatzClient({ beispiel, lang }: {
     </section>
   ) : null;
 
+  /* DER BEISPIEL-MATCH (Owner 25.08.2026: „hier muss schon ein Beispiel-Match gezeigt
+     werden" · „jetzt den Rest noch bauen: Match") — solange der Spieler keine eigenen
+     Daten eingepflegt hat, läuft die Schnell-Analyse mit dem Muster: dieselbe Anzeige,
+     die im Anschreiben oben steht, dieselben vier Blöcke wie beim echten Lauf. So sieht
+     man VOR dem ersten Zug, was das Werkzeug liefert — inklusive der unbequemen
+     Befunde am Lebenslauf, die den Kauf begründen. */
+  const zeigeMatch: Match | null = match ?? (!spielDaten ? B.demoMatch : null);
+  const zeigeAnzeige = letzteAnzeige || (!spielDaten ? B.demoAnzeige : "");
+  const istBeispielMatch = !match && !!zeigeMatch;
+
   /* ── UNTER DER KARTE: Beispiel-Zahlen (nur im Muster), Analyse, der Berater ── */
   const nachKarte = (
     <>
@@ -389,61 +443,63 @@ export default function SpielplatzClient({ beispiel, lang }: {
         </div>
       )}
 
-      {(match || letzteAnzeige) && (
+      {(zeigeMatch || zeigeAnzeige) && (
         /* DER MATCH STEHT MIT DER ANZEIGE IM BEARBEITEN-MODUS (Owner: „in bearbeiten
            modus muss doch der Match also mit der Anzeige stehen. Wo sieht er das
            sonst?") — die geprüfte Anzeige bleibt als eigene, scrollbare Fläche unter
            dem Prozent sichtbar; bei Tür A steht sie schon VOR dem ersten Match da. */
         <section className="mt-6">
           <p className="text-[13px] font-black uppercase tracking-[0.24em] text-white/40">{B.analyseH}</p>
-          {match && (<>
+          {zeigeMatch && (<>
           <div className="mt-2 flex items-baseline gap-3">
-            <p className="font-serif text-[44px] font-black leading-none text-white">{match.prozent}%</p>
-            {match.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/60">{match.jobtitel}</p>}
+            <p className="font-serif text-[44px] font-black leading-none text-white">{zeigeMatch.prozent}%</p>
+            {zeigeMatch.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] text-white/60">{zeigeMatch.jobtitel}</p>}
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/15">
-            <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${match.prozent}%` }} />
+            <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
           </div>
           </>)}
-          {letzteAnzeige && (
+          {zeigeAnzeige && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.anzeigeH}</p>
               <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-relaxed text-white/70">
-                {letzteAnzeige}
+                {zeigeAnzeige}
               </p>
             </div>
           )}
-          {match && match.gruende.length > 0 && (
+          {zeigeMatch && zeigeMatch.gruende.length > 0 && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.passt}</p>
-              {match!.gruende.map((g, i) => (
+              {zeigeMatch!.gruende.map((g, i) => (
                 <p key={i} className="mt-1.5 flex items-start gap-2 text-[14px] font-bold leading-snug text-white/85">
                   <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
                 </p>
               ))}
             </div>
           )}
-          {match && match.luecken.length > 0 && (
+          {zeigeMatch && zeigeMatch.luecken.length > 0 && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.fehlt}</p>
-              {match!.luecken.map((g, i) => (
+              {zeigeMatch!.luecken.map((g, i) => (
                 <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
-          {match && match.befunde.length > 0 && (
+          {zeigeMatch && zeigeMatch.befunde.length > 0 && (
             <div className="mt-4">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-white/40">{B.befundeH}</p>
-              {match!.befunde.map((g, i) => (
+              {zeigeMatch!.befunde.map((g, i) => (
                 <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
-          {match && (<>
+          {zeigeMatch && (<>
           <p className="mt-4 flex items-start gap-2 text-[14px] font-black text-white/90">
             <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />{B.videoEmpfehlung}
           </p>
-          <p className="mt-2 text-[14px] font-bold leading-snug text-white/60">{B.teaser}</p>
+          <p className="mt-2 text-[14px] font-bold leading-snug text-white/60">
+            {istBeispielMatch ? B.demoAnalyseHinweis : B.teaser}
+          </p>
           </>)}
         </section>
       )}
