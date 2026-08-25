@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageCircle, Play, Mail, Check, CheckCircle2, AlertTriangle, PenLine, Gauge } from "lucide-react";
+import { Eye, MessageCircle, Play, Mail, AlertTriangle, Circle, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
@@ -191,12 +191,16 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
               Lebenslauf selbst: das ist keine Absage, sondern eine Aufgabe. */}
           {zeigeMatch && zeigeMatch.gruende.length > 0 && (
             <div className="mt-5 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
+              {/* GRÜN, ABER ÜBER DIE HAUS-KLASSE (Owner 25.08.2026: „die mit grün
+                  markieren" — sie waren grau). Eine getippte Farbe verliert in der Karte
+                  gegen die !important-Tintenregel in globals.css; `lb-karte-ja` ist genau
+                  dafür da (Memory `lb-karte-important-frisst-inline-farben`). */}
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#2f7d4f]" />{B.passt}
+                <Circle className="lb-karte-ja h-3 w-3 shrink-0" fill="currentColor" />{B.passt}
               </p>
               {zeigeMatch!.gruende.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-90">
-                  <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
+                  <Circle className="lb-karte-ja mt-[5px] h-3 w-3 shrink-0" fill="currentColor" />{g}
                 </p>
               ))}
             </div>
@@ -216,11 +220,17 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
           {zeigeMatch && zeigeMatch.befunde.length > 0 && (
             <div className="mt-3 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
               <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
-                <PenLine className="h-4 w-4 shrink-0 opacity-70" />{B.befundeH}
+                <Circle className="h-3 w-3 shrink-0 opacity-55" fill="currentColor" />{B.befundeH}
               </p>
+              {/* MINUSPUNKTE ALS VOLLE PUNKTE (Owner 25.08.2026: „die als Minuspunkt" →
+                  „volle Kreise bitte für Minus und grüne für Plus") — der Stift sah aus wie
+                  eine Einladung zum Bearbeiten. Ein gefüllter Punkt liest sich als Zähler:
+                  drei Treffer oben, drei Abzüge hier. Tinte, nicht Rot — das sind keine
+                  fehlenden Anforderungen der Anzeige, sondern Schwächen im eigenen Papier,
+                  und die sind behebbar. */}
               {zeigeMatch!.befunde.map((g, i) => (
                 <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
-                  <PenLine className="mt-[1px] h-4 w-4 shrink-0 opacity-50" />{g}
+                  <Circle className="mt-[5px] h-3 w-3 shrink-0 opacity-45" fill="currentColor" />{g}
                 </p>
               ))}
             </div>

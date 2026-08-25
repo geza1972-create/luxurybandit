@@ -207,7 +207,7 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
               </p>
             ) : (
               <p key={i} className={`flex items-start gap-2 text-[14px] font-bold leading-snug ${karte ? "opacity-85" : "text-white/85"}`}>
-                {schritt === "fertig" && i === msgs.length - 1 && <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />}
+                {schritt === "fertig" && i === msgs.length - 1 && <Check className={`mt-[1px] h-4 w-4 shrink-0 ${karte ? "lb-karte-ja" : "text-[#2f7d4f]"}`} />}
                 {m.text}
               </p>
             ))}

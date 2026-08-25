@@ -18,7 +18,15 @@ export async function translateMany(texts: string[], lang: string): Promise<stri
   // ins Englische und cached das DAUERHAFT (Cache wird nie neu übersetzt) → jeder RO-Leser
   // sähe Englisch. Enthält der Text rumänische Diakritika und ist RO das Ziel, ist er schon
   // rumänisch → Original behalten, gar nicht erst die API fragen.
-  const alreadyTarget = (t: string) => lang === "ro" && /[ăâîșțĂÂÎȘȚ]/.test(t);
+  /* NUR DIAKRITIKA REICHTEN NICHT (25.08.2026, im rumänischen Markt aufgefallen): Ein
+     DEUTSCHER Satz mit „Timișoara" trägt ș und î — die Prüfung hielt ihn für Rumänisch und
+     liess ihn unübersetzt stehen. Auf der rumänischen Seite stand deshalb mitten in der
+     Analyse eine deutsche Zeile. Dasselbe träfe jeden Text mit Brașov, Constanța, Iași.
+     Jetzt müssen ZUSÄTZLICH rumänische Funktionswörter vorkommen — die stehen in jedem
+     echten Satz und in keinem fremdsprachigen, der nur einen Ortsnamen enthält. */
+  const RO_WOERTER = /(^|[^\p{L}])(și|în|este|sunt|pentru|care|tău|ta|nu|cu|se)([^\p{L}]|$)/iu;
+  const alreadyTarget = (t: string) =>
+    lang === "ro" && /[ăâîșțĂÂÎȘȚ]/.test(t) && RO_WOERTER.test(t);
 
   const cache = await readTranslationCache();
   const misses: { i: number; text: string; key: string }[] = [];
