@@ -135,6 +135,18 @@ müssen bei jedem da stehen."
 
 - **Views**: automatisch, ehrlich — gezählt wird nur, wer NICHT der Besitzer
   ist (Beacon feuert erst, wenn die Besitz-Prüfung negativ ausfällt).
+  **GEBAUT 25.08. spät** (/api/lebenslauf-view, `viewCount` am Profil);
+  Besitzer sieht im Bearbeiten-Modus: „N Recruiter haben sich deine
+  Bewerbung angeschaut."
+- **PLAY-KNOPF-TEASER auf der Bild-Bewerbung (Owner, GEBAUT 25.08. spät):**
+  „Das wäre doch toll, wenn auf dem Bild ein Play-Button steht und die
+  Meldung kommt: Noch kein Video — aber der Bewerber sieht: 3 Leute wollten
+  dein Video sehen." Firma tippt Play → Zeile „Noch kein Video." +
+  `videoKlicks`-Zähler (nur bestätigte Fremde). Besitzer sieht den
+  KAUF-TRIGGER (Owner-Wortlaut): „N Leute wollten dein Video sehen. Video
+  ist gefragt — erstelle jetzt dein Video." Der Knopf dahinter kommt mit
+  Stufe 3 (Video-Kasse). Zugabe-Zeile dazu wieder in der
+  Landingpage-Beschreibung (Owner: „in der Beschreibung auch").
 - **Anfragen**: was Firmen im Chat eintragen ({Datum, Art
   interesse/frage, Name, E-Mail, Nachricht}), wird AN DER BEWERBUNG
   gespeichert; die Mail an support@ geht ZUSÄTZLICH raus (Benachrichtigung +
