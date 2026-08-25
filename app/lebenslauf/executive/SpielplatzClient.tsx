@@ -68,7 +68,7 @@ const TEXTE = {
     senden: "Senden", denkt: "Einen Moment …", zurueck: "Zurück",
     fehler: "Das hat nicht geklappt — bitte noch einmal.",
     gold: "Gratis weitermachen",
-    analyseH: "Schnell-Analyse", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
+    analyseH: "Schnell-Analyse", anzeigeH: "Die Anzeige", passt: "Das passt", fehlt: "Das fehlt", befundeH: "Am Lebenslauf selbst",
     anschreibenH: "Anschreiben", kostprobe: "Kostprobe — das volle Anschreiben kommt mit deiner Bewerbung.",
     demoTitel: "Senior UX Designer (m/w/d) · Die Musterfirma GmbH · 72 %",
     demoAnschreiben: "Sehr geehrte Damen und Herren, Ihre Anzeige für die Position Senior UX Designer trifft genau meinen Werdegang: Konzeption, Designsysteme und Nutzerforschung verantworte ich seit Jahren in digitalen Produkten. Gern zeige ich Ihnen in einem Gespräch, was davon Sie sofort nutzen können.",
@@ -104,7 +104,7 @@ const TEXTE = {
     senden: "Send", denkt: "One moment …", zurueck: "Back",
     fehler: "That didn't work — please try again.",
     gold: "Continue for free",
-    analyseH: "Quick analysis", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
+    analyseH: "Quick analysis", anzeigeH: "The ad", passt: "What fits", fehlt: "What's missing", befundeH: "About the resume itself",
     anschreibenH: "Cover letter", kostprobe: "A taste — the full cover letter comes with your application.",
     demoTitel: "Senior UX Designer (m/f/d) · Musterfirma GmbH · 72%",
     demoAnschreiben: "Dear Sir or Madam, your ad for the Senior UX Designer position matches my path precisely: I have owned concept work, design systems and user research in digital products for years. I'd be glad to show you in a call what you can use right away.",
@@ -370,9 +370,14 @@ export default function SpielplatzClient({ beispiel, lang }: {
         </div>
       )}
 
-      {match && (
+      {(match || letzteAnzeige) && (
+        /* DER MATCH STEHT MIT DER ANZEIGE IM BEARBEITEN-MODUS (Owner: „in bearbeiten
+           modus muss doch der Match also mit der Anzeige stehen. Wo sieht er das
+           sonst?") — die geprüfte Anzeige bleibt als eigene, scrollbare Fläche unter
+           dem Prozent sichtbar; bei Tür A steht sie schon VOR dem ersten Match da. */
         <section className="mt-6">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">{B.analyseH}</p>
+          {match && (<>
           <div className="mt-2 flex items-baseline gap-3">
             <p className="font-serif text-[44px] font-black leading-none text-white">{match.prozent}%</p>
             {match.jobtitel && <p className="text-[11.5px] font-black uppercase tracking-[0.1em] text-white/60">{match.jobtitel}</p>}
@@ -380,36 +385,47 @@ export default function SpielplatzClient({ beispiel, lang }: {
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/15">
             <div className="h-full rounded-full bg-[#f6cf51] transition-all" style={{ width: `${match.prozent}%` }} />
           </div>
-          {match.gruende.length > 0 && (
+          </>)}
+          {letzteAnzeige && (
+            <div className="mt-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{B.anzeigeH}</p>
+              <p className="lb-wisch mt-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[12px] font-medium leading-relaxed text-white/70">
+                {letzteAnzeige}
+              </p>
+            </div>
+          )}
+          {match && match.gruende.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{B.passt}</p>
-              {match.gruende.map((g, i) => (
+              {match!.gruende.map((g, i) => (
                 <p key={i} className="mt-1.5 flex items-start gap-2 text-[12.5px] font-bold leading-snug text-white/85">
                   <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
                 </p>
               ))}
             </div>
           )}
-          {match.luecken.length > 0 && (
+          {match && match.luecken.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{B.fehlt}</p>
-              {match.luecken.map((g, i) => (
+              {match!.luecken.map((g, i) => (
                 <p key={i} className="mt-1.5 text-[12.5px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
-          {match.befunde.length > 0 && (
+          {match && match.befunde.length > 0 && (
             <div className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{B.befundeH}</p>
-              {match.befunde.map((g, i) => (
+              {match!.befunde.map((g, i) => (
                 <p key={i} className="mt-1.5 text-[12.5px] font-bold leading-snug text-white/70">— {g}</p>
               ))}
             </div>
           )}
+          {match && (<>
           <p className="mt-4 flex items-start gap-2 text-[13px] font-black text-white/90">
             <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />{B.videoEmpfehlung}
           </p>
           <p className="mt-2 text-[12.5px] font-bold leading-snug text-white/60">{B.teaser}</p>
+          </>)}
         </section>
       )}
 
