@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
+import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
@@ -2714,7 +2715,11 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
   }, [offen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
+    /* bg-black/95 statt des frueheren Hex #0d0b0a: optisch gleich dunkel, aber die
+       Light-Flip-Regeln (globals.css, .lb-theme .bg-black\/95) kennen NUR die
+       black-Utilities — mit dem Hex blieb der Kopf im Light-Modus schwarz bei
+       dunkler Schrift. */
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[440px] items-center justify-between gap-2 px-4 py-2.5 md:max-w-[760px]">
         {/* Die Wortmarke — Gold und Weiss, gesperrt, klein. Sie sagt, bei wem der Betrachter
             ist, und nimmt dem Namen des Bewerbers keine Aufmerksamkeit weg. */}
@@ -2733,6 +2738,10 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
               ein Kreis in der zentralen Bibliothek. Der Aufrufer reicht ihn herein, genau wie
               `TopNav` es mit `<KontoChip />` neben seinem Teilen-Knopf tut. */}
           {konto}
+          {/* HELL/DUNKEL AUCH IM TALENT-KOPF (Owner 25.08.2026: „light modus einfügen")
+              — derselbe Schalter wie in TopNav; er haengt lb-theme/lb-fb an <main>,
+              die bestehenden Flip-Regeln in globals.css machen den Rest. */}
+          <LightSwitch />
           <LangSwitch />
           {menu.length > 0 && (
             <div ref={boxRef} className="relative">
@@ -2740,7 +2749,7 @@ export function TalentKopf({ marke = "Talent", menuLabel, menuTitel, menu = [], 
                 {offen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </SymbolKnopf>
               {offen && (
-                <div className="absolute right-0 top-11 z-[60] w-56 overflow-hidden rounded-2xl border border-white/15 bg-[#111] shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
+                <div className="absolute right-0 top-11 z-[60] w-56 overflow-hidden rounded-2xl border border-white/15 bg-black/95 shadow-[0_18px_50px_rgba(0,0,0,0.5)]">
                   <p className="px-4 pb-1 pt-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{menuTitel}</p>
                   {menu.map(e => (
                     <a key={e.href} href={e.href} {...(e.datei ? { download: "" } : {})}
