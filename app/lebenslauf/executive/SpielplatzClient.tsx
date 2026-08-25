@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, MessageCircle, Play, Mail, Check, Gauge } from "lucide-react";
+import { Eye, MessageCircle, Play, Mail, Check, CheckCircle2, AlertTriangle, PenLine, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
 import PdfKnopf from "@/components/PdfKnopf";
@@ -180,29 +180,48 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
           </div>
           </>)}
           </div>
+          {/* DREI EIGENE BLÖCKE MIT ZEICHEN (Owner 25.08.2026: „lipsește muss mit
+              Warnzeichen als extra Block, und gut auch mit Icon als extra Block") —
+              vorher waren es drei Überschriften in derselben Fläche, und beim Überfliegen
+              verschwamm, was Lob und was Mahnung ist. Jetzt trägt jeder Block seinen
+              eigenen Rahmen und sein Zeichen: Häkchen für das, was passt (grün, die
+              einzige Farbe auf Papier, die „stimmt" heisst), Warndreieck für das, was
+              fehlt (Karten-Rot über `lb-karte-nein`, nie eine getippte Farbe — Memory
+              `lb-karte-important-frisst-inline-farben`), Stift für die Befunde am
+              Lebenslauf selbst: das ist keine Absage, sondern eine Aufgabe. */}
           {zeigeMatch && zeigeMatch.gruende.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.passt}</p>
+            <div className="mt-5 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
+              <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#2f7d4f]" />{B.passt}
+              </p>
               {zeigeMatch!.gruende.map((g, i) => (
-                <p key={i} className="mt-1.5 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-90">
+                <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-90">
                   <Check className="mt-[1px] h-4 w-4 shrink-0 text-[#2f7d4f]" />{g}
                 </p>
               ))}
             </div>
           )}
           {zeigeMatch && zeigeMatch.luecken.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.fehlt}</p>
+            <div className="mt-3 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
+              <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
+                <AlertTriangle className="lb-karte-nein h-4 w-4 shrink-0" />{B.fehlt}
+              </p>
               {zeigeMatch!.luecken.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug opacity-75">— {g}</p>
+                <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
+                  <AlertTriangle className="lb-karte-nein mt-[1px] h-4 w-4 shrink-0" />{g}
+                </p>
               ))}
             </div>
           )}
           {zeigeMatch && zeigeMatch.befunde.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] opacity-40">{B.befundeH}</p>
+            <div className="mt-3 rounded-xl border border-[#1a160f]/15 px-3.5 py-3">
+              <p className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.18em] opacity-55">
+                <PenLine className="h-4 w-4 shrink-0 opacity-70" />{B.befundeH}
+              </p>
               {zeigeMatch!.befunde.map((g, i) => (
-                <p key={i} className="mt-1.5 text-[14px] font-bold leading-snug opacity-75">— {g}</p>
+                <p key={i} className="mt-2 flex items-start gap-2 text-[14px] font-bold leading-snug opacity-80">
+                  <PenLine className="mt-[1px] h-4 w-4 shrink-0 opacity-50" />{g}
+                </p>
               ))}
             </div>
           )}
