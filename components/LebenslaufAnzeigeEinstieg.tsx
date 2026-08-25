@@ -23,12 +23,18 @@ export default function LebenslaufAnzeigeEinstieg({ platzhalter, cta }: {
 }) {
   const [anzeige, setAnzeige] = useState("");
   return (
-    <div className="mt-3 flex flex-col gap-3">
-      <EingabeMehrzeilig zeilen={4} value={anzeige} placeholder={platzhalter}
+    /* IN DER WEISSEN HUELLE (Owner 25.08.2026, mit Bild des dunklen Felds: "das brauche
+       ich auch in einer weissen Huelle") — dieselbe Creme-Karte wie die Mappe; das Feld
+       innen laeuft in der Karten-Fassung (karte-Schalter der CI-Bibliothek). */
+    <div className="lb-karte mt-3 flex flex-col gap-3 rounded-[20px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+      <EingabeMehrzeilig karte zeilen={4} value={anzeige} placeholder={platzhalter}
         onChange={e => setAnzeige(e.target.value)} />
       <Knopf art="gold" onClick={() => {
         try { if (anzeige.trim()) sessionStorage.setItem(LEBENSLAUF_ANZEIGE_ABLAGE, anzeige.trim()); } catch { /**/ }
-        window.location.href = "/themes/lebenslauf/start";
+        /* TUER A DER NEUEN ARCHITEKTUR (Owner 25.08.2026, "Ein Gespraech, zwei Tueren"):
+           das Feld fuehrt auf den Spielplatz — der Bewerberberater uebernimmt die Anzeige
+           von dort aus demselben sessionStorage-Schluessel. */
+        window.location.href = "/lebenslauf/executive";
       }}>
         {cta}
       </Knopf>

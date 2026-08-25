@@ -44,7 +44,7 @@ export type FirmenChatTexte = {
 
 type Schritt = "frei" | "name" | "mail" | "nachricht" | "fertig";
 
-export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false, className = "", profilId = "", onInteresse }: {
+export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false, className = "", profilId = "", onInteresse, still = false }: {
   texte: FirmenChatTexte;
   kandidat?: string;
   karte?: boolean;
@@ -56,6 +56,10 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
       — feuert EINMAL beim ersten Griff zum Chat (Ja-Chip oder erstes Tippen). Der Aufrufer
       reicht ihn nur fuer FREMDE herein (der Besitzer zaehlt sich nie selbst). */
   onInteresse?: () => void;
+  /** SPIELPLATZ-MODUS (Owner 25.08.2026: dort wird nichts versendet und nichts abgelegt)
+      — der Dialog laeuft komplett durch bis zur Danke-Zeile, aber abschicken() ruft
+      keine einzige Route. */
+  still?: boolean;
 }) {
   const [msgs, setMsgs] = useState<{ von: "ich" | "ki"; text: string }[]>([]);
   const [eingabe, setEingabe] = useState("");
@@ -90,6 +94,12 @@ export default function ProfilChatEinstieg({ texte, kandidat = "", karte = false
 
   const abschicken = async (nachricht: string) => {
     setBusy(true);
+    if (still) {
+      /* Spielplatz: das Gespraech fuehlt sich echt an, aber nichts verlaesst den Browser. */
+      await new Promise(r => setTimeout(r, 600));
+      ki(texte.danke); setSchritt("fertig"); setBusy(false);
+      return;
+    }
     try {
       const r = await fetch("/api/contact", {
         method: "POST", headers: { "Content-Type": "application/json" },

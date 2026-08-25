@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
+import SpielplatzClient from "./SpielplatzClient";
 import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
 import { resolveLang } from "@/lib/lang-server";
 
@@ -35,5 +35,8 @@ export default async function ExecutiveVorlagePage() {
   /* Auch das Beispiel folgt dem Sprachschalter — wer auf Rumänisch kauft, soll das Beispiel
      auf Rumänisch lesen (einmal übersetzt, dann Cache; Haus-Muster aus lib/tr-object.ts). */
   const profil = await executiveInSprache(EXECUTIVE_BEISPIEL, lang);
-  return <LebenslaufExecutive profil={profil} lang={lang} />;
+  /* SEIT 25.08.2026 IST DIESE SEITE DER SPIELPLATZ (Owner: „Hier darf der User ruhig
+     sehen, was er bekommt, also er kann spielen") — Muster + Bewerberberater, siehe
+     SpielplatzClient. Das blosse Beispiel gibt es nicht mehr einzeln. */
+  return <SpielplatzClient beispiel={profil} lang={lang} />;
 }

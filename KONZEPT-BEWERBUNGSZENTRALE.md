@@ -286,7 +286,7 @@ Stelle). Der Tunnel zeigt später dieselben Inhalte unter dem E-Mail-Feld.
 
 ---
 
-## Der Spielplatz — `/lebenslauf/executive` (KONZEPT 25.08. abend, NOCH NICHT GEBAUT)
+## Der Spielplatz — `/lebenslauf/executive` (GEBAUT 25.08. nacht)
 
 Owner: „Hier darf der User ruhig sehen, was er bekommt, also er kann
 spielen. Wird aber nichts geändert in der Database … Da er nichts bezahlt
@@ -331,7 +331,41 @@ das Video vermissen → Gold-Knopf.
    im Wortlaut, von eingefügten Lebensläufen NUR DIE ERSTEN ZEILEN, Fotos
    nie (bleiben im Browser). Nebeneffekt: Marktforschung.
 
-Bau erst auf Owner-Kommando („Bau").
+GEBAUT (25.08. nacht, auf „bau" — mit Owner-Korrekturen im Minutentakt):
+- SpielplatzClient auf der Beispiel-Seite; Motor /api/lebenslauf-spiel:
+  einpflegen + match sind die zwei Zug-Arten (je 1 KI-Aufruf, gpt-5-mini),
+  Deckel 5 je Gerät SERVERSEITIG, E-Mail-Pflicht IM SERVER (Tor, Leads).
+- Der Bewerberberater sammelt: E-Mail (kiss-log-Lead + lb_kiss_mail-
+  Vorbelegung für den Kaufweg) → Lebenslauf als TEXT einfügen (kein
+  Datei-Upload im Spiel) → Foto (ImageCropper, NUR Browser-DataURL, nie
+  zum Server) → Anzeige → Match.
+- DIE MAPPE BEGINNT OBEN MIT DEM ANSCHREIBEN (Owner: „Es müsste oben
+  anfangen … dann drunter das Resume"): im Muster das Beispiel-Anschreiben
+  mit Beispiel-Match-Zeile, nach dem echten Match die KOSTPROBE
+  (anschreibenKurz aus dem Match-Zug; das VOLLE Anschreiben ist der Kauf).
+- Schnell-Analyse unter der Karte: Prozent + Balken · Das passt (Häkchen) ·
+  Das fehlt · AM LEBENSLAUF SELBST (befunde) · Video-Empfehlung ·
+  Teaser-Zeile — dieselben Sätze spricht der Berater im Chat.
+- WEISSE HÜLLEN (Owner, mit Bildern: „das brauche ich auch in einer
+  weissen Hülle" · „alles bitte"): Landing-Feld UND der ganze
+  Berater-Kasten in der Creme-Karte, Innenteile in der Karten-Fassung.
+- BEARBEITEN|VORSCHAU AUCH IM SPIEL (Owner: „das kommt doch in der
+  Vorschau und es fehlt bearbeiten"): NUR die Moduswahl-Pille steht fest
+  unten; der Gold-Knopf „Gratis weitermachen" SCROLLT MIT (Owner) und
+  sitzt am Ende des Berater-Bereichs — damit nur im Bearbeiten-Modus
+  (Owner: „das kommt nur in Bearbeiten modus"). Vorschau = exakt die
+  Firmen-Sicht (Interesse-Chat spielbar, aber STILL: kein Versand, keine
+  Ablage). Fusszeilen-Links bekommen Luft unter der Pille (Owner: „footer
+  links sehe ich nicht").
+- Tür A GEBAUT: Landing-Feld → Spielplatz (nicht mehr Schritt-Tunnel);
+  die Anzeige reist im Tunnel-sessionStorage-Schlüssel; der Gold-Ausgang
+  führt in den Kaufweg /themes/lebenslauf/start (E-Mail dort vorbelegt).
+- Admin-Liste /admin/lebenslauf-spiele (PIN): je Gerät E-Mail · Sprache ·
+  Züge im Wortlaut (vom Lebenslauf nur die ersten 200 Zeichen), neueste
+  zuerst — zugleich der 5er-Deckel.
+- LIGHT-MODUS (Owner: „light modus einfügen"): der Haus-LightSwitch steht
+  jetzt auch im TalentKopf (alle Dossier-/Spielplatz-Seiten); Kopf-Flächen
+  auf flippbare black-Utilities umgestellt.
 
 ---
 
@@ -430,9 +464,10 @@ EINE FLÄCHE (die Bediensprache des Hauses: Karte = Dokument, drunter Chat):
   verkauft: „Willst du deine Daten verbessern? Du kannst mehr erreichen …"
 
 ZWEI TÜREN, EIN ZIEL:
-- Tür A — ANZEIGENTEXT (Landing-Feld „Stellenanzeige oder Link einfügen"):
-  Gespräch beginnt bei der Anzeige; der Berater fragt danach nach
-  Lebenslauf/Foto → Analyse → Karte → Angebot.
+- Tür A — ANZEIGENTEXT (Landing-Feld „Stellenanzeige oder Link einfügen",
+  in der weissen Hülle): GEBAUT — führt auf den Spielplatz; das Gespräch
+  beginnt bei der Anzeige, der Berater holt E-Mail und Lebenslauf →
+  Analyse → Karte → Angebot.
 - Tür B — BEISPIELKARTE (Muster/Spielplatz): Gespräch beginnt beim
   Sehen/Spielen; der Berater fragt danach nach der Anzeige („Sollen wir
   prüfen, wie du auf eine echte Stelle passt?") → Analyse → Angebot.
@@ -562,6 +597,11 @@ am Owner-Testprofil: /lebenslauf/f539748a-3b37-40e8-9107-40e7ec01df6e.
   werden nur EINGEPFLEGT wie sie sind — Aufbau: Karte (Daten 1:1) →
   Prozent + Analyse → Chat „Willst du deine Daten verbessern? Du kannst
   mehr erreichen …" → Gold. Verbessern ist immer kostenpflichtig.
+- Spielplatz + beide Türen GEBAUT (25.08. nacht, auf „bau"): Berater-Chat,
+  einpflegen/match mit 5er-Deckel und E-Mail-Tor, Anschreiben oben
+  (Kostprobe), weisse Hüllen, Bearbeiten|Vorschau im Spiel (Gold nur im
+  Bearbeiten, Wortlaut „Gratis weitermachen"), Tür A aufs Spielfeld,
+  Admin-Liste, Light-Schalter im TalentKopf.
 - Tunnel-Architektur „Ein Gespräch, zwei Türen" (25.08. nacht, KONZEPT):
   Bewerberberater als Faden, Türen Anzeigentext/Beispielkarte, ein
   gemeinsamer Kaufweg. E-Mail-Tor VOR dem ersten Spielzug — Owner: „ich

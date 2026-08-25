@@ -65,9 +65,27 @@ function Abschnitt({ children }: { children: string }) {
   return <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-40">{children}</p>;
 }
 
-export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, konto }: {
+export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, konto, vorKarte, nachKarte, chatStill = false, ohneFirmenTeil = false, fussFrei = false }: {
   profil: ExecutiveProfil;
   lang?: Lang;
+  /** DER SPIELPLATZ HÄNGT SICH EIN (Owner 25.08.2026, „Ein Gespräch, zwei Türen"):
+      `vorKarte` steht ÜBER dem Blatt (das kurze Anschreiben — Owner: „Es müsste oben
+      anfangen: ein kurzes Anschreiben auf die Anzeige angepasst, dann drunter das
+      Resume"), `nachKarte` direkt unter dem Blatt (Beispiel-Match, Prozent + Analyse,
+      der Bewerberberater). `chatStill` lässt den Firmen-Chat bis zur Danke-Zeile
+      durchspielen, ohne dass etwas versendet wird (Spielplatz: nichts verlässt den
+      Browser). Die echte [id]-Seite reicht nichts davon herein. */
+  vorKarte?: ReactNode;
+  nachKarte?: ReactNode;
+  chatStill?: boolean;
+  /** Spielplatz-Bearbeiten-Sicht (Owner: „das kommt doch in der Vorschau"): blendet die
+      Firmen-Fläche aus, obwohl der Betrachter kein Besitzer ist — der Spielplatz schaltet
+      sie über seine eigene Bearbeiten|Vorschau-Leiste wieder ein. */
+  ohneFirmenTeil?: boolean;
+  /** Der Spielplatz stellt unten Gold + Bearbeiten|Vorschau fest ins Bild (~120px) —
+      dieser Puffer schiebt die Fusszeilen-Links darüber (Owner: „footer links sehe
+      ich nicht"), ohne die ganze Seite höher zu machen. */
+  fussFrei?: boolean;
   /** BESITZER-WERKZEUG (Owner 24.08.2026: das Korrektur-Feld) — die [id]-Seite reicht es
       herein, das Beispiel nicht. Es rendert als letzter Abschnitt IM Blatt; ob es für den
       Betrachter überhaupt erscheint, entscheidet der Baustein selbst (Besitz-Prüfung). */
@@ -210,6 +228,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         menuLabel={T.menu} menuTitel={T.menuTitel} menu={menu} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-3 md:max-w-[760px] md:pt-6">
+
+        {vorKarte}
 
         {/* ─────────────────────────── DAS BLATT ─────────────────────────── */}
         <article className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
@@ -489,6 +509,8 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           )}
         </article>
 
+        {nachKarte}
+
         {/* ─────────── UNTER DER KARTE: DIE FUNKTIONEN (Owner 25.08.2026, dreimal
             hintereinander: „das hat in der karte nichts zu suchen. Das ist eine Funktion
             für die Firmen und muss extra drunter" · „das ebenso" · „auch das muss in
@@ -501,7 +523,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             Geza raus") — Fremde sehen sie immer, der Besitzer nur in der Vorschau.
             KEINE Kontaktdaten mehr auf der Seite (Owner: „werden hier nicht angezeigt") —
             wer sie will, fragt den Chat, und der nennt sie nur nach Freigabe. */}
-        {!besitzerAnsicht && (
+        {!besitzerAnsicht && !ohneFirmenTeil && (
         <section id="kontakt" className="mt-8 md:mt-10">
           <h2 className="font-serif text-[22px] font-black leading-tight md:text-[26px]">{T.interessiert(vorname)}</h2>
           <p className="mt-2 text-[12.5px] font-bold leading-snug opacity-70">{T.interessiertText}</p>
@@ -516,7 +538,7 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
               platzhalter: T.chatFrageP, phName: T.anfrageName, phMail: T.anfrageEmail, phNachricht: T.anfrageNachricht,
               senden: T.chatSenden, denkt: T.chatDenkt,
             }}
-            kandidat={profil.name} profilId={profil.id}
+            kandidat={profil.name} profilId={profil.id} still={chatStill}
             onInteresse={fremd ? () => {
               void fetch("/api/lebenslauf-view", {
                 method: "POST", headers: { "Content-Type": "application/json" },
@@ -665,14 +687,17 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
           </div>
         </div>
       )}
-      {/* Platz, damit die Leiste die Fusszeilen-Links nie verdeckt. */}
+      {/* Platz, damit die Leiste die Fusszeilen-Links nie verdeckt. Ein Puffer VOR dem
+          Fuss hebt die Links nicht an (der Fuss bleibt das letzte Element) — bei
+          fussFrei (Spielplatz) bekommt darum der FUSS selbst unten Luft, siehe
+          className unten. */}
       {istBesitzer && <div aria-hidden className="h-16" />}
 
       {/* NUR DAS GESETZLICHE MINIMUM (Owner 24.08.2026: „auf der Bewerbeseite müssen die
           Links unten raus, auch Instagram und Facebook") — Impressum/Datenschutz/AGB müssen
           in der EU erreichbar bleiben, alles andere (Contact, About, Social, ©) ist auf
           einer Seite an Personalabteilungen Werbung und fliegt. */}
-      <SeitenFuss art="schlicht" className="md:max-w-[760px]" />
+      <SeitenFuss art="schlicht" className={`md:max-w-[760px]${fussFrei ? " pb-24" : ""}`} />
     </main>
   );
 }
