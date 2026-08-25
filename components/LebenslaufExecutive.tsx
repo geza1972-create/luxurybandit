@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { MapPin, Languages, Mail, Phone, Link2, ChevronDown, Check, Play, Eye } from "lucide-react";
-import { Knopf, TalentKopf } from "@/components/CI";
+import { TalentKopf } from "@/components/CI";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -500,43 +500,49 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
             )}
             {(profil.videoKlicks ?? 0) > 0 && !profil.videoUrl && (
               <>
-                <p className="flex items-center gap-2 text-[13px] font-black text-white/90">
-                  <Play className="h-4 w-4 shrink-0 text-[#f6cf51]" />{T.statsVideoWunsch(profil.videoKlicks ?? 0)}
-                </p>
                 {/* DER CTA AN DER NACHFRAGE (Owner 25.08.2026: „das mit Call to Action
-                    versehen") — bis die Video-Kasse steht (Stufe 3), läuft der Knopf als
-                    CONCIERGE-Anfrage an den Betreiber (beschlossene Stufe-0-Linie): Er
-                    bekommt sofort die Mail mit Bewerbungs-Link und Klick-Zahl und liefert
-                    von Hand; der Bewerber bekommt die Haus-Zusage „noch heute". Umriss,
-                    nicht Gold — das eine Gold des Bearbeiten-Bildschirms trägt das Abo. */}
-                {videoAnfrage === "ok" ? (
+                    versehen" · „nein, nicht als Button, als Text link" · „warum hast du
+                    nicht ‚erstelle jetzt dein Video.' als Link gemacht?") — die
+                    Aufforderung ist der SCHLUSS DES SATZES SELBST, unterstrichen und
+                    tippbar, keine eigene Zeile. Bis die Video-Kasse steht (Stufe 3),
+                    läuft der Tipp als CONCIERGE-Anfrage an den Betreiber (beschlossene
+                    Stufe-0-Linie): Er bekommt sofort die Mail mit Bewerbungs-Link und
+                    Klick-Zahl und liefert von Hand; der Bewerber bekommt die Haus-Zusage
+                    „noch heute". Der Link nur mit echter Profil-Adresse — eine erfundene
+                    Absender-Adresse würde die Bestätigungs-Mail der Kontakt-Route ins
+                    Leere schicken (Rückläufer-Falle, Memory `ruecklaeufer-leser`); ohne
+                    Adresse und nach der Anfrage steht der Schwanz als blosser Text da. */}
+                <p className="flex items-start gap-2 text-[13px] font-black text-white/90">
+                  <Play className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" />
+                  <span>
+                    {T.statsVideoWunsch(profil.videoKlicks ?? 0)}{" "}
+                    {videoAnfrage !== "ok" && profil.kontakt?.email ? (
+                      <button type="button" disabled={videoAnfrage === "busy"}
+                        onClick={() => {
+                          if (videoAnfrage) return;
+                          setVideoAnfrage("busy");
+                          void fetch("/api/contact", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              name: profil.name || "Bewerber",
+                              email: profil.kontakt?.email ?? "",
+                              reason: "general",
+                              message: `[Video-Anfrage] ${profil.name} will das Video erstellen — ${typeof window !== "undefined" ? window.location.href : profil.id}\n${profil.videoKlicks ?? 0} Video-Klicks von Besuchern.`,
+                            }),
+                          }).then(r => setVideoAnfrage(r.ok ? "ok" : ""))
+                            .catch(() => setVideoAnfrage(""));
+                        }}
+                        className="text-left font-black text-white underline decoration-white/45 underline-offset-4 transition hover:decoration-white disabled:opacity-40">
+                        {T.videoCta}
+                      </button>
+                    ) : T.videoCta}
+                  </span>
+                </p>
+                {videoAnfrage === "ok" && (
                   <p className="flex items-center gap-2 text-[12.5px] font-bold text-white/70">
                     <Check className="h-4 w-4 shrink-0 text-[#2f7d4f]" />{T.videoCtaOk}
                   </p>
-                ) : profil.kontakt?.email ? (
-                  /* Nur mit echter Profil-Adresse — eine erfundene Absender-Adresse würde
-                     die Bestätigungs-Mail der Kontakt-Route ins Leere schicken
-                     (Rückläufer-Falle, Memory `ruecklaeufer-leser`). */
-                  <div className="mt-1">
-                    <Knopf art="umriss" disabled={videoAnfrage === "busy"}
-                      onClick={() => {
-                        if (videoAnfrage) return;
-                        setVideoAnfrage("busy");
-                        void fetch("/api/contact", {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            name: profil.name || "Bewerber",
-                            email: profil.kontakt?.email ?? "",
-                            reason: "general",
-                            message: `[Video-Anfrage] ${profil.name} will das Video erstellen — ${typeof window !== "undefined" ? window.location.href : profil.id}\n${profil.videoKlicks ?? 0} Video-Klicks von Besuchern.`,
-                          }),
-                        }).then(r => setVideoAnfrage(r.ok ? "ok" : ""))
-                          .catch(() => setVideoAnfrage(""));
-                      }}>
-                      {T.videoCta}
-                    </Knopf>
-                  </div>
-                ) : null}
+                )}
               </>
             )}
           </div>

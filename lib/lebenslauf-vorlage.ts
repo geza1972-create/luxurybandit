@@ -165,8 +165,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "Your question about the career …", chatSenden: "Send", chatDenkt: "One moment …", vorschau: "Preview", bearbeiten: "Edit",
     nochKeinVideo: "No video yet.",
     statsOeffnungen: (n) => n === 1 ? "1 person viewed your application." : `${n} people viewed your application.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 person wanted" : `${n} people wanted`} to watch your video. Your video is in demand — create it now.`,
-    videoCta: "Create my video", videoCtaOk: "Request sent — we'll get back to you today.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 person wanted" : `${n} people wanted`} to watch your video. Your video is in demand —`,
+    videoCta: "create it now.", videoCtaOk: "Request sent — we'll get back to you today.",
   },
   de: {
     marke: "Talent", teilen: "Profil teilen", kopiert: "Link kopiert", menu: "Menü", menuTitel: "Abschnitte",
@@ -191,8 +191,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "Deine Frage zum Werdegang …", chatSenden: "Senden", chatDenkt: "Einen Moment …", vorschau: "Vorschau", bearbeiten: "Bearbeiten",
     nochKeinVideo: "Noch kein Video.",
     statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Personen haben sich deine Bewerbung angeschaut.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Personen wollten`} dein Video sehen. Video ist gefragt — erstelle jetzt dein Video.`,
-    videoCta: "Video erstellen", videoCtaOk: "Anfrage ist raus — wir melden uns noch heute.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Personen wollten`} dein Video sehen. Video ist gefragt —`,
+    videoCta: "erstelle jetzt dein Video.", videoCtaOk: "Anfrage ist raus — wir melden uns noch heute.",
   },
   ro: {
     marke: "Talent", teilen: "Distribuie profilul", kopiert: "Link copiat", menu: "Meniu", menuTitel: "Secțiuni",
@@ -217,8 +217,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "Întrebarea ta despre parcurs …", chatSenden: "Trimite", chatDenkt: "O clipă …", vorschau: "Previzualizare", bearbeiten: "Editare",
     nochKeinVideo: "Încă fără video.",
     statsOeffnungen: (n) => n === 1 ? "1 persoană ți-a văzut aplicația." : `${n} persoane ți-au văzut aplicația.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 persoană a vrut" : `${n} persoane au vrut`} să-ți vadă videoul. Videoul tău e cerut — creează-l acum.`,
-    videoCta: "Creează videoul", videoCtaOk: "Cererea a plecat — revenim azi.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 persoană a vrut" : `${n} persoane au vrut`} să-ți vadă videoul. Videoul tău e cerut —`,
+    videoCta: "creează-l acum.", videoCtaOk: "Cererea a plecat — revenim azi.",
   },
   es: {
     marke: "Talent", teilen: "Compartir perfil", kopiert: "Enlace copiado", menu: "Menú", menuTitel: "Secciones",
@@ -243,8 +243,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "Tu pregunta sobre la trayectoria …", chatSenden: "Enviar", chatDenkt: "Un momento …", vorschau: "Vista previa", bearbeiten: "Editar",
     nochKeinVideo: "Aún sin vídeo.",
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto tu candidatura." : `${n} personas han visto tu candidatura.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 persona quiso" : `${n} personas quisieron`} ver tu vídeo. Tu vídeo tiene demanda — créalo ahora.`,
-    videoCta: "Crear mi vídeo", videoCtaOk: "Solicitud enviada — te contactamos hoy.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 persona quiso" : `${n} personas quisieron`} ver tu vídeo. Tu vídeo tiene demanda —`,
+    videoCta: "créalo ahora.", videoCtaOk: "Solicitud enviada — te contactamos hoy.",
   },
   fr: {
     marke: "Talent", teilen: "Partager le profil", kopiert: "Lien copié", menu: "Menu", menuTitel: "Sections",
@@ -269,8 +269,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "Ta question sur le parcours …", chatSenden: "Envoyer", chatDenkt: "Un instant …", vorschau: "Aperçu", bearbeiten: "Modifier",
     nochKeinVideo: "Pas encore de vidéo.",
     statsOeffnungen: (n) => n === 1 ? "1 personne a consulté ta candidature." : `${n} personnes ont consulté ta candidature.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 personne a voulu" : `${n} personnes ont voulu`} voir ta vidéo. Ta vidéo est demandée — crée-la maintenant.`,
-    videoCta: "Créer ma vidéo", videoCtaOk: "Demande envoyée — on te répond aujourd'hui.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 personne a voulu" : `${n} personnes ont voulu`} voir ta vidéo. Ta vidéo est demandée —`,
+    videoCta: "crée-la maintenant.", videoCtaOk: "Demande envoyée — on te répond aujourd'hui.",
   },
   pt: {
     marke: "Talent", teilen: "Partilhar perfil", kopiert: "Link copiado", menu: "Menu", menuTitel: "Secções",
@@ -295,8 +295,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "A tua pergunta sobre o percurso …", chatSenden: "Enviar", chatDenkt: "Um momento …", vorschau: "Pré-visualizar", bearbeiten: "Editar",
     nochKeinVideo: "Ainda sem vídeo.",
     statsOeffnungen: (n) => n === 1 ? "1 pessoa viu a tua candidatura." : `${n} pessoas viram a tua candidatura.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 pessoa quis" : `${n} pessoas quiseram`} ver o teu vídeo. O teu vídeo é procurado — cria-o agora.`,
-    videoCta: "Criar o meu vídeo", videoCtaOk: "Pedido enviado — respondemos hoje.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 pessoa quis" : `${n} pessoas quiseram`} ver o teu vídeo. O teu vídeo é procurado —`,
+    videoCta: "cria-o agora.", videoCtaOk: "Pedido enviado — respondemos hoje.",
   },
   it: {
     marke: "Talent", teilen: "Condividi profilo", kopiert: "Link copiato", menu: "Menu", menuTitel: "Sezioni",
@@ -321,8 +321,8 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     chatFrageP: "La tua domanda sul percorso …", chatSenden: "Invia", chatDenkt: "Un attimo …", vorschau: "Anteprima", bearbeiten: "Modifica",
     nochKeinVideo: "Ancora nessun video.",
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto la tua candidatura." : `${n} persone hanno visto la tua candidatura.`,
-    statsVideoWunsch: (n) => `${n === 1 ? "1 persona voleva" : `${n} persone volevano`} vedere il tuo video. Il tuo video è richiesto — crealo ora.`,
-    videoCta: "Crea il mio video", videoCtaOk: "Richiesta inviata — ti rispondiamo oggi.",
+    statsVideoWunsch: (n) => `${n === 1 ? "1 persona voleva" : `${n} persone volevano`} vedere il tuo video. Il tuo video è richiesto —`,
+    videoCta: "crealo ora.", videoCtaOk: "Richiesta inviata — ti rispondiamo oggi.",
   },
 };
 
