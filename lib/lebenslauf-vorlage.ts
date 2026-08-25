@@ -142,6 +142,8 @@ export type ExecutiveTexte = {
   /* Das Kopfband der Mappe (Owner 25.08.2026: fetter Titel + Teaser + Icons + die
      Haus-Ornamente) — siehe components/MappenKopf.tsx. */
   mappeLebenslauf: string; mappeLebenslaufTeaser: string;
+  /* Der Download an jeder Karte (Owner 25.08.2026). */
+  alsPdf: string;
   /* Der Streifen, der die Vorschau SOFORT sichtbar macht (Owner 25.08.2026: „Wenn ich
      umschalte, gibt's erst mal im Sichtbereich keinen Unterschied"). */
   vorschauStreifen: string;
@@ -182,6 +184,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 person viewed your application." : `${n} people viewed your application.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 person wanted" : `${n} people wanted`} to watch your video. Your video is in demand —`,
     vorschauStreifen: "Preview — this is how a company sees your application.",
+    alsPdf: "As PDF",
     mappeLebenslauf: "Resume", mappeLebenslaufTeaser: "Career, expertise and results — at a glance.",
     statsInteresse: (n) => n === 1 ? "1 person showed interest." : `${n} people showed interest.`,
     statsAnfragen: (n) => n === 1 ? "1 person wants to contact you." : `${n} people want to contact you.`,
@@ -212,6 +215,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 Person hat sich deine Bewerbung angeschaut." : `${n} Personen haben sich deine Bewerbung angeschaut.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 Person wollte" : `${n} Personen wollten`} dein Video sehen. Video ist gefragt —`,
     vorschauStreifen: "Vorschau — so sieht eine Firma deine Bewerbung.",
+    alsPdf: "Als PDF",
     mappeLebenslauf: "Lebenslauf", mappeLebenslaufTeaser: "Werdegang, Kompetenzen und Ergebnisse — auf einen Blick.",
     statsInteresse: (n) => n === 1 ? "1 Person hat Interesse gezeigt." : `${n} Personen haben Interesse gezeigt.`,
     statsAnfragen: (n) => n === 1 ? "1 Person will dich kontaktieren." : `${n} Personen wollen dich kontaktieren.`,
@@ -242,6 +246,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 persoană ți-a văzut aplicația." : `${n} persoane ți-au văzut aplicația.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persoană a vrut" : `${n} persoane au vrut`} să-ți vadă videoul. Videoul tău e cerut —`,
     vorschauStreifen: "Previzualizare — așa îți vede candidatura o firmă.",
+    alsPdf: "Ca PDF",
     mappeLebenslauf: "CV", mappeLebenslaufTeaser: "Parcurs, competențe și rezultate — dintr-o privire.",
     statsInteresse: (n) => n === 1 ? "1 persoană a arătat interes." : `${n} persoane au arătat interes.`,
     statsAnfragen: (n) => n === 1 ? "1 persoană vrea să te contacteze." : `${n} persoane vor să te contacteze.`,
@@ -272,6 +277,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto tu candidatura." : `${n} personas han visto tu candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona quiso" : `${n} personas quisieron`} ver tu vídeo. Tu vídeo tiene demanda —`,
     vorschauStreifen: "Vista previa — así ve tu candidatura una empresa.",
+    alsPdf: "En PDF",
     mappeLebenslauf: "Currículum", mappeLebenslaufTeaser: "Trayectoria, competencias y resultados — de un vistazo.",
     statsInteresse: (n) => n === 1 ? "1 persona mostró interés." : `${n} personas mostraron interés.`,
     statsAnfragen: (n) => n === 1 ? "1 persona quiere contactarte." : `${n} personas quieren contactarte.`,
@@ -302,6 +308,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 personne a consulté ta candidature." : `${n} personnes ont consulté ta candidature.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 personne a voulu" : `${n} personnes ont voulu`} voir ta vidéo. Ta vidéo est demandée —`,
     vorschauStreifen: "Aperçu — voilà ce que voit une entreprise.",
+    alsPdf: "En PDF",
     mappeLebenslauf: "CV", mappeLebenslaufTeaser: "Parcours, compétences et résultats — en un coup d'œil.",
     statsInteresse: (n) => n === 1 ? "1 personne a montré de l'intérêt." : `${n} personnes ont montré de l'intérêt.`,
     statsAnfragen: (n) => n === 1 ? "1 personne veut te contacter." : `${n} personnes veulent te contacter.`,
@@ -332,6 +339,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 pessoa viu a tua candidatura." : `${n} pessoas viram a tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 pessoa quis" : `${n} pessoas quiseram`} ver o teu vídeo. O teu vídeo é procurado —`,
     vorschauStreifen: "Pré-visualização — é assim que uma empresa vê a tua candidatura.",
+    alsPdf: "Em PDF",
     mappeLebenslauf: "Currículo", mappeLebenslaufTeaser: "Percurso, competências e resultados — num relance.",
     statsInteresse: (n) => n === 1 ? "1 pessoa mostrou interesse." : `${n} pessoas mostraram interesse.`,
     statsAnfragen: (n) => n === 1 ? "1 pessoa quer contactar-te." : `${n} pessoas querem contactar-te.`,
@@ -362,6 +370,7 @@ export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
     statsOeffnungen: (n) => n === 1 ? "1 persona ha visto la tua candidatura." : `${n} persone hanno visto la tua candidatura.`,
     statsVideoWunsch: (n) => `${n === 1 ? "1 persona voleva" : `${n} persone volevano`} vedere il tuo video. Il tuo video è richiesto —`,
     vorschauStreifen: "Anteprima — ecco come un'azienda vede la tua candidatura.",
+    alsPdf: "In PDF",
     mappeLebenslauf: "Curriculum", mappeLebenslaufTeaser: "Percorso, competenze e risultati — a colpo d'occhio.",
     statsInteresse: (n) => n === 1 ? "1 persona ha mostrato interesse." : `${n} persone hanno mostrato interesse.`,
     statsAnfragen: (n) => n === 1 ? "1 persona vuole contattarti." : `${n} persone vogliono contattarti.`,

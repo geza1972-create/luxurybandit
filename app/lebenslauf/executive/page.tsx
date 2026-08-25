@@ -44,6 +44,10 @@ const MUSTER_TEXTE = {
   videoEmpfehlung: "Unsere Empfehlung: eine Video-Bewerbung. Firmen sehen dich, bevor sie dich einladen — das hat kaum ein Bewerber.",
   anzeigePlatzhalter: "Stellenanzeige oder Link hier einfügen — du siehst sofort, wie gut sie zu dir passt.",
   anpassenCta: "Bewerbung anpassen",
+  /* Jedes Blatt wird EINZELN angepasst (Owner 25.08.2026: „Das wird auch per Klick
+     angepasst, extra") — der Lebenslauf über den Knopf in der Analyse, das Anschreiben
+     über den eigenen darunter. */
+  anschreibenCta: "Anschreiben anpassen",
   analyseH: "Schnell-Analyse",
   analyseTeaser: "Was passt, was fehlt — und was an deinem Lebenslauf selbst schwach ist.",
   anzeigeH: "Die Anzeige",
@@ -56,7 +60,11 @@ const MUSTER_TEXTE = {
   demoMeta: "Musterklinik München · Match 72 %",
   demoAnschreiben: "Sehr geehrte Damen und Herren,\n\nIhre Anzeige trifft genau meinen Werdegang: Seit 2021 betreue ich beatmete Patientinnen und Patienten auf einer interdisziplinären Intensivstation, davor fünf Jahre Zentrale Notaufnahme.\n\nDie Fachweiterbildung Intensiv- und Anästhesiepflege habe ich abgeschlossen, meine Berufsanerkennung für Deutschland ist beantragt. Ich kann kurzfristig anfangen und bin bereit umzuziehen.\n\nMit freundlichen Grüssen\nAndrei Popescu",
   demoHinweis: "Beispiel — so beginnt jede Bewerbung hier: Anschreiben oben, Lebenslauf darunter.",
-  demoAnalyseHinweis: "Beispiel — mit deiner eigenen Anzeige steht hier deine Zahl.",
+  /* Owner 25.08.2026, auf Rumänisch diktiert („Ai găsit un anunț și vrei să vezi dacă
+     anunțul se potrivește la tine, bagă textul și îți dăm o analiză") — die Zeile sagt
+     nicht mehr, dass es ein Beispiel ist, sondern was man TUN soll. Deutsche Quelle,
+     Rumänisch und die anderen fünf Sprachen kommen aus dem Übersetzer. */
+  demoAnalyseHinweis: "Du hast eine Anzeige gefunden und willst wissen, ob sie zu dir passt? Füg den Text ein — wir geben dir die Analyse.",
   demoAnzeige: "Musterklinik München sucht zum nächstmöglichen Zeitpunkt eine Fachpflegekraft Intensivmedizin (m/w/d) für die interdisziplinäre Intensivstation mit 18 Betten.\n\nWir erwarten: abgeschlossene Ausbildung in der Gesundheits- und Krankenpflege, Fachweiterbildung Intensiv- und Anästhesiepflege oder die Bereitschaft dazu, Erfahrung in der Beatmungspflege, Deutschkenntnisse mindestens B2, Bereitschaft zum Schichtdienst.\n\nWir bieten: strukturiertes Einarbeitungskonzept, Unterstützung bei der Berufsanerkennung und bei der Wohnungssuche.",
   jobtitel: "Fachpflegekraft Intensivmedizin (m/w/d)",
   g1: "Fachweiterbildung Intensiv- und Anästhesiepflege verlangt — 2020 abgeschlossen.",

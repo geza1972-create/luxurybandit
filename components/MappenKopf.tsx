@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CornerOrnament, DividerOrnament } from "@/components/BoxOrnaments";
 
@@ -20,12 +21,19 @@ import { CornerOrnament, DividerOrnament } from "@/components/BoxOrnaments";
  * Die Farben kommen aus den `lb-karte-*`-Klassen, nie aus getippten Werten (Memory
  * `lb-karte-important-frisst-inline-farben`) — hell wie dunkel stimmt es damit von selbst.
  */
-export default function MappenKopf({ icon: Icon, titel, teaser }: {
+export default function MappenKopf({ icon: Icon, titel, teaser, aktion }: {
   icon: LucideIcon;
   /** „Anschreiben" · „Lebenslauf" — das eine Wort, gross. */
   titel: string;
   /** Eine Zeile: was dieses Blatt ist. Leer heisst: keine Zeile. */
   teaser?: string;
+  /**
+   * DIE EINE HANDLUNG AM BLATT (Owner 25.08.2026: „ein Download bei jeder Karte") —
+   * rechts neben dem Titel, wo man sie in jedem Dokument-Werkzeug sucht. Sie trägt
+   * `data-nicht-drucken`, damit sie im PDF nicht mitkommt: Ein Knopf auf einem
+   * ausgedruckten Lebenslauf wäre der Beweis, dass es kein echtes Dokument ist.
+   */
+  aktion?: ReactNode;
 }) {
   return (
     /* LINKSBÜNDIG (Owner 25.08.2026: „titel Links") — dieselbe Kante wie der Betreff und
@@ -39,10 +47,13 @@ export default function MappenKopf({ icon: Icon, titel, teaser }: {
       <CornerOrnament className="right-2 top-2 -scale-x-100" />
       <CornerOrnament className="bottom-2 right-2 -scale-100" />
       <div className="relative">
-        <p className="flex items-center gap-2.5 font-serif text-[22px] font-black leading-none md:text-[26px]">
-          <Icon aria-hidden className="lb-karte-gold h-5 w-5 shrink-0" />
-          {titel}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="flex min-w-0 flex-1 items-center gap-2.5 font-serif text-[22px] font-black leading-none md:text-[26px]">
+            <Icon aria-hidden className="lb-karte-gold h-5 w-5 shrink-0" />
+            {titel}
+          </p>
+          {aktion && <span data-nicht-drucken className="shrink-0">{aktion}</span>}
+        </div>
         <DividerOrnament className="ml-0 mt-2.5" />
         {teaser && (
           <p className="mt-2 max-w-[38ch] text-[14px] font-bold leading-snug opacity-75">{teaser}</p>

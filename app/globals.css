@@ -932,3 +932,40 @@ svg {
   border-color: rgba(24, 119, 242, 0.30) !important;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.08);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DRUCKEN: EINE KARTE ALS PDF (Owner 25.08.2026: „Dann muss noch ein Download bei
+   jeder Karte: bei Resume und bei Anschreiben. Als PDF").
+
+   WARUM DER BROWSER-DRUCK UND KEINE PDF-BIBLIOTHEK: Die Karte IST bereits das
+   Dokument — Elfenbein, Serifen, Haarlinien. Der Browser macht daraus ein PDF mit
+   AUSWÄHLBAREM Text und scharfen Schriften; eine Bibliothek müsste dasselbe Layout ein
+   zweites Mal nachbauen und würde bei jeder Design-Änderung auseinanderlaufen. Kein
+   Puppeteer auf Vercel, kein Raster-Bild, keine neue Abhängigkeit.
+
+   SO LÄUFT ES: Der Knopf setzt `lb-druckt` auf <body> und `data-druck-aktiv` auf die
+   EINE Karte, die gedruckt werden soll, und ruft window.print(). Danach räumt er beides
+   wieder ab. `visibility` statt `display`, damit die Seite beim Drucken nicht neu
+   umbricht und die Karte ihre Breite behält.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media print {
+  body.lb-druckt * { visibility: hidden !important; }
+  body.lb-druckt [data-druck-aktiv],
+  body.lb-druckt [data-druck-aktiv] * { visibility: visible !important; }
+  body.lb-druckt [data-druck-aktiv] {
+    position: absolute !important;
+    left: 0; top: 0; width: 100%;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  /* Elfenbein und Tinte müssen mit aufs Papier — sonst druckt der Browser Weiss. */
+  body.lb-druckt [data-druck-aktiv],
+  body.lb-druckt [data-druck-aktiv] * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Was im Dokument nur der Bedienung dient, gehört nicht ins PDF. */
+  body.lb-druckt [data-druck-aktiv] [data-nicht-drucken] { display: none !important; }
+  @page { margin: 14mm; }
+}

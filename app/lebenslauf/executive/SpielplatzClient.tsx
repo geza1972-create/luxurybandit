@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Eye, MessageCircle, Play, Mail, Check, Gauge } from "lucide-react";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import MappenKopf from "@/components/MappenKopf";
+import PdfKnopf from "@/components/PdfKnopf";
 import { Knopf, EingabeMehrzeilig } from "@/components/CI";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import type { Lang } from "@/lib/lang";
@@ -70,10 +71,14 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
   const anschreibenText = B.demoAnschreiben;
   const anschreibenBetreff = B.demoBetreff;
   const anschreibenMeta = B.demoMeta;
-  const vorKarte = (
-    <section className="lb-karte mb-4 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-      {/* Dasselbe Kopfband wie der Lebenslauf darunter — zwei Blätter EINER Mappe. */}
-      <MappenKopf icon={Mail} titel={B.anschreibenH} teaser={B.anschreibenTeaser} />
+  const anschreibenKarte = (
+    /* DAS ANSCHREIBEN STEHT AM ENDE (Owner 25.08.2026: „Scrisoare de intenție muss
+       woanders, am Ende") — die Seite beginnt jetzt mit der Handlung: Anzeige einfügen,
+       Prozentzahl, was passt und was fehlt. Das Anschreiben ist das ERGEBNIS dieser
+       Analyse; es gehört dorthin, wo man es nach den Zahlen erwartet. */
+    <section data-blatt="anschreiben" className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+      <MappenKopf icon={Mail} titel={B.anschreibenH} teaser={B.anschreibenTeaser}
+        aktion={<PdfKnopf dateiname={`${beispiel.name} — ${B.anschreibenH}`} label={ET.alsPdf} />} />
       <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
         {anschreibenBetreff && (
           <p className="text-[16px] font-black leading-snug">{anschreibenBetreff}</p>
@@ -83,9 +88,19 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
         )}
         <p className="mt-4 whitespace-pre-wrap text-[14px] font-medium leading-[1.75] opacity-90">{anschreibenText}</p>
       </div>
-      <p className="border-t border-[#1a160f]/[0.11] px-5 py-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45 md:px-8">
-        {B.demoHinweis}
-      </p>
+      {/* JEDES BLATT WIRD EINZELN ANGEPASST (Owner 25.08.2026: „Das wird auch per Klick
+          angepasst, extra") — der Lebenslauf über den Knopf in der Analyse, das Anschreiben
+          hier. Beide führen in den Trichter und nehmen die eingefügte Anzeige mit; dort
+          wohnen Lebenslauf, Foto und Kasse. `data-nicht-drucken`: gehört nicht ins PDF. */}
+      <div data-nicht-drucken className="border-t border-[#1a160f]/[0.11] px-5 py-4 md:px-8">
+        <Knopf art="umriss" karte onClick={() => {
+          try { if (letzteAnzeige.trim()) sessionStorage.setItem("lb_lebenslauf_anzeige", letzteAnzeige.trim()); } catch { /**/ }
+          window.location.href = "/themes/lebenslauf/start";
+        }}>
+          {B.anschreibenCta}
+        </Knopf>
+        <p className="mt-2.5 text-[13px] font-bold uppercase tracking-[0.12em] opacity-45">{B.demoHinweis}</p>
+      </div>
     </section>
   );
 
@@ -137,8 +152,21 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
         <section className="lb-karte mt-6 overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
           <MappenKopf icon={Gauge} titel={B.analyseH} teaser={B.demoAnalyseHinweis} />
           <div className="border-t border-[#1a160f]/[0.11] px-5 py-5 md:px-8 md:py-6">
+          {/* HIER WIRD DIE ANZEIGE REINKOPIERT (Owner 25.08.2026, mit Bild: „Das muss
+              hervorgehoben werden. Unten steht dann Bewerbung anpassen") — die Anzeige
+              ist keine stumme Fläche mehr, sondern DAS Eingabefeld der Seite: goldener
+              Rahmen auf dem Papier, damit man sieht, wo man etwas tut. Der eingefügte
+              Text reist über denselben sessionStorage-Schlüssel in den Trichter. */}
+          <div>
+            <p className="lb-karte-gold text-[13px] font-black uppercase tracking-[0.18em]">{B.anzeigeH}</p>
+            <div className="mt-1.5 rounded-xl border-2 border-[#c8a13a]/60 p-1">
+              <EingabeMehrzeilig karte zeilen={4} value={letzteAnzeige}
+                placeholder={B.anzeigePlatzhalter}
+                onChange={e => setLetzteAnzeige(e.target.value)} />
+            </div>
+
           {zeigeMatch && (<>
-          <div className="flex items-baseline gap-3">
+          <div className="mt-5 flex items-baseline gap-3">
             <p className="font-serif text-[44px] font-black leading-none">{zeigeMatch.prozent}%</p>
             {zeigeMatch.jobtitel && <p className="text-[13px] font-black uppercase tracking-[0.1em] opacity-60">{zeigeMatch.jobtitel}</p>}
           </div>
@@ -146,18 +174,6 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
             <div className="h-full rounded-full bg-[#c8a13a] transition-all" style={{ width: `${zeigeMatch.prozent}%` }} />
           </div>
           </>)}
-          {/* HIER WIRD DIE ANZEIGE REINKOPIERT (Owner 25.08.2026, mit Bild: „Das muss
-              hervorgehoben werden. Unten steht dann Bewerbung anpassen") — die Anzeige
-              ist keine stumme Fläche mehr, sondern DAS Eingabefeld der Seite: goldener
-              Rahmen auf dem Papier, damit man sieht, wo man etwas tut. Der eingefügte
-              Text reist über denselben sessionStorage-Schlüssel in den Trichter. */}
-          <div className="mt-5">
-            <p className="lb-karte-gold text-[13px] font-black uppercase tracking-[0.18em]">{B.anzeigeH}</p>
-            <div className="mt-1.5 rounded-xl border-2 border-[#c8a13a]/60 p-1">
-              <EingabeMehrzeilig karte zeilen={4} value={letzteAnzeige}
-                placeholder={B.anzeigePlatzhalter}
-                onChange={e => setLetzteAnzeige(e.target.value)} />
-            </div>
           </div>
           {zeigeMatch && zeigeMatch.gruende.length > 0 && (
             <div className="mt-4">
@@ -206,13 +222,14 @@ export default function SpielplatzClient({ beispiel, lang, texte }: {
         </section>
       )}
 
+      {anschreibenKarte}
     </>
   );
 
   return (
     <>
       <LebenslaufExecutive profil={profil} lang={lang} chatStill
-        vorKarte={vorKarte} nachKarte={vorschau ? null : nachKarte}
+        nachKarte={vorschau ? null : nachKarte}
         ohneFirmenTeil={!vorschau} vorschauAktiv={vorschau} fussFrei />
 
       {/* NUR DIE MODUSWAHL STEHT FEST — der Gold-Knopf scrollt mit der Seite (Owner:

@@ -9,6 +9,7 @@ import { KARTE_TEXTE } from "@/components/EinladungKarte";
 import ProfilChatEinstieg from "@/components/ProfilChatEinstieg";
 import SeitenFuss from "@/components/SeitenFuss";
 import MappenKopf from "@/components/MappenKopf";
+import PdfKnopf from "@/components/PdfKnopf";
 import { EXECUTIVE_TEXTE, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import type { Lang } from "@/lib/lang";
@@ -266,12 +267,13 @@ export default function LebenslaufExecutive({ profil, lang = "en", werkzeug, kon
         {vorKarte}
 
         {/* ─────────────────────────── DAS BLATT ─────────────────────────── */}
-        <article className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+        <article data-blatt="lebenslauf" className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
 
           {/* DAS KOPFBAND (Owner 25.08.2026: „fetter Titel … layoutmässig bombe … wo sind
               die Ornamente?") — dieses Blatt ist DER LEBENSLAUF der Mappe; das Anschreiben
               liegt als eigenes Blatt darüber (vorKarte). */}
-          <MappenKopf icon={FileText} titel={T.mappeLebenslauf} teaser={T.mappeLebenslaufTeaser} />
+          <MappenKopf icon={FileText} titel={T.mappeLebenslauf} teaser={T.mappeLebenslaufTeaser}
+            aktion={<PdfKnopf dateiname={`${profil.name} — ${T.mappeLebenslauf}`} label={T.alsPdf} />} />
 
           {/* HERO — Porträt, und das Porträt IST das Video (Auftrag: „Integrate it elegantly
               into the hero rather than making a separate ugly video block").
