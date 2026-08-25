@@ -27,3 +27,4 @@ state-backup-*.json
 # Prüfbauten neben dem laufenden Entwicklungsserver
 .next-build
 .next-claude
+.next-pruef

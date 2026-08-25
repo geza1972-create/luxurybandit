@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { BESITZ_COOKIE, besitzImCookie } from "@/lib/lebenslauf-besitz-cookie";
+import BesitzMelden from "@/components/BesitzMelden";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
 import ProfilAssistent from "@/components/ProfilAssistent";
 import ProfilBewerbungen from "@/components/ProfilBewerbungen";
@@ -33,8 +36,17 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const profil = await leseLebenslauf(id);
+  /* AUCH DER TITEL VERRÄT (Owner 25.08.2026, Serversperre): „Andrei Popescu — Candidate
+     profile" im Browser-Tab wäre der Name, den die Sperrseite gerade verschweigt — und er
+     stünde in jeder geteilten Vorschau. Solange nicht bezahlt und der Betrachter sich nicht
+     als Besitzer ausgewiesen hat, bleibt der Titel neutral. */
+  const besitzCookie = (await cookies()).get(BESITZ_COOKIE)?.value ?? "";
+  const darfSehen = !!profil && (profil.bezahlt === true || besitzImCookie(besitzCookie, id)
+    || (!!profil.basisId && besitzImCookie(besitzCookie, profil.basisId)));
   return {
-    title: profil ? `${profil.name || "Profil"} — Candidate profile` : "Profil nicht gefunden",
+    title: !profil ? "Profil nicht gefunden"
+      : darfSehen ? `${profil.name || "Profil"} — Candidate profile`
+      : "Bewerbung",
     robots: { index: false, follow: false },
   };
 }
@@ -58,6 +70,18 @@ const ABGELAUFEN: Record<string, { titel: string; zeile: string }> = {
   it: { titel: "Questa pagina non è più online.", zeile: "I tre giorni sono passati. Il candidato può riportarla online subito con l'abbonamento." },
 };
 
+/** Die Sperrseite fuer Fremde (Owner 25.08.2026, Serversperre) — sie nennt bewusst KEINEN
+    Namen: Ein Fremder soll nicht einmal erfahren, wem die Adresse gehoert. */
+const GESPERRT: Record<string, { titel: string; zeile: string }> = {
+  de: { titel: "Diese Bewerbung ist noch nicht veröffentlicht.", zeile: "Der Bewerber hat sie noch nicht freigeschaltet. Frag ihn nach dem Link, sobald sie fertig ist." },
+  en: { titel: "This application is not published yet.", zeile: "The candidate hasn't unlocked it yet. Ask them for the link once it's ready." },
+  ro: { titel: "Această aplicație nu este încă publicată.", zeile: "Candidatul nu a deblocat-o încă. Cere-i linkul când este gata." },
+  es: { titel: "Esta candidatura aún no está publicada.", zeile: "El candidato todavía no la ha desbloqueado. Pídele el enlace cuando esté lista." },
+  fr: { titel: "Cette candidature n'est pas encore publiée.", zeile: "Le candidat ne l'a pas encore débloquée. Demande-lui le lien quand elle sera prête." },
+  pt: { titel: "Esta candidatura ainda não está publicada.", zeile: "O candidato ainda não a desbloqueou. Pede-lhe o link quando estiver pronta." },
+  it: { titel: "Questa candidatura non è ancora pubblicata.", zeile: "Il candidato non l'ha ancora sbloccata. Chiedigli il link quando sarà pronta." },
+};
+
 export default async function LebenslaufProfilPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profil = await leseLebenslauf(id);
@@ -76,12 +100,44 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
    * dem Server wäre der nächste Schritt, wenn es je jemand ausnutzt.
    */
   if (!profil) notFound();
+
+  /**
+   * DIE SERVER-SPERRE (Owner 25.08.2026: „na gut, und Serversperre") — eine UNBEZAHLTE
+   * Bewerbung wird an Fremde gar nicht erst ausgeliefert. Nicht ausgeblendet, nicht
+   * verwischt: Der Inhalt geht nie über die Leitung, steht also auch nicht im Quelltext.
+   *
+   * WER DARF: das Cookie, das `/api/lebenslauf-besitz` nach der üblichen Besitz-Prüfung
+   * signiert ausstellt. Der Besitzer sieht die Sperrseite genau einmal — sein Browser
+   * meldet sich, das Cookie kommt, die Seite lädt neu und zeigt alles.
+   */
+  const besitzCookie = (await cookies()).get(BESITZ_COOKIE)?.value ?? "";
+  const darfSehen = profil.bezahlt === true || besitzImCookie(besitzCookie, id)
+    || (!!profil.basisId && besitzImCookie(besitzCookie, profil.basisId));
   /* HIER BLEIBT ENGLISCH DER RÜCKFALL, anders als auf den Bewerber-Flächen (Owner
      25.08.2026: „default Rumänisch bei der Bewerbung"): Diese Seite ist die, die der
      Bewerber VERSCHICKT — sie wird von der Personalabteilung geöffnet, nicht von ihm.
      Deren Browsersprache entscheidet weiterhin; wo wir sie nicht erkennen, ist Englisch
      die sichere Annahme, nicht Rumänisch. */
   const L = await resolveLang();
+
+  /* NICHT FREIGESCHALTET: Fremde bekommen NUR diesen Hinweis — kein Name, kein Werdegang,
+     kein Video. Der Besitzer meldet sich über <BesitzMelden/> und sieht danach alles. */
+  if (!darfSehen) {
+    const t = GESPERRT[L] ?? GESPERRT.en;
+    return (
+      <main className="lb-bg lb-dossier min-h-screen text-white">
+        <BesitzMelden id={id} />
+        <div className="mx-auto w-full max-w-[440px] px-4 pb-14 pt-10 md:max-w-[760px]">
+          <article className="lb-karte overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+            <div className="px-5 py-8 md:px-8">
+              <h1 className="font-serif text-[24px] font-black leading-tight">{t.titel}</h1>
+              <p className="mt-2 text-[14px] font-bold leading-snug opacity-70">{t.zeile}</p>
+            </div>
+          </article>
+        </div>
+      </main>
+    );
+  }
 
   /* MULTI-BEWERBUNG (25.08.2026): Eine Bewerbungs-Version trägt `basisId` — Abo und
      30-Tage-Frist hängen IMMER am Hauptprofil, eine Bewerbung lebt nie länger als es. */
