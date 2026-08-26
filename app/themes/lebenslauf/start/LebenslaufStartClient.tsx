@@ -9,6 +9,7 @@ import { produkt } from "@/lib/produkte";
 import ImageCropper from "@/components/ImageCropper";
 import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, VorlagenKachel, KurzeEinwilligung, Knopf, Laden, Eingabe, EingabeMehrzeilig } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
+import type { TrichterTexte } from "./page";
 import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER, EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
 import { aktiveAdresse } from "@/lib/guthaben-konto";
 import { signInWithOAuth, getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -41,10 +42,11 @@ import { darfMessen } from "@/lib/land-erkennen";
  *      die die Kasse für JEDEN Trichter im Haus anhängt), bestätigt die Zahlung serverseitig
  *      und setzt die Kette aus dem Entwurf fort — ohne dass der Kunde noch etwas tun muss.
  */
-export default function LebenslaufStartClient({ lang, code, inhalt }: {
+export default function LebenslaufStartClient({ lang, code, inhalt, texte }: {
   lang: string;
   code: string;
   inhalt?: ReactNode;
+  texte: TrichterTexte;
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -54,7 +56,7 @@ export default function LebenslaufStartClient({ lang, code, inhalt }: {
   return (
     <TunnelSeite inhalt={inhalt} schritte={P.schritte} schrittBekannt={P.schrittBekannt} light={light} code={code} produkt={P.slug}>
       {({ schritt, onSchrittChange }) => (
-        <LebenslaufTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} />
+        <LebenslaufTunnel lang={lang} F={F} schritt={schritt} onSchrittChange={onSchrittChange} texte={texte} />
       )}
     </TunnelSeite>
   );
@@ -91,97 +93,12 @@ function DateiKachel({ datei, titel, hinweis, icon: Icon, onWaehlen, onLoeschen 
 
 /** Die grosse Statuszeile je Stufe (Owner 20.08.2026: „es muss gross stehen was da gemacht
     wird"). Deutsch/Englisch reichen — der Rest der Seite ist ohnehin nur zweisprachig. */
-const STUFEN_TEXT: Record<string, { de: string; en: string }> = {
-  zahlung: { de: "Zahlung wird bestätigt …", en: "Confirming your payment …" },
-  lesen: { de: "Dein Lebenslauf wird gelesen …", en: "Reading your resume …" },
-  match: { de: "Dein Match wird berechnet …", en: "Calculating your match …" },
-  fertig: { de: "Deine Seite wird gebaut …", en: "Building your page …" },
-};
-
 /**
- * DER NEUE EINSTIEG — DIE ANZEIGE ZUERST (Owner 25.08.2026: „Die Seite/Tunnel muss so
- * anfangen: Passt diese Jobanzeige zu mir? Feld für Jobanzeige. Dann … Bewerbung
- * hochladen … Dann wird generiert. 67 %. Jetzt Bewerbung anpassen und Chancen erhöhen.").
- *
- * Der Match ist der Köder und läuft VOR der Kasse (Auswertung mit `vorab: true` legt den
- * Entwurf unbezahlt an; den bezahlt-Stempel setzt erst fertigstellen nach echter Zahlung).
- * Die E-Mail bleibt PFLICHT davor (Haus-Eingangstor, Memory `eingangstore-email-und-alter`)
- * — Reihenfolge: Anzeige → E-Mail → Lebenslauf+Bild → Ergebnis in Prozent → Kauf.
- * Wer keine Anzeige hat, nimmt den kleinen Ausweg darunter und kauft wie bisher direkt.
+ * DIE TEXTE DIESES TRICHTERS KOMMEN JETZT VOM SERVER (Owner 25.08.2026: „hier ist noch
+ * englisch") — vorher standen hier drei de/en-Tabellen, und jede andere Sprache (auch
+ * Rumänisch, der Zielmarkt) fiel auf Englisch zurück. Die deutsche Quelle liegt jetzt in
+ * page.tsx (TRICHTER_QUELLE) und wird dort einmal je Sprache übersetzt (Dauer-Cache).
  */
-const ANZEIGE_TEXT: Record<string, {
-  titel: string; zeile: string; platzhalter: string; weiter: string; ohne: string;
-  weiterMatch: string; gruendeH: string; lueckenH: string;
-  stark: string; mittel: string; schwach: string;
-  cta: string; ctaZeile: string; andere: string;
-  karteH: string; profilH: string; kompetenzenH: string; bearbeiten: string; fertigB: string;
-}> = {
-  de: {
-    titel: "Passt diese Jobanzeige zu dir?",
-    zeile: "Füg den Link oder den Text der Anzeige ein — du siehst gleich in Prozent, wie gut du passt. Kostenlos.",
-    platzhalter: "https://… oder den Text der Anzeige einfügen",
-    weiter: "Weiter — Match kostenlos prüfen",
-    ohne: "Ohne Anzeige starten",
-    weiterMatch: "Weiter — dein Match",
-    gruendeH: "Das passt", lueckenH: "Das fehlt noch",
-    stark: "Starke Übereinstimmung", mittel: "Teilweise Übereinstimmung", schwach: "Schwache Übereinstimmung",
-    cta: "Bewerbung anpassen & Chancen erhöhen",
-    ctaZeile: "Skript, Video und deine fertige Bewerbungsseite — zugeschnitten auf diese Stelle.",
-    andere: "Andere Anzeige testen",
-    karteH: "Deine Bewerbung — Vorschau",
-    profilH: "Profil", kompetenzenH: "Kernkompetenzen",
-    bearbeiten: "Bearbeiten", fertigB: "Fertig",
-  },
-  en: {
-    titel: "Does this job ad fit you?",
-    zeile: "Paste the link or the text of the ad — you'll see in percent how well you fit. Free.",
-    platzhalter: "https://… or paste the ad's text",
-    weiter: "Continue — check your match for free",
-    ohne: "Start without an ad",
-    weiterMatch: "Continue — your match",
-    gruendeH: "What fits", lueckenH: "What's missing",
-    stark: "Strong match", mittel: "Partial match", schwach: "Weak match",
-    cta: "Tailor my application & raise my chances",
-    ctaZeile: "Script, video and your finished application page — tailored to this job.",
-    andere: "Try another ad",
-    karteH: "Your application — preview",
-    profilH: "Profile", kompetenzenH: "Core expertise",
-    bearbeiten: "Edit", fertigB: "Done",
-  },
-};
-
-/**
- * DIE WORTE DER NEUEN SCHRITTE (Owner-Seitentext 24.08.2026: „Dein Skript entsteht … Du
- * änderst ihn, bis er nach dir klingt." · „Du sprichst, wir bauen die Seite. Handykamera
- * reicht." · FAQ: „kein Avatar, keine synthetische Stimme"). Deutsch/Englisch wie die
- * Stufen-Texte — der Trichter ist zweisprachig, der Rest der Seite auch.
- */
-const SKRIPT_TEXT: Record<string, Record<string, string>> = {
-  de: {
-    skriptTitel: "Dein Skript",
-    skriptZeile: "Aus deinem eigenen Werdegang. Ändere ihn, bis er nach dir klingt.",
-    skriptWeiter: "Skript passt — jetzt einsprechen",
-    aufnahmeTitel: "Sprich dein Skript ein",
-    aufnahmeZeile: "Handykamera reicht. Du liest ab, so oft du willst — niemand sieht die Versuche davor.",
-    aufnahmeKachel: "Aufnahme hochladen",
-    aufnahmeHinweis: "Ein Video von dir, in dem du dein Skript sprichst.",
-    aufnahmeLaedt: "Wird hochgeladen …",
-    seiteBauen: "Seite bauen",
-    zurueckSkript: "Zurück zum Skript",
-  },
-  en: {
-    skriptTitel: "Your script",
-    skriptZeile: "Built from your own career. Edit it until it sounds like you.",
-    skriptWeiter: "Script is right — record it now",
-    aufnahmeTitel: "Record your script",
-    aufnahmeZeile: "A phone camera is enough. Read it out as often as you like — nobody sees the attempts before.",
-    aufnahmeKachel: "Upload your recording",
-    aufnahmeHinweis: "A video of you speaking your script.",
-    aufnahmeLaedt: "Uploading …",
-    seiteBauen: "Build my page",
-    zurueckSkript: "Back to the script",
-  },
-};
 
 const ABLAGE = "lb_lebenslauf_entwurf";
 
@@ -198,7 +115,7 @@ type Entwurf = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F: any; schritt: number; onSchrittChange: (s: number) => void }) {
+function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte }: { lang: string; F: any; schritt: number; onSchrittChange: (s: number) => void; texte: TrichterTexte }) {
   const kasse = useKasseImFenster(schritt);
   const [name, setName] = useState("");
   const [mail, setMail] = useState("");
@@ -599,7 +516,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const AT = ANZEIGE_TEXT[lang === "de" ? "de" : "en"];
+  const AT = texte;
 
   return (
     <>
@@ -673,7 +590,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
           {busy ? (
             /* DIE GROSSE STUFEN-ANZEIGE (Owner 20.08.2026: „es muss gross stehen was da
                gemacht wird") — ersetzt die ganze Eingabe-Fläche, solange die Kette läuft. */
-            <Laden art="flaeche" text={(STUFEN_TEXT[stufe] ?? STUFEN_TEXT.lesen)[lang === "de" ? "de" : "en"]} />
+            <Laden art="flaeche" text={(texte as unknown as Record<string, string>)[stufe] ?? texte.lesen} />
           ) : phase === "ergebnis" && matchErgebnis ? (
             /* ───── SCHRITT 3: PROZENT + DIE KARTE (Owner 25.08.2026, präzisiert: „Schritt 3:
                Karte zeigen (Vorschau, Bearbeitung)") — er sieht sein ECHTES Dossier als
@@ -784,7 +701,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
           ) : phase === "skript" ? (
             /* ───── SCHRITT „DEIN SKRIPT" (Owner-Seitentext: „Du änderst ihn, bis er nach
                dir klingt") — bezahlt ist schon; hier wird gelesen und umgeschrieben. ───── */
-            (() => { const S = SKRIPT_TEXT[lang === "de" ? "de" : "en"]; return (
+            (() => { const S = texte; return (
               <div className="flex flex-col gap-3">
                 <p className="text-[17px] font-black text-white/90">{S.skriptTitel}</p>
                 <p className="text-[13px] font-bold leading-snug text-white/70">{S.skriptZeile}</p>
@@ -798,7 +715,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange }: { lang: string;
           ) : phase === "aufnahme" ? (
             /* ───── SCHRITT „EINSPRECHEN" (Owner-Seitentext: „Handykamera reicht … du liest
                ab, so oft du willst"). Das Skript steht zum ABLESEN über der Kachel. ───── */
-            (() => { const S = SKRIPT_TEXT[lang === "de" ? "de" : "en"]; return (
+            (() => { const S = texte; return (
               <div className="flex flex-col gap-3">
                 <p className="text-[17px] font-black text-white/90">{S.aufnahmeTitel}</p>
                 <p className="text-[13px] font-bold leading-snug text-white/70">{S.aufnahmeZeile}</p>
