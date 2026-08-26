@@ -92,9 +92,9 @@ export default async function LebenslaufStartPage({ searchParams }: {
   const hell = String(sp.light ?? "") === "1";
 
   return (
-    <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
+    <main className={`lb-bg lb-zentrale min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
       <TopNav />
-      <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
+      <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3 md:max-w-[760px]">
         <Kicker>{T.heroY}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
         <div className="contents">

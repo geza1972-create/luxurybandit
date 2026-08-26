@@ -221,7 +221,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
      AUCH IM ADMIN-SPIEGEL (next.config.mjs spiegelt jede Seite unter /admin/… — der Owner
      browst die Dossiers genau so, gemessen 25.08.). */
   const hideBar = reelShowing || pathname.startsWith("/look/")
-    || pathname.startsWith("/lebenslauf/") || pathname.startsWith("/admin/lebenslauf/");
+    || pathname.startsWith("/lebenslauf/") || pathname.startsWith("/admin/lebenslauf/")
+    /* DIE BEWERBUNGSZENTRALE — Landingpage und Trichter (Owner 25.08.2026, „Portal Seiten
+       breiter machen", Lebenslauf zuerst) — sie tragen jetzt `.lb-zentrale` und brechen aus
+       der 440px-Handy-Spalte aus (globals.css). Die Leiste ist eine `.lb-phone-col`-Scheibe
+       und bliebe sonst als schmale Insel in der Mitte der breiten Seite stehen — dieselbe
+       Entscheidung wie beim Dossier selbst (hideBar oben). */
+    || pathname.startsWith("/themes/lebenslauf");
 
   return (
     <>

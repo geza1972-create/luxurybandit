@@ -244,11 +244,11 @@ export default async function LebenslaufThemePage() {
   const hilfe = await textbausteineInSprache(HILFE_QUELLE, L);
 
   return (
-    <main className="lb-bg min-h-screen text-white">
+    <main className="lb-bg lb-zentrale min-h-screen text-white">
       <SpracheAmDokument lang={L} />
       <TopNav />
       <TrackView event="lebenslauf_view" lookId="themes-lebenslauf" lookName="Lebenslauf-Thema" />
-      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
+      <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3 md:max-w-[760px]">
         {/* ───── HERO ───── */}
         <Kicker>{t.kicker}</Kicker>
         <H1 className="mt-1">{t.h1A}<Y>{t.h1Y}</Y>{t.h1B}</H1>

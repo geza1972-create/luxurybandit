@@ -54,7 +54,13 @@
      Bewerbung nicht. Die Seite setzt ihre eigene, ruhige Spalte (760 px, mittig) —
      nicht über den ganzen Bildschirm gezogen. */
   .lb-frame:has(.lb-dossier),
-  .lb-frame:has(.lb-werkbank) {
+  .lb-frame:has(.lb-werkbank),
+  /* DIE BEWERBUNGSZENTRALE — Landingpage UND Trichter (Owner 25.08.2026: „die portal
+     seiten muss du mir jetzt fuer den Desktop breiter machen", nach Ruecksprache: erst
+     nur Lebenslauf). Dieselbe Ausnahme wie das Dossier, an das diese beiden Seiten
+     verkaufen — eine Bewerbung wirkt nicht wie Spielzeug, wenn schon der Weg dorthin
+     keiner ist. Die anderen Themen-Seiten bleiben bewusst in der Handy-Spalte. */
+  .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;
     margin: 0;
