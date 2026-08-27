@@ -187,6 +187,8 @@ const TRICHTER_QUELLE = {
   /* Die Prozente je Richtung (Owner 27.08.2026: „die Prozente brauchen wir") — bewusst
      „Richtungen", nicht „Stellen": Wir bewerten eine Art von Arbeit, versprechen aber
      keine offene Stelle. */
+  einschaetzungTitel: "Deine Einschätzung",
+  einschaetzungZeile: "Ehrlich — auch da, wo es noch nicht reicht.",
   richtungenH: "So gut passt du zu diesen Arbeitsrichtungen",
   richtungenHinweis: "Eine Einschätzung deines Profils — keine offenen Stellen.",
   plusH: "Das spricht für dich",

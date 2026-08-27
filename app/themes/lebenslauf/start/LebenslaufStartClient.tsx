@@ -805,11 +805,21 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
 
   /** Kandidaten-Datei progressiv speichern — ein Fehler hier bricht die laufende
       Strecke NIE ab, das Speichern ist Zugabe zum Trichter, kein Blocker. */
-  const kandidatSpeichern = async (felder: Record<string, unknown>) => {
+  /**
+   * DIE KENNUNG KOMMT VON AUSSEN (27.08.2026, live gefunden): Vorher nahm diese Funktion
+   * den Zustand `genId`. Der hinkt aber hinterher, wenn `kennungSichern()` die Kennung
+   * gerade erst geholt hat — React hat den Zustand dann noch nicht gesetzt. Ergebnis war
+   * ein POST mit einer ALTEN Kennung und die Antwort „403 Not yours": Die Akte wurde nicht
+   * gespeichert. Derselbe Zwei-Kennungen-Fehler, der schon eine echte Bewerberin gekostet
+   * hat — deshalb reicht der Aufrufer die Kennung jetzt durch, die er wirklich benutzt.
+   */
+  const kandidatSpeichern = async (felder: Record<string, unknown>, kennung = "") => {
+    const id = kennung || genId;
+    if (!id) return;
     try {
       const r = await fetch("/api/kandidat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: genId, device: geraeteKennung(), ...felder }),
+        body: JSON.stringify({ id, device: geraeteKennung(), ...felder }),
       });
       /* NIE WIEDER STILL SCHEITERN (26.08.2026): Genau hier ging eine echte Bewerberin
          samt erteilter Einwilligung verloren — der Server antwortete 404, der leere
@@ -818,7 +828,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
          nächsten Mal auffällt, statt einen Lead zu kosten. */
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        console.error("[kandidat] nicht gespeichert:", r.status, d?.error, { id: genId, felder: Object.keys(felder) });
+        console.error("[kandidat] nicht gespeichert:", r.status, d?.error, { id, felder: Object.keys(felder) });
         void logFunnelEvent("candidate_save_failed", { theme: "lebenslauf", status: String(r.status) });
       }
     } catch (err) {
@@ -911,7 +921,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
         fuehrerschein: fuehrerscheinChat, stadt: wohnortChat.trim(), telefon: telefonChat.trim(),
         mitCv: !!cvPath, sucheIntent,
         deutschGetestet: deutschChat, schreibprobe: schreibprobe.trim(),
-      });
+      }, gid);
       setBusy(false); setStufe(""); setPhase("vorschlaege");
     } catch { setStatus(F.statusNetwork); setBusy(false); setStufe(""); }
   };
@@ -1377,11 +1387,14 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   {/* DANKE ZUERST (Owner: „Haben wir danke schön gesagt?") — mit Vornamen,
                       bevor die Chancen kommen. */}
                   {!!name.trim() && <p className="text-[15px] font-bold text-white/85">{S.dankeWort}, {name.trim().split(" ")[0]}!</p>}
-                  <p className="text-[17px] font-black text-white/90">{S.vorschlaegeTitel}</p>
-                  <p className="text-[13px] font-bold leading-snug text-white/70">{S.vorschlaegeZeile}</p>
-                  {geordnet.length === 0 && (
-                    <p className="text-[13px] font-bold leading-snug text-white/60">{S.keineChancen}</p>
-                  )}
+                  {/* ÜBERSCHRIFT DER EINSCHÄTZUNG — nicht mehr „Diese Jobchancen könnten zu
+                      dir passen" (27.08.2026, live gesehen): Es werden keine Stellen mehr
+                      gezeigt, also darf die Zeile auch keine versprechen. Die alte
+                      „Gerade keine Jobchancen im Pool"-Meldung ist ersatzlos weg — sie
+                      erschien immer, seit die Chancen-Karten raus sind, und sagte dem
+                      Bewerber fälschlich, es gäbe nichts für ihn. */}
+                  <p className="text-[17px] font-black text-white/90">{S.einschaetzungTitel}</p>
+                  <p className="text-[13px] font-bold leading-snug text-white/70">{S.einschaetzungZeile}</p>
                   {/* ═════ ERST DIE ANALYSE, DANN DIE CHECKLISTE (Owner-Auftrag
                       26.08.2026: „es gibt keine Analyse vor der Checkliste. Das fände ich
                       gut, mit Plus und Minus." · „ich fand die Checkliste gut, weil wir

@@ -116,8 +116,13 @@ async function plusMinus(key: string, profilDaten: unknown, zielSprache: string,
     "WAS ER WILL, SCHLÄGT WAS ER FORMAL KÖNNTE (Owner 26.08.2026, an einem schlechten Vorschlag aufgefallen: einer Bewerberin, die ins Backoffice wollte, wurde eine Fahrerstelle mit 65 % vorgeschlagen — nur weil sie einen Autoführerschein hat). Die Wunschrichtungen aus 'kategorien' und 'klickAntworten.richtungen' sind das WICHTIGSTE Kriterium. Eine Richtung ausserhalb davon darf 40 % NICHT überschreiten, ausser er hat ausdrücklich „zeig mir, was geht“ gewählt. Ein Führerschein, ein Abschluss oder ein fehlendes Sprach-Erfordernis sind Voraussetzungen, KEINE Eignung — sie rechtfertigen nie eine hohe Zahl.",
     "KEINE FIRMEN, KEINE STELLEN: 'rolle' ist eine Art von Arbeit („Kundenservice / Support“), niemals ein Unternehmen oder eine konkrete Anzeige. Wir behaupten nicht, dass dort etwas frei ist.",
     "BEURTEILE NIE DIE PERSON: Alter, Geschlecht, Herkunft, Familienstand oder Aussehen kommen nicht vor — weder im Plus noch im Minus.",
+    "SCHREIB FÜR EINEN MENSCHEN, NICHT ÜBER EINEN DATENSATZ: Nenne NIE Feldnamen, Schlüssel oder JSON-Pfade und keine Wörter wie „Profilangabe“ oder „laut Profil“. Sag einfach, was Sache ist — etwa „Dein Deutsch liegt im Test bei C1.“",
     `Schreibe alles auf ${zielSprache}. DUZE ihn durchgehend (auf Deutsch: du/dein, nie Sie/Ihre).`,
-    "Antworte NUR als JSON: {\"plus\":[\"...\"],\"minus\":[\"...\"],\"fazit\":\"...\"}",
+    /* DIE SCHEMA-ZEILE MUSS ALLES NENNEN (27.08.2026, live gesehen): Sie führte nur plus,
+       minus und fazit — also lieferte das Modell auch nur die drei, und die Prozente je
+       Richtung fehlten in der Anzeige, obwohl der Prompt sie weiter oben verlangte. Das
+       Modell folgt dieser letzten Zeile, nicht der Beschreibung darüber. */
+    "Antworte NUR als JSON: {\"richtungen\":[{\"rolle\":\"...\",\"prozent\":0,\"begruendung\":\"...\"}],\"plus\":[\"...\"],\"minus\":[\"...\"],\"fazit\":\"...\"}",
   ].join("\n\n");
   /* MIT DOKUMENT WIRD AUCH DIE FORM BEURTEILT (Owner 26.08.2026: „und selbst wenn er ein
      CV hochgeladen hat, wird Layout analysiert, Bild …") — die ausgelesenen Felder allein
