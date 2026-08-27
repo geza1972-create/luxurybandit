@@ -1873,7 +1873,11 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen anpassen").
      Umgetextet ist die Katalog-Kachel (app/themes/page.tsx): Shops testen das Werkzeug hier
      und kaufen es bei uns. */
-  { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
+  /* `tryon-01` (nicht mehr `tryon-1`): Die Vorlagen wurden am 27.08.2026 neu nummeriert,
+     damit die angezogenen Motive vorn stehen — der alte Dateiname zeigte danach ins Leere
+     und der Kreis blieb ohne Bild. Jetzt bewusst ein Kleider-Motiv, passend dazu, dass die
+     Kachel Shops anspricht. */
+  { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-01.jpg" },
   /* VERSPRECHEN GEHOERT IN DIE REIHE (Owner 15.08.2026: „wo ist Versprechen im Slider?").
      Es fehlte seit dem ersten Tag der Leiste — als sie entstand, war das Future Self Program
      noch nicht live; seit dem 12.08. verkauft es, stand aber in keiner Tab-Leiste. Genau die

@@ -617,7 +617,13 @@ export default async function ThemesCatalog({ searchParams }: {
        E-Commerce-Firmen anpassen" · „Die können das bei uns einkaufen und hier testen").
        Kein Endkunden-Geschenk mehr — die Kachel spricht Shops an; der Link führt in den
        Funnel zum Selbst-Testen. Kein Preis auf der Kachel: B2B, Preis nach Gespräch. */
-    { icon: Shirt, title: "Virtual try-on for online shops", tagline: "Your products on a model, as a video — test the tool here, get it for your store.", href: TRYON, cover: tryonDressed || ph(6), chips: "For online shops · Test it here · Your products" },
+    /* HOOK IST JETZT EIN ECHTES ANPROBE-VIDEO (Owner 27.08.2026: „da steht ein falsches
+       Motiv als Hook, Bella als Wetter-Dame — ich habe es uebersehen"). Vorher zog die
+       Kachel `tryonDressed` aus Bellas Feed und fiel auf WHITE_DRESS zurueck — genau das
+       Wetter-Motiv. Es zeigt eine Frau in einem Kleid, aber NICHT, was das Werkzeug tut.
+       Jetzt dieselbe Vorlage, die auch im Trichter steht: ein Kleid, in Bewegung, mit
+       Poster daneben — Hausregel „Landingpage-Video = Kachel-Video". */
+    { icon: Shirt, title: "Virtual try-on for online shops", tagline: "Your products on a model, as a video — test the tool here, get it for your store.", href: TRYON, cover: "/Tryon/tryon-01.jpg", poster: "/Tryon/tryon-01.jpg", video: "/Tryon/tryon-01.mp4", chips: "For online shops · Test it here · Your products" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
