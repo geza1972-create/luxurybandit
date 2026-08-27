@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import PageView from "./PageView";
 import InteresseChat from "./InteresseChat";
+import Lightbox from "./Lightbox";
 
 /**
  * DAS ÖFFENTLICHE PORTFOLIO VON GEZA LAKATOS (Owner-Auftrag 27.08.2026: „ich brauche eine
@@ -53,7 +54,7 @@ export default function GezaLakatosCvPage() {
         .gl-case p { margin: 0 0 12px; color: #38352E; }
         .gl-case-shot { display: block; width: 100%; max-width: 480px; border-radius: 4px; border: 1px solid #DCD3BF; margin: 4px 0 14px; }
         .gl-case-shots { display: flex; gap: 10px; margin: 4px 0 14px; overflow-x: auto; padding-bottom: 4px; min-width: 0; max-width: 100%; }
-        .gl-case-shots .gl-case-shot { flex: 0 0 auto; width: 260px; max-width: 260px; margin: 0; }
+        .gl-case-shots .gl-case-shot { flex: 0 0 auto; width: 240px; max-width: 240px; height: 150px; object-fit: cover; object-position: top left; margin: 0; }
         .gl-tags { display: flex; flex-wrap: wrap; gap: 8px; }
         .gl-tag { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; letter-spacing: 0.03em; background: #EAE2CE; color: #38352E; padding: 4px 10px; border-radius: 3px; white-space: nowrap; }
         @media (max-width: 560px) { .gl-case { grid-template-columns: 1fr; } .gl-case-code, .gl-case-body { grid-column: 1; } }
@@ -65,8 +66,8 @@ export default function GezaLakatosCvPage() {
         .gl-lb-pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; margin-bottom: 24px; font-family: "IBM Plex Mono", monospace; font-size: 0.74rem; color: #38352E; }
         .gl-lb-pipeline span:not(.gl-lb-arrow) { background: #EAE2CE; padding: 5px 10px; border-radius: 3px; white-space: nowrap; }
         .gl-lb-arrow { color: #E1592E; font-weight: 700; }
-        .gl-lb-panel { background: #1B1A17; color: #F3EEE2; border-radius: 6px; padding: 34px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 32px; align-items: start; }
-        @media (max-width: 720px) { .gl-lb-panel { grid-template-columns: 1fr; } }
+        .gl-lb-panel { background: #1B1A17; color: #F3EEE2; border-radius: 6px; padding: 34px; display: flex; flex-direction: column; gap: 26px; }
+        .gl-lb-text { max-width: 72ch; }
         .gl-lb-text, .gl-lb-shots { min-width: 0; }
         .gl-lb-text h3 { font-family: "Big Shoulders Display", sans-serif; font-weight: 900; text-transform: uppercase; font-size: 1.9rem; margin: 6px 0 12px; }
         .gl-orange { color: #E1592E; }
@@ -82,7 +83,8 @@ export default function GezaLakatosCvPage() {
         .gl-mini { background: #FFFFFF; border: 1px solid #DCD3BF; border-radius: 4px; padding: 18px 20px; min-width: 0; }
         .gl-mini-shot { display: block; width: 100%; border-radius: 3px; border: 1px solid #DCD3BF; margin-bottom: 12px; }
         .gl-mini-shots { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; min-width: 0; max-width: 100%; }
-        .gl-mini-shots .gl-mini-shot { margin-bottom: 0; flex: 0 0 auto; width: 160px; min-width: 160px; object-fit: cover; height: 130px; }
+        .gl-mini-shots .gl-mini-shot { margin-bottom: 0; flex: 0 0 auto; width: 240px; max-width: 240px; height: 150px; object-fit: cover; object-position: top left; }
+        .gl-case-shots img, .gl-mini-shots img, .gl-lb-shots img { cursor: zoom-in; }
         .gl-mini h4 { margin: 0 0 4px; font-size: 1rem; font-weight: 700; }
         .gl-mini .gl-meta { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: #8A8478; margin-bottom: 8px; }
         .gl-mini p { margin: 0; color: #38352E; font-size: 0.9rem; }
@@ -111,8 +113,9 @@ export default function GezaLakatosCvPage() {
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Big+Shoulders+Display:wght@700;900&display=swap"
       />
 
-      <div className="gl-page">
+      <div className="gl-page lb-portfolio">
         <PageView />
+        <Lightbox />
         <header className="gl-hero">
           <div className="gl-wrap">
             <div className="gl-kicker">Dossier — 2026 · UX / UI Consultant</div>
@@ -307,7 +310,7 @@ export default function GezaLakatosCvPage() {
             <div className="gl-grid">
               <div className="gl-mini">
                 <div className="gl-mini-shots">
-                  <img className="gl-mini-shot" src="/cv/case-festo.png" alt="Smartenance — Wartungsmanager-Plattform für Festo, Desktop und Mobile" style={{ width: 220, minWidth: 220 }} />
+                  <img className="gl-mini-shot" src="/cv/case-festo.png" alt="Smartenance — Wartungsmanager-Plattform für Festo, Desktop und Mobile" />
                   <img className="gl-mini-shot" src="/cv/case-festo-hifi.png" alt="High-Fidelity-Screens des Wartungsmanagers in Figma" />
                 </div>
                 <h4>Smartenance — Wartungsmanager</h4>
@@ -321,7 +324,7 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-mini">
                 <div className="gl-mini-shots">
-                  <img className="gl-mini-shot" src="/cv/case-verivox.png" alt="UX/UI-Konzept des Verivox-Webportals und der Mobile App" style={{ width: 220, minWidth: 220 }} />
+                  <img className="gl-mini-shot" src="/cv/case-verivox.png" alt="UX/UI-Konzept des Verivox-Webportals und der Mobile App" />
                   <img className="gl-mini-shot" src="/cv/case-verivox-hifi.png" alt="High-Fidelity-Design des Hypothekenrechners" />
                 </div>
                 <h4>Vergleichsportal &amp; App</h4>
@@ -334,7 +337,7 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-mini">
                 <div className="gl-mini-shots">
-                  <img className="gl-mini-shot" src="/cv/case-nutrycoach.png" alt="NutryCoach.ai — KI-Ernährungscoaching-Plattform, Startseite" style={{ width: 220, minWidth: 220 }} />
+                  <img className="gl-mini-shot" src="/cv/case-nutrycoach.png" alt="NutryCoach.ai — KI-Ernährungscoaching-Plattform, Startseite" />
                   <img className="gl-mini-shot" src="/cv/case-nutrycoach-mahlzeit.png" alt="KI-Foto-Analyse einer Mahlzeit in NutryCoach.ai" />
                 </div>
                 <h4>Nutrycoach</h4>
@@ -355,7 +358,7 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-mini">
                 <div className="gl-mini-shots">
-                  <img className="gl-mini-shot" src="/cv/case-db.png" alt="Internes Serviceportal der Deutschen Bahn AG" style={{ width: 220, minWidth: 220 }} />
+                  <img className="gl-mini-shot" src="/cv/case-db.png" alt="Internes Serviceportal der Deutschen Bahn AG" />
                   <img className="gl-mini-shot" src="/cv/case-db-workshop.png" alt="Design-Thinking-Workshop mit dem Fachbereich, Prozessdiagramm" />
                 </div>
                 <h4>Serviceportal</h4>

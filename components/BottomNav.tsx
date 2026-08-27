@@ -227,7 +227,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
        der 440px-Handy-Spalte aus (globals.css). Die Leiste ist eine `.lb-phone-col`-Scheibe
        und bliebe sonst als schmale Insel in der Mitte der breiten Seite stehen — dieselbe
        Entscheidung wie beim Dossier selbst (hideBar oben). */
-    || pathname.startsWith("/themes/lebenslauf");
+    || pathname.startsWith("/themes/lebenslauf")
+    /* Das oeffentliche UX-Portfolio (/cv/…) traegt `.lb-portfolio` und bricht ebenfalls aus
+       der Handy-Spalte aus — die Leiste bliebe sonst als schmale Insel darin stehen. Es ist
+       ausserdem keine Produktseite: Wer eine Bewerbung liest, soll nicht in den Shop. */
+    || pathname.startsWith("/cv/");
 
   return (
     <>

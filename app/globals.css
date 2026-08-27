@@ -60,6 +60,12 @@
      nur Lebenslauf). Dieselbe Ausnahme wie das Dossier, an das diese beiden Seiten
      verkaufen — eine Bewerbung wirkt nicht wie Spielzeug, wenn schon der Weg dorthin
      keiner ist. Die anderen Themen-Seiten bleiben bewusst in der Handy-Spalte. */
+  /* DAS OEFFENTLICHE UX-PORTFOLIO (/cv/geza-lakatos, Owner 27.08.2026: „die Seite sieht
+     auf dem Desktop nicht gut aus, es muss breit sein") — derselbe Grund wie beim Dossier
+     darueber: Es ist eine BEWERBUNG, die ein Recruiter am Schreibtisch oeffnet. In der
+     440er-Handy-Spalte stuende sie in einem Telefonrahmen mit grauen Flaechen links und
+     rechts. Die Seite setzt ihre eigene Breite (gl-wrap, bis 1180px). */
+  .lb-frame:has(.lb-portfolio),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;
