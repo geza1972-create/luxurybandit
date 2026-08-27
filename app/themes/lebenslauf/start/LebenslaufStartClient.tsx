@@ -1386,7 +1386,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                 <div className="flex flex-col gap-3">
                   {/* DANKE ZUERST (Owner: „Haben wir danke schön gesagt?") — mit Vornamen,
                       bevor die Chancen kommen. */}
-                  {!!name.trim() && <p className="text-[15px] font-bold text-white/85">{S.dankeWort}, {name.trim().split(" ")[0]}!</p>}
+                  {!!name.trim() && <p className="text-[26px] font-black leading-tight text-white">{S.dankeWort}, {name.trim().split(" ")[0]}!</p>}
                   {/* ÜBERSCHRIFT DER EINSCHÄTZUNG — nicht mehr „Diese Jobchancen könnten zu
                       dir passen" (27.08.2026, live gesehen): Es werden keine Stellen mehr
                       gezeigt, also darf die Zeile auch keine versprechen. Die alte
@@ -1437,7 +1437,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.plus.map((z, i) => (
                             <li key={`p${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
-                              <span className="mt-[1px] shrink-0 font-black text-[#1a7f3c]">+</span>{z}
+                              <span className="lb-plus mt-[2px]">+</span>{z}
                             </li>
                           ))}
                         </ul>
@@ -1447,7 +1447,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.minus.map((z, i) => (
                             <li key={`m${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
-                              <span className="mt-[1px] shrink-0 font-black text-[#b23b3b]">−</span>{z}
+                              <span className="lb-minus mt-[2px]">−</span>{z}
                             </li>
                           ))}
                         </ul>

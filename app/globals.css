@@ -628,6 +628,29 @@ svg {
    AKZENT-Zeilen der Karte; nur ihre Farbe ist keine goldene mehr. Das Altgold #a07a34 ist
    damit NIRGENDS mehr im Haus. */
 .lb-karte .lb-karte-gold, .lb-karte .lb-karte-gold * { color: #1a160f !important; }
+/* PLUS UND MINUS ALS FARBIGE KREISE (Owner 27.08.2026: „diese Liste gefällt mir nicht,
+   weil es keine Farben hat. Wir hatten rote und grüne Farben für Kreise").
+
+   WARUM EIGENE KLASSEN: Die Regel weiter oben faerbt JEDES `span` in der Karte
+   `#2a231c !important` — ein gruenes oder rotes Zeichen per Tailwind-Klasse kam deshalb
+   grau heraus (Memory `lb-karte-important-frisst-inline-farben`, derselbe Fall zum
+   dritten Mal). Zwei Hausklassen mit hoeherer Spezifitaet gewinnen dagegen, genau wie
+   `.lb-karte-gold` daneben. Gefuellter Kreis mit weissem Zeichen — auf dem hellen
+   Kartenpapier das einzige, was auf einen Blick traegt. */
+.lb-karte .lb-plus, .lb-karte .lb-minus {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff !important;
+}
+.lb-karte .lb-plus { background: #1a7f3c; }
+.lb-karte .lb-minus { background: #c0392b; }
 /* ORNAMENTE UND ZEICHEN IN DER KARTE: SCHWARZ IM DUNKLEN, BLAU IM HELLEN (Owner
    06.08.2026: „icons genauso, statt gold, schwarz bitte" · „ornamente schwarz im dark und
    blau in light" · „dann brauchen wir gold nicht mehr als farbe"). Das Altgold #a07a34 ist
