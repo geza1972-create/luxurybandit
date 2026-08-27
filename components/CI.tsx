@@ -1867,7 +1867,10 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
    * anderen sind nicht Teil dieser Rücknahme.
    */
   { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/Rain/rain-kiss.jpg" },
-  { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-poster.jpg" },
+  /* `hochzeit-italien` (27.08.2026): Kachel, Kreis und Video muessen dasselbe Motiv zeigen —
+     der Kreis trug sonst weiter die gemalte Traumwelt, waehrend das Video schon die
+     italienische Szene ist. Hausregel „Landingpage-Video = Kachel-Video". */
+  { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-italien.jpg" },
   { icon: Gift, name: "Surprise", href: "/themes/surprise", bild: "/Pooldance/beispiel-2.jpg" },
   /* TRY-ON — E-COMMERCE-WERKZEUG (Owner 24.08.2026, Klarstellung: „try on habe ich gesagt
      du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen anpassen").

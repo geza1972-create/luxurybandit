@@ -14,7 +14,7 @@ import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
    hier nur eine Client-Referenz an — die Kachel blieb dadurch ohne Bild. */
 import { resolveLang } from "@/lib/lang-server";
 import { VERSPRECHEN_VIDEO, VERSPRECHEN_POSTER } from "@/lib/versprechen";
-import { HOCHZEIT_VIDEO } from "@/lib/hochzeit-video";
+import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 /* DAS ORIGINAL DER PORTAL-BESCHREIBUNG liegt in „Über uns" (Owner 10.08.2026) — von dort
    holen es Startseite und AGB, damit es nur EINE Fassung gibt. */
@@ -528,7 +528,7 @@ export default async function ThemesCatalog({ searchParams }: {
       * den die Landingpage als Anspruch trägt (`claim` in app/themes/wedding): ein Produkt,
       * eine Formulierung.
       */
-    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: HOCHZEIT_VIDEO, chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
+    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: HOCHZEIT_VIDEO_POSTER, poster: HOCHZEIT_VIDEO_POSTER, video: HOCHZEIT_VIDEO, chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
     // KISS DANACH (Owner 30.07.2026: „kiss musst du als erstes nehmen" — bis 09.08. galt das
     // für Platz eins). Auf dieses Thema liefen die ersten Anzeigen, und der Trichter dort ist
     // vollständig; er bleibt deshalb direkt hinter dem Geburtstag.
