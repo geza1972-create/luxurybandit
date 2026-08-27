@@ -15,7 +15,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // absichtlich auf die Zweitfassung.
     { url: `${BASE}/`, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/stores`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE}/bella`, changeFrequency: "daily", priority: 0.9 },
+    /* `/bella` IST RAUS (27.08.2026, in der Search Console gefunden): Die Adresse ist eine
+       reine WEITERLEITUNG auf `/themes/wetter/bella` — also auf das Wetter-Abo, das am
+       11.08.2026 eingestellt wurde und drei Zeilen tiefer ausdruecklich als „raus" vermerkt
+       ist. In der Sitemap stand sie mit Prioritaet 0.9 weiter drin, direkt nach der
+       Startseite. Eine Sitemap darf keine Weiterleitung melden: Google folgt ihr, findet
+       ein abgeschafftes Angebot und wertet die Meldung als unzuverlaessig. Genau diese
+       Adresse taucht in der Console unter „Gefunden — zurzeit nicht indexiert" auf. */
     /* `/themes/wetter/bella` IST RAUS (Owner 11.08.2026: „Wake up with Bella bieten wir nicht
        mehr an"). Sie stand hier mit der höchsten Priorität nach der Startseite und bewarb ein
        Abo, das es nicht mehr zu kaufen gibt — die teuerste Art, Crawl-Budget zu verbrennen.

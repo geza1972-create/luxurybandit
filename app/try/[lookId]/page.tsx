@@ -11,7 +11,7 @@ import { FeedGate } from "@/components/FeedGate";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
-import { renewNote, fillPrices } from "@/lib/pricing";
+import { fillPrices } from "@/lib/pricing";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
@@ -393,7 +393,7 @@ export default function TryFunnelPage() {
   const sellBlock = (
     <div className="mx-auto mt-6 w-full max-w-sm space-y-4">
       <div className="rounded-2xl border border-[#f6cf51]/30 lb-goldhauch p-4">
-        <p className="text-[15px] font-black text-white">{L("Ce primești în abonament", "What you get")}</p>
+        <p className="text-[15px] font-black text-white">{L("Ce primești", "What you get")}</p>
         <div className="mt-2.5 grid gap-2">
           {[
             fillPrices(L("{videos} videoclipuri pe lună — în toate temele împreună", "{videos} videos a month — across every topic")),
@@ -460,20 +460,6 @@ export default function TryFunnelPage() {
 
   // Kasse für das ABO — der Einzelkauf 3,99 € ist abgeschafft (Owner 28.07.2026). Der
   // Aktionscode aus Anzeige/Mail (?code=) reist mit, damit ein Sondercode greift; ohne Code gilt ohnehin der 50-%-Standardgutschein (24,50 €).
-  const [aboBusy, setAboBusy] = useState(false);
-  const startAbo = async () => {
-    if (aboBusy) return;
-    setAboBusy(true);
-    try {
-      const code = (searchParams?.get("code") ?? "").trim();
-      const d = await fetch("/api/chat-abo-checkout", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, returnTo: window.location.pathname + window.location.search }),
-      }).then(r => r.json()).catch(() => null);
-      if (d?.url) { window.location.href = d.url; return; }
-    } catch { /**/ }
-    setAboBusy(false);
-  };
   // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
   /**
    * PREIS EINSETZEN, NICHT NUR HINSCHREIBEN (Owner 31.07.2026: „im Button ist ein Fehler").
@@ -484,7 +470,20 @@ export default function TryFunnelPage() {
    * Beschriftung und nicht bei den Aufrufern: Ein vierter Aufruf koennte ihn sonst wieder
    * vergessen, und das faellt erst auf, wenn ein Kunde davorsteht.
    */
-  const aboLabel = () => fillPrices(L("Deblochează cea mai fierbinte experiență AI — {price}/lună", "Unlock the hottest AI experience ever — {price}/month"), lang);
+  /**
+   * EINMALKAUF STATT ABO (Owner 27.08.2026: „lass die Videos Einmalkauf machen fuer 9,99").
+   *
+   * Hier stand „{price}/Monat" — ein Monats-Abo zu 24,50. Das verstiess gegen die Hausregel
+   * „nur EIN Abo: die Hochzeitsseite" und widersprach ausserdem der eigenen Seite: Schritt 4
+   * bewarb dasselbe Video schon als Einmalkauf („No subscription — you pay for this video
+   * and it is yours"). Zwei Preismodelle fuer dasselbe Produkt, zwei Bildschirme
+   * auseinander. `{tryon}` zieht jetzt an beiden Stellen aus derselben Konstante.
+   */
+  const kaufLabel = () => fillPrices(L("Fă videoclipul tău — {tryon}", "Create your video — {tryon}"), lang);
+  /* `renewNote` stand hier dreimal darunter — sie verspricht „{price}/Monat statt {list},
+     die 50 % bleiben dauerhaft". Ein Abo-Satz unter einem Einmalkauf-Knopf ist schlimmer als
+     gar keiner: Er kuendigt eine Abbuchung an, die nie kommt. */
+  const kaufNote = () => fillPrices(L("Un singur video, o singură plată — fără abonament.", "One video, one payment — no subscription."), lang);
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.
@@ -843,7 +842,7 @@ export default function TryFunnelPage() {
   };
 
   // The paywall's main action: check credits, then arm the countdown (the spend happens after
-  // the 4s window). Out of credits → Premium subscription (first month $8, then $49/mo → 40).
+  // the 4s window). Out of credits → Schritt 4, der Einmalkauf (Owner 27.08.2026).
   const startPaidGenerate = async () => {
     if (adminPin) { generateNow(); return; }
     const email = payEmail();
@@ -1158,16 +1157,16 @@ export default function TryFunnelPage() {
                   // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
                     // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
                     if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
-                  void startAbo();
+                  /* Ohne Guthaben in den EINMALKAUF (Schritt 4), nicht mehr ins Abo. */
+                  setStep(4);
                 }}
-                disabled={aboBusy}
                 className="lb-gold lb-buy mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                 {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
-                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
+                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{kaufLabel()}</span></>}
               </button>
               {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
-                <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
+                <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>
               )}
 
               {examplesRow}
@@ -1242,7 +1241,7 @@ export default function TryFunnelPage() {
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
                                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"><Crown className="h-6 w-6" /></span>
                                   <span className="text-[13px] font-black uppercase tracking-wide text-amber-300">Premium</span>
-                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/85">{L("Deblocheaz-o cu abonamentul.", "Unlock her with the subscription.")}</span>}
+                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/85">{L("Deblocheaz-o cu videoclipul tău.", "Unlock her with your video.")}</span>}
                                 </div>
                               )
                               : null}
@@ -1432,7 +1431,7 @@ export default function TryFunnelPage() {
                       <p className="mb-1 text-center text-[12px] font-black text-[#e7c877]/90">{L("Un model nou în fiecare zi · Vezi-te pe tine · Vorbește cu ea", "A new model every day · See yourself in any look · Chat with her")}</p>
                       <button type="button" onClick={() => router.push(`/you-in-video?lang=${lang}`)}
                         className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                        <Sparkles className="h-5 w-5" /> {fillPrices(L("Vezi-te pe TINE în video — {extra} 🎬", "See yourself in this video — {extra} 🎬"))}
+                        <Sparkles className="h-5 w-5" /> {fillPrices(L("Vezi-te pe TINE în video — {tryon} 🎬", "See yourself in this video — {tryon} 🎬"))}
                       </button>
                       {chosenModelId && (
                         <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}
@@ -1457,11 +1456,11 @@ export default function TryFunnelPage() {
                   )
                 ) : (
                   <>
-                    <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } void startAbo(); }} disabled={aboBusy}
+                    <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } setStep(4); }}
                       className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
-                      {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
+                      {lookIsFree ? L("Vezi videoul", "Watch the video") : kaufLabel()}
                     </button>
-                    {!lookIsFree && <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>}
+                    {!lookIsFree && <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>}
                     {/* WARUM ES SICH LOHNT — hier stand nur ein Knopf. Der Besucher sieht
                         jetzt zuerst fertige Vorher/Nachher-Beispiele und danach, was drin ist
                         und wer wir sind (Owner 28.07.2026). */}
@@ -1478,7 +1477,7 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : fillPrices("One video: {extra} — no subscription needed.")}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : fillPrices("One video: {tryon} — no subscription needed.")}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
@@ -1491,10 +1490,10 @@ export default function TryFunnelPage() {
                ist seit 26.07.2026 abgeschafft — hier standen bis jetzt noch die alten Preise. */
             <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-6 text-center">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">This video</p>
-              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">{fillPrices("{extra}")}</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
+              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">{fillPrices("{tryon}")}</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
               <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>
               <div className="mt-4 grid gap-2 text-left">
-                {["Your model in the look you picked", "Full video, yours to download", fillPrices("Want it daily instead? A topic is {price} a month")].map(perk => (
+                {["Your model in the look you picked", "Full video, yours to download", "Yours to keep — no subscription, no renewal"].map(perk => (
                   <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#f6cf51]" /><span className="text-[13px] font-bold text-white/85">{perk}</span></div>
                 ))}
               </div>
@@ -1707,7 +1706,7 @@ export default function TryFunnelPage() {
                 {lockedNudge && chosenModelLocked && (
                   <div className="mb-2 flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-[12px] font-black text-amber-200">
                     <Lock className="h-4 w-4 shrink-0 text-amber-400" />
-                    <span>{L("Modelul face parte din abonament — deblochează-l mai jos.", "This model is part of the subscription — unlock it below.")}</span>
+                    <span>{L("Deblochează modelul mai jos.", "Unlock this model below.")}</span>
                   </div>
                 )}
                 <button type="button"
@@ -1716,16 +1715,16 @@ export default function TryFunnelPage() {
                     // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
                     // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
                     if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
-                    void startAbo();
+                    /* Ohne Guthaben in den EINMALKAUF (Schritt 4), nicht mehr ins Abo. */
+                    setStep(4);
                   }}
-                  disabled={aboBusy}
-                  className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
+                    className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                   {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
-                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
+                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{kaufLabel()}</span></>}
                 </button>
                 {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
-                  <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
+                  <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>
                 )}
               </>
             )
@@ -1733,7 +1732,7 @@ export default function TryFunnelPage() {
           {step === 4 && !(adminPin && !previewAsUser) && (
             <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
               className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : fillPrices("Get this video — {extra}"))}
+              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : fillPrices("Get this video — {tryon}"))}
             </button>
           )}
         </div>

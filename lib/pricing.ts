@@ -240,6 +240,19 @@ export const TOPUP_GROSS_CENTS = 3000;
 /* 4,99 € SEIT DEM 16.08.2026 (Owner: „wir machen alle preise für 4,99") — zurück auf den
    Preis vom 10.08. mittags, nachdem 9,99 € seit dem 30.07. genau EINEN bezahlten Auftrag
    gebracht hat, und der war der Owner selbst (86 Kuss-Aufträge, 1 bezahlt). */
+/**
+ * DAS ANPROBE-VIDEO — EINMALKAUF (Owner 27.08.2026: „lass die Videos Einmalkauf machen fuer
+ * 9,99"). Es hatte zwei Preise gleichzeitig: der Trichter nahm den Geschenk-Hauspreis (24),
+ * die Galerie-Seite `/try/look-…` verkaufte stattdessen ein Monats-Abo zu 24,50. Zwei Preise
+ * fuer dasselbe Produkt auf derselben Domain — und das Abo verstiess ausserdem gegen die
+ * Hausregel „nur EIN Abo: die Hochzeitsseite".
+ *
+ * Eigene Konstante statt `GESCHENK_VIDEO_CENTS` zu senken: Der Hauspreis traegt Geburtstag,
+ * Kuss, Tanz und Urlaub mit; wer ihn hier anfasst, verbilligt vier andere Produkte
+ * versehentlich mit.
+ */
+export const TRYON_VIDEO_CENTS = 999;               // 9,99 — ein Anprobe-Video, einmal bezahlt
+
 export const GESCHENK_VIDEO_CENTS = 2400;           // 24 $ — Geburtstag · Kuss · Tanz · Urlaub · Versprechen (Owner 20.08.2026: „individuelle Videos, die bekommt niemand günstiger hin")
 
 export const POLEDANCE_CENTS = GESCHENK_VIDEO_CENTS;   // der Tanz kostet wie jedes Geschenk
@@ -362,6 +375,9 @@ export function geschenkPreisCents(geschenk: string): number {
     case "lebenslauf": return LEBENSLAUF_CENTS;
     /* Der Resume Generator (26.08.2026) — siehe RESUME_CENTS. */
     case "resume": return RESUME_CENTS;
+    /* Vor dem `default`, sonst faellt die Anprobe auf den Geschenk-Hauspreis (24) zurueck
+       und der Trichter naehme wieder einen anderen Preis als die Galerie-Seite. */
+    case "tryon": return TRYON_VIDEO_CENTS;
     default: return GESCHENK_VIDEO_CENTS;   // Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }
@@ -745,6 +761,9 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{programm\}/g, eur(VERSPRECHEN_CENTS, lang))
     .replace(/\{videoauf\}/g, eur(VIDEO_UPGRADE_CENTS, lang))
     .replace(/\{topup\}/g, eur(TOPUP_CENTS, lang))
+    /* `{tryon}` — das Anprobe-Video als Einmalkauf (27.08.2026). Ohne eigenen Platzhalter
+       haetten die Texte dort weiter `{extra}` (3,99) oder `{price}` (Monats-Abo) gezogen. */
+    .replace(/\{tryon\}/g, eur(TRYON_VIDEO_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
     .replace(/\{plan\}/g, eur(PLAN_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
@@ -890,7 +909,9 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
      * kiss-video-checkout-Weiche stehen.
      */
     case "gutschein": return ONCE_CENTS;   // „ab 15 €" — das billigste Geschenk darin
-    case "bella": case "tryon": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
+    case "bella": return TOPIC_EFFECTIVE_MONTHLY_CENTS;
+    /* `tryon` ist seit 27.08.2026 KEIN Abo mehr — siehe TRYON_VIDEO_CENTS. */
+    case "tryon": return TRYON_VIDEO_CENTS;
     case "birthday": return GEBURTSTAG_CENTS;   // 4,99 € Startpreis (Owner 07.08.2026)
     /* KEINE ZAHL MEHR IM KOMMENTAR (11.08.2026): Der Preis dieses Themas wechselte an EINEM Tag
        dreimal (49 → 59 → 19,99), und der Kommentar hinkte jedes Mal hinterher. Wer einen Preis
