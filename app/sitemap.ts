@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { alleZielgruppenSlugs } from "@/lib/lebenslauf-zielgruppen";
+import { alleRatgeber, ratgeberUrl } from "@/lib/ratgeber";
 
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "");
 
@@ -67,6 +68,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        ins Leere läuft, gehört nicht in die Sitemap. Die Seiten bleiben im Code stehen; ob sie
        ganz abgeschaltet werden, ist NICHT entschieden und wäre eine eigene Runde. */
     { url: `${BASE}/about`, changeFrequency: "monthly", priority: 0.5 },
+    /* DIE RATGEBER-SEITEN (Owner-Auftrag 27.08.2026) — die EINZIGEN Adressen im Haus mit
+       fester Sprache je URL. Der Rest des Portals uebersetzt zur Laufzeit auf DERSELBEN
+       Adresse; Googlebot ruft mit englischen Kopfzeilen ab und indexiert deshalb genau eine
+       Fassung je Seite (gemessen 27.08.2026: `<html lang>` wechselt, Titel bleibt englisch).
+       Ohne eigene Adressen je Sprache kann das Portal weder auf deutsche noch auf
+       rumaenische Suchanfragen gefunden werden. Beide Fassungen gehoeren in die Sitemap —
+       zusammengehalten werden sie ueber `hreflang` in der jeweiligen Seite. */
+    ...alleRatgeber("de").map(a => ({ url: `${BASE}${ratgeberUrl("de", a.slug)}`, changeFrequency: "monthly" as const, priority: 0.7 })),
+    ...alleRatgeber("ro").map(a => ({ url: `${BASE}${ratgeberUrl("ro", a.slug)}`, changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: `${BASE}/terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE}/privacy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE}/imprint`, changeFrequency: "yearly", priority: 0.3 },
