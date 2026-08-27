@@ -261,6 +261,13 @@ export default function GezaLakatosCvPage() {
                   der Kunde in einem Schritt kauft.
                 </p>
                 <p>
+                  <b>Eigenes Design-System:</b> eine dokumentierte CI-Bibliothek als
+                  verbindliche Quelle — Farb-Tokens, zwei Schriften mit klaren Rollen und
+                  wiederverwendbare Bausteine (Karte, Knopf, Eingabe, Dialog). Jede
+                  Oberfläche wird daraus gebaut, statt Regeln pro Seite neu zu erfinden;
+                  eine Änderung an der Bibliothek wirkt in allen Funnels zugleich.
+                </p>
+                <p>
                   <b>Dahinter:</b> eine eigene Analytics-Pipeline (Funnel-Events von
                   „Anzeige gesehen" bis „bezahlt", pro Produkt vergleichbar, mit Meta
                   Conversions API dedupliziert), Admin-Werkzeuge für Kampagnen, Kandidaten
@@ -278,6 +285,7 @@ export default function GezaLakatosCvPage() {
                   <span className="gl-tag">Stripe Checkout</span>
                   <span className="gl-tag">Meta Pixel + CAPI</span>
                   <span className="gl-tag">Eigenes Analytics</span>
+                  <span className="gl-tag">Design-System / CI</span>
                 </div>
               </div>
               <div className="gl-lb-shots">
@@ -295,6 +303,15 @@ export default function GezaLakatosCvPage() {
                 </div>
                 <div className="gl-phone">
                   <img src="/cv/lb-tryon.png" alt="Virtuelle Anprobe für Online-Shops, Off-Duty-Kollektion" />
+                </div>
+                <div className="gl-phone">
+                  <img src="/cv/lb-kiss-tunnel.png" alt="Kauf-Trichter mit Fortschrittsanzeige, Schritt 1 von 3" />
+                </div>
+                <div className="gl-phone">
+                  <img src="/cv/lb-pricing.png" alt="Preisseite mit Abo-Stufen, Bezahlung über Stripe" />
+                </div>
+                <div className="gl-phone">
+                  <img src="/cv/lb-ci.png" alt="Eigene CI-Bibliothek: Farb-Tokens, Schriftregeln und Bausteine" />
                 </div>
               </div>
             </div>
