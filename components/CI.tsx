@@ -913,7 +913,8 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zielLabel
   /** Ein oder zwei linke Kacheln — der Kuss/die Hochzeit haben zwei (sein Foto/ihr Foto), das
    *  Versprechen/der Geburtstag genau eine (Aufnahme). */
   links: ReactNode;
-  /** Rechts: die `VorlagenKachel` fertig zusammengesetzt vom Aufrufer (er kennt Bild/Video). */
+  /** Rechts: die `VorlagenKachel` fertig zusammengesetzt vom Aufrufer (er kennt Bild/Video).
+   *  `null` = es gibt kein Ziel zu zeigen; dann entfaellt auch der Pfeil. */
   ziel: ReactNode;
   /**
    * WAS DIE RECHTE KACHEL IST (Owner 27.08.2026, an der Anprobe gefunden: „das stimmt gar
@@ -941,15 +942,20 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zielLabel
           Hauses: der Chip steht IMMER links vom Haupt-CTA des Schritts, wie in
           TunnelStart (Schritt 1) und der Look-Wahl (Schritt 2). Die Kachel-Reihe bleibt
           dadurch mittig und beide Bilder auf einer Linie. */}
+      {/* OHNE `ziel` KEIN PFEIL (Owner 27.08.2026, an der Anprobe): Wer sein eigenes
+          Kleidungsstueck hochlaedt, hat rechts nichts zu waehlen — dann darf der Pfeil auch
+          nicht ins Leere zeigen. Die Kacheln stehen dann allein und mittig. */}
       <div className="flex items-center justify-center gap-2">
         {links}
-        <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-        <div className="w-[118px] max-w-[32vw]">
-          {ziel}
-          {zielLabel ? (
-            <p className="mt-1 text-center text-[11px] font-black uppercase tracking-[0.10em] opacity-55">{zielLabel}</p>
-          ) : null}
-        </div>
+        {ziel ? (<>
+          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          <div className="w-[118px] max-w-[32vw]">
+            {ziel}
+            {zielLabel ? (
+              <p className="mt-1 text-center text-[11px] font-black uppercase tracking-[0.10em] opacity-55">{zielLabel}</p>
+            ) : null}
+          </div>
+        </>) : null}
       </div>
       {zusatz}
       <div className="mt-4 flex items-center gap-2">

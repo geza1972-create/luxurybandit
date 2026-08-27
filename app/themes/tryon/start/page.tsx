@@ -3,7 +3,6 @@ import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
-import { tryonVideos } from "@/lib/tryon-videos";
 import TryonStartClient from "./TryonStartClient";
 import { tryonText } from "@/lib/tryon-i18n";
 
@@ -52,7 +51,6 @@ export default async function TryonStartPage({ searchParams }: {
   /* DIE VORLAGEN SIND UNSERE VIDEOS (Pivot 13.08.2026 abends: „user selber klamotten
      hochladen … wir zeigen unsere videos als templates") — public/Tryon, dieselbe Quelle
      wie die Landingpage-Karte. Die A-List-Wardrobe ist aus dem Tunnel raus. */
-  const vorlagen = tryonVideos();
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
@@ -67,7 +65,7 @@ export default async function TryonStartPage({ searchParams }: {
             Titel — und die Leiste kann darueber (Owner: „ueber den Titel bitte"). Den
             Abstand bringt der Trichter selbst mit (`mt-4` an seiner Wurzel). */}
         <div className="contents">
-          <TryonStartClient lang={L} code={code} vorlagen={vorlagen} />
+          <TryonStartClient lang={L} code={code} />
         </div>
       </div>
       <SeitenFuss marke="LB - Try-on" />

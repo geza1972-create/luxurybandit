@@ -156,11 +156,15 @@ export const PRODUKTE: Record<string, ProduktDefinition> = {
     marketing: { headline: "Try this look — 9,99 €", versprechen: "Ein Foto von dir — dein Try-on-Video in der Karte.", demoAsset: "/Tryon" },
     startPfad: "/themes/tryon/start",
     motor: { art: "eigen" },
-    /* DREI Schritte wie jeder Tunnel (Owner 13.08.2026: „Du hast keinen richtigen Tunel
-       gebaut") — Schritt 3 ist Foto-Kachel → Ziel-Look → „Jetzt generieren" IM Gerüst;
-       nur die Bezahl-Stufen nach dem Gratis-Bild wohnen weiter auf /tryon/<lookId>. */
-    schritte: [1, 2, 3],
-    schrittBekannt: 2,
+    /* ZWEI SCHRITTE SEIT 27.08.2026 (Owner: „der User kann doch nicht das als Target
+       nehmen, wenn er seine eigenen Klamotten macht. Das Template-Vorauswahl kommt weg").
+       Die Vorlagen-Wahl war Schritt 2 und versprach laut Beschriftung, „wie sein Video
+       aussehen wird" — sie floss aber NIE in die Erzeugung ein: der Auftrag zieht seinen
+       Szenen-Prompt unabhaengig davon (`tryonPromptZiehen`). Eine Wahl, die nichts
+       bewirkt, ist schlimmer als keine. Jetzt: Anmeldung → eigenes Kleidungsstueck +
+       eigenes Foto → erzeugen. */
+    schritte: [1, 3],
+    schrittBekannt: 3,
     /* KEIN GRATIS (Owner 13.08.2026: „bitte keine Gratis sachen. Ziehe den Tunel stur
        druch von Kiss, Versprechen, Hochzeit") — der Try-on ist ein Geschenk-Video zum
        Hauspreis, dieselbe Kasse, dieselbe Lieferung in die Galerie. */

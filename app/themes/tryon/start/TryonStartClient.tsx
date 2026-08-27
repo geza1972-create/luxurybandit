@@ -6,7 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import ImageCropper from "@/components/ImageCropper";
 import { produkt } from "@/lib/produkte";
-import { TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, VorlagenKachel, BildWahl, KurzeEinwilligung, Knopf, AufladeWaehler } from "@/components/CI";
+import { TunnelStart, TunnelFortschritt, TunnelKacheln, TunnelKachelUpload, KurzeEinwilligung, Knopf, AufladeWaehler } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
 import { tryonText } from "@/lib/tryon-i18n";
 import { getStoredAuthSession, signInWithOAuth } from "@/lib/supabase-auth-client";
@@ -27,19 +27,21 @@ import { darfMessen } from "@/lib/land-erkennen";
  * templates. das ist doch unser tunel"). Also stur die drei Haus-Schritte:
  *
  *   Schritt 1  Name + E-Mail (Haus-Lead, theme "tryon")
- *   Schritt 2  VORLAGEN-Wahl: unsere Videos aus public/Tryon als BildWahl-Slider —
- *              sie zeigen, WAS für ein Video am Ende herauskommt
- *   Schritt 3  SEIN Teil (Shop-Foto genügt) + SEIN Foto als Upload-Kacheln, rechts die
- *              gewählte Vorlage, darunter „Jetzt generieren — 9,99 €" über die EINE
- *              Kasse (Hochzeits-Muster); der Pixverse-Referenz-Lauf (person + garment,
- *              beides SEINE Uploads) zieht an und animiert in einem Lauf, die Galerie
- *              zeigt das Video in der Karte.
+ *   Schritt 3  SEIN Teil (Shop-Foto genügt) + SEIN Foto als Upload-Kacheln, darunter
+ *              „Jetzt generieren — 9,99 €" über die EINE Kasse (Hochzeits-Muster); der
+ *              Pixverse-Referenz-Lauf (person + garment, beides SEINE Uploads) zieht an
+ *              und animiert in einem Lauf, die Galerie zeigt das Video in der Karte.
+ *
+ * DIE VORLAGEN-WAHL WAR SCHRITT 2 UND IST AM 27.08.2026 RAUS (Owner: „der User kann doch
+ * nicht das als Target nehmen, wenn er seine eigenen Klamotten macht"). Sie zeigte unsere
+ * Videos als Slider und versprach, „WAS für ein Video am Ende herauskommt" — floss aber nie
+ * in die Erzeugung ein: der Auftrag zieht seinen Szenen-Prompt unabhaengig davon
+ * (`tryonPromptZiehen`). Die Vorlagen liegen weiter in public/Tryon und tragen die
+ * Landingpage; nur waehlen laesst sich hier nichts mehr, was folgenlos bleibt.
  */
-export default function TryonStartClient({ lang, code, vorlagen }: {
+export default function TryonStartClient({ lang, code }: {
   lang: string;
   code: string;
-  /** Unsere Vorlagen-Videos aus public/Tryon (lib/tryon-videos.ts) — Poster + Clip. */
-  vorlagen: { video: string; poster: string }[];
 }) {
   const searchParams = useSearchParams();
   const light = searchParams.get("light") === "1";
@@ -52,7 +54,6 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
   const [leadBusy, setLeadBusy] = useState(false);
   const [leadFehler, setLeadFehler] = useState("");
 
-  const [vorlage, setVorlage] = useState("0");
   const [foto, setFoto] = useState("");
   const [teil, setTeil] = useState("");
   const fotoRef = useRef<HTMLInputElement>(null);
@@ -89,7 +90,6 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
   }, [mail]);
 
   const P = produkt("tryon");
-  const gewaehlt = vorlagen[Number(vorlage)] ?? vorlagen[0];
 
   /**
    * Genau die Kasse aus `WeddingStartClient.kaufen()` — Guthaben zuerst, sonst Stripe.
@@ -297,7 +297,7 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
             onWeiter={async (n, e) => {
               /* OHNE ADRESSE EINFACH WEITER (Owner 16.08.2026) — siehe TunnelStart in
                  components/CI.tsx: die Pflicht steht jetzt am Erzeugen, nicht an Schritt 1. */
-              if (!e.trim()) { setName(n); setMail(""); setLeadFehler(""); onSchrittChange(2); return; }
+              if (!e.trim()) { setName(n); setMail(""); setLeadFehler(""); onSchrittChange(3); return; }
               setName(n); setMail(e); setLeadBusy(true); setLeadFehler("");
               try {
                 let device = "";
@@ -310,43 +310,15 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
                 if (!r.ok) { setLeadFehler(d?.error ?? F.statusNotWork); setLeadBusy(false); return; }
                 try { localStorage.setItem("lb_kiss_mail", e); } catch { /**/ }
                 setLeadBusy(false);
-                onSchrittChange(2);
+                onSchrittChange(3);
               } catch { setLeadFehler(F.statusNetwork); setLeadBusy(false); }
             }} />
-        )}
-
-        {schritt === 2 && (
-          /* DIE VORLAGEN-WAHL — UNSERE VIDEOS (Owner: „wir zeigen unsere videos als
-             templates"): der BildWahl-Slider spielt die Clips stumm in den Kacheln,
-             die Scheibe öffnet die Karte. Die Wahl ist das Versprechen, WIE sein
-             Video aussehen wird. */
-          <div className="mt-1">
-            <p className="text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{S.schritt2}</p>
-            <div className="mt-2">
-              <BildWahl gross wert={vorlage} waehle={setVorlage} sprache={lang}
-                ansehenLabel={S.cta} titel={S.kicker}
-                bilder={vorlagen.map((v, i) => ({ id: String(i), name: "", bild: v.poster || v.video, video: v.video, poster: v.poster || undefined }))} />
-            </div>
-            {/* Zurueck-Chip LINKS VOM CTA — die EINE Regel. */}
-            <div className="mt-4 flex items-center gap-2">
-              <button type="button" onClick={() => onSchrittChange(1)} aria-label={F.back}
-                className="lb-chip grid h-12 w-12 shrink-0 place-items-center rounded-full active:scale-95 transition">
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <Knopf art="gold" onClick={() => {
-                void logTunnelEvent("look_selected", P.slug, { lookId: `vorlage-${vorlage}` });
-                onSchrittChange(3);
-              }}>
-                {F.tunnelWeiter ?? F.next}
-              </Knopf>
-            </div>
-          </div>
         )}
 
         {schritt === 3 && (<>
           <TunnelKacheln
             zurueckLabel={F.back}
-            aufZurueck={() => onSchrittChange(2)}
+            aufZurueck={() => onSchrittChange(1)}
             links={<>
               {/* SEIN Teil zuerst (der Pivot: er bringt die Klamotte mit), daneben SEIN
                   Foto — beides gestrichelte Haus-Kacheln, beide Plätze immer sichtbar. */}
@@ -357,10 +329,11 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
                 onWaehlen={() => { setCropZiel("foto"); fotoRef.current?.click(); }}
                 onLoeschen={foto ? () => setFoto("") : undefined} />
             </>}
-            ziel={<VorlagenKachel bildUrl={gewaehlt?.poster || ""} videoUrl={gewaehlt?.video || ""}
-              ansehenLabel={S.cta} sprache={lang} titel={S.kicker} />}
-            /* Sagt, dass rechts die VORLAGE steht — nicht das Ergebnis (Owner 27.08.2026). */
-            zielLabel={F.vorlageKachel}
+            /* KEINE ZIEL-KACHEL (Owner 27.08.2026): Rechts stand die gewaehlte Vorlage —
+               eine fremde Person in einem fremden Kleid, hinter einem Pfeil, also genau
+               dort, wo der Nutzer sein Ergebnis erwartet. Wer sein EIGENES Kleidungsstueck
+               hochlaedt, hat dort nichts zu waehlen. */
+            ziel={null}
             knopf={{
               /* Preis erst mit vollstaendigem Beitrag (die generelle Tunnel-Regel vom
                  13.08.) — dann „Jetzt generieren — 9,99 €" aus der Tabelle. */
