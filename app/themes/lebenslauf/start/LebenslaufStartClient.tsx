@@ -1408,52 +1408,52 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   {/* DIE PROZENTE ZUERST (Owner 27.08.2026) — sie sind der Blickfang und
                       der Grund, warum jemand weiterliest. Darunter erst die Begründung. */}
                   {!!analyse?.richtungen?.length && (
-                    <div className="lb-karte overflow-hidden rounded-[18px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.richtungenH}</p>
+                    <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.richtungenH}</p>
                       <div className="mt-2.5 flex flex-col gap-2.5">
                         {analyse.richtungen.map(r => (
                           <div key={r.rolle}>
                             <div className="flex items-baseline justify-between gap-3">
-                              <span className="text-[14px] font-black leading-snug">{r.rolle}</span>
-                              <span className="shrink-0 text-[15px] font-black tabular-nums">{r.prozent}%</span>
+                              <span className="text-[14px] font-black leading-snug text-white/90">{r.rolle}</span>
+                              <span className="shrink-0 text-[15px] font-black tabular-nums text-[#f6cf51]">{r.prozent}%</span>
                             </div>
-                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/10">
-                              <div className="h-full rounded-full bg-[#1a160f]/70" style={{ width: `${r.prozent}%` }} />
+                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                              <div className="h-full rounded-full bg-[#f6cf51]" style={{ width: `${r.prozent}%` }} />
                             </div>
                             {!!r.begruendung && (
-                              <p className="mt-1 text-[12px] font-medium leading-snug opacity-65">{r.begruendung}</p>
+                              <p className="mt-1 text-[12px] font-medium leading-snug text-white/60">{r.begruendung}</p>
                             )}
                           </div>
                         ))}
                       </div>
-                      <p className="mt-3 text-[11px] font-medium leading-snug opacity-45">{S.richtungenHinweis}</p>
+                      <p className="mt-3 text-[11px] font-medium leading-snug text-white/40">{S.richtungenHinweis}</p>
                     </div>
                   )}
 
                   {(!!analyse?.plus?.length || !!analyse?.minus?.length) && (
-                    <div className="lb-karte overflow-hidden rounded-[18px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+                    <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
                       {!!analyse?.plus?.length && (<>
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.plusH}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.plusH}</p>
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.plus.map((z, i) => (
-                            <li key={`p${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
+                            <li key={`p${i}`} className="flex gap-2 text-[13px] font-medium leading-snug text-white/80">
                               <span className="lb-plus mt-[2px]">+</span>{z}
                             </li>
                           ))}
                         </ul>
                       </>)}
                       {!!analyse?.minus?.length && (<>
-                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.minusH}</p>
+                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.minusH}</p>
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.minus.map((z, i) => (
-                            <li key={`m${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
+                            <li key={`m${i}`} className="flex gap-2 text-[13px] font-medium leading-snug text-white/80">
                               <span className="lb-minus mt-[2px]">−</span>{z}
                             </li>
                           ))}
                         </ul>
                       </>)}
                       {!!analyse?.fazit && (
-                        <p className="mt-3 border-t border-black/10 pt-2.5 text-[13px] font-bold leading-snug">{analyse.fazit}</p>
+                        <p className="mt-3 border-t border-white/10 pt-2.5 text-[13px] font-bold leading-snug text-white/90">{analyse.fazit}</p>
                       )}
                     </div>
                   )}

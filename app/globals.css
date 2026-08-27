@@ -637,7 +637,7 @@ svg {
    dritten Mal). Zwei Hausklassen mit hoeherer Spezifitaet gewinnen dagegen, genau wie
    `.lb-karte-gold` daneben. Gefuellter Kreis mit weissem Zeichen — auf dem hellen
    Kartenpapier das einzige, was auf einen Blick traegt. */
-.lb-karte .lb-plus, .lb-karte .lb-minus {
+.lb-plus, .lb-minus, .lb-karte .lb-plus, .lb-karte .lb-minus {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -649,8 +649,8 @@ svg {
   line-height: 1;
   color: #ffffff !important;
 }
-.lb-karte .lb-plus { background: #1a7f3c; }
-.lb-karte .lb-minus { background: #c0392b; }
+.lb-plus, .lb-karte .lb-plus { background: #1a7f3c; }
+.lb-minus, .lb-karte .lb-minus { background: #c0392b; }
 /* ORNAMENTE UND ZEICHEN IN DER KARTE: SCHWARZ IM DUNKLEN, BLAU IM HELLEN (Owner
    06.08.2026: „icons genauso, statt gold, schwarz bitte" · „ornamente schwarz im dark und
    blau in light" · „dann brauchen wir gold nicht mehr als farbe"). Das Altgold #a07a34 ist
