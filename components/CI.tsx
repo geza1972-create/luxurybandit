@@ -906,7 +906,7 @@ export function KurzeEinwilligung({ tpl, linkLabel }: { tpl: string; linkLabel: 
   );
 }
 
-export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, knopf, einwilligung }: {
+export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zielLabel, zusatz, knopf, einwilligung }: {
   /** Vorlesetext des Zurück-Pfeils — „Back"/„Zurück" in der Sprache der Seite. */
   zurueckLabel: string;
   aufZurueck: () => void;
@@ -915,6 +915,14 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, k
   links: ReactNode;
   /** Rechts: die `VorlagenKachel` fertig zusammengesetzt vom Aufrufer (er kennt Bild/Video). */
   ziel: ReactNode;
+  /**
+   * WAS DIE RECHTE KACHEL IST (Owner 27.08.2026, an der Anprobe gefunden: „das stimmt gar
+   * nicht — die Frau rechts ist doch nicht das Ziel"). Die linken Kacheln beschriften sich
+   * selbst; die rechte stand nackt hinter einem Pfeil und las sich als ERGEBNIS, obwohl sie
+   * die gewaehlte Vorlage zeigt — beim Try-on mit einer fremden Person darin. Ohne Label
+   * bleibt alles wie bisher, damit kein Tunnel ungefragt eine Zeile bekommt.
+   */
+  zielLabel?: string;
   /** Produktspezifische Zusatzwahl UNTER den Kacheln (Ort beim Urlaub, Ziele-Chips …) — nie
    *  ein eigener Schritt (KONZEPT-TUNNEL.md). */
   zusatz?: ReactNode;
@@ -936,7 +944,12 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zusatz, k
       <div className="flex items-center justify-center gap-2">
         {links}
         <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
-        <div className="w-[118px] max-w-[32vw]">{ziel}</div>
+        <div className="w-[118px] max-w-[32vw]">
+          {ziel}
+          {zielLabel ? (
+            <p className="mt-1 text-center text-[11px] font-black uppercase tracking-[0.10em] opacity-55">{zielLabel}</p>
+          ) : null}
+        </div>
       </div>
       {zusatz}
       <div className="mt-4 flex items-center gap-2">

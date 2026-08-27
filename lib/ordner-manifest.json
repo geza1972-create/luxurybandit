@@ -1,8 +1,40 @@
 {
   "Tryon": [
     {
-      "video": "/Tryon/tryon-1.mp4",
-      "poster": "/Tryon/tryon-1.jpg"
+      "video": "/Tryon/tryon-01.mp4",
+      "poster": "/Tryon/tryon-01.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-02.mp4",
+      "poster": "/Tryon/tryon-02.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-03.mp4",
+      "poster": "/Tryon/tryon-03.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-04.mp4",
+      "poster": "/Tryon/tryon-04.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-05.mp4",
+      "poster": "/Tryon/tryon-05.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-06.mp4",
+      "poster": "/Tryon/tryon-06.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-07.mp4",
+      "poster": "/Tryon/tryon-07.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-08.mp4",
+      "poster": "/Tryon/tryon-08.jpg"
+    },
+    {
+      "video": "/Tryon/tryon-09.mp4",
+      "poster": "/Tryon/tryon-09.jpg"
     },
     {
       "video": "/Tryon/tryon-10.mp4",
@@ -23,38 +55,6 @@
     {
       "video": "/Tryon/tryon-14.mp4",
       "poster": "/Tryon/tryon-14.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-2.mp4",
-      "poster": "/Tryon/tryon-2.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-3.mp4",
-      "poster": "/Tryon/tryon-3.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-4.mp4",
-      "poster": "/Tryon/tryon-4.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-5.mp4",
-      "poster": "/Tryon/tryon-5.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-6.mp4",
-      "poster": "/Tryon/tryon-6.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-7.mp4",
-      "poster": "/Tryon/tryon-7.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-8.mp4",
-      "poster": "/Tryon/tryon-8.jpg"
-    },
-    {
-      "video": "/Tryon/tryon-9.mp4",
-      "poster": "/Tryon/tryon-9.jpg"
     }
   ],
   "Chat": [

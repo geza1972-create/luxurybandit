@@ -344,6 +344,8 @@ function WeddingTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
                     nachrichten={(DEMO_CHAT[lang] ?? DEMO_CHAT.en).map((t, i) => ({ name: DEMO_NAMEN[i] ?? "Gast", text: t }))} />
                 } />
             }
+            /* Rechts steht die VORLAGE, nicht das Ergebnis (Owner 27.08.2026). */
+            zielLabel={F.vorlageKachel}
             knopf={{
               /* DER FESTE KAUF-BETRAG, NICHT DIE „AB"-ZEILE (Owner-Auftrag 12.08.2026): Die
                  Hochzeit hat GENAU EINEN Preis (`HOCHZEIT_START_CENTS`, kein Ladder-Einstieg)

@@ -380,6 +380,8 @@ function HolidayTunnel({ lang, F, schritt, onSchrittChange }: { lang: string; F:
               * `Eingabe` aus der CI-Bibliothek kann nur einzeilig — für einen Satz reicht das;
               * eine echte Textfläche bräuchte hier keinen Umbruch, den ein Nutzer selbst setzt.
               */
+            /* Rechts steht die VORLAGE, nicht das Ergebnis (Owner 27.08.2026). */
+            zielLabel={F.vorlageKachel}
             zusatz={
               <div className="mt-3">
                 <p className="text-[12px] font-bold text-white/85">{F.satzFrage ?? F.ortFrage}</p>

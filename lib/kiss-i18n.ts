@@ -395,6 +395,14 @@ export type KissText = {
    */
   vorlageAnsehen?: string;
   /**
+   * BESCHRIFTUNG DER ZIEL-KACHEL (Owner 27.08.2026, an der Anprobe gefunden: „das stimmt gar
+   * nicht — die Frau rechts ist doch nicht das Ziel"). Die beiden linken Kacheln sagen, was
+   * sie sind („Dein Foto", „Das Kleidungsstueck"); die rechte stand unbeschriftet hinter
+   * einem Pfeil und las sich damit als ERGEBNIS — dabei ist sie die gewaehlte Vorlage, oft
+   * mit einer fremden Person darin. Ein Wort darunter raeumt das aus.
+   */
+  vorlageKachel?: string;
+  /**
    * EIN SATZ UNTER DER UEBERSCHRIFT (Owner 31.07.2026: „unter dem titel muss doch ein kurzer
    * satz zu der Einladungs seite").
    *
@@ -495,6 +503,7 @@ const EN: KissText = {
      nur im Versprechen-Overlay). Dieselbe Wortwahl wie im Konto-Fenster (lib/konto-chip-i18n). */
   tunnelOder: "or", tunnelGoogle: "Continue with Google",
   vorlageAnsehen: "Watch the example video",
+  vorlageKachel: "Template",
   gateTitel: "First, your email — so we can send you the result.", gateWeiter: "Continue",
   mailNote: "Free. We send you the picture and keep it in your gallery.",
   landFrage: "Your country",
@@ -637,6 +646,7 @@ const DE: KissText = {
   mailQuestion: "Wohin sollen wir dein Bild schicken?",
   tunnelOder: "oder", tunnelGoogle: "Weiter mit Google",
   vorlageAnsehen: "Beispielvideo ansehen",
+  vorlageKachel: "Vorlage",
   gateTitel: "Erst deine E-Mail — damit wir dir das Ergebnis schicken können.", gateWeiter: "Weiter",
   mailNote: "Kostenlos. Wir schicken dir das Bild und heben es in deiner Galerie auf.",
   landFrage: "Dein Land",
@@ -779,6 +789,7 @@ const RO: KissText = {
   mailQuestion: "Unde să-ți trimitem poza?",
   tunnelOder: "sau", tunnelGoogle: "Continuă cu Google",
   vorlageAnsehen: "Vezi videoclipul exemplu",
+  vorlageKachel: "Model",
   gateTitel: "Mai întâi emailul tău — ca să-ți putem trimite rezultatul.", gateWeiter: "Continuă",
   mailNote: "Gratuit. Îți trimitem poza și o păstrăm în galeria ta.",
   landFrage: "Țara ta",
@@ -921,6 +932,7 @@ const ES: KissText = {
   mailQuestion: "¿A dónde te enviamos tu imagen?",
   tunnelOder: "o", tunnelGoogle: "Continuar con Google",
   vorlageAnsehen: "Ver el vídeo de ejemplo",
+  vorlageKachel: "Plantilla",
   gateTitel: "Primero tu email — para poder enviarte el resultado.", gateWeiter: "Continuar",
   mailNote: "Gratis. Te enviamos la imagen y la guardamos en tu galería.",
   landFrage: "Tu país",
@@ -1063,6 +1075,7 @@ const FR: KissText = {
   mailQuestion: "Où devons-nous envoyer ton image ?",
   tunnelOder: "ou", tunnelGoogle: "Continuer avec Google",
   vorlageAnsehen: "Voir la vidéo d'exemple",
+  vorlageKachel: "Modèle",
   gateTitel: "D'abord ton e-mail — pour pouvoir t'envoyer le résultat.", gateWeiter: "Continuer",
   mailNote: "Gratuit. Nous t'envoyons l'image et la gardons dans ta galerie.",
   landFrage: "Ton pays",
@@ -1205,6 +1218,7 @@ const PT: KissText = {
   mailQuestion: "Para onde enviamos a tua imagem?",
   tunnelOder: "ou", tunnelGoogle: "Continuar com Google",
   vorlageAnsehen: "Ver o vídeo de exemplo",
+  vorlageKachel: "Modelo",
   gateTitel: "Primeiro o teu email — para podermos enviar-te o resultado.", gateWeiter: "Continuar",
   mailNote: "Grátis. Enviamos-te a imagem e guardamo-la na tua galeria.",
   landFrage: "O teu país",
@@ -1348,6 +1362,7 @@ const IT: KissText = {
   mailQuestion: "Dove ti mandiamo la tua immagine?",
   tunnelOder: "oppure", tunnelGoogle: "Continua con Google",
   vorlageAnsehen: "Guarda il video di esempio",
+  vorlageKachel: "Modello",
   gateTitel: "Prima la tua email — così possiamo inviarti il risultato.", gateWeiter: "Continua",
   mailNote: "Gratis. Ti mandiamo l'immagine e la teniamo nella tua galleria.",
   landFrage: "Il tuo paese",

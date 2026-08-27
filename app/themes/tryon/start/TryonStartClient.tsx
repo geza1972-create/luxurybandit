@@ -359,6 +359,8 @@ export default function TryonStartClient({ lang, code, vorlagen }: {
             </>}
             ziel={<VorlagenKachel bildUrl={gewaehlt?.poster || ""} videoUrl={gewaehlt?.video || ""}
               ansehenLabel={S.cta} sprache={lang} titel={S.kicker} />}
+            /* Sagt, dass rechts die VORLAGE steht — nicht das Ergebnis (Owner 27.08.2026). */
+            zielLabel={F.vorlageKachel}
             knopf={{
               /* Preis erst mit vollstaendigem Beitrag (die generelle Tunnel-Regel vom
                  13.08.) — dann „Jetzt generieren — 9,99 €" aus der Tabelle. */
