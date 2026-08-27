@@ -14,7 +14,11 @@
  */
 
 /** Das abgenommene Beispielvideo. Liegt im Repo, reist mit dem Code. */
-export const HOCHZEIT_VIDEO = "/Wedding/hochzeit-beispiel.mp4";
+/* NEU 27.08.2026 (Owner: „fuer Wedding brauchen wir ein anderes Video. Eine klassische
+   italienische Hochzeitsszene. Kein Illustrationsstil mehr. Einfach nur edel und
+   luxurioes."). Das alte `hochzeit-beispiel.mp4` zeigte die gemalte Traumwelt und bleibt
+   im Ordner liegen — eine Zeile hier zurueck und es ist wieder da. */
+export const HOCHZEIT_VIDEO = "/Wedding/hochzeit-italien.mp4";
 
 /**
  * Sein Standbild — das erste Bild des Videos, nicht die Katalog-Kachel.
@@ -22,4 +26,4 @@ export const HOCHZEIT_VIDEO = "/Wedding/hochzeit-beispiel.mp4";
  * Ohne Poster zeigt der Spieler eine schwarze Fläche, bis die ersten Bytes da sind
  * (Memory `video-playback-behavior`: „nie ein schwarzer Bildschirm").
  */
-export const HOCHZEIT_VIDEO_POSTER = "/Wedding/hochzeit-beispiel.jpg";
+export const HOCHZEIT_VIDEO_POSTER = "/Wedding/hochzeit-italien.jpg";

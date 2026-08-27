@@ -128,44 +128,47 @@ export function weddingBildPrompt(kleid: string, szeneId?: string): string {
 }
 
 /**
- * DIE TRAUMWELT-KETTE DER HOCHZEIT (Owner 10.08.2026, mit beiden Aufträgen im Wortlaut):
+ * DIE ITALIENISCHE HOCHZEIT (Owner-Aenderungsauftrag 27.08.2026, im Wortlaut):
  *
- * > „Leute laden ein Bild von sich hoch, entweder einzeln oder als Paar. Das wird in einem
- * > surrealistischen Bild umgewandelt, dann an Pixverse gegeben, der ein Video macht."
+ * > „Fuer Wedding brauchen wir ein anderes Video. Eine klassische italienische
+ * > Hochzeitsszene. Kein Illustrationsstil mehr. Einfach nur edel und luxurioes."
  *
- * DER SPRUNG WEG VOM FOTOREALISMUS. Bisher entstand ein fotorealistisches Hochzeitsbild —
- * und daran scheitert jede KI zuverlässig dort, wo es am meisten auffällt: an zwei Gesichtern
- * in einer Szene. Ein GEMALTES Bild trägt dieselbe Ähnlichkeit, ohne dass jede Unschärfe als
- * Fehler gelesen wird; die Handschrift ist der Stil, nicht ein Mangel. Genau dieser Weg hat
- * den Geburtstag gerettet („Dream World"), und der Owner nimmt hier dieselbe Stil-Vorlage:
- * „Ich habe als Referenz das selbe Bild benutzt wie beim Geburtstag."
+ * DAS DREHT DIE ENTSCHEIDUNG VOM 10.08.2026 ZURUECK. Damals ging die Kette bewusst weg vom
+ * Fotorealismus in einen gemalten Stil, mit dieser Begruendung: Jede KI scheitert dort, wo
+ * es am meisten auffaellt — an zwei Gesichtern in einer Szene; ein gemaltes Bild traegt
+ * dieselbe Aehnlichkeit, ohne dass jede Unschaerfe als Fehler gelesen wird.
  *
- * DREI BILDER, EINE REIHENFOLGE — sie ist nicht beliebig, der Auftrag spricht sie an:
- *   1. die STIL-VORLAGE (`HOCHZEIT_STIL`)
- *   2. sein Gesicht
- *   3. ihr Gesicht
- * Lädt jemand EIN Paarfoto hoch, gibt es nur zwei Bilder — dann verweist der Auftrag auf das
- * zweite als gemeinsame Vorlage. Wer die Reihenfolge dreht, dreht die Bedeutung.
+ * DER PREIS BLEIBT BESTEHEN, und er ist dem Owner vorher genannt worden: fotorealistisch
+ * sieht das Paar sich selbst weniger aehnlich, und Abweichungen fallen sofort auf. Der
+ * Prompt arbeitet dagegen mit dem, was geht — er verlangt ausdruecklich echte Hauttextur und
+ * verbietet Glaettung und Stilisierung, statt Weichzeichnen als Rettung zu benutzen.
+ *
+ * KEINE STIL-VORLAGE MEHR. Die Kette schickte bisher als ERSTES Bild `HOCHZEIT_STIL` (das
+ * gemalte Geburtstags-Motiv). Ein fotorealistischer Auftrag braucht es nicht nur nicht — es
+ * wuerde gegen ihn arbeiten. Die Reihenfolge ist jetzt: 1. sein Gesicht, 2. ihr Gesicht.
+ * Bei EINEM gemeinsamen Paarfoto gibt es nur ein Bild, und der Auftrag verweist darauf.
+ * `HOCHZEIT_STIL` bleibt exportiert, damit kein Aufrufer bricht — als Stil-Referenz wird es
+ * nicht mehr mitgeschickt (siehe `app/api/free-preview/route.ts`).
  */
 export const HOCHZEIT_STIL = "/Birthday/look-traum.jpg";
 
-/** Der Bild-Auftrag, wörtlich vom Owner — nur die Namen sind durch die Plätze ersetzt. */
+/** Der Bild-Auftrag: klassische italienische Hochzeit, fotorealistisch. */
 export const hochzeitTraumPrompt = (gemeinsam: boolean) => [
-  "Use the first image as the visual style reference.",
   gemeinsam
-    ? "Use the second image as the identity reference for BOTH people in it."
-    : "Use the second image as the groom's identity reference.\nUse the third image as the bride's identity reference.",
-  "Create them together as a wedding couple in the same dreamy painterly-surreal fantasy world as the first image.",
-  "Keep both clearly recognizable, but transform their faces and bodies into the same painted artistic language as the environment.",
-  "IMPORTANT:\nDo not keep the faces photorealistic.\nTheir faces should look visibly painted and softly illustrated while preserving their identity and key facial features.",
-  "The groom wears an elegant ivory wedding suit.\nThe bride wears a dreamy artistic bridal gown with a veil and flowers.",
-  "Use pastel peach, pink, turquoise, lavender and warm gold.\nPainterly brush textures, glowing fantasy architecture, flowers, bubbles, shimmering light and a magical romantic atmosphere.",
-  "The couple, clothing and background must look like one single painting by the same artist.",
+    ? "Use the first image as the identity reference for BOTH people in it."
+    : "Use the first image as the groom's identity reference.\nUse the second image as the bride's identity reference.",
+  "Create a photorealistic editorial wedding photograph of them together as a newly married couple on the terrace of a historic Italian villa overlooking the sea.",
+  "IMPORTANT:\nBoth must remain clearly recognizable. Preserve their real facial features, skin texture, age and proportions.\nNatural skin with pores and fine detail. No smoothing, no beautification, no illustration, no painting, no stylisation.",
+  "The groom wears a perfectly tailored midnight-blue tuxedo, crisp white shirt and black bow tie.\nThe bride wears an elegant ivory silk gown with a long veil, holding a small bouquet of white peonies.",
+  "They stand close together, sharing a quiet glance and a small smile.",
+  "Warm late-afternoon Mediterranean light, golden hour.\nAged stone balustrade, cypress and olive trees, bougainvillea, the sea and soft hills behind them.",
+  "Shallow depth of field, 85mm portrait lens look, editorial wedding photography.\nTimeless, restrained, luxurious.",
   "No text.\nNo logo.",
 ].join("\n\n");
 
-/** Der Video-Auftrag für Pixverse, wörtlich vom Owner. */
+/** Der Video-Auftrag fuer Pixverse — ruhige Bewegung, damit die Gesichter stabil bleiben. */
 export const HOCHZEIT_TRAUM_VIDEO =
-  "Animate this wedding couple in a dreamy painterly fantasy world. Soft romantic motion, " +
-  "gentle camera push-in, floating bubbles, subtle sparkle particles, slight movement in hair, " +
-  "veil and flowers. Keep the couple beautiful and stable. Magical, romantic, elegant atmosphere.";
+  "Cinematic wedding film. Slow gentle camera push-in on the couple. " +
+  "Subtle natural motion: her veil and gown moving softly in the breeze, loose hair strands, " +
+  "a quiet shared glance and a small smile. Warm golden-hour light, shallow depth of field, " +
+  "elegant and restrained. Keep both faces stable and recognizable. No fast motion.";

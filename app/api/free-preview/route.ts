@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { claimFreePreview, readThemeConfig, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { kussSzene } from "@/lib/kuss-szenen";
-import { weddingBildPrompt, hochzeitTraumPrompt, HOCHZEIT_STIL } from "@/lib/wedding-prompt";
+import { weddingBildPrompt, hochzeitTraumPrompt } from "@/lib/wedding-prompt";
 import { musterAufDataUrl } from "@/lib/wasserzeichen";
 import { holidayBildPrompt } from "@/lib/holiday-invite";
 
@@ -677,12 +677,12 @@ export async function POST(request: Request) {
          * allein; das ist schlechter, aber besser als ein Kauf, der an einer fehlenden Datei
          * stirbt.
          */
-        if (traumHochzeit) {
-          try {
-            const r = await fetch(new URL(HOCHZEIT_STIL, request.url).toString());
-            if (r.ok) form.append("image[]", new Blob([new Uint8Array(await r.arrayBuffer())], { type: "image/jpeg" }), "stil.jpg");
-          } catch { /* dann eben ohne — die Worte tragen auch allein */ }
-        }
+        /* KEIN STILBILD MEHR (Owner-Aenderungsauftrag 27.08.2026: „kein Illustrationsstil
+           mehr, einfach nur edel und luxurioes"). Hier ging bis dahin `HOCHZEIT_STIL` als
+           ERSTES Bild mit — das gemalte Geburtstags-Motiv. Der neue Auftrag ist
+           fotorealistisch; dieses Bild wuerde ihn in genau die Richtung ziehen, aus der er
+           heraus soll. Damit reisen nur noch die Gesichter mit, und `hochzeitTraumPrompt`
+           spricht sie in derselben Reihenfolge an (1. er, 2. sie). */
         form.append("image[]", pb, "person.png");
         if (mb) form.append("image[]", mb, "model.png");
         const r = await fetch("https://api.openai.com/v1/images/edits", {
