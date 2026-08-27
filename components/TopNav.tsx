@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
 import LightSwitch from "@/components/LightSwitch";
-import { ThemenKreise } from "@/components/CI";
 import GuthabenChip from "@/components/GuthabenChip";
 import KontoChip from "@/components/KontoChip";
 
@@ -54,28 +53,61 @@ import KontoChip from "@/components/KontoChip";
  * Der Vorrat bleibt trotzdem sprachweise stehen: Wer je eine Sprache anders fassen will,
  * aendert eine Zeile statt die Struktur.
  */
+/**
+ * „FUNNELS CREATOR" STATT „AI MARKETING PORTAL" (Owner 26.08.2026: „Motto heisst jetzt
+ * Luxurybandit Funnels creator" — im selben Zug wie „Wir sind jetzt ein Funnel Spezialist"
+ * und der Footer-Link „LUXURYBANDIT FUNNELS"). Die Wortmarke darüber sagt schon
+ * LUXURYBANDIT, deshalb steht hier nur die zweite Hälfte — zusammen gelesen ergibt der
+ * Kopf genau den diktierten Namen. Sprachgleich wie zuvor, gleiche Begründung.
+ */
 const MOTTO: Record<string, string> = {
-  en: "AI Marketing Portal",
-  de: "AI Marketing Portal",
-  ro: "AI Marketing Portal",
-  es: "AI Marketing Portal",
-  fr: "AI Marketing Portal",
-  pt: "AI Marketing Portal",
-  it: "AI Marketing Portal",
+  en: "Funnels Creator",
+  de: "Funnels Creator",
+  ro: "Funnels Creator",
+  es: "Funnels Creator",
+  fr: "Funnels Creator",
+  pt: "Funnels Creator",
+  it: "Funnels Creator",
 };
 
 export default function TopNav({
   subtitle,
   actions,
   back = true,
-  kreise = true,
+  marke,
+  heim,
+  motto: mottoUeberschreiben,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
   back?: boolean;                     // Zurück-Pfeil (an, außer man setzt back={false})
-  /** Die Themen-Kreise (Geschenke) — AUS auf Flächen, die an Firmen/Personaler gehen
-      (Memory `serioeses-portal-umbau`): /firmen zeigt keine Kuss- und Try-on-Kreise. */
+  /** STILLGELEGT (Owner 26.08.2026: „Keine topics mehr im header") — die Themen-Kreise
+      sind komplett aus der Kopfzeile raus; das Prop bleibt nur, damit die bestehenden
+      Aufrufer (`kreise={false}` auf /firmen u. a.) nicht brechen. Es bewirkt nichts mehr. */
   kreise?: boolean;
+  /**
+   * ERSETZT DAS WORT „LUXURYBANDIT" IM KOPF (Owner 26.08.2026: „Es soll statt LUXURYBANDIT
+   * im HEADER stehen" — für das Recruiting-Produkt, das bewusst nicht als LuxuryBandit
+   * auftritt, siehe Memory `lebenslauf-eigene-marke`). Ohne dieses Prop steht wie bisher
+   * „LuxuryBandit" — das gilt für alle anderen Produkte weiter unveraendert.
+   */
+  marke?: string;
+  /**
+   * WOHIN LOGO UND PFEIL-FALLBACK FUEHREN, WENN NICHT „/" (Owner 26.08.2026: „oben wenn man
+   * auf das Logo klickt LB-{Topic} dann springt man auf die Landingpage (Topic Startseite)").
+   * Ein Topic mit eigener `marke` ist auch beim Nach-Hause-Gehen eigenständig — der Rückweg
+   * ins grosse Portal steht stattdessen dezent im Footer (`SeitenFuss`s „LUXURYBANDIT
+   * TOOLS"-Link). Ohne dieses Prop bleibt alles wie bisher: „/".
+   */
+  heim?: string;
+  /**
+   * DAS MOTTO MUSS INDIVIDUELL SEIN (Owner 26.08.2026, nachdem „LB - AI Recruiting" über
+   * „AI Marketing Portal" stand): Die Motto-Zeile kam bisher IMMER aus der sprachabhängigen
+   * `MOTTO`-Tabelle — passend für die Geschenk-Produkte, aber falsch für ein Topic, das
+   * schon eine eigene `marke` trägt. Dieses Prop ersetzt sie 1:1, sprachunabhängig, genau
+   * wie `marke` selbst („LB - X" ist ja auch nicht übersetzt).
+   */
+  motto?: string;
 }) {
   const router = useRouter();
   // ZURÜCK: Regel im Haus — jede Seite braucht einen sichtbaren Rückweg. Auf den Browser-
@@ -96,6 +128,14 @@ export default function TopNav({
    */
   const pathname = usePathname();
   /**
+   * KEINE ABLENKUNG IM FUNNEL (Owner 13.08.2026: „ja, teilen raus", jetzt am 26.08.2026 mit
+   * Bild auf die Themen-Kreise UND „Galerie" erweitert: „die müssen aus diesem Funnel
+   * verschwinden"). EINMAL hier am Pfad erkannt statt an jeder Stelle einzeln — Share-Knopf
+   * unten UND die Themen-Kreise nutzen dieselbe Prüfung; `GuthabenChip` prüft für „Galerie"
+   * denselben Pfad selbst (sie hat ihre eigene Pfad-Abfrage schon für `inGalerie`).
+   */
+  const imTrichter = /^\/themes\/[^/]+\/start\/?$/.test(pathname ?? "");
+  /**
    * NACH HAUSE HEISST JETZT „/" (03.08.2026): Seit die Wurzel die Themen selbst ausliefert
    * (app/page.tsx, vorher eine Weiterleitung), ist sie die echte Startadresse. Wer den Pfeil
    * oder das Logo antippt, soll danach `luxurybandit.com` in der Adresszeile stehen haben —
@@ -103,8 +143,13 @@ export default function TopNav({
    *
    * /themes zeigt dieselbe Seite und bleibt ueberall verlinkt; deshalb gilt sie hier als
    * ZWEITE Heimatadresse: Auf ihr darf ebenso wenig ein Zurueck-Pfeil stehen wie auf „/".
+   *
+   * AUSSER EIN TOPIC BRINGT SEINE EIGENE MIT (`heim`-Prop, Owner 26.08.2026): Dann ist
+   * SEINE Landingpage die Heimatadresse — der Pfeil bei Direkteinstieg (Anzeige, geteilter
+   * Link auf den Trichter) landet dort statt im grossen Portal, und auf der eigenen
+   * Landingpage selbst verschwindet der Pfeil ganz (man ist ja schon da).
    */
-  const HEIM = "/";
+  const HEIM = heim ?? "/";
   const HEIM_ALT = "/themes";
   const [tiefe, setTiefe] = useState(0);
   useEffect(() => {
@@ -116,15 +161,18 @@ export default function TopNav({
     setTiefe(n);
   }, [pathname]);
 
-  /* Das Motto in seiner Sprache — aus demselben Keks, den der Sprachumschalter setzt. */
-  const [motto, setMotto] = useState(MOTTO.en);
+  /* Das Motto in seiner Sprache — aus demselben Keks, den der Sprachumschalter setzt.
+     Nur noetig, wenn keine eigene `motto` hereinkommt (siehe `mottoAnzeige` unten). */
+  const [mottoSprache, setMottoSprache] = useState(MOTTO.en);
   useEffect(() => {
+    if (mottoUeberschreiben) return;
     try {
       const m = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
       const l = m ? decodeURIComponent(m[1]).slice(0, 2) : "";
-      if (l && MOTTO[l]) setMotto(MOTTO[l]);
+      if (l && MOTTO[l]) setMottoSprache(MOTTO[l]);
     } catch { /* kein Keks lesbar: Englisch steht schon da */ }
-  }, [pathname]);
+  }, [pathname, mottoUeberschreiben]);
+  const mottoAnzeige = mottoUeberschreiben ?? mottoSprache;
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
   const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
   const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
@@ -144,32 +192,44 @@ export default function TopNav({
   // wirklich darueber gehoert: Menue (60/61), BottomNav (70), Dialoge (80–96).
   return (
     <header data-topnav="1" className="sticky top-0 z-50 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
-        {back && canBack && (
-          <button type="button" onClick={zurueck} aria-label="Back"
-            className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90 transition hover:text-white">
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-        )}
-        {/* Brand → STARTSEITE = "/". Hier stand /themes, weil "/" frueher nur weiterleitete;
-            seit die Wurzel die Themen selbst ausliefert, ist der Umweg unnoetig. */}
-        <button type="button" onClick={() => router.push(HEIM)} aria-label="Home"
-          className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
-          <span className="relative h-9 w-9 shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
-              onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
-            <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
-          </span>
-          <span className="min-w-0 text-left">
-            <span className="block whitespace-nowrap text-sm font-black uppercase leading-none tracking-widest text-white">LuxuryBandit</span>
-            {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
-                kommt allenfalls dahinter, ersetzt es aber nie. */}
-            <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
-              {motto}
+      {/* max-w-[440px] md:max-w-[760px] statt max-w-6xl: In der 440px-Handy-Spalte war
+          das nie sichtbar (der Rahmen selbst war schmaler als jedes max-w), aber
+          `.lb-zentrale`-Seiten (Owner 25.08.2026, Bewerbungszentrale breiter) sprengen
+          den Rahmen — dort riss max-w-6xl (1152px) Logo und Symbole weit auseinander.
+          Jetzt deckt sich die Kopfzeile exakt mit der Inhaltsspalte darunter. */}
+      <div className="mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between gap-3 px-4 py-2.5">
+        {/* Rueckpfeil + Marke sind EINE linke Gruppe (26.08.2026, Owner mit Bild: „logo
+            links" — auf der jetzt breiten Bewerbungszentrale trieb `justify-between` mit
+            drei Kindern die Marke in die Mitte der Zeile, weit vom Pfeil weg). Ein
+            gemeinsamer Flex-Container haelt beide fest am linken Rand, egal wie breit die
+            Zeile ist; nur die EINE verbleibende Luecke vor den Symbolen rechts waechst. */}
+        <div className="flex min-w-0 items-center gap-3">
+          {back && canBack && (
+            <button type="button" onClick={zurueck} aria-label="Back"
+              className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90 transition hover:text-white">
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+          )}
+          {/* Brand → STARTSEITE = "/". Hier stand /themes, weil "/" frueher nur weiterleitete;
+              seit die Wurzel die Themen selbst ausliefert, ist der Umweg unnoetig. */}
+          <button type="button" onClick={() => router.push(HEIM)} aria-label="Home"
+            className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
+            <span className="relative h-9 w-9 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
+                onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
+              <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
             </span>
-          </span>
-        </button>
+            <span className="min-w-0 text-left">
+              <span className="block whitespace-nowrap text-sm font-black uppercase leading-none tracking-widest text-white">{marke ?? "LuxuryBandit"}</span>
+              {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
+                  kommt allenfalls dahinter, ersetzt es aber nie. */}
+              <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
+                {mottoAnzeige}
+              </span>
+            </span>
+          </button>
+        </div>
 
         {/* Right: the CI icons (or a page override). No menu button — menu is in the bottom nav.
             Die SPRACHWAHL steht NICHT mehr hier: sie hat auf schmalen Geräten das Wortmark
@@ -202,7 +262,7 @@ export default function TopNav({
                   /themes/<produkt>/start-Adressen sind das eine Muster. Header, Konto und
                   Guthaben bleiben: sie sind Ausgang und Status, kein Schaufenster (§18:
                   „LuxuryBandit muss sichtbar bleiben"). */}
-              {!/^\/themes\/[^/]+\/start\/?$/.test(pathname ?? "") && (
+              {!imTrichter && (
                 <button type="button" onClick={share} className={iconBtn} aria-label="Share">
                   <Send className="h-4 w-4" />
                 </button>
@@ -224,7 +284,7 @@ export default function TopNav({
           stehen? … mit Icon bitte"). Der Chip zeigt sich nur, wenn wir die Adresse kennen —
           siehe GuthabenChip. `justify-between` statt `justify-end`: ohne Chip rückt die
           Sprache dank des leeren ersten Kinds trotzdem nach rechts. */}
-      <div data-langrow="1" className="mx-auto flex max-w-6xl items-center justify-between px-4 pb-2">
+      <div data-langrow="1" className="mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between px-4 pb-2">
         {/* Der Span steht IMMER — rendert der Chip nichts, bleibt er leer, und
             `justify-between` schiebt die Sprache weiter nach rechts wie bisher. */}
         {/* DAS KONTO-ZEICHEN STEHT NICHT HIER, sondern oben neben dem Teilen-Knopf (Owner
@@ -249,26 +309,16 @@ export default function TopNav({
         </span>
       </div>
       {/**
-        * DIE THEMEN-LEISTE STEHT IM KOPF, ALSO UEBERALL (Owner 15.08.2026: „Slider ueberall
-        * einbauen").
-        *
-        * WARUM HIER und nicht in jeder Seite: `TopNav` liegt auf 43 Seiten. Neunmal
-        * einbauen hiesse, sie neunmal zu pflegen — dieselbe Falle, aus der wir den
-        * Kassen-Weg heute schon herausgeholt haben. Hier ist sie einmal da, und die Regel
-        * „aendern heisst ueberall aendern" gilt von selbst.
-        *
-        * UND SIE SCHLIESST DIE TAB-LUECKE: Die Reiter fuehren auf Themenseiten. Standen sie
-        * nur im Tunnel, landete ein Tipp auf einer Seite OHNE Leiste — man kam nicht zurueck,
-        * genau wie der Owner es erlebt hat. Im Kopf ist die Leiste immer da.
-        *
-        * SIE SCROLLT MIT DEM KOPF (`sticky`), weil sie ein Teil von ihm ist: Wer unten auf
-        * einer langen Seite steht, wechselt das Thema ohne hochzuscrollen.
+        * DIE THEMEN-LEISTE IST GANZ AUS DEM KOPF RAUS (Owner 26.08.2026, zweiter Anlauf:
+        * „mach die topics weg. ich habe die schon mal rausgemacht und sind wieder drin.
+        * Keine topics mehr im header."). Der erste Anlauf blendete sie nur auf
+        * `/themes/<produkt>`-Pfaden aus — die neue Topic-Landingpage unter /topics/… zeigte
+        * sie prompt wieder, weil ihr Pfad nicht matchte. Eine Pfad-Liste, die man pflegen
+        * muss, ist genau die Falle; jetzt gilt: KEINE Kreise im Kopf, nirgends. Die
+        * Übersicht aller Funnels ist die Startseite „/" selbst (Kacheln) und der Menüpunkt
+        * „Funnels" in der BottomNav. `ThemenKreise` (components/CI.tsx) bleibt als Baustein
+        * bestehen — nur die Kopfzeile ruft ihn nicht mehr.
         */}
-      {kreise && (
-        <div className="mx-auto max-w-6xl px-4 pb-2">
-          <ThemenKreise />
-        </div>
-      )}
     </header>
   );
 }

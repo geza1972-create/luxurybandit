@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSignedUrl, createSignedUploadUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 import { leseLebenslauf, schreibeLebenslauf } from "@/lib/lebenslauf-store";
+import { fotoAblegen } from "@/lib/lebenslauf-foto";
 
 export const runtime = "nodejs";
 
@@ -29,21 +30,6 @@ export const runtime = "nodejs";
  * Kuss-Liefermail auslöst (die passt hier nicht: die Profilseite ist die Lieferung).
  */
 
-/** Data-URL dauerhaft ablegen — dasselbe Muster wie `ablegen` in /api/kiss-log. */
-async function fotoAblegen(dataUrl: string): Promise<string> {
-  try {
-    const m = /^data:([^;]+);base64,(.+)$/.exec(String(dataUrl).trim());
-    if (!m) return "";
-    const up = await createSignedUploadUrl("uploads", (m[1].split("/")[1] ?? "jpg").replace(/[^a-z0-9]/gi, ""));
-    const put = await fetch(up.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": m[1], "x-upsert": "true" },
-      body: new Uint8Array(Buffer.from(m[2], "base64")),
-    });
-    return put.ok ? up.path : "";
-  } catch { return ""; }   // das Poster ist Zugabe — das Profil wird trotzdem fertig
-}
-
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
   const id = String(body.id ?? "").trim();
@@ -69,22 +55,16 @@ export async function POST(request: Request) {
   const fotoPath = foto.startsWith("data:") ? await fotoAblegen(foto) : "";
   const fotoUrl = fotoPath ? await getSignedUrl(fotoPath, 60 * 60 * 24 * 365 * 10).catch(() => "") : "";
 
-  /* DER BEZAHLT-STEMPEL SITZT JETZT HIER (Stufe-0-Trichter 25.08.2026): Die Auswertung
-     läuft neuerdings VOR der Kasse (`vorab`) und legt den Entwurf unbezahlt an. Fertig
-     gebaut wird eine Seite nur, wenn der Kiss-Log-Auftrag wirklich bezahlt ist — sonst
-     könnte jeder die Kette per Hand durchrufen und das Produkt gratis abholen. Altprofile
-     (bezahlt schon true aus der alten Kette) gehen unverändert durch. */
-  let bezahltJetzt = profil.bezahlt === true;
-  if (!bezahltJetzt) {
-    try { bezahltJetzt = (await readKissLog()).find(x => x.id === id)?.paid === true; } catch { /**/ }
-  }
-  if (!bezahltJetzt) {
-    return NextResponse.json({ error: "Bitte zuerst bezahlen." }, { status: 402 });
-  }
-
+  /* ANLEGEN IST GRATIS, AUCH DAS FERTIGSTELLEN (Owner 25.08.2026, Gratis-Linie: „Er kann
+     alles anlegen gratis, nur er kann das nicht sharen und PDF nicht herunterladen" — live
+     bestätigt am 26.08.2026: der Kunde kam mit eigenem Foto+Lebenslauf bis hierher und
+     wurde trotzdem zur Kasse geschickt, weil diese Route bis dahin mit 402 blockte, wenn
+     der Kiss-Log-Auftrag nicht bezahlt war). Die Sperre sitzt jetzt allein auf der
+     Profilseite (`SchlossHinweis`/`gesperrt` in `LebenslaufExecutive.tsx`) — hierher
+     gehört sie nicht mehr. `bezahlt` wird deshalb nur noch übernommen, nie hier gesetzt. */
   const ok = await schreibeLebenslauf({
     ...profil,
-    bezahlt: true,
+    bezahlt: profil.bezahlt === true,
     videoUrl,
     ...(fotoUrl ? { fotoUrl } : {}),
     ...(originalPath.startsWith("try-this-look/") ? { aufnahmePath: originalPath } : {}),

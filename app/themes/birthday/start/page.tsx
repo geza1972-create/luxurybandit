@@ -4,7 +4,10 @@ import SeitenFuss from "@/components/SeitenFuss";
 import { Kicker, H1, Y } from "@/components/Landing";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
+/* „Traum" ist aus den Beispielen raus (Owner 27.08.2026: „entferne das erste Video,
+   das passt nicht vom Stil. Dafür ist das zweite Video der Hook") — der Look selbst bleibt
+   im Generator wählbar, nur als Aushängeschild taugte das bunte Bild nicht. */
+import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 import BirthdayStartClient from "./BirthdayStartClient";
 import BirthdayInhalt from "@/components/BirthdayInhalt";
 
@@ -42,7 +45,7 @@ export default async function BirthdayStartPage({ searchParams }: {
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Birthday" heim="/themes/birthday" motto="AI Birthday Videos" />
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <Kicker>{T.heroY || "Happy birthday video"}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
@@ -57,10 +60,10 @@ export default async function BirthdayStartPage({ searchParams }: {
               (Owner 14.08.2026, Dauerregel fuer den Tunnel). Auf dem Server gebaut und
               als fertiger Knoten durchgereicht; `TunnelSeite` haengt ihn unten an. */}
           <BirthdayStartClient inhalt={<BirthdayInhalt T={T} />} lang={L} code={code}
-            beispielVideos={[GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
+            beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
         </div>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Birthday" />
     </main>
   );
 }

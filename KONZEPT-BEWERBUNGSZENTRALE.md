@@ -905,3 +905,30 @@ am Owner-Testprofil: /lebenslauf/f539748a-3b37-40e8-9107-40e7ec01df6e.
   Owner-Antwort steht aus). Offen: Status „Geöffnet" automatisch bei erster
   fremder Öffnung setzen (Claude-Vorschlag nach Kritik „Handpflege
   verrottet"; Einladung/Absage blieben von Hand).
+- Desktop breiter (26.08.2026, Owner: „die portal seiten muss du mir jetzt
+  für den Desktop breiter machen", nach Rücksprache erst nur Lebenslauf):
+  `.lb-frame` bricht bei `.lb-zentrale` (neu, auf `<main>` in Landingpage +
+  Trichter) auf volle Breite auf, Inhalt bleibt in einer eigenen
+  `max-w-[760px]`-Spalte — dieselbe Ausnahme wie beim Dossier. Die anderen
+  zehn Produkte bleiben in der 440px-Handy-Spalte.
+- Kopfzeile kaputt nach der Verbreiterung (26.08.2026, Owner mit Bild: „ah
+  nee, mach mir das nicht kaputt. Schau dir den Header an"): `TopNav` hatte
+  `max-w-6xl` (1152px) auf seinen drei Zeilen — unsichtbar, solange der
+  Rahmen überall 440px war, aber auf der jetzt vollbreiten
+  Bewerbungszentrale riss es Logo und Symbole weit auseinander. Behoben:
+  dieselbe `max-w-[440px] md:max-w-[760px]`-Spalte wie der Seiteninhalt,
+  auf allen zehn anderen Produkten wirkungslos (der Rahmen dort ist ohnehin
+  nie breiter als 440px).
+- Erstellen kostete Geld — Fehler behoben (26.08.2026, Owner live mit eigenem CV: „warum
+  muss ich jetzt zahlen. Das ist die Gratis Version und ich habe keine Bewerbung generieren
+  können."): Ohne Anzeige führte „Profil erstellen" direkt in eine echte Stripe-Kasse
+  (19 €), UND `/api/lebenslauf-fertigstellen` blockte mit 402, wenn nicht wirklich bezahlt
+  war — zwei Stellen, die noch die alte Kette voraussetzten, bevor die Gratis-Linie
+  (25.08.) entschieden war. Beides jetzt gratis: `starten()` ruft die Auswertung direkt,
+  keine Kasse mehr; `/api/lebenslauf-auswertung` und `/api/lebenslauf-fertigstellen`
+  setzen `bezahlt` nur noch aus dem Bestand, nie mehr selbst auf `true`. Die Kasse
+  (`kaufen`/`kasse` im Trichter) bleibt im Code stehen — sie ist die EINE Kasse des
+  Produkts (siehe `SchlossHinweis`), wird künftig aber von Teilen/PDF/Video-generieren
+  ausgelöst, nicht mehr vom Erstellen. Geprüft direkt gegen beide Routen: Auswertung und
+  Fertigstellen laufen jetzt ohne jede Zahlung durch, ein Fremder sieht die neue Seite
+  trotzdem nur gesperrt (bezahlt bleibt korrekt `false`).

@@ -130,7 +130,7 @@ export default function AdminPage() {
   }, []);
   const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails" | "ads" | "kaeufe">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails" | "ads" | "kaeufe" | "bewerber">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
       if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads" || t === "kaeufe") return t;
@@ -140,7 +140,7 @@ export default function AdminPage() {
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads" || t === "kaeufe") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails" || t === "ads" || t === "kaeufe" || t === "bewerber") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -1850,6 +1850,16 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "kaeufe" ? "bg-black text-white" : "text-ink/50"}`}>
             🧾 Käufe
           </button>
+          {/* DIE BEWERBER-SEITEN GEHÖREN INS DASHBOARD (Owner 26.08.2026: „du weisst, dass
+              ich ein Dashboard habe als Admin. Warum hast du mir extra diese Seite gebaut
+              und nicht da rein ins /admin?") — vier Seiten dieser Produktlinie lagen ohne
+              jeden Link herum und waren nur über die getippte Adresse erreichbar. Der
+              Reiter sammelt sie; die Seiten selbst bleiben eigenständig (wie LuxbanditCut),
+              weil jede ihren eigenen vollen Arbeitsplatz hat. */}
+          <button type="button" onClick={() => setTab("bewerber")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "bewerber" ? "bg-black text-white" : "text-ink/50"}`}>
+            💼 Bewerber
+          </button>
           {/* DAS ADS-PLAYBOOK (Owner 13.08.2026: „klar hätte ich das gerne im ADMIN"). */}
           <button type="button" onClick={() => setTab("ads")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "ads" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -3328,6 +3338,34 @@ export default function AdminPage() {
       {/* Themenfilter bewusst LEER — das ist der ganze Unterschied zur Ansicht auf den
           Themenseiten (siehe `theme`-Prop in components/UploadsAdmin.tsx). */}
       {tab === "kaeufe" && <div className="lb-theme mt-4"><UploadsAdmin title="Alle Käufe — jeder Kunde, jedes Produkt" theme="" suche={query} /></div>}
+
+      {tab === "bewerber" && (
+        <div className="mt-3 pb-16">
+          {[
+            { href: "/admin/kandidaten", icon: "👤", titel: "Kandidaten-Pool",
+              text: "Wer sein Interesse gezeigt hat — mit Telefon, Ort, Werdegang, Bewerbungsnote und den offenen Premium-Rückrufen.",
+              rand: "border-amber-300", flaeche: "bg-amber-50" },
+            { href: "/admin/chancen", icon: "📋", titel: "Jobchancen-Pool",
+              text: "Die von Hand gepflegten Marktchancen. Eine Chance erscheint erst, wenn sie aktiv UND geprüft ist.",
+              rand: "border-violet-300", flaeche: "bg-violet-50" },
+            { href: "/admin/lebenslauf", icon: "🔓", titel: "Kontakt-Freigabe",
+              text: "Erst wenn eine Firma konkretes Interesse bestätigt, werden die Kontaktdaten eines Bewerbers sichtbar.",
+              rand: "border-teal-300", flaeche: "bg-teal-50" },
+            { href: "/admin/lebenslauf-spiele", icon: "🎯", titel: "Bewerberberater",
+              text: "Die gespeicherten Gespräche aus dem Spielplatz.",
+              rand: "border-sky-300", flaeche: "bg-sky-50" },
+          ].map(k => (
+            <a key={k.href} href={k.href}
+              className={`mb-3 flex items-center justify-between gap-2 rounded-2xl border ${k.rand} ${k.flaeche} p-3 active:scale-[0.99] transition`}>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-ink">{k.icon} {k.titel}</p>
+                <p className="mt-0.5 text-[12px] font-bold text-ink/50">{k.text}</p>
+              </div>
+              <span className="shrink-0 text-ink/40">→</span>
+            </a>
+          ))}
+        </div>
+      )}
 
       {tab === "meta" && (
         <div className="mt-3 pb-16">

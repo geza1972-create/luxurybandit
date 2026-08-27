@@ -114,10 +114,37 @@ export type LebenslaufProfil = {
       Beschriftung in der Liste „Deine Bewerbungen". */
   anzeigeTitel?: string;
   anzeigeFirma?: string;
+  /** Der volle Anzeigen-Text — NUR für den Resume Generator (26.08.2026): Der
+      9,99-Optimier-Lauf braucht die Anzeige noch einmal, nachdem der Gratis-Lauf längst
+      vorbei ist. Bleibt intern, keine Route gibt ihn an den Client. */
+  anzeigeText?: string;
   matchProzent?: number;
+  /**
+   * DIE STRUKTUR-ANALYSE UND DER JOBCHANCEN-POOL (Owner-Auftrag 26.08.2026,
+   * KONZEPT-JOB-MATCH-TRICHTER.md Baustelle C/D/F) — zusätzlich zu Titel/Firma/Prozent
+   * oben, die für BEIDE Türen gelten (eigene Anzeige UND Jobchance):
+   */
+  /** Die Gesamtempfehlung aus der Struktur-Analyse, die diese Version erzeugt hat. */
+  matchEmpfehlung?: "gut" | "bruecke" | "schwach";
+  /**
+   * Die interne Bewerbungs-Strategie (Baustelle C) — treibt Zuschnitt UND Anschreiben,
+   * bleibt aber selbst nur eine interne Notiz am Profil (die Seite zeigt sie nicht an).
+   */
+  strategie?: {
+    staerksteArgumente: string[]; uebertragbar: string[]; zuErklaeren: string[];
+    betonen: string[]; wenigerBetonen: string[]; sprachvorteile: string[]; nieVerstecken: string[];
+  };
+  /**
+   * NUR gesetzt, wenn diese Version aus einer JOBCHANCE (Tür 2, `lib/job-chancen.ts`)
+   * entstand — verknüpft die Version mit der Chance, für den Missbrauchs-Deckel „je
+   * Kandidat und Chance höchstens EINE Mappe" (ein zweiter Lauf ERSETZT diese Version,
+   * statt eine neue anzulegen) und für das Kandidaten-Profil (`lib/kandidaten-store.ts`).
+   * Bewerbungen aus einer EIGENEN Anzeige (Tür 1) tragen dieses Feld nie.
+   */
+  chanceId?: string;
   /** NUR am Hauptprofil: der Index der erzeugten Bewerbungen (die Dateien selbst liegen
       als eigene lebenslauf/<id>.json — ohne Index müsste die Liste alle Profile scannen). */
-  bewerbungen?: { id: string; titel: string; firma?: string; erstelltAm: string; prozent?: number }[];
+  bewerbungen?: { id: string; titel: string; firma?: string; erstelltAm: string; prozent?: number; chanceId?: string }[];
   /** Zählt ALLE je erzeugten Bewerbungen (auch gelöschte) — die EINE Gratis-Probe hängt an
       diesem Zähler, nicht an der Listenlänge, sonst wäre Löschen = neue Probe. */
   bewerbungenErzeugt?: number;

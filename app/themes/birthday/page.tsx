@@ -7,7 +7,10 @@ import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
+/* „Traum" ist aus den Beispielen raus (Owner 27.08.2026: „entferne das erste Video,
+   das passt nicht vom Stil. Dafür ist das zweite Video der Hook") — der Look selbst bleibt
+   im Generator wählbar, nur als Aushängeschild taugte das bunte Bild nicht. */
+import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 
 /**
  * THEMA "SHE SAYS HAPPY BIRTHDAY" (Owner 03.08.2026: "genau wie Surprise him machen. Ein
@@ -43,7 +46,7 @@ export default async function BirthdayThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav marke="LB - Birthday" heim="/themes/birthday" motto="AI Birthday Videos" />
       <TrackView event="birthday_view" lookId="themes-birthday" lookName="Geburtstags-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
@@ -66,7 +69,7 @@ export default async function BirthdayThemePage({ searchParams }: {
           * dazwischen: eine halbe Bildschirmhöhe Erklärung, bevor er den Beweis sah. Wer
           * das Ergebnis nicht kennt, liest die Erklärung nicht.
           */}
-        <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO_TRAUM, GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
+        <KissFunnel variant="birthday" code={code} lang={L} beispielVideos={[GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN]} />
         {/* DER INHALT DER LANDINGPAGE — aus einer gemeinsamen Datei, damit der
             Tunnel exakt dasselbe unter seinem Anmeldeformular zeigt
             (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
@@ -75,7 +78,7 @@ export default async function BirthdayThemePage({ searchParams }: {
         {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
             Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
             gesehen. Siehe components/SeitenFuss. */}
-        <SeitenFuss />
+        <SeitenFuss marke="LB - Birthday" />
     </main>
   );
 }

@@ -686,9 +686,12 @@ svg {
    uebriggeblieben und stand danach auf Speichern, Erzeugen und Verschicken. Gruen gehoert
    nicht zu uns: Das CI ist Gold auf Dunkel und Blau in der hellen Fassung.
    Gold ist hier die richtige Wahl und nicht Blau, weil der Knopf INNERHALB der elfenbeinfarbenen
-   Karte sitzt — dieselbe Farbe wie ihre Ornamente. Blau haette ein Stueck Website in eine
-   gedruckte Einladung gesetzt. Deshalb faellt die Karte auch nicht unter die Blau-Regel der
-   hellen Fassung (siehe `.lb-fb`): Sie ist Papier, keine Seite.
+   Karte sitzt — dieselbe Farbe wie ihre Ornamente. NUR NOCH IN DER DUNKLEN FASSUNG: Die
+   fruehere Papier-Begruendung („Blau haette ein Stueck Website in eine gedruckte Einladung
+   gesetzt") ist fuer die helle Fassung ueberstimmt (Owner 26.08.2026: „fb hat statt einen
+   gelben button, einen blauen button. wir sollten doch auf light design doch blaue ctas
+   haben allgemein") — `.lb-fb` faerbt den Karten-Knopf jetzt blau, Regel direkt unter der
+   Definition.
    Die Klasse hiess `lb-karte-wa`; der tote Name haette die Farbe irgendwann zurueckgeholt.
 
    Ohne `.lb-karte`-Vorsatz, weil der Verschicken-Knopf auf der Beispiel-Einladung UNTER den
@@ -704,6 +707,17 @@ svg {
 }
 .lb-karte-cta, .lb-karte-cta * { color: #1a1204 !important; }
 .lb-karte-cta svg { color: #1a1204 !important; stroke: #1a1204 !important; opacity: 1; }
+/* HELLE FASSUNG: EIN CTA-BLAU IM GANZEN HAUS (Owner 26.08.2026, Zitat oben) — hoehere
+   Spezifitaet (zwei Klassen) schlaegt den !important-Gradient darueber. Trifft bewusst
+   AUCH die fest hellen Einladungs-Ansichten (/einladung/*): „allgemein" heisst alle
+   Karten-CTAs der hellen Fassung, nicht nur den Jobs-Chat. */
+.lb-fb .lb-karte-cta {
+  background: #1877F2 !important;
+  background-image: none !important;
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.28);
+}
+.lb-fb .lb-karte-cta, .lb-fb .lb-karte-cta * { color: #fff !important; }
+.lb-fb .lb-karte-cta svg { color: #fff !important; stroke: #fff !important; opacity: 1; }
 /* Der Streifen mit dem ganzen Satz auf dem Video ist weg (Owner 31.07.2026: „auf das Bild ein
    richtiges CTA Replace Photo, mehr nicht") — dort steht jetzt derselbe goldene Knopf wie
    ueberall in der Karte. Ein Sonderstil weniger. */
@@ -752,6 +766,21 @@ svg {
    Rot-600 statt des 500ers der dunklen Seiten, weil auf Creme erst das die Kontrastgrenze
    fuer kleine Schrift schafft. */
 .lb-karte .lb-karte-fehler { color: #dc2626 !important; }
+
+/* DIE NUTZER-BLASE IM JOBS-KLICK-CHAT (Bella-Design): eine dunkle Nachricht auf hellem
+   Verlauf. `bg-black text-white` allein verlor gegen die Knopf-/Karten-Regeln der hellen
+   Fassung — die Blase stand weiss auf weiss (Owner 26.08.2026, mit Bild: „weiss auf
+   weiss?"). Eigene Klasse mit !important, wie lb-karte-ja/-fehler (Memory
+   lb-karte-important-frisst-inline-farben). NICHT `.lb-chat-blase` — der Name gehört
+   schon den Gruppenchat-Blasen der Einladungskarte (weiter unten) und dessen
+   `.lb-karte`-Regel gewann die Spezifität; exakt daran ist der erste Wurf gescheitert. */
+.lb-karte .lb-jobs-blase, .lb-jobs-blase { background: #111 !important; }
+.lb-karte .lb-jobs-blase, .lb-karte .lb-jobs-blase *, .lb-jobs-blase, .lb-jobs-blase * { color: #fff !important; }
+/* Der AKTIVE Klick-Chip im Jobs-Chat: dasselbe Schwarz wie die Antwort-Blase („das wird
+   deine Antwort") — Gold als Aktiv-Farbe wurde in der hellen Fassung zur blauen Fläche
+   mit Goldrand umgefärbt (Owner, mit Bild: „gelber rand passt nicht"). */
+.lb-karte .lb-jobs-chip-aktiv, .lb-jobs-chip-aktiv { background: #111 !important; border-color: #111 !important; }
+.lb-karte .lb-jobs-chip-aktiv, .lb-karte .lb-jobs-chip-aktiv *, .lb-jobs-chip-aktiv, .lb-jobs-chip-aktiv * { color: #fff !important; }
 /* AUCH DIE EINGABE-RÄNDER OHNE GOLD (Owner 06.08.2026: „auch eingabe ränder") — derselbe
    neutrale dunkle Rand wie beim Zweitweg (`lb-karte-absage`), Grund nur hauchzart getönt. */
 .lb-karte .lb-karte-feld {

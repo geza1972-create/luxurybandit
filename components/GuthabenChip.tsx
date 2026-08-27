@@ -165,6 +165,13 @@ export default function GuthabenChip() {
   /* Auf welcher Seite stehen wir? Nur dafür, den Galerie-Chip als aktiv zu zeigen. */
   const pfad = usePathname();
   const inGalerie = pfad === "/my-gallery";
+  /**
+   * KEINE GALERIE IM FUNNEL (Owner 26.08.2026, mit Bild: „die müssen aus diesem Funnel
+   * verschwinden" — zusammen mit den Themen-Kreisen in `TopNav`, dieselbe Pfad-Prüfung).
+   * Das Guthaben selbst bleibt: Es ist Kontostand, kein Schaufenster (§18 im Master-
+   * Auftrag). Nur „Galerie" fuehrt weg vom Kauf, den der Kunde gerade macht.
+   */
+  const imTrichter = /^\/themes\/[^/]+\/start\/?$/.test(pfad ?? "");
   useEffect(() => {
     let weg = false;
     let takt: ReturnType<typeof setTimeout> | null = null;
@@ -307,16 +314,18 @@ export default function GuthabenChip() {
         * der Guthaben-Chip daneben, der die aktive Auszeichnung des Hauses trägt; kein
         * zweiter Farbton.
         */}
-      <Link href="/my-gallery" aria-label="My Gallery"
+      {!imTrichter && (
+      <Link href="/my-gallery" aria-label="My Assets"
         aria-current={inGalerie ? "page" : undefined}
         className={`relative ${chip} ${inGalerie
           ? "border-[#f6cf51]/60 bg-[#f6cf51]/10 text-[#f6cf51]"
           : "border-white/20 bg-white/5 text-white/85"}`}>
         <Images className="h-3.5 w-3.5" />
-        Galerie
+        Assets
         {/* Der Puls: dort entsteht gerade etwas. Gold wie der Akzent, nie ein zweiter Farbton. */}
         {rendert && <span aria-hidden className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-[#f6cf51]" />}
       </Link>
+      )}
 
       {offen && (
         /**

@@ -329,6 +329,7 @@ export async function POST(request: Request) {
           : thema === "birthday" ? "Birthday video — one-off"
           : thema === "versprechen" ? "Future Self Program"
           : thema === "lebenslauf" ? "AI career profile — one-off"
+          : thema === "resume" ? "Tailored resume PDF — one-off"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

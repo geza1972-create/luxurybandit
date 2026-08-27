@@ -4,12 +4,9 @@ import { cookies } from "next/headers";
 import { BESITZ_COOKIE, besitzImCookie } from "@/lib/lebenslauf-besitz-cookie";
 import BesitzMelden from "@/components/BesitzMelden";
 import LebenslaufExecutive from "@/components/LebenslaufExecutive";
-import ProfilAssistent from "@/components/ProfilAssistent";
 import ProfilBewerbungen from "@/components/ProfilBewerbungen";
-import ProfilAbo from "@/components/ProfilAbo";
 import KontoChip from "@/components/KontoChip";
 import SeitenFuss from "@/components/SeitenFuss";
-import { eur, LEBENSLAUF_MONAT_CENTS } from "@/lib/pricing";
 import { leseLebenslauf } from "@/lib/lebenslauf-store";
 import { executiveAusProfil } from "@/lib/lebenslauf-vorlage";
 import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
@@ -145,33 +142,19 @@ export default async function LebenslaufProfilPage({ params }: { params: Promise
   const traeger = basis ?? profil;
 
   const erstellt = Date.parse(traeger.erstelltAm ?? "") || Date.now();
-  const restTage = Math.max(0, Math.ceil((erstellt + FRIST_MS - Date.now()) / (24 * 60 * 60 * 1000)));
   const abgelaufen = !traeger.aboAktiv && Date.now() - erstellt > FRIST_MS;
 
-  /* DIE BESITZER-WERKZEUGE — EIN CHAT STATT VIELER KÄSTEN (Owner 25.08.2026: „am
-     einfachsten ist es immer im Form von chat … statt tausend Funktionen auf der Seite
-     aufzulisten"): Der Assistent macht (Anzeige prüfen, Bewerbung erstellen, Änderungen),
-     die Liste findet wieder, das Abo bezahlt — mehr Kästen gibt es nicht. Auf einer
-     BEWERBUNG steht zuerst ihre Herkunft samt Anschreiben, das Abo wohnt nur am
-     Hauptprofil. Jeder Baustein prüft den Besitz selbst beim Server und bleibt für
-     jeden anderen unsichtbar. */
+  /* DIE BESITZER-WERKZEUGE (Owner 26.08.2026: Assistent und Abo-Kasten „das raus") — auf
+     der Karte steht jetzt NUR noch die Liste der Bewerbungen. Der Assistent forderte den
+     Bewerber auf, selbst eine Stellenanzeige einzufügen; das widerspricht dem Weg, auf dem
+     WIR ihm die Chancen zeigen und er nur ankreuzt. Der Abo-Kasten verkaufte auf einer
+     Karte, die aus diesem Weg fast leer ist. Der Baustein prüft den Besitz selbst beim
+     Server und bleibt für jeden anderen unsichtbar. */
   /* JEDES ELEMENT MIT EXPLIZITEM KEY (24.08.2026, gemessen): Ohne sie meldet React „Each
      child in a list should have a unique key prop, check the render method of TalentKopf" —
      eine RSC-Eigenart, wenn ein Server Component fertige Elemente über eine Prop (hier
      `werkzeug`/`konto`) an ein Client Component reicht. Kostet nichts, behebt die Meldung. */
-  const werkzeug = profil.basisId ? (
-    <>
-      <ProfilBewerbungen key="bewerbungen" id={id} lang={L} />
-      <ProfilAssistent key="assistent" id={id} lang={L} />
-    </>
-  ) : (
-    <>
-      <ProfilAssistent key="assistent" id={id} lang={L} />
-      <ProfilBewerbungen key="bewerbungen" id={id} lang={L} />
-      <ProfilAbo key="abo" id={id} aboAktiv={profil.aboAktiv === true}
-        monatPreis={eur(LEBENSLAUF_MONAT_CENTS, L)} restTage={restTage} lang={L} />
-    </>
-  );
+  const werkzeug = <ProfilBewerbungen key="bewerbungen" id={id} lang={L} />;
 
   /**
    * DAS DREI-TAGE-TOR (Owner 25.08.2026): Ohne Abo ist die Seite nach 3 Tagen ZU — für

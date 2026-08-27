@@ -76,8 +76,8 @@ export const MARKENSATZ_2 = "BANDIT THIS LIFE.";
 const de: AboutText = {
   kicker: "Über LuxuryBandit",
   h1a: "Einzigartige Geschenke und Momente aus der ", h1y: "neuen KI-Ära.",
-  portalKurz: "Persönliche Videos aus deinen eigenen Fotos — ein Geburtstagsgruss, eure Hochzeitseinladung, ein Kuss, deine Video-Bewerbung. Von KI gebaut, in Minuten fertig, privat, bis du selbst teilst. Und für Online-Shops gibt es unsere Anprobe-Technologie als eigene Lösung: hier testen, bei uns einkaufen.",
-  portalLang: "Ein Kuss, ein Geburtstagsgruss, eine Hochzeitseinladung, eine Video-Bewerbung für den nächsten Job, oder eine Botschaft an dein zukünftiges Ich — gemacht für einen Menschen und sonst niemanden. Du lädst ein Foto hoch, fertig kommt das Video heraus. Nichts zu lernen, nichts zu installieren, in fünf Minuten fertig.",
+  portalKurz: "Wir bauen Funnels, die verkaufen — individuelle Lösungen für Unternehmer, von der Meta-Anzeige bis zum Kauf. Alles auf dieser Seite sind unsere eigenen Funnels, live im Einsatz: Landingpage, KI-Video, Kasse und Lieferung, in sieben Sprachen. Teste sie — und wenn du so einen für dein Geschäft willst, schreib uns.",
+  portalLang: "LuxuryBandit baut Verkaufs-Funnels aus einem Guss: die Anzeige, die Landingpage, der geführte Kaufweg, die Kasse, die automatische Lieferung — ein Weg, sieben Sprachen. Jede Kachel auf dieser Seite ist so ein Funnel, live im Einsatz: Ein Besucher kommt aus einer Meta-Anzeige, sieht ein Beispiel, lädt ein Foto hoch, zahlt und bekommt sein fertiges KI-Video geliefert — ganz ohne Personal. Genau so einen Funnel bauen wir auch für dein Produkt.",
 
   introLead: "LuxuryBandit verbindet persönliche Fotos, Stimme und moderne KI zu etwas, das man nicht einfach kauft und vergisst.",
   introListe: [
@@ -178,8 +178,8 @@ const de: AboutText = {
 const en: AboutText = {
   kicker: "About LuxuryBandit",
   h1a: "One-of-a-kind gifts and moments from the ", h1y: "new AI era.",
-  portalKurz: "Personal videos from your own photos — a birthday greeting, your wedding invitation, a kiss, your video application. Built by AI, ready in minutes, private until you share. And for online shops, our try-on technology is available as its own solution: test it here, buy it from us.",
-  portalLang: "A kiss, a birthday greeting, a wedding invitation, a video application for your next job, or a message to your future self — made for one person and nobody else. You upload one photo; a finished video comes out. Nothing to learn, nothing to install, ready in five minutes.",
+  portalKurz: "We build funnels that sell — custom solutions for entrepreneurs, from the Meta ad to the purchase. Everything on this page is one of our own funnels, live in production: landing page, AI video, checkout and delivery, in seven languages. Try them — and if you want one for your business, write to us.",
+  portalLang: "LuxuryBandit builds sales funnels in one piece: the ad, the landing page, the guided purchase, the checkout, the automatic delivery — one path, seven languages. Every tile on this page is such a funnel, live in production: a visitor arrives from a Meta ad, sees an example, uploads a photo, pays and receives the finished AI video — with no staff involved. We build exactly that kind of funnel for your product too.",
 
   introLead: "LuxuryBandit turns personal photos, voice, and modern AI into something you don't just buy and forget.",
   introListe: [
@@ -280,8 +280,8 @@ const en: AboutText = {
 const ro: AboutText = {
   kicker: "Despre LuxuryBandit",
   h1a: "Cadouri și momente unicat din ", h1y: "noua eră AI.",
-  portalKurz: "Videoclipuri personale din fotografiile tale — o urare de ziua cuiva, invitația voastră la nuntă, un sărut, aplicația ta video pentru un job. Create de AI, gata în câteva minute, private până le distribui tu. Iar pentru magazinele online, tehnologia noastră de probă virtuală există ca soluție separată: o testezi aici, o cumperi de la noi.",
-  portalLang: "Un sărut, o urare de ziua cuiva, o invitație la nuntă, o aplicație video pentru următorul job, sau un mesaj către eul tău din viitor — făcute pentru un singur om și pentru nimeni altcineva. Încarci o poză și iese videoclipul gata făcut. Nimic de învățat, nimic de instalat, gata în cinci minute.",
+  portalKurz: "Construim funnels care vând — soluții individuale pentru antreprenori, de la reclama Meta până la cumpărare. Tot ce vezi pe această pagină sunt funnels de-ale noastre, live: landing page, video AI, casă de plată și livrare, în șapte limbi. Testează-le — iar dacă vrei unul pentru afacerea ta, scrie-ne.",
+  portalLang: "LuxuryBandit construiește funnels de vânzare dintr-o bucată: reclama, landing page-ul, drumul ghidat de cumpărare, casa de plată, livrarea automată — un singur drum, șapte limbi. Fiecare card de pe această pagină este un astfel de funnel, live: un vizitator vine dintr-o reclamă Meta, vede un exemplu, încarcă o poză, plătește și primește videoclipul AI gata făcut — fără niciun angajat. Exact un astfel de funnel construim și pentru produsul tău.",
 
   introLead: "LuxuryBandit combină fotografii personale, voce și AI modern într-un lucru pe care nu îl cumperi ca să-l uiți.",
   introListe: [
@@ -382,8 +382,8 @@ const ro: AboutText = {
 const es: AboutText = {
   kicker: "Sobre LuxuryBandit",
   h1a: "Regalos y momentos únicos de la ", h1y: "nueva era de la IA.",
-  portalKurz: "Vídeos personales hechos con tus propias fotos — una felicitación de cumpleaños, vuestra invitación de boda, un beso, tu candidatura en vídeo. Creados por IA, listos en minutos, privados hasta que tú los compartas. Y para tiendas online, nuestra tecnología de prueba virtual existe como solución propia: pruébala aquí, cómprala con nosotros.",
-  portalLang: "Un beso, una felicitación de cumpleaños, una invitación de boda, una candidatura en vídeo para tu próximo trabajo, o un mensaje para tu yo futuro — hechos para una sola persona y para nadie más. Subes una foto y sale el vídeo terminado. Nada que aprender, nada que instalar, listo en cinco minutos.",
+  portalKurz: "Construimos funnels que venden — soluciones a medida para emprendedores, desde el anuncio de Meta hasta la compra. Todo lo que ves en esta página son funnels nuestros, en vivo: landing page, vídeo con IA, caja y entrega, en siete idiomas. Pruébalos — y si quieres uno para tu negocio, escríbenos.",
+  portalLang: "LuxuryBandit construye funnels de venta de una sola pieza: el anuncio, la landing page, el camino de compra guiado, la caja, la entrega automática — un solo camino, siete idiomas. Cada tarjeta de esta página es un funnel así, en vivo: un visitante llega desde un anuncio de Meta, ve un ejemplo, sube una foto, paga y recibe su vídeo de IA terminado — sin nadie detrás. Exactamente ese funnel construimos también para tu producto.",
 
   introLead: "LuxuryBandit convierte fotos personales, voz e IA moderna en algo que no simplemente compras y olvidas.",
   introListe: [
@@ -484,8 +484,8 @@ const es: AboutText = {
 const fr: AboutText = {
   kicker: "À propos de LuxuryBandit",
   h1a: "Des cadeaux et des moments uniques de la ", h1y: "nouvelle ère de l’IA.",
-  portalKurz: "Des vidéos personnelles à partir de tes propres photos — un message d'anniversaire, votre invitation de mariage, un baiser, ta candidature vidéo. Créées par l'IA, prêtes en quelques minutes, privées jusqu'à ce que tu les partages. Et pour les boutiques en ligne, notre technologie d'essayage virtuel existe comme solution à part : teste-la ici, achète-la chez nous.",
-  portalLang: "Un baiser, un message d’anniversaire, une invitation de mariage, une candidature vidéo pour ton prochain emploi, ou un message à ton futur toi — faits pour une seule personne et pour personne d’autre. Tu ajoutes une photo, et la vidéo finie en sort. Rien à apprendre, rien à installer, prêt en cinq minutes.",
+  portalKurz: "Nous construisons des funnels qui vendent — des solutions sur mesure pour entrepreneurs, de la publicité Meta jusqu'à l'achat. Tout ce que tu vois sur cette page, ce sont nos propres funnels, en production : landing page, vidéo IA, caisse et livraison, en sept langues. Teste-les — et si tu en veux un pour ton business, écris-nous.",
+  portalLang: "LuxuryBandit construit des funnels de vente d'un seul tenant : la publicité, la landing page, le parcours d'achat guidé, la caisse, la livraison automatique — un seul chemin, sept langues. Chaque carte de cette page est un funnel comme ça, en production : un visiteur arrive d'une publicité Meta, voit un exemple, ajoute une photo, paie et reçoit sa vidéo IA terminée — sans personne derrière. C'est exactement ce funnel que nous construisons aussi pour ton produit.",
 
   introLead: "LuxuryBandit transforme des photos personnelles, une voix et l’IA moderne en quelque chose qu’on n’achète pas simplement pour l’oublier.",
   introListe: [
@@ -586,8 +586,8 @@ const fr: AboutText = {
 const pt: AboutText = {
   kicker: "Sobre a LuxuryBandit",
   h1a: "Presentes e momentos únicos da ", h1y: "nova era da IA.",
-  portalKurz: "Vídeos pessoais feitos com as tuas próprias fotos — uma mensagem de aniversário, o vosso convite de casamento, um beijo, a tua candidatura em vídeo. Criados por IA, prontos em minutos, privados até tu os partilhares. E para lojas online, a nossa tecnologia de prova virtual existe como solução própria: testa-a aqui, compra-a connosco.",
-  portalLang: "Um beijo, uma mensagem de aniversário, um convite de casamento, uma candidatura em vídeo para o próximo emprego, ou uma mensagem para o teu eu futuro — feitos para uma pessoa e mais ninguém. Carregas uma foto e sai o vídeo pronto. Nada para aprender, nada para instalar, pronto em cinco minutos.",
+  portalKurz: "Construímos funnels que vendem — soluções à medida para empreendedores, do anúncio Meta até à compra. Tudo o que vês nesta página são funnels nossos, ao vivo: landing page, vídeo de IA, caixa e entrega, em sete línguas. Testa-os — e se quiseres um para o teu negócio, escreve-nos.",
+  portalLang: "A LuxuryBandit constrói funnels de venda de uma só peça: o anúncio, a landing page, o caminho de compra guiado, a caixa, a entrega automática — um só caminho, sete línguas. Cada cartão desta página é um funnel assim, ao vivo: um visitante chega de um anúncio Meta, vê um exemplo, carrega uma foto, paga e recebe o seu vídeo de IA pronto — sem ninguém por trás. É exatamente esse funnel que construímos também para o teu produto.",
 
   introLead: "A LuxuryBandit transforma fotos pessoais, voz e IA moderna em algo que não se compra simplesmente para esquecer.",
   introListe: [
@@ -688,8 +688,8 @@ const pt: AboutText = {
 const it: AboutText = {
   kicker: "Chi siamo",
   h1a: "Regali e momenti unici dalla ", h1y: "nuova era dell’IA.",
-  portalKurz: "Video personali dalle tue foto — un augurio di compleanno, il vostro invito di nozze, un bacio, la tua candidatura video. Creati dall'IA, pronti in pochi minuti, privati finché non li condividi tu. E per i negozi online, la nostra tecnologia di prova virtuale esiste come soluzione a sé: la provi qui, la compri da noi.",
-  portalLang: "Un bacio, un augurio di compleanno, un invito di nozze, una candidatura video per il prossimo lavoro, o un messaggio al tuo io futuro — fatti per una persona sola e per nessun altro. Carichi una foto ed esce il video finito. Niente da imparare, niente da installare, pronto in cinque minuti.",
+  portalKurz: "Costruiamo funnel che vendono — soluzioni su misura per imprenditori, dall'annuncio Meta fino all'acquisto. Tutto ciò che vedi su questa pagina sono funnel nostri, dal vivo: landing page, video IA, cassa e consegna, in sette lingue. Provali — e se ne vuoi uno per la tua attività, scrivici.",
+  portalLang: "LuxuryBandit costruisce funnel di vendita in un pezzo solo: l'annuncio, la landing page, il percorso d'acquisto guidato, la cassa, la consegna automatica — un solo percorso, sette lingue. Ogni scheda di questa pagina è un funnel così, dal vivo: un visitatore arriva da un annuncio Meta, vede un esempio, carica una foto, paga e riceve il suo video IA finito — senza nessuno dietro. Ed è esattamente questo funnel che costruiamo anche per il tuo prodotto.",
 
   introLead: "LuxuryBandit trasforma foto personali, voce e IA moderna in qualcosa che non si compra semplicemente per dimenticarlo.",
   introListe: [

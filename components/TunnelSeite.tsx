@@ -125,8 +125,13 @@ export default function TunnelSeite({ schritte, schrittBekannt, light, code, pro
   /* `video` ist keine Herkunft, sondern der Video-Einstieg des Lebenslauf-Tunnels
      (?video=<kennung> — LebenslaufStartClient): er muss jede Adress-Neuschreibung
      (Schritt-Sync hier, AdminUrlMirror) ueberleben, sonst verliert ein Remount den
-     Einstieg. Andere Tunnel setzen ihn nie — dort traegt die Liste ihn einfach nicht. */
-  const HERKUNFT = ["utm_source", "source", "src", "ref", "utm_campaign", "utm_medium", "fbclid", "video"];
+     Einstieg. Andere Tunnel setzen ihn nie — dort traegt die Liste ihn einfach nicht.
+     DASSELBE GILT SEIT 26.08.2026 FÜR `jobs`/`topic` (KONZEPT-JOB-MATCH-TRICHTER.md,
+     Baustelle E/H, Owner-Änderungsauftrag): `?jobs=1` ist Tür 2 des Lebenslauf-Tunnels
+     (Jobchancen statt eigener Anzeige) — ohne diesen Eintrag würde der allererste
+     Schrittwechsel (schritt 1 → 3, ausgelöst von genau diesem Parameter) ihn selbst
+     aus der Adresse werfen. `topic` ist die Zielgruppen-Herkunft von `/topics/<slug>`. */
+  const HERKUNFT = ["utm_source", "source", "src", "ref", "utm_campaign", "utm_medium", "fbclid", "video", "jobs", "topic"];
 
   const baueUrl = (s: number, vorlage?: string) => {
     const p = new URLSearchParams();

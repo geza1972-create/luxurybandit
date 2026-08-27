@@ -484,8 +484,14 @@ async function durchgang(request: Request, nurId: string): Promise<{ offen: numb
    * abo genauso?"): Wer fünf Videos im Monat macht, hat nach dem ersten längst ein `videoUrl`
    * am Eintrag; das zweite wäre sonst nie fällig und hinge wieder allein am Browser.
    */
-  const offenerAuftrag = (e: KissLogEntry) =>
-    e.videoId ? e.videoId !== e.videoDoneId : !e.videoUrl;
+  const offenerAuftrag = (e: KissLogEntry) => {
+    /* THEMEN OHNE VIDEO-LIEFERUNG (26.08.2026): Der Lebenslauf-Seitenkauf und der
+       Resume Generator liefern nichts über diesen Cron — ein bezahlter Eintrag ohne
+       Video ist dort der NORMALFALL, kein hängender Auftrag. Ohne diese Ausnahme
+       schickte der Alarm-Block unten nach ALARM_MS eine falsche WhatsApp-Warnung. */
+    if (e.theme === "lebenslauf" || e.theme === "resume") return false;
+    return e.videoId ? e.videoId !== e.videoDoneId : !e.videoUrl;
+  };
 
   /**
    * DREI ANLÄUFE SIND RAUS (Owner 15.08.2026: „drei Anläufe muss raus").

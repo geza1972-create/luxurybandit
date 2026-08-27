@@ -106,7 +106,7 @@ export default async function KissThemePage({ searchParams }: {
        Schrift, Gold bleibt Akzent. Über `?light=1` schaltbar, damit beide Fassungen mit
        derselben Anzeige gegeneinander laufen können — dann entscheiden Zahlen, nicht Geschmack. */
     <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Kiss" heim="/themes/kiss" motto="AI Kiss Videos" />
       <TrackView event="kiss_view" lookId="themes-kiss" lookName="Kiss-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
@@ -206,7 +206,7 @@ export default async function KissThemePage({ searchParams }: {
         {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
             Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
             gesehen. Siehe components/SeitenFuss. */}
-        <SeitenFuss />
+        <SeitenFuss marke="LB - Kiss" />
     </main>
   );
 }

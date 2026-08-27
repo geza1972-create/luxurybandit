@@ -56,7 +56,7 @@ export default async function TryonStartPage({ searchParams }: {
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Try-on" heim="/themes/tryon/start" motto="Virtual Try-On" />
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <Kicker>{S.kicker}</Kicker>
         <H1 className="mt-1">{S.h1a}<Y>{S.h1y}</Y>.</H1>
@@ -70,7 +70,7 @@ export default async function TryonStartPage({ searchParams }: {
           <TryonStartClient lang={L} code={code} vorlagen={vorlagen} />
         </div>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Try-on" />
     </main>
   );
 }

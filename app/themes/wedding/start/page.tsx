@@ -42,7 +42,7 @@ export default async function WeddingStartPage({ searchParams }: {
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Wedding" heim="/themes/wedding" motto="AI Wedding Videos" />
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <Kicker>{T.heroY}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
@@ -59,7 +59,7 @@ export default async function WeddingStartPage({ searchParams }: {
           <WeddingStartClient lang={L} code={code} inhalt={<WeddingInhalt T={T} t={t} L={L} />} />
         </div>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Wedding" />
     </main>
   );
 }

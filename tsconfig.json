@@ -32,6 +32,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-pruef/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
     ".next-build/types/**/*.ts"

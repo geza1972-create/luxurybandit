@@ -136,6 +136,14 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
  * NICHT für den Hochzeitsplaner (29 € Kauf, siehe HOCHZEIT_START_CENTS) und nicht für das
  * System (60 €, siehe PLAN_CENTS).
  */
+/**
+ * DAS PREMIUM-PAKET DER BEWERBUNGSZENTRALE (Owner 26.08.2026) — persönliche Beratung,
+ * Profibewerbung als PDF und ein Bewerbungsvideo. Bewusst KEIN Sofortkauf: Bei diesem
+ * Preis ist der Rückruf das Angebot, bezahlt wird im Gespräch. Deshalb steht die Zahl
+ * hier und nicht in einer Kaufstrecke — sie wird nur angezeigt.
+ */
+export const PREMIUM_BERATUNG_CENTS = 10000;         // 100 € — Beratung + PDF + Video
+
 export const ONCE_CENTS = 1500;                     // 15 € — ein Geschenk, einmal bezahlt
 
 /**
@@ -284,6 +292,18 @@ export const LEBENSLAUF_CENTS = 1900;                   // 19 — Skript, Video 
 export const LEBENSLAUF_MONAT_CENTS = 499;              // 4,99/Monat — Seite online + Updates (Kasse offen)
 
 /**
+ * DER RESUME GENERATOR KOSTET 9,99 € (Owner 26.08.2026: „Man gibt die Anzeige ein …
+ * Mit wasserzeichen. Will er ohne, muss er zahlen 9,99 Euro. Das wars." — plus:
+ * „Für eine volle optimierung muss er 9,99 zahlen. Fertig.").
+ *
+ * EIN Kauf, ZWEI Wirkungen: das PDF verliert das Muster-Wasserzeichen UND der
+ * Lebenslauf wird voll auf die Anzeige zugeschnitten (gratis gibt es Titelblatt mit
+ * Anschreiben + sauberes Layout + Analyse, aber keine Optimierung). Eigenes Tool,
+ * eigener Preis — bewusst NICHT LEBENSLAUF_CENTS (19 €, Video Applications).
+ */
+export const RESUME_CENTS = 999;                        // 9,99 — volle Optimierung + PDF ohne Wasserzeichen
+
+/**
  * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses
  * Video muss 14,99 kosten", eine halbe Stunde später „mach 9,99€").
  *
@@ -340,6 +360,8 @@ export function geschenkPreisCents(geschenk: string): number {
     case "kiss": return KUSS_CENTS;
     /* Der Lebenslauf ist kein Geschenk-Video — siehe LEBENSLAUF_CENTS. */
     case "lebenslauf": return LEBENSLAUF_CENTS;
+    /* Der Resume Generator (26.08.2026) — siehe RESUME_CENTS. */
+    case "resume": return RESUME_CENTS;
     default: return GESCHENK_VIDEO_CENTS;   // Idol, Tanz, Geburtstag — ein Geschenk-Video
   }
 }

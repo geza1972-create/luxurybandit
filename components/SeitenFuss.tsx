@@ -18,7 +18,7 @@ import { YOUTUBE_CHANNEL } from "@/lib/social";
  * EIN SERVER-BAUSTEIN, KEIN CLIENT: nur Links, kein Zustand. Er kostet damit kein einziges
  * Kilobyte JavaScript auf Seiten, die ohnehin schon viel laden.
  */
-export default function SeitenFuss({ className = "", art = "voll" }: {
+export default function SeitenFuss({ className = "", art = "voll", marke }: {
   className?: string;
   /**
    * `schlicht` — DER FUSS DER BEWERBER-SEITEN (Owner 24.08.2026: „auf der Bewerbeseite
@@ -29,6 +29,16 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
    * eine leise Zeile in 35 % Weiss erfüllt das, ohne die Seite zu bewerben.
    */
   art?: "voll" | "schlicht";
+  /**
+   * DER RUECKWEG INS GROSSE PORTAL (Owner 26.08.2026: „Nur im Footer gibt es einen Link
+   * der LUXURYBANDIT TOOLS heisst der dann auf die Startseite führt"). Ein Topic mit
+   * eigener Kopfzeilen-Marke tritt oben nicht mehr als LuxuryBandit auf — dieser eine,
+   * dezente Link unten ist der einzige verbliebene Hinweis, wer dahintersteckt und wo die
+   * anderen Produkte stehen. Derselbe String wie `TopNav`s `marke`-Prop (z. B.
+   * „LB - Kiss") — steht hier ZUSAETZLICH über dem Link (Owner, direkt danach: „damit ich
+   * es sehe, dass es individuell ist machst du hier drüber noch mal LB-{Topic} drüber").
+   */
+  marke?: string;
 }) {
   if (art === "schlicht") {
     return (
@@ -37,10 +47,13 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
             LuxuryBandit rein, als Link auf die Homepage") — das ist KEIN „made by" auf
             der Mappe (das bleibt draussen, Memory `lebenslauf-kontaktkarte-ausblendbar`):
             Es ist die Herkunft der SEITE, dort wo jede Seite im Netz sie trägt, und der
-            eine Weg vom Dossier zurück ins Portal. */}
+            eine Weg vom Dossier zurück ins Portal. Text vereinheitlicht auf „LUXURYBANDIT
+            FUNNELS" (26.08.2026: „Wir sind jetzt ein Funnel Spezialist" — vorher „TOOLS")
+            — hier gilt derselbe Gedanke immer, ohne eigenes Prop, weil eine Bewerbungsseite
+            nie als LuxuryBandit auftritt. */}
         <p className="text-center">
           <Link href="/" className="text-[13px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
-            luxurybandit
+            LUXURYBANDIT FUNNELS
           </Link>
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] font-semibold text-white/35">
@@ -95,7 +108,11 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
       {/* INSTAGRAM UND YOUTUBE (Owner 06.08.2026: „instagram und you tube icon in dem
           footer") — dieselben Ziele und dieselben Kreise wie in der Kopfzeile (TopNav
           `iconBtn`), die Adresse aus EINER Quelle (`lib/social`, NEXT_PUBLIC_INSTAGRAM_HANDLE).
-          Bewusst kein Client-Code: zwei <a>, der Fuss bleibt ein Server-Baustein. */}
+          Bewusst kein Client-Code: zwei <a>, der Fuss bleibt ein Server-Baustein.
+          RAUS BEI EIGENER MARKE (Owner 26.08.2026, mit Bild der zwei Kreise: „das machst du
+          raus aus dem Footer") — das sind LuxuryBandit-Kanäle, keine des einzelnen Topics;
+          ein Rückweg zur Muttermarke reicht der eine „LUXURYBANDIT TOOLS"-Link unten. */}
+      {!marke && (
       <div className="mt-4 flex items-center gap-2">
         <a href={YOUTUBE_CHANNEL} target="_blank" rel="noopener noreferrer" aria-label="Bella auf YouTube"
           className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white">
@@ -107,9 +124,23 @@ export default function SeitenFuss({ className = "", art = "voll" }: {
           <Instagram className="h-4 w-4" />
         </a>
       </div>
+      )}
       {/* Die Marke zum Schluss — sie beantwortet die Frage „bei wem war ich hier eigentlich",
-          wenn jemand die Seite geteilt bekommen hat und die Kopfzeile längst weggescrollt ist. */}
-      <p className="mt-3 text-[13px] font-semibold text-white/40">© LuxuryBandit</p>
+          wenn jemand die Seite geteilt bekommen hat und die Kopfzeile längst weggescrollt ist.
+          MIT EIGENER KOPFZEILEN-MARKE wird daraus zwei Zeilen (Owner 26.08.2026): die eigene
+          Marke selbst OBEN — „damit ich es sehe, dass es individuell ist" — und darunter, als
+          LINK, der Rückweg ins grosse Portal. Ohne eigene Marke bleibt nur der reine © Text,
+          man ist ja schon „im Haus". */}
+      {marke ? (
+        <div className="mt-3">
+          <p className="text-[13px] font-black uppercase tracking-[0.14em] text-white/70">{marke}</p>
+          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.14em]">
+            <Link href="/" className="text-white/40 transition hover:text-white/70">LUXURYBANDIT FUNNELS</Link>
+          </p>
+        </div>
+      ) : (
+        <p className="mt-3 text-[13px] font-semibold text-white/40">© LuxuryBandit</p>
+      )}
     </footer>
   );
 }

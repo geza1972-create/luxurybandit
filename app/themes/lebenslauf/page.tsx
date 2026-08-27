@@ -246,7 +246,7 @@ export default async function LebenslaufThemePage() {
   return (
     <main className="lb-bg lb-zentrale min-h-screen text-white">
       <SpracheAmDokument lang={L} />
-      <TopNav />
+      <TopNav marke="LB - AI Recruiting" heim="/themes/lebenslauf" motto="Video Applications" />
       <TrackView event="lebenslauf_view" lookId="themes-lebenslauf" lookName="Lebenslauf-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3 md:max-w-[760px]">
         {/* ───── HERO ───── */}
@@ -331,7 +331,7 @@ export default async function LebenslaufThemePage() {
           </div>
         </section>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - AI Recruiting" />
     </main>
   );
 }

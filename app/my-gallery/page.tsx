@@ -70,6 +70,14 @@ type Item = {
    */
   programUrl?: string;
   /**
+   * DER HOCHGELADENE LEBENSLAUF (Owner 26.08.2026: „hier habe ich schon mal mein
+   * lebenslauf hochgeladen und wo ist das? Assets … Da müsste es doch sein") — Pfad und
+   * Original-Dateiname aus /api/my-videos, nur am Lebenslauf-Werk. Der Download-Link
+   * entsteht hier aus /api/download (signiert serverseitig selbst).
+   */
+  cvPath?: string;
+  cvName?: string;
+  /**
    * URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in der
    * Galerie ein Warnzeichen drauf"). Nur gesetzt, wenn etwas auffiel — im Beobachten-Modus
    * geht der Upload durch UND traegt das Zeichen.
@@ -1044,6 +1052,19 @@ export default function MyGalleryPage() {
               </a>
             </div>
           </div>
+          {/* DER LEBENSLAUF ZUM WERK (Owner 26.08.2026: „wo ist das? Assets … Da müsste es
+              doch sein") — die hochgeladene PDF, leise unter den Knöpfen: Sie ist Rohmaterial
+              wie die Original-Aufnahme, kein zweites Werk und keine eigene Kachel. */}
+          {!!open.cvPath && (
+            <div className="mt-2 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+              {/* Fallback-Name folgt der ECHTEN Endung — seit 26.08.2026 sind auch
+                  .docx-Lebensläufe erlaubt, ein „Lebenslauf.pdf"-Etikett wäre dann falsch. */}
+              <a href={`/api/download?path=${encodeURIComponent(open.cvPath)}&name=${encodeURIComponent(open.cvName || (open.cvPath.toLowerCase().endsWith(".docx") ? "Lebenslauf.docx" : "Lebenslauf.pdf"))}`} download
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1.5 text-[12px] font-black text-white/80 transition active:scale-95">
+                <Download className="h-3.5 w-3.5" /> {open.cvName || (open.cvPath.toLowerCase().endsWith(".docx") ? "Lebenslauf.docx" : "Lebenslauf.pdf")}
+              </a>
+            </div>
+          )}
           {/**
             * DIE DATENZEILE (Owner 11.08.2026: „stehen auch keine Daten, wann ich das
             * aufgenommen habe für was. Oder generiert wann, gekauft für wieviel, Wie lang das

@@ -43,7 +43,7 @@ export default async function SurpriseStartPage({ searchParams }: {
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Surprise" heim="/themes/surprise" motto="AI Surprise Videos" />
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <Kicker>{T.heroY || "Surprise him"}</Kicker>
         <H1 className="mt-1">{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
@@ -60,7 +60,7 @@ export default async function SurpriseStartPage({ searchParams }: {
             beispielVideos={[POLEDANCE_VIDEO, ...POLEDANCE_REFERENZEN.map(r => r.video)]} />
         </div>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Surprise" />
     </main>
   );
 }

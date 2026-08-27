@@ -253,7 +253,7 @@ export async function GET(request: Request) {
       + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Dein Video bleibt noch ${tage} Tage online</td></tr>`
       + `<tr><td style="padding:0 22px 14px;font-size:14px;line-height:1.55;color:#5b5344">`
       + `Wir halten jedes Geschenk ${fGeschenk} Tage bereit. Danach laeuft der Link ab — lade dir dein Video vorher herunter, dann behaeltst du es fuer immer.</td></tr>`
-      + `<tr><td style="padding:0 22px 20px"><a href="${origin}/my-gallery?utm_source=ablaufmail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Zu meiner Galerie</a></td></tr>`
+      + `<tr><td style="padding:0 22px 20px"><a href="${origin}/my-gallery?utm_source=ablaufmail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Zu meinen Assets</a></td></tr>`
       + `</table></td></tr></table></div>`;
     const r = await sendEmail({ to: an, subject: `Dein Video bleibt noch ${tage} Tage online`, html }).catch(() => ({ ok: false }));
     if ((r as { ok?: boolean }).ok) {

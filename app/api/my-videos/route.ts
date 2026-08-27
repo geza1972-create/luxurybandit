@@ -357,6 +357,13 @@ export async function GET(request: Request) {
           ...(e.theme === "versprechen" && e.paid
             ? { programUrl: await futureProgramUrl(url.origin, e.id).catch(() => undefined) }
             : {}),
+          /* DER HOCHGELADENE LEBENSLAUF AM WERK (Owner 26.08.2026: „wo ist das? Assets …
+             Da müsste es doch sein") — Pfad + Name, die Galerie baut daraus ihren
+             /api/download-Link. Nur der PFAD reist, nie eine signierte Adresse: der
+             Download-Weg signiert selbst und setzt den Dateinamen. */
+          ...(e.theme === "lebenslauf" && e.cvPath
+            ? { cvPath: String(e.cvPath), cvName: String(e.cvName || "Lebenslauf.pdf") }
+            : {}),
         },
         /**
          * KEIN BEIWERK MEHR (Owner 12.08.2026: „die beiwerkfotos brauchst du gar nicht zu

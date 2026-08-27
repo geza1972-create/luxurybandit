@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { completeReservation, getAccountId, reserveCredits } from "@/lib/billing";
 import { leseLebenslauf, schreibeLebenslauf } from "@/lib/lebenslauf-store";
-import { getSignedUrl } from "@/lib/try-this-look-store";
+import { getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { fotoAblegen } from "@/lib/lebenslauf-foto";
+import { docxZuText } from "@/lib/docx-text";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -82,6 +84,11 @@ export async function POST(request: Request) {
   const id = String(body.id ?? "").trim();
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim();
+  /* DAS FOTO OHNE VIDEO-WEG (Tür 2, KONZEPT-JOB-MATCH-TRICHTER.md Baustelle E) — der
+     Jobchancen-Trichter hat KEINEN Video-/Fertigstellen-Schritt, der es sonst dauerhaft
+     ablegt. Optional: nur gesetzt, wenn eine Data-URL mitkommt (Tür 1 lässt das Feld
+     einfach weg und bleibt unverändert). */
+  const fotoDataUrl = String(body.foto ?? "").trim();
 
   if (!lebenslaufText && !pdfPath) {
     return NextResponse.json({ error: "Kein Lebenslauf erhalten." }, { status: 400 });
@@ -123,11 +130,23 @@ export async function POST(request: Request) {
     const pdfUrl = await getSignedUrl(pdfPath).catch(() => "");
     if (!pdfUrl) return NextResponse.json({ error: "Lebenslauf-Datei nicht gefunden." }, { status: 404 });
     const bytes = Buffer.from(await fetch(pdfUrl).then(r => r.arrayBuffer()));
-    content.push({
-      type: "input_file",
-      filename: "lebenslauf.pdf",
-      file_data: `data:application/pdf;base64,${bytes.toString("base64")}`,
-    });
+    /* AUCH WORD (Owner 26.08.2026: „ich muss im lebenslauf auch docx hochladen können") —
+       die responses-API nimmt als input_file NUR PDF, eine .docx geht deshalb als
+       extrahierter TEXT in den Prompt (lib/docx-text.ts, reines JS). Der Pfad trägt die
+       Endung der Original-Datei (ladeHoch übernimmt sie beim Upload). */
+    if (pdfPath.toLowerCase().endsWith(".docx")) {
+      const text = docxZuText(bytes);
+      if (!text) {
+        return NextResponse.json({ error: "Diese Word-Datei ließ sich nicht lesen — bitte als PDF speichern und erneut hochladen." }, { status: 422 });
+      }
+      content.push({ type: "input_text", text: `Lebenslauf (aus Word-Datei):\n${text.slice(0, 24000)}` });
+    } else {
+      content.push({
+        type: "input_file",
+        filename: "lebenslauf.pdf",
+        file_data: `data:application/pdf;base64,${bytes.toString("base64")}`,
+      });
+    }
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -207,16 +226,30 @@ export async function POST(request: Request) {
   const telefon = String(parsed.telefon ?? "").trim().slice(0, 40);
 
   // NOCH KEIN VIDEO — das Profil ist ein Entwurf, bis der HeyGen-Lauf fertig ist
-  // (`/api/lebenslauf-video` + `/api/lebenslauf-fertigstellen`). `bezahlt: true`, weil diese
-  // Route erst nach der Kasse läuft; die Ergebnisseite prüft trotzdem auf ein Video.
-  /* SEIT 25.08.2026 AUCH VOR DER KASSE (Stufe-0-Trichter: „Passt diese Jobanzeige zu mir?"
-     — Anzeige + Lebenslauf rein, Match sehen, DANN kaufen): `vorab: true` legt den Entwurf
-     UNBEZAHLT an; den bezahlt-Stempel setzt erst /api/lebenslauf-fertigstellen, wenn der
-     Kiss-Log-Auftrag wirklich bezahlt ist. Ohne `vorab` bleibt alles wie bisher. */
+  // (`/api/lebenslauf-video` + `/api/lebenslauf-fertigstellen`); die Ergebnisseite prüft
+  // trotzdem auf ein Video.
+  /* ANLEGEN IST GRATIS (Owner 25.08.2026, Gratis-Linie: „Er kann alles anlegen gratis, nur
+     er kann das nicht sharen und PDF nicht herunterladen" — live bestätigt am 26.08.2026,
+     als der alte `else`-Zweig hier unten noch `bezahlt: true` setzte, bevor der Kunde
+     überhaupt eine Seite hatte). Diese Route setzt `bezahlt` deshalb nie mehr selbst —
+     weder mit noch ohne `vorab` — sie übernimmt nur, was am Profil schon stand. Bezahlt
+     wird künftig an der Sperre auf der Profilseite (`SchlossHinweis`/`gesperrt` in
+     `LebenslaufExecutive.tsx`), nicht mehr hier beim Erstellen. */
   /* MIT BESTAND MERGEN statt neu bauen (24.08.2026, beim zweiten Lauf auf dasselbe Profil
      gefunden): Diese Route baute das Profil from scratch — ein erneuter Auswertungs-Lauf
      (Retry nach Netzfehler, Nach-Auswertung) warf damit `videoUrl`/`fotoUrl`/`aufnahmePath`
      eines FERTIGEN Profils weg. Der Spread hält alles, was diese Auswertung nicht liefert. */
+  let fotoUrl: string | undefined;
+  /* Der Foto-PFAD reist bis in die Auftrags-Beschriftung unten: Ohne `personPath` am
+     Kiss-Log-Auftrag hätte die Assets-Kachel kein Bild und würde von der Galerie ganz
+     herausgefiltert — und mit ihr der frisch angehängte Lebenslauf (siehe unten). */
+  let fotoPathFuerAuftrag = "";
+  if (fotoDataUrl.startsWith("data:")) {
+    const fotoPath = await fotoAblegen(fotoDataUrl);
+    fotoPathFuerAuftrag = fotoPath;
+    fotoUrl = fotoPath ? (await getSignedUrl(fotoPath, 60 * 60 * 24 * 365 * 10).catch(() => "")) || undefined : undefined;
+  }
+
   const bestand = await leseLebenslauf(id);
   const ok = await schreibeLebenslauf({
     ...(bestand ?? {}),
@@ -224,6 +257,7 @@ export async function POST(request: Request) {
     erstelltAm: bestand?.erstelltAm ?? new Date().toISOString(),
     name: name || bestand?.name || undefined,
     email: email || bestand?.email || undefined,
+    ...(fotoUrl ? { fotoUrl } : {}),
     stichpunkte,
     kategorien,
     sprechtext,
@@ -235,11 +269,38 @@ export async function POST(request: Request) {
     ort: ort || undefined,
     telefon: telefon || undefined,
     verfuegbarkeit: verfuegbarkeit ?? bestand?.verfuegbarkeit,
-    bezahlt: body.vorab === true ? bestand?.bezahlt === true : true,
+    bezahlt: bestand?.bezahlt === true,
   });
 
   if (!ok) {
     return NextResponse.json({ error: "Profil konnte nicht gespeichert werden." }, { status: 500 });
+  }
+
+  /* DER LEBENSLAUF BLEIBT AUFFINDBAR (Owner 26.08.2026: „hier habe ich schon mal mein
+     lebenslauf hochgeladen und wo ist das?") — die PDF lag zwar in Supabase, aber kein
+     Datensatz zeigte auf sie. Jetzt trägt der Kiss-Log-Auftrag Pfad + Original-Dateinamen;
+     die Galerie bietet die Datei am Lebenslauf-Werk zum Download an (/api/my-videos).
+     Scheitert nur diese Beschriftung, ist die Auswertung trotzdem gültig — loggen, nicht
+     verschlucken (dasselbe Muster wie in /api/lebenslauf-fertigstellen). */
+  if (pdfPath || fotoPathFuerAuftrag) {
+    try {
+      const entries = await readKissLog();
+      const e = entries.find(x => x.id === id);
+      if (e) {
+        if (pdfPath) {
+          e.cvPath = pdfPath;
+          const cvName = String(body.cvName ?? "").trim().slice(0, 120);
+          if (cvName) e.cvName = cvName;
+        }
+        /* Sein Foto als Kachel-Bild (nie überschreiben — dieselbe Regel wie in
+           /api/lebenslauf-fertigstellen): Ohne Bild filtert die Galerie die Kachel weg,
+           und der Lebenslauf daran wäre wieder unauffindbar. */
+        if (fotoPathFuerAuftrag) e.personPath = e.personPath || fotoPathFuerAuftrag;
+        await writeKissLog(entries);
+      }
+    } catch (err) {
+      console.error("[lebenslauf-auswertung] CV-Beschriftung fehlgeschlagen:", err);
+    }
   }
 
   return NextResponse.json({ id, stichpunkte, kategorien, sprechtext, kleidung, umgebung, erfahrung, ausbildung, sprachen, kompetenzen, schwerpunkte, ort, telefon, credits: completeReservation(accountId, reservation.reservationId) });

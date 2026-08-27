@@ -1,5 +1,6 @@
 import { translateMany } from "@/lib/translate";
 import type { ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
+import type { Zielgruppe } from "@/lib/lebenslauf-zielgruppen";
 import type { Lang } from "@/lib/lang";
 
 /**
@@ -91,5 +92,38 @@ export async function textbausteineInSprache<T extends Record<string, string>>(o
     return res;
   } catch {
     return obj;
+  }
+}
+
+/**
+ * EINE ZIELGRUPPEN-SEITE IN DER SPRACHE DES BETRACHTERS (Owner-Auftrag 26.08.2026,
+ * KONZEPT-JOB-MATCH-TRICHTER.md Baustelle H) — `Zielgruppe` trägt zwei Listen
+ * (`beispielRollen`, `faq`), die `textbausteineInSprache` nicht direkt kann (nur flache
+ * `Record<string,string>`). Hier einmal flachklopfen, übersetzen, wieder zusammensetzen
+ * — dasselbe Prinzip wie `executiveInSprache` oben, nur für die neue Datenform.
+ */
+export async function zielgruppeInSprache(z: Zielgruppe, lang: Lang): Promise<Zielgruppe> {
+  if (lang === "de") return z;
+  const flach: Record<string, string> = {
+    kicker: z.kicker, titel: z.titel, unterzeile: z.unterzeile, ohneCvZeile: z.ohneCvZeile,
+    heroCta: z.heroCta, claim: z.claim,
+    habeAnzeigeLink: z.habeAnzeigeLink, szenarioTitel: z.szenarioTitel, szenarioText: z.szenarioText,
+    metaTitel: z.metaTitel, metaBeschreibung: z.metaBeschreibung,
+  };
+  z.beispielRollen.forEach((r, i) => { flach[`rolle${i}`] = r; });
+  z.faq.forEach((f, i) => { flach[`faqF${i}`] = f.frage; flach[`faqA${i}`] = f.antwort; });
+  try {
+    const t = await textbausteineInSprache(flach, lang);
+    return {
+      ...z,
+      kicker: t.kicker, titel: t.titel, unterzeile: t.unterzeile,
+      ohneCvZeile: t.ohneCvZeile || z.ohneCvZeile, heroCta: t.heroCta, claim: t.claim || z.claim,
+      habeAnzeigeLink: t.habeAnzeigeLink, szenarioTitel: t.szenarioTitel, szenarioText: t.szenarioText,
+      metaTitel: t.metaTitel, metaBeschreibung: t.metaBeschreibung,
+      beispielRollen: z.beispielRollen.map((r, i) => t[`rolle${i}`] || r),
+      faq: z.faq.map((f, i) => ({ frage: t[`faqF${i}`] || f.frage, antwort: t[`faqA${i}`] || f.antwort })),
+    };
+  } catch {
+    return z;
   }
 }

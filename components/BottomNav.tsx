@@ -364,9 +364,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <button type="button" onClick={() => navigate("/themes")}
                 className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                {/* Wort im UI ist überall „Topics" (Route bleibt /themes) — vorher hieß es
-                    hier „Themes" und auf der Startseite „topics". Ein Ding, ein Name. */}
-                <span className="text-sm font-black text-white">Topics</span>
+                {/* Wort im UI ist überall „Funnels" (Route bleibt /themes) — Owner
+                    26.08.2026: „wir nennen die Topics in Funnels um. Wir sind jetzt ein
+                    Funnel Spezialist." Vorher „Topics", davor „Themes". Ein Ding, ein Name. */}
+                <span className="text-sm font-black text-white">Funnels</span>
               </button>
               {/* Die CI-Bibliothek steht als „CI" in der Info-&-Legal-Zeile unten — immer
                   sichtbar, auch ohne Anmeldung (Owner 06.08.2026: „ich sehe die Bibliothek
@@ -519,7 +520,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <button type="button" onClick={() => navigate("/my-gallery")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Film className="h-5 w-5 shrink-0 text-[#f6cf51]" />
-                <span className="text-sm font-black text-white">My Gallery</span>
+                <span className="text-sm font-black text-white">Assets</span>
               </button>
               {/**
                 * „MODELS WANTED" IST FUER BESUCHER ZU (Owner 05.08.2026: „die Model-Seite kommt

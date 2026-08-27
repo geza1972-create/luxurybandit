@@ -1231,6 +1231,15 @@ export async function POST(request: Request) {
         // additiv ergänzt, ändert nichts an bereits gespeicherten Ereignissen oder an
         // bestehenden Auswertungen, die dieses Feld nicht kennen.
         theme: String((payload as any).theme ?? "").trim() || undefined,
+        /* NACHTRAG 26.08.2026 (Owner-Änderungsauftrag, KONZEPT-JOB-MATCH-TRICHTER.md
+           Baustelle I) — dieselbe Falle wie bei `theme` einen Absatz höher: ohne
+           explizites Feld hier wird jeder mitgeschickte Wert beim Schreiben verworfen. */
+        topic: String((payload as any).topic ?? "").trim() || undefined,
+        chanceId: String((payload as any).chanceId ?? "").trim() || undefined,
+        kategorie: String((payload as any).kategorie ?? "").trim() || undefined,
+        matchLand: String((payload as any).land ?? "").trim() || undefined,
+        matchProzent: Number.isFinite(Number((payload as any).prozent)) ? Number((payload as any).prozent) : undefined,
+        matchEmpfehlung: String((payload as any).empfehlung ?? "").trim() || undefined,
         /**
          * SCHRITT UND VORLAGE (Owner 16.08.2026: „ich muss bei jedem user sehen den pfad den
          * er geht" · „ebenso welchen template sie auswählen").

@@ -99,7 +99,7 @@ export type KontoText = {
 };
 
 const en: KontoText = {
-  galerieTitel: "My Gallery",
+  galerieTitel: "Assets",
   galerieHinweis: "Tap a video — full screen and download.",
   leer: "Nothing here yet — make your first one.",
   laeuftEins: "Your video is being created",
@@ -151,7 +151,7 @@ const en: KontoText = {
 };
 
 const de: KontoText = {
-  galerieTitel: "Meine Galerie",
+  galerieTitel: "Assets",
   galerieHinweis: "Tippe ein Video an — Vollbild und Download.",
   leer: "Noch nichts hier — mach dein erstes.",
   laeuftEins: "Dein Video entsteht gerade",
@@ -203,7 +203,7 @@ const de: KontoText = {
 };
 
 const ro: KontoText = {
-  galerieTitel: "Galeria mea",
+  galerieTitel: "Assets",
   galerieHinweis: "Atinge un videoclip — ecran complet și descărcare.",
   leer: "Încă nimic aici — creează primul tău.",
   laeuftEins: "Videoclipul tău se creează acum",
@@ -255,7 +255,7 @@ const ro: KontoText = {
 };
 
 const es: KontoText = {
-  galerieTitel: "Mi galería",
+  galerieTitel: "Assets",
   galerieHinweis: "Toca un vídeo — pantalla completa y descarga.",
   leer: "Aquí todavía no hay nada — crea el primero.",
   laeuftEins: "Tu vídeo se está creando",
@@ -307,7 +307,7 @@ const es: KontoText = {
 };
 
 const fr: KontoText = {
-  galerieTitel: "Ma galerie",
+  galerieTitel: "Assets",
   galerieHinweis: "Touche une vidéo — plein écran et téléchargement.",
   leer: "Rien ici pour l'instant — crée la première.",
   laeuftEins: "Ta vidéo est en cours de création",
@@ -359,7 +359,7 @@ const fr: KontoText = {
 };
 
 const pt: KontoText = {
-  galerieTitel: "A minha galeria",
+  galerieTitel: "Assets",
   galerieHinweis: "Toca num vídeo — ecrã inteiro e transferência.",
   leer: "Ainda nada aqui — cria o primeiro.",
   laeuftEins: "O teu vídeo está a ser criado",
@@ -411,7 +411,7 @@ const pt: KontoText = {
 };
 
 const it: KontoText = {
-  galerieTitel: "La mia galleria",
+  galerieTitel: "Assets",
   galerieHinweis: "Tocca un video — schermo intero e download.",
   leer: "Ancora niente qui — crea il primo.",
   laeuftEins: "Il tuo video si sta creando",

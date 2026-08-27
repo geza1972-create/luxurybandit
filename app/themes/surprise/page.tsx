@@ -45,7 +45,7 @@ export default async function SurpriseThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav marke="LB - Surprise" heim="/themes/surprise" motto="AI Surprise Videos" />
       <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>
@@ -101,7 +101,7 @@ export default async function SurpriseThemePage({ searchParams }: {
         {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
             Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
             gesehen. Siehe components/SeitenFuss. */}
-        <SeitenFuss />
+        <SeitenFuss marke="LB - Surprise" />
     </main>
   );
 }

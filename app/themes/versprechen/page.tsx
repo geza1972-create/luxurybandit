@@ -87,7 +87,7 @@ export default async function VersprechenThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav marke="LB - Future me" heim="/themes/versprechen" motto="Future Self Program" />
       <TrackView event="versprechen_view" lookId="themes-versprechen" lookName="Versprechen-Thema" />
       {/* Seitenkopf-Template: pt-3, H1 aus der Bibliothek, direkt die Karte (Landingpage.md §9). */}
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
@@ -118,7 +118,7 @@ export default async function VersprechenThemePage({ searchParams }: {
             (Owner 14.08.2026, Dauerregel fuer den Tunnel). */}
         <VersprechenInhalt T={T} s={s} />
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Future me" />
     </main>
   );
 }

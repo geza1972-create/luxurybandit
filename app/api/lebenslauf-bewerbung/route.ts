@@ -4,6 +4,7 @@ import { leseLebenslauf, schreibeLebenslauf, loescheLebenslauf, type LebenslaufP
 import { darfAmProfilArbeiten } from "@/lib/lebenslauf-besitz";
 import { anzeigenTextBeschaffen } from "@/lib/lebenslauf-anzeige";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { leseChance, chanceIstVeroeffentlichbar } from "@/lib/job-chancen";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -83,7 +84,20 @@ export async function GET(request: Request) {
   }, { headers: { "Cache-Control": "no-store" } });
 }
 
+type Einstufung = "erfuellt" | "uebertragbar" | "erklaerbar" | "blocker";
+type Empfehlung = "gut" | "bruecke" | "schwach";
+/** Die Struktur-Analyse aus /api/lebenslauf-match (Baustelle A), unverändert
+    durchgereicht — diese Route rechnet sie NICHT neu, sie nutzt sie nur als Kontext
+    für die Strategie. */
+type AnalyseEingang = { empfehlung?: string; anforderungen?: { text?: string; einstufung?: string; begruendung?: string }[] };
+
+type Strategie = {
+  staerksteArgumente?: string[]; uebertragbar?: string[]; zuErklaeren?: string[];
+  betonen?: string[]; wenigerBetonen?: string[]; sprachvorteile?: string[]; nieVerstecken?: string[];
+};
+
 type Zuschnitt = {
+  strategie?: Strategie;
   positionierung?: string; sprechtext?: string;
   schwerpunkte?: string[]; kompetenzen?: string[];
   ergebnisse?: { i?: number; ergebnis?: string }[];
@@ -139,8 +153,15 @@ export async function POST(request: Request) {
 
   const id = String(body.id ?? "").trim();
   const eingabe = String(body.eingabe ?? "").trim().slice(0, 4000);
+  /* DER JOBCHANCEN-EINGANG (Tür 2, Baustelle E/F): statt `eingabe` darf der Body eine
+     `chanceId` tragen — die Anzeige kommt dann aus dem Pool, nicht vom Bewerber.
+     `analyse` ist die Struktur-Analyse aus /api/lebenslauf-match, unverändert
+     durchgereicht (keine zweite Analyse hier). Beide sind optional — Alt-Aufrufer
+     (ProfilAssistent, Tür 1) senden weder das eine noch das andere. */
+  const chanceId = String(body.chanceId ?? "").trim();
+  const analyse = (body.analyse && typeof body.analyse === "object") ? (body.analyse as AnalyseEingang) : null;
   const prozent = Number.isFinite(Number(body.prozent)) ? Math.max(0, Math.min(100, Math.round(Number(body.prozent)))) : undefined;
-  if (!id || !eingabe) return NextResponse.json({ error: "Kennung oder Anzeige fehlt." }, { status: 400 });
+  if (!id || (!eingabe && !chanceId)) return NextResponse.json({ error: "Kennung oder Anzeige fehlt." }, { status: 400 });
 
   /* IMMER VOM HAUPTPROFIL AUS (auch wenn der Aufruf von einer Bewerbungs-Seite käme):
      Ketten von Kopien einer Kopie gäbe es sonst — und das Tor (Probe/Abo) hängt am Basis-
@@ -153,15 +174,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not yours." }, { status: 403 });
   }
 
-  /* DAS TOR — der Admin testet am Tor vorbei (Memory `admin-testet-den-kaufweg-nicht`). */
+  /* DAS TOR — der Admin testet am Tor vorbei (Memory `admin-testet-den-kaufweg-nicht`).
+     TÜR 2 IST KOMPLETT KOSTENLOS (Owner-Änderungsauftrag 26.08.2026): eine `chanceId`
+     passiert OHNE dieses Tor und OHNE den Probe-Zähler zu ziehen — sie ist
+     Akquisitionsaufwand, kein Produktkauf, und darf den Probe-Anspruch eines späteren
+     Tür-1-Kaufs nicht verbrauchen. Stattdessen gilt unten der eigene Deckel „höchstens
+     eine Mappe je Chance". */
   const admin = await isAdminRequest(request).catch(() => false);
-  const erzeugt = basis.bewerbungenErzeugt ?? 0;
-  if (!admin && erzeugt >= 1 && basis.aboAktiv !== true) {
-    return NextResponse.json({ aboNoetig: true, error: "Die Probe-Bewerbung ist verbraucht — weitere gibt es mit dem Abo." }, { status: 402 });
+  if (!chanceId) {
+    const erzeugt = basis.bewerbungenErzeugt ?? 0;
+    if (!admin && erzeugt >= 1 && basis.aboAktiv !== true) {
+      return NextResponse.json({ aboNoetig: true, error: "Die Probe-Bewerbung ist verbraucht — weitere gibt es mit dem Abo." }, { status: 402 });
+    }
   }
 
-  const anzeige = await anzeigenTextBeschaffen(eingabe);
-  if (!anzeige.text) return NextResponse.json({ error: anzeige.fehler ?? "Keine Anzeige erkannt." }, { status: 422 });
+  let anzeigeText = "";
+  let chanceRolle = "";
+  if (chanceId) {
+    const chance = await leseChance(chanceId);
+    if (!chance || !chanceIstVeroeffentlichbar(chance)) {
+      return NextResponse.json({ error: "Chance nicht gefunden." }, { status: 404 });
+    }
+    anzeigeText = chance.intern.originalText?.trim()
+      || [chance.rolle, chance.kurzbeschreibung, ...chance.anforderungen].filter(Boolean).join("\n");
+    chanceRolle = chance.rolle;
+  } else {
+    const anzeige = await anzeigenTextBeschaffen(eingabe);
+    if (!anzeige.text) return NextResponse.json({ error: anzeige.fehler ?? "Keine Anzeige erkannt." }, { status: 422 });
+    anzeigeText = anzeige.text;
+  }
+
+  /* HÖCHSTENS EINE MAPPE JE KANDIDAT UND CHANCE (Änderung 1, Missbrauchs-Deckel statt
+     Paywall): ein zweiter Lauf auf dieselbe Chance ERSETZT die bestehende Version. */
+  const bestehendeVersion = chanceId ? (basis.bewerbungen ?? []).find(b => b.chanceId === chanceId) : undefined;
 
   /* Erfahrung mit Index, damit die KI NUR die Ergebnis-Zeile je Station zurückgibt —
      Rolle/Firma/Zeitraum kann sie so gar nicht erst verändern. */
@@ -178,18 +223,27 @@ export async function POST(request: Request) {
   };
 
   const prompt = [
-    "Du schneidest das Profil eines Bewerbers auf EINE konkrete Stellenanzeige zu und schreibst das Anschreiben dazu. Profildaten als JSON:",
+    "Du bereitest die Bewerbung eines Kandidaten auf EINE konkrete Stelle vor und schreibst das Anschreiben dazu. Profildaten als JSON:",
     JSON.stringify(daten),
-    `Die Stellenanzeige:\n${anzeige.text}`,
+    `Die Stellenanzeige:\n${anzeigeText}`,
+    ...(analyse ? [`Ehrliche Match-Analyse für diese Stelle, bereits mit dem Bewerber geteilt (nutze sie als Kontext, rechne sie nicht neu): ${JSON.stringify(analyse)}`] : []),
+    // QUELLEN-COMPLIANCE (Baustelle D/E, gilt auch fürs Anschreiben — höheres Risiko als
+    // die Kurz-Analyse, weil hier ganze Sätze aus dem Originaltext entstehen könnten).
+    ...(chanceId ? ["Diese Stellenanzeige ist eine interne Markt-Chance. Nenne NIRGENDS in deiner Antwort — auch nicht im Anschreiben — einen Firmennamen, eine Marke oder ein Unternehmen aus dem Text. Sprich immer nur von \"dieser Stelle\"/\"der Position\". Das Anschreiben richtet sich an den TYP der Stelle, nicht an eine konkrete Firma: neutrale Anrede, kein Firmenname."] : []),
     "ZUSCHNEIDEN HEISST AUSWÄHLEN UND BETONEN, NIE ERFINDEN. Alles, was du schreibst, muss durch die Profildaten belegt sein. Lücken gegenüber der Anzeige werden NICHT weggelogen und nicht beschönigt.",
+    // DIE STRATEGIE ZUERST (Baustelle C, Owner-Auftrag: „This strategy must drive both
+    // the CV and cover letter" — keine von ihr unabhängige Erzählung in sprechtext/anschreiben).
+    "Leite ZUERST 'strategie' ab — sie muss sprechtext, anschreiben und die Betonung unten TRAGEN: {\"staerksteArgumente\":[bis 5 stärkste Gründe, warum der Kandidat passt],\"uebertragbar\":[bis 6 übertragbare Kompetenzen],\"zuErklaeren\":[bis 5 Lücken, die die Bewerbung offen adressieren muss — inkl. Umzug/Branchenwechsel falls zutreffend, je EIN Satz],\"betonen\":[bis 4 Erfahrungen mit mehr Gewicht],\"wenigerBetonen\":[bis 4 Erfahrungen mit weniger Gewicht],\"sprachvorteile\":[bis 3 Sprachvorteile],\"nieVerstecken\":[bis 3 echte Lücken, die NICHT versteckt werden dürfen]}.",
     "'positionierung' — EINE kurze Zeile (Jobbezeichnung/Ausrichtung) unter dem Namen, die zur Anzeige passt, ABER NUR, wenn die Erfahrung sie wirklich trägt. Trägt sie sie nicht, gib einen leeren String.",
-    "'sprechtext' — der Profiltext (80–120 Wörter, erste Person, DIESELBE Sprache wie der bisherige sprechtext): führe mit dem, was die Anzeige verlangt und das Profil belegt.",
+    "'sprechtext' — der Profiltext (80–120 Wörter, erste Person, DIESELBE Sprache wie der bisherige sprechtext), der DIESER Strategie folgt: führe mit dem, was die Anzeige verlangt und das Profil belegt.",
     "'schwerpunkte' — 3–4 kurze Arbeitsfelder, auf die Anzeige hin ausgewählt/umformuliert (keine Jobtitel).",
     "'kompetenzen' — 4–6 Begriffe aus den vorhandenen Kompetenzen, die für DIESE Anzeige stärksten zuerst (umsortieren und straffen erlaubt, erfinden nicht).",
     "'ergebnisse' — je Station optional eine neu betonte Ergebnis-Zeile: [{\"i\":0,\"ergebnis\":\"…\"}]. NUR umformulieren/betonen, was in der Station schon steht; Stationen ohne Änderung weglassen.",
-    "'anschreiben' — ein vollständiges Anschreiben (150–250 Wörter) IN DER SPRACHE DER ANZEIGE: konkreter Bezug auf 2–3 Anforderungen der Anzeige, je mit Beleg aus dem Profil; keine Floskeln, keine erfundenen Ansprechpartner (ohne Namen neutral anreden); endet mit dem Namen des Bewerbers.",
+    // DAS ANSCHREIBEN — DIE TON-REGELN FÜR DEN QUEREINSTIEG (Owner-Auftrag, Beispiel-
+    // Sätze wörtlich übernommen).
+    "'anschreiben' — ein vollständiges Anschreiben (150–250 Wörter) IN DER SPRACHE DER ANZEIGE, das der Strategie folgt: konkreter Bezug auf 2–3 Anforderungen der Anzeige, je mit Beleg aus dem Profil. JEDE Lücke aus 'zuErklaeren' wird OFFEN in 1–2 Sätzen angesprochen — nicht versteckt, nicht entschuldigt. Muster-Ton: \"Meine bisherigen Positionen waren nicht formal als [Rolle] betitelt, aber [übertragbare Tätigkeit] war ein wesentlicher Teil meiner Arbeit.\" Bei Umzug ausdrücklich: \"Ich lebe derzeit in [Ort] und bin bereit, für diese Stelle nach [Zielort] umzuziehen.\" VERBOTEN: entschuldigende oder defensive Sprache (\"leider\", \"obwohl ich nur\", Rechtfertigungen), die Behauptung einer nicht vorhandenen Qualifikation, und jedes Verstecken eines Punkts aus 'nieVerstecken'. Der Ton: die Lücke ist bekannt, die vorhandene Erfahrung trägt trotzdem, der Wechsel ist eine bewusste Entscheidung. Keine Floskeln, keine erfundenen Ansprechpartner (ohne Namen neutral anreden); endet mit dem Namen des Bewerbers.",
     "'anzeigeTitel' — der Stellentitel wörtlich aus der Anzeige (kurz); 'anzeigeFirma' — der Firmenname, falls erkennbar, sonst leer.",
-    "Antworte NUR als JSON: {\"positionierung\":\"…\",\"sprechtext\":\"…\",\"schwerpunkte\":[…],\"kompetenzen\":[…],\"ergebnisse\":[{\"i\":0,\"ergebnis\":\"…\"}],\"anschreiben\":\"…\",\"anzeigeTitel\":\"…\",\"anzeigeFirma\":\"…\"}",
+    "Antworte NUR als JSON: {\"strategie\":{…},\"positionierung\":\"…\",\"sprechtext\":\"…\",\"schwerpunkte\":[…],\"kompetenzen\":[…],\"ergebnisse\":[{\"i\":0,\"ergebnis\":\"…\"}],\"anschreiben\":\"…\",\"anzeigeTitel\":\"…\",\"anzeigeFirma\":\"…\"}",
   ].join("\n\n");
 
   const r = await fetch("https://api.openai.com/v1/responses", {
@@ -211,6 +265,19 @@ export async function POST(request: Request) {
   const liste = (v: unknown, max: number, laenge = 120) =>
     (Array.isArray(v) ? v : []).map(x => s(x, laenge)).filter(Boolean).slice(0, max);
 
+  const strategieRoh = parsed.strategie ?? {};
+  const strategie: NonNullable<LebenslaufProfil["strategie"]> = {
+    staerksteArgumente: liste(strategieRoh.staerksteArgumente, 5, 200),
+    uebertragbar: liste(strategieRoh.uebertragbar, 6, 160),
+    zuErklaeren: liste(strategieRoh.zuErklaeren, 5, 200),
+    betonen: liste(strategieRoh.betonen, 4, 160),
+    wenigerBetonen: liste(strategieRoh.wenigerBetonen, 4, 160),
+    sprachvorteile: liste(strategieRoh.sprachvorteile, 3, 120),
+    nieVerstecken: liste(strategieRoh.nieVerstecken, 3, 200),
+  };
+  const matchEmpfehlung = (["gut", "bruecke", "schwach"] as const).includes(analyse?.empfehlung as Empfehlung)
+    ? (analyse!.empfehlung as Empfehlung) : undefined;
+
   /* Ergebnis-Zeilen NUR an ihrer Station einsetzen — alles andere an der Erfahrung bleibt
      byte-gleich der Bestand (Stationen sind unantastbar). */
   const erfahrung = (basis.erfahrung ?? []).map((e, i) => {
@@ -220,13 +287,21 @@ export async function POST(request: Request) {
   });
 
   const anschreiben = s(parsed.anschreiben, 3000);
-  const anzeigeTitel = s(parsed.anzeigeTitel, 120);
-  const vid = randomUUID();
+  /* Bei einer Jobchance NIE den von der KI extrahierten Titel/Firma übernehmen — die
+     neutrale `rolle` aus dem Pool steht fest, ein Firmenname gehört dort gar nicht erst
+     hinein (Quellen-Compliance, Baustelle D, dieselbe Verteidigung wie in
+     lebenslauf-match: der Prompt kann ignoriert werden, dieser Codepfad nicht). */
+  const anzeigeTitel = chanceId ? chanceRolle : s(parsed.anzeigeTitel, 120);
+  const anzeigeFirma = chanceId ? "" : s(parsed.anzeigeFirma, 120);
+  /* HÖCHSTENS EINE MAPPE JE KANDIDAT UND CHANCE (Änderung 1) — ein zweiter Lauf auf
+     dieselbe `chanceId` behält die KENNUNG der bestehenden Version und überschreibt sie,
+     statt eine weitere anzulegen. */
+  const vid = bestehendeVersion?.id ?? randomUUID();
   const version: LebenslaufProfil = {
     ...basis,
     id: vid,
     basisId: basis.id,
-    erstelltAm: new Date().toISOString(),
+    erstelltAm: bestehendeVersion?.erstelltAm ?? new Date().toISOString(),
     /* Bild statt Video (Owner) — und Abo/Index/Zähler leben NUR am Hauptprofil. */
     videoUrl: undefined,
     aboAktiv: undefined, aboSubId: undefined, aboSeit: undefined,
@@ -238,8 +313,11 @@ export async function POST(request: Request) {
     erfahrung,
     anschreiben: anschreiben || undefined,
     anzeigeTitel: anzeigeTitel || undefined,
-    anzeigeFirma: s(parsed.anzeigeFirma, 120) || undefined,
+    anzeigeFirma: anzeigeFirma || undefined,
     matchProzent: prozent,
+    matchEmpfehlung,
+    strategie,
+    chanceId: chanceId || undefined,
     bezahlt: true,
   };
 
@@ -249,15 +327,20 @@ export async function POST(request: Request) {
 
   /* Index + Probe-Zähler am Hauptprofil — ZWEITER Schreibvorgang auf eine ANDERE Datei
      (kein Merge-Risiko), mit frisch gelesenem Bestand, damit eine parallele Korrektur
-     nichts verliert. */
+     nichts verliert. Bei chanceId ERSETZT diese Version einen bestehenden Eintrag (siehe
+     `bestehendeVersion` oben) statt einen neuen anzulegen, und `bewerbungenErzeugt`
+     bleibt unangetastet — der Zähler gehört dem Probe/Abo-Tor von Tür 1, das eine
+     kostenlose Tür-2-Mappe nie verbrauchen darf (Änderung 1). */
   const frisch = (await leseLebenslauf(basis.id)) ?? basis;
+  const neuerEintrag = { id: vid, titel: anzeigeTitel || "Bewerbung", firma: anzeigeFirma || undefined, erstelltAm: version.erstelltAm, prozent, chanceId: chanceId || undefined };
+  const bestandsListe = frisch.bewerbungen ?? [];
+  const naechsteListe = bestehendeVersion
+    ? bestandsListe.map(b => (b.id === vid ? neuerEintrag : b))
+    : [...bestandsListe, neuerEintrag];
   await schreibeLebenslauf({
     ...frisch,
-    bewerbungen: [
-      ...(frisch.bewerbungen ?? []),
-      { id: vid, titel: anzeigeTitel || "Bewerbung", firma: s(parsed.anzeigeFirma, 120) || undefined, erstelltAm: version.erstelltAm, prozent },
-    ],
-    bewerbungenErzeugt: (frisch.bewerbungenErzeugt ?? 0) + 1,
+    bewerbungen: naechsteListe,
+    bewerbungenErzeugt: chanceId ? frisch.bewerbungenErzeugt : (frisch.bewerbungenErzeugt ?? 0) + 1,
   });
 
   return NextResponse.json({ id: vid, url: `/lebenslauf/${vid}`, titel: anzeigeTitel || "" });

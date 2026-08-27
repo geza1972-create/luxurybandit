@@ -139,6 +139,21 @@ export type TryThisLookEvent = {
    */
   step?: string;
   vorlage?: string;
+  /**
+   * DER JOBCHANCEN-TRICHTER (Owner-Änderungsauftrag 26.08.2026,
+   * KONZEPT-JOB-MATCH-TRICHTER.md Baustelle I) — dieselbe Falle wie bei `theme`/`step`/
+   * `vorlage` oben: additiv ergänzt, sonst verwirft `app/api/try-this-look/route.ts`
+   * (`action:"event"`) diese Felder beim Schreiben (kein `...payload`-Durchreichen).
+   * `topic` = die Zielgruppen-Landingpage (`/topics/<slug>`), an jedem Ereignis danach
+   * mit dabei (Muster `vorlage`). `chanceId`/`kategorie`/`matchLand`/`matchProzent`/
+   * `matchEmpfehlung` beschreiben eine Jobchance, wo ein Ereignis sich auf eine bezieht.
+   */
+  topic?: string;
+  chanceId?: string;
+  kategorie?: string;
+  matchLand?: string;
+  matchProzent?: number;
+  matchEmpfehlung?: string;
 };
 
 export type TryThisLookLead = {
@@ -1683,6 +1698,17 @@ export type KissLogEntry = {
    * Kaufweg ([[tunnel-kaufweg]]).
    */
   audioPath?: string;
+  /**
+   * DER HOCHGELADENE LEBENSLAUF (Owner 26.08.2026, live vermisst: „hier habe ich schon mal
+   * mein lebenslauf hochgeladen und wo ist das? Assets ist weg. Da müsste es doch sein.") —
+   * bis dahin lud der Trichter die PDF zwar nach Supabase, aber KEIN Datensatz zeigte je
+   * auf sie: Nach der Auswertung war die Datei praktisch unauffindbar. Jetzt beschriftet
+   * /api/lebenslauf-auswertung den Auftrag mit Pfad und Original-Dateinamen, und die
+   * Galerie (/api/my-videos → /my-gallery) bietet die PDF am Lebenslauf-Werk zum
+   * Herunterladen an. Nur beim Thema „lebenslauf" gesetzt.
+   */
+  cvPath?: string;
+  cvName?: string;
   /**
    * DAS URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in
    * der Galerie ein Warnzeichen drauf").

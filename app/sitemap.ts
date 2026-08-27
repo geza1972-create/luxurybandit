@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { alleZielgruppenSlugs } from "@/lib/lebenslauf-zielgruppen";
 
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "");
 
@@ -41,6 +42,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* DIE VIDEO-BEWERBUNG (Owner 24.08.2026: „nimmst du auch Bewerbung auf die Topicseite")
        — eigene Verkaufsseite mit eigenem Suchanlass („video application", „video cv"). */
     { url: `${BASE}/themes/lebenslauf`, changeFrequency: "weekly", priority: 0.9 },
+    /* DIE ZIELGRUPPEN-LANDINGPAGES (Owner-Auftrag 26.08.2026,
+       KONZEPT-JOB-MATCH-TRICHTER.md Baustelle H) — anders als der Trichter selbst
+       (bleibt `noindex`) sind diese Seiten der Suchanlass, nicht der Zwischenschritt. */
+    ...alleZielgruppenSlugs().map(slug => ({ url: `${BASE}/topics/${slug}`, changeFrequency: "weekly" as const, priority: 0.85 })),
     { url: `${BASE}/themes/birthday`, changeFrequency: "weekly", priority: 0.8 },
     /* `/themes/surprise` (Pole Dance) IST RAUS (Owner 11.08.2026: „ich denke, wir müssen
        pool dancing raus machen weil das unseriös wirkt für das portal" — und weiter: „intern

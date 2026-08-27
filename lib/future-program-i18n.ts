@@ -64,7 +64,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Your 90-day goal",
     invalidTitle: "This link is not valid.",
     invalidText: "Check the link from your email.",
-    backToGallery: "Open my gallery",
+    backToGallery: "Open my assets",
     loading: "Loading your program…",
   },
   de: {
@@ -89,7 +89,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Dein 90-Tage-Ziel",
     invalidTitle: "Dieser Link ist nicht gültig.",
     invalidText: "Prüf den Link aus deiner E-Mail.",
-    backToGallery: "Meine Galerie öffnen",
+    backToGallery: "Meine Assets öffnen",
     loading: "Dein Programm lädt …",
   },
   ro: {
@@ -114,7 +114,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Obiectivul tău pe 90 de zile",
     invalidTitle: "Acest link nu este valid.",
     invalidText: "Verifică linkul din e-mailul tău.",
-    backToGallery: "Deschide galeria mea",
+    backToGallery: "Deschide Assets",
     loading: "Programul tău se încarcă …",
   },
   es: {
@@ -139,7 +139,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Tu meta de 90 días",
     invalidTitle: "Este enlace no es válido.",
     invalidText: "Comprueba el enlace de tu correo.",
-    backToGallery: "Abrir mi galería",
+    backToGallery: "Abrir mis Assets",
     loading: "Cargando tu programa …",
   },
   fr: {
@@ -164,7 +164,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Ton objectif à 90 jours",
     invalidTitle: "Ce lien n'est pas valide.",
     invalidText: "Vérifie le lien reçu par e-mail.",
-    backToGallery: "Ouvrir ma galerie",
+    backToGallery: "Ouvrir mes Assets",
     loading: "Chargement de ton programme …",
   },
   pt: {
@@ -189,7 +189,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "O teu objetivo de 90 dias",
     invalidTitle: "Este link não é válido.",
     invalidText: "Confere o link do teu e-mail.",
-    backToGallery: "Abrir a minha galeria",
+    backToGallery: "Abrir os meus Assets",
     loading: "A carregar o teu programa …",
   },
   it: {
@@ -214,7 +214,7 @@ export const FUTURE_PROGRAM_TEXT: Record<string, FutureProgramText> = {
     goal90Saved: "Il tuo obiettivo a 90 giorni",
     invalidTitle: "Questo link non è valido.",
     invalidText: "Controlla il link nella tua email.",
-    backToGallery: "Apri la mia galleria",
+    backToGallery: "Apri i miei Assets",
     loading: "Caricamento del tuo programma …",
   },
 };

@@ -67,7 +67,7 @@ export default async function VersprechenStartPage({ searchParams }: {
     /* GENAU DAS MUSTER AUS `app/themes/kiss/page.tsx`: `lb-theme lb-fb` nur bei `?light=1` —
        kein neues CSS, dieselbe helle Fassung, die die Anzeigen schon kennen. */
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Future me" heim="/themes/versprechen" motto="Future Self Program" />
       {/* DAS SEITENKOPF-TEMPLATE (Skill `ci-design`, „Der Kopf einer Seite"): Huelle `pt-3`,
           Kicker nur eine Zeile, H1 28px `mt-1`, direkt danach die Karte (hier: `KissFunnel`s
           eigene Video-Karte plus, gleich darunter, der immer offene Tunnel). */}
@@ -105,7 +105,7 @@ export default async function VersprechenStartPage({ searchParams }: {
             inhalt={<VersprechenInhalt T={T} s={s} />} />
         </div>
       </div>
-      <SeitenFuss />
+      <SeitenFuss marke="LB - Future me" />
     </main>
   );
 }

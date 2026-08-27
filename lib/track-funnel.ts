@@ -133,7 +133,12 @@ export function logFunnelEvent(event: string, extra: Record<string, string> = {}
          folgenden Stufe — damit trägt jedes Ereignis die gewählte Vorlage, ohne dass ein
          Aufrufer sie durchreichen muss. Ein ausdrücklich übergebener Wert in `extra` sticht
          (deshalb steht `...extra` dahinter). */
-      body: JSON.stringify({ action: "event", event, utmSource, vorlage: sp.get("v") || "", device, referrer: document.referrer || "", internal, ...extra }),
+      /* `topic` aus der Adresszeile (Owner-Änderungsauftrag 26.08.2026,
+         KONZEPT-JOB-MATCH-TRICHTER.md Baustelle I) — dasselbe Muster wie `vorlage`:
+         steht ab der Zielgruppen-Landingpage an JEDER folgenden Stufe, ohne dass ein
+         Aufrufer sie durchreichen muss. Ein ausdrücklich übergebener Wert in `extra`
+         sticht weiterhin (`...extra` steht dahinter). */
+      body: JSON.stringify({ action: "event", event, utmSource, vorlage: sp.get("v") || "", topic: sp.get("topic") || "", device, referrer: document.referrer || "", internal, ...extra }),
       keepalive: true, // events fired right before navigating away (to Stripe / login) still send
     }).then(() => {}).catch(() => {});
   } catch {

@@ -141,7 +141,7 @@ export default async function WeddingThemePage({ searchParams }: {
      * im Balken überstimmt beides und merkt sich die Wahl.
      */
     <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav marke="LB - Wedding" heim="/themes/wedding" motto="AI Wedding Videos" />
       <TrackView event="wedding_view" lookId="themes-wedding" lookName="Hochzeits-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
@@ -243,7 +243,7 @@ export default async function WeddingThemePage({ searchParams }: {
         {/* DER FUSS — auf jeder Themenseite (Owner 05.08.2026). Impressum, AGB und
             Datenschutz standen nur im Menue; wer aus einer Anzeige kommt, hat sie nie
             gesehen. Siehe components/SeitenFuss. */}
-        <SeitenFuss />
+        <SeitenFuss marke="LB - Wedding" />
     </main>
   );
 }

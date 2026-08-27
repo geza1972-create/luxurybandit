@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
+import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
 import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -1843,27 +1843,24 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      Startseite. Zwei Listen, die verschieden sortiert sind, lesen sich wie zwei Meinungen. */
   { icon: Cake, name: "Birthday", href: "/themes/birthday", bild: "/Birthday/hbd-fliege.jpg" },
   /**
-   * SURPRISE (POLE DANCE), CHAT UND HOLIDAY SIND RAUS (Owner 24.08.2026: „entferne
-   * Pooldancing und Chat aus der Topic" · „auch hollyday weg" · „Wir sind jetzt ein
-   * seriöses Portal"). Surprise war schon einmal draussen (11.08., „wirkt unseriös"),
-   * kam am 12.08. zurück — jetzt endgültig, zusammen mit Chat und Holiday. Die Seiten
-   * und Kaufwege bleiben technisch bestehen (alte Links, Admin-Vorschau in BottomNav);
-   * beworben wird nichts davon mehr. Dieselbe Rausnahme: Katalog-Kacheln
-   * (app/themes/page.tsx, AUSGEBLENDET) und app/sitemap.ts.
+   * KISS, SURPRISE UND TRY-ON SIND ZURÜCK (Owner 26.08.2026: „jetzt kannst du alle topics
+   * sogar wieder einfügen Kiss, Pooldancing, Try-ON"). Sie waren am 24./25.08. raus, weil
+   * sie neben der Bewerbungs-Mappe unseriös wirkten — ein Kuss-Video und ein Wäsche-
+   * Anprobierer als Nachbarn einer Bewerbung an eine Personalabteilung (Memory
+   * `serioeses-portal-umbau`). Der Grund ist mit der eigenen Kopfzeilen-Marke pro Topic
+   * („LB - AI Recruiting" statt „LuxuryBandit", siehe `TopNav`s `marke`-Prop) entfallen:
+   * die Bewerbungsseite tritt jetzt nicht mehr sichtbar als dasselbe Portal auf.
+   * CHAT UND HOLIDAY BLEIBEN DRAUSSEN — der Owner nannte nur diese drei; die beiden
+   * anderen sind nicht Teil dieser Rücknahme.
    */
+  { icon: Heart, name: "Kiss", href: "/themes/kiss", bild: "/Kiss/Rain/rain-kiss.jpg" },
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-poster.jpg" },
-  /* TRY-ON BLEIBT — ALS E-COMMERCE-WERKZEUG (Owner 24.08.2026, Klarstellung: „try on habe
-     ich gesagt du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen
-     anpassen"). Der Kreis bleibt stehen; umgetextet ist die Katalog-Kachel
-     (app/themes/page.tsx): Shops testen das Werkzeug hier und kaufen es bei uns. */
-  /* KISS UND TRY-ON SIND AUS DER LEISTE RAUS (Owner 25.08.2026: „Try-on und Kiss muss raus
-     aus der Topic") — sie stand auf JEDER Seite, also auch neben der Bewerbungs-Mappe: ein
-     Kuss-Video und ein Wäsche-Anprobierer als Nachbarn einer Bewerbung, die an eine
-     Personalabteilung geht. Das ist dieselbe Linie wie der Umbau vom 24.08. (Memory
-     `serioeses-portal-umbau`), nur konsequent zu Ende gedacht — und sie trägt jetzt den
-     Markteintritt: Rumänien/Deutschland, deutsch- und englischsprachige Bewerber.
-     BEIDE PRODUKTE BLEIBEN BESTEHEN: eigene Seiten, eigene Adressen, eigener Katalog-
-     Eintrag — nur der Dauer-Reiter im Kopf jeder Seite ist weg. */
+  { icon: Gift, name: "Surprise", href: "/themes/surprise", bild: "/Pooldance/beispiel-2.jpg" },
+  /* TRY-ON — E-COMMERCE-WERKZEUG (Owner 24.08.2026, Klarstellung: „try on habe ich gesagt
+     du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen anpassen").
+     Umgetextet ist die Katalog-Kachel (app/themes/page.tsx): Shops testen das Werkzeug hier
+     und kaufen es bei uns. */
+  { icon: Shirt, name: "Try-on", href: "/themes/tryon", bild: "/Tryon/tryon-1.jpg" },
   /* VERSPRECHEN GEHOERT IN DIE REIHE (Owner 15.08.2026: „wo ist Versprechen im Slider?").
      Es fehlte seit dem ersten Tag der Leiste — als sie entstand, war das Future Self Program
      noch nicht live; seit dem 12.08. verkauft es, stand aber in keiner Tab-Leiste. Genau die
@@ -1874,7 +1871,7 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      Bewerbung auf die Topicseite") — Bild ist das Poster des echten Beispiel-Laufs, dieselbe
      Konstante wie Landingpage-Karte und Katalog-Kachel (Memory
      `landingpage-video-ist-kachel-video`). */
-  { icon: FileText, name: "Resume", href: "/themes/lebenslauf", bild: LEBENSLAUF_BEISPIEL_POSTER },
+  { icon: FileText, name: "Recruiting", href: "/themes/lebenslauf", bild: LEBENSLAUF_BEISPIEL_POSTER },
   /* „ALLE" IST RAUS (Owner 15.08.2026: „Alle raus"). Als Werbe-Reihe war es der Weg zum
      Rest; als TAB-LEISTE ist es ein Reiter, der aus der Leiste hinausfuehrt — und der
      einzige, hinter dem kein Produkt steht, sondern eine Uebersicht. */
