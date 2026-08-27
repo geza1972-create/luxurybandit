@@ -3,8 +3,9 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { tryonPromptZiehen } from "@/lib/tryon-szenen";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX, BadgeCheck } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX } from "lucide-react";
 import { useKasseImFenster } from "@/components/KasseImFenster";
+import TopNav from "@/components/TopNav";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
@@ -99,11 +100,16 @@ export default function TryFunnelPage() {
   // Resolve the model's photo from ?modelId= when no ?model= photo is passed — so a shareable
   // link (e.g. an ad) only needs /try/<look>?modelId=<id> and never a photo token that expires.
   const [modelPhotoResolved, setModelPhotoResolved] = useState("");
+  // True once the ?modelId= lookup above has settled (hit OR miss) — used below to know
+  // when it's SAFE to check whether a reference photo exists, instead of catching it
+  // mid-flight as empty (see `modelResolveDone`).
+  const [modelResolveDone, setModelResolveDone] = useState(false);
   useEffect(() => {
-    if (!modelIdParam || modelParam || avatar) return;
+    if (!modelIdParam || modelParam || avatar) { setModelResolveDone(true); return; }
     fetch("/api/try-this-look?models=1").then(r => r.json())
       .then(d => { const m = (Array.isArray(d.models) ? d.models : []).find((x: { id: string }) => x.id === modelIdParam); if (m?.photoUrl) setModelPhotoResolved(m.photoUrl as string); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setModelResolveDone(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelIdParam]);
   const [pickedModelId, setPickedModelId] = useState("");
@@ -146,6 +152,59 @@ export default function TryFunnelPage() {
    * Formular steht in der Seite.
    */
   const kasse = useKasseImFenster();
+  /**
+   * KEIN ZWEITER KAUFKNOPF, SOLANGE DIE KASSE SCHON OFFEN IST (Owner 27.08.2026, live
+   * gesehen: 3 Klicks auf den Kaufknopf lösten 2 Kassensitzungen aus statt einer).
+   *
+   * `kaufLaeuftRef` (unten) schliesst nur die Luecke WAEHREND der eine Anfrage laeuft —
+   * ist die Kasse einmal erfolgreich offen, wird die Sperre wieder geloest (siehe
+   * `videoKaufen`), und der Knopf stand trotzdem weiter sichtbar da. Ein zweiter Klick
+   * DANACH war also kein Rennen mehr, sondern ein ganz regulaerer zweiter Tap auf einen
+   * Knopf, der noch dastand — und startete eine zweite, unabhaengige Kassensitzung. Die
+   * einzige echte Abhilfe: den Knopf verschwinden lassen, solange `kasse.block` steht.
+   */
+  const kasseOffen = !!kasse.block;
+
+  /**
+   * DIE RUECKKEHR VON DER KASSE FEHLTE GANZ (Owner 27.08.2026: „kommt immer wieder, statt
+   * dass die Generierung starten soll").
+   *
+   * Stripe schickt nach der Zahlung auf `returnTo` zurueck, mit `?paid=1&cs=<sitzung>` —
+   * genau das Muster, das jeder andere Trichter im Haus auswertet (siehe
+   * `components/PaidReturn.tsx`). Diese Seite hatte dafuer KEINEN Handler: Wer bezahlte,
+   * landete wieder auf demselben Bildschirm, `packCredits` blieb 0 (das ist die
+   * Abo-Kreditzahl aus `/api/video-pack`, mit dem Einmalkauf voellig unverwandt), und der
+   * Kaufknopf stand erneut da — als haette die Zahlung nichts bewirkt.
+   *
+   * DIE ZAHLUNG DECKT GENAU DIESES VIDEO — nicht ein Guthaben, das `runGeneration` erst
+   * abbuchen muesste. Bestaetigt der Server den Kauf, geht es deshalb DIREKT in
+   * `generateReal()`, am `/api/video-pack`-Abzug vorbei.
+   *
+   * ABER ERST WENN DIE REFERENZBILDER DA SIND (28.08.2026, selbst nachgestellt: „Generation
+   * failed — Referenzbilder fehlen" direkt nach dem Ruecksprung).
+   *
+   * Stripe schickt auf `return_url` zurueck — das ist ein VOLLER Seitenaufruf, kein Wechsel
+   * im laufenden React-Baum. `look` (oben) und, bei einem Link mit `?modelId=`, auch das
+   * Modelfoto (`modelPhotoResolved`) sind in dem Moment beide noch leer: ihre eigenen
+   * `fetch`-Aufrufe laufen erst nach dem Neu-Einhaengen los. Rief dieser Effekt
+   * `generateReal()` sofort, griff er auf `person`/`garment` zu, bevor eines von beidem
+   * geladen war — leer, leer, „Referenzbilder fehlen", und zwar NACH einer echten Zahlung.
+   * `paidPendingRef` merkt sich nur „bezahlt, warte auf die Daten"; der zweite Effekt
+   * darunter loest erst aus, wenn `look` UND die Modell-Aufloesung wirklich fertig sind.
+   */
+  const paidPendingRef = useRef(false);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("paid") !== "1") return;
+    const cs = q.get("cs") ?? "";
+    if (!cs) return;
+    router.replace(window.location.pathname, { scroll: false });
+    fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`)
+      .then(r => r.json())
+      .then(d => { if (d?.paid) { paidPendingRef.current = true; } else { setPayError("Zahlung konnte nicht bestätigt werden."); } })
+      .catch(() => setPayError("Zahlung konnte nicht bestätigt werden."));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [payBusy, setPayBusy] = useState(false);
   const [payError, setPayError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -243,6 +302,18 @@ export default function TryFunnelPage() {
   const isModelSession = false;
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
+  /**
+   * SOFORTSPERRE GEGEN DEN DREIFACH-KLICK (Owner 27.08.2026, live gesehen: „auf dem Button
+   * habe ich auch 3 mal geklickt").
+   *
+   * `payBusy` (React-Zustand) kommt zu spaet: Zwischen dem ersten Klick und dem Neuzeichnen
+   * des Knopfes (`disabled={payBusy || kasseOffen}`) liegt mindestens ein Frame — schnelle Taps in dieser
+   * Luecke lesen alle noch `payBusy === false` und starten JEDER eine eigene Kassensitzung.
+   * Bei echtem Geld (dieser Schluessel ist `pk_live_…`) heisst das: dreifache Abbuchung. Ein
+   * Ref aendert sich SOFORT, synchron, noch vor jedem Neuzeichnen — genau das schliesst die
+   * Luecke, die der State nicht schliessen kann.
+   */
+  const kaufLaeuftRef = useRef(false);
   const forceFreshRef = useRef(false); // "Generate a fresh one" → skip cache, make a NEW unique clip
   // Pre-generation countdown: a ~4s window with a Cancel button BEFORE any credit is spent,
   // so a mistaken tap doesn't cost a credit.
@@ -320,6 +391,25 @@ export default function TryFunnelPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [garmentParam, look]);
+
+  /**
+   * ERST NACH DEM SCHRITT-1-EFFEKT OBEN (28.08.2026, selbst nachgestellt: „Referenzbilder
+   * fehlen" nach echter Zahlung, dann wieder auf Schritt 2 statt Schritt 5 gelandet).
+   *
+   * Dieser Effekt und der Schritt-1-Skip oben warten beide auf `look` und feuern deshalb im
+   * SELBEN Render-Durchlauf. React fuehrt Effekte in der Reihenfolge aus, in der sie im
+   * Quelltext stehen — stand dieser Effekt VOR dem Skip-Effekt, gewann am Ende dessen
+   * `setStep(2)`, weil er als letzter lief, und die Zahlung landete wieder im Trichter statt
+   * beim Ergebnis. Jetzt steht er ABSICHTLICH danach: sein `setStep(5)` ist damit immer das
+   * letzte Wort in diesem Durchlauf.
+   */
+  useEffect(() => {
+    if (!paidPendingRef.current) return;
+    if (!look || !modelResolveDone) return; // Referenzbilder noch nicht geladen — warten
+    paidPendingRef.current = false;
+    genStartedRef.current = false; setGenStatus("idle"); setStep(5); void generateReal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [look, modelResolveDone]);
 
   const savePrompt = async () => {
     setPromptSaving(true); setPromptSaved(false);
@@ -630,7 +720,19 @@ export default function TryFunnelPage() {
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
       const person = avatar || pickedModel || modelParam || modelPhotoResolved || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
-      const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || "";
+      /**
+       * NICHT NUR `outfit` LESEN (28.08.2026, selbst nachgestellt: „Referenzbilder fehlen"
+       * direkt nach einer echten Zahlung, obwohl das Bild sichtbar auf dem Bildschirm stand).
+       *
+       * Der Ruecksprung von der Kasse ruft diese Funktion aus einem Effekt, der im GLEICHEN
+       * Render-Durchlauf laeuft wie der Schritt-1-Skip weiter oben, der `outfit` erst setzt
+       * (siehe dessen Begruendung). React uebernimmt Zustandsaenderungen aber erst beim
+       * NAECHSTEN Rendern — `outfit` ist an dieser Stelle deshalb noch der alte (leere)
+       * Wert, obwohl er eine Zeile weiter oben im selben Durchlauf schon gesetzt wurde. Der
+       * gleiche Rueckfall wie bei `person`/`modelImg` schliesst die Luecke: Ohne eigenes
+       * Stueck (`garmentParam`/`outfit`) bleibt das Bild des Looks selbst die Referenz.
+       */
+      const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || look?.frontImageUrl || look?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
 
       // ── MODEL self-service: PHOTO ONLY (OpenAI dress-up, cents) — no Pixverse video.
@@ -668,7 +770,19 @@ export default function TryFunnelPage() {
         try {
           const combo = `${chosenModelId}|${lookId}|${motion}`;
           const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
-          if (cached?.hit && cached.videoUrl) {
+          /**
+           * NIE DAS FREMDE LOOK-VIDEO STATT DER ECHTEN GENERIERUNG (Owner 27.08.2026: „es
+           * kommt immer dieses Video statt die echte Generierung").
+           *
+           * `generationId: "look:…"` heisst: es gibt KEIN Video zu genau diesem Model — der
+           * Server hat ersatzweise das generische Beispielvideo des Looks geschickt, das
+           * gleiche fuer JEDES Model (siehe die Kasse-GET-Route dort). Das ist richtig fuer
+           * die kostenlose Vorschau (Schritt 3, bevor bezahlt wird — besser ein fremdes Video
+           * zeigen als eine leere Flaeche), aber falsch HIER: Wer bezahlt oder sein Guthaben
+           * einsetzt, bestellt SEIN Model in SEINEM Look — kein generisches Ersatzvideo. Ein
+           * Treffer zaehlt hier deshalb nur, wenn er wirklich zu diesem Model gehoert.
+           */
+          if (cached?.hit && cached.videoUrl && !String(cached.generationId ?? "").startsWith("look:")) {
             setGenVideoUrl(cached.videoUrl);
             // Claim it for the signed-in user (copy → their gallery + own post); fall back
             // to the shared clip id if not signed in.
@@ -863,7 +977,8 @@ export default function TryFunnelPage() {
    * Kasse in der Seite, ist hier Schluss; sonst faellt es auf die Stripe-Adresse zurueck.
    */
   const videoKaufen = async () => {
-    if (payBusy) return;
+    if (payBusy || kaufLaeuftRef.current) return;
+    kaufLaeuftRef.current = true;
     setPayBusy(true); setPayError("");
     try {
       const email = payEmail();
@@ -894,10 +1009,11 @@ export default function TryFunnelPage() {
           eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json()).catch(() => null);
-      if (kasse.uebernehmen(start?.clientSecret)) { setPayBusy(false); return; }
+      if (kasse.uebernehmen(start?.clientSecret)) { kaufLaeuftRef.current = false; setPayBusy(false); return; }
       if (start?.url) { window.location.href = start.url; return; }
       setPayError(String(start?.error ?? "Start nicht möglich."));
     } catch { setPayError("Start nicht möglich."); }
+    kaufLaeuftRef.current = false;
     setPayBusy(false);
   };
 
@@ -1012,6 +1128,13 @@ export default function TryFunnelPage() {
           it can start within the GO tap gesture. */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={musicRef} src="/fassounds-escape-your-love-upbeat-fashion-pop-dance-412230.mp3" loop preload="auto" />
+      {/* DER KOPF FEHLTE HIER GANZ (Owner 27.08.2026: „header fehlt und galerie auch").
+          Diese Seite hatte nie den gemeinsamen `TopNav` — Guthaben-Chip, Galerie-Knopf und
+          Konto-Zeichen fehlten deshalb komplett, obwohl sie Hausregel sind (siehe
+          `guthaben-konto-header`). `back={false}`: der Zurueck-Pfeil bleibt in der eigenen
+          Leiste direkt darunter, die schrittabhaengig navigiert (mal ein Schritt zurueck im
+          Trichter, mal ganz raus) — das kann `TopNav` nicht wissen. */}
+      <TopNav back={false} />
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -1038,28 +1161,6 @@ export default function TryFunnelPage() {
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          {/* Account chip — shows the email you're "in" with + whether it's a verified account
-              (Google/full login = ✓) or just a newsletter email (⚠️ tap to create a full account). */}
-          {mounted && (() => {
-            const s = (() => { try { return getStoredAuthSession(); } catch { return null; } })();
-            const sessEmail = s?.user?.email as string | undefined;
-            const sessVerified = !!(s?.user as { email_confirmed_at?: string; confirmed_at?: string } | undefined)?.email_confirmed_at || !!(s?.user as { confirmed_at?: string } | undefined)?.confirmed_at;
-            const leadEmail = (() => { try { return localStorage.getItem("lb_lead_email") || ""; } catch { return ""; } })();
-            const email = sessEmail || leadEmail;
-            if (!email) return null;
-            const isVerified = !!sessEmail && sessVerified;
-            return (
-              // Ruhiger Hinweis „wir kennen dich" — KEIN Warndreieck mehr und kein Klick zur
-              // Kasse (Owner 28.07.2026: „ich weiss nicht, was das Dreieck sein soll").
-              // Das Dreieck stand fuer „E-Mail nicht bestaetigt" — ein Rest aus der Zeit, in
-              // der wir ein Konto verlangt haben. Das tun wir nicht mehr.
-              <span title={isVerified ? "Signed in" : "We know this address"}
-                className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-white/70 ring-1 ring-white/15">
-                {isVerified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" /> : null}
-                <span className="max-w-[110px] truncate">{email}</span>
-              </span>
-            );
-          })()}
           {/* Language switcher hidden — English is forced everywhere. Re-enable to bring RO back. */}
           {false && (
             <div className="ml-auto flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
@@ -1210,14 +1311,17 @@ export default function TryFunnelPage() {
               {/* GO — inline, right under the images (NOT sticky).
                   „Gratis" steht NUR dort, wo es stimmt: wenn für diese Kombination ein
                   fertiges Video bereitliegt. Sonst verkaufen wir hier das Abo. */}
-              <button type="button"
+              <button type="button" disabled={payBusy || kasseOffen}
                 onClick={() => {
                   logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
                   // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
                     // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
                     if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
-                  /* Ohne Guthaben in den EINMALKAUF (Schritt 4), nicht mehr ins Abo. */
-                  setStep(4);
+                  /* DIREKT ZUR KASSE (27.08.2026, Owner: „hier muss bezahlt werden") — hier
+                     stand `setStep(4)`, eine reine Preis-Wiederholung ohne Kaufknopf. Wer auf
+                     „Create your video — {tryon}" tippt, will genau JETZT bezahlen, nicht noch
+                     einen Bildschirm weiter zu einem zweiten, fast gleich beschrifteten Knopf. */
+                  void startPaidGenerate();
                 }}
                 className="lb-gold lb-buy mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                 {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
@@ -1227,6 +1331,10 @@ export default function TryFunnelPage() {
               {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
                 <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>
               )}
+              {/* Der Kaufknopf oeffnet die Kasse jetzt DIREKT (kein Zwischenschritt mehr) —
+                  ein Fehler dabei muss deshalb auch hier stehen, nicht nur auf dem toten
+                  alten Schritt 4. */}
+              {payError && <p className="mx-auto mt-2 max-w-sm text-center text-[12px] font-bold text-red-400">{payError}</p>}
 
               {examplesRow}
             </>
@@ -1285,9 +1393,9 @@ export default function TryFunnelPage() {
                           <div className="relative aspect-[3/4] w-full">
                             {isUpload ? (
                               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-white/[0.04] px-3 text-center">
-                                {(isPaid || adminProduce) ? <ImageUp className="h-9 w-9 text-amber-400" /> : <Lock className="h-8 w-8 text-amber-400" />}
+                                <ImageUp className="h-9 w-9 text-amber-400" />
                                 <span className="text-[13px] font-black text-amber-300">Your photo</span>
-                                <span className="text-[10px] font-bold text-white/75">{(isPaid || adminProduce) ? "Upload a selfie" : "Premium"}</span>
+                                <span className="text-[10px] font-bold text-white/75">Upload a selfie</span>
                               </div>
                             ) : (<>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1515,11 +1623,12 @@ export default function TryFunnelPage() {
                   )
                 ) : (
                   <>
-                    <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } setStep(4); }}
+                    <button type="button" disabled={payBusy || kasseOffen} onClick={() => { if (lookIsFree) { onUnlock(); return; } void startPaidGenerate(); }}
                       className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                       {lookIsFree ? L("Vezi videoul", "Watch the video") : kaufLabel()}
                     </button>
                     {!lookIsFree && <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>}
+                    {payError && <p className="mt-2 text-center text-[12px] font-bold text-red-400">{payError}</p>}
                     {/* WARUM ES SICH LOHNT — hier stand nur ein Knopf. Der Besucher sieht
                         jetzt zuerst fertige Vorher/Nachher-Beispiele und danach, was drin ist
                         und wer wir sind (Owner 28.07.2026). */}
@@ -1528,51 +1637,6 @@ export default function TryFunnelPage() {
                 )}
               </div>
             </>
-          )}
-        </div>
-      )}
-
-      {/* ── Step 4: plans ──────────────────────────────────────────────────── */}
-      {step === 4 && (
-        <div className="px-4 pb-28 pt-2">
-          <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : fillPrices("One video: {tryon} — no subscription needed.")}</p>
-
-          {(packCredits ?? 0) > 0 ? (
-            /* Has credits → just generate. */
-            <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5 text-center">
-              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/85">videos left this month</span></p>
-              <p className="mt-1 text-[12px] font-bold text-white/85">This uses 1 of your videos this month.</p>
-            </div>
-          ) : (
-            /* Kein Guthaben → EINZELKAUF 3,99 €. Das alte Premium-Abo ($49, erster Monat $8)
-               ist seit 26.07.2026 abgeschafft — hier standen bis jetzt noch die alten Preise. */
-            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 lb-goldhauch p-6 text-center">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">This video</p>
-              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">{fillPrices("{tryon}")}</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
-              <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>
-              <div className="mt-4 grid gap-2 text-left">
-                {["Your model in the look you picked", "Full video, yours to download", "Yours to keep — no subscription, no renewal"].map(perk => (
-                  <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#f6cf51]" /><span className="text-[13px] font-bold text-white/85">{perk}</span></div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {payError && <p className="mx-auto mt-3 max-w-sm text-center text-[12px] font-bold text-red-400">{payError}</p>}
-
-          {/* Escape hatch — not ready to pay? Browse the free models gallery instead. */}
-          <button type="button" onClick={() => router.push("/home")}
-            className="mx-auto mt-6 block text-center text-[13px] font-black text-white/85 underline underline-offset-4 active:scale-95 transition">
-            Visit the models gallery →
-          </button>
-
-          {/* Admin: skip the paywall and jump to the unlocked result (test the paid flow). */}
-          {adminPin && !previewAsUser && (
-            <button type="button" onClick={() => setStep(5)}
-              className="mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 py-3 text-[13px] font-black text-amber-300 active:scale-95 transition-transform">
-              <Check className="h-4 w-4" /> Admin: continue as paid →
-            </button>
           )}
         </div>
       )}
@@ -1768,14 +1832,14 @@ export default function TryFunnelPage() {
                     <span>{L("Deblochează modelul mai jos.", "Unlock this model below.")}</span>
                   </div>
                 )}
-                <button type="button"
+                <button type="button" disabled={payBusy || kasseOffen}
                   onClick={() => {
                     logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
                     // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
                     // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
                     if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
-                    /* Ohne Guthaben in den EINMALKAUF (Schritt 4), nicht mehr ins Abo. */
-                    setStep(4);
+                    /* DIREKT ZUR KASSE — dieselbe Begruendung wie beim Confirm-Knopf oben. */
+                    void startPaidGenerate();
                   }}
                     className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                   {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
@@ -1785,14 +1849,9 @@ export default function TryFunnelPage() {
                 {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
                   <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{kaufNote()}</p>
                 )}
+                {payError && <p className="mx-auto mt-2 max-w-sm text-center text-[12px] font-bold text-red-400">{payError}</p>}
               </>
             )
-          )}
-          {step === 4 && !(adminPin && !previewAsUser) && (
-            <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
-              className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : fillPrices("Get this video — {tryon}"))}
-            </button>
           )}
         </div>
       )}
