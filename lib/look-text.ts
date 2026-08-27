@@ -76,7 +76,11 @@ export function lookFakten(look: TryThisLookLook): { k: string; v: string }[] {
  * liest sich die Seite wie eine Tabelle mit Fliesstext daneben.
  */
 export function lookAbsatz(look: TryThisLookLook): string {
-  const teil = putz(look.garmentSubcategory) || putz(look.garmentCategory) || "dieses Teil";
+  // Ohne eigene Kategorie faellt der Satz auf "Dieses Teil" zurueck — NICHT auf "Ein
+  // dieses Teil" (28.08.2026, live gesehen: genau dieser Unsinn stand auf der ersten
+  // Lingerie-Anprobe-Seite mit Server-Text).
+  const teil = putz(look.garmentSubcategory) || putz(look.garmentCategory) || "";
+  const teilMitArtikel = teil || "Dieses Teil";
   const anlass = putz(look.occasion);
   const stil = putz(look.style);
   const haendler = putz(look.storeName);
@@ -85,8 +89,10 @@ export function lookAbsatz(look: TryThisLookLook): string {
   const saetze: string[] = [];
   saetze.push(
     anlass
-      ? `${teil} für ${anlass} lassen sich auf einem Produktfoto schlecht beurteilen: Man sieht den Schnitt, aber nicht, wie er sich bewegt.`
-      : `Ein ${teil} lässt sich auf einem Produktfoto schlecht beurteilen: Man sieht den Schnitt, aber nicht, wie er sich bewegt.`,
+      ? `${teilMitArtikel} für ${anlass} lassen sich auf einem Produktfoto schlecht beurteilen: Man sieht den Schnitt, aber nicht, wie er sich bewegt.`
+      : teil
+      ? `Ein ${teil} lässt sich auf einem Produktfoto schlecht beurteilen: Man sieht den Schnitt, aber nicht, wie er sich bewegt.`
+      : `Dieses Teil lässt sich auf einem Produktfoto schlecht beurteilen: Man sieht den Schnitt, aber nicht, wie er sich bewegt.`,
   );
   saetze.push(
     `Auf dieser Seite siehst du ihn deshalb als Video an einem Modell — und kannst dein eigenes Foto hochladen, um ihn an dir zu sehen, bevor du dich entscheidest.`,
