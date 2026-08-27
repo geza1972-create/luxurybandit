@@ -203,12 +203,11 @@ const TRICHTER_QUELLE = {
   richtungenHinweis: "Eine Einschätzung deines Profils — keine offenen Stellen.",
   plusH: "Das spricht für dich",
   minusH: "Das fehlt noch",
-  checklisteH: "Wo sollen wir für dich suchen?",
-  checklisteZeile: "Kreuze die Branchen an, die für dich infrage kommen — auch mehrere.",
-  checklisteCta: "Auswahl senden",
-  sendet: "Sendet …",
-  checklisteDanke: "Danke — wir haben deine Auswahl.",
-  checklisteMelden: "Wir melden uns, sobald wir etwas Passendes für dich haben.",
+  /* DIE BRANCHEN-CHECKLISTE IST AM 27.08.2026 RAUS (Owner: „das hier macht das Ganze nur
+     komplizierter. Er hat sich schon entschieden im Chat, was er machen will.") — sie fragte
+     dieselbe Entscheidung ein zweites Mal ab. Ihre sechs Texte stehen deshalb nicht mehr
+     hier: Jeder Schlüssel in dieser Tabelle läuft durch die Übersetzungsmaschine, ein toter
+     kostet also weiter Übersetzungen. Der Aufbau steht im Client. */
   /* Das Premium-Paket direkt unter den Minuspunkten (Owner 26.08.2026: „er kann das
      buchen, um die Punkte zu verbessern") — kein Sofortkauf, ein Rückruf. */
   premiumH: "Diese Punkte kannst du wegbekommen",
@@ -243,18 +242,14 @@ const TRICHTER_QUELLE = {
   sucheSchauen: "Ich schaue nur",
   mailPflichtFehler: "Bitte gib deine E-Mail an — dahin schicken wir deine Chancen.",
   chancenCta: "Zeig mir meine Chancen",
-  // ── DIE KARTE AM ENDE (Owner: „Es soll wie ein Gaming funktionieren. Am Ende muss
-  // eine Karte herauskommen, die er speichert oder die ich den Firmen vorstellen kann,
-  // wenn er das erlaubt."). ──
-  karteTitel: "Deine Karte",
+  /* DIE ABSCHLUSS-KACHEL „DEINE KARTE" IST AM 27.08.2026 RAUS (Owner: „also das hier
+     braucht man gar nicht"). Sie wiederholte Name, Deutsch-Niveau, Wunsch, Können und
+     Prozente — alles zwei Bildschirme weiter oben schon gelesen — und las sich als „seine
+     Karte", obwohl sie unsere Freigabe-Kachel war. Der Freigabe-Knopf selbst ist geblieben
+     (ohne ihn kein Pool), nur ohne die Karte drumherum. Ihre acht Texte sind hier raus,
+     damit sie nicht weiter übersetzt werden. */
   punkteLabel: "Chancen-Punkte",
   punkteHinweis: "Je flexibler du bist, desto mehr Türen öffnen sich. Tippe eine Antwort an, um sie zu ändern — und sieh, was mit deinen Punkten passiert.",
-  karteDeutsch: "Deutsch",
-  karteKann: "Das kannst du",
-  karteWill: "Das willst du",
-  karteTraum: "Dein Traum",
-  karteChancen: "Deine besten Chancen",
-  karteGespeichert: "Deine Karte ist gespeichert — mit deiner E-Mail kommst du jederzeit zurück.",
   nochmal: "Nochmal von vorn",
   aendern: "Ändern",
   dankeWort: "Danke",

@@ -106,7 +106,16 @@ async function plusMinus(key: string, profilDaten: unknown, zielSprache: string,
     "DAS TESTERGEBNIS DEUTSCH GEHÖRT INS MINUS, WENN ES SCHWACH IST (Owner 26.08.2026): 'klickAntworten.deutschGetestet' stammt aus einem gestaffelten Test von A1 bis C1 und ist gemessen, nicht behauptet. Liegt es unter B2, nenne im 'minus' AUSDRÜCKLICH, was das kostet — bei A1/A2 fallen Kundenkontakt, Büro und Pflege praktisch weg, bei B1 bleibt es für Stellen mit Telefon- und Schriftverkehr zu knapp. Sag auch, was es ihm bringen würde, eine Stufe höher zu kommen. Bei B2 oder C1 gehört das Deutsch ins 'plus'.",
     "OHNE HOCHGELADENEN LEBENSLAUF WIEGT DAS SCHWER (Owner 26.08.2026: „wenn er keinen CV hochgeladen hat, gibt es viele Minuspunkte“): Steht im Profil kein ausgewerteter Lebenslauf — keine Stationen, keine Ausbildung, keine Nachweise —, dann nenne im 'minus' AUSDRÜCKLICH, was deshalb fehlt: keine belegten Stationen mit Zeiträumen, keine nachweisbaren Ergebnisse, kein Anschreiben, keine Zeugnisse. Eine Firma sieht dann nichts ausser Behauptungen. In diesem Fall sind mindestens DREI Minuspunkte richtig, und 'plus' bleibt entsprechend kurz.",
     "LIEGT DIE LEBENSLAUF-DATEI BEI, BEURTEILE AUCH DIE FORM (Owner 26.08.2026): Aufbau und Layout, Länge, Lesbarkeit, ob ein Foto drin ist und wie es wirkt, ob Zeiträume sauber stehen, Rechtschreibung. Ein Personaler entscheidet in Sekunden am Aussehen — nenne Formfehler im 'minus' genauso konkret wie inhaltliche, und ein wirklich gutes Dokument im 'plus'.",
-    "'fazit': EIN Satz, was sein nächster Schritt sein sollte. Fehlt der Lebenslauf, ist genau das der nächste Schritt.",
+    /* DER TON DES FAZITS (Owner 27.08.2026, an einem echten Ergebnis: „das ist nicht
+       richtig, was du schreibst" — das Modell hatte geschrieben „Entscheide dich: wenn du
+       wirklich in Kundenservice willst, überarbeite CV und Anschreiben …; willst du
+       UX/Produkt bleiben, ändere die Bewerbungsrichtung"). Sein Gegenvorschlag im Wortlaut:
+       „Du könntest es machen, aber deine aktuelle Präsentation macht dich für Recruiter
+       unplausibel. Du kannst es jetzt aber dafür anpassen." Also: kein Ultimatum an einen
+       Menschen, der gerade eine ehrliche Absage gelesen hat — eine Feststellung und ein
+       Weg nach vorn. */
+    "'fazit': ZWEI Sätze. Erst die ehrliche Feststellung, was ihn heute im Weg steht — in der Form „Du könntest X machen, aber …“. Dann der eine nächste Schritt, den ER selbst tun kann, als Angebot formuliert („Du kannst …“), nicht als Befehl.",
+    "STELL IHN NIE VOR EIN ULTIMATUM: keine Sätze wie „Entscheide dich“, „entweder … oder“, „du musst“. Er hat eine Richtung gewählt; unsere Aufgabe ist zu sagen, was ihr im Weg steht, nicht ihn davon abzubringen. Fehlt der Lebenslauf, ist genau das der nächste Schritt.",
     /* DIE PROZENTE JE RICHTUNG (Owner 27.08.2026: „die Prozente brauchen wir") — sie waren
        schon einmal da und flogen mit den Chancen-Karten raus. Der Unterschied, der sie
        tragbar macht: Sie bewerten eine ART VON ARBEIT, keine offene Stelle. Dafür brauchen
@@ -142,7 +151,9 @@ async function plusMinus(key: string, profilDaten: unknown, zielSprache: string,
     })).filter(r => r.rolle).sort((a, b) => b.prozent - a.prozent),
     plus: liste(parsed?.plus, 4),
     minus: liste(parsed?.minus, 4),
-    fazit: String(parsed?.fazit ?? "").trim().slice(0, 300),
+    /* 300 -> 420: Das Fazit ist seit 27.08.2026 ZWEI Saetze (Feststellung + Angebot) —
+       bei 300 Zeichen waere der zweite, wichtigere mitten im Wort abgeschnitten. */
+    fazit: String(parsed?.fazit ?? "").trim().slice(0, 420),
   };
 }
 

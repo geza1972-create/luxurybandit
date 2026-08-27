@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { Trash2, FileText, Video, Check, X as XIcon, ChevronRight, ArrowRightLeft, HelpCircle, AlertTriangle, RotateCcw } from "lucide-react";
 import TunnelSeite from "@/components/TunnelSeite";
 import { produkt } from "@/lib/produkte";
-import { BRANCHEN_QUELLE, BRANCHEN_SCHLUESSEL } from "@/lib/branchen";
 import { eur, PREMIUM_BERATUNG_CENTS } from "@/lib/pricing";
 import ImageCropper from "@/components/ImageCropper";
 import { TunnelStart, TunnelFortschritt, TunnelKachelUpload, VorlagenKachel, KurzeEinwilligung, Knopf, Laden, Eingabe, EingabeMehrzeilig } from "@/components/CI";
@@ -370,9 +369,6 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
 
   /* ANALYSE + CHECKLISTE statt Prozent-Karten (Owner 26.08.2026). */
   const [analyse, setAnalyse] = useState<{ richtungen?: { rolle: string; prozent: number; begruendung: string }[]; plus: string[]; minus: string[]; fazit: string } | null>(null);
-  const [branchenWahl, setBranchenWahl] = useState<string[]>([]);
-  const [sendetBranchen, setSendetBranchen] = useState(false);
-  const [gesendet, setGesendet] = useState(false);
   const [premiumDa, setPremiumDa] = useState(false);
   const [premiumLaeuft, setPremiumLaeuft] = useState(false);
   const [premiumTelefon, setPremiumTelefon] = useState("");
@@ -951,16 +947,6 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
     setPremiumLaeuft(false);
   };
 
-  /** Die Checkliste absenden — die Branchen landen am Kandidaten, mehr passiert nicht.
-      Kein Versprechen über offene Stellen: Wir wissen jetzt, wo wir für ihn suchen. */
-  const branchenSenden = async () => {
-    if (sendetBranchen || branchenWahl.length === 0) return;
-    setSendetBranchen(true);
-    await kandidatSpeichern({ branchen: branchenWahl });
-    void logFunnelEvent("branchen_gewaehlt", { theme: "lebenslauf", anzahl: String(branchenWahl.length) });
-    setGesendet(true); setSendetBranchen(false);
-  };
-
   /** Eine Chance wählen → Detail-Analyse (dieselbe Struktur-Analyse wie Tür 1, nur mit
       `chanceId` statt `eingabe`) — landet in der bestehenden „ergebnis"-Phase. */
   const chanceWaehlen = async (chance: ChanceKandidat) => {
@@ -1387,7 +1373,6 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                Firmenname, KEINE Quelle, KEIN externer Link (Quellen-Compliance). ───── */
             (() => {
               const S = texte;
-              const geordnet = [...vorschlaege].sort((a, b) => b.prozent - a.prozent);
               const remoteLabel = { remote: S.remoteRemote, hybrid: S.remoteHybrid, vorOrt: S.remoteVorOrt } as const;
               const etikettLabel = (v: Vorschlag) =>
                 v.etikett === "realistisch" ? (v.quereinstieg ? S.etikettQuer : S.etikettGut)
@@ -1505,39 +1490,12 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                     </div>
                   )}
 
-                  {/* DIE CHECKLISTE — Branchen, keine erfundenen Stellen. */}
-                  <p className="mt-2 text-[15px] font-black text-white/90">{S.checklisteH}</p>
-                  <p className="text-[13px] font-bold leading-snug text-white/60">{S.checklisteZeile}</p>
-                  <div className="flex flex-col gap-2">
-                    {BRANCHEN_SCHLUESSEL.map(bx => {
-                      const an = branchenWahl.includes(bx);
-                      return (
-                        <button key={bx} type="button"
-                          onClick={() => { setGesendet(false); setBranchenWahl(v => an ? v.filter(x => x !== bx) : [...v, bx]); }}
-                          className={`flex items-center justify-between gap-3 rounded-2xl border p-3.5 text-left transition ${
-                            an ? "border-[#f6cf51]/50 bg-[#f6cf51]/10" : "border-white/15 bg-white/[0.04]"}`}>
-                          <span className="text-[14px] font-black text-white/90">{BRANCHEN_QUELLE[bx]}</span>
-                          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
-                            an ? "border-[#f6cf51] bg-[#f6cf51]" : "border-white/30"}`}>
-                            {an && <span className="text-[12px] font-black text-[#1a160f]">✓</span>}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {!gesendet ? (
-                    <div className="mt-1">
-                      <Knopf art="gold" disabled={branchenWahl.length === 0 || sendetBranchen}
-                        onClick={() => void branchenSenden()}>
-                        {sendetBranchen ? S.sendet : `${S.checklisteCta} (${branchenWahl.length})`}
-                      </Knopf>
-                    </div>
-                  ) : (
-                    <div className="mt-1 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 p-4 text-center">
-                      <p className="text-[15px] font-black text-[#f6cf51]">{S.checklisteDanke}</p>
-                      <p className="mt-1 text-[13px] font-bold text-white/70">{S.checklisteMelden}</p>
-                    </div>
-                  )}
+                  {/* DIE BRANCHEN-CHECKLISTE IST RAUS (Owner 27.08.2026: „das hier macht das
+                      Ganze nur komplizierter. Er hat sich schon entschieden im Chat, was er
+                      machen will."). Sie fragte dieselbe Entscheidung ein zweites Mal ab:
+                      die Richtung steht seit Chat-Schritt 0 in `richtungen`, und die Analyse
+                      oben rechnet ihre Prozente genau darauf. Was der Owner suchen soll,
+                      weiss er daraus — er braucht keine zweite Liste. */}
 
                   {/* KI-Richtungen tragen ihren eigenen ehrlichen Hinweis; Pool-Marktchancen
                       den bisherigen (Quellen-Compliance). */}
@@ -1547,63 +1505,38 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                       <p className="mt-1 text-center text-[11px] font-medium leading-snug text-white/40">{S.marktHinweis}</p>
                     )}
 
-                  {/* ═════ DIE KARTE — das Spielergebnis (Owner: „Es soll wie ein Gaming
-                      funktionieren. Am Ende muss eine Karte herauskommen, die er speichert
-                      oder die ich den Firmen vorstellen kann, wenn er das erlaubt."):
-                      EIN Abschluss statt der Fragenkaskade — Freigabe ist EIN Klick (alles
-                      Weitere weiss der Chat längst), gespeichert ist sie ohnehin (E-Mail),
-                      und „Nochmal von vorn" startet das Spiel neu. ═════ */}
-                  <div className="lb-karte mt-4 overflow-hidden rounded-[20px] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">{S.karteTitel}</p>
-                    <p className="mt-1 font-serif text-[24px] font-black uppercase leading-tight tracking-[0.02em]">{name.trim() || "—"}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <span className="rounded-full border border-[#1a160f]/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.06em]">{S.karteDeutsch}: {deutschChat || "—"}</span>
-                    </div>
-                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.karteWill}</p>
-                    <p className="text-[13px] font-bold leading-snug opacity-85">{richtungen.join(" · ") || "—"}</p>
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.karteKann}</p>
-                    <p className="text-[13px] font-bold leading-snug opacity-85">{faehigkeitenChat.join(" · ") || "—"}</p>
-                    {!!traum.trim() && (
-                      <>
-                        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.karteTraum}</p>
-                        <p className="text-[13px] font-bold leading-snug opacity-85">{traum.trim()}</p>
-                      </>
-                    )}
-                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.karteChancen}</p>
-                    <div className="mt-1 flex flex-col gap-1">
-                      {geordnet.slice(0, 3).map(v => {
-                        const c = chancenListe.find(x => x.id === v.chanceId);
-                        if (!c) return null;
-                        return (
-                          <div key={v.chanceId} className="flex items-baseline justify-between gap-2">
-                            <span className="text-[13px] font-bold leading-snug">{c.rolle}</span>
-                            <span className="shrink-0 text-[13px] font-black opacity-70">{v.prozent}%</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* ═════ DIE FREIGABE — OHNE KARTE DRUMHERUM ═════
+                      Owner 27.08.2026: „Also das hier braucht man gar nicht" — gemeint war
+                      die Abschluss-Kachel „DEINE KARTE": sie zeigte Name, Deutsch-Chip,
+                      „Das willst du / Das kannst du / Dein Traum" und Prozente noch einmal,
+                      also lauter Angaben, die er zwei Bildschirme weiter oben schon gelesen
+                      hat. Als „seine Karte" gelesen wirkte sie ausserdem wie das Ergebnis,
+                      das er bekommt — und war doch nur unsere Freigabe-Kachel (Nachtrag 9).
 
-                    {einwilligungStatus === "erteilt" ? (
-                      <div className="mt-4 rounded-xl border border-[#1a160f]/15 bg-[#1a160f]/[0.04] px-3 py-2.5">
-                        <p className="text-[13px] font-black">{S.statusFrei}</p>
-                        <p className="mt-0.5 text-[12px] font-medium leading-snug opacity-70">{S.freiZeile}</p>
-                        {/* Das Dankeschön nach der Freigabe (Owner). */}
-                        <p className="mt-1 text-[12.5px] font-black">{S.freiDanke}</p>
-                      </div>
-                    ) : (
-                      <div className="mt-4">
-                        <Knopf art="gold" karte disabled={busy} onClick={() => {
-                          setEinwilligungStatus("erteilt");
-                          void kandidatSpeichern({ einwilligungStatus: "erteilt" });
-                          void logFunnelEvent("candidate_consent_given", { theme: "lebenslauf" });
-                        }}>
-                          {S.freigebenCta}
-                        </Knopf>
-                        <p className="mt-1.5 text-center text-[11px] font-medium leading-snug opacity-60">{S.einwilligungZeile}</p>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-center text-[11.5px] font-bold leading-snug text-white/55">{S.karteGespeichert}</p>
+                      DER KNOPF BLEIBT, UND ZWAR BEWUSST: „Im Pool" heisst genau
+                      `einwilligung.status === "erteilt"` (lib/kandidaten-store.ts). Ohne
+                      diesen Klick darf der Owner niemanden einer Firma vorstellen — die
+                      Kachel wegzuwerfen haette still die Rechtsgrundlage mitgenommen.
+                      Jetzt steht die Freigabe als schlichter Block da und behauptet nichts
+                      mehr ueber „deine Karte". */}
+                  {einwilligungStatus === "erteilt" ? (
+                    <div className="mt-2 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4">
+                      <p className="text-[14px] font-black text-[#f6cf51]">{S.statusFrei}</p>
+                      <p className="mt-1 text-[12.5px] font-bold leading-snug text-white/70">{S.freiZeile}</p>
+                      <p className="mt-1.5 text-[13px] font-black text-white/90">{S.freiDanke}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+                      <Knopf art="gold" disabled={busy} onClick={() => {
+                        setEinwilligungStatus("erteilt");
+                        void kandidatSpeichern({ einwilligungStatus: "erteilt" });
+                        void logFunnelEvent("candidate_consent_given", { theme: "lebenslauf" });
+                      }}>
+                        {S.freigebenCta}
+                      </Knopf>
+                      <p className="mt-2 text-center text-[11.5px] font-medium leading-snug text-white/50">{S.einwilligungZeile}</p>
+                    </div>
+                  )}
                   {/* DEUTLICH, NICHT VERSTECKT (Owner: „Nochmal von vorn muss deutlicher
                       werden") — ein richtiger Umriss-Knopf; Gold bleibt der Freigabe
                       vorbehalten (ci-design: genau EIN Gold je Schirm). */}
