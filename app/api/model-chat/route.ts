@@ -164,6 +164,27 @@ export async function POST(request: Request) {
   }
 
   // ── Public: chat with the model ─────────────────────────────────────────────
+  /**
+   * DER MODELL-CHAT IST ZU (Owner 27.08.2026: „ich will, dass du die Chats sperrst und raus
+   * machst, das bringt nichts, nur Token").
+   *
+   * DER RIEGEL SITZT HIER UND NICHT NUR AN DEN KNOEPFEN. Die Einstiege sind ebenfalls raus
+   * (Feed, Anprobe-Galerie, Modell-Profil), aber eine entfernte Schaltflaeche haelt niemanden
+   * auf, der die Adresse kennt oder die Route direkt aufruft — und jede Antwort kostet
+   * Anthropic-Token. Zuerst schweigen, dann aufraeumen.
+   *
+   * BEWUSST NUR DER OEFFENTLICHE ZWEIG: Alles darueber (Uebersetzen, Regeln, der Posteingang
+   * und das Schreiben AN einen Kunden aus dem Admin) laeuft weiter — das sind die Werkzeuge
+   * des Owners und keine KI-Laeufe.
+   *
+   * WEG ZURUECK: diese eine Konstante auf `false`. Dann ist der Chat wieder da, und die
+   * Knoepfe muessen zurueck — in dieser Reihenfolge.
+   */
+  const CHAT_GESPERRT = true;
+  if (CHAT_GESPERRT) {
+    return NextResponse.json({ error: "Chat is closed." }, { status: 410 });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "Chat is not configured." }, { status: 400 });
 

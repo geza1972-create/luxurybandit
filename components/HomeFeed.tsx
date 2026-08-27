@@ -12,7 +12,6 @@ import { cleanEscapes } from "@/lib/reel-audit";
 import { journeyLandingHref } from "@/lib/journey-curators";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { FeedGate } from "@/components/FeedGate";
-import ModelChat from "@/components/ModelChat";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 
@@ -121,7 +120,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [banditRevealed, setBanditRevealed] = useState(false);
   // Join/feedback sheet (register/sign-in gate for Follow, or "write us" feedback).
   const [gate, setGate] = useState<null | { mode: "auth" | "feedback"; reason?: string }>(null);
-  const [showChat, setShowChat] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false); // $49/mo subscribe dialog (chat)
   const [immersive, setImmersive] = useState(false); // fullscreen video, all chrome hidden
@@ -1095,7 +1093,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Open HER price-finder chat (her photo + her looks), same as her profile.
                 // Falls back to a look reference if this video has no model attached.
                 const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })();
-                if (authorCuratorId) { router.push(`/chat/${authorCuratorId}`); return; }
+                /* KEIN CHAT MEHR (Owner 27.08.2026: „das bringt nichts, nur Token") —
+                   der Knopf fuehrt jetzt immer in die Look-Suche. Der Riegel liegt
+                   zusaetzlich in /api/model-chat, damit auch ein direkter Aufruf schweigt. */
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
                 const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";
@@ -1104,9 +1104,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               }}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
-              {authorCuratorId
-                ? <><MessageCircle className="h-4 w-4" /> Chat with {publicAuthorName(authorName).split(/\s+/)[0]}</>
-                : <><Search className="h-4 w-4" /> {feedLang === "en" ? "Find your look" : "Găsește-ți ținuta"}</>}
+              <Search className="h-4 w-4" /> {feedLang === "en" ? "Find your look" : "Găsește-ți ținuta"}
             </button>
             <button type="button"
               onClick={(e) => { e.stopPropagation(); goTryOn(); }}
@@ -1208,19 +1206,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <FeedGate mode={gate.mode} reason={gate.reason} lookId={look.id} lookName={look.name} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
       )}
 
-      {/* Chat with the model — opens from the "Chat with her" CTA on the video. */}
-      {authorCuratorId && (
-        <ModelChat
-          open={showChat}
-          onClose={() => setShowChat(false)}
-          curatorId={authorCuratorId}
-          modelName={publicAuthorName(authorName)}
-          modelFirstName={publicAuthorName(authorName).split(/\s+/)[0] || ""}
-          avatarUrl={authorPhotoUrl || ""}
-          isPaid={isSubscribed}
-          onNeedPremium={() => { setShowChat(false); setShowSubscribe(true); }}
-        />
-      )}
+      {/* DER MODELL-CHAT IST RAUS (Owner 27.08.2026) — kein Einstieg mehr, und
+          /api/model-chat antwortet ohnehin nicht mehr. */}
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
       <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
 
@@ -1309,8 +1296,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <div className="mt-1 flex w-full flex-col gap-2">
                     <button type="button" onClick={() => { setInfoOpen(false); setShowSubscribe(true); }}
                       className="w-full rounded-full bg-amber-400 py-2.5 text-sm font-black text-black active:opacity-80">Subscribe</button>
-                    <button type="button" onClick={() => { setInfoOpen(false); setShowChat(true); }}
-                      className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Chat with {authorName || "her"}</button>
                     {journeyLandingHref(authorCuratorId) && (
                       <button type="button" onClick={() => { setInfoOpen(false); router.push(journeyLandingHref(authorCuratorId)!); }}
                         className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Book a journey with {authorName || "her"}</button>

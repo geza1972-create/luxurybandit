@@ -4,7 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { tryonPromptZiehen } from "@/lib/tryon-szenen";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX, BadgeCheck } from "lucide-react";
-import PremiumDialog from "@/components/PremiumDialog";
+import { useKasseImFenster } from "@/components/KasseImFenster";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
@@ -133,6 +133,19 @@ export default function TryFunnelPage() {
   const [rendering, setRendering] = useState(false);       // fake "generating" spinner before the teaser
   // Paid video pack ($8 → 4 videos). packCredits = how many the signed-in user has left.
   const [packCredits, setPackCredits] = useState<number | null>(null);
+  /**
+   * DIE HAUS-KASSE, IN DER SEITE (Owner 27.08.2026: „es kommt immer noch ein
+   * checkout.stripe.com Dialog. Das ist nicht unser Tunnel — wir haben doch den
+   * Kuss-Tunnel").
+   *
+   * Hier lief der Kauf ueber `PremiumDialog` -> `startPremiumCheckout` ->
+   * `window.location.href` auf checkout.stripe.com: ein Abo, ausserhalb der Seite, in
+   * fremdem Design. Beides gegen die Hausregeln — „Kasse in der Seite"
+   * (`useKasseImFenster`) und „nur EIN Abo: die Hochzeitsseite". Jetzt derselbe Weg wie im
+   * Anprobe-Trichter: `/api/kiss-video-checkout` mit `thema: "tryon"`, einmalig, und das
+   * Formular steht in der Seite.
+   */
+  const kasse = useKasseImFenster();
   const [payBusy, setPayBusy] = useState(false);
   const [payError, setPayError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -832,7 +845,8 @@ export default function TryFunnelPage() {
       if (email) {
         try {
           const spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
-          if (spend.status === 402) { setShowPremium(true); setStep(2); return; } // out of credits → paywall
+          /* Kein Guthaben -> Einmalkauf (der Abo-Dialog ist gesperrt, s. PremiumDialog). */
+          if (spend.status === 402) { void videoKaufen(); return; }
           const sd = await spend.json().catch(() => ({}));
           if (spend.ok && typeof sd.credits === "number") setPackCredits(sd.credits);
         } catch { /* network hiccup → generateReal still runs; it refunds on failure */ }
@@ -843,11 +857,37 @@ export default function TryFunnelPage() {
 
   // The paywall's main action: check credits, then arm the countdown (the spend happens after
   // the 4s window). Out of credits → Schritt 4, der Einmalkauf (Owner 27.08.2026).
+  /**
+   * EIN VIDEO KAUFEN — derselbe Weg wie im Anprobe-Trichter (Kuss-Muster): eine Kassen-
+   * sitzung ueber `/api/kiss-video-checkout`, `once: true`, `thema: "tryon"`. Steht die
+   * Kasse in der Seite, ist hier Schluss; sonst faellt es auf die Stripe-Adresse zurueck.
+   */
+  const videoKaufen = async () => {
+    if (payBusy) return;
+    setPayBusy(true); setPayError("");
+    try {
+      const email = payEmail();
+      const start = await fetch("/api/kiss-video-checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          once: true, videoAufpreis: false, thema: "tryon", email,
+          returnTo: window.location.pathname + window.location.search,
+          eingebettet: kasse.anfordern, lang,
+        }),
+      }).then(r => r.json()).catch(() => null);
+      if (kasse.uebernehmen(start?.clientSecret)) { setPayBusy(false); return; }
+      if (start?.url) { window.location.href = start.url; return; }
+      setPayError(String(start?.error ?? "Start nicht möglich."));
+    } catch { setPayError("Start nicht möglich."); }
+    setPayBusy(false);
+  };
+
   const startPaidGenerate = async () => {
     if (adminPin) { generateNow(); return; }
     const email = payEmail();
     if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
-    if ((packCredits ?? 0) <= 0) { setShowPremium(true); return; } // no credits → paywall, don't arm
+    /* Kein Guthaben -> Einmalkauf in der Seite, nicht mehr der Abo-Dialog. */
+    if ((packCredits ?? 0) <= 0) { void videoKaufen(); return; }
     setPayError("");
     genStartedRef.current = false; setGenStatus("idle");
     setStep(5); // → step-5 effect arms the 4s countdown → runGeneration spends & generates
@@ -1220,7 +1260,7 @@ export default function TryFunnelPage() {
                       const mLocked = !isUpload && !!m.realModel && !unlockAll;
                       const isActive = off === 0;
                       return (
-                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { if (!isActive) { setFront(m); return; } (isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true); return; } if (!isActive) setFront(m); }}
+                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { if (!isActive) { setFront(m); return; } /* Ohne Abo gibt es hier nichts mehr zu sperren (27.08.2026). */ fileRef.current?.click(); return; } if (!isActive) setFront(m); }}
                           className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
                           style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
                           <div className="relative aspect-[3/4] w-full">
@@ -1628,7 +1668,7 @@ export default function TryFunnelPage() {
               here; non-subscribers get the Premium paywall (HD is a paid perk). */}
           {genStatus === "done" && genVideoUrl && genId && (
             <div className="mt-4 flex flex-col items-center gap-1.5">
-              <button type="button" onClick={() => ((adminPin || isSubscribed) ? upscaleVideo(genId, genVideoUrl) : setShowPremium(true))} disabled={!!hdBusyId}
+              <button type="button" onClick={() => upscaleVideo(genId, genVideoUrl)} disabled={!!hdBusyId}
                 className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
                 {hdBusyId === genId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {hdBusyId === genId ? "Making it HD…" : (adminPin || isSubscribed) ? "Get it in HD (1080p)" : "Get it in HD (1080p) · Premium"}
@@ -1762,7 +1802,8 @@ export default function TryFunnelPage() {
           }} />
       )}
 
-      <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
+      {/* Die Kasse steht IN der Seite (Hausregel) — kein Sprung zu checkout.stripe.com. */}
+      {kasse.block}
       <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
       {chosenModelId && (
         <ModelChat
@@ -1842,7 +1883,7 @@ export default function TryFunnelPage() {
                 return (
                   <button key={g.id} type="button"
                     onClick={() => {
-                      if (locked) { setShowPremium(true); return; }
+                      if (locked) { void videoKaufen(); return; }
                       const curModelPhoto = pickedModel || modelParam || "";
                       router.push(`/try/${g.id}?modelId=${encodeURIComponent(chosenModelId)}&model=${encodeURIComponent(curModelPhoto)}&garment=${encodeURIComponent(g.img)}&modelName=${encodeURIComponent(chosenModelName)}`);
                     }}

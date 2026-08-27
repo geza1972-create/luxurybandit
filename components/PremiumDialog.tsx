@@ -22,6 +22,28 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
   const monthly = `$${(monthlyCents / 100).toFixed(2)}`;
   // Funnel: paywall seen (fires once when the dialog opens).
   useEffect(() => { if (open) logFunnelEvent("paywall_view", { paywall: "premium", lookName: "Premium" }); }, [open]);
+  /**
+   * DAS ABO IST ZU (Owner 27.08.2026: „und wir haben immer noch ein Abo" — mit Bild dieses
+   * Dialogs: „$8 first month, then $49.99/mo · Unlimited chat with her").
+   *
+   * ES WIDERSPRACH DREI DINGEN GLEICHZEITIG:
+   * · der Hausregel „nur EIN Abo: die Hochzeitsseite, alles andere Einmalkauf",
+   * · dem Produkt darunter — dieselbe Seite verkauft das Video laengst einmalig zu 9,99,
+   * · und seinem eigenen Versprechen: „Unlimited chat with her" gibt es nicht mehr, der
+   *   Modell-Chat ist am selben Tag gesperrt worden (app/api/model-chat).
+   *
+   * DER RIEGEL SITZT HIER UND NICHT IN DEN FUENF AUFRUFERN (try/[lookId], curator/[id],
+   * stores, HomeFeed, AboutStep1Models). Eine Stelle zu, ueberall zu — und wer ihn zurueck
+   * will, dreht EINE Konstante statt fuenf Dateien zu suchen. Die Aufrufer duerfen weiter
+   * `setShowPremium(true)` rufen; es passiert dann nichts.
+   *
+   * ACHTUNG BEIM ZURUECKDREHEN: Der Dialog verkauft ein Stripe-ABO ueber
+   * `startPremiumCheckout` und verlaesst dabei die Seite (checkout.stripe.com). Wer ihn
+   * zurueckholt, muss ihn zuerst auf die Kasse-in-der-Seite umbauen.
+   */
+  const ABO_GESPERRT = true;
+  if (ABO_GESPERRT) return null;
+
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
   const signedIn = !!getStoredAuthSession()?.user?.email;
