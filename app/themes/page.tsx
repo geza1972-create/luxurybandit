@@ -137,8 +137,21 @@ const C: Record<string, PageCopy> = {
     items: [["Manda un bacio a chi ami","la tua foto e la sua — un video con voi due, solo per lei."],["Il vostro invito di nozze","voi due nel video, più la vostra pagina d'invito con conferme, novità e gruppo."],["Video di compleanno","scrivi un nome — lei lo dice ad alta voce."],["La tua candidatura video","carica la tua foto e il tuo CV — la tua pagina di profilo con video, pronta per i datori di lavoro."],["Future Self Program","il tuo film dal futuro più un programma di 30 giorni — una promessa a te stesso."]] },
 };
 
-// Alle Karten, die ins Anprobieren führen, zeigen auf denselben Funnel-Einstieg.
-const TRYON = "/try/look-1784191032626-70e3608b?pick=1";
+/**
+ * ANPROBE = EIGENES FOTO + EIGENES KLEIDUNGSSTUECK (Owner-Aenderungsauftrag 27.08.2026:
+ * „hier haben wir wieder Lingerie. Eigentlich wollten wir, dass Menschen Bilder von sich und
+ * von Klamotten hochladen. Dann generieren — das, was auch ChatGPT kann, aber mit Video.").
+ *
+ * Die Kacheln zeigten bis hierher auf `/try/look-…` — die alte Model-Galerie: eine fertige
+ * Auswahl fremder Models in Waesche-Looks, darunter ein Monats-Abo. Das ist ein anderes
+ * Produkt als das, was der Trichter heute tut, und es widerspricht der Kachel darueber
+ * („deine Produkte auf einem Modell"). Wer auf ein Kleid tippt, landete bei Lingerie.
+ *
+ * Jetzt geht es direkt in den Trichter, in dem man sein Foto und das Kleidungsstueck
+ * hochlaedt. Die Galerie bleibt unter ihrer Adresse erreichbar — sie wird nur nicht mehr
+ * beworben (dieselbe Haltung wie bei den ausgeblendeten Themen weiter unten).
+ */
+const TRYON = "/themes/tryon/start";
 
 export default async function ThemesCatalog({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;

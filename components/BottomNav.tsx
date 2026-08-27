@@ -11,7 +11,9 @@ import { geraetAdresse, vergissGeraetAdresse } from "@/lib/guthaben-konto";
 // die linke Karte das Produktbild zeigt — ein voller Look zeigt sonst das Model-Bild.
 // /try lädt das Garment-Bild des Looks selbst (kein ablaufender Token nötig).
 // Standard = „Renata Lingerie Set"; bei Bedarf hier eine andere Garment-ID setzen.
-const TRYON_FUNNEL = "/try/look-1784191032626-70e3608b?pick=1";
+/* Anprobe = eigenes Foto + eigenes Kleidungsstueck (Owner 27.08.2026) — nicht mehr die
+   alte Model-Galerie mit Waesche-Looks und Abo. Siehe app/themes/page.tsx. */
+const TRYON_FUNNEL = "/themes/tryon/start";
 
 type Tab = "home" | "community" | "messages" | "account";
 

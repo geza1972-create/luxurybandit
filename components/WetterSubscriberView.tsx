@@ -63,7 +63,9 @@ const LINGERIE_TAG = "[[SHOW_LINGERIE]]";
 
 // Direkt in den Anprobier-Funnel — die Landing /themes/tryon wäre nur eine
 // Zwischenseite mit einem weiteren Button (Owner: „ist zu viel").
-const TRYON_FUNNEL = "/try/look-1784191032626-70e3608b?pick=1";
+/* Anprobe = eigenes Foto + eigenes Kleidungsstueck (Owner 27.08.2026) — nicht mehr die
+   alte Model-Galerie mit Waesche-Looks und Abo. Siehe app/themes/page.tsx. */
+const TRYON_FUNNEL = "/themes/tryon/start";
 
 // "notice" = eingeschobene KI-Erinnerung (keine Chat-Blase, wird nicht ans Modell gesendet)
 type Msg = { role: "user" | "assistant" | "notice"; content: string };
