@@ -325,11 +325,18 @@ export async function POST(request: Request) {
         /* 11.08.2026: „Versprechen" ist jetzt das Future Self Program (49 €, VERSPRECHEN_CENTS).
            Ohne eigenen Zweig fiel der Kauf in „Kiss video — one-off" — eine 49-€-Abbuchung mit
            fremdem Namen auf der Quittung ist ein Rückbuchungsrisiko. */
+        /* `tryon` fehlte hier (27.08.2026, live gesehen): die Anprobe fiel in „Kiss video —
+           one-off" durch — derselbe Fehler, den der Kommentar oben fuer den Geburtstag und
+           das Future Self Program schon einmal beschreibt. Der Betrag stimmte da schon
+           (geschenkPreisCents kennt "tryon" laengst), nur der Name auf der Quittung war
+           falsch — fuer den Kunden ein fremder Posten, fuer uns eine unzuordenbare
+           Rueckbuchung. */
         productName: tanz ? "Pole dance video — one-off"
           : thema === "birthday" ? "Birthday video — one-off"
           : thema === "versprechen" ? "Future Self Program"
           : thema === "lebenslauf" ? "AI career profile — one-off"
           : thema === "resume" ? "Tailored resume PDF — one-off"
+          : thema === "tryon" ? "Try-on video — one-off"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

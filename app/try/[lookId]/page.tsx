@@ -867,10 +867,29 @@ export default function TryFunnelPage() {
     setPayBusy(true); setPayError("");
     try {
       const email = payEmail();
+      /**
+       * KEIN PREIS OHNE AUFTRAG (27.08.2026, live gesehen: die Kasse zeigte 24 € statt
+       * 9,99 €). `/api/kiss-video-checkout` liest den Preis aus dem GESPEICHERTEN Auftrag
+       * (`auftrag.theme`), nicht aus dem, was der Browser mitschickt — Absicht, siehe die
+       * Begruendung dort. Ohne einen zuvor angelegten Auftrag blieb `thema` leer und fiel
+       * auf den Kuss-Standardpreis zurueck. Derselbe erste Schritt wie im Anprobe-Trichter:
+       * `/api/kiss-log` legt den Auftrag mit `theme: "tryon"` an, ERST DANACH die Kasse.
+       */
+      let gid = genId;
+      if (!gid) {
+        let device = "";
+        try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
+        const bild = look?.frontImageUrl || look?.imageUrl || "";
+        const log = await fetch("/api/kiss-log", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: "tryon", device, email, personImage: bild, modelImage: bild }),
+        }).then(r => r.json()).catch(() => null);
+        if (log?.id) { gid = String(log.id); setGenId(gid); }
+      }
       const start = await fetch("/api/kiss-video-checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          once: true, videoAufpreis: false, thema: "tryon", email,
+          genId: gid, once: true, videoAufpreis: false, thema: "tryon", email,
           returnTo: window.location.pathname + window.location.search,
           eingebettet: kasse.anfordern, lang,
         }),
