@@ -132,7 +132,16 @@ const TRICHTER_QUELLE = {
      was es kostet, statt es zu verharmlosen. */
   cvHinweis: "Ohne ihn kann eine Firma deine Erfahrung nicht nachprüfen — das siehst du gleich in deiner Analyse.",
   cvJa: "Ja, hochladen",
-  cvNein: "Weiter ohne",
+  cvNein: "Nein",
+  /* DIE CV-PFLICHT AM TOR, GANZ VORNE (Owner 27.08.2026, Nachtrag 13/14 im Konzept:
+     „ohne CV-Upload machen wir gar nicht weiter, sonst bekommen wir nur
+     Müllkandidaten" · genauer Wortlaut der Absage vom Owner selbst diktiert). Löst
+     den alten Chat-Schritt fCv/cvHinweis inhaltlich ab, der Text bleibt dort nur als
+     History-Label für den (praktisch unerreichbaren) alten Pfad stehen. */
+  fCvVorab: "Hast du einen Lebenslauf?",
+  fCvVorabHinweis: "Wir brauchen ihn für die Analyse — lade ihn gleich hoch.",
+  fCvAbsageTitel: "Es tut uns leid.",
+  fCvAbsageText: "Ohne Lebenslauf bist du nicht qualifiziert — wir brauchen deine Vita, um eine Analyse zu machen.",
   fFoto: "Hast du ein aktuelles Foto von dir?",
   fotoHinweis: "Für deine Bewerbungsseite — kein Muss.",
   fotoJa: "Ja, hochladen",
@@ -149,6 +158,7 @@ const TRICHTER_QUELLE = {
      niemand vorstellen. Jahre und Abschluss fragt der Chat NUR, wenn kein CV kam. */
   fAlter: "Wie alt bist du?",
   alterHinweis: "Firmen fragen das als Erstes.",
+  alterPlatzhalter: "z. B. 34",
   fJahre: "Wie viele Jahre Erfahrung hast du?",
   jahreUnter1: "unter 1",
   fAbschluss: "Was ist dein höchster Schulabschluss?",

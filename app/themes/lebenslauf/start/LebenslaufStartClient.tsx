@@ -275,6 +275,10 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
 
   const [cvDatei, setCvDatei] = useState<File | null>(null);
   const [cvPath, setCvPath] = useState("");
+  /* CV-PFLICHT AM TOR (Owner 27.08.2026: "ohne CV-Upload machen wir gar nicht
+     weiter, sonst bekommen wir nur Muellkandidaten") — wer "Nein" sagt, sieht die
+     Absage und keine weiteren Fragen; es gibt keinen Chat-Weg mehr ohne CV. */
+  const [cvAbgelehnt, setCvAbgelehnt] = useState(false);
   const cvRef = useRef<HTMLInputElement>(null);
 
   /* DIE ANZEIGE — der neue Einstieg (Owner 25.08.2026, siehe ANZEIGE_TEXT oben). */
@@ -421,6 +425,13 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
     if (jobsModus && chatSchritt === 9 && cvPath) setChatSchritt(10);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvPath, chatSchritt, jobsModus]);
+  /* DER CV-UPLOAD AM TOR (Owner 27.08.2026) — sobald die Datei liegt, geht es von
+     selbst zum "Bereit fuer den Deutschtest"-Schirm weiter; der Klick war die
+     Antwort, wie beim alten Chat-Schritt 9 oben. */
+  useEffect(() => {
+    if (jobsModus && !torOffen && torSchritt === 1 && cvPath) setTorSchritt(2);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cvPath, torOffen, torSchritt, jobsModus]);
   /* Nach dem Foto-Zuschnitt geht der Chat von selbst weiter. */
   useEffect(() => {
     if (jobsModus && chatSchritt === 10 && foto) setChatSchritt(11);
@@ -428,8 +439,8 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
   }, [foto, chatSchritt, jobsModus]);
   /* Der Ticker — läuft während der Testfragen (20 s) UND während der Schreibprobe (30 s). */
   useEffect(() => {
-    const imTest = !torOffen && torSchritt >= 2 && torSchritt <= 1 + deTest.length;
-    const imSchreiben = !torOffen && schreibenNoetig && torSchritt === 2 + deTest.length;
+    const imTest = !torOffen && torSchritt >= 3 && torSchritt <= 2 + deTest.length;
+    const imSchreiben = !torOffen && schreibenNoetig && torSchritt === 3 + deTest.length;
     if (!imTest && !imSchreiben) return;
     const dauer = imSchreiben ? SCHREIB_SEKUNDEN : DE_SEKUNDEN;
     setDeRest(dauer);
@@ -441,10 +452,10 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
           if (imSchreiben) { setTorSchritt(z => z + 1); return dauer; }
           /* Zeit vorbei: als nicht gewusst vermerken und weiter — nie blockieren. */
           setDeAntworten(prev => {
-            const n = [...prev]; n[torSchritt - 2] = "__zeit_abgelaufen__";
+            const n = [...prev]; n[torSchritt - 3] = "__zeit_abgelaufen__";
             /* Auch die ABGELAUFENE letzte Frage muss ein Niveau ergeben — sonst bliebe der
                Wert leer, obwohl der Test durch ist. */
-            if (torSchritt === 1 + deTest.length) setDeutschChat(deutschAbleiten(deTest, n));
+            if (torSchritt === 2 + deTest.length) setDeutschChat(deutschAbleiten(deTest, n));
             return n;
           });
           setTorSchritt(z => z + 1);
@@ -1408,52 +1419,52 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   {/* DIE PROZENTE ZUERST (Owner 27.08.2026) — sie sind der Blickfang und
                       der Grund, warum jemand weiterliest. Darunter erst die Begründung. */}
                   {!!analyse?.richtungen?.length && (
-                    <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.richtungenH}</p>
+                    <div className="lb-karte overflow-hidden rounded-[18px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.richtungenH}</p>
                       <div className="mt-2.5 flex flex-col gap-2.5">
                         {analyse.richtungen.map(r => (
                           <div key={r.rolle}>
                             <div className="flex items-baseline justify-between gap-3">
-                              <span className="text-[14px] font-black leading-snug text-white/90">{r.rolle}</span>
-                              <span className="shrink-0 text-[15px] font-black tabular-nums text-[#f6cf51]">{r.prozent}%</span>
+                              <span className="text-[14px] font-black leading-snug">{r.rolle}</span>
+                              <span className="shrink-0 text-[15px] font-black tabular-nums">{r.prozent}%</span>
                             </div>
-                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                              <div className="h-full rounded-full bg-[#f6cf51]" style={{ width: `${r.prozent}%` }} />
+                            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-black/10">
+                              <div className="h-full rounded-full bg-[#1a160f]/70" style={{ width: `${r.prozent}%` }} />
                             </div>
                             {!!r.begruendung && (
-                              <p className="mt-1 text-[12px] font-medium leading-snug text-white/60">{r.begruendung}</p>
+                              <p className="mt-1 text-[12px] font-medium leading-snug opacity-65">{r.begruendung}</p>
                             )}
                           </div>
                         ))}
                       </div>
-                      <p className="mt-3 text-[11px] font-medium leading-snug text-white/40">{S.richtungenHinweis}</p>
+                      <p className="mt-3 text-[11px] font-medium leading-snug opacity-45">{S.richtungenHinweis}</p>
                     </div>
                   )}
 
                   {(!!analyse?.plus?.length || !!analyse?.minus?.length) && (
-                    <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+                    <div className="lb-karte overflow-hidden rounded-[18px] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
                       {!!analyse?.plus?.length && (<>
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.plusH}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.plusH}</p>
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.plus.map((z, i) => (
-                            <li key={`p${i}`} className="flex gap-2 text-[13px] font-medium leading-snug text-white/80">
+                            <li key={`p${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
                               <span className="lb-plus mt-[2px]">+</span>{z}
                             </li>
                           ))}
                         </ul>
                       </>)}
                       {!!analyse?.minus?.length && (<>
-                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">{S.minusH}</p>
+                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] opacity-45">{S.minusH}</p>
                         <ul className="mt-1.5 flex flex-col gap-1.5">
                           {analyse.minus.map((z, i) => (
-                            <li key={`m${i}`} className="flex gap-2 text-[13px] font-medium leading-snug text-white/80">
+                            <li key={`m${i}`} className="flex gap-2 text-[13px] font-medium leading-snug">
                               <span className="lb-minus mt-[2px]">−</span>{z}
                             </li>
                           ))}
                         </ul>
                       </>)}
                       {!!analyse?.fazit && (
-                        <p className="mt-3 border-t border-white/10 pt-2.5 text-[13px] font-bold leading-snug text-white/90">{analyse.fazit}</p>
+                        <p className="mt-3 border-t border-black/10 pt-2.5 text-[13px] font-bold leading-snug">{analyse.fazit}</p>
                       )}
                     </div>
                   )}
@@ -1836,7 +1847,6 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
               const KOENNEN = [S.fkKunden, S.fkOrganisieren, S.fkTechnik, S.fkVerkaufen, S.fkFuehren, S.fkSchreiben, S.fkZahlen];
               /* Altersgruppen und Jahre stehen als Zahlen da — nur „unter 1" ist ein Wort
                  und wird deshalb übersetzt. */
-              const ALTER = ["18–24", "25–34", "35–44", "45–54", "55+"];
               const JAHRE = [S.jahreUnter1, "1–3", "3–5", "5–10", "10+"];
               const ABSCHLUSS = [S.abSchule, S.abLehre, S.abAbitur, S.abStudium];
               const FUEHRERSCHEIN = [S.fsKeiner, S.fsB, S.fsC, S.fsCE, S.fsD];
@@ -1937,7 +1947,13 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                * `chatSchritt` bleibt unverändert, alle Rücksprünge im Verlauf stimmen
                * weiter. Erst wenn Name und E-Mail stehen, beginnt Frage 0.
                */
-              if (!torOffen && torSchritt === 0) {
+              if (!torOffen && cvAbgelehnt) {
+                /* DIE ABSAGE (Owner 27.08.2026: "sagt er nein, dann: es tut uns leid, ohne
+                   bist du nicht qualifiziert, wir brauchen deine Vita, um eine Analyse zu
+                   machen") — kein Chat-Weg mehr ohne CV, kein Ausweg-Knopf. */
+                frageBlase = blase(S.fCvAbsageTitel, S.fCvAbsageText);
+                aktionen = null;
+              } else if (!torOffen && torSchritt === 0) {
                 /* EIN Schirm, drei Angaben — wie ein Meta-Sofortformular. */
                 frageBlase = blase(S.fNameMail, S.nameMailHinweis);
                 aktionen = (<>
@@ -1956,19 +1972,31 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   </p>
                 </>);
               } else if (!torOffen && torSchritt === 1) {
+                /* DIE CV-PFLICHT, GANZ AM ANFANG (Owner 27.08.2026: "wir fragen ihn
+                   anfangen hast du eine CV? ... ohne CV-Upload machen wir gar nicht
+                   weiter") — vor dem Deutschtest, nicht erst tief im Chat. */
+                frageBlase = blase(S.fCvVorab, S.fCvVorabHinweis);
+                aktionen = (<>
+                  {cvDatei && !cvPath && <p className="text-[12px] font-bold text-black/55">{S.aufnahmeLaedt}</p>}
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => cvRef.current?.click()} className={chip(!!cvDatei)}>{cvDatei ? cvDatei.name.slice(0, 28) : S.cvJa}</button>
+                    <button type="button" onClick={() => setCvAbgelehnt(true)} className={chip(false)}>{S.cvNein}</button>
+                  </div>
+                </>);
+              } else if (!torOffen && torSchritt === 2) {
                 /* DIE VORWARNUNG (Owner 26.08.2026) — bis hierher lief alles in seiner
                    Sprache; ab dem nächsten Schirm ist es Deutsch und die Uhr läuft. Wer
                    unvorbereitet in den Countdown stolpert, verliert die erste Frage. */
                 frageBlase = blase(S.fBereit, S.bereitHinweis);
                 aktionen = (
                   <div className="flex flex-wrap gap-1.5">
-                    <button type="button" className={chip(false)} onClick={() => setTorSchritt(2)}>{S.bereitJa}</button>
+                    <button type="button" className={chip(false)} onClick={() => setTorSchritt(3)}>{S.bereitJa}</button>
                   </div>
                 );
-              } else if (!torOffen && torSchritt <= 1 + deTest.length) {
+              } else if (!torOffen && torSchritt <= 2 + deTest.length) {
                 /* DER TEST, FRAGE FÜR FRAGE — direkt nach dem Formular. */
-                const f = deTest[torSchritt - 2];
-                frageBlase = blase(`${torSchritt - 1}/${deTest.length} · ${f.frage}`, S.deutschTestHinweis);
+                const f = deTest[torSchritt - 3];
+                frageBlase = blase(`${torSchritt - 2}/${deTest.length} · ${f.frage}`, S.deutschTestHinweis);
                 aktionen = (
                   <>
                   <div className="flex items-center gap-2">
@@ -1980,19 +2008,19 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {f.antworten.map(t => (
-                      <button key={t.label} type="button" className={chip(deAntworten[torSchritt - 1] === t.label)}
+                      <button key={t.label} type="button" className={chip(deAntworten[torSchritt - 2] === t.label)}
                         onClick={() => {
                           const naechste = [...deAntworten];
-                          naechste[torSchritt - 2] = t.label;
+                          naechste[torSchritt - 3] = t.label;
                           setDeAntworten(naechste);
-                          if (torSchritt === 1 + deTest.length) setDeutschChat(deutschAbleiten(deTest, naechste));
+                          if (torSchritt === 2 + deTest.length) setDeutschChat(deutschAbleiten(deTest, naechste));
                           setTorSchritt(z => z + 1);
                         }}>{t.label}</button>
                     ))}
                   </div>
                   </>
                 );
-              } else if (!torOffen && torSchritt === 1 + deTest.length + 1 && schreibenNoetig) {
+              } else if (!torOffen && torSchritt === 2 + deTest.length + 1 && schreibenNoetig) {
                 /* DER SCHREIBTEST — erst ab B2, und ohne Uhr: Hier zählt, WIE er schreibt,
                    nicht wie schnell. Das Ergebnis geht als Textprobe in die Analyse und
                    liegt dem Owner im Admin im Wortlaut vor. */
@@ -2127,14 +2155,18 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   </div>
                 );
               } else if (chatSchritt === 12) {
+                /* DAS GENAUE ALTER, KEINE ALTERSGRUPPE (Owner 27.08.2026: „diese Frage ist
+                   blöd, er muss genau sein Alter angeben") — Zahlenfeld statt Chips, wie
+                   Wohnort/Telefon. Die Zahl selbst bleibt bei den Job-Vorschlägen unbenutzt
+                   (siehe Memory: keine Alters-/Geschlechtsfilterung, AGG), sie ist reine
+                   Kandidaten-Angabe für den Owner im Admin. */
                 frageBlase = blase(S.fAlter, S.alterHinweis);
-                aktionen = (
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALTER.map(o => (
-                      <button key={o} type="button" onClick={() => { setAlterChat(o); weiter(); }} className={chip(alterChat === o)}>{o}</button>
-                    ))}
-                  </div>
-                );
+                aktionen = (<>
+                  <input type="number" inputMode="numeric" min={14} max={99} value={alterChat}
+                    placeholder={S.alterPlatzhalter} onChange={e => setAlterChat(e.target.value.replace(/[^\d]/g, "").slice(0, 2))}
+                    className="w-full rounded-xl border border-black/15 bg-white px-3 py-2.5 text-[13px] font-medium text-black outline-none placeholder:text-black/35 focus:border-black/40" />
+                  <Knopf art="gold" karte disabled={!alterChat.trim()} onClick={weiter}>{S.naechsteFrage}</Knopf>
+                </>);
               } else if (chatSchritt === 13) {
                 /* MIT CV ÜBERSPRUNGEN (Effekt oben) — der Lebenslauf nennt die Jahre selbst. */
                 frageBlase = blase(S.fJahre);

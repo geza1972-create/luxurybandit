@@ -1155,3 +1155,125 @@ Bewerbungs-Video generator wird ein extra Tool sein."
    (`/themes/lebenslauf`) wird dazu angepasst (Owner: „du kannst aber die Seite
    behalten für den Resum Video generator. Du muss das nur anpassen."), d. h. auf den
    Video-Fluss gestrafft. Dran erst NACH Abnahme des Resume Generators.
+
+---
+
+## Nachtrag 9 (27.08.2026): „Deine Karte" ist keine Bewerbung — Owner-Einwand, offen
+
+Owner beim Live-Test des Ergebnisses: „Das am Ende ist nicht die Bewerbung, die er
+bekommt, oder? Das darf er gar nicht sehen. Sonst denkt er, das ist seine Bewerbung.
+E-Mail gross geschrieben statt Name. Das ist Blödsinn. Hier muss die richtige
+Bewerbung sein." — Owner hat weiteren Input zu dieser Seite angekündigt, NOCH NICHTS
+BAUEN.
+
+Gefundene Stelle: die Abschlusskarte „DEINE KARTE" zeigt aktuell `{email}` gross und
+fett als Titel (kein Fallback auf `{name}`), darunter Chip „Deutsch: C1", „Das willst
+du" / „Das kannst du" / „Dein Traum" und den Freigeben-Knopf. Der Owner sieht darin
+zu Recht ein Problem: sie wirkt wie „seine Bewerbung", ist aber nur die interne
+Freigabe-Kachel für den Owner/die Firma — und zeigt im Fehlerfall (keine E-Mail
+gefunden) sogar dessen halbe Kontoadresse in Großbuchstaben als vermeintlichen Namen.
+
+Zu klären, sobald der Owner weiteren Input gibt:
+- Was diese Endkachel wirklich zeigen soll (Name statt E-Mail als Minimum).
+- Ob an dieser Stelle überhaupt schon eine „Bewerbung" (Anschreiben/CV-Kachel) stehen
+  soll, oder ob die Freigabe-Kachel bewusst schlicht bleibt und die echte Bewerbung
+  (falls vorhanden) getrennt woanders liegt — siehe [[LB - Resume Generator]]
+  (Nachtrag 8), das eigene Tool für die eigentliche Bewerbung/das Anschreiben.
+
+---
+
+## Nachtrag 10 (27.08.2026): Branchen-Checkliste am Ende ist doppelt — Owner-Einwand, offen
+
+Owner beim selben Live-Test: „Das hier macht das Ganze nur komplizierter. Er hat
+sich schon entschieden im Chat, was er machen will." — bezieht sich auf den
+Branchen-Haken-Schritt („Wo sollen wir für dich suchen?", Checkboxen aus
+`lib/branchen.ts`) ganz am Ende der Analyse. Der Kandidat hat seine Richtung
+(`richtungen`) im Chat bereits über die Fragen S.fRichtung u. a. angegeben — die
+Branchen-Liste fragt dieselbe Entscheidung ein zweites Mal, in anderer Form, ab.
+
+Owner ist noch mitten im Durchgehen dieser Ergebnis-Seite (siehe auch Nachtrag 9,
+der Premium-Block-Gedanke direkt davor) — NOCH NICHTS BAUEN, weiterer Input folgt.
+Wahrscheinliche Richtung: die Branchen-Checkliste entfällt, die schon im Chat
+gewählte Richtung reicht als Sucheingabe für den Owner.
+
+---
+
+## Nachtrag 11 (27.08.2026): „Deine Karte" (Freigeben-Kachel) braucht man gar nicht — Owner-Einwand, offen
+
+Owner direkt im Anschluss an Nachtrag 9/10, dieselbe Ergebnis-Seite, Blick auf die
+Abschlusskachel „DEINE KARTE" (E-Mail als Titel, Deutsch-Chip, „Das willst du /
+Das kannst du / Dein Traum", Knopf „Für passende Arbeitgeber freigeben", Zeile
+„Deine Karte ist gespeichert — mit deiner E-Mail kommst du jederzeit zurück."):
+„Also das hier braucht man gar nicht."
+
+NOCH NICHTS BAUEN — Owner ist weiterhin mitten im Durchgehen dieser Seite von
+oben nach unten (Premium-Block ok/Idee offen → Branchen-Checkliste raus →
+Freigeben-Kachel raus). Wirkt in Summe wie: die Seite endet nach Prozenten +
+Plus/Minus + Premium-Angebot, ohne zusätzliche Freigabe-Kachel und ohne
+Branchen-Checkliste danach.
+
+---
+
+## Nachtrag 12 (27.08.2026): Der Fazit-Ton — kein Ultimatum, sondern ein Angebot mit Knopf
+
+Owner zum KI-generierten Fazit-Satz („Entscheide dich: Wenn du wirklich in
+Kundenservice willst, überarbeite CV und Anschreiben so, dass … sichtbar wird;
+willst du UX/Produkt bleiben, ändere die Bewerbungsrichtung und ersetze die kurze
+Schreibprobe durch ein fehlerfreies, kurzes A…"): „Das ist nicht richtig, was du
+schreibst." Sein Gegenvorschlag als Ton-Vorlage:
+
+„Du könntest es machen, aber deine aktuelle Präsentation macht dich für Recruiter
+unplausibel. Du kannst es jetzt aber dafür anpassen — mit einem Button."
+
+Zwei Punkte darin:
+1. TON: kein Entweder-oder-Ultimatum an den Kandidaten („entscheide dich"), sondern
+   eine ehrliche Feststellung + ein Weg nach vorn („du könntest, aber … / du kannst
+   es jetzt anpassen").
+2. Greift den Gedanken aus Nachtrag 9 wieder auf (Premium-Block, „das kann hier
+   sofort generiert werden mit einem Button" — er hat Kundenservice angegeben, ein
+   Knopf passt die Bewerbung dafür an): das Fazit soll nicht nur beschreiben, was
+   fehlt, sondern direkt zum Anpassen-Knopf führen, statt zu einem Rückruf-Angebot
+   für 100 €.
+
+NOCH NICHTS BAUEN — betrifft den Prompt in `app/api/bewerbung-pruefen/route.ts`
+(`analyse.fazit`) UND hängt an der offenen Sofort-Anpassen-Funktion aus Nachtrag 9.
+Beides gehört zusammen geklärt, bevor etwas geändert wird.
+
+---
+
+## Nachtrag 13 (27.08.2026): CV-Upload wird PFLICHT, direkt am Anfang mit dem Deutschtest
+
+Owner: „Und am Anfang machen wir sofort den Deutschtest und CV-Upload. Und ohne
+CV-Upload machen wir gar nicht weiter. Sonst bekommen wir nur Müllkandidaten."
+
+Das ist eine Kehrtwende gegenüber dem bisherigen PIVOT (26.08., Baustelle „kein CV
+nötig"): der ganze Ohne-CV-Zweig (Alter/Jahre/Abschluss/Führerschein per Chat als
+Ersatz für den fehlenden Lebenslauf, `mitCv: false`) entfällt. Neue Reihenfolge am
+Tor: E-Mail-Gate → Deutschtest (5 gestaffelte Fragen + ggf. Schreibprobe) →
+CV-Upload PFLICHT → erst dann geht es weiter. Kein Fortkommen ohne Lebenslauf.
+
+Begründung: die bisherige Kulanz (Chat fragt alles ab, wenn kein CV da ist) erzeugt
+„Müllkandidaten" — Interessierte ohne belastbare Angaben, die den Pool verwässern.
+
+NOCH NICHTS BAUEN — reiht sich in die laufende Serie der Ergebnis-Seiten-Kritik
+(Nachtrag 9–12) ein; Owner ist weiterhin im Diktier-Modus („schreibe ins Konzept").
+Betrifft, sobald freigegeben: `torSchritt`-Reihenfolge und Gate-Logik in
+`LebenslaufStartClient.tsx`, die `mitCv`/mitCv-false-Zweige in
+`lib/kandidaten-store.ts` und `app/api/bewerbung-pruefen/route.ts` (die dort
+gebauten Ersatzfragen für „kein CV" würden hinfällig).
+
+---
+
+## Nachtrag 14 (27.08.2026): Der Wortlaut fürs CV-Pflicht-Tor
+
+Owner konkretisiert Nachtrag 13, den Ablauf am Tor: „Wir fragen ihn: Hast du eine
+CV? Sagt er nein, dann: Es tut uns leid, ohne bist du nicht qualifiziert. Wir
+brauchen deine Vita, um eine Analyse zu machen."
+
+Ablauf also: Frage „Hast du einen Lebenslauf?" (Ja/Nein-Chips) → Nein → Abbruch-
+Nachricht („Es tut uns leid, ohne bist du nicht qualifiziert. Wir brauchen deine
+Vita, um eine Analyse zu machen.") statt Weiterleitung in einen Ersatz-Chat. Ja →
+Upload-Schritt, danach erst der Deutschtest bzw. wie in Nachtrag 13 vorgesehen.
+
+NOCH NICHTS BAUEN — Serie läuft weiter (Nachtrag 9–14), Owner weiterhin im
+Diktier-Modus.
