@@ -28,7 +28,7 @@ import { ImageUp, Check, Trash2 } from "lucide-react";
  * Kachel danebenzustellen ist genau der Fehler, der diesen Baustein nötig gemacht hat.
  */
 export default function UploadKachel({
-  foto, titel, hinweis, platzhalter, onWaehlen, onLoeschen, loeschenLabel, className = "",
+  foto, titel, hinweis, platzhalter, onWaehlen, onLoeschen, loeschenLabel, verhaeltnis = "aspect-[3/4]", className = "",
 }: {
   /** Das gewählte Bild (Data-URL oder Adresse). Leer = die Kachel lädt noch ein. */
   foto?: string;
@@ -42,6 +42,15 @@ export default function UploadKachel({
   /** Fehlt er, gibt es keinen Löschknopf (z. B. wenn das Bild von uns kommt). */
   onLoeschen?: () => void;
   loeschenLabel?: string;
+  /**
+   * DAS SEITENVERHÄLTNIS DER KACHEL — Standard 3:4 wie bisher.
+   *
+   * Gebraucht seit 28.08.2026 im David-Angebot: Dort steht die Foto-Kachel in einer Reihe
+   * neben der Analyse und der gewählten PDF-Vorlage, und alle drei müssen dieselbe Form
+   * haben. Eine Bewerbung ist A4 (1:1,414), nicht 3:4 — stünde das Foto in 3:4 daneben,
+   * wären die drei Kacheln unterschiedlich hoch und die Reihe sähe kaputt aus.
+   */
+  verhaeltnis?: string;
   className?: string;
 }) {
   return (
@@ -59,7 +68,7 @@ export default function UploadKachel({
         * Karte. Deshalb muss der Haken IN diesem Baustein sitzen und nicht beim Aufrufer.
         */}
       <button type="button" onClick={onWaehlen} data-oncard="1" data-aufmedien="1"
-        className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
+        className={`relative flex ${verhaeltnis} w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition`}>
         {foto ? (<>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />

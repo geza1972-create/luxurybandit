@@ -110,6 +110,12 @@ export type LebenslaufProfil = {
   /** Das Anschreiben zur Anzeige — in der SPRACHE DER ANZEIGE, nur für den Besitzer
       sichtbar (er verschickt es selbst; Stufe 2 macht ein PDF daraus). */
   anschreiben?: string;
+  /**
+   * WELCHE PDF-VORLAGE ER GEWÄHLT HAT (28.08.2026, Owner: „hier müssen wir eine galerie von
+   * templates zeigen und user sucht sich eins aus") — die Kennung aus `PDF_VORLAGEN` in
+   * lib/bewerbung-pdf.ts. Leer heisst: die erste (Klassik).
+   */
+  pdfVorlage?: string;
   /** Titel/Firma wörtlich aus der Anzeige + der Match-Prozentwert vom Erzeugen — die
       Beschriftung in der Liste „Deine Bewerbungen". */
   anzeigeTitel?: string;

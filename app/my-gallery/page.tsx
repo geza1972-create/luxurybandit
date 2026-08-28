@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
 import { kontoText, spracheAusCookie, themaUndMedium, themaWort } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
-import { ThemenKreise, Knopf } from "@/components/CI";
+import { ThemenKreise, Knopf, Fortschritt } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -77,6 +77,13 @@ type Item = {
    */
   cvPath?: string;
   cvName?: string;
+  /**
+   * DER DAVID-BERICHT (28.08.2026) — die Kachel ist kein Medium, sondern eine TÜR: Ein
+   * Pre-Screening-Ergebnis hat kein Standbild und kein Video, es hat eine Seite
+   * (`/david/<id>`). Dasselbe Muster wie `programUrl` beim Versprechen.
+   */
+  berichtUrl?: string;
+  berichtTitel?: string;
   /**
    * URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in der
    * Galerie ein Warnzeichen drauf"). Nur gesetzt, wenn etwas auffiel — im Beobachten-Modus
@@ -395,7 +402,7 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; gescheitert?: boolean; programUrl?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; gescheitert?: boolean; programUrl?: string; berichtUrl?: string; berichtTitel?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
@@ -411,6 +418,8 @@ export default function MyGalleryPage() {
               warnung: b.warnung || "",
               alter: b.alter || 0,
               programUrl: b.programUrl || "",
+              berichtUrl: b.berichtUrl || "",
+              berichtTitel: b.berichtTitel || "",
               createdAt: b.createdAt || "",
               videoFertigAt: b.videoFertigAt || "",
               paid: b.paid === true,
@@ -681,15 +690,28 @@ export default function MyGalleryPage() {
           </div>
         )}
 
+        {/* DIE SAMMELZEILE NENNT, WAS WIRKLICH LÄUFT (Owner 28.08.2026: „hier steht falsch.
+            Ich generiere gerade ein CV"). Laufen NUR Bewerbungen, heisst es Bewerbung;
+            läuft irgendwo auch ein Video, bleibt es beim Video — die Zeile fasst mehrere
+            Aufträge zusammen und darf dann nicht das eine zugunsten des anderen
+            verschweigen. */}
         {items.some(x => x.rendert) && (
-          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#f6cf51]" />
-            <p className="text-[12.5px] font-black leading-snug text-[#f6cf51]">
-              {items.filter(x => x.rendert).length > 1
+          /* EIN BALKEN MIT PROZENTZAHL, KEIN KREISEL (Owner 28.08.2026: „es ist keine
+             Prozentzahl. Wie lange dauert es?" — Dauerregel des Hauses: „es muss immer ein
+             Prozentladebalken sein").
+             
+             Der Kreisel drehte sich hier ohne jede Auskunft, teils minutenlang. `Fortschritt`
+             ist der Baustein dafür: Ohne echten Fortschrittswert zählt er selbst bis 90 und
+             wartet dort — er behauptet also nie „fertig", bevor es soweit ist, gibt dem
+             Warten aber eine Richtung. Der Satz darunter sagt weiterhin, dass die Seite
+             geschlossen werden darf. */
+          <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
+            <Fortschritt text={
+              items.filter(x => x.rendert).length > 1
                 ? T.laeuftViele.replace("{n}", String(items.filter(x => x.rendert).length))
-                : T.laeuftEins}
-              <span className="ml-1 font-semibold text-[#f6cf51]/75">{T.laeuftDazu}</span>
-            </p>
+                : (items.filter(x => x.rendert).every(x => x.theme === "david" || x.theme === "lebenslauf") ? T.laeuftEinsCv : T.laeuftEins)
+            } />
+            <p className="mt-1.5 text-[12px] font-semibold leading-snug text-[#f6cf51]/75">{T.laeuftDazu}</p>
           </div>
         )}
 
@@ -797,6 +819,10 @@ export default function MyGalleryPage() {
                    * Zwischenschritt wie bei einem Video — ein Tipp, ein Ziel.
                    */
                   if (it.type === "program") { if (it.programUrl) window.location.href = it.programUrl; return; }
+                  /* DER DAVID-BERICHT IST EINE SEITE, KEIN MEDIUM (28.08.2026) — derselbe
+                     Gedanke wie beim Programm darüber: ein Tipp, ein Ziel. Ein Vollbild
+                     über einem Bericht ohne Bild wäre eine leere schwarze Fläche. */
+                  if (it.berichtUrl) { window.location.href = it.berichtUrl; return; }
                   setOpen(it);
                 }}
                 className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
@@ -874,7 +900,8 @@ export default function MyGalleryPage() {
                     sagt, dass hier gerade gerendert wird — Kreisel nie ohne Wort (CI). */}
                 {it.rendert && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
-                    <Loader2 className="h-3 w-3 animate-spin" /> {T.entsteht}
+                    {/* Die Kachel weiss, was SIE ist — sie darf genau sagen, was entsteht. */}
+                    <Loader2 className="h-3 w-3 animate-spin" /> {it.theme === "david" || it.theme === "lebenslauf" ? T.entstehtCv : T.entsteht}
                   </span>
                 )}
                 {/**

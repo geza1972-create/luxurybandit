@@ -31,13 +31,25 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
  * eigenen Markup (Preserve first — sie sind live und getestet); sie ziehen rollierend um,
  * wie bei der CI-Bibliothek (Memory `ci-bibliothek`). Erster Nutzer: /themes/tryon.
  */
-export default function LandingSeite({ hell = false, trackEvent, trackId = "", trackName = "", kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
+export default function LandingSeite({ hell = false, trackEvent, trackId = "", trackName = "", marke, heim, motto, lang, kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
   /** Die helle Anzeigen-Fassung (`?light=1`) — dasselbe Muster wie überall (`lb-theme lb-fb`). */
   hell?: boolean;
   /** Insights-Ereignis der Seite (TrackView) — ohne `trackEvent` wird nicht gezählt. */
   trackEvent?: string;
   trackId?: string;
   trackName?: string;
+  /**
+   * DIE EIGENE MARKE IM KOPF — für Produkte, die bewusst nicht als LuxuryBandit auftreten
+   * (Memory `lebenslauf-eigene-marke`, `jeder-topic-eigene-marke`). Ohne die drei Props
+   * steht wie bisher „LuxuryBandit" im Kopf und der volle Fuss darunter; die bestehenden
+   * Nutzer des Gerüsts ändern sich damit nicht.
+   */
+  marke?: string;
+  heim?: string;
+  motto?: string;
+  /** Die Sprache der Seite — reicht nur bis zum Fuss (dessen Rechtslinks sonst englisch
+      bleiben). Ohne sie ändert sich nichts am bisherigen Verhalten. */
+  lang?: string;
   kicker?: string;
   /** Die zweifarbige H1: heroA in Schrift, heroY im Haus-Akzent, heroB als Schluss. */
   heroA: string;
@@ -54,7 +66,7 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
 }) {
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav {...(marke ? { marke } : {})} {...(heim ? { heim } : {})} {...(motto ? { motto } : {})} />
       {trackEvent && <TrackView event={trackEvent} lookId={trackId} lookName={trackName} />}
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {kicker && <Kicker>{kicker}</Kicker>}
@@ -97,7 +109,7 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
           </section>
         )}
       </div>
-      <SeitenFuss />
+      <SeitenFuss {...(marke ? { marke } : {})} {...(lang ? { lang } : {})} />
     </main>
   );
 }

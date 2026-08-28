@@ -32,8 +32,17 @@ export async function GET(request: Request) {
   if (!profil) return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
   /* Besitz wie überall am Profil — bei einer Bewerbungs-Kopie hängt er am Hauptprofil. */
   const basis = profil.basisId ? await leseLebenslauf(profil.basisId) : profil;
-  if (!basis || !(await darfAmProfilArbeiten(basis, device, request))) {
-    return NextResponse.json({ error: "Not yours." }, { status: 403 });
+  /**
+   * DIE MUSTER-BEWERBUNG DARF JEDER SEHEN (28.08.2026) — sie ist das Beispiel, das im
+   * David-Flow zeigt, WAS man kauft (Owner: „wir machen das nur pdf und anschreiben").
+   * Der Inhalt ist erfunden (Musterfirmen, keine echte Person), es gibt also nichts zu
+   * schützen; ohne diese Ausnahme fiele das eigene Beispiel unter dieselbe Besitzprüfung
+   * wie eine fremde Bewerbung.
+   */
+  const oeffentlichesMuster = id === "david-muster-cora";
+  if (!basis) return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
+  if (!oeffentlichesMuster && !(await darfAmProfilArbeiten(basis, device, request))) {
+    return NextResponse.json({ error: "Diese Bewerbung gehört zu einem anderen Browser. Öffne sie auf dem Gerät, auf dem du sie erstellt hast." }, { status: 403 });
   }
 
   /* Das Foto der Bewerbung (oder des Hauptprofils) — unlesbar/fehlend ist nie ein
@@ -55,7 +64,11 @@ export async function GET(request: Request) {
   /* `bezahlt` gilt, wenn die Bewerbung ODER ihr Hauptprofil bezahlt ist — wer das
      Hauptprofil gekauft hat, bekommt keine Muster-Schranke auf seinen Versionen. */
   const bezahlt = profil.bezahlt === true || basis.bezahlt === true;
-  const pdf = await bewerbungAlsPdf(profil, { wasserzeichen: !bezahlt, foto });
+  /* DIE GEWÄHLTE VORLAGE (28.08.2026) — sie steht am Profil; die Adresse darf sie zum
+     Ansehen überschreiben (`?vorlage=marine`), damit die Galerie ihre Vorschauen holen
+     kann, ohne für jede Vorlage ein eigenes Profil anzulegen. */
+  const vorlage = String(url.searchParams.get("vorlage") ?? "").trim() || profil.pdfVorlage || basis.pdfVorlage || "";
+  const pdf = await bewerbungAlsPdf(profil, { wasserzeichen: !bezahlt, foto, vorlage });
 
   const dateiname = `Bewerbung${profil.anzeigeTitel ? `-${profil.anzeigeTitel}` : ""}${profil.name ? `-${profil.name}` : ""}`
     .replace(/[^\p{L}\p{N} _-]+/gu, "").replace(/\s+/g, "-").slice(0, 80) || "Bewerbung";

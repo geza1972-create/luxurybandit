@@ -18,8 +18,39 @@ import { YOUTUBE_CHANNEL } from "@/lib/social";
  * EIN SERVER-BAUSTEIN, KEIN CLIENT: nur Links, kein Zustand. Er kostet damit kein einziges
  * Kilobyte JavaScript auf Seiten, die ohnehin schon viel laden.
  */
-export default function SeitenFuss({ className = "", art = "voll", marke }: {
+/**
+ * DIE LINK-WÖRTER IN SIEBEN SPRACHEN — FESTE TABELLE, KEINE LAUFZEIT-ÜBERSETZUNG
+ * (Owner 28.08.2026, mit Bild des Fusses auf der deutschen David-Seite: „ebenso unten").
+ *
+ * Bis hierher stand der Fuss auf JEDER Seite englisch — „Info & legal · Contact · About ·
+ * Terms · Privacy · Imprint" —, auch unter einer durchgehend deutschen Verkaufsseite. Das
+ * sind die Links, die Vertrauen tragen sollen; in der falschen Sprache tun sie das Gegenteil.
+ *
+ * WARUM EINE TABELLE UND NICHT `textbausteineInSprache` (sonst die Hausregel): Es sind sechs
+ * Rechtsbegriffe, die sich nie ändern — sie altern nicht, anders als Verkaufstext. Dafür
+ * kostet die Tabelle keinen API-Aufruf, sie steht auf JEDER Seite des Hauses, und sie
+ * funktioniert auch dann, wenn beim Übersetzer kein Guthaben liegt.
+ */
+const FUSS_TEXTE: Record<string, { infoLegal: string; contact: string; about: string; terms: string; privacy: string; imprint: string }> = {
+  de: { infoLegal: "Info & Rechtliches", contact: "Kontakt", about: "Über uns", terms: "AGB", privacy: "Datenschutz", imprint: "Impressum" },
+  en: { infoLegal: "Info & legal", contact: "Contact", about: "About", terms: "Terms", privacy: "Privacy", imprint: "Imprint" },
+  ro: { infoLegal: "Informații legale", contact: "Contact", about: "Despre noi", terms: "Termeni", privacy: "Confidențialitate", imprint: "Date legale" },
+  es: { infoLegal: "Información legal", contact: "Contacto", about: "Sobre nosotros", terms: "Términos", privacy: "Privacidad", imprint: "Aviso legal" },
+  fr: { infoLegal: "Infos & mentions légales", contact: "Contact", about: "À propos", terms: "CGU", privacy: "Confidentialité", imprint: "Mentions légales" },
+  pt: { infoLegal: "Informação legal", contact: "Contacto", about: "Sobre nós", terms: "Termos", privacy: "Privacidade", imprint: "Informação da empresa" },
+  it: { infoLegal: "Info e note legali", contact: "Contatti", about: "Chi siamo", terms: "Termini", privacy: "Privacy", imprint: "Note legali" },
+};
+
+export default function SeitenFuss({ className = "", art = "voll", marke, lang = "en" }: {
   className?: string;
+  /**
+   * DIE SPRACHE DER SEITE — ohne sie bleibt es beim bisherigen Englisch. Bewusst ein Prop
+   * und kein `resolveLang()` im Baustein selbst: Vier Aufrufer sind Client-Komponenten
+   * (TopNav, CIMuster, LebenslaufExecutive, /future-program), und eine Server-Funktion
+   * liesse sich dort nicht aufrufen. Server-Seiten reichen ihr `L` herein; alle anderen
+   * bleiben unveraendert, bis sie es tun.
+   */
+  lang?: string;
   /**
    * `schlicht` — DER FUSS DER BEWERBER-SEITEN (Owner 24.08.2026: „auf der Bewerbeseite
    * müssen die Links unten raus, auch Instagram und Facebook"). Eine Seite, die an eine
@@ -40,6 +71,7 @@ export default function SeitenFuss({ className = "", art = "voll", marke }: {
    */
   marke?: string;
 }) {
+  const T = FUSS_TEXTE[lang] ?? FUSS_TEXTE.en;
   if (art === "schlicht") {
     return (
       <footer className={`mx-auto mt-10 w-full max-w-[440px] px-4 pb-14 pt-4 ${className}`}>
@@ -57,9 +89,9 @@ export default function SeitenFuss({ className = "", art = "voll", marke }: {
           </Link>
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] font-semibold text-white/35">
-          <Link href="/imprint" className="transition hover:text-white/70">Imprint</Link>
-          <Link href="/privacy" className="transition hover:text-white/70">Privacy</Link>
-          <Link href="/terms" className="transition hover:text-white/70">Terms</Link>
+          <Link href="/imprint" className="transition hover:text-white/70">{T.imprint}</Link>
+          <Link href="/privacy" className="transition hover:text-white/70">{T.privacy}</Link>
+          <Link href="/terms" className="transition hover:text-white/70">{T.terms}</Link>
         </div>
       </footer>
     );
@@ -84,11 +116,11 @@ export default function SeitenFuss({ className = "", art = "voll", marke }: {
    * Was bleibt, ist das, was stimmt UND gebraucht wird: Kontakt, AGB, Datenschutz, Impressum.
    */
   const links: [string, string][] = [
-    ["/contact", "Contact"],
-    ["/about", "About"],
-    ["/terms", "Terms"],
-    ["/privacy", "Privacy"],
-    ["/imprint", "Imprint"],
+    ["/contact", T.contact],
+    ["/about", T.about],
+    ["/terms", T.terms],
+    ["/privacy", T.privacy],
+    ["/imprint", T.imprint],
   ];
 
   return (
@@ -99,7 +131,7 @@ export default function SeitenFuss({ className = "", art = "voll", marke }: {
        `pb-16`: Unten schweben der Menue-Knopf und der Assistent. Ohne diesen Abstand liegen
        sie genau auf „Contact" und „Imprint" — den zwei Links, die erreichbar sein MUESSEN. */
     <footer className={`mx-auto mt-14 w-full max-w-[440px] border-t border-white/10 px-4 pb-16 pt-5 ${className}`}>
-      <p className="mb-2 text-[13px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
+      <p className="mb-2 text-[13px] font-black uppercase tracking-[0.14em] text-white/50">{T.infoLegal}</p>
       <div className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-bold text-white/85">
         {links.map(([href, text]) => (
           <Link key={href} href={href} className="hover:text-white">{text}</Link>

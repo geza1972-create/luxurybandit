@@ -238,21 +238,78 @@ svg {
    Reads as a deep, elegant black lifted by a faint gold glow (top-left) and a
    warm ember (bottom-right). Drop-in replacement for the old solid bg-[#0d0b0a],
    used app-wide so no screen is ever a flat black rectangle. ── */
+/* DER GOLDSCHEIN KOMMT VON RECHTS OBEN (Owner 28.08.2026, am Ergebnis-Schirm: „der verlauf
+   kommt von rechts oben"). Er lag bei 15 %, also links; der warme Gegenschein lag unten
+   rechts. Beide sind gespiegelt, damit die Diagonale erhalten bleibt — Gold oben rechts,
+   das warme Braun unten links. Gilt für JEDE Seite des Hauses, `lb-bg` ist die eine
+   Hintergrund-Klasse. */
 .lb-bg {
   background-color: #0d0b0a;
   background-image:
-    radial-gradient(120% 80% at 15% -6%, rgba(246, 207, 81, 0.11), transparent 50%),
-    radial-gradient(130% 95% at 88% 108%, rgba(126, 62, 24, 0.15), transparent 58%),
+    radial-gradient(120% 80% at 85% -6%, rgba(246, 207, 81, 0.11), transparent 50%),
+    radial-gradient(130% 95% at 12% 108%, rgba(126, 62, 24, 0.15), transparent 58%),
     linear-gradient(180deg, #15110c 0%, #0d0b0a 34%, #090706 100%);
 }
+/**
+ * RAND MIT VERLAUF (Owner 28.08.2026, am Ergebnis-Schirm: „rand mit verlauf").
+ *
+ * Ein flacher weisser Rahmen war ihm „zu heftig", ein Block ganz ohne Kontur zu flau. Das
+ * hier ist beides: eine hauchdünne Kante, die oben rechts golden anfängt und nach unten
+ * links ins Nichts läuft — dieselbe Richtung wie der Goldschein im Hintergrund (`lb-bg`).
+ *
+ * TECHNIK: Ein Pseudo-Element trägt den Verlauf und wird mit zwei Masken auf einen Rahmen
+ * von 1 px reduziert (die Füllung wird ausgestanzt). Anders geht ein Verlaufsrahmen in CSS
+ * nicht — `border-image` kennt keine Radien, und ein zweiter Kasten dahinter wäre wieder
+ * Box in Box.
+ *
+ * Der Radius kommt vom Element selbst (`border-radius: inherit`), die Klasse passt also auf
+ * jede Kachel des Hauses.
+ */
+.lb-rand-verlauf { position: relative; }
+.lb-rand-verlauf::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom left, rgba(246, 207, 81, 0.55), rgba(246, 207, 81, 0.12) 40%, rgba(255, 255, 255, 0.05) 75%, rgba(255, 255, 255, 0.02));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* Die kräftige Fassung — für den einen Block, der auffallen soll (David Insight). */
+.lb-rand-verlauf-gold::before {
+  background: linear-gradient(to bottom left, rgba(246, 207, 81, 0.95), rgba(246, 207, 81, 0.35) 45%, rgba(246, 207, 81, 0.10));
+}
+
+/**
+ * IN DER HELLEN FASSUNG IST DER RAND BLAU (Owner 28.08.2026: „ebenso auf light aber statt
+ * gelb blau").
+ *
+ * Dieselbe Regel wie überall in `.lb-theme`/`.lb-fb`: Auf der Anzeigen-Landung trägt das
+ * Haus Facebook-Blau (#1877F2) statt Gold — Gold auf Weiss ist blass, und die Seite soll
+ * neben der Anzeige nicht wie ein anderes Produkt aussehen. Beide Schreibweisen (als
+ * Nachfahre UND auf demselben Element), genau wie bei `lb-bg` darunter.
+ */
+.lb-theme .lb-rand-verlauf::before,
+.lb-theme.lb-rand-verlauf::before {
+  background: linear-gradient(to bottom left, rgba(24, 119, 242, 0.55), rgba(24, 119, 242, 0.14) 40%, rgba(0, 0, 0, 0.06) 75%, rgba(0, 0, 0, 0.03));
+}
+.lb-theme .lb-rand-verlauf-gold::before,
+.lb-theme.lb-rand-verlauf-gold::before {
+  background: linear-gradient(to bottom left, rgba(24, 119, 242, 0.95), rgba(24, 119, 242, 0.35) 45%, rgba(24, 119, 242, 0.10));
+}
+
 /* Light-theme fallback (funnels/pages that flip to daylight via .lb-theme).
    Matches lb-bg as a descendant OR on the SAME element as .lb-theme. */
 .lb-theme .lb-bg,
 .lb-theme.lb-bg {
   background-color: #fbfaf7;
   background-image:
-    radial-gradient(120% 85% at 14% -8%, rgba(233, 174, 43, 0.10), transparent 55%),
-    radial-gradient(130% 100% at 90% 106%, rgba(0, 0, 0, 0.03), transparent 60%);
+    radial-gradient(120% 85% at 86% -8%, rgba(233, 174, 43, 0.10), transparent 55%),
+    radial-gradient(130% 100% at 10% 106%, rgba(0, 0, 0, 0.03), transparent 60%);
 }
 
 /* ── /luxury-products chat & funnel: auto light/dark by the device setting ───────────

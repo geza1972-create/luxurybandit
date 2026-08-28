@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { SectionTitle, Fine } from "@/components/Landing";
 import { Knopf } from "@/components/CI";
-import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
+import { EXECUTIVE_BEISPIEL, type ExecutiveProfil } from "@/lib/lebenslauf-vorlage";
 import { executiveInSprache } from "@/lib/lebenslauf-uebersetzen";
 import { isLang } from "@/lib/lang";
 
@@ -78,12 +78,32 @@ const TEXTE: Record<string, { titel: string; zeile: string; cta: string; beispie
  * die Muster-Seite es längst durch `executiveInSprache` schickt. Jetzt tun beide dasselbe:
  * EINE Quelle, EIN Übersetzer, keine halbdeutsche Karte im rumänischen Markt.
  */
-export default async function LebenslaufBeispiel({ lang = "en", className = "" }: {
+export default async function LebenslaufBeispiel({ lang = "en", className = "", profil, href }: {
   lang?: string;
   className?: string;
+  /**
+   * WELCHES MUSTER GEZEIGT WIRD (28.08.2026) — ohne Angabe das Haus-Muster (Andrei
+   * Popescu, Pflege, für die Bewerbungszentrale). David reicht sein eigenes herein:
+   * Oana Müller, dieselbe Person wie im Verwandlungs-Video. Ein Pflege-Dossier als „so
+   * sieht deine Bewerbung aus" wäre dort das falsche Versprechen.
+   */
+  profil?: ExecutiveProfil;
+  /**
+   * Wohin die Karte führt — ohne Angabe auf die lebende Muster-Seite.
+   *
+   * `href: ""` schaltet den Weg GANZ ab: Dann ist die Karte nur noch ein Bild, kein Link
+   * und kein Knopf. Gebraucht im David-Flow (Owner 28.08.2026, mit Bild der Muster-Seite:
+   * „das werden wir nicht haben in dem beispiel") — dort verkauft David Lebenslauf und
+   * Anschreiben als PDF, aber KEINE laufende Bewerbungsseite mit Besucherzähler,
+   * Kontaktanfragen und Schnell-Analyse. Ein Beispiel, das mehr zeigt als das Produkt,
+   * ist ein Versprechen, das die Rechnung nicht deckt.
+   */
+  href?: string;
 }) {
   const t = TEXTE[lang] ?? TEXTE.en;
-  const p = await executiveInSprache(EXECUTIVE_BEISPIEL, (isLang(lang) ? lang : "en"));
+  const p = await executiveInSprache(profil ?? EXECUTIVE_BEISPIEL, (isLang(lang) ? lang : "en"));
+  const ziel = href ?? "/lebenslauf/executive";
+  const verlinkt = ziel !== "";
 
   return (
     <section className={`mt-10 ${className}`}>
@@ -95,8 +115,13 @@ export default async function LebenslaufBeispiel({ lang = "en", className = "" }
           Serif-Versalien, Rolle, Schwerpunkt-Etiketten. Er ist ein LINK auf das lebende
           Beispiel, kein Medien-Player — deshalb ohne die drei Karten-Symbole (Skill `card`
           gilt für Video-/Bild-Karten, das hier ist eine Tür wie `ThemenKachel`). */}
-      <Link href="/lebenslauf/executive"
-        className="lb-karte mt-4 block overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)] transition active:scale-[0.99]">
+      {/* Ohne Ziel keine Tür: dieselbe Karte, nur als Bild (siehe `href` oben). Bewusst
+          zwei Zweige statt einer dynamischen Hülle — `Link` verlangt ein `href`, und eine
+          Hülle, die mal Komponente und mal Zeichenkette ist, bekommt TypeScript zu Recht
+          nicht sauber typisiert. */}
+      {verlinkt ? (
+        <Link href={ziel}
+          className="lb-karte mt-4 block overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)] transition active:scale-[0.99]">
         <div className="flex items-center gap-4 p-4">
           <div className="relative w-[104px] shrink-0">
             <div className="aspect-[4/5] w-full overflow-hidden rounded-[12px]">
@@ -128,16 +153,62 @@ export default async function LebenslaufBeispiel({ lang = "en", className = "" }
                 ))}
               </div>
             )}
-            <p className="mt-3 flex items-center gap-1 text-[10.5px] font-black uppercase tracking-[0.12em] opacity-55">
-              {t.cta}<ArrowUpRight className="h-3.5 w-3.5" />
-            </p>
+            {verlinkt && (
+              <p className="mt-3 flex items-center gap-1 text-[10.5px] font-black uppercase tracking-[0.12em] opacity-55">
+                {t.cta}<ArrowUpRight className="h-3.5 w-3.5" />
+              </p>
+            )}
           </div>
         </div>
-      </Link>
+        </Link>
+      ) : (
+        <div className="lb-karte mt-4 block overflow-hidden rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,0.38)]">
+        <div className="flex items-center gap-4 p-4">
+          <div className="relative w-[104px] shrink-0">
+            <div className="aspect-[4/5] w-full overflow-hidden rounded-[12px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* object-top: das Porträt ist das Standbild eines Sprechvideos — Zuschnitt
+                  oben ankern, nie den Kopf abschneiden (Skill `card`, 24.08.2026). */}
+              <img src={p.portraitUrl} alt={p.name} className="h-full w-full object-cover object-top" />
+            </div>
+            {/* `data-aufmedien="1"` ist hier PFLICHT, kein Schmuck (dieselbe Falle wie in
+                LebenslaufExecutive.tsx): `.lb-karte span { color:#2a231c !important }`
+                schlägt ein blosses `text-white` — die Aufschrift stand schwarz auf
+                schwarzem Schleier. `[data-aufmedien="1"]` ist der Haken, den die Karte
+                selbst für Bedienung AUF dem Bild vorsieht (Memory
+                `lb-karte-important-frisst-inline-farben`). */}
+            <span data-aufmedien="1" className="absolute bottom-1.5 left-1.5 rounded-full px-2 py-0.5 text-[8.5px] font-black uppercase tracking-[0.14em]"
+              style={{ background: "rgba(12,10,8,0.55)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)" }}>
+              {t.beispiel}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-serif text-[19px] font-black uppercase leading-[1.05] tracking-[0.02em]">{p.name}</p>
+            <p className="mt-1 text-[12px] font-bold leading-snug opacity-75">{p.rolle}</p>
+            {p.schwerpunkte.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {p.schwerpunkte.slice(0, 3).map(s => (
+                  <span key={s} className="rounded-full border border-[#1a160f]/25 px-2 py-0.5 text-[8.5px] font-black uppercase tracking-[0.04em] opacity-70">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+            {verlinkt && (
+              <p className="mt-3 flex items-center gap-1 text-[10.5px] font-black uppercase tracking-[0.12em] opacity-55">
+                {t.cta}<ArrowUpRight className="h-3.5 w-3.5" />
+              </p>
+            )}
+          </div>
+        </div>
+        </div>
+      )}
 
-      <div className="mt-3">
-        <Knopf art="umriss" href="/lebenslauf/executive">{t.cta}</Knopf>
-      </div>
+      {verlinkt && (
+        <div className="mt-3">
+          <Knopf art="umriss" href={ziel}>{t.cta}</Knopf>
+        </div>
+      )}
     </section>
   );
 }

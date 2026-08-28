@@ -26,13 +26,20 @@ import { kissText } from "@/lib/kiss-i18n";
  *     Hochzeit — `preisZeile`, gefüllt aus der Preistabelle)
  *   · „made by luxurybandit.com" als Fuss
  */
-export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, fuss }: {
+export default function LandingKarte({ sprache, titel, folien, href, aufruf: aufrufEigen, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, fuss }: {
   sprache: string;
   titel: string;
   folien: { video: string; poster?: string }[];
   /** Wohin der `Jetzt starten`-Knopf führt — die Tunnel-Adresse des Produkts. OHNE href
       bleibt die Karte reine Schau (Tunnel-Schritt 3: der Kaufknopf steht dort schon). */
   href?: string;
+  /**
+   * EIN EIGENES KNOPF-WORT — nur, wo „Jetzt starten" die Sache falsch benennt (David:
+   * „Jetzt kostenlos starten"; das Gratis gehört bei einem Screening ohne Kasse IN den
+   * Knopf, sonst fragt sich der Leser genau dort, was es kostet). Ohne dieses Prop bleibt
+   * es beim Hauswort aus der Sprachtabelle — das ist weiter der Normalfall.
+   */
+  aufruf?: string;
   /** Was die Teilen-Scheibe teilt — die Landingpage des Produkts. */
   teilenUrl: string;
   teilenText: string;
@@ -49,7 +56,7 @@ export default function LandingKarte({ sprache, titel, folien, href, teilenUrl, 
   const K = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   /* Das EINE Knopf-Wort (Owner 10.08.2026: „Button wie CI Preis-Jettzt starten") — aus der
      Basis-Sprachtabelle, dieselbe Quelle wie die Geburtstags-Karte (`T.jetztStarten`). */
-  const aufruf = kissText(sprache, "kiss").jetztStarten;
+  const aufruf = aufrufEigen || kissText(sprache, "kiss").jetztStarten;
   if (folien.length === 0) return null;
 
   return (

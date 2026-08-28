@@ -16,6 +16,8 @@ import { resolveLang } from "@/lib/lang-server";
 import { VERSPRECHEN_VIDEO, VERSPRECHEN_POSTER } from "@/lib/versprechen";
 import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
+import { DAVID_VIDEO, DAVID_POSTER } from "@/lib/david-video";
+import { davidKachelInSprache } from "@/lib/david-texte";
 /* DAS ORIGINAL DER PORTAL-BESCHREIBUNG liegt in „Über uns" (Owner 10.08.2026) — von dort
    holen es Startseite und AGB, damit es nur EINE Fassung gibt. */
 import { aboutText } from "@/lib/about-i18n";
@@ -437,6 +439,11 @@ export default async function ThemesCatalog({ searchParams }: {
      hereingelegt — und genau dieses Gefühl kann sich ein Produkt nicht leisten, das mit
      „keine Lügen" wirbt. */
   const AB_VERSPRECHEN = themenPreisZeile("versprechen", L);
+  /* DAVIDS KACHELTEXTE KOMMEN SCHON ÜBERSETZT HEREIN — deutsche Quelle, nicht englische
+     (Owner 28.08.2026: „bevor du anfängst, weil ich hier sehe, dass du auf englisch gemacht
+     hast"). Begründung in lib/david-texte.ts; die Kachel bleibt deshalb unten aus dem
+     `trObject`-Lauf ausgenommen. */
+  const davidKachel = await davidKachelInSprache(L);
 
   const THEMES: Theme[] = [
     /**
@@ -495,21 +502,28 @@ export default async function ThemesCatalog({ searchParams }: {
      * Kachel hier.
      */
     /**
-     * DAS JOBS-TOPIC (Owner 26.08.2026: „die Topic existiert nicht auf der Startseite,
-     * obwohl sie wieder da sein sollte") — der Zugang zur neuen Zielgruppen-Landingpage
-     * /topics/german-speakers (einfache Fassung im KONZEPT-JOB-MATCH-TRICHTER.md). Ohne
-     * Kreis-Leiste im Kopf (26.08. abgeschafft) ist DIESE Kachel der eine Weg von der
-     * Startseite dorthin. Kein Preis auf der Kachel: die Analyse ist gratis, bezahlt
-     * werden erst die Bewerbungs-Stücke. GANZ OBEN: das Thema, an dem gerade gebaut und
-     * geworben wird.
+     * DAS JOBS-TOPIC — SEIT 28.08.2026 IST ES DAVID (Owner: „Du passt auch die Topic jetzt
+     * für die Startseite an", direkt nach der Abnahme der Landingpage).
+     *
+     * Die Kachel führte auf /topics/german-speakers (Deutschtest, Zielgruppenseite). Jetzt
+     * führt sie auf /themes/david — das Pre-Screening ist das Produkt, an dem gebaut und
+     * geworben wird, und es ist das ehrlichere Versprechen: kein Test, den man bestehen
+     * oder nicht bestehen kann, sondern ein Gespräch über die eigene Bewerbung. Die alte
+     * Zielgruppenseite bleibt bestehen, sie ist nur nicht mehr von der Startseite verlinkt.
+     *
+     * Ohne Kreis-Leiste im Kopf (26.08. abgeschafft) ist DIESE Kachel der eine Weg von der
+     * Startseite zum Jobs-Thema. GANZ OBEN, wie seit dem 26.08.: das Thema, an dem gerade
+     * gearbeitet wird.
+     *
+     * VIDEO UND STANDBILD AUS DER EINEN QUELLE (`lib/david-video.ts`, Memory
+     * `landingpage-video-ist-kachel-video`) — die Kachel zeigt genau den Clip, der auf der
+     * Landingpage in der Karte läuft.
+     *
+     * KEIN PREIS: Das Screening ist gratis, und genau das steht im ersten Chip — es ist
+     * das stärkste Argument der Kachel. Die drei Chips sind seine Vertrauenszeile von der
+     * Landingpage („Individuell · Vertraulich · ca. 5 Minuten"), nur mit dem Gratis davor.
      */
-    /* DAVID auf der Jobs-Kachel (Owner 26.08.2026: „hierfür muss du David nehmen") —
-       dasselbe Gesicht wie im Chat des Funnels, nicht das Video-Applications-Poster. */
-    /* KEINE WERBUNG MEHR MIT „OHNE CV" (Owner 26.08.2026: „mach keine Werbung ohne CV" ·
-       „und ohne Lebenslauf raus" · „ich erwähne 5 Minuten") — der Trichter zählt einen
-       fehlenden Lebenslauf inzwischen als mehrere Minuspunkte, und der Weg mit Deutschtest
-       und Fragen dauert ehrlich fünf Minuten, nicht zwei. */
-    { icon: FileText, title: "Which job fits me?", tagline: "Jobs with German — find out honestly what fits you: what speaks for you and what is still missing. Also for career changers.", href: "/topics/german-speakers", cover: "/Lebenslauf/david.jpg", poster: "/Lebenslauf/david.jpg", chips: "♥ Free German test · 5 minutes · Honest" },
+    { icon: FileText, title: "David · AI Pre-Screening", tagline: davidKachel.zeile, href: "/themes/david", cover: DAVID_POSTER, poster: DAVID_POSTER, video: DAVID_VIDEO, chips: `♥ ${davidKachel.chips}` },
     { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise", abPreis: AB_VERSPRECHEN },
     /**
      * GEBURTSTAG AUF PLATZ ZWEI (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf
@@ -698,13 +712,23 @@ export default async function ThemesCatalog({ searchParams }: {
   // KARTENTEXTE übersetzen (Titel, Untertitel, Chips) — sie standen bisher nur englisch da,
   // während der Rest der Seite in acht Sprachen läuft. Ein Aufruf für alle Karten, danach
   // aus dem Dauer-Cache. Der Herz-/Trenner-Schmuck der Chips bleibt unangetastet.
+  /** Kacheln, deren Titel ein Markenname ist und deshalb unübersetzt bleibt. */
+  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david"];
+  /** Kacheln, die ihre Texte SELBST schon in der richtigen Sprache mitbringen (deutsche
+      Quelle statt englischer) — sie dürfen gar nicht erst in den Übersetzungslauf. */
+  const EIGENE_SPRACHE = ["/themes/david"];
   const flat: Record<string, string> = {};
   SICHTBAR.forEach((t, i) => {
-    // „Future Self Program" ist ein Markenname (11.08.2026) — er darf nicht in den
-    // Übersetzungslauf, sonst macht die KI daraus z. B. „Programm für das zukünftige
-    // Selbst". Ohne Eintrag in `flat` fällt der Titel unten auf `t.title` zurück, also auf
-    // genau diesen englischen Namen, in jeder Sprache gleich.
-    if (t.href !== "/themes/versprechen") flat[`t${i}`] = t.title;
+    /* Ohne Eintrag in `flat` fallen Titel, Zeile und Chips unten auf die Originalwerte
+       zurück — und die sind bei diesen Kacheln bereits übersetzt. */
+    if (EIGENE_SPRACHE.includes(t.href ?? "")) return;
+    /* MARKENNAMEN BLEIBEN STEHEN. Sonst macht die KI aus „Future Self Program" ein
+       „Programm für das zukünftige Selbst" (11.08.2026) — und seit dem 28.08.2026 aus
+       „David · AI Pre-Screening" eine „KI-Vorauswahl": David ist ein Name, und der Owner
+       schreibt „AI Pre-Screening" selbst auf Deutsch so (im Video, in der Kopfzeile, auf
+       der Landingpage). Ohne Eintrag in `flat` fällt der Titel unten auf `t.title`
+       zurück, also auf genau diesen Namen, in jeder Sprache gleich. */
+    if (!MARKEN_TITEL.includes(t.href ?? "")) flat[`t${i}`] = t.title;
     flat[`g${i}`] = t.tagline;
     if (t.chips) flat[`c${i}`] = t.chips.replace(/^♥\s*/, "");
   });
@@ -848,7 +872,7 @@ export default async function ThemesCatalog({ searchParams }: {
       </div>
         {/* Der Fuss auch im Katalog (Owner 05.08.2026: „jetzt den Footer auch die
             Katalogseite") — es ist die Seite, auf der die Anzeigen landen. */}
-        <SeitenFuss />
+        <SeitenFuss lang={L} />
     </main>
   );
 }

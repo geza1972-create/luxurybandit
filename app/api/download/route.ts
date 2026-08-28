@@ -45,7 +45,15 @@ export async function GET(request: Request) {
       : pfad.endsWith(".webm") ? "video/webm"
       : pfad.endsWith(".m4a") ? "audio/mp4"
       : pfad.endsWith(".mp3") ? "audio/mpeg"
-      : pfad.endsWith(".png") ? "image/png" : "image/jpeg";
+      : pfad.endsWith(".png") ? "image/png"
+      /* AUCH DOKUMENTE (28.08.2026): Der Lebenslauf in den Assets ist ein PDF oder eine
+         Word-Datei — bis hierher bekam beides „image/jpeg" übergestülpt, und die
+         heruntergeladene Datei liess sich nicht öffnen. Gemessen am David-Testkonto:
+         `image/jpeg` auf einer .pdf. */
+      : pfad.endsWith(".pdf") ? "application/pdf"
+      : pfad.endsWith(".docx") ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      : pfad.endsWith(".doc") ? "application/msword"
+      : "image/jpeg";
     return new Response(datei.body, {
       headers: {
         "content-type": typ,

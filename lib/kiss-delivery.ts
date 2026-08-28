@@ -171,7 +171,25 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
      * Zahlungs-Anstoss uebernimmt in ihrer ersten Runde. Alle anderen Themen wie bisher.
      */
     const sofort = e.theme === "versprechen" || e.theme === "birthday";
-    if (!e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + (sofort ? 0 : GNADENFRIST_MS)).toISOString();
+    /**
+     * NICHT JEDER BEZAHLTE AUFTRAG SCHULDET EIN VIDEO (Fehler gefunden 28.08.2026 an einer
+     * ECHTEN Zahlung des Owners: Sein David-Auftrag über Lebenslauf und Anschreiben trug
+     * hinterher `videoDueAt`, `videoTries: 1` und `videoError: "Sein Foto fehlt im Speicher"`
+     * — der Wachhund versuchte, ihm ein Video zu rendern, das er nie bestellt hatte, und
+     * scheiterte im Takt daran. In seiner Galerie stand deshalb „Dein Video entsteht
+     * gerade".)
+     *
+     * `videoDueAt` ist die Marke „ab hier übernimmt der Server das Rendern". Sie wurde bisher
+     * bei JEDEM Kauf gesetzt, weil bis dahin jedes Produkt des Hauses ein Video war. David
+     * verkauft als erstes Produkt etwas anderes: ein PDF.
+     *
+     * DIE UNTERSCHEIDUNG STEHT AM AUFTRAG, NICHT IM THEMA: David verkauft BEIDES — Unterlagen
+     * (9,99 €) und Video-Bewerbung (19 €), aus demselben Trichter. Ein Video kann er nur
+     * schulden, wenn eine Aufnahme oder ein Foto dafür da ist; ohne die gibt es nichts zu
+     * rendern, und der Wachhund würde nur Fehler sammeln.
+     */
+    const kannVideo = e.theme !== "david" || !!e.audioPath || !!e.personPath || !!e.modelPath;
+    if (kannVideo && !e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + (sofort ? 0 : GNADENFRIST_MS)).toISOString();
     /**
      * DAS FUTURE-PROGRAMM ANLEGEN — GENAU HIER, BEVOR KAPPUNG/AUFRÄUMER DIE ZIELE ERWISCHEN
      * KÖNNEN (11.08.2026). Der Bezahl-Stempel ist der früheste sichere Moment: Der Auftrag

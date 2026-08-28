@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
-import { Scheibe, Knopf, Eingabe, EingabeMehrzeilig, Fehlerzeile, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
+import { Scheibe, Knopf, Eingabe, EingabeMehrzeilig, Fehlerzeile, Fortschritt, Haken, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE, TalentKopf,
   type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler, TunnelStart, VorlagenKachel } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
+import { PDF_VORLAGEN, vorlagenBild } from "@/lib/pdf-vorlagen";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import TeilenKnopf from "@/components/TeilenKnopf";
@@ -60,9 +61,11 @@ const MUSTER_THEMEN: ThemenKachelDaten[] = [
 ];
 
 export default function CIMuster() {
+  const [hakenAn, setHakenAn] = useState(false);
   const [dialogOffen, setDialogOffen] = useState<"hell" | "dunkel" | null>(null);
   const [chipWahl, setChipWahl] = useState("a");
   const [bildWahl, setBildWahl] = useState(GEBURTSTAG_LOOKS[0].id);
+  const [vorlagenWahl, setVorlagenWahl] = useState(PDF_VORLAGEN[0].id);
   const [anmeldeMuster, setAnmeldeMuster] = useState(false);
   const [fehlerZeigen, setFehlerZeigen] = useState(true);
   const [waehlerOffen, setWaehlerOffen] = useState(false);
@@ -195,6 +198,17 @@ export default function CIMuster() {
         <BildWahl gross wert={bildWahl} waehle={setBildWahl} bilder={GEBURTSTAG_LOOKS} />
       </Kasten>
 
+      {abschnitt("BildWahl blatt — Kacheln im A4-Format (Vorlagen-Galerie)")}
+      {/* Owner 28.08.2026, zur Vorlagen-Galerie im David-Angebot: „hier müssen wir eine
+          galerie von templates zeigen und user sucht sich eins aus … farbvollflächen lieben
+          die Leute". `blatt` gibt dem Rahmen das Verhältnis des Papiers — ein A4-Blatt in
+          einem 3:4-Rahmen würde unten um ein Sechstel beschnitten, genau dort, wo bei einem
+          Lebenslauf die Ausbildung steht. Sonst ändert sich nichts: dieselbe Ring-Regel. */}
+      <Kasten>
+        <BildWahl gross blatt vergroessern wert={vorlagenWahl} waehle={setVorlagenWahl}
+          bilder={PDF_VORLAGEN.map(v => ({ id: v.id, name: v.name, bild: vorlagenBild(v.id) }))} />
+      </Kasten>
+
       {abschnitt("Kasten — still · gold (Teaser)")}
       {/* Der letzte grosse Eigenbau: 82 Flächen in 21 Rezepturen (Owner 06.08.2026:
           „… teaser, cards, header"). Der Rand ist /20, damit er im Tageslicht steht. */}
@@ -263,6 +277,22 @@ export default function CIMuster() {
             Owner 24.08.2026). Dieselben drei Welten wie `Eingabe`, Höhe über `zeilen`. */}
         <EingabeMehrzeilig className="mt-3" zeilen={3}
           placeholder="z. B. Erwähne Projekt X nicht — schreib stattdessen …" />
+      </Kasten>
+
+      {abschnitt("Prozent-Ladebalken — die eine Warteanzeige")}
+      {/* „es muss immer ein prozentladebalken sein" (Owner 28.08.2026). Steigt zügig bis 90
+          und wartet dort, bis die Antwort wirklich da ist — nie ein Kreisel ohne Wort. */}
+      <Kasten>
+        <Fortschritt text="David schreibt deinen Bericht" />
+      </Kasten>
+
+      {abschnitt("Häkchen — eine Zustimmung, die er selbst setzt")}
+      {/* Nie vorangekreuzt, ganze Zeile antippbar, Text darf Links tragen (Datenschutz,
+          AGB). Gebaut für den Datenschutzhinweis im David-Trichter (28.08.2026). */}
+      <Kasten>
+        <Haken an={hakenAn} setzen={setHakenAn} pflicht>
+          Ich habe die Datenschutzhinweise gelesen und möchte das Pre-Screening starten.
+        </Haken>
       </Kasten>
 
       {abschnitt("Tunnel-Start — Schritt 1 von 2, für jedes Produkt gleich")}

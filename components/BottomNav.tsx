@@ -33,10 +33,59 @@ function getActiveTab(pathname: string): Tab {
   return "home";
 }
 
+/**
+ * DIE WÖRTER DES MENÜS — IN DER SPRACHE DER SEITE (Owner 28.08.2026, mit Bild eines
+ * deutschen Trichters: „und hier steht not signed").
+ *
+ * Das Menü war komplett englisch, auf JEDER Seite des Hauses — auch auf den deutschen
+ * Trichtern, die gerade den ganzen Verkehr tragen. „Not signed in" ist dort nicht nur
+ * unschön: Es ist der einzige englische Satz auf einer sonst deutschen Seite, und er steht
+ * ganz oben im Menü, direkt neben dem Konto.
+ *
+ * DIESELBE QUELLE WIE `TopNav`: der Keks `lb_lang`. Kein neuer Mechanismus, kein Prop durch
+ * zwanzig Seiten — das Menü liegt global, es kann die Sprache nicht gereicht bekommen.
+ *
+ * WAS ABSICHTLICH ENGLISCH BLEIBT: „Funnels", „Reels", „Try on", „Assets". Das sind
+ * Produktnamen des Hauses, keine Beschriftungen — der Owner nennt sie selbst auf Deutsch so
+ * (26.08.2026: „wir nennen die Topics in Funnels um"). Ein übersetztes „Trichter" im Menü
+ * hätte niemand wiedererkannt.
+ */
+const MENU_TEXTE: Record<string, {
+  nichtAngemeldet: string; anmeldenHinweis: string; konto: string; anmelden: string;
+  heim: string; infoLegal: string; kontakt: string; ueber: string; agb: string; datenschutz: string; impressum: string;
+}> = {
+  en: { nichtAngemeldet: "Not signed in", anmeldenHinweis: "Sign in to save & curate", konto: "Account", anmelden: "Sign in / My account",
+        heim: "Home", infoLegal: "Info & Legal", kontakt: "Contact", ueber: "About", agb: "Terms", datenschutz: "Privacy", impressum: "Imprint" },
+  de: { nichtAngemeldet: "Nicht angemeldet", anmeldenHinweis: "Melde dich an, um alles wiederzufinden", konto: "Konto", anmelden: "Anmelden / Mein Konto",
+        heim: "Startseite", infoLegal: "Info & Rechtliches", kontakt: "Kontakt", ueber: "Über uns", agb: "AGB", datenschutz: "Datenschutz", impressum: "Impressum" },
+  ro: { nichtAngemeldet: "Neconectat", anmeldenHinweis: "Conectează-te ca să găsești totul din nou", konto: "Cont", anmelden: "Conectare / Contul meu",
+        heim: "Acasă", infoLegal: "Info & Legal", kontakt: "Contact", ueber: "Despre noi", agb: "Termeni", datenschutz: "Confidențialitate", impressum: "Impressum" },
+  es: { nichtAngemeldet: "No has iniciado sesión", anmeldenHinweis: "Inicia sesión para recuperarlo todo", konto: "Cuenta", anmelden: "Iniciar sesión / Mi cuenta",
+        heim: "Inicio", infoLegal: "Info y legal", kontakt: "Contacto", ueber: "Sobre nosotros", agb: "Términos", datenschutz: "Privacidad", impressum: "Aviso legal" },
+  fr: { nichtAngemeldet: "Non connecté", anmeldenHinweis: "Connecte-toi pour tout retrouver", konto: "Compte", anmelden: "Se connecter / Mon compte",
+        heim: "Accueil", infoLegal: "Infos & mentions", kontakt: "Contact", ueber: "À propos", agb: "CGV", datenschutz: "Confidentialité", impressum: "Mentions légales" },
+  it: { nichtAngemeldet: "Non hai effettuato l'accesso", anmeldenHinweis: "Accedi per ritrovare tutto", konto: "Account", anmelden: "Accedi / Il mio account",
+        heim: "Home", infoLegal: "Info e note legali", kontakt: "Contatti", ueber: "Chi siamo", agb: "Termini", datenschutz: "Privacy", impressum: "Note legali" },
+  pt: { nichtAngemeldet: "Sessão não iniciada", anmeldenHinweis: "Inicia sessão para reencontrares tudo", konto: "Conta", anmelden: "Iniciar sessão / A minha conta",
+        heim: "Início", infoLegal: "Info e legal", kontakt: "Contacto", ueber: "Sobre nós", agb: "Termos", datenschutz: "Privacidade", impressum: "Ficha técnica" },
+};
+
 export default function BottomNav({ forceShow = false }: { forceShow?: boolean } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  /* Die Sprache aus demselben Keks wie in `TopNav` — Englisch steht schon da, falls kein
+     Keks lesbar ist. Beim Seitenwechsel neu lesen: Der Sprachumschalter setzt den Keks und
+     navigiert, das Menü lebt darüber hinweg. */
+  const [menuSprache, setMenuSprache] = useState("en");
+  useEffect(() => {
+    try {
+      const m = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
+      const l = m ? decodeURIComponent(m[1]).slice(0, 2) : "";
+      if (l && MENU_TEXTE[l]) setMenuSprache(l);
+    } catch { /* kein Keks lesbar: Englisch bleibt */ }
+  }, [pathname]);
+  const M = MENU_TEXTE[menuSprache] ?? MENU_TEXTE.en;
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -339,7 +388,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 {(displayName || "?").slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-black text-white">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
+                <p className="truncate text-base font-black text-white">{displayName || (signedIn ? M.konto : M.nichtAngemeldet)}</p>
                 {/* Direkt aus der Adresse abgeleitet, nicht nur aus dem State — derselbe
                     Grund wie beim Namen darueber: Wer seine Kuss-Adresse dagelassen hat,
                     IST angemeldet (Owner 03.08.2026). */}
@@ -349,7 +398,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                     {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (
-                  <p className="truncate text-[11px] font-bold text-white/80">Sign in to save & curate</p>
+                  <p className="truncate text-[11px] font-bold text-white/80">{M.anmeldenHinweis}</p>
                 )}
               </div>
             </div>
@@ -363,7 +412,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <button type="button" onClick={() => navigate("/")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
-                <span className="text-sm font-black text-white">Home</span>
+                <span className="text-sm font-black text-white">{M.heim}</span>
               </button>
               {/* Themes — EIN Punkt → der Themen-Katalog. ÖFFENTLICH (jeder sieht es, auch
                   ausgeloggt) → gute interne Verlinkung für SEO. */}
@@ -622,7 +671,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 }}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Settings className="h-5 w-5 text-white/85 shrink-0" />
-                  <span className="text-sm font-black text-white">{signedIn ? "Account" : "Sign in / My account"}</span>
+                  <span className="text-sm font-black text-white">{signedIn ? M.konto : M.anmelden}</span>
                 </button>
               )}
               {/* Meine Themen — Abos (24 €/Thema), Verlängerung und Kündigen. Steht IMMER
@@ -675,16 +724,16 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
             {/* Info & legal */}
             <div className="mt-4 border-t border-white/10 px-5 pt-3">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">{M.infoLegal}</p>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/85">
-                <button type="button" onClick={() => navigate("/contact")} className="hover:text-white">Contact</button>
+                <button type="button" onClick={() => navigate("/contact")} className="hover:text-white">{M.kontakt}</button>
                 {/* „About" war einen Abend lang raus (Owner 05.08.2026: „auch im Menü About
                     ist falsch verlinkt") — die Seite beschrieb noch den Influencer-Marktplatz.
                     Seit sie neu geschrieben ist, steht sie wieder hier UND im Footer. */}
-                <button type="button" onClick={() => navigate("/about")} className="hover:text-white">About</button>
-                <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">Terms</button>
-                <button type="button" onClick={() => navigate("/privacy")} className="hover:text-white">Privacy</button>
-                <button type="button" onClick={() => navigate("/imprint")} className="hover:text-white">Imprint</button>
+                <button type="button" onClick={() => navigate("/about")} className="hover:text-white">{M.ueber}</button>
+                <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">{M.agb}</button>
+                <button type="button" onClick={() => navigate("/privacy")} className="hover:text-white">{M.datenschutz}</button>
+                <button type="button" onClick={() => navigate("/imprint")} className="hover:text-white">{M.impressum}</button>
                 {/* DIE CI-BIBLIOTHEK — IMMER SICHTBAR (Owner 06.08.2026: „ich sehe die
                     Bibliothek nicht im Menü" — der Staff-Punkt war ohne Anmeldung
                     unsichtbar). Klein in dieser Zeile: für uns jederzeit erreichbar, für

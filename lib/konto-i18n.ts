@@ -31,6 +31,13 @@ export type KontoText = {
   laeuftDazu: string;
   /** Der Streifen auf der Kachel. */
   entsteht: string;
+  /* WAS DA ENTSTEHT, HEISST NICHT IMMER VIDEO (Owner 28.08.2026, mitten in einem laufenden
+     Lebenslauf-Kauf: „hier steht falsch. Ich generiere gerade ein CV").
+     Die Galerie sagte „Dein Video entsteht gerade" — auch dann, wenn gerade eine Bewerbung
+     geschrieben wird. Wer 9,99 € für Lebenslauf und Anschreiben bezahlt hat und dann von
+     einem Video liest, zweifelt zu Recht, ob er das Richtige gekauft hat. */
+  laeuftEinsCv: string;
+  entstehtCv: string;
   /**
    * DER EHRLICHE ENDZUSTAND (15.08.2026). Optional, damit eine Sprache, die ihn noch nicht
    * hat, den englischen Rueckfall zeigt statt einer leeren Kachel.
@@ -106,6 +113,7 @@ const en: KontoText = {
   laeuftViele: "{n} videos are being created",
   laeuftDazu: "— it will appear here by itself, you can close this page.",
   entsteht: "Video coming …", nichtGeklappt: "Didn't work — ask for a refund",
+  laeuftEinsCv: "Your application is being written", entstehtCv: "Application coming …",
   loeschen: "Delete",
   loeschenSicher: "Really delete — tap again",
   loeschFehlerFremd: "This one belongs to another address or device. Sign in with the address you created it with.",
@@ -158,6 +166,7 @@ const de: KontoText = {
   laeuftViele: "{n} Videos entstehen gerade",
   laeuftDazu: "— es erscheint hier von selbst, du kannst die Seite schliessen.",
   entsteht: "Video entsteht …", nichtGeklappt: "Hat nicht geklappt — Erstattung anfragen",
+  laeuftEinsCv: "Deine Bewerbung wird geschrieben", entstehtCv: "Bewerbung entsteht …",
   loeschen: "Löschen",
   loeschenSicher: "Wirklich löschen — nochmal tippen",
   loeschFehlerFremd: "Dieses Stück gehört zu einer anderen Adresse oder einem anderen Gerät. Melde dich mit der Adresse an, mit der du es erzeugt hast.",
@@ -210,6 +219,7 @@ const ro: KontoText = {
   laeuftViele: "{n} videoclipuri se creează acum",
   laeuftDazu: "— va apărea aici singur, poți închide pagina.",
   entsteht: "Videoclipul vine …", nichtGeklappt: "Nu a ieșit — cere restituirea",
+  laeuftEinsCv: "Candidatura ta se scrie", entstehtCv: "Candidatura vine …",
   loeschen: "Șterge",
   loeschenSicher: "Chiar ștergi — atinge din nou",
   loeschFehlerFremd: "Acesta aparține altei adrese sau altui dispozitiv. Conectează-te cu adresa cu care l-ai creat.",
@@ -262,6 +272,7 @@ const es: KontoText = {
   laeuftViele: "Se están creando {n} vídeos",
   laeuftDazu: "— aparecerá aquí solo, puedes cerrar la página.",
   entsteht: "El vídeo llega …", nichtGeklappt: "No salió — pide la devolución",
+  laeuftEinsCv: "Tu candidatura se está escribiendo", entstehtCv: "La candidatura llega …",
   loeschen: "Borrar",
   loeschenSicher: "¿Borrar de verdad? Toca otra vez",
   loeschFehlerFremd: "Esto pertenece a otra dirección o a otro dispositivo. Inicia sesión con la dirección con la que lo creaste.",
@@ -314,6 +325,7 @@ const fr: KontoText = {
   laeuftViele: "{n} vidéos sont en cours de création",
   laeuftDazu: "— elle apparaîtra ici toute seule, tu peux fermer la page.",
   entsteht: "La vidéo arrive …", nichtGeklappt: "Ça n'a pas marché — demande un remboursement",
+  laeuftEinsCv: "Ta candidature est en cours de rédaction", entstehtCv: "La candidature arrive …",
   loeschen: "Supprimer",
   loeschenSicher: "Vraiment supprimer — touche encore",
   loeschFehlerFremd: "Ceci appartient à une autre adresse ou à un autre appareil. Connecte-toi avec l'adresse utilisée pour la créer.",
@@ -366,6 +378,7 @@ const pt: KontoText = {
   laeuftViele: "{n} vídeos estão a ser criados",
   laeuftDazu: "— vai aparecer aqui sozinho, podes fechar a página.",
   entsteht: "O vídeo está a chegar …", nichtGeklappt: "Não resultou — pede a devolução",
+  laeuftEinsCv: "La tua candidatura è in scrittura", entstehtCv: "La candidatura arriva …",
   loeschen: "Apagar",
   loeschenSicher: "Apagar mesmo — toca outra vez",
   loeschFehlerFremd: "Isto pertence a outro endereço ou a outro dispositivo. Inicia sessão com o endereço com que o criaste.",
@@ -418,6 +431,7 @@ const it: KontoText = {
   laeuftViele: "{n} video si stanno creando",
   laeuftDazu: "— comparirà qui da solo, puoi chiudere la pagina.",
   entsteht: "Il video sta arrivando …", nichtGeklappt: "Non ha funzionato — chiedi il rimborso",
+  laeuftEinsCv: "A tua candidatura está a ser escrita", entstehtCv: "A candidatura chega …",
   loeschen: "Elimina",
   loeschenSicher: "Eliminare davvero — tocca di nuovo",
   loeschFehlerFremd: "Questo appartiene a un altro indirizzo o a un altro dispositivo. Accedi con l'indirizzo con cui l'hai creato.",

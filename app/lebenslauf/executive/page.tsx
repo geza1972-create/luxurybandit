@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SpracheAmDokument from "@/components/SpracheAmDokument";
 import { EXECUTIVE_BEISPIEL } from "@/lib/lebenslauf-vorlage";
+import { CORA_MUSTER } from "@/lib/david-muster";
 import { executiveInSprache, textbausteineInSprache } from "@/lib/lebenslauf-uebersetzen";
 import SpielplatzClient from "./SpielplatzClient";
 import { resolveLang } from "@/lib/lang-server";
@@ -80,11 +81,21 @@ const MUSTER_TEXTE = {
 
 export type MusterTexte = typeof MUSTER_TEXTE;
 
-export default async function ExecutiveVorlagePage() {
+export default async function ExecutiveVorlagePage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  /**
+   * ZWEI MUSTER, EINE SEITE (28.08.2026): Die Bewerbungszentrale zeigt Andrei Popescu
+   * (Pflege, rumänische Zielgruppe), David zeigt Oana Müller (Büro, deutschsprachig, und
+   * dieselbe Person wie im Verwandlungs-Video). Beide Male dieselbe Darstellung — sonst
+   * gäbe es die Muster-Seite zweimal, und die zweite würde beim ersten Umbau vergessen.
+   */
+  const sp = (await searchParams) ?? {};
+  const muster = String(sp.muster ?? "") === "cora" ? CORA_MUSTER : EXECUTIVE_BEISPIEL;
   const lang = await resolveLang("ro");
   /* Auch das Beispiel folgt dem Sprachschalter — wer auf Rumänisch kauft, soll das Beispiel
      auf Rumänisch lesen (einmal übersetzt, dann Cache; Haus-Muster aus lib/tr-object.ts). */
-  const profil = await executiveInSprache(EXECUTIVE_BEISPIEL, lang);
+  const profil = await executiveInSprache(muster, lang);
   /* SEIT 25.08.2026 IST DIESE SEITE DER SPIELPLATZ (Owner: „Hier darf der User ruhig
      sehen, was er bekommt, also er kann spielen") — Muster + Bewerberberater, siehe
      SpielplatzClient. Das blosse Beispiel gibt es nicht mehr einzeln. */

@@ -5,6 +5,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { lieferungAnstossen } from "@/lib/kiss-delivery";
 import { futureProgramUrl } from "@/lib/future-program-store";
 import { geschenkPreisCents } from "@/lib/pricing";
+import { leseDavid } from "@/lib/david-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -253,7 +254,22 @@ export async function GET(request: Request) {
          * nie mehr auf (MAX_VERSUCHE ist gestrichen): Solange bezahlt ist und kein Video da
          * ist, ist es unterwegs. Genau das sagt die Kachel jetzt — ohne Ablaufdatum.
          */
-        const offenerKauf = !!e.paid && !e.videoUrl;
+        /**
+         * EIN UNTERLAGEN-KAUF WARTET NICHT AUF EIN VIDEO (Fehler gefunden 28.08.2026 an der
+         * echten Zahlung des Owners: „es ist keine Prozentzahl. Wie lange dauert es?" — die
+         * Kachel drehte, obwohl gar nichts lief).
+         *
+         * `offenerKauf` hiess bisher „bezahlt und kein Video da". Das stimmte, solange jedes
+         * Produkt des Hauses ein Video war. David verkauft Lebenslauf und Anschreiben als
+         * PDF — dort kommt NIE ein `videoUrl`, und die Kachel hätte sich bis in alle Ewigkeit
+         * gedreht. Ein Drehrad, das nie stehen bleibt, ist schlimmer als gar keins: Es
+         * versteckt auch den Erstattungs-Knopf, der erst erscheint, wenn nichts mehr läuft.
+         *
+         * DIESELBE UNTERSCHEIDUNG WIE IM WACHHUND (lib/kiss-delivery.ts): Ein Video kann nur
+         * schulden, wer eine Aufnahme oder ein Foto dafür hinterlegt hat.
+         */
+        const unterlagenKauf = e.theme === "david" && !e.audioPath && !e.personPath && !e.modelPath;
+        const offenerKauf = !!e.paid && !e.videoUrl && !unterlagenKauf;
         /**
          * KAPUTT IST NICHT LANGSAM (Owner 15.08.2026: „es war vor 5 Tagen" — zu einem
          * Auftrag, der immer noch „wird erstellt" drehte).
@@ -361,9 +377,35 @@ export async function GET(request: Request) {
              Da müsste es doch sein") — Pfad + Name, die Galerie baut daraus ihren
              /api/download-Link. Nur der PFAD reist, nie eine signierte Adresse: der
              Download-Weg signiert selbst und setzt den Dateinamen. */
-          ...(e.theme === "lebenslauf" && e.cvPath
+          ...((e.theme === "lebenslauf" || e.theme === "david") && e.cvPath
             ? { cvPath: String(e.cvPath), cvName: String(e.cvName || "Lebenslauf.pdf") }
             : {}),
+          /**
+           * DER DAVID-BERICHT IN DEN ASSETS (Owner 28.08.2026, §19: „Der komplette
+           * David-Report darf automatisch in ‚Meine Assets' gespeichert werden. Bestehende
+           * Asset-Funktion verwenden.").
+           *
+           * Er ist weder Bild noch Video — die Kachel trägt deshalb nur einen LINK auf
+           * seine eigene Adresse (`/david/<id>`), genau wie das Programm beim Versprechen
+           * (`programUrl`). Gelesen wird die Sitzung nur für David-Aufträge, und nur, wenn
+           * es wirklich einen Bericht gibt: eine abgebrochene Sitzung soll keine leere
+           * Kachel erzeugen.
+           */
+          ...(await (async () => {
+            if (e.theme !== "david") return {};
+            const sitzung = await leseDavid(e.id).catch(() => null);
+            if (!sitzung?.report) return {};
+            return {
+              berichtUrl: `/david/${e.id}`,
+              /* DIE KACHEL BRAUCHT EIN BILD, sonst wirft der Filter unten sie hinaus
+                 (`pictures.filter(b => b.imageUrl || b.videoUrl)`) — und ein Bericht hat
+                 weder Standbild noch Video. Davids Porträt ist das ehrliche Zeichen dafür:
+                 dasselbe Gesicht, das im Ergebnis oben steht. */
+              imageUrl: "/Lebenslauf/david-portrait.jpg",
+              berichtTitel: sitzung.jobTitel || "",
+              ...(sitzung.cvPath ? { cvPath: sitzung.cvPath, cvName: sitzung.cvName || "Lebenslauf.pdf" } : {}),
+            };
+          })()),
         },
         /**
          * KEIN BEIWERK MEHR (Owner 12.08.2026: „die beiwerkfotos brauchst du gar nicht zu
@@ -476,7 +518,9 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     videos: videos.filter(v => v.videoUrl),
-    pictures: bilder.filter(b => b.imageUrl || b.videoUrl),
+    /* Ein David-Bericht ist weder Bild noch Video — er kommt über `berichtUrl` herein und
+       muss den Filter deshalb ausdrücklich passieren dürfen (28.08.2026). */
+    pictures: bilder.filter(b => b.imageUrl || b.videoUrl || (b as { berichtUrl?: string }).berichtUrl),
     // Bezahlte 30-Tage-Programme — auch (und gerade) ohne Video, siehe oben.
     programme,
     ...(avatar ? { avatar } : {}),

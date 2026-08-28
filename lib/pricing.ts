@@ -317,6 +317,23 @@ export const LEBENSLAUF_MONAT_CENTS = 499;              // 4,99/Monat — Seite 
 export const RESUME_CENTS = 999;                        // 9,99 — volle Optimierung + PDF ohne Wasserzeichen
 
 /**
+ * DIE VIDEO-BEWERBUNG IM DAVID-FLOW — EIGENE ZAHL, KEIN ABO (Owner 28.08.2026: „oha,
+ * wirklich 19 Euro?" · „und der Preis? Das ist sogar teurer als die Bewerbung in der
+ * Erstellung").
+ *
+ * WARUM NICHT `LEBENSLAUF_CENTS`: Jene 19 € gehören zur Bewerbungszentrale und enthalten
+ * mehr als ein Video — eine laufende Bewerbungsseite UND ein Abo von 4,99 €/Monat, damit
+ * sie online bleibt. Im David-Flow gibt es beides nicht; wer dort auf „19 €" tippt und in
+ * einem Monatsabo landet, ist zu Recht verärgert. Deshalb eine eigene Zahl an einer eigenen
+ * Stelle.
+ *
+ * DIE HÖHE IST EINE OWNER-ENTSCHEIDUNG und steht hier als Ausgangswert, bis er sie nennt.
+ * Zur Einordnung: Ein Video kostet in der Erzeugung rund 40 Cent (Bild + HeyGen-Lauf),
+ * die Unterlagen nur Bruchteile davon — teurer als die 9,99 € muss es also sein.
+ */
+export const DAVID_VIDEO_CENTS = 1900;                  // 19 — Video-Bewerbung, ohne Seite und ohne Abo
+
+/**
  * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses
  * Video muss 14,99 kosten", eine halbe Stunde später „mach 9,99€").
  *
@@ -375,6 +392,8 @@ export function geschenkPreisCents(geschenk: string): number {
     case "lebenslauf": return LEBENSLAUF_CENTS;
     /* Der Resume Generator (26.08.2026) — siehe RESUME_CENTS. */
     case "resume": return RESUME_CENTS;
+    /* Die Video-Bewerbung aus dem David-Screening (28.08.2026) — eigener Preis ohne Abo. */
+    case "david-video": return DAVID_VIDEO_CENTS;
     /* Vor dem `default`, sonst faellt die Anprobe auf den Geschenk-Hauspreis (24) zurueck
        und der Trichter naehme wieder einen anderen Preis als die Galerie-Seite. */
     case "tryon": return TRYON_VIDEO_CENTS;

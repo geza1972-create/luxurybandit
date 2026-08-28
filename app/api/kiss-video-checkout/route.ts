@@ -238,9 +238,34 @@ export async function POST(request: Request) {
      * Massgeblich bleibt das GESPEICHERTE Thema des Auftrags, nicht das, was der Browser
      * behauptet — die Regel darüber gilt unverändert.
      */
+    /**
+     * DAVID VERKAUFT ZWEI DINGE AUS EINEM AUFTRAG — DIE UNTERLAGEN (9,99 €) UND DIE
+     * VIDEO-BEWERBUNG (19 €).
+     *
+     * ÜBERALL SONST GILT: Der Preis kommt aus dem GESPEICHERTEN Thema des Auftrags, nie aus
+     * dem, was der Browser behauptet — sonst könnte sich jemand ein teures Produkt billig
+     * holen. Diese Regel ist teuer gelernt (09.08.2026) und bleibt.
+     *
+     * Bei David greift sie ins Leere: Sein Auftrag trägt `theme: "david"`, und `david` ist
+     * kein Produkt, sondern ein Trichter mit zweien. `geschenkPreisCents("david")` fiel
+     * deshalb auf den Standardpreis von 4,99 € zurück — der Knopf versprach 9,99 €, die
+     * Kasse hätte 4,99 € abgebucht (gefunden 28.08.2026 beim Durchmessen des Kaufwegs, nie
+     * live gewesen, weil der Kauf schon eine Zeile vorher an einem fehlenden Auftrag
+     * scheiterte).
+     *
+     * Die Lösung hält die Regel ein, ohne sie zu brechen: Der Browser darf NICHT irgendein
+     * Thema behaupten — er darf nur zwischen den ZWEI Produkten wählen, die dieser Trichter
+     * überhaupt führt. Alles andere fällt auf die Unterlagen zurück, das billigere von
+     * beiden (der höfliche Irrtum: lieber einmal zu wenig verlangt).
+     */
+    const davidProdukt = thema === "david"
+      ? (String(body.thema ?? "") === "david-video" ? "david-video" : "resume")
+      : "";
     const preis = tanz ? POLEDANCE_CENTS
       : gutschein ? GUTSCHEIN_CENTS
-      : videoAufpreis ? VIDEO_UPGRADE_CENTS : geschenkPreisCents(thema);
+      : videoAufpreis ? VIDEO_UPGRADE_CENTS
+      : davidProdukt ? geschenkPreisCents(davidProdukt)
+      : geschenkPreisCents(thema);
     const email = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
     if (email && genId) {
       try {
@@ -336,6 +361,9 @@ export async function POST(request: Request) {
           : thema === "versprechen" ? "Future Self Program"
           : thema === "lebenslauf" ? "AI career profile — one-off"
           : thema === "resume" ? "Tailored resume PDF — one-off"
+          /* Die Video-Bewerbung aus dem David-Screening (28.08.2026) — die Quittung muss
+             sagen, was gekauft wurde, sonst steht auf der Karte ein fremdes Produkt. */
+          : thema === "david-video" ? "Video application — one-off"
           : thema === "tryon" ? "Try-on video — one-off"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
@@ -347,7 +375,11 @@ export async function POST(request: Request) {
          * bezahltes Video unter einer Adresse, unter der die Galerie nie sucht.
          */
         ...(GUELTIGE_MAIL.test(email) ? { email } : {}),
+        /* WELCHES DER ZWEI DAVID-PRODUKTE BEZAHLT WURDE — steht an der Zahlung selbst,
+           nicht nur im Browser. Ohne diese Spur liesse sich hinterher nicht mehr sagen, ob
+           die 9,99 € für die Unterlagen oder die 19 € für das Video geflossen sind. */
         metadata: { kind: "kiss-video", ...(email ? { email } : {}), ...(genId ? { genId } : {}), ...(subId ? { subId } : {}),
+          ...(davidProdukt ? { produkt: davidProdukt } : {}),
                     /* Reist bis in den Stripe-Webhook: nur MIT Zustimmung meldet der Server den
                        Kauf an Metas Conversions API (15.08.2026, siehe lib/meta-capi.ts). */
                     einwilligung: body?.einwilligung ? "1" : "0" },

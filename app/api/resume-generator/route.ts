@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { leseLebenslauf, schreibeLebenslauf, type LebenslaufProfil } from "@/lib/lebenslauf-store";
 import { darfAmProfilArbeiten } from "@/lib/lebenslauf-besitz";
 import { anzeigenTextBeschaffen } from "@/lib/lebenslauf-anzeige";
+import { leseDavid } from "@/lib/david-store";
 import { getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { adminPinMatches } from "@/lib/admin-auth";
 import { fotoAblegen } from "@/lib/lebenslauf-foto";
 import { docxZuText } from "@/lib/docx-text";
 
@@ -74,6 +76,46 @@ const EINSTUFUNGEN: readonly Einstufung[] = ["erfuellt", "uebertragbar", "erklae
 type Empfehlung = "gut" | "bruecke" | "schwach";
 const EMPFEHLUNGEN: readonly Empfehlung[] = ["gut", "bruecke", "schwach"];
 
+/**
+ * WAS AUS DEM DAVID-SCREENING IN DIE BEWERBUNG EINFLIESST (Owner-Vorgabe 28.08.2026, §21/§22:
+ * „Aber es muss angepasst werden, damit automatisch übernommen werden: vorhandener CV,
+ * Stellenanzeige, Screening-Erkenntnisse, relevante Antworten").
+ *
+ * Der Generator kennt bisher nur Lebenslauf und Anzeige. Was der Bewerber David IM GESPRÄCH
+ * gesagt hat — Motivation, Belege, der Grund für einen Wechsel — steht in keinem der beiden
+ * Dokumente; genau das ist der Mehrwert des Screenings. Es kommt als zusätzlicher
+ * Prompt-Absatz herein, klar als AUSSAGEN DES BEWERBERS gekennzeichnet, damit das Modell sie
+ * nicht mit dem Lebenslauf verwechselt und nichts daraus ableitet, was er nicht gesagt hat.
+ *
+ * OHNE `davidId` ändert sich am Generator nichts — das eigenständige Resume-Tool läuft
+ * unverändert weiter.
+ */
+async function davidKontext(davidId: string): Promise<string> {
+  if (!davidId) return "";
+  const sitzung = await leseDavid(davidId).catch(() => null);
+  if (!sitzung) return "";
+  const teile: string[] = [];
+  const gespraech = (sitzung.fragen ?? []).filter(f => f.antwort);
+  if (gespraech.length) {
+    teile.push("AUS EINEM VORAUSGEGANGENEN PRE-SCREENING-GESPRÄCH. Das sind AUSSAGEN DES BEWERBERS, keine Angaben aus dem Lebenslauf — benutze sie für Betonung, Motivation und Erklärung von Lücken, erfinde nichts dazu:");
+    teile.push(gespraech.map(f => `Frage: ${f.frage}\nAntwort: ${f.antwort}`).join("\n\n"));
+  }
+  const e = sitzung.erkenntnisse;
+  if (e) {
+    const zeilen = [
+      e.passung.length ? `Passung: ${e.passung.join(" · ")}` : "",
+      e.belege.length ? `Belege: ${e.belege.join(" · ")}` : "",
+      e.motivation.length ? `Motivation: ${e.motivation.join(" · ")}` : "",
+      e.recruiterfragen.length ? `Mögliche Recruiter-Fragen: ${e.recruiterfragen.join(" · ")}` : "",
+    ].filter(Boolean);
+    if (zeilen.length) teile.push(`Notizen aus dem Screening:\n${zeilen.join("\n")}`);
+  }
+  if (sitzung.report?.fehltImCv?.length) {
+    teile.push(`Was im Lebenslauf bisher FEHLT (im Gespräch sichtbar geworden):\n${sitzung.report.fehltImCv.map(p => `- ${p.punkt}: ${p.warum}`).join("\n")}`);
+  }
+  return teile.join("\n\n");
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
   const schritt = s(body.schritt, 20);
@@ -85,8 +127,16 @@ export async function POST(request: Request) {
   const eintraege = await readKissLog().catch(() => []);
   const auftrag = eintraege.find(e => e.id === id);
   if (!auftrag) return NextResponse.json({ error: "Auftrag nicht gefunden." }, { status: 404 });
+  /* SICHTBARE FEHLER IN DER SPRACHE DES KUNDEN, MIT AUSWEG (Hausregel, Owner 28.08.2026
+     zum zweiten Mal gemeldet — diesmal mit Bild: „Not yours." stand rot unter dem
+     Kaufknopf).
+     
+     „Not yours." ist ein Satz für Entwickler: englisch auf einer deutschen Seite, ohne
+     Grund und ohne Weg zurück. Der Kunde liest ihn als „kaputt" und geht. Was WIRKLICH
+     passiert ist, kann er selbst beheben — er sitzt an einem anderen Browser als dem, in
+     dem er angefangen hat. Also steht genau das da, samt beider Wege hinaus. */
   if (auftrag.device && device && auftrag.device !== device) {
-    return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    return NextResponse.json({ error: "Dieser Auftrag gehört zu einem anderen Browser. Öffne ihn auf dem Gerät, auf dem du angefangen hast — oder starte hier neu." }, { status: 403 });
   }
 
   /* ── SCHRITT 1: ERZEUGEN (gratis — Titelblatt + Layout + Analyse, KEINE Optimierung) ── */
@@ -98,6 +148,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "E-Mail, Anzeige und Lebenslauf sind Pflicht." }, { status: 400 });
     }
 
+    /* Die David-Kennung ist DIESELBE wie die des Bewerbungs-Auftrags (beide entstehen aus
+       /api/kiss-log) — der Trichter reicht sie trotzdem ausdrücklich herein, damit hier
+       nichts geraten wird. */
+    const kontext = await davidKontext(s(body.davidId, 60));
     const beschafft = await anzeigenTextBeschaffen(anzeige);
     if (!beschafft.text) return NextResponse.json({ error: beschafft.fehler ?? "Keine Anzeige erkannt." }, { status: 422 });
     const anzeigeText = beschafft.text.slice(0, 12000);
@@ -121,7 +175,8 @@ export async function POST(request: Request) {
       "'analyse' — die ehrliche Einschätzung: {\"prozent\": 0–100 wie gut Lebenslauf und Anzeige zusammenpassen (ehrlich, keine Gefälligkeit),\"empfehlung\":\"gut\"|\"bruecke\"|\"schwach\",\"anforderungen\":[je zentrale Anforderung der Anzeige: {\"text\":\"kurz\",\"einstufung\":\"erfuellt\"|\"uebertragbar\"|\"erklaerbar\"|\"blocker\",\"begruendung\":\"EIN Satz\"}] (4–7 Einträge)}.",
       "'anzeigeTitel' — der Stellentitel wörtlich (kurz); 'anzeigeFirma' — Firmenname falls erkennbar, sonst leer.",
       "Antworte NUR als JSON: {\"name\":\"...\",\"ort\":\"...\",\"telefon\":\"...\",\"positionierung\":\"...\",\"profiltext\":\"...\",\"erfahrung\":[...],\"ausbildung\":[...],\"sprachen\":[...],\"kompetenzen\":[...],\"schwerpunkte\":[...],\"anschreiben\":\"...\",\"analyse\":{...},\"anzeigeTitel\":\"...\",\"anzeigeFirma\":\"...\"}",
-    ].join("\n\n");
+      kontext,
+    ].filter(Boolean).join("\n\n");
 
     const parsed = await ki([{ type: "input_text", text: prompt }, cv]);
     if (!parsed) return NextResponse.json({ error: "Auswertung fehlgeschlagen — bitte noch einmal." }, { status: 502 });
@@ -177,6 +232,11 @@ export async function POST(request: Request) {
       }).filter(sp => sp.sprache),
       ...(fotoUrl ? { fotoUrl } : {}),
       anschreiben: s(parsed.anschreiben, 3000) || undefined,
+      /* DIE GEWÄHLTE PDF-VORLAGE (28.08.2026) — sie kommt aus der Galerie im David-Angebot
+         mit. Ungeprüft durchgereicht darf sie nicht werden: `vorlageFinden` in
+         lib/bewerbung-pdf.ts fällt bei Unbekanntem auf Klassik zurück, hier wird nur die
+         Länge begrenzt. */
+      pdfVorlage: s(body.vorlage, 30) || undefined,
       anzeigeTitel: s(parsed.anzeigeTitel, 120) || undefined,
       anzeigeFirma: s(parsed.anzeigeFirma, 120) || undefined,
       anzeigeText,
@@ -211,13 +271,32 @@ export async function POST(request: Request) {
 
   /* ── SCHRITT 2: OPTIMIEREN (nur nach Zahlung — voller Zuschnitt + ohne Wasserzeichen) ── */
   if (schritt === "optimieren") {
-    if (auftrag.paid !== true) {
+    /**
+     * DER ADMIN DARF DEN KAUFWEG PRÜFEN, OHNE ZU ZAHLEN (Owner 28.08.2026: „also ich muss es
+     * testen können ich zahle doch mit admin code").
+     *
+     * Er konnte es bisher NICHT: `isStaff` gibt es nur in der Try-on-Seite, der Lebenslauf-
+     * und David-Kauf kannte keine Umgehung. Wer das Ergebnis prüfen wollte, musste 9,99 €
+     * auf einem `cs_live_`-Schlüssel bezahlen — also echtes Geld, für jeden Testlauf.
+     *
+     * DIESELBE PRÜFUNG WIE ÜBERALL IM HAUS (`adminPinMatches`, Kopfzeile
+     * `x-try-look-admin-pin`): In der Produktion braucht es die richtige Nummer, lokal ohne
+     * gesetzte Nummer steht die Tür offen — genau wie bei jedem anderen Admin-Werkzeug.
+     *
+     * ES WIRD LAUT PROTOKOLLIERT. Eine Umgehung der Kasse, die still passiert, findet man
+     * hinterher in keiner Abrechnung wieder.
+     */
+    const alsAdmin = adminPinMatches(request);
+    if (alsAdmin && auftrag.paid !== true) {
+      console.warn("[resume-generator] ADMIN-DURCHLAUF — Kasse übersprungen, nichts abgebucht:", id.slice(0, 8));
+    }
+    if (!alsAdmin && auftrag.paid !== true) {
       return NextResponse.json({ error: "Erst nach der Zahlung.", zahlungNoetig: true }, { status: 402 });
     }
     const profil = await leseLebenslauf(id);
     if (!profil) return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
     if (!(await darfAmProfilArbeiten(profil, device, request))) {
-      return NextResponse.json({ error: "Not yours." }, { status: 403 });
+      return NextResponse.json({ error: "Dieser Auftrag gehört zu einem anderen Browser. Öffne ihn auf dem Gerät, auf dem du angefangen hast — oder starte hier neu." }, { status: 403 });
     }
     /* Schon optimiert UND bezahlt: nichts doppelt rechnen — der Aufruf ist idempotent
        (die Rückkehr von Stripe kann mehrfach laden). */
@@ -251,7 +330,12 @@ export async function POST(request: Request) {
       "'ergebnisse' — je Station optional eine neu betonte Ergebnis-Zeile: [{\"i\":0,\"ergebnis\":\"…\"}]. NUR umformulieren, was da ist.",
       "'anschreiben' — das Anschreiben (150–250 Wörter, Sprache der Anzeige), der Strategie folgend; jede Lücke aus 'zuErklaeren' offen in 1–2 Sätzen, ohne entschuldigende Sprache; endet mit dem Namen.",
       "Antworte NUR als JSON: {\"strategie\":{…},\"positionierung\":\"…\",\"profiltext\":\"…\",\"schwerpunkte\":[…],\"kompetenzen\":[…],\"ergebnisse\":[…],\"anschreiben\":\"…\"}",
-    ].join("\n\n");
+      /* HIER ZÄHLT DAS GESPRÄCH AM MEISTEN: Beim Zuschneiden entscheidet sich, was betont
+         und wie eine Lücke erklärt wird — und genau dazu hat der Bewerber David etwas
+         gesagt, das in keinem Dokument steht. Die Kennung des Auftrags IST die der
+         David-Sitzung; ohne Sitzung bleibt der Absatz leer und alles läuft wie bisher. */
+      await davidKontext(id),
+    ].filter(Boolean).join("\n\n");
 
     const parsed = await ki([{ type: "input_text", text: prompt }]);
     if (!parsed) return NextResponse.json({ error: "Optimierung fehlgeschlagen — bitte noch einmal." }, { status: 502 });

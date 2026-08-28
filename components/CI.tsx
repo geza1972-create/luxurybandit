@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { X, Loader2, Lock, ShieldCheck, Heart, Gift, Cake, Palmtree, MessageCircle, Sparkles, LayoutGrid, Shirt, Rocket, Eye, EyeOff, ChevronLeft, ChevronRight, ImageUp, Trash2, Maximize2, FileText, Menu, type LucideIcon } from "lucide-react";
+import { Cake, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Gift, Heart, ImageUp, LayoutGrid, Loader2, Lock, Maximize2, Menu, MessageCircle, Palmtree, Rocket, ShieldCheck, Shirt, Sparkles, Trash2, X, type LucideIcon } from "lucide-react";
 import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -436,6 +436,63 @@ export function Fehlerzeile({ karte = false, className = "", children }: {
  * ein zweiter Ort hätte hier zu einer zweiten, leicht abweichenden Zeichnung des G geführt.
  * Jetzt holen sich KontoChip UND `TunnelStart` dasselbe Zeichen von hier.
  */
+/**
+ * DAS HÄKCHEN — eine Zustimmung, die der Nutzer selbst setzen muss.
+ *
+ * NEU IN DER BIBLIOTHEK AM 28.08.2026 (Skill `ci-design`: „fehlt ein Baustein, kommt er erst
+ * in die Bibliothek"). Gebraucht wurde es beim Datenschutzhinweis im David-Trichter; im Haus
+ * gab es bis dahin nur `KurzeEinwilligung` — das ist reiner TEXT mit Link, kein Häkchen.
+ * Wer eine echte Bestätigung brauchte, hätte sich also ein eigenes `input type=checkbox`
+ * gebaut, und beim nächsten Mal ein zweites, leicht anderes.
+ *
+ * DREI DINGE SIND HIER FEST VERDRAHTET, weil sie bei einer Einwilligung nicht verhandelbar
+ * sind:
+ *   · Es ist NIE vorangekreuzt — der Aufrufer gibt den Zustand, und der beginnt bei false.
+ *   · Die ganze Zeile ist die Trefferfläche (`<label>`), nicht nur das kleine Kästchen.
+ *     Auf dem Handy ist ein 16-px-Ziel der häufigste Grund, warum jemand aufgibt.
+ *   · Der Text steht daneben, nicht darin: `kinder` darf Links tragen (Datenschutz, AGB).
+ *
+ * `pflicht` macht nur den Rahmen deutlicher, solange nichts gesetzt ist — es ist eine
+ * Ansage, keine Absage: Die rote Absage kommt weiterhin über `Fehlerzeile`, dort wo alle
+ * Fehler im Haus stehen (Memory `sichtbare-fehler-keine-formularfelder`).
+ */
+export function Haken({ an, setzen, karte = false, hell = false, pflicht = false, className = "", children }: {
+  an: boolean;
+  setzen: (an: boolean) => void;
+  karte?: boolean;
+  hell?: boolean;
+  pflicht?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const tinte = karte || hell ? "#1a160f" : "#fff";
+  return (
+    <label className={`flex cursor-pointer items-start gap-2.5 ${className}`}>
+      <span
+        className={`mt-[1px] grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[7px] border transition ${
+          an
+            ? "border-[#f6cf51] bg-[#f6cf51]"
+            : karte || hell
+              ? `border-[#1a160f]/35 bg-transparent${pflicht ? " border-[#1a160f]/60" : ""}`
+              : `bg-white/[0.08]${pflicht ? " border-white/45" : " border-white/30"}`
+        }`}
+      >
+        {/* Der Haken selbst — gezeichnet, nicht als Zeichen: In der Karte färbt
+            `.lb-karte svg` jedes Symbol auf Gold, deshalb steht die Tinte hier fest. */}
+        {an && (
+          <svg viewBox="0 0 24 24" className="h-[15px] w-[15px]" fill="none" stroke="#1a160f" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12.5l5.2 5.2L20 7" />
+          </svg>
+        )}
+      </span>
+      <input type="checkbox" checked={an} onChange={e => setzen(e.target.checked)} className="sr-only" />
+      <span className="text-[13px] font-semibold leading-snug" style={{ color: karte || hell ? tinte : undefined }}>
+        {children}
+      </span>
+    </label>
+  );
+}
+
 export function GoogleG({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" aria-hidden className={`shrink-0 ${className}`}>
@@ -563,6 +620,74 @@ function useKachelSichtbar<T extends HTMLElement>() {
  * denselben Kartengruss, den er ohnehin aus `kissText` hat). Ohne `sprache` faellt die Karte
  * auf Englisch zurueck, ohne `titel` auf ihre eigene Standardueberschrift — nie leer.
  */
+/**
+ * EINE ZEILE, DIE SICH AUFKLAPPT — ERKENNTNIS ZUERST, DETAILS BEI BEDARF.
+ *
+ * Owner 28.08.2026, zum David-Report: „Der Nutzer darf nicht erst mehrere lange Textblöcke
+ * lesen müssen. ERKENNTNIS ZUERST. DETAILS BEI BEDARF."
+ *
+ * WOFÜR ES DEN BAUSTEIN BRAUCHT: Der Bericht bestand aus Karten mit je drei Absätzen
+ * untereinander. Wer ihn auf dem Handy überflog, sah graue Textwände — und musste lesen, um
+ * überhaupt zu erkennen, WAS dort steht. Zugeklappt trägt jede Zeile nur ihre Überschrift
+ * und einen Satz; das Ausführliche kommt auf Tipp.
+ *
+ * JEDE ZEILE FÜR SICH (Owner ausdrücklich: „Jede Erkenntnis einzeln ausklappbar. Nicht den
+ * gesamten Abschnitt auf einmal öffnen") — deshalb hält jede Zeile ihren eigenen Zustand
+ * statt eines Reglers über den ganzen Abschnitt.
+ *
+ * KEIN `<details>`: Das Element bringt eigene Pfeile, eigene Fokusringe und in Safari eine
+ * Aufklapp-Animation, die sich nicht abschalten lässt — und es lässt sich nicht mit einer
+ * Zeile in unsere Formen bringen.
+ */
+export function Auffalten({ titel, zeile, mehrLabel, marke, startOffen = false, karte = false, className = "", children }: {
+  /** Die kurze Überschrift — das Einzige, was zugeklappt sicher gelesen wird. */
+  titel: string;
+  /** Ein Satz darunter, ebenfalls immer sichtbar. Darf fehlen. */
+  zeile?: string;
+  /** „Mehr anzeigen" in der Sprache der Seite; ohne Angabe steht nur der Pfeil. */
+  mehrLabel?: string;
+  /** Kleines Zeichen links (Nummer, Icon) — die Reihe richtet sich daran aus. */
+  marke?: ReactNode;
+  startOffen?: boolean;
+  karte?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [offen, setOffen] = useState(startOffen);
+  /**
+   * EINE ZEILE WIRD MITTIG AUSGERICHTET, MEHRERE OBEN (Owner 28.08.2026, mit Bild einer
+   * zugeklappten Zeile: „die sind nicht zentriert").
+   *
+   * `items-start` ist richtig, sobald unter der Überschrift noch ein Satz steht: Dann soll
+   * das Zeichen neben der ERSTEN Zeile stehen, nicht in der Mitte des ganzen Blocks. Trägt
+   * die Zeile aber nur ihre Überschrift — und genau so sieht „Das könnte Fragen auslösen"
+   * zugeklappt aus —, klebten Symbol und Pfeil oben, während der Text in der Mitte stand.
+   * Der Fall entstand erst mit dem Aufklapp-Umbau; vorher hatte jede Zeile immer zwei
+   * Absätze.
+   */
+  const mehrzeilig = !!zeile || (!!mehrLabel && !offen);
+  return (
+    <div className={`lb-rand-verlauf overflow-hidden rounded-[18px] ${karte ? "bg-black/[0.04]" : "bg-white/[0.035]"} ${className}`}>
+      {/* Die ganze Kopfzeile ist der Schalter — auf dem Handy trifft niemand einen Pfeil. */}
+      <button type="button" onClick={() => setOffen(o => !o)} aria-expanded={offen}
+        className={`flex w-full gap-3 px-4 py-3.5 text-left transition active:scale-[0.99] ${mehrzeilig ? "items-start" : "items-center"}`}>
+        {marke && <span className={`shrink-0 ${mehrzeilig ? "mt-[2px]" : ""}`}>{marke}</span>}
+        <span className="min-w-0 flex-1">
+          <span className={`block text-[15px] font-black leading-snug ${karte ? "text-[#1a160f]" : "text-white"}`}>{titel}</span>
+          {zeile && (
+            <span className={`mt-1 block text-[13px] font-medium leading-relaxed ${karte ? "text-[#1a160f]/70" : "text-white/65"}`}>{zeile}</span>
+          )}
+          {mehrLabel && !offen && (
+            <span className="mt-1.5 block text-[12px] font-black text-[#f6cf51]">{mehrLabel}</span>
+          )}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-[#f6cf51] transition-transform duration-200 ${mehrzeilig ? "mt-1" : ""} ${offen ? "rotate-180" : ""}`} />
+      </button>
+      {offen && <div className="px-4 pb-4 pt-0">{children}</div>}
+    </div>
+  );
+}
+
 export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", titel, features, zu }: {
   videoUrl: string;
   posterUrl?: string;
@@ -680,8 +805,124 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
       {/* DIE SCHLIESSEN-SCHEIBE — IMMER, und am FENSTER verankert („immer close einbauen"):
           Sie scrollt nicht mit dem Inhalt weg und ist von der ersten Millisekunde an da,
           auch während die Seite noch hereingleitet. */}
-      <div className="fixed right-7 top-8 z-[98]">
-        <Scheibe label="Close" onClick={schliessen}><X className="h-5 w-5" /></Scheibe>
+      {/* Dieselbe Regel wie in `BlattUeberlagerung` (28.08.2026) — die Scheibe hängt an der
+          Karte, nicht am Fensterrand, sonst liegt sie am Schreibtisch neben dem Kreuz des
+          Browsers. */}
+      <div className="pointer-events-none fixed inset-x-0 top-6 z-[98] px-4">
+        <div className="mx-auto flex w-full max-w-[400px] justify-end">
+          <span className="pointer-events-auto">
+            <Scheibe label="Close" onClick={schliessen}><X className="h-5 w-5" /></Scheibe>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * EIN BILD IM VOLLBILD — FÜR KACHELN OHNE VIDEO (Owner 28.08.2026, zur Vorlagen-Galerie:
+ * „ich will sie vergrössern können").
+ *
+ * `VorlagenUeberlagerung` nebenan zeigt ein VIDEO in einer Einladungskarte — für eine
+ * PDF-Vorlage falsch: Es gibt kein Video, keine Karte, und eine 150 px breite Kachel eines
+ * A4-Blattes ist genau so lesbar wie eine Briefmarke. Wer ein Layout wählen soll, muss es
+ * lesen können.
+ *
+ * DIESELBEN REGELN WIE DORT, weil sie teuer gelernt sind (Memory [[keine-overlay-dialoge]]):
+ * kein Dialog, sondern eine SEITE, die von rechts hereingleitet; Escape schliesst; die
+ * Schliessen-Scheibe klebt am FENSTER und ist von der ersten Millisekunde an da
+ * ([[immer-close-einbauen]]); KEIN Schliessen durch Tipp auf den Hintergrund — eine Seite
+ * hat keinen Hintergrund, und genau dieses Klick-Durchreichen ging hier immer wieder schief.
+ *
+ * SENKRECHT SCROLLBAR: Ein Blatt ist höher als jeder Handyschirm. Es wird auf die volle
+ * Breite gelegt und darf nach unten laufen — kleiner gerechnet wäre es wieder unlesbar.
+ */
+export function BlattUeberlagerung({ bildUrl, beschriftung, schliessenLabel = "Schliessen", zu }: {
+  bildUrl: string;
+  beschriftung?: string;
+  schliessenLabel?: string;
+  zu: () => void;
+}) {
+  const [drin, setDrin] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setDrin(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const zuRef = useRef(zu);
+  useEffect(() => { zuRef.current = zu; });
+  const geschlossen = useRef(false);
+  const schliessen = () => {
+    if (geschlossen.current) return;
+    geschlossen.current = true;
+    setDrin(false);
+    window.setTimeout(() => zuRef.current(), 280);
+  };
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => { if (e.key === "Escape") schliessen(); };
+    window.addEventListener("keydown", taste);
+    const vorher = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", taste); document.body.style.overflow = vorher; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="fixed inset-0 z-[97] overflow-y-auto">
+      <div className="min-h-full bg-black px-4 py-8"
+        style={{ minHeight: "100dvh", transform: drin ? "translateX(0)" : "translateX(100%)", transition: "transform 280ms ease-out" }}>
+        <div className="mx-auto w-full max-w-[520px]">
+          {/* Das Blatt auf Weiss, mit dem Verlaufsrand des Hauses — es soll wie Papier
+              wirken, nicht wie ein Bild auf schwarzem Grund. */}
+          <div className="lb-rand-verlauf overflow-hidden rounded-[14px] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={bildUrl} alt={beschriftung ?? ""} className="block w-full" />
+          </div>
+          {beschriftung && (
+            <p className="mt-3 text-center text-[13px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">{beschriftung}</p>
+          )}
+          {/**
+            * EIN ZWEITER AUSGANG, UNTEN UND BREIT (Owner 28.08.2026, aus dem echten
+            * Gebrauch: „ich habe ein template geöffnet und aus Versehen statt das template
+            * zu schliessen habe ich das ganze Browser-Fenster geschlossen").
+            *
+            * Die Schliessen-Scheibe klebt oben rechts am Fenster — das ist die Hausregel und
+            * auf dem Handy richtig. Am Schreibtisch steht dort aber das Kreuz des BROWSERS,
+            * wenige Pixel daneben. Wer zielt und knapp danebentrifft, schliesst nicht die
+            * Überlagerung, sondern das Fenster.
+            *
+            * Die Scheibe bleibt, wo sie ist (sonst suchte man sie auf dem Handy). Dazu kommt
+            * hier unten ein Knopf über die volle Breite: weit weg von jeder Fensterleiste,
+            * und genau dort, wo der Blick nach dem Lesen ohnehin ankommt.
+            */}
+          <div className="mt-5 pb-10">
+            <Knopf art="umriss" onClick={schliessen}>{schliessenLabel}</Knopf>
+          </div>
+        </div>
+      </div>
+      {/**
+        * DIE SCHLIESSEN-SCHEIBE HÄNGT AN DER KARTE, NICHT AM FENSTERRAND (Owner 28.08.2026,
+        * mit Bild seines Browsers: „das Kreuz war zu stark am Rand" — nachdem er sich schon
+        * einmal das ganze Fenster damit zugemacht hatte).
+        *
+        * Vorher stand `fixed right-7 top-8`: auf dem Handy richtig, am Schreibtisch aber
+        * ganz aussen rechts oben — dort, wo der Browser seine eigenen Knöpfe hat. Auf einem
+        * breiten Bildschirm liegen zwischen unserem Kreuz und dem Fenster-Kreuz nur ein paar
+        * Pixel Fensterrahmen.
+        *
+        * Jetzt läuft eine unsichtbare Zeile über die ganze Breite, in der Mitte auf dasselbe
+        * Mass begrenzt wie die Karte darunter — die Scheibe sitzt an DEREN rechter Kante.
+        * Auf dem Handy ändert sich dadurch nichts (die Karte füllt die Breite), am
+        * Schreibtisch rückt sie in die Bildmitte, weit weg von jeder Fensterleiste.
+        *
+        * `fixed` bleibt: Die Scheibe darf nie wegscrollen ([[immer-close-einbauen]]).
+        * `pointer-events-none` auf der Zeile, `pointer-events-auto` auf der Scheibe — sonst
+        * legte sich ein unsichtbarer Balken über die Oberkante des Blattes.
+        */}
+      <div className="pointer-events-none fixed inset-x-0 top-6 z-[98] px-4">
+        <div className="mx-auto flex w-full max-w-[520px] justify-end">
+          <span className="pointer-events-auto">
+            <Scheibe label={schliessenLabel} onClick={schliessen}><X className="h-5 w-5" /></Scheibe>
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -1209,6 +1450,54 @@ export function Laden({ art = "knopf", karte = false, text, className = "" }: {
  * dieselbe Spezifität — welches gewinnt, entscheidet dann die Reihenfolge im erzeugten
  * Stylesheet, nicht die im String. Deshalb gibt es genau EINEN Platz dafür.
  */
+/**
+ * DER PROZENT-LADEBALKEN — DIE EINE WARTEANZEIGE DES HAUSES.
+ *
+ * Owner 28.08.2026: „es muss immer ein prozentladebalken sein". Die Regel ist älter als
+ * dieser Baustein (26.08.2026, im Bewerbungs-Trichter: „hier muss noch was in Prozent stehen
+ * und bitte warten") — sie stand dort nur als Eigenbau in EINER Datei. Jetzt in der
+ * Bibliothek, damit die nächste Wartestelle nicht wieder einen Kreisel bekommt.
+ *
+ * WARUM PROZENT UND NICHT KREISEL: Ein drehendes Rad sagt nur „irgendetwas passiert". Bei
+ * einem Lauf, der zwanzig bis sechzig Sekunden dauert, ist das nicht zu unterscheiden von
+ * „hängt". Ein Balken, der sichtbar wächst, beantwortet die einzige Frage, die der Wartende
+ * hat.
+ *
+ * EHRLICH GENUG (übernommen aus dem Bewerbungs-Trichter): Die Zahl steigt zügig bis 90 und
+ * bleibt dort stehen, bis die Antwort wirklich da ist — sie verspricht also nie „gleich
+ * fertig", wenn es noch dauert. Erst das Ende springt auf 100. Wer eine echte Restzeit hat,
+ * reicht sie über `prozent` herein; dann zählt der Baustein nicht selbst.
+ */
+export function Fortschritt({ text, prozent, karte = false, className = "" }: {
+  /** Was gerade passiert — Pflicht: ein Balken ohne Wort ist auch nur ein Kreisel. */
+  text: string;
+  /** Echter Fortschritt, falls bekannt. Ohne ihn zählt der Baustein selbst bis 90. */
+  prozent?: number;
+  karte?: boolean;
+  className?: string;
+}) {
+  const [eigen, setEigen] = useState(3);
+  useEffect(() => {
+    if (typeof prozent === "number") return;
+    const uhr = setInterval(() => setEigen(p => (p >= 90 ? 90 : p + Math.max(1, Math.round((90 - p) / 14)))), 700);
+    return () => clearInterval(uhr);
+  }, [prozent]);
+  const wert = Math.max(0, Math.min(100, typeof prozent === "number" ? prozent : eigen));
+  const tinte = karte ? "#1a160f" : "#fff";
+  return (
+    <div className={`w-full ${className}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] font-bold leading-snug" style={{ color: karte ? tinte : undefined }}>{text}</p>
+        <p className="shrink-0 text-[13px] font-black tabular-nums text-[#f6cf51]">{Math.round(wert)}%</p>
+      </div>
+      <div className={`mt-2 h-1.5 w-full overflow-hidden rounded-full ${karte ? "bg-[#1a160f]/15" : "bg-white/15"}`}>
+        <div className="h-full rounded-full bg-[#f6cf51] transition-[width] duration-700 ease-linear"
+          style={{ width: `${wert}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export function Kasten({ art = "still", karte = false, polster = "p-4", className = "", children }: {
   art?: "still" | "gold";
   karte?: boolean;
@@ -2440,10 +2729,12 @@ export function AnmeldeEinladung({
  * HTML kein zweites `<button>` (die Vergroessern-Scheibe) enthalten, der Browser wuerde es
  * stillschweigend herausbrechen und der Tipp landete an der falschen Stelle.
  */
-function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, waehle }: {
+function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprache, titel, features, waehle }: {
   b: { id: string; name: string; bild: string; video?: string; poster?: string };
   an: boolean;
   gross: boolean;
+  blatt?: boolean;
+  vergroessern?: boolean;
   ansehenLabel?: string;
   /** Sprache/Titel der Karte im Vollbild (Owner 12.08.2026, siehe `VorlagenUeberlagerung`). */
   sprache?: string;
@@ -2457,13 +2748,18 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, 
   const [offen, setOffen] = useState(false);
   const poster = b.poster || b.bild;
   const label = ansehenLabel || "Vorlage ansehen";
+  /* DIE LUPE GIBT ES BEI VIDEO-KACHELN IMMER — bei reinen Bild-Kacheln nur auf Wunsch des
+     Aufrufers (Owner 28.08.2026: „ich will sie vergrössern können"). Nicht jede Bildwahl
+     braucht sie: Bei den Geburtstags-Looks IST die Kachel schon das ganze Motiv, da wäre die
+     Scheibe ein zweites Ziel auf derselben Fläche ohne Gewinn. */
+  const lupe = !!b.video || !!vergroessern;
   return (
     <>
       <div role="button" tabIndex={0} aria-pressed={an}
         onClick={waehle}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); waehle(); } }}
         className={`shrink-0 cursor-pointer text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
-        <span className={`relative block overflow-hidden ring-2 ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
+        <span className={`relative block overflow-hidden ring-2 ${gross ? (blatt ? "h-[212px] w-[150px] rounded-xl" : "h-[213px] w-[160px] rounded-2xl") : blatt ? "h-[82px] w-[58px] rounded-lg" : "h-[104px] w-[78px] rounded-xl"} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {/* `loading="lazy"`: der Try-on-Slider trägt die GANZE Wardrobe (97 Kacheln,
               Owner 13.08.2026) — ohne lazy lüde die Seite alle Bilder auf einmal. */}
@@ -2498,25 +2794,27 @@ function BildWahlKachel({ b, an, gross, ansehenLabel, sprache, titel, features, 
                  Schnitt am Loop-Ende ist auf dieser Flaeche nicht zu sehen). */
               className="absolute inset-0 h-full w-full object-cover" />
           )}
-          <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
+          {lupe && <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
             {/* VERGROESSERN MIT TON — `stopPropagation`, damit der Tipp auf die Scheibe
                 nicht zugleich die Auswahl umschaltet (Vorgabe: Tippen waehlt, Vergroessern
                 ist ein eigener Knopf). */}
             <Scheibe klein durchsichtig label={label} onClick={() => setOffen(true)}>
               <Maximize2 className="h-4 w-4" />
             </Scheibe>
-          </div>
+          </div>}
         </span>
-        <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[160px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+        <span className={`mt-1.5 block font-black leading-tight ${gross ? (blatt ? "max-w-[150px] text-[12.5px]" : "max-w-[160px] text-[13px]") : blatt ? "max-w-[58px] text-[10px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
           {b.name}
         </span>
       </div>
-      {offen && b.video && <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />}
+      {offen && (b.video
+        ? <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />
+        : <BlattUeberlagerung bildUrl={b.bild} beschriftung={b.name} schliessenLabel={label} zu={() => setOffen(false)} />)}
     </>
   );
 }
 
-export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sprache, titel, features, className = "" }: {
+export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, vergroessern = false, randlos = false, ansehenLabel, sprache, titel, features, className = "" }: {
   bilder: { id: string; name: string; bild: string; video?: string; poster?: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
@@ -2528,6 +2826,47 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
    * Zustände tragen denselben Ring, es wechselt nur die Farbe.
    */
   gross?: boolean;
+  /**
+   * KACHELN IM BLATT-FORMAT — A4 STATT 3:4 (Owner 28.08.2026, zur Vorlagen-Galerie im
+   * David-Angebot: „hier müssen wir eine galerie von templates zeigen und user sucht sich
+   * eins aus. 5 sollten schon sein, farbvollflächen lieben die Leute").
+   *
+   * WARUM DAS EINE EIGENE FORM BRAUCHT: Die Kacheln zeigen `object-cover`. Ein A4-Blatt in
+   * einem 3:4-Rahmen wird dabei um ein Sechstel beschnitten — genau unten, wo bei einem
+   * Lebenslauf die Ausbildung steht. Man wählt aber ein LAYOUT; sieht man es nur zu fünf
+   * Sechsteln, wählt man blind. `blatt` gibt dem Rahmen das Verhältnis des Papiers
+   * (1:1.414), sonst ändert sich nichts — dieselbe Ring-Regel, dieselbe Reihe.
+   *
+   * ZWEI GRÖSSEN (Owner 28.08.2026, in vier Schritten kleiner geworden: „kleiner" · „noch
+   * kleiner" · „viel kleiner"): MIT `gross` 150 × 212 — man liest die Überschriften. OHNE
+   * `gross` 58 × 82 — eine Farbmarke, mehr nicht, dafür sechs nebeneinander.
+   *
+   * DIE KLEINE FASSUNG IST EIN WÄHLER, KEIN SCHAUFENSTER. Deshalb gehört dort auch KEINE
+   * Lupe hin (Owner: „Die muss man nicht vergrössern können. Man kann wenn ausgewählt
+   * vergrössern") — auf 58 px wäre eine Vergrössern-Scheibe grösser als das halbe Blatt,
+   * und sie stünde neben fünf weiteren. Vergrössert wird, was man GEWÄHLT hat, dort wo es
+   * gross steht. Die 78 px der normalen Reihe sind für ein A4-Blatt zu
+   * wenig; darauf ist nichts mehr zu unterscheiden. Wer die kleine Fassung nimmt, sollte
+   * `vergroessern` dazugeben, damit man das Blatt trotzdem lesen kann.
+   */
+  blatt?: boolean;
+  /**
+   * EINE LUPE AUCH AUF BILD-KACHELN (Owner 28.08.2026, zur Vorlagen-Galerie: „ich will sie
+   * vergrössern können") — sie öffnet `BlattUeberlagerung`, das Bild in voller Breite auf
+   * einer Seite, die von rechts hereingleitet. Ohne diese Prop bleibt alles wie bisher:
+   * Kacheln MIT Video haben ihre Lupe weiterhin immer, Kacheln ohne haben keine.
+   */
+  vergroessern?: boolean;
+  /**
+   * OHNE DEN RANDÜBERHANG (`-mx-4 px-4`) — für einen Slider, der NEBEN etwas steht.
+   *
+   * Normal läuft die Reihe randbündig durch die ganze Spalte; dafür zieht sie sich mit
+   * negativem Aussenabstand über die Seitenpolsterung hinaus. Steht sie aber in einer
+   * Zeile neben einer festen Kachel (David 28.08.2026: Foto links, Vorlagen rechts, „damit
+   * man sieht dass alles in einem fliesst"), schiebt genau dieser Überhang sie unter den
+   * Nachbarn. Dann muss er weg — die Polsterung für den Auswahl-Ring bleibt.
+   */
+  randlos?: boolean;
   /** Vorlesetext der Vergroessern-Scheibe, fuer Kacheln MIT `video` — „Vorlage ansehen" in
    *  der Sprache der Seite. Ohne eigenes Label faellt sie auf den deutschen Text zurueck. */
   ansehenLabel?: string;
@@ -2567,7 +2906,7 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
        legte ihn linksbündig an — daneben eine halbe Bildschirmbreite Leere, die aussieht,
        als wäre der Rest nicht geladen. Ab zwei Kacheln bleibt alles wie bisher: dann ist
        die Reihe ein Slider, und linksbündig ist dort richtig. */
-    <div className={`lb-wisch -mx-4 flex items-start overflow-x-auto px-4 py-1.5 ${bilder.length === 1 ? "justify-center" : ""} ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
+    <div className={`lb-wisch flex items-start overflow-x-auto py-1.5 ${randlos ? "px-1.5" : "-mx-4 px-4"} ${bilder.length === 1 ? "justify-center" : ""} ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         {/* KACHELN MIT VIDEO GEHEN AN DIE EIGENE KOMPONENTE (Owner 12.08.2026: „man muss die
@@ -2576,9 +2915,9 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
             dieser Schleife bekommen darf. KACHELN OHNE VIDEO LAUFEN UNVERAENDERT WEITER,
             genau der Code, der hier schon vor diesem Auftrag stand — keine Verhaltens-
             aenderung fuer bestehende Aufrufer ohne `video`. */}
-        if (b.video) {
+        if (b.video || vergroessern) {
           return (
-            <BildWahlKachel key={b.id} b={b} an={an} gross={gross} ansehenLabel={ansehenLabel}
+            <BildWahlKachel key={b.id} b={b} an={an} gross={gross} blatt={blatt} vergroessern={vergroessern} ansehenLabel={ansehenLabel}
               sprache={sprache} titel={titel} features={features} waehle={() => waehle(b.id)} />
           );
         }
@@ -2618,13 +2957,13 @@ export function BildWahl({ bilder, wert, waehle, gross = false, ansehenLabel, sp
                 nicht schon wieder schwarze rahmen") — `ring-offset-[#0b0a09]` malte in Hell
                 um JEDE Kachel einen schwarzen Rahmen. Ohne Versatz zeigt die Wahl der Ring
                 allein; er liegt direkt am Bild, in beiden Fassungen sauber. */}
-            <span className={`block overflow-hidden ring-2 ${gross ? "h-[213px] w-[160px] rounded-2xl" : "h-[104px] w-[78px] rounded-xl"} ${an
+            <span className={`block overflow-hidden ring-2 ${gross ? (blatt ? "h-[212px] w-[150px] rounded-xl" : "h-[213px] w-[160px] rounded-2xl") : blatt ? "h-[82px] w-[58px] rounded-lg" : "h-[104px] w-[78px] rounded-xl"} ${an
               ? "ring-[#f6cf51]"
               : "ring-white/15"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={b.bild} alt={b.name} className="block h-full w-full object-cover" />
             </span>
-            <span className={`mt-1.5 block font-black leading-tight ${gross ? "max-w-[160px] text-[13px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+            <span className={`mt-1.5 block font-black leading-tight ${gross ? (blatt ? "max-w-[150px] text-[12.5px]" : "max-w-[160px] text-[13px]") : blatt ? "max-w-[58px] text-[10px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
               {b.name}
             </span>
           </button>
