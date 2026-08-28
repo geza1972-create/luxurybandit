@@ -97,7 +97,38 @@ async function davidKontext(davidId: string): Promise<string> {
   const teile: string[] = [];
   const gespraech = (sitzung.fragen ?? []).filter(f => f.antwort);
   if (gespraech.length) {
-    teile.push("AUS EINEM VORAUSGEGANGENEN PRE-SCREENING-GESPRÄCH. Das sind AUSSAGEN DES BEWERBERS, keine Angaben aus dem Lebenslauf — benutze sie für Betonung, Motivation und Erklärung von Lücken, erfinde nichts dazu:");
+    /**
+     * SCREENING-ANTWORTEN SIND KONTEXT, KEINE COPY-PASTE-QUELLE (Owner 28.08.2026,
+     * ausdrückliche Dauerregel mit Beispiel).
+     *
+     * WARUM DAS DIE WICHTIGSTE ZEILE IM GANZEN GENERATOR IST: Im Gespräch redet der Bewerber
+     * wie ein Mensch — „Ich habe Homepages für Ärzte, Bäcker und Metzger gemacht." Wörtlich
+     * in ein Anschreiben übernommen, klingt genau dieser Satz nach Kleinauftrag statt nach
+     * Kompetenz, und er schadet der Bewerbung MEHR, als hätte man ihn weggelassen. Die
+     * Kernaussage darin ist stark („arbeitet mit nicht-technischen, zeitkritischen
+     * Anwendern"); nur der Wortlaut ist es nicht.
+     *
+     * Das Modell neigt genau zur falschen Richtung: Es findet einen konkreten Satz und hält
+     * ihn für einen Beleg, den es wörtlich mitnehmen soll. Deshalb steht die Regel hier
+     * SCHRITTWEISE — Kernaussage, Relevanzprüfung, Abstraktion — und nicht als ein Wort
+     * „professionell umformulieren", das folgenlos überlesen wird.
+     *
+     * DIE GRENZE BLEIBT: abstrahieren heisst umformulieren, nicht ausschmücken. „Erfinde
+     * nichts dazu" steht deshalb weiterhin daneben — ein erfundener Fakt in einer Bewerbung
+     * ist kein Stilfehler, sondern eine Lüge gegenüber einem Arbeitgeber.
+     */
+    teile.push([
+      "AUS EINEM VORAUSGEGANGENEN PRE-SCREENING-GESPRÄCH. Das sind AUSSAGEN DES BEWERBERS, keine Angaben aus dem Lebenslauf — benutze sie für Betonung, Motivation und Erklärung von Lücken.",
+      "DIESE ANTWORTEN SIND ROHINFORMATION UND DÜRFEN NIE WÖRTLICH IN LEBENSLAUF ODER ANSCHREIBEN ÜBERNOMMEN WERDEN. Für jede Antwort:",
+      "1. Kernaussage herausziehen.",
+      "2. Prüfen, ob sie für DIESE Stelle relevant ist — sonst weglassen.",
+      "3. Umgangssprache, spontane Formulierungen und Alltagsbeispiele fachlich abstrahieren.",
+      "4. Nur die relevante Aussage verwenden, nicht den ganzen Satz.",
+      "5. Präzise und beruflich neu formulieren.",
+      "6. KEINE neuen Fakten hinzufügen.",
+      "7. Ein konkretes Beispiel nur behalten, wenn es die Bewerbung nachweislich stärker macht.",
+      'BEISPIEL — Antwort: "Ich habe Homepages für Ärzte, Bäcker und Metzger gemacht." FALSCH ist die wörtliche Übernahme. RICHTIG: "Ich habe wiederholt mit nicht-technischen, zeitkritischen Anwendern gearbeitet und digitale Lösungen auf ihre praktischen Bedürfnisse ausgerichtet."',
+    ].join("\n"));
     teile.push(gespraech.map(f => `Frage: ${f.frage}\nAntwort: ${f.antwort}`).join("\n\n"));
   }
   const e = sitzung.erkenntnisse;

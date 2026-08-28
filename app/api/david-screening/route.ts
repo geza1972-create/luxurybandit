@@ -569,6 +569,11 @@ export async function POST(request: Request) {
       "'sprechtext' — 70 bis 100 Wörter, ERSTE PERSON, natürlich gesprochen (keine Aufzählung, keine Stichpunkte). Aufbau: (1) Name und was er heute tut. (2) Was ihm an dieser Arbeit liegt — in SEINEN Worten aus dem Gespräch. (3) EINE konkrete Station oder ein Ergebnis als Beleg dafür. (4) Warum diese Stelle.",
       "PFLICHT: Mindestens EIN Satz des Sprechtextes muss aus dem GESPRÄCH stammen und darf so nicht im Lebenslauf stehen — eine Haltung, ein Beweggrund, eine Situation, die er erzählt hat. Genau dafür hat er das Screening gemacht. Steht im Gespräch nichts davon, nimm das, was am nächsten dran ist; erfinde nichts dazu.",
       "VERBOTEN: Eigenschaftswörter ohne Beleg ('teamfähig', 'lösungsorientiert', 'kommunikationsstark'). Jede Behauptung braucht die Handlung dahinter — nur was aus Lebenslauf oder Gespräch belegt ist.",
+      /* NIE WÖRTLICH AUS DEM GESPRÄCH (Owner 28.08.2026, Dauerregel für alle
+         Bewerbungsunterlagen). Ein Sprechtext ist eine Bewerbung, die man HÖRT — dort fällt
+         Umgangssprache noch stärker auf als auf Papier. Die Kernaussage bleibt, der Wortlaut
+         nicht. */
+      "NIE WÖRTLICH ZITIEREN: Was er im Gespräch gesagt hat, ist Rohinformation. Zieh die Kernaussage heraus und formuliere sie beruflich neu — Alltagsbeispiele werden abstrahiert ('Homepages für Ärzte und Bäcker' → 'Arbeit mit nicht-technischen, zeitkritischen Anwendern'). Ohne neue Fakten.",
       /* AUCH DIE KLEIDUNG IST EINE WAHL (Owner 28.08.2026: „als kraftfahrer kann er nicht
          mit kravate sich bewerben aber wer weiss, vielleicht wollen einige") — wir schlagen
          das Berufsübliche zuerst vor, verbieten aber nichts. */
