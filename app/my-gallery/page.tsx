@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Download, X, Loader2, Trash2, Send } from "lucide-react";
+import { Play, Download, X, Loader2, Trash2, Send, Lock, LockOpen } from "lucide-react";
 import { kontoText, spracheAusCookie, themaUndMedium, themaWort } from "@/lib/konto-i18n";
 import type { Lang } from "@/lib/lang";
 import { ThemenKreise, Knopf, Fortschritt } from "@/components/CI";
@@ -55,6 +55,8 @@ type Item = {
   rendert?: boolean;
   /** Seit wann dieser Auftrag läuft — der Balken rechnet daraus seinen Stand. */
   rendertSeit?: string;
+  /** Nur an der Bewerbungs-Kachel: ob ein Passwort fürs Teilen vergeben ist. */
+  geschuetzt?: boolean;
   /** Der Server hat aufgegeben — ehrlicher Zustand statt ewigem Drehrad (15.08.2026). */
   gescheitert?: boolean;
   lookName?: string;
@@ -301,7 +303,13 @@ export default function MyGalleryPage() {
        Eintrag und antwortete mit dem irreführenden „Not yours."
        Und `programm:` VORNE (12.08.2026, „ein Kauf, eine Kachel"): die Programm-Kachel trägt
        den Präfix, gelöscht wird derselbe Auftrag. */
-    const id = it.id.replace(/-(foto|frau)$/, "").replace(/^programm:/, "");
+    /* UND `-bewerbung` (28.08.2026, Owner: „und löschen bei der Bewerbung auch einbauen"):
+       Analyse und Bewerbung sind zwei Kacheln EINES Kaufs, beide hängen am selben
+       Kiss-Log-Auftrag. Ohne das Abstreifen ginge die Löschung mit einer Kennung raus, die
+       es im Protokoll nicht gibt — die Route fände nichts und antwortete mit einem
+       Besitz-Fehler, obwohl alles in Ordnung ist (genau das ist am 12.08. mit `-frau`
+       passiert). */
+    const id = it.id.replace(/-(foto|frau|bewerbung)$/, "").replace(/^programm:/, "");
     if (loeschScharf !== it.id) {
       setLoeschScharf(it.id);
       setTimeout(() => setLoeschScharf(s => (s === it.id ? "" : s)), 3000);
@@ -482,11 +490,12 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; rendertSeit?: string; gescheitert?: boolean; programUrl?: string; berichtUrl?: string; berichtTitel?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; rendertSeit?: string; geschuetzt?: boolean; gescheitert?: boolean; programUrl?: string; berichtUrl?: string; berichtTitel?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
               rendertSeit: b.rendertSeit || "",
+              ...(typeof b.geschuetzt === "boolean" ? { geschuetzt: b.geschuetzt } : {}),
               gescheitert: b.gescheitert === true,
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
@@ -977,6 +986,28 @@ export default function MyGalleryPage() {
                     {it.alter ? <span>~{it.alter}</span> : null}
                   </span>
                 )}
+                {/**
+                  * OFFEN ODER ZU (Owner 28.08.2026: „dann Schloss auf Kacheln wenn nicht
+                  * geschützt und Schloss zu wenn geschützt").
+                  *
+                  * Der Besitzer sieht seine Bewerbung immer — daran ändert das Schloss nichts
+                  * („er kann das doch immer sehen, er ist der Besitzer"). Es sagt etwas
+                  * anderes: was passiert, wenn er den LINK weitergibt. Offen heisst, jeder mit
+                  * der Adresse kann sie öffnen; zu heisst, ohne sein Passwort kommt niemand
+                  * hinein.
+                  *
+                  * SOLANGE ES DIE PASSWORT-SEITE NICHT GIBT, IST JEDES SCHLOSS OFFEN. Das ist
+                  * keine Lücke in der Anzeige, sondern der ehrliche Stand — und es hält die
+                  * Frage sichtbar, bis sie beantwortet ist.
+                  */}
+                {typeof it.geschuetzt === "boolean" && (
+                  <span aria-hidden
+                    className={`pointer-events-none absolute left-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full backdrop-blur ${it.geschuetzt
+                      ? "bg-[#f6cf51] text-[#1a160f]"
+                      : "bg-black/55 text-white/70"}`}>
+                    {it.geschuetzt ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+                  </span>
+                )}
                 {/* Auswahl-Häkchen (Videos UND Slides). */}
                 {selectMode && (
                   <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
@@ -1038,7 +1069,13 @@ export default function MyGalleryPage() {
                 {/* Und an der PROGRAMM-Kachel (12.08.2026, „ein Kauf, eine Kachel"): seit die
                     doppelte Video-Kachel des Versprechens entfällt, ist sie die einzige
                     Kachel des Kaufs — ohne Knopf hier wäre der Auftrag unlöschbar. */}
-                {!selectMode && (it.source === "kiss" || it.type === "program") && (
+                {/* AUCH AN DER BEWERBUNG (Owner 28.08.2026: „und löschen bei der Bewerbung
+                    auch einbauen"). ACHTUNG, DAS IST BEWUSST SO: Beide Kacheln gehören zu
+                    EINEM Kauf und damit zu einem Auftrag — wer hier löscht, löscht den ganzen
+                    Vorgang, Analyse eingeschlossen. Das ist die ehrlichere Variante als ein
+                    Knopf, der nur die Hälfte entfernt und einen Auftrag ohne Unterlagen
+                    zurücklässt. Die rote Rückfrage mit zwei Tipps steht davor. */}
+                {!selectMode && (it.source === "kiss" || it.source === "david-bewerbung" || it.type === "program") && (
                   <button type="button"
                     onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
                     aria-label={loeschScharf === it.id ? T.loeschenSicher : T.loeschen}

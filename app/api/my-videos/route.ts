@@ -336,7 +336,6 @@ export async function GET(request: Request) {
         const bewerbungKachel = await (async () => {
           if (e.theme !== "david" || !e.paid) return null;
           const profil = await leseLebenslauf(e.id).catch(() => null);
-          const eigenesFoto = e.personPath ? await getSignedUrl(String(e.personPath)).catch(() => "") : "";
           const vorlage = String(profil?.pdfVorlage || "klassik");
           /**
            * DIE KACHEL ENTSTEHT MIT DER ZAHLUNG, NICHT MIT DEM ERGEBNIS (Owner 28.08.2026:
@@ -371,9 +370,27 @@ export async function GET(request: Request) {
           const seit = Date.parse(String(e.paidAt || e.createdAt || "")) || 0;
           const haengt = !fertig && !!seit && Date.now() - seit > 10 * 60_000;
           return {
-            bild: eigenesFoto || `/Lebenslauf/vorlage-${vorlage}.jpg`,
-            pdf: fertig ? `/api/bewerbung-pdf?id=${encodeURIComponent(e.id)}&device=${encodeURIComponent(String(e.device || ""))}` : "",
+            /* DIE KACHEL ZEIGT DAS BLATT, NICHT DAS GESICHT (Owner 28.08.2026: „kannst du
+               da nicht das CV einblenden"). Zuerst stand hier sein Bewerbungsfoto — der
+               Gedanke war, dass er seine Kachel daran erkennt. In der Galerie ist das falsch
+               herum: neben Davids Porträt und lauter Video-Kacheln mit Gesichtern sagt ein
+               weiteres Gesicht gar nichts. Was er hier hat, ist ein LEBENSLAUF, und der
+               sieht aus wie ein Blatt Papier — unverwechselbar, und es ist genau die
+               Vorlage, die er gewählt hat. */
+            bild: `/Lebenslauf/vorlage-${vorlage}.jpg`,
+            /* `ansehen=1`: Der Tipp auf die Kachel ÖFFNET das PDF im Browser, er lädt es
+               nicht wortlos herunter (Owner 28.08.2026). Wer es speichern will, tut das aus
+               der Vorschau heraus. */
+            /* KEIN `device` MEHR IN DER ADRESSE (28.08.2026, Owner: „er kann das nicht
+               weitergeben"). Die Gerätekennung war dort faktisch ein Schlüssel: Wer den
+               vollständigen Link hatte, bekam die Bewerbung. Jetzt entscheidet der signierte
+               Keks im Browser — und der reist bei einem weitergeleiteten Link nicht mit. */
+            pdf: fertig ? `/api/bewerbung-pdf?id=${encodeURIComponent(e.id)}&ansehen=1` : "",
             titel: String(profil?.anzeigeTitel || ""),
+            /* OFFEN ODER ZU (Owner 28.08.2026): Solange kein Passwort vergeben ist, öffnet
+               jeder mit dem Link die Bewerbung — das Schloss sagt es, statt es zu
+               verschweigen. */
+            geschuetzt: !!profil?.pdfSchutz,
             fertig,
             haengt,
             seit: String(e.paidAt || e.createdAt || ""),
@@ -473,10 +490,35 @@ export async function GET(request: Request) {
                  (`pictures.filter(b => b.imageUrl || b.videoUrl)`) — und ein Bericht hat
                  weder Standbild noch Video. Davids Porträt ist das ehrliche Zeichen dafür:
                  dasselbe Gesicht, das im Ergebnis oben steht. */
-              imageUrl: "/Lebenslauf/david-portrait.jpg",
+              /* EIN ZEICHEN, KEIN GESICHT (Owner 28.08.2026: „und statt Davidbild ein Icon
+                 für die Analyse"). Davids Porträt stand in der Galerie neben lauter
+                 Video-Kacheln mit Gesichtern und las sich wie eines davon. Die Kachel braucht
+                 trotzdem ein Bild — ohne fliegt sie durch den Filter unten heraus —, also ist
+                 es jetzt ein gezeichnetes: Balken für die Auswertung, Schloss für „gehört
+                 dir", dieselbe Geste wie die Zutaten-Kachel im Angebot. */
+              /* MIT FASSUNGSNUMMER — dieselbe Lehre wie bei den Vorlagen-Vorschauen
+                 (28.08.2026): Vercel liefert /public mit langer Cache-Zeit aus. Ändert sich
+                 die Zeichnung, sähe jeder wiederkehrende Besucher wochenlang die alte. Wer
+                 die Datei ändert, zählt hier eine hoch. */
+              imageUrl: "/Lebenslauf/analyse-kachel.svg?v=2",
               /* „Analyse" statt des Auftragsnamens — seit die Bewerbung eine eigene Kachel
                  hat, müssen die zwei auf einen Blick unterscheidbar sein. */
               name: "Analyse",
+              /**
+               * AUCH HIER EIN SCHLOSS (Owner 28.08.2026: „auch bei der Analyse? kann das
+               * jeder sehen?").
+               *
+               * Und hier steht es GESCHLOSSEN — anders als an der Bewerbung. Der Bericht ist
+               * seit heute durch den Besitz-Keks gesperrt: Ein weitergeleiteter Link öffnet
+               * beim Empfänger nichts. Das ist der Zustand, den das zugesperrte Schloss
+               * meint.
+               *
+               * An der Bewerbung ist es offen, solange kein Passwort vergeben ist — dort geht
+               * es nicht um den Zugriff (der Keks schützt beides), sondern um das TEILEN: Wer
+               * seine Bewerbung an eine Firma schicken will, braucht einen Link, der bei
+               * einem Fremden funktioniert. Genau der ist ohne Passwort ungeschützt.
+               */
+              geschuetzt: true,
               berichtTitel: sitzung.jobTitel || "",
               ...(sitzung.cvPath ? { cvPath: sitzung.cvPath, cvName: sitzung.cvName || "Lebenslauf.pdf" } : {}),
             };
@@ -518,6 +560,7 @@ export async function GET(request: Request) {
              wenn es eines gibt. */
           ...(bewerbungKachel.pdf ? { berichtUrl: bewerbungKachel.pdf } : {}),
           berichtTitel: bewerbungKachel.titel,
+          geschuetzt: bewerbungKachel.geschuetzt,
         }] : []),
         /* Die Original-Aufnahme des Bewerbers — Begründung oben bei `aufnahmeUrl`. */
         ...(aufnahmeUrl ? [{

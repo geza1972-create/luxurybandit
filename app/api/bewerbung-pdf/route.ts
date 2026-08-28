@@ -72,10 +72,25 @@ export async function GET(request: Request) {
 
   const dateiname = `Bewerbung${profil.anzeigeTitel ? `-${profil.anzeigeTitel}` : ""}${profil.name ? `-${profil.name}` : ""}`
     .replace(/[^\p{L}\p{N} _-]+/gu, "").replace(/\s+/g, "-").slice(0, 80) || "Bewerbung";
+  /**
+   * ANSEHEN ODER HERUNTERLADEN — DER AUFRUFER ENTSCHEIDET (Owner 28.08.2026: „soll sich im
+   * Browser öffnen").
+   *
+   * Bisher ging das PDF IMMER als `attachment` raus. Für einen Download-Knopf ist das
+   * richtig; für einen Tipp auf die Kachel in der Galerie nicht. Dort will man erst SEHEN,
+   * was man gekauft hat — ein Klick, der wortlos eine Datei in den Download-Ordner legt,
+   * fühlt sich an, als wäre nichts passiert. Herunterladen kann man aus der Vorschau des
+   * Browsers heraus immer noch, mit einem Knopf, den jeder kennt.
+   *
+   * `?ansehen=1` schaltet auf `inline`. OHNE den Parameter bleibt alles wie bisher — die
+   * Download-Knöpfe in der Lebenslauf-Tür und im David-Angebot hängen daran, und ein
+   * stillschweigend geändertes Verhalten wäre dort ein Rückschritt.
+   */
+  const ansehen = url.searchParams.get("ansehen") === "1";
   return new NextResponse(Buffer.from(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${dateiname}.pdf"`,
+      "Content-Disposition": `${ansehen ? "inline" : "attachment"}; filename="${dateiname}.pdf"`,
       "Cache-Control": "no-store",
     },
   });

@@ -11,6 +11,10 @@ import { davidTunnelInSprache } from "@/lib/david-tunnel-texte";
 import { leseDavid } from "@/lib/david-store";
 import { eur, RESUME_CENTS, LEBENSLAUF_CENTS } from "@/lib/pricing";
 import { CORA_MUSTER } from "@/lib/david-muster";
+import { cookies } from "next/headers";
+import { BESITZ_COOKIE, besitzImCookie } from "@/lib/lebenslauf-besitz-cookie";
+import { isAdminRequest } from "@/lib/admin-auth";
+import DavidBesitzTor from "@/components/DavidBesitzTor";
 
 /**
  * DER GESPEICHERTE BERICHT UNTER EIGENER ADRESSE.
@@ -38,6 +42,26 @@ export default async function DavidBerichtSeite({ params }: { params: Promise<{ 
   const L = await resolveLang("de");
   const S = await davidTunnelInSprache(L);
   const sitzung = await leseDavid(String(id || ""));
+
+  /**
+   * NUR DER BESITZER (Owner 28.08.2026: „ok aber darf niemand sehen nur er").
+   *
+   * Diese Seite hatte KEINE Prüfung: Sie las die Sitzung und zeigte sie. Wer die Adresse
+   * hatte, las den ganzen Bericht — und darin steht mehr als in der Bewerbung selbst: die
+   * Stelle, sein jetziger Arbeitgeber, die Schwachstellen seiner Unterlagen und Dinge, die
+   * er im Gespräch erzählt und bewusst NICHT in seine Bewerbung geschrieben hat. Beim
+   * heutigen Chef gelandet ist das kein peinlicher Moment, sondern ein Schaden.
+   *
+   * Der signierte Keks `lb_besitz` entscheidet — derselbe wie bei der Bewerbung, dieselbe
+   * Kennung. Wer ihn nicht hat, bekommt das Tor: Der Besitzer weist sich dort in einer
+   * Sekunde über seine Gerätekennung aus, ein Fremder kommt nicht weiter. Weitergeben lässt
+   * sich der Link damit nicht mehr — der Keks reist nicht mit.
+   */
+  const keks = (await cookies()).get(BESITZ_COOKIE)?.value ?? "";
+  const alsAdmin = await isAdminRequest(new Request("https://lb.local", {
+    headers: { cookie: (await cookies()).toString() },
+  })).catch(() => false);
+  const darfSehen = alsAdmin || besitzImCookie(keks, String(id || ""));
   const preisUnterlagen = eur(RESUME_CENTS, L);
   /* Die Video-Bewerbung ist das teurere Stück (Skript, Avatar-Lauf, fertige Seite). */
   const preisVideo = eur(LEBENSLAUF_CENTS, L);
@@ -46,7 +70,13 @@ export default async function DavidBerichtSeite({ params }: { params: Promise<{ 
     <main className="lb-bg min-h-screen text-white">
       <TopNav marke="LB - David" heim="/themes/david" motto="AI Pre-Screening" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
-        {sitzung?.report ? (
+        {sitzung?.report && !darfSehen ? (
+          /* Sitzung da, Keks fehlt — das Tor entscheidet, ob es der Besitzer ist. */
+          <DavidBesitzTor id={String(id)} texte={{
+            pruefe: S.torPruefe, titel: S.torTitel, text: S.torText,
+            anmelden: S.torAnmelden, neu: S.torNeu,
+          }} />
+        ) : sitzung?.report ? (
           <>
             {/* Kopf und Abschnitte kommen aus dem gemeinsamen Baustein — er trägt das
                 Design des Owners (28.08.2026). */}

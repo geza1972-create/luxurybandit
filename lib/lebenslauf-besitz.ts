@@ -1,6 +1,7 @@
 import { leseLebenslauf, type LebenslaufProfil } from "@/lib/lebenslauf-store";
 import { readKissLog } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
+import { BESITZ_COOKIE, besitzImCookie } from "@/lib/lebenslauf-besitz-cookie";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 /**
@@ -17,6 +18,21 @@ export async function darfAmProfilArbeiten(profil: LebenslaufProfil, device: str
   const konto = await getSellerFromRequest(request).catch(() => null);
   const kontoMail = String(konto?.email ?? "").trim().toLowerCase();
   if (kontoMail && kontoMail === String(profil.email ?? "").trim().toLowerCase()) return true;
+  /**
+   * DER SIGNIERTE KEKS ZÄHLT (28.08.2026, Owner: „darf niemand sehen nur er" · „er kann das
+   * nicht weitergeben").
+   *
+   * Bis hierher war `device` der einzige Weg für einen nicht angemeldeten Besitzer — und es
+   * kam aus der ADRESSZEILE. Damit war die Gerätekennung faktisch ein Schlüssel im Link:
+   * Wer die vollständige Adresse hatte, bekam die Bewerbung. Der Keks kann das nicht: Er
+   * bleibt im Browser und reist bei einem weitergeleiteten Link nicht mit.
+   *
+   * Er steht VOR der Geräteprüfung, damit die Adresse den Parameter gar nicht mehr braucht.
+   */
+  try {
+    const keks = request.headers.get("cookie")?.match(new RegExp(`${BESITZ_COOKIE}=([^;]+)`))?.[1] ?? "";
+    if (keks && besitzImCookie(decodeURIComponent(keks), profil.id)) return true;
+  } catch { /* ohne Keks entscheidet der Rest */ }
   if (device) {
     try {
       const eintrag = (await readKissLog()).find(e => e.id === profil.id);

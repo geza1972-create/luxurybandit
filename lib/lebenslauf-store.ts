@@ -116,6 +116,18 @@ export type LebenslaufProfil = {
    * lib/bewerbung-pdf.ts. Leer heisst: die erste (Klassik).
    */
   pdfVorlage?: string;
+  /**
+   * DER SCHUTZ FÜRS TEILEN (angelegt 28.08.2026, Owner: „dann gibt er ein Passwort an dort"
+   * · „Schloss auf Kacheln wenn nicht geschützt und Schloss zu wenn geschützt").
+   *
+   * HIER STEHT EIN HASH, NIE DAS PASSWORT. Ein Klartext-Passwort in einer JSON-Datei im
+   * Speicher wäre schlimmer als gar keines: Es sähe nach Schutz aus und wäre keiner.
+   *
+   * NOCH SETZT ES NIEMAND — die Seite, auf der der Bewerber es vergibt, kommt separat. Bis
+   * dahin ist das Feld leer, und die Galerie zeigt genau deshalb ein OFFENES Schloss. Das
+   * ist keine Lücke in der Anzeige, das ist der ehrliche Stand.
+   */
+  pdfSchutz?: string;
   /** Titel/Firma wörtlich aus der Anzeige + der Match-Prozentwert vom Erzeugen — die
       Beschriftung in der Liste „Deine Bewerbungen". */
   anzeigeTitel?: string;

@@ -172,6 +172,25 @@ export default function GuthabenChip() {
    * Auftrag). Nur „Galerie" fuehrt weg vom Kauf, den der Kunde gerade macht.
    */
   const imTrichter = /^\/themes\/[^/]+\/start\/?$/.test(pfad ?? "");
+  /**
+   * IM TRICHTER BLEIBT DER ASSETS-KNOPF WEG — MIT ZWEI AUSNAHMEN (Owner 28.08.2026, auf
+   * /themes/david/start: „hier fehlt assets").
+   *
+   * Der Riegel ist grundsätzlich richtig: Ein Trichter soll keine Ausgänge anbieten, solange
+   * jemand mitten im Kauf steckt. Zwei Fälle sind aber genau andersherum —
+   *
+   *   1. ES LÄUFT GERADE ETWAS (`rendert`). Dann ist der Knopf kein Ausgang, sondern der
+   *      Weg zu seiner eigenen Sache. Ihn ausgerechnet dann zu verstecken, wenn im
+   *      Hintergrund gearbeitet wird, ist die schlechteste Minute dafür.
+   *   2. DAVID. Sein Trichter endet nicht mit einer Lieferung, sondern mit einem BERICHT,
+   *      zu dem man zurückkommt — und die Assets sind der Ort, an dem er wieder auffindbar
+   *      ist. Wer sein Screening abbricht und später wiederkommt, sucht ihn genau dort.
+   *
+   * Bewusst NICHT für alle Trichter geöffnet: Kuss, Geburtstag, Urlaub und Hochzeit sind
+   * getestete Kaufwege, und ein zusätzlicher Ausgang mitten darin ist eine Änderung, die
+   * gemessen gehört — nicht nebenbei mitgenommen.
+   */
+  const davidTrichter = /^\/themes\/david\/start\/?$/.test(pfad ?? "");
   useEffect(() => {
     let weg = false;
     let takt: ReturnType<typeof setTimeout> | null = null;
@@ -333,7 +352,7 @@ export default function GuthabenChip() {
         * der Guthaben-Chip daneben, der die aktive Auszeichnung des Hauses trägt; kein
         * zweiter Farbton.
         */}
-      {!imTrichter && (
+      {(!imTrichter || davidTrichter || rendert) && (
       <Link href="/my-gallery" aria-label="My Assets"
         aria-current={inGalerie ? "page" : undefined}
         /* SOLANGE ETWAS ENTSTEHT, ATMET DER GANZE KNOPF (Owner 28.08.2026: „das muss blinken

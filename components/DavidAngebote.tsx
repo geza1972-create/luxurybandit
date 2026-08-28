@@ -199,7 +199,9 @@ export default function DavidAngebote({
   const kopfzeilen = (): Record<string, string> => ({ "Content-Type": "application/json", ...anmeldeKopf(), ...adminKopf() });
   const adminKopf = (): Record<string, string> => { const p = adminPin(); return p ? { "x-try-look-admin-pin": p } : {}; };
   const pdfUrl = genId
-    ? `/api/bewerbung-pdf?id=${encodeURIComponent(genId)}&device=${encodeURIComponent(geraet())}&vorlage=${encodeURIComponent(vorlage)}`
+    /* OHNE `device` — der Besitz-Keks weist ihn aus, nicht ein Schlüssel in der Adresse
+       (28.08.2026). Er wird beim Kauf gesetzt (`/api/david-besitz`), also steht er hier. */
+    ? `/api/bewerbung-pdf?id=${encodeURIComponent(genId)}&vorlage=${encodeURIComponent(vorlage)}`
     : "";
 
   /**
@@ -274,6 +276,16 @@ export default function DavidAngebote({
    */
   const nachZahlung = async () => {
     void logTunnelEvent("payment_completed", "david");
+    /* DEN BESITZ-KEKS HOLEN, BEVOR ETWAS FERTIG IST (28.08.2026): Danach führt der
+       Download-Knopf auf ein PDF ohne Gerätekennung in der Adresse — ohne Keks bekäme der
+       Käufer an seinem eigenen Kauf ein 403. Still: Scheitert es, greift weiterhin der
+       Geräte-Weg. */
+    try {
+      await fetch("/api/david-besitz", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({ id: genId, device: geraet() }),
+      });
+    } catch { /* der Kauf darf daran nie scheitern */ }
     /* DEM ASSETS-CHIP BESCHEID GEBEN — ab jetzt läuft etwas, er soll pulsieren. Er fragt
        sonst erst beim nächsten Seitenaufbau nach (siehe GuthabenChip). */
     try { window.dispatchEvent(new Event("lb-arbeit-neu")); } catch { /**/ }

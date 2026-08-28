@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 640" width="360" height="640" role="img" aria-label="Analyse">
+  <!-- DIE ANALYSE-KACHEL IN DER GALERIE (Owner 28.08.2026: „und statt Davidbild ein Icon für
+       die Analyse", danach: „ohne Schloss").
+       Das Schloss stand für „gehört dir" — im Angebot, wo es neben Foto und Vorlage die
+       einzige Zutat ist, die er nicht anfassen muss, ergab das Sinn. In der Galerie gehört
+       ihm ohnehin alles; dort war es nur ein zweites Zeichen, das vom ersten ablenkt.
+       Geblieben sind die Balken, dafür grösser. -->
+  <rect width="360" height="640" fill="#16120f"/>
+  <rect x="1" y="1" width="358" height="638" fill="none" stroke="#f6cf51" stroke-opacity="0.28" stroke-width="2" rx="18"/>
+  <g fill="#f6cf51">
+    <rect x="104" y="300" width="34" height="88" rx="8"/>
+    <rect x="152" y="252" width="34" height="136" rx="8"/>
+    <rect x="200" y="196" width="34" height="192" rx="8"/>
+  </g>
+  <text x="180" y="452" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="26" font-weight="bold" fill="#ffffff">Analyse</text>
+  <text x="180" y="484" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="17" font-weight="bold" fill="#f6cf51" fill-opacity="0.8">David Insight</text>
+</svg>

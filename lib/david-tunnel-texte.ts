@@ -187,6 +187,14 @@ export const DAVID_TUNNEL = {
   vorlagenTitel: "Foto und Layout wählen",
   vorlagenAnsehen: "Vorlage vergrössern",
   schliessen: "Schliessen",
+  /* DAS TOR VOR DEM BERICHT (Owner 28.08.2026: „darf niemand sehen nur er"). Der Text sagt
+     bewusst NICHT, ob es den Bericht gibt — für einen Fremden mit weitergeleitetem Link soll
+     das nicht unterscheidbar sein. */
+  torPruefe: "Einen Moment — wir schauen, ob das deiner ist",
+  torTitel: "Dieser Bericht ist privat",
+  torText: "Er gehört zu dem Browser, in dem er entstanden ist. Melde dich mit deiner Adresse an, um ihn auf jedem Gerät zu sehen — oder starte hier ein neues Screening.",
+  torAnmelden: "Anmelden",
+  torNeu: "Neues Screening starten",
   /* DIE LETZTE PRÜFUNG VOR DEM KAUF (Owner 28.08.2026, nach einem echten Kauf: „ich habe
      vergessen ein Bild hochzuladen und habe erst später gemerkt. Also Hinweis wäre nicht
      schlecht. Richtiges Template gewählt, Bild hochgeladen. Ja/Nein"). */
