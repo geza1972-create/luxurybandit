@@ -5,6 +5,7 @@ import { AlertCircle, BarChart3, Check, Lock, Maximize2 } from "lucide-react";
 import { Knopf, Fehlerzeile, Fortschritt, BildWahl, BlattUeberlagerung, Scheibe } from "@/components/CI";
 import { PDF_VORLAGEN, vorlagenBild } from "@/lib/pdf-vorlagen";
 import { fotoAlsDataUrl } from "@/lib/foto-verkleinern";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import UploadKachel from "@/components/UploadKachel";
 import CropModal from "@/components/CropModal";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
@@ -177,6 +178,25 @@ export default function DavidAngebote({
    * OpenAI passiert und kostet — das ist ja gerade der Teil, den man prüfen will.
    */
   const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  /**
+   * DIE ANMELDUNG MUSS MITREISEN (Owner 28.08.2026, zweimal in Folge: „das ist blöd, ich bin
+   * doch angemeldet" · „bin doch eingeloggt" — beide Male über dem Kaufknopf).
+   *
+   * Ich hatte serverseitig „Konto schlägt Gerät" eingebaut und geglaubt, damit sei es
+   * erledigt. Es war es nicht: Diese Seite schickte gar keinen Ausweis mit. `getSellerFromRequest`
+   * liest den `Authorization`-Kopf — steht dort nichts, sieht der Server einen Anonymen, und
+   * die Konto-Prüfung läuft ins Leere, egal wie gut sie geschrieben ist.
+   *
+   * Dieselbe Zeile wie in der Galerie (`my-gallery`), die es seit dem 10.08.2026 richtig
+   * macht: „Der User meldet sich doch an. Basta."
+   */
+  const anmeldeKopf = (): Record<string, string> => {
+    try {
+      const tok = getStoredAuthSession()?.access_token ?? "";
+      return tok ? { Authorization: `Bearer ${tok}` } : {};
+    } catch { return {}; }
+  };
+  const kopfzeilen = (): Record<string, string> => ({ "Content-Type": "application/json", ...anmeldeKopf(), ...adminKopf() });
   const adminKopf = (): Record<string, string> => { const p = adminPin(); return p ? { "x-try-look-admin-pin": p } : {}; };
   const pdfUrl = genId
     ? `/api/bewerbung-pdf?id=${encodeURIComponent(genId)}&device=${encodeURIComponent(geraet())}&vorlage=${encodeURIComponent(vorlage)}`
@@ -210,30 +230,74 @@ export default function DavidAngebote({
   useEffect(() => {
     if (rueckkehrRef.current || !genId) return;
     const q = new URLSearchParams(window.location.search);
-    if (q.get("paid") !== "1") return;
+    /* ZWEI WEGE HIERHER: die Rückkehr von Stripe (`paid=1&cs=…`) und der Nachhol-Knopf aus
+       der Galerie (`nachholen=1`). Beide enden in derselben Kette; der Unterschied ist nur,
+       ob die Zahlung noch bestätigt werden muss oder längst im Auftrag steht. */
+    const nachholen = q.get("nachholen") === "1";
+    if (!nachholen && q.get("paid") !== "1") return;
     const cs = q.get("cs") ?? "";
-    if (!cs || cs.startsWith("{")) return;
+    if (!nachholen && (!cs || cs.startsWith("{"))) return;
     rueckkehrRef.current = true;
     setBusy(true); setBusyText(S.unterlagenOptimiert);
     void (async () => {
-      const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).catch(() => null);
-      q.delete("paid"); q.delete("cs");
+      /* Beim Nachholen ist die Zahlung längst gebucht — der Server prüft sie ohnehin noch
+         einmal, wenn `optimieren` läuft. Nur die frische Rückkehr braucht die Bestätigung. */
+      const st = nachholen ? { paid: true } : await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).catch(() => null);
+      q.delete("paid"); q.delete("cs"); q.delete("nachholen");
       const rest = q.toString();
       window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : ""));
       if (!st?.paid) { setBusy(false); setBusyText(""); setFehler(S.reportFehler); return; }
-      await optimieren();
+      await nachZahlung();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genId]);
 
-  const optimieren = async () => {
+  /**
+   * ALLES, WAS GELD KOSTET, PASSIERT NACH DER ZAHLUNG (Owner 28.08.2026: „ich verstehe eins
+   * nicht, startet die Generierung vor der Bezahlung?" — und auf die drei Wege hin: „1").
+   *
+   * VORHER lief `erzeugen` VOR der Kasse. Der Gedanke war gut gemeint: Nach der Zahlung
+   * sollte sofort etwas dastehen. Bezahlt haben wir ihn trotzdem — jeder, der den Knopf
+   * tippte und die Kasse wieder wegklickte, kostete einen Lauf mit gpt-5-mini. Das ist kein
+   * Sonderfall, das ist der normale Kaufabbruch, und er kommt öfter vor als der Kauf.
+   *
+   * JETZT laufen BEIDE Schritte hier, nacheinander, nach der Zahlung:
+   *   1. `erzeugen`  — liest Lebenslauf, Anzeige und die Screening-Erkenntnisse
+   *   2. `optimieren` — schneidet auf die Stelle zu, Wasserzeichen weg
+   *
+   * DER KUNDE WARTET DAFÜR RUND EINE MINUTE STATT EINER HALBEN. Das ist der Tausch, und er
+   * geht in die richtige Richtung: Wer gerade bezahlt hat, wartet gern; wer nicht kauft,
+   * darf uns nichts kosten. Der Balken sagt in beiden Schritten, was gerade passiert.
+   *
+   * MÖGLICH GEWORDEN IST DAS ERST HEUTE — durch den Rückkehr-Fänger. Vorher gab es nach der
+   * eingebetteten Kasse keine Stelle mehr, an der überhaupt noch Code lief.
+   */
+  const nachZahlung = async () => {
     void logTunnelEvent("payment_completed", "david");
-    setBusy(true); setBusyText(S.unterlagenOptimiert);
+    /* DEM ASSETS-CHIP BESCHEID GEBEN — ab jetzt läuft etwas, er soll pulsieren. Er fragt
+       sonst erst beim nächsten Seitenaufbau nach (siehe GuthabenChip). */
+    try { window.dispatchEvent(new Event("lb-arbeit-neu")); } catch { /**/ }
+    setFehler(""); setBusy(true); setBusyText(S.unterlagenLaeuft);
     try {
-      await fetch("/api/resume-generator", {
-        method: "POST", headers: { "Content-Type": "application/json", ...adminKopf() },
+      const g = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({
+          schritt: "erzeugen", id: genId, device: geraet(),
+          email, anzeige, cvPath, cvName, davidId: genId, vorlage, foto,
+        }),
+      }).then(r => r.json());
+      /* „schon" heisst: Das Profil steht bereits (zweiter Anlauf, Neuladen) — kein Grund
+         abzubrechen, der Zuschnitt kommt gleich. */
+      if (g?.error && !g?.schon) { setFehler(String(g.error)); setBusy(false); setBusyText(""); return; }
+    } catch { setFehler(S.reportFehler); setBusy(false); setBusyText(""); return; }
+
+    setBusyText(S.unterlagenOptimiert);
+    try {
+      const o = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({ schritt: "optimieren", id: genId, device: geraet() }),
       }).then(r => r.json());
+      if (o?.error) { setFehler(String(o.error)); setBusy(false); setBusyText(""); return; }
       setFertig(true);
     } catch { setFehler(S.reportFehler); }
     setBusy(false); setBusyText("");
@@ -245,25 +309,11 @@ export default function DavidAngebote({
        mit `true` wieder herein und läuft durch. */
     if (!foto && !ohneFotoBestaetigt) { setFotoFrage(true); return; }
     void logFunnelEvent("cv_offer_clicked", { theme: "david" });
-    setFehler(""); setBusy(true); setBusyText(S.unterlagenLaeuft);
-    /* ERST ERZEUGEN, DANN KASSE: Der bestehende Generator legt aus Lebenslauf, Anzeige und
-       den Screening-Erkenntnissen (`davidId`) das Profil an; der Kauf schaltet danach die
-       volle Optimierung und das PDF ohne Wasserzeichen frei — so ist das Tool gebaut. */
-    try {
-      const g = await fetch("/api/resume-generator", {
-        method: "POST", headers: { "Content-Type": "application/json", ...adminKopf() },
-        body: JSON.stringify({
-          schritt: "erzeugen", id: genId, device: geraet(),
-          email, anzeige, cvPath, cvName, davidId: genId, vorlage, foto,
-        }),
-      }).then(r => r.json());
-      if (g?.error) { setFehler(String(g.error)); setBusy(false); setBusyText(""); return; }
-    } catch { setFehler(S.reportFehler); setBusy(false); setBusyText(""); return; }
-    setBusy(false); setBusyText("");
+    setFehler("");
 
-    /* ADMIN: KEINE KASSE. Er hat gerade erzeugt; jetzt direkt optimieren, als wäre bezahlt.
-       Der Server lässt das nur mit gültiger Admin-Nummer durch und schreibt eine Warnung. */
-    if (adminPin()) { await optimieren(); return; }
+    /* ADMIN: KEINE KASSE, aber derselbe Weg dahinter — der Server lässt ihn nur mit gültiger
+       Admin-Nummer durch und schreibt eine Warnung ins Protokoll. */
+    if (adminPin()) { await nachZahlung(); return; }
 
     const popup = kassenFenster();
     void logTunnelEvent("checkout_started", "david");
@@ -275,7 +325,7 @@ export default function DavidAngebote({
           email, returnTo: window.location.pathname, eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
-      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } await optimieren(); return; }
+      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } await nachZahlung(); return; }
       if ((!start?.url && !start?.clientSecret) || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setFehler(start?.error || S.reportFehler);
@@ -286,7 +336,7 @@ export default function DavidAngebote({
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
-        if (st?.paid) { try { popup.close(); } catch { /**/ } await optimieren(); return; }
+        if (st?.paid) { try { popup.close(); } catch { /**/ } await nachZahlung(); return; }
         if (popup.closed && i > 2) break;
       }
       try { popup.close(); } catch { /**/ }

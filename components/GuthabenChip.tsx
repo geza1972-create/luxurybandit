@@ -203,7 +203,26 @@ export default function GuthabenChip() {
     const anlass = () => { void pruefen(); };
     window.addEventListener("lb-guthaben-neu", anlass);
     window.addEventListener("lb-galerie-gesehen", anlass);
-    return () => { weg = true; if (takt) clearTimeout(takt); window.removeEventListener("lb-guthaben-neu", anlass); window.removeEventListener("lb-galerie-gesehen", anlass); };
+    /**
+     * WENN ARBEIT BEGINNT, MUSS DER CHIP DAVON ERFAHREN (Owner 28.08.2026, mitten in einem
+     * laufenden Kauf: „warum pulsiert Assets nicht").
+     *
+     * Die Prüfung lief EINMAL beim Aufbau der Seite und danach nur noch im 30-Sekunden-Takt
+     * — und diesen Takt startet sie nur, wenn beim ersten Blick schon etwas lief. Der
+     * häufigste Fall fiel damit durch: Man öffnet die Seite (nichts läuft), kauft, die
+     * Erzeugung beginnt — und der Chip schläft weiter, weil ihn niemand geweckt hat.
+     *
+     * Ein Takt „für alle Fälle" wäre die falsche Antwort: Er fragt auf jeder Seite des Hauses
+     * dauernd nach, auch bei den 99 Prozent Besuchern, bei denen nie etwas läuft. Der Trichter
+     * WEISS, wann er anfängt — also sagt er es.
+     */
+    window.addEventListener("lb-arbeit-neu", anlass);
+    return () => {
+      weg = true; if (takt) clearTimeout(takt);
+      window.removeEventListener("lb-guthaben-neu", anlass);
+      window.removeEventListener("lb-galerie-gesehen", anlass);
+      window.removeEventListener("lb-arbeit-neu", anlass);
+    };
   }, []);
 
   useEffect(() => {
@@ -317,12 +336,20 @@ export default function GuthabenChip() {
       {!imTrichter && (
       <Link href="/my-gallery" aria-label="My Assets"
         aria-current={inGalerie ? "page" : undefined}
-        className={`relative ${chip} ${inGalerie
-          ? "border-[#f6cf51]/60 bg-[#f6cf51]/10 text-[#f6cf51]"
-          : "border-white/20 bg-white/5 text-white/85"}`}>
+        /* SOLANGE ETWAS ENTSTEHT, ATMET DER GANZE KNOPF (Owner 28.08.2026: „das muss blinken
+           bis es fertig ist"). Der Punkt allein war zu leise — er hat ihn beim eigenen Kauf
+           fast übersehen. Die Animation sitzt am Rand (`lb-puls` in globals.css), die
+           Schrift bleibt voll lesbar; ein Knopf, den man im Takt schlechter liest, ist ein
+           Flackern, kein Hinweis. */
+        className={`relative ${chip} ${rendert
+          ? "lb-puls border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[#f6cf51]"
+          : inGalerie
+            ? "border-[#f6cf51]/60 bg-[#f6cf51]/10 text-[#f6cf51]"
+            : "border-white/20 bg-white/5 text-white/85"}`}>
         <Images className="h-3.5 w-3.5" />
         Assets
-        {/* Der Puls: dort entsteht gerade etwas. Gold wie der Akzent, nie ein zweiter Farbton. */}
+        {/* Der Punkt bleibt zusätzlich: Er sagt „etwas ist NEU", der Puls sagt „es läuft
+            gerade". Zusammen sieht man es aus dem Augenwinkel. */}
         {rendert && <span aria-hidden className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-[#f6cf51]" />}
       </Link>
       )}

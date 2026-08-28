@@ -4,6 +4,7 @@ import {
   type DavidSitzung, type DavidNuetzlich,
 } from "@/lib/david-store";
 import { readKissLog, writeKissLog, type KissLogEntry } from "@/lib/try-this-look-store";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -46,8 +47,15 @@ export async function POST(request: Request) {
   /* WEM DIE SITZUNG GEHÖRT: Beim ersten Schreiben legt das Gerät sie an; danach darf nur
      dasselbe Gerät sie ändern. Ohne diese Prüfung könnte jeder mit geratener Kennung fremde
      Antworten überschreiben (dieselbe Sperre wie in /api/kandidat). */
-  if (bestand?.device && device && bestand.device !== device) {
-    return NextResponse.json({ error: "Diese Sitzung gehört zu einem anderen Gerät." }, { status: 403 });
+  /* KONTO SCHLÄGT GERÄT — dieselbe Regel wie in /api/david-screening (28.08.2026). Wer
+     angemeldet ist und dieselbe Adresse trägt, darf an seiner Sitzung arbeiten, egal von
+     welchem Gerät. */
+  const kontoMailD = await getSellerFromRequest(request)
+    .then(k => String(k?.email ?? "").trim().toLowerCase())
+    .catch(() => "");
+  const seins = !!kontoMailD && kontoMailD === String(bestand?.email ?? "").trim().toLowerCase();
+  if (!seins && bestand?.device && device && bestand.device !== device) {
+    return NextResponse.json({ error: "Diese Sitzung gehört zu einem anderen Gerät. Melde dich mit der Adresse an, mit der du sie begonnen hast." }, { status: 403 });
   }
 
   const jetzt = new Date().toISOString();

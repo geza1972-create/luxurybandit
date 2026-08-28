@@ -1824,6 +1824,13 @@ export type KissLogEntry = {
    * dem Betrag NACH Rabatt — nicht aus dem Bestellwert.
    */
   paidCents?: number;
+  /**
+   * WANN BEZAHLT WURDE (28.08.2026). Ohne diesen Stempel liess sich nicht sagen, wie lange
+   * eine Lieferung schon aussteht — die Galerie konnte deshalb einen Unterlagen-Auftrag, bei
+   * dem die Optimierung nie ansprang, nur ewig drehen lassen. `createdAt` half nicht: Das ist
+   * der Zeitpunkt des LEADS, oft Stunden vorher.
+   */
+  paidAt?: string;
   videoMailedAt?: string; // wann das fertige Video verschickt wurde (nie zweimal)
   videoAlertAt?: string;  // wann wir aufgegeben und den Käufer benachrichtigt haben
   /**

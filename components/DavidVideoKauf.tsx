@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Video } from "lucide-react";
 import { Knopf, Fehlerzeile, Fortschritt, EingabeMehrzeilig } from "@/components/CI";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { useKasseImFenster } from "@/components/KasseImFenster";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import SelbstAufnahme from "@/components/SelbstAufnahme";
@@ -68,6 +69,20 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
   const kasse = useKasseImFenster(phase);
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
+  /**
+   * DIE ANMELDUNG REIST MIT (Owner 28.08.2026: „bin doch eingeloggt").
+   *
+   * Der Server prüft „Konto schlägt Gerät" — aber nur, wenn er das Konto überhaupt sieht.
+   * `getSellerFromRequest` liest den `Authorization`-Kopf; ohne ihn ist jeder Besucher
+   * anonym, und ein angemeldeter Nutzer auf einem zweiten Gerät fliegt hinaus.
+   */
+  const anmeldeKopf = (): Record<string, string> => {
+    try {
+      const tok = getStoredAuthSession()?.access_token ?? "";
+      return tok ? { Authorization: `Bearer ${tok}` } : {};
+    } catch { return {}; }
+  };
+  const kopfzeilen = (): Record<string, string> => ({ "Content-Type": "application/json", ...anmeldeKopf() });
 
   /**
    * AUS DER AUFNAHME WERDEN ZWEI DINGE: ein Standbild und die Datei selbst.
@@ -103,7 +118,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
       /* 2 · Die Aufnahme selbst hochladen — sie trägt die Stimme. */
       const ext = (datei.name.split(".").pop() || "mp4").toLowerCase();
       const signiert = await fetch("/api/lebenslauf-video-url", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({ extension: ext }),
       }).then(r => r.json());
       if (!signiert?.uploadUrl || !signiert?.path) throw new Error("upload");
@@ -120,7 +135,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
     setBusy(true); setBusyText(S.videoSkriptLaeuft); setFehler("");
     try {
       const d = await fetch("/api/david-screening", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({ id: genId, device: geraet(), schritt: "videoskript" }),
       }).then(r => r.json());
       if (d?.error) { setFehler(String(d.error)); setBusy(false); setBusyText(""); return; }
@@ -137,11 +152,13 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
 
   /** Nach der Zahlung: die bestehende Kette starten und die Auftragsnummer ablegen. */
   const erzeugen = async () => {
+    /* Auch hier: Der Assets-Chip soll pulsieren, sobald das Video entsteht (28.08.2026). */
+    try { window.dispatchEvent(new Event("lb-arbeit-neu")); } catch { /**/ }
     void logTunnelEvent("payment_completed", "david");
     setPhase("laeuft"); setBusy(true); setBusyText(S.videoLaeuft); setFehler("");
     try {
       const d = await fetch("/api/lebenslauf-video", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
           id: genId, device: geraet(), foto,
           sprechtext: sprechtext.trim(),
@@ -156,7 +173,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
          das fertige Video abholen und in die Assets legen soll. */
       if (d?.videoId) {
         await fetch("/api/kiss-log", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: kopfzeilen(),
           body: JSON.stringify({ update: genId, videoId: d.videoId, device: geraet(), email }),
         }).catch(() => null);
       }
@@ -174,7 +191,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
     void logTunnelEvent("checkout_started", "david");
     try {
       const start = await fetch("/api/kiss-video-checkout", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
           genId, once: true, videoAufpreis: false, thema: "david-video",
           email, returnTo: window.location.pathname, eingebettet: kasse.anfordern, lang,

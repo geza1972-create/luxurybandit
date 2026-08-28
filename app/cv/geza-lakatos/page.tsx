@@ -248,7 +248,9 @@ export default function GezaLakatosCvPage() {
                 </h3>
                 <p>
                   <b>Live:</b> ein KI-Interview-Trichter für Jobsuchende (gemessener
-                  Deutschtest statt Selbstauskunft), personalisierte KI-Video-Geschenke
+                  Deutschtest statt Selbstauskunft), ein KI-Pre-Screening für Recruiter
+                  (Lebenslauf, Stellenanzeige und ein geführtes Gespräch zu einem
+                  Anforderungs-Abgleich verbunden), personalisierte KI-Video-Geschenke
                   (Geburtstag, Kuss), ein 30-Tage-Coaching-Programm mit KI-Zukunftsfilm,
                   eine KI-Jury, die Geschäftsideen live gegeneinander verhandelt, und eine
                   virtuelle Anprobe für Online-Shops.
@@ -312,6 +314,9 @@ export default function GezaLakatosCvPage() {
                 </div>
                 <div className="gl-phone">
                   <img src="/cv/lb-ci.png" alt="Eigene CI-Bibliothek: Farb-Tokens, Schriftregeln und Bausteine" />
+                </div>
+                <div className="gl-phone">
+                  <img src="/cv/lb-david.png" alt="LB · David — KI-gestütztes Pre-Screening im Recruiter-Dialog" />
                 </div>
               </div>
             </div>

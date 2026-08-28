@@ -6,6 +6,7 @@ import { lieferungAnstossen } from "@/lib/kiss-delivery";
 import { futureProgramUrl } from "@/lib/future-program-store";
 import { geschenkPreisCents } from "@/lib/pricing";
 import { leseDavid } from "@/lib/david-store";
+import { leseLebenslauf } from "@/lib/lebenslauf-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -268,7 +269,13 @@ export async function GET(request: Request) {
          * DIESELBE UNTERSCHEIDUNG WIE IM WACHHUND (lib/kiss-delivery.ts): Ein Video kann nur
          * schulden, wer eine Aufnahme oder ein Foto dafür hinterlegt hat.
          */
-        const unterlagenKauf = e.theme === "david" && !e.audioPath && !e.personPath && !e.modelPath;
+        /* WAS EIN VIDEO ANKÜNDIGT, IST DIE AUFNAHME — NICHT EIN FOTO (korrigiert 28.08.2026,
+           nachdem die Analyse-Kachel des Owners mitdrehte).
+           Die erste Fassung fragte zusätzlich nach `personPath`/`modelPath` und hielt „hat ein Bild"
+           für „hat ein Video bestellt". Seit David nach dem BEWERBUNGSFOTO fragt, landet genau dort
+           ein Bild — jeder Unterlagen-Kauf sah damit aus wie ein Video-Kauf. Die Video-Bewerbung
+           verlangt zwingend eine Selbstaufnahme (`audioPath`); ohne sie gibt es nichts zu rendern. */
+        const unterlagenKauf = e.theme === "david" && !e.audioPath;
         const offenerKauf = !!e.paid && !e.videoUrl && !unterlagenKauf;
         /**
          * KAPUTT IST NICHT LANGSAM (Owner 15.08.2026: „es war vor 5 Tagen" — zu einem
@@ -307,6 +314,71 @@ export async function GET(request: Request) {
          */
         const aufnahmeUrl = e.theme === "lebenslauf" && e.audioPath
           ? await getSignedUrl(String(e.audioPath)).catch(() => "") : "";
+        /**
+         * ZWEI KACHELN JE DAVID-AUFTRAG (Owner 28.08.2026: „zwei Kacheln. In der Analyse ist
+         * David als Bild und in der Bewerbung ich oder das Template").
+         *
+         * Er hatte gefragt, ob die Analyse verschwindet, sobald die Bewerbung geschrieben
+         * ist — und dabei fiel auf, dass EINE Kachel für beides stand. Sie führte immer zum
+         * Bericht; das bezahlte PDF war aus der Galerie gar nicht erreichbar.
+         *
+         * Jetzt trennt sich, was zwei verschiedene Dinge sind: die ANALYSE (Davids Gesicht,
+         * führt zum Bericht — dorthin kommt man immer wieder zurück) und die BEWERBUNG (sein
+         * eigenes Foto oder die gewählte Vorlage, führt zum PDF — das holt man einmal).
+         *
+         * SEIN FOTO ZUERST, DIE VORLAGE ALS RÜCKFALL: Wer ein Bewerbungsfoto hochgeladen
+         * hat, erkennt seine Kachel daran sofort. Ohne Foto zeigt sie das Blatt, das er
+         * gewählt hat — auch das ist unverwechselbar, weil jede Vorlage anders aussieht.
+         *
+         * NUR NACH DER ZAHLUNG: Vorher gibt es nur die Muster-Fassung mit Wasserzeichen, und
+         * eine Kachel, die auf ein Wasserzeichen führt, sieht aus wie ein kaputtes Produkt.
+         */
+        const bewerbungKachel = await (async () => {
+          if (e.theme !== "david" || !e.paid) return null;
+          const profil = await leseLebenslauf(e.id).catch(() => null);
+          const eigenesFoto = e.personPath ? await getSignedUrl(String(e.personPath)).catch(() => "") : "";
+          const vorlage = String(profil?.pdfVorlage || "klassik");
+          /**
+           * DIE KACHEL ENTSTEHT MIT DER ZAHLUNG, NICHT MIT DEM ERGEBNIS (Owner 28.08.2026:
+           * „nein, die Kachel soll sofort angelegt werden aber als ladend").
+           *
+           * Erst wollte ich sie zeigen, sobald die Unterlagen fertig sind — der Gedanke war,
+           * dass eine Kachel, hinter der ein Wasserzeichen liegt, wie ein kaputtes Produkt
+           * aussieht. Er hat den besseren Blick: Zwischen Zahlung und fertigem PDF liegen
+           * dreissig Sekunden, in denen der Kunde die Seite schliessen darf. Erscheint die
+           * Kachel erst danach, hat er in genau dieser Zeit KEINEN Beweis, dass sein Geld
+           * angekommen ist — und das ist der Moment, in dem er sich am unsichersten fühlt.
+           *
+           * `bezahlt` am PROFIL (nicht am Auftrag) ist das Fertig-Zeichen: Es setzt erst der
+           * Optimierungslauf. Solange es fehlt, dreht die Kachel; das PDF gibt es dann noch
+           * nicht zu holen, und sie führt bewusst ins Leere statt auf die Muster-Fassung.
+           */
+          const fertig = profil?.bezahlt === true;
+          /**
+           * KAPUTT IST NICHT LANGSAM — AUCH BEI UNTERLAGEN (Owner 28.08.2026: „das lädt
+           * immer noch", zu einem Auftrag, dessen Optimierung nie ansprang).
+           *
+           * Ein Optimierungslauf dauert rund vierzig Sekunden. Steht nach zehn Minuten immer
+           * noch nichts, läuft nichts mehr — dann ist ein Drehrad eine Lüge, und es versteckt
+           * obendrein den Weg zur Erstattung, denn der erscheint erst, wenn nichts mehr
+           * läuft. Dieselbe Haltung wie bei den Videos, nur mit der kürzeren Frist, die zu
+           * einem Textlauf passt.
+           */
+          /* ALTAUFTRÄGE KENNEN `paidAt` NICHT — sie entstanden, bevor es das Feld gab. Für
+             sie zählt `createdAt`; das liegt VOR der Zahlung, die Frist läuft also eher ab
+             als zu spät. Genau richtig: Ein alter Auftrag, der nie geliefert hat, soll nicht
+             als „läuft gerade" durchgehen. */
+          const seit = Date.parse(String(e.paidAt || e.createdAt || "")) || 0;
+          const haengt = !fertig && !!seit && Date.now() - seit > 10 * 60_000;
+          return {
+            bild: eigenesFoto || `/Lebenslauf/vorlage-${vorlage}.jpg`,
+            pdf: fertig ? `/api/bewerbung-pdf?id=${encodeURIComponent(e.id)}&device=${encodeURIComponent(String(e.device || ""))}` : "",
+            titel: String(profil?.anzeigeTitel || ""),
+            fertig,
+            haengt,
+            seit: String(e.paidAt || e.createdAt || ""),
+          };
+        })();
         return ([
         {
           id: e.id,
@@ -402,6 +474,9 @@ export async function GET(request: Request) {
                  weder Standbild noch Video. Davids Porträt ist das ehrliche Zeichen dafür:
                  dasselbe Gesicht, das im Ergebnis oben steht. */
               imageUrl: "/Lebenslauf/david-portrait.jpg",
+              /* „Analyse" statt des Auftragsnamens — seit die Bewerbung eine eigene Kachel
+                 hat, müssen die zwei auf einen Blick unterscheidbar sein. */
+              name: "Analyse",
               berichtTitel: sitzung.jobTitel || "",
               ...(sitzung.cvPath ? { cvPath: sitzung.cvPath, cvName: sitzung.cvName || "Lebenslauf.pdf" } : {}),
             };
@@ -417,6 +492,33 @@ export async function GET(request: Request) {
          * hängen am Auftrag — gezeigt und gelöscht wird nur noch das WERK; der Admin sieht
          * die Vorlagen weiterhin in UploadsAdmin samt Warnzeichen.
          */
+        /* Die BEWERBUNG als eigene Kachel — siehe `bewerbungKachel` oben. */
+        ...(bewerbungKachel ? [{
+          id: `${e.id}-bewerbung`,
+          imageUrl: bewerbungKachel.bild,
+          videoUrl: "",
+          name: "Bewerbung",
+          createdAt: e.createdAt || "",
+          source: "david-bewerbung",
+          theme: "david",
+          empfaenger: "",
+          videoFertigAt: "",
+          paid: true,
+          warnung: "",
+          alter: 0,
+          /* Solange nichts fertig ist, dreht die Kachel — dieselbe Anzeige wie bei einem
+             laufenden Video, nur mit dem Wort „Bewerbung entsteht" (siehe konto-i18n). */
+          ...(bewerbungKachel.fertig
+            ? {}
+            : bewerbungKachel.haengt
+              ? { gescheitert: true }
+              : { rendert: true, rendertSeit: bewerbungKachel.seit }),
+          /* Derselbe Mechanismus wie beim Bericht: Die Galerie öffnet `berichtUrl` beim
+             Tippen. Hier führt er auf das fertige PDF statt auf den Bericht — und erst,
+             wenn es eines gibt. */
+          ...(bewerbungKachel.pdf ? { berichtUrl: bewerbungKachel.pdf } : {}),
+          berichtTitel: bewerbungKachel.titel,
+        }] : []),
         /* Die Original-Aufnahme des Bewerbers — Begründung oben bei `aufnahmeUrl`. */
         ...(aufnahmeUrl ? [{
           id: `${e.id}-aufnahme`,

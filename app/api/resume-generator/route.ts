@@ -5,6 +5,7 @@ import { anzeigenTextBeschaffen } from "@/lib/lebenslauf-anzeige";
 import { leseDavid } from "@/lib/david-store";
 import { getSignedUrl, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 import { adminPinMatches } from "@/lib/admin-auth";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { fotoAblegen } from "@/lib/lebenslauf-foto";
 import { docxZuText } from "@/lib/docx-text";
 
@@ -166,7 +167,28 @@ export async function POST(request: Request) {
      Grund und ohne Weg zurück. Der Kunde liest ihn als „kaputt" und geht. Was WIRKLICH
      passiert ist, kann er selbst beheben — er sitzt an einem anderen Browser als dem, in
      dem er angefangen hat. Also steht genau das da, samt beider Wege hinaus. */
-  if (auftrag.device && device && auftrag.device !== device) {
+  /**
+   * KONTO SCHLÄGT GERÄT — AUCH HIER (Owner 28.08.2026, zum zweiten Mal in derselben Stunde:
+   * angemeldet und trotzdem abgewiesen, diesmal direkt über dem Kaufknopf).
+   *
+   * Ich hatte die Regel in /api/david und /api/david-screening nachgezogen und diese Route
+   * übersehen — ausgerechnet die, die vor dem Bezahlen steht. Der Riegel hier prüft den
+   * KISS-LOG-AUFTRAG; `darfAmProfilArbeiten` weiter unten kann das Konto längst, aber bis
+   * dahin kommt niemand, der hier schon hinausfliegt.
+   *
+   * Die Anmeldung ist der stärkere Nachweis: Die Gerätekennung steht in einem localStorage,
+   * die Adresse hinter einem Passwort. Und wer sich anmeldet, wechselt oft genau deshalb das
+   * Gerät — Handy zu Rechner ist der Normalfall, nicht der Angriff.
+   *
+   * `paidEmail` zählt mit: Bezahlt wurde vielleicht mit einer anderen Adresse als der, mit
+   * der das Screening begann; beide gehören demselben Menschen.
+   */
+  const kontoMail = await getSellerFromRequest(request)
+    .then(k => String(k?.email ?? "").trim().toLowerCase())
+    .catch(() => "");
+  const seins = !!kontoMail && [auftrag.email, auftrag.paidEmail]
+    .some(m => String(m ?? "").trim().toLowerCase() === kontoMail);
+  if (!seins && auftrag.device && device && auftrag.device !== device) {
     return NextResponse.json({ error: "Dieser Auftrag gehört zu einem anderen Browser. Öffne ihn auf dem Gerät, auf dem du angefangen hast — oder starte hier neu." }, { status: 403 });
   }
 

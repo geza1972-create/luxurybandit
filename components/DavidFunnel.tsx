@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FileText, Upload, Check } from "lucide-react";
 import { Eingabe, EingabeMehrzeilig, Knopf, Fehlerzeile, Fortschritt, Haken, Kasten } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import type { DavidTunnelTexte } from "@/lib/david-tunnel-texte";
 import DavidReportAnsicht from "@/components/DavidReportAnsicht";
 import DavidAngebote from "@/components/DavidAngebote";
@@ -86,6 +87,20 @@ export default function DavidFunnel({ S, lang, preisUnterlagen, preisVideo, beis
   const endeRef = useRef<HTMLDivElement>(null);
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
+  /**
+   * DIE ANMELDUNG REIST MIT (Owner 28.08.2026: „bin doch eingeloggt").
+   *
+   * Der Server prüft „Konto schlägt Gerät" — aber nur, wenn er das Konto überhaupt sieht.
+   * `getSellerFromRequest` liest den `Authorization`-Kopf; ohne ihn ist jeder Besucher
+   * anonym, und ein angemeldeter Nutzer auf einem zweiten Gerät fliegt hinaus.
+   */
+  const anmeldeKopf = (): Record<string, string> => {
+    try {
+      const tok = getStoredAuthSession()?.access_token ?? "";
+      return tok ? { Authorization: `Bearer ${tok}` } : {};
+    } catch { return {}; }
+  };
+  const kopfzeilen = (): Record<string, string> => ({ "Content-Type": "application/json", ...anmeldeKopf() });
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
   const name = vorname.trim();
   const mitNamen = (t: string) => t.replace("{name}", name || "");
@@ -98,7 +113,7 @@ export default function DavidFunnel({ S, lang, preisUnterlagen, preisVideo, beis
     void (async () => {
       try {
         const log = await fetch("/api/kiss-log", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: kopfzeilen(),
           body: JSON.stringify({ theme: "david", device: geraet() }),
         }).then(r => r.json());
         if (log?.id) setGenId(String(log.id));
@@ -158,7 +173,7 @@ export default function DavidFunnel({ S, lang, preisUnterlagen, preisVideo, beis
     if (!genId) return null;
     try {
       const d = await fetch("/api/david", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({ id: genId, device: geraet(), sprache: lang, ...felder }),
       }).then(r => r.json());
       if (d?.error) { setFehler(String(d.error)); return null; }
@@ -168,7 +183,7 @@ export default function DavidFunnel({ S, lang, preisUnterlagen, preisVideo, beis
 
   const screening = async (koerper: Record<string, unknown>) => {
     const d = await fetch("/api/david-screening", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: kopfzeilen(),
       body: JSON.stringify({ id: genId, device: geraet(), ...koerper }),
     }).then(r => r.json());
     return d as Record<string, any>;
@@ -203,7 +218,7 @@ export default function DavidFunnel({ S, lang, preisUnterlagen, preisVideo, beis
     try {
       const ext = (f.name.split(".").pop() || "bin").toLowerCase();
       const signiert = await fetch("/api/lebenslauf-video-url", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({ extension: ext }),
       }).then(r => r.json());
       if (!signiert?.uploadUrl || !signiert?.path) throw new Error("upload");

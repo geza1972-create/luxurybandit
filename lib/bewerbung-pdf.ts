@@ -82,6 +82,17 @@ function winAnsi(text: string): string {
 function sperrBreite(t: string, font: PDFFont, groesse: number, sperrung: number): number {
   return [...t].reduce((b, ch) => b + font.widthOfTextAtSize(ch, groesse), 0) + Math.max(0, [...t].length - 1) * sperrung;
 }
+/** Gesperrte Schrift umbrechen — `umbrechen` kann es nicht, es kennt die Laufweite nicht. */
+function sperrUmbruch(text: string, font: PDFFont, groesse: number, sperrung: number, maxBreite: number): string[] {
+  const zeilen: string[] = [];
+  for (const wort of text.split(/\s+/).filter(Boolean)) {
+    const probe = zeilen.length ? `${zeilen[zeilen.length - 1]} ${wort}` : wort;
+    if (zeilen.length && sperrBreite(probe, font, groesse, sperrung) <= maxBreite) zeilen[zeilen.length - 1] = probe;
+    else zeilen.push(wort);
+  }
+  return zeilen;
+}
+
 function sperrSetzen(seite: PDFPage, t: string, o: { x: number; y: number; size: number; font: PDFFont; color: ReturnType<typeof rgb>; sperrung: number }) {
   let x = o.x;
   for (const ch of t) {
@@ -219,14 +230,44 @@ export async function bewerbungAlsPdf(
   vollbreiteFortsetzung = true;
   /* Kopf: Name links, Kontakt rechtsbündig in Kleinschrift — wie ein Briefkopf. */
   seite.drawText(winAnsi(profil.name || "Bewerbung"), { x: RAND, y: y - 19, size: 19, font: fett, color: TINTE });
+  /**
+   * DER BRIEFKOPF IST ZWEISPALTIG — UND DIE LINKE SPALTE MUSS DAS WISSEN (Owner 28.08.2026,
+   * mit Bild seines eigenen Anschreibens: „selber Fehler im Layout, siehe Text").
+   *
+   * Rechts stehen Ort, Telefon und Adresse, rechtsbündig gesetzt. Links Name und
+   * Positionierung — letztere ohne jede Breitengrenze. Eine lange Rolle („Founding Product
+   * Designer — 0-to-1 Konversationelle AI & schnelles, AI-gestütztes Prototyping") lief
+   * deshalb quer durch die Telefonnummer.
+   *
+   * Es ist derselbe Fehler wie im Editorial-Kopf, nur eine Seite früher: Ich hatte dort die
+   * gesperrte Schrift umbrechen lassen und diese Stelle nicht mitgeprüft. Beide teilen die
+   * Ursache — Text ohne Grenze neben Text mit fester Position.
+   *
+   * ZUERST UMBRECHEN, DANN VERKLEINERN: Zwei Zeilen sind in einem Briefkopf normal; drei
+   * schieben das Datum nach unten. Passt es in zweien nicht, wird die Schrift enger, bis es
+   * passt — eine abgeschnittene Rolle wäre schlimmer als eine kleine.
+   */
+  let kopfHoehe = 52;
   if (profil.positionierung) {
-    seite.drawText(winAnsi(profil.positionierung), { x: RAND, y: y - 36, size: 10.5, font: normal, color: AKZENT });
+    const kontaktBreite = kontaktZeilen.reduce((b, z) => Math.max(b, normal.widthOfTextAtSize(winAnsi(z), 8.5)), 0);
+    const platzLinks = A4.b - RAND * 2 - kontaktBreite - 24;   // 24 pt Luft zwischen den Spalten
+    let pg = 10.5;
+    let zeilen = umbrechen(winAnsi(profil.positionierung), normal, pg, platzLinks);
+    while (zeilen.length > 2 && pg > 7.5) {
+      pg -= 0.5;
+      zeilen = umbrechen(winAnsi(profil.positionierung), normal, pg, platzLinks);
+    }
+    zeilen.slice(0, 2).forEach((z, i) => {
+      seite.drawText(z, { x: RAND, y: y - 36 - i * (pg + 3), size: pg, font: normal, color: AKZENT });
+    });
+    /* Eine zweite Zeile braucht Platz, sonst rückt ihr das Datum auf die Schrift. */
+    if (zeilen.length > 1) kopfHoehe += pg + 3;
   }
   kontaktZeilen.forEach((z, i) => {
     const w = normal.widthOfTextAtSize(winAnsi(z), 8.5);
     seite.drawText(winAnsi(z), { x: A4.b - RAND - w, y: y - 12 - i * 12, size: 8.5, font: normal, color: GRAU });
   });
-  y -= 52;
+  y -= kopfHoehe;
   seite.drawLine({ start: { x: RAND, y }, end: { x: A4.b - RAND, y }, thickness: 0.8, color: AKZENT });
   y -= 30;
 
@@ -375,10 +416,29 @@ export async function bewerbungAlsPdf(
     }
     if (profil.positionierung) {
       ny -= 12;
+      /**
+       * VERKLEINERN ALLEIN REICHT NICHT — SIE MUSS AUCH UMBRECHEN (Owner 28.08.2026, beim
+       * Durchtesten aller Vorlagen mit seinen eigenen Daten: Im Kopfband stand
+       * „FOUNDING PRODUCT DESIGNER — 0-TO-1 KONVERSATIONELLE AI & SCHM" und endete am
+       * Blattrand).
+       *
+       * Die erste Fassung verengte die Schrift, bis sie in EINE Zeile passte, und gab bei
+       * 6,5 pt auf — was darüber hinausging, lief einfach weiter. Bei einer Rolle von neunzig
+       * Zeichen reicht kein Verkleinern mehr; ab da braucht es eine zweite Zeile.
+       *
+       * ZWEI ZEILEN SIND DIE GRENZE: Das Band ist 236 pt hoch und trägt darüber schon den
+       * Namen. Eine dritte Zeile schöbe die Rolle aus dem Band heraus.
+       */
       const rolle = winAnsi(profil.positionierung.toUpperCase());
       let rg = 10, rsp = 2.4;
-      while (rg > 6.5 && sperrBreite(rolle, normal, rg, rsp) > NB) { rg -= 0.25; rsp -= 0.07; }
-      sperrSetzen(seite, rolle, { x: NX, y: ny - rg, size: rg, font: normal, color: SP_TITEL, sperrung: Math.max(0.6, rsp) });
+      let zeilen = sperrUmbruch(rolle, normal, rg, rsp, NB);
+      while (zeilen.length > 2 && rg > 6.5) {
+        rg -= 0.5; rsp = Math.max(0.6, rsp - 0.12);
+        zeilen = sperrUmbruch(rolle, normal, rg, rsp, NB);
+      }
+      zeilen.slice(0, 2).forEach((z, i) => {
+        sperrSetzen(seite, z, { x: NX, y: ny - rg - i * (rg + 5), size: rg, font: normal, color: SP_TITEL, sperrung: Math.max(0.6, rsp) });
+      });
     }
     ly = A4.h - BAND_H - 34;
     y = A4.h - BAND_H - 34;

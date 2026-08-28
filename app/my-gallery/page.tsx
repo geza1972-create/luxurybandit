@@ -53,6 +53,8 @@ type Item = {
   videoUrl?: string;
   /** Bezahlt, Video noch in Arbeit — die Kachel sagt es (Owner 08.08.2026). */
   rendert?: boolean;
+  /** Seit wann dieser Auftrag läuft — der Balken rechnet daraus seinen Stand. */
+  rendertSeit?: string;
   /** Der Server hat aufgegeben — ehrlicher Zustand statt ewigem Drehrad (15.08.2026). */
   gescheitert?: boolean;
   lookName?: string;
@@ -110,6 +112,84 @@ export default function MyGalleryPage() {
   const [token, setToken] = useState("");
   const [ready, setReady] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+
+  /**
+   * DER BALKEN ZÄHLT SEIT DEM AUFTRAG, NICHT SEIT DEM ÖFFNEN (Owner 28.08.2026: „jedes Mal
+   * wenn ich da rein gehe in Assets fängt er neu an").
+   *
+   * `Fortschritt` zählt ohne echten Wert selbst hoch — vom Einhängen an. In einem Trichter
+   * ist das richtig: Dort steht man vor dem Balken und wartet. In der Galerie kommt man
+   * zurück, geht wieder, kommt wieder — und der Balken fing jedes Mal bei drei Prozent an.
+   * Das liest sich nicht wie „dauert noch", sondern wie „hat neu angefangen", und man fragt
+   * sich, ob der eigene Besuch die Arbeit zurückgeworfen hat.
+   *
+   * Jetzt rechnet er aus der VERGANGENEN ZEIT (`rendertSeit`, vom Server). Wer nach zwanzig
+   * Sekunden wiederkommt, sieht den Stand von zwanzig Sekunden.
+   *
+   * DIE ERWARTETE DAUER IST GEMESSEN, NICHT GERATEN: Unterlagen brauchen rund 40 Sekunden
+   * (ein Optimierungslauf), ein Video rund zehn Minuten (Aufnahme, Look, HeyGen). Deshalb
+   * zwei Zahlen statt einer — ein Video mit dem Takt einer Bewerbung stünde nach einer
+   * Minute bei neunzig Prozent und danach acht Minuten still.
+   *
+   * NIE ÜBER 90: Fertig ist erst, wenn die Kachel es zeigt. Ein Balken, der 100 erreicht und
+   * dann weiterläuft, ist eine Lüge mit Zahl.
+   */
+  /**
+   * DER ZWEITE ANLAUF STATT EINER ERSTATTUNG (Owner 28.08.2026: „Rückerstattung bekommt er
+   * nicht, sondern neuen Versuch").
+   *
+   * Bei einem Video ist „Erstattung anfragen" richtig: Scheitert die Kette, ist das Produkt
+   * weg und wir schulden Geld. Bei den Unterlagen ist es falsch — bezahlt ist bezahlt, der
+   * Auftrag steht, es fehlt nur der Lauf. Eine Erstattung kostet 9,99 € UND den Kunden; ein
+   * zweiter Anlauf kostet ein paar Cent und liefert genau das, wofür er bezahlt hat.
+   *
+   * Der Server lässt ihn zu, weil `auftrag.paid` weiterhin wahr ist — es braucht keine neue
+   * Zahlung und keine Sonderrechte.
+   */
+  const [nochmalLaeuftId, setNochmalLaeuftId] = useState("");
+  /* Ein Zähler, der die Liste neu holt — `nachladen` lebt im Effekt und ist von hier nicht
+     erreichbar. Ein voller Seiten-Neuladen wäre die grobe Alternative und würde die
+     Scrollposition verlieren. */
+  const [frisch, setFrisch] = useState(0);
+  const nochmalVersuchen = (kachelId: string) => {
+    /**
+     * DER ZWEITE ANLAUF LÄUFT AUF DER ERGEBNISSEITE, NICHT HIER.
+     *
+     * Erst rief dieser Knopf `optimieren` direkt auf. Das reichte, solange `erzeugen` schon
+     * VOR der Kasse gelaufen war — seit die Erzeugung hinter die Zahlung gewandert ist
+     * (Owner 28.08.2026, Weg „1"), kann auch das Profil selbst fehlen, und `optimieren`
+     * antwortet dann mit 404. Der Kunde tippt und sieht wieder nichts.
+     *
+     * Die Galerie hat die nötigen Daten nicht: Anzeige, Lebenslauf-Pfad, Adresse, gewählte
+     * Vorlage und Foto liegen alle am David-Ergebnis. Also schickt der Knopf ihn dorthin und
+     * lässt die Seite die ganze Kette nachholen — dieselbe, die auch nach einer Zahlung
+     * läuft. Der Server prüft dort weiterhin, ob wirklich bezahlt wurde; die Adresse allein
+     * schaltet nichts frei.
+     */
+    const auftrag = kachelId.replace(/-bewerbung$/, "");
+    if (!auftrag) return;
+    setNochmalLaeuftId(kachelId);
+    window.location.href = `/david/${encodeURIComponent(auftrag)}?nachholen=1`;
+  };
+
+  const [jetztTakt, setJetztTakt] = useState(0);
+  useEffect(() => {
+    const uhr = setInterval(() => setJetztTakt(t => t + 1), 1000);
+    return () => clearInterval(uhr);
+  }, []);
+  const laufProzent = (() => {
+    const laufende = items.filter(x => x.rendert);
+    if (!laufende.length) return undefined;
+    const start = laufende
+      .map(x => Date.parse(x.rendertSeit || "") || 0)
+      .filter(Boolean)
+      .sort((a, b) => b - a)[0];          // der JÜNGSTE Auftrag bestimmt den Takt
+    if (!start) return undefined;
+    const nurUnterlagen = laufende.every(x => x.theme === "david" || x.theme === "lebenslauf");
+    const erwartet = nurUnterlagen ? 40_000 : 600_000;
+    void jetztTakt;                        // der Sekundentakt zeichnet neu
+    return Math.max(3, Math.min(90, Math.round((Date.now() - start) / erwartet * 90)));
+  })();
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Item | null>(null);
   const [query, setQuery] = useState("");   // Model-/Look-Suche (z. B. „Bella")
@@ -402,10 +482,11 @@ export default function MyGalleryPage() {
           // seine Bilder sind nicht da"). Sie liegen im Kiss-Log; die Route liefert sie jetzt
           // als `pictures` mit — zugeordnet über E-Mail oder Gerät.
           const bilder: Item[] = (Array.isArray(d?.pictures) ? d.pictures : [])
-            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; gescheitert?: boolean; programUrl?: string; berichtUrl?: string; berichtTitel?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
+            .map((b: { id: string; imageUrl?: string; videoUrl?: string; name?: string; source?: string; warnung?: string; alter?: number; theme?: string; empfaenger?: string; rendert?: boolean; rendertSeit?: string; gescheitert?: boolean; programUrl?: string; berichtUrl?: string; berichtTitel?: string; createdAt?: string; videoFertigAt?: string; paid?: boolean; preisCents?: number }) => ({
               id: b.id,
               type: (b.videoUrl ? "video" : "image") as "video" | "image",
               rendert: b.rendert === true,
+              rendertSeit: b.rendertSeit || "",
               gescheitert: b.gescheitert === true,
               imageUrl: b.imageUrl || "",
               videoUrl: b.videoUrl || "",
@@ -529,7 +610,7 @@ export default function MyGalleryPage() {
       .finally(() => setLoading(false));
     /* Der Nachlade-Takt darf die Seite nicht ueberleben. */
     return () => { if (takt) clearTimeout(takt); };
-  }, [ready, pin, token]);
+  }, [ready, pin, token, frisch]);
 
   // Cross-origin (Supabase) → per Blob laden, damit der Browser wirklich SPEICHERT
   // statt nur zu öffnen. Fällt auf „in neuem Tab öffnen" zurück, falls CORS blockt.
@@ -706,11 +787,13 @@ export default function MyGalleryPage() {
              Warten aber eine Richtung. Der Satz darunter sagt weiterhin, dass die Seite
              geschlossen werden darf. */
           <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
-            <Fortschritt text={
-              items.filter(x => x.rendert).length > 1
-                ? T.laeuftViele.replace("{n}", String(items.filter(x => x.rendert).length))
-                : (items.filter(x => x.rendert).every(x => x.theme === "david" || x.theme === "lebenslauf") ? T.laeuftEinsCv : T.laeuftEins)
-            } />
+            <Fortschritt
+              prozent={laufProzent}
+              text={
+                items.filter(x => x.rendert).length > 1
+                  ? T.laeuftViele.replace("{n}", String(items.filter(x => x.rendert).length))
+                  : (items.filter(x => x.rendert).every(x => x.theme === "david" || x.theme === "lebenslauf") ? T.laeuftEinsCv : T.laeuftEins)
+              } />
             <p className="mt-1.5 text-[12px] font-semibold leading-snug text-[#f6cf51]/75">{T.laeuftDazu}</p>
           </div>
         )}
@@ -813,6 +896,8 @@ export default function MyGalleryPage() {
               <div key={it.id}
                 onClick={() => {
                   if (selectMode) { toggleSel(it.id); return; }
+                  /* Gescheiterte Unterlagen: Tippen heisst „nochmal", nicht „öffnen". */
+                  if (it.gescheitert && it.id.endsWith("-bewerbung")) { void nochmalVersuchen(it.id); return; }
                   /**
                    * DAS PROGRAMM ÖFFNET SICH DIREKT (Owner 11.08.2026: „Und wenn ich drauf
                    * klicke auf das Bild dann öffnet sich das programm"). Kein Vollbild-
@@ -920,7 +1005,9 @@ export default function MyGalleryPage() {
                 {it.gescheitert && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/75 px-1 py-1.5 text-center text-[10px] font-black leading-tight"
                     style={{ color: "#ef4444" }}>
-                    {T.nichtGeklappt ?? "Hat nicht geklappt"}
+                    {it.id.endsWith("-bewerbung")
+                      ? (nochmalLaeuftId === it.id ? T.nochmalLaeuft : T.nochmalCv)
+                      : (T.nichtGeklappt ?? "Hat nicht geklappt")}
                   </span>
                 )}
                 {/* NOCH KEIN BILD, ABER SCHON BEZAHLT: die Kachel bleibt trotzdem stehen

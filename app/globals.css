@@ -1126,3 +1126,27 @@ svg {
   body.lb-druckt [data-druck-aktiv] [data-nicht-drucken] { display: none !important; }
   @page { margin: 14mm; }
 }
+
+/**
+ * DER PULS AM CHIP — „das muss blinken bis es fertig ist" (Owner 28.08.2026).
+ *
+ * Der Assets-Knopf trug bisher nur einen kleinen pulsierenden Punkt in der Ecke. Der Owner
+ * hat ihn beim eigenen Kauf fast übersehen und ist deshalb hoch und runter gescrollt, um
+ * herauszufinden, ob überhaupt etwas läuft. Jetzt atmet der ganze Knopf.
+ *
+ * AM RAND, NICHT AN DER SCHRIFT: Tailwinds `animate-pulse` senkt die Deckkraft des GANZEN
+ * Elements — das Wort „Assets" würde halb verschwinden und wieder auftauchen. Ein Knopf, den
+ * man im Rhythmus schlechter liest, ist kein Hinweis, sondern ein Flackern. Hier wandert nur
+ * die Randfarbe, dazu ein weicher Schein nach aussen; die Schrift bleibt immer voll da.
+ *
+ * WER KEINE BEWEGUNG WILL, BEKOMMT KEINE: `prefers-reduced-motion` schaltet die Animation ab
+ * und lässt den Rand hell stehen — der Hinweis bleibt, die Bewegung geht.
+ */
+@keyframes lb-puls-rand {
+  0%, 100% { border-color: rgba(246, 207, 81, 0.35); box-shadow: 0 0 0 0 rgba(246, 207, 81, 0.30); }
+  50%      { border-color: rgba(246, 207, 81, 0.95); box-shadow: 0 0 0 5px rgba(246, 207, 81, 0.10); }
+}
+.lb-puls { animation: lb-puls-rand 1.7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .lb-puls { animation: none; border-color: rgba(246, 207, 81, 0.9); }
+}

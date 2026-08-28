@@ -158,6 +158,9 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
     if (cents > 0 && !e.paidCents) e.paidCents = cents;
     e.paid = true;
     if (mail && !e.paidEmail) e.paidEmail = mail;
+    /* Der Zeitstempel der Zahlung — nie überschreiben, ein zweiter Aufruf (Webhook UND
+       Rückkehr des Kunden) darf die Uhr nicht zurückstellen. */
+    if (!e.paidAt) e.paidAt = new Date().toISOString();
     // Einzelkauf oder Abo — davon hängt ab, wie viele Videos ihm zustehen.
     if (!e.paidKind) e.paidKind = /-abo$/.test(String(kind)) ? "abo" : String(kind) === "kiss-video" ? "once" : undefined;
     // Nie zurücksetzen: ein zweiter Aufruf (Webhook UND Rückkehr) darf die Frist nicht
@@ -188,7 +191,13 @@ export async function bezahltVermerken(genId: string, email = "", kind = "", ori
      * schulden, wenn eine Aufnahme oder ein Foto dafür da ist; ohne die gibt es nichts zu
      * rendern, und der Wachhund würde nur Fehler sammeln.
      */
-    const kannVideo = e.theme !== "david" || !!e.audioPath || !!e.personPath || !!e.modelPath;
+    /* WAS EIN VIDEO ANKÜNDIGT, IST DIE AUFNAHME — NICHT EIN FOTO (korrigiert 28.08.2026,
+       nachdem die Analyse-Kachel des Owners mitdrehte).
+       Die erste Fassung fragte zusätzlich nach `personPath`/`modelPath` und hielt „hat ein Bild"
+       für „hat ein Video bestellt". Seit David nach dem BEWERBUNGSFOTO fragt, landet genau dort
+       ein Bild — jeder Unterlagen-Kauf sah damit aus wie ein Video-Kauf. Die Video-Bewerbung
+       verlangt zwingend eine Selbstaufnahme (`audioPath`); ohne sie gibt es nichts zu rendern. */
+    const kannVideo = e.theme !== "david" || !!e.audioPath;
     if (kannVideo && !e.videoDueAt && !e.videoUrl) e.videoDueAt = new Date(Date.now() + (sofort ? 0 : GNADENFRIST_MS)).toISOString();
     /**
      * DAS FUTURE-PROGRAMM ANLEGEN — GENAU HIER, BEVOR KAPPUNG/AUFRÄUMER DIE ZIELE ERWISCHEN

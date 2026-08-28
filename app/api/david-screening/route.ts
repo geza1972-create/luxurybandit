@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { berichtMailSchicken } from "@/lib/david-mail";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { getSignedUrl } from "@/lib/try-this-look-store";
 import { docxZuText } from "@/lib/docx-text";
 import {
@@ -107,24 +108,59 @@ async function frageModell(apiKey: string, modell: string, inhalt: Array<Record<
    * mit einem Fehler zurückweisen.
    */
   const reasoning = /^gpt-5/.test(modell) ? { reasoning: { effort: denken } } : {};
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: modell, input: [{ role: "user", content: inhalt }], ...reasoning }),
-  });
-  const roh = await res.text();
-  let nutz: any = null;
-  try { nutz = roh ? JSON.parse(roh) : null; } catch { nutz = null; }
+
+  /** Ein einzelner Anlauf — die Wiederholung darüber entscheidet, ob er reicht. */
+  const anlauf = async () => {
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modell, input: [{ role: "user", content: inhalt }], ...reasoning }),
+    });
+    const roh = await res.text();
+    let nutz: any = null;
+    try { nutz = roh ? JSON.parse(roh) : null; } catch { nutz = null; }
+    const text =
+      nutz?.output_text ??
+      nutz?.output?.flatMap((i: any) => i?.content ?? [])?.map((c: any) => c?.text ?? "")?.join("\n") ??
+      "";
+    return { res, nutz, text: String(text ?? "") };
+  };
+
+  /**
+   * EINE LEERE ANTWORT IST KEINE SACKGASSE (Owner 28.08.2026, mit Bild vor dem 19-Euro-Knopf:
+   * „Das Skript kam leer zurück. Versuch es bitte noch einmal.").
+   *
+   * Die Responses-API antwortet mit HTTP 200 und `status: "incomplete"`, wenn das interne
+   * Nachdenken das Budget aufgebraucht hat, BEVOR ein sichtbarer Text entstand. `res.ok` ist
+   * dann wahr, `output_text` aber leer — der Aufruf sah für uns gelungen aus, und der
+   * Bewerber las eine Absage, die nur er selbst wegtippen konnte.
+   *
+   * Der Skript-Schritt ist der anfälligste: Er verlangt in EINEM Aufruf den Sprechtext plus
+   * drei Kleidungs- und drei Umgebungsvorschläge samt Beschriftungen.
+   *
+   * GENAU EIN ZWEITER ANLAUF: Das Nachdenken ist nicht deterministisch, ein zweiter Versuch
+   * geht meist durch. Zwei Wiederholungen wären zwei Rechnungen für ein Ergebnis; scheitert
+   * auch der zweite, ist es ein echter Fehler und der Aufrufer soll ihn zeigen.
+   *
+   * DER VERBRAUCH BEIDER ANLÄUFE WIRD GEZÄHLT — ein Fehlversuch kostet echtes Geld, und wer
+   * ihn nicht mitschreibt, misst später falsch.
+   */
+  let { res, nutz, text } = await anlauf();
+  let zusatzHeraus = 0;
+  if (res.ok && !text.trim()) {
+    const grund = str(nutz?.incomplete_details?.reason, 120) || str(nutz?.status, 40) || "leer";
+    console.warn("[david-screening] leere Antwort, zweiter Anlauf:", modell, grund);
+    zusatzHeraus = Number(nutz?.usage?.output_tokens ?? 0) || 0;
+    ({ res, nutz, text } = await anlauf());
+  }
+
   if (!res.ok) {
     /* DIE EHRLICHE MELDUNG NACH VORN: Ein leeres Guthaben (429 „no credits remaining")
        sieht im Browser sonst aus wie ein Fehler unserer Seite. */
     const grund = str(nutz?.error?.message, 300) || `Status ${res.status}`;
     return { ok: false, fehler: grund, status: res.status };
   }
-  const text =
-    nutz?.output_text ??
-    nutz?.output?.flatMap((i: any) => i?.content ?? [])?.map((c: any) => c?.text ?? "")?.join("\n") ??
-    "";
+
   /* WAS DER AUFRUF GEKOSTET HAT — die Antwort sagt es selbst (`usage`), also wird es
      mitgeschrieben statt geschätzt (Owner 28.08.2026: „ich will wissen, was mich das
      kostet"). Gezählt wird je Sitzung, nicht je Tag: So steht am einzelnen Screening,
@@ -137,7 +173,7 @@ async function frageModell(apiKey: string, modell: string, inhalt: Array<Record<
       aufrufe: 1,
       modell,
       hinein: Number(u?.input_tokens ?? u?.prompt_tokens ?? 0) || 0,
-      heraus: Number(u?.output_tokens ?? u?.completion_tokens ?? 0) || 0,
+      heraus: (Number(u?.output_tokens ?? u?.completion_tokens ?? 0) || 0) + zusatzHeraus,
     },
   };
 }
@@ -222,12 +258,27 @@ export async function POST(request: Request) {
 
   const sitzung = await leseDavid(id);
   if (!sitzung) return NextResponse.json({ error: "Diese Sitzung kenne ich nicht." }, { status: 404 });
-  if (sitzung.device && device && sitzung.device !== device) {
+  /**
+   * KONTO SCHLÄGT GERÄT (Hausregel [[guthaben-haengt-an-einer-adresse]]; Owner 28.08.2026,
+   * angemeldet und trotzdem abgewiesen: „das ist blöd, ich bin doch angemeldet").
+   *
+   * Die Prüfung schaute nur auf die Gerätekennung. Wer sich anmeldet, wechselt aber genau
+   * deshalb das Gerät — Handy zu Rechner ist der Normalfall, nicht der Angriff. Und die
+   * Anmeldung ist der STÄRKERE Nachweis: Die Gerätekennung steht in einem localStorage, die
+   * Adresse hinter einem Passwort.
+   *
+   * Dieselbe Reihenfolge wie `darfAmProfilArbeiten` im Lebenslauf: Admin, dann Konto, dann
+   * Gerät. Nur die Sitzung kennt hier keine `basisId`, deshalb kürzer.
+   */
+  const kontoMail = await getSellerFromRequest(request)
+    .then(k => String(k?.email ?? "").trim().toLowerCase())
+    .catch(() => "");
+  const gehoertIhm = !!kontoMail && kontoMail === String(sitzung.email ?? "").trim().toLowerCase();
+  if (!gehoertIhm && sitzung.device && device && sitzung.device !== device) {
     /* KEIN „Not yours." VOR DEM NUTZER (gesehen 28.08.2026 im Test): Die Zeile stammt aus
        den Admin-Routen des Hauses und stand hier in Rot mitten auf der Ergebnis-Seite —
-       englisch, technisch und ohne Ausweg. Sie trifft, wer seinen Bericht auf einem
-       ANDEREN Gerät öffnet; das ist kein Angriff, sondern der Alltag (Handy/Rechner). */
-    return NextResponse.json({ error: "Diesen Bericht hast du auf einem anderen Gerät erstellt. Öffne ihn dort — oder starte hier ein neues Screening." }, { status: 403 });
+       englisch, technisch und ohne Ausweg. */
+    return NextResponse.json({ error: "Diesen Bericht hast du auf einem anderen Gerät erstellt. Melde dich mit der Adresse an, mit der du ihn erstellt hast — oder starte hier ein neues Screening." }, { status: 403 });
   }
   /* OHNE LEAD KEIN SCREENING (Owner §5): Vorname, gültige Adresse und die Bestätigung sind
      die Bedingung, nicht eine Formalie, die man später nachreicht. */
