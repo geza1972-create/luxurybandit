@@ -17,7 +17,11 @@ import type { Lang } from "@/lib/lang";
  */
 export const DAVID_TUNNEL = {
   /* ── 1 · Vorname ─────────────────────────────────────────────────────────── */
-  hallo: "Hallo, ich bin David.",
+  /* „AI David", nicht nur „David" (Owner 29.08.2026). Er ist eine KI, und der Bewerber
+     vertraut ihr gleich seinen Lebenslauf und Dinge an, die er sonst niemandem sagt — dann
+     muss im ersten Satz stehen, mit wem er es zu tun hat. Es passt ausserdem zur Überschrift
+     („mit David AI!") und zur Kopfzeile („AI Pre-Screening"). */
+  hallo: "Hallo, ich bin AI David.",
   halloText: "Bevor wir uns deine Bewerbung ansehen: Wie darf ich dich ansprechen?",
   vornameLabel: "Vorname",
   vornamePlatzhalter: "Dein Vorname",
@@ -26,25 +30,111 @@ export const DAVID_TUNNEL = {
   vornameFehlt: "Sag mir bitte, wie ich dich ansprechen darf.",
 
   /* ── 2 · E-Mail und Datenschutz ──────────────────────────────────────────── */
-  mailTitel: "Hallo {name}.",
-  mailText: "Damit ich dein Pre-Screening durchführen und dein Ergebnis für dich speichern kann, brauche ich noch deine E-Mail-Adresse.",
+  /* KEIN ZWEITES „HALLO" (Owner 29.08.2026: „aber nicht noch mal Hallo"). David hat sich
+     einen Schritt vorher vorgestellt; wer sich zweimal begrüsst, wirkt, als hätte er das
+     erste Mal vergessen. Der Name bleibt — er zeigt, dass zugehört wurde. */
+  /* DER TITEL FRAGT, WAS GEBRAUCHT WIRD (Owner 29.08.2026: „hier auch den Titel ersetzen
+     mit: Wie lautet deine E-Mail-Adresse?"). „Danke, {name}." war höflich, aber es sagte
+     nicht, was auf diesem Schirm passieren soll. Der Dank ist in den Satz darunter gewandert
+     — er geht nicht verloren, er steht nur nicht mehr an der Stelle, an der die Aufgabe
+     stehen muss. */
+  mailTitel: "Wie lautet deine E-Mail-Adresse?",
+  /* „Danke, {name} — damit kann ich…" war kein Satz (Owner 29.08.2026): Das „damit" zeigte
+     auf die Adresse, die er noch gar nicht gegeben hat. Der Dank galt dem Vornamen, der
+     Nebensatz der Mail — zwei Dinge in einem Bindestrich zusammengezwungen. Jetzt zwei
+     saubere Sätze: erst der Dank, dann der Grund. */
+  mailText: "Danke, {name}. Mit deiner Adresse speichere ich dein Ergebnis, damit du es später jederzeit wiederfindest.",
   mailLabel: "E-Mail-Adresse",
   mailPlatzhalter: "du@beispiel.de",
   mailFehlt: "Diese Adresse sieht noch nicht vollständig aus.",
   /* Der Wortlaut ist der des Owners (§5) — bewusst ohne „wir geben nichts an Dritte weiter"
      (technische Dienstleister verarbeiten im Auftrag) und ohne erzwungene Zustimmung zu
      KI-Training. */
-  datenschutz: "Damit David dein Pre-Screening durchführen und speichern kann, verarbeiten wir die von dir bereitgestellten Daten, insbesondere deinen Lebenslauf, die Stellenanzeige und deine Antworten. Wir verwenden Nutzungsdaten außerdem zur Qualitätssicherung und Verbesserung von David. Deine Bewerbung wird nicht automatisch an Arbeitgeber versendet. Mehr dazu findest du in unserer Datenschutzerklärung.",
+  /**
+   * KURZ, ABER VOLLSTÄNDIG (Owner 29.08.2026: „hier ist enorm viel Text").
+   *
+   * Vorher standen hier 58 Wörter in vier Sätzen — direkt über dem Häkchen, das er setzen
+   * soll. Ein Absatz dieser Länge wird an dieser Stelle nicht gelesen, er wird überblättert;
+   * damit ist die Zustimmung formal da und inhaltlich wertlos.
+   *
+   * WAS BLEIBEN MUSSTE, weil es die Zustimmung trägt: WAS wir verarbeiten (Lebenslauf,
+   * Anzeige, Antworten), WOFÜR (Screening und Verbesserung) und der Link auf die
+   * Datenschutzerklärung. Gekürzt wurde nur die Verpackung — „die von dir bereitgestellten
+   * Daten, insbesondere" sagt nichts, was die Aufzählung nicht schon sagt.
+   *
+   * DER WICHTIGSTE SATZ STEHT JETZT ALLEIN am Ende: Seine Bewerbung geht nie automatisch an
+   * einen Arbeitgeber. Das ist die Sorge, mit der er hier sitzt — sie war vorher der dritte
+   * Satz von vieren und ging unter.
+   */
+  datenschutz: "Wir verarbeiten deinen Lebenslauf, die Stellenanzeige und deine Antworten für dein Screening und nutzen sie, um David besser zu machen. Mehr in der Datenschutzerklärung.",
+  /* Die Zusicherung, getrennt und deshalb lesbar. */
+  datenschutzZusage: "Deine Bewerbung geht nie automatisch an Arbeitgeber.",
   datenschutzLink: "Datenschutzerklärung",
   haken: "Ich habe die Datenschutzhinweise gelesen und möchte das Pre-Screening starten.",
   hakenFehlt: "Ohne diese Bestätigung darf ich nicht loslegen.",
   screeningStarten: "Pre-Screening starten",
 
   /* ── 3 · Lebenslauf ──────────────────────────────────────────────────────── */
-  cvTitel: "Gut, {name}.",
-  cvText: "Jetzt schauen wir uns deine Bewerbung an. Als Erstes brauche ich deinen Lebenslauf.",
+  /* DER TITEL SAGT DIE AUFGABE, NICHT NUR HALLO (Owner 29.08.2026: „Hier muss als Titel
+     stehen: Lade deinen jetzigen Lebenslauf hoch. Wir analysieren das!").
+     
+     Vorher stand dort „Gut, {name}." — freundlich, aber leer. Wer die Seite auf dem Handy
+     überfliegt, liest zuerst die fette Zeile; stand da nur sein Name, musste er den Absatz
+     darunter lesen, um zu erfahren, was er tun soll. Jetzt steht die Aufgabe oben und der
+     Nutzen direkt dahinter — „wir analysieren das" ist der Grund, warum er die Datei
+     überhaupt herausrückt. Der Name wandert in den Satz darunter, er geht also nicht
+     verloren. */
+  cvTitel: "Lade deinen jetzigen Lebenslauf hoch. Wir analysieren ihn!",
+  /* ZUNGENBRECHER RAUS (Owner 29.08.2026). „Schauen wir ihn uns zusammen mit der Stelle an,
+     auf die du dich bewerben willst" — ein Hauptsatz mit Umstellung, ein eingeschobenes
+     Objekt und ein Relativsatz, alles in einem Atemzug. Auf dem Handy liest das niemand zu
+     Ende. Jetzt zwei kurze Sätze: was jetzt zählt, und was als Nächstes kommt. */
+  cvText: "Gut, {name}. Gleich danach zeigst du mir die Stelle — dann vergleiche ich beides.",
   cvKnopf: "Lebenslauf hochladen",
   cvHinweis: "PDF oder Word · bleibt bei uns",
+  /* Jede Absage nennt ihren Grund (29.08.2026) — „nimm eine PDF" als Pauschalantwort schickt
+     Leute auf die falsche Fährte, wenn in Wahrheit die Verbindung abgerissen ist. */
+  cvFormat: "Diese Datei ({typ}) kann ich nicht lesen. Bitte eine PDF- oder Word-Datei.",
+  cvZuGross: "Die Datei ist grösser als 15 MB. Speichere deinen Lebenslauf bitte kleiner ab.",
+  cvNetzFehler: "Das Hochladen hat nicht geklappt. Prüf kurz deine Verbindung und versuch es noch einmal.",
+  /* ── DIE ENTSCHEIDUNG VOR DEM GELD (Owner 29.08.2026) ──
+     „was ich keine Lust habe, ist Tokens zu bezahlen für Abbrecher. Erst dann muss man
+     zahlen, wenn er sich entscheidet: ja, ich will jetzt von David mein CV analysieren —
+     und nicht beim Hochladen."
+
+     Das Hochladen kostet uns nichts, das LESEN kostet. Bisher fielen beide zusammen: Wer
+     die Datei anhängte und dann wegging, hatte trotzdem einen Aufruf ausgelöst. Jetzt liegt
+     die Datei erst nur da, und David fragt nach. Ein Tipp mehr — dafür zahlt nur noch, wer
+     wirklich will.
+
+     DER SATZ IST EINE FRAGE, keine Bestätigung — eine Entscheidung, kein Durchklicker.
+
+     DAVID LIEST NICHT — DAVID INTERVIEWT (Owner 29.08.2026 zum Knopf „Ja, lies meinen
+     Lebenslauf": „er liest nicht, sondern: Bist du bereit für ein Interview mit mir?").
+     „Lies meinen Lebenslauf" macht ihn zum Aktenleser und den Bewerber zum Zuschauer. Das
+     Produkt ist aber das GESPRÄCH — er stellt Fragen, der Bewerber antwortet. Die Frage nach
+     dem Interview ist zugleich die ehrlichere Ansage: Es geht jetzt los, und es dauert. */
+  cvBereitTitel: "Bist du bereit für ein Interview mit mir?",
+  /* „JA UND DANN?" (Owner 29.08.2026) — die Frage nach dem Interview darf nicht verschweigen,
+     dass zuerst noch die Stelle drankommt. Sonst tippt er auf „bereit" und landet in einem
+     Formular. Der Satz sagt beides: was ich jetzt tue, und was als Nächstes von ihm kommt. */
+  cvBereitText: "Dein Lebenslauf liegt bei mir, {name}. Ich sehe ihn durch, dann zeigst du mir die Stelle — und wir legen los.",
+  cvBereitKnopf: "Ja, ich bin bereit",
+  /* Kein zweiter Knopf für die Datei: Das Feld darüber ist selbst der Weg zur anderen Datei. */
+  cvGewechselt: "Tippen, um eine andere Datei zu wählen",
+  /* LÖSCHEN GEHÖRT AN JEDES UPLOAD-FELD (Hausregel; Owner 29.08.2026: „kann er im Trichter
+     auch seinen Lebenslauf löschen und wieder hochladen?"). Zwei Tipps statt eines
+     Systemdialogs — der erste färbt rot und fragt, der zweite löscht wirklich. */
+  cvLoeschen: "Lebenslauf löschen",
+  cvLoeschenFrage: "Wirklich löschen?",
+  cvGeloescht: "Weg. Lade einfach eine andere Datei hoch.",
+  /* DER SATZ BEIM WIEDEREINSTIEG (Owner 29.08.2026) — er kommt aus seiner Mail zurück und
+     sieht ein halb ausgefülltes Gespräch. Ohne ein Wort dazu rätselt er, wo er gelandet ist.
+     Kein „willkommen zurück" als Floskel: David sagt, dass nichts verloren ist. */
+  zurueck: "Da bist du wieder, {name}. Nichts ist verloren — wir machen genau dort weiter, wo wir aufgehört haben.",
+  /* Kein Zeitversprechen, das wir nicht halten können — dafür der Ausweg. Wer weiss, dass er
+     jederzeit aufhören darf, fängt eher an. */
+  cvBereitHinweis: "Du kannst jederzeit aufhören.",
   cvLaeuft: "David liest deinen Lebenslauf",
   cvLaden1: "Beruflicher Hintergrund wird eingeordnet",
   cvLaden2: "Erfahrungen werden erkannt",
@@ -52,7 +142,44 @@ export const DAVID_TUNNEL = {
   cvFehler: "Der Lebenslauf ließ sich nicht lesen. Versuch es bitte mit einer PDF-Datei.",
 
   /* ── 4 · Die Stelle ──────────────────────────────────────────────────────── */
-  jobText: "Zeig mir jetzt die Stelle, auf die du dich bewerben möchtest.",
+  /* Titel des Schritts — er steht als Überschrift ÜBER der Karte (siehe `schrittTitel` in
+     components/DavidFunnel). `jobText` bleibt der Satz darunter. */
+  jobTitel: "Zeig mir die Stelle, auf die du dich bewirbst.",
+  /**
+   * WAS DAVID NACH DEM LEBENSLAUF SAGT — EIN SATZ (Owner 29.08.2026: „muss nicht so viel
+   * stehen über die Analyse. Er muss nur: OK Geza, ich sehe du bist UX Designer").
+   *
+   * Vorher kippte er ALLE Beobachtungen der Auswertung ins Gespräch — acht Zeilen über
+   * Arbeitgeber, Werkzeuge und Projekte, mitten im Trichter, bevor überhaupt die Stelle
+   * bekannt ist. Das liest niemand, und es verschenkt die Wirkung: Die Beobachtungen sind
+   * das PRODUKT, sie gehören in den Bericht, nicht in den Vorraum.
+   *
+   * Der eine Satz leistet, was er leisten soll: Er beweist, dass David den Lebenslauf
+   * wirklich gelesen hat. Mehr braucht es an dieser Stelle nicht.
+   */
+  cvErkannt: "Ok, {name} — ich sehe, du bist {rolle}.",
+  cvErkanntOhneRolle: "Ok, {name} — ich habe deinen Lebenslauf gelesen.",
+  jobText: "Füge die Anzeige ein oder gib die Adresse an — David liest sie und vergleicht sie mit deinem Lebenslauf.",
+  /**
+   * DER WEG OHNE STELLE (Owner 29.08.2026: „weiter ohne Stellenanzeige müsste auch gehen.
+   * Aber dafür analysieren wir nur sein CV").
+   *
+   * WARUM ES IHN GEBEN MUSS: Viele wissen noch nicht, wohin sie sich bewerben — sie wollen
+   * erst wissen, wo sie stehen. Wer die an dieser Stelle wegschickt, verliert genau die, die
+   * am ehesten Hilfe brauchen. Der Bericht ohne Ziel ist trotzdem wertvoll; er ist der Köder.
+   *
+   * ES IST EINE RÜCKFRAGE, KEIN ZWEITER KNOPF: Der ehrliche Hinweis — mit Ziel findet er
+   * mehr heraus — steht dazwischen, damit niemand aus Bequemlichkeit die schwächere Strecke
+   * nimmt. Wer sie dann trotzdem wählt, hat es gelesen.
+   */
+  ohneStelleLink: "Ich habe noch keine bestimmte Stelle",
+  ohneStelleTitel: "Keine Stelle im Blick?",
+  ohneStelleText: "Kein Problem — wir machen auch ohne weiter. David analysiert deinen Lebenslauf und gibt dir wertvolle Tipps. Mit einer konkreten Stelle findest du allerdings deutlich mehr heraus.",
+  ohneStelleWeiter: "Ok, ohne Stelle weitermachen",
+  ohneStelleDoch: "Doch eine Anzeige einfügen",
+  /* Steht im Angebot, wenn der Kauf eine Stelle braucht, aber keine da ist. */
+  anzeigeFuerKauf: "Für den Zuschnitt brauche ich die Stelle",
+  anzeigeFuerKaufText: "Deine Analyse ist fertig. Damit David Lebenslauf und Anschreiben auf eine konkrete Stelle zuschneiden kann, füge hier die Anzeige ein.",
   jobPlatzhalter: "Stellenanzeige einfügen — der ganze Text der Anzeige",
   jobKurz: "Das ist noch zu wenig. Füg die Anzeige bitte vollständig ein.",
   jobDatei: "Oder als Datei hochladen",
@@ -103,6 +230,18 @@ export const DAVID_TUNNEL = {
   layoutSchwach: "Suboptimal",
   fotoFehlt: "Kein Bewerbungsfoto",
   assetsZeile: "Dein Ergebnis ist gespeichert — du findest es jederzeit unter „Assets“.",
+  /* ── „SCHICK MIR DAS" (Owner 29.08.2026) ──
+     Der Ort, an dem eine erfundene Adresse noch zu retten ist: Er hat den Bericht gerade
+     gelesen und will ihn behalten. Kein Tor am Anfang, keine Drohung — eine Frage, deren
+     Antwort er selbst haben will. Deshalb steht seine getippte Adresse SICHTBAR im Feld:
+     Wer sich etwas ausgedacht hat, sieht es genau jetzt vor sich. */
+  sichernTitel: "Soll ich dir die Analyse schicken?",
+  sichernText: "Dann hast du sie auch, wenn du den Browser schliesst oder das Gerät wechselst.",
+  sichernLabel: "An diese Adresse",
+  sichernKnopf: "Analyse schicken",
+  sichernLaeuft: "Wird verschickt …",
+  sichernFertig: "Unterwegs. Schau in dein Postfach — dort ist auch dein Link zurück hierher.",
+  sichernFehler: "Das ging nicht. Prüf die Adresse und versuch es noch einmal.",
   assetsKnopf: "Zu meinen Assets",
   reportFehler: "Der Bericht ließ sich gerade nicht erstellen.",
   nochmal: "Noch einmal versuchen",

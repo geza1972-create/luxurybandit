@@ -58,10 +58,16 @@ export default async function DavidStartSeite({ searchParams }: {
       <TopNav marke="LB - David" heim="/themes/david" motto="AI Pre-Screening" />
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
         <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">{T.kicker}</p>
-        <h1 className="mt-1 text-[26px] font-black leading-tight">{T.h1a}{T.h1y}{T.h1b}</h1>
+        {/* DIE ÜBERSCHRIFT GEHÖRT DEM TRICHTER (Owner 29.08.2026: „es muss nicht auf jeder
+            Seite das gleiche stehen").
+            Sie stand hier fest und zeigte auf JEDEM Schritt den Werbesatz. Welcher Satz
+            richtig ist, weiss aber nur der Trichter — er kennt den Schritt. Also reicht die
+            Seite ihm den Werbesatz herein, und er entscheidet: am Anfang die Werbung, ab dem
+            Lebenslauf die Aufgabe. */}
 
         <DavidFunnel
           S={S} lang={L} preisUnterlagen={preisUnterlagen} preisVideo={preisVideo}
+          werbeTitel={`${T.h1a}${T.h1y}${T.h1b}`}
           /* „Die Leute kaufen, was sie sehen" (Owner 24.08.2026) — das Muster-Dossier von
              Oana Müller, derselben Person, die im Verwandlungs-Video zu sehen ist. Das
              Video selbst braucht hier kein Prop mehr: Es steht ohne Karte im Angebots-

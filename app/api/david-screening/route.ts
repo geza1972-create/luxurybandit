@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { berichtMailSchicken } from "@/lib/david-mail";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
-import { getSignedUrl } from "@/lib/try-this-look-store";
+import { adminPinMatches } from "@/lib/admin-auth";
+import { getSignedUrl, loescheDatei } from "@/lib/try-this-look-store";
 import { docxZuText } from "@/lib/docx-text";
 import {
   leseDavid, schreibeDavid, davidHeuteGezaehlt, davidHeuteHochzaehlen, DAVID_PRO_TAG,
@@ -291,6 +292,30 @@ export async function POST(request: Request) {
     await schreibeDavid({ ...sitzung, ...aenderung, aktualisiertAm: jetzt });
   };
 
+  /**
+   * DEN LEBENSLAUF WIEDER WEGNEHMEN (Owner 29.08.2026: „kann er im Trichter auch seinen
+   * Lebenslauf löschen und wieder hochladen?").
+   *
+   * Er hat uns die Datei anvertraut, bevor irgendetwas passiert ist — dann muss er sie auch
+   * zurücknehmen können, ohne uns zu schreiben. Kostet keinen Modell-Aufruf, steht deshalb
+   * vor allen Schritten, die Geld ausgeben.
+   *
+   * NICHT MEHR NACH DEM BERICHT: Ab dem Bericht hängt das bezahlte Produkt an dieser Datei.
+   * Ein Löschen, das die eigene Bewerbung zerstört, ist kein Dienst am Nutzer — wer nach dem
+   * Bericht alles gelöscht haben will, macht das über die Galerie beziehungsweise das Konto,
+   * wo der ganze Auftrag verschwindet und nicht nur ein Baustein daraus.
+   */
+  if (schritt === "cvweg") {
+    if (sitzung.report) {
+      return NextResponse.json({ error: "Dein Bericht ist schon fertig — der Lebenslauf gehört jetzt dazu." }, { status: 409 });
+    }
+    if (sitzung.cvPath) await loescheDatei(sitzung.cvPath);
+    /* Der Befund muss MIT weg: Er ist die Auswertung genau dieser Datei. Bliebe er stehen,
+       spräche David über einen Lebenslauf, den es nicht mehr gibt. */
+    await sichern({ cvPath: undefined, cvName: undefined, cvBefund: undefined });
+    return NextResponse.json({ ok: true });
+  }
+
   /* ───────────────────────────── SCHRITT 1: DER LEBENSLAUF ───────────────────────────── */
   if (schritt === "cv") {
     const cvPath = str(body.cvPath, 300) || sitzung.cvPath || "";
@@ -299,7 +324,23 @@ export async function POST(request: Request) {
     /* Der Deckel — hier, wo ein Screening wirklich beginnt. Ein zweiter Aufruf für DIESELBE
        Sitzung zählt nicht noch einmal (jemand lädt seinen Lebenslauf neu hoch). */
     if (!sitzung.cvBefund) {
-      const heute = await davidHeuteGezaehlt(device);
+      /**
+       * DER DECKEL GILT NICHT FÜR UNS (Owner 29.08.2026: Er stand beim eigenen Testen vor
+       * „Für heute sind auf diesem Gerät 2 Screenings gelaufen").
+       *
+       * Der Deckel schützt vor Missbrauch — jedes Screening kostet uns rund vier Cent, und
+       * ohne Grenze schreibt jemand ein Skript. Wer das Produkt aber BAUT, testet es
+       * mehrmals am Tag; ihn auszusperren macht die Entwicklung unmöglich und hat mit
+       * Missbrauch nichts zu tun.
+       *
+       * Dieselbe Prüfung wie überall (`x-try-look-admin-pin`): in der Produktion braucht es
+       * die richtige Nummer, lokal ohne gesetzte Nummer steht die Tür offen. Der übersprungene
+       * Deckel wird protokolliert — eine Ausnahme, die still passiert, findet man später in
+       * keiner Kostenrechnung wieder.
+       */
+      const alsAdmin = adminPinMatches(request);
+      if (alsAdmin) console.warn("[david-screening] ADMIN — Tagesdeckel übersprungen:", device.slice(0, 8));
+      const heute = alsAdmin ? 0 : await davidHeuteGezaehlt(device);
       if (device && heute >= DAVID_PRO_TAG) {
         return NextResponse.json({
           error: `Für heute sind auf diesem Gerät ${DAVID_PRO_TAG} Screenings gelaufen. Morgen geht es weiter.`,
@@ -307,6 +348,10 @@ export async function POST(request: Request) {
         }, { status: 429 });
       }
     }
+
+    /* WER TAUSCHT, LÄSST NICHTS ZURÜCK: Jeder Upload bekommt einen neuen Pfad, die vorige
+       Datei wäre sonst für immer im Speicher — von uns unbenutzt und für ihn unerreichbar. */
+    if (sitzung.cvPath && sitzung.cvPath !== cvPath) await loescheDatei(sitzung.cvPath);
 
     const eingabe = await cvAlsEingabe(cvPath);
     if ("fehler" in eingabe) return NextResponse.json({ error: eingabe.fehler }, { status: eingabe.status });
@@ -316,7 +361,13 @@ export async function POST(request: Request) {
       "AUFGABE: Lies diesen Lebenslauf. Du hast die Stellenanzeige noch NICHT gesehen.",
       "Gib zurück:",
       "'beobachtungen' — 1 bis 2 Sätze, die BELEGEN, dass du das Dokument wirklich gelesen hast: konkrete Schwerpunkte, Art der Unternehmen, Umfang der Erfahrung. Sprich den Bewerber direkt an ('Du bringst …'). Keine Bewertung, kein Lob.",
-      "'rolle' — die aktuelle oder zuletzt ausgeübte Rolle, wörtlich aus dem Lebenslauf.",
+      /* NUR DIE BERUFSBEZEICHNUNG (Fehler gesehen 29.08.2026: Das Modell lieferte
+         „2026–heute – LuxuryBandit (eigenes Projekt) – luxurybandit.com" — die komplette
+         Werdegangszeile. David sagte daraufhin „ich sehe, du bist 2026–heute – …", und aus
+         dem Satz, der Vertrauen schaffen soll, wurde Unsinn.
+         „Wörtlich aus dem Lebenslauf" war die Ursache: Es lud dazu ein, die ganze Zeile zu
+         übernehmen. Jetzt steht ausdrücklich, was NICHT hineingehört. */
+      "'rolle' — NUR die Berufsbezeichnung, zwei bis fünf Wörter, so wie man sie jemandem am Telefon sagen würde (Beispiele: UX-Designer, Customer Success Managerin, Berufskraftfahrer). NIEMALS Zeiträume, Jahreszahlen, Firmennamen, Adressen oder Klammerzusätze. Steht im Lebenslauf keine klare Bezeichnung, leite die naheliegendste aus den Tätigkeiten ab.",
       "'schwerpunkte' — 2 bis 4 kurze Arbeitsfelder.",
       /* NUR DIE STUFE — siehe die Begründung am Feld `layout` in lib/david-store.ts. */
       "'layout' — wie der Lebenslauf als Dokument auf den ersten Blick wirkt: 'gut' (Struktur und Zeiträume sofort erfassbar), 'mittel' (lesbar, aber man muss suchen) oder 'schwach' (Textwüste, unruhig, schwer zu scannen). NUR dieses eine Wort, KEINE Begründung, KEINE Verbesserungsvorschläge.",
@@ -360,7 +411,23 @@ export async function POST(request: Request) {
   /* ──────────────────── SCHRITT 2: DIE STELLE — UND DIE ERSTE FRAGE ──────────────────── */
   if (schritt === "job") {
     const jobText = str(body.jobText, 20000);
-    if (jobText.length < 60) {
+    /**
+     * AUCH OHNE STELLE (Owner 29.08.2026: „weiter ohne Stellenanzeige müsste auch gehen. Aber
+     * dafür analysieren wir nur sein CV" — und auf die Frage, was dann verkauft wird: Weg A,
+     * „der Gratis-Bericht ohne Stelle ist trotzdem wertvoll, er ist der Köder, aber das
+     * Bezahlte bleibt der Zuschnitt").
+     *
+     * WER OHNE ZIEL KOMMT, WEISS OFT NUR NOCH NICHT WOHIN. Ihn hier wegzuschicken hiesse,
+     * genau die zu verlieren, die am ehesten Hilfe brauchen. Also läuft dasselbe Gespräch —
+     * nur ohne Vergleich: Die Fragen zielen dann auf seinen Werdegang und darauf, wohin er
+     * überhaupt will, statt auf die Passung zu einer Anzeige.
+     *
+     * DAS BEZAHLTE PRODUKT BLEIBT DAVON UNBERÜHRT: Der Zuschnitt braucht ein Ziel, und
+     * danach fragt das Angebot später noch einmal. Der Bericht ist gratis und darf ohne
+     * auskommen; die Ware nicht.
+     */
+    const ohneStelle = body.ohneStelle === true;
+    if (!ohneStelle && jobText.length < 60) {
       return NextResponse.json({ error: "Das ist mir zu wenig Text. Füge die Anzeige bitte vollständig ein." }, { status: 400 });
     }
     if (!sitzung.cvBefund?.zusammenfassung) {
@@ -369,18 +436,26 @@ export async function POST(request: Request) {
 
     const auftrag = [
       REGELN,
-      "AUFGABE: Vergleiche den Lebenslauf mit dieser konkreten Stellenanzeige. Du zeigst dem Bewerber JETZT noch kein Ergebnis.",
+      ohneStelle
+        ? "AUFGABE: Es gibt KEINE Stellenanzeige — der Bewerber weiss noch nicht, wohin er sich bewirbt. Arbeite allein mit seinem Lebenslauf. Du zeigst ihm JETZT noch kein Ergebnis. Erfinde keine Stelle und tu nicht so, als gäbe es eine."
+        : "AUFGABE: Vergleiche den Lebenslauf mit dieser konkreten Stellenanzeige. Du zeigst dem Bewerber JETZT noch kein Ergebnis.",
       "Gib zurück:",
-      "'jobTitel' — die Position, wörtlich aus der Anzeige (ohne Ort).",
-      "'jobOrt' — Ort und Arbeitsmodell, wie die Anzeige es nennt (z. B. 'München, hybrid'), sonst leer. 'jobArt' — Anstellungsart (z. B. 'Vollzeit'), sonst leer.",
-      "'aufgaben' — 3 bis 5 Hauptaufgaben der Stelle.",
-      "'anforderungen' — 3 bis 6 wichtige Anforderungen.",
-      "'offen' — 3 bis 6 Punkte, die ein Recruiter aus dem Lebenslauf allein NICHT beurteilen kann. Genau daraus entsteht gleich das Gespräch.",
-      "'ersteFrage' — deine erste Frage an den Bewerber. Sie muss sich auf SEINEN Werdegang UND auf DIESE Stelle beziehen und darf nichts abfragen, was im Lebenslauf schon eindeutig steht. Eine Frage, kein Fragenbündel, höchstens drei Sätze.",
+      ohneStelle
+        ? "'jobTitel', 'jobOrt', 'jobArt', 'aufgaben', 'anforderungen' — alle LEER lassen: Es gibt keine Anzeige."
+        : "'jobTitel' — die Position, wörtlich aus der Anzeige (ohne Ort).",
+      ohneStelle ? "" : "'jobOrt' — Ort und Arbeitsmodell, wie die Anzeige es nennt (z. B. 'München, hybrid'), sonst leer. 'jobArt' — Anstellungsart (z. B. 'Vollzeit'), sonst leer.",
+      ohneStelle ? "" : "'aufgaben' — 3 bis 5 Hauptaufgaben der Stelle.",
+      ohneStelle ? "" : "'anforderungen' — 3 bis 6 wichtige Anforderungen.",
+      ohneStelle
+        ? "'offen' — 3 bis 6 Punkte, die ein Recruiter aus diesem Lebenslauf allein NICHT beurteilen kann. Genau daraus entsteht gleich das Gespräch."
+        : "'offen' — 3 bis 6 Punkte, die ein Recruiter aus dem Lebenslauf allein NICHT beurteilen kann. Genau daraus entsteht gleich das Gespräch.",
+      ohneStelle
+        ? "'ersteFrage' — deine erste Frage an den Bewerber. Sie zielt auf SEINEN Werdegang und darauf, wohin er beruflich will — es gibt keine Stelle zum Vergleichen. Sie darf nichts abfragen, was im Lebenslauf schon eindeutig steht. Eine Frage, kein Fragenbündel, höchstens drei Sätze."
+        : "'ersteFrage' — deine erste Frage an den Bewerber. Sie muss sich auf SEINEN Werdegang UND auf DIESE Stelle beziehen und darf nichts abfragen, was im Lebenslauf schon eindeutig steht. Eine Frage, kein Fragenbündel, höchstens drei Sätze.",
       "'bereich' — welcher der fünf Bereiche das ist: passung, belege, motivation, recruiterfragen, selbstbild.",
       'Antworte NUR als JSON: {"jobTitel":"...","jobOrt":"...","jobArt":"...","aufgaben":["..."],"anforderungen":["..."],"offen":["..."],"ersteFrage":"...","bereich":"..."}',
       "",
-      lage({ ...sitzung, jobText }),
+      lage(ohneStelle ? sitzung : { ...sitzung, jobText }),
     ].join("\n");
 
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }]);
@@ -392,10 +467,16 @@ export async function POST(request: Request) {
       offen: strListe(r.daten.offen, 6, 250),
     };
     const ersteFrage = str(r.daten.ersteFrage, 600);
-    if (!ersteFrage) return NextResponse.json({ error: "Ich konnte aus dieser Anzeige keine Frage ableiten. Füge sie bitte vollständiger ein." }, { status: 422 });
+    if (!ersteFrage) {
+      return NextResponse.json({ error: ohneStelle
+        ? "Ich konnte aus deinem Lebenslauf keine Frage ableiten. Versuch es bitte noch einmal."
+        : "Ich konnte aus dieser Anzeige keine Frage ableiten. Füge sie bitte vollständiger ein." }, { status: 422 });
+    }
 
     const fragen: DavidFrage[] = [{ frage: ersteFrage, bereich: (str(r.daten.bereich, 20) as DavidFrage["bereich"]) || undefined, gestelltAm: jetzt }];
-    await sichern({ jobText, jobTitel: str(r.daten.jobTitel, 200) || undefined, jobOrt: str(r.daten.jobOrt, 120) || undefined, jobArt: str(r.daten.jobArt, 60) || undefined, jobBefund, fragen, verbrauch: verbrauchDazu(sitzung.verbrauch, r.verbrauch) });
+    /* OHNE STELLE WIRD NICHTS ÜBER SIE GESPEICHERT — kein leerer Titel, kein erfundener Ort.
+       `ohneStelle` merkt sich die Entscheidung, damit Bericht und Angebot sie kennen. */
+    await sichern({ ...(ohneStelle ? { ohneStelle: true } : { jobText }), jobTitel: ohneStelle ? undefined : str(r.daten.jobTitel, 200) || undefined, jobOrt: str(r.daten.jobOrt, 120) || undefined, jobArt: str(r.daten.jobArt, 60) || undefined, jobBefund, fragen, verbrauch: verbrauchDazu(sitzung.verbrauch, r.verbrauch) });
     return NextResponse.json({
       ok: true,
       jobTitel: str(r.daten.jobTitel, 200),
@@ -494,13 +575,21 @@ export async function POST(request: Request) {
   /* ────────────────────────── SCHRITT 4: DER BERICHT (GRATIS) ────────────────────────── */
   if (schritt === "report") {
     if (sitzung.report) return NextResponse.json({ ok: true, report: sitzung.report });
-    if (!sitzung.cvBefund?.zusammenfassung || !sitzung.jobText) {
+    /* OHNE STELLE IST KEIN FEHLER MEHR (29.08.2026) — der Bericht entsteht dann allein aus
+       Lebenslauf und Gespräch. Nur ganz ohne Lebenslauf geht es nicht. */
+    if (!sitzung.cvBefund?.zusammenfassung || (!sitzung.jobText && !sitzung.ohneStelle)) {
       return NextResponse.json({ error: "Für den Bericht fehlt mir noch etwas." }, { status: 400 });
     }
 
     const auftrag = [
       REGELN,
       "AUFGABE: Schreibe jetzt das Ergebnis des Pre-Screenings. Es ist kostenlos und vollständig — halte nichts zurück.",
+      /* OHNE ZIEL KEINE PASSUNGS-AUSSAGEN (29.08.2026): Der Bericht darf dann nicht so tun,
+         als gäbe es eine Stelle — „das passt zur Anzeige" wäre schlicht gelogen. Aus dem
+         Vergleich wird eine Standortbestimmung; der Wert bleibt, die Behauptung geht. */
+      sitzung.ohneStelle
+        ? "ES GIBT KEINE STELLENANZEIGE. Der Bewerber weiss noch nicht, wohin er sich bewirbt. Beziehe dich NIRGENDS auf eine Stelle, eine Anzeige oder eine Passung — es gibt nichts zu vergleichen. Schreibe stattdessen eine Standortbestimmung: was seinen Werdegang stark macht, was ein Recruiter zuerst hinterfragen würde, und worauf er sich in Gesprächen vorbereiten sollte. Bei 'vorbereiten' stellst du die Fragen, die in JEDEM Gespräch zu seinem Profil kommen."
+        : "",
       "Du sprichst den Bewerber durchgehend mit DU an — auch in den Belegen. Nie in der dritten Person über ihn reden.",
       "Der Bericht hat vier Abschnitte und eine persönliche Einordnung:",
       "'spricht' — 2 bis 4 Punkte, die für den Bewerber sprechen. 'titel' ist eine Überschrift aus 2 bis 4 Wörtern (z. B. 'End-to-End-Verantwortung'), keine Floskel. 'tags' sind 2 bis 3 Stichwörter à höchstens 3 Wörter, die den Punkt belegen (z. B. 'Messbarer Outcome'). 'punkt' ist EIN Satz (höchstens 25 Wörter). 'beleg' ist ein VOLLSTÄNDIGER Satz in der Du-Anrede — entweder aus dem Lebenslauf ('Dein Lebenslauf nennt …') oder aus dem Gespräch ('Du hast erzählt, dass …') — und sagt, warum das für DIESE Stelle zählt. Nie ein Satzfragment, nie Floskeln wie 'aus einer seiner Antworten'.",

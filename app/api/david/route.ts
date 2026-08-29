@@ -5,6 +5,9 @@ import {
 } from "@/lib/david-store";
 import { readKissLog, writeKissLog, type KissLogEntry } from "@/lib/try-this-look-store";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
+import { isAdminRequest } from "@/lib/admin-auth";
+import { rueckwegMailSchicken } from "@/lib/david-mail";
+import { listeDavid } from "@/lib/david-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -36,6 +39,87 @@ const s = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
 /** Nur die Adressen, die überhaupt eine sein können — dieselbe schlichte Prüfung wie im Haus. */
 const mailOk = (m: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m);
+
+/**
+ * DIE LISTE FÜR DEN ADMIN (Owner 29.08.2026: „ich brauche das auch unter Admin. Ich will
+ * analysieren").
+ *
+ * WAS SIE BEANTWORTEN SOLL: Wo brechen Leute ab? Wie viele kommen bis zum Bericht? Wie viele
+ * kaufen? Und was kostet uns das? Genau dafür trägt jede Sitzung ihren `verbrauch` — die
+ * Zahlen kommen aus den Antworten von OpenAI selbst, nicht aus einer Schätzung.
+ *
+ * NUR FÜR ADMINS, und geprüft wie überall im Haus (`isAdminRequest`: PIN-Kopfzeile ODER
+ * angemeldetes Konto auf der Admin-Liste). Hier liegen Lebensläufe und Gesprächsantworten —
+ * das ist die heikelste Sammlung im ganzen Haus.
+ *
+ * OHNE DIE ANTWORTEN SELBST: Die Liste zeigt, DASS gesprochen wurde und wie weit, nicht was
+ * jemand erzählt hat. Wer eine einzelne Sitzung wirklich lesen muss, öffnet ihren Bericht —
+ * das ist eine bewusste Handlung und keine Tabelle zum Überfliegen.
+ */
+export async function GET(request: Request) {
+  if (!(await isAdminRequest(request))) {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+  const alle = await listeDavid().catch(() => []);
+  const auftraege = await readKissLog().catch(() => []);
+  const bezahlt = new Map(auftraege.map(e => [e.id, e]));
+
+  const zeilen = alle.map(s => {
+    const a = bezahlt.get(s.id);
+    const fragen = s.fragen ?? [];
+    return {
+      id: s.id,
+      erstelltAm: s.erstelltAm ?? "",
+      aktualisiertAm: s.aktualisiertAm ?? "",
+      vorname: s.vorname ?? "",
+      email: s.email ?? "",
+      sprache: s.sprache ?? "",
+      /* WIE WEIT ER GEKOMMEN IST — die eine Zahl, die den Trichter erklärt. */
+      stufe: s.report ? "bericht"
+        : fragen.some(f => f.antwort) ? "gespraech"
+        : (s.jobText || s.ohneStelle) ? "stelle"
+        : s.cvBefund ? "lebenslauf"
+        : s.email ? "lead" : "offen",
+      ohneStelle: s.ohneStelle === true,
+      jobTitel: s.jobTitel ?? "",
+      jobOrt: s.jobOrt ?? "",
+      rolle: s.cvBefund?.rolle ?? "",
+      layout: s.cvBefund?.layout ?? "",
+      cvFoto: s.cvBefund?.foto ?? null,
+      fragenGestellt: fragen.length,
+      fragenBeantwortet: fragen.filter(f => f.antwort).length,
+      berichtAm: s.screeningFertigAm ?? "",
+      berichtGesehenAm: s.reportGesehenAm ?? "",
+      mailAm: s.berichtMailAt ?? "",
+      nuetzlichkeit: s.nuetzlichkeit ?? "",
+      feedback: s.feedback ?? "",
+      interessen: s.interessen ?? [],
+      marketingOptIn: s.marketingOptIn === true,
+      /* Aus dem Auftrag: hat er gekauft, und wofür? */
+      bezahlt: a?.paid === true,
+      bezahltAm: a?.paidAt ?? "",
+      cvName: s.cvName ?? a?.cvName ?? "",
+      /* Was diese Sitzung uns gekostet hat — Aufrufe und Ausgabe-Token. */
+      verbrauch: s.verbrauch ?? null,
+      utm: s.utm ?? null,
+    };
+  }).sort((x, y) => String(y.erstelltAm).localeCompare(String(x.erstelltAm)));
+
+  /* Eine kleine Summe spart dem Admin das Kopfrechnen. */
+  const summe = {
+    sitzungen: zeilen.length,
+    leads: zeilen.filter(z => z.email).length,
+    berichte: zeilen.filter(z => z.stufe === "bericht").length,
+    kaeufe: zeilen.filter(z => z.bezahlt).length,
+    ohneStelle: zeilen.filter(z => z.ohneStelle).length,
+    /* Ausgabe-Token sind der teure Teil eines Aufrufs — klein und gross getrennt, weil sie
+       verschieden viel kosten (gpt-5-mini gegen gpt-5). */
+    tokenKleinHeraus: zeilen.reduce((n, z) => n + (z.verbrauch?.kleinHeraus ?? 0), 0),
+    tokenGrossHeraus: zeilen.reduce((n, z) => n + (z.verbrauch?.grossHeraus ?? 0), 0),
+    aufrufe: zeilen.reduce((n, z) => n + (z.verbrauch?.aufrufe ?? 0), 0),
+  };
+  return NextResponse.json({ ok: true, summe, sitzungen: zeilen });
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
@@ -144,6 +228,33 @@ export async function POST(request: Request) {
         await writeKissLog([neu, ...eintraege]);
       }
     } catch { /* Buchhaltung darf den Trichter nie aufhalten */ }
+
+    /**
+     * DER RÜCKWEG GEHT SOFORT RAUS (Owner 29.08.2026: „dann würde doch Sinn machen, gleich
+     * einen Link zu schicken, nachdem er seine E-Mail angegeben hat, oder?").
+     *
+     * JETZT UND NICHT AM ENDE: Am Ende ist es zu spät für den Fall, der ihn dazu gebracht
+     * hat — wer eine Fantasie-Adresse eingibt, um es „nur mal auszuprobieren", ist nach dem
+     * Schliessen des Browsers unwiederbringlich weg, samt der Analyse, die ihn überzeugt
+     * hätte. Jetzt hat er den Rückweg, BEVOR etwas verloren gehen kann.
+     *
+     * OHNE `await` UND OHNE FOLGEN: Er wartet gerade auf den nächsten Schritt. Ein langsamer
+     * oder kaputter Postausgang darf ihn keine Sekunde aufhalten — die Mail ist eine
+     * Zugabe, kein Teil des Trichters.
+     *
+     * ERST STEMPELN, DANN SCHICKEN — dieselbe Reihenfolge wie bei der Bericht-Mail: Beim
+     * umgekehrten Weg klingelt es zweimal, sobald der Versand langsam ist.
+     */
+    if (!naechste.rueckwegMailAt) {
+      try {
+        await schreibeDavid({ ...naechste, rueckwegMailAt: jetzt, aktualisiertAm: jetzt });
+        const origin = new URL(request.url).origin;
+        void rueckwegMailSchicken({
+          an: naechste.email, vorname: naechste.vorname,
+          sitzungId: id, origin, sprache: naechste.sprache,
+        }).catch(() => false);
+      } catch { /* ohne Stempel lieber gar nicht schicken als zweimal */ }
+    }
   }
 
   /* Zurück kommt nur, was der Browser wirklich braucht — nie die ganze Sitzung mit

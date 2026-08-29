@@ -4,6 +4,7 @@ import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import DavidReportAnsicht from "@/components/DavidReportAnsicht";
 import DavidAngebote from "@/components/DavidAngebote";
+import DavidSichern from "@/components/DavidSichern";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
 import { Knopf } from "@/components/CI";
 import { resolveLang } from "@/lib/lang-server";
@@ -92,6 +93,12 @@ export default async function DavidBerichtSeite({ params }: { params: Promise<{ 
                 layout: sitzung.cvBefund?.layout,
                 foto: sitzung.cvBefund?.foto,
               }} />
+
+            {/* AUCH HIER DIE ADRESSE (Owner 29.08.2026): Wer den Bericht Tage später aus
+                seinen Assets öffnet, ist derselbe Mensch mit demselben Problem — und diese
+                Seite erreicht er sogar dann, wenn die Mail nie ankam, weil sein Browser ihn
+                als Besitzer kennt. */}
+            <DavidSichern genId={String(id)} email={sitzung.email ?? ""} S={S} />
 
             {/* DIE BEZAHLTEN SCHRITTE STEHEN AUCH HIER (Owner 28.08.2026: „ich dachte wir
                 machen das auf der ergebnis seite") — derselbe Baustein wie im Trichter, mit

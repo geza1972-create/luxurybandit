@@ -1,4 +1,5 @@
 import { sendEmail } from "@/lib/email-send";
+import { RUECKKEHR_PARAM, rueckkehrTicket } from "@/lib/david-rueckkehr";
 
 /**
  * „DEINE ANALYSE LIEGT BEREIT" — DIE MAIL NACH DEM GRATIS-BERICHT.
@@ -27,6 +28,8 @@ import { sendEmail } from "@/lib/email-send";
 type Texte = {
   betreff: string; hallo: string; satz1: string; satz2: string; knopf: string;
   assets: string; frage: string; kontakt: string;
+  /* ── Die zweite Mail: der Rückweg, sofort nach dem Lead ── */
+  rBetreff: string; rSatz1: string; rSatz2: string; rKnopf: string;
 };
 
 const T: Record<string, Texte> = {
@@ -39,6 +42,12 @@ const T: Record<string, Texte> = {
     assets: "Alle deine Ergebnisse: {origin}/my-gallery",
     frage: "Fragen?",
     kontakt: "Schreib uns",
+    rBetreff: "Dein Rückweg zu David",
+    /* KEIN VERSPRECHEN, DAS DIE STRECKE EINLÖST: Er ist noch mittendrin. Die Mail sagt nur,
+       dass er jederzeit zurückkann — sie zieht ihn nicht aus dem laufenden Gespräch heraus. */
+    rSatz1: "Du hast dein Pre-Screening bei David begonnen. Diese Mail ist dein Rückweg.",
+    rSatz2: "Mach in Ruhe weiter. Wenn du unterbrichst, den Browser schliesst oder das Gerät wechselst, kommst du über diesen Link genau dorthin zurück, wo du aufgehört hast.",
+    rKnopf: "Weitermachen",
   },
   en: {
     betreff: "Your analysis is ready",
@@ -49,6 +58,10 @@ const T: Record<string, Texte> = {
     assets: "All your results: {origin}/my-gallery",
     frage: "Questions?",
     kontakt: "Write to us",
+    rBetreff: "Your way back to David",
+    rSatz1: "You started your pre-screening with David. This email is your way back.",
+    rSatz2: "Take your time. If you stop, close the browser or switch devices, this link brings you back exactly where you left off.",
+    rKnopf: "Continue",
   },
   ro: {
     betreff: "Analiza ta este gata",
@@ -59,6 +72,10 @@ const T: Record<string, Texte> = {
     assets: "Toate rezultatele tale: {origin}/my-gallery",
     frage: "Întrebări?",
     kontakt: "Scrie-ne",
+    rBetreff: "Drumul tău înapoi la David",
+    rSatz1: "Ai început pre-screening-ul cu David. Acest e-mail este drumul tău înapoi.",
+    rSatz2: "Continuă în ritmul tău. Dacă te oprești, închizi browserul sau schimbi dispozitivul, linkul te aduce exact unde ai rămas.",
+    rKnopf: "Continuă",
   },
 };
 
@@ -73,7 +90,10 @@ export async function berichtMailSchicken(o: {
   if (!o.an || !o.sitzungId) return false;
   const t = T[(o.sprache ?? "de").slice(0, 2)] ?? T.de;
   const name = (o.vorname ?? "").trim();
-  const link = `${o.origin}/david/${encodeURIComponent(o.sitzungId)}`;
+  /* MIT TICKET (29.08.2026): Seit der Bericht hinter dem Besitz-Keks liegt, führte dieser
+     Link auf einem zweiten Gerät nur noch vor eine verschlossene Tür — ausgerechnet aus der
+     Mail heraus, die ihn zurückholen soll. Das Ticket weist ihn als Besitzer aus. */
+  const link = `${o.origin}/david/${encodeURIComponent(o.sitzungId)}?${RUECKKEHR_PARAM}=${encodeURIComponent(rueckkehrTicket(o.sitzungId))}`;
   const stelle = (o.jobTitel ?? "").trim();
 
   const html =
@@ -95,6 +115,49 @@ export async function berichtMailSchicken(o: {
 
   const text = `${t.hallo.replace("{name}", name)}\n\n${t.satz1}\n${t.satz2}\n\n${link}\n`;
   const r = await sendEmail({ to: o.an, subject: t.betreff, html, text }).catch(() => ({ ok: false }));
+  return !!r?.ok;
+}
+
+/**
+ * DER RÜCKWEG — SOFORT NACH DEM LEAD (Owner 29.08.2026: „dann würde doch Sinn machen, gleich
+ * einen Link zu schicken, nachdem er seine E-Mail angegeben hat, oder?").
+ *
+ * SIE HÄLT IHN NICHT AUF. Kein Bestätigen, kein Warten auf einen Klick: Er läuft ohne
+ * Unterbrechung weiter zum Upload, die Mail liegt derweil in seinem Postfach. Ein Tor mitten
+ * im Trichter würde genau die Leute kosten, für die der Gratis-Bericht gebaut ist — wer auf
+ * dem Handy zum Postfach wechselt, kommt oft nicht zurück.
+ *
+ * SIE FÜHRT IN SEINE SITZUNG, NICHT AUF EINE ALLGEMEINE SEITE (Owner ausdrücklich: „bitte
+ * nicht auf einer allgemeinen Seite schicken"). Das Ticket in der Adresszeile trägt nur die
+ * Kennung und eine Unterschrift — keinen Namen, keine Adresse.
+ *
+ * UND SIE IST UNSER PRÜFSTEIN: Kommt sie als Rückläufer zurück, war die Adresse erfunden.
+ * Das wissen wir dann binnen Minuten — und nicht erst, wenn er am Ende überzeugt ist und
+ * nichts mehr bei ihm ankommt.
+ */
+export async function rueckwegMailSchicken(o: {
+  an: string; vorname?: string; sitzungId: string; origin: string; sprache?: string;
+}): Promise<boolean> {
+  if (!o.an || !o.sitzungId) return false;
+  const t = T[(o.sprache ?? "de").slice(0, 2)] ?? T.de;
+  const name = (o.vorname ?? "").trim();
+  const link = `${o.origin}/themes/david/start?${RUECKKEHR_PARAM}=${encodeURIComponent(rueckkehrTicket(o.sitzungId))}`;
+
+  const html =
+    `<div style="background:#0d0b0a;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
+    + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+    + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
+    + `<tr><td style="padding:20px 22px 4px;color:#f6cf51;font-size:13px;font-weight:bold;letter-spacing:2px">LUXURYBANDIT</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#8d8579;font-size:11px;font-weight:bold;letter-spacing:2px">DAVID · AI PRE-SCREENING</td></tr>`
+    + `<tr><td style="padding:0 22px 10px;color:#ffffff;font-size:20px;font-weight:bold;line-height:1.25">${escape(t.hallo.replace("{name}", name || "").replace(" ,", ","))}</td></tr>`
+    + `<tr><td style="padding:0 22px 12px;color:#e8e2d6;font-size:14px;line-height:1.55">${escape(t.rSatz1)}</td></tr>`
+    + `<tr><td style="padding:0 22px 16px;color:#e8e2d6;font-size:14px;line-height:1.55">${escape(t.rSatz2)}</td></tr>`
+    + `<tr><td style="padding:0 22px 16px"><a href="${link}" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">${escape(t.rKnopf)}</a></td></tr>`
+    + `<tr><td style="padding:0 22px 20px;color:#8d8579;font-size:12px">${escape(t.frage)} <a href="${o.origin}/contact?reason=support" style="color:#f6cf51">${escape(t.kontakt)}</a></td></tr>`
+    + `</table></td></tr></table></div>`;
+
+  const text = `${t.hallo.replace("{name}", name)}\n\n${t.rSatz1}\n${t.rSatz2}\n\n${link}\n`;
+  const r = await sendEmail({ to: o.an, subject: t.rBetreff, html, text }).catch(() => ({ ok: false }));
   return !!r?.ok;
 }
 

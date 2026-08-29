@@ -4,6 +4,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readKissLog } from "@/lib/try-this-look-store";
 import { BESITZ_COOKIE, besitzHinzufuegen } from "@/lib/lebenslauf-besitz-cookie";
+import { ticketKennung } from "@/lib/david-rueckkehr";
 
 export const runtime = "nodejs";
 
@@ -42,9 +43,19 @@ export async function POST(request: Request) {
   const sitzung = await leseDavid(id).catch(() => null);
   if (!sitzung) return NextResponse.json({ darf: false });
 
-  /* Admin → Konto → Gerät. Dieselbe Reihenfolge wie überall im Haus: Die Anmeldung ist der
-     stärkere Nachweis, die Gerätekennung der schwächere. */
-  let darf = await isAdminRequest(request).catch(() => false);
+  /**
+   * DAS TICKET AUS SEINER MAIL (Owner 29.08.2026) — der vierte Weg, und der einzige, der
+   * über Geräte hinweg trägt.
+   *
+   * Die Mail geht an die Adresse, die er selbst angegeben hat; wer sie im Postfach hat, ist
+   * der Besitzer. Ohne diesen Weg führte der Link aus unserer eigenen Mail auf einem zweiten
+   * Gerät nur vor die verschlossene Tür.
+   *
+   * ER STEHT VOR ADMIN, WEIL ER DER BILLIGSTE IST: reine Rechenarbeit, kein Netzweg.
+   */
+  const ticket = String(body.ticket ?? "").trim().slice(0, 200);
+  let darf = !!ticket && ticketKennung(ticket) === id;
+  if (!darf) darf = await isAdminRequest(request).catch(() => false);
   if (!darf) {
     const mail = await getSellerFromRequest(request)
       .then(k => String(k?.email ?? "").trim().toLowerCase())

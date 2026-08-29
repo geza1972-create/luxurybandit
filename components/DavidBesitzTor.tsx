@@ -37,11 +37,15 @@ export default function DavidBesitzTor({ id, texte }: {
       try { device = localStorage.getItem("lb_visitor") ?? ""; } catch { /**/ }
       let tok = "";
       try { tok = getStoredAuthSession()?.access_token ?? ""; } catch { /**/ }
+      let ticket = "";
+      try { ticket = new URLSearchParams(window.location.search).get("w") ?? ""; } catch { /**/ }
       try {
         const d = await fetch("/api/david-besitz", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
-          body: JSON.stringify({ id, device }),
+          /* DAS TICKET AUS DER MAIL REIST MIT (29.08.2026): Auf einem zweiten Gerät ist es
+           der einzige Nachweis — dort gibt es weder Keks noch bekannte Gerätekennung. */
+        body: JSON.stringify({ id, device, ticket }),
         }).then(r => r.json());
         if (weg) return;
         /* Der Keks sitzt jetzt — neu laden, damit der Server die Seite mit Inhalt baut.

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { lebenslaufAvatarPrompt } from "@/lib/lebenslauf-looks";
-import { getSignedUrl } from "@/lib/try-this-look-store";
+import { getSignedUrl, readKissLog } from "@/lib/try-this-look-store";
+import { adminPinMatches } from "@/lib/admin-auth";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -98,6 +100,47 @@ export async function POST(request: Request) {
         in eine (auch für HeyGen erreichbare) signierte Adresse auf. */
     audioPath?: string;
   };
+  /**
+   * OHNE BEZAHLTEN AUFTRAG LÄUFT HIER NICHTS (gefunden 29.08.2026 beim Durchsehen des
+   * Video-Kaufs).
+   *
+   * Diese Route prüfte GAR NICHTS. Wer die Adresse kannte, konnte sie mit einem beliebigen
+   * Foto anstossen — und jeder Aufruf löst zwei bezahlte Läufe aus: ein Bild bei OpenAI
+   * (gpt-image-2) und ein Video bei HeyGen. Das ist kein Datenleck, das ist ein offener
+   * Geldhahn: ein Skript mit einer Schleife hätte über Nacht dreistellig kosten können.
+   *
+   * WARUM ES SO LANGE NIEMANDEM AUFFIEL: Der einzige Aufrufer ist unser eigener Trichter, und
+   * der ruft sie erst nach der Zahlung. Der Schutz lag also im Ablauf statt im Server — und
+   * ein Ablauf schützt nur den, der ihn einhält.
+   *
+   * DIESELBE PRÜFUNG WIE ÜBERALL: Der Kiss-Log-Auftrag ist das Zahlungs-Gedächtnis, Besitz
+   * über Admin → Konto → Gerät. `paid` muss stehen; die Kennung allein reicht nicht, sonst
+   * wäre sie wieder ein Schlüssel im Link.
+   */
+  const auftragId = String((body as { id?: string }).id ?? "").trim().slice(0, 80);
+  const geraet = String((body as { device?: string }).device ?? "").trim().slice(0, 80);
+  const alsAdmin = adminPinMatches(request);
+  if (!alsAdmin) {
+    if (!auftragId) return NextResponse.json({ error: "Auftrag fehlt." }, { status: 400 });
+    const auftrag = await readKissLog().then(l => l.find(e => e.id === auftragId)).catch(() => null);
+    if (!auftrag) return NextResponse.json({ error: "Auftrag nicht gefunden." }, { status: 404 });
+    if (auftrag.paid !== true) {
+      return NextResponse.json({ error: "Erst nach der Zahlung.", zahlungNoetig: true }, { status: 402 });
+    }
+    /* Besitz: Konto schlägt Gerät, wie im ganzen Haus. */
+    const kontoMail = await getSellerFromRequest(request)
+      .then(k => String(k?.email ?? "").trim().toLowerCase())
+      .catch(() => "");
+    const seins = (!!kontoMail && [auftrag.email, auftrag.paidEmail]
+      .some(m => String(m ?? "").trim().toLowerCase() === kontoMail))
+      || (!!geraet && auftrag.device === geraet);
+    if (!seins) {
+      return NextResponse.json({ error: "Dieser Auftrag gehört zu einem anderen Browser. Melde dich mit der Adresse an, mit der du ihn begonnen hast." }, { status: 403 });
+    }
+  } else {
+    console.warn("[lebenslauf-video] ADMIN-DURCHLAUF — Zahlungsprüfung übersprungen:", auftragId.slice(0, 8));
+  }
+
   const foto = body.foto ? await fotoBytes(body.foto) : null;
   if (!foto) return NextResponse.json({ error: "Foto fehlt oder ist zu gross." }, { status: 400 });
   const sprechtext = String(body.sprechtext ?? "").trim().slice(0, 1200);

@@ -122,6 +122,15 @@ export type DavidSitzung = {
     kleidungImFoto?: string;
   };
   jobText?: string;
+  /**
+   * ER HAT BEWUSST OHNE STELLE WEITERGEMACHT (Owner 29.08.2026, Weg „A").
+   *
+   * Nicht dasselbe wie „jobText fehlt": Das kann auch ein Abbruch mitten im Schritt sein.
+   * Dieses Feld sagt, dass er die Rückfrage gelesen und sich entschieden hat — Bericht und
+   * Angebot verhalten sich daraufhin anders, statt eine fehlende Anzeige als Fehler zu
+   * behandeln.
+   */
+  ohneStelle?: boolean;
   jobTitel?: string;
   /** Aus der Anzeige gelesen — für die Kopfzeile des Ergebnisses („München, hybrid · Vollzeit"). */
   jobOrt?: string;
@@ -142,6 +151,14 @@ export type DavidSitzung = {
    * wenig als zwei, wenn der Bewerber die Seite neu lädt.
    */
   berichtMailAt?: string;
+  /**
+   * WANN DER RÜCKWEG VERSCHICKT WURDE (Owner 29.08.2026) — die Mail direkt nach dem Lead,
+   * die ihn jederzeit in SEINE Sitzung zurückbringt. Derselbe Einmal-Stempel wie bei
+   * `berichtMailAt`: Jeder weitere POST auf den Lead-Schritt (Neuladen, Korrektur des
+   * Namens, ein zweiter Tab) darf nicht erneut klingeln.
+   */
+  rueckwegMailAt?: string;
+
 
   /* ── Danach (§27–30) ─────────────────────────────────────────────────────── */
   nuetzlichkeit?: DavidNuetzlich;

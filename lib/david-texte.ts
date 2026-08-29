@@ -25,11 +25,39 @@ import type { Lang } from "@/lib/lang";
 export const DAVID_TEXTE = {
   /* ── Kopf ───────────────────────────────────────────────────────────────── */
   kicker: "David · AI Pre-Screening",
-  /* Die H1 zweifarbig: Anfang weiss, `h1y` im Haus-Gold (components/Landing). */
-  h1a: "Willst du einen ",
-  h1y: "besser bezahlten Job",
-  h1b: "?",
-  sub: "Finde heraus, was dein Lebenslauf einem Recruiter noch nicht erzählt.",
+  /**
+   * Die H1 zweifarbig: Anfang weiss, `h1y` im Haus-Gold (components/Landing).
+   *
+   * DER SATZ AUS DER WERBUNG GEHÖRT AUF DIE SEITE (Owner 29.08.2026: „Hier muss stehen: Finde
+   * heraus, was dein Lebenslauf nicht erzählt mit David AI!").
+   *
+   * Vorher stand „Willst du einen besser bezahlten Job?" — eine Frage, die jeder Jobtitel
+   * stellt, austauschbar mit hundert anderen Anzeigen. Der neue Satz ist derselbe, mit dem
+   * geworben wird, und derselbe, der im Ergebnis als Hero steht („Was dein Lebenslauf noch
+   * nicht erzählt"). Wer über die Anzeige kommt, liest oben genau das, worauf er geklickt
+   * hat, und findet es unten im Bericht wieder — dreimal derselbe Faden statt dreier
+   * Versprechen.
+   *
+   * DER GOLDENE TEIL IST DAS VERSPRECHEN, NICHT DER NAME: „was dein Lebenslauf nicht erzählt"
+   * ist der Grund zum Klicken; „mit David AI" ist nur die Marke.
+   */
+  h1a: "Finde heraus, ",
+  h1y: "was dein Lebenslauf nicht erzählt",
+  h1b: " — mit David AI!",
+  /**
+   * DIE ZEILE UNTER DER ÜBERSCHRIFT (Owner 29.08.2026: „Dann wenn du einen besser bezahlten
+   * Job willst, musst du mehr erzählen als du denkst!").
+   *
+   * Sie stand vorher als Wiederholung der H1 da — „Finde heraus, was dein Lebenslauf einem
+   * Recruiter noch nicht erzählt" unter einer Überschrift, die fast dasselbe sagte. Zwei
+   * Zeilen für eine Aussage sind eine verschenkte.
+   *
+   * Jetzt trägt sie das ARGUMENT: Die Überschrift sagt, was er bekommt; diese Zeile sagt,
+   * warum er es braucht. Und sie nimmt den Satz auf, der im Video eingebrannt steht („Willst
+   * du einen besser bezahlten Job?") — der Besucher hört ihn zwei Sekunden später aus Davids
+   * Mund. Anzeige, Überschrift, Zeile und Video ziehen damit an einem Faden.
+   */
+  sub: "Wenn du einen besser bezahlten Job willst, musst du mehr erzählen, als du denkst.",
 
   /* ── Die Video-Karte ────────────────────────────────────────────────────── */
   kartenTitel: "AI Pre-Screening",

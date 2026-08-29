@@ -864,6 +864,36 @@ export async function createSignedUploadUrl(folder: "videos" | "uploads", extens
   return { path, uploadUrl };
 }
 
+/**
+ * EINE HOCHGELADENE DATEI WIEDER WEGNEHMEN (Owner 29.08.2026: „kann er im Trichter auch
+ * seinen Lebenslauf löschen und wieder hochladen?").
+ *
+ * Bis hierhin gab es im ganzen Haus kein Löschen für hochgeladene Dateien — und weil jeder
+ * Upload einen NEUEN Pfad bekommt (Zeitstempel + UUID), blieb bei jedem Wechsel die alte
+ * Datei liegen. Wer dreimal die Datei tauschte, hinterliess drei Lebensläufe, die niemand
+ * mehr anfasst und die er selbst nicht loswird.
+ *
+ * SIE WIRFT NICHT: Ein Löschen, das misslingt, darf nie den Weg des Nutzers aufhalten —
+ * schlimmstenfalls bleibt eine Datei liegen, und das ist der Zustand von vorher. Der
+ * Rückgabewert sagt, ob es geklappt hat.
+ */
+export async function loescheDatei(path: string): Promise<boolean> {
+  const sauber = String(path || "").trim();
+  /* NUR UNSER EIGENER ORDNER — ein Pfad kommt aus einem Client, und ein Löschen, das jeden
+     Pfad annimmt, ist ein Werkzeug zum Ausräumen des ganzen Eimers. */
+  if (!sauber || !sauber.startsWith("try-this-look/")) return false;
+  try {
+    const response = await supabaseFetch(`/storage/v1/object/${BUCKET}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prefixes: [sauber] }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Batch signing — one request for all paths (replaces N individual calls)
 async function batchGetSignedUrls(paths: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(paths.filter(Boolean))];

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, BarChart3, Check, Lock, Maximize2 } from "lucide-react";
-import { Knopf, Fehlerzeile, Fortschritt, BildWahl, BlattUeberlagerung, Scheibe } from "@/components/CI";
+import { Knopf, Fehlerzeile, Fortschritt, BildWahl, BlattUeberlagerung, Scheibe, EingabeMehrzeilig } from "@/components/CI";
 import { PDF_VORLAGEN, vorlagenBild } from "@/lib/pdf-vorlagen";
 import { fotoAlsDataUrl } from "@/lib/foto-verkleinern";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -160,6 +160,19 @@ export default function DavidAngebote({
    * zahlt, statt es hinterher zu merken.
    */
   const [fotoFrage, setFotoFrage] = useState(false);
+  /**
+   * DIE STELLE WIRD BEIM KAUF NACHGEFRAGT (Owner 29.08.2026, Weg „A": „der Gratis-Bericht
+   * ohne Stelle ist trotzdem wertvoll — er ist der Köder — aber das Bezahlte bleibt der
+   * Zuschnitt").
+   *
+   * Wer ohne Ziel durch das Screening gegangen ist, hat einen Bericht, aber nichts, worauf
+   * sich ein Lebenslauf zuschneiden liesse. Ihm hier ein Produkt zu verkaufen, das seinen
+   * Kern nicht liefern kann, wäre der Anfang der Erstattungen. Also fragt das Angebot die
+   * Anzeige nach — und das ist der beste Moment dafür: Er hat gerade gelesen, was ihm fehlt,
+   * und ist motiviert.
+   */
+  const [nachAnzeige, setNachAnzeige] = useState("");
+  const anzeigeFertig = (anzeige || nachAnzeige).trim();
   const fotoFeld = useRef<HTMLInputElement>(null);
   const kasse = useKasseImFenster(fertig ? "fertig" : "offen");
 
@@ -295,7 +308,7 @@ export default function DavidAngebote({
         method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
           schritt: "erzeugen", id: genId, device: geraet(),
-          email, anzeige, cvPath, cvName, davidId: genId, vorlage, foto,
+          email, anzeige: anzeigeFertig, cvPath, cvName, davidId: genId, vorlage, foto,
         }),
       }).then(r => r.json());
       /* „schon" heisst: Das Profil steht bereits (zweiter Anlauf, Neuladen) — kein Grund
@@ -320,6 +333,8 @@ export default function DavidAngebote({
     /* ERST FRAGEN, DANN ZAHLEN — aber nur einmal: Wer „trotzdem" gewählt hat, kommt hier
        mit `true` wieder herein und läuft durch. */
     if (!foto && !ohneFotoBestaetigt) { setFotoFrage(true); return; }
+    /* Ohne Ziel kein Zuschnitt — und ohne Zuschnitt kein Kauf. */
+    if (anzeigeFertig.length < 60) { setFehler(S.jobKurz); return; }
     void logFunnelEvent("cv_offer_clicked", { theme: "david" });
     setFehler("");
 
@@ -512,6 +527,16 @@ export default function DavidAngebote({
         <h3 className="mt-6 text-[17px] font-black leading-snug">{S.anschreibenTitel}</h3>
         <p className="mt-1.5 text-[14px] font-medium leading-relaxed text-white/80">{S.anschreibenText}</p>
         <p className="mt-2 text-[12.5px] font-bold text-white/60">{S.imPreis}</p>
+        {/* KEINE STELLE IM SCREENING? DANN HIER (Owner 29.08.2026, Weg „A"). Nur sichtbar,
+            wenn wirklich keine da ist — wer sie im Trichter genannt hat, sieht davon nichts. */}
+        {!busy && !fertig && anzeige.trim().length < 60 && (
+          <div className="lb-rand-verlauf mt-5 rounded-[18px] bg-[#f6cf51]/[0.06] p-4">
+            <p className="text-[15px] font-black leading-snug text-white">{S.anzeigeFuerKauf}</p>
+            <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.anzeigeFuerKaufText}</p>
+            <EingabeMehrzeilig className="mt-3" zeilen={5} value={nachAnzeige}
+              onChange={e => setNachAnzeige(e.target.value)} placeholder={S.jobPlatzhalter} />
+          </div>
+        )}
         {/* WAS ER GEWÄHLT HAT, DIREKT ÜBER DEM PREIS (Owner 28.08.2026: „Richtiges Template
             gewählt, Bild hochgeladen. Ja/Nein"). Zwei Zeilen, im Blickfeld des Daumens —
             damit man beim Zahlen sieht, WAS man kauft, statt es hinterher zu merken. */}
