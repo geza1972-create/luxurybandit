@@ -275,7 +275,18 @@ export async function GET(request: Request) {
            für „hat ein Video bestellt". Seit David nach dem BEWERBUNGSFOTO fragt, landet genau dort
            ein Bild — jeder Unterlagen-Kauf sah damit aus wie ein Video-Kauf. Die Video-Bewerbung
            verlangt zwingend eine Selbstaufnahme (`audioPath`); ohne sie gibt es nichts zu rendern. */
-        const unterlagenKauf = e.theme === "david" && !e.audioPath;
+        /**
+         * … UND EIN GESTARTETES VIDEO IST WIEDER EIN VIDEO (Owner 30.08.2026, eine Stunde
+         * nach dem Phantom-Fix: „hier passiert gar nichts. Assets müsste blinken und
+         * Video-Platzhalter auch erscheinen").
+         *
+         * Der Phantom-Fix von heute Mittag prüfte nur `audioPath` — die Aufnahme liegt aber
+         * am AUFTRAG erst, wenn der Trichter sie dort ablegt; der Video-START stempelt
+         * stattdessen `videoId`. Ein bezahltes David-Video MIT laufender HeyGen-Kennung
+         * galt damit als Unterlagen-Kauf: keine Kachel, kein Puls, nichts. Wer eine
+         * Video-Kennung trägt, schuldet ein Video — Punkt.
+         */
+        const unterlagenKauf = e.theme === "david" && !e.audioPath && !e.videoId;
         const offenerKauf = !!e.paid && !e.videoUrl && !unterlagenKauf;
         /**
          * KAPUTT IST NICHT LANGSAM (Owner 15.08.2026: „es war vor 5 Tagen" — zu einem
@@ -394,7 +405,12 @@ export async function GET(request: Request) {
                weiteres Gesicht gar nichts. Was er hier hat, ist ein LEBENSLAUF, und der
                sieht aus wie ein Blatt Papier — unverwechselbar, und es ist genau die
                Vorlage, die er gewählt hat. */
-            bild: `/Lebenslauf/vorlage-${vorlage}.jpg`,
+            /* OHNE DIE MUSTER-FRAU (Owner 30.08.2026: „es ist immer noch die Frau im
+               Vorschau"). Die Vorlagen-Bilder sind mit dem Muster-Profil gebaut — auf der
+               Kachel SEINER Bewerbung las sich das fremde Gesicht wie ein falsches Produkt.
+               Die `-neutral`-Fassung ist dasselbe Blatt mit stiller Silhouette; die
+               Verkaufs-Galerie behält die Muster-Bilder. */
+            bild: `/Lebenslauf/vorlage-${vorlage}-neutral.jpg`,
             /* `ansehen=1`: Der Tipp auf die Kachel ÖFFNET das PDF im Browser, er lädt es
                nicht wortlos herunter (Owner 28.08.2026). Wer es speichern will, tut das aus
                der Vorschau heraus. */
