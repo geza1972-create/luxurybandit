@@ -472,6 +472,12 @@ export const DAVID_TUNNEL = {
   videoKasseOeffnet: "Ich öffne die Kasse",
   /* Die Quittung nach der Zahlung — sie sagt, dass es angekommen ist UND wo es hinkommt
      (Owner 30.08.2026). Sie schliesst sich nach sechs Sekunden von selbst. */
+  /* Foto nachreichen, wenn die Bewerbung schon fertig ist (Owner 30.08.2026: „aber mein
+     Bild hat er nicht eingebaut"). Kein Modell-Lauf — nur Ablage, das PDF baut sich beim
+     Öffnen frisch. */
+  fotoNachreichen: "Foto in die Bewerbung übernehmen",
+  fotoNachreichenLaeuft: "Foto wird übernommen",
+  fotoNachgereicht: "Foto übernommen — öffne das PDF neu.",
   kaufDankTitel: "Danke — wir erstellen jetzt deine Bewerbung.",
   kaufDankText: "Das dauert einen Moment. Du findest sie im Menü unter „Assets“ — auch dann, wenn du diese Seite schliesst.",
   videoAufnahmeDa: "Aufnahme gespeichert.",

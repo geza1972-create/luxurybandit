@@ -72,6 +72,9 @@ export default function DavidAngebote({
   /* Der Dank nach der Zahlung — er verschwindet von selbst (siehe `nachZahlung`). */
   const [danke, setDanke] = useState(false);
   const [fertig, setFertig] = useState(false);
+  /* Foto nachreichen, wenn schon bezahlt und fertig (30.08.2026). */
+  const [fotoNachLaeuft, setFotoNachLaeuft] = useState(false);
+  const [fotoUebernommen, setFotoUebernommen] = useState(false);
   /* DIE GEWÄHLTE VORLAGE — sie geht beim Erzeugen an den Generator (er schreibt sie ans
      Profil) UND an die PDF-Adresse. Beides, weil die fertige PDF auch später aus den Assets
      geholt wird, wenn dieser Zustand längst weg ist. */
@@ -306,6 +309,20 @@ export default function DavidAngebote({
     return () => clearTimeout(uhr);
   }, [danke]);
 
+  const fotoNachreichen = async () => {
+    if (fotoNachLaeuft || !foto) return;
+    setFotoNachLaeuft(true); setFehler("");
+    try {
+      const g = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({ schritt: "erzeugen", id: genId, device: geraet(), email, foto, vorlage }),
+      }).then(r => r.json());
+      if (g?.error) setFehler(String(g.error));
+      else setFotoUebernommen(true);
+    } catch { setFehler(S.reportFehler); }
+    setFotoNachLaeuft(false);
+  };
+
   const nachZahlung = async () => {
     void logTunnelEvent("payment_completed", "david");
     /**
@@ -481,7 +498,26 @@ export default function DavidAngebote({
               während im Hintergrund 30 Sekunden lang die Bewerbung geschrieben wurde). */}
           {busy ? <Fortschritt text={busyText || S.unterlagenLaeuft} />
             : fertig
-              ? <Knopf art="gold" href={pdfUrl}>{S.assetsKnopf}</Knopf>
+              ? (
+                <div className="flex flex-col gap-2">
+                  <Knopf art="gold" href={pdfUrl}>{S.assetsKnopf}</Knopf>
+                  {/* FOTO NACHREICHEN (Owner 30.08.2026: „aber mein Bild hat er nicht
+                      eingebaut"). Wer nach dem Kauf ein Foto wählt, konnte es nirgends
+                      mehr in die fertige Bewerbung bringen — der Kaufknopf war weg, der
+                      PDF-Knopf öffnete das Blatt ohne Bild. Kein Modell-Lauf: Der Server
+                      legt nur das Bild (und die Vorlagen-Wahl) ans bezahlte Profil. */}
+                  {foto && !fotoUebernommen && (
+                    fotoNachLaeuft
+                      ? <Fortschritt text={S.fotoNachreichenLaeuft} />
+                      : <Knopf art="umriss" onClick={() => void fotoNachreichen()}>{S.fotoNachreichen}</Knopf>
+                  )}
+                  {fotoUebernommen && (
+                    <p className="flex items-center gap-2 text-[13px] font-black text-white">
+                      <Check className="h-4 w-4 text-[#f6cf51]" />{S.fotoNachgereicht}
+                    </p>
+                  )}
+                </div>
+              )
               : fotoFrage
                 ? (
                   /* DIE RÜCKFRAGE — an derselben Stelle, an der eben noch der Kaufknopf

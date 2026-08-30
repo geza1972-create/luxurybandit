@@ -354,7 +354,30 @@ export async function POST(request: Request) {
     /* Schon optimiert UND bezahlt: nichts doppelt rechnen — der Aufruf ist idempotent
        (die Rückkehr von Stripe kann mehrfach laden). */
     if (profil.bezahlt === true && profil.strategie) {
-      return NextResponse.json({ ok: true, id, schon: true });
+      /**
+       * FOTO UND VORLAGE NACHREICHEN (Owner 30.08.2026: „aber mein Bild hat er nicht
+       * eingebaut" — sein Bewerbungsfoto fehlte im fertigen PDF).
+       *
+       * WIE ES DAZU KAM: Beim Löschen des Auftrags wurde auch sein hochgeladenes Foto vom
+       * Speicher entfernt (Löschen heisst löschen), und der zweite Anlauf lief aus der
+       * Galerie — die kennt kein Foto. Das Profil war fertig und bezahlt, aber ohne Bild.
+       *
+       * Der Aufruf hier war bisher eine reine Idempotenz-Bremse. Jetzt nimmt er ein Foto
+       * und eine Vorlagen-Wahl entgegen und legt sie ans BEZAHLTE Profil — KEIN Modell-Lauf,
+       * nur Ablage. Das PDF entsteht ohnehin bei jedem Öffnen frisch aus dem Profil
+       * (`/api/bewerbung-pdf`), also zeigt der nächste Klick das Bild.
+       */
+      const fotoNach = s(body.foto, 8_000_000);
+      let geaendert = false;
+      if (fotoNach.startsWith("data:")) {
+        const fp = await fotoAblegen(fotoNach).catch(() => "");
+        const fu = fp ? await getSignedUrl(fp, 60 * 60 * 24 * 365 * 10).catch(() => "") : "";
+        if (fu) { profil.fotoUrl = fu; geaendert = true; }
+      }
+      const vNach = s(body.vorlage, 30);
+      if (vNach && vNach !== profil.pdfVorlage) { profil.pdfVorlage = vNach; geaendert = true; }
+      if (geaendert) await schreibeLebenslauf(profil);
+      return NextResponse.json({ ok: true, id, schon: true, ...(geaendert ? { aktualisiert: true } : {}) });
     }
     const anzeigeText = profil.anzeigeText ?? "";
     if (!anzeigeText) return NextResponse.json({ error: "Anzeige nicht mehr vorhanden — bitte neu erzeugen." }, { status: 422 });
