@@ -193,7 +193,71 @@ export async function POST(request: Request) {
   }
 
   /* ── SCHRITT 1: ERZEUGEN (gratis — Titelblatt + Layout + Analyse, KEINE Optimierung) ── */
+  /**
+   * WEITERE BEWERBUNG AUS DERSELBEN ANALYSE (Owner 30.08.2026: „was passiert, wenn ich aus
+   * der Analyse noch eine Bewerbung anstosse? … ich will, dass eine NEUE entsteht" — die
+   * Multi-Bewerbung vom 25.08., Stufe 2).
+   *
+   * Dieser Schritt legt NUR den neuen Auftrag an — kostenlos, kein Modell-Lauf. Er erbt
+   * Lebenslauf, Adresse und Gerät vom bezahlten Ursprung; bezahlt und erzeugt wird die
+   * Mappe danach über denselben Weg wie die erste (Kasse → erzeugen → optimieren, mit
+   * `davidId` auf den Ursprung, damit das Gespräch weiter einfliesst). Der Ursprung bleibt
+   * unberührt: eigene Kennung, eigenes Profil, eigene Kachel.
+   *
+   * NUR NACH DEM ERSTEN KAUF: Wer die erste Bewerbung nicht gekauft hat, hat auch keinen
+   * Anspruch auf eine zweite Tür daneben — der normale Kaufweg steht ihm ja offen.
+   */
+  if (schritt === "mappe") {
+    const davidId = s(body.davidId, 60);
+    const anzeige = s(body.anzeige, 8000);
+    if (!davidId || anzeige.trim().length < 60) {
+      return NextResponse.json({ error: "Ursprung und Anzeige sind Pflicht." }, { status: 400 });
+    }
+    const alle = await readKissLog();
+    const orig = alle.find(e => e.id === davidId);
+    if (!orig || orig.theme !== "david") return NextResponse.json({ error: "Ursprung nicht gefunden." }, { status: 404 });
+    if (orig.paid !== true) return NextResponse.json({ error: "Erst nach dem ersten Kauf." }, { status: 402 });
+    /* Besitz: dasselbe Gerät oder dieselbe Adresse wie der Ursprung. */
+    const mail = s(body.email, 200).toLowerCase();
+    const passt = (!!device && device === orig.device) || (!!mail && mail === String(orig.email ?? "").toLowerCase());
+    if (!passt) return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    const neuId = crypto.randomUUID();
+    alle.push({
+      id: neuId, theme: "david", createdAt: new Date().toISOString(),
+      email: orig.email, device: orig.device, lang: orig.lang,
+      cvPath: orig.cvPath, cvName: orig.cvName, mappeVon: davidId,
+    } as (typeof alle)[number]);
+    await writeKissLog(alle);
+    return NextResponse.json({ ok: true, id: neuId });
+  }
+
   if (schritt === "erzeugen") {
+    /**
+     * FERTIG IST FERTIG — UND NIMMT TROTZDEM FOTO UND VORLAGE AN (Owner 30.08.2026: „ich
+     * habe ein neues Bild gewählt und Layout 3 … und wurde nichts generiert").
+     *
+     * ZWEI FEHLER STECKTEN HIER: Der Nachreichen-Knopf rief `erzeugen` OHNE Anzeige und
+     * Lebenslauf auf und prallte an der Pflichtprüfung ab („E-Mail, Anzeige und Lebenslauf
+     * sind Pflicht") — gespeichert wurde nichts. Und ein erneuter KAUF-Klick auf einem
+     * fertigen Auftrag lief den GANZEN Modell-Lauf noch einmal und überschrieb das
+     * bezahlte Profil. Deshalb steht der Ausstieg jetzt VOR der Pflichtprüfung: Ist das
+     * Profil bezahlt und fertig, wird nur Foto/Vorlage abgelegt — kein Lauf, kein
+     * Überschreiben, keine zweite Rechnung.
+     */
+    const schonProfil = await leseLebenslauf(id).catch(() => null);
+    if (schonProfil?.bezahlt === true && schonProfil.strategie) {
+      const fotoNach = s(body.foto, 8_000_000);
+      let geaendert = false;
+      if (fotoNach.startsWith("data:")) {
+        const fp = await fotoAblegen(fotoNach).catch(() => "");
+        const fu = fp ? await getSignedUrl(fp, 60 * 60 * 24 * 365 * 10).catch(() => "") : "";
+        if (fu) { schonProfil.fotoUrl = fu; geaendert = true; }
+      }
+      const vNach = s(body.vorlage, 30);
+      if (vNach && vNach !== schonProfil.pdfVorlage) { schonProfil.pdfVorlage = vNach; geaendert = true; }
+      if (geaendert) await schreibeLebenslauf(schonProfil);
+      return NextResponse.json({ ok: true, id, schon: true, ...(geaendert ? { aktualisiert: true } : {}) });
+    }
     const email = s(body.email, 200).toLowerCase();
     const anzeige = s(body.anzeige, 8000);
     const cvPath = s(body.cvPath, 300);

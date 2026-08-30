@@ -470,6 +470,11 @@ export const DAVID_TUNNEL = {
   /* Zwischen Tipp und Kassenfenster liegt ein Serveraufruf — was in dieser Zeit dasteht,
      entscheidet, ob der Käufer wartet oder ein zweites Mal tippt (Owner 30.08.2026). */
   videoKasseOeffnet: "Ich öffne die Kasse",
+  videoDankTitel: "Danke — dein Video wird erstellt.",
+  videoDankText: "Das dauert ein paar Minuten. Du findest es im Menü unter „Assets“ — auch dann, wenn du diese Seite schliesst.",
+  /* Der Ausweg, wenn die Erzeugung nach der Zahlung scheitert: neu aufnehmen kostet
+     nichts — bezahlt ist bezahlt, die Kasse rechnet nicht noch einmal ab. */
+  videoNochmalNachFehler: "Neu aufnehmen und noch einmal starten — bezahlt ist bezahlt",
   /* Die Quittung nach der Zahlung — sie sagt, dass es angekommen ist UND wo es hinkommt
      (Owner 30.08.2026). Sie schliesst sich nach sechs Sekunden von selbst. */
   /* Foto nachreichen, wenn die Bewerbung schon fertig ist (Owner 30.08.2026: „aber mein
@@ -478,6 +483,16 @@ export const DAVID_TUNNEL = {
   fotoNachreichen: "Foto in die Bewerbung übernehmen",
   fotoNachreichenLaeuft: "Foto wird übernommen",
   fotoNachgereicht: "Foto übernommen — öffne das PDF neu.",
+  /* Die WEITERE Bewerbung aus derselben Analyse (Owner 30.08.2026: „ich will dass eine
+     neue entsteht"). Lebenslauf + Gespräch werden wiederverwendet; die erste Mappe bleibt
+     unberührt, jede weitere ist ein eigener Kauf mit eigener Kachel. */
+  mappeTitel: "Noch eine Stelle im Blick?",
+  mappeText: "Füge die Anzeige ein — wir schneiden Lebenslauf und Anschreiben auf diese Stelle zu. Deine erste Bewerbung bleibt, wie sie ist; die neue bekommt ihre eigene Kachel in den Assets.",
+  mappeCta: "Weitere Bewerbung erstellen",
+  mappeLaeuft: "Deine weitere Bewerbung entsteht",
+  mappeFertig: "Deine weitere Bewerbung ist fertig — auch unter „Assets“.",
+  mappePdf: "Bewerbung öffnen (PDF)",
+  mappeAnzeigeWeg: "Die Anzeige ist auf diesem Gerät nicht mehr da. Füge sie oben noch einmal ein und tippe erneut — bezahlt ist bezahlt, es wird nichts doppelt abgebucht.",
   kaufDankTitel: "Danke — wir erstellen jetzt deine Bewerbung.",
   kaufDankText: "Das dauert einen Moment. Du findest sie im Menü unter „Assets“ — auch dann, wenn du diese Seite schliesst.",
   videoAufnahmeDa: "Aufnahme gespeichert.",

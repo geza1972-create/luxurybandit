@@ -1739,6 +1739,10 @@ export type KissLogEntry = {
    */
   cvPath?: string;
   cvName?: string;
+  /** WEITERE BEWERBUNG AUS DERSELBEN ANALYSE (Owner 30.08.2026: „ich will dass eine neue
+      entsteht"): Kennung des David-Auftrags, dessen Lebenslauf und Gespräch diese Mappe
+      wiederverwendet. Der Ursprung bleibt unberührt — jede Mappe ist ein eigener Kauf. */
+  mappeVon?: string;
   /**
    * DAS URTEIL DER ALTERS- UND NACKTHEITSPRÜFUNG (Owner 31.07.2026: „du machst mir aber in
    * der Galerie ein Warnzeichen drauf").

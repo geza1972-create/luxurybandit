@@ -72,6 +72,12 @@ export default function DavidAngebote({
   /* Der Dank nach der Zahlung — er verschwindet von selbst (siehe `nachZahlung`). */
   const [danke, setDanke] = useState(false);
   const [fertig, setFertig] = useState(false);
+  /* Die WEITERE Bewerbung aus derselben Analyse (Owner 30.08.2026: „ich will dass eine
+     neue entsteht"). Eigener Auftrag, eigener Kauf, eigene Kachel — der Ursprung bleibt. */
+  const [mappeAnzeige, setMappeAnzeige] = useState("");
+  const [mappeLaeuft, setMappeLaeuft] = useState(false);
+  const [mappeFertigId, setMappeFertigId] = useState("");
+  const [mappeFehler, setMappeFehler] = useState("");
   /* Foto nachreichen, wenn schon bezahlt und fertig (30.08.2026). */
   const [fotoNachLaeuft, setFotoNachLaeuft] = useState(false);
   const [fotoUebernommen, setFotoUebernommen] = useState(false);
@@ -263,7 +269,9 @@ export default function DavidAngebote({
        Video-Kauf. Kommt der zurück, trägt seine Adresse `was=video` — dann gehört die
        Rückkehr ihm, und ohne diese Zeile hätten BEIDE zugegriffen: Der Käufer hätte das Video
        bezahlt und zusätzlich die Erzeugung der Unterlagen ausgelöst. */
-    if (q.get("was") === "video") return;
+    /* … und seit der Mappe (30.08.2026) gilt: JEDE markierte Rückkehr gehört jemand
+       anderem — `was=video` dem Video, `was=mappe` der weiteren Bewerbung. */
+    if (q.get("was")) return;
     const cs = q.get("cs") ?? "";
     if (!nachholen && (!cs || cs.startsWith("{"))) return;
     rueckkehrRef.current = true;
@@ -308,6 +316,104 @@ export default function DavidAngebote({
     const uhr = setTimeout(() => setDanke(false), 6000);
     return () => clearTimeout(uhr);
   }, [danke]);
+
+  /** Nach der Zahlung der Mappe: Besitz, Erzeugung, Zuschnitt — wie beim ersten Kauf,
+      nur mit der NEUEN Kennung und `davidId` auf den Ursprung (das Gespräch fliesst mit). */
+  const mappeNachZahlung = async (neuId: string, anzeigeTxt: string) => {
+    setDanke(true);
+    try { await fetch("/api/david-besitz", { method: "POST", headers: kopfzeilen(), body: JSON.stringify({ id: neuId, device: geraet() }) }); } catch { /**/ }
+    try { window.dispatchEvent(new Event("lb-arbeit-neu")); } catch { /**/ }
+    setMappeFehler(""); setMappeLaeuft(true);
+    try {
+      const g = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({ schritt: "erzeugen", id: neuId, device: geraet(), email, anzeige: anzeigeTxt, cvPath, cvName, davidId: genId, vorlage, foto }),
+      }).then(r => r.json());
+      if (g?.error && !g?.schon) { setMappeFehler(String(g.error)); setMappeLaeuft(false); return; }
+      const o = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({ schritt: "optimieren", id: neuId, device: geraet() }),
+      }).then(r => r.json());
+      if (o?.error) { setMappeFehler(String(o.error)); setMappeLaeuft(false); return; }
+      setMappeFertigId(neuId); setMappeAnzeige("");
+      try { localStorage.removeItem(`lb_mappe_${neuId}`); } catch { /**/ }
+    } catch { setMappeFehler(S.reportFehler); }
+    setMappeLaeuft(false);
+  };
+
+  const mappeStarten = async () => {
+    if (mappeLaeuft) return;
+    if (mappeAnzeige.trim().length < 60) { setMappeFehler(S.jobKurz); return; }
+    setMappeFehler(""); setMappeLaeuft(true);
+    let neuId = "";
+    try {
+      const a = await fetch("/api/resume-generator", {
+        method: "POST", headers: kopfzeilen(),
+        body: JSON.stringify({ schritt: "mappe", id: genId, davidId: genId, device: geraet(), email, anzeige: mappeAnzeige.trim() }),
+      }).then(r => r.json());
+      if (!a?.id) { setMappeFehler(String(a?.error || S.reportFehler)); setMappeLaeuft(false); return; }
+      neuId = String(a.id);
+    } catch { setMappeFehler(S.reportFehler); setMappeLaeuft(false); return; }
+    /* Die Anzeige überlebt die Kassen-Rückkehr im selben Browser. */
+    try { localStorage.setItem(`lb_mappe_${neuId}`, mappeAnzeige.trim()); } catch { /**/ }
+    setMappeLaeuft(false);
+    if (adminPin()) { await mappeNachZahlung(neuId, mappeAnzeige.trim()); return; }
+    const popup = kassenFenster();
+    void logTunnelEvent("checkout_started", "david");
+    try {
+      const start = await fetch("/api/kiss-video-checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          genId: neuId, once: true, videoAufpreis: false, thema: "resume",
+          ...(aktionsCode() ? { code: aktionsCode() } : {}),
+          email, returnTo: `${window.location.pathname}?was=mappe&mappe=${neuId}`,
+          eingebettet: kasse.anfordern, lang,
+        }),
+      }).then(r => r.json());
+      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } await mappeNachZahlung(neuId, mappeAnzeige.trim()); return; }
+      if ((!start?.url && !start?.clientSecret) || !start?.sessionId) {
+        try { popup?.close(); } catch { /**/ }
+        setMappeFehler(start?.error || S.reportFehler); return;
+      }
+      if (kasse.uebernehmen(start.clientSecret)) return;
+      if (kasseOeffnen(popup, start.url) !== "popup" || !popup) return;
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
+        if (st?.paid) { try { popup.close(); } catch { /**/ } await mappeNachZahlung(neuId, mappeAnzeige.trim()); return; }
+        if (popup.closed && i > 2) break;
+      }
+      try { popup.close(); } catch { /**/ }
+    } catch {
+      try { popup?.close(); } catch { /**/ }
+      setMappeFehler(S.reportFehler);
+    }
+  };
+
+  /* Die Rückkehr der Mappen-Kasse — derselbe Fänger wie überall, nur mit `was=mappe`. */
+  const mappeRueckkehrRef = useRef(false);
+  useEffect(() => {
+    if (mappeRueckkehrRef.current || !genId) return;
+    let q: URLSearchParams;
+    try { q = new URLSearchParams(window.location.search); } catch { return; }
+    if (q.get("was") !== "mappe" || q.get("paid") !== "1") return;
+    const neuId = q.get("mappe") ?? "";
+    const cs = q.get("cs") ?? "";
+    if (!neuId || !cs || cs.startsWith("{")) return;
+    mappeRueckkehrRef.current = true;
+    void (async () => {
+      const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).catch(() => null);
+      q.delete("paid"); q.delete("cs"); q.delete("was"); q.delete("mappe");
+      const rest = q.toString();
+      try { window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : "")); } catch { /**/ }
+      if (!st?.paid) { setMappeFehler(S.reportFehler); return; }
+      let anzeigeTxt = "";
+      try { anzeigeTxt = localStorage.getItem(`lb_mappe_${neuId}`) ?? ""; } catch { /**/ }
+      if (anzeigeTxt.trim().length < 60) { setMappeFehler(S.mappeAnzeigeWeg); return; }
+      await mappeNachZahlung(neuId, anzeigeTxt);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genId]);
 
   const fotoNachreichen = async () => {
     if (fotoNachLaeuft || !foto) return;
@@ -516,6 +622,33 @@ export default function DavidAngebote({
                       <Check className="h-4 w-4 text-[#f6cf51]" />{S.fotoNachgereicht}
                     </p>
                   )}
+
+                  {/* ── DIE WEITERE BEWERBUNG (Owner 30.08.2026: „ich will dass eine neue
+                      entsteht"). Eigener Auftrag, eigener Kauf, eigene Kachel — die erste
+                      bleibt unberührt, das Gespräch fliesst über `davidId` weiter ein. ── */}
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <p className="text-[15px] font-black leading-snug text-white">{S.mappeTitel}</p>
+                    <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.mappeText}</p>
+                    {mappeFertigId ? (
+                      <div className="mt-3 flex flex-col gap-2">
+                        <p className="flex items-center gap-2 text-[13.5px] font-black text-white">
+                          <Check className="h-4 w-4 text-[#f6cf51]" />{S.mappeFertig}
+                        </p>
+                        <Knopf art="gold" href={`/api/bewerbung-pdf?id=${encodeURIComponent(mappeFertigId)}&vorlage=${encodeURIComponent(vorlage)}`}>{S.mappePdf}</Knopf>
+                      </div>
+                    ) : (
+                      <>
+                        <EingabeMehrzeilig className="mt-3" zeilen={5} value={mappeAnzeige}
+                          onChange={e => setMappeAnzeige(e.target.value)} placeholder={S.jobPlatzhalter} />
+                        <Fehlerzeile>{mappeFehler}</Fehlerzeile>
+                        <div className="mt-2">
+                          {mappeLaeuft
+                            ? <Fortschritt text={S.mappeLaeuft} />
+                            : <Knopf art="umriss" onClick={() => void mappeStarten()}>{`${S.mappeCta} — ${preisUnterlagen}`}</Knopf>}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               )
               : fotoFrage

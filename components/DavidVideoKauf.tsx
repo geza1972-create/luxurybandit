@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Video } from "lucide-react";
-import { Knopf, Fehlerzeile, Fortschritt, EingabeMehrzeilig } from "@/components/CI";
+import { Knopf, Fehlerzeile, Fortschritt, EingabeMehrzeilig, Dialog } from "@/components/CI";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { useKasseImFenster } from "@/components/KasseImFenster";
@@ -92,11 +92,39 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
    * weiter oben beim Skript; der Kaufknopf hatte sie noch nicht.
    */
   const [kaufLaeuft, setKaufLaeuft] = useState(false);
+  /* Der Dank nach der Zahlung — auch beim Video (Owner 30.08.2026: „auch hier soll der
+     Dialog kommen: Danke, Video wird erstellt und ins Assets gelegt"). */
+  const [danke, setDanke] = useState(false);
+  useEffect(() => {
+    if (!danke) return;
+    const uhr = setTimeout(() => setDanke(false), 6000);
+    return () => clearTimeout(uhr);
+  }, [danke]);
   const [busyText, setBusyText] = useState("");
   const [fehler, setFehler] = useState("");
   const kasse = useKasseImFenster(phase);
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
+  /**
+   * DIE ERZEUGUNG ÜBERLEBT DIE KASSE (Owner 30.08.2026, mit Bild: „ich habe Video
+   * aufgenommen und bezahlt — dann kommt das": rot „Foto fehlt oder ist zu gross" unter
+   * dem laufenden Balken).
+   *
+   * Auf vielen Geräten lädt die eingebettete Kasse die SEITE NEU (`?paid=1&was=video`).
+   * Damit ist der React-Zustand weg — Standbild, Aufnahme-Pfad, Skript, Look. Der Fänger
+   * lief dann mit leeren Händen in die Erzeugung, und der Server sagte zu Recht „Foto
+   * fehlt". Der Käufer hatte bezahlt und bekam eine rote Zeile.
+   *
+   * Also wird alles Nötige VOR der Kasse in den Gerätespeicher gelegt und im Fänger
+   * zurückgeholt. Nach gelungener Erzeugung wird aufgeräumt.
+   */
+  const videoMerker = () => `lb_davidvideo_${genId}`;
+  const videoMerken = (d: { foto: string; aufnahmePath: string; sprechtext: string; kleidung: string; umgebung: string }) => {
+    try { localStorage.setItem(videoMerker(), JSON.stringify(d)); } catch { /* voll/privat — dann wie früher */ }
+  };
+  const videoGemerkt = (): { foto: string; aufnahmePath: string; sprechtext: string; kleidung: string; umgebung: string } | null => {
+    try { const roh = localStorage.getItem(videoMerker()); return roh ? JSON.parse(roh) : null; } catch { return null; }
+  };
   /** `?code=…` aus der Adresse — nur weiterreichen, nie selbst bewerten. */
   const aktionsCode = (): string => {
     try { return new URLSearchParams(window.location.search).get("code")?.trim() ?? ""; } catch { return ""; }
@@ -183,7 +211,11 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
   };
 
   /** Nach der Zahlung: die bestehende Kette starten und die Auftragsnummer ablegen. */
-  const erzeugen = async () => {
+  const erzeugen = async (gemerkt?: { foto: string; aufnahmePath: string; sprechtext: string; kleidung: string; umgebung: string } | null) => {
+    const dFoto = gemerkt?.foto || foto;
+    const dPfad = gemerkt?.aufnahmePath || aufnahmePath;
+    const dText = (gemerkt?.sprechtext || sprechtext).trim();
+    const dLook = gemerkt ? { kleidung: gemerkt.kleidung, umgebung: gemerkt.umgebung } : look;
     /* Auch hier: Der Assets-Chip soll pulsieren, sobald das Video entsteht (28.08.2026). */
     try { window.dispatchEvent(new Event("lb-arbeit-neu")); } catch { /**/ }
     void logTunnelEvent("payment_completed", "david");
@@ -192,12 +224,12 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
       const d = await fetch("/api/lebenslauf-video", {
         method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
-          id: genId, device: geraet(), foto,
-          sprechtext: sprechtext.trim(),
+          id: genId, device: geraet(), foto: dFoto,
+          sprechtext: dText,
           /* DIE EIGENE STIMME (Owner 28.08.2026) — mit `audioPath` nimmt die Kette die
              Tonspur der Aufnahme statt der HeyGen-Standardstimme. */
-          ...(aufnahmePath ? { audioPath: aufnahmePath } : {}),
-          kleidung: look.kleidung, umgebung: look.umgebung,
+          ...(dPfad ? { audioPath: dPfad } : {}),
+          kleidung: dLook.kleidung, umgebung: dLook.umgebung,
         }),
       }).then(r => r.json());
       if (d?.error) { setFehler(String(d.error)); setBusy(false); setBusyText(""); return; }
@@ -209,6 +241,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
           body: JSON.stringify({ update: genId, videoId: d.videoId, device: geraet(), email }),
         }).catch(() => null);
       }
+      try { localStorage.removeItem(videoMerker()); } catch { /**/ }
       setPhase("fertig");
     } catch { setFehler(S.videoNetzFehler); }
     setBusy(false); setBusyText("");
@@ -252,7 +285,8 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
       const rest = q.toString();
       try { window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : "")); } catch { /**/ }
       if (!st?.paid) { setFehler(S.videoNetzFehler); return; }
-      await erzeugen();
+      setDanke(true);
+      await erzeugen(videoGemerkt());
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genId]);
@@ -267,6 +301,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
     if (sprechtext.trim().length < 40) { setFehler(S.videoSkriptFehlt); return; }
     if (!foto || !aufnahmePath) { setFehler(S.videoAufnahmeFehlt); return; }
     setFehler("");
+    videoMerken({ foto, aufnahmePath, sprechtext: sprechtext.trim(), kleidung: look.kleidung, umgebung: look.umgebung });
     setKaufLaeuft(true);
     const popup = kassenFenster();
     void logTunnelEvent("checkout_started", "david");
@@ -286,7 +321,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
           eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
-      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } await erzeugen(); return; }
+      if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } setDanke(true); await erzeugen(); return; }
       if ((!start?.url && !start?.clientSecret) || !start?.sessionId) {
         try { popup?.close(); } catch { /**/ }
         setFehler(start?.error || S.videoNetzFehler);
@@ -297,7 +332,7 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
       for (let i = 0; i < 100; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
-        if (st?.paid) { try { popup.close(); } catch { /**/ } await erzeugen(); return; }
+        if (st?.paid) { try { popup.close(); } catch { /**/ } setDanke(true); await erzeugen(); return; }
         if (popup.closed && i > 2) break;
       }
       try { popup.close(); } catch { /**/ }
@@ -331,6 +366,15 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
 
   return (
     <div className="mt-4 flex flex-col gap-3 rounded-[18px] bg-white/[0.035] p-4 lb-rand-verlauf">
+      {danke && (
+        <Dialog art="dunkel" zu={() => setDanke(false)}>
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f6cf51]/15 text-[#f6cf51]">
+            <Check className="h-6 w-6" />
+          </span>
+          <p className="mt-3 text-[18px] font-black leading-snug text-white">{S.videoDankTitel}</p>
+          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/80">{S.videoDankText}</p>
+        </Dialog>
+      )}
       {/* ── 2 · DIE AUFNAHME — Kamera mit Kreis, Skript läuft mit ── */}
       {phase === "aufnahme" && (
         <>
@@ -424,8 +468,17 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
       {phase === "laeuft" && (
         <>
           <p className="text-[15px] font-black leading-snug text-white">{S.videoLaeuftTitel}</p>
-          <Fortschritt text={busyText || S.videoLaeuft} />
+          {!fehler && <Fortschritt text={busyText || S.videoLaeuft} />}
           <Fehlerzeile>{fehler}</Fehlerzeile>
+          {/* SCHEITERT DIE ERZEUGUNG NACH DER ZAHLUNG, GIBT ES EINEN WEG (Owner 30.08.2026:
+              rote Zeile unter dem Balken, und nichts mehr zu drücken). Neu aufnehmen und
+              starten kostet nichts — die Kasse erkennt den bezahlten Auftrag und rechnet
+              nicht noch einmal ab. */}
+          {fehler && (
+            <Knopf art="umriss" onClick={() => { setFehler(""); setPhase("aufnahme"); setAufnahmeOffen(true); }}>
+              {S.videoNochmalNachFehler}
+            </Knopf>
+          )}
         </>
       )}
 

@@ -261,6 +261,23 @@ export async function POST(request: Request) {
     const davidProdukt = thema === "david"
       ? (String(body.thema ?? "") === "david-video" ? "david-video" : "resume")
       : "";
+    /**
+     * BEZAHLT IST BEZAHLT (Owner 30.08.2026: Auf einer neu geladenen Berichtsseite stand
+     * der Kaufknopf wieder, obwohl die Unterlagen längst gekauft waren — der Zustand
+     * „fertig" lebte nur im Browser. Ein zweiter Klick hätte eine ZWEITE Kassensitzung für
+     * denselben Kauf eröffnet und echtes Geld doppelt abgebucht.)
+     *
+     * Die Video-Bewerbung ist bewusst ausgenommen: Sie ist das ZWEITE Produkt desselben
+     * Auftrags und darf nach den Unterlagen noch gekauft werden.
+     */
+    if (davidProdukt === "resume" && auftrag?.paid === true) {
+      return NextResponse.json({ walletPaid: true, schon: true });
+    }
+    /* Und dasselbe für die Video-Bewerbung, solange ihr Video noch aussteht: Wer nach einem
+       Fehlschlag neu aufnimmt und wieder auf Kaufen tippt, hat schon bezahlt (30.08.2026). */
+    if (davidProdukt === "david-video" && auftrag?.paid === true && !auftrag?.videoUrl) {
+      return NextResponse.json({ walletPaid: true, schon: true });
+    }
     /* Was auf der Quittung steht UND was es kostet, kommt aus derselben Zeile. */
     const abrechnung = davidProdukt || thema;
     const preis = tanz ? POLEDANCE_CENTS
