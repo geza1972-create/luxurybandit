@@ -177,6 +177,10 @@ export default function DavidAngebote({
   const kasse = useKasseImFenster(fertig ? "fertig" : "offen");
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
+  /** `?code=…` aus der Adresse — nur weiterreichen, nie selbst bewerten. */
+  const aktionsCode = (): string => {
+    try { return new URLSearchParams(window.location.search).get("code")?.trim() ?? ""; } catch { return ""; }
+  };
   /**
    * DER ADMIN-DURCHLAUF (Owner 28.08.2026: „also ich muss es testen können ich zahle doch
    * mit admin code").
@@ -354,6 +358,9 @@ export default function DavidAngebote({
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           genId, once: true, videoAufpreis: false, thema: "resume",
+          /* DER AKTIONSCODE AUS DEM LINK REIST MIT (30.08.2026) — der Server entscheidet,
+             was er wert ist; bringt er die Summe auf null, entfällt die Kasse ganz. */
+          ...(aktionsCode() ? { code: aktionsCode() } : {}),
           email, returnTo: window.location.pathname, eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());

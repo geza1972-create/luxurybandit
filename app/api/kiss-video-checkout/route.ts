@@ -4,7 +4,7 @@ import { guthabenAbbuchen, readKissLog } from "@/lib/try-this-look-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { futureProgramUrl } from "@/lib/future-program-store";
 import { couponFor } from "@/lib/promo";
-import { createSubscriptionCheckout, createTryonCheckout } from "@/lib/stripe";
+import { createSubscriptionCheckout, createTryonCheckout, gutscheinRabatt } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -261,6 +261,8 @@ export async function POST(request: Request) {
     const davidProdukt = thema === "david"
       ? (String(body.thema ?? "") === "david-video" ? "david-video" : "resume")
       : "";
+    /* Was auf der Quittung steht UND was es kostet, kommt aus derselben Zeile. */
+    const abrechnung = davidProdukt || thema;
     const preis = tanz ? POLEDANCE_CENTS
       : gutschein ? GUTSCHEIN_CENTS
       : videoAufpreis ? VIDEO_UPGRADE_CENTS
@@ -305,6 +307,53 @@ export async function POST(request: Request) {
         }
       } catch { /* Guthaben-Weg kaputt → normale Kasse, der Kunde merkt nichts */ }
     }
+
+    /**
+     * KOSTET ES NICHTS, GEHT ES OHNE STRIPE (Owner 30.08.2026, mit Bild der Kasse auf
+     * „0,00 RON": „ich kann es nicht auslösen").
+     *
+     * Ein Gutschein über 100 % drückt die Summe auf null — und eine Zahlung über null kann
+     * Stripe im Einmalkauf nicht abschliessen (jeder Zahlungsvorgang hat einen
+     * Mindestbetrag). Der Kunde steht dann vor einer Schaltfläche, die nichts tut, und
+     * niemand sagt ihm warum. Beim ABO fällt das nie auf, dort funktioniert derselbe Code.
+     *
+     * Also derselbe Abzweig wie beim Guthaben eine Zeile darüber: Wir stempeln den Auftrag
+     * selbst als bezahlt und melden `walletPaid` — die Antwort, die JEDER Trichter im Haus
+     * schon kennt und mit „weiter zur Erzeugung" beantwortet. Kein neuer Weg, kein zweiter
+     * Zustand.
+     *
+     * WER DARF DAS: Nur unsere eigenen, servergepflegten Codes (`couponFor` kennt nichts
+     * anderes) und nur, wenn Stripe selbst bestätigt, dass der Gutschein die Summe auf null
+     * bringt. Der Browser behauptet hier nichts — er reicht einen Code weiter, alles andere
+     * entscheidet der Server.
+     *
+     * NICHT ABGEDECKT — und das ist eine Grenze der Sache, keine Nachlässigkeit: Ein Code,
+     * den der Kunde erst IM Stripe-Formular eintippt, kennt unser Server nie. Dort bleibt
+     * die Nulllage Stripes Problem. Deshalb gehört ein 100-%-Code in den Link (`?code=…`)
+     * und nicht in die mündliche Weitergabe.
+     */
+    const codeAusLink = String((body as { code?: string })?.code ?? "");
+    const gutscheinId = couponFor(codeAusLink);
+    if (gutscheinId && genId) {
+      const rabatt = await gutscheinRabatt(gutscheinId);
+      const endbetrag = rabatt?.prozent != null
+        ? Math.round(preis * (1 - rabatt.prozent / 100))
+        : rabatt?.betragCents != null
+          ? Math.max(0, preis - rabatt.betragCents)
+          : preis;
+      if (endbetrag <= 0) {
+        /* Derselbe Stempel wie beim Guthaben — und dieselbe ehrliche Absage, wenn er nicht
+           sitzt: lieber ein Fehler als ein falsches „bezahlt". */
+        const gestempelt = await bezahltVermerken(genId, email, "kiss-video", origin, 0);
+        if (!gestempelt) {
+          return NextResponse.json({ error: "Auftrag nicht auffindbar — bitte neu starten." }, { status: 409 });
+        }
+        lieferungAnstossen(origin, genId);
+        const programUrl = await futureProgramUrl(origin, genId).catch(() => undefined);
+        return NextResponse.json({ walletPaid: true, gratis: true, ...(programUrl ? { programUrl } : {}) });
+      }
+    }
+
     try {
       const { id, url, clientSecret } = await createTryonCheckout({
         amount: preis,
@@ -356,15 +405,29 @@ export async function POST(request: Request) {
            (geschenkPreisCents kennt "tryon" laengst), nur der Name auf der Quittung war
            falsch — fuer den Kunden ein fremder Posten, fuer uns eine unzuordenbare
            Rueckbuchung. */
+        /**
+         * DER NAME FOLGT DEM PRODUKT, NICHT DEM TRICHTER (gefunden 30.08.2026 an der
+         * laufenden Kasse: Auf dem Zahlungsformular stand „Kiss video — one-off", während
+         * David eine Video-Bewerbung verkaufte).
+         *
+         * Der Preis las schon `davidProdukt`, dieser Zweig aber noch `thema` — und Davids
+         * Auftrag trägt `theme: "david"`. Weder „david" noch „david-video" stand in der
+         * Liste, also fiel der Name bis ganz nach unten durch. Ein Bewerber, der auf dem
+         * Bezahlschirm „Kiss video" liest, bricht ab — und wer trotzdem zahlt, findet auf
+         * der Kartenabrechnung einen Posten, den er nicht zuordnen kann.
+         *
+         * Beide Zeilen lesen jetzt dieselbe Quelle: `davidProdukt` für Davids zwei Produkte,
+         * sonst das gespeicherte Thema.
+         */
         productName: tanz ? "Pole dance video — one-off"
-          : thema === "birthday" ? "Birthday video — one-off"
-          : thema === "versprechen" ? "Future Self Program"
-          : thema === "lebenslauf" ? "AI career profile — one-off"
-          : thema === "resume" ? "Tailored resume PDF — one-off"
+          : abrechnung === "birthday" ? "Birthday video — one-off"
+          : abrechnung === "versprechen" ? "Future Self Program"
+          : abrechnung === "lebenslauf" ? "AI career profile — one-off"
+          : abrechnung === "resume" ? "Tailored resume PDF — one-off"
           /* Die Video-Bewerbung aus dem David-Screening (28.08.2026) — die Quittung muss
              sagen, was gekauft wurde, sonst steht auf der Karte ein fremdes Produkt. */
-          : thema === "david-video" ? "Video application — one-off"
-          : thema === "tryon" ? "Try-on video — one-off"
+          : abrechnung === "david-video" ? "Video application — one-off"
+          : abrechnung === "tryon" ? "Try-on video — one-off"
           : "Kiss video — one-off",
         successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

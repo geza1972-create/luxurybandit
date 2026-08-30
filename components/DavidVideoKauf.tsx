@@ -43,19 +43,33 @@ import type { DavidTunnelTexte } from "@/lib/david-tunnel-texte";
 
 type Phase = "start" | "skript" | "aufnahme" | "laeuft" | "fertig";
 
-export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorname }: {
+export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorname, skriptVorgabe }: {
   S: DavidTunnelTexte;
   preisVideo: string;
   genId: string;
   email: string;
   lang: string;
   vorname?: string;
+  /**
+   * NUR FÜR DEN PRÜFSTAND (`/aufnahme-test`, Owner 30.08.2026): ein fertiges Skript, das
+   * David NICHT erst schreiben muss.
+   *
+   * Warum es das gibt: Wer die Kamera, die Kasse oder die Erzeugung prüft, durchläuft die
+   * Strecke zwanzigmal — und jeder Anlauf startete bisher mit einem Modell-Lauf für ein
+   * Skript, das beim Prüfen niemanden interessiert. Das kostet Geld und eine halbe Minute
+   * Warten, jedes Mal (Hausregel: kein bezahlter Aufruf ohne bewusste Entscheidung).
+   *
+   * Die echte Seite gibt diese Vorgabe NIE mit — dort schreibt David das Skript aus
+   * Lebenslauf, Stelle und Gespräch, und genau das ist der Wert des Produkts.
+   */
+  skriptVorgabe?: string;
 }) {
-  const [phase, setPhase] = useState<Phase>("start");
+  /* Mit Vorgabe steht die Strecke gleich beim Skript — der Modell-Lauf entfällt. */
+  const [phase, setPhase] = useState<Phase>(skriptVorgabe ? "skript" : "start");
   const [foto, setFoto] = useState("");          // Standbild aus der Aufnahme (Data-URL)
   const [aufnahmePath, setAufnahmePath] = useState("");  // die hochgeladene Aufnahme (Stimme)
   const [aufnahmeOffen, setAufnahmeOffen] = useState(false);
-  const [sprechtext, setSprechtext] = useState("");
+  const [sprechtext, setSprechtext] = useState(skriptVorgabe ?? "");
   const [look, setLook] = useState<{ kleidung: string; umgebung: string }>({ kleidung: "", umgebung: "" });
   /* Die drei Hintergrund-Vorschläge aus der Stelle (Owner 28.08.2026: „warm business",
      „Der Kunde müsste hier entscheiden oder wir je nachdem als was er sich bewirbt"). */
@@ -64,11 +78,29 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
   const [kleidungen, setKleidungen] = useState<string[]>([]);
   const [kleidungLabel, setKleidungLabel] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  /**
+   * DER KAUF HAT SEINEN EIGENEN WARTEZUSTAND (Owner 30.08.2026: „da muss ich zwei mal
+   * klicken. Was passiert jetzt? rechnet er?").
+   *
+   * Nicht `busy`: Der schaltet die ganze Fläche auf einen Kreisel um — dann verschwände das
+   * eingebettete Kassenformular, das genau dort erscheinen soll. Dieser Merker sperrt NUR
+   * den Kaufknopf und sagt, dass die Kasse geholt wird.
+   *
+   * Warum überhaupt: Zwischen Tipp und Kassenfenster liegt ein Serveraufruf. Ohne Anzeige
+   * steht der Knopf unverändert da, der Käufer tippt ein zweites Mal — und dann laufen zwei
+   * Kassensitzungen für einen Kauf. Genau diese Lehre steht seit dem 28.08. eine Stufe
+   * weiter oben beim Skript; der Kaufknopf hatte sie noch nicht.
+   */
+  const [kaufLaeuft, setKaufLaeuft] = useState(false);
   const [busyText, setBusyText] = useState("");
   const [fehler, setFehler] = useState("");
   const kasse = useKasseImFenster(phase);
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
+  /** `?code=…` aus der Adresse — nur weiterreichen, nie selbst bewerten. */
+  const aktionsCode = (): string => {
+    try { return new URLSearchParams(window.location.search).get("code")?.trim() ?? ""; } catch { return ""; }
+  };
   /**
    * DIE ANMELDUNG REIST MIT (Owner 28.08.2026: „bin doch eingeloggt").
    *
@@ -226,10 +258,16 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
   }, [genId]);
 
   const kaufen = async () => {
-    if (busy || !genId) return;
+    if (busy || kaufLaeuft) return;
+    /* EIN STUMMER KNOPF IST DER SCHLIMMSTE FEHLER (Owner 30.08.2026: „nee passiert nichts",
+       nach dem Tipp auf den Kaufknopf). Ohne Sitzungskennung sprang die Funktion vorher
+       einfach heraus — kein Fenster, keine Zeile, nichts. Der Käufer tippt dann dreimal und
+       geht. Hausregel „sichtbare Fehler": Wenn nichts passieren KANN, muss dastehen warum. */
+    if (!genId) { setFehler(S.technischerFehler); return; }
     if (sprechtext.trim().length < 40) { setFehler(S.videoSkriptFehlt); return; }
     if (!foto || !aufnahmePath) { setFehler(S.videoAufnahmeFehlt); return; }
     setFehler("");
+    setKaufLaeuft(true);
     const popup = kassenFenster();
     void logTunnelEvent("checkout_started", "david");
     try {
@@ -237,6 +275,9 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
         method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
           genId, once: true, videoAufpreis: false, thema: "david-video",
+          /* DER AKTIONSCODE AUS DEM LINK REIST MIT (30.08.2026) — der Server entscheidet,
+             was er wert ist; bringt er die Summe auf null, entfällt die Kasse ganz. */
+          ...(aktionsCode() ? { code: aktionsCode() } : {}),
           email,
           /* `was=video` reist mit und kommt in der Rückkehr-Adresse wieder an — daran
              erkennt der Fänger oben, dass DIESER Kauf gemeint war und nicht der der
@@ -263,6 +304,10 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
     } catch {
       try { popup?.close(); } catch { /**/ }
       setFehler(S.videoNetzFehler);
+    } finally {
+      /* Über JEDEN Ausgang — auch über die frühen `return` im Block darüber. Ein Knopf, der
+         nach einem Fehler gesperrt bleibt, ist genauso tot wie einer ohne Anzeige. */
+      setKaufLaeuft(false);
     }
   };
 
@@ -299,7 +344,13 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
                 <Check className="h-4 w-4 text-[#f6cf51]" />{S.videoAufnahmeDa}
               </p>
               <div className="flex flex-col gap-2">
-                <Knopf art="gold" onClick={() => void kaufen()}>{`${S.videoKaufen} — ${preisVideo}`}</Knopf>
+                {/* STEHT DIE KASSE SCHON IN DER SEITE, GIBT ES KEINEN KAUFKNOPF MEHR —
+                    sonst legt ein zweiter Tipp eine zweite Kassensitzung an. */}
+                {kasse.block ? null : kaufLaeuft ? (
+                  <Fortschritt text={S.videoKasseOeffnet} />
+                ) : (
+                  <Knopf art="gold" onClick={() => void kaufen()}>{`${S.videoKaufen} — ${preisVideo}`}</Knopf>
+                )}
                 <Knopf art="umriss" onClick={() => setAufnahmeOffen(true)}>{S.videoAufnahmeNochmal}</Knopf>
               </div>
               {kasse.block}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, X, RotateCcw } from "lucide-react";
+import { Mic, Square, X, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { Knopf, Scheibe, Fehlerzeile } from "@/components/CI";
 
 /**
@@ -34,14 +34,18 @@ import { Knopf, Scheibe, Fehlerzeile } from "@/components/CI";
  *      neben dem Start.
  */
 
-export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, aufFertig, aufAbbruch }: {
+export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagnose = false, aufFertig, aufAbbruch }: {
   /** Der Text zum Ablesen — er läuft über der Kamera mit. */
   skript: string;
   maxSekunden?: number;
   texte: {
     titel: string; hinweis: string; los: string; stopp: string;
     nochmal: string; uebernehmen: string; keineKamera: string; schliessen: string;
+    /** Beschriftung des Zoom-Reglers — nur für Schirmleser. */
+    naeher?: string;
   };
+  /** Nur im Prüfstand: zeigt, was die Kamera wirklich liefert. */
+  diagnose?: boolean;
   /** Die fertige Aufnahme — der Aufrufer lädt sie hoch. */
   aufFertig: (datei: File) => void;
   aufAbbruch: () => void;
@@ -54,14 +58,28 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, aufFer
   const [rest, setRest] = useState(maxSekunden);
   const [fertig, setFertig] = useState<{ datei: File; url: string } | null>(null);
   const [fehler, setFehler] = useState("");
+  /* Was die Kamera wirklich liefert — und ob sie sich heranholen lässt. */
+  const [naeher, setNaeher] = useState<{ min: number; max: number; schritt: number; wert: number } | null>(null);
+  const [messwert, setMesswert] = useState("");
 
   /* Kamera an, sobald das Fenster steht — aber NICHT aufnehmen. */
   useEffect(() => {
     let abgebrochen = false;
     void (async () => {
       try {
+        /* HOCHFORMAT SCHON AN DER QUELLE (Owner 30.08.2026: „hast du Weitwinkel
+           eingeschaltet?"). Vorher stand hier nur „möglichst 1080×1920". Eine Webcam am
+           Rechner kann kein Hochformat — sie liefert dann ihr BREITESTES Bild, und das ist
+           bei modernen Kameras (Continuity Camera, Center Stage) das Weitwinkel-Objektiv:
+           halbe Wohnung im Bild, Kopf klein. Mit `aspectRatio` schneidet der Browser den
+           Strom selbst auf 9:16 — die Seiten fallen weg, BEVOR aufgenommen wird. Damit ist
+           die Aufnahme dasselbe Bild wie die Vorschau. */
         const strom = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } },
+          video: {
+            facingMode: "user",
+            width: { ideal: 720 }, height: { ideal: 1280 },
+            aspectRatio: { ideal: 9 / 16 },
+          },
           audio: true,
         });
         if (abgebrochen) { strom.getTracks().forEach(t => t.stop()); return; }
@@ -69,6 +87,17 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, aufFer
         if (vorschauRef.current) {
           vorschauRef.current.srcObject = strom;
           void vorschauRef.current.play().catch(() => { /* Vorschau darf stumm scheitern */ });
+        }
+        /* HERANHOLEN STATT VORRUTSCHEN: Kann die Kamera zoomen, bekommt der Nutzer einen
+           Regler. Der Zoom liegt am STROM, nicht am Bild auf dem Schirm — er landet also
+           mit in der Aufnahme. Kameras ohne Zoom zeigen den Regler gar nicht erst. */
+        const spur = strom.getVideoTracks()[0];
+        const e = spur?.getSettings?.() as { width?: number; height?: number } | undefined;
+        if (e?.width && e?.height) setMesswert(`${e.width}×${e.height}`);
+        const koennen = spur?.getCapabilities?.() as { zoom?: { min: number; max: number; step?: number } } | undefined;
+        if (koennen?.zoom && koennen.zoom.max > koennen.zoom.min) {
+          const jetzt = (spur.getSettings() as { zoom?: number }).zoom ?? koennen.zoom.min;
+          setNaeher({ min: koennen.zoom.min, max: koennen.zoom.max, schritt: koennen.zoom.step || 0.1, wert: jetzt });
         }
       } catch { setFehler(texte.keineKamera); }
     })();
@@ -124,6 +153,14 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, aufFer
     setLaeuft(false);
   };
 
+  /* Der Zoom geht an die Kamera, nicht an die Anzeige — sonst zeigte die Vorschau etwas
+     anderes, als die Datei später enthält. */
+  const heranholen = (wert: number) => {
+    setNaeher(n => (n ? { ...n, wert } : n));
+    const spur = stromRef.current?.getVideoTracks()[0];
+    try { void spur?.applyConstraints({ advanced: [{ zoom: wert } as unknown as MediaTrackConstraintSet] }); } catch { /**/ }
+  };
+
   const nochmal = () => {
     if (fertig) { try { URL.revokeObjectURL(fertig.url); } catch { /**/ } }
     setFertig(null); setRest(maxSekunden);
@@ -131,28 +168,60 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, aufFer
 
   return (
     <div className="fixed inset-0 z-[95] flex flex-col bg-black">
-      {/* Der Ausgang — oben rechts, wie überall im Haus. */}
-      <div className="absolute right-4 top-4 z-20" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-        <Scheibe label={texte.schliessen} onClick={() => { stopp(); aufAbbruch(); }}>
-          <X className="h-4 w-4" />
-        </Scheibe>
-      </div>
-
-      {/* ── Das Bild: entweder die Kamera oder die fertige Aufnahme ── */}
+      {/* ── Das Bild: entweder die Kamera oder die fertige Aufnahme ──
+             DIE BÜHNE IST HOCHFORMAT (Owner 30.08.2026: „ich bin zu nah an der kamera").
+             Vorher füllte die Vorschau mit `object-cover` die GANZE Fläche — auf einem breiten
+             Fenster wird ein Kamerabild dabei so weit hochskaliert, bis nur noch das halbe
+             Gesicht im Bild steht. Der Nutzer sass richtig, das Bild log. Jetzt steht die
+             Vorschau in einem 9:16-Rahmen wie das spätere Video: was er hier sieht, ist auch
+             das, was aufgenommen wird. */}
       <div className="relative flex-1 overflow-hidden">
-        {fertig ? (
-          <video src={fertig.url} controls playsInline className="h-full w-full object-contain" />
-        ) : (
-          <>
-            <video ref={vorschauRef} muted playsInline className="h-full w-full object-cover" />
-            {/* DER KREIS FÜRS GESICHT (Owner 28.08.2026) — er sagt ohne ein Wort, wohin der
-                Kopf gehört. Nur eine Hilfslinie, kein Beschnitt: Aufgenommen wird das ganze
-                Bild, sonst fehlte der KI später der Rand. */}
-            <div className="pointer-events-none absolute inset-0 grid place-items-center">
-              <div className="aspect-square w-[62%] max-w-[320px] rounded-full border-2 border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="relative aspect-[9/16] h-full max-h-full w-auto max-w-full overflow-hidden bg-black">
+            {/* DER AUSGANG KLEBT AN DER BILDECKE, NICHT AM BILDSCHIRMRAND (Owner 30.08.2026:
+                „schon wieder Schliessbutton zu weit rechts"). Er hing an `fixed inset-0`, also
+                am rechten Rand des Fensters — auf dem Handy ist das dieselbe Ecke, am Rechner
+                liegt er plötzlich einen halben Meter neben dem Bild im Schwarzen. Jetzt gehört
+                er zur Bühne und wandert mit ihr. */}
+            <div className="absolute right-3 top-3 z-20" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+              <Scheibe label={texte.schliessen} onClick={() => { stopp(); aufAbbruch(); }}>
+                <X className="h-4 w-4" />
+              </Scheibe>
             </div>
-          </>
-        )}
+
+            {fertig ? (
+              <video src={fertig.url} controls playsInline className="h-full w-full object-contain" />
+            ) : (
+              <>
+                <video ref={vorschauRef} muted playsInline className="h-full w-full object-cover" />
+                {/* DER KREIS FÜRS GESICHT (Owner 28.08.2026) — er sagt ohne ein Wort, wohin der
+                    Kopf gehört. Nur eine Hilfslinie, kein Beschnitt: Aufgenommen wird das ganze
+                    Bild, sonst fehlte der KI später der Rand. */}
+                <div className="pointer-events-none absolute inset-0 grid place-items-center pb-[14%]">
+                  <div className="aspect-square w-[62%] rounded-full border-2 border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                </div>
+
+                {/* DER REGLER ZUM HERANHOLEN — nur, wenn die Kamera das kann. */}
+                {naeher && (
+                  <div className="absolute inset-x-0 bottom-3 z-20 flex items-center gap-3 px-5">
+                    <ZoomOut className="h-4 w-4 shrink-0 text-white/80" />
+                    <input type="range" aria-label={texte.naeher || "Zoom"}
+                      min={naeher.min} max={naeher.max} step={naeher.schritt} value={naeher.wert}
+                      onChange={ev => heranholen(Number(ev.target.value))}
+                      className="h-1 flex-1 cursor-pointer accent-[#f6cf51]" />
+                    <ZoomIn className="h-4 w-4 shrink-0 text-white/80" />
+                  </div>
+                )}
+
+                {diagnose && messwert && (
+                  <p className="absolute left-3 top-3 z-20 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-bold text-white/80">
+                    {messwert}{naeher ? ` · Zoom ${naeher.min}–${naeher.max}` : " · kein Zoom"}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Das Skript zum Ablesen — direkt über den Knöpfen, damit der Blick nahe an der

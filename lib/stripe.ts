@@ -67,6 +67,28 @@ function stripeSprache(sprache?: string): string {
   return ["en", "de", "ro", "es", "fr", "pt", "it"].includes(l) ? l : "";
 }
 
+/**
+ * WAS EIN GUTSCHEIN WIRKLICH NACHLÄSST (30.08.2026).
+ *
+ * Gebraucht an genau einer Stelle: Ein Code, der 100 % nachlässt, macht die Summe null — und
+ * eine Zahlung über null kann Stripe im Einmalkauf nicht abschliessen (Mindestbetrag). Die
+ * Kasse muss das VORHER wissen, um den Kauf ohne Stripe durchzuwinken statt den Kunden vor
+ * einer Schaltfläche stehen zu lassen, die nichts tut.
+ *
+ * Nur lesend, und bewusst still: Antwortet Stripe nicht, gilt der volle Preis — der höfliche
+ * Irrtum ist hier, einmal zu viel zur Kasse zu bitten, nie einmal zu wenig.
+ */
+export async function gutscheinRabatt(couponId: string): Promise<{ prozent?: number; betragCents?: number } | null> {
+  const id = (couponId ?? "").trim();
+  if (!id) return null;
+  try {
+    const c = await stripeRequest("GET", `/coupons/${encodeURIComponent(id)}`);
+    const prozent = typeof c?.percent_off === "number" ? c.percent_off : undefined;
+    const betragCents = typeof c?.amount_off === "number" ? c.amount_off : undefined;
+    return { prozent, betragCents };
+  } catch { return null; }
+}
+
 export async function createTryonCheckout(opts: {
   amount: number;          // minor units (cents)
   currency: string;
