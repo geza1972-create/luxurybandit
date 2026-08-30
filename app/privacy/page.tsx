@@ -3,34 +3,34 @@ import DavidDatenschutz from "@/components/DavidDatenschutz";
 
 export const metadata = { title: "Privacy Policy — LuxuryBandit" };
 
-// Plain-language privacy policy matching the actual product (AI try-on, AI-persona chat,
-// Premium subscription). Not a lawyer's review, but accurate. Update the processor list if the
-// stack changes.
+// Plain-language privacy policy matching the actual products. Not a lawyer's review, but
+// accurate. Update the processor list if the stack changes.
 export default function PrivacyPage() {
   return (
     <InfoPage title="Privacy Policy">
       {/**
-        * DIE ALTERSANGABE GALT FÜR DAS GANZE HAUS — UND DAS IST FALSCH (Owner 30.08.2026, kurz
-        * vor dem Anzeigenstart: „wtf steht hier in Datenschutz. Für adults? Ist das eine
-        * Pornoseite?").
+        * OHNE ALTERSANGABE UND OHNE „TRY-ON" (Owner 30.08.2026: „wtf steht hier in Datenschutz.
+        * Für adults? Ist das eine Pornoseite?" · „hör auf adult oder tryon zu erwähnen").
         *
-        * „LuxuryBandit is for adults (18+)" stammt aus der Zeit, als es nur Mode-Anprobe und
-        * KI-Chat gab. Auf einem Bewerbungsprodukt liest sich derselbe Satz wie ein Hinweis auf
-        * etwas ganz anderes — und ein Meta-Prüfer liest diese Seite, bevor er die Anzeige
-        * freigibt. Die Angabe bleibt, wo sie hingehört (Mode und Chat), und gilt nicht mehr
-        * pauschal für ein Produkt, mit dem sich Menschen auf Stellen bewerben.
+        * Beide Wörter stammen aus einer Zeit, die vorbei ist: Damals war LuxuryBandit eine
+        * Fan-Plattform mit Wäsche-Anprobe, heute stehen Karriere-Produkte und Geschenke im
+        * Haus, und die Anprobe läuft für Online-Shops mit angezogenen Modellen. Ein
+        * Bewerber, der seinen Lebenslauf hochladen soll — und ein Meta-Prüfer, der die
+        * Anzeige freigibt — lesen hier sonst etwas völlig anderes, als wir verkaufen.
+        *
+        * Die Seite beschreibt jetzt VERARBEITUNGEN, nicht Produktnamen von gestern.
         */}
       <p>
         This policy explains what data LuxuryBandit collects and how we use it. LuxuryBandit hosts
         several separate products — among them <strong>David · AI Pre-Screening</strong> (career
-        preparation) and our fashion and chat products, which are for adults (18+). If you have any
-        question, reach us via our <a href="/contact">contact form</a>.
+        preparation), AI-generated images and videos, and gift products. If you have any question,
+        reach us via our <a href="/contact">contact form</a>.
       </p>
 
       <h2>What we collect</h2>
       <p>
         <strong>Account:</strong> your email and display name.<br />
-        <strong>Photos:</strong> images you upload for an AI try-on, and (for models) profile photos.<br />
+        <strong>Photos:</strong> images you upload so we can generate a picture or video for you, and (for models) profile photos.<br />
         <strong>Chat:</strong> messages you send in the AI chat.<br />
         <strong>Payments:</strong> if you subscribe, our payment provider (Stripe) processes your card —
         we never see or store your full card details.<br />
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
 
       <h2>Photos &amp; AI</h2>
       <p>
-        Photos you upload are used to generate your try-on and are <strong>not</strong> used to train
+        Photos you upload are used to generate the picture or video you asked for and are <strong>not</strong> used to train
         third-party AI models for their own purposes. You can delete your content and account at any
         time (see <a href="/data-deletion">Data deletion</a>).
       </p>
@@ -92,7 +92,7 @@ export default function PrivacyPage() {
         We do <strong>not sell your personal data</strong>. We use trusted service providers only to
         run LuxuryBandit, for example: <strong>Supabase</strong> (hosting, database and image
         storage &mdash; on servers in <strong>Frankfurt, Germany</strong>),
-        <strong> Stripe</strong> (payments), and AI providers for the chat and the try-on videos
+        <strong> Stripe</strong> (payments), and AI providers for the chat and the generated media
         (<strong>Anthropic</strong>, <strong>OpenAI</strong>, <strong>fal.ai</strong>,{" "}
         <strong>Pixverse</strong>). With your consent, <strong>Meta</strong> receives pixel data for ad
         measurement. Some of these providers operate outside the EU; where that happens, appropriate

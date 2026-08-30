@@ -49,7 +49,11 @@ export default async function TermsPage() {
    */
   const t = await trObject({
     titel: "Terms of Service",
-    intro: "Welcome to LuxuryBandit. By creating an account or using the app you agree to these Terms. LuxuryBandit is intended for adults only — **you must be at least 18 years old** to use it.",
+    /* OHNE „ADULTS ONLY" (Owner 30.08.2026: „hör auf adult oder tryon zu erwähnen"). Der Satz
+       stammt aus der Fan-Zeit; heute stehen Karriere-Produkte und Geschenke im Haus. Die
+       Altersgrenze bleibt — sie ist bei einem Kaufvertrag ohnehin nötig —, aber sie ist eine
+       Vertragsbedingung und keine Inhaltswarnung. */
+    intro: "Welcome to LuxuryBandit. By creating an account or using the app you agree to these Terms. To buy anything here **you must be at least 18 years old**.",
 
     h1: "1. What LuxuryBandit is",
 
@@ -153,7 +157,7 @@ export default async function TermsPage() {
 
     /* Owner 30.07.2026: „dann muss man das aber erwaehnen in agb". Die 90 Tage sind keine
        Floskel: der taegliche Cron loescht danach wirklich (siehe /api/kiss-deliver). */
-    h6a: "6a. Photos you upload for a try-on, kiss or video",
+    h6a: "6a. Photos you upload for a picture or video",
     p6a: "To make your picture or video we **store the photos you upload** — your own photo and, if you upload one, the photo of the person you picked — together with the result, on our hosting provider's servers **in the EU**. We need them to create your result, to show it in your gallery, and to look into misuse. They are **never published** and never shown to other users; only our team can view them. We delete photos and results from visits **without a purchase after 90 days**; what you paid for stays until you delete it. You can ask us to delete everything at any time (see [Data deletion](/data-deletion)).",
     p6b: "When you enter your email address you agree that we may send you **news and offers** by email — new topics, new models and price offers. You can withdraw at any time; every email carries a one-click unsubscribe link, and it does not affect anything you already bought.",
 
