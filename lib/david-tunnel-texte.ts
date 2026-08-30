@@ -140,7 +140,7 @@ export const DAVID_TUNNEL = {
   anlaufSpeichern: "Antworten verbessern",
   anlaufSpaeter: "Nein danke, zeig mir mein Ergebnis",
   anlaufFrageLabel: "Davids Frage",
-  anlaufPlatzhalter: "Schreib hier deine bessere Antwort. Beispiel: Wir hatten 40 % Abbrüche im Checkout — ich habe die Navigation auf drei Ebenen gekürzt, danach waren es 22 %.",
+  anlaufPlatzhalter: "Schreib hier deine bessere Antwort — was du getan hast, nicht wofür du zuständig warst.",
   frageUnklar: "Ich verstehe die Frage nicht",
   frageWirdErklaert: "David formuliert die Frage um",
   frageUeberspringen: "Diese Frage überspringen",
@@ -336,7 +336,21 @@ export const DAVID_TUNNEL = {
      DAS BEISPIEL LEHRT, WAS EINE REGEL NUR BEHAUPTET: „Wir hatten 40 % Abbrüche … danach
      waren es 22 %" zeigt Situation, Handlung und Zahl in einem Satz. Das wirkt stärker als
      die Aufforderung „keine Aufgabenbeschreibung". */
-  antwortPlatzhalter: "Schreib hier deine Antwort. Beispiel: Wir hatten 40 % Abbrüche im Checkout — ich habe die Navigation auf drei Ebenen gekürzt, danach waren es 22 %.",
+  /**
+   * KEIN BEISPIEL MEHR IM FELD (Owner 30.08.2026: „du schlägst hier immer dasselbe vor" ·
+   * „lass ihn frei schreiben und am Ende machst du die Analyse").
+   *
+   * Hier stand ein fester Beispielsatz über Checkout-Abbrüche — bei JEDER Frage derselbe.
+   * Er passte fast nie zur Frage, und ein Baustein, der sich wiederholt, verrät genau das,
+   * was das Screening widerlegen soll: dass hier niemand zuhört. Ein je Frage erzeugtes
+   * Beispiel wäre die technische Lösung gewesen, ist aber die falsche: Ein Vorschlag im
+   * Feld formt die Antwort, und am Ende bewerten wir unseren eigenen Vorschlag.
+   *
+   * Der Hinweis, der bleibt, ist keine Vorlage, sondern die EINE Regel, an der die meisten
+   * Antworten scheitern (Owner 29.08.2026: „genau diesen Hinweis finde ich wertvoll").
+   * Gezeigt wird das Können am ENDE — im Bericht.
+   */
+  antwortPlatzhalter: "Schreib hier deine Antwort — was du getan hast, nicht wofür du zuständig warst.",
   antworten: "Antworten",
   antwortFehlt: "Schreib mir bitte ein paar Worte.",
   davidDenkt: "David liest deine Antwort",

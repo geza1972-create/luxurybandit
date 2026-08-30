@@ -1067,6 +1067,18 @@ export async function POST(request: Request) {
         ? "ES GIBT KEINE STELLENANZEIGE. Der Bewerber weiss noch nicht, wohin er sich bewirbt. Beziehe dich NIRGENDS auf eine Stelle, eine Anzeige oder eine Passung — es gibt nichts zu vergleichen. Schreibe stattdessen eine Standortbestimmung: was seinen Werdegang stark macht, was ein Recruiter zuerst hinterfragen würde, und worauf er sich in Gesprächen vorbereiten sollte. Bei 'vorbereiten' stellst du die Fragen, die in JEDEM Gespräch zu seinem Profil kommen."
         : "",
       "Du sprichst den Bewerber durchgehend mit DU an — auch in den Belegen. Nie in der dritten Person über ihn reden.",
+      /**
+       * DER BERICHT IST DER BEWEIS, DASS WIR GELESEN HABEN (Owner 30.08.2026: „wir müssen
+       * hier zeigen, dass wir am Ende eine Ahnung haben und auch gelesen haben").
+       *
+       * Im Gespräch selbst zeigen wir es NICHT mehr — kein Beispielsatz im Eingabefeld, er
+       * schreibt frei. Damit liegt die ganze Beweislast hier. Ein Bericht, der über
+       * „ausgeprägte Kommunikationsstärke" schreibt, könnte über jeden Menschen geschrieben
+       * sein; einer, der den Arbeitgeber, das Projekt und den Satz aus der Anzeige benennt,
+       * über genau diesen einen.
+       */
+      "JEDER Punkt muss an einer NACHPRÜFBAREN Stelle hängen: dem Arbeitgeber, dem Projekt, der Station oder dem Zeitraum aus seinem Lebenslauf, der konkreten Anforderung aus der Anzeige, oder dem, was er selbst im Gespräch gesagt hat. Kein Punkt ohne diese Verankerung.",
+      "VERBOTEN sind Sätze, die über jeden Bewerber passen würden ('ausgeprägte Kommunikationsstärke', 'hohe Eigenmotivation', 'breite Erfahrung'). Prüfe jeden Satz: Könnte er so über einen anderen Menschen stehen, ist er wertlos — schreib ihn neu oder streich ihn.",
       "Der Bericht hat vier Abschnitte und eine persönliche Einordnung:",
       "'spricht' — 2 bis 4 Punkte, die für den Bewerber sprechen. 'titel' ist eine Überschrift aus 2 bis 4 Wörtern (z. B. 'End-to-End-Verantwortung'), keine Floskel. 'tags' sind 2 bis 3 Stichwörter à höchstens 3 Wörter, die den Punkt belegen (z. B. 'Messbarer Outcome'). 'punkt' ist EIN Satz (höchstens 25 Wörter). 'beleg' ist ein VOLLSTÄNDIGER Satz in der Du-Anrede — entweder aus dem Lebenslauf ('Dein Lebenslauf nennt …') oder aus dem Gespräch ('Du hast erzählt, dass …') — und sagt, warum das für DIESE Stelle zählt. Nie ein Satzfragment, nie Floskeln wie 'aus einer seiner Antworten'.",
       "'offeneFragen' — Punkte, die ein Recruiter genauer verstehen möchte: fehlende Branchenerfahrung, unklarer Führungsumfang, ungewöhnlicher Wechsel, dünne Belege. Je Punkt: 'titel' (2 bis 4 Wörter, z. B. 'Team, Arbeitgeber & Kontext'), 'punkt' (die Frage selbst, höchstens 18 Wörter) und 'warum' (höchstens 20 Wörter). Formuliere sie als Fragen, die entstehen — NIE als Ablehnungsgrund und nie als Urteil über den Menschen.",
