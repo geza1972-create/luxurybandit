@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Video } from "lucide-react";
 import { Knopf, Fehlerzeile, Fortschritt, EingabeMehrzeilig } from "@/components/CI";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
@@ -182,6 +182,49 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
     setBusy(false); setBusyText("");
   };
 
+  /**
+   * DER RÜCKKEHR-FÄNGER (Owner 29.08.2026, kurz bevor er den Video-Kauf testen wollte —
+   * derselbe Fehler, der ihn heute Morgen beim CV-Kauf 9,99 € gekostet hat).
+   *
+   * WAS FEHLTE: Der Kauf wartete AUSSCHLIESSLICH darauf, dass sich das Stripe-Fenster
+   * schliesst, und fragte solange den Zahlungsstand ab. Auf vielen Handys öffnet Stripe aber
+   * kein Fenster, sondern lädt DIESE Seite neu und hängt `?paid=1&cs=…` an die Adresse. Dann
+   * war die Schleife längst tot, der React-Zustand zurückgesetzt — und niemand hat die
+   * Rückkehr bemerkt. Der Käufer hatte bezahlt und stand vor der unveränderten Seite.
+   *
+   * DERSELBE ABLAUF WIE BEI DEN UNTERLAGEN (`DavidAngebote`):
+   *   1. `paid=1` heisst „gerade zurückgekommen"
+   *   2. Der SERVER sagt, ob bezahlt wurde (`/api/checkout-status`) — nie der Browser
+   *   3. Die Adresse wird sofort gesäubert, damit ein Neuladen nicht zweimal auslöst
+   *   4. Erst dann die Erzeugung
+   *
+   * `rueckkehrRef` gegen den doppelten Lauf: React ruft Effekte im Entwicklungsmodus zweimal
+   * auf, und zwei Videos auf einem Auftrag wären zwei bezahlte Läufe für ein Geld.
+   */
+  const rueckkehrRef = useRef(false);
+  useEffect(() => {
+    if (rueckkehrRef.current || !genId) return;
+    let q: URLSearchParams;
+    try { q = new URLSearchParams(window.location.search); } catch { return; }
+    if (q.get("paid") !== "1") return;
+    /* NUR DAS VIDEO FÄNGT DAS VIDEO: Auf derselben Seite steht auch der Unterlagen-Kauf.
+       Ohne diese Marke würden beide dieselbe Rückkehr abfangen und zwei Erzeugungen starten. */
+    if (q.get("was") !== "video") return;
+    const cs = q.get("cs") ?? "";
+    if (!cs || cs.startsWith("{")) return;
+    rueckkehrRef.current = true;
+    void (async () => {
+      const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`)
+        .then(r => r.json()).catch(() => null);
+      q.delete("paid"); q.delete("cs"); q.delete("was");
+      const rest = q.toString();
+      try { window.history.replaceState({}, "", window.location.pathname + (rest ? `?${rest}` : "")); } catch { /**/ }
+      if (!st?.paid) { setFehler(S.videoNetzFehler); return; }
+      await erzeugen();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genId]);
+
   const kaufen = async () => {
     if (busy || !genId) return;
     if (sprechtext.trim().length < 40) { setFehler(S.videoSkriptFehlt); return; }
@@ -194,7 +237,12 @@ export default function DavidVideoKauf({ S, preisVideo, genId, email, lang, vorn
         method: "POST", headers: kopfzeilen(),
         body: JSON.stringify({
           genId, once: true, videoAufpreis: false, thema: "david-video",
-          email, returnTo: window.location.pathname, eingebettet: kasse.anfordern, lang,
+          email,
+          /* `was=video` reist mit und kommt in der Rückkehr-Adresse wieder an — daran
+             erkennt der Fänger oben, dass DIESER Kauf gemeint war und nicht der der
+             Unterlagen auf derselben Seite. */
+          returnTo: `${window.location.pathname}?was=video`,
+          eingebettet: kasse.anfordern, lang,
         }),
       }).then(r => r.json());
       if (start?.walletPaid) { try { popup?.close(); } catch { /**/ } await erzeugen(); return; }

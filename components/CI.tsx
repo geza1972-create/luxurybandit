@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Cake, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Gift, Heart, ImageUp, LayoutGrid, Loader2, Lock, Maximize2, Menu, MessageCircle, Palmtree, Rocket, ShieldCheck, Shirt, Sparkles, Trash2, X, type LucideIcon } from "lucide-react";
+import { Cake, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Gift, Heart, ImageUp, LayoutGrid, Loader2, Lock, Maximize2, Minimize2, Menu, MessageCircle, Palmtree, Rocket, ShieldCheck, Shirt, Sparkles, Trash2, X, type LucideIcon } from "lucide-react";
 import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -480,7 +480,7 @@ export function Haken({ an, setzen, karte = false, hell = false, pflicht = false
         {/* Der Haken selbst — gezeichnet, nicht als Zeichen: In der Karte färbt
             `.lb-karte svg` jedes Symbol auf Gold, deshalb steht die Tinte hier fest. */}
         {an && (
-          <svg viewBox="0 0 24 24" className="h-[15px] w-[15px]" fill="none" stroke="#1a160f" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" className="lb-haken h-[15px] w-[15px]" fill="none" stroke="#1a160f" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 12.5l5.2 5.2L20 7" />
           </svg>
         )}
@@ -1494,6 +1494,102 @@ export function Fortschritt({ text, prozent, karte = false, className = "" }: {
         <div className="h-full rounded-full bg-[#f6cf51] transition-[width] duration-700 ease-linear"
           style={{ width: `${wert}%` }} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * EIN BILD, DAS MAN MIT EINEM TIPP GROSS MACHT (Owner 29.08.2026: „mit Klick vergrössern").
+ *
+ * KEINE VOLLBILD-ÜBERLAGERUNG — und das ist eine Erfahrung, keine Vorliebe (Memory
+ * [[keine-overlay-dialoge]]): Der Owner hat beim Schliessen eines Vorlagen-Vollbilds
+ * versehentlich das ganze Browserfenster geschlossen und alles verloren. Eine Fläche, die
+ * den ganzen Schirm übernimmt, braucht einen Ausweg, den man unter Druck findet — auf einem
+ * Handy ist das Kreuz genau da, wo auch der Schliessen-Knopf des Browsers sitzt.
+ *
+ * STATTDESSEN WÄCHST DAS BILD AN ORT UND STELLE: Ein Tipp macht es breiter als die Spalte,
+ * die Fläche wird waagerecht schiebbar (`lb-wisch`, unsichtbarer Balken), ein zweiter Tipp
+ * macht es wieder klein. Es gibt nichts zu schliessen, also kann man auch nichts falsch
+ * schliessen — und der Rest der Seite bleibt sichtbar, man weiss also immer, wo man ist.
+ *
+ * WOFÜR: breite Schaubilder mit kleiner Schrift, die auf 375 px nicht lesbar sind. Ein
+ * Foto braucht das nicht.
+ */
+export function BildLupe({ src, alt, label, faktor = 2.4, className = "" }: {
+  src: string;
+  alt: string;
+  /** Beschriftung der Lupe — muss aus den Texten kommen, nie hier getippt. */
+  label: string;
+  /** Wie stark es wächst. 2.4 macht Fliesstext auf einem Schaubild lesbar. */
+  faktor?: number;
+  className?: string;
+}) {
+  const [gross, setGross] = useState(false);
+  return (
+    <div className={`relative ${className}`}>
+      {/* KEIN WEISSER RAHMEN UM EIN BILD (Owner 29.08.2026: „keine weisse Rahmen") — ein Bild
+          bringt seine eigene Kante mit, ein zusätzlicher heller Strich legt einen Kasten
+          darum, den niemand gezeichnet hat. Die abgerundete Ecke reicht als Fassung. */}
+      <div className={`overflow-hidden rounded-[18px] ${gross ? "lb-wisch overflow-x-auto" : ""}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} onClick={() => setGross(v => !v)}
+          style={gross ? { width: `${Math.round(faktor * 100)}%`, maxWidth: "none" } : undefined}
+          className={`block h-auto ${gross ? "cursor-zoom-out" : "w-full cursor-zoom-in"}`} />
+      </div>
+      {/* Die Lupe sagt, dass hier etwas geht — sonst tippt niemand auf ein Bild. Sie liegt
+          AUSSERHALB der schiebbaren Fläche, sonst wanderte sie beim Schieben davon. */}
+      <div className="absolute right-2 top-2 z-10">
+        <Scheibe klein durchsichtig label={label} onClick={() => setGross(v => !v)}>
+          {gross ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Scheibe>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * DIE AGENTEN-REIHE — GESICHTER MIT BRANCHE (Owner 29.08.2026: „dann mach doch mehrere
+ * Kreise mit Models drin und schreib einige Branchen rein … Gina-Kosmetik, Bella-Mode,
+ * Vanes-Medizin, Paula-Hotels").
+ *
+ * WARUM SIE MEHR ERKLÄRT ALS JEDER SATZ: „Wir generieren Leads für jede Branche" ist eine
+ * Behauptung. Fünf Gesichter mit Namen und Branche darunter sind ein BELEG — man sieht in
+ * einer Sekunde, dass es je Fach einen eigenen Charakter gibt, statt einer Software mit
+ * verschiedenen Etiketten.
+ *
+ * OHNE BILD EIN MONOGRAMM, KEIN KAPUTTES BILD: Ein Agent, dessen Gesicht noch nicht erzeugt
+ * ist, bekommt seinen Anfangsbuchstaben auf ruhiger Fläche. Das sieht gewollt aus; ein
+ * gebrochenes Bild sieht nach Fehler aus (gesehen am 29.08. mit dem fehlenden Schaubild).
+ *
+ * IN DER CREME-KARTE: Ränder und Schrift dürfen dort nicht weiss sein — in `.lb-karte` färbt
+ * das Stylesheet ohnehin um (Memory [[lb-karte-important-frisst-inline-farben]]). Deshalb
+ * trägt der Ring die Tinte des Papiers, nicht Weiss.
+ */
+export function AgentenKreise({ agenten, className = "" }: {
+  agenten: { name: string; branche: string; bild?: string; href?: string }[];
+  className?: string;
+}) {
+  return (
+    /* `lb-wisch` — waagerecht schiebbar mit unsichtbarem Balken (Hausregel). Fünf Kreise
+       passen auf 375 px nicht nebeneinander, und abschneiden wäre schlechter als schieben. */
+    <div className={`lb-wisch -mx-1 flex gap-3 overflow-x-auto px-1 ${className}`}>
+      {agenten.map((a, i) => {
+        const inhalt = (
+          <>
+            <span className="relative grid h-[64px] w-[64px] shrink-0 place-items-center overflow-hidden rounded-full bg-[#1a160f]/8 ring-2 ring-[#1a160f]/20">
+              {a.bild
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={a.bild} alt={a.name} className="h-full w-full object-cover object-top" />
+                : <span className="font-serif text-[24px] font-black opacity-45">{a.name.slice(0, 1)}</span>}
+            </span>
+            <span className="mt-1.5 block text-center text-[12px] font-black leading-tight">{a.name}</span>
+            <span className="mt-0.5 block text-center text-[10.5px] font-bold leading-tight opacity-60">{a.branche}</span>
+          </>
+        );
+        return a.href
+          ? <a key={i} href={a.href} className="w-[76px] shrink-0 transition active:scale-95">{inhalt}</a>
+          : <span key={i} className="w-[76px] shrink-0">{inhalt}</span>;
+      })}
     </div>
   );
 }

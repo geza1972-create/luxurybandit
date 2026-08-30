@@ -250,6 +250,11 @@ export default function DavidAngebote({
        ob die Zahlung noch bestätigt werden muss oder längst im Auftrag steht. */
     const nachholen = q.get("nachholen") === "1";
     if (!nachholen && q.get("paid") !== "1") return;
+    /* NICHT DIE RÜCKKEHR DES VIDEOS ABFANGEN (29.08.2026): Auf derselben Seite steht auch der
+       Video-Kauf. Kommt der zurück, trägt seine Adresse `was=video` — dann gehört die
+       Rückkehr ihm, und ohne diese Zeile hätten BEIDE zugegriffen: Der Käufer hätte das Video
+       bezahlt und zusätzlich die Erzeugung der Unterlagen ausgelöst. */
+    if (q.get("was") === "video") return;
     const cs = q.get("cs") ?? "";
     if (!nachholen && (!cs || cs.startsWith("{"))) return;
     rueckkehrRef.current = true;
@@ -530,7 +535,7 @@ export default function DavidAngebote({
         {/* KEINE STELLE IM SCREENING? DANN HIER (Owner 29.08.2026, Weg „A"). Nur sichtbar,
             wenn wirklich keine da ist — wer sie im Trichter genannt hat, sieht davon nichts. */}
         {!busy && !fertig && anzeige.trim().length < 60 && (
-          <div className="lb-rand-verlauf mt-5 rounded-[18px] bg-[#f6cf51]/[0.06] p-4">
+          <div className="lb-rand-verlauf mt-5 rounded-[18px] lb-goldhauch p-4">
             <p className="text-[15px] font-black leading-snug text-white">{S.anzeigeFuerKauf}</p>
             <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.anzeigeFuerKaufText}</p>
             <EingabeMehrzeilig className="mt-3" zeilen={5} value={nachAnzeige}
@@ -568,7 +573,7 @@ export default function DavidAngebote({
                      stand. Der Weg zurück (Foto wählen) steht OBEN und in Gold; „trotzdem"
                      ist der leisere Zweitweg. Wer nur schnell tippt, landet dann beim Foto
                      und nicht in einem Kauf, den er später bereut. */
-                  <div className="lb-rand-verlauf rounded-[18px] bg-[#f6cf51]/[0.06] p-4">
+                  <div className="lb-rand-verlauf rounded-[18px] lb-goldhauch p-4">
                     <p className="text-[15px] font-black leading-snug text-white">{S.fotoFehltTitel}</p>
                     <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.fotoFehltText}</p>
                     <div className="mt-3 flex flex-col gap-2">

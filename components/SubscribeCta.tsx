@@ -72,7 +72,7 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat", t
   };
 
   return (
-    <div className={`mt-8 rounded-2xl p-4 text-center ${hell ? "" : "border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08]"}`}
+    <div className={`mt-8 rounded-2xl p-4 text-center ${hell ? "" : "border border-[#f6cf51]/40 lb-goldhauch "}`}
       style={hell ? { background: "#fff", color: "#1a160f" } : undefined}>
       <p className={`text-[17px] font-black ${hell ? "" : "text-white"}`}>{titel || t.h}</p>
       <p className={`mt-1 text-[14px] font-bold leading-snug ${hell ? "" : "text-white/85"}`}

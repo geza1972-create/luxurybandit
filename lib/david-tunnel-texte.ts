@@ -17,12 +17,15 @@ import type { Lang } from "@/lib/lang";
  */
 export const DAVID_TUNNEL = {
   /* ── 1 · Vorname ─────────────────────────────────────────────────────────── */
-  /* „AI David", nicht nur „David" (Owner 29.08.2026). Er ist eine KI, und der Bewerber
+  /* „David AI", nicht nur „David" (Owner 29.08.2026; Reihenfolge korrigiert am selben Tag:
+     „überall änderst du den Namen von AI David in David AI"). Er ist eine KI, und der Bewerber
      vertraut ihr gleich seinen Lebenslauf und Dinge an, die er sonst niemandem sagt — dann
      muss im ersten Satz stehen, mit wem er es zu tun hat. Es passt ausserdem zur Überschrift
      („mit David AI!") und zur Kopfzeile („AI Pre-Screening"). */
-  hallo: "Hallo, ich bin AI David.",
-  halloText: "Bevor wir uns deine Bewerbung ansehen: Wie darf ich dich ansprechen?",
+  hallo: "Hallo, ich bin David AI.",
+  /* NICHT „DEINE BEWERBUNG" IM ERSTEN SATZ: Wer noch keine geschrieben hat, denkt, er
+     bräuchte eine — dabei reicht sein Lebenslauf, und genau das senkt die Hürde. */
+  halloText: "Bevor wir uns deinen Lebenslauf ansehen: Wie darf ich dich ansprechen?",
   vornameLabel: "Vorname",
   vornamePlatzhalter: "Dein Vorname",
   weiter: "Weiter",
@@ -89,7 +92,10 @@ export const DAVID_TUNNEL = {
      auf die du dich bewerben willst" — ein Hauptsatz mit Umstellung, ein eingeschobenes
      Objekt und ein Relativsatz, alles in einem Atemzug. Auf dem Handy liest das niemand zu
      Ende. Jetzt zwei kurze Sätze: was jetzt zählt, und was als Nächstes kommt. */
-  cvText: "Gut, {name}. Gleich danach zeigst du mir die Stelle — dann vergleiche ich beides.",
+  /* DIESELBE UNKLARheit wie bei `cvBereitText` (Owner 29.08.2026) — hier sogar eine Stufe
+     früher: Er hat noch nicht einmal hochgeladen und liest schon von „der Stelle", als wäre
+     eine besprochen worden. */
+  cvText: "Gut, {name}. Gleich danach zeigst du mir die Stelle, auf die du dich bewerben willst — dann vergleiche ich beides.",
   cvKnopf: "Lebenslauf hochladen",
   cvHinweis: "PDF oder Word · bleibt bei uns",
   /* Jede Absage nennt ihren Grund (29.08.2026) — „nimm eine PDF" als Pauschalantwort schickt
@@ -97,6 +103,65 @@ export const DAVID_TUNNEL = {
   cvFormat: "Diese Datei ({typ}) kann ich nicht lesen. Bitte eine PDF- oder Word-Datei.",
   cvZuGross: "Die Datei ist grösser als 15 MB. Speichere deinen Lebenslauf bitte kleiner ab.",
   cvNetzFehler: "Das Hochladen hat nicht geklappt. Prüf kurz deine Verbindung und versuch es noch einmal.",
+  /* DER EINE SATZ FÜR ALLES TECHNISCHE (Owner 29.08.2026, mit Bild: „Diese Sitzung kenne ich
+     nicht." stand rot im Trichter, während er nur ohne Stellenanzeige weitermachen wollte).
+
+     Die Sätze des Servers sind für UNS geschrieben und ausschliesslich deutsch — der Trichter
+     läuft in sieben Sprachen. Was nach innerem Zustand klingt, wird durch diesen einen
+     ersetzt: Er sagt, dass es nicht am Bewerber lag, und was er tun kann. Der Browser
+     versucht sich vorher ohnehin selbst zu heilen; diesen Satz sieht nur, wo das misslang. */
+  technischerFehler: "Da ist bei uns etwas schiefgegangen — nicht bei dir. Tipp es bitte noch einmal an.",
+  /* ── DER AUSGANG AUS JEDER FRAGE (Owner 29.08.2026: „er kann ohne Antwort weder vor noch
+     zurück") ──
+     „Überspringen" statt „Keine Antwort": Der Knopf soll nach einem WEG klingen, nicht nach
+     einem Eingeständnis. Und im Verlauf steht danach ehrlich, dass hier nichts gesagt wurde
+     — sonst sieht das Gespräch später aus, als hätte David eine Frage vergessen. */
+  /* ── DER VORSCHLAG ZUM ÜBERNEHMEN (Owner 29.08.2026: „Ich habe hier eine blöde Antwort
+     gegeben … magst eine Zusammenfassung und gleich Vorschlag. Der User kann deinen Vorschlag
+     übernehmen.") ──
+     Er wird ins Feld GELEGT, nicht abgeschickt: Der Bewerber muss die Lücken füllen und darf
+     jeden Satz ändern. Ein Vorschlag, der sich selbst abschickt, würde ihm Sätze in den Mund
+     legen, die er nie gesagt hat — und die ein Recruiter im Gespräch auseinandernimmt. */
+  vorschlagTitel: "So könntest du antworten",
+  vorschlagHinweis: "Ergänze die Klammern mit deinen echten Zahlen — und ändere alles, was nicht stimmt.",
+  vorschlagUebernehmen: "Vorschlag übernehmen",
+  /* ── DER EINE FREIE ANLAUF (Owner 29.08.2026: „er kann hier nicht immer wieder neue
+     Versuche machen umsonst" → „oder wir sagen, er hat noch einen Anlauf frei") ──
+
+     ER ERSCHEINT NUR, WENN ES WIRKLICH DÜNN WAR. Wer sich Mühe gegeben hat, bekommt kein
+     Zeugnis, sondern sein Ergebnis.
+
+     UND ER SAGT DIE WAHRHEIT OHNE VORWURF: „Dein Bericht wird dünn" ist eine Tatsache mit
+     Folge, „du hast schlecht mitgearbeitet" wäre ein Urteil. Das Wort „frei" macht zugleich
+     klar, dass es dabei bleibt — ohne dass wir drohen müssen. */
+  anlaufTitel: "Du hast noch einen Anlauf frei",
+  anlaufText: "Ein paar deiner Antworten sind kurz geblieben. Damit wird dein Bericht dünner, als er sein müsste — David kann nur belegen, was du ihm erzählt hast.",
+  anlaufFrei: "Diesen einen Anlauf schenke ich dir. Ergänze, was dir einfällt — oder lass es und hol dir dein Ergebnis.",
+  anlaufSpeichern: "Antworten verbessern",
+  anlaufSpaeter: "Nein danke, zeig mir mein Ergebnis",
+  anlaufFrageLabel: "Davids Frage",
+  anlaufPlatzhalter: "Schreib hier deine bessere Antwort. Beispiel: Wir hatten 40 % Abbrüche im Checkout — ich habe die Navigation auf drei Ebenen gekürzt, danach waren es 22 %.",
+  frageUnklar: "Ich verstehe die Frage nicht",
+  frageWirdErklaert: "David formuliert die Frage um",
+  frageUeberspringen: "Diese Frage überspringen",
+  frageUebersprungen: "Übersprungen",
+  /* ── ZWEIMAL ÜBERSPRUNGEN: DIE EHRLICHE RÜCKFRAGE (Owner 29.08.2026, sein Wortlaut) ──
+     „OK, wir haben es gemerkt, dass du kein Interesse an einem Interview hast. David AI
+      möchte dich nur fit machen für ein richtiges Interview. Aber wenn du trotzdem nur deine
+      Bewerbung analysieren willst — das machen wir jetzt für dich."
+
+     WARUM NICHT EINFACH AUFHÖREN: Weil hier die letzte Verkaufschance liegt. Wer still
+     abgespeist wird, ist weg. Wer hört, dass wir seinen Widerwillen bemerkt haben UND
+     trotzdem liefern, liest den Bericht — und erst der Bericht verkauft.
+
+     UND DIE TÜR BLEIBT OFFEN: „Nein" führt zurück zur Frage, nicht in eine Sackgasse. */
+  abbruchTitel: "Ok — du willst kein Interview.",
+  abbruchText: "David möchte dich eigentlich fit machen für ein echtes Gespräch; dafür sind die Fragen da. Wenn du aber einfach nur deinen Lebenslauf analysiert haben willst, machen wir das jetzt für dich.",
+  abbruchFrage: "Einverstanden?",
+  abbruchJa: "Ja, nur analysieren",
+  abbruchNein: "Nein, ich beantworte die Frage",
+  /* Sagt er Nein, kommt die Frage zurück — mit einem Satz, der ihn nicht blossstellt. */
+  abbruchZurueck: "Gut. Dann beantworte mir bitte noch diese Frage.",
   /* ── DIE ENTSCHEIDUNG VOR DEM GELD (Owner 29.08.2026) ──
      „was ich keine Lust habe, ist Tokens zu bezahlen für Abbrecher. Erst dann muss man
      zahlen, wenn er sich entscheidet: ja, ich will jetzt von David mein CV analysieren —
@@ -118,7 +183,15 @@ export const DAVID_TUNNEL = {
   /* „JA UND DANN?" (Owner 29.08.2026) — die Frage nach dem Interview darf nicht verschweigen,
      dass zuerst noch die Stelle drankommt. Sonst tippt er auf „bereit" und landet in einem
      Formular. Der Satz sagt beides: was ich jetzt tue, und was als Nächstes von ihm kommt. */
-  cvBereitText: "Dein Lebenslauf liegt bei mir, {name}. Ich sehe ihn durch, dann zeigst du mir die Stelle — und wir legen los.",
+  /* „DIE STELLE" ALLEIN IST UNKLAR (Owner 29.08.2026: „Die Stelle? Auf die du dich bewerben
+     willst."). Der bestimmte Artikel setzt etwas voraus, das noch nie erwähnt wurde — er hat
+     bis hierhin nur seinen Lebenslauf hochgeladen. Wer „die Stelle" liest, fragt sich, welche
+     gemeint ist, statt zu wissen, was als Nächstes von ihm kommt.
+
+     DREI KURZE SÄTZE STATT EINEM LANGEN: Der Nebensatz musste dazu, aber er darf den Satz
+     nicht in einen Zungenbrecher verwandeln — genau daran ist die frühere Fassung schon
+     einmal gescheitert. */
+  cvBereitText: "Dein Lebenslauf liegt bei mir, {name}. Ich sehe ihn durch. Dann zeigst du mir die Stelle, auf die du dich bewerben willst — und wir legen los.",
   cvBereitKnopf: "Ja, ich bin bereit",
   /* Kein zweiter Knopf für die Datei: Das Feld darüber ist selbst der Weg zur anderen Datei. */
   cvGewechselt: "Tippen, um eine andere Datei zu wählen",
@@ -159,7 +232,11 @@ export const DAVID_TUNNEL = {
    */
   cvErkannt: "Ok, {name} — ich sehe, du bist {rolle}.",
   cvErkanntOhneRolle: "Ok, {name} — ich habe deinen Lebenslauf gelesen.",
-  jobText: "Füge die Anzeige ein oder gib die Adresse an — David liest sie und vergleicht sie mit deinem Lebenslauf.",
+  /* „GIB DIE ADRESSE AN" WAR DIE SCHLIMMSTE DER UNKLAREN STELLEN (Prüfung 29.08.2026, nach
+     dem Fund bei „die Stelle"): In einem Trichter, der zwei Schritte vorher nach der E-Mail-
+     Adresse gefragt hat, liest „die Adresse" JEDER als seine eigene. Gemeint war die
+     Web-Adresse der Anzeige. „Link" ist eindeutig und kennt jeder. */
+  jobText: "Füge den Text der Anzeige ein — oder den Link dazu. David liest sie und vergleicht sie mit deinem Lebenslauf.",
   /**
    * DER WEG OHNE STELLE (Owner 29.08.2026: „weiter ohne Stellenanzeige müsste auch gehen.
    * Aber dafür analysieren wir nur sein CV").
@@ -178,22 +255,88 @@ export const DAVID_TUNNEL = {
   ohneStelleWeiter: "Ok, ohne Stelle weitermachen",
   ohneStelleDoch: "Doch eine Anzeige einfügen",
   /* Steht im Angebot, wenn der Kauf eine Stelle braucht, aber keine da ist. */
-  anzeigeFuerKauf: "Für den Zuschnitt brauche ich die Stelle",
+  /* GERADE HIER GIBT ES KEINE „DIE" STELLE: Diese Zeile erscheint dem, der bewusst OHNE
+     Stelle weitergemacht hat. Der bestimmte Artikel verweist auf etwas, das er nie genannt
+     hat. */
+  anzeigeFuerKauf: "Für den Zuschnitt brauche ich deine Wunschstelle",
   anzeigeFuerKaufText: "Deine Analyse ist fertig. Damit David Lebenslauf und Anschreiben auf eine konkrete Stelle zuschneiden kann, füge hier die Anzeige ein.",
-  jobPlatzhalter: "Stellenanzeige einfügen — der ganze Text der Anzeige",
+  /* Der Platzhalter nennt jetzt BEIDE Wege — seit der Server Links wirklich öffnet, darf der
+     zweite nicht nur in der Überschrift stehen. Und er beginnt als Aufforderung, damit er
+     nicht wie schon eingetragener Text wirkt (Owner-Regel vom selben Tag). */
+  jobPlatzhalter: "Füge hier den ganzen Text der Stellenanzeige ein — oder den Link zur Anzeige.",
   jobKurz: "Das ist noch zu wenig. Füg die Anzeige bitte vollständig ein.",
   jobDatei: "Oder als Datei hochladen",
   jobLaeuft: "David vergleicht deinen Lebenslauf mit der Stelle",
   jobLaden1: "Aufgaben der Position werden gelesen",
   jobLaden2: "Anforderungen werden abgeglichen",
   jobLaden3: "Offene Punkte werden gesammelt",
+  /* ── DERSELBE SCHRITT OHNE STELLE (Owner 29.08.2026: „hier musst du denken … der User will
+     ohne weitermachen") ──
+     Wer „Ich habe noch keine bestimmte Stelle" wählt, bekam danach WÖRTLICH zu lesen:
+     „Aufgaben der Position werden gelesen", „Anforderungen werden abgeglichen" und
+     schliesslich „Ich habe deinen Lebenslauf mit der Stelle verglichen." Es gibt aber keine
+     Position und keine Stelle — David redet über etwas, das der Bewerber gerade
+     ausdrücklich abgelehnt hat. Wer das liest, glaubt kein Wort mehr vom Rest.
+     Vier eigene Sätze für den Weg, der ohne Ziel läuft. */
+  jobLaeuftOhne: "David liest deinen Lebenslauf noch einmal genau",
+  jobLadenOhne1: "Deine Stationen werden eingeordnet",
+  jobLadenOhne2: "Stärken werden herausgearbeitet",
+  jobLadenOhne3: "Offene Punkte werden gesammelt",
+  /* OHNE STELLE EIN EIGENER ÜBERGANG — sonst behauptet David einen Vergleich, den es nie
+     gab. Der Satz nimmt stattdessen auf, was der Bewerber gerade entschieden hat, und macht
+     daraus einen Vorteil: Ohne Ziel geht es um IHN, nicht um eine Anzeige. */
+  /* ── DER PLAN VOR DEM GESPRÄCH (Owner 29.08.2026: „der User hat keine Ahnung, was auf ihn
+     zukommt und wie lange das dauert … einen Plan erstellen, der ihm sagt: ok, ich werde dir
+     jetzt 6 Fragen stellen") ──
+
+     Der Übergang sagte bisher nur „lass uns kurz sprechen" — und dann kam Frage 1 von etwa
+     sechs. Wer nicht weiss, worauf er sich einlässt, steigt bei Frage zwei aus; wer weiss,
+     dass es sechs sind und fünf Minuten dauert, geht sie durch.
+
+     DIE ZAHL IST EHRLICH EINE SPANNE: David entscheidet selbst, wann er genug weiss (vier
+     bis sieben Fragen). „Etwa 6" ist wahr, „genau 6" wäre gelogen — und eine gebrochene
+     Zusage im ersten Schritt kostet mehr als die Ungenauigkeit. */
+  planTitel: "Das kommt jetzt",
+  planFragen: "Etwa 6 Fragen — rund 5 Minuten.",
+  planDarum: "Darum geht es:",
+  planErgebnis: "Danach bekommst du deinen Bericht: was für dich spricht, was ein Recruiter hinterfragen würde, und was dein Lebenslauf noch nicht erzählt.",
+  /* ── WARUM SICH MÜHE LOHNT (Owner 29.08.2026: „Genau diesen Hinweis finde ich wertvoll …
+     Das soll der User auch sehen") ──
+
+     Er steht auf dem PLAN-SCHIRM, weil genau dort die Entscheidung fällt, wie viel Aufwand
+     jemand investiert — nicht bei Frage vier, wenn er längst im Schnelldurchlauf ist.
+
+     UND ER IST KEIN APPELL, SONDERN EIN GESCHÄFT: „Streng dich an" wirkt bei niemandem.
+     „Aus deinen Sätzen werden die Belege im Bericht und später die Sätze in deinem
+     Anschreiben" sagt ihm, was er dafür BEKOMMT. Der Gegensatz am Ende macht es greifbar —
+     eine Rollenbeschreibung ergibt nichts, eine Situation ergibt einen Satz, den er
+     verschicken kann. */
+  planLohnt: "Je konkreter du antwortest, desto mehr hast du davon: Aus deinen Sätzen werden die Belege im Bericht — und später die Sätze in deinem Anschreiben.",
+  planLohntGegen: "Aus „ich war für UX verantwortlich“ wird nichts.",
+  planJederzeit: "Du kannst jede Frage überspringen oder jederzeit aufhören.",
+  uebergangOhne: "Ich habe deinen Lebenslauf gründlich gelesen. Einiges kann ich schon gut einordnen. Es gibt aber Dinge, die ein Recruiter aus einem Lebenslauf allein nie erkennt — genau darüber möchte ich jetzt kurz mit dir sprechen.",
   uebergang: "Ich habe deinen Lebenslauf mit der Stelle verglichen. Einige Punkte kann ich bereits gut einordnen. Es gibt aber auch Dinge, die ein Recruiter aus deinem Lebenslauf allein nicht erkennen kann. Genau darüber möchte ich jetzt kurz mit dir sprechen.",
   losGehts: "Los geht's",
 
   /* ── 5 · Das Gespräch ────────────────────────────────────────────────────── */
   fortschritt: "Pre-Screening",
   von: "von etwa",
-  antwortPlatzhalter: "Deine Antwort …",
+  /* DIE ANLEITUNG STEHT IM FELD, NICHT DARUNTER (Owner 29.08.2026, mit Bild: „das wird nicht
+     gelesen. Sowas gehört ins Eingabefeld.").
+     Er hat recht: Ein Satz unter dem Feld liegt ausserhalb des Blicks — man schaut auf die
+     Frage und dann in den Kasten, in den man tippen soll. „Deine Antwort …" verschenkte genau
+     diesen Platz an eine Selbstverständlichkeit.
+
+     ER MUSS ALS AUFFORDERUNG BEGINNEN (Owner, zweite Runde: „muss stehen: Schreibe eine
+     Antwort. Beispiel: … sonst denkt er, es ist schon vorausgefüllt"). Eine reine Anleitung
+     („Eine konkrete Situation, mit Zahlen …") sieht in einem Textfeld wie bereits
+     eingetragener Text aus — dann tippt niemand darüber, weil es scheinbar schon dasteht.
+     Deshalb: erst die Aufforderung, dann ein Beispiel.
+
+     DAS BEISPIEL LEHRT, WAS EINE REGEL NUR BEHAUPTET: „Wir hatten 40 % Abbrüche … danach
+     waren es 22 %" zeigt Situation, Handlung und Zahl in einem Satz. Das wirkt stärker als
+     die Aufforderung „keine Aufgabenbeschreibung". */
+  antwortPlatzhalter: "Schreib hier deine Antwort. Beispiel: Wir hatten 40 % Abbrüche im Checkout — ich habe die Navigation auf drei Ebenen gekürzt, danach waren es 22 %.",
   antworten: "Antworten",
   antwortFehlt: "Schreib mir bitte ein paar Worte.",
   davidDenkt: "David liest deine Antwort",
@@ -210,6 +353,14 @@ export const DAVID_TUNNEL = {
   a2: "Das könnte Fragen auslösen",
   a3: "Was dein Lebenslauf noch nicht erzählt",
   a4: "Darauf solltest du vorbereitet sein",
+  /* ── „SO SAGST DU ES BESSER" (Owner 29.08.2026) ──
+     Der Vorschlag steht am ENDE, nicht im Gespräch — dort hätte er den Faden gerissen. Hier
+     ist er zugleich der stärkste Beweis für das bezahlte Produkt: Er sieht an SEINEM eigenen
+     Satz, was daraus wird. */
+  a5: "So sagst du es besser",
+  a5Gesagt: "Du hast gesagt",
+  a5Besser: "So hört es ein Recruiter",
+  a5Hinweis: "Die Klammern füllst du mit deinen echten Zahlen — erfunden wird hier nichts.",
   einordnungTitel: "Bevor du gehst",
   /* Der Report-Umbau vom 28.08.2026 („ERKENNTNIS ZUERST. DETAILS BEI BEDARF") — die Wörter
      für Aufklapper und Quellenangaben. */
@@ -341,7 +492,9 @@ export const DAVID_TUNNEL = {
   checkFoto: "Bewerbungsfoto",
   checkFotoFehlt: "fehlt",
   fotoFehltTitel: "Ohne Foto?",
-  fotoFehltText: "Du hast noch kein Bewerbungsfoto hochgeladen. In deiner Vorlage bleibt die Stelle dann leer.",
+  /* WORTKOLLISION: „Die Stelle" heisst in diesem Produkt überall der JOB. Hier war der Platz
+     im Dokument gemeint — derselbe Satz, zwei Bedeutungen, und der Leser stolpert. */
+  fotoFehltText: "Du hast noch kein Bewerbungsfoto hochgeladen. In deiner Vorlage bleibt der Platz dafür dann leer.",
   fotoJetztWaehlen: "Foto auswählen",
   ohneFotoWeiter: "Trotzdem ohne Foto kaufen",
   /* Die drei Zutaten, aus denen die Bewerbung entsteht — je ein Wort unter der Kachel. */
@@ -350,7 +503,7 @@ export const DAVID_TUNNEL = {
   zutatAnalyseFertig: "Gespeichert",
   zutatVorlage: "Deine Vorlage",
   fotoTitel: "Dein Bewerbungsfoto",
-  fotoHinweis: "Dein Bewerbungsfoto: freundlich, gerade in die Kamera. Ohne Foto bleibt die Stelle in der Vorlage leer.",
+  fotoHinweis: "Dein Bewerbungsfoto: freundlich, gerade in die Kamera. Ohne Foto bleibt der Platz in der Vorlage leer.",
   fotoLabel: "Dein Foto",
   fotoWaehlen: "Foto auswählen",
   fotoLoeschen: "Foto entfernen",

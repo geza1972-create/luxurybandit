@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Star, HelpCircle, Check, Box, Layers, Users, MapPin } from "lucide-react";
+import { Star, HelpCircle, Check, Box, Layers, Users, MapPin, Wand2 } from "lucide-react";
 import { Auffalten } from "@/components/CI";
 import type { DavidReport } from "@/lib/david-store";
 
@@ -33,6 +33,8 @@ import type { DavidReport } from "@/lib/david-store";
 
 export type ReportTexte = {
   a1: string; a2: string; a3: string; a4: string;
+  /* „So sagst du es besser" — optional, damit ältere Aufrufer nicht brechen. */
+  a5?: string; a5Gesagt?: string; a5Besser?: string; a5Hinweis?: string;
   einordnungTitel: string;
   /* Der Umbau vom 28.08.2026 — Aufklapper und Quellenangaben. Optional, damit ältere
      Aufrufer (und die Übersetzungen, die noch nachziehen) nicht brechen. */
@@ -93,7 +95,7 @@ export default function DavidReportAnsicht({ report, T, kopf }: {
              Er darf lauter sein als der Rest (Owner §11): grössere Schrift, goldener Rand,
              Schatten. Die Abschnitte darunter sind bewusst ruhiger geworden. */}
       {(report.einordnung || report.kernsatz || report.fehltImCv.length > 0) && (
-        <section className="lb-rand-verlauf lb-rand-verlauf-gold overflow-hidden rounded-[22px] bg-[#f6cf51]/[0.05] shadow-[0_18px_50px_rgba(0,0,0,0.4)]">
+        <section className="lb-rand-verlauf lb-rand-verlauf-gold overflow-hidden rounded-[22px] lb-goldhauch shadow-[0_18px_50px_rgba(0,0,0,0.4)]">
           <div className="flex gap-4 p-4 pb-3">
             {/* DAVID STATT GEHIRN (Owner 28.08.2026) — sein Porträt, oben angeschnitten. */}
             <div className="relative h-[104px] w-[92px] shrink-0 overflow-hidden rounded-[16px]">
@@ -167,7 +169,7 @@ export default function DavidReportAnsicht({ report, T, kopf }: {
                 zeile={p.titel ? p.punkt : undefined}
                 mehrLabel={T.mehrAnzeigen}
                 marke={
-                  <span className="grid h-9 w-9 place-items-center rounded-full border border-[#f6cf51]/35 bg-[#f6cf51]/[0.07]">
+                  <span className="grid h-9 w-9 place-items-center rounded-full border border-[#f6cf51]/35 lb-goldhauch ">
                     <Icon className="h-[18px] w-[18px] text-[#f6cf51]" />
                   </span>
                 }>
@@ -244,6 +246,30 @@ export default function DavidReportAnsicht({ report, T, kopf }: {
           })}
         </Karte>
       )}
+      {/* ══ 5. SO SAGST DU ES BESSER ══
+             Owner 29.08.2026: „magst eine Zusammenfassung und gleich Vorschlag" — aber
+             ausdrücklich AM ENDE: „besser ist es am Ende das zu machen, sonst wird das Ganze
+             zu kompliziert." Mitten im Gespräch angeboten, riss es den Faden; hier steht es
+             in Ruhe da.
+
+             ES IST ZUGLEICH DER BESTE VERKÄUFER IM BERICHT: Er sieht an SEINEM eigenen Satz,
+             was daraus wird — und ahnt, was erst mit dem ganzen Anschreiben passiert. Deshalb
+             steht es als LETZTER Abschnitt, direkt über den Angeboten. */}
+      {(report.besserSagen?.length ?? 0) > 0 && (
+        <Karte icon={<Wand2 className="h-4 w-4" />} titel={T.a5 ?? "So sagst du es besser"}>
+          {report.besserSagen!.map((b, i) => (
+            <Auffalten key={i}
+              titel={b.gesagt}
+              marke={<span className="text-[13px] font-black leading-snug text-[#f6cf51]">{String(i + 1).padStart(2, "0")}</span>}>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/45">{T.a5Gesagt ?? "Du hast gesagt"}</p>
+              <p className="mt-0.5 text-[13.5px] font-medium leading-relaxed text-white/60">{b.gesagt}</p>
+              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">{T.a5Besser ?? "So hört es ein Recruiter"}</p>
+              <p className="mt-0.5 text-[14px] font-semibold leading-relaxed text-white/90">{b.besser}</p>
+            </Auffalten>
+          ))}
+          <p className="mt-2 text-[12px] font-bold leading-snug text-white/50">{T.a5Hinweis ?? ""}</p>
+        </Karte>
+      )}
     </div>
   );
 }
@@ -291,7 +317,7 @@ function Kopf({ kicker, titel, jobTitel, jobOrt, jobArt, schwerpunkte, layout, f
         <div className="lb-wisch -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {schwerpunkte.slice(0, 3).map((s, i) => (
             <span key={i}
-              className="flex shrink-0 items-center gap-2 rounded-full border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] px-3.5 py-2 text-[12.5px] font-bold text-white/85">
+              className="flex shrink-0 items-center gap-2 rounded-full border border-[#f6cf51]/30 lb-goldhauch px-3.5 py-2 text-[12.5px] font-bold text-white/85">
               <Star className="h-3.5 w-3.5 text-[#f6cf51]" />{s}
             </span>
           ))}

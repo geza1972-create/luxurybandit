@@ -30,6 +30,7 @@ type Zeile = {
   ohneStelle: boolean; jobTitel: string; jobOrt: string; rolle: string;
   layout: string; cvFoto: boolean | null;
   fragenGestellt: number; fragenBeantwortet: number;
+  fragenUebersprungen: number; leereBereiche: string[]; fragenOhneLuecke: number;
   berichtAm: string; berichtGesehenAm: string; mailAm: string;
   nuetzlichkeit: string; feedback: string; interessen: string[]; marketingOptIn: boolean;
   bezahlt: boolean; bezahltAm: string; cvName: string;
@@ -57,6 +58,27 @@ export default function DavidAdmin() {
   const [fehler, setFehler] = useState("");
   const [suche, setSuche] = useState("");
   const [nurBezahlt, setNurBezahlt] = useState(false);
+  /**
+   * DAS GESPRÄCH LESEN (Owner 29.08.2026: „Wir müssen alle Chats speichern, damit ich sie
+   * lesen kann als Admin, und wir werden sie dann gemeinsam verbessern.").
+   *
+   * Es wird EINZELN nachgeladen, nicht mit der Liste: Alle Gespräche in einer überfliegbaren
+   * Tabelle wären etwas anderes als eines, das man bewusst öffnet — und die Liste wäre
+   * megabyteschwer.
+   */
+  const [offen, setOffen] = useState<string>("");
+  const [detail, setDetail] = useState<Record<string, any> | null>(null);
+  const [detailLaedt, setDetailLaedt] = useState(false);
+
+  const gespraechOeffnen = async (id: string) => {
+    if (offen === id) { setOffen(""); setDetail(null); return; }
+    setOffen(id); setDetail(null); setDetailLaedt(true);
+    try {
+      const r = await fetch(`/api/david?id=${encodeURIComponent(id)}`, { headers: kopf(), cache: "no-store" });
+      setDetail(r.ok ? await r.json() : null);
+    } catch { setDetail(null); }
+    setDetailLaedt(false);
+  };
 
   const kopf = (p = pin): Record<string, string> => {
     const tok = (() => { try { return getStoredAuthSession()?.access_token ?? ""; } catch { return ""; } })();
@@ -163,13 +185,74 @@ export default function DavidAdmin() {
                 {z.rolle && <span>Rolle: <b className="text-white/85">{z.rolle}</b></span>}
                 {z.jobTitel && <span>Stelle: <b className="text-white/85">{z.jobTitel}</b>{z.jobOrt ? ` · ${z.jobOrt}` : ""}</span>}
                 {z.layout && <span>Layout: {z.layout}</span>}
-                <span>Fragen: {z.fragenBeantwortet}/{z.fragenGestellt}</span>
+                <span>Fragen: {z.fragenBeantwortet}/{z.fragenGestellt}
+                  {z.fragenUebersprungen > 0 && <b className="text-white/85"> · {z.fragenUebersprungen} übersprungen</b>}</span>
+                {/* WO ES DÜNN BLIEB — die eigentliche Qualitätszahl. Ein Bereich ohne eine
+                    einzige Notiz ist nicht abgedeckt; steht hier reihenweise derselbe,
+                    stimmt der Prompt nicht. */}
+                {z.leereBereiche?.length > 0 && (
+                  <span className="text-[#ef4444]">Leer: {z.leereBereiche.join(", ")}</span>
+                )}
+                {z.fragenOhneLuecke > 0 && <span>Ohne Zweck: {z.fragenOhneLuecke}</span>}
                 {z.nuetzlichkeit && <span>Nutzen: <b className="text-white/85">{z.nuetzlichkeit}</b></span>}
                 {z.verbrauch && <span>Aufrufe: {z.verbrauch.aufrufe} · Token heraus: {z.verbrauch.kleinHeraus + z.verbrauch.grossHeraus}</span>}
                 {z.utm?.utm_source && <span>Quelle: {z.utm.utm_source}</span>}
               </div>
               {z.feedback && (
                 <p className="mt-1.5 text-[12.5px] font-medium leading-snug text-white/55">„{z.feedback}"</p>
+              )}
+
+              {/* ── DAS GESPRÄCH (Owner 29.08.2026) ──
+                  Hier liest man nach, WARUM ein Screening dünn blieb: Welche Frage David
+                  gestellt hat, welche Lücke er damit schliessen wollte (`luecke`), und was
+                  wirklich zurückkam. Genau daran verbessert man die Prompts — an Zahlen
+                  allein sieht man nur DASS es dünn war, nie warum. */}
+              {z.fragenGestellt > 0 && (
+                <>
+                  <button type="button" onClick={() => void gespraechOeffnen(z.id)}
+                    className="mt-2 text-[12px] font-black text-[#f6cf51] underline underline-offset-2">
+                    {offen === z.id ? "Gespräch schliessen" : "Gespräch lesen"}
+                  </button>
+
+                  {offen === z.id && (
+                    <div className="mt-2 rounded-2xl border border-white/12 bg-black/30 p-3">
+                      {detailLaedt && <p className="text-[12.5px] font-bold text-white/50">Wird geladen …</p>}
+                      {detail && (
+                        <>
+                          {detail.zusammenfassung && (
+                            <details className="mb-3">
+                              <summary className="cursor-pointer text-[12px] font-black text-white/70">
+                                Zusammenfassung des Lebenslaufs ({String(detail.zusammenfassung).split(/\s+/).length} Wörter)
+                              </summary>
+                              <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] font-medium leading-relaxed text-white/60">{detail.zusammenfassung}</p>
+                            </details>
+                          )}
+                          <div className="flex flex-col gap-3">
+                            {(detail.fragen ?? []).map((f: any, i: number) => (
+                              <div key={i}>
+                                <p className="text-[13px] font-black leading-snug text-white">
+                                  {i + 1}. {f.frage}
+                                  {f.nachhaken && <span className="ml-1.5 text-[11px] font-bold text-white/45">(Nachfrage)</span>}
+                                </p>
+                                {f.luecke && (
+                                  <p className="mt-0.5 text-[11.5px] font-bold leading-snug text-[#f6cf51]/70">Lücke: {f.luecke}</p>
+                                )}
+                                <p className={`mt-1 whitespace-pre-wrap text-[12.5px] font-medium leading-relaxed ${f.uebersprungen
+                                  ? "text-white/35" : "text-white/75"}`}>
+                                  {f.uebersprungen ? "— übersprungen —" : (f.antwort || "— keine Antwort —")}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                          {detail.nachbesserungAm && (
+                            <p className="mt-3 text-[11.5px] font-bold text-white/45">Freier Anlauf genutzt.</p>
+                          )}
+                        </>
+                      )}
+                      {!detailLaedt && !detail && <p className="text-[12.5px] font-bold text-[#ef4444]">Konnte nicht geladen werden.</p>}
+                    </div>
+                  )}
+                </>
               )}
               <div className="mt-2 flex flex-wrap gap-2">
                 {z.stufe === "bericht" && (

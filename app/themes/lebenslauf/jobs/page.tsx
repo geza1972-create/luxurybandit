@@ -342,7 +342,7 @@ export default function BewerbungPruefenSeite() {
             {/* ── DAS PREMIUM-PAKET (Owner 26.08.2026) — kein Sofortkauf, ein Rückruf.
                 Der Aufhänger richtet sich nach dem Urteil: Wer Lücken hat, braucht die
                 Reparatur; wer eine gute Bewerbung hat, den überzeugt das Video. ── */}
-            <div className="mt-7 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4">
+            <div className="mt-7 rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-4">
               <p className="text-[15px] font-black text-[#f6cf51]">
                 {ergebnis.note === "top"
                   ? "Deine Bewerbung ist gut. Willst du auffallen?"

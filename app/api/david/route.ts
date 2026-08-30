@@ -60,6 +60,52 @@ export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) {
     return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
+  /**
+   * EINE EINZELNE SITZUNG MIT DEM GANZEN GESPRÄCH (Owner 29.08.2026: „Wir müssen alle Chats
+   * speichern, damit ich sie lesen kann als Admin, und wir werden sie dann gemeinsam
+   * verbessern.").
+   *
+   * GESPEICHERT WAR ALLES SCHON — nur gezeigt wurde es nie: Ich hatte die Antworten bewusst
+   * aus der Liste herausgelassen („dass jemand geantwortet hat, ist eine Kennzahl; WAS er
+   * erzählt hat, ist sein Vertrauen"). Für die Verbesserung der Fragen braucht man sie aber,
+   * und der Owner hat es ausdrücklich verlangt.
+   *
+   * DIE EINWILLIGUNG DECKT ES: Im Trichter steht wörtlich „Wir verarbeiten deinen Lebenslauf,
+   * die Stellenanzeige und deine Antworten für dein Screening und nutzen sie, um David besser
+   * zu machen." Genau dafür ist diese Ansicht da — nicht für Neugier.
+   *
+   * NUR EINZELN, NICHT IN DER LISTE: Wer eine Sitzung lesen will, öffnet sie bewusst. Alle
+   * Antworten in einer überfliegbaren Tabelle wären etwas anderes.
+   */
+  const einzeln = new URL(request.url).searchParams.get("id")?.trim() ?? "";
+  if (einzeln) {
+    const s = await leseDavid(einzeln).catch(() => null);
+    if (!s) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+    return NextResponse.json({
+      ok: true,
+      id: s.id,
+      vorname: s.vorname ?? "",
+      rolle: s.cvBefund?.rolle ?? "",
+      jobTitel: s.jobTitel ?? "",
+      ohneStelle: s.ohneStelle === true,
+      zusammenfassung: s.cvBefund?.zusammenfassung ?? "",
+      beobachtungen: s.cvBefund?.beobachtungen ?? [],
+      /* Das Gespräch, Zug um Zug — samt dem, was David sich dabei gedacht hat. */
+      fragen: (s.fragen ?? []).map(f => ({
+        frage: f.frage,
+        antwort: f.antwort ?? "",
+        uebersprungen: f.uebersprungen === true,
+        nachhaken: f.nachhaken === true,
+        luecke: f.luecke ?? "",
+        bereich: f.bereich ?? "",
+      })),
+      erkenntnisse: s.erkenntnisse ?? null,
+      nachbesserungAm: s.nachbesserungAm ?? "",
+      report: s.report ?? null,
+      verbrauch: s.verbrauch ?? null,
+    });
+  }
+
   const alle = await listeDavid().catch(() => []);
   const auftraege = await readKissLog().catch(() => []);
   const bezahlt = new Map(auftraege.map(e => [e.id, e]));
@@ -88,6 +134,19 @@ export async function GET(request: Request) {
       cvFoto: s.cvBefund?.foto ?? null,
       fragenGestellt: fragen.length,
       fragenBeantwortet: fragen.filter(f => f.antwort).length,
+      /**
+       * DIE MESSUNG (Owner 29.08.2026: „ich will das so hochwertig wie möglich machen").
+       *
+       * Ohne sie ist jede Qualitaetsarbeit Raten. Drei Zahlen je Sitzung sagen, ob das
+       * Gespraech etwas gebracht hat: wie viele Fragen uebersprungen wurden, welche der fuenf
+       * Bereiche am Ende LEER geblieben sind, und ob David zu jeder Frage eine Luecke nennen
+       * konnte. Bleibt derselbe Bereich reihenweise leer, stimmt der Prompt nicht — das sieht
+       * man dann, statt es zu vermuten.
+       */
+      fragenUebersprungen: fragen.filter(f => f.uebersprungen).length,
+      leereBereiche: (["passung", "belege", "motivation", "recruiterfragen", "selbstbild"] as const)
+        .filter(b => !((s.erkenntnisse?.[b]) ?? []).length),
+      fragenOhneLuecke: fragen.filter(f => !f.luecke).length,
       berichtAm: s.screeningFertigAm ?? "",
       berichtGesehenAm: s.reportGesehenAm ?? "",
       mailAm: s.berichtMailAt ?? "",

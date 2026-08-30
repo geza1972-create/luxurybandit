@@ -327,11 +327,16 @@ export const RESUME_CENTS = 999;                        // 9,99 — volle Optimi
  * einem Monatsabo landet, ist zu Recht verärgert. Deshalb eine eigene Zahl an einer eigenen
  * Stelle.
  *
- * DIE HÖHE IST EINE OWNER-ENTSCHEIDUNG und steht hier als Ausgangswert, bis er sie nennt.
- * Zur Einordnung: Ein Video kostet in der Erzeugung rund 40 Cent (Bild + HeyGen-Lauf),
- * die Unterlagen nur Bruchteile davon — teurer als die 9,99 € muss es also sein.
+ * DER OWNER HAT ENTSCHIEDEN (29.08.2026, beim Testen des Video-Kaufs: „Der Preis sollte
+ * aber doch 9,99 Euro sein"). Die 19 € standen hier als Platzhalter, bis er es sagt.
+ *
+ * WAS DAS FÜR DIE MARGE HEISST, damit es nachlesbar bleibt: Ein Video kostet in der
+ * Erzeugung rund 40 Cent (Bild + HeyGen-Lauf), dazu die vier bis fünf Cent des Screenings.
+ * Bei 9,99 € bleiben also rund 9,50 € — reichlich. Bei 19 € wären es 18,50 € gewesen.
+ * Der Unterschied ist keine Kostenfrage, sondern eine Preisentscheidung: gleicher Preis wie
+ * die Unterlagen, damit niemand am Preis abwägen muss, welches der beiden Produkte er nimmt.
  */
-export const DAVID_VIDEO_CENTS = 1900;                  // 19 — Video-Bewerbung, ohne Seite und ohne Abo
+export const DAVID_VIDEO_CENTS = 999;                   // 9,99 — Video-Bewerbung, ohne Seite und ohne Abo
 
 /**
  * DIE VIDEOBOTSCHAFT AN DICH SELBST KOSTET DEN HAUSPREIS (Owner 11.08.2026: erst „Dieses

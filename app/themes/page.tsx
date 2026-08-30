@@ -3,6 +3,9 @@ import { fillPrices, themenPreisZeile } from "@/lib/pricing";
 import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
+import AgentenKarte from "@/components/AgentenKarte";
+import { agentenTexteInSprache } from "@/lib/agenten-texte";
+import { agentenMitBildern } from "@/lib/agenten";
 import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
@@ -444,6 +447,11 @@ export default async function ThemesCatalog({ searchParams }: {
      hast"). Begründung in lib/david-texte.ts; die Kachel bleibt deshalb unten aus dem
      `trObject`-Lauf ausgenommen. */
   const davidKachel = await davidKachelInSprache(L);
+  /* Die Texte der Firmen-Rubrik — deutsche Quelle, sieben Sprachen (lib/agenten-texte). */
+  const AG = await agentenTexteInSprache(L);
+  /* Die Gesichter kommen aus der Models-Galerie — signierte Adressen laufen ab, also werden
+     sie beim Rendern frisch geholt (lib/agenten). */
+  const agenten = await agentenMitBildern();
 
   const THEMES: Theme[] = [
     /**
@@ -811,6 +819,21 @@ export default async function ThemesCatalog({ searchParams }: {
             abPreis: t.abPreis,
             platzhalter: <t.icon className="h-16 w-16 text-white/10" strokeWidth={1.25} />,
           }))} />
+
+        {/* ── FÜR UNTERNEHMEN (Owner 29.08.2026: „mach das auf die Startseite, aber nicht
+            als David") ──
+
+            HIER, WEIL ES DEM HAUS GEHÖRT: Ein Funnel mit Person ist kein Thema neben Kuss
+            und Geburtstag, sondern das, was LuxuryBandit BAUT. Auf Davids Seite wäre es
+            falsch — er ist Recruiter, und ein Gesicht mit zwei Berufen ist in beiden
+            unglaubwürdig (KONZEPT-AGENTEN-FUER-FIRMEN.md).
+
+            UNTER DEN KACHELN, NICHT DARÜBER: Die Startseite gehört dem Endkunden. Firmen
+            sind das zweite Publikum — sie lesen weiter, der Endkunde wird nicht gestört.
+
+            Karte, Gesichter und Gespräch stecken in EINEM Baustein, weil der goldene Knopf
+            auf das Papier gehört und das Gespräch nicht hinein (components/AgentenKarte). */}
+        <AgentenKarte T={AG} lang={L} agenten={agenten} />
 
         {/* ── SEO / Erklärtext ──────────────────────────────────────────────────────
             Echter, lesbarer Text für Suchmaschinen UND Menschen: was LuxuryBandit ist

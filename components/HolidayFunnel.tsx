@@ -383,7 +383,7 @@ export default function HolidayFunnel({ code = "", presetModelId = "", presetMod
         ]).map(k => (
           <div key={k.wer} className="relative">
             <button type="button" onClick={() => k.ref.current?.click()}
-              className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] active:scale-[0.98] transition">
+              className="relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl border-2 border-dashed border-[#f6cf51]/40 lb-goldhauch active:scale-[0.98] transition">
               {k.foto ? (<>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={k.foto} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />

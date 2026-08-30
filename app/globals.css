@@ -455,6 +455,14 @@ svg {
 /* Auch Flächen (Fortschrittspunkte, Häkchen, kleine Marken) — sonst bleibt ein gelber Rest. */
 .lb-fb [class*="bg-[#f6cf51]"] { background-color: #1877F2 !important; }
 
+/* DER HAKEN MUSS DER FLÄCHE FOLGEN (Owner 29.08.2026, mit Bild: „weisses Häkchen").
+   Das Kästchen ist im Dunkeln GOLD und trägt deshalb einen tintenfarbenen Haken — richtig,
+   dunkel auf hellem Gold. Im Hellen färbt die Regel darüber dieselbe Fläche auf Blau um,
+   der Haken blieb aber dunkel: dunkelbraun auf Facebook-Blau, kaum zu erkennen.
+   Die Farbe steht im SVG fest verdrahtet (Absicht: in der Einladungskarte färbt
+   `.lb-karte svg` sonst jedes Symbol auf Gold), also muss sie hier per CSS gestochen werden. */
+.lb-fb .lb-haken { stroke: #fff !important; }
+
 /* Sprachwahl UNTER die blaue Leiste (Owner 30.07.2026). In der Kopfleiste konkurriert sie
    mit Logo und Symbolen; darunter steht sie ruhig und stört den ersten Eindruck nicht. */
 .lb-fb [data-topnav="1"] { padding-bottom: 0; }

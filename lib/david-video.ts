@@ -18,6 +18,33 @@
  */
 export const DAVID_VIDEO = "/Lebenslauf/david-ads.mp4";
 export const DAVID_POSTER = "/Lebenslauf/david-ads.jpg";
+
+/**
+ * DAS SCHAUBILD AUF DER LANDINGPAGE (Owner 29.08.2026) — die drei Schritte in einem Blick.
+ * EINE Konstante wie beim Video, damit der Pfad nie an zwei Stellen auseinanderläuft
+ * (Dauerregel [[landingpage-video-ist-kachel-video]]).
+ */
+export const DAVID_SCHAUBILD = "/Lebenslauf/david-so-arbeitet.jpg";
+
+/**
+ * STEHT DIE DATEI SCHON DA? (Owner 29.08.2026: „was ist das?" — auf der Seite stand der
+ * Ersatztext des Bildes, weil die Datei noch fehlte.)
+ *
+ * WARUM EIN SCHALTER UND KEINE PRÜFUNG IM DATEISYSTEM: Auf Vercel liegen die Dateien aus
+ * `public/` beim Auslieferer, nicht zwingend im Server-Prozess — eine `existsSync`-Prüfung
+ * könnte den Block in der Produktion ausblenden, obwohl das Bild einwandfrei lädt. Ein
+ * Schalter lügt nie: Er steht auf `false`, bis die Datei wirklich eingecheckt ist.
+ *
+ * ZUM UMLEGEN: Datei nach `public/Lebenslauf/david-so-arbeitet.jpg` legen, hier `true`.
+ */
+export const DAVID_SCHAUBILD_DA = false;
+
+/**
+ * SEIN GESICHT — an fünf Stellen gebraucht (Trichter, Bericht, Landingpage), bis heute an
+ * jeder Stelle neu getippt. Eine Konstante, damit ein neues Porträt nicht viermal
+ * ausgetauscht werden muss und dabei einmal vergessen wird.
+ */
+export const DAVID_PORTRAIT = "/Lebenslauf/david-portrait.jpg";
 export const DAVID_VERHAELTNIS = "aspect-[2/3]";
 
 /**

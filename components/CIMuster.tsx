@@ -5,7 +5,7 @@ import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, EingabeMehrzeilig, Fehlerzeile, Fortschritt, Haken, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE, TalentKopf,
-  type ThemenKachelDaten, AnmeldeEinladung, Zahlungssiegel, AufladeWaehler, TunnelStart, VorlagenKachel } from "@/components/CI";
+  type ThemenKachelDaten, AnmeldeEinladung, BildLupe, Zahlungssiegel, AufladeWaehler, TunnelStart, VorlagenKachel } from "@/components/CI";
 /* Die Geburtstags-Looks sind hier nur MUSTER-Inhalt — zwei echte Kacheln zeigen mehr als
    zwei graue Kästen, und sie liegen ohnehin fest im Repo. */
 import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
@@ -148,6 +148,17 @@ export default function CIMuster() {
         <span className="text-[11px] font-bold leading-snug text-white/60">
           gross · klein · rot · 30 % (auf Video)
         </span>
+      </Kasten>
+
+      {abschnitt("BildLupe — Schaubild mit einem Tipp gross machen")}
+      <Kasten>
+        <BildLupe src="/Lebenslauf/david-so-arbeitet.jpg" alt="Beispiel-Schaubild"
+          label="Vergrössern" />
+        <p className="mt-2 text-[11px] font-bold leading-snug text-white/60">
+          Tipp aufs Bild oder auf die Lupe → es wächst an Ort und Stelle und lässt sich
+          schieben. KEIN Vollbild: eine Fläche ohne Ausweg hat hier schon einmal einen
+          ganzen Vorgang gekostet.
+        </p>
       </Kasten>
 
       {abschnitt("Knopf — gold · umriss · chip")}

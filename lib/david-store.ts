@@ -26,6 +26,23 @@ export type DavidFrage = {
   antwort?: string;
   /** War das eine Nachfrage zu einer zu allgemeinen Antwort? */
   nachhaken?: boolean;
+  /**
+   * ER HAT DIESE FRAGE ÜBERSPRUNGEN (Owner 29.08.2026: „hier machst du es ihm schwer. Er
+   * kann ohne Antwort weder vor noch zurück.").
+   *
+   * Wichtig zu unterscheiden von „noch nicht beantwortet": Eine übersprungene Frage ist
+   * ERLEDIGT — David darf nicht darauf zurückkommen, und der Bericht darf sie nicht als
+   * offenen Punkt zählen. Ohne dieses Feld sähe beides gleich aus.
+   */
+  uebersprungen?: boolean;
+  /**
+   * WELCHE LÜCKE DIESE FRAGE SCHLIESSEN SOLLTE (Owner 29.08.2026, Qualitätsauftrag).
+   *
+   * Das Modell muss zu jeder Frage benennen, warum es sie stellt — wer die Lücke nennen muss,
+   * stellt keine Füllfrage mehr. Der Bewerber sieht das nie; es steht hier, damit man in der
+   * Admin-Liste nachlesen kann, ob David wirklich Lücken schliesst.
+   */
+  luecke?: string;
   bereich?: DavidBereich;
   gestelltAm?: string;
 };
@@ -58,6 +75,21 @@ export type DavidReport = {
   fehltImCv: { punkt: string; warum: string }[];
   /** D) „Darauf solltest du vorbereitet sein" — 3–5 Fragen zu genau diesem Fall. */
   vorbereiten: string[];
+  /**
+   * E) „SO SAGST DU ES BESSER" (Owner 29.08.2026: „magst eine Zusammenfassung und gleich
+   * Vorschlag. Der User kann deinen Vorschlag übernehmen." · „besser ist es am Ende das zu
+   * machen, sonst wird das Ganze zu kompliziert").
+   *
+   * Zuerst hatte ich es MITTEN ins Gespräch gebaut — nach jeder dünnen Antwort ein Vorschlag
+   * zum Übernehmen. Der Owner hat es gestoppt, und zu Recht: Wer bei jeder Frage zusätzlich
+   * einen Textbaustein angeboten bekommt, verliert den Faden. Am Ende, wenn alles gesagt ist,
+   * steht dasselbe in Ruhe da — und dort ist es zugleich der Beleg für das bezahlte Produkt.
+   *
+   * `gesagt` ist SEIN Satz (sinngemäss, nie wörtlich blossgestellt), `besser` die Fassung, die
+   * ein Recruiter braucht — mit sichtbaren Lücken in eckigen Klammern für Zahlen, die er
+   * selbst kennt. Erfunden wird nichts.
+   */
+  besserSagen?: { gesagt: string; besser: string }[];
   /** Davids persönliche Einordnung zum Schluss (§18) — eine Beobachtung, kein Zuspruch. */
   einordnung: string;
   /**
@@ -151,6 +183,19 @@ export type DavidSitzung = {
    * wenig als zwei, wenn der Bewerber die Seite neu lädt.
    */
   berichtMailAt?: string;
+  /**
+   * DER EINE FREIE ANLAUF (Owner 29.08.2026: „er kann hier nicht immer wieder neue Versuche
+   * machen umsonst" → „oder wir sagen, er hat noch einen Anlauf frei").
+   *
+   * Der Stempel ist der Riegel, und er gehört auf den SERVER: Ein Merker im Browser wäre in
+   * zehn Sekunden gelöscht. Steht er, ist der Anlauf verbraucht — der Knopf verschwindet dann
+   * ganz, statt ausgegraut dazustehen.
+   *
+   * WARUM ER TROTZDEM GRATIS SEIN DARF: Der Anlauf ersetzt nur gespeicherte Antworten. Es
+   * läuft kein zusätzlicher Modell-Aufruf — der Bericht wäre ohnehin einmal entstanden. Er
+   * kostet uns also nichts und macht aus einem dünnen Bericht einen, der verkauft.
+   */
+  nachbesserungAm?: string;
   /**
    * WANN DER RÜCKWEG VERSCHICKT WURDE (Owner 29.08.2026) — die Mail direkt nach dem Lead,
    * die ihn jederzeit in SEINE Sitzung zurückbringt. Derselbe Einmal-Stempel wie bei
@@ -246,7 +291,16 @@ export async function listeDavid(): Promise<DavidSitzung[]> {
  * Gezählt werden GESTARTETE Screenings, nicht Aufrufe: Wer seinen Bericht noch einmal
  * ansieht, zahlt nichts nach.
  */
-export const DAVID_PRO_TAG = 2;
+/**
+ * ZWEI WAREN ZU WENIG (Owner 29.08.2026: „ich kann's nicht testen" — der Deckel sperrte ihn
+ * beim eigenen Produkt aus, und zwar mitten in der Abnahme vor dem Anzeigenstart).
+ *
+ * Der Deckel schützt vor Missbrauch, nicht vor Interesse. Zwei je Tag trifft auch den
+ * ehrlichen Fall: Wer sich auf zwei Stellen bewirbt und danach eine dritte findet, steht vor
+ * einer Sperre — bei einem Produkt, das GRATIS überzeugen soll. Fünf kosten uns im
+ * schlimmsten Fall rund 25 Cent je Gerät und Tag; ein verlorener Interessent kostet mehr.
+ */
+export const DAVID_PRO_TAG = 5;
 
 type Zaehler = { tag: string; anzahl: number };
 const zaehlerPfad = (device: string) => `david-limit/${device}.json`;

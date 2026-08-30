@@ -719,7 +719,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         const x = S[L] ?? S.en;
         return (
           <div id="abo" className="mx-auto mt-6 max-w-md px-4 scroll-mt-24">
-            <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
+            <div className="rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-4 text-center">
               <p className="text-[16px] font-black text-white">{x.h}</p>
               <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{fillPrices(x.p, L)}</p>
               <button type="button" onClick={() => void unlock()} disabled={unlocking}

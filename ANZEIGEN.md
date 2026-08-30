@@ -17,6 +17,65 @@ du sagst mir Bescheid.
 
 ---
 
+## David · AI Pre-Screening — `/themes/david/start?light=1&src=fb`
+
+**Stand 29.08.2026, geschrieben für den ersten Anzeigenstart.** Neu gegenüber allen anderen
+Produkten: Der Trichter ist **gratis bis zum Ergebnis**. Verkauft wird erst DANACH
+(Unterlagen 9,99 € · Video-Bewerbung 9,99 €). Die Anzeige darf deshalb **keinen Preis
+nennen** — sie verspricht das kostenlose Ergebnis, sonst bricht der Klick weg.
+
+**Ziel-URL (A/B, die einzige Stelle, die sich unterscheidet):**
+- Variante A: `https://luxurybandit.com/themes/david/start?light=1&src=fb&utm_campaign=david-start&utm_content=video-a`
+- Variante B: dieselbe URL, nur `utm_content=video-b`
+
+`utm_content` ist der Schlüssel: Der Trichter schreibt ihn an die Sitzung, und in
+`/admin/david` steht er je Sitzung unter „Quelle". Damit ist ablesbar, **welches Video** zu
+Leads, Berichten und Käufen geführt hat — nicht nur zu Klicks. Ohne `utm_content` sind beide
+Videos in den Zahlen nicht zu unterscheiden.
+
+**Video:** die zwei Fassungen des Owners (Hook-Test). Alles andere bleibt gleich — nur so
+misst der Test das Video und nicht drei Dinge auf einmal.
+
+**Hooks (die erste Sekunde, aus den Videos selbst):**
+- A: „30 Bewerbungen. Kein Feedback?"
+- B: „Finde heraus, was dein Lebenslauf noch nicht erzählt."
+
+**Primary Text (DE):**
+„Du bewirbst dich — und hörst nichts. Meistens liegt es nicht an dir, sondern daran, was dein
+Lebenslauf NICHT erzählt.
+David ist ein KI-Recruiter. Er liest deinen Lebenslauf zusammen mit deiner Wunschstelle und
+führt dann ein echtes Pre-Screening mit dir: die Fragen, die ein Recruiter dir stellen würde.
+Am Ende bekommst du dein Ergebnis — was für dich spricht, was hinterfragt wird, und was in
+deinem Lebenslauf fehlt.
+Kostenlos. Etwa 5 Minuten. Keine Standardfragen."
+
+**Primary Text (EN):**
+"You apply — and hear nothing back. Usually it is not about you, but about what your CV does
+NOT say.
+David is an AI recruiter. He reads your CV together with the job you want, then runs a real
+pre-screening: the questions a recruiter would ask you. At the end you get your result — what
+speaks for you, what would be questioned, and what your CV is missing.
+Free. About 5 minutes. No standard questions."
+
+**Headline:** DE: „Was dein Lebenslauf nicht erzählt" · EN: "What your CV does not say"
+**Beschreibung:** DE: „Kostenloses Pre-Screening · ca. 5 Minuten" · EN: "Free pre-screening · about 5 minutes"
+**CTA-Knopf:** „Mehr dazu" (nicht „Jetzt einkaufen" — es wird nichts verkauft)
+
+**Was in der Anzeige NICHT stehen darf:**
+- Kein Preis (der Trichter ist gratis; ein Preis in der Anzeige senkt den Klick und die
+  Erwartung stimmt nicht)
+- Keine Zusage auf einen Job, kein „garantiert", keine Erfolgsquote — wir bereiten vor, wir
+  vermitteln nicht
+- Nichts über Arbeitgeber, an die etwas geschickt wird: Im Trichter steht ausdrücklich
+  „Deine Bewerbung geht nie automatisch an Arbeitgeber", und das muss die Anzeige halten
+
+**Was der A/B-Test beantworten soll:** Nicht „welches Video hat mehr Klicks", sondern
+**welches Video bringt fertige Berichte**. Ein Video kann billige Klicks holen und trotzdem
+die schlechteren Leute bringen. Die Kette in `/admin/david` je `utm_content`:
+Sitzungen → Leads → Berichte → Käufe.
+
+---
+
 ## Future Self Program — `/themes/versprechen/start?light=1&src=fb`
 **Video:** `public/Versprechen` (Kachel-Video zuerst)
 **Hooks (3 Varianten zum Testen):**

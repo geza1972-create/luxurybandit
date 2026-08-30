@@ -95,7 +95,7 @@ export default function RatgeberSeite({ lang, artikel }: {
           </div>
         </section>
 
-        <section className="mt-9 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-5 text-center">
+        <section className="mt-9 rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-5 text-center">
           <h2 className="text-[18px] font-black text-[#f6cf51]">{artikel.ctaH}</h2>
           <p className="mt-1.5 text-[14px] font-bold leading-snug text-white/75">{T(artikel.ctaText)}</p>
           <Link href={artikel.ctaHref}

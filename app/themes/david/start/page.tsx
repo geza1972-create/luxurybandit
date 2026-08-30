@@ -7,7 +7,7 @@ import DavidInhalt from "@/components/DavidInhalt";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
 import { isLang, type Lang } from "@/lib/lang";
 import { resolveLang } from "@/lib/lang-server";
-import { eur, RESUME_CENTS, LEBENSLAUF_CENTS } from "@/lib/pricing";
+import { eur, RESUME_CENTS, DAVID_VIDEO_CENTS } from "@/lib/pricing";
 import { davidTunnelInSprache } from "@/lib/david-tunnel-texte";
 import { davidTexteInSprache } from "@/lib/david-texte";
 import { CORA_MUSTER } from "@/lib/david-muster";
@@ -51,7 +51,13 @@ export default async function DavidStartSeite({ searchParams }: {
   /* Lebenslauf UND Anschreiben laufen über EINEN Kauf — den des Resume Generators
      (`RESUME_CENTS`). Kein neuer Preis, keine zweite Zahl (Owner §25). */
   const preisUnterlagen = eur(RESUME_CENTS, L);
-  const preisVideo = eur(LEBENSLAUF_CENTS, L);
+  /* DER VIDEO-PREIS KOMMT AUS DEM VIDEO-PREIS (Fehler gefunden 29.08.2026, als der Owner den
+     Preis auf 9,99 € setzte): Hier stand `LEBENSLAUF_CENTS` — der Preis eines ANDEREN
+     Produkts. Beide standen zufällig auf 19 €, deshalb fiel es nie auf. In dem Moment, in dem
+     einer von beiden geändert wird, zeigt die Seite einen Preis an und die Kasse bucht einen
+     anderen ab. Die Kasse rechnet mit `DAVID_VIDEO_CENTS` (lib/pricing, `david-video`) —
+     also muss die Anzeige es auch. */
+  const preisVideo = eur(DAVID_VIDEO_CENTS, L);
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>

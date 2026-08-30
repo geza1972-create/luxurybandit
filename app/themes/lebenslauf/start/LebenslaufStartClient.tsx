@@ -1457,7 +1457,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                   {/* DAS PREMIUM-PAKET — direkt an die Minuspunkte geknüpft (Owner
                       26.08.2026: „er kann das buchen, um die Punkte zu verbessern"). */}
                   {!!analyse?.minus?.length && (
-                    <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4">
+                    <div className="rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-4">
                       <p className="text-[15px] font-black text-[#f6cf51]">{S.premiumH}</p>
                       <p className="mt-1.5 text-[13px] font-bold leading-snug text-white/70">{S.premiumZeile}</p>
                       <ul className="mt-3 flex flex-col gap-1.5">
@@ -1520,7 +1520,7 @@ function LebenslaufTunnel({ lang, F, schritt, onSchrittChange, texte, chatGesich
                       Jetzt steht die Freigabe als schlichter Block da und behauptet nichts
                       mehr ueber „deine Karte". */}
                   {einwilligungStatus === "erteilt" ? (
-                    <div className="mt-2 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.07] p-4">
+                    <div className="mt-2 rounded-2xl border border-[#f6cf51]/40 lb-goldhauch p-4">
                       <p className="text-[14px] font-black text-[#f6cf51]">{S.statusFrei}</p>
                       <p className="mt-1 text-[12.5px] font-bold leading-snug text-white/70">{S.freiZeile}</p>
                       <p className="mt-1.5 text-[13px] font-black text-white/90">{S.freiDanke}</p>
