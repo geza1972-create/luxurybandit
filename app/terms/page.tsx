@@ -71,7 +71,10 @@ export default async function TermsPage() {
      * echten Stand.)
      */
     h3: "3. Subscriptions & payments",
-    p3a: fillPrices("Browsing and following are free. Every gift — a kiss, a birthday video, a dance, a holiday invitation, the video message to yourself, the Future Self Program — is a **one-time purchase**: you pay once, from your account balance, at the price shown on the product page and at checkout. Payments are handled by **Stripe**. The only recurring subscription is the **Digital Wedding Planner**: it is bought once (the invitation video plus a running page — guest list, menu choices, group chat — for 30 days) and then **renews automatically** each month at {monat} until you cancel; you can **cancel anytime** from your account, and cancellation takes effect at the end of the current billing period.", "en"),
+    /* DAVIDS PRODUKTE FEHLTEN IN DEN AGB (Owner 30.08.2026: „Terms ist auch falsch") — die
+       Aufzählung kannte nur die Geschenke. Wer Unterlagen oder eine Video-Bewerbung kauft,
+       fand seinen eigenen Kauf in den Bedingungen nicht wieder. */
+    p3a: fillPrices("Browsing and following are free. Every gift — a kiss, a birthday video, a dance, a holiday invitation, the video message to yourself, the Future Self Program — and every career product — the optimised application documents and the application video from **David · AI Pre-Screening** — is a **one-time purchase**: you pay once, from your account balance, at the price shown on the product page and at checkout. Payments are handled by **Stripe**. The only recurring subscription is the **Digital Wedding Planner**: it is bought once (the invitation video plus a running page — guest list, menu choices, group chat — for 30 days) and then **renews automatically** each month at {monat} until you cancel; you can **cancel anytime** from your account, and cancellation takes effect at the end of the current billing period.", "en"),
     /* Die Guthaben-Zusage (Owner 01.08.2026: Aufladung verfaellt NIE — die rechtlich
        sicherste Form; genau dieser Satz macht sie verbindlich). Dazu NEU: der Gutschein
        (Owner 05.08.2026: Karte gratis, Guthaben an die Adresse des Beschenkten, laeuft
@@ -79,7 +82,11 @@ export default async function TermsPage() {
     p3b: fillPrices("You can **top up your account balance** in fixed amounts shown at checkout, and pay for gifts from it. Account balance **never expires**, is tied to your e-mail address, and is **not redeemable for cash**. You can also buy a **gift voucher** for someone else: the voucher card itself is free, and the credit it carries never expires and is added to the **recipient's** e-mail address, not yours.", "en"),
 
     h4: "4. AI-generated content & AI chat",
-    p4a: "Some influencers are AI-generated characters and some content and images are created by artificial intelligence, provided for your personal, non-commercial entertainment. Chat may be with an **AI persona** — an automated assistant styled after an influencer — rather than a live conversation with a real person. AI results may contain inaccuracies and should not be relied on as real photos or advice. The **application video** in our video-application product is likewise created with AI assistance: it is generated from the recording you provide yourself — your own face and your own voice, processed by an AI video model.",
+    /* „ENTERTAINMENT" GILT NICHT FÜR EIN BEWERBUNGSPRODUKT (Owner 30.08.2026). Der Satz
+       stammt aus der Zeit, als es nur Geschenke gab. Wer sich mit unseren Unterlagen bewirbt,
+       tut das nicht zur Unterhaltung — und ein Meta-Prüfer, der die AGB liest, bekäme ein
+       falsches Bild vom Produkt. Der Vorbehalt bleibt, wo er hingehört. */
+    p4a: "Some influencers are AI-generated characters and some content and images are created by artificial intelligence; in our gift products these are provided for your personal, non-commercial entertainment. Our career products are working documents, not entertainment: David prepares you for a real conversation — he does not place you with employers and gives no guarantee of an interview or a job. Chat may be with an **AI persona** — an automated assistant styled after an influencer — rather than a live conversation with a real person. AI results may contain inaccuracies and should not be relied on as real photos or advice. The **application video** in our video-application product is likewise created with AI assistance: it is generated from the recording you provide yourself — your own face and your own voice, processed by an AI video model.",
     p4b: "The AI persona will never claim to have feelings for you or to be in a relationship with you, and it will never send sexually explicit content. You must confirm that you are 18 or older before using the chat. For details on how we use AI and where we tell you about it, see our [AI Notice](/ai-notice).",
 
     h4a: "What a generated result is — and is not",
@@ -160,7 +167,7 @@ export default async function TermsPage() {
     p9: "We use cookies to make the site work (for example, to keep you signed in) and to understand, in aggregate, how LuxuryBandit is used so we can improve it. We do not use cookies to sell your data. You can view, block, or delete cookies at any time in your browser settings — though some features may not work without the essential ones.",
 
     h10: "10. Disclaimers & liability",
-    p10: "LuxuryBandit is provided “as is” for entertainment. To the extent permitted by law, we are not liable for indirect or incidental damages, and our total liability is limited to the amount you paid us in the 12 months before the claim.",
+    p10: "LuxuryBandit is provided “as is”. To the extent permitted by law, we are not liable for indirect or incidental damages, and our total liability is limited to the amount you paid us in the 12 months before the claim.",
 
     h11: "11. Changes & governing law",
     p11: "We may update these Terms; we'll post the new version here with an updated date, and continued use means you accept the changes. These Terms are governed by the laws of Romania.",

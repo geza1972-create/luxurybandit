@@ -826,7 +826,12 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
               ging unter — genau der Satz, der ihn den Haken setzen lässt. */}
           <p className="mt-4 text-[12px] font-medium leading-snug text-white/60">
             {S.datenschutz.replace(" Mehr in der Datenschutzerklärung.", "")}{" "}
-            <a href="/privacy" target="_blank" rel="noreferrer" className="font-black text-[#f6cf51] underline underline-offset-2">
+            {/* AUF DAVIDS EIGENE SEITE, NICHT AUF DIE DES PORTALS (Owner 30.08.2026): Die
+                grosse Erklärung beginnt mit Mode-Anprobe und „18+" — wer hier gerade seinen
+                Lebenslauf hochladen soll, bricht dort ab. Der Text ist derselbe, nur ohne
+                alles, was ihn nichts angeht; die vollständige Erklärung ist von dort aus
+                einen Klick entfernt. */}
+            <a href="/themes/david/privacy" target="_blank" rel="noreferrer" className="font-black text-[#f6cf51] underline underline-offset-2">
               {S.datenschutzLink}
             </a>
           </p>

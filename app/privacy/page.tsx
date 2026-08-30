@@ -1,4 +1,5 @@
 import InfoPage from "@/components/InfoPage";
+import DavidDatenschutz from "@/components/DavidDatenschutz";
 
 export const metadata = { title: "Privacy Policy — LuxuryBandit" };
 
@@ -8,10 +9,22 @@ export const metadata = { title: "Privacy Policy — LuxuryBandit" };
 export default function PrivacyPage() {
   return (
     <InfoPage title="Privacy Policy">
+      {/**
+        * DIE ALTERSANGABE GALT FÜR DAS GANZE HAUS — UND DAS IST FALSCH (Owner 30.08.2026, kurz
+        * vor dem Anzeigenstart: „wtf steht hier in Datenschutz. Für adults? Ist das eine
+        * Pornoseite?").
+        *
+        * „LuxuryBandit is for adults (18+)" stammt aus der Zeit, als es nur Mode-Anprobe und
+        * KI-Chat gab. Auf einem Bewerbungsprodukt liest sich derselbe Satz wie ein Hinweis auf
+        * etwas ganz anderes — und ein Meta-Prüfer liest diese Seite, bevor er die Anzeige
+        * freigibt. Die Angabe bleibt, wo sie hingehört (Mode und Chat), und gilt nicht mehr
+        * pauschal für ein Produkt, mit dem sich Menschen auf Stellen bewerben.
+        */}
       <p>
-        This policy explains what data LuxuryBandit collects and how we use it. LuxuryBandit is for
-        adults (18+). If you have any question, reach us via our{" "}
-        <a href="/contact">contact form</a>.
+        This policy explains what data LuxuryBandit collects and how we use it. LuxuryBandit hosts
+        several separate products — among them <strong>David · AI Pre-Screening</strong> (career
+        preparation) and our fashion and chat products, which are for adults (18+). If you have any
+        question, reach us via our <a href="/contact">contact form</a>.
       </p>
 
       <h2>What we collect</h2>
@@ -25,14 +38,22 @@ export default function PrivacyPage() {
         (see below).
       </p>
 
-      <h2>How we use it (and why)</h2>
-      <p>
-        To <strong>provide the service</strong> — sign-in, generating your try-on videos, chat, and
-        model profiles (to perform our agreement with you); to <strong>process payments</strong> for
-        Premium (contract); to <strong>keep the service secure and improve it</strong> (our legitimate
-        interest); and, <strong>only with your consent</strong>, for marketing measurement (the Meta
-        Pixel). Where the law requires it (e.g. GDPR Art. 6), consent can be withdrawn at any time.
-      </p>
+      {/**
+        * DER LEBENSLAUF FEHLTE HIER GANZ (gefunden 30.08.2026).
+        *
+        * Im Trichter steht wörtlich „Wir verarbeiten deinen Lebenslauf, die Stellenanzeige und
+        * deine Antworten … Mehr in der Datenschutzerklärung" — und die Datenschutzerklärung
+        * sagte dazu KEIN Wort. Ein Lebenslauf ist die dichteste Sammlung personenbezogener
+        * Daten, die jemand freiwillig hochlädt; ihn zu verarbeiten, ohne ihn hier zu nennen,
+        * ist der Fehler, den man am teuersten bezahlt.
+        *
+        * DIE ZUSAGE AUS DEM TRICHTER STEHT MIT DABEI („geht nie automatisch an Arbeitgeber") —
+        * ein Versprechen, das im Produkt steht, muss auch hier stehen, sonst ist es keins.
+        */}
+      <h2>David · AI Pre-Screening</h2>
+      {/* EIN ORIGINAL, ZWEI ORTE: derselbe Text steht auf `/themes/david/privacy` allein —
+          siehe components/DavidDatenschutz. */}
+      <DavidDatenschutz />
 
       <h2>Photos &amp; AI</h2>
       <p>
