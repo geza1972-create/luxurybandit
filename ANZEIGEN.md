@@ -36,30 +36,79 @@ Videos in den Zahlen nicht zu unterscheiden.
 **Video:** die zwei Fassungen des Owners (Hook-Test). Alles andere bleibt gleich — nur so
 misst der Test das Video und nicht drei Dinge auf einmal.
 
-**Hooks (die erste Sekunde, aus den Videos selbst):**
-- A: „30 Bewerbungen. Kein Feedback?"
-- B: „Finde heraus, was dein Lebenslauf noch nicht erzählt."
+### Variante A — der Schmerz zuerst
+
+**Video-Hook:** „30 Bewerbungen. Kein Feedback?"
 
 **Primary Text (DE):**
-„Du bewirbst dich — und hörst nichts. Meistens liegt es nicht an dir, sondern daran, was dein
-Lebenslauf NICHT erzählt.
-David ist ein KI-Recruiter. Er liest deinen Lebenslauf zusammen mit deiner Wunschstelle und
-führt dann ein echtes Pre-Screening mit dir: die Fragen, die ein Recruiter dir stellen würde.
-Am Ende bekommst du dein Ergebnis — was für dich spricht, was hinterfragt wird, und was in
-deinem Lebenslauf fehlt.
-Kostenlos. Etwa 5 Minuten. Keine Standardfragen."
+„30 Bewerbungen. Kein Feedback. Keine Begründung. Nichts.
+
+Es liegt selten daran, dass du zu wenig kannst. Es liegt daran, dass dein Lebenslauf es
+nicht zeigt — und niemand dir sagt, woran es lag.
+
+David macht genau das. Er ist ein KI-Recruiter: Er liest deinen Lebenslauf zusammen mit der
+Stelle, auf die du dich bewerben willst, und sagt dir zuerst, worüber er mit dir sprechen
+wird und warum. Dann stellt er dir die Fragen, die ein Recruiter dir stellen würde — und
+sagt dir nach jeder Antwort ehrlich, was sie wert ist.
+
+Am Ende weisst du, was für dich spricht, was hinterfragt wird und was deinem Lebenslauf
+fehlt. Kostenlos, in etwa fünf Minuten."
 
 **Primary Text (EN):**
-"You apply — and hear nothing back. Usually it is not about you, but about what your CV does
-NOT say.
-David is an AI recruiter. He reads your CV together with the job you want, then runs a real
-pre-screening: the questions a recruiter would ask you. At the end you get your result — what
-speaks for you, what would be questioned, and what your CV is missing.
-Free. About 5 minutes. No standard questions."
+"30 applications. No feedback. No reason. Nothing.
+
+It is rarely because you can't do the job. It is because your CV doesn't show it — and
+nobody tells you what went wrong.
+
+David does. He is an AI recruiter: he reads your CV together with the job you want, tells
+you upfront what he will ask about and why, then asks the questions a recruiter would ask —
+and tells you honestly, after every answer, what it is worth.
+
+At the end you know what speaks for you, what would be questioned, and what your CV is
+missing. Free, in about five minutes."
+
+**Headline:** DE: „Warum du keine Antwort bekommst" · EN: "Why nobody answers you"
+**Beschreibung:** DE: „Kostenloses Pre-Screening · ca. 5 Minuten" · EN: "Free pre-screening · about 5 minutes"
+
+---
+
+### Variante B — die Neugier zuerst
+
+**Video-Hook:** „Finde heraus, was dein Lebenslauf noch nicht erzählt."
+
+**Primary Text (DE):**
+„Dein Lebenslauf erzählt, wo du warst. Nicht, was du dort entschieden hast.
+
+Genau das fehlt Recruitern — und genau danach fragt David. Er ist ein KI-Recruiter: Er liest
+deinen Lebenslauf zusammen mit deiner Wunschstelle, zeigt dir vorher, worüber er sprechen
+wird und warum ausgerechnet darüber, und führt dann ein echtes Pre-Screening mit dir.
+
+Keine Standardfragen aus dem Internet — nur Fragen zu deinem Werdegang und dieser einen
+Stelle. Nach jeder Antwort sagt er dir geradeheraus, ob sie trägt.
+
+Danach hast du dein Ergebnis: deine Stärken mit Beleg, die Punkte, die ein Recruiter
+hinterfragen würde, und das, was in deinem Lebenslauf noch fehlt. Kostenlos, etwa fünf
+Minuten."
+
+**Primary Text (EN):**
+"Your CV says where you have been. Not what you decided while you were there.
+
+That is exactly what recruiters miss — and exactly what David asks about. He is an AI
+recruiter: he reads your CV together with the job you want, shows you upfront what he will
+ask about and why, then runs a real pre-screening with you.
+
+No standard questions from the internet — only questions about your career and this one job.
+After every answer he tells you straight whether it holds up.
+
+Then you have your result: your strengths with evidence, the points a recruiter would
+question, and what your CV is still missing. Free, about five minutes."
 
 **Headline:** DE: „Was dein Lebenslauf nicht erzählt" · EN: "What your CV does not say"
 **Beschreibung:** DE: „Kostenloses Pre-Screening · ca. 5 Minuten" · EN: "Free pre-screening · about 5 minutes"
-**CTA-Knopf:** „Mehr dazu" (nicht „Jetzt einkaufen" — es wird nichts verkauft)
+
+---
+
+**CTA-Knopf (beide):** „Mehr dazu" — es wird nichts verkauft, also kein „Jetzt einkaufen".
 
 **Was in der Anzeige NICHT stehen darf:**
 - Kein Preis (der Trichter ist gratis; ein Preis in der Anzeige senkt den Klick und die
