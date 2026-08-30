@@ -812,7 +812,12 @@ export default function MyGalleryPage() {
                  */
                 const laufend = items.filter(x => x.rendert);
                 const n = laufend.length;
-                const istUnterlage = (x: Item) => x.theme === "david" || x.theme === "lebenslauf";
+                /* NICHT AM THEMA, AN DER KACHEL (Owner 30.08.2026: „hier steht deine
+                   Bewerbung? Bewerbungsvideo vielleicht dieses Mal!"). David verkauft
+                   BEIDES unter einem Thema — die Unterlagen laufen als eigene
+                   Bewerbungs-Kachel (`david-bewerbung`), das Video als normale
+                   Video-Kachel. Das Thema kann die beiden nicht auseinanderhalten. */
+                const istUnterlage = (x: Item) => x.source === "david-bewerbung";
                 const alleUnterlagen = laufend.every(istUnterlage);
                 const alleVideos = laufend.every(x => !istUnterlage(x));
                 if (n === 1) return alleUnterlagen ? T.laeuftEinsCv : T.laeuftEins;
