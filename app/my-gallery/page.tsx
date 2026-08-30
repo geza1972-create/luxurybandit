@@ -1039,7 +1039,7 @@ export default function MyGalleryPage() {
                 {it.rendert && (
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-1 py-1.5 text-[10px] font-black text-[#f6cf51]">
                     {/* Die Kachel weiss, was SIE ist — sie darf genau sagen, was entsteht. */}
-                    <Loader2 className="h-3 w-3 animate-spin" /> {it.theme === "david" || it.theme === "lebenslauf" ? T.entstehtCv : T.entsteht}
+                    <Loader2 className="h-3 w-3 animate-spin" /> {it.source === "david-bewerbung" ? T.entstehtCv : T.entsteht}
                   </span>
                 )}
                 {/**

@@ -323,7 +323,11 @@ export async function GET(request: Request) {
          *
          * Ein Auftrag ohne Selbstaufnahme kann kein Video schulden. Punkt.
          */
-        const laufend = !gescheitert && e.theme !== "gutschein" && !unterlagenKauf
+        /* … UND GELIEFERT IST GELIEFERT (30.08.2026): Die Lieferkette stempelt `videoUrl`,
+           aber nicht immer `videoFertigAt` — der Zeitfenster-Zweig hielt ein fertig
+           geliefertes Video darum bis zu einer Stunde auf „läuft" (Banner bei 90 %,
+           Drehstreifen auf der Kachel, „ich sehe es nicht"). */
+        const laufend = !gescheitert && e.theme !== "gutschein" && !unterlagenKauf && !e.videoUrl
           && (offenerKauf
             || (Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
             || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));
@@ -513,49 +517,6 @@ export async function GET(request: Request) {
            * es wirklich einen Bericht gibt: eine abgebrochene Sitzung soll keine leere
            * Kachel erzeugen.
            */
-          ...(await (async () => {
-            if (e.theme !== "david") return {};
-            const sitzung = await leseDavid(e.id).catch(() => null);
-            if (!sitzung?.report) return {};
-            return {
-              berichtUrl: `/david/${e.id}`,
-              /* DIE KACHEL BRAUCHT EIN BILD, sonst wirft der Filter unten sie hinaus
-                 (`pictures.filter(b => b.imageUrl || b.videoUrl)`) — und ein Bericht hat
-                 weder Standbild noch Video. Davids Porträt ist das ehrliche Zeichen dafür:
-                 dasselbe Gesicht, das im Ergebnis oben steht. */
-              /* EIN ZEICHEN, KEIN GESICHT (Owner 28.08.2026: „und statt Davidbild ein Icon
-                 für die Analyse"). Davids Porträt stand in der Galerie neben lauter
-                 Video-Kacheln mit Gesichtern und las sich wie eines davon. Die Kachel braucht
-                 trotzdem ein Bild — ohne fliegt sie durch den Filter unten heraus —, also ist
-                 es jetzt ein gezeichnetes: Balken für die Auswertung, Schloss für „gehört
-                 dir", dieselbe Geste wie die Zutaten-Kachel im Angebot. */
-              /* MIT FASSUNGSNUMMER — dieselbe Lehre wie bei den Vorlagen-Vorschauen
-                 (28.08.2026): Vercel liefert /public mit langer Cache-Zeit aus. Ändert sich
-                 die Zeichnung, sähe jeder wiederkehrende Besucher wochenlang die alte. Wer
-                 die Datei ändert, zählt hier eine hoch. */
-              imageUrl: "/Lebenslauf/analyse-kachel.svg?v=2",
-              /* „Analyse" statt des Auftragsnamens — seit die Bewerbung eine eigene Kachel
-                 hat, müssen die zwei auf einen Blick unterscheidbar sein. */
-              name: "Analyse",
-              /**
-               * AUCH HIER EIN SCHLOSS (Owner 28.08.2026: „auch bei der Analyse? kann das
-               * jeder sehen?").
-               *
-               * Und hier steht es GESCHLOSSEN — anders als an der Bewerbung. Der Bericht ist
-               * seit heute durch den Besitz-Keks gesperrt: Ein weitergeleiteter Link öffnet
-               * beim Empfänger nichts. Das ist der Zustand, den das zugesperrte Schloss
-               * meint.
-               *
-               * An der Bewerbung ist es offen, solange kein Passwort vergeben ist — dort geht
-               * es nicht um den Zugriff (der Keks schützt beides), sondern um das TEILEN: Wer
-               * seine Bewerbung an eine Firma schicken will, braucht einen Link, der bei
-               * einem Fremden funktioniert. Genau der ist ohne Passwort ungeschützt.
-               */
-              geschuetzt: true,
-              berichtTitel: sitzung.jobTitel || "",
-              ...(sitzung.cvPath ? { cvPath: sitzung.cvPath, cvName: sitzung.cvName || "Lebenslauf.pdf" } : {}),
-            };
-          })()),
         },
         /**
          * KEIN BEIWERK MEHR (Owner 12.08.2026: „die beiwerkfotos brauchst du gar nicht zu
@@ -567,6 +528,39 @@ export async function GET(request: Request) {
          * hängen am Auftrag — gezeigt und gelöscht wird nur noch das WERK; der Admin sieht
          * die Vorlagen weiterhin in UploadsAdmin samt Warnzeichen.
          */
+        /**
+         * DIE ANALYSE ALS EIGENE KACHEL (Owner 30.08.2026: „ich sehe es nicht" — sein
+         * fertiges Bewerbungsvideo war unsichtbar).
+         *
+         * Der Bericht hing bisher als Überlagerung am HAUPT-Tile: Icon statt Standbild,
+         * `berichtUrl` statt Video. Solange der Auftrag nur den Bericht trug, ging das gut.
+         * Sobald aber das VIDEO geliefert war, versteckte die Analyse es — dieselbe Kachel
+         * kann nicht Bericht UND Video sein. Jetzt ist die Analyse eine Zweitkachel wie die
+         * Bewerbung (`-analyse`), und das Haupt-Tile bleibt das Werk: sein Video.
+         */
+        ...(await (async () => {
+          if (e.theme !== "david") return [] as never[];
+          const sitzung = await leseDavid(e.id).catch(() => null);
+          if (!sitzung?.report) return [] as never[];
+          return [{
+            id: `${e.id}-analyse`,
+            imageUrl: "/Lebenslauf/analyse-kachel.svg?v=2",
+            videoUrl: "",
+            name: "Analyse",
+            createdAt: e.createdAt || "",
+            /* Kein `source: "kiss"` — die Kachel bekommt damit keinen Löschknopf; ein
+               Löschtipp auf einer Zweitkachel hat heute schon einmal einen bezahlten
+               Auftrag mitgerissen. */
+            source: "david-analyse",
+            theme: "david",
+            empfaenger: "", videoFertigAt: "", warnung: "", alter: 0,
+            paid: !!e.paid,
+            berichtUrl: `/david/${e.id}`,
+            geschuetzt: true,
+            berichtTitel: sitzung.jobTitel || "",
+            ...(sitzung.cvPath ? { cvPath: sitzung.cvPath, cvName: sitzung.cvName || "Lebenslauf.pdf" } : {}),
+          }];
+        })()),
         /* Die BEWERBUNG als eigene Kachel — siehe `bewerbungKachel` oben. */
         ...(bewerbungKachel ? [{
           id: `${e.id}-bewerbung`,
