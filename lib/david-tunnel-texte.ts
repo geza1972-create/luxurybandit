@@ -470,6 +470,10 @@ export const DAVID_TUNNEL = {
   /* Zwischen Tipp und Kassenfenster liegt ein Serveraufruf — was in dieser Zeit dasteht,
      entscheidet, ob der Käufer wartet oder ein zweites Mal tippt (Owner 30.08.2026). */
   videoKasseOeffnet: "Ich öffne die Kasse",
+  /* Die Quittung nach der Zahlung — sie sagt, dass es angekommen ist UND wo es hinkommt
+     (Owner 30.08.2026). Sie schliesst sich nach sechs Sekunden von selbst. */
+  kaufDankTitel: "Danke — wir erstellen jetzt deine Bewerbung.",
+  kaufDankText: "Das dauert einen Moment. Du findest sie im Menü unter „Assets“ — auch dann, wenn du diese Seite schliesst.",
   videoAufnahmeDa: "Aufnahme gespeichert.",
   videoAufnahmeFehlt: "Ohne Aufnahme kann ich kein Video machen.",
   videoAufnahmeFehler: "Die Aufnahme ließ sich nicht sichern. Versuch es bitte noch einmal.",

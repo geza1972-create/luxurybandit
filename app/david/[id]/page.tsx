@@ -100,11 +100,6 @@ export default async function DavidBerichtSeite({ params }: { params: Promise<{ 
                 foto: sitzung.cvBefund?.foto,
               }} />
 
-            {/* AUCH HIER DIE ADRESSE (Owner 29.08.2026): Wer den Bericht Tage später aus
-                seinen Assets öffnet, ist derselbe Mensch mit demselben Problem — und diese
-                Seite erreicht er sogar dann, wenn die Mail nie ankam, weil sein Browser ihn
-                als Besitzer kennt. */}
-            <DavidSichern genId={String(id)} email={sitzung.email ?? ""} S={S} />
 
             {/* DIE BEZAHLTEN SCHRITTE STEHEN AUCH HIER (Owner 28.08.2026: „ich dachte wir
                 machen das auf der ergebnis seite") — derselbe Baustein wie im Trichter, mit
@@ -117,6 +112,25 @@ export default async function DavidBerichtSeite({ params }: { params: Promise<{ 
               cvPath={sitzung.cvPath ?? ""} cvName={sitzung.cvName ?? ""}
               anzeige={sitzung.jobText ?? ""} vorname={sitzung.vorname}
               beispielCv={<LebenslaufBeispiel lang={L} profil={CORA_MUSTER} href="" />} />
+
+            {/**
+              * DIE MAIL STEHT UNTER DEM ANGEBOT (Owner 30.08.2026: „der Kauf steht zu weit
+              * unten und Analyse schicken steht als erstes CTA da. Der User wird nach diesem
+              * CTA nicht runterscrollen. Das darf kein Haupt-CTA sein.").
+              *
+              * Vorher stand dieser Block VOR den Angeboten und trug den einzigen goldenen
+              * Knopf der Seite — das erste, was der Bewerber nach seinem Bericht sah, war
+              * eine Aufforderung, sich selbst eine Mail zu schicken. Wer das tut, hält die
+              * Seite für erledigt und ist weg, bevor er das Angebot überhaupt gelesen hat.
+              * Jetzt kommt zuerst das Angebot; die Adresse steht als ruhiger Zweitweg
+              * darunter (Knopf `umriss`, nicht Gold).
+              *
+              * AUCH HIER DIE ADRESSE (Owner 29.08.2026): Wer den Bericht Tage später aus
+              * seinen Assets öffnet, ist derselbe Mensch mit demselben Problem — und diese
+              * Seite erreicht er sogar dann, wenn die Mail nie ankam, weil sein Browser ihn
+              * als Besitzer kennt.
+              */}
+            <DavidSichern genId={String(id)} email={sitzung.email ?? ""} S={S} />
           </>
         ) : (
           /* Kein Bericht (falsche Kennung oder abgebrochenes Screening) — eine ehrliche

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, BarChart3, Check, Lock, Maximize2 } from "lucide-react";
-import { Knopf, Fehlerzeile, Fortschritt, BildWahl, BlattUeberlagerung, Scheibe, EingabeMehrzeilig } from "@/components/CI";
+import { Knopf, Fehlerzeile, Fortschritt, BildWahl, BlattUeberlagerung, Scheibe, EingabeMehrzeilig, Dialog } from "@/components/CI";
 import { PDF_VORLAGEN, vorlagenBild } from "@/lib/pdf-vorlagen";
 import { fotoAlsDataUrl } from "@/lib/foto-verkleinern";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -69,6 +69,8 @@ export default function DavidAngebote({
   const [busy, setBusy] = useState(false);
   const [busyText, setBusyText] = useState("");
   const [fehler, setFehler] = useState("");
+  /* Der Dank nach der Zahlung — er verschwindet von selbst (siehe `nachZahlung`). */
+  const [danke, setDanke] = useState(false);
   const [fertig, setFertig] = useState(false);
   /* DIE GEWÄHLTE VORLAGE — sie geht beim Erzeugen an den Generator (er schreibt sie ans
      Profil) UND an die PDF-Adresse. Beides, weil die fertige PDF auch später aus den Assets
@@ -296,8 +298,31 @@ export default function DavidAngebote({
    * MÖGLICH GEWORDEN IST DAS ERST HEUTE — durch den Rückkehr-Fänger. Vorher gab es nach der
    * eingebetteten Kasse keine Stelle mehr, an der überhaupt noch Code lief.
    */
+  /* Sechs Sekunden reichen zum Lesen der zwei Zeilen; danach steht wieder der Fortschritt
+     da, auf den es jetzt ankommt. */
+  useEffect(() => {
+    if (!danke) return;
+    const uhr = setTimeout(() => setDanke(false), 6000);
+    return () => clearTimeout(uhr);
+  }, [danke]);
+
   const nachZahlung = async () => {
     void logTunnelEvent("payment_completed", "david");
+    /**
+     * DIE QUITTUNG IN EINEM SATZ (Owner 30.08.2026: „ich habe es bezahlt und Erstellung
+     * läuft — es kam kein Hinweis: Danke, wir erstellen jetzt deine Bewerbung, schau unter
+     * Assets im Menü").
+     *
+     * Zwischen „bezahlt" und „fertig" liegen bis zu 30 Sekunden. Bisher wechselte an dieser
+     * Stelle nur ein Knopf zu einem Fortschrittsbalken — wer gerade Geld gegeben hat, sucht
+     * in diesem Moment eine Bestätigung, dass sein Kauf angekommen ist, und findet einen
+     * Ladebalken. Der Hinweis sagt beides: Es ist angekommen, und wo es hinkommt.
+     *
+     * ER SCHLIESST SICH SELBST (6 Sekunden) und trägt trotzdem das Kreuz der Bibliothek —
+     * Hausregel „immer close einbauen": Ein Fenster, das nur von allein weggeht, ist eines,
+     * aus dem man nicht heraus kann, wenn die Uhr einmal nicht läuft.
+     */
+    setDanke(true);
     /* DEN BESITZ-KEKS HOLEN, BEVOR ETWAS FERTIG IST (28.08.2026): Danach führt der
        Download-Knopf auf ein PDF ohne Gerätekennung in der Adresse — ohne Keks bekäme der
        Käufer an seinem eigenen Kauf ein 403. Still: Scheitert es, greift weiterhin der
@@ -387,6 +412,15 @@ export default function DavidAngebote({
 
   return (
     <div className="flex flex-col gap-4">
+      {danke && (
+        <Dialog art="dunkel" zu={() => setDanke(false)}>
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f6cf51]/15 text-[#f6cf51]">
+            <Check className="h-6 w-6" />
+          </span>
+          <p className="mt-3 text-[18px] font-black leading-snug text-white">{S.kaufDankTitel}</p>
+          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/80">{S.kaufDankText}</p>
+        </Dialog>
+      )}
       <section className="mt-6 border-t border-white/10 pt-7">
         <h2 className="text-[24px] font-black leading-[1.1]">{S.angeboteTitel}</h2>
         <p className="mt-2 text-[15px] font-medium leading-relaxed text-white/85">{S.angeboteText}</p>
@@ -397,6 +431,76 @@ export default function DavidAngebote({
       <section>
         <h3 className="text-[17px] font-black leading-snug">{S.cvOptTitel}</h3>
         <p className="mt-1.5 text-[14px] font-medium leading-relaxed text-white/80">{S.cvOptText}</p>
+
+        {/**
+          * DER KAUF STEHT OBEN (Owner 30.08.2026: „der Kauf steht zu weit unten … der User
+          * wird nicht runterscrollen").
+          *
+          * Vorher lag der Knopf ganz am Ende dieses Abschnitts — hinter der Vorlagen-Galerie,
+          * dem Foto-Upload und der Erklärung zum Anschreiben. Wer entscheidet, entscheidet
+          * oben; alles darunter ist Ausschmückung für die, die noch zweifeln. Dieselbe Regel
+          * wie im Seitenkopf-Template vom 10.08.2026: erst die Sache, dann der Knopf mit dem
+          * Preis darin, und erst danach die Erklärungen.
+          *
+          * DIE DETAILS BLEIBEN WÄHLBAR: Wer ohne Auswahl kauft, bekommt die Vorlage
+          * „Klassik" und die eingebaute Rückfrage nach dem Foto — kein Kauf geht dabei
+          * verloren, und wer die Galerie sehen will, scrollt weiter.
+          */}
+        <p className="mt-2 text-[12.5px] font-bold text-white/60">{S.imPreis}</p>
+        {/* KEINE STELLE IM SCREENING? DANN HIER (Owner 29.08.2026, Weg „A"). Nur sichtbar,
+            wenn wirklich keine da ist — wer sie im Trichter genannt hat, sieht davon nichts. */}
+        {!busy && !fertig && anzeige.trim().length < 60 && (
+          <div className="lb-rand-verlauf mt-5 rounded-[18px] lb-goldhauch p-4">
+            <p className="text-[15px] font-black leading-snug text-white">{S.anzeigeFuerKauf}</p>
+            <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.anzeigeFuerKaufText}</p>
+            <EingabeMehrzeilig className="mt-3" zeilen={5} value={nachAnzeige}
+              onChange={e => setNachAnzeige(e.target.value)} placeholder={S.jobPlatzhalter} />
+          </div>
+        )}
+        {/* WAS ER GEWÄHLT HAT, DIREKT ÜBER DEM PREIS (Owner 28.08.2026: „Richtiges Template
+            gewählt, Bild hochgeladen. Ja/Nein"). Zwei Zeilen, im Blickfeld des Daumens —
+            damit man beim Zahlen sieht, WAS man kauft, statt es hinterher zu merken. */}
+        {!busy && !fertig && (
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+            <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-white/70">
+              <Check className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
+              {S.checkVorlage}: <span className="font-black text-white/90">{PDF_VORLAGEN.find(v => v.id === vorlage)?.name}</span>
+            </span>
+            <span className={`flex items-center gap-1.5 text-[12.5px] font-bold ${foto ? "text-white/70" : "text-[#f6cf51]"}`}>
+              {foto
+                ? <Check className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
+                : <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
+              {S.checkFoto}: <span className={foto ? "font-black text-white/90" : "font-black"}>{foto ? "✓" : S.checkFotoFehlt}</span>
+            </span>
+          </div>
+        )}
+        <Fehlerzeile>{fehler}</Fehlerzeile>
+        <div className="mt-3">
+          {/* NIE EIN KREISEL OHNE WORT (CI-Regel; Owner 28.08.2026 mit Bild: „was passiert
+              hier?" — an dieser Stelle drehte ein winziger Kreisel ohne jede Auskunft,
+              während im Hintergrund 30 Sekunden lang die Bewerbung geschrieben wurde). */}
+          {busy ? <Fortschritt text={busyText || S.unterlagenLaeuft} />
+            : fertig
+              ? <Knopf art="gold" href={pdfUrl}>{S.assetsKnopf}</Knopf>
+              : fotoFrage
+                ? (
+                  /* DIE RÜCKFRAGE — an derselben Stelle, an der eben noch der Kaufknopf
+                     stand. Der Weg zurück (Foto wählen) steht OBEN und in Gold; „trotzdem"
+                     ist der leisere Zweitweg. Wer nur schnell tippt, landet dann beim Foto
+                     und nicht in einem Kauf, den er später bereut. */
+                  <div className="lb-rand-verlauf rounded-[18px] lb-goldhauch p-4">
+                    <p className="text-[15px] font-black leading-snug text-white">{S.fotoFehltTitel}</p>
+                    <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.fotoFehltText}</p>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Knopf art="gold" onClick={() => { setFotoFrage(false); fotoFeld.current?.click(); }}>{S.fotoJetztWaehlen}</Knopf>
+                      <Knopf art="umriss" onClick={() => { setFotoFrage(false); void kaufen(true); }}>{S.ohneFotoWeiter}</Knopf>
+                    </div>
+                  </div>
+                )
+                : <Knopf art="gold" onClick={() => void kaufen()}>{`${S.cvOptCta} — ${preisUnterlagen}`}</Knopf>}
+        </div>
+        {kasse.block}
+
         {/* DAS BEISPIEL IST DAS PDF, NICHT EINE PROFILSEITE (Owner 28.08.2026, mit Bild
             der Muster-Seite: „das werden wir nicht haben in dem beispiel" · „wir machen das
             nur pdf und anschreiben").
@@ -538,60 +642,6 @@ export default function DavidAngebote({
 
         <h3 className="mt-6 text-[17px] font-black leading-snug">{S.anschreibenTitel}</h3>
         <p className="mt-1.5 text-[14px] font-medium leading-relaxed text-white/80">{S.anschreibenText}</p>
-        <p className="mt-2 text-[12.5px] font-bold text-white/60">{S.imPreis}</p>
-        {/* KEINE STELLE IM SCREENING? DANN HIER (Owner 29.08.2026, Weg „A"). Nur sichtbar,
-            wenn wirklich keine da ist — wer sie im Trichter genannt hat, sieht davon nichts. */}
-        {!busy && !fertig && anzeige.trim().length < 60 && (
-          <div className="lb-rand-verlauf mt-5 rounded-[18px] lb-goldhauch p-4">
-            <p className="text-[15px] font-black leading-snug text-white">{S.anzeigeFuerKauf}</p>
-            <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.anzeigeFuerKaufText}</p>
-            <EingabeMehrzeilig className="mt-3" zeilen={5} value={nachAnzeige}
-              onChange={e => setNachAnzeige(e.target.value)} placeholder={S.jobPlatzhalter} />
-          </div>
-        )}
-        {/* WAS ER GEWÄHLT HAT, DIREKT ÜBER DEM PREIS (Owner 28.08.2026: „Richtiges Template
-            gewählt, Bild hochgeladen. Ja/Nein"). Zwei Zeilen, im Blickfeld des Daumens —
-            damit man beim Zahlen sieht, WAS man kauft, statt es hinterher zu merken. */}
-        {!busy && !fertig && (
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
-            <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-white/70">
-              <Check className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
-              {S.checkVorlage}: <span className="font-black text-white/90">{PDF_VORLAGEN.find(v => v.id === vorlage)?.name}</span>
-            </span>
-            <span className={`flex items-center gap-1.5 text-[12.5px] font-bold ${foto ? "text-white/70" : "text-[#f6cf51]"}`}>
-              {foto
-                ? <Check className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" />
-                : <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
-              {S.checkFoto}: <span className={foto ? "font-black text-white/90" : "font-black"}>{foto ? "✓" : S.checkFotoFehlt}</span>
-            </span>
-          </div>
-        )}
-        <Fehlerzeile>{fehler}</Fehlerzeile>
-        <div className="mt-3">
-          {/* NIE EIN KREISEL OHNE WORT (CI-Regel; Owner 28.08.2026 mit Bild: „was passiert
-              hier?" — an dieser Stelle drehte ein winziger Kreisel ohne jede Auskunft,
-              während im Hintergrund 30 Sekunden lang die Bewerbung geschrieben wurde). */}
-          {busy ? <Fortschritt text={busyText || S.unterlagenLaeuft} />
-            : fertig
-              ? <Knopf art="gold" href={pdfUrl}>{S.assetsKnopf}</Knopf>
-              : fotoFrage
-                ? (
-                  /* DIE RÜCKFRAGE — an derselben Stelle, an der eben noch der Kaufknopf
-                     stand. Der Weg zurück (Foto wählen) steht OBEN und in Gold; „trotzdem"
-                     ist der leisere Zweitweg. Wer nur schnell tippt, landet dann beim Foto
-                     und nicht in einem Kauf, den er später bereut. */
-                  <div className="lb-rand-verlauf rounded-[18px] lb-goldhauch p-4">
-                    <p className="text-[15px] font-black leading-snug text-white">{S.fotoFehltTitel}</p>
-                    <p className="mt-1 text-[13.5px] font-medium leading-relaxed text-white/75">{S.fotoFehltText}</p>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <Knopf art="gold" onClick={() => { setFotoFrage(false); fotoFeld.current?.click(); }}>{S.fotoJetztWaehlen}</Knopf>
-                      <Knopf art="umriss" onClick={() => { setFotoFrage(false); void kaufen(true); }}>{S.ohneFotoWeiter}</Knopf>
-                    </div>
-                  </div>
-                )
-                : <Knopf art="gold" onClick={() => void kaufen()}>{`${S.cvOptCta} — ${preisUnterlagen}`}</Knopf>}
-        </div>
-        {kasse.block}
       </section>
 
       <section className="border-t border-white/10 pt-6">

@@ -798,11 +798,28 @@ export default function MyGalleryPage() {
           <div className="mt-3 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2.5">
             <Fortschritt
               prozent={laufProzent}
-              text={
-                items.filter(x => x.rendert).length > 1
-                  ? T.laeuftViele.replace("{n}", String(items.filter(x => x.rendert).length))
-                  : (items.filter(x => x.rendert).every(x => x.theme === "david" || x.theme === "lebenslauf") ? T.laeuftEinsCv : T.laeuftEins)
-              } />
+              text={(() => {
+                /**
+                 * WAS DA LÄUFT, HEISST NICHT „VIDEO" (Owner 30.08.2026: „hier steht was von
+                 * Videos? … Eine Bewerbung habe ich erstellt").
+                 *
+                 * Die Einzahl kannte den Unterschied schon seit dem 28.08.; die MEHRZAHL fiel
+                 * weiter auf „{n} Videos entstehen gerade" zurück. Wer 9,99 € für Lebenslauf
+                 * und Anschreiben bezahlt hat und dann von Videos liest, zweifelt zu Recht,
+                 * ob er das Richtige gekauft hat.
+                 *
+                 * Laufen beide Sorten gleichzeitig, wird keine von beiden behauptet.
+                 */
+                const laufend = items.filter(x => x.rendert);
+                const n = laufend.length;
+                const istUnterlage = (x: Item) => x.theme === "david" || x.theme === "lebenslauf";
+                const alleUnterlagen = laufend.every(istUnterlage);
+                const alleVideos = laufend.every(x => !istUnterlage(x));
+                if (n === 1) return alleUnterlagen ? T.laeuftEinsCv : T.laeuftEins;
+                if (alleUnterlagen) return (T.laeuftVieleCv ?? T.laeuftViele).replace("{n}", String(n));
+                if (alleVideos) return T.laeuftViele.replace("{n}", String(n));
+                return (T.laeuftVieleGemischt ?? T.laeuftViele).replace("{n}", String(n));
+              })()} />
             <p className="mt-1.5 text-[12px] font-semibold leading-snug text-[#f6cf51]/75">{T.laeuftDazu}</p>
           </div>
         )}
@@ -1075,7 +1092,13 @@ export default function MyGalleryPage() {
                     Vorgang, Analyse eingeschlossen. Das ist die ehrlichere Variante als ein
                     Knopf, der nur die Hälfte entfernt und einen Auftrag ohne Unterlagen
                     zurücklässt. Die rote Rückfrage mit zwei Tipps steht davor. */}
-                {!selectMode && (it.source === "kiss" || it.source === "david-bewerbung" || it.type === "program") && (
+                {/* DIE BEWERBUNGS-KACHEL HAT KEINEN LÖSCHKNOPF MEHR (Owner 30.08.2026: „oh
+                    mann, ich habe eine Bewerbung gelöscht und auch die Analyse war weg").
+                    Sie ist eine ZWEITKACHEL desselben Auftrags — ihr Löschtipp strich die
+                    Endung `-bewerbung` und löschte damit den GANZEN bezahlten Auftrag:
+                    Zahlung, Bericht, alles. Exakt dieselbe Falle wie am 12.08. mit `-frau`;
+                    die Aufnahme-Kachel war deshalb schon ausgenommen, diese hier nicht. */}
+                {!selectMode && (it.source === "kiss" || it.type === "program") && (
                   <button type="button"
                     onClick={e => { e.stopPropagation(); void eigenesLoeschen(it); }}
                     aria-label={loeschScharf === it.id ? T.loeschenSicher : T.loeschen}

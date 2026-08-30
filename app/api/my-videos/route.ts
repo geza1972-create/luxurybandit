@@ -295,7 +295,24 @@ export async function GET(request: Request) {
           !!e.videoAlertAt
           || (!!e.videoError && (e.videoTries ?? 0) >= 5 && alterMs > 30 * 60 * 1000)
         );
-        const laufend = !gescheitert && e.theme !== "gutschein"
+        /**
+         * UND AUCH DIE 15-MINUTEN-KULANZ GILT NICHT FÜR UNTERLAGEN (Owner 30.08.2026, mit
+         * Bild der Galerie: „hier steht was von Videos? … Eine Bewerbung habe ich erstellt"
+         * · „es hängt bei 90 % einfach").
+         *
+         * `unterlagenKauf` entschärfte bisher nur `offenerKauf`. Der letzte Zweig unten
+         * greift aber ohne diese Bedingung: bezahlt, kein Startstempel, jünger als 15
+         * Minuten → „läuft". Damit drehte nach JEDEM Unterlagen-Kauf für eine Viertelstunde
+         * eine zweite, leere Kachel neben der echten Bewerbung — die Galerie meldete „2
+         * Videos entstehen gerade" für einen Kauf, in dem kein einziges Video steckt.
+         *
+         * Der Balken hing dabei bei 90 %: Er wächst mit der Wartezeit und bleibt kurz vor
+         * dem Rand stehen, bis alles fertig ist. Die echte Bewerbung war längst da — der
+         * Phantom-Auftrag lief seine fünfzehn Minuten weiter und hielt den Balken fest.
+         *
+         * Ein Auftrag ohne Selbstaufnahme kann kein Video schulden. Punkt.
+         */
+        const laufend = !gescheitert && e.theme !== "gutschein" && !unterlagenKauf
           && (offenerKauf
             || (Number.isFinite(startMs) && startMs < 60 * 60 * 1000 && !fertigNachStart)
             || (!e.videoStartAt && !e.videoUrl && !!e.paid && !e.videoError && alterMs < 15 * 60 * 1000));

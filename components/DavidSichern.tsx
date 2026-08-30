@@ -88,7 +88,12 @@ export default function DavidSichern({ genId, email, S }: {
       <div className="mt-3">
         {laeuft
           ? <Laden art="knopf" text={S.sichernLaeuft} />
-          : <Knopf art="gold" onClick={() => void schicken()}>{S.sichernKnopf}</Knopf>}
+          /* ZWEITWEG, KEIN HAUPTKNOPF (Owner 30.08.2026: „Analyse schicken steht als erstes
+             CTA da … das darf kein Haupt-CTA sein"). Auf einer Seite gibt es genau EINEN
+             goldenen Knopf, und der gehört dem Kauf. Ein goldener Knopf, der nur eine Mail
+             verschickt, fängt die Aufmerksamkeit ab, bevor das Angebot überhaupt gelesen
+             wurde — und wer die Mail angefordert hat, hält die Seite für erledigt. */
+          : <Knopf art="umriss" onClick={() => void schicken()}>{S.sichernKnopf}</Knopf>}
       </div>
       <Fehlerzeile>{fehler}</Fehlerzeile>
     </Kasten>

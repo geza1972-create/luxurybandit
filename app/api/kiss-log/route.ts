@@ -342,6 +342,23 @@ export async function POST(request: Request) {
     const ziel = alleJetzt.find(e => e.id === body.remove);
     const darf = !!ziel && (await istBesitzer(ziel, body, request));
     if (!darf) return NextResponse.json({ error: "Not yours." }, { status: 403 });
+    /**
+     * EIN BEZAHLTER DAVID-AUFTRAG IST KEIN BILD (Owner 30.08.2026: „ich habe eine
+     * Bewerbung gelöscht und auch die Analyse war weg … ich wollte die Analyse nutzen für
+     * die Bewerbungsgenerierung").
+     *
+     * An diesem einen Eintrag hängt ALLES: der Kaufstempel, die Bericht-Kachel und die
+     * Bewerbung. Der Löschweg der Galerie ist für Bilder und Videos gebaut — zwei Tipps,
+     * drei Sekunden. Für einen Eintrag, der einen 9,99-€-Kauf trägt, ist das zu wenig
+     * Hürde: Ein Versehen löscht das gekaufte Produkt UND den Beweis der Zahlung.
+     *
+     * „Löschen heisst löschen" (30.07.) gilt weiter für seine Bilder und Aufnahmen — hier
+     * geht es nicht um Datenschutz, sondern um einen offenen Kauf. Wer ihn wirklich
+     * loswerden will, geht über /contact; das Abmelden löscht Personenbezogenes ohnehin.
+     */
+    if (ziel.paid && String(ziel.theme ?? "") === "david") {
+      return NextResponse.json({ error: "Dieser Eintrag trägt einen bezahlten Kauf und lässt sich nicht löschen." }, { status: 409 });
+    }
     const alle = await readKissLog();
     const weg = alle.find(e => e.id === body.remove);
     const entries = alle.filter(e => e.id !== body.remove);
