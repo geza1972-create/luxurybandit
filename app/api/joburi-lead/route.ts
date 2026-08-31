@@ -28,6 +28,14 @@ const ZIELE = ["salariu", "flexibilitate", "cariera", "intoarcere"];
 /* Die vierte Antwort: aktiv suchend · offen für Angebote · passiv. Dieselben drei Wörter
    wie die Segmente auf `/recruiting` — eine Benennung für dieselbe Sache. */
 const SUCHEN = ["aktiv", "offen", "passiv"];
+/* Talent Market Pulse — die Antworten der Studie. Jede Liste ist ein Riegel: Was nicht
+   darin steht, wird verworfen statt gespeichert; sonst landet irgendwann getippter Müll in
+   der Auswertung, auf die wir uns gegenüber Firmen berufen. */
+const LAENDER = ["ro", "de", "at", "alta"];
+const GEHAELTER = ["800", "1200", "1600", "2000", "2500", "3000+"];
+const FAKTOREN = ["salariu", "remote", "flexibilitate", "cariera", "stabilitate", "echipa"];
+const RUECKKEHR = ["da", "poate", "nu"];
+const BERUFSFELDER = ["suport", "it", "finante", "logistica", "inginerie", "vanzari", "sanatate", "altul"];
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) {
@@ -50,6 +58,17 @@ export async function GET(request: Request) {
     aktivSuchend: leads.filter(l => l.suche === "aktiv").length,
     offenFuerAngebote: leads.filter(l => l.suche === "offen").length,
     passiv: leads.filter(l => l.suche === "passiv").length,
+    /* TALENT MARKET PULSE: die eine Zahl, die kein Jobportal hat — ab wann jemand wechselt.
+       Der Median, nicht der Durchschnitt: Ein einziger Ausreisser mit „3000+" verschöbe den
+       Durchschnitt und damit die Aussage, die wir einer Firma gegenüber machen. */
+    mitGehalt: leads.filter(l => !!l.wechselGehalt).length,
+    gehaltMedian: (() => {
+      const werte = leads.map(l => l.wechselGehalt).filter(Boolean).map(g => Number(String(g).replace("+", "")));
+      if (!werte.length) return null;
+      werte.sort((a, b) => a - b);
+      const m = Math.floor(werte.length / 2);
+      return werte.length % 2 ? werte[m] : Math.round((werte[m - 1] + werte[m]) / 2);
+    })(),
   };
   return NextResponse.json({ ok: true, summe, leads });
 }
@@ -64,6 +83,13 @@ export async function POST(request: Request) {
     const form = s(body.arbeitsform, 10).toLowerCase();
     const ziel = s(body.ziel, 20).toLowerCase();
     const suche = s(body.suche, 10).toLowerCase();
+    const land = s(body.land, 6).toLowerCase();
+    const gehalt = s(body.wechselGehalt, 6);
+    const rueckkehr = s(body.rueckkehr, 8).toLowerCase();
+    const feld = s(body.berufsfeld, 20).toLowerCase();
+    const faktoren = Array.isArray(body.faktoren)
+      ? [...new Set(body.faktoren.map(f => s(f, 20).toLowerCase()).filter(f => FAKTOREN.includes(f)))]
+      : [];
     const id = s(body.id, 60) || crypto.randomUUID();
     const alt = await leseLead(id);
 
@@ -74,6 +100,11 @@ export async function POST(request: Request) {
       ...(FORMEN.includes(form) ? { arbeitsform: form as JoburiLead["arbeitsform"] } : {}),
       ...(ZIELE.includes(ziel) ? { ziel: ziel as JoburiLead["ziel"] } : {}),
       ...(SUCHEN.includes(suche) ? { suche: suche as JoburiLead["suche"] } : {}),
+      ...(LAENDER.includes(land) ? { land: land as JoburiLead["land"] } : {}),
+      ...(GEHAELTER.includes(gehalt) ? { wechselGehalt: gehalt as JoburiLead["wechselGehalt"] } : {}),
+      ...(faktoren.length ? { faktoren: faktoren as NonNullable<JoburiLead["faktoren"]> } : {}),
+      ...(RUECKKEHR.includes(rueckkehr) ? { rueckkehr: rueckkehr as JoburiLead["rueckkehr"] } : {}),
+      ...(BERUFSFELDER.includes(feld) ? { berufsfeld: feld } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),
       ...(s(body.lang, 5) ? { lang: s(body.lang, 5) } : {}),
       ...(body.utm && typeof body.utm === "object" ? { utm: body.utm as Record<string, string> } : {}),

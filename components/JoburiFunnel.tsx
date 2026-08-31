@@ -1,54 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Lock, Mail, MapPin, ExternalLink } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Mail } from "lucide-react";
 import { Knopf, Kasten, Eingabe, Fehlerzeile, Fortschritt, Haken } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
-import type { Stelle, Guete } from "@/lib/joburi-store";
-
-/** Die Stelle, wie der Server sie liefert — mit der berechneten Güte daran. */
-type Treffer = Stelle & { guete?: Guete };
 
 /**
- * DER JOBURI-TRICHTER (Owner 31.08.2026).
+ * TALENT MARKET PULSE — DER TRICHTER FRAGT, STATT ZU ZEIGEN (Owner 31.08.2026).
  *
- * WARUM ES IHN NEBEN DAVID GIBT: „Menschen wollen keinen Pre-Screening-Agenten. Sie wollen
- * einen besseren Job." David verkauft das Verfahren, dieser Trichter verspricht das Ziel —
- * und liefert es, bevor er etwas verlangt.
+ * „Wir wollen nicht mehr primär Jobs anzeigen, sondern herausfinden, zu welchen Bedingungen
+ * deutschsprachige Menschen in Rumänien oder der Diaspora den Job wechseln würden."
  *
- * DIE REIHENFOLGE IST DER GANZE PUNKT:
- *   1. Drei Fragen, alle per KLICK. Kein Tippfeld, keine persönliche Angabe.
- *   2. ECHTE Stellen als Vorschau — Titel, Firma, Gehalt. Zwei sichtbar, der Rest verdeckt.
- *   3. Erst jetzt die Adresse, gegen die volle Liste. Sie hat damit einen Gegenwert.
- *   4. Der Lebenslauf ist ein Upgrade, kein Eintrittspreis.
+ * WARUM DAS BESSER IST ALS DIE STELLENLISTE DAVOR: Die Liste konnte nur so gut sein wie der
+ * Bestand — und der stand bei null. Eine Studie braucht keinen Bestand; sie liefert vom
+ * ersten Besucher an das, was kein Jobportal hat: den PREIS eines Wechsels, aus dem Mund der
+ * Leute selbst. Genau das verkauft `/recruiting` an Firmen.
  *
- * GEMESSEN AN DAVID, WORAUS DAS GELERNT IST: Dort standen zwei Tippfelder vor jeder
- * Leistung — von 19 bis 27 Besuchern der ersten Anzeige kam keiner durch den ersten Schritt.
+ * DIE REIHENFOLGE IST WEITER DER GANZE PUNKT:
+ *   1. Sieben Fragen, alle per Klick, EINE JE BILDSCHIRM. Kein Tippfeld, keine Person.
+ *   2. Seine eigenen Antworten als Zusammenfassung — und KEINE erfundene Marktzahl dazu.
+ *   3. Erst dann die Adresse, und zwar nur sie: kein Name, kein Telefon, kein Lebenslauf.
+ *
+ * WAS UNVERÄNDERT BLEIBT (Owner: „vorhandene Komponenten, Lead-Speicherung, Admin und
+ * Consent-Logik wiederverwenden"): derselbe Lead-Speicher, dieselbe Route mit denselben
+ * Schritten, dieselbe Einwilligung samt der Zusage, dass nichts automatisch an Arbeitgeber
+ * geht, dieselben CI-Bausteine.
  */
 
-type Schritt = "f1" | "f2" | "f3" | "f4" | "teaser" | "mail" | "liste";
+type Schritt = "land" | "deutsch" | "suche" | "gehalt" | "faktoren" | "rueckkehr" | "feld" | "summe" | "mail" | "danke";
 
 export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string }) {
-  const [schritt, setSchritt] = useState<Schritt>("f1");
-  const [leadId, setLeadId] = useState("");
-  const [deutsch, setDeutsch] = useState("");
-  const [form, setForm] = useState("");
-  const [ziel, setZiel] = useState("");
+  const [schritt, setSchritt] = useState<Schritt>("land");
+  /**
+   * DIE KENNUNG LIEGT IN EINEM REF, NICHT IM ZUSTAND (31.08.2026 gemessen: ohne das legte
+   * JEDE ANTWORT EINEN EIGENEN DATENSATZ AN — sieben Fragmente statt eines Kandidaten, und
+   * die Studie wäre wertlos gewesen).
+   *
+   * Ein `useState` wird erst zum nächsten Bild sichtbar; wer schnell klickt, schickt die
+   * zweite Antwort noch mit leerer Kennung los, und der Server legt gutgläubig einen neuen
+   * Lead an. Ein Ref steht in derselben Sekunde, in der die Antwort ankommt.
+   */
+  const leadIdRef = useRef("");
 
-  const [stellen, setStellen] = useState<Treffer[]>([]);
-  const [anzahl, setAnzahl] = useState(0);
-  const [laedt, setLaedt] = useState(false);
+  const [land, setLand] = useState("");
+  const [deutsch, setDeutsch] = useState("");
+  const [suche, setSuche] = useState("");
+  const [gehalt, setGehalt] = useState("");
+  const [faktoren, setFaktoren] = useState<string[]>([]);
+  const [rueckkehr, setRueckkehr] = useState("");
+  const [feld, setFeld] = useState("");
 
   const [mail, setMail] = useState("");
   const [haken, setHaken] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState("");
-  /* Welche Stellen er schon beantwortet hat — je Stelle eine eigene Zustimmung. */
-  const [weitergaben, setWeitergaben] = useState<Record<string, boolean>>({});
 
   const geraet = () => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } };
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
+  /** Wer in Rumänien arbeitet, wird nicht nach Rückkehr gefragt — er ist schon da. */
+  const inDiaspora = land !== "" && land !== "ro";
 
   /* Die Herkunft wird beim ERSTEN Schritt gelesen — wer danach aussteigt, ist trotzdem
      einer Anzeige zuzuordnen. */
@@ -67,28 +78,34 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
 
   useEffect(() => { void logFunnelEvent("start_clicked", { theme: "joburi" }); }, []);
 
-  /** Speichert die drei Antworten und holt die passenden Stellen. */
-  const antwortenSenden = async (a: { deutsch: string; form: string; ziel: string; suche: string }) => {
-    setLaedt(true); setFehler("");
-    try {
-      const d = await fetch("/api/joburi-lead", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schritt: "antworten", id: leadId,
-          deutsch: a.deutsch, arbeitsform: a.form, ziel: a.ziel, suche: a.suche,
-          device: geraet(), lang, utm: quelle(),
-        }),
-      }).then(r => r.json());
-      if (d?.id) setLeadId(String(d.id));
+  /**
+   * NACH JEDER ANTWORT SPEICHERN, NICHT ERST AM ENDE.
+   *
+   * Wer bei Frage fünf aussteigt, hat vier Antworten gegeben — und die sind für die Studie
+   * genauso viel wert wie sieben. Ein Speichern erst am Schluss hätte sie weggeworfen und
+   * dazu die Frage unbeantwortet gelassen, an welcher Stelle die Leute abbrechen.
+   */
+  /**
+   * UND SIE LAUFEN NACHEINANDER, NICHT NEBENEINANDER.
+   *
+   * Das Ref allein reicht nicht: Wer die zweite Frage antippt, bevor die erste Antwort vom
+   * Server zurück ist, hat immer noch keine Kennung — und bekäme einen zweiten Datensatz.
+   * Jede Speicherung hängt sich deshalb an die vorherige an. Für den Nutzer ändert das
+   * nichts; er wartet nie, weil die Anzeige sofort weiterspringt.
+   */
+  const kette = useRef<Promise<void>>(Promise.resolve());
 
-      const q = new URLSearchParams({ deutsch: a.deutsch, arbeitsform: a.form, ziel: a.ziel });
-      const j = await fetch(`/api/joburi?${q.toString()}`).then(r => r.json());
-      setStellen(Array.isArray(j?.stellen) ? j.stellen : []);
-      setAnzahl(Number(j?.anzahl) || 0);
-      void logFunnelEvent("joburi_treffer", { theme: "joburi" });
-    } catch { setFehler(T.technischerFehler); }
-    setLaedt(false);
-    setSchritt("teaser");
+  const merken = (teil: Record<string, unknown>) => {
+    kette.current = kette.current.then(async () => {
+      try {
+        const d = await fetch("/api/joburi-lead", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schritt: "antworten", id: leadIdRef.current, device: geraet(), lang, utm: quelle(), ...teil }),
+        }).then(r => r.json());
+        if (d?.id) leadIdRef.current = String(d.id);
+      } catch { /* die Anzeige läuft weiter; der nächste Schritt schreibt es erneut mit */ }
+    });
+    return kette.current;
   };
 
   const kontaktSenden = async () => {
@@ -96,33 +113,18 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
     if (!haken) { setFehler(T.hakenFehlt); return; }
     setBusy(true); setFehler("");
     try {
+      /* Erst wenn alle Antworten geschrieben sind, steht die Kennung fest — sonst hinge die
+         Adresse an einem Datensatz ohne Antworten. */
+      await kette.current;
       const d = await fetch("/api/joburi-lead", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schritt: "kontakt", id: leadId, email: mail.trim(), kontaktOk: true,
-        }),
+        body: JSON.stringify({ schritt: "kontakt", id: leadIdRef.current, email: mail.trim(), kontaktOk: true }),
       }).then(r => r.json());
       if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
       void logTunnelEvent("lead_created", "joburi");
-
-      /* Ab jetzt darf er die Links sehen — der Server gibt sie erst mit `frei=1` heraus. */
-      const q = new URLSearchParams({ deutsch, arbeitsform: form, ziel, frei: "1" });
-      const j = await fetch(`/api/joburi?${q.toString()}`).then(r => r.json());
-      if (Array.isArray(j?.stellen)) setStellen(j.stellen);
-      setSchritt("liste");
+      setSchritt("danke");
     } catch { setFehler(T.technischerFehler); }
     setBusy(false);
-  };
-
-  const weitergabe = async (stelleId: string, ja: boolean) => {
-    setWeitergaben(w => ({ ...w, [stelleId]: ja }));
-    try {
-      await fetch("/api/joburi-lead", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "weitergabe", id: leadId, stelleId, ja }),
-      });
-      if (ja) void logFunnelEvent("joburi_interesse", { theme: "joburi" });
-    } catch { /* die Anzeige stimmt schon, der Server holt es beim nächsten Mal */ }
   };
 
   /* ─────────────────────────── Bausteine ─────────────────────────── */
@@ -131,302 +133,238 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
     <div className="mt-4 flex flex-col gap-2">
       {optionen.map(o => (
         <button key={o.wert} type="button" onClick={() => waehlen(o.wert)}
-          className="flex h-12 items-center justify-between rounded-full border border-white/20 bg-white/5 px-5 text-[15px] font-black text-white/90 transition active:scale-[0.98]">
+          className="flex h-12 items-center justify-between gap-3 rounded-full border border-white/20 bg-white/5 px-5 text-left text-[15px] font-black text-white/90 transition active:scale-[0.98]">
           {o.text}
-          <span className="text-white/35">→</span>
+          <span className="shrink-0 text-white/35">→</span>
         </button>
       ))}
     </div>
   );
 
-  const geld = (s: Treffer) => {
-    if (!s.gehaltVon && !s.gehaltBis) return "";
-    const w = s.waehrung || "EUR";
-    const zahl = s.gehaltVon && s.gehaltBis && s.gehaltVon !== s.gehaltBis
-      ? `${s.gehaltVon}–${s.gehaltBis}` : String(s.gehaltBis || s.gehaltVon);
-    return `${zahl} ${w}`;
-  };
-
-  const formText = (a: Stelle["arbeitsform"]) =>
-    a === "remote" ? T.formRemote : a === "hibrid" ? T.formHybrid : T.formBirou;
-
-  /** Eine Stellenkarte. `offen` entscheidet, ob Link und Zustimmung dabei sind. */
-  const Karte = ({ s, offen }: { s: Treffer; offen: boolean }) => (
-    <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
-      {/* DIE GÜTE STEHT OBEN (Owner 31.08.2026: „Potrivire foarte bună / bună / Ar putea fi
-          interesant") — sie ordnet den Treffer ein, bevor er ihn liest, und macht aus einer
-          Liste eine Empfehlung. */}
-      {s.guete && (
-        <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-black ${
-          s.guete === "sehr-gut" ? "bg-[#f6cf51]/15 text-[#f6cf51]"
-          : s.guete === "gut" ? "bg-white/10 text-white/80"
-          : "bg-white/[0.06] text-white/55"}`}>
-          {s.guete === "sehr-gut" ? T.gueteSehrGut : s.guete === "gut" ? T.gueteGut : T.gueteInteressant}
-        </span>
+  /** Eine Frage — Kasten, Überschrift, Hinweis, Antworten, Rückweg. */
+  const Frage = ({ titel, hinweis, zurueck, children }: {
+    titel: string; hinweis?: string; zurueck?: Schritt; children: React.ReactNode;
+  }) => (
+    <Kasten polster="p-5">
+      <h2 className="text-[19px] font-black leading-snug text-white">{titel}</h2>
+      {hinweis && <p className="mt-1 text-[13px] font-medium text-white/60">{hinweis}</p>}
+      {children}
+      {zurueck && (
+        <button type="button" onClick={() => setSchritt(zurueck)}
+          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
       )}
-      <p className="mt-1.5 text-[15px] font-black leading-snug text-white">{s.titel}</p>
-      <p className="mt-0.5 text-[13px] font-bold text-white/65">{s.firma}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-[11.5px] font-black text-white/75">
-          {formText(s.arbeitsform)}
-        </span>
-        {geld(s) && (
-          <span className="rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-2.5 py-0.5 text-[11.5px] font-black text-[#f6cf51]">
-            {geld(s)}{s.gehaltGeschaetzt ? ` · ${T.gehaltGeschaetzt}` : ""}
-          </span>
-        )}
-        <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-[11.5px] font-black text-white/75">
-          {s.deutschMin === "unbekannt" ? `DE: ${T.deutschUnbekannt}` : `DE ${s.deutschMin}`}
-        </span>
-      </div>
-      {s.ort && (
-        <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-bold text-white/55">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />{s.ort}
-        </p>
-      )}
-
-      {/* AN JEDER KARTE, NICHT NUR IN DER VOLLANSICHT: Auch im Teaser sieht er schon eine
-          echte Stelle — dann muss dort auch stehen, dass wir nicht die Firma sind. */}
-      <p className="mt-2.5 text-[11px] font-medium leading-snug text-white/40">{T.quellenhinweis}</p>
-
-      {offen && (
-        <>
-          {s.kurzbeschreibung && (
-            <p className="mt-2 text-[13px] font-medium leading-relaxed text-white/75">{s.kurzbeschreibung}</p>
-          )}
-          {s.link && (
-            <a href={s.link} target="_blank" rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-[#f6cf51] underline underline-offset-2">
-              {T.zurAnzeige}<ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          )}
-          {/**
-            * DIE ZUSTIMMUNG STEHT AN DER EINZELNEN STELLE (Owner 31.08.2026: „Keine pauschale
-            * Weitergabe an Arbeitgeber. Zustimmung pro konkreter Stelle."). Sie ist damit
-            * keine Formalie im Kleingedruckten, sondern eine bewusste Entscheidung mit einem
-            * Namen davor — er sieht, welcher Firma er sein Profil zeigt.
-            */}
-          <div className="mt-3 border-t border-white/10 pt-3">
-            {weitergaben[s.id] === true ? (
-              <p className="flex items-center gap-2 text-[13px] font-black text-white">
-                <Check className="h-4 w-4 text-[#f6cf51]" />{T.weitergabeDanke}
-              </p>
-            ) : weitergaben[s.id] === false ? null : (
-              <>
-                <p className="text-[13px] font-bold leading-snug text-white/80">{T.weitergabeFrage}</p>
-                <div className="mt-2 flex gap-2">
-                  <button type="button" onClick={() => void weitergabe(s.id, true)}
-                    className="h-9 flex-1 rounded-full border border-[#f6cf51]/50 bg-[#f6cf51]/10 text-[12.5px] font-black text-[#f6cf51] transition active:scale-95">
-                    {T.weitergabeJa}
-                  </button>
-                  <button type="button" onClick={() => void weitergabe(s.id, false)}
-                    className="h-9 flex-1 rounded-full border border-white/20 text-[12.5px] font-black text-white/70 transition active:scale-95">
-                    {T.weitergabeNein}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+    </Kasten>
   );
 
-  /* ─────────────────────────── Die Schritte ─────────────────────────── */
+  /* ─────────────────────────── Die Fragen ─────────────────────────── */
 
-  if (schritt === "f1") {
+  if (schritt === "land") {
     return (
-      <>
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.frage1}</h2>
-        <p className="mt-1 text-[13px] font-medium text-white/60">{T.frage1Hinweis}</p>
+      <Frage titel={T.fLand}>
+        <Wahl
+          optionen={[
+            { wert: "ro", text: T.landRo }, { wert: "de", text: T.landDe },
+            { wert: "at", text: T.landAt }, { wert: "alta", text: T.landAlta },
+          ]}
+          waehlen={w => { setLand(w); void merken({ land: w }); setSchritt("deutsch"); }} />
+      </Frage>
+    );
+  }
+
+  if (schritt === "deutsch") {
+    return (
+      <Frage titel={T.frage1} hinweis={T.frage1Hinweis} zurueck="land">
         <Wahl
           optionen={[
             { wert: "A2", text: T.niveauA2 }, { wert: "B1", text: T.niveauB1 },
             { wert: "B2", text: T.niveauB2 }, { wert: "C1", text: T.niveauC1 },
             { wert: "C2", text: T.niveauC2 },
           ]}
-          waehlen={w => { setDeutsch(w); setSchritt("f2"); }} />
-      </Kasten>
-
-      {/**
-        * DAS MOTIV STEHT UNTER DEN FRAGEN UND GANZ (Owner 31.08.2026: „auf der seite auch die
-        * frau ganz aber unten den fragen").
-        *
-        * OBEN wäre es im Weg: Wer aus einer Anzeige kommt, soll die erste Frage ohne Wischen
-        * sehen — ein Bild davor kostet genau die Höhe, die der Antwort fehlt. Unten belohnt es
-        * das Weiterlesen und sagt in einer halben Sekunde, worum es geht.
-        *
-        * `aspect-[1086/1448]` ist das echte Seitenverhältnis der Datei, also schneidet
-        * `object-cover` nichts ab — ein Streifen mit fester Höhe hatte ihr vorher die Hälfte
-        * genommen, samt der Flagge.
-        *
-        * NUR AUF DER ERSTEN STUFE: Ab der zweiten Frage ist dasselbe Bild nur noch Weg
-        * zwischen ihm und der Antwort.
-        */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/Joburi/german-jobs.jpg" alt=""
-        className="mt-4 aspect-[1086/1448] w-full rounded-2xl object-cover" />
-      </>
+          waehlen={w => { setDeutsch(w); void merken({ deutsch: w }); setSchritt("suche"); }} />
+      </Frage>
     );
   }
 
-  if (schritt === "f2") {
+  if (schritt === "suche") {
     return (
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.frage2}</h2>
-        <Wahl
-          optionen={[
-            { wert: "remote", text: T.formRemote }, { wert: "hibrid", text: T.formHybrid },
-            { wert: "birou", text: T.formBirou }, { wert: "egal", text: T.formEgal },
-          ]}
-          waehlen={w => { setForm(w); setSchritt("f3"); }} />
-        <button type="button" onClick={() => setSchritt("f1")}
-          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
-      </Kasten>
-    );
-  }
-
-  if (schritt === "f3") {
-    return (
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.frage3}</h2>
-        <Wahl
-          optionen={[
-            { wert: "salariu", text: T.zielSalariu }, { wert: "flexibilitate", text: T.zielRemote },
-            { wert: "cariera", text: T.zielJobNou }, { wert: "intoarcere", text: T.zielIntoarcere },
-          ]}
-          waehlen={w => { setZiel(w); setSchritt("f4"); }} />
-        <button type="button" onClick={() => setSchritt("f2")}
-          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
-      </Kasten>
-    );
-  }
-
-  /**
-   * DIE VIERTE FRAGE — SIE FILTERT NICHTS (Owner 31.08.2026: „Diese Antwort im
-   * Lead-Datensatz speichern. Das ist später ein zentraler KPI, weil wir gegenüber
-   * Recruitern zeigen wollen, dass wir auch Kandidaten erreichen, die nicht aktiv auf
-   * Jobportalen suchen.").
-   *
-   * Sie steht bewusst ZULETZT und geht in keine Suche ein: Wer „nu" antwortet, sieht
-   * dieselben Stellen wie jeder andere. Eine Frage, die den Besucher bestraft, hätte an
-   * dieser Stelle den Trichter gekostet — und genau die Antwort verloren, um die es geht.
-   */
-  if (schritt === "f4") {
-    return (
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.frage4}</h2>
+      <Frage titel={T.frage4} zurueck="deutsch">
         <Wahl
           optionen={[
             { wert: "aktiv", text: T.sucheAktiv }, { wert: "offen", text: T.sucheOffen },
             { wert: "passiv", text: T.suchePassiv },
           ]}
-          waehlen={w => void antwortenSenden({ deutsch, form, ziel, suche: w })} />
-        <button type="button" onClick={() => setSchritt("f3")}
-          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
-      </Kasten>
+          waehlen={w => { setSuche(w); void merken({ suche: w }); setSchritt("gehalt"); }} />
+      </Frage>
     );
   }
 
-  /* ── Der Teaser: zwei echte Stellen offen, der Rest verdeckt ── */
-  if (schritt === "teaser") {
-    if (laedt) return <Kasten polster="p-5"><Fortschritt text={T.suchen} /></Kasten>;
-    const sichtbar = stellen.slice(0, 2);
-    const verdeckt = Math.max(0, stellen.length - sichtbar.length);
+  /* DIE FRAGE, UM DIE ES GEHT. Als Stufe und nicht als offenes Feld: Eine leere Zahl
+     beantwortet kaum jemand, eine Spanne fast jeder — und für die Auswertung reicht sie. */
+  if (schritt === "gehalt") {
+    return (
+      <Frage titel={T.fGehalt} hinweis={T.fGehaltHinweis} zurueck="suche">
+        <Wahl
+          optionen={[
+            { wert: "800", text: T.gehalt800 }, { wert: "1200", text: T.gehalt1200 },
+            { wert: "1600", text: T.gehalt1600 }, { wert: "2000", text: T.gehalt2000 },
+            { wert: "2500", text: T.gehalt2500 }, { wert: "3000+", text: T.gehalt3000 },
+          ]}
+          waehlen={w => { setGehalt(w); void merken({ wechselGehalt: w }); setSchritt("faktoren"); }} />
+      </Frage>
+    );
+  }
+
+  /* MEHRFACHWAHL — deshalb als Einzige mit einem Weiter-Knopf. Ohne Auswahl bleibt er
+     stumm: Eine leere Antwort wäre kein Datensatz, sondern ein Loch in der Studie. */
+  if (schritt === "faktoren") {
+    const um = (w: string) => setFaktoren(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
+    const OPT = [
+      { wert: "salariu", text: T.faktorSalariu }, { wert: "remote", text: T.faktorRemote },
+      { wert: "flexibilitate", text: T.faktorFlex }, { wert: "cariera", text: T.faktorCariera },
+      { wert: "stabilitate", text: T.faktorStabil }, { wert: "echipa", text: T.faktorEchipa },
+    ];
+    return (
+      <Frage titel={T.fFaktoren} hinweis={T.fFaktorenHinweis} zurueck="gehalt">
+        <div className="mt-4 flex flex-col gap-2">
+          {OPT.map(o => {
+            const an = faktoren.includes(o.wert);
+            /* Gewählt wechselt die FARBE, nicht die Grösse — sonst springt die Liste beim
+               Antippen (Hausregel „Auswahl verschiebt NIE"). */
+            return (
+              <button key={o.wert} type="button" onClick={() => um(o.wert)}
+                className={`flex h-12 items-center justify-between gap-3 rounded-full border px-5 text-left text-[15px] font-black transition active:scale-[0.98] ${
+                  an ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]" : "border-white/20 bg-white/5 text-white/90"}`}>
+                {o.text}
+                {an && <Check className="h-4 w-4 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4">
+          <Knopf art="gold" disabled={!faktoren.length}
+            onClick={() => { void merken({ faktoren }); setSchritt(inDiaspora ? "rueckkehr" : "feld"); }}>
+            {T.weiter}
+          </Knopf>
+        </div>
+      </Frage>
+    );
+  }
+
+  /* NUR FÜR DIE DIASPORA: Wer in Rumänien arbeitet, kann nicht zurückkehren — die Frage
+     wäre dort nicht nur überflüssig, sondern unverständlich. */
+  if (schritt === "rueckkehr") {
+    return (
+      <Frage titel={T.fRueckkehr} zurueck="faktoren">
+        <Wahl
+          optionen={[
+            { wert: "da", text: T.rueckDa }, { wert: "poate", text: T.rueckPoate },
+            { wert: "nu", text: T.rueckNu },
+          ]}
+          waehlen={w => { setRueckkehr(w); void merken({ rueckkehr: w }); setSchritt("feld"); }} />
+      </Frage>
+    );
+  }
+
+  if (schritt === "feld") {
+    return (
+      <Frage titel={T.fBerufsfeld} zurueck={inDiaspora ? "rueckkehr" : "faktoren"}>
+        <Wahl
+          optionen={[
+            { wert: "suport", text: T.feldSuport }, { wert: "it", text: T.feldIt },
+            { wert: "finante", text: T.feldFinante }, { wert: "logistica", text: T.feldLogistica },
+            { wert: "inginerie", text: T.feldInginerie }, { wert: "vanzari", text: T.feldVanzari },
+            { wert: "sanatate", text: T.feldSanatate }, { wert: "altul", text: T.feldAltul },
+          ]}
+          waehlen={w => { setFeld(w); void merken({ berufsfeld: w }); setSchritt("summe"); }} />
+      </Frage>
+    );
+  }
+
+  /* ── Die Zusammenfassung: NUR seine eigenen Antworten ──
+     KEINE MARKTZAHL (Owner 31.08.2026: „Keine erfundenen Marktwerte oder Benchmarks
+     anzeigen."). Wir haben noch keine Studie; eine Zahl an dieser Stelle wäre geraten, und
+     genau daran zerbricht das Vertrauen, das der ganze Trichter aufbaut. Was wir zeigen
+     können, ist er selbst — sauber zurückgespiegelt. */
+  if (schritt === "summe") {
+    const w: Record<string, string> = {
+      land: { ro: T.landRo, de: T.landDe, at: T.landAt, alta: T.landAlta }[land] ?? land,
+      suche: { aktiv: T.sucheAktiv, offen: T.sucheOffen, passiv: T.suchePassiv }[suche] ?? suche,
+      gehalt: { "800": T.gehalt800, "1200": T.gehalt1200, "1600": T.gehalt1600,
+                "2000": T.gehalt2000, "2500": T.gehalt2500, "3000+": T.gehalt3000 }[gehalt] ?? gehalt,
+      rueckkehr: { da: T.rueckDa, poate: T.rueckPoate, nu: T.rueckNu }[rueckkehr] ?? rueckkehr,
+      feld: { suport: T.feldSuport, it: T.feldIt, finante: T.feldFinante, logistica: T.feldLogistica,
+              inginerie: T.feldInginerie, vanzari: T.feldVanzari, sanatate: T.feldSanatate,
+              altul: T.feldAltul }[feld] ?? feld,
+      faktoren: faktoren.map(f => ({ salariu: T.faktorSalariu, remote: T.faktorRemote,
+        flexibilitate: T.faktorFlex, cariera: T.faktorCariera, stabilitate: T.faktorStabil,
+        echipa: T.faktorEchipa }[f] ?? f)).join(" · "),
+    };
+    const zeilen: [string, string][] = [
+      [T.summeLand, w.land],
+      [T.summeDeutsch, deutsch],
+      [T.summeStatus, w.suche],
+      [T.summeGehalt, w.gehalt],
+      [T.summeFaktoren, w.faktoren],
+      ...(inDiaspora && rueckkehr ? ([[T.summeRueckkehr, w.rueckkehr]] as [string, string][]) : []),
+      [T.summeFeld, w.feld],
+    ];
     return (
       <div className="flex flex-col gap-3">
         <Kasten polster="p-5">
-          <p className="text-[16px] font-black leading-snug text-white">
-            {/* Der Satz kommt nur noch, wenn gar keine Stelle im Bestand liegt — das Matching
-                schliesst seit dem 31.08. nichts mehr aus. */}
-            {anzahl === 0 ? T.keineTreffer
-              : anzahl === 1 ? T.gefundenEins
-              : T.gefundenViele.replace("{n}", String(anzahl))}
-          </p>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{T.summeTitel}</p>
+          <dl className="mt-3">
+            {zeilen.map(([k, v], i) => (
+              <div key={k} className={`flex items-baseline justify-between gap-4 py-2 ${i > 0 ? "border-t border-white/12" : ""}`}>
+                <dt className="shrink-0 text-[12.5px] font-bold text-white/60">{k}</dt>
+                <dd className="text-right text-[13.5px] font-black text-white/90">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-[12.5px] font-medium leading-snug text-white/55">{T.summeHinweis}</p>
         </Kasten>
-
-        {sichtbar.map(s => <Karte key={s.id} s={s} offen={false} />)}
-
-        {/* DIE VERDECKTEN STELLEN SIND DER GRUND FÜR DIE ADRESSE — sie werden gezeigt, nicht
-            behauptet: Er sieht, wie viele es sind, und dass sie echt sind. */}
-        {verdeckt > 0 && (
-          <div className="relative overflow-hidden rounded-2xl border border-white/12 bg-white/[0.04] p-4">
-            <div className="pointer-events-none select-none blur-[5px]">
-              <p className="text-[15px] font-black leading-snug text-white">{stellen[2]?.titel ?? "—"}</p>
-              <p className="mt-0.5 text-[13px] font-bold text-white/65">{stellen[2]?.firma ?? "—"}</p>
-            </div>
-            <div className="absolute inset-0 grid place-items-center bg-black/45">
-              <span className="flex items-center gap-2 rounded-full border border-[#f6cf51]/40 bg-black/70 px-3.5 py-1.5 text-[12.5px] font-black text-[#f6cf51]">
-                <Lock className="h-3.5 w-3.5" />{T.weitereVerdeckt.replace("{n}", String(verdeckt))}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <Knopf art="gold" onClick={() => setSchritt("mail")}>{T.mailKnopf}</Knopf>
+        <Knopf art="gold" onClick={() => setSchritt("mail")}>{T.studieKnopf}</Knopf>
       </div>
     );
   }
 
-  /* ── Die Adresse ── */
+  /* ── Die Adresse — und NUR sie ──
+     Kein Name, kein Telefon, kein Lebenslauf (Owner 31.08.2026). Die Einwilligung ist
+     dieselbe wie bisher, samt der Zusage darunter, dass nichts automatisch an Arbeitgeber
+     geht — das ist die Sorge, mit der jemand seine Adresse zurückhält. */
   if (schritt === "mail") {
     return (
       <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.mailTitel}</h2>
-        <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-white/75">{T.mailText}</p>
+        <h2 className="text-[19px] font-black leading-snug text-white">{T.mailStudieTitel}</h2>
+        <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-white/75">{T.mailStudieText}</p>
 
         <label className="mt-4 block text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.mailLabel}</label>
         <Eingabe className="mt-1.5" type="email" inputMode="email" value={mail} symbol={<Mail className="h-4 w-4" />}
           onChange={e => { setMail(e.target.value); setFehler(""); }} placeholder={T.mailPlatzhalter} />
-
-        {/* NUR DIE ADRESSE (Owner 31.08.2026: „Lead-Formular radikal vereinfachen. Vorname
-            und Telefon/WhatsApp an dieser Stelle entfernen."). Jedes zusätzliche Feld an
-            dieser Stelle ist ein Grund abzubrechen — und beides lässt sich später fragen,
-            wenn er schon etwas bekommen hat. Der Server nimmt die Felder weiterhin
-            entgegen, sie werden hier nur nicht mehr abgefragt. */}
         <p className="mt-1.5 text-[12px] font-medium text-white/45">{T.mailKeinSpam}</p>
 
         <div className="mt-4">
           <Haken an={haken} setzen={setHaken} pflicht>{T.haken}</Haken>
         </div>
-        {/* WAS NICHT PASSIERT, STEHT GROSS DA — es ist die Sorge, mit der er die Adresse
-            zurückhält (Owner 31.08.2026). */}
         <p className="mt-2 text-[12.5px] font-black leading-snug text-white/85">{T.datenschutzZusage}</p>
 
         <Fehlerzeile>{fehler}</Fehlerzeile>
         <div className="mt-3">
-          {busy ? <Fortschritt text={T.mailLaeuft} /> : <Knopf art="gold" onClick={() => void kontaktSenden()}>{T.mailKnopf}</Knopf>}
+          {busy ? <Fortschritt text={T.mailLaeuft} /> : <Knopf art="gold" onClick={() => void kontaktSenden()}>{T.studieKnopf}</Knopf>}
         </div>
+        <button type="button" onClick={() => setSchritt("summe")}
+          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
       </Kasten>
     );
   }
 
-  /* ── Die volle Liste + das freiwillige Upgrade ── */
+  /* ── Danke — kein Versprechen, das ein leerer Bestand brechen könnte ── */
   return (
-    <div className="flex flex-col gap-3">
-      <Kasten polster="p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{T.profilTitel}</p>
-        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-bold text-white/75">
-          <span>{T.profilDeutsch}: <span className="font-black text-white">{deutsch}</span></span>
-          <span>{T.profilForm}: <span className="font-black text-white">{
-            form === "remote" ? T.formRemote : form === "hibrid" ? T.formHybrid : form === "birou" ? T.formBirou : T.formEgal
-          }</span></span>
-        </div>
-      </Kasten>
-
-      <h2 className="mt-1 text-[19px] font-black leading-snug text-white">{T.listeTitel}</h2>
-      {stellen.map(s => <Karte key={s.id} s={s} offen />)}
-
-      {/* DER LEBENSLAUF IST DAS UPGRADE, NICHT DER EINTRITTSPREIS (Owner 31.08.2026). */}
-      <Kasten polster="p-5" className="mt-2">
-        <p className="text-[16px] font-black leading-snug text-white">{T.cvTitel}</p>
-        <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-white/75">{T.cvText}</p>
-        <div className="mt-3">
-          <Knopf art="umriss" href={`/themes/david/start?von=joburi&lead=${encodeURIComponent(leadId)}`}>{T.cvKnopf}</Knopf>
-        </div>
-        <p className="mt-2 text-center text-[12px] font-bold text-white/55">{T.cvHinweis}</p>
-      </Kasten>
-    </div>
+    <Kasten art="gold" polster="p-5">
+      <p className="flex items-start gap-2.5 text-[16px] font-black leading-snug text-white">
+        <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#f6cf51]" />
+        {T.dankeTitelStudie}
+      </p>
+      <p className="mt-2 text-[13.5px] font-medium leading-relaxed text-white/80">{T.dankeTextStudie}</p>
+    </Kasten>
   );
 }

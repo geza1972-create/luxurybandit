@@ -16,6 +16,7 @@ import AdsPlaybook from "@/components/AdsPlaybook";
 import UploadsAdmin from "@/components/UploadsAdmin";
 import JoburiAdmin from "@/components/JoburiAdmin";
 import FirmenAnfragen from "@/components/FirmenAnfragen";
+import JoburiLeads from "@/components/JoburiLeads";
 import AdminConnections from "@/components/AdminConnections";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -3379,6 +3380,13 @@ export default function AdminPage() {
               Recruiting-B2B-Lead kennzeichnen."). Sie steht bei den Bewerbern, weil beide
               Seiten dasselbe Geschäft sind: hier die Firma, die sucht, darüber die Stellen,
               die wir den Kandidaten zeigen. */}
+          {/* DIE ANTWORTEN DER STUDIE — im BESTEHENDEN Admin, keine eigene Seite (Owner
+              31.08.2026: „Kein neues Analytics-Dashboard bauen."). Sie stehen bei den
+              Bewerbern, weil sie Bewerber sind. */}
+          <div className="mt-4 rounded-2xl border border-black/12 bg-white p-4">
+            <JoburiLeads pin={pin} />
+          </div>
+
           <div className="mt-4 rounded-2xl border border-black/12 bg-white p-4">
             <FirmenAnfragen pin={pin} />
           </div>

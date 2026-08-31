@@ -56,6 +56,29 @@ export type JoburiLead = {
    */
   suche?: "aktiv" | "offen" | "passiv";
 
+  /* ────────────────────────────────────────────────────────────────────────────────────
+     TALENT MARKET PULSE (Owner 31.08.2026: „Wir wollen nicht mehr primär Jobs anzeigen,
+     sondern herausfinden, zu welchen Bedingungen deutschsprachige Menschen in Rumänien oder
+     der Diaspora den Job wechseln würden.")
+
+     Das ist der Kern des neuen Trichters — und das eigentliche Produkt: Was ein Wechsel
+     kostet, sagt uns niemand ausser den Leuten selbst, und keine Jobbörse kann es liefern.
+     Die alten Felder `arbeitsform` und `ziel` bleiben im Typ stehen, weil ältere Leads sie
+     tragen; neue setzen sie nicht mehr.
+     ──────────────────────────────────────────────────────────────────────────────────── */
+
+  /** Wo er heute lebt — entscheidet auch, ob nach Rückkehr gefragt wird. */
+  land?: "ro" | "de" | "at" | "alta";
+  /** Ab welchem NETTO-Gehalt ein Wechsel interessant wird. Als Stufe, nicht als Zahl:
+      Eine offene Zahl beantwortet kaum jemand, eine Spanne fast jeder. */
+  wechselGehalt?: "800" | "1200" | "1600" | "2000" | "2500" | "3000+";
+  /** Was den Ausschlag gibt — mehrfach wählbar, deshalb eine Liste. */
+  faktoren?: ("salariu" | "remote" | "flexibilitate" | "cariera" | "stabilitate" | "echipa")[];
+  /** Nur bei Diaspora: Würde er nach Rumänien zurück? */
+  rueckkehr?: "da" | "poate" | "nu";
+  /** Berufsfeld — die eine Angabe, die aus einer Antwort einen Kandidaten macht. */
+  berufsfeld?: string;
+
   email?: string;
   vorname?: string;
   telefon?: string;

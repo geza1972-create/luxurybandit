@@ -54,7 +54,7 @@ import { recruitingTexte, RECRUITING_SPRACHEN } from "@/lib/recruiting-i18n";
  */
 
 /* Was in JEDER Sprache gleich bleibt: ein Sprachniveau, ein Ortsname, ein Betrag. */
-const BEISPIEL_FEST = { deutsch: "C1", standort: "Timișoara", gehalt: "1.800 € netto" };
+const BEISPIEL_FEST = { deutsch: "C1", standort: "Timișoara", gehalt: "1.800 € net" };
 
 /**
  * DIE SYMBOLE STEHEN HIER, NICHT IN DER SPRACHDATEI — sie sind für alle drei Sprachen
@@ -223,12 +223,14 @@ export default function RecruitingSeite({ lang, imPfad = false }: { lang: string
             <BalkenTitel>{T.problemTitel}</BalkenTitel>
             <Lead className="lg:max-w-[46ch] lg:text-[15px]">{T.problemText}</Lead>
           </div>
-          <Kasten art="gold" polster="p-5 lg:p-6" className="mt-5 lg:mt-0">
-            <div className="flex items-start gap-3.5">
-              <Zeichen icon={Users} />
-              <p className="text-[15px] font-black leading-snug text-white lg:text-[15.5px]">{T.problemHervor}</p>
-            </div>
-          </Kasten>
+          <div className="mt-5 lg:mt-0">
+            <Kasten art="gold" polster="p-5 lg:p-6">
+              <div className="flex items-start gap-3.5">
+                <Zeichen icon={Users} />
+                <p className="text-[15px] font-black leading-snug text-white lg:text-[15.5px]">{T.problemHervor}</p>
+              </div>
+            </Kasten>
+          </div>
         </div>
       </Band>
 

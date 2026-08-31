@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { resolveLang } from "@/lib/lang-server";
 import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import JoburiFunnel from "@/components/JoburiFunnel";
-import { joburiTexte } from "@/lib/joburi-texte";
+import { joburiTexte, JOBURI_SPRACHEN } from "@/lib/joburi-texte";
 
 /**
  * DER JOBURI-TRICHTER — EIGENE ADRESSE, EIGENE SPRACHE (Owner 31.08.2026).
@@ -28,14 +29,17 @@ import { joburiTexte } from "@/lib/joburi-texte";
  */
 
 export const metadata: Metadata = {
-  title: "Joburi cu germană | Vezi oportunitățile",
-  description: "Vorbești germană? Răspunde la 4 întrebări și îți arătăm joburi reale care ți s-ar putea potrivi.",
+  title: "Studiu: cât valorează germana pe piața muncii?",
+  description: "Vorbești germană? Pentru ce salariu ai schimba jobul? Spune-ne ce ofertă te-ar face să iei în calcul o schimbare.",
   robots: { index: false, follow: false },
 };
 
 export default async function JoburiSeite({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  const lang = String(sp.lang ?? "ro");
+  /* Die Adresse sticht die gespeicherte Wahl — ein gezielt verschickter Link kommt bei
+     jedem Empfänger gleich an. Ohne Angabe: seine Wahl, dann seine Browsersprache, dann
+     Rumänisch (die Sprache, für die dieser Trichter gebaut ist). */
+  const lang = String(sp.lang ?? "") || (await resolveLang("ro"));
   const T = joburiTexte(lang);
 
   return (
@@ -51,14 +55,20 @@ export default async function JoburiSeite({ searchParams }: { searchParams: Prom
         * einem anderen Produkt. Der Zurück-Pfeil ist ebenfalls aus — er führte auf die
         * Startseite des Portals, also aus dem Trichter heraus.
         */}
-      <TopNav schlicht back={false} marke="Joburi cu Germană" heim="/joburi/germana" motto="by LuxuryBandit" />
+      <TopNav schlicht back={false} marke="Joburi cu Germană" heim="/joburi/germana" motto="by LB Funnels Creator" sprachen={[...JOBURI_SPRACHEN]} />
 
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.kicker}</p>
+        {/* TALENT MARKET PULSE (Owner 31.08.2026): Die Seite verspricht keine Stellen mehr,
+            sondern eine Frage — und die Frage ist das Angebot. Sie hält damit nichts, was ein
+            leerer Bestand brechen könnte. */}
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.studieKicker}</p>
         <h1 className="mt-1 text-[28px] font-black leading-[1.06]">
-          {T.titel} <span className="text-[#f6cf51]">{T.titelZwei}</span>
+          {T.studieTitel} <span className="text-[#f6cf51]">{T.studieTitelZwei}</span>
         </h1>
-        <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.untertitel}</p>
+        <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.studieUnter}</p>
+        {/* Was ihn erwartet, bevor er anfängt: sieben Klicks, keine Person. Genau die zwei
+            Zahlen entscheiden, ob jemand die erste Frage überhaupt antippt. */}
+        <p className="mt-2 text-[12px] font-black uppercase tracking-[0.14em] text-white/45">{T.studieDauer}</p>
 
         <div className="mt-5">
           <JoburiFunnel T={T} lang={lang} />
