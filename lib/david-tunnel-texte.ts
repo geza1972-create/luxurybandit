@@ -41,12 +41,21 @@ export const DAVID_TUNNEL = {
      nicht, was auf diesem Schirm passieren soll. Der Dank ist in den Satz darunter gewandert
      — er geht nicht verloren, er steht nur nicht mehr an der Stelle, an der die Aufgabe
      stehen muss. */
-  mailTitel: "Wie lautet deine E-Mail-Adresse?",
+  /**
+   * DIE ADRESSE STEHT JETZT AM ERGEBNIS (Owner 31.08.2026: „wir fragen zu schnell nach Name
+   * und E-Mail" · „wir fangen mit Lebenslauf und testen").
+   *
+   * Vorher war das der zweite Schritt überhaupt — vor dem Lebenslauf, vor jeder Leistung.
+   * Jetzt kommt er, wenn das Screening durch ist und der Bericht darauf wartet, verschickt
+   * zu werden. Der Titel sagt deshalb nicht mehr „wie lautet", sondern WOFÜR.
+   */
+  mailTitel: "Wohin soll ich dein Ergebnis schicken?",
+  mailZumErgebnis: "Ergebnis anzeigen",
   /* „Danke, {name} — damit kann ich…" war kein Satz (Owner 29.08.2026): Das „damit" zeigte
      auf die Adresse, die er noch gar nicht gegeben hat. Der Dank galt dem Vornamen, der
      Nebensatz der Mail — zwei Dinge in einem Bindestrich zusammengezwungen. Jetzt zwei
      saubere Sätze: erst der Dank, dann der Grund. */
-  mailText: "Danke, {name}. Mit deiner Adresse speichere ich dein Ergebnis, damit du es später jederzeit wiederfindest.",
+  mailText: "Dein Screening ist durch, {name}. Ich lege dein Ergebnis unter dieser Adresse ab — dann findest du es auch morgen noch wieder.",
   mailLabel: "E-Mail-Adresse",
   mailPlatzhalter: "du@beispiel.de",
   mailFehlt: "Diese Adresse sieht noch nicht vollständig aus.",
@@ -95,7 +104,15 @@ export const DAVID_TUNNEL = {
   /* DIESELBE UNKLARheit wie bei `cvBereitText` (Owner 29.08.2026) — hier sogar eine Stufe
      früher: Er hat noch nicht einmal hochgeladen und liest schon von „der Stelle", als wäre
      eine besprochen worden. */
-  cvText: "Gut, {name}. Gleich danach zeigst du mir die Stelle, auf die du dich bewerben willst — dann vergleiche ich beides.",
+  /**
+   * DER ERSTE SATZ ÜBERHAUPT (Owner 31.08.2026: „wir fangen mit Lebenslauf und testen").
+   *
+   * Hier stand „Gut, {name}." — das setzte voraus, dass vorher schon etwas passiert war und
+   * ein Name bekannt ist. Seit dieser Schritt der ERSTE ist, bezieht sich „Gut" auf nichts,
+   * und der Name ist noch unbekannt (David liest ihn gleich selbst aus dem Dokument). Jetzt
+   * sagt der Satz, was als Nächstes geschieht — und dass es sofort etwas gibt.
+   */
+  cvText: "Ich lese ihn und sage dir gleich, was ich sehe. Danach zeigst du mir die Stelle, auf die du dich bewerben willst — dann vergleiche ich beides.",
   cvKnopf: "Lebenslauf hochladen",
   cvHinweis: "PDF oder Word · bleibt bei uns",
   /* Jede Absage nennt ihren Grund (29.08.2026) — „nimm eine PDF" als Pauschalantwort schickt

@@ -408,12 +408,34 @@ export async function POST(request: Request) {
        englisch, technisch und ohne Ausweg. */
     return NextResponse.json({ error: "Diesen Bericht hast du auf einem anderen Gerät erstellt. Melde dich mit der Adresse an, mit der du ihn erstellt hast — oder starte hier ein neues Screening." }, { status: 403 });
   }
-  /* OHNE LEAD KEIN SCREENING (Owner §5): Vorname, gültige Adresse und die Bestätigung sind
-     die Bedingung, nicht eine Formalie, die man später nachreicht. */
-  if (!sitzung.vorname || !sitzung.email || !sitzung.datenschutzBestaetigt) {
-    /* Auch das ist ein Zustand, aus dem der Browser sich selbst befreien kann: Er kennt Name
-       und Adresse noch und kann sie nachtragen. */
-    return NextResponse.json({ error: "Bitte zuerst Name, E-Mail und die Bestätigung.", code: "lead-fehlt" }, { status: 400 });
+  /**
+   * DIE ZUSTIMMUNG IST DIE BEDINGUNG — DIE ADRESSE IST ES ERST AM ERGEBNIS
+   * (Owner 31.08.2026: „wir fragen zu schnell nach Name und E-Mail" · „wir fangen mit
+   * Lebenslauf und testen").
+   *
+   * WAS GEMESSEN WURDE: Von 19 bis 27 Menschen, die über die erste Anzeige auf den Trichter
+   * kamen, hat KEIN EINZIGER den ersten Schritt abgeschickt. Davor standen zwei Tippfelder
+   * und eine Einwilligung — Vorname, Adresse, Haken —, bevor David irgendetwas geliefert
+   * hatte. Auf dem Handy heisst das: Tastatur auf, für ein Versprechen ohne Beweis. Dieselbe
+   * Lehre steht seit dem Chat im Haus (Memory `chat-no-personal-questions-buttons-only`:
+   * „Nutzer wollen klicken statt tippen"), und dieselbe Entscheidung hat der Owner am
+   * 26.08. schon für die Lebenslauf-Tür getroffen: CV ohne Mail-Tor, Adresse nach der
+   * Analyse. David hatte sie nur nie bekommen.
+   *
+   * WAS BLEIBT: Die DATENSCHUTZ-Bestätigung. Sie hängt jetzt am Upload — dort beginnt die
+   * Verarbeitung, dort gehört sie hin, und ohne sie läuft kein einziger Schritt.
+   *
+   * WAS WANDERT: Die E-Mail. Sie wird erst gebraucht, wo sie einen Zweck hat — beim
+   * Bericht, den wir ihm schicken und aufheben. Wer bis dahin gekommen ist, gibt sie gern;
+   * wer vorher aussteigt, hätte uns eine Adresse ohne Ergebnis dagelassen.
+   */
+  if (!sitzung.datenschutzBestaetigt) {
+    return NextResponse.json({ error: "Bitte zuerst die Bestätigung.", code: "lead-fehlt" }, { status: 400 });
+  }
+  /* Der Bericht ist der eine Schritt, der die Adresse braucht: Er wird verschickt und
+     aufgehoben. */
+  if (schritt === "report" && !sitzung.email) {
+    return NextResponse.json({ error: "Für dein Ergebnis brauche ich noch deine E-Mail-Adresse.", code: "mail-fehlt" }, { status: 400 });
   }
 
   const jetzt = new Date().toISOString();
@@ -530,6 +552,10 @@ export async function POST(request: Request) {
          übernehmen. Jetzt steht ausdrücklich, was NICHT hineingehört. */
       "'rolle' — NUR die Berufsbezeichnung, zwei bis fünf Wörter, so wie man sie jemandem am Telefon sagen würde (Beispiele: UX-Designer, Customer Success Managerin, Berufskraftfahrer). NIEMALS Zeiträume, Jahreszahlen, Firmennamen, Adressen oder Klammerzusätze. Steht im Lebenslauf keine klare Bezeichnung, leite die naheliegendste aus den Tätigkeiten ab.",
       "'schwerpunkte' — 2 bis 4 kurze Arbeitsfelder.",
+      /* DEN NAMEN LIEST DAVID SELBST (Owner 31.08.2026: „wir fragen zu schnell nach Name und
+         E-Mail"). Er stand im Lebenslauf, seit es Lebensläufe gibt — ihn vorher abzufragen
+         war eine Tippaufgabe für etwas, das wir ohnehin gleich erfahren. */
+      "'vorname' — NUR der Vorname des Bewerbers, so wie er im Lebenslauf steht. Kein Nachname, kein Titel. Steht kein Name drin, lass das Feld weg.",
       /* NUR DIE STUFE — siehe die Begründung am Feld `layout` in lib/david-store.ts. */
       "'layout' — wie der Lebenslauf als Dokument auf den ersten Blick wirkt: 'gut' (Struktur und Zeiträume sofort erfassbar), 'mittel' (lesbar, aber man muss suchen) oder 'schwach' (Textwüste, unruhig, schwer zu scannen). NUR dieses eine Wort, KEINE Begründung, KEINE Verbesserungsvorschläge.",
       "'foto' — true, wenn der Lebenslauf ein Bewerbungsfoto einer Person enthält, sonst false.",
@@ -557,7 +583,7 @@ export async function POST(request: Request) {
       "Ausserdem: Ausbildung mit Abschluss und Jahr, Sprachen mit Niveau, Werkzeuge und Methoden namentlich, Zertifikate, Ehrenamt, Publikationen — alles, was im Dokument steht.",
       "Nenne ausdrücklich, was AUFFÄLLT: Lücken zwischen zwei Stationen (mit Zeitraum), auffällig kurze Anstellungen, Brüche in der Fachrichtung, Rollen ohne erkennbares Ergebnis. Schreibe sie als Beobachtung hin, ohne sie zu bewerten — sie sind später der Stoff für die richtigen Fragen.",
       "Zahlen, Eigennamen und Zeiträume übernimmst du EXAKT. Runde nichts, glätte nichts, lass nichts weg, weil es unwichtig scheint.",
-      'Antworte NUR als JSON: {"beobachtungen":["..."],"rolle":"...","schwerpunkte":["..."],"layout":"gut|mittel|schwach","foto":true,"zusammenfassung":"..."}',
+      'Antworte NUR als JSON: {"beobachtungen":["..."],"vorname":"...","rolle":"...","schwerpunkte":["..."],"layout":"gut|mittel|schwach","foto":true,"zusammenfassung":"..."}',
     ].join("\n");
 
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }, ...eingabe]);
@@ -582,10 +608,18 @@ export async function POST(request: Request) {
       zusammenfassung,
     };
     if (!sitzung.cvBefund && device) await davidHeuteHochzaehlen(device);
-    await sichern({ cvPath, cvName: str(body.cvName, 200) || sitzung.cvName, cvBefund, verbrauch: verbrauchDazu(sitzung.verbrauch, r.verbrauch) });
+    /* Der Vorname aus dem Dokument — nur, wenn der Bewerber ihn nicht selbst gesetzt hat.
+       Was er tippt, schlägt immer, was wir lesen. */
+    const vornameAusCv = str(r.daten.vorname, 60);
+    await sichern({
+      cvPath, cvName: str(body.cvName, 200) || sitzung.cvName, cvBefund,
+      ...(!sitzung.vorname && vornameAusCv ? { vorname: vornameAusCv } : {}),
+      verbrauch: verbrauchDazu(sitzung.verbrauch, r.verbrauch),
+    });
     return NextResponse.json({
       ok: true, beobachtungen, rolle: cvBefund.rolle, schwerpunkte: cvBefund.schwerpunkte,
       layout: cvBefund.layout, foto: cvBefund.foto,
+      vorname: sitzung.vorname || vornameAusCv,
     });
   }
 

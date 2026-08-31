@@ -59,7 +59,16 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   /** Der Landingpage-Inhalt unter dem Trichter (Dauerregel `tunnel-zeigt-landingpage-inhalt`). */
   inhalt?: ReactNode;
 }) {
-  const [phase, setPhase] = useState<Phase>("name");
+  /**
+   * DER TRICHTER BEGINNT MIT DEM LEBENSLAUF (Owner 31.08.2026: „wir fragen zu schnell nach
+   * Name und E-Mail" · „wir fangen mit Lebenslauf und testen").
+   *
+   * GEMESSEN am ersten Anzeigentag: 19 bis 27 Menschen öffneten den Trichter, KEINER schickte
+   * den ersten Schritt ab. Davor standen zwei Tippfelder und ein Haken, bevor David etwas
+   * geliefert hatte. Jetzt ist der erste Schritt ein KNOPF, und das Erste, was passiert, ist
+   * eine Leistung: David liest und sagt, was er sieht.
+   */
+  const [phase, setPhase] = useState<Phase>("cv");
   const [vorname, setVorname] = useState("");
   const [mail, setMail] = useState("");
   const [haken, setHaken] = useState(false);
@@ -112,7 +121,17 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   const kopfzeilen = (): Record<string, string> => ({ "Content-Type": "application/json", ...anmeldeKopf(), ...adminKopf() });
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
   const name = vorname.trim();
-  const mitNamen = (t: string) => t.replace("{name}", name || "");
+  /**
+   * OHNE NAMEN FÄLLT DIE ANREDE GANZ WEG (31.08.2026).
+   *
+   * Seit der Trichter beim Lebenslauf beginnt, ist der Vorname beim ersten Schritt noch
+   * unbekannt — David liest ihn erst aus dem Dokument, und in manchem steht keiner. Die
+   * blosse Ersetzung durch einen Leerstring hätte „Gut, ." ergeben; das Komma gehört zur
+   * Anrede und muss mit ihr verschwinden.
+   */
+  const mitNamen = (t: string) => name
+    ? t.replace("{name}", name)
+    : t.replace(/,\s*\{name\}/g, "").replace(/\{name\},\s*/g, "").replace("{name}", "");
   /* Dasselbe, aber mit einem Namen von aussen — beim Wiedereinstieg steht der Zustand noch
      nicht, wenn der Begrüssungssatz gebaut wird. */
   const mitNamenRoh = (t: string, n: string) => t.replace("{name}", (n || "").trim());
@@ -352,10 +371,30 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
     return String(d?.error ?? S.technischerFehler);
   };
 
-  /* ── Schritt 1: der Vorname ───────────────────────────────────────────────── */
+  /* ── Schritt 1: der Vorname — nur noch als Nachtrag, falls im Lebenslauf keiner stand ── */
   const weiterName = () => {
     if (!name) { setFehler(S.vornameFehlt); return; }
     setFehler(""); setPhase("mail");
+  };
+
+  /**
+   * WOHER ER KAM — gesammelt beim ERSTEN Schritt, nicht erst bei der Adresse.
+   *
+   * Die Herkunft stand bisher in `leadSpeichern`; seit die Adresse ans Ende gewandert ist,
+   * wäre sie bei jedem verloren gegangen, der vorher aussteigt. Genau die interessieren aber
+   * am meisten: An ihnen liest man ab, ob eine Anzeige die falschen Leute bringt.
+   */
+  const quelleLesen = (): Record<string, string> => {
+    const utm: Record<string, string> = {};
+    try {
+      const q = new URLSearchParams(window.location.search);
+      ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(k => { const v = q.get(k); if (v) utm[k] = v; });
+      if (!utm.utm_source) {
+        const alt = q.get("src") || q.get("source") || q.get("ref") || "";
+        if (alt) utm.utm_source = alt;
+      }
+    } catch { /**/ }
+    return utm;
   };
 
   /* ── Schritt 2: E-Mail + Datenschutz → LEAD ───────────────────────────────── */
@@ -363,30 +402,17 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
     if (!mailOk) { setFehler(S.mailFehlt); return; }
     if (!haken) { setFehler(S.hakenFehlt); return; }
     setFehler(""); setBusy(true);
-    const utm: Record<string, string> = {};
-    try {
-      const q = new URLSearchParams(window.location.search);
-      ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(k => { const v = q.get(k); if (v) utm[k] = v; });
-      /**
-       * `src` ZÄHLT AUCH ALS QUELLE (gefunden 29.08.2026, kurz vor dem Anzeigenstart).
-       *
-       * Das Anzeigen-Playbook (ANZEIGEN.md) schreibt seit jeher `&src=fb` an jede Ziel-
-       * adresse, und der allgemeine Zähler (`lib/track-funnel`) nimmt das auch entgegen.
-       * NUR HIER stand die Liste ohne `src` — die Herkunft jedes Besuchers, der über eine
-       * laufende Anzeige kam, wäre in der Sitzung leer geblieben. In der Admin-Auskunft hätte
-       * bei „Quelle" nichts gestanden, und die Frage „bringt die Anzeige etwas?" wäre nicht
-       * zu beantworten gewesen.
-       */
-      if (!utm.utm_source) {
-        const alt = q.get("src") || q.get("source") || q.get("ref") || "";
-        if (alt) utm.utm_source = alt;
-      }
-    } catch { /**/ }
-    const d = await speichern({ vorname: name, email: mail.trim(), datenschutz: true, ...(Object.keys(utm).length ? { utm } : {}) });
+    const utm = quelleLesen();
+    {
+    }
+    const d = await speichern({ ...(name ? { vorname: name } : {}), email: mail.trim(), datenschutz: true, ...(Object.keys(utm).length ? { utm } : {}) });
     setBusy(false);
     if (!d) return;
     void logTunnelEvent("lead_created", "david");
-    setPhase("cv");
+    /* DIE ADRESSE STEHT JETZT VOR DEM ERGEBNIS, nicht vor dem Lebenslauf — also geht es von
+       hier direkt in den Bericht, für den sie gebraucht wird. */
+    setPhase("analyse");
+    void berichtHolen();
   };
 
   /* ── Schritt 3: der Lebenslauf ────────────────────────────────────────────── */
@@ -484,8 +510,15 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
 
   const cvAnalysieren = async () => {
     if (!cvPath) { setPhase("cv"); return; }
+    /* DIE ZUSTIMMUNG IST DIE BEDINGUNG (31.08.2026) — sie hängt jetzt am Lesen, nicht an
+       einem Formular davor. Ohne sie weist der Server jeden Schritt ab. */
+    if (!haken) { setFehler(S.hakenFehlt); return; }
     setFehler(""); setBusy(true); setBusyText(S.cvLaeuft);
     try {
+      /* Zustimmung und Herkunft an die Sitzung, BEVOR der erste Modell-Aufruf läuft. */
+      const utm = quelleLesen();
+      await speichern({ datenschutz: true, ...(Object.keys(utm).length ? { utm } : {}) });
+      void logTunnelEvent("lead_created", "david");
       const d = await screening({ schritt: "cv", cvPath, cvName });
       if (d?.error) { setFehler(alsFehler(d)); setBusy(false); setBusyText(""); return; }
       const beobachtet: string[] = Array.isArray(d.beobachtungen) ? d.beobachtungen : [];
@@ -499,6 +532,9 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
          ganze Zeile liefern. Was nach Werdegang aussieht — Jahreszahl, Gedankenstrich,
          Adresse oder mehr als sechs Wörter —, wird verworfen; dann sagt David den Satz ohne
          Rolle statt einen unsinnigen. */
+      /* DEN NAMEN HAT DAVID GELESEN, nicht abgefragt (31.08.2026). Steht keiner im
+         Dokument, bleibt `name` leer — die Anrede fällt dann weg, statt zu raten. */
+      if (!name && d.vorname) setVorname(String(d.vorname));
       const rohRolle = String(d.rolle ?? "").trim();
       const rolle = (/\d{4}|–|—|https?:|www\.|\.com/.test(rohRolle) || rohRolle.split(/\s+/).length > 6)
         ? "" : rohRolle;
@@ -661,6 +697,14 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   };
 
   const berichtHolen = async () => {
+    /**
+     * HIER WIRD DIE ADRESSE GEBRAUCHT — und erst hier (Owner 31.08.2026).
+     *
+     * Der Bericht wird verschickt und aufgehoben; das ist der erste Moment, in dem die
+     * E-Mail einen Zweck hat. Wer bis hierher gekommen ist, hat sechs Fragen beantwortet und
+     * gibt sie gern. Wer vorher aussteigt, hätte uns eine Adresse ohne Ergebnis dagelassen.
+     */
+    if (!mailOk) { setFehler(""); setPhase("mail"); return; }
     setBusy(true); setBusyText(S.analyse1);
     const d = await screening({ schritt: "report" });
     setBusy(false); setBusyText("");
@@ -835,15 +879,21 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
               {S.datenschutzLink}
             </a>
           </p>
-          {S.datenschutzZusage && (
-            <p className="mt-1.5 text-[12.5px] font-black leading-snug text-white/85">{S.datenschutzZusage}</p>
+          {/* DEN NAMEN NUR NACHFRAGEN, WENN KEINER IM LEBENSLAUF STAND (31.08.2026).
+              Er steht in fast jedem Dokument; wo nicht, ist das Feld hier billiger als ein
+              eigener Schritt davor — der Bewerber tippt an dieser Stelle ohnehin. */}
+          {!name && (
+            <>
+              <label className="mt-4 block text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{S.vornameLabel}</label>
+              <Eingabe className="mt-1.5" value={vorname} onChange={e => setVorname(e.target.value)}
+                placeholder={S.vornamePlatzhalter} />
+            </>
           )}
-          <div className="mt-3">
-            <Haken an={haken} setzen={setHaken} pflicht>{S.haken}</Haken>
-          </div>
           <Fehlerzeile>{fehler}</Fehlerzeile>
           <div className="mt-3">
-            {busy ? <Fortschritt text={S.bitteWarten} /> : <Knopf art="gold" onClick={() => void leadSpeichern()}>{S.screeningStarten}</Knopf>}
+            {/* Der Haken ist hier weg — er steht seit dem 31.08. am Lebenslauf, wo die
+                Verarbeitung beginnt. Hier geht es nur noch darum, wohin das Ergebnis soll. */}
+            {busy ? <Fortschritt text={S.bitteWarten} /> : <Knopf art="gold" onClick={() => void leadSpeichern()}>{S.mailZumErgebnis}</Knopf>}
           </div>
         </Kasten>
       )}
@@ -915,6 +965,26 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
                   wenn die Datei liegt; vorher gibt es nichts zu bestätigen. */}
               {cvPath && (
                 <>
+                  {/**
+                    * DIE ZUSTIMMUNG STEHT DORT, WO DIE VERARBEITUNG BEGINNT (Owner 31.08.2026).
+                    *
+                    * Sie stand bisher in einem eigenen Schritt VOR dem Lebenslauf, zusammen mit
+                    * der Adresse — und hat mit ihr zusammen jeden Besucher gekostet. Rechtlich
+                    * gehört sie ohnehin hierher: Gelesen wird das Dokument erst, wenn er unten
+                    * auf „analysieren" tippt, und genau davor steht jetzt der Haken.
+                    */}
+                  <p className="mt-4 text-[12.5px] font-medium leading-relaxed text-white/70">
+                    {S.datenschutz.replace(" Mehr in der Datenschutzerklärung.", "")}{" "}
+                    <a href="/themes/david/privacy" target="_blank" rel="noreferrer" className="font-black text-[#f6cf51] underline underline-offset-2">
+                      {S.datenschutzLink}
+                    </a>
+                  </p>
+                  {S.datenschutzZusage && (
+                    <p className="mt-1.5 text-[12.5px] font-black leading-snug text-white/85">{S.datenschutzZusage}</p>
+                  )}
+                  <div className="mt-3">
+                    <Haken an={haken} setzen={setHaken} pflicht>{S.haken}</Haken>
+                  </div>
                   <div className="mt-3"><Knopf art="gold" onClick={() => void cvAnalysieren()}>{S.cvBereitKnopf}</Knopf></div>
                   <p className="mt-2 text-center text-[12px] font-bold text-white/60">{S.cvBereitHinweis}</p>
                 </>
@@ -1267,8 +1337,16 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
 
       <div ref={endeRef} />
 
-      {/* Der Landingpage-Inhalt unter dem Trichter — Dauerregel `tunnel-zeigt-landingpage-inhalt`. */}
-      {phase === "name" && inhalt}
+      {/**
+        * Der Landingpage-Inhalt unter dem Trichter — Dauerregel `tunnel-zeigt-landingpage-inhalt`.
+        *
+        * ER HING AN DER VORNAMEN-PHASE (korrigiert 31.08.2026): Seit der Trichter beim
+        * Lebenslauf beginnt, wurde diese Phase nie mehr betreten — und damit stand unter dem
+        * ersten Schritt gar nichts mehr. Wer von der Anzeige kommt und noch zweifelt, hätte
+        * eine leere Seite unter dem Upload-Feld gefunden. Der Inhalt gehört an den ERSTEN
+        * Schritt, welcher das auch immer ist.
+        */}
+      {phase === "cv" && !cvPath && inhalt}
     </div>
   );
 }
