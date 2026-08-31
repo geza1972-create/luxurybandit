@@ -24,11 +24,29 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 export type FirmenAnfrage = {
   id: string;
   erstelltAm: string;
+  /**
+   * WELCHE TÜR (Owner 31.08.2026: „Lead bitte im bestehenden Admin-Bereich speichern, aber
+   * klar als Recruiting-B2B-Lead kennzeichnen.").
+   *
+   * `agenten` ist die alte „Teste mich"-Anfrage aus dem Chat, `recruiting` die
+   * Pilot-Anfrage von `/recruiting`. Bewusst EIN Ordner und EINE Liste statt einer zweiten
+   * Ablage: Es ist beide Male dasselbe — ein Unternehmen, das etwas von uns will. Getrennt
+   * werden sie durch dieses Feld, nicht durch einen zweiten Speicher, der beim nächsten Mal
+   * wieder mitgepflegt werden müsste.
+   *
+   * Ohne Angabe ist es `agenten` — die Anfragen, die vor dem 31.08. eingingen, kannten das
+   * Feld noch nicht.
+   */
+  art?: "agenten" | "recruiting";
   /** Wofür er Leads braucht — daran hängt später, welcher Agent gebaut wird. */
   ziel?: "kunden" | "mitarbeiter" | "neugier";
   name?: string;
   branche?: string;
   email?: string;
+  /* Nur bei `recruiting`: Wer fragt, und für welche Stelle. */
+  firma?: string;
+  position?: string;
+  stellenLink?: string;
   /** Was er selbst geschrieben hat — das Wertvollste an der ganzen Anfrage. */
   anliegen?: string;
   sprache?: string;

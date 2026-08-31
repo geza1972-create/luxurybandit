@@ -246,6 +246,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     // kommt, hat eine Aufgabe; ein Menü mit Kuss- und Geburtstags-Themen darunter ist an
     // dieser Stelle kein Angebot, sondern ein Ausgang.
     pathname.startsWith("/joburi") ||
+    // DIE FIRMENSEITE ERST RECHT (Owner 31.08.2026: „Keine Ablenkung zu den anderen
+    // LuxuryBandit-Produkten."). Sie geht an Recruiter und HR-Abteilungen; eine Leiste mit
+    // Kuss-, Geburtstags- und Galerie-Themen darunter nimmt dem Angebot in einer Sekunde
+    // jede Ernsthaftigkeit — und dieser Seite ist Ernsthaftigkeit das ganze Kapital.
+    pathname.startsWith("/recruiting") ||
     pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
   );
 

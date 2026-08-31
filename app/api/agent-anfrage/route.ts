@@ -32,14 +32,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Diese Adresse sieht nicht vollständig aus." }, { status: 400 });
   }
 
+  /**
+   * ZWEI TÜREN, EIN POSTFACH (Owner 31.08.2026): Der Chat auf der Startseite und das
+   * Pilot-Formular auf `/recruiting` fragen Verschiedenes, aber es kommt dasselbe heraus —
+   * ein Unternehmen, das etwas von uns will. Eine zweite Route hätte Ablage, Mailversand
+   * und die Notfall-Antwort unten ein zweites Mal gebraucht; sie unterscheiden sich nur in
+   * den Feldern und in der Betreffzeile.
+   */
+  const istRecruiting = str(body.art, 20) === "recruiting";
+  const firma = str(body.firma, 160);
+  const position = str(body.position, 200);
+  if (istRecruiting && (!firma || !position)) {
+    return NextResponse.json({ error: "Firma und Position brauche ich noch." }, { status: 400 });
+  }
+
   const zielRoh = str(body.ziel, 20);
   const anfrage: FirmenAnfrage = {
     id: randomUUID(),
     erstelltAm: new Date().toISOString(),
+    ...(istRecruiting ? { art: "recruiting" as const } : {}),
     ...(["kunden", "mitarbeiter", "neugier"].includes(zielRoh) ? { ziel: zielRoh as FirmenAnfrage["ziel"] } : {}),
     name: str(body.name, 120) || undefined,
     branche: str(body.branche, 160) || undefined,
     email,
+    ...(firma ? { firma } : {}),
+    ...(position ? { position } : {}),
+    ...(str(body.stellenLink, 500) ? { stellenLink: str(body.stellenLink, 500) } : {}),
     anliegen: str(body.anliegen, 4000) || undefined,
     sprache: str(body.sprache, 5) || undefined,
     device: str(body.device, 80) || undefined,
@@ -51,19 +69,24 @@ export async function POST(request: Request) {
     ? `<tr><td style="padding:4px 10px 4px 0;color:#888;font-size:13px;vertical-align:top">${esc(k)}</td><td style="padding:4px 0;font-size:14px"><b>${esc(v)}</b></td></tr>`
     : "";
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px">
-    <p style="margin:0 0 4px;color:#888;font-size:12px;letter-spacing:2px"><b>LUXURYBANDIT · ANFRAGE EINES UNTERNEHMENS</b></p>
-    <h2 style="margin:0 0 12px;font-size:19px">${esc(anfrage.name || "Ohne Namen")}${anfrage.branche ? ` · ${esc(anfrage.branche)}` : ""}</h2>
+    <p style="margin:0 0 4px;color:#888;font-size:12px;letter-spacing:2px"><b>${istRecruiting ? "LUXURYBANDIT · RECRUITING — PILOT-ANFRAGE" : "LUXURYBANDIT · ANFRAGE EINES UNTERNEHMENS"}</b></p>
+    <h2 style="margin:0 0 12px;font-size:19px">${esc(anfrage.firma || anfrage.name || "Ohne Namen")}${!istRecruiting && anfrage.branche ? ` · ${esc(anfrage.branche)}` : ""}</h2>
     <table role="presentation" cellpadding="0" cellspacing="0">
-      ${zeile("Will", anfrage.ziel === "kunden" ? "Kunden" : anfrage.ziel === "mitarbeiter" ? "Mitarbeiter" : anfrage.ziel ? "Erst mal sehen, was David kann" : "")}
+      ${istRecruiting ? "" : zeile("Will", anfrage.ziel === "kunden" ? "Kunden" : anfrage.ziel === "mitarbeiter" ? "Mitarbeiter" : anfrage.ziel ? "Erst mal sehen, was David kann" : "")}
       ${zeile("Name", anfrage.name)}
-      ${zeile("Branche", anfrage.branche)}
+      ${zeile("Firma", anfrage.firma)}
+      ${zeile("Position", anfrage.position)}
+      ${zeile("Stellenlink", anfrage.stellenLink)}
+      ${istRecruiting ? "" : zeile("Branche", anfrage.branche)}
       ${zeile("Adresse", anfrage.email)}
       ${zeile("Sprache", anfrage.sprache)}
     </table>
     ${anfrage.anliegen ? `<p style="margin:14px 0 4px;color:#888;font-size:13px">Was er selbst geschrieben hat:</p>
       <div style="border-left:3px solid #f6cf51;padding:6px 0 6px 12px;font-size:14px;line-height:1.55;white-space:pre-wrap">${esc(anfrage.anliegen)}</div>` : ""}
     <p style="margin:16px 0 0;color:#888;font-size:12px">
-      Er wartet auf Antwort innerhalb von 48 Stunden — das haben wir ihm zugesagt.
+      ${istRecruiting
+        ? "Ihm wurde zugesagt, dass du dich persönlich meldest, um die Position und den Pilot zu besprechen."
+        : "Er wartet auf Antwort innerhalb von 48 Stunden — das haben wir ihm zugesagt."}
       Direkt auf diese Mail antworten erreicht ihn.
       ${gespeichert ? "" : "<br><b style=\"color:#c00\">ACHTUNG: Die Ablage hat nicht funktioniert — diese Mail ist die einzige Spur.</b>"}
     </p>
@@ -73,10 +96,12 @@ export async function POST(request: Request) {
      die Adresse herauszusuchen. */
   const r = await sendEmail({
     to: HAUS,
-    subject: `LB Agenten — Anfrage von ${anfrage.name || anfrage.email}${anfrage.branche ? ` (${anfrage.branche})` : ""}`,
+    subject: istRecruiting
+      ? `LB Recruiting — Pilot-Anfrage von ${anfrage.firma || anfrage.name || email}`
+      : `LB Agenten — Anfrage von ${anfrage.name || anfrage.email}${anfrage.branche ? ` (${anfrage.branche})` : ""}`,
     html,
     replyTo: email,
-    text: `${anfrage.name || ""} · ${anfrage.branche || ""} · ${email}\n\n${anfrage.anliegen || ""}`,
+    text: `${anfrage.name || ""} · ${anfrage.firma || anfrage.branche || ""} · ${email}\n${anfrage.position || ""}\n\n${anfrage.anliegen || ""}`,
   }).catch(() => ({ ok: false }));
 
   if (r?.ok && gespeichert) {
