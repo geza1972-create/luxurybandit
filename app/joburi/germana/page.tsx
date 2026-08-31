@@ -84,18 +84,33 @@ export default async function JoburiSeite({ searchParams }: { searchParams: Prom
         {/* TALENT MARKET PULSE (Owner 31.08.2026): Die Seite verspricht keine Stellen mehr,
             sondern eine Frage — und die Frage ist das Angebot. Sie hält damit nichts, was ein
             leerer Bestand brechen könnte. */}
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.studieKicker}</p>
-        <h1 className="mt-1 text-[28px] font-black leading-[1.06]">
-          {T.studieTitel} <span className="text-[#f6cf51]">{T.studieTitelZwei}</span>
-        </h1>
-        <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.studieUnter}</p>
-        {/* Was ihn erwartet, bevor er anfängt: sieben Klicks, keine Person. Genau die zwei
-            Zahlen entscheiden, ob jemand die erste Frage überhaupt antippt. */}
-        <p className="mt-2 text-[12px] font-black uppercase tracking-[0.14em] text-white/45">{T.studieDauer}</p>
-
-        <div className="mt-5">
-          <JoburiFunnel T={T} lang={lang} />
-        </div>
+        {/**
+          * DER KOPF GEHÖRT ZUR ERSTEN FRAGE — UND NUR ZU IHR (Owner 31.08.2026: „ich mag
+          * diesen unnötigen zeug auf jeder seite mitzuschelpennen").
+          *
+          * Vorher stand er hier fest über dem Trichter und damit über JEDER der neun Fragen.
+          * Auf dem Handy drückte er die eigentliche Frage unter die Kante: Wer bei Frage vier
+          * ankam, sah zuerst wieder Überschrift, Untertitel und „9 Fragen" — und musste
+          * scrollen, um zu sehen, was gefragt ist. Ein Kopf verkauft den EINSTIEG; ab da ist
+          * er Ballast, den man bei jedem Schritt neu wegliest.
+          *
+          * Er wird deshalb an den Trichter GEREICHT statt vor ihn gestellt: Der Server rendert
+          * ihn weiter (die Anzeige-Landung zeigt ihn also sofort, ohne auf JavaScript zu
+          * warten), aber ab der zweiten Frage blendet der Trichter ihn aus und setzt eine
+          * schmale Fortschrittszeile an seine Stelle.
+          */}
+        <JoburiFunnel T={T} lang={lang} kopf={
+          <>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.studieKicker}</p>
+            <h1 className="mt-1 text-[28px] font-black leading-[1.06]">
+              {T.studieTitel} <span className="text-[#f6cf51]">{T.studieTitelZwei}</span>
+            </h1>
+            <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.studieUnter}</p>
+            {/* Was ihn erwartet, bevor er anfängt: neun Klicks, keine Person. Genau die zwei
+                Zahlen entscheiden, ob jemand die erste Frage überhaupt antippt. */}
+            <p className="mt-2 text-[12px] font-black uppercase tracking-[0.14em] text-white/45">{T.studieDauer}</p>
+          </>
+        } />
       </div>
 
       <SeitenFuss art="schlicht" lang={lang} />

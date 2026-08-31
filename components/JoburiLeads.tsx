@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { JoburiLead } from "@/lib/joburi-leads";
+import { gehaltMitte } from "@/lib/joburi-gehalt";
 
 /**
  * DIE ANTWORTEN DER STUDIE IM ADMIN (Owner 31.08.2026: „Die neuen Antworten müssen im
@@ -124,7 +125,16 @@ export default function JoburiLeads({ pin }: { pin: string }) {
               <span className="text-[11.5px] font-bold text-ink/45">{datum(l.erstelltAm)}</span>
               {l.land && <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10.5px] font-black uppercase tracking-wide text-ink/60">{LAND[l.land]}</span>}
               {l.deutsch && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10.5px] font-black text-sky-800">DE {l.deutsch}</span>}
-              {l.wechselGehalt && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10.5px] font-black text-emerald-800">{GEHALT[l.wechselGehalt]}</span>}
+              {/* Heute → Wechsel ab, in einem Zeichen. Seit dem 31.08. sind es getippte Zahlen;
+                  die Stufen der ersten Tage übersetzt `gehaltMitte` mit (lib/joburi-gehalt.ts). */}
+              {(l.jetztGehalt || l.wechselGehalt) && (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10.5px] font-black text-emerald-800">
+                  {gehaltMitte(l.jetztGehalt) ? `${gehaltMitte(l.jetztGehalt).toLocaleString("de-DE")} €` : "?"}
+                  {" → "}
+                  {gehaltMitte(l.wechselGehalt) ? `${gehaltMitte(l.wechselGehalt).toLocaleString("de-DE")} €` : "?"}
+                </span>
+              )}
+              {l.alter && <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10.5px] font-black text-ink/60">{l.alter}</span>}
               {l.suche && <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10.5px] font-black text-ink/60">{SUCHE[l.suche]}</span>}
             </div>
             <p className="mt-1.5 text-[13px] font-bold text-ink/80">

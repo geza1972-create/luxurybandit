@@ -54,10 +54,39 @@ export const RO = {
   studieTitel: "Vorbești germană?",
   studieTitelZwei: "Pentru ce salariu ai schimba jobul?",
   studieUnter: "Spune-ne ce ofertă te-ar face să iei în calcul o schimbare. Vrem să aflăm cât valorează în realitate limba germană pe piața muncii din România.",
-  studieDauer: "7 întrebări · fără nume, fără CV",
+  studieDauer: "9 întrebări · fără nume, fără CV",
 
   fLand: "În ce țară lucrezi acum?",
   landRo: "România", landDe: "Germania", landAt: "Austria", landAlta: "Altă țară",
+
+
+  /* DAS ALTER (Owner 31.08.2026, nach dem Blick in die Anzeigen-Aufschlüsselung: über die
+     Hälfte der bezahlten Reichweite war 55+). Ohne diese Antwort lässt sich nie belegen, ob
+     eine Altersgrenze in der Anzeige Geld spart oder gute Leute wegwirft — die Entscheidung
+     fiel bisher auf Metas Reichweitenzahl, also auf eine Vermutung. Als Spanne, nicht als
+     Geburtsjahr: ein Jahr tippt niemand, eine Kachel tippt fast jeder. */
+  fAlter: "Ce vârstă ai?",
+  fAlterHinweis: "Rămâne anonim.",
+  alterU25: "sub 25 de ani", alter2534: "25–34 de ani", alter3544: "35–44 de ani",
+  alter4554: "45–54 de ani", alter55p: "55 de ani sau peste",
+
+  /* DAS HEUTIGE GEHALT — DIE FRAGE GEGEN DAS TRÄUMEN (Owner 31.08.2026: „ich muss sie auch
+     fragen wieviel sie jetzt verdienen, weil sie sonst träumen").
+     Allein steht „ich wechsle ab 2.000 €" für nichts: Es kann ein realistischer Schritt sein
+     oder eine Fantasie. Erst die DIFFERENZ zum heutigen Gehalt ist die Zahl, die ein
+     Recruiter kaufen würde.
+     DIE STUFEN HÄNGEN AM WOHNLAND (Owner: „hier lügen sie alle. Wenn sie sagen Rumänien und
+     sagen sie verdienen 2500, dann ist das eine Lüge"). Wer in Rumänien lebt, bekommt
+     rumänische Spannen zu sehen — dort ist die höchste Stufe „über 1.600 €" und nicht
+     „über 3.800 €". Übertreiben kann man dann höchstens um eine Stufe statt um drei. */
+  fJetzt: "Cât câștigi acum, net pe lună?",
+  fJetztKurz: "Acum câștig", fGehaltKurz: "Aș schimba de la", sprungHinweis: "diferența",
+  gehaltSpanne: "Scrie o sumă între 100 și 20.000 €.",
+  fGehaltBeide: "Cât câștigi acum — și pentru ce ai schimba?",
+  fJetztHinweis: "Rămâne anonim. Fără această cifră, studiul nu spune nimic.",
+  stufe0: "sub 800 €", stufe800: "800–1.200 €", stufe1200: "1.200–1.600 €",
+  stufe1600: "1.600–2.000 €", stufe2000: "2.000–2.500 €", stufe2500: "2.500–3.000 €",
+  stufe3000: "peste 3.000 €",
 
   fGehalt: "De la ce salariu net ai lua în calcul o schimbare?",
   fGehaltHinweis: "Net, pe lună. Alege pragul de la care merită să discuți.",
@@ -73,26 +102,57 @@ export const RO = {
   fRueckkehr: "Te-ai întoarce în România pentru jobul potrivit?",
   rueckDa: "Da", rueckPoate: "Poate", rueckNu: "Nu",
 
-  fBerufsfeld: "În ce domeniu lucrezi?",
+  fBerufsfeld: "Ce meserie ai?",
+  fBerufHinweis: "Scrie exact, așa cum ai spune unui prieten.",
+  fStudii: "Studii",
+  studiiWaehlen: "Alege…",
+  studiiGimnaziu: "Școală generală", studiiLiceu: "Liceu",
+  studiiProfesionala: "Școală profesională", studiiLicenta: "Studii superioare",
+  studiiMaster: "Master / doctorat",
   feldSuport: "Suport / servicii clienți", feldIt: "IT", feldFinante: "Finanțe / contabilitate",
   feldLogistica: "Logistică", feldInginerie: "Inginerie / producție", feldVanzari: "Vânzări",
   feldSanatate: "Sănătate / îngrijire", feldAltul: "Alt domeniu",
+  feldFreiPlatzhalter: "ex. asistentă medicală, electrician",
 
   /* ── Die Zusammenfassung: NUR seine eigenen Antworten, kein erfundener Marktwert ── */
   summeTitel: "Asta ne-ai spus",
   summeLand: "Țara", summeDeutsch: "Germană", summeStatus: "Status",
-  summeGehalt: "Schimbi de la", summeFaktoren: "Contează", summeRueckkehr: "Întoarcere",
+  summeAlter: "Vârstă", summeJetzt: "Acum câștigi", summeGehalt: "Schimbi de la", summeFaktoren: "Contează", summeRueckkehr: "Întoarcere",
   summeFeld: "Domeniu",
   summeHinweis: "Nu îți arătăm cifre de piață — studiul abia se strânge. Primul lucru pe care îl vei vedea sunt rezultatele lui.",
 
-  mailStudieTitel: "Vrei să primești rezultatele studiului și oportunități care respectă așteptările tale?",
-  mailStudieText: "O singură adresă de e-mail. Fără nume, fără telefon, fără CV.",
+  /* DIE LETZTE SEITE MUSS EINEN GRUND NENNEN, KEINE FRAGE STELLEN (Owner 31.08.2026: „die
+     letzte seite ist aber schwach, dafür gibt keiner seine email adresse").
+     Vorher stand hier „Willst du die Ergebnisse der Studie?" — eine Frage, auf die jeder mit
+     einem Schulterzucken antwortet. 43 von 57 haben genau hier aufgehört.
+     JEDER DER DREI GRÜNDE IST WAHR. Der Owner hatte zuerst „wir arbeiten mit Elite-Partnern,
+     die in Rumänien Firmen aufbauen" erwogen und im selben Atemzug selbst verworfen: „Nee das
+     stimmt nicht, aber wir sind dabei." Genau dieses „wir sind dabei" steht hier — in der
+     Zukunftsform, die stimmt. Eine erfundene Partnerschaft wäre nicht nur unlauter, sie wäre
+     auch das Erste, was auffliegt, sobald sich der erste Kandidat nach ihr erkundigt.
+     Der stärkste Grund ist der erste: Er hat gerade selbst eine Schwelle genannt. Zu erfahren,
+     ob sie realistisch ist, will jeder wissen, der sie eingetippt hat. */
+  mailStudieTitel: "Pragul tău e realist?",
+  mailStudieText: "Ne-ai spus de la ce salariu ai schimba. Îți spunem ce cer în realitate oamenii cu nivelul tău de germană, din domeniul tău — imediat ce studiul e gata.",
+  grund1: "Rezultatele îți ajung ție primul, înaintea tuturor.",
+  grund2: "Construim acum o rețea de angajatori care caută oameni care vorbesc germană. Când e gata, te întrebăm pe tine — doar dacă vrei.",
+  grund3: "Fără nume, fără telefon, fără CV. Doar o adresă.",
+  zaehlerText: "Până acum au răspuns {n} de persoane.",
   /* EIGENER KNOPF, NICHT DER ALTE: `mailKnopf` hiess „Arată-mi joburile" — er versprach
      Stellen, die dieser Trichter nicht mehr liefert. Ein Knopf, der etwas anderes zusagt als
      das, was danach kommt, ist der teuerste Fehler auf der ganzen Strecke. */
   studieKnopf: "Vreau rezultatele studiului",
   dankeTitelStudie: "Mulțumim — răspunsul tău e în studiu.",
   dankeTextStudie: "Îți scriem când rezultatele sunt gata, și doar cu oportunități care respectă pragul tău.",
+
+  /* ── Cross-Selling auf der letzten Seite (Owner 31.08.2026) ──
+     Wer gerade gesagt hat, zu welchen Bedingungen er wechseln würde, ist an genau dem Punkt,
+     an dem ein deutscher Lebenslauf gebraucht wird. Es steht NACH dem Dank, nicht daneben:
+     Die Antwort ist gespeichert, hier wird nichts mehr abgefragt — es ist ein Angebot, keine
+     zweite Aufforderung im selben Schritt. Und es verspricht nur, was gratis ist. */
+  crossTitel: "Ai deja un CV german?",
+  crossText: "Încarcă CV-ul tău în orice limbă — primești un CV german, formatat așa cum îl așteaptă angajatorii. Gratuit, cu filigran de probă.",
+  crossKnopf: "Fă-mi CV-ul german",
 
   zurueck: "Înapoi",
 
@@ -170,10 +230,24 @@ export const DE: JoburiTexte = {
   studieTitel: "Du sprichst Deutsch?",
   studieTitelZwei: "Für welches Gehalt würdest du wechseln?",
   studieUnter: "Sag uns, welches Angebot dich über einen Wechsel nachdenken lässt. Wir wollen herausfinden, was Deutsch auf dem rumänischen Arbeitsmarkt wirklich wert ist.",
-  studieDauer: "7 Fragen · ohne Namen, ohne Lebenslauf",
+  studieDauer: "9 Fragen · ohne Namen, ohne Lebenslauf",
 
   fLand: "In welchem Land arbeitest du gerade?",
   landRo: "Rumänien", landDe: "Deutschland", landAt: "Österreich", landAlta: "Anderes Land",
+
+  fAlter: "Wie alt bist du?",
+  fAlterHinweis: "Bleibt anonym.",
+  alterU25: "unter 25 Jahre", alter2534: "25–34 Jahre", alter3544: "35–44 Jahre",
+  alter4554: "45–54 Jahre", alter55p: "55 Jahre oder älter",
+
+  fJetzt: "Was verdienst du heute, netto im Monat?",
+  fJetztKurz: "Heute", fGehaltKurz: "Wechsel ab", sprungHinweis: "Unterschied",
+  gehaltSpanne: "Schreib einen Betrag zwischen 100 und 20.000 €.",
+  fGehaltBeide: "Was verdienst du heute — und wofür würdest du wechseln?",
+  fJetztHinweis: "Bleibt anonym. Ohne diese Zahl sagt die Studie nichts aus.",
+  stufe0: "unter 800 €", stufe800: "800–1.200 €", stufe1200: "1.200–1.600 €",
+  stufe1600: "1.600–2.000 €", stufe2000: "2.000–2.500 €", stufe2500: "2.500–3.000 €",
+  stufe3000: "über 3.000 €",
 
   fGehalt: "Ab welchem Nettogehalt würdest du einen Wechsel überlegen?",
   fGehaltHinweis: "Netto, im Monat. Wähle die Schwelle, ab der sich ein Gespräch lohnt.",
@@ -189,22 +263,37 @@ export const DE: JoburiTexte = {
   fRueckkehr: "Würdest du für die richtige Stelle nach Rumänien zurückgehen?",
   rueckDa: "Ja", rueckPoate: "Vielleicht", rueckNu: "Nein",
 
-  fBerufsfeld: "In welchem Bereich arbeitest du?",
+  fBerufsfeld: "Was bist du von Beruf?",
+  fBerufHinweis: "Schreib es genau so, wie du es einem Freund sagen würdest.",
+  fStudii: "Abschluss",
+  studiiWaehlen: "Auswählen…",
+  studiiGimnaziu: "Mittelschule", studiiLiceu: "Abitur",
+  studiiProfesionala: "Berufsausbildung", studiiLicenta: "Studium",
+  studiiMaster: "Master / Promotion",
   feldSuport: "Support / Kundenservice", feldIt: "IT", feldFinante: "Finanzen / Buchhaltung",
   feldLogistica: "Logistik", feldInginerie: "Technik / Produktion", feldVanzari: "Vertrieb",
   feldSanatate: "Gesundheit / Pflege", feldAltul: "Anderer Bereich",
+  feldFreiPlatzhalter: "z. B. Krankenschwester, Elektriker",
 
   summeTitel: "Das hast du uns gesagt",
   summeLand: "Land", summeDeutsch: "Deutsch", summeStatus: "Status",
-  summeGehalt: "Wechsel ab", summeFaktoren: "Wichtig", summeRueckkehr: "Rückkehr",
+  summeAlter: "Alter", summeJetzt: "Heute", summeGehalt: "Wechsel ab", summeFaktoren: "Wichtig", summeRueckkehr: "Rückkehr",
   summeFeld: "Bereich",
   summeHinweis: "Wir zeigen dir keine Marktzahlen — die Studie wird gerade erst gesammelt. Das Erste, was du siehst, sind ihre Ergebnisse.",
 
-  mailStudieTitel: "Willst du die Ergebnisse der Studie bekommen und Angebote, die deine Erwartung treffen?",
-  mailStudieText: "Nur eine E-Mail-Adresse. Kein Name, kein Telefon, kein Lebenslauf.",
+  mailStudieTitel: "Ist deine Schwelle realistisch?",
+  mailStudieText: "Du hast uns gesagt, ab wann du wechseln würdest. Wir sagen dir, was Leute mit deinem Deutschniveau in deinem Bereich tatsächlich verlangen — sobald die Studie steht.",
+  grund1: "Die Ergebnisse bekommst du zuerst, vor allen anderen.",
+  grund2: "Wir bauen gerade ein Netz von Arbeitgebern auf, die deutschsprachige Leute suchen. Sobald es steht, fragen wir dich — nur wenn du willst.",
+  grund3: "Kein Name, kein Telefon, kein Lebenslauf. Nur eine Adresse.",
+  zaehlerText: "Bisher haben {n} Menschen geantwortet.",
   studieKnopf: "Ich will die Ergebnisse der Studie",
   dankeTitelStudie: "Danke — deine Antwort ist in der Studie.",
   dankeTextStudie: "Wir schreiben dir, wenn die Ergebnisse da sind, und nur mit Angeboten, die deine Schwelle einhalten.",
+
+  crossTitel: "Hast du schon einen deutschen Lebenslauf?",
+  crossText: "Lade deinen Lebenslauf in jeder Sprache hoch — heraus kommt ein deutscher, so formatiert, wie Arbeitgeber ihn erwarten. Gratis, mit Muster-Wasserzeichen.",
+  crossKnopf: "Deutschen Lebenslauf erstellen",
 
   zurueck: "Zurück",
 
@@ -253,12 +342,26 @@ export const EN: JoburiTexte = {
   studieTitel: "You speak German?",
   studieTitelZwei: "For which salary would you change jobs?",
   studieUnter: "Tell us which offer would make you consider a move. We want to find out what German is really worth on the Romanian job market.",
-  studieDauer: "7 questions · no name, no CV",
+  studieDauer: "9 questions · no name, no CV",
   fLand: "Which country do you work in right now?",
   landRo: "Romania",
   landDe: "Germany",
   landAt: "Austria",
   landAlta: "Another country",
+  fAlter: "How old are you?",
+  fAlterHinweis: "Stays anonymous.",
+  alterU25: "under 25", alter2534: "25–34", alter3544: "35–44",
+  alter4554: "45–54", alter55p: "55 or older",
+
+  fJetzt: "What do you earn today, net per month?",
+  fJetztKurz: "Today", fGehaltKurz: "Would move from", sprungHinweis: "difference",
+  gehaltSpanne: "Write an amount between 100 and 20,000 €.",
+  fGehaltBeide: "What do you earn today — and what would make you move?",
+  fJetztHinweis: "Stays anonymous. Without this figure the study says nothing.",
+  stufe0: "under 800 €", stufe800: "800–1,200 €", stufe1200: "1,200–1,600 €",
+  stufe1600: "1,600–2,000 €", stufe2000: "2,000–2,500 €", stufe2500: "2,500–3,000 €",
+  stufe3000: "over 3,000 €",
+
   fGehalt: "From which net salary would you consider a move?",
   fGehaltHinweis: "Net, per month. Pick the threshold where a conversation becomes worth it.",
   gehalt800: "from 800 €",
@@ -280,7 +383,13 @@ export const EN: JoburiTexte = {
   rueckDa: "Yes",
   rueckPoate: "Maybe",
   rueckNu: "No",
-  fBerufsfeld: "Which field do you work in?",
+  fBerufsfeld: "What is your occupation?",
+  fBerufHinweis: "Write it exactly as you would tell a friend.",
+  fStudii: "Education",
+  studiiWaehlen: "Choose…",
+  studiiGimnaziu: "Secondary school", studiiLiceu: "High school",
+  studiiProfesionala: "Vocational training", studiiLicenta: "University degree",
+  studiiMaster: "Master's / doctorate",
   feldSuport: "Support / customer service",
   feldIt: "IT",
   feldFinante: "Finance / accounting",
@@ -289,20 +398,29 @@ export const EN: JoburiTexte = {
   feldVanzari: "Sales",
   feldSanatate: "Health / care",
   feldAltul: "Another field",
+  feldFreiPlatzhalter: "e.g. nurse, electrician",
   summeTitel: "This is what you told us",
   summeLand: "Country",
   summeDeutsch: "German",
   summeStatus: "Status",
-  summeGehalt: "Would move from",
+  summeAlter: "Age", summeJetzt: "Today", summeGehalt: "Would move from",
   summeFaktoren: "Matters",
   summeRueckkehr: "Return",
   summeFeld: "Field",
   summeHinweis: "We don't show you market figures — the study is only just being collected. Its results are the first thing you'll see.",
-  mailStudieTitel: "Do you want the results of the study and offers that meet your expectations?",
-  mailStudieText: "One email address. No name, no phone, no CV.",
+  mailStudieTitel: "Is your threshold realistic?",
+  mailStudieText: "You told us what would make you move. We'll tell you what people with your level of German, in your field, actually ask for — as soon as the study is in.",
+  grund1: "You get the results first, ahead of everyone else.",
+  grund2: "We are building a network of employers looking for German-speaking people. Once it stands, we'll ask you — only if you want us to.",
+  grund3: "No name, no phone, no CV. Just an address.",
+  zaehlerText: "{n} people have answered so far.",
   studieKnopf: "I want the study results",
   dankeTitelStudie: "Thank you — your answer is in the study.",
   dankeTextStudie: "We'll write when the results are ready, and only with offers that respect your threshold.",
+
+  crossTitel: "Do you already have a German CV?",
+  crossText: "Upload your CV in any language — you get a German one, formatted the way employers there expect it. Free, with a sample watermark.",
+  crossKnopf: "Create my German CV",
   zurueck: "Back",
   mailLabel: "Email",
   mailPlatzhalter: "name@example.com",

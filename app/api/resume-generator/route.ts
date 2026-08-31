@@ -60,6 +60,29 @@ async function ki(content: Array<Record<string, unknown>>): Promise<Record<strin
 }
 
 /** Der CV als KI-Eingabe: PDF direkt als Datei, .docx als extrahierter Text. */
+/**
+ * WELCHE FELDER DER MINICHAT NOCH ABFRAGEN MUSS.
+ *
+ * Nur diese vier — mehr braucht ein Lebenslauf-Kopf nicht, und jede weitere Frage ist eine
+ * Abbruchgelegenheit. Der Ort ist bewusst dabei: Ohne ihn wirkt der Kopf des Dokuments
+ * unfertig, und er steht in fast jedem Lebenslauf ohnehin.
+ */
+function fehlendeFelder(p: LebenslaufProfil): string[] {
+  return (["name", "email", "telefon", "ort"] as const).filter(f => !s((p as Record<string, unknown>)[f], 200));
+}
+
+/** Was der Trichter zum Anzeigen braucht — nicht das ganze Profil über die Leitung. */
+function kurzfassung(p: LebenslaufProfil) {
+  return {
+    name: p.name ?? "", email: p.email ?? "", telefon: p.telefon ?? "", ort: p.ort ?? "",
+    positionierung: p.positionierung ?? "",
+    stationen: p.erfahrung?.length ?? 0,
+    ausbildung: p.ausbildung?.length ?? 0,
+    sprachen: p.sprachen?.length ?? 0,
+    ohneFoto: p.ohneFoto === true,
+  };
+}
+
 async function cvContent(cvPath: string): Promise<Record<string, unknown> | { fehler: string }> {
   const url = await getSignedUrl(cvPath).catch(() => "");
   if (!url) return { fehler: "Lebenslauf-Datei nicht gefunden." };
@@ -506,6 +529,199 @@ export async function POST(request: Request) {
       bezahlt: true,
     };
     if (!(await schreibeLebenslauf(optimiert))) {
+      return NextResponse.json({ error: "Speichern fehlgeschlagen." }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, id });
+  }
+
+  /* ═══ SCHRITT „KREATOR" — DER SCHLICHTE LEBENSLAUF-GENERATOR (Owner 31.08.2026) ═══
+   *
+   * „Es ist einfach ein CV Kreator. Ohne Anschreiben, ohne nichts. Ein Tool. Für den Rest
+   * haben wir David, der dir eine Profianalyse macht."
+   *
+   * ER STEHT NEBEN DEN DREI ANDEREN, NICHT AN IHRER STELLE. `mappe`, `erzeugen` und
+   * `optimieren` werden von Davids Angebots-Bildschirm an fünf Stellen aufgerufen
+   * (components/DavidAngebote.tsx) — eine Änderung dort hätte seinen bezahlten Kaufweg
+   * mitgenommen. Deshalb ein eigener Schritt, der nichts davon anfasst.
+   *
+   * WAS ER NICHT TUT: keine Stellenanzeige, kein Anschreiben, keine Match-Analyse. Nur
+   * lesen und ordnen. Das ist auch der Grund, warum er wirtschaftlich ist — der teure Teil
+   * bei David ist der Bericht, nicht das Lesen.
+   *
+   * KEINE E-MAIL ALS PFLICHT (Owner: „Adresse, hat er im CV"): Sie steht im Dokument, seit
+   * es Lebensläufe gibt. Sie wird ausgelesen wie Name, Ort und Telefon; was fehlt, fragt
+   * der Minichat danach einzeln nach — ein Klick statt einer Tastatur.
+   *
+   * POST { schritt: "kreator", id, device, cvPath, cvName?, foto? }
+   *   → { id, profil: {...}, fehlend: ["email", "telefon", …], hatFoto }
+   */
+  if (schritt === "kreator") {
+    const cvPath = s(body.cvPath, 300);
+    if (!cvPath) return NextResponse.json({ error: "Es fehlt der Lebenslauf." }, { status: 400 });
+
+    const cv = await cvContent(cvPath);
+    if ("fehler" in cv) return NextResponse.json({ error: cv.fehler }, { status: 422 });
+
+    /**
+     * DEUTSCH ALS ZIELSPRACHE (Owner 31.08.2026: „Ein Deutsch-Generator. Jede Bewerbung wird
+     * auf Deutsch umgewandelt. Dein deutscher Lebenslauf." · „nein, nur deutsch").
+     *
+     * KEIN ZWEITER LAUF UND KEIN CENT EXTRA: Es ist dieselbe Auswertung, nur mit einer
+     * Anweisung mehr — das Modell liest ohnehin schon jedes Feld an.
+     *
+     * UND ES IST KEINE ÜBERSETZUNG. Ein deutscher Lebenslauf folgt anderen Regeln als ein
+     * rumänischer: tabellarisch, neueste Station zuerst, Zeiträume als MM/JJJJ. Und
+     * Berufsbezeichnungen bleiben oft englisch, weil deutsche Anzeigen sie so ausschreiben —
+     * „Customer Support Specialist" übersetzt man nicht. Genau daran unterscheidet sich das
+     * hier von einem Übersetzer, und nur deshalb ist es etwas wert.
+     */
+    const aufDeutsch = s(body.zielsprache, 4) === "de";
+
+    const prompt = [
+      "Du liest einen Lebenslauf und ordnest ihn. Du bewertest NICHT, du schreibst KEIN Anschreiben und du erfindest NICHTS.",
+      "Übernimm nur, was im Dokument steht. Was fehlt, lässt du leer — ein leeres Feld ist richtig, eine erfundene Angabe ist ein Fehler.",
+      ...(aufDeutsch ? [
+        "SPRACHE DES ERGEBNISSES: DEUTSCH. Gib alle Texte auf Deutsch zurück, auch wenn der Lebenslauf in einer anderen Sprache verfasst ist. Das ist keine wörtliche Übersetzung, sondern die Fassung, die ein deutscher Arbeitgeber erwartet.",
+        "Dabei gilt: Zeiträume als MM/JJJJ – MM/JJJJ, neueste Station zuerst. Firmennamen, Orte und Eigennamen bleiben unverändert. Berufsbezeichnungen, die im deutschen Arbeitsmarkt englisch ausgeschrieben werden (z. B. Customer Support Specialist, Software Engineer), lässt du englisch — alles andere wird deutsch.",
+        "Übertreibe nichts und ergänze nichts, was nicht dasteht: Der Lebenslauf soll auf Deutsch dasselbe sagen wie im Original.",
+      ] : []),
+      "'name' — der volle Name. 'email', 'telefon' und 'ort', falls angegeben, sonst leer.",
+      "'positionierung' — die Berufsbezeichnung, wie der Lebenslauf sie trägt. Keine Jahreszahlen, keine Firmennamen.",
+      "'profiltext' — 3 bis 5 Sätze in der ersten Person, eng am Wortlaut des Lebenslaufs. KEINE Aufwertung, keine Superlative.",
+      "'erfahrung' — ALLE Stationen, neueste zuerst: [{\"rolle\":\"...\",\"firma\":\"...\",\"zeitraum\":\"...\",\"ergebnis\":\"...\"}]. 'ergebnis' nur, wenn im Dokument eines steht.",
+      "'ausbildung' — ALLE Stationen: [{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}]. 'sprachen' — [{\"sprache\":\"...\",\"niveau\":\"...\"}].",
+      "'kompetenzen' — 4 bis 6 kurze Begriffe AUS dem Dokument. 'schwerpunkte' — 3 bis 4 Arbeitsfelder, keine Jobtitel.",
+      "Antworte NUR als JSON: {\"name\":\"...\",\"email\":\"...\",\"telefon\":\"...\",\"ort\":\"...\",\"positionierung\":\"...\",\"profiltext\":\"...\",\"erfahrung\":[...],\"ausbildung\":[...],\"sprachen\":[...],\"kompetenzen\":[...],\"schwerpunkte\":[...]}",
+    ].join("\n\n");
+
+    const parsed = await ki([{ type: "input_text", text: prompt }, cv]);
+    if (!parsed) return NextResponse.json({ error: "Auswertung fehlgeschlagen — bitte noch einmal." }, { status: 502 });
+
+    /* Das Foto — optional, dauerhaft abgelegt (dieselbe Doppel-Ablage wie oben). */
+    let fotoUrl = "";
+    let fotoPath = "";
+    const fotoDataUrl = s(body.foto, 8_000_000);
+    if (fotoDataUrl.startsWith("data:")) {
+      fotoPath = await fotoAblegen(fotoDataUrl).catch(() => "");
+      fotoUrl = fotoPath ? (await getSignedUrl(fotoPath, 60 * 60 * 24 * 365 * 10).catch(() => "")) : "";
+    }
+
+    const profil: LebenslaufProfil = {
+      id,
+      erstelltAm: new Date().toISOString(),
+      name: s(parsed.name, 80) || undefined,
+      email: s(parsed.email, 200).toLowerCase() || undefined,
+      ort: s(parsed.ort, 80) || undefined,
+      telefon: s(parsed.telefon, 60) || undefined,
+      positionierung: s(parsed.positionierung, 120) || undefined,
+      sprechtext: s(parsed.profiltext, 1200) || undefined,
+      stichpunkte: [],
+      kategorien: [],
+      kompetenzen: liste(parsed.kompetenzen, 6, 40),
+      schwerpunkte: liste(parsed.schwerpunkte, 4, 60),
+      erfahrung: (Array.isArray(parsed.erfahrung) ? parsed.erfahrung : []).slice(0, 15).map(e => {
+        const roh = (e ?? {}) as Record<string, unknown>;
+        return { rolle: s(roh.rolle, 120), firma: s(roh.firma, 120) || undefined, zeitraum: s(roh.zeitraum, 60), ergebnis: s(roh.ergebnis, 220) || undefined };
+      }).filter(e => e.rolle),
+      ausbildung: (Array.isArray(parsed.ausbildung) ? parsed.ausbildung : []).slice(0, 8).map(a => {
+        const roh = (a ?? {}) as Record<string, unknown>;
+        return { titel: s(roh.titel, 160), ort: s(roh.ort, 120) || undefined, zeitraum: s(roh.zeitraum, 60) || undefined };
+      }).filter(a => a.titel),
+      sprachen: (Array.isArray(parsed.sprachen) ? parsed.sprachen : []).slice(0, 8).map(sp => {
+        const roh = (sp ?? {}) as Record<string, unknown>;
+        return { sprache: s(roh.sprache, 40), niveau: s(roh.niveau, 40) || undefined };
+      }).filter(sp => sp.sprache),
+      ...(fotoUrl ? { fotoUrl } : {}),
+      pdfVorlage: s(body.vorlage, 30) || undefined,
+      /* KEIN Anschreiben, KEINE Anzeige, KEINE Match-Werte — das ist der ganze Unterschied
+         zum Schritt darüber. */
+      bezahlt: false,
+    };
+    if (!(await schreibeLebenslauf(profil))) {
+      return NextResponse.json({ error: "Speichern fehlgeschlagen." }, { status: 500 });
+    }
+
+    try {
+      const frisch = await readKissLog();
+      const e = frisch.find(x => x.id === id);
+      if (e) {
+        e.cvPath = cvPath;
+        e.cvName = s(body.cvName, 160) || e.cvName;
+        if (fotoPath) e.personPath = fotoPath;
+        if (profil.email) e.email = profil.email;
+        await writeKissLog(frisch);
+      }
+    } catch { /* Beschriftung ist Zugabe */ }
+
+    return NextResponse.json({ id, profil: kurzfassung(profil), fehlend: fehlendeFelder(profil), hatFoto: !!fotoUrl });
+  }
+
+  /* ═══ SCHRITT „ERGAENZEN" — die Antworten des Minichats ═══
+   *
+   * KEIN MODELL-AUFRUF. Nach dem Auslesen steht fest, welche Felder leer sind; der Chat geht
+   * genau die durch. Das ist nicht nur billiger, sondern verlässlicher — eine echte
+   * Chat-Maschine kann abschweifen, diese Abfolge nicht.
+   *
+   * POST { schritt: "ergaenzen", id, device, feld, wert }  ·  feld: name|email|telefon|ort
+   * POST { schritt: "ergaenzen", id, device, foto }        · ein nachgereichtes Bild
+   * POST { schritt: "ergaenzen", id, device, ohneFoto: true } · „absichtlich weggelassen"
+   */
+  if (schritt === "ergaenzen") {
+    const profil = await leseLebenslauf(id).catch(() => null);
+    if (!profil) return NextResponse.json({ error: "Auftrag nicht gefunden." }, { status: 404 });
+    /* Ein bezahltes PDF wird nicht mehr im Vorbeigehen geändert. */
+    if (profil.bezahlt === true) return NextResponse.json({ error: "Schon fertiggestellt." }, { status: 409 });
+
+    const feld = s(body.feld, 20);
+    const wert = s(body.wert, 200);
+    if (feld && ["name", "email", "telefon", "ort"].includes(feld)) {
+      if (feld === "email" && wert && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(wert)) {
+        return NextResponse.json({ error: "Diese Adresse sieht noch nicht vollständig aus." }, { status: 400 });
+      }
+      (profil as Record<string, unknown>)[feld] = feld === "email" ? wert.toLowerCase() : wert;
+    }
+
+    if (body.ohneFoto === true) profil.ohneFoto = true;
+
+    const fotoDataUrl = s(body.foto, 8_000_000);
+    if (fotoDataUrl.startsWith("data:")) {
+      const fp = await fotoAblegen(fotoDataUrl).catch(() => "");
+      const fu = fp ? await getSignedUrl(fp, 60 * 60 * 24 * 365 * 10).catch(() => "") : "";
+      if (fu) { profil.fotoUrl = fu; profil.ohneFoto = false; }
+    }
+
+    if (!(await schreibeLebenslauf(profil))) {
+      return NextResponse.json({ error: "Speichern fehlgeschlagen." }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, profil: kurzfassung(profil), fehlend: fehlendeFelder(profil), hatFoto: !!profil.fotoUrl });
+  }
+
+  /* ═══ SCHRITT „FREISCHALTEN" — Wasserzeichen weg, ohne zweiten Modell-Lauf ═══
+   *
+   * Der Kreator hat nichts zu optimieren: Es gibt keine Anzeige und kein Anschreiben, auf
+   * die zugeschnitten werden könnte. Bezahlt wird hier allein das saubere PDF (Owner
+   * 31.08.2026: „9,99 bleibt dabei"). Deshalb setzt dieser Schritt nur `bezahlt` — kein
+   * KI-Aufruf, keine zweite Rechnung, und beliebig oft aufrufbar (die Rückkehr von Stripe
+   * kann mehrfach laden).
+   *
+   * Die Zahlungsprüfung ist WÖRTLICH dieselbe wie bei `optimieren`, samt Admin-Durchlauf,
+   * damit der Kaufweg auch hier ohne echtes Geld geprüft werden kann.
+   */
+  if (schritt === "freischalten") {
+    const alsAdmin = adminPinMatches(request);
+    if (alsAdmin && auftrag.paid !== true) {
+      console.warn("[resume-generator] ADMIN-DURCHLAUF (Kreator) — Kasse übersprungen, nichts abgebucht:", id.slice(0, 8));
+    }
+    if (!alsAdmin && auftrag.paid !== true) {
+      return NextResponse.json({ error: "Erst nach der Zahlung.", zahlungNoetig: true }, { status: 402 });
+    }
+    const profil = await leseLebenslauf(id);
+    if (!profil) return NextResponse.json({ error: "Lebenslauf nicht gefunden." }, { status: 404 });
+    if (!(await darfAmProfilArbeiten(profil, device, request))) {
+      return NextResponse.json({ error: "Dieser Auftrag gehört zu einem anderen Browser. Öffne ihn auf dem Gerät, auf dem du angefangen hast — oder starte hier neu." }, { status: 403 });
+    }
+    if (profil.bezahlt === true) return NextResponse.json({ ok: true, id, schon: true });
+    if (!(await schreibeLebenslauf({ ...profil, bezahlt: true }))) {
       return NextResponse.json({ error: "Speichern fehlgeschlagen." }, { status: 500 });
     }
     return NextResponse.json({ ok: true, id });

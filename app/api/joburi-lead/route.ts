@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { leseLead, schreibeLead, leseAlleLeads, type JoburiLead } from "@/lib/joburi-leads";
 import { leseStellen } from "@/lib/joburi-store";
+import { gehaltMitte, gehaltGueltig } from "@/lib/joburi-gehalt";
+import { berufZuBereich } from "@/lib/joburi-beruf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +24,16 @@ export const dynamic = "force-dynamic";
 const s = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 const MAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/** Median statt Durchschnitt — ein einziger Ausreisser („über 3.800 €") verschöbe den
+    Durchschnitt und damit die Aussage, die wir einer Firma gegenüber machen. Nullen sind
+    fehlende Antworten und fliegen raus, nicht etwa „verdient nichts". */
+function median(werte: number[]): number | null {
+  const w = werte.filter(n => n > 0).sort((a, b) => a - b);
+  if (!w.length) return null;
+  const m = Math.floor(w.length / 2);
+  return w.length % 2 ? w[m] : Math.round((w[m - 1] + w[m]) / 2);
+}
+
 const NIVEAUS = ["A2", "B1", "B2", "C1", "C2"];
 const FORMEN = ["remote", "hibrid", "birou", "egal"];
 const ZIELE = ["salariu", "flexibilitate", "cariera", "intoarcere"];
@@ -32,7 +44,13 @@ const SUCHEN = ["aktiv", "offen", "passiv"];
    darin steht, wird verworfen statt gespeichert; sonst landet irgendwann getippter Müll in
    der Auswertung, auf die wir uns gegenüber Firmen berufen. */
 const LAENDER = ["ro", "de", "at", "alta"];
-const GEHAELTER = ["800", "1200", "1600", "2000", "2500", "3000+"];
+/* Die Gehälter sind seit dem 31.08. getippte Zahlen und keine Auswahl mehr — der Riegel ist
+   deshalb kein Listenvergleich, sondern `gehaltGueltig` (siehe lib/joburi-gehalt.ts). Die
+   alten Stufen-Schlüssel gelten dort weiter, damit die ersten 60 Antworten zur Studie
+   gehören bleiben. */
+/* Als Spanne, nicht als Jahr — und als Riegel wie alle anderen Listen hier. */
+const ALTER = ["u25", "25-34", "35-44", "45-54", "55+"];
+const STUDII = ["gimnaziu", "liceu", "profesionala", "licenta", "master"];
 const FAKTOREN = ["salariu", "remote", "flexibilitate", "cariera", "stabilitate", "echipa"];
 const RUECKKEHR = ["da", "poate", "nu"];
 const BERUFSFELDER = ["suport", "it", "finante", "logistica", "inginerie", "vanzari", "sanatate", "altul"];
@@ -41,7 +59,15 @@ export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) {
     return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
-  const leads = await leseAlleLeads();
+  const alleLeads = await leseAlleLeads();
+  /**
+   * DIE AUSWERTUNG SIEHT NUR ECHTE MENSCHEN (31.08.2026).
+   *
+   * Probelaeufe bleiben gespeichert — man kann spaeter nicht mehr pruefen, was man geloescht
+   * hat —, aber jede Zahl unterhalb rechnet ohne sie. Sonst berichtete die Studie unsere
+   * eigenen Klicks als Marktdaten.
+   */
+  const leads = alleLeads.filter(l => !l.test);
   /**
    * DIE KENNZAHL, DIE ZÄHLT (Owner 31.08.2026): „100 € Meta-Budget → 35 Leads → 18 C1/C2 →
    * 9 mit Interesse → 4 qualifizierte Kandidaten." Sie steht hier fertig gerechnet, damit
@@ -62,15 +88,50 @@ export async function GET(request: Request) {
        Der Median, nicht der Durchschnitt: Ein einziger Ausreisser mit „3000+" verschöbe den
        Durchschnitt und damit die Aussage, die wir einer Firma gegenüber machen. */
     mitGehalt: leads.filter(l => !!l.wechselGehalt).length,
-    gehaltMedian: (() => {
-      const werte = leads.map(l => l.wechselGehalt).filter(Boolean).map(g => Number(String(g).replace("+", "")));
-      if (!werte.length) return null;
-      werte.sort((a, b) => a - b);
-      const m = Math.floor(werte.length / 2);
-      return werte.length % 2 ? werte[m] : Math.round((werte[m - 1] + werte[m]) / 2);
-    })(),
+    gehaltMedian: median(leads.map(l => gehaltMitte(l.wechselGehalt))),
+
+    /* ── WAS SIE HEUTE VERDIENEN, UND DER SPRUNG (Owner 31.08.2026) ──
+       „ab 2.000 €" allein ist keine Aussage: Es kann ein Schritt sein oder ein Traum. Erst
+       gegen das heutige Gehalt gehalten wird daraus die Zahl, für die eine Firma zahlt —
+       „C1-Sprecher in Rumänien verdienen im Median X und wechseln ab Y".
+
+       DER SPRUNG WIRD JE PERSON GERECHNET, NICHT ALS DIFFERENZ DER BEIDEN MEDIANE. Die
+       beiden Mediane stammen sonst aus verschiedenen Teilmengen (nicht jeder beantwortet
+       beides), und ihre Differenz gehörte keinem einzigen echten Menschen. */
+    mitJetztGehalt: leads.filter(l => !!l.jetztGehalt).length,
+    jetztMedian: median(leads.map(l => gehaltMitte(l.jetztGehalt))),
+    mitBeidenGehaeltern: leads.filter(l => l.jetztGehalt && l.wechselGehalt).length,
+    sprungMedian: median(leads
+      .filter(l => l.jetztGehalt && l.wechselGehalt)
+      .map(l => gehaltMitte(l.wechselGehalt) - gehaltMitte(l.jetztGehalt))),
+
+    /* DIE LÜGEN-PROBE (Owner 31.08.2026: „hier lügen sie alle. Wenn sie sagen Rumänien und
+       sagen sie verdienen 2500, dann ist das eine Lüge").
+       Ausserhalb der IT ist die oberste rumänische Stufe („über 1.600 € netto") selten —
+       wer sie wählt, ist entweder gut bezahlt oder er schmückt. Die Zeilen werden NICHT
+       gelöscht: Wegwerfen, was nicht ins Bild passt, wäre gefälschte Statistik. Sie stehen
+       hier als eigene Zahl, damit sich jede Aussage auch ohne sie nachrechnen lässt.
+       Der Median trägt den Rest: Ein paar Schmücker verschieben ihn kaum, einen Durchschnitt
+       hätten sie zerlegt. */
+    roOberste: leads.filter(l => l.land === "ro" && (l.jetztGehalt === "g2500" || l.jetztGehalt === "g3000")).length,
+    roObersteOhneIt: leads.filter(l => l.land === "ro" && (l.jetztGehalt === "g2500" || l.jetztGehalt === "g3000") && l.berufsfeld !== "it").length,
+
+    /* Das Alter — die Antwort auf „war die Altersgrenze in der Anzeige richtig?". */
+    /* Der Abschluss — mit Deutschniveau und Beruf die Angabe, nach der Firmen filtern. */
+    mitStudii: leads.filter(l => !!l.studii).length,
+    studiiVerteilung: STUDII.reduce((a, k) => {
+      a[k] = leads.filter(l => l.studii === k).length; return a;
+    }, {} as Record<string, number>),
+
+    mitAlter: leads.filter(l => !!l.alter).length,
+    alterVerteilung: ["u25", "25-34", "35-44", "45-54", "55+"].reduce((a, k) => {
+      a[k] = leads.filter(l => l.alter === k).length; return a;
+    }, {} as Record<string, number>),
+    /* Und die Gegenprobe zur Grenze: Wie gut ist Deutsch bei den Ausgeschlossenen? */
+    hoch55plus: leads.filter(l => l.alter === "55+" && (l.deutsch === "C1" || l.deutsch === "C2")).length,
   };
-  return NextResponse.json({ ok: true, summe, leads });
+  /* `proben` steht daneben, damit sichtbar bleibt, wie viel beim Bauen entstanden ist. */
+  return NextResponse.json({ ok: true, summe, leads, proben: alleLeads.length - leads.length });
 }
 
 export async function POST(request: Request) {
@@ -84,9 +145,14 @@ export async function POST(request: Request) {
     const ziel = s(body.ziel, 20).toLowerCase();
     const suche = s(body.suche, 10).toLowerCase();
     const land = s(body.land, 6).toLowerCase();
-    const gehalt = s(body.wechselGehalt, 6);
+    const gehalt = s(body.wechselGehalt, 8);
+    const jetzt = s(body.jetztGehalt, 8);
+    const alter = s(body.alter, 6);
+    const studii = s(body.studii, 14).toLowerCase();
+    const test = body.test === true;
     const rueckkehr = s(body.rueckkehr, 8).toLowerCase();
     const feld = s(body.berufsfeld, 20).toLowerCase();
+    const feldFrei = s(body.berufsfeldFrei, 40);
     const faktoren = Array.isArray(body.faktoren)
       ? [...new Set(body.faktoren.map(f => s(f, 20).toLowerCase()).filter(f => FAKTOREN.includes(f)))]
       : [];
@@ -101,10 +167,20 @@ export async function POST(request: Request) {
       ...(ZIELE.includes(ziel) ? { ziel: ziel as JoburiLead["ziel"] } : {}),
       ...(SUCHEN.includes(suche) ? { suche: suche as JoburiLead["suche"] } : {}),
       ...(LAENDER.includes(land) ? { land: land as JoburiLead["land"] } : {}),
-      ...(GEHAELTER.includes(gehalt) ? { wechselGehalt: gehalt as JoburiLead["wechselGehalt"] } : {}),
+      ...(gehaltGueltig(gehalt) ? { wechselGehalt: gehalt } : {}),
+      ...(gehaltGueltig(jetzt) ? { jetztGehalt: jetzt } : {}),
+      ...(ALTER.includes(alter) ? { alter: alter as JoburiLead["alter"] } : {}),
+      ...(STUDII.includes(studii) ? { studii: studii as JoburiLead["studii"] } : {}),
       ...(faktoren.length ? { faktoren: faktoren as NonNullable<JoburiLead["faktoren"]> } : {}),
       ...(RUECKKEHR.includes(rueckkehr) ? { rueckkehr: rueckkehr as JoburiLead["rueckkehr"] } : {}),
-      ...(BERUFSFELDER.includes(feld) ? { berufsfeld: feld } : {}),
+      /* DER BERUF KOMMT JETZT ALS TEXT (31.08.2026). Gespeichert wird BEIDES: sein Wortlaut,
+         weil er den Lead ausmacht, und der abgeleitete Bereich, weil die Studie zählbare
+         Zeilen braucht. Die Zuordnung ist eine Stichwortliste, kein bezahltes Modell —
+         dieselbe Eingabe ergibt in einem halben Jahr dieselbe Zeile. */
+      ...(feldFrei ? { berufsfeldFrei: feldFrei, berufsfeld: berufZuBereich(feldFrei) } : {}),
+      /* Der Altbestand schickt weiter eine Kachel; die gilt unverändert. */
+      ...(!feldFrei && BERUFSFELDER.includes(feld) ? { berufsfeld: feld } : {}),
+      ...(test ? { test: true } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),
       ...(s(body.lang, 5) ? { lang: s(body.lang, 5) } : {}),
       ...(body.utm && typeof body.utm === "object" ? { utm: body.utm as Record<string, string> } : {}),

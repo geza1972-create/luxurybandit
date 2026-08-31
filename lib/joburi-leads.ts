@@ -37,6 +37,10 @@ export type Weitergabe = {
 export type JoburiLead = {
   id: string;
   erstelltAm: string;
+  /** Ein Probelauf (eigene Maschine oder Admin-Sitzung), kein Mensch. Bleibt gespeichert,
+      fällt aber aus jeder Auswertung — sonst stünden unsere eigenen Klicks in der Studie,
+      auf die wir uns gegenüber Firmen berufen. */
+  test?: boolean;
   aktualisiertAm?: string;
 
   /* Die drei Klickfragen — sie stehen vor der Adresse und sind auch dann da, wenn er
@@ -71,13 +75,38 @@ export type JoburiLead = {
   land?: "ro" | "de" | "at" | "alta";
   /** Ab welchem NETTO-Gehalt ein Wechsel interessant wird. Als Stufe, nicht als Zahl:
       Eine offene Zahl beantwortet kaum jemand, eine Spanne fast jeder. */
-  wechselGehalt?: "800" | "1200" | "1600" | "2000" | "2500" | "3000+";
+  /**
+   * DAS ALTER, ALS SPANNE (Owner 31.08.2026). Es entscheidet, ob die Altersgrenze in der
+   * Meta-Anzeige Geld spart oder gute Leute wegwirft — eine Frage, die sich aus Metas
+   * Reichweitenzahlen NIE beantworten lässt: die sagen, wer geklickt hat, nie ob dessen
+   * Antwort etwas taugte.
+   */
+  alter?: "u25" | "25-34" | "35-44" | "45-54" | "55+";
+  /**
+   * WAS ER HEUTE VERDIENT — die Frage gegen das Träumen (Owner 31.08.2026: „ich muss sie
+   * auch fragen wieviel sie jetzt verdienen, weil sie sonst träumen").
+   * `wechselGehalt` allein steht für nichts: „ab 2.000 €" kann ein realistischer Schritt sein
+   * oder eine Fantasie. Erst die Differenz aus beiden ist die Zahl, die ein Recruiter kauft.
+   * Die Stufen hängen am Wohnland (siehe lib/joburi-gehalt.ts) — deshalb hier ein Schlüssel
+   * wie „ro900" und keine blanke Zahl.
+   */
+  jetztGehalt?: string;
+  /* Seit dem 31.08. eine getippte Zahl als Text („2500"). Die ersten 60 Antworten tragen
+     hier noch Stufen-Schlüssel („3000+"); `gehaltMitte` liest beides. */
+  wechselGehalt?: string;
   /** Was den Ausschlag gibt — mehrfach wählbar, deshalb eine Liste. */
   faktoren?: ("salariu" | "remote" | "flexibilitate" | "cariera" | "stabilitate" | "echipa")[];
   /** Nur bei Diaspora: Würde er nach Rumänien zurück? */
   rueckkehr?: "da" | "poate" | "nu";
   /** Berufsfeld — die eine Angabe, die aus einer Antwort einen Kandidaten macht. */
   berufsfeld?: string;
+  /** Was er getippt hat, wenn keine Kachel passte (`berufsfeld === "altul"`). In den ersten
+      60 Antworten war „Anderes" die häufigste Angabe überhaupt — und die einzige, über die
+      sich nichts sagen liess. Hier steht ab jetzt, was es wirklich war. */
+  berufsfeldFrei?: string;
+  /** Der hoechste Abschluss. Zusammen mit Deutschniveau und Beruf die Angabe, nach der ein
+      Arbeitgeber als Erstes filtert — ohne sie laesst sich "C1, Pflege" nicht einordnen. */
+  studii?: "gimnaziu" | "liceu" | "profesionala" | "licenta" | "master";
 
   email?: string;
   vorname?: string;

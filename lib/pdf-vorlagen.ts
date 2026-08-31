@@ -46,6 +46,17 @@ export type PdfVorlage = {
    *            grosse Kursiv-Serife, Haarlinien statt Balken (vierte Referenz)
    */
   layout: "kreis" | "linie" | "editorial" | "banner";
+  /**
+   * DIE DEUTSCHE FORM (Owner 31.08.2026: „und deutsches Design und Formatierung?" — er hat
+   * 30 Jahre als Designer in Deutschland gearbeitet, die Form ist seine, nicht meine).
+   *
+   * KEIN eigener `layout`-Wert, mit Absicht: Der tabellarische Lebenslauf IST der
+   * Linien-Aufbau — Zeitspalte links, senkrechte Linie, Station rechts. Ein neuer Aufbau
+   * hätte jede Zeichenstelle in `bewerbung-pdf.ts` angefasst, also auch die, an denen Davids
+   * PDF hängt. Dieses Kennzeichen schaltet nur zwei Dinge zusätzlich: rechteckiges Foto statt
+   * Kreis und die Zeile „Ort, Datum" am Schluss.
+   */
+  deutschForm?: boolean;
   /** Helle Spalte (Klassik) — dann steht dunkle Schrift darin statt heller. */
   hell: boolean;
   /** Die Farbe auf der WEISSEN Seite: Balken, Firmenzeile, Zeitstrahl. */
@@ -103,6 +114,11 @@ export const PDF_VORLAGEN: PdfVorlage[] = [
      Spalte in derselben Farbe weiter.
      `spalte` ist hier die Farbe von Band UND Spalte, `spalteAkzent` die der Überschriften
      darin — in unseren Farben also Anthrazit mit Gold. */
+  /**
+   * DEUTSCH — die Form, die eine deutsche Personalabteilung erwartet: nüchtern, Zeitspalte,
+   * kein Farbblock. Sie ist die Voreinstellung auf /themes/deutscher-lebenslauf.
+   */
+  { id: "deutsch",        name: "Deutsch",        layout: "linie", hell: true,  akzent: TINTE_HEX, spalte: PAPIER,    spalteAkzent: STAHL, deutschForm: true },
   { id: "kopfband",       name: "Kopfband",       layout: "banner",    hell: false, akzent: ANTHRAZIT, spalte: ANTHRAZIT, spalteAkzent: GOLD },
 ];
 
@@ -125,6 +141,22 @@ export const VORLAGEN_BILD_FASSUNG = 3;
 
 /** Die Adresse des Vorschaubildes einer Vorlage — immer mit Fassung, nie ohne. */
 export const vorlagenBild = (id: string) => `/Lebenslauf/vorlage-${id}.jpg?v=${VORLAGEN_BILD_FASSUNG}`;
+
+/**
+ * DAS BLATT OHNE DIE MUSTER-FRAU — für die Galerie-Kachel (Owner 30.08.2026: „es ist immer
+ * noch die Frau im Vorschau").
+ *
+ * Nicht jede Vorlage hat eine stille Fassung: Die deutsche kam später dazu und wurde aus
+ * einem echten PDF gerendert. Bisher stand `-neutral` fest in der Galerie-Route — bei
+ * „Deutsch" führte das auf eine Datei, die es nicht gibt, und die Kachel blieb leer (die
+ * stille Fassung ist am 31.08. nachgerendert worden). Wer trotzdem einmal keine hat, zeigt
+ * eben seine normale; ein Bild schlägt kein Bild.
+ */
+const MIT_NEUTRALER_FASSUNG = new Set(["klassik", "gold", "linie-gold", "editorial", "kopfband", "deutsch"]);
+export const vorlagenBildNeutral = (id: string) =>
+  MIT_NEUTRALER_FASSUNG.has(id)
+    ? `/Lebenslauf/vorlage-${id}-neutral.jpg?v=${VORLAGEN_BILD_FASSUNG}`
+    : vorlagenBild(id);
 
 /** Unbekanntes fällt auf die erste zurück — eine geratene Kennung darf kein PDF verhindern. */
 export const vorlageFinden = (id?: string): PdfVorlage =>

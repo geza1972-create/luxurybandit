@@ -553,13 +553,13 @@ const THEMEN: Record<LangArchiv, Record<string, string>> = {
  * Diese Tabelle nennt nur das THEMA; `themaUndMedium` setzt das Medium separat davor/danach.
  */
 const THEMA_KURZ: Record<LangArchiv, Record<string, string>> = {
-  en: { birthday: "Birthday", kiss: "Kiss", poledance: "Pole dance", holiday: "Holiday", wedding: "Wedding", gutschein: "Gift card", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Video CV" },
-  de: { birthday: "Geburtstag", kiss: "Kuss", poledance: "Poledance", holiday: "Urlaub", wedding: "Hochzeit", gutschein: "Gutschein", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Bewerbung" },
-  ro: { birthday: "Ziua ta", kiss: "Sărut", poledance: "Pole dance", holiday: "Vacanță", wedding: "Nuntă", gutschein: "Card cadou", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "CV video" },
-  es: { birthday: "Cumpleaños", kiss: "Beso", poledance: "Pole dance", holiday: "Vacaciones", wedding: "Boda", gutschein: "Tarjeta regalo", idol: "Ídolo", versprechen: "Future Self Program", lebenslauf: "CV en vídeo" },
-  fr: { birthday: "Anniversaire", kiss: "Baiser", poledance: "Pole dance", holiday: "Vacances", wedding: "Mariage", gutschein: "Carte cadeau", idol: "Idole", versprechen: "Future Self Program", lebenslauf: "CV vidéo" },
-  pt: { birthday: "Aniversário", kiss: "Beijo", poledance: "Pole dance", holiday: "Férias", wedding: "Casamento", gutschein: "Cartão presente", idol: "Ídolo", versprechen: "Future Self Program", lebenslauf: "CV em vídeo" },
-  it: { birthday: "Compleanno", kiss: "Bacio", poledance: "Pole dance", holiday: "Vacanza", wedding: "Nozze", gutschein: "Buono regalo", idol: "Idolo", versprechen: "Future Self Program", lebenslauf: "CV video" },
+  en: { birthday: "Birthday", kiss: "Kiss", poledance: "Pole dance", holiday: "Holiday", wedding: "Wedding", gutschein: "Gift card", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Video CV", resume: "CV" },
+  de: { birthday: "Geburtstag", kiss: "Kuss", poledance: "Poledance", holiday: "Urlaub", wedding: "Hochzeit", gutschein: "Gutschein", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Bewerbung", resume: "Lebenslauf" },
+  ro: { birthday: "Ziua ta", kiss: "Sărut", poledance: "Pole dance", holiday: "Vacanță", wedding: "Nuntă", gutschein: "Card cadou", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "CV video", resume: "CV" },
+  es: { birthday: "Cumpleaños", kiss: "Beso", poledance: "Pole dance", holiday: "Vacaciones", wedding: "Boda", gutschein: "Tarjeta regalo", idol: "Ídolo", versprechen: "Future Self Program", lebenslauf: "CV en vídeo", resume: "CV" },
+  fr: { birthday: "Anniversaire", kiss: "Baiser", poledance: "Pole dance", holiday: "Vacances", wedding: "Mariage", gutschein: "Carte cadeau", idol: "Idole", versprechen: "Future Self Program", lebenslauf: "CV vidéo", resume: "CV" },
+  pt: { birthday: "Aniversário", kiss: "Beijo", poledance: "Pole dance", holiday: "Férias", wedding: "Casamento", gutschein: "Cartão presente", idol: "Ídolo", versprechen: "Future Self Program", lebenslauf: "CV em vídeo", resume: "CV" },
+  it: { birthday: "Compleanno", kiss: "Bacio", poledance: "Pole dance", holiday: "Vacanza", wedding: "Nozze", gutschein: "Buono regalo", idol: "Idolo", versprechen: "Future Self Program", lebenslauf: "CV video", resume: "CV" },
 };
 
 /**

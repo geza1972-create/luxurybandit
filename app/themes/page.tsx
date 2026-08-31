@@ -549,6 +549,41 @@ export default async function ThemesCatalog({ searchParams }: {
      * gebaut ist.
      */
     { icon: Briefcase, title: "Jobs with German", tagline: "Answer 4 questions — we show you real openings that could fit you.", href: `/joburi/germana${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 4 questions · Real openings · Free" },
+    /**
+     * DER LEBENSLAUF-GENERATOR (Owner 31.08.2026: „Dann würde ich den PDF Kreator als extra
+     * Topic machen, super simple" · „Es ist einfach ein CV Kreator. Ohne Anschreiben, ohne
+     * nichts. Ein Tool.").
+     *
+     * Er steht bei den beiden Job-Kacheln, weil er dieselbe Person anspricht: Wer wissen
+     * will, was sein Deutsch wert ist, hat einen Lebenslauf — und der sieht meistens aus wie
+     * ein Word-Dokument von 2019.
+     *
+     * KEIN MOTIV, wie bei Joburi vor dem Bild: Ohne `cover` setzt die Bibliothek das Symbol
+     * als Wasserzeichen. Kein Stockfoto.
+     *
+     * DER PREIS IST DER ZWEITE SCHRITT: Das PDF mit Muster-Wasserzeichen ist gratis und darf
+     * verschickt werden (Hausregel `gratis-nur-mit-muster`); die 9,99 € nehmen nur das
+     * Wasserzeichen weg. Deshalb steht „ab" davor — `themenPreisZeile` schreibt es.
+     */
+    /* DIE SCHLICHTE TÜR IST HIER RAUS (Owner 31.08.2026, mit Bild beider Kacheln: „jetzt
+       hast du zwei hier").
+       Zwei fast gleiche Kacheln schwächen beide, und für die Zielgruppe ist die deutsche
+       Fassung die stärkere. Dazu kam ein zweiter Grund, der erst im Katalog sichtbar wurde:
+       Die Laufzeit-Übersetzung machte aus „Bewerbungs-Generator" auf Rumänisch „Generator de
+       aplicații" — Software-Anwendungen. Im Hauptmarkt stand damit Unsinn im Regal.
+       `/themes/bewerbungs-generator` gibt es weiter und ist direkt erreichbar; beworben wird
+       nur noch die deutsche Tür. */
+    /**
+     * DEIN DEUTSCHER LEBENSLAUF (Owner 31.08.2026) — dieselbe Maschine wie die Kachel
+     * darüber, anderes Versprechen. Sie steht direkt bei den Job-Themen, weil sie dieselbe
+     * Person anspricht wie „Jobs mit Deutsch": Wer wissen will, was sein Deutsch wert ist,
+     * braucht als Nächstes einen Lebenslauf, den ein deutscher Arbeitgeber lesen kann.
+     */
+    { icon: FileText, title: "Dein deutscher Lebenslauf", tagline: "Lade deinen Lebenslauf in jeder Sprache hoch — heraus kommt die deutsche Fassung als PDF.", href: "/themes/deutscher-lebenslauf", /* GROSS UND FORMATFÜLLEND (Owner 31.08.2026: „so gross wie der Siegel war ganz am
+       Anfang abgeschnitten war doch noch besser") — die Kachel schneidet das Siegel damit
+       links und rechts an. Das ist seine Entscheidung als Gestalter: Ein Siegel, das die
+       Fläche füllt, wirkt stärker als eines, das mit Rand darin schwimmt. */
+      cover: "/Lebenslauf/siegel-deutsch.png", chips: "♥ Gratis mit Muster · Ohne Anmeldung · PDF", abPreis: themenPreisZeile("resume", L) },
     { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise", abPreis: AB_VERSPRECHEN },
     /**
      * GEBURTSTAG AUF PLATZ ZWEI (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf

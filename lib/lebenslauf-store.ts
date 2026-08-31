@@ -24,6 +24,15 @@ export type LebenslaufProfil = {
    */
   sprechtext?: string;
   videoUrl?: string;
+  /**
+   * ER HAT DAS FOTO ABSICHTLICH WEGGELASSEN (Owner 31.08.2026: „du musst ihm noch im chat
+   * sagen, ein bild hast du bewusst nicht hochgeladen oder vergessen").
+   *
+   * In Deutschland und Österreich lassen viele das Bewerbungsfoto bewusst weg. Ein Werkzeug,
+   * das dann weiter danach fragt, wirkt ahnungslos; eines, das die Antwort merkt, aufmerksam.
+   * Gesetzt vom Minichat des Lebenslauf-Generators, nur dort gelesen.
+   */
+  ohneFoto?: boolean;
   /** Kein eigener Foto-Upload mehr (siehe `sprechtext`-Kommentar oben) — das Video liefert
       das Bild. Bleibt optional stehen für ältere Test-Profile / einen möglichen Poster-Pfad. */
   fotoUrl?: string;

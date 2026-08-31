@@ -267,7 +267,29 @@ export default function TopNav({
               <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
             </span>
             <span className="min-w-0 text-left">
-              <span className="block whitespace-nowrap text-sm font-black uppercase leading-none tracking-widest text-white">{marke ?? "LuxuryBandit"}</span>
+              {/**
+                * EIN LANGER NAME SCHRUMPFT, ER ÜBERLAGERT NICHT (Owner 31.08.2026, mit Bild
+                * von „LB - BEWERBUNGS-GENERATOR": „das geht nicht überlagert. Brauchen wir
+                * nicht so grosse Buchstaben").
+                *
+                * Die Zeile war `whitespace-nowrap` OHNE Begrenzung — sie lief unter die
+                * Symbole rechts, statt zu enden. Zwei Dinge halten sie jetzt im Zaum:
+                * `truncate` schneidet im Notfall mit Auslassungspunkten ab, und ab 16 Zeichen
+                * werden Schrift und Sperrung kleiner. Gemessen an „LB - Bewerbungs-Generator"
+                * (25 Zeichen): passt bei 12,5 px ohne Abschneiden.
+                *
+                * Es steht hier und nicht auf der Seite, weil es JEDE Marke trifft, die jemand
+                * künftig einträgt — die nächste lange wäre sonst derselbe Fehler.
+                */}
+              <span className={`block truncate font-black leading-none text-white ${
+                /* LANGE NAMEN VERLIEREN DIE VERSALIEN, NICHT DEN NAMEN. Gemessen an
+                   „Bewerbungs-Generator": In Versalien mit Sperrung braucht er ~180 px, es
+                   stehen 163 zur Verfügung — er wurde abgeschnitten, egal wie klein die
+                   Schrift wurde. In gemischter Schreibweise ohne Sperrung passt er ganz.
+                   Ein halber Produktname im Kopf ist schlimmer als ein Name ohne Versalien. */
+                (marke ?? "").length > 16 ? "text-[13.5px] tracking-tight" : "text-sm uppercase tracking-widest"}`}>
+                {marke ?? "LuxuryBandit"}
+              </span>
               {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                   kommt allenfalls dahinter, ersetzt es aber nie. */}
               <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
@@ -370,7 +392,11 @@ export default function TopNav({
             Seite mit Kopfzeile.
             LINKS von der Sprache, weil deren Menü nach rechts aufklappt und sonst aus dem
             Bild liefe. */}
-        <span className="flex items-center gap-2">
+        {/* `lb-kopf-schalter` ist der Griff, an dem ein Trichter diese beiden ausblenden kann,
+            sobald er läuft (Owner 31.08.2026: „deutsch und light braucht man auch nur am
+            anfang"). Die Regel dazu steht in app/globals.css und greift NUR, solange eine
+            Seite `lb-tunnel-tief` an den Body hängt — überall sonst ändert sich nichts. */}
+        <span className="lb-kopf-schalter flex items-center gap-2">
           {/* Hell/Dunkel bleibt auch im geschlossenen Trichter (Hausregel 06.08.2026).
               Der Sprachumschalter fällt weg: Ein Trichter mit fest verdrahteter Sprache —
               Joburi ist rumänisch — hätte dort nichts zu wechseln, und ein Knopf, der

@@ -573,11 +573,24 @@ svg {
    durchsichtigen blauen Fleck statt einer eigenen weissen Flaeche, sobald ein Foto darunterlag
    (02.08.2026, vom Owner gemeldet: „den Chip fuer die Sprachen muss auch weiss sein"). */
 .lb-fb button[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button),
-.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button) {
+.lb-fb a[class*="border-white/"]:not(.lb-gold):not(.lb-buy):not([data-langrow="1"] button),
+/* EINGABEFELDER GEHÖREN DAZU (Owner 31.08.2026, zu den zwei Gehaltsfeldern: „blaue rahmen
+   und bleuer schrift"). Die Regel kannte bisher nur `button` und `a` — ein Trichter, der
+   ausschliesslich aus Antwort-Kacheln bestand, brauchte nicht mehr. Seit die Gehälter
+   getippt werden, steht ein Feld neben den Kacheln und war als Einziges grau.
+   `label` ist die Hülle um Beschriftung, Feld und das €-Zeichen: So bekommt der ganze
+   Rahmen dieselbe Farbe wie eine Kachel — und ein Tipp irgendwo darauf setzt den Cursor
+   ins Feld, was bei einem `div` nicht passiert wäre. */
+.lb-fb label[class*="border-white/"]:not(.lb-gold):not(.lb-buy),
+.lb-fb select[class*="border-white/"]:not(.lb-gold):not(.lb-buy) {
   color: #1877F2 !important;
   border-color: rgba(24, 119, 242, 0.45) !important;
   background-color: rgba(24, 119, 242, 0.06) !important;
 }
+/* Was IM Feld steht, folgt dem Rahmen: die getippte Zahl, das €-Zeichen, der Platzhalter. */
+.lb-fb label[class*="border-white/"] input,
+.lb-fb label[class*="border-white/"] span { color: #1877F2 !important; }
+.lb-fb label[class*="border-white/"] input::placeholder { color: rgba(24, 119, 242, 0.35) !important; }
 /* DAS SYMBOL IM CHIP FOLGT DER SCHRIFT (Owner 04.08.2026: „Icon Galerie auch blau").
    Gemessen am Galerie-Chip: Die Regel darueber faerbt den LINK blau, aber `.lb-fb
    [data-langrow="1"] *` faerbt ALLES darin dunkel — und das Symbol erbt nichts mehr, weil
@@ -1210,3 +1223,18 @@ svg {
 @media (prefers-reduced-motion: reduce) {
   .lb-puls { animation: none; border-color: rgba(246, 207, 81, 0.9); }
 }
+
+
+/**
+ * IM LAUFENDEN TRICHTER VERSCHWINDEN SPRACHE UND HELL/DUNKEL (Owner 31.08.2026: „deutsch und
+ * light braucht man auch nur am anfang").
+ *
+ * Auf der ersten Seite sind beide sinnvoll — wer aus einer rumänischen Anzeige kommt und
+ * lieber deutsch liest, soll umschalten können. Ab der zweiten Frage ist es Ballast neben
+ * einer Frage, die die ganze Aufmerksamkeit braucht; und wer mitten im Trichter die Sprache
+ * wechselt, lädt die Seite neu und verliert seine Antworten.
+ *
+ * Die Klasse hängt der Trichter selbst an den Body und nimmt sie beim Verlassen wieder ab.
+ * Ohne sie greift hier nichts — jede andere Seite behält ihre Schalter.
+ */
+body.lb-tunnel-tief .lb-kopf-schalter { display: none; }

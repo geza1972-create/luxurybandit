@@ -303,6 +303,9 @@ export async function bewerbungAlsPdf(
    */
   vollbreiteFortsetzung = false;
   neueSeite();
+  /* Die Seite, auf der der LEBENSLAUF beginnt — nicht Seite 1. Bei einer Bewerbung mit
+     Anschreiben ist Seite 1 der Brief; das Siegel gehört aber auf den Lebenslauf. */
+  const lebenslaufSeite = seite;
 
   /* Die Spalte ist beim Zeitstrahl-Aufbau breiter — dort trägt sie das randlose Foto über
      die volle Breite, und ein 170 pt schmales Foto sähe aus wie ein Passbild. */
@@ -542,13 +545,17 @@ export async function bewerbungAlsPdf(
     seite.drawRectangle({ x: SPALTE_B - 1.6, y: 0, width: 1.6, height: A4.h, color: hexRgb(V.randlinie) });
   }
 
-  const linksText = (t: string, o: { groesse?: number; font?: PDFFont; farbe?: ReturnType<typeof rgb>; abstand?: number } = {}) => {
+  const linksText = (t: string, o: { groesse?: number; font?: PDFFont; farbe?: ReturnType<typeof rgb>; abstand?: number; einzug?: number } = {}) => {
     const groesse = o.groesse ?? 9;
     const font = o.font ?? normal;
     const zh = groesse * 1.5;
-    for (const zeile of umbrechen(winAnsi(t), font, groesse, LBREITE)) {
-      if (ly - zh < RAND) return;   // die schmale Spalte läuft nie um — lieber still enden
-      seite.drawText(zeile, { x: LX, y: ly - groesse, size: groesse, font, color: o.farbe ?? SP_TINTE });
+    /* Der Einzug verschmälert die Zeile — sonst liefe „Rumänisch (Muttersprache)" um die
+       Fahnenbreite über den Spaltenrand hinaus. */
+    for (const zeile of umbrechen(winAnsi(t), font, groesse, LBREITE - (o.einzug ?? 0))) {
+      /* Bei der deutschen Form endet die Spalte höher: Unten steht das Siegel, und Text,
+         der hineinliefe, sähe aus wie ein Satzfehler. */
+      if (ly - zh < (V.deutschForm ? RAND + 62 : RAND)) return;   // die schmale Spalte läuft nie um — lieber still enden
+      seite.drawText(zeile, { x: LX + (o.einzug ?? 0), y: ly - groesse, size: groesse, font, color: o.farbe ?? SP_TINTE });
       ly -= zh;
     }
     ly -= o.abstand ?? 0;
@@ -597,6 +604,8 @@ export async function bewerbungAlsPdf(
     for (const sp of profil.schwerpunkte) linksPunkt(sp);
   }
   if (profil.sprachen?.length) {
+    /* KEINE FÄHNCHEN MEHR (Owner 31.08.2026: „mach die Flaggen raus bei den Sprachen") —
+       das Zeichen des Dokuments ist das Siegel, nicht eine Reihe kleiner Fahnen. */
     linksTitel("Sprachen");
     for (const sp of profil.sprachen) {
       linksText(sp.sprache, { font: fett, groesse: 9.5 });
@@ -652,7 +661,40 @@ export async function bewerbungAlsPdf(
 
   if (profil.erfahrung?.length) {
     abschnitt("Berufserfahrung");
-    if (V.layout === "banner") {
+    if (V.deutschForm) {
+      /**
+       * DIE ZEITSPALTE — DIE DEUTSCHE FORM (Owner 31.08.2026: „und deutsches Design und
+       * Formatierung?" · „ich weiss was die Deutschen wollen, ich habe 30 Jahre in DE als
+       * Designer gearbeitet").
+       *
+       * Der tabellarische Lebenslauf hat links den Zeitraum und rechts die Station — beide
+       * auf DERSELBEN Grundlinie, damit das Auge die Jahre in einer Flucht abwärts liest.
+       * Genau das ist der Unterschied zur Zeitachse mit Punkten, die hier vorher stand: Die
+       * sieht modern aus, aber man kann die Jahre nicht überfliegen.
+       *
+       * ZUERST DER ZEITRAUM, DANN DER INHALT — und der Zeitraum wird auf der Höhe gemerkt,
+       * die VOR dem Inhalt galt: Rutscht ein Eintrag auf die nächste Seite, stünde die
+       * Jahreszahl sonst allein am Fuss der vorigen.
+       */
+      const ZEIT_B = 82;
+      const IX = RECHTS_X() + ZEIT_B + 10;
+      const IB = A4.b - RAND - IX;
+      for (const e of profil.erfahrung) {
+        platz(46);
+        const yOben = y;
+        text(e.rolle, { groesse: 10.5, font: fett, x: IX, maxBreite: IB, abstand: 2 });
+        if (e.firma) text(e.firma, { groesse: 9.5, farbe: GRAU, x: IX, maxBreite: IB, abstand: 3 });
+        if (e.ergebnis) text(e.ergebnis, { groesse: 9.5, farbe: GRAU, x: IX, maxBreite: IB, zeilenfaktor: 1.45, abstand: 12 });
+        else y -= 12;
+        if (y < yOben && e.zeitraum) {
+          /* Der Zeitraum bricht bei Bedarf um („09/2019 –" / „08/2021"), damit er die
+             Spalte nie sprengt. */
+          umbrechen(winAnsi(e.zeitraum), normal, 9, ZEIT_B).slice(0, 2).forEach((z, i) => {
+            seite.drawText(z, { x: RECHTS_X(), y: yOben - 10 - i * 12, size: 9, font: normal, color: GRAU });
+          });
+        }
+      }
+    } else if (V.layout === "banner") {
       /* Jahr links, Firma fett daneben, darunter die Rolle und der Satz (sechste Referenz).
          Das Jahr steht dabei in EINER Zeile — die Spalte ist hier breit genug dafür. */
       const JAHR_B = 66;
@@ -755,7 +797,20 @@ export async function bewerbungAlsPdf(
     abschnitt("Ausbildung");
     for (const a of profil.ausbildung) {
       platz(28);
-      if (V.layout === "editorial") {
+      if (V.deutschForm) {
+        /* Dieselbe Spalte wie beim Werdegang — sonst stünden Ausbildung und Erfahrung in
+           zwei verschiedenen Rastern auf einem Blatt. */
+        const ZEIT_B = 82;
+        const IX = RECHTS_X() + ZEIT_B + 10;
+        const IB = A4.b - RAND - IX;
+        const yOben = y;
+        text(a.titel, { groesse: 10, font: fett, x: IX, maxBreite: IB, abstand: 2 });
+        if (a.ort) text(a.ort, { groesse: 9.5, farbe: GRAU, x: IX, maxBreite: IB, abstand: 10 });
+        else y -= 10;
+        if (y < yOben && a.zeitraum) {
+          seite.drawText(winAnsi(a.zeitraum), { x: RECHTS_X(), y: yOben - 10, size: 9, font: normal, color: GRAU });
+        }
+      } else if (V.layout === "editorial") {
         sperrSetzen(seite, winAnsi(a.titel.toUpperCase()), { x: RECHTS_X(), y: y - 10, size: 10, font: fett, color: TINTE, sperrung: 1.6 });
         y -= 18;
         const z = [a.ort, a.zeitraum].filter(Boolean).join("  ·  ");
@@ -768,6 +823,76 @@ export async function bewerbungAlsPdf(
         else y -= 8;
       }
     }
+  }
+
+  /**
+   * ════ DAS SIEGEL ════
+   *
+   * Owner 31.08.2026: „deswegen würde ich eine Flagge einbauen wie ein Siegeszeichen.
+   * Deutsches Design." — Er hat 30 Jahre als Designer in Deutschland gearbeitet; die
+   * Entscheidung ist seine. Ich hatte davon abgeraten, weil eine Fahne auf einem Lebenslauf
+   * als Herkunftsbehauptung gelesen werden kann. Als BAND am Fuss der Spalte, ohne Wort und
+   * ohne Wappen, ist es eine Marke des Dokuments — keine Aussage über den Menschen.
+   *
+   * Gezeichnet aus vier Formen: drei Streifen und eine Kerbe, die aus der Fahne einen Wimpel
+   * macht. Kein eingebettetes Bild, keine Schriftart, keine Lizenzfrage.
+   *
+   * NUR AUF DER ERSTEN SEITE: Auf jeder Folgeseite wäre es Dekoration.
+   */
+  if (V.deutschForm) {
+    const erste = lebenslaufSeite;
+    /**
+     * DAS SIEGEL DES OWNERS (31.08.2026: „deswegen würde ich eine Flagge einbauen wie ein
+     * Siegeszeichen. Deutsches Design." — die Gestaltung ist seine, aus `public/Lebenslauf`).
+     *
+     * ES WIRD EINGEBETTET, NICHT GEZEICHNET: Der gezeichnete Wimpel davor war ein Notbehelf,
+     * solange die Datei fehlte. Transparente Ecken (geprüft: Alpha 0) — es sitzt damit auf
+     * der grauen Spalte wie auf weissem Papier.
+     *
+     * SCHEITERT DAS LADEN, GIBT ES KEIN PDF WENIGER: Ein fehlendes Siegel ist ein
+     * Schönheitsfehler, ein Abbruch wäre ein verlorener Kunde.
+     */
+    /* VON DER PLATTE, NICHT ÜBER DAS NETZ: Die Datei liegt im eigenen `public`-Ordner. Ein
+       HTTP-Aufruf an die eigene Adresse bräuchte den Ursprung, wäre langsamer und fiele beim
+       ersten Netzhusten aus. */
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const bytes = await readFile(join(process.cwd(), "public", "Lebenslauf", "siegel-deutsch.png"));
+      const sg = await dok.embedPng(new Uint8Array(bytes));
+      const B = 62;
+      erste.drawImage(sg, { x: 20, y: RAND + 8, width: B, height: B });
+    } catch { /* ohne Siegel, aber mit Lebenslauf */ }
+  }
+
+  /**
+   * ════ ORT UND DATUM — DIE DEUTSCHE SCHLUSSZEILE ════
+   *
+   * Owner 31.08.2026: „und deutsches Design und Formatierung?" — beim tabellarischen
+   * Lebenslauf steht am Fuss der letzten Seite Ort und Datum, darüber Platz für die
+   * Unterschrift.
+   *
+   * DIE UNTERSCHRIFT SETZEN WIR NICHT. Sie zu erfinden wäre eine Fälschung; der Platz
+   * darüber bleibt deshalb frei, damit sie von Hand oder digital daraufkann.
+   *
+   * NUR BEI `deutschForm` — die anderen fünf Vorlagen sind internationale Layouts, dort wäre
+   * die Zeile ein Fremdkörper.
+   */
+  if (V.deutschForm) {
+    const heute = new Date();
+    const datum = `${String(heute.getDate()).padStart(2, "0")}.${String(heute.getMonth() + 1).padStart(2, "0")}.${heute.getFullYear()}`;
+    const zeile = winAnsi([profil.ort, datum].filter(Boolean).join(", "));
+    /* Sie gehört auf die LETZTE Seite und unter den Inhalt. Ist dort kein Platz mehr, bekommt
+       sie eine eigene — eine Schlusszeile, die neben dem letzten Absatz klebt, sieht aus wie
+       ein Versehen. */
+    if (y - 74 < RAND + 40) neueSeite();
+    const zy = Math.max(RAND + 52, y - 58);
+    seite.drawText(zeile, { x: RECHTS_X(), y: zy, size: 9.5, font: normal, color: GRAU });
+    /* Die Linie für die Unterschrift, darüber Luft. */
+    seite.drawLine({
+      start: { x: RECHTS_X(), y: zy - 30 }, end: { x: RECHTS_X() + 190, y: zy - 30 },
+      thickness: 0.6, color: LINIE,
+    });
   }
 
   /* ════ WASSERZEICHEN + FUSSZEILE — auf jeder Seite, erst am Ende ════ */

@@ -7,6 +7,7 @@ import { futureProgramUrl } from "@/lib/future-program-store";
 import { geschenkPreisCents } from "@/lib/pricing";
 import { leseDavid } from "@/lib/david-store";
 import { leseLebenslauf } from "@/lib/lebenslauf-store";
+import { vorlagenBildNeutral } from "@/lib/pdf-vorlagen";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -286,7 +287,11 @@ export async function GET(request: Request) {
          * galt damit als Unterlagen-Kauf: keine Kachel, kein Puls, nichts. Wer eine
          * Video-Kennung trägt, schuldet ein Video — Punkt.
          */
-        const unterlagenKauf = e.theme === "david" && !e.audioPath && !e.videoId;
+        /* DER GENERATOR SCHULDET NIE EIN VIDEO (31.08.2026): Sein Kauf ist ein Blatt
+           Papier. Ohne ihn hier zählte er als „bezahlt, aber kein Video" — und die Galerie
+           hätte für immer „wird erstellt" gedreht, auf ein Video, das niemand bestellt hat. */
+        const unterlagenKauf = (e.theme === "david" || e.theme === "resume")
+          && !e.audioPath && !e.videoId;
         const offenerKauf = !!e.paid && !e.videoUrl && !unterlagenKauf;
         /**
          * KAPUTT IST NICHT LANGSAM (Owner 15.08.2026: „es war vor 5 Tagen" — zu einem
@@ -366,8 +371,26 @@ export async function GET(request: Request) {
          * eine Kachel, die auf ein Wasserzeichen führt, sieht aus wie ein kaputtes Produkt.
          */
         const bewerbungKachel = await (async () => {
-          if (e.theme !== "david" || !e.paid) return null;
+          /**
+           * AUCH DER BEWERBUNGS-GENERATOR GEHÖRT IN DIE GALERIE (Owner 31.08.2026: „unter
+           * Assets erscheint das ehe nicht").
+           *
+           * Er hatte recht: Die Kachel entstand nur für David UND nur nach Zahlung. Wer sein
+           * Dokument im Generator gebaut hat, fand es nirgends wieder — auch das bezahlte
+           * nicht.
+           *
+           * UND BEIM GENERATOR SCHON VOR DER ZAHLUNG: Dort ist die Muster-Fassung ein
+           * fertiges Produkt, das verschickt werden darf (Hausregel `gratis-nur-mit-muster`).
+           * Sie zu verstecken, bis jemand zahlt, hiesse ihm etwas wegzunehmen, das ihm
+           * gehört. Bei David bleibt es beim Kauf: Dort gibt es vor der Zahlung nichts.
+           */
+          const istGenerator = e.theme === "resume";
+          if (e.theme !== "david" && !istGenerator) return null;
+          if (!istGenerator && !e.paid) return null;
           const profil = await leseLebenslauf(e.id).catch(() => null);
+          /* Ohne Profil gibt es nichts zu zeigen — beim Generator ist das der Zustand
+             „hochgeladen, aber noch nicht eingelesen". */
+          if (istGenerator && !profil) return null;
           const vorlage = String(profil?.pdfVorlage || "klassik");
           /**
            * DIE KACHEL ENTSTEHT MIT DER ZAHLUNG, NICHT MIT DEM ERGEBNIS (Owner 28.08.2026:
@@ -384,7 +407,9 @@ export async function GET(request: Request) {
            * Optimierungslauf. Solange es fehlt, dreht die Kachel; das PDF gibt es dann noch
            * nicht zu holen, und sie führt bewusst ins Leere statt auf die Muster-Fassung.
            */
-          const fertig = profil?.bezahlt === true;
+          /* „fertig" heisst: Es gibt ein Blatt zum Ansehen. Beim Generator ist das ab dem
+             ersten Lauf so (dann mit Wasserzeichen); bei David erst nach der Zahlung. */
+          const fertig = istGenerator ? true : profil?.bezahlt === true;
           /**
            * KAPUTT IST NICHT LANGSAM — AUCH BEI UNTERLAGEN (Owner 28.08.2026: „das lädt
            * immer noch", zu einem Auftrag, dessen Optimierung nie ansprang).
@@ -414,7 +439,7 @@ export async function GET(request: Request) {
                Kachel SEINER Bewerbung las sich das fremde Gesicht wie ein falsches Produkt.
                Die `-neutral`-Fassung ist dasselbe Blatt mit stiller Silhouette; die
                Verkaufs-Galerie behält die Muster-Bilder. */
-            bild: `/Lebenslauf/vorlage-${vorlage}-neutral.jpg`,
+            bild: vorlagenBildNeutral(vorlage),
             /* `ansehen=1`: Der Tipp auf die Kachel ÖFFNET das PDF im Browser, er lädt es
                nicht wortlos herunter (Owner 28.08.2026). Wer es speichern will, tut das aus
                der Vorschau heraus. */
@@ -423,7 +448,14 @@ export async function GET(request: Request) {
                vollständigen Link hatte, bekam die Bewerbung. Jetzt entscheidet der signierte
                Keks im Browser — und der reist bei einem weitergeleiteten Link nicht mit. */
             pdf: fertig ? `/api/bewerbung-pdf?id=${encodeURIComponent(e.id)}&ansehen=1` : "",
-            titel: String(profil?.anzeigeTitel || ""),
+            /* DER TITEL SAGT, WAS DAHINTERLIEGT. Bei David ist das die Stelle, auf die er
+               sich beworben hat. Der Generator kennt keine Anzeige — dort ist es schlicht
+               sein Lebenslauf, mit seinem Namen, damit mehrere Fassungen unterscheidbar
+               bleiben. Nichts Erfundenes: beides steht so im Profil. */
+            titel: istGenerator
+              ? String(profil?.name || "").trim() || "Lebenslauf"
+              : String(profil?.anzeigeTitel || ""),
+            generator: istGenerator,
             /* OFFEN ODER ZU (Owner 28.08.2026): Solange kein Passwort vergeben ist, öffnet
                jeder mit dem Link die Bewerbung — das Schloss sagt es, statt es zu
                verschweigen. */
@@ -503,7 +535,7 @@ export async function GET(request: Request) {
              Da müsste es doch sein") — Pfad + Name, die Galerie baut daraus ihren
              /api/download-Link. Nur der PFAD reist, nie eine signierte Adresse: der
              Download-Weg signiert selbst und setzt den Dateinamen. */
-          ...((e.theme === "lebenslauf" || e.theme === "david") && e.cvPath
+          ...((e.theme === "lebenslauf" || e.theme === "david" || e.theme === "resume") && e.cvPath
             ? { cvPath: String(e.cvPath), cvName: String(e.cvName || "Lebenslauf.pdf") }
             : {}),
           /**
@@ -566,13 +598,15 @@ export async function GET(request: Request) {
           id: `${e.id}-bewerbung`,
           imageUrl: bewerbungKachel.bild,
           videoUrl: "",
-          name: "Bewerbung",
+          name: bewerbungKachel.generator ? "Lebenslauf" : "Bewerbung",
           createdAt: e.createdAt || "",
           source: "david-bewerbung",
-          theme: "david",
+          theme: bewerbungKachel.generator ? "resume" : "david",
           empfaenger: "",
           videoFertigAt: "",
-          paid: true,
+          /* Die Muster-Fassung des Generators ist NICHT gekauft — sie als bezahlt zu
+             stempeln hiesse, ihm einen Kauf anzuzeigen, den er nicht getätigt hat. */
+          paid: bewerbungKachel.generator ? !!e.paid : true,
           warnung: "",
           alter: 0,
           /* Solange nichts fertig ist, dreht die Kachel — dieselbe Anzeige wie bei einem
@@ -588,6 +622,13 @@ export async function GET(request: Request) {
           ...(bewerbungKachel.pdf ? { berichtUrl: bewerbungKachel.pdf } : {}),
           berichtTitel: bewerbungKachel.titel,
           geschuetzt: bewerbungKachel.geschuetzt,
+          /* SEIN HOCHGELADENES ORIGINAL HÄNGT BEIM GENERATOR HIER (31.08.2026). Bei David
+             trägt die Hauptkachel den Bericht und damit auch den Lebenslauf-Download; der
+             Generator hat gar keine Hauptkachel — ohne diese Zeile wäre die hochgeladene
+             Datei nirgends mehr erreichbar. */
+          ...(bewerbungKachel.generator && e.cvPath
+            ? { cvPath: String(e.cvPath), cvName: String(e.cvName || "Lebenslauf.pdf") }
+            : {}),
         }] : []),
         /* Die Original-Aufnahme des Bewerbers — Begründung oben bei `aufnahmeUrl`. */
         ...(aufnahmeUrl ? [{

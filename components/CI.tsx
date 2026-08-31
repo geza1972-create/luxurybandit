@@ -1587,6 +1587,30 @@ export function BildLupe({ src, alt, label, faktor = 2.4, className = "" }: {
 }
 
 /**
+ * DIE DEUTSCHE FLAGGE — GEZEICHNET, NICHT ALS EMOJI (Owner 31.08.2026: „dann gleich die
+ * Flagge als Icon noch in dem Button rein und Titel").
+ *
+ * WARUM KEIN Emoji-Flaggenzeichen: Regional-Indicator-Flaggen haben unter Windows keine
+ * Entsprechung im Zeichensatz — dort steht statt der Fahne schlicht „DE". Auf einem
+ * erheblichen Teil der Rechner wäre der Knopf mit zwei Buchstaben beschriftet, die aussehen
+ * wie ein Tippfehler.
+ *
+ * UND SIE IST KEIN SCHMUCK: Die Hausregel vom 12.08.2026 verbietet Zeichen in Knöpfen
+ * („auch in dem Button machst du da komische zeichen. Die raus"), erlaubt aber Symbole —
+ * „Icons in buttons, never emoji". Diese Flagge trägt Information: in welcher Sprache das
+ * Dokument herauskommt.
+ */
+export function FlaggeDe({ className = "h-4 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 5 3" aria-hidden className={`shrink-0 rounded-[2px] ${className}`}>
+      <rect width="5" height="1" y="0" fill="#000000" />
+      <rect width="5" height="1" y="1" fill="#DD0000" />
+      <rect width="5" height="1" y="2" fill="#FFCE00" />
+    </svg>
+  );
+}
+
+/**
  * DIE AGENTEN-REIHE — GESICHTER MIT BRANCHE (Owner 29.08.2026: „dann mach doch mehrere
  * Kreise mit Models drin und schreib einige Branchen rein … Gina-Kosmetik, Bella-Mode,
  * Vanes-Medizin, Paula-Hotels").

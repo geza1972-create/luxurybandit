@@ -910,7 +910,12 @@ export type ThemenSchluessel =
      in der EU ist der ein Zahlungsinstrument, siehe KONZEPT-GESCHENKE-UND-IDEEN.md §3b. */
   | "gutschein"
   /* Der Lebenslauf (Owner 19.08.2026) — eigener Preis, siehe LEBENSLAUF_CENTS. */
-  | "lebenslauf";
+  | "lebenslauf"
+  /* Der Lebenslauf-Generator (Owner 31.08.2026) — 9,99 € nehmen das Wasserzeichen weg,
+     mehr nicht. Die Zahl kannte `themenPreisCents` schon (`case "resume"`), im Typ fehlte
+     sie: Die Katalog-Kachel konnte den Preis deshalb nicht aus der Tabelle holen — und von
+     Hand getippt hätte er die Hausregel „Preise nur aus der Tabelle" gebrochen. */
+  | "resume";
 
 const AB_WORT: Record<string, { ab: string; pm: string }> = {
   de: { ab: "ab", pm: "/Monat" }, en: { ab: "from", pm: "/month" },
@@ -937,6 +942,11 @@ export function themenPreisCents(thema: ThemenSchluessel): number {
     /* `tryon` ist seit 27.08.2026 KEIN Abo mehr — siehe TRYON_VIDEO_CENTS. */
     case "tryon": return TRYON_VIDEO_CENTS;
     case "birthday": return GEBURTSTAG_CENTS;   // 4,99 € Startpreis (Owner 07.08.2026)
+    /* Der Lebenslauf-Generator (Owner 31.08.2026) — 9,99 € nehmen NUR das Wasserzeichen weg.
+       Ohne diesen Zweig fiel die Kachel auf den `default` und schilderte 24 € aus: ein Preis,
+       den dieses Thema nie verlangt. Genau davor schützt die Regel „Preise nur aus der
+       Tabelle" — sie hilft aber erst, wenn die Tabelle das Thema auch kennt. */
+    case "resume": return RESUME_CENTS;
     /* KEINE ZAHL MEHR IM KOMMENTAR (11.08.2026): Der Preis dieses Themas wechselte an EINEM Tag
        dreimal (49 → 59 → 19,99), und der Kommentar hinkte jedes Mal hinterher. Wer einen Preis
        im Kommentar nachschlägt statt in VERSPRECHEN_CENTS, tippt irgendwo eine tote Zahl ab. */
