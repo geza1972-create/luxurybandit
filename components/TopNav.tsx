@@ -80,6 +80,7 @@ export default function TopNav({
   motto: mottoUeberschreiben,
   schlicht = false,
   sprachen = false,
+  sprachePfad = false,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
@@ -123,6 +124,9 @@ export default function TopNav({
    * Haken an eine Sprache, die die Seite nicht spricht. `true` bietet weiter alle an.
    */
   sprachen?: boolean | Lang[];
+  /** Die Sprache steht im Pfad (`/recruiting/ro`) — dann wechselt der Umschalter die
+      Adresse statt nur das Cookie. */
+  sprachePfad?: boolean;
   /**
    * WOHIN LOGO UND PFEIL-FALLBACK FUEHREN, WENN NICHT „/" (Owner 26.08.2026: „oben wenn man
    * auf das Logo klickt LB-{Topic} dann springt man auf die Landingpage (Topic Startseite)").
@@ -343,7 +347,7 @@ export default function TopNav({
               „Deutsch" anzeigt, während die Seite rumänisch ist, verwirrt nur. */}
           <LightSwitch />
           {(!schlicht || sprachen) && (
-            <LangSwitch {...(Array.isArray(sprachen) ? { nur: sprachen } : {})} />
+            <LangSwitch imPfad={sprachePfad} {...(Array.isArray(sprachen) ? { nur: sprachen } : {})} />
           )}
         </span>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Globe, Check } from "lucide-react";
 import { LANGS, LANG_LABEL, LANG_COOKIE, isLang, type Lang } from "@/lib/lang";
@@ -14,7 +14,7 @@ import { LANGS, LANG_LABEL, LANG_COOKIE, isLang, type Lang } from "@/lib/lang";
  * nicht übersetzten Seiten bleibt der Text englisch — die Wahl gilt trotzdem
  * weiter, sobald man auf eine übersetzte Seite kommt.
  */
-export default function LangSwitch({ nur, rueckfall = "en" }: {
+export default function LangSwitch({ nur, rueckfall = "en", imPfad = false }: {
   /**
    * NUR DIESE SPRACHEN ANBIETEN (Owner 31.08.2026, mit Bild des Menüs auf der Firmenseite:
    * „du hast gesagt 3 sprachen").
@@ -31,11 +31,27 @@ export default function LangSwitch({ nur, rueckfall = "en" }: {
   /** Was der Knopf zeigt, wenn die gespeicherte Wahl nicht in `nur` steht — dieselbe
       Rückfallsprache, die die Seite dann auch wirklich rendert. */
   rueckfall?: Lang;
+  /**
+   * DIE SPRACHE STEHT IM PFAD (Owner 31.08.2026: „ich brauche unterschiedliche URLs für die
+   * Sprachen, weil ich diese weitergebe") — etwa `/recruiting/ro`.
+   *
+   * Dann entscheidet nicht das Cookie, sondern das letzte Stück der Adresse, und Umschalten
+   * heisst: die ADRESSE wechseln. Ohne das tippte man „Deutsch" an, das Cookie änderte sich,
+   * und die Seite bliebe rumänisch — der Umschalter wäre zum dritten Mal ein Knopf, der
+   * etwas behauptet, was der Text nicht einlöst.
+   */
+  imPfad?: boolean;
 } = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
   const boxRef = useRef<HTMLDivElement>(null);
+  const pfad = usePathname();
+  /** Das letzte Stück der Adresse, wenn es eine Sprache ist — sonst leer. */
+  const pfadSprache = (): Lang | "" => {
+    const letztes = (pfad ?? "").split("/").filter(Boolean).pop() ?? "";
+    return isLang(letztes) ? letztes : "";
+  };
   /**
    * ZU WELCHER SEITE DAS MENUE AUFKLAPPT (Owner 30.07.2026: „Sprachen ausserhalb").
    *
@@ -60,6 +76,10 @@ export default function LangSwitch({ nur, rueckfall = "en" }: {
        * Das Cookie wird dabei NICHT überschrieben: Ein verschickter Link ändert nicht die
        * dauerhafte Wahl des Empfängers, er gilt für diesen Aufruf.
        */
+      /* Steht die Sprache im Pfad, ist sie die Wahrheit — vor Suchparameter und Cookie. */
+      const imWeg = imPfad ? pfadSprache() : "";
+      if (imWeg) { setLang(imWeg); return; }
+
       const ausAdresse = new URLSearchParams(window.location.search).get("lang") ?? "";
       if (isLang(ausAdresse)) { setLang(ausAdresse); return; }
 
@@ -99,6 +119,15 @@ export default function LangSwitch({ nur, rueckfall = "en" }: {
      * Antippen nichts ändert. Sein Klick ist die neuere Entscheidung, also fällt der
      * mitgeschickte Wunsch weg.
      */
+    /* Sprache im Pfad: dieselbe Seite, anderes letztes Stück. */
+    const imWeg = imPfad ? pfadSprache() : "";
+    if (imWeg) {
+      const teile = (pfad ?? "").split("/");
+      teile[teile.length - 1] = l;
+      router.replace(teile.join("/") + window.location.search + window.location.hash);
+      return;
+    }
+
     try {
       const u = new URL(window.location.href);
       if (u.searchParams.has("lang")) {
