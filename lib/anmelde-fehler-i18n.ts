@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DER TOTE ANMELDE-LINK — die Worte dafür (Owner 11.08.2026, mit der Adresszeile
@@ -143,7 +143,7 @@ const it: AnmeldeFehlerText = {
   hilfe: "Ti serve aiuto?",
 };
 
-const TABELLE: Record<Lang, AnmeldeFehlerText> = { en, de, ro, es, fr, pt, it };
+const TABELLE: Record<LangArchiv, AnmeldeFehlerText> = { en, de, ro, es, fr, pt, it };
 
 /** Der Text zur Sprache — Unbekanntes ist Englisch (Hausregel `lib/lang`). */
 export function anmeldeFehlerText(lang: string | undefined): AnmeldeFehlerText {

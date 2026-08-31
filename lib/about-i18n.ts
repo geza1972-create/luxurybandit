@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DIE ÜBER-UNS-SEITE IN SIEBEN SPRACHEN — Owner-Neufassung 11.08.2026 ("update ONLY the
@@ -75,22 +75,22 @@ export const MARKENSATZ_2 = "BANDIT THIS LIFE.";
 
 const de: AboutText = {
   kicker: "Über LuxuryBandit",
-  h1a: "Einzigartige Geschenke und Momente aus der ", h1y: "neuen KI-Ära.",
-  portalKurz: "Wir bauen Funnels, die verkaufen — individuelle Lösungen für Unternehmer, von der Meta-Anzeige bis zum Kauf. Alles auf dieser Seite sind unsere eigenen Funnels, live im Einsatz: Landingpage, KI-Video, Kasse und Lieferung, in sieben Sprachen. Teste sie — und wenn du so einen für dein Geschäft willst, schreib uns.",
-  portalLang: "LuxuryBandit baut Verkaufs-Funnels aus einem Guss: die Anzeige, die Landingpage, der geführte Kaufweg, die Kasse, die automatische Lieferung — ein Weg, sieben Sprachen. Jede Kachel auf dieser Seite ist so ein Funnel, live im Einsatz: Ein Besucher kommt aus einer Meta-Anzeige, sieht ein Beispiel, lädt ein Foto hoch, zahlt und bekommt sein fertiges KI-Video geliefert — ganz ohne Personal. Genau so einen Funnel bauen wir auch für dein Produkt.",
+  h1a: "Software, Portale und Verkaufsstrecken — ", h1y: "gebaut, nicht präsentiert.",
+  portalKurz: "Wir bauen Software, Portale und Verkaufsstrecken, die verkaufen — von der Meta-Anzeige bis zum Kauf. Alles auf dieser Seite ist unser eigenes, live im Einsatz: Landingpage, KI-Video, Kasse und Lieferung, in drei Sprachen. Teste es — und wenn du so etwas für dein Geschäft willst, schreib uns.",
+  portalLang: "LuxuryBandit baut aus einem Guss: die Software, das Portal, die Anzeige, die Landingpage, den geführten Kaufweg, die Kasse, die automatische Lieferung — ein Weg, drei Sprachen. Jede Kachel auf dieser Seite ist so ein Trichter, live im Einsatz: Ein Besucher kommt aus einer Meta-Anzeige, sieht ein Beispiel, gibt seine Angaben, zahlt und bekommt sein Ergebnis geliefert — ohne dass jemand von uns eingreift. Genau so etwas bauen wir auch für dein Produkt.",
 
-  introLead: "LuxuryBandit verbindet persönliche Fotos, Stimme und moderne KI zu etwas, das man nicht einfach kauft und vergisst.",
+  introLead: "LuxuryBandit baut digitale Produkte, die fertig laufen — keine Werkzeuge, mit denen du danach allein bist.",
   introListe: [
-    "Ein Geburtstagsfilm.",
-    "Eine Hochzeitsbotschaft.",
-    "Eine Nachricht an dein zukünftiges Ich.",
-    "Eine Video-Bewerbung, die auffällt.",
-    "Ein persönlicher Moment, den es so vorher nicht gab.",
+    "Ein Portal, das deine Kunden selbst bedienen.",
+    "Eine Verkaufsstrecke von der Anzeige bis zur bezahlten Bestellung.",
+    "KI-Videos mit echtem Gesicht und echter Stimme.",
+    "Agenten, die fragen, prüfen und antworten — statt eines Formulars.",
+    "Und die Gestaltung dazu. Dafür stehen 30 Jahre UX.",
   ],
   introKeineKi: "Du musst dafür keine KI verstehen, keine Software lernen und nichts selbst gestalten.",
   introBringst: [
-    "Du bringst die Person, die Stimme oder die Idee.",
-    "Wir machen daraus das Erlebnis.",
+    "Du bringst dein Produkt und dein Ziel.",
+    "Wir bauen den Weg dorthin.",
   ],
 
   werTitel: "Wer dahintersteckt",
@@ -125,10 +125,10 @@ const de: AboutText = {
     "Video-Tools.",
     "Schnittprogramme.",
     "Avatar-Systeme.",
-    "Aber die meisten Menschen wollen keine neuen Tools lernen.",
+    "Aber die meisten Unternehmen wollen keine neuen Tools lernen.",
     "Sie wollen ein Ergebnis.",
     "Deshalb verkauft LuxuryBandit keine Software, mit der du anschließend selbst arbeiten musst.",
-    "Du lädst dein Foto hoch, gibst uns deine Botschaft oder deine Idee — und wir machen daraus das fertige Erlebnis.",
+    "Du sagst uns, was verkauft oder gefunden werden soll — wir bauen die Strecke, die es tut.",
     "Technologie bleibt im Hintergrund.",
     "Das Ergebnis steht im Vordergrund.",
   ],
@@ -145,10 +145,10 @@ const de: AboutText = {
 
   verspTitel: "Was wir dir versprechen",
   versp: [
-    ["Deine Fotos bleiben deine.", "Wir veröffentlichen deine Fotos und Videos nicht automatisch und verkaufen sie nicht weiter. Du entscheidest, was du mit deinem Ergebnis machst und wem du es zeigst."],
-    ["Kein verstecktes Abo.", "Du kaufst ein konkretes Produkt. Das Einzige, das monatlich weiterläuft, ist der Hochzeitsplaner — und den kündigst du jederzeit mit einem Tipp. Keine überraschende Abbuchung."],
-    ["Der Preis steht vorher fest.", "Du siehst vor dem Kauf, was dein Produkt kostet."],
-    ["Fünf Minuten statt fünf Stunden.", "Kein kompliziertes Setup. Keine Software lernen. Keine Prompts schreiben. Du entscheidest, was du willst. Wir kümmern uns um den technischen Teil."],
+    ["Deine Daten bleiben deine.", "Wir veröffentlichen nichts automatisch und geben nichts weiter. Du entscheidest, was mit deinem Ergebnis passiert und wer es sieht."],
+    ["Kein verstecktes Abo.", "Du kaufst ein konkretes Produkt. Was monatlich weiterläuft, steht vorher da und ist jederzeit mit einem Tipp kündbar."],
+    ["Der Preis steht vorher fest.", "Du siehst vor dem Kauf, was es kostet."],
+    ["Fünf Minuten statt fünf Stunden.", "Kein Setup, keine Software lernen, keine Prompts. Du entscheidest, was du willst. Den technischen Teil übernehmen wir."],
   ],
 
   nichtTitel: "Was LuxuryBandit nicht sein will",
@@ -162,37 +162,36 @@ const de: AboutText = {
 
   startTitel: "Wo du anfängst",
   startLead: [
-    "Such dir den Moment aus, den du erschaffen willst.",
-    "Ein Geschenk.",
-    "Eine Botschaft.",
-    "Eine Erinnerung.",
-    "Oder eine Vision für dein zukünftiges Ich.",
-    "Du bringst die Idee.",
-    "Wir machen sie sichtbar.",
+    "Sieh dir an, was hier läuft.",
+    "Jede Kachel auf der Startseite ist ein fertiger Trichter, keine Folie.",
+    "Geh hindurch wie ein Kunde — bis zur Kasse.",
+    "Wenn du so einen für dein Geschäft willst, schreib uns.",
+    "Du bringst das Ziel.",
+    "Wir bauen den Weg.",
   ],
-  startCta: "Alle Erlebnisse ansehen",
+  startCta: "Ansehen, was läuft",
   fein: "Fragen, oder haben wir etwas falsch gemacht? ",
   feinLink: "Schreib uns",
 };
 
 const en: AboutText = {
   kicker: "About LuxuryBandit",
-  h1a: "One-of-a-kind gifts and moments from the ", h1y: "new AI era.",
-  portalKurz: "We build funnels that sell — custom solutions for entrepreneurs, from the Meta ad to the purchase. Everything on this page is one of our own funnels, live in production: landing page, AI video, checkout and delivery, in seven languages. Try them — and if you want one for your business, write to us.",
-  portalLang: "LuxuryBandit builds sales funnels in one piece: the ad, the landing page, the guided purchase, the checkout, the automatic delivery — one path, seven languages. Every tile on this page is such a funnel, live in production: a visitor arrives from a Meta ad, sees an example, uploads a photo, pays and receives the finished AI video — with no staff involved. We build exactly that kind of funnel for your product too.",
+  h1a: "Software, portals and checkout journeys — ", h1y: "built, not pitched.",
+  portalKurz: "We build software, portals and checkout journeys that sell — from the Meta ad to the purchase. Everything on this page is our own, live: landing page, AI video, checkout and delivery, in three languages. Try it — and if you want one for your business, write to us.",
+  portalLang: "LuxuryBandit builds it in one piece: the software, the portal, the ad, the landing page, the guided purchase path, the checkout, the automatic delivery — one path, three languages. Every tile on this page is such a funnel, live: a visitor arrives from a Meta ad, sees an example, enters their details, pays and receives the result — without anyone on our side stepping in. That is exactly what we build for your product too.",
 
-  introLead: "LuxuryBandit turns personal photos, voice, and modern AI into something you don't just buy and forget.",
+  introLead: "LuxuryBandit builds digital products that run when they are done — not tools that leave you alone with them.",
   introListe: [
-    "A birthday film.",
-    "A wedding message.",
-    "A message to your future self.",
-    "A video application that stands out.",
-    "A personal moment that never existed before.",
+    "A portal your customers operate themselves.",
+    "A checkout journey from the ad to the paid order.",
+    "AI videos with a real face and a real voice.",
+    "Agents that ask, check and answer — instead of a form.",
+    "And the design around it. That is what 30 years of UX are for.",
   ],
   introKeineKi: "You don't need to understand AI, learn any software, or design anything yourself.",
   introBringst: [
-    "You bring the person, the voice, or the idea.",
-    "We turn it into the experience.",
+    "You bring your product and your goal.",
+    "We build the way there.",
   ],
 
   werTitel: "Who's behind it",
@@ -222,17 +221,17 @@ const en: AboutText = {
 
   warumTitel: "Why you get the result — not the tool",
   warum: [
-    "Today there are countless AI tools.",
+    "There are countless AI tools today.",
     "Image generators.",
     "Video tools.",
     "Editing software.",
     "Avatar systems.",
-    "But most people don't want to learn new tools.",
+    "But most companies don't want to learn new tools.",
     "They want a result.",
-    "That's why LuxuryBandit doesn't sell software you then have to work with yourself.",
-    "You upload your photo, give us your message or your idea — and we turn it into the finished experience.",
+    "That is why LuxuryBandit doesn't sell software you then have to operate yourself.",
+    "You tell us what should sell or be found — we build the path that does it.",
     "Technology stays in the background.",
-    "The result stays in the foreground.",
+    "The result stays in front.",
   ],
 
   aiTitel: "AI should be possible for more people",
@@ -247,10 +246,10 @@ const en: AboutText = {
 
   verspTitel: "What we promise you",
   versp: [
-    ["Your photos stay yours.", "We don't automatically publish your photos and videos, and we never resell them. You decide what you do with your result and who you show it to."],
-    ["No hidden subscription.", "You buy one specific product. The only thing that keeps running monthly is the wedding planner — and you can cancel that any time with one tap. No surprise charge."],
-    ["The price is fixed upfront.", "You see what your product costs before you buy."],
-    ["Five minutes instead of five hours.", "No complicated setup. No software to learn. No prompts to write. You decide what you want. We take care of the technical part."],
+    ["Your data stays yours.", "We publish nothing automatically and pass nothing on. You decide what happens to your result and who sees it."],
+    ["No hidden subscription.", "You buy a specific product. Anything that renews monthly is stated up front and can be cancelled with one tap."],
+    ["The price is fixed beforehand.", "You see what it costs before you buy."],
+    ["Five minutes instead of five hours.", "No setup, no software to learn, no prompts. You decide what you want. We take care of the technical part."],
   ],
 
   nichtTitel: "What LuxuryBandit doesn't want to be",
@@ -264,37 +263,36 @@ const en: AboutText = {
 
   startTitel: "Where you start",
   startLead: [
-    "Pick the moment you want to create.",
-    "A gift.",
-    "A message.",
-    "A memory.",
-    "Or a vision for your future self.",
-    "You bring the idea.",
-    "We make it visible.",
+    "Look at what is running here.",
+    "Every tile on the start page is a finished funnel, not a slide.",
+    "Walk through it like a customer — all the way to the checkout.",
+    "If you want one for your business, write to us.",
+    "You bring the goal.",
+    "We build the way.",
   ],
-  startCta: "See all experiences",
+  startCta: "See what is running",
   fein: "Questions, or did we get something wrong? ",
   feinLink: "Write to us",
 };
 
 const ro: AboutText = {
   kicker: "Despre LuxuryBandit",
-  h1a: "Cadouri și momente unicat din ", h1y: "noua eră AI.",
-  portalKurz: "Construim funnels care vând — soluții individuale pentru antreprenori, de la reclama Meta până la cumpărare. Tot ce vezi pe această pagină sunt funnels de-ale noastre, live: landing page, video AI, casă de plată și livrare, în șapte limbi. Testează-le — iar dacă vrei unul pentru afacerea ta, scrie-ne.",
-  portalLang: "LuxuryBandit construiește funnels de vânzare dintr-o bucată: reclama, landing page-ul, drumul ghidat de cumpărare, casa de plată, livrarea automată — un singur drum, șapte limbi. Fiecare card de pe această pagină este un astfel de funnel, live: un vizitator vine dintr-o reclamă Meta, vede un exemplu, încarcă o poză, plătește și primește videoclipul AI gata făcut — fără niciun angajat. Exact un astfel de funnel construim și pentru produsul tău.",
+  h1a: "Software, portaluri și trasee de vânzare — ", h1y: "construite, nu prezentate.",
+  portalKurz: "Construim software, portaluri și trasee de vânzare care vând — de la reclama Meta până la cumpărare. Tot ce este pe această pagină este al nostru și funcționează live: landing page, video AI, casă și livrare, în trei limbi. Încearcă-le — iar dacă vrei așa ceva pentru afacerea ta, scrie-ne.",
+  portalLang: "LuxuryBandit construiește dintr-o bucată: software-ul, portalul, reclama, landing page-ul, traseul de cumpărare, casa, livrarea automată — un singur drum, trei limbi. Fiecare card de pe această pagină este un astfel de funnel, live: un vizitator vine dintr-o reclamă Meta, vede un exemplu, își lasă datele, plătește și primește rezultatul — fără ca cineva de la noi să intervină. Exact așa ceva construim și pentru produsul tău.",
 
-  introLead: "LuxuryBandit combină fotografii personale, voce și AI modern într-un lucru pe care nu îl cumperi ca să-l uiți.",
+  introLead: "LuxuryBandit construiește produse digitale care funcționează gata făcute — nu unelte cu care rămâi singur după aceea.",
   introListe: [
-    "Un film de ziua de naștere.",
-    "Un mesaj de nuntă.",
-    "Un mesaj către eul tău din viitor.",
-    "O aplicație video care iese în evidență.",
-    "Un moment personal care nu a existat înainte.",
+    "Un portal pe care clienții tăi îl folosesc singuri.",
+    "Un traseu de cumpărare de la reclamă până la comanda plătită.",
+    "Videoclipuri AI cu chip și voce reale.",
+    "Agenți care întreabă, verifică și răspund — în locul unui formular.",
+    "Și designul din jur. Pentru asta sunt cei 30 de ani de UX.",
   ],
   introKeineKi: "Nu trebuie să înțelegi AI, să înveți niciun program și nici să creezi nimic singur.",
   introBringst: [
-    "Tu aduci persoana, vocea sau ideea.",
-    "Noi transformăm asta în experiență.",
+    "Tu aduci produsul și obiectivul.",
+    "Noi construim drumul până acolo.",
   ],
 
   werTitel: "Cine e în spate",
@@ -329,12 +327,12 @@ const ro: AboutText = {
     "Unelte video.",
     "Programe de montaj.",
     "Sisteme de avatare.",
-    "Dar majoritatea oamenilor nu vor să învețe unelte noi.",
+    "Dar majoritatea companiilor nu vor să învețe unelte noi.",
     "Vor un rezultat.",
-    "De aceea LuxuryBandit nu vinde software cu care să lucrezi apoi singur.",
-    "Încarci poza, ne dai mesajul sau ideea ta — și noi transformăm asta în experiența finită.",
+    "De aceea LuxuryBandit nu vinde software cu care trebuie să lucrezi tu după aceea.",
+    "Ne spui ce trebuie vândut sau găsit — noi construim traseul care face asta.",
     "Tehnologia rămâne în fundal.",
-    "Rezultatul rămâne în prim-plan.",
+    "Rezultatul rămâne în față.",
   ],
 
   aiTitel: "AI ar trebui să fie posibilă pentru mai mulți oameni",
@@ -349,10 +347,10 @@ const ro: AboutText = {
 
   verspTitel: "Ce îți promitem",
   versp: [
-    ["Pozele tale rămân ale tale.", "Nu publicăm automat pozele și videoclipurile tale și nu le revindem. Tu decizi ce faci cu rezultatul tău și cui i-l arăți."],
-    ["Niciun abonament ascuns.", "Cumperi un produs concret. Singurul lucru care continuă lunar este planificatorul de nuntă — și îl anulezi oricând cu o atingere. Fără o taxă surpriză."],
-    ["Prețul e clar dinainte.", "Vezi înainte de cumpărare cât costă produsul tău."],
-    ["Cinci minute în loc de cinci ore.", "Fără configurare complicată. Fără software de învățat. Fără prompturi de scris. Tu decizi ce vrei. Noi ne ocupăm de partea tehnică."],
+    ["Datele tale rămân ale tale.", "Nu publicăm nimic automat și nu transmitem nimic mai departe. Tu decizi ce se întâmplă cu rezultatul tău și cine îl vede."],
+    ["Fără abonament ascuns.", "Cumperi un produs concret. Ce se reînnoiește lunar este scris dinainte și se anulează cu o apăsare."],
+    ["Prețul este stabilit dinainte.", "Vezi cât costă înainte să cumperi."],
+    ["Cinci minute în loc de cinci ore.", "Fără instalare, fără software de învățat, fără prompturi. Tu decizi ce vrei. De partea tehnică ne ocupăm noi."],
   ],
 
   nichtTitel: "Ce nu vrea să fie LuxuryBandit",
@@ -366,15 +364,14 @@ const ro: AboutText = {
 
   startTitel: "De unde începi",
   startLead: [
-    "Alege momentul pe care vrei să-l creezi.",
-    "Un cadou.",
-    "Un mesaj.",
-    "O amintire.",
-    "Sau o viziune pentru eul tău din viitor.",
-    "Tu aduci ideea.",
-    "Noi o facem vizibilă.",
+    "Uită-te la ce funcționează aici.",
+    "Fiecare card de pe prima pagină este un funnel gata făcut, nu un slide.",
+    "Parcurge-l ca un client — până la casă.",
+    "Dacă vrei unul pentru afacerea ta, scrie-ne.",
+    "Tu aduci obiectivul.",
+    "Noi construim drumul.",
   ],
-  startCta: "Vezi toate experiențele",
+  startCta: "Vezi ce funcționează",
   fein: "Întrebări, sau am greșit ceva? ",
   feinLink: "Scrie-ne",
 };
@@ -787,7 +784,7 @@ const it: AboutText = {
   feinLink: "Scrivici",
 };
 
-const TABELLE: Record<Lang, AboutText> = { de, en, ro, es, fr, pt, it };
+const TABELLE: Record<LangArchiv, AboutText> = { de, en, ro, es, fr, pt, it };
 
 export function aboutText(lang?: string): AboutText {
   const l = String(lang ?? "en").slice(0, 2) as Lang;

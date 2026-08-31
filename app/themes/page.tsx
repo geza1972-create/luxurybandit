@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { fillPrices, themenPreisZeile } from "@/lib/pricing";
-import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
 import AgentenKarte from "@/components/AgentenKarte";
@@ -10,14 +9,13 @@ import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
-import { Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
+import { Briefcase, Sparkles, Flame, MapPin, Lock, Palmtree, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 /* Aus `lib`, nicht aus dem Baustein: PlanSlide ist ein Client-Modul, und von dort käme
    hier nur eine Client-Referenz an — die Kachel blieb dadurch ohne Bild. */
 import { resolveLang } from "@/lib/lang-server";
 import { VERSPRECHEN_VIDEO, VERSPRECHEN_POSTER } from "@/lib/versprechen";
-import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 import { DAVID_VIDEO, DAVID_POSTER } from "@/lib/david-video";
 import { davidKachelInSprache } from "@/lib/david-texte";
@@ -45,7 +43,7 @@ export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch lad
  */
 export const metadata = {
   title: "LuxuryBandit — Funnels Creator: from the Meta ad to the sale",
-  description: fillPrices("We build funnels that sell — custom solutions for entrepreneurs, from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in seven languages.", "en"),
+  description: fillPrices("We build funnels that sell — custom solutions for entrepreneurs, from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in three languages.", "en"),
   /* KEINE Deepfake-/AI-Girl-Begriffe mehr (Owner 24.08.2026: „Wir sind jetzt ein seriöses
      Portal" · zum Kuss: „wenn man das nicht als solches bewirbt, sondern als Tool, ist es
      OK") — beworben wird das Werkzeug aus eigenen Fotos, nie das Wort. */
@@ -53,7 +51,7 @@ export const metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     title: "LuxuryBandit — Funnels Creator",
-    description: "We build funnels that sell — from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in seven languages.",
+    description: "We build funnels that sell — from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in three languages.",
     type: "website",
   },
 };
@@ -88,44 +86,44 @@ const C: Record<string, PageCopy> = {
     models: "Vezi modelele noastre și vorbește cu ele →", wardrobe: "Garderobă",
     whatH: "Ce este LuxuryBandit?",
     uniqueH: "De ce noi", uniqueP: "Pentru că aici nimic nu e demo: fiecare funnel de pe această pagină rulează pe bune — cu casă de plată reală, clienți reali și modelele video AI care păstrează chipul și mișcarea. Alții îți vând un funnel cu slide-uri. Noi ți-l arătăm mergând.",
-    canH: "Funnels-urile noastre — live", costH: "Cât costă?", costP: "Fiecare videoclip — un sărut, un videoclip de ziua cuiva, aplicația ta video, mesajul către eul tău din viitor — se cumpără o singură dată, din creditul tău, la prețul afișat pe butonul de cumpărare. Creditul nu expiră niciodată. Singurul abonament este planificatorul digital de nuntă: cumperi o dată, apoi se reînnoiește lunar cu {monat}, poți renunța oricând.",
+    canH: "Ce construim", costH: "Cât costă?", costP: "Două dintre cele trei nu costă nimic: pre-screening-ul CV-ului și căutarea de joburi. Future Self Program se cumpără o singură dată, din creditul tău, la prețul afișat pe butonul de cumpărare. Creditul nu expiră niciodată.",
     noteH: "Bine de știut", noteP: "Fiecare videoclip se face din fotografii pe care le încarci tu. Confirmi înainte, explicit, că persoanele din imagini sunt de acord și că ai dreptul să folosești fotografiile — răspunderea este a ta. Fiecare rezultat rămâne privat până îl distribui chiar tu.",
-    items: [["Trimite un sărut persoanei pe care o iubești","poza ta și a ei — un videoclip cu voi doi, doar pentru ea."],["Invitația voastră de nuntă","voi doi în videoclip, plus o pagină de invitație cu confirmări, noutăți și grup."],["Videoclip de zi de naștere","scrii un nume — ea îl spune cu voce tare."],["Aplicația ta video","încarci poza și CV-ul — pagina ta de profil cu video, gata pentru angajatori."],["Future Self Program","filmul tău din viitor plus un program de 30 de zile — o promisiune față de tine."]] },
+    items: [["Creare video","videoclipuri AI cu chip și voce reale — în trei limbi."],["Reclame Meta","anunțul, publicul și landing page-ul, dintr-o singură mână."],["Trasee de cumpărare","de la reclamă până la comanda plătită — casă, livrare, credit."],["Agenți AI","o persoană care întreabă, verifică și răspunde în locul tău — nu un formular."]] },
   de: { kicker: "LuxuryBandit", h1a: "Funnels, die verkaufen.", h1b: "Von der Meta-Anzeige bis zum Kauf.",
     models: "Unsere Models ansehen & mit ihnen chatten →", wardrobe: "Garderobe",
     whatH: "Was ist LuxuryBandit?",
     uniqueH: "Warum wir", uniqueP: "Weil hier nichts Demo ist: Jeder Funnel auf dieser Seite läuft echt — mit echter Kasse, echten Kunden und den KI-Video-Modellen, die Gesicht und Bewegung halten. Wer dir sonst einen Funnel verkauft, zeigt dir Folien. Wir zeigen dir laufende.",
-    canH: "Unsere Funnels — live", costH: "Was kostet es?", costP: "Jedes Video — Kuss, Geburtstag, deine Video-Bewerbung, die Botschaft an dein zukünftiges Ich — kaufst du einmal, aus deinem Guthaben, zum Preis, der auf dem Kaufknopf steht. Guthaben verfällt nie. Das einzige Abo ist der Digitale Hochzeitsplaner: einmal gekauft, verlängert er sich danach monatlich für {monat}, monatlich kündbar.",
+    canH: "Was wir bauen", costH: "Was kostet es?", costP: "Zwei der drei kosten nichts: das Pre-Screening deines Lebenslaufs und die Stellensuche. Das Future Self Program kaufst du einmal, aus deinem Guthaben, zum Preis, der auf dem Kaufknopf steht. Guthaben verfällt nie.",
     noteH: "Gut zu wissen", noteP: "Jedes Video entsteht aus Fotos, die du selbst hochlädst. Du bestätigst vorher ausdrücklich, dass die abgebildeten Personen einverstanden sind und du die Fotos verwenden darfst — die Verantwortung dafür liegt bei dir. Jedes Ergebnis bleibt privat, bis du es selbst teilst.",
-    items: [["Schick einen Kuss an den Menschen, den du liebst","dein Foto und ihres — ein Video mit euch beiden, nur für sie."],["Eure Hochzeitseinladung","ihr beide im Video, dazu eine eigene Einladungsseite mit Zusagen, Neuigkeiten und Gästegruppe."],["Geburtstagsvideo","Namen eintippen — sie gratuliert laut, mit Namen."],["Deine Video-Bewerbung","Foto und Lebenslauf hochladen — deine eigene Profilseite mit Video, bereit für Arbeitgeber."],["Future Self Program","dein Film aus der Zukunft plus 30 Tage Programm — ein Versprechen an dich selbst."]] },
+    items: [["Video-Erstellung","KI-Videos mit echtem Gesicht und echter Stimme — in drei Sprachen."],["Meta-Anzeigen","Anzeige, Zielgruppe und Landingpage aus einer Hand."],["Kaufstrecken","Von der Anzeige bis zur bezahlten Bestellung — Kasse, Lieferung, Guthaben."],["KI-Agenten","Eine Person, die für dich fragt, prüft und antwortet — kein Formular."]] },
   en: { kicker: "LuxuryBandit", h1a: "Funnels that sell.", h1b: "From the Meta ad to the purchase.",
     models: "See our models & chat with them →", wardrobe: "Wardrobe",
     whatH: "What is LuxuryBandit?",
     uniqueH: "Why us", uniqueP: "Because nothing here is a demo: every funnel on this page runs for real — with a real checkout, real customers and the AI video models that hold the face and the motion. Others selling you a funnel show you slides. We show you running ones.",
-    canH: "Our funnels — live", costH: "How much does it cost?", costP: "Every video — a kiss, a birthday video, your video application, the message to your future self — is a one-time purchase, paid from your account balance at the price shown on the buy button. Account balance never expires. The only subscription is the Digital Wedding Planner: buy it once, then it renews monthly at {monat}, cancel any time.",
+    canH: "What we build", costH: "How much does it cost?", costP: "Two of the three cost nothing: the CV pre-screening and the job search. The Future Self Program is a one-time purchase, paid from your account balance at the price shown on the buy button. Account balance never expires.",
     noteH: "Good to know", noteP: "Every video is made from photos you upload yourself. You confirm up front that the people shown agree and that you may use the photos — that responsibility is yours. Every result stays private until you share it yourself.",
-    items: [["Send a kiss to the one you love","your photo and theirs — one video with the two of you, for them alone."],["Your wedding invitation","the two of you in the video, plus your own invitation page with RSVPs, news and a guest group."],["Birthday video","type a name — she says it out loud."],["Your video application","upload your photo and resume — your own profile page with video, ready for employers."],["Future Self Program","your film from the future plus a 30-day program — a promise to yourself."]] },
+    items: [["Video production","AI videos with a real face and a real voice — in three languages."],["Meta ads","the ad, the audience and the landing page from one hand."],["Checkout journeys","from the ad to the paid order — checkout, delivery, account balance."],["AI agents","a person who asks, checks and answers for you — not a form."]] },
   es: { kicker: "LuxuryBandit", h1a: "Funnels que venden.", h1b: "Del anuncio de Meta a la compra.",
     models: "Ver nuestras modelos y chatear con ellas →", wardrobe: "Armario",
     whatH: "¿Qué es LuxuryBandit?",
     uniqueH: "Por qué nosotros", uniqueP: "Porque aquí nada es una demo: cada funnel de esta página funciona de verdad — con caja real, clientes reales y los modelos de vídeo de IA que mantienen la cara y el movimiento. Otros te venden un funnel con diapositivas. Nosotros te lo enseñamos funcionando.",
-    canH: "Nuestros funnels — en vivo", costH: "¿Cuánto cuesta?", costP: "Cada vídeo — un beso, un cumpleaños, tu candidatura en vídeo, el mensaje para tu yo futuro — se compra una sola vez, con tu saldo, al precio que aparece en el botón de compra. El saldo nunca caduca. La única suscripción es el planificador digital de boda: se compra una vez y luego se renueva cada mes por {monat}, cancelable cuando quieras.",
+    canH: "Qué construimos", costH: "¿Cuánto cuesta?", costP: "Dos de los tres no cuestan nada: el pre-screening del CV y la búsqueda de empleo. El Future Self Program se compra una sola vez, con tu saldo, al precio que aparece en el botón de compra. El saldo nunca caduca.",
     noteH: "Bueno saberlo", noteP: "Cada vídeo se crea con fotos que subes tú mismo. Confirmas antes, de forma expresa, que las personas que aparecen están de acuerdo y que puedes usar las fotos — la responsabilidad es tuya. Cada resultado es privado hasta que tú lo compartas.",
-    items: [["Envía un beso a quien tú quieres","tu foto y la suya — un vídeo con los dos, solo para esa persona."],["Vuestra invitación de boda","los dos en el vídeo, más vuestra página de invitación con confirmaciones, novedades y grupo."],["Vídeo de cumpleaños","escribe un nombre — ella lo dice en voz alta."],["Tu candidatura en vídeo","sube tu foto y tu currículum — tu propia página de perfil con vídeo, lista para empresas."],["Future Self Program","tu película del futuro más un programa de 30 días — una promesa contigo mismo."]] },
+    items: [["Creación de vídeo","vídeos de IA con cara y voz reales — en tres idiomas."],["Anuncios de Meta","el anuncio, el público y la landing page de una sola mano."],["Recorridos de compra","del anuncio al pedido pagado — caja, entrega, saldo."],["Agentes de IA","una persona que pregunta, comprueba y responde por ti — no un formulario."]] },
   fr: { kicker: "LuxuryBandit", h1a: "Des funnels qui vendent.", h1b: "De la pub Meta à l'achat.",
     models: "Voir nos modèles et discuter avec elles →", wardrobe: "Dressing",
     whatH: "Qu'est-ce que LuxuryBandit ?",
     uniqueH: "Pourquoi nous", uniqueP: "Parce qu'ici rien n'est une démo : chaque funnel de cette page tourne pour de vrai — avec une vraie caisse, de vrais clients et les modèles vidéo IA qui gardent le visage et le mouvement. Les autres te vendent un funnel avec des slides. Nous, on te le montre en marche.",
-    canH: "Nos funnels — en direct", costH: "Combien ça coûte ?", costP: "Chaque vidéo — un baiser, un anniversaire, ta candidature vidéo, le message à ton futur toi — s'achète une seule fois, sur ton crédit, au prix affiché sur le bouton d'achat. Le crédit n'expire jamais. Le seul abonnement est le planificateur de mariage numérique : acheté une fois, puis renouvelé chaque mois à {monat}, résiliable à tout moment.",
+    canH: "Ce que nous construisons", costH: "Combien ça coûte ?", costP: "Deux des trois ne coûtent rien : le pré-screening du CV et la recherche d'emploi. Le Future Self Program s'achète une seule fois, sur ton crédit, au prix affiché sur le bouton d'achat. Le crédit n'expire jamais.",
     noteH: "Bon à savoir", noteP: "Chaque vidéo est créée à partir de photos que tu ajoutes toi-même. Tu confirmes au préalable, expressément, que les personnes visibles sont d'accord et que tu as le droit d'utiliser ces photos — la responsabilité t'appartient. Chaque résultat reste privé jusqu'à ce que tu le partages toi-même.",
-    items: [["Envoie un baiser à la personne que tu aimes","ta photo et la sienne — une vidéo avec vous deux, rien que pour elle."],["Votre invitation de mariage","vous deux dans la vidéo, plus votre page d'invitation avec réponses, nouvelles et groupe."],["Vidéo d'anniversaire","tape un prénom — elle le dit à voix haute."],["Ta candidature vidéo","ajoute ta photo et ton CV — ta propre page de profil avec vidéo, prête pour les employeurs."],["Future Self Program","ton film venu du futur plus un programme de 30 jours — une promesse à toi-même."]] },
+    items: [["Création vidéo","des vidéos IA avec un vrai visage et une vraie voix — en trois langues."],["Publicités Meta","l'annonce, l'audience et la landing page d'une seule main."],["Parcours d'achat","de la publicité à la commande payée — caisse, livraison, crédit."],["Agents IA","une personne qui demande, vérifie et répond pour toi — pas un formulaire."]] },
   pt: { kicker: "LuxuryBandit", h1a: "Funnels que vendem.", h1b: "Do anúncio Meta à compra.",
     models: "Ver as nossas modelos e conversar com elas →", wardrobe: "Guarda-roupa",
     whatH: "O que é o LuxuryBandit?",
     uniqueH: "Porquê nós", uniqueP: "Porque aqui nada é demonstração: cada funnel desta página funciona a sério — com caixa real, clientes reais e os modelos de vídeo de IA que mantêm o rosto e o movimento. Outros vendem-te um funnel com slides. Nós mostramos-to a funcionar.",
-    canH: "Os nossos funnels — ao vivo", costH: "Quanto custa?", costP: "Cada vídeo — um beijo, um aniversário, a tua candidatura em vídeo, a mensagem para o teu eu futuro — compra-se uma única vez, do teu saldo, ao preço indicado no botão de compra. O saldo nunca expira. A única subscrição é o planeador digital de casamento: compras uma vez e depois renova-se mensalmente por {monat}, cancelável quando quiseres.",
+    canH: "O que construímos", costH: "Quanto custa?", costP: "Dois dos três não custam nada: o pré-screening do CV e a procura de emprego. O Future Self Program compra-se uma única vez, do teu saldo, ao preço indicado no botão de compra. O saldo nunca expira.",
     noteH: "Bom saber", noteP: "Cada vídeo é criado a partir de fotos que tu próprio carregas. Confirmas antes, expressamente, que as pessoas mostradas concordam e que podes usar as fotos — a responsabilidade é tua. Cada resultado fica privado até seres tu a partilhá-lo.",
-    items: [["Envia um beijo a quem tu amas","a tua foto e a dela — um vídeo com os dois, só para essa pessoa."],["O vosso convite de casamento","os dois no vídeo, mais a vossa página de convite com confirmações, novidades e grupo."],["Vídeo de aniversário","escreves um nome — ela di-lo em voz alta."],["A tua candidatura em vídeo","carrega a tua foto e o teu CV — a tua própria página de perfil com vídeo, pronta para empregadores."],["Future Self Program","o teu filme do futuro mais um programa de 30 dias — uma promessa a ti mesmo."]] },
+    items: [["Criação de vídeo","vídeos de IA com rosto e voz reais — em três línguas."],["Anúncios Meta","o anúncio, o público e a landing page de uma só mão."],["Percursos de compra","do anúncio à encomenda paga — caixa, entrega, saldo."],["Agentes de IA","uma pessoa que pergunta, verifica e responde por ti — não um formulário."]] },
   pl: { kicker: "LuxuryBandit", h1a: "Wybierz prezent.", h1b: "Wyślij go dziś.",
     models: "Zobacz nasze modelki i porozmawiaj z nimi →", wardrobe: "Garderoba",
     whatH: "Czym jest LuxuryBandit?",
@@ -137,9 +135,9 @@ const C: Record<string, PageCopy> = {
     models: "Guarda le nostre modelle e chatta con loro →", wardrobe: "Guardaroba",
     whatH: "Che cos'è LuxuryBandit?",
     uniqueH: "Perché noi", uniqueP: "Perché qui niente è una demo: ogni funnel di questa pagina gira davvero — con una cassa vera, clienti veri e i modelli video IA che tengono il volto e il movimento. Gli altri ti vendono un funnel con le slide. Noi te lo mostriamo in funzione.",
-    canH: "I nostri funnel — dal vivo", costH: "Quanto costa?", costP: "Ogni video — un bacio, un compleanno, la tua candidatura video, il messaggio al tuo io futuro — si compra una sola volta, dal tuo credito, al prezzo indicato sul pulsante d'acquisto. Il credito non scade mai. L'unico abbonamento è il pianificatore digitale di nozze: si compra una volta, poi si rinnova ogni mese a {monat}, disdicibile quando vuoi.",
+    canH: "Che cosa costruiamo", costH: "Quanto costa?", costP: "Due dei tre non costano nulla: il pre-screening del CV e la ricerca di lavoro. Il Future Self Program si compra una sola volta, dal tuo credito, al prezzo indicato sul pulsante d'acquisto. Il credito non scade mai.",
     noteH: "Da sapere", noteP: "Ogni video nasce da foto che carichi tu stesso. Confermi prima, espressamente, che le persone ritratte sono d'accordo e che puoi usare quelle foto — la responsabilità è tua. Ogni risultato resta privato finché non lo condividi tu.",
-    items: [["Manda un bacio a chi ami","la tua foto e la sua — un video con voi due, solo per lei."],["Il vostro invito di nozze","voi due nel video, più la vostra pagina d'invito con conferme, novità e gruppo."],["Video di compleanno","scrivi un nome — lei lo dice ad alta voce."],["La tua candidatura video","carica la tua foto e il tuo CV — la tua pagina di profilo con video, pronta per i datori di lavoro."],["Future Self Program","il tuo film dal futuro più un programma di 30 giorni — una promessa a te stesso."]] },
+    items: [["Creazione video","video AI con volto e voce veri — in tre lingue."],["Inserzioni Meta","annuncio, pubblico e landing page da una sola mano."],["Percorsi d'acquisto","dall'inserzione all'ordine pagato — cassa, consegna, credito."],["Agenti AI","una persona che chiede, verifica e risponde per te — non un modulo."]] },
 };
 
 /**
@@ -402,12 +400,10 @@ export default async function ThemesCatalog({ searchParams }: {
    * Funktion benutzt jede Landingpage über `<ThemenPreis>`. Vorher baute jede Stelle ihre
    * eigene Zeile, und genau daran ist es auseinandergelaufen (siehe unten bei der Hochzeit).
    */
-  const AB_EINZEL = themenPreisZeile("kiss", L);
   /* Der Gutschein ist ein Geschenk wie die anderen — dieselbe Zahl aus derselben Tabelle. */
   const AB_GUTSCHEIN = themenPreisZeile("gutschein", L);
   /* Der Geburtstag hat seit 07.08.2026 seinen eigenen Startpreis (GEBURTSTAG_CENTS) — die
      Kachel muss dieselbe Zahl tragen wie Landingpage-Schild und Kasse. */
-  const AB_GEBURTSTAG = themenPreisZeile("birthday", L);
   /* Der Kaufknopf der grossen Themen-Karte (Owner 07.08.2026: „und hier muss CTA rein");
      Wortlaut je Sprache, Imperativ an den SCHENKENDEN (Memory `titel-spricht-den-kaeufer-an`). */
   const CTA_ZEILE: Record<string, string> = {
@@ -532,6 +528,27 @@ export default async function ThemesCatalog({ searchParams }: {
      * Landingpage („Individuell · Vertraulich · ca. 5 Minuten"), nur mit dem Gratis davor.
      */
     { icon: FileText, title: "David · AI Pre-Screening", tagline: davidKachel.zeile, href: "/themes/david", cover: DAVID_POSTER, poster: DAVID_POSTER, video: DAVID_VIDEO, chips: `♥ ${davidKachel.chips}` },
+    /**
+     * DER KANDIDATEN-TRICHTER BEKOMMT EINEN WEG VON DER STARTSEITE (Owner 31.08.2026: „mach
+     * mir eine neue Topic um den aktuellen Tunel zu erreichen" · „das für deutsch Kandidaten
+     * aber bitte nicht David ersetzen").
+     *
+     * `/joburi` war bis heute NUR über den Link einer rumänischen Anzeige erreichbar — wer
+     * die Adresse des Hauses kannte, fand ihn nicht. Er steht direkt hinter David, weil
+     * beide dieselbe Sache von zwei Seiten sind: David prüft eine Bewerbung, dieser Trichter
+     * zeigt die Stellen. David bleibt ausdrücklich, wo er ist.
+     *
+     * DAS MOTIV KAM AM 31.08.2026 vom Owner („hier ist das Bild") — bis dahin trug die Kachel
+     * nur das Symbol als Wasserzeichen. `ausrichtung: "oben"` verankert den Zuschnitt an der
+     * Oberkante: Das Gesicht sitzt im oberen Drittel, ein mittiger Quadrat-Zuschnitt schnitte
+     * ihr die Stirn ab (Skill `card`: nie den Kopf abschneiden).
+     *
+     * DIE SPRACHE REIST MIT: Der Trichter spricht Rumänisch und Deutsch. Wer den Katalog auf
+     * Deutsch liest, soll nicht auf einer rumänischen Wand landen — deshalb `?lang=de`, wenn
+     * die Seite gerade deutsch ist. Alle anderen bekommen die rumänische Fassung, für die er
+     * gebaut ist.
+     */
+    { icon: Briefcase, title: "Jobs with German", tagline: "Answer 4 questions — we show you real openings that could fit you.", href: `/joburi${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 4 questions · Real openings · Free" },
     { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise", abPreis: AB_VERSPRECHEN },
     /**
      * GEBURTSTAG AUF PLATZ ZWEI (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf
@@ -548,7 +565,6 @@ export default async function ThemesCatalog({ searchParams }: {
        Kachel und Karte versprechen dasselbe (Memory `landingpage-video-ist-kachel-video`).
        Die Zeile darunter nennt nicht mehr „sie sagt den Namen" — er sagt seine eigene
        Botschaft, mit seinem Gesicht (Textumstellung vom selben Tag). */
-    { icon: Cake, title: "Birthdays", tagline: "Your face, your voice — in a world nobody expects.", href: "/themes/birthday", cover: "/Birthday/hbd-schoko.jpg", poster: "/Birthday/hbd-schoko.jpg", video: GEBURTSTAG_VIDEO, chips: "♥ Your message · Your face · Send", abPreis: AB_GEBURTSTAG },
     /* DIE HOCHZEIT STEHT AUF PLATZ ZWEI (Owner 10.08.2026: „Wedding machst du auf der
        homepage auf die zweite zeile"). Sie ist das teuerste Stueck im Haus — 29,99 EUR gegen
        9,99 EUR — und das einzige mit einer laufenden Seite dahinter. Wer die Liste von oben
@@ -563,16 +579,28 @@ export default async function ThemesCatalog({ searchParams }: {
       * den die Landingpage als Anspruch trägt (`claim` in app/themes/wedding): ein Produkt,
       * eine Formulierung.
       */
-    { icon: Heart, title: "Digital wedding planner", tagline: "Your invitation as a video — plus the guest list, menu choices and a group chat. All in one link.", href: "/themes/wedding", cover: HOCHZEIT_VIDEO_POSTER, poster: HOCHZEIT_VIDEO_POSTER, video: HOCHZEIT_VIDEO, chips: "♥ Video · Guest list · Group chat", abPreis: AB_HOCHZEIT },
-    // KISS DANACH (Owner 30.07.2026: „kiss musst du als erstes nehmen" — bis 09.08. galt das
-    // für Platz eins). Auf dieses Thema liefen die ersten Anzeigen, und der Trichter dort ist
-    // vollständig; er bleibt deshalb direkt hinter dem Geburtstag.
-    /* POSTER-SWEEP 07.08.2026 (Owner, Kachel für Kachel: „bei Kuss [falsch] · Bei gutschein
-       fehlt · Bei Chat fehlt · Bei uralub falsch · Hochzeit auch falsch"): Jede Video-Kachel
-       trägt als Poster das ERSTE BILD ihres eigenen Videos (per ffmpeg gezogen) — und Video
-       wie Poster liegen als feste Dateien im Repo statt an ablaufenden signierten Links
-       (Dauerregel Memory `landingpage-video-ist-kachel-video`: eine Quelle, nie zwei). */
-    { icon: Heart, title: "Send a kiss to the one you love", tagline: "Your photo and theirs — one video with the two of you, for them alone.", href: "/themes/kiss", cover: "/Kiss/Rain/rain-kiss.jpg", poster: "/Kiss/Rain/rain-kiss.jpg", video: "/Kiss/Rain/rain-kiss.mp4", chips: "♥ Pick her · Your photo · Kiss", abPreis: AB_EINZEL },
+    /**
+     * GEBURTSTAG, HOCHZEIT UND ANPROBE SIND HIER RAUS (Owner 31.08.2026, mit Bild der drei
+     * Kacheln: „die drei auch raus machen, bringen mir nichts.").
+     *
+     * Zusammen mit dem Kuss darunter ist das der ganze Geschenke-Teil des Katalogs. Was
+     * bleibt, sind die drei Trichter, an denen gerade gearbeitet wird: David, Jobs mit
+     * Deutsch und das Future Self Program. Die SEITEN gibt es weiter und sie sind direkt
+     * erreichbar — beworben wird nur noch, was zur Akquise passt.
+     */
+    /* DER KUSS IST HIER RAUS (Owner 31.08.2026: „mach Kiss raus aus der Topic, das ist jetzt
+       für uns nicht gut") — dieselbe Bewegung wie bei „Video application for top jobs"
+       darunter: Die Seite `/themes/kiss` gibt es weiter und ist direkt erreichbar, sie wird
+       nur nicht mehr im Katalog beworben.
+
+       Der Grund liegt ausserhalb dieser Datei: Seit dem 31.08. verschickt der Owner
+       `/recruiting` an Personalabteilungen und BPOs. Wer von dort auf die Hausadresse
+       weiterklickt, entscheidet in derselben Sekunde über die Ernsthaftigkeit des Angebots —
+       und „Send a kiss to the one you love" als erste Kachel beantwortet diese Frage falsch.
+       Am 26.08. war der Kuss schon einmal zurückgeholt worden („jetzt kannst du alle topics
+       sogar wieder einfügen"), weil die eigene Kopfzeilen-Marke je Topic den Zusammenhang
+       verdeckte; gegenüber einer Firma, die den Namen LuxuryBandit selbst nachschlägt,
+       trägt dieses Argument nicht mehr. */
     /**
      * DIE VIDEO-BEWERBUNG IM KATALOG (Owner 24.08.2026: „Dafür nimmst du auch Bewerbung auf
      * die Topicseite" — im selben Zug, in dem Pole Dance, Chat und Holiday herausflogen:
@@ -658,7 +686,6 @@ export default async function ThemesCatalog({ searchParams }: {
        Wetter-Motiv. Es zeigt eine Frau in einem Kleid, aber NICHT, was das Werkzeug tut.
        Jetzt dieselbe Vorlage, die auch im Trichter steht: ein Kleid, in Bewegung, mit
        Poster daneben — Hausregel „Landingpage-Video = Kachel-Video". */
-    { icon: Shirt, title: "Virtual try-on for online shops", tagline: "Your products on a model, as a video — test the tool here, get it for your store.", href: TRYON, cover: "/Tryon/tryon-01.jpg", poster: "/Tryon/tryon-01.jpg", video: "/Tryon/tryon-01.mp4", chips: "For online shops · Test it here · Your products" },
     { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
@@ -869,20 +896,25 @@ export default async function ThemesCatalog({ searchParams }: {
             </ul>
           </div>
 
-          <div>
-            <SectionTitle>{c.costH}</SectionTitle>
-            <Lead>
-              {fillPrices(c.costP, L)} <Link href="/unsubscribe" className="font-black text-[#f6cf51] underline underline-offset-2">Unsubscribe</Link>.
-            </Lead>
-          </div>
-
-          <div>
-            <SectionTitle>{c.noteH}</SectionTitle>
-            <Lead>
-              {c.noteP} <Link href="/terms" className="font-black text-[#f6cf51] underline underline-offset-2">Terms</Link> ·{" "}
-              <Link href="/privacy" className="font-black text-[#f6cf51] underline underline-offset-2">Privacy</Link>
-            </Lead>
-          </div>
+          {/**
+           * „WAS KOSTET ES?" UND „GUT ZU WISSEN" SIND HIER RAUS (Owner 31.08.2026, mit Bild
+           * beider Abschnitte: „das hier raus").
+           *
+           * Beide erklärten die Geschenkvideos: Preise aus dem Guthaben und die Zusage, dass
+           * hochgeladene Fotos einverstandenen Personen gehören. Seit heute stehen im Katalog
+           * nur noch drei Trichter — zwei davon kostenlos —, und die Seite spricht Unternehmen
+           * an, nicht Beschenkte. Zwei Absätze Kleingedrucktes über Guthaben und Fotorechte
+           * beantworten dort keine Frage, die jemand stellt.
+           *
+           * WAS DAMIT NICHT VERSCHWINDET: Die Zustimmung zu den Fotos wird beim UPLOAD
+           * eingeholt, nicht durch diesen Absatz (Hausregel `eingangstore-email-und-alter`);
+           * Terms, Privacy und Abmeldung stehen weiter im Fuss jeder Seite. Es fällt die
+           * Wiederholung weg, nicht die Zusage.
+           *
+           * Die Texte selbst (`costH`/`costP`/`noteH`/`noteP`) bleiben in allen sieben
+           * Sprachen stehen — sie werden nur nicht mehr gerendert. Wer sie zurückholen will,
+           * braucht hier zwei Absätze, nicht sieben Übersetzungen.
+           */}
         </section>
 
         {/* „BECOME A MODEL" IST RAUS (Owner 05.08.2026, mit Bild: „das kommt raus auf der

@@ -236,6 +236,7 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
 
   if (schritt === "f1") {
     return (
+      <>
       <Kasten polster="p-5">
         <h2 className="text-[19px] font-black leading-snug text-white">{T.frage1}</h2>
         <p className="mt-1 text-[13px] font-medium text-white/60">{T.frage1Hinweis}</p>
@@ -247,6 +248,26 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
           ]}
           waehlen={w => { setDeutsch(w); setSchritt("f2"); }} />
       </Kasten>
+
+      {/**
+        * DAS MOTIV STEHT UNTER DEN FRAGEN UND GANZ (Owner 31.08.2026: „auf der seite auch die
+        * frau ganz aber unten den fragen").
+        *
+        * OBEN wäre es im Weg: Wer aus einer Anzeige kommt, soll die erste Frage ohne Wischen
+        * sehen — ein Bild davor kostet genau die Höhe, die der Antwort fehlt. Unten belohnt es
+        * das Weiterlesen und sagt in einer halben Sekunde, worum es geht.
+        *
+        * `aspect-[1086/1448]` ist das echte Seitenverhältnis der Datei, also schneidet
+        * `object-cover` nichts ab — ein Streifen mit fester Höhe hatte ihr vorher die Hälfte
+        * genommen, samt der Flagge.
+        *
+        * NUR AUF DER ERSTEN STUFE: Ab der zweiten Frage ist dasselbe Bild nur noch Weg
+        * zwischen ihm und der Antwort.
+        */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/Joburi/german-jobs.jpg" alt=""
+        className="mt-4 aspect-[1086/1448] w-full rounded-2xl object-cover" />
+      </>
     );
   }
 

@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DIE ANWEISUNG AM FOTOAUTOMATEN (Owner 05.08.2026).
@@ -123,7 +123,7 @@ const IT: FotoText = {
   fuss: "Niente davanti al viso — né mano né occhiali da sole. Non rifiutiamo niente: i tuoi errori, la tua responsabilità.",
 };
 
-const TABELLE: Record<Lang, FotoText> = { de: DE, en: EN, ro: RO, es: ES, fr: FR, pt: PT, it: IT };
+const TABELLE: Record<LangArchiv, FotoText> = { de: DE, en: EN, ro: RO, es: ES, fr: FR, pt: PT, it: IT };
 
 export function fotoText(lang?: string): FotoText {
   const l = String(lang ?? "en").slice(0, 2) as Lang;

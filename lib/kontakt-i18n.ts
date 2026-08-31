@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DAS KONTAKTFORMULAR IN SIEBEN SPRACHEN (Owner 14.08.2026: „der Contactformular muss auch
@@ -181,7 +181,7 @@ const it: KontaktText = {
   felderFixen: "Correggi i campi evidenziati sopra, per favore.",
 };
 
-const TABELLE: Record<Lang, KontaktText> = { en, de, ro, es, fr, pt, it };
+const TABELLE: Record<LangArchiv, KontaktText> = { en, de, ro, es, fr, pt, it };
 
 export function kontaktText(lang: string | undefined): KontaktText {
   return TABELLE[(String(lang ?? "").slice(0, 2) as Lang)] ?? en;

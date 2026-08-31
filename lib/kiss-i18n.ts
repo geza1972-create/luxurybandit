@@ -1,5 +1,5 @@
 import { fillPrices } from "@/lib/pricing";
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DER KUSS-TRICHTER IN SIEBEN SPRACHEN.
@@ -1477,14 +1477,14 @@ const IT: KissText = {
   fine: "Generato dall'IA, non è una registrazione reale — ed è per te, non per i social.",
 };
 
-const TABELLE: Record<Lang, KissText> = { en: EN, de: DE, ro: RO, es: ES, fr: FR, pt: PT, it: IT };
+const TABELLE: Record<LangArchiv, KissText> = { en: EN, de: DE, ro: RO, es: ES, fr: FR, pt: PT, it: IT };
 
 /**
  * „YOUR IDOL" — derselbe Trichter, andere Sprache an sechs Stellen: dort geht es nicht um
  * einen Kuss, sondern um einen gemeinsamen Moment. Nur die Abweichungen stehen hier; alles
  * andere kommt aus der Tabelle oben und muss nie zweimal gepflegt werden.
  */
-const IDOL: Record<Lang, Partial<KissText>> = {
+const IDOL: Record<LangArchiv, Partial<KissText>> = {
   en: {
     step1: "1 · Pick your idol", step3: "3 · The moment",
     pickHint: "Any singer, actress, athlete or influencer — swipe to your own upload, or take one of ours.",
@@ -1569,7 +1569,7 @@ const IDOL: Record<Lang, Partial<KissText>> = {
  * PREIS: {tanz} statt {once} (Owner 03.08.2026: „eigentlich nicht, es soll 3,99 kosten").
  * Die Zahl steht nirgends hier — nur der Platzhalter, gefuellt aus lib/pricing.ts.
  */
-const POLEDANCE: Record<Lang, Partial<KissText>> = {
+const POLEDANCE: Record<LangArchiv, Partial<KissText>> = {
   en: {
     anlass: "For your anniversary · for his birthday · when you are in different cities · after a long week apart · when you want to say it without words",
     grund: "A photo gets a heart back. A video of you on the pole he watches again.",
@@ -1792,7 +1792,7 @@ const POLEDANCE: Record<Lang, Partial<KissText>> = {
  * werden hier auch `step2`, `you`, `uploadYou` und `youHint` mituebersetzt — beim Kuss steht
  * dort „du, der Mann".
  */
-const HOCHZEIT: Record<Lang, Partial<KissText>> = {
+const HOCHZEIT: Record<LangArchiv, Partial<KissText>> = {
   en: {
     anlass: "For the engagement · for the save the date · for the invitation itself · when your guests are spread over three countries · when nobody answers the paper card",
     grund: "A printed card ends up in a drawer. A page with your video, the replies and the guest list stays open on their phone.",
@@ -2204,7 +2204,7 @@ const HOCHZEIT: Record<Lang, Partial<KissText>> = {
  * Wer jemanden in den Urlaub einlaedt, ist kein Paar in Rollen, und die Einladung soll auch
  * fuer Freunde, Geschwister und Eltern stimmen.
  */
-const URLAUB: Record<Lang, Partial<KissText>> = {
+const URLAUB: Record<LangArchiv, Partial<KissText>> = {
   en: {
     anlass: "For a surprise · for the proposal · for a family holiday · for the honeymoon · when you want to ask, not just tell",
     grund: "Anyone can forward a hotel link. A video where the two of you are already there gets a yes.",
@@ -2482,7 +2482,7 @@ const URLAUB: Record<Lang, Partial<KissText>> = {
  * dem Geburtstagskind, und er steht OBEN AUF DER KARTE („Happy birthday to you {Name}"),
  * nicht in den fliegenden Zeilen.
  */
-const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
+const GEBURTSTAG: Record<LangArchiv, Partial<KissText>> = {
   en: {
     anlass: "For your mother · for your partner · for your best friend · for someone far away · when an ordinary message would be too little",
     grund: "Your face. Your voice. A world that exists only for this moment. No card, no generic greeting — you, staged in a way nobody expects.",
@@ -2689,7 +2689,7 @@ const GEBURTSTAG: Record<Lang, Partial<KissText>> = {
  * des Händlers). Deshalb heisst der zweite Platz hier nicht „sie oder er", sondern „der
  * Gutschein".
  */
-const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
+const GUTSCHEIN: Record<LangArchiv, Partial<KissText>> = {
   en: {
     pickFirst: "Upload your video first",
     mailQuestion: "Your email address",
@@ -2947,7 +2947,7 @@ const GUTSCHEIN: Record<Lang, Partial<KissText>> = {
  * wer sie ändert, ändert auch, was auf der ausgelieferten Karte steht. Die Landingpage zeigt
  * sie seit dem Umbau nicht mehr an; der Abschnitt „Mehr als ein Video" ersetzt sie dort.
  */
-const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
+const VERSPRECHEN: Record<LangArchiv, Partial<KissText>> = {
   de: {
     heroA: "Dein Future Film und dein ", heroY: "30-Tage-Programm", heroB: ".",
     heroSub: ["Sieh, wer du in 5 Jahren sein willst.", "Mach dir selbst ein Versprechen.", "Und arbeite 30 Tage daran, es zu halten."],
@@ -3579,7 +3579,7 @@ const VERSPRECHEN: Record<Lang, Partial<KissText>> = {
  * bis dahin auf die Kuss-Grundtexte der jeweiligen Sprache zurück — kein leerer Text, aber ein
  * Platzhalter, der nachgezogen werden muss, sobald das Portal mehr als Deutsch bedient.
  */
-const LEBENSLAUF: Partial<Record<Lang, Partial<KissText>>> = {
+const LEBENSLAUF: Partial<Record<LangArchiv, Partial<KissText>>> = {
   de: {
     /* „Luxury Video Bewerbung — für Top Jobs" (Owner 20.08.2026: „AI gibt dir neue Chancen
        als Titel ist blöd"). */

@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 import type { LebenslaufProfil } from "@/lib/lebenslauf-store";
 
 /**
@@ -167,7 +167,7 @@ export type ExecutiveTexte = {
   videoCta: string;
 };
 
-export const EXECUTIVE_TEXTE: Record<Lang, ExecutiveTexte> = {
+export const EXECUTIVE_TEXTE: Record<LangArchiv, ExecutiveTexte> = {
   en: {
     marke: "Talent", teilen: "Share profile", kopiert: "Link copied", menu: "Menu", menuTitel: "Sections",
     profil: "Profile", expertise: "Core Expertise", erfahrung: "Experience", impact: "Selected Impact",

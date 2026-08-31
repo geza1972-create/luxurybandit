@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * DAS KONTO-ZEICHEN IN DER KOPFZEILE — die Worte dafür (Owner 11.08.2026: „Ich will dass du
@@ -311,7 +311,7 @@ const it: KontoChipText = {
   resetKeinVersand: "Al momento non possiamo inviare e-mail. Usa la pagina dei contatti.",
 };
 
-const TABELLE: Record<Lang, KontoChipText> = { en, de, ro, es, fr, pt, it };
+const TABELLE: Record<LangArchiv, KontoChipText> = { en, de, ro, es, fr, pt, it };
 
 export function kontoChipText(lang: string): KontoChipText {
   return TABELLE[(lang || "en").slice(0, 2) as Lang] ?? en;

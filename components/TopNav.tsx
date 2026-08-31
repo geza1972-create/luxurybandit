@@ -81,6 +81,7 @@ export default function TopNav({
   schlicht = false,
   sprachen = false,
   sprachePfad = false,
+  breit = false,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
@@ -127,6 +128,16 @@ export default function TopNav({
   /** Die Sprache steht im Pfad (`/recruiting/ro`) — dann wechselt der Umschalter die
       Adresse statt nur das Cookie. */
   sprachePfad?: boolean;
+  /**
+   * BREITE KOPFZEILE FÜR EINE BREITE SEITE (Owner 31.08.2026, zur Desktop-Fassung der
+   * Firmenseite: „Desktop nicht nur breiter skalieren, sondern neu arrangieren").
+   *
+   * Die Kopfzeile hält ihren Inhalt bei 760 px — richtig für Seiten, die auch am grossen
+   * Bildschirm eine Spalte bleiben. Die Firmenseite läuft dort auf 1120 px; ohne diesen
+   * Schalter stünde das Logo eingerückt, während der Text darunter am Rand beginnt. Nur die
+   * Breite ändert sich, nichts an der Gestalt.
+   */
+  breit?: boolean;
   /**
    * WOHIN LOGO UND PFEIL-FALLBACK FUEHREN, WENN NICHT „/" (Owner 26.08.2026: „oben wenn man
    * auf das Logo klickt LB-{Topic} dann springt man auf die Landingpage (Topic Startseite)").
@@ -232,7 +243,7 @@ export default function TopNav({
           `.lb-zentrale`-Seiten (Owner 25.08.2026, Bewerbungszentrale breiter) sprengen
           den Rahmen — dort riss max-w-6xl (1152px) Logo und Symbole weit auseinander.
           Jetzt deckt sich die Kopfzeile exakt mit der Inhaltsspalte darunter. */}
-      <div className="mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between gap-3 px-4 py-2.5">
+      <div className={`mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between gap-3 px-4 py-2.5 ${breit ? "lg:max-w-[1120px] lg:px-8" : ""}`}>
         {/* Rueckpfeil + Marke sind EINE linke Gruppe (26.08.2026, Owner mit Bild: „logo
             links" — auf der jetzt breiten Bewerbungszentrale trieb `justify-between` mit
             drei Kindern die Marke in die Mitte der Zeile, weit vom Pfeil weg). Ein
@@ -271,6 +282,16 @@ export default function TopNav({
             überlagert und das Motto abgeschnitten (Owner 28.07.2026) — sie sitzt jetzt in
             einer eigenen Zeile unter dem Header. */}
         <div className="flex shrink-0 items-center gap-2">
+          {/* Am Desktop stehen Hell/Dunkel und Sprache hier oben statt in der Zeile darunter
+              (nur bei `breit`; sonst ändert sich an keiner Seite etwas). */}
+          {breit && (
+            <span className="hidden items-center gap-2 lg:flex">
+              <LightSwitch />
+              {(!schlicht || sprachen) && (
+                <LangSwitch imPfad={sprachePfad} {...(Array.isArray(sprachen) ? { nur: sprachen } : {})} />
+              )}
+            </span>
+          )}
           {/* DAS KONTO-ZEICHEN NEBEN DEM TEILEN-KNOPF (Owner 11.08.2026: „Ich will dass du mir
               ein Icon im Header machst zu sehen ob ich eingeloggt bin, mit grüner punkt. Dann
               wenn ich dort klicke dann kann ich mich abmelden oden anmelden." · „neben dem
@@ -321,7 +342,16 @@ export default function TopNav({
           stehen? … mit Icon bitte"). Der Chip zeigt sich nur, wenn wir die Adresse kennen —
           siehe GuthabenChip. `justify-between` statt `justify-end`: ohne Chip rückt die
           Sprache dank des leeren ersten Kinds trotzdem nach rechts. */}
-      <div data-langrow="1" className="mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between px-4 pb-2">
+      {/**
+        * DIE ZWEITE ZEILE ENTFÄLLT AM DESKTOP, WENN DIE SEITE BREIT IST (Owner 31.08.2026,
+        * am Entwurf der Firmenseite: Mond und Sprache stehen dort IN der blauen Leiste).
+        *
+        * Auf dem Handy bleibt sie, wo sie ist — dort war sie nie das Problem; die Leiste ist
+        * bei 375 px voll (siehe die Rechnung unten). Am grossen Bildschirm ist rechts neben
+        * der Marke Platz für beides, und eine zweite, halbleere Zeile darunter sieht nach
+        * Rest aus, nicht nach Kopfzeile.
+        */}
+      <div data-langrow="1" className={`mx-auto flex max-w-[440px] md:max-w-[760px] items-center justify-between px-4 pb-2 ${breit ? "lg:hidden" : ""}`}>
         {/* Der Span steht IMMER — rendert der Chip nichts, bleibt er leer, und
             `justify-between` schiebt die Sprache weiter nach rechts wie bisher. */}
         {/* DAS KONTO-ZEICHEN STEHT NICHT HIER, sondern oben neben dem Teilen-Knopf (Owner

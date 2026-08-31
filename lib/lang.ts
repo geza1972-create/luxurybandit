@@ -7,15 +7,39 @@
  * Browsersprache lesen (z. B. Sprache einer E-Mail aus der Telefonvorwahl).
  */
 /**
- * SIEBEN SPRACHEN — Polnisch ist raus (Owner 30.07.2026: „polnisch entfernen, brauchen wir
- * nicht"). Diese Liste ist die einzige Quelle: der Umschalter zeigt nur, was hier steht, und
- * `resolveLang` kann nichts anderes zurückgeben. Wo in älteren Sprachtabellen noch ein
- * `pl:`-Eintrag liegt, wird er dadurch nie mehr ausgewählt.
+ * DREI SPRACHEN — DEUTSCH, ENGLISCH, RUMÄNISCH (Owner 31.08.2026: „das ganze portal nur in
+ * diesen 3").
+ *
+ * Diese Liste ist die einzige Quelle für das, was ANGEBOTEN wird: Der Umschalter zeigt nur,
+ * was hier steht, und `resolveLang` kann nichts anderes zurückgeben. Wer mit spanischem oder
+ * italienischem Browser kommt, bekommt jetzt Englisch; ein altes Cookie mit `it` ist
+ * ungültig und fällt still auf dieselbe Reihenfolge zurück.
+ *
+ * Vorher waren es sieben (Polnisch flog schon am 30.07.2026 raus). Der Grund für den Schnitt
+ * liegt ausserhalb dieser Datei: Das Portal richtet sich seit dem 31.08. auf Recruiting in
+ * Rumänien und im deutschsprachigen Raum aus — Spanisch, Französisch, Portugiesisch und
+ * Italienisch bedienen dort niemanden, kosten aber bei jeder Textänderung vier Fassungen.
+ *
+ * ACHTUNG, WENN ANZEIGEN LAUFEN: Wer aus einer italienischen oder spanischen Anzeige kommt,
+ * landet ab jetzt auf Englisch.
  */
-export const LANGS = ["en", "de", "ro", "es", "fr", "pt", "it"] as const;
+export const LANGS = ["en", "de", "ro"] as const;
 export type Lang = (typeof LANGS)[number];
 
-export const LANG_LABEL: Record<Lang, string> = {
+/**
+ * WAS NOCH ÜBERSETZT IM CODE LIEGT — angeboten wird es nicht mehr.
+ *
+ * Die vier gestrichenen Sprachen sind ECHTE Arbeit, teils von Hand geschrieben. Sie werden
+ * deshalb nicht gelöscht, sondern nur nicht mehr ausgewählt: Die Sprachtabellen tragen
+ * weiterhin ihre `es`/`fr`/`pt`/`it`-Einträge und sind mit DIESEM Typ getippt, während
+ * Umschalter und `resolveLang` allein `LANGS` kennen.
+ *
+ * Zurückholen ist damit eine Zeile — die Sprache in `LANGS` eintragen, fertig.
+ */
+export const LANGS_ARCHIV = ["en", "de", "ro", "es", "fr", "pt", "it"] as const;
+export type LangArchiv = (typeof LANGS_ARCHIV)[number];
+
+export const LANG_LABEL: Record<LangArchiv, string> = {
   en: "English", de: "Deutsch", ro: "Română", es: "Español",
   fr: "Français", pt: "Português", it: "Italiano",
 };

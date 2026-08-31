@@ -60,7 +60,7 @@ export const AGENTEN_TEXTE = {
      schweigt über den Besitz. David ist offen, die anderen nicht — was man daraus schliesst,
      bleibt dem Leser überlassen. */
   p3: "Was so ein Agent leisten kann, siehst du an David: Er führt ein komplettes Vorgespräch mit Bewerbern — von der ersten Frage bis zum fertigen Ergebnis. Deiner kann etwas ganz anderes können.",
-  p4: "Und das in sieben Sprachen — Deutsch, Englisch, Rumänisch, Spanisch, Französisch, Portugiesisch, Italienisch. Jeder spricht mit ihm in seiner eigenen.",
+  p4: "Und das in drei Sprachen — Deutsch, Englisch, Rumänisch. Jeder spricht mit ihm in seiner eigenen.",
   /* NICHT „TESTE MICH" (Owner 29.08.2026: „statt Teste mich so nüchtern lieber Mach eine
      Anfrage und das in Gelb"). „Teste mich" lädt zum Ausprobieren ein — und Ausprobierer
      hinterlassen keine Adresse. „Mach eine Anfrage" sagt, was am Ende dabei herauskommt. */

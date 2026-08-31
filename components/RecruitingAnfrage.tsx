@@ -14,9 +14,9 @@ import type { RecruitingText } from "@/lib/recruiting-i18n";
  * nach dem ersten Buchstaben heraus. In einem Formular, das über eine Akquise-Anfrage
  * entscheidet, wäre das der teuerste denkbare Fehler.
  */
-function Feld({ label, children }: { label: string; children: React.ReactNode }) {
+function Feld({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="mt-3.5">
+    <div className={`mt-3.5 lg:mt-0 ${className}`}>
       <label className="block text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{label}</label>
       <div className="mt-1.5">{children}</div>
     </div>
@@ -79,8 +79,8 @@ export default function RecruitingAnfrage({ T }: { T: RecruitingText }) {
      verspricht nichts, was nicht in einer Person liegt: eine persönliche Antwort. */
   if (fertig) {
     return (
-      <Kasten art="gold" polster="p-5">
-        <p className="flex items-start gap-2.5 text-[16px] font-black leading-snug text-white">
+      <Kasten art="gold" polster="p-5 lg:p-8">
+        <p className="flex items-start gap-2.5 text-[16px] font-black leading-snug text-white lg:justify-center lg:text-[18px]">
           <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#f6cf51]" />
           {T.fDanke}
         </p>
@@ -88,8 +88,20 @@ export default function RecruitingAnfrage({ T }: { T: RecruitingText }) {
     );
   }
 
+  /**
+   * MOBIL EINE SPALTE, AM DESKTOP ZWEI (Owner 31.08.2026: „Formular unten als hochwertige
+   * Desktop-Card mit sinnvollem 2-Spalten-Layout").
+   *
+   * Erste Zeile: Name · Firma · Adresse — die drei Angaben über die Person. Zweite Zeile:
+   * die Position, und daneben über zwei Spalten der Stellenlink; er ist das einzige Feld,
+   * dessen Inhalt lang werden kann, und in einem Drittel scrollte man in einer URL herum.
+   *
+   * Das Raster hebt die eigenen Abstände der Felder auf (`lg:mt-0`), sonst addierte sich der
+   * mobile Abstand zum Rasterabstand und die Zeilen ständen ungleich weit auseinander.
+   */
   return (
-    <Kasten polster="p-5">
+    <Kasten polster="p-5 lg:p-8">
+     <div className="lg:mx-auto lg:grid lg:max-w-[900px] lg:grid-cols-3 lg:gap-x-6 lg:gap-y-5">
       <Feld label={T.fName}>
         <Eingabe value={name} onChange={e => { setName(e.target.value); setFehler(""); }} symbol={<User className="h-4 w-4" />}
           autoComplete="name" placeholder={T.fNamePh} />
@@ -106,20 +118,21 @@ export default function RecruitingAnfrage({ T }: { T: RecruitingText }) {
         <Eingabe value={position} onChange={e => { setPosition(e.target.value); setFehler(""); }} symbol={<Briefcase className="h-4 w-4" />}
           placeholder={T.fPositionPh} />
       </Feld>
-      <Feld label={T.fLink}>
+      <Feld label={T.fLink} className="lg:col-span-2">
         <Eingabe type="url" inputMode="url" value={link} onChange={e => setLink(e.target.value)} symbol={<Link2 className="h-4 w-4" />}
           placeholder={T.fLinkPh} />
       </Feld>
 
-      <Fehlerzeile>{fehler}</Fehlerzeile>
-      <div className="mt-4">
+      <div className="lg:col-span-3"><Fehlerzeile>{fehler}</Fehlerzeile></div>
+      <div className="mt-4 lg:col-span-3 lg:mt-2">
         {busy ? <Fortschritt text={T.fLaeuft} /> : <Knopf art="gold" onClick={() => void senden()}>{T.fKnopf}</Knopf>}
       </div>
       {/* DIE LETZTE HÜRDE IST NICHT DAS FORMULAR, SONDERN DIE FRAGE „WORAUF LASSE ICH MICH
           EIN?" (Owner 31.08.2026). Der Satz steht deshalb UNTER dem Knopf, nicht darüber:
           Wer schon entschieden hat, wird nicht aufgehalten; wer zögert, findet die Antwort
           genau dort, wo er stehen bleibt. */}
-      <p className="mt-2 text-center text-[12px] font-bold text-white/55">{T.fUnverbindlich}</p>
+      <p className="mt-2 text-center text-[12px] font-bold text-white/55 lg:col-span-3">{T.fUnverbindlich}</p>
+     </div>
     </Kasten>
   );
 }

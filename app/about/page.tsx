@@ -32,9 +32,9 @@ import { aboutText, MARKENSATZ_1, MARKENSATZ_2 } from "@/lib/about-i18n";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "About LuxuryBandit — one-of-a-kind gifts and moments from the new AI era",
+  title: "About LuxuryBandit — software, portals and checkout journeys",
   description:
-    "One-of-a-kind gifts and moments from the new AI era: you upload one photo and a finished gift comes out. Behind it, thirty years of software usability.",
+    "We build software, portals and checkout journeys that sell — from the Meta ad to the purchase. Behind it, thirty years of design and software usability.",
   alternates: { canonical: "/about" },
 };
 

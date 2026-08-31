@@ -1,4 +1,4 @@
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 
 /**
  * GALERIE UND KONTO IN SIEBEN SPRACHEN (Owner 08.08.2026, nach der Nacht der vier Fehler:
@@ -504,7 +504,7 @@ const it: KontoText = {
   korrektur: "Correzione",
 };
 
-const TABELLE: Record<Lang, KontoText> = { en, de, ro, es, fr, pt, it };
+const TABELLE: Record<LangArchiv, KontoText> = { en, de, ro, es, fr, pt, it };
 
 /** Der Text zur Sprache — Unbekanntes ist Englisch (Hausregel `lib/lang`). */
 export function kontoText(lang: string | undefined): KontoText {
@@ -532,7 +532,7 @@ export function spracheAusCookie(): Lang {
  * das hier fehlt (neues Topic), fällt still auf die Art zurück — nie auf einen technischen
  * Schlüssel.
  */
-const THEMEN: Record<Lang, Record<string, string>> = {
+const THEMEN: Record<LangArchiv, Record<string, string>> = {
   en: { birthday: "Birthday video", kiss: "Kiss video", poledance: "Pole dance video", holiday: "Holiday invitation", wedding: "Wedding invitation", gutschein: "Gift card", plan: "Idea analysis", idol: "Idol video", versprechen: "Future Self Program", lebenslauf: "Video application" },
   de: { birthday: "Geburtstagsvideo", kiss: "Kuss-Video", poledance: "Poledance-Video", holiday: "Urlaubs-Einladung", wedding: "Hochzeits-Einladung", gutschein: "Gutschein", plan: "Ideen-Analyse", idol: "Idol-Video", versprechen: "Future Self Program", lebenslauf: "Video-Bewerbung" },
   ro: { birthday: "Video de ziua ta", kiss: "Video cu sărut", poledance: "Video pole dance", holiday: "Invitație de vacanță", wedding: "Invitație de nuntă", gutschein: "Card cadou", plan: "Analiza ideii", idol: "Video cu idolul tău", versprechen: "Future Self Program", lebenslauf: "Aplicație video" },
@@ -552,7 +552,7 @@ const THEMEN: Record<Lang, Record<string, string>> = {
  * fertiges Video) — und für die wäre "Kiss video" eine falsche Behauptung über das Medium.
  * Diese Tabelle nennt nur das THEMA; `themaUndMedium` setzt das Medium separat davor/danach.
  */
-const THEMA_KURZ: Record<Lang, Record<string, string>> = {
+const THEMA_KURZ: Record<LangArchiv, Record<string, string>> = {
   en: { birthday: "Birthday", kiss: "Kiss", poledance: "Pole dance", holiday: "Holiday", wedding: "Wedding", gutschein: "Gift card", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Video CV" },
   de: { birthday: "Geburtstag", kiss: "Kuss", poledance: "Poledance", holiday: "Urlaub", wedding: "Hochzeit", gutschein: "Gutschein", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "Bewerbung" },
   ro: { birthday: "Ziua ta", kiss: "Sărut", poledance: "Pole dance", holiday: "Vacanță", wedding: "Nuntă", gutschein: "Card cadou", idol: "Idol", versprechen: "Future Self Program", lebenslauf: "CV video" },
@@ -567,7 +567,7 @@ const THEMA_KURZ: Record<Lang, Record<string, string>> = {
  * mal als Video vorliegt (je nachdem, ob die Kette schon fertig ist), und die Galerie das
  * Medium zeigen soll, das WIRKLICH da ist — nicht das, was das Thema normalerweise liefert.
  */
-const MEDIUM_WORT: Record<Lang, { bild: string; video: string }> = {
+const MEDIUM_WORT: Record<LangArchiv, { bild: string; video: string }> = {
   en: { bild: "Image", video: "Video" },
   de: { bild: "Bild", video: "Video" },
   ro: { bild: "Imagine", video: "Video" },

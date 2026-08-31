@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Play, Download, X, Loader2, Trash2, Send, Lock, LockOpen } from "lucide-react";
 import { kontoText, spracheAusCookie, themaUndMedium, themaWort } from "@/lib/konto-i18n";
-import type { Lang } from "@/lib/lang";
+import type { Lang, LangArchiv } from "@/lib/lang";
 import { ThemenKreise, Knopf, Fortschritt } from "@/components/CI";
 import TopNav from "@/components/TopNav";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
@@ -705,7 +705,7 @@ export default function MyGalleryPage() {
   };
 
   /** Das Datum in seiner Sprache — dieselben sieben Kürzel wie überall im Haus. */
-  const DATUMS_LOCALE: Record<Lang, string> = { en: "en-US", de: "de-DE", ro: "ro-RO", es: "es-ES", fr: "fr-FR", pt: "pt-PT", it: "it-IT" };
+  const DATUMS_LOCALE: Record<LangArchiv, string> = { en: "en-US", de: "de-DE", ro: "ro-RO", es: "es-ES", fr: "fr-FR", pt: "pt-PT", it: "it-IT" };
   const datumWort = (iso: string): string => {
     if (!iso) return "";
     const d = new Date(iso);

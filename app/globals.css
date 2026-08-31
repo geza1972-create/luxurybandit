@@ -66,6 +66,14 @@
      440er-Handy-Spalte stuende sie in einem Telefonrahmen mit grauen Flaechen links und
      rechts. Die Seite setzt ihre eigene Breite (gl-wrap, bis 1180px). */
   .lb-frame:has(.lb-portfolio),
+  /* DIE FIRMENSEITE (/recruiting, Owner 31.08.2026: „baue jetzt eine echte Desktop-Version
+     … Desktop nicht nur breiter skalieren, sondern neu arrangieren").
+     Derselbe Grund wie beim Dossier darüber, nur andersherum: Diese Seite verschickt der
+     Owner an Personalabteilungen und BPOs, die sie am SCHREIBTISCH öffnen. Eine Akquise-
+     Seite, die auf einem 27-Zoll-Monitor in einer Telefonspalte mit grauen Flächen links
+     und rechts steht, verhandelt nicht auf Augenhöhe. Die Seite setzt ihre eigene Breite
+     (1120 px, mittig) — nicht über den ganzen Bildschirm gezogen. */
+  .lb-frame:has(.lb-recruiting),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;

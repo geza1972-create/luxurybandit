@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { Instagram, Youtube } from "lucide-react";
-import { YOUTUBE_CHANNEL } from "@/lib/social";
 
 /**
  * DER FUSS UNTER JEDER THEMENSEITE (Owner 05.08.2026: „und wir machen auf jeder Topicseite
@@ -137,26 +135,18 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
           <Link key={href} href={href} className="hover:text-white">{text}</Link>
         ))}
       </div>
-      {/* INSTAGRAM UND YOUTUBE (Owner 06.08.2026: „instagram und you tube icon in dem
-          footer") — dieselben Ziele und dieselben Kreise wie in der Kopfzeile (TopNav
-          `iconBtn`), die Adresse aus EINER Quelle (`lib/social`, NEXT_PUBLIC_INSTAGRAM_HANDLE).
-          Bewusst kein Client-Code: zwei <a>, der Fuss bleibt ein Server-Baustein.
-          RAUS BEI EIGENER MARKE (Owner 26.08.2026, mit Bild der zwei Kreise: „das machst du
-          raus aus dem Footer") — das sind LuxuryBandit-Kanäle, keine des einzelnen Topics;
-          ein Rückweg zur Muttermarke reicht der eine „LUXURYBANDIT TOOLS"-Link unten. */}
-      {!marke && (
-      <div className="mt-4 flex items-center gap-2">
-        <a href={YOUTUBE_CHANNEL} target="_blank" rel="noopener noreferrer" aria-label="Bella auf YouTube"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white">
-          <Youtube className="h-4 w-4" />
-        </a>
-        <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`}
-          target="_blank" rel="noopener noreferrer" aria-label="Instagram"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white">
-          <Instagram className="h-4 w-4" />
-        </a>
-      </div>
-      )}
+      {/**
+        * INSTAGRAM UND YOUTUBE SIND RAUS (Owner 31.08.2026, mit Bild des Fusses: „you tube
+        * und insta raus").
+        *
+        * Sie standen seit dem 06.08. dort und flogen am 26.08. schon einmal von den Seiten
+        * mit eigener Marke. Jetzt überall: Beide Kanäle zeigen Geschenkvideos — Kuss,
+        * Geburtstag, Hochzeit —, also genau das, was heute aus dem Katalog geflogen ist. Ein
+        * Recruiter, der von `/recruiting` kommt und unten auf das Instagram-Zeichen tippt,
+        * landet in einer anderen Firma.
+        *
+        * Die Kanäle selbst bleiben bestehen; sie werden nur nicht mehr aus dem Fuss verlinkt.
+        */}
       {/* Die Marke zum Schluss — sie beantwortet die Frage „bei wem war ich hier eigentlich",
           wenn jemand die Seite geteilt bekommen hat und die Kopfzeile längst weggescrollt ist.
           MIT EIGENER KOPFZEILEN-MARKE wird daraus zwei Zeilen (Owner 26.08.2026): die eigene
