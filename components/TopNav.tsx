@@ -77,6 +77,7 @@ export default function TopNav({
   marke,
   heim,
   motto: mottoUeberschreiben,
+  schlicht = false,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
@@ -92,6 +93,19 @@ export default function TopNav({
    * „LuxuryBandit" — das gilt für alle anderen Produkte weiter unveraendert.
    */
   marke?: string;
+  /**
+   * DER GESCHLOSSENE TRICHTER (Owner 31.08.2026, zum Joburi-Trichter: „keine Navigation zu
+   * Assets, anderen Funnels oder anderen Produkten. Der Nutzer soll vollständig im
+   * Recruiting-Funnel bleiben. LuxuryBandit darf als Absender sichtbar bleiben.").
+   *
+   * Ein Besucher, der aus einer Anzeige kommt, hat genau eine Aufgabe. Jeder Weg hinaus —
+   * Galerie, Konto, ein zweites Produkt — ist an dieser Stelle kein Angebot, sondern ein
+   * Ausgang. Die MARKE bleibt sichtbar; sie sagt, bei wem er ist, und führt nirgendwohin.
+   *
+   * Der Hell/Dunkel-Schalter bleibt bewusst (Hausregel vom 06.08.2026: „muss immer da sein
+   * im header") — er ist keine Navigation, er ändert nur, wie die Seite aussieht.
+   */
+  schlicht?: boolean;
   /**
    * WOHIN LOGO UND PFEIL-FALLBACK FUEHREN, WENN NICHT „/" (Owner 26.08.2026: „oben wenn man
    * auf das Logo klickt LB-{Topic} dann springt man auf die Landingpage (Topic Startseite)").
@@ -246,8 +260,10 @@ export default function TopNav({
               angemeldet?" nicht; genau daran hing der Fehler, den er gesehen hat.
               Die Gestalt kommt aus der Bibliothek (`SymbolKnopf`) — der `iconBtn`-Stil daneben
               bleibt unangetastet. */}
-          <KontoChip />
-          {actions ?? (
+          {/* Im geschlossenen Trichter fällt beides weg — Konto wie Aktionen sind Wege
+              hinaus (siehe `schlicht`). */}
+          {!schlicht && <KontoChip />}
+          {schlicht ? null : actions ?? (
             <>
               {/* DIE SUCHE IST INS MENUE GEZOGEN (Owner 31.07.2026: „man kann den Namen
                   nicht lesen. Vielleicht die Suche im Menü").
@@ -293,7 +309,7 @@ export default function TopNav({
             Abstände füllen die 343 verfügbaren Pixel restlos aus. Ein 26 Pixel breites
             Zeichen dazwischen brach dem Guthaben „0,00 €" in zwei Zeilen. Wer hier je etwas
             hinzufügen will, muss also zuerst etwas anderes wegnehmen. */}
-        <span><GuthabenChip /></span>
+        <span>{schlicht ? null : <GuthabenChip />}</span>
         {/* HELL/DUNKEL STEHT IMMER HIER (Owner 06.08.2026: „der light und dark shalter muss
             immer da sein im header").
             Bisher hängte ihn jede Seite selbst ein — per Portal im Kuss-Trichter, als
@@ -304,8 +320,12 @@ export default function TopNav({
             LINKS von der Sprache, weil deren Menü nach rechts aufklappt und sonst aus dem
             Bild liefe. */}
         <span className="flex items-center gap-2">
+          {/* Hell/Dunkel bleibt auch im geschlossenen Trichter (Hausregel 06.08.2026).
+              Der Sprachumschalter fällt weg: Ein Trichter mit fest verdrahteter Sprache —
+              Joburi ist rumänisch — hätte dort nichts zu wechseln, und ein Knopf, der
+              „Deutsch" anzeigt, während die Seite rumänisch ist, verwirrt nur. */}
           <LightSwitch />
-          <LangSwitch />
+          {!schlicht && <LangSwitch />}
         </span>
       </div>
       {/**

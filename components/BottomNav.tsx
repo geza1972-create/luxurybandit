@@ -240,6 +240,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     // eine Leiste mit Kuss- und Geburtstags-Themen darunter erledigt jede Bewerbung. Der
     // Kopf der Seite (`TalentKopf`) trägt stattdessen ihr eigenes Menü.
     pathname.startsWith("/lebenslauf") ||
+    // DERSELBE GRUND, NEUER TRICHTER (Owner 31.08.2026, Punkt 5 zum Joburi-Trichter: „keine
+    // Navigation zu Assets, anderen Funnels oder anderen Produkten. Der Nutzer soll
+    // vollständig im Recruiting-Funnel bleiben."). Wer aus einer rumänischen Stellenanzeige
+    // kommt, hat eine Aufgabe; ein Menü mit Kuss- und Geburtstags-Themen darunter ist an
+    // dieser Stelle kein Angebot, sondern ein Ausgang.
+    pathname.startsWith("/joburi") ||
     pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
   );
 

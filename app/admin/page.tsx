@@ -14,6 +14,7 @@ import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
 import AdsPlaybook from "@/components/AdsPlaybook";
 import UploadsAdmin from "@/components/UploadsAdmin";
+import JoburiAdmin from "@/components/JoburiAdmin";
 import AdminConnections from "@/components/AdminConnections";
 import PasswordInput from "@/components/PasswordInput";
 
@@ -3364,6 +3365,13 @@ export default function AdminPage() {
               <span className="shrink-0 text-ink/40">→</span>
             </a>
           ))}
+
+          {/* DIE STELLENPFLEGE STEHT HIER DIREKT, NICHT ALS LINK (Owner 31.08.2026): Sie ist
+              kein eigener Arbeitsplatz wie die Pools darüber, sondern ein Formular und eine
+              Liste — und sie wird beim Aufbau des Joburi-Trichters täglich gebraucht. */}
+          <div className="mt-6 rounded-2xl border border-black/12 bg-white p-4">
+            <JoburiAdmin pin={pin} />
+          </div>
         </div>
       )}
 
