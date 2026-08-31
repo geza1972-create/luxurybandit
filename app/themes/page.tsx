@@ -548,7 +548,7 @@ export default async function ThemesCatalog({ searchParams }: {
      * die Seite gerade deutsch ist. Alle anderen bekommen die rumänische Fassung, für die er
      * gebaut ist.
      */
-    { icon: Briefcase, title: "Jobs with German", tagline: "Answer 4 questions — we show you real openings that could fit you.", href: `/joburi${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 4 questions · Real openings · Free" },
+    { icon: Briefcase, title: "Jobs with German", tagline: "Answer 4 questions — we show you real openings that could fit you.", href: `/joburi/germana${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 4 questions · Real openings · Free" },
     { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise", abPreis: AB_VERSPRECHEN },
     /**
      * GEBURTSTAG AUF PLATZ ZWEI (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf
