@@ -28,11 +28,20 @@ import { joburiTexte, JOBURI_SPRACHEN } from "@/lib/joburi-texte";
  * Deutschland läuft. Ebenfalls statisch, ebenfalls ohne Modell.
  */
 
-export const metadata: Metadata = {
-  title: "Studiu: cât valorează germana pe piața muncii?",
-  description: "Vorbești germană? Pentru ce salariu ai schimba jobul? Spune-ne ce ofertă te-ar face să iei în calcul o schimbare.",
-  robots: { index: false, follow: false },
-};
+/* Titel und Beschreibung folgen der Sprache — sie sind das, was in der Vorschau einer
+   verschickten Nachricht steht. Ein rumänischer Titel über einem deutschen Text ist der
+   erste Bruch, den der Empfänger sieht; sie standen bis zum 31.08. fest auf Rumänisch. */
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const T = joburiTexte(String(sp.lang ?? "") || (await resolveLang("ro")));
+  return {
+    title: `${T.studieTitel} ${T.studieTitelZwei}`,
+    description: T.studieUnter,
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function JoburiSeite({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
