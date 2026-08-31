@@ -14,7 +14,24 @@ import { LANGS, LANG_LABEL, LANG_COOKIE, isLang, type Lang } from "@/lib/lang";
  * nicht übersetzten Seiten bleibt der Text englisch — die Wahl gilt trotzdem
  * weiter, sobald man auf eine übersetzte Seite kommt.
  */
-export default function LangSwitch() {
+export default function LangSwitch({ nur, rueckfall = "en" }: {
+  /**
+   * NUR DIESE SPRACHEN ANBIETEN (Owner 31.08.2026, mit Bild des Menüs auf der Firmenseite:
+   * „du hast gesagt 3 sprachen").
+   *
+   * Er hat recht, und der Fehler war meiner: Die Seite gibt es in drei Sprachen, das Menü
+   * bot weiter alle sieben an. Wer „Français" wählte, bekam einen HAKEN an einer Sprache,
+   * die die Seite gar nicht spricht — der Umschalter behauptete etwas, das der Text nicht
+   * einlöst. Ein Menüeintrag ist ein Versprechen; hier stehen nur noch die, die eingelöst
+   * werden.
+   *
+   * Ohne Angabe bleibt es bei allen sieben — jede bestehende Seite ist unberührt.
+   */
+  nur?: Lang[];
+  /** Was der Knopf zeigt, wenn die gespeicherte Wahl nicht in `nur` steht — dieselbe
+      Rückfallsprache, die die Seite dann auch wirklich rendert. */
+  rueckfall?: Lang;
+} = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
@@ -31,6 +48,21 @@ export default function LangSwitch() {
 
   useEffect(() => {
     try {
+      /**
+       * DIE ADRESSE STICHT DAS COOKIE (31.08.2026, an der Firmenseite gesehen: Seite auf
+       * Rumänisch, Knopf behauptet „Deutsch").
+       *
+       * Dieselbe Rangfolge wie beim Hell/Dunkel-Schalter: Steht die Sprache in der Adresse,
+       * gewinnt die Adresse. Ein Link, den man gezielt an einen rumänischen Personalleiter
+       * schickt (`/recruiting?lang=ro`), soll bei ihm auch dann rumänisch AUSSEHEN, wenn
+       * hier vorher jemand Deutsch gewählt hat — und der Knopf darf darüber nicht lügen.
+       *
+       * Das Cookie wird dabei NICHT überschrieben: Ein verschickter Link ändert nicht die
+       * dauerhafte Wahl des Empfängers, er gilt für diesen Aufruf.
+       */
+      const ausAdresse = new URLSearchParams(window.location.search).get("lang") ?? "";
+      if (isLang(ausAdresse)) { setLang(ausAdresse); return; }
+
       const m = document.cookie.match(new RegExp(`(?:^|; )${LANG_COOKIE}=([^;]*)`));
       const fromCookie = m ? decodeURIComponent(m[1]) : "";
       if (isLang(fromCookie)) { setLang(fromCookie); return; }
@@ -56,9 +88,34 @@ export default function LangSwitch() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
+  const gezeigt: Lang = nur && !nur.includes(lang) ? rueckfall : lang;
+
   const pick = (l: Lang) => {
     setLang(l); setOpen(false);
     try { document.cookie = `${LANG_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`; } catch { /**/ }
+    /**
+     * EINE EIGENE WAHL RÄUMT DIE ADRESSE FREI: Bliebe `?lang=ro` stehen, läse die Seite
+     * weiter aus der Adresse — der Umschalter wäre sichtbar kaputt, weil sich nach dem
+     * Antippen nichts ändert. Sein Klick ist die neuere Entscheidung, also fällt der
+     * mitgeschickte Wunsch weg.
+     */
+    try {
+      const u = new URL(window.location.href);
+      if (u.searchParams.has("lang")) {
+        u.searchParams.delete("lang");
+        /**
+         * `router.replace` UND NICHT `history.replaceState` (31.08.2026 gemessen: Nach dem
+         * Umschalten blieb die Seite rumänisch).
+         *
+         * `history.replaceState` ändert nur die Adresszeile. Next weiss davon nichts und
+         * holte die Server-Komponente mit den ALTEN Suchparametern — also weiter mit
+         * `lang=ro`. Der Umschalter sah damit kaputt aus: Knopf sagt Deutsch, Text bleibt
+         * rumänisch. `router.replace` ersetzt den Eintrag UND rendert neu.
+         */
+        router.replace(u.pathname + (u.search || "") + u.hash);
+        return;
+      }
+    } catch { /* die Wahl darf nie an der Adresszeile scheitern */ }
     router.refresh();
   };
 
@@ -75,15 +132,17 @@ export default function LangSwitch() {
         {/* AUSGESCHRIEBEN statt Kürzel (Owner 30.07.2026: „ich kann es gar nicht lesen. Es
             muss Sprache ausgeschrieben werden"). Die Namen liegen laengst in lib/lang.ts —
             „Română", „Deutsch", „English" versteht jeder, „RO" nicht. */}
-        <span className="text-[12px] font-black">{LANG_LABEL[lang] ?? String(lang).toUpperCase()}</span>
+        {/* Steht die gespeicherte Wahl nicht auf der Liste dieser Seite, zeigt der Knopf die
+            Sprache, in der die Seite tatsächlich erscheint — nie eine, die sie nicht spricht. */}
+        <span className="text-[12px] font-black">{LANG_LABEL[gezeigt] ?? String(gezeigt).toUpperCase()}</span>
       </button>
       {open && (
         <div className={`absolute top-11 z-50 w-40 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-white/10 bg-[#141110] shadow-2xl ${nachRechts ? "left-0" : "right-0"}`}>
-          {LANGS.map(l => (
+          {(nur ?? LANGS).map(l => (
             <button key={l} type="button" onClick={() => pick(l)}
               className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition hover:bg-white/10">
               {LANG_LABEL[l]}
-              {l === lang && <Check className="h-4 w-4 text-[#f6cf51]" />}
+              {l === gezeigt && <Check className="h-4 w-4 text-[#f6cf51]" />}
             </button>
           ))}
         </div>

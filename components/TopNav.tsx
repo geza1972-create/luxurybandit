@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Send, ChevronLeft } from "lucide-react";
 import LangSwitch from "@/components/LangSwitch";
+import type { Lang } from "@/lib/lang";
 import LightSwitch from "@/components/LightSwitch";
 import GuthabenChip from "@/components/GuthabenChip";
 import KontoChip from "@/components/KontoChip";
@@ -78,6 +79,7 @@ export default function TopNav({
   heim,
   motto: mottoUeberschreiben,
   schlicht = false,
+  sprachen = false,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
@@ -106,6 +108,21 @@ export default function TopNav({
    * im header") — er ist keine Navigation, er ändert nur, wie die Seite aussieht.
    */
   schlicht?: boolean;
+  /**
+   * SPRACHWAHL TROTZ SCHLICHTER KOPFZEILE (Owner 31.08.2026, zur Firmenseite: „ich brauche
+   * die zwei sprachen hier auf der seite von recruiting").
+   *
+   * `schlicht` räumt alles weg, was aus einem Trichter herausführt — Konto, Guthaben,
+   * Galerie, Sprache. Für einen Bewerber-Trichter ist das richtig. Eine Seite, die man einem
+   * rumänischen Personalleiter schickt, braucht die Sprache aber, und sie führt nirgendwo
+   * hin: Sie wechselt denselben Text. Deshalb ein eigener Schalter statt einer Aufweichung
+   * von `schlicht`.
+   *
+   * EINE LISTE STATT „JA" (Owner 31.08.2026: „du hast gesagt 3 sprachen"): Wer nur drei
+   * Fassungen geschrieben hat, darf auch nur drei anbieten — sonst setzt das Menü einen
+   * Haken an eine Sprache, die die Seite nicht spricht. `true` bietet weiter alle an.
+   */
+  sprachen?: boolean | Lang[];
   /**
    * WOHIN LOGO UND PFEIL-FALLBACK FUEHREN, WENN NICHT „/" (Owner 26.08.2026: „oben wenn man
    * auf das Logo klickt LB-{Topic} dann springt man auf die Landingpage (Topic Startseite)").
@@ -325,7 +342,9 @@ export default function TopNav({
               Joburi ist rumänisch — hätte dort nichts zu wechseln, und ein Knopf, der
               „Deutsch" anzeigt, während die Seite rumänisch ist, verwirrt nur. */}
           <LightSwitch />
-          {!schlicht && <LangSwitch />}
+          {(!schlicht || sprachen) && (
+            <LangSwitch {...(Array.isArray(sprachen) ? { nur: sprachen } : {})} />
+          )}
         </span>
       </div>
       {/**

@@ -304,12 +304,25 @@ svg {
 
 /* Light-theme fallback (funnels/pages that flip to daylight via .lb-theme).
    Matches lb-bg as a descendant OR on the SAME element as .lb-theme. */
+/**
+ * KÜHLES GRAU STATT CREME (Owner 31.08.2026, zu einem Entwurf der hellen Fassung: „was ich
+ * mag, es sind die grauen Töne").
+ *
+ * Die helle Fassung war bis dahin WARM: Creme (#fbfaf7), ein Gold-Hauch oben rechts und eine
+ * bräunliche Tinte (#1a160f). Das ist die Papierwelt der Einladungskarte — auf einer Seite,
+ * die an eine Personalabteilung oder an einen Jobsuchenden geht, wirkt sie nach Boutique
+ * statt nach Werkzeug. Der Entwurf, der ihm gefiel, ist durchgehend kühl: heller grauer
+ * Grund, weisse Karten darauf, schiefergraue Schrift.
+ *
+ * Der Gold-Hauch ist ersatzlos raus. In dieser Fassung ist die Akzentfarbe Blau (`.lb-fb`);
+ * ein goldener Schimmer darunter war der Rest der dunklen Welt und machte das Grau schmutzig.
+ */
 .lb-theme .lb-bg,
 .lb-theme.lb-bg {
-  background-color: #fbfaf7;
+  background-color: #f3f5f9;
   background-image:
-    radial-gradient(120% 85% at 86% -8%, rgba(233, 174, 43, 0.10), transparent 55%),
-    radial-gradient(130% 100% at 10% 106%, rgba(0, 0, 0, 0.03), transparent 60%);
+    radial-gradient(120% 85% at 86% -8%, rgba(24, 119, 242, 0.07), transparent 55%),
+    radial-gradient(130% 100% at 10% 106%, rgba(15, 23, 42, 0.04), transparent 60%);
 }
 
 /* ── /luxury-products chat & funnel: auto light/dark by the device setting ───────────
@@ -320,43 +333,71 @@ svg {
    and must read light on every device, even ones set to dark mode. @media all = always on. */
 @media all {
   .lb-theme.bg-black,
-  .lb-theme .bg-black { background-color: #faf8f4 !important; }
+  .lb-theme .bg-black { background-color: #f7f9fc !important; }
   /* DIE VOLLBILD-FLÄCHE BLEIBT DUNKEL, WEIL SIE `bg-black/95` HEISST, NICHT `bg-black`
      (Owner 11.08.2026, am Vollbild-Betrachter in heller Fassung: „dialog auch light wenn
      schon light"). Tailwinds Opazitäts-Schreibweise backt die Deckkraft in eine EIGENE
      Klasse — die Regel oben trifft `bg-black`, nicht `bg-black/95`, `bg-black/90` usw.
      Jede solche Stufe braucht ihre eigene Zeile, sonst bleibt genau sie schwarz, während
      der Rest der Seite längst hell ist. */
-  .lb-theme .bg-black\/95 { background-color: rgba(250, 248, 244, 0.97) !important; }
-  .lb-theme .bg-black\/90 { background-color: rgba(250, 248, 244, 0.95) !important; }
-  .lb-theme .bg-black\/80 { background-color: rgba(250, 248, 244, 0.9) !important; }
-  .lb-theme .bg-black\/70 { background-color: rgba(250, 248, 244, 0.85) !important; }
-  .lb-theme { color: #1a160f; color-scheme: light; }
+  .lb-theme .bg-black\/95 { background-color: rgba(247, 249, 252, 0.97) !important; }
+  .lb-theme .bg-black\/90 { background-color: rgba(247, 249, 252, 0.95) !important; }
+  .lb-theme .bg-black\/80 { background-color: rgba(247, 249, 252, 0.9) !important; }
+  .lb-theme .bg-black\/70 { background-color: rgba(247, 249, 252, 0.85) !important; }
+  /* Schiefer statt Bitterschokolade: #0f172a ist dieselbe Helligkeit wie das alte #1a160f,
+     nur kühl. Warme Tinte auf grauem Grund sieht aus wie ein vergilbter Ausdruck. */
+  .lb-theme { color: #0f172a; color-scheme: light; }
 
   /* white text → near-black (Tailwind bakes the /opacity into the color, so we use fixed alphas) */
-  .lb-theme [class*="text-white"] { color: rgb(26 22 15 / 0.9) !important; }
+  .lb-theme [class*="text-white"] { color: rgb(15 23 42 / 0.9) !important; }
   /* muted white text (…/30–/65) stays a touch lighter so hierarchy survives */
   .lb-theme [class*="text-white/6"],
   .lb-theme [class*="text-white/5"],
   .lb-theme [class*="text-white/4"],
-  .lb-theme [class*="text-white/3"] { color: rgb(26 22 15 / 0.55) !important; }
+  .lb-theme [class*="text-white/3"] { color: rgb(15 23 42 / 0.55) !important; }
 
   /* translucent white panels → one consistent faint dark tint */
-  .lb-theme [class*="bg-white/"] { background-color: rgb(26 22 15 / 0.06) !important; }
+  .lb-theme [class*="bg-white/"] { background-color: rgb(15 23 42 / 0.05) !important; }
 
   /* white rings & borders → faint dark */
-  .lb-theme [class*="ring-white/"] { --tw-ring-color: rgb(26 22 15 / 0.12) !important; }
-  .lb-theme [class*="border-white/"] { border-color: rgb(26 22 15 / 0.12) !important; }
+  .lb-theme [class*="ring-white/"] { --tw-ring-color: rgb(15 23 42 / 0.10) !important; }
+  .lb-theme [class*="border-white/"] { border-color: rgb(15 23 42 / 0.10) !important; }
 
   /* placeholders */
-  .lb-theme [class*="placeholder:text-white"]::placeholder { color: rgb(26 22 15 / 0.4) !important; }
+  .lb-theme [class*="placeholder:text-white"]::placeholder { color: rgb(15 23 42 / 0.42) !important; }
 
   /* dropdown / bottom-sheet cards (#111) → white with a soft shadow */
-  .lb-theme .bg-\[\#111\] { background-color: #ffffff !important; box-shadow: 0 12px 40px rgb(0 0 0 / 0.14) !important; }
+  .lb-theme .bg-\[\#111\] { background-color: #ffffff !important; box-shadow: 0 12px 40px rgb(15 23 42 / 0.14) !important; }
 
   /* the user's own chat bubble is bg-white / text-black — invert it for contrast on a light page */
-  .lb-theme .lb-userbubble { background-color: #1a160f !important; color: #ffffff !important; }
+  .lb-theme .lb-userbubble { background-color: #0f172a !important; color: #ffffff !important; }
 }
+
+/**
+ * DIE KARTE IN DER HELLEN FASSUNG — WEISS AUF GRAU (Owner 31.08.2026, zum Entwurf: „was ich
+ * mag, es sind die grauen Töne").
+ *
+ * Im Dunkeln ist ein `Kasten` ein Hauch Weiss auf Schwarz — er steht damit HELLER als sein
+ * Grund. Die Pauschalregel darüber drehte das im Hellen um: ein Hauch Tinte auf hellem
+ * Grund, also eine DUNKLERE Fläche. Aus einer Karte wurde ein grauer Fleck.
+ *
+ * Hier steht es wieder richtig herum: grauer Grund, weisse Karte, Haarlinie, weicher
+ * Schatten. Das ist der Unterschied zwischen „da liegt etwas" und „da ist etwas
+ * eingefärbt" — und es ist genau die Gestalt aus dem Entwurf.
+ *
+ * WARUM AN `.lb-kasten` UND NICHT AN JEDER `bg-white/…`-FLÄCHE: Dieselbe Schreibweise tragen
+ * Schleier über Fotos, Chips und Kacheln. Eine Pauschalregel hätte aus jedem davon eine
+ * weisse Platte gemacht — dieselbe Falle, die aus dem Gold-Hauch schon einmal einen blauen
+ * Block gemacht hat. Der `Kasten` sagt jetzt selbst, dass er eine Karte ist.
+ */
+.lb-theme .lb-kasten {
+  background-color: #ffffff !important;
+  border-color: rgb(15 23 42 / 0.08) !important;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 30px rgb(15 23 42 / 0.05);
+}
+/* Der Teaser bleibt der blaue Hauch (`.lb-fb .lb-teaser` weiter unten setzt seine Farbe) —
+   er bekommt hier nur denselben weichen Schatten, damit er auf derselben Ebene liegt wie
+   die weissen Karten daneben und nicht darunter. */
 
 /* Over-media overlays (text/icons over a photo or video) MUST stay white even on a light
    page — the dark scrim/gradient is local to the image, so the flipped dark text would be
@@ -944,9 +985,12 @@ svg {
   color: #1a160f !important;
   -webkit-text-fill-color: #1a160f !important;
   caret-color: #1a160f !important;
-  border-color: rgba(0, 0, 0, 0.22) !important;
+  /* KÜHLER RAND STATT SCHWARZ AUF 22 % (Owner 31.08.2026, „die grauen Töne"): Ein Feld mit
+     grauschwarzem Rand sieht auf grauem Grund aus wie ausgegraut. Der blasse Blauton ist
+     derselbe Akzent wie der Knopf darunter — das Feld gehört sichtbar zum Formular. */
+  border-color: rgba(24, 119, 242, 0.28) !important;
 }
-.lb-fb .lb-eingabe::placeholder { color: rgba(0, 0, 0, 0.38) !important; }
+.lb-fb .lb-eingabe::placeholder { color: rgb(15 23 42 / 0.42) !important; }
 /* … und beim Tippen wird der Rand BLAU (Owner 06.08.2026: „wenn ich schreibe wird der rand
    aktiv also blau bei light"). Muss hier stehen und nicht als Tailwind-`focus:`-Klasse: die
    Regel darueber setzt `border-color` mit !important, dagegen kommt keine Utility an. */

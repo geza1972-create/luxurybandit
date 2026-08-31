@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Trash2, Send, Maximize2, Volume2, Sparkles } from "lucide-react";
+import { X, Trash2, Send, Mail, Maximize2, Volume2, Sparkles } from "lucide-react";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine, StepLabel } from "@/components/Landing";
 import { Scheibe, Knopf, Eingabe, EingabeMehrzeilig, Fehlerzeile, Fortschritt, Haken, Kasten, Laden, Dialog, MadeBy, ThemenKreise,
   ThemenKachel, ThemenGestaltWahl, useThemenGestalt, BildWahl, SCHEIBEN_TINTE, TalentKopf,
@@ -281,6 +281,10 @@ export default function CIMuster() {
       {abschnitt("Eingabe + Fehlerzeile — dunkle Welt")}
       <Kasten>
         <Eingabe placeholder="you@email.com" type="email" />
+        {/* MIT SYMBOL (Owner 31.08.2026: „und ein Eingabe Feld mit Icon finde ich auch sehr
+            gut") — dasselbe Feld, ein fertiges Symbol als `symbol`. Das Zeichen liegt innen
+            links und nimmt keine Tipps entgegen; wer daraufdrückt, landet im Feld. */}
+        <Eingabe className="mt-3" placeholder="you@email.com" type="email" symbol={<Mail className="h-4 w-4" />} />
         {fehlerZeigen && <Fehlerzeile>So sieht eine Absage aus — rot, am Feld.</Fehlerzeile>}
         <button type="button" onClick={() => setFehlerZeigen(f => !f)}
           className="mt-2 text-[11px] font-bold text-white/50 underline">Fehler an/aus</button>

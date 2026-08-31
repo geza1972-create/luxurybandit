@@ -299,8 +299,22 @@ export function Knopf({ art = "gold", aktiv = false, karte = false, hell = false
  * `lb-eingabe` ist die Kennung, an der die helle Fassung Felder erkennt (weisser Grund,
  * dunkle Schrift statt Weiss-auf-Weiss) — der Baustein trug sie bisher nicht.
  */
-export function Eingabe({ karte = false, hell = false, className = "", ...rest }: {
+export function Eingabe({ karte = false, hell = false, symbol, className = "", ...rest }: {
   karte?: boolean;
+  /**
+   * DAS SYMBOL IM FELD (Owner 31.08.2026, am Entwurf der hellen Fassung: „und ein Eingabe
+   * Feld mit Icon finde ich auch sehr gut").
+   *
+   * Es sitzt INNEN links und ist reine Beschriftung — `pointer-events-none`, damit ein Tipp
+   * darauf trotzdem das Feld öffnet und nicht ins Leere geht. Ein Umschlag am Adressfeld
+   * sagt in einem Zeichen, was die Beschriftung darüber in einem Wort sagt; auf dem Handy,
+   * wo das Label beim Tippen von der Tastatur verdeckt wird, ist es oft das Einzige, was
+   * stehen bleibt.
+   *
+   * Übergeben wird ein fertiges Symbol (`<Mail className="h-4 w-4" />`), kein Name: Der
+   * Baustein soll nicht wissen müssen, welche Symbolsammlung das Haus gerade benutzt.
+   */
+  symbol?: ReactNode;
   /**
    * IM WEISSEN DIALOG (Owner 11.08.2026, zum toten Anmelde-Link: „sollte aber nicht kommen,
    * Sitzung abgelaufen? Neuen Link schicken?").
@@ -334,7 +348,16 @@ export function Eingabe({ karte = false, hell = false, className = "", ...rest }
    */
   const [sichtbar, setSichtbar] = useState(false);
   const istPasswort = rest.type === "password";
-  const tinte = karte || hell ? "#1a160f" : "#fff";
+  /**
+   * DIE FARBE DER ZEICHEN IM FELD ALS KLASSE, NICHT ALS `style` (31.08.2026, am neuen
+   * Symbol-Feld gemessen).
+   *
+   * Ein `style={{color:"#fff"}}` steht fest im Element — die helle Fassung greift Farben
+   * aber über `[class*="text-white"]` ab. Das Symbol blieb deshalb weiss auf einem weissen
+   * Feld: die Einrückung war da, das Zeichen unsichtbar. Als Klasse geschrieben, dreht die
+   * helle Fassung es mit allem anderen auf Schiefer.
+   */
+  const zeichenTinte = karte || hell ? "text-[#1a160f]/55" : "text-white/55";
   const feld = (
     <input {...rest}
       type={istPasswort && sichtbar ? "text" : rest.type}
@@ -358,23 +381,39 @@ export function Eingabe({ karte = false, hell = false, className = "", ...rest }
        * GEMEINSAM FÜR ALLE DREI: Höhe 11, Serifenschrift, 15 px, LINKSBÜNDIG. Ein Feld ist
        * kein Titel — zentrierter Text wandert beim Tippen unter dem Finger weg.
        */
-      className={`h-11 w-full rounded-lg px-3 font-serif text-[15px] font-normal outline-none ${karte
+      /**
+       * `block` IST KEIN ZIERRAT (31.08.2026, Owner: „icons sind nicht zentriert").
+       *
+       * Ein `input` ist von Haus aus eine ZEILEN-Box. Die umgebende Hülle wurde dadurch drei
+       * Pixel höher als das Feld — Platz für die Unterlängen einer Schrift, die dort gar
+       * nicht steht. Das Symbol richtet sich aber an der HÜLLE aus (`top-1/2`), nicht am
+       * Feld, und sass deshalb messbar drei Pixel zu hoch. Als Block-Fläche ist die Hülle
+       * exakt so hoch wie das Feld, und die Mitte ist wieder dieselbe.
+       */
+      className={`block h-11 w-full rounded-lg px-3 font-serif text-[15px] font-normal outline-none ${karte
         ? "lb-karte-feld"
         : hell
           ? "border border-[#1a160f]/30 bg-[#1a160f]/[0.04] placeholder:text-[#1a160f]/45 focus:border-[#1a160f]/75"
-          : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${istPasswort ? "pr-11" : ""} ${className}`} />
+          : "lb-eingabe border border-white/30 bg-white/[0.08] text-white placeholder:text-white/60 focus:border-[#f6cf51]"} ${istPasswort ? "pr-11" : ""} ${symbol ? "pl-10" : ""} ${className}`} />
   );
-  if (!istPasswort) return feld;
+  /* Ohne Symbol und ohne Passwort bleibt es ein nacktes `input` — so verschiebt sich in den
+     bestehenden Formularen kein Abstand. */
+  if (!istPasswort && !symbol) return feld;
   return (
     <div className="relative">
       {feld}
-      <button type="button" tabIndex={-1}
+      {symbol && (
+        <span aria-hidden
+          className={`pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 items-center ${zeichenTinte}`}>
+          {symbol}
+        </span>
+      )}
+      {istPasswort && <button type="button" tabIndex={-1}
         onClick={() => setSichtbar(s => !s)}
         aria-label={sichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
-        style={{ color: tinte }}
-        className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md opacity-55 transition active:scale-95 hover:opacity-90">
+        className={`absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md transition active:scale-95 ${zeichenTinte}`}>
         {sichtbar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
+      </button>}
     </div>
   );
 }
@@ -1602,6 +1641,12 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
   className?: string;
   children: ReactNode;
 }) {
+  /* `lb-kasten` ist der Griff für die helle Fassung (Owner 31.08.2026: „was ich mag, es
+     sind die grauen Töne") — dort wird aus dem Hauch Weiss auf Dunkel eine WEISSE Karte mit
+     Haarlinie und weichem Schatten auf grauem Grund. Ohne eigene Kennung liesse sich das
+     nicht sagen, ohne jede `bg-white/…`-Fläche im Haus mitzunehmen (Kacheln über Fotos,
+     Schleier, Chips) — und genau solche Pauschalregeln haben hier schon einmal aus einem
+     Gold-Hauch eine blaue Platte gemacht. */
   const kl = karte
     ? "lb-karte-rahmen rounded-2xl"
     : art === "gold"
@@ -1610,8 +1655,8 @@ export function Kasten({ art = "still", karte = false, polster = "p-4", classNam
       // trägt — sie trifft per Teilstring auch diesen 10-%-Hauch. Ohne die Kennung wurde
       // aus dem Teaser dort ein massiver blauer Block: eine Fläche, die aussieht wie ein
       // Knopf über die halbe Seite.
-      ? "lb-teaser rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
-      : "rounded-2xl border border-white/20 bg-white/[0.05]";
+      ? "lb-teaser lb-kasten rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10"
+      : "lb-kasten rounded-2xl border border-white/20 bg-white/[0.05]";
   return <div className={`${kl} ${polster} ${className}`}>{children}</div>;
 }
 
