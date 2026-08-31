@@ -41,8 +41,6 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
   const [laedt, setLaedt] = useState(false);
 
   const [mail, setMail] = useState("");
-  const [vorname, setVorname] = useState("");
-  const [telefon, setTelefon] = useState("");
   const [haken, setHaken] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState("");
@@ -101,8 +99,7 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
       const d = await fetch("/api/joburi-lead", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schritt: "kontakt", id: leadId, email: mail.trim(),
-          vorname: vorname.trim(), telefon: telefon.trim(), kontaktOk: true,
+          schritt: "kontakt", id: leadId, email: mail.trim(), kontaktOk: true,
         }),
       }).then(r => r.json());
       if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
@@ -275,8 +272,8 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
         <h2 className="text-[19px] font-black leading-snug text-white">{T.frage3}</h2>
         <Wahl
           optionen={[
-            { wert: "salariu", text: T.zielSalariu }, { wert: "remote", text: T.zielRemote },
-            { wert: "job-nou", text: T.zielJobNou }, { wert: "intoarcere", text: T.zielIntoarcere },
+            { wert: "salariu", text: T.zielSalariu }, { wert: "flexibilitate", text: T.zielRemote },
+            { wert: "cariera", text: T.zielJobNou }, { wert: "intoarcere", text: T.zielIntoarcere },
           ]}
           waehlen={w => { setZiel(w); void antwortenSenden({ deutsch, form, ziel: w }); }} />
         <button type="button" onClick={() => setSchritt("f2")}
@@ -294,6 +291,8 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
       <div className="flex flex-col gap-3">
         <Kasten polster="p-5">
           <p className="text-[16px] font-black leading-snug text-white">
+            {/* Der Satz kommt nur noch, wenn gar keine Stelle im Bestand liegt — das Matching
+                schliesst seit dem 31.08. nichts mehr aus. */}
             {anzahl === 0 ? T.keineTreffer
               : anzahl === 1 ? T.gefundenEins
               : T.gefundenViele.replace("{n}", String(anzahl))}
@@ -334,12 +333,12 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
         <Eingabe className="mt-1.5" type="email" inputMode="email" value={mail}
           onChange={e => { setMail(e.target.value); setFehler(""); }} placeholder={T.mailPlatzhalter} />
 
-        <label className="mt-3 block text-[12px] font-black uppercase tracking-wide text-white/45">{T.vornameLabel}</label>
-        <Eingabe className="mt-1.5" value={vorname} onChange={e => setVorname(e.target.value)} placeholder={T.vornamePlatzhalter} />
-
-        <label className="mt-3 block text-[12px] font-black uppercase tracking-wide text-white/45">{T.telefonLabel}</label>
-        <Eingabe className="mt-1.5" type="tel" inputMode="tel" value={telefon}
-          onChange={e => setTelefon(e.target.value)} placeholder={T.telefonPlatzhalter} />
+        {/* NUR DIE ADRESSE (Owner 31.08.2026: „Lead-Formular radikal vereinfachen. Vorname
+            und Telefon/WhatsApp an dieser Stelle entfernen."). Jedes zusätzliche Feld an
+            dieser Stelle ist ein Grund abzubrechen — und beides lässt sich später fragen,
+            wenn er schon etwas bekommen hat. Der Server nimmt die Felder weiterhin
+            entgegen, sie werden hier nur nicht mehr abgefragt. */}
+        <p className="mt-1.5 text-[12px] font-medium text-white/45">{T.mailKeinSpam}</p>
 
         <div className="mt-4">
           <Haken an={haken} setzen={setHaken} pflicht>{T.haken}</Haken>

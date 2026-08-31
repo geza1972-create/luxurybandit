@@ -41,8 +41,8 @@ export const RO = {
   formEgal: "Nu contează",
 
   zielSalariu: "Salariu mai bun",
-  zielRemote: "Remote",
-  zielJobNou: "Un job nou",
+  zielRemote: "Mai multă flexibilitate",
+  zielJobNou: "Oportunități de carieră",
   zielIntoarcere: "Întoarcere în România",
 
   zurueck: "Înapoi",
@@ -51,7 +51,16 @@ export const RO = {
   suchen: "Caut joburi potrivite…",
   gefundenEins: "Am găsit 1 oportunitate care corespunde preferințelor tale.",
   gefundenViele: "Am găsit {n} oportunități care corespund preferințelor tale.",
-  keineTreffer: "Momentan nu avem un job care să se potrivească exact. Îți trimitem primele care apar.",
+  /**
+   * NUR NOCH FÜR DEN LEEREN BESTAND (Owner 31.08.2026: „Kein harter 0-Treffer-Zustand. Der
+   * Satz soll nicht der normale Funnelzustand sein.").
+   *
+   * Seit das Sprachniveau nichts mehr ausschliesst, kann dieser Zustand nur eintreten, wenn
+   * gar keine aktive Stelle im Bestand liegt. Der alte Satz („keine passt genau") behauptete
+   * das Gegenteil — es klang, als gäbe es Stellen, aber keine für ihn. Jetzt sagt er, was
+   * wirklich los ist, und macht trotzdem ein Angebot.
+   */
+  keineTreffer: "Chiar acum nu avem joburi active în listă. Lasă-ne adresa ta și îți trimitem primele care apar.",
   weitereVerdeckt: "+{n} alte joburi",
   gehaltGeschaetzt: "estimare piață",
 
@@ -77,12 +86,13 @@ export const RO = {
   mailText: "Primești lista completă și joburile noi care se potrivesc profilului tău.",
   mailLabel: "E-mail",
   mailPlatzhalter: "nume@exemplu.ro",
+  mailKeinSpam: "Fără spam. Te poți dezabona oricând.",
   mailFehlt: "Adresa aceasta nu pare completă.",
   vornameLabel: "Prenume (opțional)",
   vornamePlatzhalter: "Prenumele tău",
   telefonLabel: "Telefon / WhatsApp (opțional)",
   telefonPlatzhalter: "+40 …",
-  mailKnopf: "Vezi joburile",
+  mailKnopf: "Arată-mi joburile",
   mailLaeuft: "Un moment…",
 
   /**
@@ -144,8 +154,8 @@ export const DE: JoburiTexte = {
   formEgal: "Egal",
 
   zielSalariu: "Besseres Gehalt",
-  zielRemote: "Remote",
-  zielJobNou: "Ein neuer Job",
+  zielRemote: "Mehr Flexibilität",
+  zielJobNou: "Karrierechancen",
   zielIntoarcere: "Zurück nach Rumänien",
 
   zurueck: "Zurück",
@@ -153,7 +163,7 @@ export const DE: JoburiTexte = {
   suchen: "Ich suche passende Stellen…",
   gefundenEins: "Ich habe 1 Stelle gefunden, die zu deinen Angaben passt.",
   gefundenViele: "Ich habe {n} Stellen gefunden, die zu deinen Angaben passen.",
-  keineTreffer: "Gerade passt keine Stelle genau. Wir schicken dir die ersten, die kommen.",
+  keineTreffer: "Gerade liegt keine aktive Stelle in der Liste. Lass uns deine Adresse da — wir schicken dir die ersten, die kommen.",
   weitereVerdeckt: "+{n} weitere Stellen",
   gehaltGeschaetzt: "Marktschätzung",
   quellenhinweis: "Öffentliche Anzeige. LuxuryBandit vertritt den Arbeitgeber nicht. Die Bewerbung läuft direkt bei der Firma.",
@@ -166,12 +176,13 @@ export const DE: JoburiTexte = {
   mailText: "Du bekommst die ganze Liste und neue Stellen, die zu deinem Profil passen.",
   mailLabel: "E-Mail",
   mailPlatzhalter: "name@beispiel.de",
+  mailKeinSpam: "Kein Spam. Du kannst dich jederzeit abmelden.",
   mailFehlt: "Diese Adresse sieht noch nicht vollständig aus.",
   vornameLabel: "Vorname (optional)",
   vornamePlatzhalter: "Dein Vorname",
   telefonLabel: "Telefon / WhatsApp (optional)",
   telefonPlatzhalter: "+49 …",
-  mailKnopf: "Stellen ansehen",
+  mailKnopf: "Zeig mir die Stellen",
   mailLaeuft: "Einen Moment…",
 
   haken: "Ich möchte passende Stellen per E-Mail bekommen.",

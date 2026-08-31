@@ -24,7 +24,7 @@ const MAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const NIVEAUS = ["A2", "B1", "B2", "C1", "C2"];
 const FORMEN = ["remote", "hibrid", "birou", "egal"];
-const ZIELE = ["salariu", "remote", "job-nou", "intoarcere"];
+const ZIELE = ["salariu", "flexibilitate", "cariera", "intoarcere"];
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) {

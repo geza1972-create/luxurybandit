@@ -43,7 +43,7 @@ export type JoburiLead = {
      danach aussteigt. Genau daran liest man ab, ob die Anzeige die richtigen Leute bringt. */
   deutsch?: Deutschniveau;
   arbeitsform?: Arbeitsform | "egal";
-  ziel?: "salariu" | "remote" | "job-nou" | "intoarcere";
+  ziel?: "salariu" | "flexibilitate" | "cariera" | "intoarcere";
 
   email?: string;
   vorname?: string;

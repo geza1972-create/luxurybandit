@@ -159,7 +159,11 @@ export type Treffer = { stelle: Stelle; guete: Guete };
 export function passendeMitGuete(stellen: Stelle[], wunsch: {
   deutsch?: Deutschniveau;
   arbeitsform?: Arbeitsform | "egal";
-  ziel?: "salariu" | "remote" | "job-nou" | "intoarcere";
+  /* Die vier Antworten auf Frage 3 (Owner 31.08.2026: „Mai multă flexibilitate" und
+     „Oportunități de carieră" statt „Remote" und „Un job nou"). `flexibilitate` ist breiter
+     als Remote — Hybrid zählt mit; `cariera` ist bewusst kein Filter, wer das wählt, ist
+     offen, und dann entscheiden die ersten beiden Antworten allein. */
+  ziel?: "salariu" | "flexibilitate" | "cariera" | "intoarcere";
   berufsfeld?: string;
   erfahrung?: Erfahrung;
 }): Treffer[] {
@@ -200,10 +204,13 @@ export function passendeMitGuete(stellen: Stelle[], wunsch: {
     if (wunsch.ziel === "salariu" && (s.gehaltBis || s.gehaltVon)) {
       p += Math.min(6, Math.round((s.gehaltBis || s.gehaltVon || 0) / 500));
     }
-    if (wunsch.ziel === "remote" && s.arbeitsform === "remote") p += 5;
+    if (wunsch.ziel === "flexibilitate") {
+      if (s.arbeitsform === "remote") p += 5;
+      else if (s.arbeitsform === "hibrid") p += 3;
+    }
     if (wunsch.ziel === "intoarcere" && (s.land === "RO" || /rom[aâ]ni/i.test(s.ort))) p += 4;
-    /* „Ein neuer Job" ist kein Filter — wer das wählt, ist offen; dann zählen die anderen
-       beiden Antworten allein. */
+    /* „Oportunități de carieră" ist kein Filter — wer das wählt, ist offen; dann zählen die
+       anderen beiden Antworten allein. */
 
     /* KATEGORIE UND ERFAHRUNG — nur wenn beide Seiten etwas dazu sagen (Owner: „können
        berücksichtigt werden, wenn vorhanden"). */

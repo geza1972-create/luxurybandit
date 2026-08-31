@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   const treffer = passendeMitGuete(stellen, {
     ...(deutsch ? { deutsch: deutsch as Deutschniveau } : {}),
     ...(FORMEN.includes(form) || form === "egal" ? { arbeitsform: form as Arbeitsform | "egal" } : {}),
-    ...(["salariu", "remote", "job-nou", "intoarcere"].includes(ziel) ? { ziel: ziel as "salariu" } : {}),
+    ...(["salariu", "flexibilitate", "cariera", "intoarcere"].includes(ziel) ? { ziel: ziel as "salariu" } : {}),
   });
 
   /**
