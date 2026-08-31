@@ -20,7 +20,7 @@ import type { Stelle } from "@/lib/joburi-store";
 
 type Entwurf = Partial<Stelle> & { titel?: string; firma?: string };
 
-const LEER: Entwurf = { arbeitsform: "remote", deutschMin: "B2", waehrung: "EUR", aktiv: true, land: "RO" };
+const LEER: Entwurf = { arbeitsform: "remote", deutschMin: "unbekannt", waehrung: "EUR", aktiv: true, land: "RO" };
 
 export default function JoburiAdmin({ pin }: { pin: string }) {
   const [stellen, setStellen] = useState<Stelle[]>([]);
@@ -148,8 +148,12 @@ export default function JoburiAdmin({ pin }: { pin: string }) {
             </div>
             <div>
               <label className={label}>Deutsch mindestens</label>
-              <select className={feld} value={entwurf.deutschMin ?? "B2"} onChange={e => setz("deutschMin", e.target.value)}>
-                {["A2", "B1", "B2", "C1", "C2"].map(x => <option key={x} value={x}>{x}</option>)}
+              {/* „nicht angegeben" ist eine echte Wahl (Owner 31.08.2026): Stand in der
+                  Anzeige kein Niveau, dürfen wir keines behaupten — ein geratenes B2
+                  schliesst Bewerber aus, die sich hätten bewerben können. */}
+              <select className={feld} value={entwurf.deutschMin ?? "unbekannt"} onChange={e => setz("deutschMin", e.target.value)}>
+                {["B1", "B2", "C1", "C2", "A2"].map(x => <option key={x} value={x}>{x}</option>)}
+                <option value="unbekannt">nicht angegeben</option>
               </select>
             </div>
             <div>
@@ -196,7 +200,14 @@ export default function JoburiAdmin({ pin }: { pin: string }) {
               <input className={feld} value={entwurf.link ?? ""} onChange={e => setz("link", e.target.value)}
                 placeholder="https://…" />
             </div>
-            <div className="sm:col-span-2">
+            <div>
+              <label className={label}>Quelle</label>
+              {/* Woher die Stelle stammt — nur für uns: Sie sagt, welche Plattform brauchbare
+                  Stellen liefert, und belegt, dass hinter jeder Zeile eine echte Anzeige steht. */}
+              <input className={feld} value={entwurf.quelle ?? ""} onChange={e => setz("quelle", e.target.value)}
+                placeholder="ejobs.ro" />
+            </div>
+            <div>
               <label className={label}>Logo-Adresse (optional)</label>
               <input className={feld} value={entwurf.logoUrl ?? ""} onChange={e => setz("logoUrl", e.target.value)} placeholder="https://…" />
             </div>
@@ -249,7 +260,8 @@ export default function JoburiAdmin({ pin }: { pin: string }) {
                       <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-black/60">
                         {s.arbeitsform === "remote" ? "Remote" : s.arbeitsform === "hibrid" ? "Hybrid" : "Vor Ort"}
                       </span>
-                      <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-black/60">DE {s.deutschMin}</span>
+                      <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-black/60">{s.deutschMin === "unbekannt" ? "DE k. A." : `DE ${s.deutschMin}`}</span>
+                      {s.quelle && <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-black/45">{s.quelle}</span>}
                       {geld(s) && <span className="rounded-full bg-emerald-500/12 px-2 py-0.5 text-emerald-700">{geld(s)}</span>}
                       {!s.aktiv && <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-black/45">inaktiv</span>}
                       {abgelaufen && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-700">abgelaufen</span>}

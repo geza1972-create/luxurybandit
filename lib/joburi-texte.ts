@@ -55,6 +55,23 @@ export const RO = {
   weitereVerdeckt: "+{n} alte joburi",
   gehaltGeschaetzt: "estimare piață",
 
+  /**
+   * DER HAFTUNGSHINWEIS AN JEDER STELLE (Owner 31.08.2026: „Wir sind bei diesen Stellen noch
+   * nicht Recruiter oder Partner des Unternehmens. Die Stelle darf nicht so dargestellt
+   * werden, als würde LuxuryBandit im Auftrag der Firma rekrutieren.").
+   *
+   * Er steht an JEDER Karte, nicht einmal im Fuss: Wer eine Stelle ansieht, muss in dieser
+   * Sekunde wissen, mit wem er es zu tun hat — und dass die Bewerbung direkt bei der Firma
+   * landet, nicht bei uns.
+   */
+  quellenhinweis: "Anunț public. LuxuryBandit nu reprezintă angajatorul. Aplicarea se face direct la companie.",
+
+  /* Die Güte des Treffers — der Bewerber sieht die Stufe, nicht die Punktzahl. */
+  gueteSehrGut: "Potrivire foarte bună",
+  gueteGut: "Potrivire bună",
+  gueteInteressant: "Ar putea fi interesant",
+  deutschUnbekannt: "nespecificat",
+
   /* ── Die Adresse ── */
   mailTitel: "Unde îți trimitem lista completă?",
   mailText: "Primești lista completă și joburile noi care se potrivesc profilului tău.",
@@ -139,6 +156,11 @@ export const DE: JoburiTexte = {
   keineTreffer: "Gerade passt keine Stelle genau. Wir schicken dir die ersten, die kommen.",
   weitereVerdeckt: "+{n} weitere Stellen",
   gehaltGeschaetzt: "Marktschätzung",
+  quellenhinweis: "Öffentliche Anzeige. LuxuryBandit vertritt den Arbeitgeber nicht. Die Bewerbung läuft direkt bei der Firma.",
+  gueteSehrGut: "Sehr gute Übereinstimmung",
+  gueteGut: "Gute Übereinstimmung",
+  gueteInteressant: "Könnte interessant sein",
+  deutschUnbekannt: "keine Angabe",
 
   mailTitel: "Wohin schicken wir dir die vollständige Liste?",
   mailText: "Du bekommst die ganze Liste und neue Stellen, die zu deinem Profil passen.",

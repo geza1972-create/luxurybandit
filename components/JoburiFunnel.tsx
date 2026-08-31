@@ -5,7 +5,10 @@ import { Check, Lock, MapPin, ExternalLink } from "lucide-react";
 import { Knopf, Kasten, Eingabe, Fehlerzeile, Fortschritt, Haken } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
-import type { Stelle } from "@/lib/joburi-store";
+import type { Stelle, Guete } from "@/lib/joburi-store";
+
+/** Die Stelle, wie der Server sie liefert — mit der berechneten Güte daran. */
+type Treffer = Stelle & { guete?: Guete };
 
 /**
  * DER JOBURI-TRICHTER (Owner 31.08.2026).
@@ -33,7 +36,7 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
   const [form, setForm] = useState("");
   const [ziel, setZiel] = useState("");
 
-  const [stellen, setStellen] = useState<Stelle[]>([]);
+  const [stellen, setStellen] = useState<Treffer[]>([]);
   const [anzahl, setAnzahl] = useState(0);
   const [laedt, setLaedt] = useState(false);
 
@@ -139,7 +142,7 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
     </div>
   );
 
-  const geld = (s: Stelle) => {
+  const geld = (s: Treffer) => {
     if (!s.gehaltVon && !s.gehaltBis) return "";
     const w = s.waehrung || "EUR";
     const zahl = s.gehaltVon && s.gehaltBis && s.gehaltVon !== s.gehaltBis
@@ -151,9 +154,20 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
     a === "remote" ? T.formRemote : a === "hibrid" ? T.formHybrid : T.formBirou;
 
   /** Eine Stellenkarte. `offen` entscheidet, ob Link und Zustimmung dabei sind. */
-  const Karte = ({ s, offen }: { s: Stelle; offen: boolean }) => (
+  const Karte = ({ s, offen }: { s: Treffer; offen: boolean }) => (
     <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
-      <p className="text-[15px] font-black leading-snug text-white">{s.titel}</p>
+      {/* DIE GÜTE STEHT OBEN (Owner 31.08.2026: „Potrivire foarte bună / bună / Ar putea fi
+          interesant") — sie ordnet den Treffer ein, bevor er ihn liest, und macht aus einer
+          Liste eine Empfehlung. */}
+      {s.guete && (
+        <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-black ${
+          s.guete === "sehr-gut" ? "bg-[#f6cf51]/15 text-[#f6cf51]"
+          : s.guete === "gut" ? "bg-white/10 text-white/80"
+          : "bg-white/[0.06] text-white/55"}`}>
+          {s.guete === "sehr-gut" ? T.gueteSehrGut : s.guete === "gut" ? T.gueteGut : T.gueteInteressant}
+        </span>
+      )}
+      <p className="mt-1.5 text-[15px] font-black leading-snug text-white">{s.titel}</p>
       <p className="mt-0.5 text-[13px] font-bold text-white/65">{s.firma}</p>
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-[11.5px] font-black text-white/75">
@@ -164,13 +178,19 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
             {geld(s)}{s.gehaltGeschaetzt ? ` · ${T.gehaltGeschaetzt}` : ""}
           </span>
         )}
-        <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-[11.5px] font-black text-white/75">DE {s.deutschMin}</span>
+        <span className="rounded-full border border-white/20 px-2.5 py-0.5 text-[11.5px] font-black text-white/75">
+          {s.deutschMin === "unbekannt" ? `DE: ${T.deutschUnbekannt}` : `DE ${s.deutschMin}`}
+        </span>
       </div>
       {s.ort && (
         <p className="mt-2 flex items-center gap-1.5 text-[12.5px] font-bold text-white/55">
           <MapPin className="h-3.5 w-3.5 shrink-0" />{s.ort}
         </p>
       )}
+
+      {/* AN JEDER KARTE, NICHT NUR IN DER VOLLANSICHT: Auch im Teaser sieht er schon eine
+          echte Stelle — dann muss dort auch stehen, dass wir nicht die Firma sind. */}
+      <p className="mt-2.5 text-[11px] font-medium leading-snug text-white/40">{T.quellenhinweis}</p>
 
       {offen && (
         <>

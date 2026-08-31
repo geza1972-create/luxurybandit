@@ -27,7 +27,9 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 const PFAD = "joburi/liste.json";
 
 export type Arbeitsform = "remote" | "hibrid" | "birou";
-export type Deutschniveau = "A2" | "B1" | "B2" | "C1" | "C2";
+/** „unbekannt" ist ein eigener Wert, keine Lücke: Wenn in der Anzeige kein Niveau stand,
+    dürfen wir keines behaupten — und die Stelle darf trotzdem jedem gezeigt werden. */
+export type Deutschniveau = "A2" | "B1" | "B2" | "C1" | "C2" | "unbekannt";
 export type Erfahrung = "junior" | "mid" | "senior";
 
 export type Stelle = {
@@ -70,6 +72,12 @@ export type Stelle = {
 
   /** WIR VERLINKEN, WIR KOPIEREN NICHT: Die Bewerbung läuft auf der Originalanzeige. */
   link?: string;
+  /**
+   * WOHER DIE STELLE STAMMT (Owner 31.08.2026) — die Jobplattform, auf der sie gefunden
+   * wurde. Nur für uns: Sie sagt, welche Quelle brauchbare Stellen liefert, und sie ist der
+   * Beleg dafür, dass hinter jeder Zeile eine echte Anzeige steht.
+   */
+  quelle?: string;
   logoUrl?: string;
 
   relocation?: boolean;
@@ -129,46 +137,99 @@ export function sichtbare(stellen: Stelle[]): Stelle[] {
  */
 const NIVEAUS: Deutschniveau[] = ["A2", "B1", "B2", "C1", "C2"];
 
-export function passende(stellen: Stelle[], wunsch: {
+/** Wie gut die Stelle passt — der Bewerber sieht die Stufe, nicht die Punktzahl. */
+export type Guete = "sehr-gut" | "gut" | "interessant";
+export type Treffer = { stelle: Stelle; guete: Guete };
+
+/**
+ * DIE ZUORDNUNG — OHNE MODELL, MIT REGELN, UND BEWUSST NICHT ZU STRENG
+ * (Owner 31.08.2026: „Nicht zu streng filtern. Ein Nutzer soll bei wenigen vorhandenen Jobs
+ * möglichst nicht sofort 0 Treffer bekommen.").
+ *
+ * WAS SICH GEÄNDERT HAT: Das Sprachniveau war eine harte Bedingung — wer B1 angab, sah keine
+ * einzige C1-Stelle. Bei zehn Stellen im Bestand führt das zu einer leeren Liste, und eine
+ * leere Liste ist das Ende des Trichters. Jetzt schliesst nichts mehr aus: Eine Stelle über
+ * seinem Niveau rutscht in „Ar putea fi interesant" statt zu verschwinden. Er sieht das
+ * geforderte Niveau auf der Karte und entscheidet selbst — das ist ehrlicher als ein
+ * stiller Filter.
+ *
+ * Ein Modell wäre hier teurer, langsamer und weniger nachvollziehbar; bei 20 Stellen rechnet
+ * das der Server in Millisekunden. Erfinden darf ohnehin nichts etwas dazu.
+ */
+export function passendeMitGuete(stellen: Stelle[], wunsch: {
   deutsch?: Deutschniveau;
   arbeitsform?: Arbeitsform | "egal";
   ziel?: "salariu" | "remote" | "job-nou" | "intoarcere";
-}): Stelle[] {
+  berufsfeld?: string;
+  erfahrung?: Erfahrung;
+}): Treffer[] {
   const offen = sichtbare(stellen);
-  const meinNiveau = wunsch.deutsch ? NIVEAUS.indexOf(wunsch.deutsch) : NIVEAUS.length - 1;
+  const meinNiveau = wunsch.deutsch && wunsch.deutsch !== "unbekannt"
+    ? NIVEAUS.indexOf(wunsch.deutsch) : NIVEAUS.length - 1;
 
   const punkte = (s: Stelle): number => {
     let p = 0;
-    /* Das Sprachniveau ist die harte Bedingung: Was er nicht erfüllt, gehört nicht in seine
-       Liste — eine Stelle, auf die er sich nicht bewerben kann, ist eine Enttäuschung mit
-       Ansage. Erfüllt er es, zählt die Nähe: C1 auf eine C1-Stelle ist ein besserer Treffer
-       als C2 auf eine A2-Stelle. */
-    const noetig = NIVEAUS.indexOf(s.deutschMin);
-    if (noetig > meinNiveau) return -1;
-    p += 10 - (meinNiveau - noetig);
 
-    if (wunsch.arbeitsform && wunsch.arbeitsform !== "egal") {
-      if (s.arbeitsform === wunsch.arbeitsform) p += 6;
-      /* „Remote gewünscht, hybrid vorhanden" ist eine Näherung, keine Absage. */
-      else if (wunsch.arbeitsform === "remote" && s.arbeitsform === "hibrid") p += 2;
+    /* SPRACHE — die wichtigste Zahl, aber kein Ausschluss mehr.
+       Steht in der Anzeige kein Niveau („unbekannt"), gilt sie als offen und bekommt die
+       mittlere Wertung: Wir behaupten weder, dass sie passt, noch dass sie es nicht tut. */
+    if (s.deutschMin === "unbekannt") {
+      p += 6;
     } else {
-      p += 1;
+      const noetig = NIVEAUS.indexOf(s.deutschMin);
+      if (noetig <= meinNiveau) {
+        /* Er erfüllt es — je näher am geforderten Niveau, desto besser der Treffer. */
+        p += 10 - (meinNiveau - noetig);
+      } else {
+        /* Er erfüllt es NICHT. Ein Schritt darüber ist erreichbar (B2 auf C1), zwei sind
+           weit weg — beides bleibt sichtbar, aber weit unten. */
+        p += Math.max(0, 4 - (noetig - meinNiveau) * 2);
+      }
     }
 
-    /* Wer wegen des Gehalts sucht, sieht die bestbezahlten zuerst; wer remote will, die
-       Remote-Stellen; wer zurück nach Rumänien will, die mit Standort im Land. */
-    if (wunsch.ziel === "salariu" && (s.gehaltBis || s.gehaltVon)) p += Math.min(6, Math.round(((s.gehaltBis || s.gehaltVon || 0) / 500)));
+    /* ARBEITSFORM */
+    if (wunsch.arbeitsform && wunsch.arbeitsform !== "egal") {
+      if (s.arbeitsform === wunsch.arbeitsform) p += 6;
+      else if (wunsch.arbeitsform === "remote" && s.arbeitsform === "hibrid") p += 3;
+      else if (wunsch.arbeitsform === "hibrid" && s.arbeitsform === "remote") p += 3;
+    } else {
+      p += 2;
+    }
+
+    /* HAUPTINTERESSE */
+    if (wunsch.ziel === "salariu" && (s.gehaltBis || s.gehaltVon)) {
+      p += Math.min(6, Math.round((s.gehaltBis || s.gehaltVon || 0) / 500));
+    }
     if (wunsch.ziel === "remote" && s.arbeitsform === "remote") p += 5;
     if (wunsch.ziel === "intoarcere" && (s.land === "RO" || /rom[aâ]ni/i.test(s.ort))) p += 4;
+    /* „Ein neuer Job" ist kein Filter — wer das wählt, ist offen; dann zählen die anderen
+       beiden Antworten allein. */
+
+    /* KATEGORIE UND ERFAHRUNG — nur wenn beide Seiten etwas dazu sagen (Owner: „können
+       berücksichtigt werden, wenn vorhanden"). */
+    if (wunsch.berufsfeld && s.berufsfeld
+      && s.berufsfeld.toLowerCase().includes(wunsch.berufsfeld.toLowerCase())) p += 3;
+    if (wunsch.erfahrung && s.erfahrung === wunsch.erfahrung) p += 2;
+
     return p;
   };
 
-  const bewertet = offen.map(s => ({ s, p: punkte(s) })).filter(x => x.p >= 0);
-  bewertet.sort((a, b) => b.p - a.p || (b.s.gehaltBis || 0) - (a.s.gehaltBis || 0));
-  /* Keine Treffer trotz allem (z. B. A2 und alle Stellen verlangen B2): dann die mit dem
-     niedrigsten Anspruch zeigen, damit er sieht, wohin die Reise ginge. */
-  if (!bewertet.length) {
-    return [...offen].sort((a, b) => NIVEAUS.indexOf(a.deutschMin) - NIVEAUS.indexOf(b.deutschMin)).slice(0, 6);
-  }
-  return bewertet.map(x => x.s);
+  const bewertet = offen.map(s => ({ stelle: s, p: punkte(s) }));
+  bewertet.sort((a, b) => b.p - a.p || (b.stelle.gehaltBis || 0) - (a.stelle.gehaltBis || 0));
+
+  /* DIE STUFEN werden am BESTEN Treffer gemessen, nicht an einer festen Punktzahl: Bei zehn
+     Stellen im Bestand wäre eine absolute Schwelle willkürlich — „sehr gut" heisst hier
+     „das Beste, was wir für dich haben, und es passt wirklich". */
+  const bester = bewertet[0]?.p ?? 0;
+  return bewertet.map(({ stelle, p }) => ({
+    stelle,
+    guete: (p >= 14 && p >= bester * 0.85) ? "sehr-gut" as const
+      : (p >= 9 || p >= bester * 0.6) ? "gut" as const
+      : "interessant" as const,
+  }));
+}
+
+/** Der alte Weg ohne Güte — bleibt, damit bestehende Aufrufer nicht brechen. */
+export function passende(stellen: Stelle[], wunsch: Parameters<typeof passendeMitGuete>[1]): Stelle[] {
+  return passendeMitGuete(stellen, wunsch).map(t => t.stelle);
 }

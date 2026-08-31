@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { leseStellen, schreibeStellen, sichtbare, passende, type Stelle, type Arbeitsform, type Deutschniveau } from "@/lib/joburi-store";
+import { leseStellen, schreibeStellen, sichtbare, passendeMitGuete, type Stelle, type Arbeitsform, type Deutschniveau } from "@/lib/joburi-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +26,17 @@ const n = (v: unknown): number | undefined => {
   return Number.isFinite(z) && z > 0 ? Math.round(z) : undefined;
 };
 
-const NIVEAUS = ["A2", "B1", "B2", "C1", "C2"];
+const NIVEAUS = ["A2", "B1", "B2", "C1", "C2", "unbekannt"];
+/* „A2" ist gross, „unbekannt" ist klein — und beide sind länger als zwei Zeichen, wenn man
+   das Wort mitzählt. Ein blindes `.slice(0,2).toUpperCase()` machte aus „unbekannt" ein
+   „UN", das in keiner Liste steht; es landete nur zufällig im richtigen Fallback. */
+const niveauLesen = (v: unknown): string => {
+  const roh = String(v ?? "").trim();
+  if (!roh) return "";
+  const gross = roh.toUpperCase();
+  if (NIVEAUS.includes(gross)) return gross;
+  return roh.toLowerCase() === "unbekannt" ? "unbekannt" : "";
+};
 const FORMEN = ["remote", "hibrid", "birou"];
 
 export async function GET(request: Request) {
@@ -41,11 +51,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, stellen });
   }
 
-  const deutsch = s(url.searchParams.get("deutsch"), 2).toUpperCase();
+  const deutsch = niveauLesen(url.searchParams.get("deutsch"));
   const form = s(url.searchParams.get("arbeitsform"), 10).toLowerCase();
   const ziel = s(url.searchParams.get("ziel"), 20).toLowerCase();
-  const treffer = passende(stellen, {
-    ...(NIVEAUS.includes(deutsch) ? { deutsch: deutsch as Deutschniveau } : {}),
+  const treffer = passendeMitGuete(stellen, {
+    ...(deutsch ? { deutsch: deutsch as Deutschniveau } : {}),
     ...(FORMEN.includes(form) || form === "egal" ? { arbeitsform: form as Arbeitsform | "egal" } : {}),
     ...(["salariu", "remote", "job-nou", "intoarcere"].includes(ziel) ? { ziel: ziel as "salariu" } : {}),
   });
@@ -57,7 +67,9 @@ export async function GET(request: Request) {
    * lesen.
    */
   const frei = url.searchParams.get("frei") === "1";
-  const raus = treffer.map(t => frei ? t : { ...t, link: undefined });
+  /* Die Güte reist als Feld an der Stelle mit — der Trichter soll sie zeigen, nicht selbst
+     ausrechnen; sonst stünden zwei Wahrheiten über denselben Treffer im Umlauf. */
+  const raus = treffer.map(({ stelle, guete }) => ({ ...stelle, guete, ...(frei ? {} : { link: undefined }) }));
   return NextResponse.json({ ok: true, anzahl: treffer.length, stellen: raus, gesamt: sichtbare(stellen).length });
 }
 
@@ -81,7 +93,7 @@ export async function POST(request: Request) {
   const firma = s(roh.firma, 120);
   if (!titel || !firma) return NextResponse.json({ error: "Titel und Firma sind Pflicht." }, { status: 400 });
 
-  const niveau = s(roh.deutschMin, 2).toUpperCase();
+  const niveau = niveauLesen(roh.deutschMin);
   const form = s(roh.arbeitsform, 10).toLowerCase();
   const jetzt = new Date().toISOString();
   const id = s(roh.id, 60) || crypto.randomUUID();
@@ -96,7 +108,9 @@ export async function POST(request: Request) {
     ort: s(roh.ort, 200),
     ...(s(roh.land, 4) ? { land: s(roh.land, 4).toUpperCase() } : {}),
     arbeitsform: (FORMEN.includes(form) ? form : "birou") as Arbeitsform,
-    deutschMin: (NIVEAUS.includes(niveau) ? niveau : "B2") as Deutschniveau,
+    /* Ohne Angabe „unbekannt" — nicht B2 raten: Ein erfundenes Niveau schliesst
+       Bewerber aus, die sich hätten bewerben können. */
+    deutschMin: (niveau || "unbekannt") as Deutschniveau,
     ...(n(roh.gehaltVon) ? { gehaltVon: n(roh.gehaltVon) } : {}),
     ...(n(roh.gehaltBis) ? { gehaltBis: n(roh.gehaltBis) } : {}),
     ...(roh.gehaltGeschaetzt === true ? { gehaltGeschaetzt: true } : {}),
@@ -107,6 +121,7 @@ export async function POST(request: Request) {
     ...(s(roh.kurzbeschreibung, 600) ? { kurzbeschreibung: s(roh.kurzbeschreibung, 600) } : {}),
     ...(s(roh.link, 500) ? { link: s(roh.link, 500) } : {}),
     ...(s(roh.logoUrl, 500) ? { logoUrl: s(roh.logoUrl, 500) } : {}),
+    ...(s(roh.quelle, 120) ? { quelle: s(roh.quelle, 120) } : {}),
     ...(roh.relocation === true ? { relocation: true } : {}),
     ...(roh.rumaenienNoetig === true ? { rumaenienNoetig: true } : {}),
     aktiv: roh.aktiv !== false,
