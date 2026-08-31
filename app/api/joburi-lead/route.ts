@@ -25,6 +25,9 @@ const MAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const NIVEAUS = ["A2", "B1", "B2", "C1", "C2"];
 const FORMEN = ["remote", "hibrid", "birou", "egal"];
 const ZIELE = ["salariu", "flexibilitate", "cariera", "intoarcere"];
+/* Die vierte Antwort: aktiv suchend · offen für Angebote · passiv. Dieselben drei Wörter
+   wie die Segmente auf `/recruiting` — eine Benennung für dieselbe Sache. */
+const SUCHEN = ["aktiv", "offen", "passiv"];
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) {
@@ -42,6 +45,11 @@ export async function GET(request: Request) {
     hoch: leads.filter(l => l.deutsch === "C1" || l.deutsch === "C2").length,
     mitInteresse: leads.filter(l => (l.weitergaben ?? []).some(w => w.ja)).length,
     mitCv: leads.filter(l => !!l.cvPath).length,
+    /* DER SATZ FÜR DIE AKQUISE: Wie viele dieser Leute hätte ein Jobportal nie gesehen?
+       (Owner 31.08.2026 — der zentrale Kennwert gegenüber Recruitern.) */
+    aktivSuchend: leads.filter(l => l.suche === "aktiv").length,
+    offenFuerAngebote: leads.filter(l => l.suche === "offen").length,
+    passiv: leads.filter(l => l.suche === "passiv").length,
   };
   return NextResponse.json({ ok: true, summe, leads });
 }
@@ -55,6 +63,7 @@ export async function POST(request: Request) {
     const deutsch = s(body.deutsch, 2).toUpperCase();
     const form = s(body.arbeitsform, 10).toLowerCase();
     const ziel = s(body.ziel, 20).toLowerCase();
+    const suche = s(body.suche, 10).toLowerCase();
     const id = s(body.id, 60) || crypto.randomUUID();
     const alt = await leseLead(id);
 
@@ -64,6 +73,7 @@ export async function POST(request: Request) {
       ...(NIVEAUS.includes(deutsch) ? { deutsch: deutsch as JoburiLead["deutsch"] } : {}),
       ...(FORMEN.includes(form) ? { arbeitsform: form as JoburiLead["arbeitsform"] } : {}),
       ...(ZIELE.includes(ziel) ? { ziel: ziel as JoburiLead["ziel"] } : {}),
+      ...(SUCHEN.includes(suche) ? { suche: suche as JoburiLead["suche"] } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),
       ...(s(body.lang, 5) ? { lang: s(body.lang, 5) } : {}),
       ...(body.utm && typeof body.utm === "object" ? { utm: body.utm as Record<string, string> } : {}),

@@ -44,6 +44,17 @@ export type JoburiLead = {
   deutsch?: Deutschniveau;
   arbeitsform?: Arbeitsform | "egal";
   ziel?: "salariu" | "flexibilitate" | "cariera" | "intoarcere";
+  /**
+   * WIE DRINGEND ER SUCHT — der Kennwert, mit dem wir vor Firmen bestehen (Owner
+   * 31.08.2026: „weil wir gegenüber Recruitern zeigen wollen, dass wir auch Kandidaten
+   * erreichen, die nicht aktiv auf Jobportalen suchen.").
+   *
+   * Die Stufen heissen genauso wie die drei Segmente auf der Firmenseite (`/recruiting`) —
+   * „aktiv suchend / offen für Angebote / passive Kandidaten". Sonst stünde derselbe Wert
+   * hier anders als dort, und die Zahl, die wir zeigen, hiesse nicht mehr dasselbe wie die,
+   * die wir zählen.
+   */
+  suche?: "aktiv" | "offen" | "passiv";
 
   email?: string;
   vorname?: string;

@@ -21,7 +21,7 @@ import { joburiTexte } from "@/lib/joburi-texte";
 
 export const metadata: Metadata = {
   title: "Joburi cu germană | Vezi oportunitățile",
-  description: "Vorbești germană? Răspunde la 3 întrebări și îți arătăm joburi reale care ți s-ar putea potrivi.",
+  description: "Vorbești germană? Răspunde la 4 întrebări și îți arătăm joburi reale care ți s-ar putea potrivi.",
   robots: { index: false, follow: false },
 };
 

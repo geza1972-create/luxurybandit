@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Lock, MapPin, ExternalLink } from "lucide-react";
+import { Check, Lock, Mail, MapPin, ExternalLink } from "lucide-react";
 import { Knopf, Kasten, Eingabe, Fehlerzeile, Fortschritt, Haken } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
@@ -27,7 +27,7 @@ type Treffer = Stelle & { guete?: Guete };
  * Leistung — von 19 bis 27 Besuchern der ersten Anzeige kam keiner durch den ersten Schritt.
  */
 
-type Schritt = "f1" | "f2" | "f3" | "teaser" | "mail" | "liste";
+type Schritt = "f1" | "f2" | "f3" | "f4" | "teaser" | "mail" | "liste";
 
 export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string }) {
   const [schritt, setSchritt] = useState<Schritt>("f1");
@@ -68,14 +68,14 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
   useEffect(() => { void logFunnelEvent("start_clicked", { theme: "joburi" }); }, []);
 
   /** Speichert die drei Antworten und holt die passenden Stellen. */
-  const antwortenSenden = async (a: { deutsch: string; form: string; ziel: string }) => {
+  const antwortenSenden = async (a: { deutsch: string; form: string; ziel: string; suche: string }) => {
     setLaedt(true); setFehler("");
     try {
       const d = await fetch("/api/joburi-lead", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schritt: "antworten", id: leadId,
-          deutsch: a.deutsch, arbeitsform: a.form, ziel: a.ziel,
+          deutsch: a.deutsch, arbeitsform: a.form, ziel: a.ziel, suche: a.suche,
           device: geraet(), lang, utm: quelle(),
         }),
       }).then(r => r.json());
@@ -275,8 +275,34 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
             { wert: "salariu", text: T.zielSalariu }, { wert: "flexibilitate", text: T.zielRemote },
             { wert: "cariera", text: T.zielJobNou }, { wert: "intoarcere", text: T.zielIntoarcere },
           ]}
-          waehlen={w => { setZiel(w); void antwortenSenden({ deutsch, form, ziel: w }); }} />
+          waehlen={w => { setZiel(w); setSchritt("f4"); }} />
         <button type="button" onClick={() => setSchritt("f2")}
+          className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
+      </Kasten>
+    );
+  }
+
+  /**
+   * DIE VIERTE FRAGE — SIE FILTERT NICHTS (Owner 31.08.2026: „Diese Antwort im
+   * Lead-Datensatz speichern. Das ist später ein zentraler KPI, weil wir gegenüber
+   * Recruitern zeigen wollen, dass wir auch Kandidaten erreichen, die nicht aktiv auf
+   * Jobportalen suchen.").
+   *
+   * Sie steht bewusst ZULETZT und geht in keine Suche ein: Wer „nu" antwortet, sieht
+   * dieselben Stellen wie jeder andere. Eine Frage, die den Besucher bestraft, hätte an
+   * dieser Stelle den Trichter gekostet — und genau die Antwort verloren, um die es geht.
+   */
+  if (schritt === "f4") {
+    return (
+      <Kasten polster="p-5">
+        <h2 className="text-[19px] font-black leading-snug text-white">{T.frage4}</h2>
+        <Wahl
+          optionen={[
+            { wert: "aktiv", text: T.sucheAktiv }, { wert: "offen", text: T.sucheOffen },
+            { wert: "passiv", text: T.suchePassiv },
+          ]}
+          waehlen={w => void antwortenSenden({ deutsch, form, ziel, suche: w })} />
+        <button type="button" onClick={() => setSchritt("f3")}
           className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.zurueck}</button>
       </Kasten>
     );
@@ -330,7 +356,7 @@ export default function JoburiFunnel({ T, lang }: { T: JoburiTexte; lang: string
         <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-white/75">{T.mailText}</p>
 
         <label className="mt-4 block text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.mailLabel}</label>
-        <Eingabe className="mt-1.5" type="email" inputMode="email" value={mail}
+        <Eingabe className="mt-1.5" type="email" inputMode="email" value={mail} symbol={<Mail className="h-4 w-4" />}
           onChange={e => { setMail(e.target.value); setFehler(""); }} placeholder={T.mailPlatzhalter} />
 
         {/* NUR DIE ADRESSE (Owner 31.08.2026: „Lead-Formular radikal vereinfachen. Vorname

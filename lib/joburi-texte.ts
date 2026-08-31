@@ -21,13 +21,23 @@ export const RO = {
   kicker: "JOBURI CU GERMANĂ",
   titel: "Vorbești germană?",
   titelZwei: "Poate valorează mai mult decât crezi.",
-  untertitel: "Răspunde la 3 întrebări și îți arătăm joburi reale care ți s-ar putea potrivi.",
+  untertitel: "Răspunde la 4 întrebări și îți arătăm joburi reale care ți s-ar putea potrivi.",
 
   /* ── Die drei Fragen ── */
   frage1: "Ce nivel de germană ai?",
   frage1Hinweis: "Alege nivelul care ți se potrivește cel mai bine.",
   frage2: "Cum ai prefera să lucrezi?",
   frage3: "Ce cauți în primul rând?",
+  /**
+   * DIE VIERTE FRAGE IST DER KENNWERT FÜR DIE FIRMENSEITE (Owner 31.08.2026: „Das ist später
+   * ein zentraler KPI, weil wir gegenüber Recruitern zeigen wollen, dass wir auch Kandidaten
+   * erreichen, die nicht aktiv auf Jobportalen suchen.").
+   *
+   * Für den Bewerber ist sie harmlos — ein Klick, keine Angabe über ihn. Für die Akquise ist
+   * sie das Einzige, was ein Jobportal NICHT vorzeigen kann: Wer dort steht, sucht per
+   * Definition aktiv. Die zweite und dritte Antwort sind deshalb die wertvollen.
+   */
+  frage4: "Cauți activ un job în acest moment?",
 
   niveauA2: "A2 — începător",
   niveauB1: "B1",
@@ -44,6 +54,10 @@ export const RO = {
   zielRemote: "Mai multă flexibilitate",
   zielJobNou: "Oportunități de carieră",
   zielIntoarcere: "Întoarcere în România",
+
+  sucheAktiv: "Da, caut activ",
+  sucheOffen: "Mă uit doar la oportunități",
+  suchePassiv: "Nu, dar aș schimba pentru oferta potrivită",
 
   zurueck: "Înapoi",
 
@@ -135,12 +149,13 @@ export const DE: JoburiTexte = {
   kicker: "JOBS MIT DEUTSCH",
   titel: "Du sprichst Deutsch?",
   titelZwei: "Vielleicht ist das mehr wert, als du denkst.",
-  untertitel: "Beantworte 3 Fragen — wir zeigen dir echte Stellen, die zu dir passen könnten.",
+  untertitel: "Beantworte 4 Fragen — wir zeigen dir echte Stellen, die zu dir passen könnten.",
 
   frage1: "Wie gut ist dein Deutsch?",
   frage1Hinweis: "Wähle das Niveau, das am ehesten passt.",
   frage2: "Wie möchtest du arbeiten?",
   frage3: "Was suchst du in erster Linie?",
+  frage4: "Suchst du gerade aktiv einen Job?",
 
   niveauA2: "A2 — Anfänger",
   niveauB1: "B1",
@@ -157,6 +172,10 @@ export const DE: JoburiTexte = {
   zielRemote: "Mehr Flexibilität",
   zielJobNou: "Karrierechancen",
   zielIntoarcere: "Zurück nach Rumänien",
+
+  sucheAktiv: "Ja, ich suche aktiv",
+  sucheOffen: "Ich schaue mich nur um",
+  suchePassiv: "Nein, aber für das richtige Angebot würde ich wechseln",
 
   zurueck: "Zurück",
 
