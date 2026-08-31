@@ -136,7 +136,21 @@ export default function RecruitingSeite({ lang, imPfad = false }: { lang: string
      globals.css, `.lb-frame:has(…)`) — ohne diese Kennung endet der Rahmen bei 440 px und
      jedes Raster darunter bliebe wirkungslos. */
   return (
-    <main className="lb-bg lb-recruiting min-h-screen text-white">
+    <main className="lb-bg lb-recruiting lb-theme lb-fb min-h-screen text-white">
+      {/**
+        * HELL SCHON VOM SERVER — KEIN SCHWARZER BLITZ (Owner 31.08.2026, an der laufenden
+        * Anzeige: „was ich nicht mag, das erst mal die darkseite lädt").
+        *
+        * Die helle Fassung wurde bisher erst IM BROWSER gesetzt (`LightSwitch`, der die
+        * Klassen nachträglich an `main` hängt). Der Server lieferte also Schwarz, und wer aus
+        * einer Anzeige kam, sah eine dunkle Seite aufblitzen, bevor sie hell wurde. Auf einer
+        * bezahlten Landung ist das der erste Eindruck — und er kostet Klicks, für die schon
+        * gezahlt ist.
+        *
+        * `lb-theme lb-fb` stehen deshalb fest im ausgelieferten HTML. Der Umschalter bleibt:
+        * Er liest beim Start, was hier schon steht, ist damit einig mit dem Server — und wer
+        * lieber dunkel will, tippt ihn weiterhin an.
+        */}
       {/* `schlicht` nimmt Konto, Guthaben und Galerie aus dem Kopf, `breit` hält ihn am
           Desktop auf Inhaltsbreite und zieht Hell/Dunkel + Sprache in die blaue Leiste. */}
       <TopNav schlicht breit sprachen={RECRUITING_SPRACHEN} sprachePfad={imPfad} back={false} marke="LB Recruiting" heim={heim} motto={T.kopfMotto} />

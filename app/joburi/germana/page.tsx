@@ -52,7 +52,21 @@ export default async function JoburiSeite({ searchParams }: { searchParams: Prom
   const T = joburiTexte(lang);
 
   return (
-    <main className="lb-bg min-h-screen text-white">
+    <main className="lb-bg lb-theme lb-fb min-h-screen text-white">
+      {/**
+        * HELL SCHON VOM SERVER — KEIN SCHWARZER BLITZ (Owner 31.08.2026, an der laufenden
+        * Anzeige: „was ich nicht mag, das erst mal die darkseite lädt").
+        *
+        * Die helle Fassung wurde bisher erst IM BROWSER gesetzt (`LightSwitch`, der die
+        * Klassen nachträglich an `main` hängt). Der Server lieferte also Schwarz, und wer aus
+        * einer Anzeige kam, sah eine dunkle Seite aufblitzen, bevor sie hell wurde. Auf einer
+        * bezahlten Landung ist das der erste Eindruck — und er kostet Klicks, für die schon
+        * gezahlt ist.
+        *
+        * `lb-theme lb-fb` stehen deshalb fest im ausgelieferten HTML. Der Umschalter bleibt:
+        * Er liest beim Start, was hier schon steht, ist damit einig mit dem Server — und wer
+        * lieber dunkel will, tippt ihn weiterhin an.
+        */}
       {/* KEIN „LB" IM KOPF (Owner 31.08.2026, zu David: „steht LB" — zwei Buchstaben, die
           niemand kennt, an der Stelle, wo der Absender steht, schaffen kein Vertrauen).
           Hier steht, worum es geht: Jobs mit Deutsch. */}
