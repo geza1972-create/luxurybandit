@@ -53,8 +53,16 @@ export type JoburiLead = {
   /* ── TALENT NETWORK, die acht Antworten ── */
   /** Was er getippt hat. Die Kategorie steht weiterhin in `berufsfeld`. */
   beruf?: string;
-  /** a2 · b1 · b2 · c1 · c2 · native — klein geschrieben, anders als das alte `deutsch`. */
+  /** a1 · a2 · b1 · b2 · c1 · c2 · native — klein geschrieben, anders als das alte `deutsch`.
+      Bleibt neben `sprachen` stehen: die bestehende Studie (lib/joburi-studie.ts) wertet
+      genau dieses Feld für die Deutschverteilung aus. */
   deutschniveau?: string;
+  /** Alle angegebenen Sprachen mit Niveau — seit die Sprachfrage nicht mehr nur Deutsch
+      abfragt (Owner 01.09.2026, Generalisierung des Funnels). */
+  sprachen?: { sprache: string; niveau: string }[];
+  /** Welcher Kunde diesen Funnel für sich laufen liess (siehe lib/kunden-store.ts) —
+      leer, wenn es der allgemeine Funnel war. */
+  kunde?: string;
   stadt?: string;
   situation?: "employed_satisfied" | "employed_open" | "actively_searching" | "unemployed" | "self_employed" | "other";
   motive?: string[];
@@ -130,7 +138,8 @@ export type JoburiLead = {
      ──────────────────────────────────────────────────────────────────────────────────── */
 
   /** Wo er heute lebt — entscheidet auch, ob nach Rückkehr gefragt wird. */
-  land?: "ro" | "de" | "at" | "alta";
+  /** Freitext seit der Generalisierung (z. B. „Deutschland") statt fester Codes. */
+  land?: string;
   /** Ab welchem NETTO-Gehalt ein Wechsel interessant wird. Als Stufe, nicht als Zahl:
       Eine offene Zahl beantwortet kaum jemand, eine Spanne fast jeder. */
   /**

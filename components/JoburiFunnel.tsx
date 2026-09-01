@@ -157,7 +157,7 @@ function Frage({ kopfBlock, leiste, titel, hinweis, children }: {
   );
 }
 
-export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: string; kopf?: React.ReactNode }) {
+export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte; lang: string; kopf?: React.ReactNode; kunde?: string }) {
   const [schritt, setSchritt] = useState<Schritt>("beruf");
   /**
    * DIE KENNUNG LIEGT IN EINEM REF, NICHT IM ZUSTAND (31.08.2026 gemessen: ohne das legte
@@ -261,7 +261,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
       try {
         const d = await fetch("/api/joburi-lead", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ schritt: "antworten", id: leadIdRef.current, device: geraet(), lang, utm: quelle(), test: istProbe(), ...teil }),
+          body: JSON.stringify({ schritt: "antworten", id: leadIdRef.current, device: geraet(), lang, utm: quelle(), test: istProbe(), ...(kunde ? { kunde } : {}), ...teil }),
         }).then(r => r.json());
         if (d?.id) leadIdRef.current = String(d.id);
       } catch { /* die Anzeige läuft weiter; der nächste Schritt schreibt es erneut mit */ }

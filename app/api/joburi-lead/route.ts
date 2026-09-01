@@ -56,13 +56,13 @@ const STUDII = ["gimnaziu", "liceu", "profesionala", "licenta", "master"];
    Jede Liste ist bewusst geschlossen. Was nicht darin steht, wird verworfen statt
    gespeichert — sonst landet getippter Müll in der Auswertung, auf die wir uns gegenüber
    Firmen berufen. */
-const NIVEAUS_TN = ["a2", "b1", "b2", "c1", "c2", "native"];
+const NIVEAUS_TN = ["a1", "a2", "b1", "b2", "c1", "c2", "native"];
 const SITUATIONEN = ["employed_satisfied", "employed_open", "actively_searching", "unemployed", "self_employed", "other"];
 const MOTIVE = ["salary", "employer", "management", "less_stress", "hours", "remote", "position",
                 "work_itself", "career", "culture", "security", "germany", "benefits", "other"];
 const MAERKTE = ["romania", "germany", "remote", "eu", "relocate_ro", "no_relocation"];
 const GESPRAECH = ["yes", "probably", "maybe", "not_now"];
-const BELASTUNG = ["shifts", "standing", "physical", "physical_experience"];
+const BELASTUNG = ["shifts", "standing", "physical", "physical_experience", "office"];
 const GLEICH = ["yes", "depends", "no"];
 const FAKTOREN = ["salariu", "remote", "flexibilitate", "cariera", "stabilitate", "echipa"];
 const RUECKKEHR = ["da", "poate", "nu"];
@@ -174,7 +174,11 @@ export async function POST(request: Request) {
     const form = s(body.arbeitsform, 10).toLowerCase();
     const ziel = s(body.ziel, 20).toLowerCase();
     const suche = s(body.suche, 10).toLowerCase();
-    const land = s(body.land, 6).toLowerCase();
+    /* War früher ein Code aus vier Werten (`ro`/`de`/`at`/`alta`), ist seit der
+       Generalisierung (freie Länder-Eingabe mit Autovervollständigung) ein Freitext wie
+       „Deutschland" — kein `.toLowerCase()`/Riegel mehr, sonst fällt jeder getippte
+       Ländername durch den alten Vier-Werte-Filter und wird nie gespeichert. */
+    const land = s(body.land, 60);
     const gehalt = s(body.wechselGehalt, 8);
     const jetzt = s(body.jetztGehalt, 8);
     const alter = s(body.alter, 6);
@@ -184,6 +188,13 @@ export async function POST(request: Request) {
     /* ── Talent Network ── */
     const beruf = s(body.beruf, 40);
     const niveauTn = s(body.deutschniveau, 8).toLowerCase();
+    const sprachen = Array.isArray(body.sprachen)
+      ? body.sprachen
+          .filter((x): x is { sprache?: unknown; niveau?: unknown } => !!x && typeof x === "object")
+          .map(x => ({ sprache: s(x.sprache, 30), niveau: s(x.niveau, 10).toLowerCase() }))
+          .filter(x => x.sprache && NIVEAUS_TN.includes(x.niveau))
+          .slice(0, 12)
+      : [];
     const stadt = s(body.stadt, 40);
     const situation = s(body.situation, 24).toLowerCase();
     const gleichesGehalt = s(body.gleichesGehalt, 8).toLowerCase();
@@ -197,8 +208,11 @@ export async function POST(request: Request) {
     const belastung = Array.isArray(body.belastung)
       ? [...new Set(body.belastung.map(b => s(b, 24).toLowerCase()).filter(b => BELASTUNG.includes(b)))]
       : [];
+    /* Seit der Generalisierung stehen hier neben den zwei festen Werten ("remote",
+       "no_relocation") beliebige, frei getippte Ländernamen — kein `.toLowerCase()`/Riegel
+       mehr auf die alte Sechs-Werte-Liste, sonst fällt jedes getippte Land durch. */
     const maerkte = Array.isArray(body.maerkte)
-      ? [...new Set(body.maerkte.map(m => s(m, 20).toLowerCase()).filter(m => MAERKTE.includes(m)))]
+      ? [...new Set(body.maerkte.map(m => s(m, 40)).filter(Boolean))]
       : [];
     /* Die Beträge werden gegen die Grenzen IHRER Währung geprüft: 8.000 ist in RON ein
        normales Gehalt und in Euro eine Fantasie. */
@@ -225,7 +239,7 @@ export async function POST(request: Request) {
       ...(FORMEN.includes(form) ? { arbeitsform: form as JoburiLead["arbeitsform"] } : {}),
       ...(ZIELE.includes(ziel) ? { ziel: ziel as JoburiLead["ziel"] } : {}),
       ...(SUCHEN.includes(suche) ? { suche: suche as JoburiLead["suche"] } : {}),
-      ...(LAENDER.includes(land) ? { land: land as JoburiLead["land"] } : {}),
+      ...(land ? { land } : {}),
       ...(gehaltGueltig(gehalt) ? { wechselGehalt: gehalt } : {}),
       ...(gehaltGueltig(jetzt) ? { jetztGehalt: jetzt } : {}),
       ...(ALTER.includes(alter) ? { alter: alter as JoburiLead["alter"] } : {}),
@@ -243,6 +257,8 @@ export async function POST(request: Request) {
          nachreicht, überschreibt die anderen nicht — deshalb jedes für sich. */
       ...(beruf ? { beruf, berufsfeld: berufZuBereich(beruf), profileVersion: 2 as const } : {}),
       ...(NIVEAUS_TN.includes(niveauTn) ? { deutschniveau: niveauTn } : {}),
+      ...(sprachen.length ? { sprachen } : {}),
+      ...(s(body.kunde, 60) ? { kunde: s(body.kunde, 60) } : {}),
       ...(stadt ? { stadt } : {}),
       ...(SITUATIONEN.includes(situation) ? { situation: situation as JoburiLead["situation"] } : {}),
       ...(motive.length ? { motive } : {}),
