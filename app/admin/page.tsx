@@ -279,7 +279,9 @@ export default function AdminPage() {
   const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name" | "owner">("new");
   const [modelsView, setModelsView] = useState<"list" | "tools">("list"); // Models tab sub-view
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
-  const pickSort = (key: "looks" | "tryons" | "name" | "owner") => {
+  /* Dieselbe Werteliste wie der Zustand darueber — „new" fehlte hier, obwohl die
+     Schaltflaeche es schickt. */
+  const pickSort = (key: "new" | "looks" | "tryons" | "name" | "owner") => {
     if (sortC === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
     else { setSortC(key); setSortDir("desc"); }
   };
@@ -1804,44 +1806,49 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <div className="mt-4 flex flex-wrap items-center gap-1 rounded-xl border border-black/10 bg-white p-1">
+        {/* KOMPAKT STATT BILDSCHIRMFUELLEND (Owner 01.09.2026: „mach mir die liste kleiner, es
+            ist alles so gross"). Vorher trug jeder Reiter `flex-1` — dreizehn Reiter teilten
+            sich damit die volle Breite und jeder wurde so breit wie sein Kasten, egal wie kurz
+            sein Wort war. Jetzt bestimmt der Text die Breite; was nicht in eine Zeile passt,
+            bricht um. */}
+        <div className="mt-4 flex flex-wrap items-center gap-0.5 rounded-xl border border-black/10 bg-white p-1">
           <button type="button" onClick={() => setTab("looks")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
-            <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">{liveLooks}/{wardrobeLooks.length}</span>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
+            <LayoutGrid className="h-3.5 w-3.5" /> A List <span className="opacity-60">{liveLooks}/{wardrobeLooks.length}</span>
           </button>
           <button type="button" onClick={() => setTab("curators")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
-            <Users className="h-4 w-4" /> Models <span className="opacity-60">{curators.length}</span>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
+            <Users className="h-3.5 w-3.5" /> Models {curators.length > 0 && <span className="opacity-60">{curators.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("users")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "users" ? "bg-black text-white" : "text-ink/50"}`}>
-            <UserPlus className="h-4 w-4" /> Users {usersLoaded && <span className="opacity-60">{users.length}</span>}
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "users" ? "bg-black text-white" : "text-ink/50"}`}>
+            <UserPlus className="h-3.5 w-3.5" /> Users {usersLoaded && users.length > 0 && <span className="opacity-60">{users.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("posts")}
-            className={`relative flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
-            <PlayCircle className="h-4 w-4" /> Posts {postsLoaded && <span className="opacity-60">{posts.length}</span>}
+            className={`relative flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
+            <PlayCircle className="h-3.5 w-3.5" /> Posts {postsLoaded && posts.length > 0 && <span className="opacity-60">{posts.length}</span>}
             {pendingSlides.some(s => s.status === "pending") && (
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500" title="New posts awaiting review" />
             )}
           </button>
           <button type="button" onClick={() => setTab("inbox")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
-            <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{newComments.length + messages.length}</span>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
+            <Inbox className="h-3.5 w-3.5" /> Inbox {newComments.length + messages.length > 0 && <span className="opacity-60">{newComments.length + messages.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("insights")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "insights" ? "bg-black text-white" : "text-ink/50"}`}>
-            <BarChart3 className="h-4 w-4" /> Insights
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "insights" ? "bg-black text-white" : "text-ink/50"}`}>
+            <BarChart3 className="h-3.5 w-3.5" /> Insights
           </button>
           <button type="button" onClick={() => setTab("chats")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "chats" ? "bg-black text-white" : "text-ink/50"}`}>
-            <MessageCircle className="h-4 w-4" /> Chats {chatsLoaded && <span className="opacity-60">{modelChats.length}</span>}
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "chats" ? "bg-black text-white" : "text-ink/50"}`}>
+            <MessageCircle className="h-3.5 w-3.5" /> Chats {chatsLoaded && modelChats.length > 0 && <span className="opacity-60">{modelChats.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("meta")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "meta" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "meta" ? "bg-black text-white" : "text-ink/50"}`}>
             🗺 Meta {programs.length ? <span className="opacity-60">{programs.length}</span> : null}
           </button>
           <button type="button" onClick={() => setTab("emails")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
             ✉️ Emails
           </button>
           {/* EINE LISTE FUER ALLES (Owner 14.08.2026: „du machst mir jetzt eine einzige Liste
@@ -1850,7 +1857,7 @@ export default function AdminPage() {
               Dieselbe Liste wie auf den Themenseiten, nur OHNE Themenfilter: alle Kunden,
               alle Produkte, neueste zuerst. */}
           <button type="button" onClick={() => setTab("kaeufe")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "kaeufe" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "kaeufe" ? "bg-black text-white" : "text-ink/50"}`}>
             🧾 Käufe
           </button>
           {/* DIE BEWERBER-SEITEN GEHÖREN INS DASHBOARD (Owner 26.08.2026: „du weisst, dass
@@ -1860,12 +1867,12 @@ export default function AdminPage() {
               Reiter sammelt sie; die Seiten selbst bleiben eigenständig (wie LuxbanditCut),
               weil jede ihren eigenen vollen Arbeitsplatz hat. */}
           <button type="button" onClick={() => setTab("bewerber")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "bewerber" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "bewerber" ? "bg-black text-white" : "text-ink/50"}`}>
             💼 Bewerber
           </button>
           {/* DAS ADS-PLAYBOOK (Owner 13.08.2026: „klar hätte ich das gerne im ADMIN"). */}
           <button type="button" onClick={() => setTab("ads")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "ads" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black transition ${tab === "ads" ? "bg-black text-white" : "text-ink/50"}`}>
             📣 Ads
           </button>
           {/* LuxbanditCut liegt auf einer EIGENEN Seite (voller Arbeitsplatz mit Zuschneiden,
@@ -1873,8 +1880,8 @@ export default function AdminPage() {
               ganze Bild-Editor in dieses ohnehin riesige Admin-Bündel wandern. Zurück kommt
               er über den „Zurück"-Pfeil, den nur der Betreiber dort sieht. */}
           <a href="/admin/tools/luxbanditcut" title="LuxbanditCut — Apparel Extractor &amp; LuxbanditFit"
-            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black text-ink/50 transition active:scale-95">
-            <Scissors className="h-4 w-4" /> Cut
+            className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11.5px] font-black text-ink/50 transition active:scale-95">
+            <Scissors className="h-3.5 w-3.5" /> Cut
           </a>
         </div>
 
@@ -2193,7 +2200,7 @@ export default function AdminPage() {
                     <div className="flex shrink-0 items-center gap-1">
                       {/* Open in the feed — always available (opens in a new tab; keeps selection). */}
                       <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10" title="Open in feed"><PlayCircle className="h-4 w-4" /></a>
+                        className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10" title="Open in feed"><PlayCircle className="h-3.5 w-3.5" /></a>
                       {!selectMode && (
                         <>
                           <button type="button" onClick={() => void togglePostFeed(p)}
@@ -2662,7 +2669,7 @@ export default function AdminPage() {
             ))}
             <a href="/admin/curators/apply"
               className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition">
-              <UserPlus className="h-4 w-4" /> New model
+              <UserPlus className="h-3.5 w-3.5" /> New model
             </a>
           </div>
         )}
@@ -3813,7 +3820,7 @@ export default function AdminPage() {
         <div className="mt-4 space-y-4">
           {/* Global steering note — applied to EVERY model's chat persona. */}
           <section className="rounded-xl border border-black/10 bg-white p-4">
-            <p className="flex items-center gap-1.5 text-sm font-black text-ink"><MessageCircle className="h-4 w-4" /> Global chat rules</p>
+            <p className="flex items-center gap-1.5 text-sm font-black text-ink"><MessageCircle className="h-3.5 w-3.5" /> Global chat rules</p>
             <p className="mt-1 text-[12px] font-bold text-ink/45">Applied to every model on top of her own persona — e.g. safety, tone, always steer to trying a look. Hard safety limits are always enforced in code.</p>
             <textarea value={chatNoteDraft} onChange={e => setChatNoteDraft(e.target.value)} rows={4}
               placeholder={"e.g. Always be warm and encouraging. Gently suggest trying a look on LuxuryBandit. Never discuss other apps. Keep it classy."}
