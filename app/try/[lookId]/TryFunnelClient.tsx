@@ -1134,7 +1134,7 @@ export default function TryFunnelClient() {
           `guthaben-konto-header`). `back={false}`: der Zurueck-Pfeil bleibt in der eigenen
           Leiste direkt darunter, die schrittabhaengig navigiert (mal ein Schritt zurueck im
           Trichter, mal ganz raus) — das kann `TopNav` nicht wissen. */}
-      <TopNav back={false} />
+      <TopNav back={false} heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -1352,7 +1352,12 @@ export default function TryFunnelClient() {
               <p className="mt-2 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front. Below you see what the result looks like.</p>
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-                if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
+                /* KEIN LADEKREIS MEHR BEI 0 MODELS (Owner 01.09.2026: „du hättest nur die
+                   models ausblenden müssen" — die Curator-Fotos sind gelöscht, `gModels`
+                   bleibt seither leer). Vorher stand hier ein Spinner, der ewig lief, weil er
+                   auf Models wartete, die nie kommen. Ohne diese Zeile bleibt exakt die Logik
+                   darunter stehen — sie baut ohnehin schon eine Karte "Your photo" in die
+                   Kartenreihe; bei 0 Models ist das einfach die einzige Karte. */
                 // "Use your own photo" lives IN the carousel as a card (3rd position), not a
                 // separate button. It uploads (paid/admin) or opens the paywall.
                 const YOURPHOTO = { id: "__yourphoto", name: "Your photo", photoUrl: "", featured: false } as typeof om[number];

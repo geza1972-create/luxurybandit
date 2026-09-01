@@ -121,7 +121,7 @@ export default async function ChatThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="chat_view" lookId="themes-chat" lookName="Chat-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <Kicker>{t.kicker}</Kicker>

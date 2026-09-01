@@ -147,6 +147,15 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [arm, setArm] = useState("");        // erster Tipp auf den Papierkorb
+  // MARKIEREN UND IN EINEM RUTSCH LOESCHEN (Owner 01.09.2026: „ich will sie selber markieren
+  // und löschen"). Ein Satz Ids statt eines Feldes je Zeile — so bleibt „alle markieren"
+  // ein einziger Aufruf statt einer Schleife durch 92 Zeilen.
+  const [markiert, setMarkiert] = useState<Set<string>>(new Set());
+  const [armAlle, setArmAlle] = useState(false);  // erster Tipp auf „Markierte löschen"
+  const [busyAlle, setBusyAlle] = useState(false);
+  // FILTER NACH E-MAIL (Owner 01.09.2026: „ich will filtern nach email und nach ohne email").
+  const [emailFilter, setEmailFilter] = useState("");
+  const [nurOhneEmail, setNurOhneEmail] = useState(false);
   // GRÜNER PUNKT BEI NEUEM (Owner 30.07.2026: „will einen grünen Punkt sehen wenn neue Sachen
   // drin liegen"). „Neu" heisst: seit dem letzten Blick dazugekommen. Der Zeitpunkt liegt im
   // Gerät, nicht auf dem Server — es geht um SEINEN letzten Blick, nicht um den von irgendwem.
@@ -203,10 +212,12 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
   }, []);
 
   const suchWort = suche.trim().toLowerCase();
-  const sichtbar = suchWort
-    ? rows.filter(e => [e.email, e.theme, e.modelName, e.id, e.device]
-        .some(v => String(v ?? "").toLowerCase().includes(suchWort)))
-    : rows;
+  const mailWort = emailFilter.trim().toLowerCase();
+  const sichtbar = rows
+    .filter(e => !suchWort || [e.email, e.theme, e.modelName, e.id, e.device]
+      .some(v => String(v ?? "").toLowerCase().includes(suchWort)))
+    .filter(e => !nurOhneEmail || !e.email)
+    .filter(e => !mailWort || String(e.email ?? "").toLowerCase().includes(mailWort));
 
   const entfernen = async (id: string) => {
     // Zwei Tipps statt window.confirm — der Dialog erscheint auf dem Handy nicht.
@@ -223,6 +234,38 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
       if (!r.ok) setRows(vorher);
     } catch { setRows(vorher); }
     finally { setBusy(""); }
+  };
+
+  const umschalten = (id: string) => setMarkiert(m => {
+    const n = new Set(m);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+
+  const alleUmschalten = () => setMarkiert(m =>
+    sichtbar.every(e => m.has(e.id)) ? new Set() : new Set(sichtbar.map(e => e.id)));
+
+  const markierteLoeschen = async () => {
+    if (markiert.size === 0) return;
+    // Derselbe zwei-Tipp-Schutz wie beim einzelnen Papierkorb — nur einmal fuer den Schwung.
+    if (!armAlle) { setArmAlle(true); setTimeout(() => setArmAlle(false), 4000); return; }
+    setArmAlle(false); setBusyAlle(true);
+    const ids = Array.from(markiert);
+    const vorher = rows;
+    setRows(r => r.filter(x => !markiert.has(x.id)));
+    try {
+      const antworten = await Promise.all(ids.map(id => fetch("/api/kiss-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin },
+        body: JSON.stringify({ remove: id }),
+      }).then(r => r.ok).catch(() => false)));
+      const fehlgeschlagen = ids.filter((_, i) => !antworten[i]);
+      if (fehlgeschlagen.length > 0) {
+        const behalten = new Set(fehlgeschlagen);
+        setRows(vorher.filter(x => !markiert.has(x.id) || behalten.has(x.id)));
+      }
+    } catch { setRows(vorher); }
+    finally { setMarkiert(new Set()); setBusyAlle(false); }
   };
 
   if (!isAdmin) return null;
@@ -274,6 +317,38 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
         unterwegs abgesprungen.
       </p>
 
+      {/* MARKIEREN + FILTERN (Owner 01.09.2026: „ich will sie selber markieren und löschen
+          und ich will filtern nach email und nach ohne email"). Eine Zeile fuer beides, weil
+          beides denselben Zweck hat: die Liste vor dem Loeschen kleiner machen. */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <input value={emailFilter} onChange={e => setEmailFilter(e.target.value)}
+          placeholder="Nach E-Mail filtern…"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-black/10 px-2.5 text-[12px] font-bold outline-none placeholder:text-black/30" />
+        <button type="button" onClick={() => setNurOhneEmail(v => !v)}
+          className={`h-9 shrink-0 rounded-lg px-2.5 text-[11px] font-black transition ${
+            nurOhneEmail ? "bg-black text-white" : "bg-black/[0.06] text-black/60"
+          }`}>
+          nur ohne E-Mail
+        </button>
+        {sichtbar.length > 0 && (
+          <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-black/[0.06] px-2.5 text-[11px] font-black text-black/60">
+            <input type="checkbox" checked={sichtbar.every(e => markiert.has(e.id))}
+              onChange={alleUmschalten} className="h-3.5 w-3.5" />
+            alle markieren
+          </label>
+        )}
+        {markiert.size > 0 && (
+          <button type="button" onClick={() => void markierteLoeschen()} disabled={busyAlle}
+            style={armAlle ? { background: "#dc2626", color: "#fff" } : undefined}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-500 transition active:scale-95">
+            {busyAlle
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Trash2 className="h-3.5 w-3.5" />}
+            {armAlle ? "Wirklich löschen?" : `${markiert.size} markierte löschen`}
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <div className="grid py-10 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-black/30" /></div>
       ) : sichtbar.length === 0 ? (
@@ -288,6 +363,8 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   `flex-wrap` laesst die Marken in die zweite Zeile fallen, `basis-full`
                   gibt der Adresse auf schmalen Schirmen die ganze Breite. */}
               <div className="flex flex-wrap items-start gap-2">
+                <input type="checkbox" checked={markiert.has(e.id)} onChange={() => umschalten(e.id)}
+                  aria-label="Markieren" className="mt-1 h-4 w-4 shrink-0" />
                 <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
                   <p className="truncate text-[13px] font-black text-black">
                     {e.email || <span className="text-black/40">ohne E-Mail</span>}

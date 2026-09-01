@@ -42,7 +42,7 @@ export default async function YourIdolPage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav subtitle="Your Idol" />
+      <TopNav subtitle="Your Idol" heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}
 

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Lang } from "@/lib/lang";
 import TopNav from "@/components/TopNav";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
@@ -31,7 +32,7 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
  * eigenen Markup (Preserve first — sie sind live und getestet); sie ziehen rollierend um,
  * wie bei der CI-Bibliothek (Memory `ci-bibliothek`). Erster Nutzer: /themes/tryon.
  */
-export default function LandingSeite({ hell = false, trackEvent, trackId = "", trackName = "", marke, heim, motto, lang, kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
+export default function LandingSeite({ hell = false, trackEvent, trackId = "", trackName = "", marke, heim, motto, sprachen, lang, kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
   /** Die helle Anzeigen-Fassung (`?light=1`) — dasselbe Muster wie überall (`lb-theme lb-fb`). */
   hell?: boolean;
   /** Insights-Ereignis der Seite (TrackView) — ohne `trackEvent` wird nicht gezählt. */
@@ -47,6 +48,10 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
   marke?: string;
   heim?: string;
   motto?: string;
+  /** Eingeschränkte Sprachliste im Umschalter, z. B. `["en","de"]` ohne Rumänisch (Owner
+      01.09.2026: „rumänisch raus als sprache bei diesen topics") — durchgereicht an
+      `TopNav`. Ohne diese Prop bleibt es bei allen Haus-Sprachen (`lib/lang.ts`). */
+  sprachen?: boolean | Lang[];
   /** Die Sprache der Seite — reicht nur bis zum Fuss (dessen Rechtslinks sonst englisch
       bleiben). Ohne sie ändert sich nichts am bisherigen Verhalten. */
   lang?: string;
@@ -66,7 +71,7 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
 }) {
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav {...(marke ? { marke } : {})} {...(heim ? { heim } : {})} {...(motto ? { motto } : {})} />
+      <TopNav {...(marke ? { marke } : {})} {...(heim ? { heim } : {})} {...(motto ? { motto } : {})} {...(sprachen !== undefined ? { sprachen } : {})} />
       {trackEvent && <TrackView event={trackEvent} lookId={trackId} lookName={trackName} />}
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {kicker && <Kicker>{kicker}</Kicker>}

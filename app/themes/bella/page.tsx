@@ -80,7 +80,7 @@ export default async function BellaThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       {/* Diese Seite empfängt bezahlten Anzeigenverkehr — sie MUSS messbar sein.
           `utm_source` und die Geräte-Kennung reisen über logFunnelEvent mit. */}
       <TrackView event="bella_hub" lookId="themes-bella" lookName="Bella-Thema" />

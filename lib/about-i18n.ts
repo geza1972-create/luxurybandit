@@ -77,7 +77,7 @@ const de: AboutText = {
   kicker: "Über LuxuryBandit",
   h1a: "Software, Portale und Verkaufsstrecken — ", h1y: "gebaut, nicht präsentiert.",
   portalKurz: "Wir bauen Software, Portale und Verkaufsstrecken, die verkaufen — von der Meta-Anzeige bis zum Kauf. Alles auf dieser Seite ist unser eigenes, live im Einsatz: Landingpage, KI-Video, Kasse und Lieferung, in drei Sprachen. Teste es — und wenn du so etwas für dein Geschäft willst, schreib uns.",
-  portalLang: "LuxuryBandit baut aus einem Guss: die Software, das Portal, die Anzeige, die Landingpage, den geführten Kaufweg, die Kasse, die automatische Lieferung — ein Weg, drei Sprachen. Jede Kachel auf dieser Seite ist so ein Trichter, live im Einsatz: Ein Besucher kommt aus einer Meta-Anzeige, sieht ein Beispiel, gibt seine Angaben, zahlt und bekommt sein Ergebnis geliefert — ohne dass jemand von uns eingreift. Genau so etwas bauen wir auch für dein Produkt.",
+  portalLang: "Wir entwickeln individuelle Marketing-Systeme für Unternehmen – schlank, KI-gestützt und mit professionellen Technologien. Ideen, Zielgruppen und Angebote werden früh getestet, bevor größere Budgets eingesetzt werden.",
 
   introLead: "LuxuryBandit baut digitale Produkte, die fertig laufen — keine Werkzeuge, mit denen du danach allein bist.",
   introListe: [

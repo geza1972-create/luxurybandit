@@ -45,7 +45,7 @@ export default async function SurpriseThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav marke="LB - Surprise" heim="/themes/surprise" motto="AI Surprise Videos" />
+      <TopNav marke="LB - Surprise" heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="surprise_view" lookId="themes-surprise" lookName="Surprise-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>

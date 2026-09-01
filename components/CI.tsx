@@ -8,6 +8,7 @@ import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TonKnopf from "@/components/TonKnopf";
 import EinladungKarte from "@/components/EinladungKarte";
+import { useMusikFuer } from "@/lib/musik";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import { zweifarbig } from "@/components/Landing";
 import KartenKarussell from "@/components/KartenKarussell";
@@ -727,9 +728,26 @@ export function Auffalten({ titel, zeile, mehrLabel, marke, startOffen = false, 
   );
 }
 
-export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", titel, features, zu }: {
+export function VorlagenUeberlagerung({ videoUrl, posterUrl, thema, sprache = "en", titel, features, zu }: {
   videoUrl: string;
   posterUrl?: string;
+  /**
+   * DIE SOUNDPOOL-MUSIK, ALLGEMEIN FUER ALLE (Owner 01.09.2026: „kiss videos haben auch
+   * keinen sound nicht ein mal aus unser soundpool" · „in den cards" · „das gilt bei allen
+   * topic seiten" · „das ist nicht konsequent. Wir brauchen unser soundgalerie allgemein
+   * für alle").
+   *
+   * Diese Vorlagen-Clips (Kiss-Szenen, Hochzeits-/Versprechen-Beispiele, Poledance-Sets, …)
+   * sind acht Sekunden stumm gedreht — der `TonKnopf` unten schaltete bisher nur eine nicht
+   * vorhandene Tonspur im Video selbst um, hörbar war also nie etwas, unabhängig vom Thema.
+   * Jetzt zieht die Karte SELBST ihr Stück aus `lib/musik.ts` (`useMusikFuer`), genau wie
+   * jede andere Karte im Haus — kein Aufrufer kann es mehr vergessen. `thema` ist der
+   * Schlüssel aus `NACH_THEMA` (kiss/wedding/versprechen/poledance/…); fehlt er, gilt das
+   * ruhige Standardstück. Themen mit ABSICHTLICHER Stille (Geburtstag, Lebenslauf — dort
+   * ist die Original-Stimme das Produkt) bleiben stumm, weil ihre Liste in `lib/musik.ts`
+   * selbst `[""]` ist — das steuert `thema`, nicht diese Komponente.
+   */
+  thema?: string;
   sprache?: string;
   titel?: string;
   /**
@@ -791,6 +809,14 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [ton, setTon] = useState(true);
+  const musikSrc = useMusikFuer(thema, videoUrl);
+  const musikRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    const a = musikRef.current;
+    if (!a || !musikSrc) return;
+    if (ton) a.play().catch(() => { /* Autoplay ohne Geste abgelehnt — TonKnopf zeigt weiter „an", ein zweiter Tipp startet ihn. */ });
+    else a.pause();
+  }, [ton, musikSrc]);
   return (
     /* Aussen: nur der Rahmen am Fenster und der Wisch-Horcher — OHNE transform, damit die
        fixe Schliessen-Scheibe wirklich am Fenster klebt (`fixed` innerhalb eines
@@ -833,7 +859,10 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, sprache = "en", tit
                * Jetzt derselbe gehärtete Baustein wie überall sonst im Haus.
                */
               <div className="relative aspect-[3/4] w-full overflow-hidden">
-                <SchleifenVideo src={videoUrl} poster={posterUrl} stumm={!ton} passform="cover" />
+                {/* Das VIDEO bleibt stumm (es hat ohnehin keine Tonspur) — die Tonspur ist
+                    die eigene Soundpool-Musik daneben, wie auf jeder anderen Karte. */}
+                <SchleifenVideo src={videoUrl} poster={posterUrl} stumm passform="cover" />
+                {musikSrc && <audio ref={musikRef} src={musikSrc} loop preload="none" />}
                 {/* TON WIE UEBERALL — derselbe Platz wie auf jeder Karte (Skill `card`). */}
                 <TonKnopf an={ton} onClick={() => setTon(t => !t)} platz="absolute right-3 top-3 z-10" />
               </div>
@@ -2894,7 +2923,7 @@ export function AnmeldeEinladung({
  * HTML kein zweites `<button>` (die Vergroessern-Scheibe) enthalten, der Browser wuerde es
  * stillschweigend herausbrechen und der Tipp landete an der falschen Stelle.
  */
-function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprache, titel, features, waehle }: {
+function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprache, titel, thema, features, waehle }: {
   b: { id: string; name: string; bild: string; video?: string; poster?: string };
   an: boolean;
   gross: boolean;
@@ -2904,6 +2933,8 @@ function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprac
   /** Sprache/Titel der Karte im Vollbild (Owner 12.08.2026, siehe `VorlagenUeberlagerung`). */
   sprache?: string;
   titel?: string;
+  /** Durchgereicht an `VorlagenUeberlagerung` — der Soundpool-Schlüssel (Owner 01.09.2026). */
+  thema?: string;
   /** Durchgereicht an `VorlagenUeberlagerung` (Owner-Zusatzauftrag 12.08.2026). */
   features?: ReactNode;
   waehle: () => void;
@@ -2973,13 +3004,13 @@ function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprac
         </span>
       </div>
       {offen && (b.video
-        ? <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />
+        ? <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} thema={thema} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />
         : <BlattUeberlagerung bildUrl={b.bild} beschriftung={b.name} schliessenLabel={label} zu={() => setOffen(false)} />)}
     </>
   );
 }
 
-export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, vergroessern = false, randlos = false, ansehenLabel, sprache, titel, features, className = "" }: {
+export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, vergroessern = false, randlos = false, ansehenLabel, sprache, titel, thema, features, className = "" }: {
   bilder: { id: string; name: string; bild: string; video?: string; poster?: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
@@ -3043,6 +3074,11 @@ export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, v
    */
   sprache?: string;
   titel?: string;
+  /** Der Soundpool-Schlüssel aus `lib/musik.ts` (kiss/wedding/versprechen/poledance/…) für
+   *  die Musik im Vollbild (Owner 01.09.2026: „soundgalerie allgemein für alle"). Ohne
+   *  `thema` spielt das ruhige Standardstück — echte Stille gibt es nur, wenn die Liste des
+   *  Themas selbst leer ist (Geburtstag, Lebenslauf). */
+  thema?: string;
   /** Durchgereicht an jede Kachel MIT Video (Owner-Zusatzauftrag 12.08.2026, siehe
    *  `VorlagenUeberlagerung`). Kacheln ohne `video` haben ohnehin kein Vollbild. */
   features?: ReactNode;
@@ -3083,7 +3119,7 @@ export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, v
         if (b.video || vergroessern) {
           return (
             <BildWahlKachel key={b.id} b={b} an={an} gross={gross} blatt={blatt} vergroessern={vergroessern} ansehenLabel={ansehenLabel}
-              sprache={sprache} titel={titel} features={features} waehle={() => waehle(b.id)} />
+              sprache={sprache} titel={titel} thema={thema} features={features} waehle={() => waehle(b.id)} />
           );
         }
         return (

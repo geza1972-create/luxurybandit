@@ -120,7 +120,7 @@ export default async function HolidayThemePage({ searchParams }: {
      * die helle Anzeigen-Fassung, der Schalter im Balken überstimmt beides.
      */
     <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
-      <TopNav />
+      <TopNav heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="holiday_view" lookId="themes-holiday" lookName="Urlaubs-Einladung" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {/* Oben genau drei Zeilen (Kicker, H1, ein Satz) — alle Absätze stehen unter der

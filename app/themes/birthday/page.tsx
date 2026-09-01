@@ -46,7 +46,7 @@ export default async function BirthdayThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav marke="LB - Birthday" heim="/themes/birthday" motto="AI Birthday Videos" />
+      <TopNav marke="LB - Birthday" heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="birthday_view" lookId="themes-birthday" lookName="Geburtstags-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         <H1>{T.heroA}<Y>{T.heroY}</Y>{T.heroB}</H1>

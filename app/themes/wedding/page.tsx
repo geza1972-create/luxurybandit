@@ -141,7 +141,7 @@ export default async function WeddingThemePage({ searchParams }: {
      * im Balken überstimmt beides und merkt sich die Wahl.
      */
     <main className={`lb-bg min-h-screen text-white${String(sp.light ?? "") === "1" ? " lb-theme lb-fb" : ""}`}>
-      <TopNav marke="LB - Wedding" heim="/themes/wedding" motto="AI Wedding Videos" />
+      <TopNav marke="LB - Wedding" heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="wedding_view" lookId="themes-wedding" lookName="Hochzeits-Thema" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {showAdmin && <ManageViewToggle view={view} />}

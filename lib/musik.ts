@@ -64,6 +64,12 @@ const NACH_THEMA: Record<string, readonly string[]> = {
   holiday: [STUECKE.sommer, STUECKE.wasser, STUECKE.offen],
   bella: [STUECKE.sommer, STUECKE.wasser, STUECKE.offen],
   idol: [STUECKE.weite, STUECKE.offen, STUECKE.sommer],
+  /* Anprobe/Fashion — treibend, ein Laufsteg-Takt statt Stille unter den Vorlagen-Clips
+     (Owner 01.09.2026: „tryons auch unsere sounds"). */
+  tryon: [STUECKE.sommer, STUECKE.offen, STUECKE.weite],
+  /* Lingerie bekommt dieselbe Stimmung wie der Kuss — intim, kein Pop-Beat, das waere unter
+     diesen Motiven ein Werbespot statt eine Karte. */
+  lingerie: [STUECKE.fruehling, STUECKE.ruhe, STUECKE.offen],
   /**
    * DER GEBURTSTAG HAT KEINE MUSIK (Owner 08.08.2026: „wenn ich das video öffne, startet
    * die musik statt die original stimme" — und schon am 03.08.: „es muss die originale

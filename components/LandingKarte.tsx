@@ -1,12 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import KartenKarussell from "@/components/KartenKarussell";
 import TeilenKnopf from "@/components/TeilenKnopf";
 import { MadeBy, Knopf } from "@/components/CI";
 import { kissText } from "@/lib/kiss-i18n";
+import { musikFuer } from "@/lib/musik";
 
 /**
  * DIE EINE LANDING-KARTE (Owner 13.08.2026, nach dem Vergleich Chat gegen Geburtstag:
@@ -26,10 +27,20 @@ import { kissText } from "@/lib/kiss-i18n";
  *     Hochzeit — `preisZeile`, gefüllt aus der Preistabelle)
  *   · „made by luxurybandit.com" als Fuss
  */
-export default function LandingKarte({ sprache, titel, folien, href, aufruf: aufrufEigen, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, fuss }: {
+export default function LandingKarte({ sprache, titel, folien, href, aufruf: aufrufEigen, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, thema, fuss }: {
   sprache: string;
   titel: string;
   folien: { video: string; poster?: string }[];
+  /**
+   * DER SOUNDPOOL, AUCH HIER (Owner 01.09.2026: „tryons auch unsere sounds" — nachdem die
+   * Lingerie-Karte stumm blieb: `originalton` spielte die Tonspur des VIDEOS ab, und die
+   * Vorlagen-Clips (public/Tryon, hochgeladene Lingerie-Beispiele) haben meist keine
+   * eigene). Mit `thema` (der Schlüssel aus `NACH_THEMA`, z. B. "tryon"/"kiss") zieht jede
+   * Folie ihr eigenes Stück aus `lib/musik.ts` statt der stummen Video-Spur. Ohne `thema`
+   * bleibt das alte Verhalten (Originalton der Datei) — kein bestehender Aufrufer ändert
+   * sich ohne Auftrag dazu.
+   */
+  thema?: string;
   /** Wohin der `Jetzt starten`-Knopf führt — die Tunnel-Adresse des Produkts. OHNE href
       bleibt die Karte reine Schau (Tunnel-Schritt 3: der Kaufknopf steht dort schon). */
   href?: string;
@@ -58,14 +69,24 @@ export default function LandingKarte({ sprache, titel, folien, href, aufruf: auf
      Basis-Sprachtabelle, dieselbe Quelle wie die Geburtstags-Karte (`T.jetztStarten`). */
   const aufruf = aufrufEigen || kissText(sprache, "kiss").jetztStarten;
   if (folien.length === 0) return null;
+  /**
+   * NUR DIE VORDERE FOLIE SPIELT TON (Owner 01.09.2026: „der sound ist mega schlecht bei
+   * tryon und startet erst mal ein anderer") — `tonAutomatisch` lief bisher auf JEDER
+   * Folie gleichzeitig los, nicht nur der sichtbaren: bei mehreren Clips im Karussell
+   * starteten mehrere Tonspuren gleichzeitig, und man hörte, welche zuerst geladen war,
+   * nicht die vordere. `onAktiv` von `KartenKarussell` sagt, welche Folie gerade vorn
+   * steht — nur sie bekommt `tonAutomatisch`.
+   */
+  const [vorn, setVorn] = useState(0);
 
   return (
     <div className="mt-4">
       <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
         video={<>
-          <KartenKarussell folien={folien.map((f, i) => (
+          <KartenKarussell onAktiv={setVorn} folien={folien.map((f, i) => (
             <EinladungAnsicht key={i} id={`landing-${i}`} videoUrl={f.video} poster={f.poster || undefined}
-              zaehlen={false} schleife={false} originalton musik=""
+              zaehlen={false} schleife={false}
+              {...(thema ? { musik: musikFuer(thema, f.video), tonAutomatisch: i === vorn } : { originalton: true, musik: "" })}
               {...(verhaeltnis ? { verhaeltnis } : {})}
               {...(ausrichtung ? { ausrichtung } : {})}
               tonText={K.ton} tonAusText={K.tonAus}

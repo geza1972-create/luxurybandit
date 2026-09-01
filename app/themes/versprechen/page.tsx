@@ -87,7 +87,7 @@ export default async function VersprechenThemePage({ searchParams }: {
 
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav marke="LB - Future me" heim="/themes/versprechen" motto="Future Self Program" />
+      <TopNav marke="LB - Future me" heim="/media-kit" motto="The Media Creator" sprachen={["en", "de"]} />
       <TrackView event="versprechen_view" lookId="themes-versprechen" lookName="Versprechen-Thema" />
       {/* Seitenkopf-Template: pt-3, H1 aus der Bibliothek, direkt die Karte (Landingpage.md §9). */}
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">

@@ -62,6 +62,7 @@ export default async function TryonThemePage({ searchParams }: {
 
   return (
     <LandingSeite hell={hell} trackEvent="tryon_theme_view" trackId="themes-tryon" trackName="Try-on-Thema"
+      motto="The Media Creator" heim="/media-kit" sprachen={["en", "de"]}
       kicker={S.kicker} heroA={S.h1a} heroY={S.h1y} heroB="."
       kinder={<>
         {/* DIE KARTE — der wichtigste Baustein der Landingpage (Owner 13.08.2026, mit Bild
@@ -69,7 +70,7 @@ export default async function TryonThemePage({ searchParams }: {
             bitte"): Creme-Hülle, Titel oben, Video-Karussell mit Punkten, CTA IM Karten-
             Inneren, made-by unten. Seine acht Ordner-Videos sind die Folien. */}
         {slides.length > 0 && (
-          <LandingKarte sprache={L} titel={S.kicker} href={startHref}
+          <LandingKarte sprache={L} titel={S.kicker} href={startHref} thema="tryon"
             teilenUrl="/themes/tryon?utm_source=share" teilenText={S.kicker}
             preisZeile={ctaMitPreis}
             folien={slides.map(v => ({ video: v.video, poster: v.bild }))} />

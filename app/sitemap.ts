@@ -45,6 +45,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      */
     { url: `${BASE}/themes/gutschein`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/themes/kiss`, changeFrequency: "weekly", priority: 0.9 },
+    /* TRY-ON UND LINGERIE FEHLTEN HIER GANZ (01.09.2026, Owner: „die müssen alle auch
+       indexiert werden von google") — beide Seiten sind live, indexierbar (kein
+       `noindex`) und über `/media-kit` verlinkt, standen aber nie in der Sitemap. */
+    { url: `${BASE}/themes/tryon`, changeFrequency: "weekly", priority: 0.85 },
+    { url: `${BASE}/themes/lingerie`, changeFrequency: "weekly", priority: 0.85 },
     { url: `${BASE}/themes/wedding`, changeFrequency: "weekly", priority: 0.9 },
     /* DIE VIDEO-BEWERBUNG (Owner 24.08.2026: „nimmst du auch Bewerbung auf die Topicseite")
        — eigene Verkaufsseite mit eigenem Suchanlass („video application", „video cv"). */
@@ -54,15 +59,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
        (bleibt `noindex`) sind diese Seiten der Suchanlass, nicht der Zwischenschritt. */
     ...alleZielgruppenSlugs().map(slug => ({ url: `${BASE}/topics/${slug}`, changeFrequency: "weekly" as const, priority: 0.85 })),
     { url: `${BASE}/themes/birthday`, changeFrequency: "weekly", priority: 0.8 },
-    /* `/themes/surprise` (Pole Dance) IST RAUS (Owner 11.08.2026: „ich denke, wir müssen
-       pool dancing raus machen weil das unseriös wirkt für das portal" — und weiter: „intern
-       nach anmeldung kann man das anbieten aber nicht in der topic"). Die Seite und ihr
-       Kaufweg bleiben im Code, nur beworben wird sie nicht mehr — siehe app/themes/page.tsx
-       und components/CI.tsx (THEMEN_KREISE). */
-    /* `/themes/holiday` UND `/themes/chat` SIND RAUS (Owner 24.08.2026: „entferne
-       Pooldancing und Chat aus der Topic" · „auch hollyday weg" · „Wir sind jetzt ein
-       seriöses Portal"). Dieselbe Rausnahme wie beim Pole Dance: Seiten und Kaufwege
-       bleiben erreichbar, beworben und gemeldet wird nichts mehr. */
+    /* `/themes/surprise`, `/themes/holiday` UND `/themes/chat` WAREN RAUS (Owner 11.08. und
+       24.08.2026: „Wir sind jetzt ein seriöses Portal" — nicht mehr an Endkunden beworben).
+       Seit 01.09.2026 laufen sie über `/media-kit` an Agenturen, ein eigener, separater
+       B2B-Kontext — die alte Consumer-Begründung greift dort nicht. Owner-Entscheidung
+       01.09.2026: „ja, alle drei auch rein". */
+    { url: `${BASE}/themes/surprise`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${BASE}/themes/holiday`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${BASE}/themes/chat`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE}/themes/versprechen`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/themes/bella`, changeFrequency: "weekly", priority: 0.6 },
     /* `/models-wanted` ist raus (Owner 05.08.2026: „die gibt es nicht mehr, nur fuer den

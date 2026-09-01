@@ -40,7 +40,7 @@ import { kontoText } from "@/lib/konto-i18n";
  * Umbenennen waere Laerm ohne Gewinn in genau der Datei, die ohnehin zu gross ist.
  */
 import { GESCHENKE as VARIANTS, KISS_PROMPT, PLACEHOLDER_MAN, type GeschenkId as FunnelVariant } from "@/lib/geschenke";
-import { useMusikFuer } from "@/lib/musik";
+import { useMusikFuer, musikFuer } from "@/lib/musik";
 import { kissText, type KissText } from "@/lib/kiss-i18n";
 import { kussSzeneVideoPrompt, zufallsSzene, kussSzene, KUSS_SZENEN, kussBewegung } from "@/lib/kuss-szenen";
 import { POLEDANCE_PROMPT, POLEDANCE_SETS, POLEDANCE_REFERENZEN, poledancePromptFuerSet } from "@/lib/poledance";
@@ -4840,7 +4840,19 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                   nie schwarzes Bild) — kein zweiter Bauplan fuer dasselbe Verhalten. */}
               <KartenKarussell onAktiv={setBeispielVorn} folien={beispiele.map((url, i) => (
               <div key={i} className="relative">
-                <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false} musik=""
+                <EinladungAnsicht id="" videoUrl={url} poster={posterZu(url)} zaehlen={false}
+                  {...(musikFuer(variant, url)
+                    ? { musik: musikFuer(variant, url), tonAutomatisch: true }
+                    /* GEBURTSTAG (und jedes andere Thema ohne Soundpool-Stueck, siehe
+                       `lib/musik.ts`): die Original-Stimme des Beispiels ist das Produkt —
+                       `originalton` spielt SIE, statt stumm zu bleiben (Owner 01.09.2026:
+                       „die haben auch kein sound, aber hier die originalsounds"). */
+                    /* UND NUR EINMAL, NICHT IN SCHLEIFE (Owner 01.09.2026: „die müssen nur
+                       ein mal ablaufen in Geburtstag") — eine gesprochene Botschaft, die
+                       nach acht Sekunden wieder von vorn anfängt, klingt wie ein Fehler,
+                       keine Stimmung. Die Soundpool-Musik darüber loopt weiter wie überall
+                       im Haus (`schleife` bleibt dort beim Vorgabewert `true`). */
+                    : { originalton: true, schleife: false })}
                   verhaeltnis={karteVerhaeltnis || "aspect-[3/4]"}
                   grossText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).gross || "Vergrössern"}
                   kleinText={(KARTE_TEXTE[lang] ?? KARTE_TEXTE.en).klein || "Verkleinern"}
@@ -5155,7 +5167,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
               * `garmentBild` ist der Ruckfall auf das erste Set.
               */}
             {variant === "poledance" ? (
-              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} thema={variant}
                 wert={POLEDANCE_SETS.find(s => s.bild === (neuerLook || V.garmentBild))?.id ?? POLEDANCE_SETS[0].id}
                 waehle={id => {
                   const bild = POLEDANCE_SETS.find(s => s.id === id)?.bild || "";
@@ -5187,11 +5199,11 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                 * UND DER NAME IN SEINER SPRACHE (derselbe Auftrag: „und es ist auf deutsch") —
                 * `s.name` ist der deutsche Admin-Name, gezeigt wird `s.namen[lang]`.
                 */
-              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel}
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} thema={variant}
                 wert={kissSzeneId} waehle={id => { setKissSzeneId(id); onVorlage?.(id); }}
                 bilder={KUSS_SZENEN.filter(s => !s.versteckt).map(s => ({ id: s.id, name: s.namen?.[lang] ?? s.name, bild: s.kachel, video: s.clip }))} />
             ) : (
-              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look}
+              <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} thema={variant}
                 waehle={id => { setLook(id); onVorlage?.(id); }}
                 /* DIE PROGRAMM-KARTE NUR BEIM VERSPRECHEN (Owner-Zusatzauftrag 12.08.2026:
                    „wenn wir eins haben") — der Geburtstag hat keine, bekommt also nichts. */
@@ -5597,7 +5609,7 @@ export default function KissFunnel({ variant = "kiss", code = "", lang = "en", b
                       `justify-center` mehr: Eine Wisch-Fläche, die zentriert, schneidet
                       links an, sobald die Slides breiter sind als der Schirm. */}
                   {LOOKS.length > 1 ? (
-                    <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook}
+                    <BildWahl gross ansehenLabel={T.vorlageAnsehen} sprache={lang} titel={vorlagenTitel} wert={look} waehle={setLook} thema={variant}
                       bilder={variant === "birthday" ? GEBURTSTAG_LOOKS_MIT_VIDEO : LOOKS.map(l => ({ ...l, name: l.namen?.[lang] ?? l.name, video: beispiele[0] || undefined }))} />
                   ) : (
                     <div className="flex justify-center py-1.5">
