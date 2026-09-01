@@ -141,6 +141,50 @@ export default function JoburiLeads({ pin }: { pin: string }) {
               {l.berufsfeld ? FELD[l.berufsfeld as keyof typeof FELD] ?? l.berufsfeld : "—"}
               {l.rueckkehr ? ` · Rückkehr: ${RUECK[l.rueckkehr]}` : ""}
             </p>
+            {/**
+              * WORÜBER SICH EINE RÜCKFRAGE LOHNT (Owner 31.08.2026: „Weniger Stress plus
+              * Bereitschaft zu Nachtschicht ist ein Widerspruch, den ein Recruiter sofort
+              * sieht … halte das Feld für Rückfragen offen").
+              *
+              * ES STEHT HIER ALS ANLASS UND NICHT ALS WARNUNG — der Unterschied ist wichtig.
+              * Nachtdienst in der Pflege ist regelmässig RUHIGER als Tagdienst: weniger
+              * Besucher, keine Visiten, keine Angehörigen. Dieselbe Person kann beides
+              * ehrlich ankreuzen. Ein rotes „Widerspruch" würde ihr etwas unterstellen, das
+              * sich in einem Satz aufklärt — und der Satz gehört ins Feld darunter.
+              */}
+            {(() => {
+              const wechselMotive = l.motive ?? l.faktoren ?? [];
+              const ruhe = wechselMotive.includes("less_stress") || wechselMotive.includes("flexibilitate");
+              const hart = (l.belastung ?? []).some(b => ["shifts", "standing", "physical"].includes(b));
+              if (!ruhe || !hart) return null;
+              return (
+                <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] font-bold text-amber-800">
+                  Nachfragen: sucht weniger Belastung und ist zugleich zu Schicht- oder
+                  körperlicher Arbeit bereit. Meist kein Widerspruch — aber ein Satz dazu macht
+                  das Profil belastbar.
+                </p>
+              );
+            })()}
+
+            {/* Was auf Nachfrage herauskommt. Nur für uns — nie in der Studie, nie zu einer
+                Firma. Gespeichert wird beim Verlassen des Feldes, nicht bei jedem Zeichen. */}
+            <textarea
+              defaultValue={l.notiz ?? ""}
+              placeholder="Notiz zur Rückfrage…"
+              onBlur={async e => {
+                const wert = e.target.value.trim();
+                if (wert === (l.notiz ?? "")) return;
+                try {
+                  await fetch("/api/joburi-lead", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+                    body: JSON.stringify({ schritt: "notiz", id: l.id, notiz: wert }),
+                  });
+                } catch { /* die Liste bleibt stehen; beim nächsten Laden zeigt sie den Stand */ }
+              }}
+              className="mt-1.5 min-h-[38px] w-full rounded-lg border border-black/12 bg-black/[0.02] px-2.5 py-1.5 text-[12.5px] font-medium text-ink/80 outline-none placeholder:text-ink/30"
+            />
+
             {!!l.faktoren?.length && (
               <p className="mt-0.5 text-[12.5px] font-bold text-ink/55">
                 Wichtig: {l.faktoren.map(x => FAKTOR[x] ?? x).join(" · ")}

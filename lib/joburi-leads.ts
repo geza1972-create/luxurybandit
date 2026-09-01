@@ -76,6 +76,17 @@ export type JoburiLead = {
   /** Schicht, Stehen, körperliche Arbeit — Belastbarkeit, ausdrücklich NICHT Gesundheit.
       Freiwillig: eine leere Liste heisst „nichts davon" und ist eine gültige Antwort. */
   belastung?: string[];
+  /**
+   * PLATZ FÜR RÜCKFRAGEN (Owner 31.08.2026: „halte das Feld für Rückfragen offen — sonst
+   * wirkt das Profil unglaubwürdig").
+   *
+   * Manche Antwortpaare sehen für einen Recruiter erklärungsbedürftig aus — „weniger Stress"
+   * neben „Nachtschicht" etwa. Sie sind es meist NICHT: Nachtdienst in der Pflege ist
+   * regelmässig ruhiger als Tagdienst, weniger Besucher, keine Visiten. Genau deshalb steht
+   * hier ein offenes Feld statt einer Warnung — was der Kandidat auf Nachfrage sagt, gehört
+   * ins Profil, nicht ein Verdacht, den wir ihm unterstellen.
+   */
+  notiz?: string;
   gespraech?: "yes" | "probably" | "maybe" | "not_now";
 
   /** Ein Probelauf (eigene Maschine oder Admin-Sitzung), kein Mensch. Bleibt gespeichert,

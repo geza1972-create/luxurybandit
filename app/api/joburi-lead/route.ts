@@ -151,6 +151,23 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const schritt = s(body.schritt, 20);
 
+  /**
+   * NOTIZ ZU EINEM KANDIDATEN — nur für uns, und nur mit Admin-Recht.
+   * Hier landet, was auf Rückfrage herauskommt. Sie gehört ausdrücklich NICHT in die Studie
+   * und nie zu einem Arbeitgeber: Es ist unsere Arbeitsnotiz, keine Eigenschaft der Person.
+   */
+  if (schritt === "notiz") {
+    if (!(await isAdminRequest(request))) {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+    const id = s(body.id, 60);
+    const alt = id ? await leseLead(id) : null;
+    if (!alt) return NextResponse.json({ error: "Kandidat nicht gefunden." }, { status: 404 });
+    const lead: JoburiLead = { ...alt, notiz: s(body.notiz, 600), aktualisiertAm: new Date().toISOString() };
+    if (!(await schreibeLead(lead))) return NextResponse.json({ error: "Speichern fehlgeschlagen." }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
   /* ── 1 · Die drei Klickfragen — noch ohne jede persönliche Angabe ── */
   if (schritt === "antworten") {
     const deutsch = s(body.deutsch, 2).toUpperCase();
