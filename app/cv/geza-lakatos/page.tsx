@@ -275,6 +275,14 @@ export default function GezaLakatosCvPage() {
                   Unternehmen helfen, passive Kandidat:innen für offene Stellen zu finden.{" "}
                   <a
                     style={{ color: "#E1592E" }}
+                    href="https://luxurybandit.com/admin/joburi/germana?lang=de&light=1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Live-Beispiel ansehen ↗
+                  </a>{" "}
+                  <a
+                    style={{ color: "#E1592E" }}
                     href="https://luxurybandit.com/admin/recruiting?light=1"
                     target="_blank"
                     rel="noopener noreferrer"
