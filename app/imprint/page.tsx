@@ -3,8 +3,9 @@ import TrackView from "@/components/TrackView";
 
 export const metadata = { title: "Imprint — LuxuryBandit" };
 
-// Provider details. Company registration is in progress — register number / VAT ID will be
-// added once incorporation is complete. Contact runs through the contact form (no public email).
+// Provider details. Owner operates as a freelancer (Romanian tax number RO49830040,
+// Owner 01.09.2026) — no separate company registration. Contact runs through the contact
+// form (no public email).
 export default function ImprintPage() {
   return (
     <InfoPage title="Imprint">
@@ -24,8 +25,8 @@ export default function ImprintPage() {
         <a href="/contact">contact form</a>. We respond to every message.
       </p>
 
-      <h2>Register &amp; VAT</h2>
-      <p>Company registration is in progress; the register number and VAT ID will be added here once incorporation is complete.</p>
+      <h2>Tax number</h2>
+      <p>RO49830040 (freelancer, Romania)</p>
     </InfoPage>
   );
 }
