@@ -9,6 +9,7 @@ import { Kicker, H1, SectionTitle, Lead, Fine, Y, zweifarbig } from "@/component
 import { Kasten, Knopf } from "@/components/CI";
 import RecruitingAnfrage from "@/components/RecruitingAnfrage";
 import { recruitingTexte, RECRUITING_SPRACHEN } from "@/lib/recruiting-i18n";
+import { studieZahlen } from "@/lib/joburi-studie";
 
 /**
  * DIE FIRMENSEITE (Owner 31.08.2026: „Wir wollen jetzt mit Firmenakquise anfangen. Ziel ist
@@ -119,8 +120,13 @@ const BalkenTitel = ({ children }: { children: string }) => (
  * DIESEN Baustein — sonst gäbe es die Seite zweimal, und die zweite wäre schon beim nächsten
  * Textwunsch veraltet.
  */
-export default function RecruitingSeite({ lang, imPfad = false }: { lang: string; imPfad?: boolean }) {
+export default async function RecruitingSeite({ lang, imPfad = false }: { lang: string; imPfad?: boolean }) {
   const T = recruitingTexte(lang);
+  /* Die Studie kommt vom Server und ist zwischengespeichert (lib/joburi-studie.ts) — sonst
+     holte jeder Seitenaufruf jede Antwort einzeln aus dem Speicher. Steht zu wenig zur
+     Verfügung, ist `belastbar` false und der ganze Abschnitt entfällt, statt dünne Zahlen
+     zu zeigen. */
+  const studie = await studieZahlen();
   const heim = imPfad ? `/recruiting/${lang}` : "/recruiting";
 
   const beispiel: [string, string][] = [
@@ -289,6 +295,75 @@ export default function RecruitingSeite({ lang, imPfad = false }: { lang: string
           <Knopf art="gold" href="#pilot">{T.ctaHaupt}</Knopf>
         </div>
       </Band>
+
+      {/* ── 4b · DIE STUDIE — der Beleg für den Abschnitt darüber ──
+          Sie steht bewusst HIER und nicht weiter unten: Direkt davor behaupten wir, auch
+          Passive zu erreichen. Eine Behauptung, der sofort die eigene Zahl folgt, liest sich
+          anders als eine, die zwei Abschnitte später vielleicht belegt wird.
+          KOSTEN, REICHWEITE UND EINZELNE PERSONEN STEHEN NICHT DRIN (siehe lib/joburi-studie.ts):
+          Wer erfährt, was uns eine Antwort kostet, zahlt dafür nie wieder einen Preis. */}
+      {studie.belastbar && (
+        <Band>
+          <BalkenTitel>{T.studieTitel}</BalkenTitel>
+          <Lead className="lg:max-w-[74ch] lg:text-[15px]">{T.studieText}</Lead>
+
+          {/* Die drei Geldzahlen zuerst — sie sind das, wonach als Erstes gefragt wird. */}
+          <div className="mt-6 grid grid-cols-2 gap-2.5 lg:mt-9 lg:grid-cols-3 lg:gap-5">
+            {([
+              [T.studieJetzt, studie.jetztMedian],
+              [T.studieWechsel, studie.wechselMedian],
+              [T.studieSprung, studie.sprungMedian],
+            ] as [string, number | null][]).filter(([, v]) => v !== null).map(([k, v]) => (
+              <Kasten key={k} polster="p-5 lg:p-6">
+                <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white/50">{k}</p>
+                <p className="mt-2 text-[30px] font-black leading-none tabular-nums text-[#f6cf51] lg:text-[38px]">
+                  {v!.toLocaleString("de-DE")} €
+                </p>
+                <p className="mt-1.5 text-[12px] font-medium text-white/45">{T.studieQuelle}</p>
+              </Kasten>
+            ))}
+          </div>
+
+          {/* Die Anteile — jede Liste entfällt, sobald zu wenig dahintersteht. */}
+          <div className="mt-2.5 grid grid-cols-1 gap-2.5 lg:mt-5 lg:grid-cols-2 lg:gap-5">
+            {([
+              [T.studieSuche, studie.suche, T.studieSuchen],
+              [T.studieDeutsch, studie.deutsch, T.studieNiveaus],
+              [T.studieBerufe, studie.berufe, T.studieFelder],
+              [T.studieAbschluss, studie.abschluss, T.studieAbschluesse],
+            ] as [string, { schluessel: string; prozent: number }[], Record<string, string>][])
+              .filter(([, liste]) => liste.length > 0)
+              .map(([titel, liste, namen]) => (
+                <Kasten key={titel} polster="p-5 lg:p-6">
+                  <p className="text-[12px] font-black uppercase tracking-[0.1em] text-white/50">{titel}</p>
+                  <div className="mt-3 flex flex-col gap-2.5">
+                    {liste.map(a => (
+                      <div key={a.schluessel} className="flex flex-col gap-1">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-[13.5px] font-bold text-white/85">{namen[a.schluessel] ?? a.schluessel}</span>
+                          <span className="shrink-0 text-[13.5px] font-black tabular-nums text-[#f6cf51]">{a.prozent} %</span>
+                        </div>
+                        {/* Der Balken sagt dasselbe wie die Zahl — aber er sagt es beim
+                            Überfliegen, und überflogen wird eine Verkaufsseite immer. */}
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/12">
+                          <div className="h-full rounded-full bg-[#f6cf51]" style={{ width: `${a.prozent}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Kasten>
+              ))}
+          </div>
+
+          {/* Die Fallzahl steht nur da, wenn sie für uns spricht — darunter wäre sie ein
+              Eigentor (siehe lib/joburi-studie.ts). */}
+          {studie.fallzahl !== null && (
+            <p className="mt-4 text-[12.5px] font-bold uppercase tracking-[0.1em] text-white/40">
+              {studie.fallzahl.toLocaleString("de-DE")} {T.studieFallzahl}
+            </p>
+          )}
+        </Band>
+      )}
 
       {/* ── 5 · WARUM LUXURYBANDIT — zentriert, ohne Balken, auf hellem Band ──
           Er steht hier und nicht oben (Owner: „Nicht im Hero platzieren und nicht wie eine

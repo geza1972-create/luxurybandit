@@ -64,6 +64,28 @@ export type RecruitingText = {
   unterschiedText: string;
   segmente: { titel: string; text: string }[];
 
+  /* DIE STUDIE (Owner 31.08.2026: „wir haben die Rekruterseite, wo ich diese statistik
+     präsentieren will"). Sie steht direkt hinter den drei Segmenten: Dort behaupten wir,
+     auch Passive zu erreichen — hier steht die Zahl, die es belegt. Aus einer Behauptung
+     wird ein Beweis, und zwar aus unseren eigenen Daten statt aus einer Quelle, die der
+     Kunde selbst googeln könnte. */
+  studieTitel: string;
+  studieText: string;
+  studieJetzt: string;
+  studieWechsel: string;
+  studieSprung: string;
+  studieDeutsch: string;
+  studieSuche: string;
+  studieBerufe: string;
+  studieAbschluss: string;
+  studieFallzahl: string;
+  studieQuelle: string;
+  /* Beschriftungen der Antworten — dieselben Schlüssel wie im Trichter. */
+  studieNiveaus: Record<string, string>;
+  studieSuchen: Record<string, string>;
+  studieFelder: Record<string, string>;
+  studieAbschluesse: Record<string, string>;
+
   /**
    * DER NAME (Owner 31.08.2026: „Der ungewöhnliche Name soll erklärt werden, ohne überhaupt
    * den Gedanken ‚unseriös' anzusprechen.").
@@ -132,6 +154,21 @@ const de: RecruitingText = {
     { titel: "Offen für Angebote", text: "Bewerben sich nicht aktiv, prüfen aber bessere Gelegenheiten." },
     { titel: "Passive Kandidaten", text: "Wechseln nur, wenn sich das Angebot wirklich lohnt." },
   ],
+  studieTitel: "Was unsere Kandidaten verlangen.",
+  studieText: "Laufend erhoben, direkt bei deutschsprachigen Fachkräften in Rumänien und der Diaspora — nicht aus Stellenanzeigen abgeleitet, sondern von den Menschen selbst beantwortet.",
+  studieJetzt: "Verdienen heute",
+  studieWechsel: "Wechseln ab",
+  studieSprung: "Nötiger Aufschlag",
+  studieDeutsch: "Deutschniveau",
+  studieSuche: "Suchverhalten",
+  studieBerufe: "Bereiche",
+  studieAbschluss: "Abschluss",
+  studieFallzahl: "Antworten",
+  studieQuelle: "Netto pro Monat · laufende Erhebung",
+  studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
+  studieSuchen: { aktiv: "Sucht aktiv", offen: "Offen für Angebote", passiv: "Wechselt nur für das Richtige" },
+  studieFelder: { suport: "Support / Kundenservice", it: "IT", finante: "Finanzen", logistica: "Logistik", inginerie: "Technik / Produktion", vanzari: "Vertrieb", sanatate: "Gesundheit / Pflege", altul: "Weitere" },
+  studieAbschluesse: { gimnaziu: "Mittelschule", liceu: "Abitur", profesionala: "Berufsausbildung", licenta: "Studium", master: "Master / Promotion" },
   warumTitel: "Warum LuxuryBandit?",
   warumLead: "Weil wir Chancen nicht nur verwalten, sondern aktiv suchen, was den Markt in Bewegung bringt.",
   warumText: "LuxuryBandit sucht die Menschen und die Signale, die klassische Kanäle übersehen: wer wechseln würde, zu welchen Bedingungen und für welche Art von Gelegenheit.",
@@ -192,6 +229,21 @@ const ro: RecruitingText = {
     { titel: "Deschiși la oferte", text: "Nu aplică activ, dar analizează oportunități mai bune." },
     { titel: "Candidați pasivi", text: "Ar schimba doar dacă oferta merită cu adevărat." },
   ],
+  studieTitel: "Ce cer candidații noștri.",
+  studieText: "Colectat continuu, direct de la specialiști vorbitori de germană din România și diasporă — nu dedus din anunțuri, ci răspuns de oamenii înșiși.",
+  studieJetzt: "Câștigă acum",
+  studieWechsel: "Ar schimba de la",
+  studieSprung: "Diferența necesară",
+  studieDeutsch: "Nivel de germană",
+  studieSuche: "Cum caută",
+  studieBerufe: "Domenii",
+  studieAbschluss: "Studii",
+  studieFallzahl: "Răspunsuri",
+  studieQuelle: "Net pe lună · colectare continuă",
+  studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
+  studieSuchen: { aktiv: "Caută activ", offen: "Deschis la oferte", passiv: "Schimbă doar pentru oferta potrivită" },
+  studieFelder: { suport: "Suport / clienți", it: "IT", finante: "Finanțe", logistica: "Logistică", inginerie: "Inginerie / producție", vanzari: "Vânzări", sanatate: "Sănătate / îngrijire", altul: "Alte domenii" },
+  studieAbschluesse: { gimnaziu: "Școală generală", liceu: "Liceu", profesionala: "Școală profesională", licenta: "Studii superioare", master: "Master / doctorat" },
   warumTitel: "De ce LuxuryBandit?",
   warumLead: "Pentru că nu administrăm doar oportunități, ci căutăm activ ce pune piața în mișcare.",
   warumText: "LuxuryBandit caută oamenii și semnalele pe care canalele clasice le ratează: cine ar schimba, în ce condiții și pentru ce tip de oportunitate.",
@@ -252,6 +304,21 @@ const en: RecruitingText = {
     { titel: "Open to offers", text: "Not applying actively, but weighing better opportunities." },
     { titel: "Passive candidates", text: "Would move only if the offer is genuinely worth it." },
   ],
+  studieTitel: "What our candidates ask for.",
+  studieText: "Collected continuously, straight from German-speaking professionals in Romania and the diaspora — not inferred from job ads, but answered by the people themselves.",
+  studieJetzt: "Earn today",
+  studieWechsel: "Would move from",
+  studieSprung: "Required raise",
+  studieDeutsch: "German level",
+  studieSuche: "Search behaviour",
+  studieBerufe: "Fields",
+  studieAbschluss: "Education",
+  studieFallzahl: "Responses",
+  studieQuelle: "Net per month · ongoing survey",
+  studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
+  studieSuchen: { aktiv: "Actively looking", offen: "Open to offers", passiv: "Moves only for the right role" },
+  studieFelder: { suport: "Support / customer service", it: "IT", finante: "Finance", logistica: "Logistics", inginerie: "Engineering / production", vanzari: "Sales", sanatate: "Healthcare", altul: "Other fields" },
+  studieAbschluesse: { gimnaziu: "Secondary school", liceu: "High school", profesionala: "Vocational training", licenta: "University degree", master: "Master's / doctorate" },
   warumTitel: "Why LuxuryBandit?",
   warumLead: "Because we don\u2019t just manage opportunities — we go out and find what moves the market.",
   warumText: "LuxuryBandit looks for the people and the signals classic channels miss: who would move, on what conditions, and for what kind of opportunity.",
