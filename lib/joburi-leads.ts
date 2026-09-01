@@ -73,6 +73,9 @@ export type JoburiLead = {
   /** yes · depends · no — die Frage, die aus einem Aufschlag von null eine Aussage macht. */
   gleichesGehalt?: "yes" | "depends" | "no";
   maerkte?: string[];
+  /** Schicht, Stehen, körperliche Arbeit — Belastbarkeit, ausdrücklich NICHT Gesundheit.
+      Freiwillig: eine leere Liste heisst „nichts davon" und ist eine gültige Antwort. */
+  belastung?: string[];
   gespraech?: "yes" | "probably" | "maybe" | "not_now";
 
   /** Ein Probelauf (eigene Maschine oder Admin-Sitzung), kein Mensch. Bleibt gespeichert,

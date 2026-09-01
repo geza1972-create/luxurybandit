@@ -62,6 +62,7 @@ const MOTIVE = ["salary", "employer", "management", "less_stress", "hours", "rem
                 "work_itself", "career", "culture", "security", "germany", "benefits", "other"];
 const MAERKTE = ["romania", "germany", "remote", "eu", "relocate_ro", "no_relocation"];
 const GESPRAECH = ["yes", "probably", "maybe", "not_now"];
+const BELASTUNG = ["shifts", "standing", "physical", "physical_experience"];
 const GLEICH = ["yes", "depends", "no"];
 const FAKTOREN = ["salariu", "remote", "flexibilitate", "cariera", "stabilitate", "echipa"];
 const RUECKKEHR = ["da", "poate", "nu"];
@@ -174,6 +175,9 @@ export async function POST(request: Request) {
     const motive = Array.isArray(body.motive)
       ? [...new Set(body.motive.map(m => s(m, 20).toLowerCase()).filter(m => MOTIVE.includes(m)))]
       : [];
+    const belastung = Array.isArray(body.belastung)
+      ? [...new Set(body.belastung.map(b => s(b, 24).toLowerCase()).filter(b => BELASTUNG.includes(b)))]
+      : [];
     const maerkte = Array.isArray(body.maerkte)
       ? [...new Set(body.maerkte.map(m => s(m, 20).toLowerCase()).filter(m => MAERKTE.includes(m)))]
       : [];
@@ -227,6 +231,7 @@ export async function POST(request: Request) {
       ...(gMinimum ? { gehaltMinimum: gMinimum, waehrung, kurs: RON_JE_EUR } : {}),
       ...(GLEICH.includes(gleichesGehalt) ? { gleichesGehalt: gleichesGehalt as JoburiLead["gleichesGehalt"] } : {}),
       ...(maerkte.length ? { maerkte } : {}),
+      ...(belastung.length ? { belastung } : {}),
       ...(GESPRAECH.includes(gespraech) ? { gespraech: gespraech as JoburiLead["gespraech"] } : {}),
       ...(test ? { test: true } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),

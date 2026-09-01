@@ -60,7 +60,7 @@ export const RO = {
   tnTitel: "Ai deja un job.",
   tnTitelZwei: "Dar poate nu la prețul potrivit.",
   tnUnter: "Spune-ne o singură dată ce știi să faci și ce ar trebui să ofere o poziție nouă. Dacă apare ceva cu adevărat potrivit, te anunțăm.",
-  tnDauer: "8 întrebări · fără CV, fără nume",
+  tnDauer: "9 întrebări · fără CV, fără nume",
   tnStart: "Află-ți condițiile de schimbare",
 
   tnBeruf: "Ce meserie ai?",
@@ -107,13 +107,26 @@ export const RO = {
   marktRo: "România", marktDe: "Germania", marktRemote: "Complet remote",
   marktEu: "Altă țară din UE", marktUmzug: "Mutare în România", marktKeinUmzug: "Nu vreau să mă mut",
 
+  /* SCHICHT, STEHEN, KÖRPERLICHE ARBEIT (Owner 31.08.2026). Für Pflege, Produktion und
+     Logistik — genau die Bereiche, in denen Deutschland sucht — sagen diese vier Kreuze mehr
+     als jedes Zertifikat. NICHT gefragt wird nach Gesundheit: Das wären besondere Daten nach
+     Artikel 9 DSGVO, sie bräuchten eine eigene Einwilligung, und ein Arbeitgeber, der sie
+     erhält, stünde im AGG-Risiko. Wer Nachtschicht und acht Stunden Stehen ankreuzt, hat die
+     Frage ohnehin beantwortet — und niemand musste eine Diagnose preisgeben. */
+  tnBelastung: "Ce ar intra în discuție pentru tine?",
+  tnBelastungHinweis: "Alege ce ți se potrivește. Dacă nu se potrivește niciuna, treci mai departe.",
+  belSchicht: "Lucru în ture, inclusiv noaptea și în weekend",
+  belStehen: "Lucru în picioare, peste opt ore",
+  belKoerper: "Muncă fizică solicitantă",
+  belErfahrung: "Am deja experiență cu munca fizică",
+
   tnGespraech: "Dacă un angajator ar îndeplini exact aceste condiții — ai vorbi cu el?",
   gesprJa: "Da", gesprWahrsch: "Probabil", gesprViell: "Poate", gesprNein: "Momentan mai degrabă nu",
 
   tnSummeTitel: "CONDIȚIILE TALE DE SCHIMBARE",
   tnSummeBeruf: "Meserie", tnSummeDeutsch: "Germană", tnSummeOrt: "Locație",
   tnSummeSituation: "Situație", tnSummeMotive: "Contează", tnSummeGeld: "Financiar",
-  tnSummeMaerkte: "Piețe", tnSummeGespraech: "Discuție",
+  tnSummeMaerkte: "Piețe", tnSummeBelastung: "Disponibilitate", tnSummeGespraech: "Discuție",
   tnSummeSchluss: "Exact după astfel de oferte putem fi atenți pentru tine.",
   tnSummeKnopf: "Contactați-mă doar pentru oferte potrivite",
   studieTitel: "Vorbești germană?",
@@ -297,7 +310,7 @@ export const DE: JoburiTexte = {
   tnTitel: "Du hast schon einen Job.",
   tnTitelZwei: "Aber vielleicht nicht den richtigen Preis dafür.",
   tnUnter: "Sag uns einmal, was du kannst und was ein neues Angebot bieten müsste. Wenn wir etwas wirklich Passendes finden, melden wir uns.",
-  tnDauer: "8 Fragen · ohne Lebenslauf, ohne Namen",
+  tnDauer: "9 Fragen · ohne Lebenslauf, ohne Namen",
   tnStart: "Meine Wechselbedingungen herausfinden",
 
   tnBeruf: "Was bist du von Beruf?",
@@ -344,13 +357,20 @@ export const DE: JoburiTexte = {
   marktRo: "Rumänien", marktDe: "Deutschland", marktRemote: "Vollständig remote",
   marktEu: "Anderes EU-Land", marktUmzug: "Umzug innerhalb Rumäniens", marktKeinUmzug: "Ich möchte nicht umziehen",
 
+  tnBelastung: "Was kommt für dich infrage?",
+  tnBelastungHinweis: "Wähle, was auf dich zutrifft. Trifft nichts zu, geh einfach weiter.",
+  belSchicht: "Schichtarbeit, auch nachts und am Wochenende",
+  belStehen: "Arbeit im Stehen, über acht Stunden",
+  belKoerper: "Körperlich anspruchsvolle Arbeit",
+  belErfahrung: "Ich habe bereits Erfahrung mit körperlicher Arbeit",
+
   tnGespraech: "Angenommen, ein Arbeitgeber erfüllt genau diese Bedingungen — würdest du mit ihm sprechen?",
   gesprJa: "Ja", gesprWahrsch: "Wahrscheinlich", gesprViell: "Vielleicht", gesprNein: "Aktuell eher nicht",
 
   tnSummeTitel: "DEINE WECHSELBEDINGUNGEN",
   tnSummeBeruf: "Beruf", tnSummeDeutsch: "Deutsch", tnSummeOrt: "Ort",
   tnSummeSituation: "Situation", tnSummeMotive: "Wichtig", tnSummeGeld: "Finanziell",
-  tnSummeMaerkte: "Märkte", tnSummeGespraech: "Gespräch",
+  tnSummeMaerkte: "Märkte", tnSummeBelastung: "Einsetzbar", tnSummeGespraech: "Gespräch",
   tnSummeSchluss: "Genau nach solchen Angeboten können wir für dich Ausschau halten.",
   tnSummeKnopf: "Mich nur bei passenden Angeboten kontaktieren",
   studieTitel: "Du sprichst Deutsch?",
@@ -470,7 +490,7 @@ export const EN: JoburiTexte = {
   tnTitel: "You already have a job.",
   tnTitelZwei: "But maybe not the right price for it.",
   tnUnter: "Tell us once what you can do and what a new offer would have to be worth. If we find something genuinely fitting, we'll get in touch.",
-  tnDauer: "8 questions · no CV, no name",
+  tnDauer: "9 questions · no CV, no name",
   tnStart: "Find my switching conditions",
 
   tnBeruf: "What is your occupation?",
@@ -517,13 +537,20 @@ export const EN: JoburiTexte = {
   marktRo: "Romania", marktDe: "Germany", marktRemote: "Fully remote",
   marktEu: "Another EU country", marktUmzug: "Relocation within Romania", marktKeinUmzug: "I don't want to relocate",
 
+  tnBelastung: "What would be an option for you?",
+  tnBelastungHinweis: "Pick whatever applies. If none of it does, just continue.",
+  belSchicht: "Shift work, including nights and weekends",
+  belStehen: "Standing work, over eight hours",
+  belKoerper: "Physically demanding work",
+  belErfahrung: "I already have experience with physical work",
+
   tnGespraech: "Suppose an employer met exactly these conditions — would you talk to them?",
   gesprJa: "Yes", gesprWahrsch: "Probably", gesprViell: "Maybe", gesprNein: "Not right now",
 
   tnSummeTitel: "YOUR SWITCHING CONDITIONS",
   tnSummeBeruf: "Occupation", tnSummeDeutsch: "German", tnSummeOrt: "Location",
   tnSummeSituation: "Situation", tnSummeMotive: "Matters", tnSummeGeld: "Financially",
-  tnSummeMaerkte: "Markets", tnSummeGespraech: "Conversation",
+  tnSummeMaerkte: "Markets", tnSummeBelastung: "Availability", tnSummeGespraech: "Conversation",
   tnSummeSchluss: "These are exactly the kind of offers we can watch out for on your behalf.",
   tnSummeKnopf: "Only contact me about matching offers",
   studieTitel: "You speak German?",

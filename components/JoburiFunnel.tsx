@@ -44,7 +44,7 @@ import { gehaltMitte, waehrungFuerLand, gehaltGrenzen, type Waehrung } from "@/l
  */
 type Schritt =
   | "beruf" | "deutsch" | "standort" | "situation"
-  | "motive" | "geld" | "maerkte" | "gespraech"
+  | "motive" | "geld" | "maerkte" | "belastung" | "gespraech"
   | "summe" | "mail" | "danke";
 
 /** Nur Ziffern, höchstens fünf — „2.500" und „25oo" sind Vertipper, keine Beträge. */
@@ -108,6 +108,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
   const [minimum, setMinimum] = useState("");
   const [gleich, setGleich] = useState("");
   const [maerkte, setMaerkte] = useState<string[]>([]);
+  const [belastung, setBelastung] = useState<string[]>([]);
   const [gespraech, setGespraech] = useState("");
 
   /* Wie weit er schon war — der Vor-Pfeil darf nie über unbeantwortete Fragen springen. */
@@ -256,7 +257,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
    */
   const REIHE: Schritt[] = [
     "beruf", "deutsch", "standort", "situation",
-    "motive", "geld", "maerkte", "gespraech",
+    "motive", "geld", "maerkte", "belastung", "gespraech",
     "summe", "mail",
   ];
   const pos = REIHE.indexOf(schritt);
@@ -555,13 +556,51 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
         </div>
         <div className="mt-4">
           <Knopf art="gold" disabled={!maerkte.length}
-            onClick={() => { void merken({ maerkte }); setSchritt("gespraech"); }}>{T.weiter}</Knopf>
+            onClick={() => { void merken({ maerkte }); setSchritt("belastung"); }}>{T.weiter}</Knopf>
         </div>
       </Frage>
     );
   }
 
-  /* 8 · DIE GESPRÄCHSBEREITSCHAFT. Sie steht zuletzt, weil sie sich nach den eigenen
+  /* 8 · SCHICHT, STEHEN, KÖRPERLICHE ARBEIT.
+     WEITER GEHT AUCH OHNE EIN EINZIGES KREUZ — als Einzige der neun Fragen. Ein
+     Softwareentwickler trifft hier auf nichts, was auf ihn zutrifft; ein Pflichtfeld hätte
+     ihn zu einer falschen Angabe gezwungen oder aus dem Trichter geworfen. „Nichts davon"
+     ist bei dieser Frage selbst eine Antwort, und zwar eine brauchbare.
+     Gefragt wird nach BELASTBARKEIT, nicht nach Gesundheit (siehe lib/joburi-texte.ts). */
+  if (schritt === "belastung") {
+    const um = (w: string) => setBelastung(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
+    const OPT = [
+      { wert: "shifts", text: T.belSchicht }, { wert: "standing", text: T.belStehen },
+      { wert: "physical", text: T.belKoerper }, { wert: "physical_experience", text: T.belErfahrung },
+    ];
+    return (
+      <Frage titel={T.tnBelastung} hinweis={T.tnBelastungHinweis}>
+        <div className="mt-4 flex flex-col gap-2">
+          {OPT.map(o => {
+            const an = belastung.includes(o.wert);
+            return (
+              <button key={o.wert} type="button" onClick={() => um(o.wert)} aria-pressed={an}
+                className={`flex min-h-12 items-center gap-3 rounded-3xl border px-4 py-3 text-left text-[14.5px] font-black leading-snug transition active:scale-[0.98] ${
+                  an ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]" : "border-white/20 bg-white/5 text-white/90"}`}>
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-2 transition ${
+                  an ? "border-[#f6cf51] bg-[#f6cf51]" : "border-white/35"}`}>
+                  {an && <Check className="lb-haken h-3.5 w-3.5 text-black" strokeWidth={3.5} />}
+                </span>
+                {o.text}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4">
+          <Knopf art="gold"
+            onClick={() => { void merken({ belastung }); setSchritt("gespraech"); }}>{T.weiter}</Knopf>
+        </div>
+      </Frage>
+    );
+  }
+
+  /* 9 · DIE GESPRÄCHSBEREITSCHAFT. Sie steht zuletzt, weil sie sich nach den eigenen
      Bedingungen wie eine Schlussfolgerung liest — und nicht wie eine Bewerbung. */
   if (schritt === "gespraech") {
     return (
@@ -605,6 +644,10 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
       romania: T.marktRo, germany: T.marktDe, remote: T.marktRemote,
       eu: T.marktEu, relocate_ro: T.marktUmzug, no_relocation: T.marktKeinUmzug,
     };
+    const NAME_BEL: Record<string, string> = {
+      shifts: T.belSchicht, standing: T.belStehen,
+      physical: T.belKoerper, physical_experience: T.belErfahrung,
+    };
     const NAME_GESPR: Record<string, string> = {
       yes: T.gesprJa, probably: T.gesprWahrsch, maybe: T.gesprViell, not_now: T.gesprNein,
     };
@@ -618,6 +661,11 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
       [T.tnSummeMotive, motive.map(m => NAME_MOTIV[m] ?? m).join(" · ")],
       [T.tnSummeGeld, geldText],
       [T.tnSummeMaerkte, maerkte.map(m => NAME_MARKT[m] ?? m).join(" · ")],
+      /* Nur zeigen, wenn er etwas angekreuzt hat — eine leere Zeile „Einsetzbar: —" liest
+         sich wie ein Mangel, obwohl die Frage freiwillig war. */
+      ...(belastung.length
+        ? ([[T.tnSummeBelastung, belastung.map(b => NAME_BEL[b] ?? b).join(" · ")]] as [string, string][])
+        : []),
       [T.tnSummeGespraech, NAME_GESPR[gespraech] ?? "—"],
     ];
     return (
