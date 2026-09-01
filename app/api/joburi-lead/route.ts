@@ -188,6 +188,8 @@ export async function POST(request: Request) {
     const situation = s(body.situation, 24).toLowerCase();
     const gleichesGehalt = s(body.gleichesGehalt, 8).toLowerCase();
     const gespraech = s(body.gespraech, 10).toLowerCase();
+    const klaerung = s(body.klaerung, 400);
+    const klaerungId = s(body.klaerungId, 40);
     const waehrung = (s(body.waehrung, 3).toUpperCase() === "RON" ? "RON" : "EUR") as Waehrung;
     const motive = Array.isArray(body.motive)
       ? [...new Set(body.motive.map(m => s(m, 20).toLowerCase()).filter(m => MOTIVE.includes(m)))]
@@ -249,6 +251,7 @@ export async function POST(request: Request) {
       ...(GLEICH.includes(gleichesGehalt) ? { gleichesGehalt: gleichesGehalt as JoburiLead["gleichesGehalt"] } : {}),
       ...(maerkte.length ? { maerkte } : {}),
       ...(belastung.length ? { belastung } : {}),
+      ...(klaerung ? { klaerung, klaerungId } : {}),
       ...(GESPRAECH.includes(gespraech) ? { gespraech: gespraech as JoburiLead["gespraech"] } : {}),
       ...(test ? { test: true } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),

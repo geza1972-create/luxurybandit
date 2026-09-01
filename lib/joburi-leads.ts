@@ -86,6 +86,12 @@ export type JoburiLead = {
    * hier ein offenes Feld statt einer Warnung — was der Kandidat auf Nachfrage sagt, gehört
    * ins Profil, nicht ein Verdacht, den wir ihm unterstellen.
    */
+  /** Die Antwort des Kandidaten auf die eine offene Rückfrage — SEIN Wortlaut. Das ist die
+      Angabe, die kein Jobportal hat: warum jemand wechseln würde, in eigenen Worten. */
+  klaerung?: string;
+  /** Auf welche Frage sie sich bezieht (lib/joburi-klaerung.ts) — sonst wäre in einem Jahr
+      nicht mehr nachvollziehbar, was da beantwortet wurde. */
+  klaerungId?: string;
   notiz?: string;
   gespraech?: "yes" | "probably" | "maybe" | "not_now";
 

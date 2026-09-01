@@ -120,6 +120,18 @@ export const RO = {
   belKoerper: "Muncă fizică solicitantă",
   belErfahrung: "Am deja experiență cu munca fizică",
 
+  /* DIE OFFENEN RÜCKFRAGEN (Owner 31.08.2026: „Nicht ‚Das passt nicht zusammen', sondern
+     etwas wie: ‚Was würde für dich weniger Stress bedeuten?'"). Eine prüfende Frage erzeugt
+     eine Rechtfertigung, eine offene erzeugt eine Antwort — und die Antworten sind das, was
+     später eine Firma kauft. */
+  klaerTitel: "O singură întrebare deschisă",
+  klaerHinweis: "Poți sări peste — dar răspunsul tău ne ajută să găsim ceva care chiar ți se potrivește.",
+  klaerStress: "Ce ar însemna pentru tine mai puțin stres la muncă?",
+  klaerGeld: "Ce ar conta pentru tine mai mult decât salariul?",
+  klaerGespraech: "Ce ar trebui să se întâmple ca o discuție să merite pentru tine?",
+  klaerPlatz: "Scrie liber, câteva cuvinte ajung.",
+  klaerUeberspringen: "Sar peste",
+
   tnGespraech: "Dacă un angajator ar îndeplini exact aceste condiții — ai vorbi cu el?",
   gesprJa: "Da", gesprWahrsch: "Probabil", gesprViell: "Poate", gesprNein: "Momentan mai degrabă nu",
 
@@ -364,6 +376,14 @@ export const DE: JoburiTexte = {
   belKoerper: "Körperlich anspruchsvolle Arbeit",
   belErfahrung: "Ich habe bereits Erfahrung mit körperlicher Arbeit",
 
+  klaerTitel: "Eine offene Frage noch",
+  klaerHinweis: "Du kannst sie überspringen — deine Antwort hilft uns aber, etwas zu finden, das wirklich passt.",
+  klaerStress: "Was würde für dich weniger Stress bei der Arbeit bedeuten?",
+  klaerGeld: "Was wäre dir wichtiger als das Gehalt?",
+  klaerGespraech: "Was müsste passieren, damit sich ein Gespräch für dich lohnt?",
+  klaerPlatz: "Schreib frei, ein paar Worte genügen.",
+  klaerUeberspringen: "Überspringen",
+
   tnGespraech: "Angenommen, ein Arbeitgeber erfüllt genau diese Bedingungen — würdest du mit ihm sprechen?",
   gesprJa: "Ja", gesprWahrsch: "Wahrscheinlich", gesprViell: "Vielleicht", gesprNein: "Aktuell eher nicht",
 
@@ -543,6 +563,14 @@ export const EN: JoburiTexte = {
   belStehen: "Standing work, over eight hours",
   belKoerper: "Physically demanding work",
   belErfahrung: "I already have experience with physical work",
+
+  klaerTitel: "One open question",
+  klaerHinweis: "You can skip it — but your answer helps us find something that genuinely fits.",
+  klaerStress: "What would less stress at work mean for you?",
+  klaerGeld: "What would matter to you more than the salary?",
+  klaerGespraech: "What would have to happen for a conversation to be worth your time?",
+  klaerPlatz: "Write freely, a few words are enough.",
+  klaerUeberspringen: "Skip",
 
   tnGespraech: "Suppose an employer met exactly these conditions — would you talk to them?",
   gesprJa: "Yes", gesprWahrsch: "Probably", gesprViell: "Maybe", gesprNein: "Not right now",

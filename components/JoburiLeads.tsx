@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { JoburiLead } from "@/lib/joburi-leads";
 import { gehaltMitte } from "@/lib/joburi-gehalt";
+import { klaerungZuLead } from "@/lib/joburi-klaerung";
 
 /**
  * DIE ANTWORTEN DER STUDIE IM ADMIN (Owner 31.08.2026: „Die neuen Antworten müssen im
@@ -142,27 +143,26 @@ export default function JoburiLeads({ pin }: { pin: string }) {
               {l.rueckkehr ? ` · Rückkehr: ${RUECK[l.rueckkehr]}` : ""}
             </p>
             {/**
-              * WORÜBER SICH EINE RÜCKFRAGE LOHNT (Owner 31.08.2026: „Weniger Stress plus
-              * Bereitschaft zu Nachtschicht ist ein Widerspruch, den ein Recruiter sofort
-              * sieht … halte das Feld für Rückfragen offen").
+              * DER KLÄRUNGSANLASS KOMMT AUS DEM MUSTER, NICHT AUS EINEM `if` HIER
+              * (Owner 31.08.2026: „Sonst hast du in drei Monaten fünfzehn Einzelregeln").
+              * Neue Anlässe werden in lib/joburi-klaerung.ts ergänzt; diese Stelle bleibt.
               *
-              * ES STEHT HIER ALS ANLASS UND NICHT ALS WARNUNG — der Unterschied ist wichtig.
-              * Nachtdienst in der Pflege ist regelmässig RUHIGER als Tagdienst: weniger
-              * Besucher, keine Visiten, keine Angehörigen. Dieselbe Person kann beides
-              * ehrlich ankreuzen. Ein rotes „Widerspruch" würde ihr etwas unterstellen, das
-              * sich in einem Satz aufklärt — und der Satz gehört ins Feld darunter.
+              * Bernstein und nicht Rot: Was hier anspringt, ist meist völlig stimmig —
+              * Nachtdienst in der Pflege ist ruhiger als Tagdienst. Es ist eine Aufgabe für
+              * uns, keine Wertung über den Menschen.
               */}
             {(() => {
-              const wechselMotive = l.motive ?? l.faktoren ?? [];
-              const ruhe = wechselMotive.includes("less_stress") || wechselMotive.includes("flexibilitate");
-              const hart = (l.belastung ?? []).some(b => ["shifts", "standing", "physical"].includes(b));
-              if (!ruhe || !hart) return null;
+              const anlass = klaerungZuLead(l);
+              if (!anlass) return null;
               return (
-                <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[12px] font-bold text-amber-800">
-                  Nachfragen: sucht weniger Belastung und ist zugleich zu Schicht- oder
-                  körperlicher Arbeit bereit. Meist kein Widerspruch — aber ein Satz dazu macht
-                  das Profil belastbar.
-                </p>
+                <div className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5">
+                  <p className="text-[12px] font-black text-amber-800">Nachfragen: {anlass.anlassAdmin}</p>
+                  {/* Hat er selbst schon geantwortet, steht die Antwort hier — dann ist die
+                      Rückfrage meistens erledigt, bevor jemand zum Hörer greift. */}
+                  {l.klaerung && (
+                    <p className="mt-1 text-[12.5px] font-medium italic text-amber-900">„{l.klaerung}"</p>
+                  )}
+                </div>
               );
             })()}
 

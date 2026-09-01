@@ -6,6 +6,7 @@ import { Knopf, Kasten, Eingabe, Fehlerzeile, Fortschritt, Haken } from "@/compo
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
 import { gehaltMitte, waehrungFuerLand, gehaltGrenzen, type Waehrung } from "@/lib/joburi-gehalt";
+import { ersteKlaerung } from "@/lib/joburi-klaerung";
 
 /**
  * TALENT MARKET PULSE — DER TRICHTER FRAGT, STATT ZU ZEIGEN (Owner 31.08.2026).
@@ -44,7 +45,7 @@ import { gehaltMitte, waehrungFuerLand, gehaltGrenzen, type Waehrung } from "@/l
  */
 type Schritt =
   | "beruf" | "deutsch" | "standort" | "situation"
-  | "motive" | "geld" | "maerkte" | "belastung" | "gespraech"
+  | "motive" | "geld" | "maerkte" | "belastung" | "gespraech" | "klaerung"
   | "summe" | "mail" | "danke";
 
 /** Nur Ziffern, höchstens fünf — „2.500" und „25oo" sind Vertipper, keine Beträge. */
@@ -110,6 +111,8 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
   const [maerkte, setMaerkte] = useState<string[]>([]);
   const [belastung, setBelastung] = useState<string[]>([]);
   const [gespraech, setGespraech] = useState("");
+  /* Die Antwort auf die eine offene Rückfrage — freiwillig, siehe lib/joburi-klaerung.ts. */
+  const [klaerText, setKlaerText] = useState("");
 
   /* Wie weit er schon war — der Vor-Pfeil darf nie über unbeantwortete Fragen springen. */
   const [weitester, setWeitester] = useState(0);
@@ -610,8 +613,54 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
             { wert: "yes", text: T.gesprJa }, { wert: "probably", text: T.gesprWahrsch },
             { wert: "maybe", text: T.gesprViell }, { wert: "not_now", text: T.gesprNein },
           ]}
-          waehlen={w => { setGespraech(w); void merken({ gespraech: w }); setSchritt("summe"); }} />
+          waehlen={w => {
+            setGespraech(w);
+            void merken({ gespraech: w });
+            /* Der Anlass ergibt sich erst aus ALLEN Antworten — deshalb hier und nicht früher.
+               Liegt keiner vor, sieht der Kandidat die Frage nie. */
+            const anlass = ersteKlaerung({ motive, belastung, gleichesGehalt: gleich, situation, gespraech: w });
+            setSchritt(anlass ? "klaerung" : "summe");
+          }} />
       </Frage>
+    );
+  }
+
+  /* DIE EINE OFFENE RÜCKFRAGE.
+     Sie erscheint nur, wenn zwei Angaben nach Klärung verlangen (lib/joburi-klaerung.ts) —
+     und sie ist überspringbar. Der Text ist offen formuliert, nicht prüfend: „Was würde für
+     dich weniger Stress bedeuten?" statt „Das passt nicht zusammen". Eine prüfende Frage
+     erzeugt eine Rechtfertigung, eine offene eine Antwort — und die Antworten sind das, was
+     später eine Firma kauft.
+     ZUR ZÄHLUNG GEHÖRT SIE NICHT: Der Kopf verspricht neun Fragen, und dieser Bildschirm ist
+     eine Zugabe, keine zehnte Pflicht. */
+  if (schritt === "klaerung") {
+    const anlass = ersteKlaerung({ motive, belastung, gleichesGehalt: gleich, situation, gespraech });
+    const frage = anlass ? T[anlass.frageSchluessel] : "";
+    const weiterMit = (text: string) => {
+      if (text) void merken({ klaerungId: anlass?.id ?? "", klaerung: text });
+      setSchritt("summe");
+    };
+    return (
+      <>
+        {leiste}
+        <Kasten polster="p-5">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{T.klaerTitel}</p>
+          <h2 className="mt-2 text-[19px] font-black leading-snug text-white">{frage}</h2>
+          <p className="mt-1 text-[13px] font-medium text-white/60">{T.klaerHinweis}</p>
+          <textarea
+            value={klaerText}
+            onChange={e => setKlaerText(e.target.value.slice(0, 400))}
+            placeholder={T.klaerPlatz}
+            rows={3}
+            className="mt-4 w-full rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-[15px] font-medium text-white outline-none placeholder:text-white/30"
+          />
+          <div className="mt-3">
+            <Knopf art="gold" onClick={() => weiterMit(klaerText.trim())}>{T.weiter}</Knopf>
+          </div>
+          <button type="button" onClick={() => weiterMit("")}
+            className="mt-3 text-[12.5px] font-bold text-white/45 underline underline-offset-2">{T.klaerUeberspringen}</button>
+        </Kasten>
+      </>
     );
   }
 
