@@ -7,6 +7,8 @@ import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
 import { gehaltMitte, waehrungFuerLand, gehaltGrenzen, type Waehrung } from "@/lib/joburi-gehalt";
 import { ersteKlaerung } from "@/lib/joburi-klaerung";
+import { LAENDER_DE } from "@/lib/laender-liste";
+import { SPRACHEN_DE, SPRACH_NIVEAUS } from "@/lib/sprachen-liste";
 
 /**
  * TALENT MARKET PULSE — DER TRICHTER FRAGT, STATT ZU ZEIGEN (Owner 31.08.2026).
@@ -84,6 +86,77 @@ function Geldfeld({ titel, wert, setzen, waehrung }: {
   );
 }
 
+/**
+ * FREIES FELD MIT ECHTER VORSCHLAGSLISTE (Owner 01.09.2026: „auto geht nicht" — das native
+ * `<datalist>`-Autofill zeigt auf vielen Browsern, vor allem mobil, gar keine Vorschläge).
+ * Dieselbe Bauweise wie `CityAutocomplete.tsx`, nur gegen eine feste Liste statt eine API —
+ * Länder und Sprachen ändern sich nicht, eine Abfrage dafür wäre unnötig.
+ */
+function ListAutocomplete({ value, onChange, optionen, platzhalter }: {
+  value: string; onChange: (v: string) => void; optionen: string[]; platzhalter: string;
+}) {
+  const [offen, setOffen] = useState(false);
+  const treffer = value.trim()
+    ? optionen.filter(o => o.toLowerCase().includes(value.trim().toLowerCase())).slice(0, 6)
+    : optionen.slice(0, 6);
+  return (
+    <div className="relative min-w-0 flex-[2]">
+      <input
+        type="text" autoComplete="off" value={value} placeholder={platzhalter}
+        onChange={e => { onChange(e.target.value); setOffen(true); }}
+        onFocus={() => setOffen(true)}
+        onBlur={() => setTimeout(() => setOffen(false), 150)}
+        className="h-12 w-full min-w-0 rounded-full border border-white/20 bg-white/5 px-4 text-[15px] font-bold text-white outline-none placeholder:text-white/40" />
+      {offen && treffer.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-lg">
+          {treffer.map(o => (
+            <button key={o} type="button"
+              onMouseDown={e => { e.preventDefault(); onChange(o); setOffen(false); }}
+              className="block w-full px-4 py-2 text-left text-[14px] font-bold text-black/80 hover:bg-black/[0.06]">
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Eine Klick-Antwortliste — auf Modulebene aus demselben Grund wie `Geldfeld`. */
+function Wahl({ optionen, waehlen }: { optionen: { wert: string; text: string }[]; waehlen: (w: string) => void }) {
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      {optionen.map(o => (
+        <button key={o.wert} type="button" onClick={() => waehlen(o.wert)}
+          className="flex h-12 items-center justify-between gap-3 rounded-full border border-white/20 bg-white/5 px-5 text-left text-[15px] font-black text-white/90 transition active:scale-[0.98]">
+          {o.text}
+          <span className="shrink-0 text-white/35">→</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Eine Frage — Kopf oder Leiste darüber, dann Kasten, Überschrift, Hinweis, Antworten.
+    Auf Modulebene (siehe Kommentar bei `Geldfeld`): `kopfBlock` und `leiste` kommen jetzt
+    als Props statt aus dem Closure der Render-Funktion, sonst wäre nichts gewonnen. */
+function Frage({ kopfBlock, leiste, titel, hinweis, children }: {
+  kopfBlock: React.ReactNode; leiste: React.ReactNode;
+  titel: string; hinweis?: string; children: React.ReactNode;
+}) {
+  return (
+    <>
+      {kopfBlock}
+      {leiste}
+      <Kasten polster="p-5">
+        <h2 className="text-[19px] font-black leading-snug text-white">{titel}</h2>
+        {hinweis && <p className="mt-1 text-[13px] font-medium text-white/60">{hinweis}</p>}
+        {children}
+      </Kasten>
+    </>
+  );
+}
+
 export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: string; kopf?: React.ReactNode }) {
   const [schritt, setSchritt] = useState<Schritt>("beruf");
   /**
@@ -98,7 +171,9 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
   const leadIdRef = useRef("");
 
   const [beruf, setBeruf] = useState("");
-  const [deutsch, setDeutsch] = useState("");
+  const [sprachen, setSprachen] = useState<{ sprache: string; niveau: string }[]>([]);
+  const [spracheEingabe, setSpracheEingabe] = useState("");
+  const [niveauEingabe, setNiveauEingabe] = useState("b2");
   const [land, setLand] = useState("");
   const [stadt, setStadt] = useState("");
   const [situation, setSituation] = useState("");
@@ -109,6 +184,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
   const [minimum, setMinimum] = useState("");
   const [gleich, setGleich] = useState("");
   const [maerkte, setMaerkte] = useState<string[]>([]);
+  const [marktLand, setMarktLand] = useState("");
   const [belastung, setBelastung] = useState<string[]>([]);
   const [gespraech, setGespraech] = useState("");
   /* Die Antwort auf die eine offene Rückfrage — freiwillig, siehe lib/joburi-klaerung.ts. */
@@ -144,8 +220,6 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
     } catch { return false; }
   };
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
-  /** Wer in Rumänien arbeitet, wird nicht nach Rückkehr gefragt — er ist schon da. */
-  const inDiaspora = land !== "" && land !== "ro";
 
   /* Die Herkunft wird beim ERSTEN Schritt gelesen — wer danach aussteigt, ist trotzdem
      einer Anzeige zuzuordnen. */
@@ -215,35 +289,11 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
   };
 
   /* ─────────────────────────── Bausteine ─────────────────────────── */
-
-  const Wahl = ({ optionen, waehlen }: { optionen: { wert: string; text: string }[]; waehlen: (w: string) => void }) => (
-    <div className="mt-4 flex flex-col gap-2">
-      {optionen.map(o => (
-        <button key={o.wert} type="button" onClick={() => waehlen(o.wert)}
-          className="flex h-12 items-center justify-between gap-3 rounded-full border border-white/20 bg-white/5 px-5 text-left text-[15px] font-black text-white/90 transition active:scale-[0.98]">
-          {o.text}
-          <span className="shrink-0 text-white/35">→</span>
-        </button>
-      ))}
-    </div>
-  );
-
-  /** Eine Frage — Kopf oder Leiste darüber, dann Kasten, Überschrift, Hinweis, Antworten.
-      Der Rückweg steht seit dem 31.08. oben in der Leiste und nicht mehr als Textlink unter
-      jeder Antwortliste: ein Weg zurück, überall an derselben Stelle. */
-  const Frage = ({ titel, hinweis, children }: {
-    titel: string; hinweis?: string; zurueck?: Schritt; children: React.ReactNode;
-  }) => (
-    <>
-      {kopfBlock}
-      {leiste}
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{titel}</h2>
-        {hinweis && <p className="mt-1 text-[13px] font-medium text-white/60">{hinweis}</p>}
-        {children}
-      </Kasten>
-    </>
-  );
+  /* `Wahl` und `Frage` sind ausserhalb dieser Funktion definiert (siehe unten im Modul) —
+     genau aus dem Grund, den der Kommentar bei `Geldfeld` weiter oben schon erklärt: eine
+     Komponente, die INNERHALB der Render-Funktion definiert wird, ist bei jedem Tastendruck
+     ein neuer Typ, React montiert ihr Unterfeld also jedes Mal neu ab und wieder auf — genau
+     das Symptom „stoppt bei jedem Buchstaben" (Owner 01.09.2026, an der Sprachen-Eingabe). */
 
   /**
    * DIE LEISTE STATT DES KOPFES (Owner 31.08.2026: „ich mag diesen unnötigen zeug auf jeder
@@ -330,17 +380,63 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
     );
   }
 
-  /* 2 · DEUTSCH — mit „muttersprachlich" als sechster Stufe (Owner-Freigabe). */
+  /* 2 · SPRACHEN — frei hinzufügbar statt nur „Deutsch" (Owner 01.09.2026: das Funnel wird
+     allgemein, jedes Land bekommt später seine eigene Fassung; die Sprachfrage darf also
+     nicht mehr an einer einzigen Sprache hängen). Niveau kommt aus demselben Dropdown wie
+     bei jeder anderen Sprache — A1 bis Muttersprache. */
   if (schritt === "deutsch") {
+    const hinzufuegen = () => {
+      const s = spracheEingabe.trim();
+      if (!s || sprachen.some(x => x.sprache.toLowerCase() === s.toLowerCase())) return;
+      setSprachen(f => [...f, { sprache: s, niveau: niveauEingabe }]);
+      setSpracheEingabe("");
+    };
+    const entfernen = (s: string) => setSprachen(f => f.filter(x => x.sprache !== s));
     return (
       <Frage titel={T.tnDeutsch}>
-        <Wahl
-          optionen={[
-            { wert: "a2", text: T.niveauA2 }, { wert: "b1", text: T.niveauB1 },
-            { wert: "b2", text: T.niveauB2 }, { wert: "c1", text: T.niveauC1 },
-            { wert: "c2", text: T.niveauC2 }, { wert: "native", text: T.niveauNative },
-          ]}
-          waehlen={w => { setDeutsch(w); void merken({ deutschniveau: w }); setSchritt("standort"); }} />
+        <div className="mt-1 flex gap-2">
+          <input
+            list="lb-sprachen-liste"
+            value={spracheEingabe}
+            placeholder={T.tnSprachePlatz}
+            onChange={e => setSpracheEingabe(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); hinzufuegen(); } }}
+            className="h-12 min-w-0 flex-[2] rounded-full border border-white/20 bg-white/5 px-4 text-[15px] font-bold text-white outline-none placeholder:text-white/40" />
+          <datalist id="lb-sprachen-liste">
+            {SPRACHEN_DE.map(s => <option key={s} value={s} />)}
+          </datalist>
+          <select
+            value={niveauEingabe}
+            onChange={e => setNiveauEingabe(e.target.value)}
+            className="h-12 shrink-0 rounded-full border border-white/20 bg-white/5 py-0 pl-3 pr-7 text-[14px] font-black text-white outline-none">
+            {SPRACH_NIVEAUS.map(n => <option key={n.wert} value={n.wert} className="text-black">{n.text}</option>)}
+          </select>
+          <button type="button" onClick={hinzufuegen} disabled={!spracheEingabe.trim()}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[18px] font-black leading-none text-[#f6cf51] transition active:scale-[0.98] disabled:opacity-40">
+            +
+          </button>
+        </div>
+        {sprachen.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {sprachen.map(s => (
+              <button key={s.sprache} type="button" onClick={() => entfernen(s.sprache)}
+                className="rounded-full border border-[#f6cf51] bg-[#f6cf51]/10 px-3 py-1 text-[12.5px] font-bold text-[#f6cf51]">
+                {s.sprache} · {SPRACH_NIVEAUS.find(n => n.wert === s.niveau)?.text ?? s.niveau} ✕
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mt-4">
+          <Knopf art="gold" disabled={!sprachen.length}
+            onClick={() => {
+              /* `deutschniveau` bleibt zusätzlich stehen — die bestehende Studie
+                 (lib/joburi-studie.ts) wertet die Deutschverteilung genau darüber aus,
+                 und ein Kandidat kann trotzdem beliebig viele andere Sprachen angeben. */
+              const deutschEintrag = sprachen.find(s => s.sprache.toLowerCase() === "deutsch");
+              void merken({ sprachen, ...(deutschEintrag ? { deutschniveau: deutschEintrag.niveau } : {}) });
+              setSchritt("standort");
+            }}>{T.weiter}</Knopf>
+        </div>
       </Frage>
     );
   }
@@ -349,43 +445,25 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
      „Timișoara" ist eine Suche, „Rumänien" ist keine. Sie entscheidet ausserdem die
      Währung im Geldschritt. */
   if (schritt === "standort") {
-    const STAEDTE = ["Timișoara", "Cluj-Napoca", "București", "Brașov", "Sibiu", "Iași", "Oradea", "Arad"];
     return (
       <>
         {leiste}
         <Kasten polster="p-5">
           <h2 className="text-[19px] font-black leading-snug text-white">{T.tnStandort}</h2>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {[{ wert: "ro", text: T.landRo }, { wert: "de", text: T.landDe },
-              { wert: "at", text: T.landAt }, { wert: "alta", text: T.landAlta }].map(o => {
-              const an = land === o.wert;
-              return (
-                <button key={o.wert} type="button" onClick={() => setLand(o.wert)}
-                  className={`h-12 rounded-full border px-4 text-[14.5px] font-black transition active:scale-[0.98] ${
-                    an ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/20 bg-white/5 text-white/90"}`}>
-                  {o.text}
-                </button>
-              );
-            })}
+          {/* Freie Eingabe mit Vorschlägen statt vier fester Länder-Buttons (Owner
+              01.09.2026: „das eben so mit Vervollständigung" — dasselbe Muster wie bei
+              Sprache und Markt-Land): eine Länder-Liste, die für jedes Land gleich gilt. */}
+          <div className="mt-4">
+            <ListAutocomplete value={land} onChange={setLand} optionen={LAENDER_DE} platzhalter={T.marktLandPlatz} />
           </div>
-          {land && (
+          {land.trim().length > 1 && (
             <>
               <p className="mt-4 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.tnStadt}</p>
+              {/* Kein Vorschlags-Raster mehr — egal welches Land, die Stadt kommt immer aus
+                  freier Eingabe. Eine feste Liste passte nur für Rumänien und schloss jedes
+                  andere Land aus; die freie Eingabe funktioniert für alle gleich. */}
               <Eingabe className="mt-1.5" type="text" value={stadt} placeholder={T.tnStadtPlatz}
                 onChange={e => setStadt(e.target.value.slice(0, 40))} />
-              {/* Vorschläge nur für Rumänien — anderswo raten wir nicht, welche Stadt gemeint
-                  sein könnte, und eine falsche Liste ist schlimmer als keine. */}
-              {land === "ro" && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {STAEDTE.map(o => (
-                    <button key={o} type="button" onClick={() => setStadt(o)}
-                      className={`rounded-full border px-3 py-1 text-[12.5px] font-bold transition active:scale-95 ${
-                        stadt === o ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
-                      {o}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="mt-3">
                 <Knopf art="gold" disabled={stadt.trim().length < 2}
                   onClick={() => { void merken({ land, stadt: stadt.trim() }); setSchritt("situation"); }}>{T.weiter}</Knopf>
@@ -534,11 +612,18 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
      eigene Frage: Auch das ist eine Bedingung. */
   if (schritt === "maerkte") {
     const um = (w: string) => setMaerkte(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
+    /* Nur die beiden Bedingungen, die für JEDES Land gelten, bleiben feste Kacheln —
+       konkrete Länder (vorher: Rumänien, Deutschland, „anderes EU-Land") kommen jetzt aus
+       dem freien Eingabefeld darunter, damit die Frage nicht mehr an Rumänien hängt. */
     const OPT = [
-      { wert: "romania", text: T.marktRo }, { wert: "germany", text: T.marktDe },
-      { wert: "remote", text: T.marktRemote }, { wert: "eu", text: T.marktEu },
-      { wert: "relocate_ro", text: T.marktUmzug }, { wert: "no_relocation", text: T.marktKeinUmzug },
+      { wert: "remote", text: T.marktRemote }, { wert: "no_relocation", text: T.marktKeinUmzug },
     ];
+    const laenderGewaehlt = maerkte.filter(m => !OPT.some(o => o.wert === m));
+    const landHinzufuegen = () => {
+      const w = marktLand.trim();
+      if (w && !maerkte.includes(w)) setMaerkte(f => [...f, w]);
+      setMarktLand("");
+    };
     return (
       <Frage titel={T.tnMaerkte} hinweis={T.tnMaerkteHinweis}>
         <div className="mt-4 flex flex-col gap-2">
@@ -557,6 +642,35 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
             );
           })}
         </div>
+
+        <p className="mt-4 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.marktLandLabel}</p>
+        <div className="mt-1.5 flex gap-2">
+          <input
+            list="lb-laender-liste"
+            value={marktLand}
+            placeholder={T.marktLandPlatz}
+            onChange={e => setMarktLand(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); landHinzufuegen(); } }}
+            className="h-12 min-w-0 flex-1 rounded-full border border-white/20 bg-white/5 px-4 text-[15px] font-bold text-white outline-none placeholder:text-white/40" />
+          <datalist id="lb-laender-liste">
+            {LAENDER_DE.map(l => <option key={l} value={l} />)}
+          </datalist>
+          <button type="button" onClick={landHinzufuegen} disabled={!marktLand.trim()}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[18px] font-black leading-none text-[#f6cf51] transition active:scale-[0.98] disabled:opacity-40">
+            +
+          </button>
+        </div>
+        {laenderGewaehlt.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {laenderGewaehlt.map(l => (
+              <button key={l} type="button" onClick={() => um(l)}
+                className="rounded-full border border-[#f6cf51] bg-[#f6cf51]/10 px-3 py-1 text-[12.5px] font-bold text-[#f6cf51]">
+                {l} ✕
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="mt-4">
           <Knopf art="gold" disabled={!maerkte.length}
             onClick={() => { void merken({ maerkte }); setSchritt("belastung"); }}>{T.weiter}</Knopf>
@@ -701,11 +815,12 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
       yes: T.gesprJa, probably: T.gesprWahrsch, maybe: T.gesprViell, not_now: T.gesprNein,
     };
     const NAME_LAND: Record<string, string> = { ro: T.landRo, de: T.landDe, at: T.landAt, alta: T.landAlta };
+    const landName = NAME_LAND[land] ?? land;
 
     const zeilen: [string, string][] = [
       [T.tnSummeBeruf, beruf.trim() || "—"],
-      [T.tnSummeDeutsch, deutsch === "native" ? T.niveauNative : deutsch.toUpperCase()],
-      [T.tnSummeOrt, [stadt.trim(), NAME_LAND[land]].filter(Boolean).join(", ")],
+      [T.tnSummeDeutsch, sprachen.map(s => `${s.sprache} (${SPRACH_NIVEAUS.find(n => n.wert === s.niveau)?.text ?? s.niveau})`).join(" · ")],
+      [T.tnSummeOrt, [stadt.trim(), landName].filter(Boolean).join(", ")],
       [T.tnSummeSituation, NAME_SIT[situation] ?? "—"],
       [T.tnSummeMotive, motive.map(m => NAME_MOTIV[m] ?? m).join(" · ")],
       [T.tnSummeGeld, geldText],

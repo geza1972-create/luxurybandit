@@ -55,7 +55,7 @@ import { studieZahlen } from "@/lib/joburi-studie";
  */
 
 /* Was in JEDER Sprache gleich bleibt: ein Sprachniveau, ein Ortsname, ein Betrag. */
-const BEISPIEL_FEST = { deutsch: "C1", standort: "Timișoara", gehalt: "1.800 € net" };
+const BEISPIEL_FEST = { deutsch: "C1", standort: "Berlin", gehalt: "1.800 € net" };
 
 /**
  * DIE SYMBOLE STEHEN HIER, NICHT IN DER SPRACHDATEI — sie sind für alle drei Sprachen
@@ -179,7 +179,7 @@ export default async function RecruitingSeite({ lang, imPfad = false }: { lang: 
               {/* Ein Knopf über die volle Spaltenbreite sieht am Desktop nach Warnband aus. */}
               <div className="mt-4 flex flex-col gap-2.5 lg:mt-6 lg:max-w-[320px]">
                 <Knopf art="gold" href="#pilot">{T.ctaHaupt}</Knopf>
-                <Knopf art="umriss" href="#ablauf">{T.ctaZweit}</Knopf>
+                <Knopf art="umriss" href="/joburi/germana?lang=de">{T.ctaZweit}</Knopf>
               </div>
             </div>
 

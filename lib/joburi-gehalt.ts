@@ -68,9 +68,11 @@ export type Waehrung = "RON" | "EUR";
     eigenen Kurs und bleiben dadurch nachvollziehbar. */
 export const RON_JE_EUR = 4.97;
 
-/** Wer in Rumänien lebt, wird in RON gefragt — alle anderen in Euro. */
-export function waehrungFuerLand(land?: string): Waehrung {
-  return String(land ?? "").toLowerCase() === "ro" ? "RON" : "EUR";
+/** Eine Währung für alle Länder (Owner-Anweisung: „und euro bitte", „muss für alle
+    Länder passen") — die Studie ist nicht mehr auf Rumänien beschränkt, und zwei
+    Währungen nebeneinander würde nur für Rumänien einen Sinn ergeben. */
+export function waehrungFuerLand(_land?: string): Waehrung {
+  return "EUR";
 }
 
 /**

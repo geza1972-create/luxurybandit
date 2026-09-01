@@ -65,14 +65,15 @@ export const RO = {
 
   tnBeruf: "Ce meserie ai?",
   tnBerufHinweis: "Scrie exact, așa cum ai spune unui prieten.",
-  tnBerufPlatz: "ex. asistentă medicală, electrician",
+  tnBerufPlatz: "ex. dezvoltator frontend, suport IT",
 
-  tnDeutsch: "Cât de bine vorbești germana?",
+  tnDeutsch: "Ce limbi vorbești?",
+  tnSprachePlatz: "ex. germană",
   niveauNative: "Limbă maternă",
 
   tnStandort: "Unde locuiești și lucrezi?",
   tnStadt: "Orașul",
-  tnStadtPlatz: "ex. Timișoara",
+  tnStadtPlatz: "ex. Berlin",
 
   tnSituation: "Care e situația ta acum?",
   sitZufrieden: "Am un job și sunt mulțumit",
@@ -106,6 +107,7 @@ export const RO = {
   tnMaerkteHinweis: "Poți alege mai multe.",
   marktRo: "România", marktDe: "Germania", marktRemote: "Complet remote",
   marktEu: "Altă țară din UE", marktUmzug: "Mutare în România", marktKeinUmzug: "Nu vreau să mă mut",
+  marktLandLabel: "Adaugă o țară", marktLandPlatz: "ex. Germania",
 
   /* SCHICHT, STEHEN, KÖRPERLICHE ARBEIT (Owner 31.08.2026). Für Pflege, Produktion und
      Logistik — genau die Bereiche, in denen Deutschland sucht — sagen diese vier Kreuze mehr
@@ -327,14 +329,15 @@ export const DE: JoburiTexte = {
 
   tnBeruf: "Was bist du von Beruf?",
   tnBerufHinweis: "Schreib es genau so, wie du es einem Freund sagen würdest.",
-  tnBerufPlatz: "z. B. Krankenschwester, Elektriker",
+  tnBerufPlatz: "z. B. Frontend-Entwickler, IT-Support",
 
-  tnDeutsch: "Wie gut sprichst du Deutsch?",
+  tnDeutsch: "Welche Sprachen sprichst du?",
+  tnSprachePlatz: "z. B. Deutsch",
   niveauNative: "Muttersprachlich",
 
   tnStandort: "Wo lebst und arbeitest du?",
   tnStadt: "Stadt",
-  tnStadtPlatz: "z. B. Timișoara",
+  tnStadtPlatz: "z. B. Berlin",
 
   tnSituation: "Wie ist deine aktuelle Situation?",
   sitZufrieden: "Ich habe einen Job und bin zufrieden",
@@ -368,6 +371,7 @@ export const DE: JoburiTexte = {
   tnMaerkteHinweis: "Du kannst mehrere wählen.",
   marktRo: "Rumänien", marktDe: "Deutschland", marktRemote: "Vollständig remote",
   marktEu: "Anderes EU-Land", marktUmzug: "Umzug innerhalb Rumäniens", marktKeinUmzug: "Ich möchte nicht umziehen",
+  marktLandLabel: "Land hinzufügen", marktLandPlatz: "z. B. Deutschland",
 
   tnBelastung: "Was kommt für dich infrage?",
   tnBelastungHinweis: "Wähle, was auf dich zutrifft. Trifft nichts zu, geh einfach weiter.",
@@ -515,14 +519,15 @@ export const EN: JoburiTexte = {
 
   tnBeruf: "What is your occupation?",
   tnBerufHinweis: "Write it exactly as you would tell a friend.",
-  tnBerufPlatz: "e.g. nurse, electrician",
+  tnBerufPlatz: "e.g. frontend developer, IT support",
 
-  tnDeutsch: "How well do you speak German?",
+  tnDeutsch: "Which languages do you speak?",
+  tnSprachePlatz: "e.g. German",
   niveauNative: "Native speaker",
 
   tnStandort: "Where do you live and work?",
   tnStadt: "City",
-  tnStadtPlatz: "e.g. Timișoara",
+  tnStadtPlatz: "e.g. Berlin",
 
   tnSituation: "What is your current situation?",
   sitZufrieden: "I have a job and I'm happy with it",
@@ -556,6 +561,7 @@ export const EN: JoburiTexte = {
   tnMaerkteHinweis: "You can pick several.",
   marktRo: "Romania", marktDe: "Germany", marktRemote: "Fully remote",
   marktEu: "Another EU country", marktUmzug: "Relocation within Romania", marktKeinUmzug: "I don't want to relocate",
+  marktLandLabel: "Add a country", marktLandPlatz: "e.g. Germany",
 
   tnBelastung: "What would be an option for you?",
   tnBelastungHinweis: "Pick whatever applies. If none of it does, just continue.",

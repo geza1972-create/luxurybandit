@@ -135,7 +135,7 @@ const de: RecruitingText = {
   positionierung: "Deutschsprachige Kandidaten weltweit · Market Insight + Sourcing",
   kopfMotto: "Talent Market Pulse",
   ctaHaupt: "Pilot für eine Stelle anfragen",
-  ctaZweit: "So funktioniert es",
+  ctaZweit: "Beispiel ansehen",
 
   beispielTitel: "Beispielprofil",
   beispielFelder: { deutsch: "Deutsch", standort: "Standort", modell: "Arbeitsmodell", status: "Status", gehalt: "Wechsel ab", interesse: "Interesse" },
@@ -212,7 +212,7 @@ const ro: RecruitingText = {
   positionierung: "Vorbitori de germană la nivel global · Market insight + sourcing",
   kopfMotto: "Talent Market Pulse",
   ctaHaupt: "Solicită un pilot pentru o poziție",
-  ctaZweit: "Cum funcționează",
+  ctaZweit: "Vezi un exemplu",
 
   beispielTitel: "Exemplu de profil",
   beispielFelder: { deutsch: "Germană", standort: "Localitate", modell: "Mod de lucru", status: "Status", gehalt: "Salariu de la care ar schimba", interesse: "Interes" },
@@ -289,7 +289,7 @@ const en: RecruitingText = {
   positionierung: "German-speaking candidates worldwide · Market insight + sourcing",
   kopfMotto: "Talent Market Pulse",
   ctaHaupt: "Request a pilot for one role",
-  ctaZweit: "How it works",
+  ctaZweit: "See an example",
 
   beispielTitel: "Example profile",
   beispielFelder: { deutsch: "German", standort: "Location", modell: "Work model", status: "Status", gehalt: "Would move from", interesse: "Interest" },
