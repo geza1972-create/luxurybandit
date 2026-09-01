@@ -51,3 +51,57 @@ export function gehaltMitte(wert?: string | number): number {
 export function gehaltGueltig(wert?: string | number): boolean {
   return gehaltMitte(wert) > 0;
 }
+
+/**
+ * ZWEI WÄHRUNGEN (Owner-Freigabe 31.08.2026: „Währung abhängig vom Land").
+ *
+ * Wer in Rumänien lebt, denkt in RON. Ihn nach Euro zu fragen, heisst ihn rechnen zu lassen —
+ * und wer rechnen muss, rundet, schätzt oder bricht ab. Die Diaspora denkt in Euro.
+ *
+ * DER KURS WIRD MITGESPEICHERT, nicht nur angewandt: Eine Zahl, die in einem Jahr mit einem
+ * anderen Kurs nachgerechnet wird, ergibt sonst ein anderes Ergebnis als das, was der
+ * Kandidat gesehen hat — und niemand könnte den Unterschied erklären.
+ */
+export type Waehrung = "RON" | "EUR";
+
+/** Stand 31.08.2026. Bei Änderung nur diese Zahl anfassen; alte Datensätze tragen ihren
+    eigenen Kurs und bleiben dadurch nachvollziehbar. */
+export const RON_JE_EUR = 4.97;
+
+/** Wer in Rumänien lebt, wird in RON gefragt — alle anderen in Euro. */
+export function waehrungFuerLand(land?: string): Waehrung {
+  return String(land ?? "").toLowerCase() === "ro" ? "RON" : "EUR";
+}
+
+/**
+ * Plausible Monatsnetto-Spannen je Währung. Alles darunter ist ein Vertipper, alles darüber
+ * eine Fantasie — beides gehört abgewiesen statt in einen Median.
+ */
+export function gehaltGrenzen(w: Waehrung): { min: number; max: number } {
+  return w === "RON" ? { min: 500, max: 100000 } : { min: GEHALT_MIN, max: GEHALT_MAX };
+}
+
+/** Für den währungsübergreifenden Filter im Talent Pool: alles auf Euro normiert. */
+export function inEuro(betrag: number, w: Waehrung, kurs = RON_JE_EUR): number {
+  return w === "RON" ? Math.round(betrag / kurs) : Math.round(betrag);
+}
+
+/**
+ * WOVON DER WECHSEL ABHÄNGT (Owner 31.08.2026: „Ein Jobwechsel ist nicht automatisch an ein
+ * höheres Gehalt gebunden").
+ *
+ * Bewusst aus der FRAGE abgeleitet und nicht aus dem Betrag: Ein Aufschlag von 0 % heisst
+ * nicht „will nicht wechseln", sondern „das Geld ist nicht der Punkt". Wer das aus dem Delta
+ * raten wollte, würde genau die Kandidaten falsch einsortieren, die am interessantesten sind —
+ * die, für die ein besserer Arbeitsplatz mehr zählt als ein höheres Gehalt.
+ */
+export type Antrieb = "financial" | "mixed" | "conditions";
+
+export function antrieb(gleichesGehalt?: string): Antrieb | null {
+  switch (gleichesGehalt) {
+    case "yes": return "conditions";
+    case "depends": return "mixed";
+    case "no": return "financial";
+    default: return null;
+  }
+}

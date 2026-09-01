@@ -37,6 +37,44 @@ export type Weitergabe = {
 export type JoburiLead = {
   id: string;
   erstelltAm: string;
+  /**
+   * WELCHE FASSUNG DES TRICHTERS DIESEN DATENSATZ ERZEUGT HAT (Owner-Freigabe 31.08.2026:
+   * „Alte Datensätze bekommen profileVersion = 1 … Nicht aus alten Antworten raten.").
+   *
+   * 1 = die Studien-Fassung: kannte weder Stadt noch Beschäftigungsstatus, Zielmärkte oder
+   *     Gesprächsbereitschaft. Diese Felder bleiben dort leer und werden NICHT abgeleitet.
+   * 2 = Talent Network, acht Schritte.
+   *
+   * Ohne dieses Feld liesse sich später nicht mehr sagen, ob ein leeres Feld „nicht gefragt"
+   * oder „nicht beantwortet" bedeutet — und jede Auswertung müsste raten.
+   */
+  profileVersion?: 1 | 2;
+
+  /* ── TALENT NETWORK, die acht Antworten ── */
+  /** Was er getippt hat. Die Kategorie steht weiterhin in `berufsfeld`. */
+  beruf?: string;
+  /** a2 · b1 · b2 · c1 · c2 · native — klein geschrieben, anders als das alte `deutsch`. */
+  deutschniveau?: string;
+  stadt?: string;
+  situation?: "employed_satisfied" | "employed_open" | "actively_searching" | "unemployed" | "self_employed" | "other";
+  motive?: string[];
+  /** Beträge in der Währung des Wohnlands — siehe `waehrung`. */
+  gehaltJetzt?: string;
+  /**
+   * Das Mindestgehalt eines neuen Angebots. DARF GLEICH ODER NIEDRIGER sein als das heutige
+   * (Owner 31.08.2026: „Ein Jobwechsel ist nicht automatisch an ein höheres Gehalt
+   * gebunden."). Eine Prüfung „muss höher sein" hätte genau die Kandidaten abgewiesen, die
+   * für bessere Bedingungen auch ohne Aufschlag wechseln.
+   */
+  gehaltMinimum?: string;
+  waehrung?: "RON" | "EUR";
+  /** Der Kurs, der beim Speichern galt — damit die Euro-Normierung nachrechenbar bleibt. */
+  kurs?: number;
+  /** yes · depends · no — die Frage, die aus einem Aufschlag von null eine Aussage macht. */
+  gleichesGehalt?: "yes" | "depends" | "no";
+  maerkte?: string[];
+  gespraech?: "yes" | "probably" | "maybe" | "not_now";
+
   /** Ein Probelauf (eigene Maschine oder Admin-Sitzung), kein Mensch. Bleibt gespeichert,
       fällt aber aus jeder Auswertung — sonst stünden unsere eigenen Klicks in der Studie,
       auf die wir uns gegenüber Firmen berufen. */

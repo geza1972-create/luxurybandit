@@ -37,8 +37,8 @@ export async function generateMetadata({ searchParams }: {
   const sp = await searchParams;
   const T = joburiTexte(String(sp.lang ?? "") || (await resolveLang("ro")));
   return {
-    title: `${T.studieTitel} ${T.studieTitelZwei}`,
-    description: T.studieUnter,
+    title: `${T.tnTitel} ${T.tnTitelZwei}`,
+    description: T.tnUnter,
     robots: { index: false, follow: false },
   };
 }
@@ -101,14 +101,14 @@ export default async function JoburiSeite({ searchParams }: { searchParams: Prom
           */}
         <JoburiFunnel T={T} lang={lang} kopf={
           <>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.studieKicker}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{T.tnKicker}</p>
             <h1 className="mt-1 text-[28px] font-black leading-[1.06]">
-              {T.studieTitel} <span className="text-[#f6cf51]">{T.studieTitelZwei}</span>
+              {T.tnTitel} <span className="text-[#f6cf51]">{T.tnTitelZwei}</span>
             </h1>
-            <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.studieUnter}</p>
+            <p className="mt-2.5 text-[15px] font-medium leading-snug text-white/85">{T.tnUnter}</p>
             {/* Was ihn erwartet, bevor er anfängt: neun Klicks, keine Person. Genau die zwei
                 Zahlen entscheiden, ob jemand die erste Frage überhaupt antippt. */}
-            <p className="mt-2 text-[12px] font-black uppercase tracking-[0.14em] text-white/45">{T.studieDauer}</p>
+            <p className="mt-2 text-[12px] font-black uppercase tracking-[0.14em] text-white/45">{T.tnDauer}</p>
           </>
         } />
       </div>

@@ -1,5 +1,5 @@
 import { leseAlleLeads, type JoburiLead } from "@/lib/joburi-leads";
-import { gehaltMitte } from "@/lib/joburi-gehalt";
+import { gehaltMitte, inEuro, type Waehrung } from "@/lib/joburi-gehalt";
 
 /**
  * DIE ZAHLEN, DIE EINE FIRMA SEHEN DARF (Owner 31.08.2026: „wir haben die Rekruterseite, wo
@@ -48,13 +48,15 @@ export type Studie = {
   deutsch: StudieAnteil[];
   suche: StudieAnteil[];
   berufe: StudieAnteil[];
+  /** Anteil derer, die auch ohne Gehaltserhöhung wechseln würden — null, solange zu wenige. */
+  ohneMehrGeld: number | null;
   abschluss: StudieAnteil[];
 };
 
 const LEER: Studie = {
   belastbar: false, fallzahl: null,
   jetztMedian: null, wechselMedian: null, sprungMedian: null,
-  deutsch: [], suche: [], berufe: [], abschluss: [],
+  deutsch: [], suche: [], berufe: [], abschluss: [], ohneMehrGeld: null,
 };
 
 function median(werte: number[]): number | null {
@@ -126,21 +128,60 @@ export async function studieZahlen(): Promise<Studie> {
   /* Der Sprung wird JE PERSON gerechnet und daraus der Median. Die Differenz der beiden
      Mediane wäre falsch: Sie stammen aus verschiedenen Teilmengen — nicht jeder beantwortet
      beide Felder — und gehörte am Ende keinem einzigen echten Menschen. */
-  const mitBeidem = echte.filter(l => l.jetztGehalt && l.wechselGehalt);
+  const mitBeidem = echte.filter(l => (l.gehaltJetzt ?? l.jetztGehalt) && (l.gehaltMinimum ?? l.wechselGehalt));
+
+  /**
+   * ZWEI FASSUNGEN, EINE AUSWERTUNG (31.08.2026).
+   *
+   * Version 1 (die Studien-Fassung) schrieb `deutsch`, `suche` und `wechselGehalt` in Euro.
+   * Version 2 (Talent Network) schreibt `deutschniveau`, `situation` und `gehaltMinimum` in
+   * der Währung des Wohnlands. Ohne diese Brücke stünde die Studie ab der Umstellung still —
+   * sie sähe die neuen Antworten nicht und die alten wären ihr einziger Bestand.
+   *
+   * DIE BETRÄGE WERDEN AUF EURO NORMIERT, sonst mischte der Median 8.000 RON mit 2.000 EUR
+   * und ergäbe eine Zahl, die es nirgends gibt.
+   */
+  const niveau = (l: JoburiLead) => (l.deutschniveau ?? l.deutsch ?? "").toUpperCase();
+  const status = (l: JoburiLead) => {
+    if (l.situation) {
+      /* Version 2 kennt sechs Zustände; für die öffentliche Studie zählen die drei, die es
+         schon immer gab — beschäftigt-zufrieden liest sich für eine Firma als „passiv". */
+      const AUF: Record<string, string> = {
+        employed_satisfied: "passiv", employed_open: "offen", actively_searching: "aktiv",
+        /* Ohne Job, selbstständig und „andere" gehören in keine der drei Schubladen. Sie
+           fallen aus DIESER Kennzahl heraus statt sie zu verfälschen — die Aussage lautet
+           „von den Beschäftigten suchen so viele nicht aktiv" und muss das auch bleiben. */
+        unemployed: "", self_employed: "", other: "",
+      };
+      return AUF[l.situation] ?? "";
+    }
+    return l.suche ?? "";
+  };
+  const euro = (betrag?: string, w?: string) =>
+    betrag ? inEuro(gehaltMitte(betrag), (w as Waehrung) ?? "EUR") : gehaltMitte(betrag);
 
   const wert: Studie = {
     belastbar: true,
     fallzahl: echte.length >= AB_HIER_FALLZAHL_NENNEN ? echte.length : null,
-    jetztMedian: median(echte.map(l => gehaltMitte(l.jetztGehalt))),
-    wechselMedian: median(echte.map(l => gehaltMitte(l.wechselGehalt))),
+    jetztMedian: median(echte.map(l => euro(l.gehaltJetzt ?? l.jetztGehalt, l.waehrung))),
+    wechselMedian: median(echte.map(l => euro(l.gehaltMinimum ?? l.wechselGehalt, l.waehrung))),
     sprungMedian: mitBeidem.length >= MIN_SEGMENT
-      ? median(mitBeidem.map(l => gehaltMitte(l.wechselGehalt) - gehaltMitte(l.jetztGehalt)))
+      ? median(mitBeidem.map(l => euro(l.gehaltMinimum ?? l.wechselGehalt, l.waehrung) - euro(l.gehaltJetzt ?? l.jetztGehalt, l.waehrung)))
       : null,
-    deutsch: anteile(echte, l => l.deutsch),
-    suche: anteile(echte, l => l.suche),
+    deutsch: anteile(echte, niveau),
+    suche: anteile(echte, status),
     /* Der Beruf kommt als getippter Text; gezeigt wird die abgeleitete Schublade, sonst
        stünde in der Studie dreimal dieselbe Tätigkeit in drei Schreibweisen. */
     berufe: anteile(echte, l => l.berufsfeld),
+    /* DIE ZAHL, DIE KEIN JOBPORTAL HAT (Owner 31.08.2026): Wie viele würden auch OHNE
+       Gehaltserhöhung wechseln, wenn die Bedingungen stimmen. Sie beantwortet einer Firma
+       die einzige Frage, die vor jedem Erstgespräch steht — „muss ich mehr zahlen?". */
+    ohneMehrGeld: (() => {
+      const gefragt = echte.filter(l => !!l.gleichesGehalt);
+      if (gefragt.length < MIN_GESAMT) return null;
+      const ja = gefragt.filter(l => l.gleichesGehalt === "yes" || l.gleichesGehalt === "depends").length;
+      return Math.round((ja / gefragt.length) * 100);
+    })(),
     abschluss: anteile(echte, l => l.studii),
   };
 

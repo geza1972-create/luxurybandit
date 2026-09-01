@@ -80,6 +80,9 @@ export type RecruitingText = {
   studieAbschluss: string;
   studieFallzahl: string;
   studieQuelle: string;
+  /* Die Zahl, die kein Jobportal hat: wie viele auch ohne Gehaltserhöhung wechseln würden. */
+  studieOhneGeld: string;
+  studieOhneGeldText: string;
   /* Beschriftungen der Antworten — dieselben Schlüssel wie im Trichter. */
   studieNiveaus: Record<string, string>;
   studieSuchen: Record<string, string>;
@@ -165,6 +168,8 @@ const de: RecruitingText = {
   studieAbschluss: "Abschluss",
   studieFallzahl: "Antworten",
   studieQuelle: "Netto pro Monat · laufende Erhebung",
+  studieOhneGeld: "würden auch ohne Gehaltserhöhung wechseln",
+  studieOhneGeldText: "wenn andere Bedingungen — Führung, Arbeitszeiten, Remote — deutlich besser wären.",
   studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
   studieSuchen: { aktiv: "Sucht aktiv", offen: "Offen für Angebote", passiv: "Wechselt nur für das Richtige" },
   studieFelder: { suport: "Support / Kundenservice", it: "IT", finante: "Finanzen", logistica: "Logistik", inginerie: "Technik / Produktion", vanzari: "Vertrieb", sanatate: "Gesundheit / Pflege", altul: "Weitere" },
@@ -240,6 +245,8 @@ const ro: RecruitingText = {
   studieAbschluss: "Studii",
   studieFallzahl: "Răspunsuri",
   studieQuelle: "Net pe lună · colectare continuă",
+  studieOhneGeld: "ar schimba și fără mărire de salariu",
+  studieOhneGeldText: "dacă alte condiții — conducere, program, remote — ar fi vizibil mai bune.",
   studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
   studieSuchen: { aktiv: "Caută activ", offen: "Deschis la oferte", passiv: "Schimbă doar pentru oferta potrivită" },
   studieFelder: { suport: "Suport / clienți", it: "IT", finante: "Finanțe", logistica: "Logistică", inginerie: "Inginerie / producție", vanzari: "Vânzări", sanatate: "Sănătate / îngrijire", altul: "Alte domenii" },
@@ -315,6 +322,8 @@ const en: RecruitingText = {
   studieAbschluss: "Education",
   studieFallzahl: "Responses",
   studieQuelle: "Net per month · ongoing survey",
+  studieOhneGeld: "would move without a pay rise",
+  studieOhneGeldText: "if other conditions — management, hours, remote — were clearly better.",
   studieNiveaus: { A2: "A2", B1: "B1", B2: "B2", C1: "C1", C2: "C2" },
   studieSuchen: { aktiv: "Actively looking", offen: "Open to offers", passiv: "Moves only for the right role" },
   studieFelder: { suport: "Support / customer service", it: "IT", finante: "Finance", logistica: "Logistics", inginerie: "Engineering / production", vanzari: "Sales", sanatate: "Healthcare", altul: "Other fields" },

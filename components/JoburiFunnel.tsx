@@ -5,7 +5,7 @@ import { Check, Mail } from "lucide-react";
 import { Knopf, Kasten, Eingabe, Fehlerzeile, Fortschritt, Haken } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import type { JoburiTexte } from "@/lib/joburi-texte";
-import { gehaltMitte, GEHALT_MIN, GEHALT_MAX } from "@/lib/joburi-gehalt";
+import { gehaltMitte, waehrungFuerLand, gehaltGrenzen, type Waehrung } from "@/lib/joburi-gehalt";
 
 /**
  * TALENT MARKET PULSE — DER TRICHTER FRAGT, STATT ZU ZEIGEN (Owner 31.08.2026).
@@ -29,10 +29,26 @@ import { gehaltMitte, GEHALT_MIN, GEHALT_MAX } from "@/lib/joburi-gehalt";
  * geht, dieselben CI-Bausteine.
  */
 
-type Schritt = "land" | "alter" | "deutsch" | "suche" | "gehalt" | "faktoren" | "rueckkehr" | "feld" | "summe" | "mail" | "danke";
+/**
+ * DIE ACHT SCHRITTE DES TALENT NETWORK (Owner-Freigabe 31.08.2026).
+ *
+ * Reihenfolge ist Absicht: Der Beruf steht vorn, weil er die leichteste Frage ist und
+ * niemanden ausschliesst; das Geld steht hinten, weil man es erst preisgibt, wenn man schon
+ * ein paar Antworten investiert hat. Ganz zuletzt die Gesprächsbereitschaft — sie liest sich
+ * nach den eigenen Bedingungen wie eine Schlussfolgerung und nicht wie eine Bewerbung.
+ *
+ * WAS HIER NICHT MEHR STEHT: `alter` und `studii` sind in die zweite Ebene gewandert
+ * (Profil vervollständigen), `rueckkehr` geht in `maerkte` auf. Der Vorbehalt zum Alter
+ * bleibt bestehen: Solange die Meta-Anzeige auf 25–54 begrenzt ist, lässt sich ohne diese
+ * Frage nicht prüfen, ob die Grenze richtig gesetzt war.
+ */
+type Schritt =
+  | "beruf" | "deutsch" | "standort" | "situation"
+  | "motive" | "geld" | "maerkte" | "gespraech"
+  | "summe" | "mail" | "danke";
 
 /** Nur Ziffern, höchstens fünf — „2.500" und „25oo" sind Vertipper, keine Beträge. */
-const nurZiffern = (v: string) => v.replace(/[^\d]/g, "").slice(0, 5);
+const nurZiffern = (v: string) => v.replace(/[^\d]/g, "").slice(0, 6);
 
 /**
  * EIN GELDFELD — UND ES STEHT AUF MODULEBENE, NICHT IN DER RENDER-FUNKTION.
@@ -46,10 +62,12 @@ const nurZiffern = (v: string) => v.replace(/[^\d]/g, "").slice(0, 5);
  * Bei den Antwort-Kacheln fiel das nie auf, weil ein Knopf keinen Fokus braucht. Wer hier
  * ein weiteres Eingabefeld ergänzt, legt es ebenfalls hierher.
  */
-function Geldfeld({ titel, wert, setzen }: { titel: string; wert: string; setzen: (v: string) => void }) {
+function Geldfeld({ titel, wert, setzen, waehrung }: {
+  titel: string; wert: string; setzen: (v: string) => void; waehrung: Waehrung;
+}) {
   return (
     <div className="min-w-0 flex-1">
-      <p className="mb-1.5 text-center text-[12px] font-black uppercase leading-tight tracking-[0.06em] text-white/50">{titel}</p>
+      <p className="mb-1.5 text-[12.5px] font-bold leading-snug text-white/60">{titel}</p>
       {/* <label> und nicht <div>: Erstens greift die Blau-Regel der hellen Fassung nur auf
           Knöpfe, Links, Labels und Auswahlfelder (app/globals.css) — als div blieb das Feld
           als Einziges grau. Zweitens setzt ein Tipp auf den Rahmen so den Cursor ins Feld,
@@ -59,14 +77,14 @@ function Geldfeld({ titel, wert, setzen }: { titel: string; wert: string; setzen
           type="text" inputMode="numeric" pattern="[0-9]*" value={wert} placeholder="0"
           onChange={e => setzen(nurZiffern(e.target.value))}
           className="w-full min-w-0 bg-transparent text-center text-[21px] font-black text-white outline-none placeholder:text-white/25" />
-        <span className="shrink-0 text-[16px] font-black text-white/45">€</span>
+        <span className="shrink-0 text-[14px] font-black text-white/45">{waehrung === "RON" ? "RON" : "€"}</span>
       </label>
     </div>
   );
 }
 
 export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: string; kopf?: React.ReactNode }) {
-  const [schritt, setSchritt] = useState<Schritt>("land");
+  const [schritt, setSchritt] = useState<Schritt>("beruf");
   /**
    * DIE KENNUNG LIEGT IN EINEM REF, NICHT IM ZUSTAND (31.08.2026 gemessen: ohne das legte
    * JEDE ANTWORT EINEN EIGENEN DATENSATZ AN — sieben Fragmente statt eines Kandidaten, und
@@ -78,28 +96,21 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
    */
   const leadIdRef = useRef("");
 
-  const [land, setLand] = useState("");
-  const [alter, setAlter] = useState("");
-  /* Das HEUTIGE Gehalt — Gegenstück zum Wunschgehalt. Erst beide zusammen ergeben die
-     Differenz, und die Differenz ist die Zahl, die eine Firma interessiert. */
-  const [jetzt, setJetzt] = useState("");
+  const [beruf, setBeruf] = useState("");
   const [deutsch, setDeutsch] = useState("");
-  const [suche, setSuche] = useState("");
-  const [gehalt, setGehalt] = useState("");
-  const [faktoren, setFaktoren] = useState<string[]>([]);
-  const [rueckkehr, setRueckkehr] = useState("");
-  const [feld, setFeld] = useState("");
-  /* Was jemand tippt, wenn keine der sieben Kacheln passt — die Lücke, die vorher nur
-     „Anderes" hiess und über die sich nichts aussagen liess. */
-  const [feldFrei, setFeldFrei] = useState("");
-  /* Der Abschluss (Owner 31.08.2026: „studii superioare…als dropdown?"). Er steht auf
-     DEMSELBEN Bildschirm wie der Beruf und kostet deshalb keinen zehnten Schritt — bei neun
-     Fragen ist jede weitere Seite ein Abbruchrisiko, ein zweites Feld auf einer bestehenden
-     Seite fast keines. */
-  const [studii, setStudii] = useState("");
-  /* Wie weit er schon war. Ohne das wäre der Vor-Pfeil entweder immer aktiv (und spränge über
-     unbeantwortete Fragen) oder immer tot (und wer zurückgeht, käme nur durch Neu-Antworten
-     wieder nach vorn). */
+  const [land, setLand] = useState("");
+  const [stadt, setStadt] = useState("");
+  const [situation, setSituation] = useState("");
+  const [motive, setMotive] = useState<string[]>([]);
+  /* Die drei Angaben des Geldschritts. `gleich` ist die wichtigste: Sie macht aus einem
+     Aufschlag von null eine Aussage statt eines Nullwerts. */
+  const [jetzt, setJetzt] = useState("");
+  const [minimum, setMinimum] = useState("");
+  const [gleich, setGleich] = useState("");
+  const [maerkte, setMaerkte] = useState<string[]>([]);
+  const [gespraech, setGespraech] = useState("");
+
+  /* Wie weit er schon war — der Vor-Pfeil darf nie über unbeantwortete Fragen springen. */
   const [weitester, setWeitester] = useState(0);
 
   const [mail, setMail] = useState("");
@@ -243,10 +254,14 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
    * VOR IST NUR SO WEIT MÖGLICH, WIE ER SCHON WAR. Sonst überspränge der Pfeil Fragen, die
    * nie beantwortet wurden, und die Studie bekäme Datensätze mit Löchern.
    */
-  const REIHE: Schritt[] = inDiaspora
-    ? ["land", "alter", "deutsch", "suche", "gehalt", "faktoren", "rueckkehr", "feld", "summe", "mail"]
-    : ["land", "alter", "deutsch", "suche", "gehalt", "faktoren", "feld", "summe", "mail"];
+  const REIHE: Schritt[] = [
+    "beruf", "deutsch", "standort", "situation",
+    "motive", "geld", "maerkte", "gespraech",
+    "summe", "mail",
+  ];
   const pos = REIHE.indexOf(schritt);
+  /** Wie viele davon echte Fragen sind — „summe" und „mail" zählen nicht mit. */
+  const FRAGEN = REIHE.length - 2;
 
   /* Jeder Schrittwechsel merkt sich den weitesten Punkt — auch der über die Pfeile. */
   useEffect(() => { setWeitester(w => (pos > w ? pos : w)); }, [pos]);
@@ -272,166 +287,151 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 bg-white/5 text-[15px] font-black text-white/80 active:scale-90">←</button>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/12">
         <div className="h-full rounded-full bg-[#f6cf51] transition-all duration-300"
-          style={{ width: `${Math.round(((pos + 1) / REIHE.length) * 100)}%` }} />
+          style={{ width: `${Math.min(100, Math.round(((pos + 1) / FRAGEN) * 100))}%` }} />
       </div>
       <button type="button" onClick={() => geheZu(pos + 1)} disabled={pos >= weitester} aria-label={T.weiter}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 bg-white/5 text-[15px] font-black text-white/80 transition active:scale-90 disabled:opacity-25">→</button>
-      <span className="shrink-0 text-[12px] font-black tabular-nums text-white/45">{pos + 1}/{REIHE.length}</span>
+      {/* Gezählt werden die acht FRAGEN, nicht die zehn Bildschirme: Der Kopf verspricht
+          „8 Fragen", und ein Zähler, der bis 10 läuft, macht aus dem Versprechen eine
+          Ungenauigkeit. Zusammenfassung und Adresse sind keine Fragen — dort steht keine
+          Zahl mehr, sondern nichts. */}
+      {pos < FRAGEN && (
+        <span className="shrink-0 text-[12px] font-black tabular-nums text-white/45">{pos + 1}/{FRAGEN}</span>
+      )}
     </div>
   );
 
   /* Der Kopf nur über der ersten Frage — ab der zweiten steht dort die Leiste. */
-  const kopfBlock = schritt === "land" && kopf ? <div className="mb-5">{kopf}</div> : null;
+  const kopfBlock = schritt === "beruf" && kopf ? <div className="mb-5">{kopf}</div> : null;
 
-  /* ─────────────────────────── Die Fragen ─────────────────────────── */
+  /* ─────────────────────────── Die acht Fragen ─────────────────────────── */
 
-  if (schritt === "land") {
-    return (
-      <Frage titel={T.fLand}>
-        <Wahl
-          optionen={[
-            { wert: "ro", text: T.landRo }, { wert: "de", text: T.landDe },
-            { wert: "at", text: T.landAt }, { wert: "alta", text: T.landAlta },
-          ]}
-          waehlen={w => { setLand(w); void merken({ land: w }); setSchritt("alter"); }} />
-      </Frage>
-    );
-  }
-
-  /* DAS ALTER — direkt nach dem Land, solange noch niemand müde ist (31.08.2026).
-     Es steht hier, weil eine Altersgrenze in der Anzeige sonst auf einer Vermutung beruht:
-     Meta zeigt nur, wer geklickt hat, nie ob dessen Antwort etwas taugte. */
-  if (schritt === "alter") {
-    return (
-      <Frage titel={T.fAlter} hinweis={T.fAlterHinweis} zurueck="land">
-        <Wahl
-          optionen={[
-            { wert: "u25", text: T.alterU25 }, { wert: "25-34", text: T.alter2534 },
-            { wert: "35-44", text: T.alter3544 }, { wert: "45-54", text: T.alter4554 },
-            { wert: "55+", text: T.alter55p },
-          ]}
-          waehlen={w => { setAlter(w); void merken({ alter: w }); setSchritt("deutsch"); }} />
-      </Frage>
-    );
-  }
-
-  if (schritt === "deutsch") {
-    return (
-      <Frage titel={T.frage1} hinweis={T.frage1Hinweis} zurueck="alter">
-        <Wahl
-          optionen={[
-            { wert: "A2", text: T.niveauA2 }, { wert: "B1", text: T.niveauB1 },
-            { wert: "B2", text: T.niveauB2 }, { wert: "C1", text: T.niveauC1 },
-            { wert: "C2", text: T.niveauC2 },
-          ]}
-          waehlen={w => { setDeutsch(w); void merken({ deutsch: w }); setSchritt("suche"); }} />
-      </Frage>
-    );
-  }
-
-  if (schritt === "suche") {
-    return (
-      <Frage titel={T.frage4} zurueck="deutsch">
-        <Wahl
-          optionen={[
-            { wert: "aktiv", text: T.sucheAktiv }, { wert: "offen", text: T.sucheOffen },
-            { wert: "passiv", text: T.suchePassiv },
-          ]}
-          waehlen={w => { setSuche(w); void merken({ suche: w }); setSchritt("gehalt"); }} />
-      </Frage>
-    );
-  }
-
-  /* DIE FRAGE, UM DIE ES GEHT — UND SIE STEHT SICH SELBST GEGENÜBER (Owner 31.08.2026:
-     „hier müssen die zwei felder gegenüber stehen. wieviel verdienst du jetzt und für wieviel
-     würdest du wechseln").
-     Zwei Spalten auf EINEM Bild, nicht zwei Schritte hintereinander. Der Grund ist nicht die
-     Bequemlichkeit, sondern die Wahrheit: Wer „700 €" links stehen sieht, während er rechts
-     auf „ab 3.000 €" tippt, sieht seinen eigenen Sprung. Getrennte Bildschirme verstecken
-     genau diesen Widerspruch — und der Widerspruch ist die interessanteste Zahl der Studie.
-     Als Stufe und nicht als offenes Feld: Eine leere Zahl beantwortet kaum jemand, eine
-     Spanne fast jeder — und für die Auswertung reicht sie.
-     LINKS HÄNGT AM WOHNLAND: Wer in Rumänien lebt, sieht rumänische Spannen (Owner: „hier
-     lügen sie alle. Wenn sie sagen Rumänien und sagen sie verdienen 2500, dann ist das eine
-     Lüge"). Wer dort übertreiben will, kann es um eine Stufe — nicht um drei. */
-  if (schritt === "gehalt") {
-    /* ZWEI ZAHLEN, NEBENEINANDER (Owner 31.08.2026: „oder besser er gibt es ein genau …
-       dann lügt er weniger").
-       Eine Kachel wählt man, eine Zahl behauptet man — und wer „2.500–3.000 €" antippt,
-       greift leichter eine Stufe zu hoch als jemand, der „2500" tippen muss. Die freie Zahl
-       ist ausserdem das Einzige, woraus sich ein echter Median rechnen lässt; aus Spannen
-       wird immer nur ein Median von Mittelwerten.
-       DER PREIS IST BEKANNT: Tippen kostet Abbrecher, und 85 % Antwortquote sind das
-       Wertvollste, was dieser Trichter hat. Deshalb sind es zwei kurze Felder, Zifferntastatur,
-       nebeneinander auf einem Bild — nicht zwei Bildschirme nacheinander. */
-    const n = (v: string) => Number(v);
-    const okJetzt = jetzt !== "" && n(jetzt) >= GEHALT_MIN && n(jetzt) <= GEHALT_MAX;
-    const okWunsch = gehalt !== "" && n(gehalt) >= GEHALT_MIN && n(gehalt) <= GEHALT_MAX;
-    const diff = okJetzt && okWunsch ? n(gehalt) - n(jetzt) : null;
-    /* HIER STEHT BEWUSST KEIN <Frage>, SONDERN DER KASTEN DIREKT (31.08.2026).
-       `Frage` und `Wahl` sind Bausteine INNERHALB dieser Render-Funktion — bequem, solange
-       darunter nur Knöpfe hängen. Für ein Eingabefeld sind sie tödlich: Bei jedem Tastendruck
-       ist `Frage` ein neuer Komponententyp, React wirft den ganzen Teilbaum weg und baut ihn
-       neu, und der Fokus geht mit. Der Owner konnte deshalb nur je eine Ziffer tippen und
-       musste danach wieder ins Feld tippen. `Kasten` kommt aus der CI-Bibliothek und ist
-       zwischen zwei Renders derselbe — die Eingabe überlebt.
-       WER HIER EIN WEITERES EINGABEFELD ERGÄNZT, hält sich an dieselbe Regel. */
+  /* 1 · BERUF. Steht vorn, weil es die leichteste Frage ist: Jeder kann sie beantworten,
+     niemand fühlt sich davon ausgeschlossen, und sie verrät noch nichts Heikles. */
+  if (schritt === "beruf") {
     return (
       <>
-      {leiste}
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.fGehaltBeide}</h2>
-        <p className="mt-1 text-[13px] font-medium text-white/60">{T.fJetztHinweis}</p>
-        <div className="mt-4 flex items-end gap-2.5">
-          <Geldfeld titel={T.fJetztKurz} wert={jetzt} setzen={setJetzt} />
-          <span className="pb-4 text-[18px] font-black text-white/35">→</span>
-          <Geldfeld titel={T.fGehaltKurz} wert={gehalt} setzen={setGehalt} />
-        </div>
-        {/* EIN GRAUER KNOPF IST KEINE ANTWORT (Hausregel: Absagen sichtbar ans Feld).
-            Wer „80" tippt, sieht sonst nur, dass es nicht weitergeht, und rät warum. */}
-        {((jetzt !== "" && !okJetzt) || (gehalt !== "" && !okWunsch)) && (
-          <Fehlerzeile>{T.gehaltSpanne}</Fehlerzeile>
-        )}
-        {/* Der Sprung, sobald beide Zahlen stehen — seine eigene Rechnung, nicht unsere Bewertung. */}
-        {diff !== null && (
-          <p className="mt-3 rounded-2xl border border-[#f6cf51]/35 lb-goldhauch px-4 py-2.5 text-center text-[13.5px] font-black text-white/90">
-            {diff > 0 ? `+${diff.toLocaleString("de-DE")} €` : `${diff.toLocaleString("de-DE")} €`}
-            <span className="ml-1.5 font-bold text-white/55">{T.sprungHinweis}</span>
-          </p>
-        )}
-        <div className="mt-3">
-          <Knopf art="gold" disabled={!okJetzt || !okWunsch}
-            onClick={() => { void merken({ jetztGehalt: jetzt, wechselGehalt: gehalt }); setSchritt("faktoren"); }}>
-            {T.weiter}
-          </Knopf>
-        </div>
-      </Kasten>
+        {kopfBlock}
+        <Kasten polster="p-5">
+          <h2 className="text-[19px] font-black leading-snug text-white">{T.tnBeruf}</h2>
+          <p className="mt-1 text-[13px] font-medium text-white/60">{T.tnBerufHinweis}</p>
+          <Eingabe className="mt-4" type="text" value={beruf} placeholder={T.tnBerufPlatz}
+            onChange={e => setBeruf(e.target.value.slice(0, 40))} />
+          <div className="mt-3">
+            <Knopf art="gold" disabled={beruf.trim().length < 2}
+              onClick={() => { void merken({ beruf: beruf.trim() }); setSchritt("deutsch"); }}>{T.weiter}</Knopf>
+          </div>
+        </Kasten>
       </>
     );
   }
 
-  /* MEHRFACHWAHL — deshalb als Einzige mit einem Weiter-Knopf. Ohne Auswahl bleibt er
-     stumm: Eine leere Antwort wäre kein Datensatz, sondern ein Loch in der Studie. */
-  if (schritt === "faktoren") {
-    const um = (w: string) => setFaktoren(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
+  /* 2 · DEUTSCH — mit „muttersprachlich" als sechster Stufe (Owner-Freigabe). */
+  if (schritt === "deutsch") {
+    return (
+      <Frage titel={T.tnDeutsch}>
+        <Wahl
+          optionen={[
+            { wert: "a2", text: T.niveauA2 }, { wert: "b1", text: T.niveauB1 },
+            { wert: "b2", text: T.niveauB2 }, { wert: "c1", text: T.niveauC1 },
+            { wert: "c2", text: T.niveauC2 }, { wert: "native", text: T.niveauNative },
+          ]}
+          waehlen={w => { setDeutsch(w); void merken({ deutschniveau: w }); setSchritt("standort"); }} />
+      </Frage>
+    );
+  }
+
+  /* 3 · STANDORT. Die Stadt ist neu und für einen Recruiter oft wichtiger als das Land —
+     „Timișoara" ist eine Suche, „Rumänien" ist keine. Sie entscheidet ausserdem die
+     Währung im Geldschritt. */
+  if (schritt === "standort") {
+    const STAEDTE = ["Timișoara", "Cluj-Napoca", "București", "Brașov", "Sibiu", "Iași", "Oradea", "Arad"];
+    return (
+      <>
+        {leiste}
+        <Kasten polster="p-5">
+          <h2 className="text-[19px] font-black leading-snug text-white">{T.tnStandort}</h2>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {[{ wert: "ro", text: T.landRo }, { wert: "de", text: T.landDe },
+              { wert: "at", text: T.landAt }, { wert: "alta", text: T.landAlta }].map(o => {
+              const an = land === o.wert;
+              return (
+                <button key={o.wert} type="button" onClick={() => setLand(o.wert)}
+                  className={`h-12 rounded-full border px-4 text-[14.5px] font-black transition active:scale-[0.98] ${
+                    an ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/20 bg-white/5 text-white/90"}`}>
+                  {o.text}
+                </button>
+              );
+            })}
+          </div>
+          {land && (
+            <>
+              <p className="mt-4 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.tnStadt}</p>
+              <Eingabe className="mt-1.5" type="text" value={stadt} placeholder={T.tnStadtPlatz}
+                onChange={e => setStadt(e.target.value.slice(0, 40))} />
+              {/* Vorschläge nur für Rumänien — anderswo raten wir nicht, welche Stadt gemeint
+                  sein könnte, und eine falsche Liste ist schlimmer als keine. */}
+              {land === "ro" && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {STAEDTE.map(o => (
+                    <button key={o} type="button" onClick={() => setStadt(o)}
+                      className={`rounded-full border px-3 py-1 text-[12.5px] font-bold transition active:scale-95 ${
+                        stadt === o ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3">
+                <Knopf art="gold" disabled={stadt.trim().length < 2}
+                  onClick={() => { void merken({ land, stadt: stadt.trim() }); setSchritt("situation"); }}>{T.weiter}</Knopf>
+              </div>
+            </>
+          )}
+        </Kasten>
+      </>
+    );
+  }
+
+  /* 4 · SITUATION. Sechs Antworten statt der bisherigen drei — und keine davon schliesst
+     jemanden aus. Wertvoll sind die ersten beiden, aber wer aktiv sucht oder ohne Job ist,
+     wird deshalb nicht abgewiesen. */
+  if (schritt === "situation") {
+    return (
+      <Frage titel={T.tnSituation}>
+        <Wahl
+          optionen={[
+            { wert: "employed_satisfied", text: T.sitZufrieden },
+            { wert: "employed_open", text: T.sitOffen },
+            { wert: "actively_searching", text: T.sitAktiv },
+            { wert: "unemployed", text: T.sitOhne },
+            { wert: "self_employed", text: T.sitSelbst },
+            { wert: "other", text: T.sitAndere },
+          ]}
+          waehlen={w => { setSituation(w); void merken({ situation: w }); setSchritt("motive"); }} />
+      </Frage>
+    );
+  }
+
+  /* 5 · WECHSELMOTIVE. Vierzehn Kästchen, bewusst nicht wertend formuliert: „weniger Stress"
+     steht gleichberechtigt neben „mehr Gehalt". Genau diese Liste erklärt später, WARUM
+     jemand wechseln würde, der kein höheres Gehalt verlangt. */
+  if (schritt === "motive") {
+    const um = (w: string) => setMotive(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
     const OPT = [
-      { wert: "salariu", text: T.faktorSalariu }, { wert: "remote", text: T.faktorRemote },
-      { wert: "flexibilitate", text: T.faktorFlex }, { wert: "cariera", text: T.faktorCariera },
-      { wert: "stabilitate", text: T.faktorStabil }, { wert: "echipa", text: T.faktorEchipa },
+      { wert: "salary", text: T.mSalariu }, { wert: "employer", text: T.mAngajator },
+      { wert: "management", text: T.mConducere }, { wert: "less_stress", text: T.mStres },
+      { wert: "hours", text: T.mProgram }, { wert: "remote", text: T.mRemote },
+      { wert: "position", text: T.mPozitie }, { wert: "work_itself", text: T.mActivitate },
+      { wert: "career", text: T.mCariera }, { wert: "culture", text: T.mCultura },
+      { wert: "security", text: T.mSiguranta }, { wert: "germany", text: T.mGermania },
+      { wert: "benefits", text: T.mBeneficii }, { wert: "other", text: T.mAltele },
     ];
     return (
-      <Frage titel={T.fFaktoren} hinweis={T.fFaktorenHinweis} zurueck="gehalt">
+      <Frage titel={T.tnMotive} hinweis={T.tnMotiveHinweis}>
         <div className="mt-4 flex flex-col gap-2">
           {OPT.map(o => {
-            const an = faktoren.includes(o.wert);
-            /* EIN KÄSTCHEN LINKS, KEINE VOLLE FÜLLUNG (Owner 31.08.2026: „hier chckboxen").
-               Alle anderen Fragen haben genau eine Antwort, und dort färbt sich die gewählte
-               Kachel ganz. Sähe die Mehrfachwahl genauso aus, hielte man die erste Antwort
-               für die letzte und tippte weiter — die Frage „Poți alege mai multe" stand zwar
-               darüber, aber gelesen wird sie nicht.
-               Das Kästchen sagt es ohne Text: hier darf man mehrere.
-               Gewählt wechselt die FARBE, nicht die Grösse — sonst springt die Liste beim
-               Antippen (Hausregel „Auswahl verschiebt NIE"). */
+            const an = motive.includes(o.wert);
             return (
               <button key={o.wert} type="button" onClick={() => um(o.wert)} aria-pressed={an}
                 className={`flex h-12 items-center gap-3 rounded-full border px-4 text-left text-[15px] font-black transition active:scale-[0.98] ${
@@ -446,132 +446,185 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
           })}
         </div>
         <div className="mt-4">
-          <Knopf art="gold" disabled={!faktoren.length}
-            onClick={() => { void merken({ faktoren }); setSchritt(inDiaspora ? "rueckkehr" : "feld"); }}>
-            {T.weiter}
-          </Knopf>
+          <Knopf art="gold" disabled={!motive.length}
+            onClick={() => { void merken({ motive }); setSchritt("geld"); }}>{T.weiter}</Knopf>
         </div>
       </Frage>
     );
   }
 
-  /* NUR FÜR DIE DIASPORA: Wer in Rumänien arbeitet, kann nicht zurückkehren — die Frage
-     wäre dort nicht nur überflüssig, sondern unverständlich. */
-  if (schritt === "rueckkehr") {
-    return (
-      <Frage titel={T.fRueckkehr} zurueck="faktoren">
-        <Wahl
-          optionen={[
-            { wert: "da", text: T.rueckDa }, { wert: "poate", text: T.rueckPoate },
-            { wert: "nu", text: T.rueckNu },
-          ]}
-          waehlen={w => { setRueckkehr(w); void merken({ rueckkehr: w }); setSchritt("feld"); }} />
-      </Frage>
-    );
-  }
-
-  /* DER BERUF WIRD GETIPPT (Owner 31.08.2026: „was arbeitest du auch eintippen oder noch
-     besser was bist du vom beruf").
-     Acht Kacheln waren für einen Recruiter fast wertlos: „Gesundheit / Pflege" kann die
-     Chefärztin sein oder der Fahrer des Pflegedienstes. „Asistentă medicală" ist eine Person,
-     mit der man reden kann.
-     DIE KATEGORIE GEHT NICHT VERLOREN — sie wird auf dem Server aus dem Text abgeleitet
-     (lib/joburi-beruf.ts, eine Stichwortliste, kein bezahltes Modell). Der Trichter schickt
-     also nur, was der Mensch gesagt hat; einsortiert wird woanders.
-     KEIN <Frage> um das Feld: siehe die Begründung beim Gehalt — ein in der Render-Funktion
-     definierter Wrapper nimmt dem Eingabefeld bei jedem Tastendruck den Fokus. */
-  if (schritt === "feld") {
-    /* BEIDES IST PFLICHT (Owner 31.08.2026: „Abschuss ist pflicht … bis dahin ist weiter
-       inaktiv"). Der Abschluss ist neben Deutschniveau und Beruf die dritte Angabe, nach der
-       eine Firma filtert — fehlt er, ist die Zeile für einen Recruiter halb blind. Und er
-       kostet keinen eigenen Schritt: Er steht auf derselben Seite wie der Beruf. */
-    const fertig = feldFrei.trim().length >= 2 && !!studii;
+  /* 6 · DER GELDSCHRITT — EIN MOMENT, DREI ANGABEN (Owner-Freigabe 31.08.2026).
+     Beide Beträge auf einer Karte, darunter die Frage, die den Rest erklärt.
+     DER MINDESTBETRAG DARF GLEICH ODER NIEDRIGER SEIN: „Ein Jobwechsel ist nicht automatisch
+     an ein höheres Gehalt gebunden." Eine Prüfung „muss höher sein" hätte genau die
+     Kandidaten abgewiesen, die am interessantesten sind. */
+  if (schritt === "geld") {
+    const w = waehrungFuerLand(land);
+    const G = gehaltGrenzen(w);
+    const n = (v: string) => Number(v);
+    const okJetzt = jetzt !== "" && n(jetzt) >= G.min && n(jetzt) <= G.max;
+    const okMin = minimum !== "" && n(minimum) >= G.min && n(minimum) <= G.max;
+    const diff = okJetzt && okMin ? n(minimum) - n(jetzt) : null;
+    const prozent = diff !== null && n(jetzt) > 0 ? Math.round((diff / n(jetzt)) * 100) : null;
     return (
       <>
-      {leiste}
-      <Kasten polster="p-5">
-        <h2 className="text-[19px] font-black leading-snug text-white">{T.fBerufsfeld}</h2>
-        <p className="mt-1 text-[13px] font-medium text-white/60">{T.fBerufHinweis}</p>
-        <Eingabe className="mt-4" type="text" value={feldFrei} placeholder={T.feldFreiPlatzhalter}
-          onChange={e => setFeldFrei(e.target.value.slice(0, 40))} />
+        {leiste}
+        <Kasten polster="p-5">
+          <h2 className="text-[19px] font-black leading-snug text-white">{T.tnGeld}</h2>
+          <p className="mt-1 text-[13px] font-medium text-white/60">{T.tnGeldHinweis}</p>
 
-        {/* Ein natives <select>: Auf dem Handy öffnet das den Systempicker — kein eigener
-            Overlay-Dialog, der hier ohnehin nichts zu suchen hätte, und keine fünf weiteren
-            Kacheln, die die Seite doppelt so lang machen. */}
-        <p className="mt-4 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">{T.fStudii}</p>
-        <select value={studii} onChange={e => setStudii(e.target.value)}
-          className="mt-1.5 h-12 w-full rounded-2xl border border-white/20 bg-white/5 px-4 text-[15px] font-black text-white outline-none">
-          <option value="" className="text-black">{T.studiiWaehlen}</option>
-          <option value="gimnaziu" className="text-black">{T.studiiGimnaziu}</option>
-          <option value="liceu" className="text-black">{T.studiiLiceu}</option>
-          <option value="profesionala" className="text-black">{T.studiiProfesionala}</option>
-          <option value="licenta" className="text-black">{T.studiiLicenta}</option>
-          <option value="master" className="text-black">{T.studiiMaster}</option>
-        </select>
+          <div className="mt-4 flex flex-col gap-3">
+            <Geldfeld titel={T.tnGeldJetzt} wert={jetzt} setzen={setJetzt} waehrung={w} />
+            <Geldfeld titel={T.tnGeldMin} wert={minimum} setzen={setMinimum} waehrung={w} />
+          </div>
 
-        <div className="mt-3">
-          <Knopf art="gold" disabled={!fertig}
-            onClick={() => {
-              setFeld(feldFrei.trim());
-              void merken({ berufsfeldFrei: feldFrei.trim(), ...(studii ? { studii } : {}) });
-              setSchritt("summe");
-            }}>
-            {T.weiter}
-          </Knopf>
-        </div>
-      </Kasten>
+          {((jetzt !== "" && !okJetzt) || (minimum !== "" && !okMin)) && (
+            <Fehlerzeile>{`${G.min.toLocaleString("de-DE")} – ${G.max.toLocaleString("de-DE")} ${w}`}</Fehlerzeile>
+          )}
+
+          {/* DIE FRAGE, DIE AUS EINER NULL EINE AUSSAGE MACHT. Ohne sie stünde bei gleichem
+              Betrag „+0 %" — und ein wechselbereiter Mensch sähe aus wie ein unwilliger. */}
+          {okJetzt && okMin && (
+            <>
+              <p className="mt-4 text-[13.5px] font-bold leading-snug text-white/80">{T.tnGleich}</p>
+              <div className="mt-2 flex flex-col gap-2">
+                {[{ wert: "yes", text: T.gleichJa },
+                  { wert: "depends", text: T.gleichVielleicht },
+                  { wert: "no", text: T.gleichNein }].map(o => {
+                  const an = gleich === o.wert;
+                  return (
+                    <button key={o.wert} type="button" onClick={() => setGleich(o.wert)}
+                      className={`h-11 rounded-full border px-4 text-left text-[14px] font-black transition active:scale-[0.98] ${
+                        an ? "border-[#f6cf51] bg-[#f6cf51] text-black" : "border-white/20 bg-white/5 text-white/90"}`}>
+                      {o.text}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Die Ergebniszeile spricht drei Fälle aus — nie eine nackte Prozentzahl. */}
+          {diff !== null && gleich && (
+            <p className="mt-3 rounded-2xl border border-[#f6cf51]/35 lb-goldhauch px-4 py-2.5 text-center text-[14px] font-black text-white/90">
+              {diff > 0
+                ? `+${diff.toLocaleString("de-DE")} ${w}${prozent !== null ? ` · +${prozent} %` : ""}`
+                : diff === 0 ? T.sprungGleich : T.sprungWeniger}
+            </p>
+          )}
+
+          <div className="mt-3">
+            <Knopf art="gold" disabled={!okJetzt || !okMin || !gleich}
+              onClick={() => {
+                void merken({ gehaltJetzt: jetzt, gehaltMinimum: minimum, waehrung: w, gleichesGehalt: gleich });
+                setSchritt("maerkte");
+              }}>{T.weiter}</Knopf>
+          </div>
+        </Kasten>
       </>
     );
   }
 
-  /* ── Die Zusammenfassung: NUR seine eigenen Antworten ──
-     KEINE MARKTZAHL (Owner 31.08.2026: „Keine erfundenen Marktwerte oder Benchmarks
-     anzeigen."). Wir haben noch keine Studie; eine Zahl an dieser Stelle wäre geraten, und
-     genau daran zerbricht das Vertrauen, das der ganze Trichter aufbaut. Was wir zeigen
-     können, ist er selbst — sauber zurückgespiegelt. */
+  /* 7 · ZIELMÄRKTE. Ersetzt die alte Rückkehr-Frage — sie war ein Sonderfall dessen, was
+     hier vollständig steht. „Ich möchte nicht umziehen" ist bewusst eine Option und keine
+     eigene Frage: Auch das ist eine Bedingung. */
+  if (schritt === "maerkte") {
+    const um = (w: string) => setMaerkte(f => f.includes(w) ? f.filter(x => x !== w) : [...f, w]);
+    const OPT = [
+      { wert: "romania", text: T.marktRo }, { wert: "germany", text: T.marktDe },
+      { wert: "remote", text: T.marktRemote }, { wert: "eu", text: T.marktEu },
+      { wert: "relocate_ro", text: T.marktUmzug }, { wert: "no_relocation", text: T.marktKeinUmzug },
+    ];
+    return (
+      <Frage titel={T.tnMaerkte} hinweis={T.tnMaerkteHinweis}>
+        <div className="mt-4 flex flex-col gap-2">
+          {OPT.map(o => {
+            const an = maerkte.includes(o.wert);
+            return (
+              <button key={o.wert} type="button" onClick={() => um(o.wert)} aria-pressed={an}
+                className={`flex h-12 items-center gap-3 rounded-full border px-4 text-left text-[15px] font-black transition active:scale-[0.98] ${
+                  an ? "border-[#f6cf51] bg-[#f6cf51]/10 text-[#f6cf51]" : "border-white/20 bg-white/5 text-white/90"}`}>
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-2 transition ${
+                  an ? "border-[#f6cf51] bg-[#f6cf51]" : "border-white/35"}`}>
+                  {an && <Check className="lb-haken h-3.5 w-3.5 text-black" strokeWidth={3.5} />}
+                </span>
+                {o.text}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4">
+          <Knopf art="gold" disabled={!maerkte.length}
+            onClick={() => { void merken({ maerkte }); setSchritt("gespraech"); }}>{T.weiter}</Knopf>
+        </div>
+      </Frage>
+    );
+  }
+
+  /* 8 · DIE GESPRÄCHSBEREITSCHAFT. Sie steht zuletzt, weil sie sich nach den eigenen
+     Bedingungen wie eine Schlussfolgerung liest — und nicht wie eine Bewerbung. */
+  if (schritt === "gespraech") {
+    return (
+      <Frage titel={T.tnGespraech}>
+        <Wahl
+          optionen={[
+            { wert: "yes", text: T.gesprJa }, { wert: "probably", text: T.gesprWahrsch },
+            { wert: "maybe", text: T.gesprViell }, { wert: "not_now", text: T.gesprNein },
+          ]}
+          waehlen={w => { setGespraech(w); void merken({ gespraech: w }); setSchritt("summe"); }} />
+      </Frage>
+    );
+  }
+
+  /* ── DIE WECHSELBEDINGUNGEN — SEINE ANTWORTEN, SONST NICHTS ──
+     Keine Marktzahl, keine Einschätzung, ob der Betrag realistisch ist (Owner: „Keine
+     erfundenen Jobmarktwerte. Keine Behauptung, dass dieses Gehalt realistisch ist.").
+     Was hier steht, hat er selbst gesagt — und genau deshalb glaubt er es. */
   if (schritt === "summe") {
-    /* Beide Gehaltszeilen holen ihren Text aus derselben Tabelle. Die alten Schlüssel stehen
-       mit drin: Wer den Trichter vor der Umstellung begonnen hat, soll seine Antwort
-       trotzdem lesbar zurückbekommen. */
-    /* Eine getippte Zahl wird als Betrag gezeigt; ein alter Stufen-Schlüssel über dieselbe
-       Übersetzung, die auch die Auswertung benutzt. */
-    const alsBetrag = (v: string) => {
-      const e = gehaltMitte(v);
-      return e ? `${e.toLocaleString("de-DE")} €` : v;
+    const w = waehrungFuerLand(land);
+    const geldText = (() => {
+      const j = Number(jetzt), m = Number(minimum);
+      if (!j || !m) return "—";
+      const d = m - j;
+      const p = j > 0 ? Math.round((d / j) * 100) : null;
+      if (d > 0) return `${m.toLocaleString("de-DE")} ${w} · +${p} %`;
+      if (d === 0) return `${m.toLocaleString("de-DE")} ${w} · ${T.sprungGleich}`;
+      return `${m.toLocaleString("de-DE")} ${w} · ${T.sprungWeniger}`;
+    })();
+    const NAME_SIT: Record<string, string> = {
+      employed_satisfied: T.sitZufrieden, employed_open: T.sitOffen, actively_searching: T.sitAktiv,
+      unemployed: T.sitOhne, self_employed: T.sitSelbst, other: T.sitAndere,
     };
-    const w: Record<string, string> = {
-      land: { ro: T.landRo, de: T.landDe, at: T.landAt, alta: T.landAlta }[land] ?? land,
-      suche: { aktiv: T.sucheAktiv, offen: T.sucheOffen, passiv: T.suchePassiv }[suche] ?? suche,
-      gehalt: alsBetrag(gehalt),
-      alter: { u25: T.alterU25, "25-34": T.alter2534, "35-44": T.alter3544,
-               "45-54": T.alter4554, "55+": T.alter55p }[alter] ?? alter,
-      jetzt: alsBetrag(jetzt),
-      rueckkehr: { da: T.rueckDa, poate: T.rueckPoate, nu: T.rueckNu }[rueckkehr] ?? rueckkehr,
-      /* Sein eigener Wortlaut, nicht unsere Schublade. */
-      feld: feldFrei.trim() || feld,
-      studii: { gimnaziu: T.studiiGimnaziu, liceu: T.studiiLiceu, profesionala: T.studiiProfesionala,
-                licenta: T.studiiLicenta, master: T.studiiMaster }[studii] ?? studii,
-      faktoren: faktoren.map(f => ({ salariu: T.faktorSalariu, remote: T.faktorRemote,
-        flexibilitate: T.faktorFlex, cariera: T.faktorCariera, stabilitate: T.faktorStabil,
-        echipa: T.faktorEchipa }[f] ?? f)).join(" · "),
+    const NAME_MOTIV: Record<string, string> = {
+      salary: T.mSalariu, employer: T.mAngajator, management: T.mConducere, less_stress: T.mStres,
+      hours: T.mProgram, remote: T.mRemote, position: T.mPozitie, work_itself: T.mActivitate,
+      career: T.mCariera, culture: T.mCultura, security: T.mSiguranta, germany: T.mGermania,
+      benefits: T.mBeneficii, other: T.mAltele,
     };
+    const NAME_MARKT: Record<string, string> = {
+      romania: T.marktRo, germany: T.marktDe, remote: T.marktRemote,
+      eu: T.marktEu, relocate_ro: T.marktUmzug, no_relocation: T.marktKeinUmzug,
+    };
+    const NAME_GESPR: Record<string, string> = {
+      yes: T.gesprJa, probably: T.gesprWahrsch, maybe: T.gesprViell, not_now: T.gesprNein,
+    };
+    const NAME_LAND: Record<string, string> = { ro: T.landRo, de: T.landDe, at: T.landAt, alta: T.landAlta };
+
     const zeilen: [string, string][] = [
-      [T.summeLand, w.land],
-      ...(alter ? ([[T.summeAlter, w.alter]] as [string, string][]) : []),
-      [T.summeDeutsch, deutsch],
-      [T.summeStatus, w.suche],
-      ...(jetzt ? ([[T.summeJetzt, w.jetzt]] as [string, string][]) : []),
-      [T.summeGehalt, w.gehalt],
-      [T.summeFaktoren, w.faktoren],
-      ...(inDiaspora && rueckkehr ? ([[T.summeRueckkehr, w.rueckkehr]] as [string, string][]) : []),
-      [T.summeFeld, w.feld],
-      ...(studii ? ([[T.fStudii, w.studii]] as [string, string][]) : []),
+      [T.tnSummeBeruf, beruf.trim() || "—"],
+      [T.tnSummeDeutsch, deutsch === "native" ? T.niveauNative : deutsch.toUpperCase()],
+      [T.tnSummeOrt, [stadt.trim(), NAME_LAND[land]].filter(Boolean).join(", ")],
+      [T.tnSummeSituation, NAME_SIT[situation] ?? "—"],
+      [T.tnSummeMotive, motive.map(m => NAME_MOTIV[m] ?? m).join(" · ")],
+      [T.tnSummeGeld, geldText],
+      [T.tnSummeMaerkte, maerkte.map(m => NAME_MARKT[m] ?? m).join(" · ")],
+      [T.tnSummeGespraech, NAME_GESPR[gespraech] ?? "—"],
     ];
     return (
       <div className="flex flex-col gap-3">
         {leiste}
         <Kasten polster="p-5">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{T.summeTitel}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{T.tnSummeTitel}</p>
           <dl className="mt-3">
             {zeilen.map(([k, v], i) => (
               <div key={k} className={`flex items-baseline justify-between gap-4 py-2 ${i > 0 ? "border-t border-white/12" : ""}`}>
@@ -580,17 +633,13 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
               </div>
             ))}
           </dl>
-          <p className="mt-3 text-[12.5px] font-medium leading-snug text-white/55">{T.summeHinweis}</p>
+          <p className="mt-3 text-[12.5px] font-medium leading-snug text-white/55">{T.tnSummeSchluss}</p>
         </Kasten>
-        <Knopf art="gold" onClick={() => setSchritt("mail")}>{T.studieKnopf}</Knopf>
+        <Knopf art="gold" onClick={() => setSchritt("mail")}>{T.tnSummeKnopf}</Knopf>
       </div>
     );
   }
 
-  /* ── Die Adresse — und NUR sie ──
-     Kein Name, kein Telefon, kein Lebenslauf (Owner 31.08.2026). Die Einwilligung ist
-     dieselbe wie bisher, samt der Zusage darunter, dass nichts automatisch an Arbeitgeber
-     geht — das ist die Sorge, mit der jemand seine Adresse zurückhält. */
   if (schritt === "mail") {
     return (
       <>

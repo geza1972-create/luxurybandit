@@ -324,6 +324,19 @@ export default async function RecruitingSeite({ lang, imPfad = false }: { lang: 
             ))}
           </div>
 
+          {/* DIE ZAHL, DIE EIN ERSTGESPRÄCH ERÖFFNET (Owner 31.08.2026): Sie beantwortet die
+              Frage, die vor jeder Kandidatensuche steht — „muss ich mehr zahlen?". Ein
+              Portal kann sie nicht beantworten, weil dort niemand danach gefragt wird. */}
+          {studie.ohneMehrGeld !== null && (
+            <div className="mt-2.5 lg:mt-5">
+              <Kasten polster="p-5 lg:p-6">
+                <p className="text-[34px] font-black leading-none text-[#f6cf51] lg:text-[46px]">{studie.ohneMehrGeld} %</p>
+                <p className="mt-2 text-[15px] font-black leading-snug text-white lg:text-[17px]">{T.studieOhneGeld}</p>
+                <p className="mt-1 text-[13.5px] font-medium leading-snug text-white/65">{T.studieOhneGeldText}</p>
+              </Kasten>
+            </div>
+          )}
+
           {/* Die Anteile — jede Liste entfällt, sobald zu wenig dahintersteht. */}
           <div className="mt-2.5 grid grid-cols-1 gap-2.5 lg:mt-5 lg:grid-cols-2 lg:gap-5">
             {([

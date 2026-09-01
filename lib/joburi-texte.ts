@@ -51,6 +51,71 @@ export const RO = {
      verspricht damit nichts, was der Bestand halten müsste — und fragt genau das, was kein
      Jobportal weiss. */
   studieKicker: "STUDIU · LIMBA GERMANĂ PE PIAȚA MUNCII",
+
+  /* ══ TALENT NETWORK — DIE ACHT SCHRITTE (Owner 31.08.2026, Freigabe) ══
+     Der Kern heisst ab jetzt nicht mehr „welchen Job suchst du", sondern „was müsste ein
+     Arbeitgeber bieten, damit du deinen jetzigen verlässt". Die Texte sprechen deshalb
+     jemanden an, der NICHT sucht — 55 % der bisherigen Antworten kommen von genau dort. */
+  tnKicker: "REȚEA PRIVATĂ DE TALENTE · GERMANĂ",
+  tnTitel: "Ai deja un job.",
+  tnTitelZwei: "Dar poate nu la prețul potrivit.",
+  tnUnter: "Spune-ne o singură dată ce știi să faci și ce ar trebui să ofere o poziție nouă. Dacă apare ceva cu adevărat potrivit, te anunțăm.",
+  tnDauer: "8 întrebări · fără CV, fără nume",
+  tnStart: "Află-ți condițiile de schimbare",
+
+  tnBeruf: "Ce meserie ai?",
+  tnBerufHinweis: "Scrie exact, așa cum ai spune unui prieten.",
+  tnBerufPlatz: "ex. asistentă medicală, electrician",
+
+  tnDeutsch: "Cât de bine vorbești germana?",
+  niveauNative: "Limbă maternă",
+
+  tnStandort: "Unde locuiești și lucrezi?",
+  tnStadt: "Orașul",
+  tnStadtPlatz: "ex. Timișoara",
+
+  tnSituation: "Care e situația ta acum?",
+  sitZufrieden: "Am un job și sunt mulțumit",
+  sitOffen: "Am un job, dar aș fi deschis la ceva mai bun",
+  sitAktiv: "Caut activ",
+  sitOhne: "Momentan nu am job",
+  sitSelbst: "Sunt pe cont propriu",
+  sitAndere: "Altă situație",
+
+  tnMotive: "Ce ar trebui să facă mai bine un job nou?",
+  tnMotiveHinweis: "Alege tot ce contează pentru tine.",
+  mSalariu: "Salariu mai bun", mAngajator: "Angajator mai bun", mConducere: "Conducere mai bună",
+  mStres: "Mai puțin stres", mProgram: "Program mai bun", mRemote: "Remote",
+  mPozitie: "Poziție mai bună", mActivitate: "Activitate mai interesantă", mCariera: "Carieră",
+  mCultura: "Cultură de companie", mSiguranta: "Siguranță", mGermania: "Germania / internațional",
+  mBeneficii: "Beneficii", mAltele: "Altceva",
+
+  tnGeld: "Ce ar trebui să se schimbe financiar?",
+  tnGeldJetzt: "Acum câștig net",
+  tnGeldMin: "Ce salariu net ar trebui să aibă o ofertă ca să o iau în serios?",
+  tnGeldHinweis: "Rămâne confidențial. Salariul actual nu ajunge niciodată la un angajator.",
+  tnGleich: "Ai schimba și pentru cam același salariu, dacă alte condiții ar fi mult mai bune?",
+  gleichJa: "Da",
+  gleichVielleicht: "Depinde de condiții",
+  gleichNein: "Nu, financiar trebuie să fie mai bine",
+  sprungPlus: "în plus",
+  sprungGleich: "Același salariu — contează condițiile",
+  sprungWeniger: "Și pentru mai puțin, dacă se potrivesc condițiile",
+
+  tnMaerkte: "Unde ar intra în discuție o ofertă cu adevărat bună?",
+  tnMaerkteHinweis: "Poți alege mai multe.",
+  marktRo: "România", marktDe: "Germania", marktRemote: "Complet remote",
+  marktEu: "Altă țară din UE", marktUmzug: "Mutare în România", marktKeinUmzug: "Nu vreau să mă mut",
+
+  tnGespraech: "Dacă un angajator ar îndeplini exact aceste condiții — ai vorbi cu el?",
+  gesprJa: "Da", gesprWahrsch: "Probabil", gesprViell: "Poate", gesprNein: "Momentan mai degrabă nu",
+
+  tnSummeTitel: "CONDIȚIILE TALE DE SCHIMBARE",
+  tnSummeBeruf: "Meserie", tnSummeDeutsch: "Germană", tnSummeOrt: "Locație",
+  tnSummeSituation: "Situație", tnSummeMotive: "Contează", tnSummeGeld: "Financiar",
+  tnSummeMaerkte: "Piețe", tnSummeGespraech: "Discuție",
+  tnSummeSchluss: "Exact după astfel de oferte putem fi atenți pentru tine.",
+  tnSummeKnopf: "Contactați-mă doar pentru oferte potrivite",
   studieTitel: "Vorbești germană?",
   studieTitelZwei: "Pentru ce salariu ai schimba jobul?",
   studieUnter: "Spune-ne ce ofertă te-ar face să iei în calcul o schimbare. Vrem să aflăm cât valorează în realitate limba germană pe piața muncii din România.",
@@ -227,6 +292,67 @@ export const DE: JoburiTexte = {
 
 
   studieKicker: "STUDIE · DEUTSCH AUF DEM ARBEITSMARKT",
+
+  tnKicker: "PRIVATES TALENT NETWORK · DEUTSCH",
+  tnTitel: "Du hast schon einen Job.",
+  tnTitelZwei: "Aber vielleicht nicht den richtigen Preis dafür.",
+  tnUnter: "Sag uns einmal, was du kannst und was ein neues Angebot bieten müsste. Wenn wir etwas wirklich Passendes finden, melden wir uns.",
+  tnDauer: "8 Fragen · ohne Lebenslauf, ohne Namen",
+  tnStart: "Meine Wechselbedingungen herausfinden",
+
+  tnBeruf: "Was bist du von Beruf?",
+  tnBerufHinweis: "Schreib es genau so, wie du es einem Freund sagen würdest.",
+  tnBerufPlatz: "z. B. Krankenschwester, Elektriker",
+
+  tnDeutsch: "Wie gut sprichst du Deutsch?",
+  niveauNative: "Muttersprachlich",
+
+  tnStandort: "Wo lebst und arbeitest du?",
+  tnStadt: "Stadt",
+  tnStadtPlatz: "z. B. Timișoara",
+
+  tnSituation: "Wie ist deine aktuelle Situation?",
+  sitZufrieden: "Ich habe einen Job und bin zufrieden",
+  sitOffen: "Ich habe einen Job, wäre aber offen für Besseres",
+  sitAktiv: "Ich suche bereits aktiv",
+  sitOhne: "Ich bin aktuell ohne Job",
+  sitSelbst: "Ich bin selbstständig",
+  sitAndere: "Andere Situation",
+
+  tnMotive: "Was müsste ein neuer Job besser machen?",
+  tnMotiveHinweis: "Wähle alles, was für dich zählt.",
+  mSalariu: "Mehr Gehalt", mAngajator: "Besserer Arbeitgeber", mConducere: "Bessere Führung",
+  mStres: "Weniger Stress", mProgram: "Bessere Arbeitszeiten", mRemote: "Remote",
+  mPozitie: "Bessere Position", mActivitate: "Interessantere Tätigkeit", mCariera: "Karriere",
+  mCultura: "Unternehmenskultur", mSiguranta: "Sicherheit", mGermania: "Deutschland / international",
+  mBeneficii: "Benefits", mAltele: "Sonstiges",
+
+  tnGeld: "Was müsste sich finanziell ändern?",
+  tnGeldJetzt: "Heute verdiene ich netto",
+  tnGeldMin: "Welches Nettogehalt müsste ein Angebot mindestens haben, damit ich es ernsthaft prüfe?",
+  tnGeldHinweis: "Bleibt vertraulich. Dein heutiges Gehalt sieht kein Arbeitgeber.",
+  tnGleich: "Würdest du auch für ungefähr das gleiche Gehalt wechseln, wenn andere Bedingungen deutlich besser wären?",
+  gleichJa: "Ja",
+  gleichVielleicht: "Kommt auf die Bedingungen an",
+  gleichNein: "Nein, finanziell muss es sich verbessern",
+  sprungPlus: "mehr",
+  sprungGleich: "Gleiches Gehalt — es sind die Bedingungen",
+  sprungWeniger: "Auch für weniger, wenn die Bedingungen stimmen",
+
+  tnMaerkte: "Wo käme ein wirklich gutes Angebot für dich infrage?",
+  tnMaerkteHinweis: "Du kannst mehrere wählen.",
+  marktRo: "Rumänien", marktDe: "Deutschland", marktRemote: "Vollständig remote",
+  marktEu: "Anderes EU-Land", marktUmzug: "Umzug innerhalb Rumäniens", marktKeinUmzug: "Ich möchte nicht umziehen",
+
+  tnGespraech: "Angenommen, ein Arbeitgeber erfüllt genau diese Bedingungen — würdest du mit ihm sprechen?",
+  gesprJa: "Ja", gesprWahrsch: "Wahrscheinlich", gesprViell: "Vielleicht", gesprNein: "Aktuell eher nicht",
+
+  tnSummeTitel: "DEINE WECHSELBEDINGUNGEN",
+  tnSummeBeruf: "Beruf", tnSummeDeutsch: "Deutsch", tnSummeOrt: "Ort",
+  tnSummeSituation: "Situation", tnSummeMotive: "Wichtig", tnSummeGeld: "Finanziell",
+  tnSummeMaerkte: "Märkte", tnSummeGespraech: "Gespräch",
+  tnSummeSchluss: "Genau nach solchen Angeboten können wir für dich Ausschau halten.",
+  tnSummeKnopf: "Mich nur bei passenden Angeboten kontaktieren",
   studieTitel: "Du sprichst Deutsch?",
   studieTitelZwei: "Für welches Gehalt würdest du wechseln?",
   studieUnter: "Sag uns, welches Angebot dich über einen Wechsel nachdenken lässt. Wir wollen herausfinden, was Deutsch auf dem rumänischen Arbeitsmarkt wirklich wert ist.",
@@ -339,6 +465,67 @@ export const EN: JoburiTexte = {
   sucheOffen: "Just watching for opportunities",
   suchePassiv: "No, but I'd move for the right offer",
   studieKicker: "STUDY · GERMAN ON THE JOB MARKET",
+
+  tnKicker: "PRIVATE TALENT NETWORK · GERMAN",
+  tnTitel: "You already have a job.",
+  tnTitelZwei: "But maybe not the right price for it.",
+  tnUnter: "Tell us once what you can do and what a new offer would have to be worth. If we find something genuinely fitting, we'll get in touch.",
+  tnDauer: "8 questions · no CV, no name",
+  tnStart: "Find my switching conditions",
+
+  tnBeruf: "What is your occupation?",
+  tnBerufHinweis: "Write it exactly as you would tell a friend.",
+  tnBerufPlatz: "e.g. nurse, electrician",
+
+  tnDeutsch: "How well do you speak German?",
+  niveauNative: "Native speaker",
+
+  tnStandort: "Where do you live and work?",
+  tnStadt: "City",
+  tnStadtPlatz: "e.g. Timișoara",
+
+  tnSituation: "What is your current situation?",
+  sitZufrieden: "I have a job and I'm happy with it",
+  sitOffen: "I have a job but would be open to something better",
+  sitAktiv: "I'm actively looking",
+  sitOhne: "I'm currently without a job",
+  sitSelbst: "I'm self-employed",
+  sitAndere: "Another situation",
+
+  tnMotive: "What would a new job have to do better?",
+  tnMotiveHinweis: "Pick everything that matters to you.",
+  mSalariu: "Better pay", mAngajator: "Better employer", mConducere: "Better management",
+  mStres: "Less stress", mProgram: "Better hours", mRemote: "Remote",
+  mPozitie: "Better position", mActivitate: "More interesting work", mCariera: "Career",
+  mCultura: "Company culture", mSiguranta: "Security", mGermania: "Germany / international",
+  mBeneficii: "Benefits", mAltele: "Something else",
+
+  tnGeld: "What would have to change financially?",
+  tnGeldJetzt: "Today I earn, net",
+  tnGeldMin: "What net salary would an offer need at minimum for me to consider it seriously?",
+  tnGeldHinweis: "Stays confidential. No employer sees what you earn today.",
+  tnGleich: "Would you also move for roughly the same salary if other conditions were much better?",
+  gleichJa: "Yes",
+  gleichVielleicht: "Depends on the conditions",
+  gleichNein: "No, it has to improve financially",
+  sprungPlus: "more",
+  sprungGleich: "Same salary — it's the conditions",
+  sprungWeniger: "Even for less, if the conditions are right",
+
+  tnMaerkte: "Where would a genuinely good offer be an option?",
+  tnMaerkteHinweis: "You can pick several.",
+  marktRo: "Romania", marktDe: "Germany", marktRemote: "Fully remote",
+  marktEu: "Another EU country", marktUmzug: "Relocation within Romania", marktKeinUmzug: "I don't want to relocate",
+
+  tnGespraech: "Suppose an employer met exactly these conditions — would you talk to them?",
+  gesprJa: "Yes", gesprWahrsch: "Probably", gesprViell: "Maybe", gesprNein: "Not right now",
+
+  tnSummeTitel: "YOUR SWITCHING CONDITIONS",
+  tnSummeBeruf: "Occupation", tnSummeDeutsch: "German", tnSummeOrt: "Location",
+  tnSummeSituation: "Situation", tnSummeMotive: "Matters", tnSummeGeld: "Financially",
+  tnSummeMaerkte: "Markets", tnSummeGespraech: "Conversation",
+  tnSummeSchluss: "These are exactly the kind of offers we can watch out for on your behalf.",
+  tnSummeKnopf: "Only contact me about matching offers",
   studieTitel: "You speak German?",
   studieTitelZwei: "For which salary would you change jobs?",
   studieUnter: "Tell us which offer would make you consider a move. We want to find out what German is really worth on the Romanian job market.",

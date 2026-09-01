@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { leseLead, schreibeLead, leseAlleLeads, type JoburiLead } from "@/lib/joburi-leads";
 import { leseStellen } from "@/lib/joburi-store";
-import { gehaltMitte, gehaltGueltig } from "@/lib/joburi-gehalt";
+import { gehaltMitte, gehaltGueltig, gehaltGrenzen, waehrungFuerLand, RON_JE_EUR, type Waehrung } from "@/lib/joburi-gehalt";
 import { berufZuBereich } from "@/lib/joburi-beruf";
 
 export const runtime = "nodejs";
@@ -51,6 +51,18 @@ const LAENDER = ["ro", "de", "at", "alta"];
 /* Als Spanne, nicht als Jahr — und als Riegel wie alle anderen Listen hier. */
 const ALTER = ["u25", "25-34", "35-44", "45-54", "55+"];
 const STUDII = ["gimnaziu", "liceu", "profesionala", "licenta", "master"];
+
+/* ── TALENT NETWORK: die Riegel der acht Schritte ──
+   Jede Liste ist bewusst geschlossen. Was nicht darin steht, wird verworfen statt
+   gespeichert — sonst landet getippter Müll in der Auswertung, auf die wir uns gegenüber
+   Firmen berufen. */
+const NIVEAUS_TN = ["a2", "b1", "b2", "c1", "c2", "native"];
+const SITUATIONEN = ["employed_satisfied", "employed_open", "actively_searching", "unemployed", "self_employed", "other"];
+const MOTIVE = ["salary", "employer", "management", "less_stress", "hours", "remote", "position",
+                "work_itself", "career", "culture", "security", "germany", "benefits", "other"];
+const MAERKTE = ["romania", "germany", "remote", "eu", "relocate_ro", "no_relocation"];
+const GESPRAECH = ["yes", "probably", "maybe", "not_now"];
+const GLEICH = ["yes", "depends", "no"];
 const FAKTOREN = ["salariu", "remote", "flexibilitate", "cariera", "stabilitate", "echipa"];
 const RUECKKEHR = ["da", "poate", "nu"];
 const BERUFSFELDER = ["suport", "it", "finante", "logistica", "inginerie", "vanzari", "sanatate", "altul"];
@@ -150,6 +162,30 @@ export async function POST(request: Request) {
     const alter = s(body.alter, 6);
     const studii = s(body.studii, 14).toLowerCase();
     const test = body.test === true;
+
+    /* ── Talent Network ── */
+    const beruf = s(body.beruf, 40);
+    const niveauTn = s(body.deutschniveau, 8).toLowerCase();
+    const stadt = s(body.stadt, 40);
+    const situation = s(body.situation, 24).toLowerCase();
+    const gleichesGehalt = s(body.gleichesGehalt, 8).toLowerCase();
+    const gespraech = s(body.gespraech, 10).toLowerCase();
+    const waehrung = (s(body.waehrung, 3).toUpperCase() === "RON" ? "RON" : "EUR") as Waehrung;
+    const motive = Array.isArray(body.motive)
+      ? [...new Set(body.motive.map(m => s(m, 20).toLowerCase()).filter(m => MOTIVE.includes(m)))]
+      : [];
+    const maerkte = Array.isArray(body.maerkte)
+      ? [...new Set(body.maerkte.map(m => s(m, 20).toLowerCase()).filter(m => MAERKTE.includes(m)))]
+      : [];
+    /* Die Beträge werden gegen die Grenzen IHRER Währung geprüft: 8.000 ist in RON ein
+       normales Gehalt und in Euro eine Fantasie. */
+    const grenzen = gehaltGrenzen(waehrung);
+    const betrag = (v: unknown) => {
+      const n = Number(s(v, 8));
+      return Number.isFinite(n) && n >= grenzen.min && n <= grenzen.max ? String(Math.round(n)) : "";
+    };
+    const gJetzt = betrag(body.gehaltJetzt);
+    const gMinimum = betrag(body.gehaltMinimum);
     const rueckkehr = s(body.rueckkehr, 8).toLowerCase();
     const feld = s(body.berufsfeld, 20).toLowerCase();
     const feldFrei = s(body.berufsfeldFrei, 40);
@@ -180,6 +216,18 @@ export async function POST(request: Request) {
       ...(feldFrei ? { berufsfeldFrei: feldFrei, berufsfeld: berufZuBereich(feldFrei) } : {}),
       /* Der Altbestand schickt weiter eine Kachel; die gilt unverändert. */
       ...(!feldFrei && BERUFSFELDER.includes(feld) ? { berufsfeld: feld } : {}),
+      /* Der Trichter schickt seit dem 31.08. die acht Antworten. Wer nur einzelne Felder
+         nachreicht, überschreibt die anderen nicht — deshalb jedes für sich. */
+      ...(beruf ? { beruf, berufsfeld: berufZuBereich(beruf), profileVersion: 2 as const } : {}),
+      ...(NIVEAUS_TN.includes(niveauTn) ? { deutschniveau: niveauTn } : {}),
+      ...(stadt ? { stadt } : {}),
+      ...(SITUATIONEN.includes(situation) ? { situation: situation as JoburiLead["situation"] } : {}),
+      ...(motive.length ? { motive } : {}),
+      ...(gJetzt ? { gehaltJetzt: gJetzt } : {}),
+      ...(gMinimum ? { gehaltMinimum: gMinimum, waehrung, kurs: RON_JE_EUR } : {}),
+      ...(GLEICH.includes(gleichesGehalt) ? { gleichesGehalt: gleichesGehalt as JoburiLead["gleichesGehalt"] } : {}),
+      ...(maerkte.length ? { maerkte } : {}),
+      ...(GESPRAECH.includes(gespraech) ? { gespraech: gespraech as JoburiLead["gespraech"] } : {}),
       ...(test ? { test: true } : {}),
       ...(s(body.device, 80) ? { device: s(body.device, 80) } : {}),
       ...(s(body.lang, 5) ? { lang: s(body.lang, 5) } : {}),
