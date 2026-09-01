@@ -404,8 +404,14 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                       {/* MIT POSTER (Owner 14.08.2026: „ich begnüge mich nicht mit einem
                           schwarzen Bild") — das Look-Bild ist das erste Vollbild des
                           Avatar-Videos, also das ehrliche Standbild davor. */}
+                      {/* DIESELBE GRENZE WIE `Kachel` (Owner 01.09.2026, zweiter Fund: „das
+                          sieht schlimm aus" — ein schwarzes Feld ueber die volle Bildschirm-
+                          hoehe mit einem winzigen Play-Knopf in der Mitte). Diese Kachel ist
+                          von Hand gebaut statt ueber `Kachel` zu laufen (sie braucht den
+                          Play-Knopf), hatte das `max-w` beim ersten Durchgang aber nicht
+                          mitbekommen. */}
                       <button type="button" onClick={() => setGross({ url: String(e.videoUrl), video: true })}
-                        className="relative block aspect-[2/3] w-full overflow-hidden rounded-lg border border-black/10"
+                        className="relative block aspect-[2/3] w-full max-w-[170px] overflow-hidden rounded-lg border border-black/10"
                         style={{ background: "#111" }}>
                         {e.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
