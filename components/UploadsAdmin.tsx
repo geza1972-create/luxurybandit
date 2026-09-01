@@ -244,10 +244,14 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
       {url ? (
         <button type="button" onClick={() => setGross({ url })} className="block w-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt="" className="aspect-[2/3] w-full rounded-lg border border-black/10 object-cover" />
+          <img src={url} alt="" className="aspect-[2/3] w-full max-w-[170px] rounded-lg border border-black/10 object-cover" />
         </button>
       ) : (
-        <div className="grid aspect-[2/3] w-full place-items-center rounded-lg border border-dashed border-black/15 bg-black/[0.03] text-[10px] font-bold text-black/30">
+        /* EIN LEERES FELD BRAUCHT KEINE BILDHOEHE (Owner 01.09.2026: „es ist alles so gross").
+           Vorher trug auch der Platzhalter `aspect-[2/3]` — am Schreibtisch sind das bei
+           600 px Spaltenbreite neunhundert Pixel graue Flaeche, dreimal nebeneinander, fuer
+           einen Eintrag, in dem nichts steht. Jetzt ist er eine flache Zeile. */
+        <div className="grid h-12 w-full max-w-[170px] place-items-center rounded-lg border border-dashed border-black/15 bg-black/[0.03] text-[10px] font-bold text-black/30">
           —
         </div>
       )}
@@ -378,6 +382,13 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   sich wie zwei Uploads. Dort jetzt: Aufnahme · Ergebnis. Das Ergebnis-Bild
                   ist der Look-Zwischenschritt der Kette; das fertige VIDEO haengt darunter
                   am „▶ Video ansehen"-Knopf, sobald es existiert. */}
+              {/* GAR NICHTS DA HEISST GAR NICHTS ZEIGEN. Ein abgebrochener Durchlauf hat weder
+                  Aufnahme noch Look noch Ergebnis — drei leere Kaesten sagen darueber nichts,
+                  was diese eine Zeile nicht kuerzer sagt. Bei 155 Eintraegen ist das der
+                  Unterschied zwischen einer Liste und einer Wanderung. */}
+              {!(e.personUrl || e.modelUrl || e.imageUrl || e.videoUrl) ? (
+                <p className="mt-2 text-[11.5px] font-bold text-black/35">Nichts hochgeladen — hier ist er ausgestiegen.</p>
+              ) : (
               <div className="mt-2 flex gap-2">
                 {(e.theme === "versprechen" || e.theme === "birthday") ? (<>
                   <Kachel url={e.personUrl || e.modelUrl} label="Aufnahme" name={e.modelName} />
@@ -415,6 +426,7 @@ export default function UploadsAdmin({ title = "Hochgeladen & erzeugt", theme = 
                   <Kachel url={e.imageUrl} label="Ergebnis" />
                 </>)}
               </div>
+              )}
 
               {/**
                 * SEIN WEG — VON OBEN NACH UNTEN, BIS ER AUSSTEIGT (Owner 16.08.2026).
