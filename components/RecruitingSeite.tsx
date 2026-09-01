@@ -96,7 +96,7 @@ const Band = ({ hell = false, className = "", children }: {
  * im Dunkeln bleibt das Symbol also gold auf goldenem Hauch.
  */
 const Zeichen = ({ icon: Icon }: { icon: LucideIcon }) => (
-  <span className="lb-onmedia grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 text-[#f6cf51]">
+  <span className="lb-onmedia lb-gold grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 text-[#f6cf51]">
     <Icon className="h-[18px] w-[18px]" />
   </span>
 );

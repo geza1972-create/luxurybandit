@@ -548,7 +548,7 @@ export default async function ThemesCatalog({ searchParams }: {
      * die Seite gerade deutsch ist. Alle anderen bekommen die rumänische Fassung, für die er
      * gebaut ist.
      */
-    { icon: Briefcase, title: "Jobs with German", tagline: "Answer 4 questions — we show you real openings that could fit you.", href: `/joburi/germana${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 4 questions · Real openings · Free" },
+    { icon: Briefcase, title: "Private Talent Network — German", tagline: "For passive candidates who'd move for the right offer. 9 questions, no CV, no name — we reach out only if something truly fits.", href: `/joburi/germana${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 9 questions · No CV · Free" },
     /**
      * DER LEBENSLAUF-GENERATOR (Owner 31.08.2026: „Dann würde ich den PDF Kreator als extra
      * Topic machen, super simple" · „Es ist einfach ein CV Kreator. Ohne Anschreiben, ohne

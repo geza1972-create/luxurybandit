@@ -134,11 +134,8 @@ export default function GezaLakatosCvPage() {
             </p>
             <div className="gl-contact-row">
               <span>Deutsch (C2) · Englisch (C1) · Rumänisch (C2) · Ungarisch (B2)</span>
-              <span>Timisoara / Berlin</span>
+              <span>Berlin</span>
             </div>
-            <a className="gl-cta" href="/cv/CV-Geza-Lakatos.pdf" download>
-              Lebenslauf herunterladen (PDF)
-            </a>
           </div>
         </header>
 
@@ -220,6 +217,13 @@ export default function GezaLakatosCvPage() {
                 einem eigenen Analytics-Unterbau. Konzept, UX, Architektur und Umsetzung
                 komplett von mir, mit KI-gestützter Entwicklung direkt im Terminal.
               </p>
+              <p className="gl-section-note">
+                <b>Individuelles Marketing ohne Agentur-Overhead.</b> Luxurybandit
+                entwickelt schnell maßgeschneiderte Funnels, Tests und digitale Lösungen.
+                Durch einen schlanken, KI-gestützten Prozess können wir auch mit kleineren
+                Budgets arbeiten — und erst dann skalieren, wenn die Daten zeigen, dass
+                etwas funktioniert.
+              </p>
             </div>
 
             <div className="gl-lb-stats">
@@ -251,7 +255,7 @@ export default function GezaLakatosCvPage() {
                   Deutschtest statt Selbstauskunft), ein KI-Pre-Screening für Recruiter
                   (Lebenslauf, Stellenanzeige und ein geführtes Gespräch zu einem
                   Anforderungs-Abgleich verbunden), personalisierte KI-Video-Geschenke
-                  (Geburtstag, Kuss), ein 30-Tage-Coaching-Programm mit KI-Zukunftsfilm,
+                  (Geburtstag), ein 30-Tage-Coaching-Programm mit KI-Zukunftsfilm,
                   eine KI-Jury, die Geschäftsideen live gegeneinander verhandelt, und eine
                   virtuelle Anprobe für Online-Shops.
                 </p>
@@ -260,7 +264,23 @@ export default function GezaLakatosCvPage() {
                   alles, sondern je Produkt der passende Anbieter — Bildgenerierung,
                   Video-Avatare, virtuelle Anproben und Sprachsynthese laufen über
                   verschiedene APIs, serverseitig zusammengeführt zu einem Ergebnis, das
-                  der Kunde in einem Schritt kauft.
+                  der Kunde in einem Schritt kauft — Konzept und Umsetzung komplett von mir.
+                </p>
+                <p>
+                  <b>Live:</b> ein individuelles Recruiting-Tool für passive
+                  Bewerber:innen, die für das richtige Angebot wechseln würden — 9 Fragen,
+                  kein Lebenslauf, kein Name, Kontaktaufnahme nur bei echtem Match.
+                  Aufsetzbar als eigenständiger Funnel je Zielgruppe, inklusive Auswertung
+                  und Statistiken zu Rücklauf und Antworten. Genau damit kann ich auch
+                  Unternehmen helfen, passive Kandidat:innen für offene Stellen zu finden.{" "}
+                  <a
+                    style={{ color: "#E1592E" }}
+                    href="https://luxurybandit.com/admin/recruiting?light=1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Admin-Auswertung ansehen ↗
+                  </a>
                 </p>
                 <p>
                   <b>Eigenes Design-System:</b> eine dokumentierte CI-Bibliothek als
@@ -301,13 +321,10 @@ export default function GezaLakatosCvPage() {
                   <img src="/cv/lb-birthday.png" alt="Personalisierte Geburtstags-Videokarte" />
                 </div>
                 <div className="gl-phone">
-                  <img src="/cv/lb-kiss.png" alt="Kuss-Videokarte als persönliches Geschenk" />
+                  <img src="/cv/lb-david.png" alt="KI-Pre-Screening für Recruiter, geführter Anforderungs-Abgleich" />
                 </div>
                 <div className="gl-phone">
                   <img src="/cv/lb-tryon.png" alt="Virtuelle Anprobe für Online-Shops, Off-Duty-Kollektion" />
-                </div>
-                <div className="gl-phone">
-                  <img src="/cv/lb-kiss-tunnel.png" alt="Kauf-Trichter mit Fortschrittsanzeige, Schritt 1 von 3" />
                 </div>
                 <div className="gl-phone">
                   <img src="/cv/lb-pricing.png" alt="Preisseite mit Abo-Stufen, Bezahlung über Stripe" />
