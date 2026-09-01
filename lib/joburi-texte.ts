@@ -121,6 +121,7 @@ export const RO = {
   belStehen: "Lucru în picioare, peste opt ore",
   belKoerper: "Muncă fizică solicitantă",
   belErfahrung: "Am deja experiență cu munca fizică",
+  belBuero: "Muncă de birou / la calculator",
 
   /* DIE OFFENEN RÜCKFRAGEN (Owner 31.08.2026: „Nicht ‚Das passt nicht zusammen', sondern
      etwas wie: ‚Was würde für dich weniger Stress bedeuten?'"). Eine prüfende Frage erzeugt
@@ -225,9 +226,9 @@ export const RO = {
      Der stärkste Grund ist der erste: Er hat gerade selbst eine Schwelle genannt. Zu erfahren,
      ob sie realistisch ist, will jeder wissen, der sie eingetippt hat. */
   mailStudieTitel: "Pragul tău e realist?",
-  mailStudieText: "Ne-ai spus de la ce salariu ai schimba. Îți spunem ce cer în realitate oamenii cu nivelul tău de germană, din domeniul tău — imediat ce studiul e gata.",
+  mailStudieText: "Ne-ai spus de la ce salariu ai schimba. Îți spunem ce cer în realitate oamenii cu profilul tău, din domeniul tău — imediat ce studiul e gata.",
   grund1: "Rezultatele îți ajung ție primul, înaintea tuturor.",
-  grund2: "Construim acum o rețea de angajatori care caută oameni care vorbesc germană. Când e gata, te întrebăm pe tine — doar dacă vrei.",
+  grund2: "Construim acum o rețea de angajatori care caută exact astfel de profiluri. Când e gata, te întrebăm pe tine — doar dacă vrei.",
   grund3: "Fără nume, fără telefon, fără CV. Doar o adresă.",
   zaehlerText: "Până acum au răspuns {n} de persoane.",
   /* EIGENER KNOPF, NICHT DER ALTE: `mailKnopf` hiess „Arată-mi joburile" — er versprach
@@ -379,6 +380,7 @@ export const DE: JoburiTexte = {
   belStehen: "Arbeit im Stehen, über acht Stunden",
   belKoerper: "Körperlich anspruchsvolle Arbeit",
   belErfahrung: "Ich habe bereits Erfahrung mit körperlicher Arbeit",
+  belBuero: "Büroarbeit / Bildschirmarbeit",
 
   klaerTitel: "Eine offene Frage noch",
   klaerHinweis: "Du kannst sie überspringen — deine Antwort hilft uns aber, etwas zu finden, das wirklich passt.",
@@ -452,9 +454,9 @@ export const DE: JoburiTexte = {
   summeHinweis: "Wir zeigen dir keine Marktzahlen — die Studie wird gerade erst gesammelt. Das Erste, was du siehst, sind ihre Ergebnisse.",
 
   mailStudieTitel: "Ist deine Schwelle realistisch?",
-  mailStudieText: "Du hast uns gesagt, ab wann du wechseln würdest. Wir sagen dir, was Leute mit deinem Deutschniveau in deinem Bereich tatsächlich verlangen — sobald die Studie steht.",
+  mailStudieText: "Du hast uns gesagt, ab wann du wechseln würdest. Wir sagen dir, was Leute mit deinem Profil in deinem Bereich tatsächlich verlangen — sobald die Studie steht.",
   grund1: "Die Ergebnisse bekommst du zuerst, vor allen anderen.",
-  grund2: "Wir bauen gerade ein Netz von Arbeitgebern auf, die deutschsprachige Leute suchen. Sobald es steht, fragen wir dich — nur wenn du willst.",
+  grund2: "Wir bauen gerade ein Netz von Arbeitgebern auf, die genau nach solchen Profilen suchen. Sobald es steht, fragen wir dich — nur wenn du willst.",
   grund3: "Kein Name, kein Telefon, kein Lebenslauf. Nur eine Adresse.",
   zaehlerText: "Bisher haben {n} Menschen geantwortet.",
   studieKnopf: "Ich will die Ergebnisse der Studie",
@@ -569,6 +571,7 @@ export const EN: JoburiTexte = {
   belStehen: "Standing work, over eight hours",
   belKoerper: "Physically demanding work",
   belErfahrung: "I already have experience with physical work",
+  belBuero: "Office work / screen work",
 
   klaerTitel: "One open question",
   klaerHinweis: "You can skip it — but your answer helps us find something that genuinely fits.",
@@ -657,9 +660,9 @@ export const EN: JoburiTexte = {
   summeFeld: "Field",
   summeHinweis: "We don't show you market figures — the study is only just being collected. Its results are the first thing you'll see.",
   mailStudieTitel: "Is your threshold realistic?",
-  mailStudieText: "You told us what would make you move. We'll tell you what people with your level of German, in your field, actually ask for — as soon as the study is in.",
+  mailStudieText: "You told us what would make you move. We'll tell you what people with your profile, in your field, actually ask for — as soon as the study is in.",
   grund1: "You get the results first, ahead of everyone else.",
-  grund2: "We are building a network of employers looking for German-speaking people. Once it stands, we'll ask you — only if you want us to.",
+  grund2: "We are building a network of employers looking for exactly this kind of profile. Once it stands, we'll ask you — only if you want us to.",
   grund3: "No name, no phone, no CV. Just an address.",
   zaehlerText: "{n} people have answered so far.",
   studieKnopf: "I want the study results",

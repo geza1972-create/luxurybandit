@@ -54,15 +54,15 @@ import { studieZahlen } from "@/lib/joburi-studie";
  * Aussagen sind auf dieser Seite ausdrücklich verboten.
  */
 
-/* Was in JEDER Sprache gleich bleibt: ein Sprachniveau, ein Ortsname, ein Betrag. */
-const BEISPIEL_FEST = { deutsch: "C1", standort: "Berlin", gehalt: "1.800 € net" };
+/* Was in JEDER Sprache gleich bleibt: der Euro-Betrag (Zahlen brauchen keine Übersetzung). */
+const BEISPIEL_FEST = { finanziell: "4.200 € → 5.000 € netto (+19 %)" };
 
 /**
  * DIE SYMBOLE STEHEN HIER, NICHT IN DER SPRACHDATEI — sie sind für alle drei Sprachen
  * dieselben, und ein Symbol ist keine Übersetzung. Zugeordnet wird über die Position: Die
  * Reihenfolge der Texte ist in jeder Sprache gleich, weil sie dieselbe Liste beschreibt.
  */
-const BEISPIEL_ZEICHEN: LucideIcon[] = [MessageSquare, MapPin, Home, UserRound, Euro, Target];
+const BEISPIEL_ZEICHEN: LucideIcon[] = [Briefcase, MessageSquare, MapPin, UserRound, Star, Euro];
 const ERHALTEN_ZEICHEN: LucideIcon[] = [Globe, Briefcase, MapPin, Home, Euro, RefreshCw, Target, FileCheck2];
 const SEGMENT_ZEICHEN: LucideIcon[] = [Users, Eye, Star];
 const ABLAUF_ZEICHEN: LucideIcon[] = [Briefcase, Megaphone, ShieldCheck, MessagesSquare];
@@ -130,12 +130,12 @@ export default async function RecruitingSeite({ lang, imPfad = false }: { lang: 
   const heim = imPfad ? `/recruiting/${lang}` : "/recruiting";
 
   const beispiel: [string, string][] = [
-    [T.beispielFelder.deutsch, BEISPIEL_FEST.deutsch],
-    [T.beispielFelder.standort, BEISPIEL_FEST.standort],
-    [T.beispielFelder.modell, T.beispielWerte.modell],
-    [T.beispielFelder.status, T.beispielWerte.status],
-    [T.beispielFelder.gehalt, BEISPIEL_FEST.gehalt],
-    [T.beispielFelder.interesse, T.beispielWerte.interesse],
+    [T.beispielFelder.beruf, T.beispielWerte.beruf],
+    [T.beispielFelder.sprachen, T.beispielWerte.sprachen],
+    [T.beispielFelder.ort, T.beispielWerte.ort],
+    [T.beispielFelder.situation, T.beispielWerte.situation],
+    [T.beispielFelder.wichtig, T.beispielWerte.wichtig],
+    [T.beispielFelder.finanziell, BEISPIEL_FEST.finanziell],
   ];
 
   /* `lb-recruiting` holt die Seite am Desktop aus der 440er-Telefonspalte des Hauses (siehe

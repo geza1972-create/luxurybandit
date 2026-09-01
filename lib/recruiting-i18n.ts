@@ -43,10 +43,16 @@ export type RecruitingText = {
   ctaHaupt: string;
   ctaZweit: string;
 
-  /* Beispielprofil */
+  /**
+   * BEISPIELPROFIL — DIESELBEN FELDER WIE DIE ECHTE ZUSAMMENFASSUNG (Owner 01.09.2026, am
+   * Talent-Network-Funnel selbst durchgegangen: „die Karte muss du noch anpassen").
+   * Vorher zeigte die Karte erfundene Felder (Arbeitsmodell, Interesse), die der Funnel gar
+   * nicht mehr abfragt — seit der Generalisierung (freie Sprachen/Land, Euro) heisst die
+   * echte Zusammenfassung Beruf, Sprachen, Ort, Situation, Wichtig, Finanziell.
+   */
   beispielTitel: string;
-  beispielFelder: { deutsch: string; standort: string; modell: string; status: string; gehalt: string; interesse: string };
-  beispielWerte: { modell: string; status: string; interesse: string };
+  beispielFelder: { beruf: string; sprachen: string; ort: string; situation: string; wichtig: string; finanziell: string };
+  beispielWerte: { beruf: string; sprachen: string; ort: string; situation: string; wichtig: string };
   beispielHinweis: string;
 
   /* Problem */
@@ -138,8 +144,11 @@ const de: RecruitingText = {
   ctaZweit: "Beispiel ansehen",
 
   beispielTitel: "Beispielprofil",
-  beispielFelder: { deutsch: "Deutsch", standort: "Standort", modell: "Arbeitsmodell", status: "Status", gehalt: "Wechsel ab", interesse: "Interesse" },
-  beispielWerte: { modell: "Hybrid / Remote", status: "Sucht nicht aktiv, würde aber wechseln", interesse: "deutschsprachige Support-/Service-Rollen" },
+  beispielFelder: { beruf: "Beruf", sprachen: "Sprachen", ort: "Ort", situation: "Situation", wichtig: "Wichtig", finanziell: "Finanziell" },
+  beispielWerte: {
+    beruf: "Frontend-Entwickler", sprachen: "Deutsch (C1) · Englisch (B2)", ort: "Berlin, Deutschland",
+    situation: "Hat einen Job, wäre aber offen für Besseres", wichtig: "Mehr Gehalt · Remote",
+  },
   beispielHinweis: "Beispielprofil – keine reale Person. Echte Kandidatenprofile werden nur mit Zustimmung weitergegeben.",
 
   problemTitel: "Das Problem ist nicht nur der Mangel an Kandidaten. Manchmal bewegt sie das Angebot nicht.",
@@ -215,8 +224,11 @@ const ro: RecruitingText = {
   ctaZweit: "Vezi un exemplu",
 
   beispielTitel: "Exemplu de profil",
-  beispielFelder: { deutsch: "Germană", standort: "Localitate", modell: "Mod de lucru", status: "Status", gehalt: "Salariu de la care ar schimba", interesse: "Interes" },
-  beispielWerte: { modell: "Hybrid / Remote", status: "Nu caută activ, dar ar schimba", interesse: "roluri de suport / servicii în germană" },
+  beispielFelder: { beruf: "Meserie", sprachen: "Limbi", ort: "Locație", situation: "Situație", wichtig: "Important", finanziell: "Financiar" },
+  beispielWerte: {
+    beruf: "Dezvoltator frontend", sprachen: "Germană (C1) · Engleză (B2)", ort: "Berlin, Germania",
+    situation: "Are un job, dar ar fi deschis la ceva mai bun", wichtig: "Salariu mai bun · Remote",
+  },
   beispielHinweis: "Profil exemplu – nu este o persoană reală. Profilurile reale sunt transmise doar cu acordul lor.",
 
   problemTitel: "Problema nu este doar lipsa candidaților. Uneori oferta nu îi mișcă.",
@@ -292,8 +304,11 @@ const en: RecruitingText = {
   ctaZweit: "See an example",
 
   beispielTitel: "Example profile",
-  beispielFelder: { deutsch: "German", standort: "Location", modell: "Work model", status: "Status", gehalt: "Would move from", interesse: "Interest" },
-  beispielWerte: { modell: "Hybrid / Remote", status: "Not looking, but would move", interesse: "German-speaking support/service roles" },
+  beispielFelder: { beruf: "Role", sprachen: "Languages", ort: "Location", situation: "Situation", wichtig: "Matters most", finanziell: "Financial" },
+  beispielWerte: {
+    beruf: "Frontend developer", sprachen: "German (C1) · English (B2)", ort: "Berlin, Germany",
+    situation: "Employed, but open to something better", wichtig: "Higher salary · Remote",
+  },
   beispielHinweis: "Example profile – not a real person. Real candidate profiles are only shared with their consent.",
 
   problemTitel: "The problem is not only a shortage of candidates. Sometimes the offer doesn\u2019t move them.",

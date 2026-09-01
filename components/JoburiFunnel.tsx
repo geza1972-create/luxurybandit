@@ -690,6 +690,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
     const OPT = [
       { wert: "shifts", text: T.belSchicht }, { wert: "standing", text: T.belStehen },
       { wert: "physical", text: T.belKoerper }, { wert: "physical_experience", text: T.belErfahrung },
+      { wert: "office", text: T.belBuero },
     ];
     return (
       <Frage titel={T.tnBelastung} hinweis={T.tnBelastungHinweis}>
@@ -809,7 +810,7 @@ export default function JoburiFunnel({ T, lang, kopf }: { T: JoburiTexte; lang: 
     };
     const NAME_BEL: Record<string, string> = {
       shifts: T.belSchicht, standing: T.belStehen,
-      physical: T.belKoerper, physical_experience: T.belErfahrung,
+      physical: T.belKoerper, physical_experience: T.belErfahrung, office: T.belBuero,
     };
     const NAME_GESPR: Record<string, string> = {
       yes: T.gesprJa, probably: T.gesprWahrsch, maybe: T.gesprViell, not_now: T.gesprNein,
