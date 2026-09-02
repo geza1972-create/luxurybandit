@@ -476,8 +476,9 @@ export const ARMEE_DE = {
   keineSzenen: "Noch keine Einsatzbereiche.",
 
   videoLabel: "Dein Video",
-  fotoKachel: "Dein Foto",
-  fotoHinweis: "Ein klares Selfie genügt. Frontal, kein Hut.",
+  fotoKachel: "Selfie aufnehmen",
+  fotoHinweis: "Frontal, gutes Licht, kein Hut.",
+  fotoWaehlen: "oder ein vorhandenes Foto wählen",
   zielLabel: "Dein Einsatz",
   vornameFeld: "Dein Vorname",
   vornameHinweis: "Damit wir dich im Video ansprechen können.",
@@ -538,8 +539,9 @@ export const ARMEE_EN: ArmeeTexte = {
   keineSzenen: "No fields yet.",
 
   videoLabel: "Your video",
-  fotoKachel: "Your photo",
-  fotoHinweis: "A clear selfie is enough. Face on, no hat.",
+  fotoKachel: "Take a selfie",
+  fotoHinweis: "Face on, good light, no hat.",
+  fotoWaehlen: "or pick an existing photo",
   zielLabel: "Your field",
   vornameFeld: "Your first name",
   vornameHinweis: "So we can address you in the video.",

@@ -87,6 +87,7 @@ export default function ArmeeFunnel({ szenen, texte, marke }: {
    */
   const [abspann, setAbspann] = useState(false);
   const fotoRef = useRef<HTMLInputElement>(null);
+  const kameraRef = useRef<HTMLInputElement>(null);
   const szene = szenen.find(s => s.id === szeneId) ?? szenen[0];
   const T = texte;
 
@@ -254,7 +255,7 @@ export default function ArmeeFunnel({ szenen, texte, marke }: {
             links={
               <TunnelKachelUpload
                 foto={foto} titel={T.fotoKachel} hinweis={T.fotoHinweis}
-                onWaehlen={() => fotoRef.current?.click()}
+                onWaehlen={() => kameraRef.current?.click()}
                 onLoeschen={foto ? () => setFoto("") : undefined}
               />
             }
@@ -268,9 +269,17 @@ export default function ArmeeFunnel({ szenen, texte, marke }: {
                nie ein eigener Schritt (KONZEPT-TUNNEL.md). */
             zusatz={
               <div className="mt-4">
-                <Eingabe placeholder={T.vornameFeld} value={vorname}
-                  onChange={e => setVorname(e.target.value)} />
-                <Fine>{T.vornameHinweis}</Fine>
+                {/* Der zweite Weg steht klein darunter, nicht als gleichwertiger Knopf:
+                    Die Kamera ist der gemeinte Weg, die Dateiwahl der Ausweg. */}
+                <button type="button" onClick={() => fotoRef.current?.click()}
+                  className="mx-auto block text-[12.5px] font-bold text-white/60 underline underline-offset-2">
+                  {T.fotoWaehlen}
+                </button>
+                <div className="mt-4">
+                  <Eingabe placeholder={T.vornameFeld} value={vorname}
+                    onChange={e => setVorname(e.target.value)} />
+                  <Fine>{T.vornameHinweis}</Fine>
+                </div>
               </div>
             }
             knopf={{
@@ -285,6 +294,24 @@ export default function ArmeeFunnel({ szenen, texte, marke }: {
           />
         </div>
 
+        {/**
+          * ZWEI WEGE ZUM FOTO — KAMERA ZUERST (Owner 02.09.2026: „Sollen wir lieber kamera
+          * starten und ein selfie hochladen?").
+          *
+          * `capture="user"` öffnet am Handy direkt die Frontkamera, ohne Umweg über die
+          * Galerie. Das ist der schnellere Weg und senkt die Hürde für alle, die gar kein
+          * passendes Foto zur Hand haben.
+          *
+          * ER ERSETZT DIE DATEIWAHL ABER NICHT, und zwar aus zwei Gründen: Am Rechner gibt
+          * es oft keine brauchbare Kamera, und ein spontanes Selfie in schlechtem Licht
+          * liefert ein schlechteres Ergebnis als ein bewusst ausgesuchtes Foto — bei einem
+          * Produkt, dessen ganzer Reiz „das bist du" ist, zählt das.
+          *
+          * GEGEN FÄLSCHUNG HILFT ES ÜBRIGENS KAUM: Wer ein fremdes Gesicht einschleusen
+          * will, hält die Kamera auf einen Bildschirm. Es ist eine Hürde, kein Schutz.
+          */}
+        <input ref={kameraRef} type="file" accept="image/*" capture="user" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) setCropDatei(f); e.target.value = ""; }} />
         <input ref={fotoRef} type="file" accept="image/*,.heic,.heif" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) setCropDatei(f); e.target.value = ""; }} />
 
