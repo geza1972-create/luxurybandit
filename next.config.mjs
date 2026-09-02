@@ -37,12 +37,12 @@ const nextConfig = {
     "/themes/tryon/start": ["./public/Tryon/**"],
     "/themes/chat": ["./public/Chat/**"],
     "/themes/chat/start": ["./public/Chat/**"],
-    /* Dieselbe Regel für die Akquise-Demo (02.09.2026): Die Galerie prüft mit `existsSync`,
-       welche Anzeigenmotive schon im Ordner liegen (lib/demo-bundeswehr.ts) — damit ein
-       fehlendes Motiv als beschrifteter Platzhalter erscheint statt als kaputte Fläche.
-       Ohne diese Zeile fände die Server-Funktion auf Vercel KEINE Datei und die Galerie
-       stünde im Termin komplett leer, obwohl lokal alles da ist. */
-    "/demo/[schluessel]": ["./public/Armee/**"],
+    /* HIER STAND `"/demo/[schluessel]": ["./public/Armee/**"]` UND MUSSTE WIEDER RAUS
+       (02.09.2026, am fehlgeschlagenen Deploy): Die Zeile zog zehn Megabyte Video in die
+       Server-Funktion, damit `readdirSync` die Szenen findet — und brachte damit eine
+       ANDERE Funktion über Vercels 250-MB-Grenze. Die Dateien braucht die Funktion gar
+       nicht, nur ihre NAMEN; die stehen jetzt fest in lib/demo-armee.ts. Ausgeliefert
+       werden die Videos weiterhin vom CDN, das ist unverändert. */
   },
   /**
    * DIE MUSIK-ROUTE DARF NICHT DEN GANZEN public-ORDNER TRAGEN (GEMESSEN beim Deploy
