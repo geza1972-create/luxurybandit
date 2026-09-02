@@ -52,7 +52,11 @@ export const DEMO_SCHLUESSEL = "bw-7f3a2c";
  *     ein Interessent das Material eines anderen Landes vor sich hat.
  */
 export const DEMO_KUNDE = {
-  name: "International Peace Armee",
+  /* DURCHGEHEND ENGLISCH (Owner 02.09.2026: „Peace Army ist doch richtig oder?").
+     „Armee" mit „International Peace" davor ist ein deutsch-englischer Mischmasch — und die
+     Marke soll gerade nicht an ein Land gebunden sein. Der Name bleibt in beiden
+     Sprachfassungen gleich; Eigennamen werden nicht übersetzt. */
+  name: "International Peace Army",
   /**
    * WAS ÜBER DEM KOPF STEHT (Owner 02.09.2026: „was soll der titel jetzt?").
    *
