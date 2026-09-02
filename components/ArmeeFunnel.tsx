@@ -347,7 +347,12 @@ export default function ArmeeFunnel({ szenen, texte, marke }: {
                 value={mail} onChange={e => setMail(e.target.value)} />
 
               <Haken an={einwilligung} setzen={setEinwilligung} pflicht>
-                {T.haken}
+                {T.haken}{" "}
+                {/* Der Link muss den Tipp auf den Haken durchlassen, sonst schaltet er ihn
+                    beim Öffnen der AGB gleich mit um. */}
+                <a href="/terms" target="_blank" rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="font-black text-[#f6cf51] underline underline-offset-2">{T.hakenAgb}</a>{T.hakenEnde}
               </Haken>
 
               {fehler && <Fehlerzeile>{fehler}</Fehlerzeile>}

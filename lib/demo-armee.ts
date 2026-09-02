@@ -52,11 +52,19 @@ export const DEMO_SCHLUESSEL = "bw-7f3a2c";
  *     ein Interessent das Material eines anderen Landes vor sich hat.
  */
 export const DEMO_KUNDE = {
-  /* DURCHGEHEND ENGLISCH (Owner 02.09.2026: „Peace Army ist doch richtig oder?").
-     „Armee" mit „International Peace" davor ist ein deutsch-englischer Mischmasch — und die
-     Marke soll gerade nicht an ein Land gebunden sein. Der Name bleibt in beiden
-     Sprachfassungen gleich; Eigennamen werden nicht übersetzt. */
-  name: "International Peace Army",
+  /**
+   * DER NAME IN DREI SCHRITTEN (Owner 02.09.2026): erst „International Peace Armee", dann
+   * „Peace Army ist doch richtig oder?" (Englisch/Deutsch gemischt), schliesslich „United
+   * Peace Academy ist noch besser".
+   *
+   * „Academy" nimmt dem Namen das Martialische und stellt die Ausbildung nach vorn — für
+   * Recruiting die freundlichere Tür. Weil eine Akademie aber keine Truppe ist, zieht der
+   * Claim mit: Er fragt nicht mehr nach „der Armee", sondern nach dem WEG. Sonst stünde
+   * oben eine Schule und unten rollte ein Panzer.
+   *
+   * Der Name bleibt in beiden Sprachfassungen gleich — Eigennamen werden nicht übersetzt.
+   */
+  name: "United Peace Academy",
   /**
    * WAS ÜBER DEM KOPF STEHT (Owner 02.09.2026: „was soll der titel jetzt?").
    *
@@ -458,7 +466,7 @@ export type ArmeeTexte = Record<keyof typeof ARMEE_DE, string>;
 
 export const ARMEE_DE = {
   kicker: "Deine Laufbahn",
-  claimEins: "Passt die Armee zu dir?",
+  claimEins: "Ist das dein Weg?",
   claimZwei: "Finde es heraus.",
   claimDrei: "Sieh dich selbst im Einsatz.",
 
@@ -495,7 +503,12 @@ export const ARMEE_DE = {
   feldName: "Dein Nachname",
   feldGeburt: "Geburtsdatum",
   feldMail: "name@beispiel.de",
-  haken: "Ich möchte Informationen per E-Mail bekommen.",
+  /* Der Haken trägt beides: die Einwilligung in den Kontakt UND den Bezug auf die AGB
+     (Owner 02.09.2026). Der Link steht als eigener Textbaustein, damit er im JSX zum
+     echten Verweis auf /terms wird — nie eine Adresse im Klartext (Hausregel). */
+  haken: "Ich möchte Informationen per E-Mail bekommen und akzeptiere die",
+  hakenAgb: "AGB",
+  hakenEnde: ".",
   absenden: "Ich will weitere Informationen",
   sendet: "Einen Moment…",
   datenschutz: "Dein Foto wird nicht gespeichert. Deine Adresse geht an niemanden weiter, und du kannst dich jederzeit abmelden.",
@@ -515,7 +528,7 @@ export const ARMEE_DE = {
 
 export const ARMEE_EN: ArmeeTexte = {
   kicker: "Your career",
-  claimEins: "Is the army right for you?",
+  claimEins: "Is this your path?",
   claimZwei: "Find out.",
   claimDrei: "See yourself in action.",
 
@@ -552,7 +565,9 @@ export const ARMEE_EN: ArmeeTexte = {
   feldName: "Your surname",
   feldGeburt: "Date of birth",
   feldMail: "name@example.com",
-  haken: "I'd like to receive information by email.",
+  haken: "I'd like to receive information by email and accept the",
+  hakenAgb: "terms",
+  hakenEnde: ".",
   absenden: "I want more information",
   sendet: "One moment…",
   datenschutz: "Your photo is not stored. Your address is passed to no one, and you can unsubscribe at any time.",
@@ -580,6 +595,7 @@ const SZENEN_NAMEN: Record<string, { de: string; en: string }> = {
   feldsoldat: { de: "Feldsoldat", en: "Infantry" },
   panzerbesatzung: { de: "Panzerbesatzung", en: "Armoured Crew" },
   pilot: { de: "Pilot", en: "Pilot" },
+  sanitaeterin: { de: "Sanitäterin", en: "Medic" },
 };
 
 /* ══ 4b · Die Szenen des Trichters ══ */
@@ -611,25 +627,34 @@ export type DemoSzene = {
  * „Panzerbesatzung". Unterstriche werden zu Leerzeichen. So braucht ein neuer Beruf keinen
  * Code — nur eine Datei mit sprechendem Namen und ihr Standbild daneben.
  */
+/**
+ * DIE SZENEN STEHEN FEST — SIE WERDEN NICHT AUS DEM ORDNER GELESEN.
+ *
+ * Zwei Gründe, beide am 02.09.2026 aufgelaufen:
+ *
+ *  1. DER DEPLOY. `readdirSync` zwingt dazu, den Ordner über `outputFileTracingIncludes` in
+ *     die Server-Funktion zu kopieren — zehn Megabyte Video, die dort niemand braucht. Das
+ *     brachte eine andere Funktion des Projekts über Vercels 250-MB-Grenze.
+ *  2. DIE REIHENFOLGE. `readdirSync().sort()` sortiert alphabetisch. Welche Kachel zuerst
+ *     steht, ist aber eine inhaltliche Entscheidung („sie als erste" · „pilot als zweiter")
+ *     und darf nicht davon abhängen, wie eine Datei heisst.
+ *
+ * Die Funktion braucht die Dateien gar nicht, nur ihre Namen — und deren REIHENFOLGE.
+ * Ausgeliefert werden die Videos weiterhin vom CDN.
+ *
+ * WER EINEN BERUF ERGÄNZT: Video plus gleichnamiges `.jpg` nach `public/Armee/szenen/`,
+ * den Namen hier an die gewünschte Stelle setzen, die Beschriftung in `SZENEN_NAMEN`.
+ */
+const SZENEN_DATEIEN = ["sanitaeterin", "pilot", "cybersicherheit", "panzerbesatzung", "feldsoldat"];
+
 export function demoSzenen(lang = "de"): DemoSzene[] {
-  const wurzel = join(process.cwd(), "public", ORDNER, "szenen");
-  let dateien: string[] = [];
-  try { dateien = readdirSync(wurzel).filter(d => /\.mp4$/i.test(d)).sort(); } catch { return []; }
-  return dateien.map(datei => {
-    const roh = datei.replace(/\.mp4$/i, "");
-    const poster = `${roh}.jpg`;
-    const posterDa = (() => { try { return readdirSync(wurzel).some(d => d.toLowerCase() === poster.toLowerCase()); } catch { return false; } })();
-    return {
-      id: roh.toLowerCase(),
-      /* Der Dateiname bleibt der Schlüssel; die Beschriftung kommt aus `SZENEN_NAMEN`.
-         Fehlt dort ein Eintrag, wird der Dateiname lesbar gemacht — ein neuer Beruf
-         erscheint also auch ohne Übersetzung, nur eben in beiden Sprachen gleich. */
-      name: SZENEN_NAMEN[roh.toLowerCase()]?.[lang.startsWith("en") ? "en" : "de"]
-        ?? roh.replace(/[_-]+/g, " ").replace(/^./, c => c.toUpperCase()),
-      bild: posterDa ? `/${ORDNER}/szenen/${encodeURIComponent(poster)}` : "",
-      video: `/${ORDNER}/szenen/${encodeURIComponent(datei)}`,
-    };
-  });
+  return SZENEN_DATEIEN.map(roh => ({
+    id: roh,
+    name: SZENEN_NAMEN[roh]?.[lang.startsWith("en") ? "en" : "de"]
+      ?? roh.replace(/[_-]+/g, " ").replace(/^./, c => c.toUpperCase()),
+    bild: `/${ORDNER}/szenen/${roh}.jpg`,
+    video: `/${ORDNER}/szenen/${roh}.mp4`,
+  }));
 }
 
 /* ══ 5 · Die Bewerber ══ */
@@ -687,11 +712,31 @@ const NACHNAMEN = [
  * Panzer und Infanterie deutlich weniger. Dreizehn Einträge sind teilerfremd zu 212, die
  * Liste wiederholt sich also nicht im Gleichtakt.
  */
-const BEREICHE = [
-  "Cybersicherheit", "Pilot", "Cybersicherheit", "Feldsoldat", "Pilot",
-  "Cybersicherheit", "Panzerbesatzung", "Pilot", "Cybersicherheit", "Feldsoldat",
-  "Pilot", "Cybersicherheit", "Panzerbesatzung",
+/**
+ * DIE VERTEILUNG ÜBER GEWICHTE, NICHT ÜBER EINE ABZÄHLLISTE (Owner 02.09.2026, zweimal:
+ * „immer die gleiche zahl ist blöd").
+ *
+ * Beide Versuche mit einer Reihum-Liste liefen auf dasselbe Problem hinaus: Zwei Kategorien
+ * kamen gleich oft vor und standen am Ende auf derselben Zahl — was sofort nach Rechnung
+ * aussieht statt nach Messung. Mit Prozentschwellen lässt sich jede Kategorie einzeln
+ * einstellen, und krumme Werte ergeben sich von selbst.
+ *
+ * Die Anteile sind plausibel gewählt: Cyber zieht am stärksten (dort sitzt die Zielgruppe
+ * ohnehin), Sanitätsdienst und Pilot folgen, die kämpfenden Truppengattungen liegen hinten.
+ */
+const BEREICH_GEWICHTE: { bis: number; name: string }[] = [
+  { bis: 31, name: "Cybersicherheit" },   // 32 %
+  { bis: 55, name: "Sanitäterin" },       // 24 %
+  { bis: 74, name: "Pilot" },             // 19 %
+  { bis: 89, name: "Feldsoldat" },        // 15 %
+  { bis: 99, name: "Panzerbesatzung" },   // 10 %
 ];
+
+/** 37 ist teilerfremd zu 100 — die Folge durchläuft alle Werte, statt sich zu wiederholen. */
+const bereichVon = (i: number) => {
+  const w = (i * 37) % 100;
+  return (BEREICH_GEWICHTE.find(g => w <= g.bis) ?? BEREICH_GEWICHTE[0]).name;
+};
 const WANN = ["heute", "gestern", "vor 2 Tagen", "vor 3 Tagen", "vor 5 Tagen", "vor 1 Woche"];
 
 /** Wie viele Profile die Demo zeigt — dieselbe Zahl wie „Alle Fragen beantwortet". */
@@ -713,7 +758,7 @@ export function demoProfile(): DemoProfil[] {
   for (let i = 0; i < DEMO_ANZAHL; i++) {
     const vorname = VORNAMEN[(i * 11) % VORNAMEN.length];   // 11 ⊥ 20
     const nachname = NACHNAMEN[(i * 5) % NACHNAMEN.length]; // 5 ⊥ 18
-    const bereich = BEREICHE[i % BEREICHE.length];          // 13 ⊥ 212
+    const bereich = bereichVon(i);
     liste.push({
       id: `p${String(i + 1).padStart(3, "0")}`,
       vorname, nachname, bereich,
