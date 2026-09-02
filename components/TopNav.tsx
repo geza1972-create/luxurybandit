@@ -153,7 +153,16 @@ export default function TopNav({
    * schon eine eigene `marke` trägt. Dieses Prop ersetzt sie 1:1, sprachunabhängig, genau
    * wie `marke` selbst („LB - X" ist ja auch nicht übersetzt).
    */
-  motto?: string;
+  /**
+   * `null` LÄSST DIE ZEILE GANZ WEG (02.09.2026, an der Akquise-Demo).
+   *
+   * Das Prop wegzulassen genügt dafür NICHT: Ohne Angabe greift die `MOTTO`-Tabelle und
+   * schreibt „Funnels Creator" unter die Marke — ein interner Werkzeugname genau dort, wo
+   * der Besucher den Absender sucht. Auf einer Kundenseite ist das kein Vertrauen, sondern
+   * eine Frage. Ein leerer String hilft ebenfalls nicht, weil er falsy ist und die
+   * Tabelle trotzdem greift; deshalb die ausdrückliche Unterscheidung zu `undefined`.
+   */
+  motto?: string | null;
 }) {
   const router = useRouter();
   // ZURÜCK: Regel im Haus — jede Seite braucht einen sichtbaren Rückweg. Auf den Browser-
@@ -211,14 +220,17 @@ export default function TopNav({
      Nur noetig, wenn keine eigene `motto` hereinkommt (siehe `mottoAnzeige` unten). */
   const [mottoSprache, setMottoSprache] = useState(MOTTO.en);
   useEffect(() => {
-    if (mottoUeberschreiben) return;
+    if (mottoUeberschreiben !== undefined) return;
     try {
       const m = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
       const l = m ? decodeURIComponent(m[1]).slice(0, 2) : "";
       if (l && MOTTO[l]) setMottoSprache(MOTTO[l]);
     } catch { /* kein Keks lesbar: Englisch steht schon da */ }
   }, [pathname, mottoUeberschreiben]);
-  const mottoAnzeige = mottoUeberschreiben ?? mottoSprache;
+  /* `??` wäre hier falsch: Es greift auch bei `null` und holte damit die Tabelle zurück —
+     genau das, was `motto={null}` verhindern soll. Nur ein FEHLENDES Prop darf die
+     sprachabhängige Vorgabe ziehen. */
+  const mottoAnzeige = mottoUeberschreiben === undefined ? mottoSprache : mottoUeberschreiben;
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
   const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
   const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
@@ -292,9 +304,11 @@ export default function TopNav({
               </span>
               {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                   kommt allenfalls dahinter, ersetzt es aber nie. */}
-              <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
-                {mottoAnzeige}
-              </span>
+              {mottoAnzeige && (
+                <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
+                  {mottoAnzeige}
+                </span>
+              )}
             </span>
           </button>
         </div>

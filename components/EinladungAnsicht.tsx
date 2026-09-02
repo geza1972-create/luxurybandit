@@ -50,7 +50,10 @@ export default function EinladungAnsicht({
   originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]", ausrichtung = "mitte",
   teilen, grossText = "", kleinText = "",
 }: {
-  id: string; videoUrl: string;
+  id: string;
+  /** Leer lassen, um ein reines Standbild in derselben Karte zu zeigen — dann trägt `poster`
+      das Motiv (siehe Kommentar an der Render-Stelle). */
+  videoUrl: string;
   /**
    * DAS STANDBILD, DAS STEHT, BEVOR DAS VIDEO DA IST (Owner 07.08.2026: „jetzt muss ich
    * wissen warum beim ersten video ein poster fehlt").
@@ -415,15 +418,32 @@ export default function EinladungAnsicht({
         {/* Beim Originalton steuert UNSERE Scheibe das Tor (`start`), und der Spieler
             startet gleich ungestummt — die Geste ist ja gerade passiert. Ohne Originalton
             behält das Tor seine eigene Scheibe (Musik kommt ohnehin von nebenan). */}
-        <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
-          className={ausrichtung === "oben" ? "object-top" : ""}
-          start={originalton ? laeuft : undefined}
-          schleife={schleife} stumm={originalton ? !ton : true}
-          spielerRef={originalton ? videoRef : undefined} />
+        {/**
+          * EIN STANDBILD IST AUCH EINE KARTE (02.09.2026, Owner an der Anzeigen-Galerie:
+          * „wo sind die Cards bitte?" · „die findest du in der Bibliothek mit icons").
+          *
+          * Der Skill `card` sagt „jede Karte mit Bild ODER Video" — diese Ansicht konnte
+          * aber nur Video. Wer ein blosses Motiv zeigen wollte, baute daneben ein nacktes
+          * `<img>`, und genau dort fehlten dann die drei Symbole. Statt einer zweiten
+          * Bild-Karte nimmt die vorhandene jetzt beides: Ohne `videoUrl` steht hier das
+          * Bild, mit denselben Zuschnitt-Regeln und in derselben Hülle. Vergrössern und
+          * Teilen gelten weiter; Ton und Abspielknopf entfallen, weil es nichts abzuspielen
+          * gibt.
+          */}
+        {videoUrl ? (
+          <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
+            className={ausrichtung === "oben" ? "object-top" : ""}
+            start={originalton ? laeuft : undefined}
+            schleife={schleife} stumm={originalton ? !ton : true}
+            spielerRef={originalton ? videoRef : undefined} />
+        ) : (
+          <img src={poster} alt=""
+            className={`h-full w-full object-cover ${ausrichtung === "oben" ? "object-top" : ""}`} />
+        )}
       </div>
       {/* DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht. Er liegt ueber der
           ganzen Flaeche: Wer auf ein stehendes Video tippt, meint immer „ab jetzt". */}
-      {originalton && !laeuft && (
+      {videoUrl && originalton && !laeuft && (
         <button type="button" aria-label={tonText || "Play"}
           onClick={() => {
             /* EIN TIPP, BEIDE TORE (07.08.2026, Owner: „warum der playbutton nict
@@ -550,7 +570,7 @@ export default function EinladungAnsicht({
           sound icon") — vorher erschien sie beim Originalton erst, wenn das Video lief, und
           eine pausierte Karte zeigte zwei statt drei Scheiben (Skill `card`: immer alle,
           immer am selben Platz). Der Schalter wirkt, sobald das Video läuft. */}
-      {originalton
+      {videoUrl && originalton
         ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
             platz={`absolute right-3 z-30 ${gross ? "top-[108px]" : "top-[60px]"}`} />
         : musik && (

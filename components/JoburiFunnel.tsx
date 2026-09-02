@@ -157,7 +157,33 @@ function Frage({ kopfBlock, leiste, titel, hinweis, children }: {
   );
 }
 
-export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte; lang: string; kopf?: React.ReactNode; kunde?: string }) {
+export default function JoburiFunnel({ T, lang, kopf, kunde, ohneSchritte, immerProbe }: {
+  T: JoburiTexte; lang: string; kopf?: React.ReactNode; kunde?: string;
+  /**
+   * SCHRITTE, DIE DIESER TRICHTER NICHT STELLT (Owner 02.09.2026, für die IT/Cyber-Demo).
+   *
+   * Der Belastungs-Schritt ist der Fall, für den es dieses Prop gibt: „Schichtarbeit, auch
+   * nachts" und „Arbeit im Stehen, über acht Stunden" sind für Pflege, Produktion und
+   * Logistik die wertvollste Frage des Trichters — einer IT-Fachkraft gestellt, sind sie
+   * das Signal, dass wir sie verwechselt haben, und der Grund, warum sie abbricht.
+   *
+   * BEWUSST NICHT ALLES ABSCHALTBAR: Beruf, Sprachen und E-Mail tragen den Lead — ohne sie
+   * gäbe es nichts zu speichern. Die Zählung im Fortschritt zieht automatisch mit, weil sie
+   * aus derselben Liste kommt.
+   */
+  ohneSchritte?: Schritt[];
+  /**
+   * DIESER TRICHTER IST EINE VORFÜHRUNG — JEDE ANTWORT IST EINE PROBE (Owner 02.09.2026,
+   * für die Akquise-Demo).
+   *
+   * `istProbe()` unten erkennt nur die eigene Maschine und eine Admin-Sitzung. Eine Demo,
+   * die im Termin auf der ECHTEN Adresse durchgeklickt wird, fiele durch dieses Raster:
+   * Jeder Klick des Interessenten legte einen echten Datensatz an, und die Zahl, mit der
+   * wir gegenüber Firmen argumentieren, wäre mit Vorführungen verunreinigt — dauerhaft und
+   * ohne dass es später noch jemand auseinanderhalten könnte.
+   */
+  immerProbe?: boolean;
+}) {
   const [schritt, setSchritt] = useState<Schritt>("beruf");
   /**
    * DIE KENNUNG LIEGT IN EINEM REF, NICHT IM ZUSTAND (31.08.2026 gemessen: ohne das legte
@@ -213,6 +239,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
    * fällt aus jeder Auswertung. Wegwerfen könnte man später nicht mehr prüfen.
    */
   const istProbe = () => {
+    if (immerProbe) return true;
     try {
       const host = window.location.hostname;
       if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host.endsWith(".local")) return true;
@@ -308,11 +335,11 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
    * VOR IST NUR SO WEIT MÖGLICH, WIE ER SCHON WAR. Sonst überspränge der Pfeil Fragen, die
    * nie beantwortet wurden, und die Studie bekäme Datensätze mit Löchern.
    */
-  const REIHE: Schritt[] = [
+  const REIHE: Schritt[] = ([
     "beruf", "deutsch", "standort", "situation",
     "motive", "geld", "maerkte", "belastung", "gespraech",
     "summe", "mail",
-  ];
+  ] as Schritt[]).filter(s => !ohneSchritte?.includes(s));
   const pos = REIHE.indexOf(schritt);
   /** Wie viele davon echte Fragen sind — „summe" und „mail" zählen nicht mit. */
   const FRAGEN = REIHE.length - 2;
@@ -330,6 +357,22 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
   }, [pos]);
 
   const geheZu = (i: number) => { if (i >= 0 && i < REIHE.length) setSchritt(REIHE[i]); };
+
+  /**
+   * DER NÄCHSTE SCHRITT KOMMT AUS DER REIHE, NICHT AUS DER HAND.
+   *
+   * Bis zum 02.09.2026 stand in jedem „Weiter" das Ziel fest verdrahtet
+   * (`setSchritt("belastung")`). Sobald ein Trichter einen Schritt auslässt (`ohneSchritte`),
+   * zeigte dieser Pfeil ins Leere: Die Reihe kennt den Schritt nicht mehr, `pos` wäre −1, und
+   * der Fortschrittsbalken verschwände mitten im Trichter.
+   *
+   * Jetzt fragt jeder Weiter-Knopf die Reihe nach seinem Nachfolger. Fällt einer weg, rückt
+   * der übernächste nach — ohne dass irgendein Knopf davon wissen muss.
+   */
+  const weiterVon = (von: Schritt) => {
+    const i = REIHE.indexOf(von);
+    if (i >= 0 && i + 1 < REIHE.length) setSchritt(REIHE[i + 1]);
+  };
 
   /* BEWUSST EINE VARIABLE UND KEINE KOMPONENTE: Alles, was in dieser Render-Funktion als
      Komponente definiert wird, ist bei jedem Tastendruck ein neuer Typ — React wirft den
@@ -373,7 +416,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
             onChange={e => setBeruf(e.target.value.slice(0, 40))} />
           <div className="mt-3">
             <Knopf art="gold" disabled={beruf.trim().length < 2}
-              onClick={() => { void merken({ beruf: beruf.trim() }); setSchritt("deutsch"); }}>{T.weiter}</Knopf>
+              onClick={() => { void merken({ beruf: beruf.trim() }); weiterVon("beruf"); }}>{T.weiter}</Knopf>
           </div>
         </Kasten>
       </>
@@ -393,7 +436,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
     };
     const entfernen = (s: string) => setSprachen(f => f.filter(x => x.sprache !== s));
     return (
-      <Frage titel={T.tnDeutsch}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnDeutsch}>
         <div className="mt-1 flex gap-2">
           <input
             list="lb-sprachen-liste"
@@ -434,7 +477,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
                  und ein Kandidat kann trotzdem beliebig viele andere Sprachen angeben. */
               const deutschEintrag = sprachen.find(s => s.sprache.toLowerCase() === "deutsch");
               void merken({ sprachen, ...(deutschEintrag ? { deutschniveau: deutschEintrag.niveau } : {}) });
-              setSchritt("standort");
+              weiterVon("deutsch");
             }}>{T.weiter}</Knopf>
         </div>
       </Frage>
@@ -466,7 +509,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
                 onChange={e => setStadt(e.target.value.slice(0, 40))} />
               <div className="mt-3">
                 <Knopf art="gold" disabled={stadt.trim().length < 2}
-                  onClick={() => { void merken({ land, stadt: stadt.trim() }); setSchritt("situation"); }}>{T.weiter}</Knopf>
+                  onClick={() => { void merken({ land, stadt: stadt.trim() }); weiterVon("standort"); }}>{T.weiter}</Knopf>
               </div>
             </>
           )}
@@ -480,7 +523,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
      wird deshalb nicht abgewiesen. */
   if (schritt === "situation") {
     return (
-      <Frage titel={T.tnSituation}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnSituation}>
         <Wahl
           optionen={[
             { wert: "employed_satisfied", text: T.sitZufrieden },
@@ -490,7 +533,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
             { wert: "self_employed", text: T.sitSelbst },
             { wert: "other", text: T.sitAndere },
           ]}
-          waehlen={w => { setSituation(w); void merken({ situation: w }); setSchritt("motive"); }} />
+          waehlen={w => { setSituation(w); void merken({ situation: w }); weiterVon("situation"); }} />
       </Frage>
     );
   }
@@ -510,7 +553,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
       { wert: "benefits", text: T.mBeneficii }, { wert: "other", text: T.mAltele },
     ];
     return (
-      <Frage titel={T.tnMotive} hinweis={T.tnMotiveHinweis}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnMotive} hinweis={T.tnMotiveHinweis}>
         <div className="mt-4 flex flex-col gap-2">
           {OPT.map(o => {
             const an = motive.includes(o.wert);
@@ -529,7 +572,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
         </div>
         <div className="mt-4">
           <Knopf art="gold" disabled={!motive.length}
-            onClick={() => { void merken({ motive }); setSchritt("geld"); }}>{T.weiter}</Knopf>
+            onClick={() => { void merken({ motive }); weiterVon("motive"); }}>{T.weiter}</Knopf>
         </div>
       </Frage>
     );
@@ -599,7 +642,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
             <Knopf art="gold" disabled={!okJetzt || !okMin || !gleich}
               onClick={() => {
                 void merken({ gehaltJetzt: jetzt, gehaltMinimum: minimum, waehrung: w, gleichesGehalt: gleich });
-                setSchritt("maerkte");
+                weiterVon("geld");
               }}>{T.weiter}</Knopf>
           </div>
         </Kasten>
@@ -625,7 +668,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
       setMarktLand("");
     };
     return (
-      <Frage titel={T.tnMaerkte} hinweis={T.tnMaerkteHinweis}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnMaerkte} hinweis={T.tnMaerkteHinweis}>
         <div className="mt-4 flex flex-col gap-2">
           {OPT.map(o => {
             const an = maerkte.includes(o.wert);
@@ -673,7 +716,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
 
         <div className="mt-4">
           <Knopf art="gold" disabled={!maerkte.length}
-            onClick={() => { void merken({ maerkte }); setSchritt("belastung"); }}>{T.weiter}</Knopf>
+            onClick={() => { void merken({ maerkte }); weiterVon("maerkte"); }}>{T.weiter}</Knopf>
         </div>
       </Frage>
     );
@@ -693,7 +736,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
       { wert: "office", text: T.belBuero },
     ];
     return (
-      <Frage titel={T.tnBelastung} hinweis={T.tnBelastungHinweis}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnBelastung} hinweis={T.tnBelastungHinweis}>
         <div className="mt-4 flex flex-col gap-2">
           {OPT.map(o => {
             const an = belastung.includes(o.wert);
@@ -712,7 +755,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
         </div>
         <div className="mt-4">
           <Knopf art="gold"
-            onClick={() => { void merken({ belastung }); setSchritt("gespraech"); }}>{T.weiter}</Knopf>
+            onClick={() => { void merken({ belastung }); weiterVon("belastung"); }}>{T.weiter}</Knopf>
         </div>
       </Frage>
     );
@@ -722,7 +765,7 @@ export default function JoburiFunnel({ T, lang, kopf, kunde }: { T: JoburiTexte;
      Bedingungen wie eine Schlussfolgerung liest — und nicht wie eine Bewerbung. */
   if (schritt === "gespraech") {
     return (
-      <Frage titel={T.tnGespraech}>
+      <Frage kopfBlock={kopfBlock} leiste={leiste} titel={T.tnGespraech}>
         <Wahl
           optionen={[
             { wert: "yes", text: T.gesprJa }, { wert: "probably", text: T.gesprWahrsch },
