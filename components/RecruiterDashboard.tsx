@@ -511,9 +511,26 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
               <span className="font-black text-white">{T.bekommenBereich}</span>
               {T.bekommenTextDrei}
             </p>
-            <div className="mt-4 flex flex-col gap-2">
-              <Fine><span className="text-[#f6cf51]">{T.uebergabe}</span> {T.uebergabeText}</Fine>
+            {/* Die Zusage steht VOR den Einzelheiten: Sie ist die Frage, mit der ein
+                Datenschutzbeauftragter ins Gespräch geht, und die Antwort darauf gehört
+                nicht ins Kleingedruckte. */}
+            <p className="mt-4 flex items-center gap-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[13.5px] font-black text-[#f6cf51]">
+              <ShieldCheck className="h-4 w-4 shrink-0" /> {T.sicher}
+            </p>
+
+            {/* SIEBEN PUNKTE STATT DREI (Owner 02.09.2026: „hier muss mehr zur technik").
+                Ein behördlicher Datenschutzbeauftragter fragt genau diese Reihe ab: wo es
+                läuft, wie übertragen wird, wer hineinsieht, was mit dem Foto passiert, wann
+                gelöscht wird. Wer die Antworten erst im Termin sucht, hat den Termin schon
+                verloren. */}
+            <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">{T.technikKopf}</p>
+            <div className="mt-2 flex flex-col gap-2">
               <Fine><span className="text-[#f6cf51]">{T.speicherort}</span> {T.speicherortText}</Fine>
+              <Fine><span className="text-[#f6cf51]">{T.uebertragung}</span> {T.uebertragungText}</Fine>
+              <Fine><span className="text-[#f6cf51]">{T.zugang}</span> {T.zugangText}</Fine>
+              <Fine><span className="text-[#f6cf51]">{T.erzeugung}</span> {T.erzeugungText}</Fine>
+              <Fine><span className="text-[#f6cf51]">{T.loeschung}</span> {T.loeschungText}</Fine>
+              <Fine><span className="text-[#f6cf51]">{T.uebergabe}</span> {T.uebergabeText}</Fine>
               <Fine><span className="text-[#f6cf51]">{T.nachweise}</span> {T.nachweiseText}</Fine>
             </div>
 
