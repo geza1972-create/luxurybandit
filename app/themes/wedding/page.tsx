@@ -21,7 +21,7 @@ import ThemenPreis from "@/components/ThemenPreis";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Knopf } from "@/components/CI";
 import { readThemeConfig } from "@/lib/try-this-look-store";
-import { HOCHZEIT_VIDEO } from "@/lib/hochzeit-video";
+import { HOCHZEIT_VIDEO, HOCHZEIT_VIDEO_POSTER } from "@/lib/hochzeit-video";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { fillPrices, themenPreisZeile } from "@/lib/pricing";
@@ -66,6 +66,15 @@ export const metadata = {
     "digitale Hochzeitseinladung", "Hochzeitseinladung Video", "Hochzeitsplaner online", "digitale Gästeliste Hochzeit",
   ],
   alternates: { canonical: "/themes/wedding" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     beim Teilen der Einladung stünde die Startseite statt des Hochzeitsvideo-Standbilds. */
+  openGraph: {
+    title: "Wedding invitation video & online wedding planner",
+    description: "Your wedding invitation as a video, made from two photos — plus the guest list, menu choices and a group chat on one page. Send one link; each guest reads it in their own language.",
+    type: "website",
+    url: "/themes/wedding",
+    images: [{ url: HOCHZEIT_VIDEO_POSTER, width: 1024, height: 1536 }],
+  },
 };
 
 /**

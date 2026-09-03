@@ -30,6 +30,16 @@ export const metadata = {
   description: "AI kiss video maker online: pick a model or upload a screenshot of any star, add your photo, and the kiss video AI generator turns the two of you into one video.",
   keywords: ["kiss video ai", "kiss video ai generator", "kiss video ai free online", "ai kiss video maker", "face swap kiss video", "ai video generator", "deepfake kiss video", "ai model kiss"],
   alternates: { canonical: "/themes/kiss" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     beim Teilen stünde die Startseite statt eines Kuss-Standbilds. Bild = erste Szene aus
+     KUSS_SZENEN, dieselbe, die auch die Karte oben zuerst zeigt. */
+  openGraph: {
+    title: "Kiss video AI generator — your photo, her kiss, one AI video",
+    description: "AI kiss video maker online: pick a model or upload a screenshot of any star, add your photo, and the kiss video AI generator turns the two of you into one video.",
+    type: "website",
+    url: "/themes/kiss",
+    images: [{ url: "/Kiss/Rain/rain-kiss.jpg", width: 675, height: 1200 }],
+  },
 };
 
 /**

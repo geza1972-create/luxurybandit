@@ -6,7 +6,7 @@ import KissFunnel from "@/components/KissFunnel";
 import ThemenVorspann from "@/components/ThemenVorspann";
 import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
-import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE, POLEDANCE_REFERENZEN } from "@/lib/poledance";
+import { POLEDANCE_VIDEO, POLEDANCE_BEISPIELE, POLEDANCE_REFERENZEN, POLEDANCE_POSTER } from "@/lib/poledance";
 import EinladungKarte from "@/components/EinladungKarte";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
 import ThemenPreis from "@/components/ThemenPreis";
@@ -33,6 +33,15 @@ export const metadata = {
   description: "Upload one photo of yourself and the AI puts you in the outfit and on the pole: a short private video, made for him alone. Nothing is posted anywhere.",
   keywords: ["surprise your boyfriend", "surprise him tonight", "pole dance video", "private video for boyfriend", "ai video from photo", "photo to video ai", "romantic surprise idea"],
   alternates: { canonical: "/themes/surprise" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     beim Teilen sähe man die Startseite statt des Tanz-Standbilds. */
+  openGraph: {
+    title: "Surprise him with a hot pole dance — one private AI video",
+    description: "Upload one photo of yourself and the AI puts you in the outfit and on the pole: a short private video, made for him alone. Nothing is posted anywhere.",
+    type: "website",
+    url: "/themes/surprise",
+    images: [{ url: POLEDANCE_POSTER, width: 768, height: 1024 }],
+  },
 };
 
 export default async function SurpriseThemePage({ searchParams }: {

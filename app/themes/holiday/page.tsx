@@ -48,6 +48,15 @@ export const metadata = {
     "convite de férias vídeo", "invito vacanza video", "digitale Urlaubseinladung",
   ],
   alternates: { canonical: "/themes/holiday" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     beim Teilen der Einladung stünde die Startseite statt des Urlaubsvideo-Standbilds. */
+  openGraph: {
+    title: "Holiday invitation video — invite someone to come away with you",
+    description: "Invite someone on holiday with a video of the two of you. Upload one photo of yourself and one of them, add the date and the place, and send one link — they answer with one tap.",
+    type: "website",
+    url: "/themes/holiday",
+    images: [{ url: "/Holiday/urlaub-beispiel.jpg", width: 720, height: 864 }],
+  },
 };
 
 /**

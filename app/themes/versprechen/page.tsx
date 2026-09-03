@@ -10,6 +10,7 @@ import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { versprechenVideos } from "@/lib/versprechen-videos";
+import { VERSPRECHEN_POSTER } from "@/lib/versprechen";
 
 /**
  * THEMA „DAS VERSPRECHEN" — SEIT 11.08.2026 DAS FUTURE SELF PROGRAM (Owner, wörtlich: „Das
@@ -58,6 +59,15 @@ export const metadata = {
   description: "Record yourself saying where you will be in five years. Get your Future Film, your promise, and a 30-day program with a daily checklist to keep it.",
   keywords: ["future self program", "video message to yourself", "promise video", "new year resolution video", "30 day program"],
   alternates: { canonical: "/themes/versprechen" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     beim Teilen stünde die Startseite statt des Future-Film-Standbilds. */
+  openGraph: {
+    title: "Future Self Program — your Future Film and 30 days",
+    description: "Record yourself saying where you will be in five years. Get your Future Film, your promise, and a 30-day program with a daily checklist to keep it.",
+    type: "website",
+    url: "/themes/versprechen",
+    images: [{ url: VERSPRECHEN_POSTER, width: 960, height: 1200 }],
+  },
 };
 
 export default async function VersprechenThemePage({ searchParams }: {
