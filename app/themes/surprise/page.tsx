@@ -40,7 +40,7 @@ export const metadata = {
     description: "Upload one photo of yourself and the AI puts you in the outfit and on the pole: a short private video, made for him alone. Nothing is posted anywhere.",
     type: "website",
     url: "/themes/surprise",
-    images: [{ url: POLEDANCE_POSTER, width: 768, height: 1024 }],
+    images: [{ url: "/Pooldance/poledance-poster-og.jpg", width: 768, height: 768 }],
   },
 };
 

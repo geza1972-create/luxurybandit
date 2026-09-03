@@ -46,7 +46,7 @@ export async function generateMetadata({ searchParams }: {
       title: `${T.tnTitel} ${T.tnTitelZwei}`,
       description: T.tnUnter,
       type: "website",
-      images: [{ url: "/Joburi/german-jobs.jpg", width: 1086, height: 1448 }],
+      images: [{ url: "/Joburi/german-jobs-og.jpg", width: 1086, height: 1086 }],
     },
   };
 }

@@ -58,7 +58,7 @@ export const metadata = {
     description: "Wähl ein Geschenk oder Guthaben, schreib deine Botschaft — wir schicken die Videokarte per E-Mail. Eingelöst wird mit einem Tipp, das Guthaben verfällt nicht.",
     type: "website",
     url: "/themes/gutschein",
-    images: [{ url: "/Gutscheine/gutschein-poster.jpg", width: 720, height: 1280 }],
+    images: [{ url: "/Gutscheine/gutschein-poster-og.jpg", width: 720, height: 720 }],
   },
 };
 

@@ -10,7 +10,6 @@ import { resolveLang } from "@/lib/lang-server";
 import { kissText } from "@/lib/kiss-i18n";
 import { trObject } from "@/lib/tr-object";
 import { versprechenVideos } from "@/lib/versprechen-videos";
-import { VERSPRECHEN_POSTER } from "@/lib/versprechen";
 
 /**
  * THEMA „DAS VERSPRECHEN" — SEIT 11.08.2026 DAS FUTURE SELF PROGRAM (Owner, wörtlich: „Das
@@ -66,7 +65,7 @@ export const metadata = {
     description: "Record yourself saying where you will be in five years. Get your Future Film, your promise, and a 30-day program with a daily checklist to keep it.",
     type: "website",
     url: "/themes/versprechen",
-    images: [{ url: VERSPRECHEN_POSTER, width: 960, height: 1200 }],
+    images: [{ url: "/Versprechen/promise-example-og.jpg", width: 960, height: 960 }],
   },
 };
 

@@ -40,7 +40,7 @@ export const metadata = {
     description: "Bella writes back in your language, every day. The first messages are free, then the first month for a small one-off — extend monthly, cancel anytime.",
     type: "website",
     url: "/themes/chat",
-    images: [{ url: "/Chat/chat-poster.jpg", width: 720, height: 1280 }],
+    images: [{ url: "/Chat/chat-poster-og.jpg", width: 720, height: 720 }],
   },
 };
 

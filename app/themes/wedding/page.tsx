@@ -73,7 +73,7 @@ export const metadata = {
     description: "Your wedding invitation as a video, made from two photos — plus the guest list, menu choices and a group chat on one page. Send one link; each guest reads it in their own language.",
     type: "website",
     url: "/themes/wedding",
-    images: [{ url: "/Wedding/hochzeit-poster.jpg", width: 816, height: 1088 }],
+    images: [{ url: "/Wedding/hochzeit-poster-og.jpg", width: 816, height: 816 }],
   },
 };
 

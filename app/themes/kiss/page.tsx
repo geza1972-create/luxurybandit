@@ -38,7 +38,7 @@ export const metadata = {
     description: "AI kiss video maker online: pick a model or upload a screenshot of any star, add your photo, and the kiss video AI generator turns the two of you into one video.",
     type: "website",
     url: "/themes/kiss",
-    images: [{ url: "/Kiss/Rain/rain-kiss.jpg", width: 675, height: 1200 }],
+    images: [{ url: "/Kiss/Rain/rain-kiss-og.jpg", width: 675, height: 675 }],
   },
 };
 

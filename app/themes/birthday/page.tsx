@@ -10,7 +10,7 @@ import { kissText } from "@/lib/kiss-i18n";
 /* „Traum" ist aus den Beispielen raus (Owner 27.08.2026: „entferne das erste Video,
    das passt nicht vom Stil. Dafür ist das zweite Video der Hook") — der Look selbst bleibt
    im Generator wählbar, nur als Aushängeschild taugte das bunte Bild nicht. */
-import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN, GEBURTSTAG_SET } from "@/lib/geburtstag";
+import { GEBURTSTAG_VIDEO, GEBURTSTAG_VIDEO_MANN } from "@/lib/geburtstag";
 
 /**
  * THEMA "SHE SAYS HAPPY BIRTHDAY" (Owner 03.08.2026: "genau wie Surprise him machen. Ein
@@ -41,7 +41,7 @@ export const metadata = {
     description: "Upload one photo of yourself, type the birthday name, and she says Happy Birthday with the cake in her hands - a private video, made in minutes.",
     type: "website",
     url: "/themes/birthday",
-    images: [{ url: GEBURTSTAG_SET, width: 720, height: 960 }],
+    images: [{ url: "/Birthday/birthday-set-schoko-og.jpg", width: 720, height: 720 }],
   },
 };
 

@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Pre-Screening. Kein Score, kein Formular.",
     type: "website",
     url: "/themes/david",
-    images: [{ url: DAVID_POSTER, width: 720, height: 1080 }],
+    images: [{ url: "/Lebenslauf/david-ads-og.jpg", width: 720, height: 720 }],
   },
 };
 

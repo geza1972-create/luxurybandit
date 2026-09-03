@@ -55,7 +55,7 @@ export const metadata = {
     description: "Invite someone on holiday with a video of the two of you. Upload one photo of yourself and one of them, add the date and the place, and send one link — they answer with one tap.",
     type: "website",
     url: "/themes/holiday",
-    images: [{ url: "/Holiday/urlaub-beispiel.jpg", width: 720, height: 864 }],
+    images: [{ url: "/Holiday/urlaub-beispiel-og.jpg", width: 720, height: 720 }],
   },
 };
 
