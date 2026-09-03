@@ -51,6 +51,15 @@ export const metadata = {
     "last minute gift",
   ],
   alternates: { canonical: "/themes/gutschein" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     Bild wie in der Katalog-Kachel (app/themes/page.tsx). */
+  openGraph: {
+    title: "Gutschein verschenken — als Videokarte mit Botschaft",
+    description: "Wähl ein Geschenk oder Guthaben, schreib deine Botschaft — wir schicken die Videokarte per E-Mail. Eingelöst wird mit einem Tipp, das Guthaben verfällt nicht.",
+    type: "website",
+    url: "/themes/gutschein",
+    images: [{ url: "/Gutscheine/gutschein-poster.jpg", width: 720, height: 1280 }],
+  },
 };
 
 /**

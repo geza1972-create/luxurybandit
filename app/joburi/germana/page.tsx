@@ -40,6 +40,14 @@ export async function generateMetadata({ searchParams }: {
     title: `${T.tnTitel} ${T.tnTitelZwei}`,
     description: T.tnUnter,
     robots: { index: false, follow: false },
+    /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+       Bild wie in der Katalog-Kachel (app/themes/page.tsx). */
+    openGraph: {
+      title: `${T.tnTitel} ${T.tnTitelZwei}`,
+      description: T.tnUnter,
+      type: "website",
+      images: [{ url: "/Joburi/german-jobs.jpg", width: 1086, height: 1448 }],
+    },
   };
 }
 

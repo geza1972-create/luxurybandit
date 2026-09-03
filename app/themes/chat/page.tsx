@@ -33,6 +33,15 @@ export const metadata = {
   description: "Bella writes back in your language, every day. The first messages are free, then the first month for a small one-off — extend monthly, cancel anytime.",
   keywords: ["chat with ai girl", "ai girlfriend chat", "ai chat girl", "virtual girlfriend app", "ai companion chat", "ai model chat", "dress up ai model", "ai influencer chat"],
   alternates: { canonical: "/themes/chat" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     Bild wie in der Katalog-Kachel (app/themes/page.tsx). */
+  openGraph: {
+    title: "Chat with Bella — write with her every day",
+    description: "Bella writes back in your language, every day. The first messages are free, then the first month for a small one-off — extend monthly, cancel anytime.",
+    type: "website",
+    url: "/themes/chat",
+    images: [{ url: "/Chat/chat-poster.jpg", width: 720, height: 1280 }],
+  },
 };
 
 /**
