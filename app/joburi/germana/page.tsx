@@ -39,7 +39,7 @@ export async function generateMetadata({ searchParams }: {
   return {
     title: `${T.tnTitel} ${T.tnTitelZwei}`,
     description: T.tnUnter,
-    robots: { index: false, follow: false },
+    alternates: { canonical: "/joburi/germana" },
     /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
        Bild wie in der Katalog-Kachel (app/themes/page.tsx). */
     openGraph: {
