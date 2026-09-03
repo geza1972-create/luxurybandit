@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import LandingSeite from "@/components/LandingSeite";
 import LandingKarte from "@/components/LandingKarte";
 import DavidInhalt from "@/components/DavidInhalt";
+import AgentenKarte from "@/components/AgentenKarte";
+import { agentenTexteInSprache } from "@/lib/agenten-texte";
+import { agentenMitBildern } from "@/lib/agenten";
 import { resolveLang } from "@/lib/lang-server";
 import { davidTexteInSprache } from "@/lib/david-texte";
 import { DAVID_VIDEO, DAVID_POSTER, DAVID_VERHAELTNIS } from "@/lib/david-video";
@@ -36,6 +39,16 @@ export const metadata: Metadata = {
   title: "David · AI Pre-Screening — was dein Lebenslauf einem Recruiter nicht erzählt | LuxuryBandit",
   description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Pre-Screening: die Fragen, die bei deiner Bewerbung noch offen sind. Kein Score, kein Formular.",
   alternates: { canonical: "/themes/david" },
+  /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
+     wer den Link auf Facebook postet, sieht dann die Startseite statt David. Eigenes Bild
+     (Standbild aus lib/david-video.ts, dieselbe Quelle wie die Karte) + eigener Titel/Text. */
+  openGraph: {
+    title: "David · AI Pre-Screening — was dein Lebenslauf einem Recruiter nicht erzählt",
+    description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Pre-Screening. Kein Score, kein Formular.",
+    type: "website",
+    url: "/themes/david",
+    images: [{ url: DAVID_POSTER, width: 720, height: 1080 }],
+  },
 };
 
 /* Video, Standbild und Verhältnis stehen in lib/david-video.ts — EINE Quelle für diese
@@ -51,6 +64,9 @@ export default async function DavidThemePage({ searchParams }: {
      stechen sie weiterhin (lib/lang-server). */
   const L = await resolveLang("de");
   const T = await davidTexteInSprache(L);
+  /* Die Firmen-Rubrik: deutsche Quelle, sieben Sprachen (lib/agenten-texte); die Gesichter
+     kommen aus der Models-Galerie und werden beim Rendern frisch geholt (lib/agenten). */
+  const [AG, agenten] = await Promise.all([agentenTexteInSprache(L), agentenMitBildern()]);
   const hell = String(sp.light ?? "") === "1";
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   /* Der Tunnel — Licht-Fassung und Aktionscode wandern mit, damit eine Anzeige nicht auf
@@ -89,6 +105,22 @@ export default async function DavidThemePage({ searchParams }: {
         <p className="mt-4 text-[15px] font-semibold leading-snug text-white/85">{T.sub}</p>
 
         <DavidInhalt T={T} href={startHref} />
+
+        {/**
+          * FÜR UNTERNEHMEN — die Agenten-Rubrik (Owner 02.09.2026: „das raus. Kommt als
+          * Beschreibung bei David eher rein. In einer Rubrik. Nicht wegschmeissen komplett").
+          *
+          * Sie stand bis heute auf der Startseite. Hier ist ihr Platz besser: Wer diese Seite
+          * liest, denkt bereits über Recruiting nach — und David IST einer dieser Agenten,
+          * das Beispiel steht also direkt über seinem eigenen Fall. Auf der Startseite war
+          * es ein zweites Publikum mitten in einem Katalog für ein erstes.
+          *
+          * NUR AUF DER LANDINGPAGE, NICHT IM TRICHTER: `DavidInhalt` zeigt der Trichter
+          * ebenfalls (Dauerregel `tunnel-zeigt-landingpage-inhalt`) — ein Angebot an Firmen
+          * gehört aber nicht neben den Upload eines Bewerbers. Deshalb steht sie hier und
+          * nicht in `DavidInhalt`.
+          */}
+        <AgentenKarte T={AG} lang={L} agenten={agenten} />
       </>}
     />
   );
