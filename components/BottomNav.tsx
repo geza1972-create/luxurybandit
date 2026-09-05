@@ -1,19 +1,11 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake, Gift, CreditCard } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, CloudSun, Palmtree, Heart, Cake, Gift, CreditCard } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 import { geraetAdresse, vergissGeraetAdresse } from "@/lib/guthaben-konto";
-
-// Der Try-on-Funnel im Menü: MUSS ein Kleidungsstück (Wardrobe-Garment) sein, damit
-// die linke Karte das Produktbild zeigt — ein voller Look zeigt sonst das Model-Bild.
-// /try lädt das Garment-Bild des Looks selbst (kein ablaufender Token nötig).
-// Standard = „Renata Lingerie Set"; bei Bedarf hier eine andere Garment-ID setzen.
-/* Anprobe = eigenes Foto + eigenes Kleidungsstueck (Owner 27.08.2026) — nicht mehr die
-   alte Model-Galerie mit Waesche-Looks und Abo. Siehe app/themes/page.tsx. */
-const TRYON_FUNNEL = "/themes/tryon/start";
 
 type Tab = "home" | "community" | "messages" | "account";
 
@@ -225,7 +217,30 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   // Manage-/Admin-Views (?admin=1) behalten IMMER das Menü — auch auf Pfaden, die es sonst
   // ausblenden (z. B. /themes/tryon). So haben alle Card-Tool-Seiten dasselbe Menü (CI).
   const adminView = (searchParams.get("admin") ?? "") === "1";
-  const hideChrome = !forceShow && !adminView && (
+  /**
+   * AUF DER WHITE-LABEL-DOMAIN GIBT ES KEIN HAUS-MENÜ (Owner 02.09.2026: „das raus und Menü
+   * raus", auf `yourvideogenerator.com`).
+   *
+   * Die Pfad-Liste unten reicht dort nicht: Auf dieser Domain ist JEDE Seite White Label,
+   * auch die Wurzel — und morgen kommen weitere Trichter dazu, deren Pfade heute niemand
+   * kennt. Der Host ist das verlässlichere Kriterium.
+   *
+   * ÜBER EINEN EFFEKT, NICHT DIREKT: `location` gibt es beim Server-Rendern nicht. Ein
+   * direkter Zugriff im Rendern ergäbe zwei verschiedene Bäume und damit einen
+   * Hydration-Fehler; so blitzt die Leiste allenfalls einen Frame lang auf, unten am Rand.
+   */
+  const [fremdeDomain, setFremdeDomain] = useState(false);
+  useEffect(() => {
+    try {
+      /* `?funnel=1` ist der Prüfweg der White-Label-Wurzel (siehe app/page.tsx) — dort soll
+         die Leiste genauso fehlen, sonst prüft man auf localhost etwas anderes als das, was
+         der Kunde sieht. */
+      const probe = new URLSearchParams(window.location.search).get("funnel") === "1";
+      setFremdeDomain(probe || /(^|\.)yourvideogenerator\.com$/i.test(window.location.hostname));
+    } catch { /* nichts zu tun — dann bleibt die Leiste, wie sie war */ }
+  }, []);
+
+  const hideChrome = fremdeDomain || (!forceShow && !adminView && (
     // (Admin pages keep the bottom nav too — the admin wants to jump around from anywhere.)
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/login") ||
@@ -251,8 +266,18 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     // Kuss-, Geburtstags- und Galerie-Themen darunter nimmt dem Angebot in einer Sekunde
     // jede Ernsthaftigkeit — und dieser Seite ist Ernsthaftigkeit das ganze Kapital.
     pathname.startsWith("/recruiting") ||
+    // WHITE LABEL: GAR NICHTS VOM HAUS (Owner 02.09.2026: „Menü auch raus. Es ist ein
+    // White-Label"). Auf /academy sind Logo und Fuss schon weg — der schwebende Hamburger
+    // war der letzte Rest, und er ist der auffälligste: Er öffnet ein Menü mit Kuss,
+    // Geburtstag und Galerie mitten auf einer Seite, die einer Organisation als IHRE gezeigt
+    // wird. Derselbe Grund wie bei /joburi und /recruiting zwei Zeilen darüber, nur
+    // konsequenter: Dort fehlt die Ablenkung, hier fehlt der zweite Absender.
+    pathname.startsWith("/academy") ||
+    // Die Beispielansicht für den Kunden gehört zum selben Termin — auch sie zeigt niemandem
+    // ein Haus-Menü (`/demo/<schluessel>`).
+    pathname.startsWith("/demo/") ||
     pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
-  );
+  ));
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
@@ -425,16 +450,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">{M.heim}</span>
               </button>
-              {/* Themes — EIN Punkt → der Themen-Katalog. ÖFFENTLICH (jeder sieht es, auch
-                  ausgeloggt) → gute interne Verlinkung für SEO. */}
-              <button type="button" onClick={() => navigate("/themes")}
-                className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                {/* Wort im UI ist überall „Funnels" (Route bleibt /themes) — Owner
-                    26.08.2026: „wir nennen die Topics in Funnels um. Wir sind jetzt ein
-                    Funnel Spezialist." Vorher „Topics", davor „Themes". Ein Ding, ein Name. */}
-                <span className="text-sm font-black text-white">Funnels</span>
-              </button>
+              {/* „FUNNELS" IST RAUS (Owner 04.09.2026: „Funnels auch raus") — der
+                  Themen-Katalog `/themes` bleibt erreichbar (verlinkt aus dem Fuss und von
+                  „/"), nur der Menüeintrag fällt weg. */}
               {/* Die CI-Bibliothek steht als „CI" in der Info-&-Legal-Zeile unten — immer
                   sichtbar, auch ohne Anmeldung (Owner 06.08.2026: „ich sehe die Bibliothek
                   nicht im Menü" — der Staff-Punkt hier war ohne Anmeldung unsichtbar). */}
@@ -542,14 +560,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               )}
               {/* „Das was noch kommt": weitere Themen (Luxury Looks …) leben im
                   Themes-Katalog /themes als coming-soon — hier nur die aktiven Shortcuts. */}
-              {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
-              {!isCurator && (
-                <button type="button" onClick={() => navigate("/stores?view=feeds")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Play className="h-5 w-5 shrink-0 text-white/85" />
-                  <span className="text-sm font-black text-white">Reels</span>
-                </button>
-              )}
+              {/* „REELS" IST RAUS (Owner 04.09.2026: „reels auch raus") — `/stores?view=feeds`
+                  bleibt erreichbar (alte Links), nur der Menüeintrag fällt weg. */}
               {/* Explore group — STAFF only (admin/creator). Members get a clean menu:
                   just Home, My subscriptions, Account. */}
               {isStaff && (<>
@@ -568,15 +580,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   dem Menü raus") — Besucher UND Members sehen ihn nicht mehr. Die
                   Modelgalerie selbst lebt weiter (Karten auf der Startseite verlinken
                   dorthin), nur der Menüeintrag fällt weg. */}
-              {/* Try on — DER Funnel: ein Kleidungsstück auf ein Model + Video. Führt direkt
-                  in die Try-on-Seite (die das Garment des Looks selbst lädt, kein Token nötig). */}
-              {!isCurator && (
-                <button type="button" onClick={() => navigate(TRYON_FUNNEL)}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Play className="h-5 w-5 shrink-0 text-[#f6cf51]" fill="currentColor" />
-                  <span className="text-sm font-black text-white">Try on</span>
-                </button>
-              )}
+              {/* TRY ON IST RAUS (Owner 04.09.2026: „im menü bitte try on entfernen") —
+                  dieselbe Rausnahme wie „Wardrobe" gleich darunter: `/themes/tryon/start`
+                  bleibt erreichbar (alte Links, Kachel im Katalog), nur der Menüeintrag
+                  fällt weg. */}
               {/* WARDROBE IST RAUS (Owner 24.08.2026, im Zug „seriöses Portal": „da bitte
                   Wardrobe entfernen") — dieselbe Rausnahme wie Chat/Holiday/Poledance im
                   Katalog (Memory `serioeses-portal-umbau`): die Seite `/wardrobe` bleibt

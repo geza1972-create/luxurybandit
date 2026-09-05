@@ -71,6 +71,20 @@ const BESUCH_TAGE = Number(process.env.FREE_PREVIEW_KEEP_DAYS ?? process.env.AUF
 const GESCHENK_TAGE = Number(process.env.AUFRAEUMEN_GESCHENK_TAGE ?? 90);
 
 /**
+ * DAS ACADEMY-VIDEO BLEIBT NUR EINEN MONAT — KÜRZER ALS EIN BEZAHLTES GESCHENK (Owner
+ * 04.09.2026: „am ende kann er es sharen oder löschen, das bleibt ihm überlassen. aber wenn
+ * er das nicht gleich macht dann löschen wir es nach einem monat automatisch").
+ *
+ * Ein Academy-Ergebnis (`theme === "armee"`) ist kein Kauf — niemand hat dafür bezahlt, es
+ * ist eine Demonstration mit dem Gesicht eines echten Bewerbers. 90 Tage wie beim bezahlten
+ * Hochzeitsgeschenk wären hier die falsche Frist: Der Bewerber hat schon beim Hochladen die
+ * Zusage bekommen, dass es „automatisch nach 30 Tagen" verschwindet (siehe
+ * `einwilligungDrei` in `lib/demo-armee.ts`) — dieselbe Zahl muss hier gelten, sonst
+ * widerspricht der Code der eigenen Zusage.
+ */
+const ARMEE_TAGE = Number(process.env.AUFRAEUMEN_ARMEE_TAGE ?? 30);
+
+/**
  * SO VIELE TAGE VORHER GEHT DIE MAIL RAUS. Sieben, weil ein Geschenk etwas ist, das man noch
  * einmal herunterladen oder weiterschicken will — dafuer braucht ein Mensch ein Wochenende,
  * keine 24 Stunden.
@@ -150,6 +164,10 @@ export async function GET(request: Request) {
   const fAnonym = zahl("anonym", ANONYM_TAGE);
   const fBesuch = zahl("besuch", BESUCH_TAGE);
   const fGeschenk = zahl("geschenk", GESCHENK_TAGE);
+  const fArmee = zahl("armee", ARMEE_TAGE);
+  /* JE THEMA EINE ANDERE FRIST, DIESELBE WARN-DANN-LOESCH-MASCHINE (siehe `ARMEE_TAGE`
+     oben) — ein Academy-Ergebnis ist in 30 statt 90 Tagen faellig. */
+  const fristFuer = (e: KissLogEntry) => e.theme === "armee" ? fArmee : fGeschenk;
 
   const alle = await readKissLog().catch(() => [] as KissLogEntry[]);
 
@@ -193,22 +211,24 @@ export async function GET(request: Request) {
    * `geschenkWarnAt` am Eintrag macht die Mail idempotent: Der Cron laeuft taeglich, die
    * Warnfrist ist sieben Tage breit — ohne den Stempel bekaeme der Kunde sie siebenmal.
    */
-  const warnen = fGeschenk > 0
-    ? entschlackt.filter(e => istErgebnis(e)
-        && !(e as { geschenkWarnAt?: string }).geschenkWarnAt
-        && alterTage(e) >= fGeschenk - VORWARNUNG_TAGE
-        && alterTage(e) < fGeschenk
-        && hatAdresse(e))
-    : [];
+  const warnen = entschlackt.filter(e => {
+    const frist = fristFuer(e);
+    return frist > 0 && istErgebnis(e)
+      && !(e as { geschenkWarnAt?: string }).geschenkWarnAt
+      && alterTage(e) >= frist - VORWARNUNG_TAGE
+      && alterTage(e) < frist
+      && hatAdresse(e);
+  });
   /**
    * Geloescht wird NUR, was gewarnt wurde — oder was gar keine Adresse hat, an die man haette
    * warnen koennen. Ohne diese Bedingung haette der erste scharfe Lauf alles genommen, was
-   * aelter als 90 Tage ist, bevor je eine Mail draussen war.
+   * aelter als die Frist ist, bevor je eine Mail draussen war.
    */
-  const abgelaufen = fGeschenk > 0
-    ? entschlackt.filter(e => istErgebnis(e) && alterTage(e) >= fGeschenk
-        && (!!(e as { geschenkWarnAt?: string }).geschenkWarnAt || !hatAdresse(e)))
-    : [];
+  const abgelaufen = entschlackt.filter(e => {
+    const frist = fristFuer(e);
+    return frist > 0 && istErgebnis(e) && alterTage(e) >= frist
+      && (!!(e as { geschenkWarnAt?: string }).geschenkWarnAt || !hatAdresse(e));
+  });
 
   const dateien = [
     ...anonym.flatMap(e => [pfad(e.personPath), pfad(e.modelPath), pfad(e.imagePath)]),
@@ -228,7 +248,7 @@ export async function GET(request: Request) {
     dateien: { geloescht: dateien.length, davonVorlagen: vorlagenWeg.length },
     abgelaufeneGeschenke: abgelaufen.length,
     vorgewarnt: warnen.length,
-    fristen: { vorlagen: fVorlagen, anonym: fAnonym, besuch: fBesuch, geschenk: fGeschenk || "aus", vorwarnung: VORWARNUNG_TAGE },
+    fristen: { vorlagen: fVorlagen, anonym: fAnonym, besuch: fBesuch, geschenk: fGeschenk || "aus", armee: fArmee || "aus", vorwarnung: VORWARNUNG_TAGE },
   };
 
   if (probe) return NextResponse.json({ ok: true, ...bericht, hinweis: "Probelauf — es wurde nichts geloescht." });
@@ -246,15 +266,30 @@ export async function GET(request: Request) {
   let gewarnt = 0;
   for (const e of warnen) {
     const an = String(e.email ?? (e as { paidEmail?: string }).paidEmail ?? "").trim();
-    const tage = Math.max(1, Math.ceil(fGeschenk - alterTage(e)));
-    const html = `<div style="font-family:system-ui,Arial,sans-serif;background:#faf7f0;padding:24px">`
-      + `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
-      + `<table width="100%" style="max-width:520px;background:#fff;border-radius:16px">`
-      + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Dein Video bleibt noch ${tage} Tage online</td></tr>`
-      + `<tr><td style="padding:0 22px 14px;font-size:14px;line-height:1.55;color:#5b5344">`
-      + `Wir halten jedes Geschenk ${fGeschenk} Tage bereit. Danach laeuft der Link ab — lade dir dein Video vorher herunter, dann behaeltst du es fuer immer.</td></tr>`
-      + `<tr><td style="padding:0 22px 20px"><a href="${origin}/my-gallery?utm_source=ablaufmail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Zu meinen Assets</a></td></tr>`
-      + `</table></td></tr></table></div>`;
+    const frist = fristFuer(e);
+    const tage = Math.max(1, Math.ceil(frist - alterTage(e)));
+    /* ACADEMY BEKOMMT EIGENEN TEXT, NICHT „GESCHENK" + LUXURYBANDIT-GALERIE (Owner
+       04.09.2026, White-Label-Regel der ganzen Academy-Seite: kein LuxuryBandit-Absender in
+       einer fremden Marke). Kein `/my-gallery` — das ist die Haus-Galerie, hier gibt es
+       (noch) keine eigene Academy-Werk-Seite; die Mail sagt stattdessen, was zu tun ist:
+       herunterladen oder teilen, bevor die Frist um ist. */
+    const istArmee = e.theme === "armee";
+    const html = istArmee
+      ? `<div style="font-family:system-ui,Arial,sans-serif;background:#faf7f0;padding:24px">`
+        + `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+        + `<table width="100%" style="max-width:520px;background:#fff;border-radius:16px">`
+        + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Dein Video bleibt noch ${tage} Tage online</td></tr>`
+        + `<tr><td style="padding:0 22px 20px;font-size:14px;line-height:1.55;color:#5b5344">`
+        + `Wir bewahren dein erzeugtes Video ${frist} Tage. Wenn du es teilen oder behalten willst, lade es dir vorher herunter — danach loeschen wir es automatisch, wie beim Hochladen zugesagt.</td></tr>`
+        + `</table></td></tr></table></div>`
+      : `<div style="font-family:system-ui,Arial,sans-serif;background:#faf7f0;padding:24px">`
+        + `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">`
+        + `<table width="100%" style="max-width:520px;background:#fff;border-radius:16px">`
+        + `<tr><td style="padding:22px 22px 6px;font-size:18px;font-weight:bold;color:#1a160f">Dein Video bleibt noch ${tage} Tage online</td></tr>`
+        + `<tr><td style="padding:0 22px 14px;font-size:14px;line-height:1.55;color:#5b5344">`
+        + `Wir halten jedes Geschenk ${frist} Tage bereit. Danach laeuft der Link ab — lade dir dein Video vorher herunter, dann behaeltst du es fuer immer.</td></tr>`
+        + `<tr><td style="padding:0 22px 20px"><a href="${origin}/my-gallery?utm_source=ablaufmail" style="display:inline-block;background:#f6cf51;color:#111;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:bold;text-decoration:none">Zu meinen Assets</a></td></tr>`
+        + `</table></td></tr></table></div>`;
     const r = await sendEmail({ to: an, subject: `Dein Video bleibt noch ${tage} Tage online`, html }).catch(() => ({ ok: false }));
     if ((r as { ok?: boolean }).ok) {
       (e as { geschenkWarnAt?: string }).geschenkWarnAt = new Date().toISOString();

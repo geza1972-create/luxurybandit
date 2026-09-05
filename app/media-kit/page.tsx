@@ -3,6 +3,7 @@ import { Kicker, H1, Y, Lead, SectionTitle } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 import TopNav from "@/components/TopNav";
+import OrteBlock from "@/components/OrteBlock";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
 import { Flame, Palmtree, Star, Heart, Gift, MessageCircle, Target, Sparkles, PartyPopper } from "lucide-react";
@@ -298,8 +299,22 @@ export default async function MediaKit() {
         <H1>{t.h1a} <Y>{t.h1b}</Y></H1>
         <Lead className="max-w-xl">{t.lead}</Lead>
 
+        {/**
+          * WO DAS LÄUFT — an erster Stelle (Owner 02.09.2026: „Da kommt auf die Media-Kit-
+          * Seite auf erster Stelle").
+          *
+          * Vor den Formaten, nicht dahinter: Eine Agentur, die „Trichter" liest, denkt an
+          * eine Webseite. Dass dieselbe Anwendung auf einem Bildschirm in der Filiale und
+          * als Projektion auf einer Messe läuft — und dass jeder Ort seinen eigenen,
+          * zählbaren Code bekommt —, ist der Teil, den ein Katalog von Formaten nicht sagt.
+          *
+          * Der Abschnitt steht auch auf der Startseite; deshalb liegt er in EINEM Baustein
+          * (components/OrteBlock) und nicht zweimal getippt in zwei Seiten.
+          */}
+        <OrteBlock lang={L} className="mt-7" />
+
         <ThemenListe
-          className="mt-6"
+          className="mt-10"
           ctaZeile={t.cta}
           baldZeile={t.bald}
           themen={THEMES.map(th => ({

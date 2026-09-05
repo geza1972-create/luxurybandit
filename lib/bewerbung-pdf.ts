@@ -139,10 +139,71 @@ const fotoY = (mitteY: number, feldH: number, bildH: number) =>
 
 export type PdfFoto = { bytes: Uint8Array; typ: "jpg" | "png" } | null;
 
+/**
+ * DIE ZWISCHENTITEL SPRECHEN DIE SPRACHE DER BEWERBUNG (Owner 25.08.2026: „die Bewerbung
+ * muss doch in der Sprache rauskommen wie die Anzeige").
+ *
+ * Sie standen fest auf Deutsch — bei einer englischen Anzeige stand damit englischer Inhalt
+ * unter „Berufserfahrung" und „Ausbildung". Massgeblich ist `profil.dokumentSprache` (das
+ * Kürzel der ANZEIGE, gesetzt vom Resume-Generator); ist es leer oder unbekannt, bleibt
+ * alles wie bisher auf Deutsch — Altbestände ändern sich also nicht.
+ */
+type PdfWorte = {
+  kontakt: string; kompetenzen: string; schwerpunkte: string; sprachen: string;
+  profil: string; erfahrung: string; ausbildung: string; muster: string;
+  /* Die Betreffzeile des Anschreibens und das Gebietsschema des Datums — beides schreibt
+     das PDF selbst, nicht die KI (Owner 25.08.2026: „hier steht auf Deutsch Bewerbung und
+     der Rest ist englisch"). Ohne sie stünde ein deutscher Betreff über englischem Brief. */
+  bewerbungAls: string; bewerbung: string; datumSchema: string;
+  /* Die Herkunftszeile am Fuss JEDER Fassung (Owner 25.08.2026: „Mach unten ein Hinweis.
+     Bewerbung erstellt mit luxurybandit.com") — anders als der Muster-Satz darueber steht
+     sie auch in der bezahlten Fassung: leise Werbung auf einem Dokument, das herumgereicht
+     wird. Ersetzt den Muster-Satz nicht, sie steht daneben. */
+  erstelltMit: string;
+};
+const PDF_WORTE: Record<string, PdfWorte> = {
+  de: { kontakt: "Kontakt", kompetenzen: "Kompetenzen", schwerpunkte: "Schwerpunkte", sprachen: "Sprachen",
+        profil: "Profil", erfahrung: "Berufserfahrung", ausbildung: "Ausbildung",
+        muster: "Muster-Fassung — die Vollversion ohne Wasserzeichen gibt es auf luxurybandit.com",
+        bewerbungAls: "Bewerbung als", bewerbung: "Bewerbung", datumSchema: "de-DE",
+        erstelltMit: "Bewerbung erstellt mit luxurybandit.com" },
+  en: { kontakt: "Contact", kompetenzen: "Skills", schwerpunkte: "Focus areas", sprachen: "Languages",
+        profil: "Profile", erfahrung: "Experience", ausbildung: "Education",
+        muster: "Sample version — the full version without watermark is available at luxurybandit.com",
+        bewerbungAls: "Application for", bewerbung: "Application", datumSchema: "en-GB",
+        erstelltMit: "Application created with luxurybandit.com" },
+  ro: { kontakt: "Contact", kompetenzen: "Competente", schwerpunkte: "Domenii cheie", sprachen: "Limbi",
+        profil: "Profil", erfahrung: "Experienta profesionala", ausbildung: "Studii",
+        muster: "Versiune demonstrativa — versiunea completa fara filigran este pe luxurybandit.com",
+        bewerbungAls: "Candidatura pentru", bewerbung: "Candidatura", datumSchema: "ro-RO",
+        erstelltMit: "Candidatura creata cu luxurybandit.com" },
+  fr: { kontakt: "Contact", kompetenzen: "Competences", schwerpunkte: "Domaines cles", sprachen: "Langues",
+        profil: "Profil", erfahrung: "Experience professionnelle", ausbildung: "Formation",
+        muster: "Version d'essai — la version complete sans filigrane est sur luxurybandit.com",
+        bewerbungAls: "Candidature au poste de", bewerbung: "Candidature", datumSchema: "fr-FR",
+        erstelltMit: "Candidature creee avec luxurybandit.com" },
+  es: { kontakt: "Contacto", kompetenzen: "Competencias", schwerpunkte: "Areas clave", sprachen: "Idiomas",
+        profil: "Perfil", erfahrung: "Experiencia profesional", ausbildung: "Formacion",
+        muster: "Version de muestra — la version completa sin marca de agua esta en luxurybandit.com",
+        bewerbungAls: "Candidatura para", bewerbung: "Candidatura", datumSchema: "es-ES",
+        erstelltMit: "Candidatura creada con luxurybandit.com" },
+  it: { kontakt: "Contatti", kompetenzen: "Competenze", schwerpunkte: "Aree chiave", sprachen: "Lingue",
+        profil: "Profilo", erfahrung: "Esperienza professionale", ausbildung: "Formazione",
+        muster: "Versione di prova — la versione completa senza filigrana e su luxurybandit.com",
+        bewerbungAls: "Candidatura per", bewerbung: "Candidatura", datumSchema: "it-IT",
+        erstelltMit: "Candidatura creata con luxurybandit.com" },
+  pt: { kontakt: "Contacto", kompetenzen: "Competencias", schwerpunkte: "Areas principais", sprachen: "Linguas",
+        profil: "Perfil", erfahrung: "Experiencia profissional", ausbildung: "Formacao",
+        muster: "Versao de amostra — a versao completa sem marca de agua esta em luxurybandit.com",
+        bewerbungAls: "Candidatura para", bewerbung: "Candidatura", datumSchema: "pt-PT",
+        erstelltMit: "Candidatura criada com luxurybandit.com" },
+};
+
 export async function bewerbungAlsPdf(
   profil: LebenslaufProfil,
   opt: { wasserzeichen: boolean; foto?: PdfFoto; vorlage?: string },
 ): Promise<Uint8Array> {
+  const W = PDF_WORTE[String(profil.dokumentSprache ?? "").toLowerCase().slice(0, 2)] ?? PDF_WORTE.de;
   /* Die gewählte Vorlage — ohne Angabe die erste (Klassik). Ab hier gibt es kein festes
      AKZENT/SPALTE_GRUND mehr; alles Farbige kommt aus `V`. */
   const V = vorlageFinden(opt.vorlage);
@@ -271,14 +332,14 @@ export async function bewerbungAlsPdf(
   seite.drawLine({ start: { x: RAND, y }, end: { x: A4.b - RAND, y }, thickness: 0.8, color: AKZENT });
   y -= 30;
 
-  const datum = new Date().toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+  const datum = new Date().toLocaleDateString(W.datumSchema, { day: "numeric", month: "long", year: "numeric" });
   const datumW = normal.widthOfTextAtSize(datum, 9.5);
   seite.drawText(datum, { x: A4.b - RAND - datumW, y: y - 9.5, size: 9.5, font: normal, color: GRAU });
   y -= 34;
 
   const betreff = profil.anzeigeTitel
-    ? `Bewerbung als ${profil.anzeigeTitel}${profil.anzeigeFirma ? ` — ${profil.anzeigeFirma}` : ""}`
-    : "Bewerbung";
+    ? `${W.bewerbungAls} ${profil.anzeigeTitel}${profil.anzeigeFirma ? ` — ${profil.anzeigeFirma}` : ""}`
+    : W.bewerbung;
   text(betreff, { groesse: 12, font: fett, x: RAND, maxBreite: A4.b - RAND * 2, abstand: 12 });
   text(profil.anschreiben || profil.sprechtext || "", { groesse: 10.5, x: RAND, maxBreite: A4.b - RAND * 2, zeilenfaktor: 1.52 });
 
@@ -592,21 +653,21 @@ export async function bewerbungAlsPdf(
     linksText(V.layout === "kreis" ? t : `·  ${t}`, { farbe: SP_GRAU, abstand: 1.5 });
 
   if (kontaktZeilen.length) {
-    linksTitel("Kontakt");
+    linksTitel(W.kontakt);
     for (const z of kontaktZeilen) linksText(z, { farbe: SP_GRAU, abstand: 2 });
   }
   if (profil.kompetenzen?.length) {
-    linksTitel("Kompetenzen");
+    linksTitel(W.kompetenzen);
     for (const k of profil.kompetenzen) linksPunkt(k);
   }
   if (profil.schwerpunkte?.length) {
-    linksTitel("Schwerpunkte");
+    linksTitel(W.schwerpunkte);
     for (const sp of profil.schwerpunkte) linksPunkt(sp);
   }
   if (profil.sprachen?.length) {
     /* KEINE FÄHNCHEN MEHR (Owner 31.08.2026: „mach die Flaggen raus bei den Sprachen") —
        das Zeichen des Dokuments ist das Siegel, nicht eine Reihe kleiner Fahnen. */
-    linksTitel("Sprachen");
+    linksTitel(W.sprachen);
     for (const sp of profil.sprachen) {
       linksText(sp.sprache, { font: fett, groesse: 9.5 });
       if (sp.niveau) linksText(sp.niveau, { farbe: SP_GRAU, groesse: 8.5, abstand: 3 });
@@ -657,10 +718,10 @@ export async function bewerbungAlsPdf(
     else y -= 6;
   }
 
-  if (profil.sprechtext) { abschnitt("Profil"); text(profil.sprechtext, { farbe: GRAU, zeilenfaktor: 1.55, abstand: 4 }); }
+  if (profil.sprechtext) { abschnitt(W.profil); text(profil.sprechtext, { farbe: GRAU, zeilenfaktor: 1.55, abstand: 4 }); }
 
   if (profil.erfahrung?.length) {
-    abschnitt("Berufserfahrung");
+    abschnitt(W.erfahrung);
     if (V.deutschForm) {
       /**
        * DIE ZEITSPALTE — DIE DEUTSCHE FORM (Owner 31.08.2026: „und deutsches Design und
@@ -794,7 +855,7 @@ export async function bewerbungAlsPdf(
     }
   }
   if (profil.ausbildung?.length) {
-    abschnitt("Ausbildung");
+    abschnitt(W.ausbildung);
     for (const a of profil.ausbildung) {
       platz(28);
       if (V.deutschForm) {
@@ -906,7 +967,13 @@ export async function bewerbungAlsPdf(
         x: A4.b / 2 - wzBreite / 2 + 66, y: A4.h / 2 - 150,
         size: wzGroesse, font: fett, color: rgb(0.6, 0.61, 0.65), opacity: 0.14, rotate: degrees(45),
       });
-      s.drawText(winAnsi("Muster-Fassung — die Vollversion ohne Wasserzeichen gibt es auf luxurybandit.com"), {
+      s.drawText(winAnsi(W.muster), {
+        x: RAND, y: 28, size: 7.5, font: normal, color: HELL,
+      });
+    } else {
+      /* Ohne Wasserzeichen ist der Platz frei — dort steht die Herkunftszeile. Bei der
+         Muster-Fassung sagt der Satz darueber ohnehin schon, woher das PDF kommt. */
+      s.drawText(winAnsi(W.erstelltMit), {
         x: RAND, y: 28, size: 7.5, font: normal, color: HELL,
       });
     }

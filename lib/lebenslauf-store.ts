@@ -137,6 +137,15 @@ export type LebenslaufProfil = {
    * ist keine Lücke in der Anzeige, das ist der ehrliche Stand.
    */
   pdfSchutz?: string;
+  /**
+   * DIE SPRACHE, IN DER DIE BEWERBUNG GESCHRIEBEN IST (Owner 25.08.2026: „die Bewerbung
+   * muss doch in der Sprache rauskommen wie die Anzeige") — ISO-Kürzel der ANZEIGE, nicht
+   * des Lebenslaufs. Wer sich auf eine englische Anzeige bewirbt, schickt eine englische
+   * Bewerbung; eine deutsche Anzeige bekommt Deutsch, auch wenn der CV anders verfasst war.
+   * Steuert im PDF auch die festen Überschriften (lib/bewerbung-pdf.ts) — sonst stünde
+   * englischer Inhalt unter deutschen Zwischentiteln.
+   */
+  dokumentSprache?: string;
   /** Titel/Firma wörtlich aus der Anzeige + der Match-Prozentwert vom Erzeugen — die
       Beschriftung in der Liste „Deine Bewerbungen". */
   anzeigeTitel?: string;
@@ -146,6 +155,29 @@ export type LebenslaufProfil = {
       vorbei ist. Bleibt intern, keine Route gibt ihn an den Client. */
   anzeigeText?: string;
   matchProzent?: number;
+  /**
+   * WAS IN KEINEM LEBENSLAUF STEHT (Owner 05.09.2026: „ich würde noch etwas in dem
+   * anschreiben hinzufügen: Wann kannst du anfangen? Wie flexibel bist du beim Gehalt? Bist
+   * du umzugs-/reisebereit? Hast du relevante Kontakte? Gibt es etwas, bei dem du für die
+   * richtige Stelle Kompromisse machen würdest?").
+   *
+   * Fünf Angaben, die kein Modell ableiten kann und die es deshalb erfinden würde — genau
+   * das verbietet der Auftrag an beiden Stellen („nichts erfinden"). Sie kommen vom
+   * Bewerber selbst, im BEZAHLTEN Schritt: Der Gratis-Lauf ist der Köder und bleibt ohne
+   * Formular, und beim Zuschneiden sind es genau die Angaben, die schärfen.
+   *
+   * ALLE FREIWILLIG. Leer heisst „nicht gesagt" — nie „nein". Wie jede einzelne verwertet
+   * werden darf, steht als Regel im Auftrag (`/api/resume-generator`, Schritt `optimieren`);
+   * die wichtigste: Gehalt nur, wenn die Anzeige danach fragt, sonst verhandelt der
+   * Bewerber im Anschreiben gegen sich selbst.
+   */
+  angaben?: {
+    verfuegbar?: string;
+    mobilitaet?: string;
+    netzwerk?: string;
+    kompromisse?: string;
+    gehalt?: string;
+  };
   /**
    * DIE STRUKTUR-ANALYSE UND DER JOBCHANCEN-POOL (Owner-Auftrag 26.08.2026,
    * KONZEPT-JOB-MATCH-TRICHTER.md Baustelle C/D/F) — zusätzlich zu Titel/Firma/Prozent

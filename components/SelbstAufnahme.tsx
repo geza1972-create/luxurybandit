@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, X, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { Camera, Mic, Square, X, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { Knopf, Scheibe, Fehlerzeile } from "@/components/CI";
 
 /**
@@ -34,9 +34,23 @@ import { Knopf, Scheibe, Fehlerzeile } from "@/components/CI";
  *      neben dem Start.
  */
 
-export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagnose = false, aufFertig, aufAbbruch }: {
-  /** Der Text zum Ablesen — er läuft über der Kamera mit. */
-  skript: string;
+export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagnose = false, nurFoto = false, aufFertig, aufAbbruch }: {
+  /** Der Text zum Ablesen — er läuft über der Kamera mit. Im Foto-Modus entfällt er. */
+  skript?: string;
+  /**
+   * NUR EIN STANDBILD STATT EINER AUFNAHME (02.09.2026, für den Armee-Trichter).
+   *
+   * Dort wird kein gesprochenes Video gebraucht, sondern ein Porträt für die Bild-Erzeugung.
+   * Alles andere ist identisch und deshalb NICHT ein zweites Mal gebaut worden: dieselbe
+   * Kamera-Anfrage, dasselbe erzwungene Hochformat (eine Webcam liefert sonst ihr Weitwinkel
+   * und der Kopf wird winzig), derselbe Kreis fürs Gesicht, derselbe Zoom-Regler, derselbe
+   * Ausgang an der Bildecke.
+   *
+   * Genau das war der Fehler beim ersten Versuch: eine eigene Kamera daneben zu bauen. Was
+   * hier über Monate an Erfahrung eingeflossen ist, hätte dort von vorn gelernt werden
+   * müssen.
+   */
+  nurFoto?: boolean;
   maxSekunden?: number;
   texte: {
     titel: string; hinweis: string; los: string; stopp: string;
@@ -129,6 +143,60 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagno
     setFehler(""); teileRef.current = [];
     /* MP4 WENN MÖGLICH (iOS), sonst webm — sonst entsteht eine Datei, die der Nutzer
        hinterher nirgends abspielen kann. */
+    /* FOTO-MODUS: ein Bild aus dem laufenden Strom, kein Rekorder. Die Leinwand bekommt die
+       Masse des Videos, damit nichts skaliert wird — die Bild-Erzeugung danach lebt von den
+       Pixeln, die die Kamera wirklich geliefert hat. */
+    if (nurFoto) {
+      const v = vorschauRef.current;
+      if (!v || !v.videoWidth) { setFehler(texte.keineKamera); return; }
+
+      /**
+       * AUFGENOMMEN WIRD, WAS ER SIEHT — NICHT, WAS DIE KAMERA LIEFERT (Owner 02.09.2026, mit
+       * einem Bild seiner eigenen Aufnahme: „ich verstehe nicht, warum Querformat?").
+       *
+       * Hier stand `c.width = v.videoWidth`, also das native Kameraformat. Eine Frontkamera
+       * liefert fast immer QUER (4:3, oft 1280×960) — die Vorschau zeigt davon per
+       * `object-cover` nur den hochkanten Ausschnitt, der in den Rahmen passt. Man sieht sein
+       * Gesicht formatfüllend, drückt ab, und heraus kommt ein Querformat mit Küchenregal und
+       * halber zweiter Person am Rand. Das ist kein Schönheitsfehler: Genau dieses Bild geht
+       * an das Bildmodell, das daraus ein Porträt bauen soll.
+       *
+       * Jetzt bekommt die Leinwand das Verhältnis des RAHMENS, und aus dem Kamerabild wird
+       * derselbe Ausschnitt genommen, den die Vorschau zeigt — dieselbe Rechnung wie
+       * `object-cover`, nur von Hand.
+       */
+      const rahmen = v.getBoundingClientRect();
+      const zielV = rahmen.width > 0 && rahmen.height > 0 ? rahmen.width / rahmen.height : 3 / 4;
+      const quelleV = v.videoWidth / v.videoHeight;
+      let sx = 0, sy = 0, sw = v.videoWidth, sh = v.videoHeight;
+      if (quelleV > zielV) { sw = v.videoHeight * zielV; sx = (v.videoWidth - sw) / 2; }
+      else { sh = v.videoWidth / zielV; sy = (v.videoHeight - sh) / 2; }
+
+      const c = document.createElement("canvas");
+      /* Die volle Auflösung des Ausschnitts, nicht die Anzeigegrösse: Das Bildmodell lebt von
+         den Pixeln, die die Kamera wirklich geliefert hat. */
+      c.width = Math.round(sw); c.height = Math.round(sh);
+      const g = c.getContext("2d");
+      /**
+       * DAS ERGEBNIS WIRD GESPIEGELT (Owner 02.09.2026: „nach der aufnahme spiegeln").
+       *
+       * Die Kamera liefert das Bild so, wie andere einen sehen — man selbst kennt sich aber
+       * aus dem Spiegel. Auf dem fertigen Foto wirkt das ungespiegelte Gesicht deshalb
+       * fremd, und wer sich nicht erkennt, nimmt die Aufnahme nicht.
+       *
+       * Für den Zweck ist die Seitenrichtung ohnehin gleichgültig: Aus diesem Porträt
+       * entsteht ein erzeugtes Bild, und dort spielt es keine Rolle, welche Seite des
+       * Gesichts links liegt. Was zählt, ist, dass er sich erkennt.
+       */
+      if (g) { g.translate(c.width, 0); g.scale(-1, 1); }
+      g?.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      c.toBlob(b => {
+        if (!b) { setFehler(texte.keineKamera); return; }
+        const datei = new File([b], "selfie.jpg", { type: "image/jpeg" });
+        setFertig({ datei, url: URL.createObjectURL(datei) });
+      }, "image/jpeg", 0.92);
+      return;
+    }
     const typ = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.("video/mp4")
       ? "video/mp4"
       : MediaRecorder.isTypeSupported?.("video/webm") ? "video/webm" : "";
@@ -166,6 +234,27 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagno
     setFertig(null); setRest(maxSekunden);
   };
 
+  /**
+   * NACH „NOCH EINMAL" MUSS DER STROM ZURÜCK AN DAS VIDEO (Owner 02.09.2026: „noch ein mal
+   * bild wird schwarz").
+   *
+   * Solange ein Ergebnis dasteht, zeigt die Bühne das Bild statt der Vorschau — React baut
+   * das `<video>` dabei ab. Kommt es zurück, ist es ein NEUES Element, und dessen
+   * `srcObject` ist leer: schwarze Fläche. Die Kamera lief die ganze Zeit weiter, nur sah
+   * man sie nicht mehr.
+   *
+   * Deshalb hier statt im Startlauf: Der Effekt hängt an `fertig` und hängt den vorhandenen
+   * Strom jedes Mal neu an, wenn die Vorschau erscheint.
+   */
+  useEffect(() => {
+    if (fertig) return;
+    const v = vorschauRef.current;
+    const strom = stromRef.current;
+    if (!v || !strom) return;
+    if (v.srcObject !== strom) v.srcObject = strom;
+    void v.play().catch(() => { /* der Browser mag beim Wiedereinhängen zicken */ });
+  }, [fertig]);
+
   return (
     <div className="fixed inset-0 z-[95] flex flex-col bg-black">
       {/* ── Das Bild: entweder die Kamera oder die fertige Aufnahme ──
@@ -190,16 +279,37 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagno
             </div>
 
             {fertig ? (
-              <video src={fertig.url} controls playsInline className="h-full w-full object-contain" />
+              nurFoto
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={fertig.url} alt="" className="h-full w-full object-contain" />
+                : <video src={fertig.url} controls playsInline className="h-full w-full object-contain" />
             ) : (
               <>
-                <video ref={vorschauRef} muted playsInline className="h-full w-full object-cover" />
-                {/* DER KREIS FÜRS GESICHT (Owner 28.08.2026) — er sagt ohne ein Wort, wohin der
-                    Kopf gehört. Nur eine Hilfslinie, kein Beschnitt: Aufgenommen wird das ganze
-                    Bild, sonst fehlte der KI später der Rand. */}
-                <div className="pointer-events-none absolute inset-0 grid place-items-center pb-[14%]">
-                  <div className="aspect-square w-[62%] rounded-full border-2 border-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
-                </div>
+                {/**
+                  * IM FOTO-MODUS IST DIE VORSCHAU GESPIEGELT (Owner 02.09.2026: „vorschau muss
+                  * richtig sein" — nach „nach der aufnahme spiegeln").
+                  *
+                  * Beides zusammen ergibt erst einen Sinn: Wer sich ausrichtet, tut das wie
+                  * vor einem Spiegel — hebt er die rechte Hand, muss sie auf der erwarteten
+                  * Seite hochgehen. Wäre nur das Ergebnis gespiegelt, zeigte die Vorschau
+                  * etwas anderes als das, was danach dasteht.
+                  *
+                  * NUR IM FOTO-MODUS: Ein gesprochenes Video (Geburtstag, Future Me) bleibt
+                  * ungespiegelt — dort ist die Aufnahme das Endprodukt und soll zeigen, wie
+                  * andere den Sprecher sehen.
+                  */}
+                <video ref={vorschauRef} muted playsInline
+                  className={`h-full w-full object-cover ${nurFoto ? "scale-x-[-1]" : ""}`} />
+                {/**
+                  * KEIN GESICHTS-OVAL MEHR (Owner 02.09.2026: „mach den Kreis raus").
+                  *
+                  * Es war am selben Tag entstanden und dreimal nachgemessen worden — rund,
+                  * dann oval, dann höher. Am echten Handy zeigt sich, warum es trotzdem
+                  * stört: Es dunkelt alles ausserhalb ab (`shadow` mit 9999 px Streuung), und
+                  * wer nicht genau hineinpasst, sieht sein eigenes Gesicht halb im Schatten —
+                  * ausgerechnet in dem Moment, in dem er sich prüfen will. Zuschneiden kommt
+                  * ohnehin gleich danach, und der Cropper startet seit heute zentriert.
+                  */}
 
                 {/* DER REGLER ZUM HERANHOLEN — nur, wenn die Kamera das kann. */}
                 {naeher && (
@@ -226,7 +336,7 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagno
 
       {/* ── Das Skript zum Ablesen — direkt über den Knöpfen, damit der Blick nahe an der
              Kamera bleibt. Scrollbar, weil ein Skript länger sein darf als der Platz. ── */}
-      {!fertig && (
+      {!fertig && !nurFoto && skript && (
         <div className="lb-wisch max-h-[26vh] overflow-y-auto border-t border-white/10 bg-black/80 px-5 py-3">
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">{texte.titel}</p>
           <p className="mt-1.5 whitespace-pre-line text-[15px] font-semibold leading-relaxed text-white/90">{skript}</p>
@@ -253,7 +363,7 @@ export default function SelbstAufnahme({ skript, maxSekunden = 90, texte, diagno
           <>
             <button type="button" onClick={los}
               className="lb-gold flex h-12 items-center justify-center gap-2 rounded-full px-7 text-[15px] font-black transition active:scale-95">
-              <Mic className="h-4 w-4" />{texte.los}
+              {nurFoto ? <Camera className="h-4 w-4" /> : <Mic className="h-4 w-4" />}{texte.los}
             </button>
             <p className="text-center text-[12.5px] font-bold leading-snug text-white/60">{texte.hinweis}</p>
           </>

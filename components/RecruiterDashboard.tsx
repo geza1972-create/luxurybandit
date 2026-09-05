@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Download, Eye, FileText, Send, ShieldCheck, Video } from "lucide-react";
+import { Check, Download, FileText, Send, ShieldCheck, Video } from "lucide-react";
 import { Auffalten, Fehlerzeile, Kasten, Knopf } from "@/components/CI";
 import { Fine, H1, Kicker, Lead, SectionTitle, StepLabel, Y } from "@/components/Landing";
 import EinladungAnsicht from "@/components/EinladungAnsicht";
@@ -12,6 +12,7 @@ import EinladungKarte, { KARTE_TEXTE } from "@/components/EinladungKarte";
 const K = KARTE_TEXTE.de;
 import TeilenKnopf from "@/components/TeilenKnopf";
 import KartenKarussell from "@/components/KartenKarussell";
+import { bereichAnzeigenBild } from "@/lib/armee-musik";
 import type { DemoMotivFertig, DemoProfil, RecruiterTexte } from "@/lib/demo-armee";
 
 /**
@@ -46,11 +47,14 @@ import type { DemoMotivFertig, DemoProfil, RecruiterTexte } from "@/lib/demo-arm
  */
 
 export type DashboardDaten = {
-  kunde: { name: string; bereich: string; zeitraum: string };
+  kunde: { name: string; bereich: string };
   kampagne: { budgetCent: number; impressionen: number; klicks: number; cpcCent: number };
   trichter: readonly { readonly stufe: string; readonly wert: number }[];
   kostenJeVideoCent: number;
   kostenJeProfilCent: number;
+  /** de/ro/en — steuert, welche Sprachfassung der Anzeigen-Fotos in der Bewerbergalerie
+      erscheint (`bereichAnzeigenBild`). */
+  sprache: string;
   motive: DemoMotivFertig[];
   /** Der Claim der Kampagne — steht über den Anzeigen, weil er die Aussage ist, für die
       der Kunde bezahlt. */
@@ -65,8 +69,21 @@ export type DashboardDaten = {
   texte: RecruiterTexte;
 };
 
-const euro = (cent: number) =>
-  (cent / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+/**
+ * GLATTE BETRÄGE OHNE „,00" (Owner 02.09.2026, am Budget: „hier ,00 raus").
+ *
+ * „2.400,00 €" sind vier Zeichen mehr als „2.400 €" — genug, dass die Kennzahl auf dem Handy
+ * umbrach und das Euro-Zeichen allein in der zweiten Zeile stand. Die Nachkommastellen sagen
+ * dort auch nichts: Ein Kampagnenbudget ist nie krumm.
+ *
+ * NICHT ÜBERALL WEG: 0,57 € Klickpreis und 11,32 € je Profil sind die Zahlen, um die es auf
+ * dieser Seite geht — ohne Stellen stünde dort „1 €" und „11 €". Deshalb entscheidet der
+ * Betrag selbst: Cent-Anteil null, dann ohne.
+ */
+const euro = (cent: number) => {
+  const stellen = cent % 100 === 0 ? 0 : 2;
+  return (cent / 100).toLocaleString("de-DE", { minimumFractionDigits: stellen, maximumFractionDigits: stellen }) + " €";
+};
 const zahl = (n: number) => n.toLocaleString("de-DE");
 
 /** Eine Kennzahl in einem Bibliotheks-Kasten. Zahl in Weiss, Zeile im Kleingedruckten-Ton. */
@@ -74,7 +91,7 @@ function Kennzahl({ wert, label }: { wert: string; label: string }) {
   return (
     <Kasten>
       <p className="text-[26px] font-black leading-none text-white">{wert}</p>
-      <p className="mt-1.5 text-[12px] font-bold leading-snug text-white/75">{label}</p>
+      <p className="mt-1.5 text-[13.5px] font-bold leading-snug text-white/75">{label}</p>
     </Kasten>
   );
 }
@@ -84,13 +101,77 @@ function Balken({ text, wert, anteil }: { text: string; wert: string; anteil: nu
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[13.5px] font-bold text-white/85">{text}</span>
+        <span className="text-[14.5px] font-bold text-white/85">{text}</span>
         <span className="shrink-0 text-[15px] font-black tabular-nums text-white">{wert}</span>
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
         <div className="h-full rounded-full bg-[#f6cf51]" style={{ width: `${anteil * 100}%` }} />
       </div>
     </div>
+  );
+}
+
+/* ══ 0 · Die Bewerbergalerie ══ */
+
+/**
+ * DREI BILDER STATT NEUN, GLEICH AM ANFANG (Owner 04.09.2026 zuerst: „wenn die Site gleich
+ * mit einer Beispiel Galerie anfängt … Wir zeigen nur 9 Bilder statt die Liste unten", dann
+ * korrigiert: „in der galerie machst du nur 3 statt 9, weil sie sich widerhollen").
+ *
+ * Es gibt nur fünf Standbilder (eins je Einsatzbereich, `bereichBild`) — bei neun Kacheln
+ * wiederholten sich zwangsläufig welche, und genau das sah nach einem Fehler aus, nicht nach
+ * einer Auswahl. Drei verschiedene Bereiche gibt es unter den ersten Profilen immer (die
+ * Gewichtung in `bereichVon` verteilt breit genug), deshalb hier eine dedupe-Schleife statt
+ * eines blossen `slice` — sie bleibt auch dann richtig, wenn sich die Gewichtung einmal
+ * ändert.
+ *
+ * Die Liste (Abschnitt 4 weiter unten) bleibt unverändert stehen — der Owner wollte sie nicht
+ * ersetzt, nur einen Blickfang VOR ihr: eine Kachelwand, die auf den ersten Blick zeigt, dass
+ * hier schon viele ein Video erzeugt haben, bevor der Kunde eine einzige Zahl gelesen hat.
+ *
+ * NICHT KLICKBAR (noch nicht, Owner: „das müssen wir jetzt noch nicht machen"). Eine Kachel,
+ * die auf Antippen Name/E-Mail/Zeitpunkt einblendet, ist eine spätere Erweiterung — hier
+ * stehen die Angaben schon offen unter dem Bild, in derselben maskierten Form wie in der
+ * Liste (siehe `mailMuster`), damit nichts vorgegriffen wird, was es noch nicht gibt.
+ */
+function Bewerbergalerie({ profile, videoAnzahl, sprache, T }: { profile: DemoProfil[]; videoAnzahl: number; sprache: string; T: RecruiterTexte }) {
+  const gesehen = new Set<string>();
+  const kacheln: DemoProfil[] = [];
+  for (const p of profile) {
+    const bild = bereichAnzeigenBild(p.bereich, sprache);
+    if (gesehen.has(bild)) continue;
+    gesehen.add(bild);
+    kacheln.push(p);
+    if (kacheln.length === 3) break;
+  }
+  if (!kacheln.length) return null;
+
+  return (
+    <section className="mt-9">
+      <SectionTitle>{T.galerieTitel}</SectionTitle>
+      <Lead className="max-w-[62ch]">{T.galerieLead.replace("{n}", zahl(videoAnzahl))}</Lead>
+      <Fine className="mt-1">{T.galerieHinweis}</Fine>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {kacheln.map(p => (
+          <div key={p.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
+            {/* 3:4 STATT QUADRATISCH (Owner 04.09.2026: „Das ist doch ein und das selbe
+                Modul" — dieselben Dateien wie in der Anzeigen-Galerie). Die beschrifteten
+                Fotos sind hochkant (432×640) mit dem Dankestext im unteren Drittel; ein
+                quadratischer Zuschnitt mit `object-top` schnitt genau den Text weg. 3:4 zeigt
+                die Aufnahme fast vollständig, nur die Seiten schmal beschnitten. */}
+            <div className="aspect-[3/4] w-full overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={bereichAnzeigenBild(p.bereich, sprache)} alt="" className="h-full w-full object-cover" />
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="truncate text-[12px] font-black text-white">{p.vorname} {p.nachname[0]}.</p>
+              <p className="text-[11px] font-bold text-white/50">{p.alter} {T.jahre}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -119,7 +200,7 @@ function Galerie({ motive, trichterHref, T }: { motive: DemoMotivFertig[]; trich
   if (!motive.length) {
     return (
       <Kasten>
-        <p className="text-[14px] font-bold text-white/85">
+        <p className="text-[15px] font-bold text-white/85">
           {T.keineMotive} <span className="text-[#f6cf51]">public/Armee/</span> {T.keineMotiveZwei} <span className="text-[#f6cf51]">.jpg</span>.
         </p>
       </Kasten>
@@ -185,15 +266,18 @@ function Galerie({ motive, trichterHref, T }: { motive: DemoMotivFertig[]; trich
 
         {/**
           * DER WEG IN DEN TRICHTER, DIREKT UNTER DER ANZEIGE (Owner 02.09.2026: „gleich
-          * drunter machst du einen Button für Recruiting Tunel ansehen").
+          * drunter machst du einen Button für Recruiting Tunel ansehen" — Wortlaut später
+          * ersetzt, Owner 04.09.2026: „den Button machst du in die Card").
           *
           * Er sitzt hier und nicht irgendwo unten, weil er genau den Schritt nachstellt, den
           * ein Bewerber macht: Anzeige gesehen — geklickt. Der Kunde sieht damit im Termin
-          * nicht zwei getrennte Sachen, sondern eine Kette.
+          * nicht zwei getrennte Sachen, sondern eine Kette. Der Text ist derselbe wie im
+          * erklärenden Kasten darüber (`T.viralKnopf`) — dort stand er zuerst als eigener
+          * Knopf, doppelt zu diesem hier; jetzt gibt es nur noch den einen, an der Karte.
           */}
         <div className="mt-4">
           <Knopf art="gold" href={trichterHref}>
-            <Eye className="h-4 w-4" /> {T.trichterAnsehen}
+            <Video className="h-4 w-4" /> {T.viralKnopf}
           </Knopf>
         </div>
       </div>
@@ -222,10 +306,40 @@ const sortLabel = (T: RecruiterTexte): Record<Sortierung, string> => ({
  * dass ihn jemand danach gefragt hätte — und sie entsteht nebenbei, weil er sie ohnehin
  * antippen musste.
  */
+/**
+ * DIE ADRESSE ALS MUSTER, NICHT ALS ADRESSE (Owner 02.09.2026: „email kannst du auch als
+ * Beispiel, aber mit g***2@example.com eingeben").
+ *
+ * Zwischenschritt zwischen zwei Fehlern: Die volle Adresse im Bild („michael.berger@…")
+ * brach in der Beispielansicht genau die Zusage, die zwei Abschnitte tiefer steht —
+ * Kontaktdaten erst nach Freigabe des Kandidaten. Gar keine Adresse liess dafür offen, WAS
+ * der Kunde am Ende bekommt.
+ *
+ * Erstes Zeichen, drei Sterne, letztes Zeichen, volle Domain: Man sieht, dass eine echte
+ * Adresse dahinter liegt, und kann sie nicht lesen. Kurze Namen (ein oder zwei Zeichen)
+ * bekommen trotzdem drei Sterne — sonst wäre ausgerechnet der kürzeste Name der lesbarste.
+ */
+function mailMuster(mail: string): string {
+  const at = mail.indexOf("@");
+  if (at < 1) return mail;
+  const name = mail.slice(0, at);
+  const rest = mail.slice(at);
+  if (name.length <= 2) return `${name[0]}***${rest}`;
+  return `${name[0]}***${name[name.length - 1]}${rest}`;
+}
+
 function Bewerberliste({ profile, beispiel, T }: { profile: DemoProfil[]; beispiel?: boolean; T: RecruiterTexte }) {
   const [sortierung, setSortierung] = useState<Sortierung>("eingang");
   const [gewaehlt, setGewaehlt] = useState<Set<string>>(new Set());
-  const [zeige, setZeige] = useState(15);
+  /**
+   * VIER ZEILEN, DANN DER KNOPF (Owner 02.09.2026: „machst nur 4 und more").
+   *
+   * Hier standen fünfzehn. Die Liste ist eine ARBEITSPROBE, kein Arbeitsplatz: Der Kunde
+   * soll sehen, wie ein Profil aussieht und dass es viele davon gibt — nicht durch 212
+   * Namen scrollen, bevor er zum nächsten Argument kommt. Vier passen auf jedes Handy,
+   * ohne dass der Rest der Seite unter den Bildrand rutscht.
+   */
+  const [zeige] = useState(4);
   const [meldung, setMeldung] = useState("");
 
   const sortiert = useMemo(() => {
@@ -264,10 +378,15 @@ function Bewerberliste({ profile, beispiel, T }: { profile: DemoProfil[]; beispi
           {T.erste40}
         </Knopf>
         <Knopf art="chip" onClick={() => setGewaehlt(new Set())} className="shrink-0">{T.auswahlLeeren}</Knopf>
-        <span className="text-[13px] font-black text-[#f6cf51]">{gewaehlt.size} {T.ausgewaehlt}</span>
+        <span className="text-[15px] font-black text-[#f6cf51]">{gewaehlt.size} {T.ausgewaehlt}</span>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {/* UNTEREINANDER (Owner 02.09.2026: „untereinander" · „kaputt"). In zwei bis drei
+          Spalten blieb je Karte ein Drittel Breite: Der Name wurde auf den ersten Buchstaben
+          abgeschnitten („M 18 J."), die Adresse auf vier Zeichen, und Einsatz und Zeitpunkt
+          liefen in getrennte Zeilen. Eine Bewerberkarte ist eine ZEILE — Name, Alter,
+          Adresse, Einsatz, wann. Nebeneinander ist sie keine Karte mehr, sondern ein Rest. */}
+      <div className="mt-4 grid gap-2">
         {sortiert.slice(0, zeige).map(p => {
           const an = gewaehlt.has(p.id);
           return (
@@ -285,16 +404,19 @@ function Bewerberliste({ profile, beispiel, T }: { profile: DemoProfil[]; beispi
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="truncate text-[15px] font-black text-white">{p.vorname} {p.nachname}</p>
-                    <span className="shrink-0 text-[13px] font-black tabular-nums text-white/75">{p.alter} {T.jahre}</span>
+                    <span className="shrink-0 text-[15px] font-black tabular-nums text-white/75">{p.alter} {T.jahre}</span>
                   </div>
-                  <p className="mt-0.5 truncate text-[12.5px] font-bold text-white/75">{p.email}</p>
-                  <p className="mt-1.5 flex items-center gap-2 text-[12.5px] font-bold">
+                  {/* Verdeckt, nicht weg (siehe `mailMuster` oben): Man sieht, dass eine
+                      Adresse dahinter liegt, und kann sie nicht lesen — genau das, was die
+                      Seite weiter unten zusichert. */}
+                  <p className="mt-0.5 truncate text-[14.5px] font-bold text-white/55">{mailMuster(p.email)}</p>
+                  <p className="mt-1.5 flex items-center gap-2 text-[14.5px] font-bold">
                     <span className="text-[#f6cf51]">{p.bereich}</span>
                     <span className="text-white/45">·</span>
                     <span className="text-white/60">{p.wann}</span>
                   </p>
                   {!p.videoGesehen && (
-                    <p className="mt-1 text-[11.5px] font-bold text-white/45">{T.nichtZuEnde}</p>
+                    <p className="mt-1 text-[13.5px] font-bold text-white/45">{T.nichtZuEnde}</p>
                   )}
                 </div>
               </div>
@@ -303,12 +425,14 @@ function Bewerberliste({ profile, beispiel, T }: { profile: DemoProfil[]; beispi
         })}
       </div>
 
+      {/* EINE ZEILE, KEIN KNOPF (Owner 02.09.2026: „das nicht klickbar"). Hier stand
+          „Weitere anzeigen" und rollte fünfzig weitere erfundene Namen aus. Der Kunde soll
+          sehen, DASS es 212 sind — durchblättern soll er sie in seiner echten Ansicht,
+          nicht in der Arbeitsprobe. */}
       {zeige < sortiert.length && (
-        <div className="mt-3">
-          <Knopf art="umriss" onClick={() => setZeige(z => z + 50)}>
-            {T.weitereZeigen} ({zahl(sortiert.length - zeige)} {T.uebrig})
-          </Knopf>
-        </div>
+        <p className="mt-3 text-center text-[15px] font-bold text-white/45">
+          {T.weitereStumm.replace("{n}", zahl(sortiert.length - zeige))}
+        </p>
       )}
 
       <div className="mt-5 flex flex-col gap-2">
@@ -329,7 +453,7 @@ function Bewerberliste({ profile, beispiel, T }: { profile: DemoProfil[]; beispi
 /* ══ Die Seite ══ */
 
 export default function RecruiterDashboard({ daten }: { daten: DashboardDaten }) {
-  const { kunde, kampagne, trichter, kostenJeVideoCent, kostenJeProfilCent, motive, claim, trichterHref, profile, beispiel, texte: T } = daten;
+  const { kunde, kampagne, trichter, kostenJeVideoCent, kostenJeProfilCent, sprache, motive, claim, trichterHref, profile, beispiel, texte: T } = daten;
   /* Wie verteilen sich die Bewerber auf die Einsatzbereiche? Das ist die Spalte, die kein
      Formular abfragt und die trotzdem entsteht. */
   const jeBereich = profile.reduce<Record<string, number>>((acc, p) => {
@@ -355,7 +479,6 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
       {/* ── Kopf ── */}
       <Kicker>{T.bereich}</Kicker>
       <H1>{kunde.name} · <Y>{T.kampagne}</Y></H1>
-      <Fine>{kunde.zeitraum}</Fine>
 
       {beispiel && (
         /* DAS ETIKETT IST PFLICHT. Die Seite wird jemandem gezeigt, der noch keinen einzigen
@@ -363,14 +486,22 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
            ersten echten Zugang steht dort null. Mit Hinweis ist es ein Prospekt: „so sieht
            Ihre Seite in vier Wochen aus." */
         <div className="mt-4">
-          <Kasten art="gold" polster="p-3">
-            <p className="text-[13px] font-black text-[#f6cf51]">{T.beispielTitel}</p>
-            <p className="mt-1 text-[12.5px] font-bold leading-snug text-white/85">
+          {/* GRÖSSER (Owner 02.09.2026: „da ist zu klein"). Der Block stand in 13/12,5 px —
+              der Schriftgrad einer Fussnote für den WICHTIGSTEN Satz der Seite: dass alles
+              hier erfunden ist. Wer ihn überliest, hält 212 Profile für seine eigenen und
+              findet beim ersten echten Login eine leere Liste. Jetzt trägt die Zeile den
+              Grad einer Abschnittsüberschrift (17 px) und der Text den des Fliesstextes
+              (14,5 px) — beides über dem Kontrastboden des Hauses (Skill `ci-design`). */}
+          <Kasten art="gold" polster="p-4">
+            <p className="text-[17px] font-black leading-snug text-[#f6cf51]">{T.beispielTitel}</p>
+            <p className="mt-1.5 text-[14.5px] font-semibold leading-snug text-white/85">
               {T.beispielText}
             </p>
           </Kasten>
         </div>
       )}
+
+      <Bewerbergalerie profile={profile} videoAnzahl={trichter.find(t => t.stufe === "video")?.wert ?? profile.length} sprache={sprache} T={T} />
 
       {/* ── 1 · Anzeigen ── */}
       <section className="mt-9">
@@ -388,12 +519,35 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
           */}
         <div className="mt-4">
           <Kasten art="gold" polster="p-5">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/60">{T.claimLabel}</p>
+            <p className="text-[12px] font-black uppercase tracking-[0.18em] text-white/60">{T.claimLabel}</p>
             <p className="mt-2 text-[26px] font-black leading-[1.12] text-white">
               {claim.zeileEins}<br />
               <span className="text-[#f6cf51]">{claim.zeileZwei}</span><br />
               {claim.zeileDrei}
             </p>
+          </Kasten>
+        </div>
+
+        {/**
+          * WAS DER BEWERBER BEKOMMT — UND WARUM DAS VON SELBST LÄUFT (Owner 04.09.2026, an der
+          * Kampagnen-Aussage: „Hier müsste stehen, was die Kandidaten bekommen. Und warum das
+          * ein virales video werden kann, weil jedes Video das sie generieren sharen können").
+          *
+          * Der Claim oben sagt, WOFÜR der Kunde bezahlt. Er sagt nicht, warum die Reichweite
+          * über die gebuchten Impressionen hinausgeht: Jeder Bewerber bekommt sein eigenes
+          * Video und kann es selbst teilen — jede Erzeugung ist eine zusätzliche Anzeige ohne
+          * zusätzliches Budget.
+          *
+          * OHNE EIGENEN KNOPF (Owner 04.09.2026: „den Button machst du in die Card"). Hier
+          * stand zuerst derselbe Knopf wie an der Anzeige selbst — zweimal „Generiere dein
+          * Video" auf derselben Bildschirmseite. Der Knopf gehört an EINE Stelle, direkt unter
+          * der Karte (`Galerie`, oben), weil er genau den Schritt nachstellt, den ein Bewerber
+          * nach der Anzeige macht. Hier steht nur noch die Erklärung dazu.
+          */}
+        <div className="mt-3">
+          <Kasten polster="p-5">
+            <p className="text-[15px] font-black leading-snug text-white">{T.viralTitel}</p>
+            <p className="mt-2 text-[14.5px] font-semibold leading-snug text-white/85">{T.viralText}</p>
           </Kasten>
         </div>
 
@@ -404,7 +558,11 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
       <section className="mt-10">
         <SectionTitle>{T.kostenTitel}</SectionTitle>
         <Lead className="max-w-[62ch]">{T.kostenLead}</Lead>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* ZWEI JE REIHE, AUCH AUF BREITEM SCHIRM (Owner 02.09.2026: „hier Zweierreihe").
+            `sm:grid-cols-4` gab jeder Kennzahl ein Viertel — „312.000" und „4.180" liefen
+            darin ineinander, und „2.400 €" brach das Euro-Zeichen in die zweite Zeile. Eine
+            Zahl, die man zweimal lesen muss, ist als Kennzahl wertlos. */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <Kennzahl wert={euro(kampagne.budgetCent)} label={T.ausgegeben} />
           <Kennzahl wert={zahl(kampagne.impressionen)} label={T.ausgespielt} />
           <Kennzahl wert={zahl(kampagne.klicks)} label={T.klicks} />
@@ -451,20 +609,23 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
           * misst, was das Geschenk wert ist. Ein Jobportal hat keine vergleichbare Zahl,
           * weil dort niemand vorher etwas bekommt.
           */}
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {/* UNTEREINANDER (Owner 02.09.2026: „untereinander"). In Dritteln brach der Text
+            nach zwei Wörtern um und „11,32 €" verlor sein Euro-Zeichen in die nächste Zeile
+            — bei den drei Zahlen, die diese Seite verkauft, ist das der teuerste Umbruch. */}
+        <div className="mt-3 grid gap-3">
           <Kasten art="gold" polster="p-5">
             <p className="text-[34px] font-black leading-none text-[#f6cf51]">{euro(kostenJeVideoCent)}</p>
-            <p className="mt-2 text-[13px] font-bold leading-snug text-white/85">{T.jeVideo}</p>
+            <p className="mt-2 text-[15px] font-bold leading-snug text-white/85">{T.jeVideo}</p>
           </Kasten>
           <Kasten art="gold" polster="p-5">
             <p className="text-[34px] font-black leading-none text-[#f6cf51]">{euro(kostenJeProfilCent)}</p>
-            <p className="mt-2 text-[13px] font-bold leading-snug text-white/85">{T.jeProfil}</p>
+            <p className="mt-2 text-[15px] font-bold leading-snug text-white/85">{T.jeProfil}</p>
           </Kasten>
           <Kasten art="gold" polster="p-5">
             <p className="text-[34px] font-black leading-none text-[#f6cf51]">
               {Math.round((trichter[3].wert / trichter[2].wert) * 100)} %
             </p>
-            <p className="mt-2 text-[13px] font-bold leading-snug text-white/85">
+            <p className="mt-2 text-[15px] font-bold leading-snug text-white/85">
               {T.quoteEins} <span className="text-white">{T.quoteZwei}</span> {T.quoteDrei}
             </p>
           </Kasten>
@@ -484,7 +645,11 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
         <Lead className="max-w-[62ch]">
           {T.sehenLead}
         </Lead>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* ZWEI JE REIHE (Owner 02.09.2026). Bei vier Spalten stand die Zahl über einem
+            Namen, der nicht hineinpasste: „Cybersicherhe" lief in „Sanitäterin" hinein.
+            Die Bereichsnamen sind lang und unterschiedlich lang — dafür braucht es die
+            halbe Breite, nicht die viertel. */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
           {Object.entries(jeBereich).sort((a, b) => b[1] - a[1]).map(([bereich, anzahl]) => (
             <Kennzahl key={bereich} wert={zahl(anzahl)} label={bereich} />
           ))}
@@ -500,7 +665,7 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
             <p className="flex items-center gap-2 text-[16px] font-black text-white">
               <ShieldCheck className="h-5 w-5 text-[#f6cf51]" /> {T.bekommenKopf}
             </p>
-            <p className="mt-2.5 text-[14px] font-medium leading-relaxed text-white/85">
+            <p className="mt-2.5 text-[15px] font-medium leading-relaxed text-white/85">
               {/* DIE LEERZEICHEN GEHÖREN IN DAS JSX, NICHT IN DIE TEXTE (02.09.2026, Owner:
                   „das mag ich nicht den umbruch"): Beim Zerlegen des Satzes für die Fettung
                   klebte der Gedankenstrich direkt an „E-Mail". JSX schluckt Leerzeichen an
@@ -514,7 +679,7 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
             {/* Die Zusage steht VOR den Einzelheiten: Sie ist die Frage, mit der ein
                 Datenschutzbeauftragter ins Gespräch geht, und die Antwort darauf gehört
                 nicht ins Kleingedruckte. */}
-            <p className="mt-4 flex items-center gap-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[13.5px] font-black text-[#f6cf51]">
+            <p className="mt-4 flex items-center gap-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[14.5px] font-black text-[#f6cf51]">
               <ShieldCheck className="h-4 w-4 shrink-0" /> {T.sicher}
             </p>
 
@@ -523,7 +688,7 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
                 läuft, wie übertragen wird, wer hineinsieht, was mit dem Foto passiert, wann
                 gelöscht wird. Wer die Antworten erst im Termin sucht, hat den Termin schon
                 verloren. */}
-            <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">{T.technikKopf}</p>
+            <p className="mt-5 text-[12px] font-black uppercase tracking-[0.16em] text-white/45">{T.technikKopf}</p>
             <div className="mt-2 flex flex-col gap-2">
               <Fine><span className="text-[#f6cf51]">{T.speicherort}</span> {T.speicherortText}</Fine>
               <Fine><span className="text-[#f6cf51]">{T.uebertragung}</span> {T.uebertragungText}</Fine>
@@ -539,7 +704,7 @@ export default function RecruiterDashboard({ daten }: { daten: DashboardDaten })
                  nur Beispiel, und speichert erst mal nichts"). Ein Datenschutz-Block, der
                  Speicherung beschreibt, die es noch gar nicht gibt, wäre genau hier die
                  Unwahrheit, die auffliegt. */
-              <p className="mt-4 border-t border-white/15 pt-3 text-[12.5px] font-bold leading-snug text-white/60">
+              <p className="mt-4 border-t border-white/15 pt-3 text-[14.5px] font-bold leading-snug text-white/60">
                 {T.nochNichts}
               </p>
             )}

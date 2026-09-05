@@ -67,7 +67,7 @@ export function landAusZeitzone(): string {
  * unverändert. Es gibt keine zweite Stelle — Banner (`components/CookieConsent.tsx`), Pixel
  * (`components/MetaPixel.tsx`) und Conversions API hängen alle an dieser Funktion.
  */
-const EINWILLIGUNG_ABGESCHALTET = true;   // auf `false` setzen und der Streifen ist zurück
+const EINWILLIGUNG_ABGESCHALTET = false;   // Owner 04.09.2026: „wieder einführen" (Armee-Ansprache)
 
 export function brauchtEinwilligung(): boolean {
   if (EINWILLIGUNG_ABGESCHALTET) return false;

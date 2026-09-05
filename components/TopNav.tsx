@@ -55,26 +55,39 @@ import KontoChip from "@/components/KontoChip";
  * aendert eine Zeile statt die Struktur.
  */
 /**
- * „FUNNELS CREATOR" STATT „AI MARKETING PORTAL" (Owner 26.08.2026: „Motto heisst jetzt
- * Luxurybandit Funnels creator" — im selben Zug wie „Wir sind jetzt ein Funnel Spezialist"
- * und der Footer-Link „LUXURYBANDIT FUNNELS"). Die Wortmarke darüber sagt schon
- * LUXURYBANDIT, deshalb steht hier nur die zweite Hälfte — zusammen gelesen ergibt der
- * Kopf genau den diktierten Namen. Sprachgleich wie zuvor, gleiche Begründung.
+ * „THE AI-MEDIA CREATOR" (Owner 02.09.2026: „nicht Multimedia Agentur, sondern THE AI-MEDIA
+ * CREATOR").
+ *
+ * Die dritte Fassung dieser Zeile an einem Tag, und sie beantwortet dieselbe Frage schärfer
+ * als die beiden davor: „AI Marketing Portal" (bis 26.08.) und „Funnels Creator" (bis heute
+ * Mittag) beschrieben ein WERKZEUG; „Multimedia Agentur" war zwar die richtige Rolle, aber
+ * ein Wort, das jede Werbeagentur der Stadt für sich beanspruchen kann. „AI-Media Creator"
+ * sagt beides in einem: was gemacht wird (Medien) und womit (KI) — und trennt das Haus von
+ * genau der Konkurrenz, die „Agentur" nicht trennt.
+ *
+ * SPRACHGLEICH IN ALLEN SIEBEN: Es ist ein Name, kein Satz. Eine übersetzte Fassung stünde
+ * in jeder Sprache anders da als das, was auf der Visitenkarte steht.
+ *
+ * Die Wortmarke darüber sagt schon LUXURYBANDIT, deshalb steht hier nur die zweite Hälfte —
+ * zusammen gelesen ergibt der Kopf „LuxuryBandit · The AI-Media Creator".
  */
 const MOTTO: Record<string, string> = {
-  en: "Funnels Creator",
-  de: "Funnels Creator",
-  ro: "Funnels Creator",
-  es: "Funnels Creator",
-  fr: "Funnels Creator",
-  pt: "Funnels Creator",
-  it: "Funnels Creator",
+  en: "The AI-Media Creator",
+  de: "The AI-Media Creator",
+  ro: "The AI-Media Creator",
+  es: "The AI-Media Creator",
+  fr: "The AI-Media Creator",
+  pt: "The AI-Media Creator",
+  it: "The AI-Media Creator",
 };
 
 export default function TopNav({
   subtitle,
   actions,
+  chip,
   back = true,
+  zurueckHeim = false,
+  ohneLogo = false,
   marke,
   heim,
   motto: mottoUeberschreiben,
@@ -85,7 +98,38 @@ export default function TopNav({
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
+  /**
+   * EIN EIGENER CHIP AN DER STELLE VON „ASSETS" (Owner 02.09.2026, an der Academy-Seite:
+   * „der User muss sein Video dort sehen. Es soll nicht springen").
+   *
+   * `schlicht` nimmt den Guthaben-/Assets-Chip weg — richtig für einen geschlossenen
+   * Trichter, aber dann fehlt dem Besucher jeder Weg zu dem, was er gerade erzeugt hat. Ein
+   * Produkt mit eigener Marke reicht hier seinen EIGENEN Chip herein, der innerhalb seiner
+   * Welt bleibt. Ohne dieses Prop ändert sich nichts.
+   */
+  chip?: React.ReactNode;
   back?: boolean;                     // Zurück-Pfeil (an, außer man setzt back={false})
+  /**
+   * WHITE LABEL: KEIN HAUS-ZEICHEN (Owner 02.09.2026, an der Academy: „das Logo hier raus
+   * und Footer komplett raus. Es ist ein White-Label").
+   *
+   * Eine Seite, die unter fremder Marke läuft und einem Kunden als SEINE gezeigt wird, darf
+   * unser Zeichen nicht tragen — es ist dasselbe Argument wie beim „made by" unter der Karte,
+   * nur eine Stufe härter: Dort war es Werbung an falscher Stelle, hier wäre es ein zweiter
+   * Absender im Kopf. Der Markenname rückt an die Stelle des Logos.
+   */
+  ohneLogo?: boolean;
+  /**
+   * DER PFEIL FÜHRT IMMER AUF `heim` — statt in die Browser-Historie.
+   *
+   * Owner 02.09.2026 am Armee-Trichter: „zurück auf die Landingpage". Ein Trichter mit
+   * eigener Landingpage hat genau EINE Herkunft; `router.back()` dagegen führt dorthin, wo
+   * der Besucher zufällig vorher war — bei jemandem, der aus einer Anzeige direkt auf den
+   * Trichter kommt und vorher im Portal unterwegs war, ist das eine fremde Seite.
+   *
+   * Nur mit `heim`. Ohne dieses Prop bleibt das gezählte Verhalten von vorher.
+   */
+  zurueckHeim?: boolean;
   /** STILLGELEGT (Owner 26.08.2026: „Keine topics mehr im header") — die Themen-Kreise
       sind komplett aus der Kopfzeile raus; das Prop bleibt nur, damit die bestehenden
       Aufrufer (`kreise={false}` auf /firmen u. a.) nicht brechen. Es bewirkt nichts mehr. */
@@ -233,7 +277,7 @@ export default function TopNav({
   const mottoAnzeige = mottoUeberschreiben === undefined ? mottoSprache : mottoUeberschreiben;
   // Auf der Startseite selbst gibt es nichts, wohin der Pfeil fuehren koennte.
   const canBack = pathname !== HEIM && pathname !== HEIM_ALT;
-  const zurueck = () => { if (tiefe > 0) router.back(); else router.push(HEIM); };
+  const zurueck = () => { if (zurueckHeim || tiefe === 0) router.push(HEIM); else router.back(); };
   const share = () => {
     try {
       const url = window.location.href;
@@ -268,17 +312,33 @@ export default function TopNav({
               <ChevronLeft className="h-6 w-6" />
             </button>
           )}
-          {/* Brand → STARTSEITE = "/". Hier stand /themes, weil "/" frueher nur weiterleitete;
-              seit die Wurzel die Themen selbst ausliefert, ist der Umweg unnoetig. */}
+          {/**
+            * DAS LOGO FÜHRT IMMER NACH HAUSE (Owner 02.09.2026: „Logo-Klick führt immer zur
+            * Startseite").
+            *
+            * Vorher war Logo UND Name EIN Knopf auf `heim` — auf einer Seite mit eigener
+            * Marke (Academy, David, Joburi) landete man damit wieder auf derselben Seite.
+            * Für den Namen ist das richtig: Er gehört dem Produkt. Das LB-Zeichen gehört
+            * aber dem HAUS, und wer auf ein Logo tippt, will zu dem, wessen Logo es ist —
+            * so hält es jede Seite im Netz.
+            *
+            * Zwei Knöpfe nebeneinander statt eines: Das Logo geht auf „/", der Name auf
+            * `heim` (ohne eigene Marke ist beides dasselbe, dann ändert sich nichts).
+            */}
+          {!ohneLogo && (
+            <button type="button" onClick={() => router.push("/")} aria-label="LuxuryBandit"
+              className="mr-2 shrink-0 active:opacity-70 transition-opacity">
+              <span className="relative block h-9 w-9">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
+                  onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
+                <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
+              </span>
+            </button>
+          )}
           <button type="button" onClick={() => router.push(HEIM)} aria-label="Home"
-            className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
-            <span className="relative h-9 w-9 shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
-                onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
-              <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
-            </span>
-            <span className="min-w-0 text-left">
+            className="min-w-0 text-left active:opacity-70 transition-opacity">
+            <span className="block min-w-0">
               {/**
                 * EIN LANGER NAME SCHRUMPFT, ER ÜBERLAGERT NICHT (Owner 31.08.2026, mit Bild
                 * von „LB - BEWERBUNGS-GENERATOR": „das geht nicht überlagert. Brauchen wir
@@ -396,7 +456,9 @@ export default function TopNav({
             Abstände füllen die 343 verfügbaren Pixel restlos aus. Ein 26 Pixel breites
             Zeichen dazwischen brach dem Guthaben „0,00 €" in zwei Zeilen. Wer hier je etwas
             hinzufügen will, muss also zuerst etwas anderes wegnehmen. */}
-        <span>{schlicht ? null : <GuthabenChip />}</span>
+        {/* `ohneLogo` heisst White Label — dort öffnet die Galerie in einem neuen Tab, damit die
+            Kundenseite stehen bleibt (Begründung in `GuthabenChip`). */}
+        <span>{chip ?? (schlicht ? null : <GuthabenChip neuerTab={ohneLogo} />)}</span>
         {/* HELL/DUNKEL STEHT IMMER HIER (Owner 06.08.2026: „der light und dark shalter muss
             immer da sein im header").
             Bisher hängte ihn jede Seite selbst ein — per Portal im Kuss-Trichter, als

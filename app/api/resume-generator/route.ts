@@ -10,7 +10,24 @@ import { fotoAblegen } from "@/lib/lebenslauf-foto";
 import { docxZuText } from "@/lib/docx-text";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+/**
+ * 300 STATT 60 SEKUNDEN — GEMESSEN AN EINEM ECHTEN ABBRUCH (Owner 05.09.2026, mit Bild:
+ * „Keine Verbindung — bitte noch einmal", nach dem Einfügen eines join.com-Links).
+ *
+ * IM VERCEL-PROTOKOLL STAND ES WÖRTLICH:
+ *   „Vercel Runtime Timeout Error: Task timed out after 60 seconds"
+ *   POST /api/resume-generator → 504
+ *
+ * Der Schritt „erzeugen" macht drei Dinge nacheinander, und keines davon ist schnell: die
+ * fremde Stellenanzeige holen (bis 8 s, `anzeigenTextBeschaffen`), den Lebenslauf aus dem
+ * Speicher laden, und dann EINEN Modell-Lauf über das ganze PDF, aus dem die komplette
+ * Bewerbung entsteht. Bei einem längeren Lebenslauf reicht eine Minute dafür nicht — der
+ * Kunde sah einen „Netzfehler", obwohl seine Bewerbung gerade geschrieben wurde.
+ *
+ * 300 s ist im Haus die Zahl für erzeugende Routen (`/api/armee-video`, `/api/aufraeumen`);
+ * der Vercel-Plan trägt sie also nachweislich.
+ */
+export const maxDuration = 300;
 
 /**
  * DER RESUME GENERATOR (Owner 26.08.2026, eigenes Tool „LB - Resume Generator":
@@ -44,12 +61,31 @@ const liste = (v: unknown, max: number, len = 120) =>
 async function ki(content: Array<Record<string, unknown>>): Promise<Record<string, unknown> | null> {
   const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return null;
+  const modell = process.env.OPENAI_VISION_MODEL ?? "gpt-5-mini";
+  /**
+   * GÜLTIGES JSON IST PFLICHT, NICHT BITTE — übernommen aus `/api/david-screening`, wo genau
+   * dieser Fehler am 29.08.2026 einen halben Bericht gekostet hat: Die Antwort war da, aber
+   * als abgeschnittenes JSON. Hier wurde bisher von Hand die erste `{` und die letzte `}`
+   * gesucht und dazwischen geparst — dieselbe Bastelei, dieselbe Falle. `json_object` macht
+   * aus der Bitte im Auftragstext eine Zusage der API.
+   */
   const r = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    /**
+     * EIN DECKEL AUF DIE WARTEZEIT (Owner 05.09.2026: „der Rechnet wie blöd" · „es hängt").
+     *
+     * Der Aufruf hatte gar keine Frist. Auf Vercel schnitt ihn nach 60 s die Laufzeitgrenze
+     * ab — der Kunde bekam „Keine Verbindung". LOKAL, ohne diese Grenze, hätte er beliebig
+     * lange gehangen. Ein Aufruf ohne Frist ist kein „langsam", sondern ein möglicher
+     * Dauerhänger. 240 s lassen der Erzeugung Luft und bleiben unter `maxDuration`, damit
+     * der Fehler von UNS kommt und nicht von der Plattform.
+     */
+    signal: AbortSignal.timeout(240_000),
     body: JSON.stringify({
-      model: process.env.OPENAI_VISION_MODEL ?? "gpt-5-mini",
+      model: modell,
       input: [{ role: "user", content }],
+      text: { format: { type: "json_object" } },
     }),
   }).then(res => res.json()).catch(() => null) as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> } | null;
   const text = r?.output_text ?? r?.output?.flatMap(o => o?.content ?? [])?.map(c => c?.text ?? "")?.join("") ?? "";
@@ -302,19 +338,46 @@ export async function POST(request: Request) {
     const prompt = [
       "Du bereitest aus einem Lebenslauf und einer Stellenanzeige eine Bewerbung vor. Der Lebenslauf ist beigefügt.",
       `Die Stellenanzeige:\n${anzeigeText}`,
-      // DER CV-TEIL BLEIBT NEUTRAL (Gratis-Linie): beschreibe den Menschen, wie der
-      // Lebenslauf ihn zeigt — NICHT auf die Anzeige hin umgeschrieben.
-      "Lies den Lebenslauf VOLLSTÄNDIG aus, in der SPRACHE DES LEBENSLAUFS, ohne ihn auf die Anzeige zuzuschneiden:",
-      "'name' — der volle Name. 'ort' und 'telefon', falls angegeben, sonst leer. 'positionierung' — die Berufsbezeichnung, wie der Lebenslauf sie trägt.",
-      "'profiltext' — 60–90 Wörter über diese Person in dritter Person neutral oder erster Person, je nachdem wie der Lebenslauf formuliert; NUR aus dem Lebenslauf, nichts erfinden.",
-      "'erfahrung' — ALLE beruflichen Stationen, chronologisch neueste zuerst, keine ausgelassen: [{\"rolle\":\"...\",\"firma\":\"Firma, Ort\",\"zeitraum\":\"...\",\"ergebnis\":\"EIN Satz aus dem Lebenslauf\"}]. Echte Jahreszahlen, nichts erfinden.",
-      "'ausbildung' — ALLE Stationen: [{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}]. 'sprachen' — [{\"sprache\":\"...\",\"niveau\":\"...\"}].",
-      "'kompetenzen' — 4–6 kurze Begriffe. 'schwerpunkte' — 3–4 Arbeitsfelder (keine Jobtitel).",
+      /* DIE SPRACHE DER ANZEIGE GILT FÜR ALLES (Owner 25.08.2026: „die Bewerbung muss doch
+         in der Sprache rauskommen wie die Anzeige"). Vorher las diese Route den Lebenslauf
+         in SEINER Sprache aus und schrieb nur das Anschreiben in der Sprache der Anzeige —
+         heraus kam eine Mappe mit englischem Brief vor deutschem Lebenslauf. Das Umstellen
+         kostet nichts extra: Es passiert im selben Durchlauf, in dem der CV ohnehin
+         ausgelesen wird. Übersetzen ist KEIN Zuschneiden — die Gratis-Linie bleibt, wo sie
+         war (der Inhalt wird nicht auf die Anzeige hin umgeschrieben, nur ihre Sprache
+         gesprochen). */
+      /* DIE SPRACHE DER ANZEIGE GEWINNT — MIT BEISPIEL (Owner 25.08.2026, an einem echten
+         Lauf: rumänischer Lebenslauf + englische Anzeige ergab „UE, Germania" und
+         „(proiect propriu)"). Die blosse Anweisung „Sprache der Anzeige" genügt dem Modell
+         nicht: Beim Auslesen zieht es die Sprache des Dokuments vor, das es gerade liest.
+         Der genannte Fall im Prompt dreht das zuverlässig. */
+      "SCHRITT 1 — bestimme die Sprache der STELLENANZEIGE. SCHRITT 2 — schreibe ALLE Textfelder in GENAU dieser Sprache, auch wenn der Lebenslauf in einer anderen verfasst ist. Beispiel: englische Anzeige + rumänischer Lebenslauf ⇒ ALLES auf Englisch (also \"EU, Germany\" statt \"UE, Germania\", \"(own project)\" statt \"(proiect propriu)\").",
+      "Betroffen sind: positionierung, profiltext, rolle, ergebnis, Ausbildungstitel, sprachen, kompetenzen, schwerpunkte, anschreiben — UND das Feld 'ort' (Länder- und Regionsnamen in der Sprache der Anzeige). NIE übersetzt werden: Personennamen, Firmennamen, Institutionsnamen, Städtenamen und Zeiträume. ERKLÄRENDE ZUSÄTZE IN KLAMMERN gehören dagegen zur Sprache der Anzeige: aus „Musterfirma (eigenes Projekt)\" wird bei englischer Anzeige „Musterfirma (own project)\" — der Name bleibt, der Zusatz wandert mit.",
+      "'sprache' — das ISO-Kürzel der Anzeigensprache (z. B. \"de\", \"en\", \"ro\", \"fr\", \"es\", \"it\", \"pt\").",
+      // DER CV-TEIL BLEIBT INHALTLICH NEUTRAL (Gratis-Linie): beschreibe den Menschen, wie
+      // der Lebenslauf ihn zeigt — NICHT auf die Anzeige hin umgeschrieben.
+      "Lies den Lebenslauf VOLLSTÄNDIG aus, ohne ihn auf die Anzeige zuzuschneiden — aber gib ALLES in der Sprache der Anzeige wieder:",
+      "'name' — der volle Name (nie übersetzt). 'ort', falls angegeben, sonst leer. 'positionierung' — die Berufsbezeichnung, wie der Lebenslauf sie trägt, IN DER SPRACHE DER ANZEIGE (auch Fachbegriffe werden übersetzt: aus „Barrierefreiheit“ wird bei einer englischen Anzeige „accessibility“).",
+      /* INTERNATIONALES TELEFONFORMAT (Owner 25.08.2026, an einem echten Fall: rumänische
+         Nummer „0724 644 477" ohne Landesvorwahl auf einer Bewerbung nach Deutschland —
+         „hier muss +40 davor, weil es Rumänien ist"). Eine Bewerbung geht oft über die
+         Landesgrenze; eine Nummer ohne Vorwahl ist für die Firma dort unbrauchbar. Die
+         Vorwahl wird aus dem Land des Bewerbers abgeleitet (Adresse/CV-Kontext), nicht aus
+         der Sprache der Anzeige — der Bewerber bleibt, wo er wohnt. */
+      "'telefon', falls angegeben, sonst leer — IM INTERNATIONALEN FORMAT mit Landesvorwahl, z. B. \"+40 724 644 477\" statt \"0724 644 477\" oder \"+49 176 12345678\" statt \"0176 12345678\". Trägt die Nummer im Lebenslauf schon eine Landesvorwahl (+ oder 00), übernimm sie unverändert. Fehlt sie, leite sie aus dem Land des Bewerbers ab (Adresse im Lebenslauf, sonst Kontext) und ersetze eine führende \"0\" durch \"+<Landesvorwahl> \".",
+      "'profiltext' — 60–90 Wörter über diese Person, IN DER SPRACHE DER ANZEIGE; NUR aus dem Lebenslauf, nichts erfinden.",
+      "'erfahrung' — ALLE beruflichen Stationen, chronologisch neueste zuerst, keine ausgelassen: [{\"rolle\":\"...\",\"firma\":\"Firma, Ort\",\"zeitraum\":\"...\",\"ergebnis\":\"EIN Satz aus dem Lebenslauf\"}]. 'rolle' und 'ergebnis' IN DER SPRACHE DER ANZEIGE; 'firma' und 'zeitraum' wörtlich wie im Lebenslauf. Echte Jahreszahlen, nichts erfinden.",
+      "'ausbildung' — ALLE Stationen: [{\"titel\":\"...\",\"ort\":\"...\",\"zeitraum\":\"...\"}]; 'titel' in der Sprache der Anzeige, 'ort' und 'zeitraum' wörtlich. 'sprachen' — [{\"sprache\":\"...\",\"niveau\":\"...\"}], beide in der Sprache der Anzeige (z. B. \"Deutsch\"→\"German\", \"Muttersprache\"→\"Native\").",
+      "'kompetenzen' — 4–6 kurze Begriffe. 'schwerpunkte' — 3–4 Arbeitsfelder (keine Jobtitel). Beide in der Sprache der Anzeige.",
       // DAS TITELBLATT (der Gratis-Kern) + DIE EHRLICHE ANALYSE.
       "'anschreiben' — ein vollständiges Anschreiben (150–250 Wörter) IN DER SPRACHE DER ANZEIGE für DIESE Stelle: konkreter Bezug auf 2–3 Anforderungen, je mit Beleg aus dem Lebenslauf. Lücken werden OFFEN in 1–2 Sätzen angesprochen, nie versteckt, nie entschuldigt (keine Wörter wie \"leider\"). Neutrale Anrede ohne erfundene Namen; endet mit dem Namen des Bewerbers.",
       "'analyse' — die ehrliche Einschätzung: {\"prozent\": 0–100 wie gut Lebenslauf und Anzeige zusammenpassen (ehrlich, keine Gefälligkeit),\"empfehlung\":\"gut\"|\"bruecke\"|\"schwach\",\"anforderungen\":[je zentrale Anforderung der Anzeige: {\"text\":\"kurz\",\"einstufung\":\"erfuellt\"|\"uebertragbar\"|\"erklaerbar\"|\"blocker\",\"begruendung\":\"EIN Satz\"}] (4–7 Einträge)}.",
       "'anzeigeTitel' — der Stellentitel wörtlich (kurz); 'anzeigeFirma' — Firmenname falls erkennbar, sonst leer.",
-      "Antworte NUR als JSON: {\"name\":\"...\",\"ort\":\"...\",\"telefon\":\"...\",\"positionierung\":\"...\",\"profiltext\":\"...\",\"erfahrung\":[...],\"ausbildung\":[...],\"sprachen\":[...],\"kompetenzen\":[...],\"schwerpunkte\":[...],\"anschreiben\":\"...\",\"analyse\":{...},\"anzeigeTitel\":\"...\",\"anzeigeFirma\":\"...\"}",
+      /* `sprache` MUSS IM SCHEMA STEHEN (gemessen 25.08.2026): Die Anweisung weiter oben
+         allein genügte nicht — das Modell liefert exakt die Felder dieser Zeile, und ohne
+         den Eintrag hier kam das Kürzel nie an. Folge: `dokumentSprache` blieb leer und
+         das PDF trug deutsche Zwischentitel über englischem Inhalt. */
+      "Antworte NUR als JSON: {\"sprache\":\"..\",\"name\":\"...\",\"ort\":\"...\",\"telefon\":\"...\",\"positionierung\":\"...\",\"profiltext\":\"...\",\"erfahrung\":[...],\"ausbildung\":[...],\"sprachen\":[...],\"kompetenzen\":[...],\"schwerpunkte\":[...],\"anschreiben\":\"...\",\"analyse\":{...},\"anzeigeTitel\":\"...\",\"anzeigeFirma\":\"...\"}",
       kontext,
     ].filter(Boolean).join("\n\n");
 
@@ -380,6 +443,9 @@ export async function POST(request: Request) {
       anzeigeTitel: s(parsed.anzeigeTitel, 120) || undefined,
       anzeigeFirma: s(parsed.anzeigeFirma, 120) || undefined,
       anzeigeText,
+      /* Die Sprache der Anzeige — sie steuert auch die festen Überschriften im PDF
+         (Owner 25.08.2026). Nur die zwei Buchstaben, alles andere fällt auf Deutsch. */
+      dokumentSprache: s(parsed.sprache, 2).toLowerCase() || undefined,
       matchProzent: prozent,
       matchEmpfehlung: empfehlung,
       bezahlt: false,
@@ -479,6 +545,33 @@ export async function POST(request: Request) {
       name: profil.name ?? "",
       ort: profil.ort ?? "",
     };
+    /**
+     * DIE FÜNF ANGABEN ÜBERNEHMEN — falls dieser Aufruf welche mitbringt.
+     *
+     * Sie kommen aus dem Formular NACH dem Kauf und werden am Profil festgehalten: Der
+     * Optimier-Lauf ist idempotent (Stripes Rückkehr lädt mehrfach), und ein zweiter Aufruf
+     * ohne Formular darf die Antworten des ersten nicht verlieren.
+     */
+    const angabenNeu = (body as { angaben?: Record<string, unknown> }).angaben;
+    if (angabenNeu && typeof angabenNeu === "object") {
+      const sauber = {
+        verfuegbar: s(angabenNeu.verfuegbar, 200),
+        mobilitaet: s(angabenNeu.mobilitaet, 200),
+        netzwerk: s(angabenNeu.netzwerk, 300),
+        kompromisse: s(angabenNeu.kompromisse, 300),
+        gehalt: s(angabenNeu.gehalt, 120),
+      };
+      if (Object.values(sauber).some(Boolean)) profil.angaben = { ...profil.angaben, ...sauber };
+    }
+    /* Nur die wirklich ausgefüllten Felder in den Auftrag — ein leeres Feld als `""`
+       mitzuschicken lädt das Modell dazu ein, „keine Angabe" zu deuten. */
+    const angabenGefuellt = Object.fromEntries(
+      Object.entries(profil.angaben ?? {}).filter(([, v]) => String(v ?? "").trim()),
+    );
+    const angabenZeile = Object.keys(angabenGefuellt).length
+      ? `Angaben des Bewerbers, die NICHT im Lebenslauf stehen:\n${JSON.stringify(angabenGefuellt)}`
+      : "";
+
     /* Dieselben eisernen Regeln wie die Multi-Bewerbung: AUSWÄHLEN UND BETONEN, NIE
        ERFINDEN — Stationen/Zeiträume/Firmen sind unantastbar. */
     const prompt = [
@@ -486,13 +579,47 @@ export async function POST(request: Request) {
       JSON.stringify(daten),
       `Die Stellenanzeige:\n${anzeigeText}`,
       "ZUSCHNEIDEN HEISST AUSWÄHLEN UND BETONEN, NIE ERFINDEN. Alles muss durch die Profildaten belegt sein. Lücken werden NICHT weggelogen.",
+      /**
+       * DIE FÜNF ANGABEN DES BEWERBERS (Owner 05.09.2026) — mit einer Regel je Angabe.
+       *
+       * OHNE DIESE REGELN SCHADEN SIE MEHR, ALS SIE NÜTZEN. Zwei Beispiele, und beide sind
+       * der Grund, warum hier nicht einfach „berücksichtige die Angaben" steht:
+       *
+       *   GEHALT: Steht „ab 65.000, flexibel" im Anschreiben, hat der Bewerber verhandelt,
+       *   bevor er im Gespräch war — nach unten, gegen sich selbst. Eine Zahl gehört nur
+       *   dorthin, wo die Anzeige sie ausdrücklich verlangt; sonst ist Schweigen die
+       *   stärkere Antwort.
+       *
+       *   KOMPROMISSE: „Ich würde auch Teilzeit nehmen" ist eine Auskunft für ein Gespräch,
+       *   kein Satz für ein Anschreiben — geschrieben liest er sich als Abwertung des
+       *   eigenen Angebots. Die Angabe darf die GEWICHTUNG steuern, nie im Text auftauchen.
+       *
+       * Leer heisst „nicht gesagt", nicht „nein" — daraus darf nichts abgeleitet werden.
+       */
+      ...(angabenZeile ? [angabenZeile,
+        "REGELN FÜR DIESE ANGABEN, je Angabe eine: 'verfuegbar' darf ins Anschreiben, aber NUR wenn sie ein Vorteil ist (kurzfristig verfügbar); eine ferne Verfügbarkeit wird verschwiegen. 'mobilitaet' nur, wenn die Anzeige Ort, Reise oder Präsenz überhaupt anspricht. 'netzwerk' NUR abstrahiert als Kompetenz (z. B. \"belastbares Netzwerk in der Branche\"), NIE mit Namen von Personen oder Firmen. 'kompromisse' erscheint NIE im Text — sie steuert ausschliesslich, was du betonst und was du weglässt. 'gehalt' NUR, wenn die Anzeige ausdrücklich nach Gehaltsvorstellung fragt; fragt sie nicht danach, kommt keine Zahl und kein Hinweis darauf vor. Eine leere Angabe bedeutet 'nicht gesagt' — leite daraus nichts ab.",
+      ] : []),
+      /* DIE GANZE MAPPE SPRICHT DIE SPRACHE DER ANZEIGE (Owner 25.08.2026: „die Bewerbung
+         muss doch in der Sprache rauskommen wie die Anzeige"). Vorher stand hier „profiltext
+         — DIESELBE Sprache wie der bisherige": Nur das Anschreiben folgte der Anzeige, der
+         Lebenslauf blieb in seiner Ursprungssprache — eine halb englische, halb deutsche
+         Mappe. Übersetzen ist kein Erfinden: Was übersetzt wird, sagt dasselbe. */
+      /* Dasselbe Beispiel wie im Erzeugen-Schritt — ohne es kippt der bezahlte Lauf zurück
+         in die Sprache der Profildaten (gemessen 25.08.2026). */
+      "SCHRITT 1 — bestimme die Sprache der STELLENANZEIGE. SCHRITT 2 — schreibe ALLE Textfelder in GENAU dieser Sprache, auch wenn die Profildaten in einer anderen vorliegen. Beispiel: englische Anzeige + rumänische Profildaten ⇒ ALLES auf Englisch (also \"EU, Germany\" statt \"UE, Germania\", \"(own project)\" statt \"(proiect propriu)\"). NIE übersetzt werden: Personennamen, Firmennamen, Institutionsnamen, Städtenamen und Zeiträume.",
       "Leite ZUERST 'strategie' ab: {\"staerksteArgumente\":[bis 5],\"uebertragbar\":[bis 6],\"zuErklaeren\":[bis 5],\"betonen\":[bis 4],\"wenigerBetonen\":[bis 4],\"sprachvorteile\":[bis 3],\"nieVerstecken\":[bis 3]}.",
       "'positionierung' — EINE Zeile unter dem Namen, passend zur Anzeige, NUR wenn die Erfahrung sie trägt (sonst leer).",
-      "'profiltext' — 80–120 Wörter, DIESELBE Sprache wie der bisherige, der Strategie folgend: führe mit dem, was die Anzeige verlangt und das Profil belegt.",
+      "'profiltext' — 80–120 Wörter, der Strategie folgend: führe mit dem, was die Anzeige verlangt und das Profil belegt.",
       "'schwerpunkte' — 3–4 auf die Anzeige hin ausgewählte Arbeitsfelder. 'kompetenzen' — 4–6 vorhandene Begriffe, stärkste zuerst.",
       "'ergebnisse' — je Station optional eine neu betonte Ergebnis-Zeile: [{\"i\":0,\"ergebnis\":\"…\"}]. NUR umformulieren, was da ist.",
-      "'anschreiben' — das Anschreiben (150–250 Wörter, Sprache der Anzeige), der Strategie folgend; jede Lücke aus 'zuErklaeren' offen in 1–2 Sätzen, ohne entschuldigende Sprache; endet mit dem Namen.",
-      "Antworte NUR als JSON: {\"strategie\":{…},\"positionierung\":\"…\",\"profiltext\":\"…\",\"schwerpunkte\":[…],\"kompetenzen\":[…],\"ergebnisse\":[…],\"anschreiben\":\"…\"}",
+      /* Damit die Mappe wirklich EINE Sprache spricht, müssen auch die Felder mit, die der
+         Zuschnitt sonst unangetastet lässt — Jobtitel, Ausbildungstitel, Sprachnamen. Ohne
+         sie stünde ein englischer Profiltext über deutschen Stationsnamen. */
+      "'rollen' — je Station der Jobtitel in der Sprache der Anzeige: [{\"i\":0,\"rolle\":\"…\"}]. NUR übersetzen/anpassen, nie eine andere Position daraus machen. Firma und Zeitraum lässt du weg — sie bleiben unverändert.",
+      "'ausbildung' — dieselben Stationen in der Sprache der Anzeige: [{\"titel\":\"…\",\"ort\":\"…\",\"zeitraum\":\"…\"}]. 'ort' und 'zeitraum' wörtlich übernehmen.",
+      "'sprachen' — dieselbe Liste in der Sprache der Anzeige: [{\"sprache\":\"…\",\"niveau\":\"…\"}] (z. B. \"Deutsch\"→\"German\", \"Muttersprache\"→\"Native\").",
+      "'anschreiben' — das Anschreiben (150–250 Wörter), der Strategie folgend; jede Lücke aus 'zuErklaeren' offen in 1–2 Sätzen, ohne entschuldigende Sprache; endet mit dem Namen.",
+      "Antworte NUR als JSON: {\"strategie\":{…},\"positionierung\":\"…\",\"profiltext\":\"…\",\"schwerpunkte\":[…],\"kompetenzen\":[…],\"ergebnisse\":[…],\"rollen\":[…],\"ausbildung\":[…],\"sprachen\":[…],\"anschreiben\":\"…\"}",
       /* HIER ZÄHLT DAS GESPRÄCH AM MEISTEN: Beim Zuschneiden entscheidet sich, was betont
          und wie eine Lücke erklärt wird — und genau dazu hat der Bewerber David etwas
          gesagt, das in keinem Dokument steht. Die Kennung des Auftrags IST die der
@@ -504,11 +631,31 @@ export async function POST(request: Request) {
     if (!parsed) return NextResponse.json({ error: "Optimierung fehlgeschlagen — bitte noch einmal." }, { status: 502 });
 
     const strategieRoh = (parsed.strategie ?? {}) as Record<string, unknown>;
+    /* Ergebnis-Zeile UND Jobtitel je Station — beides greift an derselben Stelle zu.
+       FIRMA UND ZEITRAUM WERDEN NIE ANGEFASST (Eigenname und Zahlen, Hausregel
+       „Stationen sind unantastbar"); ein leeres Feld fällt auf den Bestand zurück. */
     const erfahrung = (profil.erfahrung ?? []).map((e, i) => {
-      const neu = (Array.isArray(parsed.ergebnisse) ? parsed.ergebnisse : []).find(x => Number((x as Record<string, unknown>)?.i) === i) as Record<string, unknown> | undefined;
-      const ergebnis = s(neu?.ergebnis, 220);
-      return ergebnis ? { ...e, ergebnis } : e;
+      const treffer = (schluessel: string) =>
+        (Array.isArray(parsed[schluessel]) ? parsed[schluessel] as unknown[] : [])
+          .find(x => Number((x as Record<string, unknown>)?.i) === i) as Record<string, unknown> | undefined;
+      const ergebnis = s(treffer("ergebnisse")?.ergebnis, 220);
+      const rolle = s(treffer("rollen")?.rolle, 120);
+      return { ...e, ...(ergebnis ? { ergebnis } : {}), ...(rolle ? { rolle } : {}) };
     });
+    /* Ausbildung und Sprachen kommen NUR mit, wenn die KI dieselbe Anzahl Stationen
+       zurückgibt — sonst hätte eine unvollständige Antwort stillschweigend Stationen
+       gelöscht. Ort und Zeitraum bleiben in jedem Fall der Bestand. */
+    const ausbildungRoh = Array.isArray(parsed.ausbildung) ? parsed.ausbildung as Record<string, unknown>[] : [];
+    const ausbildung = ausbildungRoh.length === (profil.ausbildung ?? []).length
+      ? (profil.ausbildung ?? []).map((a, i) => ({ ...a, titel: s(ausbildungRoh[i]?.titel, 120) || a.titel }))
+      : profil.ausbildung;
+    const sprachenRoh = Array.isArray(parsed.sprachen) ? parsed.sprachen as Record<string, unknown>[] : [];
+    const sprachen = sprachenRoh.length === (profil.sprachen ?? []).length
+      ? (profil.sprachen ?? []).map((sp, i) => ({
+          sprache: s(sprachenRoh[i]?.sprache, 40) || sp.sprache,
+          niveau: s(sprachenRoh[i]?.niveau, 40) || sp.niveau,
+        }))
+      : profil.sprachen;
     const optimiert: LebenslaufProfil = {
       ...profil,
       sprechtext: s(parsed.profiltext, 1200) || profil.sprechtext,
@@ -516,6 +663,8 @@ export async function POST(request: Request) {
       schwerpunkte: liste(parsed.schwerpunkte, 4, 60).length ? liste(parsed.schwerpunkte, 4, 60) : profil.schwerpunkte,
       kompetenzen: liste(parsed.kompetenzen, 6, 40).length ? liste(parsed.kompetenzen, 6, 40) : profil.kompetenzen,
       erfahrung,
+      ausbildung,
+      sprachen,
       anschreiben: s(parsed.anschreiben, 3000) || profil.anschreiben,
       strategie: {
         staerksteArgumente: liste(strategieRoh.staerksteArgumente, 5, 200),
@@ -585,7 +734,8 @@ export async function POST(request: Request) {
         "Dabei gilt: Zeiträume als MM/JJJJ – MM/JJJJ, neueste Station zuerst. Firmennamen, Orte und Eigennamen bleiben unverändert. Berufsbezeichnungen, die im deutschen Arbeitsmarkt englisch ausgeschrieben werden (z. B. Customer Support Specialist, Software Engineer), lässt du englisch — alles andere wird deutsch.",
         "Übertreibe nichts und ergänze nichts, was nicht dasteht: Der Lebenslauf soll auf Deutsch dasselbe sagen wie im Original.",
       ] : []),
-      "'name' — der volle Name. 'email', 'telefon' und 'ort', falls angegeben, sonst leer.",
+      "'name' — der volle Name. 'email' und 'ort', falls angegeben, sonst leer.",
+      "'telefon', falls angegeben, sonst leer — IM INTERNATIONALEN FORMAT mit Landesvorwahl (z. B. \"+40 724 644 477\" statt \"0724 644 477\"). Trägt sie schon eine Vorwahl (+ oder 00), unverändert übernehmen; sonst aus dem Land des Bewerbers ableiten (Adresse im Lebenslauf) und die führende \"0\" durch \"+<Landesvorwahl> \" ersetzen — ein deutscher Arbeitgeber muss die Nummer auch aus dem Ausland wählen können.",
       "'positionierung' — die Berufsbezeichnung, wie der Lebenslauf sie trägt. Keine Jahreszahlen, keine Firmennamen.",
       "'profiltext' — 3 bis 5 Sätze in der ersten Person, eng am Wortlaut des Lebenslaufs. KEINE Aufwertung, keine Superlative.",
       "'erfahrung' — ALLE Stationen, neueste zuerst: [{\"rolle\":\"...\",\"firma\":\"...\",\"zeitraum\":\"...\",\"ergebnis\":\"...\"}]. 'ergebnis' nur, wenn im Dokument eines steht.",

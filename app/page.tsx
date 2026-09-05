@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import ThemesCatalog, { metadata as themenMetadata } from "./themes/page";
+import FunnelDomainStart from "@/components/FunnelDomainStart";
 
 export const dynamic = "force-dynamic";
 
@@ -12,20 +15,68 @@ export const dynamic = "force-dynamic";
  * Eine Adresse, die nur weiterleitet, hat keinen eigenen Inhalt — Bing und Google werfen sie
  * deshalb aus dem Verzeichnis und nehmen statt ihrer irgendeine ANDERE Seite der Domain als
  * Marken-Treffer. Genommen wurde /stores, die Model-Galerie: Sie ist eine Client-Seite ohne
- * eigenen Titel, also trug sie den Standardtitel aus dem Wurzel-Layout („Your Dream Model,
- * In Any Look") — und sah damit wie die Startseite aus. Wer den Treffer antippte, kam bei
- * den Models heraus, nicht bei den Geschenken.
+ * eigenen Titel, also trug sie den Standardtitel aus dem Wurzel-Layout — und sah damit wie
+ * die Startseite aus. Wer den Treffer antippte, kam bei den Models heraus.
  *
- * Jetzt liefert „/" die Themen-Seite direkt aus. Damit hat die blanke Adresse wieder eine
- * eigene Seite mit eigenem Titel, und der Marken-Treffer zeigt dorthin, wo der Trichter ist.
+ * Jetzt liefert „/" die Themen-Seite direkt aus. /themes bleibt bestehen und zeigt dasselbe;
+ * damit die beiden sich im Verzeichnis nicht verduennen, nennt /themes „/" als kanonisch.
  *
- * /themes bleibt bestehen und zeigt dasselbe — es ist in Menues, Links und alten Anzeigen
- * verdrahtet. Damit die beiden sich im Verzeichnis nicht gegenseitig verduennen, nennt
- * /themes „/" als kanonische Fassung (siehe app/themes/page.tsx).
+ * ── ZWEI DOMAINS, ZWEI STARTSEITEN (Owner 02.09.2026) ─────────────────────────────────────
+ *
+ * „ich habe yourvideogenerator.com reserviert" · „ja, und da kommen noch andere Funnels als
+ * White-Label."
+ *
+ * Dieselbe Anwendung liegt jetzt unter zwei Adressen. Auf `luxurybandit.com` ist der
+ * Themen-Katalog richtig — das ist das Haus. Auf `yourvideogenerator.com` wäre er ein Unfall:
+ * Diese Domain trägt Trichter, die einem Kunden als SEINE gezeigt werden, und wer die nackte
+ * Adresse eintippt (ein neugieriger Empfänger, ein Datenschutzbeauftragter, der prüft, wohin
+ * der Link führt), landete zwischen Kuss-Videos und Dessous-Looks.
+ *
+ * DIE WEICHE STEHT HIER UND NICHT IN DER MIDDLEWARE: Deren `matcher` deckt heute nur /tools
+ * und /admin/tools ab; „/" dazuzunehmen hiesse, für jeden Startseiten-Aufruf eine
+ * Edge-Funktion zu starten, um am Ende dieselbe Entscheidung zu treffen. Die Seite ist
+ * ohnehin `force-dynamic` und liest den Host in derselben Anfrage.
  */
-export const metadata = {
-  ...themenMetadata,
-  alternates: { canonical: "/" },
-};
+/**
+ * DER TITEL HÄNGT AM HOST, WIE DIE SEITE (02.09.2026).
+ *
+ * `metadata` als Konstante kennt die Anfrage nicht — die neue Domain trug deshalb den
+ * LuxuryBandit-Titel im Browser-Tab und in jeder Link-Vorschau, obwohl sie längst eine eigene
+ * Seite zeigt. `generateMetadata` läuft in derselben Anfrage wie die Seite und darf denselben
+ * Host lesen.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const host = (await headers()).get("host")?.split(":")[0] ?? "";
+  if (!FUNNEL_DOMAIN.test(host)) return { ...themenMetadata, alternates: { canonical: "/" } };
 
-export default ThemesCatalog;
+  const titel = "Your video funnel — under your own name";
+  const text = "Video funnels that run under your brand: your advert, your address, your analytics. Visitors upload one photo, see themselves in your world, and leave their details willingly.";
+  return {
+    title: titel,
+    description: text,
+    alternates: { canonical: `${FUNNEL_URL}/` },
+    /* KEIN INDEX, SOLANGE HIER NUR EIN KUNDE LIEGT: Die Domain ist Vertriebsmaterial, kein
+       Schaufenster — und ihre Unterseiten tragen fremde Marken. Wenn sie einmal wirbt, kommt
+       diese Zeile heraus. */
+    robots: { index: false, follow: false },
+    openGraph: { title: titel, description: text, type: "website", url: `${FUNNEL_URL}/` },
+  };
+}
+
+/** Alles, was NICHT das Haus ist, bekommt die White-Label-Startseite. */
+const FUNNEL_DOMAIN = /(^|\.)yourvideogenerator\.com$/i;
+const FUNNEL_URL = "https://yourvideogenerator.com";
+
+export default async function Start({ searchParams }: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const host = (await headers()).get("host")?.split(":")[0] ?? "";
+  /* `?funnel=1` zeigt die White-Label-Wurzel auch dort, wo der Host sie nicht auslöst — auf
+     localhost und auf der Vorschau-Adresse von Vercel. Ohne diesen Weg liesse sich die Seite
+     erst NACH dem Ausrollen ansehen, und ein Fehler darin fiele dem Kunden auf, nicht uns. */
+  const probe = String((await searchParams)?.funnel ?? "") === "1";
+  if (probe || FUNNEL_DOMAIN.test(host)) {
+    return <FunnelDomainStart />;
+  }
+  return <ThemesCatalog />;
+}

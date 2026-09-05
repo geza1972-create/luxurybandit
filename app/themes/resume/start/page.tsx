@@ -29,6 +29,11 @@ const GEN_QUELLE = {
   cvTitel: "Lebenslauf hochladen",
   cvHinweis: "PDF oder Word (.docx)",
   anzeigeTitelLabel: "Die Stellenanzeige",
+  entfernen: "Entfernen",
+  entfernenHinweis: "Tippen zum Tauschen · X entfernt",
+  vorlagenTitel: "Deine Vorlage",
+  vorlagenAnsehen: "Ansehen",
+  schliessen: "Schliessen",
   anzeigePlatzhalter: "Link oder Text der Anzeige einfügen",
   erzeugen: "Bewerbung erzeugen — gratis",
   gratisZeile: "Gratis mit Muster-Wasserzeichen. Keine Anmeldung.",
@@ -45,13 +50,29 @@ const GEN_QUELLE = {
      KI-Übersetzung übersetzt „preis" in der Klammer mit, danach greift kein Ersatz mehr) —
      die Zahl kommt beim Rendern in ResumeGeneratorClient dazwischen, unübersetzt. */
   kaufKnopf: "Ohne Wasserzeichen —",
-  optimierungLaeuft: "Deine Bewerbung wird optimiert …",
+  /**
+   * SAGEN, WAS ER TUT (Owner 05.09.2026: „ich habe es gekauft und muss nur das wasserzeichen
+   * rausmachen. Oder macht er zusätzlich noch was. Muss aber stehen was er macht.").
+   *
+   * „Deine Bewerbung wird optimiert" liess offen, WARUM es dauert — und weil der Käufer nur
+   * mit dem Entfernen des Wasserzeichens rechnete, sah jede Sekunde nach einem Hänger aus.
+   * Tatsächlich läuft hier ein ZWEITER vollständiger Modell-Lauf: Er leitet eine Strategie
+   * ab und schreibt Positionierung, Profiltext, Schwerpunkte und Anschreiben neu, zugeschnitten
+   * auf genau diese Anzeige. Das ist die Ware — also steht es auch da.
+   */
+  optimierungLaeuft: "Deine Bewerbung wird auf diese Stelle zugeschnitten …",
+  optimierungSchritte: "Strategie ableiten · Profiltext und Schwerpunkte neu schreiben · Anschreiben auf die Anzeige zuschneiden · PDF ohne Wasserzeichen bauen",
   nochmal: "Neue Bewerbung",
   fehlerMail: "Bitte eine gültige E-Mail-Adresse eingeben.",
   fehlerCv: "Bitte deinen Lebenslauf hochladen (PDF oder Word).",
   fehlerAnzeige: "Bitte die Stellenanzeige einfügen.",
   fehlerFoto: "Dieses Foto ließ sich nicht lesen — bitte ein anderes.",
   fehlerNetz: "Keine Verbindung — bitte noch einmal.",
+  /* EIN ABBRUCH IST KEIN NETZFEHLER (Owner 05.09.2026, mit Bild). „Keine Verbindung" stand
+     unter einem Lauf, bei dem die Verbindung tadellos war — der Server hatte nach 60
+     Sekunden abgebrochen (504, siehe `maxDuration` in /api/resume-generator). Wer das liest,
+     prüft sein WLAN statt es einfach noch einmal zu versuchen. */
+  fehlerZuLang: "Das hat zu lange gedauert. Versuch es bitte noch einmal — meist klappt der zweite Anlauf.",
 } as const;
 
 export const metadata: Metadata = {

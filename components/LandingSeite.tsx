@@ -32,7 +32,7 @@ import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
  * eigenen Markup (Preserve first — sie sind live und getestet); sie ziehen rollierend um,
  * wie bei der CI-Bibliothek (Memory `ci-bibliothek`). Erster Nutzer: /themes/tryon.
  */
-export default function LandingSeite({ hell = false, trackEvent, trackId = "", trackName = "", marke, heim, motto, sprachen, lang, kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
+export default function LandingSeite({ hell = false, schlicht = false, whitelabel = false, chip, trackEvent, trackId = "", trackName = "", marke, heim, motto, sprachen, sprachePfad, lang, kicker, heroA, heroY, heroB = "", kinder, vorspann, anlaesse, sektionen }: {
   /** Die helle Anzeigen-Fassung (`?light=1`) — dasselbe Muster wie überall (`lb-theme lb-fb`). */
   hell?: boolean;
   /** Insights-Ereignis der Seite (TrackView) — ohne `trackEvent` wird nicht gezählt. */
@@ -47,11 +47,35 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
    */
   marke?: string;
   heim?: string;
-  motto?: string;
+  /** Kopf ohne Konto, Guthaben und Galerie — für Produkte, die nicht Teil des Hauses sind
+      (dieselbe Prop wie an `TopNav`). */
+  schlicht?: boolean;
+  /**
+   * WHITE LABEL — kein Haus-Logo, kein Fuss (Owner 02.09.2026: „das Logo hier raus und
+   * Footer komplett raus. Es ist ein White-Label").
+   *
+   * Für Seiten, die einem Kunden als SEINE gezeigt werden. Was übrig bleibt, ist seine Marke
+   * im Kopf und der Inhalt — kein zweiter Absender.
+   *
+   * ZU BEDENKEN, WENN SO EINE SEITE ÖFFENTLICH BLEIBT: Impressum und Datenschutzerklärung
+   * standen im Fuss, und für eine öffentlich erreichbare Seite verlangt sie das Gesetz. Bei
+   * einer echten Auslieferung stellt der Kunde beides auf seiner eigenen Domain; solange die
+   * Seite bei uns liegt, fehlen sie. Deshalb ist dieses Prop ausdrücklich zu setzen und
+   * nirgends Vorgabe.
+   */
+  whitelabel?: boolean;
+  /** Ein eigener Chip an der Stelle von „Assets" — durchgereicht an `TopNav`. */
+  chip?: ReactNode;
+  /** Das Motto unter der Marke. `null` unterdrückt es — für Produkte mit eigener Marke,
+      unter denen „Funnels Creator" nichts zu suchen hat. */
+  motto?: string | null;
   /** Eingeschränkte Sprachliste im Umschalter, z. B. `["en","de"]` ohne Rumänisch (Owner
       01.09.2026: „rumänisch raus als sprache bei diesen topics") — durchgereicht an
       `TopNav`. Ohne diese Prop bleibt es bei allen Haus-Sprachen (`lib/lang.ts`). */
   sprachen?: boolean | Lang[];
+  /** Die Sprache steht im Pfad (`/academy/ro`) — dann wechselt der Umschalter die Adresse
+      statt nur das Cookie. Durchgereicht an `TopNav`. */
+  sprachePfad?: boolean;
   /** Die Sprache der Seite — reicht nur bis zum Fuss (dessen Rechtslinks sonst englisch
       bleiben). Ohne sie ändert sich nichts am bisherigen Verhalten. */
   lang?: string;
@@ -71,11 +95,16 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
 }) {
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav {...(marke ? { marke } : {})} {...(heim ? { heim } : {})} {...(motto ? { motto } : {})} {...(sprachen !== undefined ? { sprachen } : {})} />
+      <TopNav {...(chip ? { chip } : {})} {...(whitelabel ? { ohneLogo: true } : {})} {...(schlicht ? { schlicht: true, back: false } : {})} {...(marke ? { marke } : {})} {...(heim ? { heim } : {})} {...(motto !== undefined ? { motto } : {})} {...(sprachen !== undefined ? { sprachen } : {})} {...(sprachePfad ? { sprachePfad: true } : {})} />
       {trackEvent && <TrackView event={trackEvent} lookId={trackId} lookName={trackName} />}
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-3">
         {kicker && <Kicker>{kicker}</Kicker>}
-        <H1 className={kicker ? "mt-1" : ""}>{heroA}<Y>{heroY}</Y>{heroB}</H1>
+        {/* DIE LEERZEICHEN GEHÖREN HIERHER, NICHT IN DIE TEXTE (02.09.2026: „Weg?Finde es
+            heraus.Sieh dich"). JSX wirft den Zwischenraum zwischen zwei Ausdrücken weg —
+            wer es nicht weiss, hängt in jeden Sprachtext ein Leerzeichen an und übersieht
+            es in der nächsten Sprache. Doppelte Leerzeichen fallen im HTML von selbst
+            zusammen, bestehende Aufrufer ändern sich also nicht. */}
+        <H1 className={kicker ? "mt-1" : ""}>{heroA}{" "}<Y>{heroY}</Y>{" "}{heroB}</H1>
 
         {kinder}
 
@@ -114,7 +143,8 @@ export default function LandingSeite({ hell = false, trackEvent, trackId = "", t
           </section>
         )}
       </div>
-      <SeitenFuss {...(marke ? { marke } : {})} {...(lang ? { lang } : {})} />
+      {/* Kein Fuss im White-Label — siehe `whitelabel` oben, samt dem, was damit wegfällt. */}
+      {!whitelabel && <SeitenFuss {...(marke ? { marke } : {})} {...(lang ? { lang } : {})} />}
     </main>
   );
 }

@@ -1,15 +1,12 @@
 import Link from "next/link";
-import { fillPrices, themenPreisZeile } from "@/lib/pricing";
+import { fillPrices } from "@/lib/pricing";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import { ThemenListe } from "@/components/CI";
-import AgentenKarte from "@/components/AgentenKarte";
-import { agentenTexteInSprache } from "@/lib/agenten-texte";
-import { agentenMitBildern } from "@/lib/agenten";
 import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
-import { Briefcase, Sparkles, Flame, MapPin, Lock, Palmtree, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
+import { Briefcase, Sparkles, Flame, MapPin, Lock, Palmtree, PartyPopper, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 /* Aus `lib`, nicht aus dem Baustein: PlanSlide ist ein Client-Modul, und von dort käme
@@ -19,6 +16,11 @@ import { VERSPRECHEN_VIDEO, VERSPRECHEN_POSTER } from "@/lib/versprechen";
 import { LEBENSLAUF_BEISPIEL_VIDEO, LEBENSLAUF_BEISPIEL_POSTER } from "@/lib/lebenslauf-vorlage";
 import { DAVID_VIDEO, DAVID_POSTER } from "@/lib/david-video";
 import { davidKachelInSprache } from "@/lib/david-texte";
+import { ARMEE_SPOT, ARMEE_SPOT_POSTER } from "@/lib/demo-armee";
+import { GEBURTSTAG_VIDEO } from "@/lib/geburtstag";
+import { tryonVideos } from "@/lib/tryon-videos";
+import OrteBlock from "@/components/OrteBlock";
+import { POLEDANCE_VIDEO, POLEDANCE_POSTER } from "@/lib/poledance";
 /* DAS ORIGINAL DER PORTAL-BESCHREIBUNG liegt in „Über uns" (Owner 10.08.2026) — von dort
    holen es Startseite und AGB, damit es nur EINE Fassung gibt. */
 import { aboutText } from "@/lib/about-i18n";
@@ -42,16 +44,20 @@ export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch lad
  * gehoert an die blanke Adresse. So sammelt „/" die Kraft beider, statt sie zu teilen.
  */
 export const metadata = {
-  title: "LuxuryBandit — Funnels Creator: from the Meta ad to the sale",
-  description: fillPrices("We build funnels that sell — custom solutions for entrepreneurs, from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in three languages.", "en"),
+  /* THE AI-MEDIA CREATOR (Owner 02.09.2026) — dieselbe Positionierung wie im Kopf und im
+     Fuss, und dieselbe Begründung: „Agentur" beansprucht jede Werbeagentur für sich, „AI-
+     Media Creator" sagt, was gemacht wird und womit. Was im Auftrag entsteht, steht dahinter
+     im Titel — das ist die Rolle, nicht der Name. */
+  title: "LuxuryBandit — The AI-Media Creator: Video, Anzeige und Trichter im Kundenauftrag",
+  description: fillPrices("The AI-Media Creator: AI video, adverts, landing pages and complete funnels, built to order — from the Meta ad to the purchase. Everything on this page is live, not a showreel.", "en"),
   /* KEINE Deepfake-/AI-Girl-Begriffe mehr (Owner 24.08.2026: „Wir sind jetzt ein seriöses
      Portal" · zum Kuss: „wenn man das nicht als solches bewirbt, sondern als Tool, ist es
      OK") — beworben wird das Werkzeug aus eigenen Fotos, nie das Wort. */
   keywords: ["sales funnel", "funnel creator", "meta ads funnel", "ai video generator", "ai video maker", "wedding invitation video", "birthday video maker", "video application", "video cv", "virtual try-on for ecommerce"],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "LuxuryBandit — Funnels Creator",
-    description: "We build funnels that sell — from the Meta ad to the purchase. Every funnel on this page is live: landing page, AI video, checkout and delivery in three languages.",
+    title: "LuxuryBandit — The AI-Media Creator",
+    description: "The AI-Media Creator: AI video, adverts, landing pages and complete funnels, built to order. Everything on this page is live, not a showreel.",
     type: "website",
   },
 };
@@ -285,9 +291,8 @@ export default async function ThemesCatalog({ searchParams }: {
     // genau dieser Aufbau ist der Reiz der Karte, nicht der zugeschnittene Ausschnitt.
     getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
     getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
-    getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
     getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
-  ]).catch(() => ["", "", "", ""]);
+  ]).catch(() => ["", "", ""]);
 
   /**
    * DIE HOCHZEITSKACHEL ZEIGT EINE HOCHZEIT (Owner 31.07.2026: „das Topicvideo hast du nicht
@@ -365,7 +370,11 @@ export default async function ThemesCatalog({ searchParams }: {
   const { placeholders, gestalt } = st;
   const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
   const { dressed: tryonDressed, lingerie: tryonLingerie } = tryon;
-  const [surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = ownVideos;
+  /* Die Try-on-Beispiele aus dem REPO — dieselbe Quelle wie im Media Kit. Sie liegen als
+     Dateien vor, nicht in Supabase: Damit hat die Kachel ihr Motiv, auch wenn der Speicher
+     leer ist oder eine signierte Adresse abgelaufen ist. */
+  const tryonSet = tryonVideos();
+  const [surpriseVideo, luxuryVideo, lingerieVideo] = ownVideos;
   const { cover: kissCover, video: kissVideo } = kiss;
   const { cover: versprechenCover, video: versprechenVideo } = versprechen;
   const { cover: bellaCover, video: bellaVideo } = bellaThema;
@@ -401,7 +410,6 @@ export default async function ThemesCatalog({ searchParams }: {
    * eigene Zeile, und genau daran ist es auseinandergelaufen (siehe unten bei der Hochzeit).
    */
   /* Der Gutschein ist ein Geschenk wie die anderen — dieselbe Zahl aus derselben Tabelle. */
-  const AB_GUTSCHEIN = themenPreisZeile("gutschein", L);
   /* Der Geburtstag hat seit 07.08.2026 seinen eigenen Startpreis (GEBURTSTAG_CENTS) — die
      Kachel muss dieselbe Zahl tragen wie Landingpage-Schild und Kasse. */
   /* Der Kaufknopf der grossen Themen-Karte (Owner 07.08.2026: „und hier muss CTA rein");
@@ -421,33 +429,38 @@ export default async function ThemesCatalog({ searchParams }: {
    * Die Kachel sagt jetzt die Wahrheit. Soll die Hochzeit wirklich 24 € kosten, ist das eine
    * Änderung in der KASSE (und in Stripe), nicht in dieser Zeile.
    */
-  const AB_HOCHZEIT = themenPreisZeile("wedding", L);
+  /**
+   * KEINE PREISE MEHR IM KATALOG (Owner 02.09.2026: „mach die Preise raus auf der
+   * Topicseite").
+   *
+   * Jede Kachel trug bis heute ihre Einstiegs-Preiszeile aus `themenPreisZeile`. Das war
+   * richtig, solange die Startseite ein LADEN war: Wer ein Geschenk sucht, will wissen, was
+   * es kostet, bevor er tippt.
+   *
+   * Seit dem 02.09.2026 ist sie das Schaufenster einer AGENTUR („das sind wir. MULTIMEDIA
+   * AGENTUR" · „wir machen alles im Auftrag von Kunden"), und die Kacheln sind Arbeitsproben.
+   * Ein Preisschild daran beantwortet die falsche Frage — der Kunde einer Agentur fragt
+   * nicht, was ein Geburtstagsvideo für ihn kostet, sondern was sie für IHN bauen kann. Die
+   * Preise stehen weiterhin auf jeder Landingpage und in jeder Kasse, dort, wo wirklich
+   * gekauft wird; entfernt ist nur das Schild im Schaufenster.
+   */
   /* Urlaub und Chat haengen noch am Abo — hier steht, was sie WIRKLICH kosten, nicht was sie
      nach dem Umzug kosten werden. Ein zu frueher Geschenk-Preis waere eine Zusage, die der
      Trichter dahinter nicht einloest. */
-  const AB_ABO = themenPreisZeile("tryon", L);
   /* Hier stand „gratis · Look 2,99" — beides falsch seit dem 03.08.2026: Das Anziehen ist raus,
      und der Chat ist nur die ersten Nachrichten frei. Jetzt der ehrliche Einstieg aus CHAT_STUFEN. */
-  const AB_CHAT = themenPreisZeile("chat", L);
   /* Die Video-Bewerbung — Preis aus der Tabelle, nie getippt (Memory
      `prices-only-from-pricing-table`). */
-  const AB_LEBENSLAUF = themenPreisZeile("lebenslauf", L);
   /* Das System kostet 59 € — und die Zahl gehört auf die Kachel wie bei jedem anderen Thema.
      „Ein Geschenk, dessen Preis man raten muss, verkauft sich nicht" (Owner 03.08.2026); bei
      59 € gilt das doppelt: Wer den Preis erst nach drei Bildschirmen erfährt, fühlt sich
      hereingelegt — und genau dieses Gefühl kann sich ein Produkt nicht leisten, das mit
      „keine Lügen" wirbt. */
-  const AB_VERSPRECHEN = themenPreisZeile("versprechen", L);
   /* DAVIDS KACHELTEXTE KOMMEN SCHON ÜBERSETZT HEREIN — deutsche Quelle, nicht englische
      (Owner 28.08.2026: „bevor du anfängst, weil ich hier sehe, dass du auf englisch gemacht
      hast"). Begründung in lib/david-texte.ts; die Kachel bleibt deshalb unten aus dem
      `trObject`-Lauf ausgenommen. */
   const davidKachel = await davidKachelInSprache(L);
-  /* Die Texte der Firmen-Rubrik — deutsche Quelle, sieben Sprachen (lib/agenten-texte). */
-  const AG = await agentenTexteInSprache(L);
-  /* Die Gesichter kommen aus der Models-Galerie — signierte Adressen laufen ab, also werden
-     sie beim Rendern frisch geholt (lib/agenten). */
-  const agenten = await agentenMitBildern();
 
   const THEMES: Theme[] = [
     /**
@@ -548,6 +561,33 @@ export default async function ThemesCatalog({ searchParams }: {
      * die Seite gerade deutsch ist. Alle anderen bekommen die rumänische Fassung, für die er
      * gebaut ist.
      */
+    /**
+     * DIE ACADEMY — der Recruiting-Trichter für Organisationen (Owner 02.09.2026: „Du holst
+     * jetzt alle Topics auf luxurybandit.com").
+     *
+     * Sie stand bis heute in keinem Katalog: Sie war als nicht-öffentliche Demo für einen
+     * einzelnen Interessenten gebaut, und ein Link von der Startseite hätte genau das
+     * kaputt gemacht. Seit sie öffentlich ist („Du kannst es öffentlich machen"), ist das
+     * Gegenteil richtig — wer die Adresse nicht kennt, findet sie sonst nie.
+     *
+     * SIE STEHT BEI DEN RECRUITING-KACHELN, weil sie dieselbe Frage von der dritten Seite
+     * angeht: David prüft eine Bewerbung, das Talent Network zeigt die Stellen, die Academy
+     * holt die Leute überhaupt erst herein — mit einer Anzeige, in der sich der Bewerber
+     * selbst sieht.
+     *
+     * DER TITEL WIRD NICHT ÜBERSETZT (`MARKEN_TITEL`): „United Peace Academy" ist ein Name.
+     * Eine übersetzte Fassung stünde in jeder Sprache anders da als im Kopf der Seite selbst.
+     *
+     * DAS VIDEO IST DER SPOT der Landingpage — eine Quelle für Kachel und Karte
+     * (Memory `landingpage-video-ist-kachel-video`).
+     */
+    /* SPRACHE IM PFAD, NICHT NUR IM QUERY (Owner 04.09.2026: „ich brauche unterschidliche
+       urls für sprachen"). `/academy` allein ist die query-basierte Tür (`?lang=`, fällt auf
+       Englisch zurück) — wer von einer rumänischen oder deutschen Katalogseite kommt, landete
+       bisher dort und nicht auf `/academy/ro` bzw. `/academy/de`. `L` ist hier schon eine der
+       drei Academy-Sprachen (`lib/lang.ts`s `LANGS` und `ARMEE_SPRACHEN` sind deckungsgleich:
+       en/de/ro), also reicht der Pfad direkt an. */
+    { icon: Target, title: "United Peace Academy", tagline: "A recruiting advert people actually finish: they upload one selfie and see themselves in the job — as a video. For the web, for screens on site, for projections.", href: `/academy/${L}`, cover: ARMEE_SPOT_POSTER, poster: ARMEE_SPOT_POSTER, video: ARMEE_SPOT, chips: "♥ Your advert · Their face · Their address" },
     { icon: Briefcase, title: "Private Talent Network — German", tagline: "For passive candidates who'd move for the right offer. 9 questions, no CV, no name — we reach out only if something truly fits.", href: `/joburi/germana${L === "de" ? "?lang=de" : ""}`, cover: "/Joburi/german-jobs.jpg", poster: "/Joburi/german-jobs.jpg", ausrichtung: "oben", chips: "♥ 9 questions · No CV · Free" },
     /**
      * DER LEBENSLAUF-GENERATOR (Owner 31.08.2026: „Dann würde ich den PDF Kreator als extra
@@ -561,9 +601,10 @@ export default async function ThemesCatalog({ searchParams }: {
      * KEIN MOTIV, wie bei Joburi vor dem Bild: Ohne `cover` setzt die Bibliothek das Symbol
      * als Wasserzeichen. Kein Stockfoto.
      *
-     * DER PREIS IST DER ZWEITE SCHRITT: Das PDF mit Muster-Wasserzeichen ist gratis und darf
-     * verschickt werden (Hausregel `gratis-nur-mit-muster`); die 9,99 € nehmen nur das
-     * Wasserzeichen weg. Deshalb steht „ab" davor — `themenPreisZeile` schreibt es.
+     * OHNE PREIS AUF DER KACHEL (Owner 04.09.2026: „den Preis raus"). Das PDF mit
+     * Muster-Wasserzeichen bleibt gratis und darf verschickt werden (Hausregel
+     * `gratis-nur-mit-muster`); die 9,99 € nehmen nur das Wasserzeichen weg — das steht
+     * weiterhin auf der Themenseite selbst, nur nicht mehr vorab auf der Katalogkachel.
      */
     /* DIE SCHLICHTE TÜR IST HIER RAUS (Owner 31.08.2026, mit Bild beider Kacheln: „jetzt
        hast du zwei hier").
@@ -579,12 +620,42 @@ export default async function ThemesCatalog({ searchParams }: {
      * Person anspricht wie „Jobs mit Deutsch": Wer wissen will, was sein Deutsch wert ist,
      * braucht als Nächstes einen Lebenslauf, den ein deutscher Arbeitgeber lesen kann.
      */
-    { icon: FileText, title: "Dein deutscher Lebenslauf", tagline: "Lade deinen Lebenslauf in jeder Sprache hoch — heraus kommt die deutsche Fassung als PDF.", href: "/themes/deutscher-lebenslauf", /* GROSS UND FORMATFÜLLEND (Owner 31.08.2026: „so gross wie der Siegel war ganz am
+    /* ENGLISCHER QUELLTEXT, NICHT DEUTSCHER (25.08.2026, gemessen) — jede andere Kachel
+       hier ist englisch verfasst und läuft durch `trObject`, das für `lang === "en"` den
+       Text UNVERÄNDERT zurückgibt (Annahme: Quelle ist schon Englisch). Mit deutschem
+       Quelltext sahen englische Besucher deshalb deutsche Wörter: "die sind nicht
+       übersetzt". Für Deutsch und alle anderen Sprachen läuft der Übersetzer ohnehin, das
+       Ergebnis ändert sich dort nicht. */
+    { icon: FileText, title: "Your German Resume", tagline: "Upload your resume in any language — get the German version as a PDF.", href: "/themes/deutscher-lebenslauf", /* GROSS UND FORMATFÜLLEND (Owner 31.08.2026: „so gross wie der Siegel war ganz am
        Anfang abgeschnitten war doch noch besser") — die Kachel schneidet das Siegel damit
        links und rechts an. Das ist seine Entscheidung als Gestalter: Ein Siegel, das die
        Fläche füllt, wirkt stärker als eines, das mit Rand darin schwimmt. */
-      cover: "/Lebenslauf/siegel-deutsch.png", chips: "♥ Gratis mit Muster · Ohne Anmeldung · PDF", abPreis: themenPreisZeile("resume", L) },
-    { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise", abPreis: AB_VERSPRECHEN },
+      cover: "/Lebenslauf/siegel-deutsch.png", chips: "♥ Free with sample · No signup · PDF" },
+    /**
+     * BEWERBUNG FÜR DIESE STELLE (Owner 25.08.2026: „Wir machen einen neuen Tool
+     * CV-Generator für eine Stellenanzeige … es wird extra ein Anschreiben generiert und CV").
+     *
+     * DAS WERKZEUG GAB ES SCHON (`/themes/resume`, seit 26.08.), es stand nur nie im
+     * Katalog — deshalb wirkte es wie ein fehlendes Produkt. Statt ein zweites zu bauen,
+     * bekommt es hier seine Kachel und im Trichter die Anzeige als ERSTES Feld.
+     *
+     * WARUM ES NEBEN „Dein deutscher Lebenslauf" BESTEHEN DARF, obwohl zwei fast gleiche
+     * Kacheln einander schwächen (Owner 31.08.2026, siehe oben): Es ist ein ANDERES
+     * Versprechen an dieselbe Maschine — dort wird die SPRACHE gedreht (jede Sprache →
+     * Deutsch), hier die STELLE (eine Anzeige → passende Bewerbung). Das Motiv trennt sie
+     * zusätzlich: Siegel gegen Anzeigenblatt-mit-zwei-Dokumenten.
+     */
+    /* KEIN "GENERATOR" IM TITEL (25.08.2026, gemessen — reproduziert den Fehler vom
+       31.08.2026): "Bewerbungsgenerator"/"Bewerbungs-Generator" übersetzt die KI auf
+       Rumänisch zuverlässig zu "Generator de aplicații" — SOFTWARE-Apps, nicht
+       Bewerbungen. Das Wort bricht unabhängig von der Quellsprache (Deutsch wie
+       Englisch), darum hilft nur, es zu vermeiden: "Tailored Job Application" (kein
+       "Generator", "Job" nimmt "Application" die Software-Lesart) übersetzt in allen
+       getesteten Sprachen (RO/DE/FR/ES) sauber als Bewerbung. Englischer Quelltext wie
+       jede andere Kachel — derselbe Fund wie bei „Your German Resume" oben. */
+    { icon: Target, title: "Tailored Job Application", tagline: "Paste a job posting and add your resume — get a matching cover letter and CV as PDF.", href: "/themes/resume",
+      cover: "/Lebenslauf/stellen-kachel.svg", chips: "♥ Free with sample · Cover letter + CV · PDF" },
+    { icon: Target, title: "Future Self Program", tagline: "See your future. Make the promise. Keep it for 30 days.", href: "/themes/versprechen", cover: versprechenCover || VERSPRECHEN_POSTER, poster: VERSPRECHEN_POSTER, video: versprechenVideo || VERSPRECHEN_VIDEO, chips: "♥ Your future film · 30 days · Your promise" },
     /**
      * GEBURTSTAG AUF PLATZ ZWEI (Owner 09.08.2026: „mach die Topic Geburtstag als erstes auf
      * der Homepage" — bis zum 11.08.2026 stand er deshalb ganz oben).
@@ -678,14 +749,43 @@ export default async function ThemesCatalog({ searchParams }: {
      * ihre Adresse und ueber die sitemap erreichbar, sie wird nur nicht mehr beworben.
      * Wieder anschalten = diese Zeilen entfernen.
      */
-    // { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap", abPreis: AB_GUTSCHEIN },
+    /**
+     * DIE VIER, DIE ES IM KATALOG NIE GAB (Owner 02.09.2026: „alle Topics habe ich gesagt" ·
+     * „wir machen alles im Auftrag von Kunden").
+     *
+     * Kuss, Geburtstag, Tanz und Hochzeit standen im Media Kit für Agenturen, aber nie hier
+     * — sie waren nur über ihre eigene Adresse erreichbar. Für eine Multimedia-Agentur ist
+     * das die falsche Auslassung: Was sie kann, sieht man nur, wenn es dasteht.
+     *
+     * DIE VIDEOS SIND DIESELBEN wie auf den Landingpages, aus derselben Quelle (Dauerregel
+     * `landingpage-video-ist-kachel-video`) — kein zweiter Satz Material, der auseinanderläuft.
+     */
+    { icon: Heart, title: "Kiss video card", tagline: "Send a kiss to the one you love — your two photos become one video card, with their name in it.", /* Rückfall aus dem Repo, wie bei den vier anderen: public/Kiss/Glass ist die Szene, die
+       auch der Trichter zeigt. */
+      href: "/themes/kiss", cover: kissCover || "/Kiss/Glass/glass-kiss.jpg", poster: kissCover || "/Kiss/Glass/glass-kiss.jpg", video: kissVideo || "/Kiss/Glass/glass-kiss.mp4", chips: "♥ Your photo · Their photo · Video card" },
+    { icon: PartyPopper, title: "Birthday video", tagline: "A birthday greeting that speaks their name — their face, their cake, their song.", href: "/themes/birthday", cover: GEBURTSTAG_VIDEO.replace(/\.mp4$/, ".jpg"), poster: GEBURTSTAG_VIDEO.replace(/\.mp4$/, ".jpg"), video: GEBURTSTAG_VIDEO, chips: "♥ Their name · Their face · Video" },
+    { icon: Star, title: "Surprise him", tagline: "One photo of her — and she is dancing in the video. A surprise nobody expects.", href: "/themes/surprise", cover: POLEDANCE_POSTER, poster: POLEDANCE_POSTER, video: surpriseVideo || POLEDANCE_VIDEO, chips: "♥ One photo · Video · Surprise" },
+    /* DAS POSTER LIEGT IM REPO, NICHT IN DER SIGNIERTEN ADRESSE. Hier stand
+       `weddingVideo.replace(/\.mp4$/, ".jpg")` — und das kann nicht greifen: `weddingVideo`
+       ist eine signierte Supabase-Adresse mit Query-Anhang, sie endet nie auf „.mp4". Die
+       Kachel stand deshalb ohne Bild da, und der Skill `card` kennt dafür keine Ausnahme:
+       nie ein Video ohne Poster. `/Wedding/hochzeit-poster.jpg` ist das Standbild des Themas
+       und liegt im Repo — es ist da, bevor irgendetwas geladen wird. */
+    { icon: Heart, title: "Wedding invitation", tagline: "Your wedding invitation as a video — with your page online, replies, menu and the guest chat.", href: "/themes/wedding", cover: "/Wedding/hochzeit-poster.jpg", poster: "/Wedding/hochzeit-poster.jpg", video: weddingVideo || "/Wedding/hochzeit-beispiel.mp4", chips: "♥ Video invitation · Your page · Replies" },
+    { icon: Gift, title: "Gift a voucher", tagline: "Pick a gift or credit — Bella delivers your message as a video card. One tap to redeem.", href: "/themes/gutschein", cover: "/Gutscheine/gutschein-poster.jpg", poster: "/Gutscheine/gutschein-poster.jpg", video: "/Gutscheine/PixVerse_V6_Fusion_360P_She_holds_a_cream_enve.mp4", chips: "♥ Your gift · Your message · One tap" },
     // HOCHZEIT gleich hinter Kiss (Owner 30.07.2026: „die Frauen lieben Hochzeiten").
     // Dieselbe Maschine wie Kiss, andere Rollen: SIE bedient den Trichter.
     // BELLA (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
     // Angebot — jetzt auf /themes/bella mit dem lebenden Trichter.
-    { icon: Palmtree, title: "Tenerife with Bella", tagline: "Not her holiday — yours. Your photo, and she is in the video with you.", href: "/themes/bella", cover: bellaCover || wetterCover, video: bellaVideo || urlaubVideo || undefined, chips: "♥ Bella · Your photo · Video" },
+    /* MOTIVE AUS DEM REPO ALS RÜCKFALL (Owner 02.09.2026: „wieso fehlen hier Bilder?").
+       Diese vier Kacheln holten Bild und Video ausschliesslich aus Supabase — steht dort
+       nichts, blieb die Fläche leer, und im Katalog entscheidet das Bild darüber, ob jemand
+       tippt. Aufgefallen ist es erst jetzt, weil sie seit dem 24.08.2026 ausgeblendet waren.
+       Das Media Kit macht es seit jeher richtig: erst der Speicher, dann eine Datei, die im
+       Repo liegt und immer da ist. */
+    { icon: Palmtree, title: "Tenerife with Bella", tagline: "Not her holiday — yours. Your photo, and she is in the video with you.", href: "/themes/bella", cover: bellaCover || wetterCover || "/Peter/vid1-Peter-Bella.jpg", poster: bellaCover || wetterCover || "/Peter/vid1-Peter-Bella.jpg", video: bellaVideo || urlaubVideo || undefined, chips: "♥ Bella · Your photo · Video" },
     /**
      * „MORNING WEATHER" IST RAUS (Owner 11.08.2026: „Wake up with Bella bieten wir nicht mehr
      * an" — Teil des abgeschafften Themen-Abos, das dieses Angebot trug). Hier stand eine
@@ -702,13 +802,13 @@ export default async function ThemesCatalog({ searchParams }: {
        Bilderstapel — die Kachel zeigte irgendeine Frau, waehrend die Seite dahinter ein
        bestimmtes Video hat. Die Merkmale stimmten ebenfalls nicht mehr: „Looks" ist raus
        (das Anziehen ist weg) und „Free" gilt nur fuer die ersten Nachrichten. */
-    { icon: MessageCircle, title: "Chat with Bella", tagline: "One woman, one chat — she answers in your language, day after day.", href: "/themes/chat", cover: "/Chat/chat-poster.jpg", poster: "/Chat/chat-poster.jpg", video: "/Chat/Private%20Chat%20Invitation_1080p.mp4", chips: "♥ Chat · First messages free", abPreis: AB_CHAT },
+    { icon: MessageCircle, title: "Chat with Bella", tagline: "One woman, one chat — she answers in your language, day after day.", href: "/themes/chat", cover: "/Chat/chat-poster.jpg", poster: "/Chat/chat-poster.jpg", video: "/Chat/Private%20Chat%20Invitation_1080p.mp4", chips: "♥ Chat · First messages free" },
     /* URLAUB IST JETZT EINE EINLADUNG (Owner 04.08.2026). Hier stand „Holiday with your
        dream girl … 25 moments" — das alte Fantasie-Thema mit unserem Model-Katalog. Es lebt
        unverändert weiter als „Tenerife with Bella" (/themes/bella); unter DIESEM Namen lädt
        man ab heute einen echten Menschen ein. Preis wie die Hochzeit, weil es dieselbe
        Einladungs-Maschine ist — nicht mehr das Themen-Abo. */
-    { icon: Palmtree, title: "Holiday invitation video", tagline: "Ask someone to come away with you — a video of you both, already there.", href: "/themes/holiday", cover: "/Holiday/urlaub-poster.jpg", poster: "/Holiday/urlaub-poster.jpg", video: "/Holiday/urlaub-beispiel.mp4", chips: "♥ Your photo · Their photo · Invitation", abPreis: AB_HOCHZEIT },
+    { icon: Palmtree, title: "Holiday invitation video", tagline: "Ask someone to come away with you — a video of you both, already there.", href: "/themes/holiday", cover: "/Holiday/urlaub-poster.jpg", poster: "/Holiday/urlaub-poster.jpg", video: "/Holiday/urlaub-beispiel.mp4", chips: "♥ Your photo · Their photo · Invitation" },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     /* TRY-ON ALS E-COMMERCE-WERKZEUG (Owner 24.08.2026: „nur den Text ändern, als Tool für
@@ -721,11 +821,21 @@ export default async function ThemesCatalog({ searchParams }: {
        Wetter-Motiv. Es zeigt eine Frau in einem Kleid, aber NICHT, was das Werkzeug tut.
        Jetzt dieselbe Vorlage, die auch im Trichter steht: ein Kleid, in Bewegung, mit
        Poster daneben — Hausregel „Landingpage-Video = Kachel-Video". */
-    { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
-    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
+    /**
+     * „YOUR IDOL WITH YOU" IST AUS DEM KATALOG RAUS (Owner 25.08.2026: „diese Topic raus",
+     * zum Kachel-Bild mit der Frau in Wäsche vor Neon).
+     *
+     * Dasselbe Muster wie bei „Surprise him" (Pole Dance) und „Wake up with Bella": Die
+     * Kachel fliegt aus dem Katalog, die Seite `/your-idol` und ihr Kaufweg bleiben
+     * technisch bestehen (alte Links laufen nicht ins Leere) — sie wird nur nicht mehr
+     * beworben. Grund hier zusätzlich: Das Portal fährt gerade eine Recruiting-Kampagne
+     * (Memory `serioeses-portal-umbau`), und ein Wäsche-Motiv neben einer Bewerberseite
+     * kostet genau das Vertrauen, das die Kampagne aufbaut.
+     */
+    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0) || tryonSet[0]?.poster, poster: ph(0) || tryonSet[0]?.poster, video: luxuryVideo || tryonSet[0]?.video, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.
-    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), video: lingerieVideo || undefined, chips: "♥ Lingerie · Model · Video" },
+    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1) || tryonSet[1]?.poster, poster: tryonLingerie || ph(1) || tryonSet[1]?.poster, video: lingerieVideo || tryonSet[1]?.video, chips: "♥ Lingerie · Model · Video" },
     /**
      * „SURPRISE HIM" (POLE DANCE) IST AUS DEM KATALOG RAUS (Owner 11.08.2026: „ich denke,
      * wir müssen pool dancing raus machen weil das unseriös wirkt für das portal").
@@ -755,27 +865,35 @@ export default async function ThemesCatalog({ searchParams }: {
    * erst danach, und eine rumänische Schreibweise in dieser Liste würde beim nächsten
    * Sprachwechsel still danebengreifen.
    */
-  const AUSGEBLENDET = new Set([
-    "Tenerife with Bella",
-    /* "Morning Weather" stand hier bis 11.08.2026 — die Kachel selbst ist jetzt aus dem
-       THEMES-Array entfernt (nicht nur ausgeblendet), weil sie ein abgeschafftes Angebot
-       bewarb (Owner: „Wake up with Bella bieten wir nicht mehr an"). Ein Eintrag ohne
-       passende Kachel ist hier wirkungslos, deshalb steht er nicht mehr in dieser Liste. */
-    /* Owner 07.08.2026: „wir blenden ers mal Bella raus aus der Topic seite." Damit ist
-       Bella als Thema vollständig aus dem Katalog — die beiden Zeilen darüber waren es
-       schon, der Chat war der letzte. Die Seite /themes/chat bleibt erreichbar und der
-       Trichter dahinter lebt; nur der Katalog zeigt ihn nicht mehr. „Erst mal": Ein Titel
-       hier heraus, und er ist zurück. */
-    "Chat with Bella",
-    /* „Try-On" stand hier vom 03.08. bis 24.08.2026 — jetzt wieder sichtbar, umgetextet als
-       E-Commerce-Werkzeug (Owner: „nur den Text ändern"). */
-    "Your Idol with you",
-    "Luxury Looks",
-    "Lingerie Looks",
-    /* HOLIDAY IST RAUS (Owner 24.08.2026: „auch hollyday weg" — im Zuge von „Wir sind
-       jetzt ein seriöses Portal", zusammen mit Pole Dance und Chat aus den Themen-Kreisen).
-       Seite und Kaufweg bleiben erreichbar; nur der Katalog bewirbt sie nicht mehr. */
-    "Holiday invitation video",
+  /**
+   * NICHTS IST MEHR AUSGEBLENDET (Owner 02.09.2026: „Du holst jetzt alle Topics auf
+   * luxurybandit.com" · „alle Topics habe ich gesagt" · „das sind wir. MULTIMEDIA AGENTUR").
+   *
+   * Hier standen sechs Titel: Bella, Chat, Idol, Luxury Looks, Lingerie und Holiday. Sie
+   * waren am 24.08.2026 herausgenommen worden, als das Haus „ein seriöses Portal" werden
+   * sollte — damals richtig, weil dieselbe Startseite die Recruiting-Produkte trug und ein
+   * Pole-Dance-Video neben einer Bewerbung steht wie ein Fremdkörper.
+   *
+   * WAS SICH SEITHER GEÄNDERT HAT: Die ernsten Produkte haben ihre EIGENEN Marken bekommen
+   * (David, United Peace Academy) und laufen unter eigenen Adressen mit eigenem Kopf
+   * (Memory `jeder-topic-eigene-marke`). Die Dachmarke muss deshalb nichts mehr verbergen —
+   * im Gegenteil: Für eine Multimedia-Agentur IST die Bandbreite das Argument. Was sie
+   * alles bauen kann, sieht man nur, wenn alles dasteht.
+   *
+   * Die Liste bleibt stehen, nicht als gelöschter Code: Ein Titel hier hinein, und die
+   * Kachel ist weg — ohne dass jemand die Mechanik neu bauen muss.
+   */
+  const AUSGEBLENDET = new Set<string>([
+    /**
+     * DIE ACADEMY IST WIEDER SICHTBAR (Owner 04.09.2026: „ich will dass du jetzt diesen
+     * topic auf luxurybandit.com auch veröffentlichst" — nach der Pitch-Ausblendung vom
+     * 02.09.2026: „jetzt blendest du nur das Topic mit der Academy auf der Startseite aus.
+     * Es ist noch im Pitch").
+     *
+     * Der Titel stand hier eine Weile, damit die Academy nur über den geteilten Link aus dem
+     * Termin gefunden wurde, nicht über den Katalog. Diese Begründung ist mit dem heutigen
+     * Auftrag hinfällig — sie darf jetzt jeder finden, der die Startseite öffnet.
+     */
   ]);
   const SICHTBAR = THEMES.filter(t => !AUSGEBLENDET.has(t.title));
 
@@ -783,7 +901,10 @@ export default async function ThemesCatalog({ searchParams }: {
   // während der Rest der Seite in acht Sprachen läuft. Ein Aufruf für alle Karten, danach
   // aus dem Dauer-Cache. Der Herz-/Trenner-Schmuck der Chips bleibt unangetastet.
   /** Kacheln, deren Titel ein Markenname ist und deshalb unübersetzt bleibt. */
-  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david"];
+  /* „/academy" steht jetzt als „/academy/${L}" da (Owner 04.09.2026: eigene Pfade je
+     Sprache) — alle drei mit aufgenommen, sonst griffe der Marken-Schutz unten nicht mehr
+     und die KI übersetzte „United Peace Academy" in jeder Sprache anders. */
+  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david", "/academy/en", "/academy/de", "/academy/ro"];
   /** Kacheln, die ihre Texte SELBST schon in der richtigen Sprache mitbringen (deutsche
       Quelle statt englischer) — sie dürfen gar nicht erst in den Übersetzungslauf. */
   const EIGENE_SPRACHE = ["/themes/david"];
@@ -882,20 +1003,28 @@ export default async function ThemesCatalog({ searchParams }: {
             platzhalter: <t.icon className="h-16 w-16 text-white/10" strokeWidth={1.25} />,
           }))} />
 
-        {/* ── FÜR UNTERNEHMEN (Owner 29.08.2026: „mach das auf die Startseite, aber nicht
-            als David") ──
+        {/**
+          * WO DAS LÄUFT (Owner 02.09.2026: „auf die Startseite hier auch").
+          *
+          * UNTER DEN KACHELN, NICHT DARÜBER — anders als im Media Kit. Dort liest eine
+          * Agentur und fragt zuerst „wo kann das stehen?"; hier ist der Katalog selbst das
+          * Erste, was zählt. Wer sich durch die Kacheln gescrollt hat, ist genau der, den
+          * die Frage nach Bildschirm und Projektion noch interessiert.
+          *
+          * Derselbe Baustein, dieselben Worte wie im Media Kit (components/OrteBlock) —
+          * zwei Kopien desselben Absatzes laufen auseinander, sobald jemand eine verbessert.
+          */}
+        <OrteBlock lang={L} className="mt-12 border-t border-white/10 pt-10" />
 
-            HIER, WEIL ES DEM HAUS GEHÖRT: Ein Funnel mit Person ist kein Thema neben Kuss
-            und Geburtstag, sondern das, was LuxuryBandit BAUT. Auf Davids Seite wäre es
-            falsch — er ist Recruiter, und ein Gesicht mit zwei Berufen ist in beiden
-            unglaubwürdig (KONZEPT-AGENTEN-FUER-FIRMEN.md).
+        {/* DIE AGENTEN-KARTE STEHT JETZT BEI DAVID (Owner 02.09.2026: „das raus. Kommt als
+            Beschreibung bei David eher rein. In einer Rubrik. Nicht wegschmeissen komplett").
 
-            UNTER DEN KACHELN, NICHT DARÜBER: Die Startseite gehört dem Endkunden. Firmen
-            sind das zweite Publikum — sie lesen weiter, der Endkunde wird nicht gestört.
-
-            Karte, Gesichter und Gespräch stecken in EINEM Baustein, weil der goldene Knopf
-            auf das Papier gehört und das Gespräch nicht hinein (components/AgentenKarte). */}
-        <AgentenKarte T={AG} lang={L} agenten={agenten} />
+            Sie stand seit dem 29.08.2026 hier, und die Begründung von damals war: „Ein Funnel
+            mit Person ist kein Thema neben Kuss und Geburtstag, sondern das, was LuxuryBandit
+            BAUT." Das stimmt weiter — nur ist die Startseite seit heute ein Katalog mit
+            sechzehn Arbeitsproben, und ein Angebot an Firmen mitten darin ist ein zweites
+            Publikum auf einer Fläche, die schon eines hat. Bei David steht sie unter Leuten,
+            die ohnehin über Recruiting lesen. */}
 
         {/* ── SEO / Erklärtext ──────────────────────────────────────────────────────
             Echter, lesbarer Text für Suchmaschinen UND Menschen: was LuxuryBandit ist

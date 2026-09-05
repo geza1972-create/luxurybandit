@@ -8,6 +8,8 @@ import { GEBURTSTAG_LOOKS } from "@/lib/geburtstag-looks";
 import { VERSPRECHEN_LOOKS } from "@/lib/versprechen-looks";
 import { POLEDANCE_SETS } from "@/lib/poledance";
 import { KUSS_SZENEN } from "@/lib/kuss-szenen";
+import { ARMEE_LOOKS, academyVideoMailSenden } from "@/lib/demo-armee";
+import { KAMPAGNEN_LOOKS, istKampagnenTheme, kampagnenVideoMailSenden } from "@/lib/kampagnen";
 import { zieleSaeubern } from "@/lib/future-ziele";
 
 /**
@@ -35,7 +37,11 @@ import { zieleSaeubern } from "@/lib/future-ziele";
    Bewegungs-Prompt hat, MUSS die gewaehlte Szene am Auftrag stehen — sonst rendert der
    Server-Rettungsweg eine andere als die bestellte. Genau die Falle, vor der der Absatz
    darueber warnt, nur mit einer dritten Liste. */
-const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS, ...POLEDANCE_SETS, ...KUSS_SZENEN].map(l => l.id);
+/* MIT DEN ARMEE-EINSÄTZEN (02.09.2026): Der Trichter unter /academy/start rendert je Szene
+   einen eigenen Bild- und Bewegungs-Prompt (SZENEN_PROMPTS in lib/demo-armee). Fehlte die
+   Kennung hier, stünde am Auftrag keine Szene — und der Server-Rettungsweg baute eine
+   andere als die gewählte. Vierte Liste, gleiche Falle. */
+const LOOK_IDS: string[] = [...GEBURTSTAG_LOOKS, ...VERSPRECHEN_LOOKS, ...POLEDANCE_SETS, ...KUSS_SZENEN, ...ARMEE_LOOKS, ...KAMPAGNEN_LOOKS].map(l => l.id);
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -369,7 +375,28 @@ export async function POST(request: Request) {
     // Zeile weg, lägen die Fotos weiter im Speicher — er hätte gelöscht und es wäre nichts
     // gelöscht. Seit 24.08.2026 auch die Eigenaufnahme (`audioPath`, Lebenslauf-Original):
     // sie ist sein Gesicht und seine Stimme — Löschen heisst löschen.
-    for (const pfad of [weg?.imagePath, weg?.personPath, weg?.modelPath, weg?.audioPath]) {
+    /**
+     * AUCH DAS VIDEO — SONST IST „GELÖSCHT" EINE LÜGE (Owner 04.09.2026, zum Löschknopf der
+     * Academy: „es verschwindet für immer aus dem netz").
+     *
+     * Die Schleife darüber kennt nur die PFADE am Eintrag (`imagePath` & Co.). Das erzeugte
+     * VIDEO steht aber als fertige, signierte Adresse in `videoUrl` — sein Pfad wurde nie
+     * gespeichert (`/api/armee-video` legt die Datei ab und merkt sich nur den Link). Ohne
+     * diese Zeilen blieb die Datei nach dem Löschen im Speicher liegen und war über den
+     * alten Link ein Jahr lang weiter abrufbar: Der Eintrag verschwand aus der Liste, das
+     * Gesicht des Bewerbers nicht aus dem Netz.
+     *
+     * Der Pfad steckt in der Adresse selbst — hinter dem Eimernamen:
+     *   …/object/sign/shopcut-images/try-this-look/videos/<datei>.mp4?token=…
+     * Alles ab `try-this-look/` ist genau das, was `deleteTryThisLookImage` erwartet.
+     */
+    const videoPfad = (() => {
+      const url = String(weg?.videoUrl ?? "");
+      const i = url.indexOf("/try-this-look/");
+      if (i < 0) return "";
+      return url.slice(i + 1).split("?")[0];
+    })();
+    for (const pfad of [weg?.imagePath, weg?.personPath, weg?.modelPath, weg?.audioPath, videoPfad]) {
       if (pfad) await deleteTryThisLookImage(pfad).catch(() => {});
     }
     return NextResponse.json({ ok: true, entries });
@@ -551,6 +578,21 @@ export async function POST(request: Request) {
       // deshalb ueberschreibt er hier, statt nur beim Anlegen gesetzt zu werden.
       const empf = String(body.empfaenger ?? "").replace(/\s+/g, " ").trim().slice(0, 18);
       if (empf) e.empfaenger = empf;
+      /**
+       * DIE ADRESSE NACHTRAGEN — ABER NUR IN EIN LEERES FELD (02.09.2026).
+       *
+       * Der Academy-Trichter fragt die E-Mail seit heute NACH dem Video (Owner: „also E-Mail
+       * nach hinten"). Der Auftrag entsteht also ohne sie und bekommt sie beim Absenden des
+       * Formulars.
+       *
+       * NUR, WENN NOCH KEINE DASTEHT: Trägt der Eintrag schon eine Adresse, bleibt sie
+       * unangetastet — sonst könnte ein Aufruf mit fremder Auftragskennung eine bestehende
+       * überschreiben, und an einer Adresse hängt im Haus das Guthaben
+       * ([[guthaben-haengt-an-einer-adresse]]). Die Besitzprüfung oben (`istBesitzer`) lässt
+       * ohnehin nur Gerät oder Konto des Eintrags durch; diese Zeile ist der zweite Riegel.
+       */
+      const mail = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
+      if (mail && mail.includes("@") && !String(e.email ?? "").trim()) e.email = mail;
       /* Die Stimmwahl des Geburtstags — der Nachliefer-Wachhund braucht sie beim Neustart
          (Owner 07.08.2026: „Peter hat eine Frauenstimme"). Nur die zwei bekannten Werte. */
       if (body.stimme === "mann" || body.stimme === "frau") e.stimme = body.stimme;
@@ -605,6 +647,26 @@ export async function POST(request: Request) {
        */
       const mailU = String(body.email ?? "").trim().toLowerCase().slice(0, 160);
       if (mailU && !e.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mailU)) e.email = mailU;
+      /**
+       * DAS VIDEO PER MAIL AN DEN BEWERBER (Owner 02.09.2026: „das Video per E-Mail an den
+       * Bewerber schicken").
+       *
+       * Beim Academy-Trichter steht das Video schon, BEVOR die Adresse kommt (sie wird
+       * seit heute nach dem Video gefragt, siehe oben) — umgekehrt zu jedem anderen Thema,
+       * wo `videoUrl` den Versand auslöst. Hier ist die Adresse der Auslöser, sobald sie
+       * gerade eingetragen wurde. `videoMailedAt` verhindert die zweite Mail, falls der
+       * Bewerber das Formular ein zweites Mal absendet.
+       */
+      if (e.theme === "armee" && e.email && e.videoUrl && !e.videoMailedAt) {
+        const geschickt = await academyVideoMailSenden(e.id, e.email, e.empfaenger ?? "", e.lang).catch(() => false);
+        if (geschickt) e.videoMailedAt = new Date().toISOString();
+      } else if (e.theme && istKampagnenTheme(e.theme) && e.email && e.videoUrl && !e.videoMailedAt) {
+        /* DIESELBE LIEFERMAIL, FÜR JEDE KAMPAGNE (lib/kampagnen.ts) — ein zweiter Zweig statt
+           eines Umbaus am Armee-Pfad oben, aus demselben Grund wie bei der Erzeugungsroute:
+           Der obere Zweig läuft im echten Betrieb der Academy und bleibt unangetastet. */
+        const geschickt = await kampagnenVideoMailSenden(e.theme, e.id, e.email, e.empfaenger ?? "").catch(() => false);
+        if (geschickt) e.videoMailedAt = new Date().toISOString();
+      }
       await writeKissLog(entries);
       /* Erst NACH dem Schreiben wecken — die Kette liest frisch und muss die vorgezogene
          Frist schon sehen. */

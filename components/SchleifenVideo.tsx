@@ -248,7 +248,11 @@ export default function SchleifenVideo({
         void v.play().catch(() => { laeuftWieder(); nachhelfen(v); });
       });
     };
-    if (!schleife) { anfahren(va); return abbauen; }
+    /* OHNE SCHLEIFE GIBT ES NUR A — und der ist dann auch der sichtbare (`opacity`-Regel am
+       Element: ohne Schleife immer 1). `vorne` wieder auf „a" stellen, damit ein spaeteres
+       Wiedereinschalten der Schleife nicht mit einem Zeiger auf den gerade abgebauten
+       zweiten Spieler beginnt. */
+    if (!schleife) { setVorne("a"); anfahren(va); return abbauen; }
     if (!vb) return abbauen;
     const takt = setInterval(() => {
       if (!laeuft) return;
@@ -276,7 +280,25 @@ export default function SchleifenVideo({
         setVorne(v => (v === "a" ? "b" : "a"));
       }
     }, 120);
-    anfahren(va);
+    /**
+     * ES FAEHRT DER AN, DER VORNE STEHT — NICHT IMMER A (Owner 04.09.2026: „der werbespot
+     * steht schon wieder still" · „in der full version").
+     *
+     * GEMESSEN am eingefrorenen Spot: Spieler A lief bei 0,5 s mit `opacity 0`, Spieler B
+     * stand bei 0,0 s mit `opacity 1`. Also lief das Video — hinter dem stehenden Bild des
+     * anderen. Genau das sieht ein Zuschauer als „haengt".
+     *
+     * DIE KETTE: Nach der ersten Ueberblendung ist `vorne === "b"`. Baut sich dieser Effekt
+     * danach neu auf — und das tut er bei jedem Wechsel von `schleife`, also bei JEDEM
+     * Vergroessern und Verkleinern (`EinladungAnsicht` schaltet die Schleife nur im Vollbild
+     * ein) —, dann startete diese Zeile stur `va`. Der sichtbare B bekam nie ein `play()`
+     * und blieb stehen, waehrend A unsichtbar weiterlief.
+     *
+     * `vorneRef` statt `vorne`: Die Begruendung unten gilt unveraendert weiter — der Takt
+     * darf sich NICHT bei jeder Ueberblendung neu aufbauen. Der Griff liest denselben Wert,
+     * ohne in die Abhaengigkeiten zu geraten.
+     */
+    anfahren(vorneRef.current === "b" && vb ? vb : va);
     return () => { abbauen(); clearInterval(takt); };
     /* `vorne` steht hier ABSICHTLICH NICHT (siehe `vorneRef` oben) — mit ihm baute sich der
        Takt bei jeder Überblendung neu auf und startete den beendeten Spieler wieder. */

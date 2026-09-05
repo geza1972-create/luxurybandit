@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveLang } from "@/lib/lang-server";
-import TopNav from "@/components/TopNav";
-import RecruiterDashboard from "@/components/RecruiterDashboard";
-import {
-  ARMEE_SPRACHEN, DEMO_KAMPAGNE, DEMO_KUNDE, DEMO_SCHLUESSEL, DEMO_TRICHTER,
-  KOSTEN_JE_PROFIL_CENT, KOSTEN_JE_VIDEO_CENT, armeeTexte, demoMotive, demoProfile, recruiterTexte,
-} from "@/lib/demo-armee";
+import DemoRecruiterAnsicht from "@/components/DemoRecruiterAnsicht";
+import { DEMO_KUNDE, DEMO_SCHLUESSEL } from "@/lib/demo-armee";
 
 /**
  * DIE RECRUITERSEITE — das Akquise-Werkzeug (Owner 01.09.2026: „Das ist mein Aquise seite.
@@ -18,9 +14,11 @@ import {
  * ergibt 404 — nicht „kein Zugang", denn schon diese Auskunft verriete, dass es hier etwas
  * gibt.
  *
- * ZWEI SPRACHEN (Owner 02.09.2026: „auf deutsch und englisch"): Beide statisch im Code, wie
- * beim Trichter. Sie SIEZT, während der Trichter duzt — hier steht ein Arbeitgeber, dort ein
- * Bewerber.
+ * DREI SPRACHEN, ZWEI TÜREN (Owner 02.09.2026: „auf deutsch und englisch", 04.09.2026: „auch
+ * ro, de, en"): Diese Datei ist die query-basierte Tür (`?lang=`, Cookie, Browsersprache).
+ * `[lang]/page.tsx` daneben ist die feste, zum Weitergeben — beide rendern denselben
+ * Baustein, `components/DemoRecruiterAnsicht.tsx`. Sie SIEZT, während der Trichter duzt —
+ * hier steht ein Arbeitgeber, dort ein Bewerber.
  *
  * KEIN HOHEITSZEICHEN: Der Name der (erfundenen) Organisation steht hier, ein nachgebautes
  * Wappen nicht.
@@ -44,31 +42,6 @@ export default async function DemoRecruiterSeite({ params, searchParams }: {
 
   const sp = await searchParams;
   const lang = String(sp.lang ?? "") || (await resolveLang("de"));
-  const T = recruiterTexte(lang);
-  /* Der Claim wird nicht doppelt gepflegt: Was der Bewerber im Trichter liest, ist genau
-     das, was der Kunde hier als Kampagnen-Aussage sieht. */
-  const A = armeeTexte(lang);
 
-  return (
-    <main className="lb-bg min-h-screen text-white">
-      {/* `schlicht` schliesst die Seite: kein Konto, kein Guthaben, kein Weg zu einem
-          anderen Produkt. Der Kunde soll seine Kampagne sehen, nicht unseren Katalog. */}
-      <TopNav schlicht back={false} marke={DEMO_KUNDE.name} heim={`/demo/${schluessel}`}
-        motto={null} breit sprachen={[...ARMEE_SPRACHEN]} />
-
-      <RecruiterDashboard daten={{
-        kunde: DEMO_KUNDE,
-        kampagne: DEMO_KAMPAGNE,
-        trichter: DEMO_TRICHTER,
-        kostenJeVideoCent: KOSTEN_JE_VIDEO_CENT,
-        kostenJeProfilCent: KOSTEN_JE_PROFIL_CENT,
-        motive: demoMotive(),
-        claim: { zeileEins: A.claimEins, zeileZwei: A.claimZwei, zeileDrei: A.claimDrei },
-        trichterHref: `/armee${lang.startsWith("en") ? "?lang=en" : ""}`,
-        profile: demoProfile(),
-        texte: T,
-        beispiel: true,
-      }} />
-    </main>
-  );
+  return <DemoRecruiterAnsicht schluessel={schluessel} lang={lang} />;
 }

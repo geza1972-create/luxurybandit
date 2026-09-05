@@ -905,8 +905,14 @@ export function VorlagenUeberlagerung({ videoUrl, posterUrl, thema, sprache = "e
  * SENKRECHT SCROLLBAR: Ein Blatt ist höher als jeder Handyschirm. Es wird auf die volle
  * Breite gelegt und darf nach unten laufen — kleiner gerechnet wäre es wieder unlesbar.
  */
-export function BlattUeberlagerung({ bildUrl, beschriftung, schliessenLabel = "Schliessen", zu }: {
+export function BlattUeberlagerung({ bildUrl, videoUrl, beschriftung, schliessenLabel = "Schliessen", zu }: {
   bildUrl: string;
+  /** Spielt statt des Standbilds diesen Clip — mit Ton, sofort (Owner 04.09.2026: „im
+   *  template voll modus soll starten"). Bleibt das Blatt aus Papier, keine Karte: anders
+   *  als `VorlagenUeberlagerung` baut dieses Vollbild nichts nach, es zeigt nur, was da ist,
+   *  jetzt eben bewegt statt starr. Der Tipp auf die Lupe ist die Nutzer-Geste, die Chrome
+   *  für Ton beim Autoplay verlangt — ohne sie bliebe der Clip stumm. */
+  videoUrl?: string;
   beschriftung?: string;
   schliessenLabel?: string;
   zu: () => void;
@@ -941,8 +947,14 @@ export function BlattUeberlagerung({ bildUrl, beschriftung, schliessenLabel = "S
           {/* Das Blatt auf Weiss, mit dem Verlaufsrand des Hauses — es soll wie Papier
               wirken, nicht wie ein Bild auf schwarzem Grund. */}
           <div className="lb-rand-verlauf overflow-hidden rounded-[14px] bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bildUrl} alt={beschriftung ?? ""} className="block w-full" />
+            {videoUrl ? (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video src={videoUrl} poster={bildUrl} autoPlay playsInline controls
+                className="block w-full" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={bildUrl} alt={beschriftung ?? ""} className="block w-full" />
+            )}
           </div>
           {beschriftung && (
             <p className="mt-3 text-center text-[13px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">{beschriftung}</p>
@@ -1215,13 +1227,27 @@ export function KurzeEinwilligung({ tpl, linkLabel }: { tpl: string; linkLabel: 
   );
 }
 
-export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zielLabel, zusatz, knopf, einwilligung }: {
+export function TunnelKacheln({ zurueckLabel, aufZurueck, links, linksLabel, ziel, zielLabel, zusatz, knopf, einwilligung }: {
   /** Vorlesetext des Zurück-Pfeils — „Back"/„Zurück" in der Sprache der Seite. */
   zurueckLabel: string;
   aufZurueck: () => void;
   /** Ein oder zwei linke Kacheln — der Kuss/die Hochzeit haben zwei (sein Foto/ihr Foto), das
    *  Versprechen/der Geburtstag genau eine (Aufnahme). */
   links: ReactNode;
+  /**
+   * EINE ZEILE UNTER DER LINKEN KACHEL — DAMIT BEIDE AUF EINER LINIE STEHEN (Owner
+   * 02.09.2026: „das übliche Problem. Template ist versetzt. Schreib dann was drunter bei
+   * mir Dein Bild").
+   *
+   * Sobald rechts ein `zielLabel` steht, ist die rechte Spalte eine Zeile höher als die
+   * linke — und die Bilder stehen versetzt. Das ist dieselbe Falle wie bei der
+   * Beschriftung ÜBER einer Kachel (Skill `upload-foto`): Text, den nur eine Seite trägt,
+   * verschiebt sie gegen die andere.
+   *
+   * Ohne `zielLabel` bleibt alles wie bisher; die Zeile erscheint nur, wenn sie gebraucht
+   * wird.
+   */
+  linksLabel?: string;
   /** Rechts: die `VorlagenKachel` fertig zusammengesetzt vom Aufrufer (er kennt Bild/Video).
    *  `null` = es gibt kein Ziel zu zeigen; dann entfaellt auch der Pfeil. */
   ziel: ReactNode;
@@ -1254,10 +1280,17 @@ export function TunnelKacheln({ zurueckLabel, aufZurueck, links, ziel, zielLabel
       {/* OHNE `ziel` KEIN PFEIL (Owner 27.08.2026, an der Anprobe): Wer sein eigenes
           Kleidungsstueck hochlaedt, hat rechts nichts zu waehlen — dann darf der Pfeil auch
           nicht ins Leere zeigen. Die Kacheln stehen dann allein und mittig. */}
-      <div className="flex items-center justify-center gap-2">
-        {links}
+      <div className="flex items-start justify-center gap-2">
+        {linksLabel ? (
+          <div>
+            {links}
+            <p className="mt-1 text-center text-[11px] font-black uppercase tracking-[0.10em] opacity-55">{linksLabel}</p>
+          </div>
+        ) : links}
         {ziel ? (<>
-          <ChevronRight className="h-6 w-6 shrink-0 opacity-60" />
+          {/* Der Pfeil sitzt auf der Höhe der BILDER, nicht der Spalten — sonst rutscht er
+              mit, sobald darunter eine Zeile steht. */}
+          <ChevronRight className="mt-[24%] h-6 w-6 shrink-0 opacity-60" />
           <div className="w-[118px] max-w-[32vw]">
             {ziel}
             {zielLabel ? (
@@ -1536,6 +1569,80 @@ export function Laden({ art = "knopf", karte = false, text, className = "" }: {
  * fertig", wenn es noch dauert. Erst das Ende springt auf 100. Wer eine echte Restzeit hat,
  * reicht sie über `prozent` herein; dann zählt der Baustein nicht selbst.
  */
+/**
+ * DER RADAR-SCAN ÜBER DEM EIGENEN FOTO — die Wartefläche des Hauses.
+ *
+ * Owner 02.09.2026, am Armee-Trichter: „hier hatten wir doch ein Scanner-Loading". Hatten
+ * wir — dreimal, von Hand kopiert: zweimal in `KissFunnel` (Zeile ~4242 und ~6938), einmal
+ * in `BirthdayFunnel`. Genau das Muster, das die CI-Regel verbietet; die vierte Kopie wäre
+ * die vierte Stelle gewesen, an der jemand die Sucher-Ecken anders setzt.
+ *
+ * WARUM ER MEHR IST ALS EIN BALKEN: Er zeigt SEIN Foto — verschwommen, mit Sucherecken und
+ * einem Lichtbalken, der darüber läuft. Der Besucher sieht damit, dass an SEINEM Bild
+ * gearbeitet wird, nicht an irgendetwas. Bei zwei bis drei Minuten Wartezeit ist das der
+ * Unterschied zwischen „es läuft" und „hängt das?".
+ *
+ * Das Foto wird bewusst unscharf gezeigt (`blur-[6px] brightness-75`): Scharf sähe es aus
+ * wie das Ergebnis, und die Pointe des ganzen Trichters ist das Gesicht in der Szene — die
+ * darf nicht vorweggenommen werden.
+ */
+export function ScanLaden({ foto, text, prozent, verhaeltnis = "aspect-[3/4]", className = "" }: {
+  /** Das hochgeladene Foto als Data-URL oder Adresse. Ohne Foto rendert der Baustein nichts —
+      ein Scanner über einer leeren Fläche wäre eine Behauptung. */
+  foto: string;
+  /** Was gerade passiert. Pflicht: eine Animation ohne Wort lässt raten. */
+  text: string;
+  /**
+   * DER FORTSCHRITT GEHÖRT INS BILD (Owner 02.09.2026, mit Bild des Balkens unter dem Scan:
+   * „das machst du ins Bild, nicht drunter").
+   *
+   * Der Balken stand als eigener Kasten darunter — zwei Flächen, die dasselbe sagen, und der
+   * Blick springt zwischen ihnen hin und her. Auf dem Scan liegt beides an einer Stelle:
+   * sein Gesicht, der Lichtbalken, das Wort und die Zahl. Ohne `prozent` bleibt es beim
+   * blossen Wort, wie vorher.
+   */
+  prozent?: number;
+  verhaeltnis?: string;
+  className?: string;
+}) {
+  if (!foto) return null;
+  return (
+    <div className={`mx-auto w-fit ${className}`}>
+      <div className="relative overflow-hidden rounded-3xl border border-white/10">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={foto} alt="" className={`${verhaeltnis} max-h-[60vh] w-auto object-cover object-top blur-[6px] brightness-75`} />
+        {/* Zwei Bahnen: der harte Lichtstrich und ein weicher Schleier dahinter — zusammen
+            sieht es nach Gerät aus, allein nach CSS-Animation. */}
+        <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+        <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+        <div className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+        <div className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+        <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+        <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 pt-14">
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles className="h-4 w-4 shrink-0 animate-pulse text-white" />
+            <span data-aufmedien="1" className="text-[14.5px] font-black text-white">{text}</span>
+            {typeof prozent === "number" && (
+              <span data-aufmedien="1" className="shrink-0 text-[14.5px] font-black tabular-nums text-[#f6cf51]">
+                {Math.round(Math.max(0, Math.min(100, prozent)))}%
+              </span>
+            )}
+          </div>
+          {/* Der Balken direkt darunter, auf dem Bild statt daneben. Weisse Spur auf
+              halbdurchsichtigem Grund — Gold wäre auf einem hellen Motiv nicht zu sehen. */}
+          {typeof prozent === "number" && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
+              <div className="h-full rounded-full bg-[#f6cf51] transition-all duration-500"
+                style={{ width: `${Math.max(0, Math.min(100, prozent))}%` }} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Fortschritt({ text, prozent, karte = false, className = "" }: {
   /** Was gerade passiert — Pflicht: ein Balken ohne Wort ist auch nur ein Kreisel. */
   text: string;
@@ -2923,12 +3030,32 @@ export function AnmeldeEinladung({
  * HTML kein zweites `<button>` (die Vergroessern-Scheibe) enthalten, der Browser wuerde es
  * stillschweigend herausbrechen und der Tipp landete an der falschen Stelle.
  */
-function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprache, titel, thema, features, waehle }: {
+function BildWahlKachel({ b, an, gross, blatt, kompakt, vergroessern, nameImBild, keineKarte, ansehenLabel, sprache, titel, thema, features, waehle }: {
   b: { id: string; name: string; bild: string; video?: string; poster?: string };
   an: boolean;
   gross: boolean;
   blatt?: boolean;
+  /** Eine dritte, KLEINERE „gross"-Grösse (Owner 04.09.2026: „weil die Templates zu gross
+   *  sind"). `gross` bleibt unverändert für alle bestehenden Aufrufer — `kompakt` ist ein
+   *  eigener Zuschlag obendrauf, für Reihen, die weniger Höhe zur Verfügung haben. */
+  kompakt?: boolean;
   vergroessern?: boolean;
+  /** Der Name steht ALS BILDUNTERSCHRIFT auf dem Bild statt darunter (Owner 04.09.2026, an
+   *  der Einsatz-Wahl der Academy: „hier kannst du auch die Schrift rein machen"). Ein
+   *  eigener Schalter statt einer neuen Kachelart: Alles andere — Ring, Lupe, Grösse —
+   *  bleibt identisch, nur die Beschriftung wandert vom Rand ins Bild. */
+  nameImBild?: boolean;
+  /**
+   * KEIN KARTEN-VOLLBILD, AUCH MIT VIDEO (Owner 02.09.2026: „in der vergrösserten version
+   * nicht und da bauen wir die karte nicht", dann 04.09.2026: „im template voll modus soll
+   * starten" — der Clip soll laufen, aber ohne die nachgebaute Einladungskarte drumherum).
+   *
+   * Ohne diese Prop entscheidet einzig `b.video`, welches Vollbild aufgeht: mit Video die
+   * Karte (`VorlagenUeberlagerung`), ohne das schlichte Blatt (`BlattUeberlagerung`). Diese
+   * Prop erzwingt auch bei vorhandenem `video` das schlichte Blatt — es bekommt den Clip
+   * einfach mitgegeben (`BlattUeberlagerung`s `videoUrl`), statt ihn zu verlieren.
+   */
+  keineKarte?: boolean;
   ansehenLabel?: string;
   /** Sprache/Titel der Karte im Vollbild (Owner 12.08.2026, siehe `VorlagenUeberlagerung`). */
   sprache?: string;
@@ -2949,13 +3076,31 @@ function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprac
      braucht sie: Bei den Geburtstags-Looks IST die Kachel schon das ganze Motiv, da wäre die
      Scheibe ein zweites Ziel auf derselben Fläche ohne Gewinn. */
   const lupe = !!b.video || !!vergroessern;
+  /* Grösse und Rundung getrennt, weil beide Hüllen (Ring aussen, Beschneidung innen) dieselbe
+     Rundung brauchen, aber nur die äussere die Grösse trägt — siehe Notiz an der JSX unten. */
+  const massKlassen = kompakt ? "h-[172px] w-[129px]" : gross ? (blatt ? "h-[212px] w-[150px]" : "h-[213px] w-[160px]") : blatt ? "h-[82px] w-[58px]" : "h-[104px] w-[78px]";
+  const rundKlassen = kompakt ? "rounded-xl" : gross ? (blatt ? "rounded-xl" : "rounded-2xl") : blatt ? "rounded-lg" : "rounded-xl";
   return (
     <>
       <div role="button" tabIndex={0} aria-pressed={an}
         onClick={waehle}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); waehle(); } }}
         className={`shrink-0 cursor-pointer text-center transition active:scale-95 ${gross ? "snap-start" : ""}`}>
-        <span className={`relative block overflow-hidden ring-2 ${gross ? (blatt ? "h-[212px] w-[150px] rounded-xl" : "h-[213px] w-[160px] rounded-2xl") : blatt ? "h-[82px] w-[58px] rounded-lg" : "h-[104px] w-[78px] rounded-xl"} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
+        {/**
+         * DER RING SITZT AUSSEN, DAS BESCHNEIDEN INNEN — ZWEI HÜLLEN, NICHT EINE (Owner
+         * 04.09.2026, mit Bild der Medic-Kachel: „kontur ist hier nach aussen, deswegen ist
+         * es abgeschnitten").
+         *
+         * Ring/`box-shadow` und `overflow-hidden` standen bisher auf DERSELBEN Fläche. Das
+         * geht in Chrome gut, aber Safari beschneidet einen Schatten, der auf einem Element
+         * mit eigenem `overflow-hidden` liegt, an dessen eigenem Rand — der goldene Ring der
+         * gewählten Kachel verlor damit genau die Rundung, die er zeigen sollte. Jetzt trägt
+         * die ÄUSSERE Hülle nur noch den Ring (kein `overflow-hidden`), die INNERE beschneidet
+         * Bild/Video/Beschriftung auf dieselbe Rundung. Die Lupe bleibt ausserhalb der inneren
+         * Hülle, sonst schnitte deren Rundung ihre Ecke an.
+         */}
+        <span className={`relative block ring-2 ${massKlassen} ${rundKlassen} ${an ? "ring-[#f6cf51]" : "ring-white/15"}`}>
+        <span className={`block h-full w-full overflow-hidden ${rundKlassen}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {/* `loading="lazy"`: der Try-on-Slider trägt die GANZE Wardrobe (97 Kacheln,
               Owner 13.08.2026) — ohne lazy lüde die Seite alle Bilder auf einmal. */}
@@ -2988,29 +3133,52 @@ function BildWahlKachel({ b, an, gross, blatt, vergroessern, ansehenLabel, sprac
                  „videos-nahtlos-schleifen" verlangt die Zwei-Spieler-Ueberblendung fuer
                  GROSSE Videos MIT Ton — hier ist die Kachel stumm und 78-160px breit; der
                  Schnitt am Loop-Ende ist auf dieser Flaeche nicht zu sehen). */
-              className="absolute inset-0 h-full w-full object-cover" />
+              /* EIGENE RUNDUNG, NICHT NUR DIE DER HUELLE (Owner 04.09.2026, an der
+                 ausgewaehlten Kachel: „dei video ecken sind nicht rund" · „von dem
+                 ausgewaehlten"). Die umgebende `<span>` traegt `overflow-hidden` + dieselbe
+                 `rundKlassen` und beschneidet das Bild sauber — beim `<video>` reicht das auf
+                 iOS/Safari nicht: die Hardware-Videodekodierung setzt sich ueber den
+                 `border-radius` des Elternelements hinweg, sobald ein eigener Compositing-
+                 Layer entsteht (genau das, was `autoPlay` erzwingt). Nur eine Rundung direkt
+                 AUF dem `<video>` selbst wird dort respektiert. */
+              className={`absolute inset-0 h-full w-full object-cover ${rundKlassen}`} />
           )}
-          {lupe && <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
-            {/* VERGROESSERN MIT TON — `stopPropagation`, damit der Tipp auf die Scheibe
-                nicht zugleich die Auswahl umschaltet (Vorgabe: Tippen waehlt, Vergroessern
-                ist ein eigener Knopf). */}
-            <Scheibe klein durchsichtig label={label} onClick={() => setOffen(true)}>
-              <Maximize2 className="h-4 w-4" />
-            </Scheibe>
-          </div>}
+          {/* NAME ALS BILDUNTERSCHRIFT — ein Schleier am unteren Rand, nicht dieselbe
+              Cousine-Karte wie bei den Anzeigen-Videos (`public/Armee/anzeigen/`): Auf einer
+              150-px-Kachel wäre eine cremefarbene Box zu schwer, ein dunkler Verlauf mit
+              weisser Schrift bleibt lesbar, ohne das Bild zuzudecken. */}
+          {nameImBild && (
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-2 pb-1.5 pt-5">
+              <span className="block truncate text-[12.5px] font-black leading-tight text-white">{b.name}</span>
+            </span>
+          )}
         </span>
-        <span className={`mt-1.5 block font-black leading-tight ${gross ? (blatt ? "max-w-[150px] text-[12.5px]" : "max-w-[160px] text-[13px]") : blatt ? "max-w-[58px] text-[10px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
-          {b.name}
+        {/* DIE LUPE STEHT AUSSERHALB DER BESCHNITTENEN HÜLLE (siehe Notiz oben) — sonst
+            schnitte deren `overflow-hidden` ihre Ecke an, genau wie es vorher dem Ring
+            passierte. Position und Optik bleiben gleich, nur die Elternhülle wechselt. */}
+        {lupe && <div className="absolute right-1.5 top-1.5 z-10" onClick={e => e.stopPropagation()}>
+          {/* VERGROESSERN MIT TON — `stopPropagation`, damit der Tipp auf die Scheibe
+              nicht zugleich die Auswahl umschaltet (Vorgabe: Tippen waehlt, Vergroessern
+              ist ein eigener Knopf). */}
+          <Scheibe klein durchsichtig label={label} onClick={() => setOffen(true)}>
+            <Maximize2 className="h-4 w-4" />
+          </Scheibe>
+        </div>}
         </span>
+        {!nameImBild && (
+          <span className={`mt-1.5 block font-black leading-tight ${gross ? (blatt ? "max-w-[150px] text-[12.5px]" : "max-w-[160px] text-[13px]") : blatt ? "max-w-[58px] text-[10px]" : "max-w-[78px] text-[11px]"} ${an ? "text-[#f6cf51]" : "text-white/70"}`}>
+            {b.name}
+          </span>
+        )}
       </div>
-      {offen && (b.video
+      {offen && (b.video && !keineKarte
         ? <VorlagenUeberlagerung videoUrl={b.video} posterUrl={poster} thema={thema} sprache={sprache} titel={titel} features={features} zu={() => setOffen(false)} />
-        : <BlattUeberlagerung bildUrl={b.bild} beschriftung={b.name} schliessenLabel={label} zu={() => setOffen(false)} />)}
+        : <BlattUeberlagerung bildUrl={b.bild} videoUrl={keineKarte ? b.video : undefined} beschriftung={b.name} schliessenLabel={label} zu={() => setOffen(false)} />)}
     </>
   );
 }
 
-export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, vergroessern = false, randlos = false, ansehenLabel, sprache, titel, thema, features, className = "" }: {
+export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, kompakt = false, vergroessern = false, nameImBild = false, keineKarte = false, randlos = false, ansehenLabel, sprache, titel, thema, features, className = "" }: {
   bilder: { id: string; name: string; bild: string; video?: string; poster?: string }[];
   /** Die Kennung der gewählten Kachel. */
   wert: string;
@@ -3053,6 +3221,13 @@ export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, v
    * Kacheln MIT Video haben ihre Lupe weiterhin immer, Kacheln ohne haben keine.
    */
   vergroessern?: boolean;
+  /** Siehe `BildWahlKachel` — eine kleinere Ausführung von `gross`. */
+  kompakt?: boolean;
+  /** Siehe `BildWahlKachel` — Name als Bildunterschrift statt als Zeile darunter. */
+  nameImBild?: boolean;
+  /** Siehe `BildWahlKachel` — erzwingt das schlichte Blatt-Vollbild auch bei vorhandenem
+   *  `video`, statt der nachgebauten Karte. */
+  keineKarte?: boolean;
   /**
    * OHNE DEN RANDÜBERHANG (`-mx-4 px-4`) — für einen Slider, der NEBEN etwas steht.
    *
@@ -3107,7 +3282,20 @@ export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, v
        legte ihn linksbündig an — daneben eine halbe Bildschirmbreite Leere, die aussieht,
        als wäre der Rest nicht geladen. Ab zwei Kacheln bleibt alles wie bisher: dann ist
        die Reihe ein Slider, und linksbündig ist dort richtig. */
-    <div className={`lb-wisch flex items-start overflow-x-auto py-1.5 ${randlos ? "px-1.5" : "-mx-4 px-4"} ${bilder.length === 1 ? "justify-center" : ""} ${gross ? "snap-x snap-mandatory gap-3" : "gap-2"} ${className}`}>
+    /**
+     * SCROLL-PADDING MUSS DASSELBE MASS TRAGEN WIE DIE POLSTERUNG (Owner 04.09.2026:
+     * „bekommst du die linie nicht hin? Siehst du dass es abgeschnitten an den Ecken und
+     * links ist?").
+     *
+     * Das war nie der Ring — `getBoundingClientRect()` zeigt es: Beim ersten Laden steht
+     * `scrollLeft` bereits auf 16 (bzw. 6 bei `randlos`), nicht auf 0. Scroll-Snap
+     * (`snap-x snap-mandatory` + `snap-start` je Kachel) kennt die eigene `px-4`/`px-1.5`
+     * Polsterung des Rahmens nicht und rastet auf den Inhalts-Rand ein, nicht auf den
+     * Polsterungs-Rand — die Bahn scrollt die Polsterung damit beim Laden von selbst weg,
+     * und mit ihr die 2 px, die der Ring dort zum Atmen braucht. `scroll-px-*` sagt dem
+     * Snap-Raster, dieselbe Polsterung als gültigen Ruhepunkt zu behandeln.
+     */
+    <div className={`lb-wisch flex items-start overflow-x-auto py-1.5 ${randlos ? "px-1.5" : "-mx-4 px-4"} ${bilder.length === 1 ? "justify-center" : ""} ${gross ? `snap-x snap-mandatory gap-3 ${randlos ? "scroll-px-1.5" : "scroll-px-4"}` : "gap-2"} ${className}`}>
       {bilder.map(b => {
         const an = b.id === wert;
         {/* KACHELN MIT VIDEO GEHEN AN DIE EIGENE KOMPONENTE (Owner 12.08.2026: „man muss die
@@ -3118,7 +3306,7 @@ export function BildWahl({ bilder, wert, waehle, gross = false, blatt = false, v
             aenderung fuer bestehende Aufrufer ohne `video`. */}
         if (b.video || vergroessern) {
           return (
-            <BildWahlKachel key={b.id} b={b} an={an} gross={gross} blatt={blatt} vergroessern={vergroessern} ansehenLabel={ansehenLabel}
+            <BildWahlKachel key={b.id} b={b} an={an} gross={gross} blatt={blatt} kompakt={kompakt} vergroessern={vergroessern} nameImBild={nameImBild} keineKarte={keineKarte} ansehenLabel={ansehenLabel}
               sprache={sprache} titel={titel} thema={thema} features={features} waehle={() => waehle(b.id)} />
           );
         }

@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { ARMEE_MUSIK } from "@/lib/armee-musik";
 
 /** Die Stücke, mit Länge — je länger, desto seltener hört man die Schleife. */
 export const STUECKE = {
@@ -36,6 +37,11 @@ export const STUECKE = {
    * wer das Thema anfasst, findet alles an einer Stelle. 147 s, 128 kbit/s.
    */
   tanz: "/Pooldance/poledance.mp3",                                   // 147 s · vom Owner geliefert
+  /* DER SOUNDTRACK DER ACADEMY (Owner 02.09.2026). Wie beim Tanz liegt die Datei BEI ihrem
+     Material statt bei den anderen Stücken in `public/`. Der Pfad selbst steht in
+     `lib/demo-armee` — diese Datei hier ist eine Client-Datei (Hooks), und die
+     Generierungs-Seite braucht denselben Pfad auf dem Server. */
+  academy: ARMEE_MUSIK,
 } as const;
 
 /**
@@ -64,6 +70,10 @@ const NACH_THEMA: Record<string, readonly string[]> = {
   holiday: [STUECKE.sommer, STUECKE.wasser, STUECKE.offen],
   bella: [STUECKE.sommer, STUECKE.wasser, STUECKE.offen],
   idol: [STUECKE.weite, STUECKE.offen, STUECKE.sommer],
+  /* EIN Stück, keine Rotation: Der Owner hat genau diesen Soundtrack für die Academy
+     ausgesucht. Ein wechselndes Stück wäre hier kein Abwechslungsreichtum, sondern ein
+     anderes Produkt bei jedem Ansehen. */
+  academy: [STUECKE.academy],
   /* Anprobe/Fashion — treibend, ein Laufsteg-Takt statt Stille unter den Vorlagen-Clips
      (Owner 01.09.2026: „tryons auch unsere sounds"). */
   tryon: [STUECKE.sommer, STUECKE.offen, STUECKE.weite],

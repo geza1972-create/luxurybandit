@@ -27,7 +27,7 @@ import { musikFuer } from "@/lib/musik";
  *     Hochzeit — `preisZeile`, gefüllt aus der Preistabelle)
  *   · „made by luxurybandit.com" als Fuss
  */
-export default function LandingKarte({ sprache, titel, folien, href, aufruf: aufrufEigen, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, thema, fuss }: {
+export default function LandingKarte({ sprache, titel, folien, href, aufruf: aufrufEigen, teilenUrl, teilenText, preisZeile, verhaeltnis, ausrichtung, thema, fuss, madeBy = true, wiederholenNach = 0 }: {
   sprache: string;
   titel: string;
   folien: { video: string; poster?: string }[];
@@ -63,6 +63,24 @@ export default function LandingKarte({ sprache, titel, folien, href, aufruf: auf
   ausrichtung?: "mitte" | "oben";
   /** Zusätzlicher Karten-Fuss VOR dem made-by (selten — z. B. WANN/WO der Hochzeit). */
   fuss?: ReactNode;
+  /**
+   * DAS HAUS-SIGNET UNTER DER KARTE — nur, wo die Karte auch dem Haus gehört.
+   *
+   * Owner 02.09.2026 an der Armee-Landingpage: „das kommt raus". Die Seite läuft unter
+   * einer eigenen Marke (United Peace Academy); „made by luxurybandit.com" darunter sagt
+   * dem Besucher, dass hier jemand anderes im Namen dieser Marke wirbt — und einem Kunden,
+   * dem man die Seite vorführt, dass sein Auftritt fremde Werbung trägt. Dieselbe Logik wie
+   * bei jedem Produkt mit eigener Marke ([[jeder-topic-eigene-marke]]).
+   */
+  madeBy?: boolean;
+  /**
+   * DER SPOT BLEIBT STEHEN UND FÄNGT NACH N SEKUNDEN WIEDER AN (Owner 02.09.2026: „Das
+   * letzte Bild soll 10 Sek stehen. Es soll nur nach 10 Sekunden wieder anfangen").
+   *
+   * Weitergereicht an `EinladungAnsicht`, wo die Begründung steht. Vorgabe 0 (aus): David
+   * und die anderen Landingpages behalten ihr Verhalten.
+   */
+  wiederholenNach?: number;
 }) {
   const K = KARTE_TEXTE[sprache] ?? KARTE_TEXTE.en;
   /* Das EINE Knopf-Wort (Owner 10.08.2026: „Button wie CI Preis-Jettzt starten") — aus der
@@ -83,9 +101,9 @@ export default function LandingKarte({ sprache, titel, folien, href, aufruf: auf
     <div className="mt-4">
       <EinladungKarte sprache={sprache} sie="" er="" demo titel={titel}
         video={<>
-          <KartenKarussell onAktiv={setVorn} folien={folien.map((f, i) => (
+          <KartenKarussell onAktiv={setVorn} pfeile folien={folien.map((f, i) => (
             <EinladungAnsicht key={i} id={`landing-${i}`} videoUrl={f.video} poster={f.poster || undefined}
-              zaehlen={false} schleife={false}
+              zaehlen={false} schleife={false} wiederholenNach={wiederholenNach}
               {...(thema ? { musik: musikFuer(thema, f.video), tonAutomatisch: i === vorn } : { originalton: true, musik: "" })}
               {...(verhaeltnis ? { verhaeltnis } : {})}
               {...(ausrichtung ? { ausrichtung } : {})}
@@ -100,7 +118,7 @@ export default function LandingKarte({ sprache, titel, folien, href, aufruf: auf
             </div>
           )}
         </>}
-        fuss={<>{fuss}<MadeBy karte /></>}
+        fuss={<>{fuss}{madeBy ? <MadeBy karte /> : null}</>}
       />
       {preisZeile && (
         /* Die Konditionszeile UNTER der Karte — das Hochzeits-Muster („Video-Einladung

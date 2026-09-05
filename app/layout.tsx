@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { resolveLang } from "@/lib/lang-server";
 import { Suspense } from "react";
 import "./globals.css";
@@ -30,11 +31,15 @@ export const metadata: Metadata = {
    * dem eigenen Foto. Preise stehen bewusst nicht drin — Zahlen kommen aus lib/pricing, und
    * ein statisches Metafeld kann sie nicht mitpflegen (Hausregel seit 29.07.2026).
    */
-  title: "LuxuryBandit — AI Marketing Portal",
+  /* THE AI-MEDIA CREATOR (Owner 02.09.2026) — hier stand noch „AI Marketing Portal", die
+     Positionierung von vor dem 26.08.2026. Sie fiel niemandem auf, weil sie nur in der
+     Vorschau erscheint, die WhatsApp und Facebook aus diesen Feldern bauen: Kopf und Fuss
+     der Seiten waren längst zweimal umbenannt worden, dieses Feld nie. */
+  title: "LuxuryBandit — The AI-Media Creator",
   description: "Products built by artificial intelligence, and the marketing that sells them. Every product here is our own, finished in minutes. The same machine is ready for your business: a service or an event becomes a product — and the path that sells it.",
   keywords: ["ai video gift", "ai video generator", "kiss video ai", "wedding invitation video", "birthday video maker", "ai model", "ai influencer", "face swap video ai", "personalised video", "LuxuryBandit"],
   openGraph: {
-    title: "LuxuryBandit — AI Marketing Portal",
+    title: "LuxuryBandit — The AI-Media Creator",
     description: "Products built by AI, and the marketing that sells them. The same machine turns your service or event into a product — and the path that sells it.",
     type: "website",
   },
@@ -58,11 +63,16 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/** Die Domain, auf der nichts vom Haus zu sehen sein darf (siehe app/page.tsx). */
+const FUNNEL_HOST = /(^|\.)yourvideogenerator\.com$/i;
+
 export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  /* Der Host entscheidet, ob die Haus-Leiste überhaupt gerendert wird (siehe unten). */
+  const hostname = (await headers()).get("host")?.split(":")[0] ?? "";
   return (
     // prefix: announces the OG vocabulary — Facebook's debugger otherwise
     // sporadically claims og:url/og:type are "missing" despite valid tags.
@@ -116,9 +126,24 @@ export default async function RootLayout({
           <CookieConsent />
           {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
               statically-prerendered pages (e.g. 404) — required for the prod build. */}
-          <Suspense fallback={null}>
-            <BottomNav />
-          </Suspense>
+          {/**
+            * KEINE HAUS-LEISTE AUF DER WHITE-LABEL-DOMAIN (Owner 02.09.2026: „Menü raus").
+            *
+            * `BottomNav` blendet sich schon selbst aus, wenn der Host passt — aber erst IM
+            * BROWSER, über einen Effekt. Der Server rendert die Leiste vorher trotzdem, sie
+            * steht im ausgelieferten HTML und blitzt beim Laden auf. Auf einer Seite, die
+            * einem Kunden als seine gezeigt wird, ist ein aufblitzendes fremdes Menü genau
+            * das, was auffällt.
+            *
+            * Hier ist der Host in derselben Anfrage bekannt: Die Leiste wird gar nicht erst
+            * gerendert. Die Prüfung in `BottomNav` bleibt als zweiter Riegel stehen — sie
+            * fängt den Fall, dass jemand diese Seite später woanders einbaut.
+            */}
+          {!FUNNEL_HOST.test(hostname) && (
+            <Suspense fallback={null}>
+              <BottomNav />
+            </Suspense>
+          )}
           {/* Floating app-assistant removed per request — it cluttered the feed.
               The component + /api/app-chat stay in the codebase for re-use elsewhere. */}
         </div>

@@ -47,8 +47,8 @@ const HOCHZEITS_MUSIK = "/mickeyscat-moment-of-peace-mickeyscat-554494.mp3";
 
 export default function EinladungAnsicht({
   id, videoUrl, poster, zaehlen = true, tonText = "", tonAusText = "", musik = HOCHZEITS_MUSIK, tonAutomatisch = false,
-  originalton = false, schleife = true, verhaeltnis = "aspect-[3/4]", ausrichtung = "mitte",
-  teilen, grossText = "", kleinText = "",
+  originalton = false, schleife = true, wiederholenNach = 0, verhaeltnis = "aspect-[3/4]", ausrichtung = "mitte",
+  teilen, grossText = "", kleinText = "", ueberlagerung, startGross = false,
 }: {
   id: string;
   /** Leer lassen, um ein reines Standbild in derselben Karte zu zeigen — dann trägt `poster`
@@ -102,6 +102,24 @@ export default function EinladungAnsicht({
   /** Weiterreichen an `SchleifenVideo` — ohne Schleife laeuft es genau einmal. */
   schleife?: boolean;
   /**
+   * STEHENBLEIBEN, DANN VON VORN (Owner 02.09.2026: „Das letzte Bild soll 10 Sek stehen. Es
+   * soll nur nach 10 Sekunden wieder anfangen").
+   *
+   * Zwischen den beiden Verhaltensweisen, die es bisher gab, fehlte genau dieses:
+   *
+   *   `schleife`        nahtlos, ohne Pause — richtig für eine Karte, die Stimmung macht
+   *   ohne alles        bleibt stehen und bleibt stehen — richtig für einen Film
+   *   `wiederholenNach` bleibt stehen und fängt nach N Sekunden neu an  ← der Spot
+   *
+   * Ein Werbespot lebt vom Schlussbild: Der Satz am Ende soll gelesen werden, und dafür muss
+   * er einen Moment stehen. Ganz stehenbleiben darf er aber auch nicht — wer zehn Sekunden
+   * später hinsieht, soll den Spot noch einmal bekommen, ohne etwas zu tun.
+   *
+   * Nur zusammen mit `originalton` (dort hängt der Spieler, den wir steuern können) und nur
+   * ohne `schleife` — die beiden schliessen einander aus. In Sekunden; 0 heisst aus.
+   */
+  wiederholenNach?: number;
+  /**
    * DAS SEITENVERHAELTNIS DER FLAECHE — stand fest auf 3:4.
    *
    * Das passt zu allem, was unsere Kette erzeugt (Kuss, Hochzeit: 3:4). Das Einladungsvideo des
@@ -136,6 +154,29 @@ export default function EinladungAnsicht({
    */
   teilen?: ReactNode;
   /** Vorlesetext des Vergrössern-Knopfs, in der Sprache des Betrachters. */
+  /**
+   * WAS ÜBER DEM VIDEO LIEGT — auch im VOLLBILD (Owner 02.09.2026: „das Video nach der
+   * Generierung, wenn ich es vergrössere, muss in Loop laufen, und da muss auch stehen
+   * Danke…").
+   *
+   * Der Abspann des Armee-Trichters lag an der KARTE, nicht am Video. Im Vollbild legt sich
+   * das Video über die ganze Seite — die Karte bleibt dahinter, und mit ihr der Text. Wer
+   * das Video gross macht, sieht also ausgerechnet dann keinen Abspann, wenn er am meisten
+   * hinsieht. Hier hereingereicht, liegt er IM selben Element und geht mit.
+   */
+  ueberlagerung?: ReactNode | ((api: { gross: boolean; schliessen: () => void }) => ReactNode);
+  /**
+   * GROSS AUFGEHEN (Owner 02.09.2026: „wenn das Video generiert ist, öffnet es sich dann in
+   * voll, und mit Tipp verkleinert es sich ins Card").
+   *
+   * Für den Moment, auf den jemand zwei Minuten gewartet hat: Das Ergebnis kommt gross, nicht
+   * als Briefmarke in einer Karte, die man erst antippen muss. Ein Tipp bringt es zurück —
+   * das kann die Fläche ohnehin, sie ist der Umschalter.
+   *
+   * NUR BEIM ERSTEN MAL: `gross` gehört danach dem Benutzer. Wer verkleinert hat, will nicht,
+   * dass ihm die nächste Zustandsänderung das Bild wieder aufreisst.
+   */
+  startGross?: boolean;
   grossText?: string;
   /** Und derselbe Knopf im Vollbild — dort verkleinert er. */
   kleinText?: string;
@@ -235,20 +276,48 @@ export default function EinladungAnsicht({
    *    ohne das Wort passiert gar nichts.
    */
   useEffect(() => {
-    if (!originalton || schleife) return;
+    /**
+     * DER WECKER GILT AUCH OHNE ORIGINALTON (02.09.2026, an der Generierungen-Seite).
+     *
+     * Hier stand `if (!originalton || schleife) return` — damit hing der Neustart am
+     * Ton-Modus. Ein Video MIT Haus-Musik (`musik`, ohne `originalton`) konnte also nie
+     * wiederholen, und genau das braucht ein öffentliches Display: eigene Musik UND von
+     * vorn nach zehn Sekunden. Der Lauf-Zustand (Play-Knopf) bleibt am Originalton hängen,
+     * der Wecker nicht.
+     */
+    if (schleife || (!originalton && !wiederholenNach)) return;
     const rahmen = rahmenRef.current;
     if (!rahmen) return;
     const an = () => setLaeuft(true);
     const aus = () => setLaeuft(false);
+    /**
+     * NACH DEM ENDE WARTEN, DANN VON VORN (`wiederholenNach`). Der Spieler bleibt auf dem
+     * letzten Bild stehen — ein `<video>` tut das von selbst —, und erst der Wecker setzt
+     * ihn zurück. `stumm` bleibt, wie der Besucher es gelassen hat: Wer den Ton angemacht
+     * hat, hört den Spot noch einmal; wer nicht, wird auch beim zweiten Mal nicht überrascht.
+     *
+     * Der Wecker hängt am selben Effekt wie die Zuhörer, also wird er beim Aufräumen
+     * mitgelöscht — sonst liefe er weiter, nachdem die Karte längst weg ist.
+     */
+    let wecker: ReturnType<typeof setTimeout> | undefined;
+    const beendet = (e: Event) => {
+      aus();
+      if (!wiederholenNach) return;
+      const v = e.target as HTMLVideoElement;
+      wecker = setTimeout(() => {
+        try { v.currentTime = 0; void v.play().then(() => setLaeuft(true)).catch(() => {}); } catch { /**/ }
+      }, wiederholenNach * 1000);
+    };
     rahmen.addEventListener("play", an, true);
     rahmen.addEventListener("pause", aus, true);
-    rahmen.addEventListener("ended", aus, true);
+    rahmen.addEventListener("ended", beendet, true);
     return () => {
+      if (wecker) clearTimeout(wecker);
       rahmen.removeEventListener("play", an, true);
       rahmen.removeEventListener("pause", aus, true);
-      rahmen.removeEventListener("ended", aus, true);
+      rahmen.removeEventListener("ended", beendet, true);
     };
-  }, [originalton, schleife]);
+  }, [originalton, schleife, wiederholenNach]);
 
   /** DER ZEITBALKEN HOERT AM SELBEN RAHMEN, in derselben Fangphase — dieselben zwei Gruende
       wie beim Lauf-Zustand oben (der Spieler entsteht erst nach dem Tipp, die Ereignisse
@@ -316,7 +385,7 @@ export default function EinladungAnsicht({
    * gelegt. DASSELBE DOM-Element bleibt stehen — das Video wird nicht neu eingehängt, läuft
    * also weiter, statt beim Vergrössern von vorn zu beginnen.
    */
-  const [gross, setGross] = useState(false);
+  const [gross, setGross] = useState(startGross);
   useEffect(() => {
     if (!gross) return;
     // Escape schliesst — und solange es offen ist, scrollt die Seite dahinter nicht mit.
@@ -342,8 +411,49 @@ export default function EinladungAnsicht({
   tonRef.current = tonSetzen;
   useEffect(() => { tonRef.current(gross); }, [gross]);
 
+  /**
+   * VOLLBILD HEISST: ES LÄUFT — UND NUR ES (Owner 04.09.2026: „video muss gleich anlaufen" ·
+   * „das video im hintergrund muss doch stoppen auf dem man klickt um sich das full video zu
+   * öffnen sonst höre ich den sound doppelt").
+   *
+   * ZWEI FEHLER IN EINEM GRIFF. Erstens stand das Video nach dem Vergrössern still und wartete
+   * auf einen zweiten Tipp auf die Play-Scheibe — wer etwas gross macht, hat sich aber längst
+   * entschieden, es sehen zu wollen. Zweitens lief in derselben Sekunde nebenan weiter, was
+   * vorher lief: die anderen Folien desselben Karussells (`KartenKarussell` pausiert sie erst
+   * beim Folienwechsel) und jede andere Karte der Seite. Mit `ton = true` im Vollbild waren
+   * das zwei hörbare Tonspuren übereinander.
+   *
+   * Angefasst wird nur, was NICHT in dieser Karte liegt (`rahmenRef.contains`): Der zweite
+   * Spieler der weichen Schleife (`SchleifenVideo`) gehört uns und darf nicht angehalten
+   * werden, sonst reisst die Schleife genau beim Überblenden ab.
+   */
+  useEffect(() => {
+    if (!gross || !videoUrl || !originalton) return;
+    setLaeuft(true);
+    if (typeof document !== "undefined") {
+      document.querySelectorAll("video").forEach(fremd => {
+        if (rahmenRef.current?.contains(fremd)) return;
+        if (!fremd.paused) fremd.pause();
+      });
+    }
+    /* Der Spieler kann beim ersten Vergrössern noch gar nicht stehen (`autostart={false}`
+       hängt ihn erst ein, wenn `laeuft` durch einen Durchlauf gelaufen ist) — dann übernimmt
+       `autoPlay`. Steht er schon, fahren wir ihn hier an; laut, und wenn der Browser das
+       ablehnt, wenigstens stumm. */
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = false;
+    void v.play().catch(() => { v.muted = true; return v.play(); }).catch(() => {});
+  }, [gross, videoUrl, originalton]);
+
   return (
     <div ref={rahmenRef}
+      /* DIE MARKIERUNG, AN DER DAS KARUSSELL DAS VOLLBILD ERKENNT (Owner 04.09.2026, zum
+         stehenbleibenden Spot). `KartenKarussell` schaltet alle 7 Sekunden weiter und
+         pausiert dabei die anderen Folien — beides muss ruhen, solange hier etwas
+         bildschirmfüllend läuft. Ein Attribut statt eines Kontexts: Das Karussell kennt
+         seine Folien nur als fertige Knoten, es reicht ihnen nichts hinein. */
+      data-vollbild={gross ? "1" : undefined}
       /* RUND AN ALLEN VIER ECKEN (Owner 05.08.2026: „und das Video soll unten auch abgerundete
          Ecken haben"). Bis eben lag unten der Kaufknopf auf dem Video und deckte die zwei
          unteren Ecken zu; seit er darunter auf dem Papier steht, sieht man sie — und sie waren
@@ -363,7 +473,28 @@ export default function EinladungAnsicht({
        * 480 px.
        */
       className={gross
-        ? "lb-phone-col fixed inset-0 z-[90] grid place-items-center overflow-hidden bg-black/95"
+        /* `place-items-stretch` statt `center` (Owner 02.09.2026: „das Video ist nicht full,
+           unten oben schwarz"). Der Rahmen zentrierte sein Kind — ein Video mit `h-full`
+           wurde damit zwar hoch, aber die Zelle blieb so gross wie ihr Inhalt, und rundherum
+           stand Schwarz. Gestreckt füllt das Kind die Zelle, und erst dann greift der
+           `cover`-Zuschnitt im Video darin. */
+        /**
+           * `100dvh` STATT `inset-0` (Owner 02.09.2026, iPhone 14: „ich sehe jetzt weder die
+           * Icons noch die Schrift").
+           *
+           * `fixed inset-0` misst am LAYOUT-Viewport, und der reicht bei iOS Safari hinter
+           * die Adressleiste oben und die Werkzeugleiste unten. Alles, was am Rand sitzt —
+           * die drei Scheiben oben, der Abspann unten —, lag damit hinter diesen Leisten.
+           * `dvh` ist genau dafür gemacht: die Höhe, die WIRKLICH zu sehen ist, auch während
+           * die Leisten ein- und ausfahren.
+           */
+        /* OBEN ANGESETZT, NICHT MITTIG (Owner 02.09.2026: „einen schwarzen Rand habe ich immer
+             noch, das Video müsste oben anfangen"). `place-items-center` teilte den Rest, der
+             beim Einpassen übrigbleibt, gleichmässig auf oben und unten — zwei Bänder statt
+             einem. Oben angesetzt gibt es nur noch eines, und es liegt dort, wo ohnehin die
+             Werkzeugleiste des Telefons sitzt. `justify-items-center` hält das Video
+             waagerecht in der Mitte. */
+        ? "lb-phone-col fixed inset-x-0 top-0 h-[100dvh] z-[90] grid items-start justify-items-center overflow-hidden bg-black/95"
         : "relative overflow-hidden rounded-[14px]"}>
       {/* IMMER stumm — die Tonspur des Videos wird nie gebraucht (siehe lib/musik.ts): Sie ist
           acht Sekunden lang und saesse bei jeder Schleife wieder auf dem ersten Takt.
@@ -396,11 +527,31 @@ export default function EinladungAnsicht({
         aria-label={(gross ? kleinText : grossText) || (gross ? "Exit fullscreen" : "Fullscreen")}
         onClick={() => setGross(g => !g)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setGross(g => !g); } }}
-        /* GANZ HINEIN, NICHTS ABGESCHNITTEN (15.08.2026): `h-full w-auto` zwang die volle
-           Fensterhoehe auf und schnitt bei jedem Verhaeltnis ab, das nicht passte — beim
-           Tanz standen ihre Beine ausserhalb des Bildes. `max-h-full max-w-full` laesst das
-           Video die kleinere der beiden Grenzen nehmen, wie in der Galerie. */
-        className={`cursor-pointer ${gross ? "max-h-full max-w-full" : `${verhaeltnis} w-full`}`}>
+        /**
+         * GANZ SICHTBAR, MIT RÄNDERN — und das ist eine ABWÄGUNG, keine Nachlässigkeit
+         * (Owner 02.09.2026, in zwei Schritten: erst „das ist noch nicht full auf dem
+         * Handy", nach der Umstellung auf Füllen dann „das Video ist mega abgeschnitten").
+         *
+         * Beides zugleich geht nicht. Das Video ist 2:3 (0,67), ein iPhone 14 misst 0,46 —
+         * wer die Fläche FÜLLT, verliert 31 % der Breite, und bei einem Porträt sind das die
+         * Schultern und der halbe Kontext. Wer nichts abschneidet, bekommt oben und unten
+         * schwarze Bänder.
+         *
+         * Der Beschnitt ist der teurere Fehler: Die Bänder sieht man und versteht sie, das
+         * fehlende Drittel merkt niemand — es ist einfach weg. Dieselbe Entscheidung war
+         * schon am 15.08.2026 getroffen worden, als `h-full w-auto` beim Tanz die Beine
+         * abschnitt.
+         *
+         * Was die Bänder erträglich macht, steht drumherum: `100dvh` und die
+         * `safe-area`-Abstände sorgen dafür, dass Symbole und Abspann nicht mehr hinter den
+         * Leisten des Telefons liegen — genau daran lag es, dass das Bild vorher „nicht voll"
+         * wirkte.
+         */
+        /* `relative`: Die drei Scheiben und der Abspann liegen seit dem 02.09.2026 IN
+           diesem Element (Owner: „die Icons sind immer noch so ausserhalb"). Vorher hingen
+           sie am Rahmen — im Vollbild ist der der ganze Bildschirm, das Video aber kleiner
+           und zentriert, also landeten sie in den schwarzen Bändern daneben. */
+        className={`relative cursor-pointer ${gross ? "max-h-full max-w-full" : `${verhaeltnis} w-full`}`}>
         {/**
           * ZWEI TIPPS, ZWEI DINGE (Owner 07.08.2026: „klick auf video play startet das video.
           * Klick wieder auf video, öffnet das video groß").
@@ -434,18 +585,116 @@ export default function EinladungAnsicht({
           <SchleifenVideo src={videoUrl} poster={poster} autostart={false}
             className={ausrichtung === "oben" ? "object-top" : ""}
             start={originalton ? laeuft : undefined}
-            schleife={schleife} stumm={originalton ? !ton : true}
+            /**
+             * IM VOLLBILD LÄUFT ES IN SCHLEIFE (Owner 02.09.2026: „muss in Loop laufen").
+             * Klein ist Stehenbleiben richtig — die Karte gehört zu einer Seite, auf der man
+             * weiterliest. Gross ist das Video die ganze Seite: Dort ist ein Standbild nach
+             * fünf Sekunden schlicht ein Ende, und der Wecker (`wiederholenNach`) liesse
+             * zehn Sekunden lang nichts geschehen.
+             */
+            schleife={gross ? true : schleife} stumm={originalton ? !ton : true}
             spielerRef={originalton ? videoRef : undefined} />
         ) : (
           <img src={poster} alt=""
             className={`h-full w-full object-cover ${ausrichtung === "oben" ? "object-top" : ""}`} />
         )}
-      </div>
-      {/* DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht. Er liegt ueber der
-          ganzen Flaeche: Wer auf ein stehendes Video tippt, meint immer „ab jetzt". */}
+        {/* Sie liegt IN der Bildfläche, also auch im Vollbild — siehe `ueberlagerung` oben.
+            Als Funktion bekommt sie den Zustand und den Weg heraus: Ein Knopf, der auf etwas
+            UNTER dem Vollbild zeigt, muss es zuerst schliessen können.
+            Im Vollbild rückt sie über die Werkzeugleiste des Telefons (`safe-area-inset-bottom`);
+            ohne das steht der Abspann dahinter. */}
+        {gross ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+            {typeof ueberlagerung === "function"
+              ? ueberlagerung({ gross, schliessen: () => setGross(false) })
+              : ueberlagerung}
+          </div>
+        ) : null}
+        {!gross && (typeof ueberlagerung === "function"
+          ? ueberlagerung({ gross, schliessen: () => setGross(false) })
+          : ueberlagerung)}
+      {/**
+       * KEIN VERGRÖSSERN-SYMBOL (Owner 02.09.2026: „Icon Vergrössern und Verkleinern
+       * funktionieren nicht, die kann man auch raus machen, per Klick geht das").
+       *
+       * ZWEITER ANLAUF, ZWEITES MAL DASSELBE ERGEBNIS. Am 05.08.2026 war es schon einmal
+       * draussen („das Video selbst ist der Knopf"), am 02.09. kam es zurück, weil die
+       * Symbolspalte unvollständig wirkte — und am selben Abend flog es wieder heraus, als es
+       * INS Video wanderte: Dort blubbert sein Klick zum Umschalter der Fläche durch, gross
+       * wird an- und sofort wieder ausgeschaltet, und der Knopf tut scheinbar nichts.
+       *
+       * Reparabel wäre das (`stopPropagation`, wie beim Mail-Knopf im Armee-Trichter). Der
+       * Owner hat trotzdem richtig entschieden: Ein Knopf, der genau das tut, was ein Tipp
+       * auf dieselbe Fläche ohnehin tut, ist keine Bedienung, sondern ein zweites Ziel.
+       *
+       * Übrig bleiben zwei Zeichen in der Spalte: Teilen (top-3) und Ton (top-[60px]).
+       */}
+
+      {/* TEILEN — jetzt der ERSTE in der Spalte (das Vergrössern-Symbol ist weg, siehe oben);
+          der Ton rueckt auf `top-[60px]` nach. `top-[60px]` ist `top-3` plus die Knopfhöhe plus
+          ein Fingerbreit Abstand; zwei Knöpfe, die sich berühren, trifft man am Handy nicht
+          auseinander. */}
+      {/* Die 30 % sitzen an der Hülle, nicht am Knopf darin: So gilt dieselbe Durchsicht für
+          jeden Teilen-Knopf, den ein Aufrufer hereinreicht — den runden `TeilenKnopf` genauso
+          wie den eigenen Send-Knopf des Kuss-Trichters. */}
+      {/* DIESELBEN PLÄTZE, GROSS WIE KLEIN (Owner 02.09.2026: „weiss nicht, warum die Icons und
+          die Schrift so auseinander stehen").
+          Im Vollbild standen sie eine Stufe tiefer — ein Rest aus der Zeit, als dort oben ein
+          Kreuz zum Schliessen sass und die drei darunter ausweichen mussten. Seit das
+          Vergrössern-Symbol zurück ist (02.09.2026) und sich selbst umdreht, gibt es das
+          Kreuz nicht mehr; die Lücke blieb und riss die Spalte auseinander. Jetzt gilt der
+          Skill `card` in beiden Zuständen: 12 px, 60 px, 108 px. */}
+      {teilen && (
+        <div className="absolute right-3 top-3 z-30 opacity-70"
+          style={gross ? { top: "calc(env(safe-area-inset-top, 0px) + 12px)" } : undefined}>{teilen}</div>
+      )}
+
+      {/* DER ZEITBALKEN — nur beim Originalton, nur solange eine Dauer bekannt ist. Reine
+          Anzeige (kein Scrubber/Ziehen) — das reicht für „wie weit ist es". */}
+      {originalton && dauer > 0 && (
+        <div className="absolute inset-x-0 bottom-0 z-30 h-[3px] bg-white/20">
+          <div className="h-full bg-white/80" style={{ width: `${Math.min(100, (zeit / dauer) * 100)}%` }} />
+        </div>
+      )}
+
+      {/* DIE TON-SCHEIBE STEHT IMMER (Owner 07.08.2026, zur Muster-Karte: „hier fehlt auch
+          sound icon") — vorher erschien sie beim Originalton erst, wenn das Video lief, und
+          eine pausierte Karte zeigte zwei statt drei Scheiben (Skill `card`: immer alle,
+          immer am selben Platz). Der Schalter wirkt, sobald das Video läuft. */}
+      {videoUrl && originalton
+        ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
+            platz={`absolute right-3 z-30 ${gross ? "top-[calc(env(safe-area-inset-top,0px)+60px)]" : "top-[60px]"}`} />
+        : musik && (
+          <>
+            {/* `preload="none"`: Ein Stueck von zweieinhalb Minuten sind ein paar Megabyte. Wer
+                nie auf den Lautsprecher tippt — und das sind die meisten — soll sie nicht
+                herunterladen. Geladen wird beim ersten Tipp. */}
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio ref={audioRef} src={musik} loop preload="none" />
+            <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
+            platz={`absolute right-3 z-30 ${gross ? "top-[calc(env(safe-area-inset-top,0px)+60px)]" : "top-[60px]"}`} />
+          </>
+        )}
+      {/**
+        * DER ABSPIELKNOPF — nur beim Originalton, nur solange es steht.
+        *
+        * ER SITZT IN DER VIDEOFLÄCHE, NICHT IM FENSTERRAHMEN (Owner 04.09.2026, am Vollbild:
+        * „der ist nicht mittig"). Vorher stand er eine Ebene weiter aussen, als Kind der
+        * äusseren Hülle. Klein war das dasselbe Rechteck und fiel nie auf; im Vollbild ist
+        * die äussere Hülle aber der GANZE Bildschirm (`h-[100dvh]`, oben angesetzt), während
+        * das Video nur dessen oberen Teil füllt. `top-1/2` meinte damit die Mitte des
+        * FENSTERS, und die liegt bei einem 3:4-Video auf einem hohen Telefon deutlich unter
+        * der Bildmitte — die Scheibe hing im unteren Drittel. Jetzt ist sie ein Kind der
+        * Videofläche und damit in beiden Zuständen genau deren Mitte.
+        *
+        * `stopPropagation`, weil diese Fläche zugleich der Umschalter fürs Vollbild ist —
+        * dieselbe Regel wie beim Ton-Knopf daneben.
+        */}
       {videoUrl && originalton && !laeuft && (
         <button type="button" aria-label={tonText || "Play"}
-          onClick={() => {
+          onClick={e => {
+            e.stopPropagation();
             /* EIN TIPP, BEIDE TORE (07.08.2026, Owner: „warum der playbutton nict
                funktioniert?"): Vor dem Tipp ist unten GAR KEIN Spieler eingehängt
                (`autostart={false}` lädt keine Bytes) — der alte Griff zum `videoRef` fand
@@ -517,6 +766,16 @@ export default function EinladungAnsicht({
            * unsichtbar und mal schmutzig, Weiss trägt immer. Die Fläche zum Tippen bleibt mit
            * 48 px grösser als die Scheibe, sonst trifft man sie am Handy nicht.
            */
+          /**
+           * MITTIG — UND ZWAR ENDGÜLTIG (Owner 04.09.2026: erst „playbutton nach oben", nach
+           * dem Versuch mit 38 % dann „der playknopf ist nicht mittig").
+           *
+           * Der Anlass für den Versuch war, dass die Scheibe auf der Endkarte des Spots den
+           * QR-Code verdeckte. Das ist an der richtigen Stelle behoben — der QR sitzt jetzt
+           * unterhalb der Bildmitte (`captions/make_cta.py`, `QR_TOP_MIN`), nicht die
+           * Scheibe woanders. Eine ausser der Mitte stehende Play-Scheibe sieht auf JEDER
+           * Karte des Hauses schief aus; das Problem gehörte ins Video, nicht ins Bedienteil.
+           */
           className="absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 grid h-12 w-12 place-items-center transition active:scale-95">
           <span data-aufmedien="1" className="grid h-10 w-10 place-items-center rounded-full"
             style={{
@@ -534,56 +793,7 @@ export default function EinladungAnsicht({
           </span>
         </button>
       )}
-      {/* DAS VERGRÖSSERN-SYMBOL IST WEG (Owner 05.08.2026: „Icon Vergrössern können wir dann
-          entfernen") — das Video selbst ist der Knopf, siehe oben. Übrig bleiben zwei in der
-          Spalte: Teilen, dann Ton (Reihenfolge und Plätze wie im Skill `card`).
-          IM VOLLBILD BLEIBT EIN SICHTBARER WEG ZURÜCK: ein Kreuz oben rechts. Ohne das müsste
-          man raten, dass ein Tipp aufs Bild wieder schliesst — und wer nicht rät, sitzt fest. */}
-      {gross && (
-        <button type="button" onClick={() => setGross(false)}
-          aria-label={kleinText || "Exit fullscreen"}
-          style={{ background: "#fff", color: "#1a160f", boxShadow: "0 2px 10px rgba(0,0,0,0.35)", opacity: 0.85 }}
-          className="absolute right-3 top-3 z-30 grid h-10 w-10 place-items-center rounded-full transition active:scale-90">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" aria-hidden className="h-5 w-5"><path d="M6 6l12 12M18 6L6 18" /></svg>
-        </button>
-      )}
-
-      {/* TEILEN — jetzt der ERSTE in der Spalte (das Vergrössern-Symbol ist weg, siehe oben);
-          der Ton rueckt auf `top-[60px]` nach. `top-[60px]` ist `top-3` plus die Knopfhöhe plus
-          ein Fingerbreit Abstand; zwei Knöpfe, die sich berühren, trifft man am Handy nicht
-          auseinander. */}
-      {/* Die 30 % sitzen an der Hülle, nicht am Knopf darin: So gilt dieselbe Durchsicht für
-          jeden Teilen-Knopf, den ein Aufrufer hereinreicht — den runden `TeilenKnopf` genauso
-          wie den eigenen Send-Knopf des Kuss-Trichters. */}
-      {teilen && <div className={`absolute right-3 z-30 opacity-70 ${gross ? "top-[60px]" : "top-3"}`}>{teilen}</div>}
-
-      {/* DER ZEITBALKEN — nur beim Originalton, nur solange eine Dauer bekannt ist. Reine
-          Anzeige (kein Scrubber/Ziehen) — das reicht für „wie weit ist es". */}
-      {originalton && dauer > 0 && (
-        <div className="absolute inset-x-0 bottom-0 z-30 h-[3px] bg-white/20">
-          <div className="h-full bg-white/80" style={{ width: `${Math.min(100, (zeit / dauer) * 100)}%` }} />
-        </div>
-      )}
-
-      {/* DIE TON-SCHEIBE STEHT IMMER (Owner 07.08.2026, zur Muster-Karte: „hier fehlt auch
-          sound icon") — vorher erschien sie beim Originalton erst, wenn das Video lief, und
-          eine pausierte Karte zeigte zwei statt drei Scheiben (Skill `card`: immer alle,
-          immer am selben Platz). Der Schalter wirkt, sobald das Video läuft. */}
-      {videoUrl && originalton
-        ? <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
-            platz={`absolute right-3 z-30 ${gross ? "top-[108px]" : "top-[60px]"}`} />
-        : musik && (
-          <>
-            {/* `preload="none"`: Ein Stueck von zweieinhalb Minuten sind ein paar Megabyte. Wer
-                nie auf den Lautsprecher tippt — und das sind die meisten — soll sie nicht
-                herunterladen. Geladen wird beim ersten Tipp. */}
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <audio ref={audioRef} src={musik} loop preload="none" />
-            <TonKnopf an={ton} label={tonText} labelAus={tonAusText} onClick={umschalten}
-            platz={`absolute right-3 z-30 ${gross ? "top-[108px]" : "top-[60px]"}`} />
-          </>
-        )}
+      </div>
     </div>
   );
 }

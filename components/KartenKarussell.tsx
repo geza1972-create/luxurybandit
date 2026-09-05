@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * MEHRERE VIDEOS IN EINER KARTE — zum Wischen.
@@ -25,7 +26,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * Jede Folie ist eine vollständige `EinladungAnsicht` mit ihren drei Symbolen (Skill `card`):
  * Was man sieht, kann man vergrössern, teilen und hören — auch das dritte Video.
  */
-export default function KartenKarussell({ folien, onAktiv }: {
+export default function KartenKarussell({ folien, onAktiv, pfeile = false }: {
   /** Eine `EinladungAnsicht` je Video. Eine einzelne Folie kommt ohne Punkte aus. */
   folien: ReactNode[];
   /**
@@ -35,6 +36,19 @@ export default function KartenKarussell({ folien, onAktiv }: {
    * vorderen Folie steht unter den Punkten — er muss also wissen, welche gerade vorn ist.
    */
   onAktiv?: (i: number) => void;
+  /**
+   * VOR UND ZURÜCK ALS KNÖPFE (Owner 02.09.2026: „mit vor und zurück").
+   *
+   * Die Punkte sagen, DASS es weitergeht — sie sind aber kein Bedienelement für den
+   * Rechner: Wischen gibt es dort nicht, und einen 8-Pixel-Punkt trifft man mit der Maus
+   * nur mit Absicht. Auf einer Landingpage, deren ganzer Zweck ist, dass jemand alle
+   * Vorlagen SIEHT, ist das der Unterschied zwischen fünf gezeigten und einer.
+   *
+   * Vorgabe aus, damit kein bestehendes Karussell (Feed, Themenseiten) ungefragt zwei
+   * Scheiben dazubekommt; `LandingKarte` schaltet sie ein, sobald es mehr als eine Folie
+   * gibt — dort ist es immer richtig.
+   */
+  pfeile?: boolean;
 }) {
   const bahn = useRef<HTMLDivElement>(null);
   const [aktiv, setAktiv] = useState(0);
@@ -86,6 +100,28 @@ export default function KartenKarussell({ folien, onAktiv }: {
       const el = bahn.current;
       if (!el) return;
       /**
+       * WER ZUSIEHT, DEM NIMMT MAN DIE FOLIE NICHT WEG (Owner 04.09.2026: „der werbespot
+       * steht schon wieder still" · „in der full version").
+       *
+       * GEMESSEN, nicht vermutet: Der Spot lief im Vollbild, und mitten im Satz stand er
+       * pausiert bei 3,2 s. Der Grund lag hier: Der Takt schaltet alle 7 Sekunden eine Folie
+       * weiter, und der Effekt darunter pausiert dabei die Spieler ALLER anderen Folien —
+       * auch den, der gerade bildschirmfüllend läuft. Der Zuschauer sah ein eingefrorenes
+       * Bild, während unter dem Vollbild unbemerkt weitergeblättert wurde.
+       *
+       * Es traf auch die kleine Karte: Der Spot dauert 12,5 s, der Takt 7 s — er war nie zu
+       * Ende zu sehen, ohne dass jemand von Hand zurückwischte.
+       *
+       * Zwei Riegel, beide „solange jemand zusieht":
+       *   · ein Vollbild ist offen (`data-vollbild`, gesetzt in `EinladungAnsicht`)
+       *   · irgendein Spieler dieser Bahn läuft gerade wirklich
+       * `selbstLaeuft` bleibt daneben bestehen — das ist der Riegel fürs HÄNDISCHE Wischen.
+       */
+      if (typeof document !== "undefined" && document.querySelector('[data-vollbild="1"]')) return;
+      const siehtJemandZu = Array.from(el.querySelectorAll("video"))
+        .some(v => !v.paused && !v.ended && v.currentTime > 0);
+      if (siehtJemandZu) return;
+      /**
        * ES PENDELT, ES SPULT NICHT ZURUECK (Owner 05.08.2026: „der Slider rollt zurück brutal
        * am Ende. Soll weiter laufen").
        *
@@ -122,9 +158,18 @@ export default function KartenKarussell({ folien, onAktiv }: {
   useEffect(() => {
     const el = bahn.current;
     if (!el) return;
+    /* AUSSER DEM, DER GERADE GROSS LÄUFT (Owner 04.09.2026: „der werbespot steht schon wieder
+       still" · „in der full version"). Die vergrösserte Folie liegt als `fixed`-Ebene über
+       der Seite, steht in der Bahn aber weiterhin an ihrem Platz — ein Folienwechsel im
+       Hintergrund hielt deshalb genau den Spieler an, den der Zuschauer bildschirmfüllend
+       ansah. Alle ÜBRIGEN werden weiter pausiert; sonst hörte man sie doppelt. */
+    const vollbild = typeof document !== "undefined" ? document.querySelector('[data-vollbild="1"]') : null;
     Array.from(el.children).forEach((kind, i) => {
       if (i === aktiv) return;
-      kind.querySelectorAll("video").forEach(v => { if (!v.paused) v.pause(); });
+      kind.querySelectorAll("video").forEach(v => {
+        if (vollbild?.contains(v)) return;
+        if (!v.paused) v.pause();
+      });
     });
   }, [aktiv]);
 
@@ -177,6 +222,10 @@ export default function KartenKarussell({ folien, onAktiv }: {
         ))}
       </div>
 
+      {/* VOR UND ZURÜCK — Haus-`Scheibe`, senkrecht mittig AM VIDEO, nicht an der Karte:
+          `top-0 h-full` würde die Punktreihe mitzählen und die Pfeile nach unten ziehen.
+          Die Bahn ist so hoch wie die vordere Folie, also nimmt der Rahmen genau sie.
+          An den Enden verschwindet der jeweilige Pfeil, statt wirkungslos dazustehen. */}
       {/* DIE PUNKTE STEHEN UNTER DEM VIDEO, NICHT DARAUF (Owner 05.08.2026, mit Bild: „mach
           die Punkte drunter, nicht auf dem Button").
           Sie lagen unten mittig IM Bild — genau dort, wo auf der Themenseite der Kaufknopf
@@ -186,13 +235,41 @@ export default function KartenKarussell({ folien, onAktiv }: {
           Pixel und dafür gibt es keine Kollision mehr, in keiner Karte.
           Die Farbe kommt jetzt aus der Umgebung (`currentColor`) statt fest weiss: Unter dem
           Video liegt Karten-Papier, kein Bild — weisse Punkte wären dort unsichtbar. */}
-      <div className="flex justify-center gap-1.5 pt-2">
-        {folien.map((_, i) => (
-          <button key={i} type="button" onClick={() => hin(i)}
-            aria-label={`${i + 1}/${folien.length}`}
-            style={{ background: "currentColor", opacity: i === aktiv ? 0.9 : 0.3 }}
-            className={`h-2 rounded-full transition-all ${i === aktiv ? "w-5" : "w-2"}`} />
-        ))}
+      {/* VOR UND ZURÜCK GEHÖREN ZU DEN PUNKTEN, NICHT AUFS BILD (Owner 02.09.2026: „mit vor
+          und zurück" — und gleich darauf, als sie als weisse Scheiben am Video standen: „was
+          ist das schon wieder für ein neues Element").
+          Auf dem Medium ist die weisse Scheibe VERGEBEN: Vergrössern, Teilen, Ton, in einer
+          Spalte rechts (Skill `card`). Ein vierter weisser Kreis daneben ist kein vierter
+          Knopf derselben Familie, sondern ein fremdes Element — und er verdeckt genau das,
+          was man ansehen soll. Neben den Punkten ist die Navigation ohnehin zu Hause: Sie
+          sagen, WO man ist; die Pfeile sagen, wie man weiterkommt. Kein neues Aussehen, kein
+          Pixel auf dem Bild.
+          SIE LAUFEN UM (Owner: „und Rücklauf der Videos"): von der ersten zurück zur letzten
+          und von der letzten weiter zur ersten — sonst steht man an den Enden vor einem
+          Knopf, der nichts tut. */}
+      <div className="flex items-center justify-center gap-3 pt-2">
+        <button type="button" aria-label={`${aktiv === 0 ? folien.length : aktiv}/${folien.length}`}
+          onClick={() => hin(aktiv === 0 ? folien.length - 1 : aktiv - 1)}
+          style={{ color: "currentColor" }}
+          className="grid h-7 w-7 place-items-center rounded-full opacity-40 transition active:scale-90 hover:opacity-80">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex justify-center gap-1.5">
+          {folien.map((_, i) => (
+            <button key={i} type="button" onClick={() => hin(i)}
+              aria-label={`${i + 1}/${folien.length}`}
+              style={{ background: "currentColor", opacity: i === aktiv ? 0.9 : 0.3 }}
+              className={`h-2 rounded-full transition-all ${i === aktiv ? "w-5" : "w-2"}`} />
+          ))}
+        </div>
+
+        <button type="button" aria-label={`${aktiv === folien.length - 1 ? 1 : aktiv + 2}/${folien.length}`}
+          onClick={() => hin(aktiv === folien.length - 1 ? 0 : aktiv + 1)}
+          style={{ color: "currentColor" }}
+          className="grid h-7 w-7 place-items-center rounded-full opacity-40 transition active:scale-90 hover:opacity-80">
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

@@ -50,7 +50,25 @@ export default function TonKnopf({
   className?: string;
 }) {
   return (
-    <button type="button" onClick={onClick} aria-label={an ? (labelAus || "Sound off") : (label || "Sound on")}
+    <button type="button"
+      onClick={e => {
+        /* NUR DER TON, SONST NICHTS (Owner 04.09.2026: „wenn ich auf den sound klicke dann
+           öffnet sich full und dann bleibt das video stehen" · „jetzt fehlen die anderen
+           slides").
+           Der Knopf sitzt in jeder Karte INNERHALB der Fläche, die per Tipp das Vollbild
+           öffnet (`EinladungAnsicht.tsx`, `role="button" onClick={() => setGross(...)}`) —
+           ohne diese Zeile blubbert sein Klick dorthin durch und schaltet ungewollt
+           zusätzlich das Vollbild ein, das dann als starres Standbild stehen bleibt und in
+           einem Karussell die Punkte/Pfeile der anderen Folien verdeckt. Genau das Muster,
+           das im Code des Vollbild-Ziels selbst schon als Fix genannt wird: „Reparabel wäre
+           das (`stopPropagation`, wie beim Mail-Knopf im Armee-Trichter)" — hier ist es,
+           anders als beim dort verworfenen Vergrössern-Symbol, auch nötig: Der Ton-Knopf tut
+           etwas ANDERES als ein Tipp auf die Fläche, ist also kein zweites Ziel für dieselbe
+           Geste. */
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label={an ? (labelAus || "Sound off") : (label || "Sound on")}
       data-tonknopf="1"
       /* WEISS UND GOLD, ÜBERALL. Die Farben stehen als `style`, nicht als Klasse: Auf der
          hellen Fassung (`lb-theme`) und in der Karte (`.lb-karte`) greifen Umfaerbe-Regeln,

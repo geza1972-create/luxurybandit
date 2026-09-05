@@ -816,6 +816,38 @@ Vermutungen. Beschlossen ausserdem: AGB-Zeile zur KI-Erstellung JA
    Firmen ziehen → Firmen-Produkt vor. Keiner zieht → für ~50 € erfahren
    statt für Wochen Bauzeit.
 
+## Das Schwesterprodukt: der Bewerbungsgenerator (`/themes/resume`)
+
+Am 25.08. abends gefunden: Das Werkzeug „Bewerbung für EINE Stellenanzeige" existierte
+bereits seit dem 26.08. als eigenes Tool — es stand nur nicht im Katalog. Statt ein
+zweites zu bauen, wurde es fertiggestellt.
+
+- **Ablauf**: Stellenanzeige (Link/Text) → E-Mail → Foto (optional) → Lebenslauf
+  (PDF/.docx) → ein KI-Lauf → PDF (Seite 1 Anschreiben im Brief-Look, ab Seite 2
+  zweispaltiger Lebenslauf) + ehrliche Match-Analyse. Gratis mit Muster-Wasserzeichen,
+  9,99 für die volle Optimierung ohne Wasserzeichen (`optimieren`, Admin-PIN umgeht die
+  Kasse zum Testen).
+- **Am 25.08. ergänzt**: Anzeige als ERSTES Feld (Owner) · Katalog-Kachel
+  „Bewerbungsgenerator / Individuell für eine Stellenanzeige" mit gezeichneter
+  Bewerbungsvorlage als Motiv (`public/Lebenslauf/stellen-kachel.svg`) · Lebenslauf und
+  Foto wieder entfernbar (X, Hausregel `upload-ui-rules`) · Vorlagen-Slider mit
+  Vollbild-Vorschau (`BildWahl blatt` + `BlattUeberlagerung`, derselbe Baustein wie im
+  David-Angebot; Lupe gehört an die GEWÄHLTE Vorlage, nie an die kleinen Kacheln).
+- **SPRACHREGEL (Owner: „die Bewerbung muss doch in der Sprache rauskommen wie die
+  Anzeige")**: Die ganze Mappe spricht die Sprache der ANZEIGE, nicht des Lebenslaufs.
+  `dokumentSprache` am Profil (ISO-Kürzel) steuert auch die festen PDF-Überschriften
+  (`PDF_WORTE` in lib/bewerbung-pdf.ts, 7 Sprachen). Eigennamen — Personen, Firmen, Orte,
+  Institutionen, Zeiträume — werden NIE übersetzt. Im `optimieren` wandern zusätzlich
+  Jobtitel, Ausbildungstitel und Sprachnamen mit; Ausbildung/Sprachen nur, wenn die KI
+  dieselbe Anzahl Stationen zurückgibt (sonst bliebe stillschweigend etwas weg).
+  **Falle, teuer gelernt**: Ein Feld, das nur in der Prompt-Anweisung steht, aber NICHT in
+  der abschliessenden „Antworte NUR als JSON: {…}"-Zeile, liefert das Modell nicht.
+
+**Verhältnis zur Bewerbungszentrale**: gleiche Maschine, andere Tiefe. Der Generator ist
+der schnelle Einmal-Kauf ohne Konto (PDF in der Hand); die Zentrale ist das Zuhause mit
+Video-Dossier, eigener URL je Bewerbung, Status/Views/Anfragen. Der Generator kann später
+die Eingangstür zur Zentrale werden.
+
 ## Bau-Reihenfolge und Stand
 
 Je Stufe fertig zeigen, Abnahme, dann die nächste (Hausregel).

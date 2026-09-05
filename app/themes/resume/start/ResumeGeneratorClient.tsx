@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, ImageUp, Download, Sparkles, RotateCcw } from "lucide-react";
-import { Eingabe, EingabeMehrzeilig, Knopf, Laden } from "@/components/CI";
+import { FileText, ImageUp, Download, Sparkles, RotateCcw, X, Maximize2 } from "lucide-react";
+import { Eingabe, EingabeMehrzeilig, Knopf, Laden, BildWahl, BlattUeberlagerung } from "@/components/CI";
+import { PDF_VORLAGEN, vorlagenBild } from "@/lib/pdf-vorlagen";
 import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 import { useKasseImFenster } from "@/components/KasseImFenster";
 import { logFunnelEvent } from "@/lib/track-funnel";
@@ -31,7 +32,7 @@ type Analyse = {
 
 type Entwurf = {
   genId: string; mail: string; cvPath: string; cvName: string;
-  anzeige: string; analyse: Analyse | null; anzeigeTitel: string; phase: string;
+  anzeige: string; analyse: Analyse | null; anzeigeTitel: string; phase: string; vorlage?: string;
 };
 
 const ABLAGE = "lb_resume_entwurf";
@@ -54,6 +55,9 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
   const [phase, setPhase] = useState<"eingabe" | "fertig" | "optimiert">("eingabe");
   const [analyse, setAnalyse] = useState<Analyse | null>(null);
   const [anzeigeTitel, setAnzeigeTitel] = useState("");
+  /* Die gewaehlte PDF-Vorlage — sie reist in den Erzeugen-Aufruf UND an die PDF-Adresse. */
+  const [vorlage, setVorlage] = useState(PDF_VORLAGEN[0].id);
+  const [vorlageGross, setVorlageGross] = useState(false);
   const cvRef = useRef<HTMLInputElement>(null);
   const fotoRef = useRef<HTMLInputElement>(null);
   const rueckkehrRef = useRef(false);
@@ -82,10 +86,10 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
   useEffect(() => {
     if (!genId) return;
     try {
-      const e: Entwurf = { genId, mail, cvPath, cvName, anzeige, analyse, anzeigeTitel, phase };
+      const e: Entwurf = { genId, mail, cvPath, cvName, anzeige, analyse, anzeigeTitel, phase, vorlage };
       sessionStorage.setItem(ABLAGE, JSON.stringify(e));
     } catch { /**/ }
-  }, [genId, mail, cvPath, cvName, anzeige, analyse, anzeigeTitel, phase]);
+  }, [genId, mail, cvPath, cvName, anzeige, analyse, anzeigeTitel, phase, vorlage]);
 
   /* DIE RÜCKKEHR VON STRIPE (?paid=1): Entwurf laden, Optimierung anstossen
      (Hausregel `aufladen-setzt-den-kauf-fort`). */
@@ -99,6 +103,7 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
     if (!e?.genId) return;
     setGenId(e.genId); setMail(e.mail); setCvPath(e.cvPath); setCvName(e.cvName);
     setAnzeige(e.anzeige); setAnalyse(e.analyse); setAnzeigeTitel(e.anzeigeTitel);
+    if (e.vorlage && PDF_VORLAGEN.some(v => v.id === e.vorlage)) setVorlage(e.vorlage);
     setPhase("fertig");
     void optimieren(e.genId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,6 +144,33 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
 
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.trim());
 
+  /**
+   * EIN ABBRUCH IST KEIN NETZFEHLER (Owner 05.09.2026, mit Bild: „Keine Verbindung — bitte
+   * noch einmal", während die Verbindung tadellos war).
+   *
+   * BELEGT IM VERCEL-PROTOKOLL: „Task timed out after 60 seconds", POST
+   * /api/resume-generator → 504. Hier stand `fetch(...).then(r => r.json())` — ohne Blick auf
+   * den Status. Ein 504 liefert eine Fehlerseite, `r.json()` scheitert daran, und im `catch`
+   * landete pauschal „Keine Verbindung". Der Kunde prüft daraufhin sein WLAN statt es einfach
+   * noch einmal zu versuchen, und wir suchen den Fehler an der falschen Stelle.
+   *
+   * Jetzt werden die drei Fälle getrennt: gar keine Antwort (`fetch` wirft) heisst wirklich
+   * kein Netz; 504/408 heisst „hat zu lange gedauert"; alles andere geht als Antwort weiter.
+   */
+  const rufen = async (nutzlast: Record<string, unknown>): Promise<{ daten?: Record<string, unknown>; fehler?: string }> => {
+    let r: Response;
+    try {
+      r = await fetch("/api/resume-generator", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nutzlast),
+      });
+    } catch { return { fehler: S.fehlerNetz }; }
+    if (r.status === 504 || r.status === 408) return { fehler: S.fehlerZuLang };
+    const daten = await r.json().catch(() => null);
+    if (!daten) return { fehler: r.ok ? S.fehlerNetz : S.fehlerZuLang };
+    return { daten: daten as Record<string, unknown> };
+  };
+
   const erzeugen = async () => {
     if (busy) return;
     /* SICHTBAR ABSAGEN, NIE STUMM (Hausregel). */
@@ -147,35 +179,27 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
     if (!anzeige.trim()) { setFehler(S.fehlerAnzeige); return; }
     setBusy(true); setBusyText(S.laufText); setFehler("");
     void logFunnelEvent("resume_generation_started", { theme: "resume" });
-    try {
-      const d = await fetch("/api/resume-generator", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schritt: "erzeugen", id: genId, device: geraeteKennung(),
-          email: mail.trim(), anzeige: anzeige.trim(), cvPath, cvName,
-          ...(foto ? { foto } : {}),
-        }),
-      }).then(r => r.json());
-      if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
-      setAnalyse(d.analyse ?? null);
-      setAnzeigeTitel(String(d.anzeigeTitel ?? ""));
-      setPhase("fertig");
-      void logFunnelEvent("resume_generated", { theme: "resume" });
-    } catch { setFehler(S.fehlerNetz); }
+    const { daten: d, fehler: netzFehler } = await rufen({
+      schritt: "erzeugen", id: genId, device: geraeteKennung(),
+      email: mail.trim(), anzeige: anzeige.trim(), cvPath, cvName, vorlage,
+      ...(foto ? { foto } : {}),
+    });
+    if (netzFehler || !d) { setFehler(netzFehler ?? S.fehlerNetz); setBusy(false); setBusyText(""); return; }
+    if (d.error) { setFehler(String(d.error)); setBusy(false); setBusyText(""); return; }
+    setAnalyse((d.analyse ?? null) as typeof analyse);
+    setAnzeigeTitel(String(d.anzeigeTitel ?? ""));
+    setPhase("fertig");
+    void logFunnelEvent("resume_generated", { theme: "resume" });
     setBusy(false); setBusyText("");
   };
 
   const optimieren = async (gid: string) => {
     setBusy(true); setBusyText(S.optimierungLaeuft); setFehler("");
-    try {
-      const d = await fetch("/api/resume-generator", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "optimieren", id: gid, device: geraeteKennung() }),
-      }).then(r => r.json());
-      if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
-      setPhase("optimiert");
-      void logFunnelEvent("resume_optimized", { theme: "resume" });
-    } catch { setFehler(S.fehlerNetz); }
+    const { daten: d, fehler: netzFehler } = await rufen({ schritt: "optimieren", id: gid, device: geraeteKennung() });
+    if (netzFehler || !d) { setFehler(netzFehler ?? S.fehlerNetz); setBusy(false); setBusyText(""); return; }
+    if (d.error) { setFehler(String(d.error)); setBusy(false); setBusyText(""); return; }
+    setPhase("optimiert");
+    void logFunnelEvent("resume_optimized", { theme: "resume" });
     setBusy(false); setBusyText("");
   };
 
@@ -228,7 +252,7 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
     try { sessionStorage.removeItem(ABLAGE); } catch { /**/ }
   };
 
-  const pdfUrl = genId ? `/api/bewerbung-pdf?id=${encodeURIComponent(genId)}&device=${encodeURIComponent(geraeteKennung())}` : "";
+  const pdfUrl = genId ? `/api/bewerbung-pdf?id=${encodeURIComponent(genId)}&device=${encodeURIComponent(geraeteKennung())}&vorlage=${encodeURIComponent(vorlage)}` : "";
   const kachel = (voll: boolean) =>
     `flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-3 py-5 text-center transition active:scale-[0.98] ${voll ? "border-[#f6cf51]/60 lb-goldhauch" : "border-white/25"}`;
 
@@ -237,25 +261,99 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
       {/* ── EINGABE ── */}
       {phase === "eingabe" && (
         <>
-          <Eingabe type="email" placeholder={S.mailPlatzhalter} value={mail} onChange={e => setMail(e.target.value)} />
-          <div className="grid grid-cols-[1fr_2fr] gap-2">
-            <button type="button" onClick={() => fotoRef.current?.click()} className={kachel(!!foto)}>
-              {foto
-                ? <img src={foto} alt="" className="h-16 w-12 rounded-lg object-cover" />
-                : <ImageUp className="h-6 w-6 text-[#f6cf51]" />}
-              <span className="text-[12px] font-black text-white/85">{S.fotoTitel}</span>
-              <span className="text-[10.5px] font-bold text-white/45">{S.fotoHinweis}</span>
-            </button>
-            <button type="button" onClick={() => cvRef.current?.click()} className={kachel(!!cvPath)}>
-              <FileText className="h-6 w-6 text-[#f6cf51]" />
-              <span className="text-[12px] font-black text-white/85">{cvName ? cvName.slice(0, 30) : S.cvTitel}</span>
-              <span className="text-[10.5px] font-bold text-white/45">{S.cvHinweis}</span>
-            </button>
-          </div>
+          {/* DIE STELLENANZEIGE STEHT VORN (Owner 25.08.2026: „Der Trichter fängt damit an,
+              dass man die Stellenanzeige — Link oder Text — eingeben muss. Dann der Rest
+              bleibt so.").
+
+              WARUM DAS MEHR IST ALS EINE UMSORTIERUNG: Das Werkzeug verkauft nicht „mach
+              mir einen Lebenslauf", sondern „mach mir die Bewerbung für DIESE Stelle". Die
+              erste Zeile eines Trichters sagt, worum es geht — stand dort die E-Mail, war
+              es ein Formular; steht dort die Anzeige, ist es das Versprechen der
+              Landingpage. E-Mail, Foto und Lebenslauf folgen unverändert darunter. */}
           <div>
             <p className="mb-1.5 text-[12px] font-black uppercase tracking-[0.08em] text-white/50">{S.anzeigeTitelLabel}</p>
             <EingabeMehrzeilig zeilen={5} placeholder={S.anzeigePlatzhalter} value={anzeige} onChange={e => setAnzeige(e.target.value)} />
           </div>
+          <Eingabe type="email" placeholder={S.mailPlatzhalter} value={mail} onChange={e => setMail(e.target.value)} />
+          {/* JEDES HOCHGELADENE STÜCK LÄSST SICH WIEDER ENTFERNEN (Owner 25.08.2026: „will
+              den Lebenslauf löschen können und neu hochladen können"; Dauerregel
+              `upload-ui-rules`). Vorher zeigte die Kachel nur den Dateinamen — wer die
+              falsche Datei erwischt hatte, kam ohne Neuladen der Seite nicht mehr davon los.
+              EIN Tipp genügt hier (kein Zwei-Tipp-Rot wie beim Löschen fertiger Werke): Es
+              geht nichts verloren, das Feld wird nur wieder leer. */}
+          <div className="grid grid-cols-[1fr_2fr] gap-2">
+            <div className="relative">
+              <button type="button" onClick={() => fotoRef.current?.click()} className={`w-full ${kachel(!!foto)}`}>
+                {foto
+                  ? <img src={foto} alt="" className="h-16 w-12 rounded-lg object-cover" />
+                  : <ImageUp className="h-6 w-6 text-[#f6cf51]" />}
+                <span className="text-[12px] font-black text-white/85">{S.fotoTitel}</span>
+                <span className="text-[10.5px] font-bold text-white/45">{S.fotoHinweis}</span>
+              </button>
+              {foto && (
+                <button type="button" aria-label={S.entfernen}
+                  onClick={() => { setFoto(""); if (fotoRef.current) fotoRef.current.value = ""; }}
+                  className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full border border-white/25 bg-black/70 text-white/70 transition hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <button type="button" onClick={() => cvRef.current?.click()} className={`w-full ${kachel(!!cvPath)}`}>
+                <FileText className="h-6 w-6 text-[#f6cf51]" />
+                <span className="text-[12px] font-black text-white/85">{cvName ? cvName.slice(0, 30) : S.cvTitel}</span>
+                <span className="text-[10.5px] font-bold text-white/45">{cvPath ? S.entfernenHinweis : S.cvHinweis}</span>
+              </button>
+              {cvPath && (
+                <button type="button" aria-label={S.entfernen}
+                  onClick={() => { setCvPath(""); setCvName(""); if (cvRef.current) cvRef.current.value = ""; }}
+                  className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full border border-white/25 bg-black/70 text-white/70 transition hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          {/* DIE VORLAGEN-GALERIE (Owner 25.08.2026: „mach auf dieser Seite ein Slider mit
+              der Template-Auswahl. Bitte alle Funktionen übernehmen wie Vorschau full").
+
+              DERSELBE BAUSTEIN WIE IM DAVID-ANGEBOT, nicht ein zweiter: `BildWahl` mit
+              `blatt` (A4-Verhältnis — ein Layout, das man nur zu fünf Sechsteln sieht,
+              wählt man blind) und die `BlattUeberlagerung` als Vollbild-Vorschau. Die
+              Ring-Regel (Auswahl wechselt nur die FARBE, nie die Geometrie) steckt dort
+              schon drin; nachgebaut wäre sie beim ersten Antippen verletzt (Dauerregel
+              12.08.2026: „jede Tunnel-Auswahl = BildWahl-Slider").
+
+              Die Wahl reist bis ins PDF: `vorlage` geht an /api/resume-generator und hängt
+              zusätzlich an der PDF-Adresse, damit die Vorschau sofort die gewählte Vorlage
+              zeigt — auch ohne neuen KI-Lauf. */}
+          <div>
+            {/* Kopfzeile: Titel links, die Lupe rechts — sie vergrössert die GEWÄHLTE
+                Vorlage. An den kleinen Wähler-Kacheln sitzt bewusst keine (Hausregel aus
+                `BildWahl`: „Die muss man nicht vergrössern können. Man kann wenn
+                ausgewählt vergrössern") — auf 58 px wäre die Lupe grösser als das halbe
+                Blatt. */}
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-white/50">{S.vorlagenTitel}</p>
+              <button type="button" onClick={() => setVorlageGross(true)}
+                className="flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1 text-[11px] font-black text-white/70 transition hover:text-white">
+                <Maximize2 className="h-3.5 w-3.5" />{S.vorlagenAnsehen}
+              </button>
+            </div>
+            <BildWahl
+              blatt
+              ansehenLabel={S.vorlagenAnsehen}
+              bilder={PDF_VORLAGEN.map(v => ({ id: v.id, name: v.name, bild: vorlagenBild(v.id) }))}
+              wert={vorlage}
+              waehle={setVorlage}
+            />
+          </div>
+          {vorlageGross && (
+            <BlattUeberlagerung
+              bildUrl={vorlagenBild(vorlage)}
+              beschriftung={PDF_VORLAGEN.find(v => v.id === vorlage)?.name}
+              schliessenLabel={S.schliessen}
+              zu={() => setVorlageGross(false)} />
+          )}
           {fehler && <p className="text-[13px] font-bold text-red-400">{fehler}</p>}
           {busy
             ? <Laden art="flaeche" text={busyText || S.laufText} />
@@ -274,7 +372,19 @@ export default function ResumeGeneratorClient({ S, lang, preisText }: {
             {anzeigeTitel && <p className="mt-1 text-[15px] font-black text-white/90">{anzeigeTitel}</p>}
             <div className="mt-3">
               {busy
-                ? <Laden art="flaeche" text={busyText || S.laufText} />
+                ? (
+                  <>
+                    <Laden art="flaeche" text={busyText || S.laufText} />
+                    {/* WAS ER GERADE TUT, IN EINER ZEILE (Owner 05.09.2026: „Muss aber stehen
+                        was er macht"). Nur beim bezahlten Lauf — dort ist die Wartezeit lang
+                        genug, dass ein blosser Kreisel wie ein Fehler wirkt. */}
+                    {busyText === S.optimierungLaeuft && S.optimierungSchritte && (
+                      <p className="mt-2 text-center text-[11px] font-medium leading-snug text-white/45">
+                        {S.optimierungSchritte}
+                      </p>
+                    )}
+                  </>
+                )
                 : (
                   <a href={pdfUrl} download
                     onClick={() => void logFunnelEvent("resume_pdf_downloaded", { theme: "resume", optimiert: String(phase === "optimiert") })}

@@ -9,10 +9,22 @@ import { NextResponse, type NextRequest } from "next/server";
 // but the /admin/… twin was a bare re-export with no gate at all, so the same editor
 // was reachable by anyone who knew the URL. The in-app-browser problem does not apply
 // here: this is an owner surface opened from the admin menu in a normal browser.
-const PROTECTED_PREFIXES = ["/tools", "/admin/tools"];
+//
+// /demo WAR KURZ HINTER DERSELBEN MAUER (Owner 04.09.2026 zuerst: „ich habe gesehen, dass
+// ein Freund von mir das gleich an die Konkurrenz geschickt hat …", dann wieder zurück:
+// „mach das Passwortschutz raus bei der Recruitingseite").
+//
+// Die Sperre stand kurz mit einem eigenen Kennwort (`DEMO_ACCESS_PASSWORD`) — jetzt wieder
+// draussen. Der nicht erratbare Schlüssel im Pfad (`DEMO_SCHLUESSEL` in lib/demo-armee.ts)
+// bleibt die einzige Hürde, wie vor dem 04.09.2026.
+type Sperre = { praefix: string; passwortEnv: string; keks: string };
+const SPERREN: Sperre[] = [
+  { praefix: "/tools", passwortEnv: "TRY_THIS_LOOK_ADMIN_PIN", keks: "lb_tools_pin" },
+  { praefix: "/admin/tools", passwortEnv: "TRY_THIS_LOOK_ADMIN_PIN", keks: "lb_tools_pin" },
+];
 
-function requiresAuth(pathname: string) {
-  return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+function sperreFuer(pathname: string): Sperre | null {
+  return SPERREN.find((s) => pathname === s.praefix || pathname.startsWith(s.praefix + "/")) ?? null;
 }
 
 /**
@@ -34,19 +46,18 @@ function requiresAuth(pathname: string) {
  * antwortet dieser Zweig mit einer Umleitung auf dieselbe Seite OHNE `pin` und legt den
  * Nachweis in einen `HttpOnly`-Keks: Nach dem ersten Klick steht der PIN nirgends mehr.
  */
-const PIN_KEKS = "lb_tools_pin";
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Start page (/ → /stores?tab=community) is handled by redirects() in
   // next.config.mjs, which runs before middleware.
 
-  // ── Protect /admin and /tools with HTTP Basic Auth ─────────────────────────
-  if (requiresAuth(pathname)) {
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN;
+  // ── Protect /admin, /tools and /demo with HTTP Basic Auth ───────────────────
+  const sperre = sperreFuer(pathname);
+  if (sperre) {
+    const adminPin = process.env[sperre.passwortEnv];
 
-    // No PIN configured (local dev) → allow through
+    // No password configured (local dev) → allow through
     if (!adminPin) {
       return NextResponse.next();
     }
@@ -67,11 +78,11 @@ export function middleware(request: NextRequest) {
       const ziel = request.nextUrl.clone();
       ziel.searchParams.delete("pin");
       const antwort = NextResponse.redirect(ziel);
-      antwort.cookies.set(PIN_KEKS, adminPin, {
+      antwort.cookies.set(sperre.keks, adminPin, {
         httpOnly: true,          // kein Zugriff aus JavaScript — auch nicht fuer fremde Skripte
         sameSite: "lax",
         secure: request.nextUrl.protocol === "https:",   // lokal laeuft es ueber http
-        path: "/",               // deckt /tools UND /admin/tools ab
+        path: "/",               // deckt den ganzen Präfix ab (/tools oder /admin/tools)
         maxAge: 60 * 60 * 24 * 30,   // 30 Tage, dann meldet er sich neu an
       });
       return antwort;
@@ -79,7 +90,7 @@ export function middleware(request: NextRequest) {
 
     const auth = request.headers.get("authorization") ?? "";
     // Der Keks aus einem frueheren `?pin=…` — der Weg, der auch im eingebauten Browser geht.
-    let authorised = request.cookies.get(PIN_KEKS)?.value === adminPin;
+    let authorised = request.cookies.get(sperre.keks)?.value === adminPin;
 
     if (!authorised && auth.startsWith("Basic ")) {
       try {

@@ -141,8 +141,22 @@ export function Lead({ children, className = "" }: { children: ReactNode; classN
 }
 
 /** Kleingedrucktes: Hinweise, Datenschutz, „nicht für Social Media". */
+/**
+ * 14,5 PX STATT 13 (Owner 02.09.2026: „allgemein ist zu klein. Habe dir schon mal im CI
+ * gesagt" — an der Technik-Rubrik der Recruiterseite, die vollständig aus `Fine` besteht).
+ *
+ * ES LAG AM BAUSTEIN, NICHT AN DER SEITE. Auf der Recruiterseite waren die einzelnen Stellen
+ * schon angehoben; die sieben Datenschutz-Absätze blieben trotzdem klein, weil sie `Fine`
+ * benutzen — und der stand seit jeher auf 13 px. Jede einzelne Seite mit einem `className`
+ * zu überschreiben hätte den Fehler siebzehnmal wiederholt statt einmal behoben.
+ *
+ * WAS „FINE" HEISST, HAT SICH VERSCHOBEN: Anfangs war es die Fussnote unter einem Knopf —
+ * zwei Zeilen, die niemand lesen MUSS. Inzwischen tragen ganze Rubriken diesen Baustein
+ * (Datenschutz, Technik, Konditionen), und das sind Texte, die jemand wirklich liest. 14,5 px
+ * ist der Kleintext-Grad des Hauses; darunter liegt nur noch das Versalien-Etikett.
+ */
 export function Fine({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`mt-2 text-[13px] font-bold leading-snug text-white/75 ${className}`}>{children}</p>;
+  return <p className={`mt-2 text-[14.5px] font-bold leading-snug text-white/75 ${className}`}>{children}</p>;
 }
 
 /** Label über einem Schritt im Funnel: „2 · YOUR PHOTO". */

@@ -27,7 +27,23 @@ import type { Lang } from "@/lib/lang";
  * Aktualisiert sich beim Fensterwechsel (`focus`): Wer im Kassen-Popup aufgeladen hat und
  * zurueckkommt, sieht den neuen Stand, ohne neu zu laden.
  */
-export default function GuthabenChip() {
+export default function GuthabenChip({ neuerTab = false }: {
+  /**
+   * DER SPRUNG VON EINER WHITE-LABEL-SEITE (Owner 02.09.2026, mit beiden Kopfzeilen
+   * nebeneinander: „wie richtig für ein White-Label? Der springt von einem Kopf zu dem
+   * anderen").
+   *
+   * Er hat recht: Wer auf „Assets" tippt, verlässt die Seite mit der Kundenmarke und landet
+   * unter „LUXURYBANDIT · THE AI-MEDIA CREATOR". Für den Owner ist die Galerie nur der
+   * Zwischenspeicher, falls sich jemand verklickt — aber wenn er die Seite im Termin auf dem
+   * eigenen, angemeldeten Gerät zeigt, sieht der Kunde diesen Sprung.
+   *
+   * Ein neuer Tab löst genau das: Die Kundenseite bleibt stehen, wie sie ist. Die Galerie
+   * öffnet daneben, und ein Tabwechsel ist etwas anderes als eine Seite, die unter den
+   * Händen die Marke wechselt.
+   */
+  neuerTab?: boolean;
+}) {
   const [cents, setCents] = useState<number | null>(null);
   /**
    * KONTO UND GALERIE STEHEN JETZT IMMER DA (Owner 04.08.2026, mit einem Bild der leeren
@@ -354,6 +370,7 @@ export default function GuthabenChip() {
         */}
       {(!imTrichter || davidTrichter || rendert) && (
       <Link href="/my-gallery" aria-label="My Assets"
+        {...(neuerTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         aria-current={inGalerie ? "page" : undefined}
         /* SOLANGE ETWAS ENTSTEHT, ATMET DER GANZE KNOPF (Owner 28.08.2026: „das muss blinken
            bis es fertig ist"). Der Punkt allein war zu leise — er hat ihn beim eigenen Kauf

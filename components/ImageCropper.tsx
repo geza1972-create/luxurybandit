@@ -94,6 +94,8 @@ export default function ImageCropper({
   const frameRef = useRef<HTMLDivElement>(null);
   const [frameW, setFrameW] = useState(0);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  /** Ob schon einmal zentriert wurde — danach gehört die Position dem Benutzer. */
+  const zentriert = useRef(false);
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
@@ -120,7 +122,31 @@ export default function ImageCropper({
     y: Math.min(0, Math.max(frameH - dispH, o.y)),
   });
 
-  useEffect(() => { setOff(o => clamp(o)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [zoom, frameW, nat.w, nat.h]);
+  /**
+   * DAS BILD STARTET IN DER MITTE, NICHT OBEN LINKS (Owner 02.09.2026, am Handy: „das Bild
+   * im Crop bei der Aufnahme steht rechts, ist nicht zentriert nach der Aufnahme" · „die Frau
+   * muss die Hand zu weit ausstrecken für die Aufnahme, also sie muss es im Cropfenster
+   * verschieben").
+   *
+   * `setOff({x:0, y:0})` beim Laden hiess: linke obere Ecke des Bildes an linker oberer Ecke
+   * des Rahmens. Bei einem Selfie ist das Bild fast immer breiter als das 3:4-Fenster — das
+   * Gesicht sitzt in der Mitte der Aufnahme und lag damit ausserhalb. Wer sich selbst
+   * fotografiert, hält das Telefon ohnehin auf Armlänge; danach auch noch schieben zu müssen,
+   * um überhaupt das eigene Gesicht zu sehen, ist der Punkt, an dem jemand aufgibt.
+   *
+   * NUR EINMAL: Beim Zoomen bleibt die Position, die der Benutzer gewählt hat. Ein Bild, das
+   * bei jedem Regler-Schritt in die Mitte zurückspringt, lässt sich nicht zuschneiden.
+   */
+  useEffect(() => {
+    if (!nat.w || !frameW) return;
+    if (!zentriert.current) {
+      zentriert.current = true;
+      setOff(clamp({ x: (frameW - dispW) / 2, y: (frameH - dispH) / 2 }));
+      return;
+    }
+    setOff(o => clamp(o));
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [zoom, frameW, nat.w, nat.h]);
 
   const onDown = (e: React.PointerEvent) => {
     drag.current = { x: e.clientX, y: e.clientY, ox: off.x, oy: off.y };
@@ -187,8 +213,11 @@ export default function ImageCropper({
             <img src={src} alt="" draggable={false}
               onLoad={e => {
                 const el = e.currentTarget;
+                /* Kein `setOff` mehr hier: Zum Zentrieren braucht es `dispW`/`dispH`, und die
+                   stehen erst fest, wenn Rahmenbreite UND Naturmaße bekannt sind. Der Effekt
+                   oben erledigt es, sobald beides da ist. */
+                zentriert.current = false;
                 setNat({ w: el.naturalWidth, h: el.naturalHeight });
-                setOff({ x: 0, y: 0 });
               }}
               style={{
                 position: "absolute", left: 0, top: 0,

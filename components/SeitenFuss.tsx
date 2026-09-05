@@ -39,7 +39,7 @@ const FUSS_TEXTE: Record<string, { infoLegal: string; contact: string; about: st
   it: { infoLegal: "Info e note legali", contact: "Contatti", about: "Chi siamo", terms: "Termini", privacy: "Privacy", imprint: "Note legali" },
 };
 
-export default function SeitenFuss({ className = "", art = "voll", marke, lang = "en" }: {
+export default function SeitenFuss({ className = "", art = "voll", marke, lang = "en", kontakt = false }: {
   className?: string;
   /**
    * DIE SPRACHE DER SEITE — ohne sie bleibt es beim bisherigen Englisch. Bewusst ein Prop
@@ -68,6 +68,17 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
    * es sehe, dass es individuell ist machst du hier drüber noch mal LB-{Topic} drüber").
    */
   marke?: string;
+  /**
+   * KONTAKT DOCH DAZU — ABER NUR, WER IHN ANFORDERT (Owner 04.09.2026: „auf der Recruiter
+   * Seite Contact einfügen").
+   *
+   * Die Begründung von damals („auf der Bewerbeseite müssen die Links unten raus") galt für
+   * Seiten, die ein BEWERBER sieht — David, die Job-Kunden-Seiten. Die Recruiterseite ist die
+   * einzige `schlicht`-Seite, die ein KUNDE sieht, kein Bewerber; er darf fragen können, ohne
+   * eine E-Mail-Adresse zu suchen. Ein eigenes Prop statt einer Regeländerung, damit die
+   * Bewerberseiten unverändert bleiben.
+   */
+  kontakt?: boolean;
 }) {
   const T = FUSS_TEXTE[lang] ?? FUSS_TEXTE.en;
   if (art === "schlicht") {
@@ -83,10 +94,13 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
             nie als LuxuryBandit auftritt. */}
         <p className="text-center">
           <Link href="/" className="text-[13px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
-            LUXURYBANDIT FUNNELS
+            {/* Der Untertitel des Hauses — hier wie im Kopf, damit eine Seite nicht zwei
+                Selbstbeschreibungen trägt (Owner 02.09.2026: „THE AI-MEDIA CREATOR"). */}
+            LUXURYBANDIT · AI-MEDIA CREATOR
           </Link>
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] font-semibold text-white/35">
+          {kontakt && <Link href="/contact" className="transition hover:text-white/70">{T.contact}</Link>}
           <Link href="/imprint" className="transition hover:text-white/70">{T.imprint}</Link>
           <Link href="/privacy" className="transition hover:text-white/70">{T.privacy}</Link>
           <Link href="/terms" className="transition hover:text-white/70">{T.terms}</Link>
@@ -157,7 +171,7 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
         <div className="mt-3">
           <p className="text-[13px] font-black uppercase tracking-[0.14em] text-white/70">{marke}</p>
           <p className="mt-1 text-[13px] font-black uppercase tracking-[0.14em]">
-            <Link href="/" className="text-white/40 transition hover:text-white/70">LUXURYBANDIT FUNNELS</Link>
+            <Link href="/" className="text-white/40 transition hover:text-white/70">LUXURYBANDIT · AI-MEDIA CREATOR</Link>
           </p>
         </div>
       ) : (
