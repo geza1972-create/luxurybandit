@@ -624,6 +624,28 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
               >
                 {t(S.webOhne, "Ich habe keine Website")}
               </button>
+              {/**
+                * ZURÜCK AUF DIE STARTSEITE (Owner 09.09.2026, mit Bild von Schritt 2: „kann
+                * nicht zurück").
+                *
+                * Der Schirm hatte zwei Wege vorwärts und keinen zurück. Wer hier merkt, dass
+                * sein Satz auf der Startseite nicht stimmt, sass fest — der Browser-Pfeil
+                * hilft nicht, weil der Auftrag beim Abholen aus dem Sitzungsspeicher gelöscht
+                * wird und die Startseite dann leer wäre.
+                *
+                * `einenZurueck` kennt den Fall: ohne beantwortete Frage führt es nach
+                * `heim()` — dieselbe Zeile wie im Gespräch, keine zweite Mechanik.
+                */}
+              <button
+                type="button"
+                onClick={einenZurueck}
+                className="mt-1 block text-[15px] font-semibold text-[#5b666f] transition hover:text-[#14181c]"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  {t(S.zurueckWort, "Zurück")}
+                </span>
+              </button>
             </>
           )}
         </Kasten>
