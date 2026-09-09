@@ -7,6 +7,25 @@ import { Check } from "lucide-react";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { schrittMessen } from "@/lib/versusforge-messen";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
+import { HEBEL } from "@/lib/versusforge-hook-rezept";
+
+/**
+ * EIN BEISPIELSTAND FÜR DIE ARBEITSANZEIGE — kein echter Kunde, keine echte Analyse.
+ *
+ * ES IST ABSICHTLICH KEIN VOLLES BILD: Vier von fünf Balken voll wäre Werbung für ein
+ * Ergebnis. Ein Stand mitten in der Arbeit zeigt das, worum es geht — die Maschine sucht
+ * noch, und deshalb fragt sie.
+ *
+ * Die Namen stehen nicht hier, sondern kommen aus dem Rezept (`schritt`): eine Quelle für
+ * Trichter und Startseite.
+ */
+const ARBEIT_BEISPIEL: [string, number][] = [
+  ["zweck", 80],
+  ["geschichte", 45],
+  ["identitaet", 20],
+  ["beweis", 10],
+  ["knappheit", 0],
+];
 import type { VersusForgeTexte } from "@/lib/versusforge-texte";
 
 /**
@@ -324,6 +343,48 @@ export default function VersusForgeStartEinfach({
         <section className="mt-3 rounded-2xl bg-white p-6 shadow-[0_10px_34px_rgba(20,24,28,.10)] md:p-7">
           <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">{mitMarke(S.aboutTitel, "#1d6fd0")}</h2>
           <p className="mt-2.5 text-[16px] font-bold leading-[1.5] text-[#14181c]">{S.aboutEins}</p>
+
+          {/**
+            * WIE SIE ARBEITET (Owner 09.09.2026: „das kannst du eventuell sagen unter Was ist
+            * VersusForge, wie die Maschine arbeitet").
+            *
+            * DAS EINZIGE STÜCK DER SEITE, DAS ZEIGT STATT BEHAUPTET. „KI-gestützte
+            * Werbetexte" schreibt jeder hin; hier sieht man, dass etwas Bestimmtes gesucht
+            * wird — und dass es noch fehlt. Genau das trennt eine Maschine von einem
+            * Formular.
+            *
+            * ES IST DIE ARBEITSANZEIGE, NICHT DAS REZEPT: unsere eigenen Namen, die Formel
+            * bleibt drinnen. Und die Zahlen sind als Beispiel gekennzeichnet — ohne den
+            * Hinweis läse es sich wie eine echte Analyse.
+            */}
+          <div className="mt-6 border-t border-[#eef1f4] pt-5">
+            <h3 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">{S.arbeitTitel}</h3>
+            <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{S.arbeitText}</p>
+
+            <div className="mt-4 flex flex-col gap-2 rounded-xl bg-[#f5f7f9] p-4">
+              {ARBEIT_BEISPIEL.map(([schluessel, wert]) => {
+                const name = HEBEL.find(h => h.schluessel === schluessel)?.schritt ?? "";
+                /* „Dran" ist der erste noch schwach gefüllte — dieselbe Hervorhebung wie im
+                   Trichter, damit die Seite zeigt, was er dort wiedersieht. */
+                const dran = schluessel === "beweis";
+                return (
+                  <div key={schluessel} className="flex items-center gap-3">
+                    <span className={`w-[80px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#5b666f]"}`}>
+                      {name}
+                    </span>
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#dfe4e9]">
+                      <span className={`block h-full rounded-full ${dran ? "bg-[#1d6fd0]" : "bg-[#9aa6b1]"}`}
+                        style={{ width: `${wert}%` }} />
+                    </span>
+                    <span className={`w-[38px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#8b959d]"}`}>
+                      {wert}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2.5 text-[13.5px] font-semibold text-[#8b959d]">{S.arbeitBeispiel}</p>
+          </div>
         </section>
       </div>
 

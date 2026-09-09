@@ -756,6 +756,26 @@ export const VERSUSFORGE_TEXTE = {
   aboutTitel: "Was ist VersusForge?",
   aboutEins: "Eine Maschine, die aus einem Satz eine ganze Werbestrategie macht.",
   /**
+   * WIE SIE ARBEITET (Owner 09.09.2026: „das kannst du eventuell sagen unter Was ist
+   * VersusForge, wie die Maschine arbeitet").
+   *
+   * WAS HIER STEHT UND WAS NICHT: Die fünf Zeilen sind die ARBEITSANZEIGE, nicht das Rezept.
+   * Sie tragen unsere eigenen Namen; die Formel dahinter bleibt drinnen (Owner: „ich will den
+   * nicht veröffentlichen" · „gute Restaurants veröffentlichen ihr Rezept auch nicht").
+   *
+   * WARUM ES ÜBERHAUPT AUF DIE SEITE GEHÖRT: Es ist das Einzige auf der ganzen Seite, das
+   * nicht behauptet, sondern zeigt. Jeder verspricht „KI-gestützte Werbetexte"; hier sieht
+   * man, dass etwas Bestimmtes gesucht wird und dass es noch fehlt.
+   *
+   * DIE ZAHLEN SIND EIN BEISPIEL, und das steht auch dran. Ohne den Hinweis läse es sich wie
+   * eine echte Analyse — und das wäre die eine Sorte Erfindung, die dieses Haus nicht macht.
+   */
+  arbeitTitel: "Wie sie arbeitet",
+  arbeitText: "Sie sucht fünf Dinge über dein Geschäft. Vier davon stehen auf keiner Website — die fragt sie dich. Erst wenn genug zusammen ist, schreibt sie.",
+  arbeitBeispiel: "Beispiel: so sieht es nach der zweiten Antwort aus.",
+  /* Die fünf Namen stehen NICHT hier, sondern kommen aus `versusforge-hook-rezept.ts`
+     (`schritt`) — eine Quelle, sonst laufen Trichter und Startseite auseinander. */
+  /**
    * ALS LISTE, NICHT ALS ABSATZ (Owner 09.09.2026: „das schwarz und in einer Box. Es sieht zu
    * unwichtig aus. Am besten als Liste, was er bekommt").
    *
