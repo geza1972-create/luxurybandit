@@ -51,10 +51,23 @@ const WERKZEUG_WORT: Record<string, string> = {
  * ER GEHT IM VERLAUF MIT zum Server: Sonst grüsst der Agent in seiner ersten echten Antwort
  * ein zweites Mal.
  */
+/**
+ * WAS WIR LIEFERN — DER SATZ, DER ES BENENNT (Owner 09.09.2026: „nein, er liefert die
+ * Marketingstrategie, die genau auf ihn zugeschnitten ist").
+ *
+ * MEINE FASSUNG WAR ZU KLEIN: „den einen Satz und die Seite dahinter" beschreibt zwei
+ * Bauteile. Verkauft wird aber die STRATEGIE — und das Wort, auf das es ankommt, ist
+ * „zugeschnitten": Der Unterschied zu allem anderen in diesem Feld ist nicht, dass wir Texte
+ * schreiben, sondern dass sie aus SEINEM Geschäft kommen und ein Fremder sie nicht schreiben
+ * könnte. Genau deshalb stellt die Maschine überhaupt Fragen.
+ *
+ * DIE DREI TEILE STEHEN TROTZDEM DABEI. Eine Strategie ohne Gegenstand ist ein Wort aus der
+ * Beratersprache; die drei Stücke machen sie greifbar.
+ */
 const GRUSS = [
   "Hallo, ich bin VersusForge.",
-  "Ich baue dir den einen Satz, der Leute in der Anzeige anhält — und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen. Was du anschliessend daraus machst, entscheidest du.",
-  "Dafür muss ich ein paar Dinge über dein Geschäft wissen, die nur du weisst. Machst du mit?",
+  "Ich baue dir eine Werbestrategie, die genau auf dein Geschäft zugeschnitten ist — nicht aus einer Vorlage: den Satz, der Leute anhält, wen er erreichen soll, und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen.",
+  "Dafür brauche ich ein paar Dinge, die nur du weisst. Machst du mit?",
 ].join("\n\n");
 
 /**
