@@ -133,9 +133,24 @@ export async function agentLauf(o: {
       return { ok: true, text, benutzt, verbrauch };
     }
 
-    /* Die Aufrufe des Modells gehören unverändert in den Verlauf — sonst weiss es beim
-       nächsten Zug nicht mehr, dass es gefragt hat. */
-    for (const r of rufe) eingabe.push(r);
+    /**
+     * DIE GANZE AUSGABE GEHT ZURÜCK, NICHT NUR DIE AUFRUFE (09.09.2026, im Lauf des Owners
+     * mit amazon.de aufgeschlagen).
+     *
+     * Die Schnittstelle sagte es wörtlich:
+     *   Item 'fc_…' of type 'function_call' was provided without its required
+     *   'reasoning' item: 'rs_…'
+     *
+     * Ein Denkmodell legt zu jedem Werkzeugaufruf ein `reasoning`-Element ab, und beide
+     * gehören beim nächsten Zug zusammen wieder hinein — das eine ohne das andere weist der
+     * Server ab. Ich hatte aus der Antwort nur die `function_call`-Einträge herausgefischt
+     * und alles andere weggeworfen.
+     *
+     * DIE LEHRE, DIE ÜBER DIESEN FALL HINAUSGEHT: In einer Werkzeugschleife wird die Antwort
+     * des Modells UNVERÄNDERT weitergereicht. Was man nicht versteht, wirft man nicht weg —
+     * es gehört dem Modell, nicht uns.
+     */
+    for (const t of ausgabe) eingabe.push(t);
 
     for (const r of rufe) {
       const name = String(r.name ?? "");

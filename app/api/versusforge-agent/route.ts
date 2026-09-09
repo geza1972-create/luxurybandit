@@ -141,6 +141,15 @@ export async function POST(request: Request) {
     "DU HAST WERKZEUGE UND BENUTZT SIE, STATT DARUEBER ZU REDEN. Nennt er eine Adresse, liest du sie — du fragst nicht, ob du darfst. Habt ihr einen Hook, pruefst du ihn und baust das Bild. Erzaehle nie, dass du gleich etwas tun wirst; tu es und zeig das Ergebnis.",
     "ERWÄHNE NIE DEINE WERKZEUGE, ihre Namen oder dass etwas nicht geklappt hat. Der Mensch sieht das Ergebnis, nicht die Maschine.",
     /**
+     * ── WAS DU GELESEN HAST, BENUTZT DU (09.09.2026, im dritten Lauf gesehen) ─────────────
+     *
+     * Auf „restaurant-insula.ro" hat der Agent die Seite geholt — und danach wörtlich
+     * dieselbe Frage gestellt wie davor. Für ihn sieht das aus, als hätte die Adresse nichts
+     * bewirkt; er hat sie umsonst gegeben. Und für uns ist es ein bezahlter Abruf, dessen
+     * Ergebnis niemand benutzt hat.
+     */
+    "HAST DU GERADE EINE SEITE GELESEN, BENUTZE SIE SOFORT. Sag in EINEM Satz, was dieser Betrieb laut seiner Seite anbietet, bevor du irgendetwas fragst — und frag danach nur noch das, was dort NICHT steht. Eine Frage nach etwas, das auf der gelesenen Seite steht, ist der schlimmste Fehler in diesem Gespräch.",
+    /**
      * ── ZU JEDER FRAGE BEISPIELE (Owner 09.09.2026, im ersten echten Lauf: „hier musst du
      * Beispiele liefern") ─────────────────────────────────────────────────────────────────
      *
@@ -212,7 +221,24 @@ export async function POST(request: Request) {
      * Punkt später aus dem füllen, was er sonst noch sagt.
      */
     "STELL NIE DIESELBE FRAGE ZWEIMAL, auch nicht mit anderen Worten oder anderen Beispielen. Der ganze Verlauf steht dir zur Verfügung — lies nach, was du schon gefragt hast.",
-    "REICHT SEINE ANTWORT NICHT, sag in einem halben Satz, was dir noch fehlt, und stell dann eine ENGERE Frage zu genau der Lücke — nicht dieselbe noch einmal.",
+    /**
+     * ── EIN VORSCHLAG ZUM NICKEN STATT DERSELBEN FRAGE (09.09.2026, dritter Lauf) ─────────
+     *
+     * Das Verbot allein hat nicht gereicht: Der Agent hielt die Frage für unbeantwortet und
+     * stellte sie deshalb noch einmal — sachlich richtig, menschlich taub. Ein Verbot ohne
+     * Ausweg lässt ihm keine Wahl.
+     *
+     * DER AUSWEG IST DIE HAUSREGEL AUS DEM TRICHTER: „Bist du dir unsicher, schlägst du vor
+     * und lässt ihn widersprechen; ein Vorschlag zum Nicken ist etwas anderes als ein leeres
+     * Feld." Wer eine Speisekarte gelesen hat, kann selbst sagen, was Gäste dort können — und
+     * braucht dafür keine zweite Frage.
+     *
+     * ES IST AUCH DAS BESSERE PRODUKT: Nicken ist billiger als formulieren, und ein Widerspruch
+     * bringt uns mehr als eine ausweichende Antwort auf dieselbe Frage.
+     */
+    `HAST DU ETWAS SCHON GEFRAGT UND KEINE BRAUCHBARE ANTWORT BEKOMMEN, FRAG NICHT NOCH EINMAL. Beantworte es stattdessen SELBST aus dem, was du weisst, und lass ihn nicken oder widersprechen. Etwa so: Dann koennen Gaeste bei euch draussen am Pool feiern statt in einem Saal — trifft das?`,
+    "SO EIN VORSCHLAG BEKOMMT IMMER CHIPS: zwei bis drei Alternativen, unter denen er wählen kann, statt selbst zu formulieren. Genau dafür sind sie da.",
+    "REICHT SEINE ANTWORT NICHT UND WEISST DU AUCH NICHTS, sag in einem halben Satz, was dir fehlt, und stell eine ENGERE Frage zu genau der Lücke — nicht dieselbe noch einmal.",
     "KANN ER ETWAS ZWEIMAL NICHT SAGEN, lass es. Geh zum nächsten Punkt über und hol dir das Fehlende später aus dem, was er sonst erzählt. Zweimal nachbohren macht aus einem Gespräch ein Verhör.",
     /**
      * ── KEIN WERKSTATT-VOKABULAR (Owner 09.09.2026, im selben Lauf) ──────────────────────
@@ -224,6 +250,10 @@ export async function POST(request: Request) {
      */
     "SPRICH NIE UEBER DEINE ARBEITSWEISE. Verboten sind die Woerter Hebel, Zweck, Herkunft, Wirkung, Beleg, Grenze, Stand, Prozent, Reaktion, Feld, Schritt — und jede Formulierung wie: das fuellt etwas nicht. Sag stattdessen schlicht, was dir an der Antwort fehlt, in normaler Sprache.",
     "FANG NIE MIT EINEM ETIKETT AN. Keine Antwort beginnt mit einem Wort und einem Doppelpunkt.",
+    /* KEINE ERLAUBNISFRAGEN (09.09.2026, im Lauf gesehen): „Willst du das jetzt kurz nennen?"
+       und „Willst du das jetzt schreiben?" fragen, ob er antworten möchte — das ist eine
+       Frage vor der Frage und kostet einen ganzen Zug. */
+    "FRAG NIE, OB ER ANTWORTEN MOECHTE. Keine Formulierungen wie: willst du das jetzt nennen, oder: soll ich dir. Stell die Frage selbst, einmal, und warte.",
     "",
     HEBEL_AUFTRAG,
     "",
@@ -235,7 +265,33 @@ export async function POST(request: Request) {
     `Musst du einen Arbeitsschritt benennen, benutze ausschliesslich diese Wörter: ${HEBEL.map(h => h.schritt).join(", ")}. Besser ist, du benennst gar keinen und fragst einfach.`,
   ].join("\n");
 
-  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag, verlauf, werkzeuge });
+  /**
+   * ── DIE SCHON GESTELLTEN FRAGEN WÖRTLICH ANS ENDE (09.09.2026, im dritten Lauf) ─────────
+   *
+   * WAS ZU SEHEN WAR: Fünfmal dieselbe Frage in einem Gespräch — „Sag mir in einem Satz, was
+   * du anbietest" in vier Varianten, danach zweimal wörtlich „Was können Gäste danach, was
+   * sie vorher nicht konnten?".
+   *
+   * DIE REGEL DAGEGEN STAND SCHON IM AUFTRAGSTEXT und wurde überlesen. Genau das ist am
+   * 08.09. im alten Trichter passiert, und dort half nur dasselbe Mittel: Die gestellten
+   * Fragen NICHT als Regel formulieren, sondern als LISTE unmittelbar vor der Aufgabe. Eine
+   * Regel unter dreissig Regeln ist eine Bitte; eine Liste am Ende ist eine Schranke.
+   *
+   * Der Verlauf steht ohnehin im Aufruf — aber er steht als Gespräch da, nicht als Prüfliste.
+   * Das ist der Unterschied.
+   */
+  const gestellt = verlauf.filter(m => m.role === "assistant").map(m => m.content);
+  const auftragMitListe = gestellt.length
+    ? [
+        auftrag,
+        "",
+        "DAS HAST DU IHM SCHON GESCHRIEBEN — KEINE DAVON NOCH EINMAL, auch nicht mit anderen Worten:",
+        ...gestellt.map((f, i) => `  ${i + 1}. ${f}`),
+        "Prüfe deine nächste Antwort gegen diese Liste, bevor du sie schickst. Ist sie im Kern dieselbe, stell stattdessen eine ANDERE Frage oder geh zum nächsten Punkt über.",
+      ].join("\n")
+    : auftrag;
+
+  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag: auftragMitListe, verlauf, werkzeuge });
   if (!r.ok) return NextResponse.json({ error: `Der Agent stockt gerade. ${r.fehler}` }, { status: r.status });
 
   /**
