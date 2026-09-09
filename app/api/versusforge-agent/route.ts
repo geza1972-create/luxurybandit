@@ -140,13 +140,44 @@ export async function POST(request: Request) {
     "",
     "DU HAST WERKZEUGE UND BENUTZT SIE, STATT DARUEBER ZU REDEN. Nennt er eine Adresse, liest du sie — du fragst nicht, ob du darfst. Habt ihr einen Hook, pruefst du ihn und baust das Bild. Erzaehle nie, dass du gleich etwas tun wirst; tu es und zeig das Ergebnis.",
     "ERWÄHNE NIE DEINE WERKZEUGE, ihre Namen oder dass etwas nicht geklappt hat. Der Mensch sieht das Ergebnis, nicht die Maschine.",
+    /**
+     * ── ZU JEDER FRAGE BEISPIELE (Owner 09.09.2026, im ersten echten Lauf: „hier musst du
+     * Beispiele liefern") ─────────────────────────────────────────────────────────────────
+     *
+     * SEINE FRAGE WAR: „Nenne konkrete Referenzen, Zahlen oder sichtbare
+     * Vorher-Nachher-Ergebnisse." Richtig gefragt — und trotzdem unbeantwortbar, wenn man
+     * nicht weiss, in welcher FORM. Wer nicht weiss, wie eine gute Antwort aussieht, gibt
+     * eine schlechte, und die ist dann seine Schuld, obwohl sie unsere ist.
+     *
+     * DIESELBE LEHRE WIE AM 08.09.2026, als der Owner mitten im Trichter fragte „was soll
+     * ich schreiben?". Damals wurde daraus der Platzhalter im Eingabefeld. Im Chat gibt es
+     * kein Feld mit Platzhalter — also gehören die Beispiele in die Frage.
+     *
+     * SIE MÜSSEN AUS SEINEM FACH KOMMEN: „z. B. 400 Implantate im Jahr" hilft einem
+     * Zahnarzt; „z. B. Ihre Referenzen" hilft niemandem. Und sie dürfen NICHTS über ihn
+     * behaupten — es sind Formen, keine Angaben.
+     */
+    "ZU JEDER FRAGE GEHÖREN BEISPIELE. Hänge an jede Frage zwei bis drei kurze Beispiele an, wie eine Antwort aussehen könnte — in SEINEM Fach, aus dem, was du über ihn weisst. Ohne sie weiss er nicht, in welcher Form er antworten soll, und antwortet zu allgemein.",
+    "DIE BEISPIELE SIND FORMEN, KEINE BEHAUPTUNGEN. Erfinde keine Zahlen, Namen oder Erfolge UEBER IHN. Schreib sie erkennbar als Moeglichkeit, eingeleitet mit: zum Beispiel. Er darf sie uebernehmen, aendern oder etwas ganz anderes sagen.",
+    /**
+     * ── KEIN WERKSTATT-VOKABULAR (Owner 09.09.2026, im selben Lauf) ──────────────────────
+     *
+     * Im Gespräch stand wörtlich: „Das füllt den Hebel nicht" und „Reaktion: Das füllt den
+     * Zweck". „Hebel" und „Zweck" sind MEINE Wörter aus dem Rezept — genau das, was drinnen
+     * bleiben sollte („gute Restaurants veröffentlichen ihr Rezept auch nicht"). Und
+     * „Reaktion:" ist ein Feldname, der aus dem Auftragstext durchgeschlagen ist.
+     */
+    "SPRICH NIE UEBER DEINE ARBEITSWEISE. Verboten sind die Woerter Hebel, Zweck, Herkunft, Wirkung, Beleg, Grenze, Stand, Prozent, Reaktion, Feld, Schritt — und jede Formulierung wie: das fuellt etwas nicht. Sag stattdessen schlicht, was dir an der Antwort fehlt, in normaler Sprache.",
+    "FANG NIE MIT EINEM ETIKETT AN. Keine Antwort beginnt mit einem Wort und einem Doppelpunkt.",
     "",
     HEBEL_AUFTRAG,
     "",
     `Am Ende steht EIN Hook. ${HOOK_REGELN}`,
     "",
     "ALLGEMEINWISSEN IST KEIN ERFINDEN: Kennst du eine Marke, sagst du, was sie anbietet. Was nur ER wissen kann — Zahlen, Preise, Kunden, sein Verfahren — erfindest du nie, danach fragst du.",
-    `Die fünf Hebel heissen ihm gegenüber: ${HEBEL.map(h => h.schritt).join(", ")}. Die internen Namen nennst du nie.`,
+    /* Die eigenen Namen darf er nennen, wenn er MUSS — die internen nie. Am besten nennt er
+       gar keinen und fragt einfach. */
+    `Musst du einen Arbeitsschritt benennen, benutze ausschliesslich diese Wörter: ${HEBEL.map(h => h.schritt).join(", ")}. Besser ist, du benennst gar keinen und fragst einfach.`,
   ].join("\n");
 
   const r = await agentLauf({ apiKey, modell: KLEIN, auftrag, verlauf, werkzeuge });
