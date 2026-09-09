@@ -98,7 +98,27 @@ const GRUSS = [
    */
   "Damit es schnell geht, drei Sachen:",
   "· Antworte konkret. „Gutes Essen“ bringt uns nicht weiter, „Lamm vom Holzkohlegrill“ schon.\n· Verstehe ich etwas falsch, sag es sofort — ich rechne damit.\n· Was du nicht weisst, lass weg. Ich erfinde nichts, und du sollst es auch nicht.",
-  "Ein paar Minuten, dann steht deine Strategie. Machst du mit?",
+  /**
+   * ── DATENSCHUTZ IN EINEM SATZ, UND DIE FRAGE DAZU (Owner 09.09.2026: „ein Satz noch zum
+   * Datenschutz und Speicherung? Und ob er einverstanden ist?") ────────────────────────────
+   *
+   * ER STEHT VOR DER EINWILLIGUNG, nicht darunter: Wer erst zustimmt und danach erfährt, was
+   * passiert, hat nicht zugestimmt.
+   *
+   * UND ER SAGT NUR, WAS WIRKLICH PASSIERT — geprüft an dem, was der Code tut:
+   *  · Das Gespräch geht an das Modell von OpenAI. Ohne das gibt es keine Antwort.
+   *  · Auf unserer Seite wird der Verlauf NICHT abgelegt. Er lebt im Browser und ist beim
+   *    Neuladen weg (`app/api/versusforge-agent/route.ts` speichert nichts).
+   *  · Was gespeichert wird, ist erst das, was er am Ende selbst anlegt — seine Adresse und
+   *    seine Strategie.
+   *  · Dazu ein Zähler je Gerät gegen Missbrauch (`versusforge-deckel`), ohne Inhalt.
+   *
+   * KEINE SIEGELWÖRTER. Kein „DSGVO-konform", kein „höchste Sicherheit" — Behauptungen, die
+   * niemand prüfen kann, sind an der Stelle, an der es um Vertrauen geht, das Gegenteil von
+   * vertrauenswürdig. Was hier steht, kann er nachprüfen.
+   */
+  "Zum Datenschutz: Was du schreibst, verarbeitet ein KI-Modell von OpenAI — anders geht es nicht. Das Gespräch selbst speichern wir nicht; es ist weg, sobald du die Seite schliesst. Gespeichert wird erst, was du am Ende ausdrücklich anlegst.",
+  "Ein paar Minuten, dann steht deine Strategie. Einverstanden?",
 ].join("\n\n");
 
 /**
@@ -109,7 +129,7 @@ const GRUSS = [
  * Geschäft — und genau danach ist gefragt. Die zweite ist die Frage, die ohnehin jeder als
  * Erstes im Kopf hat; sie hier anzubieten ist ehrlicher, als sie zu übergehen.
  */
-const GRUSS_CHIPS = ["Ja, fang an", "Was kostet das?"];
+const GRUSS_CHIPS = ["Ja, einverstanden", "Was kostet das?"];
 
 export default function AgentChat() {
   const [verlauf, setVerlauf] = useState<Nachricht[]>([{ rolle: "agent", text: GRUSS, vorschlaege: GRUSS_CHIPS }]);
@@ -268,6 +288,13 @@ export default function AgentChat() {
         </div>
 
         {fehler && <p className="m-0 pb-2 text-[15px] font-bold text-[#c02626]">{fehler}</p>}
+
+        {/* DIE PFLICHTSEITEN STEHEN SICHTBAR, NICHT IN EINER SPRECHBLASE: Ein Satz im
+            Gesprächsverlauf scrollt nach oben weg; ein Link unter dem Feld ist immer da. */}
+        <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 pb-1 text-[13.5px] text-[#8b959d]">
+          <a href="/privacy" className="underline hover:text-[#14181c]">Datenschutz</a>
+          <a href="/imprint" className="underline hover:text-[#14181c]">Impressum</a>
+        </p>
 
         <div className="sticky bottom-0 flex shrink-0 items-end gap-2 border-t border-[#e4e9ee] bg-white pb-3 pt-3">
           <textarea
