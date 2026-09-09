@@ -210,7 +210,7 @@ export default function GezaLakatosCvPage() {
           <div className="gl-wrap">
             <div className="gl-section-head">
               <div className="gl-kicker">02 · Eigene Plattform, live</div>
-              <h2 className="gl-section-title">LuxuryBandit</h2>
+              <h2 className="gl-section-title">VersusForge · Marketing Engine</h2>
               <p className="gl-section-note">
                 Keine einzelne App — eine Plattform mit sechs eigenständigen KI-Funnels,
                 einer gemeinsamen Kasse, einer Übersetzungs-Engine für sieben Sprachen und
@@ -218,7 +218,7 @@ export default function GezaLakatosCvPage() {
                 komplett von mir, mit KI-gestützter Entwicklung direkt im Terminal.
               </p>
               <p className="gl-section-note">
-                <b>Individuelles Marketing ohne Agentur-Overhead.</b> Luxurybandit
+                <b>Individuelles Marketing ohne Agentur-Overhead.</b> VersusForge
                 entwickelt schnell maßgeschneiderte Funnels, Tests und digitale Lösungen.
                 Durch einen schlanken, KI-gestützten Prozess können wir auch mit kleineren
                 Budgets arbeiten — und erst dann skalieren, wenn die Daten zeigen, dass
@@ -227,7 +227,7 @@ export default function GezaLakatosCvPage() {
             </div>
 
             <div className="gl-lb-stats">
-              <div className="gl-lb-stat"><b>6</b>KI-Funnels live</div>
+              <div className="gl-lb-stat"><b>Mehrere</b>KI-Funnels live</div>
               <div className="gl-lb-stat"><b>7</b>Sprachen zur Laufzeit</div>
               <div className="gl-lb-stat"><b>1</b>gemeinsame Kasse &amp; Guthaben-System</div>
               <div className="gl-lb-stat"><b>1</b>Analytics-Dashboard für alle Funnels</div>
@@ -244,11 +244,11 @@ export default function GezaLakatosCvPage() {
 
             <div className="gl-lb-panel">
               <div className="gl-lb-text">
-                <a className="gl-kicker" style={{ color: "#E1592E" }} href="https://luxurybandit.com" target="_blank" rel="noopener noreferrer">
-                  luxurybandit.com ↗
+                <a className="gl-kicker" style={{ color: "#E1592E" }} href="https://versusforge.com" target="_blank" rel="noopener noreferrer">
+                  versusforge.com ↗
                 </a>
                 <h3>
-                  Sechs <span className="gl-orange">Funnels</span>, eine Plattform
+                  Mehrere <span className="gl-orange">Funnels</span>, eine Plattform
                 </h3>
                 <p>
                   <b>Live:</b> ein KI-Interview-Trichter für Jobsuchende (gemessener
@@ -267,15 +267,16 @@ export default function GezaLakatosCvPage() {
                   der Kunde in einem Schritt kauft — Konzept und Umsetzung komplett von mir.
                 </p>
                 <p>
-                  <b>Live:</b> ein individuelles Recruiting-Tool für passive
-                  Bewerber:innen, die für das richtige Angebot wechseln würden — 9 Fragen,
-                  kein Lebenslauf, kein Name, Kontaktaufnahme nur bei echtem Match.
-                  Aufsetzbar als eigenständiger Funnel je Zielgruppe, inklusive Auswertung
-                  und Statistiken zu Rücklauf und Antworten. Genau damit kann ich auch
-                  Unternehmen helfen, passive Kandidat:innen für offene Stellen zu finden.{" "}
+                  <b>Live, als VersusForge:</b> Vier Fragen — und der Kunde hat seinen Hook,
+                  die fertigen Anzeigentexte und die Anleitung, wie er die Strecke dahinter
+                  selbst baut. Dasselbe Baukastenprinzip trägt auch andere Funnels, z. B. ein
+                  individuelles Recruiting-Tool für passive Bewerber:innen, die für das
+                  richtige Angebot wechseln würden — 9 Fragen, kein Lebenslauf, kein Name,
+                  Kontaktaufnahme nur bei echtem Match. Genau damit kann ich auch Unternehmen
+                  helfen, passive Kandidat:innen für offene Stellen zu finden.{" "}
                   <a
                     style={{ color: "#E1592E" }}
-                    href="https://luxurybandit.com/admin/joburi/germana?lang=de&light=1"
+                    href="https://versusforge.com/engine"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -320,7 +321,7 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-lb-shots">
                 <div className="gl-phone">
-                  <img src="/cv/lb-home.png" alt="LuxuryBandit Startseite mit den Funnel-Produkten" />
+                  <img src="/cv/lb-home.png" alt="VersusForge Startseite mit den Funnel-Produkten" />
                 </div>
                 <div className="gl-phone">
                   <img src="/cv/lb-jobs.png" alt="KI-Interview-Chat des Job-Match-Funnels" />
@@ -384,14 +385,30 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-mini">
                 <div className="gl-mini-shots">
-                  <img className="gl-mini-shot" src="/VersusForge/versusforge-kachel.jpg" alt="VersusForge — KI-Werbeberater und Anzeigen-Engine" />
+                  <video
+                    className="gl-mini-shot"
+                    src="/VersusForge/kaempfer-spot-web.mp4"
+                    poster="/VersusForge/kaempfer-spot.webp"
+                    controls
+                    playsInline
+                    preload="none"
+                    aria-label="VersusForge — Werbespot der Marketing Engine"
+                  />
                 </div>
-                <h4>VersusForge</h4>
-                <div className="gl-meta">2026 · eigenes Projekt</div>
+                <h4>VersusForge · Marketing Engine</h4>
+                <div className="gl-meta">2026 · eigenes Projekt · versusforge.com</div>
                 <p>
-                  Konzept, UX und Marke eines KI-gestützten Werbeberaters: Ein Mandant liefert
-                  Auftrag und Budget, VersusForge liefert Strategie, Anzeigenbild und fertige
-                  Kampagne — vom Gespräch bis zur sendefertigen Anzeige.
+                  Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die
+                  Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse
+                  kostet nichts. Konzept, UX und Marke komplett von mir.{" "}
+                  <a
+                    style={{ color: "#E1592E" }}
+                    href="https://versusforge.com/engine"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Live-Beispiel ansehen ↗
+                  </a>
                 </p>
               </div>
               <div className="gl-mini">
@@ -476,7 +493,7 @@ export default function GezaLakatosCvPage() {
         <footer className="gl-footer">
           <div className="gl-wrap">
             <InteresseChat />
-            <div className="gl-foot-meta">Dossier zusammengestellt für Bewerbungen 2026 · luxurybandit.com</div>
+            <div className="gl-foot-meta">Dossier zusammengestellt für Bewerbungen 2026 · versusforge.com</div>
           </div>
         </footer>
       </div>
