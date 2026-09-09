@@ -70,16 +70,30 @@ export type AboutText = {
  * Sprachen identisch (auch im deutschen Block). Darum kein Eintrag je Sprache, sondern ein
  * einziger Text hier, den die Seite direkt einbindet.
  */
+/**
+ * DER NAME AUF DIESER SEITE IST VERSUSFORGE (Owner 09.09.2026: „hier auch", zum Kicker
+ * „ÜBER LUXURYBANDIT" und zur Zeile „LuxuryBandit baut digitale Produkte …").
+ *
+ * Alle 47 Stellen in allen sieben Sprachen, an denen der Name als ABSENDER stand, tragen
+ * jetzt VersusForge. Die Adresse bleibt luxurybandit.com — daran hängen Links in
+ * ausgelieferten Mails, Stripe-Rückwege und Vorschaubilder (Owner 08.09.2026: „URLs nicht").
+ *
+ * EIN ABSCHNITT IST BEWUSST STEHEN GEBLIEBEN: `warumLbTitel` und `warumLb` erklären das
+ * WORT LuxuryBandit („kein Name über Luxus, und auch nicht über Banditen") — genauso die
+ * beiden Markensätze hier unten. Umbenannt ergäben sie keinen Sinn mehr, und eine
+ * Namensgeschichte für VersusForge zu erfinden ist nicht meine Entscheidung. Sie brauchen
+ * eine eigene Runde mit dem Owner: neu schreiben oder streichen.
+ */
 export const MARKENSATZ_1 = "We don't take from people. We take life into our own hands.";
 export const MARKENSATZ_2 = "BANDIT THIS LIFE.";
 
 const de: AboutText = {
-  kicker: "Über LuxuryBandit",
+  kicker: "Über VersusForge",
   h1a: "Software, Portale und Verkaufsstrecken — ", h1y: "gebaut, nicht präsentiert.",
   portalKurz: "Wir bauen Software, Portale und Verkaufsstrecken, die verkaufen — von der Meta-Anzeige bis zum Kauf. Alles auf dieser Seite ist unser eigenes, live im Einsatz: Landingpage, KI-Video, Kasse und Lieferung, in drei Sprachen. Teste es — und wenn du so etwas für dein Geschäft willst, schreib uns.",
   portalLang: "Wir entwickeln individuelle Marketing-Systeme für Unternehmen – schlank, KI-gestützt und mit professionellen Technologien. Ideen, Zielgruppen und Angebote werden früh getestet, bevor größere Budgets eingesetzt werden.",
 
-  introLead: "LuxuryBandit baut digitale Produkte, die fertig laufen — keine Werkzeuge, mit denen du danach allein bist.",
+  introLead: "VersusForge baut digitale Produkte, die fertig laufen — keine Werkzeuge, mit denen du danach allein bist.",
   introListe: [
     "Ein Portal, das deine Kunden selbst bedienen.",
     "Eine Verkaufsstrecke von der Anzeige bis zur bezahlten Bestellung.",
@@ -102,7 +116,7 @@ const de: AboutText = {
     "Außerdem entwickelte er eigene Produkte und stellte eine seiner Erfindungen bei „Die Höhle der Löwen“ in Deutschland vor.",
     "Heute arbeitet er von Timișoara aus an einer einfachen Frage:",
     "Wie kann moderne Technologie etwas schaffen, das sich nicht nach Technologie anfühlt — sondern nach einem persönlichen Erlebnis?",
-    "LuxuryBandit ist die Antwort darauf.",
+    "VersusForge ist die Antwort darauf.",
   ],
 
   warumLbTitel: "Warum LuxuryBandit?",
@@ -127,7 +141,7 @@ const de: AboutText = {
     "Avatar-Systeme.",
     "Aber die meisten Unternehmen wollen keine neuen Tools lernen.",
     "Sie wollen ein Ergebnis.",
-    "Deshalb verkauft LuxuryBandit keine Software, mit der du anschließend selbst arbeiten musst.",
+    "Deshalb verkauft VersusForge keine Software, mit der du anschließend selbst arbeiten musst.",
     "Du sagst uns, was verkauft oder gefunden werden soll — wir bauen die Strecke, die es tut.",
     "Technologie bleibt im Hintergrund.",
     "Das Ergebnis steht im Vordergrund.",
@@ -138,7 +152,7 @@ const de: AboutText = {
     "Neue Technologie gehört am Anfang oft denen, die wissen, wie man sie bedient.",
     "Später wird sie erst dann wirklich interessant, wenn jeder sie nutzen kann.",
     "Genau dort steht KI heute.",
-    "LuxuryBandit versucht, diese Technik so einfach zu machen, dass du nicht wissen musst, welches Modell, welcher Prompt oder welches Video-Tool dahintersteht.",
+    "VersusForge versucht, diese Technik so einfach zu machen, dass du nicht wissen musst, welches Modell, welcher Prompt oder welches Video-Tool dahintersteht.",
     "Du sollst nur wissen, was du sagen, zeigen oder verschenken willst.",
     "Den Rest übernehmen wir.",
   ],
@@ -151,7 +165,7 @@ const de: AboutText = {
     ["Fünf Minuten statt fünf Stunden.", "Kein Setup, keine Software lernen, keine Prompts. Du entscheidest, was du willst. Den technischen Teil übernehmen wir."],
   ],
 
-  nichtTitel: "Was LuxuryBandit nicht sein will",
+  nichtTitel: "Was VersusForge nicht sein will",
   nicht: [
     "Kein weiteres KI-Spielzeug.",
     "Kein Tool, das dir noch mehr Arbeit macht.",
@@ -175,12 +189,12 @@ const de: AboutText = {
 };
 
 const en: AboutText = {
-  kicker: "About LuxuryBandit",
+  kicker: "About VersusForge",
   h1a: "Software, portals and checkout journeys — ", h1y: "built, not pitched.",
   portalKurz: "We build software, portals and checkout journeys that sell — from the Meta ad to the purchase. Everything on this page is our own, live: landing page, AI video, checkout and delivery, in three languages. Try it — and if you want one for your business, write to us.",
-  portalLang: "LuxuryBandit builds it in one piece: the software, the portal, the ad, the landing page, the guided purchase path, the checkout, the automatic delivery — one path, three languages. Every tile on this page is such a funnel, live: a visitor arrives from a Meta ad, sees an example, enters their details, pays and receives the result — without anyone on our side stepping in. That is exactly what we build for your product too.",
+  portalLang: "VersusForge builds it in one piece: the software, the portal, the ad, the landing page, the guided purchase path, the checkout, the automatic delivery — one path, three languages. Every tile on this page is such a funnel, live: a visitor arrives from a Meta ad, sees an example, enters their details, pays and receives the result — without anyone on our side stepping in. That is exactly what we build for your product too.",
 
-  introLead: "LuxuryBandit builds digital products that run when they are done — not tools that leave you alone with them.",
+  introLead: "VersusForge builds digital products that run when they are done — not tools that leave you alone with them.",
   introListe: [
     "A portal your customers operate themselves.",
     "A checkout journey from the ad to the paid order.",
@@ -203,7 +217,7 @@ const en: AboutText = {
     "He has also developed his own products and presented one of his inventions on Die Höhle der Löwen in Germany — the show the rest of the world knows as Shark Tank.",
     "Today he works from Timișoara on one simple question:",
     "How can modern technology create something that doesn't feel like technology — but like a personal experience?",
-    "LuxuryBandit is the answer.",
+    "VersusForge is the answer.",
   ],
 
   warumLbTitel: "Why LuxuryBandit?",
@@ -228,7 +242,7 @@ const en: AboutText = {
     "Avatar systems.",
     "But most companies don't want to learn new tools.",
     "They want a result.",
-    "That is why LuxuryBandit doesn't sell software you then have to operate yourself.",
+    "That is why VersusForge doesn't sell software you then have to operate yourself.",
     "You tell us what should sell or be found — we build the path that does it.",
     "Technology stays in the background.",
     "The result stays in front.",
@@ -239,7 +253,7 @@ const en: AboutText = {
     "New technology often belongs, at first, to those who know how to use it.",
     "Later, it only becomes truly interesting once everyone can use it.",
     "That's exactly where AI stands today.",
-    "LuxuryBandit tries to make this technology so simple that you never need to know which model, which prompt, or which video tool is behind it.",
+    "VersusForge tries to make this technology so simple that you never need to know which model, which prompt, or which video tool is behind it.",
     "All you need to know is what you want to say, show, or give.",
     "We take care of the rest.",
   ],
@@ -252,7 +266,7 @@ const en: AboutText = {
     ["Five minutes instead of five hours.", "No setup, no software to learn, no prompts. You decide what you want. We take care of the technical part."],
   ],
 
-  nichtTitel: "What LuxuryBandit doesn't want to be",
+  nichtTitel: "What VersusForge doesn't want to be",
   nicht: [
     "Not another AI toy.",
     "Not a tool that gives you even more work.",
@@ -276,12 +290,12 @@ const en: AboutText = {
 };
 
 const ro: AboutText = {
-  kicker: "Despre LuxuryBandit",
+  kicker: "Despre VersusForge",
   h1a: "Software, portaluri și trasee de vânzare — ", h1y: "construite, nu prezentate.",
   portalKurz: "Construim software, portaluri și trasee de vânzare care vând — de la reclama Meta până la cumpărare. Tot ce este pe această pagină este al nostru și funcționează live: landing page, video AI, casă și livrare, în trei limbi. Încearcă-le — iar dacă vrei așa ceva pentru afacerea ta, scrie-ne.",
-  portalLang: "LuxuryBandit construiește dintr-o bucată: software-ul, portalul, reclama, landing page-ul, traseul de cumpărare, casa, livrarea automată — un singur drum, trei limbi. Fiecare card de pe această pagină este un astfel de funnel, live: un vizitator vine dintr-o reclamă Meta, vede un exemplu, își lasă datele, plătește și primește rezultatul — fără ca cineva de la noi să intervină. Exact așa ceva construim și pentru produsul tău.",
+  portalLang: "VersusForge construiește dintr-o bucată: software-ul, portalul, reclama, landing page-ul, traseul de cumpărare, casa, livrarea automată — un singur drum, trei limbi. Fiecare card de pe această pagină este un astfel de funnel, live: un vizitator vine dintr-o reclamă Meta, vede un exemplu, își lasă datele, plătește și primește rezultatul — fără ca cineva de la noi să intervină. Exact așa ceva construim și pentru produsul tău.",
 
-  introLead: "LuxuryBandit construiește produse digitale care funcționează gata făcute — nu unelte cu care rămâi singur după aceea.",
+  introLead: "VersusForge construiește produse digitale care funcționează gata făcute — nu unelte cu care rămâi singur după aceea.",
   introListe: [
     "Un portal pe care clienții tăi îl folosesc singuri.",
     "Un traseu de cumpărare de la reclamă până la comanda plătită.",
@@ -304,7 +318,7 @@ const ro: AboutText = {
     "A dezvoltat și produse proprii și și-a prezentat una dintre invenții la „Die Höhle der Löwen” în Germania.",
     "Astăzi lucrează din Timișoara la o întrebare simplă:",
     "Cum poate tehnologia modernă să creeze ceva care nu se simte ca tehnologie — ci ca o experiență personală?",
-    "LuxuryBandit este răspunsul.",
+    "VersusForge este răspunsul.",
   ],
 
   warumLbTitel: "De ce LuxuryBandit?",
@@ -329,7 +343,7 @@ const ro: AboutText = {
     "Sisteme de avatare.",
     "Dar majoritatea companiilor nu vor să învețe unelte noi.",
     "Vor un rezultat.",
-    "De aceea LuxuryBandit nu vinde software cu care trebuie să lucrezi tu după aceea.",
+    "De aceea VersusForge nu vinde software cu care trebuie să lucrezi tu după aceea.",
     "Ne spui ce trebuie vândut sau găsit — noi construim traseul care face asta.",
     "Tehnologia rămâne în fundal.",
     "Rezultatul rămâne în față.",
@@ -340,7 +354,7 @@ const ro: AboutText = {
     "Tehnologia nouă aparține la început adesea celor care știu cum să o folosească.",
     "Mai târziu devine cu adevărat interesantă abia când oricine o poate folosi.",
     "Exact acolo se află AI astăzi.",
-    "LuxuryBandit încearcă să facă această tehnologie atât de simplă, încât nu trebuie să știi ce model, ce prompt sau ce unealtă video stă în spate.",
+    "VersusForge încearcă să facă această tehnologie atât de simplă, încât nu trebuie să știi ce model, ce prompt sau ce unealtă video stă în spate.",
     "Trebuie doar să știi ce vrei să spui, să arăți sau să dăruiești.",
     "Restul îl facem noi.",
   ],
@@ -353,7 +367,7 @@ const ro: AboutText = {
     ["Cinci minute în loc de cinci ore.", "Fără instalare, fără software de învățat, fără prompturi. Tu decizi ce vrei. De partea tehnică ne ocupăm noi."],
   ],
 
-  nichtTitel: "Ce nu vrea să fie LuxuryBandit",
+  nichtTitel: "Ce nu vrea să fie VersusForge",
   nicht: [
     "Nu încă o jucărie AI.",
     "Nu o unealtă care îți dă și mai multă muncă.",
@@ -377,12 +391,12 @@ const ro: AboutText = {
 };
 
 const es: AboutText = {
-  kicker: "Sobre LuxuryBandit",
+  kicker: "Sobre VersusForge",
   h1a: "Regalos y momentos únicos de la ", h1y: "nueva era de la IA.",
   portalKurz: "Construimos funnels que venden — soluciones a medida para emprendedores, desde el anuncio de Meta hasta la compra. Todo lo que ves en esta página son funnels nuestros, en vivo: landing page, vídeo con IA, caja y entrega, en siete idiomas. Pruébalos — y si quieres uno para tu negocio, escríbenos.",
-  portalLang: "LuxuryBandit construye funnels de venta de una sola pieza: el anuncio, la landing page, el camino de compra guiado, la caja, la entrega automática — un solo camino, siete idiomas. Cada tarjeta de esta página es un funnel así, en vivo: un visitante llega desde un anuncio de Meta, ve un ejemplo, sube una foto, paga y recibe su vídeo de IA terminado — sin nadie detrás. Exactamente ese funnel construimos también para tu producto.",
+  portalLang: "VersusForge construye funnels de venta de una sola pieza: el anuncio, la landing page, el camino de compra guiado, la caja, la entrega automática — un solo camino, siete idiomas. Cada tarjeta de esta página es un funnel así, en vivo: un visitante llega desde un anuncio de Meta, ve un ejemplo, sube una foto, paga y recibe su vídeo de IA terminado — sin nadie detrás. Exactamente ese funnel construimos también para tu producto.",
 
-  introLead: "LuxuryBandit convierte fotos personales, voz e IA moderna en algo que no simplemente compras y olvidas.",
+  introLead: "VersusForge convierte fotos personales, voz e IA moderna en algo que no simplemente compras y olvidas.",
   introListe: [
     "Una película de cumpleaños.",
     "Un mensaje de boda.",
@@ -405,7 +419,7 @@ const es: AboutText = {
     "Además desarrolló productos propios y presentó uno de sus inventos en «Die Höhle der Löwen» en Alemania.",
     "Hoy trabaja desde Timișoara en una pregunta sencilla:",
     "¿Cómo puede la tecnología moderna crear algo que no se sienta como tecnología, sino como una experiencia personal?",
-    "LuxuryBandit es la respuesta.",
+    "VersusForge es la respuesta.",
   ],
 
   warumLbTitel: "¿Por qué LuxuryBandit?",
@@ -430,7 +444,7 @@ const es: AboutText = {
     "Sistemas de avatares.",
     "Pero la mayoría de las personas no quiere aprender herramientas nuevas.",
     "Quieren un resultado.",
-    "Por eso LuxuryBandit no vende software con el que luego tengas que trabajar tú mismo.",
+    "Por eso VersusForge no vende software con el que luego tengas que trabajar tú mismo.",
     "Subes tu foto, nos das tu mensaje o tu idea — y nosotros la convertimos en la experiencia terminada.",
     "La tecnología queda en segundo plano.",
     "El resultado queda en primer plano.",
@@ -441,7 +455,7 @@ const es: AboutText = {
     "La tecnología nueva suele pertenecer, al principio, a quienes saben usarla.",
     "Más tarde solo se vuelve realmente interesante cuando todos pueden usarla.",
     "Ahí es exactamente donde está la IA hoy.",
-    "LuxuryBandit intenta hacer esta tecnología tan sencilla que nunca necesites saber qué modelo, qué prompt o qué herramienta de vídeo hay detrás.",
+    "VersusForge intenta hacer esta tecnología tan sencilla que nunca necesites saber qué modelo, qué prompt o qué herramienta de vídeo hay detrás.",
     "Solo necesitas saber qué quieres decir, mostrar o regalar.",
     "Del resto nos ocupamos nosotros.",
   ],
@@ -454,7 +468,7 @@ const es: AboutText = {
     ["Cinco minutos en vez de cinco horas.", "Sin configuración complicada. Sin software que aprender. Sin prompts que escribir. Tú decides qué quieres. Nosotros nos ocupamos de la parte técnica."],
   ],
 
-  nichtTitel: "Lo que LuxuryBandit no quiere ser",
+  nichtTitel: "Lo que VersusForge no quiere ser",
   nicht: [
     "No otro juguete de IA.",
     "No una herramienta que te dé aún más trabajo.",
@@ -479,12 +493,12 @@ const es: AboutText = {
 };
 
 const fr: AboutText = {
-  kicker: "À propos de LuxuryBandit",
+  kicker: "À propos de VersusForge",
   h1a: "Des cadeaux et des moments uniques de la ", h1y: "nouvelle ère de l’IA.",
   portalKurz: "Nous construisons des funnels qui vendent — des solutions sur mesure pour entrepreneurs, de la publicité Meta jusqu'à l'achat. Tout ce que tu vois sur cette page, ce sont nos propres funnels, en production : landing page, vidéo IA, caisse et livraison, en sept langues. Teste-les — et si tu en veux un pour ton business, écris-nous.",
-  portalLang: "LuxuryBandit construit des funnels de vente d'un seul tenant : la publicité, la landing page, le parcours d'achat guidé, la caisse, la livraison automatique — un seul chemin, sept langues. Chaque carte de cette page est un funnel comme ça, en production : un visiteur arrive d'une publicité Meta, voit un exemple, ajoute une photo, paie et reçoit sa vidéo IA terminée — sans personne derrière. C'est exactement ce funnel que nous construisons aussi pour ton produit.",
+  portalLang: "VersusForge construit des funnels de vente d'un seul tenant : la publicité, la landing page, le parcours d'achat guidé, la caisse, la livraison automatique — un seul chemin, sept langues. Chaque carte de cette page est un funnel comme ça, en production : un visiteur arrive d'une publicité Meta, voit un exemple, ajoute une photo, paie et reçoit sa vidéo IA terminée — sans personne derrière. C'est exactement ce funnel que nous construisons aussi pour ton produit.",
 
-  introLead: "LuxuryBandit transforme des photos personnelles, une voix et l’IA moderne en quelque chose qu’on n’achète pas simplement pour l’oublier.",
+  introLead: "VersusForge transforme des photos personnelles, une voix et l’IA moderne en quelque chose qu’on n’achète pas simplement pour l’oublier.",
   introListe: [
     "Un film d’anniversaire.",
     "Un message de mariage.",
@@ -507,7 +521,7 @@ const fr: AboutText = {
     "Il a aussi développé ses propres produits et présenté l’une de ses inventions à « Die Höhle der Löwen » en Allemagne.",
     "Aujourd’hui, il travaille depuis Timișoara sur une question simple :",
     "Comment la technologie moderne peut-elle créer quelque chose qui ne ressemble pas à de la technologie — mais à une expérience personnelle ?",
-    "LuxuryBandit est la réponse.",
+    "VersusForge est la réponse.",
   ],
 
   warumLbTitel: "Pourquoi LuxuryBandit ?",
@@ -532,7 +546,7 @@ const fr: AboutText = {
     "Des systèmes d’avatars.",
     "Mais la plupart des gens ne veulent pas apprendre de nouveaux outils.",
     "Ils veulent un résultat.",
-    "C’est pourquoi LuxuryBandit ne vend pas un logiciel avec lequel tu devrais ensuite travailler toi-même.",
+    "C’est pourquoi VersusForge ne vend pas un logiciel avec lequel tu devrais ensuite travailler toi-même.",
     "Tu ajoutes ta photo, tu nous donnes ton message ou ton idée — et nous en faisons l’expérience finie.",
     "La technologie reste à l’arrière-plan.",
     "Le résultat reste au premier plan.",
@@ -543,7 +557,7 @@ const fr: AboutText = {
     "Une technologie nouvelle appartient d’abord souvent à ceux qui savent s’en servir.",
     "Elle ne devient vraiment intéressante que le jour où tout le monde peut l’utiliser.",
     "C’est exactement là qu’en est l’IA aujourd’hui.",
-    "LuxuryBandit essaie de rendre cette technologie si simple que tu n’as jamais besoin de savoir quel modèle, quel prompt ou quel outil vidéo se cache derrière.",
+    "VersusForge essaie de rendre cette technologie si simple que tu n’as jamais besoin de savoir quel modèle, quel prompt ou quel outil vidéo se cache derrière.",
     "Tu dois seulement savoir ce que tu veux dire, montrer ou offrir.",
     "Nous nous occupons du reste.",
   ],
@@ -556,7 +570,7 @@ const fr: AboutText = {
     ["Cinq minutes au lieu de cinq heures.", "Pas de configuration compliquée. Pas de logiciel à apprendre. Pas de prompts à écrire. Tu décides ce que tu veux. Nous nous occupons de la partie technique."],
   ],
 
-  nichtTitel: "Ce que LuxuryBandit ne veut pas être",
+  nichtTitel: "Ce que VersusForge ne veut pas être",
   nicht: [
     "Pas un gadget IA de plus.",
     "Pas un outil qui te donne encore plus de travail.",
@@ -581,12 +595,12 @@ const fr: AboutText = {
 };
 
 const pt: AboutText = {
-  kicker: "Sobre a LuxuryBandit",
+  kicker: "Sobre a VersusForge",
   h1a: "Presentes e momentos únicos da ", h1y: "nova era da IA.",
   portalKurz: "Construímos funnels que vendem — soluções à medida para empreendedores, do anúncio Meta até à compra. Tudo o que vês nesta página são funnels nossos, ao vivo: landing page, vídeo de IA, caixa e entrega, em sete línguas. Testa-os — e se quiseres um para o teu negócio, escreve-nos.",
-  portalLang: "A LuxuryBandit constrói funnels de venda de uma só peça: o anúncio, a landing page, o caminho de compra guiado, a caixa, a entrega automática — um só caminho, sete línguas. Cada cartão desta página é um funnel assim, ao vivo: um visitante chega de um anúncio Meta, vê um exemplo, carrega uma foto, paga e recebe o seu vídeo de IA pronto — sem ninguém por trás. É exatamente esse funnel que construímos também para o teu produto.",
+  portalLang: "A VersusForge constrói funnels de venda de uma só peça: o anúncio, a landing page, o caminho de compra guiado, a caixa, a entrega automática — um só caminho, sete línguas. Cada cartão desta página é um funnel assim, ao vivo: um visitante chega de um anúncio Meta, vê um exemplo, carrega uma foto, paga e recebe o seu vídeo de IA pronto — sem ninguém por trás. É exatamente esse funnel que construímos também para o teu produto.",
 
-  introLead: "A LuxuryBandit transforma fotos pessoais, voz e IA moderna em algo que não se compra simplesmente para esquecer.",
+  introLead: "A VersusForge transforma fotos pessoais, voz e IA moderna em algo que não se compra simplesmente para esquecer.",
   introListe: [
     "Um filme de aniversário.",
     "Uma mensagem de casamento.",
@@ -609,7 +623,7 @@ const pt: AboutText = {
     "Também desenvolveu produtos próprios e apresentou uma das suas invenções no «Die Höhle der Löwen», na Alemanha.",
     "Hoje trabalha a partir de Timișoara numa pergunta simples:",
     "Como pode a tecnologia moderna criar algo que não pareça tecnologia — mas sim uma experiência pessoal?",
-    "A LuxuryBandit é a resposta.",
+    "A VersusForge é a resposta.",
   ],
 
   warumLbTitel: "Porquê a LuxuryBandit?",
@@ -634,7 +648,7 @@ const pt: AboutText = {
     "Sistemas de avatares.",
     "Mas a maioria das pessoas não quer aprender ferramentas novas.",
     "Querem um resultado.",
-    "Por isso a LuxuryBandit não vende software com o qual depois tens de trabalhar sozinho.",
+    "Por isso a VersusForge não vende software com o qual depois tens de trabalhar sozinho.",
     "Carregas a tua foto, dás-nos a tua mensagem ou a tua ideia — e nós transformamos isso na experiência pronta.",
     "A tecnologia fica em segundo plano.",
     "O resultado fica em primeiro plano.",
@@ -645,7 +659,7 @@ const pt: AboutText = {
     "Tecnologia nova pertence muitas vezes, no início, a quem sabe usá-la.",
     "Só se torna verdadeiramente interessante no dia em que todos a podem usar.",
     "É exatamente aí que a IA está hoje.",
-    "A LuxuryBandit tenta tornar esta tecnologia tão simples que nunca precisas de saber que modelo, que prompt ou que ferramenta de vídeo está por trás.",
+    "A VersusForge tenta tornar esta tecnologia tão simples que nunca precisas de saber que modelo, que prompt ou que ferramenta de vídeo está por trás.",
     "Só precisas de saber o que queres dizer, mostrar ou oferecer.",
     "O resto tratamos nós.",
   ],
@@ -658,7 +672,7 @@ const pt: AboutText = {
     ["Cinco minutos em vez de cinco horas.", "Sem configuração complicada. Sem software para aprender. Sem prompts para escrever. Tu decides o que queres. Nós tratamos da parte técnica."],
   ],
 
-  nichtTitel: "O que a LuxuryBandit não quer ser",
+  nichtTitel: "O que a VersusForge não quer ser",
   nicht: [
     "Mais um brinquedo de IA.",
     "Uma ferramenta que te dá ainda mais trabalho.",
@@ -686,9 +700,9 @@ const it: AboutText = {
   kicker: "Chi siamo",
   h1a: "Regali e momenti unici dalla ", h1y: "nuova era dell’IA.",
   portalKurz: "Costruiamo funnel che vendono — soluzioni su misura per imprenditori, dall'annuncio Meta fino all'acquisto. Tutto ciò che vedi su questa pagina sono funnel nostri, dal vivo: landing page, video IA, cassa e consegna, in sette lingue. Provali — e se ne vuoi uno per la tua attività, scrivici.",
-  portalLang: "LuxuryBandit costruisce funnel di vendita in un pezzo solo: l'annuncio, la landing page, il percorso d'acquisto guidato, la cassa, la consegna automatica — un solo percorso, sette lingue. Ogni scheda di questa pagina è un funnel così, dal vivo: un visitatore arriva da un annuncio Meta, vede un esempio, carica una foto, paga e riceve il suo video IA finito — senza nessuno dietro. Ed è esattamente questo funnel che costruiamo anche per il tuo prodotto.",
+  portalLang: "VersusForge costruisce funnel di vendita in un pezzo solo: l'annuncio, la landing page, il percorso d'acquisto guidato, la cassa, la consegna automatica — un solo percorso, sette lingue. Ogni scheda di questa pagina è un funnel così, dal vivo: un visitatore arriva da un annuncio Meta, vede un esempio, carica una foto, paga e riceve il suo video IA finito — senza nessuno dietro. Ed è esattamente questo funnel che costruiamo anche per il tuo prodotto.",
 
-  introLead: "LuxuryBandit trasforma foto personali, voce e IA moderna in qualcosa che non si compra semplicemente per dimenticarlo.",
+  introLead: "VersusForge trasforma foto personali, voce e IA moderna in qualcosa che non si compra semplicemente per dimenticarlo.",
   introListe: [
     "Un film di compleanno.",
     "Un messaggio di matrimonio.",
@@ -711,7 +725,7 @@ const it: AboutText = {
     "Ha anche sviluppato prodotti propri e presentato una delle sue invenzioni a «Die Höhle der Löwen» in Germania.",
     "Oggi lavora da Timișoara su una domanda semplice:",
     "Come può la tecnologia moderna creare qualcosa che non sembri tecnologia — ma un’esperienza personale?",
-    "LuxuryBandit è la risposta.",
+    "VersusForge è la risposta.",
   ],
 
   warumLbTitel: "Perché LuxuryBandit?",
@@ -736,7 +750,7 @@ const it: AboutText = {
     "Sistemi di avatar.",
     "Ma la maggior parte delle persone non vuole imparare nuovi strumenti.",
     "Vogliono un risultato.",
-    "Per questo LuxuryBandit non vende software con cui poi devi lavorare da solo.",
+    "Per questo VersusForge non vende software con cui poi devi lavorare da solo.",
     "Carichi la tua foto, ci dai il tuo messaggio o la tua idea — e noi la trasformiamo nell’esperienza finita.",
     "La tecnologia resta sullo sfondo.",
     "Il risultato resta in primo piano.",
@@ -747,7 +761,7 @@ const it: AboutText = {
     "Una nuova tecnologia all’inizio appartiene spesso a chi sa usarla.",
     "Diventa davvero interessante solo il giorno in cui tutti possono usarla.",
     "È esattamente lì che si trova l’IA oggi.",
-    "LuxuryBandit cerca di rendere questa tecnologia così semplice che tu non debba mai sapere quale modello, quale prompt o quale strumento video ci sia dietro.",
+    "VersusForge cerca di rendere questa tecnologia così semplice che tu non debba mai sapere quale modello, quale prompt o quale strumento video ci sia dietro.",
     "Devi solo sapere cosa vuoi dire, mostrare o regalare.",
     "Al resto pensiamo noi.",
   ],
@@ -760,7 +774,7 @@ const it: AboutText = {
     ["Cinque minuti invece di cinque ore.", "Nessuna configurazione complicata. Nessun software da imparare. Nessun prompt da scrivere. Decidi tu cosa vuoi. Alla parte tecnica pensiamo noi."],
   ],
 
-  nichtTitel: "Cosa LuxuryBandit non vuole essere",
+  nichtTitel: "Cosa VersusForge non vuole essere",
   nicht: [
     "Non un altro giocattolo IA.",
     "Non uno strumento che ti dà ancora più lavoro.",

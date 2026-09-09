@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/lang";
 import LightSwitch from "@/components/LightSwitch";
 import GuthabenChip from "@/components/GuthabenChip";
 import KontoChip from "@/components/KontoChip";
+import { Wortmarke, BESCHREIBER } from "@/components/VersusForgeMarke";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
@@ -71,14 +72,28 @@ import KontoChip from "@/components/KontoChip";
  * Die Wortmarke darüber sagt schon LUXURYBANDIT, deshalb steht hier nur die zweite Hälfte —
  * zusammen gelesen ergibt der Kopf „LuxuryBandit · The AI-Media Creator".
  */
+/**
+ * JETZT „MARKETING ENGINE" (Owner 09.09.2026: „VesusForge Marketing Engine").
+ *
+ * Der Kopf trug „VersusForge · The AI-Media Creator" — zwei Marken in zwei Zeilen. Die obere
+ * war seit dem 08.09. schon VersusForge, die untere noch der Beschreiber des Hauses. Zusammen
+ * gelesen ergab das einen Namen, den es nicht gibt.
+ *
+ * DER BESCHREIBER KOMMT AUS DER MARKE SELBST (`BESCHREIBER` in VersusForgeMarke.tsx) und
+ * wird hier nicht abgetippt: Er steht auch im Fuss, in den Mails und auf dem Kachelbild —
+ * eine zweite Quelle liefe beim nächsten Wortwechsel auseinander.
+ *
+ * SPRACHGLEICH IN ALLEN SIEBEN: Es ist Teil des Namens, kein Satz. Er geht bewusst nicht
+ * durch den Übersetzer ([[uebersetzer-fallen]]).
+ */
 const MOTTO: Record<string, string> = {
-  en: "The AI-Media Creator",
-  de: "The AI-Media Creator",
-  ro: "The AI-Media Creator",
-  es: "The AI-Media Creator",
-  fr: "The AI-Media Creator",
-  pt: "The AI-Media Creator",
-  it: "The AI-Media Creator",
+  en: BESCHREIBER,
+  de: BESCHREIBER,
+  ro: BESCHREIBER,
+  es: BESCHREIBER,
+  fr: BESCHREIBER,
+  pt: BESCHREIBER,
+  it: BESCHREIBER,
 };
 
 export default function TopNav({
@@ -325,15 +340,26 @@ export default function TopNav({
             * Zwei Knöpfe nebeneinander statt eines: Das Logo geht auf „/", der Name auf
             * `heim` (ohne eigene Marke ist beides dasselbe, dann ändert sich nichts).
             */}
-          {!ohneLogo && (
+          {/**
+            * DAS LB-ZEICHEN IST RAUS (Owner 09.09.2026: „Logo raus, dafür VersusForge
+            * Schriftzug rein").
+            *
+            * Hier sass der runde LB-Kreis (`/lb-logo.png`) links neben dem Namen. Er gehörte
+            * dem alten Hausnamen; seit der Kopf VersusForge heisst, standen zwei Marken
+            * nebeneinander — ein Zeichen für die eine, ein Wort für die andere.
+            *
+            * DER SCHRIFTZUG IST JETZT DAS ZEICHEN. Er steht unten als `Wortmarke` und ist
+            * damit dasselbe Bauteil wie im Fuss, in den Mails und auf dem Kachelbild
+            * (Hausregel `ci-bibliothek`: ein Baustein, nicht drei Nachbauten).
+            *
+            * NUR EIN TOPIC MIT EIGENER `marke` behält links noch ein Hauszeichen — dort
+            * trägt die Zeile daneben den Produktnamen, und der Weg nach Hause muss sichtbar
+            * bleiben. Auch dieses Zeichen ist der Schriftzug, nicht mehr der Kreis.
+            */}
+          {!ohneLogo && marke && (
             <button type="button" onClick={() => router.push("/")} aria-label="VersusForge"
-              className="mr-2 shrink-0 active:opacity-70 transition-opacity">
-              <span className="relative block h-9 w-9">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/lb-logo.png" alt="VersusForge" className="h-9 w-9 rounded-full object-contain"
-                  onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
-                <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
-              </span>
+              className="mr-2.5 shrink-0 active:opacity-70 transition-opacity">
+              <Wortmarke className="block text-[15px] font-black leading-none tracking-[-0.02em] text-white" />
             </button>
           )}
           <button type="button" onClick={() => router.push(HEIM)} aria-label="Home"
@@ -353,6 +379,13 @@ export default function TopNav({
                 * Es steht hier und nicht auf der Seite, weil es JEDE Marke trifft, die jemand
                 * künftig einträgt — die nächste lange wäre sonst derselbe Fehler.
                 */}
+              {/* OHNE EIGENE MARKE STEHT HIER DER SCHRIFTZUG SELBST, nicht der Name als
+                  Grossbuchstaben-Text: „VERSUSFORGE" in Versalien ist eine Schreibweise,
+                  die Wortmarke ist das Zeichen. Zweifarbig, mit Punkt, gleiche Schrift wie
+                  überall (Owner 09.09.2026). */}
+              {!marke ? (
+                <Wortmarke className="block text-[19px] font-black leading-none tracking-[-0.02em] text-white" />
+              ) : (
               <span className={`block truncate font-black leading-none text-white ${
                 /* LANGE NAMEN VERLIEREN DIE VERSALIEN, NICHT DEN NAMEN. Gemessen an
                    „Bewerbungs-Generator": In Versalien mit Sperrung braucht er ~180 px, es
@@ -366,8 +399,9 @@ export default function TopNav({
                     ausdrücklich („URLs nicht"): Dort hängen Links in ausgelieferten Mails,
                     Stripe-Rückwege und Vorschaubilder dran, und ein Umzug davon ist ein
                     eigener Vorgang mit eigenen Fehlern. */}
-                {marke ?? "VersusForge"}
+                {marke}
               </span>
+              )}
               {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                   kommt allenfalls dahinter, ersetzt es aber nie. */}
               {mottoAnzeige && (

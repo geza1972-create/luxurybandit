@@ -204,7 +204,11 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
           </p>
         </div>
       ) : (
-        <p className="mt-3 text-[13px] font-semibold text-white/40">© LuxuryBandit</p>
+        /* DER NAME IM FUSS IST VERSUSFORGE (Owner 09.09.2026, mit Bild vom „© LuxuryBandit":
+           „hier auch"). Die Zeile darüber verlinkt seit dem 08.09. schon auf VERSUSFORGE —
+           der © stand als Einziger noch auf dem alten Namen. 13,5 px statt 13: Schriftboden
+           des Hauses, und die Zeile wurde ohnehin angefasst. */
+        <p className="mt-3 text-[13.5px] font-semibold text-white/40">© VersusForge</p>
       )}
     </footer>
   );
