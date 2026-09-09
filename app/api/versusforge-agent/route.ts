@@ -175,9 +175,27 @@ export async function POST(request: Request) {
      * TECHNISCH ÜBER EINE LETZTE ZEILE, weil der Agent Werkzeuge benutzt und deshalb freien
      * Text zurückgibt statt JSON. Die Zeile wird im Browser abgeschnitten und zu Chips.
      */
-    "ZU JEDER FRAGE GEHÖREN BEISPIELE — ABER NIE IM FLIESSTEXT. Schreib deine Frage, und setze die Beispiele in eine EIGENE LETZTE ZEILE, die mit >> beginnt und die Beispiele mit | trennt.",
+    /**
+     * ── WANN CHIPS FALSCH SIND (Owner 09.09.2026, mit Bild der ersten Frage: „auf keinen
+     * Fall schon hier. Es gibt tausende von Berufen") ────────────────────────────────────
+     *
+     * MEIN FEHLER WAR DIE PAUSCHALE: „Zu jeder Frage gehören Beispiele." Daraus wurden unter
+     * der ERSTEN Frage die Chips „Zahnarzt | Eventraumvermietung | Friseur" — drei aus
+     * tausend Möglichkeiten. Das ist kein Beispiel, das ist ein Ratespiel, und es verkleinert
+     * sein Geschäft auf eine Auswahl, die wir uns ausgedacht haben.
+     *
+     * DIE TRENNLINIE: Ein Chip zeigt, in welcher FORM man antwortet — er ersetzt nie, WER
+     * jemand ist. „Wieder in einen Apfel beissen" ist eine Form; „Zahnarzt" ist seine
+     * Identität. Deshalb: nie, bevor er gesagt hat, was er tut, und nie für etwas, das aus
+     * einer offenen Menge kommt.
+     */
+    "CHIPS NUR, WENN SIE DIE FORM EINER ANTWORT ZEIGEN — nie, wenn sie raten müssten, wer er ist oder was er tut.",
+    "KEINE CHIPS, BEVOR ER GESAGT HAT, WAS ER ANBIETET. Bei der ersten Frage gibt es tausende möglicher Antworten; drei davon anzubieten ist ein Ratespiel und macht sein Geschäft kleiner, als es ist.",
+    "KEINE CHIPS BEI OFFENEN MENGEN: Beruf, Branche, Ort, Name, Produkt. Dort fragst du und lässt ihn schreiben.",
+    "CHIPS SIND RICHTIG, wenn er die Frage vermutlich nicht beantworten kann, WEIL er die Form nicht kennt — etwa bei Belegen, bei dem was der Kunde hinterher kann, oder warum es nicht für jeden passt. Dann bauen sie eine Brücke, statt zu raten.",
+    "WENN CHIPS PASSEN, GEHÖREN SIE NIE IN DEN FLIESSTEXT. Schreib deine Frage, und setze sie in eine EIGENE LETZTE ZEILE, die mit >> beginnt und die Einträge mit | trennt.",
     `Beispiel fuer den Aufbau deiner Antwort:\nWas kann ein Patient danach, was er vorher nicht konnte?\n>>wieder in einen Apfel beissen|ohne Schmerzen kauen|wieder offen lachen`,
-    "REGELN FÜR DIE ZEILE: höchstens drei Beispiele, je höchstens sechs Wörter, aus SEINEM Fach. Keine Zahlen, Preise, Namen oder Orte, die du nicht von ihm hast — es sind mögliche Antworten, keine Behauptungen über ihn. Passt keine Wahl zur Frage, lass die Zeile ganz weg.",
+    "REGELN FÜR DIE ZEILE: höchstens drei Einträge, je höchstens sechs Wörter, aus SEINEM Fach — also erst möglich, wenn du sein Fach kennst. Keine Zahlen, Preise, Namen oder Orte, die du nicht von ihm hast. Im Zweifel LASS DIE ZEILE WEG: Eine Frage ohne Chips ist immer richtig, ein falscher Chip nie.",
     "IM FLIESSTEXT STEHT NIE die Wendung: zum Beispiel. Die Beispiele stehen ausschliesslich in der >>-Zeile.",
     /**
      * ── NIE DIESELBE FRAGE ZWEIMAL (09.09.2026, im selben Lauf des Owners gesehen) ────────

@@ -85,12 +85,21 @@ export default function AgentChat() {
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return; }
+      /**
+       * DER RIEGEL IM BROWSER (Owner 09.09.2026: „auf keinen Fall schon hier").
+       *
+       * Die Regel steht im Auftragstext — aber ein Auftragstext ist eine Bitte, und bei der
+       * ersten Frage war der Schaden am grössten: drei Berufe aus tausend, ausgedacht von
+       * uns. Solange er noch nichts über sein Geschäft gesagt hat, gibt es hier keine Chips,
+       * egal was das Modell schickt. Zwei Riegel für einen Fehler, der teuer aussieht.
+       */
+      const hatErzaehlt = naechster.filter(m => m.rolle === "mensch").length > 1;
       setVerlauf([...naechster, {
         rolle: "agent",
         text: String(d.antwort ?? ""),
         benutzt: Array.isArray(d.benutzt) ? (d.benutzt as string[]) : [],
         bild: String(d.bild ?? ""),
-        vorschlaege: Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : [],
+        vorschlaege: hatErzaehlt && Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : [],
       }]);
     } catch {
       setFehler("Das ging gerade nicht. Bitte noch einmal.");
