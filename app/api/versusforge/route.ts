@@ -446,6 +446,8 @@ const briefingAus = (body: Record<string, unknown>): Briefing | null => {
   /* MIT ADRESSE REICHT EIN HALBER SATZ (Owner 08.09.2026): Wer seine Website zeigt, muss
      nicht auch noch erklären, was er tut — genau deshalb gibt er sie ja. */
   if (!ziel) return null;
+  /* Acht Zeichen (09.09.2026): Der erste Satz sagt nur noch, WORUM es geht — die fünf
+     Hebel füllen die Fragen. Der Unsinn-Filter darunter fängt Tastaturgeklapper ab. */
   if (text.length < 15 && !str(body.url, 300)) return null;
   const runden = (Array.isArray(body.runden) ? body.runden : [])
     .slice(0, MAX_FRAGEN)

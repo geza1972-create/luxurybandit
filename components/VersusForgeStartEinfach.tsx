@@ -135,6 +135,9 @@ export default function VersusForgeStartEinfach({
   }, []);
 
   const start = () => {
+    /* EIN SATZ, NICHT DREI UND NICHT DREI WÖRTER (Owner 09.09.2026: „drei Sätze ist zu
+       viel" · „nein, er soll schon einen Satz schreiben"). Fünfzehn Zeichen sind die
+       Untergrenze eines Satzes; alles Weitere holen die vier Fragen. */
     if (text.trim().length < 15) { setFehler(S.feldZuKurz); return; }
     setFehler("");
     try { sessionStorage.setItem(ABLAGE, JSON.stringify({ ziel, text: text.trim(), url: "" })); } catch { /**/ }
@@ -259,26 +262,48 @@ export default function VersusForgeStartEinfach({
           * AUSWAHL VERSCHIEBT NIE (CI): gleiche Rahmenstärke und Polsterung in beiden
           * Zuständen, es wechselt ausschliesslich die Farbe.
           */}
-        <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label={S.bspTitel}>
-          {KARTEN.map(({ k, z }) => {
-            const satz = String(S[k] ?? "");
-            if (!satz) return null;
-            const aktiv = text === satz;
-            return (
-              <button
-                key={k}
-                type="button"
-                aria-pressed={aktiv}
-                onClick={() => { setZiel(z); setText(satz); setFehler(""); }}
-                className={`rounded-full border-[1.5px] px-4 py-2.5 text-[15px] font-semibold transition ${
-                  aktiv
-                    ? "border-[#1d6fd0] bg-[#eaf2fc] text-[#14181c]"
-                    : "border-[#dfe4e9] bg-[#f5f7f9] text-[#14181c] hover:border-[#1d6fd0]"}`}
-              >
-                {satz}
-              </button>
-            );
-          })}
+        {/**
+          * ── SIE SIND NICHT MEHR ANTIPPBAR (Owner 09.09.2026) ─────────────────────────────
+          *
+          * „Ich tendiere fast, dass ich die unteren nicht als Chips mache, sonst kommen
+          * wieder die Faulen und klicken nur bis zum nächsten. Die brauche ich nicht." ·
+          * „Da können nur Beispiele stehen, aber nicht zum Übernehmen."
+          *
+          * ER HAT RECHT, UND ES IST HEUTE BEWEISBAR GEWORDEN. Seit die Maschine fünf Hebel
+          * aus SEINEN Angaben füllt, ist ein übernommener Fremdsatz das Gegenteil von einer
+          * Eingabe: Alle fünf Stände bleiben unten, der Plan wird eine Hülse, und der Hook
+          * ist der, den er heute im Dashboard gesehen hat. Ein Klick, der zwei Modellaufrufe
+          * kostet und garantiert nichts Brauchbares ergibt.
+          *
+          * WARUM SIE TROTZDEM STEHEN BLEIBEN: Der Owner stand am 08.09. selbst vor dem
+          * leeren Feld und fragte „was soll ich schreiben?". Beispiele beantworten das —
+          * sie zeigen die FORM, nicht den Inhalt. Genau die Trennung, die er verlangt:
+          * lesen ja, übernehmen nein.
+          *
+          * DIE HAUSREGEL [[chat-no-personal-questions-buttons-only]] („der Nutzer will
+          * klicken, nicht tippen") gilt hier bewusst NICHT. Sie stammt von Besuchern, die
+          * ein Geschenk kaufen; hier sitzt ein Unternehmer, der sein Geschäft beschreibt,
+          * und was er tippt, IST das Produkt. Ein Klick kann das nicht ersetzen.
+          *
+          * KEINE KNÖPFE, KEIN `hover`, KEIN CURSOR: Was aussieht wie ein Knopf, wird
+          * angetippt — auch wenn nichts passiert, und dann ist die Seite kaputt.
+          */}
+        <div className="mt-5">
+          <p className="text-[13.5px] font-bold uppercase tracking-[0.12em] text-[#8b959d]">
+            {S.bspTitel}
+          </p>
+          <ul className="mt-2.5 flex list-none flex-col gap-1.5 p-0">
+            {KARTEN.map(({ k }) => {
+              const satz = String(S[k] ?? "");
+              if (!satz) return null;
+              return (
+                <li key={k} className="text-[15px] leading-[1.45] text-[#5b666f]">
+                  <span aria-hidden="true" className="mr-2 text-[#c3ccd4]">–</span>
+                  {satz}
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
         {/* KEIN SATZ UNTER DEM KNOPF (Owner 09.09.2026: „raus"). Er versprach dasselbe, was

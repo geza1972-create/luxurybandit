@@ -304,7 +304,7 @@ export const VERSUSFORGE_TEXTE = {
    * FLACHE SCHLÜSSEL, keine Liste von Objekten: `textbausteineInSprache` übersetzt einen
    * flachen Record. Welches Beispiel zu welchem Knopf gehört, weiss der Baustein.
    */
-  bspTitel: "Zum Beispiel:",
+  bspTitel: "Zum Beispiel",
   bsp1: "Wir brauchen Pflegekräfte",
   bsp2: "Wir suchen deutschsprachige Fachkräfte",
   bsp3: "Ich bin Zahnarzt und biete Implantate",
@@ -417,7 +417,7 @@ export const VERSUSFORGE_TEXTE = {
   urlPlatzhalter: "deinefirma.de",
   urlLabel: "Oder zeig mir deine Website — ich lese sie.",
   feldWeiter: "Weiter",
-  feldZuKurz: "Schreib mir bitte zwei, drei Sätze — sonst rate ich, und das hilft dir nicht.",
+  feldZuKurz: "Ein Satz reicht — was du anbietest und wo.",
 
   /* ── Schritt 3 · die Rückfragen ──────────────────────────────────────────── */
   /* Der Plan VOR dem Gespräch (Hausregel [[agenten-plan-vor-dem-gespraech]]): Er sagt, wie
@@ -741,7 +741,24 @@ export const VERSUSFORGE_TEXTE = {
    * Die Branchen stehen jetzt auf den Karten unter dem Knopf, wo sie hingehören. Das Feld
    * sagt nur noch, WAS hineingehört.
    */
-  einfachPlatzhalter: "Schreib in zwei, drei Sätzen, was du anbietest und was du erreichen willst.",
+  /**
+   * EIN PAAR WÖRTER, KEINE DREI SÄTZE (Owner 09.09.2026, mit Bild des Feldes: „drei Sätze ist
+   * zu viel. Schreib einige Wörter").
+   *
+   * DIE HÜRDE STAND AN DER FALSCHEN STELLE. „Schreib in zwei, drei Sätzen" ist ein Aufsatz,
+   * bevor jemand weiss, ob sich das lohnt — und wer vor einem leeren Feld eine Aufgabe
+   * gestellt bekommt, macht sie nicht.
+   *
+   * ES KOSTET UNS AUCH NICHTS: Seit die vier Fragen die fünf Hebel füllen, muss der erste
+   * Satz nur noch sagen, WORUM es geht. Alles andere holt das Gespräch — dafür ist es da.
+   *
+   * ABER EIN SATZ, KEINE STICHWÖRTER (Owner 09.09.2026, Nachtrag: „nein, er soll schon einen
+   * Satz schreiben"). „Zahnarzt, Implantate, München" hatte ich zwischendurch stehen — das
+   * ist eine Suchanfrage. Ein Satz trägt, was drei Stichwörter nicht haben: die Absicht.
+   * „Ich vermiete meinen Eventraum" und „Ich suche jemanden für meinen Eventraum" bestehen
+   * aus denselben Wörtern und meinen das Gegenteil.
+   */
+  einfachPlatzhalter: "Ich bin Zahnarzt in München und mache Implantate.",
 
   /**
    * DER ABOUT-BLOCK UNTEN (Owner 09.09.2026: „wir brauchen nur unten About. Dann schreiben
