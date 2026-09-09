@@ -6,6 +6,7 @@ import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
+import { BESCHREIBER } from "@/components/VersusForgeMarke";
 import { Briefcase, Sparkles, Flame, MapPin, Lock, Palmtree, PartyPopper, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
@@ -501,7 +502,19 @@ export default async function ThemesCatalog({ searchParams }: {
      * KEIN `video`: Es gibt keines, und ein geliehenes aus einem anderen Thema würde etwas
      * versprechen, das dieses Produkt nicht liefert.
      */
-    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/engine", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
+    /**
+     * DER KACHELTITEL IST DER GANZE NAME (Owner 09.09.2026, mit Bild der Kachel: „Das ist
+     * VersusForge Marketing Engine").
+     *
+     * Hier stand nur „VersusForge". Im Kopf und im Kachelbild steht der Beschreiber schon
+     * darunter — im Katalog fehlte er, und damit war die einzige Kachel ohne Aussage
+     * ausgerechnet die des eigenen Produkts. Dieselbe Form wie beim Nachbarn: „David · AI
+     * Pre-Screening", „VersusForge · Marketing Engine".
+     *
+     * ER GEHT NICHT DURCH DEN ÜBERSETZER — der Pfad `/engine` steht in `MARKEN_TITEL`, und
+     * `BESCHREIBER` ist Teil des Namens ([[uebersetzer-fallen]]).
+     */
+    { icon: Target, title: `VersusForge · ${BESCHREIBER}`, tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/engine", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
     /**
      * PLATZ EINS: DIE VIDEOBOTSCHAFT AN DICH SELBST (Owner 11.08.2026: „mach das als
      * erstes" — unmittelbar nachdem er das Thema benannt hatte).
