@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Wrench } from "lucide-react";
 import { Wortmarke } from "@/components/VersusForgeMarke";
+import SprachKnopf from "@/components/SprachKnopf";
 
 /**
  * DER AGENT ALS CHAT — der Prototyp auf dem Zweig `agent` (Owner 09.09.2026).
@@ -148,8 +149,16 @@ export default function AgentChat() {
             value={eingabe}
             onChange={e => setEingabe(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void schicken(); } }}
-            placeholder="Schreib einfach."
+            placeholder="Schreib oder sprich."
             className="max-h-[160px] min-h-[52px] flex-1 resize-none rounded-2xl border-[1.5px] border-[#dfe4e9] bg-white px-4 py-3.5 text-[16px] leading-[1.45] text-[#14181c] placeholder:text-[#8b959d] outline-none focus:border-[#1d6fd0]"
+          />
+          {/* SPRACHE NEBEN DEM FELD (Owner 09.09.2026: „ich kann es mit Sprache steuern").
+              Der erkannte Text landet IM FELD, nicht direkt im Gespräch — Begründung in
+              components/SprachKnopf.tsx. */}
+          <SprachKnopf
+            lang="de"
+            aus={busy}
+            fertig={t => setEingabe(v => (v ? `${v} ${t}` : t))}
           />
           <button
             type="button"
