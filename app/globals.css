@@ -81,6 +81,14 @@
      Augenhöhe. Die Seite setzt ihre eigene Breite (1080 px, mittig) und teilt sich ab
      1024 px in zwei Spalten — nicht über den ganzen Bildschirm gezogen. */
   .lb-frame:has(.lb-versusforge),
+  /* DAS MANDANTEN-DASHBOARD (Owner 09.09.2026, mit Bild: „wie sieht aus, kaputt").
+     Es sah zerbrochen aus, und das Raster war unschuldig: Die Seitenleiste nimmt 220 px,
+     und in der 440er-Handyspalte blieben dem Inhalt 156 px — vier Kennzahlen à 30 px.
+     DIESE Seite gehört wie die Firmenseite an den SCHREIBTISCH: Wer seine Anfragen
+     abarbeitet und zurückruft, sitzt nicht am Telefon-Display. Der TRICHTER des Mandanten
+     (.lb-mandant) bleibt bewusst in der Handyspalte — dort kommen die Patienten an, und
+     die kommen vom Handy. */
+  .lb-frame:has(.lb-dashboard),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;

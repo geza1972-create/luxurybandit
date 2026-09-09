@@ -90,7 +90,7 @@ export default async function MandantDashboard({ params, searchParams }: {
    */
   if (!m || !schluesselStimmt(m.schluessel, k)) {
     return (
-      <main className="lb-mandant grid min-h-[100dvh] place-items-center bg-[#f5f7f9] px-5 text-[#14181c]">
+      <main className="lb-mandant lb-dashboard grid min-h-[100dvh] place-items-center bg-[#f5f7f9] px-5 text-[#14181c]">
         <div className={`${KARTE} w-full max-w-[440px] p-7`}>
           <Wortmarke className="text-[19px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />
           <h1 className="mt-6 text-[24px] font-extrabold leading-[1.2] tracking-[-0.02em]">
@@ -128,7 +128,7 @@ export default async function MandantDashboard({ params, searchParams }: {
   return (
     /* `lb-mandant` blendet Hausleiste und Cookie-Band aus (globals.css). Ein Kunde, der
        seine Anfragen liest, hat auf dieser Seite nichts mit Kuss-Videos zu tun. */
-    <div className="lb-mandant min-h-[100dvh] bg-[#f5f7f9] text-[#14181c]">
+    <div className="lb-mandant lb-dashboard min-h-[100dvh] bg-[#f5f7f9] text-[#14181c]">
       {/* ── KOPFLEISTE: WER, WAS, IN WELCHEM ZUSTAND ── */}
       <header className="sticky top-0 z-20 border-b border-[#e4e9ee] bg-white/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1080px] flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
@@ -151,14 +151,25 @@ export default async function MandantDashboard({ params, searchParams }: {
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1080px] gap-6 px-5 py-6 md:grid-cols-[220px_1fr] md:py-8">
+      {/**
+        * DIE SEITENLEISTE KOMMT ERST AB 1024 px (Owner 09.09.2026, mit Bild: „wie sieht aus,
+        * kaputt").
+        *
+        * Sie stand auf `md` (768 px) und nahm dort 220 px plus Abstand — für den Inhalt
+        * blieben keine 500 px, und darin sollten vier Kennzahlen nebeneinander stehen. Aus
+        * „Besucher · 30 Tage" wurde eine Spalte aus Einzelwörtern.
+        *
+        * DIE REGEL DAHINTER: Ein Umbruchpunkt gilt nicht für ein Element, sondern für das,
+        * was danach übrig bleibt. Wer nur die Leiste betrachtet, setzt ihn zu früh.
+        */}
+      <div className="mx-auto grid w-full max-w-[1080px] gap-6 px-5 py-6 lg:grid-cols-[220px_1fr] lg:py-8">
         {/* ── NAVIGATION: links am Rechner, als Reihe am Handy ── */}
-        <nav className="flex gap-2 overflow-x-auto md:sticky md:top-[76px] md:h-fit md:flex-col md:overflow-visible lb-wisch">
+        <nav className="flex gap-2 overflow-x-auto lg:sticky lg:top-[76px] lg:h-fit lg:flex-col lg:overflow-visible lb-wisch">
           <Reiter href={mitK("")} aktiv={ansicht === "anfragen"} icon={<Inbox className="h-[18px] w-[18px]" />}
             wort="Anfragen" zahl={anfragen.length} />
           <Reiter href={mitK("einstellungen")} aktiv={ansicht === "einstellungen"} icon={<Settings className="h-[18px] w-[18px]" />}
             wort="Einstellungen" warnung={!bereit} />
-          <div className="hidden md:my-2 md:block md:border-t md:border-[#e4e9ee]" />
+          <div className="hidden lg:my-2 lg:block lg:border-t lg:border-[#e4e9ee]" />
           <Aussen href={basis} icon={<ExternalLink className="h-[18px] w-[18px]" />} wort="Dein Trichter" />
           <Aussen href={`${basis}/anzeige`} icon={<Megaphone className="h-[18px] w-[18px]" />} wort="Deine Anzeige" />
         </nav>
@@ -196,10 +207,10 @@ export default async function MandantDashboard({ params, searchParams }: {
           ) : (
             <>
               {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Zahl wert={String(messung.besucher)} label="Besucher · 30 Tage" />
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <Zahl wert={String(messung.besucher)} label="Besucher" zusatz="30 Tage" />
                 <Zahl wert={String(anfragen.length)} label="Anfragen" />
-                <Zahl wert={String(neu)} label="Neu · 7 Tage" />
+                <Zahl wert={String(neu)} label="Neu" zusatz="7 Tage" />
                 <Zahl wert={zuletzt} label="Zuletzt" klein />
               </div>
 
@@ -276,7 +287,7 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
 }) {
   return (
     <Link href={href}
-      className={`flex shrink-0 items-center gap-2.5 rounded-xl border-[1.5px] px-3.5 py-2.5 text-[15px] font-bold transition md:w-full ${
+      className={`flex shrink-0 items-center gap-2.5 rounded-xl border-[1.5px] px-3.5 py-2.5 text-[15px] font-bold transition lg:w-full ${
         aktiv
           ? "border-[#1d6fd0] bg-[#eaf2fc] text-[#1d6fd0]"
           : "border-transparent bg-white text-[#5b666f] hover:text-[#14181c]"}`}>
@@ -294,21 +305,34 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
 function Aussen({ href, icon, wort }: { href: string; icon: React.ReactNode; wort: string }) {
   return (
     <a href={href}
-      className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold text-[#5b666f] transition hover:text-[#1d6fd0] md:w-full">
+      className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold text-[#5b666f] transition hover:text-[#1d6fd0] lg:w-full">
       {icon}
       <span className="whitespace-nowrap">{wort}</span>
     </a>
   );
 }
 
-/** Eine Kennzahl. Drei davon, mehr nicht — was man nicht liest, verdeckt nur. */
-function Zahl({ wert, label, klein = false }: { wert: string; label: string; klein?: boolean }) {
+/**
+ * Eine Kennzahl. Vier davon, mehr nicht — was man nicht liest, verdeckt nur.
+ *
+ * DER ZEITRAUM STEHT IN EINER EIGENEN ZEILE, nicht mit einem Mittelpunkt angehängt: „Besucher
+ * · 30 Tage" umbricht in einer schmalen Karte an der falschen Stelle und wird zu einer Spalte
+ * aus Einzelwörtern (09.09.2026 im Bild des Owners gesehen). Zwei Zeilen brechen nicht.
+ *
+ * `whitespace-nowrap` an der Zahl: „vor 21 Std." ist ein Wert, kein Satz — er wird kleiner,
+ * bevor er umbricht.
+ */
+function Zahl({ wert, label, zusatz, klein = false }: {
+  wert: string; label: string; zusatz?: string; klein?: boolean;
+}) {
   return (
-    <div className={`${KARTE} px-4 py-4`}>
-      <div className={`font-extrabold tracking-[-0.03em] ${klein ? "text-[19px] leading-[1.35]" : "text-[30px] leading-none"}`}>
+    <div className={`${KARTE} min-w-0 px-4 py-4`}>
+      <div className={`truncate whitespace-nowrap font-extrabold tracking-[-0.03em] ${
+        klein ? "text-[17px] leading-[1.3]" : "text-[30px] leading-none"}`}>
         {wert}
       </div>
-      <div className="mt-1.5 text-[13.5px] font-bold text-[#8b959d]">{label}</div>
+      <div className="mt-1.5 truncate text-[13.5px] font-bold text-[#8b959d]">{label}</div>
+      {zusatz && <div className="truncate text-[13.5px] font-semibold text-[#b3bcc4]">{zusatz}</div>}
     </div>
   );
 }
