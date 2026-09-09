@@ -80,7 +80,25 @@ const GRUSS = [
    */
   "Hallo, ich bin VersusForge — ein KI-Agent, gebaut für eine einzige Sache: Werbung, die Anfragen bringt.",
   "Ich baue dir eine Werbestrategie, die genau auf dein Geschäft zugeschnitten ist, nicht aus einer Vorlage: den Satz, der Leute anhält, wen er erreichen soll, und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen.",
-  "Dafür brauche ich ein paar Dinge, die nur du weisst. Machst du mit?",
+  /**
+   * ── DIE DREI REGELN VORWEG (Owner 09.09.2026: „bevor wir anfangen, muss ich dir auch sagen,
+   * wie wir am schnellsten zum Ergebnis kommen. Rules") ────────────────────────────────────
+   *
+   * WARUM DAS AN DEN ANFANG GEHÖRT: Der Agent kann nur so gut sein wie das, was er bekommt.
+   * Bisher hat er den Menschen erst NACH einer schwachen Antwort erfahren lassen, dass sie zu
+   * allgemein war — das ist eine Korrektur, und Korrekturen kränken. Vorher gesagt, ist
+   * dasselbe eine Spielregel, und die nimmt niemand persönlich.
+   *
+   * DREI, NICHT SIEBEN. Was am Anfang steht, wird überflogen; jede weitere Zeile senkt die
+   * Wahrscheinlichkeit, dass eine gelesen wird.
+   *
+   * DIE DRITTE IST DIE WICHTIGSTE und sie gilt für beide Seiten: Was er nicht weiss, lässt er
+   * weg — und wir erfinden es auch nicht. Damit steht die Hausregel gegen das Erfinden nicht
+   * nur im Auftragstext, sondern im Gespräch, wo der Kunde sie sehen kann.
+   */
+  "Damit es schnell geht, drei Sachen:",
+  "· Antworte konkret. „Gutes Essen“ bringt uns nicht weiter, „Lamm vom Holzkohlegrill“ schon.\n· Verstehe ich etwas falsch, sag es sofort — ich rechne damit.\n· Was du nicht weisst, lass weg. Ich erfinde nichts, und du sollst es auch nicht.",
+  "Ein paar Minuten, dann steht deine Strategie. Machst du mit?",
 ].join("\n\n");
 
 /**
