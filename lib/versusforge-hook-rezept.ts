@@ -1,12 +1,12 @@
 /**
  * DAS HOOK-REZEPT (Owner 09.09.2026, nach einem Instagram-Karussell: „Das ist ein Hook. Ein
- * richtig guter Hook. So sollten wir unsere Hooks bauen." · „Zuerst müssen wir das Rezept
- * speichern und auf unseren Generator übertragen.")
+ * richtig guter Hook. So sollten wir unsere Hooks bauen.“ · „Zuerst müssen wir das Rezept
+ * speichern und auf unseren Generator übertragen.“)
  *
  * WAS DORT ZU SEHEN WAR: Zehn Bilder verkaufen einen wertlosen Stein für 500. Nicht durch
  * Behauptungen — der Leser SIEHT zu, wie der Wert entsteht, Bild für Bild, jeder Schritt mit
  * Namen. Am Ende kippt es: „Der Stein hat sich nicht geändert. Dein Wollen hat sich
- * geändert."
+ * geändert.“
  *
  * WOHER ES KOMMT UND WAS WIR NEHMEN: Es war ein öffentlicher Beitrag, und eine Methode
  * gehört niemandem. Sein Wortlaut, seine Gestaltung und sein Beispiel gehören ihm. Wir
@@ -26,12 +26,73 @@
 
 /** Die Hebel, in der Reihenfolge, in der sie aufeinander aufbauen. */
 export const HEBEL = [
-  { name: "Zweck", frage: "Wofür ist es da? Was tut man damit, das man vorher nicht tat?" },
-  { name: "Geschichte", frage: "Woher kommt es? Was macht ausgerechnet dieses Stück besonders?" },
-  { name: "Identität", frage: "Was sagt es über den, der es hat?" },
-  { name: "Beweis", frage: "Wer hat es schon? Woran sieht man, dass es stimmt?" },
-  { name: "Knappheit", frage: "Warum nicht jeder, warum nicht immer?" },
+  {
+    schluessel: "zweck",
+    name: "Zweck",
+    frage: "Wofür ist es da? Was tut man damit, das man vorher nicht tat?",
+    /* Was eine BRAUCHBARE Antwort ist — daran erkennt der Agent, ob der Hebel gefüllt ist
+       oder ob er nachfassen muss. */
+    gut: "Was der Kunde HINTERHER kann, nicht was verkauft wird. Nicht „Implantate“, sondern „wieder in einen Apfel beissen“.",
+  },
+  {
+    schluessel: "geschichte",
+    name: "Geschichte",
+    frage: "Woher kommt es? Was macht ausgerechnet dieses Stück besonders?",
+    gut: "Herkunft, Verfahren, Handgriff, Jahreszahl — etwas, das ein Nachbarbetrieb nicht behaupten könnte.",
+  },
+  {
+    schluessel: "identitaet",
+    name: "Identität",
+    frage: "Was sagt es über den, der es hat?",
+    gut: "Wer der Kunde damit WIRD, in seinen eigenen Augen und vor anderen.",
+  },
+  {
+    schluessel: "beweis",
+    name: "Beweis",
+    frage: "Wer hat es schon? Woran sieht man, dass es stimmt?",
+    gut: "Zahlen, Jahre, Namen, Vorher-Nachher, wiederkehrende Kunden. Was man nachzählen kann.",
+  },
+  {
+    schluessel: "knappheit",
+    name: "Knappheit",
+    frage: "Warum nicht jeder, warum nicht immer?",
+    gut: "Kapazität, Bedingung, Auswahl, Saison. Warum es NICHT für alle passt — nicht ein erfundener Countdown.",
+  },
 ] as const;
+
+/**
+ * DIE FÜNF HEBEL SIND DIE FRAGEN (Owner 09.09.2026, mit dem Karussell: „jetzt schau mal die
+ * Formel. Die Fragen, die wir stellen, müssen diese erfragen, bis wir die zu 100% haben“ ·
+ * „der Rest ist Technik“).
+ *
+ * ── WAS SICH DAMIT UMDREHT ─────────────────────────────────────────────────────────────────
+ *
+ * Bisher fragte der Berater nach dem, was eine KAMPAGNE braucht: Preis, Ort, Umkreis,
+ * Termine. Alles richtig — und alles Technik. Daraus lässt sich eine Anzeige schalten, aber
+ * kein Hook schreiben, denn ein Hook lebt von genau diesen fünf Hebeln. Fehlt das Material,
+ * kann das Modell nur Hülsen bauen; erfinden darf es nicht, und das ist gut so.
+ *
+ * IM KARUSSELL ERFINDET DER MARKETER die fünf Hebel, weil ein Stein nichts davon hat. Bei
+ * einem echten Betrieb ist es umgekehrt: Alle fünf sind DA, er sagt sie nur nicht — niemand
+ * hat ihn je danach gefragt. Deshalb ist unsere Aufgabe nicht Erfinden, sondern Herausholen.
+ * Genau das kann ein Formular nicht und ein Gespräch schon.
+ *
+ * DER ZWECK KOMMT MEIST OHNE FRAGE: Er steht in seinem ersten Satz und auf seiner Website.
+ * Damit bleiben vier Fragen für vier Hebel — und „Vier Fragen“ darf auf der Startseite
+ * stehen bleiben.
+ *
+ * TECHNIK NUR, WENN SIE FEHLT UND NIEMAND SIE ABLEITEN KANN. Ort und Umkreis stehen fast
+ * immer auf der Website; ein Budget lässt sich vorschlagen. Eine Frage danach kostet einen
+ * von vier Zügen und bringt keinen Hook.
+ */
+export const HEBEL_AUFTRAG = [
+  "DEINE FRAGEN HABEN GENAU EINEN ZWECK: die fünf Hebel zu füllen, aus denen ein Hook gebaut wird. Jede Frage bedient GENAU EINEN Hebel.",
+  ...HEBEL.map(h => `  · ${h.name} — ${h.frage} BRAUCHBAR IST: ${h.gut}`),
+  "Frag immer nach dem am schlechtesten gefüllten Hebel. Was sein Satz oder seine Website schon hergeben, fragst du NICHT noch einmal.",
+  "Eine ausweichende oder allgemeine Antwort füllt einen Hebel NICHT. Sag das in 'reaktion' und hak beim selben Hebel nach, statt zum nächsten zu springen.",
+  "Preis, Ort, Umkreis, Termine und Budget sind Technik. Sie ergeben keinen Hook. Frag danach NUR, wenn du es nirgends ableiten kannst und ohne es keine Anzeige möglich wäre.",
+  "Du erfindest keinen Hebel. Was er nicht sagt, bleibt leer — und ein leerer Hebel ist ehrlicher als ein erfundener.",
+].join("\n");
 
 /**
  * Der Teil des Auftragstexts, der den HOOK betrifft.

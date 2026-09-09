@@ -5,7 +5,7 @@ import { portaleFuer, type Lage } from "@/lib/versusforge-portale";
 import { seiteLesen, istEigeneAdresse } from "@/lib/seite-lesen";
 import { deckelPruefen } from "@/lib/versusforge-deckel";
 import { leadSpeichern, EIGENER_MANDANT, mandantSauber } from "@/lib/versusforge-lead";
-import { HOOK_REGELN, GESCHICHTE_REGELN } from "@/lib/versusforge-hook-rezept";
+import { HOOK_REGELN, GESCHICHTE_REGELN, HEBEL_AUFTRAG, HEBEL } from "@/lib/versusforge-hook-rezept";
 import { freierName, mandantAusPlan, mandantSpeichern } from "@/lib/versusforge-mandanten";
 import { analysePerPost } from "@/lib/versusforge-post";
 
@@ -93,7 +93,24 @@ const regeln = (sprache?: string) => [
    * Motiv leitest DU ab. Bist du dir unsicher, schlägst du vor und lässt ihn widersprechen;
    * ein Vorschlag zum Nicken ist etwas anderes als ein leeres Feld.
    */
-  "Du fragst NUR nach dem, was allein er wissen kann: Preis oder Konditionen, Ort und Umkreis, Termine, und was ihn von anderen unterscheidet.",
+  /**
+   * ── DIE FÜNF HEBEL SIND DIE FRAGEN (Owner 09.09.2026, mit dem Karussell) ────────────────
+   *
+   * „Jetzt schau mal die Formel. Die Fragen, die wir stellen, müssen diese erfragen, bis wir
+   * die zu 100% haben." · „Der Rest ist Technik."
+   *
+   * HIER STAND: „Du fragst NUR nach dem, was allein er wissen kann: Preis oder Konditionen,
+   * Ort und Umkreis, Termine, und was ihn von anderen unterscheidet." Nicht falsch — aber es
+   * ist die Einkaufsliste einer KAMPAGNE, nicht die eines HOOKS. Daraus liess sich eine
+   * Anzeige schalten und kein Satz schreiben, der jemanden anhält. Am 09.09.2026 stand der
+   * Beweis dafür im Dashboard: ein erzeugter Hook über nichts, weil im Plan zu keinem der
+   * fünf Hebel Material lag.
+   *
+   * DIE VERSCHIEBUNG: Was allein er weiss, bleibt das Kriterium — aber gefragt wird danach,
+   * WEIL es einen Hebel füllt, nicht weil es in einem Anzeigenformular steht. Preis, Ort und
+   * Termine sind Technik und stehen meist ohnehin auf seiner Website.
+   */
+  HEBEL_AUFTRAG,
   /**
    * NIEMALS NACH DEM BUDGET FRAGEN (Owner 08.09.2026, beim ersten vollständigen Durchlauf
    * aufgefallen: Der Agent stellte dreimal dieselbe Budgetfrage und verbrannte damit drei
@@ -251,6 +268,22 @@ const regeln = (sprache?: string) => [
 ].join(" ");
 
 /** Was bisher gesagt wurde — geht in jeden Auftrag, damit er sich nicht wiederholt. */
+/**
+ * WELCHE HEBEL SCHON MATERIAL HABEN — als Liste direkt vor die Aufgabe (09.09.2026).
+ *
+ * DER ZWECK GILT ALS GEFÜLLT, sobald er seinen Satz geschrieben oder seine Website genannt
+ * hat: Wofür sein Angebot da ist, steht dort. Ihn trotzdem zu fragen wäre eine der vier
+ * Fragen für etwas, das schon dasteht.
+ */
+function hebelStand(runden?: Runde[]): string {
+  const gefuellt = new Set((runden ?? []).map(r => String(r.hebel ?? "")).filter(Boolean));
+  return [
+    "STAND DER FÜNF HEBEL — frag nach dem obersten, der noch OFFEN ist:",
+    ...HEBEL.map(h => `  ${gefuellt.has(h.schluessel) ? "GEFÜLLT " : "OFFEN   "} ${h.schluessel} (${h.name})`),
+    "Ein Hebel, zu dem seine Antwort nichts Konkretes hergab, gilt als OFFEN — hak dort nach, statt weiterzugehen.",
+  ].join("\n");
+}
+
 const lage = (b: Briefing) => {
   const teile = [
     /* Die Beschreibung muss so weit sein wie der Knopf: „Er sucht Mitarbeiter" hätte das
@@ -308,7 +341,15 @@ const lage = (b: Briefing) => {
   return teile.filter(Boolean).join("\n");
 };
 
-type Runde = { frage: string; antwort: string };
+/**
+ * EINE RUNDE TRÄGT JETZT IHREN HEBEL (09.09.2026).
+ *
+ * Ohne ihn müsste bei jedem Zug erraten werden, was schon gefüllt ist — und das Modell
+ * fragte zweimal dasselbe unter anderem Namen. Der Schlüssel reist im Gesprächsverlauf mit,
+ * so wie die Frage selbst. Optional, damit ein Verlauf aus einer älteren Fassung nicht
+ * bricht.
+ */
+type Runde = { frage: string; antwort: string; hebel?: string };
 type Briefing = {
   ziel: "leads" | "verkauf"; text: string; sprache?: string; runden?: Runde[];
   /** Die Adresse, die er eingegeben hat — im ersten Schritt gelesen. */
@@ -351,7 +392,9 @@ const briefingAus = (body: Record<string, unknown>): Briefing | null => {
     .slice(0, MAX_FRAGEN)
     .map((r: unknown) => {
       const o = (r ?? {}) as Record<string, unknown>;
-      return { frage: str(o.frage, 400), antwort: str(o.antwort, 1500) };
+      /* Der Hebel reist im Verlauf mit — nur ein bekannter Schlüssel kommt durch. */
+      const h = str(o.hebel, 40).trim().toLowerCase();
+      return { frage: str(o.frage, 400), antwort: str(o.antwort, 1500), hebel: HEBEL.some(x => x.schluessel === h) ? h : "" };
     })
     .filter(r => r.frage);
   return { ziel, text, sprache: str(body.sprache, 5) || "de", runden, url: str(body.url, 300), seite: str(body.seite, 2000) };
@@ -568,7 +611,10 @@ export async function POST(request: Request) {
         : "",
       "Gib zurück:",
       "'verstanden' — EIN Satz, der belegt, dass du seinen Satz gelesen hast: greif ein konkretes Wort daraus auf und sag, was du daraus schon ableitest. Keine Zusammenfassung seiner Worte, keine Floskel.",
-      "'frage' — deine erste Rückfrage. Die wichtigste Lücke zuerst: das, ohne das du die Zielgruppe nicht bestimmen kannst.",
+      /* DIE ERSTE FRAGE FÜLLT DEN OBERSTEN OFFENEN HEBEL (09.09.2026). „Die wichtigste Lücke
+         zuerst" hiess vorher: die Lücke der KAMPAGNE. Jetzt ist es die Lücke des HOOKS. */
+      "'frage' — deine erste Rückfrage. Sie füllt den obersten Hebel, den sein Satz und seine Website noch nicht hergeben.",
+      `'hebel' — welchen der fünf Hebel diese Frage füllen soll, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}.`,
       "'warum' — höchstens 12 Wörter: welche Lücke diese Frage schliesst. Nur für uns, er sieht es nicht.",
       "'abgelehnt' — true, wenn sein Vorhaben unter die Grenzen oben fällt. Dann steht in 'verstanden' der eine ruhige Satz und 'frage' bleibt leer.",
       "'unklar' — true, wenn seine Eingabe keinen erkennbaren Sinn ergibt (Tastaturgeklapper, ein Gruss, eine Probe). Dann RATE NICHT: 'verstanden' sagt freundlich, dass du daraus nichts ableiten kannst, 'frage' bleibt leer.",
@@ -607,7 +653,7 @@ export async function POST(request: Request) {
          Website steht, ist nichts Erfundenes — es ist gelesen, und genau dafür hat er sie
          gezeigt. */
       "'vorschlaege' — 2 bis 3 mögliche Antworten zum Antippen, je höchstens 6 Wörter. Es sind WAHLMÖGLICHKEITEN, keine Behauptungen über ihn: erfinde keine Zahlen, Preise oder Orte. AUSNAHME: Was auf seiner Website steht, darfst du wörtlich anbieten — bei der Frage nach dem Angebot sind die dort gefundenen Leistungen genau die richtigen Vorschläge. Passt die Frage nicht zu Vorschlägen, lass die Liste leer.",
-      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","warum":"...","vorschlaege":["..."]}',
+      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","hebel":"...","warum":"...","vorschlaege":["..."]}',
       "",
       lage(b),
     ].join("\n");
@@ -642,6 +688,12 @@ export async function POST(request: Request) {
       /* Zurück an den Browser, damit die Seite nur einmal geholt werden muss. */
       seite: str(r.daten.seiteKurz, 2000),
       frage,
+      /* Welchen Hebel diese erste Frage füllen soll — der Browser trägt ihn zur Antwort
+         zurück, damit der nächste Zug weiss, was schon dasteht. */
+      hebel: (() => {
+        const h = str(r.daten.hebel, 40).trim().toLowerCase();
+        return HEBEL.some(x => x.schluessel === h) ? h : "";
+      })(),
       vorschlaege: strListe(r.daten.vorschlaege, 3, 80),
       verbrauch: r.verbrauch,
     });
@@ -656,7 +708,13 @@ export async function POST(request: Request) {
       `Bisher beantwortet: ${gestellt} von höchstens ${MAX_FRAGEN} Fragen.`,
       gestellt >= MAX_FRAGEN
         ? "Du hast alle Fragen gestellt. Setze 'fertig' auf true und lass 'frage' leer."
-        : "Frage nur weiter, wenn dir für die Werbung wirklich noch etwas Wichtiges fehlt. Reicht es, setze 'fertig' auf true.",
+        : "Frage nur weiter, wenn noch ein HEBEL leer ist. Sind alle gefüllt, setze 'fertig' auf true.",
+      /**
+       * DER STAND DER FÜNF HEBEL, WÖRTLICH VOR AUGEN (09.09.2026, dieselbe Lehre wie bei den
+       * schon gestellten Fragen weiter unten): Eine Regel unter dreissig Regeln ist eine
+       * Bitte, eine Liste unmittelbar vor der Aufgabe ist eine Schranke.
+       */
+      hebelStand(b.runden),
       "Gib zurück:",
       /* Die Rückgabe ist Pflicht und darf wehtun ([[agenten-die-rueckgabe]]): Wer eine dünne
          Antwort gibt, muss es JETZT erfahren und nicht am Ende im Plan — dann kann er sie
@@ -684,6 +742,8 @@ export async function POST(request: Request) {
           ]
         : []),
       "'frage' — die nächste Frage, oder leer, wenn du fertig bist. Sie muss sich klar von jeder Frage oben unterscheiden.",
+      `'hebel' — welchen der fünf Hebel deine NÄCHSTE Frage füllen soll, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}. Leer, wenn du fertig bist.`,
+      "'gefuellt' — hat die GERADE gegebene Antwort ihren Hebel wirklich gefüllt? true oder false. Eine allgemeine Antwort füllt ihn nicht; dann bleibt der Hebel offen und du hakst dort nach.",
       "'fertig' — true, wenn du genug weisst für eine Zielgruppe, ein Motiv und einen Budgetvorschlag.",
       "'vorschlaege' — 2 bis 3 mögliche Antworten auf deine nächste Frage, zum Antippen, je höchstens 6 Wörter. WAHLMÖGLICHKEITEN, keine Behauptungen über ihn: keine Zahlen, keine Preise, keine Orte, keine Namen. Passt es nicht oder bist du fertig, lass die Liste leer.",
       'Antworte NUR als JSON: {"reaktion":"...","frage":"...","fertig":false,"vorschlaege":["..."]}',
@@ -698,10 +758,16 @@ export async function POST(request: Request) {
     /* „Fertig" wird geprüft, nicht geglaubt — dieselbe Lehre wie bei David: Ohne Deckel
        fragt das Modell weiter, solange es Fragen findet, und jede Runde kostet. */
     const fertig = r.daten.fertig === true || !frage || gestellt >= MAX_FRAGEN;
+    /* Nur ein bekannter Schlüssel — sonst stünde im Verlauf ein erfundener Hebelname und
+       die Zählung im Trichter zeigte etwas an, das es nicht gibt. */
+    const hebelRoh = str(r.daten.hebel, 40).trim().toLowerCase();
+    const hebel = HEBEL.some(h => h.schluessel === hebelRoh) ? hebelRoh : "";
     return NextResponse.json({
       ok: true,
       reaktion: str(r.daten.reaktion, 500),
       frage: fertig ? "" : frage,
+      hebel: fertig ? "" : hebel,
+      gefuellt: r.daten.gefuellt !== false,
       vorschlaege: fertig ? [] : strListe(r.daten.vorschlaege, 3, 80),
       fertig,
       verbrauch: r.verbrauch,
@@ -835,6 +901,20 @@ export async function POST(request: Request) {
       "Bewerte streng und ehrlich. Eine 5 vergibst du nur, wenn er es ausdrücklich gesagt hat. Hat er zu einer Achse nichts gesagt, gib 1 oder 2 und schreibe als Grund, was dazu fehlt — das ist die nützlichste Zeile des Blattes, keine Kränkung.",
       "'trichter' — 3 bis 4 Schritte, was nach dem Klick passiert: was der Mensch auf der Seite sieht, was er beantwortet, und was am Ende bei ihm ankommt. Je Schritt ein kurzer Satz. Der letzte Schritt ist IMMER, dass er seine Angaben hinterlässt und eine Bestätigung bekommt — nie ein Kauf.",
       "'budget' — 2 Sätze: was ein sinnvoller Tagesbetrag zum Ausprobieren wäre und woran er nach wenigen Tagen erkennt, ob es trägt. NENNE KEIN ERGEBNIS, nur was er beobachten soll.",
+      /**
+       * DIE FÜNF HEBEL WANDERN IN DEN PLAN (Owner 09.09.2026: „bis wir die zu 100% haben").
+       *
+       * OHNE DIESES FELD WAR DAS GESPRÄCH VERLOREN. Der Plan trug Befund, Zielgruppe und
+       * EINEN Hook — was der Mensch über Zweck, Geschichte, Beweis und Knappheit gesagt
+       * hatte, stand nur noch im Gesprächsverlauf und wurde von keinem weiteren Aufruf
+       * gelesen. Der Hook-Generator im Dashboard hatte deshalb nichts in der Hand und baute
+       * Hülsen (09.09.2026 im Dashboard gesehen).
+       *
+       * LEER BLEIBT LEER. Ein Hebel, zu dem er nichts gesagt hat, wird nicht aufgefüllt —
+       * ein leeres Feld ist ehrlicher als ein erfundenes, und der Generator weiss dann, dass
+       * er auf diesem Hebel keinen Hook bauen darf.
+       */
+      `'hebel' — ein Objekt mit genau diesen fünf Feldern: ${HEBEL.map(h => h.schluessel).join(", ")}. Je ein knapper Satz, NUR aus dem, was er gesagt hat oder was auf seiner Website steht. ${HEBEL.map(h => `${h.schluessel}: ${h.gut}`).join(" ")} Hat er zu einem nichts hergegeben, lass genau dieses Feld LEER.`,
       /* Kein unangenehmer Satz ohne nächsten Schritt — die Warnung MUSS eine Alternative
          tragen, sonst ist sie keine Beratung, sondern Entmutigung. */
       "'warnung' — was gegen sein Vorhaben spricht, ehrlich: zu enge Zielgruppe, zu wenig Budget, zu kurze Zeit, ein Angebot, das sich nicht unterscheidet. IMMER mit dem, was stattdessen ginge. Sieht alles tragfähig aus, lass das Feld leer — erfinde keinen Einwand.",
@@ -844,7 +924,7 @@ export async function POST(request: Request) {
          später allein liest, kann sie nicht beantworten; sie macht aus einem Ergebnis
          wieder eine offene Baustelle. Was noch fehlt, gehört als AUSSAGE hinein. */
       "In diesem Plan stellst du KEINE Frage mehr — kein Fragezeichen in irgendeinem Feld. Fehlt dir etwas, schreib es als Feststellung ('Ob examinierte Kräfte nötig sind, ist offen — das entscheidet, wie eng die Zielgruppe wird').",
-      'Antworte NUR als JSON: {"befund":"...","zielgruppe":["..."],"hook":"...","hookWarum":"...","geschichte":[{"hebel":"...","satz":"..."}],"motive":[{"idee":"...","text":"..."}],"bauteile":[{"was":"...","wozu":"...","selbst":"...","aufwand":"...","stunden":4}],"noten":[{"was":"Angebot","note":3,"warum":"..."}],"anzeige":{"primaer":"...","ueberschrift":"...","beschreibung":"...","knopf":"..."},"trichter":["..."],"budget":"...","warnung":"..."}',
+      'Antworte NUR als JSON: {"befund":"...","zielgruppe":["..."],"hook":"...","hookWarum":"...","geschichte":[{"hebel":"...","satz":"..."}],"motive":[{"idee":"...","text":"..."}],"bauteile":[{"was":"...","wozu":"...","selbst":"...","aufwand":"...","stunden":4}],"noten":[{"was":"Angebot","note":3,"warum":"..."}],"anzeige":{"primaer":"...","ueberschrift":"...","beschreibung":"...","knopf":"..."},"trichter":["..."],"budget":"...","warnung":"...","hebel":{"zweck":"...","geschichte":"...","identitaet":"...","beweis":"...","knappheit":"..."}}',
       "",
       lage(b),
     ].join("\n");
@@ -871,6 +951,22 @@ export async function POST(request: Request) {
            Kunde die Entscheidung treffen, für die er gekommen ist. */
         hook: str(r.daten.hook, 200),
         hookWarum: str(r.daten.hookWarum, 300),
+        /**
+         * DIE FÜNF HEBEL — das Material, aus dem später weitere Hooks entstehen.
+         *
+         * NUR BEKANNTE SCHLÜSSEL, und leere Felder bleiben leer: Der Generator im Dashboard
+         * dreht nur die Hebel durch, zu denen wirklich etwas dasteht. Ein aufgefüllter
+         * Hebel wäre eine Erfindung mit Anschein von Material — die schlimmste Sorte.
+         */
+        hebel: (() => {
+          const o = (r.daten.hebel ?? {}) as Record<string, unknown>;
+          const raus: Record<string, string> = {};
+          for (const h of HEBEL) {
+            const satz = str(o[h.schluessel], 300).trim();
+            if (satz) raus[h.schluessel] = satz;
+          }
+          return Object.keys(raus).length ? raus : undefined;
+        })(),
         /* DIE VORGEFÜHRTE VERWANDLUNG (09.09.2026). Acht Schritte sind die Obergrenze:
            Danach wird aus einem Beweis eine Vorlesung, und für die Bilder ist ein
            Karussell über acht Folien ohnehin zu lang. */

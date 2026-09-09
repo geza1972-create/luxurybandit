@@ -8,6 +8,7 @@ import { Eingabe, EingabeMehrzeilig, Knopf, Fehlerzeile, Fortschritt, Kasten } f
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { schrittMessen } from "@/lib/versusforge-messen";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
+import { HEBEL } from "@/lib/versusforge-hook-rezept";
 import type { VersusForgeTexte } from "@/lib/versusforge-texte";
 import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
 
@@ -42,7 +43,16 @@ import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
   */
 type Phase = "warten" | "webseite" | "bezahlen" | "gespraech" | "plan" | "danke";
 type Ziel = "leads" | "verkauf";
-type Runde = { frage: string; antwort: string };
+/**
+ * EINE RUNDE TRÄGT IHREN HEBEL (Owner 09.09.2026: „die Schritte nennen wir so bei der
+ * Abfrage").
+ *
+ * Der Schlüssel reist zum Server zurück, damit der nächste Zug weiss, was schon gefüllt ist —
+ * und er steht als NAME über der Frage, so wie im Karussell „purpose", „story", „identity"
+ * über den Folien stehen. Wer sieht, woran gerade gearbeitet wird, beantwortet anders als
+ * jemand, der „Rückfrage 2 von 4" liest.
+ */
+type Runde = { frage: string; antwort: string; hebel?: string };
 type Motiv = { idee: string; text: string };
 type Bauteil = { was: string; wozu: string; selbst: string; aufwand: string };
 type Anzeige = { primaer: string; ueberschrift: string; beschreibung: string; knopf: string };
@@ -67,6 +77,10 @@ const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
 /* Muss zum Deckel im Server stehen (`MAX_FRAGEN` in app/api/versusforge/route.ts). */
 const MAX_FRAGEN = 4;
 
+/** Der Anzeigename eines Hebels — leer, wenn der Server keinen mitgeschickt hat. */
+const hebelName = (schluessel: string): string =>
+  HEBEL.find(h => h.schluessel === schluessel)?.name ?? "";
+
 export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; lang: string }) {
   /* „warten" ist kein Schritt, sondern der Augenblick, in dem geprüft wird, ob ein Auftrag
      von der Startseite mitgekommen ist. */
@@ -80,6 +94,8 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const [verstanden, setVerstanden] = useState("");
   const [reaktion, setReaktion] = useState("");
   const [frage, setFrage] = useState("");
+  /* Welchen der fünf Hebel die AKTUELLE Frage füllen soll — er steht als Name darüber. */
+  const [hebel, setHebel] = useState("");
   /* Antworten zum Antippen — der Nutzer will klicken, nicht tippen. Antippen SCHICKT NICHT
      ab: Er legt den Satz ins Feld und kann ihn ändern, bevor er weitergeht. */
   const [vorschlaege, setVorschlaege] = useState<string[]>([]);
@@ -446,6 +462,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       setVerstanden(String(d.verstanden ?? ""));
       setSeite(String(d.seite ?? ""));
       setFrage(frage1);
+      setHebel(String(d.hebel ?? ""));
       setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
       setPhase("gespraech");
       void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z });
@@ -471,6 +488,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     const letzte = runden[runden.length - 1];
     setRunden(runden.slice(0, -1));
     setFrage(letzte.frage);
+    setHebel(String(letzte.hebel ?? ""));
     setAntwort(letzte.antwort);
   };
 
@@ -500,7 +518,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     const wert = uebersprungen ? "" : antwort.trim();
     if (!uebersprungen && !wert) return;
     setFehler(""); setBusy(true); setBusyText(S.denkt);
-    const neu = [...runden, { frage, antwort: wert }];
+    const neu = [...runden, { frage, antwort: wert, hebel }];
     /* Die wievielte Antwort — dieselbe Zählung wie im Mandanten-Trichter. */
     schrittMessen(EIGENER_MANDANT, `antwort${neu.length}`);
     try {
@@ -519,6 +537,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
         schrittMessen(EIGENER_MANDANT, "plan");
       } else {
         setFrage(String(d.frage ?? ""));
+        setHebel(String(d.hebel ?? ""));
         setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
       }
     } catch { setFehler(S.fehler); }
@@ -632,7 +651,20 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
                   Zähler auf 5, während im Hintergrund schon der Plan gebaut wird — eine Zahl,
                   die es nicht geben darf, und sie steht ausgerechnet in dem Moment da, in dem
                   der Mensch wartet und nichts anderes zu lesen hat. */}
-              {S.fragenKopf} · {Math.min(runden.length + 1, MAX_FRAGEN)} {S.von} {MAX_FRAGEN}
+              {/**
+                * DER NAME DES HEBELS STATT „RÜCKFRAGE 2 VON 4" (Owner 09.09.2026: „die
+                * Schritte nennen wir so bei der Abfrage").
+                *
+                * Im Karussell steht über jeder Folie, WAS gerade drauflegt: purpose, story,
+                * identity. Genau das ist der Unterschied zwischen einem Fragebogen und einer
+                * Maschine, bei der man zusieht. „Rückfrage 2 von 4" sagt nur, wie lange es
+                * noch dauert.
+                *
+                * Die Zählung bleibt daneben — sie beantwortet die andere Frage, und sie
+                * beantwortet sie klein.
+                */}
+              {hebelName(hebel) || S.fragenKopf}
+              <span className="text-white/35"> · {Math.min(runden.length + 1, MAX_FRAGEN)} {S.von} {MAX_FRAGEN}</span>
             </p>
             {/* WÄHREND DER PLAN GEBAUT WIRD, STEHT DIE ALTE FRAGE NICHT MEHR DA (08.09.2026,
                 im Durchlauf gesehen): Unter „In welchem Umkreis …?" lief der Balken „Ich baue

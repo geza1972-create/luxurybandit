@@ -52,17 +52,42 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return NextResponse.json({ error: "Der Generator ist gerade nicht erreichbar." }, { status: 503 });
 
-  const plan = (m.plan ?? {}) as { hook?: string; befund?: string; zielgruppe?: string[] };
+  const plan = (m.plan ?? {}) as {
+    hook?: string; befund?: string; zielgruppe?: string[];
+    hebel?: Record<string, string>;
+  };
   const hooks = Array.isArray(m.hooks) ? [...m.hooks] : [];
   const schon = [plan.hook, ...hooks].filter(Boolean) as string[];
 
-  /* Reihum ein anderer Hebel — beim ersten Klick „Zweck", beim zweiten „Geschichte" … */
-  const hebel = HEBEL[schon.length % HEBEL.length];
+  /**
+   * NUR HEBEL MIT MATERIAL (Owner 09.09.2026: „bis wir die zu 100% haben").
+   *
+   * Vorher drehte diese Zeile alle fünf reihum durch — auch die, zu denen im Plan nichts
+   * stand. Das Ergebnis stand am selben Tag in seinem Dashboard: ein Hook über nichts, weil
+   * das Modell zum Hebel „Knappheit" kein einziges Wort hatte und trotzdem einen Satz
+   * liefern sollte. Viermal derselbe gefüllte Hebel aus verschiedenen Anläufen ist besser
+   * als einmal Nichts.
+   */
+  const material = plan.hebel ?? {};
+  const brauchbar = HEBEL.filter(h => String(material[h.schluessel] ?? "").trim());
+  if (!brauchbar.length) {
+    return NextResponse.json({
+      error: "Für deinen Trichter liegt noch kein Material vor. Geh einmal durch die Fragen — danach schreibe ich dir Hooks, die zu dir passen.",
+    }, { status: 409 });
+  }
+  const hebel = brauchbar[schon.length % brauchbar.length];
 
   const auftrag = [
     "Du schreibst Werbe-Hooks für einen Betrieb. Antworte NUR mit JSON.",
     HOOK_REGELN,
     `BLICKWINKEL FÜR DIESEN EINEN HOOK — ${hebel.name}: ${hebel.frage}`,
+    /* SEIN Material zu genau diesem Hebel, wörtlich. Ohne diese Zeile schreibt das Modell
+       über den Hebel im Allgemeinen statt über seinen Betrieb. */
+    `WAS ER DAZU GESAGT HAT: ${material[hebel.schluessel]}`,
+    /* Die übrigen Hebel als Umfeld — sie dürfen mitschwingen, führen aber nicht. */
+    brauchbar.filter(h => h.schluessel !== hebel.schluessel).length
+      ? `WEITERES ÜBER IHN:\n${brauchbar.filter(h => h.schluessel !== hebel.schluessel).map(h => `- ${h.name}: ${material[h.schluessel]}`).join("\n")}`
+      : "",
     `DER BETRIEB: ${m.name}${m.ort ? `, ${m.ort}` : ""}.`,
     plan.befund ? `BEFUND AUS SEINER ANALYSE: ${plan.befund}` : "",
     Array.isArray(plan.zielgruppe) && plan.zielgruppe.length
