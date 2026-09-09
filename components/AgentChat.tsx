@@ -65,8 +65,21 @@ const WERKZEUG_WORT: Record<string, string> = {
  * Beratersprache; die drei Stücke machen sie greifbar.
  */
 const GRUSS = [
-  "Hallo, ich bin VersusForge.",
-  "Ich baue dir eine Werbestrategie, die genau auf dein Geschäft zugeschnitten ist — nicht aus einer Vorlage: den Satz, der Leute anhält, wen er erreichen soll, und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen.",
+  /**
+   * ER SAGT, WAS ER IST (Owner 09.09.2026: „er ist ein AI-Agent — bin ich richtig?").
+   *
+   * Ja, und es ist beweisbar: Er hat Werkzeuge und benutzt sie von sich aus. Genau das
+   * unterscheidet einen Agenten von einem Chat, und der Mensch sieht es eine Nachricht
+   * später, wenn seine Website gelesen wird, ohne dass er darum gebeten hat.
+   *
+   * ABER NICHT „TRAINIERT" (Owner: „er ist dafür trainiert"). Die Hausregel vom 06.09.2026
+   * aus David gilt hier genauso: keine unbelegbaren Trainingsbehauptungen, sondern
+   * Bauentscheidungen. Wir haben ihn nicht trainiert — wir haben ihm Regeln, ein Rezept und
+   * Werkzeuge gegeben. „Gebaut" ist wahr und trägt weiter: Trainiert kann jeder behaupten,
+   * gebaut heisst, jemand hat sich etwas dabei gedacht.
+   */
+  "Hallo, ich bin VersusForge — ein KI-Agent, gebaut für eine einzige Sache: Werbung, die Anfragen bringt.",
+  "Ich baue dir eine Werbestrategie, die genau auf dein Geschäft zugeschnitten ist, nicht aus einer Vorlage: den Satz, der Leute anhält, wen er erreichen soll, und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen.",
   "Dafür brauche ich ein paar Dinge, die nur du weisst. Machst du mit?",
 ].join("\n\n");
 
