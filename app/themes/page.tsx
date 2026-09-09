@@ -965,6 +965,32 @@ export default async function ThemesCatalog({ searchParams }: {
     "Surprise him",
     "Tenerife with Bella",
     "Lingerie Looks",
+    /**
+     * „CHAT WITH BELLA" IST RAUS (Owner 09.09.2026: „ok, Chat with Bella raus aus der Topic.
+     * Ich habe es getestet und geht nicht. Falls jemand das ruft, wird ausgeraubt").
+     *
+     * DAS IST EIN ANDERER GRUND ALS BEI DEN DREI DARÜBER. Poledance, Teneriffa und Lingerie
+     * sind ausgeblendet, weil sie nicht mehr beworben werden sollen — sie funktionieren.
+     * Dieser hier ist KAPUTT und nimmt trotzdem Geld: Der Owner hat es selbst durchlaufen.
+     * Eine Kachel, die zu einem Kaufweg führt, der nicht liefert, ist kein
+     * Vermarktungsproblem, sondern ein Schaden am Kunden.
+     *
+     * DESHALB HIER UND SOFORT: Ausblenden nimmt den einen beworbenen Weg hinein. Ob der
+     * Kaufweg selbst abgeschaltet gehört, ist eine eigene Entscheidung — sie steht noch aus
+     * und liegt beim Owner (siehe Bericht vom 09.09.2026).
+     */
+    "Chat with Bella",
+    /**
+     * URLAUBS-EINLADUNG UND GUTSCHEIN AUCH (Owner 09.09.2026: „das auch raus", zu beiden
+     * Kacheln nacheinander).
+     *
+     * Ohne Begründung von ihm — und die brauche ich nicht: Es ist sein Katalog. Ausgeblendet
+     * heisst hier wie überall nicht gelöscht; `/themes/holiday` und `/themes/gutschein`
+     * bleiben erreichbar, ihre Kaufwege laufen, alte Links gehen nicht ins Leere. Ein Titel
+     * hier heraus und die Kachel ist zurück.
+     */
+    "Holiday invitation video",
+    "Gift a voucher",
   ]);
   const SICHTBAR = THEMES.filter(t => !AUSGEBLENDET.has(t.title));
 
