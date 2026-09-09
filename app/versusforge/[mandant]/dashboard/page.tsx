@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inbox, Settings, ExternalLink, Megaphone, Phone, Lock } from "lucide-react";
+import { Inbox, Settings, ExternalLink, Megaphone, Phone, Mail, ChevronRight, Lock } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
@@ -404,53 +404,119 @@ function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number
   );
 }
 
-/** Eine Anfrage: wer, wann, worum es geht — und die Nummer zum Antippen. */
+/**
+ * EINE ANFRAGE — WER, WIE ERREICHBAR, WORUM ES GEHT (Owner 09.09.2026, mit Bild: „das zum
+ * Ausklappen, und Bild wird keiner haben. Wo ist seine E-Mail, Telefon, Name?").
+ *
+ * DREI FEHLER AUF EINMAL, und alle drei kamen daher, dass ich nur EINEN Trichter im Kopf
+ * hatte:
+ *
+ *  1. DAS BILD. Ein Kreis mit dem Anfangsbuchstaben — bei „Ohne Namen" ein Fragezeichen.
+ *     Ein Platzhalter für etwas, das es nie geben wird, ist kein Anker fürs Auge, sondern
+ *     eine leere Stelle mit Rahmen. Er ist raus.
+ *
+ *  2. DIE KONTAKTDATEN FEHLTEN. Name und Telefon las ich ausschliesslich aus den letzten
+ *     zwei Runden — so legt der MANDANTEN-Trichter sie ab. Der EIGENE Trichter kennt keine
+ *     Telefonnummer, dort steht die E-Mail im Feld `mail`. Ergebnis: seine eigenen Anfragen
+ *     standen als „Ohne Namen" ohne einen einzigen Weg, den Menschen zu erreichen — bei
+ *     einer Anfrage ist das die einzige Zeile, auf die es ankommt.
+ *
+ *  3. DAS GESPRÄCH NAHM DIE GANZE KARTE. Vier Fragen mit Antworten sind acht Absätze; bei
+ *     zwanzig Anfragen scrollt er an jeder einzelnen vorbei, um die nächste Nummer zu
+ *     sehen. Es klappt jetzt auf — `<details>`, kein Zustand, kein JavaScript, funktioniert
+ *     auch beim Drucken und in der Suche des Browsers.
+ *
+ * DIE REIHENFOLGE IST DIE ARBEITSREIHENFOLGE: Wer ist es, wie erreiche ich ihn, worum ging
+ * es — und erst auf Wunsch das ganze Gespräch.
+ */
 function Anfrage({ a }: { a: LeadEintrag }) {
-  /* Name und Telefon stehen als die letzten zwei Runden im Eintrag (so legt
-     `app/api/versusforge-mandant/route.ts` sie ab). Der Rest ist das Gespräch. */
+  /* Der Mandanten-Trichter legt Name und Telefon als die letzten zwei Runden ab
+     (`app/api/versusforge-mandant/route.ts`); der eigene Trichter hat stattdessen `mail`.
+     Beide Formen werden hier gelesen — es ist EIN Dashboard für beide. */
   const runden = a.runden ?? [];
   const feld = (wort: string) => runden.find(r => r.frage === wort)?.antwort ?? "";
   const name = feld("Name");
   const telefon = feld("Telefon");
+  const mail = String(a.mail ?? "").trim();
   const gespraech = runden.filter(r => r.frage !== "Name" && r.frage !== "Telefon");
 
   return (
     <li className="rounded-xl border border-[#e4e9ee] p-4">
-      <div className="flex items-start gap-3">
-        {/* Der Anfangsbuchstabe statt eines Bildes — es gibt keins, und ein leerer Kreis
-            wäre eine Lücke. So bekommt jede Zeile einen Ankerpunkt fürs Auge. */}
-        <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#eaf2fc] text-[16px] font-black text-[#1d6fd0]">
-          {(name || "?").trim().charAt(0).toUpperCase()}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span className="text-[17px] font-extrabold tracking-[-0.01em]">{name || "Ohne Namen"}</span>
-            <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(a.zeit)}</span>
-          </div>
-          {/* DIE NUMMER IST ZUM ANTIPPEN. Wer am Handy im Dashboard steht, will anrufen,
-              nicht abtippen — und wer am selben Tag zurückruft, gewinnt. */}
-          {telefon ? (
-            <a href={`tel:${telefon.replace(/[^+0-9]/g, "")}`}
-              className="mt-1.5 inline-flex items-center gap-2 text-[16.5px] font-bold text-[#1d6fd0]">
-              <Phone className="h-4 w-4" aria-hidden />
-              {telefon}
-            </a>
-          ) : null}
-          {a.text ? <p className="mt-2 text-[15px] leading-[1.5]">{a.text}</p> : null}
-        </div>
+      {/**
+        * OHNE NAMEN IST DIE ADRESSE DIE ÜBERSCHRIFT — und dann steht sie nur EINMAL da.
+        * In der ersten Fassung war sie beides, Titel und Kontaktzeile darunter; dieselbe
+        * Zeichenfolge zweimal untereinander sieht aus wie ein Fehler.
+        */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        {name ? (
+          <span className="text-[17px] font-extrabold tracking-[-0.01em]">{name}</span>
+        ) : mail ? (
+          <a href={`mailto:${mail}`} className="inline-flex min-w-0 items-center gap-2 text-[17px] font-extrabold tracking-[-0.01em] text-[#1d6fd0]">
+            <Mail className="h-[18px] w-[18px] shrink-0" aria-hidden />
+            <span className="truncate">{mail}</span>
+          </a>
+        ) : (
+          <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#8b959d]">Ohne Namen</span>
+        )}
+        <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(a.zeit)}</span>
       </div>
 
-      {/* DAS GESPRÄCH, NICHT NUR DIE ADRESSE (Owner 08.09.2026: „ich brauche das auch") —
-          wer zurückruft, darf nicht mit „erzählen Sie noch mal" anfangen. */}
+      {/* ── ERREICHBARKEIT: das Wichtigste der ganzen Karte, zum Antippen ── */}
+      {(telefon || (name && mail)) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+          {telefon && (
+            <a href={`tel:${telefon.replace(/[^+0-9]/g, "")}`}
+              className="inline-flex items-center gap-2 text-[16.5px] font-bold text-[#1d6fd0]">
+              <Phone className="h-4 w-4 shrink-0" aria-hidden />
+              {telefon}
+            </a>
+          )}
+          {/* Die Adresse SEINES Kunden, nicht unsere — die Hausregel „nie eine E-Mail-Adresse
+              auf der Seite" schützt die Mailbox des Hauses, nicht die des Anfragenden. */}
+          {name && mail && (
+            <a href={`mailto:${mail}`}
+              className="inline-flex min-w-0 items-center gap-2 text-[16px] font-bold text-[#1d6fd0]">
+              <Mail className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{mail}</span>
+            </a>
+          )}
+        </div>
+      )}
+      {!telefon && !mail && (
+        <p className="mt-2 text-[14.5px] font-semibold text-[#8b959d]">Keine Kontaktdaten hinterlassen</p>
+      )}
+
+      {a.text ? <p className="mt-2.5 text-[15px] leading-[1.5]">{a.text}</p> : null}
+
+      {/**
+        * DAS GESPRÄCH ZUM AUFKLAPPEN (Owner 09.09.2026: „das zum Ausklappen").
+        *
+        * Es bleibt vollständig da — wer zurückruft, darf nicht mit „erzählen Sie noch mal"
+        * anfangen (Owner 08.09.2026). Es steht nur nicht mehr im Weg.
+        *
+        * `<details>` statt eines Schalters im Code: Es ist zu, es geht auf, es druckt richtig
+        * und die Suche des Browsers findet den Text auch im geschlossenen Zustand.
+        */}
       {gespraech.length > 0 && (
-        <dl className="mt-3.5 grid gap-2.5 border-t border-[#eef1f4] pt-3.5 md:grid-cols-2">
-          {gespraech.map((r, i) => (
-            <div key={i}>
-              <dt className="text-[13.5px] font-bold text-[#8b959d]">{r.frage}</dt>
-              <dd className="m-0 mt-0.5 text-[15px] leading-[1.5]">{r.antwort || "—"}</dd>
-            </div>
-          ))}
-        </dl>
+        <details className="group mt-3 border-t border-[#eef1f4] pt-3">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[14.5px] font-bold text-[#5b666f] transition hover:text-[#14181c]">
+            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" aria-hidden />
+            Das Gespräch · {gespraech.length} {gespraech.length === 1 ? "Frage" : "Fragen"}
+          </summary>
+          <dl className="mt-3 grid gap-2.5 md:grid-cols-2">
+            {gespraech.map((r, i) => (
+              <div key={i}>
+                {/* DIE FRAGE IST SCHWARZ, NICHT GRAU (Owner 09.09.2026: „das eher schwarz").
+                    Grau war die Farbe eines Etiketts — aber die Frage ist Inhalt: Sie ist
+                    das, was sein Kunde gelesen hat, und ohne sie ergibt die Antwort keinen
+                    Sinn. Unterschieden wird jetzt über das Gewicht, nicht über die
+                    Blässe (Kontrast-Boden der CI). */}
+                <dt className="text-[14.5px] font-bold leading-[1.45] text-[#14181c]">{r.frage}</dt>
+                <dd className="m-0 mt-1 text-[15px] leading-[1.5] text-[#5b666f]">{r.antwort || "—"}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
       )}
     </li>
   );
