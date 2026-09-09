@@ -78,6 +78,52 @@ const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
 const MAX_FRAGEN = 4;
 
 /**
+ * DIE FÜNF STÄNDE (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es erfüllt ist
+ * oder nicht").
+ *
+ * WAS SIE LEISTET: Sie macht sichtbar, dass gearbeitet wird — und woran. Ein Balken „2 von
+ * 4" zählt Schritte; diese fünf Zeilen zeigen, was die Maschine über ihn schon hat und was
+ * ihr fehlt. Damit begründet sich jede Frage von selbst.
+ *
+ * DER LAUFENDE SCHRITT IST HERVORGEHOBEN, die anderen bleiben ruhig. Fünf gleich laute
+ * Zeilen wären eine Tabelle; eine helle unter vier dunklen ist ein Arbeitsplatz.
+ *
+ * SIE ZEIGT DIE EIGENEN NAMEN (`schritt`), nie die echten — Begründung in
+ * `versusforge-hook-rezept.ts`.
+ *
+ * VOR DER ERSTEN ANTWORT STEHT SIE NICHT DA: Fünf Nullen sind kein Fortschritt, sondern
+ * eine Mängelliste über jemanden, der gerade erst angefangen hat.
+ */
+function HebelStand({ stand, jetzt }: { stand: Record<string, number>; jetzt: string }) {
+  const summe = HEBEL.reduce((n, h) => n + (stand[h.schluessel] ?? 0), 0);
+  if (!summe) return null;
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+      {HEBEL.map(h => {
+        const wert = Math.max(0, Math.min(100, stand[h.schluessel] ?? 0));
+        const dran = h.schluessel === jetzt;
+        return (
+          <div key={h.schluessel} className="flex items-center gap-3">
+            <span className={`w-[92px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/55"}`}>
+              {h.schritt}
+            </span>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/12">
+              <span
+                className={`block h-full rounded-full transition-[width] duration-500 ${dran ? "bg-[#f6cf51]" : "bg-white/45"}`}
+                style={{ width: `${wert}%` }}
+              />
+            </span>
+            <span className={`w-[42px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/45"}`}>
+              {wert}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Was der Besucher über der Frage liest — `schritt`, NIE `name`.
  *
  * Die echten Hebelnamen nebeneinander sind die Formel (siehe `versusforge-hook-rezept.ts`).
@@ -101,6 +147,15 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const [frage, setFrage] = useState("");
   /* Welchen der fünf Hebel die AKTUELLE Frage füllen soll — er steht als Name darüber. */
   const [hebel, setHebel] = useState("");
+  /**
+   * WIE WEIT JEDER HEBEL GEFÜLLT IST, in Prozent (Owner 09.09.2026: „Nutzen identifizieren
+   * in Prozent, ob es erfüllt ist oder nicht").
+   *
+   * DAS IST DIE ANZEIGE DER MASCHINE — der Unterschied zwischen einem Formular und etwas,
+   * bei dem man zusieht. Sie erklärt auch die nächste Frage, ohne sie zu begründen: Wer
+   * sieht, dass „Beleg" bei 10 steht, versteht sofort, warum danach gefragt wird.
+   */
+  const [stand, setStand] = useState<Record<string, number>>({});
   /* Antworten zum Antippen — der Nutzer will klicken, nicht tippen. Antippen SCHICKT NICHT
      ab: Er legt den Satz ins Feld und kann ihn ändern, bevor er weitergeht. */
   const [vorschlaege, setVorschlaege] = useState<string[]>([]);
@@ -468,6 +523,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       setSeite(String(d.seite ?? ""));
       setFrage(frage1);
       setHebel(String(d.hebel ?? ""));
+      setStand((d.stand ?? {}) as Record<string, number>);
       setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
       setPhase("gespraech");
       void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z });
@@ -543,6 +599,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       } else {
         setFrage(String(d.frage ?? ""));
         setHebel(String(d.hebel ?? ""));
+        setStand((d.stand ?? {}) as Record<string, number>);
         setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
       }
     } catch { setFehler(S.fehler); }

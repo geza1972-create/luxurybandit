@@ -275,6 +275,22 @@ const regeln = (sprache?: string) => [
  * hat: Wofür sein Angebot da ist, steht dort. Ihn trotzdem zu fragen wäre eine der vier
  * Fragen für etwas, das schon dasteht.
  */
+/**
+ * Den Stand aus der Modellantwort holen — nur die fünf bekannten Schlüssel, nur 0…100.
+ *
+ * EIN FEHLENDER WERT IST 0, KEIN LOCH: Die Anzeige zeigt fünf Zeilen; eine Zeile ohne Zahl
+ * sähe aus wie ein Fehler, obwohl „nichts dazu" die richtige Auskunft ist.
+ */
+function standAus(roh: unknown): Record<string, number> {
+  const o = (roh ?? {}) as Record<string, unknown>;
+  const raus: Record<string, number> = {};
+  for (const h of HEBEL) {
+    const n = Math.round(Number(o[h.schluessel]));
+    raus[h.schluessel] = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
+  }
+  return raus;
+}
+
 function hebelStand(runden?: Runde[]): string {
   const gefuellt = new Set((runden ?? []).map(r => String(r.hebel ?? "")).filter(Boolean));
   return [
@@ -615,6 +631,22 @@ export async function POST(request: Request) {
          zuerst" hiess vorher: die Lücke der KAMPAGNE. Jetzt ist es die Lücke des HOOKS. */
       "'frage' — deine erste Rückfrage. Sie füllt den obersten Hebel, den sein Satz und seine Website noch nicht hergeben.",
       `'hebel' — welchen der fünf Hebel diese Frage füllen soll, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}.`,
+      /**
+       * DER STAND IN PROZENT (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es
+       * erfüllt ist oder nicht").
+       *
+       * ER IST DIE ANZEIGE DER MASCHINE. Ein Fortschrittsbalken sagt, wie lange es noch
+       * dauert; diese fünf Zahlen sagen, WORAN gerade gearbeitet wird und was noch fehlt —
+       * und sie erklären nebenbei, warum die nächste Frage kommt.
+       *
+       * ER IST EINE SELBSTEINSCHÄTZUNG ÜBER MATERIAL, keine Note für den Menschen. Deshalb
+       * steht in der Anweisung, woran sie sich bemisst: an dem, was ein Hook daraus bauen
+       * könnte. „Ich mache gute Arbeit" ist zu 10 % ein Beleg, „400 Implantate im Jahr" zu
+       * 90 %.
+       *
+       * KEIN AUFRUF EXTRA: Er kommt in derselben Antwort mit.
+       */
+      `'stand' — ein Objekt mit genau diesen fünf Feldern: ${HEBEL.map(h => h.schluessel).join(", ")}. Je eine ganze Zahl von 0 bis 100: wie gut du diesen Hebel aus ALLEM füllen kannst, was du bis jetzt weisst (sein Satz, seine Website, seine Antworten). 0 = nichts. 100 = du könntest daraus sofort einen Hook bauen, den ein Fremder nicht schreiben könnte. Allgemeines Gerede liegt unter 20. Sei streng und beschönige nicht.`,
       "'warum' — höchstens 12 Wörter: welche Lücke diese Frage schliesst. Nur für uns, er sieht es nicht.",
       "'abgelehnt' — true, wenn sein Vorhaben unter die Grenzen oben fällt. Dann steht in 'verstanden' der eine ruhige Satz und 'frage' bleibt leer.",
       "'unklar' — true, wenn seine Eingabe keinen erkennbaren Sinn ergibt (Tastaturgeklapper, ein Gruss, eine Probe). Dann RATE NICHT: 'verstanden' sagt freundlich, dass du daraus nichts ableiten kannst, 'frage' bleibt leer.",
@@ -653,7 +685,7 @@ export async function POST(request: Request) {
          Website steht, ist nichts Erfundenes — es ist gelesen, und genau dafür hat er sie
          gezeigt. */
       "'vorschlaege' — 2 bis 3 mögliche Antworten zum Antippen, je höchstens 6 Wörter. Es sind WAHLMÖGLICHKEITEN, keine Behauptungen über ihn: erfinde keine Zahlen, Preise oder Orte. AUSNAHME: Was auf seiner Website steht, darfst du wörtlich anbieten — bei der Frage nach dem Angebot sind die dort gefundenen Leistungen genau die richtigen Vorschläge. Passt die Frage nicht zu Vorschlägen, lass die Liste leer.",
-      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","hebel":"...","warum":"...","vorschlaege":["..."]}',
+      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","hebel":"...","stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"warum":"...","vorschlaege":["..."]}',
       "",
       lage(b),
     ].join("\n");
@@ -694,6 +726,7 @@ export async function POST(request: Request) {
         const h = str(r.daten.hebel, 40).trim().toLowerCase();
         return HEBEL.some(x => x.schluessel === h) ? h : "";
       })(),
+      stand: standAus(r.daten.stand),
       vorschlaege: strListe(r.daten.vorschlaege, 3, 80),
       verbrauch: r.verbrauch,
     });
@@ -743,10 +776,26 @@ export async function POST(request: Request) {
         : []),
       "'frage' — die nächste Frage, oder leer, wenn du fertig bist. Sie muss sich klar von jeder Frage oben unterscheiden.",
       `'hebel' — welchen der fünf Hebel deine NÄCHSTE Frage füllen soll, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}. Leer, wenn du fertig bist.`,
+      /**
+       * DER STAND IN PROZENT (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es
+       * erfüllt ist oder nicht").
+       *
+       * ER IST DIE ANZEIGE DER MASCHINE. Ein Fortschrittsbalken sagt, wie lange es noch
+       * dauert; diese fünf Zahlen sagen, WORAN gerade gearbeitet wird und was noch fehlt —
+       * und sie erklären nebenbei, warum die nächste Frage kommt.
+       *
+       * ER IST EINE SELBSTEINSCHÄTZUNG ÜBER MATERIAL, keine Note für den Menschen. Deshalb
+       * steht in der Anweisung, woran sie sich bemisst: an dem, was ein Hook daraus bauen
+       * könnte. „Ich mache gute Arbeit" ist zu 10 % ein Beleg, „400 Implantate im Jahr" zu
+       * 90 %.
+       *
+       * KEIN AUFRUF EXTRA: Er kommt in derselben Antwort mit.
+       */
+      `'stand' — ein Objekt mit genau diesen fünf Feldern: ${HEBEL.map(h => h.schluessel).join(", ")}. Je eine ganze Zahl von 0 bis 100: wie gut du diesen Hebel aus ALLEM füllen kannst, was du bis jetzt weisst (sein Satz, seine Website, seine Antworten). 0 = nichts. 100 = du könntest daraus sofort einen Hook bauen, den ein Fremder nicht schreiben könnte. Allgemeines Gerede liegt unter 20. Sei streng und beschönige nicht.`,
       "'gefuellt' — hat die GERADE gegebene Antwort ihren Hebel wirklich gefüllt? true oder false. Eine allgemeine Antwort füllt ihn nicht; dann bleibt der Hebel offen und du hakst dort nach.",
       "'fertig' — true, wenn du genug weisst für eine Zielgruppe, ein Motiv und einen Budgetvorschlag.",
       "'vorschlaege' — 2 bis 3 mögliche Antworten auf deine nächste Frage, zum Antippen, je höchstens 6 Wörter. WAHLMÖGLICHKEITEN, keine Behauptungen über ihn: keine Zahlen, keine Preise, keine Orte, keine Namen. Passt es nicht oder bist du fertig, lass die Liste leer.",
-      'Antworte NUR als JSON: {"reaktion":"...","frage":"...","fertig":false,"vorschlaege":["..."]}',
+      'Antworte NUR als JSON: {"reaktion":"...","frage":"...","hebel":"...","gefuellt":true,"stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"vorschlaege":["..."]}',
       "",
       lage(b),
     ].join("\n");
@@ -768,6 +817,7 @@ export async function POST(request: Request) {
       frage: fertig ? "" : frage,
       hebel: fertig ? "" : hebel,
       gefuellt: r.daten.gefuellt !== false,
+      stand: standAus(r.daten.stand),
       vorschlaege: fertig ? [] : strListe(r.daten.vorschlaege, 3, 80),
       fertig,
       verbrauch: r.verbrauch,
