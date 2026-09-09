@@ -60,6 +60,65 @@ export function Wortmarke({ className = "", akzent = "#f6cf51" }: { className?: 
 }
 
 /**
+ * DAS ZEICHEN — „VF" IM KREIS (Owner 09.09.2026: „mach ein Icon VF").
+ *
+ * ── WOFÜR ES DA IST ────────────────────────────────────────────────────────────────────────
+ *
+ * Für die Stellen, an denen kein Platz für den ganzen Namen ist und trotzdem stehen muss,
+ * WER redet: neben einer Sprechblase im Chat, in einer Liste, auf einer Kachel. Vorher stand
+ * dort der Kämpferkopf — der ist das Markenbild, kein Sprecher. Ein Wappen redet nicht.
+ *
+ * ── ES IST GEZEICHNET, KEINE DATEI ─────────────────────────────────────────────────────────
+ *
+ * Zwei Buchstaben brauchen kein Bild: Als Schrift ist es in jeder Grösse scharf, wiegt nichts,
+ * lädt nicht nach — und trägt die Farben der Marke, statt sie in Pixel eingebrannt zu haben.
+ * Ändert sich das Gold, ändert sich das Zeichen mit.
+ *
+ * ── DIE FARBTEILUNG IST DIE MARKE ([[versusforge-marke]]) ──────────────────────────────────
+ *
+ * Versus WEISS, Forge GOLD — dieselbe Teilung wie in der Wortmarke, nur auf zwei Buchstaben
+ * eingedampft. Auf hellen Flächen tritt Blau an die Stelle des Goldes; deshalb ist `akzent`
+ * eine Angabe und keine Konstante, genau wie bei `Wortmarke`.
+ */
+export function Zeichen({ className = "", akzent = "#f6cf51", grund = "#14181c", schrift = "#ffffff" }: {
+  className?: string;
+  /** Die Farbe des „F" — Gold auf Dunkel, das Seiten-Blau auf Hell. */
+  akzent?: string;
+  /** Die Kreisfläche. */
+  grund?: string;
+  /**
+   * Die Farbe des „V".
+   *
+   * SIE IST EINE ANGABE, WEIL DIE FLÄCHE EINE IST (09.09.2026): Auf dunklem Grund ist das V
+   * weiss, auf hellgrauem muss es Tinte sein. Ein fest weisses V auf hellem Grund wäre
+   * unsichtbar — und der Fehler fiele erst dem Kunden auf, nicht mir.
+   */
+  schrift?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-grid shrink-0 place-items-center rounded-full ${SCHRIFT} ${className}`}
+      style={{ background: grund }}
+    >
+      {/* Optisch mittig statt rechnerisch: Zwei Grossbuchstaben sitzen in einem Kreis sonst
+          eine Spur zu tief, weil unter ihnen die Unterlänge fehlt, die die Schrift einplant. */}
+      {/* FETT (Owner 09.09.2026: „bold"). Zwei Buchstaben in normaler Stärke lesen sich in
+          28 Pixeln wie ein Kürzel auf einem Formular; die Wortmarke daneben ist ebenfalls
+          `font-black`, und ein Zeichen, das dünner ist als sein eigener Name, wirkt wie ein
+          Platzhalter. */}
+      {/* DAS GEWICHT STEHT INLINE, NICHT ALS KLASSE (09.09.2026 gemessen): `font-black` kam
+          im Chat als 700 an — die Umgebung `.lb-versusforge` setzt eigene Schriftstärken, und
+          eine Klasse verliert dort. Gemessen statt geglaubt: `getComputedStyle` sagte 700,
+          jetzt sagt es 900. */}
+      <span className="translate-y-[-1px] leading-none tracking-[-0.03em]" style={{ color: schrift, fontWeight: 900 }}>
+        V<span style={{ color: akzent }}>F</span>
+      </span>
+    </span>
+  );
+}
+
+/**
  * Färbt jedes Vorkommen des Namens in einem fertigen Satz ein.
  *
  * Ohne Punkt am Ende: Im Fliesstext ist der Name Teil eines Satzes und trägt dessen

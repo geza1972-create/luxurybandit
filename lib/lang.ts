@@ -46,6 +46,32 @@ export const LANG_LABEL: Record<LangArchiv, string> = {
 
 export const LANG_COOKIE = "lb_lang";
 
+/**
+ * DER NAME DER SPRACHE, WIE ER IM AUFTRAGSTEXT STEHT — auf Deutsch, weil die Auftragstexte
+ * des Hauses auf Deutsch geschrieben sind („Du schreibst AUSSCHLIESSLICH auf Rumänisch").
+ *
+ * WARUM ES DIESE TABELLE ZUSÄTZLICH ZU `LANG_LABEL` GIBT: `LANG_LABEL` trägt die Namen so,
+ * wie die Sprache sich selbst nennt („Română") — das ist richtig für einen Umschalter, den
+ * ein Mensch liest, und falsch für einen Auftrag, den ein Modell liest.
+ *
+ * SIE STEHT HIER UND NICHT IN EINER ROUTE, weil genau dieser Fehler schon zweimal Geld
+ * gekostet hat: eine rumänische Oberfläche mit deutschen Fragen (David, 07.09.2026). Eine
+ * zweite Kopie der Tabelle wäre die dritte Gelegenheit dafür.
+ *
+ * DAS ARCHIV IST MIT DRIN: Angeboten werden drei Sprachen, aber ein alter Link oder ein
+ * Lead-Eintrag kann `it` tragen — dann ist „Italienisch" die richtige Auskunft und nicht
+ * stillschweigend „Deutsch".
+ */
+export const SPRACHNAME: Record<string, string> = {
+  de: "Deutsch", en: "Englisch", ro: "Rumänisch", es: "Spanisch",
+  fr: "Französisch", it: "Italienisch", pt: "Portugiesisch",
+};
+
+/** Der Sprachname für den Auftragstext; unbekannt oder leer heisst Deutsch. */
+export function sprachname(lang?: string): string {
+  return SPRACHNAME[String(lang ?? "de").slice(0, 2).toLowerCase()] ?? "Deutsch";
+}
+
 export function isLang(v: string): v is Lang {
   return (LANGS as readonly string[]).includes(v);
 }

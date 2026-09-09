@@ -85,6 +85,35 @@ export const VF_PRO_GERAET = VF_KAUF_AKTIV ? VF_GRATIS_PRO_GERAET : VF_FREI_OHNE
  */
 export const VF_PRO_TAG = 200;
 
+/**
+ * ── DER CHAT BRAUCHT EINEN EIGENEN DECKEL (09.09.2026, beim Nachsehen gefunden) ────────────
+ *
+ * DER FEHLER, DEN DAS BEHEBT: Der Deckel oben zählt MODELLAUFRUFE. Im Trichter ist das
+ * dasselbe wie Durchläufe — vier Fragen, ein Lauf, ein Zähler. Im Chat ist jede Nachricht
+ * ein Aufruf. Mit `VF_FREI_OHNE_KAUF = 5` wäre draussen nach der fünften Nachricht Schluss
+ * gewesen, mitten im Gespräch, bevor jemand auch nur einen Hook gesehen hat. Auf der
+ * Werkbank fällt es nicht auf, weil dort kein Deckel gilt — es wäre beim ersten echten
+ * Besucher aufgeschlagen.
+ *
+ * ── DIE ZAHLEN, UND WAS SIE KOSTEN ────────────────────────────────────────────────────────
+ *
+ * Gemessen an den Prüfläufen: rund 4.000 Token hinein, 550 hinaus je Nachricht, kleines
+ * Modell — etwa 0,2 Cent. Also:
+ *   · 60 Nachrichten je Gerät und Tag  ≈ 12 Cent für den, der wirklich lange redet
+ *   · 600 Nachrichten insgesamt je Tag ≈ 1,20 € im schlimmsten Fall
+ *
+ * DAS IST BEWUSST GROSSZÜGIG (Owner 09.09.2026: „wir lassen es erst mal umsonst laufen.
+ * Bella hat keiner unendlich geführt"). Wer nach dem Löschen noch einmal anfangen will, soll
+ * das können; die Erfahrung mit dem Bella-Chat sagt, dass niemand stundenlang weitermacht.
+ * Es ist eine Missbrauchsgrenze, kein Produktmerkmal — anders als die EINE Gratis-Analyse
+ * im Trichter, die als Satz auf der Seite steht.
+ *
+ * EIGENER ZÄHLER, NICHT DER DES TRICHTERS: Sonst frisst ein Chat die Gratis-Analyse auf, die
+ * jemand für den Trichter noch hat — zwei Produkte, zwei Konten.
+ */
+export const VF_AGENT_PRO_GERAET = 60;
+export const VF_AGENT_PRO_TAG = 600;
+
 type Zaehler = { tag: string; anzahl: number };
 
 const heute = () => new Date().toISOString().slice(0, 10);
@@ -118,6 +147,34 @@ export type DeckelStand = { erlaubt: boolean; grund?: "bezahlen" | "tag" };
  * Zähler mit Sperre wäre langsamer und aufwendiger als der Schaden, den ein einzelner
  * doppelter Durchlauf anrichtet.
  */
+/**
+ * Der Deckel des Agenten-Chats — gezählt in NACHRICHTEN, mit eigenen Zählern.
+ *
+ * Kein Guthaben, kein Kaufweg: Der Chat ist gratis, solange er ein Muster ist. Beim Anschlag
+ * eine ehrliche Auskunft, kein stiller Ausfall.
+ */
+export async function agentDeckel(geraet: string): Promise<DeckelStand> {
+  const werkbank = process.env.NODE_ENV !== "production";
+  const [proGeraet, proTag] = await Promise.all([
+    geraet ? lesen(`agent-geraet-${geraet}`) : Promise.resolve(0),
+    lesen("agent-gesamt"),
+  ]);
+
+  if (!werkbank && proTag >= VF_AGENT_PRO_TAG) {
+    console.warn("[versusforge] Agent-Tagesdeckel erreicht:", proTag);
+    return { erlaubt: false, grund: "tag" };
+  }
+  if (!werkbank && geraet && proGeraet >= VF_AGENT_PRO_GERAET) {
+    return { erlaubt: false, grund: "tag" };
+  }
+
+  await Promise.all([
+    geraet ? schreiben(`agent-geraet-${geraet}`, proGeraet + 1) : Promise.resolve(),
+    schreiben("agent-gesamt", proTag + 1),
+  ]);
+  return { erlaubt: true };
+}
+
 export async function deckelPruefen(geraet: string): Promise<DeckelStand> {
   /**
    * AUF DER WERKBANK GILT KEIN DECKEL (Owner 08.09.2026, mit Bild: er sperrte sich bei der

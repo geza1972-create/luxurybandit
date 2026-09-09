@@ -69,7 +69,7 @@ export function istEigeneAdresse(roh: string): boolean {
  */
 
 export type SeitenFund =
-  | { ok: true; url: string; titel: string; text: string }
+  | { ok: true; url: string; titel: string; text: string; foto?: string }
   | { ok: false; grund: "adresse" | "nicht-erreichbar" | "leer" };
 
 /** Macht aus einer Eingabe wie „meinefirma.ro" eine geprüfte Adresse — oder nichts. */
@@ -107,6 +107,50 @@ function nurText(html: string): { titel: string; text: string } {
  * sind zwar billig, aber eine ganze Website in jedem Aufruf ist Verschwendung. 6000 Zeichen
  * sind rund zwei Bildschirmseiten — genug, um zu erkennen, was jemand tut.
  */
+/**
+ * ── DAS FOTO KOMMT VON SEINER EIGENEN SEITE (Owner 09.09.2026: „Hälfte Bild, unten Schrift
+ * wäre besser" · „aber das wird dann echt Geld kosten") ─────────────────────────────────────
+ *
+ * ER HAT MIT BEIDEM RECHT, und die zwei Sätze beantworten einander: Ein erzeugtes Motiv
+ * kostet je Bild echtes Geld (gpt-image-2 ~15 Cent) — bei einem Gespräch, das gratis ist,
+ * wäre das die Stelle, an der ein Missbrauch teuer wird. Ein Foto von SEINER Website kostet
+ * einen Abruf.
+ *
+ * UND ES IST DAS BESSERE BILD. Ein erzeugtes Restaurant ist irgendein Restaurant; seine
+ * Terrasse ist seine Terrasse. Wer sein eigenes Lokal auf der Anzeige sieht, glaubt sofort,
+ * dass die Anzeige ihm gehört — das schafft kein Stockfoto.
+ *
+ * URHEBERRECHT: Es ist sein Bild von seiner Seite, für seine Anzeige. Wir legen es nicht ab
+ * und benutzen es nirgendwo sonst.
+ *
+ * `og:image` ZUERST, weil es die Seite selbst als ihr Aushängeschild benannt hat — genau das
+ * Bild, das sie beim Teilen zeigt. Erst danach das erste grosse Bild im Text. Logos und
+ * Zählpixel fallen über die Grösse heraus, nicht über eine Namensliste: Ein `logo.png` heisst
+ * nicht überall so, aber ein Logo ist selten 800 Pixel breit.
+ */
+function fotoAus(html: string, basis: URL): string | undefined {
+  const kandidaten: string[] = [];
+  const og = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)(?::src)?["'][^>]*>/gi) ?? [];
+  for (const m of og) {
+    const inhalt = m.match(/content=["']([^"']+)["']/i)?.[1];
+    if (inhalt) kandidaten.push(inhalt);
+  }
+  /* Danach die ersten Bilder im Quelltext — die Reihenfolge im HTML ist meist die Reihenfolge
+     auf der Seite, und oben steht, was der Betrieb zeigen will. */
+  const bilder = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi) ?? [];
+  for (const m of bilder.slice(0, 25)) {
+    const src = m.match(/src=["']([^"']+)["']/i)?.[1];
+    if (src && !/\.svg(\?|$)/i.test(src) && !/(sprite|icon|logo|pixel|avatar)/i.test(src)) kandidaten.push(src);
+  }
+  for (const k of kandidaten) {
+    try {
+      const u = new URL(k, basis);
+      if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+    } catch { /* kaputte Adresse — nächste */ }
+  }
+  return undefined;
+}
+
 export async function seiteLesen(roh: string): Promise<SeitenFund> {
   const u = adresseAus(roh);
   if (!u) return { ok: false, grund: "adresse" };
@@ -130,15 +174,17 @@ export async function seiteLesen(roh: string): Promise<SeitenFund> {
       if (!u2) return { ok: false, grund: "nicht-erreichbar" };
       const res2 = await fetch(u2.toString(), { redirect: "manual", signal: abbruch, headers: { "User-Agent": "Mozilla/5.0 (compatible; VersusForge/1.0)" } });
       if (!res2.ok) return { ok: false, grund: "nicht-erreichbar" };
-      const { titel, text } = nurText(await res2.text());
-      return text.length < 80 ? { ok: false, grund: "leer" } : { ok: true, url: u2.toString(), titel, text: text.slice(0, 6000) };
+      const html2 = await res2.text();
+      const { titel, text } = nurText(html2);
+      return text.length < 80 ? { ok: false, grund: "leer" } : { ok: true, url: u2.toString(), titel, text: text.slice(0, 6000), foto: fotoAus(html2, u2) };
     }
     if (!res.ok) return { ok: false, grund: "nicht-erreichbar" };
-    const { titel, text } = nurText(await res.text());
+    const html = await res.text();
+    const { titel, text } = nurText(html);
     /* Unter 80 Zeichen ist es eine Startseite, die ihren Inhalt erst im Browser baut — davon
        lässt sich nichts ableiten, und Raten ist verboten. */
     if (text.length < 80) return { ok: false, grund: "leer" };
-    return { ok: true, url: u.toString(), titel, text: text.slice(0, 6000) };
+    return { ok: true, url: u.toString(), titel, text: text.slice(0, 6000), foto: fotoAus(html, u) };
   } catch {
     return { ok: false, grund: "nicht-erreichbar" };
   }

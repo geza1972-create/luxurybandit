@@ -8,6 +8,7 @@ import { leadSpeichern, EIGENER_MANDANT, mandantSauber } from "@/lib/versusforge
 import { HOOK_REGELN, GESCHICHTE_REGELN, HEBEL_AUFTRAG, HEBEL } from "@/lib/versusforge-hook-rezept";
 import { freierName, mandantAusPlan, mandantSpeichern } from "@/lib/versusforge-mandanten";
 import { analysePerPost } from "@/lib/versusforge-post";
+import { sprachname } from "@/lib/lang";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,10 +38,9 @@ export const dynamic = "force-dynamic";
 
 const MAX_FRAGEN = 4;
 
-const SPRACHNAME: Record<string, string> = {
-  de: "Deutsch", en: "Englisch", ro: "Rumänisch", es: "Spanisch",
-  fr: "Französisch", it: "Italienisch", pt: "Portugiesisch",
-};
+/* Die Sprachnamen stehen seit dem 09.09.2026 in lib/lang.ts — EINE Tabelle für Trichter,
+   Agent und alles, was noch kommt. Eine zweite Kopie war der Weg zu „rumänische Oberfläche,
+   deutsche Fragen". */
 
 /**
  * WAS DER AGENT NICHT DARF — in JEDEM Aufruf, nicht nur im ersten.
@@ -51,7 +51,7 @@ const SPRACHNAME: Record<string, string> = {
  */
 const regeln = (sprache?: string) => [
   "Du bist VersusForge, ein nüchterner Berater für Werbung und Kundengewinnung. Du sprichst mit einem Unternehmer oder Selbständigen.",
-  `Sprache: Du schreibst AUSSCHLIESSLICH auf ${SPRACHNAME[(sprache || "de").slice(0, 2)] ?? "Deutsch"} — jede Frage, jeder Satz, jedes Feld deiner Antwort. Und du duzt ihn.`,
+  `Sprache: Du schreibst AUSSCHLIESSLICH auf ${sprachname(sprache)} — jede Frage, jeder Satz, jedes Feld deiner Antwort. Und du duzt ihn.`,
   "Ton: ruhig, direkt, konkret. Niemals überschwänglich. Verboten sind 'Super', 'Großartig', 'Spannend', 'Tolles Projekt', 'Danke fürs Teilen'.",
   "Du erfindest NIE Fakten. Kennst du eine Zahl nicht, sagst du das, statt zu schätzen.",
   /**
@@ -546,6 +546,11 @@ export async function POST(request: Request) {
              wären, auch nicht für den, der die Trichteradresse kennt. */
           schluessel: randomUUID().replace(/-/g, ""),
           loeschSchluessel: randomUUID().replace(/-/g, ""),
+          /* SEINE SPRACHE WANDERT IN DEN TRICHTER (Owner 09.09.2026: „auch alles, was er
+             erstellt … wird in der Sprache erstellt, die er spricht"). Sie steht schon in
+             der Anfrage — der Plan wurde darin geschrieben; ohne diese Zeile stünden über
+             einem rumänischen Hook deutsche Knöpfe. */
+          sprache: str(body.sprache, 5) || "de",
         }));
         if (angelegt) trichterLink = `/versusforge/${name}`;
       } catch (e) {

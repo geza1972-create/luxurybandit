@@ -52,6 +52,25 @@ export type MandantAngaben = {
    * Er steht deshalb im KOPF bei den Kontaktangaben, nicht als Knopf neben dem Trichter.
    */
   webUrl: string;
+  /**
+   * SEINE SPRACHE (Owner 09.09.2026: „auch alles, was er erstellt — den Trichter und Hook
+   * und Dashboard — wird in der Sprache erstellt, die er spricht").
+   *
+   * ── WARUM SIE AM MANDANTEN HÄNGT UND NICHT AM BESUCHER ───────────────────────────────────
+   *
+   * Auf jeder anderen Seite des Hauses entscheidet der Browser des Lesers, welche Sprache er
+   * sieht. HIER NICHT: Was auf dieser Seite steht — der Hook, die Karten, der Knopf — ist
+   * EIN Text, den die Maschine einmal in seiner Sprache erzeugt hat. Ihn nach der
+   * Browsersprache des Besuchers umzuschalten hiesse, ihn übersetzen zu lassen; dann stünde
+   * über einer rumänischen Anzeige ein deutscher Hook, den er nie geschrieben hat.
+   *
+   * DER MANDANT BESTIMMT, WEN ER BEWIRBT. Er schaltet die Anzeige, er kennt seine Kunden.
+   * Unsere Aufgabe ist, dass seine Seite in EINER Sprache steht — seiner.
+   *
+   * ALTE DATEIEN HABEN DAS FELD NICHT. Dort gilt Deutsch, so wie sie erzeugt wurden; es wird
+   * nichts nachträglich umgeschrieben.
+   */
+  sprache: string;
   /** Die Überschrift: sein Hook aus dem Plan. */
   hook: string;
   /** Ein Satz darunter, an SEINEN Kunden gerichtet — was er bekommt. */
@@ -233,6 +252,41 @@ export async function freierName(wunsch: string): Promise<string> {
  * Logo, Farbe), bleibt leer und wird beim Freischalten von ihm ergänzt — nichts wird
  * erfunden.
  */
+/**
+ * DIE VORGABEN JE SPRACHE — was auf seiner Seite steht, solange er nichts eigenes setzt.
+ *
+ * SIE SIND VON HAND GESCHRIEBEN, NICHT ÜBERSETZT. Es sind fünf kurze Zeilen, sie stehen auf
+ * der Seite, die seine Kunden sehen, und sie entstehen in dem Moment, in dem der Trichter
+ * angelegt wird — ein Übersetzungsaufruf mitten im Anlegen wäre eine Wartezeit und eine
+ * Fehlerquelle für einen Text, der sich nie ändert.
+ *
+ * SIE SIEZEN. Das ist der eine Ort im Haus, an dem die Hausregel „immer duzen" nicht gilt:
+ * Hier spricht nicht VersusForge, hier spricht der Zahnarzt mit seinem Patienten.
+ */
+const MANDANT_VORGABE: Record<string, { hook: string; unterzeile: string; karte: string; knopf: string; fein: string }> = {
+  de: {
+    hook: "Sagen Sie uns, worum es geht.",
+    unterzeile: "Beantworten Sie ein paar kurze Fragen. Danach wissen Sie, welche Möglichkeiten es in Ihrem Fall gibt.",
+    karte: "Ich möchte mehr wissen",
+    knopf: "Jetzt starten",
+    fein: "Kostenlos · dauert etwa zwei Minuten",
+  },
+  en: {
+    hook: "Tell us what this is about.",
+    unterzeile: "Answer a few short questions. Then you will know which options exist in your case.",
+    karte: "I would like to know more",
+    knopf: "Start now",
+    fein: "Free · takes about two minutes",
+  },
+  ro: {
+    hook: "Spuneți-ne despre ce este vorba.",
+    unterzeile: "Răspundeți la câteva întrebări scurte. Apoi veți ști ce posibilități există în cazul dumneavoastră.",
+    karte: "Aș vrea să știu mai multe",
+    knopf: "Începeți acum",
+    fein: "Gratuit · durează aproximativ două minute",
+  },
+};
+
 export function mandantAusPlan(o: {
   name: string;
   mail: string;
@@ -241,8 +295,12 @@ export function mandantAusPlan(o: {
   plan: { hook?: string; zielgruppe?: string[]; trichter?: string[] } & Record<string, unknown>;
   schluessel: string;
   loeschSchluessel: string;
+  /** Die Sprache, in der er mit uns geredet hat. Ohne Angabe Deutsch. */
+  sprache?: string;
 }): MandantAngaben {
   const plan = o.plan ?? {};
+  const sprache = String(o.sprache ?? "de").slice(0, 2).toLowerCase();
+  const V = MANDANT_VORGABE[sprache] ?? MANDANT_VORGABE.de;
   const hook = String(plan.hook ?? "").trim();
   /* Die Karten aus der Zielgruppe: kurze, antippbare Sätze. Was zu lang ist, taugt nicht
      als Karte — lieber drei kurze als vier, von denen eine umbricht. */
@@ -261,11 +319,12 @@ export function mandantAusPlan(o: {
        fragen wäre dieselbe Zumutung wie der doppelte Hook. Adresse und Telefonnummer
        bleiben leer — die kennt der Plan nicht, und geraten wird nichts. */
     webUrl: o.webUrl ?? "",
-    hook: hook || "Sagen Sie uns, worum es geht.",
-    unterzeile: "Beantworten Sie ein paar kurze Fragen. Danach wissen Sie, welche Möglichkeiten es in Ihrem Fall gibt.",
-    karten: karten.length ? karten : ["Ich möchte mehr wissen"],
-    knopf: "Jetzt starten",
-    fein: "Kostenlos · dauert etwa zwei Minuten",
+    sprache,
+    hook: hook || V.hook,
+    unterzeile: V.unterzeile,
+    karten: karten.length ? karten : [V.karte],
+    knopf: V.knopf,
+    fein: V.fein,
     ergebnisTitel: "",
     ergebnisText: "",
     aboutUrl: "",

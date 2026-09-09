@@ -26,8 +26,18 @@ import { Mic, Square } from "lucide-react";
  * Kein Gerät hat eins? Kein Knopf. Ein Knopf, der beim Antippen eine Fehlermeldung ausspuckt,
  * ist schlimmer als keiner ([[immer-close-einbauen]] in klein).
  */
-export default function SprachKnopf({ lang, fertig, aus }: {
+export default function SprachKnopf({ lang, fertig, aus, schlicht = false }: {
   lang?: string;
+  /**
+   * OHNE EIGENE FLÄCHE — nur das Symbol (Owner 09.09.2026, mit Bild von ChatGPT: „ChatGPT
+   * löst es so").
+   *
+   * WARUM DAS DORT RICHTIG IST: Sitzt der Knopf INNEN in der Schreibbox, hat er schon einen
+   * Rahmen — seinen eigenen dazu ergäbe zwei Kästen ineinander. Und ein umrandeter Knopf
+   * neben einem gefüllten sieht aus wie zwei gleichwertige Wege; der eine ist aber nur eine
+   * andere Art zu tippen.
+   */
+  schlicht?: boolean;
   /** Bekommt den erkannten Text — er gehört ins Eingabefeld, nicht ins Gespräch. */
   fertig: (text: string) => void;
   /** Der Chat arbeitet gerade; dann wird nicht aufgenommen. */
@@ -103,12 +113,16 @@ export default function SprachKnopf({ lang, fertig, aus }: {
         disabled={aus || schreibt}
         onClick={() => (laeuft ? aufhoeren() : void anfangen())}
         aria-label={laeuft ? "Aufnahme beenden" : "Sprechen"}
-        className={`grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-30 ${
+        className={`grid shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-30 ${
+          schlicht ? "h-10 w-10" : "h-[52px] w-[52px]"} ${
           laeuft
             /* Rot und pulsierend, solange aufgenommen wird — das eine Zeichen, das jeder
-               ohne Erklärung liest. */
+               ohne Erklärung liest. Es bleibt auch in der schlichten Fassung eine FLÄCHE:
+               Dass gerade aufgenommen wird, muss man aus zwei Metern Abstand sehen. */
             ? "lb-tippt bg-[#c02626] text-white"
-            : "border-[1.5px] border-[#dfe4e9] bg-white text-[#5b666f] hover:text-[#1d6fd0]"}`}
+            : schlicht
+              ? "text-[#5b666f] hover:bg-[#f1f4f7] hover:text-[#14181c]"
+              : "border-[1.5px] border-[#dfe4e9] bg-white text-[#5b666f] hover:text-[#1d6fd0]"}`}
       >
         {laeuft ? <Square className="h-4 w-4" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
       </button>

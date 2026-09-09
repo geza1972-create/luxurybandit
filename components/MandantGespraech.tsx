@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { schrittMessen } from "@/lib/versusforge-messen";
+import type { MandantTexte } from "@/lib/mandant-texte";
 
 /**
  * DAS GESPRÄCH AUF DER MANDANTENSEITE (Owner 09.09.2026).
@@ -22,9 +23,17 @@ import { schrittMessen } from "@/lib/versusforge-messen";
 
 type Runde = { frage: string; antwort: string };
 
+/**
+ * KEIN SATZ MEHR IN DIESER DATEI (Owner 09.09.2026: „auch alles, was er erstellt … wird in
+ * der Sprache erstellt, die er spricht").
+ *
+ * Der Rahmen kam bis heute fest auf Deutsch aus dem Code — über einem rumänischen Hook stand
+ * „Wie erreichen wir Sie?". Er kommt jetzt übersetzt aus `lib/mandant-texte.ts`, in der
+ * Sprache des MANDANTEN, nicht der des Besuchers. Begründung dort.
+ */
 export default function MandantGespraech({
-  mandant, sammelt, name,
-}: { mandant: string; sammelt: boolean; name: string }) {
+  mandant, sammelt, name, S,
+}: { mandant: string; sammelt: boolean; name: string; S: MandantTexte }) {
   /* Was er auf der Seite davor angetippt hat. Aus der Ablage, nicht aus der Adresse: Ein
      Klick auf „Mir fehlen mehrere Zähne" gehört nicht in eine URL, die im Verlauf, in
      Protokollen und im `Referer` jedes geladenen Bildes landet. */
@@ -55,13 +64,16 @@ export default function MandantGespraech({
         body: JSON.stringify({ schritt: "frage", mandant, einstieg: start, runden: bisher }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return; }
+      if (!res.ok) { /* DIE MELDUNG DES SERVERS WIRD NICHT GEZEIGT: Sie ist auf Deutsch geschrieben, und hier
+             sitzt sein Kunde. Ein deutscher Fehlersatz auf einer rumänischen Seite ist
+             schlimmer als ein allgemeiner in der richtigen Sprache. */
+          setFehler(S.fehler); return; }
       if (d.fertig === true || !d.frage) { setFertig(true); return; }
       setReaktion(String(d.reaktion ?? ""));
       setFrage(String(d.frage ?? ""));
       setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
     } catch {
-      setFehler("Das ging gerade nicht. Bitte noch einmal.");
+      setFehler(S.fehler);
     } finally {
       setLaeuft(false);
     }
@@ -97,7 +109,7 @@ export default function MandantGespraech({
 
   const absenden = async () => {
     if (kName.trim().length < 2 || kTelefon.trim().length < 5) {
-      setFehler("Bitte Name und Telefonnummer angeben.");
+      setFehler(S.fehlendeAngaben);
       return;
     }
     setLaeuft(true);
@@ -109,13 +121,16 @@ export default function MandantGespraech({
         body: JSON.stringify({ schritt: "abschluss", mandant, einstieg, runden, name: kName, telefon: kTelefon }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return; }
+      if (!res.ok) { /* DIE MELDUNG DES SERVERS WIRD NICHT GEZEIGT: Sie ist auf Deutsch geschrieben, und hier
+             sitzt sein Kunde. Ein deutscher Fehlersatz auf einer rumänischen Seite ist
+             schlimmer als ein allgemeiner in der richtigen Sprache. */
+          setFehler(S.fehler); return; }
       /* Erst nach dem OK des Servers: Ein Abschluss, der in Wahrheit gescheitert ist,
          stünde sonst als Erfolg in seiner Statistik. */
       schrittMessen(mandant, "abschluss");
       setGesendet(true);
     } catch {
-      setFehler("Das ging gerade nicht. Bitte noch einmal.");
+      setFehler(S.fehler);
     } finally {
       setLaeuft(false);
     }
@@ -126,9 +141,9 @@ export default function MandantGespraech({
   if (gesendet) {
     return (
       <div className="mt-6 rounded-2xl border-[1.5px] border-[#dfe4e9] bg-[#f5f7f9] p-5">
-        <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">Ist angekommen.</h2>
+        <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">{S.angekommen}</h2>
         <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
-          {name} meldet sich bei Ihnen. Sie müssen nichts weiter tun.
+          {S.meldetSich.replace("{name}", name)}
         </p>
       </div>
     );
@@ -140,7 +155,7 @@ export default function MandantGespraech({
           Anfang hat und nicht aus dem Nichts kommt. */}
       {einstieg && (
         <>
-          <p className="text-[13.5px] font-bold uppercase tracking-[0.14em] text-[var(--akzent)]">Ihre Angabe</p>
+          <p className="text-[13.5px] font-bold uppercase tracking-[0.14em] text-[var(--akzent)]">{S.ihreAngabe}</p>
           <p className="mt-1 text-[16px] font-semibold">{einstieg}</p>
         </>
       )}
@@ -155,7 +170,7 @@ export default function MandantGespraech({
       </div>
 
       {laeuft && !frage && !fertig && (
-        <p className="mt-5 text-[15px] text-[#5b666f]">Einen Moment …</p>
+        <p className="mt-5 text-[15px] text-[#5b666f]">{S.moment}</p>
       )}
 
       {frage && !fertig && (
@@ -186,7 +201,7 @@ export default function MandantGespraech({
               value={eigene}
               onChange={e => setEigene(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") antworten(eigene); }}
-              placeholder="Oder selbst schreiben"
+              placeholder={S.selbstSchreiben}
               className={feld}
             />
             <button
@@ -196,7 +211,7 @@ export default function MandantGespraech({
               className="shrink-0 rounded-xl px-5 text-[16px] font-extrabold text-white disabled:opacity-40"
               style={{ background: "var(--akzent)" }}
             >
-              OK
+              {S.ok}
             </button>
           </div>
         </div>
@@ -204,13 +219,13 @@ export default function MandantGespraech({
 
       {fertig && sammelt && (
         <div className="mt-6 border-t border-[#dfe4e9] pt-5">
-          <p className="text-[18px] font-extrabold leading-snug tracking-[-0.01em]">Wie erreichen wir Sie?</p>
+          <p className="text-[18px] font-extrabold leading-snug tracking-[-0.01em]">{S.wieErreichen}</p>
           <p className="mt-1.5 text-[15px] leading-[1.5] text-[#5b666f]">
-            {name} ruft Sie an. Ihre Angaben gehen nur an die Praxis, an niemanden sonst.
+            {S.nurAn.replace("{name}", name)}
           </p>
           <div className="mt-3.5 grid gap-2.5">
-            <input value={kName} onChange={e => setKName(e.target.value)} placeholder="Ihr Name" className={feld} autoComplete="name" />
-            <input value={kTelefon} onChange={e => setKTelefon(e.target.value)} placeholder="Telefonnummer" className={feld} autoComplete="tel" inputMode="tel" />
+            <input value={kName} onChange={e => setKName(e.target.value)} placeholder={S.ihrName} className={feld} autoComplete="name" />
+            <input value={kTelefon} onChange={e => setKTelefon(e.target.value)} placeholder={S.telefon} className={feld} autoComplete="tel" inputMode="tel" />
           </div>
           <button
             type="button"
@@ -219,7 +234,7 @@ export default function MandantGespraech({
             className="mt-4 w-full rounded-xl px-5 py-4 text-[17px] font-extrabold text-white disabled:opacity-50 md:w-auto md:min-w-[260px]"
             style={{ background: "var(--akzent)" }}
           >
-            {laeuft ? "Einen Moment …" : "Absenden"}
+            {laeuft ? S.moment : S.absenden}
           </button>
         </div>
       )}
@@ -233,15 +248,12 @@ export default function MandantGespraech({
         */}
       {fertig && !sammelt && (
         <div className="mt-6 rounded-2xl border-[1.5px] border-dashed border-[#c3ccd4] bg-[#f5f7f9] p-5">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#5b666f]">Noch nicht online</p>
-          <h2 className="mt-2 text-[19px] font-extrabold tracking-[-0.02em]">Hier stünde jetzt das Kontaktfeld.</h2>
+          <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#5b666f]">{S.vorschauEtikett}</p>
+          <h2 className="mt-2 text-[19px] font-extrabold tracking-[-0.02em]">{S.vorschauTitel}</h2>
           {/* DER GRUND STEHT DA, statt eines toten Knopfes — und er ist an den Mandanten
               gerichtet, der in dieser Phase der Einzige ist, der die Seite kennt. */}
           <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
-            Der Trichter ist fertig. Bevor er Anfragen entgegennehmen darf, müssen dein
-            Impressum und deine Datenschutzerklärung darauf stehen — das verlangt das Gesetz
-            an der Stelle, an der jemand seinen Namen hinterlässt. Trag die zwei Links ein,
-            dann ist er online. Das kostet nichts.
+            {S.vorschauText}
           </p>
         </div>
       )}

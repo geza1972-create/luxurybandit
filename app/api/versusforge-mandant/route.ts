@@ -3,6 +3,7 @@ import { frageModell, str, KLEIN } from "@/lib/agent-modell";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadSpeichern, leadsLesen } from "@/lib/versusforge-lead";
 import { anfragePerPost } from "@/lib/versusforge-anfrage-post";
+import { sprachname } from "@/lib/lang";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,7 +93,9 @@ export async function POST(request: Request) {
       ziel: "anfrage",
       text: str(body.einstieg, 400),
       url: "",
-      sprache: "de",
+      /* Die Sprache des Trichters, nicht „de" fest: In der Anfrageliste steht sonst bei
+         jedem rumänischen Kunden „Deutsch" — und die Liste ist das, was der Mandant kauft. */
+      sprache: String(m.sprache ?? "de").slice(0, 2),
       plan: null,
       runden: [...runden, { frage: "Name", antwort: name }, { frage: "Telefon", antwort: telefon }],
       zeit: new Date().toISOString(),
@@ -151,6 +154,19 @@ export async function POST(request: Request) {
     ...runden.map((r, i) => `${i + 1}. ${r.frage} -> ${r.antwort}`),
     "",
     "Stelle die NÄCHSTE Frage.",
+    /**
+     * ── DIE SPRACHZEILE HAT HIER GANZ GEFEHLT (Owner 09.09.2026: „auch alles, was er
+     * erstellt … wird in der Sprache erstellt, die er spricht") ─────────────────────────────
+     *
+     * Ohne sie antwortet ein Modell in der Sprache, in der der AUFTRAG geschrieben ist —
+     * also Deutsch. Ein rumänischer Zahnarzt hätte seinen Patienten deutsche Fragen gestellt,
+     * unter seinem eigenen Namen, auf seiner eigenen Seite. Das ist kein Schönheitsfehler,
+     * das ist ein Trichter, der nichts einbringt.
+     *
+     * SIE STEHT AN ERSTER STELLE DER REGELN, weil sie für JEDES Feld gilt: Frage, Reaktion
+     * und die Vorschläge zum Antippen.
+     */
+    `· Du schreibst AUSSCHLIESSLICH auf ${sprachname(m.sprache)} — die Frage, die Reaktion und JEDER Vorschlag. Kein Wort aus einer anderen Sprache.`,
     /* DIE REGELN, DIE DEN UNTERSCHIED MACHEN — dieselbe Handschrift wie im Haupttrichter,
        nur an einen Menschen gerichtet, der kein Unternehmer ist. */
     "· Eine einzige Frage, höchstens 15 Wörter, in SEINER Alltagssprache. Keine Fachbegriffe.",

@@ -4,7 +4,10 @@ import { str, KLEIN } from "@/lib/agent-modell";
 import { seiteLesen, istEigeneAdresse } from "@/lib/seite-lesen";
 import { hookBild } from "@/lib/versusforge-bild";
 import { HEBEL, HOOK_REGELN, HEBEL_AUFTRAG } from "@/lib/versusforge-hook-rezept";
-import { deckelPruefen } from "@/lib/versusforge-deckel";
+import { beispielFuer, beispielText } from "@/lib/versusforge-beispiele";
+import { steinText } from "@/lib/versusforge-stein";
+import { agentDeckel } from "@/lib/versusforge-deckel";
+import { sprachname } from "@/lib/lang";
 
 /**
  * DER AGENT — ZUM ANSEHEN, AUF EIGENEM ZWEIG (Owner 09.09.2026: „zeig mir in einem anderen
@@ -34,12 +37,46 @@ import { deckelPruefen } from "@/lib/versusforge-deckel";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * ── DIE HOOK-PRÜFUNG MUSS DIE SPRACHE KENNEN (09.09.2026) ──────────────────────────────────
+ *
+ * `hook_pruefen` zählt, was zählbar ist, und fragt dafür kein Modell — deshalb kostet sie
+ * nichts. Der Preis dafür: Sie liest Wörter, und Wörter sind sprachgebunden. Auf einen
+ * rumänischen Hook angewendet, fand die deutsche Liste nie etwas und gab jedem Satz die
+ * Note 100. Eine Prüfung, die IMMER bestanden wird, ist schlimmer als keine — sie sagt dem
+ * Agenten, sein schlechter Hook sei gut.
+ *
+ * DIE LISTEN SIND KURZ UND ABSICHTLICH NICHT VOLLSTÄNDIG. Sie fangen die Wörter, die in
+ * Werbung wirklich vorkommen und nichts bedeuten. Was durchrutscht, fängt die Regel im
+ * Auftragstext; was hier steht, fängt sie nachweislich.
+ */
+const WERBEWOERTER: Record<string, string[]> = {
+  de: ["modern", "exklusiv", "hochwertig", "professionell", "innovativ", "kompetent", "individuell"],
+  en: ["modern", "exclusive", "premium", "professional", "innovative", "quality", "tailored"],
+  ro: ["modern", "exclusiv", "premium", "profesional", "inovativ", "calitate", "personalizat"],
+};
+
+/** Spricht der Satz über die Firma statt über den Leser? */
+const UEBER_UNS: Record<string, RegExp> = {
+  de: /\b(wir|unser|unsere|uns)\b/i,
+  en: /\b(we|our|ours|us)\b/i,
+  ro: /\b(noi|nostru|noastra|noastră|nostri|noștri|ne)\b/i,
+};
+
+/** Der Knopftext auf dem Anzeigenbild, wenn der Agent keinen mitgibt. */
+const AUFRUF: Record<string, string> = {
+  de: "Jetzt anfragen", en: "Get in touch", ro: "Cere ofertă",
+};
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return NextResponse.json({ error: "Der Agent ist gerade nicht erreichbar." }, { status: 503 });
 
-  const stand = await deckelPruefen(str(body.device, 80));
+  /* EIGENER DECKEL FÜR DEN CHAT (09.09.2026): Er zählt NACHRICHTEN, nicht Durchläufe — der
+     Deckel des Trichters hätte hier nach der fünften Nachricht dichtgemacht. Begründung und
+     Zahlen in lib/versusforge-deckel.ts. */
+  const stand = await agentDeckel(str(body.device, 80));
   if (!stand.erlaubt) {
     return NextResponse.json({ error: "Für heute ist auf diesem Gerät genug gelaufen." }, { status: 429 });
   }
@@ -53,9 +90,24 @@ export async function POST(request: Request) {
     .filter(m => m.content);
   if (!verlauf.length) return NextResponse.json({ error: "Schreib mir etwas." }, { status: 400 });
 
+  /**
+   * SEINE SPRACHE — SIE KOMMT AUS DEM BROWSER, NICHT AUS EINER VERMUTUNG (Owner 09.09.2026:
+   * „gleich am Anfang muesste er die Sprache erfragen oder den Browser fragen. Einige haben
+   * einen englischen Browser, wollen aber auf Rumaenisch reden").
+   *
+   * DER SERVER RAET HIER NICHTS. Die `Accept-Language`-Kopfzeile liegt zwar an, aber sie ist
+   * genau das, was der Owner als unzureichend bezeichnet hat: die Einstellung des Geraets,
+   * nicht die Wahl des Menschen. Der Chat hat gefragt; was er mitschickt, gilt.
+   *
+   * OHNE ANGABE DEUTSCH — nicht Englisch. Wer hier ohne Sprache ankommt, kommt aus einem
+   * alten Fenster oder einem Skript; der Markt dieses Produkts ist der deutschsprachige und
+   * rumaenische Raum.
+   */
+  const sprache = str(body.sprache, 5) || "de";
+
   /* Was der Agent unterwegs herausgefunden hat — der Browser zeigt es an, ohne dass es im
      Gesprächstext stehen muss. */
-  const fund: { seite?: string; bild?: string } = {};
+  const fund: { seite?: string; bild?: string; foto?: string; bilder?: string[] } = {};
 
   const werkzeuge: Werkzeug[] = [
     {
@@ -83,7 +135,10 @@ export async function POST(request: Request) {
           };
         }
         fund.seite = `${f.titel}\n${f.text}`.slice(0, 1200);
-        return { gelesen: true, titel: f.titel, text: f.text.slice(0, 4000) };
+        /* Sein eigenes Foto, falls die Seite eines hergibt — es wird NICHT von selbst
+           benutzt, sondern erst angeboten. Begründung beim Werkzeug `bild_bauen`. */
+        if (f.foto) fund.foto = f.foto;
+        return { gelesen: true, titel: f.titel, text: f.text.slice(0, 4000), hat_foto: !!f.foto };
       },
     },
     {
@@ -100,16 +155,56 @@ export async function POST(request: Request) {
          */
         const hook = str(a.hook, 300).trim();
         const woerter = hook.split(/\s+/).filter(Boolean).length;
-        const werbewoerter = ["modern", "exklusiv", "hochwertig", "professionell", "innovativ", "kompetent", "individuell"];
-        const gefunden = werbewoerter.filter(w => hook.toLowerCase().includes(w));
-        const ueberUns = /\b(wir|unser|unsere|uns)\b/i.test(hook);
+        const gefunden = WERBEWOERTER[sprache.slice(0, 2)] ?? WERBEWOERTER.de;
+        const treffer = gefunden.filter(w => hook.toLowerCase().includes(w));
+        const ueberUns = (UEBER_UNS[sprache.slice(0, 2)] ?? UEBER_UNS.de).test(hook);
         const maengel: string[] = [];
         if (!hook) maengel.push("leer");
         if (woerter > 12) maengel.push(`${woerter} Wörter — höchstens 12`);
-        if (gefunden.length) maengel.push(`Werbewörter: ${gefunden.join(", ")}`);
+        if (treffer.length) maengel.push(`Werbewörter: ${treffer.join(", ")}`);
         if (ueberUns) maengel.push("spricht über die Firma statt über den Leser");
         const note = Math.max(0, 100 - maengel.length * 30);
         return { note, maengel, regeln: maengel.length ? HOOK_REGELN : undefined };
+      },
+    },
+    {
+      /**
+       * ── DAS BEISPIEL, BEVOR GEFRAGT WIRD (Owner 09.09.2026: „am Anfang, bevor wir ihn
+       * quälen, könnten wir ihm einige Hooks zeigen … willst du auch zu diesem Ergebnis
+       * kommen?" · „ich würde eher Top-Beispiele nehmen, nicht mit seinem Namen und seinen
+       * Bildern" · „und auch nicht mit seinem Text" · „das wäre ein Mega-Fehler") ───────────
+       *
+       * ES ZEIGT UNSER BESTES, NICHT SEIN ROHES. Der Unterschied entscheidet über den ersten
+       * Eindruck vom Produkt: Aus seinem einen Satz entsteht ein mittelmässiger Hook, und
+       * genau der stünde dann als Beweis dafür, was wir können. Ein kuratiertes Beispiel ist
+       * das, was am Ende herauskommt — nicht das, was am Anfang möglich ist.
+       *
+       * KOSTET NICHTS: fester Satz, Schrift auf Fläche, kein Modellaufruf.
+       */
+      name: "beispiel_zeigen",
+      zweck: "Führt ihm in vier Kacheln vor, wie aus einem wertlosen Gegenstand ein gefragtes Produkt wurde. Benutze es genau einmal, sobald du weisst, was er anbietet, und BEVOR du ihm Fragen stellst. Kostet nichts.",
+      felder: {
+        fach: { type: "string", description: "Was er anbietet, in seinen Worten" },
+      },
+      pflicht: ["fach"],
+      frei: true,
+      lauf: async () => {
+        const t = steinText(sprache);
+        /* Vier Kacheln in EINEM Zug — sie gehören zusammen und dürfen nicht auf mehrere
+           Nachrichten zerfallen, sonst ist die Verwandlung keine Bewegung mehr. */
+        const bilder = await Promise.all(
+          t.folien.map(f => hookBild({ hook: f.gross, aufruf: f.klein })),
+        );
+        fund.bilder = bilder.map(b => `data:image/jpeg;base64,${Buffer.from(b).toString("base64")}`);
+        return {
+          gezeigt: true,
+          /* DIE SÄTZE DER KACHELN GEHEN NICHT ZURÜCK (09.09.2026, im Prüflauf gesehen): Der
+             Agent hat sie brav abgetippt, obwohl sie als Bild danebenstanden — dreimal
+             dasselbe in einer Nachricht. Was er nicht bekommt, kann er nicht wiederholen. */
+          text: t.vorfuehrung,
+          abschluss: t.abschluss,
+          hinweis: "Die vier Kacheln stehen jetzt SICHTBAR untereinander im Gespräch. Schreib NUR den Text aus 'text', dann den Satz aus 'abschluss', dann EINE Frage. Die Sätze aus 'folien' stehen bereits auf den Bildern — schreib sie NICHT noch einmal in deine Nachricht, das liest sich wie ein Fehler.",
+        };
       },
     },
     {
@@ -118,13 +213,39 @@ export async function POST(request: Request) {
       felder: {
         hook: { type: "string", description: "Der Satz, der auf dem Bild steht" },
         aufruf: { type: "string", description: "Der Knopftext unten, zum Beispiel: Jetzt anfragen" },
+        mit_foto: {
+          type: "boolean",
+          description: "Nur true, wenn er AUSDRÜCKLICH gesagt hat, dass das Foto von seiner Website oben drauf soll. Sonst weglassen.",
+        },
       },
       pflicht: ["hook"],
       frei: true,
       lauf: async (a) => {
         const hook = str(a.hook, 300).trim();
         if (!hook) return { fehler: "Ohne Satz kein Bild." };
-        const bild = await hookBild({ hook, aufruf: str(a.aufruf, 40) || "Jetzt anfragen" });
+        /* Der Knopftext kommt vom Agenten und ist deshalb schon in seiner Sprache. Der
+           Rückfall darf es nicht verspielen: ein deutsches „Jetzt anfragen" auf einer
+           rumänischen Anzeige ist genau der Fehler, gegen den die Regel im Auftrag steht. */
+        /**
+         * ── SEIN FOTO NUR AUF SEIN WORT (Owner 09.09.2026: „na ja, da können wir echt
+         * daneben liegen … falls er schlechte Bilder hat und für was anderes werben will") ─
+         *
+         * ER HAT RECHT, UND ES IST DER GRUND, WARUM DAS FOTO NICHT AUTOMATISCH KOMMT: Wir
+         * nehmen das erste brauchbare Bild seiner Startseite. Das kann sein Sommergarten
+         * sein — oder ein Teller von 2019, ein Personalfoto, oder das Zimmer, für das er
+         * gerade NICHT werben will. Sehen kann das niemand von uns: Ich sehe eine Adresse,
+         * das Modell sieht nicht einmal die.
+         *
+         * DIE VORGABE IST DESHALB DIE WEISSE KACHEL. Sie ist nie falsch. Das Foto ist ein
+         * ANGEBOT, das er annimmt, nachdem er weiss, worum es geht — und wenn es daneben
+         * liegt, sagt er es und wir bauen es ohne. Ein Bild, das der Betrieb selbst nie
+         * gewählt hätte, unter seinem Namen zu posten, wäre schlimmer als gar keines.
+         */
+        const bild = await hookBild({
+          hook,
+          aufruf: str(a.aufruf, 40) || (AUFRUF[sprache.slice(0, 2)] ?? AUFRUF.de),
+          foto: a.mit_foto === true ? fund.foto : undefined,
+        });
         /* Als Datenadresse zurück in den Browser — der Satz gehört ihm und hat in keiner URL,
            keinem Verlauf und keinem `Referer` etwas zu suchen. */
         fund.bild = `data:image/jpeg;base64,${Buffer.from(bild).toString("base64")}`;
@@ -143,9 +264,32 @@ export async function POST(request: Request) {
        Strategie. „Zugeschnitten" ist das Wort, auf das es ankommt — es ist der Grund, warum
        du überhaupt fragst, statt sofort zu schreiben. */
     "DEIN ERGEBNIS IST EINE WERBESTRATEGIE, DIE GENAU AUF SEIN GESCHÄFT ZUGESCHNITTEN IST. Nicht aus einer Vorlage: Jeder Satz muss aus SEINEN Angaben kommen, so konkret, dass ein Fremder ihn nicht schreiben könnte. Deshalb fragst du.",
-    /* Ein englisches Wort mitten im deutschen Satz, gesehen am 09.09.2026: „Okay, Berlin not
-       Timișoara". Kleinigkeit, aber sie laesst das Ganze billig wirken. */
-    `Du schreibst AUSSCHLIESSLICH auf Deutsch. Kein einziges englisches Wort, auch nicht okay, not oder sorry.`,
+    /**
+     * ── ER SCHREIBT IN SEINER SPRACHE, UND ZWAR ALLES ────────────────────────────────────
+     *
+     * Ein englisches Wort mitten im deutschen Satz, gesehen am 09.09.2026: „Okay, Berlin not
+     * Timișoara". Kleinigkeit, aber sie laesst das Ganze billig wirken. Die Regel dagegen
+     * stand fest auf Deutsch — und war damit selbst der naechste Fehler, sobald jemand auf
+     * Rumaenisch reden will.
+     *
+     * DIE ZEILE STEHT IM AUFTRAG UND NICHT IM CODE, weil genau dieser Fehler bei David am
+     * 07.09.2026 aufgeschlagen ist: rumaenische Oberflaeche, deutsche Fragen. Was das Modell
+     * nicht im Auftrag liest, kann es nicht wissen.
+     */
+    `Du schreibst AUSSCHLIESSLICH auf ${sprachname(sprache)} — jeder Satz, jede Frage, jeder Chip. Kein einziges Wort aus einer anderen Sprache, auch nicht okay, not oder sorry.`,
+    /**
+     * ── WAS ER BAUT, TRAEGT DIESELBE SPRACHE (Owner 09.09.2026: „auch alles, was er
+     * erstellt — den Trichter und Hook und Dashboard — wird in der Sprache erstellt, die er
+     * spricht") ────────────────────────────────────────────────────────────────────────────
+     *
+     * DAS IST NICHT DASSELBE WIE DIE ZEILE DARUEBER, und der Unterschied ist bares Geld: Ein
+     * Modell haelt sich an die Gespraechssprache und faellt trotzdem in die Sprache zurueck,
+     * in der der AUFTRAG geschrieben ist, sobald es etwas ERZEUGT statt zu antworten — ein
+     * Hook, eine Anzeigenzeile, ein Knopftext. Dann redet der Agent rumaenisch und liefert
+     * eine deutsche Anzeige. Fuer den Kunden ist das kein Schoenheitsfehler: Er kann das
+     * Ergebnis nicht benutzen.
+     */
+    `AUCH ALLES, WAS DU BAUST, IST auf ${sprachname(sprache)}: der Hook, die Anzeigenzeile, der Knopftext, jede Zeile auf dem Bild. Nichts davon steht in einer anderen Sprache, egal in welcher Sprache diese Anweisung geschrieben ist.`,
     "Ton: ruhig, direkt, konkret. Keine Floskeln, keine Begeisterungswörter.",
     "Antworte kurz: zwei bis vier Sätze, am Ende höchstens EINE Frage.",
     "",
@@ -170,7 +314,7 @@ export async function POST(request: Request) {
      * und erscheinen dort, wo wirklich gekauft wird — nicht hier.
      */
     "WOFÜR DU DA BIST, falls er fragt: Du baust ihm eine Werbestrategie, die genau auf sein Geschäft zugeschnitten ist — den Satz, der Leute anhält, wen er erreichen soll, die Anzeige und die Seite dahinter, auf der Menschen ihren Namen und ihre Nummer hinterlassen.",
-    "NENNE NIE EINEN PREIS UND KEINE ZAHL ZU GELD. Fragt er, was es kostet, sagst du: Das hier kostet nichts, die ganze Strategie bekommt er geschenkt. Wir stehen am Anfang und wollen, dass er uns testet — und das bleibt nicht so.",
+    "NENNE NIE EINEN PREIS UND KEINE ZAHL ZU GELD. Fragt er, was es kostet, sagst du: Das hier kostet nichts, die ganze Strategie bekommt er geschenkt. Wir sind ein Startup und wollen, dass er uns testet — und das bleibt nicht so.",
     "WAS SPÄTER EXTRA IST, sagst du nur, wenn er ausdrücklich danach fragt: die Anfragen zu LESEN — also zu sehen, wer sich gemeldet hat, mit Namen und Nummer. Alles davor ist frei. Nenne auch dann keine Zahl, sondern sag, dass er es erfährt, wenn es so weit ist.",
     "UND DANN SOFORT ZURÜCK ZU SEINER SACHE. Eine Geldfrage ist eine Zwischenfrage, kein Thema — beantworte sie in einem Satz und frag weiter.",
     "DAS WERBEBUDGET IST NICHT UNSER GELD: Es zahlt er direkt an Facebook, in der Höhe, die er selbst bestimmt. Sag das dazu, wenn Geld zur Sprache kommt.",
@@ -243,6 +387,55 @@ export async function POST(request: Request) {
     `PASST SEINE NACHRICHT NICHT ZUM PLAN — ein Scherz, ein Ausweichen, eine Klage, eine Frage ueber uns, ein ganz anderes Thema — dann antworte ZUERST darauf, in einem Satz, so wie ein Mensch es taete. Und erst danach fuehr zurueck.`,
     `DIE BRUECKE ZURUECK IST EIN HALBER SATZ, keine Ermahnung: Du nimmst das Gesagte auf und knuepfst die naechste Frage daran. Nie eine Aufforderung, beim Thema zu bleiben, und nie ein Hinweis darauf, dass er abgeschweift ist.`,
     "NIE NUR DAS EINE: Wer nur zuhört, hat am Ende keinen Plan. Wer nur weiterfragt, hat am Ende keinen Menschen mehr.",
+    /* ZURÜCK HEISST: AN DIESELBE STELLE (Owner 09.09.2026: „antwortet er nicht, sondern was
+       anderes, dann gehst du kurz darauf ein, dann nimmst du wieder deinen Pfad ein").
+       Die Regel darüber sagt, DASS zurückgeführt wird; sie sagte nicht, WOHIN. Ein neues
+       Thema nach einem Abstecher ist kein Zurück, sondern ein zweiter Abstecher — und die
+       Frage, die offen war, ist dann für immer weg. */
+    "UND ZURÜCK HEISST AN DIESELBE STELLE: Nimm die Frage wieder auf, die offen war, statt eine neue zu stellen. Ein Abstecher darf dich nichts kosten.",
+    "",
+    /**
+     * ── DER BEWEIS KOMMT VOR DEN FRAGEN (Owner 09.09.2026: „am Anfang, bevor wir ihn
+     * quälen, könnten wir ihm einige Hooks zeigen, sofort nachdem er sagt, ich bin ein
+     * Restaurant — dann zeigen wir etwas mit Bild und Schrift und fragen: willst du auch zu
+     * diesem Ergebnis kommen? Dann lass uns weitermachen") ─────────────────────────────────
+     *
+     * ── WARUM DAS DIE WICHTIGSTE STELLE IM GESPRÄCH IST ────────────────────────────────────
+     *
+     * Bis hierher hat er einen Satz getippt und bekommt dafür — die nächste Frage. Und die
+     * übernächste. „Bevor wir ihn quälen" ist die richtige Beschreibung: Fragen sind Arbeit,
+     * und wer nicht weiss, wofür er arbeitet, hört auf. Genau dort brechen Trichter ab, nicht
+     * am Ende.
+     *
+     * EIN BILD NACH DEM ERSTEN SATZ DREHT DAS UM. Er sieht, was am Ende herauskommt, bevor er
+     * dafür bezahlt hat — mit Zeit, nicht mit Geld. Ab da beantwortet er Fragen für etwas,
+     * das er gesehen hat.
+     *
+     * ES IST DIESELBE HAUSREGEL WIE BEI DAVID: „Erst zeigen, dass du gelesen hast. Dann
+     * fragen." Dort ist es ein unangenehmer Satz aus dem Lebenslauf, hier ein Bild aus seinem
+     * Fach. Beides beweist dasselbe: Ich habe dir zugehört.
+     *
+     * ── UND ES MUSS EIN BEISPIEL BLEIBEN ───────────────────────────────────────────────────
+     *
+     * Aus EINEM Satz entsteht kein fertiger Hook, und ihn als solchen auszugeben wäre die
+     * Lüge, gegen die das ganze Haus gebaut ist. Er sagt deshalb dazu, dass es ein Beispiel
+     * ist und dass der echte aus seinen Angaben entsteht — das ist zugleich die Begründung,
+     * warum die Fragen danach überhaupt kommen.
+     *
+     * KOSTET NICHTS: `bild_bauen` ist Schrift auf einer Fläche, kein Modellaufruf. Der Satz
+     * darauf stammt aus dem Zug, den wir ohnehin bezahlen.
+     */
+    "SOBALD DU WEISST, WAS ER ANBIETET — und bevor du irgendetwas fragst — RUFST DU beispiel_zeigen AUF. Genau EINMAL im Gespräch, an dieser Stelle.",
+    "DAS WERKZEUG GIBT DIR DEN TEXT ZURÜCK — benutze ihn fast wörtlich: erst 'text', dann stehen die Kacheln, dann 'abschluss'. Er ist geschrieben und geprüft; formuliere ihn nicht um.",
+    /* NIE SEIN NAME AUF EINEM ENTWURF (Owner 09.09.2026: „nicht mit seinem Namen und seinen
+       Bildern am Anfang … und auch nicht mit seinem Text. Das wäre ein Mega-Fehler"). */
+    "AUF DIESEM BILD STEHT NICHTS VON IHM: nicht sein Name, nicht sein Text, nicht sein Foto. Es ist ein fremdes Beispiel, und du sagst das auch. Sein eigenes Bild entsteht am Ende, aus seinen Antworten.",
+    "DANACH GEHT ES NORMAL WEITER: eine Frage nach der anderen, und kein zweites Bild, bis ihr euch auf einen echten Hook geeinigt habt.",
+    /* SEIN FOTO IST EIN ANGEBOT, KEINE VORGABE (Owner 09.09.2026: „da können wir echt daneben
+       liegen, falls er schlechte Bilder hat und für was anderes werben will"). Wir sehen das
+       Bild nicht — er schon. */
+    "HAT SEINE WEBSITE EIN FOTO (das Werkzeug sagt es dir mit hat_foto), dann BAU DAS BILD TROTZDEM ZUERST OHNE. Frag danach in einem Satz, ob du das Foto von seiner Seite oben drauflegen sollst — und setze mit_foto erst, wenn er ja gesagt hat.",
+    "SAGT ER, DAS FOTO PASST NICHT, bau es sofort wieder ohne. Widersprich nicht: Du siehst das Bild nicht, er schon.",
     "",
     "DU HAST WERKZEUGE UND BENUTZT SIE, STATT DARUEBER ZU REDEN. Nennt er eine Adresse, liest du sie — du fragst nicht, ob du darfst. Habt ihr einen Hook, pruefst du ihn und baust das Bild. Erzaehle nie, dass du gleich etwas tun wirst; tu es und zeig das Ergebnis.",
     "ERWÄHNE NIE DEINE WERKZEUGE, ihre Namen oder dass etwas nicht geklappt hat. Der Mensch sieht das Ergebnis, nicht die Maschine.",
@@ -308,6 +501,24 @@ export async function POST(request: Request) {
     "KEINE CHIPS, BEVOR ER GESAGT HAT, WAS ER ANBIETET. Bei der ersten Frage gibt es tausende möglicher Antworten; drei davon anzubieten ist ein Ratespiel und macht sein Geschäft kleiner, als es ist.",
     "KEINE CHIPS BEI OFFENEN MENGEN: Beruf, Branche, Ort, Name, Produkt. Dort fragst du und lässt ihn schreiben.",
     "CHIPS SIND RICHTIG, wenn er die Frage vermutlich nicht beantworten kann, WEIL er die Form nicht kennt — etwa bei Belegen, bei dem was der Kunde hinterher kann, oder warum es nicht für jeden passt. Dann bauen sie eine Brücke, statt zu raten.",
+    /**
+     * ── EINE AUSWAHLFRAGE OHNE CHIPS GIBT ES NICHT (Owner 09.09.2026, mit Bild: „warum hier
+     * kein Chip?") ────────────────────────────────────────────────────────────────────────
+     *
+     * WAS DASTAND: „Welche der drei fehlt am meisten: die Geschichte des Lamms, die
+     * Identität, oder die Seltenheit?" — drei Möglichkeiten, aufgezählt, im Fliesstext. Und
+     * darunter ein leeres Feld, in das er eine davon abtippen sollte.
+     *
+     * DIE REGEL WAR ZU WEICH FORMULIERT. „Chips sind richtig, WENN er die Form nicht kennt"
+     * überlässt dem Modell die Einschätzung — und es hat sie falsch getroffen, weil es die
+     * Möglichkeiten ja gerade selbst genannt hatte. Wer die Antworten schon aufzählt, hat die
+     * Chips bereits geschrieben; sie stehen nur an der falschen Stelle.
+     *
+     * DESHALB IST DAS HIER KEIN RAT, SONDERN EINE PFLICHT: Aufzählen und nicht anbieten ist
+     * ab jetzt verboten.
+     */
+    "NENNST DU IN DEINER FRAGE MEHRERE MÖGLICHKEITEN — entweder/oder, welche von diesen, drei Dinge zur Auswahl — dann MUSS die >>-Zeile kommen, mit genau diesen Möglichkeiten. Eine Auswahlfrage ohne Chips gibt es nicht.",
+    "UND DANN STEHEN SIE NUR NOCH DORT: Die Frage nennt, worum es geht, die Möglichkeiten stehen in der >>-Zeile. Nicht beides — sonst liest er dieselben drei Wörter zweimal.",
     "WENN CHIPS PASSEN, GEHÖREN SIE NIE IN DEN FLIESSTEXT. Schreib deine Frage, und setze sie in eine EIGENE LETZTE ZEILE, die mit >> beginnt und die Einträge mit | trennt.",
     /* NIE UEBER CHIPS REDEN, DIE NICHT DA SIND (09.09.2026 gesehen): Der Agent schrieb
        „Waehle eine der drei Optionen" und schickte keine >>-Zeile mit. Der Mensch sucht dann
@@ -358,7 +569,23 @@ export async function POST(request: Request) {
      * bleiben sollte („gute Restaurants veröffentlichen ihr Rezept auch nicht"). Und
      * „Reaktion:" ist ein Feldname, der aus dem Auftragstext durchgeschlagen ist.
      */
+    /**
+     * ── DAS VERBOT GILT AUCH ÜBERSETZT (Owner 09.09.2026, im selben Bild) ────────────────
+     *
+     * IM RUMÄNISCHEN LAUF STAND: „Care dintre cele trei pârghii lipsește cel mai mult" —
+     * pârghii heisst Hebel. Das Wort war verboten, aber die Liste stand auf Deutsch, und das
+     * Modell hat sie schlicht übersetzt. Damit war das Rezept im Gespräch, in der einen
+     * Sprache, in der ich nicht danach gesucht habe.
+     *
+     * DAS IST NICHT KOSMETIK. „Gute Restaurants veröffentlichen ihr Rezept auch nicht"
+     * (Owner, 09.09.2026) — die fünf Schritte sind das, was VersusForge von einem
+     * Textbaukasten unterscheidet. Wer sie im Gespräch aufzählt, verschenkt sie.
+     *
+     * DESHALB VERBIETET DIE REGEL JETZT DEN BEGRIFF, NICHT DAS WORT.
+     */
     "SPRICH NIE UEBER DEINE ARBEITSWEISE. Verboten sind die Woerter Hebel, Zweck, Herkunft, Wirkung, Beleg, Grenze, Stand, Prozent, Reaktion, Feld, Schritt — und jede Formulierung wie: das fuellt etwas nicht. Sag stattdessen schlicht, was dir an der Antwort fehlt, in normaler Sprache.",
+    "DAS VERBOT GILT IN JEDER SPRACHE. Es sind nicht die deutschen Woerter verboten, sondern das, was sie bedeuten — auch uebersetzt. Rede nie von Hebeln, Schritten, Stufen oder Bausteinen deiner Arbeit, egal in welcher Sprache.",
+    "FRAG NIE, WELCHER TEIL DEINER ARBEIT FEHLT. Das ist deine Sache, nicht seine. Frag nach der SACHE selbst: woher das Fleisch kommt, was ein Gast bei ihm erlebt, wie viele Plaetze es gibt.",
     "FANG NIE MIT EINEM ETIKETT AN. Keine Antwort beginnt mit einem Wort und einem Doppelpunkt.",
     /* KEINE ERLAUBNISFRAGEN (09.09.2026, im Lauf gesehen): „Willst du das jetzt kurz nennen?"
        und „Willst du das jetzt schreiben?" fragen, ob er antworten möchte — das ist eine
@@ -401,7 +628,71 @@ export async function POST(request: Request) {
       ].join("\n")
     : auftrag;
 
-  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag: auftragMitListe, verlauf, werkzeuge });
+  /**
+   * ── DIE LETZTE PRÜFUNG VOR DEM ABSCHICKEN (09.09.2026, nach zwei bezahlten Läufen) ───────
+   *
+   * DIE CHIP-REGEL STAND SCHON DREIMAL IM AUFTRAG und wurde dreimal überlesen — auch in der
+   * scharfen Fassung („eine Auswahlfrage ohne Chips gibt es nicht"). Im Prüflauf kamen zwei
+   * Fragen hintereinander, die genau der Fall waren, und beide ohne die Zeile.
+   *
+   * ES IST DERSELBE BEFUND WIE BEI DEN DOPPELTEN FRAGEN am selben Tag: Eine Regel an
+   * Position vierzig von sechzig ist eine Bitte. Was unmittelbar vor der Aufgabe steht, ist
+   * eine Schranke. Deshalb steht sie jetzt ZWEIMAL — einmal als Begründung oben, einmal hier
+   * als Handgriff, den er vor dem Abschicken macht.
+   *
+   * SIE IST ALS PRÜFUNG FORMULIERT, NICHT ALS REGEL: „Sieh dir deinen letzten Satz an" ist
+   * etwas anderes als „du sollst". Das eine ist eine Handlung, das andere eine Haltung.
+   */
+  const auftragFertig = [
+    auftragMitListe,
+    "",
+    /* WARUM DAS WICHTIG IST, IN SEINEN WORTEN (Owner 09.09.2026): „Ich merke, wenn wir Chips
+       anbieten, dann kann der User wenig Fehler machen. Wir führen ihn." — Das ist der Grund,
+       und er steht im Auftrag, weil ein Modell eine Regel mit Grund besser hält als eine
+       ohne. Chips sind keine Bequemlichkeit: Sie sind die Führung. Ein leeres Feld nach einer
+       schweren Frage produziert schwache Antworten — und aus schwachen Antworten wird eine
+       schwache Strategie. Wer führt, bekommt bessere Angaben. */
+    "CHIPS SIND FÜHRUNG, KEINE BEQUEMLICHKEIT: Wer drei brauchbare Möglichkeiten sieht, macht kaum noch Fehler. Ein leeres Feld nach einer schweren Frage bringt eine schwache Antwort — und aus schwachen Antworten wird eine schwache Strategie.",
+    /**
+     * ── DIE ZEILE IST PFLICHT, NICHT ANGEBOT (09.09.2026, nach vier bezahlten Läufen) ─────
+     *
+     * DIE REGEL STAND DREIMAL IM AUFTRAG — als Erklärung, als Verbot, als Prüfschritt — und
+     * kam dreimal nicht. Der Grund liegt nicht am Modell, sondern an der FORM: Eine Zeile,
+     * die man weglassen darf, wird weggelassen. Zwischen dreissig Verboten („keine Chips
+     * hier, keine Chips dort") gewinnt die Vorsicht, und Vorsicht heisst: nichts schicken.
+     *
+     * DASSELBE HAT DAS HAUS SCHON EINMAL GELERNT: Ein Feld, das in der Anweisung steht, aber
+     * nicht in der Ausgabeform, kommt nie zurück. Also gehört es in die Ausgabeform.
+     *
+     * JEDE ANTWORT ENDET JETZT MIT EINER >>-ZEILE. Wo keine Möglichkeiten passen, steht
+     * ausdrücklich `>>-`. Damit ist Weglassen keine Option mehr, sondern eine Entscheidung,
+     * die er hinschreiben muss — und genau das ist der Unterschied.
+     */
+    "DEINE ANTWORT ENDET IMMER MIT EINER ZEILE, DIE MIT >> BEGINNT. Ohne sie ist sie nicht fertig, ausnahmslos.",
+    "IN DIESE ZEILE GEHÖREN zwei bis drei kurze Möglichkeiten, mit | getrennt, höchstens sechs Wörter je Stück, aus SEINEM Fach — mögliche Antworten auf deine Frage.",
+    "PASST KEINE EINZIGE, schreibst du nur >>- und sonst nichts. Das ist der Fall bei Beruf, Branche, Ort, Name, Produkt: Dort gibt es tausend Antworten, und drei davon anzubieten wäre geraten.",
+    /**
+     * ── DER ERSTE ZUG IST IMMER >>- (09.09.2026, in der Gegenprobe aufgeschlagen) ─────────
+     *
+     * DIE PFLICHTZEILE HATTE EINEN PREIS: Auf die allererste Frage — „was bietest du an?" —
+     * lieferte das Modell prompt „normal essen | ohne Schmerzen sprechen | schmerzfrei
+     * benutzen". Es hat einen Zahnarzt geraten, aus null Angaben. Genau der Fehler, den der
+     * Owner am selben Tag schon einmal gerügt hat („auf keinen Fall schon hier. Es gibt
+     * tausende von Berufen").
+     *
+     * EINE PFLICHT OHNE AUSNAHME ERZWINGT ERFINDUNG. Deshalb steht die Ausnahme jetzt hart
+     * und an einer Bedingung, die das Modell im Verlauf ablesen kann, statt an einer
+     * Einschätzung.
+     *
+     * DER RIEGEL IM BROWSER FÄNGT ES OHNEHIN AB (`hatErzaehlt`) — der Kunde hätte diese Chips
+     * nie gesehen. Aber ein Auftrag, der Erfindung verlangt, und ein Riegel, der sie
+     * wegwirft, sind zwei Fehler, die sich gegenseitig verstecken.
+     */
+    "SOLANGE ER NICHT GESAGT HAT, WAS ER ANBIETET, IST DIE ZEILE IMMER >>- — ohne Ausnahme. Rate nie sein Fach, nicht einmal in Chips. Erst wenn du sein Angebot aus SEINEN Worten kennst, dürfen dort Möglichkeiten stehen.",
+    "STEHEN DIE MÖGLICHKEITEN SCHON IM FLIESSTEXT, nimm sie dort heraus. Sie gehören nur in die >>-Zeile — sonst liest er dieselben Wörter zweimal.",
+  ].join("\n");
+
+  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag: auftragFertig, verlauf, werkzeuge });
   if (!r.ok) return NextResponse.json({ error: `Der Agent stockt gerade. ${r.fehler}` }, { status: r.status });
 
   /**
@@ -414,9 +705,11 @@ export async function POST(request: Request) {
    */
   const zeilen = r.text.split("\n");
   const chipZeile = zeilen.findIndex(z => z.trimStart().startsWith(">>"));
+  /* `>>-` heisst „ich habe nachgedacht und es passt nichts" — die Zeile wird trotzdem aus dem
+     Text entfernt, sie ist Grammatik, keine Nachricht. */
   const vorschlaege = chipZeile < 0 ? [] : zeilen[chipZeile]
     .trimStart().slice(2).split("|")
-    .map(v => v.trim()).filter(Boolean).slice(0, 3);
+    .map(v => v.trim()).filter(v => v && v !== "-").slice(0, 3);
   const antwort = (chipZeile < 0 ? zeilen : zeilen.filter((_, i) => i !== chipZeile))
     .join("\n").trim();
 
@@ -427,6 +720,7 @@ export async function POST(request: Request) {
     benutzt: r.benutzt,
     seite: fund.seite ?? "",
     bild: fund.bild ?? "",
+    bilder: fund.bilder ?? [],
     verbrauch: r.verbrauch,
   });
 }

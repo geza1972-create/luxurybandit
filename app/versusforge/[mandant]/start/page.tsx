@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { mandantOeffentlich, AKZENT_STANDARD } from "@/lib/versusforge-mandanten";
 import MandantGespraech from "@/components/MandantGespraech";
+import { mandantTexteInSprache } from "@/lib/mandant-texte";
 
 /**
  * DER TRICHTER DES MANDANTEN — die Seite hinter seinem Knopf (Owner 09.09.2026).
@@ -32,6 +33,9 @@ export default async function MandantStartSeite({ params }: { params: Promise<{ 
   if (!m) notFound();
 
   const akzent = /^#[0-9a-f]{6}$/i.test(m.farbe) ? m.farbe : AKZENT_STANDARD;
+  /* Der Rahmen in SEINER Sprache — nicht in der des Besuchers. Begründung in
+     lib/mandant-texte.ts. */
+  const S = await mandantTexteInSprache(m.sprache);
 
   return (
     <div
@@ -84,7 +88,7 @@ export default async function MandantStartSeite({ params }: { params: Promise<{ 
       <main className="mx-auto w-full max-w-[560px] flex-1 px-5 pb-10 pt-7">
         {/* SAMMELN hängt an den Pflichtangaben, nicht am Kauf. Lesen hängt am Kauf —
             das steht am Dashboard, nicht hier. */}
-        <MandantGespraech mandant={mandant} sammelt={!!m.impressumUrl && !!m.datenschutzUrl} name={m.name} />
+        <MandantGespraech mandant={mandant} sammelt={!!m.impressumUrl && !!m.datenschutzUrl} name={m.name} S={S} />
       </main>
 
       <footer className="flex flex-wrap items-center gap-2 border-t border-[#dfe4e9] px-5 pb-6 pt-4 text-[14px] text-[#5b666f]">

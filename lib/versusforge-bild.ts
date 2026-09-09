@@ -76,28 +76,82 @@ function passenderGrad(text: string, von: number, bis: number, maxBreite: number
   return bis;
 }
 
+/**
+ * ── OBEN FOTO, UNTEN SCHRIFT (Owner 09.09.2026: „Hälfte Bild, unten Schrift wäre besser") ──
+ *
+ * SEIN EINWAND VOM SELBEN TAG WAR: „Der Text füllt nicht das Format." Stimmt — ein Satz aus
+ * acht Wörtern auf 1080 x 1350 lässt zwei Drittel Weiss stehen, und das sieht nicht ruhig
+ * aus, sondern unfertig.
+ *
+ * DIE OBERE HÄLFTE IST DAS FOTO, die untere trägt den Satz. Damit ist die Fläche gefüllt,
+ * ohne dass die Schrift aufgeblasen werden muss — und es ist der Aufbau, den jede Anzeige in
+ * diesen Formaten hat: Bild fängt den Blick, Zeile hält ihn.
+ *
+ * SEIN FOTO, KEIN ERZEUGTES (Owner: „aber das wird dann echt Geld kosten"). Es kommt von
+ * seiner eigenen Website (`lib/seite-lesen.ts`, `fotoAus`) und kostet einen Abruf statt
+ * fünfzehn Cent. Erzeugte Motive bleiben draussen, solange das Gespräch gratis ist.
+ *
+ * OHNE FOTO BLEIBT ALLES WIE VORHER: Wer keine Website genannt hat oder wessen Seite kein
+ * brauchbares Bild hergibt, bekommt die reine Schriftkachel. Ein halbes Bild mit grauem Loch
+ * wäre schlechter als gar keins.
+ */
+const FOTO_H = Math.round(H * 0.52);
+
+/** Holt das Foto und schneidet es auf die obere Hälfte zu. Scheitert es, gibt es kein Foto. */
+async function fotoHolen(url: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; VersusForge/1.0)" },
+    });
+    if (!res.ok) return null;
+    const roh = Buffer.from(await res.arrayBuffer());
+    /* Über 8 MB ist kein Anzeigenmotiv, sondern ein unbearbeitetes Kamerabild — und es würde
+       den Aufruf ausbremsen. */
+    if (!roh.length || roh.length > 8 * 1024 * 1024) return null;
+    const bild = sharp(roh);
+    const masse = await bild.metadata();
+    /* Unter 600 Pixel Breite ist es ein Logo, ein Symbol oder ein Zählpixel — hochgerechnet
+       auf 1080 sähe es matschig aus, und das fiele auf ihn zurück, nicht auf uns. */
+    if (!masse.width || masse.width < 600) return null;
+    return await bild.resize(B, FOTO_H, { fit: "cover", position: "attention" }).toBuffer();
+  } catch {
+    return null;
+  }
+}
+
 export async function hookBild(o: {
   hook: string;
   /** Der Aufruf unten — „Jetzt anfragen", kurz. Leer lassen ist erlaubt. */
   aufruf?: string;
+  /** Adresse eines Fotos von SEINER Seite. Fehlt es, bleibt es bei der Schriftkachel. */
+  foto?: string;
 }): Promise<Buffer> {
   const hook = String(o.hook ?? "").trim();
   if (!hook) throw new Error("Ohne Hook kein Bild.");
 
+  const foto = o.foto ? await fotoHolen(o.foto) : null;
+
   const innen = B - RAND * 2;
-  const grad = passenderGrad(hook, 92, 44, innen, 6);
+  /* Mit Foto bleibt die halbe Fläche für die Schrift — also kleinere Grade und weniger
+     Zeilen. Ohne Foto darf der Satz gross werden, er ist dann das ganze Bild. */
+  const grad = foto
+    ? passenderGrad(hook, 72, 38, innen, 4)
+    : passenderGrad(hook, 92, 44, innen, 6);
   const zeilen = umbrechen(hook, grad, innen);
   const zeilenhoehe = Math.round(grad * 1.14);
-
-  /* Der Satz sitzt optisch mittig, leicht nach oben gerückt: Unten stehen Balken und Aufruf,
-     und ein exakt mittiger Block wirkt daneben nach unten gerutscht. */
   const blockHoehe = zeilen.length * zeilenhoehe;
-  const start = Math.round((H - blockHoehe) / 2 - 70) + grad;
 
   const fuss = H - RAND;
+  /* MIT FOTO steht der Satz im weissen Feld darunter, optisch mittig zwischen Fotokante und
+     Aufruf. OHNE FOTO sitzt er in der Mitte des Bildes, leicht nach oben gerückt. */
+  const start = foto
+    ? Math.round(FOTO_H + (H - FOTO_H - blockHoehe - 110) / 2) + grad
+    : Math.round((H - blockHoehe) / 2 - 70) + grad;
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${B}" height="${H}">
   <rect width="${B}" height="${H}" fill="${GRUND}"/>
-  <rect x="0" y="0" width="${B}" height="10" fill="${AKZENT}"/>
+  ${foto ? "" : `<rect x="0" y="0" width="${B}" height="10" fill="${AKZENT}"/>`}
   <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="bold">
     ${zeilen.map((z, i) =>
       `<text x="${RAND}" y="${start + i * zeilenhoehe}" font-size="${grad}" fill="${TEXT}" letter-spacing="-2">${xml(z)}</text>`,
@@ -109,5 +163,13 @@ export async function hookBild(o: {
 
   /* JPEG, nicht PNG: Instagram rechnet ohnehin um, und eine 200-KB-Datei lädt am Handy
      sofort — ein 2-MB-PNG mit denselben Pixeln nicht. */
-  return await sharp(Buffer.from(svg)).jpeg({ quality: 92 }).toBuffer();
+  const flaeche = sharp(Buffer.from(svg));
+  const fertig = foto
+    /* Das Foto liegt UNTER der Schrift-Ebene, nicht darüber: Die weisse Fläche darunter
+       bleibt weiss, und der Satz steht nie auf dem Bild. */
+    ? sharp({ create: { width: B, height: H, channels: 3, background: GRUND } })
+        .composite([{ input: foto, top: 0, left: 0 }, { input: await flaeche.png().toBuffer(), top: 0, left: 0 }])
+    : flaeche;
+
+  return await fertig.jpeg({ quality: 92 }).toBuffer();
 }
