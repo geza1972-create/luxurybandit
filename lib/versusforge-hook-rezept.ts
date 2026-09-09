@@ -25,10 +25,31 @@
  */
 
 /** Die Hebel, in der Reihenfolge, in der sie aufeinander aufbauen. */
+/**
+ * ZWEI NAMEN JE HEBEL — UND DAS IST KEINE KOSMETIK (Owner 09.09.2026: „ich will den nicht
+ * veröffentlichen, es ist doch gratis" · „die Leute sollen es testen. Gute Restaurants
+ * veröffentlichen ihr Rezept auch nicht").
+ *
+ *  · `name` ist der INTERNE Name. Er steht im Auftragstext an das Modell und in diesem Repo.
+ *  · `schritt` ist, was der Besucher im Trichter über der Frage liest.
+ *
+ * WARUM ÜBERHAUPT ETWAS DASTEHT: Ein benannter Schritt macht aus einer Rückfrage einen
+ * Arbeitsgang — man sieht, dass die Maschine etwas Bestimmtes holt, und antwortet anders als
+ * vor „Rückfrage 2 von 4".
+ *
+ * WARUM NICHT DIE ECHTEN NAMEN: Zweck · Geschichte · Identität · Beweis · Knappheit
+ * nebeneinander IST die Formel. Wer sie liest, hat sie — und dann ist das Einzige, was wir
+ * vor dem nächsten Anbieter voraushaben, ein Screenshot weit weg. Das Ergebnis geben wir
+ * gratis her, den Bauplan nicht.
+ *
+ * WER DIESE WÖRTER ÄNDERT, ändert nur `schritt`. `name` und `schluessel` hängen an
+ * Auftragstexten und an gespeicherten Plänen; sie umzubenennen macht altes Material blind.
+ */
 export const HEBEL = [
   {
     schluessel: "zweck",
     name: "Zweck",
+    schritt: "Nutzen",
     frage: "Wofür ist es da? Was tut man damit, das man vorher nicht tat?",
     /* Was eine BRAUCHBARE Antwort ist — daran erkennt der Agent, ob der Hebel gefüllt ist
        oder ob er nachfassen muss. */
@@ -37,24 +58,28 @@ export const HEBEL = [
   {
     schluessel: "geschichte",
     name: "Geschichte",
+    schritt: "Herkunft",
     frage: "Woher kommt es? Was macht ausgerechnet dieses Stück besonders?",
     gut: "Herkunft, Verfahren, Handgriff, Jahreszahl — etwas, das ein Nachbarbetrieb nicht behaupten könnte.",
   },
   {
     schluessel: "identitaet",
     name: "Identität",
+    schritt: "Wirkung",
     frage: "Was sagt es über den, der es hat?",
     gut: "Wer der Kunde damit WIRD, in seinen eigenen Augen und vor anderen.",
   },
   {
     schluessel: "beweis",
     name: "Beweis",
+    schritt: "Beleg",
     frage: "Wer hat es schon? Woran sieht man, dass es stimmt?",
     gut: "Zahlen, Jahre, Namen, Vorher-Nachher, wiederkehrende Kunden. Was man nachzählen kann.",
   },
   {
     schluessel: "knappheit",
     name: "Knappheit",
+    schritt: "Grenze",
     frage: "Warum nicht jeder, warum nicht immer?",
     gut: "Kapazität, Bedingung, Auswahl, Saison. Warum es NICHT für alle passt — nicht ein erfundener Countdown.",
   },

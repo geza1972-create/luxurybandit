@@ -77,9 +77,14 @@ const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
 /* Muss zum Deckel im Server stehen (`MAX_FRAGEN` in app/api/versusforge/route.ts). */
 const MAX_FRAGEN = 4;
 
-/** Der Anzeigename eines Hebels — leer, wenn der Server keinen mitgeschickt hat. */
+/**
+ * Was der Besucher über der Frage liest — `schritt`, NIE `name`.
+ *
+ * Die echten Hebelnamen nebeneinander sind die Formel (siehe `versusforge-hook-rezept.ts`).
+ * Hier steht die eigene Benennung: Der Arbeitsgang ist sichtbar, der Bauplan nicht.
+ */
 const hebelName = (schluessel: string): string =>
-  HEBEL.find(h => h.schluessel === schluessel)?.name ?? "";
+  HEBEL.find(h => h.schluessel === schluessel)?.schritt ?? "";
 
 export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; lang: string }) {
   /* „warten" ist kein Schritt, sondern der Augenblick, in dem geprüft wird, ob ein Auftrag
