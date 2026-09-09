@@ -447,6 +447,15 @@ export const VERSUSFORGE_TEXTE = {
   /* Der Weg eine Frage zurück — als Text mit Pfeil, nicht als dritter Knopf. */
   zurueckWort: "Zurück",
 
+  /* ── DAS GESPRÄCH ALS CHAT (Owner 09.09.2026: „bei VersusForge müsste sich ein Chat öffnen
+        und alles lösen") ───────────────────────────────────────────────────────────────────
+     DER PLATZHALTER SAGT „schreib einfach", nicht „deine Antwort": Es ist keine Antwort auf
+     ein Feld, es ist ein Gespräch. Wer „Deine Antwort." liest, verhält sich wie in einem
+     Formular — und genau davon kommen wir gerade weg. */
+  chatPlatzhalter: "Schreib einfach — auch wenn du etwas ändern willst.",
+  chatSenden: "Senden",
+  chatPlanKnopf: "Plan jetzt bauen",
+
   /* ── Schritt 2 · die Website (Owner 09.09.2026: „im Trichter soll er nach einer Website
         doch fragen" · „gleich am Anfang, als zweiter Schritt" · „dann muss der User nicht
         alles erklären") ─────────────────────────────────────────────────────────────────

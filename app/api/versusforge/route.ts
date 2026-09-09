@@ -848,6 +848,81 @@ export async function POST(request: Request) {
   }
 
   /* ── 2 · ANTWORT: bewerten und weiterfragen oder Schluss machen ──────────── */
+  /* ── 2b · CHAT: ein echtes Gespräch statt vier Formularfelder ─────────────
+   *
+   * ── WARUM DAS DIE RICHTIGE FORM IST (Owner 09.09.2026) ─────────────────────────────────
+   *
+   * „Ich habe den Bewerbungsgenerator gemacht, aber ich passe meine Bewerbung immer noch
+   * schneller über Claude Code hier an." · „Die lösen alle über den Chat." · „Wir müssen
+   * dahin. Alles über den Chat zu lösen, und irgendwann wird es per Sprache gesteuert."
+   *
+   * DER SATZ ÜBER DEN BEWERBUNGSGENERATOR IST DER BEFUND: Der Eigentümer benutzt sein
+   * eigenes Werkzeug nicht, weil ein Chat schneller ist. Der Grund ist nicht die Qualität
+   * der Ausgabe, sondern dass ein Formular kein WIDERSPRECHEN kennt. Vier Fragen, eine
+   * Antwort je Feld, ein Ergebnis — passt es nicht, fängt man von vorn an. Im Gespräch sagt
+   * man „kürzer", „nein, das stimmt nicht", „gib mir drei andere", „warum der?".
+   *
+   * DIE FÜNF HEBEL BLEIBEN — ABER ALS AGENDA, NICHT ALS SCHRITTE. Der Agent weiss, was ihm
+   * fehlt, und holt es sich im Gespräch, in beliebiger Reihenfolge und aus beliebig langen
+   * Antworten. Der Mensch merkt davon nur die Anzeige, die sich füllt.
+   *
+   * DER TEURE AUFRUF BLEIBT EINER. Das Gespräch läuft auf dem kleinen Modell; der Plan wird
+   * genau einmal gebaut, und erst wenn der Agent sagt, dass es reicht
+   * ([[kein-token-fuer-abbrecher]]).
+   */
+  if (schritt === "chat") {
+    const verlauf = (Array.isArray(body.verlauf) ? body.verlauf : [])
+      .slice(-30)
+      .map((x: unknown) => {
+        const o = (x ?? {}) as Record<string, unknown>;
+        return { rolle: o.rolle === "agent" ? "agent" : "mensch", text: str(o.text, 2000) };
+      })
+      .filter(m => m.text);
+
+    const auftrag = [
+      regeln(b.sprache),
+      "AUFGABE: Du führst ein Gespräch. Antworte auf das, was er zuletzt geschrieben hat, und hol dir dabei, was dir für den Plan noch fehlt.",
+      HEBEL_AUFTRAG,
+      hebelStand(b.runden),
+      /**
+       * DIE DREI SÄTZE, DIE AUS EINEM FRAGEBOGEN EIN GESPRÄCH MACHEN. Ohne sie beantwortet
+       * das Modell jede Nachricht mit der nächsten Frage — und dann ist es wieder ein
+       * Formular, nur mit Sprechblasen.
+       */
+      "ER DARF ALLES SAGEN, NICHT NUR ANTWORTEN. Widerspruch, Rückfragen an dich, „mach das kürzer\", „gib mir drei andere\", „warum der?\" — geh darauf ein, bevor du irgendetwas anderes tust. Wer korrigiert wird, hat recht: Übernimm die Korrektur wortlos und arbeite damit weiter.",
+      "KEINE FRAGE UM JEDEN PREIS. Hat seine Nachricht dir gerade viel gegeben, sag EINEN Satz dazu, was du daraus machst, und frag erst danach — oder gar nicht, wenn nichts mehr fehlt.",
+      "ANTWORTE KURZ. Zwei bis vier Sätze, nie mehr. Er liest am Handy und will nicht lesen, sondern weiterkommen.",
+      "Gib zurück:",
+      "'antwort' — was du ihm schreibst. Zwei bis vier Sätze, am Ende höchstens EINE Frage. PFLICHT, nie leer.",
+      `'hebel' — an welchem der fünf du gerade arbeitest, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}. Leer, wenn du fertig bist.`,
+      `'stand' — ein Objekt mit den fünf Feldern ${HEBEL.map(h => h.schluessel).join(", ")}, je 0 bis 100: wie gut du diesen Hebel aus ALLEM füllen kannst, was im Gespräch steht. 0 = nichts. 100 = du könntest sofort einen Hook bauen, den ein Fremder nicht schreiben könnte. Allgemeines Gerede liegt unter 20. Sei streng.`,
+      /* „Fertig" ist ein ANGEBOT, kein Sprung: Der Plan kostet Geld, und der Mensch
+         entscheidet, wann er ihn will (Hausregel „kein Token für Abbrecher"). */
+      "'fertig' — true, wenn du genug für Hook, Zielgruppe und Plan hast. Dann endet deine 'antwort' mit dem Angebot, den Plan jetzt zu bauen — als Satz, nicht als Frage nach weiteren Angaben.",
+      "'vorschlaege' — 2 bis 3 kurze Antwortmöglichkeiten zum Antippen, je höchstens 6 Wörter, ohne erfundene Zahlen, Preise oder Orte. Passt es nicht, lass die Liste leer.",
+      'Antworte NUR als JSON: {"antwort":"...","hebel":"...","stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"fertig":false,"vorschlaege":["..."]}',
+      "",
+      lage(b),
+      "",
+      "DAS GESPRÄCH BIS HIER:",
+      ...verlauf.map(m => `${m.rolle === "agent" ? "DU" : "ER"}: ${m.text}`),
+    ].join("\n");
+
+    const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }]);
+    if (!r.ok) return NextResponse.json({ error: `Der Berater stockt gerade. ${r.fehler}` }, { status: r.status });
+
+    const hebelRoh = str(r.daten.hebel, 40).trim().toLowerCase();
+    return NextResponse.json({
+      ok: true,
+      antwort: str(r.daten.antwort, 900),
+      hebel: HEBEL.some(h => h.schluessel === hebelRoh) ? hebelRoh : "",
+      stand: standAus(r.daten.stand),
+      fertig: r.daten.fertig === true,
+      vorschlaege: strListe(r.daten.vorschlaege, 3, 80),
+      verbrauch: r.verbrauch,
+    });
+  }
+
   if (schritt === "antwort") {
     const gestellt = b.runden?.length ?? 0;
     const auftrag = [

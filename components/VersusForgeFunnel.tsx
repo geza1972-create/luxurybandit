@@ -9,6 +9,7 @@ import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { schrittMessen } from "@/lib/versusforge-messen";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { HEBEL } from "@/lib/versusforge-hook-rezept";
+import VersusForgeGespraech, { type Nachricht } from "@/components/VersusForgeGespraech";
 import type { VersusForgeTexte } from "@/lib/versusforge-texte";
 import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
 
@@ -41,7 +42,17 @@ import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
   * bleibt, ist das Feld als Rückfalltür für jemanden, der die Adresse direkt eintippt —
   * darüber ist der Weg: Satz → Fragen → Plan.
   */
-type Phase = "warten" | "webseite" | "bezahlen" | "gespraech" | "plan" | "danke";
+/**
+ * DIE PHASEN NACH DEM UMBAU AUF CHAT (Owner 09.09.2026: „bei VersusForge müsste sich ein Chat
+ * öffnen und alles lösen" · „hier haben wir Schritte statt ein Chat, es ist veraltet").
+ *
+ * „webseite" und „gespraech" sind zu EINER Phase geworden: `chat`. Die Website fragt der
+ * Agent jetzt im Gespräch, wenn er sie braucht — sie war nie ein eigener Schirm wert.
+ *
+ * PROTOTYP FÜR VERSUSFORGE (Owner: „genauso müssten alle Topics laufen, aber jetzt machen wir
+ * das als Prototyp"): Die anderen zwölf Produkte bleiben unberührt, bis das hier trägt.
+ */
+type Phase = "warten" | "chat" | "bezahlen" | "plan" | "danke";
 type Ziel = "leads" | "verkauf";
 /**
  * EINE RUNDE TRÄGT IHREN HEBEL (Owner 09.09.2026: „die Schritte nennen wir so bei der
@@ -73,9 +84,30 @@ type Plan = { befund: string; zielgruppe: string[]; hook: string; hookWarum: str
  * Überschrift, die verkauft, und ein Feld. Ein zweites daneben halbiert die Aufmerksamkeit
  * an genau der Stelle, an der jemand entscheidet, ob er anfängt.
  */
-const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
+const SCHRITTE: Phase[] = ["chat", "plan"];
 /* Muss zum Deckel im Server stehen (`MAX_FRAGEN` in app/api/versusforge/route.ts). */
 const MAX_FRAGEN = 4;
+
+/**
+ * DEN VERLAUF IN DIE FORM BRINGEN, DIE PLAN UND ANFRAGE ERWARTEN.
+ *
+ * WARUM NICHT ALLES AUF NACHRICHTEN UMSTELLEN: Plan, Mandant, Anfragen-Mail und Dashboard
+ * lesen seit Wochen Frage-Antwort-Paare. Sie alle gleichzeitig umzubauen wäre ein zweiter
+ * Umbau im selben Zug — und der Prototyp soll zeigen, ob der Chat trägt, nicht ob ich zehn
+ * Dateien gleichzeitig anfassen kann. Die Umwandlung kostet nichts und lässt sich später
+ * entfernen, wenn die Nachrichtenform überall angekommen ist.
+ */
+function alsRunden(verlauf: Nachricht[]): Runde[] {
+  const raus: Runde[] = [];
+  for (let i = 0; i < verlauf.length; i++) {
+    if (verlauf[i].rolle !== "mensch") continue;
+    /* Die letzte Nachricht des Agenten davor ist die „Frage" zu dieser Antwort; die erste
+       Nachricht des Menschen hat keine — sie ist sein Aufschlag. */
+    const davor = verlauf.slice(0, i).reverse().find(m => m.rolle === "agent");
+    raus.push({ frage: davor?.text ?? "", antwort: verlauf[i].text });
+  }
+  return raus;
+}
 
 /** Der Sitzungseintrag, der einen laufenden Trichter über ein Neuladen rettet. */
 const LAUF = "vf_lauf";
@@ -83,6 +115,8 @@ type Gespeichert = {
   ziel: Ziel | ""; text: string; url: string; seite: string; runden: Runde[];
   verstanden: string; frage: string; hebel: string; stand: Record<string, number>;
   vorschlaege: string[]; plan: Plan | null;
+  /* Seit dem Umbau auf Chat ist DAS der eigentliche Zustand — der Rest hängt daran. */
+  verlauf: Nachricht[]; fertig: boolean;
 };
 
 /**
@@ -151,12 +185,13 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const [seite, setSeite] = useState("");
   const [runden, setRunden] = useState<Runde[]>([]);
   const [verstanden, setVerstanden] = useState("");
-  const [reaktion, setReaktion] = useState("");
   const [frage, setFrage] = useState("");
   /* Welchen der fünf Hebel die AKTUELLE Frage füllen soll — er steht als Name darüber. */
   const [hebel, setHebel] = useState("");
-  /* Ein Satz über dem Website-Feld, wenn wir ihn dorthin zurückgeschickt haben. */
-  const [webHinweis, setWebHinweis] = useState("");
+  /** Der Gesprächsverlauf — die Form, die eine Sprachsteuerung später genauso braucht. */
+  const [verlauf, setVerlauf] = useState<Nachricht[]>([]);
+  /** Der Agent meldet, dass er genug für den Plan hat. Gebaut wird trotzdem erst auf Klick. */
+  const [fertig, setFertig] = useState(false);
   /**
    * WIE WEIT JEDER HEBEL GEFÜLLT IST, in Prozent (Owner 09.09.2026: „Nutzen identifizieren
    * in Prozent, ob es erfüllt ist oder nicht").
@@ -228,9 +263,10 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     try {
       sessionStorage.setItem(LAUF, JSON.stringify({
         ziel, text, url, seite, runden, verstanden, frage, hebel, stand, vorschlaege, plan,
+        verlauf, fertig,
       } satisfies Gespeichert));
     } catch { /* voller oder gesperrter Speicher: dann eben ohne Netz */ }
-  }, [ziel, text, url, seite, runden, verstanden, frage, hebel, stand, vorschlaege, plan]);
+  }, [ziel, text, url, seite, runden, verstanden, frage, hebel, stand, vorschlaege, plan, verlauf, fertig]);
 
   /**
    * DIE MESSUNG DES EIGENEN TRICHTERS (Owner 09.09.2026: „wo ist mein Dashboard?" · „der
@@ -312,7 +348,9 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       setPlan((lauf.plan ?? null) as Plan | null);
       /* Der Plan ist das teuerste Stück des Laufs — wer dort neu lädt, darf ihn nicht
          verlieren. Sonst zurück in den Schirm, in dem er zuletzt stand. */
-      setPhase(lauf.plan ? "plan" : lauf.frage ? "gespraech" : "webseite");
+      setVerlauf(Array.isArray(lauf.verlauf) ? lauf.verlauf : []);
+      setFertig(lauf.fertig === true);
+      setPhase(lauf.plan ? "plan" : "chat");
       return;
     }
 
@@ -326,17 +364,21 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       setUrl(u);
       setZiel(z); setText(t);
       /**
-       * SCHRITT ZWEI: DIE WEBSITE (09.09.2026).
+       * DER CHAT BEGINNT MIT SEINEM SATZ (09.09.2026).
        *
-       * Hat er auf der Startseite schon eine Adresse hineingeschrieben, ist die Frage
-       * beantwortet und wir überspringen sie — noch einmal danach zu fragen wäre
-       * dieselbe Zumutung wie der doppelte Hook, den wir gestern beseitigt haben.
+       * Was er auf der Startseite geschrieben hat, ist die erste Nachricht — nicht ein
+       * verlorener Eingabewert, aus dem irgendwo eine Frage abgeleitet wird. Er sieht seinen
+       * eigenen Satz oben im Gespräch stehen und weiss, dass er angekommen ist.
+       *
+       * DIE WEBSITE IST KEIN SCHIRM MEHR: Braucht der Agent sie, fragt er im Gespräch danach.
        */
-      if (u) { void briefingMit(z, t, u); return; }
-      setPhase("webseite");
+      const erste: Nachricht[] = [{ rolle: "mensch", text: u ? `${t}\nMeine Website: ${u}` : t }];
+      setVerlauf(erste);
+      setPhase("chat");
+      void chatLauf(erste);
     } catch { /* kaputter Eintrag — dann fängt er eben vorne an */ }
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { endeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [phase, frage, reaktion]);
+  useEffect(() => { endeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [phase, frage]);
 
   /**
    * DIE STARTSEITE ZÄHLT MIT (09.09.2026, im eigenen Durchlauf gesehen: über „SCHRITT 2"
@@ -563,149 +605,72 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
 
   /** Der Auftrag geht als Argument mit, weil der Abholer oben ihn kennt, bevor React den
       Zustand gesetzt hat — sonst schickte der erste Aufruf ein leeres Feld. */
+
   /**
-   * SCHRITT 2 ABSCHLIESSEN — mit Adresse oder ausdrücklich ohne.
+   * EINE NACHRICHT SCHICKEN — der ganze Trichter läuft darüber (09.09.2026).
    *
-   * KEINE PRÜFUNG AUF EINE GÜLTIGE ADRESSE HIER: Der Server liest die Seite und sagt selbst,
-   * wenn nichts herauskam (`seiteLesen`). Ein Browser, der „das ist keine Website" behauptet,
-   * liegt bei jeder zweiten Schreibweise daneben und hält Leute auf, die recht haben.
+   * DER VERLAUF GEHT MIT, nicht nur die letzte Zeile: Nur so kann der Agent auf „nein, das
+   * stimmt nicht" reagieren, statt die Korrektur als neue Antwort auf seine letzte Frage zu
+   * lesen. Das ist der ganze Unterschied zum Formular.
+   *
+   * ERST DIE NACHRICHT ZEIGEN, DANN FRAGEN: Sie steht sofort im Verlauf, damit er sieht,
+   * dass sie angekommen ist. Der Wartebalken hängt darunter, nicht an ihrer Stelle.
    */
-  const weiterMitSeite = async (ohne = false) => {
-    if (!ziel) return;
-    setWebHinweis("");
-    const u = ohne ? "" : url.trim();
-    if (ohne) setUrl("");
-    void logFunnelEvent("vf_webseite", { theme: "versusforge", hat: u ? "ja" : "nein" });
-    schrittMessen(EIGENER_MANDANT, "webseite");
-    await briefingMit(ziel, text, u);
+  const chatSenden = (was: string) => {
+    const w = was.trim();
+    if (!w || busy) return;
+    const naechster: Nachricht[] = [...verlauf, { rolle: "mensch", text: w }];
+    setVerlauf(naechster);
+    void chatLauf(naechster);
   };
 
-  const briefingMit = async (z: Ziel, t: string, u = "") => {
+  const chatLauf = async (v: Nachricht[]) => {
     setFehler(""); setBusy(true); setBusyText(S.denkt);
-    /**
-     * ERST UMSCHALTEN, WENN EINE FRAGE DA IST (Owner 08.09.2026, mit Bild: „das darf nicht
-     * passieren").
-     *
-     * Vorher stand hier `setPhase("gespraech")` VOR dem Aufruf. Kam keine Frage zurück, stand
-     * der Mensch vor „RÜCKFRAGE · 1 VON 4" mit leerem Kasten und einer roten Zeile — ein
-     * Bildschirm, der aussieht wie ein Absturz. Der Wartebalken der Phase „warten" ist der
-     * richtige Ort dafür; umgeschaltet wird erst, wenn wirklich etwas zu lesen ist.
-     */
     try {
       const res = await fetch("/api/versusforge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "briefing", ziel: z, text: t, url: u, sprache: lang, runden: [], device: geraet() }),
+        body: JSON.stringify({
+          schritt: "chat", ziel: ziel || "leads", text, url, seite, sprache: lang,
+          verlauf: v, runden: alsRunden(v), device: geraet(),
+        }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      /* DIE AUFGEBRAUCHTE GRATIS-ANALYSE IST KEIN FEHLER (Owner 08.09.2026). Sie zurück ans
-         Eingabefeld zu schicken, wäre die teuerste Stelle der Seite: Wer hier steht, hat den
-         Plan gesehen und will einen zweiten. Er bleibt, wo er ist, und bekommt ein Angebot. */
-      if (d?.bezahlen === true) {
-        setBusy(false); setBusyText("");
-        setPhase("bezahlen");
-        void logFunnelEvent("vf_deckel_angebot", { theme: "versusforge", ziel: z });
-        return;
-      }
-      if (d?.error) {
-        /* Der Fehler gehört an das Feld, in das er geschrieben hat — nicht auf einen Schirm
-           ohne Frage. Er wird über den Sitzungsspeicher zurückgereicht. */
-        try { sessionStorage.setItem("vf_fehler", String(d.error)); } catch { /**/ }
-        window.location.replace(heim());
-        return;
-      }
-      /**
-       * UNSERE EIGENE ADRESSE FÜHRT ZURÜCK AUF SCHRITT 2 (Owner 09.09.2026, mit Bild: „hier
-       * muss er noch mal zurück, nicht noch eine blöde Eingabe — es soll, denn er hat keine
-       * Webseite").
-       *
-       * ER HAT RECHT, UND ES WAR EINE SACKGASSE: Der Satz „das sind wir, sag mir stattdessen,
-       * was DU anbietest" kam als erste GESPRÄCHSFRAGE — mit „Deine Antwort." darunter. Damit
-       * stand er im Trichter, ohne je einen Hebel gefüllt zu haben, und die Website-Frage war
-       * verbraucht, obwohl er sie nie beantwortet hat.
-       *
-       * RICHTIG IST: zurück auf Schritt 2, Feld leer, der Satz darüber. Dort liegen beide
-       * Wege, die er jetzt braucht — eine andere Adresse eintippen oder „Ich habe keine
-       * Website". Ein Schritt zurück ist keine Strafe, sondern der einzige Ort, an dem seine
-       * zwei Möglichkeiten schon stehen.
-       *
-       * KEIN MODELLAUFRUF WAR IM SPIEL: Die Prüfung läuft vor dem Deckel und vor jedem
-       * Aufruf (siehe `istEigeneAdresse` in der Route). Der Rückschritt kostet ihn nichts.
-       */
-      if (d?.eigen === true) {
-        setUrl("");
-        setWebHinweis(String(d.frage ?? ""));
-        setPhase("webseite");
-        setBusy(false); setBusyText("");
-        void logFunnelEvent("vf_eigene_adresse", { theme: "versusforge" });
-        return;
-      }
-      setVerstanden(String(d.verstanden ?? ""));
-      setSeite(String(d.seite ?? ""));
-      setStand((d.stand ?? {}) as Record<string, number>);
-
-      /**
-       * ER HAT ALLES SCHON GESAGT — DANN WIRD NICHT GEFRAGT (Owner 09.09.2026: „falls jemand
-       * im ersten Feld mehr erzählt und sogar die nächsten Fragen beantwortet, dann frag ihn
-       * nicht noch mal danach").
-       *
-       * Wer sein Geschäft kennt, schreibt in fünf Zeilen hin, wofür ein Formular vier Fragen
-       * braucht. Ihn trotzdem zu fragen zeigt, dass nicht gelesen wurde — der eine Vorwurf,
-       * gegen den dieses Produkt gebaut ist.
-       *
-       * DIE VIER FRAGEN SIND EIN DECKEL, KEIN SOLL. Wer alles mitbringt, bekommt sofort
-       * seinen Plan.
-       */
-      if (d?.fertig === true) {
-        setPlaeneBauen(true); setBusyText(S.baut);
-        void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z, direkt: "ja" });
-        const p = await berater("plan", [], { ziel: z, text: t, url: u, seite: String(d.seite ?? "") });
-        if (p?.error) { setFehler(String(p.error)); setPlaeneBauen(false); setBusy(false); setBusyText(""); return; }
-        setPlan((p.plan ?? null) as Plan | null);
-        void logFunnelEvent("vf_plan", { theme: "versusforge", ziel: z });
-        setPlaeneBauen(false); setPhase("plan");
-        schrittMessen(EIGENER_MANDANT, "plan");
-        setBusy(false); setBusyText("");
-        return;
-      }
-
-      const frage1 = String(d.frage ?? "");
-      if (!frage1) {
-        /* Ohne Frage und ohne „fertig" gibt es nichts zu zeigen — zurück auf die Startseite,
-           wo das Feld steht, statt auf einen leeren Gesprächsschirm. */
-        setFehler(S.fehler); setBusy(false); setBusyText("");
-        window.location.replace(heim());
-        return;
-      }
-      setFrage(frage1);
+      if (d?.bezahlen === true) { setPhase("bezahlen"); return; }
+      if (d?.error) { setFehler(String(d.error)); return; }
+      const antwort = String(d.antwort ?? "").trim();
+      if (!antwort) { setFehler(S.fehler); return; }
+      setVerlauf([...v, { rolle: "agent", text: antwort }]);
       setHebel(String(d.hebel ?? ""));
+      setStand((d.stand ?? {}) as Record<string, number>);
       setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
-      setPhase("gespraech");
-      void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z });
+      setFertig(d.fertig === true);
+      /* Die Messung zählt Antworten des Menschen, nicht Nachrichten insgesamt. */
+      const meine = v.filter(m => m.rolle === "mensch").length;
+      if (meine >= 1 && meine <= 4) schrittMessen(EIGENER_MANDANT, `antwort${meine}`);
     } catch { setFehler(S.fehler); }
-    setBusy(false); setBusyText("");
+    finally { setBusy(false); setBusyText(""); }
   };
 
   /**
-   * EINEN SCHRITT ZURÜCK (Owner 09.09.2026: „unten Zurück-Button" · „Link, Pfeil, Text").
+   * DEN PLAN BAUEN — der eine teure Aufruf, und nur auf seinen Klick.
    *
-   * OHNE NEUEN MODELLAUFRUF: Die letzte Runde trägt Frage UND Antwort. Zurück heisst also
-   * nur, sie aus der Liste zu nehmen und ihre Frage wieder anzuzeigen — kein Aufruf, keine
-   * Kosten, keine Wartezeit. Ein Zurück, das erst wieder denken muss, ist kein Zurück.
-   *
-   * VOR DER ERSTEN FRAGE führt es aus dem Trichter heraus, dorthin, wo er hergekommen ist.
+   * Kein Automatismus, sobald der Agent „fertig" meldet: Das Geld gibt der Mensch aus, nicht
+   * die Maschine ([[kein-token-fuer-abbrecher]]).
    */
-  const einenZurueck = () => {
-    setFehler("");
-    setReaktion("");
-    /* Vor der ersten Frage führt Zurück dorthin, wo er hergekommen ist — `heim()`
-       kennt alle drei Eingänge (Wurzel, Topic, ?vf=1). */
-    if (!runden.length) { window.location.href = heim(); return; }
-    const letzte = runden[runden.length - 1];
-    setRunden(runden.slice(0, -1));
-    setFrage(letzte.frage);
-    setHebel(String(letzte.hebel ?? ""));
-    setAntwort(letzte.antwort);
+  const planJetzt = async () => {
+    setFehler(""); setBusy(true); setPlaeneBauen(true); setBusyText(S.baut);
+    try {
+      const p = await berater("plan", alsRunden(verlauf));
+      if (p?.error) { setFehler(String(p.error)); return; }
+      setPlan((p.plan ?? null) as Plan | null);
+      setRunden(alsRunden(verlauf));
+      void logFunnelEvent("vf_plan", { theme: "versusforge", ziel: ziel || "leads" });
+      setPhase("plan");
+      schrittMessen(EIGENER_MANDANT, "plan");
+    } catch { setFehler(S.fehler); }
+    finally { setBusy(false); setPlaeneBauen(false); setBusyText(""); }
   };
+
 
   useEffect(() => {
     const hook = String((plan as { hook?: string } | null)?.hook ?? "").trim();
@@ -728,37 +693,6 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     return () => { tot = true; if (adresse) URL.revokeObjectURL(adresse); };
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [phase, plan]);
-
-  const antwortSenden = async (uebersprungen = false) => {
-    const wert = uebersprungen ? "" : antwort.trim();
-    if (!uebersprungen && !wert) return;
-    setFehler(""); setBusy(true); setBusyText(S.denkt);
-    const neu = [...runden, { frage, antwort: wert, hebel }];
-    /* Die wievielte Antwort — dieselbe Zählung wie im Mandanten-Trichter. */
-    schrittMessen(EIGENER_MANDANT, `antwort${neu.length}`);
-    try {
-      const d = await berater("antwort", neu);
-      if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
-      setRunden(neu); setAntwort("");
-      setReaktion(String(d.reaktion ?? ""));
-      void logFunnelEvent("vf_antwort", { theme: "versusforge", nr: String(neu.length), uebersprungen: uebersprungen ? "ja" : "nein" });
-      if (d.fertig === true) {
-        setPlaeneBauen(true); setBusyText(S.baut);
-        const p = await berater("plan", neu);
-        if (p?.error) { setFehler(String(p.error)); setBusy(false); return; }
-        setPlan((p.plan ?? null) as Plan | null);
-        void logFunnelEvent("vf_plan", { theme: "versusforge", ziel });
-        setPlaeneBauen(false); setPhase("plan");
-        schrittMessen(EIGENER_MANDANT, "plan");
-      } else {
-        setFrage(String(d.frage ?? ""));
-        setHebel(String(d.hebel ?? ""));
-        setStand((d.stand ?? {}) as Record<string, number>);
-        setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
-      }
-    } catch { setFehler(S.fehler); }
-    setPlaeneBauen(false); setBusy(false); setBusyText("");
-  };
 
   const platzhalter = ziel === "leads" ? S.feldPlatzhalterLeads : S.feldPlatzhalterVerkauf;
 
@@ -794,192 +728,34 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       )}
 
       {/* ── 1 · DIE WEBSITE (Owner 09.09.2026: „gleich am Anfang, als zweiter Schritt") ── */}
-      {phase === "webseite" && (
-        <Kasten polster="p-5">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">
-            {t(S.webKicker, "Schritt 2")}
-          </p>
-          <h1 className="mt-2 text-[28px] font-black leading-[1.15] text-white md:text-[36px]">
-            {t(S.webTitel, "Hast du eine Website?")}
-          </h1>
-          {/* DER SATZ SAGT DEN NUTZEN, NICHT DIE BITTE (Owner 09.09.2026: „dann muss der User
-              nicht alles erklären"). „Bitte gib deine Adresse an" klingt nach Formular; „dann
-              musst du weniger erzählen" ist ein Tausch, den jeder sofort versteht. */}
-          <p className="mt-2.5 text-[16px] leading-[1.5] text-white/70 md:text-[17px]">
-            {t(S.webText, "Dann lese ich sie einmal und frage dich nur noch das, was dort nicht steht.")}
-          </p>
-          {/* KEIN ROT: Er hat nichts falsch gemacht. Es ist eine Auskunft, kein Tadel —
-              deshalb der ruhige Kasten und nicht die Fehlerzeile. */}
-          {webHinweis && (
-            <p className="mt-4 rounded-xl border border-[#1d6fd0]/30 bg-[#1d6fd0]/10 px-4 py-3.5 text-[15.5px] font-semibold leading-[1.5] text-white/85">
-              {webHinweis}
-            </p>
-          )}
-          <Eingabe
-            className="mt-4"
-            value={url}
-            hell
-            onChange={e => { setUrl(e.target.value); if (fehler) setFehler(""); }}
-            onKeyDown={e => { if (e.key === "Enter" && url.trim()) { e.preventDefault(); void weiterMitSeite(); } }}
-            style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.14)", fontFamily: "inherit" }}
-            placeholder={t(S.webPlatzhalter, "praxis-mueller.de")}
-            inputMode="url"
-            autoFocus
-          />
-          <Fehlerzeile>{fehler}</Fehlerzeile>
-          {busy ? (
-            <div className="mt-4"><Fortschritt text={busyText} /></div>
-          ) : (
-            <>
-              <div className="mt-4"><Knopf art="gold" onClick={() => void weiterMitSeite()}>{t(S.webKnopf, "Weiter")}</Knopf></div>
-              {/* KEIN ZWEITER KNOPF, SONDERN EIN LINK. „Ich habe keine" ist kein
-                  gleichwertiger Weg, sondern die Ausnahme — als Knopf stritte er mit dem
-                  einen, der weiterführt (CI-Regel: ein gefüllter Knopf je Schirm). */}
-              <button
-                type="button"
-                onClick={() => void weiterMitSeite(true)}
-                className="mt-3.5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#1d6fd0]"
-              >
-                {t(S.webOhne, "Ich habe keine Website")}
-              </button>
-              {/**
-                * ZURÜCK AUF DIE STARTSEITE (Owner 09.09.2026, mit Bild von Schritt 2: „kann
-                * nicht zurück").
-                *
-                * Der Schirm hatte zwei Wege vorwärts und keinen zurück. Wer hier merkt, dass
-                * sein Satz auf der Startseite nicht stimmt, sass fest — der Browser-Pfeil
-                * hilft nicht, weil der Auftrag beim Abholen aus dem Sitzungsspeicher gelöscht
-                * wird und die Startseite dann leer wäre.
-                *
-                * `einenZurueck` kennt den Fall: ohne beantwortete Frage führt es nach
-                * `heim()` — dieselbe Zeile wie im Gespräch, keine zweite Mechanik.
-                */}
-              <button
-                type="button"
-                onClick={einenZurueck}
-                className="mt-1 block text-[15px] font-semibold text-[#5b666f] transition hover:text-[#14181c]"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
-                  {t(S.zurueckWort, "Zurück")}
-                </span>
-              </button>
-            </>
-          )}
-        </Kasten>
+      {/* ── DAS GESPRÄCH — ein Chat, keine Schritte (Owner 09.09.2026) ──
+          Begründung in components/VersusForgeGespraech.tsx. Hier standen zwei Schirme:
+          „Hast du eine Website?" und die Rückfrage mit Antwortfeld. Beides macht jetzt der
+          Agent im Gespräch, in beliebiger Reihenfolge und mit Widerspruchsrecht. */}
+      {phase === "chat" && (
+        <VersusForgeGespraech
+          verlauf={verlauf}
+          stand={stand}
+          hebel={hebel}
+          vorschlaege={vorschlaege}
+          busy={busy}
+          busyText={busyText}
+          fehler={fehler}
+          fertig={fertig}
+          schicken={chatSenden}
+          planBauen={() => void planJetzt()}
+          zurueck={() => { window.location.href = heim(); }}
+          texte={{
+            platzhalter: t(S.chatPlatzhalter, "Schreib einfach."),
+            senden: t(S.chatSenden, "Senden"),
+            planKnopf: t(S.chatPlanKnopf, "Plan jetzt bauen"),
+            zurueck: t(S.zurueckWort, "Zurück"),
+            denkt: S.denkt,
+          }}
+        />
       )}
 
-      {/* ── 2 · DAS GESPRÄCH ── */}
-      {phase === "gespraech" && (
-        <>
-          {/* Was er zuletzt gesagt hat, steht ÜBER der Frage — sonst fühlt sich jede Frage
-              an wie das nächste Formularfeld statt wie eine Antwort auf die letzte. */}
-          {(verstanden || reaktion) && (
-            <div className="flex items-start gap-3 rounded-2xl border border-white/15 bg-white/[0.05] px-4 py-3.5">
-              {/**
-                * KEIN KOPF, KEINE WORTMARKE AN DER SPRECHZEILE (Owner 09.09.2026: „das raus").
-                *
-                * Beides stammt aus der schwarzen Fassung, in der die Sprechblase sich von der
-                * Seite abheben musste. Auf der hellen Seite steht der Name schon oben im Kopf
-                * — und ein Roboterkopf neben einem Satz über Implantate erklärt nichts, er
-                * lenkt nur ab. Was zählt, ist der Satz.
-                */}
-              <div className="min-w-0">
-                <p className="mt-1.5 text-[17px] font-semibold leading-relaxed text-white/85 md:text-[19px]">{reaktion || verstanden}</p>
-              </div>
-            </div>
-          )}
-          <Kasten polster="p-5">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">
-              {/* NIE ÜBER DEN DECKEL ZÄHLEN (gesehen 08.09.2026 im ersten Durchlauf durch
-                  die Oberfläche: „RÜCKFRAGE · 5 VON 4"). Nach der vierten Antwort steht der
-                  Zähler auf 5, während im Hintergrund schon der Plan gebaut wird — eine Zahl,
-                  die es nicht geben darf, und sie steht ausgerechnet in dem Moment da, in dem
-                  der Mensch wartet und nichts anderes zu lesen hat. */}
-              {/**
-                * DER NAME DES HEBELS STATT „RÜCKFRAGE 2 VON 4" (Owner 09.09.2026: „die
-                * Schritte nennen wir so bei der Abfrage").
-                *
-                * Im Karussell steht über jeder Folie, WAS gerade drauflegt: purpose, story,
-                * identity. Genau das ist der Unterschied zwischen einem Fragebogen und einer
-                * Maschine, bei der man zusieht. „Rückfrage 2 von 4" sagt nur, wie lange es
-                * noch dauert.
-                *
-                * Die Zählung bleibt daneben — sie beantwortet die andere Frage, und sie
-                * beantwortet sie klein.
-                */}
-              {hebelName(hebel) || S.fragenKopf}
-              <span className="text-white/35"> · {Math.min(runden.length + 1, MAX_FRAGEN)} {S.von} {MAX_FRAGEN}</span>
-            </p>
-            {/* WÄHREND DER PLAN GEBAUT WIRD, STEHT DIE ALTE FRAGE NICHT MEHR DA (08.09.2026,
-                im Durchlauf gesehen): Unter „In welchem Umkreis …?" lief der Balken „Ich baue
-                den Plan" — die Frage war längst beantwortet, sah aber aus, als warte sie noch
-                auf eine Antwort. Beim normalen Nachladen zwischen zwei Fragen bleibt sie
-                stehen, das ist richtig; nur am Ende verschwindet sie. */}
-            {!plaeneBauen && <h1 className="mt-2 text-[28px] font-black leading-[1.15] text-white md:text-[36px]">{frage}</h1>}
-            {busy ? (
-              <div className="mt-4"><Fortschritt text={busyText} /></div>
-            ) : (
-              <>
-                {/* Weisses Feld, Schrift der Seite — dieselbe Entscheidung wie auf der
-                    Startseite (Owner 08.09.2026: „dieses Feld weiss" · „keine
-                    Serifenschrift"). Die CI setzt Eingaben in Serifen; das gehört zur
-                    Einladungskarte, nicht zu einer Firmenstrecke. */}
-                <EingabeMehrzeilig className="mt-3" zeilen={4} value={antwort} hell
-                  onChange={e => setAntwort(e.target.value)}
-                  style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.14)", fontFamily: "inherit" }}
-                  placeholder={S.antwortPlatzhalter} />
-                {vorschlaege.length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    {vorschlaege.map((v, i) => (
-                      <button key={i} type="button" onClick={() => setAntwort(v)}
-                        className="rounded-full border border-white/20 lb-goldhauch px-3.5 py-2 text-[14px] font-bold text-white/75 transition hover:border-[#f6cf51]/50 hover:text-white active:scale-95">
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <Fehlerzeile>{fehler}</Fehlerzeile>
-                <div className="mt-3"><Knopf art="gold" onClick={() => void antwortSenden()}>{S.antworten}</Knopf></div>
-                <div className="mt-2"><Knopf art="umriss" onClick={() => void antwortSenden(true)}>{S.ueberspringen}</Knopf></div>
-                {/* ZURÜCK ALS TEXT MIT PFEIL (Owner 09.09.2026: „Link, Pfeil, Text") — kein
-                    dritter Knopf: Auf einem Schirm mit „Antwort senden" und „Weiss ich nicht"
-                    wäre er die dritte Fläche und würde mit beiden streiten. */}
-                <button
-                  type="button"
-                  onClick={einenZurueck}
-                  className="mt-3.5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#1d6fd0]"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
-                  {t(S.zurueckWort, "Zurück")}
-                </button>
-              </>
-            )}
-          </Kasten>
-        </>
-      )}
 
-      {/* ── 2 · DER PLAN ── */}
-      {/* ── DER PLAN: NUR DER HOOK, DER REST GEHT PER POST ──
-          (Owner 08.09.2026: „selbst so würde ich ihm die Analyse nicht komplett zeigen, nur
-          versenden" · „das wäre doch schlau").
-
-          DER HOOK BLEIBT SICHTBAR, weil er der Beweis ist: Er enthält, was ER gesagt hat.
-          Alles andere — Zielgruppe, Motive, Anzeigentexte, Bauanleitung, Strecke, Budget,
-          Warnung, Protokoll — steht im PDF. Ein Bildschirm voller Text wird überflogen und
-          ist weg; ein PDF im Postfach wird geöffnet, weitergeleitet und liegt in einem
-          halben Jahr noch da.
-
-          DIE LISTE NENNT NUR ECHTE ZAHLEN aus SEINEM Plan. Sie zeigt den Umfang, nicht den
-          Inhalt — und sie ist nachprüfbar, sobald das PDF da ist. */}
-      {/**
-        * DER PLAN-SCHIRM: DAS BILD, DANN DAS FELD (Owner 09.09.2026).
-        *
-        * WEG SIND: die Überschrift, der Hook als Textkasten, der Ankündigungssatz und die
-        * Inhaltsliste („3 Zielgruppen, 2 Motive, …"). Alle vier stammen aus der PDF-Zeit und
-        * hatten dieselbe Aufgabe — Umfang behaupten, den man nicht sehen kann. Das Bild zeigt
-        * ihn.
-        */}
       {phase === "plan" && plan && (
         <Kasten polster="p-5">
           {bildVorschau ? (
