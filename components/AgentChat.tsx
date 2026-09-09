@@ -51,10 +51,24 @@ const WERKZEUG_WORT: Record<string, string> = {
  * ER GEHT IM VERLAUF MIT zum Server: Sonst grüsst der Agent in seiner ersten echten Antwort
  * ein zweites Mal.
  */
-const GRUSS = "Hallo, ich bin VersusForge. Sag mir in einem Satz, was du anbietest — und deine Website, wenn du eine hast. Zum Beispiel: Zahnarzt in München, Implantate. Oder: Ich vermiete einen Eventraum in Timișoara.";
+const GRUSS = [
+  "Hallo, ich bin VersusForge.",
+  "Ich baue dir den einen Satz, der Leute in der Anzeige anhält — und die Seite dahinter, auf der sie ihren Namen und ihre Nummer hinterlassen. Was du anschliessend daraus machst, entscheidest du.",
+  "Dafür muss ich ein paar Dinge über dein Geschäft wissen, die nur du weisst. Machst du mit?",
+].join("\n\n");
+
+/**
+ * ZWEI CHIPS SCHON AM GRUSS — die einzige Ausnahme von der Regel „keine Chips, bevor er
+ * gesagt hat, was er tut".
+ *
+ * SIE RATEN NICHTS ÜBER IHN. „Ja, fang an" ist eine Zustimmung, keine Behauptung über sein
+ * Geschäft — und genau danach ist gefragt. Die zweite ist die Frage, die ohnehin jeder als
+ * Erstes im Kopf hat; sie hier anzubieten ist ehrlicher, als sie zu übergehen.
+ */
+const GRUSS_CHIPS = ["Ja, fang an", "Was kostet das?"];
 
 export default function AgentChat() {
-  const [verlauf, setVerlauf] = useState<Nachricht[]>([{ rolle: "agent", text: GRUSS }]);
+  const [verlauf, setVerlauf] = useState<Nachricht[]>([{ rolle: "agent", text: GRUSS, vorschlaege: GRUSS_CHIPS }]);
   const [eingabe, setEingabe] = useState("");
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState("");
