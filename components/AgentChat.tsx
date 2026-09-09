@@ -32,8 +32,29 @@ const WERKZEUG_WORT: Record<string, string> = {
   bild_bauen: "Bild gebaut",
 };
 
+/**
+ * DER AGENT GRÜSST ZUERST (Owner 09.09.2026: „er muss doch auch mit einer Begrüssung
+ * anfangen").
+ *
+ * ER HAT RECHT, UND ES IST MEHR ALS HÖFLICHKEIT: Ein leerer Chat ist eine Aufforderung ohne
+ * Absender. Wer ihn öffnet, weiss nicht, mit wem er spricht und was hier erwartet wird —
+ * und tippt im Zweifel gar nichts. Jeder Chat mit einem Betrieb fängt mit einer Zeile an.
+ *
+ * FEST GESCHRIEBEN, NICHT VOM MODELL: Ein Gruss vom Modell wäre ein bezahlter Aufruf bei
+ * jedem Seitenaufruf — auch bei jedem Bot, der vorbeikommt, und bei jedem, der die Seite
+ * öffnet und sofort wieder geht. Der Satz ändert sich nie; ihn erzeugen zu lassen wäre Geld
+ * für ein bekanntes Ergebnis ([[kein-token-fuer-abbrecher]]).
+ *
+ * MIT BEISPIELEN, wie jede Frage hier (Owner im selben Lauf: „hier musst du Beispiele
+ * liefern"). Wer nicht weiss, in welcher Form geantwortet wird, antwortet zu allgemein.
+ *
+ * ER GEHT IM VERLAUF MIT zum Server: Sonst grüsst der Agent in seiner ersten echten Antwort
+ * ein zweites Mal.
+ */
+const GRUSS = "Hallo, ich bin VersusForge. Sag mir in einem Satz, was du anbietest — und deine Website, wenn du eine hast. Zum Beispiel: Zahnarzt in München, Implantate. Oder: Ich vermiete einen Eventraum in Timișoara.";
+
 export default function AgentChat() {
-  const [verlauf, setVerlauf] = useState<Nachricht[]>([]);
+  const [verlauf, setVerlauf] = useState<Nachricht[]>([{ rolle: "agent", text: GRUSS }]);
   const [eingabe, setEingabe] = useState("");
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState("");
@@ -89,20 +110,29 @@ export default function AgentChat() {
 
       <div className="mx-auto flex w-full max-w-[820px] flex-1 flex-col overflow-hidden px-4">
         <div className="lb-wisch flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5">
-          {verlauf.length === 0 && (
-            <div className="m-auto max-w-[440px] text-center">
-              <p className="m-0 text-[22px] font-extrabold leading-[1.25] tracking-[-0.02em]">
-                Sag mir, was du anbietest.
-              </p>
-              <p className="mt-2.5 text-[15.5px] leading-[1.5] text-[#5b666f]">
-                Nenn deine Website, wenn du eine hast — ich schau selbst nach. Am Ende steht
-                dein Hook als fertiges Bild.
-              </p>
-            </div>
-          )}
-
           {verlauf.map((m, i) => (
             <div key={i} className={m.rolle === "mensch" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
+              {/**
+                * DER KOPF NEBEN SEINEN NACHRICHTEN (Owner 09.09.2026: „mit Icon").
+                *
+                * IM TRICHTER WAR ER FALSCH und flog am selben Tag raus („das raus"): Dort
+                * stand er neben EINER Sprechzeile auf einer Seite, die schon eine Wortmarke
+                * im Kopf trug — zweimal derselbe Absender, und dazwischen ein Satz über
+                * Implantate. Im CHAT ist er richtig: Hier wechseln sich zwei Sprecher ab, und
+                * jeder Chat, den er kennt, zeigt daneben, wer spricht.
+                *
+                * NUR BEIM ERSTEN EINER FOLGE: Drei Köpfe untereinander bei drei Nachrichten
+                * hintereinander sind eine Kolonne, kein Gesprächspartner. So macht es
+                * WhatsApp auch.
+                */}
+              {m.rolle === "agent" && verlauf[i - 1]?.rolle !== "agent" && (
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/VersusForge/kaempfer-kopf.webp" alt="" aria-hidden
+                    className="h-7 w-7 rounded-full object-cover ring-[1.5px] ring-[#1d6fd0]/40" />
+                  <span className="text-[13.5px] font-black tracking-[-0.01em] text-[#5b666f]">VersusForge</span>
+                </div>
+              )}
               <p className={`m-0 max-w-[86%] whitespace-pre-wrap text-[16.5px] leading-[1.5] md:text-[17.5px] ${
                 m.rolle === "mensch"
                   ? "rounded-2xl rounded-br-md bg-[#1d6fd0] px-4 py-3 font-semibold text-white"
