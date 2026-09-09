@@ -69,6 +69,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dieser Zugang stimmt nicht." }, { status: 403 });
   }
 
+  /**
+   * DIE ADRESSE, AN DIE DIE ANFRAGEN GEHEN (Owner 09.09.2026: „unter Einstellungen da ist die
+   * E-Mail, wo die Anfragen versendet werden").
+   *
+   * LEER IST ERLAUBT, KAPUTT NICHT: Ein Trichter ohne Adresse verschickt keine Post — das ist
+   * eine Entscheidung, die ihm gehört. Eine Adresse ohne @ dagegen ist ein Tippfehler, und der
+   * kostet ihn eine Anfrage, von der er nie erfährt.
+   */
+  const mail = str(body.mail, 200).trim().toLowerCase();
+  if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) {
+    return NextResponse.json({ error: "Diese E-Mail-Adresse sieht nicht aus wie eine Adresse." }, { status: 400 });
+  }
+
   const adresse = str(body.adresse, 200).trim();
   const telefon = str(body.telefon, 60).trim();
   const webUrl = adresseSauber(str(body.webUrl, 300));
@@ -97,6 +110,7 @@ export async function POST(request: Request) {
 
   const ok = await mandantSpeichern(kennung, {
     ...m,
+    mail,
     adresse,
     telefon,
     webUrl,

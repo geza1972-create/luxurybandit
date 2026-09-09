@@ -132,6 +132,18 @@ export type MandantAngaben = {
    * Die 299 machen ihn scharf: eigener Name in der Adresse, seine Pflichtangaben, das
    * Dashboard, und die Anfragen laufen.
    */
+  /**
+   * WEITERE HOOKS, die er selbst geschrieben hat (Owner 09.09.2026: „dort sehe ich meine
+   * Bilder, dort kann ich weitere generieren").
+   *
+   * NUR DER SATZ WIRD GESPEICHERT, nicht das Bild: Das Bild entsteht in einer Zehntelsekunde
+   * aus dem Satz (`hookBild`, reine Schrift auf Fläche) — es abzulegen hiesse, dieselbe
+   * Sache zweimal zu haben und beim nächsten Gestaltungswechsel alte Bilder im Fach zu
+   * finden. Der Satz ist die Quelle, das Bild die Ausgabe.
+   *
+   * Optional, damit bestehende Mandanten-Dateien ohne dieses Feld weiter gelesen werden.
+   */
+  hooks?: string[];
   stand: "vorschau" | "scharf";
   angelegt: string;
 };

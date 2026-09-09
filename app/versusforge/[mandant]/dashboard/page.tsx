@@ -1,12 +1,15 @@
 import crypto from "crypto";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inbox, Settings, ExternalLink, Megaphone, Phone, Mail, ChevronRight, Lock } from "lucide-react";
+import { LayoutDashboard, Settings, Phone, Mail, ChevronRight, Lock, Image as ImageIcon } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 import MandantEinrichten from "@/components/MandantEinrichten";
+import AnfrageMenue from "@/components/AnfrageMenue";
+import MandantHooks from "@/components/MandantHooks";
+import MandantZugang from "@/components/MandantZugang";
 import { Wortmarke } from "@/components/VersusForgeMarke";
 
 /**
@@ -79,7 +82,9 @@ export default async function MandantDashboard({ params, searchParams }: {
   const sp = await searchParams;
   const einer = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] ?? "" : v ?? "");
   const k = einer(sp.k);
-  const ansicht = einer(sp.ansicht) === "einstellungen" ? "einstellungen" : "anfragen";
+  const gewuenscht = einer(sp.ansicht);
+  const ansicht: "uebersicht" | "hooks" | "einstellungen" =
+    gewuenscht === "einstellungen" ? "einstellungen" : gewuenscht === "hooks" ? "hooks" : "uebersicht";
 
   const m = await mandantLesen(mandant);
 
@@ -124,6 +129,9 @@ export default async function MandantDashboard({ params, searchParams }: {
 
   const basis = `/versusforge/${encodeURIComponent(mandant)}`;
   const mitK = (a: string) => `${basis}/dashboard?k=${encodeURIComponent(k)}${a ? `&ansicht=${a}` : ""}`;
+  const planHook = String((m.plan as { hook?: string } | null | undefined)?.hook ?? "").trim();
+  const eigeneHooks = Array.isArray(m.hooks) ? m.hooks : [];
+  const bilder = eigeneHooks.length + (planHook ? 1 : 0);
 
   return (
     /* `lb-mandant` blendet Hausleiste und Cookie-Band aus (globals.css). Ein Kunde, der
@@ -165,18 +173,29 @@ export default async function MandantDashboard({ params, searchParams }: {
       <div className="mx-auto grid w-full max-w-[1080px] gap-6 px-5 py-6 lg:grid-cols-[220px_1fr] lg:py-8">
         {/* ── NAVIGATION: links am Rechner, als Reihe am Handy ── */}
         <nav className="flex gap-2 overflow-x-auto lg:sticky lg:top-[76px] lg:h-fit lg:flex-col lg:overflow-visible lb-wisch">
-          <Reiter href={mitK("")} aktiv={ansicht === "anfragen"} icon={<Inbox className="h-[18px] w-[18px]" />}
-            wort="Anfragen" zahl={anfragen.length} />
+          {/* „ÜBERSICHT", NICHT „ANFRAGEN" (Owner 09.09.2026: „der Tab heisst doch nicht
+              Anfragen, das sind doch alle"). Hier stehen Kennzahlen, die Abbruch-Leiter UND
+              die Liste — der Reiter trug den Namen seines untersten Drittels. Die Zahl
+              daneben bleibt die der Anfragen: Sie ist das, wonach er sucht. */}
+          <Reiter href={mitK("")} aktiv={ansicht === "uebersicht"} icon={<LayoutDashboard className="h-[18px] w-[18px]" />}
+            wort="Übersicht" zahl={anfragen.length} />
+          {/* HOOKS (Owner 09.09.2026: „ich brauche noch einen Punkt für Hooks, dort sehe ich
+              meine Bilder, dort kann ich weitere generieren"). Zwischen Übersicht und
+              Einstellungen: Es ist Arbeit am Produkt, keine Verwaltung. */}
+          <Reiter href={mitK("hooks")} aktiv={ansicht === "hooks"} icon={<ImageIcon className="h-[18px] w-[18px]" />}
+            wort="Hooks" zahl={bilder} />
           <Reiter href={mitK("einstellungen")} aktiv={ansicht === "einstellungen"} icon={<Settings className="h-[18px] w-[18px]" />}
             wort="Einstellungen" warnung={!bereit} />
-          <div className="hidden lg:my-2 lg:block lg:border-t lg:border-[#e4e9ee]" />
-          <Aussen href={basis} icon={<ExternalLink className="h-[18px] w-[18px]" />} wort="Dein Trichter" />
-          <Aussen href={`${basis}/anzeige`} icon={<Megaphone className="h-[18px] w-[18px]" />} wort="Deine Anzeige" />
+          {/* HIER STANDEN „Dein Trichter" UND „Deine Anzeige" ALS REITER (Owner 09.09.2026:
+              „das ist doch Unsinn, ein extra Tab für die Weiterleitung").
+              Er hat recht: Ein Reiter wechselt die Fläche, ein Link führt weg — beide sahen
+              gleich aus und taten Verschiedenes. Die Adressen stehen jetzt dort, wo sie
+              hingehören: unter Einstellungen, mit Kopieren-Knopf. */}
         </nav>
 
         <main className="min-w-0">
           {/* ── DER RIEGEL: er steht über allem, solange der Trichter aus ist ── */}
-          {!bereit && ansicht === "anfragen" && (
+          {!bereit && ansicht === "uebersicht" && (
             <div className={`${KARTE} mb-5 border-l-4 border-l-[#c02626] p-5`}>
               <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">Dein Trichter nimmt noch keine Anfragen an.</h2>
               <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">
@@ -190,13 +209,16 @@ export default async function MandantDashboard({ params, searchParams }: {
             </div>
           )}
 
-          {ansicht === "einstellungen" ? (
+          {ansicht === "hooks" ? (
+            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} />
+          ) : ansicht === "einstellungen" ? (
             <MandantEinrichten
               mandant={mandant}
               k={k}
               name={m.name}
               trichterUrl={basis}
               start={{
+                mail: m.mail ?? "",
                 adresse: m.adresse ?? "",
                 telefon: m.telefon ?? "",
                 webUrl: m.webUrl ?? "",
@@ -204,6 +226,18 @@ export default async function MandantDashboard({ params, searchParams }: {
                 datenschutzUrl: m.datenschutzUrl ?? "",
               }}
             />
+          ) : null}
+
+          {/* DER ZUGANG steht unter denselben Einstellungen, direkt unter den Angaben. */}
+          {ansicht === "einstellungen" ? (
+            <div className="mt-5">
+              <MandantZugang
+                trichterUrl={`https://versusforge.com/${mandant}`}
+                anzeigeUrl={`https://versusforge.com/${mandant}/anzeige`}
+                dashboardUrl={`https://versusforge.com/${mandant}/dashboard?k=${k}`}
+                schluessel={m.schluessel}
+              />
+            </div>
           ) : (
             <>
               {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
@@ -298,17 +332,6 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
       )}
       {warnung && <span aria-label="fehlt" className="ml-auto h-2 w-2 shrink-0 rounded-full bg-[#c02626]" />}
     </Link>
-  );
-}
-
-/** Ein Weg aus dem Dashboard heraus — bewusst anders gezeichnet als ein Reiter. */
-function Aussen({ href, icon, wort }: { href: string; icon: React.ReactNode; wort: string }) {
-  return (
-    <a href={href}
-      className="flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-[15px] font-semibold text-[#5b666f] transition hover:text-[#1d6fd0] lg:w-full">
-      {icon}
-      <span className="whitespace-nowrap">{wort}</span>
-    </a>
   );
 }
 
@@ -458,7 +481,12 @@ function Anfrage({ a }: { a: LeadEintrag }) {
         ) : (
           <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#8b959d]">Ohne Namen</span>
         )}
-        <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(a.zeit)}</span>
+        <span className="ml-auto flex items-center gap-1">
+          <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(a.zeit)}</span>
+          {/* DIE DREI PUNKTE (Owner 09.09.2026) — nur das Menü, die Wege kommen, wenn die
+              Anzeige läuft. Begründung in components/AnfrageMenue.tsx. */}
+          <AnfrageMenue wer={name || mail || "diese Anfrage"} />
+        </span>
       </div>
 
       {/* ── ERREICHBARKEIT: das Wichtigste der ganzen Karte, zum Antippen ── */}

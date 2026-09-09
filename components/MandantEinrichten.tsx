@@ -36,6 +36,7 @@ import { Check } from "lucide-react";
  */
 
 type Felder = {
+  mail: string;
   adresse: string;
   telefon: string;
   webUrl: string;
@@ -77,9 +78,31 @@ export default function MandantEinrichten({
     <div className="rounded-2xl bg-white p-6 shadow-[0_10px_34px_rgba(20,24,28,.10)] md:p-7">
       <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">Deine Angaben</h2>
 
-      {/* ── GRUPPE 1: SIE ENTSCHEIDET, OB DER TRICHTER LÄUFT ── */}
+      {/**
+        * ── GRUPPE 0: WOHIN DIE ANFRAGEN GEHEN (Owner 09.09.2026: „unter Einstellungen da ist
+        * die E-Mail, wo die Anfragen versendet werden, wenn jemand eine Anfrage macht") ──
+        *
+        * SIE STEHT GANZ OBEN, weil sie die einzige Angabe ist, bei der ein Tippfehler
+        * ZWEIMAL wehtut: Er bekommt keine Post, und ein Mensch am anderen Ende wartet auf
+        * einen Rückruf, von dem niemand weiss. Impressum und Adresse kann man nachtragen;
+        * eine verpasste Anfrage nicht.
+        *
+        * SIE ÄNDERT AUCH DEN LÖSCHWEG: `/api/versusforge-senden` schickt Links und Löschlink
+        * nur an die HINTERLEGTE Adresse — sonst könnte jeder, der den Trichternamen errät,
+        * fremde Daten anfordern. Wer hier umträgt, verlegt damit beides.
+        */}
       <Gruppe
         nummer={1}
+        titel="Wohin deine Anfragen gehen"
+        satz="An diese Adresse schreiben wir, sobald jemand seine Nummer hinterlassen hat. Über sie bekommst du auch deine Links und den Löschlink."
+      >
+        <Feld etikett="Deine E-Mail-Adresse" platzhalter="name@praxis-mueller.de"
+          wert={f.mail} onChange={setz("mail")} />
+      </Gruppe>
+
+      {/* ── GRUPPE 2: SIE ENTSCHEIDET, OB DER TRICHTER LÄUFT ── */}
+      <Gruppe
+        nummer={2}
         titel="Damit deine Seite Anfragen annehmen darf"
         satz="Wer Namen und Telefonnummern entgegennimmt, braucht beides auf der Seite. Fehlt eins, bleibt dein Trichter zu."
       >
@@ -89,9 +112,9 @@ export default function MandantEinrichten({
           wert={f.datenschutzUrl} onChange={setz("datenschutzUrl")} />
       </Gruppe>
 
-      {/* ── GRUPPE 2: SIE ENTSCHEIDET, WAS SEIN KUNDE OBEN LIEST ── */}
+      {/* ── GRUPPE 3: SIE ENTSCHEIDET, WAS SEIN KUNDE OBEN LIEST ── */}
       <Gruppe
-        nummer={2}
+        nummer={3}
         titel="Was oben auf deiner Seite steht"
         satz="Gleich soll jemand seine Nummer hinterlassen. Die erste Frage ist „gibt es die Praxis überhaupt?“ — das hier beantwortet sie."
       >

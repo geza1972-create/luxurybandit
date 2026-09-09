@@ -56,10 +56,23 @@ export async function POST(request: Request) {
  * HIER STEHT KEIN HOOK IN DER ADRESSE, sondern nur die Kennung seines Trichters: Der Satz
  * kommt vom Server aus seinem Plan. Damit landet er weder im Verlauf noch im `Referer`.
  */
+/**
+ * `i` WÄHLT EINEN WEITEREN HOOK (Owner 09.09.2026: „ich brauche noch einen Punkt für Hooks,
+ * dort sehe ich meine Bilder, dort kann ich weitere generieren").
+ *
+ * Ohne `i` kommt der Hook aus dem Plan — das ist der erste, den die Engine gebaut hat, und
+ * er bleibt die Vorgabe. `i=0,1,2…` greift in `hooks`, die Sammlung, die er selbst füllt.
+ * Auch hier steht KEIN Satz in der Adresse, nur eine Nummer.
+ */
 export async function GET(request: Request) {
-  const kennung = new URL(request.url).searchParams.get("m") ?? "";
+  const sp = new URL(request.url).searchParams;
+  const kennung = sp.get("m") ?? "";
   const m = await mandantLesen(kennung);
-  const hook = String((m?.plan as { hook?: string } | undefined)?.hook ?? "").trim();
+  const weitere = Array.isArray(m?.hooks) ? (m.hooks as string[]) : [];
+  const nr = sp.get("i");
+  const hook = nr !== null && nr !== ""
+    ? String(weitere[Number(nr)] ?? "").trim()
+    : String((m?.plan as { hook?: string } | undefined)?.hook ?? "").trim();
   if (!m || !hook) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
 
   try {
