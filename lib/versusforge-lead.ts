@@ -26,6 +26,25 @@ import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-st
 /** Der Mandant, unter dem VersusForge seine eigenen Anfragen sammelt. */
 export const EIGENER_MANDANT = "versusforge";
 
+/**
+ * NAMEN, DIE SCHON EINE SEITE SIND (09.09.2026, mit `/engine`).
+ *
+ * `versusforge.com/<name>` ist eine Umschreibung in `next.config.mjs`, und sie steht in
+ * `afterFiles` — eine echte Seite gewinnt immer. Ein Mandant, der „engine" oder „about"
+ * heisst, bekäme also eine Adresse, die nie ihn zeigt: Er lädt seine Kunden auf eine Seite
+ * ein, die ihm nicht gehört, und merkt es erst, wenn niemand anruft.
+ *
+ * DESHALB BEIM VERGEBEN SPERREN, NICHT BEIM AUSLIEFERN REPARIEREN. Wer den Namen gar nicht
+ * erst bekommt, kann ihn auch nicht in eine Anzeige schreiben.
+ *
+ * WÄCHST MIT: Kommt eine neue Seite auf oberster Ebene dazu, gehört ihr Pfad hier hinein.
+ */
+export const GESPERRTE_NAMEN = new Set<string>([
+  EIGENER_MANDANT,
+  "engine", "themes", "about", "imprint", "privacy", "contact", "admin", "api",
+  "stores", "wardrobe", "academy", "joburi", "ci", "media-kit", "sitemap", "robots",
+]);
+
 /** Erlaubt nur harmlose Kennungen — der Wert landet in einem Pfad. */
 export const mandantSauber = (roh: string): string =>
   String(roh ?? "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);

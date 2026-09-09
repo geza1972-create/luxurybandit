@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
   const origin = new URL(request.url).origin;
   /* Nur eigene Pfade als Rückweg — eine fremde Adresse hier wäre eine offene Weiterleitung. */
-  const zurueck = str(body.returnTo, 300).startsWith("/") ? str(body.returnTo, 300) : "/themes/versusforge/start";
+  const zurueck = str(body.returnTo, 300).startsWith("/") ? str(body.returnTo, 300) : "/engine/start";
 
   try {
     const { id, url, clientSecret } = await createTryonCheckout({

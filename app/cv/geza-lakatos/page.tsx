@@ -384,6 +384,18 @@ export default function GezaLakatosCvPage() {
               </div>
               <div className="gl-mini">
                 <div className="gl-mini-shots">
+                  <img className="gl-mini-shot" src="/VersusForge/versusforge-kachel.jpg" alt="VersusForge — KI-Werbeberater und Anzeigen-Engine" />
+                </div>
+                <h4>VersusForge</h4>
+                <div className="gl-meta">2026 · eigenes Projekt</div>
+                <p>
+                  Konzept, UX und Marke eines KI-gestützten Werbeberaters: Ein Mandant liefert
+                  Auftrag und Budget, VersusForge liefert Strategie, Anzeigenbild und fertige
+                  Kampagne — vom Gespräch bis zur sendefertigen Anzeige.
+                </p>
+              </div>
+              <div className="gl-mini">
+                <div className="gl-mini-shots">
                   <img className="gl-mini-shot" src="/cv/case-nutrycoach.png" alt="NutryCoach.ai — KI-Ernährungscoaching-Plattform, Startseite" />
                   <img className="gl-mini-shot" src="/cv/case-nutrycoach-mahlzeit.png" alt="KI-Foto-Analyse einer Mahlzeit in NutryCoach.ai" />
                 </div>

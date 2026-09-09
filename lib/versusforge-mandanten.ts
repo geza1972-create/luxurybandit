@@ -1,5 +1,5 @@
 import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-store";
-import { EIGENER_MANDANT, mandantSauber } from "@/lib/versusforge-lead";
+import { GESPERRTE_NAMEN, mandantSauber } from "@/lib/versusforge-lead";
 
 /**
  * WER EINEN EIGENEN TRICHTER HAT (Owner 09.09.2026: „er bekommt einen Funnel, eine URL, die
@@ -147,7 +147,7 @@ export const AKZENT_STANDARD = "#1d6fd0";
 export async function mandantLesen(mandantRoh: string): Promise<MandantAngaben | null> {
   const mandant = mandantSauber(mandantRoh);
   /* Der eigene Mandant hat keine Datei — wir sind die Wurzel, nicht ein Eintrag. */
-  if (!mandant || mandant === EIGENER_MANDANT) return null;
+  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return null;
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(mandant))}`);
   if (!res.ok) return null;
   try {
@@ -170,7 +170,7 @@ export async function mandantOeffentlich(mandantRoh: string): Promise<MandantOef
 
 export async function mandantSpeichern(mandantRoh: string, angaben: MandantAngaben): Promise<boolean> {
   const mandant = mandantSauber(mandantRoh);
-  if (!mandant || mandant === EIGENER_MANDANT) return false;
+  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return false;
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(mandant))}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true" },
@@ -192,7 +192,9 @@ export async function freierName(wunsch: string): Promise<string> {
   const basis = mandantSauber(wunsch) || "trichter";
   for (let i = 0; i < 40; i++) {
     const kandidat = i === 0 ? basis : `${basis}-${i + 1}`;
-    if (kandidat === EIGENER_MANDANT) continue;
+    /* Gesperrte Namen überspringen — sie tragen schon eine echte Seite (siehe
+       `GESPERRTE_NAMEN`); der Mandant bekäme sonst eine Adresse, die nie ihn zeigt. */
+    if (GESPERRTE_NAMEN.has(kandidat)) continue;
     if (!(await mandantLesen(kandidat))) return kandidat;
   }
   /* Nach vierzig Versuchen nicht endlos weiter — ein Zufallsschwanz beendet es sicher. */
@@ -264,7 +266,7 @@ export function mandantAusPlan(o: {
  */
 export async function mandantLoeschen(mandantRoh: string): Promise<boolean> {
   const mandant = mandantSauber(mandantRoh);
-  if (!mandant || mandant === EIGENER_MANDANT) return false;
+  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return false;
 
   const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
     method: "POST",

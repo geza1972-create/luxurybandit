@@ -501,7 +501,7 @@ export default async function ThemesCatalog({ searchParams }: {
      * KEIN `video`: Es gibt keines, und ein geliehenes aus einem anderen Thema würde etwas
      * versprechen, das dieses Produkt nicht liefert.
      */
-    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/themes/versusforge", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
+    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/engine", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
     /**
      * PLATZ EINS: DIE VIDEOBOTSCHAFT AN DICH SELBST (Owner 11.08.2026: „mach das als
      * erstes" — unmittelbar nachdem er das Thema benannt hatte).
@@ -962,7 +962,7 @@ export default async function ThemesCatalog({ searchParams }: {
   /* „/academy" steht jetzt als „/academy/${L}" da (Owner 04.09.2026: eigene Pfade je
      Sprache) — alle drei mit aufgenommen, sonst griffe der Marken-Schutz unten nicht mehr
      und die KI übersetzte „United Peace Academy" in jeder Sprache anders. */
-  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david", "/themes/versusforge", "/academy/en", "/academy/de", "/academy/ro"];
+  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david", "/engine", "/academy/en", "/academy/de", "/academy/ro"];
   /** Kacheln, die ihre Texte SELBST schon in der richtigen Sprache mitbringen (deutsche
       Quelle statt englischer) — sie dürfen gar nicht erst in den Übersetzungslauf. */
   /* VersusForge steht hier NICHT: Seine Kachelzeile ist deutsche Quelle wie jede andere und

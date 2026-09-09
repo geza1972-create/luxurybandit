@@ -103,6 +103,21 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      /**
+       * DIE ENGINE HAT EINE EIGENE ADRESSE (Owner 09.09.2026: „ich will, dass die
+       * luxurybandit.com Adresse unter versusforge.com läuft, aber die Engine soll dann
+       * ihre Adresse bekommen: versusforge.com/engine").
+       *
+       * Sie lag unter `/themes/versusforge` — als Topic neben Kuss und Hochzeit. Diese
+       * Adresse steht in geteilten Links, in der Kachel von gestern und in den Mails, die
+       * schon draussen sind. Ohne diese zwei Zeilen liefe jeder davon in eine 404.
+       *
+       * `permanent: false`: Der Umzug ist eine Woche alt und die Strecke wird noch gebaut.
+       * Eine dauerhafte Weiterleitung merken sich Browser und Suchmaschinen so gründlich,
+       * dass ein Zurück Tage dauert.
+       */
+      { source: "/themes/versusforge", destination: "/engine", permanent: false },
+      { source: "/themes/versusforge/:pfad*", destination: "/engine/:pfad*", permanent: false },
       {
         /* DAS „LUXURYBANDIT SYSTEM" IST WEG (Owner 10.08.2026: „Wir verkaufen keine Systeme.
            … Wir löschen das jetzoge jetzt"). An seiner Stelle steht das VERSPRECHEN. Die alte

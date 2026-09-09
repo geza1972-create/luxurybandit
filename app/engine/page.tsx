@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   title: "VersusForge — deine Anzeige, deine Strecke, deine Anfragen",
   description:
     "Sag in einem Satz, was du anbietest — oder zeig deine Website. Du bekommst den Hook und die Strecke dahinter. Die erste Analyse kostet nichts.",
-  alternates: { canonical: "/themes/versusforge" },
+  alternates: { canonical: "/engine" },
 };
 
 export default async function VersusForgeTopicSeite({
@@ -52,5 +52,5 @@ export default async function VersusForgeTopicSeite({
    *
    * `VersusForgeStart.tsx` bleibt vorerst im Repo, hängt aber an nichts mehr.
    */
-  return <VersusForgeStartEinfach S={S} lang={L} probe basis="/themes/versusforge" />;
+  return <VersusForgeStartEinfach S={S} lang={L} probe basis="/engine" />;
 }

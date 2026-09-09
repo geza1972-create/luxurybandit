@@ -105,7 +105,7 @@ export default function VersusForgeStartEinfach({
     try { sessionStorage.setItem(ABLAGE, JSON.stringify({ ziel, text: text.trim(), url: "" })); } catch { /**/ }
     void logTunnelEvent("funnel_started", "versusforge");
     void logFunnelEvent("vf_start", { theme: "versusforge", ziel, ueber: "wurzel" });
-    router.push(`/themes/versusforge/start${lang ? `?lang=${lang}` : ""}`);
+    router.push(`/engine/start${lang ? `?lang=${lang}` : ""}`);
   };
 
   return (

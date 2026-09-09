@@ -2,10 +2,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import ThemesCatalog, { metadata as themenMetadata } from "./themes/page";
 import FunnelDomainStart from "@/components/FunnelDomainStart";
-import VersusForgeStartEinfach from "@/components/VersusForgeStartEinfach";
-import { versusforgeInSprache } from "@/lib/versusforge-texte";
-import { isLang, type Lang } from "@/lib/lang";
-import { resolveLang } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -68,12 +64,22 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * VERSUSFORGE HAT SEINE EIGENE WURZEL (Owner 08.09.2026) — dieselbe Anwendung, andere Tür.
- * Ein zweites Projekt wäre ein Zwilling, den man doppelt pflegt; hier ist es eine Zeile.
- * `?vf=1` zeigt sie auch auf localhost und auf der Vorschau-Adresse, sonst liesse sie sich
- * erst nach dem Ausrollen ansehen — und ein Fehler fiele dem Kunden auf, nicht uns.
+ * DIE WURZEL VON VERSUSFORGE.COM IST DAS PORTAL (Owner 09.09.2026: „ich will, dass die
+ * luxurybandit.com Adresse unter versusforge.com läuft, aber die Engine soll dann ihre
+ * Adresse bekommen: versusforge.com/engine").
+ *
+ * HIER STAND EINE WEICHE: Auf `versusforge.com` lieferte „/" die Engine-Startseite aus, auf
+ * `luxurybandit.com` den Katalog. Das dreht sich um — und zwar ganz: Es gibt keine Weiche
+ * mehr, beide Adressen zeigen dasselbe Haus. Die Engine ist ab jetzt eine Seite darin,
+ * `app/engine/page.tsx`, und damit unter beiden Adressen unter derselben Adresse erreichbar.
+ *
+ * WARUM DAS BESSER IST ALS DIE WEICHE: Ein Produkt, das nur auf einer Domain existiert,
+ * lässt sich nicht verlinken, ohne dass man vorher überlegt, welche Domain der Empfänger
+ * benutzt. `/engine` gilt überall — auch in Mails, die schon draussen sind.
+ *
+ * `?vf=1` GIBT ES NICHT MEHR. Der Schalter existierte nur, um die Domain-Fassung auf
+ * localhost zu sehen; ohne Weiche gibt es nichts mehr vorzutäuschen.
  */
-const VERSUSFORGE_DOMAIN = /(^|\.)versusforge\.com$/i;
 
 /** Alles, was NICHT das Haus ist, bekommt die White-Label-Startseite. */
 const FUNNEL_DOMAIN = /(^|\.)yourvideogenerator\.com$/i;
@@ -88,11 +94,6 @@ export default async function Start({ searchParams }: {
      erst NACH dem Ausrollen ansehen, und ein Fehler darin fiele dem Kunden auf, nicht uns. */
   const sp = await searchParams;
   const probe = String(sp?.funnel ?? "") === "1";
-  if (String(sp?.vf ?? "") === "1" || VERSUSFORGE_DOMAIN.test(host)) {
-    const L: Lang = isLang(String(sp?.lang ?? "")) ? (String(sp?.lang) as Lang) : await resolveLang("de");
-    /* Dieselbe eine Fassung wie unter /themes/versusforge (Owner 09.09.2026). */
-    return <VersusForgeStartEinfach S={await versusforgeInSprache(L)} lang={L} probe={String(sp?.vf ?? "") === "1"} />;
-  }
   if (probe || FUNNEL_DOMAIN.test(host)) {
     return <FunnelDomainStart />;
   }

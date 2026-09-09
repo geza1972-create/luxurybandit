@@ -234,24 +234,19 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   };
 
   /**
-   * WOHER ER KAM, DAHIN GEHT ER ZURÜCK (08.09.2026, nötig geworden mit dem Topic auf
-   * LuxuryBandit: „VersusForge ist die Engine … ich baue sie als Topic ein").
+   * WOHER ER KAM, DAHIN GEHT ER ZURÜCK — und das ist ab dem 09.09.2026 immer `/engine`
+   * (Owner: „ich will, dass die luxurybandit.com Adresse unter versusforge.com läuft, aber
+   * die Engine soll dann ihre Adresse bekommen: versusforge.com/engine").
    *
-   * Es gibt jetzt DREI Eingänge in denselben Trichter — versusforge.com, das Topic
-   * /themes/versusforge und ?vf=1 zum Ausprobieren. Vorher stand an sechs Stellen fest
-   * `/?vf=1`; wer über die Kachel kam, wurde bei jedem Abbruch auf eine andere Startseite
-   * geworfen als die, die er angesehen hatte.
+   * VORHER WAREN ES DREI EINGÄNGE — die Wurzel von versusforge.com, das Topic
+   * /themes/versusforge und `?vf=1` zum Ausprobieren — und diese Funktion musste am
+   * Pfad und am Host raten, welcher davon gemeint war. Die Wurzel gehört jetzt dem
+   * Portal, die Engine hat eine eigene Adresse, und damit gibt es nichts mehr zu raten.
    *
-   * ERKANNT AM VERWEIS, NICHT GERATEN: Der Trichter liegt unter /themes/versusforge/start —
-   * wer von dort kommt, gehört auf /themes/versusforge. Auf der eigenen Adresse IST die
-   * Wurzel die Startseite, sonst braucht sie den Schalter.
+   * DIE SPRACHE REIST MIT: Wer den Trichter auf Deutsch angefangen hat, soll beim Abbruch
+   * keine englische Startseite sehen.
    */
-  const heim = () => {
-    if (typeof window === "undefined") return `/?vf=1&lang=${lang}`;
-    if (window.location.pathname.startsWith("/themes/versusforge")) return `/themes/versusforge?lang=${lang}`;
-    if (window.location.hostname.includes("versusforge")) return `/?lang=${lang}`;
-    return `/?vf=1&lang=${lang}`;
-  };
+  const heim = () => `/engine?lang=${lang}`;
 
   /* Dieselbe Kennung wie überall im Haus — sie liegt im Browser und identifiziert ein
      GERÄT, keinen Menschen. Fehlt sie, greift nur noch der Tagesdeckel. */
