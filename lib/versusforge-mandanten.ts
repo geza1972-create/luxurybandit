@@ -212,6 +212,8 @@ export async function freierName(wunsch: string): Promise<string> {
 export function mandantAusPlan(o: {
   name: string;
   mail: string;
+  /** Seine Website — seit dem 09.09.2026 fragt der Trichter im zweiten Schritt danach. */
+  webUrl?: string;
   plan: { hook?: string; zielgruppe?: string[]; trichter?: string[] } & Record<string, unknown>;
   schluessel: string;
   loeschSchluessel: string;
@@ -230,7 +232,11 @@ export function mandantAusPlan(o: {
     ort: "",
     adresse: "",
     telefon: "",
-    webUrl: "",
+    /* SEINE WEBSITE STEHT SCHON DA (09.09.2026): Er hat sie im zweiten Schritt des
+       Trichters genannt. Sie hier zu verwerfen und ihn im Einrichten noch einmal danach zu
+       fragen wäre dieselbe Zumutung wie der doppelte Hook. Adresse und Telefonnummer
+       bleiben leer — die kennt der Plan nicht, und geraten wird nichts. */
+    webUrl: o.webUrl ?? "",
     hook: hook || "Sagen Sie uns, worum es geht.",
     unterzeile: "Beantworten Sie ein paar kurze Fragen. Danach wissen Sie, welche Möglichkeiten es in Ihrem Fall gibt.",
     karten: karten.length ? karten : ["Ich möchte mehr wissen"],

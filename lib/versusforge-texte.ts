@@ -447,6 +447,20 @@ export const VERSUSFORGE_TEXTE = {
   /* Der Weg eine Frage zurück — als Text mit Pfeil, nicht als dritter Knopf. */
   zurueckWort: "Zurück",
 
+  /* ── Schritt 2 · die Website (Owner 09.09.2026: „im Trichter soll er nach einer Website
+        doch fragen" · „gleich am Anfang, als zweiter Schritt" · „dann muss der User nicht
+        alles erklären") ─────────────────────────────────────────────────────────────────
+     DER TEXT SAGT DEN TAUSCH, NICHT DIE BITTE: „Bitte gib deine Adresse an" klingt nach
+     Formular. „Dann musst du weniger erzählen" ist ein Handel, den jeder sofort versteht —
+     und er ist wahr: Der Agent liest die Seite einmal und fragt danach nur noch das, was
+     dort nicht steht. */
+  webKicker: "Schritt 2",
+  webTitel: "Hast du eine Website?",
+  webText: "Dann lese ich sie einmal und frage dich nur noch das, was dort nicht steht.",
+  webPlatzhalter: "praxis-mueller.de",
+  webKnopf: "Weiter",
+  webOhne: "Ich habe keine Website",
+
   /* ── Schritt 4 · der Plan ────────────────────────────────────────────────── */
   planTitel: "Das würde ich bauen.",
   planZielgruppe: "Wen die Anzeige erreicht",

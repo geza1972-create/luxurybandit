@@ -409,6 +409,8 @@ export async function POST(request: Request) {
         const angelegt = await mandantSpeichern(name, mandantAusPlan({
           name: wunsch || name,
           mail,
+          /* Was er im zweiten Schritt genannt hat — steht damit gleich im Kopf seiner Seite. */
+          webUrl: str(body.url, 300).trim(),
           plan: (body.plan ?? {}) as Record<string, unknown>,
           /* Der Schlüssel entsteht JETZT und wird nie zurückgegeben — er geht erst mit dem
              Kauf hinaus. Bis dahin gibt es keine Adresse, unter der die Anfragen zu sehen

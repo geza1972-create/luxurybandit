@@ -38,7 +38,7 @@ import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
   * bleibt, ist das Feld als Rückfalltür für jemanden, der die Adresse direkt eintippt —
   * darüber ist der Weg: Satz → Fragen → Plan.
   */
-type Phase = "warten" | "bezahlen" | "gespraech" | "plan" | "danke";
+type Phase = "warten" | "webseite" | "bezahlen" | "gespraech" | "plan" | "danke";
 type Ziel = "leads" | "verkauf";
 type Runde = { frage: string; antwort: string };
 type Motiv = { idee: string; text: string };
@@ -46,9 +46,22 @@ type Bauteil = { was: string; wozu: string; selbst: string; aufwand: string };
 type Anzeige = { primaer: string; ueberschrift: string; beschreibung: string; knopf: string };
 type Plan = { befund: string; zielgruppe: string[]; hook: string; hookWarum: string; motive: Motiv[]; bauteile?: Bauteil[]; anzeige?: Anzeige; trichter: string[]; budget: string; warnung: string };
 
-/* Zwei Schritte, nicht drei: Der Satz wird auf der Startseite geschrieben, hier fängt es
-   mit den Fragen an. */
-const SCHRITTE: Phase[] = ["gespraech", "plan"];
+/**
+ * DREI SCHRITTE SEIT DEM 09.09.2026 (Owner: „im Trichter soll er nach einer Website doch
+ * fragen" · „gleich am Anfang, als zweiter Schritt" · „dann muss der User nicht alles
+ * erklären").
+ *
+ * DER SATZ AUF DER STARTSEITE IST SCHRITT EINS. Schritt zwei ist die Adresse seiner
+ * Website — und zwar VOR den Fragen, nicht irgendwo mittendrin. Der Grund steht in seinem
+ * dritten Satz: Wer seine Seite zeigt, muss sein Geschäft nicht mit der Hand beschreiben.
+ * Der Agent liest sie einmal (`seiteLesen` im Schritt `briefing`), behält den Auszug als
+ * Gedächtnis und fragt danach nur noch das, was dort NICHT steht.
+ *
+ * ES IST EIN EIGENER SCHIRM UND KEIN ZWEITES FELD AUF DER STARTSEITE: Dort steht die
+ * Überschrift, die verkauft, und ein Feld. Ein zweites daneben halbiert die Aufmerksamkeit
+ * an genau der Stelle, an der jemand entscheidet, ob er anfängt.
+ */
+const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
 /* Muss zum Deckel im Server stehen (`MAX_FRAGEN` in app/api/versusforge/route.ts). */
 const MAX_FRAGEN = 4;
 
@@ -156,13 +169,31 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       if (t.length < 15 && !u) { window.location.replace(`/?lang=${lang}`); return; }
       setUrl(u);
       setZiel(z); setText(t);
-      /* Direkt ins Gespräch: Hook und Feld hat er auf der Startseite schon gesehen. */
-      void briefingMit(z, t, u);
+      /**
+       * SCHRITT ZWEI: DIE WEBSITE (09.09.2026).
+       *
+       * Hat er auf der Startseite schon eine Adresse hineingeschrieben, ist die Frage
+       * beantwortet und wir überspringen sie — noch einmal danach zu fragen wäre
+       * dieselbe Zumutung wie der doppelte Hook, den wir gestern beseitigt haben.
+       */
+      if (u) { void briefingMit(z, t, u); return; }
+      setPhase("webseite");
     } catch { /* kaputter Eintrag — dann fängt er eben vorne an */ }
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { endeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [phase, frage, reaktion]);
 
+  /**
+   * DIE STARTSEITE ZÄHLT MIT (09.09.2026, im eigenen Durchlauf gesehen: über „SCHRITT 2"
+   * stand „Schritt 1/3").
+   *
+   * Der Balken zählte nur die Schirme DIESER Seite und wusste nichts vom Feld auf der
+   * Startseite — für den Menschen ist das aber Schritt eins, er hat dort etwas
+   * geschrieben. Zwei Zahlen für denselben Moment sind schlimmer als gar keine.
+   */
+  const VOR = 1;
   const schrittNr = SCHRITTE.indexOf(phase) + 1;
+  const zeigeNr = schrittNr + VOR;
+  const zeigeVon = SCHRITTE.length + VOR;
   /* Zurück nur VOR dem Gespräch — sobald Fragen beantwortet sind, wäre ein Sprung zurück
      ein Sprung in einen Zustand, den es nicht mehr gibt. Dieselbe Regel wie bei David. */
   /* Kein Zurück mehr: Vor dem Feld liegt die Startseite, und dorthin führt der Browser. */
@@ -338,6 +369,21 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
 
   /** Der Auftrag geht als Argument mit, weil der Abholer oben ihn kennt, bevor React den
       Zustand gesetzt hat — sonst schickte der erste Aufruf ein leeres Feld. */
+  /**
+   * SCHRITT 2 ABSCHLIESSEN — mit Adresse oder ausdrücklich ohne.
+   *
+   * KEINE PRÜFUNG AUF EINE GÜLTIGE ADRESSE HIER: Der Server liest die Seite und sagt selbst,
+   * wenn nichts herauskam (`seiteLesen`). Ein Browser, der „das ist keine Website" behauptet,
+   * liegt bei jeder zweiten Schreibweise daneben und hält Leute auf, die recht haben.
+   */
+  const weiterMitSeite = async (ohne = false) => {
+    if (!ziel) return;
+    const u = ohne ? "" : url.trim();
+    if (ohne) setUrl("");
+    void logFunnelEvent("vf_webseite", { theme: "versusforge", hat: u ? "ja" : "nein" });
+    await briefingMit(ziel, text, u);
+  };
+
   const briefingMit = async (z: Ziel, t: string, u = "") => {
     setFehler(""); setBusy(true); setBusyText(S.denkt);
     /**
@@ -467,13 +513,13 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       {schrittNr > 0 && phase !== "danke" && (
         <div className="flex flex-col gap-1.5">
           <div className="flex gap-1.5">
-            {SCHRITTE.map((_, i) => (
-              <span key={i} className={`h-2 flex-1 rounded-full ${i < schrittNr ? "bg-[#f6cf51]" : "bg-white/15"}`} />
+            {Array.from({ length: zeigeVon }, (_, i) => (
+              <span key={i} className={`h-2 flex-1 rounded-full ${i < zeigeNr ? "bg-[#f6cf51]" : "bg-white/15"}`} />
             ))}
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[14px] font-bold text-white/45 md:text-[15px]">
-              {t(S.fortschrittWort, "Schritt")} {schrittNr}/{SCHRITTE.length}
+              {t(S.fortschrittWort, "Schritt")} {zeigeNr}/{zeigeVon}
             </span>
             {zurueck && !busy && (
               <button type="button" onClick={() => { void logFunnelEvent("vf_zurueck", { theme: "versusforge", von: phase }); setPhase(zurueck); }}
@@ -491,7 +537,54 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
         <Kasten polster="p-5"><Fortschritt text={S.denkt} /></Kasten>
       )}
 
-      {/* ── 1 · DAS GESPRÄCH ── */}
+      {/* ── 1 · DIE WEBSITE (Owner 09.09.2026: „gleich am Anfang, als zweiter Schritt") ── */}
+      {phase === "webseite" && (
+        <Kasten polster="p-5">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">
+            {t(S.webKicker, "Schritt 2")}
+          </p>
+          <h1 className="mt-2 text-[28px] font-black leading-[1.15] text-white md:text-[36px]">
+            {t(S.webTitel, "Hast du eine Website?")}
+          </h1>
+          {/* DER SATZ SAGT DEN NUTZEN, NICHT DIE BITTE (Owner 09.09.2026: „dann muss der User
+              nicht alles erklären"). „Bitte gib deine Adresse an" klingt nach Formular; „dann
+              musst du weniger erzählen" ist ein Tausch, den jeder sofort versteht. */}
+          <p className="mt-2.5 text-[16px] leading-[1.5] text-white/70 md:text-[17px]">
+            {t(S.webText, "Dann lese ich sie einmal und frage dich nur noch das, was dort nicht steht.")}
+          </p>
+          <Eingabe
+            className="mt-4"
+            value={url}
+            hell
+            onChange={e => { setUrl(e.target.value); if (fehler) setFehler(""); }}
+            onKeyDown={e => { if (e.key === "Enter" && url.trim()) { e.preventDefault(); void weiterMitSeite(); } }}
+            style={{ background: "#ffffff", borderColor: "rgba(0,0,0,0.14)", fontFamily: "inherit" }}
+            placeholder={t(S.webPlatzhalter, "praxis-mueller.de")}
+            inputMode="url"
+            autoFocus
+          />
+          <Fehlerzeile>{fehler}</Fehlerzeile>
+          {busy ? (
+            <div className="mt-4"><Fortschritt text={busyText} /></div>
+          ) : (
+            <>
+              <div className="mt-4"><Knopf art="gold" onClick={() => void weiterMitSeite()}>{t(S.webKnopf, "Weiter")}</Knopf></div>
+              {/* KEIN ZWEITER KNOPF, SONDERN EIN LINK. „Ich habe keine" ist kein
+                  gleichwertiger Weg, sondern die Ausnahme — als Knopf stritte er mit dem
+                  einen, der weiterführt (CI-Regel: ein gefüllter Knopf je Schirm). */}
+              <button
+                type="button"
+                onClick={() => void weiterMitSeite(true)}
+                className="mt-3.5 inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#1d6fd0]"
+              >
+                {t(S.webOhne, "Ich habe keine Website")}
+              </button>
+            </>
+          )}
+        </Kasten>
+      )}
+
+      {/* ── 2 · DAS GESPRÄCH ── */}
       {phase === "gespraech" && (
         <>
           {/* Was er zuletzt gesagt hat, steht ÜBER der Frage — sonst fühlt sich jede Frage
