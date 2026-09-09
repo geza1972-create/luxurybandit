@@ -49,10 +49,43 @@ const MAX_FRAGEN = 4;
  * 07.09.2026 aufgefallen (rumänische Oberfläche, deutsche Fragen), weil „Sprache: Deutsch"
  * in sechs Aufträgen stand. Was das Modell nicht im Auftrag liest, kann es nicht wissen.
  */
+/**
+ * ── ZWEI FEHLER AUS DEM EIGENEN PRÜFLAUF (09.09.2026, rumänischer Durchgang) ────────────────
+ *
+ * 1. MITTEN IM RUMÄNISCHEN SATZ STAND DEUTSCH: „…ai spus exact ce vrei ca oamenii să facă,
+ *    das hilft für die Anzeige, weil wir ein klares Angebot und Ziel haben." Die Sprachzeile
+ *    stand an Position zwei von zwanzig — und wurde im Feld `reaktion` überlesen. Sie steht
+ *    jetzt ZUSÄTZLICH als letzte Zeile: Was unmittelbar vor der Aufgabe steht, ist eine
+ *    Schranke, was oben steht, eine Bitte. (Dieselbe Lehre wie bei den Chips im Agenten.)
+ *
+ * 2. „Situație (2):" — ein Etikett mit Nummer am Satzanfang. Das ist meine interne Zählung
+ *    der Runden, und sie geht ihn nichts an: Er soll ein Gespräch führen, nicht einem
+ *    Formular beim Zählen zusehen.
+ */
+/** Die Sprachzeile — sie steht zweimal im Auftrag: oben als Regel, unten als Schranke.
+    KEIN `export`: Eine Route darf ausser den Handlern nichts nach aussen geben, sonst
+    schlägt der Bau fehl (Next prüft das). */
+const sprachzeile = (sprache?: string) =>
+  `LETZTE PRÜFUNG VOR DEM ABSCHICKEN: Steht in deiner Antwort — in JEDEM Feld, auch mitten im Satz — ein einziges Wort, das nicht ${sprachname(sprache)} ist? Dann schreib es neu. Kein deutsches Wort in einem fremdsprachigen Satz, kein englisches, keins.`;
+
 const regeln = (sprache?: string) => [
   "Du bist VersusForge, ein nüchterner Berater für Werbung und Kundengewinnung. Du sprichst mit einem Unternehmer oder Selbständigen.",
   `Sprache: Du schreibst AUSSCHLIESSLICH auf ${sprachname(sprache)} — jede Frage, jeder Satz, jedes Feld deiner Antwort. Und du duzt ihn.`,
   "Ton: ruhig, direkt, konkret. Niemals überschwänglich. Verboten sind 'Super', 'Großartig', 'Spannend', 'Tolles Projekt', 'Danke fürs Teilen'.",
+  "FANG NIE MIT EINEM ETIKETT AN. Kein Feld und kein Thema ist ein Satzanfang: keine Wörter wie Situation, Stand, Schritt, Reaktion, Verkauf, Werbung — und schon gar keine Nummer dahinter. Er führt ein Gespräch, er sieht keinem Formular beim Zählen zu.",
+  /**
+   * ── DAS REZEPT BLEIBT DRINNEN, AUCH ÜBERSETZT (09.09.2026, im eigenen Prüflauf gefunden) ──
+   *
+   * Im rumänischen Durchgang stand „…ele acoperă deja partea de dovadă" — sie decken schon
+   * den BELEG ab. Das ist einer der fünf Schritte, in seiner Sprache, offen im Gespräch. Der
+   * Agent hat dieses Verbot seit heute; der Trichter hatte es nie.
+   *
+   * OWNER, 09.09.2026: „gute Restaurants veröffentlichen ihr Rezept auch nicht." Die fünf
+   * Schritte sind das, was uns von einem Textbaukasten unterscheidet — wer sie aufzählt,
+   * verschenkt sie.
+   */
+  "SPRICH NIE ÜBER DEINE ARBEITSWEISE. Verboten sind Zweck, Geschichte, Identität, Beweis, Knappheit, Nutzen, Herkunft, Wirkung, Beleg, Grenze, Hebel, Schritt, Stufe — und dasselbe in JEDER anderen Sprache, auch übersetzt.",
+  "SAG NIE, WAS DIR NOCH FEHLT oder was schon abgedeckt ist. Solche Sätze zwingen dich, einen Arbeitsschritt zu benennen. Stell einfach die nächste Frage.",
   "Du erfindest NIE Fakten. Kennst du eine Zahl nicht, sagst du das, statt zu schätzen.",
   /**
    * ── ALLGEMEINWISSEN IST KEIN ERFINDEN (Owner 09.09.2026, nach dem Test mit amazon.de) ────
@@ -531,7 +564,16 @@ export async function POST(request: Request) {
     let trichterLink = "";
     if (mandant === EIGENER_MANDANT) {
       try {
-        const wunsch = trichterName(str(body.url, 300), mail);
+        /**
+         * SEIN NAME KOMMT VON IHM, NICHT AUS SEINER ADRESSE (09.09.2026, im eigenen Prüflauf
+         * gefunden: der Trichter hiess `geza1972` — der Teil vor dem @).
+         *
+         * Der Trichter fragt jetzt danach. Bleibt das Feld leer (alte Fassung im Browser,
+         * abgeschaltetes Javascript), greift die alte Ableitung als Rückfall — schlechter,
+         * aber besser als gar kein Trichter.
+         */
+        const genannt = str(body.betrieb, 120).trim();
+        const wunsch = genannt || trichterName(str(body.url, 300), mail);
         const name = await freierName(wunsch);
         const angelegt = await mandantSpeichern(name, mandantAusPlan({
           /* Derselbe Grund wie beim Adressnamen: Was oben auf seiner Seite steht, darf keine
@@ -823,6 +865,7 @@ export async function POST(request: Request) {
       'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","fertig":false,"hebel":"...","stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"warum":"...","vorschlaege":["..."]}',
       "",
       lage(b),
+      sprachzeile(b.sprache),
     ].join("\n");
 
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }]);
@@ -939,6 +982,7 @@ export async function POST(request: Request) {
       "",
       "DAS GESPRÄCH BIS HIER:",
       ...verlauf.map(m => `${m.rolle === "agent" ? "DU" : "ER"}: ${m.text}`),
+      sprachzeile(b.sprache),
     ].join("\n");
 
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }]);
@@ -1021,6 +1065,7 @@ export async function POST(request: Request) {
       'Antworte NUR als JSON: {"reaktion":"...","frage":"...","hebel":"...","gefuellt":true,"stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"vorschlaege":["..."]}',
       "",
       lage(b),
+      sprachzeile(b.sprache),
     ].join("\n");
 
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }]);
@@ -1217,6 +1262,7 @@ export async function POST(request: Request) {
       'Antworte NUR als JSON: {"befund":"...","zielgruppe":["..."],"hook":"...","hookWarum":"...","geschichte":[{"hebel":"...","satz":"..."}],"motive":[{"idee":"...","text":"..."}],"bauteile":[{"was":"...","wozu":"...","selbst":"...","aufwand":"...","stunden":4}],"noten":[{"was":"Angebot","note":3,"warum":"..."}],"anzeige":{"primaer":"...","ueberschrift":"...","beschreibung":"...","knopf":"..."},"trichter":["..."],"budget":"...","warnung":"...","hebel":{"zweck":"...","geschichte":"...","identitaet":"...","beweis":"...","knappheit":"..."}}',
       "",
       lage(b),
+      sprachzeile(b.sprache),
     ].join("\n");
 
     /* Der Plan bekommt das grosse Modell und mehr Nachdenken: Er ist das Einzige, was der

@@ -195,6 +195,31 @@ export const DASHBOARD_TEXTE = {
   loeschen: "Löschen",
   wirklichLoeschen: "Wirklich löschen?",
   hookPlatzhalter: "Ein fester Zahn in einem Termin — geht das bei dir?",
+  /**
+   * ── SEIN EIGENES MOTIV (Owner 09.09.2026: „stell dir vor, ein Künstler will seine Art
+   * verkaufen. Das müsste auch funktionieren. Bild und Spruch") ────────────────────────────
+   *
+   * Für einen Zahnarzt ist die weisse Schriftkachel richtig: Sein Produkt ist ein Ergebnis,
+   * kein Anblick. Für einen Künstler, einen Bäcker, ein Hotel ist sie falsch — dort IST das
+   * Bild das Produkt, und ein Satz allein bewirbt es nicht, er beschreibt es nur.
+   *
+   * EINMAL HOCHLADEN, UNTER JEDEM SATZ: Das Motiv gehört dem Trichter, nicht der einzelnen
+   * Kachel. Er wählt sein Werk einmal aus und sieht es unter allen seinen Hooks.
+   */
+  motivTitel: "Dein Bild",
+  /**
+   * DIE WEISSE KACHEL IST KEIN MANGEL (Owner 09.09.2026, auf mein „das ist mein Fehler":
+   * „eben, das ist geil").
+   *
+   * Ich hatte die leere Fläche als Panne beschrieben. Sie ist ein Format — und in einem Feed
+   * voller Bilder ist eine Fläche mit EINEM Satz das, was aus der Reihe fällt: Alle anderen
+   * zeigen etwas, diese zwingt zum Lesen. Der Text darf sie deshalb nicht als Notlösung
+   * anbieten, sondern als Wahl.
+   */
+  motivFein: "Zwei Formate: nur dein Satz auf Weiss — fällt in einem Feed voller Bilder auf. Oder dein Bild oben, der Satz darunter.",
+  motivWaehlen: "Bild wählen",
+  motivWechseln: "Anderes Bild",
+  motivWeg: "Bild entfernen",
 } as const;
 
 export type DashboardTexte = { -readonly [K in keyof typeof DASHBOARD_TEXTE]: string };

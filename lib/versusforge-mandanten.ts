@@ -118,6 +118,19 @@ export type MandantAngaben = {
   /** Sein Logo (öffentliche Adresse). Leer = nur der Name als Schrift. */
   logoUrl: string;
   /**
+   * SEIN EIGENES MOTIV FÜR DIE ANZEIGENBILDER (Owner 09.09.2026: „stell dir vor, ein
+   * Künstler will seine Art verkaufen … Bild und Spruch").
+   *
+   * EIN BILD FÜR ALLE SEINE HOOKS, nicht eines je Kachel. Wer sein Werk, seinen Raum oder
+   * seinen Teller einmal hochlädt, will es unter jedem Satz sehen — und nicht bei jedem
+   * neuen Hook wieder suchen.
+   *
+   * ES STEHT ALS PFAD IM SPEICHER, nicht als Datenmenge in dieser Datei: Ein Bild in der
+   * Mandantendatei würde jede Leseoperation um Megabyte verteuern, und die Datei wird bei
+   * jedem Seitenaufruf gelesen.
+   */
+  motivPfad?: string;
+  /**
    * SEIN PLAN als Zusammenhang für den Agenten. Damit fragt der Trichter SEINE Kunden
    * („fehlt Ihnen ein Zahn?") statt Unternehmer („was willst du erreichen?"). Ohne dieses
    * Feld wäre die Mandantenseite nur ein anderes Logo auf demselben Gespräch.

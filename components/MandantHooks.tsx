@@ -2,7 +2,7 @@
 
 import type { DashboardTexte } from "@/lib/dashboard-texte";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Trash2, Download, Sparkles, ImageIcon, Plus } from "lucide-react";
 
 /**
@@ -30,11 +30,50 @@ import { Trash2, Download, Sparkles, ImageIcon, Plus } from "lucide-react";
  * SELBST SCHREIBEN GEHT WEITER. Die Maschine schlägt vor, aber der beste Hook kommt oft aus
  * dem Satz, den er selbst am Telefon sagt.
  */
-export default function MandantHooks({ mandant, k, planHook, hooks: start , T}: {
+export default function MandantHooks({ mandant, k, planHook, hooks: start , T, hatMotiv = false}: {
   mandant: string; k: string; planHook: string; hooks: string[];
   /** Die Texte in der Sprache des Mandanten. */
   T: DashboardTexte;
+  /** Liegt schon ein Motiv beim Trichter? Kommt vom Server, damit es nach dem Neuladen stimmt. */
+  hatMotiv?: boolean;
 }) {
+  /**
+   * SEIN EIGENES MOTIV (Owner 09.09.2026: „Bild und Spruch").
+   *
+   * Es wird im Browser auf 1080 Pixel gebracht, bevor es reist — ein Handyfoto hat acht
+   * Megabyte, gebraucht wird ein Bruchteil davon. Danach liegt es beim Trichter und
+   * erscheint unter jedem Hook; die Kacheln unten laden sich mit einem frischen Zähler neu.
+   */
+  const [motiv, setMotiv] = useState(hatMotiv);
+  const [stand, setStand] = useState(0);
+  const dateiRef = useRef<HTMLInputElement>(null);
+
+  const motivSetzen = async (f: File | null | undefined) => {
+    if (!f || !f.type.startsWith("image/")) return;
+    try {
+      const bitmap = await createImageBitmap(f);
+      const breit = Math.min(1080, bitmap.width);
+      const hoch = Math.round((bitmap.height / bitmap.width) * breit);
+      const flaeche = document.createElement("canvas");
+      flaeche.width = breit; flaeche.height = hoch;
+      flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
+      const daten = flaeche.toDataURL("image/jpeg", 0.85);
+      const res = await fetch("/api/versusforge-bild", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ was: "motiv", mandant, k, daten }),
+      });
+      if (res.ok) { setMotiv(true); setStand(n => n + 1); }
+    } catch { /* ein Bild, das der Browser nicht öffnet, wird still übergangen */ }
+  };
+
+  const motivWeg = async () => {
+    const res = await fetch("/api/versusforge-bild", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ was: "motiv", mandant, k, daten: "" }),
+    });
+    if (res.ok) { setMotiv(false); setStand(n => n + 1); if (dateiRef.current) dateiRef.current.value = ""; }
+  };
+
   const [hooks, setHooks] = useState<string[]>(start);
   const [neu, setNeu] = useState("");
   const [eigenesOffen, setEigenesOffen] = useState(false);
@@ -79,8 +118,42 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start , T}: 
   const bildAdresse = (i: number) =>
     `/api/versusforge-bild?m=${encodeURIComponent(mandant)}${i < 0 ? "" : `&i=${i}`}`;
 
+  const motivBlock = (
+    /**
+     * ── SEIN BILD, EINMAL FÜR ALLE HOOKS (Owner 09.09.2026: „stell dir vor, ein Künstler
+     * will seine Art verkaufen … Bild und Spruch") ─────────────────────────────────────────
+     *
+     * ES STEHT ÜBER DER LISTE, nicht in jeder Kachel: Das Motiv gehört dem Trichter. Wer es
+     * je Kachel wählen müsste, sucht bei jedem neuen Hook wieder dieselbe Datei.
+     *
+     * FÜR DEN ZAHNARZT IST DIE WEISSE KACHEL RICHTIG — sein Produkt ist ein Ergebnis, kein
+     * Anblick. Für den Künstler ist sie falsch: Dort IST das Bild das Produkt.
+     */
+    <div className="rounded-2xl border-[1.5px] border-dashed border-[#dfe4e9] p-5">
+      <p className="m-0 text-[16px] font-extrabold tracking-[-0.01em]">{T.motivTitel}</p>
+      <p className="mt-1.5 text-[15px] leading-[1.5] text-[#5b666f]">{T.motivFein}</p>
+      <input ref={dateiRef} type="file" accept="image/*" hidden
+        onChange={e => void motivSetzen(e.target.files?.[0])} />
+      <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <button type="button" onClick={() => dateiRef.current?.click()}
+          className="inline-flex items-center gap-1.5 text-[14.5px] font-bold text-[#1d6fd0]">
+          <ImageIcon className="h-4 w-4" aria-hidden />
+          {motiv ? T.motivWechseln : T.motivWaehlen}
+        </button>
+        {motiv && (
+          <button type="button" onClick={() => void motivWeg()}
+            className="inline-flex items-center gap-1.5 text-[14.5px] font-bold text-[#8b959d] transition hover:text-[#c02626]">
+            <Trash2 className="h-4 w-4" aria-hidden />
+            {T.motivWeg}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-5">
+      {motivBlock}
       {/* ── DER GENERATOR ── */}
       <div className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(20,24,28,.06),0_8px_28px_rgba(20,24,28,.07)] md:p-7">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

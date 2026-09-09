@@ -220,6 +220,8 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
   const [antwort, setAntwort] = useState("");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [mail, setMail] = useState("");
+  /* Sein Betriebsname — er steht oben auf seiner Seite und in ihrer Adresse. */
+  const [betrieb, setBetrieb] = useState("");
   /* Ob die MAIL wirklich rausging — nicht ob der Knopf gedrückt wurde. Der Server sagt es;
      ein Häkchen, das nur den Klick bestätigt, behauptet etwas über eine Zustellung, die es
      vielleicht nie gab. */
@@ -424,11 +426,14 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
    */
   const planSchicken = async () => {
     if (!mail.includes("@")) { setFehler(t(S.mailFehlt, "")); return; }
+    /* Ohne Betriebsnamen kein Trichter: Die Adresse trägt ihn, und „geza1972" schreibt
+       niemand in eine Anzeige. */
+    if (betrieb.trim().length < 2) { setFehler(t(S.betriebFeld, "")); return; }
     setFehler(""); setBusy(true);
     try {
       const res = await fetch("/api/versusforge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "lead", mail, ziel, text, url, sprache: lang, plan, runden }),
+        body: JSON.stringify({ schritt: "lead", mail, betrieb: betrieb.trim(), ziel, text, url, sprache: lang, plan, runden, device: geraet() }),
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok || !d.ok) { setFehler(t(d.error as string, S.fehler)); return; }
@@ -791,6 +796,12 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
               bekommt dafür seinen Trichter und die Anleitung, nicht einen Rundbrief. */}
           <div className="mt-7 border-t border-white/10 pt-5">
             <p className="text-[16px] font-bold leading-snug text-white/80 md:text-[17px]">{t(S.vorschauFeld, "")}</p>
+            {/* SEIN BETRIEBSNAME, VOR DER ADRESSE (09.09.2026): Ohne ihn hiess sein Trichter
+                nach dem Teil vor dem @ — bei einer Gmail-Adresse also nach seinem
+                Nutzerkonto. Begründung in lib/versusforge-texte.ts bei `betriebFeld`. */}
+            <Eingabe className="mt-3" value={betrieb}
+              onChange={e => setBetrieb(e.target.value)} placeholder={t(S.betriebPlatzhalter, "")} />
+            <p className="mt-1.5 text-[14.5px] font-semibold text-white/55">{t(S.betriebFein, "")}</p>
             <Eingabe className="mt-3" type="email" inputMode="email" value={mail}
               onChange={e => setMail(e.target.value)} placeholder={S.mailPlatzhalter} />
             <Fehlerzeile>{fehler}</Fehlerzeile>

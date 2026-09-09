@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { str } from "@/lib/agent-modell";
 import { hookBild } from "@/lib/versusforge-bild";
-import { mandantLesen } from "@/lib/versusforge-mandanten";
+import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
+import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-store";
+import crypto from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,9 +20,77 @@ export const dynamic = "force-dynamic";
  * schickt. Es gibt also keine Adresse, unter der fremde Hooks herumliegen, und nichts, was
  * aufgeräumt werden müsste.
  */
+/** Zeitgleicher Vergleich — derselbe Schlüsselvergleich wie im Dashboard. */
+function schluesselStimmt(soll: string, ist: string): boolean {
+  const a = Buffer.from(String(soll ?? ""), "utf8");
+  const b = Buffer.from(String(ist ?? ""), "utf8");
+  if (!a.length || a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(a, b); } catch { return false; }
+}
+
+/** Sein Motiv aus dem Speicher holen. Fehlt es, gibt es keins — kein Fehler. */
+async function motivLesen(pfad?: string): Promise<Buffer | undefined> {
+  if (!pfad) return undefined;
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
+  if (!res.ok) return undefined;
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function POST(request: Request) {
   let body: Record<string, unknown> = {};
   try { body = (await request.json()) as Record<string, unknown>; } catch { /* leer */ }
+
+  /**
+   * ── SEIN MOTIV HOCHLADEN (Owner 09.09.2026: „stell dir vor, ein Künstler will seine Art
+   * verkaufen. Das müsste auch funktionieren. Bild und Spruch") ─────────────────────────────
+   *
+   * BEIM KÜNSTLER IST DAS BILD DAS PRODUKT. Eine weisse Schriftkachel beschreibt ein Gemälde,
+   * sie zeigt es nicht — und ein Gemälde verkauft sich über das Auge.
+   *
+   * EINMAL FÜR ALLE SEINE HOOKS: Es liegt am Mandanten, nicht an einer einzelnen Kachel. Wer
+   * sein Werk hochlädt, will es unter jedem Satz sehen.
+   *
+   * NUR MIT SEINEM DASHBOARD-SCHLÜSSEL. Ohne diese Prüfung könnte jeder, der einen
+   * Trichternamen kennt, ein fremdes Bild in eine fremde Anzeige legen.
+   */
+  if (str(body.was, 20) === "motiv") {
+    const kennung = str(body.mandant, 60);
+    const m = await mandantLesen(kennung);
+    if (!m) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
+    if (!schluesselStimmt(m.schluessel, str(body.k, 200))) {
+      return NextResponse.json({ error: "Dieser Trichter gehört jemand anderem." }, { status: 403 });
+    }
+
+    /* WEGNEHMEN IST AUCH EINE ANTWORT: Wer sein Bild loswerden will, soll dafür nicht den
+       Löschweg des ganzen Trichters gehen müssen. */
+    if (str(body.daten, 20) === "") {
+      await mandantSpeichern(kennung, { ...m, motivPfad: "" });
+      return NextResponse.json({ ok: true, motiv: false });
+    }
+
+    const roh = String(body.daten ?? "");
+    const teil = roh.startsWith("data:image/") ? roh.split(",", 2)[1] ?? "" : "";
+    if (!teil) return NextResponse.json({ error: "Das ist kein Bild." }, { status: 400 });
+    const daten = Buffer.from(teil, "base64");
+    /* Der Browser hat schon auf 1080 Pixel verkleinert; die Grenze fängt nur den Fall ab,
+       dass jemand die Route von Hand füttert. */
+    if (!daten.length || daten.length > 4 * 1024 * 1024) {
+      return NextResponse.json({ error: "Das Bild ist zu gross." }, { status: 413 });
+    }
+
+    const pfad = `versusforge-motiv/${kennung}.jpg`;
+    const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
+      method: "POST",
+      headers: { "Content-Type": "image/jpeg", "x-upsert": "true" },
+      body: new Uint8Array(daten),
+    });
+    if (!put.ok) {
+      console.error("[versusforge-bild] Motiv nicht gespeichert:", put.status);
+      return NextResponse.json({ error: "Das Bild liess sich nicht ablegen." }, { status: 502 });
+    }
+    await mandantSpeichern(kennung, { ...m, motivPfad: pfad });
+    return NextResponse.json({ ok: true, motiv: true });
+  }
 
   const hook = str(body.hook, 300).trim();
   if (!hook) return NextResponse.json({ error: "Ohne Hook gibt es kein Bild." }, { status: 400 });
@@ -76,9 +146,21 @@ export async function GET(request: Request) {
   if (!m || !hook) return NextResponse.json({ error: "Nicht gefunden." }, { status: 404 });
 
   try {
+    /**
+     * DER AUFRUF STEHT IN SEINER SPRACHE (09.09.2026, im Bild gesehen): Auf einer rumänischen
+     * Kachel stand „Jetzt anfragen" — fest verdrahtet. Das ist der einzige deutsche Rest auf
+     * einem Bild, das er unter seinem Namen postet.
+     */
+    const AUFRUF: Record<string, string> = {
+      de: "Jetzt anfragen", en: "Get in touch", ro: "Cere ofertă",
+    };
     const bild = await hookBild({
       hook,
-      aufruf: "Jetzt anfragen",
+      aufruf: AUFRUF[String(m.sprache ?? "de").slice(0, 2)] ?? AUFRUF.de,
+      /* Sein Name gehört auf das Bild — es wandert weiter, ohne die Anzeige daneben. */
+      marke: m.name,
+      /* Sein eigenes Motiv, wenn er eines hochgeladen hat — oben Bild, unten Spruch. */
+      fotoDaten: await motivLesen(m.motivPfad),
     });
     return new NextResponse(new Uint8Array(bild), {
       headers: { "Content-Type": "image/jpeg", "Cache-Control": "no-store" },

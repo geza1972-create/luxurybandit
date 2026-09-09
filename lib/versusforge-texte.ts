@@ -529,6 +529,24 @@ export const VERSUSFORGE_TEXTE = {
   dankeOder: "Oder lass deine Adresse da, dann melde ich mich:",
   mailPlatzhalter: "deine@adresse.de",
   mailSenden: "Schicken",
+  /**
+   * ── DER NAME SEINES BETRIEBS (09.09.2026, im eigenen Prüflauf gefunden) ──────────────────
+   *
+   * WAS PASSIERTE: Ich lief den Trichter mit einer Freemail-Adresse durch, und der Trichter
+   * hiess danach `versusforge.com/geza1972` — der Teil vor dem @. Oben auf SEINER Seite
+   * stand „geza1972", und genau diese Adresse hätte er in eine Anzeige geschrieben.
+   *
+   * DIE ALTE ABLEITUNG war: Website, sonst Mail-Domain, sonst der Teil vor dem @. Die ersten
+   * zwei sind gute Vermutungen, der dritte ist immer falsch — bei jeder Gmail-Adresse, also
+   * bei der Mehrheit.
+   *
+   * FRAGEN IST BILLIGER ALS RATEN. Ein Feld neben der Adresse, drei Sekunden Arbeit für ihn,
+   * und die Adresse trägt seinen Namen statt seines Nutzerkontos. Der Agent fragt seit heute
+   * genauso ([[abschluss_schicken]] verweigert ohne Betriebsnamen).
+   */
+  betriebFeld: "Wie heisst dein Betrieb?",
+  betriebPlatzhalter: "Restaurant Insula",
+  betriebFein: "Der Name steht oben auf deiner Seite und in ihrer Adresse.",
   mailFehlt: "Ohne Adresse kann ich dir nichts schicken.",
   /* Der Weg zurück zum Plan. Der Plan liegt noch im Fenster — es fehlte nur die Tür dorthin
      (Owner 08.09.2026: „jetzt wollte ich zurück, mir alles anzuschauen"). */

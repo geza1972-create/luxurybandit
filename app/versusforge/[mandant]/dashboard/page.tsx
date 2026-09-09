@@ -234,7 +234,7 @@ export default async function MandantDashboard({ params, searchParams }: {
           )}
 
           {ansicht === "hooks" ? (
-            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} T={T} />
+            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} T={T} hatMotiv={!!m.motivPfad} />
           ) : ansicht === "einstellungen" ? (
             <>
             <MandantEinrichten
