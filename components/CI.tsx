@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Cake, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Gift, Heart, ImageUp, LayoutGrid, Loader2, Lock, Maximize2, Minimize2, Menu, MessageCircle, Palmtree, Rocket, ShieldCheck, Shirt, Sparkles, Trash2, X, type LucideIcon } from "lucide-react";
+import { Cake, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Heart, ImageUp, LayoutGrid, Loader2, Lock, Maximize2, Minimize2, Menu, MessageCircle, Palmtree, Rocket, ShieldCheck, Shirt, Sparkles, Trash2, X, type LucideIcon } from "lucide-react";
 import LightSwitch from "@/components/LightSwitch";
 import LangSwitch from "@/components/LangSwitch";
 import SchleifenVideo from "@/components/SchleifenVideo";
@@ -1902,7 +1902,7 @@ export type ThemenKachelDaten = {
   /** Wasserzeichen, wenn es weder Bild noch Video gibt — die Server-Seite reicht es fertig herein. */
   platzhalter?: ReactNode;
 };
-export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon", baldZeile = "Coming soon", cta, ton, onTon, className = "" }: {
+export function ThemenKachel({ thema, art = "reihe", bald = "Soon", baldZeile = "Coming soon", cta, ton, onTon, className = "" }: {
   thema: ThemenKachelDaten;
   /**
    * Der Wortlaut des Kaufknopfs — „CTA auf jeder Karte" (Landingpage.md, Memory
@@ -1918,7 +1918,6 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
    * oberste Karte erscheinen und nicht untereinander. Also im Karussell").
    */
   art?: "reihe" | "voll" | "folie";
-  live?: string;
   bald?: string;
   baldZeile?: string;
   /**
@@ -1998,9 +1997,20 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
       ) : (
         <div className="absolute inset-0 grid place-items-center">{thema.platzhalter}</div>
       )}
-      {aktiv
-        ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">{live}</span>
-        : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> {bald}</span>}
+      {/**
+        * DER „LIVE"-AUFKLEBER IST WEG (Owner 09.09.2026: „Live sticker raus bei allen").
+        *
+        * Er sass als goldene Plakette in der rechten oberen Ecke JEDER aktiven Kachel — und
+        * damit auf fast allen. Ein Merkmal, das überall steht, unterscheidet nichts: Es sagt
+        * dem Besucher nur, dass es die Seite gibt, und verdeckt dabei die Ecke des Motivs.
+        * Was ein Thema kostet und was es tut, steht in Zeile und Chips.
+        *
+        * DER „SOON"-RIEGEL BLEIBT: Der sagt etwas, das man sonst erst nach dem Tippen
+        * merkt — dass hinter der Kachel noch nichts steht.
+        */}
+      {!aktiv && (
+        <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> {bald}</span>
+      )}
     </div>
   );
   /* Kein `truncate` am Titel: „Schick einen Kuss an den Menschen, den du liebst" ist der
@@ -2331,9 +2341,8 @@ export function ThemenGestaltWahl({ art, waehle, className = "" }: {
  * DIE THEMEN-LISTE — die Kacheln in der gewählten Gestalt. KEIN Umschalter darin: gewählt
  * wird auf `/ci` (siehe `useThemenGestalt`), hier wird nur noch gezeigt.
  */
-export function ThemenListe({ themen, live, bald, baldZeile, gestalt, ctaZeile, className = "" }: {
+export function ThemenListe({ themen, bald, baldZeile, gestalt, ctaZeile, className = "" }: {
   themen: ThemenKachelDaten[];
-  live?: string;
   bald?: string;
   baldZeile?: string;
   /**
@@ -2376,7 +2385,7 @@ export function ThemenListe({ themen, live, bald, baldZeile, gestalt, ctaZeile, 
         <div className="lb-karte-rahmen pointer-events-none absolute inset-[10px] rounded-[14px]" />
         <div className="relative">
           <KartenKarussell onAktiv={setVorn} folien={themen.map((t, i) => (
-            <ThemenKachel key={t.titel} thema={t} art="folie" live={live} bald={bald} baldZeile={baldZeile}
+            <ThemenKachel key={t.titel} thema={t} art="folie" bald={bald} baldZeile={baldZeile}
               ton={ton && i === vorn} onTon={() => setTon(v => !v)} />
           ))} />
           {/* DER TEXT DER VORDEREN FOLIE — UNTER DEN PUNKTEN (Owner 06.08.2026: „jetzt die
@@ -2416,7 +2425,7 @@ export function ThemenListe({ themen, live, bald, baldZeile, gestalt, ctaZeile, 
   return (
     <div className={`grid grid-cols-1 gap-3 ${className}`}>
       {themen.map(t => (
-        <ThemenKachel key={t.titel} thema={t} art={art} live={live} bald={bald} baldZeile={baldZeile} />
+        <ThemenKachel key={t.titel} thema={t} art={art} bald={bald} baldZeile={baldZeile} />
       ))}
     </div>
   );
@@ -2489,7 +2498,16 @@ export const THEMEN_KREISE: { icon: LucideIcon; name: string; href: string; bild
      der Kreis trug sonst weiter die gemalte Traumwelt, waehrend das Video schon die
      italienische Szene ist. Hausregel „Landingpage-Video = Kachel-Video". */
   { icon: Sparkles, name: "Wedding", href: "/themes/wedding", bild: "/Wedding/hochzeit-italien.jpg" },
-  { icon: Gift, name: "Surprise", href: "/themes/surprise", bild: "/Pooldance/beispiel-2.jpg" },
+  /**
+   * SURPRISE (POLE DANCE) IST AUS DER REIHE RAUS (Owner 09.09.2026: „mach pooldancig raus").
+   *
+   * Hier stand `{ icon: Gift, name: "Surprise", href: "/themes/surprise",
+   * bild: "/Pooldance/beispiel-2.jpg" }`. Die Reihe läuft in der Galerie und über JEDEM
+   * Trichter (`TunnelSeite`) — ein Pole-Dance-Motiv steht dort neben einer Bewerbung und
+   * einer Hochzeitseinladung. Dieselbe Ausblendung wie im Katalog (app/themes/page.tsx,
+   * `AUSGEBLENDET`): die Seite `/themes/surprise` und ihr Kaufweg bleiben erreichbar,
+   * beworben wird sie nicht mehr.
+   */
   /* TRY-ON — E-COMMERCE-WERKZEUG (Owner 24.08.2026, Klarstellung: „try on habe ich gesagt
      du solltest das lassen, nur den Text ändern, als Tool für E-Commerce-Firmen anpassen").
      Umgetextet ist die Katalog-Kachel (app/themes/page.tsx): Shops testen das Werkzeug hier

@@ -464,6 +464,45 @@ export default async function ThemesCatalog({ searchParams }: {
 
   const THEMES: Theme[] = [
     /**
+     * VERSUSFORGE — DIE ENGINE ALS EIGENE TÜR (Owner 08.09.2026: „VersusForge ist die Engine
+     * von LuxuryBandit. Ich werde sie als Topic einbauen auf LuxuryBandit. Die Leute bekommen
+     * aber den Tunnel von VersusForge").
+     *
+     * PLATZ EINS (Owner 09.09.2026: „VersuseForge ganz oben"). Sie stand hinter David. Was
+     * oben steht, entscheidet, was angefasst wird — dieselbe Begründung wie bei jedem
+     * früheren Platztausch hier. David rutscht auf zwei.
+     *
+     * DIE KACHEL IST DIE TÜR, NICHT DIE VERKLEIDUNG: Ab dem Klick sieht niemand mehr
+     * LuxuryBandit — /themes/versusforge rendert dieselbe schwarze Landingpage wie die eigene
+     * Domain, mit eigener Wortmarke und eigenem Trichter.
+     *
+     * DIE ZEILE SAGT, WAS ES IST — NICHT, WOMIT ES DICH ANSPRICHT (Owner 08.09.2026, mit
+     * Bild: „das ist falsch. Hier musst du beschreiben, was VersusForge ist").
+     *
+     * Hier stand der Trichter-Hook („Du hast eine Website und keine Anfragen"). Auf der
+     * Landingpage ist der richtig — dort hat sich der Besucher schon für das Thema
+     * entschieden. Im Katalog steht die Kachel neben elf anderen Produkten; wer hier nicht
+     * in einer Zeile erfährt, WAS das ist, klickt nicht.
+     *
+     * KEIN KATEGORIE-WORT IN DER ZEILE (Owner 08.09.2026, nach kurzem Hin und Her: erst
+     * „Agent oder AI Engine?", dann „oder Marketing Tool?", dann „David ist ein Recruiter"
+     * — und zum Schluss „VersusForge — The Strategy Machine", worauf „Werbeberater" wegfiel:
+     * „ja, dann weg").
+     *
+     * Die Zeile sagt jetzt, was PASSIERT, nicht in welche Schublade es gehört. Das ist auch
+     * das Robustere: Der Beschreiber steht englisch unter der Wortmarke
+     * (`BESCHREIBER` in components/VersusForgeMarke.tsx) und muss nicht in jeder Sprache
+     * neu gefunden werden.
+     *
+     * DAS BILD IST AUS SCHRIFTZEICHEN GEBAUT, kein Foto und kein KI-Bild: Die Marke IST die
+     * Zeichnung aus Text (Startseite, Bauplan, Plan). Ein Symbolfoto wäre hier der erste
+     * Bruch — und die Kachel ist die Stelle, an der die meisten sie zuerst sehen.
+     *
+     * KEIN `video`: Es gibt keines, und ein geliehenes aus einem anderen Thema würde etwas
+     * versprechen, das dieses Produkt nicht liefert.
+     */
+    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/themes/versusforge", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
+    /**
      * PLATZ EINS: DIE VIDEOBOTSCHAFT AN DICH SELBST (Owner 11.08.2026: „mach das als
      * erstes" — unmittelbar nachdem er das Thema benannt hatte).
      *
@@ -541,41 +580,6 @@ export default async function ThemesCatalog({ searchParams }: {
      * Landingpage („Individuell · Vertraulich · ca. 5 Minuten"), nur mit dem Gratis davor.
      */
     { icon: FileText, title: "David · AI Pre-Screening", tagline: davidKachel.zeile, href: "/themes/david", cover: DAVID_POSTER, poster: DAVID_POSTER, video: DAVID_VIDEO, chips: `♥ ${davidKachel.chips}` },
-    /**
-     * VERSUSFORGE — DIE ENGINE ALS EIGENE TÜR (Owner 08.09.2026: „VersusForge ist die Engine
-     * von LuxuryBandit. Ich werde sie als Topic einbauen auf LuxuryBandit. Die Leute bekommen
-     * aber den Tunnel von VersusForge").
-     *
-     * DIE KACHEL IST DIE TÜR, NICHT DIE VERKLEIDUNG: Ab dem Klick sieht niemand mehr
-     * LuxuryBandit — /themes/versusforge rendert dieselbe schwarze Landingpage wie die eigene
-     * Domain, mit eigener Wortmarke und eigenem Trichter.
-     *
-     * DIE ZEILE SAGT, WAS ES IST — NICHT, WOMIT ES DICH ANSPRICHT (Owner 08.09.2026, mit
-     * Bild: „das ist falsch. Hier musst du beschreiben, was VersusForge ist").
-     *
-     * Hier stand der Trichter-Hook („Du hast eine Website und keine Anfragen"). Auf der
-     * Landingpage ist der richtig — dort hat sich der Besucher schon für das Thema
-     * entschieden. Im Katalog steht die Kachel neben elf anderen Produkten; wer hier nicht
-     * in einer Zeile erfährt, WAS das ist, klickt nicht.
-     *
-     * KEIN KATEGORIE-WORT IN DER ZEILE (Owner 08.09.2026, nach kurzem Hin und Her: erst
-     * „Agent oder AI Engine?", dann „oder Marketing Tool?", dann „David ist ein Recruiter"
-     * — und zum Schluss „VersusForge — The Strategy Machine", worauf „Werbeberater" wegfiel:
-     * „ja, dann weg").
-     *
-     * Die Zeile sagt jetzt, was PASSIERT, nicht in welche Schublade es gehört. Das ist auch
-     * das Robustere: Der Beschreiber steht englisch unter der Wortmarke
-     * (`BESCHREIBER` in components/VersusForgeMarke.tsx) und muss nicht in jeder Sprache
-     * neu gefunden werden.
-     *
-     * DAS BILD IST AUS SCHRIFTZEICHEN GEBAUT, kein Foto und kein KI-Bild: Die Marke IST die
-     * Zeichnung aus Text (Startseite, Bauplan, Plan). Ein Symbolfoto wäre hier der erste
-     * Bruch — und die Kachel ist die Stelle, an der die meisten sie zuerst sehen.
-     *
-     * KEIN `video`: Es gibt keines, und ein geliehenes aus einem anderen Thema würde etwas
-     * versprechen, das dieses Produkt nicht liefert.
-     */
-    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/themes/versusforge", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
     /**
      * DER KANDIDATEN-TRICHTER BEKOMMT EINEN WEG VON DER STARTSEITE (Owner 31.08.2026: „mach
      * mir eine neue Topic um den aktuellen Tunel zu erreichen" · „das für deutsch Kandidaten
@@ -929,6 +933,25 @@ export default async function ThemesCatalog({ searchParams }: {
      * Termin gefunden wurde, nicht über den Katalog. Diese Begründung ist mit dem heutigen
      * Auftrag hinfällig — sie darf jetzt jeder finden, der die Startseite öffnet.
      */
+    /**
+     * DREI KACHELN RAUS (Owner 09.09.2026: „mach pooldancig raus" · „Teneriffa auch raus" ·
+     * „blende lingerie topic aus").
+     *
+     * AUSGEBLENDET, NICHT GELÖSCHT — genau wofür diese Liste da ist. Die Seiten
+     * `/themes/surprise`, `/themes/bella` und der Try-on-Trichter bleiben erreichbar, ihre
+     * Kaufwege laufen weiter, alte Links und bezahlte Aufträge gehen nicht ins Leere. Nur
+     * der Katalog bewirbt sie nicht mehr. Ein Titel hier heraus und die Kachel ist zurück.
+     *
+     * „Surprise him" war schon einmal draussen (11.08.2026: „unseriös für das Portal") und
+     * kam am 02.09. mit allen anderen zurück, als die Dachmarke Multimedia-Agentur wurde.
+     * Heute geht sie wieder — zusammen mit den beiden anderen, die dasselbe Register ziehen.
+     *
+     * „Luxury Looks" BLEIBT: Es führt in denselben Try-on-Trichter, zeigt aber ein Kleid
+     * statt Wäsche. Ausgeblendet wird das Motiv, nicht das Werkzeug.
+     */
+    "Surprise him",
+    "Tenerife with Bella",
+    "Lingerie Looks",
   ]);
   const SICHTBAR = THEMES.filter(t => !AUSGEBLENDET.has(t.title));
 
