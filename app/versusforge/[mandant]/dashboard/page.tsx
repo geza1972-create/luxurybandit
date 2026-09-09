@@ -513,7 +513,35 @@ function Anfrage({ a }: { a: LeadEintrag }) {
         <p className="mt-2 text-[14.5px] font-semibold text-[#8b959d]">Keine Kontaktdaten hinterlassen</p>
       )}
 
-      {a.text ? <p className="mt-2.5 text-[15px] leading-[1.5]">{a.text}</p> : null}
+      {/**
+        * SEIN ERSTER SATZ IST DIE HAUPTSACHE (Owner 09.09.2026: „die muss ich auf meinem
+        * Dashboard sehen, die ist die wichtigste").
+        *
+        * Er stand hier als grauer Fliesstext unter den Kontaktdaten — dieselbe Grösse wie
+        * alles andere. Dabei ist er das Einzige, was der Mensch UNGEFRAGT geschrieben hat:
+        * kein angetipptes Beispiel, keine Antwort auf eine Frage von uns, sondern sein
+        * eigenes Wort über sein eigenes Anliegen. Wer zurückruft, braucht genau diesen Satz
+        * im ersten Moment — alles andere kann man im Gespräch nachfragen.
+        *
+        * DESHALB GROSS UND MIT RAND, nicht als Absatz. Und mit Etikett, damit klar ist, dass
+        * es SEINE Worte sind und keine Zusammenfassung von uns.
+        */}
+      {a.text ? (
+        <div className="mt-3 border-l-[3px] border-[#1d6fd0] pl-3.5">
+          <p className="m-0 text-[12px] font-black uppercase tracking-[0.14em] text-[#8b959d]">
+            Womit er angefangen hat
+          </p>
+          <p className="m-0 mt-1.5 text-[16.5px] font-semibold leading-[1.45] text-[#14181c]">{a.text}</p>
+        </div>
+      ) : null}
+      {/* Die Adresse, die er analysieren liess — für den eigenen Trichter der schnellste Weg,
+          zu sehen, mit wem man es zu tun hat. Nur wenn sie da ist. */}
+      {a.url ? (
+        <a href={a.url} rel="noopener noreferrer" target="_blank"
+          className="mt-2.5 inline-block text-[14.5px] font-bold text-[#1d6fd0] underline underline-offset-2">
+          {String(a.url).replace(/^https?:\/\//, "").replace(/\/$/, "")}
+        </a>
+      ) : null}
 
       {/**
         * DAS GESPRÄCH ZUM AUFKLAPPEN (Owner 09.09.2026: „das zum Ausklappen").

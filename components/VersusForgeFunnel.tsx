@@ -77,6 +77,14 @@ const SCHRITTE: Phase[] = ["webseite", "gespraech", "plan"];
 /* Muss zum Deckel im Server stehen (`MAX_FRAGEN` in app/api/versusforge/route.ts). */
 const MAX_FRAGEN = 4;
 
+/** Der Sitzungseintrag, der einen laufenden Trichter über ein Neuladen rettet. */
+const LAUF = "vf_lauf";
+type Gespeichert = {
+  ziel: Ziel | ""; text: string; url: string; seite: string; runden: Runde[];
+  verstanden: string; frage: string; hebel: string; stand: Record<string, number>;
+  vorschlaege: string[]; plan: Plan | null;
+};
+
 /**
  * DIE FÜNF STÄNDE (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es erfüllt ist
  * oder nicht").
@@ -147,6 +155,8 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const [frage, setFrage] = useState("");
   /* Welchen der fünf Hebel die AKTUELLE Frage füllen soll — er steht als Name darüber. */
   const [hebel, setHebel] = useState("");
+  /* Ein Satz über dem Website-Feld, wenn wir ihn dorthin zurückgeschickt haben. */
+  const [webHinweis, setWebHinweis] = useState("");
   /**
    * WIE WEIT JEDER HEBEL GEFÜLLT IST, in Prozent (Owner 09.09.2026: „Nutzen identifizieren
    * in Prozent, ob es erfüllt ist oder nicht").
@@ -208,6 +218,21 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const abgeholt = useRef(false);
 
   /**
+   * DEN STAND NACH JEDEM ZUG SICHERN — siehe die Begründung im Abholer weiter unten.
+   *
+   * ER LÄUFT ERST NACH DEM ABHOLEN: Vor dem ersten Zug wäre der Zustand leer, und ein leerer
+   * Eintrag überschriebe genau das, was wir gerade wiederherstellen wollten.
+   */
+  useEffect(() => {
+    if (!abgeholt.current || !ziel) return;
+    try {
+      sessionStorage.setItem(LAUF, JSON.stringify({
+        ziel, text, url, seite, runden, verstanden, frage, hebel, stand, vorschlaege, plan,
+      } satisfies Gespeichert));
+    } catch { /* voller oder gesperrter Speicher: dann eben ohne Netz */ }
+  }, [ziel, text, url, seite, runden, verstanden, frage, hebel, stand, vorschlaege, plan]);
+
+  /**
    * DIE MESSUNG DES EIGENEN TRICHTERS (Owner 09.09.2026: „wo ist mein Dashboard?" · „der
    * müsste doch genauso aussehen").
    *
@@ -252,6 +277,45 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
      * `?vf=1` nur ausserhalb der eigenen Adresse: Auf versusforge.com IST die Wurzel die
      * Startseite, auf localhost braucht sie den Schalter.
      */
+    /**
+     * DER LAUF ÜBERLEBT EIN NEULADEN (Owner 09.09.2026: „die früheren Antworten müssen drin
+     * bleiben in der Session").
+     *
+     * WAS VORHER PASSIERTE: Der Auftrag wurde beim Abholen gelöscht — richtig, damit der
+     * nächste Besuch nicht mit einem fremden Satz beginnt. Nur war danach NICHTS mehr da.
+     * Ein Neuladen, ein versehentlicher Zurück-Wisch am Handy, ein Anruf mitten im Trichter:
+     * drei beantwortete Fragen weg, und mit ihnen die Modellaufrufe, die er bezahlt hat.
+     *
+     * DESHALB EIN ZWEITER EINTRAG: `vf_lauf` trägt den ganzen Stand und wird nach JEDEM Zug
+     * neu geschrieben. Er wird beim Abholen NICHT gelöscht — er endet mit der Sitzung, mit
+     * dem Löschen am Ende des Trichters oder wenn er nach Hause geht.
+     *
+     * SITZUNGSSPEICHER, NICHT DAUERSPEICHER: Was er über sein Geschäft erzählt hat, gehört
+     * nicht in einen Browser, der es morgen noch hat. Ein Tab, ein Lauf.
+     */
+    let lauf: Gespeichert | null = null;
+    try {
+      const roh2 = sessionStorage.getItem(LAUF);
+      if (roh2) lauf = JSON.parse(roh2) as Gespeichert;
+    } catch { /* kaputter Eintrag — dann eben von vorn */ }
+    if (lauf?.ziel && (lauf.text || lauf.url)) {
+      setZiel(lauf.ziel === "verkauf" ? "verkauf" : "leads");
+      setText(String(lauf.text ?? ""));
+      setUrl(String(lauf.url ?? ""));
+      setSeite(String(lauf.seite ?? ""));
+      setRunden(Array.isArray(lauf.runden) ? lauf.runden : []);
+      setVerstanden(String(lauf.verstanden ?? ""));
+      setFrage(String(lauf.frage ?? ""));
+      setHebel(String(lauf.hebel ?? ""));
+      setStand(lauf.stand ?? {});
+      setVorschlaege(Array.isArray(lauf.vorschlaege) ? lauf.vorschlaege : []);
+      setPlan((lauf.plan ?? null) as Plan | null);
+      /* Der Plan ist das teuerste Stück des Laufs — wer dort neu lädt, darf ihn nicht
+         verlieren. Sonst zurück in den Schirm, in dem er zuletzt stand. */
+      setPhase(lauf.plan ? "plan" : lauf.frage ? "gespraech" : "webseite");
+      return;
+    }
+
     if (!roh) { window.location.replace(heim()); return; }
     try {
       const d = JSON.parse(roh) as { ziel?: string; text?: string; url?: string };
@@ -370,7 +434,25 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
    * DIE SPRACHE REIST MIT: Wer den Trichter auf Deutsch angefangen hat, soll beim Abbruch
    * keine englische Startseite sehen.
    */
-  const heim = () => `/engine?lang=${lang}`;
+  const heim = () => {
+    /**
+     * NACH HAUSE HEISST: DER LAUF IST VORBEI — ABER SEIN SATZ NICHT (Owner 09.09.2026: „die
+     * erste Eingabe speichern wir doch auch").
+     *
+     * Bliebe der ganze Lauf liegen, spränge der Trichter beim nächsten Start sofort wieder
+     * in das Gespräch, das er gerade verlassen hat, und ein neuer Satz auf der Startseite
+     * wäre wirkungslos. Verschwände dagegen ALLES, stünde er dort vor einem leeren Feld und
+     * müsste zwei, drei Sätze über sein Geschäft ein zweites Mal tippen — dann ist „Zurück"
+     * in Wahrheit ein Abbruch.
+     *
+     * Also: Lauf weg, Satz mit. Die Startseite liest ihn genau einmal und räumt ihn weg.
+     */
+    try {
+      sessionStorage.removeItem(LAUF);
+      if (text.trim()) sessionStorage.setItem("vf_zurueck", text.trim());
+    } catch { /**/ }
+    return `/engine?lang=${lang}`;
+  };
 
   /* Dieselbe Kennung wie überall im Haus — sie liegt im Browser und identifiziert ein
      GERÄT, keinen Menschen. Fehlt sie, greift nur noch der Tagesdeckel. */
@@ -471,6 +553,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
    */
   const weiterMitSeite = async (ohne = false) => {
     if (!ziel) return;
+    setWebHinweis("");
     const u = ohne ? "" : url.trim();
     if (ohne) setUrl("");
     void logFunnelEvent("vf_webseite", { theme: "versusforge", hat: u ? "ja" : "nein" });
@@ -509,6 +592,32 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
            ohne Frage. Er wird über den Sitzungsspeicher zurückgereicht. */
         try { sessionStorage.setItem("vf_fehler", String(d.error)); } catch { /**/ }
         window.location.replace(heim());
+        return;
+      }
+      /**
+       * UNSERE EIGENE ADRESSE FÜHRT ZURÜCK AUF SCHRITT 2 (Owner 09.09.2026, mit Bild: „hier
+       * muss er noch mal zurück, nicht noch eine blöde Eingabe — es soll, denn er hat keine
+       * Webseite").
+       *
+       * ER HAT RECHT, UND ES WAR EINE SACKGASSE: Der Satz „das sind wir, sag mir stattdessen,
+       * was DU anbietest" kam als erste GESPRÄCHSFRAGE — mit „Deine Antwort." darunter. Damit
+       * stand er im Trichter, ohne je einen Hebel gefüllt zu haben, und die Website-Frage war
+       * verbraucht, obwohl er sie nie beantwortet hat.
+       *
+       * RICHTIG IST: zurück auf Schritt 2, Feld leer, der Satz darüber. Dort liegen beide
+       * Wege, die er jetzt braucht — eine andere Adresse eintippen oder „Ich habe keine
+       * Website". Ein Schritt zurück ist keine Strafe, sondern der einzige Ort, an dem seine
+       * zwei Möglichkeiten schon stehen.
+       *
+       * KEIN MODELLAUFRUF WAR IM SPIEL: Die Prüfung läuft vor dem Deckel und vor jedem
+       * Aufruf (siehe `istEigeneAdresse` in der Route). Der Rückschritt kostet ihn nichts.
+       */
+      if (d?.eigen === true) {
+        setUrl("");
+        setWebHinweis(String(d.frage ?? ""));
+        setPhase("webseite");
+        setBusy(false); setBusyText("");
+        void logFunnelEvent("vf_eigene_adresse", { theme: "versusforge" });
         return;
       }
       const frage1 = String(d.frage ?? "");
@@ -654,6 +763,13 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
           <p className="mt-2.5 text-[16px] leading-[1.5] text-white/70 md:text-[17px]">
             {t(S.webText, "Dann lese ich sie einmal und frage dich nur noch das, was dort nicht steht.")}
           </p>
+          {/* KEIN ROT: Er hat nichts falsch gemacht. Es ist eine Auskunft, kein Tadel —
+              deshalb der ruhige Kasten und nicht die Fehlerzeile. */}
+          {webHinweis && (
+            <p className="mt-4 rounded-xl border border-[#1d6fd0]/30 bg-[#1d6fd0]/10 px-4 py-3.5 text-[15.5px] font-semibold leading-[1.5] text-white/85">
+              {webHinweis}
+            </p>
+          )}
           <Eingabe
             className="mt-4"
             value={url}

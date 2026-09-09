@@ -117,6 +117,20 @@ export default function VersusForgeStartEinfach({
     try {
       const f = sessionStorage.getItem("vf_fehler");
       if (f) { sessionStorage.removeItem("vf_fehler"); setFehler(f); }
+      /**
+       * SEIN SATZ STEHT WIEDER IM FELD (Owner 09.09.2026: „die erste Eingabe speichern wir
+       * doch auch").
+       *
+       * Wer im Trichter auf „Zurück" tippt, kommt hierher — und sah bis eben ein leeres
+       * Feld. Zwei, drei Sätze über sein Geschäft tippt niemand zweimal; der Zurück-Weg war
+       * damit in Wahrheit ein Abbruch.
+       *
+       * DER TRICHTER LEGT IHN AB (`vf_zurueck` in VersusForgeFunnel), und hier wird er
+       * gelesen und sofort weggeräumt: Er gilt für diesen einen Rückweg, nicht für den
+       * nächsten Besuch — sonst begänne ein neuer Lauf mit einem alten Satz.
+       */
+      const zurueck = sessionStorage.getItem("vf_zurueck");
+      if (zurueck) { sessionStorage.removeItem("vf_zurueck"); setText(zurueck); }
     } catch { /**/ }
   }, []);
 

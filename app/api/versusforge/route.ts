@@ -397,6 +397,49 @@ const wirktWieUnsinn = (t: string): boolean => {
   return haeufigste > ohne.length * 0.5;
 };
 
+/**
+ * WIE DER TRICHTER HEISST — und warum NICHT einfach nach der analysierten Adresse
+ * (Owner 09.09.2026: „hier werden die Leute auch andere Webseiten testen, das ist dir doch
+ * klar. Sie werden dich testen").
+ *
+ * ER HAT RECHT, UND DAS WAR EINE ECHTE LÜCKE. Der Name kam bis hierher aus der Adresse, die
+ * analysiert wurde. Wer zum Ausprobieren `coca-cola.de` eintippt und danach seine E-Mail
+ * hinterlässt, bekam einen laufenden Trichter unter `versusforge.com/coca-cola` — eine
+ * fremde Marke, öffentlich erreichbar, auf unserer Domain. Kein Angriff nötig, ein
+ * Neugieriger genügt.
+ *
+ * DIE REGEL, DIE DAS LÖST: Die Adresse gibt den Namen nur her, wenn sie zu SEINER E-Mail
+ * passt. `info@praxis-mueller.de` plus `praxis-mueller.de` — das ist derselbe Betrieb, und
+ * dann ist `versusforge.com/praxis-mueller` genau richtig. Alles andere fällt auf die
+ * E-Mail zurück.
+ *
+ * BEI FREIMAILERN AUF DEN NAMENSTEIL: Aus `dr.mueller@gmail.com` wird `dr-mueller`, nicht
+ * `gmail`. Sonst hiessen alle Trichter gleich und `freierName` hängte Nummern an.
+ *
+ * ANALYSIEREN DARF ER TROTZDEM JEDE SEITE. Das ist der Test, mit dem wir gewinnen, und er
+ * bleibt offen (Memory `eigene-adressen-nicht-analysieren`: nur die EIGENEN Domains sind
+ * gesperrt). Was hier begrenzt wird, ist nicht das Lesen, sondern das Aufstellen eines
+ * Schildes mit fremdem Namen.
+ */
+const FREIMAILER = new Set([
+  "gmail", "googlemail", "web", "gmx", "yahoo", "hotmail", "outlook", "live", "icloud",
+  "me", "aol", "protonmail", "proton", "mail", "t-online", "freenet", "posteo", "yandex",
+]);
+
+function trichterName(url: string, mail: string): string {
+  const nackt = (a: string) => a.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0].toLowerCase();
+  const seite = nackt(url);
+  const [ortsteil = "", mailHost = ""] = mail.toLowerCase().split("@");
+  const mailDomain = mailHost.split(".")[0] ?? "";
+
+  /* Die Adresse zählt nur, wenn sie zu seiner E-Mail gehört. */
+  if (seite && mailHost && (seite === mailHost || seite.endsWith(`.${mailHost}`) || mailHost.endsWith(`.${seite}`))) {
+    return seite.split(".")[0];
+  }
+  if (mailDomain && !FREIMAILER.has(mailDomain)) return mailDomain;
+  return ortsteil || mailDomain;
+}
+
 const briefingAus = (body: Record<string, unknown>): Briefing | null => {
   const ziel = body.ziel === "leads" || body.ziel === "verkauf" ? body.ziel : null;
   const text = str(body.text, 2000);
@@ -462,10 +505,11 @@ export async function POST(request: Request) {
     let trichterLink = "";
     if (mandant === EIGENER_MANDANT) {
       try {
-        const wunsch = str(body.url, 300).replace(/^https?:\/\//, "").split(/[/?#]/)[0].split(".")[0]
-          || mail.split("@")[0];
+        const wunsch = trichterName(str(body.url, 300), mail);
         const name = await freierName(wunsch);
         const angelegt = await mandantSpeichern(name, mandantAusPlan({
+          /* Derselbe Grund wie beim Adressnamen: Was oben auf seiner Seite steht, darf keine
+             fremde Marke sein, nur weil er sie analysiert hat. */
           name: wunsch || name,
           mail,
           /* Was er im zweiten Schritt genannt hat — steht damit gleich im Kopf seiner Seite. */
