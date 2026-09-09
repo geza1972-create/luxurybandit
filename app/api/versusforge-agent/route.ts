@@ -157,8 +157,45 @@ export async function POST(request: Request) {
      * Zahnarzt; „z. B. Ihre Referenzen" hilft niemandem. Und sie dürfen NICHTS über ihn
      * behaupten — es sind Formen, keine Angaben.
      */
-    "ZU JEDER FRAGE GEHÖREN BEISPIELE. Hänge an jede Frage zwei bis drei kurze Beispiele an, wie eine Antwort aussehen könnte — in SEINEM Fach, aus dem, was du über ihn weisst. Ohne sie weiss er nicht, in welcher Form er antworten soll, und antwortet zu allgemein.",
-    "DIE BEISPIELE SIND FORMEN, KEINE BEHAUPTUNGEN. Erfinde keine Zahlen, Namen oder Erfolge UEBER IHN. Schreib sie erkennbar als Moeglichkeit, eingeleitet mit: zum Beispiel. Er darf sie uebernehmen, aendern oder etwas ganz anderes sagen.",
+    /**
+     * ── DIE BEISPIELE SIND CHIPS, KEIN FLIESSTEXT (Owner 09.09.2026, im zweiten Lauf: „hier
+     * eben weiss nicht, ob dir alle beantworten können. Manche wissen es nicht. Die musst du
+     * als Chips anbieten") ────────────────────────────────────────────────────────────────
+     *
+     * IM FLIESSTEXT SAHEN SIE SO AUS: „Zum Beispiel: wieder ohne Schmerzen kauen. Zum
+     * Beispiel: wieder offen lachen auf Fotos. Zum Beispiel: keine Angst mehr vor
+     * Kontrollterminen." Dreimal dieselbe Einleitung in einem Absatz — man liest darüber
+     * hinweg, und antworten muss man trotzdem selbst tippen.
+     *
+     * ALS CHIPS SIND SIE EIN WEG: Antippen legt den Satz ins Feld, ändern geht, abschicken
+     * muss er selbst. Genau die Form, die auf der Startseite falsch war (dort ersetzt ein
+     * Klick seine eigene Beschreibung) und hier richtig ist: Hier ist es eine Antwort auf
+     * eine schwere Frage, die viele sonst gar nicht geben.
+     *
+     * TECHNISCH ÜBER EINE LETZTE ZEILE, weil der Agent Werkzeuge benutzt und deshalb freien
+     * Text zurückgibt statt JSON. Die Zeile wird im Browser abgeschnitten und zu Chips.
+     */
+    "ZU JEDER FRAGE GEHÖREN BEISPIELE — ABER NIE IM FLIESSTEXT. Schreib deine Frage, und setze die Beispiele in eine EIGENE LETZTE ZEILE, die mit >> beginnt und die Beispiele mit | trennt.",
+    `Beispiel fuer den Aufbau deiner Antwort:\nWas kann ein Patient danach, was er vorher nicht konnte?\n>>wieder in einen Apfel beissen|ohne Schmerzen kauen|wieder offen lachen`,
+    "REGELN FÜR DIE ZEILE: höchstens drei Beispiele, je höchstens sechs Wörter, aus SEINEM Fach. Keine Zahlen, Preise, Namen oder Orte, die du nicht von ihm hast — es sind mögliche Antworten, keine Behauptungen über ihn. Passt keine Wahl zur Frage, lass die Zeile ganz weg.",
+    "IM FLIESSTEXT STEHT NIE die Wendung: zum Beispiel. Die Beispiele stehen ausschliesslich in der >>-Zeile.",
+    /**
+     * ── NIE DIESELBE FRAGE ZWEIMAL (09.09.2026, im selben Lauf des Owners gesehen) ────────
+     *
+     * Auf „ich biete Implantate" kam wörtlich dieselbe Frage noch einmal, nur mit anderen
+     * Beispielen. Für ihn heisst das: Der hört mir nicht zu. Es ist derselbe Fehler, den der
+     * alte Trichter am 08.09. gemacht hat — und dort half nur, die gestellten Fragen
+     * wörtlich vor die Aufgabe zu legen. Hier steht der ganze Verlauf ohnehin schon da; es
+     * fehlte die Regel.
+     *
+     * WAS STATTDESSEN ZU TUN IST: Wenn seine Antwort nicht reicht, sagen WARUM — in einem
+     * halben Satz, ohne Werkstattwörter — und dann ENGER fragen, nicht gleich. Und wenn er
+     * es zweimal nicht beantworten kann, ist es nicht seine Schuld: weitergehen und den
+     * Punkt später aus dem füllen, was er sonst noch sagt.
+     */
+    "STELL NIE DIESELBE FRAGE ZWEIMAL, auch nicht mit anderen Worten oder anderen Beispielen. Der ganze Verlauf steht dir zur Verfügung — lies nach, was du schon gefragt hast.",
+    "REICHT SEINE ANTWORT NICHT, sag in einem halben Satz, was dir noch fehlt, und stell dann eine ENGERE Frage zu genau der Lücke — nicht dieselbe noch einmal.",
+    "KANN ER ETWAS ZWEIMAL NICHT SAGEN, lass es. Geh zum nächsten Punkt über und hol dir das Fehlende später aus dem, was er sonst erzählt. Zweimal nachbohren macht aus einem Gespräch ein Verhör.",
     /**
      * ── KEIN WERKSTATT-VOKABULAR (Owner 09.09.2026, im selben Lauf) ──────────────────────
      *
@@ -183,9 +220,26 @@ export async function POST(request: Request) {
   const r = await agentLauf({ apiKey, modell: KLEIN, auftrag, verlauf, werkzeuge });
   if (!r.ok) return NextResponse.json({ error: `Der Agent stockt gerade. ${r.fehler}` }, { status: r.status });
 
+  /**
+   * DIE >>-ZEILE WIRD HIER ABGESCHNITTEN, nicht im Browser.
+   *
+   * Der Browser soll keine Auftragstext-Grammatik kennen müssen — käme die Zeile
+   * durchgereicht an, stünde bei jedem Fehler des Modells ein „>>wieder in einen Apfel
+   * beissen|…" mitten im Gespräch. Hier ist der einzige Ort, an dem beides bekannt ist: das
+   * Format und die Absicht.
+   */
+  const zeilen = r.text.split("\n");
+  const chipZeile = zeilen.findIndex(z => z.trimStart().startsWith(">>"));
+  const vorschlaege = chipZeile < 0 ? [] : zeilen[chipZeile]
+    .trimStart().slice(2).split("|")
+    .map(v => v.trim()).filter(Boolean).slice(0, 3);
+  const antwort = (chipZeile < 0 ? zeilen : zeilen.filter((_, i) => i !== chipZeile))
+    .join("\n").trim();
+
   return NextResponse.json({
     ok: true,
-    antwort: r.text,
+    antwort,
+    vorschlaege,
     benutzt: r.benutzt,
     seite: fund.seite ?? "",
     bild: fund.bild ?? "",

@@ -23,7 +23,7 @@ import SprachKnopf from "@/components/SprachKnopf";
  * sind ein Beweis, zehn wären ein Umbau vor der Abnahme.
  */
 
-type Nachricht = { rolle: "mensch" | "agent"; text: string; benutzt?: string[]; bild?: string };
+type Nachricht = { rolle: "mensch" | "agent"; text: string; benutzt?: string[]; bild?: string; vorschlaege?: string[] };
 
 /* Der Anzeigename — die internen Namen sind Werkzeugkennungen, keine Wörter für Menschen. */
 const WERKZEUG_WORT: Record<string, string> = {
@@ -90,6 +90,7 @@ export default function AgentChat() {
         text: String(d.antwort ?? ""),
         benutzt: Array.isArray(d.benutzt) ? (d.benutzt as string[]) : [],
         bild: String(d.bild ?? ""),
+        vorschlaege: Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : [],
       }]);
     } catch {
       setFehler("Das ging gerade nicht. Bitte noch einmal.");
@@ -139,6 +140,34 @@ export default function AgentChat() {
                   : "rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-3"}`}>
                 {m.text}
               </p>
+
+              {/**
+                * DIE CHIPS ZUR FRAGE (Owner 09.09.2026: „manche wissen es nicht, die musst du
+                * als Chips anbieten").
+                *
+                * ANTIPPEN SETZT EIN, ES SCHICKT NICHT AB. Der Satz landet im Feld, er kann
+                * ihn ändern oder ergänzen und drückt selbst. Auf der Startseite waren Chips
+                * falsch, weil dort ein Klick seine eigene Beschreibung ERSETZT; hier sind sie
+                * richtig, weil sie eine schwere Frage überhaupt erst beantwortbar machen.
+                *
+                * NUR AN DER LETZTEN NACHRICHT: Chips unter einer beantworteten Frage sind
+                * eine Falle — man tippt sie an und schickt eine Antwort auf etwas, das drei
+                * Nachrichten zurückliegt.
+                */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschlaege?.length && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {m.vorschlaege.map((v, n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setEingabe(alt => (alt ? `${alt}, ${v}` : v))}
+                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0]"
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* ── DER BEWEIS: was er benutzt hat, ohne dass jemand es verlangt hat ── */}
               {!!m.benutzt?.length && (
