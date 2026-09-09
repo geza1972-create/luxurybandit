@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Wrench } from "lucide-react";
+import { ArrowUp, Wrench, ImagePlus, X } from "lucide-react";
 import { Wortmarke, Zeichen } from "@/components/VersusForgeMarke";
 import SprachKnopf from "@/components/SprachKnopf";
 import { LANGS, LANG_LABEL, LANG_COOKIE, type Lang } from "@/lib/lang";
+import { VF_ANFRAGEN_OFFEN } from "@/lib/versusforge-schalter";
 import type { AgentChatTexte } from "@/lib/agent-chat-texte";
 
 /**
@@ -37,8 +38,6 @@ type Nachricht = {
   text: string;
   benutzt?: string[];
   bild?: string;
-  /** Mehrere Kacheln untereinander — die Vorführung am Anfang. */
-  bilder?: string[];
   vorschlaege?: string[];
   /** Die Sprachfrage — sie trägt keine Chips, sondern die Sprachen als Knöpfe. */
   sprachfrage?: boolean;
@@ -158,7 +157,9 @@ export default function AgentChat({ S, lang, gewaehlt }: {
     S.gruss2,
     S.grussRegelnTitel,
     S.grussRegeln,
-    S.grussKostenlos,
+    /* Die Zahl kommt aus dem Schalter, nicht aus dem Satz — sonst steht sie beim nächsten
+       Ändern an zwei Stellen und an einer davon falsch. */
+    S.grussKostenlos.replace("{frei}", String(VF_ANFRAGEN_OFFEN)),
     S.grussDatenschutz,
     S.grussFrage,
   ].join("\n\n");
@@ -193,6 +194,22 @@ export default function AgentChat({ S, lang, gewaehlt }: {
   const [resetFragt, setResetFragt] = useState(false);
   const ende = useRef<HTMLDivElement>(null);
   const feld = useRef<HTMLTextAreaElement>(null);
+  const datei = useRef<HTMLInputElement>(null);
+  /**
+   * ── SEIN FOTO LEBT IM BROWSER, BIS ES GEBRAUCHT WIRD (Owner 09.09.2026: „du hast den User
+   * weder nach einer Homepage gefragt … und auch nicht nach Bildern, die er eventuell
+   * hochladen kann") ────────────────────────────────────────────────────────────────────────
+   *
+   * ES WIRD NIRGENDWO ABGELEGT. Kein Upload-Ordner, keine Adresse, keine Datei, die jemand
+   * später löschen müsste — es reist mit genau der einen Nachricht, die daraus ein Bild baut,
+   * und ist danach weg. Das ist derselbe Weg wie bei der Sprachaufnahme
+   * (`app/api/versusforge-sprache`): Was nicht liegt, muss nicht versprochen werden.
+   *
+   * VERKLEINERT, BEVOR ES REIST. Ein Handyfoto hat acht Megabyte; gebraucht werden 1080
+   * Pixel Breite. Ungeschrumpft wäre es eine Wartezeit am Mobilfunk und ein Aufruf, der an
+   * der Grösse scheitert.
+   */
+  const [foto, setFoto] = useState("");
 
   useEffect(() => { ende.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [verlauf.length, busy]);
 
@@ -322,8 +339,30 @@ export default function AgentChat({ S, lang, gewaehlt }: {
     router.replace("/engine/agent");
   };
 
-  const schicken = async () => {
-    const w = eingabe.trim();
+  /**
+   * `text` schickt ETWAS ANDERES als das, was im Feld steht — dafür gibt es genau einen
+   * Grund: Ein angetippter Chip soll sofort abgehen, und `setEingabe` wirkt erst beim
+   * nächsten Rendern. Ohne dieses Argument ginge die alte Eingabe raus.
+   */
+  /** Bild einlesen, auf 1080 Pixel Breite bringen, als JPEG in den Zustand. */
+  const fotoWaehlen = async (f: File | null | undefined) => {
+    if (!f || !f.type.startsWith("image/")) return;
+    try {
+      const bitmap = await createImageBitmap(f);
+      const breit = Math.min(1080, bitmap.width);
+      const hoch = Math.round((bitmap.height / bitmap.width) * breit);
+      const flaeche = document.createElement("canvas");
+      flaeche.width = breit; flaeche.height = hoch;
+      flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
+      setFoto(flaeche.toDataURL("image/jpeg", 0.85));
+    } catch {
+      /* Ein Bild, das der Browser nicht öffnen kann, wird still übergangen — eine
+         Fehlermeldung über ein HEIC-Format hilft niemandem weiter. */
+    }
+  };
+
+  const schicken = async (text?: string) => {
+    const w = (text ?? eingabe).trim();
     if (!w || busy) return;
     setResetFragt(false);
 
@@ -362,6 +401,10 @@ export default function AgentChat({ S, lang, gewaehlt }: {
     const naechster: Nachricht[] = [...basis, { rolle: "mensch", text: w }];
     setVerlauf(naechster);
     setEingabe("");
+    /* Das Foto gehört zu DIESER Nachricht. Bliebe es stehen, hinge es an jeder folgenden —
+       und der Agent bekäme dreimal dasselbe Bild geschickt. */
+    setFoto("");
+    if (datei.current) datei.current.value = "";
     setBusy(true); setFehler("");
     try {
       const res = await fetch("/api/versusforge-agent", {
@@ -373,6 +416,8 @@ export default function AgentChat({ S, lang, gewaehlt }: {
              Stelle tritt — sonst stünde seine Antwort ohne Frage da. */
           verlauf: naechster.map(m => ({ rolle: m.rolle, text: m.text })),
           device: geraet(),
+          /* Sein Foto reist NUR mit, wenn er eines gewählt hat — und danach ist es weg. */
+          ...(foto ? { foto } : {}),
           /**
            * SEINE SPRACHE GEHT BEI JEDER NACHRICHT MIT (Owner 09.09.2026: „auch alles, was
            * er erstellt — den Trichter und Hook und Dashboard — wird in der Sprache erstellt,
@@ -386,7 +431,10 @@ export default function AgentChat({ S, lang, gewaehlt }: {
         }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      if (!res.ok) { setFehler(String(d.error ?? S.fehler)); return; }
+      /* DER SERVER SCHICKT EINEN GRUND, KEINEN SATZ: Sein Text wäre auf Deutsch und im
+         schlimmsten Fall die englische Meldung von OpenAI — mitten in einem rumänischen
+         Gespräch. Hier steht er in der Sprache, die der Mensch liest. */
+      if (!res.ok) { setFehler(d.grund === "deckel" ? S.fehlerDeckel : S.fehler); return; }
       /**
        * DER RIEGEL IM BROWSER (Owner 09.09.2026: „auf keinen Fall schon hier").
        *
@@ -401,7 +449,6 @@ export default function AgentChat({ S, lang, gewaehlt }: {
         text: String(d.antwort ?? ""),
         benutzt: Array.isArray(d.benutzt) ? (d.benutzt as string[]) : [],
         bild: String(d.bild ?? ""),
-        bilder: Array.isArray(d.bilder) ? (d.bilder as string[]) : [],
         vorschlaege: hatErzaehlt && Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : [],
       }]);
     } catch {
@@ -422,7 +469,20 @@ export default function AgentChat({ S, lang, gewaehlt }: {
       </header>
 
       <div className="mx-auto flex w-full max-w-[820px] flex-1 flex-col overflow-hidden px-4">
-        <div className="lb-wisch flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-5">
+        {/**
+          * ── DAS GESPRÄCH BEGINNT UNTEN, NICHT OBEN (Owner 09.09.2026: „schau hin") ────────
+          *
+          * WAS ZU SEHEN WAR: eine Sprechblase oben, drei Knöpfe, und darunter zwei Drittel
+          * weisse Fläche bis zum Eingabefeld. Das sieht nicht ruhig aus, sondern als hätte
+          * die Seite etwas nicht geladen — und zwar im allerersten Moment, in dem jemand
+          * entscheidet, ob er hier tippt.
+          *
+          * `justify-end` LÖST ES OHNE SONDERFALL: Solange wenig dasteht, sitzt es unten am
+          * Feld, wie in jedem Chat, den er kennt. Sobald mehr kommt als hineinpasst, füllt es
+          * die Fläche und scrollt normal weiter. Kein Umschalten, keine Messung, keine Regel
+          * für „wenig" und „viel".
+          */}
+        <div className="lb-wisch flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto py-5">
           {verlauf.map((m, i) => (
             <div key={i} className={m.rolle === "mensch" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
               {/**
@@ -537,15 +597,23 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                       key={n}
                       type="button"
                       /**
-                       * NIE ZWEIMAL DASSELBE (Owner 09.09.2026, im selben Bild: „Da, sunt de
-                       * acord, Da, sunt de acord, Da, sunt de …").
+                       * ── ANTIPPEN HEISST WEITER (Owner 09.09.2026, mit Bild: „Klick heisst
+                       * weiter") ────────────────────────────────────────────────────────────
                        *
-                       * Ein Chip HÄNGT AN, damit man mehrere Antworten sammeln kann — das ist
-                       * richtig und bleibt. Falsch war, dass derselbe Chip beliebig oft
-                       * anhängen durfte. Wer zweimal tippt, weil beim ersten Mal scheinbar
-                       * nichts passierte, hat seinen Satz verdoppelt und schickt Unsinn.
+                       * VORHER LEGTE EIN CHIP DEN SATZ NUR INS FELD, und man musste noch
+                       * einmal auf Senden drücken. Meine Begründung war, dass man mehrere
+                       * Antworten sammeln oder den Satz ändern kann — theoretisch richtig,
+                       * praktisch eine Zumutung: Auf „Bist du einverstanden?" tippt man
+                       * „Ja, einverstanden" an und erwartet, dass es weitergeht. Zwei
+                       * Handgriffe für eine Zustimmung sind einer zu viel, und der zweite
+                       * sieht aus, als hätte der erste nicht funktioniert — genau deshalb
+                       * stand dasselbe vorher dreimal im Feld.
+                       *
+                       * WER MEHR SAGEN WILL, TIPPT. Das Feld bleibt für alles offen, was
+                       * kein Chip trifft; die Chips sind die Führung für den, der schnell
+                       * durch will ([[chat-no-personal-questions-buttons-only]]).
                        */
-                      onClick={() => setEingabe(alt => (alt.includes(v) ? alt : alt ? `${alt}, ${v}` : v))}
+                      onClick={() => { setEingabe(""); void schicken(v); }}
                       className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0]"
                     >
                       {v}
@@ -563,26 +631,18 @@ export default function AgentChat({ S, lang, gewaehlt }: {
               )}
 
               {/**
-                * ── DIE VORFÜHRUNG: KACHELN UNTEREINANDER (Owner 09.09.2026: „der muss aber
-                * aus mehreren Slides bestehen" · „untereinander") ─────────────────────────
+                * ── HIER STANDEN DIE VIER KACHELN DER VORFÜHRUNG (Owner 09.09.2026: „die
+                * Bilder sind zu klein und am besten raus. Text reicht") ────────────────────
                 *
-                * NICHT ZUM WISCHEN: Im Chat ist Scrollen die einzige Bewegung, die jeder
-                * ohne Erklärung macht. Ein Karussell in einer Sprechblase müsste man erst
-                * entdecken — und was man entdecken muss, sehen die meisten nie.
+                * ZWEI GRÜNDE, UND BEIDE STIMMEN. Erstens die Grösse: Vier Bilder untereinander
+                * mussten schmal sein, damit sie das Gespräch nicht verdrängen — und schmal
+                * heisst hier unlesbar. Ein Beweis, den man zusammenkneifen muss, ist keiner.
+                * Zweitens der Ort: Der Stein ist die ANZEIGE geworden („ich habe das erledigt,
+                * indem ich damit werben werde"). Wer aus ihr kommt, hat ihn gerade gesehen.
                 *
-                * SCHMALER ALS EIN EINZELBILD: Vier Kacheln in voller Breite wären eine
-                * Wand. So bleibt die Bewegung sichtbar, ohne das Gespräch zu verdrängen.
+                * DER TEXT BLEIBT. Die Vorführung in Worten kostet keine Fläche und liest sich
+                * im Chat so, wie ein Mensch sie erzählen würde.
                 */}
-              {!!m.bilder?.length && (
-                <div className="flex flex-col gap-2">
-                  {m.bilder.map((b, n) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={n} src={b} alt=""
-                      className="block w-full max-w-[220px] shadow-[0_4px_16px_rgba(20,24,28,.14)]"
-                      style={{ aspectRatio: "1080 / 1350" }} />
-                  ))}
-                </div>
-              )}
 
               {/* Das Bild steht IM Gespräch, nicht auf einer Seite danach. */}
               {m.bild && (
@@ -676,7 +736,52 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                  `min-h` ist eine Zeile, den Rest rechnet der Effekt oben. */
               className="block max-h-[160px] min-h-[26px] w-full resize-none border-none bg-transparent p-0 text-[16px] leading-[1.45] text-[#14181c] placeholder:text-[#8b959d] outline-none"
             />
-            <div className="mt-1.5 flex items-center justify-end gap-1">
+            {/**
+            * SEIN FOTO, BEVOR ES ABGESCHICKT WIRD (09.09.2026).
+            *
+            * ES STEHT SICHTBAR IN DER BOX, nicht als Dateiname irgendwo: Wer ein Bild
+            * anhängt, will sehen, WELCHES — und es wieder loswerden können, ohne die Seite
+            * neu zu laden. Deshalb daneben ein Kreuz, kein Menü.
+            */}
+            {foto && (
+              <div className="mb-2 flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={foto} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setFoto(""); if (datei.current) datei.current.value = ""; }}
+                  aria-label={S.fotoWeg}
+                  className="grid h-8 w-8 place-items-center rounded-full text-[#5b666f] transition hover:bg-[#f1f4f7] hover:text-[#14181c]"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            )}
+
+          <div className="mt-1.5 flex items-center justify-end gap-1">
+            {/**
+              * DIE KLAMMER LINKS, WIE ÜBERALL (Owner 09.09.2026: „auch nicht nach Bildern,
+              * die er eventuell hochladen kann").
+              *
+              * SIE STEHT LINKS UND DIE SENDE-KNÖPFE RECHTS — dieselbe Ordnung wie in jedem
+              * Chat: links, was man HINZUFÜGT, rechts, was man ABSCHICKT.
+              */}
+            <input
+              ref={datei}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={e => void fotoWaehlen(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => datei.current?.click()}
+              disabled={busy}
+              aria-label={S.fotoWaehlen}
+              className="mr-auto grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#5b666f] transition hover:bg-[#f1f4f7] hover:text-[#14181c] disabled:opacity-30"
+            >
+              <ImagePlus className="h-5 w-5" aria-hidden />
+            </button>
               {/* SPRACHE (Owner 09.09.2026: „ich kann es mit Sprache steuern"). Der erkannte
                   Text landet IM FELD, nicht direkt im Gespräch — Begründung in
                   components/SprachKnopf.tsx.

@@ -62,7 +62,7 @@ export const MANDANT_TEXTE = {
   /* ── Die Vorschau — an den Mandanten gerichtet, deshalb geduzt ───────────── */
   vorschauEtikett: "Noch nicht online",
   vorschauTitel: "Hier stünde jetzt das Kontaktfeld.",
-  vorschauText: "Der Trichter ist fertig. Bevor er Anfragen entgegennehmen darf, müssen dein Impressum und deine Datenschutzerklärung darauf stehen — das verlangt das Gesetz an der Stelle, an der jemand seinen Namen hinterlässt. Trag die zwei Links ein, dann ist er online. Das kostet nichts.",
+  vorschauText: "Deine Seite ist fertig. Bevor er Anfragen entgegennehmen darf, müssen dein Impressum und deine Datenschutzerklärung darauf stehen — das verlangt das Gesetz an der Stelle, an der jemand seinen Namen hinterlässt. Trag die zwei Links ein, dann ist er online. Das kostet nichts.",
 } as const;
 
 export type MandantTexte = { -readonly [K in keyof typeof MANDANT_TEXTE]: string };

@@ -2,6 +2,7 @@ import { sendEmail } from "@/lib/email-send";
 import { MAIL, mailHuelle, mailTitel, mailText, mailFein, mailAdresse } from "@/lib/versusforge-mail-huelle";
 import type { VersusForgePlan } from "@/lib/versusforge-folien";
 import { VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import { mailTexteInSprache } from "@/lib/versusforge-mail-texte";
 
 /**
  * DIE ANALYSE GEHT RAUS (Owner 08.09.2026: „die wird doch generiert und per E-Mail
@@ -37,27 +38,28 @@ export async function analysePerPost(o: {
    * später an".
    */
   trichterLink?: string;
+  /** Die Sprache, in der er mit uns geredet hat. Ohne Angabe Deutsch. */
+  sprache?: string;
 }): Promise<boolean> {
+  /* SEINE SPRACHE, NICHT UNSERE (Owner 09.09.2026): Diese Mail ist oft das Letzte, was er
+     von uns sieht — und die einzige Fläche, die das Haus verlässt. */
+  const T = await mailTexteInSprache(o.sprache);
   const telefon = process.env.VERSUSFORGE_TELEFON?.trim() || "";
   const mail = process.env.VERSUSFORGE_MAIL?.trim() || "";
 
   const hook = String(o.plan?.hook ?? "").trim();
 
   const html = mailHuelle(
-    mailTitel("Dein Weg steht.")
+    mailTitel(T.planTitel)
     + (hook ? mailText(`<b style="color:${MAIL.text}">„${hook}“</b>`) : "")
-    + mailText(
-        "Alles, was daraus entstanden ist, liegt unter diesen zwei Adressen — dein Bild, "
-        + "deine Anzeigentexte und der Trichter, auf dem deine Kunden landen.")
+    + mailText(T.planText)
     + (o.trichterLink
-        ? mailAdresse("Deine Anzeige", `https://versusforge.com${o.trichterLink}/anzeige`,
-            "Dort liegen dein Bild, deine Anzeigentexte und die Adresse für die Anzeige.")
-          + mailAdresse("Dein Trichter", `https://versusforge.com${o.trichterLink}`,
-            "Der Trichter selbst — mach ihn auf und geh ihn durch.")
+        ? mailAdresse(T.planAnzeige, `https://versusforge.com${o.trichterLink}/anzeige`, T.planAnzeigeFein)
+          + mailAdresse(T.planTrichter, `https://versusforge.com${o.trichterLink}`, T.planTrichterFein)
         : "")
     + (telefon || mail
         ? mailFein(
-            "Wenn du es nicht selbst bauen willst, meld dich — es antwortet ein Mensch."
+            T.planHilfe
             + (telefon ? `<br><b style="color:${MAIL.text};font-size:17px">${telefon}</b>` : "")
             + (mail ? `<br><b style="color:${MAIL.text}">${mail}</b>` : ""))
         : ""),
@@ -69,7 +71,7 @@ export async function analysePerPost(o: {
        Warnung im Log über das Haus — siehe `MailKonto` in lib/email-send.ts. */
     konto: "versusforge",
     to: o.an,
-    subject: hook ? `Dein Weg steht: ${hook}` : "Dein Weg steht",
+    subject: hook ? `${T.planBetreff}: ${hook}` : T.planBetreff,
     html,
     ...(mail ? { replyTo: mail } : {}),
   });

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import MandantKaufen from "@/components/MandantKaufen";
 import { Wortmarke } from "@/components/VersusForgeMarke";
 import AnzeigeFeld from "@/components/AnzeigeFeld";
 import AnzeigeBild from "@/components/AnzeigeBild";
@@ -233,12 +234,11 @@ export default async function AnzeigeSeite({
 
           {/* DER PREIS IM KNOPF (Hausregel `cta-im-viewport-template`: „Preis IM Knopf") —
               er soll nicht erst zurückscrollen müssen, um zu wissen, was er drückt. */}
-          <a
-            href="/contact?reason=versusforge"
-            className="mt-4 inline-block rounded-xl bg-[#1d6fd0] px-6 py-3.5 text-[16px] font-extrabold text-white"
-          >
-            Für {eur(VERSUSFORGE_START_CENTS, "de")} freischalten
-          </a>
+          {/* HIER STAND EIN LINK AUF DAS KONTAKTFORMULAR (Owner 09.09.2026: „wie soll ich
+              den scharf schalten, wenn der Kunde am Ende nichts kaufen kann?").
+              Er sah aus wie ein Kaufknopf und führte auf „wir melden uns" — beim teuersten
+              Produkt des Hauses. Jetzt ist es die Kasse, in der Seite. */}
+          <MandantKaufen mandant={mandant} wort={`Für ${eur(VERSUSFORGE_START_CENTS, "de")} freischalten`} />
         </section>
 
         {/**

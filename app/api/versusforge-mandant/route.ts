@@ -96,6 +96,16 @@ export async function POST(request: Request) {
       /* Die Sprache des Trichters, nicht „de" fest: In der Anfrageliste steht sonst bei
          jedem rumänischen Kunden „Deutsch" — und die Liste ist das, was der Mandant kauft. */
       sprache: String(m.sprache ?? "de").slice(0, 2),
+      /**
+       * SEIN EIGENER TESTLAUF (Owner 09.09.2026: „er wird es selber testen wollen" · „oder
+       * falls er den Link postet auf FB, dann ebenso").
+       *
+       * Verglichen wird das Gerät, mit dem der Trichter angelegt wurde. Trifft es zu, ist es
+       * SEIN Durchlauf: immer offen, zählt nicht gegen die eine freie Anfrage. Postet er den
+       * Link danach auf Facebook, kommen die Fremden von anderen Geräten — und die erste von
+       * ihnen ist die freie.
+       */
+      eigen: !!m.geraet && str(body.device, 80) === m.geraet,
       plan: null,
       runden: [...runden, { frage: "Name", antwort: name }, { frage: "Telefon", antwort: telefon }],
       zeit: new Date().toISOString(),
@@ -117,7 +127,12 @@ export async function POST(request: Request) {
     void (async () => {
       try {
         const alle = await leadsLesen(kennung, 500);
-        await anfragePerPost({ an: m.mail, mandant: kennung, name: m.name, offen: alle.length, schluessel: m.schluessel, loeschSchluessel: m.loeschSchluessel });
+        await anfragePerPost({
+          an: m.mail, mandant: kennung, name: m.name, offen: alle.length,
+          schluessel: m.schluessel, loeschSchluessel: m.loeschSchluessel,
+          /* In SEINER Sprache — nicht in der des Kunden, der gerade angefragt hat. */
+          sprache: m.sprache,
+        });
       } catch (e) {
         console.error("[versusforge-mandant] Benachrichtigung fehlgeschlagen", e);
       }

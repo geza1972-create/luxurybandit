@@ -1,6 +1,7 @@
 import { sendEmail } from "@/lib/email-send";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 import { mailHuelle, mailTitel, mailText, mailFein, mailKasten } from "@/lib/versusforge-mail-huelle";
+import { mailTexteInSprache } from "@/lib/versusforge-mail-texte";
 
 /**
  * „DU HAST EINE ANFRAGE" (Owner 09.09.2026: „falls er das benutzt und testet, dann bekommt er
@@ -29,8 +30,14 @@ export async function anfragePerPost(o: {
   schluessel: string;
   /** Für die Abbestellung im Fuss — Löschen ist hier der Abmeldeweg. */
   loeschSchluessel: string;
+  /** Die Sprache des Mandanten. Ohne Angabe Deutsch. */
+  sprache?: string;
 }): Promise<boolean> {
   if (!o.an.includes("@")) return false;
+
+  /* Seine Sprache — diese Mail bekommt er womöglich jede Woche, und sie ist der Grund, warum
+     er ins Dashboard geht. */
+  const T = await mailTexteInSprache(o.sprache);
 
   /* DER KNOPF FÜHRT AUF DAS DASHBOARD, NICHT AUF DIE ANZEIGEN-SEITE (09.09.2026, mit dem
      Dashboard gebaut). Bis heute schickte „Dashboard freischalten" ihn auf die Seite mit den
@@ -41,21 +48,17 @@ export async function anfragePerPost(o: {
   const mehrere = o.offen > 1;
 
   const html = mailHuelle(
-    mailTitel(mehrere ? `${o.offen} Anfragen warten auf dich.` : "Du hast eine Anfrage.")
-    + mailText(
-        `Jemand ist gerade durch deinen Trichter gegangen und hat Namen und Telefonnummer `
-        + `hinterlassen. ${mehrere ? "Die Anfragen liegen" : "Sie liegt"} in deinem Dashboard.`)
+    mailTitel(mehrere ? T.anfrageTitelViele.replace("{n}", String(o.offen)) : T.anfrageTitelEine)
+    + mailText(mehrere ? T.anfrageTextViele : T.anfrageTextEine)
     + mailKasten(
-        "Schalte dein Dashboard frei.",
-        `Danach siehst du zu jeder Anfrage den Namen, die Telefonnummer und das, was der Mensch `
-        + `gesagt hat — auch zu denen, die schon vorher gekommen sind. `
-        + `${eur(VERSUSFORGE_START_CENTS, "de")} einmalig.`,
-        { adresse: dashboard, wort: "Zum Dashboard" })
+        T.anfrageKastenTitel,
+        /* DER PREIS WIRD ANGEHÄNGT, NICHT ÜBERSETZT ([[prices-only-from-pricing-table]]):
+           Ein Übersetzer rechnet Beträge um oder verliert sie. */
+        `${T.anfrageKastenText} ${eur(VERSUSFORGE_START_CENTS, o.sprache)}.`,
+        { adresse: dashboard, wort: T.anfrageKnopf })
     /* DIE UHR IST DAS ARGUMENT, NICHT DER PREIS. Wer sich am selben Tag meldet, gewinnt —
        und genau das kann er nicht, solange er die Nummer nicht sieht. */
-    + mailFein(
-        "Wer innerhalb eines Tages zurückruft, erreicht die Leute noch. Danach haben sie meist "
-        + "woanders angefragt."),
+    + mailFein(T.anfrageUhr),
     loeschen,
   );
 
@@ -68,7 +71,9 @@ export async function anfragePerPost(o: {
     /* Der Kopf, den Mail-Programme selbst auswerten — damit „abbestellen" auch dort
        funktioniert, wo der Mensch gar nicht bis zum Fuss scrollt. */
     listUnsubscribe: `<${loeschen}>`,
-    subject: mehrere ? `${o.offen} Anfragen für ${o.name}` : `Eine Anfrage für ${o.name}`,
+    /* Der Betreff trägt seinen Betriebsnamen — er steht in der Liste zwischen fremder Post
+       und muss ohne Öffnen sagen, worum es geht. */
+    subject: `${mehrere ? T.anfrageBetreffViele.replace("{n}", String(o.offen)) : T.anfrageBetreffEine} · ${o.name}`,
     html,
   });
   if (!res.ok) console.error("[versusforge-anfrage] Versand fehlgeschlagen:", res.error);

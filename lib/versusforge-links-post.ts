@@ -1,6 +1,7 @@
 import { sendEmail } from "@/lib/email-send";
 import { MAIL, mailHuelle, mailTitel, mailText, mailFein, mailAdresse, mailKasten } from "@/lib/versusforge-mail-huelle";
-import { META_SCHRITTE } from "@/lib/versusforge-meta-anleitung";
+import { metaSchritteInSprache } from "@/lib/versusforge-meta-anleitung";
+import { mailTexteInSprache, type MailTexte } from "@/lib/versusforge-mail-texte";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 
 /**
@@ -21,14 +22,17 @@ import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
  * Freundlichkeit, die man später teuer bezahlt.
  */
 
-const ANLEITUNG =
-  `<tr><td style="padding:22px 26px 0;font-family:${MAIL.schrift};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${MAIL.text}">So richtest du die Anzeige ein</td></tr>`
-  + META_SCHRITTE.map(([titel, text], i) =>
+/* AUS EINER KONSTANTEN WURDE EINE FUNKTION (09.09.2026): Die Anleitung hängt jetzt an der
+   Sprache des Mandanten — eine Meta-Anleitung auf Deutsch nützt einem rumänischen Wirt
+   nichts, und sie ist der einzige Teil der Mail, den er wirklich abarbeiten muss. */
+const anleitung = (schritte: [string, string][], T: MailTexte) =>
+  `<tr><td style="padding:22px 26px 0;font-family:${MAIL.schrift};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${MAIL.text}">${T.linksAnleitungTitel}</td></tr>`
+  + schritte.map(([titel, text], i) =>
       `<tr><td style="padding:14px 26px 0;font-family:${MAIL.schrift};font-size:16px;line-height:1.55;color:${MAIL.grau}">`
       + `<b style="color:${MAIL.text}">${i + 1}. ${titel}</b><br>${text}`
       + `</td></tr>`).join("")
   + `<tr><td style="padding:16px 26px 0;font-family:${MAIL.schrift};font-size:14.5px;line-height:1.55;color:${MAIL.fein}">`
-  + `Meta benennt seine Menüs gelegentlich um. Findest du einen Punkt nicht unter diesem Namen, ist er meist eine Ebene höher oder tiefer.`
+  + T.linksMetaFein
   + `</td></tr>`;
 
 export async function linksPerPost(o: {
@@ -39,8 +43,12 @@ export async function linksPerPost(o: {
   loeschSchluessel: string;
   /** Nur den Löschlink schicken — wenn er ihn auf der Seite angefordert hat. */
   nurLoeschen?: boolean;
+  /** Die Sprache des Mandanten. Ohne Angabe Deutsch. */
+  sprache?: string;
 }): Promise<boolean> {
   if (!o.an.includes("@")) return false;
+
+  const T = await mailTexteInSprache(o.sprache);
 
   const basis = "https://versusforge.com";
   const anzeige = `${basis}/${o.mandant}/anzeige`;
@@ -50,17 +58,13 @@ export async function linksPerPost(o: {
 
   const html = o.nurLoeschen
     ? mailHuelle(
-        mailTitel("Dein Löschlink.")
-        + mailText(
-            "Darüber löschst du deinen Trichter und alle Anfragen darin. "
-            + "Das lässt sich nicht rückgängig machen.")
-        + mailAdresse("Löschen", loeschen, "Ein Klick, dann noch eine Bestätigung — danach ist alles weg."))
+        mailTitel(T.linksLoeschTitel)
+        + mailText(T.linksLoeschText)
+        + mailAdresse(T.linksLoeschWort, loeschen, T.linksLoeschFein))
     : mailHuelle(
-        mailTitel("Deine Adressen und die Anleitung.")
-        + mailAdresse("Deine Anzeige", anzeige,
-            "Texte zum Kopieren, das Bild und das Ziel für die Anzeige.")
-        + mailAdresse("Dein Trichter", trichter,
-            "Die Seite, auf der deine Kunden landen. Mach sie auf und geh sie durch.")
+        mailTitel(T.linksTitel)
+        + mailAdresse(T.linksAnzeige, anzeige, T.linksAnzeigeFein)
+        + mailAdresse(T.linksTrichter, trichter, T.linksTrichterFein)
         /**
          * DAS DASHBOARD STEHT MIT IN DER MAIL, UND ZWAR NICHT ERST NACH DEM KAUF
          * (09.09.2026, mit dem Dashboard gebaut).
@@ -71,9 +75,7 @@ export async function linksPerPost(o: {
          * gar nicht entstehen können. Die Anfragen selbst bleiben bis zum Kauf verschlossen;
          * das steht auf der Seite und im Kasten darunter.
          */
-        + mailAdresse("Dein Dashboard", dashboard,
-            "Hier trägst du Impressum, Datenschutz, Adresse und Telefonnummer ein — ohne die "
-            + "nimmt deine Seite keine Anfrage an. Später stehen hier deine Anfragen.")
+        + mailAdresse(T.linksDashboard, dashboard, T.linksDashboardFein)
         /**
          * DIE GRENZE, VOR DER ANLEITUNG (Owner 09.09.2026: „in der Mail muss stehen, dass er
          * diesen Trichter nicht nutzen kann, nur nachbauen").
@@ -83,18 +85,14 @@ export async function linksPerPost(o: {
          * Anfragen nicht lesen kann. Das Geld wäre durch unsere Reihenfolge verbrannt.
          */
         + mailKasten(
-            "Bevor du Geld in Werbung steckst",
-            `<b style="color:${MAIL.text}">Ansehen und durchgehen:</b> ja, jederzeit.<br>`
-            + `<b style="color:${MAIL.text}">Selbst nachbauen:</b> ja — es ist deine Strategie.<br>`
-            + `<b style="color:${MAIL.text}">Benutzen:</b> noch nicht. Die Anfragen laufen in dein Fach, `
-            + `aber lesen kannst du sie nur im Dashboard.<br><br>`
-            + `Schaltest du jetzt eine Anzeige, zahlst du für Klicks und siehst am Ende keine `
-            + `einzige Telefonnummer. ${eur(VERSUSFORGE_START_CENTS, "de")} einmalig, mit `
-            + `Einrichtung der ersten Anzeige zusammen mit uns.`)
-        + ANLEITUNG
-        + mailFein("Kriegst du es trotzdem nicht eingerichtet? Schreib uns, wir machen es mit dir zusammen.")
-        + mailAdresse("Alles löschen", loeschen,
-            "Trichter und Anfragen, endgültig — falls du es wieder loswerden willst."),
+            T.linksVorWerbung,
+            `<b style="color:${MAIL.text}">${T.linksAnsehenWort}</b> ${T.linksAnsehenText}<br>`
+            + `<b style="color:${MAIL.text}">${T.linksNachbauenWort}</b> ${T.linksNachbauenText}<br>`
+            + `<b style="color:${MAIL.text}">${T.linksBenutzenWort}</b> ${T.linksBenutzenText}<br><br>`
+            + `${T.linksWarnung} ${eur(VERSUSFORGE_START_CENTS, o.sprache)} ${T.linksPreisFein}`)
+        + anleitung(await metaSchritteInSprache(o.sprache ?? "de"), T)
+        + mailFein(T.linksHilfe)
+        + mailAdresse(T.linksAllesLoeschen, loeschen, T.linksAllesLoeschenFein),
         loeschen);
 
   const res = await sendEmail({
@@ -104,7 +102,7 @@ export async function linksPerPost(o: {
     konto: "versusforge",
     to: o.an,
     listUnsubscribe: `<${loeschen}>`,
-    subject: o.nurLoeschen ? "Dein Löschlink" : "Deine Anzeige und dein Trichter",
+    subject: o.nurLoeschen ? T.linksBetreffLoeschen : T.linksBetreff,
     html,
   });
   if (!res.ok) console.error("[versusforge-links] Versand fehlgeschlagen:", res.error);

@@ -1,5 +1,7 @@
 "use client";
 
+import type { DashboardTexte } from "@/lib/dashboard-texte";
+
 import { useState } from "react";
 import { Trash2, Download, Sparkles, ImageIcon, Plus } from "lucide-react";
 
@@ -28,8 +30,10 @@ import { Trash2, Download, Sparkles, ImageIcon, Plus } from "lucide-react";
  * SELBST SCHREIBEN GEHT WEITER. Die Maschine schlägt vor, aber der beste Hook kommt oft aus
  * dem Satz, den er selbst am Telefon sagt.
  */
-export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
+export default function MandantHooks({ mandant, k, planHook, hooks: start , T}: {
   mandant: string; k: string; planHook: string; hooks: string[];
+  /** Die Texte in der Sprache des Mandanten. */
+  T: DashboardTexte;
 }) {
   const [hooks, setHooks] = useState<string[]>(start);
   const [neu, setNeu] = useState("");
@@ -60,14 +64,14 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
         body: JSON.stringify({ mandant, k, ...koerper }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return false; }
+      if (!res.ok) { setFehler(String(d.error ?? T.fehler)); return false; }
       setHooks(Array.isArray(d.hooks) ? (d.hooks as string[]) : []);
       /* Nach jeder Änderung verschieben sich die Nummern — offene Bilder zumachen, sonst
          steht ein Bild unter dem falschen Satz. */
       setGezeigt(new Set());
       return true;
     } catch {
-      setFehler("Das ging gerade nicht. Bitte noch einmal.");
+      setFehler(T.fehler);
       return false;
     } finally { setLaeuft(""); }
   };
@@ -80,7 +84,7 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
       {/* ── DER GENERATOR ── */}
       <div className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(20,24,28,.06),0_8px_28px_rgba(20,24,28,.07)] md:p-7">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">Deine Hooks</h2>
+          <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">{T.hooksTitel}</h2>
           {/* DER STAND, NICHT ALS FUSSNOTE. „2 von 5" bewegt; eine Liste allein nicht. */}
           <span className={`text-[14.5px] font-bold ${gesamt >= ZIEL ? "text-[#1a7f4b]" : "text-[#8b959d]"}`}>
             {gesamt} von {ZIEL}
@@ -104,7 +108,7 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
             className="inline-flex items-center gap-2 rounded-xl bg-[#1d6fd0] px-6 py-3.5 text-[16px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-50"
           >
             <Sparkles className="h-[18px] w-[18px]" aria-hidden />
-            {laeuft === "modell" ? "Schreibt …" : "Neuen Hook schreiben lassen"}
+            {laeuft === "modell" ? T.schreibt : T.neuerHook}
           </button>
           <button
             type="button"
@@ -122,7 +126,7 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
               rows={2}
               value={neu}
               onChange={e => { setNeu(e.target.value); if (fehler) setFehler(""); }}
-              placeholder="Ein fester Zahn in einem Termin — geht das bei dir?"
+              placeholder={T.hookPlatzhalter}
               autoFocus
               className="w-full resize-none rounded-xl border-[1.5px] border-[#dfe4e9] bg-white px-4 py-3.5 text-[16px] leading-[1.45] text-[#14181c] placeholder:text-[#8b959d] outline-none focus:border-[#1d6fd0]"
             />
@@ -137,7 +141,7 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
                 }}
                 className="rounded-xl border-[1.5px] border-[#1d6fd0] bg-white px-5 py-3 text-[15px] font-extrabold text-[#1d6fd0] disabled:opacity-40"
               >
-                {laeuft === "eigen" ? "Einen Moment …" : "Hinzufügen"}
+                {laeuft === "eigen" ? T.moment : T.hinzufuegen}
               </button>
               {/* Der Zähler warnt, bevor der Satz im Bild zu klein wird. */}
               <span className={`text-[13.5px] font-bold ${neu.length > 120 ? "text-[#c02626]" : "text-[#8b959d]"}`}>
@@ -159,8 +163,9 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
         <ul className="flex list-none flex-col gap-3 p-0">
           {planHook && (
             <Zeile
+              T={T}
               satz={planHook}
-              etikett="Aus deiner Analyse"
+              etikett={T.ausAnalyse}
               offen={gezeigt.has(-1)}
               umschalten={() => umschalten(-1)}
               bild={bildAdresse(-1)}
@@ -169,6 +174,7 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
           )}
           {hooks.map((h, i) => (
             <Zeile
+              T={T}
               key={`${i}-${h}`}
               satz={h}
               offen={gezeigt.has(i)}
@@ -195,10 +201,12 @@ export default function MandantHooks({ mandant, k, planHook, hooks: start }: {
  * DER SATZ IST GROSS UND STEHT ALLEIN. Er ist das, was beurteilt wird — nicht eine
  * Beschriftung neben einer Vorschau.
  */
-function Zeile({ satz, etikett, offen, umschalten, bild, dateiname, loeschen }: {
+function Zeile({ satz, etikett, offen, umschalten, bild, dateiname, loeschen, T }: {
   satz: string; etikett?: string; offen: boolean; umschalten: () => void;
   bild: string; dateiname: string;
   loeschen?: { sicher: boolean; fragen: () => void; machen: () => void; laeuft: boolean };
+  /** Die Texte in der Sprache des Mandanten. */
+  T: DashboardTexte;
 }) {
   return (
     <li className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(20,24,28,.06),0_8px_28px_rgba(20,24,28,.07)] md:p-6">
@@ -216,7 +224,7 @@ function Zeile({ satz, etikett, offen, umschalten, bild, dateiname, loeschen }: 
           className="inline-flex items-center gap-1.5 text-[14.5px] font-bold text-[#1d6fd0]"
         >
           <ImageIcon className="h-4 w-4" aria-hidden />
-          {offen ? "Bild zuklappen" : "Bild bauen"}
+          {offen ? T.bildZu : T.bildBauen}
         </button>
         {loeschen && (
           <button
@@ -227,7 +235,7 @@ function Zeile({ satz, etikett, offen, umschalten, bild, dateiname, loeschen }: 
               loeschen.sicher ? "text-[#c02626]" : "text-[#8b959d] hover:text-[#c02626]"}`}
           >
             <Trash2 className="h-4 w-4" aria-hidden />
-            {loeschen.sicher ? "Wirklich löschen?" : "Löschen"}
+            {loeschen.sicher ? T.wirklichLoeschen : T.loeschen}
           </button>
         )}
       </div>

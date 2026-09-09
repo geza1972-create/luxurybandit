@@ -52,6 +52,22 @@ export default function MandantGespraech({
   const [gesendet, setGesendet] = useState(false);
 
   const ende = useRef<HTMLDivElement>(null);
+
+  /**
+   * DIE GERÄTEKENNUNG DES BESUCHERS (09.09.2026).
+   *
+   * Sie dient EINEM Zweck: zu erkennen, ob der Mandant gerade selbst durch seinen eigenen
+   * Trichter geht, um ihn zu prüfen (Owner: „er wird es selber testen wollen"). Es ist
+   * dieselbe zufällige Kennung, die das ganze Haus benutzt — kein Personenbezug, und sie
+   * verlässt den Server nicht.
+   */
+  const geraet = () => {
+    try {
+      let d = localStorage.getItem("lb_visitor") ?? "";
+      if (!d) { d = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", d); }
+      return d;
+    } catch { return ""; }
+  };
   useEffect(() => { ende.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [frage, fertig, gesendet]);
 
   const holen = async (bisher: Runde[], start = einstieg) => {
@@ -61,7 +77,7 @@ export default function MandantGespraech({
       const res = await fetch("/api/versusforge-mandant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "frage", mandant, einstieg: start, runden: bisher }),
+        body: JSON.stringify({ device: geraet(), schritt: "frage", mandant, einstieg: start, runden: bisher }),
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { /* DIE MELDUNG DES SERVERS WIRD NICHT GEZEIGT: Sie ist auf Deutsch geschrieben, und hier
@@ -118,7 +134,7 @@ export default function MandantGespraech({
       const res = await fetch("/api/versusforge-mandant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schritt: "abschluss", mandant, einstieg, runden, name: kName, telefon: kTelefon }),
+        body: JSON.stringify({ device: geraet(), schritt: "abschluss", mandant, einstieg, runden, name: kName, telefon: kTelefon }),
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { /* DIE MELDUNG DES SERVERS WIRD NICHT GEZEIGT: Sie ist auf Deutsch geschrieben, und hier

@@ -89,11 +89,37 @@ export async function agentLauf(o: {
     parameters: { type: "object", properties: w.felder, required: w.pflicht, additionalProperties: false },
   }));
 
-  for (let runde = 0; runde < MAX_RUNDEN; runde++) {
-    const res = await fetch("https://api.openai.com/v1/responses", {
+  /**
+   * ── EIN ZWEITER VERSUCH BEI EINER PANNE DES ANBIETERS (09.09.2026, im Protokoll gefunden,
+   * nachdem der Owner „eine rote Meldung" sah) ────────────────────────────────────────────
+   *
+   * WAS DASTAND: „The server had an error processing your request." Ein 500 bei OpenAI —
+   * nicht unser Fehler, und fast immer vorübergehend. Trotzdem war das Gespräch für den
+   * Menschen zu Ende: rote Zeile, keine Antwort, und was er getippt hatte, war umsonst.
+   *
+   * EIN VERSUCH, NICHT DREI. Bei einer echten Störung würde jede Wiederholung nur warten
+   * lassen und kosten. Ein einziger Nachschlag fängt den Zufallstreffer und verdoppelt im
+   * schlimmsten Fall EINEN Aufruf.
+   *
+   * NUR BEI 5xx. Ein 429 heisst „zu viel" — den wiederholt man nicht, das macht es schlimmer.
+   * Ein 400 heisst „falsch gefragt" — der wird beim zweiten Mal genauso falsch sein.
+   */
+  const holen = async (koerper: string): Promise<Response> => {
+    const einmal = () => fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${o.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: koerper,
+    });
+    const erste = await einmal();
+    if (erste.status < 500) return erste;
+    console.warn("[agent-werkzeuge] Anbieter-Panne, zweiter Versuch:", erste.status);
+    await new Promise(r => setTimeout(r, 700));
+    return await einmal();
+  };
+
+  for (let runde = 0; runde < MAX_RUNDEN; runde++) {
+    const res = await holen(
+      JSON.stringify({
         model: o.modell,
         input: eingabe,
         tools,
@@ -102,7 +128,7 @@ export async function agentLauf(o: {
         ...(runde === MAX_RUNDEN - 1 ? { tool_choice: "none" } : {}),
         ...(/^gpt-5/.test(o.modell) ? { reasoning: { effort: "low" } } : {}),
       }),
-    });
+    );
 
     const roh = await res.text();
     let nutz: Record<string, unknown> | null = null;

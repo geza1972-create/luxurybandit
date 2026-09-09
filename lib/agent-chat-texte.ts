@@ -52,7 +52,24 @@ export const AGENT_CHAT_TEXTE = {
    * erklärt. „Startup" sagt dasselbe über den PREIS — noch nichts verdient, deshalb gratis —
    * ohne etwas über die Qualität zu behaupten.
    */
-  grussKostenlos: "Das hier kostet dich nichts. Wir sind ein Startup und wollen, dass du uns testest — deshalb bekommst du die ganze Strategie geschenkt. Das bleibt nicht so.",
+  /**
+   * ── WAS ER KOSTENLOS BEKOMMT, STEHT AM ANFANG (Owner 09.09.2026: „am Anfang sagen wir, was
+   * er kostenlos bekommt, bitte anpassen") ──────────────────────────────────────────────────
+   *
+   * VORHER STAND HIER NUR „die ganze Strategie". Das ist ein Wort aus der Beratersprache und
+   * beschreibt nichts, was man anfassen kann — und seit heute stimmt es auch nicht mehr: Er
+   * bekommt mehr als eine Strategie. Er bekommt eine laufende Seite und die erste echte
+   * Anfrage mit Namen und Telefonnummer.
+   *
+   * ALS LISTE, NICHT ALS SATZ (Hausregel vom 09.09.2026: „wir brauchen alles, was er bekommt,
+   * als Liste und nicht als Text"). Vier Zeilen, die man zählen kann, schlagen einen Absatz,
+   * den man überfliegt.
+   *
+   * UND DIE GRENZE STEHT GLEICH DABEI. Wer erst beim Schloss erfährt, dass es eine Grenze
+   * gibt, fühlt sich überrumpelt — auch wenn alles davor geschenkt war. Vorher gesagt, ist
+   * dieselbe Grenze ein fairer Handel.
+   */
+  grussKostenlos: "Das hier kostet dich nichts. Du bekommst:\n· den Satz, der Leute anhält, und dein fertiges Anzeigenbild\n· deine eigene Seite, auf der Menschen ihren Namen und ihre Nummer hinterlassen\n· die ersten {frei} Anfragen vollständig — mit Namen und Telefonnummer, zum Anrufen\nErst danach kostet es etwas. Wir sind ein Startup und wollen, dass du uns testest.",
   /**
    * DER DATENSCHUTZSATZ — er trägt ein Versprechen, das ein Mensch einlöst.
    *
@@ -73,7 +90,12 @@ export const AGENT_CHAT_TEXTE = {
   platzhalter: "Schreib oder sprich.",
   senden: "Senden",
   bildAlt: "Dein Anzeigenbild",
+  fotoWaehlen: "Foto anhängen",
+  fotoWeg: "Foto entfernen",
   fehler: "Das ging gerade nicht. Bitte noch einmal.",
+  /* Der Tagesdeckel — als einziger Fehler hat er eine eigene Auskunft, weil „noch einmal
+     versuchen" hier falsch wäre: Es geht heute nicht mehr, und das darf man sagen. */
+  fehlerDeckel: "Für heute ist auf diesem Gerät genug gelaufen. Morgen geht es weiter.",
   /**
    * ── „ALLES LÖSCHEN" STATT „NEU ANFANGEN" (Owner 09.09.2026: „statt Începe din nou — er
    * könnte alles löschen, dann ist es save") ────────────────────────────────────────────────

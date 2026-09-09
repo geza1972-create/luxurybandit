@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { frageModell, str, strListe, KLEIN, GROSS, type Verbrauch } from "@/lib/agent-modell";
 import { portaleFuer, type Lage } from "@/lib/versusforge-portale";
 import { seiteLesen, istEigeneAdresse } from "@/lib/seite-lesen";
-import { deckelPruefen } from "@/lib/versusforge-deckel";
+import { deckelPruefen, agentDeckel } from "@/lib/versusforge-deckel";
 import { leadSpeichern, EIGENER_MANDANT, mandantSauber } from "@/lib/versusforge-lead";
 import { HOOK_REGELN, GESCHICHTE_REGELN, HEBEL_AUFTRAG, HEBEL } from "@/lib/versusforge-hook-rezept";
 import { freierName, mandantAusPlan, mandantSpeichern } from "@/lib/versusforge-mandanten";
@@ -551,6 +551,9 @@ export async function POST(request: Request) {
              der Anfrage — der Plan wurde darin geschrieben; ohne diese Zeile stünden über
              einem rumänischen Hook deutsche Knöpfe. */
           sprache: str(body.sprache, 5) || "de",
+          /* Sein Gerät — nur um seinen eigenen Testlauf später von einer echten Anfrage zu
+             unterscheiden. Begründung bei `eigen` in lib/versusforge-lead.ts. */
+          geraet: str(body.device, 80),
         }));
         if (angelegt) trichterLink = `/versusforge/${name}`;
       } catch (e) {
@@ -573,6 +576,8 @@ export async function POST(request: Request) {
     const post = await analysePerPost({
       an: mail,
       trichterLink,
+      /* Die Mail spricht seine Sprache — sie ist oft das Letzte, was er von uns sieht. */
+      sprache: str(body.sprache, 5) || "de",
       plan: (body.plan ?? {}) as Parameters<typeof analysePerPost>[0]["plan"],
       eingabe: str(body.text, 2000) || str(body.url, 300),
       runden: (Array.isArray(body.runden) ? body.runden : []).slice(0, 8).map((r: unknown) => {
@@ -648,7 +653,20 @@ export async function POST(request: Request) {
     if (!b.url && wirktWieUnsinn(b.text)) {
       return NextResponse.json({ error: "Schreib mir bitte in ein, zwei Sätzen, was du brauchst — oder gib die Adresse deiner Website an." }, { status: 400 });
     }
-    const stand = await deckelPruefen(str(body.device, 80));
+    /**
+     * ── HIER WIRD NICHT MEHR ABGERECHNET (Owner 09.09.2026: „unterbricht er den Prozess,
+     * dann zahlt er?") ────────────────────────────────────────────────────────────────────
+     *
+     * JA — UND DAS WAR FALSCH. Der Zähler stand am ERSTEN Schritt: Wer seinen Satz eintippte
+     * und dann das Fenster schloss, hatte seine eine Gratis-Analyse verbraucht. Beim nächsten
+     * Versuch stand die Kasse davor, für etwas, das er nie bekommen hat.
+     *
+     * DER PLAN IST DAS PRODUKT, also zählt der Plan. Bis dahin läuft nur ein Gespräch mit dem
+     * kleinen Modell — Bruchteile eines Cents. Was hier bleibt, ist eine reine
+     * Missbrauchsgrenze in Nachrichten, grosszügig und je Gerät ([[kein-token-fuer-abbrecher]]
+     * gilt weiter: bezahlte Aufrufe erst nach bewusstem Ja).
+     */
+    const stand = await agentDeckel(str(body.device, 80));
     if (!stand.erlaubt) {
       return NextResponse.json({
         /* KEINE WAND, SONDERN EINE TÜR (Owner 08.09.2026). Wer die gratis Analyse gut fand,
@@ -1031,6 +1049,23 @@ export async function POST(request: Request) {
 
   /* ── 3 · PLAN: was er bauen würde ───────────────────────────────────────── */
   if (schritt === "plan") {
+    /**
+     * ── DER DECKEL SITZT AM PLAN, NICHT AM ANFANG (09.09.2026) ─────────────────────────────
+     *
+     * Hier entsteht das, was er behält: Hook, Zielgruppe, Anzeigentexte, seine Strecke — und
+     * hier läuft der einzige teure Aufruf. Wer vorher abbricht, hat nichts bekommen und darf
+     * deshalb auch nichts verbraucht haben.
+     */
+    const gedeckelt = await deckelPruefen(str(body.device, 80));
+    if (!gedeckelt.erlaubt) {
+      return NextResponse.json({
+        error: gedeckelt.grund === "bezahlen"
+          ? "Deine kostenlose Analyse ist aufgebraucht."
+          : "Für heute ist auf diesem Gerät genug gelaufen.",
+        grund: gedeckelt.grund,
+      }, { status: 429 });
+    }
+
     const auftrag = [
       regeln(b.sprache),
       "AUFGABE: Zeige ihm, was du bauen würdest. Das ist das Stück, das er behält — es muss ohne dich verständlich sein.",

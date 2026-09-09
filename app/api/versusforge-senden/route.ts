@@ -46,6 +46,8 @@ export async function POST(request: Request) {
          keine einzige Anfrage an. */
       schluessel: m.schluessel,
       loeschSchluessel: m.loeschSchluessel,
+      /* Seine Sprache — die Meta-Anleitung ist der Teil, den er wirklich abarbeiten muss. */
+      sprache: m.sprache,
       nurLoeschen,
     }).catch(e => console.error("[versusforge-senden] Versand fehlgeschlagen", e));
   }

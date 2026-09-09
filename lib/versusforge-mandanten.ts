@@ -71,6 +71,14 @@ export type MandantAngaben = {
    * nichts nachträglich umgeschrieben.
    */
   sprache: string;
+  /**
+   * DAS GERÄT, MIT DEM ER DEN TRICHTER ANGELEGT HAT.
+   *
+   * Nur zu einem Zweck: seinen eigenen Testlauf von einer echten Anfrage zu unterscheiden
+   * (siehe `eigen` in lib/versusforge-lead.ts). Es ist eine zufällige Kennung aus seinem
+   * Browser, kein Personenbezug — und sie verlässt den Server nicht.
+   */
+  geraet?: string;
   /** Die Überschrift: sein Hook aus dem Plan. */
   hook: string;
   /** Ein Satz darunter, an SEINEN Kunden gerichtet — was er bekommt. */
@@ -297,6 +305,8 @@ export function mandantAusPlan(o: {
   loeschSchluessel: string;
   /** Die Sprache, in der er mit uns geredet hat. Ohne Angabe Deutsch. */
   sprache?: string;
+  /** Sein Gerät — damit sein eigener Testlauf später erkennbar ist. */
+  geraet?: string;
 }): MandantAngaben {
   const plan = o.plan ?? {};
   const sprache = String(o.sprache ?? "de").slice(0, 2).toLowerCase();
@@ -320,6 +330,7 @@ export function mandantAusPlan(o: {
        bleiben leer — die kennt der Plan nicht, und geraten wird nichts. */
     webUrl: o.webUrl ?? "",
     sprache,
+    geraet: o.geraet ?? "",
     hook: hook || V.hook,
     unterzeile: V.unterzeile,
     karten: karten.length ? karten : [V.karte],

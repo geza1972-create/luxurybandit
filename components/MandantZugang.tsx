@@ -1,5 +1,7 @@
 "use client";
 
+import type { DashboardTexte } from "@/lib/dashboard-texte";
+
 import { useState } from "react";
 import { Copy, Check, Eye, EyeOff } from "lucide-react";
 
@@ -28,14 +30,16 @@ import { Copy, Check, Eye, EyeOff } from "lucide-react";
  * Gerät) — und diese Karte ist der Ort, an dem die Frage sichtbar wird, statt in einem
  * Kommentar zu verschwinden.
  */
-export default function MandantZugang({ trichterUrl, anzeigeUrl, dashboardUrl, schluessel }: {
+export default function MandantZugang({ trichterUrl, anzeigeUrl, dashboardUrl, schluessel , T}: {
   trichterUrl: string; anzeigeUrl: string; dashboardUrl: string; schluessel: string;
+  /** Die Texte in der Sprache des Mandanten. */
+  T: DashboardTexte;
 }) {
   const [sichtbar, setSichtbar] = useState(false);
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(20,24,28,.06),0_8px_28px_rgba(20,24,28,.07)] md:p-7">
-      <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">Dein Zugang</h2>
+      <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">{T.zugangTitel}</h2>
       <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
         Es gibt hier keinen Benutzernamen und kein Passwort. Der Schlüssel in der Adresse ist
         dein Zugang — wer den Link hat, sieht deine Anfragen. Teile ihn nicht.
@@ -43,23 +47,31 @@ export default function MandantZugang({ trichterUrl, anzeigeUrl, dashboardUrl, s
 
       <div className="mt-5 flex flex-col gap-4">
         <Zeile
-          etikett="Dein Trichter"
-          hinweis="Diese Adresse gibst du bei Meta und Instagram als Ziel an."
+          zeigen={T.zeigen}
+          verbergen={T.verbergen}
+          etikett={T.deinTrichter}
+          hinweis={T.trichterFein}
           wert={trichterUrl}
         />
         <Zeile
-          etikett="Deine Anzeige"
-          hinweis="Titel und Primärtext zum Kopieren, dazu das Bild."
+          zeigen={T.zeigen}
+          verbergen={T.verbergen}
+          etikett={T.deineAnzeige}
+          hinweis={T.anzeigeFein}
           wert={anzeigeUrl}
         />
         <Zeile
-          etikett="Dein Dashboard"
-          hinweis="Als Lesezeichen speichern. Diese Seite hier."
+          zeigen={T.zeigen}
+          verbergen={T.verbergen}
+          etikett={T.deinDashboard}
+          hinweis={T.dashboardFein}
           wert={dashboardUrl}
         />
         <Zeile
-          etikett="Dein Schlüssel"
-          hinweis="Steckt am Ende der Dashboard-Adresse. Er ersetzt das Passwort."
+          zeigen={T.zeigen}
+          verbergen={T.verbergen}
+          etikett={T.deinSchluessel}
+          hinweis={T.schluesselFein}
           wert={schluessel}
           verdeckt={!sichtbar}
           umschalten={() => setSichtbar(v => !v)}
@@ -75,8 +87,10 @@ export default function MandantZugang({ trichterUrl, anzeigeUrl, dashboardUrl, s
  * KOPIEREN STATT MARKIEREN: Eine 90 Zeichen lange Adresse mit dem Finger zu markieren ist am
  * Handy die Sorte Aufgabe, bei der man aufgibt.
  */
-function Zeile({ etikett, hinweis, wert, verdeckt = false, umschalten }: {
+function Zeile({ etikett, hinweis, wert, verdeckt = false, umschalten , zeigen, verbergen}: {
   etikett: string; hinweis: string; wert: string; verdeckt?: boolean; umschalten?: () => void;
+
+  zeigen: string; verbergen: string;
 }) {
   const [kopiert, setKopiert] = useState(false);
   const kopieren = async () => {
@@ -96,7 +110,7 @@ function Zeile({ etikett, hinweis, wert, verdeckt = false, umschalten }: {
           <button type="button" onClick={umschalten}
             className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-[#5b666f] transition hover:text-[#14181c]">
             {verdeckt ? <Eye className="h-4 w-4" aria-hidden /> : <EyeOff className="h-4 w-4" aria-hidden />}
-            {verdeckt ? "Zeigen" : "Verbergen"}
+            {verdeckt ? zeigen : verbergen}
           </button>
         )}
       </div>

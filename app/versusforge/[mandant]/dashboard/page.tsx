@@ -6,6 +6,10 @@ import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import MandantKaufen from "@/components/MandantKaufen";
+import { VF_ANFRAGEN_OFFEN } from "@/lib/versusforge-schalter";
+import { dashboardTexteInSprache, type DashboardTexte } from "@/lib/dashboard-texte";
+import { metaSchritteInSprache } from "@/lib/versusforge-meta-anleitung";
 import MandantEinrichten from "@/components/MandantEinrichten";
 import AnfrageMenue from "@/components/AnfrageMenue";
 import MandantHooks from "@/components/MandantHooks";
@@ -60,16 +64,18 @@ function schluesselStimmt(soll: string, ist: string): boolean {
 }
 
 /** „vor 3 Stunden" liest sich schneller als ein Zeitstempel — und darum geht es hier. */
-function seither(iso: string): string {
+function seither(iso: string, T: DashboardTexte): string {
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return "";
   const min = Math.max(0, Math.round((Date.now() - t) / 60000));
-  if (min < 2) return "gerade eben";
-  if (min < 60) return `vor ${min} Min.`;
+  if (min < 2) return T.geradeEben;
+  if (min < 60) return T.vorMinuten.replace("{n}", String(min));
   const std = Math.round(min / 60);
-  if (std < 24) return `vor ${std} Std.`;
+  if (std < 24) return T.vorStunden.replace("{n}", String(std));
   const tage = Math.round(std / 24);
-  return `vor ${tage} Tag${tage === 1 ? "" : "en"}`;
+  /* EINZAHL UND MEHRZAHL SIND ZWEI SÄTZE, keine angehängte Endung: „vor 1 Tagen" fällt in
+     der eigenen Sprache nicht auf und in jeder fremden sofort. */
+  return tage === 1 ? T.vorEinemTag : T.vorTagen.replace("{n}", String(tage));
 }
 
 const KARTE = "rounded-2xl bg-white shadow-[0_1px_2px_rgba(20,24,28,.06),0_8px_28px_rgba(20,24,28,.07)]";
@@ -123,9 +129,30 @@ export default async function MandantDashboard({ params, searchParams }: {
   const bezahlt = m.stand === "scharf";
   const [anfragen, messung] = await Promise.all([leadsLesen(mandant, 200), trichterZaehlen(mandant)]);
 
+  /**
+   * ── WELCHE ANFRAGE OFFEN IST (Owner 09.09.2026) ─────────────────────────────────────────
+   *
+   * SEINE EIGENEN TESTLÄUFE SIND IMMER OFFEN und zählen nicht mit („er wird es selber testen
+   * wollen"). Sonst wäre sein Test die eine freie Anfrage — und die erste ECHTE, die vom
+   * Freund oder aus seinem Facebook-Beitrag, stünde schon hinter dem Schloss. Genau der
+   * Moment, der verkauft, wäre verdeckt.
+   *
+   * VON DEN FREMDEN SIND DIE ÄLTESTEN OFFEN. `leadsLesen` liefert die neuesten zuerst, also
+   * stehen die ältesten am ENDE der Liste. Offen ist die, die er als Erstes bekommen und
+   * wahrscheinlich schon angerufen hat — sie ihm nachträglich wegzunehmen wäre ein Rückschritt.
+   */
+  /* SEIN DASHBOARD IN SEINER SPRACHE (Owner 09.09.2026: „auf keinen Fall" — auf meinen
+     Vorschlag, es deutsch zu lassen). Begründung in lib/dashboard-texte.ts. */
+  const T = await dashboardTexteInSprache(m.sprache);
+  /* Dieselben zehn Schritte wie in seiner Mail — eine Quelle, zwei Orte. */
+  const schritte = await metaSchritteInSprache(m.sprache ?? "de");
+
+  const fremde = anfragen.filter(a => !a.eigen);
+  const offeneDateien = new Set(fremde.slice(-VF_ANFRAGEN_OFFEN).map(a => a.datei));
+
   const woche = Date.now() - 7 * 24 * 3600 * 1000;
   const neu = anfragen.filter(a => Date.parse(a.zeit) > woche).length;
-  const zuletzt = anfragen[0]?.zeit ? seither(anfragen[0].zeit) : "—";
+  const zuletzt = anfragen[0]?.zeit ? seither(anfragen[0].zeit, T) : "—";
 
   const basis = `/versusforge/${encodeURIComponent(mandant)}`;
   const mitK = (a: string) => `${basis}/dashboard?k=${encodeURIComponent(k)}${a ? `&ansicht=${a}` : ""}`;
@@ -154,7 +181,7 @@ export default async function MandantDashboard({ params, searchParams }: {
               ? "border-[#1a7f4b]/35 bg-[#eefaf1] text-[#1a7f4b]"
               : "border-[#c02626]/35 bg-[#fdf2f2] text-[#c02626]"}`}>
             <span aria-hidden="true" className={`h-2 w-2 rounded-full ${bereit ? "bg-[#1a7f4b]" : "bg-[#c02626]"}`} />
-            {bereit ? "Trichter läuft" : "Trichter ist aus"}
+            {bereit ? T.laeuft : T.ausgeschaltet}
           </span>
         </div>
       </header>
@@ -178,14 +205,14 @@ export default async function MandantDashboard({ params, searchParams }: {
               die Liste — der Reiter trug den Namen seines untersten Drittels. Die Zahl
               daneben bleibt die der Anfragen: Sie ist das, wonach er sucht. */}
           <Reiter href={mitK("")} aktiv={ansicht === "uebersicht"} icon={<LayoutDashboard className="h-[18px] w-[18px]" />}
-            wort="Übersicht" zahl={anfragen.length} />
+            wort={T.uebersicht} zahl={anfragen.length} />
           {/* HOOKS (Owner 09.09.2026: „ich brauche noch einen Punkt für Hooks, dort sehe ich
               meine Bilder, dort kann ich weitere generieren"). Zwischen Übersicht und
               Einstellungen: Es ist Arbeit am Produkt, keine Verwaltung. */}
           <Reiter href={mitK("hooks")} aktiv={ansicht === "hooks"} icon={<ImageIcon className="h-[18px] w-[18px]" />}
-            wort="Hooks" zahl={bilder} />
+            wort={T.hooks} zahl={bilder} />
           <Reiter href={mitK("einstellungen")} aktiv={ansicht === "einstellungen"} icon={<Settings className="h-[18px] w-[18px]" />}
-            wort="Einstellungen" warnung={!bereit} />
+            wort={T.einstellungen} warnung={!bereit} />
           {/* HIER STANDEN „Dein Trichter" UND „Deine Anzeige" ALS REITER (Owner 09.09.2026:
               „das ist doch Unsinn, ein extra Tab für die Weiterleitung").
               Er hat recht: Ein Reiter wechselt die Fläche, ein Link führt weg — beide sahen
@@ -197,20 +224,17 @@ export default async function MandantDashboard({ params, searchParams }: {
           {/* ── DER RIEGEL: er steht über allem, solange der Trichter aus ist ── */}
           {!bereit && ansicht === "uebersicht" && (
             <div className={`${KARTE} mb-5 border-l-4 border-l-[#c02626] p-5`}>
-              <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">Dein Trichter nimmt noch keine Anfragen an.</h2>
-              <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">
-                Es fehlen Impressum und Datenschutz. Deine Seite ist zu sehen, aber niemand
-                kann etwas hinterlassen — und du merkst es erst, wenn niemand anruft.
-              </p>
+              <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">{T.riegelTitel}</h2>
+              <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{T.riegelText}</p>
               <Link href={mitK("einstellungen")}
                 className="mt-4 inline-block rounded-xl bg-[#1d6fd0] px-6 py-3 text-[15.5px] font-extrabold text-white transition active:scale-[.99]">
-                Jetzt eintragen
+                {T.riegelKnopf}
               </Link>
             </div>
           )}
 
           {ansicht === "hooks" ? (
-            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} />
+            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} T={T} />
           ) : ansicht === "einstellungen" ? (
             <>
             <MandantEinrichten
@@ -226,6 +250,7 @@ export default async function MandantDashboard({ params, searchParams }: {
                 impressumUrl: m.impressumUrl ?? "",
                 datenschutzUrl: m.datenschutzUrl ?? "",
               }}
+              T={T}
             />
             {/* DER ZUGANG steht unter denselben Einstellungen, direkt unter den Angaben. */}
             <div className="mt-5">
@@ -234,6 +259,7 @@ export default async function MandantDashboard({ params, searchParams }: {
                 anzeigeUrl={`https://versusforge.com/${mandant}/anzeige`}
                 dashboardUrl={`https://versusforge.com/${mandant}/dashboard?k=${k}`}
                 schluessel={m.schluessel}
+                T={T}
               />
             </div>
             </>
@@ -241,70 +267,171 @@ export default async function MandantDashboard({ params, searchParams }: {
             <>
               {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
               <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <Zahl wert={String(messung.besucher)} label="Besucher" zusatz="30 Tage" />
-                <Zahl wert={String(anfragen.length)} label="Anfragen" />
-                <Zahl wert={String(neu)} label="Neu" zusatz="7 Tage" />
-                <Zahl wert={zuletzt} label="Zuletzt" klein />
+                <Zahl wert={String(messung.besucher)} label={T.besucher} zusatz={T.tage30} />
+                <Zahl wert={String(anfragen.length)} label={T.anfragen} />
+                <Zahl wert={String(neu)} label={T.neu} zusatz={T.tage7} />
+                <Zahl wert={zuletzt} label={T.zuletzt} klein />
               </div>
 
               {/* ── WO SIE ABSPRINGEN ── */}
-              <Leiter leiter={messung.leiter} besucher={messung.besucher} />
+              <Leiter leiter={messung.leiter} besucher={messung.besucher} T={T} />
 
               <section className={`${KARTE} mt-5 p-6 md:p-7`}>
                 <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">
-                  {anfragen.length === 0 ? "Noch keine Anfragen" : "Deine Anfragen"}
+                  {anfragen.length === 0 ? T.keineAnfragen : T.deineAnfragen}
                 </h2>
 
                 {anfragen.length === 0 ? (
                   /* EINE LEERE LISTE MUSS SAGEN, WARUM SIE LEER IST. */
                   <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
-                    {bereit
-                      ? "Sobald jemand deinen Trichter durchläuft, steht er hier — und du bekommst eine E-Mail."
-                      : "Trag zuerst Impressum und Datenschutz ein. Danach nimmt deine Seite Anfragen an."}
+                    {bereit ? T.wartetLeer : T.wartetAus}
                   </p>
-                ) : !bezahlt ? (
-                  /**
-                   * DAS SCHLOSS — DIE ZAHL OHNE DIE NAMEN (Owner: „er wird niemals das nutzen
-                   * können ohne Dashboard. Das muss er kaufen").
-                   *
-                   * KEIN UNSCHARFER TEXT DAHINTER, keine Punkte statt Buchstaben. Ein
-                   * verwischter Name ist ein Trick, und Tricks fallen auf: Wer die Seite
-                   * anschaut, findet ihn im Quelltext. Was hier steht, ist wahr und
-                   * vollständig.
-                   */
+                ) : (
+                  <>
+                  {/**
+                    * ── DIE LISTE STEHT IMMER DA (Owner 09.09.2026: „er sieht aber auf seinem
+                    * Dashboard bloss nicht, wer die Anfrage gemacht hat") ────────────────────
+                    *
+                    * VORHER STAND HIER STATT DER LISTE EIN SCHLOSS mit einer Zahl. Wer nicht
+                    * bezahlt hatte, sah seine Anfragen überhaupt nicht — nur, dass es welche
+                    * gibt. Auf die Frage „zahlt er, ohne zu sehen, was er bekommt?" war die
+                    * Antwort: ja.
+                    *
+                    * JETZT SIEHT ER ALLES AUSSER DEM NAMEN UND DER NUMMER. Was der Mensch
+                    * gesagt hat, wann er da war, wie viele es sind — das ist der Beweis, dass
+                    * der Trichter arbeitet. Verschlossen ist nur, WER es war, und genau das
+                    * ist das Produkt.
+                    */}
+                  {!bezahlt && fremde.length > VF_ANFRAGEN_OFFEN && (
                   <div className="mt-4 rounded-xl bg-[#eaf2fc] p-5">
                     <div className="flex items-start gap-3">
                       <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#1d6fd0]" aria-hidden />
                       <div className="min-w-0">
                         <p className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">
-                          {anfragen.length === 1
-                            ? "Ein Mensch hat seine Nummer hinterlassen."
-                            : `${anfragen.length} Menschen haben ihre Nummer hinterlassen.`}
+                          {fremde.length - VF_ANFRAGEN_OFFEN === 1
+                            ? T.eineWartet
+                            : T.vieleWarten.replace("{n}", String(fremde.length - VF_ANFRAGEN_OFFEN))}
                         </p>
-                        <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">
-                          Name, Telefonnummer und das Gespräch dazu stehen hier — freigeschaltet
-                          ist es noch nicht. Wer innerhalb eines Tages zurückruft, erreicht die
-                          Leute noch.
-                        </p>
-                        {/* KEIN KAUFKNOPF, SOLANGE ES KEINE KASSE GIBT (Memory
-                            `versusforge-preistreppe`): Ein Knopf, der nichts tut, verbrennt
-                            den einen Moment, in dem jemand kaufen wollte. PREIS AUS DER
-                            TABELLE, KONTAKT NUR ÜBER /contact (Hausregeln). */}
+                        <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{T.ersteOffen.replace("{frei}", String(VF_ANFRAGEN_OFFEN))}</p>
+                        {/**
+                          * JETZT GIBT ES DIE KASSE (Owner 09.09.2026: „wie soll ich den
+                          * scharf schalten, wenn der Kunde am Ende nichts kaufen kann?").
+                          *
+                          * Hier stand „schreib uns, dann schalten wir frei" — und das war
+                          * ehrlich, solange es keinen Kaufweg gab. Es war aber auch die
+                          * Stelle, an der jemand entschlossen war zu zahlen und stattdessen
+                          * ein Formular bekam. Der Knopf steht genau dort, wo die Zahl der
+                          * verschlossenen Anfragen steht: Das ist der Moment.
+                          */}
                         <p className="mt-3.5 text-[15px] leading-[1.5]">
-                          <b>{eur(VERSUSFORGE_START_CENTS, "de")} einmalig</b>, mit Einrichtung
-                          deiner ersten Anzeige zusammen mit uns.{" "}
-                          <a href="/contact?reason=support" className="font-bold text-[#1d6fd0] underline underline-offset-2">
-                            Schreib uns
-                          </a>, dann schalten wir frei.
+                          {T.preisZeile.replace("{preis}", eur(VERSUSFORGE_START_CENTS, m.sprache))}
                         </p>
+                        <MandantKaufen
+                          mandant={mandant}
+                          k={k}
+                          wort={T.freischalten.replace("{preis}", eur(VERSUSFORGE_START_CENTS, m.sprache))}
+                          klasse="mt-3.5 inline-block rounded-xl bg-[#1d6fd0] px-6 py-3.5 text-[16px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60"
+                        />
                       </div>
                     </div>
                   </div>
-                ) : (
+                  )}
+
+                  {/* Die ÄLTESTEN sind offen: Die erste Anfrage ist die, die er schon
+                      angerufen hat — ihm die wegzunehmen wäre ein Rückschritt. */}
                   <ul className="mt-5 flex list-none flex-col gap-3 p-0">
-                    {anfragen.map(a => <Anfrage key={a.datei} a={a} />)}
+                    {/**
+                      * ── WAS VERSCHLOSSEN IST, WIRD GAR NICHT ERST ÜBERGEBEN (09.09.2026,
+                      * in der eigenen Gegenprobe gefunden) ────────────────────────────────
+                      *
+                      * Vorher bekam die Karte die ganze Anfrage (`a={a}`) und entschied dann
+                      * selbst, was sie anzeigt. Das sah richtig aus und war falsch: Der
+                      * vollständige Eintrag — Name, Telefonnummer, alles — stand danach im
+                      * Quelltext der Seite, weil die Eigenschaften eines Bauteils dort
+                      * mitgeliefert werden. Wer die Seite ansieht, findet ihn.
+                      *
+                      * JETZT ENTSCHEIDET DER SERVER, WAS ÜBERHAUPT MITGEHT. Bei einer
+                      * verschlossenen Anfrage bekommt die Karte keinen Namen und keine
+                      * Nummer — es gibt sie dort nicht.
+                      */}
+                    {anfragen.map(a => {
+                      const offen = bezahlt || !!a.eigen || offeneDateien.has(a.datei);
+                      const wert = (f: string) => (a.runden ?? []).find(r => r.frage === f)?.antwort?.trim() ?? "";
+                      return (
+                        <Anfrage
+                          key={a.datei}
+                          zeit={a.zeit}
+                          eigen={!!a.eigen}
+                          offen={offen}
+                          name={offen ? wert("Name") : ""}
+                          telefon={offen ? wert("Telefon") : ""}
+                          mail={offen ? String(a.mail ?? "").trim() : ""}
+                          gespraech={(a.runden ?? []).filter(r => r.frage !== "Name" && r.frage !== "Telefon")}
+                          T={T}
+                        />
+                      );
+                    })}
                   </ul>
+                  </>
                 )}
+              </section>
+
+              {/**
+                * ── DIE BERATUNG STEHT DA, WO ER STOCKT (Owner 09.09.2026: „ich glaube ehrlich
+                * gesagt nicht, dass jemand das kauft ohne Beratung. Das müssen wir ihm ebenso
+                * auf seinem Dashboard anbieten, so wie in der E-Mail") ─────────────────────
+                *
+                * IN DER MAIL STAND SIE SCHON, HIER FEHLTE SIE — und das ist die falsche
+                * Reihenfolge: Die Mail liest er einmal, das Dashboard öffnet er bei jeder
+                * Anfrage. Genau hier sitzt er, wenn er nicht weiterkommt.
+                *
+                * UNTEN, NICHT OBEN: Wer es selbst schafft, soll es zuerst versuchen. Wer
+                * scheitert, findet den Satz genau dort, wo er aufhört zu scrollen.
+                */}
+              {/**
+                * ── DIE ANLEITUNG, ZUGEKLAPPT (Owner 09.09.2026: „wir müssen ihm Hilfe bei
+                * Facebook einrichten helfen. Wenn er das noch nie gemacht hat, wird er es
+                * nicht wissen") ───────────────────────────────────────────────────────────
+                *
+                * `details` statt eines eigenen Zustands: Es klappt ohne eine Zeile Code auf,
+                * funktioniert ohne Javascript und ist mit der Tastatur bedienbar. Ein
+                * Aufklapper, den man selbst baut, ist an dieser Stelle nur mehr Fehler.
+                */}
+              <section className={`${KARTE} mt-5 p-6 md:p-7`}>
+                <details>
+                  <summary className="cursor-pointer list-none">
+                    <span className="text-[19px] font-extrabold tracking-[-0.02em]">{T.anleitungTitel}</span>
+                    <span className="mt-1.5 block text-[15px] leading-[1.5] text-[#5b666f]">{T.anleitungFein}</span>
+                    <span className="mt-2.5 inline-block text-[14.5px] font-bold text-[#1d6fd0]">{T.anleitungOeffnen}</span>
+                  </summary>
+                  <ol className="mt-4 flex list-none flex-col gap-3.5 p-0">
+                    {schritte.map(([titel, text], i) => (
+                      <li key={titel} className="flex gap-3">
+                        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#eaf2fc] text-[13px] font-black text-[#1d6fd0]">
+                          {i + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <b className="text-[15.5px]">{titel}</b>
+                          {/* Der Text enthält an einer Stelle ein <b> aus der Quelle — es
+                              benennt Metas eigenes Menüwort und darf nicht verlorengehen. */}
+                          <span className="mt-0.5 block text-[15px] leading-[1.5] text-[#5b666f]"
+                            dangerouslySetInnerHTML={{ __html: text }} />
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              </section>
+
+              <section className={`${KARTE} mt-5 p-6 md:p-7`}>
+                <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">{T.beratungTitel}</h2>
+                <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">{T.beratungText}</p>
+                {/* KONTAKT NUR ÜBER /contact, nie eine Adresse im Klartext
+                    ([[keine-email-adresse-auf-der-seite]]). */}
+                <a href="/contact?reason=versusforge"
+                  className="mt-4 inline-block rounded-xl border-[1.5px] border-[#dfe4e9] px-6 py-3 text-[15.5px] font-extrabold text-[#14181c] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0]">
+                  {T.beratungKnopf}
+                </a>
               </section>
             </>
           )}
@@ -377,7 +504,21 @@ function Zahl({ wert, label, zusatz, klein = false }: {
  * da sind — die Frage ist aber, wo sie verloren gehen. Nur die grösste Stelle wird
  * hervorgehoben; drei rote Zahlen nebeneinander heben sich gegenseitig auf.
  */
-function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number }) {
+/**
+ * DIE STUFEN HEISSEN IN SEINER SPRACHE (09.09.2026, beim rumänischen Prüflauf gesehen):
+ * Zwischen „Prezentare generală" und „Cererile tale" standen „Seite gesehen" und „1. Frage
+ * beantwortet" — die Namen kommen aus `lib/versusforge-schritt.ts`, wo sie DATENSCHLÜSSEL
+ * sind und deutsch bleiben müssen. Hier werden sie übersetzt angezeigt; passt ein Schlüssel
+ * nicht, bleibt das deutsche Wort stehen statt einer Lücke.
+ */
+const STUFENWORT: Record<string, keyof DashboardTexte> = {
+  seite: "stufeSeite", start: "stufeStart",
+  antwort1: "stufeAntwort1", antwort2: "stufeAntwort2",
+  antwort3: "stufeAntwort3", antwort4: "stufeAntwort4",
+  abschluss: "stufeAbschluss",
+};
+
+function Leiter({ leiter, besucher, T }: { leiter: Trichterzahl[]; besucher: number; T: DashboardTexte }) {
   /* Die schlimmste Stelle — aber nur, wenn überhaupt genug Leute da waren, dass die Zahl
      etwas bedeutet. Bei drei Besuchern ist jeder Abbruch 33 % und nichts davon ein Befund. */
   const schlimmste = besucher >= 10
@@ -386,7 +527,7 @@ function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number
 
   return (
     <section className={`${KARTE} mt-5 p-6 md:p-7`}>
-      <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">Wo sie abspringen</h2>
+      <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">{T.abspringenTitel}</h2>
       {besucher === 0 ? (
         <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
           Noch niemand war auf deiner Seite. Sobald die Anzeige läuft, steht hier, an welcher
@@ -394,14 +535,14 @@ function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number
         </p>
       ) : (
         <>
-          <p className="mt-2 text-[14.5px] text-[#8b959d]">Letzte 30 Tage</p>
+          <p className="mt-2 text-[14.5px] text-[#8b959d]">{T.abspringenZeit}</p>
           <ul className="mt-5 flex list-none flex-col gap-3.5 p-0">
             {leiter.map((z, i) => {
               const hier = schlimmste && z.stufe.schluessel === schlimmste.stufe.schluessel && z.verloren > 0;
               return (
                 <li key={z.stufe.schluessel}>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[15px] font-bold">{z.stufe.wort}</span>
+                    <span className="text-[15px] font-bold">{T[STUFENWORT[z.stufe.schluessel]] ?? z.stufe.wort}</span>
                     <span className="shrink-0 text-[15px] font-bold text-[#5b666f]">
                       {z.anzahl}
                       <span className="ml-2 text-[13.5px] font-bold text-[#8b959d]">{z.anteil}%</span>
@@ -413,7 +554,7 @@ function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number
                   {/* Der Verlust steht ZWISCHEN den Sprossen, dort wo er entsteht. */}
                   {i < leiter.length - 1 && z.verloren > 0 && (
                     <p className={`mt-1.5 text-[13.5px] font-bold ${hier ? "text-[#c02626]" : "text-[#8b959d]"}`}>
-                      {hier ? "Grösster Absprung: " : ""}−{z.verloren} hier aufgehört
+                      {hier ? `${T.groessterAbsprung} ` : ""}−{z.verloren} {T.hierAufgehoert}
                     </p>
                   )}
                 </li>
@@ -451,26 +592,52 @@ function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number
  * DIE REIHENFOLGE IST DIE ARBEITSREIHENFOLGE: Wer ist es, wie erreiche ich ihn, worum ging
  * es — und erst auf Wunsch das ganze Gespräch.
  */
-function Anfrage({ a }: { a: LeadEintrag }) {
-  /* Der Mandanten-Trichter legt Name und Telefon als die letzten zwei Runden ab
-     (`app/api/versusforge-mandant/route.ts`); der eigene Trichter hat stattdessen `mail`.
-     Beide Formen werden hier gelesen — es ist EIN Dashboard für beide. */
-  const runden = a.runden ?? [];
-  const feld = (wort: string) => runden.find(r => r.frage === wort)?.antwort ?? "";
-  const name = feld("Name");
-  const telefon = feld("Telefon");
-  const mail = String(a.mail ?? "").trim();
-  const gespraech = runden.filter(r => r.frage !== "Name" && r.frage !== "Telefon");
+/**
+ * EINE ANFRAGE — MIT ODER OHNE DEN MENSCHEN DAHINTER.
+ *
+ * `wer` entscheidet, ob Name, Telefonnummer und Adresse erscheinen. Ist er falsch, werden
+ * sie GAR NICHT GERENDERT — sie stehen dann auch nicht im Quelltext. Das ist der Unterschied
+ * zum verwischten Namen, den man bei Tinder sieht (Owner 09.09.2026: „das Gleiche macht
+ * Tinder. Es kommt eine E-Mail an, jemand hat sich dein Profil angeschaut, du siehst bloss
+ * nicht, wer"): Verwischen ist ein Bild über Daten, die trotzdem da sind. Wer die Seite
+ * anschaut, findet sie. Was hier fehlt, fehlt wirklich.
+ */
+function Anfrage({ zeit, eigen, offen, name, telefon, mail, gespraech, T }: {
+  zeit: string;
+  /** Sein eigener Testlauf — immer offen, aber als solcher gekennzeichnet. */
+  eigen: boolean;
+  /** Steht der Mensch dahinter offen? Ist es falsch, kommen Name, Nummer und Adresse leer an. */
+  offen: boolean;
+  name: string;
+  telefon: string;
+  mail: string;
+  gespraech: { frage: string; antwort: string }[];
+  T: DashboardTexte;
+}) {
 
   return (
     <li className="rounded-xl border border-[#e4e9ee] p-4">
+      {/* SEIN EIGENER DURCHLAUF STEHT DRAN. Ohne die Kennzeichnung sähe er drei Anfragen und
+          hielte seine eigene für einen Kunden — und riefe sich selbst an. */}
+      {eigen && (
+        <span className="mb-2 inline-block rounded-full border-[1.5px] border-[#dfe4e9] bg-[#f5f7f9] px-2.5 py-0.5 text-[12px] font-black uppercase tracking-[0.12em] text-[#5b666f]">
+          {T.deinTestlauf}
+        </span>
+      )}
       {/**
         * OHNE NAMEN IST DIE ADRESSE DIE ÜBERSCHRIFT — und dann steht sie nur EINMAL da.
         * In der ersten Fassung war sie beides, Titel und Kontaktzeile darunter; dieselbe
         * Zeichenfolge zweimal untereinander sieht aus wie ein Fehler.
         */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        {name ? (
+        {!offen ? (
+          /* KEIN PLATZHALTER-NAME, SONDERN DIE WAHRHEIT: Es war ein Mensch, und wie er
+             heisst, steht hinter dem Schloss. */
+          <span className="inline-flex items-center gap-2 text-[17px] font-extrabold tracking-[-0.01em] text-[#1d6fd0]">
+            <Lock className="h-[17px] w-[17px] shrink-0" aria-hidden />
+            {T.verschlossen}
+          </span>
+        ) : name ? (
           <span className="text-[17px] font-extrabold tracking-[-0.01em]">{name}</span>
         ) : mail ? (
           <a href={`mailto:${mail}`} className="inline-flex min-w-0 items-center gap-2 text-[17px] font-extrabold tracking-[-0.01em] text-[#1d6fd0]">
@@ -478,18 +645,22 @@ function Anfrage({ a }: { a: LeadEintrag }) {
             <span className="truncate">{mail}</span>
           </a>
         ) : (
-          <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#8b959d]">Ohne Namen</span>
+          <span className="text-[17px] font-extrabold tracking-[-0.01em] text-[#8b959d]">{T.ohneNamen}</span>
         )}
         <span className="ml-auto flex items-center gap-1">
-          <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(a.zeit)}</span>
+          <span className="text-[13.5px] font-bold text-[#8b959d]">{seither(zeit, T)}</span>
           {/* DIE DREI PUNKTE (Owner 09.09.2026) — nur das Menü, die Wege kommen, wenn die
               Anzeige läuft. Begründung in components/AnfrageMenue.tsx. */}
-          <AnfrageMenue wer={name || mail || "diese Anfrage"} />
+          {/* DER NAME DARF HIER NICHT DURCHRUTSCHEN (09.09.2026 beim Prüfen gefunden):
+              `AnfrageMenue` ist ein Client-Bauteil — was es als Eigenschaft bekommt, steht im
+              Browser, auch wenn es nirgends sichtbar ist. Ist die Anfrage verschlossen, geht
+              nur ein neutrales Wort hinaus. */}
+          <AnfrageMenue wer={offen ? (name || mail || "diese Anfrage") : "diese Anfrage"} />
         </span>
       </div>
 
       {/* ── ERREICHBARKEIT: das Wichtigste der ganzen Karte, zum Antippen ── */}
-      {(telefon || (name && mail)) && (
+      {offen && (telefon || (name && mail)) && (
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5">
           {telefon && (
             <a href={`tel:${telefon.replace(/[^+0-9]/g, "")}`}
@@ -510,7 +681,7 @@ function Anfrage({ a }: { a: LeadEintrag }) {
         </div>
       )}
       {!telefon && !mail && (
-        <p className="mt-2 text-[14.5px] font-semibold text-[#8b959d]">Keine Kontaktdaten hinterlassen</p>
+        <p className="mt-2 text-[14.5px] font-semibold text-[#8b959d]">{T.keineKontaktdaten}</p>
       )}
 
       {/**
@@ -526,22 +697,10 @@ function Anfrage({ a }: { a: LeadEintrag }) {
         * DESHALB GROSS UND MIT RAND, nicht als Absatz. Und mit Etikett, damit klar ist, dass
         * es SEINE Worte sind und keine Zusammenfassung von uns.
         */}
-      {a.text ? (
-        <div className="mt-3 border-l-[3px] border-[#1d6fd0] pl-3.5">
-          <p className="m-0 text-[12px] font-black uppercase tracking-[0.14em] text-[#8b959d]">
-            Womit er angefangen hat
-          </p>
-          <p className="m-0 mt-1.5 text-[16.5px] font-semibold leading-[1.45] text-[#14181c]">{a.text}</p>
-        </div>
-      ) : null}
-      {/* Die Adresse, die er analysieren liess — für den eigenen Trichter der schnellste Weg,
-          zu sehen, mit wem man es zu tun hat. Nur wenn sie da ist. */}
-      {a.url ? (
-        <a href={a.url} rel="noopener noreferrer" target="_blank"
-          className="mt-2.5 inline-block text-[14.5px] font-bold text-[#1d6fd0] underline underline-offset-2">
-          {String(a.url).replace(/^https?:\/\//, "").replace(/\/$/, "")}
-        </a>
-      ) : null}
+      {/* HIER STANDEN „Womit er angefangen hat" UND SEINE ADRESSE (09.09.2026 entfernt):
+          Beide kamen aus dem vollständigen Eintrag, den die Karte nicht mehr bekommt — und
+          genau dieser Eintrag war das Leck. Was der Mensch gesagt hat, steht im Gespräch
+          darunter; die Adresse steht unter Einstellungen. */}
 
       {/**
         * DAS GESPRÄCH ZUM AUFKLAPPEN (Owner 09.09.2026: „das zum Ausklappen").
@@ -556,7 +715,7 @@ function Anfrage({ a }: { a: LeadEintrag }) {
         <details className="group mt-3 border-t border-[#eef1f4] pt-3">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[14.5px] font-bold text-[#5b666f] transition hover:text-[#14181c]">
             <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" aria-hidden />
-            Das Gespräch · {gespraech.length} {gespraech.length === 1 ? "Frage" : "Fragen"}
+            {T.gespraech} · {gespraech.length} {gespraech.length === 1 ? T.frage : T.fragen}
           </summary>
           <dl className="mt-3 grid gap-2.5 md:grid-cols-2">
             {gespraech.map((r, i) => (

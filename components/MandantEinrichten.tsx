@@ -1,5 +1,7 @@
 "use client";
 
+import type { DashboardTexte } from "@/lib/dashboard-texte";
+
 import { useState } from "react";
 import { Check } from "lucide-react";
 
@@ -45,8 +47,12 @@ type Felder = {
 };
 
 export default function MandantEinrichten({
-  mandant, k, start, trichterUrl, name,
-}: { mandant: string; k: string; start: Felder; trichterUrl: string; name: string }) {
+  mandant, k, start, trichterUrl, name, T,
+}: {
+  mandant: string; k: string; start: Felder; trichterUrl: string; name: string;
+  /** Die Texte in der Sprache des Mandanten. */
+  T: DashboardTexte;
+}) {
   const [f, setF] = useState<Felder>(start);
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState("");
@@ -67,16 +73,16 @@ export default function MandantEinrichten({
         body: JSON.stringify({ mandant, k, ...f }),
       });
       const d = (await res.json()) as Record<string, unknown>;
-      if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return; }
+      if (!res.ok) { setFehler(String(d.error ?? T.fehler)); return; }
       setGesichert(true);
     } catch {
-      setFehler("Das ging gerade nicht. Bitte noch einmal.");
+      setFehler(T.fehler);
     } finally { setLaeuft(false); }
   };
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-[0_10px_34px_rgba(20,24,28,.10)] md:p-7">
-      <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">Deine Angaben</h2>
+      <h2 className="m-0 text-[21px] font-extrabold tracking-[-0.02em]">{T.angabenTitel}</h2>
 
       {/**
         * ── GRUPPE 0: WOHIN DIE ANFRAGEN GEHEN (Owner 09.09.2026: „unter Einstellungen da ist
@@ -93,36 +99,36 @@ export default function MandantEinrichten({
         */}
       <Gruppe
         nummer={1}
-        titel="Wohin deine Anfragen gehen"
+        titel={T.mailFein}
         satz="An diese Adresse schreiben wir, sobald jemand seine Nummer hinterlassen hat. Über sie bekommst du auch deine Links und den Löschlink."
       >
-        <Feld etikett="Deine E-Mail-Adresse" platzhalter="name@praxis-mueller.de"
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.mailFeld} platzhalter="name@praxis-mueller.de"
           wert={f.mail} onChange={setz("mail")} />
       </Gruppe>
 
       {/* ── GRUPPE 2: SIE ENTSCHEIDET, OB DER TRICHTER LÄUFT ── */}
       <Gruppe
         nummer={2}
-        titel="Damit deine Seite Anfragen annehmen darf"
+        titel={T.angabenNoetig}
         satz="Wer Namen und Telefonnummern entgegennimmt, braucht beides auf der Seite. Fehlt eins, bleibt dein Trichter zu."
       >
-        <Feld etikett="Impressum" platzhalter="praxis-mueller.de/impressum"
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.impressumFeld} platzhalter="praxis-mueller.de/impressum"
           wert={f.impressumUrl} onChange={setz("impressumUrl")} />
-        <Feld etikett="Datenschutz" platzhalter="praxis-mueller.de/datenschutz"
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.datenschutzFeld} platzhalter="praxis-mueller.de/datenschutz"
           wert={f.datenschutzUrl} onChange={setz("datenschutzUrl")} />
       </Gruppe>
 
       {/* ── GRUPPE 3: SIE ENTSCHEIDET, WAS SEIN KUNDE OBEN LIEST ── */}
       <Gruppe
         nummer={3}
-        titel="Was oben auf deiner Seite steht"
+        titel={T.kopfzeileFein}
         satz="Gleich soll jemand seine Nummer hinterlassen. Die erste Frage ist „gibt es die Praxis überhaupt?“ — das hier beantwortet sie."
       >
-        <Feld etikett="Deine Adresse" platzhalter="Hauptstrasse 12 · 80331 München"
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.adresseFeld} platzhalter="Hauptstrasse 12 · 80331 München"
           wert={f.adresse} onChange={setz("adresse")} />
-        <Feld etikett="Telefonnummer" platzhalter="+49 89 123456"
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.telefonFeld} platzhalter="+49 89 123456"
           wert={f.telefon} onChange={setz("telefon")} />
-        <Feld etikett="Deine Website" platzhalter="praxis-mueller.de" freiwillig
+        <Feld ausgefuellt={T.ausgefuellt} etikett={T.webFeld} platzhalter="praxis-mueller.de" freiwillig
           wert={f.webUrl} onChange={setz("webUrl")} />
 
         {/**
@@ -148,7 +154,7 @@ export default function MandantEinrichten({
             {f.webUrl.trim() ? (
               <>
                 <span aria-hidden="true" className="text-[#c3ccd4]">·</span>
-                <span className="text-[#5b666f] underline">Website</span>
+                <span className="text-[#5b666f] underline">{T.webKurz}</span>
               </>
             ) : null}
           </div>
@@ -165,7 +171,7 @@ export default function MandantEinrichten({
           onClick={() => void speichern()}
           className="rounded-xl bg-[#1d6fd0] px-7 py-3.5 text-[16px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-50"
         >
-          {laeuft ? "Einen Moment …" : "Speichern"}
+          {laeuft ? T.moment : T.speichern}
         </button>
         {gesichert && (
           <span className="flex items-center gap-2 text-[15px] font-bold text-[#1a7f4b]">
@@ -217,9 +223,11 @@ function Gruppe({ nummer, titel, satz, children }: {
  * DER RAHMEN BLEIBT IN JEDEM ZUSTAND GLEICH DICK (CI-Regel „Auswahl verschiebt NIE") — es
  * wechselt nur die Farbe, sonst springt die Zeile beim Tippen.
  */
-function Feld({ etikett, platzhalter, wert, onChange, freiwillig = false }: {
+function Feld({ etikett, platzhalter, wert, onChange, freiwillig = false, ausgefuellt = "" }: {
   etikett: string; platzhalter: string; wert: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; freiwillig?: boolean;
+  /** Was der Haken für Vorlese-Programme heisst — in seiner Sprache. */
+  ausgefuellt?: string;
 }) {
   const voll = !!wert.trim();
   return (
@@ -227,7 +235,7 @@ function Feld({ etikett, platzhalter, wert, onChange, freiwillig = false }: {
       <span className="flex items-center gap-2 text-[14.5px] font-bold text-[#14181c]">
         {etikett}
         {voll ? (
-          <Check className="h-4 w-4 text-[#1a7f4b]" aria-label="ausgefüllt" />
+          <Check className="h-4 w-4 text-[#1a7f4b]" aria-label={ausgefuellt} />
         ) : freiwillig ? (
           <span className="text-[13.5px] font-semibold text-[#8b959d]">freiwillig</span>
         ) : null}

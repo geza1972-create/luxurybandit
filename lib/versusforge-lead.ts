@@ -42,6 +42,25 @@ export type VersusForgeLead = {
    * vorher aufgebaut hat.
    */
   runden?: { frage: string; antwort: string }[];
+  /**
+   * SEIN EIGENER TESTLAUF (Owner 09.09.2026: „er wird es selber testen wollen. Falls er das
+   * einem Freund schickt und der macht eine Anfrage, dann bekommt er eine E-Mail").
+   *
+   * ── WARUM DAS FELD EXISTIEREN MUSS ────────────────────────────────────────────────────────
+   *
+   * Die erste echte Anfrage ist offen — das ist der Beweis, dass der Trichter arbeitet
+   * ([[VF_ANFRAGEN_OFFEN]] in lib/versusforge-schalter.ts). Nur wird JEDER Betrieb zuerst
+   * selbst hindurchgehen, um zu sehen, ob es geht. Ohne dieses Feld wäre sein eigener Test
+   * die freie Anfrage — und die erste ECHTE, die von seinem Freund, wäre schon verschlossen.
+   * Ausgerechnet der Moment, der verkauft, fiele hinter das Schloss.
+   *
+   * ERKANNT WIRD ES AM GERÄT, mit dem der Trichter angelegt wurde. Kein Test-Knopf, kein
+   * Häkchen: Wer prüft, soll genau das sehen, was sein Kunde sieht.
+   *
+   * TESTS SIND IMMER OFFEN UND ZÄHLEN NICHT MIT. Sie stehen im Dashboard, sichtbar als das,
+   * was sie sind — sie zu verstecken wäre falsch, denn er hat sie ja selbst gemacht.
+   */
+  eigen?: boolean;
   zeit: string;
 };
 

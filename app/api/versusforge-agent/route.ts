@@ -6,6 +6,11 @@ import { hookBild } from "@/lib/versusforge-bild";
 import { HEBEL, HOOK_REGELN, HEBEL_AUFTRAG } from "@/lib/versusforge-hook-rezept";
 import { beispielFuer, beispielText } from "@/lib/versusforge-beispiele";
 import { steinText } from "@/lib/versusforge-stein";
+import { motivBauen } from "@/lib/versusforge-motiv";
+import { randomUUID } from "node:crypto";
+import { freierName, mandantAusPlan, mandantSpeichern } from "@/lib/versusforge-mandanten";
+import { leadSpeichern, EIGENER_MANDANT } from "@/lib/versusforge-lead";
+import { linksPerPost } from "@/lib/versusforge-links-post";
 import { agentDeckel } from "@/lib/versusforge-deckel";
 import { sprachname } from "@/lib/lang";
 
@@ -71,14 +76,14 @@ const AUFRUF: Record<string, string> = {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return NextResponse.json({ error: "Der Agent ist gerade nicht erreichbar." }, { status: 503 });
+  if (!apiKey) return NextResponse.json({ grund: "modell" }, { status: 503 });
 
   /* EIGENER DECKEL FÜR DEN CHAT (09.09.2026): Er zählt NACHRICHTEN, nicht Durchläufe — der
      Deckel des Trichters hätte hier nach der fünften Nachricht dichtgemacht. Begründung und
      Zahlen in lib/versusforge-deckel.ts. */
   const stand = await agentDeckel(str(body.device, 80));
   if (!stand.erlaubt) {
-    return NextResponse.json({ error: "Für heute ist auf diesem Gerät genug gelaufen." }, { status: 429 });
+    return NextResponse.json({ grund: "deckel" }, { status: 429 });
   }
 
   const verlauf = (Array.isArray(body.verlauf) ? body.verlauf : [])
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
       return { role: o.rolle === "agent" ? "assistant" : "user", content: str(o.text, 2000) };
     })
     .filter(m => m.content);
-  if (!verlauf.length) return NextResponse.json({ error: "Schreib mir etwas." }, { status: 400 });
+  if (!verlauf.length) return NextResponse.json({ grund: "leer" }, { status: 400 });
 
   /**
    * SEINE SPRACHE — SIE KOMMT AUS DEM BROWSER, NICHT AUS EINER VERMUTUNG (Owner 09.09.2026:
@@ -105,9 +110,20 @@ export async function POST(request: Request) {
    */
   const sprache = str(body.sprache, 5) || "de";
 
+  /**
+   * SEIN HOCHGELADENES FOTO — es kommt als Datenadresse mit der Nachricht und wird nirgends
+   * abgelegt (Owner 09.09.2026: „auch nicht nach Bildern, die er eventuell hochladen kann").
+   * Der Browser hat es schon auf 1080 Pixel gebracht; die Grenze hier ist nur die Bremse
+   * gegen eine Nachricht, die den Aufruf sprengt.
+   */
+  const eigenesFoto = (() => {
+    const f = String(body.foto ?? "");
+    return f.startsWith("data:image/") && f.length < 3_000_000 ? f : "";
+  })();
+
   /* Was der Agent unterwegs herausgefunden hat — der Browser zeigt es an, ohne dass es im
      Gesprächstext stehen muss. */
-  const fund: { seite?: string; bild?: string; foto?: string; bilder?: string[] } = {};
+  const fund: { seite?: string; bild?: string; foto?: string; bilder?: string[]; motiv?: string } = {};
 
   const werkzeuge: Werkzeug[] = [
     {
@@ -167,43 +183,136 @@ export async function POST(request: Request) {
         return { note, maengel, regeln: maengel.length ? HOOK_REGELN : undefined };
       },
     },
+    /**
+     * ── HIER LAG „beispiel_zeigen" (Owner 09.09.2026: „nein, bitte keine Hooks hier zeigen.
+     * Ich habe das erledigt, indem ich damit werben werde" · „die Bilder sind zu klein und am
+     * besten raus. Text reicht") ────────────────────────────────────────────────────────────
+     *
+     * ES IST NICHT GELÖSCHT, SONDERN NICHT MEHR ANGEBOTEN. Der Stein ist die Anzeige
+     * geworden; im Gespräch wäre er eine Wiederholung für jemanden, der ihn gerade in der
+     * Werbung gesehen hat. Die Kacheln entstehen weiterhin aus `lib/versusforge-stein.ts` —
+     * nur eben für die Anzeige, nicht für den Chat.
+     *
+     * WARUM DAS EINEN EIGENEN ABSATZ WERT IST: Ich hatte zuerst nur den AUFTRAG geändert und
+     * das Werkzeug stehen lassen. Es wurde trotzdem aufgerufen — seine eigene Beschreibung
+     * sagte weiter „benutze es, bevor du fragst". Vier Bilder wurden gebaut und weggeworfen,
+     * und der Agent redete über Kacheln, die niemand sah.
+     *
+     * DIE LEHRE: Ein Werkzeug beschreibt sich selbst. Was es nicht mehr tun soll, nimmt man
+     * aus der Liste — eine Regel im Auftragstext dagegen ist eine Bitte gegen eine Anleitung.
+     */
     {
       /**
-       * ── DAS BEISPIEL, BEVOR GEFRAGT WIRD (Owner 09.09.2026: „am Anfang, bevor wir ihn
-       * quälen, könnten wir ihm einige Hooks zeigen … willst du auch zu diesem Ergebnis
-       * kommen?" · „ich würde eher Top-Beispiele nehmen, nicht mit seinem Namen und seinen
-       * Bildern" · „und auch nicht mit seinem Text" · „das wäre ein Mega-Fehler") ───────────
+       * ── EIN MOTIV ERZEUGEN — NUR AUF SEIN JA (Owner 09.09.2026: „ich hätte ihn gefragt:
+       * wenn du keine hast, werde ich dir eins generieren, ok, als Beispiel. Dann, wenn er
+       * das cool findet, macht er das bestimmt neu und kauft") ───────────────────────────────
        *
-       * ES ZEIGT UNSER BESTES, NICHT SEIN ROHES. Der Unterschied entscheidet über den ersten
-       * Eindruck vom Produkt: Aus seinem einen Satz entsteht ein mittelmässiger Hook, und
-       * genau der stünde dann als Beweis dafür, was wir können. Ein kuratiertes Beispiel ist
-       * das, was am Ende herauskommt — nicht das, was am Anfang möglich ist.
+       * DAS EINZIGE WERKZEUG IM CHAT, DAS GELD KOSTET — rund fünfzehn Cent, mehr als das
+       * ganze Gespräch davor. Deshalb `frei: false`: Die Schleife führt es nicht aus, sondern
+       * sagt dem Agenten, dass er erst fragen muss ([[keine-erzeugung-ohne-zustimmung]]).
        *
-       * KOSTET NICHTS: fester Satz, Schrift auf Fläche, kein Modellaufruf.
+       * DIE FREIGABE KOMMT AUS DEM BROWSER, nicht aus der Einschätzung des Modells: Erst wenn
+       * der Mensch in seiner letzten Nachricht zugestimmt hat, steht der Name in
+       * `freigegeben`. Ein Modell, das sich selbst die Erlaubnis erteilt, ist keine Sperre.
        */
-      name: "beispiel_zeigen",
-      zweck: "Führt ihm in vier Kacheln vor, wie aus einem wertlosen Gegenstand ein gefragtes Produkt wurde. Benutze es genau einmal, sobald du weisst, was er anbietet, und BEVOR du ihm Fragen stellst. Kostet nichts.",
+      name: "motiv_erzeugen",
+      zweck: "Erzeugt ein Foto-Motiv für die obere Hälfte des Anzeigenbildes. KOSTET GELD — frag ihn vorher ausdrücklich, ob du es machen sollst, und ruf es erst nach seinem Ja auf.",
       felder: {
-        fach: { type: "string", description: "Was er anbietet, in seinen Worten" },
+        fach: { type: "string", description: "Was er anbietet, in SEINEN Worten" },
+        hook: { type: "string", description: "Der Satz, zu dem das Motiv passen soll" },
       },
       pflicht: ["fach"],
-      frei: true,
-      lauf: async () => {
-        const t = steinText(sprache);
-        /* Vier Kacheln in EINEM Zug — sie gehören zusammen und dürfen nicht auf mehrere
-           Nachrichten zerfallen, sonst ist die Verwandlung keine Bewegung mehr. */
-        const bilder = await Promise.all(
-          t.folien.map(f => hookBild({ hook: f.gross, aufruf: f.klein })),
-        );
-        fund.bilder = bilder.map(b => `data:image/jpeg;base64,${Buffer.from(b).toString("base64")}`);
+      frei: false,
+      lauf: async (a) => {
+        const m = await motivBauen({ apiKey, fach: str(a.fach, 300), hook: str(a.hook, 300) });
+        if (!m.ok) return { fehler: "Das Motiv ist nicht entstanden. Bau das Bild ohne — sag ihm nicht, dass es nicht geklappt hat." };
+        fund.motiv = `data:image/jpeg;base64,${m.bild.toString("base64")}`;
+        return { erzeugt: true, hinweis: "Bau JETZT SOFORT das Anzeigenbild mit bild_bauen, im selben Zug — frag ihn NICHT, ob du das Motiv verwenden sollst, er hat gerade dafür bezahlt. Sag ihm dazu, dass das Motiv ein Beispiel ist und er für die echte Anzeige ein Foto seines eigenen Betriebs nimmt." };
+      },
+    },
+    {
+      /**
+       * ── DAS ENDE (Owner 09.09.2026: „und hier ist das Ende. Der User wird jetzt nicht
+       * wissen, was er machen soll. Er wird nicht kaufen, keine E-Mail angeben, weil er
+       * keine Ahnung hat") ──────────────────────────────────────────────────────────────────
+       *
+       * ── DIE GRÖSSTE LÜCKE IM PROTOTYP, UND SIE WAR UNSICHTBAR ──────────────────────────
+       *
+       * Das Gespräch lief gut, das Bild kam — und dann hörte es auf. Kein Ergebnis zum
+       * Mitnehmen, keine Adresse, kein nächster Schritt. Jeder Aufwand davor war umsonst:
+       * Wir hatten ein schönes Gespräch und danach nichts in der Hand, und er auch nicht.
+       *
+       * DER TRICHTER AUF `main` KANN DAS SEIT TAGEN. Er legt den Mandanten an, speichert die
+       * Anfrage und schickt die Mail mit den Adressen. Hier fehlte nur die Tür dorthin — die
+       * Funktionen sind dieselben, kein Nachbau.
+       *
+       * ── ES KOSTET NICHTS UND IST TROTZDEM `frei: false` ─────────────────────────────────
+       *
+       * Nicht wegen des Geldes, sondern wegen der Adresse: Hier wird etwas ANGELEGT und Post
+       * verschickt. Beides darf nie passieren, weil ein Modell es für eine gute Idee hielt —
+       * nur, weil ein Mensch seine Adresse genannt und zugestimmt hat.
+       */
+      name: "abschluss_schicken",
+      zweck: "Legt seinen eigenen Trichter an und schickt ihm alles per E-Mail: seinen Hook, sein Bild und die Adressen. Ruf es auf, sobald er dir seine E-Mail-Adresse genannt hat.",
+      felder: {
+        mail: { type: "string", description: "Seine E-Mail-Adresse, so wie er sie geschrieben hat" },
+        betrieb: { type: "string", description: "Der Name seines Betriebs, wenn er ihn genannt hat — sonst leer lassen" },
+        hook: { type: "string", description: "Der Satz, auf den ihr euch geeinigt habt" },
+        zielgruppe: { type: "array", items: { type: "string" }, description: "Zwei bis vier kurze Sätze, die seine Kunden antippen können" },
+      },
+      pflicht: ["mail", "hook"],
+      frei: false,
+      lauf: async (a) => {
+        const mail = str(a.mail, 200).trim();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return { fehler: "Das ist keine Adresse. Frag ihn noch einmal danach." };
+
+        const hook = str(a.hook, 300).trim();
+        const betrieb = str(a.betrieb, 120).trim();
+        const zielgruppe = (Array.isArray(a.zielgruppe) ? a.zielgruppe : []).map(z => str(z, 80)).filter(Boolean).slice(0, 4);
+
+        /* Der Name kommt aus SEINEM Betrieb, nie aus einer fremden Marke, die er nennen
+           mochte — dieselbe Grenze wie im Trichter ([[eigene-adressen-nicht-analysieren]]). */
+        /**
+         * OHNE NAMEN KEIN TRICHTER (09.09.2026, im eigenen Prüflauf: die Adresse hiess
+         * `versusforge.com/trichter`).
+         *
+         * Der Rückfallname war als Notnagel gedacht und wurde zur Regel, weil der Agent nie
+         * nach dem Betriebsnamen fragte. Es ist die Adresse, die er in eine Anzeige schreibt,
+         * und sein Name steht oben auf der Seite — beides darf nicht „trichter" heissen.
+         * Lieber eine Frage mehr als eine Adresse, für die er sich schämt.
+         */
+        if (!betrieb) return { fehler: "Du kennst den Namen seines Betriebs noch nicht. Frag ihn danach — er steht oben auf seiner Seite und in seiner Adresse — und ruf mich danach noch einmal auf." };
+        const name = await freierName(betrieb);
+        const schluessel = randomUUID().replace(/-/g, "");
+        const loeschSchluessel = randomUUID().replace(/-/g, "");
+
+        const angelegt = await mandantSpeichern(name, mandantAusPlan({
+          name: betrieb || name,
+          mail,
+          plan: { hook, zielgruppe },
+          schluessel,
+          loeschSchluessel,
+          sprache,
+          geraet: str(body.device, 80),
+        }));
+        if (!angelegt) return { fehler: "Das Anlegen hat nicht geklappt. Sag ihm, dass du es gleich noch einmal versuchst." };
+
+        /* Die Anfrage steht in UNSEREM Fach — er ist ein Interessent, wie jeder aus dem
+           Trichter ([[mein-trichter-ist-ihr-trichter]]). */
+        await leadSpeichern(EIGENER_MANDANT, {
+          mail, ziel: "leads", text: hook, url: "", sprache, plan: { hook, zielgruppe },
+          runden: [], zeit: new Date().toISOString(),
+        }).catch(() => false);
+
+        /* ERST ANLEGEN, DANN VERSENDEN, und der Versand blockiert die Antwort nicht: Wer
+           gerade seine Adresse gegeben hat, wartet nicht auf einen Mailserver. */
+        void linksPerPost({ an: mail, mandant: name, schluessel, loeschSchluessel, sprache })
+          .catch(e => console.error("[versusforge-agent] Post gescheitert", e));
+
         return {
-          gezeigt: true,
-          /* DIE SÄTZE DER KACHELN GEHEN NICHT ZURÜCK (09.09.2026, im Prüflauf gesehen): Der
-             Agent hat sie brav abgetippt, obwohl sie als Bild danebenstanden — dreimal
-             dasselbe in einer Nachricht. Was er nicht bekommt, kann er nicht wiederholen. */
-          text: t.vorfuehrung,
-          abschluss: t.abschluss,
-          hinweis: "Die vier Kacheln stehen jetzt SICHTBAR untereinander im Gespräch. Schreib NUR den Text aus 'text', dann den Satz aus 'abschluss', dann EINE Frage. Die Sätze aus 'folien' stehen bereits auf den Bildern — schreib sie NICHT noch einmal in deine Nachricht, das liest sich wie ein Fehler.",
+          fertig: true,
+          trichter: `https://versusforge.com/${name}`,
+          hinweis: "Sag ihm in drei Sätzen: seine Strecke steht und liegt unter dieser Adresse · die Mail mit allem ist unterwegs · was er als Nächstes tut (Anzeige schalten mit dem Bild). Nenne die Adresse ausgeschrieben.",
         };
       },
     },
@@ -241,10 +350,17 @@ export async function POST(request: Request) {
          * liegt, sagt er es und wir bauen es ohne. Ein Bild, das der Betrieb selbst nie
          * gewählt hätte, unter seinem Namen zu posten, wäre schlimmer als gar keines.
          */
+        /**
+         * DIE REIHENFOLGE DER MOTIVE (Owner 09.09.2026): sein hochgeladenes Foto zuerst,
+         * dann das erzeugte, dann das von seiner Website — und nur, wenn er zugestimmt hat.
+         * Sein eigenes Bild ist immer das beste: Es ist sein Betrieb, und er hat es selbst
+         * ausgesucht.
+         */
+        const motiv = eigenesFoto || fund.motiv || (a.mit_foto === true ? fund.foto : undefined);
         const bild = await hookBild({
           hook,
           aufruf: str(a.aufruf, 40) || (AUFRUF[sprache.slice(0, 2)] ?? AUFRUF.de),
-          foto: a.mit_foto === true ? fund.foto : undefined,
+          foto: motiv,
         });
         /* Als Datenadresse zurück in den Browser — der Satz gehört ihm und hat in keiner URL,
            keinem Verlauf und keinem `Referer` etwas zu suchen. */
@@ -366,6 +482,30 @@ export async function POST(request: Request) {
      */
     "NACH DER GRENZE FRAGST DU NICHT WEITER DANACH. Hast du gerade gesagt, dass etwas nicht deine Arbeit ist, dann stell dazu auch keine Frage — sonst hebst du die Grenze im selben Atemzug wieder auf. Führ zurück zu dem, wofür du da bist: sein Angebot, seine Gäste, sein Hook.",
     "DIE REIHENFOLGE IST IMMER DIESELBE: aufnehmen, was er gesagt hat · sagen, was daraus folgt · wenn nötig die Grenze · dann EINE Frage zu deiner Sache. Nie mehr als eine Frage, nie eine Frage zu dem, was du gerade abgegrenzt hast.",
+    /**
+     * ── SEINE WÖRTER GEHEN NIE VERLOREN (Owner 09.09.2026, mit Bild, als Bauträger im Test:
+     * „hier gibst du eins nicht, ultramoderne Anlage — das würde mich stören, wenn ich
+     * schreibe, es ist neu, und du schreibst es nicht") ─────────────────────────────────────
+     *
+     * WAS DASTAND: Er nannte 50 neue Apartments. Die Antwort war „…nicht nur, dass der Block
+     * neu ist", und die drei Chips hiessen Miete sparen, Nähe zum Zentrum, Platz für die
+     * Familie. Fachlich richtig — das Rezept will, was der Kunde HINTERHER kann, nicht was
+     * verkauft wird. Menschlich falsch, und zwar zweifach:
+     *
+     *  · „NICHT NUR, DASS ES NEU IST" IST EINE KORREKTUR. Er hat gerade eine Tatsache über
+     *    sein Angebot genannt, und der erste Halbsatz sagt ihm, dass sie nicht reicht. Wer so
+     *    behandelt wird, gibt beim nächsten Mal weniger preis — und weniger Angaben heisst
+     *    schwächerer Hook. Der Fehler kostet also genau das, wofür wir fragen.
+     *  · SEIN WORT KAM IN KEINEM CHIP VOR. Drei Möglichkeiten, und keine trug „neu" oder
+     *    „modern". Für ihn sieht das aus wie: gesagt, gehört, weggeworfen.
+     *
+     * DIE AUFLÖSUNG IST KEIN RÜCKZUG VOM REZEPT. Sein Wort BLEIBT und wird gewendet: aus
+     * „ultramoderne Anlage" wird „in einer ultramodernen Anlage wohnen". Feature und Nutzen
+     * sind keine Gegner — der Nutzen ist das Feature, zu Ende gedacht.
+     */
+    "WAS ER SAGT, TAUCHT BEI DIR WIEDER AUF. Nennt er eine Eigenschaft — neu, modern, handgemacht, seit 1980 — dann steht sein Wort in deiner Antwort UND in mindestens einem Chip. Findet er sein eigenes Wort nirgends wieder, hast du für ihn nicht zugehört.",
+    "SAG NIE, WAS AN SEINER ANGABE FEHLT. Verboten sind Wendungen wie: nicht nur, dass es neu ist · das allein reicht nicht · das ist zu allgemein. Das ist eine Korrektur, und Korrekturen machen ihn wortkarg — dann bekommst du weniger, nicht mehr.",
+    "WENDE SIE STATTDESSEN: Nimm seine Eigenschaft und sag, was sie für seinen Kunden bedeutet. Aus ultramoderner Anlage wird: in einer ultramodernen Anlage wohnen. Sein Wort bleibt drin, und es zeigt trotzdem, was der Kunde davon hat.",
     "VERGISS NIE, WARUM ER HIER IST. Niemand tippt aus Neugier sein Geschäft in ein Feld. Er hat ein Problem, das er allein nicht löst. Du sammelst keine Angaben — du baust ihm einen Weg.",
     "SEI DABEI EHRLICH, NICHT NETT. Beschönige nichts und versprich nie ein Ergebnis in Geld, Gästen oder Kunden. Was du versprechen darfst, ist der nächste Schritt.",
     /**
@@ -425,11 +565,19 @@ export async function POST(request: Request) {
      * KOSTET NICHTS: `bild_bauen` ist Schrift auf einer Fläche, kein Modellaufruf. Der Satz
      * darauf stammt aus dem Zug, den wir ohnehin bezahlen.
      */
-    "SOBALD DU WEISST, WAS ER ANBIETET — und bevor du irgendetwas fragst — RUFST DU beispiel_zeigen AUF. Genau EINMAL im Gespräch, an dieser Stelle.",
-    "DAS WERKZEUG GIBT DIR DEN TEXT ZURÜCK — benutze ihn fast wörtlich: erst 'text', dann stehen die Kacheln, dann 'abschluss'. Er ist geschrieben und geprüft; formuliere ihn nicht um.",
-    /* NIE SEIN NAME AUF EINEM ENTWURF (Owner 09.09.2026: „nicht mit seinem Namen und seinen
-       Bildern am Anfang … und auch nicht mit seinem Text. Das wäre ein Mega-Fehler"). */
-    "AUF DIESEM BILD STEHT NICHTS VON IHM: nicht sein Name, nicht sein Text, nicht sein Foto. Es ist ein fremdes Beispiel, und du sagst das auch. Sein eigenes Bild entsteht am Ende, aus seinen Antworten.",
+    /**
+     * ── DIE VORFÜHRUNG IST DIE ANZEIGE, NICHT DAS GESPRÄCH (Owner 09.09.2026: „nein, bitte
+     * keine Hooks hier zeigen. Ich habe das erledigt, indem ich damit werben werde") ────────
+     *
+     * DER STEIN BLEIBT — ER STEHT NUR WOANDERS. Er ist der Hook für VersusForge selbst; die
+     * vier Kacheln werden die Anzeige. Wer aus ihr in den Chat kommt, hat sie eben gesehen.
+     * Sie dort zu wiederholen ist keine Verstärkung, sondern eine verschenkte Nachricht —
+     * und die erste noch dazu, in der er eigentlich anfangen will.
+     *
+     * DAS WERKZEUG BLEIBT STEHEN, ABGESCHALTET IM AUFTRAG: Die Kacheln entstehen daraus auch
+     * für die Anzeige, und was heute richtig ist, muss morgen nicht falsch sein. Gelöscht
+     * müsste es neu gebaut werden; hier steht es still.
+     */
     "DANACH GEHT ES NORMAL WEITER: eine Frage nach der anderen, und kein zweites Bild, bis ihr euch auf einen echten Hook geeinigt habt.",
     /* SEIN FOTO IST EIN ANGEBOT, KEINE VORGABE (Owner 09.09.2026: „da können wir echt daneben
        liegen, falls er schlechte Bilder hat und für was anderes werben will"). Wir sehen das
@@ -439,6 +587,95 @@ export async function POST(request: Request) {
     "",
     "DU HAST WERKZEUGE UND BENUTZT SIE, STATT DARUEBER ZU REDEN. Nennt er eine Adresse, liest du sie — du fragst nicht, ob du darfst. Habt ihr einen Hook, pruefst du ihn und baust das Bild. Erzaehle nie, dass du gleich etwas tun wirst; tu es und zeig das Ergebnis.",
     "ERWÄHNE NIE DEINE WERKZEUGE, ihre Namen oder dass etwas nicht geklappt hat. Der Mensch sieht das Ergebnis, nicht die Maschine.",
+    "",
+    /**
+     * ── DIE STRECKE BIS ZUM ENDE (Owner 09.09.2026, nach dem Durchgang als Bauträger) ──────
+     *
+     * VIER LÜCKEN AUF EINMAL, alle im letzten Drittel des Gesprächs:
+     *
+     *  1. „Du hast den User weder nach einer Homepage gefragt … und auch nicht nach Bildern,
+     *     die er eventuell hochladen kann." — Wir bauen sein Anzeigenbild, ohne je nach
+     *     einem Foto zu fragen. Am Ende steht eine weisse Kachel, und er denkt, mehr können
+     *     wir nicht.
+     *  2. „Ich hätte ihn gefragt: wenn du keine hast, werde ich dir eins generieren, ok, als
+     *     Beispiel. Dann, wenn er das cool findet, macht er das bestimmt neu und kauft." —
+     *     Das ist der verkaufende Moment, und er fehlte ganz.
+     *  3. „Du fragst nach Buttons, welcher Button, warum? Bei Meta braucht man das nicht, er
+     *     macht es selbst. Aber der User weiss es nicht." — Eine Frage, deren Antwort nichts
+     *     ändert, und die ihn ratlos macht.
+     *  4. „Der User kann auch kein Feedback geben, findet er das gut, will er noch was
+     *     hinzufügen? Er bekommt direkt ein Bild gezeigt." — Und danach: „hier ist das Ende.
+     *     Er wird nicht kaufen, keine E-Mail angeben, weil er keine Ahnung hat."
+     *
+     * DIE REIHENFOLGE UNTEN IST DIE ANTWORT DARAUF. Sie steht als Strecke da und nicht als
+     * verstreute Regeln, weil genau das Ende des Gesprächs bisher nirgends beschrieben war.
+     */
+    "FRAG FRÜH NACH SEINER WEBSITE — im ersten oder zweiten Zug, in einem Halbsatz: hat er eine, liest du sie und musst danach weniger fragen. Hat er keine, ist das kein Mangel; sag das auch so und mach weiter.",
+    "",
+    /**
+     * ── ER SUCHT SICH DEN SATZ AUS (Owner 09.09.2026: „man könnte ihm noch weitere Hooks
+     * anbieten, aber nicht als Bild — dann kann er eins auswählen") ────────────────────────
+     *
+     * EIN VORSCHLAG IST EINE BEHAUPTUNG, DREI SIND EINE WAHL. Und die Wahl gehört ihm: Er
+     * kennt seine Kunden, wir kennen die Form. Wer selbst ausgesucht hat, verteidigt seinen
+     * Satz später gegen den Schwager, der es besser weiss.
+     *
+     * ALS TEXT, NICHT ALS BILD — sein Wort, und es ist auch das Richtige: Drei Kacheln
+     * nebeneinander wären klein und langsam, drei Sätze liest man in fünf Sekunden. Das Bild
+     * entsteht danach, für den einen, den er genommen hat.
+     */
+    "BIET IHM DREI HOOKS ZUR AUSWAHL AN, ALS TEXT — nie als Bild. Untereinander, je eine Zeile, und die drei Sätze zusätzlich als Chips, damit er einen antippen kann.",
+    "DIE DREI SIND VERSCHIEDEN, nicht dreimal derselbe Satz mit anderen Wörtern: einer nimmt seinen Nutzen, einer seine Herkunft oder sein Verfahren, einer das, was knapp ist. Alle aus SEINEN Angaben.",
+    "ERST WENN ER EINEN GEWÄHLT HAT, baust du das Bild — für diesen einen. Nicht drei Bilder.",
+    "",
+    /**
+     * ── DAS ERGEBNIS GEHÖRT IHM, WEIL ES AUS SEINEN ANGABEN KOMMT (Owner 09.09.2026: „man
+     * muss ihm auch sagen, dass das Ergebnis auf seinen Angaben beruht. Jede Angabe
+     * beeinflusst das Ergebnis") ────────────────────────────────────────────────────────────
+     *
+     * ZWEI DINGE AUF EINMAL, und beide zählen:
+     *  · Es ist die Wahrheit über die Maschine — und der Grund, warum wir überhaupt fragen
+     *    statt sofort zu schreiben. Ohne diesen Satz wirkt das Fragen wie eine Hürde.
+     *  · Es ist die Einladung, mehr zu sagen. Wer weiss, dass jede Angabe das Ergebnis
+     *    ändert, gibt die vierte und fünfte dazu — und genau die machen den Unterschied.
+     *
+     * EINMAL, FRÜH, IN EINEM HALBSATZ. Zweimal gesagt klingt es wie eine Ausrede für ein
+     * schwaches Ergebnis.
+     */
+    "SAG IHM EINMAL, FRÜH UND BEILÄUFIG: Was am Ende herauskommt, entsteht aus seinen Angaben — je genauer sie sind, desto genauer wird es. Nicht als Warnung, sondern als Einladung, mehr zu erzählen.",
+    "",
+    /* DIE REIHENFOLGE (09.09.2026, im Prüflauf schiefgegangen): erst die drei Sätze, dann
+       seine Wahl, DANN das Foto und erst zum Schluss das Bild. Ein Motiv kostet Geld und
+       richtet sich nach dem Satz — vor der Wahl erzeugt, passt es im Zweifel zum falschen. */
+    "DIE REIHENFOLGE AM ENDE IST FEST: drei Sätze zur Auswahl · seine Wahl · Foto oder Motiv · das Bild · seine Rückmeldung · seine Adresse. Kein Schritt davor, keiner doppelt.",
+    "BEVOR DU DAS ANZEIGENBILD BAUST, FRAG NACH EINEM FOTO. Sag ihm, dass er hier eines anhängen kann — von seinem Betrieb, seinem Raum, seinem Produkt. Sein eigenes Foto ist immer besser als jedes andere.",
+    "HAT ER KEINS, BIET AN, EINES ZU ERZEUGEN — als Beispiel, damit er sieht, wie die Anzeige wirkt. Frag ausdrücklich, ob du darfst, und warte auf sein Ja. Ohne Ja erzeugst du nichts.",
+    "IST EIN MOTIV ENTSTANDEN, sag dazu, dass es ein Beispiel ist und er für die echte Anzeige ein Foto seines eigenen Betriebs nimmt. Behaupte nie, das sei sein Betrieb auf dem Bild.",
+    /* MELDE NIE EINE PANNE (dieselbe Regel wie beim Lesen einer Website): Klappt das Motiv
+       nicht, baust du das Bild ohne und sagst kein Wort darüber. */
+    "",
+    "FRAG NIE NACH DEM KNOPFTEXT ODER NACH DEM AUFRUF auf dem Bild. Facebook setzt seinen eigenen Knopf unter jede Anzeige — die Frage ändert nichts und macht ihn ratlos. Wähl selbst etwas Schlichtes und rede nicht darüber.",
+    "",
+    "NACH DEM BILD FRAGST DU IHN, WAS ER DAVON HÄLT. Nie weitergehen, als wäre es abgehakt: Frag, ob der Satz so bleibt oder ob er etwas ändern will — und gib ihm dazu Chips.",
+    "WILL ER ETWAS ÄNDERN, ÄNDERST DU ES UND BAUST DAS BILD NEU. So oft er will; das kostet nichts.",
+    "",
+    /**
+     * ── DAS ENDE DARF SICH NICHT IM KREIS DREHEN (09.09.2026, im eigenen Prüflauf) ────────
+     *
+     * WAS PASSIERTE: Bild gebaut, „bleibt der Satz so?" — er sagt „ja, gefällt mir so" — und
+     * der Agent baut das Bild NOCH EINMAL und fragt dieselbe Frage. Zweimal dieselbe Frage
+     * ist im Gespräch ein Fehler; am Ende ist es der Verlust: Genau dort hätte die Adresse
+     * kommen müssen.
+     *
+     * DIE ZUSTIMMUNG IST EIN SCHALTER, KEINE STATION. Sagt er ja, ist dieser Teil vorbei.
+     */
+    "SAGT ER, DASS ES SO BLEIBT — ja, passt, gefällt mir —, DANN IST DAS BILD FERTIG. Frag nicht noch einmal nach, bau es nicht neu, und lob es nicht. Geh sofort zum nächsten Schritt.",
+    "BAU DAS BILD NUR NEU, WENN ER ETWAS GEÄNDERT HABEN WILL. Ein zweites Bild mit demselben Satz ist verlorene Zeit für ihn und sieht aus, als hättest du das erste vergessen.",
+    "ERST WENN ER ZUFRIEDEN IST, FRAGST DU NACH SEINER E-MAIL-ADRESSE. Und du sagst dazu, WOFÜR: Du schickst ihm sein Bild, seinen Satz und die Adresse seiner eigenen Seite, auf der Menschen ihren Namen und ihre Nummer hinterlassen.",
+    "NENNE VORHER, WAS ER BEKOMMT, DANN DIE FRAGE. Eine Adresse, deren Zweck man nicht kennt, gibt niemand — und dann war das ganze Gespräch umsonst.",
+    "FRAG VORHER NACH DEM NAMEN SEINES BETRIEBS, falls er ihn noch nicht genannt hat — er steht oben auf seiner Seite und in seiner Adresse. Eine Adresse, die nach nichts aussieht, schreibt niemand in eine Anzeige.",
+    "HAT ER SIE GENANNT, SCHICK ES SOFORT (abschluss_schicken) und sag ihm danach in drei Sätzen: was jetzt steht, dass die Mail unterwegs ist, und was er als Nächstes tut.",
+    "FRAG NIE NACH DER ADRESSE, BEVOR ES EIN ERGEBNIS GIBT. Vorher ist es ein Formular, danach ist es die Übergabe.",
     /**
      * ── WAS DU GELESEN HAST, BENUTZT DU (09.09.2026, im dritten Lauf gesehen) ─────────────
      *
@@ -499,7 +736,12 @@ export async function POST(request: Request) {
      */
     "CHIPS NUR, WENN SIE DIE FORM EINER ANTWORT ZEIGEN — nie, wenn sie raten müssten, wer er ist oder was er tut.",
     "KEINE CHIPS, BEVOR ER GESAGT HAT, WAS ER ANBIETET. Bei der ersten Frage gibt es tausende möglicher Antworten; drei davon anzubieten ist ein Ratespiel und macht sein Geschäft kleiner, als es ist.",
-    "KEINE CHIPS BEI OFFENEN MENGEN: Beruf, Branche, Ort, Name, Produkt. Dort fragst du und lässt ihn schreiben.",
+    "KEINE CHIPS BEI OFFENEN MENGEN: Beruf, Branche, Ort, Name, Produkt, E-Mail-Adresse, Telefonnummer, Zahlen. Dort fragst du und lässt ihn schreiben.",
+    /* GESEHEN AM 09.09.2026 im eigenen Prüflauf: Auf „wie ist deine E-Mail-Adresse?" kamen
+       die Chips „schick das Bild | schick den Satz | schick die Seite". Das sind keine
+       Antworten auf die Frage, sondern eine Liste dessen, was er ohnehin bekommt — und wer
+       einen antippt, hat statt seiner Adresse einen Satz abgeschickt. */
+    "AUF DIE FRAGE NACH SEINER E-MAIL-ADRESSE GEHÖRT IMMER >>- UND NIE EIN CHIP. Eine Adresse tippt man, man wählt sie nicht aus.",
     "CHIPS SIND RICHTIG, wenn er die Frage vermutlich nicht beantworten kann, WEIL er die Form nicht kennt — etwa bei Belegen, bei dem was der Kunde hinterher kann, oder warum es nicht für jeden passt. Dann bauen sie eine Brücke, statt zu raten.",
     /**
      * ── EINE AUSWAHLFRAGE OHNE CHIPS GIBT ES NICHT (Owner 09.09.2026, mit Bild: „warum hier
@@ -590,6 +832,17 @@ export async function POST(request: Request) {
     /* KEINE ERLAUBNISFRAGEN (09.09.2026, im Lauf gesehen): „Willst du das jetzt kurz nennen?"
        und „Willst du das jetzt schreiben?" fragen, ob er antworten möchte — das ist eine
        Frage vor der Frage und kostet einen ganzen Zug. */
+    /**
+     * ── SAG NIE, WAS DIR FEHLT (09.09.2026, im eigenen Prüflauf aufgeschlagen) ────────────
+     *
+     * WÖRTLICH DASTAND: „ne lipsește un «dovadă» sau o «limitare» clară" — uns fehlt ein
+     * BELEG oder eine GRENZE. Zwei der fünf Schritte, in Anführungszeichen, mitten im
+     * Gespräch. Das Verbot der Wörter stand schon da und hat trotzdem nicht gereicht, weil
+     * die FORM erlaubt war: „uns fehlt X" zwingt dazu, X zu benennen.
+     *
+     * DESHALB IST JETZT DIE FORM VERBOTEN. Wer nur fragt, muss nichts benennen.
+     */
+    "SAG NIE, WAS DIR NOCH FEHLT. Keine Sätze wie: uns fehlt noch · dafür brauche ich noch · jetzt fehlt nur noch. Sie zwingen dich, einen Arbeitsschritt zu benennen — und der geht ihn nichts an. Stell einfach die nächste Frage.",
     "FRAG NIE, OB ER ANTWORTEN MOECHTE. Keine Formulierungen wie: willst du das jetzt nennen, oder: soll ich dir. Stell die Frage selbst, einmal, und warte.",
     "",
     HEBEL_AUFTRAG,
@@ -692,8 +945,47 @@ export async function POST(request: Request) {
     "STEHEN DIE MÖGLICHKEITEN SCHON IM FLIESSTEXT, nimm sie dort heraus. Sie gehören nur in die >>-Zeile — sonst liest er dieselben Wörter zweimal.",
   ].join("\n");
 
-  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag: auftragFertig, verlauf, werkzeuge });
-  if (!r.ok) return NextResponse.json({ error: `Der Agent stockt gerade. ${r.fehler}` }, { status: r.status });
+  /**
+   * ── WER DIE ERLAUBNIS ERTEILT (09.09.2026) ────────────────────────────────────────────────
+   *
+   * `agentLauf` führt nichts aus, was nicht `frei` ist — es sei denn, der Name steht in
+   * `freigegeben`. Diese Liste entsteht HIER, aus dem, was der MENSCH zuletzt geschrieben
+   * hat, und nie aus der Einschätzung des Modells. Ein Modell, das sich selbst die Erlaubnis
+   * erteilt, ist keine Sperre, sondern eine Formalie.
+   *
+   * ZWEI TÜREN, ZWEI SCHLÜSSEL:
+   *  · Ein Motiv kostet Geld → es braucht ein Ja ([[keine-erzeugung-ohne-zustimmung]]).
+   *  · Der Abschluss legt etwas an und verschickt Post → er braucht eine ADRESSE, und die
+   *    kann man nicht versehentlich sagen. Sie ist der bessere Beweis als jedes Ja.
+   *
+   * DAS JA WIRD IN DREI SPRACHEN GELESEN. Die Liste ist kurz und absichtlich streng: Wer
+   * „vielleicht" schreibt, hat nicht zugestimmt. Im Zweifel passiert nichts, und der Agent
+   * fragt noch einmal — das kostet einen Satz, das Gegenteil kostet Geld und Vertrauen.
+   */
+  const letzte = [...verlauf].reverse().find(m => m.role === "user")?.content ?? "";
+  const jaGesagt = /(^|\W)(ja|jawohl|jup|klar|gerne|mach|leg los|okay|ok|yes|sure|go ahead|da|sigur|desigur|bine|hai)(\W|$)/i.test(letzte);
+  const mailGenannt = /[^@\s]+@[^@\s]+\.[a-z]{2,}/i.test(letzte);
+  const freigegeben = [
+    ...(jaGesagt ? ["motiv_erzeugen"] : []),
+    ...(mailGenannt ? ["abschluss_schicken"] : []),
+  ];
+
+  const r = await agentLauf({ apiKey, modell: KLEIN, auftrag: auftragFertig, verlauf, werkzeuge, freigegeben });
+  if (!r.ok) {
+    /**
+     * ── DIE MELDUNG DES ANBIETERS BLEIBT IM PROTOKOLL (09.09.2026) ───────────────────────
+     *
+     * Vorher stand sie im Gespräch: „Der Agent stockt gerade. The server had an error
+     * processing your request. Sorry about that!" — deutscher Anfang, englischer Rest,
+     * mitten in einem rumänischen Chat. Für den Menschen sagt dieser Satz nichts, ausser
+     * dass hier etwas gebastelt ist.
+     *
+     * DER GRUND GEHT ALS CODE HINAUS, den Text schreibt der Browser in SEINER Sprache.
+     * Was wirklich passiert ist, steht im Log — dort, wo man es reparieren kann.
+     */
+    console.error("[versusforge-agent] Lauf gescheitert:", r.status, r.fehler);
+    return NextResponse.json({ grund: "modell" }, { status: r.status });
+  }
 
   /**
    * DIE >>-ZEILE WIRD HIER ABGESCHNITTEN, nicht im Browser.
