@@ -5,8 +5,6 @@ import { seiteLesen, istEigeneAdresse } from "@/lib/seite-lesen";
 import { hookBild } from "@/lib/versusforge-bild";
 import { HEBEL, HOOK_REGELN, HEBEL_AUFTRAG } from "@/lib/versusforge-hook-rezept";
 import { deckelPruefen } from "@/lib/versusforge-deckel";
-/* Preise kommen NIE aus einem getippten Text (Hausregel `prices-only-from-pricing-table`). */
-import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 
 /**
  * DER AGENT — ZUM ANSEHEN, AUF EIGENEM ZWEIG (Owner 09.09.2026: „zeig mir in einem anderen
@@ -163,7 +161,18 @@ export async function POST(request: Request) {
      * DIE PREISE STEHEN IN lib/pricing.ts UND WERDEN NIE GETIPPT (Hausregel
      * `prices-only-from-pricing-table`). Deshalb kommt die Zahl unten aus der Tabelle.
      */
-    `WOFÜR DU DA BIST, falls er fragt: Du baust ihm eine Werbestrategie, die genau auf sein Geschäft zugeschnitten ist — den Satz, der Leute anhält, wen er erreichen soll, die Anzeige und die Seite dahinter, auf der Menschen ihren Namen und ihre Nummer hinterlassen. Das Gespräch und die Strategie kosten nichts. Wer die Anfragen später lesen will, schaltet sein Dashboard frei — ${eur(VERSUSFORGE_START_CENTS, "de")} einmalig, kein Abo.`,
+    /**
+     * ── KEINE PREISE IM GESPRÄCH (Owner 09.09.2026: „ich würde hier keinen Preis nennen …
+     * aber das soll ihn nicht bremsen") ──────────────────────────────────────────────────
+     *
+     * Eine Zahl macht aus einem Gespräch eine Kaufentscheidung, und die trifft niemand,
+     * bevor er gesehen hat, was herauskommt. Die Preise stehen weiterhin in `lib/pricing.ts`
+     * und erscheinen dort, wo wirklich gekauft wird — nicht hier.
+     */
+    "WOFÜR DU DA BIST, falls er fragt: Du baust ihm eine Werbestrategie, die genau auf sein Geschäft zugeschnitten ist — den Satz, der Leute anhält, wen er erreichen soll, die Anzeige und die Seite dahinter, auf der Menschen ihren Namen und ihre Nummer hinterlassen.",
+    "NENNE NIE EINEN PREIS UND KEINE ZAHL ZU GELD. Fragt er, was es kostet, sagst du: Das hier kostet nichts, die ganze Strategie bekommt er geschenkt. Wir stehen am Anfang und wollen, dass er uns testet — und das bleibt nicht so.",
+    "WAS SPÄTER EXTRA IST, sagst du nur, wenn er ausdrücklich danach fragt: die Anfragen zu LESEN — also zu sehen, wer sich gemeldet hat, mit Namen und Nummer. Alles davor ist frei. Nenne auch dann keine Zahl, sondern sag, dass er es erfährt, wenn es so weit ist.",
+    "UND DANN SOFORT ZURÜCK ZU SEINER SACHE. Eine Geldfrage ist eine Zwischenfrage, kein Thema — beantworte sie in einem Satz und frag weiter.",
     "DAS WERBEBUDGET IST NICHT UNSER GELD: Es zahlt er direkt an Facebook, in der Höhe, die er selbst bestimmt. Sag das dazu, wenn Geld zur Sprache kommt.",
     "ANTWORTE AUF GELDFRAGEN KURZ UND OHNE VERKAUFEN, dann führ zurück zu seiner Sache. Und versprich nie ein Ergebnis in Geld, Gästen oder Kunden.",
     "",

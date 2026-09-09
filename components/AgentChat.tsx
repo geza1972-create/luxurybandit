@@ -117,6 +117,24 @@ const GRUSS = [
    * niemand prüfen kann, sind an der Stelle, an der es um Vertrauen geht, das Gegenteil von
    * vertrauenswürdig. Was hier steht, kann er nachprüfen.
    */
+  /**
+   * ── KOSTENLOS, UND WARUM (Owner 09.09.2026: „ich würde hier keinen Preis nennen. Ich würde
+   * sagen, es ist kostenlos … er soll uns kostenlos testen und sehen, dass selbst diese
+   * Analyse sehr viel wert ist. Warum wir das machen? Weil wir ein Startup sind") ──────────
+   *
+   * KEIN PREIS AM ANFANG. Eine Zahl im ersten Bildschirm macht aus einem Gespräch eine
+   * Kaufentscheidung — und die trifft niemand, bevor er gesehen hat, was herauskommt. Was
+   * später Geld kostet, erfährt er, wenn es so weit ist.
+   *
+   * DER GRUND GEHÖRT DAZU. „Kostenlos" ohne Begründung weckt Misstrauen: Wo ist der Haken?
+   * „Wir sind am Anfang und wollen, dass du uns testest" ist der Haken, offen ausgesprochen.
+   *
+   * „DAS BLEIBT NICHT SO" STATT „nächsten Monat kostet es Geld". Er meinte dasselbe; ich
+   * setze es ohne Datum. Ein Termin, den wir nicht halten, verwandelt die Dringlichkeit in
+   * eine Lüge, die genau die Leute bemerken, die wiederkommen — und der Satz ohne Datum
+   * bleibt jeden Tag wahr.
+   */
+  "Das hier kostet dich nichts. Wir stehen am Anfang und wollen, dass du uns testest — deshalb bekommst du die ganze Strategie geschenkt. Das bleibt nicht so.",
   "Zum Datenschutz: Was du schreibst, verarbeitet ein KI-Modell von OpenAI — anders geht es nicht. Das Gespräch selbst speichern wir nicht; es ist weg, sobald du die Seite schliesst. Gespeichert wird erst, was du am Ende ausdrücklich anlegst.",
   "Ein paar Minuten, dann steht deine Strategie. Einverstanden?",
 ].join("\n\n");
@@ -129,7 +147,10 @@ const GRUSS = [
  * Geschäft — und genau danach ist gefragt. Die zweite ist die Frage, die ohnehin jeder als
  * Erstes im Kopf hat; sie hier anzubieten ist ehrlicher, als sie zu übergehen.
  */
-const GRUSS_CHIPS = ["Ja, einverstanden", "Was kostet das?"];
+/* NUR NOCH EIN CHIP: „Was kostet das?" war eine Einladung zu einer Frage, die wir gerade
+   beantwortet haben — und sie hätte das Gespräch mit Geld begonnen statt mit seinem
+   Geschäft. */
+const GRUSS_CHIPS = ["Ja, einverstanden"];
 
 export default function AgentChat() {
   const [verlauf, setVerlauf] = useState<Nachricht[]>([{ rolle: "agent", text: GRUSS, vorschlaege: GRUSS_CHIPS }]);
