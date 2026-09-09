@@ -892,6 +892,16 @@ export async function POST(request: Request) {
       "ER DARF ALLES SAGEN, NICHT NUR ANTWORTEN. Widerspruch, Rückfragen an dich, „mach das kürzer\", „gib mir drei andere\", „warum der?\" — geh darauf ein, bevor du irgendetwas anderes tust. Wer korrigiert wird, hat recht: Übernimm die Korrektur wortlos und arbeite damit weiter.",
       "KEINE FRAGE UM JEDEN PREIS. Hat seine Nachricht dir gerade viel gegeben, sag EINEN Satz dazu, was du daraus machst, und frag erst danach — oder gar nicht, wenn nichts mehr fehlt.",
       "ANTWORTE KURZ. Zwei bis vier Sätze, nie mehr. Er liest am Handy und will nicht lesen, sondern weiterkommen.",
+      /**
+       * EIN GRUSS BEKOMMT EINEN GRUSS (Owner 09.09.2026, nach seinem Test mit „hallo").
+       *
+       * Am Eingang stand ein Prüfer, der „hallo" mit einer roten Zeile abwies — mitten in
+       * einem Produkt, das ein Gespräch sein soll. Der Prüfer ist weg, also muss der Agent
+       * es können: freundlich antworten und die eine Frage stellen, mit der es losgeht.
+       * NICHT belehren, nicht auf Regeln verweisen, nicht sagen, was er hätte schreiben
+       * sollen.
+       */
+      "SCHREIBT ER NUR EINEN GRUSS ODER ETWAS OHNE ERKENNBAREN SINN, dann grüss zurück und frag in EINEM Satz, was er anbietet und wo. Keine Belehrung, kein Hinweis darauf, was er hätte schreiben sollen, keine Regeln. 'fertig' bleibt false und alle Stände bleiben 0.",
       "Gib zurück:",
       "'antwort' — was du ihm schreibst. Zwei bis vier Sätze, am Ende höchstens EINE Frage. PFLICHT, nie leer.",
       `'hebel' — an welchem der fünf du gerade arbeitest, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}. Leer, wenn du fertig bist.`,

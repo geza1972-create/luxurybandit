@@ -174,7 +174,20 @@ function HebelStand({ stand, jetzt }: { stand: Record<string, number>; jetzt: st
 const hebelName = (schluessel: string): string =>
   HEBEL.find(h => h.schluessel === schluessel)?.schritt ?? "";
 
-export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; lang: string }) {
+/**
+ * `auftrag` GIBT ES, SEIT DER CHAT AUF DER SEITE SELBST LÄUFT (Owner 09.09.2026: „bei
+ * VersusForge müsste sich ein Chat öffnen und alles lösen" · „ein Chat wie Claude hier").
+ *
+ * Vorher holte der Trichter den ersten Satz aus dem Sitzungsspeicher, weil er auf einer
+ * eigenen Adresse lag und der Mensch dorthin geschickt wurde. Das war der Formular-Rest:
+ * Feld ausfüllen, Seitenwechsel, dann Gespräch. Ein Chat wechselt keine Seite — man tippt,
+ * und es antwortet an derselben Stelle. Kommt der Auftrag als Prop, gibt es keinen Umweg
+ * mehr; ohne Prop bleibt der alte Weg bestehen, damit `/engine/start` nicht bricht.
+ */
+export default function VersusForgeFunnel({ S, lang, auftrag }: {
+  S: VersusForgeTexte; lang: string;
+  auftrag?: { ziel: "leads" | "verkauf"; text: string; url?: string };
+}) {
   /* „warten" ist kein Schritt, sondern der Augenblick, in dem geprüft wird, ob ein Auftrag
      von der Startseite mitgekommen ist. */
   const [phase, setPhase] = useState<Phase>("warten");
@@ -300,7 +313,10 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     if (abgeholt.current) return;
     abgeholt.current = true;
     let roh = "";
-    try { roh = sessionStorage.getItem("vf_auftrag") ?? ""; sessionStorage.removeItem("vf_auftrag"); } catch { /* dann eben nicht */ }
+    /* Kommt der Auftrag als Prop, läuft der Chat auf der Seite selbst — kein Umweg über den
+       Sitzungsspeicher, kein Seitenwechsel. */
+    if (auftrag?.text || auftrag?.url) roh = JSON.stringify(auftrag);
+    else try { roh = sessionStorage.getItem("vf_auftrag") ?? ""; sessionStorage.removeItem("vf_auftrag"); } catch { /* dann eben nicht */ }
     /**
      * OHNE AUFTRAG ZURÜCK AUF DIE STARTSEITE (Owner 08.09.2026, mit Bild dieser Seite: „die
      * Seite? Was ist das? Die dürfte es nicht mehr geben").
@@ -360,7 +376,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       const z = d.ziel === "verkauf" ? "verkauf" : "leads";
       const t = String(d.text ?? "").trim();
       const u = String(d.url ?? "").trim();
-      if (t.length < 15 && !u) { window.location.replace(`/?lang=${lang}`); return; }
+      if (!t && !u) { window.location.replace(`/?lang=${lang}`); return; }
       setUrl(u);
       setZiel(z); setText(t);
       /**

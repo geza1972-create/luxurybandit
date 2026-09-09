@@ -6,6 +6,7 @@ import { BESCHREIBER, Wortmarke, mitMarke } from "@/components/VersusForgeMarke"
 import { Check } from "lucide-react";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { schrittMessen } from "@/lib/versusforge-messen";
+import VersusForgeFunnel from "@/components/VersusForgeFunnel";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { HEBEL } from "@/lib/versusforge-hook-rezept";
 
@@ -104,6 +105,8 @@ export default function VersusForgeStartEinfach({
   const router = useRouter();
   const [ziel, setZiel] = useState<"leads" | "verkauf">("leads");
   const [text, setText] = useState("");
+  /** Sobald der erste Satz steht, läuft das Gespräch an DIESER Stelle weiter. */
+  const [auftrag, setAuftrag] = useState<{ ziel: "leads" | "verkauf"; text: string } | null>(null);
   const [fehler, setFehler] = useState("");
 
   const hier = (extra: string) => {
@@ -135,10 +138,22 @@ export default function VersusForgeStartEinfach({
   }, []);
 
   const start = () => {
-    /* EIN SATZ, NICHT DREI UND NICHT DREI WÖRTER (Owner 09.09.2026: „drei Sätze ist zu
-       viel" · „nein, er soll schon einen Satz schreiben"). Fünfzehn Zeichen sind die
-       Untergrenze eines Satzes; alles Weitere holen die vier Fragen. */
-    if (text.trim().length < 15) { setFehler(S.feldZuKurz); return; }
+    /**
+     * KEINE PRÜFUNG MEHR AM EINGANG (Owner 09.09.2026, nach seinem Test mit „hallo":
+     * „meinst du das?").
+     *
+     * ER HAT MICH BEI EINEM WIDERSPRUCH ERWISCHT. Ich baue den ganzen Trichter zum Gespräch
+     * um — und lasse davor einen Formular-Prüfer stehen, der „hallo" mit einer roten Zeile
+     * abweist. In einem Chat antwortet man auf „hallo". Genau dieses Zurückweisen ist das
+     * Verhalten, wegen dem er sein eigenes Werkzeug nicht benutzt.
+     *
+     * WER DAS ABFÄNGT: der Agent selbst. Ein Gruss bekommt einen Gruss und eine Frage
+     * zurück, Tastaturgeklapper bekommt eine ruhige Bitte um einen Satz. Beides ist ein
+     * kleiner Aufruf und wird vom Deckel je Gerät begrenzt — dieselbe Bremse wie überall.
+     *
+     * NUR LEER GEHT NICHT: Aus nichts kann auch ein Gespräch nichts machen.
+     */
+    if (!text.trim()) { setFehler(S.feldZuKurz); return; }
     setFehler("");
     try { sessionStorage.setItem(ABLAGE, JSON.stringify({ ziel, text: text.trim(), url: "" })); } catch { /**/ }
     void logTunnelEvent("funnel_started", "versusforge");
@@ -148,14 +163,28 @@ export default function VersusForgeStartEinfach({
        Hier und nicht beim Laden der Seite: Gemessen wird der Mensch, der etwas geschrieben
        hat und weitergeht; ein Bot, der die Startseite abruft, ist kein Besucher. */
     schrittMessen(EIGENER_MANDANT, "seite");
-    router.push(`/engine/start${lang ? `?lang=${lang}` : ""}`);
+    /**
+     * KEIN SEITENWECHSEL MEHR (Owner 09.09.2026: „bei VersusForge müsste sich ein Chat
+     * öffnen und alles lösen" · „ein Chat wie Claude hier" · „sieht das aus wie ein Chat?").
+     *
+     * HIER STAND `router.push("/engine/start")`. Das war der letzte Formular-Rest und der
+     * grösste: Feld ausfüllen, Knopf drücken, neue Seite. Ein Chat wechselt keine Seite —
+     * man tippt, und es antwortet an derselben Stelle, unter dem, was man geschrieben hat.
+     * Solange dieser Sprung drin war, konnte das Ding aussehen wie es wollte; es war ein
+     * Formular.
+     */
+    setAuftrag({ ziel, text: text.trim() });
   };
 
   return (
     /* `lb-versusforge` OHNE `lb-bg`: Die Klasse blendet über `globals.css` die Haus-Leiste
        aus (die runde Schaltfläche unten rechts gehört LuxuryBandit, nicht hierher). Den
        schwarzen Grund bringt erst das zweite `lb-bg` mit — den wollen wir hier nicht. */
-    <main className="lb-versusforge flex min-h-screen flex-col bg-white text-[#14181c]">
+    /* `h-[100dvh]` sobald der Chat läuft: Die Fläche gehört dann dem Gespräch, und die
+       Eingabeleiste klebt am unteren Rand des BILDSCHIRMS, nicht am Ende einer Seite, die
+       weiterscrollt. Ohne Chat bleibt es `min-h-screen` — die Verkaufsseite darf lang sein. */
+    <main className={`lb-versusforge flex flex-col bg-white text-[#14181c] ${
+      auftrag ? "h-[100dvh] overflow-hidden" : "min-h-screen"}`}>
       {/* Der Kopf trägt NUR den Namen und die Sprachen. Kein Menü — es gibt nichts, wohin
           man von hier aus wollte, ausser anzufangen. */}
       <header className="border-b border-[#dfe4e9] px-5 py-4">
@@ -185,6 +214,22 @@ export default function VersusForgeStartEinfach({
         </div>
       </header>
 
+      {/**
+        * LÄUFT DAS GESPRÄCH, IST DIE SEITE DER CHAT (Owner 09.09.2026: „sieht das aus wie ein
+        * Chat?" · „du machst mir ein Chat wie WA" · „wie ChatGPT").
+        *
+        * Überschrift, Feld, Beispiele und die drei Verkaufsblöcke sind das Schaufenster.
+        * Sobald der erste Satz steht, ist er im Laden — und dann ist alles, was noch
+        * verkauft, im Weg. Ein Chat, unter dem eine Werbeseite weiterscrollt, ist kein Chat.
+        *
+        * VOLLE HÖHE, EINGABE UNTEN: Genau so sieht jeder Chat aus, den er kennt. Die Fläche
+        * gehört dem Gespräch, nicht der Seite.
+        */}
+      {auftrag ? (
+        <div className="mx-auto flex w-full max-w-[820px] flex-1 flex-col px-4 pb-4 pt-4">
+          <VersusForgeFunnel S={S} lang={lang} auftrag={auftrag} />
+        </div>
+      ) : (
       <div className="mx-auto w-full max-w-[620px] flex-1 px-5 pb-12 pt-7 md:pt-13">
         {/**
           * DER HOOK IST DIE ÜBERSCHRIFT (Owner 09.09.2026: „das ist der Hook jetzt und dann
@@ -306,6 +351,8 @@ export default function VersusForgeStartEinfach({
           </ul>
         </div>
 
+
+
         {/* KEIN SATZ UNTER DEM KNOPF (Owner 09.09.2026: „raus"). Er versprach dasselbe, was
             der Block „Was du bekommst" gleich darunter ausführlich sagt — zweimal derselbe
             Inhalt in zwölf Zeilen Abstand. Der Knopf schliesst den oberen Teil ab. */}
@@ -426,6 +473,7 @@ export default function VersusForgeStartEinfach({
           </div>
         </section>
       </div>
+      )}
 
       <footer className="border-t border-[#dfe4e9] px-5 pb-6 pt-4">
         <div className="mx-auto flex w-full max-w-[620px] flex-wrap items-center gap-2 text-[14px] text-[#5b666f]">

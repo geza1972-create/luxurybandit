@@ -417,7 +417,7 @@ export const VERSUSFORGE_TEXTE = {
   urlPlatzhalter: "deinefirma.de",
   urlLabel: "Oder zeig mir deine Website — ich lese sie.",
   feldWeiter: "Weiter",
-  feldZuKurz: "Ein Satz reicht — was du anbietest und wo.",
+  feldZuKurz: "Schreib etwas — auch ein Hallo reicht, dann fangen wir dort an.",
 
   /* ── Schritt 3 · die Rückfragen ──────────────────────────────────────────── */
   /* Der Plan VOR dem Gespräch (Hausregel [[agenten-plan-vor-dem-gespraech]]): Er sagt, wie

@@ -1307,3 +1307,13 @@ body:has(.lb-versusforge) .lb-hausleiste { display: none !important; }
  */
 body:has(.lb-mandant) .lb-hausleiste,
 body:has(.lb-mandant) .lb-cookieband { display: none !important; }
+
+/* DIE DREI PUNKTE, WÄHREND DER AGENT SCHREIBT (09.09.2026, mit dem Chat).
+   Das Zeichen kennt jeder aus WhatsApp und iMessage: Es sagt „gleich kommt etwas", ohne zu
+   behaupten, wie lange es dauert — anders als ein Balken, der einen Fortschritt vortäuscht,
+   den niemand kennen kann. */
+@keyframes lb-tippt {
+  0%, 60%, 100% { opacity: .25; transform: translateY(0); }
+  30%           { opacity: 1;   transform: translateY(-3px); }
+}
+.lb-tippt { animation: lb-tippt 1.2s ease-in-out infinite; }

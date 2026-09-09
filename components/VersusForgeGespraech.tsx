@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowUp } from "lucide-react";
 import { HEBEL } from "@/lib/versusforge-hook-rezept";
 
 /**
@@ -65,13 +66,26 @@ export default function VersusForgeGespraech({
     schicken(w);
   };
 
+  /**
+   * DIE FORM IST DIE VON WHATSAPP UND CHATGPT (Owner 09.09.2026: „du machst mir ein Chat wie
+   * WA" · „wie ChatGPT" · „sieht das aus wie ein Chat?").
+   *
+   * DREI SACHEN MACHEN DEN UNTERSCHIED, und keine davon ist Farbe:
+   *  1. DIE FLÄCHE GEHÖRT DEM GESPRÄCH. Volle Höhe, der Verlauf scrollt für sich. Ein Chat
+   *     in einem Kasten mitten auf einer Seite ist ein Formular mit Sprechblasen.
+   *  2. DIE EINGABE KLEBT UNTEN. Immer sichtbar, immer erreichbar, ohne Scrollen.
+   *  3. NACHRICHTEN, KEINE ABSCHNITTE. Seine rechts, seine Antworten links, verschieden
+   *     geformt — man sieht beim Überfliegen, wer spricht.
+   */
   return (
-    <div className="flex flex-col gap-4">
-      {/* ── DIE ANZEIGE DER MASCHINE — sie steht oben und bleibt stehen ── */}
-      <HebelStand stand={stand} jetzt={hebel} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── DIE ANZEIGE DER MASCHINE — sie klebt oben, während der Verlauf darunter läuft ── */}
+      <div className="shrink-0 pb-3">
+        <HebelStand stand={stand} jetzt={hebel} />
+      </div>
 
-      {/* ── DER VERLAUF ── */}
-      <div className="flex flex-col gap-3">
+      {/* ── DER VERLAUF: die einzige Fläche, die scrollt ── */}
+      <div className="lb-wisch flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4">
         {verlauf.map((m, i) => (
           <div key={i} className={m.rolle === "mensch" ? "flex justify-end" : "flex justify-start"}>
             {/**
@@ -82,7 +96,7 @@ export default function VersusForgeGespraech({
             <p className={`m-0 max-w-[86%] whitespace-pre-wrap text-[16.5px] leading-[1.5] md:text-[17.5px] ${
               m.rolle === "mensch"
                 ? "rounded-2xl rounded-br-md bg-[#1d6fd0] px-4 py-3 font-semibold text-white"
-                : "rounded-2xl rounded-bl-md border border-white/12 bg-white/[0.05] px-4 py-3 text-white/90"}`}>
+                : "rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-3 text-[#14181c]"}`}>
               {m.text}
             </p>
           </div>
@@ -90,11 +104,17 @@ export default function VersusForgeGespraech({
 
         {busy && (
           <div className="flex justify-start">
-            <p className="m-0 rounded-2xl rounded-bl-md border border-white/12 bg-white/[0.05] px-4 py-3 text-[16px] text-white/55">
-              {busyText || texte.denkt}
+            {/* DREI PUNKTE STATT EINES BALKENS: In einem Chat wartet man auf eine Antwort,
+                nicht auf einen Vorgang. Jeder kennt das Zeichen. */}
+            <p className="m-0 flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-4">
+              {[0, 1, 2].map(i => (
+                <span key={i} className="lb-tippt h-2 w-2 rounded-full bg-[#8b959d]"
+                  style={{ animationDelay: `${i * 0.16}s` }} />
+              ))}
             </p>
           </div>
         )}
+        <div ref={ende} />
       </div>
 
       {/* ── DER PLAN IST EIN ANGEBOT, KEIN AUTOMATISMUS ──
@@ -119,7 +139,7 @@ export default function VersusForgeGespraech({
               key={i}
               type="button"
               onClick={() => setEingabe(v)}
-              className="rounded-full border border-white/20 px-3.5 py-2 text-[14.5px] font-semibold text-white/70 transition hover:border-[#f6cf51]/50 hover:text-white"
+              className="rounded-full border-[1.5px] border-[#dfe4e9] bg-[#f5f7f9] px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#1d6fd0]"
             >
               {v}
             </button>
@@ -127,15 +147,15 @@ export default function VersusForgeGespraech({
         </div>
       )}
 
-      {fehler && <p className="m-0 text-[15px] font-bold text-[#e0574f]">{fehler}</p>}
+      {fehler && <p className="m-0 text-[15px] font-bold text-[#c02626]">{fehler}</p>}
 
-      {/* ── DAS EINGABEFELD BLEIBT IMMER DA ──
+      {/* ── DIE EINGABELEISTE KLEBT UNTEN ──
           Auch nachdem der Agent „fertig" gemeldet hat: Er darf widersprechen, nachlegen oder
           etwas ändern, statt vor einem einzigen Knopf zu stehen. Genau das kann ein Formular
           nicht, und genau deshalb bauen wir es um. */}
-      <div className="flex items-end gap-2">
+      <div className="sticky bottom-0 flex shrink-0 items-end gap-2 border-t border-[#e4e9ee] bg-white pb-2 pt-3">
         <textarea
-          rows={2}
+          rows={1}
           value={eingabe}
           onChange={e => setEingabe(e.target.value)}
           onKeyDown={e => {
@@ -144,27 +164,20 @@ export default function VersusForgeGespraech({
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ab(); }
           }}
           placeholder={texte.platzhalter}
-          className="min-h-[56px] flex-1 resize-none rounded-xl border-[1.5px] border-white/20 bg-white px-4 py-3.5 text-[16px] leading-[1.45] text-[#14181c] placeholder:text-[#8b959d] outline-none focus:border-[#1d6fd0]"
+          className="max-h-[160px] min-h-[52px] flex-1 resize-none rounded-2xl border-[1.5px] border-[#dfe4e9] bg-white px-4 py-3.5 text-[16px] leading-[1.45] text-[#14181c] placeholder:text-[#8b959d] outline-none focus:border-[#1d6fd0]"
         />
+        {/* RUNDER KNOPF MIT PFEIL — die Form, die jeder aus WhatsApp und ChatGPT kennt.
+            Ein Wort daneben („Senden") wäre eine Beschriftung für etwas, das keine braucht. */}
         <button
           type="button"
           onClick={ab}
           disabled={busy || !eingabe.trim()}
-          className="h-[56px] shrink-0 rounded-xl bg-[#1d6fd0] px-5 text-[16px] font-extrabold text-white transition active:scale-[.98] disabled:opacity-40"
+          aria-label={texte.senden}
+          className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-full bg-[#1d6fd0] text-white transition active:scale-95 disabled:opacity-30"
         >
-          {texte.senden}
+          <ArrowUp className="h-5 w-5" aria-hidden />
         </button>
       </div>
-
-      <button
-        type="button"
-        onClick={zurueck}
-        className="self-start text-[15px] font-semibold text-white/45 transition hover:text-white/80"
-      >
-        ‹ {texte.zurueck}
-      </button>
-
-      <div ref={ende} />
     </div>
   );
 }
@@ -183,22 +196,22 @@ function HebelStand({ stand, jetzt }: { stand: Record<string, number>; jetzt: st
   const summe = HEBEL.reduce((n, h) => n + (stand[h.schluessel] ?? 0), 0);
   if (!summe) return null;
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+    <div className="flex flex-col gap-2 rounded-2xl bg-[#f5f7f9] p-4">
       {HEBEL.map(h => {
         const wert = Math.max(0, Math.min(100, stand[h.schluessel] ?? 0));
         const dran = h.schluessel === jetzt;
         return (
           <div key={h.schluessel} className="flex items-center gap-3">
-            <span className={`w-[92px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/55"}`}>
+            <span className={`w-[92px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#5b666f]"}`}>
               {h.schritt}
             </span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/12">
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#dfe4e9]">
               <span
-                className={`block h-full rounded-full transition-[width] duration-500 ${dran ? "bg-[#f6cf51]" : "bg-white/45"}`}
+                className={`block h-full rounded-full transition-[width] duration-500 ${dran ? "bg-[#1d6fd0]" : "bg-[#9aa6b1]"}`}
                 style={{ width: `${wert}%` }}
               />
             </span>
-            <span className={`w-[42px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/45"}`}>
+            <span className={`w-[42px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#8b959d]"}`}>
               {wert}%
             </span>
           </div>
