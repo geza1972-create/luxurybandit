@@ -533,11 +533,30 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
   const t = (wert: string | undefined, ersatz = "") => (typeof wert === "string" && wert ? wert : ersatz);
 
   /** Ein Aufruf an den Berater. Der ganze Zustand geht mit — der Server merkt sich nichts. */
-  const berater = async (schritt: string, extra: Runde[] = runden) => {
+  /**
+   * `jetzt` überschreibt einzelne Werte — nötig, weil Zustand nicht sofort gilt.
+   *
+   * WO ES BEISST: Springt das Briefing direkt in den Plan, sind `setZiel`, `setText` und
+   * `setSeite` gerade erst aufgerufen; im selben Durchlauf tragen sie noch die alten,
+   * leeren Werte. Ein Plan-Aufruf ohne Ziel und ohne Satz käme leer zurück — und zwar
+   * ausgerechnet bei dem, der am meisten geschrieben hat.
+   */
+  const berater = async (
+    schritt: string,
+    extra: Runde[] = runden,
+    jetzt: Partial<{ ziel: Ziel | ""; text: string; url: string; seite: string }> = {},
+  ) => {
     const res = await fetch("/api/versusforge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schritt, ziel, text, url, seite, sprache: lang, runden: extra, device: geraet() }),
+      body: JSON.stringify({
+        schritt,
+        ziel: jetzt.ziel ?? ziel,
+        text: jetzt.text ?? text,
+        url: jetzt.url ?? url,
+        seite: jetzt.seite ?? seite,
+        sprache: lang, runden: extra, device: geraet(),
+      }),
     });
     return (await res.json()) as Record<string, unknown>;
   };
@@ -620,19 +639,45 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
         void logFunnelEvent("vf_eigene_adresse", { theme: "versusforge" });
         return;
       }
+      setVerstanden(String(d.verstanden ?? ""));
+      setSeite(String(d.seite ?? ""));
+      setStand((d.stand ?? {}) as Record<string, number>);
+
+      /**
+       * ER HAT ALLES SCHON GESAGT — DANN WIRD NICHT GEFRAGT (Owner 09.09.2026: „falls jemand
+       * im ersten Feld mehr erzählt und sogar die nächsten Fragen beantwortet, dann frag ihn
+       * nicht noch mal danach").
+       *
+       * Wer sein Geschäft kennt, schreibt in fünf Zeilen hin, wofür ein Formular vier Fragen
+       * braucht. Ihn trotzdem zu fragen zeigt, dass nicht gelesen wurde — der eine Vorwurf,
+       * gegen den dieses Produkt gebaut ist.
+       *
+       * DIE VIER FRAGEN SIND EIN DECKEL, KEIN SOLL. Wer alles mitbringt, bekommt sofort
+       * seinen Plan.
+       */
+      if (d?.fertig === true) {
+        setPlaeneBauen(true); setBusyText(S.baut);
+        void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z, direkt: "ja" });
+        const p = await berater("plan", [], { ziel: z, text: t, url: u, seite: String(d.seite ?? "") });
+        if (p?.error) { setFehler(String(p.error)); setPlaeneBauen(false); setBusy(false); setBusyText(""); return; }
+        setPlan((p.plan ?? null) as Plan | null);
+        void logFunnelEvent("vf_plan", { theme: "versusforge", ziel: z });
+        setPlaeneBauen(false); setPhase("plan");
+        schrittMessen(EIGENER_MANDANT, "plan");
+        setBusy(false); setBusyText("");
+        return;
+      }
+
       const frage1 = String(d.frage ?? "");
       if (!frage1) {
-        /* Ohne Frage gibt es nichts zu zeigen — zurück auf die Startseite, wo das Feld steht,
-           statt auf einen leeren Gesprächsschirm. */
+        /* Ohne Frage und ohne „fertig" gibt es nichts zu zeigen — zurück auf die Startseite,
+           wo das Feld steht, statt auf einen leeren Gesprächsschirm. */
         setFehler(S.fehler); setBusy(false); setBusyText("");
         window.location.replace(heim());
         return;
       }
-      setVerstanden(String(d.verstanden ?? ""));
-      setSeite(String(d.seite ?? ""));
       setFrage(frage1);
       setHebel(String(d.hebel ?? ""));
-      setStand((d.stand ?? {}) as Record<string, number>);
       setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);
       setPhase("gespraech");
       void logFunnelEvent("vf_briefing", { theme: "versusforge", ziel: z });

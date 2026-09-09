@@ -725,7 +725,23 @@ export async function POST(request: Request) {
         : "'verstanden' — EIN Satz, der belegt, dass du seinen Satz gelesen hast: greif ein konkretes Wort daraus auf und sag, was du daraus schon ableitest. Keine Zusammenfassung seiner Worte, keine Floskel.",
       /* DIE ERSTE FRAGE FÜLLT DEN OBERSTEN OFFENEN HEBEL (09.09.2026). „Die wichtigste Lücke
          zuerst" hiess vorher: die Lücke der KAMPAGNE. Jetzt ist es die Lücke des HOOKS. */
-      "'frage' — deine erste Rückfrage. Sie füllt den obersten Hebel, den sein Satz und seine Website noch nicht hergeben.",
+      /**
+       * WAS SCHON DASTEHT, WIRD NICHT GEFRAGT (Owner 09.09.2026: „falls jemand im ersten Feld
+       * mehr erzählt und sogar die nächsten Fragen beantwortet, dann frag ihn nicht noch mal
+       * danach. Kann sein, dass er dir alle Infos gibt, die du brauchst").
+       *
+       * DER FALL IST HÄUFIGER ALS GEDACHT: Wer sein Geschäft kennt, schreibt in fünf Zeilen
+       * das hin, wofür ein Formular vier Fragen braucht — Angebot, Ort, was ihn
+       * unterscheidet, warum er nicht jeden nimmt. Ihn danach trotzdem zu fragen, ist die
+       * sicherste Art zu zeigen, dass man nicht gelesen hat. Genau der Vorwurf, gegen den
+       * dieses Produkt gebaut ist.
+       *
+       * FRAGEN SIND EIN DECKEL, KEIN SOLL: Vier ist das Höchste, nicht das Ziel. Wer alles
+       * mitgebracht hat, bekommt sofort seinen Plan — das ist kein Sparen, das ist der
+       * bessere Dienst.
+       */
+      "'frage' — deine erste Rückfrage. Sie füllt den obersten Hebel, den sein Satz und seine Website noch nicht hergeben. Was daraus SCHON hervorgeht, fragst du NICHT noch einmal — auch nicht mit anderen Worten.",
+      "'fertig' — true, wenn sein Satz und seine Website die Hebel schon so weit füllen, dass du einen Hook und einen Plan bauen könntest. Dann bleibt 'frage' leer und es wird gar nicht gefragt. Sei dabei ehrlich: Lieber eine Frage zu viel als ein Plan aus Vermutungen.",
       `'hebel' — welchen der fünf Hebel diese Frage füllen soll, genau eines dieser Wörter: ${HEBEL.map(h => h.schluessel).join(" | ")}.`,
       /**
        * DER STAND IN PROZENT (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es
@@ -781,7 +797,7 @@ export async function POST(request: Request) {
          Website steht, ist nichts Erfundenes — es ist gelesen, und genau dafür hat er sie
          gezeigt. */
       "'vorschlaege' — 2 bis 3 mögliche Antworten zum Antippen, je höchstens 6 Wörter. Es sind WAHLMÖGLICHKEITEN, keine Behauptungen über ihn: erfinde keine Zahlen, Preise oder Orte. AUSNAHME: Was auf seiner Website steht, darfst du wörtlich anbieten — bei der Frage nach dem Angebot sind die dort gefundenen Leistungen genau die richtigen Vorschläge. Passt die Frage nicht zu Vorschlägen, lass die Liste leer.",
-      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","hebel":"...","stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"warum":"...","vorschlaege":["..."]}',
+      'Antworte NUR als JSON: {"verstanden":"...","abgelehnt":false,"unklar":false,"seiteKurz":"...","frage":"...","fertig":false,"hebel":"...","stand":{"zweck":0,"geschichte":0,"identitaet":0,"beweis":0,"knappheit":0},"warum":"...","vorschlaege":["..."]}',
       "",
       lage(b),
     ].join("\n");
@@ -822,6 +838,9 @@ export async function POST(request: Request) {
         const h = str(r.daten.hebel, 40).trim().toLowerCase();
         return HEBEL.some(x => x.schluessel === h) ? h : "";
       })(),
+      /* Ohne Frage ist es fertig — egal, was das Modell im Feld behauptet. Sonst stünde der
+         Mensch vor einem Gesprächsschirm ohne Frage. */
+      fertig: r.daten.fertig === true || !frage,
       stand: standAus(r.daten.stand),
       vorschlaege: strListe(r.daten.vorschlaege, 3, 80),
       verbrauch: r.verbrauch,
