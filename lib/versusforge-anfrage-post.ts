@@ -60,6 +60,10 @@ export async function anfragePerPost(o: {
   );
 
   const res = await sendEmail({
+    /* AUS DEM VERSUSFORGE-POSTFACH, nicht aus dem des Hauses (Owner 09.09.2026: „sonst
+       bekommen die Leute eine E-Mail von LuxuryBandit"). Fehlt es noch, geht sie mit einer
+       Warnung im Log über das Haus — siehe `MailKonto` in lib/email-send.ts. */
+    konto: "versusforge",
     to: o.an,
     /* Der Kopf, den Mail-Programme selbst auswerten — damit „abbestellen" auch dort
        funktioniert, wo der Mensch gar nicht bis zum Fuss scrollt. */

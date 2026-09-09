@@ -98,6 +98,10 @@ export async function linksPerPost(o: {
         loeschen);
 
   const res = await sendEmail({
+    /* AUS DEM VERSUSFORGE-POSTFACH, nicht aus dem des Hauses (Owner 09.09.2026: „sonst
+       bekommen die Leute eine E-Mail von LuxuryBandit"). Fehlt es noch, geht sie mit einer
+       Warnung im Log über das Haus — siehe `MailKonto` in lib/email-send.ts. */
+    konto: "versusforge",
     to: o.an,
     listUnsubscribe: `<${loeschen}>`,
     subject: o.nurLoeschen ? "Dein Löschlink" : "Deine Anzeige und dein Trichter",
