@@ -212,6 +212,7 @@ export default async function MandantDashboard({ params, searchParams }: {
           {ansicht === "hooks" ? (
             <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} />
           ) : ansicht === "einstellungen" ? (
+            <>
             <MandantEinrichten
               mandant={mandant}
               k={k}
@@ -226,10 +227,7 @@ export default async function MandantDashboard({ params, searchParams }: {
                 datenschutzUrl: m.datenschutzUrl ?? "",
               }}
             />
-          ) : null}
-
-          {/* DER ZUGANG steht unter denselben Einstellungen, direkt unter den Angaben. */}
-          {ansicht === "einstellungen" ? (
+            {/* DER ZUGANG steht unter denselben Einstellungen, direkt unter den Angaben. */}
             <div className="mt-5">
               <MandantZugang
                 trichterUrl={`https://versusforge.com/${mandant}`}
@@ -238,6 +236,7 @@ export default async function MandantDashboard({ params, searchParams }: {
                 schluessel={m.schluessel}
               />
             </div>
+            </>
           ) : (
             <>
               {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
