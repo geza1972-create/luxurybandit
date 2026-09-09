@@ -41,6 +41,10 @@ export async function POST(request: Request) {
     await linksPerPost({
       an: m.mail,
       mandant: kennung,
+      /* Der Dashboard-Schlüssel reist in derselben Mail: Ohne ihn findet er die Seite nie,
+         auf der er Impressum und Datenschutz einträgt — und ohne die nimmt sein Trichter
+         keine einzige Anfrage an. */
+      schluessel: m.schluessel,
       loeschSchluessel: m.loeschSchluessel,
       nurLoeschen,
     }).catch(e => console.error("[versusforge-senden] Versand fehlgeschlagen", e));

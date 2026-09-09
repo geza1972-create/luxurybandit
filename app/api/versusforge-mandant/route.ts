@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     void (async () => {
       try {
         const alle = await leadsLesen(kennung, 500);
-        await anfragePerPost({ an: m.mail, mandant: kennung, name: m.name, offen: alle.length, loeschSchluessel: m.loeschSchluessel });
+        await anfragePerPost({ an: m.mail, mandant: kennung, name: m.name, offen: alle.length, schluessel: m.schluessel, loeschSchluessel: m.loeschSchluessel });
       } catch (e) {
         console.error("[versusforge-mandant] Benachrichtigung fehlgeschlagen", e);
       }

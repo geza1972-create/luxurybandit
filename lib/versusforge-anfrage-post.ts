@@ -25,12 +25,18 @@ export async function anfragePerPost(o: {
   mandant: string;
   name: string;
   offen: number;
+  /** Der Dashboard-Schlüssel — ohne ihn führt der Knopf auf eine Seite, die sich nicht öffnet. */
+  schluessel: string;
   /** Für die Abbestellung im Fuss — Löschen ist hier der Abmeldeweg. */
   loeschSchluessel: string;
 }): Promise<boolean> {
   if (!o.an.includes("@")) return false;
 
-  const dashboard = `https://versusforge.com/${o.mandant}/anzeige`;
+  /* DER KNOPF FÜHRT AUF DAS DASHBOARD, NICHT AUF DIE ANZEIGEN-SEITE (09.09.2026, mit dem
+     Dashboard gebaut). Bis heute schickte „Dashboard freischalten" ihn auf die Seite mit den
+     Anzeigentexten — dort standen die Anfragen nie. Jetzt landet er dort, wo die Zahl steht
+     und wo er einrichten kann. */
+  const dashboard = `https://versusforge.com/${o.mandant}/dashboard?k=${encodeURIComponent(o.schluessel)}`;
   const loeschen = `https://versusforge.com/${o.mandant}/anzeige?k=${encodeURIComponent(o.loeschSchluessel)}`;
   const mehrere = o.offen > 1;
 
@@ -44,7 +50,7 @@ export async function anfragePerPost(o: {
         `Danach siehst du zu jeder Anfrage den Namen, die Telefonnummer und das, was der Mensch `
         + `gesagt hat — auch zu denen, die schon vorher gekommen sind. `
         + `${eur(VERSUSFORGE_START_CENTS, "de")} einmalig.`,
-        { adresse: dashboard, wort: "Dashboard freischalten" })
+        { adresse: dashboard, wort: "Zum Dashboard" })
     /* DIE UHR IST DAS ARGUMENT, NICHT DER PREIS. Wer sich am selben Tag meldet, gewinnt —
        und genau das kann er nicht, solange er die Nummer nicht sieht. */
     + mailFein(

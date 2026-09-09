@@ -34,6 +34,8 @@ const ANLEITUNG =
 export async function linksPerPost(o: {
   an: string;
   mandant: string;
+  /** Der Dashboard-Schlüssel. Er ist die einzige Tür zum Einrichten und zu den Anfragen. */
+  schluessel: string;
   loeschSchluessel: string;
   /** Nur den Löschlink schicken — wenn er ihn auf der Seite angefordert hat. */
   nurLoeschen?: boolean;
@@ -44,6 +46,7 @@ export async function linksPerPost(o: {
   const anzeige = `${basis}/${o.mandant}/anzeige`;
   const trichter = `${basis}/${o.mandant}`;
   const loeschen = `${basis}/${o.mandant}/anzeige?k=${encodeURIComponent(o.loeschSchluessel)}`;
+  const dashboard = `${basis}/${o.mandant}/dashboard?k=${encodeURIComponent(o.schluessel)}`;
 
   const html = o.nurLoeschen
     ? mailHuelle(
@@ -58,6 +61,19 @@ export async function linksPerPost(o: {
             "Texte zum Kopieren, das Bild und das Ziel für die Anzeige.")
         + mailAdresse("Dein Trichter", trichter,
             "Die Seite, auf der deine Kunden landen. Mach sie auf und geh sie durch.")
+        /**
+         * DAS DASHBOARD STEHT MIT IN DER MAIL, UND ZWAR NICHT ERST NACH DEM KAUF
+         * (09.09.2026, mit dem Dashboard gebaut).
+         *
+         * WEIL DORT DAS EINRICHTEN LIEGT. Solange Impressum und Datenschutz fehlen, weist
+         * sein Trichter jede Anfrage ab — und diese beiden Angaben trägt er genau dort ein.
+         * Ohne diesen Link in der Mail findet er die Seite nie und wartet auf Anrufe, die
+         * gar nicht entstehen können. Die Anfragen selbst bleiben bis zum Kauf verschlossen;
+         * das steht auf der Seite und im Kasten darunter.
+         */
+        + mailAdresse("Dein Dashboard", dashboard,
+            "Hier trägst du Impressum, Datenschutz, Adresse und Telefonnummer ein — ohne die "
+            + "nimmt deine Seite keine Anfrage an. Später stehen hier deine Anfragen.")
         /**
          * DIE GRENZE, VOR DER ANLEITUNG (Owner 09.09.2026: „in der Mail muss stehen, dass er
          * diesen Trichter nicht nutzen kann, nur nachbauen").
