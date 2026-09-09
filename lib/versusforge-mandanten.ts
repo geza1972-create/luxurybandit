@@ -1,5 +1,5 @@
 import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-store";
-import { GESPERRTE_NAMEN, mandantSauber } from "@/lib/versusforge-lead";
+import { EIGENER_MANDANT, GESPERRTE_NAMEN, mandantSauber } from "@/lib/versusforge-lead";
 
 /**
  * WER EINEN EIGENEN TRICHTER HAT (Owner 09.09.2026: „er bekommt einen Funnel, eine URL, die
@@ -147,7 +147,19 @@ export const AKZENT_STANDARD = "#1d6fd0";
 export async function mandantLesen(mandantRoh: string): Promise<MandantAngaben | null> {
   const mandant = mandantSauber(mandantRoh);
   /* Der eigene Mandant hat keine Datei — wir sind die Wurzel, nicht ein Eintrag. */
-  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return null;
+  /**
+   * VERSUSFORGE IST MANDANT NUMMER EINS (Owner 09.09.2026: „wo ist mein Dashboard?" · „der
+   * müsste doch genauso aussehen") — [[mein-trichter-ist-ihr-trichter]].
+   *
+   * HIER STAND `mandant === EIGENER_MANDANT → null` mit der Begründung „wir sind die Wurzel,
+   * nicht ein Eintrag". Das war der Satz, der ihm sein eigenes Dashboard verwehrt hat: Ohne
+   * Datei kein Mandant, ohne Mandant kein Schlüssel, ohne Schlüssel keine Seite. Und ein
+   * zweites, eigenes Dashboard danebenzubauen wäre genau das, was die Hausregel verbietet.
+   *
+   * DIE ANDEREN GESPERRTEN NAMEN BLEIBEN GESPERRT: `engine`, `about`, `themes` tragen echte
+   * Seiten, dort kann es keinen Mandanten geben.
+   */
+  if (!mandant || (GESPERRTE_NAMEN.has(mandant) && mandant !== EIGENER_MANDANT)) return null;
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(mandant))}`);
   if (!res.ok) return null;
   try {
@@ -170,7 +182,7 @@ export async function mandantOeffentlich(mandantRoh: string): Promise<MandantOef
 
 export async function mandantSpeichern(mandantRoh: string, angaben: MandantAngaben): Promise<boolean> {
   const mandant = mandantSauber(mandantRoh);
-  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return false;
+  if (!mandant || (GESPERRTE_NAMEN.has(mandant) && mandant !== EIGENER_MANDANT)) return false;
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(mandant))}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true" },
@@ -272,7 +284,7 @@ export function mandantAusPlan(o: {
  */
 export async function mandantLoeschen(mandantRoh: string): Promise<boolean> {
   const mandant = mandantSauber(mandantRoh);
-  if (!mandant || GESPERRTE_NAMEN.has(mandant)) return false;
+  if (!mandant || (GESPERRTE_NAMEN.has(mandant) && mandant !== EIGENER_MANDANT)) return false;
 
   const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
     method: "POST",

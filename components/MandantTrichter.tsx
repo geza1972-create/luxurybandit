@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { schrittMessen } from "@/lib/versusforge-messen";
 import { useRouter } from "next/navigation";
 
 /**
@@ -28,6 +29,17 @@ export default function MandantTrichter({
   const router = useRouter();
   const [gewaehlt, setGewaehlt] = useState<string>("");
   const [fehler, setFehler] = useState("");
+
+  /**
+   * SCHRITT „Seite gesehen" — die oberste Sprosse der Leiter (Owner 09.09.2026: „der sieht
+   * nicht, wo die User abbrechen").
+   *
+   * Sie ist die WICHTIGSTE Zahl des ganzen Trichters, weil sie der Nenner ist: Ohne sie
+   * weiss niemand, ob von zehn Besuchern acht angefangen haben oder von tausend achtzehn.
+   * Genau hier, im Baustein mit den Karten, und nicht auf der Seite: Diese Komponente steht
+   * auf jeder Mandantenseite, und ein Zähler an der Seite wäre beim nächsten Umbau vergessen.
+   */
+  useEffect(() => { schrittMessen(mandant, "seite"); }, [mandant]);
 
   const los = () => {
     /* Sichtbarer Fehler AM Feld, kein Dialog (Hausregel `sichtbare-fehler-keine-formularfelder`). */

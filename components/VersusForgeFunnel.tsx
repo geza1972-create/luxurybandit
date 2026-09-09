@@ -6,6 +6,8 @@ import { kasseOeffnen, kassenFenster } from "@/lib/browser-erkennen";
 import { ChevronLeft } from "lucide-react";
 import { Eingabe, EingabeMehrzeilig, Knopf, Fehlerzeile, Fortschritt, Kasten } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
+import { schrittMessen } from "@/lib/versusforge-messen";
+import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import type { VersusForgeTexte } from "@/lib/versusforge-texte";
 import VersusForgeTrichterBild from "@/components/VersusForgeTrichterBild";
 
@@ -129,7 +131,21 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
    */
   const abgeholt = useRef(false);
 
-  useEffect(() => { void logTunnelEvent("funnel_started", "versusforge"); }, []);
+  /**
+   * DIE MESSUNG DES EIGENEN TRICHTERS (Owner 09.09.2026: „wo ist mein Dashboard?" · „der
+   * müsste doch genauso aussehen").
+   *
+   * VersusForge ist Mandant Nummer eins ([[mein-trichter-ist-ihr-trichter]]) und wird
+   * genauso gemessen wie jeder Kunde — dieselbe Leiter, dieselbe Ablage, dasselbe
+   * Dashboard. Der einzige Unterschied sind die Namen der Stationen.
+   *
+   * `logTunnelEvent` bleibt daneben stehen: Das ist die HAUS-Statistik über alle zwölf
+   * Produkte, hier geht es um die eine Strecke.
+   */
+  useEffect(() => {
+    void logTunnelEvent("funnel_started", "versusforge");
+    schrittMessen(EIGENER_MANDANT, "start");
+  }, []);
 
   /**
    * WAS AUF DER STARTSEITE GETIPPT WURDE, WIRD HIER ABGEHOLT (08.09.2026, im Bild des Owners
@@ -219,6 +235,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok || !d.ok) { setFehler(t(d.error as string, S.fehler)); return; }
       void logFunnelEvent("vf_lead", { theme: "versusforge", ziel, post: d.post ? "ja" : "nein" });
+      schrittMessen(EIGENER_MANDANT, "lead");
       setPostOk(d.post === true);
       setTrichterLink(typeof d.trichterLink === "string" ? d.trichterLink : "");
       setPhase("danke");
@@ -381,6 +398,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     const u = ohne ? "" : url.trim();
     if (ohne) setUrl("");
     void logFunnelEvent("vf_webseite", { theme: "versusforge", hat: u ? "ja" : "nein" });
+    schrittMessen(EIGENER_MANDANT, "webseite");
     await briefingMit(ziel, text, u);
   };
 
@@ -483,6 +501,8 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
     if (!uebersprungen && !wert) return;
     setFehler(""); setBusy(true); setBusyText(S.denkt);
     const neu = [...runden, { frage, antwort: wert }];
+    /* Die wievielte Antwort — dieselbe Zählung wie im Mandanten-Trichter. */
+    schrittMessen(EIGENER_MANDANT, `antwort${neu.length}`);
     try {
       const d = await berater("antwort", neu);
       if (d?.error) { setFehler(String(d.error)); setBusy(false); return; }
@@ -496,6 +516,7 @@ export default function VersusForgeFunnel({ S, lang }: { S: VersusForgeTexte; la
         setPlan((p.plan ?? null) as Plan | null);
         void logFunnelEvent("vf_plan", { theme: "versusforge", ziel });
         setPlaeneBauen(false); setPhase("plan");
+        schrittMessen(EIGENER_MANDANT, "plan");
       } else {
         setFrage(String(d.frage ?? ""));
         setVorschlaege(Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : []);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Inbox, Settings, ExternalLink, Megaphone, Phone, Lock } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
+import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 import MandantEinrichten from "@/components/MandantEinrichten";
 import { Wortmarke } from "@/components/VersusForgeMarke";
@@ -115,7 +116,7 @@ export default async function MandantDashboard({ params, searchParams }: {
    *    Namen. Genau das ist die Frage, die verkauft: „Wo sind meine Kunden?"
    */
   const bezahlt = m.stand === "scharf";
-  const anfragen = await leadsLesen(mandant, 200);
+  const [anfragen, messung] = await Promise.all([leadsLesen(mandant, 200), trichterZaehlen(mandant)]);
 
   const woche = Date.now() - 7 * 24 * 3600 * 1000;
   const neu = anfragen.filter(a => Date.parse(a.zeit) > woche).length;
@@ -194,12 +195,16 @@ export default async function MandantDashboard({ params, searchParams }: {
             />
           ) : (
             <>
-              {/* ── KENNZAHLEN: drei, nicht acht. Was man nicht liest, verdeckt nur. ── */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Zahl wert={String(messung.besucher)} label="Besucher · 30 Tage" />
                 <Zahl wert={String(anfragen.length)} label="Anfragen" />
                 <Zahl wert={String(neu)} label="Neu · 7 Tage" />
                 <Zahl wert={zuletzt} label="Zuletzt" klein />
               </div>
+
+              {/* ── WO SIE ABSPRINGEN ── */}
+              <Leiter leiter={messung.leiter} besucher={messung.besucher} />
 
               <section className={`${KARTE} mt-5 p-6 md:p-7`}>
                 <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">
@@ -305,6 +310,73 @@ function Zahl({ wert, label, klein = false }: { wert: string; label: string; kle
       </div>
       <div className="mt-1.5 text-[13.5px] font-bold text-[#8b959d]">{label}</div>
     </div>
+  );
+}
+
+/**
+ * DIE LEITER — WO DIE LEUTE ABSPRINGEN (Owner 09.09.2026: „der sieht nicht, wo die User
+ * abbrechen, keine Insights").
+ *
+ * DAS IST DIE EINE ANSICHT, DIE ES SONST NIRGENDS GIBT. Anfragen sieht er am Telefon; was
+ * er nicht sieht, sind die Leute, die angefangen und aufgehört haben. Bricht es zwischen
+ * „gesehen" und „gestartet" ein, stimmt der Hook nicht. Bricht es bei Frage 3 ein, ist die
+ * Frage falsch. Bricht es erst am Namensfeld ein, ist es das Vertrauen. Drei Befunde, drei
+ * Reparaturen — ohne diese Zeilen rät man alle drei.
+ *
+ * BALKEN AUS DIVS, KEIN DIAGRAMM-PAKET. Neun waagerechte Balken sind kein Grund, dem
+ * Browser eine Bibliothek zu schicken; und der grösste Wert ist immer 100 %, also braucht
+ * es nicht einmal eine Skala.
+ *
+ * DER ABSPRUNG STEHT RECHTS UND IN ROT, NICHT DER ANTEIL: Der Anteil sagt, wie viele noch
+ * da sind — die Frage ist aber, wo sie verloren gehen. Nur die grösste Stelle wird
+ * hervorgehoben; drei rote Zahlen nebeneinander heben sich gegenseitig auf.
+ */
+function Leiter({ leiter, besucher }: { leiter: Trichterzahl[]; besucher: number }) {
+  /* Die schlimmste Stelle — aber nur, wenn überhaupt genug Leute da waren, dass die Zahl
+     etwas bedeutet. Bei drei Besuchern ist jeder Abbruch 33 % und nichts davon ein Befund. */
+  const schlimmste = besucher >= 10
+    ? leiter.reduce((a, b) => (b.verloren > a.verloren ? b : a), leiter[0])
+    : null;
+
+  return (
+    <section className={`${KARTE} mt-5 p-6 md:p-7`}>
+      <h2 className="m-0 text-[19px] font-extrabold tracking-[-0.02em]">Wo sie abspringen</h2>
+      {besucher === 0 ? (
+        <p className="mt-2.5 text-[15px] leading-[1.5] text-[#5b666f]">
+          Noch niemand war auf deiner Seite. Sobald die Anzeige läuft, steht hier, an welcher
+          Frage die Leute aufhören.
+        </p>
+      ) : (
+        <>
+          <p className="mt-2 text-[14.5px] text-[#8b959d]">Letzte 30 Tage</p>
+          <ul className="mt-5 flex list-none flex-col gap-3.5 p-0">
+            {leiter.map((z, i) => {
+              const hier = schlimmste && z.stufe.schluessel === schlimmste.stufe.schluessel && z.verloren > 0;
+              return (
+                <li key={z.stufe.schluessel}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[15px] font-bold">{z.stufe.wort}</span>
+                    <span className="shrink-0 text-[15px] font-bold text-[#5b666f]">
+                      {z.anzahl}
+                      <span className="ml-2 text-[13.5px] font-bold text-[#8b959d]">{z.anteil}%</span>
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-[#eef1f4]">
+                    <div className="h-full rounded-full bg-[#1d6fd0]" style={{ width: `${Math.max(z.anteil, 1)}%` }} />
+                  </div>
+                  {/* Der Verlust steht ZWISCHEN den Sprossen, dort wo er entsteht. */}
+                  {i < leiter.length - 1 && z.verloren > 0 && (
+                    <p className={`mt-1.5 text-[13.5px] font-bold ${hier ? "text-[#c02626]" : "text-[#8b959d]"}`}>
+                      {hier ? "Grösster Absprung: " : ""}−{z.verloren} hier aufgehört
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 

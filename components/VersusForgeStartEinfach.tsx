@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { BESCHREIBER, Wortmarke, mitMarke } from "@/components/VersusForgeMarke";
 import { Check } from "lucide-react";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
+import { schrittMessen } from "@/lib/versusforge-messen";
+import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import type { VersusForgeTexte } from "@/lib/versusforge-texte";
 
 /**
@@ -105,6 +107,11 @@ export default function VersusForgeStartEinfach({
     try { sessionStorage.setItem(ABLAGE, JSON.stringify({ ziel, text: text.trim(), url: "" })); } catch { /**/ }
     void logTunnelEvent("funnel_started", "versusforge");
     void logFunnelEvent("vf_start", { theme: "versusforge", ziel, ueber: "wurzel" });
+    /* SPROSSE EINS: die Startseite. Sie ist der Nenner der ganzen Leiter — ohne sie weiss
+       niemand, ob von zehn Besuchern acht angefangen haben oder von tausend achtzehn.
+       Hier und nicht beim Laden der Seite: Gemessen wird der Mensch, der etwas geschrieben
+       hat und weitergeht; ein Bot, der die Startseite abruft, ist kein Besucher. */
+    schrittMessen(EIGENER_MANDANT, "seite");
     router.push(`/engine/start${lang ? `?lang=${lang}` : ""}`);
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { schrittMessen } from "@/lib/versusforge-messen";
 
 /**
  * DAS GESPRÄCH AUF DER MANDANTENSEITE (Owner 09.09.2026).
@@ -73,6 +74,9 @@ export default function MandantGespraech({
       if (roh) start = String((JSON.parse(roh) as { text?: string }).text ?? "");
     } catch { /* dann eben ohne — der Agent fragt trotzdem sinnvoll */ }
     setEinstieg(start);
+    /* SCHRITT „gestartet" — er hat auf der Seite davor eine Karte gewählt und ist hier.
+       Alles Weitere zählt in `antworten`. */
+    schrittMessen(mandant, "start");
     void holen([], start);
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
@@ -81,6 +85,9 @@ export default function MandantGespraech({
     const w = antwort.trim();
     if (!w) return;
     const naechste = [...runden, { frage, antwort: w }];
+    /* Die wievielte Antwort — daraus wird im Dashboard die Zeile „3. Frage beantwortet".
+       Mehr als vier gibt es nicht (Deckel im Server), höhere Stufen weist der Speicher ab. */
+    schrittMessen(mandant, `antwort${naechste.length}`);
     setRunden(naechste);
     setEigene("");
     setFrage("");
@@ -103,6 +110,9 @@ export default function MandantGespraech({
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { setFehler(String(d.error ?? "Das ging gerade nicht.")); return; }
+      /* Erst nach dem OK des Servers: Ein Abschluss, der in Wahrheit gescheitert ist,
+         stünde sonst als Erfolg in seiner Statistik. */
+      schrittMessen(mandant, "abschluss");
       setGesendet(true);
     } catch {
       setFehler("Das ging gerade nicht. Bitte noch einmal.");
