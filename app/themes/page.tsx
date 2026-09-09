@@ -542,6 +542,41 @@ export default async function ThemesCatalog({ searchParams }: {
      */
     { icon: FileText, title: "David · AI Pre-Screening", tagline: davidKachel.zeile, href: "/themes/david", cover: DAVID_POSTER, poster: DAVID_POSTER, video: DAVID_VIDEO, chips: `♥ ${davidKachel.chips}` },
     /**
+     * VERSUSFORGE — DIE ENGINE ALS EIGENE TÜR (Owner 08.09.2026: „VersusForge ist die Engine
+     * von LuxuryBandit. Ich werde sie als Topic einbauen auf LuxuryBandit. Die Leute bekommen
+     * aber den Tunnel von VersusForge").
+     *
+     * DIE KACHEL IST DIE TÜR, NICHT DIE VERKLEIDUNG: Ab dem Klick sieht niemand mehr
+     * LuxuryBandit — /themes/versusforge rendert dieselbe schwarze Landingpage wie die eigene
+     * Domain, mit eigener Wortmarke und eigenem Trichter.
+     *
+     * DIE ZEILE SAGT, WAS ES IST — NICHT, WOMIT ES DICH ANSPRICHT (Owner 08.09.2026, mit
+     * Bild: „das ist falsch. Hier musst du beschreiben, was VersusForge ist").
+     *
+     * Hier stand der Trichter-Hook („Du hast eine Website und keine Anfragen"). Auf der
+     * Landingpage ist der richtig — dort hat sich der Besucher schon für das Thema
+     * entschieden. Im Katalog steht die Kachel neben elf anderen Produkten; wer hier nicht
+     * in einer Zeile erfährt, WAS das ist, klickt nicht.
+     *
+     * KEIN KATEGORIE-WORT IN DER ZEILE (Owner 08.09.2026, nach kurzem Hin und Her: erst
+     * „Agent oder AI Engine?", dann „oder Marketing Tool?", dann „David ist ein Recruiter"
+     * — und zum Schluss „VersusForge — The Strategy Machine", worauf „Werbeberater" wegfiel:
+     * „ja, dann weg").
+     *
+     * Die Zeile sagt jetzt, was PASSIERT, nicht in welche Schublade es gehört. Das ist auch
+     * das Robustere: Der Beschreiber steht englisch unter der Wortmarke
+     * (`BESCHREIBER` in components/VersusForgeMarke.tsx) und muss nicht in jeder Sprache
+     * neu gefunden werden.
+     *
+     * DAS BILD IST AUS SCHRIFTZEICHEN GEBAUT, kein Foto und kein KI-Bild: Die Marke IST die
+     * Zeichnung aus Text (Startseite, Bauplan, Plan). Ein Symbolfoto wäre hier der erste
+     * Bruch — und die Kachel ist die Stelle, an der die meisten sie zuerst sehen.
+     *
+     * KEIN `video`: Es gibt keines, und ein geliehenes aus einem anderen Thema würde etwas
+     * versprechen, das dieses Produkt nicht liefert.
+     */
+    { icon: Target, title: "VersusForge", tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/themes/versusforge", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
+    /**
      * DER KANDIDATEN-TRICHTER BEKOMMT EINEN WEG VON DER STARTSEITE (Owner 31.08.2026: „mach
      * mir eine neue Topic um den aktuellen Tunel zu erreichen" · „das für deutsch Kandidaten
      * aber bitte nicht David ersetzen").
@@ -904,9 +939,11 @@ export default async function ThemesCatalog({ searchParams }: {
   /* „/academy" steht jetzt als „/academy/${L}" da (Owner 04.09.2026: eigene Pfade je
      Sprache) — alle drei mit aufgenommen, sonst griffe der Marken-Schutz unten nicht mehr
      und die KI übersetzte „United Peace Academy" in jeder Sprache anders. */
-  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david", "/academy/en", "/academy/de", "/academy/ro"];
+  const MARKEN_TITEL = ["/themes/versprechen", "/themes/david", "/themes/versusforge", "/academy/en", "/academy/de", "/academy/ro"];
   /** Kacheln, die ihre Texte SELBST schon in der richtigen Sprache mitbringen (deutsche
       Quelle statt englischer) — sie dürfen gar nicht erst in den Übersetzungslauf. */
+  /* VersusForge steht hier NICHT: Seine Kachelzeile ist deutsche Quelle wie jede andere und
+     soll übersetzt werden. Nur der NAME ist geschützt — dafür ist `MARKEN_TITEL` da. */
   const EIGENE_SPRACHE = ["/themes/david"];
   const flat: Record<string, string> = {};
   SICHTBAR.forEach((t, i) => {

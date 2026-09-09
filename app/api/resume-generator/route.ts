@@ -448,6 +448,11 @@ export async function POST(request: Request) {
       dokumentSprache: s(parsed.sprache, 2).toLowerCase() || undefined,
       matchProzent: prozent,
       matchEmpfehlung: empfehlung,
+      /* DIE BEGRÜNDUNG ÜBERLEBT JETZT AUCH, NICHT NUR DIE ZAHL (Owner 05.09.2026: „dort
+         sollte die analyse drin sein"). `anforderungen` steht seit jeher fertig geprüft hier
+         herum und ging bisher nur an den Browser — beim Wiederöffnen blieb von der Analyse
+         eine nackte Prozentzahl übrig. */
+      anforderungen,
       bezahlt: false,
     };
     if (!(await schreibeLebenslauf(profil))) {

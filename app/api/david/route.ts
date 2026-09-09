@@ -229,6 +229,17 @@ export async function POST(request: Request) {
     sprache: s(body.sprache, 5) || bestand?.sprache,
     vorname: vorname || bestand?.vorname,
     email: email || bestand?.email,
+    /**
+     * DAS ZIEL — kommt von der Landingpage als Parameter mit (07.09.2026).
+     *
+     * WIE UTM behandelt: Der ERSTE Wert gilt. Wer den Trichter neu lädt oder zurückgeht,
+     * darf seinen Wunsch nicht verlieren, und ein leerer zweiter Aufruf darf ihn nicht
+     * überschreiben. Geändert wird er nur, wenn wirklich ein neuer Wert ankommt —
+     * ausschliesslich die zwei bekannten Werte, alles andere fällt weg.
+     */
+    ziel: (body.ziel === "veraendern" || body.ziel === "verdienen")
+      ? body.ziel
+      : bestand?.ziel,
     datenschutzBestaetigt: bestand?.datenschutzBestaetigt || datenschutzNeu || undefined,
     datenschutzAm: bestand?.datenschutzAm || (datenschutzNeu ? jetzt : undefined),
     datenschutzVersion: bestand?.datenschutzVersion || (datenschutzNeu ? DAVID_DATENSCHUTZ_VERSION : undefined),

@@ -80,6 +80,24 @@ const nextConfig = {
       ],
       afterFiles: [
         { source: "/admin/:path*", destination: "/:path*" },
+        /**
+         * DIE KURZE MANDANTEN-ADRESSE (Owner 09.09.2026: „er bekommt eine URL, die er in
+         * Insta oder FB eingeben kann: VersusForge/ZahnarztPeter").
+         *
+         * `versusforge.com/zahnarztpeter` liefert `/versusforge/zahnarztpeter` aus, ohne dass
+         * sich die Adresse im Browser ändert.
+         *
+         * ZWEI RIEGEL, DAMIT ES NICHTS ANDERES SCHLUCKT:
+         *  · `has` mit dem Host — auf luxurybandit.com greift die Regel gar nicht, dort
+         *    bliebe `/kiss` sonst an einem Mandanten hängen.
+         *  · `afterFiles` — sie greift erst, wenn KEINE echte Seite passt. `/about`,
+         *    `/imprint`, `/privacy` und `/contact` gibt es wirklich und bleiben, was sie sind.
+         */
+        {
+          source: "/:mandant",
+          has: [{ type: "host", value: "(.*\\.)?versusforge\\.com" }],
+          destination: "/versusforge/:mandant",
+        },
       ],
     };
   },

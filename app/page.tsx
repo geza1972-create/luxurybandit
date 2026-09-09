@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import ThemesCatalog, { metadata as themenMetadata } from "./themes/page";
 import FunnelDomainStart from "@/components/FunnelDomainStart";
+import VersusForgeStartEinfach from "@/components/VersusForgeStartEinfach";
+import { versusforgeInSprache } from "@/lib/versusforge-texte";
+import { isLang, type Lang } from "@/lib/lang";
+import { resolveLang } from "@/lib/lang-server";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +67,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/**
+ * VERSUSFORGE HAT SEINE EIGENE WURZEL (Owner 08.09.2026) — dieselbe Anwendung, andere Tür.
+ * Ein zweites Projekt wäre ein Zwilling, den man doppelt pflegt; hier ist es eine Zeile.
+ * `?vf=1` zeigt sie auch auf localhost und auf der Vorschau-Adresse, sonst liesse sie sich
+ * erst nach dem Ausrollen ansehen — und ein Fehler fiele dem Kunden auf, nicht uns.
+ */
+const VERSUSFORGE_DOMAIN = /(^|\.)versusforge\.com$/i;
+
 /** Alles, was NICHT das Haus ist, bekommt die White-Label-Startseite. */
 const FUNNEL_DOMAIN = /(^|\.)yourvideogenerator\.com$/i;
 const FUNNEL_URL = "https://yourvideogenerator.com";
@@ -74,7 +86,13 @@ export default async function Start({ searchParams }: {
   /* `?funnel=1` zeigt die White-Label-Wurzel auch dort, wo der Host sie nicht auslöst — auf
      localhost und auf der Vorschau-Adresse von Vercel. Ohne diesen Weg liesse sich die Seite
      erst NACH dem Ausrollen ansehen, und ein Fehler darin fiele dem Kunden auf, nicht uns. */
-  const probe = String((await searchParams)?.funnel ?? "") === "1";
+  const sp = await searchParams;
+  const probe = String(sp?.funnel ?? "") === "1";
+  if (String(sp?.vf ?? "") === "1" || VERSUSFORGE_DOMAIN.test(host)) {
+    const L: Lang = isLang(String(sp?.lang ?? "")) ? (String(sp?.lang) as Lang) : await resolveLang("de");
+    /* Dieselbe eine Fassung wie unter /themes/versusforge (Owner 09.09.2026). */
+    return <VersusForgeStartEinfach S={await versusforgeInSprache(L)} lang={L} probe={String(sp?.vf ?? "") === "1"} />;
+  }
   if (probe || FUNNEL_DOMAIN.test(host)) {
     return <FunnelDomainStart />;
   }

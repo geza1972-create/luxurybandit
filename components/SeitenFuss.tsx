@@ -92,12 +92,41 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
             FUNNELS" (26.08.2026: „Wir sind jetzt ein Funnel Spezialist" — vorher „TOOLS")
             — hier gilt derselbe Gedanke immer, ohne eigenes Prop, weil eine Bewerbungsseite
             nie als LuxuryBandit auftritt. */}
+        {/**
+          * DER FUSS TRÄGT DIE MARKE DER SEITE, NICHT IMMER DAS HAUS (Owner 08.09.2026:
+          * „das mag ich gar nicht, dass unten LuxuryBandit auftaucht").
+          *
+          * Für Bewerberseiten ist LuxuryBandit richtig — sie gehören zum Portal. Für die
+          * Firmenstrecke ist es genau der Schaden, wegen dem die zweite Marke überhaupt
+          * entstanden ist: Wer 5.000 € ausgeben soll und unten „LuxuryBandit" liest,
+          * googelt es und findet Kussvideos. Ein Fuss, der die falsche Herkunft nennt,
+          * macht die Trennung darüber zunichte.
+          *
+          * `marke` setzt den Namen und lässt den Link aufs Portal weg — die Firmenstrecke
+          * führt nirgendwohin zurück, sie ist der Anfang. Die Pflichtseiten darunter
+          * bleiben, die gehören demselben Betreiber.
+          */}
         <p className="text-center">
-          <Link href="/" className="text-[13px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
-            {/* Der Untertitel des Hauses — hier wie im Kopf, damit eine Seite nicht zwei
-                Selbstbeschreibungen trägt (Owner 02.09.2026: „THE AI-MEDIA CREATOR"). */}
-            LUXURYBANDIT · AI-MEDIA CREATOR
-          </Link>
+          {/* EIN NAME WIRD GESCHRIEBEN, NICHT GESCHRIEN (08.09.2026): Versalien mit Sperrung
+              sind die Form einer Rubrik. Steht eine eigene Marke im Fuss, steht sie so da,
+              wie sie geschrieben wird — sonst sieht sie unten anders aus als im Kopf. */}
+          {marke ? (
+            <span className="text-[15px] font-black tracking-[-0.01em] text-white/45">
+              {/* Eine zweifarbige Marke wird auch im Fuss zweifarbig gesetzt. `marke` ist ein
+                  freier Text — deshalb wird nur der Teil vor dem letzten Grossbuchstaben
+                  eingefärbt, wenn einer da ist; sonst steht der Name schlicht da. */}
+              {(() => {
+                const m = /^(.*?[a-zß])([A-Z].*)$/.exec(marke ?? "");
+                return m ? (<><span className="text-[#f6cf51]">{m[1]}</span>{m[2]}</>) : marke;
+              })()}
+            </span>
+          ) : (
+            <Link href="/" className="text-[13px] font-black uppercase tracking-[0.2em] text-white/45 transition hover:text-white/80">
+              {/* Der Untertitel des Hauses — hier wie im Kopf, damit eine Seite nicht zwei
+                  Selbstbeschreibungen trägt (Owner 02.09.2026: „THE AI-MEDIA CREATOR"). */}
+              VERSUSFORGE
+            </Link>
+          )}
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] font-semibold text-white/35">
           {kontakt && <Link href="/contact" className="transition hover:text-white/70">{T.contact}</Link>}
@@ -171,7 +200,7 @@ export default function SeitenFuss({ className = "", art = "voll", marke, lang =
         <div className="mt-3">
           <p className="text-[13px] font-black uppercase tracking-[0.14em] text-white/70">{marke}</p>
           <p className="mt-1 text-[13px] font-black uppercase tracking-[0.14em]">
-            <Link href="/" className="text-white/40 transition hover:text-white/70">LUXURYBANDIT · AI-MEDIA CREATOR</Link>
+            <Link href="/" className="text-white/40 transition hover:text-white/70">VERSUSFORGE</Link>
           </p>
         </div>
       ) : (

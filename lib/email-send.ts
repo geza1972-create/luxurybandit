@@ -33,7 +33,21 @@ function textAusHtml(html: string): string {
     .trim();
 }
 
-export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string }): Promise<SendResult> {
+/**
+ * ANHÄNGE (08.09.2026, für die VersusForge-Analyse gebaut).
+ *
+ * WARUM EIN ANHANG UND KEIN LINK (Owner: „die Analyse ist doch nicht für immer da, es ist
+ * doch keine URL"): Der Plan wird nirgends abgelegt — es gibt nichts zu verlinken, und ein
+ * Link auf etwas Flüchtiges wäre in zwei Wochen eine tote Seite. Die Datei reist mit, dann
+ * gehört sie ihm, unabhängig von uns.
+ *
+ * NUR ÜBER SMTP. Der Rückfallweg unten (die HTTP-Schnittstelle) kann keine Anhänge; wer
+ * einen mitschickt, während SMTP nicht eingerichtet ist, bekommt eine ehrliche Absage statt
+ * einer Mail ohne das, was drin sein sollte.
+ */
+export type MailAnhang = { name: string; inhalt: Buffer; typ?: string };
+
+export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string; anhaenge?: MailAnhang[] }): Promise<SendResult> {
   const to = (opts.to ?? "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, error: "invalid recipient" };
   const replyTo = (opts.replyTo ?? "").trim() || undefined;
@@ -55,6 +69,12 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
       }
     : undefined;
 
+  /* Ein Anhang, der still verschwindet, ist schlimmer als eine Absage: Der Empfänger
+     bekäme eine Mail, die von einem PDF spricht, das nicht da ist. */
+  if (opts.anhaenge?.length && !(host && user && pass)) {
+    return { ok: false, error: "attachments require SMTP" };
+  }
+
   // 1) SMTP (the operator's own mailbox) — preferred.
   if (host && user && pass) {
     try {
@@ -67,6 +87,9 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
       await transporter.sendMail({
         from, to, subject: opts.subject, html: opts.html, text, replyTo,
         ...(bcc ? { bcc } : {}), ...(unsubHeaders ? { headers: unsubHeaders } : {}),
+        ...(opts.anhaenge?.length
+          ? { attachments: opts.anhaenge.map(a => ({ filename: a.name, content: a.inhalt, contentType: a.typ ?? "application/octet-stream" })) }
+          : {}),
       });
       return { ok: true, via: "smtp" };
     } catch (e) {

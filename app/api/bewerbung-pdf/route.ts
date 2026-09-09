@@ -22,14 +22,43 @@ export const maxDuration = 30;
  * (Hausregel `gratis-nur-mit-muster`); ohne Wasserzeichen gibt es sie erst, wenn die
  * Kasse `bezahlt` gestempelt hat.
  */
+/**
+ * EIN BROWSER, DER HIERHER NAVIGIERT, DARF KEIN JSON SEHEN (Owner 05.09.2026, mit Bild:
+ * `{"error":"Diese Bewerbung gehört zu einem anderen Browser. …"}` als nackter Text im
+ * Fenster).
+ *
+ * DIESE ROUTE IST DER EINZIGE FALL, in dem unsere Fehlerregel nicht von selbst greift:
+ * Überall sonst holt ein `fetch` die Antwort, prüft sie und der Browser zeigt SEINEN
+ * eigenen, übersetzten Satz (Skill `agenten`, §4). Der PDF-Knopf ist aber ein echter Link
+ * — scheitert er, rendert der Browser die Serverantwort, wie sie ist. Das war deutscher
+ * Entwicklertext in einem Produkt, das in sieben Sprachen läuft.
+ *
+ * Deshalb: Wer HTML erwartet (also ein Mensch im Adressfenster), bekommt eine schlichte
+ * Seite mit dem Satz und einem Weg zurück; Programme bekommen weiter JSON.
+ */
+function absage(request: Request, satz: string, status: number) {
+  const willHtml = (request.headers.get("accept") ?? "").includes("text/html");
+  if (!willHtml) return NextResponse.json({ error: satz }, { status });
+  const seite = `<!doctype html><meta charset="utf-8">`
+    + `<meta name="viewport" content="width=device-width,initial-scale=1">`
+    + `<title>&nbsp;</title>`
+    + `<body style="margin:0;min-height:100vh;display:grid;place-items:center;`
+    + `background:#0d0b0a;color:#fff;font:600 15px/1.5 system-ui,sans-serif;padding:24px">`
+    + `<div style="max-width:32ch;text-align:center">`
+    + `<p style="margin:0 0 18px">${satz.replace(/[<>&]/g, "")}</p>`
+    + `<a href="/themes/resume/start" style="color:#f6cf51">&larr; Zurück</a>`
+    + `</div></body>`;
+  return new NextResponse(seite, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const id = String(url.searchParams.get("id") ?? "").trim();
   const device = String(url.searchParams.get("device") ?? "").trim().slice(0, 80);
-  if (!id) return NextResponse.json({ error: "Kennung fehlt." }, { status: 400 });
+  if (!id) return absage(request, "Kennung fehlt.", 400);
 
   const profil = await leseLebenslauf(id);
-  if (!profil) return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
+  if (!profil) return absage(request, "Bewerbung nicht gefunden.", 404);
   /* Besitz wie überall am Profil — bei einer Bewerbungs-Kopie hängt er am Hauptprofil. */
   const basis = profil.basisId ? await leseLebenslauf(profil.basisId) : profil;
   /**
@@ -40,9 +69,9 @@ export async function GET(request: Request) {
    * wie eine fremde Bewerbung.
    */
   const oeffentlichesMuster = id === "david-muster-cora";
-  if (!basis) return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
+  if (!basis) return absage(request, "Bewerbung nicht gefunden.", 404);
   if (!oeffentlichesMuster && !(await darfAmProfilArbeiten(basis, device, request))) {
-    return NextResponse.json({ error: "Diese Bewerbung gehört zu einem anderen Browser. Öffne sie auf dem Gerät, auf dem du sie erstellt hast." }, { status: 403 });
+    return absage(request, "Diese Bewerbung gehört zu einem anderen Browser. Öffne sie auf dem Gerät, auf dem du sie erstellt hast.", 403);
   }
 
   /* Das Foto der Bewerbung (oder des Hauptprofils) — unlesbar/fehlend ist nie ein

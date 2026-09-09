@@ -186,6 +186,26 @@ export type LebenslaufProfil = {
   /** Die Gesamtempfehlung aus der Struktur-Analyse, die diese Version erzeugt hat. */
   matchEmpfehlung?: "gut" | "bruecke" | "schwach";
   /**
+   * DIE ANFORDERUNGSLISTE HINTER DER PROZENTZAHL (Owner 05.09.2026: „dort sollte die analyse
+   * drin sein" — beim Wiederöffnen einer gespeicherten Bewerbung).
+   *
+   * Bisher wurden nur `matchProzent` und `matchEmpfehlung` abgelegt: die ZAHL überlebte, die
+   * BEGRÜNDUNG nicht. Der Gratis-Lauf berechnet die Liste, schickt sie an den Browser und
+   * vergisst sie — wer später zurückkommt, sieht „80 %" ohne zu erfahren, woraus sie sich
+   * ergibt. Genau diese Liste ist aber das Produkt: Sie trennt, was erfüllt ist, von dem,
+   * was sich noch heben lässt.
+   *
+   * `einstufung` ist zugleich die Antwort auf „kann man die fehlenden Prozente erhöhen":
+   * `uebertragbar` und `erklaerbar` lassen sich durch Angaben des Bewerbers schliessen,
+   * `blocker` nicht. Wer das je auswertet, muss diese Grenze respektieren — eine Zahl, die
+   * immer steigt, ist ein Verkaufstrick und keine Analyse.
+   */
+  anforderungen?: {
+    text: string;
+    einstufung: "erfuellt" | "uebertragbar" | "erklaerbar" | "blocker";
+    begruendung: string;
+  }[];
+  /**
    * Die interne Bewerbungs-Strategie (Baustelle C) — treibt Zuschnitt UND Anschreiben,
    * bleibt aber selbst nur eine interne Notiz am Profil (die Seite zeigt sie nicht an).
    */

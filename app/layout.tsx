@@ -64,7 +64,10 @@ export const viewport: Viewport = {
 };
 
 /** Die Domain, auf der nichts vom Haus zu sehen sein darf (siehe app/page.tsx). */
-const FUNNEL_HOST = /(^|\.)yourvideogenerator\.com$/i;
+/* Auch VersusForge trägt keine Haus-Leiste (Owner 08.09.2026): Es ist eine eigene
+   Marke — ein fremdes Menü am unteren Rand hebt die Trennung wieder auf, für die
+   die zweite Marke überhaupt entstanden ist. */
+const FUNNEL_HOST = /(^|\.)(yourvideogenerator|versusforge)\.com$/i;
 
 export default async function RootLayout({
   children
@@ -139,10 +142,26 @@ export default async function RootLayout({
             * gerendert. Die Prüfung in `BottomNav` bleibt als zweiter Riegel stehen — sie
             * fängt den Fall, dass jemand diese Seite später woanders einbaut.
             */}
+          {/**
+            * UND DASSELBE FÜR VERSUSFORGE ALS TOPIC (Owner 08.09.2026: „VersusForge ist die
+            * Engine von LuxuryBandit … die Leute bekommen aber den Tunnel von VersusForge").
+            *
+            * Auf luxurybandit.com/themes/versusforge trägt die Anfrage den HAUS-Host — die
+            * Prüfung oben greift also nicht, und die Leiste schwebte über einer Seite, die
+            * sich als eigene Marke ausgibt.
+            *
+            * ÜBER CSS STATT ÜBER DEN PFAD: Ein Layout kennt den Pfad nicht ohne Umweg, und
+            * über einen Effekt im Browser blitzt die Leiste beim Laden auf — genau der
+            * Fehler, gegen den der Absatz darüber geschrieben wurde. Die Regel in
+            * `globals.css` sieht die Marken-Klasse der Seite und blendet die Leiste aus,
+            * bevor irgendetwas gezeichnet wird.
+            */}
           {!FUNNEL_HOST.test(hostname) && (
-            <Suspense fallback={null}>
-              <BottomNav />
-            </Suspense>
+            <div className="lb-hausleiste">
+              <Suspense fallback={null}>
+                <BottomNav />
+              </Suspense>
+            </div>
           )}
           {/* Floating app-assistant removed per request — it cluttered the feed.
               The component + /api/app-chat stay in the codebase for re-use elsewhere. */}

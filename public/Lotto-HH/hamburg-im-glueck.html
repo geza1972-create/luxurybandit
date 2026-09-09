@@ -1,0 +1,917 @@
+<meta charset="utf-8">
+<title>Hamburg im Glück</title>
+<style>
+  :root{
+    --bg:#0d0b0a; --bg2:#15110c; --bg3:#090706;
+    --ink:#ffffff; --ink85:rgba(255,255,255,.85); --ink80:rgba(255,255,255,.8); --ink70:rgba(255,255,255,.7); --ink60:rgba(255,255,255,.6);
+    --line:rgba(255,255,255,.1); --line20:rgba(255,255,255,.2); --line25:rgba(255,255,255,.25); --fill5:rgba(255,255,255,.05);
+    --gold:#f6cf51; --gold40:rgba(246,207,81,.4);
+    --karte:#fdfaf4; --karte-ink:#2a231c; --karte-ink2:#1a160f;
+    --nav:rgba(13,11,10,.95);
+    --font:ui-sans-serif,system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --serif:ui-serif,Georgia,Cambria,"Times New Roman",Times,serif;
+  }
+  :root[data-theme="light"]{
+    --bg:#f3f5f9; --bg2:#f3f5f9; --bg3:#f3f5f9;
+    --ink:#0f172a; --ink85:rgba(15,23,42,.9); --ink80:rgba(15,23,42,.85); --ink70:rgba(15,23,42,.55); --ink60:rgba(15,23,42,.55);
+    --line:rgba(15,23,42,.1); --line20:rgba(15,23,42,.1); --line25:rgba(15,23,42,.15); --fill5:rgba(15,23,42,.05);
+    --nav:rgba(247,249,252,.97);
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:#0d0b0a;font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased}
+  :root[data-theme="light"] body{background:#e9ecf2}
+  .lb-frame{width:440px;max-width:100vw;min-height:100dvh;margin:0 auto;box-shadow:0 0 60px rgba(0,0,0,.45)}
+  .lb-bg{min-height:100dvh;background-color:var(--bg);
+    background-image:radial-gradient(120% 80% at 85% -6%,rgba(246,207,81,.11),transparent 50%),
+      radial-gradient(130% 95% at 12% 108%,rgba(126,62,24,.15),transparent 58%),
+      linear-gradient(180deg,var(--bg2),var(--bg) 34%,var(--bg3))}
+  :root[data-theme="light"] .lb-bg{background-image:radial-gradient(120% 85% at 86% -8%,rgba(246,207,81,.12),transparent 55%),radial-gradient(130% 100% at 10% 106%,rgba(15,23,42,.04),transparent 60%)}
+
+  header{position:sticky;top:0;z-index:50;border-bottom:1px solid var(--line);background:var(--nav);backdrop-filter:blur(10px)}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13.5px;letter-spacing:-.01em;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+  .brand .klee{width:18px;height:18px;border-radius:50%;background:var(--gold);color:#1a1204;display:grid;place-items:center;font-size:11px;font-weight:900}
+  .langrow{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 16px 8px}
+  .chip{display:inline-flex;align-items:center;gap:4px;height:36px;border-radius:999px;border:1px solid var(--line25);background:var(--fill5);color:var(--ink80);padding:0 10px;font-family:inherit;font-weight:900;font-size:12px;cursor:pointer}
+  .chip.round{width:36px;padding:0;justify-content:center}
+  .chip svg{width:16px;height:16px}
+
+  .wrap{width:100%;max-width:440px;margin:0 auto;padding:12px 16px 96px}
+  h1{margin:4px 0 0;font-size:28px;font-weight:900;line-height:1.06;text-wrap:balance}
+  h2{margin:16px 0 0;font-size:30px;font-weight:900;line-height:1.06;text-wrap:balance}
+  .g{color:var(--gold)}
+  .lead{margin:12px 0 0;font-size:16px;font-weight:500;line-height:1.6;color:var(--ink85)}
+  .sub{margin:16px 0 0;font-size:15px;font-weight:600;line-height:1.35;color:var(--ink85)}
+  section{margin-top:36px}
+
+  /* Anzeigen-Karte (1:1 lb-karte) */
+  .karte{position:relative;overflow:hidden;border-radius:20px;background:var(--karte);color:var(--karte-ink);padding:28px 20px 24px;margin-top:16px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .karte .orn{position:absolute;width:28px;height:28px;color:rgba(0,0,0,.3);pointer-events:none}
+  .orn.tl{left:8px;top:8px}.orn.tr{right:8px;top:8px;transform:scaleX(-1)}.orn.bl{left:8px;bottom:8px;transform:scaleY(-1)}.orn.br{right:8px;bottom:8px;transform:scale(-1)}
+  .karte .eyebrow{margin:0;text-align:center;font-family:var(--serif);font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:.34em;color:var(--karte-ink2)}
+  .spot{position:relative;margin-top:14px;border-radius:14px;overflow:hidden;aspect-ratio:9/13;border:1px solid rgba(26,22,15,.55);
+    background:#171009;
+    background-image:linear-gradient(180deg,rgba(12,9,6,0) 40%,rgba(12,9,6,.85) 100%),
+      radial-gradient(120% 90% at 18% 8%,rgba(246,207,81,.45),transparent 62%),
+      radial-gradient(140% 110% at 88% 92%,rgba(190,40,30,.55),transparent 68%),
+      radial-gradient(90% 75% at 75% 25%,rgba(88,44,78,.28),transparent 60%)}
+  .spot .skyline{position:absolute;left:0;right:0;bottom:22%;height:26%;opacity:.55;color:#0a0806}
+  .spot .car{position:absolute;left:8%;right:8%;bottom:12%;height:18%;color:#c8251c;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5))}
+  .spot .figur{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);width:20%;height:40%;color:#f6cf51;filter:drop-shadow(0 8px 16px rgba(0,0,0,.55))}
+  .spot .onmedia{position:absolute;left:14px;right:14px;bottom:14px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65),0 0 12px rgba(0,0,0,.45)}
+  .spot .onmedia .big{font-size:26px;font-weight:900;line-height:1.05;letter-spacing:-.01em;text-wrap:balance}
+  .spot .onmedia .small{margin-top:6px;font-size:12.5px;font-weight:600;opacity:.95}
+  .spot .name{position:absolute;left:14px;top:12px;font-size:10px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:#fff;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  /* Die weisse Scheibe des Hauses — eine Gestalt für alle Knöpfe auf einem Medium */
+  .scheibe{display:grid;place-items:center;height:40px;width:40px;padding:0;border:0;border-radius:999px;
+    background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.7;cursor:pointer;transition:transform .15s}
+  .scheibe:active{transform:scale(.92)}
+  .scheibe svg{width:20px;height:20px;color:#1a160f;stroke:#1a160f;fill:none}
+  .spot .scheibe{position:absolute;right:12px;z-index:30}
+  .spot .s-gross{top:12px}
+  .spot .s-teilen{top:60px}
+  .spot .s-ton{top:108px}
+  .spot .zeit{position:absolute;left:0;right:0;bottom:0;z-index:29;height:16px;display:flex;align-items:flex-end;cursor:pointer;touch-action:none;background:none;border:0;padding:0}
+  .spot .zeit .spur{position:relative;width:100%;height:3px;background:rgba(255,255,255,.25);overflow:hidden}
+  .spot .zeit .fuell{position:absolute;left:0;top:0;height:100%;width:0;background:var(--gold);box-shadow:0 0 8px rgba(246,207,81,.55)}
+  .spot .zeit:focus-visible .spur{outline:2px solid var(--gold);outline-offset:2px}
+  .spot.voll .zeit{bottom:env(safe-area-inset-bottom,0px);height:22px}
+  .spot .kopiert{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:31;background:rgba(253,250,244,.96);color:#1a160f;font-size:12px;font-weight:900;padding:8px 14px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.35);opacity:0;transition:opacity .2s;pointer-events:none}
+  .spot .kopiert.an{opacity:1}
+  .spot.voll{position:fixed;left:0;right:0;top:0;width:100%;height:100dvh;margin:0;border:0;border-radius:0;z-index:90;background:#000;background-image:none;aspect-ratio:auto;display:grid;place-items:center}
+  .spot.voll video{position:static!important;width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
+  .spot.voll .s-gross{top:calc(env(safe-area-inset-top,0px) + 12px)}
+  .spot.voll .s-teilen{top:calc(env(safe-area-inset-top,0px) + 60px)}
+  .spot.voll .s-ton{top:calc(env(safe-area-inset-top,0px) + 108px)}
+  body.gesperrt{overflow:hidden}
+  .spot .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;box-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.7;color:#1a160f;cursor:pointer;padding:0;transition:opacity .18s,transform .18s}
+  .spot .play:active{transform:translate(-50%,-50%) scale(.92)}
+  .spot .play svg{width:26px;height:26px;fill:#1a160f}
+  .spot .play[hidden]{display:none}
+  .btn{display:flex;min-height:48px;width:100%;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:8px 20px;text-align:center;font-weight:900;font-size:15.5px;line-height:1.25;text-decoration:none;font-family:inherit;border:0;cursor:pointer}
+  .lb-gold{background:linear-gradient(160deg,#fbe89a,#f6cf51 30%,#e9ae2b 58%,#c9861a);color:#1a1204;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -2px 6px rgba(120,70,0,.3),0 4px 14px rgba(233,174,43,.28)}
+  .lb-gold:active{filter:brightness(.95)}
+  .lb-black3d{background:linear-gradient(180deg,#3a3a3d,#1c1c1e 55%,#0c0c0d);color:#fff;border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 6px rgba(0,0,0,.6),0 4px 14px rgba(0,0,0,.45)}
+  .btn.ghost{min-height:44px;border:1px solid var(--line25);background:transparent;color:var(--ink);font-size:15px}
+  .karte .btn{margin-top:14px}
+  .karte .hinweis{margin:12px 0 0;text-align:center;font-size:10px;line-height:1.4;font-weight:600;color:var(--karte-ink);opacity:.75}
+
+  /* Schritte */
+  .steps{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:18px}
+  .steps li{display:flex;gap:12px}
+  .num{margin-top:2px;flex:0 0 auto;display:flex;height:28px;width:28px;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--gold40);font-size:13.5px;font-weight:900;color:var(--gold)}
+  .t{margin:0;font-size:15px;font-weight:900;color:var(--ink)}
+  .d{margin:4px 0 0;font-size:15px;font-weight:500;line-height:1.35;color:var(--ink80)}
+
+  .checks{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+  .checks li{display:flex;gap:10px;align-items:flex-start;font-size:15px;font-weight:600;line-height:1.35;color:var(--ink85)}
+  .checks svg{flex:0 0 auto;width:18px;height:18px;color:var(--gold);margin-top:1px}
+  section .btn{margin-top:18px}
+
+  .kasten{border-radius:16px;border:1px solid var(--line20);background:var(--fill5);padding:16px}
+  :root[data-theme="light"] .kasten{background:#fff;border-color:rgba(15,23,42,.08);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 30px rgba(15,23,42,.05)}
+  .kasten svg{width:22px;height:22px;color:var(--gold)}
+  .kasten .t{margin-top:8px}
+  .orte{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+  .code{display:flex;gap:12px;margin-top:18px}
+  .code svg{flex:0 0 auto;width:24px;height:24px;color:var(--gold);margin-top:2px}
+
+  /* Szenen-Wähler (1:1 /start) */
+  .szenen{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:16px -16px 0;padding:0 16px 8px;scrollbar-width:none}
+  .szenen::-webkit-scrollbar{display:none}
+  .szene-halter{position:relative;flex:0 0 auto;width:150px;scroll-snap-align:start}
+  .szene{display:block;width:100%;text-align:center;background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+  .szene .bild{display:block;position:relative;width:150px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;border:2px solid transparent;transition:transform .15s}
+  .szene:active .bild{transform:scale(.97)}
+  .szene[aria-pressed="true"] .bild{border-color:var(--gold);box-shadow:0 0 0 3px rgba(246,207,81,.25)}
+  .szene .bild .wo{display:block;position:absolute;left:10px;right:10px;bottom:10px;text-align:left;color:#fff;font-size:11px;font-weight:700;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .szene .lbl{margin-top:6px;display:block;font-weight:900;line-height:1.15;font-size:13px;color:var(--ink70)}
+  .szene[aria-pressed="true"] .lbl{color:var(--gold)}
+  .s1{background:linear-gradient(180deg,#3b2a05 0%,#a5210f 55%,#f6cf51 140%)}
+  .s2{background:linear-gradient(180deg,#0b2a4a 0%,#0e6f9c 60%,#e8f3f7 140%)}
+  .s3{background:linear-gradient(180deg,#1e3a2a 0%,#5b7f4a 60%,#e6d9b8 140%)}
+  .s4{background:linear-gradient(180deg,#101a2b 0%,#3a4f6e 60%,#f6cf51 160%)}
+  .s5{background:linear-gradient(180deg,#0a4a5a 0%,#1fb6c7 60%,#fff3d6 140%)}
+  .s6{background:linear-gradient(180deg,#0a1a12 0%,#166b3a 60%,#f6cf51 150%)}
+  .s7{background:linear-gradient(180deg,#2a1710 0%,#7a3a16 60%,#ffd27a 150%)}
+  .s8{background:linear-gradient(180deg,#1b1b1f 0%,#4a4a55 60%,#f6cf51 160%)}
+
+  .szene-halter .lupe{position:absolute;right:8px;top:8px;height:32px;width:32px;z-index:5}
+  .szene-halter .lupe svg{width:16px;height:16px}
+  .gross{position:fixed;left:0;right:0;top:0;height:100dvh;z-index:95;display:flex;flex-direction:column;background:#000}
+  .gross[hidden]{display:none}
+  .gross .buehne-wrap{position:relative;flex:1;overflow:hidden;display:grid;place-items:center}
+  .gross video{max-height:100%;max-width:100%;width:auto;height:auto;object-fit:contain;background:#000}
+  .gross .zu{position:absolute;right:12px;z-index:20;top:calc(env(safe-area-inset-top,0px) + 12px)}
+  .gross .fuss{display:flex;flex-direction:column;align-items:center;gap:10px;background:#000;
+    padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 20px)}
+  .gross .fuss .name{margin:0;font-size:19px;font-weight:900;color:#fff}
+  .gross .fuss .btn{max-width:420px}
+  /* Vorlagen */
+  .vorlagen{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+  details{border-radius:16px;border:1px solid var(--line20);background:var(--fill5)}
+  :root[data-theme="light"] details{background:#fff;border-color:rgba(15,23,42,.08)}
+  summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;font-size:15px;font-weight:900;color:var(--ink)}
+  summary::-webkit-details-marker{display:none}
+  summary .pfeil{flex:0 0 auto;width:18px;height:18px;color:var(--gold);transition:transform .2s}
+  details[open] summary .pfeil{transform:rotate(180deg)}
+  .vbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+  .feld{display:flex;flex-direction:column;gap:5px}
+  .feld .k{font-size:10.5px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+  .feld .v{font-size:14px;line-height:1.5;color:var(--ink85);margin:0}
+  .feld pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;color:var(--ink85);background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  :root[data-theme="light"] .feld pre{background:rgba(15,23,42,.04)}
+  .end{display:inline-block;font-weight:900;color:var(--ink)}
+
+  .foot{margin-top:40px;text-align:center}
+  .foot .k{margin:0 0 10px;font-size:11px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+  .legal{margin:28px 0 0;font-size:11px;line-height:1.5;color:var(--ink60);text-align:center}
+
+  /* Ablauf: mehrere Bildschirme in einer Seite */
+  .screen[hidden]{display:none}
+  .untenreihe{display:flex;align-items:center;gap:12px;margin-top:20px}
+  .zurueck{flex:0 0 auto;display:grid;place-items:center;height:48px;width:48px;border-radius:999px;border:1px solid var(--line25);background:var(--fill5);color:var(--ink);cursor:pointer}
+  .zurueck svg{width:20px;height:20px}
+  .untenreihe .btn{margin-top:0}
+  .punkte{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0}
+  .punkte span{height:6px;width:12px;border-radius:999px;background:rgba(255,255,255,.2);transition:all .2s}
+  :root[data-theme="light"] .punkte span{background:rgba(15,23,42,.15)}
+  .punkte span.fertig{background:rgba(246,207,81,.5)}
+  .punkte span.jetzt{width:24px;background:var(--gold)}
+  .kacheln{display:flex;align-items:flex-start;justify-content:center;gap:8px;margin-top:20px}
+  .kachel{width:118px;max-width:32vw}
+  .kachel .flaeche{position:relative;display:block;aspect-ratio:3/4;width:100%;border-radius:16px;overflow:hidden}
+  .kachel .flaeche img{display:block;height:100%;width:100%;object-fit:cover;object-position:top}
+  .kachel .flaeche.upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    border:2px dashed var(--gold40);background:rgba(246,207,81,.06);padding:8px;text-align:center;
+    cursor:pointer;font-family:inherit;transition:transform .15s}
+  .kachel .flaeche.upload:active{transform:scale(.98)}
+  .upload>svg{width:24px;height:24px;color:var(--gold)}
+  .upload .t1{font-size:11px;font-weight:900;line-height:1.3;color:var(--ink85)}
+  .upload .t2{font-size:9.5px;font-weight:700;line-height:1.3;color:var(--ink60)}
+  .kachel-pfeil{flex:0 0 auto;margin-top:24%;width:24px;height:24px;opacity:.6;color:var(--ink)}
+  .kachel-label{margin:4px 0 0;text-align:center;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.10em;opacity:.55}
+  .ziel .flaeche{border:1px solid var(--gold40)}
+  .ziel .titel{position:absolute;left:0;right:0;bottom:0;padding:22px 4px 6px;text-align:center;
+    font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.02em;color:#fff;
+    background:linear-gradient(to top,rgba(0,0,0,.8),transparent)}
+  .mini{position:absolute;right:-8px;top:-8px;z-index:20;display:grid;place-items:center;height:32px;width:32px;
+    border-radius:999px;background:#fff;color:#1a160f;box-shadow:0 2px 10px rgba(0,0,0,.35);border:0;cursor:pointer;opacity:.7;padding:0}
+  .mini svg{width:16px;height:16px;stroke:#1a160f;fill:none}
+  .mini.loeschen{left:-6px;right:auto;top:-6px;color:#dc2626}
+  .mini.loeschen svg{stroke:#dc2626}
+  .feldlink{display:block;margin:16px auto 0;background:none;border:0;font-family:inherit;font-size:12.5px;
+    font-weight:700;color:var(--ink60);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .eingabe{margin-top:16px;width:100%;height:48px;border-radius:14px;border:1px solid var(--line25);
+    background:var(--fill5);color:var(--ink);padding:0 14px;font-family:inherit;font-size:15px;font-weight:600}
+  .eingabe::placeholder{color:var(--ink60)}
+  .einwilligung{margin:8px 0 0;text-align:center;font-family:var(--serif);font-size:11px;line-height:1.35;color:var(--ink70)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .gewaehlt{margin:14px 0 0;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  /* Kamera-Aufnahme (nach components/SelbstAufnahme.tsx) */
+  .kamera{position:fixed;left:0;right:0;top:0;height:100dvh;z-index:95;display:flex;flex-direction:column;background:#000}
+  .kamera[hidden]{display:none}
+  .kamera .buehne-wrap{position:relative;flex:1;overflow:hidden;display:grid;place-items:center}
+  .kamera .buehne{position:relative;aspect-ratio:9/16;height:100%;max-height:100%;width:auto;max-width:100%;overflow:hidden;background:#000}
+  .kamera .buehne video,.kamera .buehne img{position:absolute;inset:0;height:100%;width:100%;object-fit:cover}
+  .kamera .buehne video{transform:scaleX(-1)}
+  .kamera .buehne img{object-fit:contain}
+  .kamera .kam-zu{position:absolute;right:12px;z-index:20;top:calc(env(safe-area-inset-top,0px) + 12px)}
+  .kamera .zoom{position:absolute;left:0;right:0;bottom:12px;z-index:20;display:flex;align-items:center;gap:12px;padding:0 20px;color:rgba(255,255,255,.8)}
+  .kamera .zoom svg{flex:0 0 auto;width:16px;height:16px}
+  .kamera .zoom input{flex:1;height:4px;accent-color:var(--gold);cursor:pointer}
+  .kam-leiste{display:flex;flex-direction:column;align-items:center;gap:10px;background:#000;padding:12px 20px calc(env(safe-area-inset-bottom,0px) + 20px)}
+  .kam-leiste .reihe{display:flex;width:100%;max-width:420px;flex-direction:column;gap:8px}
+  .kam-hinweis{margin:0;text-align:center;font-size:12.5px;font-weight:700;line-height:1.35;color:rgba(255,255,255,.6)}
+  .kam-fehler{margin:0;text-align:center;font-size:13px;font-weight:700;line-height:1.4;color:#fca5a5;max-width:34ch}
+  .kam-los{display:flex;height:48px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:0 28px;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer}
+  .kam-los svg{width:16px;height:16px}
+
+  /* Erzeugung: Scan über dem eigenen Foto */
+  .scan{position:relative;margin-top:20px;aspect-ratio:2/3;width:100%;border-radius:20px;overflow:hidden;border:1px solid var(--gold40);background:var(--fill5)}
+  .scan img{display:block;height:100%;width:100%;object-fit:cover;object-position:top}
+  .scan .linie{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);box-shadow:0 0 18px rgba(246,207,81,.8);animation:lb-scan 2.6s ease-in-out infinite}
+  @keyframes lb-scan{0%,100%{top:4%}50%{top:94%}}
+  .scan .deck{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 16px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);color:#fff}
+  .scan .deck .p{margin:0;font-size:26px;font-weight:900;line-height:1}
+  .scan .deck .w{margin:6px 0 0;font-size:13.5px;font-weight:700;line-height:1.35;opacity:.9}
+  .fein{margin:12px 0 0;text-align:center;font-size:12px;font-weight:600;line-height:1.45;color:var(--ink60)}
+
+  /* Formular nach dem Video */
+  .kasten{margin-top:32px;border-radius:20px;border:1px solid var(--line20);background:var(--fill5);padding:20px}
+  :root[data-theme="light"] .kasten{background:#fff;border-color:rgba(15,23,42,.08);box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 30px rgba(15,23,42,.05)}
+  .kasten h3{margin:0;font-size:19px;font-weight:900;line-height:1.25;color:var(--ink)}
+  .felder{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+  .felder label>span{display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--ink80)}
+  .haken{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px;font-weight:600;line-height:1.4;color:var(--ink80)}
+  .haken input{position:absolute;opacity:0;width:0;height:0}
+  .haken .box{flex:0 0 auto;margin-top:1px;display:grid;place-items:center;height:20px;width:20px;border-radius:6px;border:1.5px solid var(--line25);background:var(--fill5)}
+  .haken input:checked+.box{background:var(--gold);border-color:var(--gold)}
+  .haken .box svg{width:13px;height:13px;color:#1a1204;opacity:0}
+  .haken input:checked+.box svg{opacity:1}
+  .haken input:focus-visible+.box{outline:2px solid var(--gold);outline-offset:2px}
+  .haken a{color:var(--gold);font-weight:900;text-decoration:underline;text-underline-offset:2px}
+  .fehlerzeile{margin:0;font-size:13px;font-weight:700;color:#fca5a5}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  .btn:focus-visible,.szene:focus-visible,.chip:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+</style>
+
+<div class="lb-frame">
+<main class="lb-bg">
+  <header>
+    <div class="nav">
+      <button class="brand" type="button" id="heim" aria-label="Zur Startseite"><span class="klee" aria-hidden="true">✿</span>LOTTO Hamburg · Hamburg im Glück</button>
+    </div>
+    <div class="langrow">
+      <button class="chip round" type="button" id="themeBtn" aria-label="Hell / Dunkel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-15.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="chip" type="button" aria-label="Sprache">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+        <span>Deutsch</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="wrap screen" data-screen="start">
+    <h1>Was würdest du mit 500.000&nbsp;€ machen? <span class="g">Finde es heraus.</span> Sieh dich selbst im Glück.</h1>
+
+    <div class="karte">
+      <svg class="orn tl" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19"/><circle cx="44" cy="19" r="2" fill="currentColor" stroke="none"/><path d="M10 38 C7 29 11 21 19 20"/></svg>
+      <svg class="orn tr" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19"/><circle cx="44" cy="19" r="2" fill="currentColor" stroke="none"/><path d="M10 38 C7 29 11 21 19 20"/></svg>
+      <svg class="orn bl" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19"/><circle cx="44" cy="19" r="2" fill="currentColor" stroke="none"/><path d="M10 38 C7 29 11 21 19 20"/></svg>
+      <svg class="orn br" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19"/><circle cx="44" cy="19" r="2" fill="currentColor" stroke="none"/><path d="M10 38 C7 29 11 21 19 20"/></svg>
+      <p class="eyebrow">Ihre Anzeige</p>
+
+      <div class="spot">
+        <video id="spotVideo" src="spot-web.mp4" poster="poster-web.jpg" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#171009"></video>
+        <button class="scheibe s-gross" type="button" id="grossBtn" aria-label="Video vergrössern"></button>
+        <button class="scheibe s-teilen" type="button" id="teilenBtn" aria-label="Teilen"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></button>
+        <button class="scheibe s-ton" type="button" id="muteBtn" aria-label="Ton an"></button>
+        <button class="play" type="button" id="playBtn" aria-label="Abspielen" hidden><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="zeit" type="button" id="zeit" aria-label="Position im Video" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="spur"><i class="fuell" id="zeitFuell"></i></span></button>
+        <span class="kopiert" id="kopiert">Link kopiert</span>
+      </div>
+
+      <button class="btn lb-gold" type="button" data-go="szenen">Mein Glücksvideo generieren</button>
+      <p class="hinweis">Spielteilnahme ab 18 Jahren. Glücksspiel kann süchtig machen. Hilfe unter 0800&nbsp;137&nbsp;27&nbsp;00 · bzga.de</p>
+    </div>
+
+    <p class="sub">Das ist Ihre Anzeige — fürs Internet und für Aussenwerbung. Probieren Sie sie aus: Der Knopf führt genau dorthin, wo Ihr Spieler landen würde.</p>
+
+    <section>
+      <h2>So läuft es für Ihre <span class="g">Spieler</span></h2>
+      <ol class="steps">
+        <li><div class="num">1</div><div><p class="t">Wähl dein Glück</p><p class="d">Ferrari, Yacht oder das eigene Haus — drei Träume, drei Szenen. Welche es sind, bestimmen Sie.</p></div></li>
+        <li><div class="num">2</div><div><p class="t">Mach ein Selfie</p><p class="d">Frontal, gutes Licht. Die Kamera öffnet sich auf der Seite — nichts zu installieren, kein Konto.</p></div></li>
+        <li><div class="num">3</div><div><p class="t">Sieh dich im Glück</p><p class="d">Wir setzen sein Gesicht in die Szene und machen ein Video daraus — mit seinem Namen und den 500.000&nbsp;€ am Ende.</p></div></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Das <span class="g">bekommen Sie</span></h2>
+      <p class="lead">Ihre Spieler sehen die Anzeige und gehen genau die Strecke, die Sie eben gegangen sind. Was bei Ihnen ankommt, ist keine Klickzahl, sondern eine Liste von Menschen, die sich ihr Glück angesehen haben — mit dem, was sie freigegeben haben, und dem, was sie gekostet haben.</p>
+      <ul class="checks">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Eine Interessentenliste statt Klickzahlen</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Kosten je Profil, nicht je Klick</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Ihre Daten auf einem Server in Deutschland</span></li>
+      </ul>
+      <a class="btn lb-gold" href="#">Beispielansicht der Kampagnenseite</a>
+    </section>
+
+    <section>
+      <h2>Warum das <span class="g">wirkt</span></h2>
+      <p class="lead">Ob jemand mitspielt, entscheidet kein Plakat mit einer Zahl darauf. Es entscheidet der Moment, in dem er sich selbst mit den 500.000&nbsp;€ sieht — im gelben Anzug vor dem Ferrari, auf der Yacht, vor dem eigenen Haus — und merkt, wie sich das anfühlt. Wer diesen Moment hatte, hinterlässt seine Adresse freiwillig.</p>
+    </section>
+
+    <section>
+      <h2>Das ist <span class="g">Video-Marketing</span></h2>
+      <p class="lead">Kein Gewinnspielformular, kein Newsletter-Häkchen am Anfang. Ihr Spieler sieht sich selbst als Gewinner, bevor er überhaupt einen Schein ausfüllt — und Sie erfahren von ihm, weil er es will, nicht weil ein Formular ihn dazu gezwungen hat. Dasselbe lässt sich für jede Ziehung, jede Aktion und jede Lotteriegesellschaft bauen.</p>
+    </section>
+
+    <section>
+      <h2>Wo das <span class="g">läuft</span></h2>
+      <p class="lead">Dieselbe Anwendung, drei Orte. Wer einen Bildschirm sieht, scannt den Code und hat sein Video eine Minute später auf dem eigenen Handy — kein Stand, kein Formular, kein Gespräch nötig. Das macht aus Werbefläche einen Trichter, der sofort etwas zurückgibt.</p>
+      <div class="orte">
+        <div class="kasten">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+          <p class="t">Im Netz</p>
+          <p class="d">Als Link in einer Anzeige, in einer Nachricht oder auf lotto-hh.de. Läuft auf jedem Handy und jedem Rechner, ohne Installation.</p>
+        </div>
+        <div class="kasten">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <p class="t">Auf einem Bildschirm vor Ort</p>
+          <p class="d">Annahmestelle, Kiosk, Schaufenster, Bahnhof: Der Bildschirm zeigt den Spot in Schleife, der Code daneben führt weiter. Gearbeitet wird auf dem Handy des Besuchers — der Bildschirm bleibt frei für den Nächsten.</p>
+        </div>
+        <div class="kasten">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v10H4zM12 14v6M8 20h8"/></svg>
+          <p class="t">Als grosse Projektion</p>
+          <p class="d">Hafengeburtstag, Alstervergnügen, Stadion, Weihnachtsmarkt: auf eine Wand geworfen — dieselbe Anwendung, nur gross. Wer stehen bleibt, hat den Code schon vor sich.</p>
+        </div>
+      </div>
+      <div class="code">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v3M14 21h3M21 21h-1"/></svg>
+        <div><p class="t">Ein Code je Ort — und damit zählbar</p><p class="d">Jede Annahmestelle, jedes Event, jede Anzeige bekommt ihren eigenen Code. Hinterher ist sichtbar, welcher Ort wie viele Menschen gebracht hat — das kann ein Plakat nicht.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Und Ihr Name steht darauf, nicht <span class="g">unserer</span></h2>
+      <p class="lead">Sehen Sie sich diese Seite an: kein fremdes Logo, kein fremder Absender, nichts als LOTTO Hamburg und „Hamburg im Glück“. Genau so bekommen Sie das Ganze — Anzeige, Trichter und Auswertung unter Ihrem Namen, auf Wunsch unter Ihrer eigenen Adresse. Wer mitmacht, sieht Sie und nur Sie. Dass wir es gebaut haben, steht in Ihrem Vertrag und sonst nirgends.</p>
+    </section>
+
+    <section id="vorlagen">
+      <h2>Die <span class="g">Vorlagen</span></h2>
+      <p class="lead">Drei Vorlagen. Je Szene ein Bild-Prompt (für das Szenenbild, in das das Selfie gesetzt wird), ein Video-Prompt (Bewegung, 5–8 Sekunden) und die Endkarte. Der Platzhalter <span class="end">{NAME}</span> wird durch den Vornamen ersetzt.</p>
+      <div class="vorlagen">
+
+        <details open>
+          <summary>1 · Der Ferrari — gelber Anzug, Hamburg im Hintergrund <svg class="pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="vbody">
+            <div class="feld"><span class="k">Szene</span><p class="v">Die Person steht lässig angelehnt an einem roten Ferrari an den Landungsbrücken. Gelber Anzug, weisses Hemd, Sonnenbrille in der Hand. Hinter ihr die Elbe, die Elbphilharmonie und die Kräne des Hafens. Goldenes Abendlicht.</p></div>
+            <div class="feld"><span class="k">Bild-Prompt</span><pre>Cinematic photo, confident person in a tailored bright yellow suit and white shirt, leaning casually against a red Ferrari sports car, Hamburg Landungsbrücken waterfront in the background with the Elbphilharmonie and harbour cranes, golden hour light, slight low angle, shallow depth of field, 85mm lens, editorial luxury advertising style, face clearly visible and centered, photorealistic, 9:16 vertical</pre></div>
+            <div class="feld"><span class="k">Video-Prompt</span><pre>Slow dolly-in on the person, they put on the sunglasses and smile at the camera, wind moves the jacket slightly, ships pass in the background, subtle lens flare, 6 seconds, smooth camera motion</pre></div>
+            <div class="feld"><span class="k">Endkarte</span><p class="v"><span class="end">{NAME}</span> im Glück. 500.000 € · LOTTO Hamburg · Hamburg im Glück.</p></div>
+          </div>
+        </details>
+
+        <details>
+          <summary>2 · Die Yacht — Urlaub auf dem Sonnendeck <svg class="pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="vbody">
+            <div class="feld"><span class="k">Szene</span><p class="v">Die Person liegt auf dem Sonnendeck einer weissen Motoryacht, Champagnerglas in der Hand, türkisfarbenes Meer, Küste im Hintergrund. Weisses Leinenhemd oder Sommerkleid, Sonnenhut.</p></div>
+            <div class="feld"><span class="k">Bild-Prompt</span><pre>Cinematic photo, relaxed person lounging on the sun deck of a white luxury motor yacht, holding a champagne glass, turquoise Mediterranean sea and a rocky coastline in the background, bright midday sun, white linen clothing, sun hat next to them, face clearly visible and centered, lifestyle travel advertising style, photorealistic, 9:16 vertical</pre></div>
+            <div class="feld"><span class="k">Video-Prompt</span><pre>Gentle camera orbit around the person, they raise the glass toward the camera and laugh, water sparkles, the yacht rocks slightly, seagull passes, 6 seconds</pre></div>
+            <div class="feld"><span class="k">Endkarte</span><p class="v"><span class="end">{NAME}</span> im Glück. 500.000 € · LOTTO Hamburg · Hamburg im Glück.</p></div>
+          </div>
+        </details>
+
+        <details>
+          <summary>3 · Das Haus — mit Familie vor dem Eigenheim <svg class="pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="vbody">
+            <div class="feld"><span class="k">Szene</span><p class="v">Die Person steht mit Partner und zwei Kindern vor einer weissen Villa mit Reetdach in Blankenese, Schlüssel in der Hand, Umzugskartons auf der Auffahrt, Blick auf die Elbe. Spätsommernachmittag.</p></div>
+            <div class="feld"><span class="k">Bild-Prompt</span><pre>Warm cinematic photo, happy person holding up a house key in front of a white villa with a thatched roof in Blankenese Hamburg, partner and two children beside them, moving boxes on the driveway, the river Elbe visible in the background, late summer afternoon light, family lifestyle advertising style, main person's face clearly visible and centered, photorealistic, 9:16 vertical</pre></div>
+            <div class="feld"><span class="k">Video-Prompt</span><pre>Camera pushes in slowly, the person holds the key up to the camera and grins, children run toward the front door, partner hugs them from the side, leaves move in the wind, 6 seconds</pre></div>
+            <div class="feld"><span class="k">Endkarte</span><p class="v"><span class="end">{NAME}</span> im Glück. 500.000 € · LOTTO Hamburg · Hamburg im Glück.</p></div>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <div class="foot">
+      <p class="k">Selbst ausprobieren?</p>
+      <button class="btn ghost" type="button" data-go="szenen">Mein Glücksvideo generieren</button>
+      <p class="legal">Spielteilnahme ab 18 Jahren. Glücksspiel kann süchtig machen. Infos und Hilfe unter bzga.de und der kostenlosen Hotline 0800 137 27 00. Angaben zur Ausschüttung (500.000 €) sind Kampagnen-Platzhalter und vor Veröffentlichung mit LOTTO Hamburg abzustimmen.</p>
+    </div>
+  </div>
+
+  <div class="wrap screen" data-screen="szenen" hidden>
+    <div class="punkte"><span class="jetzt"></span><span></span></div>
+    <h1>Wähl <span class="g">dein Glück.</span></h1>
+    <p class="sub">Drei Träume, drei Szenen. Was würdest du mit 500.000 € machen?</p>
+    <div class="szenen" role="listbox" aria-label="Vorlagen">
+        <div class="szene-halter"><button class="szene" type="button" role="option" aria-pressed="true"><span class="bild s1"><span class="wo">Gelber Anzug · Ferrari · Landungsbrücken</span></span><span class="lbl">Der Ferrari</span></button><button class="scheibe lupe" type="button" aria-label="Vorlage grösser ansehen"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M4 10V4h6"/><path d="M4 4l7 7"/><path d="M20 10V4h-6"/><path d="M20 4l-7 7"/><path d="M4 14v6h6"/><path d="M4 20l7-7"/><path d="M20 14v6h-6"/><path d="M20 20l-7-7"/></svg></button></div>
+        <div class="szene-halter"><button class="szene" type="button" role="option" aria-pressed="false"><span class="bild s2"><span class="wo">Yacht · Sonnendeck · Mittelmeer</span></span><span class="lbl">Die Yacht</span></button><button class="scheibe lupe" type="button" aria-label="Vorlage grösser ansehen"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M4 10V4h6"/><path d="M4 4l7 7"/><path d="M20 10V4h-6"/><path d="M20 4l-7 7"/><path d="M4 14v6h6"/><path d="M4 20l7-7"/><path d="M20 14v6h-6"/><path d="M20 20l-7-7"/></svg></button></div>
+        <div class="szene-halter"><button class="szene" type="button" role="option" aria-pressed="false"><span class="bild s3"><span class="wo">Haus · Familie · Blankenese</span></span><span class="lbl">Das Haus</span></button><button class="scheibe lupe" type="button" aria-label="Vorlage grösser ansehen"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M4 10V4h6"/><path d="M4 4l7 7"/><path d="M20 10V4h-6"/><path d="M20 4l-7 7"/><path d="M4 14v6h6"/><path d="M4 20l7-7"/><path d="M20 14v6h-6"/><path d="M20 20l-7-7"/></svg></button></div>
+      </div>
+      
+    <div class="untenreihe">
+      <button class="zurueck" type="button" data-go="start" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button>
+      <button class="btn lb-gold" type="button" data-go="selfie">Weiter</button>
+    </div>
+    <p class="legal">Spielteilnahme ab 18 Jahren. Glücksspiel kann süchtig machen.</p>
+  </div>
+
+  <div class="wrap screen" data-screen="selfie" hidden>
+    <h1>Jetzt <span class="g">dein Gesicht.</span></h1>
+    <div class="punkte"><span class="fertig"></span><span class="jetzt"></span></div>
+    <div class="kacheln">
+      <div class="kachel">
+        <div style="position:relative">
+          <button class="flaeche upload" type="button" id="fotoKachel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M15 18h6"/><path d="M18 15v6"/><path d="M4 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9l5 5v3"/><path d="m5 18 3-3 2 2 3-3"/></svg>
+            <span class="t1">Selfie aufnehmen</span>
+            <span class="t2">Frontal, gutes Licht, kein Hut.</span>
+          </button>
+        </div>
+        <p class="kachel-label">Dein Bild</p>
+      </div>
+      <svg class="kachel-pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      <div class="kachel ziel">
+        <div style="position:relative">
+          <span class="flaeche" id="zielFlaeche"><span class="titel" id="zielTitel">Der Ferrari</span></span>
+          <button class="mini" type="button" data-go="szenen" aria-label="Glück ändern">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        </div>
+        <p class="kachel-label">Dein Glück</p>
+      </div>
+    </div>
+    <button class="feldlink" type="button" id="fotoWaehlen">oder ein vorhandenes Foto wählen</button>
+    <input class="eingabe" id="vorname" type="text" placeholder="Dein Vorname" autocomplete="given-name">
+    <div class="untenreihe">
+      <button class="zurueck" type="button" data-go="szenen" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button>
+      <button class="btn lb-gold" type="button" id="genBtn" data-go="bauen" disabled>Jetzt generieren</button>
+    </div>
+    <p class="einwilligung">Dein Foto wird für die Erstellung deines Videos verarbeitet und danach nur für dein Video aufbewahrt.<span style="display:block">Nur Bilder von dir selbst dürfen hochgeladen werden.</span></p>
+  </div>
+
+  <div class="wrap screen" data-screen="bauen" hidden>
+    <h1>Wir bauen <span class="g">dein Glück.</span></h1>
+    <div class="punkte"><span class="fertig"></span><span class="jetzt"></span></div>
+    <div class="scan">
+      <img id="scanBild" alt="">
+      <span class="linie"></span>
+      <div class="deck"><p class="p" id="scanProzent">0%</p><p class="w" id="scanText">Wir setzen dich in „Der Ferrari“</p></div>
+    </div>
+    <p class="fein">Das dauert zwei bis drei Minuten. Bleib auf der Seite, dein Video entsteht gerade.</p>
+  </div>
+
+  <div class="wrap screen" data-screen="ergebnis" hidden>
+    <h1>Das bist <span class="g">du.</span></h1>
+    <div class="punkte"><span class="fertig"></span><span class="jetzt"></span></div>
+    <div id="ergebnisSlot"></div>
+    <div class="kasten">
+      <h3>Hast du Interesse?</h3>
+      <p class="fein" style="text-align:left;margin-top:6px">Dann trag dich hier ein, wir schicken dir dein Video und die Informationen zur Ziehung.</p>
+      <div class="felder">
+        <input class="eingabe" style="margin-top:0" id="fName" type="text" placeholder="Dein Nachname" autocomplete="family-name">
+        <label><span>Geburtsdatum</span><input class="eingabe" style="margin-top:0" id="fGeburt" type="date"></label>
+        <input class="eingabe" style="margin-top:0" id="fMail" type="email" inputmode="email" placeholder="name@beispiel.de" autocomplete="email">
+        <label class="haken">
+          <input type="checkbox" id="fHaken">
+          <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <span>Ich möchte Informationen per E-Mail bekommen und akzeptiere die <a href="/terms" target="_blank" rel="noopener noreferrer">AGB</a>.</span>
+        </label>
+        <p class="fehlerzeile" id="fFehler" hidden></p>
+        <button class="btn lb-gold" type="button" id="fSenden">Ich will weitere Informationen</button>
+        <p class="fein" style="text-align:left">Dein Foto und dein Video liegen auf einem Server in Deutschland. Deine Adresse geht an niemanden weiter, und du kannst dich jederzeit abmelden.</p>
+      </div>
+    </div>
+    <p class="legal">Spielteilnahme ab 18 Jahren. Glücksspiel kann süchtig machen. Hilfe: bzga.de · 0800 137 27 00</p>
+  </div>
+
+  <div class="wrap screen" data-screen="danke" hidden>
+    <h1>Danke, <span class="g" id="dankeName">Max</span>.</h1>
+    <p class="lead">Dein Video ist unterwegs zu dir. Die Informationen zur Ziehung schicken wir dir an deine Adresse.</p>
+    <div class="untenreihe">
+      <button class="btn ghost" type="button" id="nochmalBtn">Noch einmal</button>
+    </div>
+    <p class="legal">Spielteilnahme ab 18 Jahren. Glücksspiel kann süchtig machen. Hilfe: bzga.de · 0800 137 27 00</p>
+  </div>
+
+  <div class="kamera" id="kamera" hidden>
+    <div class="buehne-wrap"><div class="buehne">
+      <button class="scheibe kam-zu" type="button" id="kamZu" aria-label="Abbrechen">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <video id="kamVideo" muted playsinline></video>
+      <img id="kamBild" alt="" hidden>
+      <div class="zoom" id="kamZoom" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6"/></svg>
+        <input type="range" id="kamZoomReg" aria-label="Näher heranholen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6M11 8v6"/></svg>
+      </div>
+    </div></div>
+    <div class="kam-leiste">
+      <p class="kam-fehler" id="kamFehler" hidden></p>
+      <div class="reihe" id="kamVor">
+        <button class="kam-los lb-gold" type="button" id="kamLos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Auslösen
+        </button>
+        <p class="kam-hinweis">Frontal, gutes Licht, kein Hut.</p>
+      </div>
+      <div class="reihe" id="kamAusweg" hidden>
+        <button class="btn lb-gold" type="button" id="kamDatei">Vorhandenes Foto wählen</button>
+      </div>
+      <div class="reihe" id="kamNach" hidden>
+        <button class="btn lb-gold" type="button" id="kamUeber">Übernehmen</button>
+        <button class="btn ghost" type="button" id="kamNochmal">Noch einmal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gross" id="gross" hidden>
+    <div class="buehne-wrap">
+      <video id="grossVideo" playsinline></video>
+      <button class="scheibe zu" type="button" id="grossZu" aria-label="Schliessen">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="fuss">
+      <p class="name" id="grossName">Der Ferrari</p>
+      <button class="btn lb-gold" type="button" id="grossWahl">Diese Vorlage nehmen</button>
+    </div>
+  </div>
+
+  <input type="file" id="dateiWahl" accept="image/*" hidden>
+    <audio id="musik" src="musik-loop.mp3" loop preload="auto"></audio>
+</main>
+</div>
+
+<script>
+  (function(){
+    var gewaehlt='Der Ferrari', gewaehltKlasse='s1', hatFoto=false;
+  var S=function(d){return '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';};
+  var IKON_STUMM=S('<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6"/><path d="M17 9l6 6"/>');
+  var IKON_LAUT=S('<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>');
+  var IKON_GROSS=S('<path d="M4 10V4h6"/><path d="M4 4l7 7"/><path d="M20 10V4h-6"/><path d="M20 4l-7 7"/><path d="M4 14v6h6"/><path d="M4 20l7-7"/><path d="M20 14v6h-6"/><path d="M20 20l-7-7"/>');
+  var IKON_KLEIN=S('<path d="M10 4v6H4"/><path d="M3 3l7 7"/><path d="M14 4v6h6"/><path d="M21 3l-7 7"/><path d="M10 20v-6H4"/><path d="M3 21l7-7"/><path d="M14 20v-6h6"/><path d="M21 21l-7-7"/>');
+    var root=document.documentElement;
+    var btn=document.getElementById('themeBtn');
+    try{ if(localStorage.getItem('hh-theme')==='light') root.setAttribute('data-theme','light'); }catch(e){}
+    btn.addEventListener('click',function(){
+      var light=root.getAttribute('data-theme')==='light';
+      if(light) root.removeAttribute('data-theme'); else root.setAttribute('data-theme','light');
+      try{ localStorage.setItem('hh-theme', light?'dark':'light'); }catch(e){}
+    });
+        var v=document.getElementById('spotVideo'), musik=document.getElementById('musik'),
+        bTon=document.getElementById('muteBtn'), bGross=document.getElementById('grossBtn'),
+        bTeilen=document.getElementById('teilenBtn'), hinweis=document.getElementById('kopiert'),
+        karte=document.querySelector('.spot');
+
+    // Ton: eine durchlaufende Spur, unabhängig von der Videoschleife
+    bTon.innerHTML=IKON_STUMM; bGross.innerHTML=IKON_GROSS;
+    var tonGewollt=false;
+    function tonAn(){ tonGewollt=true; musik.volume=1;
+      var p=musik.play(); if(p&&p.catch)p.catch(function(){});
+      bTon.innerHTML=IKON_LAUT; bTon.setAttribute('aria-label','Ton aus'); }
+    function tonAus(){ tonGewollt=false; musik.pause();
+      bTon.innerHTML=IKON_STUMM; bTon.setAttribute('aria-label','Ton an'); }
+
+    // KEIN TON, WENN DER BESUCHER NICHT HINSCHAUT.
+    // Die Seite läuft im Artifact in einem eingebetteten Rahmen: wer im Fenster woanders
+    // hinklickt, macht das Dokument NICHT versteckt — `visibilitychange` allein reicht
+    // deshalb nicht. Der Fokus ist das Signal, das in beiden Fällen stimmt.
+    function stillLegen(){ musik.pause(); if(!v.paused)v.pause(); }
+    function daheim(){ return !document.hidden && document.hasFocus(); }
+    function wieder(){
+      if(!daheim())return;
+      if(tonGewollt){ var p=musik.play(); if(p&&p.catch)p.catch(function(){}); }
+      if(kam.hidden){ var q=v.play(); if(q&&q.catch)q.catch(function(){}); }
+    }
+    document.addEventListener('visibilitychange',function(){ document.hidden?stillLegen():wieder(); });
+    window.addEventListener('blur',stillLegen);
+    window.addEventListener('focus',wieder);
+    window.addEventListener('pagehide',stillLegen);
+    // Sicherheitsnetz: manche Fenster melden weder das eine noch das andere.
+    setInterval(function(){ if(!daheim()&&!musik.paused)stillLegen(); },1000);
+    bTon.addEventListener('pointerdown',function(e){ e.stopPropagation(); });
+    bTon.addEventListener('click',function(e){ e.stopPropagation(); if(musik.paused){tonAn();}else{tonAus();} });
+    var einmal=function(ev){
+      // Der Ton-Knopf steuert selbst — sonst schaltete sein eigener Tipp erst an und der
+      // Klick danach wieder aus, und der Knopf wirkte tot.
+      if(ev&&ev.target&&ev.target.closest&&ev.target.closest('#muteBtn'))return;
+      if(musik.paused)tonAn();
+      document.removeEventListener('pointerdown',einmal); document.removeEventListener('keydown',einmal); };
+    document.addEventListener('pointerdown',einmal); document.addEventListener('keydown',einmal);
+    var pr=musik.play();
+    if(pr){ if(pr.then)pr.then(function(){ if(!musik.paused){ tonGewollt=true; bTon.innerHTML=IKON_LAUT;
+        bTon.setAttribute('aria-label','Ton aus'); } }); if(pr.catch)pr.catch(function(){}); }
+
+    // Vergrössern: eigene Fläche, das Video läuft weiter
+    function vollAn(){ karte.classList.add('voll'); document.body.classList.add('gesperrt');
+      bGross.innerHTML=IKON_KLEIN; bGross.setAttribute('aria-label','Video verkleinern'); }
+    function vollAus(){ karte.classList.remove('voll'); document.body.classList.remove('gesperrt');
+      bGross.innerHTML=IKON_GROSS; bGross.setAttribute('aria-label','Video vergrössern'); }
+    bGross.addEventListener('click',function(e){ e.stopPropagation();
+      if(karte.classList.contains('voll')){vollAus();}else{vollAn();} });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&karte.classList.contains('voll'))vollAus(); });
+
+    // Teilen
+    function zeige(t){ hinweis.textContent=t; hinweis.classList.add('an');
+      setTimeout(function(){ hinweis.classList.remove('an'); },1800); }
+    bTeilen.addEventListener('click',function(e){ e.stopPropagation();
+      var daten={title:'Hamburg im Glück',text:'Was würdest du mit 500.000 € machen?',url:location.href};
+      if(navigator.share){ navigator.share(daten).catch(function(){}); return; }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(location.href).then(function(){ zeige('Link kopiert ✓'); },
+          function(){ zeige('Teilen nicht möglich'); });
+      } else { zeige('Teilen nicht möglich'); }
+    });
+
+    // Abspielknopf: steht in der Mitte, sobald das Video hält
+    var bPlay=document.getElementById('playBtn');
+    function zeigePlay(){ bPlay.hidden=!v.paused; }
+    v.addEventListener('pause',zeigePlay); v.addEventListener('play',zeigePlay);
+    v.addEventListener('loadedmetadata',zeigePlay); zeigePlay();
+    bPlay.addEventListener('click',function(ev){ ev.stopPropagation();
+      var p=v.play(); if(p&&p.catch)p.catch(function(){}); });
+
+    // Zeitbalken: zeigt die Position und springt beim Ziehen
+    var zeit=document.getElementById('zeit'), fuell=document.getElementById('zeitFuell'), zieht=false;
+    function malen(){ if(!v.duration)return; var q=v.currentTime/v.duration;
+      fuell.style.width=(q*100).toFixed(2)+'%'; zeit.setAttribute('aria-valuenow',Math.round(q*100)); }
+    v.addEventListener('timeupdate',malen); v.addEventListener('loadedmetadata',malen);
+    function springe(ev){ if(!v.duration)return; var r=zeit.getBoundingClientRect();
+      var q=Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)); v.currentTime=q*v.duration; malen(); }
+    zeit.addEventListener('pointerdown',function(ev){ ev.stopPropagation(); zieht=true;
+      zeit.setPointerCapture(ev.pointerId); springe(ev); });
+    zeit.addEventListener('pointermove',function(ev){ if(zieht)springe(ev); });
+    zeit.addEventListener('pointerup',function(ev){ zieht=false; try{zeit.releasePointerCapture(ev.pointerId);}catch(e){} });
+    zeit.addEventListener('click',function(ev){ ev.stopPropagation(); });
+    zeit.addEventListener('keydown',function(ev){
+      if(!v.duration)return;
+      if(ev.key==='ArrowRight'){ v.currentTime=Math.min(v.duration,v.currentTime+2); ev.preventDefault(); malen(); }
+      if(ev.key==='ArrowLeft'){ v.currentTime=Math.max(0,v.currentTime-2); ev.preventDefault(); malen(); }
+    });
+
+    // Tippen auf das Video hält an und läuft weiter
+    v.addEventListener('click',function(){ if(v.paused){v.play();}else{v.pause();} });
+
+    // ═══ Selfie-Schritt ═══
+    var zielF=document.getElementById('zielFlaeche'), zielT=document.getElementById('zielTitel'),
+        gen=document.getElementById('genBtn'), vor=document.getElementById('vorname'),
+        fotoLink=document.getElementById('fotoWaehlen'), dateiWahl=document.getElementById('dateiWahl'),
+        FOTO_LEER=document.getElementById('fotoKachel').outerHTML, fotoUrl='';
+
+    function zielSetzen(){ zielF.className='flaeche '+gewaehltKlasse; zielT.textContent=gewaehlt; pruefe(); }
+    function pruefe(){ gen.disabled=!(fotoUrl&&vor.value.trim()); }
+    function kachelBinden(){
+      var k=document.getElementById('fotoKachel');
+      if(fotoUrl){
+        var w=document.getElementById('fotoWeg');
+        if(w)w.addEventListener('click',function(e){ e.stopPropagation(); fotoWeg(); });
+      } else {
+        k.addEventListener('click',kameraAuf);
+      }
+      pruefe();
+    }
+    function fotoSetzen(url){
+      if(fotoUrl&&fotoUrl.indexOf('blob:')===0){ try{URL.revokeObjectURL(fotoUrl);}catch(e){} }
+      fotoUrl=url;
+      document.getElementById('fotoKachel').outerHTML=
+        '<span class="flaeche" id="fotoKachel"><img src="'+url+'" alt="Dein Bild">'+
+        '<button class="mini loeschen" type="button" id="fotoWeg" aria-label="Foto löschen">'+
+        '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+
+        '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg></button></span>';
+      kachelBinden();
+    }
+    function fotoWeg(){
+      if(fotoUrl&&fotoUrl.indexOf('blob:')===0){ try{URL.revokeObjectURL(fotoUrl);}catch(e){} }
+      fotoUrl='';
+      document.getElementById('fotoKachel').outerHTML=FOTO_LEER;
+      kachelBinden();
+    }
+    kachelBinden();
+    vor.addEventListener('input',pruefe);
+
+    // Der zweite Weg: ein vorhandenes Bild vom Gerät
+    fotoLink.addEventListener('click',function(){ dateiWahl.click(); });
+    dateiWahl.addEventListener('change',function(){
+      var d=dateiWahl.files&&dateiWahl.files[0];
+      if(d) fotoSetzen(URL.createObjectURL(d));
+      dateiWahl.value='';
+    });
+
+    // ═══ Kamera (nach SelbstAufnahme, Foto-Modus) ═══
+    var kam=document.getElementById('kamera'), kamV=document.getElementById('kamVideo'),
+        kamB=document.getElementById('kamBild'), kamVor=document.getElementById('kamVor'),
+        kamNach=document.getElementById('kamNach'), kamF=document.getElementById('kamFehler'),
+        kamZoom=document.getElementById('kamZoom'), kamReg=document.getElementById('kamZoomReg'),
+        strom=null, aufnahme='';
+
+    var kamAusweg=document.getElementById('kamAusweg');
+    function kamFehlerZeigen(t){ kamF.textContent=t; kamF.hidden=false;
+      kamVor.hidden=true; kamNach.hidden=true; kamZoom.hidden=true; kamAusweg.hidden=false; }
+    async function kameraAuf(){
+      kam.hidden=false; document.body.classList.add('gesperrt');
+      kamF.hidden=true; kamB.hidden=true; kamV.hidden=false;
+      kamVor.hidden=false; kamNach.hidden=true; kamZoom.hidden=true; kamAusweg.hidden=true;
+      stillLegen();
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+        kamFehlerZeigen('Wir konnten die Kamera nicht öffnen. Nimm ein vorhandenes Foto:'); return; }
+      try{
+        strom=await navigator.mediaDevices.getUserMedia({
+          video:{facingMode:'user',width:{ideal:720},height:{ideal:1280},aspectRatio:{ideal:9/16}},audio:false});
+        kamV.srcObject=strom; var q=kamV.play(); if(q&&q.catch)q.catch(function(){});
+        var spur=strom.getVideoTracks()[0];
+        var koennen=spur&&spur.getCapabilities?spur.getCapabilities():null;
+        if(koennen&&koennen.zoom&&koennen.zoom.max>koennen.zoom.min){
+          var jetzt=(spur.getSettings().zoom)||koennen.zoom.min;
+          kamReg.min=koennen.zoom.min; kamReg.max=koennen.zoom.max;
+          kamReg.step=koennen.zoom.step||0.1; kamReg.value=jetzt; kamZoom.hidden=false;
+        }
+      }catch(e){ kamFehlerZeigen('Wir konnten die Kamera nicht öffnen. Nimm ein vorhandenes Foto:'); }
+    }
+    kamReg.addEventListener('input',function(){
+      var spur=strom&&strom.getVideoTracks()[0];
+      try{ spur.applyConstraints({advanced:[{zoom:Number(kamReg.value)}]}); }catch(e){}
+    });
+    function kameraZu(){
+      try{ if(strom)strom.getTracks().forEach(function(t){t.stop()}); }catch(e){}
+      strom=null; kamV.srcObject=null; kam.hidden=true; document.body.classList.remove('gesperrt');
+      if(aufnahme){ try{URL.revokeObjectURL(aufnahme);}catch(e){} aufnahme=''; }
+    }
+    document.getElementById('kamZu').addEventListener('click',kameraZu);
+    document.getElementById('kamDatei').addEventListener('click',function(){ kameraZu(); dateiWahl.click(); });
+    document.getElementById('kamLos').addEventListener('click',function(){
+      if(!kamV.videoWidth){ kamFehlerZeigen('Wir konnten die Kamera nicht öffnen. Nimm ein vorhandenes Foto:'); return; }
+      var r=kamV.getBoundingClientRect(), zielV=(r.width>0&&r.height>0)?r.width/r.height:3/4,
+          qV=kamV.videoWidth/kamV.videoHeight, sx=0,sy=0,sw=kamV.videoWidth,sh=kamV.videoHeight;
+      if(qV>zielV){ sw=kamV.videoHeight*zielV; sx=(kamV.videoWidth-sw)/2; }
+      else { sh=kamV.videoWidth/zielV; sy=(kamV.videoHeight-sh)/2; }
+      var c=document.createElement('canvas'); c.width=Math.round(sw); c.height=Math.round(sh);
+      var g=c.getContext('2d');
+      g.translate(c.width,0); g.scale(-1,1);          // gespiegelt wie die Vorschau
+      g.drawImage(kamV,sx,sy,sw,sh,0,0,c.width,c.height);
+      c.toBlob(function(bl){
+        if(!bl){ kamFehlerZeigen('Das Bild konnte nicht erstellt werden.'); return; }
+        aufnahme=URL.createObjectURL(bl);
+        kamB.src=aufnahme; kamB.hidden=false; kamV.hidden=true;
+        kamVor.hidden=true; kamNach.hidden=false; kamZoom.hidden=true;
+      },'image/jpeg',0.92);
+    });
+    document.getElementById('kamNochmal').addEventListener('click',function(){
+      if(aufnahme){ try{URL.revokeObjectURL(aufnahme);}catch(e){} aufnahme=''; }
+      kamB.hidden=true; kamV.hidden=false; kamVor.hidden=false; kamNach.hidden=true;
+      if(kamReg.min!==kamReg.max) kamZoom.hidden=false;
+      var q=kamV.play(); if(q&&q.catch)q.catch(function(){});
+    });
+    document.getElementById('kamUeber').addEventListener('click',function(){
+      var u=aufnahme; aufnahme='';           // nicht freigeben, die Kachel zeigt es weiter
+      try{ if(strom)strom.getTracks().forEach(function(t){t.stop()}); }catch(e){}
+      strom=null; kamV.srcObject=null; kam.hidden=true; document.body.classList.remove('gesperrt');
+      fotoSetzen(u);
+    });
+
+    // ═══ Die drei Vorlagen und ihre Dateien ═══
+    // Namensregel wie im Projekt: das Poster heisst wie das Video, nur .jpg statt .mp4.
+    // Fehlt eine Datei noch, bleibt die Farbkachel stehen und das Ergebnis zeigt den Ferrari.
+    var VORLAGEN={
+      'Der Ferrari':{video:'Ferrari-web.mp4',poster:'Ferrari-web.jpg'},
+      'Die Yacht'  :{video:'Yacht-web.mp4',  poster:'Yacht-web.jpg'},
+      'Das Haus'   :{video:'Haus-web.mp4',   poster:'Haus-web.jpg'}
+    };
+    function daPruefen(url){
+      if(url.indexOf('data:')===0)return Promise.resolve(true);
+      return fetch(url,{method:'HEAD'}).then(function(r){ return r.ok; }).catch(function(){ return false; });
+    }
+    // Kacheln bekommen ihr echtes Bild, sobald es liegt
+    document.querySelectorAll('.szene').forEach(function(b){
+      var name=b.querySelector('.lbl').textContent.trim(), eintrag=VORLAGEN[name];
+      if(!eintrag)return;
+      daPruefen(eintrag.poster).then(function(da){
+        if(!da)return;
+        var fl=b.querySelector('.bild');
+        fl.style.backgroundImage='url("'+eintrag.poster+'")';
+        fl.style.backgroundSize='cover'; fl.style.backgroundPosition='center';
+      });
+    });
+    // Ergebnis zeigt das Video der gewählten Vorlage, wenn es das schon gibt
+    function videoSetzen(){
+      var eintrag=VORLAGEN[gewaehlt]; if(!eintrag)return;
+      daPruefen(eintrag.video).then(function(da){
+        if(!da)return;
+        if(v.getAttribute('src')===eintrag.video)return;
+        v.setAttribute('src',eintrag.video); v.setAttribute('poster',eintrag.poster); v.load();
+        var q=v.play(); if(q&&q.catch)q.catch(function(){});
+      });
+    }
+
+    // ═══ Vorlage gross ansehen ═══
+    var gross=document.getElementById('gross'), grossV=document.getElementById('grossVideo'),
+        grossN=document.getElementById('grossName'), grossWar=false, grossName='';
+    function grossAuf(name){
+      var eintrag=VORLAGEN[name]; if(!eintrag)return;
+      grossName=name; grossN.textContent=name;
+      grossV.src=eintrag.video; grossV.poster=eintrag.poster;
+      gross.hidden=false; document.body.classList.add('gesperrt');
+      grossWar=!musik.paused; musik.pause();     // die Vorlage hat ihren eigenen Ton
+      grossV.muted=false; grossV.currentTime=0;
+      var q=grossV.play(); if(q&&q.catch)q.catch(function(){ grossV.muted=true; grossV.play(); });
+    }
+    function grossZu(){
+      grossV.pause(); grossV.removeAttribute('src'); grossV.load();
+      gross.hidden=true; document.body.classList.remove('gesperrt');
+      if(grossWar&&tonGewollt){ var p=musik.play(); if(p&&p.catch)p.catch(function(){}); }
+    }
+    document.getElementById('grossZu').addEventListener('click',grossZu);
+    document.getElementById('grossWahl').addEventListener('click',function(){
+      var k=[].slice.call(document.querySelectorAll('.szene')).filter(function(b){
+        return b.querySelector('.lbl').textContent.trim()===grossName; })[0];
+      if(k)k.click();
+      grossZu();
+    });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!gross.hidden)grossZu(); });
+    document.querySelectorAll('.szene-halter .lupe').forEach(function(l){
+      l.addEventListener('click',function(e){
+        e.stopPropagation();
+        grossAuf(l.closest('.szene-halter').querySelector('.lbl').textContent.trim());
+      });
+    });
+
+    // ═══ Bildschirme ═══
+    var screens=document.querySelectorAll('.screen');
+    var spot=document.querySelector('.spot'), spotHeim=spot?spot.parentNode:null,
+        spotNachbar=spot?spot.nextSibling:null, lauf=null;
+    function zeige(name){
+      screens.forEach(function(s){ s.hidden = s.getAttribute('data-screen')!==name; });
+      window.scrollTo(0,0);
+      if(name==='selfie') zielSetzen();
+      if(name==='bauen'){ starteLauf(); }
+      if(name==='ergebnis'){ videoSetzen();
+        if(spot&&spot.parentNode!==document.getElementById('ergebnisSlot')){
+          document.getElementById('ergebnisSlot').appendChild(spot); }
+        var q=v.play(); if(q&&q.catch)q.catch(function(){}); }
+      else if(spot&&spot.parentNode!==spotHeim){ spotHeim.insertBefore(spot,spotNachbar); }
+    }
+    function starteLauf(){
+      var bild=document.getElementById('scanBild'), pz=document.getElementById('scanProzent'),
+          tx=document.getElementById('scanText'), p=0;
+      bild.src=fotoUrl||document.getElementById('spotVideo').getAttribute('poster');
+      pz.textContent='0%'; tx.textContent='Wir setzen dich in „'+gewaehlt+'“';
+      if(lauf)clearInterval(lauf);
+      lauf=setInterval(function(){
+        p+=2; pz.textContent=Math.min(p,100)+'%';
+        if(p>58) tx.textContent='Jetzt kommt Bewegung hinein';
+        if(p>=100){ clearInterval(lauf); lauf=null; zeige('ergebnis'); }
+      },70);
+    }
+    // Der Name in der Kopfzeile führt zurück auf die Landingpage — wie in der Academy.
+    // Er räumt vorher auf: eine offene Kamera und das Vollbild bleiben sonst über der Seite.
+    document.getElementById('heim').addEventListener('click',function(){
+      if(!kam.hidden)kameraZu();
+      if(karte.classList.contains('voll'))vollAus();
+      zeige('start');
+    });
+
+    document.querySelectorAll('[data-go]').forEach(function(b){
+      b.addEventListener('click',function(){ if(b.disabled)return; zeige(b.getAttribute('data-go')); });
+    });
+
+    // ═══ Formular nach dem Video ═══
+    var fSenden=document.getElementById('fSenden'), fFehler=document.getElementById('fFehler');
+    fSenden.addEventListener('click',function(){
+      var n=document.getElementById('fName').value.trim(),
+          m=document.getElementById('fMail').value.trim(),
+          hk=document.getElementById('fHaken').checked;
+      if(!n){ zeigeFehler('Bitte trag deinen Nachnamen ein.'); return; }
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ zeigeFehler('Bitte prüf deine E-Mail-Adresse.'); return; }
+      if(!hk){ zeigeFehler('Bitte setz den Haken, damit wir dir schreiben dürfen.'); return; }
+      fFehler.hidden=true;
+      document.getElementById('dankeName').textContent=vor.value.trim()||'du';
+      zeige('danke');
+    });
+    function zeigeFehler(t){ fFehler.textContent=t; fFehler.hidden=false; }
+
+    document.getElementById('nochmalBtn').addEventListener('click',function(){
+      fotoWeg(); vor.value=''; document.getElementById('fName').value='';
+      document.getElementById('fGeburt').value=''; document.getElementById('fMail').value='';
+      document.getElementById('fHaken').checked=false; fFehler.hidden=true;
+      zeige('start');
+    });
+
+    var szenen=document.querySelectorAll('.szene');
+    szenen.forEach(function(b){
+      b.addEventListener('click',function(){
+        szenen.forEach(function(x){x.setAttribute('aria-pressed','false')});
+        b.setAttribute('aria-pressed','true');
+        var l=b.querySelector('.lbl'); if(l) gewaehlt=l.textContent.trim();
+        var bd=b.querySelector('.bild'); if(bd) gewaehltKlasse=(bd.className.match(/\bs\d\b/)||['s1'])[0];
+      });
+    });
+  })();
+</script>

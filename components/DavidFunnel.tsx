@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { FileText, Trash2, Upload, Check } from "lucide-react";
+import { FileText, Trash2, Upload, Check, ChevronLeft } from "lucide-react";
 import { Eingabe, EingabeMehrzeilig, Knopf, Fehlerzeile, Fortschritt, Haken, Kasten } from "@/components/CI";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -35,7 +35,7 @@ import type { DavidReport } from "@/lib/david-store";
  */
 
 type Phase =
-  | "name" | "mail" | "cv" | "job" | "uebergang" | "anlauf"
+  | "beweis" | "ziel" | "name" | "mail" | "cv" | "job" | "uebergang" | "anlauf"
   | "gespraech" | "analyse" | "bericht"
   | "feedback" | "interessen" | "kritik" | "updates" | "danke";
 
@@ -43,7 +43,7 @@ type Zeile = { von: "david" | "ich"; text: string };
 
 const ABLAGE = "lb_david_entwurf";
 
-export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, preisVideo, beispielCv, beispielVideo, inhalt }: {
+export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, preisVideo, beispielCv, beispielVideo, inhalt, beweis }: {
   S: DavidTunnelTexte;
   /** Der Werbesatz der Seite — er gilt, solange der Schritt keinen eigenen Titel hat. */
   werbeTitel?: string;
@@ -58,6 +58,13 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   beispielVideo?: ReactNode;
   /** Der Landingpage-Inhalt unter dem Trichter (Dauerregel `tunnel-zeigt-landingpage-inhalt`). */
   inhalt?: ReactNode;
+  /**
+   * DER BEISPIELPLAN — steht beim Lebenslauf-Schritt (Owner 07.09.2026: „Das hat auf der
+   * Landingpage nichts zu suchen"). Ein Beweis unter vier Textabschnitten sieht niemand;
+   * neben dem Upload beantwortet er die Frage, die dort wirklich im Kopf steht: Was bekomme
+   * ich dafür, dass ich meinen Lebenslauf hergebe?
+   */
+  beweis?: ReactNode;
 }) {
   /**
    * DER TRICHTER BEGINNT MIT DEM LEBENSLAUF (Owner 31.08.2026: „wir fragen zu schnell nach
@@ -68,7 +75,18 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
    * geliefert hatte. Jetzt ist der erste Schritt ein KNOPF, und das Erste, was passiert, ist
    * eine Leistung: David liest und sagt, was er sieht.
    */
-  const [phase, setPhase] = useState<Phase>("cv");
+  /**
+   * SEIT 07.09.2026 STEHT DIE ZIELFRAGE DAVOR (Owner: „Ich will das schon als Funnel sehen.
+   * Das hat auf der Landingpage nichts zu suchen.").
+   *
+   * DAS RISIKO IST BEKANNT UND BEWUSST EINGEGANGEN: Am 31.08. wurde ein Schritt vor dem
+   * Lebenslauf entfernt, weil ihn von 19–27 Werbebesuchern keiner abgeschickt hat. Dort
+   * standen aber ZWEI TIPPFELDER UND EIN HAKEN. Hier stehen zwei Knöpfe, und ein Klick ist
+   * etwas anderes als eine Eingabe (Hausregel: der Nutzer will klicken, nicht tippen).
+   * Wenn die Zahlen dagegen sprechen, ist die Rücknahme eine Zeile: Startwert auf "cv".
+   */
+  const [phase, setPhase] = useState<Phase>("beweis");
+  const [ziel, setZiel] = useState<"veraendern" | "verdienen" | "">("");
   const [vorname, setVorname] = useState("");
   const [mail, setMail] = useState("");
   const [haken, setHaken] = useState(false);
@@ -148,6 +166,52 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   const [ticketLaeuft, setTicketLaeuft] = useState(() => {
     try { return !!new URLSearchParams(window.location.search).get("w"); } catch { return false; }
   });
+
+  /**
+   * SCHIRM ANSEHEN, OHNE DEN TRICHTER ZU LAUFEN (Owner 07.09.2026: „ich soll also wieder die
+   * Schritte durchgehen, sonst sehe ich nichts").
+   *
+   * Bisher kostete jede Beurteilung eines einzelnen Schirms den ganzen Weg — Ziel wählen,
+   * Lebenslauf hochladen, Anzeige einfügen — und dazu einen bezahlten Aufruf. Für einen
+   * Abstand, eine Schriftgrösse oder eine Farbe ist das absurd teuer, und deshalb werden
+   * solche Dinge nicht mehr angesehen. Genau so entstehen die Schirme, die keiner geprüft hat.
+   *
+   * `?vorschau=<schritt>` springt direkt hin und legt Beispieldaten hinein. KEIN Aufruf an
+   * ein Modell, kein Upload, keine Sitzung — nur Anzeige.
+   *
+   * NUR IN DER ENTWICKLUNG. `process.env.NODE_ENV` wird beim Bauen fest eingesetzt: In der
+   * ausgerollten Fassung ist dieser Block nicht bloss abgeschaltet, er steht nicht im
+   * Bündel. Ein Besucher kann ihn also auch nicht erraten — sonst wäre es eine Tür, durch
+   * die jemand in einen Zustand käme, den der Server nicht kennt.
+   */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    let wunsch = "";
+    try { wunsch = new URLSearchParams(window.location.search).get("vorschau") ?? ""; } catch { /**/ }
+    if (!wunsch) return;
+    const schritte: Phase[] = ["beweis", "ziel", "name", "mail", "cv", "job", "uebergang", "anlauf",
+      "gespraech", "analyse", "bericht", "feedback", "interessen", "kritik", "updates", "danke"];
+    if (!schritte.includes(wunsch as Phase)) return;
+    /* Beispieldaten, damit die späteren Schirme nicht leer dastehen — sie sind erkennbar
+       Beispiel und gehen nirgendwohin. */
+    setVorname("Anna");
+    setCvName("Lebenslauf-Anna.pdf");
+    setCvPath("beispiel/anna.pdf");
+    setJobTitel("Senior UX Designer"); setJobOrt("München, hybrid"); setJobArt("Vollzeit");
+    setSchwerpunkte(["Produktdesign", "Design-System", "Nutzerforschung"]);
+    setPlan([
+      { punkt: "Deine Rolle im Portal-Relaunch", warum: "die Anzeige verlangt Führung, dein Lebenslauf sagt dazu nichts" },
+      { punkt: "Die Lücke 2024 bis 2025", warum: "vierzehn Monate ohne Station, unkommentiert" },
+      { punkt: "Was du messbar verbessert hast", warum: "Aufgaben stehen da, Ergebnisse nicht" },
+    ]);
+    setVerlauf([
+      { von: "david", text: "Dein Lebenslauf ist da — und ich sehe darin schon eine Richtung. Welche, sage ich dir noch nicht: Dafür brauche ich erst deine Antworten. (Beispiel)" },
+      { von: "ich", text: "Ich habe den Portal-Relaunch geleitet, Team von sechs Leuten. (Beispiel)" },
+    ]);
+    setFrage("Welche Entscheidung im Portal-Relaunch war deine — und was ist danach messbar anders gewesen? (Beispiel)");
+    setNummer(1);
+    setPhase(wunsch as Phase);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!ticketLaeuft) return;
@@ -253,7 +317,7 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
     try {
       const d = await fetch("/api/david", {
         method: "POST", headers: kopfzeilen(),
-        body: JSON.stringify({ id: genId, device: geraet(), sprache: lang, ...felder }),
+        body: JSON.stringify({ id: genId, device: geraet(), sprache: lang, ziel: ziel || zielLesen() || undefined, ...felder }),
       }).then(r => r.json());
       /**
        * NUR TECHNISCHES VERSTECKEN, NICHT ALLES (Fehler von mir, gemeldet 29.08.2026 mit Bild:
@@ -397,6 +461,41 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
     return utm;
   };
 
+  /**
+   * DAS ZIEL AUS DER ADRESSE (07.09.2026) — `?ziel=veraendern` oder `?ziel=verdienen`.
+   *
+   * Owner wollte die Frage „willst du dich beruflich verändern oder mehr verdienen?" GANZ
+   * am Anfang. Sie steht deshalb als zwei Knöpfe auf der Landingpage und nicht als eigener
+   * Trichterschritt: Ein Schritt VOR dem Lebenslauf wurde am 31.08.2026 gemessen entfernt
+   * (19–27 Besucher aus der Werbung, keine einzige Absendung). So steht die Frage am Anfang,
+   * ohne einen Schritt vor die erste Leistung zu setzen.
+   *
+   * Nur die zwei bekannten Werte — alles andere wird verworfen, damit kein Fremdtext in den
+   * Auftrag an das Modell wandert.
+   */
+  const zielLesen = (): "veraendern" | "verdienen" | "" => {
+    try {
+      const v = new URLSearchParams(window.location.search).get("ziel") ?? "";
+      return v === "veraendern" || v === "verdienen" ? v : "";
+    } catch { return ""; }
+  };
+
+  /**
+   * EINMAL SICHERN, SOBALD DIE SITZUNG STEHT — sonst ginge der Wunsch verloren.
+   *
+   * Der Trichter beginnt beim Lebenslauf, und dieser Schritt geht an `david-screening`, das
+   * die Nicht-KI-Felder gar nicht schreibt. Ohne diesen Anstoss käme das Ziel erst beim
+   * E-Mail-Schritt an — also nach dem Gespräch, in dem es hätte wirken sollen.
+   */
+  const zielGesendet = useRef(false);
+  useEffect(() => {
+    if (!genId || zielGesendet.current) return;
+    if (!ziel && !zielLesen()) return;
+    zielGesendet.current = true;
+    void speichern({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genId, ziel]);
+
   /* ── Schritt 2: E-Mail + Datenschutz → LEAD ───────────────────────────────── */
   const leadSpeichern = async () => {
     if (!mailOk) { setFehler(S.mailFehlt); return; }
@@ -528,19 +627,41 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
       /* EIN SATZ STATT DER GANZEN AUSWERTUNG (Owner 29.08.2026) — die Beobachtungen sind das
          Produkt und stehen im Bericht; hier reicht der Beweis, dass gelesen wurde. `beobachtet`
          wird weiterhin serverseitig gespeichert, nur nicht mehr hier ausgeschüttet. */
-      /* GÜRTEL UND HOSENTRÄGER: Auch mit geschärftem Auftrag kann das Modell einmal eine
-         ganze Zeile liefern. Was nach Werdegang aussieht — Jahreszahl, Gedankenstrich,
-         Adresse oder mehr als sechs Wörter —, wird verworfen; dann sagt David den Satz ohne
-         Rolle statt einen unsinnigen. */
       /* DEN NAMEN HAT DAVID GELESEN, nicht abgefragt (31.08.2026). Steht keiner im
          Dokument, bleibt `name` leer — die Anrede fällt dann weg, statt zu raten. */
       if (!name && d.vorname) setVorname(String(d.vorname));
-      const rohRolle = String(d.rolle ?? "").trim();
-      const rolle = (/\d{4}|–|—|https?:|www\.|\.com/.test(rohRolle) || rohRolle.split(/\s+/).length > 6)
-        ? "" : rohRolle;
-      setVerlauf(v => [...v, { von: "david", text: rolle
-        ? mitNamen(S.cvErkannt).replace("{rolle}", rolle)
-        : mitNamen(S.cvErkanntOhneRolle) }]);
+      /**
+       * DIE BELOHNUNG FÜRS HOCHLADEN WIRD AUCH GEZEIGT (Owner 07.09.2026: „Lob, dass er sein
+       * CV hochgeladen hat" · „Belohnung immer").
+       *
+       * Der Auftrag im Server lässt David den Upload jetzt anerkennen — nur stand die
+       * Anerkennung danach in einem Feld, das dieser Schritt nie anzeigt: Seit dem 29.08.
+       * werden die Beobachtungen gespeichert und NICHT ausgeschüttet, sichtbar war allein
+       * der feste Satz „Ok, ich sehe, du bist {rolle}". Ein Lob, das niemand liest, ist
+       * keines.
+       *
+       * GENAU EIN SATZ. Der Deckel von 29.08. („ein Satz statt der ganzen Auswertung")
+       * bleibt damit gewahrt — die restlichen Beobachtungen gehören weiterhin in den Bericht.
+       *
+       * DIE ROLLE WIRD NICHT MEHR AUSGESPROCHEN (Owner 07.09.2026: „văd că ești UX Consultant
+       * braucht man nicht. Die Tatsache, dass er eine Richtung schon sieht, aber sie noch
+       * nicht verrät, weil er noch Daten braucht, ist gut.").
+       *
+       * Hier stand „Ok, {name} — ich sehe, du bist {rolle}." Der Satz erzählte ihm seinen
+       * eigenen Berufstitel zurück — das Einzige, was er mit Sicherheit schon wusste. Er
+       * kostete die stärkste Stelle des ganzen Trichters und gab nichts dafür.
+       *
+       * Jetzt sagt David stattdessen, dass er eine Richtung SIEHT — und dass er sie noch
+       * nicht nennt, weil ihm dafür die Antworten fehlen. Das ist kein Trick: Er braucht sie
+       * wirklich, genau dafür ist das Gespräch da, und die Richtung steht am Ende im Bericht.
+       * Eine offene Schleife, die eingelöst wird, ist der Grund weiterzumachen; eine, die nie
+       * eingelöst wird, wäre Betrug.
+       *
+       * DER FALLBACK NENNT KEINE ROLLE: Bleibt der Satz des Modells leer, sagt David nur,
+       * dass er gelesen hat — lieber knapp als eine Behauptung über ihn.
+       */
+      const belohnung = (beobachtet[0] || "").trim();
+      setVerlauf(v => [...v, { von: "david", text: belohnung || mitNamen(S.cvErkanntOhneRolle) }]);
       setBusy(false); setBusyText(""); setPhase("job");
     } catch {
       setFehler(S.cvFehler); setBusy(false); setBusyText("");
@@ -748,6 +869,8 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
    * untereinander.
    */
   const schrittTitel: Partial<Record<typeof phase, string>> = {
+    beweis: S.beweisTitel,
+    ziel: S.zielTitel,
     mail: S.mailTitel,
     /* EIN SCHIRM, ZWEI ZUSTÄNDE (Owner 29.08.2026: „wieso fragt er wieder nach der Datei?").
        Vorher lag dahinter ein zweiter Schirm, der die eben hochgeladene Datei noch einmal
@@ -771,6 +894,34 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
    */
   const ueberschrift = phase === "gespraech" ? "" : (schrittTitel[phase] ?? werbeTitel ?? "");
 
+  /**
+   * EIN WEG ZURÜCK (Owner 07.09.2026: „ein Back und Vor Button werde ich hoffentlich auch
+   * haben").
+   *
+   * Bisher ging es nur vorwärts: Wer auf „Ich will mehr verdienen" tippte, kam nicht mehr
+   * zurück. Bei einer Zielgruppe, die Fehlklicks fürchtet, ist das keine Unbequemlichkeit,
+   * sondern Beklemmung — und ein Grund, den Tab zu schliessen.
+   *
+   * NUR ZURÜCK, KEIN VOR: Vorwärts kommt man durch Handeln (hochladen, antworten, wählen).
+   * Ein „Weiter"-Knopf ohne Inhalt wäre eine leere Zusage.
+   *
+   * NUR IN DEN SCHRITTEN VOR DEM GESPRÄCH: Ist die Analyse einmal gelaufen, führt zurück
+   * nirgendwohin — der Serverzustand ist weiter als die Anzeige.
+   */
+  /**
+   * DER FORTSCHRITTSBALKEN (Owner 07.09.2026: „du machst den Fortschrittsbalken rein").
+   *
+   * Gezählt werden die vier Schritte, die der Mensch selbst tut — die Vorführung davor ist
+   * kein Schritt, und was nach dem Gespräch kommt (Analyse, Bericht) ist Davids Arbeit,
+   * nicht seine. Ein Balken, der bis zum Bericht läuft, würde die Strecke länger aussehen
+   * lassen, als sie sich anfühlt.
+   */
+  const SCHRITTE: Phase[] = ["ziel", "cv", "job", "gespraech"];
+  const schrittNr = SCHRITTE.indexOf(phase === "anlauf" ? "gespraech" : phase) + 1;
+
+  const zurueckZu: Partial<Record<Phase, Phase>> = { ziel: "beweis", cv: "ziel" };
+  const zurueck = zurueckZu[phase];
+
   const davidSagt = (text: string, klein = false) => (
     <p className={`${klein ? "text-[14px]" : "text-[15.5px]"} font-semibold leading-relaxed text-white/90`}>{text}</p>
   );
@@ -781,7 +932,46 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
   return (
     <div className="mt-4 flex flex-col gap-4">
       {/* Die Überschrift des Schritts — sonst trägt die Seite ihre eigene (siehe oben). */}
-      {ueberschrift && (
+      {/* Der Balken steht über allem — auch über dem Zurück, damit der Mensch zuerst sieht,
+          wo er ist, und erst dann, dass er zurückkann. */}
+      {schrittNr > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {/**
+            * ZURÜCK ÜBER DEN BALKEN (Owner 07.09.2026: „kann ich hier nicht zurück? Zumindest
+            * über die Balken oben, anklicken?").
+            *
+            * Erledigte Schritte sind anklickbar — ABER NUR BIS ZUR ANZEIGE. Sobald das
+            * Gespräch läuft, ist der Serverzustand weiter als die Anzeige: Fragen sind
+            * gestellt, Antworten gespeichert, die Auswertung baut darauf auf. Ein Sprung
+            * zurück führte dann in einen Zustand, den es nicht mehr gibt — und die nächste
+            * Frage käme doppelt oder gar nicht.
+            *
+            * Die Tippfläche ist 24px hoch, obwohl der Strich nur 6px misst: Ein 6px-Ziel
+            * trifft niemand, schon gar nicht mit 65 ([[zielgruppe-ueber-60]]). Der
+            * durchsichtige Rand darüber und darunter gehört zum Knopf.
+            */}
+          <div className="flex gap-1.5">
+            {SCHRITTE.map((ziel, i) => {
+              const erledigt = i < schrittNr;
+              const springbar = erledigt && i + 1 < schrittNr && ["ziel", "cv", "job"].includes(phase) && !busy;
+              const strich = <span className={`block h-1.5 w-full rounded-full ${erledigt ? "bg-[#f6cf51]" : "bg-white/15"}`} />;
+              return springbar ? (
+                <button key={i} type="button" aria-label={`${S.zurueckKnopf || "Zurück"}: ${i + 1}`}
+                  onClick={() => { void logFunnelEvent("schritt_zurueck", { theme: "david", von: phase, ueber: "balken" }); setPhase(ziel); }}
+                  className="flex-1 py-[9px] -my-[9px]">{strich}</button>
+              ) : <span key={i} className="flex-1">{strich}</span>;
+            })}
+          </div>
+          <p className="text-[12px] font-bold text-white/55">
+            {`${S.fortschrittWort || "Schritt"} ${schrittNr}/${SCHRITTE.length}`}
+          </p>
+        </div>
+      )}
+
+      {/* DIE ÜBERSCHRIFT STEHT IN DER KARTE (Owner 07.09.2026: „das baust du in die Card
+          rein") — dort, wo die Aufgabe steht, statt frei darüber. Ausserhalb bleibt sie nur
+          für Schritte OHNE eigene Karte. */}
+      {ueberschrift && !["ziel", "cv"].includes(phase) && (
         <h1 className="-mt-1 text-[26px] font-black leading-tight">{ueberschrift}</h1>
       )}
       {/* ── DER VERLAUF — was David gesagt und was der Bewerber geantwortet hat. Er steht
@@ -795,11 +985,16 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
               {/* SEIN GESICHT AN JEDER SEINER ZEILEN (Owner 29.08.2026: „hier muss sein Bild
                   hin"). Im Verlauf ist es etwas anderes als in den Karten: Dort stellt er
                   sich einmal vor, hier wechseln sich zwei Sprecher ab — und wer spricht, muss
-                  man im Vorbeiscrollen sehen, nicht lesen. Klein (22 px), damit die Zeile
-                  eine Zeile bleibt. */}
-              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">
+                  man im Vorbeiscrollen sehen, nicht lesen.
+
+                  GRÖSSER (Owner 07.09.2026). Es sass auf 22 px und war damit ein Symbol, kein
+                  Gesicht: Auf einem Handy erkennt man bei der Grösse keine Person mehr, nur
+                  einen runden Fleck. Seit sein Porträt nicht mehr an der Frage steht
+                  (Regel „niemals David doppelt"), ist DAS hier die einzige Stelle, an der man
+                  im Gespräch sieht, wer redet — sie muss die Last allein tragen. 40 px. */}
+              <p className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">
                 {z.von === "david" && (
-                  <span className="h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full ring-1 ring-[#f6cf51]/45">
+                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#f6cf51]/45">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/Lebenslauf/david-portrait.jpg" alt="" className="h-full w-full object-cover object-top" />
                   </span>
@@ -869,7 +1064,7 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
               Zusicherung, wegen der er zögert. Vorher war sie der dritte Satz von vieren und
               ging unter — genau der Satz, der ihn den Haken setzen lässt. */}
           <p className="mt-4 text-[12px] font-medium leading-snug text-white/60">
-            {S.datenschutz.replace(" Mehr in der Datenschutzerklärung.", "")}{" "}
+            {S.datenschutz}{" "}
             {/* AUF DAVIDS EIGENE SEITE, NICHT AUF DIE DES PORTALS (Owner 30.08.2026): Die
                 grosse Erklärung beginnt mit Mode-Anprobe und „18+" — wer hier gerade seinen
                 Lebenslauf hochladen soll, bricht dort ab. Der Text ist derselbe, nur ohne
@@ -898,9 +1093,93 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
         </Kasten>
       )}
 
+      {/* ── 0 · DIE VORFÜHRUNG ─────────────────────────────────────────────────
+          Erst zeigen, was herauskommt — dann fragen. Kein Argument, kein Preis, keine
+          Erklärung: ein fertiger Plan und eine Frage. */}
+      {zurueck && !busy && (
+        <button type="button"
+          onClick={() => { void logFunnelEvent("schritt_zurueck", { theme: "david", von: phase }); setPhase(zurueck); }}
+          className="mb-3 -ml-1 flex min-h-[44px] items-center gap-1.5 px-1 text-[15px] font-semibold text-white/70 hover:text-white">
+          <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+          {S.zurueckKnopf}
+        </button>
+      )}
+
+      {phase === "beweis" && (
+        <>
+          {/* AUFMERKSAMKEIT ZUERST: was passiert, wie lange, was es kostet — und der Knopf
+              gleich hier für die, die schon überzeugt sind. Anna kommt danach als Beleg
+              (Reihenfolge Aufmerksamkeit → Vertrauen → Handlung). */}
+          <Kasten polster="p-5">
+            {/* WENN DAVID SPRICHT, IST DAVID ZU SEHEN (Owner 07.09.2026: „jedes Mal wenn du
+                von David sprichst, will ich sein Bild sehen"). Ohne Gesicht ist es ein Text,
+                mit Gesicht ist es jemand, der einen anspricht — und genau darauf beruht das
+                ganze Produkt. */}
+            <div className="flex items-start gap-3">
+              <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-[#f6cf51]/45">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/Lebenslauf/david-portrait.jpg" alt="David" className="h-full w-full object-cover object-top" />
+              </span>
+              <p className="min-w-0 flex-1 text-[17px] font-semibold leading-relaxed text-white">{S.beweisWas}</p>
+            </div>
+            <p className="mt-2 text-[15px] font-black uppercase tracking-wider text-[#f6cf51]">{S.beweisDauer}</p>
+            <div className="mt-4">
+              <Knopf art="gold" onClick={() => { void logFunnelEvent("beweis_weiter", { theme: "david", stelle: "oben" }); setPhase("ziel"); }}>{S.beweisJetzt}</Knopf>
+            </div>
+          </Kasten>
+
+          <p className="mt-6 text-[13px] font-black uppercase tracking-[.12em] text-white/55">{S.beweisBelegTitel}</p>
+          {beweis}
+          <Kasten polster="p-5" className="mt-4">
+            <p className="text-center text-[17px] font-black leading-snug text-white">{S.beweisFrage}</p>
+            <div className="mt-3">
+              {/* GEMESSEN, SONST IST DER SCHRITT NICHT PRÜFBAR (Owner 07.09.2026: „Ich will
+                  alles testen, weil wir ohne Wissen fünf Monate gebaut haben"). Bei kleinen
+                  Zahlen zählt nicht der Verkauf, sondern der ABBRUCH — und der ist nur
+                  sichtbar, wenn jeder Schritt ein Ereignis schickt. */}
+              <Knopf art="gold" onClick={() => { void logFunnelEvent("beweis_weiter", { theme: "david" }); setPhase("ziel"); }}>{S.beweisStarten}</Knopf>
+            </div>
+          </Kasten>
+        </>
+      )}
+
+      {/* ── 1 · DIE ZIELFRAGE ──────────────────────────────────────────────────
+          Zwei Knöpfe, kein Feld, kein Haken. Die Antwort fliesst über `lage()` in JEDEN
+          Auftrag an das Modell — dieselbe Lücke im Lebenslauf bedeutet etwas anderes, je
+          nachdem ob jemand den Beruf wechseln oder mehr verdienen will.
+
+          ÜBERSPRINGEN IST ERLAUBT (Hausregel `immer-close-einbauen`): Wer sich nicht
+          festlegen will, kommt trotzdem weiter — David arbeitet dann wie bisher. */}
+      {phase === "ziel" && (
+        <Kasten polster="p-5">
+          <h1 className="mb-4 text-[24px] font-black leading-tight text-white">{ueberschrift}</h1>
+          <div className="flex items-center gap-3">
+            <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#f6cf51]/45">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Lebenslauf/david-portrait.jpg" alt="David" className="h-full w-full object-cover object-top" />
+            </span>
+            <span className="min-w-0 flex-1">{davidSagt(S.zielText)}</span>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {/* Welche der beiden Antworten häufiger fällt, ist die wertvollste Zahl im
+                ganzen Trichter: Sie sagt, wen die Anzeige wirklich holt. */}
+            <Knopf art="gold" onClick={() => { void logFunnelEvent("ziel_gewaehlt", { theme: "david", ziel: "veraendern" }); setZiel("veraendern"); setPhase("cv"); }}>{S.zielVeraendern}</Knopf>
+            <Knopf art="gold" onClick={() => { void logFunnelEvent("ziel_gewaehlt", { theme: "david", ziel: "verdienen" }); setZiel("verdienen"); setPhase("cv"); }}>{S.zielVerdienen}</Knopf>
+          </div>
+          {/* KEINE DRITTE WAHL (Owner 07.09.2026: „ich glaube, die dritte Wahl brauchen wir
+              nicht"). „Weiss ich noch nicht" holte genau das Nein zurück, das die zwei
+              Knöpfe abschaffen: Beide Antworten führen vorwärts, also gibt es keine
+              Entscheidung mehr darüber, OB man anfängt — nur noch, wer man ist.
+              Der garantierte Ausweg (Hausregel `immer-close-einbauen`) bleibt: das Zurück
+              über der Karte. */}
+        </Kasten>
+      )}
+
       {/* ── 3 · LEBENSLAUF ── */}
       {phase === "cv" && (
         <Kasten polster="p-5">
+          <h1 className="mb-4 text-[24px] font-black leading-tight text-white">{ueberschrift}</h1>
           {/* David bleibt sichtbar, klein wie im Mail-Schritt (Owner 29.08.2026). */}
           <div className="flex items-center gap-3">
             <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-[#f6cf51]/45">
@@ -974,7 +1253,7 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
                     * auf „analysieren" tippt, und genau davor steht jetzt der Haken.
                     */}
                   <p className="mt-4 text-[12.5px] font-medium leading-relaxed text-white/70">
-                    {S.datenschutz.replace(" Mehr in der Datenschutzerklärung.", "")}{" "}
+                    {S.datenschutz}{" "}
                     <a href="/themes/david/privacy" target="_blank" rel="noreferrer" className="font-black text-[#f6cf51] underline underline-offset-2">
                       {S.datenschutzLink}
                     </a>
@@ -1014,7 +1293,7 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
               <EingabeMehrzeilig className="mt-3" zeilen={7} value={anzeige}
                 onChange={e => setAnzeige(e.target.value)} placeholder={S.jobPlatzhalter} />
               <Fehlerzeile>{fehler}</Fehlerzeile>
-              <div className="mt-3"><Knopf art="gold" onClick={() => void jobSenden()}>{S.weiter}</Knopf></div>
+              <div className="mt-3"><Knopf art="gold" onClick={() => void jobSenden()}>{S.jobPruefen || S.weiter}</Knopf></div>
               {/* DER ZWEITWEG IST EIN KNOPF, KEIN LINK (Owner 29.08.2026, mit Bild: „das auch
                   als secondary button"). Ein unterstrichener Satz unter einem Knopf sieht aus
                   wie Kleingedrucktes — er ist aber ein gleichwertiger Weg durch den Trichter,
@@ -1112,6 +1391,11 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
           {/* DIE FRAGE IST DAS WICHTIGSTE AUF DIESEM SCHIRM (Owner 29.08.2026) — also trägt
               sie die grösste Schrift. Sie stand vorher in 15,5 px unter einer 26-px-Werbezeile,
               die in diesem Moment nichts mehr zu sagen hat. */}
+          {/* NIEMALS DAVID DOPPELT (Owner-Regel 07.09.2026). Hier stand kurz sein Porträt
+              neben der Frage — direkt darüber steht aber schon der Verlauf, und dessen letzte
+              Zeile trägt sein Bild und seinen Namen. Zwei Gesichter übereinander lesen sich
+              wie zwei Sprecher. Sein Bild gehört an die Stelle, wo er zuletzt gesprochen hat;
+              die Frage darunter ist derselbe Sprecher, nicht ein neuer. */}
           <h1 className="mt-1.5 text-[22px] font-black leading-[1.2] text-white">{frage}</h1>
           {/* AN DER FRAGE, NICHT BEI DEN ANTWORT-KNÖPFEN (Owner 29.08.2026): Er handelt von
               der Frage. Klein, weil selten gebraucht — aber sichtbar, damit niemand aus
@@ -1346,7 +1630,16 @@ export default function DavidFunnel({ werbeTitel,  S, lang, preisUnterlagen, pre
         * eine leere Seite unter dem Upload-Feld gefunden. Der Inhalt gehört an den ERSTEN
         * Schritt, welcher das auch immer ist.
         */}
-      {phase === "cv" && !cvPath && inhalt}
+      {/**
+        * KEIN LANDINGPAGE-INHALT MEHR UNTER DEM TRICHTER (Owner 07.09.2026: „alles andere
+        * drunter machst du weg").
+        *
+        * Die Dauerregel `tunnel-zeigt-landingpage-inhalt` gilt für David nicht mehr: Statt
+        * die Argumente zu wiederholen, steht die VORFÜHRUNG am Anfang (Phase `beweis`).
+        * Wer ein fertiges Ergebnis gesehen hat, braucht die Begründung nicht mehr, warum es
+        * gut wäre — und ein Trichter, unter dem eine ganze Landingpage hängt, ist kein
+        * Trichter, sondern eine Seite mit einem Formular obendrauf.
+        */}
     </div>
   );
 }

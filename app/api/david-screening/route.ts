@@ -36,7 +36,7 @@ export const maxDuration = 120;
  * `DAVID_PRO_TAG` in lib/david-store.ts). Der Bericht selbst ist danach nie gesperrt — wer
  * angefangen hat, bekommt sein Ergebnis.
  *
- * WAS DIE KI NICHT DARF, steht in `REGELN` und geht in JEDEN Aufruf: nichts erfinden, keine
+ * WAS DIE KI NICHT DARF, steht in `regeln(sprache)` und geht in JEDEN Aufruf: nichts erfinden, keine
  * Einstellungsentscheidung, keine geschützten Merkmale, kein Jubel-Ton. Diese Sätze sind
  * nicht Deko — sie sind die Produktbeschreibung.
  */
@@ -64,15 +64,49 @@ const MAX_FRAGEN = 7;
  */
 const MAX_RUNDEN = 6;
 
-const REGELN = [
+/**
+ * DAVID ANTWORTET IN DER SPRACHE DES BEWERBERS (07.09.2026, mit Bild gemeldet: rumänische
+ * Oberfläche, deutsche Frage — „Welche konkrete Zielrolle strebst du als nächsten Schritt
+ * an?").
+ *
+ * Hier stand fest verdrahtet „Sprache: Deutsch" — in JEDEM Auftrag, egal wer davorsitzt.
+ * Davids Fragen entstehen live beim Modell und laufen NICHT durch die Übersetzung
+ * ([[uebersetzer-fallen]]); was das Modell nicht im Auftrag liest, kann es nicht wissen.
+ * Für einen rumänischen Besucher hiess das: Oberfläche rumänisch, Gespräch deutsch.
+ *
+ * Der Sprachname steht ausgeschrieben, nicht als Kürzel — „ro" versteht das Modell
+ * unzuverlässiger als „Rumänisch".
+ */
+const SPRACHNAME: Record<string, string> = {
+  de: "Deutsch", en: "Englisch", ro: "Rumänisch", es: "Spanisch",
+  fr: "Französisch", it: "Italienisch", pt: "Portugiesisch",
+};
+
+const regeln = (sprache?: string) => [
   "Du bist David, ein erfahrener Recruiter, der mit einem Bewerber ein Pre-Screening zu EINER konkreten Stelle führt.",
-  "Sprache: Deutsch, und du duzt den Bewerber.",
+  `Sprache: Du schreibst AUSSCHLIESSLICH auf ${SPRACHNAME[(sprache || "de").slice(0, 2)] ?? "Deutsch"} — jede Frage, jeder Satz, jedes Feld deiner Antwort. Und du duzt den Bewerber.`,
   "Ton: ruhig, direkt, präzise, professionell. Niemals überschwänglich. Verboten sind Wörter wie 'Super', 'Großartig', 'Fantastisch', 'Perfekte Antwort', 'Danke fürs Teilen'.",
   "Du erfindest NIE Fakten. Was nicht im Lebenslauf, in der Anzeige oder in den Antworten steht, existiert für dich nicht.",
   "Du unterscheidest sauber: was im Lebenslauf steht, was die Anzeige verlangt, was der Bewerber gesagt hat, und was deine Einschätzung ist.",
   "Du triffst KEINE Einstellungsentscheidung. Die Wörter 'einstellen', 'absagen', 'ablehnen', 'geeignet/ungeeignet als Urteil' kommen bei dir nicht vor. Du bereitest den Bewerber vor.",
   "Du leitest NIE geschützte oder sensible Merkmale ab (Herkunft, Alter, Geschlecht, Religion, Gesundheit, Familienstand) und fragst nicht danach.",
   "Bist du dir unsicher, fragst du — statt zu vermuten.",
+  /**
+   * BELOHNUNG IMMER (Owner 07.09.2026: „Lob, dass er sein CV hochgeladen hat" · „Belohnung
+   * immer").
+   *
+   * Der Bewerber gibt bei JEDEM Schritt etwas her — seinen Lebenslauf, seine Anzeige, eine
+   * Antwort über sich selbst. Bekommt er dafür nur die nächste Frage, ist das ein Formular
+   * mit Gesicht: Er zahlt vor und sieht nie eine Gegenleistung. Genau da bricht er ab.
+   *
+   * Die Regel steht hier oben statt an einem einzelnen Schritt, damit sie in ALLE sechs
+   * Aufträge geht — „immer" heisst immer, nicht an der Stelle, die mir gerade einfällt.
+   *
+   * DIE GEGENLEISTUNG IST KONKRET, NICHT WARM. „Danke fürs Hochladen" ist nichts; „damit
+   * sehe ich, dass du elf Jahre im selben Feld bist" ist etwas. Der Unterschied ist, ob der
+   * Satz ohne SEINE Unterlagen auch dagestanden hätte.
+   */
+  "Belohnung immer: Der Bewerber hat dir gerade etwas gegeben. Bevor du das Nächste verlangst, gib zuerst etwas zurück — EIN Satz, der benennt, was dieser Schritt dir ermöglicht oder was daran belastbar ist. Er muss so konkret sein, dass er ohne genau diesen Beitrag nicht möglich wäre.",
   /* GENAU EINE FRAGE — gemessen am ersten echten Durchlauf (28.08.2026): Das Modell packte
      drei Fragen in einen Satz („welche Rolle, wie gross das Team, welche Metriken") und
      fragte beim Nachhaken zusätzlich nach Stichprobengrösse. Das ist ein Audit, kein
@@ -80,6 +114,7 @@ const REGELN = [
   "Du stellst IMMER genau EINE Frage: ein Fragezeichen, höchstens zwei Sätze, keine Aufzählung mehrerer Aspekte, kein 'und' zwischen zwei Fragen, keine Beispielliste in Klammern.",
   "Du prüfst nicht wie ein Auditor. Frage nach dem, was für die Bewerbung zählt — nicht nach Stichprobengrössen, Messzeiträumen oder Nachweisen.",
 ].join(" ");
+
 
 type Antwort = Record<string, unknown>;
 
@@ -267,6 +302,18 @@ function lage(sitzung: DavidSitzung): string {
     `LEBENSLAUF (Zusammenfassung, nur Fakten aus dem Dokument):\n${sitzung.cvBefund?.zusammenfassung || "—"}`,
     `STELLENANZEIGE (Auszug):\n${(sitzung.jobText || "").slice(0, 6000) || "—"}`,
   ];
+  /**
+   * DAS ZIEL GEHÖRT IN JEDEN AUFTRAG (07.09.2026) — deshalb steht es hier und nicht in
+   * einem einzelnen Prompt. Es ist die Antwort auf die Frage, die vor allen anderen kommt:
+   * Will dieser Mensch etwas ANDERES machen, oder dasselbe für mehr Geld? Dieselbe Lücke im
+   * Lebenslauf bedeutet in beiden Fällen etwas anderes, und dieselbe Empfehlung wäre in
+   * einem der beiden Fälle falsch.
+   */
+  if (sitzung.ziel) {
+    teile.push(sitzung.ziel === "verdienen"
+      ? "ZIEL DES BEWERBERS: Er will MEHR VERDIENEN. Nicht zwingend den Beruf wechseln — es geht um Einkommen. Bewerte Wege danach, was sie zahlen, und sag offen, wenn ein Weg zwar interessant ist, aber nicht mehr Geld bringt."
+      : "ZIEL DES BEWERBERS: Er will sich BERUFLICH VERÄNDERN. Nicht dieselbe Arbeit woanders — er sucht etwas anderes. Prüfe deshalb auch, was aus seinem Werdegang in andere Tätigkeiten übertragbar ist, und halte dich nicht an seiner bisherigen Berufsbezeichnung fest.");
+  }
   if (sitzung.jobBefund) {
     teile.push(`Aus der Anzeige erkannt — Aufgaben: ${sitzung.jobBefund.aufgaben.join(" · ") || "—"}; Anforderungen: ${sitzung.jobBefund.anforderungen.join(" · ") || "—"}; offene Punkte: ${sitzung.jobBefund.offen.join(" · ") || "—"}.`);
   }
@@ -540,10 +587,39 @@ export async function POST(request: Request) {
     if ("fehler" in eingabe) return NextResponse.json({ error: eingabe.fehler }, { status: eingabe.status });
 
     const auftrag = [
-      REGELN,
+      regeln(sitzung.sprache),
       "AUFGABE: Lies diesen Lebenslauf. Du hast die Stellenanzeige noch NICHT gesehen.",
       "Gib zurück:",
-      "'beobachtungen' — 1 bis 2 Sätze, die BELEGEN, dass du das Dokument wirklich gelesen hast: konkrete Schwerpunkte, Art der Unternehmen, Umfang der Erfahrung. Sprich den Bewerber direkt an ('Du bringst …'). Keine Bewertung, kein Lob.",
+      /**
+       * DER TEUERSTE SCHRITT IM GANZEN TRICHTER — hier bricht die Mehrheit ab (gemessen:
+       * 50 Starts, 4 Uploads). Wer seinen Lebenslauf hochlädt, hat die grösste Hürde
+       * genommen, die wir stellen: ein Dokument über das eigene Berufsleben an einen
+       * Fremden geben.
+       *
+       * Hier stand „Keine Bewertung, kein Lob" — an ausgerechnet dieser Stelle. Der Satz
+       * war gegen Schmeichelei gedacht und hat verhindert, dass der grösste Schritt des
+       * Bewerbers überhaupt bemerkt wird. Jetzt beginnt David mit der Anerkennung dieses
+       * Schritts, und zwar so, dass sie nur nach dem Lesen möglich gewesen wäre.
+       *
+       * BEWERTET WIRD WEITER NICHT: Er sagt nicht, ob der Lebenslauf gut ist — das käme
+       * einem Urteil gleich, das er an dieser Stelle nicht fällen darf und das später der
+       * Bericht trägt.
+       */
+      /**
+       * DIE OFFENE SCHLEIFE (Owner 07.09.2026): Er SIEHT eine Richtung und verrät sie noch
+       * nicht — weil ihm die Antworten fehlen. Genau das ist der Grund weiterzumachen.
+       *
+       * Und es ist wahr, kein Kniff: Aus einem Lebenslauf allein lässt sich nicht sagen,
+       * wohin jemand gehört — das entscheidet, was er will und was er belegen kann. Deshalb
+       * ist das Gespräch da, und deshalb steht die Richtung am Ende wirklich im Bericht.
+       *
+       * SEINEN BERUFSTITEL SAGT DAVID NICHT ZURÜCK. Der stand vorher hier („ich sehe, du
+       * bist UX-Designer") und war das Einzige, was der Bewerber ohnehin mit Sicherheit
+       * wusste. Ein Satz, der ihm nichts gibt, an der teuersten Stelle des Trichters.
+       */
+      "'beobachtungen' — GENAU 1 Satz, höchstens zwei. Er erkennt an, dass er dir seinen Lebenslauf gegeben hat, und sagt: Du siehst darin bereits eine Richtung — aber du nennst sie noch NICHT, weil du dafür erst seine Antworten brauchst.",
+      "Der Satz muss BELEGEN, dass du gelesen hast, ohne das Ergebnis zu verraten: Nenne, WORAN du ansetzt (die Art seiner Stationen, ein Bruch, eine Häufung, der Umfang seiner Erfahrung) — nicht, was dabei herauskommt.",
+      "Sag ihm NICHT seine Berufsbezeichnung zurück ('ich sehe, du bist …') — die kennt er selbst, und damit gibst du ihm nichts. Sag auch NICHT, ob der Lebenslauf gut oder schlecht ist; das ist ein Urteil und dafür ist es zu früh.",
       /* NUR DIE BERUFSBEZEICHNUNG (Fehler gesehen 29.08.2026: Das Modell lieferte
          „2026–heute – LuxuryBandit (eigenes Projekt) – luxurybandit.com" — die komplette
          Werdegangszeile. David sagte daraufhin „ich sehe, du bist 2026–heute – …", und aus
@@ -589,7 +665,10 @@ export async function POST(request: Request) {
     const r = await frageModell(apiKey, KLEIN, [{ type: "input_text", text: auftrag }, ...eingabe]);
     if (!r.ok) return NextResponse.json({ error: `Der Lebenslauf ließ sich nicht auswerten. ${r.fehler}` }, { status: r.status });
 
-    const beobachtungen = strListe(r.daten.beobachtungen, 2, 400);
+    /* DREI, NICHT ZWEI (07.09.2026): Seit der erste Satz die Anerkennung des Uploads trägt,
+       hätte ein Deckel von 2 ausgerechnet den Beleg abgeschnitten, dass David gelesen hat —
+       und übrig bliebe die Höflichkeit ohne den Inhalt, der sie deckt. */
+    const beobachtungen = strListe(r.daten.beobachtungen, 3, 400);
     /* Der Rahmen wächst mit — bei 4000 Zeichen wäre eine 800-Wort-Zusammenfassung mitten im
        Satz abgeschnitten worden. */
     const zusammenfassung = str(r.daten.zusammenfassung, 9000);
@@ -679,7 +758,7 @@ export async function POST(request: Request) {
     }
 
     const auftrag = [
-      REGELN,
+      regeln(sitzung.sprache),
       ohneStelle
         ? "AUFGABE: Es gibt KEINE Stellenanzeige — der Bewerber weiss noch nicht, wohin er sich bewirbt. Arbeite allein mit seinem Lebenslauf. Du zeigst ihm JETZT noch kein Ergebnis. Erfinde keine Stelle und tu nicht so, als gäbe es eine."
         : "AUFGABE: Vergleiche den Lebenslauf mit dieser konkreten Stellenanzeige. Du zeigst dem Bewerber JETZT noch kein Ergebnis.",
@@ -846,7 +925,7 @@ export async function POST(request: Request) {
      */
     if (body.unklar === true) {
       const auftragUnklar = [
-        REGELN,
+        regeln(sitzung.sprache),
         "AUFGABE: Der Bewerber sagt, er versteht deine Frage nicht. Stelle GENAU DIESELBE Frage noch einmal — einfacher.",
         "Kürzere Wörter, keine Fachbegriffe, höchstens zwei Sätze. Es bleibt dasselbe Thema und dasselbe Erkenntnisziel; du wechselst NICHT den Bereich und stellst KEINE neue Frage.",
         "Hänge EIN kurzes Beispiel an, wie eine brauchbare Antwort aussehen könnte — angelehnt an SEINEN Lebenslauf, nicht erfunden. Das Beispiel ist keine Vorgabe, sondern eine Hilfe.",
@@ -915,7 +994,7 @@ export async function POST(request: Request) {
     }
 
     const auftrag = [
-      REGELN,
+      regeln(sitzung.sprache),
       "AUFGABE: Der Bewerber hat gerade geantwortet. Entscheide, wie es weitergeht.",
       `Bisher beantwortet: ${beantwortet} Fragen, davon ${hauptfragen} Hauptfragen. Normal sind 4 bis 7 Hauptfragen — die Zahl ist kein Ziel, sondern eine Spanne.`,
       uebersprungen
@@ -961,7 +1040,24 @@ export async function POST(request: Request) {
       "'reaktion' — deine sofortige, ehrliche Einschätzung dieser Antwort. Ein bis zwei Sätze, direkt an ihn gerichtet. Sie ist PFLICHT: Lass sie nie leer.",
       "Sag, was die Antwort WERT ist — und zwar mit der Folge: Ist sie ein brauchbarer Beleg, sag warum ('Die Zahl macht daraus einen Beleg, den ein Recruiter nachvollziehen kann'). Ist sie zu allgemein, sag es klar und mit der Konsequenz ('So bleibt es eine Rollenbeschreibung — damit belege ich nichts, und ein Recruiter überliest es').",
       "Widersprich, wenn du einen Widerspruch siehst — zwischen seiner Antwort und dem Lebenslauf, oder zwischen seiner Erwartung und dem, was die Anzeige verlangt. Unbequeme Wahrheiten gehören hierher, nicht in den Bericht: Jetzt kann er noch etwas ändern.",
-      "NIE Lob ('gut', 'stark', 'genau richtig'), NIE Zuspruch, NIE eine Zusammenfassung seiner eigenen Worte — er weiss, was er geschrieben hat.",
+      /**
+       * LOB IST ERLAUBT — ABER NUR MIT BELEG (Owner 07.09.2026: „irgendein Lob bitte als
+       * Belohnung").
+       *
+       * Hier stand vorher „NIE Lob". Das war zu grob. Der Satz sollte die leere Formel
+       * verbieten — „Super!", „Perfekte Antwort" —, hat aber gleich mit verboten, dass David
+       * eine wirklich starke Antwort als stark benennt. Damit bekam jemand, der sich Mühe
+       * gab, exakt dieselbe kühle Rückgabe wie jemand, der eine Floskel hinschrieb. Das ist
+       * keine Ehrlichkeit, das ist Blindheit — und es kostet genau die Leute, die weitermachen
+       * würden.
+       *
+       * DIE GRENZE: Lob muss BELEGT sein, also sagen, WORAN es liegt. „Die Zahl macht daraus
+       * einen Beleg" ist Lob und Wahrheit zugleich. „Klasse Antwort!" ist nur Wärme und
+       * entwertet die nächste unbequeme Rückgabe — wer zu allem nickt, dem glaubt man das
+       * Nein nicht mehr. Die verbotenen Wörter stehen unverändert in `regeln`.
+       */
+      "Ist die Antwort wirklich stark, sag es ihm — aber IMMER mit dem Grund: Nenne das konkrete Stück, das sie stark macht (die Zahl, den Namen, die Entscheidung, die er getroffen hat). Lob ohne diesen Grund lässt du weg.",
+      "NIE eine leere Formel ('gut gemacht', 'genau richtig', 'starke Antwort' ohne Begründung), NIE Zuspruch fürs Durchhalten, NIE eine Zusammenfassung seiner eigenen Worte — er weiss, was er geschrieben hat.",
       "'nachhaken' — true, wenn die Antwort für ein Screening zu allgemein oder ausweichend war UND ein Nachfassen wirklich etwas bringt. Sonst false. Hake bei derselben Sache höchstens einmal nach und frage dann nur nach dem EINEN wichtigsten fehlenden Punkt.",
       "'naechsteFrage' — die nächste Frage (bei nachhaken=true: die Nachfrage zur selben Sache; sonst eine neue Frage zu einem noch offenen Bereich). Leer lassen, wenn du fertig bist.",
       /**
@@ -1092,7 +1188,7 @@ export async function POST(request: Request) {
     }
 
     const auftrag = [
-      REGELN,
+      regeln(sitzung.sprache),
       "AUFGABE: Schreibe jetzt das Ergebnis des Pre-Screenings. Es ist kostenlos und vollständig — halte nichts zurück.",
       /* OHNE ZIEL KEINE PASSUNGS-AUSSAGEN (29.08.2026): Der Bericht darf dann nicht so tun,
          als gäbe es eine Stelle — „das passt zur Anzeige" wäre schlicht gelogen. Aus dem
@@ -1227,7 +1323,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Zuerst brauche ich deinen Lebenslauf." }, { status: 400 });
     }
     const auftrag = [
-      REGELN,
+      regeln(sitzung.sprache),
       "AUFGABE: Schreibe den Sprechtext für die kurze Video-Bewerbung dieses Menschen — den Text, den er vor der Kamera abliest.",
       /* DER SPRECHTEXT MUSS DAS SCREENING BEWEISEN (Owner 28.08.2026: „Sie muss etwas sagen,
          was man aus der Analyse ableiten kann").

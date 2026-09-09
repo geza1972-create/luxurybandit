@@ -1,9 +1,8 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
-import TopNav from "@/components/TopNav";
 import SeitenFuss from "@/components/SeitenFuss";
 import DavidFunnel from "@/components/DavidFunnel";
-import DavidInhalt from "@/components/DavidInhalt";
+import DavidBeweis from "@/components/DavidBeweis";
 import LebenslaufBeispiel from "@/components/LebenslaufBeispiel";
 import { isLang, type Lang } from "@/lib/lang";
 import { resolveLang } from "@/lib/lang-server";
@@ -34,7 +33,7 @@ import { CORA_MUSTER } from "@/lib/david-muster";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Dein Pre-Screening mit David | LB - David",
+  title: "Dein Vorgespräch mit David | LB - David",
   description: "Lebenslauf und Wunschstelle hochladen, Fragen beantworten, vollständiges Ergebnis erhalten — kostenlos.",
   robots: { index: false, follow: true },
 };
@@ -61,9 +60,26 @@ export default async function DavidStartSeite({ searchParams }: {
 
   return (
     <main className={`lb-bg min-h-screen text-white${hell ? " lb-theme lb-fb" : ""}`}>
-      <TopNav marke="LB - David" heim="/themes/david" motto="AI Pre-Screening" />
+      {/**
+        * KEINE KOPFZEILE IM TRICHTER (Owner 07.09.2026: „ok, header raus").
+        *
+        * Sie kostete zwei Reihen über dem ersten Satz: einmal „LB - DAVID · DAS VORGESPRÄCH",
+        * darunter „Assets", Hell/Dunkel und die Sprachwahl. Auf einem Handy war das der halbe
+        * erste Bildschirm — und „Assets" ist obendrein ein englisches Wort, mit dem die
+        * Zielgruppe nichts anfangen kann ([[zielgruppe-ueber-60]]).
+        *
+        * ZWEI FOLGEN, BEWUSST IN KAUF GENOMMEN:
+        *  · Der Konto- und Galerie-Zugang aus [[guthaben-konto-header]] fehlt auf dieser
+        *    Seite. Im Trichter braucht ihn niemand — wer hier ist, will ein Ergebnis, kein
+        *    Konto.
+        *  · Es gibt keinen Weg zurück auf die Seite mehr ausser dem Browser-Zurück. Innerhalb
+        *    des Trichters führt der eigene Zurück-Knopf durch die Schritte.
+        */}
       <div className="mx-auto flex w-full max-w-[440px] flex-col px-4 pb-24 pt-3">
-        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">{T.kicker}</p>
+        {/* DIE ZEILE „DAVID · DAS VORGESPRÄCH" IST RAUS (Owner 07.09.2026: „mich stört es im
+            Tunnel"). Sie stand wörtlich dasselbe wie die Kopfzeile direkt darüber — zwei
+            Zeilen Chrome, bevor der Besucher den ersten Satz liest. Auf einem Handy kostet
+            das den halben ersten Bildschirm. */}
         {/* DIE ÜBERSCHRIFT GEHÖRT DEM TRICHTER (Owner 29.08.2026: „es muss nicht auf jeder
             Seite das gleiche stehen").
             Sie stand hier fest und zeigte auf JEDEM Schritt den Werbesatz. Welcher Satz
@@ -82,7 +98,9 @@ export default async function DavidStartSeite({ searchParams }: {
              async Server-Komponente als LISTE an den Client-Baum, und React verlangt dort
              einen `key`. */
           beispielCv={<Fragment key="cv"><LebenslaufBeispiel lang={L} profil={CORA_MUSTER} href="" /></Fragment>}
-          inhalt={<Fragment key="inhalt"><DavidInhalt T={T} href="/themes/david/start" ohneCta /></Fragment>}
+          /* DER BEWEIS steht beim Lebenslauf-Schritt, nicht im Fliesstext darunter — dort,
+             wo der Mensch entscheidet, ob er seine Unterlagen hergibt. */
+          beweis={<Fragment key="beweis"><DavidBeweis T={T} /></Fragment>}
         />
       </div>
       {/* Der schlichte Fuss wie in allen Bewerber-Strecken — in der Sprache der Seite. */}

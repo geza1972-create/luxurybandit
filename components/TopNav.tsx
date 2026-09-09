@@ -281,7 +281,7 @@ export default function TopNav({
   const share = () => {
     try {
       const url = window.location.href;
-      if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
+      if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "VersusForge", url }).catch(() => {}); }
       else { navigator.clipboard?.writeText(url).catch(() => {}); }
     } catch { /**/ }
   };
@@ -326,11 +326,11 @@ export default function TopNav({
             * `heim` (ohne eigene Marke ist beides dasselbe, dann ändert sich nichts).
             */}
           {!ohneLogo && (
-            <button type="button" onClick={() => router.push("/")} aria-label="LuxuryBandit"
+            <button type="button" onClick={() => router.push("/")} aria-label="VersusForge"
               className="mr-2 shrink-0 active:opacity-70 transition-opacity">
               <span className="relative block h-9 w-9">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
+                <img src="/lb-logo.png" alt="VersusForge" className="h-9 w-9 rounded-full object-contain"
                   onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
                 <span style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-xs font-black tracking-tight text-white select-none">LB</span>
               </span>
@@ -360,7 +360,13 @@ export default function TopNav({
                    Schrift wurde. In gemischter Schreibweise ohne Sperrung passt er ganz.
                    Ein halber Produktname im Kopf ist schlimmer als ein Name ohne Versalien. */
                 (marke ?? "").length > 16 ? "text-[13.5px] tracking-tight" : "text-sm uppercase tracking-widest"}`}>
-                {marke ?? "LuxuryBandit"}
+                {/* DER PORTALNAME IST VERSUSFORGE (Owner 08.09.2026: „das Logo wird
+                    VersusForge sein und in den Texten überall"). Nur der ANGEZEIGTE Name
+                    wechselt — Adressen, Mailkonto und Dateipfade bleiben luxurybandit.com,
+                    ausdrücklich („URLs nicht"): Dort hängen Links in ausgelieferten Mails,
+                    Stripe-Rückwege und Vorschaubilder dran, und ein Umzug davon ist ein
+                    eigener Vorgang mit eigenen Fehlern. */}
+                {marke ?? "VersusForge"}
               </span>
               {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                   kommt allenfalls dahinter, ersetzt es aber nie. */}

@@ -153,6 +153,22 @@ export type DavidSitzung = {
      */
     kleidungImFoto?: string;
   };
+  /**
+   * DAS ZIEL — was der Mensch überhaupt will, noch vor jeder Stelle (07.09.2026).
+   *
+   * Owner: „David fragt dich: Willst du dich beruflich verändern — oder mehr verdienen?"
+   * Bis heute drehte sich alles um eine konkrete Anzeige; ein Wunsch war nirgends
+   * gespeichert. Damit konnte David nur prüfen, ob jemand zu einer Stelle passt — nicht,
+   * wohin dieser Mensch eigentlich will.
+   *
+   * WARUM ES NICHT IM TRICHTER ABGEFRAGT WIRD: Ein Schritt VOR dem Lebenslauf wurde am
+   * 31.08.2026 gemessen entfernt (19–27 Besucher, keine einzige Absendung). Die Frage steht
+   * deshalb auf der Landingpage und reist als Parameter `ziel` in den Trichter — die Frage
+   * am Anfang, aber ohne zusätzlichen Schritt vor der ersten Leistung.
+   *
+   * Fliesst über `lage()` in JEDEN Auftrag, nicht nur in einen.
+   */
+  ziel?: "veraendern" | "verdienen";
   jobText?: string;
   /**
    * ER HAT BEWUSST OHNE STELLE WEITERGEMACHT (Owner 29.08.2026, Weg „A").
@@ -327,4 +343,65 @@ export async function davidHeuteHochzaehlen(device: string): Promise<number> {
     body: JSON.stringify({ tag: heute, anzahl } satisfies Zaehler),
   });
   return anzahl;
+}
+
+/**
+ * DAS KONTO-VERZEICHNIS — damit ein Mensch seine Gespräche von JEDEM Gerät wiederfindet.
+ *
+ * Der Trichter selbst bleibt Gastzugang (Owner §2: kein Passwort VOR dem Gespräch). Die
+ * Zuordnung lief deshalb bisher nur über die Gerätekennung und das signierte Mail-Ticket —
+ * richtig für einen Einmalkauf, zu wenig für ein Abo: Wer vom Handy auf den PC wechselt,
+ * verliert alles (Owner 06.09.2026: „Ich kann mich vom Handy oder PC einloggen und dann?").
+ *
+ * `listeDavid()` kann das nicht leisten — sie liest ALLE Dateien und ist Admin-Sache. Also
+ * dasselbe Muster wie beim Tagesdeckel, nur mit der Adresse als Schlüssel: eine kleine Datei
+ * je Mensch, die nur Kennungen enthält.
+ *
+ * Der Schlüssel ist base64url wie bei der Geldbörse (`walletPfad`) — eindeutig umkehrbar und
+ * ohne Sonderzeichen im Pfad.
+ *
+ * WICHTIG: Eingetragen wird immer dann, wenn die Adresse einer Sitzung feststeht — auch
+ * lange bevor jemand ein Passwort setzt. Dadurch hängen ALTE Gast-Sitzungen automatisch am
+ * Konto, sobald sich derselbe Mensch später mit derselben Adresse anmeldet. Es braucht keine
+ * Nachmigration.
+ */
+type DavidKonto = { email: string; ids: string[] };
+const kontoPfad = (email: string) => `david-konto/${Buffer.from(email).toString("base64url")}.json`;
+
+/** Adresse immer gleich schreiben — sonst zeigen zwei Dateien auf denselben Menschen. */
+const mailSchluessel = (email: string) => (email ?? "").trim().toLowerCase();
+
+/** Die Kennungen aller Gespräche dieser Adresse. Leer, wenn es keine gibt. */
+export async function leseDavidKonto(email: string): Promise<string[]> {
+  const e = mailSchluessel(email);
+  if (!e) return [];
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(kontoPfad(e))}`);
+  if (!res.ok) return [];
+  try {
+    const k = (await res.json()) as DavidKonto;
+    return Array.isArray(k?.ids) ? k.ids.filter(Boolean).map(String) : [];
+  } catch { return []; }
+}
+
+/**
+ * Ein Gespräch der Adresse zuschlagen. Doppelte Aufrufe schaden nicht.
+ *
+ * SCHREIBT UND LIEST ZURÜCK (Hausregel [[delete-resurrection-merge-bug]]): Der Storage kann
+ * nur „letzter Schreiber gewinnt". Beenden zwei Gespräche gleichzeitig, überschreibt das
+ * zweite sonst den Eintrag des ersten, und ein Bericht wäre für den Besitzer unauffindbar.
+ * Fehlt die Kennung nach dem Schreiben, wird auf dem neuen Stand erneut geschrieben.
+ */
+export async function davidKontoDazu(email: string, id: string): Promise<void> {
+  const e = mailSchluessel(email);
+  if (!e || !id) return;
+  for (let versuch = 0; versuch < 3; versuch++) {
+    const ids = await leseDavidKonto(e);
+    if (ids.includes(id)) return;                       // schon drin — auch der Erfolgsfall der Rückprobe
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(kontoPfad(e))}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true" },
+      body: JSON.stringify({ email: e, ids: [...ids, id] } satisfies DavidKonto),
+    });
+    if (!res.ok) return;                                 // Netzfehler: der nächste Schritt trägt es nach
+  }
 }

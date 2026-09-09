@@ -38,43 +38,62 @@ export async function translateMany(texts: string[], lang: string): Promise<stri
     misses.push({ i, text: t, key });
   });
 
+  /**
+   * NICHT AUF DIE REIHENFOLGE VERLASSEN — MIT SCHLÜSSELN ÜBERSETZEN (07.09.2026, an Davids
+   * Karte gefunden und gemessen).
+   *
+   * Vorher ging ALLES in EINEM Aufruf raus, als JSON-ARRAY, und die Antwort wurde nur
+   * übernommen, wenn die Länge exakt stimmte (`arr.length === misses.length`). Gemessen:
+   * 40 Zeilen hingeschickt, 38 zurückbekommen — bei `finish_reason: "stop"`, also KEINE
+   * Abschneidung. Das Modell lässt bei längeren Listen still Einträge weg. Damit schlug die
+   * Prüfung fehl, ALLES wurde verworfen, und ganze Seiten blieben lautlos auf Deutsch: Bei
+   * David war der Trichter englisch und Annas Karte deutsch, ohne eine Fehlermeldung.
+   *
+   * Jetzt geht ein JSON-OBJEKT mit Nummern als Schlüsseln raus und wird über die Schlüssel
+   * zurückgelesen. Fehlt ein Eintrag, bleibt NUR diese eine Zeile im Original — der Rest
+   * ist trotzdem übersetzt und wird gespeichert. Zusätzlich in Häppchen, damit die Antwort
+   * kurz genug bleibt.
+   *
+   * Der Zwischenspeicher wird EINMAL am Ende geschrieben (Hausregel
+   * [[delete-resurrection-merge-bug]]: zwei Schreibvorgänge nacheinander verlieren einander).
+   */
+  const STUECK = 30;
+
   if (misses.length && process.env.OPENAI_API_KEY) {
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini", temperature: 0,
-          messages: [{
-            role: "user",
-            /**
-             * IMMER DUZEN (05.08.2026). Englisch kennt nur ein „you", also entscheidet die
-             * Maschine die Anrede selbst — und sie entscheidet unterschiedlich: Auf der
-             * Gutschein-Seite kam „Laden SIE den Gutschein hoch, den SIE bereits haben"
-             * heraus, während die Chat-Seite daneben duzt. Auf derselben Seite zwei Anreden
-             * zu haben, liest sich wie zwei verschiedene Firmen.
-             *
-             * Das Du ist die Hausanrede: Jede handgeschriebene Zeile im Projekt duzt („Schenk
-             * ihm eine perfekte KI-Freundin", „Lade ein Foto von dir hoch"), und es passt zu
-             * dem, was hier verkauft wird — ein Geschenk an einen Menschen, den man mag.
-             *
-             * WIRKT NUR AUF NEUE TEXTE. Übersetztes liegt dauerhaft im Zwischenspeicher
-             * (`${lang}::${text}`) und wird nie neu geholt — das spart Geld und ist sonst
-             * richtig. Wer eine alte Zeile umstellen will, ändert ihren englischen Wortlaut;
-             * damit ist es ein neuer Schlüssel und sie geht durch die Maschine.
-             */
-            content: `Translate each string in this JSON array into ${target}. Keep emojis, names and tone. Always address the reader INFORMALLY (German du/dein, Romanian tu/tău, Spanish tú/tu, French tu/ton, Portuguese tu/teu, Italian tu/tuo) — never the polite form (Sie, dumneavoastră, usted, vous, você formal, Lei). If a string is ALREADY in ${target}, return it EXACTLY unchanged — never translate it into any other language. The output must be in ${target} only. Return ONLY a JSON array of the translated strings, same length and order.\n\n${JSON.stringify(misses.map(m => m.text))}`,
-          }],
-        }),
-      });
-      const p = await res.json();
-      const txt = String(p?.choices?.[0]?.message?.content ?? "").replace(/^```json\s*|\s*```$/g, "").trim();
-      const arr = JSON.parse(txt);
-      if (Array.isArray(arr) && arr.length === misses.length) {
-        misses.forEach((m, k) => { const v = String(arr[k] ?? m.text); out[m.i] = v; cache[m.key] = v; });
-        await writeTranslationCache(cache);
-      }
-    } catch { /* Original bleibt stehen */ }
+    let etwasNeu = false;
+
+    for (let von = 0; von < misses.length; von += STUECK) {
+      const teil = misses.slice(von, von + STUECK);
+      const hinein: Record<string, string> = {};
+      teil.forEach((m, k) => { hinein[String(k)] = m.text; });
+
+      try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini", temperature: 0,
+            response_format: { type: "json_object" },
+            messages: [{
+              role: "user",
+              content: `Translate every VALUE of this JSON object into ${target}. Keep emojis, names and tone. Always address the reader INFORMALLY (German du/dein, Romanian tu/tău, Spanish tú/tu, French tu/ton, Portuguese tu/teu, Italian tu/tuo) — never the polite form (Sie, dumneavoastră, usted, vous, você formal, Lei). If a value is ALREADY in ${target}, return it EXACTLY unchanged — never translate it into any other language. Never translate file paths, URLs or filenames — return those unchanged. The output must be in ${target} only. Return ONLY a JSON object with the SAME KEYS and the translated values — every key must be present.\n\n${JSON.stringify(hinein)}`,
+            }],
+          }),
+        });
+        const p = await res.json();
+        const txt = String(p?.choices?.[0]?.message?.content ?? "").replace(/^```json\s*|\s*```$/g, "").trim();
+        const obj = JSON.parse(txt) as Record<string, unknown>;
+        if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+          teil.forEach((m, k) => {
+            const v = obj[String(k)];
+            if (typeof v === "string" && v.trim()) { out[m.i] = v; cache[m.key] = v; etwasNeu = true; }
+          });
+        }
+      } catch { /* Nur dieses Häppchen bleibt im Original */ }
+    }
+
+    if (etwasNeu) await writeTranslationCache(cache);
   }
+
   return out;
 }

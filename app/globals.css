@@ -74,6 +74,13 @@
      und rechts steht, verhandelt nicht auf Augenhöhe. Die Seite setzt ihre eigene Breite
      (1120 px, mittig) — nicht über den ganzen Bildschirm gezogen. */
   .lb-frame:has(.lb-recruiting),
+  /* VERSUSFORGE (Owner 08.09.2026: „trotzdem responsiv"). Derselbe Grund wie bei der
+     Firmenseite darüber: Diese Strecke verkauft an Betriebe, die sie am SCHREIBTISCH
+     öffnen — ein Angebot über mehrere Tausend Euro, das auf einem 27-Zoll-Monitor in einer
+     Telefonspalte mit grauen Flächen links und rechts steht, verhandelt nicht auf
+     Augenhöhe. Die Seite setzt ihre eigene Breite (1080 px, mittig) und teilt sich ab
+     1024 px in zwei Spalten — nicht über den ganzen Bildschirm gezogen. */
+  .lb-frame:has(.lb-versusforge),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;
@@ -251,6 +258,17 @@ svg {
    rechts. Beide sind gespiegelt, damit die Diagonale erhalten bleibt — Gold oben rechts,
    das warme Braun unten links. Gilt für JEDE Seite des Hauses, `lb-bg` ist die eine
    Hintergrund-Klasse. */
+/* VERSUSFORGE HAT KEINEN HINTERGRUND (Owner 08.09.2026: „im Hintergrund raus").
+   Der Haus-Verlauf trägt zwei Lichter — Gold oben rechts, warmes Braun unten links. Er
+   gehört zu LuxuryBandit und macht aus jeder Seite eine LuxuryBandit-Seite, auch ohne
+   Schriftzug. Hier ist die Fläche schwarz: Auf der Startseite steht ein Feld, und alles,
+   was daneben leuchtet, zieht Aufmerksamkeit von ihm ab. */
+.lb-versusforge.lb-bg,
+.lb-versusforge .lb-bg {
+  background-color: #000;
+  background-image: none;
+}
+
 .lb-bg {
   background-color: #0d0b0a;
   background-image:
@@ -493,8 +511,19 @@ svg {
 .lb-fb [data-topnav="1"] > div:first-of-type { background-color: #1877F2 !important; }
 .lb-fb [data-topnav="1"] > div:first-of-type * { color: #fff !important; }
 
+/* DER SCHEIN MUSS DER FLÄCHE FOLGEN (Owner 07.09.2026, mit Bild: „gelber Schatten weg").
+   `.lb-gold` trägt einen goldenen Schein (`0 4px 14px rgba(233,174,43,.28)`). Die Regel
+   hier färbte bisher nur Fläche und Schrift blau — der Schein blieb GOLD und leuchtete
+   um jeden blauen Knopf in jeder hellen Fassung des Hauses. Jetzt wird er mitgefärbt. */
 .lb-fb .lb-gold,
-.lb-fb .lb-buy { background: #1877F2 !important; background-image: none !important; color: #fff !important; }
+.lb-fb .lb-buy {
+  background: #1877F2 !important;
+  background-image: none !important;
+  color: #fff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 14px rgba(24, 119, 242, 0.26) !important;
+}
 .lb-fb .lb-gold *,
 .lb-fb .lb-buy * { color: #fff !important; }
 
@@ -1238,3 +1267,35 @@ svg {
  * Ohne sie greift hier nichts — jede andere Seite behält ihre Schalter.
  */
 body.lb-tunnel-tief .lb-kopf-schalter { display: none; }
+
+/**
+ * KEINE HAUS-LEISTE AUF VERSUSFORGE-SEITEN (08.09.2026).
+ *
+ * VersusForge läuft als Topic auf luxurybandit.com, trägt aber die eigene Marke: schwarzer
+ * Grund, eigene Wortmarke, eigener Trichter. Eine schwebende LuxuryBandit-Leiste darüber
+ * verrät genau das, was die Seite nicht sagen soll.
+ *
+ * ÜBER `:has()` UND NICHT ÜBER DEN PFAD: Die Regel gilt automatisch für JEDE Seite, die die
+ * Marken-Klasse trägt — Landingpage, Trichter, Bauplan, Anfragen. Wer morgen eine weitere
+ * anlegt, muss nichts eintragen und kann es also auch nicht vergessen.
+ */
+body:has(.lb-versusforge) .lb-hausleiste { display: none !important; }
+
+/**
+ * KEIN HAUS-ZUBEHÖR AUF EINER MANDANTENSEITE (Owner 09.09.2026: „am Ende müssen seine Daten
+ * stehen statt meine").
+ *
+ * WAS BEIM ERSTEN PROBELAUF ZU SEHEN WAR: Auf `/versusforge/zahnarztpeter` lag unser
+ * Cookie-Band — in unserem Gold — und darüber unsere Fussleiste. Eine Seite, die einem
+ * Patienten als die seiner Praxis gezeigt wird, trug damit zwei fremde Marken.
+ *
+ * UND ES IST MEHR ALS KOSMETIK: Das Band ist das Tor zum Meta-Pixel. Ohne Einwilligung lädt
+ * er nicht — wo das Band nicht erscheint, wandern die Besucher des Mandanten also auch nicht
+ * in UNSER Werbekonto. Verantwortlich für seine Seite ist er, nicht wir; sein eigener Pixel
+ * ist später ein Feld in seinen Angaben, nicht unserer.
+ *
+ * ÜBER CSS UND NICHT ÜBER EINEN EFFEKT — dieselbe Begründung wie eine Regel höher: Was im
+ * Browser nachträglich ausgeblendet wird, blitzt beim Laden auf, und genau das fällt auf.
+ */
+body:has(.lb-mandant) .lb-hausleiste,
+body:has(.lb-mandant) .lb-cookieband { display: none !important; }

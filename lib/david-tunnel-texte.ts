@@ -55,7 +55,7 @@ export const DAVID_TUNNEL = {
      auf die Adresse, die er noch gar nicht gegeben hat. Der Dank galt dem Vornamen, der
      Nebensatz der Mail — zwei Dinge in einem Bindestrich zusammengezwungen. Jetzt zwei
      saubere Sätze: erst der Dank, dann der Grund. */
-  mailText: "Dein Screening ist durch, {name}. Ich lege dein Ergebnis unter dieser Adresse ab — dann findest du es auch morgen noch wieder.",
+  mailText: "Dein Gespräch ist durch, {name}. Ich lege dein Ergebnis unter dieser Adresse ab — dann findest du es auch morgen noch wieder.",
   mailLabel: "E-Mail-Adresse",
   mailPlatzhalter: "du@beispiel.de",
   mailFehlt: "Diese Adresse sieht noch nicht vollständig aus.",
@@ -78,13 +78,110 @@ export const DAVID_TUNNEL = {
    * einen Arbeitgeber. Das ist die Sorge, mit der er hier sitzt — sie war vorher der dritte
    * Satz von vieren und ging unter.
    */
-  datenschutz: "Wir verarbeiten deinen Lebenslauf, die Stellenanzeige und deine Antworten für dein Screening und nutzen sie, um David besser zu machen. Mehr in der Datenschutzerklärung.",
+  /**
+   * „UM DAVID BESSER ZU MACHEN" MUSSTE WEG (07.09.2026).
+   *
+   * Der Satz stand an der heikelsten Stelle des ganzen Trichters: in der Sekunde, in der
+   * jemand seinen Lebenslauf hochladen soll. Und er las sich für genau die Zielgruppe, die
+   * wir wollen — Akademiker, Ärzte, Wissenschaftler —, als „wir trainieren mit deinen
+   * Unterlagen". Das ist die teuerste Fehldeutung, die an dieser Stelle möglich ist.
+   *
+   * Der Zweck bleibt stehen (die Zustimmung trägt sonst nicht), aber er wird BENANNT statt
+   * angedeutet: Qualität prüfen ist etwas anderes als „besser machen", und was NICHT
+   * passiert, gehört in denselben Satz — Weitergabe und Verkauf sind die zwei Sorgen, mit
+   * denen ein Bewerber hier sitzt.
+   *
+   * MUSS ZUR DATENSCHUTZERKLÄRUNG PASSEN: Wenn dort etwas anderes steht als hier, gilt das
+   * Strengere — und dann ist dieser Satz zu ändern, nicht die Wirklichkeit.
+   */
+  /* AUF DAS NÖTIGE GEKÜRZT (Owner 07.09.2026): „Die Menge an Datenschutztext direkt vor dem
+     Start kann Leute abschrecken. Nicht weil etwas falsch formuliert ist, sondern weil der
+     Schirm psychologisch sagt: bevor du anfängst, hier erst mal Risiken und rechtliche
+     Hinweise."
+
+     „NICHT VERKAUFT" IST RAUS, und das ist der wichtigste Teil: Das Wort pflanzt die Idee
+     erst ein („Moment — könnten die meine Daten verkaufen?"). Eine Beruhigung, nach der
+     niemand gefragt hat, ist keine Beruhigung, sondern ein Verdacht. Dasselbe galt für
+     „Qualität der Analyse prüfen" — das klingt nach interner Qualitätssicherung und
+     interessiert an dieser Stelle keinen Menschen.
+
+     WAS BLEIBT, trägt die Zustimmung weiterhin: WOFÜR verarbeitet wird und der Link auf die
+     Datenschutzerklärung. Die Kurzfassung MUSS zu dem passen, was dort steht — weicht es ab,
+     gilt das Strengere, und dann ist dieser Satz zu ändern, nicht die Wirklichkeit. */
+  /* KEIN VERWEIS IM SATZ (Owner 07.09.2026: „hier steht zweimal … politica de
+     confidențialitate"). Der Satz endete auf „Mehr in der Datenschutzerklärung.", und die
+     Komponente schnitt ihn mit einem DEUTSCHEN Literal wieder heraus. Auf Rumänisch heisst
+     er anders, der Schnitt griff nicht, und der Link stand doppelt — in jeder Sprache ausser
+     Deutsch. Der Link ist ein eigenes Element daneben; im Text hat er nichts zu suchen. */
+  datenschutz: "Dein Lebenslauf und deine Antworten werden nur für diese Analyse verwendet.",
   /* Die Zusicherung, getrennt und deshalb lesbar. */
   datenschutzZusage: "Deine Bewerbung geht nie automatisch an Arbeitgeber.",
   datenschutzLink: "Datenschutzerklärung",
-  haken: "Ich habe die Datenschutzhinweise gelesen und möchte das Pre-Screening starten.",
+  /* WENIGER JURISTISCH (Owner 07.09.2026). „Ich habe die Datenschutzhinweise gelesen und
+     möchte … starten" ist die Sprache eines Formulars. Die Zustimmung bleibt eine
+     Zustimmung — sie steht neben dem Hinweis und dem Link darüber —, klingt aber wie ein
+     Mensch, der loslegen will. */
+  haken: "Ich habe es verstanden und möchte anfangen.",
   hakenFehlt: "Ohne diese Bestätigung darf ich nicht loslegen.",
-  screeningStarten: "Pre-Screening starten",
+  screeningStarten: "Ja, ich bin bereit",
+
+  /* ── 0 · DER BEWEIS IST DIE ERSTE SEITE ───────────────────────────────────
+     Owner 07.09.2026: „Wie das Ergebnis aussieht wird entweder in die Werbung eingebaut
+     oder als erste Seite in dem Funnel. So sieht es aus was du bekommst, willst du das
+     auch, starte jetzt."
+
+     Damit fällt die Dauerregel `tunnel-zeigt-landingpage-inhalt` für David: Statt die
+     Argumente der Landingpage unter dem Formular zu wiederholen, steht am Anfang eine
+     VORFÜHRUNG. Wer aus einer Anzeige kommt, sieht als Erstes ein fertiges Ergebnis —
+     nicht die Begründung, warum das Ergebnis gut wäre. */
+  /* ÜBERSCHRIFT UND KNOPF IN SEINER SPRACHE (07.09.2026, Marketing-Durchgang).
+     „So sieht es aus, was du bekommst" war ein Inhaltsverzeichnis, keine Anzeige — es
+     beschreibt die Seite, statt zu locken. Und „Screening" ist UNSER Wort; es klingt nach
+     Klinik. Der Knopf sagt jetzt, was der Mensch wirklich wissen will. */
+  beweisTitel: "Du willst weg. Aber wohin?",
+  /* AUFMERKSAMKEIT VOR VERTRAUEN (Owner 07.09.2026: „das ist eher ein Trust").
+     
+     Die Seite begann mit Anna — also mit einem Vertrauensbeleg, bevor der Besucher wusste,
+     worum es überhaupt geht. In seinem eigenen Trichterbild steht die Reihenfolge:
+     Aufmerksamkeit → Vertrauen → Handlung. Diese drei Zeilen sind die fehlende erste Stufe:
+     was passiert, wie lange, was es kostet. Und „kostenlos" MUSS hier stehen — bei dieser
+     Zielgruppe ist „was kostet mich das" ab der ersten Sekunde wach; unbeantwortet wird die
+     Frage zu Misstrauen. */
+  beweisWas: "David liest deinen Lebenslauf, stellt dir ein paar Fragen und zeigt dir, was dich zurückhält.",
+  beweisDauer: "Zehn Minuten · kostenlos",
+  /* FORTSCHRITT IN WORTEN, NICHT NUR IN PUNKTEN (07.09.2026, Zielgruppe 55+): Ein Balken
+     allein sagt „irgendwo in der Mitte". Die Zahl sagt, wie viel noch kommt — und genau das
+     entscheidet, ob jemand dranbleibt.
+     
+     NUR EIN WORT, KEIN PLATZHALTER (07.09.2026, im Test gefunden). Hier stand erst
+     „Schritt {n} von {m}" — die Übersetzungsmaschine machte auf Rumänisch „Discuție
+     preliminară" daraus, also etwas völlig anderes. Geschweifte Klammern bringen sie aus
+     dem Tritt: Sie sieht einen Satz mit Fremdkörpern und dichtet. Ein einzelnes Wort
+     übersetzt sie zuverlässig; die Ziffern setzt die Anzeige selbst dahinter. */
+  fortschrittWort: "Schritt",
+  zurueckKnopf: "Zurück",
+  /* OBEN UND UNTEN DERSELBE AUFRUF (Owner 07.09.2026): „Sag mir, was mich zurückhält" ist
+     stärker als „Jetzt anfangen" — es benennt, was der Mensch bekommt, statt was er tut. Und
+     zweimal derselbe Satz heisst: eine Handlung, nicht zwei. */
+  beweisJetzt: "Sag mir, was mich zurückhält",
+  beweisBelegTitel: "Das hat David für Anna gefunden",
+  beweisFrage: "Willst du wissen, was bei dir im Weg steht?",
+  beweisStarten: "Sag mir, was mich zurückhält",
+
+  /* ── 0 · DIE ZIELFRAGE ────────────────────────────────────────────────────
+     Owner 07.09.2026: „David fragt dich: Willst du dich beruflich verändern — oder mehr
+     verdienen?" · „Ich will das schon als Funnel sehen."
+
+     ZWEI KNÖPFE, KEIN FELD. Der Schritt, der am 31.08. entfernt wurde, bestand aus zwei
+     Tippfeldern und einem Haken — hier wird nur geklickt. Und weil beide Antworten
+     vorwärts führen, gibt es kein „Nein" mehr, nur noch „A oder B".
+
+     ÜBERSPRINGEN BLEIBT MÖGLICH: Wer sich nicht festlegen will, kommt trotzdem weiter. */
+  zielTitel: "Was willst du eigentlich?",
+  zielText: "Bevor ich deinen Lebenslauf lese: Sag mir, worum es dir geht. Das ändert, worauf ich achte.",
+  zielVeraendern: "Ich will mich beruflich verändern",
+  zielVerdienen: "Ich will mehr verdienen",
+  zielWeiter: "Weiss ich noch nicht — weiter",
 
   /* ── 3 · Lebenslauf ──────────────────────────────────────────────────────── */
   /* DER TITEL SAGT DIE AUFGABE, NICHT NUR HALLO (Owner 29.08.2026: „Hier muss als Titel
@@ -112,7 +209,7 @@ export const DAVID_TUNNEL = {
    * und der Name ist noch unbekannt (David liest ihn gleich selbst aus dem Dokument). Jetzt
    * sagt der Satz, was als Nächstes geschieht — und dass es sofort etwas gibt.
    */
-  cvText: "Ich lese ihn und sage dir gleich, was ich sehe. Danach zeigst du mir die Stelle, auf die du dich bewerben willst — dann vergleiche ich beides.",
+  cvText: "Ich lese ihn und sage dir gleich, was ich sehe. Danach schickst du mir die Stellenanzeige — dann vergleiche ich beides.",
   cvKnopf: "Lebenslauf hochladen",
   cvHinweis: "PDF oder Word · bleibt bei uns",
   /* Jede Absage nennt ihren Grund (29.08.2026) — „nimm eine PDF" als Pauschalantwort schickt
@@ -208,7 +305,7 @@ export const DAVID_TUNNEL = {
      DREI KURZE SÄTZE STATT EINEM LANGEN: Der Nebensatz musste dazu, aber er darf den Satz
      nicht in einen Zungenbrecher verwandeln — genau daran ist die frühere Fassung schon
      einmal gescheitert. */
-  cvBereitText: "Dein Lebenslauf liegt bei mir, {name}. Ich sehe ihn durch. Dann zeigst du mir die Stelle, auf die du dich bewerben willst — und wir legen los.",
+  cvBereitText: "Dein Lebenslauf liegt bei mir, {name}. Ich sehe ihn durch. Dann schickst du mir die Stellenanzeige — und wir legen los.",
   cvBereitKnopf: "Ja, ich bin bereit",
   /* Kein zweiter Knopf für die Datei: Das Feld darüber ist selbst der Weg zur anderen Datei. */
   cvGewechselt: "Tippen, um eine andere Datei zu wählen",
@@ -234,7 +331,10 @@ export const DAVID_TUNNEL = {
   /* ── 4 · Die Stelle ──────────────────────────────────────────────────────── */
   /* Titel des Schritts — er steht als Überschrift ÜBER der Karte (siehe `schrittTitel` in
      components/DavidFunnel). `jobText` bleibt der Satz darunter. */
-  jobTitel: "Zeig mir die Stelle, auf die du dich bewirbst.",
+  /* „SCHICK MIR DIE STELLENANZEIGE" (Owner 07.09.2026). „Zeig mir die Stelle, auf die du
+     dich bewirbst" ist abstrakt — eine Stelle kann man nicht zeigen. Eine ANZEIGE ist ein
+     Ding, das man einfügt, und genau das soll hier passieren. Konkret schlägt abstrakt. */
+  jobTitel: "Schick mir die Stellenanzeige.",
   /**
    * WAS DAVID NACH DEM LEBENSLAUF SAGT — EIN SATZ (Owner 29.08.2026: „muss nicht so viel
    * stehen über die Analyse. Er muss nur: OK Geza, ich sehe du bist UX Designer").
@@ -247,13 +347,21 @@ export const DAVID_TUNNEL = {
    * Der eine Satz leistet, was er leisten soll: Er beweist, dass David den Lebenslauf
    * wirklich gelesen hat. Mehr braucht es an dieser Stelle nicht.
    */
-  cvErkannt: "Ok, {name} — ich sehe, du bist {rolle}.",
+  /* `cvErkannt` („ich sehe, du bist {rolle}") ist am 07.09.2026 ersatzlos entfallen: David
+     sagt dem Bewerber seinen eigenen Berufstitel nicht mehr zurück. Was er nach dem Upload
+     sagt, erzeugt er jetzt selbst — er benennt, dass er eine Richtung sieht, und hält sie
+     zurück, bis er die Antworten hat. Der Satz hier ist nur noch das Netz für den Fall, dass
+     das Modell nichts liefert; er behauptet deshalb bewusst nichts über ihn. */
   cvErkanntOhneRolle: "Ok, {name} — ich habe deinen Lebenslauf gelesen.",
   /* „GIB DIE ADRESSE AN" WAR DIE SCHLIMMSTE DER UNKLAREN STELLEN (Prüfung 29.08.2026, nach
      dem Fund bei „die Stelle"): In einem Trichter, der zwei Schritte vorher nach der E-Mail-
      Adresse gefragt hat, liest „die Adresse" JEDER als seine eigene. Gemeint war die
      Web-Adresse der Anzeige. „Link" ist eindeutig und kennt jeder. */
-  jobText: "Füge den Text der Anzeige ein — oder den Link dazu. David liest sie und vergleicht sie mit deinem Lebenslauf.",
+  jobText: "Füge die Anzeige ein oder den Link zum Job. Ich vergleiche sie mit deinem Lebenslauf.",
+  /* DER KNOPF VERSPRICHT DEN NUTZEN, NICHT DIE BEWEGUNG (Owner 07.09.2026: „statt nur
+     ‚Weiter‘ — das erhöht die Motivation, weil der Knopf schon den Nutzen verspricht").
+     „Weiter" sagt, was der Finger tut. „Job prüfen" sagt, was man dafür bekommt. */
+  jobPruefen: "Job prüfen",
   /**
    * DER WEG OHNE STELLE (Owner 29.08.2026: „weiter ohne Stellenanzeige müsste auch gehen.
    * Aber dafür analysieren wir nur sein CV").
@@ -266,10 +374,13 @@ export const DAVID_TUNNEL = {
    * mehr heraus — steht dazwischen, damit niemand aus Bequemlichkeit die schwächere Strecke
    * nimmt. Wer sie dann trotzdem wählt, hat es gelesen.
    */
-  ohneStelleLink: "Ich habe noch keine bestimmte Stelle",
-  ohneStelleTitel: "Keine Stelle im Blick?",
-  ohneStelleText: "Kein Problem — wir machen auch ohne weiter. David analysiert deinen Lebenslauf und gibt dir wertvolle Tipps. Mit einer konkreten Stelle findest du allerdings deutlich mehr heraus.",
-  ohneStelleWeiter: "Ok, ohne Stelle weitermachen",
+  /* „JOB" STATT „STELLE" (Owner 07.09.2026): Auf Rumänisch wird aus „Stelle" ein „loc" —
+     also Ort oder Platz, nicht Arbeitsplatz. Das deutsche Wort entscheidet, was in den
+     anderen Sprachen ankommt; „Job" ist in allen sieben eindeutig. */
+  ohneStelleLink: "Ich habe noch keinen bestimmten Job",
+  ohneStelleTitel: "Noch keinen Job im Blick?",
+  ohneStelleText: "Kein Problem — wir machen auch ohne weiter. David analysiert deinen Lebenslauf und gibt dir wertvolle Tipps. Mit einem konkreten Job findest du allerdings deutlich mehr heraus.",
+  ohneStelleWeiter: "Ok, ohne Job weitermachen",
   ohneStelleDoch: "Doch eine Anzeige einfügen",
   /* Steht im Angebot, wenn der Kauf eine Stelle braucht, aber keine da ist. */
   /* GERADE HIER GIBT ES KEINE „DIE" STELLE: Diese Zeile erscheint dem, der bewusst OHNE
@@ -280,7 +391,7 @@ export const DAVID_TUNNEL = {
   /* Der Platzhalter nennt jetzt BEIDE Wege — seit der Server Links wirklich öffnet, darf der
      zweite nicht nur in der Überschrift stehen. Und er beginnt als Aufforderung, damit er
      nicht wie schon eingetragener Text wirkt (Owner-Regel vom selben Tag). */
-  jobPlatzhalter: "Füge hier den ganzen Text der Stellenanzeige ein — oder den Link zur Anzeige.",
+  jobPlatzhalter: "Anzeige oder Link hier einfügen …",
   jobKurz: "Das ist noch zu wenig. Füg die Anzeige bitte vollständig ein.",
   jobDatei: "Oder als Datei hochladen",
   jobLaeuft: "David vergleicht deinen Lebenslauf mit der Stelle",
@@ -316,7 +427,7 @@ export const DAVID_TUNNEL = {
   planTitel: "Das kommt jetzt",
   planFragen: "Etwa 6 Fragen — rund 5 Minuten.",
   planDarum: "Darum geht es:",
-  planErgebnis: "Danach bekommst du deinen Bericht: was für dich spricht, was ein Recruiter hinterfragen würde, und was dein Lebenslauf noch nicht erzählt.",
+  planErgebnis: "Danach bekommst du deinen Bericht: was für dich spricht, was ein Personaler hinterfragen würde, und was dein Lebenslauf noch nicht erzählt.",
   /* ── WARUM SICH MÜHE LOHNT (Owner 29.08.2026: „Genau diesen Hinweis finde ich wertvoll …
      Das soll der User auch sehen") ──
 
@@ -331,12 +442,12 @@ export const DAVID_TUNNEL = {
   planLohnt: "Je konkreter du antwortest, desto mehr hast du davon: Aus deinen Sätzen werden die Belege im Bericht — und später die Sätze in deinem Anschreiben.",
   planLohntGegen: "Aus „ich war für UX verantwortlich“ wird nichts.",
   planJederzeit: "Du kannst jede Frage überspringen oder jederzeit aufhören.",
-  uebergangOhne: "Ich habe deinen Lebenslauf gründlich gelesen. Einiges kann ich schon gut einordnen. Es gibt aber Dinge, die ein Recruiter aus einem Lebenslauf allein nie erkennt — genau darüber möchte ich jetzt kurz mit dir sprechen.",
-  uebergang: "Ich habe deinen Lebenslauf mit der Stelle verglichen. Einige Punkte kann ich bereits gut einordnen. Es gibt aber auch Dinge, die ein Recruiter aus deinem Lebenslauf allein nicht erkennen kann. Genau darüber möchte ich jetzt kurz mit dir sprechen.",
+  uebergangOhne: "Ich habe deinen Lebenslauf gründlich gelesen. Einiges kann ich schon gut einordnen. Es gibt aber Dinge, die ein Personaler aus einem Lebenslauf allein nie erkennt — genau darüber möchte ich jetzt kurz mit dir sprechen.",
+  uebergang: "Ich habe deinen Lebenslauf mit der Stelle verglichen. Einige Punkte kann ich bereits gut einordnen. Es gibt aber auch Dinge, die ein Personaler aus deinem Lebenslauf allein nicht erkennen kann. Genau darüber möchte ich jetzt kurz mit dir sprechen.",
   losGehts: "Los geht's",
 
   /* ── 5 · Das Gespräch ────────────────────────────────────────────────────── */
-  fortschritt: "Pre-Screening",
+  fortschritt: "Vorgespräch",
   von: "von etwa",
   /* DIE ANLEITUNG STEHT IM FELD, NICHT DARUNTER (Owner 29.08.2026, mit Bild: „das wird nicht
      gelesen. Sowas gehört ins Eingabefeld.").
@@ -368,17 +479,21 @@ export const DAVID_TUNNEL = {
    * Gezeigt wird das Können am ENDE — im Bericht.
    */
   antwortPlatzhalter: "Schreib hier deine Antwort — was du getan hast, nicht wofür du zuständig warst.",
-  antworten: "Antworten",
+  /* EINDEUTIG ALS TÄTIGKEIT (07.09.2026, mit Bild gemeldet): „Antworten" ist im Deutschen
+     Tätigkeit UND Hauptwort — die Maschine entschied sich fürs Hauptwort und machte auf
+     Rumänisch „Răspunsuri", also „Antworten" im Sinne einer Liste. Ein Knopf ist immer eine
+     Tätigkeit; das deutsche Wort muss das schon selbst sagen, sonst rät die Übersetzung. */
+  antworten: "Antwort senden",
   antwortFehlt: "Schreib mir bitte ein paar Worte.",
   davidDenkt: "David liest deine Antwort",
   genug: "Ich habe jetzt genug Informationen. Ich verbinde nun deinen Lebenslauf, die Anforderungen der Stelle und das, was du mir erzählt hast.",
   analyse1: "Anforderungen werden gelesen",
   analyse2: "Belege werden geprüft",
   analyse3: "Motivation wird eingeordnet",
-  analyse4: "Mögliche Recruiter-Fragen werden erkannt",
+  analyse4: "Mögliche Personaler-Fragen werden erkannt",
 
   /* ── 6 · Das Ergebnis ────────────────────────────────────────────────────── */
-  reportTitel: "Dein Pre-Screening-Ergebnis",
+  reportTitel: "Dein Vorgespräch-Ergebnis",
   reportFuer: "für",
   a1: "Das spricht für dich",
   a2: "Das könnte Fragen auslösen",
@@ -390,7 +505,7 @@ export const DAVID_TUNNEL = {
      Satz, was daraus wird. */
   a5: "So sagst du es besser",
   a5Gesagt: "Du hast gesagt",
-  a5Besser: "So hört es ein Recruiter",
+  a5Besser: "So hört es ein Personaler",
   a5Hinweis: "Die Klammern füllst du mit deinen echten Zahlen — erfunden wird hier nichts.",
   einordnungTitel: "Bevor du gehst",
   /* Der Report-Umbau vom 28.08.2026 („ERKENNTNIS ZUERST. DETAILS BEI BEDARF") — die Wörter
@@ -400,7 +515,7 @@ export const DAVID_TUNNEL = {
   mehrAnzeigen: "Mehr anzeigen",
   /* QUELLEN IN KLARTEXT (Owner: „Das soll menschlich und nachvollziehbar wirken, nicht
      technisch") — sie ersetzen Formulierungen wie „aus einer seiner Antworten". */
-  quelleScreening: "Aus deinem Screening",
+  quelleScreening: "Aus deinem Gespräch",
   quelleCv: "Aus deinem Lebenslauf",
   quelleAnzeige: "Aus der Stellenanzeige",
   warumFrage: "Warum David diese Frage erwartet",
@@ -432,13 +547,13 @@ export const DAVID_TUNNEL = {
   angeboteTitel: "Jetzt daraus deine Bewerbung machen",
   angeboteText: "Ich kenne jetzt deinen Lebenslauf, die Stelle und die Punkte, die du stärker zeigen solltest. Wenn du möchtest, mache ich daraus deine fertigen Bewerbungsunterlagen.",
   cvOptTitel: "Dein Lebenslauf – angepasst an genau diese Stelle",
-  cvOptText: "David übernimmt die Erkenntnisse aus deinem Screening und richtet deinen bestehenden Lebenslauf gezielt auf die Anforderungen dieser Position aus.",
+  cvOptText: "David übernimmt die Erkenntnisse aus deinem Gespräch und richtet deinen bestehenden Lebenslauf gezielt auf die Anforderungen dieser Position aus.",
   cvOptCta: "Ja, meinen Lebenslauf für diese Stelle optimieren",
   /* Die KURZE Fassung für den Knopf am Fuss des Ergebnisses (Design des Owners: dort steht
      schlicht „CV optimieren" neben dem goldenen Hauptknopf). */
   cvOptKurz: "Lebenslauf optimieren",
   anschreibenTitel: "Dein persönliches Anschreiben",
-  anschreibenText: "Kein Standardtext. Erstellt aus deinem Lebenslauf, der Stellenanzeige und den Informationen aus deinem persönlichen Screening. Du bekommst den Text zum Kopieren und die fertige PDF.",
+  anschreibenText: "Kein Standardtext. Erstellt aus deinem Lebenslauf, der Stellenanzeige und den Informationen aus deinem persönlichen Gespräch. Du bekommst den Text zum Kopieren und die fertige PDF.",
   anschreibenCta: "Ja, mein Anschreiben für diese Stelle erstellen",
   videoTitel: "So kann deine persönliche Video-Bewerbung aussehen",
   videoText: "Eine kurze professionelle Vorstellung, abgestimmt auf deine Erfahrung und die Stelle, auf die du dich bewirbst.",
@@ -467,7 +582,7 @@ export const DAVID_TUNNEL = {
   unterlagenOptimiert: "Lebenslauf und Anschreiben werden auf die Stelle zugeschnitten",
   /* Woher das Skript kommt (Owner 28.08.2026: „unter dem Video muss noch stehen was für
      einen Skript abgeleitet aus der analyse"). */
-  videoSkriptHinweis: "Dein Sprechtext entsteht aus deinem Lebenslauf, der Stelle und den Antworten aus deinem Screening — du liest ihn nur ab.",
+  videoSkriptHinweis: "Dein Sprechtext entsteht aus deinem Lebenslauf, der Stelle und den Antworten aus deinem Gespräch — du liest ihn nur ab.",
   /* Die Aufnahme — daraus kommen Gesicht UND Stimme (Owner 28.08.2026). */
   videoKleidungTitel: "Kleidung",
   videoKleidungText: "Vorgeschlagen nach deiner Branche — und nach dem, was du auf deinem Bewerbungsfoto trägst. Du entscheidest.",
@@ -541,9 +656,9 @@ export const DAVID_TUNNEL = {
      das nicht unterscheidbar sein. */
   torPruefe: "Einen Moment — wir schauen, ob das deiner ist",
   torTitel: "Dieser Bericht ist privat",
-  torText: "Er gehört zu dem Browser, in dem er entstanden ist. Melde dich mit deiner Adresse an, um ihn auf jedem Gerät zu sehen — oder starte hier ein neues Screening.",
+  torText: "Er gehört zu dem Browser, in dem er entstanden ist. Melde dich mit deiner Adresse an, um ihn auf jedem Gerät zu sehen — oder starte hier ein neues Gespräch.",
   torAnmelden: "Anmelden",
-  torNeu: "Neues Screening starten",
+  torNeu: "Neues Gespräch starten",
   /* DIE LETZTE PRÜFUNG VOR DEM KAUF (Owner 28.08.2026, nach einem echten Kauf: „ich habe
      vergessen ein Bild hochzuladen und habe erst später gemerkt. Also Hinweis wäre nicht
      schlecht. Richtiges Template gewählt, Bild hochgeladen. Ja/Nein"). */
@@ -571,7 +686,7 @@ export const DAVID_TUNNEL = {
   imPreis: "Im Preis enthalten: der optimierte Lebenslauf, das Anschreiben und beides als PDF.",
 
   /* ── 8 · Feedback ────────────────────────────────────────────────────────── */
-  feedbackFrage: "Eine letzte Frage: Wie nützlich war dieses Pre-Screening für dich?",
+  feedbackFrage: "Eine letzte Frage: Wie nützlich war dieses Vorgespräch für dich?",
   n1: "Sehr nützlich",
   n2: "Nützlich",
   n3: "Teilweise nützlich",
@@ -592,7 +707,7 @@ export const DAVID_TUNNEL = {
   i6d: "Individuelle Unterstützung bei Jobsuche, Bewerbung oder beruflicher Neuorientierung.",
   i7t: "Nichts davon im Moment",
   i7d: "",
-  feedbackTextFrage: "Was hätte das Screening für dich hilfreicher gemacht?",
+  feedbackTextFrage: "Was hätte das Gespräch für dich hilfreicher gemacht?",
   feedbackPlatzhalter: "Deine Antwort — freiwillig",
   absenden: "Absenden",
   ueberspringen: "Überspringen",
@@ -603,7 +718,7 @@ export const DAVID_TUNNEL = {
   updatesHaken: "Ja, haltet mich über neue Funktionen und Angebote von David auf dem Laufenden.",
   fertig: "Fertig",
   dankeTitel: "Danke, {name}.",
-  dankeText: "Dein Pre-Screening liegt in deinen Assets. Viel Erfolg mit deiner Bewerbung.",
+  dankeText: "Dein Vorgespräch liegt in deinen Assets. Viel Erfolg mit deiner Bewerbung.",
 };
 
 export type DavidTunnelTexte = typeof DAVID_TUNNEL;

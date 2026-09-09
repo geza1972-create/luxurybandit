@@ -142,6 +142,62 @@ export const INCLUDED_VIDEOS_PER_MONTH = 20;        // im Abo enthaltene Videos,
  * Preis ist der Rückruf das Angebot, bezahlt wird im Gespräch. Deshalb steht die Zahl
  * hier und nicht in einer Kaufstrecke — sie wird nur angezeigt.
  */
+/**
+ * VERSUSFORGE — DER EINSTIEG (Owner 08.09.2026: „wir verlangen hier 299 Euro für den
+ * Einstieg. Dann läuft seine Kampagne 7-30 Tage. Hier zahlt er am Tag, was er zahlen will").
+ *
+ * ZWEI GETRENNTE BETRÄGE, und die Trennung ist der Kern des Angebots:
+ *  · 299 € einmalig für die Einrichtung — Anzeige, Strecke, Dashboard.
+ *  · Das WERBEBUDGET zahlt er selbst und direkt an Facebook, in der Höhe, die er will.
+ *    Es taucht deshalb NIRGENDS als unsere Zahl auf — es ist nicht unser Geld.
+ *
+ * WARUM DIE ZAHL HIER STEHT UND NICHT IM SEITENTEXT (Hausregel
+ * [[prices-only-from-pricing-table]]): Ein Preis, der in einem Satz getippt wird, steht
+ * spätestens beim ersten Rabatt an zwei Stellen verschieden — und die Kasse rechnet dann
+ * anders als die Seite verspricht. Genau der Fehler ist am 29.08. im David-Trichter
+ * aufgefallen.
+ *
+ * FOLGE FÜRS PRODUKT: Bei 299 € ist der Rückruf NICHT mehr das Angebot. Das ist ein Betrag,
+ * den ein Betrieb allein entscheidet und sofort bezahlt — der Kaufweg gehört also an das Ende
+ * des Plans, nicht ein Formular mit „ich melde mich".
+ */
+/**
+ * 299 € — WIR BAUEN ES (Owner 08.09.2026, nach kurzem Schwanken „199 … oder 299", entschieden
+ * für 299).
+ *
+ * WAS DARIN LIEGT: Dashboard mit Hooks und Anzeigentexten zum Herunterladen, die erzeugten
+ * Motive, der fertige Trichter samt Link.
+ *
+ * WARUM DIE ZAHL TRÄGT, und das ist keine Preisrhetorik: Die GRATIS-Analyse enthält die
+ * vollständige Bauanleitung mit ehrlichem Aufwand je Bauteil — zusammen rund zwei
+ * Arbeitstage. Der Kunde rechnet beim Lesen selbst aus, was seine Zeit kostet. 299 gegen
+ * zwei Tage ist eine klare Rechnung; 199 klingt nach Kleinigkeit und weckt den Zweifel, ob
+ * dafür überhaupt etwas passiert.
+ *
+ * DAS WERBEBUDGET IST NICHT DARIN. Es zahlt er selbst und direkt an Facebook, in der Höhe,
+ * die er will — es taucht deshalb nirgends als unsere Zahl auf.
+ */
+export const VERSUSFORGE_START_CENTS = 29900;
+
+/**
+ * VERSUSFORGE — DIE ZWEITE ANALYSE UND JEDE WEITERE (Owner 08.09.2026: „Zahlt er was für die
+ * Analyse? Ich sage ja. Und zwar 9,99 — und wir müssen was liefern").
+ *
+ * DIE ERSTE IST GRATIS UND VOLLSTÄNDIG. Sie ist der Beweis, nicht die Kostprobe; sie zu
+ * beschneiden würde genau das zerstören, wofür sie da ist (Owner: „würde er selbst für Amazon
+ * eine schlaue Antwort bekommen, dann würde er unser Tool kaufen").
+ *
+ * DIE ZAHL IST EIN FILTER, KEINE EINNAHME. Bei rund 4 Cent Kosten je Durchlauf geht es nicht
+ * um die Spanne: Wer 9,99 zahlt, hat ein echtes Angebot und keinen Spass. Der Satz „die erste
+ * Analyse ist kostenlos" wirkt schon VOR der Eingabe — er sorgt dafür, dass der eine Versuch
+ * mit Bedacht ausgegeben wird (Owner: „ich weiss nicht, ob er es riskiert, da Blödsinn
+ * einzugeben").
+ *
+ * DIE TREPPE, in die sie gehört: gratis der Beweis · 9,99 der Filter · 299 das Geschäft
+ * (`VERSUSFORGE_START_CENTS`). Der mittlere Preis verkauft keine Information — er sortiert.
+ */
+export const VERSUSFORGE_ANALYSE_CENTS = 999;
+
 export const PREMIUM_BERATUNG_CENTS = 10000;         // 100 € — Beratung + PDF + Video
 
 export const ONCE_CENTS = 1500;                     // 15 € — ein Geschenk, einmal bezahlt
@@ -790,6 +846,11 @@ export function fillPrices(text: string, lang?: string): string {
     .replace(/\{tryon\}/g, eur(TRYON_VIDEO_CENTS, lang))
     .replace(/\{topup2\}/g, eur(TOPUP_GROSS_CENTS, lang))
     .replace(/\{plan\}/g, eur(PLAN_CENTS, lang))
+    /* VersusForge (08.09.2026): `{analyse}` die zweite Analyse, `{einstieg}` die Kampagne.
+       Eigene Platzhalter, damit kein Text versehentlich `{once}` oder `{price}` zieht — genau
+       der Fehler, der im Versprechen-Trichter 9,99 auf den Knopf und 59 in die Kasse schrieb. */
+    .replace(/\{analyse\}/g, eur(VERSUSFORGE_ANALYSE_CENTS, lang))
+    .replace(/\{einstieg\}/g, eur(VERSUSFORGE_START_CENTS, lang))
     .replace(/\{days\}/g, String(TRIAL_DAYS))
     .replace(/\{videos\}/g, String(INCLUDED_VIDEOS_PER_MONTH));
 }

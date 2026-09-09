@@ -36,15 +36,15 @@ import { DAVID_VIDEO, DAVID_POSTER, DAVID_VERHAELTNIS } from "@/lib/david-video"
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "David · AI Pre-Screening — was dein Lebenslauf einem Recruiter nicht erzählt | LuxuryBandit",
-  description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Pre-Screening: die Fragen, die bei deiner Bewerbung noch offen sind. Kein Score, kein Formular.",
+  title: "David · Das Vorgespräch — was dein Lebenslauf einem Personaler nicht erzählt | LuxuryBandit",
+  description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Vorgespräch: die Fragen, die bei deiner Bewerbung noch offen sind. Kein Punktzahl, kein Formular.",
   alternates: { canonical: "/themes/david" },
   /* Ohne eigenes openGraph erbt diese Seite das Haus-Bild aus app/layout.tsx (LB-Logo) —
      wer den Link auf Facebook postet, sieht dann die Startseite statt David. Eigenes Bild
      (Standbild aus lib/david-video.ts, dieselbe Quelle wie die Karte) + eigener Titel/Text. */
   openGraph: {
-    title: "David · AI Pre-Screening — was dein Lebenslauf einem Recruiter nicht erzählt",
-    description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Pre-Screening. Kein Score, kein Formular.",
+    title: "David · Das Vorgespräch — was dein Lebenslauf einem Personaler nicht erzählt",
+    description: "David liest deinen Lebenslauf zusammen mit deiner Wunschstelle und führt danach ein persönliches Vorgespräch. Kein Punktzahl, kein Formular.",
     type: "website",
     url: "/themes/david",
     images: [{ url: "/Lebenslauf/david-ads-og.jpg", width: 720, height: 720 }],
@@ -82,14 +82,14 @@ export default async function DavidThemePage({ searchParams }: {
   return (
     <LandingSeite hell={hell}
       trackEvent="david_view" trackId="themes-david" trackName="David-Thema"
-      marke="LB - David" heim="/themes/david" motto="AI Pre-Screening" lang={L}
+      marke="LB - David" heim="/themes/david" motto="Das Vorgespräch" lang={L}
       heroA={T.h1a} heroY={T.h1y} heroB={T.h1b}
       kinder={<>
         {/* KEIN KICKER, UNTERZEILE ERST UNTER DER KARTE (Landingpage.md §9: „Kicker nur,
             wenn die Seite ihn wirklich braucht — er kostet eine Zeile"). Beides zusammen
             waren 70 px über dem Video, und das Anzeigen-Video ist hochkant; jede Zeile
             oben schiebt den goldenen Knopf weiter aus dem Bild. Verloren geht nichts:
-            „DAVID · AI PRE-SCREENING" steht in der Kopfzeile und noch einmal als
+            „DAVID · DAS VORGESPRÄCH" steht in der Kopfzeile und noch einmal als
             Karten-Titel, die Unterzeile steht zwei Fingerbreit tiefer. */}
 
         {/* DIE VIDEO-KARTE — der wichtigste Baustein der Seite. Der goldene

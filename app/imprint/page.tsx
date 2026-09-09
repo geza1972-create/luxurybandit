@@ -1,7 +1,7 @@
 import InfoPage from "@/components/InfoPage";
 import TrackView from "@/components/TrackView";
 
-export const metadata = { title: "Imprint — LuxuryBandit" };
+export const metadata = { title: "Imprint — VersusForge" };
 
 // Provider details. Owner operates as a freelancer (Romanian tax number RO49830040,
 // Owner 01.09.2026) — no separate company registration. Contact runs through the contact
@@ -14,7 +14,10 @@ export default function ImprintPage() {
       <TrackView event="imprint_view" lookId="legal-imprint" lookName="Impressum" />
       <h2>Provider</h2>
       <p>
-        LuxuryBandit<br />
+        {/* Der Betreiber bleibt derselbe Mensch — nur der Name, unter dem er auftritt,
+            ist jetzt VersusForge (Owner 08.09.2026). Anschrift und Steuernummer sind
+            unverändert; sie sind die Angabe, auf die es rechtlich ankommt. */}
+        VersusForge<br />
         Bvd. Mihai Viteazu 44<br />
         Timișoara, Romania
       </p>

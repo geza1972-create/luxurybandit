@@ -1662,8 +1662,14 @@ export function Fortschritt({ text, prozent, karte = false, className = "" }: {
   return (
     <div className={`w-full ${className}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[13px] font-bold leading-snug" style={{ color: karte ? tinte : undefined }}>{text}</p>
-        <p className="shrink-0 text-[13px] font-black tabular-nums text-[#f6cf51]">{Math.round(wert)}%</p>
+        {/* 15 px statt 13 (Owner 09.09.2026 am VersusForge-Trichter: „zu klein").
+            13 px lag unter dem Schriftgrössen-Boden des Hauses (nichts unter 13,5) — die
+            Regel galt, der Baustein hielt sie nicht. Es ist der Satz, den ein Mensch liest,
+            während er wartet; von allen Stellen ist das die schlechteste zum Sparen.
+            WIRKT IN ALLEN TRICHTERN, die `Fortschritt` benutzen. Das ist Absicht: eine
+            Ausnahme nur für VersusForge wäre eine zweite Wahrheit. */}
+        <p className="text-[15px] font-bold leading-snug" style={{ color: karte ? tinte : undefined }}>{text}</p>
+        <p className="shrink-0 text-[15px] font-black tabular-nums text-[#f6cf51]">{Math.round(wert)}%</p>
       </div>
       <div className={`mt-2 h-1.5 w-full overflow-hidden rounded-full ${karte ? "bg-[#1a160f]/15" : "bg-white/15"}`}>
         <div className="h-full rounded-full bg-[#f6cf51] transition-[width] duration-700 ease-linear"
@@ -2058,7 +2064,23 @@ export function ThemenKachel({ thema, art = "reihe", live = "LIVE", bald = "Soon
           Rang; so führt der Anfang in Weiss, und das Gold sitzt auf dem Schluss der Zeile —
           dieselbe Teilung, die `SectionTitle` benutzt (`zweifarbig` in Landing.tsx). */}
       <p className="text-[17px] font-black leading-tight">{zweifarbig(thema.titel, { einzelwortGold: false, halb: true })}</p>
-      <p className="mt-1 line-clamp-2 text-[13.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
+      {/**
+        * DREI ZEILEN STATT ZWEI (Owner 07.09.2026, nach dem Messen entschieden).
+        *
+        * Gemessen an der Startseite: Textspalte 255 px, Zeilenhöhe 18,6 px. Bei zwei Zeilen
+        * (37 px) brach die David-Zeile mitten im Satz ab — sie braucht 56 px —, und dasselbe
+        * traf die Academy- und die Talent-Network-Kachel. Die Kacheln versprachen also alle
+        * etwas, das der Besucher nie zu Ende lesen konnte.
+        *
+        * ES IST BEWUSST EINE ÄNDERUNG FÜR ALLE. Der Deckel gehört zum gemeinsamen Baustein
+        * (Hausregel „ein Gerüst für alle"); ihn für eine Kachel zu lockern, hiesse eine
+        * Ausnahme in das Bauwerk zu schneiden, das genau davon lebt, keine zu haben. Der
+        * Preis ist eine Zeile mehr Höhe auf der ganzen Startseite.
+        *
+        * DER DECKEL BLEIBT ABER EINER: Ohne ihn reisst das Gitter auseinander, sobald eine
+        * Übersetzung länger gerät als das deutsche Original — und das tut sie regelmässig.
+        */}
+      <p className="mt-1 line-clamp-3 text-[13.5px] font-semibold leading-snug opacity-75">{thema.zeile}</p>
       {preiszeile}
     </div>
   );
