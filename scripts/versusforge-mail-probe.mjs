@@ -57,10 +57,10 @@ const info = await transporter.sendMail({
   from,
   to: an,
   subject: "Probe aus dem VersusForge-Postfach",
-  text: `Diese Mail kommt aus ${user}.\n\nWenn im Postfach „VersusForge" als Absender steht und NICHT „gesendet über luxurybandit.com", ist alles richtig eingerichtet.\n\nLandet sie im Spam, fehlt an der Domain noch etwas — dann sag Bescheid.`,
+  text: `Diese Mail kommt aus ${user}.\n\nWenn im Postfach „VersusForge“ als Absender steht und NICHT „gesendet über luxurybandit.com“, ist alles richtig eingerichtet.\n\nLandet sie im Spam, fehlt an der Domain noch etwas — dann sag Bescheid.`,
   html: `<p style="font-family:sans-serif;font-size:17px;line-height:1.55">Diese Mail kommt aus <b>${user}</b>.</p>`
-    + `<p style="font-family:sans-serif;font-size:17px;line-height:1.55">Wenn im Postfach <b>VersusForge</b> als Absender steht und <b>nicht</b> „gesendet über luxurybandit.com", ist alles richtig eingerichtet.</p>`
+    + `<p style="font-family:sans-serif;font-size:17px;line-height:1.55">Wenn im Postfach <b>VersusForge</b> als Absender steht und <b>nicht</b> „gesendet über luxurybandit.com“, ist alles richtig eingerichtet.</p>`
     + `<p style="font-family:sans-serif;font-size:14.5px;line-height:1.55;color:#5b666f">Landet sie im Spam, fehlt an der Domain noch etwas.</p>`,
 });
 console.log(`\nVerschickt an ${an} — ${info.messageId}`);
-console.log("Im Postfach prüfen: steht dort „VersusForge" oder „via luxurybandit.com"?");
+console.log("Im Postfach prüfen: steht dort „VersusForge“ oder „via luxurybandit.com“?");
