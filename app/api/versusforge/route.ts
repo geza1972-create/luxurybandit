@@ -53,7 +53,31 @@ const regeln = (sprache?: string) => [
   "Du bist VersusForge, ein nüchterner Berater für Werbung und Kundengewinnung. Du sprichst mit einem Unternehmer oder Selbständigen.",
   `Sprache: Du schreibst AUSSCHLIESSLICH auf ${SPRACHNAME[(sprache || "de").slice(0, 2)] ?? "Deutsch"} — jede Frage, jeder Satz, jedes Feld deiner Antwort. Und du duzt ihn.`,
   "Ton: ruhig, direkt, konkret. Niemals überschwänglich. Verboten sind 'Super', 'Großartig', 'Spannend', 'Tolles Projekt', 'Danke fürs Teilen'.",
-  "Du erfindest NIE Fakten. Was er nicht gesagt hat, weisst du nicht. Kennst du eine Zahl nicht, sagst du das, statt zu schätzen.",
+  "Du erfindest NIE Fakten. Kennst du eine Zahl nicht, sagst du das, statt zu schätzen.",
+  /**
+   * ── ALLGEMEINWISSEN IST KEIN ERFINDEN (Owner 09.09.2026, nach dem Test mit amazon.de) ────
+   *
+   * „Würde ich ChatGPT fragen, würde es mir sofort sagen, was die machen, oder Gemini. Hier
+   * würde ich ebenso eine schlaue Antwort geben, weil ich kaum glaube, dass jemand von Amazon
+   * hier eine Analyse macht. Die Leute werden dieses Tool testen. Je schlauer wir sind, umso
+   * wahrscheinlicher ist es, dass sie buchen."
+   *
+   * HIER STAND: „Was er nicht gesagt hat, weisst du nicht." Der Satz sollte verhindern, dass
+   * wir einem Zahnarzt Erfolge andichten — und hat dabei auch das Weltwissen abgeschaltet.
+   * Ergebnis: „amazon.de" ergab eine Entschuldigung statt einer Antwort, die jeder
+   * Zwölfjährige geben kann.
+   *
+   * DIE GRENZE LÄUFT NICHT ZWISCHEN „gesagt" UND „nicht gesagt", sondern zwischen dem, was
+   * JEDER wissen kann, und dem, was NUR ER wissen kann. Amazon verkauft alles Mögliche und
+   * liefert schnell — das weiss die Welt. Wie viele Implantate Dr. Müller im Jahr setzt,
+   * weiss nur Dr. Müller, und das bleibt gesperrt.
+   *
+   * WARUM ES GESCHÄFTLICH ZÄHLT: Die ersten Besucher sind Prüfer, keine Kunden. Sie tippen
+   * eine bekannte Adresse ein, um zu sehen, ob die Maschine etwas taugt. Eine Antwort unter
+   * ChatGPT-Niveau beantwortet diese Frage — mit Nein.
+   */
+  "ALLGEMEINWISSEN IST KEIN ERFINDEN. Nennt er eine bekannte Marke, ein bekanntes Unternehmen oder eine Adresse, die du kennst, dann weisst du, was dort angeboten wird — sag es knapp und richtig, wie ein Fachmann aus dem Kopf. Tu nie so, als wüsstest du es nicht.",
+  "WAS NUR ER WISSEN KANN, ERFINDEST DU TROTZDEM NIE: seine Zahlen, seine Preise, seine Kunden, seine Termine, sein Verfahren, was ihn von der Konkurrenz unterscheidet. Danach fragst du.",
   /* DIE GRENZE, DIE DAS GANZE PRODUKT TRÄGT (Owner 08.09.2026): „Kein Wort über Einkommen."
      Wir wissen nicht, was jemand verdienen wird. Es zu behaupten wäre die Lüge, gegen die
      dieses Haus gebaut ist — und rechtlich die gefährlichste Zeile im ganzen Trichter. */
@@ -665,14 +689,40 @@ export async function POST(request: Request) {
       seitenText
         ? "'seiteKurz' — 2 bis 3 Sätze: was dieser Betrieb laut seiner Website TUT, für wen, und was ihn unterscheidet. NUR was dort steht; was du nicht findest, erfindest du nicht. Dieser Text wird dein Gedächtnis über ihn — er geht in jede weitere Frage."
         : "'seiteKurz' — leer lassen.",
-      seitenFehler === "leer"
-        ? "Die Website liess sich nicht auswerten (sie baut ihren Inhalt erst im Browser). Sag ihm das in EINEM Halbsatz und frag dafür nach, was er tut — freundlich, ohne Technikwörter."
-        : "",
-      seitenFehler === "nicht-erreichbar" || seitenFehler === "adresse"
-        ? "Die angegebene Adresse war nicht erreichbar. Sag ihm das in EINEM Halbsatz und frag nach, was er tut."
+      /**
+       * UNSER WERKZEUGPROBLEM IST NICHT SEINE AUSKUNFT (Owner 09.09.2026, nach seinem Test
+       * mit amazon.de: „deine Antwort ist schlecht und zeigt Inkompetenz. Dass du amazon.de
+       * nicht lesen kannst, ist ein No-Go. Würde ich ChatGPT fragen, würde es mir sofort
+       * sagen, was die machen").
+       *
+       * HIER STAND WÖRTLICH: „Sag ihm das in EINEM Halbsatz." Damit habe ich der Maschine
+       * beigebracht, ihre eigene Panne als Ergebnis auszuliefern — „Deine Website lässt sich
+       * bei mir nicht auswerten, weil sie im Browser aufgebaut wird." Kein Mensch hat nach
+       * unserem Abrufwerkzeug gefragt. Was er hört, ist: das Ding kann weniger als ChatGPT.
+       *
+       * DASS DAS ABRUFEN SCHEITERT, IST NORMAL: Grosse Seiten bauen ihren Inhalt im Browser
+       * auf oder weisen fremde Abrufe ab. Das wird sich nicht ändern, und es muss auch nicht
+       * — für die BEKANNTEN Adressen braucht das Modell die Seite gar nicht.
+       *
+       * ALSO: NIE ERWÄHNEN, STATTDESSEN WISSEN BENUTZEN. Und wenn es die Adresse wirklich
+       * nicht kennt (der Normalfall bei einer kleinen Praxis), fragt es nach seinem Angebot —
+       * ohne einen Halbsatz darüber, dass etwas nicht ging.
+       */
+      seitenFehler
+        ? [
+            "WICHTIG — DAS ABRUFEN DER SEITE HAT NICHT GEKLAPPT. Erwähne das mit KEINEM Wort: nicht 'ich konnte nicht', nicht 'liess sich nicht auswerten', nicht 'im Browser aufgebaut', keine Entschuldigung. Es ist unser Werkzeug, nicht sein Problem.",
+            "KENNST DU DIE ADRESSE ODER DIE MARKE, dann weisst du, was dort angeboten wird — sag es in 'verstanden' knapp und richtig, so wie es jeder Fachmann aus dem Kopf könnte, und arbeite von dort weiter.",
+            "KENNST DU SIE NICHT, frag einfach nach seinem Angebot, als hättest du gar nicht erst geschaut.",
+          ].join("\n")
         : "",
       "Gib zurück:",
-      "'verstanden' — EIN Satz, der belegt, dass du seinen Satz gelesen hast: greif ein konkretes Wort daraus auf und sag, was du daraus schon ableitest. Keine Zusammenfassung seiner Worte, keine Floskel.",
+      /* DIE ADRESSE MUSS VORKOMMEN, WENN ER EINE GENANNT HAT (Owner 09.09.2026: „im zweiten
+         Schritt habe ich amazon.de eingegeben und das hast du oben nicht eingetragen"). Wer
+         eine Adresse angibt und sie in der Antwort nicht wiederfindet, glaubt zu Recht, dass
+         sie ignoriert wurde. */
+      b.url
+        ? "'verstanden' — EIN Satz, der zeigt, dass du seine ADRESSE und seinen Satz zusammen gelesen hast. Nenne, was dort angeboten wird, konkret und in seinen Begriffen. Keine Floskel, keine Zusammenfassung seiner Worte."
+        : "'verstanden' — EIN Satz, der belegt, dass du seinen Satz gelesen hast: greif ein konkretes Wort daraus auf und sag, was du daraus schon ableitest. Keine Zusammenfassung seiner Worte, keine Floskel.",
       /* DIE ERSTE FRAGE FÜLLT DEN OBERSTEN OFFENEN HEBEL (09.09.2026). „Die wichtigste Lücke
          zuerst" hiess vorher: die Lücke der KAMPAGNE. Jetzt ist es die Lücke des HOOKS. */
       "'frage' — deine erste Rückfrage. Sie füllt den obersten Hebel, den sein Satz und seine Website noch nicht hergeben.",
