@@ -135,7 +135,26 @@ const GRUSS = [
    * bleibt jeden Tag wahr.
    */
   "Das hier kostet dich nichts. Wir stehen am Anfang und wollen, dass du uns testest — deshalb bekommst du die ganze Strategie geschenkt. Das bleibt nicht so.",
-  "Zum Datenschutz: Was du schreibst, verarbeitet ein KI-Modell von OpenAI — anders geht es nicht. Das Gespräch selbst speichern wir nicht; es ist weg, sobald du die Seite schliesst. Gespeichert wird erst, was du am Ende ausdrücklich anlegst.",
+  /**
+   * ── DER SATZ MUSS FÜR DEN GANZEN WEG STIMMEN (Owner 09.09.2026: „er bekommt doch die
+   * Analyse per E-Mail geschickt und alles ist da. Er kann das löschen, oder wir löschen das
+   * in 30 Tagen. Hast du vergessen?") ─────────────────────────────────────────────────────
+   *
+   * JA, VERGESSEN. Ich hatte ihn für DIESEN Prototyp geschrieben, der tatsächlich nichts
+   * ablegt — und dabei übersehen, dass am Ende des fertigen Wegs eine E-Mail steht, ein
+   * Trichter angelegt wird und die Anfragen darin landen. Ein Datenschutzsatz, der nur für
+   * die ersten fünf Minuten stimmt, ist falsch; und er wird genau von dem gelesen, der ihn
+   * später an seinem eigenen Postfach überprüfen kann.
+   *
+   * WAS HIER STEHT, EXISTIERT: Der Löschlink liegt in jeder Mail
+   * (`lib/versusforge-links-post.ts`), er löscht Trichter und Anfragen endgültig
+   * (`app/api/versusforge-loeschen`), und er hängt an KEINER Bedingung — auch nicht am Kauf.
+   *
+   * WAS NOCH NICHT EXISTIERT, STEHT AUCH NICHT DA: Das automatische Löschen nach 30 Tagen
+   * ist heute nicht gebaut. Es gehört gebaut, und sobald es läuft, kommt der Halbsatz hier
+   * dazu — vorher wäre es ein Versprechen, das niemand hält.
+   */
+  "Zum Datenschutz: Was du schreibst, verarbeitet ein KI-Modell von OpenAI — anders geht es nicht. Am Ende schicke ich dir die fertige Strategie per E-Mail; dafür brauche ich deine Adresse, und ab da liegt sie bei uns. In jeder Mail steht ein Link, mit dem du alles wieder löschst — sofort, ohne Nachfrage und ohne Begründung.",
   "Ein paar Minuten, dann steht deine Strategie. Einverstanden?",
 ].join("\n\n");
 
