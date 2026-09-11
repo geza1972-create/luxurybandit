@@ -8,6 +8,8 @@ import SprachKnopf from "@/components/SprachKnopf";
 import { LANGS, LANG_LABEL, LANG_COOKIE, type Lang } from "@/lib/lang";
 import { eur, VERSUSFORGE_ABO_CENTS } from "@/lib/pricing";
 import type { AgentChatTexte } from "@/lib/agent-chat-texte";
+import { schrittMessen } from "@/lib/versusforge-messen";
+import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 
 /**
  * DER AGENT ALS CHAT — der Prototyp auf dem Zweig `agent` (Owner 09.09.2026).
@@ -192,6 +194,18 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
   marke?: "versusforge" | "lakatosbandi";
 }) {
   const router = useRouter();
+
+  /**
+   * „SEITE GESEHEN" — DER CHAT ZÄHLTE BISHER NICHTS (Owner 11.09.2026: „ich sehe die Leute klicken
+   * schon von der Anzeige, die sehe ich nicht … und ich sehe auch nicht, was die im Chat machen").
+   *
+   * Weder `versusforge.com/engine` noch `lakatosbandi.com/start` meldeten je einen Besuch — der
+   * alte Chat (`VersusForgeStartEinfach.tsx`) tat es, dieser gemeinsame Chat nie. Dieselbe
+   * Zählung wie dort: EIN Mandant (`EIGENER_MANDANT`), damit Startseite, Chat-Aufruf und
+   * Chat-Abschluss in einem Trichter landen, nicht in drei getrennten Zahlen.
+   */
+  useEffect(() => { schrittMessen(EIGENER_MANDANT, "seite"); }, []);
+
   /* AUF LAKATOSBANDI.COM HEISST DIE ZUSTIMMUNG „DA, VREAU" (Owner 11.09.2026) — über denselben Schlüssel, damit jede
      Stelle, die auf die Zustimmung prüft (`S.chipEinverstanden`), weiter greift. */
   const S = marke === "lakatosbandi" ? { ...SQuelle, chipEinverstanden: SQuelle.startJa } : SQuelle;
@@ -643,6 +657,10 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
      * NUR EINMAL: Nach diesem Zug ist der Verlauf nicht mehr „nur Gruss", der Zweig kommt nie
      * wieder.
      */
+    if (nurGruss && w === S.chipEinverstanden) {
+      /* STUFE „START" — er hat zugestimmt, nicht nur die Seite gesehen (Owner 11.09.2026, siehe oben). */
+      schrittMessen(EIGENER_MANDANT, "start");
+    }
     if (nurGruss && w === S.chipEinverstanden && auftrag?.trim()) {
       naechster = [...naechster, { rolle: "mensch", text: auftrag.trim() }];
       setVerlauf(naechster);
@@ -718,6 +736,8 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
        * egal was das Modell schickt. Zwei Riegel für einen Fehler, der teuer aussieht.
        */
       if (Array.isArray(d.werke)) setWerke(d.werke as unknown[]);
+      /* STUFE „LEAD" — Name und E-Mail sind raus, seine Seite steht (Owner 11.09.2026, siehe oben). */
+      if (Array.isArray(d.benutzt) && d.benutzt.includes("abschluss_schicken")) schrittMessen(EIGENER_MANDANT, "lead");
       const hatErzaehlt = naechster.filter(m => m.rolle === "mensch").length > 1;
       /* SEIN BILD MIT SPRUCH: Bild Nummer n ist das n-te Bild, das er in diesem Gespräch gezeigt hat. */
       const v = d.vorschau && typeof d.vorschau === "object" ? (d.vorschau as { nr?: unknown; spruch?: unknown }) : null;

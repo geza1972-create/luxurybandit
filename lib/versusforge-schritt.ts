@@ -178,3 +178,82 @@ export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 10
   const seit = Date.parse(neuSeit) || 0;
   return { leiter: zahlen, besucher: staende.length, neu: staende.filter(s => (Date.parse(s.erst) || 0) > seit).length };
 }
+
+/**
+ * ── DIE GESAMTÜBERSICHT ÜBER ALLE MANDANTEN (Owner 11.09.2026: „wo sehe ich die Traffic,
+ * gesamten") ─────────────────────────────────────────────────────────────────────────────
+ *
+ * `trichterZaehlen` beantwortet „wie läuft EIN Trichter". Diese Funktion beantwortet
+ * „wie viele Besucher hatten wir INSGESAMT, über alle Künstler, und wer bringt welchen
+ * Anteil" — für die Admin-Seite, nicht für ein einzelnes Dashboard.
+ *
+ * DIESELBE DATENQUELLE, EINE EBENE HÖHER: Erst die Mandanten-Ordner unter
+ * `versusforge-schritt/` auflisten, dann je Mandant wie in `trichterZaehlen` jede Datei
+ * lesen. Bei Dutzenden Künstlern und je ein paar Besuchern ist das noch kein Problem; würden
+ * es Hunderte, gehörte hier eine Übersichtsdatei hin ([[versusforge-nicht-ueberoptimieren]]).
+ *
+ * PRO TAG NACH `erst`, NICHT NACH `zeit`: `zeit` wandert bei jedem neuen Besuch weiter — ein
+ * Besucher von vor einer Woche, der heute noch einmal weiterklickt, zählte sonst heute noch
+ * einmal. `erst` ist der Tag, an dem er zum ersten Mal kam, und ändert sich nie wieder.
+ */
+export async function alleMandantenTraffic(tage = 14, grenzeMandanten = 200, grenzeDateien = 1000): Promise<{
+  proTag: { tag: string; anzahl: number }[];
+  proMandant: { mandant: string; besucher: number; abschluss: number }[];
+  gesamt: number;
+  abschluesseGesamt: number;
+}> {
+  const ordnerListe = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: "versusforge-schritt/", limit: grenzeMandanten }),
+  });
+  if (!ordnerListe.ok) return { proTag: [], proMandant: [], gesamt: 0, abschluesseGesamt: 0 };
+  const mandanten = ((await ordnerListe.json().catch(() => [])) as { name?: string; id?: string | null }[])
+    /* Supabase gibt Ordner ohne `id` zurück — echte Dateien haben eine. */
+    .filter(d => !d?.id)
+    .map(d => String(d?.name ?? ""))
+    .filter(Boolean);
+
+  const grenzZeit = Date.now() - tage * 24 * 3600 * 1000;
+  const proTagKarte = new Map<string, number>();
+  const proMandant: { mandant: string; besucher: number; abschluss: number }[] = [];
+  let gesamt = 0;
+  let abschluesseGesamt = 0;
+
+  await Promise.all(mandanten.map(async (mandant) => {
+    const leiter = leiterFuer(mandant);
+    const letzteStufe = leiter[leiter.length - 1]?.schluessel;
+    const dateiListe = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: `${ordner(mandant)}/`, limit: grenzeDateien }),
+    });
+    if (!dateiListe.ok) return;
+    const namen = ((await dateiListe.json().catch(() => [])) as { name?: string }[])
+      .map(d => String(d?.name ?? "")).filter(n => n.endsWith(".json"));
+    if (!namen.length) return;
+
+    const staende = (await Promise.all(namen.map(async n => {
+      const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(`${ordner(mandant)}/${n}`)}`);
+      if (!res.ok) return null;
+      try { return (await res.json()) as Stand; } catch { return null; }
+    }))).filter((s): s is Stand => !!s && Date.parse(s.erst) > grenzZeit);
+    if (!staende.length) return;
+
+    for (const s of staende) {
+      const tag = (s.erst || s.zeit || "").slice(0, 10);
+      if (tag) proTagKarte.set(tag, (proTagKarte.get(tag) ?? 0) + 1);
+    }
+    const abschluss = staende.filter(s => s.stufe === letzteStufe).length;
+    proMandant.push({ mandant, besucher: staende.length, abschluss });
+    gesamt += staende.length;
+    abschluesseGesamt += abschluss;
+  }));
+
+  const proTag = [...proTagKarte.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([tag, anzahl]) => ({ tag, anzahl }));
+  proMandant.sort((a, b) => b.besucher - a.besucher);
+
+  return { proTag, proMandant, gesamt, abschluesseGesamt };
+}

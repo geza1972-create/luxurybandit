@@ -12,6 +12,7 @@ import { baldTexte } from "@/lib/lakatosbandi-bald-texte";
 import { eur, VERSUSFORGE_ABO_CENTS } from "@/lib/pricing";
 import { preisAnzeige } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
+import PortalBesuchMelden from "@/components/PortalBesuchMelden";
 
 /**
  * DIE STARTSEITE VON LAKATOSBANDI.COM (Owner 10.09.2026: „lakatosbandi.com ist das Portal … eine
@@ -88,6 +89,9 @@ export default async function PortalStart({ searchParams }: { searchParams: Prom
 
   return (
     <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+      {/* „SEITE GESEHEN" — genau hierhin führen die Anzeigen (Owner 11.09.2026). Egal ob „bald" oder
+          schon offen: beide Zustände sind ein echter Besuch. */}
+      <PortalBesuchMelden />
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
 
       {bald ? (
