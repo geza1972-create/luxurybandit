@@ -769,7 +769,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
               VersusForge das ist — for Art"). Fest, nicht übersetzt: Es gehört zum Namen. */}
           {marke === "lakatosbandi" ? (
             /* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge"). */
-            <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatos<span className="text-[#8a8a8a]">bandi.com</span></span>
+            <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
           ) : (
             <span className="flex flex-col gap-1">
               <Wortmarke className="text-[21px] font-black leading-none tracking-[-0.02em]" akzent="#111" />
@@ -873,7 +873,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                     */}
                   {marke === "lakatosbandi" ? (
                     /* Auf lakatosbandi.com kein VersusForge-Logo — der Name des Portals, schlicht wie sein Kopf. */
-                    <span className="text-[15px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatos<span className="text-[#8a8a8a]">bandi.com</span></span>
+                    <span className="text-[15px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
                   ) : (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -897,22 +897,33 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                 </div>
               )}
               {m.rolle === "agent" && marke === "lakatosbandi" && m.text === gruss ? (
-                /* DIE STARTKARTE (Owner 11.09.2026: „wenn das Beispiel mit Van Gogh dasteht und darunter: Willst du auch
-                   so ein Marketing?"). Der Datenschutz steht eingeklappt, aber VOR dem Knopf — die Einwilligung bleibt
-                   eine Einwilligung. */
+                /* DIE STARTKARTE — IM STIL DES BEISPIELS AUF DER STARTSEITE (Owner 11.09.2026: „lakatosbandi.com ist
+                   besser als lakatosbandi." fürs Logo · „das Bild von Van Gogh nicht abschneiden" · „unten hast du
+                   kunterbunte Typo, schau wie wir es auf der Homepage haben" — also `components/PortalBald.tsx`, Abschnitt
+                   BEISPIEL: graue Kapitälchen-Label, „Nachher" gross in Serifenschrift statt fett, die Frage als
+                   Zitat mit Strich links, keine Farbmischung). Der Datenschutz steht eingeklappt, aber VOR dem Knopf —
+                   die Einwilligung bleibt eine Einwilligung. */
                 <div className="max-w-[86%] overflow-hidden rounded-2xl rounded-bl-md bg-[#f1f4f7] text-[16.5px] leading-[1.5] md:text-[17.5px]">
+                  {/* WEISS STATT SCHWARZ/GRAU, UND KEIN RAND MEHR (Owner 11.09.2026: „einfach weiss machen im
+                     Van-Gogh-Kasten und Bild recht platzieren"). Das Seitenverhältnis des Kastens ist genau das des
+                     Bildes (364:520) — es füllt ihn exakt, ohne Beschnitt und ohne Rand rechts oder links; `bg-white`
+                     bleibt nur als Sicherheitsnetz, falls das Bild einmal ausgetauscht wird. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt={S.startQuelle} className="block h-[220px] w-full object-cover" />
-                  <div className="px-4 py-3">
-                    <p className="m-0 text-[12px] font-bold uppercase tracking-[0.12em] text-[#8b959d]">{S.startVorherLabel}</p>
-                    <p className="m-0 mt-1 text-[#5b666f]">{S.startVorher}</p>
-                    <p className="m-0 mt-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#8b959d]">{S.startNachherLabel}</p>
-                    <p className="m-0 mt-1 font-bold">{S.startNachher}</p>
-                    <p className="m-0 mt-4 font-bold">{S.startFrage}</p>
-                    <p className="m-0 mt-1">
-                      {S.startText.split("lakatosbandi.com").flatMap((t, k) => (k ? [<strong key={k} className="font-bold">lakatosbandi.com</strong>, t] : [t]))}
-                    </p>
-                    <p className="m-0 mt-2 text-[14px] text-[#5b666f]">{S.startFein}</p>
+                  <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt={S.startQuelle} className="block aspect-[91/130] w-full bg-white object-cover" />
+                  <div className="px-4 py-4">
+                    {/* Owner 11.09.2026: schwarz statt hellgrau — die grauen Label kontrastieren sonst zu wenig auf dem
+                        hellgrauen Kartengrund (`#f1f4f7`), anders als auf der weissen Startseite. */}
+                    <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#5b666f]">{S.startVorherLabel}</p>
+                    <p className="m-0 mt-1.5 text-[15px] leading-[1.5] text-[#14181c] line-through decoration-[#8b959d]">{S.startVorher}</p>
+                    <p className="m-0 mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#111]">{S.startNachherLabel}</p>
+                    <p className="m-0 mt-1.5 font-serif text-[22px] leading-[1.3] md:text-[25px]">{S.startNachher}</p>
+                    <div className="mt-4 border-l-2 border-[#111] pl-3.5">
+                      <p className="m-0 font-bold leading-[1.4]">{S.startFrage}</p>
+                      <p className="m-0 mt-1 leading-[1.4]">
+                        {S.startText.split("lakatosbandi.com").flatMap((t, k) => (k ? [<strong key={k} className="font-bold">lakatosbandi.com</strong>, t] : [t]))}
+                      </p>
+                    </div>
+                    <p className="m-0 mt-3 text-[14px] text-[#5b666f]">{S.startFein}</p>
                     <details className="mt-3">
                       <summary className="cursor-pointer text-[14px] font-bold text-[#5b666f]">{S.startDatenschutzTitel}</summary>
                       <p className="m-0 mt-2 whitespace-pre-wrap text-[14px] leading-[1.5] text-[#5b666f]">{S.grussDatenschutz}</p>
@@ -1054,7 +1065,11 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                        * durch will ([[chat-no-personal-questions-buttons-only]]).
                        */
                       onClick={() => { setEingabe(""); void schicken(v, m.spruchWahl ? { nr: m.spruchWahl, spruch: v } : undefined); }}
-                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]"
+                      /* DIE ZUSTIMMUNG SCHWARZ GEFÜLLT (Owner 11.09.2026), wie „Aplică ca artist" auf der Startseite —
+                         der einzige Knopf unter der Startkarte, kein normaler Chip unter vielen. */
+                      className={v === S.chipEinverstanden && m.vorschlaege?.length === 1
+                        ? "rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-semibold text-white transition hover:bg-[#333]"
+                        : "rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]"}
                     >
                       {v}
                     </button>
