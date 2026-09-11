@@ -89,6 +89,10 @@
      (.lb-mandant) bleibt bewusst in der Handyspalte — dort kommen die Patienten an, und
      die kommen vom Handy. */
   .lb-frame:has(.lb-dashboard),
+  /* LAKATOSBANDI.COM, DAS PORTAL FÜR KÜNSTLER (Owner 10.09.2026: „genau diesen Stil von
+     Webseite will ich haben" — artsy.net). Ein Raster aus Werken lebt von der Breite; in der
+     Handy-Spalte stünde eine Kachel pro Zeile. Die Seite setzt ihre eigene Breite (1120 px). */
+  .lb-frame:has(.lb-portal),
   .lb-frame:has(.lb-zentrale) {
     width: 100%;
     max-width: none;
@@ -1288,6 +1292,8 @@ body.lb-tunnel-tief .lb-kopf-schalter { display: none; }
  * anlegt, muss nichts eintragen und kann es also auch nicht vergessen.
  */
 body:has(.lb-versusforge) .lb-hausleiste { display: none !important; }
+/* Das Portal lakatosbandi.com ist eine eigene Marke — keine Haus-Leiste (Owner 10.09.2026). */
+body:has(.lb-portal) .lb-hausleiste { display: none !important; }
 
 /**
  * KEIN HAUS-ZUBEHÖR AUF EINER MANDANTENSEITE (Owner 09.09.2026: „am Ende müssen seine Daten

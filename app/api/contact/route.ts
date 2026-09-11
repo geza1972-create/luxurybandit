@@ -40,6 +40,25 @@ export async function POST(request: Request) {
 
   const reasonLabel = REASONS[reason];
 
+  /**
+   * LAKATOSBANDI.COM UND VERSUSFORGE.COM SCHREIBEN AUS IHREM EIGENEN POSTFACH (Owner 10.09.2026:
+   * „wo geht die E-Mail hin vom Contact? an service@versusforge.com hoffe ich").
+   *
+   * Vorher landete jede Nachricht im LuxuryBandit-Postfach, und der Künstler bekam eine
+   * Bestätigung „— The LuxuryBandit Team". Jetzt: Kommt die Anfrage über einen dieser beiden
+   * Hosts, geht sie an das VersusForge-Postfach (`VERSUSFORGE_MAIL`, service@versusforge.com)
+   * und die Bestätigung trägt die Marke der Seite. luxurybandit.com bleibt, wie es war.
+   */
+  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  const marke = /(^|\.)lakatosbandi\.com$/.test(host) ? "lakatosbandi.com"
+    : /(^|\.)versusforge\.com$/.test(host) ? "VersusForge" : "";
+  const vfPostfach = (process.env.VERSUSFORGE_MAIL ?? process.env.VERSUSFORGE_SMTP_USER ?? "").trim();
+  const eigenesPostfach = !!marke && !!vfPostfach;
+  const empfaenger = eigenesPostfach ? vfPostfach : SUPPORT_TO;
+  const konto = eigenesPostfach ? ("versusforge" as const) : undefined;
+  const absenderName = marke === "lakatosbandi.com" ? "lakatosbandi.com" : marke === "VersusForge" ? "VersusForge" : "LuxuryBandit";
+  const unterschrift = marke === "lakatosbandi.com" ? "— Geza &amp; Szidonia, lakatosbandi.com" : marke === "VersusForge" ? "— The VersusForge Team" : "— The LuxuryBandit Team";
+
   // 1) Notify support (reply-to = the visitor, so we can answer directly).
   const supportHtml = `
     <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;color:#111">
@@ -48,12 +67,13 @@ export async function POST(request: Request) {
       <p style="margin:0 0 6px"><strong>Reason:</strong> ${esc(reasonLabel)}</p>
       <p style="margin:12px 0 4px"><strong>Message:</strong></p>
       <p style="white-space:pre-wrap;margin:0;padding:12px;background:#f6f6f6;border-radius:8px">${esc(message)}</p>
-      <p style="margin:16px 0 0;color:#888;font-size:12px">Sent from the luxurybandit.com contact form. Reply directly to answer ${esc(email)}.</p>
+      <p style="margin:16px 0 0;color:#888;font-size:12px">Sent from the ${esc(marke || "luxurybandit.com")} contact form. Reply directly to answer ${esc(email)}.</p>
     </div>`;
 
   const supportRes = await sendEmail({
-    to: SUPPORT_TO,
-    subject: `Contact (${reasonLabel}) from ${name}`,
+    ...(konto ? { konto } : {}),
+    to: empfaenger,
+    subject: `Contact${marke ? ` ${marke}` : ""} (${reasonLabel}) from ${name}`,
     html: supportHtml,
     replyTo: email,
   });
@@ -72,12 +92,13 @@ export async function POST(request: Request) {
       <p style="margin:0 0 4px;color:#555"><strong>Your message:</strong></p>
       <p style="white-space:pre-wrap;margin:0 0 14px;padding:12px;background:#f6f6f6;border-radius:8px;color:#333">${esc(message)}</p>
       <p style="margin:0;color:#888;font-size:12px">This confirmation was sent automatically — no need to reply. We&apos;re on it.</p>
-      <p style="margin:14px 0 0;font-weight:700">— The LuxuryBandit Team</p>
+      <p style="margin:14px 0 0;font-weight:700">${unterschrift}</p>
     </div>`;
 
   await sendEmail({
+    ...(konto ? { konto } : {}),
     to: email,
-    subject: "We received your message – LuxuryBandit",
+    subject: `We received your message – ${absenderName}`,
     html: confirmHtml,
   }).catch(() => {});
 

@@ -22,6 +22,16 @@ import { EIGENER_MANDANT, GESPERRTE_NAMEN, mandantSauber } from "@/lib/versusfor
  * öffentliche Seite holt sich `oeffentlich()`, das Dashboard `mandantLesen()`.
  */
 
+/** Titel, Technik, Größe, Jahr eines Werks — alles freiwillig, alles kurz (Owner 10.09.2026). */
+export type WerkInfo = {
+  /** Seine Geschichte zu diesem Werk — nicht auf der Seite, sein Agent erzählt daraus (Owner 11.09.2026). */
+  geschichte?: string;
+  /** Sein Preis für dieses Werk, wie er ihn schreibt („800 €") — und ob er ihn zeigen will (Owner 11.09.2026: „c"). */
+  preis?: string;
+  preisZeigen?: boolean;
+  /** Weitere Details, z. B. „Print semnat, ediție limitată 3/50" (Owner 11.09.2026: „hier wäre nicht Technica, sondern Alte detalii"). */
+  detalii?: string; titel?: string; technik?: string; groesse?: string; jahr?: string };
+
 export type MandantAngaben = {
   /** Der Name, der oben auf der Seite steht. Seiner, nicht unserer. */
   name: string;
@@ -184,7 +194,47 @@ export type MandantAngaben = {
    * Optional, damit bestehende Mandanten-Dateien ohne dieses Feld weiter gelesen werden.
    */
   hooks?: string[];
+  /**
+   * DIE ANGABEN ZU SEINEN WERKEN (Owner 10.09.2026: „der Künstler möchte noch etwas hinschreiben,
+   * wie Titel, Technik, Größe, Künstlername, Datum"). Schlüssel wie die Kacheln seiner Seite:
+   * „standard" = das Bild mit seinem eigenen Spruch, „0" … „3" = hooks[i].
+   */
+  werkInfo?: Record<string, WerkInfo>;
+  /** Der Preis, den er im Gespräch genannt hat — für den Owner und den Agenten, nicht auf der Seite. */
+  preis?: string;
+  /** Über mich — sein Text auf seiner Seite (Owner 11.09.2026: „Text über sich"). */
+  ueberMich?: string;
+  /** Ob er ein Künstlerfoto hochgeladen hat — die Datei liegt als Motiv „profil" (Seite bearbeiten). */
+  profilBild?: boolean;
+  /** Die Kacheln, die er auf „Seite bearbeiten" hat (-1 = Standard) — auch die ohne Spruch, sonst verschwänden sie beim nächsten Öffnen. */
+  werkNummern?: number[];
+  /** Die Bildanalyse je Kachel („standard", „0" …), beim Abschluss gespeichert — Stoff für seinen verkaufenden Agenten. */
+  werkBefunde?: Record<string, { stil?: string; motiv?: string; szene?: string; erinnertAn?: string; selten?: string; merkmale?: string[] }>;
   stand: "vorschau" | "scharf";
+  /**
+   * FREIGABE DURCH DEN OWNER (Owner 10.09.2026, Variante B: „nach Freigabe, Ziel innerhalb von
+   * 3 Tagen" — nach dem Vorbild Artsy).
+   *
+   * EINE EIGENE ACHSE NEBEN `stand`: `stand` sagt, ob bezahlt ist; `freigabe`, ob die Seite
+   * öffentlich sein darf. Ein Künstler kann freigegeben sein, ohne zu zahlen — und umgekehrt
+   * darf Geld allein niemanden online bringen.
+   *
+   * FEHLT DAS FELD, GILT „frei": Alle Einträge von vor diesem Tag (Zahnarzt, Atelier) waren
+   * öffentlich und bleiben es. Nur neue Künstler aus dem Kunst-Rezept starten als „offen".
+   */
+  freigabe?: "offen" | "frei" | "abgelehnt";
+  /** Wann der Owner entschieden hat. */
+  freigabeAm?: string;
+  /**
+   * SEIN „JA, INS PORTAL" (Owner 10.09.2026: „Er muss auch seine Zustimmung abgeben"). Nur mit
+   * `true` erscheint er in der Übersicht von lakatosbandi.com; seine eigene Seite
+   * lakatosbandi.com/{name} hat er nach der Freigabe so oder so. Fehlt es: nicht in der Übersicht.
+   */
+  portal?: boolean;
+  /** Das Art-Marketing-Abo (10 € / Monat) — Regeln in `lib/versusforge-abo.ts`. Fehlt: keins. */
+  abo?: { aktiv: boolean; seit?: string; subscription?: string; bis?: string };
+  /** Wann er nach dem Abo gefragt wurde (bei der dritten fremden Anfrage). Ab hier läuft die Frist. */
+  aboFrageAm?: string;
   angelegt: string;
 };
 
@@ -244,6 +294,35 @@ export async function mandantSpeichern(mandantRoh: string, angaben: MandantAngab
   return res.ok;
 }
 
+
+/**
+ * EINEN NEUEN MANDANTEN ANLEGEN — NIE ÜBERSCHREIBEN (Owner 11.09.2026: „hier musst du ihm eine
+ * Adresse generieren, die nicht existiert … also ja nicht eine andere überschreiben").
+ *
+ * `freierName` prüft vorher, ob es die Adresse gibt — aber es liest, und jeder Lesefehler zählte
+ * als „frei". Zusammen mit `x-upsert: true` hätte eine haken­de Ablage einen bestehenden Künstler
+ * überschrieben, ebenso zwei gleichnamige Anmeldungen in derselben Sekunde. Hier legt die ABLAGE
+ * selbst fest, ob die Datei neu ist: `x-upsert: false`, und bei „gibt es schon" die nächste Adresse.
+ */
+export async function mandantAnlegen(wunsch: string, angaben: MandantAngaben): Promise<string | null> {
+  const basis = mandantSauber(wunsch) || "kuenstler";
+  for (let i = 0; i < 40; i++) {
+    const kandidat = i === 0 ? basis : `${basis}-${i + 1}`;
+    if (GESPERRTE_NAMEN.has(kandidat)) continue;
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(kandidat))}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "false" },
+      body: JSON.stringify(angaben),
+    });
+    if (res.ok) return kandidat;
+    const text = await res.text().catch(() => "");
+    /* „Gibt es schon" meldet die Ablage als 409 oder als 400 mit „Duplicate" im Text. */
+    if (res.status === 409 || /duplicate|already exists/i.test(text)) continue;
+    console.error("[versusforge] Mandant NICHT angelegt:", kandidat, res.status, text.slice(0, 200));
+    return null;
+  }
+  return null;
+}
 
 /**
  * EIN FREIER NAME FÜR DIE ADRESSE.
@@ -313,7 +392,7 @@ export function mandantAusPlan(o: {
   mail: string;
   /** Seine Website — seit dem 09.09.2026 fragt der Trichter im zweiten Schritt danach. */
   webUrl?: string;
-  plan: { hook?: string; zielgruppe?: string[]; trichter?: string[] } & Record<string, unknown>;
+  plan: { hook?: string; karten?: string[]; zielgruppe?: string[]; trichter?: string[] } & Record<string, unknown>;
   schluessel: string;
   loeschSchluessel: string;
   /** Die Sprache, in der er mit uns geredet hat. Ohne Angabe Deutsch. */
@@ -327,7 +406,17 @@ export function mandantAusPlan(o: {
   const hook = String(plan.hook ?? "").trim();
   /* Die Karten aus der Zielgruppe: kurze, antippbare Sätze. Was zu lang ist, taugt nicht
      als Karte — lieber drei kurze als vier, von denen eine umbricht. */
-  const karten = (Array.isArray(plan.zielgruppe) ? plan.zielgruppe : [])
+  /**
+   * DIE KARTEN KOMMEN AUS `karten`, NICHT AUS `zielgruppe` (09.09.2026, im Prüflauf gesehen:
+   * auf der Seite eines Künstlers stand „Deutschland, Österreich, Schweiz, deutschsprachig"
+   * als antippbare Karte).
+   *
+   * Die Zielgruppe beschreibt, wen die ANZEIGE erreichen soll — eine Einstellung für den
+   * Werbeanzeigenmanager. Die Karten sind Sätze, die sein KUNDE über sich antippt. Bei
+   * älteren Plänen gibt es `karten` noch nicht; dort greift die Zielgruppe als Rückfall,
+   * damit keine Seite ohne Karten dasteht.
+   */
+  const karten = (Array.isArray(plan.karten) && plan.karten.length ? plan.karten : Array.isArray(plan.zielgruppe) ? plan.zielgruppe : [])
     .map(z => String(z ?? "").trim())
     .filter(z => z && z.length <= 60)
     .slice(0, 4);
@@ -367,7 +456,7 @@ export function mandantAusPlan(o: {
 
 
 /**
- * ALLES VON IHM LÖSCHEN — der Trichter UND die Anfragen darin.
+ * ALLES VON IHM LÖSCHEN — der Eintrag, die Anfragen, seine Bilder und die Besucherschritte.
  *
  * BEIDES ODER NICHTS, und in dieser Reihenfolge: Erst die Anfragen (das sind die Daten
  * anderer Menschen, sie wiegen schwerer), dann sein eigener Eintrag. Bliebe der Eintrag
@@ -381,16 +470,46 @@ export async function mandantLoeschen(mandantRoh: string): Promise<boolean> {
   const mandant = mandantSauber(mandantRoh);
   if (!mandant || (GESPERRTE_NAMEN.has(mandant) && mandant !== EIGENER_MANDANT)) return false;
 
-  const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prefix: `versusforge-lead/${mandant}/`, limit: 1000 }),
+  /* ALLES HEISST ALLES (Owner 11.09.2026): Die Begrüssung verspricht „ein Link, mit dem du alles wieder löschst" —
+     vorher blieben seine Bilder (Werke, Profilfoto, Bilder in Prüfung) und die Besucherschritte liegen.
+     Ist eine Liste nicht lesbar, wird NICHT gelöscht und `false` gemeldet: lieber ehrlich scheitern als halb löschen. */
+  const dateienUnter = async (ordner: string): Promise<string[] | null> => {
+    const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: ordner, limit: 1000 }),
+    });
+    if (!liste.ok) return null;
+    const dateien = (await liste.json().catch(() => [])) as { id?: string | null; name?: string }[];
+    return (Array.isArray(dateien) ? dateien : [])
+      .filter(d => d?.id && d?.name)
+      .map(d => `${ordner}${String(d.name)}`);
+  };
+  const ordner = [
+    `versusforge-lead/${mandant}/`,
+    `versusforge-motiv/${mandant}/`,
+    `versusforge-motiv-pruefung/${mandant}/`,
+    `versusforge-schritt/${mandant}/`,
+    /* Die Marken „schon gemeldet" der Interesse-Mails (lib/versusforge-besuch-post.ts). */
+    `versusforge-interesse/${mandant}/`,
+  ];
+  const gefunden = await Promise.all(ordner.map(dateienUnter));
+  if (gefunden.some(g => g === null)) {
+    console.error("[versusforge] Löschen abgebrochen: Liste nicht lesbar", mandant);
+    return false;
+  }
+  const pfade = gefunden.flatMap(g => g ?? []);
+  pfade.push(pfad(mandant), `versusforge-gesehen/${mandant}.json`);
+  /* Was sein Agent zu den Werken gespeichert hat, gehört auch dazu. */
+  const intro = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix: `versusforge-agent-intro/${mandant}/`, limit: 1000 }),
   });
-  const dateien = liste.ok ? ((await liste.json().catch(() => [])) as { name?: string }[]) : [];
-  const pfade = (Array.isArray(dateien) ? dateien : [])
-    .map(d => `versusforge-lead/${mandant}/${String(d?.name ?? "")}`)
-    .filter(p => p.endsWith(".json"));
-  pfade.push(pfad(mandant));
+  if (intro.ok) {
+    for (const d of (await intro.json().catch(() => [])) as { id?: string | null; name?: string }[]) {
+      if (d?.id && d?.name) pfade.push(`versusforge-agent-intro/${mandant}/${d.name}`);
+    }
+  }
 
   const weg = await supabaseFetch(`/storage/v1/object/${BUCKET}`, {
     method: "DELETE",

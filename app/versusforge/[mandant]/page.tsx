@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
+import { aufVersusforge, istKuenstler, kuenstlerUrl } from "@/lib/lakatosbandi";
 import { mandantOeffentlich, AKZENT_STANDARD } from "@/lib/versusforge-mandanten";
 import MandantTrichter from "@/components/MandantTrichter";
 
@@ -28,6 +30,11 @@ export async function generateMetadata({ params }: { params: Promise<{ mandant: 
   const { mandant } = await params;
   const m = await mandantOeffentlich(mandant);
   if (!m) return { title: "Nicht gefunden" };
+  /* VOR DER FREIGABE KEIN NAME IM TAB (10.09.2026, Freigabe-Test): Die Warteseite zeigte nichts
+     von ihm — der Browser-Tab aber „Test Freigabe Künstler — Start now". Abgelehnt: wie nicht
+     vorhanden. */
+  if (m.freigabe === "abgelehnt") return { title: "Nicht gefunden", robots: { index: false, follow: false } };
+  if (m.freigabe === "offen") return { title: "In review", robots: { index: false, follow: false } };
   /* SEIN Titel in der Vorschau, nicht unserer — sonst fliegt das White Label beim ersten
      geteilten Link auf (dieselbe Falle wie bei den Academy-Videos). */
   return {
@@ -37,10 +44,43 @@ export async function generateMetadata({ params }: { params: Promise<{ mandant: 
   };
 }
 
-export default async function MandantSeite({ params }: { params: Promise<{ mandant: string }> }) {
+export default async function MandantSeite({ params, searchParams }: {
+  params: Promise<{ mandant: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { mandant } = await params;
   const m = await mandantOeffentlich(mandant);
   if (!m) notFound();
+
+  /* KÜNSTLER NUR AUF LAKATOSBANDI.COM (Owner 10.09.2026: „nur auf lakatosbandi"). Alte Links auf
+     versusforge.com/{name} — in Mails, Anzeigen, geteilten Posts — landen auf seiner Seite im
+     Portal, `?h=` wandert mit. Auf lakatosbandi.com ist diese Seite das Gespräch hinter
+     „Sprich mit meinem Agenten" (`/{name}/kontakt`) und leitet nicht um. */
+  if (istKuenstler(m) && aufVersusforge((await headers()).get("host"))) {
+    const h = String((await searchParams).h ?? "").slice(0, 4);
+    redirect(`${kuenstlerUrl(mandant)}${h ? `?h=${encodeURIComponent(h)}` : ""}`);
+  }
+
+  /**
+   * ── NICHT ÖFFENTLICH, BEVOR DER OWNER FREIGIBT (Owner 10.09.2026, Variante B) ────────────
+   *
+   * Abgelehnt gibt es die Seite nicht. Wartet sie noch, sieht der Besucher einen ruhigen Satz
+   * statt eines Fehlers — der Künstler hat den Link vielleicht schon geteilt. Fehlt das Feld
+   * (alle Einträge vor diesem Tag), bleibt die Seite öffentlich wie bisher.
+   */
+  if (m.freigabe === "abgelehnt") notFound();
+  if (m.freigabe === "offen") {
+    const PRUEFUNG: Record<string, string> = {
+      en: "This page is being reviewed and will be online soon.",
+      ro: "Această pagină este în verificare și va fi online în curând.",
+      de: "Diese Seite wird gerade geprüft und ist bald online.",
+    };
+    return (
+      <main className="flex min-h-[100dvh] items-center justify-center bg-white px-6 text-center text-[#14181c]">
+        <p className="m-0 max-w-[420px] text-[18px] leading-[1.5]">{PRUEFUNG[String(m.sprache ?? "en").slice(0, 2)] ?? PRUEFUNG.en}</p>
+      </main>
+    );
+  }
 
   const akzent = /^#[0-9a-f]{6}$/i.test(m.farbe) ? m.farbe : AKZENT_STANDARD;
 

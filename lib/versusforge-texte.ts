@@ -422,6 +422,69 @@ export const VERSUSFORGE_TEXTE = {
   /* ── Schritt 3 · die Rückfragen ──────────────────────────────────────────── */
   /* Der Plan VOR dem Gespräch (Hausregel [[agenten-plan-vor-dem-gespraech]]): Er sagt, wie
      viele Fragen kommen, bevor die erste gestellt wird. */
+  /**
+   * ── DER FAHRPLAN: EIN KONSTRUKT, EIN ZIEL (Owner 09.09.2026: „du musst dir ein Konstrukt
+   * an Fragen bauen … eine Roadmap" · „aber alle Pläne haben dasselbe Ziel") ────────────────
+   *
+   * MEIN ERSTER ENTWURF HATTE ZWEI FAHRPLÄNE — einen für Einzelstücke, einen für Betriebe
+   * mit einem Angebot. Sein Einwand hat ihn auf einen zusammengestrichen, und er hat recht:
+   * Das Ziel ist immer dasselbe. Ein Bild, eine Wohnung, eine Zahnarztpraxis — am Ende steht
+   * derselbe Satz, gebaut aus denselben fünf Sachen. Was sich unterscheidet, ist nur, WORAUF
+   * die Fragen zeigen, nicht welche es sind.
+   *
+   * „Rückfrage 1 von 4" sagt, WIE VIELE kommen. Es sagt nicht, WORÜBER — und genau das
+   * entscheidet, ob jemand die vierte noch beantwortet. Wer die Strecke sieht, weiss, dass
+   * sie endlich ist und wohin sie führt.
+   *
+   * FÜNF STEHEN DA, GEFRAGT WIRD HÖCHSTENS VIERMAL. Das ist kein Widerspruch, sondern der
+   * sichtbare Beweis, dass zugehört wird: Was sein erster Satz oder seine Website schon
+   * hergibt, ist abgehakt, bevor die erste Frage kommt.
+   *
+   * ES SIND DIE ÖFFENTLICHEN NAMEN (Owner 09.09.2026: „die Schritte nennen wir so bei der
+   * Abfrage"), nicht die internen. Das Rezept bleibt drinnen; der Weg ist sichtbar.
+   */
+  fahrplanKopf: "Was ich von dir brauche",
+  /**
+   * ── ZAHLEN ALS ZIFFER, NIE ALS WORT ([[uebersetzer-fallen]], neuer Fall 10.09.2026) ───────
+   *
+   * Owner mit Bild der rumänischen Fassung: „das ist kein Rumänisch." Dort stand „Cinco
+   * lucruri" — SPANISCH. Das Modell hat „Fünf" in die falsche romanische Sprache übersetzt
+   * und den Rest des Satzes richtig; der Fehler steckt also in genau einem Wort und fällt beim
+   * Prüfen kaum auf, dem Muttersprachler aber sofort.
+   *
+   * SCHLIMMER NOCH: Der Übersetzungs-Cache wird NIE erneuert (lib/translate.ts). Ein falsches
+   * Wort bleibt für immer stehen, bis der deutsche Satz sich ändert — der Cache-Schlüssel ist
+   * der deutsche Text.
+   *
+   * DIE ZIFFER IST IMMUN. „5" ist in allen drei Sprachen dieselbe und wird nicht übersetzt.
+   * Gilt ab jetzt für jede Zahl in einem Textbaustein.
+   */
+  fahrplanFein: "5 Sachen. Was du schon gesagt hast, frage ich nicht noch einmal.",
+  /**
+   * ── DIE FÜNF NAMEN IM FAHRPLAN GEHÖREN IHM, ALSO AUCH SEINER SPRACHE ──────────────────────
+   *
+   * Owner 10.09.2026, mit Bild der rumänischen Seite: Überschrift, Fein­zeile, Löschknopf und
+   * Fusszeile standen auf Rumänisch — und mittendrin fünf deutsche Wörter untereinander.
+   * Sie kamen aus `HEBEL` im Rezept, nicht aus den Textbausteinen, und wurden deshalb nie
+   * übersetzt. Genau die Sorte Rest, die eine Seite halbfertig aussehen lässt.
+   *
+   * WARUM SIE HIER STEHEN UND NICHT IM REZEPT: Im Rezept stehen die INTERNEN Namen, die
+   * niemand sehen darf. Was der Kunde liest, gehört zu den Texten — dort wird es übersetzt.
+   *
+   * „BEWEIS" STATT „BELEG": Einzelne Wörter haben keinen Zusammenhang, aus dem der Übersetzer
+   * die Bedeutung nehmen könnte. „Beleg" wird im Rumänischen zur Quittung; „Beweis" heisst in
+   * jeder Sprache dasselbe ([[uebersetzer-fallen]]).
+   */
+  schrittNutzen: "Nutzen",
+  schrittHerkunft: "Herkunft",
+  schrittWirkung: "Wirkung",
+  schrittBeleg: "Beweis",
+  schrittGrenze: "Grenze",
+  fahrplanNutzen: "Was dein Kunde danach kann",
+  fahrplanHerkunft: "Woher es kommt, dein Verfahren",
+  fahrplanWirkung: "Was es über ihn sagt",
+  fahrplanBeleg: "Woran man sieht, dass es stimmt",
+  fahrplanGrenze: "Warum es nicht für jeden ist",
   fragenKopf: "Rückfrage",
   von: "von",
   /* „Danach zeige ich dir, was ich bauen würde" klang nach Konzeptvorschlag. Geliefert wird
@@ -454,7 +517,31 @@ export const VERSUSFORGE_TEXTE = {
      Formular — und genau davon kommen wir gerade weg. */
   chatPlatzhalter: "Schreib einfach — auch wenn du etwas ändern willst.",
   chatSenden: "Senden",
+  /* Steht AM FELD, nicht im Verlauf — und die Nachricht wird gar nicht erst abgeschickt
+     ([[sichtbare-fehler-keine-formularfelder]]). Begründung in components/VersusForgeFunnel.tsx. */
+  chatZuKurz: "Schreib mir bitte einen ganzen Satz — davon lebt dein Ergebnis.",
   chatPlanKnopf: "Plan jetzt bauen",
+  /**
+   * ── DER AUSWEG AUS DEM EIGENEN GESPRÄCH (Owner 10.09.2026: „kann auch nicht alles löschen,
+   * ich weiss nicht, was ich hier machen soll") ────────────────────────────────────────────
+   *
+   * ER SASS IN SEINEM EIGENEN TRICHTER FEST. Fünf Testnachrichten im Verlauf, eine rote
+   * Absage darunter, und kein Knopf, der das wegräumt. Der Agenten-Chat hat „Alles löschen"
+   * seit gestern; hier fehlte er — und das ist die Fläche, auf der ein Kunde landet.
+   *
+   * DER LAUF ÜBERLEBT ABSICHTLICH EIN NEULADEN (`vf_lauf`, Begründung im Trichter). Genau
+   * das macht ihn ohne diesen Knopf zur Falle: Neuladen bringt denselben toten Verlauf
+   * zurück, und der Weg „nach Hause" nimmt seinen Satz sogar mit.
+   *
+   * ZWEI TIPPS, ROT, OHNE UHR ([[loeschen-zwei-tipps-rot]]) — wie im Agenten-Chat, aus
+   * demselben Grund: Auf einer Frage aus Wörtern ist eine Drei-Sekunden-Uhr eine Falle.
+   *
+   * ES HEISST LÖSCHEN, NICHT „NEU ANFANGEN" (Owner 09.09.2026: „er könnte alles löschen,
+   * dann ist es save"). Es geht ihm nicht um einen zweiten Versuch, sondern darum, dass seine
+   * Sätze weg sind.
+   */
+  chatLoeschen: "Alles löschen",
+  chatLoeschenBestaetigen: "Wirklich alles löschen? Noch einmal drücken.",
 
   /* ── Schritt 2 · die Website (Owner 09.09.2026: „im Trichter soll er nach einer Website
         doch fragen" · „gleich am Anfang, als zweiter Schritt" · „dann muss der User nicht
@@ -755,8 +842,29 @@ export const VERSUSFORGE_TEXTE = {
    * darin, und hier zusätzlich der Weg heraus.
    *
    * `hookFrage2` bleibt unberührt: Dort steht der lange Nachsatz der ALTEN Seite.
+   *
+   * ── DIE UHR IST RAUS (Owner 10.09.2026, vor der rumänischen Fassung: „in doua minute
+   * stimmt nicht mehr") ─────────────────────────────────────────────────────────────────────
+   *
+   * ER HAT DEN SATZ GESTERN SELBST DIKTIERT — und heute stimmt er nicht mehr, weil sich
+   * darunter das Produkt geändert hat: Aus vier Schirmen ist ein Gespräch geworden, und ein
+   * Gespräch dauert länger als zwei Minuten. Das ist kein Schönheitsfehler. Die erste Zahl
+   * auf der Seite ist ein Versprechen; wer sie reisst, verliert genau an der Stelle das
+   * Vertrauen, an der er es aufbaut.
+   *
+   * STATT EINER ZEIT DIE ANZAHL. Eine Zahl, die man abzählen kann, hält; eine Uhr, die im
+   * Gespräch läuft, nicht.
+   *
+   * WARUM VIER UND NICHT FÜNF: Im Fahrplan stehen fünf Sachen, GEFRAGT wird höchstens
+   * viermal — was sein erster Satz oder seine Website schon hergibt, ist abgehakt, bevor die
+   * erste Frage kommt (Begründung an `fahrplanFein`). Die Überschrift verspricht, was ER tut,
+   * nicht, was die Maschine abarbeitet. Fünf hier wäre eine Frage zu viel versprochen.
+   *
+   * ALS ZIFFER, nicht als Wort — siehe die Übersetzer-Falle an `fahrplanFein`.
+   *
+   * DIE FORM BLEIBT SEINE: zwei Zeilen, Zustand oben, Ausweg unten, Ausrufezeichen.
    */
-  einfachTitel2: "In zwei Minuten hast du die Lösung!",
+  einfachTitel2: "4 Fragen, und du hast die Lösung!",
   /**
    * NEUTRAL (Owner 09.09.2026: „das muss neutral sein").
    *

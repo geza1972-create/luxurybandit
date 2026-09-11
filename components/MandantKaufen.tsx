@@ -19,18 +19,24 @@ import { useKasseImFenster } from "@/components/KasseImFenster";
  * Ein Popup wäre hier besonders schlimm — es ist der einzige Kauf, den jemand am Telefon
  * abschliesst, während er die Anfragen sehen will, die schon dastehen.
  *
+ * ── DAS ABO (Owner 10.09.2026) ─────────────────────────────────────────────────────────────
+ *
+ * Mit `abo` kauft derselbe Knopf das Art-Marketing-Abo (10 € / Monat) statt der Einmal-Kasse.
+ * Ein Abo öffnet Stripe als eigene Seite, nicht eingebettet — die Abo-Kasse der Hilfsfunktion
+ * kennt nur diesen Weg. Die Rückkehr trägt `vf_abo`, die Einmal-Kasse weiter `vf_kasse`.
+ *
  * ── DER RÜCKWEG PRÜFT SELBST ───────────────────────────────────────────────────────────────
  *
- * Nach der Zahlung kommt Stripe mit `?vf_kasse=…` zurück. Diese Sitzung wird eingelöst, und
- * ERST DANN steht der Trichter auf „scharf" — nicht auf Zuruf des Browsers. Wer die Adresse
- * mit einem erfundenen Parameter aufruft, schaltet nichts frei.
+ * Nach der Zahlung kommt Stripe mit der Sitzung zurück. Sie wird eingelöst, und ERST DANN gilt
+ * der Kauf — nicht auf Zuruf des Browsers. Wer die Adresse mit einem erfundenen Parameter
+ * aufruft, schaltet nichts frei.
  *
  * ── EIN LADEZUSTAND, DER ENDET ([[immer-close-einbauen]]) ─────────────────────────────────
  *
  * Jeder Weg hier hat ein Ende: Erfolg, ehrlicher Fehler, oder der Knopf ist wieder da. Kein
  * Drehrad, das sich nie beruhigt.
  */
-export default function MandantKaufen({ mandant, wort, klasse, k }: {
+export default function MandantKaufen({ mandant, wort, klasse, k, abo }: {
   mandant: string;
   /**
    * Der Dashboard-Schlüssel, wenn die Seite ihn kennt.
@@ -43,6 +49,8 @@ export default function MandantKaufen({ mandant, wort, klasse, k }: {
   /** Was auf dem Knopf steht — der Preis kommt aus der Tabelle und wird oben gesetzt. */
   wort: string;
   klasse?: string;
+  /** Das Art-Marketing-Abo statt der Einmal-Kasse. */
+  abo?: boolean;
 }) {
   const kasse = useKasseImFenster("dashboard");
   const [laeuft, setLaeuft] = useState(false);
@@ -51,14 +59,15 @@ export default function MandantKaufen({ mandant, wort, klasse, k }: {
   /**
    * DIE RÜCKKEHR VON DER KASSE.
    *
-   * Sie läuft einmal beim Laden: Steht `vf_kasse` in der Adresse, wird die Zahlung geprüft
-   * und der Trichter scharf geschaltet. Danach wird der Parameter aus der Adresse GENOMMEN —
-   * sonst löst ein Neuladen dieselbe Prüfung noch einmal aus, und im Verlauf des Browsers
-   * steht eine Kassensitzung, die dort nichts zu suchen hat.
+   * Sie läuft einmal beim Laden: Steht die Sitzung in der Adresse, wird die Zahlung geprüft.
+   * Danach wird der Parameter aus der Adresse GENOMMEN — sonst löst ein Neuladen dieselbe
+   * Prüfung noch einmal aus, und im Verlauf des Browsers steht eine Kassensitzung, die dort
+   * nichts zu suchen hat.
    */
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    const sitzung = p.get("vf_kasse");
+    const param = abo ? "vf_abo" : "vf_kasse";
+    const sitzung = p.get(param);
     if (!sitzung) return;
     void (async () => {
       setLaeuft(true);
@@ -66,10 +75,10 @@ export default function MandantKaufen({ mandant, wort, klasse, k }: {
         const res = await fetch("/api/versusforge-kasse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ was: "dashboard-einloesen", sessionId: sitzung, mandant, device: "dashboard" }),
+          body: JSON.stringify({ was: abo ? "abo-einloesen" : "dashboard-einloesen", sessionId: sitzung, mandant, device: "dashboard" }),
         });
         const d = (await res.json()) as Record<string, unknown>;
-        p.delete("vf_kasse");
+        p.delete(param);
         window.history.replaceState({}, "", `${window.location.pathname}${p.toString() ? `?${p}` : ""}`);
         /* Der Zustand steht jetzt auf dem Server — die Seite holt ihn beim Neuladen. */
         if (d.bezahlt) window.location.reload();
@@ -78,7 +87,7 @@ export default function MandantKaufen({ mandant, wort, klasse, k }: {
         setFehler("Das liess sich gerade nicht prüfen.");
       } finally { setLaeuft(false); }
     })();
-  }, [mandant]);
+  }, [mandant, abo]);
 
   const kaufen = async () => {
     if (laeuft) return;
@@ -87,13 +96,15 @@ export default function MandantKaufen({ mandant, wort, klasse, k }: {
       const res = await fetch("/api/versusforge-kasse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ was: "dashboard", mandant, device: "dashboard", eingebettet: kasse.anfordern, ...(k ? { k } : {}) }),
+        body: JSON.stringify(abo
+          ? { was: "abo", mandant, device: "dashboard" }
+          : { was: "dashboard", mandant, device: "dashboard", eingebettet: kasse.anfordern, ...(k ? { k } : {}) }),
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { setFehler(String(d.error ?? "Die Kasse liess sich gerade nicht öffnen.")); return; }
       /* Schon bezahlt oder als Admin freigeschaltet — dann gibt es nichts zu zahlen. */
       if (d.schon || d.adminFrei || d.probe) { window.location.reload(); return; }
-      if (kasse.uebernehmen(String(d.clientSecret ?? ""))) return;
+      if (!abo && kasse.uebernehmen(String(d.clientSecret ?? ""))) return;
       if (d.url) { window.location.href = String(d.url); return; }
       setFehler("Die Kasse liess sich gerade nicht öffnen.");
     } catch {

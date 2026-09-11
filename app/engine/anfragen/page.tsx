@@ -119,10 +119,22 @@ export default async function VersusForgeAnfragenSeite({
               <details key={l.datei} className="group rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3.5">
                 <summary className="flex cursor-pointer list-none flex-col gap-1">
                   {/* Die Adresse ist das Wichtigste — sie steht zuerst und ist antippbar.
-                      Wer zurückrufen will, soll nicht erst etwas herauskopieren. */}
-                  <a href={`mailto:${l.mail}`} className="text-[18px] font-black leading-snug text-[#f6cf51] underline decoration-white/20 underline-offset-4 md:text-[20px]">
-                    {l.mail}
-                  </a>
+                      Wer zurückrufen will, soll nicht erst etwas herauskopieren.
+
+                      ── BEIM RÜCKRUF IST ES DIE NUMMER (Owner 10.09.2026) ────────────────
+                      Eine Beratungsanfrage trägt keine E-Mail-Adresse, sondern Namen und
+                      Telefonnummer — und wer sie öffnet, will genau jetzt anrufen. Deshalb
+                      steht dort dasselbe an derselben Stelle: gross, gelb, antippbar. Ein
+                      `tel:`-Link wählt am Handy direkt. */}
+                  {l.telefon ? (
+                    <a href={`tel:${l.telefon.replace(/[^\d+]/g, "")}`} className="text-[18px] font-black leading-snug text-[#f6cf51] underline decoration-white/20 underline-offset-4 md:text-[20px]">
+                      {l.name ? `${l.name} · ` : ""}{l.telefon}
+                    </a>
+                  ) : (
+                    <a href={`mailto:${l.mail}`} className="text-[18px] font-black leading-snug text-[#f6cf51] underline decoration-white/20 underline-offset-4 md:text-[20px]">
+                      {l.mail}
+                    </a>
+                  )}
                   <span className="text-[13px] font-bold text-white/40 md:text-[14px]">
                     {zeit(l.zeit)}
                     {l.url ? ` · ${l.url}` : ""}

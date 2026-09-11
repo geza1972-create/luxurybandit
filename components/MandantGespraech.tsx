@@ -95,11 +95,18 @@ export default function MandantGespraech({
     }
   };
 
+  /* Aus welcher Anzeige er kam — die Nummer stand in der Adresse und reist bis zur Anfrage. */
+  const [ausHook, setAusHook] = useState("");
+
   useEffect(() => {
     let start = "";
     try {
       const roh = sessionStorage.getItem("vf_mandant_start");
-      if (roh) start = String((JSON.parse(roh) as { text?: string }).text ?? "");
+      if (roh) {
+        const a = JSON.parse(roh) as { text?: string; hook?: string };
+        start = String(a.text ?? "");
+        setAusHook(String(a.hook ?? ""));
+      }
     } catch { /* dann eben ohne — der Agent fragt trotzdem sinnvoll */ }
     setEinstieg(start);
     /* SCHRITT „gestartet" — er hat auf der Seite davor eine Karte gewählt und ist hier.
@@ -134,7 +141,7 @@ export default function MandantGespraech({
       const res = await fetch("/api/versusforge-mandant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ device: geraet(), schritt: "abschluss", mandant, einstieg, runden, name: kName, telefon: kTelefon }),
+        body: JSON.stringify({ device: geraet(), schritt: "abschluss", mandant, einstieg, runden, name: kName, telefon: kTelefon, hook: ausHook }),
       });
       const d = (await res.json()) as Record<string, unknown>;
       if (!res.ok) { /* DIE MELDUNG DES SERVERS WIRD NICHT GEZEIGT: Sie ist auf Deutsch geschrieben, und hier

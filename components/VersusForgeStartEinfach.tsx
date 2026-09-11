@@ -7,6 +7,9 @@ import { Check } from "lucide-react";
 import { logFunnelEvent, logTunnelEvent } from "@/lib/track-funnel";
 import { schrittMessen } from "@/lib/versusforge-messen";
 import VersusForgeFunnel from "@/components/VersusForgeFunnel";
+import AgentChat from "@/components/AgentChat";
+import type { AgentChatTexte } from "@/lib/agent-chat-texte";
+import type { Lang as SprachCode } from "@/lib/lang";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import { HEBEL } from "@/lib/versusforge-hook-rezept";
 
@@ -100,8 +103,13 @@ function Punkt({ zeile }: { zeile: string }) {
 }
 
 export default function VersusForgeStartEinfach({
-  S, lang, probe = false, basis = "/",
-}: { S: VersusForgeTexte; lang: string; probe?: boolean; basis?: string }) {
+  S, A, lang, probe = false, basis = "/",
+}: {
+  S: VersusForgeTexte;
+  /** Die Texte des Agenten-Chats. Fehlen sie, läuft der alte Trichter als Rückfall. */
+  A?: AgentChatTexte;
+  lang: string; probe?: boolean; basis?: string;
+}) {
   const router = useRouter();
   const [ziel, setZiel] = useState<"leads" | "verkauf">("leads");
   const [text, setText] = useState("");
@@ -175,6 +183,28 @@ export default function VersusForgeStartEinfach({
      */
     setAuftrag({ ziel, text: text.trim() });
   };
+
+  /**
+   * ── NACH „JETZT STARTEN" GEHÖRT DIE SEITE DEM AGENTEN (Owner 10.09.2026) ──────────────────
+   *
+   * „Du machst jetzt in den Agenten rein, alles was du in dem Trichter eingebaut hast. Das ist
+   * der neue Trichter, den wir brauchen." Bis hierher lief nach dem ersten Satz der alte
+   * Trichter-Chat — ohne Begrüssung, ohne Datenschutz, ohne Zustimmung, mitten ins Gespräch.
+   *
+   * KEIN SEITENWECHSEL, das bleibt seine Entscheidung vom 09.09.: Der Chat öffnet sich an
+   * derselben Adresse. Der Agent bringt Kopf und volle Höhe selbst mit, deshalb kehrt die
+   * Funktion hier ganz zurück, statt einen zweiten Kopf in den ersten zu schachteln.
+   *
+   * DIE SPRACHE IST SCHON GEWÄHLT (`gewaehlt`): Er hat sie oben auf dieser Seite gesetzt oder
+   * kam mit ihr aus der Anzeige. Ein zweites „Choose a language" wäre eine Frage, die er
+   * gerade beantwortet hat.
+   *
+   * SEIN SATZ REIST MIT (`auftrag`) und geht erst nach seinem Ja an das Modell — Begründung
+   * im Chat selbst.
+   */
+  if (auftrag && A) {
+    return <AgentChat S={A} lang={lang.slice(0, 2) as SprachCode} gewaehlt auftrag={auftrag.text} />;
+  }
 
   return (
     /* `lb-versusforge` OHNE `lb-bg`: Die Klasse blendet über `globals.css` die Haus-Leiste

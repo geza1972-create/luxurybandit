@@ -6,7 +6,6 @@ import TopNav from "@/components/TopNav";
 import SchleifenVideo from "@/components/SchleifenVideo";
 import TrackView from "@/components/TrackView";
 import SeitenFuss from "@/components/SeitenFuss";
-import { BESCHREIBER } from "@/components/VersusForgeMarke";
 import { Briefcase, Sparkles, Flame, MapPin, Lock, Palmtree, PartyPopper, Star, Heart, Users, Gift, MessageCircle, Target, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
@@ -49,7 +48,7 @@ export const metadata = {
      Fuss, und dieselbe Begründung: „Agentur" beansprucht jede Werbeagentur für sich, „AI-
      Media Creator" sagt, was gemacht wird und womit. Was im Auftrag entsteht, steht dahinter
      im Titel — das ist die Rolle, nicht der Name. */
-  title: "LuxuryBandit — The AI-Media Creator: Video, Anzeige und Trichter im Kundenauftrag",
+  title: "VersusForge — The AI-Media Creator: Video, Anzeige und Trichter im Kundenauftrag",
   description: fillPrices("The AI-Media Creator: AI video, adverts, landing pages and complete funnels, built to order — from the Meta ad to the purchase. Everything on this page is live, not a showreel.", "en"),
   /* KEINE Deepfake-/AI-Girl-Begriffe mehr (Owner 24.08.2026: „Wir sind jetzt ein seriöses
      Portal" · zum Kuss: „wenn man das nicht als solches bewirbt, sondern als Tool, ist es
@@ -57,7 +56,7 @@ export const metadata = {
   keywords: ["sales funnel", "funnel creator", "meta ads funnel", "ai video generator", "ai video maker", "wedding invitation video", "birthday video maker", "video application", "video cv", "virtual try-on for ecommerce"],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "LuxuryBandit — The AI-Media Creator",
+    title: "VersusForge — The AI-Media Creator",
     description: "The AI-Media Creator: AI video, adverts, landing pages and complete funnels, built to order. Everything on this page is live, not a showreel.",
     type: "website",
   },
@@ -514,7 +513,14 @@ export default async function ThemesCatalog({ searchParams }: {
      * ER GEHT NICHT DURCH DEN ÜBERSETZER — der Pfad `/engine` steht in `MARKEN_TITEL`, und
      * `BESCHREIBER` ist Teil des Namens ([[uebersetzer-fallen]]).
      */
-    { icon: Target, title: `VersusForge · ${BESCHREIBER}`, tagline: "Vier Fragen — und du hast deinen Hook, die fertigen Anzeigentexte und die Anleitung, wie du die Strecke dahinter selbst baust. Die erste Analyse kostet nichts.", href: "/engine", cover: "/VersusForge/versusforge-kachel.jpg", poster: "/VersusForge/versusforge-kachel.jpg", chips: "♥ Vier Fragen · Dein Hook · Deine Anleitung" },
+    /* DAS LOGO STATT DER KACHEL (Owner 10.09.2026, mit Bild der leeren Karte: „hier machst du
+       das Logo rein von VersusForge"). `versusforge-kachel.jpg` ist aus `public/` verschwunden,
+       die Karte zeigte nur noch das Symbol für ein kaputtes Bild. */
+    /* MARKETING FOR ART (Owner 10.09.2026: „die Engine ist jetzt für Kunst"). Nur die Karte
+       heisst so — `BESCHREIBER` im Kopf und im Schriftzug bleibt „Marketing Engine".
+       ENGLISCH, weil der Katalog englische Quelle ist: Ein deutscher Text blieb auf der
+       englischen Seite deutsch. Die Karte führt auf die Landingpage (SEO), nicht in den Chat. */
+    { icon: Target, title: "VersusForge · Marketing for Art", tagline: "Show us your paintings — we find the buyers who value your art. You get your marketing plan, ad copy for every work and your own gallery with an agent that talks to your prospects. Start for free.", href: "/themes/versusforge", cover: "/VersusForge/Logo-VersusForge.JPG", poster: "/VersusForge/Logo-VersusForge.JPG", chips: "♥ Your gallery · Your agent · Your buyers" },
     /**
      * PLATZ EINS: DIE VIDEOBOTSCHAFT AN DICH SELBST (Owner 11.08.2026: „mach das als
      * erstes" — unmittelbar nachdem er das Thema benannt hatte).

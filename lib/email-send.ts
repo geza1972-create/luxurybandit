@@ -116,7 +116,9 @@ function textAusHtml(html: string): string {
  */
 export type MailAnhang = { name: string; inhalt: Buffer; typ?: string };
 
-export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string; anhaenge?: MailAnhang[]; konto?: MailKonto }): Promise<SendResult> {
+export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string; text?: string; listUnsubscribe?: string; anhaenge?: MailAnhang[]; konto?: MailKonto;
+  /** Nur der Anzeigename vor der Adresse — dasselbe Postfach (Owner 11.09.2026, Künstler-Mails: „lakatosbandi.com" statt „VersusForge", kein neues Postfach). */
+  absender?: string }): Promise<SendResult> {
   const to = (opts.to ?? "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, error: "invalid recipient" };
   const replyTo = (opts.replyTo ?? "").trim() || undefined;
@@ -124,7 +126,9 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
 
   /* Welches Postfach — siehe `zugang` oben. Ohne Angabe das Haus, damit sich für die
      zwölf bestehenden Produkte nichts ändert. */
-  const { host, user, pass, port, from } = zugang(opts.konto ?? "haus");
+  const { host, user, pass, port, from: fromStandard } = zugang(opts.konto ?? "haus");
+  const anzeigename = (opts.absender ?? "").replace(/[<>"\r\n]/g, "").trim();
+  const from = anzeigename && user ? `${anzeigename} <${user}>` : fromStandard;
   const text = (opts.text ?? "").trim() || textAusHtml(opts.html);
   // KOPFZEILEN FÜR MASSENVERSAND. Gmail und Yahoo verlangen seit 2024 von jedem, der an
   // viele Empfänger schickt, eine Abmeldung in EINEM Klick direkt aus dem Postfach. Fehlt

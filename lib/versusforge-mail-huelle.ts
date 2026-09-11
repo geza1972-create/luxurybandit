@@ -87,8 +87,9 @@ export const mailKasten = (titel: string, text: string, knopf?: { adresse: strin
   `<tr><td style="padding:18px 26px 0">`
   + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${MAIL.akzentFein}" style="background:${MAIL.akzentFein};border:1px solid ${MAIL.akzent}45;border-radius:12px">`
   + `<tr><td style="padding:18px 20px;font-family:${MAIL.schrift}">`
-  + `<div style="font-size:18px;font-weight:800;letter-spacing:-0.01em;color:${MAIL.text}">${titel}</div>`
-  + `<div style="font-size:16px;line-height:1.55;color:${MAIL.grau};padding-top:8px">${text}</div>`
+  /* Ohne Titel keine leere Zeile — der Kasten trägt dann nur Text und Knopf. */
+  + (titel ? `<div style="font-size:18px;font-weight:800;letter-spacing:-0.01em;color:${MAIL.text}">${titel}</div>` : "")
+  + `<div style="font-size:16px;line-height:1.55;color:${MAIL.grau};padding-top:${titel ? 8 : 0}px">${text}</div>`
   + (knopf
       ? `<div style="padding-top:16px"><a href="${knopf.adresse}" style="display:inline-block;background:${MAIL.akzent};color:#ffffff;font-size:16px;font-weight:800;text-decoration:none;padding:13px 22px;border-radius:10px">${knopf.wort}</a></div>`
       : "")

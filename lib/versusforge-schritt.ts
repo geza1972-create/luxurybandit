@@ -80,13 +80,21 @@ const besucherSauber = (roh: string) => String(roh ?? "").replace(/[^a-zA-Z0-9_-
  * spart den Schreibvorgang: Ist die Stufe nicht weiter als die gespeicherte, passiert nichts.
  */
 export async function stufeMerken(mandantRoh: string, besucherRoh: string, stufe: string): Promise<boolean> {
+  return (await stufeMerkenGenau(mandantRoh, besucherRoh, stufe)).ok;
+}
+
+/**
+ * Wie `stufeMerken` — sagt aber auch, ob dieser Besucher NEU ist (Owner 11.09.2026: „eine E-Mail jedes Mal bei neuen
+ * Besuchern"). Neu heisst: Für dieses Gerät gab es bei diesem Mandanten noch keine Datei.
+ */
+export async function stufeMerkenGenau(mandantRoh: string, besucherRoh: string, stufe: string): Promise<{ ok: boolean; neu: boolean }> {
   const mandant = mandantSauber(mandantRoh) || EIGENER_MANDANT;
   const besucher = besucherSauber(besucherRoh);
-  if (!besucher) return false;
+  if (!besucher) return { ok: false, neu: false };
 
   const leiter = leiterFuer(mandant);
   const weit = leiter.findIndex(s => s.schluessel === stufe);
-  if (weit < 0) return false;
+  if (weit < 0) return { ok: false, neu: false };
 
   const pfad = `${ordner(mandant)}/${besucher}.json`;
   const jetzt = new Date().toISOString();
@@ -94,7 +102,7 @@ export async function stufeMerken(mandantRoh: string, besucherRoh: string, stufe
   let alt: Stand | null = null;
   const da = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
   if (da.ok) { try { alt = (await da.json()) as Stand; } catch { /* kaputt = wie neu */ } }
-  if (alt && Number(alt.weit) >= weit) return true;
+  if (alt && Number(alt.weit) >= weit) return { ok: true, neu: false };
 
   const neu: Stand = { weit, stufe, erst: alt?.erst ?? jetzt, zeit: jetzt };
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
@@ -102,7 +110,7 @@ export async function stufeMerken(mandantRoh: string, besucherRoh: string, stufe
     headers: { "Content-Type": "application/json", "x-upsert": "true" },
     body: JSON.stringify(neu),
   });
-  return res.ok;
+  return { ok: res.ok, neu: res.ok && !alt };
 }
 
 export type Trichterzahl = {
@@ -125,13 +133,15 @@ export type Trichterzahl = {
  * `tage` schneidet ab: Ein Trichter, den man vor drei Monaten geändert hat, wird von seinen
  * eigenen alten Zahlen verdorben.
  */
-export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 1000): Promise<{
+export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 1000, neuSeit = ""): Promise<{
   leiter: Trichterzahl[];
   besucher: number;
+  /** Besucher, die NACH `neuSeit` zum ersten Mal kamen — der rote Punkt im Dashboard (Owner 11.09.2026). */
+  neu: number;
 }> {
   const mandant = mandantSauber(mandantRoh) || EIGENER_MANDANT;
   const leiter = leiterFuer(mandant);
-  const leer = { leiter: leiter.map(stufe => ({ stufe, anzahl: 0, anteil: 0, verloren: 0 })), besucher: 0 };
+  const leer = { leiter: leiter.map(stufe => ({ stufe, anzahl: 0, anteil: 0, verloren: 0 })), besucher: 0, neu: 0 };
 
   const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
     method: "POST",
@@ -165,5 +175,6 @@ export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 10
     z.verloren = z.anzahl - (zahlen[i + 1]?.anzahl ?? z.anzahl);
   });
 
-  return { leiter: zahlen, besucher: staende.length };
+  const seit = Date.parse(neuSeit) || 0;
+  return { leiter: zahlen, besucher: staende.length, neu: staende.filter(s => (Date.parse(s.erst) || 0) > seit).length };
 }

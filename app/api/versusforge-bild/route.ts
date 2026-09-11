@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { str } from "@/lib/agent-modell";
 import { hookBild } from "@/lib/versusforge-bild";
-import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
+import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { BUCKET, encodeStoragePath, supabaseFetch } from "@/lib/try-this-look-store";
+import { bildPruefen, pruefPfad } from "@/lib/versusforge-moderation";
+import { motivPruefungAlarm } from "@/lib/versusforge-pruefung-post";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -28,12 +30,33 @@ function schluesselStimmt(soll: string, ist: string): boolean {
   try { return crypto.timingSafeEqual(a, b); } catch { return false; }
 }
 
-/** Sein Motiv aus dem Speicher holen. Fehlt es, gibt es keins — kein Fehler. */
-async function motivLesen(pfad?: string): Promise<Buffer | undefined> {
-  if (!pfad) return undefined;
-  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
-  if (!res.ok) return undefined;
-  return Buffer.from(await res.arrayBuffer());
+/**
+ * ── EIN MOTIV JE HOOK, NICHT JE TRICHTER (Owner 09.09.2026: „jetzt fällt mir ein — der Kunde
+ * macht also pro Motiv einen Trichter + Dashboard?") ────────────────────────────────────────
+ *
+ * NEIN, UND DIE FRAGE HAT EINEN ECHTEN FEHLER AUFGEDECKT. Ich hatte EIN Motiv an den
+ * Mandanten gehängt. Für den Zahnarzt stimmt das — sein Raum ist immer derselbe. Für einen
+ * Künstler ist es falsch: Fünf Werke haben fünf Sätze und fünf Bilder. Mit einem Motiv je
+ * Trichter hätte er fünf Trichter kaufen müssen, um fünf Bilder zu bewerben.
+ *
+ * DER PFAD TRÄGT DIE NUMMER DES HOOKS. `standard` ist das Bild für den Hook aus seiner
+ * Analyse und gleichzeitig der Rückfall für jeden Hook, der kein eigenes hat.
+ *
+ * ES STEHT NICHT MEHR IN DER MANDANTENDATEI. Vorher schrieb jeder Bild-Upload den ganzen
+ * Datensatz neu (`{...m, motivPfad}`) — und wer währenddessen seine Einstellungen speicherte,
+ * verlor sie ([[delete-resurrection-merge-bug]]: zwei Schreibvorgänge nacheinander fressen
+ * einander). Jetzt ist die Ablage selbst die Wahrheit: Was da liegt, gibt es.
+ */
+const motivPfad = (mandant: string, nr: string) =>
+  `versusforge-motiv/${mandant}/${nr === "" || nr === "-1" ? "standard" : nr}.jpg`;
+
+/** Sein Motiv holen — erst das eigene des Hooks, sonst das des Trichters. */
+async function motivLesen(mandant: string, nr: string): Promise<Buffer | undefined> {
+  for (const pfad of [motivPfad(mandant, nr), motivPfad(mandant, "")]) {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`);
+    if (res.ok) return Buffer.from(await res.arrayBuffer());
+  }
+  return undefined;
 }
 
 export async function POST(request: Request) {
@@ -61,10 +84,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dieser Trichter gehört jemand anderem." }, { status: 403 });
     }
 
+    const nr = str(body.nr, 6);
+    const pfad = motivPfad(kennung, nr);
+
     /* WEGNEHMEN IST AUCH EINE ANTWORT: Wer sein Bild loswerden will, soll dafür nicht den
        Löschweg des ganzen Trichters gehen müssen. */
     if (str(body.daten, 20) === "") {
-      await mandantSpeichern(kennung, { ...m, motivPfad: "" });
+      await supabaseFetch(`/storage/v1/object/${BUCKET}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prefixes: [pfad] }),
+      });
       return NextResponse.json({ ok: true, motiv: false });
     }
 
@@ -78,8 +108,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Das Bild ist zu gross." }, { status: 413 });
     }
 
-    const pfad = `versusforge-motiv/${kennung}.jpg`;
-    const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
+    /**
+     * ── ERST GEPRÜFT, DANN GESPEICHERT (Owner 10.09.2026: „Ich will nicht, dass Leute hier
+     * Pornobilder hochladen. Ich werde sie freigeben müssen." · „markierte") ──────────────────
+     *
+     * VERBOTEN wird nicht gespeichert — nirgends, auch nicht zur Ansicht für den Owner.
+     * MARKIERT liegt in der Prüfablage, die nie öffentlich ausgeliefert wird, bis der Owner
+     * entscheidet (`app/api/versusforge-freigabe/route.ts`). FREI geht wie bisher an seinen Platz.
+     * Begründung und Grenzen in `lib/versusforge-moderation.ts`.
+     */
+    const urteil = await bildPruefen({ apiKey: process.env.OPENAI_API_KEY?.trim() ?? "", bild: `data:image/jpeg;base64,${teil}` });
+    if (urteil.urteil === "verboten") {
+      console.warn("[versusforge-bild] Motiv abgelehnt, nicht gespeichert:", kennung, urteil.gruende.join(", "));
+      return NextResponse.json({ error: "abgelehnt", code: urteil.aktfoto ? "aktfoto" : "abgelehnt" }, { status: 422 });
+    }
+    const zielPfad = urteil.urteil === "markiert" ? pruefPfad(kennung, nr) : pfad;
+
+    const put = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(zielPfad)}`, {
       method: "POST",
       headers: { "Content-Type": "image/jpeg", "x-upsert": "true" },
       body: new Uint8Array(daten),
@@ -88,7 +133,12 @@ export async function POST(request: Request) {
       console.error("[versusforge-bild] Motiv nicht gespeichert:", put.status);
       return NextResponse.json({ error: "Das Bild liess sich nicht ablegen." }, { status: 502 });
     }
-    await mandantSpeichern(kennung, { ...m, motivPfad: pfad });
+    if (urteil.urteil === "markiert") {
+      void motivPruefungAlarm({ betrieb: m.name, kennung, nr, gruende: urteil.gruende })
+        .catch(e => console.error("[versusforge-bild] Prüf-Mail gescheitert", e));
+      return NextResponse.json({ ok: true, motiv: false, pruefung: true });
+    }
+    /* KEIN SCHREIBEN IN DIE MANDANTENDATEI: Die Ablage ist die Wahrheit. Begründung oben. */
     return NextResponse.json({ ok: true, motiv: true });
   }
 
@@ -160,7 +210,7 @@ export async function GET(request: Request) {
       /* Sein Name gehört auf das Bild — es wandert weiter, ohne die Anzeige daneben. */
       marke: m.name,
       /* Sein eigenes Motiv, wenn er eines hochgeladen hat — oben Bild, unten Spruch. */
-      fotoDaten: await motivLesen(m.motivPfad),
+      fotoDaten: await motivLesen(kennung, nr ?? ""),
     });
     return new NextResponse(new Uint8Array(bild), {
       headers: { "Content-Type": "image/jpeg", "Cache-Control": "no-store" },

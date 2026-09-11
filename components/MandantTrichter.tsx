@@ -46,7 +46,16 @@ export default function MandantTrichter({
     if (!gewaehlt) { setFehler("Bitte wählen Sie zuerst aus, was auf Sie zutrifft."); return; }
     setFehler("");
     try {
-      sessionStorage.setItem(ABLAGE, JSON.stringify({ mandant, text: gewaehlt }));
+      /**
+       * DIE ANZEIGE REIST MIT (Owner 09.09.2026: „und wie kann er wissen, was der Kunde
+       * anfragt?").
+       *
+       * `?h=2` steht in der Adresse, die er in seine Anzeige schreibt — eine Nummer, kein
+       * Text: Ändert er den Satz später, bleibt die Zuordnung richtig. Ohne sie sieht er bei
+       * fünf laufenden Anzeigen nur, DASS Anfragen kommen, nicht aus welcher.
+       */
+      const ausAnzeige = new URLSearchParams(window.location.search).get("h") ?? "";
+      sessionStorage.setItem(ABLAGE, JSON.stringify({ mandant, text: gewaehlt, hook: ausAnzeige.slice(0, 4) }));
     } catch { /* dann eben ohne — der Trichter fragt gleich noch einmal */ }
     router.push(`/versusforge/${mandant}/start`);
   };

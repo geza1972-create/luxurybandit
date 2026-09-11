@@ -226,26 +226,50 @@ export async function hookBild(o: {
   const untenAb = ecke ? ecke.hoehe : foto ? z.hoehe : 0;
 
   const innen = B - RAND * 2;
-  /* Mit Foto bleibt die halbe Fläche für die Schrift — also kleinere Grade und weniger
-     Zeilen. Ohne Foto darf der Satz gross werden, er ist dann das ganze Bild. */
-  /* Mit Bild richtet sich der Grad nach dem Platz, der übrig bleibt — je höher das Bild,
-     desto kleiner der Satz. Ohne Bild darf er gross werden, er ist dann das ganze Bild. */
-  const grad = (foto || ecke)
-    ? passenderGrad(hook, z.maxGrad, 34, innen, z.zeilen)
-    : passenderGrad(hook, 92, 44, innen, 6);
-  const zeilen = umbrechen(hook, grad, innen);
-  const zeilenhoehe = Math.round(grad * 1.14);
-  const blockHoehe = zeilen.length * zeilenhoehe;
-
   const fuss = H - RAND;
   /* Der Name wird gekappt, nicht umgebrochen: Eine zweite Zeile unter dem Satz wäre eine
      zweite Aussage, und es soll nur eine geben. */
   const marke = String(o.marke ?? "").trim().slice(0, 34);
+
+  /**
+   * ── WIE VIEL PLATZ DER SATZ WIRKLICH HAT (09.09.2026, Owner mit Bild: der Betriebsname lag
+   * unter der dritten Textzeile) ──────────────────────────────────────────────────────────
+   *
+   * DER FEHLER: Der Satz wurde MITTIG in die Kachel gesetzt und der Fuss — Name, Balken,
+   * Aufruf — einfach darüber gezeichnet. Solange der Satz zwei Zeilen hatte, ging es gut;
+   * bei drei lag der Name mitten in der letzten Zeile.
+   *
+   * JETZT WIRD DER PLATZ GERECHNET, nicht geschätzt: Oben endet er unter dem Bild (oder am
+   * Rand, wenn keins da ist), unten beginnt der Fuss. Was dazwischen liegt, gehört dem Satz —
+   * und der Grad wird so lange verkleinert, bis er wirklich hineinpasst.
+   */
+  const fussHoehe = 96 + (marke ? 44 : 0);
+  /* Mit Foto bleibt die halbe Fläche für die Schrift — also kleinere Grade und weniger
+     Zeilen. Ohne Foto darf der Satz gross werden, er ist dann das ganze Bild. */
+  /* Mit Bild richtet sich der Grad nach dem Platz, der übrig bleibt — je höher das Bild,
+     desto kleiner der Satz. Ohne Bild darf er gross werden, er ist dann das ganze Bild. */
+  const obenAb = untenAb ? untenAb + 40 : RAND + 20;
+  const verfuegbar = H - fussHoehe - RAND - obenAb;
+  const startGrad = (foto || ecke) ? z.maxGrad : 92;
+  const maxZeilen = (foto || ecke) ? z.zeilen : 6;
+
+  /* ERST DIE ZEILENZAHL, DANN DIE HÖHE: Ein Grad, der in die Breite passt, kann trotzdem zu
+     hoch sein — genau daran ist der Name überschrieben worden. */
+  let grad = passenderGrad(hook, startGrad, 30, innen, maxZeilen);
+  let zeilen = umbrechen(hook, grad, innen);
+  let zeilenhoehe = Math.round(grad * 1.14);
+  while (grad > 30 && zeilen.length * zeilenhoehe > verfuegbar) {
+    grad -= 2;
+    zeilen = umbrechen(hook, grad, innen);
+    zeilenhoehe = Math.round(grad * 1.14);
+  }
+  const blockHoehe = zeilen.length * zeilenhoehe;
+
   /* MIT FOTO steht der Satz im weissen Feld darunter, optisch mittig zwischen Fotokante und
      Aufruf. OHNE FOTO sitzt er in der Mitte des Bildes, leicht nach oben gerückt. */
-  const start = untenAb
-    ? Math.round(untenAb + (H - untenAb - blockHoehe - (marke ? 150 : 110)) / 2) + grad
-    : Math.round((H - blockHoehe) / 2 - 70) + grad;
+  /* Der Satz sitzt mittig in SEINEM Feld — zwischen Bildkante und Fuss, nicht in der Mitte
+     der Kachel. Bei drei Zeilen ist das der Unterschied zwischen „ruhig" und „überschrieben". */
+  const start = Math.round(obenAb + (verfuegbar - blockHoehe) / 2) + grad;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${B}" height="${H}">
   ${/**

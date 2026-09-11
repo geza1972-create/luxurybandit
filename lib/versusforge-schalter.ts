@@ -39,7 +39,9 @@ export const VF_KAUF_AKTIV = false;
  * frei. Das ist gewollt, solange geprüft wird, und falsch ab dem Tag, an dem geworben wird.
  * Wer ihn auf `false` setzt, schaltet damit die Kasse scharf.
  */
-export const VF_KAUF_PROBE = true;
+/* AUSGESCHALTET am 10.09.2026 (Owner: „abschalten") — mit dem Art-Marketing-Abo läuft die Kasse
+   echt über Stripe. Getestet wird mit einem 100-%-Gutscheincode „einmalig". */
+export const VF_KAUF_PROBE = false;
 
 /**
  * ── DIE ERSTE ANFRAGE IST OFFEN (Owner 09.09.2026: „er kann es bekommen, auch alles free —

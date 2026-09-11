@@ -107,13 +107,39 @@ export async function frageModell(
     return { res, nutz, text: String(text ?? "") };
   };
 
-  let { res, nutz, text } = await anlauf();
+  /**
+   * ── EIN ZWEITER VERSUCH, WENN DIE LEITUNG ABREISST (09.09.2026, in fünf Prüfläufen zweimal
+   * passiert) ────────────────────────────────────────────────────────────────────────────────
+   *
+   * `fetch` WIRFT, es gibt kein `res` — bei ECONNRESET, DNS-Aussetzern, Zeitüberschreitungen.
+   * Bisher fiel der Fehler ungefangen durch die Route und der Mensch bekam einen 500. Beim
+   * Plan ist das die teuerste Stelle des ganzen Trichters: Er hat vier Fragen beantwortet, und
+   * am Ende steht nichts.
+   *
+   * ZWEIMAL PASSIERT VON FÜNF LÄUFEN. Das ist keine Seltenheit, mit der man leben kann — das
+   * ist jeder vierte Kunde.
+   *
+   * EIN VERSUCH, NICHT DREI. Bei einer echten Störung würde jede Wiederholung nur warten
+   * lassen; ein Nachschlag fängt den Zufallstreffer und verdoppelt im schlimmsten Fall EINEN
+   * Aufruf. Dieselbe Entscheidung wie in `lib/agent-werkzeuge.ts`.
+   */
+  const anlaufMitNachschlag = async () => {
+    try {
+      return await anlauf();
+    } catch (e) {
+      console.warn("[agent-modell] Leitung abgerissen, zweiter Versuch:", modell, String(e).slice(0, 120));
+      await new Promise(r => setTimeout(r, 800));
+      return await anlauf();
+    }
+  };
+
+  let { res, nutz, text } = await anlaufMitNachschlag();
   let zusatzHeraus = 0;
   if (res.ok && !text.trim()) {
     const grund = str(nutz?.incomplete_details?.reason, 120) || str(nutz?.status, 40) || "leer";
     console.warn("[agent-modell] leere Antwort, zweiter Anlauf:", modell, grund);
     zusatzHeraus = Number(nutz?.usage?.output_tokens ?? 0) || 0;
-    ({ res, nutz, text } = await anlauf());
+    ({ res, nutz, text } = await anlaufMitNachschlag());
   }
 
   const verbrauch: Verbrauch = {

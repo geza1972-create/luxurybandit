@@ -50,6 +50,19 @@ export const VERSUSFORGE_MAIL_TEXTE = {
   anfrageUhr: "Wer innerhalb eines Tages zurückruft, erreicht die Leute noch. Danach haben sie meist woanders angefragt.",
   anfrageBetreffViele: "{n} Anfragen warten",
   anfrageBetreffEine: "Du hast eine Anfrage",
+  /* ── DAS ART-MARKETING-ABO (Owner 10.09.2026) — Regeln in lib/versusforge-abo.ts ─────────
+     OFFEN: Er sieht die Anfrage. FRAGE: die dritte — „Willst du deinen Agenten behalten?".
+     GESPERRT: nach 14 Tagen ohne Abo — „bekommt eine E-Mail, kann sie nicht sehen, wird
+     aufgefordert zu zahlen". Der Preis wird angehängt, nie übersetzt. */
+  aboOffenText: "Ein Interessent hat deinem Agenten geschrieben. Name, Telefonnummer und seine Antwort stehen in deinem Dashboard.",
+  aboFrageTitel: "Drei Interessenten haben sich bei dir gemeldet.",
+  aboFrageText: "Dein Agent arbeitet für dich. Noch 14 Tage siehst du jede Anfrage in deinem Dashboard — danach nur mit dem Abo.",
+  aboKastenTitel: "Willst du deinen Agenten behalten?",
+  aboKastenText: "Mit dem Abo siehst du jede Anfrage mit Namen, Telefonnummer und Antwort — auch die, die schon da sind. Es kostet im Monat",
+  aboGesperrtTitel: "Jemand hat dir geantwortet.",
+  aboGesperrtText: "Ein Interessent hat deinem Agenten geschrieben. Seine Antwort und seinen Kontakt siehst du, sobald du das Abo abschliesst.",
+  aboFrageBetreff: "Drei Interessenten — willst du deinen Agenten behalten?",
+  aboGesperrtBetreff: "Jemand hat dir geantwortet",
 
   /* ── Adressen und Löschlink ──────────────────────────────────────────────── */
   linksLoeschTitel: "Dein Löschlink.",
@@ -81,6 +94,37 @@ export const VERSUSFORGE_MAIL_TEXTE = {
   linksMetaFein: "Meta benennt seine Menüs gelegentlich um. Findest du einen Punkt nicht unter diesem Namen, ist er meist eine Ebene höher oder tiefer.",
   linksBetreffLoeschen: "Dein Löschlink",
   linksBetreff: "Deine Anzeige und dein Trichter",
+
+  /* ── DIE MAIL AN KÜNSTLER (Owner 10.09.2026) ─────────────────────────────────────────────
+     Vorher bekam der Künstler die Firmen-Mail: „deine Anzeige", „dein Trichter", 299 €, eine
+     Meta-Anleitung. Er bekommt aber keine Werbung von uns, sondern seine Seite auf lakatosbandi.com. */
+  kuenstlerBetreff: "Deine Seite auf lakatosbandi.com",
+  kuenstlerTitel: "Willkommen bei lakatosbandi.com.",
+  /* Sofort online (Owner 11.09.2026) — vorher „innerhalb von 3 Tagen frei". */
+  kuenstlerText: "Deine Seite ist ab jetzt online. Es kostet dich jetzt nichts: Du zahlst erst, wenn dein Agent für dich arbeitet und du ihn behalten willst.",
+  kuenstlerSeite: "Deine Seite",
+  kuenstlerSeiteFein: "Hier stehen deine Bilder mit ihren Sprüchen, und dein KI-Agent spricht jeden Besucher an.",
+  /* Owner 11.09.2026: „Dann wird er den Link bekommen, dass er öffnen und es ergänzen kann … WYSIWYG". */
+  /* Owner 11.09.2026: „das muss man ihm auch per E-Mail schicken, die Info und den Link zu seinem Profil". */
+  kuenstlerBearbeiten: "Mach deinen Agenten besser — optional",
+  kuenstlerBearbeitenFein: "Erzähl ihm etwas über dich und die Geschichte hinter jedem Werk, lade ein Foto von dir hoch. Je mehr er weiß, desto besser spricht er mit Käufern. Wer diesen Link hat, kann deine Seite bearbeiten: Gib ihn nicht weiter.",
+  /* ── FREIGEGEBEN ODER ABGELEHNT (Owner 11.09.2026: „Bekommt der Künstler eine E-Mail, wenn freigegeben?" — vorher
+     nicht). Die Ablehnung ohne Begründung: kurz, freundlich, kein Urteil über seine Kunst. */
+  freigabeBetreff: "Deine Seite auf lakatosbandi.com ist online",
+  freigabeTitel: "Deine Seite ist online.",
+  freigabeText: "Wir haben uns deine Bilder angesehen. Ab jetzt sehen Käufer deine Seite, und dein Agent spricht jeden an, der sich für deine Kunst interessiert.",
+  freigabeSeiteFein: "So sehen Käufer deine Seite.",
+  ablehnungBetreff: "Deine Anmeldung bei lakatosbandi.com",
+  ablehnungTitel: "Danke für deine Bilder.",
+  ablehnungText: "Wir können deine Seite gerade nicht auf lakatosbandi.com aufnehmen. Das ist kein Urteil über deine Kunst — unsere Auswahl ist im Moment sehr eng.",
+  ablehnungLoeschenFein: "Deine Bilder und Angaben löschen wir, sobald du hier klickst.",
+  /* ── JEMAND INTERESSIERT SICH (Owner 11.09.2026: „bei jedem Besuch eine E-Mail ist zu viel … erst, wenn jemand drückt:
+     Da, mă interesează lucrarea"). Hier stand die Mail „Du hast Besuch" bei jedem neuen Besucher. `{werk}` setzt der Code. */
+  interesseBetreff: "Jemand interessiert sich für dein Werk",
+  interesseTitel: "Jemand interessiert sich für dein Werk.",
+  interesseText: "{werk} — dein Agent spricht gerade mit dieser Person. Hinterlässt sie Namen und Telefonnummer, bekommst du sofort noch eine Mail.",
+  interesseDashboardFein: "Hier siehst du alle Besucher und Anfragen.",
+  kuenstlerDashboardFein: "Hier siehst du deine Anfragen und änderst deine Sprüche. Wer diesen Link hat, kommt hinein — gib ihn nicht weiter. Anmelden geht auch über lakatosbandi.com/login.",
 } as const;
 
 export type MailTexte = { -readonly [K in keyof typeof VERSUSFORGE_MAIL_TEXTE]: string };

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createTryonCheckout, getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { VERSUSFORGE_ANALYSE_CENTS, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import { createSubscriptionCheckout, createTryonCheckout, getCheckoutSession, stripeConfigured } from "@/lib/stripe";
+import { VERSUSFORGE_ABO_PRICE_ID, VERSUSFORGE_ANALYSE_CENTS, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
 import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
 import { guthabenDazu, guthabenLesen } from "@/lib/versusforge-guthaben";
 import { adminPinMatches } from "@/lib/admin-auth";
@@ -155,6 +155,87 @@ export async function POST(request: Request) {
     } catch (e) {
       console.error("[versusforge-kasse] Dashboard-Start fehlgeschlagen", e);
       return NextResponse.json({ error: "Die Kasse liess sich gerade nicht öffnen." }, { status: 502 });
+    }
+  }
+
+  /**
+   * ── DAS ART-MARKETING-ABO (Owner 10.09.2026: „Du zahlst, wenn unser Agent für dich arbeitet und
+   * du ihn behalten willst" · 10 € im Monat) ──────────────────────────────────────────────────
+   *
+   * DER KUNST-WEG STATT DER 299 €. Die Einmal-Kasse darüber bleibt für ein späteres anderes
+   * Rezept stehen („3 behalten"). Die Regeln, was das Abo freischaltet, stehen in
+   * `lib/versusforge-abo.ts`.
+   *
+   * ABGEBUCHT WIRD ÜBER DIE STRIPE-KENNUNG (`VERSUSFORGE_ABO_PRICE_ID`), nicht über einen Betrag —
+   * bei einem Abo verlangt Stripe den angelegten Preis (Skill `bezahlung`, Regel 2).
+   *
+   * ZWEI WEGE ZUM „AKTIV", WIE BEIM LEBENSLAUF-ABO: Die Rückkehr des Browsers (`abo-einloesen`)
+   * und der Webhook (`checkout.session.completed`, kind `versusforge-abo`). Wer den Browser nach
+   * der Zahlung schliesst, ist trotzdem freigeschaltet. Die Kündigung kommt nur über den Webhook.
+   */
+  if (was === "abo") {
+    const mandant = str(body.mandant, 60);
+    if (!mandant) return NextResponse.json({ error: "Kein Künstler angegeben." }, { status: 400 });
+    const m = await mandantLesen(mandant);
+    if (!m) return NextResponse.json({ error: "Diesen Künstler gibt es nicht." }, { status: 404 });
+    if (m.abo?.aktiv) return NextResponse.json({ schon: true });
+
+    /* Admin-Umgehung wie bei den anderen Wegen — mit derselben Warnung
+       ([[admin-testet-den-kaufweg-nicht]]): Sie prüft alles ausser der Kasse. */
+    if (adminPinMatches(request)) {
+      await mandantSpeichern(mandant, { ...m, abo: { aktiv: true, seit: new Date().toISOString() } });
+      console.warn("[versusforge-kasse] ADMIN — Abo ohne Zahlung aktiviert:", mandant);
+      return NextResponse.json({ adminFrei: true });
+    }
+    if (!stripeConfigured()) return NextResponse.json({ error: "Die Kasse ist nicht eingerichtet." }, { status: 503 });
+
+    const origin1 = new URL(request.url).origin;
+    const zurueck1 = `/versusforge/${mandant}/dashboard`;
+    try {
+      const { id, url } = await createSubscriptionCheckout({
+        priceId: VERSUSFORGE_ABO_PRICE_ID,
+        ...(m.mail ? { email: m.mail } : {}),
+        successUrl: `${origin1}${zurueck1}?k=${encodeURIComponent(m.schluessel)}&vf_abo={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${origin1}${zurueck1}?k=${encodeURIComponent(m.schluessel)}`,
+        /* `kind` überschreibt das „premium" der Hilfsfunktion — Webhook und Einlösen erkennen
+           das Abo daran, und `mandant` sagt, WESSEN Abo es ist. */
+        metadata: { kind: "versusforge-abo", mandant },
+      });
+      return NextResponse.json({ sessionId: id, url });
+    } catch (e) {
+      console.error("[versusforge-kasse] Abo-Start fehlgeschlagen", e);
+      return NextResponse.json({ error: "Die Kasse liess sich gerade nicht öffnen." }, { status: 502 });
+    }
+  }
+
+  /* Die Rückkehr von der Abo-Kasse — schaltet das Abo aktiv, erst nachdem Stripe es bestätigt. */
+  if (was === "abo-einloesen") {
+    const sitzung = str(body.sessionId, 200);
+    const mandant = str(body.mandant, 60);
+    if (!sitzung || !mandant) return NextResponse.json({ error: "Angaben fehlen." }, { status: 400 });
+    if (!stripeConfigured()) return NextResponse.json({ error: "Die Kasse ist nicht eingerichtet." }, { status: 503 });
+    try {
+      const s = await getCheckoutSession(sitzung);
+      /* „no_payment_required" gehört dazu: Ein 100-%-Gutschein schliesst die Sitzung ohne
+         Zahlung ab (Skill `bezahlung`, Regel 6) — sonst schaltet der Test nichts frei. */
+      const bezahlt = s.paymentStatus === "paid" || s.paymentStatus === "no_payment_required";
+      if (!bezahlt) return NextResponse.json({ bezahlt: false });
+      if (str(s.metadata?.kind, 40) !== "versusforge-abo") {
+        return NextResponse.json({ error: "Diese Zahlung gehört nicht hierher." }, { status: 400 });
+      }
+      /* Das Abo gehört GENAU diesem Künstler — sonst schaltet eine Sitzung einen fremden frei. */
+      if (str(s.metadata?.mandant, 60) !== mandant) {
+        return NextResponse.json({ error: "Diese Zahlung gehört zu einem anderen Künstler." }, { status: 400 });
+      }
+      const m = await mandantLesen(mandant);
+      if (!m) return NextResponse.json({ error: "Diesen Künstler gibt es nicht." }, { status: 404 });
+      if (!m.abo?.aktiv) {
+        await mandantSpeichern(mandant, { ...m, abo: { ...(m.abo ?? {}), aktiv: true, seit: m.abo?.seit ?? new Date().toISOString(), bis: undefined } });
+      }
+      return NextResponse.json({ bezahlt: true });
+    } catch (e) {
+      console.error("[versusforge-kasse] Abo-Einlösen fehlgeschlagen", e);
+      return NextResponse.json({ error: "Die Zahlung liess sich gerade nicht prüfen." }, { status: 502 });
     }
   }
 

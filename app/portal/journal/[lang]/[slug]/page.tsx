@@ -1,0 +1,112 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { ARTIKEL, JOURNAL_SPRACHEN, JOURNAL_UI, artikelFinden, lesezeit, type JournalSprache } from "@/lib/lakatosbandi-journal";
+import { portalPfade, PORTAL_URL } from "@/lib/lakatosbandi-adressen";
+import { portalTexte } from "@/lib/lakatosbandi-texte";
+import PortalKopf from "@/components/PortalKopf";
+import PortalFuss from "@/components/PortalFuss";
+
+/**
+ * EIN ARTIKEL — lakatosbandi.com/journal/<sprache>/<slug>.
+ *
+ * FÜR GOOGLE: eigene Adresse je Sprache, `hreflang` auf die beiden anderen, schema.org `Article`.
+ * FÜR DEN LESER: ruhig lesbar (Serif, 680 px Spalte), am Ende der Merksatz und der  * Bewerbung als Künstler — der Grund, warum es das Journal gibt.
+ */
+export const dynamic = "force-dynamic";
+
+type Props = { params: Promise<{ lang: string; slug: string }> };
+const gueltig = (l: string): l is JournalSprache => (JOURNAL_SPRACHEN as string[]).includes(l);
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang, slug } = await params;
+  const a = artikelFinden(slug);
+  if (!gueltig(lang) || !a) return {};
+  const t = a.texte[lang];
+  return {
+    title: `${t.titel} — lakatosbandi.com`,
+    description: t.beschreibung,
+    alternates: {
+      canonical: `${PORTAL_URL}/journal/${lang}/${slug}`,
+      languages: { ...Object.fromEntries(JOURNAL_SPRACHEN.map(l => [l, `${PORTAL_URL}/journal/${l}/${slug}`])), "x-default": `${PORTAL_URL}/journal/en/${slug}` },
+    },
+    /* DAS VORSCHAUBILD (Owner 10.09.2026, beim Planen der Facebook-Posts: „Bild keins?"). Ohne
+       og:image zeigt Facebook einen Link-Post nur als graue Textzeile. Die Bilder erzeugt
+       ein Skript aus dem Titel je Sprache: public/lakatosbandi/journal/<slug>-<sprache>.jpg. */
+    openGraph: {
+      title: t.titel, description: t.beschreibung, type: "article", url: `${PORTAL_URL}/journal/${lang}/${slug}`, publishedTime: a.datum,
+      images: [{ url: `${PORTAL_URL}/lakatosbandi/journal/${slug}-${lang}.jpg`, width: 1200, height: 630, alt: t.titel }],
+    },
+    twitter: { card: "summary_large_image", title: t.titel, description: t.beschreibung, images: [`${PORTAL_URL}/lakatosbandi/journal/${slug}-${lang}.jpg`] },
+  };
+}
+
+export default async function JournalArtikel({ params }: Props) {
+  const { lang, slug } = await params;
+  const a = artikelFinden(slug);
+  if (!gueltig(lang) || !a) notFound();
+  const t = a.texte[lang];
+  const U = JOURNAL_UI[lang];
+  const T = portalTexte(lang);
+  const P = portalPfade((await headers()).get("host"));
+  const weitere = ARTIKEL.filter(x => x.slug !== slug).slice(0, 3);
+
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: t.titel,
+    description: t.beschreibung,
+    inLanguage: lang,
+    datePublished: a.datum,
+    author: [{ "@type": "Person", name: "Geza Lakatos" }, { "@type": "Person", name: "Szidonia Bandi" }],
+    publisher: { "@type": "Organization", name: "lakatosbandi.com" },
+    mainEntityOfPage: `${PORTAL_URL}/journal/${lang}/${slug}`,
+  };
+
+  return (
+    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
+      <PortalKopf T={T} lang={lang} login={P.login} start={P.start} journal={P.journal(lang)} sprachLink={l => P.journal(l, slug)} />
+
+      <article className="mx-auto w-full max-w-[720px] px-5 pb-16 pt-10 md:pt-16">
+        <Link href={P.journal(lang)} className="text-[14px] text-[#777] no-underline hover:text-[#111]">← {U.zurueck}</Link>
+        <h1 className="m-0 mt-6 font-serif text-[36px] font-normal leading-[1.15] md:text-[50px]">{t.titel}</h1>
+        <p className="mt-4 text-[14px] text-[#888]">{new Date(a.datum).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" })} · {lesezeit(t)} {U.minuten} · Geza Lakatos &amp; Szidonia Bandi</p>
+        <p className="mt-8 font-serif text-[22px] leading-[1.55] text-[#222]">{t.lead}</p>
+
+        {t.teile.map((teil, i) => (
+          <section key={i} className="mt-10">
+            <h2 className="m-0 text-[22px] font-semibold leading-[1.3]">{teil.h}</h2>
+            {teil.p.map((absatz, k) => (
+              <p key={k} className="mt-4 text-[17.5px] leading-[1.75] text-[#333]">{absatz}</p>
+            ))}
+          </section>
+        ))}
+
+        <p className="mt-12 border-l-2 border-[#111] pl-5 font-serif text-[26px] leading-[1.35]">{t.merksatz}</p>
+
+        <section className="mt-14 bg-[#111] px-6 py-10 text-white md:px-10">
+          <h2 className="m-0 font-serif text-[28px] font-normal leading-[1.2]">{U.ctaTitel}</h2>
+          <p className="mt-3 text-[16px] leading-[1.6] text-white/80">{U.ctaText}</p>
+          <a href={`https://lakatosbandi.com/start?lang=${lang}`} className="mt-6 inline-block bg-white px-6 py-3.5 text-[15.5px] font-semibold text-[#111] no-underline hover:bg-[#e5e5e5]">{U.ctaKnopf}</a>
+        </section>
+      </article>
+
+      <section className="mx-auto w-full max-w-[1120px] border-t border-[#e5e5e5] px-5 pb-16 pt-10">
+        <ul className="grid list-none grid-cols-1 gap-8 p-0 md:grid-cols-3">
+          {weitere.map(w => (
+            <li key={w.slug}>
+              <Link href={P.journal(lang, w.slug)} className="group block text-inherit no-underline">
+                <span className="block font-serif text-[21px] leading-[1.3] group-hover:underline">{w.texte[lang].titel}</span>
+                <span className="mt-2 block text-[14.5px] leading-[1.55] text-[#666]">{w.texte[lang].beschreibung}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <PortalFuss lang={lang} />
+    </div>
+  );
+}

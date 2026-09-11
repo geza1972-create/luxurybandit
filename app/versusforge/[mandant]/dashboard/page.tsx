@@ -1,11 +1,17 @@
 import crypto from "crypto";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { aufVersusforge, istKuenstler, kuenstlerDashboardUrl, kuenstlerUrl } from "@/lib/lakatosbandi";
 import Link from "next/link";
 import { LayoutDashboard, Settings, Phone, Mail, ChevronRight, Lock, Image as ImageIcon } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
-import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import { dashboardGesehenLesen, dashboardGesehenMerken } from "@/lib/versusforge-gesehen";
+import { eur, VERSUSFORGE_ABO_CENTS, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import { REZEPTE, ENGINE_REZEPT } from "@/lib/versusforge-rezepte";
+import { aboAktiv, anfrageSichtbar, sperreAb } from "@/lib/versusforge-abo";
 import MandantKaufen from "@/components/MandantKaufen";
 import { VF_ANFRAGEN_OFFEN } from "@/lib/versusforge-schalter";
 import { dashboardTexteInSprache, type DashboardTexte } from "@/lib/dashboard-texte";
@@ -63,6 +69,15 @@ function schluesselStimmt(soll: string, ist: string): boolean {
   try { return crypto.timingSafeEqual(a, b); } catch { return false; }
 }
 
+/** Kürzt an der letzten Wortgrenze und hängt drei Punkte an. Nie mitten im Wort. */
+function kurz(text: string, max: number): string {
+  const t = String(text ?? "").trim();
+  if (t.length <= max) return t;
+  const schnitt = t.slice(0, max);
+  const luecke = schnitt.lastIndexOf(" ");
+  return `${(luecke > max * 0.5 ? schnitt.slice(0, luecke) : schnitt).replace(/[.,;:!?–—-]$/, "")}…`;
+}
+
 /** „vor 3 Stunden" liest sich schneller als ein Zeitstempel — und darum geht es hier. */
 function seither(iso: string, T: DashboardTexte): string {
   const t = Date.parse(iso);
@@ -116,6 +131,12 @@ export default async function MandantDashboard({ params, searchParams }: {
     );
   }
 
+  /* KÜNSTLER NUR AUF LAKATOSBANDI.COM (Owner 10.09.2026: „nur auf lakatosbandi"). Der Link aus
+     älteren Mails (versusforge.com/{name}/dashboard?k=…) landet im Dashboard auf dem Portal. */
+  if (istKuenstler(m) && aufVersusforge((await headers()).get("host"))) {
+    redirect(kuenstlerDashboardUrl(mandant, k));
+  }
+
   const bereit = !!m.impressumUrl && !!m.datenschutzUrl;
   /**
    * ZWEI SCHLÖSSER, UND SIE HÄNGEN AN VERSCHIEDENEN DINGEN — das ist der ganze Verkauf.
@@ -126,8 +147,18 @@ export default async function MandantDashboard({ params, searchParams }: {
    *  · LESEN kostet 299 € (`stand === "scharf"`). Bis dahin sieht er die ZAHLEN, nicht die
    *    Namen. Genau das ist die Frage, die verkauft: „Wo sind meine Kunden?"
    */
-  const bezahlt = m.stand === "scharf";
-  const [anfragen, messung] = await Promise.all([leadsLesen(mandant, 200), trichterZaehlen(mandant)]);
+  /* IM KUNST-REZEPT HEISST „BEZAHLT" DAS ABO (Owner 10.09.2026) — Regeln in lib/versusforge-abo.ts.
+     Die Einmal-Kasse (`stand`) bleibt für ein anderes Rezept stehen. */
+  const kunst = !!REZEPTE[ENGINE_REZEPT].aufnahme;
+  const bezahlt = kunst ? aboAktiv(m) : m.stand === "scharf";
+  /* DER ROTE PUNKT (Owner 11.09.2026: „für neue Anfragen vom Chat oder neue Besucher") — neu seit seinem letzten Blick
+     auf die Übersicht. Beim allerersten Mal ist alles neu. */
+  const gesehen = await dashboardGesehenLesen(mandant);
+  const [anfragen, messung] = await Promise.all([leadsLesen(mandant, 200), trichterZaehlen(mandant, 30, 1000, gesehen)]);
+  const seitGesehen = Date.parse(gesehen) || 0;
+  const neueAnfragen = anfragen.filter(a => !a.eigen && (Date.parse(a.zeit) || 0) > seitGesehen).length;
+  const neueBesucher = messung.neu;
+  if (ansicht === "uebersicht") await dashboardGesehenMerken(mandant);
 
   /**
    * ── WELCHE ANFRAGE OFFEN IST (Owner 09.09.2026) ─────────────────────────────────────────
@@ -147,8 +178,27 @@ export default async function MandantDashboard({ params, searchParams }: {
   /* Dieselben zehn Schritte wie in seiner Mail — eine Quelle, zwei Orte. */
   const schritte = await metaSchritteInSprache(m.sprache ?? "de");
 
+  /**
+   * WELCHER HOOK HINTER EINER NUMMER STECKT (Owner 09.09.2026: „wie kann er wissen, was der
+   * Kunde anfragt?").
+   *
+   * Die Anfrage trägt eine Nummer, kein Satz — ändert er den Text, bleibt die Zuordnung
+   * richtig. Hier wird sie in den Satz übersetzt, den er kennt. Gibt es ihn nicht mehr,
+   * bleibt die Nummer stehen: eine ehrliche Lücke statt einer falschen Zuordnung.
+   */
+  const hookSatz = (nr: string) => {
+    if (!nr) return "";
+    if (nr === "-1") return String((m.plan as { hook?: string } | undefined)?.hook ?? "");
+    const liste = Array.isArray(m.hooks) ? (m.hooks as string[]) : [];
+    return String(liste[Number(nr)] ?? "");
+  };
+
   const fremde = anfragen.filter(a => !a.eigen);
   const offeneDateien = new Set(fremde.slice(-VF_ANFRAGEN_OFFEN).map(a => a.datei));
+  /* Kunst: Was nach der 14-Tage-Frist ohne Abo kam, bleibt zu. Tage bis dahin für den Hinweis. */
+  const kunstZu = kunst ? fremde.filter(a => !anfrageSichtbar(m, a)).length : 0;
+  const sperre = kunst ? sperreAb(m) : null;
+  const fristTage = sperre === null ? 0 : Math.max(0, Math.ceil((sperre - Date.now()) / 86400000));
 
   const woche = Date.now() - 7 * 24 * 3600 * 1000;
   const neu = anfragen.filter(a => Date.parse(a.zeit) > woche).length;
@@ -205,7 +255,7 @@ export default async function MandantDashboard({ params, searchParams }: {
               die Liste — der Reiter trug den Namen seines untersten Drittels. Die Zahl
               daneben bleibt die der Anfragen: Sie ist das, wonach er sucht. */}
           <Reiter href={mitK("")} aktiv={ansicht === "uebersicht"} icon={<LayoutDashboard className="h-[18px] w-[18px]" />}
-            wort={T.uebersicht} zahl={anfragen.length} />
+            wort={T.uebersicht} zahl={anfragen.length} punkt={neueAnfragen + neueBesucher > 0} />
           {/* HOOKS (Owner 09.09.2026: „ich brauche noch einen Punkt für Hooks, dort sehe ich
               meine Bilder, dort kann ich weitere generieren"). Zwischen Übersicht und
               Einstellungen: Es ist Arbeit am Produkt, keine Verwaltung. */}
@@ -234,7 +284,8 @@ export default async function MandantDashboard({ params, searchParams }: {
           )}
 
           {ansicht === "hooks" ? (
-            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} T={T} hatMotiv={!!m.motivPfad} />
+            <MandantHooks mandant={mandant} k={k} planHook={planHook} hooks={eigeneHooks} T={T} hatMotiv={!!m.motivPfad}
+              seite={istKuenstler(m) ? kuenstlerUrl(mandant) : undefined} />
           ) : ansicht === "einstellungen" ? (
             <>
             <MandantEinrichten
@@ -255,9 +306,9 @@ export default async function MandantDashboard({ params, searchParams }: {
             {/* DER ZUGANG steht unter denselben Einstellungen, direkt unter den Angaben. */}
             <div className="mt-5">
               <MandantZugang
-                trichterUrl={`https://versusforge.com/${mandant}`}
+                trichterUrl={istKuenstler(m) ? kuenstlerUrl(mandant) : `https://versusforge.com/${mandant}`}
                 anzeigeUrl={`https://versusforge.com/${mandant}/anzeige`}
-                dashboardUrl={`https://versusforge.com/${mandant}/dashboard?k=${k}`}
+                dashboardUrl={istKuenstler(m) ? kuenstlerDashboardUrl(mandant, k) : `https://versusforge.com/${mandant}/dashboard?k=${k}`}
                 schluessel={m.schluessel}
                 T={T}
               />
@@ -267,8 +318,8 @@ export default async function MandantDashboard({ params, searchParams }: {
             <>
               {/* ── KENNZAHLEN: vier, nicht acht. Was man nicht liest, verdeckt nur. ── */}
               <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                <Zahl wert={String(messung.besucher)} label={T.besucher} zusatz={T.tage30} />
-                <Zahl wert={String(anfragen.length)} label={T.anfragen} />
+                <Zahl wert={String(messung.besucher)} label={T.besucher} zusatz={T.tage30} neu={neueBesucher} neuWort={T.neu} />
+                <Zahl wert={String(anfragen.length)} label={T.anfragen} neu={neueAnfragen} neuWort={T.neu} />
                 <Zahl wert={String(neu)} label={T.neu} zusatz={T.tage7} />
                 <Zahl wert={zuletzt} label={T.zuletzt} klein />
               </div>
@@ -302,7 +353,35 @@ export default async function MandantDashboard({ params, searchParams }: {
                     * der Trichter arbeitet. Verschlossen ist nur, WER es war, und genau das
                     * ist das Produkt.
                     */}
-                  {!bezahlt && fremde.length > VF_ANFRAGEN_OFFEN && (
+                  {/* ── DAS ABO-SCHILD (Kunst, 10.09.2026): erst nach der Frage bei 3 Interessenten.
+                        Vor der Sperre: Frage + verbleibende Tage. Danach: wie viele Antworten warten. */}
+                  {kunst && !bezahlt && !!m.aboFrageAm && (
+                  <div className="mt-4 rounded-xl bg-[#eaf2fc] p-5">
+                    <div className="flex items-start gap-3">
+                      <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#1d6fd0]" aria-hidden />
+                      <div className="min-w-0">
+                        <p className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">
+                          {kunstZu === 0 ? T.aboFrage
+                            : kunstZu === 1 ? T.aboGesperrtEine
+                              : T.aboGesperrt.replace("{n}", String(kunstZu))}
+                        </p>
+                        {kunstZu === 0 && fristTage > 0 && (
+                          <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{T.aboFrist.replace("{n}", String(fristTage))}</p>
+                        )}
+                        <MandantKaufen
+                          mandant={mandant}
+                          abo
+                          wort={T.aboKnopf.replace("{preis}", eur(VERSUSFORGE_ABO_CENTS, m.sprache))}
+                          klasse="mt-3.5 inline-block rounded-xl bg-[#1d6fd0] px-6 py-3.5 text-[16px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  )}
+                  {kunst && bezahlt && (
+                    <p className="mt-3 text-[15px] leading-[1.5] text-[#5b666f]">{T.aboAktivZeile}</p>
+                  )}
+                  {!kunst && !bezahlt && fremde.length > VF_ANFRAGEN_OFFEN && (
                   <div className="mt-4 rounded-xl bg-[#eaf2fc] p-5">
                     <div className="flex items-start gap-3">
                       <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#1d6fd0]" aria-hidden />
@@ -355,7 +434,9 @@ export default async function MandantDashboard({ params, searchParams }: {
                       * Nummer — es gibt sie dort nicht.
                       */}
                     {anfragen.map(a => {
-                      const offen = bezahlt || !!a.eigen || offeneDateien.has(a.datei);
+                      const offen = kunst
+                        ? anfrageSichtbar(m, a)
+                        : bezahlt || !!a.eigen || offeneDateien.has(a.datei);
                       const wert = (f: string) => (a.runden ?? []).find(r => r.frage === f)?.antwort?.trim() ?? "";
                       return (
                         <Anfrage
@@ -363,6 +444,8 @@ export default async function MandantDashboard({ params, searchParams }: {
                           zeit={a.zeit}
                           eigen={!!a.eigen}
                           offen={offen}
+                          ausHook={String(a.hook ?? "")}
+                          hookSatz={hookSatz(String(a.hook ?? ""))}
                           name={offen ? wert("Name") : ""}
                           telefon={offen ? wert("Telefon") : ""}
                           mail={offen ? String(a.mail ?? "").trim() : ""}
@@ -442,8 +525,10 @@ export default async function MandantDashboard({ params, searchParams }: {
 }
 
 /** Ein Reiter der Navigation. Aktiv wechselt die FARBE, nicht die Grösse (CI-Regel). */
-function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
+function Reiter({ href, aktiv, icon, wort, zahl, warnung = false, punkt = false }: {
   href: string; aktiv: boolean; icon: React.ReactNode; wort: string; zahl?: number; warnung?: boolean;
+  /** Der rote Punkt: Seit seinem letzten Blick ist etwas Neues da (Owner 11.09.2026). */
+  punkt?: boolean;
 }) {
   return (
     <Link href={href}
@@ -453,6 +538,7 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
           : "border-transparent bg-white text-[#5b666f] hover:text-[#14181c]"}`}>
       {icon}
       <span className="whitespace-nowrap">{wort}</span>
+      {punkt && <span aria-label="neu" className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#e02424]" />}
       {typeof zahl === "number" && zahl > 0 && (
         <span className="ml-auto rounded-full bg-[#e8edf2] px-2 py-0.5 text-[13.5px] font-black text-[#5b666f]">{zahl}</span>
       )}
@@ -471,11 +557,19 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false }: {
  * `whitespace-nowrap` an der Zahl: „vor 21 Std." ist ein Wert, kein Satz — er wird kleiner,
  * bevor er umbricht.
  */
-function Zahl({ wert, label, zusatz, klein = false }: {
+function Zahl({ wert, label, zusatz, klein = false, neu = 0, neuWort = "" }: {
   wert: string; label: string; zusatz?: string; klein?: boolean;
+  /** Wie viele davon seit seinem letzten Blick neu sind — roter Punkt mit Zahl (Owner 11.09.2026). */
+  neu?: number; neuWort?: string;
 }) {
   return (
-    <div className={`${KARTE} min-w-0 px-4 py-4`}>
+    <div className={`${KARTE} relative min-w-0 px-4 py-4`}>
+      {neu > 0 && (
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 text-[12.5px] font-black text-[#e02424]">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-[#e02424]" />
+          +{neu} {neuWort}
+        </span>
+      )}
       <div className={`truncate whitespace-nowrap font-extrabold tracking-[-0.03em] ${
         klein ? "text-[17px] leading-[1.3]" : "text-[30px] leading-none"}`}>
         {wert}
@@ -602,12 +696,15 @@ function Leiter({ leiter, besucher, T }: { leiter: Trichterzahl[]; besucher: num
  * nicht, wer"): Verwischen ist ein Bild über Daten, die trotzdem da sind. Wer die Seite
  * anschaut, findet sie. Was hier fehlt, fehlt wirklich.
  */
-function Anfrage({ zeit, eigen, offen, name, telefon, mail, gespraech, T }: {
+function Anfrage({ zeit, eigen, offen, ausHook, hookSatz, name, telefon, mail, gespraech, T }: {
   zeit: string;
   /** Sein eigener Testlauf — immer offen, aber als solcher gekennzeichnet. */
   eigen: boolean;
   /** Steht der Mensch dahinter offen? Ist es falsch, kommen Name, Nummer und Adresse leer an. */
   offen: boolean;
+  /** Aus welcher Anzeige er kam — die Nummer, und daneben der Satz, falls es ihn noch gibt. */
+  ausHook: string;
+  hookSatz: string;
   name: string;
   telefon: string;
   mail: string;
@@ -619,6 +716,15 @@ function Anfrage({ zeit, eigen, offen, name, telefon, mail, gespraech, T }: {
     <li className="rounded-xl border border-[#e4e9ee] p-4">
       {/* SEIN EIGENER DURCHLAUF STEHT DRAN. Ohne die Kennzeichnung sähe er drei Anfragen und
           hielte seine eigene für einen Kunden — und riefe sich selbst an. */}
+      {/* AUS WELCHER ANZEIGE — die erste Zeile der Karte, weil sie bei mehreren Anzeigen
+          entscheidet, welche er weiterlaufen lässt. */}
+      {!!ausHook && (
+        <span className="mb-2 mr-2 inline-block rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-2.5 py-0.5 text-[12px] font-black uppercase tracking-[0.12em] text-[#1d6fd0]">
+          {/* AN DER WORTGRENZE KAPPEN, nicht im Wort (09.09.2026 gesehen: „…im Nachth"):
+              Ein abgeschnittenes Wort liest sich wie ein Fehler, drei Punkte wie eine Kürzung. */}
+          {T.ausAnzeige} {hookSatz ? `· ${kurz(hookSatz, 34)}` : ausHook}
+        </span>
+      )}
       {eigen && (
         <span className="mb-2 inline-block rounded-full border-[1.5px] border-[#dfe4e9] bg-[#f5f7f9] px-2.5 py-0.5 text-[12px] font-black uppercase tracking-[0.12em] text-[#5b666f]">
           {T.deinTestlauf}

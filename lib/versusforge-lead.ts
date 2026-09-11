@@ -30,6 +30,20 @@ export type VersusForgeLead = {
   mail: string;
   ziel: string;
   text: string;
+  /**
+   * ── DER RÜCKRUF (Owner 10.09.2026: „wir müssen auch einen Rückruf erfragen, eine Beratung.
+   * Falls er nicht zurechtkommt") ─────────────────────────────────────────────────────────
+   *
+   * WOFÜR: Gibt das Gespräch keinen brauchbaren Satz her — weil der Mensch nicht sagen kann,
+   * was seinen Betrieb ausmacht —, liefern wir keinen Hook, sondern bieten ein Telefonat an.
+   * Dafür braucht der, der anruft, zwei Dinge: einen Namen und eine Nummer.
+   *
+   * ES BLEIBT EINE GEWÖHNLICHE ANFRAGE, kein zweiter Speicher: Sie liegt in unserem eigenen
+   * Ordner, wird im Dashboard gezählt wie jede andere, und `ziel: "beratung"` sagt, worum es
+   * geht. Beide Felder sind optional — jede bestehende Anfrage bleibt gültig.
+   */
+  name?: string;
+  telefon?: string;
   url: string;
   sprache: string;
   plan: unknown;
@@ -61,6 +75,20 @@ export type VersusForgeLead = {
    * was sie sind — sie zu verstecken wäre falsch, denn er hat sie ja selbst gemacht.
    */
   eigen?: boolean;
+  /**
+   * ── AUS WELCHER ANZEIGE ER KAM (Owner 09.09.2026: „und wie kann er wissen, was der Kunde
+   * anfragt?") ──────────────────────────────────────────────────────────────────────────────
+   *
+   * SOBALD ER FÜNF HOOKS HAT, IST DAS DIE WICHTIGSTE FRAGE. Fünf Anzeigen laufen, Anfragen
+   * kommen — und ohne diese Angabe weiss er nicht, welche davon sie bringt. Er würde alle
+   * fünf weiterlaufen lassen, auch die vier, die nichts tun, und bezahlt sie bei Facebook.
+   *
+   * ES IST DIE NUMMER DES HOOKS, nicht der Satz: Ändert er den Text später, bleibt die
+   * Zuordnung trotzdem richtig. Sie kommt aus der Adresse, die er in die Anzeige schreibt
+   * (`?h=2`), und steht in keinem Cookie — wer die Anzeige nicht angeklickt hat, trägt sie
+   * auch nicht.
+   */
+  hook?: string;
   zeit: string;
 };
 

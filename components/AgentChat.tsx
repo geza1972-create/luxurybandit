@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowUp, Wrench, ImagePlus, X } from "lucide-react";
-import { Wortmarke, Zeichen } from "@/components/VersusForgeMarke";
+import { Wortmarke } from "@/components/VersusForgeMarke";
 import SprachKnopf from "@/components/SprachKnopf";
 import { LANGS, LANG_LABEL, LANG_COOKIE, type Lang } from "@/lib/lang";
-import { VF_ANFRAGEN_OFFEN } from "@/lib/versusforge-schalter";
+import { eur, VERSUSFORGE_ABO_CENTS } from "@/lib/pricing";
 import type { AgentChatTexte } from "@/lib/agent-chat-texte";
 
 /**
@@ -38,9 +38,31 @@ type Nachricht = {
   text: string;
   benutzt?: string[];
   bild?: string;
+  /** Die Bilder, die ER mit dieser Nachricht gezeigt hat — sie bleiben im Gespräch sichtbar. */
+  fotos?: string[];
   vorschlaege?: string[];
   /** Die Sprachfrage — sie trägt keine Chips, sondern die Sprachen als Knöpfe. */
   sprachfrage?: boolean;
+  /** Der Agent bittet um Bilder — dann steht darunter der Knopf „Bilder hochladen" statt Chips. */
+  bilderBitte?: boolean;
+  /** Sein Bild Nummer `nr` mit dem gewählten Spruch darunter (Owner 10.09.2026). */
+  vorschau?: { nr: number; spruch: string };
+  /** „Willst du alles löschen?" — Ja und Nein als feste Knöpfe. */
+  loeschFrage?: boolean;
+  /** „Willst du noch bis zu N Bilder hochladen?" — die Frage steht im Text, darunter Ja und Nein. */
+  mehrBilder?: number;
+  /** Die Chips sind „Bild 1 … N" — gezeigt werden die Bilder selbst. */
+  bilderWahl?: boolean;
+  /** Die Chips sind Sprüche für Bild Nummer `spruchWahl` — ein Tipp zeigt sofort das Bild mit Spruch. */
+  spruchWahl?: number;
+  /** Wie viele Bilder vor dieser Nachricht schon ausgewertet waren — „Zurück" wirft die Auswertung ihrer Bilder weg. */
+  werkeVorher?: number;
+  /** Seine eigene Fassung nach „✎" — unter dem Bild steht dann „Meinen Text nehmen". */
+  eigenerSpruch?: { nr: number; spruch: string };
+  /** Nach dem Abschluss: „Seite bearbeiten" — das Angebot, das Profil zu ergänzen (Owner 11.09.2026). */
+  profilLink?: string;
+  /** Der Agent fragt nach Künstlername und E-Mail — darunter stehen zwei Felder. */
+  kontaktFrage?: boolean;
 };
 
 /**
@@ -108,6 +130,11 @@ const FREMDE_SPRACHE = [
  */
 const SPRACHE_ABSAGE = "I speak German, English and Romanian — not more, not yet.";
 
+/* ENGLISCH ZUERST, DANN RUMÄNISCH, DANN DEUTSCH (Owner 10.09.2026: „Alles muss mit Englisch
+   anfangen, dann Rumänisch und Deutsch"). Nur für diese Knöpfe — `LANGS` gilt für die ganze
+   Seite und bleibt, wie es ist. */
+const SPRACH_REIHENFOLGE: Lang[] = ["en", "ro", "de"];
+
 /** Trifft das Getippte eine Sprache? Nur kurze Eingaben, sonst redet er schon über sein Geschäft. */
 function sprachAntwort(text: string): { sprache?: Lang; fremd?: boolean } {
   const w = text.toLowerCase().trim().replace(/[.!?,]+$/, "");
@@ -118,14 +145,56 @@ function sprachAntwort(text: string): { sprache?: Lang; fremd?: boolean } {
   return {};
 }
 
-export default function AgentChat({ S, lang, gewaehlt }: {
+/**
+ * DIE FRAGE STEHT FETT (Owner 11.09.2026, rumänischer Chat mit langem Absatz vor der Frage: „die Fragen sollen
+ * fett sein"). Der letzte Satz, der mit „?" endet, wird hervorgehoben — wer den Absatz überfliegt, sieht
+ * trotzdem, worauf er antworten soll.
+ */
+function fetteFrage(text: string) {
+  const ende = text.lastIndexOf("?");
+  if (ende < 0) return text;
+  const davor = Math.max(text.lastIndexOf(".", ende - 1), text.lastIndexOf("!", ende - 1), text.lastIndexOf("?", ende - 1), text.lastIndexOf("\n", ende - 1));
+  let start = davor + 1;
+  while (start < ende && /\s/.test(text[start])) start++;
+  return (
+    <>
+      {text.slice(0, start)}
+      <strong className="font-bold">{text.slice(start, ende + 1)}</strong>
+      {text.slice(ende + 1)}
+    </>
+  );
+}
+
+export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster = false, start = "/engine/agent", marke = "versusforge" }: {
+  /**
+   * ALS FENSTER AUF EINER ANDEREN SEITE (Owner 10.09.2026, lakatosbandi.com: „hier brauchen wir
+   * unseren eigenen Agenten noch auf der Seite, der mit den Leuten redet … der sofort aufklappt").
+   * Dann füllt der Chat seinen Rahmen statt den Bildschirm, trägt keinen eigenen Kopf (den hat
+   * das Fenster) und verlässt die Seite nie — „Neu anfangen" springt zurück zum Gruss statt auf
+   * `/engine/agent`. Die Sprache kommt von der Seite (`gewaehlt`).
+   */
+  fenster?: boolean;
   S: AgentChatTexte;
   /** Die Sprache, in der dieser Chat gerendert wurde — Wahl vor Browser. */
   lang: Lang;
   /** Steht schon eine WAHL im Cookie? Dann wird nicht mehr gefragt. */
   gewaehlt: boolean;
+  /**
+   * SEIN SATZ VON DER STARTSEITE (10.09.2026) — wenn er aus der Anzeige kommt und oben schon
+   * geschrieben hat, was er anbietet. Er geht erst nach dem Ja an das Modell.
+   */
+  auftrag?: string;
+  /**
+   * AUF LAKATOSBANDI.COM (Owner 11.09.2026: „du musst schauen, wo die Seite angelegt wird. Nicht auf VersusForge"):
+   * `start` ist die Adresse dieses Chats („/start" statt „/engine/agent"), `marke` der Name über seinen Nachrichten.
+   */
+  start?: string;
+  marke?: "versusforge" | "lakatosbandi";
 }) {
   const router = useRouter();
+  /* AUF LAKATOSBANDI.COM HEISST DIE ZUSTIMMUNG „DA, VREAU" (Owner 11.09.2026) — über denselben Schlüssel, damit jede
+     Stelle, die auf die Zustimmung prüft (`S.chipEinverstanden`), weiter greift. */
+  const S = marke === "lakatosbandi" ? { ...SQuelle, chipEinverstanden: SQuelle.startJa } : SQuelle;
 
   /**
    * DER GRUSS — ZUSAMMENGESETZT, NICHT GETIPPT (Owner 09.09.2026: „er muss doch auch mit
@@ -152,14 +221,23 @@ export default function AgentChat({ S, lang, gewaehlt }: {
    *  · was mit seinen Daten geschieht (VOR der Einwilligung, sonst ist es keine)
    *  · die Frage
    */
-  const gruss = [
+  /* AUF LAKATOSBANDI.COM EINE KARTE STATT SIEBEN ABSÄTZEN (Owner 11.09.2026: „der Text ist fast eine AGB"). Der Text hier
+     ist, was im Verlauf zum Modell geht — gezeigt wird die Karte (`startKarte` unten). */
+  const grussPortal = [S.startVorher, S.startNachher, S.startFrage, S.startText].join("\n\n");
+  const gruss = marke === "lakatosbandi" ? grussPortal : [
     S.gruss1,
     S.gruss2,
     S.grussRegelnTitel,
     S.grussRegeln,
     /* Die Zahl kommt aus dem Schalter, nicht aus dem Satz — sonst steht sie beim nächsten
        Ändern an zwei Stellen und an einer davon falsch. */
-    S.grussKostenlos.replace("{frei}", String(VF_ANFRAGEN_OFFEN)),
+    /* JEDER PLATZHALTER, NICHT NUR `{frei}` (10.09.2026, auf der rumänischen Seite gesehen:
+       „primele {libere} cereri"). Der Übersetzer hat den Namen des Platzhalters mitübersetzt —
+       `{frei}` wurde zu `{libere}`, das Suchen nach `{frei}` ging ins Leere, und die Zahl
+       fehlte ([[uebersetzer-fallen]]). Der Satz trägt genau EINEN Platzhalter; also wird
+       der erste in geschweiften Klammern ersetzt, egal wie er nach der Übersetzung heisst. */
+    /* Seit dem Art-Marketing-Abo (10.09.2026) ist es der Abo-Preis aus der Tabelle. */
+    S.grussKostenlos.replace(/\{[^}]*\}/, eur(VERSUSFORGE_ABO_CENTS, lang)),
     S.grussDatenschutz,
     S.grussFrage,
   ].join("\n\n");
@@ -170,6 +248,10 @@ export default function AgentChat({ S, lang, gewaehlt }: {
     hook_pruefen: S.werkzeugHook,
     bild_bauen: S.werkzeugBild,
     beispiel_zeigen: S.werkzeugBeispiel,
+    /* Sonst stand hier der interne Name „spruch_zeigen" im Chat. */
+    spruch_zeigen: S.werkzeugSpruch,
+    /* Owner 11.09.2026: „abschluss_schicken" stand im rumänischen Chat. */
+    abschluss_schicken: S.werkzeugAbschluss,
   };
 
   /**
@@ -209,7 +291,30 @@ export default function AgentChat({ S, lang, gewaehlt }: {
    * Pixel Breite. Ungeschrumpft wäre es eine Wartezeit am Mobilfunk und ein Aufruf, der an
    * der Grösse scheitert.
    */
-  const [foto, setFoto] = useState("");
+  /* BIS ZU VIER BILDER JE NACHRICHT (Kunst-Rezept: „3–4 Bilder im selben Stil"). Nach dem
+     Senden stehen sie in SEINER Nachricht im Verlauf und reisen nicht noch einmal mit. */
+  const [fotos, setFotos] = useState<string[]>([]);
+  /* Was der Agent in seinen Bildern gesehen hat — klein, als Text, bei jeder Nachricht zurück
+     an den Server. Daran zählt der Server die Aufnahme. */
+  const [werke, setWerke] = useState<unknown[]>([]);
+  /* Das Bild, zu dem er den Spruch gewählt hat — geht beim Abschluss mit, damit seine Seite es zeigt. */
+  const [werkWahl, setWerkWahl] = useState<{ nr: number; bild: string } | null>(null);
+  /* „Ich nehme die ersten 4 Bilder." — sichtbar statt still abgeschnitten. */
+  const [bildHinweis, setBildHinweis] = useState("");
+  /* Die Frage nach weiteren Bildern kommt nur EINMAL im Gespräch (Owner 10.09.2026). */
+  const [bilderFrageGestellt, setBilderFrageGestellt] = useState(false);
+  /* Die Karte „Titel · Technik · Größe · Jahr · Preis" nach „Passt das? — Ja" (Owner 10.09.2026). */
+  const [werkFormOffen, setWerkFormOffen] = useState(false);
+  const [werkInfo, setWerkInfo] = useState({ titel: "", technik: "", groesse: "", jahr: "", preis: "" });
+  /* Feedback jederzeit (Owner 10.09.2026: „damit wir lernen"). */
+  /* Die zwei Felder am Ende: Künstlername und E-Mail. */
+  const [kontakt, setKontakt] = useState({ name: "", mail: "" });
+  const [feedbackOffen, setFeedbackOffen] = useState(false);
+  /* Er ändert einen Spruch über „✎" (Owner 11.09.2026: „ich habe eins korrigiert, du weisst es nicht welches").
+     Solange gesetzt, geht das Feld als „dieser Spruch für Bild nr" hinaus — der Server zeigt ihn sofort. */
+  const [spruchAendern, setSpruchAendern] = useState<{ nr: number } | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<"" | "sende" | "danke" | "fehler">("");
 
   useEffect(() => { ende.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [verlauf.length, busy]);
 
@@ -264,6 +369,30 @@ export default function AgentChat({ S, lang, gewaehlt }: {
   };
 
   /**
+   * ── DIE KENNUNG DES GESPRÄCHS (Owner 10.09.2026) ──────────────────────────────────────────
+   *
+   * Sie ist die Klammer um die einzelnen Züge im Protokoll: Ohne sie lägen hundert Züge von
+   * fünfzig Menschen in einem Haufen, und die Frage „wo steigen sie aus" wäre weiter
+   * unbeantwortbar.
+   *
+   * SIE HÄNGT AM TAB, NICHT AM GERÄT (`sessionStorage`): Zwei Gespräche desselben Menschen an
+   * verschiedenen Tagen sind zwei Gespräche. Das Gerät steht separat daneben — daran hängt
+   * der Tagesdeckel, und das ist etwas anderes.
+   *
+   * SIE ÜBERLEBT EIN NEULADEN, damit ein Zug nach dem Neuladen nicht als neues Gespräch
+   * zählt und die Abbruchquote verfälscht.
+   *
+   * KEIN PERSONENBEZUG: eine Zufallszahl, sonst nichts.
+   */
+  const gespraechId = () => {
+    try {
+      let g = sessionStorage.getItem("vf_gespraech") ?? "";
+      if (!g) { g = crypto.randomUUID?.() ?? String(Date.now()); sessionStorage.setItem("vf_gespraech", g); }
+      return g;
+    } catch { return ""; }
+  };
+
+  /**
    * DIE SPRACHE WÄHLEN — Cookie setzen, Server neu rendern.
    *
    * DASSELBE COOKIE WIE DER UMSCHALTER IN DER TOPNAV (`lb_lang`, ein Jahr): Die Wahl gilt
@@ -290,7 +419,7 @@ export default function AgentChat({ S, lang, gewaehlt }: {
      * Server keine Wahl, rendert dieselbe Frage — und der Knopf tut sichtbar nichts.
      * Eine Adresse kann kein Browser wegwerfen.
      */
-    router.replace(`/engine/agent?lang=${l}`);
+    router.replace(`${start}?lang=${l}`);
   };
 
   /**
@@ -318,8 +447,57 @@ export default function AgentChat({ S, lang, gewaehlt }: {
    * nimmt sie zurück (tippen, senden, eine Sprache wählen). Damit kann sie niemanden
    * überraschen und niemanden aussperren.
    */
-  const neuAnfangen = () => {
-    if (!resetFragt) { setResetFragt(true); return; }
+  /**
+   * ZURÜCK: seine letzte Antwort und alles danach verschwinden, die Frage des Agenten steht wieder
+   * da, sein Text liegt im Feld. Kein Modell-Aufruf, bis er neu abschickt. Was an den weggenommenen
+   * Nachrichten hing (Bild mit Spruch, die Frage nach weiteren Bildern), wird mit zurückgenommen.
+   */
+
+  /* FEEDBACK: geht an /api/versusforge-feedback — abgelegt und als Mail an den Owner. Mit dabei die
+     letzte Frage des Agenten, damit man sieht, wo es gehakt hat. Kein Modell-Aufruf. */
+  const feedbackSenden = async () => {
+    const text = feedbackText.trim();
+    if (text.length < 2) return;
+    setFeedbackStatus("sende");
+    try {
+      const frage = [...verlauf].reverse().find(x => x.rolle === "agent")?.text ?? "";
+      const res = await fetch("/api/versusforge-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text, sprache: lang, ort: fenster ? "lakatosbandi.com" : "versusforge.com/engine",
+          frage: frage.slice(0, 600), gespraech: gespraechId(), device: geraet(),
+        }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setFeedbackText("");
+      setFeedbackStatus("danke");
+    } catch {
+      setFeedbackStatus("fehler");
+    }
+  };
+  const zurueck = (idx: number) => {
+    const rest = verlauf.slice(0, idx);
+    setVerlauf(rest);
+    const alt = verlauf[idx];
+    /* MIT BILDERN (Owner 11.09.2026: „hier kann ich nicht zurück"): Die Bilder liegen wieder im Feld, ihre
+       Auswertung fällt weg — der Chat hält sie selbst (`werke`), der Server merkt sich nichts. Geht er weiter
+       zurück („Înapoi fehlt bei beiden"), fällt die Auswertung aller Bilder ab dieser Stelle weg. */
+    if (alt?.fotos?.length) setFotos(alt.fotos);
+    const ersteMitBildern = verlauf.slice(idx).find(x => x.rolle === "mensch" && x.werkeVorher !== undefined);
+    if (ersteMitBildern) setWerke(w => w.slice(0, ersteMitBildern.werkeVorher ?? 0));
+    setEingabe(alt?.text && alt.text !== S.nurBilder ? alt.text : "");
+    setFehler("");
+    setResetFragt(false);
+    setWerkFormOffen(false);
+    setSpruchAendern(null);
+    if (!rest.some(x => x.vorschau)) setWerkWahl(null);
+    setBilderFrageGestellt(rest.some(x => !!x.mehrBilder));
+  };
+
+  /* `sofort`: das Ja auf „Willst du alles löschen?" — die Frage WAR schon die Rückfrage. */
+  const neuAnfangen = (sofort?: boolean) => {
+    if (!resetFragt && sofort !== true) { setResetFragt(true); return; }
     setResetFragt(false);
     setEingabe("");
     setFehler("");
@@ -335,8 +513,26 @@ export default function AgentChat({ S, lang, gewaehlt }: {
      * DIE ADRESSE MUSS MIT ZURÜCK. `?lang=de` ist die Wahl in diesem Gespräch; bliebe sie
      * stehen, käme die Frage nicht wieder, egal was der Verlauf sagt.
      */
+    /* Ein neues Gespräch bekommt eine neue Kennung — sonst hingen im Protokoll zwei
+       Gespräche aneinander und die Abbruchquote wäre falsch (10.09.2026). */
+    try { sessionStorage.removeItem("vf_gespraech"); } catch { /**/ }
+    /* Ein neues Gespräch fängt ohne Bilder und ohne Befunde an — sonst zählte die Aufnahme
+       Bilder aus dem letzten Gespräch mit. */
+    setFotos([]);
+    setWerke([]);
+    setWerkWahl(null);
+    setBildHinweis("");
+    setSpruchAendern(null);
+    setBilderFrageGestellt(false);
+    setWerkFormOffen(false);
+    setWerkInfo({ titel: "", technik: "", groesse: "", jahr: "", preis: "" });
+    /* IM FENSTER BLEIBT DIE SEITE STEHEN: Die Sprache hat die Seite schon gewählt — zurück zum Gruss. */
+    if (fenster) {
+      setVerlauf([{ rolle: "agent", text: gruss, vorschlaege: [S.chipEinverstanden] }]);
+      return;
+    }
     setVerlauf([{ rolle: "agent", text: SPRACHFRAGE, sprachfrage: true }]);
-    router.replace("/engine/agent");
+    router.replace(start);
   };
 
   /**
@@ -344,27 +540,37 @@ export default function AgentChat({ S, lang, gewaehlt }: {
    * Grund: Ein angetippter Chip soll sofort abgehen, und `setEingabe` wirkt erst beim
    * nächsten Rendern. Ohne dieses Argument ginge die alte Eingabe raus.
    */
-  /** Bild einlesen, auf 1080 Pixel Breite bringen, als JPEG in den Zustand. */
-  const fotoWaehlen = async (f: File | null | undefined) => {
-    if (!f || !f.type.startsWith("image/")) return;
-    try {
-      const bitmap = await createImageBitmap(f);
-      const breit = Math.min(1080, bitmap.width);
-      const hoch = Math.round((bitmap.height / bitmap.width) * breit);
-      const flaeche = document.createElement("canvas");
-      flaeche.width = breit; flaeche.height = hoch;
-      flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
-      setFoto(flaeche.toDataURL("image/jpeg", 0.85));
-    } catch {
-      /* Ein Bild, das der Browser nicht öffnen kann, wird still übergangen — eine
-         Fehlermeldung über ein HEIC-Format hilft niemandem weiter. */
+  /** Bilder einlesen, auf 1080 Pixel Breite bringen, als JPEG anhängen — höchstens vier. */
+  const fotoWaehlen = async (dateien: FileList | null | undefined) => {
+    const liste = Array.from(dateien ?? []).filter(f => f.type.startsWith("image/"));
+    setBildHinweis(liste.length + fotos.length > 4 ? S.bilderErste4 : "");
+    for (const f of liste) {
+      try {
+        const bitmap = await createImageBitmap(f);
+        const breit = Math.min(1080, bitmap.width);
+        const hoch = Math.round((bitmap.height / bitmap.width) * breit);
+        const flaeche = document.createElement("canvas");
+        flaeche.width = breit; flaeche.height = hoch;
+        flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
+        const bild = flaeche.toDataURL("image/jpeg", 0.85);
+        setFotos(v => [...v, bild].slice(0, 4));
+      } catch {
+        /* Ein Bild, das der Browser nicht öffnen kann, wird still übergangen — eine
+           Fehlermeldung über ein HEIC-Format hilft niemandem weiter. */
+      }
     }
   };
 
-  const schicken = async (text?: string) => {
-    const w = (text ?? eingabe).trim();
+  /* `gewaehlt`: Er hat einen der drei Sprüche angetippt — der Server zeigt dann sofort sein Bild mit Spruch. */
+  const schicken = async (text?: string, gewaehlt?: { nr: number; spruch: string }) => {
+    /* Nur Bilder, kein Text, ist auch eine Antwort — dann steht ein kurzer Satz an seiner Stelle. */
+    const w = (text ?? eingabe).trim() || (fotos.length ? S.nurBilder : "");
     if (!w || busy) return;
     setResetFragt(false);
+    /* Kommt der Text aus dem Feld und hat er vorher „✎" getippt, ist es seine eigene Fassung — ROHSTOFF: Der Agent
+       macht daraus einen verkaufenden Spruch (Owner 11.09.2026: „ein Titel und kein Marketingspruch"). */
+    const eigen = !gewaehlt && text === undefined && spruchAendern ? { nr: spruchAendern.nr, spruch: w } : undefined;
+    setSpruchAendern(null);
 
     /**
      * ── SOLANGE DIE SPRACHFRAGE OFFEN IST, ANTWORTET DER BROWSER ───────────────────────────
@@ -398,12 +604,60 @@ export default function AgentChat({ S, lang, gewaehlt }: {
     const basis: Nachricht[] = offen
       ? [{ rolle: "agent", text: gruss }]
       : verlauf.filter(m => !m.sprachfrage);
-    const naechster: Nachricht[] = [...basis, { rolle: "mensch", text: w }];
+    let naechster: Nachricht[] = [...basis, { rolle: "mensch", text: w, ...(fotos.length ? { fotos, werkeVorher: werke.length } : {}) }];
     setVerlauf(naechster);
     setEingabe("");
-    /* Das Foto gehört zu DIESER Nachricht. Bliebe es stehen, hinge es an jeder folgenden —
+
+    /**
+     * ── DER ZUG NACH DEM JA KOSTET KEIN MODELL ───────────────────────────────────────────
+     *
+     * Owner 10.09.2026: „hier hast du 30 Sekunden für diese Antwort gebraucht" · „du kannst
+     * doch nicht alle Regeln immer prüfen, wenn nicht nötig" · „du musst kosteneffizient
+     * arbeiten und schnell."
+     *
+     * GEMESSEN: 8,3 Sekunden für einen Satz, der feststeht. Es ist der EINE Zug im ganzen
+     * Gespräch, an dem nichts zu entscheiden ist — er hat einen Knopf gedrückt, und darauf
+     * folgt immer dieselbe Frage. Sie steht jetzt geschrieben da, wie die Begrüssung, und
+     * erscheint sofort ([[agenten-schnell-und-billig]]).
+     *
+     * DIE BEDINGUNG IST ENG GEHALTEN: nur der Gruss im Verlauf, und sein Wort ist genau der
+     * Zustimmungs-Chip. Schreibt er stattdessen los — „ja, ich habe eine Bäckerei" —, geht
+     * es den normalen Weg, denn dann steht schon Substanz da, auf die geantwortet gehört.
+     *
+     * ES BLEIBT IM VERLAUF STEHEN und reist beim nächsten Zug mit: Für das Modell sieht es
+     * aus, als hätte es die Frage selbst gestellt. Nichts geht verloren.
+     */
+    const nurGruss = basis.length === 1 && basis[0].rolle === "agent";
+    /**
+     * ── KOMMT ER AUS DER ANZEIGE, IST SEIN SATZ DIE ANTWORT AUF DIE ERSTE FRAGE ─────────────
+     *
+     * Er hat oben auf der Startseite schon geschrieben, was er anbietet. Ihn nach dem Ja noch
+     * einmal zu fragen, wäre genau der Fehler, den der Owner heute im Userflow gerügt hat —
+     * und er müsste denselben Satz ein zweites Mal tippen.
+     *
+     * DESHALB ZWEI NACHRICHTEN VON IHM, EIN AUFRUF: „Ja, einverstanden" und sein Satz stehen
+     * untereinander im Verlauf, und erst jetzt — nach dem Ja — geht etwas an das Modell. Vor
+     * der Zustimmung kostet nichts ([[kein-token-fuer-abbrecher]]), und danach steht Substanz
+     * da, auf die eine echte Antwort gehört.
+     *
+     * NUR EINMAL: Nach diesem Zug ist der Verlauf nicht mehr „nur Gruss", der Zweig kommt nie
+     * wieder.
+     */
+    if (nurGruss && w === S.chipEinverstanden && auftrag?.trim()) {
+      naechster = [...naechster, { rolle: "mensch", text: auftrag.trim() }];
+      setVerlauf(naechster);
+    } else if (nurGruss && w === S.chipEinverstanden) {
+      setVerlauf([...naechster, { rolle: "agent", text: S.ersteFrage, bilderBitte: true }]);
+      setFotos([]);
+      if (datei.current) datei.current.value = "";
+      setFehler("");
+      return;
+    }
+    /* Die Bilder gehören zu DIESER Nachricht. Blieben sie stehen, hingen sie an jeder folgenden —
        und der Agent bekäme dreimal dasselbe Bild geschickt. */
-    setFoto("");
+    const gezeigt = fotos;
+    setFotos([]);
+    setBildHinweis("");
     if (datei.current) datei.current.value = "";
     setBusy(true); setFehler("");
     try {
@@ -416,8 +670,28 @@ export default function AgentChat({ S, lang, gewaehlt }: {
              Stelle tritt — sonst stünde seine Antwort ohne Frage da. */
           verlauf: naechster.map(m => ({ rolle: m.rolle, text: m.text })),
           device: geraet(),
-          /* Sein Foto reist NUR mit, wenn er eines gewählt hat — und danach ist es weg. */
-          ...(foto ? { foto } : {}),
+          /* Die Klammer um die Züge im Protokoll — Begründung an `gespraechId` oben. */
+          gespraech: gespraechId(),
+          /* Ob schon ein Bild auf dem Schirm steht. Der Server entscheidet daran, welche
+             Regeln er überhaupt mitschickt — Begründung an `spaeteRegeln` in der Route. */
+          bildDa: verlauf.some(m => !!m.bild),
+          /* Seine Bilder reisen NUR mit der Nachricht, an der sie hängen — danach nur noch der
+             Befund (`werke`), klein, als Text. */
+          ...(gezeigt.length ? { fotos: gezeigt } : {}),
+          werke,
+          /* Sein gewähltes Bild reist mit, sobald es feststeht — beim Abschluss wird es gespeichert. */
+          /* Beim Abschluss werden ALLE seine Bilder gespeichert (bis zu 4) — das gewählte trägt seinen
+             Spruch, für die übrigen schreibt der Server die Sprüche (Owner 10.09.2026). */
+          ...(werkWahl ? { werkNr: werkWahl.nr, werkBilder: naechster.flatMap(x => x.fotos ?? []).slice(0, 4) } : {}),
+          ...(bilderFrageGestellt ? { bilderFrageGestellt: true } : {}),
+          ...(gewaehlt ? { spruchGewaehlt: gewaehlt } : {}),
+          ...(eigen ? { spruchEigen: eigen } : {}),
+          /* SPRUCH BESTÄTIGT (Owner 11.09.2026: „hier dreht er eine Schleife"): Nach „Da, se potrivește" zeigt der Agent
+             Bild und Spruch nie wieder. Aus dem Verlauf abgeleitet — geht er mit „Înapoi" davor zurück, gilt es nicht mehr. */
+          spruchBestaetigt: naechster.some(x => x.rolle === "mensch" && x.text.startsWith(S.passtJa)),
+          /* Nach dem Abschluss keine Chips, kein Spruch, keine Frage mehr (Owner 11.09.2026). */
+          abgeschlossen: naechster.some(x => x.rolle === "agent" && !!x.benutzt?.includes("abschluss_schicken")),
+          ...(werkWahl ? { werkInfo } : {}),
           /**
            * SEINE SPRACHE GEHT BEI JEDER NACHRICHT MIT (Owner 09.09.2026: „auch alles, was
            * er erstellt — den Trichter und Hook und Dashboard — wird in der Sprache erstellt,
@@ -443,28 +717,69 @@ export default function AgentChat({ S, lang, gewaehlt }: {
        * uns. Solange er noch nichts über sein Geschäft gesagt hat, gibt es hier keine Chips,
        * egal was das Modell schickt. Zwei Riegel für einen Fehler, der teuer aussieht.
        */
+      if (Array.isArray(d.werke)) setWerke(d.werke as unknown[]);
       const hatErzaehlt = naechster.filter(m => m.rolle === "mensch").length > 1;
+      /* SEIN BILD MIT SPRUCH: Bild Nummer n ist das n-te Bild, das er in diesem Gespräch gezeigt hat. */
+      const v = d.vorschau && typeof d.vorschau === "object" ? (d.vorschau as { nr?: unknown; spruch?: unknown }) : null;
+      const vNr = Number(v?.nr);
+      const vBild = naechster.flatMap(x => x.fotos ?? [])[vNr - 1];
+      const vorschau = v && vBild && String(v.spruch ?? "").trim() ? { nr: vNr, spruch: String(v.spruch).trim() } : undefined;
+      if (vorschau && vBild) setWerkWahl({ nr: vNr, bild: vBild });
+      /* DIE FRAGE NACH WEITEREN BILDERN steht IM Text — so liest das Modell beim nächsten Zug, worauf
+         „Nein" die Antwort war. */
+      const mehr = Number(d.mehrBilder) > 0 ? Math.round(Number(d.mehrBilder)) : 0;
+      const mehrFrage = mehr ? (mehr === 1 ? S.mehrBilderEins : S.mehrBilderFrage.replace("{n}", String(mehr))) : "";
+      if (mehr) setBilderFrageGestellt(true);
       setVerlauf([...naechster, {
         rolle: "agent",
-        text: String(d.antwort ?? ""),
+        text: mehrFrage ? `${String(d.antwort ?? "").trim()}\n\n${mehrFrage}` : String(d.antwort ?? ""),
         benutzt: Array.isArray(d.benutzt) ? (d.benutzt as string[]) : [],
         bild: String(d.bild ?? ""),
         vorschlaege: hatErzaehlt && Array.isArray(d.vorschlaege) ? (d.vorschlaege as string[]) : [],
+        bilderBitte: d.bilderBitte === true,
+        vorschau,
+        loeschFrage: d.loeschFrage === true,
+        mehrBilder: mehr || undefined,
+        bilderWahl: d.bilderWahl === true,
+        spruchWahl: Number(d.spruchWahl) > 0 ? Math.round(Number(d.spruchWahl)) : undefined,
+        profilLink: /^https:\/\/lakatosbandi\.com\//.test(String(d.profilLink ?? "")) ? String(d.profilLink) : undefined,
+        eigenerSpruch: (() => {
+          const e = d.eigenerSpruch as { nr?: unknown; spruch?: unknown } | null | undefined;
+          return e && Number(e.nr) > 0 && String(e.spruch ?? "").trim()
+            ? { nr: Math.round(Number(e.nr)), spruch: String(e.spruch).trim() }
+            : undefined;
+        })(),
+        kontaktFrage: d.kontaktFrage === true,
       }]);
     } catch {
       setFehler(S.fehler);
     } finally { setBusy(false); }
   };
 
+  /* NACH DEM ABSCHLUSS IST DAS GESPRÄCH ZU ENDE (Owner 11.09.2026: „der wird ein Ende haben nach der Adressenmitteilung
+     und sich bedanken"): Dank und Knopf „Completează profilul" bleiben stehen, das Eingabefeld verschwindet. Geht er mit
+     „Înapoi" vor den Abschluss zurück, kommt es wieder — der Server antwortet dann trotzdem nur mit dem Dank. */
+  const fertig = verlauf.some(m => m.rolle === "agent" && !!m.benutzt?.includes("abschluss_schicken"));
+
   return (
-    <main className="lb-versusforge flex h-[100dvh] flex-col overflow-hidden bg-white text-[#14181c]">
-      <header className="shrink-0 border-b border-[#dfe4e9] px-5 py-4">
+    <main className={`lb-versusforge flex ${fenster ? "h-full" : "h-[100dvh]"} flex-col overflow-hidden bg-white text-[#14181c]`}>
+      <header className={`shrink-0 border-b border-[#dfe4e9] px-5 py-4 ${fenster ? "hidden" : ""}`}>
         <div className="mx-auto flex w-full max-w-[820px] items-center justify-between gap-3">
-          <Wortmarke className="text-[21px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />
-          {/* Dass es ein Muster ist, steht dran — nicht im Kleingedruckten. */}
-          <span className="rounded-full border-[1.5px] border-[#1d6fd0]/35 bg-[#eaf2fc] px-3 py-1 text-[13.5px] font-black text-[#1d6fd0]">
-            {S.muster}
-          </span>
+          {/* WELCHES VERSUSFORGE (Owner 10.09.2026: „hier oben muss noch stehen, welcher
+              VersusForge das ist — for Art"). Fest, nicht übersetzt: Es gehört zum Namen. */}
+          {marke === "lakatosbandi" ? (
+            /* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge"). */
+            <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatos<span className="text-[#8a8a8a]">bandi.com</span></span>
+          ) : (
+            <span className="flex flex-col gap-1">
+              <Wortmarke className="text-[21px] font-black leading-none tracking-[-0.02em]" akzent="#111" />
+              <span className="text-[10.5px] font-extrabold uppercase leading-none tracking-[0.2em] text-[#111]">Marketing for Art</span>
+            </span>
+          )}
+          {/* HIER STAND „Agent · Muster" — ein Schild aus der Zeit, als der Chat ein
+              Versuch neben dem Trichter war. Seit dem 10.09.2026 IST er der Eingang aus der
+              Anzeige (Owner: „das ist der neue Trichter, den wir brauchen"); ein Kunde, der
+              „Muster" liest, fragt sich zu Recht, ob er hier richtig ist. */}
         </div>
       </header>
 
@@ -477,14 +792,27 @@ export default function AgentChat({ S, lang, gewaehlt }: {
           * die Seite etwas nicht geladen — und zwar im allerersten Moment, in dem jemand
           * entscheidet, ob er hier tippt.
           *
-          * `justify-end` LÖST ES OHNE SONDERFALL: Solange wenig dasteht, sitzt es unten am
-          * Feld, wie in jedem Chat, den er kennt. Sobald mehr kommt als hineinpasst, füllt es
-          * die Fläche und scrollt normal weiter. Kein Umschalten, keine Messung, keine Regel
-          * für „wenig" und „viel".
+          * ── `justify-end` WAR FALSCH UND HAT DEN ANFANG VERSCHLUCKT ─────────────────────
+          *
+          * Owner 10.09.2026, mit Bild: „ich kann nicht hochscrollen." Er hatte recht, und es
+          * ist ein bekannter Flexbox-Fehler: Bei `justify-content: flex-end` in einer Fläche,
+          * die scrollt, wachsen die Inhalte über die OBERE Kante hinaus — und dorthin kommt
+          * kein Rollbalken. Die Begrüssung, die Regeln, der Datenschutzsatz: alles noch da,
+          * aber unerreichbar, sobald das Gespräch länger als der Schirm wird.
+          *
+          * ES TRAF AUSGERECHNET DIESEN CHAT AM HÄRTESTEN: Er beginnt mit vier langen
+          * Absätzen. Wer nach der dritten Antwort noch einmal nachlesen wollte, was mit
+          * seinen Daten passiert, kam nicht mehr hin.
+          *
+          * `mt-auto` AM INHALT LÖST DASSELBE OHNE DEN FEHLER: Ist wenig da, schiebt der
+          * automatische Abstand alles nach unten ans Feld — genau der Effekt, der gewollt
+          * war. Ist viel da, wird der Abstand null und die Fläche scrollt normal, von ganz
+          * oben bis ganz unten.
           */}
-        <div className="lb-wisch flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto py-5">
+        <div className="lb-wisch flex min-h-0 flex-1 flex-col overflow-y-auto py-5">
+          <div className="mt-auto flex flex-col gap-3">
           {verlauf.map((m, i) => (
-            <div key={i} className={m.rolle === "mensch" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
+            <div key={i} className={m.rolle === "mensch" ? "flex flex-col items-end gap-1.5" : "flex flex-col items-start gap-2"}>
               {/**
                 * DER KOPF NEBEN SEINEN NACHRICHTEN (Owner 09.09.2026: „mit Icon").
                 *
@@ -522,20 +850,100 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                     * Aufmerksamkeit als der Satz, den er ankündigt.
                     *
                     * AUF HELLEM GRUND BRAUCHT DAS „F" KEIN AUFGEHELLTES BLAU MEHR: Das
-                    * Seiten-Blau #1d6fd0 ist genau dafür gemacht, und es ist dasselbe wie in
+                    * Seiten-Blau #111 ist genau dafür gemacht, und es ist dasselbe wie in
                     * der Wortmarke oben — zwei Blautöne auf einem Schirm sähen aus wie ein
                     * Versehen.
                     */}
-                  <Zeichen className="h-7 w-7 text-[13px]" grund="#e9edf1" schrift="#14181c" akzent="#1d6fd0" />
-                  <span className="text-[13.5px] font-black tracking-[-0.01em] text-[#5b666f]">VersusForge</span>
+                  {/**
+                    * ── DAS ECHTE LOGO STATT DES GEZEICHNETEN (Owner 10.09.2026: „hier ist
+                    * das Logo für VersusForge. Den machst du in den Chat rein") ─────────────
+                    *
+                    * `Zeichen` war ein Platzhalter aus zwei Buchstaben, weil es kein Logo gab.
+                    * Jetzt gibt es eins, und es gehört an genau diese Stelle: Es ist das
+                    * Gesicht dessen, der spricht.
+                    *
+                    * RUND UND KLEIN, OBWOHL DAS BILD QUADRATISCH UND SCHWARZ IST: Als runder
+                    * Punkt von 28 px liest es sich wie ein Profilbild in jedem Messenger —
+                    * genau das ist es hier auch. Der schwarze Grund, der als grosse Fläche zu
+                    * schwer wäre, wird in dieser Grösse zum Kontrast, der das Blau trägt.
+                    *
+                    * KEIN `next/image`: Die Datei liegt fest in `public`, hat feste Masse und
+                    * erscheint dutzendfach auf demselben Schirm — die Optimierung würde hier
+                    * nichts sparen und nur eine Abhängigkeit hinzufügen.
+                    */}
+                  {marke === "lakatosbandi" ? (
+                    /* Auf lakatosbandi.com kein VersusForge-Logo — der Name des Portals, schlicht wie sein Kopf. */
+                    <span className="text-[15px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatos<span className="text-[#8a8a8a]">bandi.com</span></span>
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/VersusForge/Logo-VersusForge.JPG"
+                        alt=""
+                        className="h-7 w-7 shrink-0 rounded-full object-cover"
+                      />
+                      <span className="text-[13.5px] font-black tracking-[-0.01em] text-[#5b666f]">VersusForge</span>
+                    </>
+                  )}
                 </div>
               )}
-              <p className={`m-0 max-w-[86%] whitespace-pre-wrap text-[16.5px] leading-[1.5] md:text-[17.5px] ${
-                m.rolle === "mensch"
-                  ? "rounded-2xl rounded-br-md bg-[#1d6fd0] px-4 py-3 font-semibold text-white"
-                  : "rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-3"}`}>
-                {m.text}
-              </p>
+              {/* SEINE BILDER BLEIBEN IM GESPRÄCH SICHTBAR — über seiner Nachricht, rechts wie sie. */}
+              {m.fotos && m.fotos.length > 0 && (
+                <div className="flex max-w-[86%] flex-wrap justify-end gap-2">
+                  {m.fotos.map((f, i) => (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img key={i} src={f} alt="" className="h-24 w-24 rounded-xl object-cover" />
+                  ))}
+                </div>
+              )}
+              {m.rolle === "agent" && marke === "lakatosbandi" && m.text === gruss ? (
+                /* DIE STARTKARTE (Owner 11.09.2026: „wenn das Beispiel mit Van Gogh dasteht und darunter: Willst du auch
+                   so ein Marketing?"). Der Datenschutz steht eingeklappt, aber VOR dem Knopf — die Einwilligung bleibt
+                   eine Einwilligung. */
+                <div className="max-w-[86%] overflow-hidden rounded-2xl rounded-bl-md bg-[#f1f4f7] text-[16.5px] leading-[1.5] md:text-[17.5px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt={S.startQuelle} className="block h-[220px] w-full object-cover" />
+                  <div className="px-4 py-3">
+                    <p className="m-0 text-[12px] font-bold uppercase tracking-[0.12em] text-[#8b959d]">{S.startVorherLabel}</p>
+                    <p className="m-0 mt-1 text-[#5b666f]">{S.startVorher}</p>
+                    <p className="m-0 mt-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#8b959d]">{S.startNachherLabel}</p>
+                    <p className="m-0 mt-1 font-bold">{S.startNachher}</p>
+                    <p className="m-0 mt-4 font-bold">{S.startFrage}</p>
+                    <p className="m-0 mt-1">
+                      {S.startText.split("lakatosbandi.com").flatMap((t, k) => (k ? [<strong key={k} className="font-bold">lakatosbandi.com</strong>, t] : [t]))}
+                    </p>
+                    <p className="m-0 mt-2 text-[14px] text-[#5b666f]">{S.startFein}</p>
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-[14px] font-bold text-[#5b666f]">{S.startDatenschutzTitel}</summary>
+                      <p className="m-0 mt-2 whitespace-pre-wrap text-[14px] leading-[1.5] text-[#5b666f]">{S.grussDatenschutz}</p>
+                    </details>
+                    <p className="m-0 mt-3 text-[11.5px] leading-[1.4] text-[#8b959d]">{S.startQuelle}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className={`m-0 max-w-[86%] whitespace-pre-wrap text-[16.5px] leading-[1.5] md:text-[17.5px] ${
+                  m.rolle === "mensch"
+                    ? "rounded-2xl rounded-br-md bg-[#111] px-4 py-3 font-semibold text-white"
+                    : "rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-3"}`}>
+                  {m.rolle === "agent" ? fetteFrage(m.text) : m.text}
+                </p>
+              )}
+              {/* „COMPLETEAZĂ PROFILUL" (Owner 11.09.2026: „wenn er das macht, wird sein Agent noch besser") — ein Angebot, keine Pflicht. */}
+              {m.rolle === "agent" && m.profilLink && (
+                <a href={m.profilLink} target="_blank" rel="noopener"
+                  className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white no-underline transition hover:bg-[#333]">
+                  {S.profilErgaenzen}
+                </a>
+              )}
+              {/* ── ZURÜCK ZUR VORIGEN FRAGE (Owner 10.09.2026: „ich will, dass jemand die Fragen
+                  wiederholen kann" · „also zurückgehen kann") — unter JEDER seiner Nachrichten, auch mit
+                  Bildern (Owner 11.09.2026: „hier kann ich nicht zurück" · „Înapoi fehlt bei beiden blau"). */}
+              {m.rolle === "mensch" && !busy && (
+                <button type="button" onClick={() => zurueck(i)}
+                  className="pr-1 text-[13.5px] font-bold text-[#8b959d] underline underline-offset-2 hover:text-[#14181c]">
+                  ← {S.zurueck}
+                </button>
+              )}
 
               {/**
                 * ── DIE SPRACHEN ALS KNÖPFE ────────────────────────────────────────────────
@@ -564,12 +972,12 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                 */}
               {m.sprachfrage && (
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {LANGS.map(l => (
+                  {SPRACH_REIHENFOLGE.map(l => (
                     <button
                       key={l}
                       type="button"
                       onClick={() => spracheWaehlen(l)}
-                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-4 py-2 text-[15px] font-bold text-[#14181c] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0]"
+                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-4 py-2 text-[15px] font-bold text-[#14181c] transition hover:border-[#111] hover:text-[#111]"
                     >
                       {LANG_LABEL[l]}
                     </button>
@@ -590,11 +998,43 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                 * eine Falle — man tippt sie an und schickt eine Antwort auf etwas, das drei
                 * Nachrichten zurückliegt.
                 */}
-              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschlaege?.length && (
+              {/* ── SEIN BILD MIT DEM SPRUCH DARUNTER (Owner 10.09.2026: „Zeige sein Bild und Spruch
+                  drunter") — wie später auf seiner Seite. Es steht VOR den Knöpfen: „Passt das?" fragt
+                  nach diesem Bild, also muss man es gesehen haben, bevor man Ja oder Nein tippt. */}
+              {(() => {
+                const v = m.vorschau;
+                const bild = v ? verlauf.slice(0, i).flatMap(x => x.fotos ?? [])[v.nr - 1] : undefined;
+                return v && bild ? (
+                  <figure className="m-0 w-full max-w-[340px] overflow-hidden rounded-2xl border border-[#dfe4e9] bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={bild} alt={S.vorschauAlt} className="block w-full object-contain" />
+                    <figcaption className="px-4 py-3 font-serif text-[18px] leading-[1.35] text-[#14181c]">{v.spruch}</figcaption>
+                  </figure>
+                ) : null;
+              })()}
+              {/* ── DIE BILDWAHL MIT DEN BILDERN SELBST (Owner 11.09.2026: „hier musst du die Bilder
+                  zeigen"). Ein Tipp schickt denselben Text wie der Chip („Bild 2"), das Modell merkt
+                  keinen Unterschied. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.bilderWahl && !!m.vorschlaege?.length && (
+                <div className="grid w-full max-w-[420px] grid-cols-2 gap-2 pt-1 sm:grid-cols-4">
+                  {m.vorschlaege.map((v, n) => {
+                    const bild = verlauf.slice(0, i).flatMap(x => x.fotos ?? [])[n];
+                    return (
+                      <button key={n} type="button" onClick={() => { setEingabe(""); void schicken(v); }}
+                        className="overflow-hidden rounded-xl border-[1.5px] border-[#dfe4e9] bg-white text-left transition hover:border-[#111]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {bild ? <img src={bild} alt="" className="block aspect-square w-full object-cover" /> : null}
+                        <span className="block px-2.5 py-1.5 text-[13.5px] font-semibold text-[#14181c]">{v}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschlaege?.length && !m.vorschau && !m.bilderWahl && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {m.vorschlaege.map((v, n) => (
+                    <span key={n} className="inline-flex items-center gap-1">
                     <button
-                      key={n}
                       type="button"
                       /**
                        * ── ANTIPPEN HEISST WEITER (Owner 09.09.2026, mit Bild: „Klick heisst
@@ -613,20 +1053,192 @@ export default function AgentChat({ S, lang, gewaehlt }: {
                        * kein Chip trifft; die Chips sind die Führung für den, der schnell
                        * durch will ([[chat-no-personal-questions-buttons-only]]).
                        */
-                      onClick={() => { setEingabe(""); void schicken(v); }}
-                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0]"
+                      onClick={() => { setEingabe(""); void schicken(v, m.spruchWahl ? { nr: m.spruchWahl, spruch: v } : undefined); }}
+                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]"
                     >
                       {v}
                     </button>
+                    {/* ✎ SPRUCH ÄNDERN (Owner 11.09.2026: „ich habe eins korrigiert, du weisst es nicht welches") —
+                        der Spruch kommt ins Feld, und beim Senden weiss der Chat, welcher es war. */}
+                    {!!m.spruchWahl && (
+                      <button
+                        type="button"
+                        aria-label={S.spruchAendern}
+                        title={S.spruchAendern}
+                        onClick={() => {
+                          setEingabe(v);
+                          setSpruchAendern({ nr: m.spruchWahl as number });
+                          setTimeout(() => feld.current?.focus(), 0);
+                        }}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-[#dfe4e9] bg-white text-[15px] text-[#5b6670] transition hover:border-[#111] hover:text-[#111]"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    </span>
                   ))}
                 </div>
               )}
+              {/**
+                * ── „BILDER HOCHLADEN" ALS GROSSER KNOPF (Owner 10.09.2026, mit Bild: „er muss
+                * erst mal finden, wo er hochladen kann") ─────────────────────────────────────
+                *
+                * Das Symbol unten links im Feld findet keiner, der zum ersten Mal hier ist. Bittet
+                * der Agent um Bilder, steht der Weg direkt unter seiner Bitte — ein Tipp öffnet
+                * die Auswahl. Chips gibt es dann keine (der Server lässt sie weg): Nichts soll
+                * neben dem einen Schritt stehen, um den es gerade geht.
+                */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.bilderBitte && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => datei.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#111] px-5 py-3 text-[15.5px] font-bold text-white transition hover:bg-[#333] active:scale-95"
+                  >
+                    <ImagePlus className="h-5 w-5" aria-hidden />
+                    {S.bilderKnopf}
+                  </button>
+                  <p className="m-0 mt-1.5 pl-1 text-[13px] font-bold text-[#8b959d]">{S.bilderHoechstens}</p>
+                </div>
+              )}
+              {/* ── „PASST DAS?" UNTER SEINEM BILD — feste Knöpfe. „Ja" öffnet die Karte mit Titel, Technik,
+                  Größe, Jahr und Preis; erst „Weiter" schickt die Antwort. Kein Modell-Aufruf dazwischen. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschau && !werkFormOffen && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button type="button"
+                    onClick={() => {
+                      /* KEINE WERK-KARTE MEHR IM CHAT (Owner 11.09.2026: „wir können nicht alles im Chat lösen. Wir sollen vorher
+                         aufhören. Der Künstler soll seine Webseite pflegen, wie Preise"). Hier öffnete „Da, se potrivește" die Karte
+                         mit Titel, Technik, Größe, Jahr und Preis — das trägt er jetzt auf „Seite bearbeiten" ein. */
+                      setEingabe("");
+                      void schicken(S.passtJa);
+                    }}
+                    className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    {S.passtJa}
+                  </button>
+                  <button type="button" onClick={() => { setEingabe(""); void schicken(S.passtNein); }}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                    {S.passtNein}
+                  </button>
+                  {/* Nach „✎" hat der Agent seine Fassung verbessert — wer auf seinem Text besteht, nimmt ihn wörtlich. */}
+                  {m.eigenerSpruch && m.eigenerSpruch.spruch !== m.vorschau?.spruch && (
+                    <button type="button"
+                      onClick={() => { const e = m.eigenerSpruch as { nr: number; spruch: string }; setEingabe(""); void schicken(e.spruch, e); }}
+                      className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                      {S.textMeiner}
+                    </button>
+                  )}
+                </div>
+              )}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschau && werkFormOffen && (
+                <div className="w-full max-w-[340px] rounded-2xl border border-[#dfe4e9] bg-white p-4">
+                  <p className="m-0 text-[15px] font-bold leading-[1.35]">{S.werkKarteTitel}</p>
+                  {([
+                    ["titel", S.feldTitel, S.beispielTitel],
+                    ["technik", S.feldTechnik, S.beispielTechnik],
+                    ["groesse", S.feldGroesse, S.beispielGroesse],
+                    ["jahr", S.feldJahr, S.beispielJahr],
+                    ["preis", S.feldPreis, S.beispielPreis],
+                  ] as const).map(([feld, wort, beispiel]) => (
+                    <label key={feld} className="mt-3 block">
+                      <span className="block text-[13px] font-bold text-[#5b666f]">{wort}</span>
+                      <input
+                        value={werkInfo[feld]}
+                        onChange={e => { const wert = e.target.value; setWerkInfo(w => ({ ...w, [feld]: wert })); }}
+                        /* Leere Felder zeigen ein BEISPIEL, das auch so aussieht: „ex.: …", kursiv, blasser — nie wie ein Wert. */
+                        placeholder={`${S.beispielVor} ${beispiel}`}
+                        className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none placeholder:italic placeholder:text-[#b3bcc4] focus:border-[#111]"
+                      />
+                    </label>
+                  ))}
+                  <button type="button"
+                    onClick={() => {
+                      const zeilen = ([
+                        [S.feldTitel, werkInfo.titel], [S.feldTechnik, werkInfo.technik], [S.feldGroesse, werkInfo.groesse],
+                        [S.feldJahr, werkInfo.jahr], [S.feldPreis, werkInfo.preis],
+                      ] as const).filter(([, wert]) => wert.trim()).map(([wort, wert]) => `${wort}: ${wert.trim()}`);
+                      setWerkFormOffen(false);
+                      setEingabe("");
+                      void schicken([S.passtJa, ...zeilen].join("\n"));
+                    }}
+                    className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    {S.werkWeiter}
+                  </button>
+                </div>
+              )}
+              {/* ── KÜNSTLERNAME UND E-MAIL IN ZWEI FELDERN (Owner 11.09.2026: „am besten zwei Eingabefelder").
+                  „Senden" schickt beides als eine Antwort — mit der Adresse darin darf der Server abschliessen. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.kontaktFrage && (
+                <div className="w-full max-w-[340px] rounded-2xl border border-[#dfe4e9] bg-white p-4">
+                  <label className="block">
+                    <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldKuenstlername}</span>
+                    <input value={kontakt.name} onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, name: w })); }}
+                      autoComplete="name"
+                      className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                  </label>
+                  <label className="mt-3 block">
+                    <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldEmail}</span>
+                    <input type="email" inputMode="email" autoComplete="email" value={kontakt.mail}
+                      onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, mail: w })); }}
+                      className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                  </label>
+                  <button type="button"
+                    disabled={!kontakt.name.trim() || !/[^@\s]+@[^@\s]+\.[a-z]{2,}/i.test(kontakt.mail.trim())}
+                    onClick={() => { setEingabe(""); void schicken(`${S.feldKuenstlername}: ${kontakt.name.trim()}\n${S.feldEmail}: ${kontakt.mail.trim()}`); }}
+                    className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
+                    {S.kontaktSenden}
+                  </button>
+                </div>
+              )}
+              {/* ── „WILLST DU NOCH BIS ZU N BILDER HOCHLADEN?" — Ja öffnet die Auswahl, Nein geht weiter. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.mehrBilder && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button type="button" onClick={() => datei.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    <ImagePlus className="h-4 w-4" aria-hidden />
+                    {S.mehrBilderJa}
+                  </button>
+                  <button type="button" onClick={() => { setEingabe(""); void schicken(S.mehrBilderNein); }}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                    {S.mehrBilderNein}
+                  </button>
+                </div>
+              )}
+              {/* ── „WILLST DU ALLES LÖSCHEN?" — Ja leert den Chat ohne Modell, Nein geht als Antwort hinaus. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.loeschFrage && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button type="button" onClick={() => neuAnfangen(true)}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#c02626] hover:text-[#c02626]">
+                    {S.loeschenJa}
+                  </button>
+                  <button type="button" onClick={() => { setEingabe(""); void schicken(S.loeschenNein); }}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                    {S.loeschenNein}
+                  </button>
+                </div>
+              )}
+              {/**
+                * ── DIE AUFFORDERUNG UNTER DEN CHIPS (Owner 10.09.2026) ─────────────────────
+                *
+                * „Da fehlt ein Zwischenschritt, eine Aufforderung. Was soll er machen?" Sie
+                * stand im Userflow und nie im Chat — bis er fragte, ob wir sie nicht längst
+                * eingebaut hätten.
+                *
+                * NICHT UNTER „JA, EINVERSTANDEN": Eine Zustimmung schreibt man nicht mit
+                * eigenen Worten. Dort wäre der Satz eine Einladung, etwas anderes zu tun als
+                * zuzustimmen.
+                */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschlaege?.length
+                && !(m.vorschlaege.length === 1 && m.vorschlaege[0] === S.chipEinverstanden) && !m.vorschau && (
+                <p className="m-0 pl-1 text-[13.5px] font-bold text-[#8b959d]">{S.chipsHinweis}</p>
+              )}
 
               {/* ── DER BEWEIS: was er benutzt hat, ohne dass jemand es verlangt hat ── */}
-              {!!m.benutzt?.length && (
+              {/* Nur Werkzeuge mit Wort — ein interner Name („abschluss_schicken") steht nie im Chat. */}
+              {!!m.benutzt?.some(b => WERKZEUG_WORT[b]) && (
                 <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[13.5px] font-bold text-[#8b959d]">
                   <Wrench className="h-3.5 w-3.5" aria-hidden />
-                  {m.benutzt.map(b => WERKZEUG_WORT[b] ?? b).join(" · ")}
+                  {[...new Set(m.benutzt.map(b => WERKZEUG_WORT[b]).filter(Boolean))].join(" · ")}
                 </p>
               )}
 
@@ -665,6 +1277,7 @@ export default function AgentChat({ S, lang, gewaehlt }: {
             </div>
           )}
           <div ref={ende} />
+          </div>
         </div>
 
         {fehler && <p className="m-0 pb-2 text-[15px] font-bold text-[#c02626]">{fehler}</p>}
@@ -698,14 +1311,61 @@ export default function AgentChat({ S, lang, gewaehlt }: {
           <button
             type="button"
             hidden={verlauf[verlauf.length - 1]?.sprachfrage === true}
-            onClick={neuAnfangen}
+            onClick={() => neuAnfangen()}
             disabled={busy}
             className={`rounded-full px-2 py-0.5 text-[13.5px] font-bold underline transition disabled:opacity-30 ${
               resetFragt ? "text-[#c02626]" : "text-[#8b959d] hover:text-[#14181c]"}`}
           >
             {resetFragt ? S.loeschenBestaetigen : S.loeschen}
           </button>
+          {/* FEEDBACK JEDERZEIT (Owner 10.09.2026) — klein und grau wie „Alles löschen". */}
+          <button
+            type="button"
+            onClick={() => { setFeedbackOffen(o => !o); setFeedbackStatus(""); }}
+            className="rounded-full px-2 py-0.5 text-[13.5px] font-bold text-[#8b959d] underline transition hover:text-[#14181c]"
+          >
+            {S.feedbackLink}
+          </button>
         </p>
+        {feedbackOffen && (
+          <div className="relative mb-2 rounded-2xl border border-[#dfe4e9] bg-white p-3 pt-9">
+            {/* Owner 11.09.2026: „wie schliesse ich das Feedback-Fenster?" */}
+            <button
+              type="button"
+              aria-label={S.feedbackSchliessen}
+              title={S.feedbackSchliessen}
+              onClick={() => { setFeedbackOffen(false); setFeedbackText(""); setFeedbackStatus(""); }}
+              className="absolute right-2 top-1.5 grid h-7 w-7 place-items-center rounded-full text-[20px] leading-none text-[#8b959d] transition hover:bg-[#f1f3f5] hover:text-[#14181c]"
+            >
+              ×
+            </button>
+            {feedbackStatus === "danke" ? (
+              <p className="m-0 text-[14.5px] font-bold text-[#111]">{S.feedbackDanke}</p>
+            ) : (
+              <>
+                <textarea
+                  value={feedbackText}
+                  onChange={e => setFeedbackText(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder={S.feedbackPlatzhalter}
+                  className="block w-full resize-none rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] leading-[1.45] outline-none focus:border-[#111]"
+                />
+                {feedbackStatus === "fehler" && (
+                  <p className="m-0 mt-1.5 text-[13.5px] font-bold text-[#c02626]">{S.feedbackFehler}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void feedbackSenden()}
+                  disabled={feedbackStatus === "sende" || feedbackText.trim().length < 2}
+                  className="mt-2 rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] disabled:opacity-40"
+                >
+                  {S.feedbackSenden}
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         {/**
           * ── EINE BOX, KNÖPFE INNEN (Owner 09.09.2026, mit Bild von ChatGPT: „ChatGPT löst
@@ -723,8 +1383,8 @@ export default function AgentChat({ S, lang, gewaehlt }: {
           * selbst; sitzt es ohne eigenen Rand in der Box, muss die Box es zeigen. Sonst sieht
           * man nicht, ob man gerade tippt oder nicht.
           */}
-        <div className="sticky bottom-0 shrink-0 bg-white pb-3 pt-2">
-          <div className="rounded-[24px] border-[1.5px] border-[#dfe4e9] bg-white px-4 pb-2 pt-3 transition focus-within:border-[#1d6fd0]">
+        <div className={`sticky bottom-0 shrink-0 bg-white pb-3 pt-2 ${fertig ? "hidden" : ""}`}>
+          <div className="rounded-[24px] border-[1.5px] border-[#dfe4e9] bg-white px-4 pb-2 pt-3 transition focus-within:border-[#111]">
             <textarea
               ref={feld}
               rows={1}
@@ -743,18 +1403,25 @@ export default function AgentChat({ S, lang, gewaehlt }: {
             * anhängt, will sehen, WELCHES — und es wieder loswerden können, ohne die Seite
             * neu zu laden. Deshalb daneben ein Kreuz, kein Menü.
             */}
-            {foto && (
-              <div className="mb-2 flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={foto} alt="" className="h-14 w-14 rounded-xl object-cover" />
-                <button
-                  type="button"
-                  onClick={() => { setFoto(""); if (datei.current) datei.current.value = ""; }}
-                  aria-label={S.fotoWeg}
-                  className="grid h-8 w-8 place-items-center rounded-full text-[#5b666f] transition hover:bg-[#f1f4f7] hover:text-[#14181c]"
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
+            {bildHinweis && (
+              <p className="mb-1.5 text-[13px] font-bold text-[#8b959d]">{bildHinweis}</p>
+            )}
+            {fotos.length > 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                {fotos.map((f, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f} alt="" className="h-14 w-14 rounded-xl object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setFotos(v => v.filter((_, j) => j !== i)); if (datei.current) datei.current.value = ""; }}
+                      aria-label={S.fotoWeg}
+                      className="grid h-8 w-8 place-items-center rounded-full text-[#5b666f] transition hover:bg-[#f1f4f7] hover:text-[#14181c]"
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -770,8 +1437,9 @@ export default function AgentChat({ S, lang, gewaehlt }: {
               ref={datei}
               type="file"
               accept="image/*"
+              multiple
               hidden
-              onChange={e => void fotoWaehlen(e.target.files?.[0])}
+              onChange={e => void fotoWaehlen(e.target.files)}
             />
             <button
               type="button"
@@ -798,9 +1466,11 @@ export default function AgentChat({ S, lang, gewaehlt }: {
               <button
                 type="button"
                 onClick={() => void schicken()}
-                disabled={busy || !eingabe.trim()}
+                /* NUR BILDER IST AUCH EINE ANTWORT (Owner 10.09.2026: „sonst ist der Pfeil nach oben
+                   nicht aktiv") — `schicken` setzt dafür den Satz `nurBilder` ein. */
+                disabled={busy || (!eingabe.trim() && !fotos.length)}
                 aria-label={S.senden}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#1d6fd0] text-white transition active:scale-95 disabled:opacity-30"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#111] text-white transition active:scale-95 disabled:opacity-30"
               >
                 <ArrowUp className="h-5 w-5" aria-hidden />
               </button>

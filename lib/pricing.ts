@@ -198,6 +198,20 @@ export const VERSUSFORGE_START_CENTS = 29900;
  */
 export const VERSUSFORGE_ANALYSE_CENTS = 999;
 
+/**
+ * VERSUSFORGE ART — DAS ABO (Owner 10.09.2026: „Du zahlst, wenn unser Agent für dich arbeitet und
+ * du ihn behalten willst" · Abo 10 € im Monat · „299 abschaffen" für Kunst, „3 behalten" im Code).
+ *
+ * DIE ZAHL STEHT HIER FÜR SCHILD UND MAIL; ABGEBUCHT WIRD ÜBER DIE STRIPE-KENNUNG. Bei einem Abo
+ * verlangt Stripe einen angelegten Preis (Skill `bezahlung`, Regel 2) — der Owner hat ihn am
+ * 10.09.2026 selbst angelegt: „Art Marketing Abo", 10,00 € / Monat, live. Ändert sich der Preis,
+ * ändern sich BEIDE Zeilen: ein neuer Preis in Stripe, eine neue Kennung hier.
+ *
+ * DAS ZWEITE ABO IM HAUS — bewusst: Die Regel „ein Abo, sonst Einmalkauf" gilt für Geschenke.
+ */
+export const VERSUSFORGE_ABO_CENTS = 1000;
+export const VERSUSFORGE_ABO_PRICE_ID = "price_1UE81x1jPNCWoiztEc3jhmHJ";
+
 export const PREMIUM_BERATUNG_CENTS = 10000;         // 100 € — Beratung + PDF + Video
 
 export const ONCE_CENTS = 1500;                     // 15 € — ein Geschenk, einmal bezahlt

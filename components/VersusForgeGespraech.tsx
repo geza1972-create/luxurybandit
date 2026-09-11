@@ -37,7 +37,7 @@ export type Nachricht = { rolle: "mensch" | "agent"; text: string };
 
 export default function VersusForgeGespraech({
   verlauf, stand, hebel, vorschlaege, busy, busyText, fehler, fertig,
-  schicken, planBauen, zurueck,
+  schicken, planBauen, zurueck, loeschen,
   texte,
 }: {
   verlauf: Nachricht[];
@@ -51,9 +51,27 @@ export default function VersusForgeGespraech({
   schicken: (text: string) => void;
   planBauen: () => void;
   zurueck: () => void;
-  texte: { platzhalter: string; senden: string; planKnopf: string; zurueck: string; denkt: string };
+  /** Räumt den ganzen Lauf ab und setzt ihn an den Anfang — Begründung am Knopf unten. */
+  loeschen: () => void;
+  texte: {
+    platzhalter: string; senden: string; planKnopf: string; zurueck: string; denkt: string;
+    loeschen: string; loeschenBestaetigen: string;
+    /**
+     * DIE FÜNF NAMEN IM FAHRPLAN — IN SEINER SPRACHE (Owner 10.09.2026, mit Bild der
+     * rumänischen Seite: „das ist kein Rumänisch").
+     *
+     * Sie standen als deutsche Wörter aus `HEBEL` mitten in einer rumänischen Seite. Die
+     * Namen kommen jetzt von aussen, aus den übersetzten Textbausteinen — `HEBEL` liefert nur
+     * noch die Reihenfolge und den Schlüssel für den Fortschritt. Fehlt die Liste, bleiben
+     * die deutschen Namen stehen: lieber ein deutsches Wort als ein leerer Balken.
+     */
+    schritte?: string[];
+    /* Der Fahrplan über dem Gespräch — Begründung bei `HebelStand`. */
+    fahrplanKopf?: string; fahrplanFein?: string;
+  };
 }) {
   const [eingabe, setEingabe] = useState("");
+  const [loeschFragt, setLoeschFragt] = useState(false);
   const ende = useRef<HTMLDivElement>(null);
 
   /* Ans Ende scrollen, wenn etwas dazukommt — sonst steht die neue Antwort unter dem Rand. */
@@ -63,7 +81,28 @@ export default function VersusForgeGespraech({
     const w = eingabe.trim();
     if (!w || busy) return;
     setEingabe("");
+    setLoeschFragt(false);
     schicken(w);
+  };
+
+  /**
+   * ── ALLES LÖSCHEN — ZWEI TIPPS, ROT, KEINE UHR ────────────────────────────────────────────
+   *
+   * Owner 10.09.2026, in seinem eigenen Trichter festgefahren: „kann auch nicht alles löschen,
+   * ich weiss nicht, was ich hier machen soll." Fünf Testnachrichten, eine rote Absage, kein
+   * Ausweg — und `vf_lauf` bringt beim Neuladen genau denselben toten Verlauf zurück.
+   *
+   * KEINE UHR AUF EINER FRAGE AUS WÖRTERN: Die Hausregel [[loeschen-zwei-tipps-rot]] meint ein
+   * rotes SYMBOL, das man nicht lesen muss. Steht dort ein Satz, sperrt eine Drei-Sekunden-Uhr
+   * genau den aus, der ihn liest — im Agenten-Chat gemessen und dort schon behoben.
+   *
+   * STATTDESSEN NIMMT JEDE ANDERE HANDLUNG DIE FRAGE ZURÜCK: tippen, senden, den Plan bauen.
+   */
+  const abraeumen = () => {
+    if (!loeschFragt) { setLoeschFragt(true); return; }
+    setLoeschFragt(false);
+    setEingabe("");
+    loeschen();
   };
 
   /**
@@ -79,10 +118,24 @@ export default function VersusForgeGespraech({
    */
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── DIE ANZEIGE DER MASCHINE — sie klebt oben, während der Verlauf darunter läuft ── */}
-      <div className="shrink-0 pb-3">
-        <HebelStand stand={stand} jetzt={hebel} />
-      </div>
+      {/**
+        * ── DER FAHRPLAN IST RAUS (Owner 10.09.2026: „das zu zeigen bringt dem Kunden nichts.
+        * Das ist eine interne Sache. Das versteht ein normaler User nicht" · „das ist eine
+        * Fachsprache") ────────────────────────────────────────────────────────────────────────
+        *
+        * HIER STANDEN FÜNF ZEILEN MIT PROZENTEN: Nutzen 20 %, Herkunft, Wirkung 20 %, Beleg,
+        * Grenze. Für uns ist das der Arbeitsstand der Maschine. Für einen Restaurantbesitzer
+        * sind es fünf Wörter aus einem fremden Fach und drei Zahlen, die nichts erklären — er
+        * lernt daraus nichts über sein Geschäft und nichts darüber, was als Nächstes kommt.
+        *
+        * ICH HATTE ES GESTERN GENAU UMGEKEHRT BEGRÜNDET („fünf Nullen mit einer Überschrift
+        * sind ein Plan"). Der Denkfehler: Ein Plan hilft nur, wenn man seine Wörter kennt.
+        * Wir kennen sie, weil wir sie erfunden haben.
+        *
+        * WAS BLEIBT: Der Fortschritt oben („Schritt 2/3") — eine Zahl, die jeder versteht. Und
+        * der Fahrplan selbst bleibt DRINNEN: Der Agent arbeitet die fünf Sachen weiter ab, er
+        * hängt sie nur nicht mehr an die Wand ([[hook-rezept-vorfuehren]]).
+        */}
 
       {/* ── DER VERLAUF: die einzige Fläche, die scrollt ── */}
       <div className="lb-wisch flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4">
@@ -122,7 +175,7 @@ export default function VersusForgeGespraech({
       {fertig && !busy && (
         <button
           type="button"
-          onClick={planBauen}
+          onClick={() => { setLoeschFragt(false); planBauen(); }}
           className="w-full rounded-xl bg-[#1d6fd0] px-5 py-4 text-[17px] font-extrabold text-white transition active:scale-[.99]"
         >
           {texte.planKnopf}
@@ -149,6 +202,25 @@ export default function VersusForgeGespraech({
 
       {fehler && <p className="m-0 text-[15px] font-bold text-[#c02626]">{fehler}</p>}
 
+      {/**
+        * ALLES LÖSCHEN — der Ausweg, der hier gefehlt hat (Begründung an `abraeumen` oben).
+        *
+        * ER STEHT ÜBER DEM FELD, klein und grau: selten gebraucht, und er darf mit dem
+        * Sendeknopf nicht um Aufmerksamkeit streiten. Kein Bestätigungsfenster
+        * ([[keine-overlay-dialoge]]) — der Knopf selbst stellt die Frage.
+        */}
+      <p className="m-0 flex items-center">
+        <button
+          type="button"
+          onClick={abraeumen}
+          disabled={busy}
+          className={`rounded-full px-2 py-0.5 text-[13.5px] font-bold underline transition disabled:opacity-30 ${
+            loeschFragt ? "text-[#c02626]" : "text-[#8b959d] hover:text-[#14181c]"}`}
+        >
+          {loeschFragt ? texte.loeschenBestaetigen : texte.loeschen}
+        </button>
+      </p>
+
       {/* ── DIE EINGABELEISTE KLEBT UNTEN ──
           Auch nachdem der Agent „fertig" gemeldet hat: Er darf widersprechen, nachlegen oder
           etwas ändern, statt vor einem einzigen Knopf zu stehen. Genau das kann ein Formular
@@ -157,7 +229,7 @@ export default function VersusForgeGespraech({
         <textarea
           rows={1}
           value={eingabe}
-          onChange={e => setEingabe(e.target.value)}
+          onChange={e => { setEingabe(e.target.value); setLoeschFragt(false); }}
           onKeyDown={e => {
             /* Enter schickt, Umschalt+Enter macht eine Zeile — wie in jedem Chat. Am Handy
                bleibt der Knopf der Weg, dort gibt es keine Umschalttaste. */
@@ -178,45 +250,6 @@ export default function VersusForgeGespraech({
           <ArrowUp className="h-5 w-5" aria-hidden />
         </button>
       </div>
-    </div>
-  );
-}
-
-/**
- * DIE FÜNF STÄNDE (Owner 09.09.2026: „Nutzen identifizieren in Prozent, ob es erfüllt ist
- * oder nicht").
- *
- * Sie zeigt die EIGENEN Namen (`schritt`), nie die echten — die fünf echten nebeneinander
- * sind die Formel (Begründung in `versusforge-hook-rezept.ts`).
- *
- * VOR DER ERSTEN ANTWORT STEHT SIE NICHT DA: Fünf Nullen sind kein Fortschritt, sondern eine
- * Mängelliste über jemanden, der gerade erst angefangen hat.
- */
-function HebelStand({ stand, jetzt }: { stand: Record<string, number>; jetzt: string }) {
-  const summe = HEBEL.reduce((n, h) => n + (stand[h.schluessel] ?? 0), 0);
-  if (!summe) return null;
-  return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-[#f5f7f9] p-4">
-      {HEBEL.map(h => {
-        const wert = Math.max(0, Math.min(100, stand[h.schluessel] ?? 0));
-        const dran = h.schluessel === jetzt;
-        return (
-          <div key={h.schluessel} className="flex items-center gap-3">
-            <span className={`w-[92px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#5b666f]"}`}>
-              {h.schritt}
-            </span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#dfe4e9]">
-              <span
-                className={`block h-full rounded-full transition-[width] duration-500 ${dran ? "bg-[#1d6fd0]" : "bg-[#9aa6b1]"}`}
-                style={{ width: `${wert}%` }}
-              />
-            </span>
-            <span className={`w-[42px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#1d6fd0]" : "text-[#8b959d]"}`}>
-              {wert}%
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 }

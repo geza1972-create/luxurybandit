@@ -147,6 +147,19 @@ export const DASHBOARD_TEXTE = {
 
   /* ── Eine Anfrage ────────────────────────────────────────────────────── */
   deinTestlauf: "Dein Testlauf",
+  /**
+   * ── WOHER DIE ANFRAGE KAM (Owner 09.09.2026: „und wie kann er wissen, was der Kunde
+   * anfragt?" · „das Gleiche gilt für den Immobilienverkäufer") ────────────────────────────
+   *
+   * Bei fünf laufenden Anzeigen ist das die Frage, die über sein Werbebudget entscheidet.
+   * Ohne sie lässt er alle fünf laufen, auch die vier, die nichts bringen — und zahlt sie.
+   *
+   * BEIM MAKLER IST ES DIESELBE FRAGE mit anderem Gegenstand: Er bewirbt drei Wohnungen,
+   * und die Anfrage sagt ihm, WELCHE gefragt ist. Der Hook ist bei ihm das Objekt.
+   */
+  ausAnzeige: "Aus Anzeige",
+  /** Die Adresse, die er in genau diese Anzeige schreibt. */
+  anzeigeLink: "Adresse für diese Anzeige",
   verschlossen: "Ein Mensch — Name und Nummer verschlossen",
   ohneNamen: "Ohne Namen",
   gespraech: "Das Gespräch",
@@ -196,6 +209,24 @@ export const DASHBOARD_TEXTE = {
   wirklichLoeschen: "Wirklich löschen?",
   hookPlatzhalter: "Ein fester Zahn in einem Termin — geht das bei dir?",
   /**
+   * ── WORUM ES BEI DIESEM EINEN STÜCK GEHT (Owner 09.09.2026, an der Van-Gogh-Kachel: „ein
+   * Blau, das sich ein zweites Mal nicht mehr verkauft … das kann aus den Antworten des Users
+   * kommen") ───────────────────────────────────────────────────────────────────────────────
+   *
+   * Sein Satz war besser als meiner, und der Unterschied ist das ganze Rezept: „Ein Bild, das
+   * sich kein zweites Mal verkauft" stimmt für jede Galerie der Welt. „Ein BLAU, das sich kein
+   * zweites Mal verkauft" kann nur über dieses eine Werk geschrieben werden.
+   *
+   * WIR SEHEN DAS MOTIV NICHT — er schreibt in einem Halbsatz, worum es geht. Freiwillig: Der
+   * Makler mit drei Wohnungen und der Künstler mit fünf Werken brauchen es, der Zahnarzt nicht.
+   */
+  worumTitel: "Geht es um ein bestimmtes Stück?",
+  /* ZWEI BEISPIELE, WEIL ES ZWEI SORTEN GIBT (Owner 09.09.2026: „die Immobilienverkäufer
+     verkaufen auch das Feeling oder die Aussicht"): ein Ding und ein Moment. Wer nur das
+     erste liest, schreibt Datenblätter. */
+  worumPlatzhalter: "Dunkles Blau, Nachthimmel — oder: Balkon nach Osten, Sonne bis mittags",
+  worumFein: "Ein Halbsatz reicht — ein Ding oder ein Moment. Die Prüfung: Würde derselbe Satz auch über das Nachbarstück stimmen, ist er zu allgemein.",
+  /**
    * ── SEIN EIGENES MOTIV (Owner 09.09.2026: „stell dir vor, ein Künstler will seine Art
    * verkaufen. Das müsste auch funktionieren. Bild und Spruch") ────────────────────────────
    *
@@ -206,7 +237,7 @@ export const DASHBOARD_TEXTE = {
    * EINMAL HOCHLADEN, UNTER JEDEM SATZ: Das Motiv gehört dem Trichter, nicht der einzelnen
    * Kachel. Er wählt sein Werk einmal aus und sieht es unter allen seinen Hooks.
    */
-  motivTitel: "Dein Bild",
+  motivTitel: "Dein Standardbild",
   /**
    * DIE WEISSE KACHEL IST KEIN MANGEL (Owner 09.09.2026, auf mein „das ist mein Fehler":
    * „eben, das ist geil").
@@ -216,10 +247,38 @@ export const DASHBOARD_TEXTE = {
    * zeigen etwas, diese zwingt zum Lesen. Der Text darf sie deshalb nicht als Notlösung
    * anbieten, sondern als Wahl.
    */
-  motivFein: "Zwei Formate: nur dein Satz auf Weiss — fällt in einem Feed voller Bilder auf. Oder dein Bild oben, der Satz darunter.",
+  motivFein: "Es steht unter jedem Hook, der kein eigenes hat. Zwei Formate: nur dein Satz auf Weiss — fällt in einem Feed voller Bilder auf. Oder dein Bild oben, der Satz darunter.",
+  /**
+   * ── JEDER HOOK DARF SEIN EIGENES BILD HABEN (Owner 09.09.2026: „der Kunde macht also pro
+   * Motiv einen Trichter + Dashboard?" · „also 299 Euro jedes Mal" · „das ist heftig") ───────
+   *
+   * ER HAT EINEN ECHTEN FEHLER GEFUNDEN. Ich hatte EIN Motiv an den Trichter gehängt. Für den
+   * Zahnarzt stimmt das — sein Raum ist immer derselbe. Für einen Künstler mit fünf Werken
+   * hätte es bedeutet: fünf Trichter, fünfmal 299 €. Für das Bewerben von fünf Bildern.
+   *
+   * EIN TRICHTER, EIN DASHBOARD, EINE 299 — und darin so viele Hooks und Bilder, wie er will.
+   */
+  hookBild: "Bild für diesen Hook",
+  hookBildWechseln: "Anderes Bild",
+  hookBildWeg: "Eigenes Bild entfernen",
   motivWaehlen: "Bild wählen",
   motivWechseln: "Anderes Bild",
   motivWeg: "Bild entfernen",
+  /* MODERATION (Owner 10.09.2026): Markierte Werke gibt der Owner frei, verbotene werden nicht
+     angenommen. Der Künstler erfährt WAS passiert, nie die Kategorie — ein „als sexuell markiert"
+     wäre bei einem Akt eine Kränkung, bevor ein Mensch hingesehen hat. */
+  motivPruefung: "Danke! Wir sehen uns dieses Bild kurz an. Nach der Freigabe erscheint es hier — meist innerhalb von 3 Tagen.",
+  motivAbgelehnt: "Dieses Bild können wir leider nicht annehmen.",
+  /* DER EINE GRUND, DER GENANNT WIRD (Owner 10.09.2026: „schreib du was") — mit dem Weg, der
+     offen bleibt. Variante B: zum Start keine Aktfotografie. */
+  motivAktfoto: "Aktfotografie nehmen wir zurzeit nicht an. Gemalte und gezeichnete Akte sind willkommen.",
+  /* ── DAS ART-MARKETING-ABO (Owner 10.09.2026) — Regeln in lib/versusforge-abo.ts ── */
+  aboFrage: "Drei Interessenten haben sich gemeldet. Willst du deinen Agenten behalten?",
+  aboFrist: "Noch {n} Tage siehst du jede Anfrage — danach nur mit dem Abo.",
+  aboGesperrt: "{n} Antworten warten auf dich. Du siehst sie, sobald du das Abo abschliesst.",
+  aboGesperrtEine: "Eine Antwort wartet auf dich. Du siehst sie, sobald du das Abo abschliesst.",
+  aboKnopf: "Agent behalten — {preis} im Monat",
+  aboAktivZeile: "Dein Abo ist aktiv. Du siehst jede Anfrage.",
 } as const;
 
 export type DashboardTexte = { -readonly [K in keyof typeof DASHBOARD_TEXTE]: string };

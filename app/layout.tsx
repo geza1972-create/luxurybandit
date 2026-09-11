@@ -35,11 +35,13 @@ export const metadata: Metadata = {
      Positionierung von vor dem 26.08.2026. Sie fiel niemandem auf, weil sie nur in der
      Vorschau erscheint, die WhatsApp und Facebook aus diesen Feldern bauen: Kopf und Fuss
      der Seiten waren längst zweimal umbenannt worden, dieses Feld nie. */
-  title: "LuxuryBandit — The AI-Media Creator",
+  /* VERSUSFORGE STATT LUXURYBANDIT IM TAB (Owner 10.09.2026, mit Bild des Tabs: „im Tab steht
+     immer noch LuxuryBandit · statt VersusForge"). */
+  title: "VersusForge — The AI-Media Creator",
   description: "Products built by artificial intelligence, and the marketing that sells them. Every product here is our own, finished in minutes. The same machine is ready for your business: a service or an event becomes a product — and the path that sells it.",
   keywords: ["ai video gift", "ai video generator", "kiss video ai", "wedding invitation video", "birthday video maker", "ai model", "ai influencer", "face swap video ai", "personalised video", "LuxuryBandit"],
   openGraph: {
-    title: "LuxuryBandit — The AI-Media Creator",
+    title: "VersusForge — The AI-Media Creator",
     description: "Products built by AI, and the marketing that sells them. The same machine turns your service or event into a product — and the path that sells it.",
     type: "website",
   },
@@ -67,7 +69,8 @@ export const viewport: Viewport = {
 /* Auch VersusForge trägt keine Haus-Leiste (Owner 08.09.2026): Es ist eine eigene
    Marke — ein fremdes Menü am unteren Rand hebt die Trennung wieder auf, für die
    die zweite Marke überhaupt entstanden ist. */
-const FUNNEL_HOST = /(^|\.)(yourvideogenerator|versusforge)\.com$/i;
+/* Und lakatosbandi.com, das Portal für Künstler (Owner 10.09.2026) — dort ist das Haus nur Technik. */
+const FUNNEL_HOST = /(^|\.)(yourvideogenerator|versusforge|lakatosbandi)\.com$/i;
 
 export default async function RootLayout({
   children

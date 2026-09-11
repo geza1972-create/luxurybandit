@@ -114,7 +114,11 @@ export const HEBEL_AUFTRAG = [
   "DEINE FRAGEN HABEN GENAU EINEN ZWECK: die fünf Hebel zu füllen, aus denen ein Hook gebaut wird. Jede Frage bedient GENAU EINEN Hebel.",
   ...HEBEL.map(h => `  · ${h.name} — ${h.frage} BRAUCHBAR IST: ${h.gut}`),
   "Frag immer nach dem am schlechtesten gefüllten Hebel. Was sein Satz oder seine Website schon hergeben, fragst du NICHT noch einmal.",
-  "Eine ausweichende oder allgemeine Antwort füllt einen Hebel NICHT. Sag das in 'reaktion' und hak beim selben Hebel nach, statt zum nächsten zu springen.",
+  /* NACHHAKEN HEISST NICHT WIEDERHOLEN (Owner 10.09.2026, Roadmap Punkt 1): Hier stand „hak
+     beim selben Hebel nach". Der Agent las das als „stell die Frage noch einmal" — beim
+     Künstler in 2 von 3 Prüfläufen wörtlich dieselbe Frage. Diese Zeile gewann gegen die
+     Liste „schon geschrieben", weil sie eine Anweisung ist und die Liste nur ein Verbot. */
+  "Eine ausweichende oder allgemeine Antwort füllt einen Hebel NICHT. Sag das in 'reaktion' und frag EINMAL ENGER nach — nie mit derselben Frage, auch nicht mit anderen Worten. Kommt wieder nichts, schlag selbst einen Satz aus seinen Angaben vor, den er nur abnicken oder korrigieren muss.",
   "Preis, Ort, Umkreis, Termine und Budget sind Technik. Sie ergeben keinen Hook. Frag danach NUR, wenn du es nirgends ableiten kannst und ohne es keine Anzeige möglich wäre.",
   "Du erfindest keinen Hebel. Was er nicht sagt, bleibt leer — und ein leerer Hebel ist ehrlicher als ein erfundener.",
 ].join("\n");
@@ -132,6 +136,41 @@ export const HOOK_REGELN = [
   "Höchstens 12 Wörter. Keine Adjektive wie modern, exklusiv, hochwertig, professionell.",
   "So konkret aus SEINEN Angaben, dass ein Fremder denselben Satz nicht schreiben könnte. Ein Hook, der für jede Praxis in Deutschland passt, passt für keine.",
   "Nichts behaupten, was die Angaben nicht hergeben. Keine Zahlen, keine Erfolge, keine Versprechen.",
+  /**
+   * ── DER HOOK SIEZT (Owner 09.09.2026, an einem echten Bild: „und ist der Satz ok?") ──────
+   *
+   * DER SATZ WAR „Drucke an der Wand – willst DU endlich etwas Echtes?" — und zwei Zentimeter
+   * darunter stand auf derselben Seite „Beantworten SIE ein paar kurze Fragen".
+   *
+   * DAS HAUS DUZT ([[immer-duzen]]) — aber dieser Satz kommt nicht vom Haus. Er steht in der
+   * Anzeige SEINES Betriebs und spricht SEINEN Kunden an; dieselbe Grenze wie auf der
+   * Mandantenseite (lib/mandant-texte.ts). Zwei Anreden auf einer Fläche liest niemand als
+   * Ton, sondern als zwei Absender.
+   *
+   * DIE AUSNAHME BLEIBT MÖGLICH: Sagt der Betrieb selbst Du zu seinen Kunden — eine Bar, ein
+   * Tattoostudio —, steht das in seinen Angaben, und dann gilt das.
+   */
+  /**
+   * ── DIE FORM MUSS WECHSELN, DIE STRUKTUR NICHT (09.09.2026, im Fünf-Gewerbe-Lauf gesehen) ─
+   *
+   * DREI GEWERBE, EIN SKELETT:
+   *   „Sie wälzen sich jede Tropennacht – und nennen es Sommer?"   (Klimamontage)
+   *   „Sie kauen links – und meiden Äpfel?"                        (Zahnarzt)
+   *   „Sie zahlen Miete – und schlafen zum Strassenlärm ein?"      (Bauträger)
+   *
+   * DAS IST DER BEWEIS UND DER FEHLER IN EINEM. Beweis: Die Formel trägt bei Klimaanlagen wie
+   * bei Implantaten wie bei Wohnungen — erst der Zustand, dann der Riss. Fehler: Wenn drei von
+   * drei denselben Gedankenstrich an derselben Stelle haben, dann haben es in einem Jahr auch
+   * dreissig unserer Kunden. Das ist der Moment, in dem jemand sagt „das ist doch KI" — und
+   * damit wäre unser einziges Verkaufsargument weg.
+   *
+   * DIE UNTERSCHEIDUNG, AUF DIE ES ANKOMMT: Zustand und Riss sind PFLICHT. Wie sie verbunden
+   * werden, ist FREI — und muss wechseln.
+   */
+  "ZUSTAND UND RISS SIND PFLICHT, DIE SATZFORM NICHT. Bau sie NIE immer gleich zusammen. Es gibt mindestens fünf Formen: (1) Frage nach dem Zustand — Sie kauen links, und meiden Äpfel? (2) Aussage, dann Umkehr — Ihr Bad ist von 1994. In vierzehn Tagen nicht mehr. (3) Zwei Sätze, der zweite kippt — Das Lamm liegt neun Stunden über Buchenholz. Deshalb ist Samstag voll. (4) Zahl zuerst — 12 von 50 sind weg, die Ostseite fast ganz. (5) Verneinung — Kein Ventilator schafft 38 Grad.",
+  "WÄHLE EINE ANDERE FORM als die Hooks, die schon dastehen. Zwei Sätze mit demselben Bauplan sind für den Leser derselbe Satz.",
+  "DER GEDANKENSTRICH IST KEINE VORLAGE. Endet dein Satz auf Gedankenstrich-und-Frage, hast du die erste Form genommen; nimm eine andere, ausser sie ist wirklich die beste für diesen Fall.",
+  "Er SIEZT den Leser. Das ist die Anzeige seines Betriebs, nicht unsere. Nur wenn aus seinen Angaben hervorgeht, dass er seine Kunden duzt, darfst du duzen.",
 ].join(" ");
 
 /**

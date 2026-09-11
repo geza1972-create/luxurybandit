@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { alleZielgruppenSlugs } from "@/lib/lebenslauf-zielgruppen";
 import { alleRatgeber, ratgeberUrl } from "@/lib/ratgeber";
+import { ARTIKEL, JOURNAL_SPRACHEN } from "@/lib/lakatosbandi-journal";
 
 const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "");
 
@@ -45,6 +46,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      */
     { url: `${BASE}/themes/gutschein`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/themes/kiss`, changeFrequency: "weekly", priority: 0.9 },
+    /* VersusForge · Marketing for Art — die Landingpage, je Sprache eine Adresse (10.09.2026). */
+    { url: `${BASE}/themes/versusforge/en`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/themes/versusforge/ro`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/themes/versusforge/de`, changeFrequency: "weekly", priority: 0.9 },
+    /* lakatosbandi.com — Startseite und Journal (10.09.2026). Eigene Domain, deshalb absolute Adressen. */
+    { url: "https://lakatosbandi.com/", changeFrequency: "weekly", priority: 0.9 },
+    ...JOURNAL_SPRACHEN.flatMap(l => [
+      { url: `https://lakatosbandi.com/journal/${l}`, changeFrequency: "weekly" as const, priority: 0.8 },
+      ...ARTIKEL.map(a => ({ url: `https://lakatosbandi.com/journal/${l}/${a.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
+    ]),
     /* TRY-ON UND LINGERIE FEHLTEN HIER GANZ (01.09.2026, Owner: „die müssen alle auch
        indexiert werden von google") — beide Seiten sind live, indexierbar (kein
        `noindex`) und über `/media-kit` verlinkt, standen aber nie in der Sitemap. */

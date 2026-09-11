@@ -77,6 +77,18 @@ const nextConfig = {
         // /wardrobe is a clean URL for the Wardrobe (garderobe) gallery — the browser
         // URL stays /wardrobe while /stores renders it (usePathname → onWardrobe → garderobe tab).
         { source: "/wardrobe", destination: "/stores" },
+        /* LAKATOSBANDI.COM — DAS PORTAL (Owner 10.09.2026). Wurzel und Login VOR den echten
+           Seiten, denn `/` und `/login` gibt es im Haus schon. Nur auf diesem Host. */
+        { source: "/", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal" },
+        { source: "/login", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/login" },
+        /* DIE ANMELDUNG AUF LAKATOSBANDI.COM (Owner 11.09.2026: „du musst schauen, wo die Seite angelegt wird. Nicht auf
+           VersusForge") — derselbe Chat wie /engine, VOR `/:kuenstler`, damit „start" kein Künstler ist. */
+        { source: "/start", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/engine" },
+        /* Eigene Rechtstexte des Portals (Owner 10.09.2026: „die Inhalte musst du umschreiben") —
+           VOR den Haus-Seiten gleichen Namens, nur auf diesem Host. */
+        { source: "/imprint", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/imprint" },
+        { source: "/privacy", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/privacy" },
+        { source: "/terms", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/terms" },
       ],
       afterFiles: [
         { source: "/admin/:path*", destination: "/:path*" },
@@ -98,6 +110,18 @@ const nextConfig = {
           has: [{ type: "host", value: "(.*\\.)?versusforge\\.com" }],
           destination: "/versusforge/:mandant",
         },
+        /* DIE KÜNSTLER AUF LAKATOSBANDI.COM (Owner 10.09.2026: „die kommen doch unter
+           lakatosbandi.com/{artistname}"). `afterFiles` wie oben: echte Seiten (/about,
+           /imprint, /api/…) behalten Vorrang. Die längeren Pfade zuerst. */
+        /* Das Journal zuerst — sonst hielte `/:kuenstler` „journal" für einen Künstler. */
+        { source: "/journal", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal" },
+        { source: "/journal/:pfad*", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/journal/:pfad*" },
+        { source: "/:kuenstler/dashboard", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/versusforge/:kuenstler/dashboard" },
+        /* Löschen auf lakatosbandi.com statt auf der Firmen-Anzeigenseite (Owner 11.09.2026). */
+        { source: "/:kuenstler/loeschen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/loeschen" },
+        /* Die Seite eines Werks (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite drauf"). */
+        { source: "/:kuenstler/:werk(standard|\\d+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/:werk" },
+        { source: "/:kuenstler", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
       ],
     };
   },
@@ -116,8 +140,23 @@ const nextConfig = {
        * Eine dauerhafte Weiterleitung merken sich Browser und Suchmaschinen so gründlich,
        * dass ein Zurück Tage dauert.
        */
-      { source: "/themes/versusforge", destination: "/engine", permanent: false },
-      { source: "/themes/versusforge/:pfad*", destination: "/engine/:pfad*", permanent: false },
+      /* `/themes/versusforge` selbst leitet NICHT mehr um (Owner 10.09.2026: „normalerweise
+         haben wir eine Landingpage dazu, die für SEO gemacht ist") — dort steht jetzt die
+         Landingpage „Marketing for Art", je Sprache unter `/en`, `/ro`, `/de`. Nur die alten
+         Unterpfade `plan` und `start` gehen weiter zur Engine — ein allgemeines `:pfad*`
+         schluckte sonst auch die Sprach-Adressen. */
+      { source: "/themes/versusforge/:pfad(plan|start)/:rest*", destination: "/engine/:pfad/:rest*", permanent: false },
+      /* DER KÜNSTLER-CHAT LIEGT AUF LAKATOSBANDI.COM/START (Owner 11.09.2026: „nicht auf VersusForge"). Nur auf dem Host
+         versusforge.com und nur diese zwei Adressen — /engine/anfragen (Admin) bleibt. Die Sprache (?lang=) wandert mit. */
+      { source: "/engine", has: [{ type: "host", value: "(www\\.)?versusforge\\.com" }], destination: "https://lakatosbandi.com/start", permanent: false },
+      { source: "/engine/agent", has: [{ type: "host", value: "(www\\.)?versusforge\\.com" }], destination: "https://lakatosbandi.com/start", permanent: false },
+      /* DIE ALTE KONTAKT-SEITE GIBT ES FÜR KÜNSTLER NICHT MEHR (Owner 11.09.2026, Bild „Strasse 1 · 12345 Ort": „nicht mehr
+         sehr klug") — alte Links landen auf seiner Seite mit geöffnetem Agenten. `?h=` wandert mit. */
+      { source: "/:kuenstler/kontakt", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/:kuenstler?agent=1", permanent: false },
+      /* LAKATOSBANDI.RO IST DIE RUMÄNISCHE TÜR (Owner 11.09.2026: „ich habe auch die Domain lakatosbandi.ro registriert,
+         soll auf die RO-Adresse leiten"). Alles auf .ro landet auf lakatosbandi.com mit ?lang=ro, der Pfad bleibt —
+         lakatosbandi.ro/start → /start?lang=ro. Vorerst nicht dauerhaft, bis es läuft. */
+      { source: "/:pfad*", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.ro" }], destination: "https://lakatosbandi.com/:pfad*?lang=ro", permanent: false },
       {
         /* DAS „LUXURYBANDIT SYSTEM" IST WEG (Owner 10.08.2026: „Wir verkaufen keine Systeme.
            … Wir löschen das jetzoge jetzt"). An seiner Stelle steht das VERSPRECHEN. Die alte

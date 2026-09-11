@@ -3,6 +3,7 @@ import { MAIL, mailHuelle, mailTitel, mailText, mailFein, mailAdresse, mailKaste
 import { metaSchritteInSprache } from "@/lib/versusforge-meta-anleitung";
 import { mailTexteInSprache, type MailTexte } from "@/lib/versusforge-mail-texte";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
+import { kuenstlerUrl, kuenstlerDashboardUrl } from "@/lib/lakatosbandi-adressen";
 
 /**
  * DIE MAIL MIT SEINEN LINKS (Owner 09.09.2026: „er bekommt das an seiner E-Mail" · „oder
@@ -45,6 +46,8 @@ export async function linksPerPost(o: {
   nurLoeschen?: boolean;
   /** Die Sprache des Mandanten. Ohne Angabe Deutsch. */
   sprache?: string;
+  /** Ein Künstler (lakatosbandi.com): seine Seite und sein Dashboard statt Anzeige, Trichter und Meta-Anleitung. */
+  kuenstler?: boolean;
 }): Promise<boolean> {
   if (!o.an.includes("@")) return false;
 
@@ -53,7 +56,10 @@ export async function linksPerPost(o: {
   const basis = "https://versusforge.com";
   const anzeige = `${basis}/${o.mandant}/anzeige`;
   const trichter = `${basis}/${o.mandant}`;
-  const loeschen = `${basis}/${o.mandant}/anzeige?k=${encodeURIComponent(o.loeschSchluessel)}`;
+  /* Künstler löschen auf lakatosbandi.com, nicht auf der Firmen-Anzeigenseite (Owner 11.09.2026: „nicht auf VersusForge"). */
+  const loeschen = o.kuenstler
+    ? `${kuenstlerUrl(o.mandant)}/loeschen?k=${encodeURIComponent(o.loeschSchluessel)}`
+    : `${basis}/${o.mandant}/anzeige?k=${encodeURIComponent(o.loeschSchluessel)}`;
   const dashboard = `${basis}/${o.mandant}/dashboard?k=${encodeURIComponent(o.schluessel)}`;
 
   const html = o.nurLoeschen
@@ -61,6 +67,18 @@ export async function linksPerPost(o: {
         mailTitel(T.linksLoeschTitel)
         + mailText(T.linksLoeschText)
         + mailAdresse(T.linksLoeschWort, loeschen, T.linksLoeschFein))
+    : o.kuenstler
+    /* DIE KÜNSTLER-MAIL (Owner 10.09.2026): keine Anzeige, kein Trichter, keine 299 €, keine Meta-
+       Anleitung — seine Seite, sein Dashboard, der Löschlink. */
+    ? mailHuelle(
+        mailTitel(T.kuenstlerTitel)
+        + mailText(T.kuenstlerText)
+        + mailAdresse(T.kuenstlerSeite, kuenstlerUrl(o.mandant), T.kuenstlerSeiteFein)
+        + mailAdresse(T.kuenstlerBearbeiten, `${kuenstlerUrl(o.mandant)}?k=${encodeURIComponent(o.schluessel)}`, T.kuenstlerBearbeitenFein)
+        + mailAdresse(T.linksDashboard, kuenstlerDashboardUrl(o.mandant, o.schluessel), T.kuenstlerDashboardFein)
+        + mailFein(T.linksHilfe)
+        + mailAdresse(T.linksAllesLoeschen, loeschen, T.linksAllesLoeschenFein),
+        loeschen)
     : mailHuelle(
         mailTitel(T.linksTitel)
         + mailAdresse(T.linksAnzeige, anzeige, T.linksAnzeigeFein)
@@ -100,9 +118,11 @@ export async function linksPerPost(o: {
        bekommen die Leute eine E-Mail von LuxuryBandit"). Fehlt es noch, geht sie mit einer
        Warnung im Log über das Haus — siehe `MailKonto` in lib/email-send.ts. */
     konto: "versusforge",
+    /* Der Künstler liest „lakatosbandi.com" als Absender, nicht „VersusForge" — dasselbe Postfach (Owner 11.09.2026). */
+    ...(o.kuenstler ? { absender: "lakatosbandi.com" } : {}),
     to: o.an,
     listUnsubscribe: `<${loeschen}>`,
-    subject: o.nurLoeschen ? T.linksBetreffLoeschen : T.linksBetreff,
+    subject: o.nurLoeschen ? T.linksBetreffLoeschen : o.kuenstler ? T.kuenstlerBetreff : T.linksBetreff,
     html,
   });
   if (!res.ok) console.error("[versusforge-links] Versand fehlgeschlagen:", res.error);

@@ -5,6 +5,7 @@ import { setWetterPaid, grantMonthlySubscriptionCredits } from "@/lib/try-this-l
 import { lebenslaufAboFreischalten, lebenslaufAboBeenden } from "@/lib/lebenslauf-store";
 import { bezahltVermerken, lieferungAnstossen } from "@/lib/kiss-delivery";
 import { capiKaufMelden } from "@/lib/meta-capi";
+import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
 
 export const runtime = "nodejs";
 
@@ -97,6 +98,18 @@ export async function POST(request: Request) {
    */
   if (event.type === "customer.subscription.deleted") {
     const sub = event.data.object as { id?: string; metadata?: Record<string, string> };
+    /* DAS ART-MARKETING-ABO ENDET (VersusForge, 10.09.2026): Kündigung oder endgültig gescheiterte
+       Zahlung. Danach gelten wieder die Regeln ohne Abo (`lib/versusforge-abo.ts`). */
+    if (String(sub?.metadata?.kind ?? "") === "versusforge-abo") {
+      const mandant = String(sub?.metadata?.mandant ?? "").trim();
+      if (mandant) {
+        try {
+          const m = await mandantLesen(mandant);
+          if (m) await mandantSpeichern(mandant, { ...m, abo: { ...(m.abo ?? {}), aktiv: false, subscription: String(sub?.id ?? m.abo?.subscription ?? ""), bis: new Date().toISOString() } });
+          console.info(`[stripe-webhook] versusforge-abo beendet — ${mandant}`);
+        } catch (e) { console.warn("[stripe-webhook] versusforge-abo Beenden fehlgeschlagen", e); }
+      }
+    }
     if (String(sub?.metadata?.kind ?? "") === "lebenslauf-abo") {
       const lebenslaufId = String(sub?.metadata?.lebenslaufId ?? "").trim();
       if (lebenslaufId) {
@@ -121,6 +134,18 @@ export async function POST(request: Request) {
       if (subId) {
         try { await setWetterPaid(subId, modelId); console.info(`[stripe-webhook] wetter-abo bezahlt → freigeschaltet: ${subId}`); }
         catch (e) { console.warn("[stripe-webhook] setWetterPaid fehlgeschlagen", e); }
+      }
+    } else if (kind === "versusforge-abo") {
+      /* DAS ART-MARKETING-ABO (VersusForge, 10.09.2026) — aktiv auch ohne Rückkehr des Browsers.
+         Die Sub-Kennung wird gemerkt, damit Kündigung und Dashboard zurückfinden. */
+      const mandant = String(meta?.mandant ?? "").trim();
+      const subId = String((session as { subscription?: string }).subscription ?? "").trim();
+      if (mandant) {
+        try {
+          const m = await mandantLesen(mandant);
+          if (m) await mandantSpeichern(mandant, { ...m, abo: { aktiv: true, seit: m.abo?.seit ?? new Date().toISOString(), subscription: subId || m.abo?.subscription } });
+          console.info(`[stripe-webhook] versusforge-abo aktiv — ${mandant} (${subId || "ohne subId"})`);
+        } catch (e) { console.warn("[stripe-webhook] versusforge-abo Freischaltung fehlgeschlagen", e); }
       }
     } else if (kind === "lebenslauf-abo") {
       /* DAS BEWERBUNGS-ABO (24.08.2026, „Seite bleibt online" 4,99/Monat) — der Weg, der

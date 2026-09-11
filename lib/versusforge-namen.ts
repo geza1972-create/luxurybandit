@@ -30,8 +30,31 @@ export const GESPERRTE_NAMEN = new Set<string>([
   EIGENER_MANDANT,
   "engine", "themes", "about", "imprint", "privacy", "contact", "admin", "api",
   "stores", "wardrobe", "academy", "joburi", "ci", "media-kit", "sitemap", "robots",
+  /* lakatosbandi.com (10.09.2026): Diese Pfade liegen dort an der Wurzel — ein Künstler namens
+     „journal" oder „login" würde sie verdecken. */
+  "portal", "login", "journal", "terms", "kontakt", "dashboard",
 ]);
 
-/** Erlaubt nur harmlose Kennungen — der Wert landet in einem Pfad. */
+/**
+ * Erlaubt nur harmlose Kennungen — der Wert landet in einem Pfad.
+ *
+ * ── UMLAUTE WERDEN UMGESCHRIEBEN, NICHT GESTRICHEN (Owner 10.09.2026, im Freigabe-Test) ──────
+ *
+ * Aus „Test Freigabe Künstler" wurde `testfreigabeknstler` — das ü fiel einfach weg. Für eine
+ * Kunstplattform mit Namen aus Deutschland und Rumänien ist das die Adresse, die ein Künstler in
+ * seine Anzeige schreibt: Sie darf nicht kaputt aussehen.
+ *
+ * DEUTSCH NACH DEUTSCHER REGEL (ä→ae, ö→oe, ü→ue, ß→ss), ALLES ANDERE OHNE ZEICHEN (ș→s, ț→t,
+ * ă→a, î→i, é→e). Erst zusammengesetzt (NFC), damit ein ü, das als u + Punkte ankommt, auch als
+ * ü erkannt wird.
+ *
+ * BESTEHENDE ADRESSEN BLEIBEN GÜLTIG: Sie bestehen schon nur aus a–z, 0–9 und Bindestrich, und
+ * daran ändert diese Umschrift nichts.
+ */
+const UMSCHRIFT: Record<string, string> = { ä: "ae", ö: "oe", ü: "ue", ß: "ss" };
 export const mandantSauber = (roh: string): string =>
-  String(roh ?? "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40);
+  String(roh ?? "").trim().toLowerCase()
+    .normalize("NFC")
+    .replace(/[äöüß]/g, z => UMSCHRIFT[z] ?? "")
+    .normalize("NFD").replace(/\p{M}/gu, "")
+    .replace(/[^a-z0-9-]/g, "").slice(0, 40);

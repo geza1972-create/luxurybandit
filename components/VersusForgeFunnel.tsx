@@ -136,35 +136,6 @@ type Gespeichert = {
  * VOR DER ERSTEN ANTWORT STEHT SIE NICHT DA: Fünf Nullen sind kein Fortschritt, sondern
  * eine Mängelliste über jemanden, der gerade erst angefangen hat.
  */
-function HebelStand({ stand, jetzt }: { stand: Record<string, number>; jetzt: string }) {
-  const summe = HEBEL.reduce((n, h) => n + (stand[h.schluessel] ?? 0), 0);
-  if (!summe) return null;
-  return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-white/12 bg-white/[0.04] p-4">
-      {HEBEL.map(h => {
-        const wert = Math.max(0, Math.min(100, stand[h.schluessel] ?? 0));
-        const dran = h.schluessel === jetzt;
-        return (
-          <div key={h.schluessel} className="flex items-center gap-3">
-            <span className={`w-[92px] shrink-0 text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/55"}`}>
-              {h.schritt}
-            </span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/12">
-              <span
-                className={`block h-full rounded-full transition-[width] duration-500 ${dran ? "bg-[#f6cf51]" : "bg-white/45"}`}
-                style={{ width: `${wert}%` }}
-              />
-            </span>
-            <span className={`w-[42px] shrink-0 text-right text-[13.5px] font-bold ${dran ? "text-[#f6cf51]" : "text-white/45"}`}>
-              {wert}%
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /**
  * Was der Besucher über der Frage liest — `schritt`, NIE `name`.
  *
@@ -347,11 +318,31 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
      * SITZUNGSSPEICHER, NICHT DAUERSPEICHER: Was er über sein Geschäft erzählt hat, gehört
      * nicht in einen Browser, der es morgen noch hat. Ein Tab, ein Lauf.
      */
+    /**
+     * ── EIN NEUER AUFTRAG STICHT DEN ALTEN LAUF (Owner 10.09.2026: „hier stimmt was nicht,
+     * ich schreibe: ich habe ein Restaurant") ─────────────────────────────────────────────────
+     *
+     * ER HAT AUF DER STARTSEITE „Am un restaurant" GESCHRIEBEN — und landete im Gespräch über
+     * eine Klimaanlagenmontage, das noch im Sitzungsspeicher lag. Der Abholer las `vf_lauf`
+     * zuerst und stieg damit aus, bevor er den frischen Auftrag überhaupt ansah.
+     *
+     * WARUM DAS SCHLIMMER IST ALS ES AUSSIEHT: Wer zurück auf die Startseite geht und etwas
+     * ANDERES eintippt, will offensichtlich neu anfangen. Ihn stattdessen in sein altes
+     * Gespräch zu setzen, ist der Moment, in dem er glaubt, die Seite sei kaputt — und er hat
+     * recht. `vf_lauf` ist für ein NEULADEN da, nicht für einen neuen Auftrag.
+     *
+     * DIE REGEL: Liegt ein frischer Auftrag vor, gilt er. Der alte Lauf wird weggeräumt, damit
+     * er nicht beim nächsten Neuladen wieder auftaucht.
+     */
     let lauf: Gespeichert | null = null;
-    try {
-      const roh2 = sessionStorage.getItem(LAUF);
-      if (roh2) lauf = JSON.parse(roh2) as Gespeichert;
-    } catch { /* kaputter Eintrag — dann eben von vorn */ }
+    if (roh) {
+      try { sessionStorage.removeItem(LAUF); } catch { /**/ }
+    } else {
+      try {
+        const roh2 = sessionStorage.getItem(LAUF);
+        if (roh2) lauf = JSON.parse(roh2) as Gespeichert;
+      } catch { /* kaputter Eintrag — dann eben von vorn */ }
+    }
     if (lauf?.ziel && (lauf.text || lauf.url)) {
       setZiel(lauf.ziel === "verkauf" ? "verkauf" : "leads");
       setText(String(lauf.text ?? ""));
@@ -393,7 +384,26 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
       const erste: Nachricht[] = [{ rolle: "mensch", text: u ? `${t}\nMeine Website: ${u}` : t }];
       setVerlauf(erste);
       setPhase("chat");
-      void chatLauf(erste);
+      /**
+       * ── DER SATZ MUSS MITGEGEBEN WERDEN, NICHT AUS DEM ZUSTAND GELESEN ────────────────────
+       *
+       * DER FEHLER, DER DEN GANZEN CHAT TOT GEMACHT HAT (Owner 10.09.2026, mit Bild der
+       * rumänischen Seite: sein vollständiger Satz, darunter eine deutsche Absage, keine
+       * Antwort). Genauso sein Bild davor: fünf eigene Nachrichten, keine einzige Antwort.
+       *
+       * `setText(t)` eine Zeile höher wirkt erst im NÄCHSTEN Durchlauf. `chatLauf` lief aber
+       * sofort und las `text` aus dem laufenden — also den leeren Anfangswert. Der Server bekam
+       * einen leeren Auftrag, wies ihn zurück („Schreib mir bitte zwei, drei Sätze mehr."), und
+       * das Gespräch war tot, bevor es anfing. Auf dem Bildschirm sah es aus wie ein
+       * Sprachfehler; in Wahrheit war es der erste Zug, der nie stattfand.
+       *
+       * WARUM ES NICHT FRÜHER AUFFIEL: Beim NEULADEN kommt alles aus `vf_lauf`, dort steht der
+       * Zustand schon. Nur der allererste Zug eines neuen Gesprächs war betroffen — genau der,
+       * den jeder Kunde als Ersten sieht.
+       *
+       * DIE REGEL: Was im selben Zug gesetzt UND gebraucht wird, reist als Argument.
+       */
+      void chatLauf(erste, { ziel: z, text: t, url: u });
     } catch { /* kaputter Eintrag — dann fängt er eben vorne an */ }
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { endeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [phase, frage]);
@@ -515,6 +525,36 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
       if (text.trim()) sessionStorage.setItem("vf_zurueck", text.trim());
     } catch { /**/ }
     return `/engine?lang=${lang}`;
+  };
+
+  /**
+   * ── ALLES LÖSCHEN (Owner 10.09.2026: „kann auch nicht alles löschen, ich weiss nicht, was
+   * ich hier machen soll") ───────────────────────────────────────────────────────────────────
+   *
+   * ER SASS IN SEINEM EIGENEN TRICHTER FEST: fünf tote Testnachrichten im Verlauf, eine rote
+   * Absage darunter — und der einzige Weg hinaus war „Zurück", der seinen Satz mitnimmt und
+   * ihn auf der Startseite wieder vorlegt. Wer AUFRÄUMEN will, bekam damit dasselbe zurück.
+   *
+   * DER UNTERSCHIED ZU `heim()` IST GENAU DIESER EINE EINTRAG: Löschen heisst löschen. Alle
+   * drei Sitzungseinträge gehen weg — der Auftrag von der Startseite, der laufende Stand und
+   * der aufgehobene Satz. Danach steht er vor einem leeren Feld, so wie beim ersten Mal.
+   *
+   * NEU LADEN STATT ZUSTÄNDE ZURÜCKSETZEN: Der Trichter hat über zwanzig Zustände. Einer
+   * vergessen, und ein Rest des alten Laufs steht wieder da — genau der Fehler, den er gerade
+   * gemeldet hat. `replace` statt `href` lässt ausserdem keinen Zurück-Wisch in das gelöschte
+   * Gespräch führen.
+   *
+   * DER TAGESDECKEL BLEIBT STEHEN. Er hängt am Gerät, nicht am Lauf; ein Löschknopf, der ihn
+   * mit zurücksetzt, wäre ein offenes Tor ([[kein-token-fuer-abbrecher]]).
+   */
+  const allesLoeschen = () => {
+    try {
+      sessionStorage.removeItem(LAUF);
+      sessionStorage.removeItem("vf_auftrag");
+      sessionStorage.removeItem("vf_zurueck");
+    } catch { /* gesperrter Speicher: dann trägt der Neustart es weg */ }
+    void logFunnelEvent("vf_alles_geloescht", { theme: "versusforge", von: phase });
+    window.location.replace(`/engine?lang=${lang}`);
   };
 
   /* Dieselbe Kennung wie überall im Haus — sie liegt im Browser und identifiziert ein
@@ -640,18 +680,40 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
   const chatSenden = (was: string) => {
     const w = was.trim();
     if (!w || busy) return;
+    /**
+     * ── EINE ABGELEHNTE NACHRICHT KOMMT NICHT IN DEN VERLAUF (Owner 09.09.2026, mit Bild:
+     * „was ist das?") ──────────────────────────────────────────────────────────────────────
+     *
+     * WAS DASTAND: fünf blaue Blasen untereinander — „Hallo", „ähmm", „dasdassdad", „Hallo",
+     * „Hallo" — und keine einzige Antwort. Darunter eine rote Zeile.
+     *
+     * WARUM: Der Server weist zu kurze Nachrichten ab. Der Browser hatte sie aber schon in
+     * den Verlauf gestellt („erst zeigen, dass sie angekommen ist"), und weil keine Antwort
+     * kam, blieb sie dort stehen. Wer dreimal „hallo" tippt, sieht dreimal sich selbst und
+     * niemanden sonst — das sieht kaputt aus, und beim vierten Mal geht er.
+     *
+     * DIE PRÜFUNG GEHÖRT IN DEN BROWSER, wo sie nichts kostet und sofort greift. Der Riegel
+     * auf dem Server bleibt: Der Browser ist die Anzeige, nicht die Wache.
+     *
+     * ACHT ZEICHEN, weil „ja, genau" und „400 im Jahr" durchmüssen — es geht nicht um Länge,
+     * sondern um Tastaturgeklapper.
+     */
+    if (w.length < 8) { setFehler(t(S.chatZuKurz, "")); return; }
+    setFehler("");
     const naechster: Nachricht[] = [...verlauf, { rolle: "mensch", text: w }];
     setVerlauf(naechster);
     void chatLauf(naechster);
   };
 
-  const chatLauf = async (v: Nachricht[]) => {
+  /** `mit` überschreibt den Zustand für genau diesen Zug — Begründung am ersten Aufruf oben. */
+  const chatLauf = async (v: Nachricht[], mit?: { ziel: Ziel; text: string; url: string }) => {
     setFehler(""); setBusy(true); setBusyText(S.denkt);
     try {
       const res = await fetch("/api/versusforge", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schritt: "chat", ziel: ziel || "leads", text, url, seite, sprache: lang,
+          schritt: "chat", ziel: mit?.ziel ?? (ziel || "leads"),
+          text: mit?.text ?? text, url: mit?.url ?? url, seite, sprache: lang,
           verlauf: v, runden: alsRunden(v), device: geraet(),
         }),
       });
@@ -766,9 +828,23 @@ export default function VersusForgeFunnel({ S, lang, auftrag }: {
           schicken={chatSenden}
           planBauen={() => void planJetzt()}
           zurueck={() => { window.location.href = heim(); }}
+          loeschen={allesLoeschen}
           texte={{
             platzhalter: t(S.chatPlatzhalter, "Schreib einfach."),
             senden: t(S.chatSenden, "Senden"),
+            loeschen: t(S.chatLoeschen, "Alles löschen"),
+            loeschenBestaetigen: t(S.chatLoeschenBestaetigen, "Wirklich alles löschen? Noch einmal drücken."),
+            /* Der Fahrplan: fünf Sachen, sichtbar bevor die erste Frage kommt.
+               DIE REIHENFOLGE IST DIE VON `HEBEL` — Begründung an `schritte` im Gespräch. */
+            schritte: [
+              t(S.schrittNutzen, "Nutzen"),
+              t(S.schrittHerkunft, "Herkunft"),
+              t(S.schrittWirkung, "Wirkung"),
+              t(S.schrittBeleg, "Beweis"),
+              t(S.schrittGrenze, "Grenze"),
+            ],
+            fahrplanKopf: t(S.fahrplanKopf, "Was ich von dir brauche"),
+            fahrplanFein: t(S.fahrplanFein, ""),
             planKnopf: t(S.chatPlanKnopf, "Plan jetzt bauen"),
             zurueck: t(S.zurueckWort, "Zurück"),
             denkt: S.denkt,

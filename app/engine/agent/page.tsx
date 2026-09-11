@@ -3,6 +3,8 @@ import AgentChat from "@/components/AgentChat";
 import { agentChatInSprache } from "@/lib/agent-chat-texte";
 import { resolveLang } from "@/lib/lang-server";
 import { isLang, type Lang } from "@/lib/lang";
+import { headers } from "next/headers";
+import { imPortal } from "@/lib/lakatosbandi-adressen";
 
 /**
  * DER AGENT ZUM ANSEHEN (Owner 09.09.2026: „zeig mir in einem anderen Branch, wie so was
@@ -79,6 +81,8 @@ export default async function AgentSeite({ searchParams }: {
    */
   const gewaehlt = isLang(ausAdresse ?? "");
   const S = await agentChatInSprache(lang);
+  /* Auf lakatosbandi.com bleibt der Chat unter /start und trägt den Namen des Portals (Owner 11.09.2026). */
+  const portal = imPortal((await headers()).get("host"));
 
-  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} />;
+  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
 }

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { frageModell, str, KLEIN } from "@/lib/agent-modell";
-import { mandantLesen } from "@/lib/versusforge-mandanten";
+import { mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
+import { istKuenstler } from "@/lib/lakatosbandi-adressen";
 import { leadSpeichern, leadsLesen } from "@/lib/versusforge-lead";
-import { anfragePerPost } from "@/lib/versusforge-anfrage-post";
+import { anfragePerPost, type AnfrageModus } from "@/lib/versusforge-anfrage-post";
+import { REZEPTE, ENGINE_REZEPT } from "@/lib/versusforge-rezepte";
+import { ABO_FRAGE_AB, ABO_SPERRE_AKTIV, aboAktiv, gesperrt } from "@/lib/versusforge-abo";
 import { sprachname } from "@/lib/lang";
 
 export const runtime = "nodejs";
@@ -78,7 +81,9 @@ export async function POST(request: Request) {
      * Der Browser zeigt ohne Pflichtangaben gar kein Formular — aber der Browser ist die
      * Anzeige, nicht die Wache.
      */
-    if (!m.impressumUrl || !m.datenschutzUrl) {
+    /* KÜNSTLER SAMMELN UNTER DEM IMPRESSUM UND DATENSCHUTZ VON LAKATOSBANDI.COM (Owner 11.09.2026) — sie haben keine
+       eigenen Seiten dafür; ohne diese Ausnahme wies die Route jede Anfrage von seiner Seite ab. */
+    if (!istKuenstler(m) && (!m.impressumUrl || !m.datenschutzUrl)) {
       return NextResponse.json({ error: "Dieser Trichter ist noch nicht online." }, { status: 403 });
     }
     const name = str(body.name, 120).trim();
@@ -106,6 +111,9 @@ export async function POST(request: Request) {
        * ihnen ist die freie.
        */
       eigen: !!m.geraet && str(body.device, 80) === m.geraet,
+      /* Aus welcher Anzeige er kam — die Nummer aus `?h=`. Begründung bei `hook` in
+         lib/versusforge-lead.ts. */
+      hook: str(body.hook, 4),
       plan: null,
       runden: [...runden, { frage: "Name", antwort: name }, { frage: "Telefon", antwort: telefon }],
       zeit: new Date().toISOString(),
@@ -127,11 +135,38 @@ export async function POST(request: Request) {
     void (async () => {
       try {
         const alle = await leadsLesen(kennung, 500);
+        /**
+         * ── DAS ART-MARKETING-ABO (Owner 10.09.2026) ─────────────────────────────────────
+         *
+         * Nur im Kunst-Rezept. Der Agent arbeitet IMMER weiter („ganz normal") — gespeichert
+         * ist die Anfrage oben schon. Hier entscheidet sich nur, welche Mail er bekommt:
+         *  · Abo aktiv → „offen"
+         *  · die dritte fremde Anfrage ohne Abo → „frage", und ab jetzt läuft die 14-Tage-Frist
+         *  · nach der Frist ohne Abo → „gesperrt": Mail ja, sehen erst mit Abo
+         * Regeln und Zahlen: lib/versusforge-abo.ts.
+         */
+        let modus: AnfrageModus = "alt";
+        if (REZEPTE[ENGINE_REZEPT].aufnahme) {
+          const fremde = alle.filter(a => !a.eigen).length;
+          if (aboAktiv(m)) modus = "offen";
+          else if (gesperrt(m)) modus = "gesperrt";
+          /* Solange die Sperre aus ist, keine Abo-Frage (Owner 11.09.2026: „die Sperre raus machen"). */
+          else if (ABO_SPERRE_AKTIV && !m.aboFrageAm && fremde >= ABO_FRAGE_AB) {
+            /* Frisch lesen, bevor die Frist gesetzt wird — zwei Anfragen gleichzeitig sollen
+               nicht zwei Fristen schreiben, und ein Abo von eben soll nicht überschrieben werden. */
+            const frisch = await mandantLesen(kennung);
+            if (frisch && !frisch.aboFrageAm && !aboAktiv(frisch)) {
+              await mandantSpeichern(kennung, { ...frisch, aboFrageAm: new Date().toISOString() });
+              modus = "frage";
+            } else modus = "offen";
+          } else modus = "offen";
+        }
         await anfragePerPost({
           an: m.mail, mandant: kennung, name: m.name, offen: alle.length,
           schluessel: m.schluessel, loeschSchluessel: m.loeschSchluessel,
           /* In SEINER Sprache — nicht in der des Kunden, der gerade angefragt hat. */
           sprache: m.sprache,
+          modus,
         });
       } catch (e) {
         console.error("[versusforge-mandant] Benachrichtigung fehlgeschlagen", e);
@@ -184,9 +219,26 @@ export async function POST(request: Request) {
     `· Du schreibst AUSSCHLIESSLICH auf ${sprachname(m.sprache)} — die Frage, die Reaktion und JEDER Vorschlag. Kein Wort aus einer anderen Sprache.`,
     /* DIE REGELN, DIE DEN UNTERSCHIED MACHEN — dieselbe Handschrift wie im Haupttrichter,
        nur an einen Menschen gerichtet, der kein Unternehmer ist. */
+    /**
+     * ── HIER WIRD GESIEZT (09.09.2026, im eigenen Prüflauf gesehen) ───────────────────────
+     *
+     * Über der Frage stand „IHRE ANGABE", und die Frage lautete „In welcher Stadt wohnst
+     * du?". Die Seite siezt, das Modell duzte — auf derselben Fläche, zwei Sätze
+     * auseinander. Für den Kunden sieht das nicht nach Ton aus, sondern nach zwei Absendern.
+     *
+     * DER GRUND FÜR DAS SIEZEN steht in lib/mandant-texte.ts: Hier spricht nicht
+     * VersusForge, hier spricht sein Betrieb mit seinem Kunden. Das Haus duzt — sein Betrieb
+     * nicht.
+     */
+    "· SIEZE IHN. Das ist die Seite eines Betriebs, der mit seinem Kunden spricht — nicht unsere.",
     "· Eine einzige Frage, höchstens 15 Wörter, in SEINER Alltagssprache. Keine Fachbegriffe.",
     "· Sie muss aus seiner letzten Antwort folgen. Eine Frage, die man auch ohne die Antwort hätte stellen können, ist ein Formular.",
+    /* GEFRAGT WIRD NACH DER SACHE, NICHT NACH DER EINSTELLUNG (09.09.2026): Die erste Frage
+       im Prüflauf war „In welcher Stadt wohnst du?" — das ist ein Feld für den
+       Werbeanzeigenmanager, kein Gespräch. Für den Rückruf reicht die Telefonnummer am Ende,
+       und wo jemand wohnt, fragt der Betrieb dann selbst. */
     "· Frage nach seiner Lage, nie nach Name, Adresse, Telefon oder Geburtsdatum — das kommt am Ende von selbst.",
+    "· FRAG NIE NACH ORT, STADT, REGION, ALTER ODER BUDGET. Das sind Angaben für die Anzeige, nicht für dieses Gespräch — und sie kosten die Frage, mit der du etwas über seine SACHE erfahren hättest.",
     "· Keine Diagnose, kein Rat, kein Versprechen. Du fragst, du berätst nicht.",
     "· 'vorschlaege': 3 bis 4 kurze Antworten zum Antippen, höchstens 5 Wörter. Sie decken die wahrscheinlichsten Fälle ab und lassen immer Platz für 'weiss ich nicht'.",
     "· 'reaktion': ein kurzer Satz, der zeigt, dass du die letzte Antwort gelesen hast. Beim ersten Mal leer lassen.",

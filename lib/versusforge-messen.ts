@@ -15,7 +15,7 @@
  * weiterklickt, bricht sonst die eigene Zählung ab — und ausgerechnet die schnellen
  * Abbrecher sind die, die er sehen will.
  */
-export function schrittMessen(mandant: string, stufe: string): void {
+export function schrittMessen(mandant: string, stufe: string, werk?: string): void {
   if (typeof window === "undefined") return;
   try {
     let besucher = "";
@@ -35,7 +35,8 @@ export function schrittMessen(mandant: string, stufe: string): void {
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mandant, besucher, stufe }),
+      /* `werk`: bei „Da, mă interesează această lucrare" — welches Werk ihn interessiert (Owner 11.09.2026). */
+      body: JSON.stringify({ mandant, besucher, stufe, ...(werk !== undefined ? { werk } : {}) }),
     }).catch(() => {});
   } catch { /* nie den Trichter aufhalten */ }
 }
