@@ -184,18 +184,25 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
     ],
   },
   {
-    /* ── PROMOTEN (Owner 10.09.2026: „dann frage ihn, dürfen wir dich jetzt promoten, es kostet dich
-       jetzt nichts, wir promoten dich auf unserem Portal … Du bekommst eine Webseite und einen AI
-       Agenten, der jeden Besucher deiner Webseite anspricht") und das Nein („Willst du alles
-       löschen? … dann schreib, was du willst … ok, dann deine E-Mail bitte"). */
+    /* ── PROMOTEN, OHNE DAS WORT „PROMOTEN" (Owner 11.09.2026: „‚Vrem să te promovăm' e marketing și
+       le este frică" — genau der Satz, mit dem dieser Baustein bis eben anfing, klang wie eine
+       Verkaufsfloskel und hat Künstler abgeschreckt. Owner: „mai degrabă: avem nevoie de artiști ca
+       tine, sau se merită să faci arta vizibilă … la mii de oameni pe zi"). Statt „wir wollen dich
+       promoten" jetzt: WIR BRAUCHEN Künstler wie ihn, und es lohnt sich, seine Kunst sichtbar zu
+       machen — vor tausenden Menschen am Tag. Der Geld-Teil (zwei Gründe + Versprechen) kommt aus dem
+       Baustein „geld" weiter unten und wird hier eingefügt, nicht neu erfunden. */
     schluessel: "promoten",
-    ziel: "Ihm sagen, dass wir ihn promoten wollen — kostenlos — und direkt Künstlername und E-Mail erfahren.",
+    /* „LA MII DE OAMENI PE ZI" WAR NICHT WAHR (Owner 11.09.2026, im selben Atemzug selbst korrigiert:
+       „sau în loc de mii, să facem arta vizibilă la o comunitate de iubitori de artă și colecționari
+       de artă?") — bei ~10–15 Besuchen am Tag eine falsche Zahl. Die Gemeinschaft aus Kunstliebhabern
+       und Sammlern ist wahr, ganz ohne Zahl. */
+    ziel: "Ihm sagen, dass wir Künstler wie ihn brauchen und es sich lohnt, seine Kunst einer Gemeinschaft aus Kunstliebhabern und Sammlern sichtbar zu machen — und direkt Künstlername und E-Mail erfahren. NIE das Wort ‚promovăm'/‚promoten' als Einstieg, NIE eine Besucherzahl.",
     /* ── KEINE JA/NEIN-FRAGE MEHR (Owner 11.09.2026, mit Bild: „und hier bitte nicht noch einmal fragen.
        Hier sagst du: wir würden dich gerne promoten … kostenlos …"). Hier stand „Dürfen wir dich jetzt
        promoten?" mit Ja · Nein — nach „Passt das? Ja" war das die zweite Frage hintereinander. Wer Name und
        E-Mail nennt, hat damit zugestimmt. */
     so: [
-      "Wir würden dich gerne promoten — auf lakatosbandi.com, mit einer eigenen Webseite und einem KI-Agenten, der jeden Besucher deiner Webseite anspricht. Es ist kostenlos. Wir verlangen für deine Präsenz nichts. Du kannst deine Seite jederzeit löschen. Wie heißt du als Künstler, und an welche E-Mail schicken wir dir die weiteren Infos?",
+      "Avem nevoie de artiști ca tine — merită să-ți faci arta vizibilă unei comunități de iubitori de artă și colecționari. Îți facem o pagină proprie pe lakatosbandi.com, cu un agent AI care vorbește cu fiecare vizitator în numele tău. Ne-au convins lucrările tale — de-asta am decis să facem asta gratuit chiar acum. Suntem la început și ne finanțăm din sponsori și crowdfunding; pentru tine, ca unul dintre primii artiști, rămâne gratuit. Poți să-ți ștergi pagina oricând. Cum te semnezi ca artist și la ce e-mail trimitem informațiile?",
     ],
     regeln: [
       /* Owner 10.09.2026: „hier schreiben, es ist kostenlos. Wir verlangen für deine Präsenz nichts." */
