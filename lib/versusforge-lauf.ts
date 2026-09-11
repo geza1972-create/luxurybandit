@@ -1,4 +1,5 @@
 import { supabaseFetch, BUCKET, encodeStoragePath } from "@/lib/try-this-look-store";
+import { compressImage } from "@/lib/image-compress";
 
 /**
  * DAS PROTOKOLL DER AGENTEN-GESPRÄCHE — SEHEN UND MESSEN.
@@ -47,6 +48,37 @@ export function laufKosten(v: { hinein: number; heraus: number }): number {
   return Math.round(((v.hinein / 1e6) * PREIS.hinein + (v.heraus / 1e6) * PREIS.heraus) * 1e6) / 1e6;
 }
 
+/**
+ * ── SEINE BILDER JETZT DOCH SPEICHERN (Owner 11.09.2026: „ich will alles sehen, was sie hochladen,
+ * schon hier" · „ja speichern erst mal, wir löschen sie irgendwann") ────────────────────────────
+ *
+ * KEHRT DIE ENTSCHEIDUNG VOM 09.09.2026 UM: Damals hiess es „auch nicht nach Bildern, die er
+ * eventuell hochladen kann" — bewusst nichts speichern, aus Kosten- und Datenschutzgründen. Jetzt
+ * will der Owner genau das sehen können, solange ein Gespräch noch nicht bis zum Künstlerprofil
+ * geführt hat (danach liegt das Bild ohnehin im Profil). „Wir löschen sie irgendwann" heisst: kein
+ * Löschmechanismus JETZT, nur die Speicherung — Aufräumen ist ein späterer Schritt.
+ *
+ * KOMPRIMIERT, NICHT ROH: dieselbe Funktion wie beim Künstlerprofil (`compressImage`, WebP,
+ * höchstens 1920px) — sonst kostet ein Handyfoto mit 8 MB dasselbe Zehnfache an Speicher.
+ */
+export async function laufFotoSpeichern(gespraech: string, nr: number, i: number, dataUrl: string): Promise<string | null> {
+  try {
+    const [header, base64] = dataUrl.split(",");
+    const rawMime = header?.match(/data:(.*);base64/)?.[1] ?? "image/png";
+    if (!base64) return null;
+    const { buffer, extension, mimeType } = await compressImage(base64, rawMime);
+    const sauber = String(gespraech ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
+    const pfad = `versusforge-lauf-fotos/${sauber}/${String(nr).padStart(3, "0")}-${i}.${extension}`;
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
+      method: "POST",
+      headers: { "Content-Type": mimeType, "x-upsert": "true" },
+      body: new Uint8Array(buffer) as unknown as BodyInit,
+    });
+    if (!res.ok) return null;
+    return pfad;
+  } catch { return null; }
+}
+
 export type LaufZug = {
   /** Das Gespräch, zu dem dieser Zug gehört. */
   gespraech: string;
@@ -72,6 +104,8 @@ export type LaufZug = {
   dauer: number;
   /** Anzahl der Regelzeilen im Auftrag — die Fassung, unter der das hier entstand. */
   fassung: number;
+  /** Die Speicherpfade seiner Bilder in diesem Zug, falls er welche gezeigt hat (Owner 11.09.2026). */
+  fotos?: string[];
 };
 
 const ordner = (gespraech: string) => `versusforge-lauf/${gespraech.replace(/[^a-zA-Z0-9_-]/g, "")}`;

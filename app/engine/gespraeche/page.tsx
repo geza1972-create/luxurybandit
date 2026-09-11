@@ -76,6 +76,17 @@ export default async function GespraecheSeite({ searchParams }: {
                   {z.werkzeuge.length ? ` · ${z.werkzeuge.join(", ")}` : ""}
                 </p>
                 <p className="m-0 mt-2.5 whitespace-pre-wrap rounded-xl bg-[#1d6fd0] px-3.5 py-2.5 text-[15px] font-semibold leading-snug text-white">{z.mensch}</p>
+                {/* SEINE BILDER IN DIESEM ZUG (Owner 11.09.2026: „ich will alles sehen, was sie hochladen, schon
+                    hier") — nur hier, mit demselben Schlüssel wie die Seite selbst, keine öffentliche Adresse. */}
+                {!!z.fotos?.length && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {z.fotos.map((f, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={`/api/versusforge-lauf-foto?p=${encodeURIComponent(f)}&s=${encodeURIComponent(schluessel)}`}
+                        alt="" className="h-28 w-28 rounded-xl border border-[#e4e9ee] object-cover" />
+                    ))}
+                  </div>
+                )}
                 <p className="m-0 mt-2 whitespace-pre-wrap rounded-xl bg-[#f1f4f7] px-3.5 py-2.5 text-[15px] leading-snug">{z.agent}</p>
               </div>
             ))}

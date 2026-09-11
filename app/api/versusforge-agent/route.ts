@@ -38,7 +38,7 @@ import { anmeldeAlarm } from "@/lib/versusforge-anmelde-post";
 import { kuenstlerUrl, kuenstlerListe } from "@/lib/lakatosbandi";
 import { agentDeckel } from "@/lib/versusforge-deckel";
 import { sprachname } from "@/lib/lang";
-import { zugSchreiben, laufKosten, gespraechBeenden, gespraechBeendet } from "@/lib/versusforge-lauf";
+import { zugSchreiben, laufKosten, gespraechBeenden, gespraechBeendet, laufFotoSpeichern } from "@/lib/versusforge-lauf";
 import { keinMensch } from "@/lib/kein-mensch";
 
 /**
@@ -1585,6 +1585,13 @@ export async function POST(request: Request) {
     console.warn("[versusforge-agent] Bild abgelehnt — nicht angesehen, nicht gespeichert:", str(body.gespraech, 60), urteile.filter(u => u.urteil === "verboten").map(u => u.gruende.join("/")).join("; "));
   }
   const erlaubteFotos: string[] = neueFotos.filter((_: string, i: number) => urteile[i]?.urteil !== "verboten");
+  /* SEINE BILDER JETZT SPEICHERN (Owner 11.09.2026: „ich will alles sehen, was sie hochladen, schon hier" —
+     siehe Begründung in lib/versusforge-lauf.ts). Nur erlaubte, nie verbotene. `void`, weil das Protokoll ein
+     Gespräch nie verzögern darf — die Pfade reisen erst mit `zugSchreiben` weiter unten mit. */
+  const fotoPfade = erlaubteFotos.length
+    ? (await Promise.all(erlaubteFotos.map((bild, i) => laufFotoSpeichern(gespraechKennung || "ohne", zugNr, i, bild))))
+      .filter((p): p is string => !!p)
+    : [];
   const neueWerke: WerkBefund[] = [];
   if (rezept.mitBildern && erlaubteFotos.length) {
     const befunde = await Promise.all(erlaubteFotos.map((bild: string) => bildAnsehen({ apiKey, bild })));
@@ -2071,8 +2078,8 @@ export async function POST(request: Request) {
    * Anzeige läuft ([[agenten-schnell-und-billig]]).
    */
   void zugSchreiben({
-    gespraech: str(body.gespraech, 60) || "ohne",
-    nr: verlauf.filter(m => m.role === "user").length,
+    gespraech: gespraechKennung || "ohne",
+    nr: zugNr,
     zeit: new Date().toISOString(),
     sprache,
     geraet: str(body.device, 80),
@@ -2080,6 +2087,8 @@ export async function POST(request: Request) {
        zum zweiten Speicher für alles werden, was jemand geschrieben hat. */
     mensch: letzte.slice(0, 400),
     agent: antwort.slice(0, 400),
+    /* Seine Bilder in genau diesem Zug (Owner 11.09.2026: „ich will alles sehen, was sie hochladen"). */
+    ...(fotoPfade.length ? { fotos: fotoPfade } : {}),
     werkzeuge: r.benutzt,
     hinein: r.verbrauch.hinein,
     heraus: r.verbrauch.heraus,
