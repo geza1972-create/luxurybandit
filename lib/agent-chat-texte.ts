@@ -85,10 +85,11 @@ export const AGENT_CHAT_TEXTE = {
      zum Bezahlen („Du zahlst, wenn unser Agent für dich arbeitet und du ihn behalten willst").
      `{preis}` ist der Abo-Preis aus lib/pricing.ts; die „drei" ist `ABO_FRAGE_AB` in
      lib/versusforge-abo.ts — der Satz sagt, was der Code tut. */
-  /* OHNE GELD-DETAILS (Owner 11.09.2026, mit Bild des rumänischen Grusses: „das mit dem Geld erwähnst
-     du hier nicht. Es ist kostenlos und basta … Du sagst nur: der Agent wird irgendwann
-     kostenpflichtig sein"). Hier standen „nach drei Interessenten", „{preis} im Monat" und „Startup". */
-  grussKostenlos: "Das hier ist kostenlos. Du bekommst:\n· einen Spruch zu deinem Bild, der Käufer anhält\n· deine eigene Seite auf lakatosbandi.com, unserer Plattform für Künstler, mit einem KI-Agenten, der mit deinen Interessenten spricht\n· jede Anfrage mit Namen und Telefonnummer, zum Anrufen\nNur der Agent wird irgendwann kostenpflichtig — und nur, wenn du ihn behalten willst.",
+  /* KOSTENLOS, MIT GRUND UND VERSPRECHEN (Owner 11.09.2026: erst „es ist free jetzt wirklich", dann
+     „das glaubt niemand ohne Grund … wir leben von Sponsoren oder Crowdfunding … für ihn bleibt es so,
+     die ersten Künstler sind free"). Hier standen davor schon „nach drei Interessenten", „{preis} im
+     Monat" und „Startup". */
+  grussKostenlos: "Das hier ist kostenlos — wir finanzieren uns in dieser Aufbauphase über Sponsoren und Crowdfunding, und für dich als einen der ersten Künstler bleibt es so. Du bekommst:\n· einen Spruch zu deinem Bild, der Käufer anhält\n· deine eigene Seite auf lakatosbandi.com, unserer Plattform für Künstler, mit einem KI-Agenten, der mit deinen Interessenten spricht\n· jede Anfrage mit Namen und Telefonnummer, zum Anrufen",
   /**
    * DER DATENSCHUTZSATZ — er trägt ein Versprechen, das ein Mensch einlöst.
    *
@@ -265,8 +266,10 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
   ro: {
     chipsHinweis: "Alege una — sau scrie-o cu cuvintele tale.", textMeiner: "Textul meu", beispielVor: "ex.:",
     profilErgaenzen: "Completează profilul",
-    /* Owner 11.09.2026: „Numai agentul va deveni plătit la un moment dat, dar nu este un Pflicht!" */
-    grussKostenlos: "Aici totul e gratuit. Primești:\n· o frază pentru imaginea ta, care îi face pe cumpărători să se oprească\n· propria ta pagină pe lakatosbandi.com, platforma noastră pentru artiști, cu un agent AI care vorbește cu cei interesați\n· fiecare cerere cu nume și număr de telefon, ca să poți suna\nDoar agentul va deveni la un moment dat cu plată — și doar dacă vrei să-l păstrezi.",
+    /* Owner 11.09.2026: erst „es ist free jetzt wirklich", dann „das glaubt niemand ohne Grund … wir
+       leben von Sponsoren oder Crowdfunding … für ihn bleibt es so, die ersten Künstler sind free" —
+       verschärft gegenüber „Doar agentul va deveni la un moment dat cu plată", die hier stand. */
+    grussKostenlos: "Aici totul e gratuit — în această fază de început ne finanțăm din sponsori și crowdfunding, iar pentru tine, ca unul dintre primii artiști, rămâne așa. Primești:\n· o frază pentru imaginea ta, care îi face pe cumpărători să se oprească\n· propria ta pagină pe lakatosbandi.com, platforma noastră pentru artiști, cu un agent AI care vorbește cu cei interesați\n· fiecare cerere cu nume și număr de telefon, ca să poți suna",
     startVorherLabel: "Cum postează cei mai mulți artiști",
     startVorher: "„Tablou nou disponibil. Ulei pe pânză, 74 × 92 cm.”",
     startNachherLabel: "Fraza care îi face pe oameni să se oprească",

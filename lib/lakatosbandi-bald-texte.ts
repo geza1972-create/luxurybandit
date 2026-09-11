@@ -192,7 +192,10 @@ const EN: BaldTexte = {
   kostenTitel: "What it costs",
   kostenText: [
     "Applying and starting is free: your sentences, your ads, your page and your agent.",
-    "Once three interested buyers have contacted you, we ask whether you want to keep your agent for {preis} a month. Cancel monthly.",
+    /* Owner 11.09.2026: „es ist free jetzt wirklich. wir dürfen nicht von Kosten reden" — die alte Zeile
+       „nach drei Interessenten … {preis} im Monat" stand hier noch, obwohl sie schon am selben Tag
+       zurückgezogen wurde. */
+    "Right now everything is free, with no limit.",
     "Sales happen between you and the buyer. We take no commission.",
   ],
 
@@ -316,7 +319,7 @@ const RO: BaldTexte = {
   kostenTitel: "Cât costă",
   kostenText: [
     "Aplicarea și începutul sunt gratuite: frazele, reclamele, pagina și agentul tău.",
-    "După ce trei cumpărători interesați te-au contactat, te întrebăm dacă vrei să-ți păstrezi agentul pentru {preis} pe lună. Anulezi lunar.",
+    "Acum totul e gratuit, fără limită.",
     "Vânzarea are loc între tine și cumpărător. Nu luăm comision.",
   ],
 
@@ -440,7 +443,7 @@ const DE: BaldTexte = {
   kostenTitel: "Was es kostet",
   kostenText: [
     "Bewerbung und Start kosten nichts: deine Sätze, deine Anzeigen, deine Seite und dein Agent.",
-    "Wenn sich drei Interessenten bei dir gemeldet haben, fragen wir dich, ob du deinen Agenten für {preis} im Monat behalten willst. Monatlich kündbar.",
+    "Im Moment ist alles kostenlos, ohne Limit.",
     "Verkauft wird zwischen dir und dem Käufer. Wir nehmen keine Provision.",
   ],
 

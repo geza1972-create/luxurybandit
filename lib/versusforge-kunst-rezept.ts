@@ -219,14 +219,23 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
   },
   {
     schluessel: "geld",
-    /* ── KOSTENLOS UND BASTA (Owner 11.09.2026: „das mit dem Geld erwähnst du hier nicht. Es ist
-       kostenlos und basta … Du sagst nur: der Agent wird irgendwann kostenpflichtig sein"). Hier
-       standen „Du zahlst, wenn …", „10 € im Monat" und „nach drei Interessenten". */
-    ziel: "Es ist kostenlos — nur der Agent wird irgendwann kostenpflichtig.",
-    so: ["Es ist kostenlos. Nur der Agent wird irgendwann kostenpflichtig."],
+    /* ── KOSTENLOS, MIT EINEM GLAUBWÜRDIGEN GRUND — UND EINEM VERSPRECHEN FÜR IHN (Owner 11.09.2026:
+       „es ist free jetzt wirklich. wir dürfen nicht von Kosten reden" — dann, weil ein nacktes
+       „gratuit" niemand glaubt: „wir müssen sagen, warum … und dass es für ihn so bleibt, dass die
+       ersten Künstler free sind … dass wir von Sponsoren leben werden oder Crowdfunding"). Vorher
+       stand hier „nur der Agent wird irgendwann kostenpflichtig" — das darf nicht mehr fallen. Hier
+       standen davor schon „Du zahlst, wenn …", „10 € im Monat" und „nach drei Interessenten". */
+    /* ZWEI GRÜNDE, NICHT EINER (Owner 11.09.2026, kurz danach: „und eventuell sagen, wir haben uns
+       entschieden, diese Werke — oder ihn — wegen seiner Werkqualität kostenlos zu promoten … in
+       diesem Moment"). Der persönliche Grund (seine Werke haben uns überzeugt) gehört an DIESE Stelle,
+       nicht in den generischen Gruß — dort hat noch niemand seine Bilder gesehen. */
+    ziel: "Es ist kostenlos, mit zwei Gründen (wir wurden von seinen Werken überzeugt, UND wir finanzieren uns in der Aufbauphase über Sponsoren und Crowdfunding) — und dem Versprechen, dass es für ihn als einen der ersten Künstler so bleibt.",
+    so: [
+      "Ne-au convins lucrările tale — de-asta am decis să te promovăm gratuit chiar acum. Suntem la început și ne finanțăm din sponsori și crowdfunding; pentru tine, ca unul dintre primii artiști, rămâne gratuit.",
+    ],
     regeln: [
-      "Sprich von dir aus NIE über Geld: keine Preise, kein Abo, kein ‚nach drei Interessenten', kein ‚Startup'.",
-      "Fragt er ausdrücklich, was es kostet: ‚Deine Präsenz ist kostenlos. Nur der Agent wird irgendwann kostenpflichtig.' — keine Zahl, keine Bedingung.",
+      "Sprich von dir aus NIE über Geld — ausser genau an dieser Stelle, mit genau diesen zwei Gründen und genau diesem Versprechen: kein Abo, kein ‚nach drei Interessenten', kein ‚Startup' ohne Grund, und KEIN Satz über eine künftige Bezahlung.",
+      "Fragt er ausdrücklich, was es kostet: derselbe Satz — seine Werke haben überzeugt, Sponsoren/Crowdfunding in der Aufbauphase, und das Versprechen, dass es für ihn als einen der ersten Künstler kostenlos bleibt. Keine Zahl, keine Bedingung.",
     ],
   },
   {

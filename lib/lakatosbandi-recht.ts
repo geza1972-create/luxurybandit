@@ -107,8 +107,8 @@ const EN: RechtTexte = {
       ] },
       { h: "6. Free start and subscription", p: [
         "Starting is free: your sentences, ads, page and agent.",
-        "Once three interested buyers have contacted an artist, we ask whether the artist wants to keep the agent for {preis} a month. The subscription renews monthly and can be cancelled at any time; cancellation takes effect at the end of the current month. Payment is handled by Stripe.",
-        "Without a subscription, the agent keeps working. For 14 days after our question the artist can still see every new inquiry; after that, new inquiries are announced by email but can only be viewed with the subscription. Inquiries seen before remain visible.",
+        /* Owner 11.09.2026: „es ist free jetzt wirklich. wir dürfen nicht von Kosten reden." */
+        "Right now, all services are free, with no limit. If the agent becomes a paid service in the future, we will inform the artist beforehand; the artist decides whether to keep it.",
       ] },
       { h: "7. Visitors and buyers", p: ["A conversation with an agent is not an offer and not a purchase. Your details are passed to the artist so the artist can contact you."] },
       { h: "8. Acceptable use", p: ["No misuse: no false information, no attempts to overload or break the platform, no use of the agent or our texts to deceive or harm others."] },
@@ -191,8 +191,7 @@ const RO: RechtTexte = {
       ] },
       { h: "6. Început gratuit și abonament", p: [
         "Începutul este gratuit: frazele, reclamele, pagina și agentul tău.",
-        "După ce trei cumpărători interesați au contactat un artist, îl întrebăm dacă vrea să-și păstreze agentul pentru {preis} pe lună. Abonamentul se reînnoiește lunar și poate fi anulat oricând; anularea are efect la sfârșitul lunii în curs. Plata este procesată de Stripe.",
-        "Fără abonament, agentul continuă să lucreze. Timp de 14 zile după întrebarea noastră artistul vede în continuare fiecare cerere nouă; după aceea, cererile noi sunt anunțate prin e-mail, dar pot fi văzute doar cu abonament. Cererile văzute înainte rămân vizibile.",
+        "Acum toate serviciile sunt gratuite, fără limită. Dacă agentul va deveni cu plată în viitor, îl anunțăm pe artist dinainte; artistul decide dacă vrea să-l păstreze.",
       ] },
       { h: "7. Vizitatori și cumpărători", p: ["O conversație cu un agent nu este o ofertă și nici o cumpărare. Datele tale sunt transmise artistului ca să te poată contacta."] },
       { h: "8. Utilizare corectă", p: ["Fără abuz: fără informații false, fără încercări de a supraîncărca sau strica platforma, fără folosirea agentului sau a textelor noastre pentru a înșela sau a face rău altora."] },
@@ -275,8 +274,7 @@ const DE: RechtTexte = {
       ] },
       { h: "6. Kostenloser Start und Abo", p: [
         "Der Start ist kostenlos: deine Sätze, Anzeigen, Seite und dein Agent.",
-        "Wenn sich drei Interessenten bei einem Künstler gemeldet haben, fragen wir, ob er seinen Agenten für {preis} im Monat behalten will. Das Abo verlängert sich monatlich und ist jederzeit kündbar; die Kündigung wirkt zum Ende des laufenden Monats. Die Zahlung wickelt Stripe ab.",
-        "Ohne Abo arbeitet der Agent weiter. 14 Tage nach unserer Frage sieht der Künstler weiterhin jede neue Anfrage; danach werden neue Anfragen per E-Mail angekündigt, sind aber nur mit Abo einsehbar. Bereits gesehene Anfragen bleiben sichtbar.",
+        "Derzeit sind alle Leistungen kostenlos und ohne Limit. Wird der Agent künftig kostenpflichtig, informieren wir den Künstler vorher; er entscheidet selbst, ob er ihn behält.",
       ] },
       { h: "7. Besucher und Käufer", p: ["Ein Gespräch mit einem Agenten ist kein Angebot und kein Kauf. Deine Angaben gehen an den Künstler, damit er dich kontaktieren kann."] },
       { h: "8. Faire Nutzung", p: ["Kein Missbrauch: keine falschen Angaben, keine Versuche, die Plattform zu überlasten oder zu beschädigen, keine Nutzung des Agenten oder unserer Texte, um andere zu täuschen oder ihnen zu schaden."] },
