@@ -788,8 +788,19 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
           {/* WELCHES VERSUSFORGE (Owner 10.09.2026: „hier oben muss noch stehen, welcher
               VersusForge das ist — for Art"). Fest, nicht übersetzt: Es gehört zum Namen. */}
           {marke === "lakatosbandi" ? (
-            /* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge"). */
-            <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
+            /* BEIDE ZUSAMMEN, NICHT AN DIE ZWEI ENDEN DER ZEILE (Owner 11.09.2026: „muss an dem Logo hängen" —
+               zwei direkte Kinder des äusseren `justify-between` wären an die gegenüberliegenden Ränder gerutscht,
+               statt nebeneinander zu stehen). Ein eigener Rahmen mit `gap`, EIN Kind des Kopfs. */
+            <span className="flex items-baseline gap-4">
+              {/* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge"). */}
+              <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
+              {/* DER SATZ NEBEN DEM LOGO (Owner 11.09.2026: „neben dem Logo rechts, groß dünn" · „oder in
+                  Serifenschrift" · „oder den coolen Spruch von Burnett") — Leo Burnett, aus dem Marketing-Pool
+                  (`scratchpad/zitate/paket-11-marketing.json`), gross, leicht, in der Serifenschrift der Überschriften.
+                  Auf dem Handy ausgeblendet, sonst sprengt es wieder den Kopf (Owner 11.09.2026, siehe
+                  `components/PortalKopf.tsx`). */}
+              <span className="hidden font-serif text-[19px] font-light leading-none text-[#111] sm:block">If you don&rsquo;t get noticed, you might as well be invisible.</span>
+            </span>
           ) : (
             <span className="flex flex-col gap-1">
               <Wortmarke className="text-[21px] font-black leading-none tracking-[-0.02em]" akzent="#111" />
