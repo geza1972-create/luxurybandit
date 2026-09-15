@@ -27,7 +27,7 @@ export default async function PortalKuenstlerLoeschen({ params, searchParams }: 
   const k = String(sp.k ?? "");
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
       <main className="mx-auto w-full max-w-[560px] px-5 pb-24 pt-14">
         {m && istKuenstler(m) && k

@@ -48,21 +48,58 @@ export const MAIL = {
  * DER FUSS FEHLT NIE. Er steht in der Hülle und nicht in den einzelnen Mails, damit ihn
  * niemand beim nächsten Umbau vergisst.
  */
-export function mailHuelle(inhalt: string, loeschLink?: string): string {
+/**
+ * ── DER FUSS SPRICHT JETZT SEINE SPRACHE (Owner 12.09.2026, mit Bild einer rumänischen Mail, in
+ * der die letzte Zeile deutsch war) ─────────────────────────────────────────────────────────
+ *
+ * Hier standen zwei deutsche Sätze fest im Code. Jede Mail trug sie, egal in welcher Sprache der
+ * Rest geschrieben war — der letzte Eindruck jeder Mail an einen rumänischen Künstler war ein
+ * deutscher Satz, den er nicht liest.
+ *
+ * SIE KOMMEN JETZT VON AUSSEN (`fuss`), aus denselben übersetzten Texten wie der Rest der Mail.
+ * Ohne Angabe bleibt es beim deutschen Wortlaut: Eine Mail ohne Fuss wäre schlimmer als eine mit
+ * dem falschen — der Ausgang muss immer dastehen.
+ */
+/**
+ * ── WESSEN NAME OBEN STEHT (Owner 13.09.2026: „die E-Mails sollen alle von hier kommen") ──────
+ *
+ * Der Kopf stand fest auf „VersusForge · MARKETING ENGINE" — in JEDER Mail. Seit der Absender
+ * `service@lakatosbandi.com` ist, machte die Post also unter fremdem Namen auf.
+ *
+ * BEI FOLLOWERN IST DAS NICHT NUR SCHIEF, SONDERN VERWIRREND: Ein Käufer hat einem Künstler auf
+ * lakatosbandi.com gefolgt. „MARKETING ENGINE" sagt ihm nichts — es sieht aus wie Werbung von
+ * einer Firma, mit der er nie zu tun hatte, und genau das drückt man weg.
+ *
+ * VersusForge bleibt der Standard: Die Mails an Betriebe (Plan, Anfragen, Trichter) laufen
+ * weiterhin unter dieser Marke, und die soll sich hier nicht mitändern.
+ */
+export type MailMarke = "versusforge" | "lakatosbandi";
+
+export function mailHuelle(
+  inhalt: string,
+  loeschLink?: string,
+  fuss?: { grund: string; loeschen: string },
+  marke: MailMarke = "versusforge",
+): string {
+  const fussGrund = fuss?.grund?.trim() || "Du bekommst diese Mail, weil deine Seite bei uns läuft.";
+  const fussLoeschen = fuss?.loeschen?.trim() || "Keine Mails mehr — Seite und Anfragen löschen.";
+  const kopf = marke === "lakatosbandi"
+    ? `<tr><td style="padding:26px 26px 0;font-family:${MAIL.schrift};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${MAIL.text}">lakatosbandi.com</td></tr>`
+      /* Keine zweite Zeile: „MARKETING ENGINE" ist die Sprache des Werkzeugs, nicht die des Portals. */
+    : `<tr><td style="padding:26px 26px 0;font-family:${MAIL.schrift};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${MAIL.text}">`
+      + `Versus<span style="color:${MAIL.akzent}">Forge.</span></td></tr>`
+      + `<tr><td style="padding:8px 26px 0;font-family:${MAIL.schrift};font-size:10px;font-weight:800;letter-spacing:3px;color:${MAIL.fein}">MARKETING ENGINE</td></tr>`;
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${MAIL.grund}" style="background:${MAIL.grund};margin:0;padding:24px 0">`
     + `<tr><td align="center" style="padding:0 12px">`
     + `<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" bgcolor="${MAIL.karte}" style="width:560px;max-width:100%;background:${MAIL.karte};border:1px solid ${MAIL.linie};border-radius:16px">`
-    + `<tr><td style="padding:26px 26px 0;font-family:${MAIL.schrift};font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${MAIL.text}">`
-    + `Versus<span style="color:${MAIL.akzent}">Forge.</span>`
-    + `</td></tr>`
-    + `<tr><td style="padding:8px 26px 0;font-family:${MAIL.schrift};font-size:10px;font-weight:800;letter-spacing:3px;color:${MAIL.fein}">MARKETING ENGINE</td></tr>`
+    + kopf
     + inhalt
     + (loeschLink
         ? `<tr><td style="padding:22px 26px 0"><div style="border-top:1px solid ${MAIL.linie}"></div></td></tr>`
           + `<tr><td style="padding:14px 26px 0;font-family:${MAIL.schrift};font-size:14px;line-height:1.55;color:${MAIL.fein}">`
-          + `Du bekommst diese Mail, weil dein Trichter läuft. `
-          + `<a href="${loeschLink}" style="color:${MAIL.fein}">Keine Mails mehr — Trichter und Anfragen löschen.</a>`
+          + `${fussGrund} `
+          + `<a href="${loeschLink}" style="color:${MAIL.fein}">${fussLoeschen}</a>`
           + `</td></tr>`
         : "")
     + `<tr><td style="padding:0 26px 26px"></td></tr>`

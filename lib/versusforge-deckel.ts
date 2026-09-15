@@ -112,6 +112,32 @@ export const VF_PRO_TAG = 200;
  * jemand für den Trichter noch hat — zwei Produkte, zwei Konten.
  */
 export const VF_AGENT_PRO_GERAET = 60;
+
+/**
+ * ── ZWEI FREIE ANALYSEN JE GERÄT (Owner 14.09.2026: „sie haben 2 Versuche frei auf dem Gerät
+ * jetzt") ───────────────────────────────────────────────────────────────────────────────────
+ *
+ * EIN EIGENER ZÄHLER, nicht `VF_AGENT_PRO_GERAET`. Jener Deckel gilt für VIER Wege zugleich
+ * (`portal-vorschau`, `versusforge-agent`, `versusforge`, `portal-anlegen`); auf 2 gesetzt wäre
+ * der ganze Agenten-Chat nach zwei Nachrichten tot.
+ *
+ * Die Analyse ist der teuerste Einzelaufruf im Haus (gpt-5 auf ein Bild). Zwei davon verschenken
+ * wir; danach ist es Premium.
+ */
+export const VF_ANALYSE_PRO_GERAET = 2;
+
+/**
+ * ── WER AUS DER ANZEIGE KOMMT, HAT MEHR FREI (Owner 14.09.2026: „B") ────────────────────────
+ *
+ * FÜR IHN IST BEZAHLT WORDEN. Er hat im Sofortformular seine Adresse gegeben, wir haben seinen
+ * Klick bei Meta gekauft und ihm eine Mail geschickt. Ihn nach zwei Bildern vor dieselbe Wand
+ * zu stellen wie einen beliebigen Vorbeikommenden hiesse, genau den wegzuschicken, für den das
+ * Geld ausgegeben wurde.
+ *
+ * FÜNF, NICHT UNBEGRENZT: Es bleibt eine Missbrauchsgrenze. Wer den Link weitergibt, soll damit
+ * keine Schleuse öffnen — und der teuerste Aufruf im Haus (gpt-5 auf ein Bild) hängt daran.
+ */
+export const VF_ANALYSE_MIT_LEAD = 5;
 export const VF_AGENT_PRO_TAG = 600;
 
 type Zaehler = { tag: string; anzahl: number };
@@ -172,6 +198,29 @@ export async function agentDeckel(geraet: string): Promise<DeckelStand> {
     geraet ? schreiben(`agent-geraet-${geraet}`, proGeraet + 1) : Promise.resolve(),
     schreiben("agent-gesamt", proTag + 1),
   ]);
+  return { erlaubt: true };
+}
+
+/**
+ * Der Deckel der BILDANALYSE — zwei je Gerät und Tag (Owner 14.09.2026).
+ *
+ * Eigener Schlüssel (`analyse-geraet-…`), damit er sich mit keinem anderen Zähler vermischt.
+ * Auf der Werkbank gilt er nicht: Sonst kann der Owner sein eigenes Produkt nach zwei Läufen
+ * nicht mehr abnehmen — derselbe Fehler wie am 08.09.2026, siehe `deckelPruefen`.
+ */
+export async function analyseDeckel(geraet: string, grenze = VF_ANALYSE_PRO_GERAET): Promise<DeckelStand> {
+  if (process.env.NODE_ENV !== "production") return { erlaubt: true };
+  if (!geraet) return { erlaubt: true };
+
+  /* DERSELBE ZÄHLER, ANDERE GRENZE: Wer über den Mail-Link kommt, bekommt `VF_ANALYSE_MIT_LEAD`
+     statt zwei. Ein eigener Zähler wäre falsch — sonst hätte derselbe Mensch zwei Konten, je
+     nachdem, über welchen Weg er gerade hereinkommt. */
+  const verbraucht = await lesen(`analyse-geraet-${geraet}`);
+  if (verbraucht >= grenze) {
+    console.warn("[versusforge] Analyse-Deckel erreicht:", geraet, verbraucht);
+    return { erlaubt: false, grund: "tag" };
+  }
+  await schreiben(`analyse-geraet-${geraet}`, verbraucht + 1);
   return { erlaubt: true };
 }
 

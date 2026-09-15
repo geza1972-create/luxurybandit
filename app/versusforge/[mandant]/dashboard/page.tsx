@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { aufVersusforge, istKuenstler, kuenstlerDashboardUrl, kuenstlerUrl } from "@/lib/lakatosbandi";
 import Link from "next/link";
-import { LayoutDashboard, Settings, Phone, Mail, ChevronRight, Lock, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, Settings, Phone, Mail, ChevronRight, Lock, Image as ImageIcon, Pencil } from "lucide-react";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { leadsLesen, type LeadEintrag } from "@/lib/versusforge-lead";
 import { trichterZaehlen, type Trichterzahl } from "@/lib/versusforge-schritt";
@@ -104,7 +104,9 @@ export default async function MandantDashboard({ params, searchParams }: {
   const einer = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] ?? "" : v ?? "");
   const k = einer(sp.k);
   const gewuenscht = einer(sp.ansicht);
-  const ansicht: "uebersicht" | "hooks" | "einstellungen" =
+  /* `let`, weil die Fläche „hooks" für Künstler gleich wieder zurückgenommen wird — das steht
+     erst weiter unten, denn dafür muss der Mandant geladen sein. */
+  let ansicht: "uebersicht" | "hooks" | "einstellungen" =
     gewuenscht === "einstellungen" ? "einstellungen" : gewuenscht === "hooks" ? "hooks" : "uebersicht";
 
   const m = await mandantLesen(mandant);
@@ -118,7 +120,12 @@ export default async function MandantDashboard({ params, searchParams }: {
     return (
       <main className="lb-mandant lb-dashboard grid min-h-[100dvh] place-items-center bg-[#f5f7f9] px-5 text-[#14181c]">
         <div className={`${KARTE} w-full max-w-[440px] p-7`}>
-          <Wortmarke className="text-[19px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />
+          {/* Auf lakatosbandi.com steht der Portalname, nicht der des Werkzeugs (Owner
+              13.09.2026). Ohne gültigen Mandanten bleibt es bei VersusForge — wir wissen dann
+              nicht, wessen Zugang gemeint war. */}
+          {m && istKuenstler(m)
+            ? <span className="text-[19px] font-black leading-none tracking-[-0.02em]">lakatosbandi.com</span>
+            : <Wortmarke className="text-[19px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />}
           <h1 className="mt-6 text-[24px] font-extrabold leading-[1.2] tracking-[-0.02em]">
             Dieser Zugang stimmt nicht.
           </h1>
@@ -136,6 +143,11 @@ export default async function MandantDashboard({ params, searchParams }: {
   if (istKuenstler(m) && aufVersusforge((await headers()).get("host"))) {
     redirect(kuenstlerDashboardUrl(mandant, k));
   }
+
+  /* KEINE HOOK-FLÄCHE FÜR KÜNSTLER (Owner 12.09.2026: „hooks raus, brauchen wir nicht"). Den
+     Reiter blendet die Navigation aus; wer die Adresse `?ansicht=hooks` noch aus einem Lesezeichen
+     hat, landet auf der Übersicht statt vor einem Fach, das es für ihn nicht mehr gibt. */
+  if (istKuenstler(m) && ansicht === "hooks") ansicht = "uebersicht";
 
   const bereit = !!m.impressumUrl && !!m.datenschutzUrl;
   /**
@@ -217,7 +229,13 @@ export default async function MandantDashboard({ params, searchParams }: {
       {/* ── KOPFLEISTE: WER, WAS, IN WELCHEM ZUSTAND ── */}
       <header className="sticky top-0 z-20 border-b border-[#e4e9ee] bg-white/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[1080px] flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
-          <Wortmarke className="text-[19px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />
+          {/* ── DER NAME DES PORTALS, NICHT DES WERKZEUGS (Owner 13.09.2026: „auf dem Dashboard
+              steht noch VersusForge. Bitte in lakatosbandi.com ändern") ─────────────────────
+              Die Komponente `Wortmarke` trägt „VersusForge" fest und gilt überall gleich — sie
+              bleibt für die Betriebe. Hier entscheidet der Mandant, welcher Name oben steht. */}
+          {istKuenstler(m)
+            ? <span className="text-[19px] font-black leading-none tracking-[-0.02em]">lakatosbandi.com</span>
+            : <Wortmarke className="text-[19px] font-black leading-none tracking-[-0.02em]" akzent="#1d6fd0" />}
           <span aria-hidden="true" className="hidden text-[#d5dce2] md:inline">|</span>
           <span className="truncate text-[15.5px] font-bold tracking-[-0.01em]">{m.name}</span>
           {/**
@@ -226,13 +244,29 @@ export default async function MandantDashboard({ params, searchParams }: {
             * Anfragen an? Umrandung statt Füllung — ein gefüllter Chip sähe aus wie ein
             * Knopf (CI-Regel).
             */}
-          <span className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1 text-[13.5px] font-black ${
-            bereit
-              ? "border-[#1a7f4b]/35 bg-[#eefaf1] text-[#1a7f4b]"
-              : "border-[#c02626]/35 bg-[#fdf2f2] text-[#c02626]"}`}>
-            <span aria-hidden="true" className={`h-2 w-2 rounded-full ${bereit ? "bg-[#1a7f4b]" : "bg-[#c02626]"}`} />
-            {bereit ? T.laeuft : T.ausgeschaltet}
-          </span>
+          {/**
+            * ── „ONLINE" HEISST FÜR KÜNSTLER: FREIGEGEBEN (Owner 13.09.2026: „hier steht «Încă nu
+            * este online». Raus." · „es ist online") ────────────────────────────────────────────
+            *
+            * `bereit` prüft Impressum und Datenschutz. Ein Künstler hat beides nie — das Portal
+            * stellt die Rechtstexte. Der Chip stand deshalb dauerhaft auf Rot und log: Gerrys
+            * Seite ist freigegeben und öffentlich erreichbar.
+            *
+            * Für ihn zählt `freigabe`; für einen Betrieb bleibt es bei `bereit`.
+            */}
+          {(() => {
+            const online = istKuenstler(m) ? m.freigabe === "frei" : bereit;
+            const wort = online ? T.laeuft : istKuenstler(m) ? T.wartetFreigabe : T.ausgeschaltet;
+            return (
+              <span className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1 text-[13.5px] font-black ${
+                online
+                  ? "border-[#1a7f4b]/35 bg-[#eefaf1] text-[#1a7f4b]"
+                  : "border-[#c02626]/35 bg-[#fdf2f2] text-[#c02626]"}`}>
+                <span aria-hidden="true" className={`h-2 w-2 rounded-full ${online ? "bg-[#1a7f4b]" : "bg-[#c02626]"}`} />
+                {wort}
+              </span>
+            );
+          })()}
         </div>
       </header>
 
@@ -249,7 +283,9 @@ export default async function MandantDashboard({ params, searchParams }: {
         */}
       <div className="mx-auto grid w-full max-w-[1080px] gap-6 px-5 py-6 lg:grid-cols-[220px_1fr] lg:py-8">
         {/* ── NAVIGATION: links am Rechner, als Reihe am Handy ── */}
-        <nav className="flex gap-2 overflow-x-auto lg:sticky lg:top-[76px] lg:h-fit lg:flex-col lg:overflow-visible lb-wisch">
+        {/* Der Abstand am Handy kleiner: Nach dem Verkleinern der Knöpfe blieb genau 1 px übrig
+            (GEMESSEN: 336 von 335) — das hält kein längeres Wort und keine andere Sprache aus. */}
+        <nav className="flex gap-1.5 overflow-x-auto sm:gap-2 lg:sticky lg:top-[76px] lg:h-fit lg:flex-col lg:overflow-visible lb-wisch">
           {/* „ÜBERSICHT", NICHT „ANFRAGEN" (Owner 09.09.2026: „der Tab heisst doch nicht
               Anfragen, das sind doch alle"). Hier stehen Kennzahlen, die Abbruch-Leiter UND
               die Liste — der Reiter trug den Namen seines untersten Drittels. Die Zahl
@@ -258,21 +294,107 @@ export default async function MandantDashboard({ params, searchParams }: {
             wort={T.uebersicht} zahl={anfragen.length} punkt={neueAnfragen + neueBesucher > 0} />
           {/* HOOKS (Owner 09.09.2026: „ich brauche noch einen Punkt für Hooks, dort sehe ich
               meine Bilder, dort kann ich weitere generieren"). Zwischen Übersicht und
-              Einstellungen: Es ist Arbeit am Produkt, keine Verwaltung. */}
-          <Reiter href={mitK("hooks")} aktiv={ansicht === "hooks"} icon={<ImageIcon className="h-[18px] w-[18px]" />}
-            wort={T.hooks} zahl={bilder} />
+              Einstellungen: Es ist Arbeit am Produkt, keine Verwaltung.
+
+              NICHT FÜR KÜNSTLER (Owner 12.09.2026: „hooks raus, brauchen wir nicht"). Dort ist
+              es aus einer anderen Zeit: Sätze für ANZEIGEN, mit eigenem Standardbild und „11 von
+              5". Ein Künstler schreibt seine Sätze heute auf seiner Seite, unter dem Werk, zu dem
+              sie gehören — das Fach daneben führte nur in die Irre. Für Firmenkunden bleibt es. */}
+          {!istKuenstler(m) && (
+            <Reiter href={mitK("hooks")} aktiv={ansicht === "hooks"} icon={<ImageIcon className="h-[18px] w-[18px]" />}
+              wort={T.hooks} zahl={bilder} />
+          )}
+          {/* Der rote Punkt mahnt zu Impressum und Datenschutz — beim Künstler zu etwas, das er
+              gar nicht eintragen kann (Owner 13.09.2026). */}
           <Reiter href={mitK("einstellungen")} aktiv={ansicht === "einstellungen"} icon={<Settings className="h-[18px] w-[18px]" />}
-            wort={T.einstellungen} warnung={!bereit} />
+            wort={T.einstellungen} warnung={!kunst && !bereit} />
           {/* HIER STANDEN „Dein Trichter" UND „Deine Anzeige" ALS REITER (Owner 09.09.2026:
               „das ist doch Unsinn, ein extra Tab für die Weiterleitung").
               Er hat recht: Ein Reiter wechselt die Fläche, ein Link führt weg — beide sahen
               gleich aus und taten Verschiedenes. Die Adressen stehen jetzt dort, wo sie
               hingehören: unter Einstellungen, mit Kopieren-Knopf. */}
+
+          {/* ── „SEITE BEARBEITEN" (Owner 12.09.2026: „dann öffnet sich das, hier muss einen
+              Menüpunkt editează pagina") ────────────────────────────────────────────────────
+              Vom Dashboard kam er bisher nirgends zu seinen Bildern, Sätzen und Preisen — der
+              Weg dorthin stand nur in der Mail. Jetzt steht er hier.
+
+              UND ER SIEHT ANDERS AUS ALS DIE DREI DARÜBER, genau nach der Regel im Hinweis
+              oben: Er wechselt nicht die Fläche, er führt weg. Deshalb Rahmen statt Füllung
+              und ein Pfeil am Ende. Nur für Künstler — ein Firmenkunde hat keine solche Seite. */}
+          {istKuenstler(m) && (
+            <a href={`${kuenstlerUrl(mandant)}?k=${encodeURIComponent(k)}`} aria-label={T.seiteBearbeiten}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl border-[1.5px] border-[#dfe4e9] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#14181c] no-underline transition hover:border-[#1d6fd0] hover:text-[#1d6fd0] sm:gap-2.5 sm:px-3.5 sm:text-[15px] lg:mt-2 lg:w-full">
+              <Pencil className="h-[18px] w-[18px]" />
+              {/* ── AM HANDY NUR DAS ZEICHEN (Owner 13.09.2026: „Schrift kleiner oder Icons raus")
+                  GEMESSEN bei 375 px: Rumänisch passte nach dem Verkleinern exakt (335 von 335),
+                  DEUTSCH lief um 52 px über — „Einstellungen" und „Seite bearbeiten" sind länger
+                  als „Setări" und „Editează pagina". Noch kleinere Schrift wäre unter der Grenze
+                  des Lesbaren. Also fällt hier das Wort weg, nicht das Zeichen: Dieser Knopf ist
+                  kein Reiter, er führt weg — der Stift sagt das auch allein. Ab `sm` steht der
+                  Text wieder da. `aria-label` am Link benennt ihn für Hilfstechnik. */}
+              <span className="hidden whitespace-nowrap sm:inline">{T.seiteBearbeiten}</span>
+              <ChevronRight className="ml-auto hidden h-4 w-4 opacity-60 lg:block" />
+            </a>
+          )}
         </nav>
 
         <main className="min-w-0">
-          {/* ── DER RIEGEL: er steht über allem, solange der Trichter aus ist ── */}
-          {!bereit && ansicht === "uebersicht" && (
+          {/**
+            * ── FÜR KÜNSTLER: KEIN RIEGEL, SONDERN EIN HINWEIS (Owner 13.09.2026: „Meldung auf
+            * Dashboard «Pagina ta nu acceptă solicitări» raus") ───────────────────────────────
+            *
+            * `bereit` prüft Impressum und Datenschutz — Pflichten eines BETRIEBS auf seiner
+            * eigenen Seite. Beim Künstler stellt das Portal die Rechtstexte, seine Felder bleiben
+            * leer, und der rote Riegel stand dauerhaft da mit einer Aussage, die nicht stimmt.
+            *
+            * Stattdessen: der Hinweis auf das, was wir für ihn erzeugt haben — und NUR dann, wenn
+            * wirklich etwas fehlt. Hat er Text und Bild selbst gesetzt, steht hier nichts.
+            */}
+          {kunst && ansicht === "uebersicht" && (
+            <div className={`${KARTE} mb-5 border-l-4 border-l-[#1d6fd0] p-5`}>
+              {/* FEHLT ETWAS, sagen wir was wir ergänzt haben. IST ALLES DA, bleibt nur die
+                  Einladung — der Weg zum Bearbeiten soll nicht verschwinden, nur die Erklärung
+                  (Owner 13.09.2026). */}
+              {!String(m.ueberMich ?? "").trim() || !m.profilBild ? (
+                <>
+                  <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">{T.autoTitel}</h2>
+                  <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{T.autoText}</p>
+                </>
+              ) : (
+                <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">{T.editTitel}</h2>
+              )}
+              {/**
+                * ── ZWEI WEGE AUS DEMSELBEN KASTEN (Owner 13.09.2026: „hier noch Vezi Pagina
+                * online" · „Editeza schwarz") ────────────────────────────────────────────────
+                *
+                * Bearbeiten ist die Hauptsache und deshalb gefüllt — SCHWARZ, nicht blau: Der
+                * aktive Reiter daneben ist bereits blau, zwei blaue Flächen übereinander lesen
+                * sich als eine zusammengehörige Sache.
+                *
+                * Ansehen steht daneben als Umriss. Es ist der zweite Weg, nicht der halbe: Wer
+                * wissen will, wie seine Seite für Käufer aussieht, kam bisher nur über einen
+                * Umweg dorthin.
+                */}
+              {/* AM HANDY ÜBEREINANDER UND VOLL BREIT: GEMESSEN brauchen die beiden zusammen
+                  371 px, der Kasten hat 335 — sie brachen um und standen dann linksbündig je
+                  allein in einer Zeile, was wie ein Versehen aussieht. Gestapelt ist am Telefon
+                  richtig; dann sollen sie die Breite auch nutzen. Ab `sm` nebeneinander. */}
+              <div className="mt-4 flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
+                <a href={`${kuenstlerUrl(mandant)}?k=${encodeURIComponent(k)}`}
+                  className="rounded-xl bg-[#111] px-6 py-3 text-center text-[15.5px] font-extrabold text-white no-underline transition hover:bg-[#333] active:scale-[.99]">
+                  {T.autoKnopf}
+                </a>
+                <a href={kuenstlerUrl(mandant)} target="_blank" rel="noopener"
+                  className="rounded-xl border-[1.5px] border-[#dfe4e9] bg-white px-5 py-3 text-center text-[15.5px] font-bold text-[#14181c] no-underline transition hover:border-[#111] active:scale-[.99]">
+                  {T.seiteAnsehen}
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ── DER RIEGEL: er steht über allem, solange der Trichter aus ist — nur für Betriebe ── */}
+          {!kunst && !bereit && ansicht === "uebersicht" && (
             <div className={`${KARTE} mb-5 border-l-4 border-l-[#c02626] p-5`}>
               <h2 className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">{T.riegelTitel}</h2>
               <p className="mt-2 text-[15px] leading-[1.5] text-[#5b666f]">{T.riegelText}</p>
@@ -355,13 +477,27 @@ export default async function MandantDashboard({ params, searchParams }: {
                     */}
                   {/* ── DAS ABO-SCHILD (Kunst, 10.09.2026): erst nach der Frage bei 3 Interessenten.
                         Vor der Sperre: Frage + verbleibende Tage. Danach: wie viele Antworten warten. */}
-                  {kunst && !bezahlt && !!m.aboFrageAm && (
+                  {/**
+                    * ── DER KAUFWEG STEHT IMMER DA (Owner 14.09.2026: „kann man schon Upgrade
+                    * machen?") ──────────────────────────────────────────────────────────────────
+                    *
+                    * HIER STAND `&& !!m.aboFrageAm` — der Kasten erschien also erst, wenn die
+                    * alte Anfragen-Sperre den Künstler nach dem Abo gefragt hatte. Diese Sperre
+                    * ist seit dem 11.09.2026 aus („ich will, dass Verkehr da ist"), `aboFrageAm`
+                    * wird seither nie gesetzt: Gemessen am 14.09.2026 trug es KEINER von neun
+                    * Künstlern. Niemand konnte kaufen, auch wer wollte.
+                    *
+                    * Jetzt sieht ihn jeder ohne Abo. Wer zahlt, sieht stattdessen `aboAktivZeile`.
+                    */}
+                  {kunst && !bezahlt && (
                   <div className="mt-4 rounded-xl bg-[#eaf2fc] p-5">
                     <div className="flex items-start gap-3">
                       <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#1d6fd0]" aria-hidden />
                       <div className="min-w-0">
                         <p className="m-0 text-[17px] font-extrabold tracking-[-0.01em]">
-                          {kunstZu === 0 ? T.aboFrage
+                          {/* `aboFrage` nur, wenn die Frist wirklich läuft — sonst behauptete sie
+                              Interessenten, die es nicht gibt (siehe `aboAngebot`). */}
+                          {kunstZu === 0 ? (m.aboFrageAm ? T.aboFrage : T.aboAngebot)
                             : kunstZu === 1 ? T.aboGesperrtEine
                               : T.aboGesperrt.replace("{n}", String(kunstZu))}
                         </p>
@@ -371,7 +507,8 @@ export default async function MandantDashboard({ params, searchParams }: {
                         <MandantKaufen
                           mandant={mandant}
                           abo
-                          wort={T.aboKnopf.replace("{preis}", eur(VERSUSFORGE_ABO_CENTS, m.sprache))}
+                          /* „Agent behalten" nur, wenn er ihn wirklich zu verlieren droht. */
+                          wort={(m.aboFrageAm ? T.aboKnopf : T.aboKnopfAngebot).replace("{preis}", eur(VERSUSFORGE_ABO_CENTS, m.sprache))}
                           klasse="mt-3.5 inline-block rounded-xl bg-[#1d6fd0] px-6 py-3.5 text-[16px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60"
                         />
                       </div>
@@ -532,7 +669,14 @@ function Reiter({ href, aktiv, icon, wort, zahl, warnung = false, punkt = false 
 }) {
   return (
     <Link href={href}
-      className={`flex shrink-0 items-center gap-2.5 rounded-xl border-[1.5px] px-3.5 py-2.5 text-[15px] font-bold transition lg:w-full ${
+      /* ── AM HANDY ENGER (Owner 13.09.2026: „Buttons müssen auf mobile passen. Schrift kleiner
+         oder Icons raus") ──────────────────────────────────────────────────────────────────────
+         GEMESSEN bei 375 px: drei Knöpfe brauchten 397 px, sichtbar waren 335 — der dritte endete
+         mitten im Wort. Die Leiste ist zwar wischbar, aber das sieht man nicht; es liest sich als
+         Fehler. Kleinere Schrift und engere Abstände nur bis `sm`, darüber bleibt alles wie bisher.
+         DIE SYMBOLE BLEIBEN: Ohne sie wäre der aktive Reiter nur noch Farbe, und ein Zeichen
+         erkennt man am Handy schneller als ein Wort. */
+      className={`flex shrink-0 items-center gap-1.5 rounded-xl border-[1.5px] px-2.5 py-2.5 text-[13px] font-bold transition sm:gap-2.5 sm:px-3.5 sm:text-[15px] lg:w-full ${
         aktiv
           ? "border-[#1d6fd0] bg-[#eaf2fc] text-[#1d6fd0]"
           : "border-transparent bg-white text-[#5b666f] hover:text-[#14181c]"}`}>

@@ -30,6 +30,7 @@ import { motivBauen } from "@/lib/versusforge-motiv";
 import { randomUUID } from "node:crypto";
 import { freierName, mandantAusPlan, mandantAnlegen, mandantLesen, mandantSpeichern } from "@/lib/versusforge-mandanten";
 import { introLoeschen, introsVorab } from "@/lib/kuenstler-agent-intro";
+import { wartendeSpeichern } from "@/lib/kuenstler-warteliste";
 import { after } from "next/server";
 import { leadSpeichern, EIGENER_MANDANT } from "@/lib/versusforge-lead";
 import { linksPerPost } from "@/lib/versusforge-links-post";
@@ -177,7 +178,10 @@ export async function POST(request: Request) {
 
   /* Was der Agent unterwegs herausgefunden hat — der Browser zeigt es an, ohne dass es im
      Gesprächstext stehen muss. */
-  const fund: { seite?: string; bild?: string; foto?: string; bilder?: string[]; motiv?: string; vorschau?: { nr: number; spruch: string }; angelegt?: string; bearbeiten?: string; ergaenzt?: boolean } = {};
+  /* `bestaetigung`: Bei Kunst entsteht beim Abschluss keine Seite mehr, sondern eine Wartemarke
+     und eine Mail (Owner 12.09.2026: „also vorher"). `angelegt` bleibt dann leer — die
+     Schlussnachricht hängt deshalb an diesem Merkmal statt an einer Adresse, die es noch nicht gibt. */
+  const fund: { seite?: string; bild?: string; foto?: string; bilder?: string[]; motiv?: string; vorschau?: { nr: number; spruch: string }; angelegt?: string; bearbeiten?: string; ergaenzt?: boolean; bestaetigung?: boolean } = {};
 
   const werkzeuge: Werkzeug[] = [
     /**
@@ -477,22 +481,33 @@ export async function POST(request: Request) {
         /* Owner 10.09.2026: „Er muss auch seine Zustimmung abgeben" — sein Ja zur Übersicht auf lakatosbandi.com. */
         portal: { type: "boolean", description: "Nur Kunst: true, wenn er klar Ja gesagt hat, dass seine Werke in der Übersicht von lakatosbandi.com erscheinen dürfen — sonst false" },
       },
-      pflicht: ["mail", "hook"],
+      /* KEIN HOOK MEHR ALS PFLICHT (Owner 12.09.2026: „nach dem er die daten geliefert hat rechnen
+         wir alles, bilder, sprüche, seite wird erstellt"). Der Spruch wurde früher im Gespräch
+         ausgehandelt und lag hier vor; jetzt entsteht er erst HIER. Bliebe er Pflicht, könnte die
+         Seite nie angelegt werden. Die Adresse bleibt Pflicht — an ihr hängt das Konto. */
+      pflicht: ["mail"],
       frei: false,
       lauf: async (a) => {
         const mail = str(a.mail, 200).trim();
         /* SEIN „JA, INS PORTAL" (Rezept-Schritt `zustimmung`). Nur ein ausdrückliches true zählt. */
         const portalJa = a.portal === true;
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return { fehler: "Das ist keine Adresse. Frag ihn noch einmal danach." };
+        /* KEINE LEEREN TEILE (13.09.2026): `dorin61arts@yahoo..com` kam hier durch und seine
+           Bestätigungsmail ging ins Nichts — zehn Werke, und er wartet bis heute. Dasselbe
+           Muster steht in components/AgentChat.tsx und api/portal-behalten. */
+        if (!/^[^@\s.]+(\.[^@\s.]+)*@[^@\s.]+(\.[^@\s.]+)+$/.test(mail)) return { fehler: "Das ist keine Adresse. Frag ihn noch einmal danach." };
 
-        const hook = str(a.hook, 300).trim();
+        /* `let`, weil der Spruch jetzt hier entstehen kann — siehe „ALLES RECHNEN" weiter unten. */
+        let hook = str(a.hook, 300).trim();
         const betrieb = str(a.betrieb, 120).trim();
         const zielgruppe = (Array.isArray(a.zielgruppe) ? a.zielgruppe : []).map(z => str(z, 80)).filter(Boolean).slice(0, 4);
         const karten = (Array.isArray(a.karten) ? a.karten : []).map(z => str(z, 80)).filter(Boolean).slice(0, 4);
         /* OHNE KARTEN KEINE SEITE: Früher fiel die Seite still auf die Zielgruppe zurück, und
            der Kunde tippte „Timișoara, 25–45 Jahre" an. Lieber einmal zurückfragen als eine
            Seite, die nicht zu seinem Kunden spricht (Owner: „lieber nichts als Schrott"). */
-        if (karten.length < 3) return { fehler: "Es fehlen die Karten: 3 bis 4 kurze Sätze, die SEIN Kunde auf der Seite über sich antippt, aus Sicht des Kunden, höchstens sieben Wörter. Bau sie aus dem Gespräch und ruf mich dann noch einmal auf." };
+        /* NUR AUSSERHALB DER KUNST: Dort gibt es kein Gespräch mehr, aus dem Karten entstehen
+           könnten — der Künstler lädt hoch, nennt Preis, Name und Adresse, fertig. Bei den anderen
+           Rezepten bleibt die Sperre („lieber nichts als Schrott"). */
+        if (!KUNST && karten.length < 3) return { fehler: "Es fehlen die Karten: 3 bis 4 kurze Sätze, die SEIN Kunde auf der Seite über sich antippt, aus Sicht des Kunden, höchstens sieben Wörter. Bau sie aus dem Gespräch und ruf mich dann noch einmal auf." };
 
         /* Der Name kommt aus SEINEM Betrieb, nie aus einer fremden Marke, die er nennen
            mochte — dieselbe Grenze wie im Trichter ([[eigene-adressen-nicht-analysieren]]). */
@@ -523,20 +538,80 @@ export async function POST(request: Request) {
          * anderen?" · „sollen wir nur eins posten auf unserer Webseite?") ─────────────────────────
          *
          * Im Chat macht er den Spruch für EIN Bild — das Gespräch bleibt kurz. Für die übrigen (bis
-         * zu drei) schreibt ein kleiner Aufruf die Sprüche selbst: aus dem, was im Bild gesehen
+         * zu neun) schreibt ein kleiner Aufruf die Sprüche selbst: aus dem, was im Bild gesehen
          * wurde, im Ton seines eigenen Spruchs. Er ändert sie im Dashboard, der Owner sieht alles bei
          * der Freigabe. Scheitert der Aufruf, stehen eben nur das eine Bild und sein Spruch da.
+         *
+         * ZEHN STATT VIER (Owner 12.09.2026: „nein, 10"). Stand die Grenze hier bei vier, während das
+         * Archiv zehn Werke aufnimmt, verschwänden die Werke 5 bis 10 beim Abschluss stillschweigend
+         * aus seiner fertigen Seite — hochgeladen, angesehen, und dann nicht gebaut. Kostet beim
+         * Abschluss bis zu zehn Sprüche statt vier.
          */
         const alleBilder: string[] = KUNST
           ? (Array.isArray(body.werkBilder) ? body.werkBilder : [])
-              .map((b: unknown) => String(b ?? "")).filter((b: string) => b.startsWith("data:image/")).slice(0, 4)
+              .map((b: unknown) => String(b ?? "")).filter((b: string) => b.startsWith("data:image/")).slice(0, 10)
           : [];
         const gewaehltIdx = Math.min(Math.max((Math.round(Number(body.werkNr)) || 1) - 1, 0), Math.max(alleBilder.length - 1, 0));
         const andereIdx = alleBilder.map((_, j) => j).filter(j => j !== gewaehltIdx);
         let andereSprueche: string[] = [];
-        if (andereIdx.length) {
+
+        /* ── „ÜBER MICH" LÄUFT NEBENHER (Owner 12.09.2026: „der rechnet hier echt zu lang") ──────
+           Der Aufruf stand bisher NACH den Sprüchen und wartete auf sie, obwohl er nichts von
+           ihnen braucht — nur seine eigenen Nachrichten. Jetzt startet er hier und wird erst kurz
+           vor dem Speichern geerntet; die beiden großen Aufrufe laufen damit gleichzeitig. */
+        const ueberMichLauf = KUNST && !String(vorhanden?.ueberMich ?? "").trim()
+          ? frageModell(apiKey, GROSS, [{ type: "input_text", text: [
+              `Aus einem Gespräch mit einem Künstler: Schreib den Text „Über mich" für seine Seite, in dieser Sprache: ${sprachname(sprache)}.`,
+              "NUR was er selbst über SICH geschrieben hat (Wohnort, Ausbildung, Ausstellungen, Techniken, was ihn antreibt). Nichts über einzelne Bilder, nichts erfinden, keine Wertung, keine Floskeln.",
+              /* ── NIE KONTAKTDATEN, NIE PREISE (Owner 13.09.2026: „Spinnst du? die E-Mail raus") ──
+                 Der Trichter FRAGT nach E-Mail und Preisspanne — beides stand danach wörtlich in
+                 „Über mich" und damit im Klartext auf einer öffentlichen Seite, abgreifbar für
+                 jeden Spam-Sammler. Sie hat die Adresse für den Login genannt, nicht zum
+                 Veröffentlichen. Der Preis steht ohnehin an seiner eigenen Stelle. */
+              "NIEMALS E-Mail-Adresse, Telefonnummer, Postanschrift oder Profile in sozialen Netzen übernehmen — auch nicht, wenn er sie selbst geschrieben hat. NIEMALS Preise oder Preisspannen nennen. Diese Angaben hat er für den Kontakt und für seine Preisangabe gemacht, nicht für diesen Text.",
+              "Ich-Form, 1 bis 3 Sätze. Hat er nichts über sich geschrieben, gib einen leeren Text zurück.",
+              'Antworte NUR als JSON: {"ueberMich":"..."}',
+              "Seine Nachrichten:",
+              verlauf.filter(v => v.role === "user").map(v => String(v.content ?? "")).join("\n").slice(0, 4000),
+            ].join("\n") }], "low")
+          : null;
+
+        /**
+         * ── JETZT WIRD ALLES GERECHNET (Owner 12.09.2026: „nach dem er die daten geliefert hat
+         * rechnen wir alles, bilder, sprüche, seite wird erstellt und bekommt das ergebnis") ─────
+         *
+         * Bis hierher hat der Trichter NICHTS analysiert: Der Künstler hat hochgeladen, seinen
+         * Preis, seinen Namen und seine Adresse genannt — mehr nicht. Deshalb liegen hier weder
+         * Befunde zu den Bildern noch ein Spruch vor. Beides entsteht in diesem Block, an der
+         * einen Stelle, an der ein Warten verdient ist: Danach steht seine Seite.
+         *
+         * Scheitert das Ansehen, geht es trotzdem weiter — dann steht seine Seite mit Bildern und
+         * ohne Sprüche da, und er ergänzt sie auf „Seite bearbeiten". Das ist besser als ein
+         * Abbruch, nachdem er seine Adresse gegeben hat.
+         */
+        /**
+         * ── HIER WIRD NICHTS MEHR GERECHNET (Owner 12.09.2026: „er bekommt per E-Mail nur einen
+         * Link … klickt er drauf und es wird dann alles angelegt und er sieht die Meldung, und
+         * dann tatataa") ───────────────────────────────────────────────────────────────────────
+         *
+         * An dieser Stelle standen zwei grosse Aufrufe: jedes Bild ansehen und alle Sätze
+         * schreiben. Sie kosteten über eine Minute, in der er auf drei Punkte sah — und sie
+         * liefen für JEDEN, der eine fremde E-Mail kannte.
+         *
+         * Beides passiert jetzt nach seinem Klick in der Mail (`spruecheNachtragen`, angestossen
+         * von seiner Admin-Seite). Bis dahin steht `aufbauSeit` am Datensatz, und seine Seite
+         * sagt, dass sie gerade gebaut wird.
+         */
+        const befunde: (WerkBefund | undefined)[] = werke;
+
+        /* OHNE HOOK SCHREIBT DIESER AUFRUF ALLE SPRÜCHE, auch den für das erste Werk — früher kam
+           der aus dem Gespräch. Die Regeln sind dieselben wie im Rezept (lib/versusforge-kunst-rezept.ts). */
+        /* Die Sätze entstehen nach seinem Klick in der Mail (lib/kuenstler-sprueche.ts) — hier
+           bleibt `hook` leer, und genau deshalb ist er oben keine Pflicht mehr. */
+
+        if (andereIdx.length && !andereSprueche.length && hook) {
           const beschreibung = andereIdx.map((j, k) => {
-            const w = werke[j];
+            const w = befunde[j];
             return `${k + 1}: ${w ? [w.szene, w.merkmale.join(", "), w.traum, w.selten].filter(Boolean).join(" · ") : "ein weiteres Bild von ihm"}`;
           }).join("\n");
           /* Die Sprüche seiner übrigen Bilder schreibt ebenfalls das große Modell (Owner 11.09.2026: „Ce limbaj este asta?"). */
@@ -572,27 +647,65 @@ export async function POST(request: Request) {
         const kachelSchluessel = nrGewaehlt || "standard";
         /* DIE BILDANALYSE BLEIBT (Owner 11.09.2026: der verkaufende Agent soll „etwas über den Stil sagen"). */
         const befundeNeu = KUNST ? Object.fromEntries([
-          [kachelSchluessel, werke[gewaehltIdx]] as const,
-          ...andereIdx.slice(0, andereSprueche.length).map((j, k) => [nrAndere(k), werke[j]] as const),
-        ].filter(([, w]) => !!w).map(([key, w]) => [key, {
+          [kachelSchluessel, befunde[gewaehltIdx]] as const,
+          ...andereIdx.slice(0, andereSprueche.length).map((j, k) => [nrAndere(k), befunde[j]] as const),
+          /* Das Typprädikat statt `!!w`: Seit die Befunde erst hier entstehen, kann sich unter
+             ihnen ein nicht gelesenes Bild befinden — TypeScript soll das auch sehen. */
+        ].filter((x): x is readonly [string, WerkBefund] => !!x[1]).map(([key, w]) => [key, {
           stil: w.stil, motiv: w.motiv, szene: w.szene, erinnertAn: w.erinnertAn, selten: w.selten, merkmale: w.merkmale,
         }])) : {};
 
         /* „DESPRE MINE" AUS SEINEN EIGENEN WORTEN (Owner 11.09.2026: „das hatte ich doch im Chat eingetragen, steht aber nicht
            im Profil") — nur, was er selbst über sich geschrieben hat, als erster Entwurf; er ändert ihn auf „Seite bearbeiten".
            Steht dort schon etwas, bleibt es. */
-        let ueberMichNeu = "";
-        if (KUNST && !String(vorhanden?.ueberMich ?? "").trim()) {
-          const seineWorte = verlauf.filter(v => v.role === "user").map(v => String(v.content ?? "")).join("\n").slice(0, 4000);
-          const r3 = await frageModell(apiKey, GROSS, [{ type: "input_text", text: [
-            `Aus einem Gespräch mit einem Künstler: Schreib den Text „Über mich" für seine Seite, in dieser Sprache: ${sprachname(sprache)}.`,
-            "NUR was er selbst über SICH geschrieben hat (Wohnort, Ausbildung, Ausstellungen, Techniken, was ihn antreibt). Nichts über einzelne Bilder, nichts erfinden, keine Wertung, keine Floskeln.",
-            "Ich-Form, 1 bis 3 Sätze. Hat er nichts über sich geschrieben, gib einen leeren Text zurück.",
-            'Antworte NUR als JSON: {"ueberMich":"..."}',
-            "Seine Nachrichten:",
-            seineWorte,
-          ].join("\n") }], "low");
-          ueberMichNeu = r3.ok ? str((r3.daten as { ueberMich?: unknown } | null)?.ueberMich, 800).trim() : "";
+        /* Hier wird nur noch geerntet — gestartet wurde der Lauf oben, parallel zu den Sprüchen. */
+        const r3 = ueberMichLauf ? await ueberMichLauf : null;
+        const ueberMichNeu = r3?.ok ? str((r3.daten as { ueberMich?: unknown } | null)?.ueberMich, 800).trim() : "";
+
+        /**
+         * ── BEI KUNST ENTSTEHT HIER NICHTS MEHR (Owner 12.09.2026: „ich glaube, du hast die Seite
+         * ohne seine E-Mail-Bestätigung angelegt" · „also vorher") ────────────────────────────────
+         *
+         * Bis hierher legte dieser Block die Seite sofort an — und hängte bei einer bekannten
+         * Adresse die neuen Werke an die BESTEHENDE Seite. Beides ohne jeden Nachweis, dass die
+         * Adresse dem gehört, der gerade hochgeladen hat. Wer die E-Mail eines Künstlers kannte,
+         * konnte ihm damit fremde Bilder auf die Seite legen.
+         *
+         * JETZT WARTET ALLES: Bilder, Preis, Name und Adresse gehen in die Warteablage, und an die
+         * Adresse geht eine Frage. Erst der Klick darin legt an (app/portal/bestaetigen/page.tsx).
+         *
+         * Der Firmenweg (kein Kunst-Rezept) bleibt, wie er war — dort gibt es diesen Missbrauch
+         * nicht, weil keine fremden Bilder im Spiel sind.
+         */
+        if (KUNST) {
+          const token = await wartendeSpeichern({
+            mail,
+            name: betrieb || name,
+            sprache,
+            geraet: str(body.device, 80),
+            portal: portalJa,
+            preisSpanne: str(body.preisSpanne, 60).replace(/\s+/g, " ").trim(),
+            werkInfo: werkInfo as unknown as Record<string, string>,
+            preis,
+            bilder: alleBilder,
+          });
+          if (!token) return { fehler: "Das Ablegen hat nicht geklappt. Sag ihm, dass du es gleich noch einmal versuchst." };
+          void linksPerPost({
+            an: mail, mandant: "", schluessel: "", loeschSchluessel: "",
+            sprache, kuenstler: true, bestaetigenToken: token,
+          }).catch(e => console.error("[versusforge-agent] Bestätigungsmail gescheitert", e));
+          /* Für UNS zählt die Anmeldung jetzt schon — sonst erführe der Owner von Menschen, die
+             hochgeladen, aber nie bestätigt haben, gar nichts. */
+          void anmeldeAlarm({ betrieb: betrieb || name, kennung: "(wartet auf Bestätigung)", mail, sprache, hook: "", stil: hauptStil, bilder: alleBilder.length })
+            .catch(e => console.error("[versusforge-agent] Anmelde-Mail gescheitert", e));
+          /* Ohne diese Zeile bliebe die Schlussnachricht aus: Sie hing bisher an `fund.angelegt`,
+             und eine Adresse gibt es hier noch nicht. */
+          fund.bestaetigung = true;
+          return {
+            fertig: true,
+            trichter: "",
+            hinweis: "Seine Daten liegen bereit und die Bestätigungsmail ist unterwegs — angelegt ist NOCH NICHTS. Die Schlussnachricht setzt der Code; schreib nur einen kurzen Satz, nenne KEINE Adresse, stell KEINE Frage und schreib KEINE Chip-Zeile.",
+          };
         }
 
         if (vorhanden) {
@@ -610,6 +723,10 @@ export async function POST(request: Request) {
               ? { werkNummern: [...new Set([...frisch.werkNummern, start, ...andereSprueche.map((_, k) => start + 1 + k)])] }
               : {}),
             ...(ueberMichNeu && !String(frisch.ueberMich ?? "").trim() ? { ueberMich: ueberMichNeu } : {}),
+            /* LÄDT ER SPÄTER NEUE BILDER HOCH, GILT DIE NEUE SPANNE AUCH FÜR DIE ALTEN (Owner
+               12.09.2026: „es werden auch die alten geändert"). Deshalb wird sie hier überschrieben
+               und nicht nur beim ersten Anlegen gesetzt. Werke mit eigenem Preis bleiben unberührt. */
+            ...(str(body.preisSpanne, 60).trim() ? { preisSpanne: str(body.preisSpanne, 60).replace(/\s+/g, " ").trim() } : {}),
           });
           if (!gespeichert) return { fehler: "Das Speichern hat nicht geklappt. Sag ihm, dass du es gleich noch einmal versuchst." };
           await introLoeschen(vorhanden.kennung);
@@ -635,6 +752,17 @@ export async function POST(request: Request) {
           /* Die Sprüche seiner übrigen Bilder — Kachel i auf seiner Seite = hooks[i] + Motiv Nr. i. */
           ...(KUNST && andereSprueche.length ? { hooks: andereSprueche } : {}),
           ...(KUNST ? { werkInfo: { standard: werkInfo }, ...(preis ? { preis } : {}) } : {}),
+          /* SEINE KACHELN STEHEN FEST, AUCH OHNE SATZ: Sonst verschwänden die Werke 2 bis 10 beim
+             ersten Öffnen seiner Seite — die Sätze kommen erst nach seinem Klick dazu. */
+          ...(KUNST && alleBilder.length ? { werkNummern: [-1, ...andereIdx.map((_, k) => k)] } : {}),
+          /* SEINE SEITE WIRD NOCH GEBAUT (Owner 12.09.2026). Der Klick auf den Link in seiner Mail
+             stösst das Rechnen an; danach wird dieses Feld entfernt (lib/kuenstler-sprueche.ts). */
+          ...(KUNST ? { aufbauSeit: new Date().toISOString() } : {}),
+          /* WAS ER FÜR SEINE WERKE VERLANGT — eine Angabe für alle (Owner 12.09.2026). Sie steht an
+             jedem Werk, das keinen eigenen Preis hat; wo er einen eingetragen hat, gilt dieser
+             (Owner: „wenn er manuell was eingetragen hat, dann nicht die Preisspanne eintragen").
+             Die Kaskade dazu steht in app/portal/page.tsx und lib/lakatosbandi-preis.ts. */
+          ...(KUNST && str(body.preisSpanne, 60).trim() ? { preisSpanne: str(body.preisSpanne, 60).replace(/\s+/g, " ").trim() } : {}),
           /* Kachel „standard" = das gewählte Bild, „0", „1" … = die übrigen mit Spruch. */
           ...(KUNST ? { werkBefunde: befundeNeu } : {}),
           ...(ueberMichNeu ? { ueberMich: ueberMichNeu } : {}),
@@ -671,13 +799,24 @@ export async function POST(request: Request) {
           };
           /* Das gewählte Bild trägt seinen Spruch (Kachel „standard"), die übrigen je ihren. Ein Bild
              ohne Spruch wird nicht abgelegt — auf seiner Seite gäbe es dafür keine Kachel. */
-          await ablegen(alleBilder[gewaehltIdx], nrGewaehlt);
-          for (let k = 0; k < andereSprueche.length; k++) await ablegen(alleBilder[andereIdx[k]], nrAndere(k));
+          /* ── GLEICHZEITIG UND IM HINTERGRUND (Owner 12.09.2026: „der rechnet hier echt zu lang" ·
+             „kann ich nicht einfach ihm sofort die Seite geben?") ───────────────────────────────
+             Hier stand eine Schleife mit `await` je Bild — und weil in `ablegen` die Moderation
+             steckt, waren das bei zehn Werken zehn Modellaufrufe HINTEREINANDER, auf die er
+             gewartet hat. Sie hängen weder voneinander noch von seiner Antwort ab: Seine Seite
+             existiert schon, die Bilder erscheinen Sekunden später darauf. */
+          /* ALLE Bilder, nicht nur die mit Satz: Die Sätze entstehen erst nach seinem Klick, und
+             ein Bild, das jetzt nicht abgelegt wird, wäre dann für immer weg. */
+          after(() => Promise.all([
+            ablegen(alleBilder[gewaehltIdx], nrGewaehlt),
+            ...andereIdx.map((j, k) => ablegen(alleBilder[j], nrAndere(k))),
+          ]));
         }
 
         /* Die Anfrage steht in UNSEREM Fach — er ist ein Interessent, wie jeder aus dem
            Trichter ([[mein-trichter-ist-ihr-trichter]]). */
-        await leadSpeichern(EIGENER_MANDANT, {
+        /* `void` statt `await`: Unser eigenes Fach ist Buchhaltung — der Künstler wartet nicht darauf. */
+        void leadSpeichern(EIGENER_MANDANT, {
           mail, ziel: "leads", text: hook, url: "", sprache, plan: { hook, zielgruppe, karten },
           runden: [], zeit: new Date().toISOString(),
         }).catch(() => false);
@@ -698,7 +837,23 @@ export async function POST(request: Request) {
         /* Die Schlussnachricht setzt der Code selbst (siehe ABSCHLUSS_SATZ) — er braucht die Adresse, unter der er liegt. */
         if (KUNST) fund.angelegt = kuenstlerUrl(name);
         /* „Completează profilul" unter der Schlussnachricht (Owner 11.09.2026: „wenn er das macht, wird sein Agent noch besser"). */
-        if (KUNST) fund.bearbeiten = `${kuenstlerUrl(name)}?k=${encodeURIComponent(schluessel)}`;
+        /**
+         * ── DER SCHLÜSSEL NIE AN EINE BESTEHENDE SEITE (Owner 12.09.2026: „das schlimme ist nur,
+         * wenn jemand für dich Bilder hochlädt, wenn er deine E-Mail kennt durch unseren Tunnel") ──
+         *
+         * `schluessel` ist bei einer bestehenden Seite der ECHTE Dashboard-Schlüssel ihres
+         * Besitzers (`vorhanden?.schluessel`, oben). Er ging von hier als `profilLink` zurück in
+         * den Browser dessen, der gerade die Adresse getippt hat — wer die E-Mail eines Künstlers
+         * kannte, bekam damit Vollzugriff auf dessen Seite: ändern, überschreiben, löschen.
+         *
+         * Bei einer NEUEN Seite ist er dagegen harmlos: Dort hat derselbe Mensch die Adresse
+         * gerade erst angelegt, der Schlüssel gehört ihm. Nur dort geht er noch durch den Chat;
+         * sonst ausschliesslich per E-Mail an die Adresse selbst (`linksPerPost`).
+         */
+        /* GAR KEIN BEARBEITEN-LINK MEHR IM CHAT (Owner 12.09.2026: „er bekommt per E-Mail nur
+           einen Link … der Link zu seiner Admin"). Ein Knopf im Chat wäre der zweite Weg an der
+           Bestätigung vorbei — und bei einer bestehenden Seite genau die Lücke von oben. Der
+           Schlüssel verlässt den Server jetzt ausschliesslich per Mail an die Adresse selbst. */
         return {
           fertig: true,
           /* Künstler liegen nur auf lakatosbandi.com (Owner 10.09.2026). */
@@ -1350,7 +1505,14 @@ export async function POST(request: Request) {
        richtet sich nach dem Satz — vor der Wahl erzeugt, passt es im Zweifel zum falschen. */
     ...(KUNST ? [
       /* Beim Künstler kein Anzeigenbild, kein Foto, kein Motiv — sein Bild mit Spruch (Owner 10.09.2026). */
-      "DIE REIHENFOLGE AM ENDE IST FEST: welches Bild · drei Sprüche · seine Wahl · spruch_zeigen · ‚Passt das?' · promoten · Künstlername · E-Mail · abschluss_schicken. Kein Schritt davor, keiner doppelt. Du baust KEIN Anzeigenbild und fragst nach KEINEM Foto.",
+      /* ── DER KURZE WEG (Owner 12.09.2026: „bilder hochladen, preise, name vorname dann die seite
+         steht" · „bis dahin nichts analysieren und nicht rechnen") ──────────────────────────────
+         Hier stand: welches Bild · drei Sprüche · seine Wahl · spruch_zeigen · ‚Passt das?' ·
+         promoten · Künstlername · E-Mail · abschluss_schicken. Neun Stationen, jede mit einer
+         Frage und einem Modelllauf. Der Künstler wartete an jeder davon. Jetzt entscheidet er
+         dreimal — Bilder, Preis, Name mit Adresse —, und alles andere entsteht beim Abschluss. */
+      "DIE REIHENFOLGE IST FEST UND KURZ: seine Bilder · sein Künstlername und seine E-Mail · abschluss_schicken. Sonst nichts. Frag NIE, für welches Bild ein Satz gemacht wird, biete KEINE Sprüche an, ruf spruch_zeigen NICHT auf und frag nie ‚Passt das?' — die Sätze zu allen Werken schreiben wir nach dem Abschluss. Du baust KEIN Anzeigenbild und fragst nach KEINEM Foto.",
+      "HAST DU KÜNSTLERNAMEN UND E-MAIL, ruf SOFORT abschluss_schicken auf (portal: true, betrieb = sein Künstlername, hook leer lassen) — ohne Rückfrage, ohne Zusammenfassung. Fehlt eines von beiden, frag nur danach.",
     ] : [
       "DIE REIHENFOLGE AM ENDE IST FEST: drei Sätze zur Auswahl · seine Wahl · Foto oder Motiv · das Bild · seine Rückmeldung · seine Adresse. Kein Schritt davor, keiner doppelt.",
       "BEVOR DU DAS ANZEIGENBILD BAUST, FRAG NACH EINEM FOTO. Sag ihm, dass er hier eines anhängen kann — von seinem Betrieb, seinem Raum, seinem Produkt. Sein eigenes Foto ist immer besser als jedes andere.",
@@ -1566,10 +1728,14 @@ export async function POST(request: Request) {
    * kostende Werkzeuge bleiben hinter ihren eigenen Freigaben.
    */
   const rezept = REZEPTE[ENGINE_REZEPT];
+  /* BIS ZU 10 STATT 4 JE NACHRICHT (Owner 12.09.2026: „Urca pana la 10 tablouri" · „nein, 10").
+     Die Startkarte lädt zum ganzen Archiv ein; eine Grenze von vier hätte genau dort gebremst, wo
+     wir „zeig alles" versprechen. Preis dafür: Moderation und Ansehen laufen je Bild, bei zehn
+     Bildern in einem Zug also rund zwanzig Modellaufrufe statt acht. */
   const neueFotos = (Array.isArray(body.fotos) ? body.fotos : eigenesFoto ? [eigenesFoto] : [])
     .map((f: unknown) => String(f ?? ""))
     .filter((f: string) => f.startsWith("data:image/") && f.length < 3_000_000)
-    .slice(0, 4);
+    .slice(0, 10);
   let sehVerbrauch = { hinein: 0, heraus: 0, aufrufe: 0 };
   const bisherWerke = (Array.isArray(body.werke) ? body.werke : [])
     .map(werkSaeubern)
@@ -1597,7 +1763,11 @@ export async function POST(request: Request) {
       .filter((p): p is string => !!p)
     : [];
   const neueWerke: WerkBefund[] = [];
-  if (rezept.mitBildern && erlaubteFotos.length) {
+  /* BEI KUNST WIRD HIER NICHT MEHR HINGESEHEN (Owner 12.09.2026: „bis dahin nichts analysieren und
+     nicht rechnen" · „nach dem er die daten geliefert hat rechnen wir alles"). Das Ansehen jedes
+     Bildes kostete den Künstler Wartezeit, bevor überhaupt feststand, ob er mitmacht. Es passiert
+     jetzt beim Abschluss — dort liegen alle Bilder ohnehin vor. Die Moderation oben bleibt. */
+  if (rezept.mitBildern && !KUNST && erlaubteFotos.length) {
     const befunde = await Promise.all(erlaubteFotos.map((bild: string) => bildAnsehen({ apiKey, bild })));
     for (const b of befunde) {
       if (!b.ok) { console.warn("[versusforge-agent] Bild nicht gelesen:", b.fehler); continue; }
@@ -1606,6 +1776,10 @@ export async function POST(request: Request) {
     }
   }
   const werke = [...bisherWerke, ...neueWerke].slice(-12);
+  /* WIE VIELE BILDER ER HOCHGELADEN HAT — vom Browser gezählt, weil die Befunde bei Kunst erst
+     beim Abschluss entstehen (Owner 12.09.2026: „bis dahin nichts analysieren und nicht rechnen").
+     Steht hier oben, weil `aufgenommen` gleich darunter schon davon abhängt. */
+  const bilderZahl = Math.max(0, Math.round(Number(body.bilderZahl)) || 0);
   const stilZahl = new Map<string, number>();
   for (const w of werke) if (w.stil) stilZahl.set(w.stil, (stilZahl.get(w.stil) ?? 0) + 1);
   const [hauptStil, imStil] = [...stilZahl.entries()].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
@@ -1613,12 +1787,99 @@ export async function POST(request: Request) {
      fährst du weiter"). Die Etiketten je Bild waren zu wackelig — drei Bilder einer Malerin kamen als
      drei verschiedene Stile an, und der Agent bat trotz „Ja, das ist meine Richtung" um mehr. Über die
      Aufnahme entscheidet der Owner bei der Freigabe. `imStil`/`hauptStil` bleiben für seine Mail. */
-  const aufgenommen = !rezept.aufnahme || werke.length >= 1;
+  /* Bei Kunst zählt, was hochgeladen wurde — die Befunde entstehen erst beim Abschluss, `werke`
+     ist bis dahin leer. Ohne das hier wäre nach dem Umbau NIEMAND mehr aufgenommen. */
+  const aufgenommen = !rezept.aufnahme || (KUNST ? bilderZahl : werke.length) >= 1;
   /* „Willst du noch bis zu 3 Bilder hochladen?" — EINMAL im Gespräch, direkt nach den ersten Bildern
      (Owner 10.09.2026: „das fragst du nur einmal"). Frage und Knöpfe setzt der Browser. */
-  const mehrBilder = rezept.mitBildern && neueWerke.length > 0 && werke.length < 4 && body.bilderFrageGestellt !== true
-    ? 4 - werke.length
+  /* DIE NACHFRAGE RECHNET GEGEN 10 (Owner 12.09.2026: „nein, 10") — vorher gegen 4. Sie wird
+     weiterhin nur EINMAL gestellt (`bilderFrageGestellt`), fragt jetzt aber nach dem, was die
+     Startkarte verspricht. Die Zahl im Satz kommt aus `{n}`, der Text muss also nicht mitgeändert
+     werden. */
+  const bilderGefragt = Math.max(0, Math.round(Number(body.bilderFragen)) || 0);
+  /* Ausserhalb von Kunst bleibt alles beim Alten: dort sind die Befunde weiterhin da. */
+  const bilderGesamt = KUNST ? bilderZahl : werke.length;
+  /* GENAU EINMAL (Owner 12.09.2026: „nur ein mal nach fragen" — kurz stand es auf zweimal). Danach
+     kommen Preis, Künstlername und E-Mail; weitere Werke trägt er später auf seiner Seite nach. */
+  const mehrBilder = rezept.mitBildern && erlaubteFotos.length > 0 && bilderGesamt < 10 && bilderGefragt < 1
+    ? 10 - bilderGesamt
     : 0;
+
+  /**
+   * ── NACH EINEM UPLOAD WIRD NICHT GERECHNET (Owner 12.09.2026: „hier soll nicht rechnen" ·
+   * „hier auch nicht rechnen" · „das dauert zu lange, wir rechnen nichts eigentlich") ─────────
+   *
+   * Hier lief bisher der volle Modelllauf, nur um zu beschreiben, was auf dem Bild zu sehen ist
+   * („Văd un portret alb-negru…") und zu fragen, für welches Werk der Satz gemacht wird. Beides
+   * wollte der Owner nicht: Das Beschreiben kostete 20–40 Sekunden, in denen der Künstler auf
+   * drei Punkte starrt, und die Frage nach dem Werk ist seit dem 12.09. ohnehin abgeschafft.
+   *
+   * JETZT: EINMAL nach weiteren Bildern fragen, dann direkt nach Preis und Namen (Owner: „nur ein
+   * mal nach fragen"). Beides stellt der CODE — ohne Modell,
+   * also sofort. Die Sprüche entstehen später (Owner: „wir rechnen im nachhinein").
+   *
+   * WAS TROTZDEM LÄUFT: `bildPruefen` (Moderation — ein verbotenes Bild darf nie durchrutschen)
+   * und `bildAnsehen`, das die Befunde liefert, aus denen die Sprüche gebaut werden. Der teure
+   * Teil, der hier verschwindet, ist der Chat-Lauf selbst.
+   */
+  /* `body.abgeschlossen` statt `abgeschlossenVorher`: Dieser Block steht weit vor dessen
+     Definition, die Bedingung ist dieselbe (dort: `KUNST && body.abgeschlossen === true`). */
+  if (KUNST && erlaubteFotos.length > 0 && body.abgeschlossen !== true) {
+    const DANK: Record<string, string> = {
+      ro: "Am primit lucrările tale.",
+      de: "Deine Werke sind angekommen.",
+      en: "Your works have arrived.",
+    };
+    const DATEN: Record<string, string> = {
+      /* OHNE PREIS (Owner 13.09.2026) — das Feld ist aus dem Trichter raus. */
+      ro: "Acum spune-mi cum te semnezi ca artist și la ce e-mail îți trimitem linkurile.",
+      de: "Jetzt sag mir, wie du dich als Künstler nennst und an welche E-Mail die Links gehen.",
+      en: "Now tell me what you ask for your works, how you sign as an artist, and which e-mail the links should go to.",
+    };
+    const kurz = sprache.slice(0, 2).toLowerCase();
+    const satz = mehrBilder ? (DANK[kurz] ?? DANK.en) : `${DANK[kurz] ?? DANK.en}\n\n${DATEN[kurz] ?? DATEN.en}`;
+    /* Das Protokoll wird auch ohne Modelllauf geschrieben — sonst fehlte im Trichter genau der
+       Zug, in dem die Bilder ankamen (Owner 11.09.2026: „ich will alles sehen, was sie hochladen"). */
+    void zugSchreiben({
+      gespraech: gespraechKennung || "ohne",
+      nr: zugNr,
+      zeit: new Date().toISOString(),
+      sprache,
+      geraet: str(body.device, 80),
+      /* `letzte` wird erst weiter unten gebaut — hier dieselbe Rechnung, lokal. */
+      mensch: String([...verlauf].reverse().find(m => m.role === "user")?.content ?? "").slice(0, 400),
+      agent: satz.slice(0, 400),
+      ...(fotoPfade.length ? { fotos: fotoPfade } : {}),
+      werkzeuge: [],
+      hinein: sehVerbrauch.hinein,
+      heraus: sehVerbrauch.heraus,
+      aufrufe: sehVerbrauch.aufrufe,
+      euro: laufKosten(sehVerbrauch),
+      dauer: Date.now() - angefangen,
+      fassung: 0,
+    });
+    return NextResponse.json({
+      ok: true,
+      antwort: satz,
+      vorschlaege: [],
+      bilderBitte: false,
+      mehrBilder,
+      loeschFrage: false,
+      bilderWahl: false,
+      /* Nach der zweiten Frage kommen Preis, Künstlername und E-Mail in einem Schritt. */
+      kontaktFrage: !mehrBilder,
+      spruchWahl: 0,
+      vorschau: null,
+      eigenerSpruch: null,
+      profilLink: "",
+      benutzt: [],
+      seite: "",
+      bild: "",
+      bilder: [],
+      werke,
+      verbrauch: sehVerbrauch,
+    });
+  }
   /**
    * ── ERST DER PREIS, DANN DIE HOOKS (10.09.2026, Maler-Prüflauf) ──────────────────────────
    *
@@ -1705,8 +1966,13 @@ export async function POST(request: Request) {
       ? `ER HAT EINEN SPRUCH SELBST GESCHRIEBEN: „${eigenSpruch}" für Bild ${eigenNr}. Das ist ROHSTOFF, nicht der Spruch. Mach daraus EINEN verkaufenden Spruch nach der Regel ‚Kurator und Verkäufer in einem Satz' — sein Sinn und seine starken Wörter, aber kein Titel (‚X: Y'), keine Esoterik, keine Floskel. Ruf spruch_zeigen mit Bild ${eigenNr} und DEINEM Spruch auf. Schreib sonst nichts, keine Erklärung, was du geändert hast.`
       : "",
     "",
-    werke.length
-      ? "WAS DU IN SEINEN BILDERN GESEHEN HAST — dein eigener Blick. Nutze es, statt ihn danach zu fragen:"
+    /* Ohne Befunde, aber MIT Bildern darf hier nicht „kein Bild gezeigt" stehen — sonst fragt der
+       Agent nach Bildern, die längst hochgeladen sind (Owner 12.09.2026: „bis dahin nichts
+       analysieren und nicht rechnen"). */
+    (KUNST ? bilderGesamt : werke.length)
+      ? (werke.length
+        ? "WAS DU IN SEINEN BILDERN GESEHEN HAST — dein eigener Blick. Nutze es, statt ihn danach zu fragen:"
+        : `ER HAT DIR ${bilderGesamt} WERK(E) HOCHGELADEN. Angesehen werden sie erst nach dem Abschluss — beschreib sie NICHT, frag NICHT nach weiteren und behaupte nie, du hättest noch keines gesehen.`)
       : "ER HAT DIR NOCH KEIN BILD GEZEIGT.",
     ...werke.map((w, i) =>
       `  Bild ${i + 1}${i >= bisherWerke.length ? " (gerade gezeigt)" : ""}: Szene: ${w.szene || "?"} · Merkmale: ${w.merkmale.join(", ") || "?"}${w.selten ? ` · selten: ${w.selten}` : ""}${w.erinnertAn ? ` · erinnert an: ${w.erinnertAn}` : ""}${w.traum ? ` · träumt von: ${w.traum}` : ""}`),
@@ -1725,7 +1991,11 @@ export async function POST(request: Request) {
           ? `BILDER GESEHEN (${werke.length}), PREIS BESPROCHEN. Vor deiner Antwort steht schon der Satz „${ueberleitungSatz}" — der Code setzt ihn, schreib ihn NICHT noch einmal. Bewerte seinen Preis NICHT — kein Wort zu Höhe, Stufe oder Verkäufen. Frag dann in SEINER Sprache, für welches seiner Bilder ihr den Satz macht — nie mit dem deutschen Wort ‚Spruch', wenn ihr nicht Deutsch sprecht — Chip-Zeile genau >>BILDER. Noch KEINE Sprüche in diesem Zug.`
           : KUNST
             /* Der kurze Ablauf (Owner 11.09.2026: „wir sollen vorher aufhören"). */
-            ? `BILDER GESEHEN (${werke.length}). Ist noch kein Bild gewählt, frag in SEINER Sprache, für welches seiner Bilder ihr den Satz macht — nie mit dem deutschen Wort ‚Spruch' — Chip-Zeile genau >>BILDER. Danach: Gefühl zu diesem Bild, falls unbekannt → drei Sprüche → seine Wahl → spruch_zeigen → ‚Passt das?' → promoten mit Künstlername und E-Mail → abschluss_schicken. Frag NIE nach Preis, Käufern, Titel, Technik, Größe, Jahr oder Werdegang, und fass vor dem Abschluss nichts zusammen.`
+            /* ── DER KURZE WEG (Owner 12.09.2026) ────────────────────────────────────────────
+               Hier stand der alte Ablauf: Bildwahl → Gefühlsfrage → drei Sprüche → seine Wahl →
+               spruch_zeigen → ‚Passt das?' → promoten → Name → E-Mail. Jetzt bleibt eine einzige
+               Frage übrig, und die Sätze entstehen nach dem Abschluss. */
+            ? `ER HAT ${bilderGesamt} WERK(E) HOCHGELADEN. Frag ihn jetzt NUR noch — in EINER Nachricht — wie er sich als Künstler nennt und an welche E-Mail die Links gehen; Chip-Zeile genau >>KONTAKT. Keine Bildwahl, keine Gefühlsfrage, keine Sprüche, kein ‚Passt das?', keine Beschreibung seiner Bilder. Sobald du Künstlername und E-Mail hast, ruf sofort abschluss_schicken auf und lass hook leer.`
             : `BILDER GESEHEN (${werke.length}), PREIS BESPROCHEN. Geh im Rezept weiter: Bild gewählt → Gefühl zu diesem Bild, falls unbekannt → drei Sprüche → seine Wahl → spruch_zeigen → ‚Passt das?' → promoten → Künstlername → E-Mail → abschluss_schicken.`)
         : `BILDER GESEHEN: ${werke.length}. Schreib noch KEINE Hooks — auch nicht als Text, auch keine Satzvorschläge für Anzeigen. Geh im Rezept weiter, eine Frage je Antwort: wer so etwas kauft, dann der Preis. Hat er die Käufer schon genannt, ist deine Frage JETZT die nach dem Preis — OHNE Chips, er schreibt seine Zahl. Nichts über Werbung, Anzeigen oder Zielgruppen-Tests.`)
       : "ER HAT NOCH KEIN BILD GEZEIGT. Bitte ihn um Bilder — das ist deine ganze Nachricht. Keine Sprüche, kein Abschluss.",
@@ -2109,7 +2379,8 @@ export async function POST(request: Request) {
    * etwas, das niemand gesehen hat („Cel mai mare · Cel mai recent · Favoritul meu"). Statt ihrer
    * zeigt der Browser den Knopf „Bilder hochladen" — `bilderBitte` sagt ihm, wann.
    */
-  const bilderBitte = rezept.mitBildern && !werke.length;
+  /* Bei Kunst zählen die hochgeladenen Bilder, nicht die Befunde — die gibt es hier noch nicht. */
+  const bilderBitte = rezept.mitBildern && !(KUNST ? bilderZahl : werke.length);
   /* WELCHES BILD DIE SPRÜCHE BETREFFEN: die letzte Bildwahl („Bild 2" · „Imaginea 2"). Nur wenn die Chips
      wirklich Sätze sind (nicht „Ja · Nein"), bekommt der Browser die Nummer — dann schickt ein Tipp auf
      einen Spruch „diesen Spruch für dieses Bild" mit, und der Code zeigt es sofort. */
@@ -2153,25 +2424,42 @@ export async function POST(request: Request) {
   if (KUNST && vorschauZeigen && passtFrage) antwort = passtFrage;
   /* DIE SCHLUSSNACHRICHT IST FESTER TEXT (Owner 11.09.2026: doppelter Profil-Satz, danach Chips und eine Frage) — seine
      Adresse, „jederzeit ergänzen", keine Frage, keine Chips. */
+  /**
+   * ── ER SIEHT SOFORT, DASS DIE MAIL DER NÄCHSTE SCHRITT IST (Owner 12.09.2026: „er muss im
+   * Tunnel sofort sehen: wir haben dir eine E-Mail geschickt, deine Inhalte musst du per E-Mail
+   * bestätigen") ─────────────────────────────────────────────────────────────────────────────
+   *
+   * Hier stand „Geschafft! Deine Seite ist online: <Adresse>" samt Link in den Chat. Das war
+   * zweimal falsch geworden: Die Seite ist noch nicht fertig (gerechnet wird erst nach seinem
+   * Klick), und der Link im Chat führte an der Bestätigung vorbei — auch für jemanden, der nur
+   * die fremde E-Mail kannte.
+   *
+   * KEINE ADRESSE MEHR IM TEXT: Der einzige Weg führt über die Mail. Deshalb bekommt die
+   * Funktion die Adresse zwar weiterhin übergeben, benutzt sie aber nicht.
+   */
   const ABSCHLUSS_SATZ: Record<string, (u: string) => string> = {
-    /* Mit dem Angebot, das Profil zu ergänzen (Owner 11.09.2026) — ein Angebot, keine Frage; der Knopf steht darunter. */
-    ro: u => `Gata! Pagina ta e online: ${u}\nDacă vrei, spune-i agentului tău mai multe despre tine și despre fiecare lucrare — cu cât știe mai mult, cu atât vinde mai bine. E opțional, iar linkul îți vine și pe e-mail.`,
-    de: u => `Geschafft! Deine Seite ist online: ${u}\nWenn du magst, erzähl deinem Agenten mehr über dich und jedes Werk — je mehr er weiß, desto besser verkauft er. Das ist freiwillig, den Link bekommst du auch per E-Mail.`,
-    en: u => `Done! Your page is online: ${u}\nIf you like, tell your agent more about yourself and each work — the more it knows, the better it sells. It's optional, and the link is also in your email.`,
-    fr: u => `C'est fait ! Ta page est en ligne : ${u}\nTu peux la compléter à tout moment — les liens arrivent par e-mail.`,
-    es: u => `¡Listo! Tu página está en línea: ${u}\nPuedes completarla cuando quieras — los enlaces te llegan por e-mail.`,
-    it: u => `Fatto! La tua pagina è online: ${u}\nPuoi completarla quando vuoi — i link ti arrivano via e-mail.`,
-    hu: u => `Kész! Az oldalad elérhető: ${u}\nBármikor kiegészítheted — a linkeket e-mailben küldjük.`,
+    ro: () => "Ți-am trimis un e-mail. Confirmă-ți conținutul prin linkul din el — abia atunci îți construim pagina, și o vezi imediat.",
+    de: () => "Wir haben dir eine E-Mail geschickt. Bestätige deine Inhalte über den Link darin — erst dann bauen wir deine Seite, und du siehst sie sofort.",
+    en: () => "We've sent you an email. Confirm your content with the link inside — only then do we build your page, and you'll see it right away.",
+    fr: () => "Nous t'avons envoyé un e-mail. Confirme ton contenu avec le lien qu'il contient — c'est seulement là que ta page est créée.",
+    es: () => "Te hemos enviado un correo. Confirma tu contenido con el enlace que contiene — solo entonces creamos tu página.",
+    it: () => "Ti abbiamo inviato un'e-mail. Conferma i tuoi contenuti con il link al suo interno — solo allora creiamo la tua pagina.",
+    hu: () => "Küldtünk egy e-mailt. Erősítsd meg a tartalmaidat a benne lévő linkkel — csak ezután épül fel az oldalad.",
   };
-  if (KUNST && r.benutzt.includes("abschluss_schicken") && fund.angelegt) {
+  if (KUNST && r.benutzt.includes("abschluss_schicken") && (fund.angelegt || fund.bestaetigung)) {
     /* Hatte er schon eine Seite, sagt der Satz das (Owner 11.09.2026: „das Bild ist zwei mal drin"). */
+    /* Bei einer BESTEHENDEN Seite ist die Bestätigung per Mail nicht Höflichkeit, sondern die
+       Sperre: Nur wer an diese Adresse kommt, kann Werke hinzufügen (Owner 12.09.2026). Deshalb
+       auch hier keine Adresse im Chat. */
     const ERGAENZT_SATZ: Record<string, (u: string) => string> = {
-      ro: u => `Ai deja o pagină: ${u}\nAm adăugat lucrarea nouă. Linkurile îți vin din nou pe e-mail.`,
-      de: u => `Du hast schon eine Seite: ${u}\nDas neue Werk ist dazugekommen. Die Links kommen noch einmal per E-Mail.`,
-      en: u => `You already have a page: ${u}\nThe new work has been added. The links are on their way again by email.`,
+      ro: () => "Există deja o pagină pentru această adresă de e-mail. Ți-am trimis un e-mail — confirmă acolo, iar lucrările noi se adaugă.",
+      de: () => "Zu dieser E-Mail-Adresse gibt es schon eine Seite. Wir haben dir eine E-Mail geschickt — bestätige dort, dann kommen die neuen Werke dazu.",
+      en: () => "There is already a page for this email address. We've sent you an email — confirm there, and the new works will be added.",
     };
     const saetze = fund.ergaenzt ? ERGAENZT_SATZ : ABSCHLUSS_SATZ;
-    antwort = (saetze[sprache.slice(0, 2).toLowerCase()] ?? saetze.en)(fund.angelegt);
+    /* Die Sätze nennen seit dem 12.09.2026 keine Adresse mehr — das Argument bleibt für die
+       älteren Sprachen im Typ, wird aber nicht mehr eingesetzt. */
+    antwort = (saetze[sprache.slice(0, 2).toLowerCase()] ?? saetze.en)(fund.angelegt ?? "");
     vorschlaege = [];
     /* Ab jetzt ist dieses Gespräch zu Ende — jeder weitere Zug bekommt oben den festen Dank ohne Modellaufruf. */
     void gespraechBeenden(str(body.gespraech, 60));

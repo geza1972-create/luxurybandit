@@ -106,6 +106,15 @@ export type LaufZug = {
   fassung: number;
   /** Die Speicherpfade seiner Bilder in diesem Zug, falls er welche gezeigt hat (Owner 11.09.2026). */
   fotos?: string[];
+  /**
+   * ── NAME UND ADRESSE, WIRKLICH GESPEICHERT (Owner 14.09.2026: „warum steht ihre email nicht
+   * drin? einfach sammeln") ───────────────────────────────────────────────────────────────────
+   *
+   * Vorher stand hier nur der feste Platzhalter „[Werk hochgeladen]" — er hätte den Anschein
+   * erweckt, es gäbe keine Adresse, obwohl der Knopf im Browser ohne sie gar nicht drückbar ist.
+   * Gesetzt nur beim ERSTEN Zug (nicht bei „neu schreiben"): Da wird sie erfasst, nicht danach.
+   */
+  kontakt?: { name: string; mail: string };
 };
 
 const ordner = (gespraech: string) => `versusforge-lauf/${gespraech.replace(/[^a-zA-Z0-9_-]/g, "")}`;

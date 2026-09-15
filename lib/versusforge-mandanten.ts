@@ -26,11 +26,27 @@ import { EIGENER_MANDANT, GESPERRTE_NAMEN, mandantSauber } from "@/lib/versusfor
 export type WerkInfo = {
   /** Seine Geschichte zu diesem Werk — nicht auf der Seite, sein Agent erzählt daraus (Owner 11.09.2026). */
   geschichte?: string;
-  /** Sein Preis für dieses Werk, wie er ihn schreibt („800 €") — und ob er ihn zeigen will (Owner 11.09.2026: „c"). */
+  /** Sein Preis für DIESES Werk, wie er ihn schreibt — freiwillig. Leer: Es gilt `preisSpanne`. */
   preis?: string;
+  /**
+   * ALTLAST, WIRD NICHT MEHR GELESEN (Owner 12.09.2026). Das Häkchen „Preis auf meiner Seite
+   * zeigen" gibt es nicht mehr: Wer einen Preis einträgt, will ihn zeigen. Das Feld bleibt nur
+   * stehen, damit die bereits gespeicherten Werte der ersten Künstler nicht verlorengehen — es
+   * entscheidet nichts mehr.
+   */
   preisZeigen?: boolean;
   /** Weitere Details, z. B. „Print semnat, ediție limitată 3/50" (Owner 11.09.2026: „hier wäre nicht Technica, sondern Alte detalii"). */
-  detalii?: string; titel?: string; technik?: string; groesse?: string; jahr?: string };
+  detalii?: string; titel?: string; technik?: string; groesse?: string; jahr?: string;
+  /**
+   * DIESES WERK VERTRITT IHN (Owner 12.09.2026: „hier muss ein Häkchen sein in allen Sprachen,
+   * welches Bild mich repräsentiert").
+   *
+   * Genau EINES je Künstler — das Formular löscht beim Anhaken die anderen. Es entscheidet das
+   * Vorschaubild, das erscheint, wenn jemand seine Seite teilt; bis heute hatte die Künstlerseite
+   * gar keines, ein geteilter Link war eine graue Textzeile. Fehlt die Angabe, nimmt die Seite
+   * seine erste Kachel — wie bisher.
+   */
+  vertritt?: boolean };
 
 export type MandantAngaben = {
   /** Der Name, der oben auf der Seite steht. Seiner, nicht unserer. */
@@ -91,6 +107,21 @@ export type MandantAngaben = {
   geraet?: string;
   /** Die Überschrift: sein Hook aus dem Plan. */
   hook: string;
+  /**
+   * ── DIESELBEN SPRÜCHE IN DEN ANDEREN PORTALSPRACHEN (Owner 14.09.2026: „hier wird nichts
+   * übersetzt" · „einmal am tag musst du übersetzen") ────────────────────────────────────────
+   *
+   * Der Spruch entsteht in der Sprache des Künstlers. Ein Käufer aus England sah ihn bisher auf
+   * Rumänisch, während die ganze Oberfläche um ihn herum englisch war.
+   *
+   * NEU GESCHRIEBEN, NICHT ÜBERSETZT: Ein Satz wie „Născut în două zile din pasiunea și memoria
+   * artistului" wird Wort für Wort flach. Der Nachtlauf gibt dem Modell denselben Ton-Auftrag
+   * wie beim Original ([[spruch-ton-louisett-massstab]]).
+   *
+   * JE SPRACHE DIESELBE FORM WIE OBEN: `hook` ist das Standardmotiv, `hooks` die übrigen Werke
+   * in derselben Reihenfolge — fehlt ein Eintrag, gilt das Original.
+   */
+  hookSprachen?: Record<string, { hook?: string; hooks?: string[] }>;
   /** Ein Satz darunter, an SEINEN Kunden gerichtet — was er bekommt. */
   unterzeile: string;
   /** Die Karten zum Antippen statt eines leeren Feldes. 3 bis 4. */
@@ -202,12 +233,69 @@ export type MandantAngaben = {
   werkInfo?: Record<string, WerkInfo>;
   /** Der Preis, den er im Gespräch genannt hat — für den Owner und den Agenten, nicht auf der Seite. */
   preis?: string;
+  /**
+   * WAS ER FÜR SEINE WERKE VERLANGT — EIN SATZ, AN JEDEM BILD (Owner 12.09.2026: „es wird nur
+   * generell erscheinen was der künstler für seine werke verlangt bei jedem bild" · „„400€-1300€.
+   * Preis auf Anfrage" so soll es stehen").
+   *
+   * Hier steht nur SEINE Spanne („400€-1300€"); „Preis auf Anfrage" hängt die Seite in der Sprache
+   * des Betrachters an — sonst läse ein rumänischer Käufer einen deutschen Satz. Leer heisst: nur
+   * „Preis auf Anfrage". Einen Preis JE WERK gibt es nicht mehr (die alten Werte bleiben in
+   * `WerkInfo.preis` liegen, werden aber nicht mehr gefragt und nicht mehr gezeigt).
+   */
+  preisSpanne?: string;
+  /**
+   * SEINE SEITE WIRD GERADE GEBAUT (Owner 12.09.2026: „kann ich nicht einfach ihm sofort die
+   * Seite geben und falls er draufgeht steht, es wird gerade hochgeladen?").
+   *
+   * Gesetzt in dem Augenblick, in dem sein Konto entsteht, und wieder entfernt, sobald Bilder
+   * und Sprüche fertig im Hintergrund geschrieben sind. Solange es steht, sagt seine Seite das
+   * auch — statt leer auszusehen, als wäre etwas schiefgegangen. Ein Zeitstempel und kein
+   * Ja/Nein, damit man sieht, ob es hängt.
+   */
+  aufbauSeit?: string;
   /** Über mich — sein Text auf seiner Seite (Owner 11.09.2026: „Text über sich"). */
   ueberMich?: string;
+  /**
+   * WIE UND WAS ER MALT — aus der Bildanalyse erzeugt (Owner 13.09.2026: „du beschreibst wie er
+   * malt, was er malt" · „auch bei den jetzigen, die nichts haben"), in `lib/kuenstler-profil.ts`.
+   *
+   * BEWUSST NICHT `ueberMich`: Das ist SEIN Text in der Ich-Form. Dieses Feld steht in der
+   * dritten Person und spricht über das WERK — alles darin ist aus `werkBefunde` belegt. Gezeigt
+   * wird es nur, solange er selbst nichts geschrieben hat; sein eigener Text schlägt es immer.
+   */
+  werkBeschreibung?: string;
   /** Ob er ein Künstlerfoto hochgeladen hat — die Datei liegt als Motiv „profil" (Seite bearbeiten). */
   profilBild?: boolean;
+  /**
+   * ── SEINE SOZIALEN ADRESSEN (Owner 13.09.2026: „Feld für Instagram oder Facebook … kann er
+   * eintragen") ────────────────────────────────────────────────────────────────────────────────
+   *
+   * Gepflegt in „Seite bearbeiten", nicht in den Einstellungen: Dort stehen Impressum und
+   * Datenschutz für BETRIEBE — ein Künstler hat beides nicht, seine Rechtstexte stellt das
+   * Portal. Er pflegt Name, Ort, Preis und Text ohnehin im Formular; dorthin gehören auch diese
+   * zwei.
+   *
+   * IMMER ALS VOLLE ADRESSE GESPEICHERT. Eingetippt wird oft nur „@name" oder „name" — daraus
+   * macht `app/api/portal-profil` eine gültige Adresse, statt sie abzuweisen.
+   */
+  instagram?: string;
+  facebook?: string;
   /** Die Kacheln, die er auf „Seite bearbeiten" hat (-1 = Standard) — auch die ohne Spruch, sonst verschwänden sie beim nächsten Öffnen. */
   werkNummern?: number[];
+  /**
+   * WANN SEINE FOLLOWER ZULETZT POST BEKAMEN — die Bremse (Owner 13.09.2026, Follow-Mail bauen).
+   *
+   * Ein Künstler, der zehn Werke hochlädt, speichert dabei mehrmals. Ohne diese Marke ginge bei
+   * jedem Speichern eine Mail an jeden Follower — zehn Mails an denselben Menschen in zwanzig
+   * Minuten. Das ist der schnellste Weg in den Spam-Ordner, und zwar nicht nur für diese Mails:
+   * Eine Domain, die so verschickt, stellt danach auch die Bestätigungslinks der Künstler nicht
+   * mehr zu.
+   *
+   * HÖCHSTENS EINE MAIL JE KÜNSTLER UND TAG. Was er in der Zwischenzeit noch hinzufügt, sehen
+   * seine Follower beim nächsten Mal — oder auf seiner Seite, die ohnehin verlinkt ist.
+   */
+  folgenMailAm?: string;
   /** Die Bildanalyse je Kachel („standard", „0" …), beim Abschluss gespeichert — Stoff für seinen verkaufenden Agenten. */
   werkBefunde?: Record<string, { stil?: string; motiv?: string; szene?: string; erinnertAn?: string; selten?: string; merkmale?: string[] }>;
   stand: "vorschau" | "scharf";
@@ -287,7 +375,16 @@ export async function mandantSpeichern(mandantRoh: string, angaben: MandantAngab
   if (!mandant || (GESPERRTE_NAMEN.has(mandant) && mandant !== EIGENER_MANDANT)) return false;
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad(mandant))}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-upsert": "true" },
+    /**
+     * `cache-control` GEHÖRT DAZU (14.09.2026): Ohne diesen Kopf legt die Ablage die Datei hinter
+     * einen Zwischenspeicher, und wer unmittelbar nach dem Schreiben liest, bekommt die ALTE
+     * Fassung zurück — ohne Fehler, ohne Hinweis.
+     *
+     * Gemessen an diesem Tag: Ein frisch geschriebenes Abo las sich Sekunden später als `null`
+     * zurück und war doch da. Dasselbe trifft jeden Künstler, der speichert und seine Seite neu
+     * lädt. Die übrigen Schreibwege im Haus setzen den Kopf längst.
+     */
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
     body: JSON.stringify(angaben),
   });
   if (!res.ok) console.error("[versusforge] Mandant NICHT gespeichert:", res.status, await res.text().catch(() => ""));
@@ -363,6 +460,22 @@ export async function freierName(wunsch: string): Promise<string> {
  * SIE SIEZEN. Das ist der eine Ort im Haus, an dem die Hausregel „immer duzen" nicht gilt:
  * Hier spricht nicht VersusForge, hier spricht der Zahnarzt mit seinem Patienten.
  */
+/**
+ * ── DER VORGABESATZ IST KEIN SPRUCH (Owner 14.09.2026) ──────────────────────────────────────
+ *
+ * `mandantAusPlan` setzt `hook || V.hook` — fehlt der Spruch, steht dort der Vorgabetext
+ * („Spuneți-ne despre ce este vorba."). Für den Nachtrag im Hintergrund
+ * (`spruecheNachtragen`) sah das aus wie ein vorhandener Satz, und das erste Werk wurde
+ * übersprungen. Bei Künstlern mit nur EINEM Werk blieb damit alles beim Platzhalter — unter
+ * einem Gemälde stand ein gesiezter Formularsatz aus dem Firmen-Trichter.
+ *
+ * Wer prüft, ob ein Werk noch einen Satz braucht, fragt hier.
+ */
+export const istVorgabeHook = (s: unknown): boolean => {
+  const t = String(s ?? "").trim();
+  return !!t && Object.values(MANDANT_VORGABE).some(v => v.hook === t);
+};
+
 const MANDANT_VORGABE: Record<string, { hook: string; unterzeile: string; karte: string; knopf: string; fein: string }> = {
   de: {
     hook: "Sagen Sie uns, worum es geht.",

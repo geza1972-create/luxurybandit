@@ -110,9 +110,11 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
      kamen als „Contemporary Surrealistic" im Chat an. Eingeordnet wird nur noch intern, für den Owner. */
   /* ── DER CHAT HÖRT FRÜHER AUF (Owner 11.09.2026: „wir können nicht alles im Chat lösen. Wir sollen vorher aufhören. Der
      Künstler soll seine Webseite pflegen, wie Preise und so weiter"). Hier standen `besonderes` (Ja/Nein: was deine Bilder
-     unterscheidet), weiter unten `kaeufer` (wer so etwas kauft), `preis` und `ueberleitung`. Der Ablauf ist jetzt:
-     Bilder → Bild wählen → Gefühl → drei Sprüche → Passt das? → Name und E-Mail → fertig. Titel, Technik, Größe, Jahr,
-     Preis und weitere Details trägt er auf „Seite bearbeiten" ein. */
+     unterscheidet), weiter unten `kaeufer` (wer so etwas kauft), `preis` und `ueberleitung`. Der Ablauf ist jetzt
+     (Owner 12.09.2026: „Einfach lade die bilder hoch und wir machen dir die texte. sonst nichts"):
+     Bilder hochladen → wir schreiben zu JEDEM Werk einen fertigen Spruch → Passt das? → Name und E-Mail → fertig.
+     Keine Bildwahl, keine Gefühlsfrage, keine drei Vorschläge. Titel, Technik, Größe und weitere Details trägt er
+     auf „Seite bearbeiten" ein. */
   {
     /* ── MEHR BILDER SIND EIN ANGEBOT, KEINE BEDINGUNG (Owner 10.09.2026: „nicht ‚zeig mal', sondern
        ‚willst du noch bis zu 3 Bilder hochladen', wenn er schon 1 hochgeladen hat, ja nein" · „das
@@ -123,7 +125,7 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
     ziel: "Weiter mit dem, was er gezeigt hat — über die Aufnahme entscheidet der Owner bei der Freigabe.",
     so: [],
     regeln: [
-      "Nach den ersten Bildern fragt der CODE einmal, ob er noch bis zu 3 hochladen will. Du fragst nie selbst nach weiteren Bildern und sagst nie ‚Zeig mir noch welche'.",
+      "Nach den ersten Bildern fragt der CODE einmal, ob er noch weitere hochladen will (bis zu 10 insgesamt, Owner 12.09.2026). Du fragst nie selbst nach weiteren Bildern und sagst nie ‚Zeig mir noch welche'.",
       "Hat er nur ein oder zwei Bilder, machst du trotzdem weiter. Sag nie etwas von einer Mindestzahl oder einer Aufnahme.",
       "Nie darüber urteilen, ob die Bilder gut sind.",
     ],
@@ -134,20 +136,30 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
        für seine Werbung. Interessiert uns nicht. Zeige sein Bild und Spruch drunter"). Hier stand
        `zeigen_wie`: Hooks → Werbung → Landingpage. Am Ende stand eine weisse Kachel ohne sein Bild. */
     schluessel: "spruch",
-    ziel: "EIN Bild wählen und einen Spruch darunter — kein Werbe-Hook, keine Anzeige.",
+    /* ── WIR MACHEN DIE SPRÜCHE FERTIG (Owner 12.09.2026: „Einfach lade die Bilder hoch und wir
+       machen dir die texte. sonst nichts" · „es wird nichts vorgeschlagen" · „wir machen die sprüche
+       fertig") ───────────────────────────────────────────────────────────────────────────────────
+       Hier stand: EIN Bild wählen, nach dem Gefühl fragen, drei Sprüche als Chips anbieten, einen
+       auswählen lassen. Vier Schritte für einen Satz — und der Künstler musste dreimal entscheiden,
+       bevor überhaupt etwas entstand. Jetzt bekommt JEDES hochgeladene Werk seinen fertigen Satz,
+       er liest sie und gibt frei. Die Regeln darunter bleiben unverändert: Sie galten für die drei
+       Vorschläge und gelten jetzt für den einen Satz. */
+    ziel: "Für JEDES hochgeladene Werk genau EINEN fertigen Spruch schreiben — keine Auswahl, keine Rückfrage, kein Werbe-Hook.",
     so: [
-      "Für welches Bild machen wir deinen Spruch?",
-      "Was steckt für dich in diesem Bild — welches Gefühl, welche Geschichte?",
+      /* Hier standen „Für welches Bild machen wir deinen Spruch?" und „Was steckt für dich in
+         diesem Bild — welches Gefühl, welche Geschichte?" (Owner 12.09.2026: „es wird nichts
+         vorgeschlagen" · „wir machen die sprüche fertig"). Beide Fragen entfallen: Er lädt hoch,
+         wir schreiben. Die Geschichte trägt er später selbst auf seiner Seite ein. */
+      "Deine Sprüche stehen unter deinen Bildern. Passt das?",
       /* Hier standen „Holt dir das Paradiesblau … ins Haus" und „Er holt dir Siena ins Zimmer" — die Form
          wurde zur Schablone (Owner 11.09.2026: „Die Sprüche sind zu ähnlich … Ich hoffe, das bekommen nicht
          alle Künstler"). Drei Beispiele, drei Formen, alle über das Bild selbst. */
       "Die Leiter führt ins Wasser, niemand steigt hinein.",
       "Wer hat hier zuletzt gebadet?",
       "Das Blau von einem Sommer, der nicht aufhören wollte.",
-      "Passt das?",
     ],
     regeln: [
-      "REIHENFOLGE: 1. welches Bild (Chip-Zeile >>BILDER) · 2. kennst du das Gefühl oder die Geschichte zu diesem Bild noch nicht, frag danach — offen, ohne Chips, NUR diese eine Frage in einem Satz: nicht wiederholen, welches Bild er gewählt hat, keine Farben, keine Merkmale, nicht ankündigen, was danach kommt (Owner 11.09.2026: ‚trei fraze? Nu cred') · 3. drei Sprüche zur Auswahl NUR als Chips — nie zusätzlich als Text; darüber genau ein kurzer Satz (Owner 11.09.2026: ‚Du hast sie als Chips, die Liste. Das reicht.') · 4. hat er gewählt: ruf spruch_zeigen mit Bildnummer und Spruch auf und frag ‚Passt das?' mit >>Ja|Nein.",
+      "REIHENFOLGE: Du bekommst seine Bilder — schreib fuer JEDES einen fertigen Spruch, zeig sie zusammen und frag EINMAL ‚Passt das?’ mit >>Ja|Nein. Frag nie, fuer welches Bild, frag nie nach Gefuehl oder Geschichte, biete nie mehrere Sprueche zur Auswahl an (Owner 12.09.2026: ‚es wird nichts vorgeschlagen’).",
       /* Hier stand „Ein Spruch ist kurz" (Owner 11.09.2026: „du kannst es auch länger machen, wenn notwendig"). */
       "Ein Spruch ist EIN BIS ZWEI SÄTZE, so lang wie nötig, nie ein Absatz (höchstens 280 Zeichen). Er spricht über DAS BILD und was es auslösen kann — nie über die Wohnung des Käufers.",
       "VERBOTEN IN JEDER SPRACHE: das Nach-Hause-Holen — ‚hol dir', ‚bring es', ‚an die Wand', ‚ins Haus', ‚ins Zimmer', ‚für dein Zuhause', ‚ia acasă', ‚în casa ta', ‚pe peretele tău', ‚bring home', ‚on your wall'. Es klingt bei jedem Künstler gleich.",
@@ -159,12 +171,23 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
          marketingtechnisch ok? … Geht das auch nach dem Rezept von Stein?"). Der Gegenstand ändert sich nicht — nur der
          Grund, ihn zu wollen, taucht auf. Die Hebel sind dieselben wie in lib/versusforge-hook-rezept.ts. Vorher standen
          hier nur Motiv · Gefühl · Besonderes: schön beschrieben, aber ohne Grund zu kaufen. */
-      "JEDER SPRUCH BEDIENT EINEN HEBEL, jeder einen anderen: 1. ZWECK — was das Bild auslösen KANN, als Möglichkeit oder offene Frage, nie als Befehl · 2. IDENTITÄT — wer so ein Bild besitzt, für wen es ist · 3. die STEIN-WENDUNG (das Gewöhnliche aufzählen, dann kippt es ins Wollen) ODER GESCHICHTE (was er selbst über das Bild erzählt hat) ODER KNAPPHEIT, nur wenn sie echt ist (es gibt diese eine Leinwand; eine Serie von drei). Immer mit dem genauen Detail aus DIESEM Bild (steht unter ‚Szene'). Jede Farbe höchstens EINMAL in allen drei Sprüchen. Nenne den Hebel nie.",
+      "JEDER SPRUCH BEDIENT EINEN HEBEL, jeder einen anderen: 1. ZWECK — was das Bild auslösen KANN, als Möglichkeit oder offene Frage, nie als Befehl · 2. IDENTITÄT — wer so ein Bild besitzt, für wen es ist · 3. die STEIN-WENDUNG (das Gewöhnliche aufzählen, dann kippt es ins Wollen) ODER GESCHICHTE (was er selbst über das Bild erzählt hat) ODER KNAPPHEIT, nur wenn sie echt ist (es gibt diese eine Leinwand; eine Serie von drei). Immer mit dem genauen Detail aus DIESEM Bild (steht unter ‚Szene'). Jede Farbe höchstens EINMAL über alle Werke hinweg, und jedes Werk bekommt einen anderen Hebel als das Werk davor. Nenne den Hebel nie.",
+      /* Owner 14.09.2026, wörtlich: „man beschreibt nicht die technik" — zu drei Vorschlägen von mir,
+         die mit „Roz, turcoaz, linii de pix" anfingen. Alle drei abgelehnt („keiner von dir"). Es ist
+         dieselbe Regel wie beim Hook ([[kunst-hooks-emotion-statt-technik]]), sie stand hier nur nicht. */
+      /* Owner 14.09.2026, wörtlich: „du gibst jedem bild eine story". Das ist die Überschrift über
+         allem, was darunter steht — nicht ein Hebel neben anderen. */
+      "JEDES BILD BEKOMMT EINE GEHEIMNISVOLLE GESCHICHTE. Nicht eine Beschreibung, nicht ein Schlagwort, nicht einen Titel: eine kleine Geschichte, die es vorher nicht gab. Woher kommt sie, was sucht sie, was ist gerade passiert, was weiss sie, das der Betrachter nicht weiss. Zwei bis drei Saetze duerfen das sein.",
+      /* Owner 14.09.2026: „eine gehimnisvolle". Die Gefahr dabei ist die Esoterik, die er am
+         11.09. ausdrücklich verboten hat („piscina e subconștient") — deshalb steht hier, wo der
+         Unterschied liegt: Geheimnis heisst ZURÜCKHALTEN, Esoterik heisst BEHAUPTEN. */
+      "GEHEIMNISVOLL HEISST ZURUECKHALTEN, NICHT DEUTEN. Du weisst etwas über dieses Bild und sagst es nicht ganz: eine Herkunft, die niemand kennt; etwas, das sie sucht; ein Abend, an dem etwas passieren koennte. Das Geheimnis bleibt offen — der Betrachter fuellt es. NIE aufloesen, nie erklaeren, und nie in Esoterik kippen (‚X ist das Unterbewusstsein / die Unendlichkeit / die Seele') — das waere das Gegenteil: eine Behauptung statt eines Geheimnisses.",
+      "MAN BESCHREIBT, WAS MAN NICHT SIEHT. Die Technik sieht jeder selbst — Farben, Material, Machart, was auf der Leinwand liegt (‚pix', ‚acryl', ‚roz si turcoaz', ‚linii'): das steht NIE in einem Spruch, es ist verschenkter Platz. Schreib das Unsichtbare: woher sie kommt, wonach der Blick sucht, was gerade passiert ist oder gleich passiert, was sie weiss und der Betrachter nicht. Das sichtbare Detail ist dein Ausgangspunkt, nie dein Satz.",
       "KEINE FLOSKELN: nie ‚Unikat', ‚einzigartig', ‚exklusiv', ‚nur einmal', ‚ein Hingucker'. Spricht ein Spruch den Käufer an, dann mit du, nie ‚Sie/Ihre'.",
-      "Vor den Sprüchen keine Aufzählung von Farben oder Merkmalen und keine Erklärung, was die Sprüche leisten sollen — nur EIN kurzer Satz wie ‚Welcher passt zu Bild 1?'. Die Sprüche selbst stehen nur in der >>-Zeile. Nach ihnen kein weiterer Satz, kein ‚Wähl einen oder ändere ihn'.",
+      "Vor den Spruechen keine Aufzaehlung von Farben oder Merkmalen und keine Erklaerung, was sie leisten sollen — kein Vorspann, keine Zusammenfassung. Die Sprueche stehen einfach unter den Bildern.",
       /* Owner 11.09.2026: „hier sind die Sätze redundant" — dreimal „Ia acasă …" (= „Holt dir …"). */
-      "JEDER SPRUCH FÄNGT ANDERS AN UND IST ANDERS GEBAUT (eine Frage, eine Aussage, ein Bild) — nie zweimal dasselbe Anfangswort. Die Beispiele zeigen den Ton, nicht die Form — schreib für jeden Künstler neu, aus SEINEM Bild.",
-      "Sagt er zum Spruch Nein: frag in einem Satz, was nicht passt, und mach drei neue.",
+      "JEDER SPRUCH FAENGT ANDERS AN UND IST ANDERS GEBAUT (eine Frage, eine Aussage, ein Bild) — nie zweimal dasselbe Anfangswort, und zwar UEBER ALLE WERKE HINWEG. Zehn Bilder, zehn verschiedene Ansaetze; sonst liest sich seine Seite wie eine Schablone (Owner 11.09.2026: ‚Die Sprueche sind zu aehnlich’).",
+      "Sagt er Nein: frag in EINEM Satz, was nicht passt, und schreib die betroffenen Sprueche neu — nur die, nicht alle.",
       /* Owner 11.09.2026 (rumänischer Chat, Spruch „Compoziție originală personală: …"): „Nu poți zice original
          personal, este un pleonasm. Tu nu ai corectat profesional, eu am scris că nu știu altcumva." */
       /* Direkt auf Rumänisch geschrieben, nicht übersetzt (Owner 11.09.2026: „auf Rumänisch denken" · „Kuratoren-Sprache"). */
@@ -172,15 +195,26 @@ export const KUNST_SCHRITTE: KunstSchritt[] = [
          letzten Satz zu etwas anderem" — gesehen: „simți soarele și vrei să cobori", „vrei să pășești". */
       /* Owner 11.09.2026: „Mir hat der Spruch sehr gefallen … Dieses Blau entsteht kein zweites Mal" · „es gibt so viele
          klevere Weisheiten auf dieser Erde, warum nutzen wir sie nicht? Machen Analogien?" */
-      "EINER DER DREI SPRÜCHE IST EINE WEISHEIT ALS ANALOGIE (er ersetzt einen der Hebel): Nimm eine der Weisheiten, die dir zu seinen Bildern gegeben werden, und biege sie auf das genaue Detail DIESES Bildes. Nie wörtlich zitieren, nie die Quelle nennen, keine Anführungszeichen. So geht es: ‚Man steigt nicht zweimal in denselben Fluss' → ‚Nu intri de două ori în același albastru.' · ‚Apa trece, pietrele rămân' → ‚Vara trece, albastrul rămâne.' · ‚O călătorie de o mie de mile începe cu un pas' → ‚Orice mare începe cu o treaptă.'",
-      "LASS DEM BETRACHTER SEIN EIGENES BILD: Sag nie, was er fühlt, will oder tut — nie ‚simți', ‚vrei să', ‚te face să', ‚te pune', ‚du spürst', ‚du willst', ‚you feel', ‚you want'. Wer davor steht, sieht vielleicht eine eigene Erinnerung; der Spruch öffnet sie, statt sie zu ersetzen. Ein genaues Detail und ein offenes Ende oder eine Frage, die er selbst füllt.",
-      "SO KLINGT ES AUF RUMÄNISCH (Ton, nicht Vorlage — nie für ein anderes Bild abschreiben): Stein-Wendung ‚O scară, puțină apă, o dungă de galben. Nimic spectaculos — și totuși: cine a coborât ultimul?' · Zweck ‚Un tablou la care revii. De fiecare dată marea e altfel.' · Identität und echte Knappheit ‚Pentru cine știe că cele mai bune gânduri vin la marginea apei. Există o singură pânză.' Zu schwach, weil ohne Grund zu kaufen: ‚Scara coboară; apa păstrează un gând neterminat.' Falsch, weil sie ihm vorschreiben, was er fühlt: ‚Când te oprești, intrarea în subconștient te pune pe marginea piscinei: simți soarele și vrei să cobori.' · ‚O scară, o plajă îndepărtată, o apă albastră — nimic spectaculos, și totuși după un minut vrei să pășești.'",
+      "MANCHMAL EINE WEISHEIT ALS ANALOGIE (nicht bei jedem Werk, sonst wird auch das zur Schablone): Nimm eine der Weisheiten, die dir zu seinen Bildern gegeben werden, und bieg sie auf das genaue Detail DIESES Bildes. Nie woertlich zitieren, nie die Quelle nennen, keine Anfuehrungszeichen. So geht es: ‚Man steigt nicht zweimal in denselben Fluss’ → ‚Nu intri de doua ori in acelasi albastru.’ · ‚Apa trece, pietrele raman’ → ‚Vara trece, albastrul ramane.’",
+      /* ── PRÄZISIERT AM 14.09.2026 ────────────────────────────────────────────────────────────
+         Hier stand ein pauschales Verbot, den Betrachter anzusprechen. Daraus wurde Telegrammstil,
+         und der Owner hat alle drei Vorschläge abgelehnt („keiner von dir"). Der Satz, den er
+         stattdessen gut fand, spricht sehr wohl an — aber im MÖGLICHKEITSMODUS: „Pune-o pe perete
+         și, dacă o privești suficient de mult, într-o seară s-ar putea să-ți șoptească la ureche."
+         Die Grenze verläuft nicht beim Ansprechen, sondern bei der BEHAUPTUNG über sein Inneres. */
+      "LASS DEM BETRACHTER SEIN EIGENES BILD — aber sprich ihn ruhig an. Verboten ist die BEHAUPTUNG, was er fühlt oder will: nie ‚simți', ‚vrei să', ‚te face să', ‚te pune', ‚du spürst', ‚du willst', ‚you feel', ‚you want'. ERLAUBT und erwuenscht ist die MOEGLICHKEIT: ‚poate', ‚s-ar putea', ‚daca o privesti destul', ‚vielleicht' — und eine Einladung wie ‚Pune-o pe perete'. Wer davor steht, sieht vielleicht eine eigene Erinnerung; der Spruch oeffnet sie, statt sie zu ersetzen.",
+      /* ── DER MASSSTAB (Owner 14.09.2026: „das von chat gpt passt") ───────────────────────────
+         Vorher standen hier nur knappe Einzeiler als Ton-Muster, und das Modell hat sie in der
+         Länge kopiert. Der Owner hat drei solche Kurzfassungen abgelehnt („keiner von dir") und
+         diesen Satz als richtig bezeichnet. Er steht deshalb an erster Stelle: erzählend, zwei bis
+         drei Sätze, kein einziges Wort über die Machart — obwohl das Bild voller Kugelschreiber-
+         linien ist. Genau das ist „man beschreibt, was man nicht sieht". */
+      "SO KLINGT ES (Ton, nicht Vorlage — nie für ein anderes Bild abschreiben). DER MASSSTAB, zwei bis drei Sätze, erzählend: ‚Născută în mâinile lui Luisett, în atelierul său, ea pare să vină dintr-un loc pe care nimeni nu-l cunoaște. Privirea ei caută ceva ce doar ea știe că există — poate un om, poate un loc, poate un secret. Pune-o pe perete și, dacă o privești suficient de mult, într-o seară s-ar putea să-ți șoptească la ureche ce caută.' Merke: keine Farbe, kein Material, keine Machart — nur das, was man NICHT sieht. Kürzer geht auch, wenn das Bild es trägt: Stein-Wendung ‚O scară, puțină apă, o dungă de galben. Nimic spectaculos — și totuși: cine a coborât ultimul?' · Zweck ‚Un tablou la care revii. De fiecare dată marea e altfel.' Zu schwach, weil ohne Grund zu kaufen: ‚Scara coboară; apa păstrează un gând neterminat.' Falsch, weil sie ihm VORSCHREIBEN, was er fühlt (statt es ihm anzubieten): ‚Când te oprești, intrarea în subconștient te pune pe marginea piscinei: simți soarele și vrei să cobori.'",
       /* Owner 11.09.2026 zu „Piscina: visul subconștient care așteaptă": „aici ai făcut mai degrabă un titlu și nu un
          marketingspruch de vânzare" · „du musst kombinieren jetzt, Marketing mit Kuratoren-Sprache". */
       "EIN SPRUCH IST KURATOR UND VERKÄUFER ZUGLEICH: vom Kurator das genaue Detail aus dem Bild und was es tut (Licht, Raum, Spannung); vom Marketing der Hebel und ein Verb, das den Betrachter hineinzieht und Lust macht, das Bild zu besitzen. KEIN TITEL: nie die Form ‚X: Y', nie nur Hauptwörter. Falsch: ‚Piscina: visul subconștient care așteaptă' (Titel, Esoterik).",
       "SEINE WORTE SIND ROHSTOFF, NICHT DER SPRUCH: Was er über Gefühl oder Geschichte schreibt, nimmst du als SINN und formulierst es wie ein Profi-Texter seiner Sprache neu. Nie seine Wörter abschreiben, keine Doppelungen (‚original personal', ‚unicat și singular'), kein Spruch, der wie eine Beschreibung klingt (‚Compoziție …', ‚Komposition …'). Und fass vorher nicht zusammen, was er gesagt hat oder was der Spruch sagen muss.",
       /* Owner 11.09.2026: „und hier habe ich eins korrigiert, du weisst es nicht welches. Dann hast du alle drei gezeigt." */
-      "SCHREIBT ER STATT ANZUTIPPEN EINE ÄNDERUNG: Ist klar, welcher Spruch gemeint ist (oder schreibt er einen ganzen Satz), ruf spruch_zeigen mit Bildnummer und NUR diesem geänderten Spruch auf und frag ‚Passt das?' mit >>Ja|Nein. Ist unklar, welcher gemeint ist, frag in einem Satz ‚Welchen meinst du?' und gib die drei bisherigen Sprüche als Chips. Nie die Änderung in alle drei einbauen, nie alle drei neu als Text, kein Erklärsatz danach.",
     ],
   },
   {

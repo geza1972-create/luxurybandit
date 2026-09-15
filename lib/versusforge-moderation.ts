@@ -51,6 +51,55 @@ export const pruefPfad = (mandant: string, nr: string) =>
 
 type ModerationsErgebnis = { flagged?: boolean; categories?: Record<string, boolean> };
 
+/**
+ * ── IST DAS ÜBERHAUPT EIN KUNSTWERK? (Owner 14.09.2026: „Achtung, ich sehe, dass Leute versucht
+ * haben Bullshit hochzuladen und wir haben hier Analysen gemacht") ──────────────────────────
+ *
+ * Hochgeladen wurde unter anderem ein Mitgliedschafts-Zertifikat einer Künstlervereinigung —
+ * und wir haben eine gpt-5-Analyse darauf bezahlt. Dieselbe Sorte fand sich in der Galerie:
+ * Screenshots, Textbilder, Logos.
+ *
+ * DIESE PRÜFUNG IST DIE BILLIGE VORSTUFE: ein Aufruf auf dem kleinen Modell mit `detail: "low"`,
+ * ein Bruchteil dessen, was die eigentliche Analyse kostet. Sie läuft VOR ihr und spart sie.
+ *
+ * ── IM ZWEIFEL DURCHLASSEN ──────────────────────────────────────────────────────────────────
+ *
+ * Die Fehlerrichtung ist bewusst gewählt: Ein durchgelassenes Zertifikat kostet ein paar Cent,
+ * ein abgewiesenes echtes Werk kostet einen Künstler. Deshalb gilt alles als Kunst, was auch nur
+ * plausibel Kunst sein könnte — abgewiesen wird nur, was eindeutig etwas anderes ist. Fällt die
+ * Prüfung aus, gilt das Bild ebenfalls als Kunst.
+ */
+export async function kunstPruefen(o: { apiKey: string; bild: string }): Promise<{ kunst: boolean; was: string }> {
+  const r = await frageModell(o.apiKey, KLEIN, [
+    {
+      type: "input_text",
+      text: [
+        "You are the intake check of an art platform. A person uploads what they claim is their own artwork.",
+        "",
+        'Decide: is this image primarily an ARTWORK — a painting, drawing, sketch, print, collage, sculpture,',
+        'ceramic, textile art, or an artistic photograph?',
+        "",
+        "It is NOT an artwork when the image is primarily:",
+        "a certificate, diploma or award document · a screenshot of a website, chat or app · a document,",
+        "invoice or form · a logo, flyer, poster or advertisement · a meme or text image · a product photo",
+        "of a non-art item · a selfie or ordinary snapshot of people · a blank, black or unreadable image.",
+        "",
+        "IMPORTANT — when in doubt, answer true. A photo OF an artwork (hanging on a wall, held in hands,",
+        "photographed on an easel, with a frame, slightly tilted or badly lit) IS an artwork. Unfinished work,",
+        "children's drawings and amateur painting ARE artworks.",
+        "",
+        'Answer ONLY as JSON: {"kunst":true|false,"was":"<2-4 words, what the image actually shows>"}',
+      ].join("\n"),
+    },
+    { type: "input_image", image_url: o.bild, detail: "low" },
+  ], "low");
+
+  if (!r.ok) return { kunst: true, was: "Prüfung nicht erreichbar" };
+  const d = (r.daten ?? {}) as { kunst?: unknown; was?: unknown };
+  /* Nur ein ausdrückliches `false` weist ab — alles andere (fehlend, unlesbar) gilt als Kunst. */
+  return { kunst: d.kunst !== false, was: String(d.was ?? "").slice(0, 60) };
+}
+
 export async function bildPruefen(o: { apiKey: string; bild: string }): Promise<Pruefurteil> {
   let ergebnis: ModerationsErgebnis | null = null;
   try {

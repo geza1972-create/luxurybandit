@@ -24,6 +24,15 @@ export type ArtikelText = {
   lead: string;
   teile: { h: string; p: string[] }[];
   merksatz: string;
+  /**
+   * EIN BILD IM ARTIKEL, je Sprache (Dateiname in public/lakatosbandi/journal/). Optional —
+   * die ersten fünf Artikel haben keines und sollen keines bekommen.
+   *
+   * WARUM JE SPRACHE und nicht je Artikel: Das Bild trägt Text. Ein rumänisches Zitatbild über
+   * einem deutschen Artikel wäre falsch. Nicht zu verwechseln mit der LINKVORSCHAU, die weiter
+   * `<slug>-<sprache>.jpg` heißt und 1200×630 misst — dieses hier steht im Text.
+   */
+  bild?: string;
 };
 
 export type Artikel = { slug: string; datum: string; texte: Record<JournalSprache, ArtikelText> };
@@ -31,9 +40,14 @@ export type Artikel = { slug: string; datum: string; texte: Record<JournalSprach
 export const JOURNAL_SPRACHEN: JournalSprache[] = ["en", "ro", "de"];
 
 export const JOURNAL_UI: Record<JournalSprache, { titel: string; lead: string; lesen: string; zurueck: string; ctaTitel: string; ctaText: string; ctaKnopf: string; minuten: string }> = {
-  en: { titel: "Journal", lead: "Marketing for artists — honest, practical, without empty promises.", lesen: "Read", zurueck: "All articles", ctaTitel: "Want this for your work?", ctaText: "We are selecting our first artists now. Free to apply · at least three works in the same style · reviewed within 3 days.", ctaKnopf: "Apply as an artist", minuten: "min read" },
-  ro: { titel: "Jurnal", lead: "Marketing pentru artiști — sincer, practic, fără promisiuni goale.", lesen: "Citește", zurueck: "Toate articolele", ctaTitel: "Vrei asta pentru lucrările tale?", ctaText: "Acum ne alegem primii artiști. Aplicarea este gratuită · cel puțin trei lucrări în același stil · verificare în 3 zile.", ctaKnopf: "Aplică ca artist", minuten: "min de citit" },
-  de: { titel: "Journal", lead: "Marketing für Künstler — ehrlich, praktisch, ohne leere Versprechen.", lesen: "Lesen", zurueck: "Alle Artikel", ctaTitel: "Willst du das für deine Werke?", ctaText: "Gerade wählen wir die ersten Künstler aus. Bewerbung kostenlos · mindestens drei Werke im selben Stil · Prüfung innerhalb von 3 Tagen.", ctaKnopf: "Als Künstler bewerben", minuten: "Min. Lesezeit" },
+  /* DER AUFRUF STAND NOCH AUF DER ALTEN LINIE (bis 12.09.2026: „mindestens drei Werke im selben
+     Stil · Prüfung innerhalb von 3 Tagen"). Das widerspricht Anzeige, Trichter und AGB, seit es
+     keine Aufnahmeprüfung mehr gibt und bis zu zehn Werke hochgeladen werden (Owner 12.09.2026:
+     „es muss klar sein, dass alle mitmachen können, nicht nur berühmte Künstler, jeder wirklich
+     jeder" · „bis zu 10 werke dann"). Ein Leser findet solche Widersprüche in einer Sekunde. */
+  en: { titel: "Journal", lead: "Marketing for artists — honest, practical, without empty promises.", lesen: "Read", zurueck: "All articles", ctaTitel: "Want this for your work?", ctaText: "Open your archive: upload up to 10 works, we write the texts, you approve. No entrance exam — anyone can take part. Free.", ctaKnopf: "Apply as an artist", minuten: "min read" },
+  ro: { titel: "Jurnal", lead: "Marketing pentru artiști — sincer, practic, fără promisiuni goale.", lesen: "Citește", zurueck: "Toate articolele", ctaTitel: "Vrei asta pentru lucrările tale?", ctaText: "Deschide-ți arhiva: încarci până la 10 lucrări, noi scriem textele, tu aprobi. Fără examen de admitere — poate participa oricine. Gratuit.", ctaKnopf: "Aplică ca artist", minuten: "min de citit" },
+  de: { titel: "Journal", lead: "Marketing für Künstler — ehrlich, praktisch, ohne leere Versprechen.", lesen: "Lesen", zurueck: "Alle Artikel", ctaTitel: "Willst du das für deine Werke?", ctaText: "Öffne dein Archiv: bis zu 10 Werke hochladen, wir schreiben die Texte, du gibst frei. Keine Aufnahmeprüfung — jeder kann mitmachen. Kostenlos.", ctaKnopf: "Als Künstler bewerben", minuten: "Min. Lesezeit" },
 };
 
 export const ARTIKEL: Artikel[] = [
@@ -409,6 +423,100 @@ export const ARTIKEL: Artikel[] = [
           ] },
         ],
         merksatz: "Nicht irgendein Käufer. Der, der genau dein Werk schätzt.",
+      },
+    },
+  },
+
+  /* ── 6 · BEUYS ─────────────────────────────────────────────────────────────────────────────
+   *
+   * DER ARTIKEL ZUM OPEN ARCHIVE (Owner 12.09.2026: „Joseph Beuys sagte: Jeder Mensch ist ein
+   * Künstler." · „jetzt artikel auf unser webseite mit diesem hook").
+   *
+   * NUR, WAS BELEGT IST: Der Satz ist Beuys zugeschrieben und vielfach überliefert; „soziale
+   * Plastik" ist sein Begriff. Keine Jahreszahlen zu einzelnen Aktionen, keine Werke, keine
+   * Zitate darüber hinaus — was ich nicht sicher weiß, steht nicht drin.
+   *
+   * Das Bild ist der Hook mit dem Foto der Library of Congress (Bernard Gotfryd, 1979,
+   * public domain, keine Namensnennung verlangt) — je Sprache eines, weil es Text trägt.
+   */
+  {
+    slug: "everyone-is-an-artist-beuys",
+    datum: "2026-09-12",
+    texte: {
+      en: {
+        titel: "“Every human being is an artist” — and why that needs no entrance exam",
+        beschreibung: "Beuys’ most famous sentence is usually read as a compliment. He meant something far less comfortable — and it decides who gets to show their work.",
+        lead: "Joseph Beuys said: “Every human being is an artist.” Today the sentence sits on posters and coffee mugs, and it is mostly read as a friendly compliment: you too, you are creative as well. That is not how it was meant.",
+        bild: "everyone-is-an-artist-beuys-bild-en.jpg",
+        teile: [
+          { h: "The sentence is not a compliment", p: [
+            "Beuys was not saying that everybody can paint well. He meant that every person shapes the society they live in — through what they do, decide, build and leave undone. He called it social sculpture: society is the material.",
+            "That is closer to a demand than to praise. It takes away the excuse that shaping things is for the others — the gifted ones, the ones with the diploma.",
+          ] },
+          { h: "Not everyone has to be an artist", p: [
+            "We turn the sentence one step further, into the uncomfortable direction: not everyone has to be an artist. But anyone who creates should be able to show.",
+            "That is a different claim. The first makes everybody an artist. The second gives everybody who makes something the right to make it visible — and leaves the verdict to the people who see it, instead of to a jury beforehand.",
+          ] },
+          { h: "The obstacle is rarely the talent", p: [
+            "What stands between the storage room and the wall is usually not the question whether the work is good enough. It is the photographs, the texts, the question what it should cost, a page where it lives, and an answer for the person who asks at eleven at night whether it is still available.",
+            "That is work which has nothing to do with painting — and it is the reason a lot of pieces stay in the box that could have been hanging on a wall long ago.",
+          ] },
+          { h: "That is why there is no entrance exam here", p: [
+            "We do not screen anyone beforehand. You upload up to ten works, we write the texts for them, you read them and approve. Then you get your page, and an agent answers interested people at any hour and passes you their name and number.",
+            "What you ask for your works you write yourself, in your own words. We do not set prices.",
+          ] },
+        ],
+        merksatz: "Not everyone has to be an artist. But anyone who creates should be able to show.",
+      },
+      ro: {
+        titel: "„Fiecare om este un artist” — și de ce asta nu cere un examen de admitere",
+        beschreibung: "Cea mai cunoscută frază a lui Beuys e citită de obicei ca un compliment. El voia să spună ceva mult mai incomod — și de aici decurge cine are voie să-și arate lucrările.",
+        lead: "Joseph Beuys spunea: „Fiecare om este un artist.” Astăzi fraza stă pe afișe și pe căni, și e citită mai ales ca un compliment prietenos: și tu, ești și tu creativ. Nu așa a fost gândită.",
+        bild: "everyone-is-an-artist-beuys-bild-ro.jpg",
+        teile: [
+          { h: "Fraza nu e un compliment", p: [
+            "Beuys nu spunea că oricine poate picta bine. El spunea că fiecare om dă formă societății în care trăiește — prin ceea ce face, decide, construiește și lasă nefăcut. I-a spus sculptură socială: societatea este materialul.",
+            "Asta seamănă mai degrabă cu o pretenție decât cu o laudă. Ia scuza că datul de formă e treaba celorlalți — a celor talentați, a celor cu diplomă.",
+          ] },
+          { h: "Nu toată lumea trebuie să fie artist", p: [
+            "Noi ducem fraza cu un pas mai departe, în direcția incomodă: nu toată lumea trebuie să fie artist. Dar oricine creează ar trebui să poată arăta.",
+            "Este o afirmație diferită. Prima îi face pe toți artiști. A doua dă oricui face ceva dreptul de a-l face vizibil — și lasă verdictul în seama oamenilor care îl văd, nu a unui juriu dinainte.",
+          ] },
+          { h: "Obstacolul e rareori talentul", p: [
+            "Între debara și perete nu stă de obicei întrebarea dacă lucrarea e destul de bună. Stau fotografiile, textele, întrebarea cât ar trebui să coste, o pagină pe care să existe și un răspuns pentru cel care întreabă la unsprezece noaptea dacă mai e disponibilă.",
+            "Este o muncă ce nu are nimic de-a face cu pictatul — și din cauza ei rămân în cutie lucrări care de mult ar fi putut sta pe un perete.",
+          ] },
+          { h: "De aceea la noi nu există examen de admitere", p: [
+            "Nu verificăm pe nimeni dinainte. Încarci până la zece lucrări, noi scriem textele pentru ele, tu le citești și le aprobi. Apoi primești pagina ta, iar un agent răspunde celor interesați la orice oră și îți transmite numele și numărul lor.",
+            "Cât ceri pentru lucrările tale scrii tu însuți, în cuvintele tale. Noi nu stabilim prețuri.",
+          ] },
+        ],
+        merksatz: "Nu toată lumea trebuie să fie artist. Dar oricine creează ar trebui să poată arăta.",
+      },
+      de: {
+        titel: "„Jeder Mensch ist ein Künstler“ — und warum das keine Aufnahmeprüfung braucht",
+        beschreibung: "Beuys’ berühmtester Satz wird meist als Kompliment gelesen. Gemeint war etwas deutlich Unbequemeres — und daraus folgt, wer seine Arbeiten zeigen darf.",
+        lead: "Joseph Beuys sagte: „Jeder Mensch ist ein Künstler.“ Heute steht der Satz auf Postern und Kaffeetassen, und meistens wird er als freundliches Kompliment gelesen: du auch, du bist auch kreativ. So war er nicht gemeint.",
+        bild: "everyone-is-an-artist-beuys-bild-de.jpg",
+        teile: [
+          { h: "Der Satz ist kein Kompliment", p: [
+            "Beuys sagte nicht, dass jeder gut malen kann. Er sagte, dass jeder Mensch die Gesellschaft mitformt, in der er lebt — durch das, was er tut, entscheidet, baut und unterlässt. Er nannte es soziale Plastik: Die Gesellschaft ist das Material.",
+            "Das ist eher eine Zumutung als ein Lob. Es nimmt die Ausrede weg, das Gestalten sei Sache der anderen — der Begabten, der Leute mit Abschluss.",
+          ] },
+          { h: "Nicht jeder muss Künstler sein", p: [
+            "Wir drehen den Satz einen Schritt weiter, in die unbequeme Richtung: Nicht jeder muss Künstler sein. Aber wer schafft, soll zeigen können.",
+            "Das ist eine andere Behauptung. Die erste macht alle zu Künstlern. Die zweite gibt jedem, der etwas macht, das Recht, es sichtbar zu machen — und überlässt das Urteil den Menschen, die es sehen, statt einer Jury vorher.",
+          ] },
+          { h: "Die Hürde ist selten das Talent", p: [
+            "Zwischen Keller und Wand steht meistens nicht die Frage, ob es gut genug ist. Es stehen die Fotos, die Texte, die Frage, was es kosten soll, eine Seite, auf der es steht, und eine Antwort für den, der abends um elf fragt, ob es noch da ist.",
+            "Das ist Arbeit, die mit Malen nichts zu tun hat — und wegen ihr bleiben Arbeiten im Karton, die längst an einer Wand hängen könnten.",
+          ] },
+          { h: "Deshalb gibt es bei uns keine Aufnahmeprüfung", p: [
+            "Wir prüfen niemanden vorher. Du lädst bis zu zehn Arbeiten hoch, wir schreiben die Texte dazu, du liest sie und gibst sie frei. Dann bekommst du deine Seite, und ein Agent antwortet Interessenten zu jeder Uhrzeit und gibt dir Name und Nummer weiter.",
+            "Was du für deine Arbeiten verlangst, schreibst du selbst hin, in deinen Worten. Wir setzen keine Preise fest.",
+          ] },
+        ],
+        merksatz: "Nicht jeder muss Künstler sein. Aber wer schafft, soll zeigen können.",
       },
     },
   },

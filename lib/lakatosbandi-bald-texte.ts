@@ -201,8 +201,10 @@ const EN: BaldTexte = {
 
   gruenderTitel: "Why join now",
   gruenderText: [
-    "When lakatosbandi.com opens to buyers, the first artists on it are the first works they see.",
-    "You help shape the platform: what you tell us in these first weeks decides what we build next.",
+    /* Hier stand „When lakatosbandi.com opens to buyers…" — die Plattform ist seit dem 13.09.2026
+       offen (sechs freigegebene Künstler), der Satz war damit unwahr geworden. */
+    "The platform is open, but still small. Whoever joins now stands near the front — not lost in a long list.",
+    "And you help build it: what you tell us now decides what comes next.",
   ],
 
   fragenTitel: "Questions",
@@ -325,8 +327,8 @@ const RO: BaldTexte = {
 
   gruenderTitel: "De ce acum",
   gruenderText: [
-    "Când lakatosbandi.com se deschide pentru cumpărători, primii artiști de pe platformă sunt primele lucrări pe care le văd.",
-    "Ajuți la formarea platformei: ce ne spui în aceste prime săptămâni decide ce construim mai departe.",
+    "Platforma e deschisă, dar încă mică. Cine intră acum apare printre primii — nu pierdut într-o listă lungă.",
+    "Și ne ajuți să o construim: ce ne spui acum decide ce urmează.",
   ],
 
   fragenTitel: "Întrebări",
@@ -449,8 +451,8 @@ const DE: BaldTexte = {
 
   gruenderTitel: "Warum jetzt",
   gruenderText: [
-    "Wenn lakatosbandi.com für Käufer öffnet, sind die Werke der ersten Künstler die ersten, die sie sehen.",
-    "Du gestaltest die Plattform mit: Was du uns in diesen ersten Wochen sagst, entscheidet, was wir als Nächstes bauen.",
+    "Die Plattform ist offen, aber noch klein. Wer jetzt dazukommt, steht weit vorne — nicht verloren in einer langen Liste.",
+    "Und du baust sie mit: Was du uns jetzt sagst, entscheidet, was als Nächstes kommt.",
   ],
 
   fragenTitel: "Fragen",

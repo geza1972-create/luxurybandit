@@ -39,7 +39,7 @@ export default async function JournalUebersicht({ params }: Props) {
   const P = portalPfade((await headers()).get("host"));
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={lang} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={lang} login={P.login} start={P.start} journal={P.journal(lang)} sprachLink={l => P.journal(l)} />
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-12 md:pt-20">
         <h1 className="m-0 font-serif text-[40px] font-normal leading-[1.1] md:text-[56px]">{U.titel}</h1>

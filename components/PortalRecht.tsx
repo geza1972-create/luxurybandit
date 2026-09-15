@@ -20,7 +20,7 @@ export default async function PortalRecht({ welche, lang: wunsch }: { welche: ke
   const preis = eur(VERSUSFORGE_ABO_CENTS, L);
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
       <main className="mx-auto w-full max-w-[760px] px-5 pb-16 pt-12 md:pt-16">
         <h1 className="m-0 font-serif text-[36px] font-normal leading-[1.15] md:text-[48px]">{S.titel}</h1>

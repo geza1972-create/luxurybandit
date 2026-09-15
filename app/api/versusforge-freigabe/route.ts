@@ -145,7 +145,26 @@ export async function POST(request: Request) {
   }
 
   const vorher = p.m.freigabe;
-  const ok = await mandantSpeichern(a.kennung, { ...p.m, freigabe: p.aktion, freigabeAm: new Date().toISOString() });
+  /**
+   * ── DIE FREIGABE SETZT AUCH `portal` (14.09.2026 gefunden, Owner: „warum ist seine seite
+   * nicht online?") ─────────────────────────────────────────────────────────────────────────
+   *
+   * Hier stand nur `freigabe`. `api/portal-behalten` setzt aber bewusst `portal: false` und
+   * verweist im Kommentar auf genau diesen Klick: „Öffentlich wird sie erst durch den Klick des
+   * Owners." Und `imPortalSichtbar` (lib/lakatosbandi.ts) verlangt BEIDES — „frei" UND
+   * „portal". Die Freigabe machte damit nur die halbe Arbeit: Die Seite war über ihren Link
+   * erreichbar, tauchte aber in keiner Übersicht auf. Betraf jeden freigegebenen Künstler,
+   * nicht nur den einen, an dem es aufgefallen ist (valentinboboc).
+   *
+   * ABLEHNEN NIMMT SIE AUCH WIEDER RAUS: Sonst bliebe eine abgelehnte Seite in der Übersicht
+   * stehen, nachdem der Owner sie ausdrücklich abgelehnt hat.
+   */
+  const ok = await mandantSpeichern(a.kennung, {
+    ...p.m,
+    freigabe: p.aktion,
+    portal: p.aktion === "frei",
+    freigabeAm: new Date().toISOString(),
+  });
   if (!ok) return seite("Nicht gespeichert", "<p>Das Speichern hat nicht geklappt. Bitte noch einmal versuchen.</p>", 502);
 
   /* DER KÜNSTLER ERFÄHRT ES (Owner 11.09.2026). Nur wenn sich etwas ändert — ein zweiter Klick auf denselben Knopf

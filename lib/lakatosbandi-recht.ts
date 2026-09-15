@@ -66,7 +66,13 @@ const EN: RechtTexte = {
         "No sale takes place on lakatosbandi.com. Price and purchase are agreed directly between you and the artist.",
       ] },
       { h: "4. Payments", p: ["If an artist subscribes, payment is processed by Stripe. We never see or store full card details."] },
-      { h: "5. Email", p: ["We send emails that belong to the service: login links, new inquiries, the review decision and, for artists, the question about the subscription. Every email concerns your account or your inquiries; we do not sell addresses."] },
+      /* FOLLOWER (Owner 13.09.2026: „die Follower bekommen auch Newsletter von uns. Muss im AGB
+         stehen"). Beides gehört benannt: die Benachrichtigung über neue Werke UND unsere eigenen
+         Neuigkeiten — sonst wäre die Einwilligung nur für das eine erteilt. */
+      { h: "5. Email", p: [
+        "We send emails that belong to the service: login links, new inquiries, the review decision and, for artists, the question about the subscription. Every email concerns your account or your inquiries; we do not sell addresses.",
+        "If you follow an artist, you give us your email address for two purposes: we notify you when that artist adds a new work, and we occasionally send news about lakatosbandi.com. We only start after you confirm the link in our first email, and every email carries an unsubscribe link. You can withdraw your consent at any time.",
+      ] },
       { h: "6. Service providers", p: [
         "We do not sell personal data. To run the platform we use: Supabase (database and file storage, servers in Frankfurt, Germany), Vercel (hosting), OpenAI (the AI agent, image analysis and the automatic content check), Stripe (payments) and an email provider for sending our emails. With your consent, Meta receives data from the Meta Pixel for ad measurement.",
         "Some providers are based outside the EU. Where data leaves the EU, the safeguards required by law apply (for example EU standard contractual clauses).",
@@ -89,7 +95,7 @@ const EN: RechtTexte = {
         "We do not sell art and do not take part in any sale. We take no commission. Any purchase is agreed directly between artist and buyer.",
       ] },
       { h: "2. Artists: admission and review", p: [
-        "To be accepted, an artist shows at least three works in the same style. Every new artist is reviewed by a person, usually within 3 days. We may decline an application or remove a page, in particular if works are not the artist’s own, break the law or these terms.",
+        "Anyone who paints can take part — there is no admission test, no minimum number of works and no waiting time. Your page is online right away. We may decline an application or remove a page, in particular if works are not the artist’s own, break the law or these terms.",
         "Your works appear in the overview of the portal only with your consent. You can withdraw it at any time.",
       ] },
       { h: "3. Your works and rights", p: [
@@ -110,10 +116,15 @@ const EN: RechtTexte = {
         /* Owner 11.09.2026: „es ist free jetzt wirklich. wir dürfen nicht von Kosten reden." */
         "Right now, all services are free, with no limit. If the agent becomes a paid service in the future, we will inform the artist beforehand; the artist decides whether to keep it.",
       ] },
-      { h: "7. Visitors and buyers", p: ["A conversation with an agent is not an offer and not a purchase. Your details are passed to the artist so the artist can contact you."] },
+      { h: "7. Visitors and buyers", p: [
+        "A conversation with an agent is not an offer and not a purchase. Your details are passed to the artist so the artist can contact you.",
+        /* Owner 13.09.2026: „die Follower bekommen auch Newsletter von uns. Muss im AGB stehen." */
+        "Following an artist: you can give us your email address to be notified when that artist adds a new work, and to receive occasional news about lakatosbandi.com. It starts only after you confirm the link in our first email. Every email has an unsubscribe link, and we do not pass your address to the artist.",
+      ] },
       { h: "8. Acceptable use", p: ["No misuse: no false information, no attempts to overload or break the platform, no use of the agent or our texts to deceive or harm others."] },
-      { h: "9. Deletion", p: ["Artists can delete their page, works and inquiries at any time. We may delete pages that break these terms."] },
-      { h: "10. Liability", p: ["The platform is provided as it is. To the extent permitted by law, we are not liable for indirect damages, and our total liability is limited to the amount paid to us in the 12 months before the claim. Liability for intent and gross negligence remains unaffected."] },
+      { h: "9. Deletion", p: ["Artists can change or delete their page, their works and the sentences we wrote for them at any time. We may delete pages that break these terms."] },
+      { h: "10. Liability", p: ["The platform is provided as it is. To the extent permitted by law, we are not liable for indirect damages, and our total liability is limited to the amount paid to us in the 12 months before the claim. Liability for intent and gross negligence remains unaffected.",
+        "You are responsible for the works you publish here: that they are yours, that you hold the necessary rights and that showing them breaks no law and no third party’s rights. If someone raises a claim against us because of a work you published, you cover it."] },
       { h: "11. Changes and law", p: ["We may update these terms and publish the new version here with a new date. Romanian law applies."] },
     ],
   },
@@ -150,7 +161,10 @@ const RO: RechtTexte = {
         "Pe lakatosbandi.com nu are loc nicio vânzare. Prețul și cumpărarea se stabilesc direct între tine și artist.",
       ] },
       { h: "4. Plăți", p: ["Dacă un artist se abonează, plata este procesată de Stripe. Nu vedem și nu stocăm niciodată datele complete ale cardului."] },
-      { h: "5. E-mail", p: ["Trimitem e-mailuri care țin de serviciu: linkuri de autentificare, cereri noi, decizia de verificare și, pentru artiști, întrebarea despre abonament. Fiecare e-mail privește contul sau cererile tale; nu vindem adrese."] },
+      { h: "5. E-mail", p: [
+        "Trimitem e-mailuri care țin de serviciu: linkuri de autentificare, cereri noi, decizia de verificare și, pentru artiști, întrebarea despre abonament. Fiecare e-mail privește contul sau cererile tale; nu vindem adrese.",
+        "Dacă urmărești un artist, ne dai adresa de e-mail pentru două scopuri: te anunțăm când acel artist adaugă o lucrare nouă și îți trimitem din când în când noutăți despre lakatosbandi.com. Începem abia după ce confirmi linkul din primul nostru e-mail, iar fiecare e-mail conține un link de dezabonare. Îți poți retrage acordul oricând.",
+      ] },
       { h: "6. Furnizori de servicii", p: [
         "Nu vindem date personale. Pentru funcționarea platformei folosim: Supabase (bază de date și stocare de fișiere, servere în Frankfurt, Germania), Vercel (găzduire), OpenAI (agentul AI, analiza imaginilor și verificarea automată a conținutului), Stripe (plăți) și un furnizor de e-mail pentru trimiterea mesajelor. Cu acordul tău, Meta primește date de la Meta Pixel pentru măsurarea reclamelor.",
         "Unii furnizori se află în afara UE. Când datele părăsesc UE, se aplică garanțiile cerute de lege (de exemplu clauzele contractuale standard ale UE).",
@@ -173,7 +187,7 @@ const RO: RechtTexte = {
         "Nu vindem artă și nu participăm la nicio vânzare. Nu luăm comision. Orice cumpărare se stabilește direct între artist și cumpărător.",
       ] },
       { h: "2. Artiști: admitere și verificare", p: [
-        "Pentru a fi acceptat, un artist arată cel puțin trei lucrări în același stil. Fiecare artist nou este verificat de un om, de obicei în 3 zile. Putem refuza o aplicare sau elimina o pagină, în special dacă lucrările nu aparțin artistului, încalcă legea sau acești termeni.",
+        "Poate participa oricine pictează — nu există examen de admitere, număr minim de lucrări sau timp de așteptare. Pagina ta e online imediat. Putem refuza o aplicare sau elimina o pagină, în special dacă lucrările nu aparțin artistului, încalcă legea sau acești termeni.",
         "Lucrările tale apar în prezentarea portalului doar cu acordul tău. Îl poți retrage oricând.",
       ] },
       { h: "3. Lucrările și drepturile tale", p: [
@@ -193,10 +207,14 @@ const RO: RechtTexte = {
         "Începutul este gratuit: frazele, reclamele, pagina și agentul tău.",
         "Acum toate serviciile sunt gratuite, fără limită. Dacă agentul va deveni cu plată în viitor, îl anunțăm pe artist dinainte; artistul decide dacă vrea să-l păstreze.",
       ] },
-      { h: "7. Vizitatori și cumpărători", p: ["O conversație cu un agent nu este o ofertă și nici o cumpărare. Datele tale sunt transmise artistului ca să te poată contacta."] },
+      { h: "7. Vizitatori și cumpărători", p: [
+        "O conversație cu un agent nu este o ofertă și nici o cumpărare. Datele tale sunt transmise artistului ca să te poată contacta.",
+        "Dacă urmărești un artist: ne poți da adresa de e-mail ca să fii anunțat când acel artist adaugă o lucrare nouă și ca să primești din când în când noutăți despre lakatosbandi.com. Începe abia după ce confirmi linkul din primul nostru e-mail. Fiecare e-mail conține un link de dezabonare, iar adresa ta nu este transmisă artistului.",
+      ] },
       { h: "8. Utilizare corectă", p: ["Fără abuz: fără informații false, fără încercări de a supraîncărca sau strica platforma, fără folosirea agentului sau a textelor noastre pentru a înșela sau a face rău altora."] },
-      { h: "9. Ștergere", p: ["Artiștii își pot șterge oricând pagina, lucrările și cererile. Putem șterge paginile care încalcă acești termeni."] },
-      { h: "10. Răspundere", p: ["Platforma este oferită așa cum este. În limitele permise de lege, nu răspundem pentru daune indirecte, iar răspunderea noastră totală este limitată la suma plătită nouă în cele 12 luni dinaintea reclamației. Răspunderea pentru intenție și culpă gravă rămâne neafectată."] },
+      { h: "9. Ștergere", p: ["Artiștii își pot modifica sau șterge oricând pagina, lucrările și frazele scrise de noi. Putem șterge paginile care încalcă acești termeni."] },
+      { h: "10. Răspundere", p: ["Platforma este oferită așa cum este. În limitele permise de lege, nu răspundem pentru daune indirecte, iar răspunderea noastră totală este limitată la suma plătită nouă în cele 12 luni dinaintea reclamației. Răspunderea pentru intenție și culpă gravă rămâne neafectată.",
+        "Răspunzi pentru lucrările pe care le publici aici: că îți aparțin, că ai drepturile necesare și că prezentarea lor nu încalcă legea sau drepturile altcuiva. Dacă cineva ne reclamă din cauza unei lucrări publicate de tine, suporți tu consecințele."] },
       { h: "11. Modificări și lege", p: ["Putem actualiza acești termeni și publicăm aici noua versiune cu o dată nouă. Se aplică legea română."] },
     ],
   },
@@ -233,7 +251,10 @@ const DE: RechtTexte = {
         "Auf lakatosbandi.com findet kein Verkauf statt. Preis und Kauf vereinbarst du direkt mit dem Künstler.",
       ] },
       { h: "4. Zahlungen", p: ["Schließt ein Künstler ein Abo ab, verarbeitet Stripe die Zahlung. Vollständige Kartendaten sehen und speichern wir nie."] },
-      { h: "5. E-Mails", p: ["Wir schicken E-Mails, die zum Dienst gehören: Login-Links, neue Anfragen, die Entscheidung nach der Prüfung und für Künstler die Frage nach dem Abo. Jede E-Mail betrifft dein Konto oder deine Anfragen; Adressen verkaufen wir nicht."] },
+      { h: "5. E-Mails", p: [
+        "Wir schicken E-Mails, die zum Dienst gehören: Login-Links, neue Anfragen, die Entscheidung nach der Prüfung und für Künstler die Frage nach dem Abo. Jede E-Mail betrifft dein Konto oder deine Anfragen; Adressen verkaufen wir nicht.",
+        "Wenn du einem Künstler folgst, gibst du uns deine E-Mail-Adresse für zwei Zwecke: Wir benachrichtigen dich, sobald dieser Künstler ein neues Werk hinzufügt, und wir schicken dir gelegentlich Neuigkeiten über lakatosbandi.com. Wir beginnen erst, nachdem du den Link in unserer ersten E-Mail bestätigt hast, und jede E-Mail enthält einen Abmeldelink. Du kannst deine Einwilligung jederzeit widerrufen.",
+      ] },
       { h: "6. Dienstleister", p: [
         "Wir verkaufen keine personenbezogenen Daten. Für den Betrieb nutzen wir: Supabase (Datenbank und Dateispeicher, Server in Frankfurt, Deutschland), Vercel (Hosting), OpenAI (der KI-Agent, die Bildauswertung und die automatische Inhaltsprüfung), Stripe (Zahlungen) und einen E-Mail-Anbieter für den Versand. Mit deiner Einwilligung erhält Meta Daten aus dem Meta-Pixel zur Anzeigenmessung.",
         "Einige Anbieter sitzen außerhalb der EU. Wo Daten die EU verlassen, gelten die gesetzlich vorgeschriebenen Garantien (zum Beispiel EU-Standardvertragsklauseln).",
@@ -256,7 +277,7 @@ const DE: RechtTexte = {
         "Wir verkaufen keine Kunst und sind an keinem Verkauf beteiligt. Wir nehmen keine Provision. Jeder Kauf wird direkt zwischen Künstler und Käufer vereinbart.",
       ] },
       { h: "2. Künstler: Aufnahme und Prüfung", p: [
-        "Aufgenommen wird, wer mindestens drei Werke im selben Stil zeigt. Jeden neuen Künstler prüft ein Mensch, meist innerhalb von 3 Tagen. Wir können eine Bewerbung ablehnen oder eine Seite entfernen, insbesondere wenn Werke nicht vom Künstler stammen, gegen Gesetze oder diese Bedingungen verstoßen.",
+        "Mitmachen kann jeder, der malt — es gibt keine Aufnahmeprüfung, keine Mindestzahl an Werken und keine Wartezeit. Deine Seite ist sofort online. Wir können eine Bewerbung ablehnen oder eine Seite entfernen, insbesondere wenn Werke nicht vom Künstler stammen, gegen Gesetze oder diese Bedingungen verstoßen.",
         "In der Übersicht des Portals erscheinen deine Werke nur mit deiner Zustimmung. Du kannst sie jederzeit widerrufen.",
       ] },
       { h: "3. Deine Werke und Rechte", p: [
@@ -276,10 +297,14 @@ const DE: RechtTexte = {
         "Der Start ist kostenlos: deine Sätze, Anzeigen, Seite und dein Agent.",
         "Derzeit sind alle Leistungen kostenlos und ohne Limit. Wird der Agent künftig kostenpflichtig, informieren wir den Künstler vorher; er entscheidet selbst, ob er ihn behält.",
       ] },
-      { h: "7. Besucher und Käufer", p: ["Ein Gespräch mit einem Agenten ist kein Angebot und kein Kauf. Deine Angaben gehen an den Künstler, damit er dich kontaktieren kann."] },
+      { h: "7. Besucher und Käufer", p: [
+        "Ein Gespräch mit einem Agenten ist kein Angebot und kein Kauf. Deine Angaben gehen an den Künstler, damit er dich kontaktieren kann.",
+        "Einem Künstler folgen: Du kannst uns deine E-Mail-Adresse geben, um benachrichtigt zu werden, wenn dieser Künstler ein neues Werk hinzufügt, und um gelegentlich Neuigkeiten über lakatosbandi.com zu bekommen. Es beginnt erst, nachdem du den Link in unserer ersten E-Mail bestätigt hast. Jede E-Mail enthält einen Abmeldelink, und deine Adresse geben wir nicht an den Künstler weiter.",
+      ] },
       { h: "8. Faire Nutzung", p: ["Kein Missbrauch: keine falschen Angaben, keine Versuche, die Plattform zu überlasten oder zu beschädigen, keine Nutzung des Agenten oder unserer Texte, um andere zu täuschen oder ihnen zu schaden."] },
-      { h: "9. Löschen", p: ["Künstler können ihre Seite, Werke und Anfragen jederzeit löschen. Seiten, die gegen diese Bedingungen verstoßen, können wir löschen."] },
-      { h: "10. Haftung", p: ["Die Plattform wird so bereitgestellt, wie sie ist. Soweit gesetzlich zulässig, haften wir nicht für mittelbare Schäden, und unsere Gesamthaftung ist auf den Betrag begrenzt, der in den 12 Monaten vor dem Anspruch an uns gezahlt wurde. Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt."] },
+      { h: "9. Löschen", p: ["Künstler können ihre Seite, ihre Werke und die von uns geschriebenen Sprüche jederzeit ändern oder löschen. Seiten, die gegen diese Bedingungen verstoßen, können wir löschen."] },
+      { h: "10. Haftung", p: ["Die Plattform wird so bereitgestellt, wie sie ist. Soweit gesetzlich zulässig, haften wir nicht für mittelbare Schäden, und unsere Gesamthaftung ist auf den Betrag begrenzt, der in den 12 Monaten vor dem Anspruch an uns gezahlt wurde. Die Haftung für Vorsatz und grobe Fahrlässigkeit bleibt unberührt.",
+        "Für die Werke, die du hier veröffentlichst, haftest du: dass sie von dir sind, dass du die nötigen Rechte hast und dass ihre Veröffentlichung weder Gesetze noch Rechte Dritter verletzt. Wird jemand wegen eines von dir veröffentlichten Werkes gegen uns vorstellig, trägst du die Folgen."] },
       { h: "11. Änderungen und Recht", p: ["Wir können diese Bedingungen ändern und veröffentlichen die neue Fassung hier mit neuem Datum. Es gilt rumänisches Recht."] },
     ],
   },

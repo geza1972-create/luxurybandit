@@ -84,6 +84,13 @@ const nextConfig = {
         /* DIE ANMELDUNG AUF LAKATOSBANDI.COM (Owner 11.09.2026: „du musst schauen, wo die Seite angelegt wird. Nicht auf
            VersusForge") — derselbe Chat wie /engine, VOR `/:kuenstler`, damit „start" kein Künstler ist. */
         { source: "/start", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/engine" },
+        /* DIE BESTÄTIGUNG AUS SEINER MAIL (Owner 12.09.2026: „also vorher") — der Klick, der seine
+           Seite überhaupt erst anlegt. Muss VOR `/:kuenstler` stehen, sonst wäre „bestaetigen" ein
+           Künstlername. */
+        { source: "/bestaetigen", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/bestaetigen" },
+        /* Der Klick aus der Folgen-Mail (Owner 13.09.2026). Wie `/bestaetigen` VOR `/:kuenstler`,
+           sonst wäre „urmaresti" ein Künstlername. */
+        { source: "/urmaresti", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/urmaresti" },
         /* Eigene Rechtstexte des Portals (Owner 10.09.2026: „die Inhalte musst du umschreiben") —
            VOR den Haus-Seiten gleichen Namens, nur auf diesem Host. */
         { source: "/imprint", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/imprint" },

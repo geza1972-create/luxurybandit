@@ -1,7 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Camera, ImagePlus, LayoutDashboard, Sparkles, Undo2 } from "lucide-react";
+
+/**
+ * ── WIE VIELE WERKE EINER ZEIGEN DARF (Owner 13.09.2026: „wenn der User versucht, mehr als 10
+ * hochzuladen … Im Button wie ich dir gesagt habe 8/10") ────────────────────────────────────
+ *
+ * ZEHN, WEIL DER TRICHTER ZEHN VERSPRICHT („Încarcă până la 10 lucrări"). Bis heute standen hier
+ * dreizehn — die Zahl war nirgends gemeinsam festgelegt, sondern dreimal einzeln hingeschrieben
+ * (Trichter 10, Formular 13, Route 11+1). Deshalb hat Gerry zwölf Werke: Niemand hat etwas
+ * falsch gemacht, die Grenzen liefen auseinander.
+ *
+ * BESTAND BLEIBT. Wer schon mehr hat, verliert nichts: Die Route nimmt weiterhin bis zu
+ * dreizehn Kacheln an, sonst wären Gerrys zwölf beim nächsten Speichern zwei weniger. Er kann
+ * nur nichts Neues hinzufügen, bis er selbst welche entfernt. (Stand 13.09.2026: Gerry und
+ * Szidonia haben je zwölf, Claudiu genau zehn.)
+ *
+ * ── UND HIER KOMMT PREMIUM HIN (Owner 13.09.2026: „wir werden genau hier Premium anbieten") ──
+ *
+ * Diese Zahl ist deshalb KEINE beliebige technische Schranke, sondern die Grenze zwischen dem,
+ * was kostenlos ist, und dem, was später Geld kostet. Wer sie ändert, verschiebt ein
+ * Preismodell — nicht eine Einstellung.
+ *
+ * SOLANGE ES PREMIUM NICHT GIBT, WIRD ES AUCH NICHT ANGEDEUTET: Der volle Knopf sagt schlicht,
+ * dass die Plätze belegt sind. Ein Hinweis auf ein Angebot, das noch nirgendwohin führt,
+ * verbrennt genau den Augenblick, in dem jemand zahlungsbereit wäre.
+ */
+const WERKE_MAX = 10;
 import type { PortalTexte } from "@/lib/lakatosbandi-texte";
+import MandantKaufen from "@/components/MandantKaufen";
 
 /**
  * SEINE SEITE, DIREKT BEARBEITET — WYSIWYG (Owner 11.09.2026: „Dann wird er den Link bekommen, dass er öffnen
@@ -14,7 +42,7 @@ import type { PortalTexte } from "@/lib/lakatosbandi-texte";
  * BILDER GEHEN SOFORT HOCH (über `api/versusforge-bild`, mit der Inhaltsprüfung). Die Texte sammelt „Speichern".
  */
 
-type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; preisZeigen: boolean; detalii: string };
+type Kachel = { i: number; spruch: string; titel: string; technik: string; groesse: string; jahr: string; geschichte: string; preis: string; detalii: string; vertritt: boolean };
 
 async function verkleinern(f: File): Promise<string> {
   const bitmap = await createImageBitmap(f);
@@ -27,24 +55,95 @@ async function verkleinern(f: File): Promise<string> {
   return flaeche.toDataURL("image/jpeg", 0.85);
 }
 
-export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: {
+export default function PortalBearbeiten({ mandant, k, T, aufbau = false, oeffentlich, start }: {
   mandant: string;
   k: string;
   T: PortalTexte;
+  /**
+   * Seine Inhalte werden gerade angelegt (`aufbauSeit` am Datensatz) — die Bilder sind da, die
+   * Sätze entstehen in diesem Augenblick im Hintergrund. Solange das läuft, sagt die Seite es
+   * ihm und lädt sich selbst nach, bis es fertig ist (Owner 12.09.2026: „er sieht die Meldung
+   * mit ‚deine Inhalte werden angelegt' … und dann tatataa").
+   */
+  aufbau?: boolean;
   /** Die Adresse seiner Seite ohne Schlüssel — so sehen Käufer sie. */
   oeffentlich: string;
-  start: { name: string; ort: string; ueberMich: string; profilBild: boolean; frei: boolean; kacheln: Kachel[] };
+  start: {
+    name: string; ort: string; ueberMich: string; preisSpanne: string; profilBild: boolean; frei: boolean;
+    /* Seine sozialen Adressen — freiwillig, deshalb optional (Owner 13.09.2026). */
+    instagram?: string; facebook?: string;
+    kacheln: Kachel[];
+  };
 }) {
   const [name, setName] = useState(start.name);
   const [ort, setOrt] = useState(start.ort);
   const [ueberMich, setUeberMich] = useState(start.ueberMich);
+  /* Was seine Werke kosten — EIN Satz für alle Bilder (Owner 12.09.2026). */
+  const [preisSpanne, setPreisSpanne] = useState(start.preisSpanne);
+  /* Seine sozialen Adressen (Owner 13.09.2026) — freiwillig, hier gepflegt und nicht in den
+     Einstellungen: Dort stehen Impressum und Datenschutz, die einen Künstler nichts angehen. */
+  const [instagram, setInstagram] = useState(start.instagram ?? "");
+  const [facebook, setFacebook] = useState(start.facebook ?? "");
   const [profilBild, setProfilBild] = useState(start.profilBild);
   const [kacheln, setKacheln] = useState<Kachel[]>(start.kacheln);
   const [version, setVersion] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<"" | "speichert" | "gespeichert" | "fehler">("");
   const [hinweis, setHinweis] = useState("");
+  /**
+   * Ob der Hinweis ein PREMIUM-Fall ist (Owner 14.09.2026: „wenn er auf eine Funktion klickt wie
+   * KI, dann steht Upgrade").
+   *
+   * Eigener Zustand statt eines Textvergleichs: Am Hinweis-Text allein wäre nicht zu erkennen,
+   * ob ein Kaufknopf dazugehört — und er wird dann auch nicht rot gesetzt, denn es ist kein
+   * Fehler, sondern eine Grenze.
+   */
+  const [premium, setPremium] = useState(false);
   const [laedt, setLaedt] = useState(false);
   const [kachelZiel, setKachelZiel] = useState<number | null>(null);
+  /**
+   * ── NICHTS GEHT VOR „SPEICHERN" HINAUS (Owner 12.09.2026: „egal was er in seinem Profil macht,
+   * Bild von sich hochladen, Texte, Profil, Kunstwerke ändern" · „das selbe Prinzip. Grosser
+   * Button lade Bilder hoch, save. Dann wird alles angelegt") ─────────────────────────────────
+   *
+   * Bis hierher ging JEDES Bild im Augenblick des Auswählens zum Server, samt Inhaltsprüfung —
+   * zehn Bilder waren zehn Wartezeiten, und wer danach abbrach, hatte trotzdem alles hochgeladen.
+   *
+   * Jetzt liegen sie als Data-URL im Browser (`ausstehend`, Schlüssel „profil" oder die Werknummer)
+   * und reisen erst mit „Speichern". `entfernt` merkt sich, was weg soll — auch das passiert erst
+   * dort, sonst wäre ein Klick auf „Entfernen" unwiderruflich, bevor er gespeichert hat.
+   */
+  const [ausstehend, setAusstehend] = useState<Record<string, string>>({});
+  const [entfernt, setEntfernt] = useState<string[]>([]);
+  /* „Über mich" hat einen EIGENEN Speichern-Knopf und einen eigenen Zustand (Owner 13.09.2026:
+     „hier müssen wir ein extra Save machen"). Getrennt vom grossen `status`, sonst meldete die
+     Fussleiste „Gespeichert", obwohl dort noch ungespeicherte Bilder warten. */
+  const [ueberStatus, setUeberStatus] = useState<"" | "speichert" | "gespeichert" | "fehler">("");
+  const [aiLaeuft, setAiLaeuft] = useState(false);
+  /* Je Werk ein eigener Ladezustand — ein gemeinsamer würde alle Knöpfe zugleich drehen lassen. */
+  const [spruchLaeuft, setSpruchLaeuft] = useState<Record<number, boolean>>({});
+  /**
+   * ── DER WEG ZURÜCK (Owner 13.09.2026: „Icon für zurück zur letzten Version" · „auch bei den
+   * Werken") ──────────────────────────────────────────────────────────────────────────────────
+   *
+   * Die KI schreibt ihren Vorschlag DIREKT ins Feld. Wer neugierig einmal drückt und das Ergebnis
+   * nicht mag, hat seinen eigenen Text verloren — und müsste ihn neu tippen. Genau deshalb fasst
+   * man solche Knöpfe nicht an.
+   *
+   * NUR IM BROWSER und getrennt je Feld: eine Fassung für „Über mich", eine JE WERKNUMMER. Ein
+   * gemeinsamer Speicher würde bei Bild 3 den Satz von Bild 7 zurückholen. `null` bzw. ein
+   * fehlender Eintrag heisst: Es gibt nichts zurückzuholen, der Knopf erscheint gar nicht.
+   */
+  /**
+   * Das Fenster am vollen Hochladen-Knopf (Owner 13.09.2026: „hier muss doch klicken können,
+   * aber Dialog öffnet sich. Dann wird dort stehen Premium kaufen — aber nicht jetzt").
+   *
+   * HIER KOMMT SPÄTER DER KAUFWEG HIN. Solange es Premium nicht gibt, steht dort nur, was er
+   * jetzt tun kann; ein Hinweis auf ein Angebot, das nirgendwohin führt, verbrennt genau den
+   * Augenblick, in dem er zahlungsbereit wäre.
+   */
+  const [vollDialog, setVollDialog] = useState(false);
+  const [ueberMichVorher, setUeberMichVorher] = useState<string | null>(null);
+  const [spruchVorher, setSpruchVorher] = useState<Record<number, string>>({});
   const dateiProfil = useRef<HTMLInputElement>(null);
   const dateiKachel = useRef<HTMLInputElement>(null);
   /* Sein eigenes Gerät zählt nicht als Besucher und schickt ihm keine Besuchs-Mail (Owner 11.09.2026). */
@@ -52,7 +151,52 @@ export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: 
     try { localStorage.setItem(`lb_eigen_${mandant}`, "1"); } catch { /* egal */ }
   }, [mandant]);
 
+  /**
+   * SOLANGE ES RECHNET, SIEHT ER ZU (Owner 12.09.2026: „er sieht die Meldung … und dann tatataa").
+   *
+   * Die Sätze entstehen serverseitig, nachdem diese Seite ausgeliefert wurde. Sie lädt sich
+   * deshalb alle paar Sekunden selbst nach — und hört damit von allein auf, sobald `aufbau`
+   * falsch ist, weil die Seite dann ohne die Meldung zurückkommt.
+   */
+  useEffect(() => {
+    if (!aufbau) return;
+    const t = setTimeout(() => window.location.reload(), 6000);
+    return () => clearTimeout(t);
+  }, [aufbau]);
+
+  /**
+   * „MEINE SEITE LÖSCHEN" — DREI STUFEN (Owner 12.09.2026: „delete page ganz links, aber erst
+   * wird rot, dann noch mal").
+   *
+   * 1. grau, unauffällig · 2. rot und gefüllt — jetzt ist klar, worauf er gleich drückt · 3. die
+   * Mail ist unterwegs. Gelöscht wird auch dann nichts: Das entscheidet er erst auf der Seite
+   * hinter dem Link in der Mail, mit Ja oder Nein. Zwei Rückfragen für den einen Klick, den man
+   * nicht zurücknehmen kann.
+   */
+  const [loeschDialog, setLoeschDialog] = useState(false);
+  const [loeschMail, setLoeschMail] = useState(false);
+  const loeschenAnfordern = async () => {
+    setLoeschDialog(false);
+    setLoeschMail(true);
+    await fetch("/api/versusforge-senden", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ was: "loeschen", mandant, k }),
+    }).catch(() => {});
+  };
+
   const nrVon = (i: number) => (i < 0 ? "-1" : String(i));
+  /**
+   * WELCHES WERK IHN VERTRITT — dieselbe Wahl wie auf der öffentlichen Seite
+   * (`app/portal/[kuenstler]/page.tsx`): das angehakte Werk, sonst das erste.
+   *
+   * AUS DEM FORMULARZUSTAND, nicht aus dem Datensatz: Setzt er das Häkchen um, folgt der
+   * Profilkreis sofort — ohne Speichern und ohne Neuladen. `null`, wenn er noch kein Werk hat;
+   * dann bleibt der Kreis leer, statt ein Bild zu erfinden.
+   */
+  const vertreterNr = kacheln.length
+    ? (kacheln.find(x => x.vertritt) ?? kacheln[0]).i
+    : null;
   const bildUrl = (nr: string) =>
     `/api/portal-werk?m=${encodeURIComponent(mandant)}&i=${encodeURIComponent(nr)}&k=${encodeURIComponent(k)}&v=${version[nr] ?? 0}`;
   /* Bilder, die (noch) nicht da sind — in der Prüfung oder nie hochgeladen. Sie zeigen den Platzhalter. */
@@ -63,12 +207,10 @@ export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: 
   };
 
   /** "ok" = sofort angenommen · "pruefung" = liegt beim Owner, noch nicht sichtbar · false = nicht gespeichert. */
-  const hochladen = async (f: File | undefined, nr: string): Promise<"ok" | "pruefung" | false> => {
-    if (!f) return false;
-    setHinweis("");
+  const hochladen = async (daten: string, nr: string): Promise<"ok" | "pruefung" | false> => {
+    if (!daten) return false;
     setLaedt(true);
     try {
-      const daten = await verkleinern(f);
       const res = await fetch("/api/versusforge-bild", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,36 +229,174 @@ export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: 
     }
   };
 
-  const preisZeigenSetzen = (i: number, an: boolean) => {
-    setKacheln(v => v.map(x => (x.i === i ? { ...x, preisZeigen: an } : x)));
+  /**
+   * WELCHES WERK IHN VERTRITT (Owner 12.09.2026: „welches bild mich repräsentiert").
+   *
+   * AUSSCHLIESSEND, deshalb kein gewöhnliches Häkchen: Anhaken setzt dieses und löscht ALLE
+   * anderen in einem Zug. Zwei Werke, die ihn beide „vertreten", wären keine Wahl mehr — und die
+   * Seite müsste dann selbst raten, welches sie beim Teilen zeigt.
+   */
+  const vertrittSetzen = (i: number, an: boolean) => {
+    setKacheln(v => v.map(x => ({ ...x, vertritt: an && x.i === i })));
     setStatus("");
   };
-  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "preisZeigen">, wert: string) => {
+  const aendern = (i: number, feld: Exclude<keyof Kachel, "i" | "vertritt">, wert: string) => {
     setKacheln(v => v.map(x => (x.i === i ? { ...x, [feld]: wert } : x)));
     setStatus("");
   };
 
-  const entfernen = async (i: number) => {
+  /* Auch das Entfernen wartet auf „Speichern" — vorher ist nichts unwiderruflich. */
+  const entfernen = (i: number) => {
+    const nr = nrVon(i);
     setKacheln(v => v.filter(x => x.i !== i));
+    setAusstehend(v => { const n = { ...v }; delete n[nr]; return n; });
+    setEntfernt(v => (v.includes(nr) ? v : [...v, nr]));
     setStatus("");
-    await fetch("/api/versusforge-bild", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ was: "motiv", mandant, k, daten: "", nr: i < 0 ? "" : String(i) }),
-    }).catch(() => {});
   };
 
+  /**
+   * ── HIER PASSIERT ALLES (Owner 12.09.2026: „Grosser Button lade Bilder hoch, save. Dann wird
+   * alles angelegt") ──────────────────────────────────────────────────────────────────────────
+   *
+   * Der Reihe nach: Entferntes löschen · vorgemerkte Bilder hochladen (dort läuft die
+   * Inhaltsprüfung) · dann die Texte. Die Texte ZULETZT, weil der Server daraus die Sprüche für
+   * Werke ohne Satz schreibt — er soll dabei die Bilder schon kennen.
+   *
+   * EINZELN STATT IN EINEM PAKET: Zehn Bilder wären als Data-URL mehrere Megabyte in einem
+   * Request; die Bild-Route nimmt sie ohnehin einzeln entgegen und ist dort geprüft.
+   */
   const speichern = async () => {
     setStatus("speichert");
+    setHinweis("");
     try {
+      for (const nr of entfernt) {
+        await fetch("/api/versusforge-bild", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ was: "motiv", mandant, k, daten: "", nr: nr === "-1" ? "" : nr }),
+        }).catch(() => {});
+      }
+      let abgelehnt = false;
+      for (const [nr, daten] of Object.entries(ausstehend)) {
+        const ergebnis = await hochladen(daten, nr === "profil" ? "profil" : nr === "-1" ? "" : nr);
+        if (!ergebnis) abgelehnt = true;
+        else neuLaden(nr);
+      }
       const res = await fetch("/api/portal-profil", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandant, k, name, ort, ueberMich, profilBild, kacheln }),
+        body: JSON.stringify({ mandant, k, name, ort, ueberMich, preisSpanne, profilBild, instagram, facebook, kacheln }),
       });
-      setStatus(res.ok ? "gespeichert" : "fehler");
+      setEntfernt([]);
+      setAusstehend({});
+      setStatus(res.ok && !abgelehnt ? "gespeichert" : "fehler");
     } catch {
       setStatus("fehler");
+    }
+  };
+
+  /**
+   * „ÜBER MICH" UND SEIN FOTO — der enge Weg (Owner 13.09.2026: „Salvează von dem Text im Profil
+   * soll auch Profilbild speichern").
+   *
+   * Er steht oben im Formular: Foto links, Text rechts. Wer beides ändert und auf DIESEN Knopf
+   * drückt, hat beides gespeichert — alles andere wäre eine Falle, weil das Foto sichtbar
+   * ausgetauscht ist und trotzdem im Browser läge.
+   *
+   * ENG BLEIBT ER TROTZDEM: Werke, Preisspanne, Name und Ort rührt er nicht an. Die gehören zum
+   * grossen Speichern-Knopf unten, und was dort offen ist, soll hier nicht heimlich mitgehen.
+   *
+   * DAS BILD ZUERST, DANN DAS FELD: `profilBild: true` darf erst in den Datensatz, wenn die Datei
+   * wirklich liegt. Umgekehrt zeigte die Seite eine Bildstelle, hinter der nichts ist.
+   */
+  const ueberMichSpeichern = async () => {
+    setUeberStatus("speichert");
+    try {
+      let fotoOk = true;
+      if (ausstehend.profil) {
+        const ergebnis = await hochladen(ausstehend.profil, "profil");
+        fotoOk = ergebnis !== false;
+        /* Nur wenn es durch ist, aus der Warteschlange nehmen — sonst verlöre er sein Bild
+           still, und der grosse Knopf könnte es auch nicht mehr nachholen. */
+        if (fotoOk) {
+          setAusstehend(v => { const n = { ...v }; delete n.profil; return n; });
+          neuLaden("profil");
+        }
+      }
+      const res = await fetch("/api/portal-ueber-mich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandant, k, ueberMich, profilBild }),
+      });
+      setUeberStatus(res.ok && fotoOk ? "gespeichert" : "fehler");
+    } catch {
+      setUeberStatus("fehler");
+    }
+  };
+
+  /**
+   * KI-KORREKTUR — sie schlägt vor, sie speichert nicht (Owner 13.09.2026: „Schreib einfach frei
+   * etwas, wir formulieren das mit AI richtig").
+   *
+   * Der geglättete Text landet im Feld; er liest ihn und drückt selbst auf Speichern. Deshalb
+   * wird `ueberStatus` hier geleert: Was im Feld steht, ist ab jetzt wieder ungespeichert.
+   */
+  const ueberMichKorrigieren = async () => {
+    if (!ueberMich.trim() || aiLaeuft) return;
+    setAiLaeuft(true);
+    try {
+      const res = await fetch("/api/portal-text-korrektur", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandant, k, text: ueberMich }),
+      });
+      const d = (await res.json().catch(() => null)) as { text?: string; grund?: string } | null;
+      /* Seinen Text merken, BEVOR der Vorschlag ihn überschreibt. */
+      if (res.ok && d?.text) { setUeberMichVorher(ueberMich); setUeberMich(d.text); setUeberStatus(""); }
+      /* Ohne Abo: derselbe Hinweis wie beim Spruch-Knopf, nicht das nackte „fehler". */
+      else if (d?.grund === "premium") { setUeberStatus(""); setPremium(true); setHinweis(T.aboKiGesperrt); }
+      else setUeberStatus("fehler");
+    } catch {
+      setUeberStatus("fehler");
+    } finally {
+      setAiLaeuft(false);
+    }
+  };
+
+  /**
+   * Einen Satz für EIN Werk schreiben lassen. Der Vorschlag landet im Feld; gespeichert wird er
+   * erst mit „Speichern" — so bleibt die Entscheidung bei ihr.
+   */
+  const spruchSchreiben = async (i: number) => {
+    if (spruchLaeuft[i]) return;
+    setSpruchLaeuft(v => ({ ...v, [i]: true }));
+    setHinweis("");
+    try {
+      const res = await fetch("/api/portal-spruch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandant, k, i }),
+      });
+      const d = (await res.json().catch(() => null)) as { spruch?: string; grund?: string } | null;
+      /* Seinen Satz merken, BEVOR der Vorschlag ihn überschreibt — je Werk getrennt. */
+      if (res.ok && d?.spruch) {
+        const alt = kacheln.find(x => x.i === i)?.spruch ?? "";
+        setSpruchVorher(v => ({ ...v, [i]: alt }));
+        aendern(i, "spruch", d.spruch);
+        setStatus("");
+      }
+      /* Kein stummer Knopf: Liegt das Bild noch in der Prüfung, erfährt sie den Grund.
+         OHNE ABO IST ES KEIN FEHLER, sondern eine Grenze — „Speichern fehlgeschlagen" würde ihr
+         einen Defekt vorspiegeln, wo sie nur etwas kaufen muss (Owner 14.09.2026). */
+      else {
+        const istPremium = d?.grund === "premium";
+        setPremium(istPremium);
+        setHinweis(istPremium ? T.aboKiGesperrt : T.speichernFehler);
+      }
+    } catch {
+      setHinweis(T.speichernFehler);
+    } finally {
+      setSpruchLaeuft(v => ({ ...v, [i]: false }));
     }
   };
 
@@ -125,76 +405,343 @@ export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: 
 
   return (
     <main className="mx-auto w-full max-w-[1120px] px-5 pb-32 pt-8 md:pt-12">
-      <p className="m-0 rounded-xl bg-[#f3f6fa] px-4 py-3 text-[14.5px] leading-[1.45] text-[#333]">
-        {start.frei ? T.bearbeitenHinweis : T.bearbeitenPruefung}{" "}{T.agentBesserHinweis}{" "}
-        <a href={oeffentlich} className="font-semibold text-[#111] underline">{T.ansehen}</a>
-      </p>
+      {/**
+        * ── ZURÜCK INS DASHBOARD (Owner 13.09.2026: „ich brauche ein Button zum Dashboard") ────
+        *
+        * Von hier führte bisher nichts dorthin. Er kommt über den Link aus seiner Mail in diese
+        * Ansicht und fand von hier aus nur seine öffentliche Seite — Anfragen, Besucher und die
+        * Freigabe lagen hinter einer Adresse, die er sich merken musste.
+        *
+        * OBEN UND NICHT IN DER FUSSLEISTE: Die trägt schon Löschen, Vorschau und Speichern; ein
+        * vierter Knopf sprengt sie am Handy. Hier steht er beim Öffnen sofort da und verdrängt
+        * nichts. Zurückhaltend gestaltet — er ist ein Weg, kein Angebot.
+        *
+        * RELATIVE ADRESSE: Wir sind bereits auf dem Portal, und sie trägt seinen Schlüssel weiter,
+        * ohne den das Dashboard ihn nicht einlässt.
+        */}
+      <a href={`/${encodeURIComponent(mandant)}/dashboard?k=${encodeURIComponent(k)}`}
+        className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#dfe4e9] px-4 py-2 text-[13.5px] font-semibold text-[#555] no-underline transition hover:border-[#111] hover:text-[#111]">
+        <LayoutDashboard className="h-[15px] w-[15px]" aria-hidden />
+        {T.zumDashboard}
+      </a>
+      {/* ── „DEINE INHALTE WERDEN ANGELEGT" — und dann tataa (Owner 12.09.2026) ──────────────
+          Sie steht über allem anderen, weil sie erklärt, warum unter den Bildern noch nichts
+          steht. Verschwindet von selbst: Sobald die Sätze geschrieben sind, ist `aufbau` falsch. */}
+      {aufbau && (
+        <p className="m-0 mb-4 rounded-xl bg-[#fff6e0] px-4 py-3 text-[15px] font-semibold leading-[1.45] text-[#5b4a00]">
+          {T.aufbau}
+        </p>
+      )}
+      {/* HIER STAND EIN ERKLÄRKASTEN (Owner 12.09.2026: „das raus"): „Du bearbeitest deine Seite.
+          Tippe auf einen Text oder ein Bild … So sehen Käufer deine Seite". Drei Sätze über etwas,
+          das man am Antippen sofort merkt — und der Vorschau-Link darin steht jetzt als Knopf
+          unten, zusammen mit Hochladen und Löschen. */}
 
       <input ref={dateiProfil} type="file" accept="image/*" hidden
         onChange={async e => {
           const f = e.target.files?.[0];
           e.target.value = "";
-          /* Nur ein angenommenes Foto ersetzt den Platzhalter — ein geprüftes käme sonst als kaputtes Bild. */
-          if (await hochladen(f, "profil") === "ok") { setProfilBild(true); neuLaden("profil"); setStatus(""); }
-        }} />
-      <input ref={dateiKachel} type="file" accept="image/*" hidden
-        onChange={async e => {
-          const f = e.target.files?.[0];
-          e.target.value = "";
           if (!f) return;
+          /* Nur vormerken — hochgeladen wird beim Speichern. Angezeigt wird sofort, aus dem Browser. */
+          const daten = await verkleinern(f);
+          setAusstehend(v => ({ ...v, profil: daten }));
+          setEntfernt(v => v.filter(x => x !== "profil"));
+          setProfilBild(true);
+          setStatus("");
+        }} />
+      {/* ── EIN KNOPF, VIELE BILDER (Owner 12.09.2026: „hier steht adaugă o lucrare, nein. Ich habe
+          dir gesagt das selbe Prinzip. Grosser Button lade Bilder hoch, save. Dann wird alles
+          angelegt") ────────────────────────────────────────────────────────────────────────────
+          Hier ging genau EIN Werk je Klick — wer zehn Bilder aus dem Keller hat, klickte zehnmal
+          durch den Dateidialog. Jetzt wählt er alle auf einmal aus, so wie im Trichter.
+
+          NACHEINANDER HOCHGELADEN, nicht gleichzeitig: Jede Datei bekommt die nächste freie
+          Nummer, und die ergibt sich aus der vorigen. Parallel würden zwei Bilder dieselbe Nummer
+          beanspruchen und eines das andere überschreiben.
+
+          BEIM GEZIELTEN ERSETZEN (`kachelZiel` gesetzt) zählt weiterhin nur die erste Datei —
+          dort ist die Kachel ja schon gewählt. */}
+      <input ref={dateiKachel} type="file" accept="image/*" multiple hidden
+        onChange={async e => {
+          const dateien = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (!dateien.length) return;
           if (kachelZiel === null) {
-            const neu = Math.max(-1, ...kacheln.map(x => x.i)) + 1;
-            if (neu > 11) return;
-            const ergebnis = await hochladen(f, String(neu));
-            if (ergebnis) {
-              setKacheln(v => [...v, { i: neu, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", preisZeigen: false, detalii: "" }]);
-              neuLaden(String(neu));
-              setStatus("");
+            /**
+             * ── DIE KLEINSTE FREIE NUMMER, NICHT „HÖCHSTE PLUS EINS" (Owner 13.09.2026:
+             * „Szidonia hat nur 8 Bilder und kann keine weiter hochladen") ──────────────────────
+             *
+             * GEMESSEN an ihrem Datensatz: Nummern [-1, 0, 3, 4, 5, 9, 10, 11] — acht Werke, aber
+             * die höchste ist 11. `Math.max(…) + 1` ergab 12, und das alte `if (naechste > 11)
+             * break` brach sofort ab, ohne eine einzige Datei vorzumerken.
+             *
+             * DAS WAR DER SCHLIMMSTE FEHLERTYP: Der Knopf blieb sichtbar (8 < 13), reagierte auf
+             * den Tipp, öffnete die Dateiauswahl — und danach passierte nichts. Keine Meldung,
+             * kein Hinweis. Sie hielt die Seite für kaputt und hatte recht.
+             *
+             * Die Nummern stiegen, weil sie Werke GELÖSCHT und neue hochgeladen hat; die Anzahl
+             * blieb klein, der Zähler nicht. In der Ablage liegt unter 1, 2, 6, 7, 8 nichts mehr
+             * (geprüft) — es sind echte freie Plätze. Deshalb werden sie wiederverwendet.
+             *
+             * Die Nummer bleibt weiterhin die Identität der Kachel: Wir füllen nur Lücken, wir
+             * rücken nichts nach. Unter Nummer 3 steht danach derselbe Spruch wie vorher.
+             */
+            /**
+             * ── HÖCHSTENS ZEHN WERKE (Owner 13.09.2026: „wenn der User versucht, mehr als 10
+             * hochzuladen, lässt du ihn nicht … wenn er schon 8 hat, nicht mehr als 2") ────────
+             *
+             * Das Auswahlfenster gehört dem Betriebssystem — dort lässt sich nicht vorgeben, wie
+             * viele Dateien er markieren darf. Also hier: Es werden nur so viele übernommen, wie
+             * Plätze frei sind, und der Rest wird GESAGT. Stillschweigend zu schlucken ist genau
+             * der Fehler, an dem Szidonia heute gescheitert ist.
+             */
+            const offenePlaetze = Math.max(0, WERKE_MAX - kacheln.length);
+            const nehmen = Math.min(dateien.length, offenePlaetze);
+            const belegt = new Set(kacheln.map(x => x.i));
+            const frei: number[] = [];
+            /* Die Nummern reichen weiter als die Plätze (Bestandskünstler haben bis zu 12 Werke) —
+               begrenzt wird über `nehmen`, nicht über den Nummernvorrat. */
+            for (let i = 0; i <= 11 && frei.length < nehmen; i += 1) {
+              if (!belegt.has(i)) frei.push(i);
             }
-          } else if (await hochladen(f, kachelZiel < 0 ? "" : String(kachelZiel)) === "ok") {
-            neuLaden(nrVon(kachelZiel));
+            if (dateien.length > nehmen) {
+              setHinweis(nehmen === 0
+                ? T.werkeVoll.replace("{max}", String(WERKE_MAX))
+                : T.zuVieleBilder.replace(/\{n\}/g, String(nehmen)));
+            }
+            const neue: (typeof kacheln)[number][] = [];
+            const vorgemerkt: Record<string, string> = {};
+            for (const f of dateien) {
+              const nr = frei.shift();
+              if (nr === undefined) break;
+              vorgemerkt[String(nr)] = await verkleinern(f);
+              neue.push({ i: nr, spruch: "", titel: "", technik: "", groesse: "", jahr: "", geschichte: "", preis: "", detalii: "", vertritt: false });
+            }
+            if (neue.length) {
+              setAusstehend(v => ({ ...v, ...vorgemerkt }));
+              setKacheln(v => [...v, ...neue]);
+            }
+          } else {
+            const nr = kachelZiel < 0 ? "-1" : String(kachelZiel);
+            const daten = await verkleinern(dateien[0]);
+            setAusstehend(v => ({ ...v, [nr]: daten }));
+            setEntfernt(v => v.filter(x => x !== nr));
           }
           setStatus("");
         }} />
 
       {/* ── FOTO · NAME · ORT ── */}
       <div className="mt-8 flex items-center gap-5">
+        {/**
+          * ── ER SIEHT, WAS BESUCHER SEHEN — UND DASS ER TIPPEN KANN (Owner 13.09.2026: „wieso
+          * sehe ich bei Cosmin kein Bild?" · „muss Icon stehen auch für Fotoupload drauf") ─────
+          *
+          * Ohne eigenes Foto zeigt die ÖFFENTLICHE Seite sein vertretendes Werk (siehe
+          * `app/portal/[kuenstler]/page.tsx`). Hier stand dagegen ein leerer Kreis: Besucher
+          * sahen ein Bild, er selbst nichts — genau verkehrt herum.
+          *
+          * Jetzt steht dasselbe Werk auch hier, abgeblendet, mit Kamera-Marke darüber. Abgeblendet
+          * und beschriftet, weil es NICHT sein Profilbild ist: Sähe es aus wie eines, lüde er nie
+          * eins hoch. Die Marke sagt, dass der Kreis antippbar ist — bei den Werk-Kacheln gibt es
+          * sie längst („Schimbă imaginea"), hier fehlte sie.
+          *
+          * NUR ANZEIGE: `profilBild` bleibt unberührt, es wird nichts geschrieben.
+          */}
         <button type="button" onClick={() => dateiProfil.current?.click()} aria-label={T.fotoPlatzhalter}
-          className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#ccc] bg-[#f5f5f5] text-center text-[12px] font-semibold leading-[1.2] text-[#777] transition hover:border-[#1d6fd0]">
+          className="group relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-[#ccc] bg-[#f5f5f5] text-center text-[12px] font-semibold leading-[1.2] text-[#777] transition hover:border-[#1d6fd0]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {profilBild ? <img src={bildUrl("profil")} alt="" className="h-full w-full object-cover" /> : <span className="px-2">{T.fotoPlatzhalter}</span>}
+          {/* Ein gerade gewähltes Foto liegt nur im Browser — es wird von dort gezeigt, nicht vom Server. */}
+          {profilBild ? (
+            <img src={ausstehend.profil ?? bildUrl("profil")} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <>
+              {vertreterNr !== null && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={bildUrl(nrVon(vertreterNr))} alt="" aria-hidden
+                  className="absolute inset-0 h-full w-full object-cover opacity-35" />
+              )}
+              <span className="relative flex flex-col items-center gap-1 px-2">
+                <Camera className="h-5 w-5" aria-hidden />
+                {T.fotoPlatzhalter}
+              </span>
+            </>
+          )}
         </button>
         <div className="min-w-0 flex-1">
           <input value={name} onChange={e => { setName(e.target.value); setStatus(""); }} maxLength={80}
             placeholder={T.namePlatzhalter} className={`${feld} font-serif text-[32px] font-normal leading-[1.15] md:text-[48px]`} />
           <input value={ort} onChange={e => { setOrt(e.target.value); setStatus(""); }} maxLength={80}
             placeholder={T.ortPlatzhalter} className={`${feld} mt-1.5 text-[15px] text-[#555]`} />
+          {/* WAS SEINE WERKE KOSTEN — EIN Satz, der an JEDEM Bild erscheint (Owner 12.09.2026:
+              „es wird nur generell erscheinen was der künstler für seine werke verlangt bei jedem bild").
+              Er schreibt nur die Spanne; „Preis auf Anfrage" hängt die Seite in der Sprache des
+              Betrachters an. Einen Preis je Werk gibt es nicht mehr. */}
+          <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[13.5px] font-semibold text-[#555]">{T.preisSpanneWort}</span>
+            <input value={preisSpanne} onChange={e => { setPreisSpanne(e.target.value); setStatus(""); }} maxLength={60}
+              placeholder={T.preisSpannePlatzhalter} className={`${feld} w-[210px] py-0.5 text-[14px] text-[#444]`} />
+            <span className="text-[13.5px] text-[#888]">{T.preisAufAnfrage}</span>
+          </span>
+          {/* ── INSTAGRAM UND FACEBOOK (Owner 13.09.2026: „Feld für Instagram oder Facebook …
+              kann er eintragen") ────────────────────────────────────────────────────────────
+              Freiwillig, unter dem Preis: Wer ihn dort schon gefunden hat, folgt ihm lieber, wo
+              er ohnehin ist. Eingetippt werden darf „@name" — die volle Adresse baut der Server. */}
+          <span className="mt-2 flex max-w-[420px] flex-col gap-1">
+            <input value={instagram} onChange={e => { setInstagram(e.target.value); setStatus(""); }} maxLength={200}
+              placeholder={T.instagramPlatzhalter} className={`${feld} py-0.5 text-[14px] text-[#444]`} />
+            <input value={facebook} onChange={e => { setFacebook(e.target.value); setStatus(""); }} maxLength={200}
+              placeholder={T.facebookPlatzhalter} className={`${feld} py-0.5 text-[14px] text-[#444]`} />
+          </span>
         </div>
       </div>
 
-      {/* ── ÜBER MICH ── */}
-      <textarea value={ueberMich} onChange={e => { setUeberMich(e.target.value); setStatus(""); }} rows={4} maxLength={1200}
+      {/* ── ÜBER MICH — mit eigenem Speichern und KI-Korrektur (Owner 13.09.2026) ──────────────
+          Der Vorgabetext im leeren Feld nimmt die Hemmung: Wer „Erzähl Käufern etwas über dich"
+          liest, muss einen fertigen Text können. „Schreib einfach frei" verlangt nur Stichworte. */}
+      <textarea value={ueberMich} onChange={e => { setUeberMich(e.target.value); setStatus(""); setUeberStatus(""); }} rows={4} maxLength={1200}
         placeholder={T.ueberMichPlatzhalter} className={`${feld} mt-5 max-w-[640px] resize-y py-1 text-[16.5px] leading-[1.6] text-[#333]`} />
+      <div className="mt-2.5 flex max-w-[640px] flex-wrap items-center gap-2.5">
+        <button type="button" onClick={ueberMichKorrigieren} disabled={aiLaeuft || !ueberMich.trim()}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#111] px-4 py-2 text-[13.5px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#111]">
+          {aiLaeuft ? T.aiLaeuft : T.aiKorrektur}
+        </button>
+        {/* Erscheint erst, wenn es etwas zurückzuholen gibt — und verschwindet nach dem Klick. */}
+        {ueberMichVorher !== null && (
+          <button type="button" title={T.zurueckVersion} aria-label={T.zurueckVersion}
+            onClick={() => { setUeberMich(ueberMichVorher); setUeberMichVorher(null); setUeberStatus(""); }}
+            className="inline-flex items-center rounded-full border border-[#dfe4e9] p-2 text-[#777] transition hover:border-[#111] hover:text-[#111]">
+            <Undo2 className="h-[15px] w-[15px]" aria-hidden />
+          </button>
+        )}
+        <button type="button" onClick={ueberMichSpeichern} disabled={ueberStatus === "speichert"}
+          className="rounded-full bg-[#111] px-4 py-2 text-[13.5px] font-semibold text-white transition hover:bg-[#333] disabled:opacity-50">
+          {T.speichern}
+        </button>
+        {ueberStatus === "gespeichert" && <span className="text-[13.5px] font-semibold text-[#1a7f37]">{T.gespeichert}</span>}
+        {ueberStatus === "fehler" && <span className="text-[13.5px] font-semibold text-[#b3261e]">{T.speichernFehler}</span>}
+      </div>
 
-      <span className="mt-6 inline-block bg-[#111] px-6 py-3.5 text-[15px] font-semibold text-white opacity-60">{T.agent}</span>
+      {/* ── DER TOTE AGENTEN-KNOPF IST RAUS (Owner 13.09.2026: „das raus") ──────────────────────
+          Hier stand „Te interesează arta mea? Vorbește cu agentul meu." als graues, nicht
+          klickbares `span` — eine Vorschau darauf, wie der Knopf für Käufer aussieht. In einem
+          Formular, in dem alles andere antippbar ist, liest sich das als defekter Knopf, nicht
+          als Vorschau. Wie seine Seite wirklich aussieht, zeigt „Vezi pagina ta online!" unten.
+          Der ECHTE Agenten-Knopf steht unverändert auf der öffentlichen Seite. */}
 
       {/* ── SEINE WERKE — alle sofort, jede Kachel antippbar ── */}
       <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.werke}</h2>
-      {hinweis && <p className="mt-3 text-[14px] font-semibold text-[#b3261e]">{hinweis}</p>}
+      {/* ── DER HINWEIS — UND BEIM PREMIUM-FALL DER KNOPF DAZU ──────────────────────────────
+          (Owner 14.09.2026) Ein Satz, der sagt „das kostet", ohne etwas zum Drücken, ist eine
+          Tür ohne Klinke: Gemessen am 14.09.2026 sah KEINER der neun Künstler im Dashboard einen
+          Kaufweg, weil der dortige Kasten an `aboFrageAm` hängt. Hier steht er jetzt direkt an
+          der Funktion, die er gerade wollte.
+
+          NICHT ROT: Ein Fehler ist rot. Dies ist kein Fehler — er hat nichts falsch gemacht. */}
+      {hinweis && (
+        <div className="mt-3">
+          <p className={`m-0 text-[14px] font-semibold ${premium ? "text-[#14181c]" : "text-[#b3261e]"}`}>{hinweis}</p>
+          {premium && (
+            <MandantKaufen
+              mandant={mandant}
+              k={k}
+              abo
+              wort={T.aboUpgradeKnopf}
+              klasse="mt-2 inline-block rounded-xl bg-[#1d6fd0] px-5 py-2.5 text-[15px] font-extrabold text-white transition active:scale-[.99] disabled:opacity-60"
+            />
+          )}
+        </div>
+      )}
+
+      {/* ── DER KNOPF STEHT OBEN (Owner 12.09.2026: „der Button sollte oben stehen, nicht unten,
+          weil die neuesten Bilder oben sind" · „hier wollte ich diesen Rahmen nicht") ───────────
+          Vorher war er die letzte Kachel im Raster — bei zehn Werken muss man dafür an allem
+          vorbeiscrollen. Und er sass in einer gestrichelten Fläche in Kachelgrösse, die wie ein
+          leerer Platzhalter aussah. Jetzt steht der Knopf für sich, direkt über den Werken. */}
+      {/**
+        * ── DER KNOPF BLEIBT STEHEN UND WIRD GRAU (Owner 13.09.2026: „das ist Bullshit. Hier muss
+        * Button stehen, ausgegraut. 10/10") ────────────────────────────────────────────────────
+        *
+        * Hier stand bei vollen Plätzen ein SATZ statt des Knopfes. Wer die Seite kennt, sucht an
+        * dieser Stelle den Knopf — und findet Text. Das liest sich wie ein Fehler, nicht wie eine
+        * Grenze.
+        *
+        * Jetzt bleibt er, wo er war, wird grau und zeigt „10/10". Der Zähler steht immer da, auch
+        * wenn noch Platz ist: Die Grenze gehört vor die Auswahl, nicht hinter die Absage. Warum
+        * er grau ist, sagt die Sprechblase — im Weg steht sie niemandem.
+        *
+        * OHNE TEXTSCHLÜSSEL: „7/10" ist in jeder Sprache dasselbe.
+        */}
+      {/**
+        * GRAU, ABER KLICKBAR (Owner 13.09.2026: „eventuell wenn er versucht, dann kommt Meldung.
+        * Du hast das Maximum an Uploads erreicht").
+        *
+        * Ein echtes `disabled` lässt sich nicht antippen — dann käme auch keine Meldung, und die
+        * Sprechblase, die den Grund nennt, gibt es auf dem Telefon gar nicht. Dort stünde ein
+        * grauer Knopf, der auf nichts reagiert; das ist derselbe stumme Fehlschlag, an dem
+        * Szidonia heute morgen gescheitert ist.
+        *
+        * Deshalb: Er sieht gesperrt aus und sagt beim Antippen, warum.
+        */}
+      <button type="button" disabled={laedt}
+        onClick={() => {
+          /* Voll: anhalten und erklären — hier steht später der Weg zu Premium. */
+          if (kacheln.length >= WERKE_MAX) { setVollDialog(true); return; }
+          setHinweis("");
+          setKachelZiel(null);
+          dateiKachel.current?.click();
+        }}
+        className={`mt-5 inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-bold text-white transition disabled:opacity-50 ${
+          kacheln.length >= WERKE_MAX ? "bg-[#9aa3ab] hover:bg-[#8a939b]" : "bg-[#111] hover:bg-[#333]"}`}>
+        <ImagePlus className="h-[18px] w-[18px]" aria-hidden />
+        {T.bildHinzufuegen}
+        <span className="rounded-full bg-white/20 px-2 py-0.5 text-[13px] font-bold tabular-nums">
+          {kacheln.length}/{WERKE_MAX}
+        </span>
+      </button>
       <ul className="mt-6 grid list-none grid-cols-1 gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-3">
         {kacheln.map(kc => (
           <li key={kc.i}>
             <button type="button" onClick={() => { setKachelZiel(kc.i); dateiKachel.current?.click(); }}
               className="relative flex aspect-[4/5] w-full items-start justify-end overflow-hidden bg-[#f5f5f5]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {fehlt[nrVon(kc.i)]
+              {/* Vorgemerkte Bilder kommen aus dem Browser: Auf dem Server liegen sie erst nach „Speichern". */}
+              {fehlt[nrVon(kc.i)] && !ausstehend[nrVon(kc.i)]
                 ? <span className="grid h-full w-full place-items-center px-6 text-center text-[14px] text-[#777]">{T.bildPruefung}</span>
-                : <img src={bildUrl(nrVon(kc.i))} alt="" className="max-h-full max-w-full object-contain"
+                : <img src={ausstehend[nrVon(kc.i)] ?? bildUrl(nrVon(kc.i))} alt="" className="max-h-full max-w-full object-contain"
                     onError={() => setFehlt(v => ({ ...v, [nrVon(kc.i)]: true }))} />}
               <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1.5 text-[13px] font-semibold text-[#111] shadow">{T.bildTauschen}</span>
             </button>
             <textarea value={kc.spruch} onChange={e => aendern(kc.i, "spruch", e.target.value)} rows={3} maxLength={280}
               placeholder={T.spruchPlatzhalter} className={`${feld} mt-4 resize-none py-1 text-[17px] font-semibold leading-[1.35]`} />
+            {/**
+              * ── EIN SATZ AUF ZURUF, JE WERK (Owner 13.09.2026: „man muss einen Button unter jedem
+              * Werk machen. Beschreibung AI generieren") ──────────────────────────────────────────
+              *
+              * Der Hintergrundlauf nach dem Speichern schreibt alle fehlenden Sätze in einem Zug —
+              * und wenn dabei einer ausbleibt, gibt es keinen zweiten Versuch. Hier kann sie es
+              * selbst auslösen, so oft sie will, und einen Satz auch ersetzen.
+              *
+              * DER LADEZUSTAND HÄNGT AM WERK, nicht am Formular: Sonst drehten sich beim Klick auf
+              * ein Bild alle zwölf Knöpfe, und niemand wüsste, welcher gerade arbeitet.
+              */}
+            <button type="button" disabled={!!spruchLaeuft[kc.i]}
+              onClick={() => void spruchSchreiben(kc.i)}
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-[#dfe4e9] px-3 py-1.5 text-[12.5px] font-semibold text-[#555] transition hover:border-[#1d6fd0] hover:text-[#1d6fd0] disabled:opacity-50">
+              <Sparkles className="h-[14px] w-[14px]" aria-hidden />
+              {spruchLaeuft[kc.i] ? T.spruchKiLaeuft : T.spruchKi}
+            </button>
+            {/* Daneben der Weg zurück (Owner 13.09.2026: „also neben Scrie cu AI") — je Werk,
+                nur wenn für DIESES Werk eine vorige Fassung gemerkt ist. */}
+            {spruchVorher[kc.i] !== undefined && (
+              <button type="button" title={T.zurueckVersion} aria-label={T.zurueckVersion}
+                onClick={() => {
+                  aendern(kc.i, "spruch", spruchVorher[kc.i]);
+                  setSpruchVorher(v => { const n = { ...v }; delete n[kc.i]; return n; });
+                }}
+                className="ml-1.5 inline-flex items-center rounded-full border border-[#dfe4e9] p-1.5 text-[#777] transition hover:border-[#111] hover:text-[#111]">
+                <Undo2 className="h-[13px] w-[13px]" aria-hidden />
+              </button>
+            )}
             <div className="mt-1.5 grid grid-cols-2 gap-1.5">
               {([
                 ["titel", T.titelPlatzhalter],
@@ -214,46 +761,153 @@ export default function PortalBearbeiten({ mandant, k, T, oeffentlich, start }: 
                 nicht direkt, sein Agent erzählt daraus. Freiwillig. */}
             <textarea value={kc.geschichte} onChange={e => aendern(kc.i, "geschichte", e.target.value)} rows={3} maxLength={800}
               placeholder={T.geschichtePlatzhalter} className={`${feld} mt-2 resize-y py-1 text-[14.5px] leading-[1.5] text-[#444]`} />
-            {/* PREIS PRO WERK — ob er auf der Seite steht, entscheidet er (Owner 11.09.2026: „c"). */}
+            {/* DER PREIS JE WERK IST FREIWILLIG (Owner 12.09.2026: „wenn der künstler die preise
+                genau einträgt bei seinen werken, dann erscheint das"). Lässt er ihn leer, steht an
+                diesem Bild sein allgemeiner Satz von oben. Das Häkchen „Preis zeigen" gibt es nicht
+                mehr: Wer einen Preis einträgt, will ihn zeigen. */}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-              {/* Nur die Zahl, dahinter fest „€" (Owner 11.09.2026: „die Preise alle in Euro"). */}
               <span className="flex items-center gap-1.5">
-                <span className="text-[13.5px] font-semibold text-[#555]">{T.preisWort}</span>
-                <input value={kc.preis} onChange={e => aendern(kc.i, "preis", e.target.value.replace(/[^\d.,]/g, ""))} maxLength={12}
-                  inputMode="decimal" placeholder={T.preisPlatzhalter} className={`${feld} w-[130px] py-0.5 text-[14px] text-[#444]`} />
-                <span className="text-[14px] font-semibold text-[#444]">€</span>
+                <span className="text-[13.5px] font-semibold text-[#555]">{T.preisSpanneWort}</span>
+                <input value={kc.preis} onChange={e => aendern(kc.i, "preis", e.target.value)} maxLength={60}
+                  placeholder={T.preisSpannePlatzhalter} className={`${feld} w-[170px] py-0.5 text-[14px] text-[#444]`} />
               </span>
+              {/* WELCHES BILD IHN VERTRITT (Owner 12.09.2026) — es bestimmt das Vorschaubild beim
+                  Teilen seiner Seite. Nur eines kann gesetzt sein; `vertrittSetzen` löscht die anderen. */}
               <label className="flex items-center gap-1.5 text-[13.5px] text-[#555]">
-                <input type="checkbox" checked={kc.preisZeigen} onChange={e => preisZeigenSetzen(kc.i, e.target.checked)} />
-                {T.preisZeigen}
+                <input type="checkbox" checked={kc.vertritt} onChange={e => vertrittSetzen(kc.i, e.target.checked)} />
+                {T.vertritt}
               </label>
             </div>
             <button type="button" onClick={() => void entfernen(kc.i)}
               className="mt-2 text-[13px] text-[#777] underline hover:text-[#b3261e]">{T.entfernen}</button>
           </li>
         ))}
-        {kacheln.length < 13 && (
-          <li>
-            <button type="button" disabled={laedt} onClick={() => { setKachelZiel(null); dateiKachel.current?.click(); }}
-              className="grid aspect-[4/5] w-full place-items-center border-2 border-dashed border-[#ccc] bg-[#fafafa] text-[15px] font-semibold text-[#555] transition hover:border-[#1d6fd0] disabled:opacity-50">
-              {T.bildHinzufuegen}
-            </button>
-          </li>
-        )}
       </ul>
 
-      {/* ── SPEICHERN, immer erreichbar ── */}
+      {/* ── ALLES UNTEN, IMMER SICHTBAR (Owner 12.09.2026: „das machst du neben Salvează sticky,
+          Preview statt Vezi…, alles unten sticky") ──────────────────────────────────────────
+          IN DER LEISTE STEHT NUR NOCH, WAS VORWÄRTS FÜHRT (Owner 13.09.2026: „Șterge pagina raus.
+          Soll am Ende der Seite stehen, nicht sticky"). Der Löschknopf klebte hier neben
+          „Speichern" und fuhr bei jedem Schritt mit — der einzige unwiderrufliche Weg der Seite,
+          dauerhaft in Daumenreichweite. Er steht jetzt am Seitenende, wo man ihn sucht, wenn man
+          ihn will, und nicht findet, wenn man ihn nicht will. */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e5e5e5] bg-white/95 px-5 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-3">
-          <span className={`text-[14px] font-semibold ${status === "fehler" ? "text-[#b3261e]" : "text-[#1d6fd0]"}`}>
+        {/* EINE ZEILE, AUCH AUF DEM HANDY: Mit Umbruch fiel „Speichern" in eine zweite Reihe und
+            stand dort allein links — der wichtigste Knopf am unerwartetsten Ort. Deshalb kein
+            `flex-wrap`; stattdessen weicht das Entbehrliche: die Statusmeldung erscheint erst ab
+            `sm`, und der Löschtext darf schrumpfen. Die beiden rechten Knöpfe nie (`shrink-0`). */}
+        <div className="mx-auto flex max-w-[1120px] items-center gap-2 sm:gap-3">
+          <span className={`mr-auto hidden text-[14px] font-semibold sm:block ${status === "fehler" ? "text-[#b3261e]" : "text-[#1d6fd0]"}`}>
             {laedt ? "…" : status === "gespeichert" ? T.gespeichert : status === "fehler" ? T.speichernFehler : ""}
           </span>
+
+          {/**
+            * ── BLAU UND GEFÜLLT, DAMIT ER GESEHEN WIRD (Owner 13.09.2026: „Preview Knopf sehen
+            * die nicht. Mach es blau und schreib «Vezi pagina ta online!»") ────────────────────
+            *
+            * Er war ein schwarzer Umriss — dasselbe Aussehen wie der Löschknopf am anderen Ende,
+            * nur spiegelverkehrt. Zwischen zwei Umrissen und einem gefüllten „Salvează" las ihn
+            * niemand als Angebot.
+            *
+            * DAS PORTAL IST SONST SCHWARZ-WEISS („die einzige Farbe sind die Werke"). Diese
+            * Ausnahme ist bewusst und bleibt auf die Bearbeiten-Ansicht beschränkt: Die sieht nur
+            * der Künstler mit seinem Schlüssel, nie ein Käufer.
+            */}
+          <a href={oeffentlich}
+            className="ml-auto shrink-0 rounded-full bg-[#1d6fd0] px-4 py-3 text-[14px] font-bold text-white no-underline transition hover:bg-[#1758a8] sm:ml-0 sm:px-6 sm:text-[15px]">
+            {/* Am Handy das kurze Wort, ab sm der ganze Satz (Owner 13.09.2026: „dann nur auf dem
+                PC ausschreiben") — dasselbe Muster wie „Autentificare artist" im Kopf. */}
+            <span className="sm:hidden">{T.vorschauKurz}</span>
+            <span className="hidden sm:inline">{T.vorschauOnline}</span>
+          </a>
           <button type="button" onClick={() => void speichern()} disabled={status === "speichert" || laedt}
-            className="bg-[#111] px-7 py-3 text-[15px] font-semibold text-white transition hover:bg-[#333] disabled:opacity-50">
+            className="shrink-0 bg-[#111] px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-[#333] disabled:opacity-50 sm:px-7 sm:text-[15px]">
             {T.speichern}
           </button>
         </div>
       </div>
+
+      {/**
+        * ── DAS LÖSCHEN STEHT AM ENDE (Owner 13.09.2026: „Șterge pagina raus. Soll am Ende der
+        * Seite stehen, nicht sticky") ──────────────────────────────────────────────────────────
+        *
+        * Weit unten, hinter allen Werken, abgesetzt durch eine Linie und viel Luft: Wer seine
+        * Seite löschen will, scrollt dorthin. Wer sie bearbeitet, kommt nie vorbei.
+        *
+        * DIE ZWEI STUFEN BLEIBEN: Der Knopf löscht nichts, er öffnet die Frage; und selbst das Ja
+        * darin fordert nur die E-Mail an. Ruhig grau statt rot — Rot wäre eine Drohung, die hier
+        * gar nicht eingelöst wird.
+        *
+        * `pb-32` am `main` trägt weiterhin den Abstand zur klebenden Leiste, damit dieser Bereich
+        * nicht dahinter verschwindet.
+        */}
+      <div className="mt-20 border-t border-[#e5e5e5] pt-8">
+        {loeschMail ? (
+          <p className="m-0 text-[14px] font-semibold leading-[1.45] text-[#b3261e]">{T.loeschenMailGeschickt}</p>
+        ) : (
+          <button type="button" onClick={() => setLoeschDialog(true)}
+            className="rounded-full border border-[#dfe4e9] px-4 py-2.5 text-[13.5px] font-semibold text-[#777] transition hover:border-[#b3261e] hover:text-[#b3261e]">
+            {T.meineSeiteLoeschen}
+          </button>
+        )}
+      </div>
+
+      {/**
+        * ── DAS MAXIMUM ALS FENSTER (Owner 13.09.2026: „hier muss doch klicken können, aber
+        * Dialog öffnet sich") ──────────────────────────────────────────────────────────────────
+        *
+        * Der graue Knopf bleibt antippbar und hält hier an. Eine Sprechblase tat das nicht: Sie
+        * erscheint nur mit Maus, auf dem Telefon war der Knopf grau und stumm.
+        *
+        * IN DIESE KNOPFZEILE KOMMT SPÄTER „PREMIUM KAUFEN" — dann steht die Entscheidung genau
+        * dort, wo er sie treffen will: Er hat zehn Werke oben, seine Seite läuft, er will mehr
+        * zeigen. Heute steht dort nur, was er ohne Geld tun kann.
+        */}
+      {vollDialog && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-5"
+          role="dialog" aria-modal="true" onClick={() => setVollDialog(false)}>
+          <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="m-0 font-serif text-[24px] font-normal leading-[1.2]">
+              {T.werkeVollTitel.replace("{max}", String(WERKE_MAX))}
+            </h2>
+            <p className="mt-3 text-[15.5px] leading-[1.55] text-[#444]">{T.werkeVollText}</p>
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button type="button" onClick={() => setVollDialog(false)}
+                className="rounded-full bg-[#111] px-5 py-2.5 text-[14.5px] font-semibold text-white transition hover:bg-[#333]">
+                {T.verstanden}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DIE LÖSCHFRAGE ALS FENSTER (Owner 12.09.2026: „von mir aus Dialog") ─────────────────
+          Sie steht über allem, nennt beim Namen, was verschwindet, und hat zwei gleichwertige
+          Antworten. „Nein" liegt links und ist der ruhigere Knopf — wer hier landet, ist meistens
+          aus Versehen hier. Und selbst das Ja löscht noch nichts: Es fordert nur die E-Mail an. */}
+      {loeschDialog && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-5"
+          role="dialog" aria-modal="true" onClick={() => setLoeschDialog(false)}>
+          <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="m-0 font-serif text-[24px] font-normal leading-[1.2]">{T.loeschenTitel}</h2>
+            {/* NICHT DER TEXT DER LÖSCHSEITE: Dort ist es endgültig, hier geht nur eine E-Mail
+                raus (Owner 12.09.2026: „deine Seite wird hier nicht gelöscht"). */}
+            <p className="mt-3 text-[15.5px] leading-[1.55] text-[#444]">{T.loeschenPerMailText}</p>
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button type="button" onClick={() => setLoeschDialog(false)}
+                className="rounded-full border border-[#111] px-5 py-2.5 text-[14.5px] font-semibold text-[#111] transition hover:bg-[#111] hover:text-white">
+                {T.loeschenNein}
+              </button>
+              {/* Der Knopf sagt, was er tut — er schickt die Mail, er löscht nicht. Deshalb auch
+                  kein Rot: Rot wäre hier eine Drohung, die nicht eingelöst wird. */}
+              <button type="button" onClick={() => void loeschenAnfordern()}
+                className="rounded-full bg-[#111] px-5 py-2.5 text-[14.5px] font-semibold text-white transition hover:bg-[#333]">
+                {T.loeschenPerMail}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

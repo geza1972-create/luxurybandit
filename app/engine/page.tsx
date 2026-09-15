@@ -58,13 +58,33 @@ export async function generateMetadata({ searchParams }: {
   if (!imPortal((await headers()).get("host"))) return metadata;
   const roh = (await searchParams).lang;
   const l = String((Array.isArray(roh) ? roh[0] : roh) ?? "").slice(0, 2);
+  /**
+   * ── DER HOOK DER ANZEIGE, WÖRTLICH (Owner 13.09.2026: „Ganze Fett: Arta fara Marketing e
+   * invizibila. Noi il facem. Das ist nur ein Text Hook sonst nichts. Und der text muss auch
+   * geändert werden in der Anzeige") ──────────────────────────────────────────────────────────
+   *
+   * DIESE ADRESSE IST DAS ZIEL DER ANZEIGEN, und Facebook liest Titel und Beschreibung für die
+   * Vorschau. Stand hier etwas anderes als in der Anzeige, versprach die eine Sache und die
+   * Vorschau eine zweite — genau der Bruch, an dem Menschen abspringen, bevor sie etwas
+   * gesehen haben.
+   *
+   * GETEILT AUF ZWEI FELDER: Der erste Teil ist die Behauptung und steht gross im Titel, der
+   * zweite ist die Antwort darauf und schliesst sie in der Beschreibung ab.
+   *
+   * DEUTSCH UND ENGLISCH SIND SINNGEMÄSS, NICHT WÖRTLICH: „e invizibilă" meint hier, dass die
+   * Kunst ungesehen bleibt — nicht, dass sie durchsichtig wäre.
+   */
   return {
-    title: `lakatosbandi.com — ${l === "ro" ? "Începe" : "Start"}`,
-    description: l === "ro"
-      ? "Arta ta pe lakatosbandi.com — cu fraza care îi face pe oameni să se oprească. Gratuit, pagina ta e online imediat."
+    title: l === "ro"
+      ? "Arta fără marketing e invizibilă."
       : l === "de"
-        ? "Deine Kunst auf lakatosbandi.com — mit dem Satz, bei dem man stehen bleibt. Kostenlos, deine Seite ist sofort online."
-        : "Your art on lakatosbandi.com — with the sentence that makes people stop. Free, your page is online right away.",
+        ? "Kunst ohne Marketing bleibt ungesehen."
+        : "Art without marketing stays unseen.",
+    description: l === "ro"
+      ? "Noi îl facem."
+      : l === "de"
+        ? "Wir machen es."
+        : "We do it.",
     alternates: { canonical: "https://lakatosbandi.com/start" },
   };
 }
@@ -81,14 +101,19 @@ export default async function VersusForgeEingang({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const roh = (await searchParams).lang;
+  const sp = await searchParams;
+  const roh = sp.lang;
   const ausAdresse = Array.isArray(roh) ? roh[0] : roh;
   const lang: Lang = isLang(ausAdresse ?? "") ? (ausAdresse as Lang) : await resolveLang("de");
+  /* Die Kennung aus dem Facebook-Sofortformular (`?l=…`, Owner 13.09.2026) — nur durchgereicht,
+     geprüft wird sie auf dem Server (lib/kuenstler-lead.ts). */
+  const lRoh = sp.l;
+  const lead = String((Array.isArray(lRoh) ? lRoh[0] : lRoh) ?? "").replace(/[^a-f0-9]/gi, "").slice(0, 64);
   /* Nur die Adresse zählt als Wahl — mit ihr entfällt die Sprachfrage. */
   const gewaehlt = isLang(ausAdresse ?? "");
   const S = await agentChatInSprache(lang);
   /* Auf lakatosbandi.com/start: eigene Adresse und eigener Name (Owner 11.09.2026: „nicht auf VersusForge"). */
   const portal = imPortal((await headers()).get("host"));
 
-  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
+  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} lead={lead} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
 }

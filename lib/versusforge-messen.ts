@@ -31,12 +31,32 @@ export function schrittMessen(mandant: string, stufe: string, werk?: string): vo
          eines Zweiflers zehn Abbrecher. */
       return;
     }
+    /**
+     * ── WOHER ER KAM (Owner 15.09.2026: „ja, keine ahnung woher") ────────────────────────────
+     *
+     * Am 15.09. kamen 141 Besucher und EINER lud etwas hoch — und niemand konnte sagen, ob das
+     * dieselben Leute sind wie am 13.09. (19 von 310) oder ein ganz anderer Strom, weil das
+     * Werbekonto deaktiviert war. Ohne Herkunft lässt sich eine Quote nicht mit einer anderen
+     * vergleichen; man rät.
+     *
+     * NUR DAS GROBE: die Domain, von der er kam, und die Werbe-Merker aus der Adresse. KEINE
+     * ganze Adresse, keine Kennung, keine Suchbegriffe — die Zeile soll sagen „Facebook" oder
+     * „Google", nicht, wer er ist.
+     */
+    let quelle = "";
+    try {
+      const von = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : "";
+      const p = new URLSearchParams(window.location.search);
+      const merker = ["utm_source", "fbclid", "gclid"].find(k => p.get(k));
+      const wert = merker === "utm_source" ? String(p.get("utm_source") ?? "").slice(0, 24) : merker ? merker.replace("clid", "") : "";
+      quelle = [von && von !== window.location.hostname ? von : "", wert].filter(Boolean).join("|").slice(0, 60) || (von ? "direkt" : "direkt");
+    } catch { /* Herkunft ist Beiwerk — nie ein Grund, die Messung ausfallen zu lassen */ }
     void fetch("/api/versusforge-schritt", {
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
       /* `werk`: bei „Da, mă interesează această lucrare" — welches Werk ihn interessiert (Owner 11.09.2026). */
-      body: JSON.stringify({ mandant, besucher, stufe, ...(werk !== undefined ? { werk } : {}) }),
+      body: JSON.stringify({ mandant, besucher, stufe, ...(werk !== undefined ? { werk } : {}), ...(quelle ? { quelle } : {}) }),
     }).catch(() => {});
   } catch { /* nie den Trichter aufhalten */ }
 }

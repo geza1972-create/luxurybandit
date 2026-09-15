@@ -38,7 +38,9 @@ export async function POST(request: Request) {
       const mandant = str(b.mandant, 80);
       const besucher = str(b.besucher, 80);
       const stufe = str(b.stufe, 32);
-      await stufeMerken(mandant, besucher, stufe);
+      /* Die Herkunft reist mit (Owner 15.09.2026: „keine ahnung woher") — der Server nimmt sie
+         nur beim ersten Datensatz an, siehe `stufeMerkenGenau`. */
+      await stufeMerken(mandant, besucher, stufe, str(b.quelle, 60));
       if (stufe === "start" && b.werk !== undefined) await interesseMelden(mandant, besucher, str(b.werk, 6));
     }
   } catch { /* siehe oben: eine Messung hält nie etwas auf */ }

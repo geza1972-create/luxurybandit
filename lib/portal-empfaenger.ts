@@ -2,6 +2,8 @@ import {
   readKissLog, readTryThisLookState, readWetterSubscribers, readMailAbmeldungen,
   type KissLogEntry, type WetterSubscriber,
 } from "@/lib/try-this-look-store";
+/* Follower von Künstlerseiten — seit 13.09.2026 eine eigene Quelle (siehe unten). */
+import { alleFollower } from "@/lib/kuenstler-follower";
 
 /**
  * ALLE ADRESSEN DES PORTALS — an EINER Stelle.
@@ -220,6 +222,22 @@ export async function alleEmpfaenger(): Promise<Empfaenger[]> {
       dazu(e.paidEmail, "kiss-kauf", undefined, undefined, true);
     }
   } catch { /* siehe oben */ }
+
+  /**
+   * FOLLOWER VON KÜNSTLERSEITEN (Owner 13.09.2026: „die Follower bekommen auch Newsletter von
+   * uns. Muss im AGB stehen.").
+   *
+   * BESTÄTIGT, weil hier nur landet, wer den Link in unserer ersten Mail angeklickt hat — das
+   * ist dieselbe doppelte Bestätigung wie beim Wetter, die sauberste Grundlage im Haus. Wer sich
+   * abgemeldet hat, ist schon in `alleFollower` heraus; die Sperrliste unten greift zusätzlich.
+   *
+   * DIE RECHTSGRUNDLAGE STEHT AN DER STELLE, AN DER SIE ERTEILT WIRD: am Feld auf der
+   * Künstlerseite, in der Bestätigungsmail, im Datenschutz (5.) und in den AGB (7.) — dort ist
+   * beides benannt, die Benachrichtigung über neue Werke UND Neuigkeiten von uns.
+   */
+  try {
+    for (const f of await alleFollower()) dazu(f.mail, "folgt-kuenstler", undefined, f.sprache, true);
+  } catch { /* eine Quelle darf ausfallen, ohne den ganzen Versand zu kippen */ }
 
   // Zum Schluss die Sperrliste — sie schlägt jede Quelle.
   const gesperrt = new Set(await readMailAbmeldungen());

@@ -61,7 +61,20 @@ export function werkSaeubern(roh: unknown): WerkBefund | null {
   return werk.medium || werk.stil || werk.motiv || werk.merkmale.length ? werk : null;
 }
 
-export async function bildAnsehen(o: { apiKey: string; bild: string }): Promise<
+/**
+ * ── WELCHES MODELL HINSIEHT (Owner 13.09.2026: „wir müssen aber eine richtige analyse machen
+ * nicht mit mini") ───────────────────────────────────────────────────────────────────────────
+ *
+ * VORGABE BLEIBT `KLEIN`, und das ist kein Geiz: Diese Funktion läuft auch im Dashboard („Scrie
+ * cu AI" je Werk) und in den Hintergrundläufen, die Sätze für ALLE Werke eines Künstlers
+ * nachtragen. Dort pauschal auf das grosse Modell zu wechseln, verteuerte genau die Stellen, die
+ * niemand gemeint hat.
+ *
+ * DER TRICHTER GIBT `GROSS` MIT. Dort wird genau EIN Bild angesehen, und dieses eine Urteil ist
+ * die Grundlage für den Satz, der später verkauft — die einzige Stelle, an der sich das grosse
+ * Modell bezahlt macht.
+ */
+export async function bildAnsehen(o: { apiKey: string; bild: string; modell?: string }): Promise<
   { ok: true; werk: WerkBefund; verbrauch: Verbrauch } | { ok: false; fehler: string }
 > {
   if (!o.bild.startsWith("data:image/")) return { ok: false, fehler: "kein Bild" };
@@ -82,7 +95,7 @@ export async function bildAnsehen(o: { apiKey: string; bild: string }): Promise<
     'Answer ONLY as JSON: {"medium":"...","stil":"...","motiv":"...","szene":"...","merkmale":["..."],"selten":"...","erinnertAn":"...","traum":"..."}',
   ].join("\n");
 
-  const r = await frageModell(o.apiKey, KLEIN, [
+  const r = await frageModell(o.apiKey, o.modell ?? KLEIN, [
     { type: "input_text", text: auftrag },
     /* VOLLE AUFLÖSUNG (Owner 10.09.2026: „Du erkennst die Motive nicht im Bild"). Mit „low" sah das
        Modell ein stark verkleinertes Bild — Figuren und Gegenstände gingen unter. */

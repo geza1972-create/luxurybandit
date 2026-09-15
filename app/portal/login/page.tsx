@@ -29,7 +29,7 @@ export default async function PortalLoginSeite({ searchParams }: { searchParams:
   const T = portalTexte(L);
   const P = portalPfade((await headers()).get("host"));
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
       <main className="mx-auto w-full max-w-[440px] px-5 pb-20 pt-14">
         <h1 className="m-0 font-serif text-[34px] font-normal leading-[1.15]">{T.loginTitel}</h1>

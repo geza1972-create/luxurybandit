@@ -40,12 +40,95 @@ export type AboStand = {
   subscription?: string;
   /** Wann es geendet hat (Kündigung, gescheiterte Zahlung). */
   bis?: string;
+  /**
+   * ── EIN GESCHENKTES ABO, BIS ZU DIESEM TAG (Owner 14.09.2026: „wir geben guten Künstlern
+   * Premium frei. Sie sind unser Motor" · „Gewinne jetzt ein Premium-Abo" · „er bekommt von uns
+   * 120 € geschenkt. Jahresabo") ───────────────────────────────────────────────────────────────
+   *
+   * EIN EIGENES FELD, NICHT `bis`: Jenes bedeutet „beendet am" und wird vom Webhook zusammen mit
+   * `aktiv: false` gesetzt. Beides in ein Feld zu legen, hiesse, dass eine Kündigung wie ein
+   * Geschenk aussieht und umgekehrt.
+   *
+   * UND `aktiv` BLEIBT DABEI FALSE: Geschenkt ist nicht bezahlt. Stünde hier `aktiv: true`, liefe
+   * das Geschenk nie ab — der Künstler hätte für immer Premium, und niemand würde es merken.
+   */
+  geschenktBis?: string;
 };
 
 type MitAbo = { abo?: AboStand; aboFrageAm?: string };
 type Anfrage = { zeit: string; eigen?: boolean };
 
-export const aboAktiv = (m: MitAbo) => m.abo?.aktiv === true;
+/**
+ * Hat er Premium — bezahlt ODER geschenkt?
+ *
+ * Die Reihenfolge ist wichtig: Ein bezahltes Abo gilt immer. Ein geschenktes gilt, solange sein
+ * Tag nicht vorbei ist; danach fällt er von selbst zurück, ohne dass jemand etwas löschen muss.
+ */
+export const aboAktiv = (m: MitAbo) => {
+  if (m.abo?.aktiv === true) return true;
+  const bis = m.abo?.geschenktBis ? Date.parse(m.abo.geschenktBis) : NaN;
+  return Number.isFinite(bis) && bis > Date.now();
+};
+
+/** Ob das Premium ein Geschenk ist — fürs Dashboard, damit dort nicht „bezahlt" steht. */
+export const aboGeschenkt = (m: MitAbo) => {
+  if (m.abo?.aktiv === true) return false;
+  const bis = m.abo?.geschenktBis ? Date.parse(m.abo.geschenktBis) : NaN;
+  return Number.isFinite(bis) && bis > Date.now();
+};
+
+/**
+ * ── KI IST PREMIUM (Owner 14.09.2026: „wir sperren in der Homepage selbst die Funktion KI
+ * analysieren gratis. Das ist Premium" · „es wird keine KI-Texte generiert, wenn jemand in seinem
+ * Homepagetool Bilder hochlädt. Es sei denn, er hat ein Premium-Abo") ────────────────────────
+ *
+ * DER EINE TORWÄCHTER. Vier Stellen erzeugen heute KI-Texte für einen Künstler — zwei Knöpfe,
+ * die er drückt, und drei Läufe, die beim blossen „Speichern" im Hintergrund starten. Stünde die
+ * Frage an jeder Stelle einzeln, liefe eine davon auseinander, und ein Künstler ohne Abo bekäme
+ * doch Texte geschrieben.
+ *
+ * ── WAS ER OHNE ABO BEHÄLT ──────────────────────────────────────────────────────────────────
+ *
+ * Alles, was schon dasteht. Gesperrt ist nur das NEU ERZEUGEN — seine Seite, seine Bilder, seine
+ * vorhandenen Sätze bleiben unangetastet. Wir nehmen ihm nichts weg, wir schenken nichts mehr.
+ *
+ * ── UNABHÄNGIG VON `ABO_SPERRE_AKTIV` ───────────────────────────────────────────────────────
+ *
+ * Jener Schalter regelt, ob ANFRAGEN verborgen werden — eine andere Frage, vom Owner am
+ * 11.09.2026 bewusst abgeschaltet („ich will, dass Verkehr da ist"). Die KI-Sperre hängt nicht
+ * daran: Sie kostet uns Geld bei jedem Klick, und zwar sofort.
+ */
+/**
+ * ── DER SCHALTER FÜR DIE KI-SPERRE (14.09.2026) ─────────────────────────────────────────────
+ *
+ * `false` heisst: Alles ist gebaut, aber niemand ist gesperrt — jeder Künstler bekommt weiter
+ * seine Texte. Auf `true` gestellt, gilt ab sofort: nur mit Premium.
+ *
+ * WARUM ER EXISTIERT: Beim Einbau hatten 9 Künstler kein Abo und KEINER einen sichtbaren
+ * Kaufweg. Ohne diesen Schalter hätte der nächste Deploy neun Leuten gleichzeitig die Texte
+ * abgedreht — darunter zahlende und geschenkte. Der Schalter trennt „gebaut" von „scharf", damit
+ * das Dringende (Zeitlimits im Trichter) ausrollen kann, ohne dass die Sperre mitkommt.
+ *
+ * Dasselbe Muster wie `ABO_SPERRE_AKTIV` oben, aus demselben Grund.
+ */
+export const KI_SPERRE_AKTIV = false;
+
+/**
+ * Darf für ihn KI schreiben?
+ *
+ * Solange der Schalter aus ist, immer. Danach nur mit Premium — bezahlt oder geschenkt.
+ */
+export const darfKi = (m: MitAbo) => !KI_SPERRE_AKTIV || aboAktiv(m);
+
+/**
+ * Wie viele Werke er halten darf (Owner 14.09.2026: „auch mehr wie 10 Bilder ist Premium").
+ *
+ * Die 10 standen bisher NUR im Browser (`WERKE_MAX` in `PortalBearbeiten`), während der Server
+ * 13 annahm — wer die Route direkt ansprach, umging die Grenze. Ab hier gilt sie für beide.
+ */
+export const WERKE_FREI = 10;
+export const WERKE_ABO = 13;
+export const werkeGrenze = (m: MitAbo) => (aboAktiv(m) ? WERKE_ABO : WERKE_FREI);
 
 /** Ab wann Anfragen verborgen sind — `null`, solange keine Frist läuft oder abgelaufen ist. */
 export function sperreAb(m: MitAbo): number | null {

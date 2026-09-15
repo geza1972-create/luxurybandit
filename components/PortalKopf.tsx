@@ -12,11 +12,13 @@ import { PORTAL_SPRACHEN } from "@/lib/lakatosbandi-texte";
  * im Pfad (`/journal/ro/…`, für Google) — dort reicht die Seite `sprachLink` herein, damit der
  * Umschalter auf dieselbe Seite in der anderen Sprache führt.
  */
-export default function PortalKopf({ T, lang, login, start, journal, sprachLink }: {
+export default function PortalKopf({ T, lang, login, start, preise, journal, sprachLink }: {
   T: PortalTexte;
   lang: string;
   login: string;
   start: string;
+  /** Die Preisseite. Fehlt sie, bleibt der Menüpunkt weg — kein Link ins Leere. */
+  preise?: string;
   /** Link zum Journal in dieser Sprache. */
   journal?: string;
   /** Für Seiten mit Sprache im Pfad: die Adresse derselben Seite in Sprache `l`. */
@@ -25,6 +27,19 @@ export default function PortalKopf({ T, lang, login, start, journal, sprachLink 
   return (
     <header className="border-b border-[#e5e5e5] px-5 py-4">
       <div className="mx-auto flex w-full max-w-[1120px] items-center justify-between gap-2 sm:gap-4">
+        {/* ── EUER BILD NEBEN DEM LOGO (Owner 14.09.2026: „bild von uns im kreis neben dran" ·
+            „auf der webseite ebenso") — dasselbe Foto wie im Trichter, damit beide Seiten
+            denselben ersten Eindruck machen: zwei Menschen, keine Firma.
+
+            BEIDE IN EINEM RAHMEN, nicht als zwei Kinder des `justify-between`: Sonst rutschen
+            Bild und Logo an die gegenüberliegenden Ränder — derselbe Fehler, der im Trichter
+            schon einmal passiert ist (Owner 11.09.2026: „muss an dem Logo hängen"). */}
+        <span className="flex min-w-0 shrink items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/* AUCH AUF DEM HANDY (Owner 14.09.2026: „Hier auch") — vorher `hidden sm:block`, und
+              genau dort hat er es gesucht. Etwas kleiner, damit der Kopf nicht bricht. */}
+          <img src="/lakatosbandi/geza-szidonia.jpg" alt=""
+            className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10" />
         <Link href={`${start}${lang === "en" ? "" : `?lang=${lang}`}`} className="min-w-0 shrink text-[#111] no-underline">
           {/* DAS ZEICHEN (Owner 11.09.2026: „lakatosbandi.com ist besser als lakatosbandi." · „Logo alles schwarz
               bitte") — fett, eng, ganz schwarz, mit „.com". Auf dem Handy kleiner (18px statt 21px), sonst sprengt
@@ -32,7 +47,14 @@ export default function PortalKopf({ T, lang, login, start, journal, sprachLink 
           <span className="block truncate text-[18px] font-black leading-none tracking-[-0.03em] text-[#111] sm:text-[21px]">lakatosbandi.com</span>
           <span className="mt-1 hidden text-[10.5px] font-semibold uppercase leading-none tracking-[0.2em] text-[#777] sm:block">{T.unter}</span>
         </Link>
+        </span>
         <nav className="flex shrink-0 items-center gap-2 text-[13px] sm:gap-4 sm:text-[14px]">
+          {/* PREISE VOR JOURNAL (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für
+              Preise") — wer wissen will, was es kostet, soll nicht suchen. Wie Journal erst ab
+              `sm`: Auf dem Handy ist der Kopf mit Logo, Sprachen und Login bereits voll. */}
+          {preise && (
+            <Link href={`${preise}?lang=${lang}`} className="hidden font-semibold text-[#111] no-underline hover:underline sm:inline">{T.preiseWort}</Link>
+          )}
           {journal && (
             <Link href={journal} className="hidden font-semibold text-[#111] no-underline hover:underline sm:inline">Journal</Link>
           )}

@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { mandantLesen, mandantOeffentlich } from "@/lib/versusforge-mandanten";
+import { spruecheNachtragen } from "@/lib/kuenstler-sprueche";
 import { schluesselStimmt } from "@/lib/schluessel-vergleich";
 import PortalBearbeiten from "@/components/PortalBearbeiten";
+import PortalFolgen from "@/components/PortalFolgen";
+import PortalTeilen from "@/components/PortalTeilen";
 import KuenstlerAgent from "@/components/KuenstlerAgent";
-import { preisAnzeige, preisZahl } from "@/lib/lakatosbandi-preis";
+import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
 import { mandantPruefen } from "@/lib/versusforge-mandant";
 import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
@@ -38,12 +42,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { kuenstler } = await params;
   const m = await mandantOeffentlich(kuenstler);
   if (!m || !istKuenstler(m) || m.freigabe !== "frei") return { title: "lakatosbandi.com", robots: { index: false, follow: false } };
-  const erster = werkKacheln(m)[0]?.hook ?? "";
+  const kacheln = werkKacheln(m);
+  const erster = kacheln[0]?.hook ?? "";
+  /**
+   * ── DAS VORSCHAUBILD BEIM TEILEN (Owner 12.09.2026) ──────────────────────────────────────
+   *
+   * Hier gab es KEIN Bild: Wer `lakatosbandi.com/seinname` auf Facebook teilte, bekam eine graue
+   * Textzeile — dieselbe Lücke, die für die Journal-Seiten längst geschlossen ist. Und der
+   * Künstler teilt seine Seite selbst, das ist also genau die Stelle, an der es zählt.
+   *
+   * WELCHES WERK: das, das er angehakt hat („dieses Bild repräsentiert mich"). Hat er nichts
+   * gewählt, seine erste Kachel — wie die Seite es auch sonst hält.
+   */
+  const vertreter = kacheln.find(k => m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)]?.vertritt) ?? kacheln[0];
+  const bild = vertreter
+    ? new URL(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=${vertreter.i}`, kuenstlerUrl(kuenstler)).toString()
+    : "";
   return {
     title: `${m.name} — lakatosbandi.com`,
     description: erster || `${m.name} on lakatosbandi.com`,
     alternates: { canonical: kuenstlerUrl(kuenstler) },
-    openGraph: { title: `${m.name} — lakatosbandi.com`, description: erster, type: "profile", url: kuenstlerUrl(kuenstler) },
+    openGraph: {
+      title: `${m.name} — lakatosbandi.com`, description: erster, type: "profile", url: kuenstlerUrl(kuenstler),
+      ...(bild ? { images: [{ url: bild, alt: m.name }] } : {}),
+    },
+    ...(bild ? { twitter: { card: "summary_large_image" as const, title: `${m.name} — lakatosbandi.com`, description: erster, images: [bild] } } : {}),
   };
 }
 
@@ -85,22 +108,42 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
         return {
           ...x, titel: w.titel ?? "", technik: w.technik ?? "", groesse: w.groesse ?? "", jahr: w.jahr ?? "", geschichte: w.geschichte ?? "",
           /* Der Preis aus dem Gespräch gehört zum gewählten Bild („standard"). */
-          preis: preisZahl(w.preis ?? (x.i < 0 ? String(voll.preis ?? "") : "")), preisZeigen: !!w.preisZeigen, detalii: w.detalii ?? "",
+          preis: preisText(w.preis ?? ""), detalii: w.detalii ?? "",
+          /* Sein Häkchen „dieses Bild repräsentiert mich" (Owner 12.09.2026) — ohne diese Zeile
+             stünde das Formular bei jedem Öffnen wieder auf leer und überschriebe seine Wahl. */
+          vertritt: !!w.vertritt,
         };
       });
+      /**
+       * ── SEIN KLICK AUS DER MAIL STÖSST DAS RECHNEN AN (Owner 12.09.2026: „klickt er drauf und
+       * es wird dann alles angelegt und er sieht die Meldung … und dann tatataa") ───────────────
+       *
+       * Diese Seite erreicht nur, wer den Schlüssel aus seiner E-Mail hat — deshalb ist ihr
+       * Aufruf die Bestätigung. Steht `aufbauSeit` am Datensatz, sind die Bilder da, aber noch
+       * ohne Sätze: `spruecheNachtragen` sieht sie an, schreibt die Sätze und räumt das Feld
+       * wieder weg. Das läuft NACH der Antwort (`after`), damit er sofort etwas sieht.
+       */
+      if (String(voll.aufbauSeit ?? "").trim()) {
+        after(() => spruecheNachtragen(kuenstler).catch(e => console.warn("[portal] Aufbau gescheitert:", e)));
+      }
+
       return (
-        <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
-          <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
+        <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+          <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
           <PortalBearbeiten
             mandant={kuenstler}
             k={k}
             T={T}
+            aufbau={!!String(voll.aufbauSeit ?? "").trim()}
             oeffentlich={kuenstlerUrl(kuenstler)}
             start={{
               name: voll.name ?? "",
               ort: voll.ort ?? "",
               ueberMich: voll.ueberMich ?? "",
+              preisSpanne: voll.preisSpanne ?? "",
               profilBild: !!voll.profilBild,
+              instagram: voll.instagram ?? "",
+              facebook: voll.facebook ?? "",
               frei: !voll.freigabe || voll.freigabe === "frei",
               kacheln,
             }}
@@ -113,14 +156,15 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
 
   if (m.freigabe !== "frei" && !admin) {
     return (
-      <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
-        <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
+      <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+        <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
         <p className="mx-auto mt-24 max-w-[420px] px-6 text-center text-[18px] leading-[1.5]">{T.pruefung}</p>
       </div>
     );
   }
 
-  const kacheln = werkKacheln(m);
+  /* In der Sprache des Besuchers, sonst im Original (Owner 14.09.2026: „hier wird nichts übersetzt"). */
+  const kacheln = werkKacheln(m, L);
   /* Die Bilder liefert `api/portal-werk` vor der Freigabe nur mit Schlüssel aus — für den Admin mit seinem. */
   const mitAdmin = (url: string) => (admin ? `${url}&s=${encodeURIComponent(adminS)}` : url);
   /* „VORBEȘTE CU AGENTUL MEU" ÖFFNET SEINEN AGENTEN AUF DIESER SEITE (Owner 11.09.2026) — statt der alten Firmen-Seite
@@ -135,8 +179,11 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
     `/api/versusforge-freigabe?m=${encodeURIComponent(kuenstler)}&s=${encodeURIComponent(adminS)}&a=${a}`;
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
-      <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
+    /* `data-lang` für den Cookie-Streifen: Diese Seite läuft in der Sprache des Künstlers, ohne
+       dass `?lang=` in der Adresse steht — `<html lang>` kommt aber aus dem Browser. Ohne das
+       Attribut stand der Streifen hier deutsch auf einer rumänischen Seite (GEMESSEN 13.09.2026). */
+    <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+      <PortalKopf T={T} lang={L} login={P.login} start={P.start} preise={P.preise} journal={P.journal(L)} />
 
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-10 md:pt-14">
         {/* NUR FÜR DEN ADMIN: was Käufer sehen — und der Knopf dazu (Owner 11.09.2026). Deutsch, sie liest es. */}
@@ -150,19 +197,73 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
           </div>
         )}
         {/* Sein Foto und sein Text — aus „Seite bearbeiten" (Owner 11.09.2026). */}
-        {m.profilBild ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={mitAdmin(`/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`)} alt={m.name}
-            className="mb-5 h-24 w-24 rounded-full object-cover" />
-        ) : null}
+        {/**
+          * ── OHNE FOTO STEHT SEIN WERK DORT (Owner 13.09.2026: „wo sind die Profilbilder?") ────
+          *
+          * GEMESSEN am 13.09.2026: Zehn von zwölf Künstlern haben kein Profilbild — die Stelle
+          * blieb bei fast allen leer, und der Name stand nackt über der Seite.
+          *
+          * EIN ERZEUGTES GESICHT KOMMT HIER NICHT HIN. Das wäre ein erfundenes Porträt eines
+          * realen, namentlich genannten Menschen auf seiner eigenen Seite — eine Fälschung
+          * seiner Person, die er nicht einmal bemerkt. Stattdessen sein vertretendes Werk:
+          * seine Kunst behauptet nichts über sein Aussehen. Lädt er ein Foto hoch, gewinnt es.
+          */}
+        {(() => {
+          const eigenes = m.profilBild
+            ? `/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=profil`
+            : (() => {
+                const vertreter = kacheln.find(x => m.werkInfo?.[x.i < 0 ? "standard" : String(x.i)]?.vertritt) ?? kacheln[0];
+                return vertreter ? `/api/portal-werk?m=${encodeURIComponent(kuenstler)}&i=${vertreter.i}` : "";
+              })();
+          if (!eigenes) return null;
+          return (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={mitAdmin(eigenes)} alt={m.name}
+              className="mb-5 h-24 w-24 rounded-full object-cover" />
+          );
+        })()}
         <h1 className="m-0 font-serif text-[36px] font-normal leading-[1.1] md:text-[52px]">{m.name}</h1>
         {m.ort ? <p className="mt-2 text-[15px] text-[#555]">{m.ort}</p> : null}
-        {m.ueberMich ? <p className="mt-5 max-w-[640px] whitespace-pre-line text-[16.5px] leading-[1.6] text-[#333]">{m.ueberMich}</p> : null}
+        {/* ── WO MAN IHM SONST FOLGT (Owner 13.09.2026: „Feld für Instagram oder Facebook") ────
+            Unter dem Ort, klein und unaufdringlich: Sie sind eine Zugabe, kein Kaufweg. Wer hier
+            ist, soll zuerst mit seinem Agenten sprechen — und wer ihm lieber auf Instagram folgt,
+            findet es trotzdem. Nur was er eingetragen hat, steht da. */}
+        {(m.instagram || m.facebook) && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14.5px]">
+            {m.instagram && (
+              <a href={m.instagram} target="_blank" rel="noopener nofollow"
+                className="text-[#555] underline underline-offset-2 hover:text-[#111]">Instagram</a>
+            )}
+            {m.facebook && (
+              <a href={m.facebook} target="_blank" rel="noopener nofollow"
+                className="text-[#555] underline underline-offset-2 hover:text-[#111]">Facebook</a>
+            )}
+          </p>
+        )}
+        {/* SEIN TEXT SCHLÄGT DIE ERZEUGTE BESCHREIBUNG — immer. Die Beschreibung (dritte Person,
+            aus der Bildanalyse) erscheint nur, solange er selbst nichts geschrieben hat; sie füllt
+            eine Lücke, sie verdrängt nichts (Owner 13.09.2026). */}
+        {m.ueberMich
+          ? <p className="mt-5 max-w-[640px] whitespace-pre-line text-[16.5px] leading-[1.6] text-[#333]">{m.ueberMich}</p>
+          : m.werkBeschreibung
+            ? <p className="mt-5 max-w-[640px] whitespace-pre-line text-[16.5px] leading-[1.6] text-[#333]">{m.werkBeschreibung}</p>
+            : null}
 
-        <a href={agentLink(h)}
-          className="mt-7 inline-block bg-[#111] px-6 py-3.5 text-[15px] font-semibold text-white no-underline hover:bg-[#333]">
-          {T.agent}
-        </a>
+        {/* ── MIT IHM SPRECHEN ODER IHM FOLGEN (Owner 13.09.2026: „ein Follow-Button einbauen") ──
+            Nebeneinander, aber nicht gleichwertig: Der Agent ist gefüllt, „Folgen" nur umrandet.
+            Wer kaufen will, redet; wer nur schauen will, folgt — und kommt wieder, wenn ein neues
+            Werk da ist. Bisher war der zweite Besuch gar nicht vorgesehen. */}
+        <div className="mt-7 flex flex-wrap items-center gap-3">
+          <a href={agentLink(h)}
+            className="inline-block bg-[#111] px-6 py-3.5 text-[15px] font-semibold text-white no-underline hover:bg-[#333]">
+            {T.agent}
+          </a>
+          {/* DER DRITTE UND LEISESTE (Owner 13.09.2026: „Künstlerseiten müssen noch einen
+              Share-Button haben") — wer teilt, ist schon überzeugt; der Kaufweg bleibt der
+              lauteste. Auf dem Rechner, wo das Gerät nichts zu teilen weiß, kopiert er den Link. */}
+          <PortalTeilen adresse={kuenstlerUrl(kuenstler)} name={m.name} T={T} />
+        </div>
+        <PortalFolgen mandant={kuenstler} T={T} />
 
         <h2 className="mt-14 border-t border-[#e5e5e5] pt-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.werke}</h2>
         <ul className="mt-6 grid list-none grid-cols-1 gap-x-8 gap-y-12 p-0 sm:grid-cols-2 lg:grid-cols-3">
@@ -180,7 +281,8 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               {(() => {
                 const w = m.werkInfo?.[k.i < 0 ? "standard" : String(k.i)];
                 const zeile = w ? [w.titel, w.technik, w.groesse, w.jahr].filter(Boolean).join(" · ") : "";
-                const preis = w?.preisZeigen ? preisAnzeige(w.preis) : "";
+                /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026). */
+                const preis = preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
                 return (
                   <>
                     {zeile ? <p className="mt-1 text-[14px] leading-[1.45] text-[#666]">{zeile}</p> : null}

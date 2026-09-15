@@ -24,6 +24,14 @@
     {
       "path": "/api/ruecklaeufer",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/meta-leads-abholen",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/sprueche-sprachen",
+      "schedule": "0 3 * * *"
     }
   ]
 }

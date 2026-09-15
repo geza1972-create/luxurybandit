@@ -29,11 +29,29 @@ import { istKuenstler } from "@/lib/lakatosbandi-adressen";
 export { PORTAL_URL, imPortal, aufVersusforge, istKuenstler, kuenstlerUrl, kuenstlerDashboardUrl, portalPfade } from "@/lib/lakatosbandi-adressen";
 
 /** Die Werke eines Künstlers als Kacheln: sein Haupt-Hook mit dem Standard-Motiv, dann jeder weitere. */
-export function werkKacheln(m: Pick<MandantAngaben, "hook" | "hooks">): { hook: string; i: number }[] {
+export function werkKacheln(
+  m: Pick<MandantAngaben, "hook" | "hooks"> & Partial<Pick<MandantAngaben, "hookSprachen" | "sprache">>,
+  /**
+   * ── IN DER SPRACHE DES BESUCHERS, WENN ES SIE GIBT (Owner 14.09.2026: „hier wird nichts
+   * übersetzt") ─────────────────────────────────────────────────────────────────────────────
+   *
+   * Ohne Angabe bleibt alles wie bisher — deshalb müssen die Aufrufstellen, die keine Sprache
+   * kennen (Agent, Intro-Texte), nicht angefasst werden.
+   *
+   * DAS ORIGINAL IST DER RÜCKFALL, immer. Fehlt die Übersetzung noch (der Nachtlauf war noch
+   * nicht dran), steht der Satz des Künstlers da — nie eine leere Kachel.
+   */
+  lang?: string,
+): { hook: string; i: number }[] {
+  const s = String(lang ?? "").slice(0, 2).toLowerCase();
+  const fremd = s && s !== String(m.sprache ?? "").slice(0, 2).toLowerCase() ? m.hookSprachen?.[s] : undefined;
+
   const liste: { hook: string; i: number }[] = [];
-  if (String(m.hook ?? "").trim()) liste.push({ hook: String(m.hook).trim(), i: -1 });
+  const standard = String(fremd?.hook ?? "").trim() || String(m.hook ?? "").trim();
+  if (standard) liste.push({ hook: standard, i: -1 });
   (Array.isArray(m.hooks) ? m.hooks : []).forEach((h, i) => {
-    if (String(h ?? "").trim()) liste.push({ hook: String(h).trim(), i });
+    const text = String(fremd?.hooks?.[i] ?? "").trim() || String(h ?? "").trim();
+    if (text) liste.push({ hook: text, i });
   });
   return liste;
 }

@@ -102,12 +102,64 @@ export const VERSUSFORGE_MAIL_TEXTE = {
   kuenstlerTitel: "Willkommen bei lakatosbandi.com.",
   /* Sofort online (Owner 11.09.2026) — vorher „innerhalb von 3 Tagen frei". */
   kuenstlerText: "Deine Seite ist ab jetzt online. Es kostet dich jetzt nichts: Du zahlst erst, wenn dein Agent für dich arbeitet und du ihn behalten willst.",
+
+  /* ── DIE BESTÄTIGUNGSMAIL (Owner 12.09.2026: „ich glaube, du hast die Seite ohne seine
+     E-Mail-Bestätigung angelegt" · „also vorher") ───────────────────────────────────────────
+     Sie geht raus, BEVOR es die Seite gibt. Deshalb darf hier nichts stehen wie „deine Seite ist
+     online" — sie existiert erst nach diesem Klick. Und sie sagt, warum das so ist: Nur wer diese
+     Adresse lesen kann, soll in seinem Namen etwas anlegen können. */
+  /* ── „BESTÄTIGE, DASS DU FOLGEN WILLST" (Owner 13.09.2026) ────────────────────────────────
+     Diese Mail geht an eine Adresse, die jemand in ein Feld getippt hat — möglicherweise nicht
+     die eigene. Deshalb kein „Danke fürs Folgen", sondern eine Frage. `{name}` ist der Künstler. */
+  folgenBetreff: "Willst du {name} folgen?",
+  folgenTitel: "Ein Klick, und du folgst {name}.",
+  /* HIER STAND „Sonst nichts" — falsch, seit Follower auch unsere Neuigkeiten bekommen (Owner
+     13.09.2026). Die Mail muss dasselbe sagen wie das Feld, in das er seine Adresse getippt hat. */
+  folgenText: "Danach bekommst du eine E-Mail, sobald {name} ein neues Werk hinzufügt — und gelegentlich Neuigkeiten über lakatosbandi.com. Abmelden kannst du dich in jeder Mail.",
+  folgenKnopf: "Ja, ich will folgen",
+  folgenKnopfFein: "Der Link gilt einmal. Ohne diesen Klick tragen wir dich nicht ein.",
+  folgenFremd: "Du hast das nicht angefordert? Dann ignoriere diese Mail — ohne deinen Klick passiert nichts.",
+
+  /* ── „EIN NEUES WERK IST DA" (Owner 13.09.2026: „Der Follow-Knopf verspricht «Primești un
+     e-mail când artistul adaugă o lucrare nouă» — diese Mail gibt es noch nicht. Bauen") ───────
+     Das Versprechen stand seit dem 13.09.2026 auf jeder Künstlerseite, ohne dass je eine Mail
+     hinausging. Wer folgte, wartete auf etwas, das nicht kam.
+
+     KURZ UND OHNE VERKAUF: Der Empfänger hat einem Künstler gefolgt, nicht uns. Ein Bild, ein
+     Satz, ein Weg zur Seite — mehr braucht diese Mail nicht, und mehr verträgt sie auch nicht. */
+  neuesWerkBetreff: "{name}: ein neues Werk",
+  neuesWerkTitel: "Neu von {name}",
+  neuesWerkEins: "{name} hat ein neues Werk hinzugefügt.",
+  neuesWerkMehrere: "{name} hat {zahl} neue Werke hinzugefügt.",
+  neuesWerkKnopf: "Ansehen",
+  /* Der Fuss dieser Mail — NICHT der voreingestellte. „Weil deine Seite bei uns läuft" wäre
+     falsch: Er hat keine Seite bei uns, er folgt einem Künstler. */
+  neuesWerkFussGrund: "Du bekommst diese Mail, weil du {name} auf lakatosbandi.com folgst.",
+  neuesWerkAbmelden: "Keine Mails mehr von diesem Künstler.",
+
+  bestaetigenBetreff: "Bestätige deine Seite auf lakatosbandi.com",
+  bestaetigenTitel: "Nur noch ein Klick.",
+  bestaetigenText: "Deine Bilder und deine Angaben liegen bereit. Mit dem Knopf unten bestätigst du, dass diese Adresse dir gehört — danach bauen wir deine Seite, und du siehst sie sofort.",
+  bestaetigenKnopf: "Ja, meine Seite anlegen",
+  bestaetigenKnopfFein: "Der Link gilt einmal. Öffnest du ihn nicht, entsteht keine Seite und wir löschen deine Daten wieder.",
+  bestaetigenFremd: "Du hast das nicht angefordert? Dann ignoriere diese Mail — ohne deinen Klick passiert nichts.",
+
+  /* Der Fuss jeder Mail. Stand bis 12.09.2026 fest auf Deutsch in `mailHuelle` und erschien so
+     auch in rumänischen Mails (Owner mit Bild: „Du bekommst diese Mail, weil dein Trichter läuft"
+     unter einem sonst rumänischen Text). Jetzt reist er als Text mit und wird übersetzt. */
+  fussGrund: "Du bekommst diese Mail, weil deine Seite bei uns läuft.",
+  fussLoeschen: "Keine Mails mehr — Seite und Anfragen löschen.",
   kuenstlerSeite: "Deine Seite",
   kuenstlerSeiteFein: "Hier stehen deine Bilder mit ihren Sprüchen, und dein KI-Agent spricht jeden Besucher an.",
   /* Owner 11.09.2026: „Dann wird er den Link bekommen, dass er öffnen und es ergänzen kann … WYSIWYG". */
   /* Owner 11.09.2026: „das muss man ihm auch per E-Mail schicken, die Info und den Link zu seinem Profil". */
-  kuenstlerBearbeiten: "Mach deinen Agenten besser — optional",
-  kuenstlerBearbeitenFein: "Erzähl ihm etwas über dich und die Geschichte hinter jedem Werk, lade ein Foto von dir hoch. Je mehr er weiß, desto besser spricht er mit Käufern. Wer diesen Link hat, kann deine Seite bearbeiten: Gib ihn nicht weiter.",
+  /* HIER STAND „Mach deinen Agenten besser — optional" (Owner 12.09.2026: „hier in der Email steht
+     Agent verbessern statt Bilder und Profil ergänzen, Preise eintragen, technische Details"). Der
+     Link führt zum Bearbeiten seiner SEITE; die Überschrift versprach etwas anderes und nannte es
+     nebenbei optional — dabei sind Preise und Angaben genau das, was Käufer suchen. Jetzt steht
+     dran, was dahinter liegt. */
+  kuenstlerBearbeiten: "Ergänze deine Seite — Bilder, Preise, Angaben",
+  kuenstlerBearbeitenFein: "Hier lädst du weitere Bilder hoch, trägst zu jedem Werk Preis, Technik, Grösse und Jahr ein und stellst ein Foto von dir dazu. Die Geschichte hinter einem Werk liest nur dein Agent — je mehr er weiß, desto besser spricht er mit Käufern. Wer diesen Link hat, kann deine Seite bearbeiten: Gib ihn nicht weiter.",
   /* ── FREIGEGEBEN ODER ABGELEHNT (Owner 11.09.2026: „Bekommt der Künstler eine E-Mail, wenn freigegeben?" — vorher
      nicht). Die Ablehnung ohne Begründung: kurz, freundlich, kein Urteil über seine Kunst. */
   freigabeBetreff: "Deine Seite auf lakatosbandi.com ist online",

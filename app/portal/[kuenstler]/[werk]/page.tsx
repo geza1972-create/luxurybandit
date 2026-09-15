@@ -9,7 +9,7 @@ import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
 import PortalKopf from "@/components/PortalKopf";
 import PortalFuss from "@/components/PortalFuss";
 import KuenstlerAgent from "@/components/KuenstlerAgent";
-import { preisAnzeige } from "@/lib/lakatosbandi-preis";
+import { preisSatz, preisText } from "@/lib/lakatosbandi-preis";
 import PreisLabel from "@/components/PreisLabel";
 
 /**
@@ -52,12 +52,15 @@ export default async function PortalWerk({ params, searchParams }: Props) {
   const admin = !!adminS && mandantPruefen(EIGENER_MANDANT, adminS).ok;
   if (!m || !istKuenstler(m) || ((m.freigabe === "abgelehnt" || m.freigabe === "offen") && !admin)) notFound();
 
+  /* DIE SPRACHE STEHT JETZT VOR DEN KACHELN (Owner 14.09.2026: „hier wird nichts übersetzt") —
+     `werkKacheln` braucht sie, um den Spruch in der Sprache des Besuchers zu nehmen. */
+  const L = portalSprache(sp.lang, m.sprache ?? "en");
+
   const i = nummer(werk);
-  const kacheln = werkKacheln(m);
+  const kacheln = werkKacheln(m, L);
   const k = kacheln.find(x => x.i === i);
   if (!k) notFound();
 
-  const L = portalSprache(sp.lang, m.sprache ?? "en");
   const T = portalTexte(L);
   const P = portalPfade((await headers()).get("host"));
   const n = (s: string) => s.replace(/\{name\}/g, m.name);
@@ -67,11 +70,12 @@ export default async function PortalWerk({ params, searchParams }: Props) {
 
   const w = m.werkInfo?.[i < 0 ? "standard" : String(i)];
   const zeile = w ? [w.titel, w.technik, w.groesse, w.jahr].filter(Boolean).join(" · ") : "";
-  const preis = w?.preisZeigen ? preisAnzeige(w.preis) : "";
+  /* Sein Preis für dieses Werk — sonst sein allgemeiner Satz (Owner 12.09.2026). */
+  const preis = preisText(w?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
   const andere = kacheln.filter(x => x.i !== i);
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
 
       <main className="mx-auto w-full max-w-[1120px] px-5 pb-20 pt-8 md:pt-12">
@@ -87,11 +91,41 @@ export default async function PortalWerk({ params, searchParams }: Props) {
             <h1 className="mt-3 font-serif text-[28px] font-normal leading-[1.25] md:text-[34px]">{k.hook}</h1>
             {zeile ? <p className="mt-4 text-[15px] leading-[1.5] text-[#555]">{zeile}</p> : null}
             {w?.detalii ? <p className="mt-1 text-[15px] leading-[1.5] text-[#555]">{w.detalii}</p> : null}
-            <p className="mt-5"><PreisLabel groesse="gross">{preis || T.preisAufAnfrage}</PreisLabel></p>
+            <p className="mt-5"><PreisLabel groesse="gross">{preis}</PreisLabel></p>
             <a href={`?agent=1${admin ? `&s=${encodeURIComponent(adminS)}` : ""}`}
               className="mt-6 inline-block bg-[#111] px-6 py-3.5 text-[15px] font-semibold text-white no-underline hover:bg-[#333]">
               {T.agent}
             </a>
+            {/**
+             * ── DIE GRÜNDER EMPFEHLEN (Owner 14.09.2026: „ein Bild von uns zwei, die Gründer,
+             * die wir ihn empfehlen" — erst als Muster geprüft, jetzt echt eingebaut) ──────────
+             *
+             * NUR AUF FREIGEGEBENEN SEITEN: Diese Komponente rendert ohnehin erst nach
+             * `m.freigabe === "frei"` (Sperre weiter oben) — der Künstler hat also schon
+             * zugestimmt, öffentlich zu stehen. Das Gründer-Wort ist unsere eigene Empfehlung
+             * auf unserer eigenen Plattform, kein behaupteter Satz von IHM.
+             *
+             * GRÖSSE NACH DEM MUSTER (Owner, nach zwei Prüfrunden): 68px Foto, 18px/15px Text —
+             * doppelt so gross wie mein erster Entwurf.
+             */}
+            <div className="mt-7 flex items-center gap-[18px] border-t border-[#e5e5e5] pt-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lakatosbandi/geza-szidonia.jpg" alt="" className="h-[68px] w-[68px] shrink-0 rounded-full object-cover" />
+              {/* HIER HÄNGT DAS WERK SCHON BEI UNS — „wir hätten es gern" wäre falsch. Und kein
+                  Lob über das einzelne Werk (Owner 14.09.2026: „wir versprechen etwas, was wir
+                  nicht halten können"): Der Satz steht unter JEDEM Werk automatisch. Was wahr
+                  bleibt, ist die Tatsache, dass wir diesen Künstler zeigen. */}
+              <p className="m-0 text-[18px] leading-[1.5] text-[#555]">
+                {L === "ro" ? "Artist prezentat de noi pe lakatosbandi.com."
+                  : L === "de" ? "Von uns vorgestellt auf lakatosbandi.com."
+                  : "Presented by us on lakatosbandi.com."}
+                <span className="mt-1 block text-[15px] text-[#999]">
+                  {L === "ro" ? "Géza & Szidonia, fondatorii lakatosbandi.com"
+                    : L === "de" ? "Géza & Szidonia, Gründer von lakatosbandi.com"
+                    : "Géza & Szidonia, founders of lakatosbandi.com"}
+                </span>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -109,7 +143,7 @@ export default async function PortalWerk({ params, searchParams }: Props) {
                     <p className="mt-2 line-clamp-2 text-[14px] font-semibold leading-[1.35]">{x.hook}</p>
                     {(() => {
                       const wx = m.werkInfo?.[x.i < 0 ? "standard" : String(x.i)];
-                      const px = wx?.preisZeigen ? preisAnzeige(wx.preis) : "";
+                      const px = preisText(wx?.preis) || preisSatz(m.preisSpanne, T.preisAufAnfrage);
                       return px ? <p className="mt-1.5"><PreisLabel groesse="klein">{px}</PreisLabel></p> : null;
                     })()}
                   </a>

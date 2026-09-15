@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { str } from "@/lib/agent-modell";
 import { mandantLesen } from "@/lib/versusforge-mandanten";
 import { linksPerPost } from "@/lib/versusforge-links-post";
+import { schluesselStimmt } from "@/lib/schluessel-vergleich";
+import { istKuenstler } from "@/lib/lakatosbandi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,13 +31,25 @@ export async function POST(request: Request) {
   const kennung = str(body.mandant, 40);
   const eingetippt = str(body.mail, 200).trim().toLowerCase();
   const nurLoeschen = body.was === "loeschen";
+  /**
+   * ── AUS DEM ADMIN REICHT SEIN SCHLÜSSEL (Owner 12.09.2026: „unten muss noch ein Button stehen
+   * im Admin ‚Meine Webseite löschen', aber dann schickst du wieder eine E-Mail zum Löschen") ──
+   *
+   * Auf der öffentlichen Seite tippt er seine Adresse ein, damit niemand mit geratenem Namen eine
+   * Mail auslöst. Im Admin ist er schon ausgewiesen — dort seine eigene Adresse abzutippen wäre
+   * eine Hürde ohne Gewinn. Die Mail geht ohnehin nur an die HINTERLEGTE Adresse, nie an eine
+   * eingetippte; der Schlüssel ersetzt also nur den Nachweis, nicht das Ziel.
+   */
+  const schluessel = str(body.k, 200);
 
-  if (!eingetippt.includes("@") || eingetippt.length < 5) {
+  if (!schluessel && (!eingetippt.includes("@") || eingetippt.length < 5)) {
     return NextResponse.json({ error: "Bitte eine E-Mail-Adresse angeben." }, { status: 400 });
   }
 
   const m = await mandantLesen(kennung);
-  const stimmt = !!m && String(m.mail ?? "").trim().toLowerCase() === eingetippt;
+  const stimmt = !!m && (schluessel
+    ? schluesselStimmt(m.schluessel, schluessel)
+    : String(m.mail ?? "").trim().toLowerCase() === eingetippt);
 
   if (stimmt && m) {
     await linksPerPost({
@@ -49,6 +63,12 @@ export async function POST(request: Request) {
       /* Seine Sprache — die Meta-Anleitung ist der Teil, den er wirklich abarbeiten muss. */
       sprache: m.sprache,
       nurLoeschen,
+      /* ── OHNE DAS HIER LANDET SEIN LÖSCHLINK AUF VERSUSFORGE.COM (Owner 12.09.2026: „und löschen
+         leitet direkt auf https://versusforge.com/ um. So war das nicht gedacht") ───────────────
+         `linksPerPost` baut den Löschlink aus genau diesem Merkmal: Künstler löschen auf
+         lakatosbandi.com/{name}/loeschen, Firmenkunden auf ihrer Anzeigenseite. Fehlte es, bekam
+         ein Künstler den Firmenweg — eine fremde Seite, auf der seine Löschung nichts findet. */
+      kuenstler: istKuenstler(m),
     }).catch(e => console.error("[versusforge-senden] Versand fehlgeschlagen", e));
   }
 

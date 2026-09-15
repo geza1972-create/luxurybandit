@@ -25,7 +25,7 @@ export default async function NichtGefunden() {
     const T = portalTexte(L);
     const P = portalPfade(host);
     return (
-      <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+      <div data-lang={L} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
         <PortalKopf T={T} lang={L} login={P.login} start={P.start} journal={P.journal(L)} />
         <main className="mx-auto w-full max-w-[720px] px-5 pb-24 pt-24 text-center">
           <p className="m-0 text-[13px] font-semibold uppercase tracking-[0.22em] text-[#777]">404</p>

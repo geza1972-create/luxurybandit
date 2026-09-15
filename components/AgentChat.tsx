@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Wrench, ImagePlus, X } from "lucide-react";
+import { ArrowUp, Wrench, ImagePlus, X, Sparkles } from "lucide-react";
+/* Für den Platz unter dem Eingabefeld, solange der Cookie-Streifen liegt (Owner 13.09.2026). */
+import { brauchtEinwilligung } from "@/lib/land-erkennen";
 import { Wortmarke } from "@/components/VersusForgeMarke";
 import SprachKnopf from "@/components/SprachKnopf";
 import { LANGS, LANG_LABEL, LANG_COOKIE, type Lang } from "@/lib/lang";
@@ -35,6 +37,109 @@ import { EIGENER_MANDANT } from "@/lib/versusforge-namen";
  * und in allen drei Sprachen zugleich.
  */
 
+/**
+ * ── WIE VIELE WERKE DER TRICHTER NIMMT (Owner 13.09.2026: „laden hier bis zu 5 Bilder hoch") ──
+ *
+ * FÜNF HIER, ZEHN IM DASHBOARD. Der Trichter soll kurz sein — wer fünf Bilder gewählt hat, ist
+ * fertig; wer zehn wählen soll, sucht noch. Aufgefüllt wird später auf seiner Seite
+ * (`WERKE_MAX` in components/PortalBearbeiten.tsx), wo ihn nichts mehr abbricht.
+ *
+ * DIE ZAHL STEHT AN EINER STELLE. Sie stand vorher fünfmal als nackte `10` im Code und noch
+ * einmal in drei Sprachtabellen — genau die Streuung, die bei der Werke-Grenze dazu geführt
+ * hat, dass Trichter, Formular und Route drei verschiedene Zahlen kannten. Die Texte in
+ * `lib/agent-chat-texte.ts` müssen ihr von Hand folgen; dort steht der Hinweis darauf.
+ */
+/**
+ * ── EIN EINZIGES BILD (Owner 13.09.2026: „wir sagen, wir laden nur ein bild hoch nicht 1-5") ──
+ *
+ * Der Weg dieser Zahl an einem Tag: 10 → 5 → 3 → 5 → 1. Sie endet bei EINS, und das ist
+ * folgerichtig: Analysiert wurde ohnehin nur ein Werk („wir machen ab jetzt nur ein bild
+ * analysiere"). Fünf hochladen zu lassen und vier davon unbeachtet zu lassen, versprach etwas,
+ * das der Trichter nicht einlöst.
+ *
+ * DAS `multiple` AM DATEIFELD IST DESHALB AUCH WEG: Ein Auswahlfenster, das vier Bilder
+ * annimmt, von denen drei stillschweigend verschwinden, ist genau die Sorte stummer Verlust,
+ * die hier schon einmal Ärger gemacht hat.
+ */
+/**
+ * ── ZEHN WERKE HOCH, EINES ANALYSIERT (Owner 14.09.2026: „überlege im Tunnel doch 10 Bilder
+ * zuzulassen, damit die Seite nach was aussieht, und ein Bild wird nur analysiert und bekommt
+ * Text. Die anderen nicht. Das kostet uns nichts. Nur eine Analyse") ─────────────────────────
+ *
+ * Der Weg dieser Zahl: 10 → 5 → 3 → 5 → 1 → 10. Die 1 war richtig, solange jedes Bild eine
+ * Analyse bekam; seit nur noch das ERSTE analysiert wird, kostet das zehnte Bild nichts mehr —
+ * es macht die fertige Seite nur voller.
+ *
+ * WAS TROTZDEM JEDES BILD DURCHLÄUFT: die Moderation (`bildPruefen`). Sie ist kostenlos und ist
+ * die Sperre, die verhindert, dass jemand über Bild Nummer sieben Pornografie auf eine öffentliche
+ * Seite stellt (Owner 13.09.2026: „jemand kann hier Pornografie posten und geht sofort online").
+ */
+const WERKE_TRICHTER = 10;
+
+/**
+ * ── EINE ADRESSE MIT ZWEI PUNKTEN IST KEINE (gefunden 13.09.2026) ────────────────────────────
+ *
+ * Dorin Macovei hat zehn Werke hochgeladen und `dorin61arts@yahoo..com` angegeben. Das alte
+ * Muster (`[^@\s]+@[^@\s]+\.[a-z]{2,}`) liess das durch: „yahoo." zählte als Name, „com" als
+ * Endung. Seine Bestätigungsmail ging ins Nichts, und er wartet bis heute — alles richtig
+ * gemacht, und trotzdem verloren.
+ *
+ * DIESES MUSTER VERBIETET LEERE TEILE: kein Punkt am Anfang, keiner am Ende, nie zwei
+ * hintereinander. Es prüft NICHT, ob es das Postfach gibt — das kann keine Zeichenkette. Es
+ * fängt den Tippfehler, der sonst niemandem auffällt, bis die Mail nicht ankommt.
+ *
+ * DASSELBE MUSTER STEHT IN `api/versusforge-agent` UND `api/portal-behalten`. Dort ist es
+ * verdoppelt statt geteilt, weil dieses Bauteil im Browser läuft und ein gemeinsamer Import
+ * den halben Serverbaum mitziehen würde ([[versusforge-namen]] beschreibt genau diesen Fall).
+ * Wer eines ändert, ändert alle drei.
+ */
+/**
+ * Ein Bild auf 1080 Pixel Breite bringen und als JPEG zurückgeben — `null`, wenn der Browser es
+ * nicht öffnen kann (HEIC etwa). Steht auf Modulebene, weil zwei Wege sie brauchen: der erste
+ * Upload und das Nachlegen in der Galerie.
+ */
+const bildVerkleinern = async (f: File): Promise<string | null> => {
+  try {
+    const bitmap = await createImageBitmap(f);
+    const breit = Math.min(1080, bitmap.width);
+    const hoch = Math.round((bitmap.height / bitmap.width) * breit);
+    const flaeche = document.createElement("canvas");
+    flaeche.width = breit; flaeche.height = hoch;
+    flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
+    return flaeche.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * ── MINDESTENS ZWEI BUCHSTABEN NACH DEM LETZTEN PUNKT (14.09.2026) ─────────────────────────
+ *
+ * Vorher reichte „irgendetwas" als Endung. Valentin tippte `oana_boboc@yahoo.c`, der Trichter
+ * liess es durch, seine Seite entstand — und die Freigabe-Mail kam zurück: „Host or domain name
+ * not found. Name service error for name=yahoo.c". Er ist seitdem nicht erreichbar.
+ *
+ * Eine Endung aus einem Buchstaben gibt es nicht. Dieselbe Regel gilt in der Agenten-Route
+ * (`app/api/versusforge-agent/route.ts`) und jetzt auch hier und auf dem Server.
+ */
+const MAIL_MUSTER = /^[^@\s.]+(\.[^@\s.]+)*@[^@\s.]+(\.[^@\s.]+)*\.[a-z]{2,}$/i;
+
+/**
+ * ── DIE STARTNACHRICHT, AN DREI STELLEN GLEICH (Owner 13.09.2026, Umbau auf Upload-zuerst) ───
+ *
+ * AUF LAKATOSBANDI TRÄGT SIE KEINEN CHIP MEHR: Die Zustimmung ist der Hochladeknopf IN der
+ * Karte. Ein zusätzlicher schwarzer Chip darunter wäre ein zweiter Weg für dieselbe Sache —
+ * und der eine, der nicht hochlädt, käme in eine Frage, die es nicht mehr gibt.
+ *
+ * AUF VERSUSFORGE BLEIBT ALLES, WIE ES WAR: dort führt der Chip weiterhin ins Gespräch.
+ *
+ * MODULEBENE UND MIT PARAMETERN, nicht als Closure im Bauteil: Sonst wechselt die Funktion bei
+ * jedem Rendern ihre Identität, landet in der Abhängigkeitsliste des `useEffect` unten und
+ * setzt dort in einer Schleife Zustand.
+ */
+const startNachricht = (gruss: string, chip: string, portal: boolean): Nachricht =>
+  ({ rolle: "agent", text: gruss, ...(portal ? {} : { vorschlaege: [chip] }) });
+
 type Nachricht = {
   rolle: "mensch" | "agent";
   text: string;
@@ -65,6 +170,29 @@ type Nachricht = {
   profilLink?: string;
   /** Der Agent fragt nach Künstlername und E-Mail — darunter stehen zwei Felder. */
   kontaktFrage?: boolean;
+  /**
+   * ── DIE ZWEI SCHRITTE VOR DER ADRESSE (Owner 13.09.2026) ─────────────────────────────────
+   *
+   * `analyse`: Seine Bilder liegen im Browser, darunter steht „Analizează acum". Erst dieser
+   * Knopf löst den einen Modellaufruf aus — vorher kostet nichts.
+   *
+   * `publizieren`: Unter der fertigen Vorschau steht „Vrei să publicăm asta?" mit Ja und Nein.
+   * Sein Ja führt zur Adresse (oder, wenn er aus dem Sofortformular kommt, direkt zur Seite).
+   */
+  analyse?: boolean;
+  publizieren?: boolean;
+  /** Nach dem ersten Nein: „Soll ich den Satz anders schreiben?" mit Neu-schreiben und Nein. */
+  nochmal?: boolean;
+  /**
+   * ── DAS NEUE ENDE (Owner 13.09.2026) ──────────────────────────────────────────────────────
+   *
+   * `seiteFertig`: Seine Seite EXISTIERT bereits — unter einer Behelfsadresse, ohne Namen. Die
+   * Nachricht trägt den Link dorthin und darunter die zwei Felder, mit denen er sie behält.
+   *
+   * `behalten`: Sie gehört ihm. Ab hier gibt es nichts mehr zu tun.
+   */
+  seiteFertig?: boolean;
+  behalten?: boolean;
 };
 
 /**
@@ -167,7 +295,18 @@ function fetteFrage(text: string) {
   );
 }
 
-export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster = false, start = "/engine/agent", marke = "versusforge" }: {
+export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = "", fenster = false, start = "/engine/agent", marke = "versusforge" }: {
+  /**
+   * ── SEINE KENNUNG AUS DEM FACEBOOK-SOFORTFORMULAR (Owner 13.09.2026) ──────────────────────
+   *
+   * Sie steht im Link der Mail (`?l=…`) und reist ab dem ersten Klick an jedem Aufruf mit.
+   * Damit ist sein Gespräch — und jedes Bild darin — seiner Adresse zugeordnet, BEVOR er das
+   * erste Bild hochlädt. Der Server entscheidet daran, ob er nach Name und E-Mail fragen muss
+   * (lib/kuenstler-lead.ts).
+   *
+   * LEER HEISST: normaler Besucher. Dann bleibt der Trichter, wie er war.
+   */
+  lead?: string;
   /**
    * ALS FENSTER AUF EINER ANDEREN SEITE (Owner 10.09.2026, lakatosbandi.com: „hier brauchen wir
    * unseren eigenen Agenten noch auf der Seite, der mit den Leuten redet … der sofort aufklappt").
@@ -237,7 +376,10 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
    */
   /* AUF LAKATOSBANDI.COM EINE KARTE STATT SIEBEN ABSÄTZEN (Owner 11.09.2026: „der Text ist fast eine AGB"). Der Text hier
      ist, was im Verlauf zum Modell geht — gezeigt wird die Karte (`startKarte` unten). */
-  const grussPortal = [S.startVorher, S.startNachher, S.startFrage, S.startText].join("\n\n");
+  /* Der Fliesstext, den das Modell als Gruss liest — dieselben Teile wie die Karte, in derselben
+     Reihenfolge. `startWarum` ist seit dem 13.09.2026 leer und fällt beim Filtern heraus. */
+  const grussPortal = [S.startMockup, S.startTitel, S.startUnterzeile, S.startAnalyse, S.startText, S.startListe, S.startKeinePruefung, S.startBekommstTitel, S.startBekommst, S.startSelbst, S.startGratis, S.startAufruf, S.startFein, S.startDauer, S.startKeineKarte]
+    .filter(t => t && t.trim()).join("\n\n");
   const gruss = marke === "lakatosbandi" ? grussPortal : [
     S.gruss1,
     S.gruss2,
@@ -280,7 +422,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
    */
   const [verlauf, setVerlauf] = useState<Nachricht[]>(
     gewaehlt
-      ? [{ rolle: "agent", text: gruss, vorschlaege: [S.chipEinverstanden] }]
+      ? [startNachricht(gruss, S.chipEinverstanden, marke === "lakatosbandi")]
       : [{ rolle: "agent", text: SPRACHFRAGE, sprachfrage: true }],
   );
   const [eingabe, setEingabe] = useState("");
@@ -291,6 +433,19 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
   const ende = useRef<HTMLDivElement>(null);
   const feld = useRef<HTMLTextAreaElement>(null);
   const datei = useRef<HTMLInputElement>(null);
+  /* Die Stufe „start" darf genau einmal gezählt werden — wer Bilder wegnimmt und neue wählt,
+     ist nicht ein zweiter Besucher (Umbau auf Upload-zuerst, 13.09.2026). */
+  const startGemessen = useRef(false);
+  /**
+   * ── NACH DEM AUSWÄHLEN GEHT ES VON SELBST WEITER (Owner 13.09.2026: „das ist hier ein klick
+   * zu viel, er lädt schon ein bild hoch, muss nicht noch mal auf dem Pfeil klicken") ─────────
+   *
+   * WARUM EIN MERKER UND KEIN DIREKTER AUFRUF: `schicken` liest die Bilder aus dem Zustand.
+   * Unmittelbar nach `setFotos` steht dort noch die ALTE Liste (React setzt den Zustand erst zum
+   * nächsten Rendern) — ein Aufruf an Ort und Stelle schickte eine leere Auswahl los. Der Merker
+   * wird hier gesetzt, und der Effekt darunter schickt, sobald die Bilder wirklich dastehen.
+   */
+  const sendenNachUpload = useRef(false);
   /**
    * ── SEIN FOTO LEBT IM BROWSER, BIS ES GEBRAUCHT WIRD (Owner 09.09.2026: „du hast den User
    * weder nach einer Homepage gefragt … und auch nicht nach Bildern, die er eventuell
@@ -307,6 +462,28 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
    */
   /* BIS ZU VIER BILDER JE NACHRICHT (Kunst-Rezept: „3–4 Bilder im selben Stil"). Nach dem
      Senden stehen sie in SEINER Nachricht im Verlauf und reisen nicht noch einmal mit. */
+  /**
+   * LIEGT DER COOKIE-STREIFEN GERADE ÜBER DEM FELD? (Owner 13.09.2026: „im Tunnel Cookie-Banner
+   * raus. Das verdeckt das Eingabefeld.")
+   *
+   * Er liegt `fixed bottom-0` über allem — auch über dem Feld, in das man schreiben soll. Ganz
+   * weglassen geht nicht: Ohne Einwilligung darf der Meta-Pixel nicht laden, und gemessen wird
+   * gerade der Trichter. Also hält das Feld Platz frei, solange der Streifen da ist.
+   *
+   * DERSELBE WERT WIE IM STREIFEN, und er hört mit: Nach „Akzeptieren" oder „Ablehnen"
+   * verschwindet er, und der freigehaltene Platz wäre sonst eine Lücke bis zum nächsten Laden.
+   */
+  const [cookieOffen, setCookieOffen] = useState(false);
+  useEffect(() => {
+    const pruefen = () => {
+      try { setCookieOffen(brauchtEinwilligung() && !localStorage.getItem("lb_cookie_consent")); }
+      catch { setCookieOffen(false); }
+    };
+    pruefen();
+    window.addEventListener("lb-cookie-consent", pruefen);
+    return () => window.removeEventListener("lb-cookie-consent", pruefen);
+  }, []);
+
   const [fotos, setFotos] = useState<string[]>([]);
   /* Was der Agent in seinen Bildern gesehen hat — klein, als Text, bei jeder Nachricht zurück
      an den Server. Daran zählt der Server die Aufnahme. */
@@ -316,7 +493,12 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
   /* „Ich nehme die ersten 4 Bilder." — sichtbar statt still abgeschnitten. */
   const [bildHinweis, setBildHinweis] = useState("");
   /* Die Frage nach weiteren Bildern kommt nur EINMAL im Gespräch (Owner 10.09.2026). */
-  const [bilderFrageGestellt, setBilderFrageGestellt] = useState(false);
+  /* EINMAL WIRD NACH WEITEREN BILDERN GEFRAGT, DANN NICHT MEHR (Owner 12.09.2026: „nur ein mal
+     nach fragen"). Der Browser zählt mit, wie oft die Frage schon kam; der Server entscheidet
+     daraus, ob er noch einmal fragt oder zu Preis, Name und E-Mail übergeht. */
+  const [bilderFragen, setBilderFragen] = useState(0);
+  /* Seine Bestätigung bei Name und E-Mail (Owner 12.09.2026) — ohne sie geht nichts hinaus. */
+  const [rechte, setRechte] = useState(false);
   /* Die Karte „Titel · Technik · Größe · Jahr · Preis" nach „Passt das? — Ja" (Owner 10.09.2026). */
   const [werkFormOffen, setWerkFormOffen] = useState(false);
   const [werkInfo, setWerkInfo] = useState({ titel: "", technik: "", groesse: "", jahr: "", preis: "" });
@@ -324,13 +506,130 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
   /* Die zwei Felder am Ende: Künstlername und E-Mail. */
   const [kontakt, setKontakt] = useState({ name: "", mail: "" });
   const [feedbackOffen, setFeedbackOffen] = useState(false);
+  /**
+   * ── WARUM DER KASTEN OFFEN IST (Owner 13.09.2026) ──────────────────────────────────────────
+   *
+   * Derselbe Kasten dient zwei Anlässen: Er steht unten hinter „Feedback geben" für jeden, der
+   * etwas loswerden will — und er klappt nach einem „Nein" von selbst auf, mit der Frage, die
+   * dann zählt („Was hat dich abgehalten?").
+   *
+   * OHNE DIESEN MERKER STÜNDE DIE NEIN-FRAGE AUCH DEM, der unten selbst auf Feedback tippt, im
+   * Feld — und der hat nichts abgelehnt. Eine Frage, die eine falsche Annahme über den Leser
+   * trifft, bekommt keine ehrliche Antwort.
+   */
+  const [feedbackNachNein, setFeedbackNachNein] = useState(false);
+  /**
+   * SEINE SEITE, SOLANGE SIE IHM NOCH NICHT GEHÖRT (Owner 13.09.2026).
+   *
+   * Sie entsteht beim „Da" unter einer Behelfsadresse. Kennung und Schlüssel liegen hier, bis
+   * er mit Namen und Adresse bestätigt — dann zieht sie um (`api/portal-behalten`). Bestätigt
+   * er nicht, wird sie später weggeräumt; im Browser bleibt nichts davon zurück.
+   */
+  /**
+   * ── DER BILDBEFUND BLEIBT LIEGEN (Owner 13.09.2026: „3 mal eine neuen chance") ─────────────
+   *
+   * Das Hinsehen ist die teure Hälfte, das Schreiben die günstige — und am Bild ändert sich
+   * zwischen zwei Versuchen nichts. Der Befund vom ersten Aufruf reist beim zweiten zurück an
+   * den Server, der die Analyse dann überspringt.
+   */
+  const [befund, setBefund] = useState<unknown>(null);
+  /** Wie oft er den Satz schon neu schreiben liess — höchstens dreimal. */
+  const [spruchVersuche, setSpruchVersuche] = useState(0);
+  /** Wie oft er „Nein" gesagt hat: beim zweiten Mal wird es angenommen, nicht nachgefragt. */
+  const [neinZahl, setNeinZahl] = useState(0);
+  const [seite, setSeite] = useState<{ kennung: string; schluessel: string; url: string } | null>(null);
+  const [behaltenStatus, setBehaltenStatus] = useState<"" | "sende" | "fehler">("");
+  /**
+   * ── ER SIEHT SEINE ADRESSE, BEVOR SIE BENUTZT WIRD (Owner 13.09.2026) ──────────────────────
+   *
+   * Steht hier `true`, zeigt der Kasten statt der Felder die eingetippte Adresse mit Ja/Nein.
+   * „Nein" führt zurück ins Feld, „Ja" schickt ab. Der Grund steht bei `mailRichtigFrage` in
+   * lib/agent-chat-texte.ts: Ein Tippfehler wie `yahoo..com` kostet einen ganzen Künstler.
+   */
+  const [mailPruefen, setMailPruefen] = useState(false);
+  /**
+   * Ob die Felder vor der Analyse offen stehen (Owner 14.09.2026: „will er Analyse starten, dann
+   * fragst du nach der Email"). Der Knopf „Analizează acum" klappt sie auf; erst das Absenden
+   * startet die Analyse.
+   */
+  const [datenFragt, setDatenFragt] = useState(false);
+  /**
+   * ── WELCHES WERK ANGESEHEN WIRD (Owner 14.09.2026: „er müsste wählen, für welches Werk er eine
+   * Analyse haben will") ──────────────────────────────────────────────────────────────────────
+   *
+   * Bis hierher wurde stumm das ERSTE genommen. Wer zehn Werke hochlädt, hat aber eine Meinung
+   * dazu, welches sein bestes ist — und genau das eine bekommt den Satz und den Platz auf der
+   * Seite.
+   *
+   * DIE VORHANDENE `bilderWahl` taugt dafür nicht: Sie gehört zum Agenten-Weg, wo der Server
+   * Vorschläge schickt und ein Tipp eine Nachricht ans Modell sendet. Der Trichter läuft an
+   * dieser Route vorbei.
+   *
+   * UND NICHT ZU VERWECHSELN MIT `werkWahl` weiter oben: Jenes hält `{nr, bild}` des Werks, über
+   * das im VersusForge-Agenten gerade gesprochen wird, und reist als `werkNr` zum Server. Dies
+   * hier ist nur die Nummer des Werks, das analysiert werden soll.
+   */
+  const [analyseWahl, setAnalyseWahl] = useState(0);
+  /**
+   * ── NACHLEGEN OHNE ZU SENDEN (Owner 14.09.2026: „er kann dort löschen oder neue hochladen") ──
+   *
+   * EIGENER WEG, NICHT `fotoWaehlen`: Jene Funktion schreibt in den Eingabezustand und setzt am
+   * Ende `sendenNachUpload`, was den nächsten Zug auslöst. Nach dem ersten Senden ist der
+   * Eingabezustand aber leer, und die Bilder hängen am Verlauf — nachgelegte Werke landeten also
+   * unten am Eingabefeld UND schickten eine zweite Nachricht.
+   *
+   * Hier werden sie direkt an die Nachricht gehängt, an der die anderen schon hängen.
+   */
+  const nachlegenDatei = useRef<HTMLInputElement | null>(null);
+  const nachlegenZiel = useRef(0);
+
+  const nachlegen = async (dateien: FileList | null | undefined) => {
+    const liste = Array.from(dateien ?? []).filter(f => f.type.startsWith("image/"));
+    const ziel = nachlegenZiel.current;
+    for (const f of liste) {
+      const bild = await bildVerkleinern(f);
+      if (!bild) continue;
+      setVerlauf(v => v.map((x, xi) => (
+        xi === ziel ? { ...x, fotos: [...(x.fotos ?? []), bild].slice(0, WERKE_TRICHTER) } : x
+      )));
+    }
+    /* Zurücksetzen, sonst löst dieselbe Datei beim zweiten Mal kein `change` aus. */
+    if (nachlegenDatei.current) nachlegenDatei.current.value = "";
+  };
+  /**
+   * ── ER HAT SICH SCHON GENANNT (Owner 14.09.2026: „aber dann nicht noch mal nach Mail fragen
+   * und Name" · „bist noch in der Lage, ihn zwei Mal zu fragen nach denselben Daten") ─────────
+   *
+   * Seit die Analyse Name und Adresse verlangt, liegen beide vor, bevor er die fertige Seite je
+   * sieht. Der Abschluss fragt sie deshalb NICHT erneut — er übernimmt sie.
+   */
+  const kontaktDa = !!kontakt.name.trim() && MAIL_MUSTER.test(kontakt.mail.trim());
   /* Er ändert einen Spruch über „✎" (Owner 11.09.2026: „ich habe eins korrigiert, du weisst es nicht welches").
      Solange gesetzt, geht das Feld als „dieser Spruch für Bild nr" hinaus — der Server zeigt ihn sofort. */
   const [spruchAendern, setSpruchAendern] = useState<{ nr: number } | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState<"" | "sende" | "danke" | "fehler">("");
 
-  useEffect(() => { ende.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [verlauf.length, busy]);
+  /**
+   * ── AUCH ZU KARTEN, DIE OHNE NEUE NACHRICHT AUFGEHEN (15.09.2026) ───────────────────────────
+   *
+   * Der Klick auf „Da" hängt KEINE Nachricht an — er klappt nur den Kontakt-Kasten unter der
+   * Vorschau auf. Der lag damit unterhalb des Sichtfelds: Auf dem Handy tippt er „Da", und für
+   * ihn passiert nichts. Vom 14.09. bis hierher hat KEIN EINZIGER von fünf Analysierten den
+   * Schritt danach gemacht, davor war es jeder Vierte.
+   *
+   * Deshalb hängen `datenFragt` und `mailPruefen` mit im Auslöser — jede Karte, die ohne neue
+   * Nachricht erscheint, holt den Blick zu sich.
+   */
+  useEffect(() => {
+    /* ZWEIMAL: Der erste Sprung geht ins Leere, weil die Karte im selben Durchgang noch keine
+       Höhe hat — gemessen blieb der Verlauf 364px vor dem Ende stehen, genug, um den Kasten
+       unsichtbar zu lassen. Der zweite holt nach, was inzwischen gewachsen ist. */
+    const lauf = () => ende.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    lauf();
+    const t = setTimeout(lauf, 260);
+    return () => clearTimeout(t);
+  }, [verlauf.length, busy, datenFragt, mailPruefen]);
 
   /**
    * ── DAS FELD WÄCHST MIT (Owner 09.09.2026, mit Bild: „hier stimmt was nicht. Kann sein,
@@ -370,9 +669,11 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
   useEffect(() => {
     if (!gewaehlt) return;
     setVerlauf(v => (v[v.length - 1]?.sprachfrage
-      ? [{ rolle: "agent", text: gruss, vorschlaege: [S.chipEinverstanden] }]
+      ? [startNachricht(gruss, S.chipEinverstanden, marke === "lakatosbandi")]
       : v));
-  }, [gewaehlt, gruss, S.chipEinverstanden]);
+    /* `marke` entscheidet seit dem Umbau auf Upload-zuerst, ob die Startnachricht einen Chip
+       trägt — ohne sie in der Liste bliebe nach einem Markenwechsel der alte Zustand stehen. */
+  }, [gewaehlt, gruss, S.chipEinverstanden, marke]);
 
   const geraet = () => {
     try {
@@ -506,7 +807,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
     setWerkFormOffen(false);
     setSpruchAendern(null);
     if (!rest.some(x => x.vorschau)) setWerkWahl(null);
-    setBilderFrageGestellt(rest.some(x => !!x.mehrBilder));
+    setBilderFragen(rest.filter(x => !!x.mehrBilder).length);
   };
 
   /* `sofort`: das Ja auf „Willst du alles löschen?" — die Frage WAR schon die Rückfrage. */
@@ -537,12 +838,12 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
     setWerkWahl(null);
     setBildHinweis("");
     setSpruchAendern(null);
-    setBilderFrageGestellt(false);
+    setBilderFragen(0);
     setWerkFormOffen(false);
     setWerkInfo({ titel: "", technik: "", groesse: "", jahr: "", preis: "" });
     /* IM FENSTER BLEIBT DIE SEITE STEHEN: Die Sprache hat die Seite schon gewählt — zurück zum Gruss. */
     if (fenster) {
-      setVerlauf([{ rolle: "agent", text: gruss, vorschlaege: [S.chipEinverstanden] }]);
+      setVerlauf([startNachricht(gruss, S.chipEinverstanden, marke === "lakatosbandi")]);
       return;
     }
     setVerlauf([{ rolle: "agent", text: SPRACHFRAGE, sprachfrage: true }]);
@@ -554,24 +855,238 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
    * Grund: Ein angetippter Chip soll sofort abgehen, und `setEingabe` wirkt erst beim
    * nächsten Rendern. Ohne dieses Argument ginge die alte Eingabe raus.
    */
-  /** Bilder einlesen, auf 1080 Pixel Breite bringen, als JPEG anhängen — höchstens vier. */
+  /** Bilder einlesen, auf 1080 Pixel Breite bringen, als JPEG anhängen — höchstens `WERKE_TRICHTER`. */
   const fotoWaehlen = async (dateien: FileList | null | undefined) => {
     const liste = Array.from(dateien ?? []).filter(f => f.type.startsWith("image/"));
-    setBildHinweis(liste.length + fotos.length > 4 ? S.bilderErste4 : "");
+    setBildHinweis(liste.length + fotos.length > WERKE_TRICHTER ? S.bilderErsteZehn : "");
+    /**
+     * ── HIER STIMMT ER ZU (Owner 13.09.2026, Umbau auf Upload-zuerst) ─────────────────────────
+     *
+     * Bis heute zählte die Stufe „start" beim Tippen auf „Da, vreau pagina mea". Diesen Knopf
+     * gibt es auf lakatosbandi nicht mehr; die Einwilligung steht jetzt unter dem Hochladeknopf
+     * (`startZustimmung`), und der Moment, den dieser Satz beschreibt, ist genau dieser hier.
+     *
+     * ES KOSTET WEITERHIN KEINEN MODELLAUFRUF ([[kein-token-fuer-abbrecher]]): Die Bilder
+     * bleiben im Browser, gezählt wird nur der Schritt.
+     */
+    if (marke === "lakatosbandi" && liste.length > 0 && !startGemessen.current) {
+      startGemessen.current = true;
+      schrittMessen(EIGENER_MANDANT, "start");
+    }
     for (const f of liste) {
-      try {
-        const bitmap = await createImageBitmap(f);
-        const breit = Math.min(1080, bitmap.width);
-        const hoch = Math.round((bitmap.height / bitmap.width) * breit);
-        const flaeche = document.createElement("canvas");
-        flaeche.width = breit; flaeche.height = hoch;
-        flaeche.getContext("2d")?.drawImage(bitmap, 0, 0, breit, hoch);
-        const bild = flaeche.toDataURL("image/jpeg", 0.85);
-        setFotos(v => [...v, bild].slice(0, 4));
-      } catch {
-        /* Ein Bild, das der Browser nicht öffnen kann, wird still übergangen — eine
-           Fehlermeldung über ein HEIC-Format hilft niemandem weiter. */
+      /* Ein Bild, das der Browser nicht öffnen kann (HEIC etwa), wird still übergangen — eine
+         Fehlermeldung über ein Dateiformat hilft niemandem weiter. */
+      const bild = await bildVerkleinern(f);
+      if (bild) setFotos(v => [...v, bild].slice(0, WERKE_TRICHTER));
+    }
+    /* Auswählen IST die Antwort — der Effekt unten schickt, sobald die Bilder im Zustand stehen.
+       Nur im Portal-Trichter: Bei VersusForge hängt ein Bild an einem Satz, den er noch tippt. */
+    if (marke === "lakatosbandi" && liste.length > 0) sendenNachUpload.current = true;
+  };
+
+  /**
+   * ── DER EFFEKT, DER DEN PFEIL ERSETZT ───────────────────────────────────────────────────────
+   *
+   * Er läuft, wenn `fotos` sich geändert hat — also genau dann, wenn die Auswahl im Zustand
+   * angekommen ist. Der Merker wird ZUERST zurückgesetzt: Ein zweiter Durchlauf (React rendert
+   * im Entwicklungsmodus doppelt) schickte sonst dieselben Bilder ein zweites Mal.
+   *
+   * `busy` hält ihn zurück, solange ein Aufruf läuft — sonst überholt ein schnelles Nachlegen
+   * den vorigen Zug.
+   */
+  useEffect(() => {
+    if (!sendenNachUpload.current || !fotos.length || busy) return;
+    sendenNachUpload.current = false;
+    void schicken();
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [fotos]);
+
+  /**
+   * ── „ANALIZEAZĂ ACUM" (Owner 13.09.2026) ────────────────────────────────────────────────────
+   *
+   * EIN Bild, EIN Aufruf — nicht alle. Der Owner will ein Beispiel zeigen („die anderen nicht"),
+   * und das ist zugleich die günstige Variante: Ein fertiger Künstler kostet sechs Modellaufrufe
+   * JE WERK. Wer hier abspringt, hätte uns sonst fünf Bilder lang Geld gekostet, ohne je
+   * zugestimmt zu haben ([[kein-token-fuer-abbrecher]]).
+   *
+   * ES LÄUFT AN DER AGENTEN-ROUTE VORBEI: `api/portal-vorschau` sieht das Bild an und schreibt
+   * einen Satz. Kein Gesprächsverlauf, kein Modell, das entscheidet, was als Nächstes kommt.
+   */
+  const analysieren = async () => {
+    if (busy) return;
+    /* SEINE WAHL, nicht stumm das erste (Owner 14.09.2026). Fällt sie aus dem Rahmen, bleibt das
+       erste — besser eine Analyse als gar keine. */
+    const alle = verlauf.flatMap(m => m.fotos ?? []);
+    const bild = alle[analyseWahl] ?? alle[0];
+    if (!bild) return;
+    /* Die Felder wieder zuklappen: Scheitert die Analyse, steht wieder der Knopf da — seine
+       Eingaben bleiben im Zustand, er muss sie nicht noch einmal tippen. */
+    setDatenFragt(false);
+    setBusy(true);
+    setFehler("");
+    setVerlauf(v => [...v, { rolle: "agent", text: S.analyseLaeuft }]);
+    try {
+      const res = await fetch("/api/portal-vorschau", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        /* Der Befund vom ersten Mal spart beim zweiten Versuch die teure Analyse. */
+        /* Gesprächskennung und Zugnummer fürs Protokoll — ohne sie kann der Server nicht
+           zuordnen, wer da war und wie oft er neu schreiben liess (Owner 13.09.2026). */
+        body: JSON.stringify({
+          bild, sprache: lang, device: geraet(),
+          gespraech: gespraechId(), zug: verlauf.length,
+          /* Seine Angaben reisen mit und werden auf dem Server ZUERST abgelegt — auch wenn die
+             Analyse danach scheitert, ist die Adresse dann bei uns (Owner 14.09.2026). */
+          name: kontakt.name.trim(), mail: kontakt.mail.trim(),
+          /* SEINE KENNUNG AUS DEM SOFORTFORMULAR — ohne sie stünden `name` und `mail` hier leer,
+             weil die Karte bei vorhandener Kennung gar nicht erst erscheint. Der Server löst sie
+             auf (app/api/portal-vorschau/route.ts) und nimmt Name und Adresse von dort. */
+          ...(lead ? { lead } : {}),
+          ...(befund ? { befund } : {}),
+        }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; spruch?: string; befund?: unknown; grund?: string };
+      /* In eine eigene Konstante: TypeScript verliert die Verengung von `d.spruch` innerhalb der
+         Rückrufe an `setVerlauf` — dort wäre es wieder `string | undefined`. */
+      const spruch = String(d.spruch ?? "").trim();
+      if (!d.ok || !spruch) {
+        /* Die letzte Nachricht war „Ich sehe mir dein Werk an …" — sie wird ersetzt, nicht
+           ergänzt, sonst bleibt eine Ankündigung stehen, auf die nichts folgt.
+
+           WAR ES KEIN WERK, sagen wir das auch — „hat nicht geklappt" würde ihn ein Zertifikat
+           ein zweites Mal hochladen lassen, und jeder Versuch kostet uns (Owner 14.09.2026). */
+        const text = d.grund === "kein-werk" ? S.keinWerk
+          : d.grund === "verbraucht" ? S.analyseVerbraucht
+            : d.grund === "hat-seite" ? S.hatSeite
+              : S.analyseFehler;
+        setVerlauf(v => [...v.slice(0, -1), { rolle: "agent", text, analyse: true }]);
+        return;
       }
+      /* DEN BEFUND MERKEN (Owner 13.09.2026: „noch zwei" neue Sätze). Er reist beim nächsten
+         Versuch zurück an den Server, der das Bild dann NICHT erneut ansieht — das ist die teure
+         Hälfte. Ohne diese Zeile wäre die Ersparnis serverseitig vorbereitet und nie genutzt. */
+      if (d.befund) setBefund(d.befund);
+      setVerlauf(v => [...v.slice(0, -1), {
+        rolle: "agent",
+        /* NUR DER BEISPIEL-SATZ (Owner 13.09.2026: „Hier muss eins klar sein. Ja, Nein für was?").
+           Die Frage stand hier und damit ÜBER dem Werk — zwischen ihr und den Knöpfen lag das
+           ganze Bild samt Spruch. Sie steht jetzt unmittelbar über Da/Nu. */
+        text: S.analyseFertig,
+        vorschau: { nr: 1, spruch },
+        publizieren: true,
+      }]);
+    } catch {
+      setVerlauf(v => [...v.slice(0, -1), { rolle: "agent", text: S.analyseFehler, analyse: true }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * ── „DA" — SEINE SEITE ENTSTEHT (Owner 13.09.2026) ──────────────────────────────────────────
+   *
+   * KEIN MODELLAUFRUF. Das Bild liegt im Browser, der Spruch ist in der Vorschau bereits
+   * entstanden und bezahlt — beides reist mit. `api/portal-anlegen` legt die Seite unter einer
+   * Behelfsadresse an und gibt den Link zurück.
+   *
+   * ER SIEHT SIE, BEVOR ER SICH NENNT. Das ist der ganze Punkt dieser Umstellung: Bisher standen
+   * Adresse und Bestätigungsmail VOR jedem Ergebnis.
+   */
+  const anlegen = async () => {
+    if (busy) return;
+    /* ALLE hochgeladenen Werke wandern auf die Seite; den Spruch trägt nur das erste, weil nur
+       es analysiert wurde (Owner 14.09.2026). */
+    /* Das analysierte Werk zuerst — es trägt den Spruch und wird zum Standardmotiv der Seite.
+       Die übrigen folgen in ihrer Reihenfolge, ohne Text. */
+    const alle = verlauf.flatMap(m => m.fotos ?? []).slice(0, WERKE_TRICHTER);
+    const gewaehlt = alle[analyseWahl] ?? alle[0];
+    const bilder = gewaehlt ? [gewaehlt, ...alle.filter((_, n) => n !== analyseWahl)] : alle;
+    const bild = bilder[0];
+    if (!bild) return;
+    setBusy(true);
+    setFehler("");
+    setVerlauf(v => [...v, { rolle: "mensch", text: S.publizierenJa }, { rolle: "agent", text: S.anlegenLaeuft }]);
+    try {
+      /**
+       * ── DER SATZ ENTSTEHT JETZT HIER (Owner 15.09.2026: „soll nichts analysieren") ──────────
+       *
+       * Vorher stand er schon in der Vorschau, die jeder Hochladende bekam — bezahlt auch für
+       * die, die nie wiederkamen. Jetzt sieht das Modell das Werk erst an, wenn er Ja gesagt
+       * hat. Dieselbe Route wie früher, nur eine Station später.
+       *
+       * SCHEITERT ER, ENTSTEHT DIE SEITE TROTZDEM: Eine Seite ohne Satz ist ein Mangel, eine
+       * verlorene Zusage ist ein Bruch. Den Satz kann der nächtliche Lauf nachtragen.
+       */
+      let spruch = verlauf.find(m => m.vorschau)?.vorschau?.spruch ?? "";
+      if (!spruch) {
+        try {
+          const vr = await fetch("/api/portal-vorschau", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bild, sprache: lang, device: geraet() }),
+          });
+          const vd = (await vr.json().catch(() => ({}))) as { ok?: boolean; spruch?: string };
+          if (vd.ok && vd.spruch) spruch = String(vd.spruch).trim();
+        } catch { /* siehe oben: die Seite entsteht auch ohne Satz */ }
+      }
+      const res = await fetch("/api/portal-anlegen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        /* `bild` bleibt das erste (mit Spruch), `bilder` trägt alle — der Server legt die
+           übrigen ohne Text als weitere Kacheln an. */
+        /* NAME UND ADRESSE MÜSSEN MIT (Owner 14.09.2026: „soll gar nicht gehen ohne") — der
+           Server weist sonst mit `kontakt-fehlt` ab, und zwar bevor er ein Bild ansieht. */
+        body: JSON.stringify({
+          bild, bilder, spruch, sprache: lang, device: geraet(),
+          name: kontakt.name.trim(), mail: kontakt.mail.trim(),
+        }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; kennung?: string; schluessel?: string; url?: string };
+      if (!d.ok || !d.kennung || !d.url) {
+        setVerlauf(v => [...v.slice(0, -1), { rolle: "agent", text: S.anlegenFehler, publizieren: true }]);
+        return;
+      }
+      setSeite({ kennung: d.kennung, schluessel: String(d.schluessel ?? ""), url: d.url });
+      setVerlauf(v => [...v.slice(0, -1), {
+        rolle: "agent",
+        /* Stehen Name und Adresse schon, ist das Behalten keine Frage mehr — nur noch eine
+           Meldung (Owner 14.09.2026: „aber dann nicht noch mal nach Mail fragen und Name"). */
+        text: kontaktDa ? S.seiteFertig : `${S.seiteFertig}\n\n${S.behaltenFrage}`,
+        seiteFertig: true,
+      }]);
+    } catch {
+      setVerlauf(v => [...v.slice(0, -1), { rolle: "agent", text: S.anlegenFehler, publizieren: true }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * ── „JA, BEHALTEN" — ab hier gehört sie ihm ─────────────────────────────────────────────────
+   *
+   * Name und Adresse gehen an `api/portal-behalten`: Die Seite zieht auf seinen Namen um, wird
+   * sichtbar, und die Links gehen an seine Adresse. Der Schlüssel aus dem Anlegen ist der
+   * Nachweis, dass es SEINE Seite ist — ohne ihn könnte jeder eine fremde umschreiben.
+   */
+  const behalten = async () => {
+    if (!seite || behaltenStatus === "sende") return;
+    setBehaltenStatus("sende");
+    try {
+      const res = await fetch("/api/portal-behalten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mandant: seite.kennung, k: seite.schluessel,
+          name: kontakt.name.trim(), mail: kontakt.mail.trim(),
+        }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string };
+      if (!d.ok) { setBehaltenStatus("fehler"); return; }
+      setBehaltenStatus("");
+      if (d.url) setSeite(s => (s ? { ...s, url: String(d.url) } : s));
+      setVerlauf(v => [...v, { rolle: "agent", text: S.behaltenFertig, behalten: true }]);
+    } catch {
+      setBehaltenStatus("fehler");
     }
   };
 
@@ -671,6 +1186,49 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
       setFehler("");
       return;
     }
+    /**
+     * ── EIN UPLOAD GEHT GAR NICHT ERST AN DEN SERVER ────────────────────────────────────────
+     *
+     * Owner 12.09.2026: „was rechnest du hier schon wieder? du musst nur wissen, wieviele er
+     * hochgeladen hat. Er lädt sie hier nur im Zwischenspeicher und nicht auf dem Server. Erst
+     * am Ende wird alles erledigt."
+     *
+     * Die Bilder bleiben im Browser. Gezählt wird nur, und die Antwort steht fest: einmal die
+     * Frage nach weiteren Werken, danach Preis, Künstlername und E-Mail. Ansehen, prüfen,
+     * Sprüche schreiben und die Seite bauen passiert in EINEM Zug beim Abschluss.
+     *
+     * ENG GEHALTEN wie der Zweig nach dem Ja darüber: nur wenn er NICHTS geschrieben hat und
+     * die Nachricht ausschliesslich aus Bildern besteht. Schreibt er etwas dazu, gehört ihm
+     * eine echte Antwort, und es geht den normalen Weg.
+     */
+    /**
+     * ── NACH DEN BILDERN KOMMT DIE ANALYSE, NICHT DIE ADRESSE (Owner 13.09.2026: „Dann wird der
+     * Button aktiv Jetzt analysieren") ────────────────────────────────────────────────────────
+     *
+     * HIER GING ES BISHER über „Willst du noch mehr Bilder?" direkt zum Kontakt-Kasten — er gab
+     * seine Adresse, bevor er je etwas von uns gesehen hatte. Gemessen am 13.09.2026: 11 von 25
+     * Gesprächen kamen bis zu den Bildern, nur 4 ans Ende.
+     *
+     * JETZT STEHT DORT EIN KNOPF, und erst er kostet etwas.
+     */
+    if (marke === "lakatosbandi" && fotos.length > 0 && w === S.nurBilder) {
+      /* ── NACH DEM HOCHLADEN KOMMT DAS ANGEBOT, KEINE ANALYSE (Owner 15.09.2026: „Ma uit la
+         lucrarea ta soll nichts analysieren. Einfach nur Superb.") ─────────────────────────────
+         Hier stand erst ein Knopf „Analizează acum", dann eine Analyse, die von selbst lief.
+         Beides ist weg: „Superb!", das Angebot, und Da/Nu. Angesehen wird das Werk erst, wenn
+         er Ja gesagt hat — dann kostet es auch etwas, und dann lohnt es sich. */
+      setVerlauf([...naechster, {
+        rolle: "agent",
+        text: `${S.bilderErhalten}\n\n${S.publizierenAngebot}`,
+        publizieren: true,
+      }]);
+      setFotos([]);
+      setBildHinweis("");
+      if (datei.current) datei.current.value = "";
+      setFehler("");
+      return;
+    }
+
     /* Die Bilder gehören zu DIESER Nachricht. Blieben sie stehen, hingen sie an jeder folgenden —
        und der Agent bekäme dreimal dasselbe Bild geschickt. */
     const gezeigt = fotos;
@@ -696,12 +1254,24 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
           /* Seine Bilder reisen NUR mit der Nachricht, an der sie hängen — danach nur noch der
              Befund (`werke`), klein, als Text. */
           ...(gezeigt.length ? { fotos: gezeigt } : {}),
+          /* WIE VIELE BILDER ER INSGESAMT HOCHGELADEN HAT (Owner 12.09.2026: „bis dahin nichts
+             analysieren und nicht rechnen"). Der Server sah das bisher an den BEFUNDEN — die
+             entstehen jetzt aber erst beim Abschluss. Gezählt wird darum im Verlauf, der auch ein
+             Neuladen übersteht. */
+          bilderZahl: naechster.reduce((n, m) => n + (m.fotos?.length ?? 0), 0),
           werke,
           /* Sein gewähltes Bild reist mit, sobald es feststeht — beim Abschluss wird es gespeichert. */
           /* Beim Abschluss werden ALLE seine Bilder gespeichert (bis zu 4) — das gewählte trägt seinen
              Spruch, für die übrigen schreibt der Server die Sprüche (Owner 10.09.2026). */
-          ...(werkWahl ? { werkNr: werkWahl.nr, werkBilder: naechster.flatMap(x => x.fotos ?? []).slice(0, 4) } : {}),
-          ...(bilderFrageGestellt ? { bilderFrageGestellt: true } : {}),
+          ...(werkWahl ? { werkNr: werkWahl.nr } : {}),
+          /* SEINE BILDER REISEN JETZT IMMER MIT, nicht nur nach einer Bildwahl (Owner 12.09.2026:
+             „erst am Ende wird alles erledigt"). Sie kommen nie unterwegs beim Server an, also ist
+             der Abschluss der einzige Zug, in dem er sie überhaupt zu sehen bekommt — ohne sie
+             stünde am Ende eine Seite ohne Werke. */
+          ...(naechster.some(x => x.fotos?.length) ? { werkBilder: naechster.flatMap(x => x.fotos ?? []).slice(0, WERKE_TRICHTER) } : {}),
+          bilderFragen,
+          /* Die Preisspanne fragt der Trichter seit dem 13.09.2026 nicht mehr ab; das Feld auf der
+             Serverseite bleibt bestehen (er kann sie im Gespräch trotzdem nennen). */
           ...(gewaehlt ? { spruchGewaehlt: gewaehlt } : {}),
           ...(eigen ? { spruchEigen: eigen } : {}),
           /* SPRUCH BESTÄTIGT (Owner 11.09.2026: „hier dreht er eine Schleife"): Nach „Da, se potrivește" zeigt der Agent
@@ -720,6 +1290,8 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
            * sie mit, statt auf dem Server erraten zu werden.
            */
           sprache: lang,
+          /* Die Kennung aus dem Sofortformular — nur gesetzt, wenn er über den Mail-Link kam. */
+          ...(lead ? { lead } : {}),
         }),
       });
       const d = (await res.json()) as Record<string, unknown>;
@@ -749,7 +1321,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
          „Nein" die Antwort war. */
       const mehr = Number(d.mehrBilder) > 0 ? Math.round(Number(d.mehrBilder)) : 0;
       const mehrFrage = mehr ? (mehr === 1 ? S.mehrBilderEins : S.mehrBilderFrage.replace("{n}", String(mehr))) : "";
-      if (mehr) setBilderFrageGestellt(true);
+      if (mehr) setBilderFragen(n => n + 1);
       setVerlauf([...naechster, {
         rolle: "agent",
         text: mehrFrage ? `${String(d.antwort ?? "").trim()}\n\n${mehrFrage}` : String(d.antwort ?? ""),
@@ -791,9 +1363,16 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
             /* BEIDE ZUSAMMEN, NICHT AN DIE ZWEI ENDEN DER ZEILE (Owner 11.09.2026: „muss an dem Logo hängen" —
                zwei direkte Kinder des äusseren `justify-between` wären an die gegenüberliegenden Ränder gerutscht,
                statt nebeneinander zu stehen). Ein eigener Rahmen mit `gap`, EIN Kind des Kopfs. */
-            <span className="flex items-baseline gap-4">
-              {/* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge"). */}
-              <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
+            <span className="flex items-center gap-3">
+              {/* ── EUER BILD NEBEN DEM LOGO (Owner 14.09.2026: „das logo im trichter klickbar und
+                  bild von uns im kreis neben dran") ────────────────────────────────────────────
+                  Es macht aus einer Marke zwei Menschen — dieselbe Wirkung wie der Gründer-Satz
+                  unter der Vorschau, nur gleich beim ersten Blick. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lakatosbandi/geza-szidonia.jpg" alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+              {/* Auf lakatosbandi.com das Logo des Portals (Owner 11.09.2026: „und oben steht VersusForge").
+                  KLICKBAR (Owner 14.09.2026) — führt aufs Portal, damit man die Künstler sieht. */}
+              <a href="/" className="text-[22px] font-black leading-none tracking-[-0.03em] text-[#111] no-underline hover:underline">lakatosbandi.com</a>
               {/* DER SATZ NEBEN DEM LOGO (Owner 11.09.2026: „neben dem Logo rechts, groß dünn" · „oder in
                   Serifenschrift" · „oder den coolen Spruch von Burnett") — Leo Burnett, aus dem Marketing-Pool
                   (`scratchpad/zitate/paket-11-marketing.json`), gross, leicht, in der Serifenschrift der Überschriften.
@@ -839,9 +1418,22 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
           * automatische Abstand alles nach unten ans Feld — genau der Effekt, der gewollt
           * war. Ist viel da, wird der Abstand null und die Fläche scrollt normal, von ganz
           * oben bis ganz unten.
+          *
+          * ── SEIT DIE STARTKARTE KURZ IST: `my-auto` STATT `mt-auto` (13.09.2026) ────────
+          *
+          * Solange die Karte ein hohes Mockup trug, füllte sie den Schirm ohnehin. Ohne das
+          * Bild (Owner: „ich das Bild und Webseite nicht haben will") ist sie nur noch
+          * Titel, Knopf und eine Zeile — und `mt-auto` schob sie ganz nach unten, mit rund
+          * 800 Pixeln Leere darüber. Das ist DERSELBE Eindruck wie am 09.09.2026, nur
+          * gespiegelt: Es sieht aus, als hätte die Seite etwas nicht geladen.
+          *
+          * `my-auto` bedient beide Fälle: Wenig Inhalt sitzt MITTIG — kein leerer Block
+          * oben, keiner unten. Wird das Gespräch länger als der Schirm, werden beide
+          * Abstände null und es scrollt unverändert von oben nach unten. Der Fehler mit
+          * `justify-end` bleibt umgangen, weil es weiter über Abstände läuft.
           */}
         <div className="lb-wisch flex min-h-0 flex-1 flex-col overflow-y-auto py-5">
-          <div className="mt-auto flex flex-col gap-3">
+          <div className="my-auto flex flex-col gap-3">
           {verlauf.map((m, i) => (
             <div key={i} className={m.rolle === "mensch" ? "flex flex-col items-end gap-1.5" : "flex flex-col items-start gap-2"}>
               {/**
@@ -857,7 +1449,22 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                 * hintereinander sind eine Kolonne, kein Gesprächspartner. So macht es
                 * WhatsApp auch.
                 */}
-              {m.rolle === "agent" && verlauf[i - 1]?.rolle !== "agent" && (
+              {/**
+                * ── AUF LAKATOSBANDI GAR KEIN ABSENDER (Owner 13.09.2026: „die fucking adresse
+                * raus. Die steht im header schon") ────────────────────────────────────────────
+                *
+                * Hier stand „lakatosbandi.com" über jeder Agenten-Nachricht — derselbe Name, der
+                * zwei Zentimeter darüber im Seitenkopf steht. Genau der Fehler, den der Kommentar
+                * oben für den Trichter schon beschreibt („zweimal derselbe Absender"), nur diesmal
+                * im Chat selbst.
+                *
+                * DIE GANZE ZEILE ENTFÄLLT, nicht nur ihr Text: Ein leerer Block mit `gap` liesse
+                * über jeder Nachricht einen Abstand stehen, den niemand erklären könnte.
+                *
+                * VERSUSFORGE BLEIBT, WIE ES WAR — dort wechseln sich zwei Sprecher ab, und das
+                * Logo sagt, wer gerade redet.
+                */}
+              {m.rolle === "agent" && marke !== "lakatosbandi" && verlauf[i - 1]?.rolle !== "agent" && (
                 <div className="flex items-center gap-2">
 {/**
                     * DAS ZEICHEN STATT EINES BILDES (Owner 09.09.2026: „mach ein Icon VF").
@@ -902,29 +1509,94 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                     * erscheint dutzendfach auf demselben Schirm — die Optimierung würde hier
                     * nichts sparen und nur eine Abhängigkeit hinzufügen.
                     */}
-                  {marke === "lakatosbandi" ? (
-                    /* Auf lakatosbandi.com kein VersusForge-Logo — der Name des Portals, schlicht wie sein Kopf. */
-                    <span className="text-[15px] font-black leading-none tracking-[-0.03em] text-[#111]">lakatosbandi.com</span>
-                  ) : (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/VersusForge/Logo-VersusForge.JPG"
-                        alt=""
-                        className="h-7 w-7 shrink-0 rounded-full object-cover"
-                      />
-                      <span className="text-[13.5px] font-black tracking-[-0.01em] text-[#5b666f]">VersusForge</span>
-                    </>
-                  )}
+                  {/* Nur noch VersusForge: Die Abfrage auf lakatosbandi stand hier bis zum
+                      13.09.2026 und ist seit der Bedingung oben (`marke !== "lakatosbandi"`)
+                      unerreichbar — TypeScript hat sie als toten Vergleich gemeldet (TS2367). */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/VersusForge/Logo-VersusForge.JPG"
+                    alt=""
+                    className="h-7 w-7 shrink-0 rounded-full object-cover"
+                  />
+                  <span className="text-[13.5px] font-black tracking-[-0.01em] text-[#5b666f]">VersusForge</span>
                 </div>
               )}
               {/* SEINE BILDER BLEIBEN IM GESPRÄCH SICHTBAR — über seiner Nachricht, rechts wie sie. */}
               {m.fotos && m.fotos.length > 0 && (
-                <div className="flex max-w-[86%] flex-wrap justify-end gap-2">
-                  {m.fotos.map((f, i) => (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img key={i} src={f} alt="" className="h-24 w-24 rounded-xl object-cover" />
-                  ))}
+                /* ── WISCHBAR STATT ZEILENUMBRUCH (Owner 14.09.2026: „hier kann man nicht sliden
+                   die Bilder") ─────────────────────────────────────────────────────────────────
+                   Vorher ein `grid-cols-5`, das bei mehr als fünf Werken in eine zweite Reihe
+                   umbrach — das sah nicht nach Wischen aus und wurde als Fehler gelesen. Jetzt
+                   eine Reihe, die zur Seite scrollt; jedes Bild feste Breite statt Raster-Spalte. */
+                <div className="flex w-full max-w-[300px] snap-x snap-mandatory gap-1.5 overflow-x-auto justify-self-end">
+                  {m.fotos.map((f, n) => {
+                    /**
+                     * ── WÄHLEN UND WEGNEHMEN, SOLANGE NICHTS LIVE IST ─────────────────────────
+                     *
+                     * (Owner 14.09.2026: „jetzt wähle ein Kunstwerk aus" · „er kann eventuell
+                     * auch löschen, bevor es live geht")
+                     *
+                     * NUR BIS ZUR ANALYSE: Danach hängt an einem dieser Bilder ein Befund und ein
+                     * Spruch. Ein Bild wegzunehmen hiesse dann, den Satz unter einem anderen Werk
+                     * stehen zu lassen. Bis dahin ist es nur seine Auswahl, und die darf er
+                     * ändern, ohne von vorn anzufangen.
+                     */
+                    const offen = marke === "lakatosbandi" && !busy
+                      && verlauf[verlauf.length - 1]?.analyse === true;
+                    const dran = n === analyseWahl;
+                    if (!offen) {
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      return <img key={n} src={f} alt="" className="aspect-square w-14 shrink-0 snap-start rounded-lg object-cover" />;
+                    }
+                    return (
+                      <div key={n} className="relative w-14 shrink-0 snap-start">
+                        <button type="button" onClick={() => setAnalyseWahl(n)}
+                          aria-pressed={dran}
+                          className={`block w-full overflow-hidden rounded-lg transition ${dran ? "ring-[3px] ring-[#111]" : "opacity-60 hover:opacity-100"}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={f} alt="" className="block aspect-square w-full object-cover" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={S.fotoWeg}
+                          onClick={() => {
+                            /* Aus DIESER Nachricht nehmen — die Bilder hängen am Verlauf, nicht
+                               mehr am Eingabefeld (das ist nach dem Senden geleert). */
+                            setVerlauf(v => v.map((x, xi) => (xi === i ? { ...x, fotos: (x.fotos ?? []).filter((_, j) => j !== n) } : x)));
+                            /* Die Auswahl mitziehen: Wer das gewählte Werk wegnimmt — oder eines
+                               davor —, hätte sonst plötzlich ein anderes markiert. */
+                            setAnalyseWahl(w => (n < w ? w - 1 : n === w ? 0 : w));
+                          }}
+                          className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-white text-[#5b666f] shadow-[0_1px_4px_rgba(0,0,0,.3)] transition hover:text-[#14181c]"
+                        >
+                          <X className="h-3 w-3" aria-hidden />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {/**
+                    * ── EIN PLATZ ZUM NACHLEGEN (Owner 14.09.2026: „eventuell zeigst du eine
+                    * Galerie mit 10 Platzhalter und er kann dort löschen oder neue hochladen") ──
+                    *
+                    * EIN Feld statt zehn leeren Kästen: Zehn Platzhalter nehmen auf dem Handy drei
+                    * Reihen und fordern ihn auf, erst einmal zehn Werke zu suchen — bevor er
+                    * überhaupt gesehen hat, was wir daraus machen. Gelöscht wird am Bild selbst,
+                    * nachgelegt hier; das ist dieselbe Freiheit auf einem Viertel der Fläche.
+                    *
+                    * Der Zähler sagt, wie viel noch geht — sonst tippt er ein elftes Bild an und
+                    * es passiert nichts.
+                    */}
+                  {marke === "lakatosbandi" && !busy
+                    && verlauf[verlauf.length - 1]?.analyse === true
+                    && verlauf.flatMap(x => x.fotos ?? []).length < WERKE_TRICHTER && (
+                    <button
+                      type="button"
+                      onClick={() => { nachlegenZiel.current = i; nachlegenDatei.current?.click(); }}
+                      className="grid aspect-square w-14 shrink-0 snap-start place-items-center rounded-lg border-[1.5px] border-dashed border-[#c9ced3] text-[#8b959d] transition hover:border-[#111] hover:text-[#111]"
+                    >
+                      <span className="text-[20px] font-light leading-none">+</span>
+                    </button>
+                  )}
                 </div>
               )}
               {m.rolle === "agent" && marke === "lakatosbandi" && m.text === gruss ? (
@@ -933,33 +1605,146 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                    kunterbunte Typo, schau wie wir es auf der Homepage haben" — also `components/PortalBald.tsx`, Abschnitt
                    BEISPIEL: graue Kapitälchen-Label, „Nachher" gross in Serifenschrift statt fett, die Frage als
                    Zitat mit Strich links, keine Farbmischung). Der Datenschutz steht eingeklappt, aber VOR dem Knopf —
-                   die Einwilligung bleibt eine Einwilligung. */
-                <div className="max-w-[86%] overflow-hidden rounded-2xl rounded-bl-md bg-[#f1f4f7] text-[16.5px] leading-[1.5] md:text-[17.5px]">
-                  {/* WEISS STATT SCHWARZ/GRAU, UND KEIN RAND MEHR (Owner 11.09.2026: „einfach weiss machen im
-                     Van-Gogh-Kasten und Bild recht platzieren"). Das Seitenverhältnis des Kastens ist genau das des
-                     Bildes (364:520) — es füllt ihn exakt, ohne Beschnitt und ohne Rand rechts oder links; `bg-white`
-                     bleibt nur als Sicherheitsnetz, falls das Bild einmal ausgetauscht wird. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt={S.startQuelle} className="block aspect-[91/130] w-full bg-white object-cover" />
+                   die Einwilligung bleibt eine Einwilligung.
+                   CREME STATT GRAU (Owner 14.09.2026: „Grau in crem") — nur diese eine Karte, nicht
+                   die geteilte Blasen-Farbe des übrigen Chats; passend zur Stein-Geschichte darunter,
+                   die schon im selben Creme läuft. */
+                <div className="max-w-[86%] overflow-hidden bg-[#f4f1ea] text-[16.5px] leading-[1.5] md:text-[17.5px]">
+                  {/**
+                    * ── KEIN BILD MEHR AUF DER KARTE (Owner 13.09.2026: „verstehst du nicht, dass
+                    * ich das Bild und Webseite nicht haben will?") ───────────────────────────────
+                    *
+                    * Hier stand das Mockup der fertigen Künstlerseite. Es ist ersatzlos raus: Die
+                    * Karte soll nichts mehr zeigen und nichts mehr erklären, sondern zum Hochladen
+                    * auffordern — Titel, Knopf, Einwilligung.
+                    *
+                    * ES LÖST NEBENBEI EINEN WIDERSPRUCH: Im Bild stand „Încarcă până la 10
+                    * lucrări" eingebrannt, während der Knopf 1-5 sagt. Ohne Bild keine zweite
+                    * Zahl auf demselben Schirm.
+                    */}
                   <div className="px-4 py-4">
-                    {/* Owner 11.09.2026: schwarz statt hellgrau — die grauen Label kontrastieren sonst zu wenig auf dem
-                        hellgrauen Kartengrund (`#f1f4f7`), anders als auf der weissen Startseite. */}
-                    <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#5b666f]">{S.startVorherLabel}</p>
-                    <p className="m-0 mt-1.5 text-[15px] leading-[1.5] text-[#14181c] line-through decoration-[#8b959d]">{S.startVorher}</p>
-                    <p className="m-0 mt-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#111]">{S.startNachherLabel}</p>
-                    <p className="m-0 mt-1.5 font-serif text-[22px] leading-[1.3] md:text-[25px]">{S.startNachher}</p>
-                    <div className="mt-4 border-l-2 border-[#111] pl-3.5">
-                      <p className="m-0 font-bold leading-[1.4]">{S.startFrage}</p>
-                      <p className="m-0 mt-1 leading-[1.4]">
-                        {S.startText.split("lakatosbandi.com").flatMap((t, k) => (k ? [<strong key={k} className="font-bold">lakatosbandi.com</strong>, t] : [t]))}
-                      </p>
-                    </div>
-                    <p className="m-0 mt-3 text-[14px] text-[#5b666f]">{S.startFein}</p>
+                    {/**
+                      * ── DER EINSTIEG IST DAS HOCHLADEN (Owner 13.09.2026: „hier werden direkt
+                      * mit Bilder upload und sagen, dass deine Kunst analysieren, laden hier bis
+                      * zu 5 Bilder hoch.") ──────────────────────────────────────────────────────
+                      *
+                      * HIER STAND EINE TEXTWAND und darunter ein schwarzer Knopf „Da, vreau pagina
+                      * mea", der nur zur nächsten Frage führte — erst danach durfte er hochladen.
+                      * Gemessen am 13.09.2026: 9 von 25 Gesprächen endeten nach genau einem Zug,
+                      * also auf dieser Karte. Wer gekommen ist, um seine Kunst zu zeigen, soll sie
+                      * zeigen können, statt zuerst eine Seite zu lesen.
+                      *
+                      * DER KNOPF IST JETZT DIE EINWILLIGUNG (`startZustimmung` darunter, der
+                      * Datenschutztext bleibt ausklappbar). Das ist zulässig, weil die Bilder den
+                      * Browser noch nicht verlassen: Der Zweig `nurBilder` in `schicken` kehrt vor
+                      * jedem Serveraufruf um — verarbeitet wird erst beim Abschluss.
+                      */}
+                    {/* NUR NOCH TITEL UND KNOPF (Owner 13.09.2026: „Nur Button … Titel").
+                        `startAnalyse` und `startText` stehen jetzt zusammengefasst AUF dem Knopf
+                        (`startKnopf`); im Modelltext `grussPortal` bleiben sie einzeln. */}
+                    {/* IN SERIFENSCHRIFT (Owner 13.09.2026: „Schreib in Serifen: Marketing for
+                        Art!") — dieselbe Schrift wie unter den Werkbildern und im „Nachher" auf
+                        der Startseite: gross und ruhig statt fett. */}
+                    {/* ── DAS VAN-GOGH-BEISPIEL IST WIEDER AUS DER KARTE RAUS (Owner 14.09.2026:
+                        „mach ein schönes hook bild in unserem stil" · „das nehmen wir für FB") ──
+                        Es wandert in die Anzeige, wo es hingehört: Dort muss der Hook auffallen,
+                        hier muss der Knopf auffallen. Die Karte bleibt so kurz, wie sie heute
+                        geworden ist. */}
+                    {/* Die Marke als kleines Label — sie bleibt, aber sie ist nicht die Aussage. */}
+                    <p className="m-0 text-[10.5px] font-extrabold uppercase leading-none tracking-[0.2em] text-[#a8a196]">{S.startTitel}</p>
+                    {/* ── DER HOOK DER ANZEIGE (Owner 13.09.2026: „das schreibst du auch ins Tunnel
+                        rein") — gross und in Serifenschrift, damit die Seite dasselbe sagt wie die
+                        Anzeige, die ihn hergebracht hat. */}
+                    <p className="m-0 mt-2 font-serif text-[26px] leading-[1.15] text-[#111] md:text-[29px]">{S.startHook}</p>
+                    {/* „Noi îl facem." klein und ohne Serifen (Owner 13.09.2026) — die Antwort
+                        auf die Behauptung darüber, leise gesetzt. */}
+                    <p className="m-0 mt-1.5 text-[15px] font-semibold leading-[1.3] text-[#8a8375]">{S.startHookKlein}</p>
+                    {/**
+                      * ── „LUCRĂRILE ÎMI APARȚIN" STEHT JETZT HIER (Owner 13.09.2026: „Das muss
+                      * stehen bleiben mit Lucrarile imi apartin.") ───────────────────────────────
+                      *
+                      * WANDERTE AM 14.09.2026 WEITER — auf die Karte, auf der er seine Adresse
+                      * gibt (`datenFragt` unten). Der Knopf hier ist jetzt sofort aktiv (Owner:
+                      * „button soll sofort aktiv sein"): Wer nur die Bilder ansehen will, bevor er
+                      * sich entscheidet, wird nicht mehr von einem Häkchen aufgehalten, das er noch
+                      * gar nicht einordnen kann — er hat ja noch kein einziges Bild gewählt.
+                      */}
+                    {/* ── DER SLIDER IST RAUS, DAS BILD IST GEBLIEBEN (Owner 15.09.2026: „dann
+                        braucht man auch keine slider mehr" · „direkt bilder hochladen") ────────
+                        Fünf Karten mit je sieben Sekunden standen zwischen dem Hook und dem
+                        Knopf; der Knopf lag dadurch 680 px tief, auf kleinen Handys unter dem
+                        Rand. Die Geschichte steht jetzt in der Überschrift („Van Gogh a fost
+                        arătat lumii"), und das Bild darunter ist ihr Beweis — mehr braucht die
+                        Karte nicht, bevor er hochlädt. */}
+                    {verlauf.length <= 1 && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt=""
+                        /* AUSSCHNITT STATT GANZE HÖHE: Die Datei ist hochkant (1080×1350) und
+                           schöbe den Knopf sonst wieder unter den Rand — genau der Fehler, den
+                           der Slider gemacht hat. */
+                        className="mx-auto mt-4 block h-[180px] w-full max-w-[280px] object-cover shadow-[0_10px_28px_rgba(0,0,0,.2),0_3px_7px_rgba(0,0,0,.12)]" />
+                    )}
+                    {/* ── WAS ER BEKOMMT, ÜBER DEM KNOPF (Owner 14.09.2026: „Urca pana la 10
+                        lucrari. Primesti un Exemplu de Marketing." · „Button Upload") ─────────
+                        Der Satz trägt die Erklärung, der Knopf nur noch das eine Wort. Vorher
+                        stand beides auf dem Knopf und machte ihn zweizeilig und schwer. */}
+                    {/* DIE ZEILE IST RAUS (Owner 15.09.2026: „Urcă până la 10 lucrări. Primești
+                        un exemplu de marketing. raus") — sie trug das Wort, dem sie nicht
+                        trauen, und der Knopf sagt ohnehin, was zu tun ist. */}
+                    <button
+                      type="button"
+                      onClick={() => datei.current?.click()}
+                      /* Breite nach Inhalt, nicht über die Karte (Owner 13.09.2026: „Incarca 1-5
+                         Lucrari de arta"). Die lange Fassung brauchte zwei Zeilen und volle Breite;
+                         bei der kurzen stünde die rechte Hälfte leer und der Knopf sähe unfertig aus. */
+                      /* MITTIG (Owner 14.09.2026: „Button mittig") — `mx-auto` statt links am
+                         Rand; `w-fit`, damit er trotzdem nur so breit ist wie sein Text. */
+                      className="mx-auto mt-3.5 flex w-fit items-center gap-2.5 bg-[#111] px-5 py-3.5 text-[15.5px] font-bold leading-[1.35] text-white transition hover:bg-[#333] active:scale-95"
+                    >
+                      <ImagePlus className="h-5 w-5 shrink-0" aria-hidden />
+                      {S.startKnopf}
+                    </button>
+                    {/* Das Angebot zum Schluss (Owner 15.09.2026) — siehe `startAbschluss`. */}
+                    <p className="m-0 mt-3.5 text-[14.5px] leading-[1.5] text-[#5b666f]">{S.startAbschluss}</p>
+                    {/* Die Einwilligung steht NICHT mehr als eigene Zeile hier (Owner 13.09.2026:
+                        „hier steht zwei mal protectaia datelor") — sie ist jetzt der Aufklapper
+                        selbst, siehe `<details>` unten. Ein Satz statt zweier, die dasselbe Wort
+                        tragen. */}
+                    {/* „Du musst keine Website bauen / kein bekannter Künstler sein" steht nicht
+                        mehr auf der Karte (Owner 13.09.2026, Umbau auf Upload-zuerst) — im
+                        Modelltext `grussPortal` bleibt es, der Agent liest es weiter. */}
+                    {/* WAS ER BEKOMMT UND WARUM ES NICHTS KOSTET — VORNE STATT AM ENDE (Owner 12.09.2026: „was am Ende
+                        steht nach vorne bringen"). Gekürzt auf vier Punkte und einen Satz; der ganze Absatz von hinten
+                        würde die Karte wieder zur Wand machen, die am 11.09.2026 genau deshalb gekürzt wurde. */}
+                    {/* Die vier Häkchen und „Noi facem restul" stehen als Symbolleiste IM Bild —
+                        hier wären sie die dritte Wiederholung auf einem Bildschirm. Im Modelltext
+                        (`grussPortal`) bleiben sie: der Agent sieht das Bild nicht. */}
+                    {/* „Gratis, jetzt" als eigene Zeile (Owner 13.09.2026) — der Satz über Sponsoren
+                        erklärt das Warum und steht klein darunter. */}
+                    {/* „Gratuit pentru artiștii care intră acum." steht nicht mehr auf der Karte
+                        (Owner 13.09.2026: „das raus") — es steht bereits IM Bild darüber
+                        („GRATUIT PENTRU ARTIȘTII CARE INTRĂ ACUM.") und war damit die zweite
+                        Fassung desselben Satzes auf einem Schirm. Im Modelltext `grussPortal`
+                        bleibt es. */}
+                    {/* Der Satz über Sponsoren steht seit dem 13.09.2026 nicht mehr in der Karte —
+                        leer heisst: die Zeile entfällt ganz, statt eine Lücke zu hinterlassen. */}
+                    {S.startWarum.trim() ? <p className="m-0 mt-2 text-[14px] leading-[1.5] text-[#5b666f]">{S.startWarum}</p> : null}
+                    {/* „Începe acum." ist seit dem Umbau auf Upload-zuerst der Knopf selbst —
+                        ein Aufruf neben dem Knopf, der ihn wiederholt, verdünnt ihn nur. */}
+                    {/* GANZ UNTEN UND SEHR KLEIN (Owner 13.09.2026: „o poți pune mai jos, foarte mic") —
+                        die Zusage beruhigt hier, statt oben den Hook zu verdünnen. */}
+                    {/* „Schițe, încercări și lucrări vechi sunt binevenite" ebenfalls raus
+                        (Owner 13.09.2026: „das raus"). Die Karte trägt jetzt nur noch: was wir
+                        tun, wie viele Werke, den Knopf, die Einwilligung, den Datenschutz. */}
                     <details className="mt-3">
-                      <summary className="cursor-pointer text-[14px] font-bold text-[#5b666f]">{S.startDatenschutzTitel}</summary>
+                      {/* DIE EINWILLIGUNG IST DER AUFKLAPPER (Owner 13.09.2026). Vorher stand
+                          „Încărcând, ești de acord cu protecția datelor." als Zeile darüber und
+                          „Protecția datelor" als Titel darunter — zweimal dasselbe Wort auf
+                          zwei Zeilen. Jetzt sagt der Satz, worauf er sich einlässt, UND öffnet
+                          den Text dazu. */}
+                      <summary className="cursor-pointer text-[12.5px] leading-[1.5] text-[#8b959d]">{S.startZustimmung}</summary>
                       <p className="m-0 mt-2 whitespace-pre-wrap text-[14px] leading-[1.5] text-[#5b666f]">{S.grussDatenschutz}</p>
                     </details>
-                    <p className="m-0 mt-3 text-[11.5px] leading-[1.4] text-[#8b959d]">{S.startQuelle}</p>
                   </div>
                 </div>
               ) : (
@@ -1048,9 +1833,68 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                 const bild = v ? verlauf.slice(0, i).flatMap(x => x.fotos ?? [])[v.nr - 1] : undefined;
                 return v && bild ? (
                   <figure className="m-0 w-full max-w-[340px] overflow-hidden rounded-2xl border border-[#dfe4e9] bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={bild} alt={S.vorschauAlt} className="block w-full object-contain" />
+                    {/* ── PASSEPARTOUT (Owner 14.09.2026: „also creme und das bild kleiner mit
+                        schatten? damit es edler wirkt? als würde es auf einer wand liegen") ────
+                        Statt eines erzeugten Galerieraums — der Versuch war teuer und traf den
+                        Stil nicht — nur Fläche, Abstand und Schatten. Kostet nichts, geht nie
+                        daneben, und das Werk bleibt unverändert. */}
+                    <div className="bg-[#f4f1ea] p-7">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={bild} alt={S.vorschauAlt}
+                        className="mx-auto block w-full object-contain shadow-[0_10px_26px_rgba(0,0,0,.20),0_2px_6px_rgba(0,0,0,.14)]" />
+                    </div>
                     <figcaption className="px-4 py-3 font-serif text-[18px] leading-[1.35] text-[#14181c]">{v.spruch}</figcaption>
+                    {/**
+                     * ── PREIS UND AGENT, WIE AUF DER ECHTEN SEITE (Owner 14.09.2026: „ja" auf
+                     * die Frage, ob beide in die Trichter-Vorschau gehören) ────────────────────
+                     *
+                     * BEIDE SIND HIER EIN BEISPIEL, KEIN ANGEBOT: Er hat noch keinen Preis
+                     * genannt und noch keinen Agenten — deshalb steht „(exemplu)" dran und der
+                     * Knopf tut nichts. Ohne diesen Zusatz wäre es eine Zahl, die er für seine
+                     * hält (Hausregel: nichts behaupten, was nicht ist).
+                     */}
+                    {/* IN ALLEN SPRACHEN (Owner 15.09.2026: „warum sieht en anders aus als ro?") —
+                        vorher nur Rumänisch, deshalb sah der englische Trichter halb leer aus. */}
+                    <div className="px-4 pb-4">
+                      <span className="inline-block bg-[#f4f4f4] px-3.5 py-2 text-[15px] font-semibold text-[#111]">
+                        {lang === "ro" ? "Preț la cerere · 500 – 2.000 € (exemplu)"
+                          : lang === "de" ? "Preis auf Anfrage · 500 – 2.000 € (Beispiel)"
+                          : "Price on request · 500 – 2,000 € (example)"}
+                      </span>
+                      <span className="mt-3 block bg-[#111] px-4 py-3 text-center text-[14.5px] font-semibold text-white">
+                        {lang === "ro" ? "Te interesează arta mea? Vorbește cu agentul meu."
+                          : lang === "de" ? "Interessiert dich meine Kunst? Sprich mit meinem Agenten."
+                          : "Interested in my art? Talk to my agent."}
+                      </span>
+                    </div>
+                    {/**
+                     * ── DIE GRÜNDER EMPFEHLEN, JETZT HIER IM TRICHTER (Owner 14.09.2026: „hier
+                     * sollte er die miniwebseite bekommen im tunel") — dieselbe Karte, die
+                     * später auf der echten Werk-Seite steht (app/portal/[kuenstler]/[werk]),
+                     * jetzt schon in DIESER Vorschau, egal ob Beispiel oder echte Analyse:
+                     * beide laufen über dieselbe `m.vorschau`-Karte hier.
+                     */}
+                    {(
+                      <div className="flex items-center gap-[14px] border-t border-[#e5e5e5] px-4 py-4">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/lakatosbandi/geza-szidonia.jpg" alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+                        {/* KEIN URTEIL ÜBER DIESES EINE WERK (Owner 14.09.2026: „wir versprechen
+                            etwas, was wir nicht halten können" · zum Satz, der sonst unter JEDEM
+                            Bild automatisch stünde, auch unter Bildern, die wir nie gesehen
+                            haben). Eine Einladung ist wahr für alle; ein Lob wäre bei jedem
+                            Zweiten gelogen und fällt auf, sobald zwei Künstler sich vergleichen. */}
+                        <p className="m-0 text-[15px] leading-[1.45] text-[#555]">
+                          {lang === "ro" ? "Ne-ar plăcea să avem lucrări ca a ta în galeria noastră de pe lakatosbandi.com."
+                            : lang === "de" ? "Wir hätten gern Werke wie deins in unserer Galerie auf lakatosbandi.com."
+                            : "We'd love to have works like yours in our gallery on lakatosbandi.com."}
+                          <span className="mt-1 block text-[12.5px] text-[#999]">
+                            {lang === "ro" ? "Géza & Szidonia, fondatorii lakatosbandi.com"
+                              : lang === "de" ? "Géza & Szidonia, Gründer von lakatosbandi.com"
+                              : "Géza & Szidonia, founders of lakatosbandi.com"}
+                          </span>
+                        </p>
+                      </div>
+                    )}
                   </figure>
                 ) : null;
               })()}
@@ -1125,6 +1969,19 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                   ))}
                 </div>
               )}
+              {/* ── DIE MINUTE UNTER DEM KNOPF (Owner 13.09.2026: „unter dem Button klein: Durează
+                  aproximativ 1 minut.") ────────────────────────────────────────────────────────
+                  Erst das Ja, dann die Beruhigung, wie wenig es kostet — deshalb NACH den Chips und
+                  klein. Nur unter der Startkarte: später im Gespräch wäre der Satz falsch. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && marke === "lakatosbandi"
+                && m.text === gruss && !!m.vorschlaege?.length && (
+                <p className="m-0 pl-1 text-[13px] text-[#8b959d]">
+                  {S.startDauer}{" "}
+                  {/* „Fără card. Fără abonament." (Owner 13.09.2026: „Sub buton, mic") — in derselben
+                      Zeile wie die Minute: zwei kurze Beruhigungen, eine Zeile, kein Absatz. */}
+                  <span className="font-semibold text-[#5b666f]">{S.startKeineKarte}</span>
+                </p>
+              )}
               {/**
                 * ── „BILDER HOCHLADEN" ALS GROSSER KNOPF (Owner 10.09.2026, mit Bild: „er muss
                 * erst mal finden, wo er hochladen kann") ─────────────────────────────────────
@@ -1149,7 +2006,194 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
               )}
               {/* ── „PASST DAS?" UNTER SEINEM BILD — feste Knöpfe. „Ja" öffnet die Karte mit Titel, Technik,
                   Größe, Jahr und Preis; erst „Weiter" schickt die Antwort. Kein Modell-Aufruf dazwischen. */}
-              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschau && !werkFormOffen && (
+              {/* ── „ANALIZEAZĂ ACUM" UNTER SEINEN BILDERN (Owner 13.09.2026) ──────────────── */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.analyse && (
+                /**
+                 * ── ANALYSE OHNE E-MAIL, PUBLIZIEREN NUR MIT (Owner 14.09.2026: „wir lassen sie
+                 * ohne email die miniwebseite generieren" · „das risiko müssen wir angehen. Und
+                 * wenn sie das publizieren wollen, dann email abfragen") ─────────────────────────
+                 *
+                 * DIE FRÜHE KARTE IST WEG. Bis heute Nachmittag stand hier „Es gibt kein Gratis
+                 * mehr" — eine Karte mit Name, E-Mail und dem Rechte-Häkchen, gesperrt bis alle
+                 * drei ausgefüllt waren. Der Owner hat das noch am selben Tag zurückgenommen: Wer
+                 * nur sehen will, was aus seinem Bild wird, soll das sofort können.
+                 *
+                 * DIE ADRESSE WIRD NICHT VERGESSEN, NUR VERSCHOBEN: Der späte Schritt
+                 * „Vrei să publicăm asta?" (weiter unten, `publizieren`/`behalten`) fragt schon
+                 * seit dem 13.09.2026 nach Name und Mail, bevor eine Seite wirklich entsteht.
+                 * Genau dort — beim Publizieren, nicht beim Ansehen — ist die Adresse nötig, nicht
+                 * hier. Ebenso das Rechte-Häkchen: Es gehört zur Veröffentlichung, nicht zur
+                 * Analyse, und steht jetzt dort (unten bei `kontaktDa`).
+                 */
+                <div className="pt-1">
+                  {/* Die Aufforderung nur, wenn es wirklich etwas zu wählen gibt — bei einem
+                      einzigen Werk wäre sie eine Frage ohne Antwortmöglichkeit. */}
+                  {verlauf.flatMap(x => x.fotos ?? []).length > 1 && (
+                    <p className="m-0 mb-2 text-[14px] font-semibold text-[#5b666f]">{S.werkWaehlen}</p>
+                  )}
+                  <button type="button" onClick={() => void analysieren()}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#111] px-5 py-3 text-[15.5px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
+                    {S.analyseKnopf}
+                  </button>
+                </div>
+              )}
+              {/* ── „VREI SĂ PUBLICĂM ASTA?" UNTER DER VORSCHAU (Owner 13.09.2026) ─────────────
+                  Sein Ja führt zur Adresse — oder, wenn er aus dem Sofortformular kommt, gleich
+                  zum Abschluss, weil Name und Adresse dann schon vorliegen. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.publizieren && (
+                <div className="flex flex-col items-start gap-2 pt-1">
+                  {/* DIE FRAGE UNMITTELBAR ÜBER DEN KNÖPFEN (Owner 13.09.2026: „Ja, Nein für was?") —
+                      sonst antwortet er auf etwas, das er zuletzt vor einem Bildschirm voller Werk
+                      gelesen hat. */}
+                  <p className="m-0 max-w-[86%] rounded-2xl rounded-bl-md bg-[#f1f4f7] px-4 py-3 text-[16.5px] font-bold leading-[1.4] md:text-[17.5px]">
+                    {S.publizierenFrage}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                  {/**
+                    * ── BEIDE KNÖPFE ANTWORTEN IM BROWSER, NICHT AUF DEM SERVER ────────────────
+                    *
+                    * Sie gingen an die Agenten-Route, und die lief in ihre feste Abschlussmeldung:
+                    * „pagina ta e online, iar linkurile sunt în e-mailul tău" — nach einem KLICK
+                    * AUF NEIN (Owner 13.09.2026: „da ist jetzt falsch"). Angelegt war nichts,
+                    * verschickt war nichts. Ein Trichter, der so etwas behauptet, ist an der
+                    * Stelle wertlos, an der man ihm glauben müsste.
+                    *
+                    * „JA" FÜHRT VORERST ZUM KONTAKT-KASTEN — auch mit Kennung. Die Anlegelogik
+                    * (Seite erzeugen, Behelfsadresse, Umzug, Löschen ohne Bestätigung) ist noch
+                    * nicht gebaut; bis dahin ist das die einzige Fassung, die nichts verspricht,
+                    * was nicht passiert. Sobald sie steht, überspringt die Kennung diesen Schritt.
+                    */}
+                  {/* ── „JA" LEGT NICHT MEHR SOFORT AN (Owner 14.09.2026: „ja soll gar nicht
+                      gehen ohne") ──────────────────────────────────────────────────────────────
+                      Wer Name und Adresse schon genannt hat, geht direkt durch. Alle anderen
+                      bekommen zuerst die Karte — eine Seite ohne Besitzer entsteht nicht mehr. */}
+                  {/* KEIN WEG AM BESTÄTIGEN VORBEI (Owner 14.09.2026: „und wenn er das nicht
+                      bestätigt hat, dann dürfte doch gar keine seite angelegt werden") — auch
+                      wer Name und Adresse schon genannt hat, sieht erst die Rückfrage. Vorher
+                      legte dieser Knopf in dem Fall sofort an. */}
+                  <button type="button"
+                    onClick={() => { setEingabe(""); setDatenFragt(true); if (kontaktDa) setMailPruefen(true); }}
+                    className="rounded-full bg-[#111] px-5 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    {S.publizierenJa}
+                  </button>
+                  <button type="button"
+                    onClick={() => {
+                      setEingabe("");
+                      /**
+                        * ── ERSTES NEIN: NACHFRAGEN. ZWEITES NEIN: ENDE (Owner 13.09.2026:
+                        * „beim zweiten Nein OK" · „Ende beim zweiten nein") ──────────────────
+                        *
+                        * Ein Nein kann dem SATZ gelten und nicht dem Angebot. Deshalb einmal
+                        * nachfragen, ob er ihn anders geschrieben haben will — höchstens drei
+                        * neue Sätze. Sagt er ein zweites Mal Nein, ist es sein Nein zur Sache;
+                        * dann wird es angenommen, und es kommt nur noch die eine Frage, was ihn
+                        * abgehalten hat.
+                        */
+                      /**
+                       * DREI SÄTZE INSGESAMT (Owner 13.09.2026: „ein mal haben wir doch schon mit
+                       * bild generiert. + 2 nein, sind es 3").
+                       *
+                       * Der erste Satz entstand mit dem Bild, dann kommen höchstens ZWEI neue.
+                       * Das Ende hängt deshalb an der Zahl der geschriebenen Sätze, NICHT an der
+                       * Zahl der Neins — sonst wäre nach dem zweiten Nein Schluss und er hätte nur
+                       * zwei Sätze gesehen statt drei.
+                       */
+                      /* OHNE VORSCHAU GIBT ES NICHTS UMZUSCHREIBEN (15.09.2026): Seit das
+                         Angebot ohne Analyse kommt, steht kein Satz da. „Soll ich einen anderen
+                         schreiben?" wäre eine Frage nach etwas, das er nie gesehen hat. */
+                      const zweitesNein = spruchVersuche >= 2 || !verlauf.some(x => x.vorschau);
+                      setNeinZahl(n => n + 1);
+                      if (!zweitesNein) {
+                        setVerlauf(v => [...v,
+                          { rolle: "mensch", text: S.publizierenNein },
+                          { rolle: "agent", text: S.nochmalFrage, nochmal: true },
+                        ]);
+                        return;
+                      }
+                      setVerlauf(v => [...v,
+                        { rolle: "mensch", text: S.publizierenNein },
+                        { rolle: "agent", text: S.publizierenAbsage },
+                      ]);
+                      /* Sein Nein wird angenommen — und genau hier ist der Moment für die eine
+                         Frage, die ihm noch etwas wert sein könnte. Der Kasten ist derselbe wie
+                         unten; er legt ab, schickt dir eine Mail und kostet keinen Aufruf. */
+                      setFeedbackNachNein(true);
+                      setFeedbackText("");
+                      setFeedbackStatus("");
+                      setFeedbackOffen(true);
+                    }}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2.5 text-[15px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                    {S.publizierenNein}
+                  </button>
+                  </div>
+                  {/* ── ERST DIE DATEN, DANN DIE SEITE (Owner 14.09.2026: „ja soll gar nicht gehen
+                      ohne" · „soll error kommen" · „meldung") ────────────────────────────────────
+                      Erscheint nach „Ja", wenn Name oder Adresse fehlen. Der Knopf legt an; ohne
+                      gültige Angaben bleibt er gesperrt, und der Server weist zusätzlich ab. */}
+                  {datenFragt && (
+                    <div className="w-full max-w-[340px] rounded-2xl border border-[#dfe4e9] bg-white p-4">
+                      {/* Die Felder nur, wenn wirklich etwas fehlt — wer sie schon genannt hat,
+                          sieht gleich die Rückfrage darunter. */}
+                      {!kontaktDa && (
+                        <>
+                      <p className="m-0 text-[14.5px] leading-[1.45] text-[#14181c]">{S.behaltenFrage}</p>
+                      <label className="mt-3 block">
+                        <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldKuenstlername}</span>
+                        <input value={kontakt.name} autoComplete="name"
+                          onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, name: w })); }}
+                          className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                      </label>
+                      <label className="mt-3 block">
+                        <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldEmail}</span>
+                        <input type="email" inputMode="email" autoComplete="email" value={kontakt.mail}
+                          onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, mail: w })); }}
+                          className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                      </label>
+                        </>
+                      )}
+                      <label className="mt-3.5 flex cursor-pointer items-start gap-2 text-[12.5px] leading-[1.5] text-[#8b959d]">
+                        <input type="checkbox" checked={rechte} onChange={e => setRechte(e.target.checked)} className="mt-0.5 shrink-0" />
+                        <span>
+                          {S.rechteHaekchen}{" "}
+                          <a href="https://lakatosbandi.com/terms" target="_blank" rel="noopener"
+                            className="underline underline-offset-2 hover:text-[#111]">{S.rechteAgb}</a>
+                        </span>
+                      </label>
+                      {/* ── DIE ADRESSE WIRD BESTÄTIGT, BEVOR ETWAS ENTSTEHT (Owner 14.09.2026:
+                          „fragen wir bevor wir etwas veröffentlichen noch mal, ist das email
+                          korrekt? … Sonst kommst du nie in deinem profil rein") ────────────────
+                          Ausgelöst von `oana_boboc@yahoo.c`: Seite angelegt, Post kam zurück,
+                          Künstler unerreichbar. Jetzt steht die Adresse einmal gross da, bevor
+                          der Knopf wirkt — dieselbe Sitte wie beim Behalten weiter unten. */}
+                      {mailPruefen ? (
+                        <div className="mt-3 rounded-xl border border-[#dfe4e9] bg-[#f8fafb] p-3">
+                          <p className="m-0 text-[13px] font-bold text-[#5b666f]">{S.mailRichtigFrage}</p>
+                          <p className="m-0 mt-1 break-all text-[16px] font-bold text-[#111]">{kontakt.mail.trim()}</p>
+                          <p className="m-0 mt-1.5 text-[12.5px] leading-[1.45] text-[#8b959d]">{S.mailRichtigWarnung}</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button type="button" onClick={() => { setMailPruefen(false); void anlegen(); }}
+                              className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                              {S.mailRichtigJa}
+                            </button>
+                            <button type="button" onClick={() => setMailPruefen(false)}
+                              className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                              {S.mailRichtigNein}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setMailPruefen(true)}
+                          disabled={!rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                          className="mt-3 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
+                          {S.publizierenJa}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.vorschau && !m.publizieren && !werkFormOffen && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button type="button"
                     onClick={() => {
@@ -1228,13 +2272,141 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                       onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, mail: w })); }}
                       className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
                   </label>
+                  {/* ── DER PREIS IST AUS DEM TRICHTER RAUS (Owner 13.09.2026: „bei uns muss er ein
+                      Bild mindestens hoch laden dann webseite generieren") ──────────────────────────
+                      Hier stand ein Feld „Was verlangst du für deine Werke?". Jede Zeile im Trichter
+                      kostet Abschlüsse, und diese war freiwillig — er trägt den Preis auf seiner
+                      Seite ein, wo ihn nichts mehr abbricht (`preisSpanne` in PortalBearbeiten). */}
+                  {/* ── DAS HÄKCHEN STEHT JETZT AN DER STARTKARTE (Owner 13.09.2026) ───────────────
+                      Es hing hier, zusammen mit Name und E-Mail. Für die Leute aus dem Facebook-
+                      Sofortformular entfällt dieser Kasten — das Häkchen wäre mit ihm verschwunden.
+                      Jetzt bestätigt er die Rechte dort, wo er die Bilder übergibt.
+                      DIE SPERRE UNTEN BLEIBT: Sie liest dieselbe Zustimmung (`rechte`), die dann
+                      längst gesetzt ist — und greift weiter, falls jemand doch ohne hierher kommt. */}
                   <button type="button"
-                    disabled={!kontakt.name.trim() || !/[^@\s]+@[^@\s]+\.[a-z]{2,}/i.test(kontakt.mail.trim())}
-                    onClick={() => { setEingabe(""); void schicken(`${S.feldKuenstlername}: ${kontakt.name.trim()}\n${S.feldEmail}: ${kontakt.mail.trim()}`); }}
+                    disabled={!rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                    onClick={() => { setEingabe(""); void schicken([`${S.feldKuenstlername}: ${kontakt.name.trim()}`, `${S.feldEmail}: ${kontakt.mail.trim()}`].join("\n")); }}
                     className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
                     {S.kontaktSenden}
                   </button>
                 </div>
+              )}
+              {/* ── „SOLL ICH ES ANDERS SCHREIBEN?" — nach dem ersten Nein (Owner 13.09.2026) ── */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.nochmal && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button type="button"
+                    onClick={() => { setEingabe(""); setSpruchVersuche(n => n + 1); void analysieren(); }}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#111] px-5 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95">
+                    <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+                    {S.neuGenerieren}
+                  </button>
+                  <button type="button"
+                    onClick={() => {
+                      setEingabe("");
+                      setNeinZahl(n => n + 1);
+                      setVerlauf(v => [...v,
+                        { rolle: "mensch", text: S.publizierenNein },
+                        { rolle: "agent", text: S.publizierenAbsage },
+                      ]);
+                      setFeedbackNachNein(true);
+                      setFeedbackText("");
+                      setFeedbackStatus("");
+                      setFeedbackOffen(true);
+                    }}
+                    className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2.5 text-[15px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                    {S.publizierenNein}
+                  </button>
+                </div>
+              )}
+              {/* ── SEINE FERTIGE SEITE UND DIE ZWEI FELDER, MIT DENEN ER SIE BEHÄLT ───────────
+                  (Owner 13.09.2026) Die Seite existiert bereits — er kann sie öffnen, bevor er
+                  irgendetwas von sich preisgibt. Darunter Name und Adresse; ohne sie wird sie
+                  wieder gelöscht, und genau das steht auch da. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.seiteFertig && seite && (
+                <div className="w-full max-w-[340px] rounded-2xl border border-[#dfe4e9] bg-white p-4">
+                  <a href={seite.url} target="_blank" rel="noopener"
+                    className="mb-3 block rounded-full bg-[#1d6fd0] px-4 py-2.5 text-center text-[15px] font-bold text-white no-underline transition hover:bg-[#1a5fb4]">
+                    {S.seiteAnsehen}
+                  </a>
+                  {/**
+                   * ── HIER, NICHT VOR DER ANALYSE (Owner 14.09.2026: „wir lassen sie ohne email
+                   * die miniwebseite generieren … wenn sie das publizieren wollen, dann email
+                   * abfragen") — Name und Mail werden erst HIER zur Pflicht, beim Behalten der
+                   * Seite, nicht beim blossen Ansehen der Analyse. Wer schon aus dem Mail-Link
+                   * kam (`kontaktDa`), sieht die Felder nicht noch einmal — aber das Häkchen
+                   * bleibt für alle Pflicht, das ist keine Adressfrage, sondern eine Rechtsfrage.
+                   */}
+                  {!kontaktDa && (
+                    <>
+                      <label className="block">
+                        <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldKuenstlername}</span>
+                        <input value={kontakt.name} autoComplete="name"
+                          onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, name: w })); }}
+                          className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                      </label>
+                      <label className="mt-3 block">
+                        <span className="block text-[13px] font-bold text-[#5b666f]">{S.feldEmail}</span>
+                        <input type="email" inputMode="email" autoComplete="email" value={kontakt.mail}
+                          onChange={e => { const w = e.target.value; setKontakt(k => ({ ...k, mail: w })); }}
+                          className="mt-1 block w-full rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] outline-none focus:border-[#111]" />
+                      </label>
+                    </>
+                  )}
+                  {/* ── DAS RECHTE-HÄKCHEN, JETZT HIER BEIM PUBLIZIEREN (nicht mehr vor der
+                      Analyse) — Owner 12.09.2026: „Es muss ein Häckchen noch … Die Bilder gehören
+                      mir und ich hafte für die Veröffentlichung ganz". Gilt für ALLE, auch wer
+                      schon Name/Mail über den Mail-Link mitbrachte. */}
+                  <label className="mt-3 flex cursor-pointer items-start gap-2 text-[12.5px] leading-[1.5] text-[#8b959d]">
+                    <input type="checkbox" checked={rechte} onChange={e => setRechte(e.target.checked)} className="mt-0.5 shrink-0" />
+                    <span>
+                      {S.rechteHaekchen}{" "}
+                      <a href="https://lakatosbandi.com/terms" target="_blank" rel="noopener"
+                        className="underline underline-offset-2 hover:text-[#111]">{S.rechteAgb}</a>
+                    </span>
+                  </label>
+                  {behaltenStatus === "fehler" && (
+                    <p className="m-0 mt-2 text-[13.5px] font-bold text-[#c02626]">{S.behaltenFehler}</p>
+                  )}
+                  {/* ── ERST DIE ADRESSE ZEIGEN, DANN SENDEN (Owner 13.09.2026) ─────────────
+                      Der Knopf schickt nicht mehr sofort: Er klappt die Rückfrage auf, in der
+                      seine eigene Adresse gross dasteht. */}
+                  {mailPruefen ? (
+                    <div className="mt-4 rounded-xl border border-[#dfe4e9] bg-[#f8fafb] p-3">
+                      <p className="m-0 text-[13px] font-bold text-[#5b666f]">{S.mailRichtigFrage}</p>
+                      <p className="m-0 mt-1 break-all text-[16px] font-bold text-[#111]">{kontakt.mail.trim()}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="button"
+                          onClick={() => { setMailPruefen(false); void behalten(); }}
+                          disabled={behaltenStatus === "sende"}
+                          className="rounded-full bg-[#111] px-4 py-2 text-[14.5px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
+                          {S.mailRichtigJa}
+                        </button>
+                        <button type="button"
+                          onClick={() => setMailPruefen(false)}
+                          className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
+                          {S.mailRichtigNein}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button"
+                      /* Liegen die Daten vor, entfällt auch die Adress-Rückfrage: Er hat sie
+                         vorhin selbst eingetippt und gesehen. Ein Klick, fertig. */
+                      onClick={() => { setBehaltenStatus(""); if (kontaktDa) { void behalten(); } else { setMailPruefen(true); } }}
+                      disabled={behaltenStatus === "sende" || !rechte || !kontakt.name.trim() || !MAIL_MUSTER.test(kontakt.mail.trim())}
+                      className="mt-4 w-full rounded-full bg-[#111] px-4 py-2.5 text-[15px] font-bold text-white transition hover:bg-[#333] active:scale-95 disabled:opacity-40">
+                      {S.behaltenKnopf}
+                    </button>
+                  )}
+                  <p className="m-0 mt-2 text-[12.5px] leading-[1.5] text-[#8b959d]">{S.behaltenHinweis}</p>
+                </div>
+              )}
+              {/* Bestätigt: der Link zeigt jetzt auf seine eigene Adresse. */}
+              {m.rolle === "agent" && i === verlauf.length - 1 && !busy && m.behalten && seite && (
+                <a href={seite.url} target="_blank" rel="noopener"
+                  className="rounded-full bg-[#1d6fd0] px-5 py-2.5 text-[15px] font-bold text-white no-underline transition hover:bg-[#1a5fb4]">
+                  {S.seiteAnsehen}
+                </a>
               )}
               {/* ── „WILLST DU NOCH BIS ZU N BILDER HOCHLADEN?" — Ja öffnet die Auswahl, Nein geht weiter. */}
               {m.rolle === "agent" && i === verlauf.length - 1 && !busy && !!m.mehrBilder && (
@@ -1244,7 +2416,13 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                     <ImagePlus className="h-4 w-4" aria-hidden />
                     {S.mehrBilderJa}
                   </button>
-                  <button type="button" onClick={() => { setEingabe(""); void schicken(S.mehrBilderNein); }}
+                  {/* ── „NEIN" OHNE SERVERLAUF (Owner 12.09.2026: „nein kann auch sein" · „hier soll
+                      nicht rechnen") ────────────────────────────────────────────────────────────
+                      Vorher schickte dieser Knopf das Wort „Nein" an den Server, der dafür das
+                      Modell befragte — 20 Sekunden für eine Antwort, die immer dieselbe ist. Jetzt
+                      hängt der Browser die letzte Karte selbst an: Preis, Künstlername, E-Mail. */}
+                  <button type="button"
+                    onClick={() => { setEingabe(""); setVerlauf(v => [...v, { rolle: "agent", text: S.jetztDaten, kontaktFrage: true }]); }}
                     className="rounded-full border-[1.5px] border-[#dfe4e9] bg-white px-3.5 py-2 text-[14.5px] font-semibold text-[#14181c] transition hover:border-[#111] hover:text-[#111]">
                     {S.mehrBilderNein}
                   </button>
@@ -1367,7 +2545,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
           {/* FEEDBACK JEDERZEIT (Owner 10.09.2026) — klein und grau wie „Alles löschen". */}
           <button
             type="button"
-            onClick={() => { setFeedbackOffen(o => !o); setFeedbackStatus(""); }}
+            onClick={() => { setFeedbackOffen(o => !o); setFeedbackStatus(""); setFeedbackNachNein(false); }}
             className="rounded-full px-2 py-0.5 text-[13.5px] font-bold text-[#8b959d] underline transition hover:text-[#14181c]"
           >
             {S.feedbackLink}
@@ -1380,7 +2558,7 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
               type="button"
               aria-label={S.feedbackSchliessen}
               title={S.feedbackSchliessen}
-              onClick={() => { setFeedbackOffen(false); setFeedbackText(""); setFeedbackStatus(""); }}
+              onClick={() => { setFeedbackOffen(false); setFeedbackText(""); setFeedbackStatus(""); setFeedbackNachNein(false); }}
               className="absolute right-2 top-1.5 grid h-7 w-7 place-items-center rounded-full text-[20px] leading-none text-[#8b959d] transition hover:bg-[#f1f3f5] hover:text-[#14181c]"
             >
               ×
@@ -1394,7 +2572,9 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
                   onChange={e => setFeedbackText(e.target.value)}
                   rows={3}
                   maxLength={2000}
-                  placeholder={S.feedbackPlatzhalter}
+                  /* Nach einem „Nein" die Frage, die dann zählt — sonst die allgemeine
+                     (Owner 13.09.2026). Derselbe Kasten, zwei Anlässe. */
+                  placeholder={feedbackNachNein ? S.absageFrage : S.feedbackPlatzhalter}
                   className="block w-full resize-none rounded-xl border border-[#dfe4e9] px-3 py-2 text-[16px] leading-[1.45] outline-none focus:border-[#111]"
                 />
                 {feedbackStatus === "fehler" && (
@@ -1429,7 +2609,18 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
           * selbst; sitzt es ohne eigenen Rand in der Box, muss die Box es zeigen. Sonst sieht
           * man nicht, ob man gerade tippt oder nicht.
           */}
-        <div className={`sticky bottom-0 shrink-0 bg-white pb-3 pt-2 ${fertig ? "hidden" : ""}`}>
+        {/* PLATZ FÜR DEN COOKIE-STREIFEN (Owner 13.09.2026: „das verdeckt das Eingabefeld").
+            Er liegt fest am unteren Rand und über allem; solange er da ist, rückt das Feld darüber.
+            KEIN Tailwind-Vorfahrenselektor: Diese Schreibweise wird in 3.4 nicht verlässlich
+            erzeugt und kommt im Projekt sonst nirgends vor — sie hätte behoben ausgesehen, ohne es
+            zu sein. Stattdessen derselbe Zustand, den der Streifen selbst liest. */}
+        {/* ── KEIN EINGABEFELD IM GANZEN KUNST-TRICHTER (Owner 14.09.2026: „auch hier braucht
+            man die Eingabe nicht" · „die Leute wollen nicht schreiben" · „upload geht über das
+            Chat-Fenster" · „ja, es ist unnötig") ─────────────────────────────────────────────
+            Stand zuerst nur auf der Startkarte weg, dann auf „Analizează acum" auch noch da —
+            der ganze Weg läuft über Knöpfe und die Bilder-Kacheln (das „+"-Feld), nie über
+            freien Text. Gilt für die GANZE Marke `lakatosbandi`, nicht nur den ersten Zug. */}
+        <div className={`sticky bottom-0 shrink-0 bg-white pt-2 ${cookieOffen ? "pb-[76px]" : "pb-3"} ${fertig || marke === "lakatosbandi" ? "hidden" : ""}`}>
           <div className="rounded-[24px] border-[1.5px] border-[#dfe4e9] bg-white px-4 pb-2 pt-3 transition focus-within:border-[#111]">
             <textarea
               ref={feld}
@@ -1483,9 +2674,21 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, fenster
               ref={datei}
               type="file"
               accept="image/*"
+              /* WIEDER MEHRERE (Owner 14.09.2026): Bis zu zehn Werke für die Seite — analysiert
+                 wird weiterhin genau eines, siehe `WERKE_TRICHTER`. */
               multiple
               hidden
               onChange={e => void fotoWaehlen(e.target.files)}
+            />
+            {/* Der zweite Eingang: Nachlegen in die Galerie, OHNE eine Nachricht zu senden
+                (Begründung an `nachlegen` oben). */}
+            <input
+              ref={nachlegenDatei}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={e => void nachlegen(e.target.files)}
             />
             <button
               type="button"

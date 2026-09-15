@@ -57,8 +57,14 @@ export default async function AgentSeite({ searchParams }: {
    * jetzt in der ADRESSE (`?lang=ro`) — die kann kein Browser wegwerfen. Das Cookie wird
    * zusätzlich gesetzt, damit die Wahl auf den anderen Seiten des Hauses weitergilt.
    */
-  const roh = (await searchParams).lang;
+  const sp = await searchParams;
+  const roh = sp.lang;
   const ausAdresse = Array.isArray(roh) ? roh[0] : roh;
+  /* Die Kennung aus dem Facebook-Sofortformular (`?l=…`) — DIESELBE Behandlung wie auf
+     `/engine`: Der Chat hängt an zwei Adressen, und ein Link, der nur an einer davon wirkt,
+     wäre genau die Sorte halbe Änderung, die hier schon mehrfach Widersprüche erzeugt hat. */
+  const lRoh = sp.l;
+  const lead = String((Array.isArray(lRoh) ? lRoh[0] : lRoh) ?? "").replace(/[^a-f0-9]/gi, "").slice(0, 64);
   /* Rückfall Deutsch statt Englisch: Der Agent verkauft heute im deutschsprachigen und
      rumänischen Raum — wer ohne erkennbare Sprache ankommt, ist im Zweifel von dort. */
   const lang = isLang(ausAdresse ?? "") ? (ausAdresse as Lang) : await resolveLang("de");
@@ -84,5 +90,5 @@ export default async function AgentSeite({ searchParams }: {
   /* Auf lakatosbandi.com bleibt der Chat unter /start und trägt den Namen des Portals (Owner 11.09.2026). */
   const portal = imPortal((await headers()).get("host"));
 
-  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
+  return <AgentChat S={S} lang={lang} gewaehlt={gewaehlt} lead={lead} {...(portal ? { start: "/start", marke: "lakatosbandi" as const } : {})} />;
 }

@@ -210,6 +210,21 @@ export const VERSUSFORGE_ANALYSE_CENTS = 999;
  * DAS ZWEITE ABO IM HAUS — bewusst: Die Regel „ein Abo, sonst Einmalkauf" gilt für Geschenke.
  */
 export const VERSUSFORGE_ABO_CENTS = 1000;
+
+/**
+ * ── WIE VIELE KI-TEXTE IM ABO (Owner 14.09.2026: „von mir aus Abo, aber die Generierungen sind
+ * limitiert" · auf den Vorschlag 50: „ja") ──────────────────────────────────────────────────
+ *
+ * EINE GENERIERUNG IST EIN MODELLAUFRUF, egal welcher: ein Spruch unter einem Werk, eine
+ * Textkorrektur, eine Bildanalyse. Verschiedene Preise je Art wären genauer — aber niemand
+ * versteht sie, und der Owner muss sie am Telefon erklären können.
+ *
+ * WARUM 50 UND NICHT 20 ODER 200: Bei rund 4 Cent je Lauf kosten 50 Generierungen etwa 2 € —
+ * bei 10 € Abo bleibt genug. Und 50 reicht für ernsthafte Arbeit: zehn Werke mit Spruch, der
+ * Profiltext, Nachbesserungen, und immer noch Luft. Wer mehr braucht, arbeitet nicht mehr an
+ * seiner Seite, sondern probiert das Modell aus.
+ */
+export const VERSUSFORGE_ABO_GENERIERUNGEN = 50;
 export const VERSUSFORGE_ABO_PRICE_ID = "price_1UE81x1jPNCWoiztEc3jhmHJ";
 
 export const PREMIUM_BERATUNG_CENTS = 10000;         // 100 € — Beratung + PDF + Video

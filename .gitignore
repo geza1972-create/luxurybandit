@@ -29,3 +29,6 @@ video-samples/
 state-backup-*.json
 
 # Prüfbauten neben dem laufenden Entwicklungsserver
+
+# Lokale Testbilder, gehören nicht ins Repo (15.09.2026)
+testkunst-lokal/

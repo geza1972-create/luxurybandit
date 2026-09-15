@@ -11,7 +11,8 @@ import type { PortalTexte } from "@/lib/lakatosbandi-texte";
  * vorher (`api/versusforge-loeschen`, mit seinem Löschschlüssel aus der Mail) — Eintrag, Anfragen, Bilder, Schritte.
  */
 export default function PortalLoeschen({ mandant, k, T, start }: { mandant: string; k: string; T: PortalTexte; start: string }) {
-  const [sicher, setSicher] = useState(false);
+  /* `sicher` stand hier für den Zwei-Klick-Knopf — seit Ja und Nein nebeneinander stehen
+     (Owner 12.09.2026), gibt es keinen Zwischenzustand mehr. */
   const [laeuft, setLaeuft] = useState(false);
   const [weg, setWeg] = useState(false);
   const [fehler, setFehler] = useState("");
@@ -48,15 +49,25 @@ export default function PortalLoeschen({ mandant, k, T, start }: { mandant: stri
     <div>
       <h1 className="m-0 font-serif text-[32px] font-normal leading-[1.15]">{T.loeschenTitel}</h1>
       <p className="mt-3 text-[16.5px] leading-[1.6] text-[#333]">{T.loeschenText}</p>
-      <button
-        type="button"
-        disabled={laeuft}
-        onClick={() => { if (!sicher) { setSicher(true); return; } void loeschen(); }}
-        className={`mt-6 border-[1.5px] px-6 py-3.5 text-[15.5px] font-semibold transition disabled:opacity-50 ${
-          sicher ? "border-[#b3261e] bg-[#b3261e] text-white" : "border-[#b3261e]/60 bg-white text-[#b3261e]"}`}
-      >
-        {laeuft ? T.loeschenLaeuft : sicher ? T.loeschenSicher : T.loeschenKnopf}
-      </button>
+      {/* ── JA ODER NEIN, BEIDE SICHTBAR (Owner 12.09.2026: „die Seite löschen wir nicht mit
+          sofort Klick auf die E-Mail. Es kann hier schief gehen. Er springt auf seine Seite und
+          wird dort gefragt: willst du deine Webseite wirklich löschen?" · „ja nein") ────────────
+
+          HIER STAND EIN KNOPF, DER SICH BEIM ERSTEN KLICK IN DIE ZUSAGE VERWANDELTE: „Seite
+          löschen" → „Ja, endgültig löschen". Wer zweimal auf dieselbe Stelle tippte — auf dem
+          Handy eine Fingerbewegung —, hatte alles gelöscht, ohne je ein „Nein" gesehen zu haben.
+
+          Jetzt stehen beide Wege nebeneinander da, und der Ausweg ist der ruhigere von beiden. */}
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <button type="button" disabled={laeuft} onClick={() => void loeschen()}
+          className="border-[1.5px] border-[#b3261e] bg-[#b3261e] px-6 py-3.5 text-[15.5px] font-semibold text-white transition disabled:opacity-50">
+          {laeuft ? T.loeschenLaeuft : T.loeschenSicher}
+        </button>
+        <a href={`/${mandant}`}
+          className="border-[1.5px] border-[#111] px-6 py-3.5 text-[15.5px] font-semibold text-[#111] no-underline transition hover:bg-[#111] hover:text-white">
+          {T.loeschenNein}
+        </a>
+      </div>
       {fehler && <p className="mt-3 text-[14.5px] font-semibold text-[#b3261e]">{fehler}</p>}
     </div>
   );

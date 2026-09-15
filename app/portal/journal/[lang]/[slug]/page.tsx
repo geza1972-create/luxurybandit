@@ -65,7 +65,7 @@ export default async function JournalArtikel({ params }: Props) {
   };
 
   return (
-    <div className="lb-portal min-h-[100dvh] bg-white text-[#111]">
+    <div data-lang={lang} className="lb-portal min-h-[100dvh] bg-white text-[#111]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
       <PortalKopf T={T} lang={lang} login={P.login} start={P.start} journal={P.journal(lang)} sprachLink={l => P.journal(l, slug)} />
 
@@ -74,6 +74,15 @@ export default async function JournalArtikel({ params }: Props) {
         <h1 className="m-0 mt-6 font-serif text-[36px] font-normal leading-[1.15] md:text-[50px]">{t.titel}</h1>
         <p className="mt-4 text-[14px] text-[#888]">{new Date(a.datum).toLocaleDateString(lang, { day: "numeric", month: "long", year: "numeric" })} · {lesezeit(t)} {U.minuten} · Geza Lakatos &amp; Szidonia Bandi</p>
         <p className="mt-8 font-serif text-[22px] leading-[1.55] text-[#222]">{t.lead}</p>
+
+        {/* DAS BILD IM ARTIKEL, wenn der Artikel eines hat (lib/lakatosbandi-journal.ts, `bild`).
+            Es trägt Text, deshalb steht in jeder Sprache ein eigenes. Nicht die Linkvorschau —
+            die bleibt die 1200×630-Kachel oben in `generateMetadata`. */}
+        {t.bild && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/lakatosbandi/journal/${t.bild}`} alt={t.titel} width={1080} height={1350}
+            className="mt-10 block h-auto w-full max-w-[520px]" />
+        )}
 
         {t.teile.map((teil, i) => (
           <section key={i} className="mt-10">

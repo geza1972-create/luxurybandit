@@ -66,7 +66,15 @@ export type Stufe = { schluessel: string; wort: string };
 export const leiterFuer = (mandant: string): readonly Stufe[] =>
   mandantSauber(mandant) === EIGENER_MANDANT ? STUFEN_ENGINE : STUFEN_MANDANT;
 
-type Stand = { weit: number; stufe: string; erst: string; zeit: string };
+type Stand = {
+  weit: number; stufe: string; erst: string; zeit: string;
+  /**
+   * Woher er beim ERSTEN Mal kam — „facebook.com", „google.com|utm", „direkt" (Owner
+   * 15.09.2026: „ja, keine ahnung woher"). Wird nie überschrieben: Sein zweiter Klick kommt
+   * immer von unserer eigenen Seite, und der würde die Antwort auslöschen, die wir suchen.
+   */
+  quelle?: string;
+};
 
 const ordner = (mandant: string) => `versusforge-schritt/${mandantSauber(mandant) || EIGENER_MANDANT}`;
 /* Die Kennung landet in einem Pfad — nur Harmloses durchlassen. */
@@ -79,15 +87,15 @@ const besucherSauber = (roh: string) => String(roh ?? "").replace(/[^a-zA-Z0-9_-
  * sonst sähe ein Trichter mit vielen Rückwärts-Schritten schlechter aus, als er ist. Und es
  * spart den Schreibvorgang: Ist die Stufe nicht weiter als die gespeicherte, passiert nichts.
  */
-export async function stufeMerken(mandantRoh: string, besucherRoh: string, stufe: string): Promise<boolean> {
-  return (await stufeMerkenGenau(mandantRoh, besucherRoh, stufe)).ok;
+export async function stufeMerken(mandantRoh: string, besucherRoh: string, stufe: string, quelle = ""): Promise<boolean> {
+  return (await stufeMerkenGenau(mandantRoh, besucherRoh, stufe, quelle)).ok;
 }
 
 /**
  * Wie `stufeMerken` — sagt aber auch, ob dieser Besucher NEU ist (Owner 11.09.2026: „eine E-Mail jedes Mal bei neuen
  * Besuchern"). Neu heisst: Für dieses Gerät gab es bei diesem Mandanten noch keine Datei.
  */
-export async function stufeMerkenGenau(mandantRoh: string, besucherRoh: string, stufe: string): Promise<{ ok: boolean; neu: boolean }> {
+export async function stufeMerkenGenau(mandantRoh: string, besucherRoh: string, stufe: string, quelleRoh = ""): Promise<{ ok: boolean; neu: boolean }> {
   const mandant = mandantSauber(mandantRoh) || EIGENER_MANDANT;
   const besucher = besucherSauber(besucherRoh);
   if (!besucher) return { ok: false, neu: false };
@@ -104,7 +112,9 @@ export async function stufeMerkenGenau(mandantRoh: string, besucherRoh: string, 
   if (da.ok) { try { alt = (await da.json()) as Stand; } catch { /* kaputt = wie neu */ } }
   if (alt && Number(alt.weit) >= weit) return { ok: true, neu: false };
 
-  const neu: Stand = { weit, stufe, erst: alt?.erst ?? jetzt, zeit: jetzt };
+  /* Die Herkunft des ERSTEN Besuchs bleibt stehen — `alt.quelle` hat Vorrang. */
+  const quelle = String(alt?.quelle ?? quelleRoh ?? "").replace(/[^a-zA-Z0-9.:|_-]/g, "").slice(0, 60);
+  const neu: Stand = { weit, stufe, erst: alt?.erst ?? jetzt, zeit: jetzt, ...(quelle ? { quelle } : {}) };
   const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(pfad)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true" },
@@ -138,10 +148,13 @@ export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 10
   besucher: number;
   /** Besucher, die NACH `neuSeit` zum ersten Mal kamen — der rote Punkt im Dashboard (Owner 11.09.2026). */
   neu: number;
+  /** Woher sie kamen, häufigste zuerst (Owner 15.09.2026: „keine ahnung woher"). Leer, solange
+      niemand mit der neuen Messung da war — alte Datensätze tragen keine Herkunft. */
+  quellen: { quelle: string; anzahl: number }[];
 }> {
   const mandant = mandantSauber(mandantRoh) || EIGENER_MANDANT;
   const leiter = leiterFuer(mandant);
-  const leer = { leiter: leiter.map(stufe => ({ stufe, anzahl: 0, anteil: 0, verloren: 0 })), besucher: 0, neu: 0 };
+  const leer = { leiter: leiter.map(stufe => ({ stufe, anzahl: 0, anteil: 0, verloren: 0 })), besucher: 0, neu: 0, quellen: [] };
 
   const liste = await supabaseFetch(`/storage/v1/object/list/${BUCKET}`, {
     method: "POST",
@@ -155,11 +168,36 @@ export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 10
   if (!namen.length) return leer;
 
   const grenzZeit = Date.now() - tage * 24 * 3600 * 1000;
-  const staende = (await Promise.all(namen.map(async n => {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(`${ordner(mandant)}/${n}`)}`);
-    if (!res.ok) return null;
-    try { return (await res.json()) as Stand; } catch { return null; }
-  }))).filter((s): s is Stand => !!s && Date.parse(s.zeit) > grenzZeit);
+
+  /**
+   * ── IN STAPELN, NICHT ALLE AUF EINMAL (14.09.2026) ─────────────────────────────────────────
+   *
+   * Hier stand ein `Promise.all` über ALLE Namen — bei sechshundert Besuchern also sechshundert
+   * gleichzeitige Abrufe. Die Ablage weist einen Teil davon ab, `res.ok` ist dann false, und der
+   * Stand fällt STILL aus der Zählung: kein Fehler, nur eine zu kleine Zahl.
+   *
+   * Gemessen am 14.09.2026, drei Abrufe hintereinander: 520, 528, 623 Besucher. Eine Kennzahl,
+   * die vom Netz-Glück abhängt, ist schlimmer als keine — man trifft Entscheidungen gegen sie.
+   *
+   * Deshalb stapelweise, und ein abgewiesener Abruf bekommt EINEN zweiten Versuch.
+   */
+  const standHolen = async (n: string): Promise<Stand | null> => {
+    for (let versuch = 0; versuch < 2; versuch++) {
+      const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(`${ordner(mandant)}/${n}`)}`).catch(() => null);
+      if (res?.ok) {
+        try { return (await res.json()) as Stand; } catch { return null; }
+      }
+    }
+    return null;
+  };
+
+  const STAPEL = 40;
+  const roh: (Stand | null)[] = [];
+  for (let i = 0; i < namen.length; i += STAPEL) {
+    roh.push(...(await Promise.all(namen.slice(i, i + STAPEL).map(standHolen))));
+  }
+
+  const staende = roh.filter((s): s is Stand => !!s && Date.parse(s.zeit) > grenzZeit);
 
   if (!staende.length) return leer;
 
@@ -175,8 +213,16 @@ export async function trichterZaehlen(mandantRoh: string, tage = 30, grenze = 10
     z.verloren = z.anzahl - (zahlen[i + 1]?.anzahl ?? z.anzahl);
   });
 
+  const zaehler = new Map<string, number>();
+  for (const s of staende) {
+    const q = String(s.quelle ?? "").trim();
+    if (q) zaehler.set(q, (zaehler.get(q) ?? 0) + 1);
+  }
+  const quellen = [...zaehler.entries()].map(([quelle, anzahl]) => ({ quelle, anzahl }))
+    .sort((a, b) => b.anzahl - a.anzahl).slice(0, 12);
+
   const seit = Date.parse(neuSeit) || 0;
-  return { leiter: zahlen, besucher: staende.length, neu: staende.filter(s => (Date.parse(s.erst) || 0) > seit).length };
+  return { leiter: zahlen, besucher: staende.length, neu: staende.filter(s => (Date.parse(s.erst) || 0) > seit).length, quellen };
 }
 
 /**

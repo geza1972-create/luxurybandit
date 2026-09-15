@@ -3,7 +3,9 @@ import { MAIL, mailHuelle, mailTitel, mailText, mailFein, mailAdresse, mailKaste
 import { metaSchritteInSprache } from "@/lib/versusforge-meta-anleitung";
 import { mailTexteInSprache, type MailTexte } from "@/lib/versusforge-mail-texte";
 import { eur, VERSUSFORGE_START_CENTS } from "@/lib/pricing";
-import { kuenstlerUrl, kuenstlerDashboardUrl } from "@/lib/lakatosbandi-adressen";
+/* `kuenstlerDashboardUrl` stand hier, solange die Künstler-Mail auch das Dashboard verlinkte —
+   seit sie nur noch einen Link enthält (Owner 12.09.2026), wird es hier nicht mehr gebraucht. */
+import { kuenstlerUrl, PORTAL_URL } from "@/lib/lakatosbandi-adressen";
 
 /**
  * DIE MAIL MIT SEINEN LINKS (Owner 09.09.2026: „er bekommt das an seiner E-Mail" · „oder
@@ -48,10 +50,39 @@ export async function linksPerPost(o: {
   sprache?: string;
   /** Ein Künstler (lakatosbandi.com): seine Seite und sein Dashboard statt Anzeige, Trichter und Meta-Anleitung. */
   kuenstler?: boolean;
+  /**
+   * DIE BESTÄTIGUNG, BEVOR ES DIE SEITE GIBT (Owner 12.09.2026: „also vorher").
+   *
+   * Ist dieser Token gesetzt, geht KEINE Willkommensmail hinaus, sondern die eine Frage: Gehört
+   * dir diese Adresse? Erst der Klick legt den Künstler an. Es gibt dann noch keinen Mandanten,
+   * keine Seite und keinen Schlüssel — deshalb trägt diese Mail auch keinen Löschlink im Fuss.
+   */
+  bestaetigenToken?: string;
 }): Promise<boolean> {
   if (!o.an.includes("@")) return false;
 
   const T = await mailTexteInSprache(o.sprache);
+  /* Der Fuss jeder Mail, in seiner Sprache (bis 12.09.2026 fest auf Deutsch in `mailHuelle`). */
+  const fuss = { grund: T.fussGrund, loeschen: T.fussLoeschen };
+
+  if (o.bestaetigenToken) {
+    const link = `${PORTAL_URL}/bestaetigen?t=${encodeURIComponent(o.bestaetigenToken)}`;
+    /* KEIN LÖSCHLINK UND KEIN `listUnsubscribe`: Es gibt noch nichts zu löschen und nichts zu
+       abbestellen — die Seite entsteht erst mit dem Klick. Deshalb auch kein Fuss. */
+    const res = await sendEmail({
+      konto: "versusforge",
+      absender: "lakatosbandi.com",
+      to: o.an,
+      subject: T.bestaetigenBetreff,
+      html: mailHuelle(
+        mailTitel(T.bestaetigenTitel)
+        + mailText(T.bestaetigenText)
+        + mailAdresse(T.bestaetigenKnopf, link, T.bestaetigenKnopfFein)
+        + mailFein(T.bestaetigenFremd)),
+    });
+    if (!res.ok) console.error("[versusforge-links] Bestätigungsmail fehlgeschlagen:", res.error);
+    return res.ok;
+  }
 
   const basis = "https://versusforge.com";
   const anzeige = `${basis}/${o.mandant}/anzeige`;
@@ -70,15 +101,28 @@ export async function linksPerPost(o: {
     : o.kuenstler
     /* DIE KÜNSTLER-MAIL (Owner 10.09.2026): keine Anzeige, kein Trichter, keine 299 €, keine Meta-
        Anleitung — seine Seite, sein Dashboard, der Löschlink. */
+    /**
+     * ── EIN EINZIGER LINK (Owner 12.09.2026: „er bekommt per E-Mail nur einen Link, nicht
+     * mehrere, nachdem er die Seite angelegt hat. Und zwar der Link zu seiner Admin. Klickt er
+     * drauf, wird dann alles angelegt und er sieht die Meldung, und dann tatataa") ─────────────
+     *
+     * Hier standen VIER Adressen untereinander — seine Seite, das Bearbeiten, das Dashboard und
+     * das Löschen. Wer vier Links bekommt, klickt keinen: Er müsste erst entscheiden, welcher
+     * seiner ist. Jetzt führt genau einer hin, und dort steht alles Weitere (die Vorschau seiner
+     * Seite als Knopf, das Löschen im Fuss der Seite).
+     *
+     * UND ER IST DER SCHLÜSSEL ZUM GANZEN ABLAUF: Erst dieser Klick stösst das Rechnen an —
+     * Bilder ansehen, Sätze schreiben. Damit kann nur der Mensch, der an diese Adresse kommt,
+     * eine Seite in Gang setzen; wer fremde Bilder hochlädt, löst gar nichts aus.
+     *
+     * Das Löschen bleibt erreichbar: Es steht im Fuss der Mail (zweites Argument von `mailHuelle`).
+     */
     ? mailHuelle(
         mailTitel(T.kuenstlerTitel)
         + mailText(T.kuenstlerText)
-        + mailAdresse(T.kuenstlerSeite, kuenstlerUrl(o.mandant), T.kuenstlerSeiteFein)
         + mailAdresse(T.kuenstlerBearbeiten, `${kuenstlerUrl(o.mandant)}?k=${encodeURIComponent(o.schluessel)}`, T.kuenstlerBearbeitenFein)
-        + mailAdresse(T.linksDashboard, kuenstlerDashboardUrl(o.mandant, o.schluessel), T.kuenstlerDashboardFein)
-        + mailFein(T.linksHilfe)
-        + mailAdresse(T.linksAllesLoeschen, loeschen, T.linksAllesLoeschenFein),
-        loeschen)
+        + mailFein(T.linksHilfe),
+        loeschen, fuss)
     : mailHuelle(
         mailTitel(T.linksTitel)
         + mailAdresse(T.linksAnzeige, anzeige, T.linksAnzeigeFein)

@@ -23,6 +23,9 @@ export function portalPfade(host?: string | null) {
   return {
     start: p ? "/" : "/portal",
     login: p ? "/login" : "/portal/login",
+    /* Die Preisseite — auf lakatosbandi.com an der Wurzel, sonst unter `/portal` (Owner
+       14.09.2026: „Preise hast du nicht veröffentlicht"). Dieselbe Regel wie `login`. */
+    preise: p ? "/preise" : "/portal/preise",
     kuenstler: (name: string) => (p ? `/${n(name)}` : `/portal/${n(name)}`),
     /* Das Gespräch mit Name und Telefon — heute der Trichter, später der Käufer-Agent. */
     kontakt: (name: string, h?: string) =>

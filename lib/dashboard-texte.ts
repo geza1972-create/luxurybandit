@@ -46,13 +46,53 @@ export const DASHBOARD_TEXTE = {
    */
   laeuft: "Läuft",
   ausgeschaltet: "Noch nicht online · Impressum fehlt",
-  uebersicht: "Übersicht",
+  /**
+   * ── FÜR KÜNSTLER HEISST „ONLINE" ETWAS ANDERES (Owner 13.09.2026: „hier steht «Încă nu este
+   * online». Raus." · „es ist online") ─────────────────────────────────────────────────────────
+   *
+   * Der Chip hing an Impressum und Datenschutz — Pflichten eines BETRIEBS auf seiner eigenen
+   * Seite. Beim Künstler stellt das Portal die Rechtstexte, seine Felder bleiben für immer leer,
+   * und das Dashboard behauptete dauerhaft „noch nicht online", während seine Seite längst
+   * öffentlich erreichbar war. Für ihn entscheidet die Freigabe, sonst nichts.
+   */
+  wartetFreigabe: "Wird geprüft",
+  /* „Übersicht" wurde maschinell zu „Prezentare generală" — zwei Wörter, die den Reiter sprengen
+     (Owner 13.09.2026: „der muss anders heissen. Ist zu lang. Analiza"). „Analyse" ist kurz, wird
+     in jeder Sprache zu einem Wort — und trifft es besser: Dort stehen Besucher, Anfragen und der
+     Verlauf des Trichters, also eine Auswertung. */
+  uebersicht: "Analyse",
   hooks: "Hooks",
   einstellungen: "Einstellungen",
+  /* Der Weg vom Dashboard zu seiner Seite (Owner 12.09.2026: „dann öffnet sich das, hier muss
+     einen Menüpunkt editează pagina"). Anders als die drei darüber wechselt er nicht die Fläche,
+     sondern führt auf lakatosbandi.com/{name}?k=… — dorthin, wo Bilder, Texte und Preise stehen. */
+  seiteBearbeiten: "Seite bearbeiten",
 
   /* ── Der Riegel oben ─────────────────────────────────────────────────── */
   /* OHNE DAS WORT „TRICHTER" (09.09.2026): Der Übersetzer lässt es stehen — auf Rumänisch
      stand „Trichterul tău…". „Deine Seite" meint dasselbe und trägt in jede Sprache. */
+  /**
+   * ── FÜR KÜNSTLER STIMMT DER RIEGEL NICHT (Owner 13.09.2026: „Meldung auf Dashboard «Pagina ta
+   * nu acceptă solicitări» raus") ───────────────────────────────────────────────────────────────
+   *
+   * Der rote Riegel hängt an `impressumUrl` und `datenschutzUrl`. Die braucht ein Betrieb auf
+   * SEINER Seite — ein Künstler auf lakatosbandi.com nicht: Dort stellt das Portal die
+   * Rechtstexte. Seine beiden Felder bleiben deshalb für immer leer, der Riegel stand dauerhaft
+   * da und behauptete, seine Seite nehme keine Anfragen an. Sie tut es; sein Agent läuft.
+   *
+   * An seiner Stelle steht jetzt, was ihn wirklich betrifft: dass wir Bild und Text für ihn
+   * erzeugt haben und er sie ändern kann.
+   */
+  autoTitel: "Einige Angaben fehlten — wir haben sie für dich ergänzt.",
+  autoText: "Profiltext und Profilbild hast du noch nicht selbst gesetzt. Wir haben beides aus deinen Werken erzeugt, damit deine Seite nicht leer aussieht. Du kannst es jederzeit überschreiben — dein Text gilt immer vor unserem.",
+  /* Hat er Text und Bild selbst gesetzt, bleibt nur die Einladung stehen (Owner 13.09.2026:
+     „Macht er das, verschwindet die Meldung, steht nur: Willst du deine Inhalte editieren"). */
+  editTitel: "Willst du deine Inhalte bearbeiten?",
+  autoKnopf: "Webseite bearbeiten",
+  /* Der zweite Weg aus demselben Kasten (Owner 13.09.2026: „hier noch Vezi Pagina online") —
+     bearbeiten ODER ansehen. Ohne ihn führt der Kasten nur ins Formular, und wie die Seite
+     für Käufer aussieht, sieht er erst über einen Umweg. */
+  seiteAnsehen: "Seite online ansehen",
   riegelTitel: "Deine Seite nimmt noch keine Anfragen an.",
   riegelText: "Es fehlen Impressum und Datenschutz. Deine Seite ist zu sehen, aber niemand kann etwas hinterlassen — und du merkst es erst, wenn niemand anruft.",
   riegelKnopf: "Jetzt eintragen",
@@ -278,14 +318,51 @@ export const DASHBOARD_TEXTE = {
   aboGesperrt: "{n} Antworten warten auf dich. Du siehst sie, sobald du das Abo abschliesst.",
   aboGesperrtEine: "Eine Antwort wartet auf dich. Du siehst sie, sobald du das Abo abschliesst.",
   aboKnopf: "Agent behalten — {preis} im Monat",
+  /**
+   * ── DER KASTEN, WENN NICHTS GESPERRT IST (14.09.2026) ─────────────────────────────────────
+   *
+   * Seit der Kaufweg immer sichtbar ist, sieht ihn auch, wer NULL gesperrte Anfragen hat. Dort
+   * stand bisher `aboFrage` — „Drei Interessenten haben sich gemeldet". Das wäre eine erfundene
+   * Behauptung: Die Anfragen-Sperre ist aus, es sind nie welche zurückgehalten worden.
+   *
+   * Diese beiden Zeilen behaupten nichts. Sie sagen, was er bekommt.
+   */
+  aboAngebot: "Lass die KI für dich schreiben — Beschreibungen für deine Werke und deinen Profiltext.",
+  aboKnopfAngebot: "Abo abschliessen — {preis} im Monat",
   aboAktivZeile: "Dein Abo ist aktiv. Du siehst jede Anfrage.",
 } as const;
 
 export type DashboardTexte = { -readonly [K in keyof typeof DASHBOARD_TEXTE]: string };
 
 /** Die Dashboard-Texte in der Sprache des Mandanten. Deutsch kostet keinen Aufruf. */
+/**
+ * ── WAS NICHT DER ÜBERSETZER ENTSCHEIDET (Owner 13.09.2026: „der muss anders heissen. Ist zu
+ * lang. Analiza") ─────────────────────────────────────────────────────────────────────────────
+ *
+ * „Übersicht" wurde maschinell zu „Prezentare generală" — zwei Wörter, die den Reiter sprengen.
+ * Nach der Umbenennung in „Analyse" kam das Wort UNÜBERSETZT durch: `textbausteineInSprache`
+ * fällt bei jedem Ausfall auf das deutsche Original zurück (`raus[i] || werte[i]`), und im
+ * Zweifel steht dann ein deutsches Wort in einer rumänischen Oberfläche.
+ *
+ * BEI EINEM REITER IST DAS NICHT HINNEHMBAR: Er hat drei Wörter Platz und wird bei jedem Besuch
+ * gelesen. Deshalb steht er hier fest — dieselbe Lösung wie in `lib/agent-chat-texte.ts`, wo
+ * feste Fassungen die Maschinenübersetzung überschreiben.
+ *
+ * NUR FÜR DAS, WAS WIRKLICH FESTSTEHEN MUSS. Alles andere bleibt übersetzt; eine zweite
+ * vollständige Sprachtabelle wäre die Stelle, die beim nächsten Umbau auseinanderläuft.
+ */
+const FEST: Partial<Record<Lang, Partial<DashboardTexte>>> = {
+  /* Beide fest, nicht übersetzt: „Analyse" kam bei der Maschinenübersetzung unverändert deutsch
+     durch (`raus[i] || werte[i]`), und bei einem Knopf, der bei jedem Besuch gelesen wird, darf
+     das nicht vom Glück abhängen. Wortlaut beim Ansehen wie im Portal-Formular. */
+  ro: { uebersicht: "Analiză", seiteAnsehen: "Vezi pagina online" },
+  en: { uebersicht: "Analytics", seiteAnsehen: "See your page online" },
+};
+
 export async function dashboardTexteInSprache(sprache?: string): Promise<DashboardTexte> {
   const kurz = String(sprache ?? "de").slice(0, 2).toLowerCase();
   const lang: Lang = isLang(kurz) ? kurz : "de";
-  return await textbausteineInSprache({ ...DASHBOARD_TEXTE } as DashboardTexte, lang);
+  const uebersetzt = await textbausteineInSprache({ ...DASHBOARD_TEXTE } as DashboardTexte, lang);
+  /* Die festen Fassungen zuletzt — sie schlagen die Übersetzung, nicht umgekehrt. */
+  return { ...uebersetzt, ...(FEST[lang] ?? {}) };
 }
