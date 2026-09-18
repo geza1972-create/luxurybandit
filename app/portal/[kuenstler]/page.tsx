@@ -191,6 +191,7 @@ export default async function PortalKuenstler({ params, searchParams }: Props) {
               abo: aboAktiv(voll),
               /* Die EINE Aufnahme des Künstlers (Owner 18.09.2026) — sie liegt unter „profil",
                  nicht mehr an einem Werk. */
+              stimmeSkript: voll.stimmeSkript ?? "",
               stimme: !!voll.werkInfo?.profil?.stimme,
               sprecher: !!voll.werkInfo?.profil?.sprecher,
               stimmeAm: voll.werkInfo?.profil?.stimmeAm ?? "",

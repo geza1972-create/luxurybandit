@@ -82,7 +82,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
     /* Seine sozialen Adressen — freiwillig, deshalb optional (Owner 13.09.2026). */
     instagram?: string; facebook?: string; posterViu?: boolean; abo?: boolean;
     /* Die EINE Aufnahme des Künstlers (Owner 18.09.2026) — nicht mehr je Werk. */
-    stimme?: boolean; sprecher?: boolean; stimmeAm?: string; youtube?: string;
+    stimme?: boolean; sprecher?: boolean; stimmeAm?: string; youtube?: string; stimmeSkript?: string;
     kacheln: Kachel[];
   };
 }) {
@@ -99,6 +99,15 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   const [instagram, setInstagram] = useState(start.instagram ?? "");
   const [facebook, setFacebook] = useState(start.facebook ?? "");
   const [profilBild, setProfilBild] = useState(start.profilBild);
+  /* ── DER TEXT ZUR AUFNAHME IST EIN VORSCHLAG (Owner 18.09.2026: „hier muss stehen, dass es ein
+     Vorschlag ist. Er kann das korrigieren und speichern" · „nicht in dritter Person sprechen,
+     sondern Lucrez in…" · „und anfangen: Mă numesc Terry…") ─────────────────────────────────
+     Vorgeschlagen wird sein eigener Text in der Ich-Form, mit seinem Namen als Anfang. Was er
+     hier ändert, bleibt stehen — es wird mit „Speichern" abgelegt. */
+  const [skript, setSkript] = useState(
+    start.stimmeSkript
+    || [T.stimmeSkriptAnfang.replace("{name}", start.name ?? ""), (start.ueberMich ?? "").trim()].filter(Boolean).join(" "),
+  );
   const [kacheln, setKacheln] = useState<Kachel[]>(start.kacheln);
   const [version, setVersion] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<"" | "speichert" | "gespeichert" | "fehler">("");
@@ -314,7 +323,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
       const res = await fetch("/api/portal-profil", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandant, k, name, ort, ueberMich, preisSpanne, profilBild, posterViu, instagram, facebook, kacheln }),
+        body: JSON.stringify({ mandant, k, name, ort, ueberMich, preisSpanne, profilBild, posterViu, instagram, facebook, kacheln, stimmeSkript: skript }),
       });
       setEntfernt([]);
       setAusstehend({});
@@ -664,13 +673,18 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         <span className="text-[13px] font-semibold uppercase tracking-[0.18em] text-[#777]">{T.stimmeTitel}</span>
         <p className="m-0 mt-2 text-[14.5px] leading-[1.55] text-[#555]">{T.stimmeProfilErklaerung}</p>
         {start.abo ? (
+          <>
+          {/* Das Skript: sein Text, in der Ich-Form, änderbar. */}
+          <p className="m-0 mt-4 text-[13.5px] font-semibold text-[#14181c]">{T.stimmeSkriptHinweis}</p>
+          <textarea value={skript} onChange={e => { setSkript(e.target.value); setStatus(""); }} rows={5} maxLength={1200}
+            className={`${feld} mt-2 w-full resize-y py-1 text-[16px] leading-[1.6] text-[#333]`} />
           <StimmeAufnehmen
             mandant={mandant} schluessel={k} i={-2}
             vorhanden={!!start.stimme} videoDa={!!start.sprecher} stand={start.stimmeAm}
             /* Im Hintergrund steht ein Werk von ihm — das erste, das er hochgeladen hat. */
             werkBild={ausstehend[nrVon(kacheln[0]?.i ?? -1)] ?? bildUrl(nrVon(kacheln[0]?.i ?? -1))}
             youtubeId={start.youtube}
-            text={ueberMich}
+            text={skript}
             texte={{
               aufnehmen: T.stimmeAufnehmen, stoppen: T.stimmeStoppen, speichern: T.stimmeSpeichern,
               loeschen: T.stimmeLoeschen, laeuft: T.stimmeLaeuft, erklaerung: T.stimmeErklaerung,
@@ -679,6 +693,7 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
               keinMikro: T.stimmeKeinMikro, keinBrowser: T.stimmeKeinBrowser,
               fehler: T.stimmeFehler, gespeichert: T.stimmeGespeichert,
             }} />
+          </>
         ) : (
           <span className="mt-3 block">
             <span className="block text-[13.5px] font-semibold text-[#14181c]">{T.stimmePremium}</span>

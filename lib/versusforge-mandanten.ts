@@ -365,6 +365,8 @@ export type MandantAngaben = {
   leben?: string;
   /** Über mich — sein Text auf seiner Seite (Owner 11.09.2026: „Text über sich"). */
   ueberMich?: string;
+  /** Was er vor der Kamera sagt (Owner 18.09.2026) — Vorschlag von uns, Text von ihm. */
+  stimmeSkript?: string;
   /**
    * WIE UND WAS ER MALT — aus der Bildanalyse erzeugt (Owner 13.09.2026: „du beschreibst wie er
    * malt, was er malt" · „auch bei den jetzigen, die nichts haben"), in `lib/kuenstler-profil.ts`.

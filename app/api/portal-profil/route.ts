@@ -146,6 +146,8 @@ export async function POST(request: Request) {
     /* PREMIUM (Owner 16.09.2026: „das ist aber eine premium funktion") — auf dem SERVER geprüft,
        nicht nur im Formular: Sonst schaltet es sich frei, wer die Route direkt anspricht. */
     posterViu: b.posterViu === true && aboAktiv(m),
+    /* Sein Sprechtext zur Aufnahme (Owner 18.09.2026) — sein Wort, nicht unser Vorschlag. */
+    stimmeSkript: zeile(b.stimmeSkript, 1200),
     instagram: sozialeAdresse(str(b.instagram, 200), "instagram.com"),
     facebook: sozialeAdresse(str(b.facebook, 200), "facebook.com"),
     hook: standard?.spruch ?? "",
