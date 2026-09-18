@@ -16,7 +16,7 @@ export default function InteresseChat() {
   const mailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
 
   if (status === "ok") {
-    return <p className="gl-interesse-danke">Danke! Ich melde mich bei dir.</p>;
+    return <p className="gl-interesse-danke">Thanks! I'll get back to you.</p>;
   }
 
   return (
@@ -38,7 +38,7 @@ export default function InteresseChat() {
         }
       }}
     >
-      <p className="gl-interesse-frage">Interesse an einer Zusammenarbeit? Wer bist du?</p>
+      <p className="gl-interesse-frage">Interested in working together? Who are you?</p>
       <div className="gl-interesse-row">
         <input
           className="gl-interesse-input"
@@ -49,15 +49,15 @@ export default function InteresseChat() {
         <input
           className="gl-interesse-input"
           type="email"
-          placeholder="E-Mail"
+          placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
         />
         <button className="gl-cta" type="submit" disabled={!name.trim() || !mailOk || status === "busy"}>
-          {status === "busy" ? "Sende…" : "Interesse senden"}
+          {status === "busy" ? "Sending…" : "Send interest"}
         </button>
       </div>
-      {status === "error" && <p className="gl-interesse-fehler">Ging gerade nicht — schreib direkt an geza.lakatos.ux@gmail.com.</p>}
+      {status === "error" && <p className="gl-interesse-fehler">That did not go through — email me directly at geza.lakatos.ux@gmail.com.</p>}
     </form>
   );
 }
