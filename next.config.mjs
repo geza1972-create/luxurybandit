@@ -99,7 +99,14 @@ const nextConfig = {
         /* Die Seite eines Werks (Owner 11.09.2026: „hier komme ich nicht auf die Kunstwerk-Seite drauf"). */
         /* Die Seite hinter dem QR-Code auf dem Poster (15.09.2026): nur der Film, formatfüllend. */
         { source: "/:kuenstler/:werk(standard|\\d+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler/:werk" },
-        { source: "/:kuenstler", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
+        /* ── „portal" IST KEIN KÜNSTLER (18.09.2026, auf der Live-Seite gemessen) ──────────
+           `beforeFiles`-Regeln greifen auch auf einen Pfad, den eine Regel darüber schon
+           umgeschrieben hat: „/" wurde zu „/portal", und diese Zeile machte daraus
+           „/portal/portal" — die Startseite von lakatosbandi.com war eine 404
+           (`x-nextjs-rewritten-path: /portal/portal`). Der Name „portal" ist deshalb hier
+           ausgenommen; dasselbe gilt für die anderen Hausnamen, die schon oben umgeschrieben
+           werden. */
+        { source: "/:kuenstler((?!portal$|api$|_next$|journal$)[^/]+)", has: [{ type: "host", value: "(www\\.)?lakatosbandi\\.com" }], destination: "/portal/:kuenstler" },
       ],
     };
   },
