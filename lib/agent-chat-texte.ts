@@ -148,12 +148,17 @@ export const AGENT_CHAT_TEXTE = {
   /* Owner 15.09.2026, wörtlich: „man kann sagen, Vigent Goch wurde der WElt gezeigt, wo wird
      dein Bild gezeigt?" — die Frage trifft, was ein Maler wirklich fragt, und sie verspricht
      nichts, was wir nicht halten: Wir zeigen es, wir verkaufen es nicht. */
-  startHook: "Van Gogh wurde der Welt gezeigt. Wo wird dein Bild gezeigt?",
+  /* ── DER HOOK IST UNSER KONZEPT, NICHT VAN GOGH (Owner 18.09.2026: „sag, dass wir ein
+     einzigartiges Marketing-Konzept haben, Art Fair … und Louisett als Beispiel geben, nicht
+     Van Gogh" · „Fang an, deine Kunst jetzt clever zu vermarkten mit lakatosbandi Art Fair") ──
+     Van Gogh war ein Vergleich, den jeder kennt — aber er verspricht Ruhm. Artist Fair
+     verspricht etwas Prüfbares: aus Kunst werden Produkte, und die Lizenz gehört ihm. */
+  startHook: "Fang an, deine Kunst clever zu vermarkten — mit lakatosbandi Art Fair.",
   /* ZWEI ZEILEN, ZWEI GEWICHTE (Owner 13.09.2026: „Noi îl facem. klein drunter und nicht
      Serif"). Die Behauptung trägt die Karte, die Antwort darauf steht leise darunter — sie
      muss nicht laut sein, sie muss nur dastehen. */
   /* Owner 15.09.2026, wörtlich: „wir zeigen es der Welt." */
-  startHookKlein: "Wir zeigen es der Welt.",
+  startHookKlein: "Deine Werke werden zu Produkten. An jeder Bestellung verdienst du mit.",
   /**
    * ── DAS BEISPIEL MIT VAN GOGH, WIEDER OBEN (Owner 13.09.2026: „jetzt postest du doch den
    * beispiel mit vangoch obendrauf" · „aber raus wenn der to much ist") ───────────────────────
@@ -588,8 +593,8 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     startMockup: "Așa poate arăta pagina ta.",
     startTitel: "Artă arătată lumii",
     /* Wortlaut des Owners, 15.09.2026, ins Rumänische gesetzt. */
-    startHook: "Van Gogh a fost arătat lumii. Unde e arătat tabloul tău?",
-    startHookKlein: "Noi îl arătăm lumii.",
+    startHook: "Începe să-ți promovezi arta inteligent — cu lakatosbandi Art Fair.",
+    startHookKlein: "Lucrările tale devin produse. Din fiecare comandă câștigi și tu.",
     /* Wortlaut des Owners, orthografisch gesetzt: „der Arta" → „de artă", Diakritika ergänzt. */
     startKnopf: "Încarcă 1-10 poze",
     /* Owner 14.09.2026: „das ist falsch fällt mir ein. Urca pana la 10 lucrari. Primesti un
@@ -728,8 +733,8 @@ const FEST: Partial<Record<Lang, Partial<AgentChatTexte>>> = {
     beispielVor: "e.g.",
     startMockup: "This is how your page can look.",
     startTitel: "Art shown to the world",
-    startHook: "Van Gogh was shown to the world. Where is your painting shown?",
-    startHookKlein: "We show it to the world.",
+    startHook: "Start marketing your art cleverly — with lakatosbandi Art Fair.",
+    startHookKlein: "Your works become products. Every order pays you a licence.",
     startKnopf: "Upload up to 10 works",
     analyseKnopf: "Analyse now",
     analyseLaeuft: "I'm looking at your work …",

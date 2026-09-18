@@ -99,6 +99,16 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
   const [instagram, setInstagram] = useState(start.instagram ?? "");
   const [facebook, setFacebook] = useState(start.facebook ?? "");
   const [profilBild, setProfilBild] = useState(start.profilBild);
+  /* Nach dem Kauf: `?abo=neu` steht in der Adresse (siehe `MandantKaufen`). Der Satz steht dann
+     oben, einmal — danach nimmt ihn der Browser aus der Adresse. */
+  const [aboNeu, setAboNeu] = useState(false);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("abo") !== "neu") return;
+    setAboNeu(true);
+    p.delete("abo");
+    window.history.replaceState({}, "", `${window.location.pathname}${p.toString() ? `?${p}` : ""}`);
+  }, []);
   /* ── DER TEXT ZUR AUFNAHME IST EIN VORSCHLAG (Owner 18.09.2026: „hier muss stehen, dass es ein
      Vorschlag ist. Er kann das korrigieren und speichern" · „nicht in dritter Person sprechen,
      sondern Lucrez in…" · „und anfangen: Mă numesc Terry…") ─────────────────────────────────
@@ -457,6 +467,11 @@ export default function PortalBearbeiten({ mandant, k, T, lang, aufbau = false, 
         * RELATIVE ADRESSE: Wir sind bereits auf dem Portal, und sie trägt seinen Schlüssel weiter,
         * ohne den das Dashboard ihn nicht einlässt.
         */}
+      {aboNeu && (
+        <p className="m-0 mb-5 rounded-xl bg-[#111] px-5 py-4 text-[15px] font-semibold leading-[1.5] text-white">
+          {T.aboAktivJetzt}
+        </p>
+      )}
       <a href={`/${encodeURIComponent(mandant)}/dashboard?k=${encodeURIComponent(k)}`}
         className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#dfe4e9] px-4 py-2 text-[13.5px] font-semibold text-[#555] no-underline transition hover:border-[#111] hover:text-[#111]">
         <LayoutDashboard className="h-[15px] w-[15px]" aria-hidden />

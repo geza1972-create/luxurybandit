@@ -1678,7 +1678,13 @@ export default function AgentChat({ S: SQuelle, lang, gewaehlt, auftrag, lead = 
                         Karte nicht, bevor er hochlädt. */}
                     {verlauf.length <= 1 && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src="/lakatosbandi/beispiel-sternennacht.jpg" alt=""
+                      /* ── EIN POSTER VON LOUISETT STATT VAN GOGH (Owner 18.09.2026: „und
+                         Louisett als Beispiel geben, nicht Van Gogh … dann zeigen wir ein Poster
+                         von Louisett") ───────────────────────────────────────────────────────
+                         Van Gogh zeigt, was BERÜHMT aussieht; ein Blatt einer lebenden Künstlerin
+                         zeigt, was ER bekommt — mit seinem Namen, seiner Adresse und dem Siegel
+                         darauf. */
+                      <img src="/lakatosbandi/beispiel-louisett.jpg" alt=""
                         /* AUSSCHNITT STATT GANZE HÖHE: Die Datei ist hochkant (1080×1350) und
                            schöbe den Knopf sonst wieder unter den Rand — genau der Fehler, den
                            der Slider gemacht hat. */

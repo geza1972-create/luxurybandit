@@ -79,10 +79,17 @@ export default function MandantKaufen({ mandant, wort, klasse, k, abo }: {
         });
         const d = (await res.json()) as Record<string, unknown>;
         p.delete(param);
-        window.history.replaceState({}, "", `${window.location.pathname}${p.toString() ? `?${p}` : ""}`);
+        /* ── ER SOLL ES SCHWARZ AUF WEISS SEHEN (Owner 18.09.2026: „hast du geprüft, ob er
+           danach die Meldung bekommt: jetzt sind alle Features für dich freigeschaltet?") ────
+           Ohne dieses Zeichen kam er aus der Kasse zurück auf dieselbe Seite und musste selbst
+           herausfinden, ob es geklappt hat. `abo=neu` überlebt das Neuladen und wird von der
+           Seite in einen Satz verwandelt. */
+        if (d.bezahlt) p.set("abo", "neu");
+        const ziel = `${window.location.pathname}${p.toString() ? `?${p}` : ""}`;
         /* Der Zustand steht jetzt auf dem Server — die Seite holt ihn beim Neuladen. */
-        if (d.bezahlt) window.location.reload();
-        else setFehler("Die Zahlung ist noch nicht bestätigt. Lade die Seite in einer Minute neu.");
+        if (d.bezahlt) { window.location.href = ziel; return; }
+        window.history.replaceState({}, "", ziel);
+        setFehler("Die Zahlung ist noch nicht bestätigt. Lade die Seite in einer Minute neu.");
       } catch {
         setFehler("Das liess sich gerade nicht prüfen.");
       } finally { setLaeuft(false); }

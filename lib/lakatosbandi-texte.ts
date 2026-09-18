@@ -22,6 +22,7 @@ const TEXTE = {
     /* Das Wort im Kopf (Owner 14.09.2026: „hier braucht man eigentlich ein Menü für Preise") —
        kurz, damit neben Logo, Sprachen und Login noch Platz bleibt. */
     preiseWort: "Pricing",
+    aboAktivJetzt: "Premium is active. Your Artist Fair Shop, the recording and the AI texts are unlocked — everything is ready for you now.",
     texteUeberschreiben: "The lines under your works were written by our algorithm. Overwrite any of them — your own words always win.",
     ueberUnsWort: "About",
     kontaktWort: "Contact",
@@ -411,6 +412,7 @@ const TEXTE = {
     leer: "Primii artiști sunt verificați chiar acum. Revino în curând.",
     anmelden: "Login artist",
     preiseWort: "Prețuri",
+    aboAktivJetzt: "Premium e activ. Artist Fair Shop, înregistrarea și textele AI sunt deblocate — totul e pregătit pentru tine.",
     texteUeberschreiben: "Frazele de sub lucrările tale au fost scrise de algoritmul nostru. Le poți rescrie oricând — ce scrii tu rămâne.",
     ueberUnsWort: "Despre",
     kontaktWort: "Contact",
@@ -655,6 +657,7 @@ const TEXTE = {
     leer: "Die ersten Künstler werden gerade geprüft. Schau bald wieder vorbei.",
     anmelden: "Login für Künstler",
     preiseWort: "Preise",
+    aboAktivJetzt: "Premium ist aktiv. Dein Artist-Fair-Shop, die Aufnahme und die KI-Texte sind freigeschaltet — alles steht dir jetzt offen.",
     texteUeberschreiben: "Die Sätze unter deinen Werken hat unser Algorithmus geschrieben. Überschreib jeden davon — dein eigener Text gilt immer.",
     ueberUnsWort: "Über uns",
     kontaktWort: "Kontakt",
